@@ -20,7 +20,7 @@
  * step 2 ...
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/pg_resetwal/pg_resetwal.c
@@ -45,9 +45,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "access/transam.h"
-#include "access/tuptoaster.h"
+#include "access/heaptoast.h"
 #include "access/multixact.h"
+#include "access/transam.h"
 #include "access/xlog.h"
 #include "access/xlog_internal.h"
 #include "common/controldata_utils.h"
@@ -55,22 +55,23 @@
 #include "common/file_perm.h"
 #include "common/logging.h"
 #include "common/restricted_token.h"
-#include "storage/large_object.h"
-#include "pg_getopt.h"
+#include "common/string.h"
 #include "getopt_long.h"
-
+#include "pg_getopt.h"
+#include "storage/large_object.h"
 
 static ControlFileData ControlFile; /* pg_control values */
 static XLogSegNo newXlogSegNo;	/* new XLOG segment # */
 static bool guessed = false;	/* T if we had to guess at any values */
 static const char *progname;
 static uint32 set_xid_epoch = (uint32) -1;
+static TransactionId set_oldest_xid = 0;
 static TransactionId set_xid = 0;
 static DistributedTransactionId set_gxid = 0;
 static TransactionId set_oldest_commit_ts_xid = 0;
 static TransactionId set_newest_commit_ts_xid = 0;
 static Oid	set_oid = 0;
-static Oid	set_relfilenode = 0;
+static RelFileNodeId set_relfilenode = 0;
 static MultiXactId set_mxid = 0;
 static MultiXactOffset set_mxoff = (MultiXactOffset) -1;
 static int32 set_data_checksum_version = -1;
@@ -81,7 +82,7 @@ static int	set_wal_segsize;
 static uint64 system_identifier = 0;
 
 static void CheckDataVersion(void);
-static bool ReadControlFile(void);
+static bool read_controlfile(void);
 static void GuessControlValues(void);
 static void PrintControlValues(bool guessed);
 static void PrintNewControlValues(void);
@@ -114,6 +115,7 @@ main(int argc, char *argv[])
 		{"dry-run", no_argument, NULL, 'n'},
 		{"next-oid", required_argument, NULL, 'o'},
 		{"multixact-offset", required_argument, NULL, 'O'},
+		{"oldest-transaction-id", required_argument, NULL, 'u'},
 		{"next-transaction-id", required_argument, NULL, 'x'},
 		{"wal-segsize", required_argument, NULL, 1},
 
@@ -151,18 +153,18 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_resetwal (PostgreSQL) " PG_VERSION);
+			puts("pg_resetwal (Cloudberry Database) " PG_VERSION);
 			exit(0);
 		}
 		if (strcmp(argv[1], "--gp-version") == 0)
 		{
-			puts("pg_resetwal (Greenplum Database) " GP_VERSION);
+			puts("pg_resetwal (Cloudberry Database) " GP_VERSION);
 			exit(0);
 		}
 	}
 
 
-	while ((c = getopt_long(argc, argv, "c:D:e:fl:m:no:r:O:x:k:", long_options, NULL)) != -1)
+	while ((c = getopt_long(argc, argv, "c:D:e:fl:m:no:r:O:u:x:k:", long_options, NULL)) != -1)
 	{
 		switch (c)
 		{
@@ -195,6 +197,21 @@ main(int argc, char *argv[])
 				}
 				break;
 
+			case 'u':
+				set_oldest_xid = strtoul(optarg, &endptr, 0);
+				if (endptr == optarg || *endptr != '\0')
+				{
+					pg_log_error("invalid argument for option %s", "-u");
+					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
+					exit(1);
+				}
+				if (!TransactionIdIsNormal(set_oldest_xid))
+				{
+					pg_log_error("oldest transaction ID (-u) must be greater than or equal to %u", FirstNormalTransactionId);
+					exit(1);
+				}
+				break;
+
 			case 'x':
 				set_xid = strtoul(optarg, &endptr, 0);
 				if (endptr == optarg || *endptr != '\0')
@@ -203,9 +220,9 @@ main(int argc, char *argv[])
 					fprintf(stderr, _("Try \"%s --help\" for more information.\n"), progname);
 					exit(1);
 				}
-				if (set_xid == 0)
+				if (!TransactionIdIsNormal(set_xid))
 				{
-					pg_log_error("transaction ID (-x) must not be 0");
+					pg_log_error("transaction ID (-x) must be greater than or equal to %u", FirstNormalTransactionId);
 					exit(1);
 				}
 				break;
@@ -500,7 +517,7 @@ main(int argc, char *argv[])
 	/*
 	 * Attempt to read the existing pg_control file
 	 */
-	if (!ReadControlFile())
+	if (!read_controlfile())
 		GuessControlValues();
 
 	/*
@@ -531,31 +548,20 @@ main(int argc, char *argv[])
 	 * if any, includes these values.)
 	 */
 	if (set_xid_epoch != -1)
-		ControlFile.checkPointCopy.nextFullXid =
+		ControlFile.checkPointCopy.nextXid =
 			FullTransactionIdFromEpochAndXid(set_xid_epoch,
-											 XidFromFullTransactionId(ControlFile.checkPointCopy.nextFullXid));
+											 XidFromFullTransactionId(ControlFile.checkPointCopy.nextXid));
 
-	if (set_xid != 0)
+	if (set_oldest_xid != 0)
 	{
-		ControlFile.checkPointCopy.nextFullXid =
-			FullTransactionIdFromEpochAndXid(EpochFromFullTransactionId(ControlFile.checkPointCopy.nextFullXid),
-											 set_xid);
-
-		/*
-		 * For the moment, just set oldestXid to a value that will force
-		 * immediate autovacuum-for-wraparound.  It's not clear whether adding
-		 * user control of this is useful, so let's just do something that's
-		 * reasonably safe.  The magic constant here corresponds to the
-		 * maximum allowed value of autovacuum_freeze_max_age.
-		 */
-		ControlFile.checkPointCopy.oldestXid = set_xid - 2000000000;
-		if (ControlFile.checkPointCopy.oldestXid < FirstNormalTransactionId)
-			ControlFile.checkPointCopy.oldestXid += FirstNormalTransactionId;
+		ControlFile.checkPointCopy.oldestXid = set_oldest_xid;
 		ControlFile.checkPointCopy.oldestXidDB = InvalidOid;
 	}
 
-	if (set_gxid != 0)
-		ControlFile.checkPointCopy.nextGxid = set_gxid;
+	if (set_xid != 0)
+		ControlFile.checkPointCopy.nextXid =
+			FullTransactionIdFromEpochAndXid(EpochFromFullTransactionId(ControlFile.checkPointCopy.nextXid),
+											 set_xid);
 
 	if (set_oldest_commit_ts_xid != 0)
 		ControlFile.checkPointCopy.oldestCommitTsXid = set_oldest_commit_ts_xid;
@@ -662,7 +668,7 @@ AcceptWarning(void)
 	/* initialize response to empty string. */
 	response[0] = 0;
 
-	printf(_("WARNING: Do not use this on Greenplum. %s might cause data loss\n"
+	printf(_("WARNING: Do not use this on Cloudberry. %s might cause data loss\n"
 			"and render system irrecoverable. Do you wish to proceed? [yes/no] "), progname);
 
 	/* Reading up to 4 letters instead of just 3 to ensure something like
@@ -703,7 +709,6 @@ CheckDataVersion(void)
 	const char *ver_file = "PG_VERSION";
 	FILE	   *ver_fd;
 	char		rawline[64];
-	int			len;
 
 	if ((ver_fd = fopen(ver_file, "r")) == NULL)
 	{
@@ -722,14 +727,8 @@ CheckDataVersion(void)
 		exit(1);
 	}
 
-	/* remove trailing newline, handling Windows newlines as well */
-	len = strlen(rawline);
-	if (len > 0 && rawline[len - 1] == '\n')
-	{
-		rawline[--len] = '\0';
-		if (len > 0 && rawline[len - 1] == '\r')
-			rawline[--len] = '\0';
-	}
+	/* strip trailing newline and carriage return */
+	(void) pg_strip_crlf(rawline);
 
 	if (strcmp(rawline, PG_MAJORVERSION) != 0)
 	{
@@ -750,7 +749,7 @@ CheckDataVersion(void)
  * to the current format.  (Currently we don't do anything of the sort.)
  */
 static bool
-ReadControlFile(void)
+read_controlfile(void)
 {
 	int			fd;
 	int			len;
@@ -856,7 +855,7 @@ GuessControlValues(void)
 	ControlFile.checkPointCopy.ThisTimeLineID = 1;
 	ControlFile.checkPointCopy.PrevTimeLineID = 1;
 	ControlFile.checkPointCopy.fullPageWrites = false;
-	ControlFile.checkPointCopy.nextFullXid =
+	ControlFile.checkPointCopy.nextXid =
 		FullTransactionIdFromEpochAndXid(0, FirstNormalTransactionId);
 	ControlFile.checkPointCopy.nextGxid = FirstDistributedTransactionId;
 	ControlFile.checkPointCopy.nextOid = FirstBootstrapObjectId;
@@ -873,7 +872,7 @@ GuessControlValues(void)
 	ControlFile.state = DB_SHUTDOWNED;
 	ControlFile.time = (pg_time_t) time(NULL);
 	ControlFile.checkPoint = ControlFile.checkPointCopy.redo;
-	ControlFile.unloggedLSN = 1;
+	ControlFile.unloggedLSN = FirstNormalUnloggedLSN;
 
 	/* minRecoveryPoint, backupStartPoint and backupEndPoint can be left zero */
 
@@ -896,7 +895,6 @@ GuessControlValues(void)
 	ControlFile.indexMaxKeys = INDEX_MAX_KEYS;
 	ControlFile.toast_max_chunk_size = TOAST_MAX_CHUNK_SIZE;
 	ControlFile.loblksize = LOBLKSIZE;
-	ControlFile.float4ByVal = FLOAT4PASSBYVAL;
 	ControlFile.float8ByVal = FLOAT8PASSBYVAL;
 	ControlFile.data_checksum_version = PG_DATA_CHECKSUM_VERSION;
 
@@ -916,38 +914,29 @@ GuessControlValues(void)
 static void
 PrintControlValues(bool guessed)
 {
-	char		sysident_str[32];
-
 	if (guessed)
 		printf(_("Guessed pg_control values:\n\n"));
 	else
 		printf(_("Current pg_control values:\n\n"));
 
-	/*
-	 * Format system_identifier separately to keep platform-dependent format
-	 * code out of the translatable message string.
-	 */
-	snprintf(sysident_str, sizeof(sysident_str), UINT64_FORMAT,
-			 ControlFile.system_identifier);
-
 	printf(_("pg_control version number:            %u\n"),
 		   ControlFile.pg_control_version);
 	printf(_("Catalog version number:               %u\n"),
 		   ControlFile.catalog_version_no);
-	printf(_("Database system identifier:           %s\n"),
-		   sysident_str);
+	printf(_("Database system identifier:           %llu\n"),
+		   (unsigned long long) ControlFile.system_identifier);
 	printf(_("Latest checkpoint's TimeLineID:       %u\n"),
 		   ControlFile.checkPointCopy.ThisTimeLineID);
 	printf(_("Latest checkpoint's full_page_writes: %s\n"),
 		   ControlFile.checkPointCopy.fullPageWrites ? _("on") : _("off"));
 	printf(_("Latest checkpoint's NextXID:          %u:%u\n"),
-		   EpochFromFullTransactionId(ControlFile.checkPointCopy.nextFullXid),
-		   XidFromFullTransactionId(ControlFile.checkPointCopy.nextFullXid));
+		   EpochFromFullTransactionId(ControlFile.checkPointCopy.nextXid),
+		   XidFromFullTransactionId(ControlFile.checkPointCopy.nextXid));
 	printf(_("Latest checkpoint's NextGxid:         "UINT64_FORMAT"\n"),
 		   ControlFile.checkPointCopy.nextGxid);
 	printf(_("Latest checkpoint's NextOID:          %u\n"),
 		   ControlFile.checkPointCopy.nextOid);
-	printf(_("Latest checkpoint's NextRelfilenode:  %u\n"),
+	printf(_("Latest checkpoint's NextRelfilenode:  %lu\n"),
 		   ControlFile.checkPointCopy.nextRelfilenode);
 	printf(_("Latest checkpoint's NextMultiXactId:  %u\n"),
 		   ControlFile.checkPointCopy.nextMulti);
@@ -989,8 +978,6 @@ PrintControlValues(bool guessed)
 	/* This is no longer configurable, but users may still expect to see it: */
 	printf(_("Date/time type storage:               %s\n"),
 		   _("64-bit integers"));
-	printf(_("Float4 argument passing:              %s\n"),
-		   (ControlFile.float4ByVal ? _("by value") : _("by reference")));
 	printf(_("Float8 argument passing:              %s\n"),
 		   (ControlFile.float8ByVal ? _("by value") : _("by reference")));
 	printf(_("Data page checksum version:           %u\n"),
@@ -1037,14 +1024,14 @@ PrintNewControlValues(void)
 
 	if (set_relfilenode != 0)
 	{
-		printf(_("NextRelfilenode:                      %u\n"),
+		printf(_("NextRelfilenode:                      %lu\n"),
 			   ControlFile.checkPointCopy.nextRelfilenode);
 	}
 
 	if (set_xid != 0)
 	{
 		printf(_("NextXID:                              %u\n"),
-			   XidFromFullTransactionId(ControlFile.checkPointCopy.nextFullXid));
+			   XidFromFullTransactionId(ControlFile.checkPointCopy.nextXid));
 		printf(_("OldestXID:                            %u\n"),
 			   ControlFile.checkPointCopy.oldestXid);
 		printf(_("OldestXID's DB:                       %u\n"),
@@ -1054,7 +1041,7 @@ PrintNewControlValues(void)
 	if (set_xid_epoch != -1)
 	{
 		printf(_("NextXID epoch:                        %u\n"),
-			   EpochFromFullTransactionId(ControlFile.checkPointCopy.nextFullXid));
+			   EpochFromFullTransactionId(ControlFile.checkPointCopy.nextXid));
 	}
 
 	if (set_gxid != 0)
@@ -1148,8 +1135,8 @@ RewriteControlFile(void)
  *
  * On entry, ControlFile.checkPointCopy.redo and ControlFile.xlog_seg_size
  * are assumed valid (note that we allow the old xlog seg size to differ
- * from what we're using).  On exit, newXlogId and newXlogSeg are set to
- * suitable values for the beginning of replacement WAL (in our seg size).
+ * from what we're using).  On exit, newXlogSegNo is set to suitable
+ * value for the beginning of replacement WAL (in our seg size).
  */
 static void
 FindEndOfXLOG(void)
@@ -1539,23 +1526,25 @@ usage(void)
 	printf(_("Usage:\n  %s [OPTION]... DATADIR\n\n"), progname);
 	printf(_("Options:\n"));
 	printf(_("  -c, --commit-timestamp-ids=XID,XID\n"
-			 "                                 set oldest and newest transactions bearing\n"
-			 "                                 commit timestamp (zero means no change)\n"));
-	printf(_(" [-D, --pgdata=]DATADIR          data directory\n"));
-	printf(_("  -e, --epoch=XIDEPOCH           set next transaction ID epoch\n"));
-	printf(_("  -f, --force                    force update to be done\n"));
-	printf(_("  -k data_checksum_version       set data_checksum_version\n"));
-	printf(_("  -l, --next-wal-file=WALFILE    set minimum starting location for new WAL\n"));
-	printf(_("  -m, --multixact-ids=MXID,MXID  set next and oldest multitransaction ID\n"));
-	printf(_("  -n, --dry-run                  no update, just show what would be done\n"));
-	printf(_("  -o, --next-oid=OID             set next OID\n"));
-	printf(_("  -O, --multixact-offset=OFFSET  set next multitransaction offset\n"));
+			 "                                   set oldest and newest transactions bearing\n"
+			 "                                   commit timestamp (zero means no change)\n"));
+	printf(_(" [-D, --pgdata=]DATADIR            data directory\n"));
+	printf(_("  -e, --epoch=XIDEPOCH             set next transaction ID epoch\n"));
+	printf(_("  -f, --force                      force update to be done\n"));
+	printf(_("  -k data_checksum_version         set data_checksum_version\n"));
+	printf(_("  -l, --next-wal-file=WALFILE      set minimum starting location for new WAL\n"));
+	printf(_("  -m, --multixact-ids=MXID,MXID    set next and oldest multitransaction ID\n"));
+	printf(_("  -n, --dry-run                    no update, just show what would be done\n"));
+	printf(_("  -o, --next-oid=OID               set next OID\n"));
+	printf(_("  -O, --multixact-offset=OFFSET    set next multitransaction offset\n"));
 	printf(_("  -r RELFILENODE                 set next RELFILENODE\n"));
 	printf(_("      --system-identifier=ID     set database system identifier\n"));
-	printf(_("  -V, --version                  output version information, then exit\n"));
-	printf(_("  -x, --next-transaction-id=XID  set next transaction ID\n"));
+	printf(_("  -u, --oldest-transaction-id=XID  set oldest transaction ID\n"));
+	printf(_("  -V, --version                    output version information, then exit\n"));
+	printf(_("  -x, --next-transaction-id=XID    set next transaction ID\n"));
 	printf(_("      --next-gxid=GXID           set next distributed transaction ID\n"));
-	printf(_("      --wal-segsize=SIZE         size of WAL segments, in megabytes\n"));
-	printf(_("  -?, --help                     show this help, then exit\n"));
-	printf(_("\nReport bugs to <bugs@greenplum.org>.\n"));
+	printf(_("      --wal-segsize=SIZE           size of WAL segments, in megabytes\n"));
+	printf(_("  -?, --help                       show this help, then exit\n"));
+	printf(_("\nReport bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }

@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright 2011 EMC Corp.
 //
 //	@filename:
@@ -2574,6 +2574,14 @@ CPredicateUtils::FCompatibleIndexPredicate(CExpression *pexprPred,
 		CScalarArrayCmp *popScArrCmp =
 			CScalarArrayCmp::PopConvert(pexprPred->Pop());
 		pmdobjScCmp = md_accessor->RetrieveScOp(popScArrCmp->MdIdOp());
+		// bitmap and btree index scan only support ScalarArrayOpExpr ("indexkey op ANY (array-expression)")
+		// if not then return false
+		if (CScalarArrayCmp::EarrcmpAll == popScArrCmp->Earrcmpt()
+			&& (IMDIndex::EmdindBtree == pmdindex->IndexType()
+			|| IMDIndex::EmdindBitmap == pmdindex->IndexType()))
+		{
+			return false;
+		}
 	}
 	else
 	{

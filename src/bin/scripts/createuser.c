@@ -2,7 +2,7 @@
  *
  * createuser
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/bin/scripts/createuser.c
@@ -13,6 +13,8 @@
 #include "postgres_fe.h"
 #include "common.h"
 #include "common/logging.h"
+#include "common/string.h"
+#include "fe_utils/option_utils.h"
 #include "fe_utils/simple_list.h"
 #include "fe_utils/string_utils.h"
 
@@ -43,9 +45,6 @@ main(int argc, char *argv[])
 		{"replication", no_argument, NULL, 1},
 		{"no-replication", no_argument, NULL, 2},
 		{"interactive", no_argument, NULL, 3},
-		/* adduser is obsolete, undocumented spelling of superuser */
-		{"adduser", no_argument, NULL, 'a'},
-		{"no-adduser", no_argument, NULL, 'A'},
 		{"connection-limit", required_argument, NULL, 'c'},
 		{"pwprompt", no_argument, NULL, 'P'},
 		{"encrypted", no_argument, NULL, 'E'},
@@ -61,13 +60,12 @@ main(int argc, char *argv[])
 	char	   *username = NULL;
 	SimpleStringList roles = {NULL, NULL};
 	enum trivalue prompt_password = TRI_DEFAULT;
+	ConnParams	cparams;
 	bool		echo = false;
 	bool		interactive = false;
-	char	   *conn_limit = NULL;
+	int			conn_limit = -2;	/* less than minimum valid value */
 	bool		pwprompt = false;
 	char	   *newpassword = NULL;
-	char		newuser_buf[128];
-	char		newpassword_buf[100];
 
 	/* Tri-valued variables.  */
 	enum trivalue createdb = TRI_DEFAULT,
@@ -88,9 +86,11 @@ main(int argc, char *argv[])
 
 	handle_help_version_opts(argc, argv, "createuser", help);
 
-	while ((c = getopt_long(argc, argv, "h:p:U:g:wWedDsSaArRiIlLc:PE",
+	while ((c = getopt_long(argc, argv, "h:p:U:g:wWedDsSrRiIlLc:PE",
 							long_options, &optindex)) != -1)
 	{
+		char	   *endptr;
+
 		switch (c)
 		{
 			case 'h':
@@ -121,11 +121,9 @@ main(int argc, char *argv[])
 				createdb = TRI_NO;
 				break;
 			case 's':
-			case 'a':
 				superuser = TRI_YES;
 				break;
 			case 'S':
-			case 'A':
 				superuser = TRI_NO;
 				break;
 			case 'r':
@@ -147,7 +145,13 @@ main(int argc, char *argv[])
 				login = TRI_NO;
 				break;
 			case 'c':
-				conn_limit = pg_strdup(optarg);
+				conn_limit = strtol(optarg, &endptr, 10);
+				if (*endptr != '\0' || conn_limit < -1) /* minimum valid value */
+				{
+					pg_log_error("invalid value for --connection-limit: %s",
+								 optarg);
+					exit(1);
+				}
 				break;
 			case 'P':
 				pwprompt = true;
@@ -188,9 +192,7 @@ main(int argc, char *argv[])
 	{
 		if (interactive)
 		{
-			simple_prompt("Enter name of role to add: ",
-						  newuser_buf, sizeof(newuser_buf), true);
-			newuser = newuser_buf;
+			newuser = simple_prompt("Enter name of role to add: ", true);
 		}
 		else
 		{
@@ -203,17 +205,16 @@ main(int argc, char *argv[])
 
 	if (pwprompt)
 	{
-		char		pw2[100];
+		char	   *pw2;
 
-		simple_prompt("Enter password for new role: ",
-					  newpassword_buf, sizeof(newpassword_buf), false);
-		simple_prompt("Enter it again: ", pw2, sizeof(pw2), false);
-		if (strcmp(newpassword_buf, pw2) != 0)
+		newpassword = simple_prompt("Enter password for new role: ", false);
+		pw2 = simple_prompt("Enter it again: ", false);
+		if (strcmp(newpassword, pw2) != 0)
 		{
 			fprintf(stderr, _("Passwords didn't match.\n"));
 			exit(1);
 		}
-		newpassword = newpassword_buf;
+		free(pw2);
 	}
 
 	if (superuser == 0)
@@ -253,8 +254,14 @@ main(int argc, char *argv[])
 	if (login == 0)
 		login = TRI_YES;
 
-	conn = connectDatabase("postgres", host, port, username, prompt_password,
-						   progname, echo, false, false);
+	cparams.dbname = NULL;		/* this program lacks any dbname option... */
+	cparams.pghost = host;
+	cparams.pgport = port;
+	cparams.pguser = username;
+	cparams.prompt_password = prompt_password;
+	cparams.override_dbname = NULL;
+
+	conn = connectMaintenanceDatabase(&cparams, progname, echo);
 
 	initPQExpBuffer(&sql);
 
@@ -302,8 +309,8 @@ main(int argc, char *argv[])
 		appendPQExpBufferStr(&sql, " REPLICATION");
 	if (replication == TRI_NO)
 		appendPQExpBufferStr(&sql, " NOREPLICATION");
-	if (conn_limit != NULL)
-		appendPQExpBuffer(&sql, " CONNECTION LIMIT %s", conn_limit);
+	if (conn_limit >= -1)
+		appendPQExpBuffer(&sql, " CONNECTION LIMIT %d", conn_limit);
 	if (roles.head != NULL)
 	{
 		SimpleStringListCell *cell;
@@ -371,5 +378,6 @@ help(const char *progname)
 	printf(_("  -U, --username=USERNAME   user name to connect as (not the one to create)\n"));
 	printf(_("  -w, --no-password         never prompt for password\n"));
 	printf(_("  -W, --password            force password prompt\n"));
-	printf(_("\nReport bugs to <bugs@greenplum.org>.\n"));
+	printf(_("\nReport bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }

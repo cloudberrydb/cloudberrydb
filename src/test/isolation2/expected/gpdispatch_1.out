@@ -37,6 +37,60 @@ select gp_inject_fault('make_dispatch_result_error', 'reset', dbid) from gp_segm
 (1 row)
 
 --
+-- Test case for the WaitEvent of ShareInputScan
+--
+
+create table test_waitevent(i int);
+CREATE
+insert into test_waitevent select generate_series(1,1000);
+INSERT 1000
+
+1: set optimizer = off;
+SET
+1: set gp_cte_sharing to on;
+SET
+1: select gp_inject_fault_infinite('shareinput_writer_notifyready', 'suspend', 2);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
+(1 row)
+1&: WITH a1 as (select * from test_waitevent), a2 as (select * from test_waitevent) SELECT sum(a1.i)  FROM a1 INNER JOIN a2 ON a2.i = a1.i  UNION ALL SELECT count(a1.i)  FROM a1 INNER JOIN a2 ON a2.i = a1.i;  <waiting ...>
+-- start_ignore
+2: copy (select pg_stat_get_activity(NULL) from gp_dist_random('gp_id') where gp_segment_id=0) to '/tmp/_gpdb_test_output.txt';
+COPY 9
+-- end_ignore
+2: select gp_wait_until_triggered_fault('shareinput_writer_notifyready', 1, 2);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
+(1 row)
+2: select gp_inject_fault_infinite('shareinput_writer_notifyready', 'resume', 2);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
+(1 row)
+2: select gp_inject_fault_infinite('shareinput_writer_notifyready', 'reset', 2);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
+(1 row)
+2q: ... <quitting>
+1<:  <... completed>
+ sum    
+--------
+ 500500 
+ 1000   
+(2 rows)
+1q: ... <quitting>
+
+!\retcode grep ShareInputScan /tmp/_gpdb_test_output.txt;
+-- start_ignore
+(100897,9460,10,"",active,"WITH a1 as (select * from test_waitevent), a2 as (select * from test_waitevent) SELECT sum(a1.i)  FROM a1 INNER JOIN a2 ON a2.i = a1.i  UNION ALL SELECT count(a1.i)  FROM a1 INNER JOIN a2 ON a2.i = a1.i;",IPC,ShareInputScan,"Sat Mar 12 23:51:16.151757 2022 PST","Sat Mar 12 23:51:16.151757 2022 PST","Sat Mar 12 23:51:16.14545 2022 PST","Sat Mar 12 23:51:16.151797 2022 PST",127.0.0.1,,63602,,7398,"client backend",f,,,,,,,,f,,f,247,0,unknown)
+
+-- end_ignore
+(exited with code 0)
+
+--
 -- Test for issue https://github.com/greenplum-db/gpdb/issues/12703
 --
 
@@ -78,16 +132,17 @@ ABORT
 
 -- Case for cdbCopyEndInternal
 -- Provide some data to copy in
-insert into t_12703 select * from generate_series(1, 10)i;
+4: insert into t_12703 select * from generate_series(1, 10)i;
 INSERT 10
-copy t_12703 to '/tmp/t_12703';
+4: copy t_12703 to '/tmp/t_12703';
 COPY 10
 -- make copy in statement hang at the entry point of cdbCopyEndInternal
-select gp_inject_fault('cdb_copy_end_internal_start', 'suspend', dbid) from gp_segment_configuration where role = 'p' and content = -1;
+4: select gp_inject_fault('cdb_copy_end_internal_start', 'suspend', dbid) from gp_segment_configuration where role = 'p' and content = -1;
  gp_inject_fault 
 -----------------
  Success:        
 (1 row)
+4q: ... <quitting>
 1&: copy t_12703 from '/tmp/t_12703';  <waiting ...>
 select gp_wait_until_triggered_fault('cdb_copy_end_internal_start', 1, dbid) from gp_segment_configuration where role = 'p' and content = -1;
  gp_wait_until_triggered_fault 
@@ -129,11 +184,11 @@ END
 !\retcode gprecoverseg -aF --no-progress;
 -- start_ignore
 20211101:14:57:13:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-Starting gprecoverseg with args: -aF --no-progress
-20211101:14:57:13:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev'
-20211101:14:57:13:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-coordinator Greenplum Version: 'PostgreSQL 12beta2 (Greenplum Database 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, 64-bit compiled on Nov  1 2021 11:23:12 (with assert checking)'
+20211101:14:57:13:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-local Cloudberry Version: 'postgres (Cloudberry Database) 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev'
+20211101:14:57:13:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-coordinator Cloudberry Version: 'PostgreSQL 12beta2 (Cloudberry Database 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, 64-bit compiled on Nov  1 2021 11:23:12 (with assert checking)'
 20211101:14:57:13:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-Obtaining Segment details from coordinator...
 20211101:14:57:14:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-Heap checksum setting is consistent between coordinator and the segments that are candidates for recoverseg
-20211101:14:57:14:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-Greenplum instance recovery parameters
+20211101:14:57:14:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-Cloudberry instance recovery parameters
 20211101:14:57:14:101597 gprecoverseg:zlyu:gpadmin-[INFO]:----------------------------------------------------------
 20211101:14:57:14:101597 gprecoverseg:zlyu:gpadmin-[INFO]:-Recovery type              = Standard
 20211101:14:57:14:101597 gprecoverseg:zlyu:gpadmin-[INFO]:----------------------------------------------------------
@@ -197,10 +252,10 @@ select wait_until_all_segments_synchronized();
 !\retcode gprecoverseg -ar;
 -- start_ignore
 20211101:14:57:21:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Starting gprecoverseg with args: -ar
-20211101:14:57:21:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev'
-20211101:14:57:21:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-coordinator Greenplum Version: 'PostgreSQL 12beta2 (Greenplum Database 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, 64-bit compiled on Nov  1 2021 11:23:12 (with assert checking)'
+20211101:14:57:21:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-local Cloudberry Version: 'postgres (Cloudberry Database) 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev'
+20211101:14:57:21:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-coordinator Cloudberry Version: 'PostgreSQL 12beta2 (Cloudberry Database 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, 64-bit compiled on Nov  1 2021 11:23:12 (with assert checking)'
 20211101:14:57:21:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Obtaining Segment details from coordinator...
-20211101:14:57:22:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Greenplum instance recovery parameters
+20211101:14:57:22:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Cloudberry instance recovery parameters
 20211101:14:57:22:103065 gprecoverseg:zlyu:gpadmin-[INFO]:----------------------------------------------------------
 20211101:14:57:22:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Recovery type              = Rebalance
 20211101:14:57:22:103065 gprecoverseg:zlyu:gpadmin-[INFO]:----------------------------------------------------------
@@ -245,11 +300,11 @@ select wait_until_all_segments_synchronized();
 20211101:14:57:23:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Triggering segment reconfiguration
 20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Starting segment synchronization
 20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-=============================START ANOTHER RECOVER=========================================
-20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-local Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev'
-20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-coordinator Greenplum Version: 'PostgreSQL 12beta2 (Greenplum Database 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, 64-bit compiled on Nov  1 2021 11:23:12 (with assert checking)'
+20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-local Cloudberry Version: 'postgres (Cloudberry Database) 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev'
+20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-coordinator Cloudberry Version: 'PostgreSQL 12beta2 (Cloudberry Database 7.0.0-alpha.0+dev.14950.gaf07f2a6fe build dev) on x86_64-pc-linux-gnu, compiled by gcc (Ubuntu 9.3.0-17ubuntu1~20.04) 9.3.0, 64-bit compiled on Nov  1 2021 11:23:12 (with assert checking)'
 20211101:14:57:28:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Obtaining Segment details from coordinator...
 20211101:14:57:29:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Heap checksum setting is consistent between coordinator and the segments that are candidates for recoverseg
-20211101:14:57:29:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Greenplum instance recovery parameters
+20211101:14:57:29:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Cloudberry instance recovery parameters
 20211101:14:57:29:103065 gprecoverseg:zlyu:gpadmin-[INFO]:----------------------------------------------------------
 20211101:14:57:29:103065 gprecoverseg:zlyu:gpadmin-[INFO]:-Recovery type              = Standard
 20211101:14:57:29:103065 gprecoverseg:zlyu:gpadmin-[INFO]:----------------------------------------------------------

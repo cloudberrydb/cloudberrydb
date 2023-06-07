@@ -23,7 +23,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (fruit, key, fruit, key) do nothing;
                                   QUERY PLAN                                   
@@ -32,7 +33,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit), key, lower(fruit), key) do nothing;
                    QUERY PLAN                    
@@ -41,7 +43,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: both_index_expr_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key, fruit) do update set fruit = excluded.fruit
   where exists (select 1 from insertconflicttest ii where ii.key = excluded.key);
@@ -50,7 +53,7 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
  Insert on insertconflicttest
    Conflict Resolution: UPDATE
    Conflict Arbiter Indexes: op_index_key, collation_index_key, both_index_key
-   Conflict Filter: (alternatives: SubPlan 1 or hashed SubPlan 2)
+   Conflict Filter: (SubPlan 1)
    ->  Result
    SubPlan 1
      ->  Result
@@ -58,11 +61,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
            ->  Materialize
                  ->  Broadcast Motion 3:1  (slice1; segments: 3)
                        ->  Seq Scan on insertconflicttest ii
-   SubPlan 2
-     ->  Broadcast Motion 3:1  (slice2; segments: 3)
-           ->  Seq Scan on insertconflicttest ii_1
  Optimizer: Postgres query optimizer
-(15 rows)
+(12 rows)
 
 -- Neither collation nor operator class specifications are required --
 -- supplying them merely *limits* matches to indexes with matching opclasses
@@ -74,7 +74,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: op_index_key, both_index_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- Okay, arbitrates using both index where text_pattern_ops opclass does and
 -- does not appear.
@@ -85,7 +86,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: collation_index_key, both_index_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- Okay, but only accepts the single index where both opclass and collation are
 -- specified
@@ -96,7 +98,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: both_index_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- Okay, but only accepts the single index where both opclass and collation are
 -- specified (plus expression variant)
@@ -107,7 +110,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: both_index_expr_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- Attribute appears twice, while not all attributes/expressions on attributes
 -- appearing within index definition match in terms of both opclass and
@@ -130,7 +134,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: op_index_key, both_index_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (lower(fruit) collate "C" text_pattern_ops, key, key) do nothing;
                    QUERY PLAN                    
@@ -139,7 +144,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Resolution: NOTHING
    Conflict Arbiter Indexes: both_index_expr_key
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 drop index op_index_key;
 drop index collation_index_key;
@@ -180,7 +186,8 @@ explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on con
    Conflict Resolution: UPDATE
    Conflict Arbiter Indexes: key_index
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- Should display qual actually attributable to internal sequential scan:
 explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Cawesh';
@@ -191,7 +198,8 @@ explain (costs off) insert into insertconflicttest values (0, 'Bilberry') on con
    Conflict Arbiter Indexes: key_index
    Conflict Filter: (insertconflicttest.fruit <> 'Cawesh'::text)
    ->  Result
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- With EXCLUDED.* expression in scan node:
 explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on conflict (key) do update set fruit = excluded.fruit where excluded.fruit != 'Elderberry';
@@ -202,7 +210,8 @@ explain (costs off) insert into insertconflicttest values(0, 'Crowberry') on con
    Conflict Arbiter Indexes: key_index
    Conflict Filter: (excluded.fruit <> 'Elderberry'::text)
    ->  Result
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- Does the same, but JSON format shows "Conflict Arbiter Index" as JSON array:
 explain (costs off, format json) insert into insertconflicttest values (0, 'Bilberry') on conflict (key) do update set fruit = excluded.fruit where insertconflicttest.fruit != 'Lime' returning *;
@@ -218,6 +227,7 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
        "Segments": 1,                                                      +
        "Gang Type": "primary writer",                                      +
        "Parallel Aware": false,                                            +
+       "Async Capable": false,                                             +
        "Plans": [                                                          +
          {                                                                 +
            "Node Type": "ModifyTable",                                     +
@@ -227,6 +237,7 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
            "Segments": 1,                                                  +
            "Gang Type": "primary writer",                                  +
            "Parallel Aware": false,                                        +
+           "Async Capable": false,                                         +
            "Relation Name": "insertconflicttest",                          +
            "Alias": "insertconflicttest",                                  +
            "Conflict Resolution": "UPDATE",                                +
@@ -235,11 +246,12 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
            "Plans": [                                                      +
              {                                                             +
                "Node Type": "Result",                                      +
-               "Parent Relationship": "Member",                            +
+               "Parent Relationship": "Outer",                             +
                "Slice": 1,                                                 +
                "Segments": 1,                                              +
                "Gang Type": "primary writer",                              +
-               "Parallel Aware": false                                     +
+               "Parallel Aware": false,                                    +
+               "Async Capable": false                                      +
              }                                                             +
            ]                                                               +
          }                                                                 +
@@ -278,7 +290,7 @@ insert into insertconflicttest values (1, 'Apple') on conflict (keyy) do update 
 ERROR:  column "keyy" does not exist
 LINE 1: ...nsertconflicttest values (1, 'Apple') on conflict (keyy) do ...
                                                              ^
-HINT:  Perhaps you meant to reference the column "insertconflicttest.key".
+HINT:  Perhaps you meant to reference the column "insertconflicttest.key" or the column "excluded.key".
 -- Have useful HINT for EXCLUDED.* RTE within UPDATE:
 insert into insertconflicttest values (1, 'Apple') on conflict (key) do update set fruit = excluded.fruitt;
 ERROR:  column excluded.fruitt does not exist
@@ -371,7 +383,8 @@ explain (costs off) insert into insertconflicttest values (26, 'Fig') on conflic
    Conflict Resolution: UPDATE
    Conflict Arbiter Indexes: expr_comp_key_index
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- inference fails:
 insert into insertconflicttest values (27, 'Prune') on conflict (key, upper(fruit)) do update set fruit = excluded.fruit;
@@ -407,7 +420,7 @@ drop index fruit_index;
 create unique index partial_key_index on insertconflicttest(key) where fruit like '%berry';
 -- Succeeds
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' do update set fruit = excluded.fruit;
-insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and fruit = 'inconsequential' do nothing;
+insert into insertconflicttest as t values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and t.fruit = 'inconsequential' do nothing;
 -- fails
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) do update set fruit = excluded.fruit;
 ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
@@ -460,16 +473,18 @@ explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') o
    Conflict Arbiter Indexes: plain
    Conflict Filter: (excluded.* IS NULL)
    ->  Result
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (costs off) insert into insertconflicttest as i values (23, 'Avocado') on conflict (key) do update set fruit = excluded.*::text;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Insert on insertconflicttest i
    Conflict Resolution: UPDATE
    Conflict Arbiter Indexes: plain
    ->  Result
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 drop index plain;
 -- Cleanup
@@ -776,7 +791,7 @@ insert into parted_conflict_test values (1, 'a') on conflict (a) do update set b
 insert into parted_conflict_test_1 values (1, 'a') on conflict (a) do nothing;
 insert into parted_conflict_test_1 values (1, 'b') on conflict (a) do update set b = excluded.b;
 -- start_ignore
--- Greenplum could not update the distribution column on conflict
+-- Cloudberry could not update the distribution column on conflict
 -- index on b required, which doesn't exist in parent
 insert into parted_conflict_test values (2, 'b') on conflict (b) do update set a = excluded.a;
 ERROR:  there is no unique or exclusion constraint matching the ON CONFLICT specification
@@ -876,7 +891,7 @@ alter table parted_conflict attach partition parted_conflict_1 for values from (
 truncate parted_conflict;
 insert into parted_conflict values (50, 'cincuenta', 1);
 -- start_ignore
--- Greenplum could not update the distribution column on conflict
+-- Cloudberry could not update the distribution column on conflict
 insert into parted_conflict values (50, 'cincuenta', 2)
   on conflict (a, b) do update set (a, b, c) = row(excluded.*)
   where parted_conflict = (50, text 'cincuenta', 1) and
@@ -908,7 +923,7 @@ create trigger parted_conflict_update
 ERROR:  Triggers for statements are not yet supported
 truncate parted_conflict;
 insert into parted_conflict values (0, 'cero', 1);
--- Greenplum: this won't trigger, because the INSERT/UPDATE happens on the QEs,
+-- Cloudberry: this won't trigger, because the INSERT/UPDATE happens on the QEs,
 -- but FOR STATEMENT triggers could not be triggered on a QE
 insert into parted_conflict values(0, 'cero', 1)
   on conflict (a,b) do update set c = parted_conflict.c + 1;

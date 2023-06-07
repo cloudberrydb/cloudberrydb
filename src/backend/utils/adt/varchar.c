@@ -3,7 +3,7 @@
  * varchar.c
  *	  Functions for the built-in types char(n) and varchar(n).
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,20 +14,19 @@
  */
 #include "postgres.h"
 
-#include "access/tuptoaster.h"
+#include "access/detoast.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_type.h"
+#include "common/hashfn.h"
 #include "libpq/pqformat.h"
+#include "mb/pg_wchar.h"
 #include "nodes/nodeFuncs.h"
 #include "nodes/supportnodes.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
-#include "utils/hashutils.h"
 #include "utils/lsyscache.h"
 #include "utils/pg_locale.h"
 #include "utils/varlena.h"
-#include "mb/pg_wchar.h"
-
 
 /* common code for bpchartypmodin and varchartypmodin */
 static int32
@@ -573,7 +572,7 @@ varchar_support(PG_FUNCTION_ARGS)
 
 		typmod = (Node *) lsecond(expr->args);
 
-		if (IsA(typmod, Const) &&!((Const *) typmod)->constisnull)
+		if (IsA(typmod, Const) && !((Const *) typmod)->constisnull)
 		{
 			Node	   *source = (Node *) linitial(expr->args);
 			int32		old_typmod = exprTypmod(source);
@@ -784,6 +783,8 @@ bpcharne(PG_FUNCTION_ARGS)
 				len2;
 	bool		result;
 	Oid			collid = PG_GET_COLLATION();
+
+	check_collation_set(collid);
 
 	len1 = bcTruelen(arg1);
 	len2 = bcTruelen(arg2);
@@ -1105,22 +1106,11 @@ hashbpcharextended(PG_FUNCTION_ARGS)
  */
 
 static int
-internal_bpchar_pattern_compare(BpChar *arg1, BpChar *arg2, Oid collid)
+internal_bpchar_pattern_compare(BpChar *arg1, BpChar *arg2)
 {
 	int			result;
 	int			len1,
 				len2;
-
-	check_collation_set(collid);
-
-	/*
-	 * see internal_text_pattern_compare()
-	 */
-	if (!get_collation_isdeterministic(collid))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("nondeterministic collations are not supported for operator class \"%s\"",
-						"bpchar_pattern_ops")));
 
 	len1 = bcTruelen(arg1);
 	len2 = bcTruelen(arg2);
@@ -1144,7 +1134,7 @@ bpchar_pattern_lt(PG_FUNCTION_ARGS)
 	BpChar	   *arg2 = PG_GETARG_BPCHAR_PP(1);
 	int			result;
 
-	result = internal_bpchar_pattern_compare(arg1, arg2, PG_GET_COLLATION());
+	result = internal_bpchar_pattern_compare(arg1, arg2);
 
 	PG_FREE_IF_COPY(arg1, 0);
 	PG_FREE_IF_COPY(arg2, 1);
@@ -1160,7 +1150,7 @@ bpchar_pattern_le(PG_FUNCTION_ARGS)
 	BpChar	   *arg2 = PG_GETARG_BPCHAR_PP(1);
 	int			result;
 
-	result = internal_bpchar_pattern_compare(arg1, arg2, PG_GET_COLLATION());
+	result = internal_bpchar_pattern_compare(arg1, arg2);
 
 	PG_FREE_IF_COPY(arg1, 0);
 	PG_FREE_IF_COPY(arg2, 1);
@@ -1176,7 +1166,7 @@ bpchar_pattern_ge(PG_FUNCTION_ARGS)
 	BpChar	   *arg2 = PG_GETARG_BPCHAR_PP(1);
 	int			result;
 
-	result = internal_bpchar_pattern_compare(arg1, arg2, PG_GET_COLLATION());
+	result = internal_bpchar_pattern_compare(arg1, arg2);
 
 	PG_FREE_IF_COPY(arg1, 0);
 	PG_FREE_IF_COPY(arg2, 1);
@@ -1192,7 +1182,7 @@ bpchar_pattern_gt(PG_FUNCTION_ARGS)
 	BpChar	   *arg2 = PG_GETARG_BPCHAR_PP(1);
 	int			result;
 
-	result = internal_bpchar_pattern_compare(arg1, arg2, PG_GET_COLLATION());
+	result = internal_bpchar_pattern_compare(arg1, arg2);
 
 	PG_FREE_IF_COPY(arg1, 0);
 	PG_FREE_IF_COPY(arg2, 1);
@@ -1208,7 +1198,7 @@ btbpchar_pattern_cmp(PG_FUNCTION_ARGS)
 	BpChar	   *arg2 = PG_GETARG_BPCHAR_PP(1);
 	int			result;
 
-	result = internal_bpchar_pattern_compare(arg1, arg2, PG_GET_COLLATION());
+	result = internal_bpchar_pattern_compare(arg1, arg2);
 
 	PG_FREE_IF_COPY(arg1, 0);
 	PG_FREE_IF_COPY(arg2, 1);
@@ -1221,16 +1211,7 @@ Datum
 btbpchar_pattern_sortsupport(PG_FUNCTION_ARGS)
 {
 	SortSupport ssup = (SortSupport) PG_GETARG_POINTER(0);
-	Oid			collid = ssup->ssup_collation;
 	MemoryContext oldcontext;
-
-	check_collation_set(collid);
-
-	if (!get_collation_isdeterministic(collid))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("nondeterministic collations are not supported for operator class \"%s\"",
-						"bpchar_pattern_ops")));
 
 	oldcontext = MemoryContextSwitchTo(ssup->ssup_cxt);
 

@@ -4,9 +4,9 @@
  *	  definition of the "statistics" system catalog (pg_statistic)
  *
  *
- * Portions Copyright (c) 2006-2010, Greenplum inc.
+ * Portions Copyright (c) 2006-2010, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_statistic.h
@@ -31,7 +31,8 @@
 CATALOG(pg_statistic,2619,StatisticRelationId)
 {
 	/* These fields form the unique key for the entry: */
-	Oid			starelid;		/* relation containing attribute */
+	Oid			starelid BKI_LOOKUP(pg_class);	/* relation containing
+												 * attribute */
 	int16		staattnum;		/* attribute (column) stats are for */
 	bool		stainherit;		/* true if inheritance children are included */
 
@@ -92,17 +93,17 @@ CATALOG(pg_statistic,2619,StatisticRelationId)
 	int16		stakind4;
 	int16		stakind5;
 
-	Oid			staop1;
-	Oid			staop2;
-	Oid			staop3;
-	Oid			staop4;
-	Oid			staop5;
+	Oid			staop1 BKI_LOOKUP_OPT(pg_operator);
+	Oid			staop2 BKI_LOOKUP_OPT(pg_operator);
+	Oid			staop3 BKI_LOOKUP_OPT(pg_operator);
+	Oid			staop4 BKI_LOOKUP_OPT(pg_operator);
+	Oid			staop5 BKI_LOOKUP_OPT(pg_operator);
 
-	Oid			stacoll1;
-	Oid			stacoll2;
-	Oid			stacoll3;
-	Oid			stacoll4;
-	Oid			stacoll5;
+	Oid			stacoll1 BKI_LOOKUP_OPT(pg_collation);
+	Oid			stacoll2 BKI_LOOKUP_OPT(pg_collation);
+	Oid			stacoll3 BKI_LOOKUP_OPT(pg_collation);
+	Oid			stacoll4 BKI_LOOKUP_OPT(pg_collation);
+	Oid			stacoll5 BKI_LOOKUP_OPT(pg_collation);
 
 #ifdef CATALOG_VARLEN			/* variable-length fields start here */
 	float4		stanumbers1[1];
@@ -141,6 +142,13 @@ FOREIGN_KEY(staop4 REFERENCES pg_operator(oid));
  * ----------------
  */
 typedef FormData_pg_statistic *Form_pg_statistic;
+
+DECLARE_TOAST(pg_statistic, 2840, 2841);
+
+DECLARE_UNIQUE_INDEX_PKEY(pg_statistic_relid_att_inh_index, 2696, on pg_statistic using btree(starelid oid_ops, staattnum int2_ops, stainherit bool_ops));
+#define StatisticRelidAttnumInhIndexId	2696
+
+DECLARE_FOREIGN_KEY((starelid, staattnum), pg_attribute, (attrelid, attnum));
 
 #ifdef EXPOSE_TO_CLIENT_CODE
 

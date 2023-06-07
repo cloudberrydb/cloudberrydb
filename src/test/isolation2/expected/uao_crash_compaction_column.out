@@ -6,17 +6,17 @@
 -- s/ERROR:.*server closed the connection unexpectedly/ERROR: server closed the connection unexpectedly/gm
 -- end_matchsubs
 
-3:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
- role | preferred_role | content | mode | status 
-------+----------------+---------+------+--------
- m    | m              | -1      | s    | u      
- m    | m              | 0       | s    | u      
- m    | m              | 1       | s    | u      
- m    | m              | 2       | s    | u      
- p    | p              | -1      | n    | u      
- p    | p              | 0       | s    | u      
- p    | p              | 1       | s    | u      
- p    | p              | 2       | s    | u      
+3:SELECT role, preferred_role, content, status FROM gp_segment_configuration;
+ role | preferred_role | content | status 
+------+----------------+---------+--------
+ p    | p              | -1      | u      
+ m    | m              | -1      | u      
+ p    | p              | 2       | u      
+ m    | m              | 2       | u      
+ p    | p              | 1       | u      
+ m    | m              | 1       | u      
+ p    | p              | 0       | u      
+ m    | m              | 0       | u      
 (8 rows)
 --
 -- Test to validate crash at different points in AO/CO vacuum.
@@ -437,11 +437,6 @@ UPDATE 1
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
-(1 row)
-4:SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
- gp_wait_until_triggered_fault 
--------------------------------
- Success:                      
 (1 row)
 4:SET default_table_access_method = ao_column;
 SET

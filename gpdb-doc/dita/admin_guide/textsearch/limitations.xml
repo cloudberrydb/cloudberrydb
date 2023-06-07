@@ -2,13 +2,13 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="limitations">
   <title>Limitations</title>
-  <shortdesc>This topic lists limitations and maximums for Greenplum Database full text search
+  <shortdesc>This topic lists limitations and maximums for Cloudberry Database full text search
     objects.</shortdesc>
   <body>
-    <p>The current limitations of Greenplum Database's text search features are:</p>
+    <p>The current limitations of Cloudberry Database's text search features are:</p>
     <ul id="ul_qjs_s41_lfb">
       <li>The <codeph>tsvector</codeph> and <codeph>tsquery</codeph> types are not supported in the
-        distribution key for a Greenplum Database table</li>
+        distribution key for a Cloudberry Database table</li>
       <li>The length of each lexeme must be less than 2K bytes</li>
       <li>The length of a <codeph>tsvector</codeph> (lexemes + positions) must be less than 1
         megabyte</li>

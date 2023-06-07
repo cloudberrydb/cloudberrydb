@@ -14,6 +14,7 @@
 #include "optimizer/pathnode.h"
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
+#include "utils/snapmgr.h"
 
 #ifdef PG_MODULE_MAGIC
 PG_MODULE_MAGIC;
@@ -35,6 +36,7 @@ test_execute_spi_expression(const char *query)
 		elog(ERROR, "Failed to connect to SPI");
 	PG_TRY();
 	{
+		PushActiveSnapshot(GetTransactionSnapshot());
 		r = SPI_execute(query, false, 0);
 		if (r < 0)
 			elog(ERROR, "Failed to execute '%s' via SPI: %s [%d]", query, SPI_result_code_string(r), r);
@@ -99,7 +101,8 @@ extended_protocol_commit_test_fdw_GetForeignPaths(PlannerInfo *root, RelOptInfo 
 													   NULL,
 													   NULL,
 													   NIL
-													   ));
+													   ),
+			 root);
 }
 
 static ForeignScan *

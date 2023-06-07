@@ -22,10 +22,12 @@ PGFILEDESC = "PL/Tcl - procedural language"
 
 NAME = pltcl
 
-OBJS = pltcl.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	pltcl.o
 
-DATA = pltcl.control pltcl--1.0.sql pltcl--unpackaged--1.0.sql \
-       pltclu.control pltclu--1.0.sql pltclu--unpackaged--1.0.sql
+DATA = pltcl.control pltcl--1.0.sql \
+       pltclu.control pltclu--1.0.sql
 
 REGRESS_OPTS = --dbname=$(PL_TESTDB) --init-file=$(srcdir)/init_file --load-extension=pltcl
 REGRESS = pltcl_setup pltcl_queries pltcl_trigger pltcl_call pltcl_start_proc pltcl_subxact pltcl_unicode pltcl_transaction
@@ -44,7 +46,7 @@ lib$(tclwithver).a: $(tclwithver).def
 	dlltool --dllname $(tclwithver).dll --def $(tclwithver).def --output-lib lib$(tclwithver).a
 
 $(tclwithver).def: $(TCLDLL)
-	pexports $^ > $@
+	gendef - $^ > $@
 
 endif # win32
 

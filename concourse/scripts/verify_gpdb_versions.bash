@@ -22,7 +22,7 @@ assert_postgres_version_matches() {
 
 yum -d0 -y install git
 
-GREENPLUM_INSTALL_DIR=/usr/local/greenplum-db-devel
+GREENPLUM_INSTALL_DIR=/usr/local/cloudberry-db-devel
 GPDB_SRC_SHA=$(cd gpdb_src && git rev-parse HEAD)
 
 for bin_gpdb in bin_gpdb_{centos7,ubuntu18.04}; do

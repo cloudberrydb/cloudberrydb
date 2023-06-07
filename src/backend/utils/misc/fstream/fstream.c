@@ -24,30 +24,8 @@
 #include <gpfxdist.h>
 #endif
 
-#define FILE_ERROR_SZ 200
 char* format_error(char* c1, char* c2);
 
-typedef struct
-{
-	int 	gl_pathc;
-	char**	gl_pathv;
-} glob_and_copy_t;
-
-struct fstream_t
-{
-	glob_and_copy_t glob;
-	gfile_t 		fd;
-	int 			fidx; /* current index in ffd[] */
-	int64_t 		foff; /* current offset in ffd[fidx] */
-	int64_t 		line_number;
-	int64_t 		compressed_size;
-	int64_t 		compressed_position;
-	int 			skip_header_line;
-	char* 			buffer;			 /* buffer to store data read from file */
-	int 			buffer_cur_size; /* number of bytes in buffer currently */
-	const char*		ferror; 		 /* error string */
-	struct fstream_options options;
-};
 
 /*
  * Returns a pointer to the end of the last delimiter occurrence,
@@ -278,9 +256,45 @@ scan_csv_records(char *p, char *q, int one, fstream_t *fs)
 		   return scan_csv_records_cr_or_lf(p, q, one, fs, '\n');
 	}
 }
-/* close the file stream */
-void fstream_close(fstream_t* fs)
+
+#ifdef GPFXDIST
+static void get_errmsg_from_writable_transform_errfile(gfile_t* fd, char *buf, apr_size_t nbytes)
 {
+	apr_status_t rv;
+	apr_file_t* errfile = fd->transform->errfile;
+	if (!errfile) {
+		return;
+	}
+	/*
+ 	 * Close and then re-open (for reading) the temporary file we've used to capture stderr
+ 	 */
+	apr_file_flush(errfile);
+	apr_file_close(errfile);
+
+	if ((rv = apr_file_open(&errfile, fd->transform->errfilename,
+							APR_READ|APR_BUFFERED, APR_UREAD, fd->transform->mp)) == APR_SUCCESS)
+	{
+		rv = apr_file_read(errfile, buf, &nbytes);
+		if (rv == APR_SUCCESS)
+		{
+			if (nbytes > 0)
+			{
+				buf[nbytes] = '\0';
+			}
+		}
+		apr_file_close(errfile);
+	}
+	else
+	{
+		snprintf(buf, nbytes, "Loading error message from file %s failed.", fd->transform->errfilename);
+	}
+}
+#endif
+
+/* close the file stream and return error number */
+int fstream_close_with_error(fstream_t* fs, char* error)
+{
+	int is_error = 0;
 #ifdef GPFXDIST
 	/*
 	 * remove temporary file we created to hold the file paths
@@ -297,7 +311,40 @@ void fstream_close(fstream_t* fs)
 
 	glob_and_copyfree(&fs->glob);
 	gfile_close(&fs->fd);
+#ifdef GPFXDIST
+		/* 
+		 * For writable transform we should check error file content during fstream close.
+		 * If there is an error, we should pass the error to the caller.
+		 */
+		if (fs->options.forwrite && fs->fd.transform)
+		{
+			char errmsg_buffer[FILE_ERROR_SZ];
+			memset(errmsg_buffer, 0, FILE_ERROR_SZ);
+			get_errmsg_from_writable_transform_errfile(&fs->fd, errmsg_buffer, FILE_ERROR_SZ-1);
+			strcpy(error, errmsg_buffer);
+			if (strlen(error))
+			{
+				is_error = 1;
+			}
+			/* clear the errfile after fstream close. */
+			if (fs->fd.transform->errfile)
+			{
+				apr_file_close(fs->fd.transform->errfile);
+				apr_file_remove(fs->fd.transform->errfilename, fs->fd.transform->mp);
+				fs->fd.transform->errfile = NULL;
+				fs->fd.transform->errfilename = NULL;
+			}
+		}
+#endif
 	gfile_free(fs);
+	return is_error;
+}
+
+/* close the file stream */
+void fstream_close(fstream_t* fs)
+{
+	char errmsg_buffer[FILE_ERROR_SZ];
+	fstream_close_with_error(fs, errmsg_buffer);
 }
 
 static int fpath_all_directories(const glob_and_copy_t *glob)
@@ -1026,10 +1073,26 @@ int fstream_write(fstream_t *fs,
 
 	if (byteswritten < 0)
 	{
-                gfile_printf_then_putc_newline("cannot write into file, byteswritten=%d, size=%d, errno=%d, errmsg=%s", 
-                        byteswritten, size, errno, strerror(errno));
-		fs->ferror = "cannot write into file";
-		return -1;
+		#ifdef GPFXDIST
+			/* 
+			 * If we've been requested to send stderr output to the server,
+			 * we should always check errorfile.
+			 */
+			if (fs->fd.transform && fs->fd.transform->errfile)
+			{
+				static char errmsg_buffer[FILE_ERROR_SZ];
+				memset(errmsg_buffer, 0, FILE_ERROR_SZ);
+				get_errmsg_from_writable_transform_errfile(&fs->fd, errmsg_buffer, FILE_ERROR_SZ-1);
+				fs->ferror = errmsg_buffer;
+			}
+			else
+		#endif
+			{
+				gfile_printf_then_putc_newline("cannot write into file, byteswritten=%d, size=%d, errno=%d, errmsg=%s",
+											byteswritten, size, errno, strerror(errno));
+				fs->ferror = "cannot write into file";
+			}
+			return -1;
 	}
 
 	return byteswritten;

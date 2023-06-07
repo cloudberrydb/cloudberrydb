@@ -3,7 +3,7 @@
  * bitmap.c
  *	  Implementation of the Hybrid Run-Length (HRL) on-disk bitmap index.
  *
- * Portions Copyright (c) 2007-2010 Greenplum Inc
+ * Portions Copyright (c) 2007-2010 Cloudberry Inc
  * Portions Copyright (c) 2010-2012 EMC Corporation
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 2006-2008, PostgreSQL Global Development Group
@@ -176,6 +176,7 @@ bool
 bminsert(Relation rel, Datum *values, bool *isnull,
 		 ItemPointer ht_ctid, Relation heapRel,
 		 IndexUniqueCheck checkUnique,
+		 bool indexUnchanged,
 		 IndexInfo *indexInfo)
 {
 	_bitmap_doinsert(rel, *ht_ctid, values, isnull);
@@ -520,13 +521,14 @@ bmbulkdelete(IndexVacuumInfo *info,
 			 void *callback_state)
 {
 	Relation	rel = info->index;
+	ReindexParams reindex_params = {0};
 
 	/* allocate stats if first time through, else re-use existing struct */
 	if (stats == NULL)
 		stats = (IndexBulkDeleteResult *)
 			palloc0(sizeof(IndexBulkDeleteResult));	
 
-	reindex_index(RelationGetRelid(rel), true, rel->rd_rel->relpersistence, 0);
+	reindex_index(RelationGetRelid(rel), true, rel->rd_rel->relpersistence, &reindex_params);
 
 	CommandCounterIncrement();
 

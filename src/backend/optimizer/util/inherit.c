@@ -3,7 +3,7 @@
  * inherit.c
  *	  Routines to process child relations in inheritance trees
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -119,12 +119,12 @@ expand_inherited_rtentry(PlannerInfo *root, RelOptInfo *rel,
        else if (oldrc)
        {
                /*
-                * Greenplum specific behavior:
+                * Cloudberry specific behavior:
                 * The implementation of select statement with locking clause
                 * (for update | no key update | share | key share) in postgres
                 * is to hold RowShareLock on tables during parsing stage, and
                 * generate a LockRows plan node for executor to lock the tuples.
-                * It is not easy to lock tuples in Greenplum database, since
+                * It is not easy to lock tuples in Cloudberry database, since
                 * tuples may be fetched through motion nodes.
                 *
                 * But when Global Deadlock Detector is enabled, and the select
@@ -241,6 +241,10 @@ expand_inherited_rtentry(PlannerInfo *root, RelOptInfo *rel,
 	 * targetlist and update parent rel's reltarget.  This should match what
 	 * preprocess_targetlist() would have added if the mark types had been
 	 * requested originally.
+	 *
+	 * (Someday it might be useful to fold these resjunk columns into the
+	 * row-identity-column management used for UPDATE/DELETE.  Today is not
+	 * that day, however.)
 	 */
 	if (oldrc)
 	{
@@ -250,8 +254,25 @@ expand_inherited_rtentry(PlannerInfo *root, RelOptInfo *rel,
 		char		resname[32];
 		List	   *newvars = NIL;
 
-		/* The old PlanRowMark should already have necessitated adding TID */
-		Assert(old_allMarkTypes & ~(1 << ROW_MARK_COPY));
+		/* Add TID junk Var if needed, unless we had it already */
+		if (new_allMarkTypes & ~(1 << ROW_MARK_COPY) &&
+			!(old_allMarkTypes & ~(1 << ROW_MARK_COPY)))
+		{
+			/* Need to fetch TID */
+			var = makeVar(oldrc->rti,
+						  SelfItemPointerAttributeNumber,
+						  TIDOID,
+						  -1,
+						  InvalidOid,
+						  0);
+			snprintf(resname, sizeof(resname), "ctid%u", oldrc->rowmarkId);
+			tle = makeTargetEntry((Expr *) var,
+								  list_length(root->processed_tlist) + 1,
+								  pstrdup(resname),
+								  true);
+			root->processed_tlist = lappend(root->processed_tlist, tle);
+			newvars = lappend(newvars, var);
+		}
 
 		/* Add whole-row junk Var if needed, unless we had it already */
 		if ((new_allMarkTypes & (1 << ROW_MARK_COPY)) &&
@@ -420,6 +441,8 @@ expand_partitioned_rtentry(PlannerInfo *root, RelOptInfo *relinfo,
 		/* Create the otherrel RelOptInfo too. */
 		childrelinfo = build_simple_rel(root, childRTindex, relinfo);
 		relinfo->part_rels[i] = childrelinfo;
+		relinfo->all_partrels = bms_add_members(relinfo->all_partrels,
+												childrelinfo->relids);
 
 		/* If this child is itself partitioned, recurse */
 		if (childrel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
@@ -465,10 +488,13 @@ expand_single_inheritance_child(PlannerInfo *root, RangeTblEntry *parentrte,
 	RangeTblEntry *childrte;
 	Index		childRTindex;
 	AppendRelInfo *appinfo;
+	TupleDesc	child_tupdesc;
+	List	   *parent_colnames;
+	List	   *child_colnames;
 
 	/*
 	 * Build an RTE for the child, and attach to query's rangetable list. We
-	 * copy most fields of the parent's RTE, but replace relation OID,
+	 * copy most scalar fields of the parent's RTE, but replace relation OID,
 	 * relkind, and inh for the child.  Also, set requiredPerms to zero since
 	 * all required permissions checks are done on the original RTE. Likewise,
 	 * set the child's securityQuals to empty, because we only want to apply
@@ -476,10 +502,14 @@ expand_single_inheritance_child(PlannerInfo *root, RangeTblEntry *parentrte,
 	 * individual children may have.  (This is an intentional choice to make
 	 * inherited RLS work like regular permissions checks.) The parent
 	 * securityQuals will be propagated to children along with other base
-	 * restriction clauses, so we don't need to do it here.
+	 * restriction clauses, so we don't need to do it here.  Other
+	 * infrastructure of the parent RTE has to be translated to match the
+	 * child table's column ordering, which we do below, so a "flat" copy is
+	 * sufficient to start with.
 	 */
-	childrte = copyObject(parentrte);
-	*childrte_p = childrte;
+	childrte = makeNode(RangeTblEntry);
+	memcpy(childrte, parentrte, sizeof(RangeTblEntry));
+	Assert(parentrte->rtekind == RTE_RELATION); /* else this is dubious */
 	childrte->relid = childOID;
 	childrte->relkind = childrel->rd_rel->relkind;
 	/* A partitioned child will need to be expanded further. */
@@ -492,8 +522,11 @@ expand_single_inheritance_child(PlannerInfo *root, RangeTblEntry *parentrte,
 		childrte->inh = false;
 	childrte->requiredPerms = 0;
 	childrte->securityQuals = NIL;
+
+	/* Link not-yet-fully-filled child RTE into data structures */
 	parse->rtable = lappend(parse->rtable, childrte);
 	childRTindex = list_length(parse->rtable);
+	*childrte_p = childrte;
 	*childRTindex_p = childRTindex;
 
 	/*
@@ -503,10 +536,57 @@ expand_single_inheritance_child(PlannerInfo *root, RangeTblEntry *parentrte,
 								   parentRTindex, childRTindex);
 	root->append_rel_list = lappend(root->append_rel_list, appinfo);
 
+	/* tablesample is probably null, but copy it */
+	childrte->tablesample = copyObject(parentrte->tablesample);
+
+	/*
+	 * Construct an alias clause for the child, which we can also use as eref.
+	 * This is important so that EXPLAIN will print the right column aliases
+	 * for child-table columns.  (Since ruleutils.c doesn't have any easy way
+	 * to reassociate parent and child columns, we must get the child column
+	 * aliases right to start with.  Note that setting childrte->alias forces
+	 * ruleutils.c to use these column names, which it otherwise would not.)
+	 */
+	child_tupdesc = RelationGetDescr(childrel);
+	parent_colnames = parentrte->eref->colnames;
+	child_colnames = NIL;
+	for (int cattno = 0; cattno < child_tupdesc->natts; cattno++)
+	{
+		Form_pg_attribute att = TupleDescAttr(child_tupdesc, cattno);
+		const char *attname;
+
+		if (att->attisdropped)
+		{
+			/* Always insert an empty string for a dropped column */
+			attname = "";
+		}
+		else if (appinfo->parent_colnos[cattno] > 0 &&
+				 appinfo->parent_colnos[cattno] <= list_length(parent_colnames))
+		{
+			/* Duplicate the query-assigned name for the parent column */
+			attname = strVal(list_nth(parent_colnames,
+									  appinfo->parent_colnos[cattno] - 1));
+		}
+		else
+		{
+			/* New column, just use its real name */
+			attname = NameStr(att->attname);
+		}
+		child_colnames = lappend(child_colnames, makeString(pstrdup(attname)));
+	}
+
+	/*
+	 * We just duplicate the parent's table alias name for each child.  If the
+	 * plan gets printed, ruleutils.c has to sort out unique table aliases to
+	 * use, which it can handle.
+	 */
+	childrte->alias = childrte->eref = makeAlias(parentrte->eref->aliasname,
+												 child_colnames);
+
 	/*
 	 * Translate the column permissions bitmaps to the child's attnums (we
 	 * have to build the translated_vars list before we can do this).  But if
-	 * this is the parent table, we can leave copyObject's result alone.
+	 * this is the parent table, we can just duplicate the parent's bitmaps.
 	 *
 	 * Note: we need to do this even though the executor won't run any
 	 * permissions checks on the child RTE.  The insertedCols/updatedCols
@@ -522,6 +602,13 @@ expand_single_inheritance_child(PlannerInfo *root, RangeTblEntry *parentrte,
 													appinfo->translated_vars);
 		childrte->extraUpdatedCols = translate_col_privs(parentrte->extraUpdatedCols,
 														 appinfo->translated_vars);
+	}
+	else
+	{
+		childrte->selectedCols = bms_copy(parentrte->selectedCols);
+		childrte->insertedCols = bms_copy(parentrte->insertedCols);
+		childrte->updatedCols = bms_copy(parentrte->updatedCols);
+		childrte->extraUpdatedCols = bms_copy(parentrte->extraUpdatedCols);
 	}
 
 	/*
@@ -562,6 +649,46 @@ expand_single_inheritance_child(PlannerInfo *root, RangeTblEntry *parentrte,
 		top_parentrc->allMarkTypes |= childrc->allMarkTypes;
 
 		root->rowMarks = lappend(root->rowMarks, childrc);
+	}
+
+	/*
+	 * If we are creating a child of the query target relation (only possible
+	 * in UPDATE/DELETE), add it to all_result_relids, as well as
+	 * leaf_result_relids if appropriate, and make sure that we generate
+	 * required row-identity data.
+	 */
+	if (bms_is_member(parentRTindex, root->all_result_relids))
+	{
+		/* OK, record the child as a result rel too. */
+		root->all_result_relids = bms_add_member(root->all_result_relids,
+												 childRTindex);
+
+		/* Non-leaf partitions don't need any row identity info. */
+		if (childrte->relkind != RELKIND_PARTITIONED_TABLE)
+		{
+			Var		   *rrvar;
+
+			root->leaf_result_relids = bms_add_member(root->leaf_result_relids,
+													  childRTindex);
+
+			/*
+			 * If we have any child target relations, assume they all need to
+			 * generate a junk "tableoid" column.  (If only one child survives
+			 * pruning, we wouldn't really need this, but it's not worth
+			 * thrashing about to avoid it.)
+			 */
+			rrvar = makeVar(childRTindex,
+							TableOidAttributeNumber,
+							OIDOID,
+							-1,
+							InvalidOid,
+							0);
+			add_row_identity_var(root, rrvar, childRTindex, "tableoid");
+
+			/* Register any row-identity columns needed by this child. */
+			add_row_identity_columns(root, childRTindex,
+									 childrte, childrel);
+		}
 	}
 }
 
@@ -726,7 +853,8 @@ apply_child_basequals(PlannerInfo *root, RelOptInfo *parentrel,
 			}
 			/* reconstitute RestrictInfo with appropriate properties */
 			childquals = lappend(childquals,
-								 make_restrictinfo((Expr *) onecq,
+								 make_restrictinfo(root,
+												   (Expr *) onecq,
 												   rinfo->is_pushed_down,
 												   rinfo->outerjoin_delayed,
 												   pseudoconstant,
@@ -763,7 +891,7 @@ apply_child_basequals(PlannerInfo *root, RelOptInfo *parentrel,
 
 				/* not likely that we'd see constants here, so no check */
 				childquals = lappend(childquals,
-									 make_restrictinfo(qual,
+									 make_restrictinfo(root, qual,
 													   true, false, false,
 													   security_level,
 													   NULL, NULL, NULL));

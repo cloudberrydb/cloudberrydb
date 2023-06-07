@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
 #
 #
 # THIS IMPORT MUST COME FIRST
@@ -92,7 +92,8 @@ class GpStop:
     def __init__(self, mode, coordinator_datadir=None,
                  parallel=DEFAULT_NUM_WORKERS, quiet=False, coordinatoronly=False, sighup=False,
                  interactive=False, stopstandby=False, restart=False,
-                 timeout=SEGMENT_STOP_TIMEOUT_DEFAULT, logfileDirectory=False, onlyThisHost=None):
+                 timeout=SEGMENT_STOP_TIMEOUT_DEFAULT, logfileDirectory=False, onlyThisHost=None,
+                 fts_hosts=None, etcd_hosts=None, is_external_fts=False):
         self.mode = mode
         self.coordinator_datadir = coordinator_datadir
         self.pool = None
@@ -108,7 +109,8 @@ class GpStop:
         self.timeout = timeout
         self.logfileDirectory = logfileDirectory
         self.onlyThisHost = onlyThisHost
-
+        self.fts_hosts = fts_hosts
+        self.etcd_hosts = etcd_hosts
         # some variables that will be assigned during run()
         self.gphome = None
         self.port = None
@@ -116,6 +118,7 @@ class GpStop:
         self.conn = None
         self.gparray = None
         self.gpversion = None
+        self.is_external_fts=is_external_fts
 
         logger.debug("Setting level of parallelism to: %d" % self.parallel)
         pass
@@ -173,6 +176,10 @@ class GpStop:
                 # Reenable Ctrl-C
                 self.cleanup()
                 signal.signal(signal.SIGINT, signal.default_int_handler)
+            if self.is_external_fts:    
+                self._clean_fts()
+                if self.etcd_hosts is not None:
+                    self._clean_etcd()
         else:
             if self.sighup:
                 return self._sighup_cluster()
@@ -191,7 +198,7 @@ class GpStop:
 
                 if self.interactive:
                     self._summarize_actions(segs)
-                    if not userinput.ask_yesno(None, "\nContinue with Greenplum instance shutdown", 'N'):
+                    if not userinput.ask_yesno(None, "\nContinue with Cloudberry instance shutdown", 'N'):
                         raise UserAbortedException()
 
                 try:
@@ -222,6 +229,10 @@ class GpStop:
                     finally:
                         if self.conn:
                             self.conn.close()
+                if self.is_external_fts:
+                    self._clean_fts()
+                    if self.etcd_hosts is not None:
+                        self._clean_etcd()
 
                 if self.restart:
                     logger.info("Restarting System...")
@@ -237,6 +248,35 @@ class GpStop:
                     # MPP-15208
                     return 2
         return 0
+    
+    def _clean_fts(self):
+        if not os.path.exists(self.fts_hosts):
+            raise gp.GpError("FTS host file %s does not exist." % self.fts_hosts)
+        fts_host_machine_list = read_hosts(self.fts_hosts)
+        logger.info("Start to kill FTS processes...")
+        for fts in fts_host_machine_list:
+            kill_fts(fts)
+        time.sleep(5)
+        for fts in fts_host_machine_list:
+            if check_fts(fts):
+                raise gp.GpError("FTS process on %s is still alive" % fts)
+        logger.info("kill all FTS processes successfully.")
+        
+
+    def _clean_etcd(self):
+        if not os.path.exists(self.etcd_hosts):
+            raise gp.GpError("ETCD host file %s does not exist." % self.etcd_hosts)
+        etcd_host_machine_list = read_hosts(self.etcd_hosts)
+        logger.info("Start to kill ETCD processes...")
+        for etcd in etcd_host_machine_list:
+            kill_etcd(etcd)
+        
+        time.sleep(60)
+        for etcd in etcd_host_machine_list:
+            if check_etcd(etcd):
+                raise gp.GpError("ETCD process on %s is still alive" % etcd)
+        logger.info("kill all ETCD processes successfully.")
+
 
     ######
     def cleanup(self):
@@ -271,7 +311,7 @@ class GpStop:
     ######
     def _check_version(self):
         self.gpversion = gp.GpVersion.local('local GP software version check', self.gphome)
-        logger.info("Greenplum Version: '%s'" % self.gpversion)
+        logger.info("Cloudberry Version: '%s'" % self.gpversion)
 
     ######
     def _read_postgresqlconf(self):
@@ -303,11 +343,11 @@ class GpStop:
             pass
         else:
             raise ExceptionNoStackTraceNeeded(
-                'postmaster.pid file does not exist.  is Greenplum instance already stopped?')
+                'postmaster.pid file does not exist.  is Cloudberry instance already stopped?')
 
     ######
     def _build_gparray(self):
-        logger.info("Obtaining Greenplum Coordinator catalog information")
+        logger.info("Obtaining Cloudberry Coordinator catalog information")
 
         logger.info("Obtaining Segment details from coordinator...")
         self.dburl = dbconn.DbURL(port=self.port, dbname='template1')
@@ -761,7 +801,7 @@ class GpStop:
         logger.info("--------------------------------------------")
 
         tabLog = TableLogger(logger=logger).setWarnWithArrows(True)
-        tabLog.info(["Coordinator Greenplum instance process active PID", "= %s" % self.pid])
+        tabLog.info(["Coordinator Cloudberry instance process active PID", "= %s" % self.pid])
         tabLog.info(["Database", "= %s" % self.dburl.pgdb])
         tabLog.info(["Coordinator port", "= %s" % self.port])
         tabLog.info(["Coordinator directory", "= %s" % self.coordinator_datadir])
@@ -815,13 +855,13 @@ class GpStop:
                          help='set the method of shutdown')
 
         addTo.add_option('-r', '--restart', action='store_true',
-                         help='Restart Greenplum Database instance after successful gpstop.')
+                         help='Restart Cloudberry Database instance after successful gpstop.')
         addTo.add_option('-m', '--master_only', '-c', '--coordinator_only', dest='coordinator_only', action='store_true',
                          help='stop coordinator instance started in maintenance mode')
         addTo.add_option('-y', dest="stop_standby", action='store_false', default=True,
                          help='Do not stop the standby coordinator process.')
         addTo.add_option('-u', dest="request_sighup", action='store_true',
-                         help="upload new coordinator postgresql.conf settings, does not stop Greenplum array," \
+                         help="upload new coordinator postgresql.conf settings, does not stop Cloudberry array," \
                               "issues a signal to the coordinator segment postmaster process to reload")
 
         addTo.add_option('-B', '--parallel', type="int", default=DEFAULT_NUM_WORKERS, metavar="<parallel_processes>",
@@ -833,13 +873,23 @@ class GpStop:
                               'hostname as displayed in gp_segment_configuration')
         addTo.add_option('--skipvalidation', action='store_true', default=False,
                          help="<development testing only> DO NOT USE")
-
+        addTo.add_option('-F', dest='fts_hosts', type='string',default=None ,
+                         help='specify the file that contains all fts hosts.If this argument is set, `gpstop` will attempt'
+                                'to stop all fts in the specified hosts, if not, `gpstop` will stop all fts spectified in the'
+                                '$COORDINATOR_DATA_DIRECTORY/config/fts_host')
+        addTo.add_option('-E', dest='etcd_hosts', type='string',default=None ,
+                         help='specify the file that contains all etcd hosts.If this argument is set, `gpstop` will attempt'
+                                'to stop all etcd in the specified hosts')
         parser.set_defaults(verbose=False, filters=[], slice=(None, None))
         return parser
 
     @staticmethod
     def createProgram(options, args):
         logfileDirectory = options.ensure_value("logfileDirectory", False)
+        external_fts = is_external_fts()
+
+        if external_fts and (options.fts_hosts or options.etcd_hosts):
+            ProgramArgumentValidationException("internal fts not suopport -F and -E")
         if options.mode != 'smart':
             if options.fast or options.immediate:
                 raise ProgramArgumentValidationException("Can not mix --mode options with older deprecated '-f,-i,-s'")
@@ -884,6 +934,14 @@ class GpStop:
         if options.timeout < SEGMENT_STOP_TIMEOUT_DEFAULT and not options.skipvalidation:
             raise ProgramArgumentValidationException(
                 "Invalid timeout value.  Must be greater than %s seconds." % SEGMENT_STOP_TIMEOUT_DEFAULT)
+        
+        if is_external_fts:
+            if options.fts_hosts is None:
+                coordinator_data_directory = os.getenv('COORDINATOR_DATA_DIRECTORY')
+                if coordinator_data_directory is None:
+                    coordinator_data_directory = options.coordinatorDataDirectory
+                
+                options.fts_hosts = coordinator_data_directory + '/config' + '/fts_host'
 
         if args:
             raise ProgramArgumentValidationException(
@@ -900,8 +958,12 @@ class GpStop:
                       restart=options.restart,
                       timeout=options.timeout,
                       logfileDirectory=logfileDirectory,
-                      onlyThisHost=options.only_this_host)
-
+                      onlyThisHost=options.only_this_host,
+                      fts_hosts=options.fts_hosts,
+                      etcd_hosts=options.etcd_hosts,
+                      is_external_fts=external_fts)
 
 if __name__ == '__main__':
+    if len(sys.argv) != 2 or sys.argv[1] != "-u":
+        check_deployment_mode("gpstop")
     simple_main(GpStop.createParser, GpStop.createProgram)

@@ -6,7 +6,7 @@
 -- s/ERROR:.*server closed the connection unexpectedly/ERROR: server closed the connection unexpectedly/gm
 -- end_matchsubs
 
-3:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+3:SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 --
 -- Test to validate crash at different points in AO/CO vacuum.
 --
@@ -117,7 +117,6 @@
 -- skip FTS probes to avoid marking primary status down.
 4:SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
 4:SELECT gp_request_fts_probe_scan();
-4:SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
 4:SET default_table_access_method = ao_column;
 4:CREATE TABLE crash_vacuum_in_appendonly_insert_1 (a INT, b INT, c CHAR(20));
 -- just sanity check to make sure appendonly table is created

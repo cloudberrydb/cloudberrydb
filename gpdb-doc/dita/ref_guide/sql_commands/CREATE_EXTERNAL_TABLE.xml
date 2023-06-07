@@ -127,7 +127,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
     <section id="section3">
       <title>Description</title>
       <p><codeph>CREATE EXTERNAL TABLE</codeph> or <codeph>CREATE EXTERNAL WEB TABLE</codeph>
-        creates a new readable external table definition in Greenplum Database. Readable external
+        creates a new readable external table definition in Cloudberry Database. Readable external
         tables are typically used for fast, parallel data loading. Once an external table is
         defined, you can query its data directly (and in parallel) using SQL commands. For example,
         you can select, join, or sort external table data. You can also create views for external
@@ -135,11 +135,11 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           <codeph>DELETE</codeph>, or <codeph>TRUNCATE</codeph>) are not allowed on readable
         external tables, and you cannot create indexes on readable external tables.</p>
       <p><codeph>CREATE WRITABLE EXTERNAL TABLE</codeph> or <codeph>CREATE WRITABLE EXTERNAL WEB
-          TABLE</codeph> creates a new writable external table definition in Greenplum Database.
+          TABLE</codeph> creates a new writable external table definition in Cloudberry Database.
         Writable external tables are typically used for unloading data from the database into a set
         of files or named pipes. Writable external web tables can also be used to output data to an
         executable program. Writable external tables can also be used as output targets for
-        Greenplum parallel MapReduce calculations. Once a writable external table is defined, data
+        Cloudberry parallel MapReduce calculations. Once a writable external table is defined, data
         can be selected from database tables and inserted into the writable external table. Writable
         external tables only allow <codeph>INSERT</codeph> operations – <codeph>SELECT</codeph>,
           <codeph>UPDATE</codeph>, <codeph>DELETE</codeph> or <codeph>TRUNCATE</codeph> are not
@@ -157,12 +157,12 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
         <plentry>
           <pt>READABLE | WRITABLE</pt>
           <pd>Specifies the type of external table, readable being the default. Readable external
-            tables are used for loading data into Greenplum Database. Writable external tables are
+            tables are used for loading data into Cloudberry Database. Writable external tables are
             used for unloading data. </pd>
         </plentry>
         <plentry>
           <pt>WEB</pt>
-          <pd>Creates a readable or writable external web table definition in Greenplum Database.
+          <pd>Creates a readable or writable external web table definition in Cloudberry Database.
             There are two forms of readable external web tables – those that access files via the
               <codeph>http://</codeph> protocol or those that access data by running OS commands.
             Writable external web tables output data to an executable program that can accept an
@@ -175,7 +175,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
         <plentry>
           <pt>TEMPORARY | TEMP</pt>
           <pd>If specified, creates a temporary readable or writable external table definition
-            in Greenplum Database. Temporary external tables exist in a special schema; you cannot
+            in Cloudberry Database. Temporary external tables exist in a special schema; you cannot
             specify a schema name when you create the table. Temporary external tables are
             automatically dropped at the end of a session.</pd>
           <pd>An existing permanent table with the same name is not visible to the current session
@@ -199,7 +199,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
         <plentry>
           <pt>LIKE <varname>other_table</varname></pt>
           <pd>The <codeph>LIKE</codeph> clause specifies a table from which the new external table
-            automatically copies all column names, data types and Greenplum distribution policy. If
+            automatically copies all column names, data types and Cloudberry distribution policy. If
             the original table specifies any column constraints or default column values, those will
             not be copied over to the new external table definition.</pd>
         </plentry>
@@ -238,7 +238,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           </pd>
           <pd>For writable external tables, specifies the URI location of the
               <codeph>gpfdist</codeph> process or S3 protocol that will collect data output from the
-            Greenplum segments and write it to one or more named files. For <codeph>gpfdist</codeph>
+            Cloudberry segments and write it to one or more named files. For <codeph>gpfdist</codeph>
             the <codeph>path</codeph> is relative to the directory from which
               <codeph>gpfdist</codeph> is serving files (the directory specified when you started
             the <codeph>gpfdist</codeph> program). If multiple <codeph>gpfdist</codeph> locations
@@ -257,18 +257,18 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
             file you specify with the you run the <codeph>gpfdist</codeph> utility. For information
             about specifying a transform, see <xref
               href="../../utility_guide/ref/gpfdist.xml#topic1"
-              ><codeph>gpfdist</codeph></xref> in the <cite>Greenplum Utility Guide</cite>. </pd>
+              ><codeph>gpfdist</codeph></xref> in the <cite>Cloudberry Utility Guide</cite>. </pd>
         </plentry>
         <plentry>
           <pt>ON MASTER</pt>
-          <pd>Restricts all table-related operations to the Greenplum master segment. Permitted only
+          <pd>Restricts all table-related operations to the Cloudberry master segment. Permitted only
             on readable and writable external tables created with the <codeph>s3</codeph> or custom
             protocols. The <codeph>gpfdist</codeph>, <codeph>gpfdists</codeph>,
               <codeph>pxf</codeph>, and <codeph>file</codeph> protocols do not support <codeph>ON
               MASTER</codeph>. <note>Be aware of potential resource impacts when reading from or
               writing to external tables you create with the <codeph>ON MASTER</codeph> clause. You
               may encounter performance issues when you restrict table operations solely to the
-              Greenplum master segment.</note></pd>
+              Cloudberry master segment.</note></pd>
         </plentry>
         <plentry>
           <pt>EXECUTE <varname>'command'</varname> [ON ...]</pt>
@@ -278,18 +278,18 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
               <codeph>ON</codeph> clause is used to specify which segment instances will run the
             given command.<ul id="ul_xd1_wq2_m4">
               <li id="br150831">ON ALL is the default. The command will be run by every active
-                (primary) segment instance on all segment hosts in the Greenplum Database system. If
+                (primary) segment instance on all segment hosts in the Cloudberry Database system. If
                 the command runs a script, that script must reside in the same location on all
-                of the segment hosts and be executable by the Greenplum superuser
+                of the segment hosts and be executable by the Cloudberry superuser
                   (<codeph>gpadmin</codeph>).</li>
               <li id="br153076">ON MASTER runs the command on the master host only. <note>Logging is
                   not supported for external web tables when the <codeph>ON MASTER</codeph> clause
                   is specified.</note></li>
               <li id="br150832">ON <varname>number</varname> means the command will be run by
                 the specified number of segments. The particular segments are chosen randomly at
-                runtime by the Greenplum Database system. If the command runs a script, that
+                runtime by the Cloudberry Database system. If the command runs a script, that
                 script must reside in the same location on all of the segment hosts and be
-                executable by the Greenplum superuser (<codeph>gpadmin</codeph>). </li>
+                executable by the Cloudberry superuser (<codeph>gpadmin</codeph>). </li>
               <li id="br150833">HOST means the command will be run by one segment on each
                 segment host (once per segment host), regardless of the number of active segment
                 instances per host. </li>
@@ -299,7 +299,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
                 run only once by the specified segment. You can determine a segment instance's
                 ID by looking at the <varname>content</varname> number in the system catalog table
                   <xref href="../system_catalogs/gp_segment_configuration.xml" type="topic"
-                  format="dita"/>. The <varname>content</varname> ID of the Greenplum Database
+                  format="dita"/>. The <varname>content</varname> ID of the Cloudberry Database
                 master is always <codeph>-1</codeph>.</li>
             </ul><p>For writable external tables, the <varname>command</varname> specified in the
                 <codeph>EXECUTE</codeph> clause must be prepared to have data piped into it. Since
@@ -317,8 +317,8 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
         PostgreSQL <codeph><xref href="COPY.xml#topic1" type="topic" format="dita"/></codeph>
         command. If the data in the file does not use the default column delimiter, escape
         character, null string and so on, you must specify the additional formatting options so that
-        the data in the external file is read correctly by Greenplum Database. For information about
-        using a custom format, see "Loading and Unloading Data" in the <cite>Greenplum Database
+        the data in the external file is read correctly by Cloudberry Database. For information about
+        using a custom format, see "Loading and Unloading Data" in the <cite>Cloudberry Database
           Administrator Guide</cite>.</pd>
           <pd>If you use the <codeph>pxf</codeph> protocol to access an external data source,
           refer to <xref href="../../admin_guide/external/pxf-overview.xml"></xref>
@@ -334,7 +334,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           refer to <xref href="../../admin_guide/external/pxf-overview.xml"></xref>
           for information about using PXF.</pd>
           <pd>For general information about using a custom format, see "Loading and Unloading Data" in the
-              <cite>Greenplum Database Administrator Guide</cite>.</pd>
+              <cite>Cloudberry Database Administrator Guide</cite>.</pd>
         </plentry>
         <plentry>
           <pt>DELIMITER</pt>
@@ -378,7 +378,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           <pt>NEWLINE</pt>
           <pd>Specifies the newline used in your data files – <codeph>LF</codeph> (Line feed, 0x0A),
               <codeph>CR</codeph> (Carriage return, 0x0D), or <codeph>CRLF</codeph> (Carriage return
-            plus line feed, 0x0D 0x0A). If not specified, a Greenplum Database segment will detect
+            plus line feed, 0x0D 0x0A). If not specified, a Cloudberry Database segment will detect
             the newline type by looking at the first row of data it receives and using the first
             newline type encountered.</pd>
         </plentry>
@@ -446,7 +446,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           <pd>The data is deleted when the external table is dropped unless you specify the keyword
               <codeph>PERSISTENTLY</codeph>. If the keyword is specified, the log data persists
             after the external table is dropped.</pd>
-          <pd>The error log data is accessed with the Greenplum Database built-in SQL function
+          <pd>The error log data is accessed with the Cloudberry Database built-in SQL function
               <codeph>gp_read_error_log()</codeph>, or with the SQL function
               <codeph>gp_read_persistent_error_log()</codeph> if the <codeph>PERSISTENTLY</codeph>
             keyword is specified.</pd>
@@ -459,7 +459,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           <pt>SEGMENT REJECT LIMIT <varname>count</varname> [ROWS | PERCENT]</pt>
           <pd>Runs a <codeph>COPY FROM</codeph> operation in single row error isolation mode. If the
             input rows have format errors they will be discarded provided that the reject limit
-            count is not reached on any Greenplum segment instance during the load operation. The
+            count is not reached on any Cloudberry segment instance during the load operation. The
             reject limit count can be specified as number of rows (the default) or percentage of
             total rows (1-100). If <codeph>PERCENT</codeph> is used, each segment starts calculating
             the bad row percentage only after the number of rows specified by the parameter
@@ -470,11 +470,11 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
             mode. If the limit is not reached, all good rows will be loaded and any error rows
             discarded.</pd>
           <pd>
-            <note>When reading an external table, Greenplum Database limits the initial number of
+            <note>When reading an external table, Cloudberry Database limits the initial number of
               rows that can contain formatting errors if the <codeph>SEGMENT REJECT LIMIT</codeph>
               is not triggered first or is not specified. If the first 1000 rows are rejected, the
                 <codeph>COPY</codeph> operation is stopped and rolled back. <p>The limit for the
-                number of initial rejected rows can be changed with the Greenplum Database server
+                number of initial rejected rows can be changed with the Cloudberry Database server
                 configuration parameter <codeph>gp_initial_bad_row_limit</codeph>. See <xref
                   href="../config_params/guc_config.xml#topic1"/> for information about the
                 parameter. </p></note>
@@ -484,7 +484,7 @@ CREATE WRITABLE EXTERNAL WEB [TEMPORARY | TEMP] TABLE <varname>table_name</varna
           <pt>DISTRIBUTED BY ({<varname>column</varname> [<varname>opclass</varname>]}, [ ... ]
             )</pt>
           <pt>DISTRIBUTED RANDOMLY</pt>
-          <pd>Used to declare the Greenplum Database distribution policy for a writable external
+          <pd>Used to declare the Cloudberry Database distribution policy for a writable external
             table. By default, writable external tables are distributed randomly. If the source
             table you are exporting data from has a hash distribution policy, defining the same
             distribution key column(s) and operator class(es), <codeph>oplcass</codeph>, for the
@@ -554,7 +554,7 @@ customer_id=123;</codeblock>
     </section>
     <section id="section8">
       <title>Notes</title>
-      <p>When you specify the <codeph>LOG ERRORS</codeph> clause, Greenplum Database captures errors
+      <p>When you specify the <codeph>LOG ERRORS</codeph> clause, Cloudberry Database captures errors
         that occur while reading the external table data. For information about the error log
         format, see <xref
               href="../../admin_guide/load/topics/g-viewing-bad-rows-in-the-error-table-or-error-log.xml#topic58"
@@ -613,15 +613,15 @@ customer_id=123;</codeblock>
               respective <codeph>gp_truncate_*</codeph> functions.</li>
           </ul></li>
       </ul>
-      <p>When multiple Greenplum Database external tables are defined with the
+      <p>When multiple Cloudberry Database external tables are defined with the
           <codeph>gpfdist</codeph>, <codeph>gpfdists</codeph>, or <codeph>file</codeph> protocol and
-        access the same named pipe a Linux system, Greenplum Database restricts access to the named
+        access the same named pipe a Linux system, Cloudberry Database restricts access to the named
         pipe to a single reader. An error is returned if a second reader attempts to access the
         named pipe. </p>
     </section>
     <section id="section6">
       <title>Compatibility</title>
-      <p><codeph>CREATE EXTERNAL TABLE</codeph> is a Greenplum Database extension. The SQL standard
+      <p><codeph>CREATE EXTERNAL TABLE</codeph> is a Cloudberry Database extension. The SQL standard
         makes no provisions for external tables.</p>
     </section>
     <section id="section7">

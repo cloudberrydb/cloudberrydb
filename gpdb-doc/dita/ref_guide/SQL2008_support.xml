@@ -5,9 +5,9 @@
   <title id="et150574">SQL 2008 Optional Feature Compliance</title>
   <body>
     <p>The following table lists the features described in the 2008 SQL standard. Features that are
-      supported in Greenplum Database are marked as YES in the 'Supported' column, features that are
+      supported in Cloudberry Database are marked as YES in the 'Supported' column, features that are
       not implemented are marked as NO.</p>
-    <p>For information about Greenplum features and SQL compliance, see the <i>Greenplum Database
+    <p>For information about Cloudberry features and SQL compliance, see the <i>Cloudberry Database
         Administrator Guide</i>.</p>
     <table id="et163933">
       <title>SQL 2008 Optional Feature Compliance Details</title>
@@ -464,7 +464,7 @@
             <entry colname="col1">E061-08</entry>
             <entry colname="col2"><codeph>EXISTS</codeph> predicate</entry>
             <entry colname="col3">YES</entry>
-            <entry colname="col4">Not all uses work in Greenplum</entry>
+            <entry colname="col4">Not all uses work in Cloudberry</entry>
           </row>
           <row>
             <entry colname="col1">E061-09</entry>
@@ -776,14 +776,14 @@
             <entry colname="col2"><codeph>UNIQUE</codeph> constraints of <codeph>NOT NULL</codeph>
               columns</entry>
             <entry colname="col3">YES</entry>
-            <entry colname="col4">Must be the same as or a superset of the Greenplum distribution
+            <entry colname="col4">Must be the same as or a superset of the Cloudberry distribution
               key</entry>
           </row>
           <row>
             <entry colname="col1">E141-03</entry>
             <entry colname="col2"><codeph>PRIMARY KEY</codeph> constraints</entry>
             <entry colname="col3">YES</entry>
-            <entry colname="col4">Must be the same as or a superset of the Greenplum distribution
+            <entry colname="col4">Must be the same as or a superset of the Cloudberry distribution
               key</entry>
           </row>
           <row>
@@ -818,7 +818,7 @@
             <entry colname="col2">Names in a foreign key can be specified in any order</entry>
             <entry colname="col3">YES</entry>
             <entry colname="col4">Foreign keys can be declared but are not enforced in
-              Greenplum</entry>
+              Cloudberry</entry>
           </row>
           <row>
             <entry colname="col1">E151</entry>
@@ -2146,7 +2146,7 @@
             <entry colname="col1">S091</entry>
             <entry colname="col2">Basic array support</entry>
             <entry colname="col3">NO</entry>
-            <entry colname="col4">Greenplum has arrays, but is not fully standards compliant</entry>
+            <entry colname="col4">Cloudberry has arrays, but is not fully standards compliant</entry>
           </row>
           <row>
             <entry colname="col1">S091-01</entry>
@@ -2237,7 +2237,7 @@
             <entry colname="col1">S201</entry>
             <entry colname="col2">SQL-invoked routines on arrays</entry>
             <entry colname="col3">NO</entry>
-            <entry colname="col4">Functions can be passed Greenplum array types</entry>
+            <entry colname="col4">Functions can be passed Cloudberry array types</entry>
           </row>
           <row>
             <entry colname="col1">S202</entry>
@@ -2954,7 +2954,7 @@
               <codeph>NTH_VALUE</codeph>
             </entry>
             <entry colname="col3">NO</entry>
-            <entry colname="col4">Function exists in Greenplum but not all options are
+            <entry colname="col4">Function exists in Cloudberry but not all options are
               supported</entry>
           </row>
           <row>

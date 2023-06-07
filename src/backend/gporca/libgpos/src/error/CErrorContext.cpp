@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2008 - 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2008 - 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CErrorContext.cpp
@@ -92,15 +92,15 @@ CErrorContext::Record(CException &exc, VA_LIST vl)
 	if (m_serializing)
 		return;
 
-#ifdef GPOS_DEBUG
+//#ifdef GPOS_DEBUG
 	if (m_pending)
 	{
 		// reset pending flag so we can throw from here
 		m_pending = false;
 
-		GPOS_ASSERT(!"Pending error unhandled when raising new error");
+		GPOS_ASSERT_FIXME(!"Pending error unhandled when raising new error");
 	}
-#endif	// GPOS_DEBUG
+//#endif	// GPOS_DEBUG
 
 	m_pending = true;
 	m_exception = exc;

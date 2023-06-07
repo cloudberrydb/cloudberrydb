@@ -3,7 +3,7 @@
  * tsquery_util.c
  *	  Utilities for tsquery datatype
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -14,8 +14,8 @@
 
 #include "postgres.h"
 
-#include "tsearch/ts_utils.h"
 #include "miscadmin.h"
+#include "tsearch/ts_utils.h"
 
 /*
  * Build QTNode tree for a tsquery given in QueryItem array format.

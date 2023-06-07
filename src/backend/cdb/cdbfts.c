@@ -3,7 +3,7 @@
  * cdbfts.c
  *	  Provides fault tolerance service routines for mpp.
  *
- * Portions Copyright (c) 2003-2008, Greenplum inc
+ * Portions Copyright (c) 2003-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -40,6 +40,8 @@
 
 /* segment id for the master */
 #define MASTER_SEGMENT_ID -1
+
+#ifdef USE_INTERNAL_FTS
 
 volatile FtsProbeInfo *ftsProbeInfo = NULL;	/* Probe process updates this structure */
 
@@ -163,9 +165,95 @@ FtsTestSegmentDBIsDown(SegmentDatabaseDescriptor **segdbDesc, int size)
 
 	return false;
 }
-
 uint8
 getFtsVersion(void)
 {
 	return ftsProbeInfo->status_version;
 }
+
+#else
+
+/* see src/backend/fts/README */
+void
+FtsNotifyProber(void)
+{
+	Assert(Gp_role == GP_ROLE_DISPATCH);
+	SendPostmasterSignal(PMSIGNAL_WAKEN_FTS);
+	SIMPLE_FAULT_INJECTOR("ftsNotify_before");
+
+	/* When recovery happened. FTS will direct write into ETCD
+	 * But at this time, ETCD caches is not being updated.
+	 * And the reason for GANG creation failure may also be that the cache has not been updated.
+	 */ 
+	ShmemSegmentConfigsCacheForceFlush();
+
+	/* FTS_TODO: NOTIFY unsupport for now */ 
+}
+
+static bool
+IsSegmentDown(GpSegConfigEntry *configs, int total_dbs, CdbComponentDatabaseInfo *dBInfo) {
+	GpSegConfigEntry *config = NULL;
+
+	Assert(configs);
+	Assert(total_dbs > 0);
+	for (int i = 0; i < total_dbs; i++) {
+		config = &configs[i];
+		if (config->dbid == dBInfo->config->dbid) {
+			return config->status == GP_SEGMENT_CONFIGURATION_STATUS_DOWN;
+		}
+	}
+	return false;
+}
+
+/*
+ * Test-Connection: This is called from the threaded context inside the
+ * dispatcher: ONLY CALL THREADSAFE FUNCTIONS -- elog() is NOT threadsafe.
+ */
+bool
+FtsIsSegmentDown(CdbComponentDatabaseInfo *dBInfo)
+{
+	int total_dbs = 0;
+	GpSegConfigEntry *configs = NULL;
+	bool rc = false;
+
+	configs = readGpSegConfigFromETCD(&total_dbs,false);
+	rc = IsSegmentDown(configs, total_dbs, dBInfo);
+
+	cleanGpSegConfigs(configs, total_dbs);
+	return rc;
+}
+
+
+/*
+ * Check if any segment DB is down.
+ *
+ * returns true if any segment DB is down.
+ */
+bool
+FtsTestSegmentDBIsDown(SegmentDatabaseDescriptor **segdbDesc, int size)
+{
+	int			i = 0;
+	GpSegConfigEntry *configs = NULL;
+	int total_dbs = 0;
+	configs = readGpSegConfigFromETCD(&total_dbs,false);
+
+	for (i = 0; i < size; i++)
+	{
+		CdbComponentDatabaseInfo *segInfo = segdbDesc[i]->segment_database_info;
+
+		elog(DEBUG2, "FtsTestSegmentDBIsDown: looking for real fault on segment dbid %d", (int) segInfo->config->dbid);
+
+		if (IsSegmentDown(configs, total_dbs, segInfo))
+		{
+			cleanGpSegConfigs(configs, total_dbs);
+			ereport(LOG, (errmsg_internal("FTS: found fault with segment dbid %d. "
+										  "Reconfiguration is in progress", (int) segInfo->config->dbid)));
+			return true;
+		}
+	}
+
+	cleanGpSegConfigs(configs, total_dbs);
+	return false;
+}
+
+#endif

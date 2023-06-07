@@ -2,7 +2,7 @@
  *
  * plpython.h - Python as a procedural language for PostgreSQL
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/pl/plpython/plpython.h
@@ -28,7 +28,6 @@
  */
 #undef _POSIX_C_SOURCE
 #undef _XOPEN_SOURCE
-#undef HAVE_TZNAME
 
 /*
  * Sometimes python carefully scribbles on our *printf macros.
@@ -61,16 +60,6 @@
 #endif
 
 /*
- * Py_ssize_t compat for Python <= 2.4
- */
-#if PY_VERSION_HEX < 0x02050000 && !defined(PY_SSIZE_T_MIN)
-typedef int Py_ssize_t;
-
-#define PY_SSIZE_T_MAX INT_MAX
-#define PY_SSIZE_T_MIN INT_MIN
-#endif
-
-/*
  * Python 2/3 strings/unicode/bytes handling.  Python 2 has strings
  * and unicode, Python 3 has strings, which are unicode on the C
  * level, and bytes.  The porting convention, which is similarly used
@@ -81,15 +70,6 @@ typedef int Py_ssize_t;
  * string to a Python string it converts the C string from the
  * PostgreSQL server encoding to a Python Unicode object.
  */
-
-#if PY_VERSION_HEX < 0x02060000
-/* This is exactly the compatibility layer that Python 2.6 uses. */
-#define PyBytes_AsString PyString_AsString
-#define PyBytes_FromStringAndSize PyString_FromStringAndSize
-#define PyBytes_Size PyString_Size
-#define PyObject_Bytes PyObject_Str
-#endif
-
 #if PY_MAJOR_VERSION >= 3
 #define PyString_Check(x) 0
 #define PyString_AsString(x) PLyUnicode_AsString(x)
@@ -105,16 +85,6 @@ typedef int Py_ssize_t;
 #define PyInt_AsLong(x) PyLong_AsLong(x)
 #endif
 
-/*
- * PyVarObject_HEAD_INIT was added in Python 2.6.  Its use is
- * necessary to handle both Python 2 and 3.  This replacement
- * definition is for Python <=2.5
- */
-#ifndef PyVarObject_HEAD_INIT
-#define PyVarObject_HEAD_INIT(type, size)		\
-		PyObject_HEAD_INIT(type) size,
-#endif
-
 /* Python 3 removed the Py_TPFLAGS_HAVE_ITER flag */
 #if PY_MAJOR_VERSION >= 3
 #define Py_TPFLAGS_HAVE_ITER 0
@@ -123,9 +93,6 @@ typedef int Py_ssize_t;
 /* define our text domain for translations */
 #undef TEXTDOMAIN
 #define TEXTDOMAIN PG_TEXTDOMAIN("plpython")
-
-#include <compile.h>
-#include <eval.h>
 
 /* put back our *printf macros ... this must match src/include/port.h */
 #ifdef vsnprintf

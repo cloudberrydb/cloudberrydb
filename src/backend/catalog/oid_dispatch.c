@@ -4,7 +4,7 @@
  *		Functions to ensure that QD and QEs use same OIDs for catalog objects.
  *
  *
- * In Greenplum, it's important that most objects, like relations, functions,
+ * In Cloudberry, it's important that most objects, like relations, functions,
  * operators, have the same OIDs in the master and all QE nodes.  Otherwise
  * query plans generated in the master will not work on the QE nodes, because
  * they use the master's OIDs to refer to objects.
@@ -112,6 +112,7 @@
 #include "catalog/pg_resgroup.h"
 #include "catalog/pg_resgroupcapability.h"
 #include "catalog/pg_rewrite.h"
+#include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_transform.h"
@@ -130,6 +131,8 @@
 #include "nodes/pg_list.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
+
+#include "catalog/gp_indexing.h"
 
 /* #define OID_DISPATCH_DEBUG */
 
@@ -278,7 +281,6 @@ static Oid
 GetPreassignedOid(OidAssignment *searchkey)
 {
 	ListCell   *cur_item;
-	ListCell   *prev_item;
 	Oid			oid;
 
 	/*
@@ -295,10 +297,7 @@ GetPreassignedOid(OidAssignment *searchkey)
 			return AssignBinaryUpgradeReservedOid();
 	}
 
-	prev_item = NULL;
-	cur_item = list_head(preassigned_oids);
-
-	while (cur_item != NULL)
+	foreach(cur_item, preassigned_oids)
 	{
 		OidAssignment *p = (OidAssignment *) lfirst(cur_item);
 
@@ -315,12 +314,10 @@ GetPreassignedOid(OidAssignment *searchkey)
 #endif
 
 			oid = p->oid;
-			preassigned_oids = list_delete_cell(preassigned_oids, cur_item, prev_item);
+			preassigned_oids = foreach_delete_current(preassigned_oids, cur_item);
 			pfree(p);
 			return oid;
 		}
-		prev_item = cur_item;
-		cur_item = lnext(cur_item);
 	}
 
 	return InvalidOid;
@@ -366,7 +363,7 @@ GetNewOrPreassignedOid(Relation relation, Oid indexId, AttrNumber oidcolumn,
 				oid = GetNewOidWithIndex(relation, indexId, oidcolumn);
 			else
 				/*
-				 * On QE, Greenplum requires a pre-assigned OID to keep QD and
+				 * On QE, Cloudberry requires a pre-assigned OID to keep QD and
 				 * QEs synchronized, whether in binary upgrade or not.
 				 */
 				elog(ERROR, "no pre-assigned OID for %s tuple \"%s\" (namespace:%u keyOid1:%u keyOid2:%u)",
@@ -941,6 +938,23 @@ GetNewOidForRewrite(Relation relation, Oid indexId, AttrNumber oidcolumn,
 }
 
 Oid
+GetNewOidForStatisticExt(Relation relation, Oid indexId, AttrNumber oidcolumn,
+						 char *stxname, Oid stxnamespace)
+{
+	OidAssignment key;
+
+	Assert(RelationGetRelid(relation) == StatisticExtRelationId);
+	Assert(indexId == StatisticExtOidIndexId);
+	Assert(oidcolumn == Anum_pg_statistic_ext_oid);
+
+	memset(&key, 0, sizeof(OidAssignment));
+	key.type = T_OidAssignment;
+	key.keyOid1 = stxnamespace;
+	key.objname = stxname;
+	return GetNewOrPreassignedOid(relation, indexId, oidcolumn, &key);
+}
+
+Oid
 GetNewOidForSubscription(Relation relation, Oid indexId, AttrNumber oidcolumn,
 						 Oid subdbid, char *subname)
 {
@@ -1174,10 +1188,8 @@ char *
 GetPreassignedIndexNameForChildIndex(Oid parentIdxOid, Oid childRelId)
 {
 	ListCell   *cur_item;
-	ListCell   *prev_item;
 	char	   *result = NULL;
 
-	prev_item = NULL;
 	cur_item = list_head(preassigned_oids);
 
 	while (cur_item != NULL)
@@ -1194,12 +1206,11 @@ GetPreassignedIndexNameForChildIndex(Oid parentIdxOid, Oid childRelId)
 #endif
 
 			result = pstrdup(p->objname);
-			preassigned_oids = list_delete_cell(preassigned_oids, cur_item, prev_item);
+			preassigned_oids = list_delete_cell(preassigned_oids, cur_item);
 			pfree(p);
 			return result;
 		}
-		prev_item = cur_item;
-		cur_item = lnext(cur_item);
+		cur_item = lnext(preassigned_oids, cur_item);
 	}
 
 	if (result == NULL)

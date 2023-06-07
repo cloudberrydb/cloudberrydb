@@ -3,7 +3,7 @@
  * hash.c
  *	  Implementation of Margo Seltzer's Hashing package for postgres.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -31,8 +31,6 @@
 #include "utils/builtins.h"
 #include "utils/index_selfuncs.h"
 #include "utils/rel.h"
-#include "miscadmin.h"
-
 
 /* Working state for hashbuild and its callback */
 typedef struct
@@ -43,7 +41,7 @@ typedef struct
 } HashBuildState;
 
 static void hashbuildCallback(Relation index,
-							  ItemPointer tupleId,
+							  ItemPointer tid,
 							  Datum *values,
 							  bool *isnull,
 							  bool tupleIsAlive,
@@ -61,6 +59,7 @@ hashhandler(PG_FUNCTION_ARGS)
 
 	amroutine->amstrategies = HTMaxStrategyNumber;
 	amroutine->amsupport = HASHNProcs;
+	amroutine->amoptsprocnum = HASHOPTIONS_PROC;
 	amroutine->amcanorder = false;
 	amroutine->amcanorderbyop = false;
 	amroutine->amcanbackward = true;
@@ -74,6 +73,9 @@ hashhandler(PG_FUNCTION_ARGS)
 	amroutine->ampredlocks = true;
 	amroutine->amcanparallel = false;
 	amroutine->amcaninclude = false;
+	amroutine->amusemaintenanceworkmem = false;
+	amroutine->amparallelvacuumoptions =
+		VACUUM_OPTION_PARALLEL_BULKDEL;
 	amroutine->amkeytype = INT4OID;
 
 	amroutine->ambuild = hashbuild;
@@ -87,6 +89,7 @@ hashhandler(PG_FUNCTION_ARGS)
 	amroutine->amproperty = NULL;
 	amroutine->ambuildphasename = NULL;
 	amroutine->amvalidate = hashvalidate;
+	amroutine->amadjustmembers = hashadjustmembers;
 	amroutine->ambeginscan = hashbeginscan;
 	amroutine->amrescan = hashrescan;
 	amroutine->amgettuple = hashgettuple;
@@ -201,7 +204,7 @@ hashbuildempty(Relation index)
  */
 static void
 hashbuildCallback(Relation index,
-				  ItemPointer tupleId,
+				  ItemPointer tid,
 				  Datum *values,
 				  bool *isnull,
 				  bool tupleIsAlive,
@@ -220,14 +223,13 @@ hashbuildCallback(Relation index,
 
 	/* Either spool the tuple for sorting, or just put it into the index */
 	if (buildstate->spool)
-		_h_spool(buildstate->spool, tupleId,
-				 index_values, index_isnull);
+		_h_spool(buildstate->spool, tid, index_values, index_isnull);
 	else
 	{
 		/* form an index tuple and point it at the heap tuple */
 		itup = index_form_tuple(RelationGetDescr(index),
 								index_values, index_isnull);
-		itup->t_tid = *tupleId;
+		itup->t_tid = *tid;
 		_hash_doinsert(index, itup, buildstate->heapRel);
 		pfree(itup);
 	}
@@ -245,6 +247,7 @@ bool
 hashinsert(Relation rel, Datum *values, bool *isnull,
 		   ItemPointer ht_ctid, Relation heapRel,
 		   IndexUniqueCheck checkUnique,
+		   bool indexUnchanged,
 		   IndexInfo *indexInfo)
 {
 	Datum		index_values[1];

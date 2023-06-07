@@ -4,7 +4,7 @@
  *	  prototypes for tablecmds.c.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/commands/tablecmds.h
@@ -28,6 +28,8 @@
 #include "storage/lock.h"
 #include "utils/relcache.h"
 
+struct AlterTableUtilityContext;	/* avoid including tcop/utility.h here */
+
 extern const char *synthetic_sql;
 
 extern void	DefineExternalRelation(CreateExternalStmt *stmt);
@@ -40,7 +42,8 @@ extern void RemoveRelations(DropStmt *drop);
 
 extern Oid	AlterTableLookupRelation(AlterTableStmt *stmt, LOCKMODE lockmode);
 
-extern void AlterTable(Oid relid, LOCKMODE lockmode, AlterTableStmt *stmt);
+extern void AlterTable(AlterTableStmt *stmt, LOCKMODE lockmode,
+					   struct AlterTableUtilityContext *context);
 
 extern LOCKMODE AlterTableGetLockLevel(List *cmds);
 
@@ -67,14 +70,20 @@ extern void AlterRelationNamespaceInternal(Relation classRel, Oid relOid,
 extern void CheckTableNotInUse(Relation rel, const char *stmt);
 
 extern void ExecuteTruncate(TruncateStmt *stmt);
-extern void ExecuteTruncateGuts(List *explicit_rels, List *relids, List *relids_logged,
-								DropBehavior behavior, bool restart_seqs, TruncateStmt *stmt);
+extern void ExecuteTruncateGuts(List *explicit_rels,
+								List *relids,
+								List *relids_logged,
+								DropBehavior behavior,
+								bool restart_seqs,
+								TruncateStmt *stmt);
 
 extern void SetRelationHasSubclass(Oid relationId, bool relhassubclass);
 
-extern ObjectAddress renameatt(RenameStmt *stmt);
+extern bool CheckRelationTableSpaceMove(Relation rel, Oid newTableSpaceId);
+extern void SetRelationTableSpace(Relation rel, Oid newTableSpaceId,
+                                  RelFileNodeId newRelFileNode);
 
-extern ObjectAddress renameatt_type(RenameStmt *stmt);
+extern ObjectAddress renameatt(RenameStmt *stmt);
 
 extern ObjectAddress RenameConstraint(RenameStmt *stmt);
 
@@ -83,6 +92,8 @@ extern ObjectAddress RenameRelation(RenameStmt *stmt);
 extern void RenameRelationInternal(Oid myrelid,
 								   const char *newrelname, bool is_internal,
 								   bool is_index);
+
+extern void ResetRelRewrite(Oid myrelid);
 
 extern void find_composite_type_dependencies(Oid typeOid,
 											 Relation origRelation,
@@ -109,16 +120,16 @@ extern void RangeVarCallbackOwnsTable(const RangeVar *relation,
 									  Oid relId, Oid oldRelId, void *arg);
 
 extern void RangeVarCallbackOwnsRelation(const RangeVar *relation,
-										 Oid relId, Oid oldRelId, void *noCatalogs);
+										 Oid relId, Oid oldRelId, void *arg);
 extern bool PartConstraintImpliedByRelConstraint(Relation scanrel,
 												 List *partConstraint);
 
-extern List * rel_get_column_encodings(Relation rel);
-
 /* GPDB specific functions */
 extern void ATExecGPPartCmds(Relation origrel, AlterTableCmd *cmd);
+extern void GpAlterPartMetaTrackUpdObject(Oid relid, AlterTableType subcmdtype);
 extern void GpRenameChildPartitions(Relation targetrelation,
 									const char *oldparentrelname,
 									const char *newparentrelname);
+extern void set_random_distribution_if_drop_distkey(Relation rel, AttrNumber attnum);
 
 #endif							/* TABLECMDS_H */

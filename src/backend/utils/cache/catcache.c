@@ -3,7 +3,7 @@
  * catcache.c
  *	  System catalog cache for tuples matching a key.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -15,15 +15,16 @@
 #include "postgres.h"
 
 #include "access/genam.h"
+#include "access/heaptoast.h"
 #include "access/relscan.h"
 #include "access/sysattr.h"
 #include "access/table.h"
-#include "access/tuptoaster.h"
 #include "access/valid.h"
 #include "access/xact.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_type.h"
+#include "common/hashfn.h"
 #include "miscadmin.h"
 #ifdef CATCACHE_STATS
 #include "storage/ipc.h"		/* for on_proc_exit */
@@ -32,7 +33,6 @@
 #include "utils/builtins.h"
 #include "utils/datum.h"
 #include "utils/fmgroids.h"
-#include "utils/hashutils.h"
 #include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/relcache.h"
@@ -1077,8 +1077,9 @@ InitCatCachePhase2(CatCache *cache, bool touch_index)
  *		criticalRelcachesBuilt), we don't have to worry anymore.
  *
  *		Similarly, during backend startup we have to be able to use the
- *		pg_authid and pg_auth_members syscaches for authentication even if
- *		we don't yet have relcache entries for those catalogs' indexes.
+ *		pg_authid, pg_auth_members and pg_database syscaches for
+ *		authentication even if we don't yet have relcache entries for those
+ *		catalogs' indexes.
  */
 static bool
 IndexScanOK(CatCache *cache, ScanKey cur_skey)
@@ -1111,6 +1112,7 @@ IndexScanOK(CatCache *cache, ScanKey cur_skey)
 		case AUTHNAME:
 		case AUTHOID:
 		case AUTHMEMMEMROLE:
+		case DATABASEOID:
 
 			/*
 			 * Protect authentication lookups occurring before relcache has
@@ -1180,7 +1182,7 @@ CrossCheckTuple(int cacheId,
 }
 
 /*
- *	SearchCatCacheInternal
+ *	SearchCatCache
  *
  *		This call searches a system cache for a tuple, opening the relation
  *		if necessary (on the first access to a particular cache).
@@ -1560,7 +1562,7 @@ GetCatCacheHashValue(CatCache *cache,
  *		It doesn't make any sense to specify all of the cache's key columns
  *		here: since the key is unique, there could be at most one match, so
  *		you ought to use SearchCatCache() instead.  Hence this function takes
- *		one less Datum argument than SearchCatCache() does.
+ *		one fewer Datum argument than SearchCatCache() does.
  *
  *		The caller must not modify the list object or the pointed-to tuples,
  *		and must call ReleaseCatCacheList() when done with the list.

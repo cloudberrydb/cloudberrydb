@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 use strict;
 use warnings;
 use TestLib;
@@ -6,7 +9,7 @@ use Test::More;
 
 if ($ENV{with_ldap} eq 'yes')
 {
-	plan tests => 22;
+	plan tests => 28;
 }
 else
 {
@@ -52,11 +55,11 @@ my $ldap_datadir  = "${TestLib::tmp_check}/openldap-data";
 my $slapd_certs   = "${TestLib::tmp_check}/slapd-certs";
 my $slapd_conf    = "${TestLib::tmp_check}/slapd.conf";
 my $slapd_pidfile = "${TestLib::tmp_check}/slapd.pid";
-my $slapd_logfile = "${TestLib::tmp_check}/slapd.log";
+my $slapd_logfile = "${TestLib::log_path}/slapd.log";
 my $ldap_conf     = "${TestLib::tmp_check}/ldap.conf";
 my $ldap_server   = 'localhost';
-my $ldap_port     = int(rand() * 16384) + 49152;
-my $ldaps_port    = $ldap_port + 1;
+my $ldap_port     = get_free_port();
+my $ldaps_port    = get_free_port();
 my $ldap_url      = "ldap://$ldap_server:$ldap_port";
 my $ldaps_url     = "ldaps://$ldap_server:$ldaps_port";
 my $ldap_basedn   = 'dc=example,dc=net';
@@ -102,10 +105,10 @@ mkdir $slapd_certs  or die;
 
 system_or_bail "openssl", "req", "-new", "-nodes", "-keyout",
   "$slapd_certs/ca.key", "-x509", "-out", "$slapd_certs/ca.crt", "-subj",
-  "/cn=CA";
+  "/CN=CA";
 system_or_bail "openssl", "req", "-new", "-nodes", "-keyout",
   "$slapd_certs/server.key", "-out", "$slapd_certs/server.csr", "-subj",
-  "/cn=server";
+  "/CN=server";
 system_or_bail "openssl", "x509", "-req", "-in", "$slapd_certs/server.csr",
   "-CA", "$slapd_certs/ca.crt", "-CAkey", "$slapd_certs/ca.key",
   "-CAcreateserial", "-out", "$slapd_certs/server.crt";
@@ -119,6 +122,24 @@ END
 
 append_to_file($ldap_pwfile, $ldap_rootpw);
 chmod 0600, $ldap_pwfile or die;
+
+# wait until slapd accepts requests
+my $retries = 0;
+while (1)
+{
+	last
+	  if (
+		system_log(
+			"ldapsearch", "-sbase",
+			"-H",         $ldap_url,
+			"-b",         $ldap_basedn,
+			"-D",         $ldap_rootdn,
+			"-y",         $ldap_pwfile,
+			"-n",         "'objectclass=*'") == 0);
+	die "cannot connect to slapd" if ++$retries >= 300;
+	note "waiting for slapd to accept requests...";
+	Time::HiRes::usleep(1000000);
+}
 
 $ENV{'LDAPURI'}    = $ldap_url;
 $ENV{'LDAPBINDDN'} = $ldap_rootdn;
@@ -136,6 +157,7 @@ note "setting up PostgreSQL instance";
 
 my $node = get_new_node('node');
 $node->init;
+$node->append_conf('postgresql.conf', "log_connections = on\n");
 $node->start;
 
 $node->safe_psql('postgres', 'CREATE USER test0;');
@@ -146,12 +168,20 @@ note "running tests";
 
 sub test_access
 {
-	my ($node, $role, $expected_res, $test_name) = @_;
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
 
-	my $res =
-	  $node->psql('postgres', 'SELECT 1', extra_params => [ '-U', $role ]);
-	is($res, $expected_res, $test_name);
-	return;
+	my ($node, $role, $expected_res, $test_name, %params) = @_;
+	my $connstr = "user=$role";
+
+	if ($expected_res eq 0)
+	{
+		$node->connect_ok($connstr, $test_name, %params);
+	}
+	else
+	{
+		# No checks of the error message, only the status code.
+		$node->connect_fails($connstr, $test_name, %params);
+	}
 }
 
 note "simple bind";
@@ -163,12 +193,22 @@ $node->append_conf('pg_hba.conf',
 $node->restart;
 
 $ENV{"PGPASSWORD"} = 'wrong';
-test_access($node, 'test0', 2,
-	'simple bind authentication fails if user not found in LDAP');
-test_access($node, 'test1', 2,
-	'simple bind authentication fails with wrong password');
+test_access(
+	$node, 'test0', 2,
+	'simple bind authentication fails if user not found in LDAP',
+	log_unlike => [qr/connection authenticated:/]);
+test_access(
+	$node, 'test1', 2,
+	'simple bind authentication fails with wrong password',
+	log_unlike => [qr/connection authenticated:/]);
+
 $ENV{"PGPASSWORD"} = 'secret1';
-test_access($node, 'test1', 0, 'simple bind authentication succeeds');
+test_access(
+	$node, 'test1', 0,
+	'simple bind authentication succeeds',
+	log_like => [
+		qr/connection authenticated: identity="uid=test1,dc=example,dc=net" method=ldap/
+	],);
 
 note "search+bind";
 
@@ -184,7 +224,12 @@ test_access($node, 'test0', 2,
 test_access($node, 'test1', 2,
 	'search+bind authentication fails with wrong password');
 $ENV{"PGPASSWORD"} = 'secret1';
-test_access($node, 'test1', 0, 'search+bind authentication succeeds');
+test_access(
+	$node, 'test1', 0,
+	'search+bind authentication succeeds',
+	log_like => [
+		qr/connection authenticated: identity="uid=test1,dc=example,dc=net" method=ldap/
+	],);
 
 note "multiple servers";
 
@@ -228,9 +273,21 @@ $node->append_conf('pg_hba.conf',
 $node->restart;
 
 $ENV{"PGPASSWORD"} = 'secret1';
-test_access($node, 'test1', 0, 'search filter finds by uid');
+test_access(
+	$node, 'test1', 0,
+	'search filter finds by uid',
+	log_like => [
+		qr/connection authenticated: identity="uid=test1,dc=example,dc=net" method=ldap/
+	],);
 $ENV{"PGPASSWORD"} = 'secret2';
-test_access($node, 'test2@example.net', 0, 'search filter finds by mail');
+test_access(
+	$node,
+	'test2@example.net',
+	0,
+	'search filter finds by mail',
+	log_like => [
+		qr/connection authenticated: identity="uid=test2,dc=example,dc=net" method=ldap/
+	],);
 
 note "search filters in LDAP URLs";
 

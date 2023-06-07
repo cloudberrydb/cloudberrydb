@@ -6,7 +6,7 @@
   <body>
     <note>The <codeph>pg_resqueuecapability</codeph> system catalog table is valid only when resource queue-based resource management is active.</note>
     <p>The <codeph>pg_resqueuecapability</codeph> system catalog table contains information about
-      the extended attributes, or capabilities, of existing Greenplum Database
+      the extended attributes, or capabilities, of existing Cloudberry Database
       resource queues. Only resource queues that have been assigned an extended capability, such as
       a priority setting, are recorded in this table. This table is joined to the <xref
         href="pg_resqueue.xml#topic1" type="topic" format="dita"/> table by resource queue object

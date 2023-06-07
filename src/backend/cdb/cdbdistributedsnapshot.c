@@ -2,7 +2,7 @@
  *
  * cdbdistributedsnapshot.c
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -80,23 +80,10 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 
 	/*
 	 * Is this local xid in a process-local cache we maintain?
+	 * If we found it in cache, the distribXid must be a valid gxid.
 	 */
-	if (LocalDistribXactCache_CommittedFind(localXid,
+	if (!LocalDistribXactCache_CommittedFind(localXid,
 											&distribXid))
-	{
-		/*
-		 * We cache local-only committed transactions for better performance,
-		 * too.
-		 */
-		if (distribXid == InvalidDistributedTransactionId)
-			return DISTRIBUTEDSNAPSHOT_COMMITTED_IGNORE;
-
-		/*
-		 * Fall below and evaluate the committed distributed transaction
-		 * against the distributed snapshot.
-		 */
-	}
-	else
 	{
 		/*
 		 * Ok, now we must consult the distributed log.
@@ -105,12 +92,6 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 		{
 			/*
 			 * We found it in the distributed log.
-			 */
-			Assert(distribXid != InvalidDistributedTransactionId);
-
-			/*
-			 * We have a distributed committed xid that corresponds to the
-			 * local xid.
 			 */
 			Assert(distribXid != InvalidDistributedTransactionId);
 
@@ -131,6 +112,7 @@ DistributedSnapshotWithLocalMapping_CommittedTest(
 		}
 	}
 
+	Assert(distribXid != InvalidDistributedTransactionId);
 	Assert(ds->xminAllDistributedSnapshots != InvalidDistributedTransactionId);
 
 	/*

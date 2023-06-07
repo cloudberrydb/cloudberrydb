@@ -26,6 +26,8 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 
+#include "catalog/gp_indexing.h"
+
 /* ---------------------
  * deleteProcCallbacks() - Remove callbacks from pg_proc_callback
  *

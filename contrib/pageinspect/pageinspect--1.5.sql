@@ -26,7 +26,7 @@ CREATE FUNCTION page_header(IN page bytea,
     OUT lower smallint,
     OUT upper smallint,
     OUT special smallint,
-    OUT pagesize smallint,
+    OUT pagesize integer,
     OUT version smallint,
     OUT prune_xid xid)
 AS 'MODULE_PATHNAME', 'page_header'

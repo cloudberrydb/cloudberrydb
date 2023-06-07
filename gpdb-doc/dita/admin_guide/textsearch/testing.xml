@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="testing">
   <title>Testing and Debugging Text Search</title>
-  <shortdesc>This topic introduces the Greenplum Database functions you can use
+  <shortdesc>This topic introduces the Cloudberry Database functions you can use
     to test and debug a search configuration or the individual parser and
     dictionaries specified in a configuration. </shortdesc>
   <body>

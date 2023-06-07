@@ -7,6 +7,7 @@ EXTENSION = test_pg_dump
 DATA = test_pg_dump--1.0.sql
 
 REGRESS = test_pg_dump
+REGRESS_OPTS += --init-file=$(top_builddir)/src/test/regress/init_file
 TAP_TESTS = 1
 
 ifdef USE_PGXS

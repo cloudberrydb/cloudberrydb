@@ -1,12 +1,11 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/copy.c
  */
 #include "postgres_fe.h"
-#include "copy.h"
 
 #include <ctype.h>
 #include <signal.h>
@@ -17,15 +16,14 @@
 #include <io.h>					/* I think */
 #endif
 
+#include "common.h"
+#include "common/logging.h"
+#include "copy.h"
 #include "libpq-fe.h"
 #include "pqexpbuffer.h"
-
-#include "settings.h"
-#include "common.h"
 #include "prompt.h"
+#include "settings.h"
 #include "stringutils.h"
-
-#include "common/logging.h"
 
 /*
  * parse_slash_copy
@@ -685,7 +683,7 @@ handleCopyIn(PGconn *conn, FILE *copystream, bool isbinary, PGresult **res)
 					/*
 					 * This code erroneously assumes '\.' on a line alone
 					 * inside a quoted CSV string terminates the \copy.
-					 * http://www.postgresql.org/message-id/E1TdNVQ-0001ju-GO@wrigleys.postgresql.org
+					 * https://www.postgresql.org/message-id/E1TdNVQ-0001ju-GO@wrigleys.postgresql.org
 					 */
 					if (strcmp(buf, "\\.\n") == 0 ||
 						strcmp(buf, "\\.\r\n") == 0)
@@ -719,7 +717,9 @@ handleCopyIn(PGconn *conn, FILE *copystream, bool isbinary, PGresult **res)
 
 	/*
 	 * Terminate data transfer.  We can't send an error message if we're using
-	 * protocol version 2.
+	 * protocol version 2.  (libpq no longer supports protocol version 2, but
+	 * keep the version checks just in case you're using a pre-v14 libpq.so at
+	 * runtime)
 	 */
 	if (PQputCopyEnd(conn,
 					 (OK || PQprotocolVersion(conn) < 3) ? NULL :

@@ -101,7 +101,7 @@
             compression types on usual workloads. The <codeph>compresstype</codeph> option is
             valid only if <codeph>appendoptimized=TRUE</codeph>.<note
               type="note"><sup>1</sup>QuickLZ compression is available only in the commercial
-              release of Tanzu Greenplum.</note>
+              release of Tanzu Cloudberry.</note>
             <p>The value <codeph>RLE_TYPE</codeph>, which is supported only if
                 <codeph>orientation</codeph>=<codeph>column</codeph> is specified, enables the
               run-length encoding (RLE) compression algorithm. RLE compresses data better than the
@@ -116,7 +116,7 @@
               order.</p><p>For information about using table compression, see
               <xref href="../../admin_guide/ddl/ddl-storage.xml#topic1" type="topic"
                 format="dita">Choosing the Table Storage Model</xref>
-              in the <cite>Greenplum Database Administrator Guide</cite>.</p></pd>
+              in the <cite>Cloudberry Database Administrator Guide</cite>.</p></pd>
           <pd><b>compresslevel</b> — For Zstd compression of append-optimized tables, set to an
             integer value from 1 (fastest compression) to 19 (highest compression ratio). For
             zlib compression, the valid range is from 1 to 9. QuickLZ compression level can only
@@ -127,14 +127,14 @@
           <pd><b>oids=FALSE</b> — This setting is the default, and it ensures that rows do not have
             object identifiers assigned to them. <ph otherprops="pivotal">VMware does not support
               using <codeph>WITH OIDS</codeph> or <codeph>oids=TRUE</codeph> to assign an OID system
-              column. </ph>On large tables, such as those in a typical Greenplum Database system,
+              column. </ph>On large tables, such as those in a typical Cloudberry Database system,
             using OIDs for table rows can cause wrap-around of the 32-bit OID counter. Once the
             counter wraps around, OIDs can no longer be assumed to be unique, which not only makes
-            them useless to user applications, but can also cause problems in the Greenplum Database
+            them useless to user applications, but can also cause problems in the Cloudberry Database
             system catalog tables. In addition, excluding OIDs from a table reduces the space
             required to store the table on disk by 4 bytes per row, slightly improving performance.
             You cannot create OIDS on a partitioned or column-oriented table (an error is
-            displayed). This syntax is deprecated and will be removed in a future Greenplum
+            displayed). This syntax is deprecated and will be removed in a future Cloudberry
             release.</pd>
         </plentry>
         <plentry>
@@ -170,19 +170,19 @@
             )</pt>
           <pt>DISTRIBUTED RANDOMLY</pt>
           <pt>DISTRIBUTED REPLICATED</pt>
-          <pd>Used to declare the Greenplum Database distribution policy for the table.
+          <pd>Used to declare the Cloudberry Database distribution policy for the table.
               <codeph>DISTRIBUTED BY</codeph> uses hash distribution with one or more columns
             declared as the distribution key. For the most even data distribution, the distribution
             key should be the primary key of the table or a unique column (or set of columns). If
             that is not possible, then you may choose <codeph>DISTRIBUTED RANDOMLY</codeph>, which
             will send the data round-robin to the segment instances.</pd>
           <pd><codeph>DISTRIBUTED REPLICATED</codeph> replicates all rows in the table to all
-            Greenplum Database segments. It cannot be used with partitioned tables or with tables
+            Cloudberry Database segments. It cannot be used with partitioned tables or with tables
             that inhert from other tables.</pd>
-          <pd>The Greenplum Database server configuration parameter
+          <pd>The Cloudberry Database server configuration parameter
               <codeph>gp_create_table_random_default_distribution</codeph> controls the default
             table distribution policy if the <cmdname>DISTRIBUTED BY</cmdname> clause is not
-            specified when you create a table. Greenplum Database follows these rules to create a
+            specified when you create a table. Cloudberry Database follows these rules to create a
             table if a distribution policy is not specified.<ul id="ul_ejv_m1b_kr">
               <li>If the Postgres Planner creates the table, and the value of the parameter is
                   <codeph>off</codeph>, the table distribution policy is determined based on the
@@ -197,7 +197,7 @@
                 ><codeph>gp_create_table_random_default_distribution</codeph></xref>. For
             information about the Postgres Planner and GPORCA, see <xref
               href="../../admin_guide/query/topics/query.xml#topic1">Querying Data</xref> in the
-              <cite>Greenplum Database Administrator Guide</cite>.</pd>
+              <cite>Cloudberry Database Administrator Guide</cite>.</pd>
         </plentry>
       </parml>
     </section>
@@ -231,19 +231,19 @@ EXECUTE recentfilms('2007-01-01');</codeblock>
       <p><codeph>CREATE TABLE AS</codeph> conforms to the SQL standard, with the following
         exceptions: </p>
       <ul>
-        <li id="ce151719">The standard requires parentheses around the subquery clause; in Greenplum
+        <li id="ce151719">The standard requires parentheses around the subquery clause; in Cloudberry
           Database, these parentheses are optional. </li>
         <li id="ce151721">The standard defines a <codeph>WITH [NO] DATA</codeph> clause; this is not
-          currently implemented by Greenplum Database. The behavior provided by Greenplum Database
+          currently implemented by Cloudberry Database. The behavior provided by Cloudberry Database
           is equivalent to the standard's <codeph>WITH DATA</codeph> case. <codeph>WITH NO
             DATA</codeph> can be simulated by appending <codeph>LIMIT 0</codeph> to the query. </li>
-        <li id="ce151723">Greenplum Database handles temporary tables differently from the standard;
+        <li id="ce151723">Cloudberry Database handles temporary tables differently from the standard;
           see <codeph>CREATE TABLE</codeph> for details.</li>
-        <li id="ce151725">The <codeph>WITH</codeph> clause is a Greenplum Database extension;
+        <li id="ce151725">The <codeph>WITH</codeph> clause is a Cloudberry Database extension;
           neither storage parameters nor <codeph>OIDs</codeph> are in the standard.  The syntax for
-          creating OID system columns is deprecated and will be removed in a future Greenplum
+          creating OID system columns is deprecated and will be removed in a future Cloudberry
           release.</li>
-        <li id="ce151727">The Greenplum Database concept of tablespaces is not part of the standard.
+        <li id="ce151727">The Cloudberry Database concept of tablespaces is not part of the standard.
           The <codeph>TABLESPACE</codeph> clause is an extension.</li>
       </ul>
     </section>

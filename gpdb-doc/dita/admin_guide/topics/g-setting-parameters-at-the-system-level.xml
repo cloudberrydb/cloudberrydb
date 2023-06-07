@@ -17,13 +17,13 @@
                <codeblock>$ gpstop -u</codeblock>
             </p>
          </li>
-         <li id="kh160789">For parameter changes that require a server restart, restart Greenplum
+         <li id="kh160789">For parameter changes that require a server restart, restart Cloudberry
             Database as follows:<p>
                <codeblock>$ gpstop -r</codeblock>
             </p>
          </li>
       </ol>
       <p outputclass="gpdb">For details about the server configuration parameters, see the
-            <cite>Greenplum Database Reference Guide</cite>.</p>
+            <cite>Cloudberry Database Reference Guide</cite>.</p>
    </body>
 </topic>

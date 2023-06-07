@@ -2,7 +2,7 @@
  *
  * cdbpathlocus.c
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -469,7 +469,7 @@ cdbpathlocus_from_subquery(struct PlannerInfo *root,
 			if (parentrel)
 			{
 				parentexpr = lfirst(lc2);
-				lc2 = lnext(lc2);
+				lc2 = lnext(parentrel->reltarget->exprs, lc2);
 			}
 
 			if (!IsA(expr, Var))
@@ -1010,10 +1010,7 @@ cdbpathlocus_is_hashed_on_tlist(CdbPathLocus locus, List *tlist,
 				bool		found = false;
 
 				if (ignore_constants && CdbEquivClassIsConstant(dk_eclass))
-				{
-					found = true;
 					continue;
-				}
 
 				if (dk_eclass->ec_sortref != 0)
 				{

@@ -18,9 +18,9 @@
  * everything that should be freed.  See utils/mmgr/README for more info.
  *
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/palloc.h
@@ -136,7 +136,7 @@ extern void *MemoryContextAllocExtended(MemoryContext context,
 extern void *palloc(Size size);
 extern void *palloc0(Size size);
 extern void *palloc_extended(Size size, int flags);
-extern void *repalloc(void *pointer, Size size);
+extern pg_nodiscard void *repalloc(void *pointer, Size size);
 extern void pfree(void *pointer);
 
 /*
@@ -154,7 +154,7 @@ extern void pfree(void *pointer);
 
 /* Higher-limit allocators. */
 extern void *MemoryContextAllocHuge(MemoryContext context, Size size);
-extern void *repalloc_huge(void *pointer, Size size);
+extern pg_nodiscard void *repalloc_huge(void *pointer, Size size);
 
 /*
  * Although this header file is nominally backend-only, certain frontend

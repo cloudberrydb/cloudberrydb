@@ -2,23 +2,23 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="py212122">Greenplum Partner Connector API</title>
+  <title id="py212122">Cloudberry Partner Connector API</title>
   <body>
-      <p>With the Greenplum Partner Connector API (GPPC API), you can write
-        portable Greenplum Database user-defined functions (UDFs) in the C and
+      <p>With the Cloudberry Partner Connector API (GPPC API), you can write
+        portable Cloudberry Database user-defined functions (UDFs) in the C and
         C++ programming languages. Functions that you develop with the GPPC API
         require no recompilation or modification to work with older or newer
-        Greenplum Database versions.</p>
+        Cloudberry Database versions.</p>
       <p>Functions that you write to the GPPC API can be invoked using SQL
-        in Greenplum Database. The API provides a set of functions and macros
+        in Cloudberry Database. The API provides a set of functions and macros
         that you can use to issue SQL commands through the Server Programming
         Interface (SPI), manipulate simple and composite data type function
         arguments and return values, manage memory, and handle data.</p>
       <p>You compile the C/C++ functions that you develop with the GPPC API
-        into a shared library. The GPPC functions are available to Greenplum
-        Database users after the shared library is installed in the Greenplum
+        into a shared library. The GPPC functions are available to Cloudberry
+        Database users after the shared library is installed in the Cloudberry
         Database cluster and the GPPC functions are registered as SQL UDFs.</p>
-      <note>The Greenplum Partner Connector is supported for Greenplum Database
+      <note>The Cloudberry Partner Connector is supported for Cloudberry Database
         versions 4.3.5.0 and later.</note>
     <p>This topic contains the following information:</p>
     <ul>
@@ -65,8 +65,8 @@
         in the PostgreSQL documentation for detailed information about developing
         C language functions.</p>
       <p>The GPPC API is a wrapper that makes a C/C++ function SQL-invokable
-        in Greenplum Database. This wrapper shields GPPC functions that you
-         write from Greenplum Database library changes by normalizing table
+        in Cloudberry Database. This wrapper shields GPPC functions that you
+         write from Cloudberry Database library changes by normalizing table
          and data manipulation and SPI operations through functions and macros
          defined by the API.</p>
       <p>The GPPC API includes functions and macros to:</p><ul>
@@ -84,7 +84,7 @@
       <body>
         <p>When you develop with the GPPC API:</p><ul>
           <li>You must develop your code on a system with the same hardware and
-            software architecture as that of your Greenplum Database hosts.</li>
+            software architecture as that of your Cloudberry Database hosts.</li>
           <li>You must write the GPPC function(s) in the C or C++ programming 
             languages.</li>
           <li>The function code must use the GPPC API, data types, and macros.</li>
@@ -95,7 +95,7 @@
           <li>You must use only the GPPC-wrapped memory functions to allocate
             and free memory. See <xref href="#topic_mem" format="dita"/>.</li>
           <li>Symbol names in your object files must not conflict with each
-            other nor with symbols defined in the Greenplum Database server.
+            other nor with symbols defined in the Cloudberry Database server.
             You must rename your functions or variables if you get error messages
             to this effect.</li>
         </ul>
@@ -118,8 +118,8 @@
       <title id="py217167">Data Types</title>
       <body>
         <p>The GPPC functions that you create will operate on data residing
-          in Greenplum Database. The GPPC API includes data type definitions for equivalent
-          Greenplum Database SQL data types. You must use these types in your
+          in Cloudberry Database. The GPPC API includes data type definitions for equivalent
+          Cloudberry Database SQL data types. You must use these types in your
           GPPC functions.</p>
         <p>The GPPC API defines a generic data type that you can use to
           represent any GPPC type.
@@ -453,7 +453,7 @@ for( int i=0; i&lt;attnum; i++ ) {
           </tbody>
         </tgroup>
         </table>
-        <p>Greenplum Database typically calls a SQL-invoked function in a
+        <p>Cloudberry Database typically calls a SQL-invoked function in a
           per-tuple context that it creates and deletes every time the server
           backend processes a table row. Do not assume that memory allocated
           in the current memory context is available across multiple function
@@ -533,7 +533,7 @@ memcpy(GppcGetTextPointer(retstring) + arg0_len, GppcGetTextPointer(second_texts
       <title id="py217167">Error Reporting and Logging</title>
       <body>
         <p>The GPPC API provides error reporting and logging functions. The
-          API defines reporting levels equivalent to those in Greenplum
+          API defines reporting levels equivalent to those in Cloudberry
           Database:<codeblock>typedef enum GppcReportLevel
 {
         GPPC_DEBUG1                             = 10,
@@ -547,7 +547,7 @@ memcpy(GppcGetTextPointer(retstring) + arg0_len, GppcGetTextPointer(second_texts
         GPPC_WARNING                    	= 19,
         GPPC_ERROR                              = 20,
 } GppcReportLevel;
-</codeblock>(The Greenplum Database <xref href="../config_params/guc-list.xml#client_min_messages"><codeph>client_min_messages</codeph></xref>
+</codeblock>(The Cloudberry Database <xref href="../config_params/guc-list.xml#client_min_messages"><codeph>client_min_messages</codeph></xref>
           server configuration parameter governs the current client logging
           level. The <xref href="../config_params/guc-list.xml#client_min_messages"><codeph>log_min_messages</codeph></xref>
           configuration parameter governs the current log-to-logfile level.)</p>
@@ -608,7 +608,7 @@ GppcReport(GPPC_ERROR, "Unknown user name: %s", GppcTextGetCString(uname));</cod
     <topic id="topic_spi" xml:lang="en">
       <title id="py217167">SPI Functions</title>
       <body>
-        <p>The Greenplum Database Server Programming Interface (SPI) provides
+        <p>The Cloudberry Database Server Programming Interface (SPI) provides
           writers of C/C++ functions the ability to run SQL commands within a
           GPPC function. For additional information on SPI functions, refer to
            <xref href="https://www.postgresql.org/docs/9.4/spi.html"
@@ -634,12 +634,12 @@ GppcReport(GPPC_ERROR, "Unknown user name: %s", GppcTextGetCString(uname));</cod
             <row>
               <entry colname="col1">SPI_connect()</entry>
               <entry colname="col2">GppcSPIConnect()</entry>
-              <entry colname="col3">Connect to the Greenplum Database server programming interface.</entry>
+              <entry colname="col3">Connect to the Cloudberry Database server programming interface.</entry>
             </row>
             <row>
               <entry colname="col1">SPI_finish()</entry>
               <entry colname="col2">GppcSPIFinish()</entry>
-              <entry colname="col3">Disconnect from the Greenplum Database server programming interface.</entry>
+              <entry colname="col3">Disconnect from the Cloudberry Database server programming interface.</entry>
             </row>
             <row>
               <entry colname="col1">SPI_exec()</entry>
@@ -872,11 +872,11 @@ result = GppcBuildHeapTupleDatum( tdesc, values, nulls );
     <topic id="topic_srf" xml:lang="en">
         <title id="py217167">Set-Returning Functions</title>
         <body>
-          <p>Greenplum Database UDFs whose signatures include
+          <p>Cloudberry Database UDFs whose signatures include
             <codeph>RETURNS SETOF RECORD</codeph> or
             <codeph>RETURNS TABLE( ... )</codeph> are set-returning functions.</p>
           <p>The GPPC API provides support for returning sets (for example, multiple
-            rows/tuples) from a GPPC function. Greenplum Database calls a
+            rows/tuples) from a GPPC function. Cloudberry Database calls a
             set-returning function (SRF) once for each row or item. The
             function must save enough state to remember what it was doing
             and to return the next row on each call. Memory that you allocate
@@ -1024,7 +1024,7 @@ ntuple = GppcAnyTableGetNextTuple(intbl);</codeblock></p>
     <topic id="topic_limits" xml:lang="en">
       <title id="py217167">Limitations</title>
       <body>
-        <p>The GPPC API does not support the following operators with Greenplum Database version 5.0.x:</p><ul>
+        <p>The GPPC API does not support the following operators with Cloudberry Database version 5.0.x:</p><ul>
           <li>integer || integer</li>
           <li>integer = text</li>
           <li>text &lt; integer</li>
@@ -1036,7 +1036,7 @@ ntuple = GppcAnyTableGetNextTuple(intbl);</codeblock></p>
       <title id="py217167">Sample Code</title>
       <body>
         <p>The <xref href="https://github.com/greenplum-db/gpdb/tree/master/src/interfaces/gppc/test" format="html" scope="external">gppc test</xref>
-          directory in the Greenplum Database github repository includes
+          directory in the Cloudberry Database github repository includes
           sample GPPC code:</p><ul>
           <li><codeph>gppc_demo/</codeph> - sample code exercising GPPC SPI functions, error reporting, data type argument and return macros, set-returning functions, and encoding functions</li>
           <li><codeph>tabfunc_gppc_demo/</codeph> - sample code exercising GPPC table and set-returning functions</li>
@@ -1050,10 +1050,10 @@ ntuple = GppcAnyTableGetNextTuple(intbl);</codeblock></p>
       <title id="py217167bbb">Building a GPPC Shared Library with PGXS</title>
       <body>
         <p>You compile functions that you write with the GPPC API into one
-          or more shared libraries that the Greenplum Database server loads
+          or more shared libraries that the Cloudberry Database server loads
           on demand.</p>
         <p>You can use the PostgreSQL build extension infrastructure (PGXS)
-          to build the source code for your GPPC functions against a Greenplum
+          to build the source code for your GPPC functions against a Cloudberry
           Database installation. This framework automates common build rules
           for simple modules. If you have a more complicated use case, you
           will need to write your own build system.</p>
@@ -1076,9 +1076,9 @@ include $(PGXS)</codeblock></p>
 
         <p><codeph>MODULE_big</codeph> identifes the base name of the shared
           library generated by the <codeph>Makefile</codeph>.</p>
-        <p><codeph>PG_CPPFLAGS</codeph> adds the Greenplum Database installation
+        <p><codeph>PG_CPPFLAGS</codeph> adds the Cloudberry Database installation
           include directory to the compiler header file search path.</p>
-        <p><codeph>SHLIB_LINK</codeph> adds the Greenplum Database installation
+        <p><codeph>SHLIB_LINK</codeph> adds the Cloudberry Database installation
           library directory to the linker search path. This variable also adds
           the GPPC library (<codeph>-lgppc</codeph>) to the link command.</p>
         <p>The <codeph>PG_CONFIG</codeph> and <codeph>PGXS</codeph> variable
@@ -1089,10 +1089,10 @@ include $(PGXS)</codeblock></p>
   </topic>
 
   <topic id="topic_reg" xml:lang="en">
-      <title id="py21716799">Registering a GPPC Function with Greenplum Database</title>
+      <title id="py21716799">Registering a GPPC Function with Cloudberry Database</title>
       <body>
         <p>Before users can invoke a GPPC function from SQL, you must
-          register the function with Greenplum Database.</p>
+          register the function with Cloudberry Database.</p>
         <p>Registering a GPPC function involves mapping the GPPC function
           signature to a SQL user-defined function. You define this mapping
           with the <codeph>CREATE FUNCTION .. AS </codeph> command specifying
@@ -1118,20 +1118,20 @@ LANGUAGE C STRICT;</codeblock></p>
     <body>
       <p>You specify the name of the GPPC shared library in the SQL
         <codeph>CREATE FUNCTION ... AS</codeph> command to register a GPPC
-        function in the shared library with Greenplum Database. The Greenplum
+        function in the shared library with Cloudberry Database. The Cloudberry
         Database dynamic loader loads a GPPC shared library file into memory
         the first time that a user invokes a user-defined function linked in
         that shared library. If you do not provide an absolute path to the
         shared library in the <codeph>CREATE FUNCTION ... AS</codeph>
-        command, Greenplum Database attempts to locate the library using these
+        command, Cloudberry Database attempts to locate the library using these
         ordered steps:</p><ol>
         <li>If the shared library file path begins with the string
-          <codeph>$libdir</codeph>, Greenplum Database looks for the file
+          <codeph>$libdir</codeph>, Cloudberry Database looks for the file
           in the PostgreSQL package library directory. Run the
           <codeph>pg_config --pkglibdir</codeph> command to determine the
           location of this directory.</li>
         <li>If the shared library file name is specified without a directory
-          prefix, Greenplum Database searches for the file in the directory
+          prefix, Cloudberry Database searches for the file in the directory
           identified by the <codeph>dynamic_library_path</codeph> server
           configuration parameter value.</li>
         <li>The current working directory.</li></ol>
@@ -1143,21 +1143,21 @@ LANGUAGE C STRICT;</codeblock></p>
       <body>
         <p>You must package the GPPC shared library and SQL function
           registration script in a form suitable for deployment by the
-          Greenplum Database administrator in the Greenplum cluster.
+          Cloudberry Database administrator in the Cloudberry cluster.
           Provide specific deployment instructions for your GPPC package.</p>
         <p>When you construct the package and deployment instructions, take
           into account the following:</p><ul>
-          <li>Consider providing a shell script or program that the Greenplum
+          <li>Consider providing a shell script or program that the Cloudberry
             Database administrator runs to both install the shared library to
             the desired file system location and register the GPPC functions.</li>
           <li>The GPPC shared library must be installed to the same file
             system location on the master host and on every segment host in the
-            Greenplum Database cluster.</li>
+            Cloudberry Database cluster.</li>
           <li>The <codeph>gpadmin</codeph> user must have permission to
             traverse the complete file system path to the GPPC shared 
             library file.</li>
          <li>The file system location of your GPPC shared library after it
-           is installed in the Greenplum Database deployment determines how
+           is installed in the Cloudberry Database deployment determines how
            you reference the shared library when you register a function in
            the library with the <codeph>CREATE FUNCTION ... AS</codeph>
            command.</li>
@@ -1183,12 +1183,12 @@ LANGUAGE C STRICT;</codeblock></p>
         and register and run a GPPC function named <codeph>concat_two_strings</codeph>.
         This function uses the GPPC API to concatenate two string arguments
         and return the result.</p>
-      <p>You will develop the GPPC function on your Greenplum Database master
+      <p>You will develop the GPPC function on your Cloudberry Database master
         host. Deploying the GPPC shared library that you create in this
-        example requires administrative access to your Greenplum Database
+        example requires administrative access to your Cloudberry Database
         cluster.</p>
       <p>Perform the following procedure to run the example:</p><ol>
-        <li>Log in to the Greenplum Database master host and set up your environment. For example:<codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
+        <li>Log in to the Cloudberry Database master host and set up your environment. For example:<codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
 gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
         <li>Create a work directory and navigate to the new directory. For example:<codeblock>gpadmin@gpmaster$ mkdir gppc_work
 gpadmin@gpmaster$ cd gppc_work</codeblock></li>
@@ -1234,10 +1234,10 @@ SHLIB_LINK = -L$(shell $(PG_CONFIG) --libdir) -lgppc
 include $(PGXS)</codeblock></li>
         <li>Save the file and exit the editor.</li>
         <li>Build a GPPC shared library for the <codeph>concat_two_strings()</codeph> function. For example:<codeblock>gpadmin@gpmaster$ make all</codeblock><p>The <codeph>make</codeph> command generates a shared library file named <codeph>gppc_concat.so</codeph> in the current working directory.</p></li>
-        <li>Copy the shared library to your Greenplum Database installation. You must have Greenplum Database administrative privileges to copy the file. For example:<codeblock>gpadmin@gpmaster$ cp gppc_concat.so /usr/local/greenplum-db/lib/postgresql/</codeblock></li>
-        <li>Copy the shared library to every host in your Greenplum Database installation. For example, if <codeph>seghostfile</codeph> contains a list, one-host-per-line, of the segment hosts in your Greenplum Database cluster:<codeblock>gpadmin@gpmaster$ gpscp -v -f seghostfile /usr/local/greenplum-db/lib/postgresql/gppc_concat.so =:/usr/local/greenplum-db/lib/postgresql/gppc_concat.so</codeblock></li>
+        <li>Copy the shared library to your Cloudberry Database installation. You must have Cloudberry Database administrative privileges to copy the file. For example:<codeblock>gpadmin@gpmaster$ cp gppc_concat.so /usr/local/greenplum-db/lib/postgresql/</codeblock></li>
+        <li>Copy the shared library to every host in your Cloudberry Database installation. For example, if <codeph>seghostfile</codeph> contains a list, one-host-per-line, of the segment hosts in your Cloudberry Database cluster:<codeblock>gpadmin@gpmaster$ gpscp -v -f seghostfile /usr/local/greenplum-db/lib/postgresql/gppc_concat.so =:/usr/local/greenplum-db/lib/postgresql/gppc_concat.so</codeblock></li>
         <li>Open a <codeph>psql</codeph> session. For example:<codeblock>gpadmin@gpmaster$ psql -d testdb</codeblock></li>
-        <li>Register the GPPC function named <codeph>concat_two_strings()</codeph> with Greenplum Database, For example, to map the Greenplum Database function <codeph>concat_with_gppc()</codeph> to the GPPC <codeph>concat_two_strings()</codeph> function:<codeblock>testdb=# CREATE FUNCTION concat_with_gppc(text, text) RETURNS text
+        <li>Register the GPPC function named <codeph>concat_two_strings()</codeph> with Cloudberry Database, For example, to map the Cloudberry Database function <codeph>concat_with_gppc()</codeph> to the GPPC <codeph>concat_two_strings()</codeph> function:<codeblock>testdb=# CREATE FUNCTION concat_with_gppc(text, text) RETURNS text
   AS 'gppc_concat', 'concat_two_strings'
 LANGUAGE C STRICT;</codeblock></li>
         <li>Run the <codeph>concat_with_gppc()</codeph> function. For example:<codeblock>testdb=# SELECT concat_with_gppc( 'happy', 'monday' );
@@ -1261,12 +1261,12 @@ LANGUAGE C STRICT;</codeblock></li>
         column identifying whether or not the integer is greater than 13.
         <codeph>return_tbl()</codeph> utilizes GPPC API reporting and SRF
         functions and macros.</p>
-      <p>You will develop the GPPC function on your Greenplum Database master
+      <p>You will develop the GPPC function on your Cloudberry Database master
         host. Deploying the GPPC shared library that you create in this
-        example requires administrative access to your Greenplum Database
+        example requires administrative access to your Cloudberry Database
         cluster.</p>
       <p>Perform the following procedure to run the example:</p><ol>
-        <li>Log in to the Greenplum Database master host and set up your environment. For example:<codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
+        <li>Log in to the Cloudberry Database master host and set up your environment. For example:<codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
 gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
         <li>Create a work directory and navigate to the new directory. For example:<codeblock>gpadmin@gpmaster$ mkdir gppc_work
 gpadmin@gpmaster$ cd gppc_work</codeblock></li>
@@ -1365,8 +1365,8 @@ SHLIB_LINK = -L$(shell $(PG_CONFIG) --libdir) -lgppc
 include $(PGXS)</codeblock></li>
         <li>Save the file and exit the editor.</li>
         <li>Build a GPPC shared library for the <codeph>return_tbl()</codeph> function. For example:<codeblock>gpadmin@gpmaster$ make all</codeblock><p>The <codeph>make</codeph> command generates a shared library file named <codeph>gppc_rettbl.so</codeph> in the current working directory.</p></li>
-        <li>Copy the shared library to your Greenplum Database installation. You must have Greenplum Database administrative privileges to copy the file. For example:<codeblock>gpadmin@gpmaster$ cp gppc_rettbl.so /usr/local/greenplum-db/lib/postgresql/</codeblock><p>This command copies the shared library to <codeph>$libdir</codeph></p></li>
-        <li>Copy the shared library to every host in your Greenplum Database installation. For example, if <codeph>seghostfile</codeph> contains a list, one-host-per-line, of the segment hosts in your Greenplum Database cluster:<codeblock>gpadmin@gpmaster$ gpscp -v -f seghostfile /usr/local/greenplum-db/lib/postgresql/gppc_rettbl.so =:/usr/local/greenplum-db/lib/postgresql/gppc_rettbl.so</codeblock></li>
+        <li>Copy the shared library to your Cloudberry Database installation. You must have Cloudberry Database administrative privileges to copy the file. For example:<codeblock>gpadmin@gpmaster$ cp gppc_rettbl.so /usr/local/greenplum-db/lib/postgresql/</codeblock><p>This command copies the shared library to <codeph>$libdir</codeph></p></li>
+        <li>Copy the shared library to every host in your Cloudberry Database installation. For example, if <codeph>seghostfile</codeph> contains a list, one-host-per-line, of the segment hosts in your Cloudberry Database cluster:<codeblock>gpadmin@gpmaster$ gpscp -v -f seghostfile /usr/local/greenplum-db/lib/postgresql/gppc_rettbl.so =:/usr/local/greenplum-db/lib/postgresql/gppc_rettbl.so</codeblock></li>
         <li>Create a <codeph>.sql</codeph> file to register the GPPC <codeph>return_tbl()</codeph> function. Open a file named <codeph>gppc_rettbl_reg.sql</codeph> in the editor of your choice.</li>
         <li>Copy/paste the following text into the file:<codeblock>CREATE FUNCTION rettbl_gppc(anytable) RETURNS TABLE(id int4, thirteen bool)
   AS 'gppc_rettbl', 'return_tbl'

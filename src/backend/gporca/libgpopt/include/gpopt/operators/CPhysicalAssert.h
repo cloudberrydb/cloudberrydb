@@ -1,4 +1,4 @@
-// Greenplum Database
+// Cloudberry Database
 // Copyright (C) 2012 EMC Corp.
 //
 // Assert operator for runtime checking of constraints. Assert operators have a list

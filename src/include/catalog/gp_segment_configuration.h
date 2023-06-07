@@ -3,7 +3,7 @@
  * gp_segment_configuration.h
  *    a segment configuration table
  *
- * Portions Copyright (c) 2006-2011, Greenplum Inc.
+ * Portions Copyright (c) 2006-2011, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -12,6 +12,8 @@
  *
  *-------------------------------------------------------------------------
  */
+#ifdef USE_INTERNAL_FTS
+
 #ifndef GP_SEGMENT_CONFIGURATION_H
 #define GP_SEGMENT_CONFIGURATION_H
 
@@ -39,7 +41,7 @@
  *		typedef struct FormData_gp_segment_configuration
  * ----------------
  */
-CATALOG(gp_segment_configuration,5036,GpSegmentConfigRelationId) BKI_SHARED_RELATION
+CATALOG(gp_segment_configuration,7026,GpSegmentConfigRelationId) BKI_SHARED_RELATION
 {
 	int16		dbid;				/* up to 32767 segment databases */
 	int16		content;			/* up to 32767 contents -- only 16384 usable with mirroring (see dbid) */
@@ -66,7 +68,11 @@ CATALOG(gp_segment_configuration,5036,GpSegmentConfigRelationId) BKI_SHARED_RELA
  * ----------------
  */
 typedef FormData_gp_segment_configuration *Form_gp_segment_configuration;
+DECLARE_TOAST(gp_segment_configuration, 6092, 6093);
+#define GpSegmentConfigToastTable   6092
+#define GpSegmentConfigToastIndex   6093
 
 extern bool gp_segment_config_has_mirrors(void);
 
-#endif /*_GP_SEGMENT_CONFIGURATION_H_*/
+#endif /* GP_SEGMENT_CONFIGURATION_H */
+#endif /* USE_INTERNAL_FTS */

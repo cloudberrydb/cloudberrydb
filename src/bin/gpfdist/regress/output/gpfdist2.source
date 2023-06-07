@@ -585,7 +585,7 @@ FORMAT 'text'
 CREATE INDEX index ON ext_lineitem (L_ORDERKEY);
 ERROR:  cannot create index on foreign table "ext_lineitem"
 TRUNCATE ext_lineitem;
-ERROR:  "ext_lineitem" is not a table
+ERROR:  cannot truncate foreign table "ext_lineitem"
 DELETE FROM ext_lineitem where L_ORDERKEY > 10;
 ERROR:  cannot delete from foreign table "ext_lineitem"
 UPDATE ext_lineitem SET L_ORDERKEY = 10 where L_ORDERKEY > 10;
@@ -818,7 +818,7 @@ FORMAT 'text'
 )
 ;
 CREATE TABLE lineitem AS SELECT * FROM ext_lineitem;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'l_orderkey' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'l_orderkey' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 SELECT count(*) FROM lineitem;
    256
@@ -856,7 +856,7 @@ FORMAT 'text'
 )
 ;
 SELECT * INTO lineitem FROM ext_lineitem;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'l_orderkey' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'l_orderkey' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 SELECT count(*) FROM lineitem;
    256
@@ -1217,6 +1217,12 @@ FORMAT 'text'
 ;
 SELECT count(*) FROM ext_lineitem;
    256
+
+CREATE EXTERNAL WEB TABLE lineitem_out_check(x text)
+execute E'(rm -f @abs_srcdir@/data/gpfdist2/lineitem.tbl.out.zst) > /dev/null 2>&1; echo "delete lineitem.tbl.out.zst..."'
+on SEGMENT 0 FORMAT 'text' (delimiter '|');
+select * from lineitem_out_check;
+ delete lineitem.tbl.out.zst...
 
 CREATE WRITABLE EXTERNAL TABLE ext_lineitem_out (
                 L_ORDERKEY INT8,

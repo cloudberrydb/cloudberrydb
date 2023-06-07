@@ -4,7 +4,7 @@
  *	  Internal specifications of the pg_aoseg_* Append Only file segment
  *	  list relation.
  *
- * Portions Copyright (c) 2008, Greenplum Inc.
+ * Portions Copyright (c) 2008, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -17,6 +17,7 @@
 #define AOSEGFILES_H
 
 #include "catalog/pg_appendonly.h"
+#include "fmgr.h"
 #include "utils/rel.h"
 #include "utils/snapshot.h"
 
@@ -32,6 +33,7 @@
 
 #define InvalidFileSegNumber			-1
 #define InvalidUncompressedEof			-1
+#define InvalidAORowNum					-1
 
 #define AO_FILESEGINFO_ARRAY_SIZE		8
 
@@ -133,7 +135,7 @@ extern void ValidateAppendonlySegmentDataBeforeStorage(int segno);
   */
 extern FileSegInfo *GetFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int segno, bool locked);
 
-extern FileSegInfo **GetAllFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int *totalsegs);
+extern FileSegInfo **GetAllFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int *totalsegs, Oid *segrelidptr);
 
 extern void UpdateFileSegInfo(Relation parentrel,
 				  int segno,

@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="kq139596">gpconfig</title>
   <body>
-    <p>Sets server configuration parameters on all segments within a Greenplum Database system.</p>
+    <p>Sets server configuration parameters on all segments within a Cloudberry Database system.</p>
     <section id="section2">
       <title>Synopsis</title>
       <codeblock><b>gpconfig</b> <b>-c</b> <varname>param_name</varname> <b>-v</b> <varname>value</varname> [<b>-m</b> <varname>coordinator_value</varname> | <b>--masteronly</b>]
@@ -20,7 +20,7 @@
       <title>Description</title>
       <p>The <codeph>gpconfig</codeph> utility allows you to set, unset, or view configuration
         parameters from the <codeph>postgresql.conf</codeph> files of all instances (coordinator,
-        segments, and mirrors) in your Greenplum Database system. When setting a parameter, you can
+        segments, and mirrors) in your Cloudberry Database system. When setting a parameter, you can
         also specify a different value for the coordinator if necessary. For example, parameters such as
           <codeph>max_connections</codeph> require a different setting on the coordinator than what is
         used for the segments. If you want to set or unset a global or coordinator only parameter, use
@@ -40,15 +40,15 @@
         add it back (set a new value), there will be two instances of the parameter; one that is
         commented out, and one that is enabled and inserted at the bottom of the
           <codeph>postgresql.conf</codeph> file.</p>
-      <p>After setting a parameter, you must restart your Greenplum Database system or reload the
+      <p>After setting a parameter, you must restart your Cloudberry Database system or reload the
           <codeph>postgresql.conf</codeph> files in order for the change to take effect. Whether you
         require a restart or a reload depends on the parameter. </p>
-      <p>For more information about the server configuration parameters, see the <i>Greenplum
+      <p>For more information about the server configuration parameters, see the <i>Cloudberry
           Database Reference Guide</i>.</p>
       <p>To show the currently set values for a parameter across the system, use the
           <codeph>-s</codeph> option.</p>
       <p><codeph>gpconfig</codeph> uses the following environment variables to connect to the
-        Greenplum Database coordinator instance and obtain system configuration information: </p>
+        Cloudberry Database coordinator instance and obtain system configuration information: </p>
       <ul>
         <li id="kq141888">
           <codeph>PGHOST</codeph>
@@ -108,7 +108,7 @@
         <plentry>
           <pt>-s | --show <varname>param_name</varname></pt>
           <pd>Shows the value for a configuration parameter used on all instances (coordinator and
-            segments) in the Greenplum Database system. If there is a difference in a parameter
+            segments) in the Cloudberry Database system. If there is a difference in a parameter
             value among the instances, the utility displays an error message. Running
               <codeph>gpconfig</codeph> with the <codeph>-s</codeph> option reads parameter values
             directly from the database, and not the <codeph>postgresql.conf</codeph> file. If you
@@ -122,7 +122,7 @@
           <pt>--file</pt>
           <pd>For a configuration parameter, shows the value from the
               <codeph>postgresql.conf</codeph> file on all instances (coordinator and segments) in the
-            Greenplum Database system. If there is a difference in a parameter value among the
+            Cloudberry Database system. If there is a difference in a parameter value among the
             instances, the utility displays a message. Must be specified with the
               <codeph>-s</codeph> option.</pd>
           <pd>For example, the configuration parameter <codeph>statement_mem</codeph> is set to 64MB
@@ -134,9 +134,9 @@
         </plentry>
         <plentry>
           <pt>--file-compare</pt>
-          <pd>For a configuration parameter, compares the current Greenplum Database value with the
+          <pd>For a configuration parameter, compares the current Cloudberry Database value with the
             value in the <codeph>postgresql.conf</codeph> files on hosts (coordinator and segments). The
-            values in the <codeph>postgresql.conf files</codeph> represent the value when Greenplum
+            values in the <codeph>postgresql.conf files</codeph> represent the value when Cloudberry
             Database is restarted. </pd>
           <pd>If the values are not the same, the utility displays the values from all hosts. If all
             hosts have the same value, the utility displays a summary report.</pd>

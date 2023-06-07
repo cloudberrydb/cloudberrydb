@@ -4,12 +4,12 @@
 <topic id="topic88">
    <title>Using gpbackup and gprestore with BoostFS</title>
    <body>
-      <p>You can use the Greenplum Database <codeph>gpbackup</codeph> and <codeph>gprestore</codeph>
+      <p>You can use the Cloudberry Database <codeph>gpbackup</codeph> and <codeph>gprestore</codeph>
          utilities with the Data Domain DD Boost File System Plug-In (BoostFS) to access a Data
          Domain system. BoostFS leverages DD Boost technology and helps reduce bandwidth usage, can
          improve backup-times, offers load-balancing and in-flight encryption, and supports the Data
          Domain multi-tenancy feature set.</p>
-      <p>You install the BoostFS plug-in on the Greenplum Database host systems to provide access to
+      <p>You install the BoostFS plug-in on the Cloudberry Database host systems to provide access to
          a Data Domain system as a standard file system mount point. With direct access to a BoostFS
          mount point, <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> can leverage the
          storage and network efficiencies of the DD Boost protocol for backup and recovery.</p>
@@ -38,7 +38,7 @@
          <p>The RPM supports both RHEL and SuSE.</p>
          <p>These steps install BoostFS and create a mounted directory that accesses a Data Domain
             system. </p>
-         <p>Perform the steps on all Greenplum Database hosts. The mounted directory you create must
+         <p>Perform the steps on all Cloudberry Database hosts. The mounted directory you create must
             be the same on all hosts.</p>
          <ol id="ol_d2g_4rv_bdb">
             <li>Copy the BoostFS RPM to the host and install the RPM.<p>After installation, the

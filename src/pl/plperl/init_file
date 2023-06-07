@@ -5,4 +5,5 @@ s/ \(plperl\.c:\d+\)//
 
 -- start_matchignore
 m/^(?:HINT|NOTICE):\s+.+\'DISTRIBUTED BY\' clause.*/
+m/^NOTICE:.*resource queue required -- using default resource queue ".*"/
 -- end_matchignore

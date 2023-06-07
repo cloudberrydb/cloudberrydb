@@ -4,7 +4,7 @@
 <topic id="topic1" xml:lang="en"><title id="hi141670">pg_resqueue</title>
   <body>
     <note>The <codeph>pg_resqueue</codeph> system catalog table is valid only when resource queue-based resource management is active.</note>
-    <p>The <codeph>pg_resqueue</codeph> system catalog table contains information about Greenplum Database resource queues, which are used for the resource management feature.
+    <p>The <codeph>pg_resqueue</codeph> system catalog table contains information about Cloudberry Database resource queues, which are used for the resource management feature.
       This table is populated only on the master. This table is defined in the
         <codeph>pg_global</codeph> tablespace, meaning it is globally shared across all databases in
       the system.</p>

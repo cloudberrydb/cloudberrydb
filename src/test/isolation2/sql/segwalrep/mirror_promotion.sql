@@ -11,13 +11,15 @@
 -- between primary and mirror is still alive and hence walreceiver
 -- also exist during promotion.
 
-SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 -- stop a primary in order to trigger a mirror promotion
 select pg_ctl((select datadir from gp_segment_configuration c
 where c.role='p' and c.content=0), 'stop');
 
 -- trigger failover
 select gp_request_fts_probe_scan();
+-- wait some seconds until the promotion is done.
+!\retcode gpfts -A -D;
 
 -- expect: to see the content 0, preferred primary is mirror and it's down
 -- the preferred mirror is primary and it's up and not-in-sync
@@ -25,6 +27,8 @@ select content, preferred_role, role, status, mode
 from gp_segment_configuration
 where content = 0;
 
+-- wait some seconds until the promotion is done.
+select pg_sleep(2);
 -- wait for content 0 (earlier mirror, now primary) to finish the promotion
 0U: select 1;
 -- Quit this utility mode session, as need to start fresh one below
@@ -41,12 +45,12 @@ select content, preferred_role, role, status, mode
 from gp_segment_configuration
 where content = 0;
 
+-- start_ignore
 -- set GUCs to speed-up the test
 alter system set gp_fts_probe_retries to 2;
 alter system set gp_fts_probe_timeout to 5;
 select pg_reload_conf();
 
--- start_ignore
 select dbid from gp_segment_configuration where content = 0 and role = 'p';
 -- end_ignore
 
@@ -56,21 +60,27 @@ where content = 0 and role = 'p';
 
 -- trigger failover
 select gp_request_fts_probe_scan();
-
 -- trigger one more probe right away which mostly results in sending
 -- promotion request again to mirror, while its going through
 -- promotion, which is nice condition to test as well.
 select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 
 -- expect segments restored back to its preferred role, but mirror is down
 select content, preferred_role, role, status, mode
 from gp_segment_configuration
 where content = 0;
 
+-- wait some seconds until the promotion is done.
+select pg_sleep(2);
+-- start_ignore
 -- reset GUCs
 alter system set gp_fts_probe_retries to default;
 alter system set gp_fts_probe_timeout to default;
 select pg_reload_conf();
+-- end_ignore
+-- wait some seconds until the promotion is done.
+select pg_sleep(2);
 
 -- -- wait for content 0 (earlier mirror, now primary) to finish the promotion
 0U: select 1;

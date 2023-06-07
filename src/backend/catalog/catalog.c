@@ -5,7 +5,7 @@
  *		bits of hard-wired knowledge
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,7 +26,6 @@
 #include "access/table.h"
 #include "access/transam.h"
 #include "catalog/catalog.h"
-#include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/oid_dispatch.h"
 #include "catalog/pg_amop.h"
@@ -36,9 +35,8 @@
 #include "catalog/pg_authid.h"
 #include "catalog/pg_database.h"
 #include "catalog/pg_largeobject.h"
-#include "catalog/pg_namespace.h"
-#include "catalog/pg_pltemplate.h"
 #include "catalog/pg_db_role_setting.h"
+#include "catalog/pg_namespace.h"
 #include "catalog/pg_replication_origin.h"
 #include "catalog/pg_shdepend.h"
 #include "catalog/pg_shdescription.h"
@@ -46,7 +44,6 @@
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
-#include "catalog/toasting.h"
 #include "miscadmin.h"
 #include "storage/fd.h"
 #include "utils/fmgroids.h"
@@ -71,6 +68,11 @@
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_trigger.h"
 #include "cdb/cdbvars.h"
+
+#include "catalog/gp_indexing.h"
+#ifdef USE_INTERNAL_FTS
+#include "catalog/gp_segment_configuration_indexing.h"
+#endif
 
 static bool IsAoSegmentClass(Form_pg_class reltuple);
 
@@ -130,6 +132,13 @@ aorelpathbackend(RelFileNode node, BackendId backend, int32 segno)
 	}
 	return fullpath;
 }
+
+/*
+ * Parameters to determine when to emit a log message in
+ * GetNewOidWithIndex()
+ */
+#define GETNEWOID_LOG_THRESHOLD 1000000
+#define GETNEWOID_LOG_MAX_INTERVAL 128000000
 
 /*
  * IsSystemRelation
@@ -317,7 +326,7 @@ IsAoSegmentNamespace(Oid namespaceId)
  *		schema and tablespace names.  With 9.6, this is also true
  *		for roles.
  *
- *      As of Greenplum 4.0 we also reserve the prefix gp_
+ *      As of Cloudberry 4.0 we also reserve the prefix gp_
  */
 bool
 IsReservedName(const char *name)
@@ -372,7 +381,6 @@ IsSharedRelation(Oid relationId)
 	if (relationId == AuthIdRelationId ||
 		relationId == AuthMemRelationId ||
 		relationId == DatabaseRelationId ||
-		relationId == PLTemplateRelationId ||
 		relationId == SharedDescriptionRelationId ||
 		relationId == SharedDependRelationId ||
 		relationId == SharedSecLabelRelationId ||
@@ -395,19 +403,19 @@ IsSharedRelation(Oid relationId)
 		relationId == ResGroupRelationId ||
 		relationId == ResGroupCapabilityRelationId ||
 		relationId == GpConfigHistoryRelationId ||
+#ifdef USE_INTERNAL_FTS
 		relationId == GpSegmentConfigRelationId ||
-
+#endif
 		relationId == AuthTimeConstraintRelationId)
 		return true;
 
-	/* These are their indexes (see indexing.h) */
+	/* These are their indexes */
 	if (relationId == AuthIdRolnameIndexId ||
 		relationId == AuthIdOidIndexId ||
 		relationId == AuthMemRoleMemIndexId ||
 		relationId == AuthMemMemRoleIndexId ||
 		relationId == DatabaseNameIndexId ||
 		relationId == DatabaseOidIndexId ||
-		relationId == PLTemplateNameIndexId ||
 		relationId == SharedDescriptionObjIndexId ||
 		relationId == SharedDependDependerIndexId ||
 		relationId == SharedDependReferenceIndexId ||
@@ -425,7 +433,6 @@ IsSharedRelation(Oid relationId)
 	if (/* MPP-6929: metadata tracking */
 		relationId == StatLastShOpClassidObjidIndexId ||
 		relationId == StatLastShOpClassidObjidStaactionnameIndexId ||
-
 		relationId == ResQueueOidIndexId ||
 		relationId == ResQueueRsqnameIndexId ||
 		relationId == ResourceTypeOidIndexId ||
@@ -439,22 +446,22 @@ IsSharedRelation(Oid relationId)
 		relationId == ResGroupCapabilityResgroupidResLimittypeIndexId ||
 		relationId == AuthIdRolResQueueIndexId ||
 		relationId == AuthIdRolResGroupIndexId ||
+#ifdef USE_INTERNAL_FTS
 		relationId == GpSegmentConfigContentPreferred_roleIndexId ||
 		relationId == GpSegmentConfigDbidIndexId ||
+#endif
 		relationId == AuthTimeConstraintAuthIdIndexId)
 	{
 		return true;
 	}
 
-	/* These are their toast tables and toast indexes (see toasting.h) */
+	/* These are their toast tables and toast indexes */
 	if (relationId == PgAuthidToastTable ||
 		relationId == PgAuthidToastIndex ||
 		relationId == PgDatabaseToastTable ||
 		relationId == PgDatabaseToastIndex ||
 		relationId == PgDbRoleSettingToastTable ||
 		relationId == PgDbRoleSettingToastIndex ||
-		relationId == PgPlTemplateToastTable ||
-		relationId == PgPlTemplateToastIndex ||
 		relationId == PgReplicationOriginToastTable ||
 		relationId == PgReplicationOriginToastIndex ||
 		relationId == PgShdescriptionToastTable ||
@@ -466,13 +473,14 @@ IsSharedRelation(Oid relationId)
 		relationId == PgTablespaceToastTable ||
 		relationId == PgTablespaceToastIndex)
 		return true;
-
+#ifdef USE_INTERNAL_FTS
 	/* GPDB added toast tables and their indexes */
 	if (relationId == GpSegmentConfigToastTable ||
 		relationId == GpSegmentConfigToastIndex)
 	{
 		return true;
 	}
+#endif
 	return false;
 }
 
@@ -547,13 +555,6 @@ RelationNeedsSynchronizedOIDs(Relation relation)
  * consecutive existing OIDs.  This is a mostly reasonable assumption for
  * system catalogs.
  *
- * This is exported separately because there are cases where we want to use
- * an index that will not be recognized by RelationGetOidIndex: TOAST tables
- * have indexes that are usable, but have multiple columns and are on
- * ordinary columns rather than a true OID column.  This code will work
- * anyway, so long as the OID is the index's first column.  The caller must
- * pass in the actual heap attnum of the OID column, however.
- *
  * Caller must have a suitable lock on the relation.
  */
 Oid
@@ -563,6 +564,8 @@ GetNewOidWithIndex(Relation relation, Oid indexId, AttrNumber oidcolumn)
 	SysScanDesc scan;
 	ScanKeyData key;
 	bool		collides;
+	uint64		retries = 0;
+	uint64		retries_before_log = GETNEWOID_LOG_THRESHOLD;
 
 	/* Only system relations are supported */
 	Assert(IsSystemRelation(relation));
@@ -602,7 +605,51 @@ GetNewOidWithIndex(Relation relation, Oid indexId, AttrNumber oidcolumn)
 			collides = true;
 
 		systable_endscan(scan);
+
+		/*
+		 * Log that we iterate more than GETNEWOID_LOG_THRESHOLD but have not
+		 * yet found OID unused in the relation. Then repeat logging with
+		 * exponentially increasing intervals until we iterate more than
+		 * GETNEWOID_LOG_MAX_INTERVAL. Finally repeat logging every
+		 * GETNEWOID_LOG_MAX_INTERVAL unless an unused OID is found. This
+		 * logic is necessary not to fill up the server log with the similar
+		 * messages.
+		 */
+		if (retries >= retries_before_log)
+		{
+			ereport(LOG,
+					(errmsg("still searching for an unused OID in relation \"%s\"",
+							RelationGetRelationName(relation)),
+					 errdetail_plural("OID candidates have been checked %llu time, but no unused OID has been found yet.",
+									  "OID candidates have been checked %llu times, but no unused OID has been found yet.",
+									  retries,
+									  (unsigned long long) retries)));
+
+			/*
+			 * Double the number of retries to do before logging next until it
+			 * reaches GETNEWOID_LOG_MAX_INTERVAL.
+			 */
+			if (retries_before_log * 2 <= GETNEWOID_LOG_MAX_INTERVAL)
+				retries_before_log *= 2;
+			else
+				retries_before_log += GETNEWOID_LOG_MAX_INTERVAL;
+		}
+
+		retries++;
 	} while (collides);
+
+	/*
+	 * If at least one log message is emitted, also log the completion of OID
+	 * assignment.
+	 */
+	if (retries > GETNEWOID_LOG_THRESHOLD)
+	{
+		ereport(LOG,
+				(errmsg_plural("new OID has been assigned in relation \"%s\" after %llu retry",
+							   "new OID has been assigned in relation \"%s\" after %llu retries",
+							   retries,
+							   RelationGetRelationName(relation), (unsigned long long) retries)));
+	}
 
 	/*
 	 * Most catalog objects need to have the same OID in the master and all
@@ -664,7 +711,7 @@ GpCheckRelFileCollision(RelFileNodeBackend rnode)
  * Note: we don't support using this in bootstrap mode.  All relations
  * created by bootstrap have preassigned OIDs, so there's no need.
  */
-Oid
+RelFileNodeId
 GetNewRelFileNode(Oid reltablespace, Relation pg_class, char relpersistence)
 {
 	RelFileNodeBackend rnode;
@@ -676,7 +723,7 @@ GetNewRelFileNode(Oid reltablespace, Relation pg_class, char relpersistence)
 	 * relfilenode assignments during a binary-upgrade run should be
 	 * determined by commands in the dump script.
 	 *
-	 * GPDB: Totally OK in Greenplum. We don't use the table's OID as its
+	 * GPDB: Totally OK in Cloudberry. We don't use the table's OID as its
 	 * initial relfilenode, and rely on this in binary upgrade, too.
 	 */
 	//Assert(!IsBinaryUpgrade);
@@ -708,13 +755,10 @@ GetNewRelFileNode(Oid reltablespace, Relation pg_class, char relpersistence)
 
 	do
 	{
-		CHECK_FOR_INTERRUPTS();
+        CHECK_FOR_INTERRUPTS();
 
-		/* Generate the Relfilenode */
-		rnode.node.relNode = GetNewSegRelfilenode();
-
-		if (!IsOidAcceptable(rnode.node.relNode))
-			continue;
+        /* Generate the Relfilenode */
+        rnode.node.relNode = GetNewSegRelfilenode();
 
 		collides = GpCheckRelFileCollision(rnode);
 
@@ -737,7 +781,7 @@ GetNewRelFileNode(Oid reltablespace, Relation pg_class, char relpersistence)
 		}
 	} while (collides);
 
-	elog(DEBUG1, "Calling GetNewRelFileNode returns new relfilenode = %d", rnode.node.relNode);
+	elog(DEBUG1, "Calling GetNewRelFileNode returns new relfilenode = %lu", rnode.node.relNode);
 
 	return rnode.node.relNode;
 }

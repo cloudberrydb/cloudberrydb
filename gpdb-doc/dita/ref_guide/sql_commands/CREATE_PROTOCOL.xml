@@ -5,7 +5,7 @@
     <title id="bv20941">CREATE PROTOCOL</title>
     <body>
         <p id="sql_command_desc">Registers a custom data access protocol that can be specified when
-            defining a Greenplum Database external table.</p>
+            defining a Cloudberry Database external table.</p>
         <section id="section2">
             <title>Synopsis</title>
             <codeblock id="sql_command_synopsis">CREATE [TRUSTED] PROTOCOL <varname>name</varname> (
@@ -23,7 +23,7 @@
             <p>The protocol name can be specified in a <codeph>CREATE EXTERNAL TABLE</codeph>
                 command. </p>
             <p> For information about creating and enabling a custom data access protocol, see
-                "Example Custom Data Access Protocol" in the <cite>Greenplum Database Administrator
+                "Example Custom Data Access Protocol" in the <cite>Cloudberry Database Administrator
                     Guide</cite>.</p>
         </section>
         <section id="section4">
@@ -45,13 +45,13 @@
                 </plentry>
                 <plentry>
                     <pt>readfunc= '<varname>read_call_handler</varname>'</pt>
-                    <pd>The name of a previously registered function that Greenplum Database calls
+                    <pd>The name of a previously registered function that Cloudberry Database calls
                         to read data from an external data source. The command must specify either a
                         read call handler or a write call handler.</pd>
                 </plentry>
                 <plentry>
                     <pt>writefunc= '<varname>write_call_handler</varname>'</pt>
-                    <pd>The name of a previously registered function that Greenplum Database calls
+                    <pd>The name of a previously registered function that Cloudberry Database calls
                         to write data to an external data source. The command must specify either a
                         read call handler or a write call handler.</pd>
                 </plentry>
@@ -64,7 +64,7 @@
         </section>
         <section id="section5">
             <title>Notes</title>
-            <p>Greenplum Database handles external tables of type <codeph>file</codeph>,
+            <p>Cloudberry Database handles external tables of type <codeph>file</codeph>,
                     <codeph>gpfdist</codeph>, and <codeph>gpfdists</codeph> internally. 
                 See
                     <xref href="../../admin_guide/external/g-s3-protocol.xml#amazon-emr/s3_prereq"/>
@@ -72,7 +72,7 @@
                     href="../../admin_guide/external/g-pxf-protocol.xml" type="topic"></xref> for
                 information about using the <codeph>pxf</codeph> protocol.</p>
             <p>Any shared library that implements a data access protocol must be located in the same
-                location on all Greenplum Database segment hosts. For example, the shared library
+                location on all Cloudberry Database segment hosts. For example, the shared library
                 can be in a location specified by the operating system environment variable
                     <codeph>LD_LIBRARY_PATH</codeph> on all hosts. You can also specify the location
                 when you define the handler function. For example, when you define the
@@ -83,7 +83,7 @@
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>CREATE PROTOCOL</codeph> is a Greenplum Database extension. </p>
+            <p><codeph>CREATE PROTOCOL</codeph> is a Cloudberry Database extension. </p>
         </section>
         <section id="section8">
             <title>See Also</title>

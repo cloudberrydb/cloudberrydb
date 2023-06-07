@@ -34,11 +34,11 @@ column
 ----------
         2
 COMMIT;</codeblock></section><section id="section7"><title>Compatibility</title><p>The SQL standard specifies that the key word <codeph>SAVEPOINT</codeph>
-is mandatory, but Greenplum Database (and Oracle) allow it to be omitted.
+is mandatory, but Cloudberry Database (and Oracle) allow it to be omitted.
 SQL allows only <codeph>WORK</codeph>, not <codeph>TRANSACTION</codeph>,
 as a noise word after <codeph>ROLLBACK</codeph>. Also, SQL has an optional
 clause <codeph>AND [NO] CHAIN</codeph> which is not currently supported
-by Greenplum Database. Otherwise, this command conforms to the SQL standard.
+by Cloudberry Database. Otherwise, this command conforms to the SQL standard.
 </p></section><section id="section8"><title>See Also</title><p><codeph><xref href="BEGIN.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
                                                 href="COMMIT.xml#topic1" type="topic" format="dita"
                                         /></codeph>, <codeph><xref href="./SAVEPOINT.xml#topic1"

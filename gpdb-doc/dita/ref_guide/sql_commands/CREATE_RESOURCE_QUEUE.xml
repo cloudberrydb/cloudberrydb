@@ -23,7 +23,7 @@
     </section>
     <section id="section3">
       <title>Description</title>
-      <p>Creates a new resource queue for Greenplum Database resource management. A resource queue
+      <p>Creates a new resource queue for Cloudberry Database resource management. A resource queue
         must have either an <codeph>ACTIVE_STATEMENTS</codeph> or a <codeph>MAX_COST</codeph> value
         (or it can have both). Only a superuser can create a resource queue.</p>
       <p>Resource queues with an <codeph>ACTIVE_STATEMENTS</codeph> threshold set a maximum limit on
@@ -47,13 +47,13 @@
         will be exempt from resource queueing.</p>
       <note>GPORCA and the Postgres Planner utilize different
               query costing models and may compute different costs for the same query.
-              The Greenplum Database resource queue resource management scheme neither
+              The Cloudberry Database resource queue resource management scheme neither
               differentiates nor aligns costs between GPORCA and the Postgres Planner; it
               uses the literal cost value returned from the optimizer to throttle
               queries.<p> When resource queue-based resource management is active, use the
               <codeph>MEMORY_LIMIT</codeph> and <codeph>ACTIVE_STATEMENTS</codeph> limits for
               resource queues rather than configuring cost-based limits. Even when using GPORCA,
-              Greenplum Database may fall back to using the Postgres Planner for certain
+              Cloudberry Database may fall back to using the Postgres Planner for certain
               queries, so using cost-based limits can lead to unexpected results.</p></note>
       <p>If a value is not defined for <codeph>ACTIVE_STATEMENTS</codeph> or
           <codeph>MAX_COST</codeph>, it is set to <codeph>-1</codeph> by default (meaning no limit).
@@ -67,7 +67,7 @@
       <p>Resource queues with an optional <codeph>MEMORY_LIMIT</codeph> threshold set a maximum
         limit on the amount of memory that all queries submitted through a resource queue can
         consume on a segment host. This determines the total amount of memory that all worker
-        processes of a query can consume on a segment host during query execution. Greenplum
+        processes of a query can consume on a segment host during query execution. Cloudberry
         recommends that <codeph>MEMORY_LIMIT</codeph> be used in conjunction with
           <codeph>ACTIVE_STATEMENTS</codeph> rather than with <codeph>MAX_COST</codeph>. The default
         amount of memory allotted per query on statement-based queues is: <codeph>MEMORY_LIMIT /
@@ -117,7 +117,7 @@
           <pt>MAX_COST <varname>float</varname></pt>
           <pd>Resource queues with a <codeph>MAX_COST</codeph> threshold set a maximum limit on the
             total cost of queries that can be run by roles assigned to that queue. Cost is
-            measured in the <i>estimated total cost</i> for the query as determined by the Greenplum
+            measured in the <i>estimated total cost</i> for the query as determined by the Cloudberry
             Database query optimizer (as shown in the <codeph>EXPLAIN</codeph> output for a query).
             Therefore, an administrator must be familiar with the queries typically run on the
             system in order to set an appropriate cost threshold for a queue. Cost is measured in
@@ -163,7 +163,7 @@
         is also another system view named <codeph>pg_stat_resqueues</codeph> which shows statistical
         metrics for a resource queue over time. To use this view, however, you must enable the
           <codeph>stats_queue_level</codeph> server configuration parameter. See "Managing Workload
-        and Resources" in the <i>Greenplum Database Administrator Guide</i> for more information
+        and Resources" in the <i>Cloudberry Database Administrator Guide</i> for more information
         about using resource queues.</p><p><codeph>CREATE RESOURCE QUEUE</codeph> cannot be run
         within a transaction.</p>Also, an SQL statement that is run during the execution time of an
         <codeph>EXPLAIN ANALYZE</codeph> command is excluded from resource queues.</section>
@@ -190,7 +190,7 @@
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p><codeph>CREATE RESOURCE QUEUE</codeph> is a Greenplum Database extension. There is no
+      <p><codeph>CREATE RESOURCE QUEUE</codeph> is a Cloudberry Database extension. There is no
         provision for resource queues or resource management in the SQL standard.</p>
     </section>
     <section id="section8">

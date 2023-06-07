@@ -103,7 +103,7 @@ SELECT * FROM dml_timestamp ORDER BY 1;
 INSERT INTO dml_timestamp VALUES ('2012-02-31 AD'::timestamp);
 SELECT * FROM dml_timestamp ORDER BY 1;
 
--- Greenplum 4.3 and 5 had support for YYYYMMDDHH24MISS, which was removed in
+-- Cloudberry 4.3 and 5 had support for YYYYMMDDHH24MISS, which was removed in
 -- v6 since it cannot be parsed without ambiguity. This test should fail.
 SELECT '13081205132018'::timestamp;
 

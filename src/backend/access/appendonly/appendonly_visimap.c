@@ -655,21 +655,10 @@ AppendOnlyVisimapDelete_Stash(
 		   "Append-only visi map delete: Stash dirty visimap entry %d/" INT64_FORMAT,
 		   visiMap->visimapEntry.segmentFileNum, visiMap->visimapEntry.firstRowNum);
 
-	if (BufFileWrite(visiMapDelete->workfile, &key, sizeof(key)) != sizeof(key))
-	{
-		elog(ERROR, "Failed to write visimap delete spill key information: "
-			 "segno " INT64_FORMAT ", first row " INT64_FORMAT ", offset "
-			 INT64_FORMAT ", length %lu",
-			 key.segno, key.firstRowNum, (int64)offset, sizeof(key));
-	}
+	BufFileWrite(visiMapDelete->workfile, &key, sizeof(key));
 	int size = VARSIZE(visiMap->visimapEntry.data);
-	if (BufFileWrite(visiMapDelete->workfile, visiMap->visimapEntry.data, size) != size)
-	{
-		elog(ERROR, "Failed to write visimap delete spill key information: "
-			 "segno " INT64_FORMAT ", first row " INT64_FORMAT ", offset "
-			 INT64_FORMAT ", length %d", key.segno, key.firstRowNum,
-			 (int64)(offset + sizeof(key)), VARSIZE(visiMap->visimapEntry.data));
-	}
+	BufFileWrite(visiMapDelete->workfile, visiMap->visimapEntry.data, size);
+
 	memcpy(&r->tupleTid, &visiMap->visimapEntry.tupleTid, sizeof(ItemPointerData));
 	r->workFileOffset = offset;
 	r->workFileno = fileno;

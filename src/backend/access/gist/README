@@ -10,6 +10,7 @@ GiST stands for Generalized Search Tree. It was introduced in the seminal paper
 Jeffrey F. Naughton, Avi Pfeffer:
 
     http://www.sai.msu.su/~megera/postgres/gist/papers/gist.ps
+    https://dsf.berkeley.edu/papers/sigmod97-gist.pdf
 
 and implemented by J. Hellerstein and P. Aoki in an early version of
 PostgreSQL (more details are available from The GiST Indexing Project
@@ -92,10 +93,10 @@ index child page to be split between the time we make a queue entry for it
 (while visiting its parent page) and the time we actually reach and scan
 the child page.  To avoid missing the entries that were moved to the right
 sibling, we detect whether a split has occurred by comparing the child
-page's NSN to the LSN that the parent had when visited.  If it did, the
-sibling page is immediately added to the front of the queue, ensuring that
-its items will be scanned in the same order as if they were still on the
-original child page.
+page's NSN (node sequence number, a special-purpose LSN) to the LSN that
+the parent had when visited.  If it did, the sibling page is immediately
+added to the front of the queue, ensuring that its items will be scanned
+in the same order as if they were still on the original child page.
 
 As is usual in Postgres, the search algorithm only guarantees to find index
 entries that existed before the scan started; index entries added during
@@ -170,7 +171,7 @@ it splits the page, and constructs the new downlink tuples for the split
 pages. The caller must then call gistplacetopage() on the parent page to
 insert the downlink tuples. The parent page that holds the downlink to
 the child might have migrated as a result of concurrent splits of the
-parent, gistfindCorrectParent() is used to find the parent page.
+parent, gistFindCorrectParent() is used to find the parent page.
 
 Splitting the root page works slightly differently. At root split,
 gistplacetopage() allocates the new child pages and replaces the old root
@@ -429,18 +430,17 @@ splits during searches, we don't need a "vacuum cycle ID" concept for that
 like B-tree does.
 
 While we scan all the pages, we also make note of any completely empty leaf
-pages. We will try to unlink them from the tree in the second stage. We also
-record the block numbers of all internal pages; they are needed in the second
-stage, to locate parents of the empty pages.
+pages. We will try to unlink them from the tree after the scan. We also record
+the block numbers of all internal pages; they are needed to locate parents of
+the empty pages while unlinking them.
 
-In the second stage, we try to unlink any empty leaf pages from the tree, so
-that their space can be reused. In order to delete an empty page, its
-downlink must be removed from the parent. We scan all the internal pages,
-whose block numbers we memorized in the first stage, and look for downlinks
-to pages that we have memorized as being empty. Whenever we find one, we
-acquire a lock on the parent and child page, re-check that the child page is
-still empty. Then, we remove the downlink and mark the child as deleted, and
-release the locks.
+We try to unlink any empty leaf pages from the tree, so that their space can
+be reused. In order to delete an empty page, its downlink must be removed from
+the parent. We scan all the internal pages, whose block numbers we memorized
+in the first stage, and look for downlinks to pages that we have memorized as
+being empty. Whenever we find one, we acquire a lock on the parent and child
+page, re-check that the child page is still empty. Then, we remove the
+downlink and mark the child as deleted, and release the locks.
 
 The insertion algorithm would get confused, if an internal page was completely
 empty. So we never delete the last child of an internal page, even if it's

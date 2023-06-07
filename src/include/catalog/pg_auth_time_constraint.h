@@ -3,7 +3,7 @@
  * pg_auth_time_constraint.h
  *    definition of the time-based authorization relation (pg_auth_time_constraint)
  *
- * Portions Copyright (c) 2006-2011, Greenplum inc.
+ * Portions Copyright (c) 2006-2011, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California

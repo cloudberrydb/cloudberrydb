@@ -4,8 +4,8 @@
 <topic id="topic1" xml:lang="en">
   <title id="ex142834">gp_distributed_xacts</title>
   <body>
-    <p>The <codeph>gp_distributed_xacts</codeph> view contains information about Greenplum Database distributed transactions. A distributed transaction is a transaction
-      that involves modifying data on the segment instances. Greenplum's distributed transaction manager ensures that the segments stay in synch. This view allows
+    <p>The <codeph>gp_distributed_xacts</codeph> view contains information about Cloudberry Database distributed transactions. A distributed transaction is a transaction
+      that involves modifying data on the segment instances. Cloudberry's distributed transaction manager ensures that the segments stay in synch. This view allows
       you to see the currently active sessions and their associated distributed transactions.</p>
     <table id="ex142842">
       <title>pg_catalog.gp_distributed_xacts</title>
@@ -30,7 +30,7 @@
             <entry colname="col2">xid</entry>
             <entry colname="col3"/>
             <entry colname="col4">The transaction ID used by the distributed transaction across the
-                Greenplum Database array.</entry>
+                Cloudberry Database array.</entry>
           </row>
           <row>
             <entry colname="col1">
@@ -56,7 +56,7 @@
             </entry>
             <entry colname="col2">int</entry>
             <entry colname="col3"/>
-            <entry colname="col4">The ID number of the Greenplum Database session
+            <entry colname="col4">The ID number of the Cloudberry Database session
               associated with this transaction.</entry>
           </row>
           <row>

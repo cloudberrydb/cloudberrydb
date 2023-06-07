@@ -29,7 +29,7 @@
  *
  * 4. Update this header comment.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/pgcrypto/imath.c
@@ -478,7 +478,7 @@ mp_int_init(mp_int z)
 mp_int
 mp_int_alloc(void)
 {
-	mp_int		out = px_alloc(sizeof(mpz_t));
+	mp_int		out = palloc(sizeof(mpz_t));
 
 	if (out != NULL)
 		mp_int_init(out);
@@ -604,7 +604,7 @@ mp_int_free(mp_int z)
 	assert(z != NULL);
 
 	mp_int_clear(z);
-	px_free(z);					/* note: NOT s_free() */
+	pfree(z);					/* note: NOT s_free() */
 }
 
 mp_result
@@ -2205,7 +2205,7 @@ static const mp_digit fill = (mp_digit) 0xdeadbeefabad1dea;
 static mp_digit *
 s_alloc(mp_size num)
 {
-	mp_digit   *out = px_alloc(num * sizeof(mp_digit));
+	mp_digit   *out = palloc(num * sizeof(mp_digit));
 
 	assert(out != NULL);
 
@@ -2228,7 +2228,7 @@ s_realloc(mp_digit *old, mp_size osize, mp_size nsize)
 		new[ix] = fill;
 	memcpy(new, old, osize * sizeof(mp_digit));
 #else
-	mp_digit   *new = px_realloc(old, nsize * sizeof(mp_digit));
+	mp_digit   *new = repalloc(old, nsize * sizeof(mp_digit));
 
 	assert(new != NULL);
 #endif
@@ -2239,7 +2239,7 @@ s_realloc(mp_digit *old, mp_size osize, mp_size nsize)
 static void
 s_free(void *ptr)
 {
-	px_free(ptr);
+	pfree(ptr);
 }
 
 static bool
@@ -2354,12 +2354,12 @@ s_ucmp(mp_int a, mp_int b)
 static int
 s_vcmp(mp_int a, mp_small v)
 {
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4146)
 #endif
 	mp_usmall	uv = (v < 0) ? -(mp_usmall) v : (mp_usmall) v;
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 

@@ -4,7 +4,7 @@
  *	  local buffer manager. Fast buffer manager for temporary tables,
  *	  which never need to be WAL-logged or checkpointed, etc.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  *
@@ -54,17 +54,17 @@ static Block GetLocalBufferStorage(void);
 
 
 /*
- * LocalPrefetchBuffer -
+ * PrefetchLocalBuffer -
  *	  initiate asynchronous read of a block of a relation
  *
  * Do PrefetchBuffer's work for temporary relations.
  * No-op if prefetching isn't compiled in.
  */
-void
-LocalPrefetchBuffer(SMgrRelation smgr, ForkNumber forkNum,
+PrefetchBufferResult
+PrefetchLocalBuffer(SMgrRelation smgr, ForkNumber forkNum,
 					BlockNumber blockNum)
 {
-#ifdef USE_PREFETCH
+	PrefetchBufferResult result = {InvalidBuffer, false};
 	BufferTag	newTag;			/* identity of requested block */
 	LocalBufferLookupEnt *hresult;
 
@@ -81,12 +81,18 @@ LocalPrefetchBuffer(SMgrRelation smgr, ForkNumber forkNum,
 	if (hresult)
 	{
 		/* Yes, so nothing to do */
-		return;
+		result.recent_buffer = -hresult->id - 1;
+	}
+	else
+	{
+#ifdef USE_PREFETCH
+		/* Not in buffers, so initiate prefetch */
+		smgrprefetch(smgr, forkNum, blockNum);
+		result.initiated_io = true;
+#endif							/* USE_PREFETCH */
 	}
 
-	/* Not in buffers, so initiate prefetch */
-	smgrprefetch(smgr, forkNum, blockNum);
-#endif							/* USE_PREFETCH */
+	return result;
 }
 
 
@@ -113,7 +119,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 
 	/*
 	 * Local buffers are used for temp tables in PostgreSQL.  As temp tables
-	 * use shared buffers in Greenplum, we shouldn't be useing local buffers
+	 * use shared buffers in Cloudberry, we shouldn't be useing local buffers
 	 * for anything.
 	 */
 	Assert(false);
@@ -134,7 +140,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 		bufHdr = GetLocalBufferDescriptor(b);
 		Assert(BUFFERTAGS_EQUAL(bufHdr->tag, newTag));
 #ifdef LBDEBUG
-		fprintf(stderr, "LB ALLOC (%u,%d,%d) %d\n",
+		fprintf(stderr, "LB ALLOC (%lu,%d,%d) %d\n",
 				smgr->smgr_rnode.node.relNode, forkNum, blockNum, -b - 1);
 #endif
 		buf_state = pg_atomic_read_u32(&bufHdr->state);
@@ -162,7 +168,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 	}
 
 #ifdef LBDEBUG
-	fprintf(stderr, "LB ALLOC (%u,%d,%d) %d\n",
+	fprintf(stderr, "LB ALLOC (%lu,%d,%d) %d\n",
 			smgr->smgr_rnode.node.relNode, forkNum, blockNum,
 			-nextFreeLocalBuf - 1);
 #endif
@@ -333,7 +339,7 @@ DropRelFileNodeLocalBuffers(RelFileNode rnode, ForkNumber forkNum,
 
 	/*
 	 * Local buffers are used for temp tables in PostgreSQL.  As temp tables
-	 * use shared buffers in Greenplum, we shouldn't be useing local buffers
+	 * use shared buffers in Cloudberry, we shouldn't be useing local buffers
 	 * for anything.
 	 */
 	Assert(false);
@@ -376,7 +382,7 @@ DropRelFileNodeLocalBuffers(RelFileNode rnode, ForkNumber forkNum,
  *		This function removes from the buffer pool all pages of all forks
  *		of the specified relation.
  *
- *		See DropRelFileNodeAllBuffers in bufmgr.c for more notes.
+ *		See DropRelFileNodesAllBuffers in bufmgr.c for more notes.
  */
 void
 DropRelFileNodeAllLocalBuffers(RelFileNode rnode)
@@ -474,7 +480,6 @@ InitLocalBuffers(void)
 	}
 
 	/* Create the lookup hash table */
-	MemSet(&info, 0, sizeof(info));
 	info.keysize = sizeof(BufferTag);
 	info.entrysize = sizeof(LocalBufferLookupEnt);
 

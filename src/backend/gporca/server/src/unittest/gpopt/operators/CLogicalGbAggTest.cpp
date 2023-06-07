@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2022 VMware, Inc.
 //
 //	@filename:

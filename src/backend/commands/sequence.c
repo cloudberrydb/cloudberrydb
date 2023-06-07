@@ -3,9 +3,9 @@
  * sequence.c
  *	  PostgreSQL sequences support code.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc.
+ * Portions Copyright (c) 2005-2008, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -71,6 +71,9 @@
  * The "special area" of a sequence's buffer page looks like this.
  */
 #define SEQ_MAGIC	  0x1717
+
+/* The mssage is sent by send_sequence_response. Typical 34, but we use 100 for safe. */
+#define MAX_SEQUENCE_NEXTVAL_MSG_LEN 100
 
 typedef struct sequence_magic
 {
@@ -162,7 +165,9 @@ DefineSequence(ParseState *pstate, CreateSeqStmt *seq)
 	bool		pgs_nulls[Natts_pg_sequence];
 	int			i;
 
-	bool shouldDispatch =  Gp_role == GP_ROLE_DISPATCH && !IsBootstrapProcessingMode();
+	bool shouldDispatch = (Gp_role == GP_ROLE_DISPATCH &&
+						   ENABLE_DISPATCH() &&
+						   !IsBootstrapProcessingMode());
 
 	/* Unlogged sequences are not implemented -- not clear if useful. */
 	if (seq->sequence->relpersistence == RELPERSISTENCE_UNLOGGED)
@@ -598,7 +603,7 @@ AlterSequence(ParseState *pstate, AlterSeqStmt *stmt)
 						   "ALTER", alter_subtype);
 	}
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
 									DF_WITH_SNAPSHOT|
@@ -1231,7 +1236,7 @@ create_seq_hashtable(void)
 	HASHCTL		ctl;
 
 	memset(&ctl, 0, sizeof(ctl));
-	ctl.keysize = sizeof(struct SeqTableKey);
+	ctl.keysize = sizeof(SeqTableKey);
 	ctl.entrysize = sizeof(SeqTableData);
 
 	seqhashtab = hash_create("Sequence values", 16, &ctl,
@@ -1250,7 +1255,7 @@ init_sequence(Oid relid, SeqTable *p_elm, Relation *p_rel)
 
 /*
  * GPDB: init_sequence_internal() mostly resembles upstream init_sequence().
- * However, in Greenplum we manage dispatcher and executor sequence ranges
+ * However, in Cloudberry we manage dispatcher and executor sequence ranges
  * separately.
  */
 static void
@@ -1274,7 +1279,7 @@ init_sequence_internal(Oid _relid, SeqTable *p_elm, Relation *p_rel,
 	/*
 	 * Initialize the new hash table entry if it did not exist already.
 	 *
-	 * NOTE: seqtable entries are stored for the life of a backend (unless
+	 * NOTE: seqhashtab entries are stored for the life of a backend (unless
 	 * explicitly discarded with DISCARD). If the sequence itself is deleted
 	 * then the entry becomes wasted memory, but it's small enough that this
 	 * should not matter.
@@ -1832,7 +1837,7 @@ process_owned_by(Relation seqrel, List *owned_by, bool for_identity)
 
 		/* Separate relname and attr name */
 		relname = list_truncate(list_copy(owned_by), nnames - 1);
-		attrname = strVal(lfirst(list_tail(owned_by)));
+		attrname = strVal(llast(owned_by));
 
 		/* Open and lock rel to ensure it won't go away meanwhile */
 		rel = makeRangeVarFromNameList(relname);
@@ -2184,7 +2189,7 @@ cdb_sequence_nextval_qe(Relation	seqrel,
 						errmsg("nextval: unexpected message type='%c'", qtype)));
 
 	initStringInfo(&buf);
-	if (pq_getmessage(&buf, 0) != 0)
+	if (pq_getmessage(&buf, MAX_SEQUENCE_NEXTVAL_MSG_LEN) != 0)
 		elog(ERROR, "nextval: unable to parse nextval response from QD");
 
 	current = buf.data;

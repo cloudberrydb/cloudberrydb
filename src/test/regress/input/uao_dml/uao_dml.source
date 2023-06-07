@@ -997,3 +997,15 @@ SELECT COUNT(*) FROM foo WHERE b = 1;
 ROLLBACK To my_savepoint;
 SELECT COUNT(*) FROM foo WHERE b = 1;
 COMMIT;
+
+-- @Description test predicate pushdown
+DROP TABLE IF EXISTS taocs;
+CREATE TABLE taocs(c1 int, c2 int, c3 int, c4 int, c5 int);
+insert into taocs select 1, i, i, i, i from generate_series(1, 15)i;
+--set gp_enable_predicate_pushdown = on; -- default is on
+set gp_predicate_pushdown_sample_rows = 10;
+delete from taocs where c2 = 3 or c2 = 7 or c2 = 13;
+explain (costs off)
+select * from taocs where c4>5 and c3>3 and c2!=12 and c4<15 and c2!=10 and c3<15 and c2>1 and c2<15 and c2+c3!=28 and gp_segment_id=1;
+select * from taocs where c4>5 and c3>3 and c2!=12 and c4<15 and c2!=10 and c3<15 and c2>1 and c2<15 and c2+c3!=28 and gp_segment_id=1;
+

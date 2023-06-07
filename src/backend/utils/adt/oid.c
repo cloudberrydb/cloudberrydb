@@ -3,7 +3,7 @@
  * oid.c
  *	  Functions for the built-in type Oid ... also oidvector.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -308,7 +308,7 @@ oidvectorsend(PG_FUNCTION_ARGS)
 }
 
 /*
- *		oidparse				- get OID from IConst/FConst node
+ *		oidparse				- get OID from ICONST/FCONST node
  */
 Oid
 oidparse(Node *node)

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2010. All Rights Reserved. 
+# Copyright (c) Cloudberry Inc 2010. All Rights Reserved. 
 #
 #
 # THIS IMPORT MUST COME FIRST

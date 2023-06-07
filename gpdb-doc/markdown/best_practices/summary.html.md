@@ -2,13 +2,13 @@
 title: Best Practices Summary 
 ---
 
-A summary of best practices for Greenplum Database.
+A summary of best practices for Cloudberry Database.
 
 ## <a id="datmod"></a>Data Model 
 
-Greenplum Database is an analytical MPP shared-nothing database. This model is significantly different from a highly normalized/transactional SMP database. Because of this, the following best practices are recommended.
+Cloudberry Database is an analytical MPP shared-nothing database. This model is significantly different from a highly normalized/transactional SMP database. Because of this, the following best practices are recommended.
 
--   Greenplum Database performs best with a denormalized schema design suited for MPP analytical processing for example, Star or Snowflake schema, with large fact tables and smaller dimension tables.
+-   Cloudberry Database performs best with a denormalized schema design suited for MPP analytical processing for example, Star or Snowflake schema, with large fact tables and smaller dimension tables.
 -   Use the same data types for columns used in joins between tables.
 
 See [Schema Design](schema.html).
@@ -59,7 +59,7 @@ See [Distributions](schema.html).
 -   Do not configure the OS to use huge pages.
 -   Use `gp_vmem_protect_limit` to set the maximum memory that the instance can allocate for *all* work being done in each segment database.
 -   You can use `gp_vmem_protect_limit` by calculating:
-    -   `gp_vmem` – the total memory available to Greenplum Database
+    -   `gp_vmem` – the total memory available to Cloudberry Database
 
         -   If the total system memory is less than 256 GB, use this formula:
 
@@ -113,7 +113,7 @@ See [Distributions](schema.html).
 -   Ensure that resource queue memory allocations do not exceed the setting for `gp_vmem_protect_limit`.
 -   Dynamically update resource queue settings to match daily operations flow.
 
-See [Setting the Greenplum Recommended OS Parameters](../install_guide/prep_os.html#topic3__sysctl_file) and [Memory and Resource Management with Resource Queues](workloads.html).
+See [Setting the Cloudberry Recommended OS Parameters](../install_guide/prep_os.html#topic3__sysctl_file) and [Memory and Resource Management with Resource Queues](workloads.html).
 
 ## <a id="part"></a>Partitioning 
 
@@ -131,7 +131,7 @@ See [Partitioning](schema.html).
 
 ## <a id="indexes"></a>Indexes 
 
--   In general indexes are not needed in Greenplum Database.
+-   In general indexes are not needed in Cloudberry Database.
 -   Create an index on a single column of a columnar table for drill-through purposes for high cardinality tables that require queries with high selectivity.
 -   Do not index columns that are frequently updated.
 -   Consider dropping indexes before loading data into a table. After the load, re-create the indexes for the table.
@@ -155,7 +155,7 @@ See [Configuring Resource Queues](workloads.html#configuring_rq).
 
 ## <a id="monmat"></a>Monitoring and Maintenance 
 
--   Implement the "Recommended Monitoring and Maintenance Tasks" in the *Greenplum Database Administrator Guide*.
+-   Implement the "Recommended Monitoring and Maintenance Tasks" in the *Cloudberry Database Administrator Guide*.
 -   Run `gpcheckperf` at install time and periodically thereafter, saving the output to compare system performance over time.
 -   Use all the tools at your disposal to understand how your system behaves under different loads.
 -   Examine any unusual event to determine the cause.
@@ -163,7 +163,7 @@ See [Configuring Resource Queues](workloads.html#configuring_rq).
 -   Review plans to determine whether index are being used and partition elimination is occurring as expected.
 -   Know the location and content of system log files and monitor them on a regular basis, not just when problems arise.
 
-See [System Monitoring and Maintenance](maintenance.html), [Query Profiling](../admin_guide/query/topics/query-profiling.html#in198649) and [Monitoring Greenplum Database Log Files](logfiles.html).
+See [System Monitoring and Maintenance](maintenance.html), [Query Profiling](../admin_guide/query/topics/query-profiling.html#in198649) and [Monitoring Cloudberry Database Log Files](logfiles.html).
 
 ## <a id="_Toc286661612"></a>ANALYZE 
 
@@ -203,10 +203,10 @@ See [Loading Data](data_loading.html).
 ## <a id="secty"></a>Security 
 
 -   Secure the `gpadmin` user id and only allow essential system administrators access to it.
--   Administrators should only log in to Greenplum as `gpadmin` when performing certain system maintenance tasks \(such as upgrade or expansion\).
--   Limit users who have the `SUPERUSER` role attribute. Roles that are superusers bypass all access privilege checks in Greenplum Database, as well as resource queuing. Only system administrators should be given superuser rights. See "Altering Role Attributes" in the *Greenplum Database Administrator Guide*.
+-   Administrators should only log in to Cloudberry as `gpadmin` when performing certain system maintenance tasks \(such as upgrade or expansion\).
+-   Limit users who have the `SUPERUSER` role attribute. Roles that are superusers bypass all access privilege checks in Cloudberry Database, as well as resource queuing. Only system administrators should be given superuser rights. See "Altering Role Attributes" in the *Cloudberry Database Administrator Guide*.
 -   Database users should never log on as `gpadmin`, and ETL or production workloads should never run as `gpadmin`.
--   Assign a distinct Greenplum Database role to each user, application, or service that logs in.
+-   Assign a distinct Cloudberry Database role to each user, application, or service that logs in.
 -   For applications or web services, consider creating a distinct role for each application or service.
 -   Use groups to manage access privileges.
 -   Protect the root password.
@@ -219,8 +219,8 @@ See [Security](security.html).
 
 -   Encrypting and decrypting data has a performance cost; only encrypt data that requires encryption.
 -   Do performance testing before implementing any encryption solution in a production system.
--   Server certificates in a production Greenplum Database system should be signed by a certificate authority \(CA\) so that clients can authenticate the server. The CA may be local if all clients are local to the organization.
--   Client connections to Greenplum Database should use SSL encryption whenever the connection goes through an insecure link.
+-   Server certificates in a production Cloudberry Database system should be signed by a certificate authority \(CA\) so that clients can authenticate the server. The CA may be local if all clients are local to the organization.
+-   Client connections to Cloudberry Database should use SSL encryption whenever the connection goes through an insecure link.
 -   A symmetric encryption scheme, where the same key is used to both encrypt and decrypt, has better performance than an asymmetric scheme and should be used when the key can be shared safely.
 -   Use cryptographic functions to encrypt data on disk. The data is encrypted and decrypted in the database process, so it is important to secure the client connection with SSL to avoid transmitting unencrypted data.
 -   Use the gpfdists protocol to secure ETL data as it is loaded into or unloaded from the database.
@@ -244,12 +244,12 @@ See [Encrypting Data and Database Connections](encryption.html)
 -   Locate primary segments and their mirrors on different hosts to protect against host failure.
 -   Recover failed segments promptly, using the `gprecoverseg` utility, to restore redundancy and return the system to optimal balance.
 -   Consider a Dual Cluster configuration to provide an additional level of redundancy and additional query processing throughput.
--   Backup Greenplum databases regularly unless the data is easily restored from sources.
+-   Backup Cloudberry databases regularly unless the data is easily restored from sources.
 -   If backups are saved to local cluster storage, move the files to a safe, off-cluster location when the backup is complete.
 -   If backups are saved to NFS mounts, use a scale-out NFS solution such as Dell EMC Isilon to prevent IO bottlenecks.
--   Consider using Greenplum integration to stream backups to the Dell EMC Data Domain enterprise backup platform.
+-   Consider using Cloudberry integration to stream backups to the Dell EMC Data Domain enterprise backup platform.
 
 See [High Availability](ha.html).
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 

@@ -5,7 +5,7 @@
  *
  * Original coding 1998, Jan Wieck.  Heavily revised 2003, Tom Lane.
  *
- * Copyright (c) 1998-2019, PostgreSQL Global Development Group
+ * Copyright (c) 1998-2021, PostgreSQL Global Development Group
  *
  * src/include/utils/numeric.h
  *
@@ -57,16 +57,20 @@ extern int cmp_numerics(Numeric num1, Numeric num2);
 extern float8 numeric_li_fraction(Numeric x, Numeric x0, Numeric x1, 
 								  bool *eq_bounds, bool *eq_abscissas);
 extern Numeric numeric_li_value(float8 f, Numeric y0, Numeric y1);
+extern int16 *numeric_digits(Numeric num);
+extern int numeric_len(Numeric num);
 
 /*
  * Utility functions in numeric.c
  */
 extern bool numeric_is_nan(Numeric num);
-extern int16 *numeric_digits(Numeric num);
-extern int numeric_len(Numeric num);
+extern bool numeric_is_inf(Numeric num);
 int32		numeric_maximum_size(int32 typmod);
 extern char *numeric_out_sci(Numeric num, int scale);
 extern char *numeric_normalize(Numeric num);
+
+extern Numeric int64_to_numeric(int64 val);
+extern Numeric int64_div_fast_to_numeric(int64 val1, int log10val2);
 
 extern Numeric numeric_add_opt_error(Numeric num1, Numeric num2,
 									 bool *have_error);

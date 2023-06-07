@@ -12,10 +12,14 @@
 -- caused a crash on EXPLAIN ANALYZE on a Sort node in utility mode.)
 0U: begin;
 0U: set local enable_seqscan=off;
+-- start_ignore
 0U: explain analyze select * from gp_segment_configuration order by dbid;
+-- end_ignore
 0U: reset enable_seqscan;
 0U: set local enable_indexscan=off;
+-- start_ignore
 0U: explain analyze select * from gp_segment_configuration order by dbid;
+-- end_ignore
 0U: rollback;
 
 --

@@ -31,8 +31,8 @@
 
 #include "postgres.h"
 
-#include "px.h"
 #include "pgp.h"
+#include "px.h"
 
 /*
  * Defaults.
@@ -54,7 +54,6 @@ struct digest_info
 {
 	const char *name;
 	int			code;
-	const char *int_name;
 };
 
 struct cipher_info
@@ -74,6 +73,7 @@ static const struct digest_info digest_list[] = {
 	{"sha256", PGP_DIGEST_SHA256},
 	{"sha384", PGP_DIGEST_SHA384},
 	{"sha512", PGP_DIGEST_SHA512},
+	{"sm3", PGP_DIGEST_SM3},
 	{NULL, 0}
 };
 
@@ -87,6 +87,8 @@ static const struct cipher_info cipher_list[] = {
 	{"aes192", PGP_SYM_AES_192, "aes-ecb", 192 / 8, 128 / 8},
 	{"aes256", PGP_SYM_AES_256, "aes-ecb", 256 / 8, 128 / 8},
 	{"twofish", PGP_SYM_TWOFISH, "twofish-ecb", 256 / 8, 128 / 8},
+	{"sm4-ecb", PGP_SYM_SM4_ECB, "sm4-ecb", 128 / 8, 128 / 8},
+	{"sm4-cbc", PGP_SYM_SM4_CBC, "sm4-cbc", 128 / 8, 128 / 8},
 	{NULL, 0, NULL}
 };
 
@@ -201,8 +203,7 @@ pgp_init(PGP_Context **ctx_p)
 {
 	PGP_Context *ctx;
 
-	ctx = px_alloc(sizeof *ctx);
-	memset(ctx, 0, sizeof *ctx);
+	ctx = palloc0(sizeof *ctx);
 
 	ctx->cipher_algo = def_cipher_algo;
 	ctx->s2k_cipher_algo = def_s2k_cipher_algo;
@@ -227,7 +228,7 @@ pgp_free(PGP_Context *ctx)
 	if (ctx->pub_key)
 		pgp_key_free(ctx->pub_key);
 	px_memset(ctx, 0, sizeof *ctx);
-	px_free(ctx);
+	pfree(ctx);
 	return 0;
 }
 

@@ -4,7 +4,7 @@ subdir = contrib
 top_builddir = ..
 include $(top_builddir)/src/Makefile.global
 
-# Greenplum specific changes to the targetlist:
+# Cloudberry specific changes to the targetlist:
 # tsearch2 and postgres_fdw are currently disabled due to test failures.
 # cube and the related earthdistance are disabled since GPDB define CUBE
 # as a keyword. lo is disabled since large objects aren't supported.
@@ -30,13 +30,14 @@ SUBDIRS = \
 		isn		\
 		ltree		\
 		oid2name	\
+		old_snapshot	\
 		pageinspect	\
 		passwordcheck	\
 		pg_buffercache	\
 		pg_freespacemap \
 		pg_prewarm	\
-		pg_standby	\
 		pg_stat_statements \
+		pg_surgery	\
 		pg_trgm		\
 		pgcrypto	\
 		pgrowlocks	\
@@ -52,14 +53,14 @@ SUBDIRS = \
 		unaccent	\
 		vacuumlo
 
-# Greenplum-specific additions (to ease merge pain).
+# Cloudberry-specific additions (to ease merge pain).
 SUBDIRS += \
 		formatter \
 		formatter_fixedwidth \
 		extprotocol \
 		indexscan
 
-ifeq ($(with_openssl),yes)
+ifeq ($(with_ssl),openssl)
 SUBDIRS += sslinfo
 else
 ALWAYS_SUBDIRS += sslinfo
@@ -84,9 +85,9 @@ ALWAYS_SUBDIRS += sepgsql
 endif
 
 ifeq ($(with_perl),yes)
-SUBDIRS += hstore_plperl jsonb_plperl
+SUBDIRS += bool_plperl hstore_plperl jsonb_plperl
 else
-ALWAYS_SUBDIRS += hstore_plperl jsonb_plperl
+ALWAYS_SUBDIRS += bool_plperl hstore_plperl jsonb_plperl
 endif
 
 ifeq ($(with_python),yes)

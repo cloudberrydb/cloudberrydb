@@ -37,7 +37,7 @@ DELETE FROM [ONLY] <varname>table</varname> [[AS] <varname>alias</varname>]
                     <codeph>SELECT</codeph>.<note>The <codeph>RETURNING</codeph> clause is not
                     supported when deleting from append-optimized tables.</note></p>
             <p>You must have the <codeph>DELETE</codeph> privilege on the table to delete from it. </p>
-            <note>As the default, Greenplum Database acquires an <codeph>EXCLUSIVE</codeph> lock on
+            <note>As the default, Cloudberry Database acquires an <codeph>EXCLUSIVE</codeph> lock on
                 tables for <codeph>DELETE</codeph> operations on heap tables. When the Global
                 Deadlock Detector is enabled, the lock mode for <codeph>DELETE</codeph> operations
                 on heap tables is <codeph>ROW EXCLUSIVE</codeph>. See <xref
@@ -145,7 +145,7 @@ DELETE FROM [ONLY] <varname>table</varname> [[AS] <varname>alias</varname>]
         </section>
         <section id="section6">
             <title>Notes</title>
-            <p>Greenplum Database lets you reference columns of other tables in the
+            <p>Cloudberry Database lets you reference columns of other tables in the
                     <codeph>WHERE</codeph> condition by specifying the other tables in the
                     <codeph>USING</codeph> clause. For example, to the name <codeph>Hannah</codeph>
                 from the <codeph>rank</codeph> table, one might do:</p>
@@ -182,7 +182,7 @@ name = 'Hannah';</codeblock>
         <section id="section8">
             <title>Compatibility</title>
             <p>This command conforms to the SQL standard, except that the <codeph>USING</codeph> and
-                    <codeph>RETURNING</codeph> clauses are Greenplum Database extensions, as is the
+                    <codeph>RETURNING</codeph> clauses are Cloudberry Database extensions, as is the
                 ability to use <codeph>WITH</codeph> with <codeph>DELETE</codeph>.</p>
         </section>
         <section id="section9">

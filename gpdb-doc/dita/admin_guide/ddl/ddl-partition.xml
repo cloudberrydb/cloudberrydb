@@ -5,7 +5,7 @@
   <body>
     <p>Table partitioning enables supporting very large tables, such as fact tables, by logically
       dividing them into smaller, more manageable pieces. Partitioned tables can improve query
-      performance by allowing the Greenplum Database query optimizer to scan only the data needed to
+      performance by allowing the Cloudberry Database query optimizer to scan only the data needed to
       satisfy a given query instead of scanning all the contents of a large table. <ul
         id="ul_szj_5sz_bt">
         <li><xref href="#topic_tvx_nsz_bt" format="dita"/></li>
@@ -21,12 +21,12 @@
     <title>About Table Partitioning</title>
     <body>
       <p>Partitioning does not change the physical distribution of table data across the segments.
-        Table distribution is physical: Greenplum Database physically divides partitioned tables and
+        Table distribution is physical: Cloudberry Database physically divides partitioned tables and
         non-partitioned tables across segments to enable parallel query processing. Table
-          <i>partitioning</i> is logical: Greenplum Database logically divides big tables to improve
+          <i>partitioning</i> is logical: Cloudberry Database logically divides big tables to improve
         query performance and facilitate data warehouse maintenance tasks, such as rolling old data
         out of the data warehouse. </p>
-      <p>Greenplum Database supports:</p>
+      <p>Cloudberry Database supports:</p>
       <ul id="ul_ohc_2wy_sp">
         <li id="im204035"><i>range partitioning</i>: division of data based on a numerical range,
           such as date or price.</li>
@@ -42,20 +42,20 @@
     </body>
   </topic>
   <topic id="topic64" xml:lang="en">
-    <title>Table Partitioning in Greenplum Database</title>
+    <title>Table Partitioning in Cloudberry Database</title>
     <body>
-      <p>Greenplum Database divides tables into parts (also known as partitions) to enable massively
+      <p>Cloudberry Database divides tables into parts (also known as partitions) to enable massively
         parallel processing. Tables are partitioned during <codeph>CREATE TABLE</codeph> using the
           <codeph>PARTITION BY</codeph> (and optionally the <codeph>SUBPARTITION BY</codeph>)
         clause. Partitioning creates a top-level (or parent) table with one or more levels of
-        sub-tables (or child tables). Internally, Greenplum Database creates an inheritance
+        sub-tables (or child tables). Internally, Cloudberry Database creates an inheritance
         relationship between the top-level table and its underlying partitions, similar to the
         functionality of the <codeph>INHERITS</codeph> clause of PostgreSQL.</p>
-      <p>Greenplum uses the partition criteria defined during table creation to create each
+      <p>Cloudberry uses the partition criteria defined during table creation to create each
         partition with a distinct <codeph>CHECK</codeph> constraint, which limits the data that
         table can contain. The query optimizer uses <codeph>CHECK</codeph> constraints to determine
         which table partitions to scan to satisfy a given query predicate.</p>
-      <p>The Greenplum system catalog stores partition hierarchy information so that rows inserted
+      <p>The Cloudberry system catalog stores partition hierarchy information so that rows inserted
         into the top-level parent table propagate correctly to the child table partitions. To change
         the partition design or table structure, alter the parent table using <codeph>ALTER
           TABLE</codeph> with the <codeph>PARTITION</codeph> clause.</p>
@@ -69,7 +69,7 @@
   <topic id="topic65" xml:lang="en">
     <title>Deciding on a Table Partitioning Strategy</title>
     <body>
-      <p>Greenplum Database does not support partitioning replicated tables (<codeph>DISTRIBUTED
+      <p>Cloudberry Database does not support partitioning replicated tables (<codeph>DISTRIBUTED
           REPLICATED</codeph>). Not all hash-distributed or randomly distributed tables are good
         candidates for partitioning. If the answer is <i>yes</i> to all or most of the following
         questions, table partitioning is a viable database design strategy for improving query
@@ -168,7 +168,7 @@
           partitions, rather than partition by year then subpartition by month then subpartition by
           day. A multi-level design can reduce query planning time, but a flat partition design runs
           faster.</p>
-        <p>You can have Greenplum Database automatically generate partitions by giving a
+        <p>You can have Cloudberry Database automatically generate partitions by giving a
             <codeph>START</codeph> value, an <codeph>END</codeph> value, and an
             <codeph>EVERY</codeph> clause that defines the partition increment value. By default,
             <codeph>START</codeph> values are always inclusive and <codeph>END</codeph> values are
@@ -342,9 +342,9 @@ GRANT SELECT ON sales TO guest;
           whole.</p>
         <p>Tables created with the <codeph>DISTRIBUTED REPLICATED</codeph> distribution policy
           cannot be partitioned. </p>
-        <p>GPORCA, the Greenplum next generation query optimizer, supports uniform multi-level
+        <p>GPORCA, the Cloudberry next generation query optimizer, supports uniform multi-level
           partitioned tables. If GPORCA is enabled (the default) and the multi-level partitioned
-          table is not uniform, Greenplum Database runs queries against the table with the
+          table is not uniform, Cloudberry Database runs queries against the table with the
           Postgres Planner. For information about uniform multi-level partitioned tables, see
             <xref href="../query/topics/query-piv-uniform-part-tbl.xml#topic1"/>.</p>
         <p>For information about exchanging a leaf child partition with an external table, see <xref
@@ -392,7 +392,7 @@ GRANT SELECT ON sales TO guest;
               <li>Adding or dropping constraints.</li>
               <li>Splitting an external partition.</li>
             </ul></li>
-          <li> The Greenplum Database <codeph>gpbackup</codeph> utility does not back up
+          <li> The Cloudberry Database <codeph>gpbackup</codeph> utility does not back up
             data from a leaf child partition of a partitioned table if the leaf child
             partition is a readable external table.
           </li>
@@ -726,13 +726,13 @@ WITH TABLE jan12;
           ensure that the data in table that you are exchanging for an existing partition is valid
           against the constraints on the partition. Otherwise, queries against the partitioned table
           might return incorrect results.</note>
-        <p>The Greenplum Database server configuration parameter
+        <p>The Cloudberry Database server configuration parameter
             <codeph>gp_enable_exchange_default_partition</codeph> controls availability of the
             <codeph>EXCHANGE DEFAULT PARTITION</codeph> clause. The default value for the parameter
-          is <codeph>off</codeph>, the clause is not available and Greenplum Database returns an
+          is <codeph>off</codeph>, the clause is not available and Cloudberry Database returns an
           error if the clause is specified in an <codeph>ALTER TABLE</codeph> command.</p>
         <p>For information about the parameter, see "Server Configuration Parameters" in the
-            <cite>Greenplum Database Reference Guide</cite>.<note type="warning">Before you exchange
+            <cite>Cloudberry Database Reference Guide</cite>.<note type="warning">Before you exchange
             the default partition, you must ensure the data in the table to be exchanged, the new
             default partition, is valid for the default partition. For example, the data in the new
             default partition must not contain data that would be valid in other leaf child
@@ -833,7 +833,7 @@ INTO (PARTITION jan17, default partition);
           partitioned table contains a column with a check constraint or a <codeph>NOT NULL</codeph>
           constraint.</p>
         <p>For information about exchanging and altering a leaf child partition, see the
-            <codeph>ALTER TABLE</codeph> command in the<cite> Greenplum Database Command
+            <codeph>ALTER TABLE</codeph> command in the<cite> Cloudberry Database Command
             Reference</cite>.</p>
         <p>For information about limitations of partitioned tables that contain a external table
           partition, see <xref href="#topic72" format="dita"/>.</p>
@@ -854,7 +854,7 @@ INTO (PARTITION jan17, default partition);
             exchange the table <codeph>sales_1_prt_yr_1</codeph> with an external table the uses the
               <codeph>gpfdist</codeph> protocol:</p>
           <ol id="ol_uls_2xd_bt">
-            <li>Ensure that the external table protocol is enabled for the Greenplum Database
+            <li>Ensure that the external table protocol is enabled for the Cloudberry Database
                 system.<p>This example uses the <codeph>gpfdist</codeph> protocol. This command
                 starts the <codeph>gpfdist</codeph> protocol.
               <codeblock> $ gpfdist</codeblock></p></li>

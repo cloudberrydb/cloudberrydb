@@ -1981,6 +1981,165 @@ SELECT * FROM test_ret_rec_dyn(5) AS (a int, b numeric, c text);
 (1 row)
 
 --
+-- Test some simple polymorphism cases.
+--
+create function f1(x anyelement) returns anyelement as $$
+begin
+  return x + 1;
+end$$ language plpgsql;
+select f1(42) as int, f1(4.5) as num;
+ int | num 
+-----+-----
+  43 | 5.5
+(1 row)
+
+select f1(point(3,4));  -- fail for lack of + operator
+ERROR:  operator does not exist: point + integer
+LINE 1: x + 1
+          ^
+HINT:  No operator matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  x + 1
+CONTEXT:  PL/pgSQL function f1(anyelement) line 3 at RETURN
+drop function f1(x anyelement);
+create function f1(x anyelement) returns anyarray as $$
+begin
+  return array[x + 1, x + 2];
+end$$ language plpgsql;
+select f1(42) as int, f1(4.5) as num;
+   int   |    num    
+---------+-----------
+ {43,44} | {5.5,6.5}
+(1 row)
+
+drop function f1(x anyelement);
+create function f1(x anyarray) returns anyelement as $$
+begin
+  return x[1];
+end$$ language plpgsql;
+select f1(array[2,4]) as int, f1(array[4.5, 7.7]) as num;
+ int | num 
+-----+-----
+   2 | 4.5
+(1 row)
+
+select f1(stavalues1) from pg_statistic;  -- fail, can't infer element type
+ERROR:  cannot determine element type of "anyarray" argument
+drop function f1(x anyarray);
+create function f1(x anyarray) returns anyarray as $$
+begin
+  return x;
+end$$ language plpgsql;
+select f1(array[2,4]) as int, f1(array[4.5, 7.7]) as num;
+  int  |    num    
+-------+-----------
+ {2,4} | {4.5,7.7}
+(1 row)
+
+select f1(stavalues1) from pg_statistic;  -- fail, can't infer element type
+ERROR:  PL/pgSQL functions cannot accept type anyarray
+CONTEXT:  compilation of PL/pgSQL function "f1" near line 1
+drop function f1(x anyarray);
+-- fail, can't infer type:
+create function f1(x anyelement) returns anyrange as $$
+begin
+  return array[x + 1, x + 2];
+end$$ language plpgsql;
+ERROR:  cannot determine result data type
+DETAIL:  A result of type anyrange requires at least one input of type anyrange or anymultirange.
+create function f1(x anyrange) returns anyarray as $$
+begin
+  return array[lower(x), upper(x)];
+end$$ language plpgsql;
+select f1(int4range(42, 49)) as int, f1(float8range(4.5, 7.8)) as num;
+   int   |    num    
+---------+-----------
+ {42,49} | {4.5,7.8}
+(1 row)
+
+drop function f1(x anyrange);
+create function f1(x anycompatible, y anycompatible) returns anycompatiblearray as $$
+begin
+  return array[x, y];
+end$$ language plpgsql;
+select f1(2, 4) as int, f1(2, 4.5) as num;
+  int  |   num   
+-------+---------
+ {2,4} | {2,4.5}
+(1 row)
+
+drop function f1(x anycompatible, y anycompatible);
+create function f1(x anycompatiblerange, y anycompatible, z anycompatible) returns anycompatiblearray as $$
+begin
+  return array[lower(x), upper(x), y, z];
+end$$ language plpgsql;
+select f1(int4range(42, 49), 11, 2::smallint) as int, f1(float8range(4.5, 7.8), 7.8, 11::real) as num;
+     int      |       num        
+--------------+------------------
+ {42,49,11,2} | {4.5,7.8,7.8,11}
+(1 row)
+
+select f1(int4range(42, 49), 11, 4.5) as fail;  -- range type doesn't fit
+ERROR:  function f1(int4range, integer, numeric) does not exist
+LINE 1: select f1(int4range(42, 49), 11, 4.5) as fail;
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+drop function f1(x anycompatiblerange, y anycompatible, z anycompatible);
+-- fail, can't infer type:
+create function f1(x anycompatible) returns anycompatiblerange as $$
+begin
+  return array[x + 1, x + 2];
+end$$ language plpgsql;
+ERROR:  cannot determine result data type
+DETAIL:  A result of type anycompatiblerange requires at least one input of type anycompatiblerange or anycompatiblemultirange.
+create function f1(x anycompatiblerange, y anycompatiblearray) returns anycompatiblerange as $$
+begin
+  return x;
+end$$ language plpgsql;
+select f1(int4range(42, 49), array[11]) as int, f1(float8range(4.5, 7.8), array[7]) as num;
+   int   |    num    
+---------+-----------
+ [42,49) | [4.5,7.8)
+(1 row)
+
+drop function f1(x anycompatiblerange, y anycompatiblearray);
+create function f1(a anyelement, b anyarray,
+                   c anycompatible, d anycompatible,
+                   OUT x anyarray, OUT y anycompatiblearray)
+as $$
+begin
+  x := a || b;
+  y := array[c, d];
+end$$ language plpgsql;
+select x, pg_typeof(x), y, pg_typeof(y)
+  from f1(11, array[1, 2], 42, 34.5);
+    x     | pg_typeof |     y     | pg_typeof 
+----------+-----------+-----------+-----------
+ {11,1,2} | integer[] | {42,34.5} | numeric[]
+(1 row)
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from f1(11, array[1, 2], point(1,2), point(3,4));
+    x     | pg_typeof |         y         | pg_typeof 
+----------+-----------+-------------------+-----------
+ {11,1,2} | integer[] | {"(1,2)","(3,4)"} | point[]
+(1 row)
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from f1(11, '{1,2}', point(1,2), '(3,4)');
+    x     | pg_typeof |         y         | pg_typeof 
+----------+-----------+-------------------+-----------
+ {11,1,2} | integer[] | {"(1,2)","(3,4)"} | point[]
+(1 row)
+
+select x, pg_typeof(x), y, pg_typeof(y)
+  from f1(11, array[1, 2.2], 42, 34.5);  -- fail
+ERROR:  function f1(integer, numeric[], integer, numeric) does not exist
+LINE 2:   from f1(11, array[1, 2.2], 42, 34.5);
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+drop function f1(a anyelement, b anyarray,
+                 c anycompatible, d anycompatible);
+--
 -- Test handling of OUT parameters, including polymorphic cases.
 -- Note that RETURN is optional with OUT params; we try both ways.
 --
@@ -2097,6 +2256,25 @@ select * from duplic('foo'::text);
 (1 row)
 
 drop function duplic(anyelement);
+create function duplic(in i anycompatiblerange, out j anycompatible, out k anycompatiblearray) as $$
+begin
+  j := lower(i);
+  k := array[lower(i),upper(i)];
+  return;
+end$$ language plpgsql;
+select * from duplic(int4range(42,49));
+ j  |    k    
+----+---------
+ 42 | {42,49}
+(1 row)
+
+select * from duplic(textrange('aaa', 'bbb'));
+  j  |     k     
+-----+-----------
+ aaa | {aaa,bbb}
+(1 row)
+
+drop function duplic(anycompatiblerange);
 --
 -- test PERFORM
 --
@@ -2417,7 +2595,7 @@ begin
 end $$ language plpgsql;
 select namedparmcursor_test7();
 ERROR:  division by zero
-CONTEXT:  SQL statement "SELECT 42/0 AS p1, 77 AS p2;"
+CONTEXT:  SQL expression "42/0 AS p1, 77 AS p2"
 PL/pgSQL function namedparmcursor_test7() line 6 at OPEN
 -- check that line comments work correctly within the argument list (there
 -- is some special handling of this case in the code: the newline after the
@@ -2630,9 +2808,9 @@ end; $$ language plpgsql;
 -- blocks
 select excpt_test1();
 ERROR:  column "sqlstate" does not exist
-LINE 1: SELECT sqlstate
-               ^
-QUERY:  SELECT sqlstate
+LINE 1: sqlstate
+        ^
+QUERY:  sqlstate
 CONTEXT:  PL/pgSQL function excpt_test1() line 3 at RAISE
 create function excpt_test2() returns void as $$
 begin
@@ -2645,9 +2823,9 @@ end; $$ language plpgsql;
 -- should fail
 select excpt_test2();
 ERROR:  column "sqlstate" does not exist
-LINE 1: SELECT sqlstate
-               ^
-QUERY:  SELECT sqlstate
+LINE 1: sqlstate
+        ^
+QUERY:  sqlstate
 CONTEXT:  PL/pgSQL function excpt_test2() line 5 at RAISE
 create function excpt_test3() returns void as $$
 begin
@@ -2885,6 +3063,20 @@ end$$ language plpgsql;
 select stricttest();
 ERROR:  query returned no rows
 DETAIL:  parameters: p1 = '2', p3 = 'foo'
+CONTEXT:  PL/pgSQL function stricttest() line 8 at SQL statement
+create or replace function stricttest() returns void as $$
+declare
+x record;
+p1 int := 2;
+p3 text := $a$'Valame Dios!' dijo Sancho; 'no le dije yo a vuestra merced que mirase bien lo que hacia?'$a$;
+begin
+  -- no rows
+  select * from foo where f1 = p1 and f1::text = p3 into strict x;
+  raise notice 'x.f1 = %, x.f2 = %', x.f1, x.f2;
+end$$ language plpgsql;
+select stricttest();
+ERROR:  query returned no rows
+DETAIL:  parameters: p1 = '2', p3 = '''Valame Dios!'' dijo Sancho; ''no le dije yo a vuestra merced que mirase bien lo que hacia?'''
 CONTEXT:  PL/pgSQL function stricttest() line 8 at SQL statement
 create or replace function stricttest() returns void as $$
 declare
@@ -3217,7 +3409,7 @@ begin
 end;
 $$ language plpgsql;
 select * from sc_test();
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 CONTEXT:  PL/pgSQL function sc_test() line 7 at FETCH
 create or replace function sc_test() returns setof integer as $$
 declare
@@ -3234,7 +3426,7 @@ begin
 end;
 $$ language plpgsql;
 select * from sc_test();  -- fails because of NO SCROLL specification
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 CONTEXT:  PL/pgSQL function sc_test() line 7 at FETCH
 create or replace function sc_test() returns setof integer as $$
 declare
@@ -3251,7 +3443,7 @@ begin
 end;
 $$ language plpgsql;
 select * from sc_test();
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 CONTEXT:  PL/pgSQL function sc_test() line 7 at FETCH
 create or replace function sc_test() returns setof integer as $$
 declare
@@ -3268,7 +3460,7 @@ begin
 end;
 $$ language plpgsql;
 select * from sc_test();
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 CONTEXT:  PL/pgSQL function sc_test() line 7 at FETCH
 create or replace function sc_test() returns setof integer as $$
 declare
@@ -3286,7 +3478,7 @@ begin
 end;
 $$ language plpgsql;
 select * from sc_test();
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 CONTEXT:  PL/pgSQL function sc_test() line 7 at FETCH
 create or replace function sc_test() returns setof integer as $$
 declare
@@ -3330,7 +3522,7 @@ begin
 end;
 $$ language plpgsql;
 select * from sc_test();
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 CONTEXT:  PL/pgSQL function sc_test() line 8 at FETCH
 drop function sc_test();
 -- test qualified variable names
@@ -4242,10 +4434,9 @@ select * from tftest(10);
 (2 rows)
 
 drop function tftest(int);
-create or replace function rttest()
+create function rttest()
 returns setof int as $$
 declare rc int;
-  rca int[];
 begin
   return query values(10),(20);
   get diagnostics rc = row_count;
@@ -4254,12 +4445,11 @@ begin
   get diagnostics rc = row_count;
   raise notice '% %', found, rc;
   return query execute 'values(10),(20)';
-  -- just for fun, let's use array elements as targets
-  get diagnostics rca[1] = row_count;
-  raise notice '% %', found, rca[1];
+  get diagnostics rc = row_count;
+  raise notice '% %', found, rc;
   return query execute 'select * from (values(10),(20)) f(a) where false';
-  get diagnostics rca[2] = row_count;
-  raise notice '% %', found, rca[2];
+  get diagnostics rc = row_count;
+  raise notice '% %', found, rc;
 end;
 $$ language plpgsql;
 select * from rttest();
@@ -4275,6 +4465,31 @@ NOTICE:  f 0
      20
 (4 rows)
 
+-- check some error cases, too
+create or replace function rttest()
+returns setof int as $$
+begin
+  return query select 10 into no_such_table;
+end;
+$$ language plpgsql;
+select * from rttest();
+ERROR:  SELECT INTO query does not return tuples
+CONTEXT:  SQL statement "select 10 into no_such_table"
+PL/pgSQL function rttest() line 3 at RETURN QUERY
+create or replace function rttest()
+returns setof int as $$
+begin
+  return query execute 'select 10 into no_such_table';
+end;
+$$ language plpgsql;
+select * from rttest();
+ERROR:  SELECT INTO query does not return tuples
+CONTEXT:  SQL statement "select 10 into no_such_table"
+PL/pgSQL function rttest() line 3 at RETURN QUERY
+select * from no_such_table;
+ERROR:  relation "no_such_table" does not exist
+LINE 1: select * from no_such_table;
+                      ^
 drop function rttest();
 -- Test for proper cleanup at subtransaction exit.  This example
 -- exposed a bug in PG 8.2.
@@ -4482,11 +4697,11 @@ end
 $$;
 select fail();
 ERROR:  division by zero
-CONTEXT:  SQL statement "SELECT 1/0"
+CONTEXT:  SQL expression "1/0"
 PL/pgSQL function fail() line 3 at RETURN
 select fail();
 ERROR:  division by zero
-CONTEXT:  SQL statement "SELECT 1/0"
+CONTEXT:  SQL expression "1/0"
 PL/pgSQL function fail() line 3 at RETURN
 drop function fail();
 -- Test handling of string literals.
@@ -4512,10 +4727,10 @@ HINT:  Use the escape string syntax for backslashes, e.g., E'\\'.
 select strtest();
 NOTICE:  foo\bar!baz
 WARNING:  nonstandard use of \\ in a string literal
-LINE 1: SELECT 'foo\\bar\041baz'
-               ^
+LINE 1: 'foo\\bar\041baz'
+        ^
 HINT:  Use the escape string syntax for backslashes, e.g., E'\\'.
-QUERY:  SELECT 'foo\\bar\041baz'
+QUERY:  'foo\\bar\041baz'
    strtest   
 -------------
  foo\bar!baz
@@ -5062,13 +5277,12 @@ select i, a from
 
 explain (verbose, costs off)
 select consumes_rw_array(a), a from returns_rw_array(1) a;
-             QUERY PLAN              
--------------------------------------
- Function Scan on a
-   Output: consumes_rw_array(a), a
-   Function Call: '{1,1}'::integer[]
+                             QUERY PLAN                              
+---------------------------------------------------------------------
+ Result
+   Output: consumes_rw_array('{1,1}'::integer[]), '{1,1}'::integer[]
  Optimizer: Postgres query optimizer
-(4 rows)
+(3 rows)
 
 select consumes_rw_array(a), a from returns_rw_array(1) a;
  consumes_rw_array |   a   

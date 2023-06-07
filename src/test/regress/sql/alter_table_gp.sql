@@ -1,12 +1,11 @@
 -- ALTER TABLE ... RENAME on corrupted relations
 SET allow_system_table_mods = true;
-SET gp_allow_rename_relation_without_lock = ON;
 -- missing entry
 CREATE TABLE cor (a int, b float);
 INSERT INTO cor SELECT i, i+1 FROM generate_series(1,100)i;
 DELETE FROM pg_attribute WHERE attname='a' AND attrelid='cor'::regclass;
+INSERT INTO pg_attribute SELECT distinct on(attrelid, attnum) * FROM gp_dist_random('pg_attribute') WHERE attname='a' AND attrelid='cor'::regclass;
 ALTER TABLE cor RENAME TO oldcor;
-INSERT INTO pg_attribute SELECT distinct on(attrelid, attnum) * FROM gp_dist_random('pg_attribute') WHERE attname='a' AND attrelid='oldcor'::regclass;
 DROP TABLE oldcor;
 
 -- typname is out of sync
@@ -17,7 +16,6 @@ ALTER TABLE newcor2 RENAME TO cor;
 DROP TABLE cor;
 
 RESET allow_system_table_mods;
-RESET gp_allow_rename_relation_without_lock;
 
 
 -- MPP-20466 Dis-allow duplicate constraint names for same table

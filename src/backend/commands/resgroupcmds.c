@@ -3,7 +3,7 @@
  * resgroupcmds.c
  *	  Commands for manipulating resource group.
  *
- * Portions Copyright (c) 2006-2017, Greenplum inc.
+ * Portions Copyright (c) 2006-2017, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
@@ -41,6 +41,8 @@
 #include "utils/resowner.h"
 #include "utils/syscache.h"
 #include "utils/faultinjector.h"
+
+#include "catalog/gp_indexing.h"
 
 #define RESGROUP_DEFAULT_CONCURRENCY (20)
 #define RESGROUP_DEFAULT_MEM_SHARED_QUOTA (80)
@@ -467,7 +469,7 @@ AlterResourceGroup(AlterResourceGroupStmt *stmt)
 			caps.memAuditor = value;
 			break;
 		case RESGROUP_LIMIT_TYPE_CPUSET:
-			StrNCpy(caps.cpuset, cpuset, sizeof(caps.cpuset));
+			strlcpy(caps.cpuset, cpuset, sizeof(caps.cpuset));
 			caps.cpuRateLimit = CPU_RATE_LIMIT_DISABLED;
 			break;
 		default:
@@ -617,7 +619,7 @@ GetResGroupCapabilities(Relation rel, Oid groupId, ResGroupCaps *resgroupCaps)
 												   getResgroupOptionName(type));
 				break;
 			case RESGROUP_LIMIT_TYPE_CPUSET:
-				StrNCpy(resgroupCaps->cpuset, value, sizeof(resgroupCaps->cpuset));
+				strlcpy(resgroupCaps->cpuset, value, sizeof(resgroupCaps->cpuset));
 				break;
 			default:
 				break;
@@ -973,7 +975,7 @@ checkResgroupCapConflicts(ResGroupCaps *caps)
 				(errcode(ERRCODE_GP_FEATURE_NOT_CONFIGURED),
 				 errmsg("cgroup is not properly configured for the 'cgroup' memory auditor"),
 				 errhint("Extra cgroup configurations are required to enable this feature, "
-						 "please refer to the Greenplum Documentation for details")));
+						 "please refer to the Cloudberry Documentation for details")));
 	}
 }
 
@@ -1012,7 +1014,7 @@ parseStmtOptions(CreateResourceGroupStmt *stmt, ResGroupCaps *caps)
 		{
 			const char *cpuset = defGetString(defel);
 			checkCpusetSyntax(cpuset);
-			StrNCpy(caps->cpuset, cpuset, sizeof(caps->cpuset));
+			strlcpy(caps->cpuset, cpuset, sizeof(caps->cpuset));
 			caps->cpuRateLimit = CPU_RATE_LIMIT_DISABLED;
 		}
 		else 
@@ -1234,7 +1236,7 @@ updateResgroupCapabilityEntry(Relation rel,
 
 	if (limitType == RESGROUP_LIMIT_TYPE_CPUSET)
 	{
-		StrNCpy(stringBuffer, strValue, sizeof(stringBuffer));
+		strlcpy(stringBuffer, strValue, sizeof(stringBuffer));
 	}
 	else
 	{

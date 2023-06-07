@@ -4,22 +4,16 @@
 --
 -- create required tables
 CREATE TABLE CHAR_STRINGS_TBL(f1 char(4));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO CHAR_STRINGS_TBL (f1) VALUES ('a'),
 ('ab'),
 ('abcd'),
 ('abcd    ');
 CREATE TABLE VARCHAR_STRINGS_TBL(f1 varchar(4));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO VARCHAR_STRINGS_TBL (f1) VALUES ('a'),
 ('ab'),
 ('abcd'),
 ('abcd    ');
 CREATE TABLE TEXT_STRINGS_TBL (f1 text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO TEXT_STRINGS_TBL VALUES ('doh!'),
 ('hi de ho neighbor');
 -- SQL string continuation syntax
@@ -148,6 +142,12 @@ SELECT U&'d!0061t\+000061' UESCAPE '!' AS U&"d*0061t\+000061" UESCAPE '*';
  dat\+000061
 (1 row)
 
+SELECT U&'a\\b' AS "a\b";
+ a\b 
+-----
+ a\b
+(1 row)
+
 SELECT U&' \' UESCAPE '!' AS "tricky";
  tricky 
 --------
@@ -161,17 +161,94 @@ SELECT 'tricky' AS U&"\" UESCAPE '!';
 (1 row)
 
 SELECT U&'wrong: \061';
-ERROR:  invalid Unicode escape value at or near "\061'"
+ERROR:  invalid Unicode escape
 LINE 1: SELECT U&'wrong: \061';
                          ^
+HINT:  Unicode escapes must be \XXXX or \+XXXXXX.
 SELECT U&'wrong: \+0061';
-ERROR:  invalid Unicode escape value at or near "\+0061'"
+ERROR:  invalid Unicode escape
 LINE 1: SELECT U&'wrong: \+0061';
                          ^
+HINT:  Unicode escapes must be \XXXX or \+XXXXXX.
+SELECT U&'wrong: +0061' UESCAPE +;
+ERROR:  UESCAPE must be followed by a simple string literal at or near "+"
+LINE 1: SELECT U&'wrong: +0061' UESCAPE +;
+                                        ^
 SELECT U&'wrong: +0061' UESCAPE '+';
-ERROR:  invalid Unicode escape character at or near "+'"
+ERROR:  invalid Unicode escape character at or near "'+'"
 LINE 1: SELECT U&'wrong: +0061' UESCAPE '+';
-                                         ^
+                                        ^
+SELECT U&'wrong: \db99';
+ERROR:  invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99';
+                              ^
+SELECT U&'wrong: \db99xy';
+ERROR:  invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99xy';
+                              ^
+SELECT U&'wrong: \db99\\';
+ERROR:  invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99\\';
+                              ^
+SELECT U&'wrong: \db99\0061';
+ERROR:  invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \db99\0061';
+                              ^
+SELECT U&'wrong: \+00db99\+000061';
+ERROR:  invalid Unicode surrogate pair
+LINE 1: SELECT U&'wrong: \+00db99\+000061';
+                                 ^
+SELECT U&'wrong: \+2FFFFF';
+ERROR:  invalid Unicode escape value
+LINE 1: SELECT U&'wrong: \+2FFFFF';
+                         ^
+-- while we're here, check the same cases in E-style literals
+SELECT E'd\u0061t\U00000061' AS "data";
+ data 
+------
+ data
+(1 row)
+
+SELECT E'a\\b' AS "a\b";
+ a\b 
+-----
+ a\b
+(1 row)
+
+SELECT E'wrong: \u061';
+ERROR:  invalid Unicode escape
+LINE 1: SELECT E'wrong: \u061';
+                        ^
+HINT:  Unicode escapes must be \uXXXX or \UXXXXXXXX.
+SELECT E'wrong: \U0061';
+ERROR:  invalid Unicode escape
+LINE 1: SELECT E'wrong: \U0061';
+                        ^
+HINT:  Unicode escapes must be \uXXXX or \UXXXXXXXX.
+SELECT E'wrong: \udb99';
+ERROR:  invalid Unicode surrogate pair at or near "'"
+LINE 1: SELECT E'wrong: \udb99';
+                              ^
+SELECT E'wrong: \udb99xy';
+ERROR:  invalid Unicode surrogate pair at or near "x"
+LINE 1: SELECT E'wrong: \udb99xy';
+                              ^
+SELECT E'wrong: \udb99\\';
+ERROR:  invalid Unicode surrogate pair at or near "\"
+LINE 1: SELECT E'wrong: \udb99\\';
+                              ^
+SELECT E'wrong: \udb99\u0061';
+ERROR:  invalid Unicode surrogate pair at or near "\u0061"
+LINE 1: SELECT E'wrong: \udb99\u0061';
+                              ^
+SELECT E'wrong: \U0000db99\U00000061';
+ERROR:  invalid Unicode surrogate pair at or near "\U00000061"
+LINE 1: SELECT E'wrong: \U0000db99\U00000061';
+                                  ^
+SELECT E'wrong: \U002FFFFF';
+ERROR:  invalid Unicode escape value at or near "\U002FFFFF"
+LINE 1: SELECT E'wrong: \U002FFFFF';
+                        ^
 SET standard_conforming_strings TO off;
 SELECT U&'d\0061t\+000061' AS U&"d\0061t\+000061";
 ERROR:  unsafe use of string constant with Unicode escapes
@@ -426,7 +503,29 @@ SELECT SUBSTRING('1234567890' FROM 4 FOR 3) = '456' AS "456";
  t
 (1 row)
 
+-- test overflow cases
+SELECT SUBSTRING('string' FROM 2 FOR 2147483646) AS "tring";
+ tring 
+-------
+ tring
+(1 row)
+
+SELECT SUBSTRING('string' FROM -10 FOR 2147483646) AS "string";
+ string 
+--------
+ string
+(1 row)
+
+SELECT SUBSTRING('string' FROM -10 FOR -2147483646) AS "error";
+ERROR:  negative substring length not allowed
 -- T581 regular expression substring (with SQL's bizarre regexp syntax)
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"(b_d)#"%' ESCAPE '#') AS "bcd";
+ bcd 
+-----
+ bcd
+(1 row)
+
+-- obsolete SQL99 syntax
 SELECT SUBSTRING('abcdefg' FROM 'a#"(b_d)#"%' FOR '#') AS "bcd";
  bcd 
 -----
@@ -434,75 +533,75 @@ SELECT SUBSTRING('abcdefg' FROM 'a#"(b_d)#"%' FOR '#') AS "bcd";
 (1 row)
 
 -- No match should return NULL
-SELECT SUBSTRING('abcdefg' FROM '#"(b_d)#"%' FOR '#') IS NULL AS "True";
+SELECT SUBSTRING('abcdefg' SIMILAR '#"(b_d)#"%' ESCAPE '#') IS NULL AS "True";
  True 
 ------
  t
 (1 row)
 
 -- Null inputs should return NULL
-SELECT SUBSTRING('abcdefg' FROM '%' FOR NULL) IS NULL AS "True";
+SELECT SUBSTRING('abcdefg' SIMILAR '%' ESCAPE NULL) IS NULL AS "True";
  True 
 ------
  t
 (1 row)
 
-SELECT SUBSTRING(NULL FROM '%' FOR '#') IS NULL AS "True";
+SELECT SUBSTRING(NULL SIMILAR '%' ESCAPE '#') IS NULL AS "True";
  True 
 ------
  t
 (1 row)
 
-SELECT SUBSTRING('abcdefg' FROM NULL FOR '#') IS NULL AS "True";
+SELECT SUBSTRING('abcdefg' SIMILAR NULL ESCAPE '#') IS NULL AS "True";
  True 
 ------
  t
 (1 row)
 
 -- The first and last parts should act non-greedy
-SELECT SUBSTRING('abcdefg' FROM 'a#"%#"g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%#"g' ESCAPE '#') AS "bcdef";
  bcdef 
 -------
  bcdef
 (1 row)
 
-SELECT SUBSTRING('abcdefg' FROM 'a*#"%#"g*' FOR '#') AS "abcdefg";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a*#"%#"g*' ESCAPE '#') AS "abcdefg";
  abcdefg 
 ---------
  abcdefg
 (1 row)
 
 -- Vertical bar in any part affects only that part
-SELECT SUBSTRING('abcdefg' FROM 'a|b#"%#"g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a|b#"%#"g' ESCAPE '#') AS "bcdef";
  bcdef 
 -------
  bcdef
 (1 row)
 
-SELECT SUBSTRING('abcdefg' FROM 'a#"%#"x|g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%#"x|g' ESCAPE '#') AS "bcdef";
  bcdef 
 -------
  bcdef
 (1 row)
 
-SELECT SUBSTRING('abcdefg' FROM 'a#"%|ab#"g' FOR '#') AS "bcdef";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%|ab#"g' ESCAPE '#') AS "bcdef";
  bcdef 
 -------
  bcdef
 (1 row)
 
 -- Can't have more than two part separators
-SELECT SUBSTRING('abcdefg' FROM 'a*#"%#"g*#"x' FOR '#') AS "error";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a*#"%#"g*#"x' ESCAPE '#') AS "error";
 ERROR:  SQL regular expression may not contain more than two escape-double-quote separators
 CONTEXT:  SQL function "substring" statement 1
 -- Postgres extension: with 0 or 1 separator, assume parts 1 and 3 are empty
-SELECT SUBSTRING('abcdefg' FROM 'a#"%g' FOR '#') AS "bcdefg";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a#"%g' ESCAPE '#') AS "bcdefg";
  bcdefg 
 --------
  bcdefg
 (1 row)
 
-SELECT SUBSTRING('abcdefg' FROM 'a%g' FOR '#') AS "abcdefg";
+SELECT SUBSTRING('abcdefg' SIMILAR 'a%g' ESCAPE '#') AS "abcdefg";
  abcdefg 
 ---------
  abcdefg
@@ -523,7 +622,56 @@ SELECT SUBSTRING('abcdefg' FROM 'b(.*)f') AS "cde";
  cde
 (1 row)
 
--- PostgreSQL extension to allow using back reference in replace string;
+-- Check behavior of SIMILAR TO, which uses largely the same regexp variant
+SELECT 'abcdefg' SIMILAR TO '_bcd%' AS true;
+ true 
+------
+ t
+(1 row)
+
+SELECT 'abcdefg' SIMILAR TO 'bcd%' AS false;
+ false 
+-------
+ f
+(1 row)
+
+SELECT 'abcdefg' SIMILAR TO '_bcd#%' ESCAPE '#' AS false;
+ false 
+-------
+ f
+(1 row)
+
+SELECT 'abcd%' SIMILAR TO '_bcd#%' ESCAPE '#' AS true;
+ true 
+------
+ t
+(1 row)
+
+-- Postgres uses '\' as the default escape character, which is not per spec
+SELECT 'abcdefg' SIMILAR TO '_bcd\%' AS false;
+ false 
+-------
+ f
+(1 row)
+
+-- and an empty string to mean "no escape", which is also not per spec
+SELECT 'abcd\efg' SIMILAR TO '_bcd\%' ESCAPE '' AS true;
+ true 
+------
+ t
+(1 row)
+
+-- these behaviors are per spec, though:
+SELECT 'abcdefg' SIMILAR TO '_bcd%' ESCAPE NULL AS null;
+ null 
+------
+ 
+(1 row)
+
+SELECT 'abcdefg' SIMILAR TO '_bcd#%' ESCAPE '##' AS error;
+ERROR:  invalid escape string
+HINT:  Escape string must be empty or one character.
+-- Test back reference in regexp_replace
 SELECT regexp_replace('1112223333', E'(\\d{3})(\\d{3})(\\d{4})', E'(\\1) \\2-\\3');
  regexp_replace 
 ----------------
@@ -994,6 +1142,30 @@ SELECT 'indio' NOT LIKE 'in_o' AS "true";
  t
 (1 row)
 
+SELECT 'abc'::name LIKE '_b_' AS "true";
+ true 
+------
+ t
+(1 row)
+
+SELECT 'abc'::name NOT LIKE '_b_' AS "false";
+ false 
+-------
+ f
+(1 row)
+
+SELECT 'abc'::bytea LIKE '_b_'::bytea AS "true";
+ true 
+------
+ t
+(1 row)
+
+SELECT 'abc'::bytea NOT LIKE '_b_'::bytea AS "false";
+ false 
+-------
+ f
+(1 row)
+
 -- unused escape character
 SELECT 'hawkeye' LIKE 'h%' ESCAPE '#' AS "true";
  true 
@@ -1117,6 +1289,18 @@ SELECT 'i_dio' NOT LIKE 'i$_d%o' ESCAPE '$' AS "false";
  f
 (1 row)
 
+SELECT 'a_c'::bytea LIKE 'a$__'::bytea ESCAPE '$'::bytea AS "true";
+ true 
+------
+ t
+(1 row)
+
+SELECT 'a_c'::bytea NOT LIKE 'a$__'::bytea ESCAPE '$'::bytea AS "false";
+ false 
+-------
+ f
+(1 row)
+
 -- escape character same as pattern character
 SELECT 'maca' LIKE 'm%aca' ESCAPE '%' AS "true";
  true 
@@ -1230,6 +1414,18 @@ SELECT 'Hawkeye' NOT ILIKE 'h%' AS "false";
  f
 (1 row)
 
+SELECT 'ABC'::name ILIKE '_b_' AS "true";
+ true 
+------
+ t
+(1 row)
+
+SELECT 'ABC'::name NOT ILIKE '_b_' AS "false";
+ false 
+-------
+ f
+(1 row)
+
 --
 -- test %/_ combination cases, cf bugs #4821 and #5478
 --
@@ -1317,8 +1513,6 @@ SELECT text 'text' || varchar ' and varchar' AS "Concat text to varchar";
 -- test substr with toasted text values
 --
 CREATE TABLE toasttest(f1 text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into toasttest values(repeat('1234567890',10000));
 insert into toasttest values(repeat('1234567890',10000));
 --
@@ -1341,7 +1535,7 @@ SELECT substr(f1, -1, 5) from toasttest;
 
 -- If the length is less than zero, an ERROR is thrown.
 SELECT substr(f1, 5, -1) from toasttest;
-ERROR:  negative substring length not allowed  (seg1 slice1 127.0.1.1:25436 pid=15605)
+ERROR:  negative substring length not allowed
 -- If no third argument (length) is provided, the length to the end of the
 -- string is assumed.
 SELECT substr(f1, 99995) from toasttest;
@@ -1399,8 +1593,6 @@ DROP TABLE toasttest;
 -- test substr with toasted bytea values
 --
 CREATE TABLE toasttest(f1 bytea);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into toasttest values("decode"(repeat('1234567890',10000),'escape'));
 insert into toasttest values(pg_catalog.decode(repeat('1234567890',10000),'escape'));
 --
@@ -1423,7 +1615,7 @@ SELECT substr(f1, -1, 5) from toasttest;
 
 -- If the length is less than zero, an ERROR is thrown.
 SELECT substr(f1, 5, -1) from toasttest;
-ERROR:  negative substring length not allowed  (seg1 slice1 127.0.1.1:25436 pid=15605)
+ERROR:  negative substring length not allowed
 -- If no third argument (length) is provided, the length to the end of the
 -- string is assumed.
 SELECT substr(f1, 99995) from toasttest;
@@ -1453,8 +1645,6 @@ DROP TABLE toasttest;
 -- datum must be given a 4-byte header because there are no bits to indicate
 -- compression in a 1-byte header
 CREATE TABLE toasttest (c char(4096));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO toasttest VALUES('x');
 SELECT length(c), c::text FROM toasttest;
  length | c 
@@ -1493,6 +1683,24 @@ SELECT strpos('abcdef', 'xy') AS "pos_0";
      0
 (1 row)
 
+SELECT strpos('abcdef', '') AS "pos_1";
+ pos_1 
+-------
+     1
+(1 row)
+
+SELECT strpos('', 'xy') AS "pos_0";
+ pos_0 
+-------
+     0
+(1 row)
+
+SELECT strpos('', '') AS "pos_1";
+ pos_1 
+-------
+     1
+(1 row)
+
 --
 -- test replace
 --
@@ -1517,8 +1725,56 @@ SELECT replace('yabadoo', 'bad', '') AS "yaoo";
 --
 -- test split_part
 --
+select split_part('','@',1) AS "empty string";
+ empty string 
+--------------
+ 
+(1 row)
+
+select split_part('','@',-1) AS "empty string";
+ empty string 
+--------------
+ 
+(1 row)
+
+select split_part('joeuser@mydatabase','',1) AS "joeuser@mydatabase";
+ joeuser@mydatabase 
+--------------------
+ joeuser@mydatabase
+(1 row)
+
+select split_part('joeuser@mydatabase','',2) AS "empty string";
+ empty string 
+--------------
+ 
+(1 row)
+
+select split_part('joeuser@mydatabase','',-1) AS "joeuser@mydatabase";
+ joeuser@mydatabase 
+--------------------
+ joeuser@mydatabase
+(1 row)
+
+select split_part('joeuser@mydatabase','',-2) AS "empty string";
+ empty string 
+--------------
+ 
+(1 row)
+
 select split_part('joeuser@mydatabase','@',0) AS "an error";
-ERROR:  field position must be greater than zero
+ERROR:  field position must not be zero
+select split_part('joeuser@mydatabase','@@',1) AS "joeuser@mydatabase";
+ joeuser@mydatabase 
+--------------------
+ joeuser@mydatabase
+(1 row)
+
+select split_part('joeuser@mydatabase','@@',2) AS "empty string";
+ empty string 
+--------------
+ 
+(1 row)
+
 select split_part('joeuser@mydatabase','@',1) AS "joeuser";
  joeuser 
 ---------
@@ -1541,6 +1797,30 @@ select split_part('@joeuser@mydatabase@','@',2) AS "joeuser";
  joeuser 
 ---------
  joeuser
+(1 row)
+
+select split_part('joeuser@mydatabase','@',-1) AS "mydatabase";
+ mydatabase 
+------------
+ mydatabase
+(1 row)
+
+select split_part('joeuser@mydatabase','@',-2) AS "joeuser";
+ joeuser 
+---------
+ joeuser
+(1 row)
+
+select split_part('joeuser@mydatabase','@',-3) AS "empty string";
+ empty string 
+--------------
+ 
+(1 row)
+
+select split_part('@joeuser@mydatabase@','@',-2) AS "mydatabase";
+ mydatabase 
+------------
+ mydatabase
 (1 row)
 
 --
@@ -1699,6 +1979,82 @@ SELECT sha512('The quick brown fox jumps over the lazy dog.');
 (1 row)
 
 --
+-- encode/decode
+--
+SELECT encode('\x1234567890abcdef00', 'hex');
+       encode       
+--------------------
+ 1234567890abcdef00
+(1 row)
+
+SELECT decode('1234567890abcdef00', 'hex');
+        decode        
+----------------------
+ \x1234567890abcdef00
+(1 row)
+
+SELECT encode(('\x' || repeat('1234567890abcdef0001', 7))::bytea, 'base64');
+                                    encode                                    
+------------------------------------------------------------------------------
+ EjRWeJCrze8AARI0VniQq83vAAESNFZ4kKvN7wABEjRWeJCrze8AARI0VniQq83vAAESNFZ4kKvN+
+ 7wABEjRWeJCrze8AAQ==
+(1 row)
+
+SELECT decode(encode(('\x' || repeat('1234567890abcdef0001', 7))::bytea,
+                     'base64'), 'base64');
+                                                                     decode                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------
+ \x1234567890abcdef00011234567890abcdef00011234567890abcdef00011234567890abcdef00011234567890abcdef00011234567890abcdef00011234567890abcdef0001
+(1 row)
+
+SELECT encode('\x1234567890abcdef00', 'escape');
+           encode            
+-----------------------------
+ \x124Vx\220\253\315\357\000
+(1 row)
+
+SELECT decode(encode('\x1234567890abcdef00', 'escape'), 'escape');
+        decode        
+----------------------
+ \x1234567890abcdef00
+(1 row)
+
+--
+-- get_bit/set_bit etc
+--
+SELECT get_bit('\x1234567890abcdef00'::bytea, 43);
+ get_bit 
+---------
+       1
+(1 row)
+
+SELECT get_bit('\x1234567890abcdef00'::bytea, 99);  -- error
+ERROR:  index 99 out of valid range, 0..71
+SELECT set_bit('\x1234567890abcdef00'::bytea, 43, 0);
+       set_bit        
+----------------------
+ \x1234567890a3cdef00
+(1 row)
+
+SELECT set_bit('\x1234567890abcdef00'::bytea, 99, 0);  -- error
+ERROR:  index 99 out of valid range, 0..71
+SELECT get_byte('\x1234567890abcdef00'::bytea, 3);
+ get_byte 
+----------
+      120
+(1 row)
+
+SELECT get_byte('\x1234567890abcdef00'::bytea, 99);  -- error
+ERROR:  index 99 out of valid range, 0..8
+SELECT set_byte('\x1234567890abcdef00'::bytea, 7, 11);
+       set_byte       
+----------------------
+ \x1234567890abcd0b00
+(1 row)
+
+SELECT set_byte('\x1234567890abcdef00'::bytea, 99, 11);  -- error
+ERROR:  index 99 out of valid range, 0..8
+--
 -- test behavior of escape_string_warning and standard_conforming_strings options
 --
 set escape_string_warning = off;
@@ -1791,26 +2147,27 @@ select E'A\u0041' as f1, E'\u0127' as f2;
 (1 row)
 
 select E'\u0000';
-ERROR:  invalid Unicode escape value at or near "E'\u0000"
+ERROR:  invalid Unicode escape value at or near "\u0000"
 LINE 1: select E'\u0000';
-               ^
+                 ^
 select E'\udsfs';
 ERROR:  invalid Unicode escape
 LINE 1: select E'\udsfs';
-               ^
-HINT:  Unicode escapes must be full-length: \uXXXX or \UXXXXXXXX.
+                 ^
+HINT:  Unicode escapes must be \uXXXX or \UXXXXXXXX.
 select E'\uD843\uE001';
-ERROR:  invalid Unicode surrogate pair at or near "E'\uD843\uE001"
+ERROR:  invalid Unicode surrogate pair at or near "\uE001"
 LINE 1: select E'\uD843\uE001';
-               ^
+                       ^
 select E'\uDC01';
-ERROR:  invalid Unicode surrogate pair at or near "E'\uDC01"
+ERROR:  invalid Unicode surrogate pair at or near "\uDC01"
 LINE 1: select E'\uDC01';
-               ^
+                 ^
 select E'\uD834';
-ERROR:  invalid Unicode surrogate pair at or near "E'\uD834'"
+ERROR:  invalid Unicode surrogate pair at or near "'"
 LINE 1: select E'\uD834';
-               ^
+                       ^
+reset standard_conforming_strings;
 --
 -- Additional string functions
 --
@@ -1931,10 +2288,48 @@ SELECT repeat('Pg', -4);
  
 (1 row)
 
+SELECT SUBSTRING('1234567890'::bytea FROM 3) "34567890";
+ 34567890 
+----------
+ 34567890
+(1 row)
+
+SELECT SUBSTRING('1234567890'::bytea FROM 4 FOR 3) AS "456";
+ 456 
+-----
+ 456
+(1 row)
+
+SELECT SUBSTRING('string'::bytea FROM 2 FOR 2147483646) AS "tring";
+ tring 
+-------
+ tring
+(1 row)
+
+SELECT SUBSTRING('string'::bytea FROM -10 FOR 2147483646) AS "string";
+ string 
+--------
+ string
+(1 row)
+
+SELECT SUBSTRING('string'::bytea FROM -10 FOR -2147483646) AS "error";
+ERROR:  negative substring length not allowed
 SELECT trim(E'\\000'::bytea from E'\\000Tom\\000'::bytea);
  btrim 
 -------
  Tom
+(1 row)
+
+SELECT trim(leading E'\\000'::bytea from E'\\000Tom\\000'::bytea);
+  ltrim  
+---------
+ Tom\000
+(1 row)
+
+SELECT trim(trailing E'\\000'::bytea from E'\\000Tom\\000'::bytea);
+  rtrim  
+---------
+ \000Tom
 (1 row)
 
 SELECT btrim(E'\\000trim\\000'::bytea, E'\\000'::bytea);
@@ -1973,6 +2368,48 @@ SELECT encode(overlay(E'Th\\000omas'::bytea placing E'\\002\\003'::bytea from 5 
  Th\000o\x02\x03
 (1 row)
 
+SELECT bit_count('\x1234567890'::bytea);
+ bit_count 
+-----------
+        15
+(1 row)
+
+SELECT unistr('\0064at\+0000610');
+ unistr 
+--------
+ data0
+(1 row)
+
+SELECT unistr('d\u0061t\U000000610');
+ unistr 
+--------
+ data0
+(1 row)
+
+SELECT unistr('a\\b');
+ unistr 
+--------
+ a\b
+(1 row)
+
+-- errors:
+SELECT unistr('wrong: \db99');
+ERROR:  invalid Unicode surrogate pair
+SELECT unistr('wrong: \db99\0061');
+ERROR:  invalid Unicode surrogate pair
+SELECT unistr('wrong: \+00db99\+000061');
+ERROR:  invalid Unicode surrogate pair
+SELECT unistr('wrong: \+2FFFFF');
+ERROR:  invalid Unicode code point: 2FFFFF
+SELECT unistr('wrong: \udb99\u0061');
+ERROR:  invalid Unicode surrogate pair
+SELECT unistr('wrong: \U0000db99\U00000061');
+ERROR:  invalid Unicode surrogate pair
+SELECT unistr('wrong: \U002FFFFF');
+ERROR:  invalid Unicode code point: 2FFFFF
+SELECT unistr('wrong: \xyz');
+ERROR:  invalid Unicode escape
+HINT:  Unicode escapes must be \XXXX, \+XXXXXX, \uXXXX, or \UXXXXXXXX.
 -- Clean up GPDB-added tables
 DROP TABLE char_strings_tbl;
 DROP TABLE varchar_strings_tbl;

@@ -10,9 +10,9 @@ typedef struct {
 	bool progress;
 	segmentMode segment_mode;
 	checksumMode checksum_mode;
-} GreenplumUserOpts;
+} CloudberryUserOpts;
 
-static GreenplumUserOpts greenplum_user_opts;
+static CloudberryUserOpts greenplum_user_opts;
 
 void
 initialize_greenplum_user_options(void)

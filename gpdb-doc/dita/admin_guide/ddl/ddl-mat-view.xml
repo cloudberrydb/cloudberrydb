@@ -27,7 +27,7 @@ CREATE UNIQUE INDEX sales_summary_seller
       sales people. You could schedule a job to update the summary information each night using this
       command.</p>
     <codeblock>REFRESH MATERIALIZED VIEW sales_summary;</codeblock>
-    <p>The information about a materialized view in the Greenplum Database system catalogs is
+    <p>The information about a materialized view in the Cloudberry Database system catalogs is
       exactly the same as it is for a table or view. A materialized view is a relation, just like a
       table or a view. When a materialized view is referenced in a query, the data is returned
       directly from the materialized view, just like from a table. The query in the materialized

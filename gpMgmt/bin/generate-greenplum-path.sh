@@ -35,9 +35,18 @@ if [ -e "${GPHOME}/etc/openssl.cnf" ]; then
 	OPENSSL_CONF="${GPHOME}/etc/openssl.cnf"
 fi
 
+#setup JAVA_HOME
+if [ -x "${GPHOME}/ext/jdk/bin/java" ]; then
+    JAVA_HOME="${GPHOME}/ext/jdk"
+    PATH="${JAVA_HOME}/bin:${PATH}"
+    CLASSPATH=${JAVA_HOME}/lib/dt.jar:${JAVA_HOME}/lib/tool.jar
+fi
+
 export GPHOME
 export PATH
 export PYTHONPATH
 export LD_LIBRARY_PATH
 export OPENSSL_CONF
+export JAVA_HOME
+export CLASSPATH
 EOF

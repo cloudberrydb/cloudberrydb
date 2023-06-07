@@ -19,7 +19,7 @@
     <note type="important">Restoring the primary and standby master instances to their original
       hosts is not an online operation. The master host must be stopped to perform the
       operation.</note>
-    <p>For information about the Greenplum Database utilities, see the <cite>Greenplum Database
+    <p>For information about the Cloudberry Database utilities, see the <cite>Cloudberry Database
         Utility Guide</cite>.</p>
   </body>
   <topic id="topic_us3_md4_npb">
@@ -53,7 +53,7 @@
           restore master mirroring after a recovery, as described in the <xref href="#topic_us3_md4_npb"
             format="dita"/>previous section.</note>
         <ol id="ol_dfy_ld4_npb">
-          <li>Stop the Greenplum Database master instance on the standby master. For
+          <li>Stop the Cloudberry Database master instance on the standby master. For
             example:<codeblock>$ gpstop -m</codeblock></li>
           <li id="ki160961">Run the <codeph>gpactivatestandby</codeph> utility from the original
             master host, mdw, that is currently a standby master. For
@@ -70,7 +70,7 @@
               <codeph>gpseg-1</codeph>. This example moves the
               directory:<codeblock>$ mv /data/master/gpseg-1 /data/master/backup_gpseg-1</codeblock><p>You
               can remove the backup directory once the standby is successfully configured.</p></li>
-          <li id="ki165609">After the original master host runs the primary Greenplum Database
+          <li id="ki165609">After the original master host runs the primary Cloudberry Database
             master, you can initialize a standby master on the original standby master host. For
               example:<codeblock>$ gpinitstandby -s smdw</codeblock><p>After the command completes,
               you can run the <codeph>gpstate -f</codeph> command on the primary master host, to
@@ -88,7 +88,7 @@
         <p>The standby master status should be <codeph>passive</codeph>, and the WAL sender state
           should be <codeph>streaming</codeph>.</p>
         <p>For information about the <xref href="../../../utility_guide/ref/gpstate.xml"
-              type="topic" format="dita"/> utility, see the <cite>Greenplum Database
+              type="topic" format="dita"/> utility, see the <cite>Cloudberry Database
             Utility Guide</cite>.</p>
       </section>
     </body>

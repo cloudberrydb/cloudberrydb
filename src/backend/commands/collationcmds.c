@@ -3,7 +3,7 @@
  * collationcmds.c
  *	  collation-related commands support code
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -27,8 +27,10 @@
 #include "commands/comment.h"
 #include "commands/dbcommands.h"
 #include "commands/defrem.h"
+#include "common/string.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
+#include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/pg_locale.h"
@@ -211,7 +213,26 @@ DefineCollation(ParseState *pstate, List *names, List *parameters, bool if_not_e
 	if (!fromEl)
 	{
 		if (collprovider == COLLPROVIDER_ICU)
+		{
+#ifdef USE_ICU
+			/*
+			 * We could create ICU collations with collencoding == database
+			 * encoding, but it seems better to use -1 so that it matches the
+			 * way initdb would create ICU collations.  However, only allow
+			 * one to be created when the current database's encoding is
+			 * supported.  Otherwise the collation is useless, plus we get
+			 * surprising behaviors like not being able to drop the collation.
+			 *
+			 * Skip this test when !USE_ICU, because the error we want to
+			 * throw for that isn't thrown till later.
+			 */
+			if (!is_encoding_supported_by_icu(GetDatabaseEncoding()))
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("current database's encoding is not supported with this provider")));
+#endif
 			collencoding = -1;
+		}
 		else
 		{
 			collencoding = GetDatabaseEncoding();
@@ -406,23 +427,6 @@ pg_collation_actual_version(PG_FUNCTION_ARGS)
 #define READ_LOCALE_A_OUTPUT
 #endif
 
-#if defined(READ_LOCALE_A_OUTPUT) || defined(USE_ICU)
-/*
- * Check a string to see if it is pure ASCII
- */
-static bool
-is_all_ascii(const char *str)
-{
-	while (*str)
-	{
-		if (IS_HIGHBIT_SET(*str))
-			return false;
-		str++;
-	}
-	return true;
-}
-#endif							/* READ_LOCALE_A_OUTPUT || USE_ICU */
-
 #ifdef READ_LOCALE_A_OUTPUT
 /*
  * "Normalize" a libc locale name, stripping off encoding tags such as
@@ -521,7 +525,7 @@ get_icu_language_tag(const char *localename)
 	UErrorCode	status;
 
 	status = U_ZERO_ERROR;
-	uloc_toLanguageTag(localename, buf, sizeof(buf), TRUE, &status);
+	uloc_toLanguageTag(localename, buf, sizeof(buf), true, &status);
 	if (U_FAILURE(status))
 		ereport(ERROR,
 				(errmsg("could not convert locale name \"%s\" to language tag: %s",
@@ -552,7 +556,7 @@ get_icu_locale_comment(const char *localename)
 	if (U_FAILURE(status))
 		return NULL;			/* no good reason to raise an error */
 
-	/* Check for non-ASCII comment (can't use is_all_ascii for this) */
+	/* Check for non-ASCII comment (can't use pg_is_ascii for this) */
 	for (i = 0; i < len_uchar; i++)
 	{
 		if (displayname[i] > 127)
@@ -579,17 +583,20 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 	Oid			nspid = PG_GETARG_OID(0);
 	int			ncreated = 0;
 
-	/* silence compiler warning if we have no locale implementation at all */
-	(void) nspid;
-
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to import system collations"))));
+				 errmsg("must be superuser to import system collations")));
+
 
 	if (Gp_role != GP_ROLE_DISPATCH)
 		ereport(ERROR,
 					(errmsg("must be dispatcher to import system collations")));
+
+	if (!SearchSysCacheExists1(NAMESPACEOID, ObjectIdGetDatum(nspid)))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_SCHEMA),
+				 errmsg("schema with OID %u does not exist", nspid)));
 
 	/* Load collations known to libc, using "locale -a" to enumerate them */
 #ifdef READ_LOCALE_A_OUTPUT
@@ -637,7 +644,7 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 			 * interpret the non-ASCII characters. We can't do much with
 			 * those, so we filter them out.
 			 */
-			if (!is_all_ascii(localebuf))
+			if (!pg_is_ascii(localebuf))
 			{
 				elog(DEBUG1, "locale name has non-ASCII characters, skipped: \"%s\"", localebuf);
 				continue;
@@ -653,10 +660,14 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 				continue;		/* ignore locales for client-only encodings */
 			if (enc == PG_SQL_ASCII)
 				continue;		/* C/POSIX are already in the catalog */
-
-			/* GPDB_12_MERGE_FIXME: Why do we have this extra condition in GPDB? */
+            /*
+             * Cloudberry specific behavior: this function in Cloudberry can only be called after a full cluster is
+             * built, this is different from Postgres which might call this function during initdb. When reaching
+             * here, it must be in a database session, we can just ignore the collations not match current database's
+             * encoding because they cannot be used in this database.
+             */
 			if (enc != GetDatabaseEncoding())
-				continue;
+				continue;       /* Ignore collations incompatible with database encoding */ 
 
 			/* count valid locales found in operating system */
 			nvalid++;
@@ -759,7 +770,7 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 	 * We use uloc_countAvailable()/uloc_getAvailable() rather than
 	 * ucol_countAvailable()/ucol_getAvailable().  The former returns a full
 	 * set of language+region combinations, whereas the latter only returns
-	 * language+region combinations of they are distinct from the language's
+	 * language+region combinations if they are distinct from the language's
 	 * base collation.  So there might not be a de-DE or en-GB, which would be
 	 * confusing.
 	 */
@@ -791,7 +802,7 @@ pg_import_system_collations(PG_FUNCTION_ARGS)
 			 * Be paranoid about not allowing any non-ASCII strings into
 			 * pg_collation
 			 */
-			if (!is_all_ascii(langtag) || !is_all_ascii(collcollate))
+			if (!pg_is_ascii(langtag) || !pg_is_ascii(collcollate))
 				continue;
 
 			collid = CollationCreate(psprintf("%s-x-icu", langtag),

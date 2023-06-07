@@ -265,7 +265,7 @@ SELECT COUNT(*) FROM dml_ao_check_p;
 (1 row)
 
 INSERT INTO dml_ao_check_p select generate_series(1,100),'p', generate_series(1,100);
-ERROR:  new row for relation "dml_ao_check_p" violates check constraint "dml_ao_check_p_check"  (seg0 127.0.0.1:25432 pid=87948)
+ERROR:  new row for relation "dml_ao_check_p" violates check constraint "dml_ao_check_p_check"
 DETAIL:  Failing row contains (1, p, 1, null).
 SELECT COUNT(*) FROM dml_ao_check_p;
  count 
@@ -281,7 +281,7 @@ SELECT COUNT(*) FROM dml_ao_check_s;
 (1 row)
 
 INSERT INTO dml_ao_check_s values(default,1,'nn',1.0000);
-ERROR:  null value in column "a" violates not-null constraint  (seg0 127.0.0.1:40000 pid=18972)
+ERROR:  null value in column "a" of relation "dml_ao_check_s_1_prt_def" violates not-null constraint
 DETAIL:  Failing row contains (null, 1, nn, 1.0000).
 SELECT COUNT(*) FROM dml_ao_check_s;
  count 
@@ -303,8 +303,8 @@ SELECT COUNT(*) FROM (SELECT dml_ao_check_r.a + 110 , 0, dml_ao_check_r.c, NULL 
 (1 row)
 
 INSERT INTO dml_ao_check_r SELECT dml_ao_check_r.a + 110 , 0, dml_ao_check_r.c, NULL FROM dml_ao_check_r, dml_ao_check_s WHERE dml_ao_check_r.a = dml_ao_check_s.a;
-ERROR:  null value in column "d" violates not-null constraint
-DETAIL:  Failing row contains (118, 0, r, null).
+ERROR:  null value in column "d" of relation "dml_ao_check_r_1_prt_def" violates not-null constraint
+DETAIL:  Failing row contains (113, 0, r, null).
 SELECT COUNT(*) FROM dml_ao_check_r;
  count 
 -------
@@ -705,7 +705,7 @@ SELECT COUNT(*) FROM (SELECT dml_ao_pt_r.b, NULL, dml_ao_pt_r.c FROM dml_ao_pt_r
 (1 row)
 
 INSERT INTO dml_ao_pt_r SELECT dml_ao_pt_r.b, NULL, dml_ao_pt_r.c FROM dml_ao_pt_r, dml_ao_pt_s WHERE dml_ao_pt_r.b = dml_ao_pt_s.b;
-ERROR:  no partition of relation "dml_ao_pt_r" found for row  (seg0 127.0.0.1:40000 pid=29426)
+ERROR:  no partition of relation "dml_ao_pt_r" found for row
 DETAIL:  Partition key of the failing row contains (b) = (null).
 SELECT COUNT(*) FROM dml_ao_pt_r;
  count 
@@ -727,7 +727,7 @@ SELECT COUNT(*) FROM (SELECT dml_ao_pt_r.b ,dml_ao_pt_r.a + dml_ao_pt_s.a + 100,
 (1 row)
 
 INSERT INTO dml_ao_pt_r SELECT dml_ao_pt_r.b ,dml_ao_pt_r.a + dml_ao_pt_s.a + 100, dml_ao_pt_r.c FROM dml_ao_pt_r, dml_ao_pt_s WHERE dml_ao_pt_r.a = dml_ao_pt_s.b;
-ERROR:  no partition of relation "dml_ao_pt_r" found for row  (seg0 127.0.0.1:40000 pid=29426)
+ERROR:  no partition of relation "dml_ao_pt_r" found for row
 DETAIL:  Partition key of the failing row contains (b) = (null).
 SELECT COUNT(*) FROM dml_ao_pt_r;
  count 
@@ -1130,7 +1130,7 @@ SELECT COUNT(*) FROM dml_co_check_s;
 (1 row)
 
 INSERT INTO dml_co_check_s values(default,1,'nn',1.0000);
-ERROR:  null value in column "a" violates not-null constraint  (seg0 127.0.0.1:40000 pid=18972)
+ERROR:  null value in column "a" of relation "dml_co_check_s_1_prt_def" violates not-null constraint
 DETAIL:  Failing row contains (null, 1, nn, 1.0000).
 SELECT COUNT(*) FROM dml_co_check_s;
  count 
@@ -1174,8 +1174,8 @@ SELECT COUNT(*) FROM (SELECT dml_co_check_r.a + 110 , 0, dml_co_check_r.c, NULL 
 (1 row)
 
 INSERT INTO dml_co_check_r SELECT dml_co_check_r.a + 110 , 0, dml_co_check_r.c, NULL FROM dml_co_check_r, dml_co_check_s WHERE dml_co_check_r.a = dml_co_check_s.a;
-ERROR:  null value in column "d" violates not-null constraint
-DETAIL:  Failing row contains (118, 0, r, null).
+ERROR:  null value in column "d" of relation "dml_co_check_r_1_prt_def" violates not-null constraint
+DETAIL:  Failing row contains (130, 0, r, null).
 SELECT COUNT(*) FROM dml_co_check_r;
  count 
 -------
@@ -1576,7 +1576,7 @@ SELECT COUNT(*) FROM (SELECT dml_co_pt_r.b, NULL, dml_co_pt_r.c FROM dml_co_pt_r
 (1 row)
 
 INSERT INTO dml_co_pt_r SELECT dml_co_pt_r.b, NULL, dml_co_pt_r.c FROM dml_co_pt_r, dml_co_pt_s WHERE dml_co_pt_r.b = dml_co_pt_s.b;
-ERROR:  no partition of relation "dml_co_pt_r" found for row  (seg0 127.0.0.1:40000 pid=29426)
+ERROR:  no partition of relation "dml_co_pt_r" found for row
 DETAIL:  Partition key of the failing row contains (b) = (null).
 SELECT COUNT(*) FROM dml_co_pt_r;
  count 
@@ -1592,7 +1592,7 @@ SELECT COUNT(*) FROM dml_co_pt_r;
 (1 row)
 
 INSERT INTO dml_co_pt_r SELECT dml_co_pt_r.b ,dml_co_pt_r.a + dml_co_pt_s.a + 100, dml_co_pt_r.c FROM dml_co_pt_r, dml_co_pt_s WHERE dml_co_pt_r.a = dml_co_pt_s.b;
-ERROR:  no partition of relation "dml_co_pt_r" found for row  (seg0 127.0.0.1:40000 pid=29426)
+ERROR:  no partition of relation "dml_co_pt_r" found for row
 DETAIL:  Partition key of the failing row contains (b) = (null).
 SELECT COUNT(*) FROM dml_co_pt_r;
  count 
@@ -2001,7 +2001,7 @@ SELECT COUNT(*) FROM dml_heap_check_s;
 (1 row)
 
 INSERT INTO dml_heap_check_s values(default,1,'nn',1.0000);
-ERROR:  null value in column "a" violates not-null constraint  (seg0 127.0.0.1:40000 pid=18972)
+ERROR:  null value in column "a" of relation "dml_heap_check_s_1_prt_def" violates not-null constraint
 DETAIL:  Failing row contains (null, 1, nn, 1.0000).
 SELECT COUNT(*) FROM dml_heap_check_s;
  count 
@@ -2045,7 +2045,7 @@ SELECT COUNT(*) FROM (SELECT dml_heap_check_r.a + 110 , 0, dml_heap_check_r.c, N
 (1 row)
 
 INSERT INTO dml_heap_check_r SELECT dml_heap_check_r.a + 110 , 0, dml_heap_check_r.c, NULL FROM dml_heap_check_r, dml_heap_check_s WHERE dml_heap_check_r.a = dml_heap_check_s.a;
-ERROR:  null value in column "d" violates not-null constraint
+ERROR:  null value in column "d" of relation "dml_heap_check_r_1_prt_def" violates not-null constraint
 DETAIL:  Failing row contains (111, 0, r, null).
 SELECT COUNT(*) FROM dml_heap_check_r;
  count 
@@ -2312,7 +2312,8 @@ SELECT COUNT(*) FROM dml_heap_s;
 (1 row)
 
 DELETE FROM dml_heap_s WHERE a = (SELECT dml_heap_r.a FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.a = dml_heap_s.a);
-ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  one or more assertions failed  (seg0 slice1 10.138.0.30:7002 pid=2841924)
+DETAIL:  Expected no more than one row to be returned by expression
 SELECT COUNT(*) FROM dml_heap_s;
  count 
 -------
@@ -3012,7 +3013,7 @@ SELECT COUNT(*) FROM dml_heap_pt_r;
 (1 row)
 
 INSERT INTO dml_heap_pt_r SELECT dml_heap_pt_r.b, NULL, dml_heap_pt_r.c FROM dml_heap_pt_r, dml_heap_pt_s WHERE dml_heap_pt_r.b = dml_heap_pt_s.b;
-ERROR:  no partition of relation "dml_heap_pt_r" found for row  (seg0 127.0.0.1:40000 pid=29426)
+ERROR:  no partition of relation "dml_heap_pt_r" found for row
 DETAIL:  Partition key of the failing row contains (b) = (null).
 SELECT COUNT(*) FROM dml_heap_pt_r;
  count 
@@ -3028,7 +3029,7 @@ SELECT COUNT(*) FROM dml_heap_pt_r;
 (1 row)
 
 INSERT INTO dml_heap_pt_r SELECT dml_heap_pt_r.b ,dml_heap_pt_r.a + dml_heap_pt_s.a + 100, dml_heap_pt_r.c FROM dml_heap_pt_r, dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.b;
-ERROR:  no partition of relation "dml_heap_pt_r" found for row  (seg0 127.0.0.1:40000 pid=29426)
+ERROR:  no partition of relation "dml_heap_pt_r" found for row
 DETAIL:  Partition key of the failing row contains (b) = (null).
 SELECT COUNT(*) FROM dml_heap_pt_r;
  count 
@@ -3146,7 +3147,7 @@ SELECT SUM(a) FROM dml_heap_pt_r;
 (1 row)
 
 UPDATE dml_heap_pt_r SET a = dml_heap_pt_r.a + 1 FROM dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.a;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg0 127.0.0.1:7002 pid=93168)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT SUM(a) FROM dml_heap_pt_r;
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 rollback;
@@ -3218,7 +3219,7 @@ SELECT DISTINCT(b) FROM dml_heap_pt_s ORDER BY 1 LIMIT 1;
 (1 row)
 
 UPDATE dml_heap_pt_r SET a = (SELECT DISTINCT(b) FROM dml_heap_pt_s ORDER BY 1 LIMIT 1) FROM dml_heap_pt_s WHERE dml_heap_pt_r.b = dml_heap_pt_s.a;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg1 127.0.0.1:7003 pid=93169)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT COUNT(*) FROM dml_heap_pt_r WHERE a = 1;
  count 
 -------
@@ -3255,7 +3256,7 @@ ALTER TABLE dml_heap_pt_r ADD DEFAULT partition def;
 -- processing.
 SAVEPOINT sp1;
 UPDATE dml_heap_pt_r SET a = dml_heap_pt_s.a + 10 ,b = NULL FROM dml_heap_pt_s WHERE dml_heap_pt_r.a + 2= dml_heap_pt_s.b;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg0 127.0.1.1:7002 pid=99068)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT * FROM dml_heap_pt_r WHERE a = 11 ORDER BY 1,2;
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 SELECT COUNT(*) FROM dml_heap_pt_r WHERE b is NULL;
@@ -3278,7 +3279,7 @@ SELECT dml_heap_pt_s.a ,dml_heap_pt_s.b,'z' FROM dml_heap_pt_r,dml_heap_pt_s WHE
 
 ALTER TABLE dml_heap_pt_r ADD DEFAULT partition def;
 UPDATE dml_heap_pt_r SET (a,b,c) = (dml_heap_pt_s.a ,dml_heap_pt_s.b,'z') FROM dml_heap_pt_s WHERE dml_heap_pt_r.a + 1= dml_heap_pt_s.b;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg2 127.0.0.1:7004 pid=93170)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT * FROM dml_heap_pt_r WHERE c='z' ORDER BY 1 LIMIT 1;
  a | b | c | d 
 ---+---+---+---
@@ -3295,7 +3296,7 @@ ALTER TABLE dml_heap_pt_r DROP DEFAULT partition;
 begin;
 PREPARE plan_upd as UPDATE dml_heap_pt_r SET a = dml_heap_pt_s.a +1 FROM dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.b ;
 EXECUTE plan_upd;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg1 127.0.0.1:7003 pid=93169)
+ERROR:  multiple updates to a row by the same query is not allowed
 rollback;
 --Update and case
 begin;
@@ -3368,7 +3369,7 @@ SELECT SUM(a) FROM dml_heap_pt_r;
 (1 row)
 
 UPDATE dml_heap_pt_r SET a = dml_heap_pt_r.b+1 FROM dml_heap_pt_p,dml_heap_pt_s WHERE dml_heap_pt_r.b = dml_heap_pt_s.b and dml_heap_pt_r.a = dml_heap_pt_p.b+1;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg0 127.0.0.1:7002 pid=93168)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT SUM(a) FROM dml_heap_pt_r;
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 rollback;
@@ -3420,7 +3421,7 @@ SELECT SUM(b) FROM dml_heap_pt_r;
 -- it's arbitary which row throws the error first, so omit the error DETAIL
 \set VERBOSITY terse
 UPDATE dml_heap_pt_r SET b = dml_heap_pt_r.a + 3000000 FROM dml_heap_pt_s WHERE dml_heap_pt_r.a = dml_heap_pt_s.a;
-ERROR:  no partition of relation "dml_heap_pt_r" found for row  (seg1 127.0.0.1:40001 pid=29427)
+ERROR:  no partition of relation "dml_heap_pt_r" found for row
 \set VERBOSITY default
 SELECT SUM(b) FROM dml_heap_pt_r;
   sum  
@@ -3867,7 +3868,7 @@ SELECT COUNT(*) FROM dml_heap_s WHERE b = (SELECT COUNT(*) FROM dml_heap_s);
 (1 row)
 
 UPDATE dml_heap_s SET b = (SELECT COUNT(*) FROM dml_heap_s) FROM dml_heap_r WHERE dml_heap_r.a = dml_heap_s.b;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg2 127.0.0.1:7004 pid=93170)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT COUNT(*) FROM dml_heap_s WHERE b = (SELECT COUNT(*) FROM dml_heap_s);
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 rollback;
@@ -3936,7 +3937,7 @@ SELECT dml_heap_s.a ,dml_heap_s.b,'z' FROM dml_heap_r,dml_heap_s WHERE dml_heap_
 (1 row)
 
 UPDATE dml_heap_r SET (a,b,c) = (dml_heap_s.a ,dml_heap_s.b,'z') FROM dml_heap_s WHERE dml_heap_r.a = dml_heap_s.b;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg2 127.0.0.1:7004 pid=93170)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT * FROM dml_heap_r WHERE c='z' ORDER BY 1 LIMIT 1;
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 SELECT COUNT(*) FROM dml_heap_r WHERE c='z';
@@ -3946,7 +3947,7 @@ rollback;
 begin;
 PREPARE plan_upd_2 as UPDATE dml_heap_r SET a = dml_heap_s.a +1 FROM dml_heap_s WHERE dml_heap_r.a = dml_heap_s.b ;
 EXECUTE plan_upd_2;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg1 127.0.0.1:7003 pid=93169)
+ERROR:  multiple updates to a row by the same query is not allowed
 rollback;
 --Update and case
 begin;
@@ -3971,11 +3972,9 @@ SELECT SUM(a) FROM dml_heap_r;
  5106
 (1 row)
 
--- start_ignore
-GPDB_12_MERGE_FIXME: Unsupported exec location fallback
--- end_ignore
+ANALYZE dml_heap_s, dml_heap_r;
 UPDATE dml_heap_r SET a = ( SELECT DISTINCT(b) FROM dml_heap_s ) FROM dml_heap_s WHERE dml_heap_r.b = dml_heap_s.a;
-ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  more than one row returned by a subquery used as an expression  (seg0 slice1 10.138.0.30:7002 pid=3043178)
 SELECT SUM(a) FROM dml_heap_r;
  sum  
 ------
@@ -3990,7 +3989,7 @@ SELECT SUM(b) FROM dml_heap_r;
 (1 row)
 
 UPDATE dml_heap_r SET b = (SELECT dml_heap_r.b FROM dml_heap_r,dml_heap_s WHERE dml_heap_r.a = dml_heap_s.a );
-ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  more than one row returned by a subquery used as an expression  (seg0 10.138.0.30:7002 pid=3036540)
 SELECT SUM(b) FROM dml_heap_r;
  sum  
 ------
@@ -4024,7 +4023,7 @@ SELECT SUM(a) FROM dml_heap_v;
 (1 row)
 
 UPDATE dml_heap_v SET a = dml_heap_u.a FROM dml_heap_u WHERE dml_heap_u.b = dml_heap_v.b;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg2 127.0.0.1:7004 pid=82404)
+ERROR:  multiple updates to a row by the same query is not allowed
 SELECT SUM(a) FROM dml_heap_v;
  sum 
 -----
@@ -4033,7 +4032,7 @@ SELECT SUM(a) FROM dml_heap_v;
 
 --Update with joins on multiple table
 UPDATE dml_heap_r SET a = dml_heap_r.b+1 FROM dml_heap_p,dml_heap_s WHERE dml_heap_r.b = dml_heap_s.b and dml_heap_r.a = dml_heap_p.b+1;
-ERROR:  multiple updates to a row by the same query is not allowed  (seg0 127.0.0.1:7002 pid=82402)
+ERROR:  multiple updates to a row by the same query is not allowed
 --Update on table with composite distribution key
 UPDATE dml_heap_p SET a = dml_heap_p.b % 2 FROM dml_heap_r WHERE dml_heap_p.b::int = dml_heap_r.b::int and dml_heap_p.a = dml_heap_r.a;
 --Update on table with composite distribution key

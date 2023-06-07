@@ -36,7 +36,7 @@ typedef struct PxfOptions
 
 	/* Defined at options, but it is not visible to FDWs */
 	char		exec_location;	/* execute on COORDINATOR, ANY or ALL SEGMENTS,
-								 * Greenplum MPP specific */
+								 * Cloudberry MPP specific */
 
 	/* Single Row Error Handling */
 	int			reject_limit;

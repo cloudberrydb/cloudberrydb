@@ -5,7 +5,7 @@
  *		  Prototypes and macros around system calls, used to help make
  *		  threaded libraries reentrant and safe to use from threaded applications.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * src/port/thread.c
  *
@@ -47,9 +47,6 @@
  *		use non-*_r functions if they are thread-safe
  *
  *	One thread-safe solution for gethostbyname() might be to use getaddrinfo().
- *
- *	Run src/test/thread to test if your operating system has thread-safe
- *	non-*_r functions.
  */
 
 
@@ -83,7 +80,7 @@ pqGetpwuid(uid_t uid, struct passwd *resultbuf, char *buffer,
 /*
  * Wrapper around gethostbyname() or gethostbyname_r() to mimic
  * POSIX gethostbyname_r() behaviour, if it is not available or required.
- * This function is called _only_ by our getaddinfo() portability function.
+ * This function is called _only_ by our getaddrinfo() portability function.
  */
 #ifndef HAVE_GETADDRINFO
 int

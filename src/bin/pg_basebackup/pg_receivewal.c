@@ -5,7 +5,7 @@
  *
  * Author: Magnus Hagander <magnus@hagander.net>
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/pg_receivewal.c
@@ -19,15 +19,13 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "access/xlog_internal.h"
 #include "common/file_perm.h"
 #include "common/logging.h"
-#include "libpq-fe.h"
-#include "access/xlog_internal.h"
 #include "getopt_long.h"
-
+#include "libpq-fe.h"
 #include "receivelog.h"
 #include "streamutil.h"
-
 
 /* Time to sleep between reconnection attempts */
 #define RECONNECT_SLEEP_TIME 5
@@ -104,7 +102,8 @@ usage(void)
 	printf(_("\nOptional actions:\n"));
 	printf(_("      --create-slot      create a new replication slot (for the slot's name see --slot)\n"));
 	printf(_("      --drop-slot        drop the replication slot (for the slot's name see --slot)\n"));
-	printf(_("\nReport bugs to <bugs@greenplum.org>.\n"));
+	printf(_("\nReport bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }
 
 static bool
@@ -116,14 +115,14 @@ stop_streaming(XLogRecPtr xlogpos, uint32 timeline, bool segment_finished)
 	/* we assume that we get called once at the end of each segment */
 	if (verbose && segment_finished)
 		pg_log_info("finished segment at %X/%X (timeline %u)",
-					(uint32) (xlogpos >> 32), (uint32) xlogpos,
+					LSN_FORMAT_ARGS(xlogpos),
 					timeline);
 
 	if (!XLogRecPtrIsInvalid(endpos) && endpos < xlogpos)
 	{
 		if (verbose)
 			pg_log_info("stopped log streaming at %X/%X (timeline %u)",
-						(uint32) (xlogpos >> 32), (uint32) xlogpos,
+						LSN_FORMAT_ARGS(xlogpos),
 						timeline);
 		time_to_stop = true;
 		return true;
@@ -140,7 +139,7 @@ stop_streaming(XLogRecPtr xlogpos, uint32 timeline, bool segment_finished)
 	if (verbose && prevtimeline != 0 && prevtimeline != timeline)
 		pg_log_info("switched to timeline %u at %X/%X",
 					timeline,
-					(uint32) (prevpos >> 32), (uint32) prevpos);
+					LSN_FORMAT_ARGS(prevpos));
 
 	prevtimeline = timeline;
 	prevpos = xlogpos;
@@ -270,8 +269,8 @@ FindStreamingStart(uint32 *tli)
 
 			if (statbuf.st_size != WalSegSz)
 			{
-				pg_log_warning("segment file \"%s\" has incorrect size %d, skipping",
-							   dirent->d_name, (int) statbuf.st_size);
+				pg_log_warning("segment file \"%s\" has incorrect size %lld, skipping",
+							   dirent->d_name, (long long int) statbuf.st_size);
 				continue;
 			}
 		}
@@ -421,7 +420,7 @@ StreamLog(void)
 	 */
 	if (verbose)
 		pg_log_info("starting log streaming at %X/%X (timeline %u)",
-					(uint32) (stream.startpos >> 32), (uint32) stream.startpos,
+					LSN_FORMAT_ARGS(stream.startpos),
 					stream.timeline);
 
 	stream.stream_stop = stop_streaming;
@@ -513,7 +512,7 @@ main(int argc, char **argv)
 		else if (strcmp(argv[1], "-V") == 0 ||
 				 strcmp(argv[1], "--version") == 0)
 		{
-			puts("pg_receivewal (PostgreSQL) " PG_VERSION);
+			puts("pg_receivewal (Cloudberry Database) " PG_VERSION);
 			exit(0);
 		}
 	}
@@ -676,10 +675,6 @@ main(int argc, char **argv)
 		close_destination_dir(dir, basedir);
 	}
 
-#ifndef WIN32
-	pqsignal(SIGINT, sigint_handler);
-#endif
-
 	/*
 	 * Obtain a connection before doing anything.
 	 */
@@ -688,6 +683,14 @@ main(int argc, char **argv)
 		/* error message already written in GetConnection() */
 		exit(1);
 	atexit(disconnect_atexit);
+
+	/*
+	 * Trap signals.  (Don't do this until after the initial password prompt,
+	 * if one is needed, in GetConnection.)
+	 */
+#ifndef WIN32
+	pqsignal(SIGINT, sigint_handler);
+#endif
 
 	/*
 	 * Run IDENTIFY_SYSTEM to make sure we've successfully have established a

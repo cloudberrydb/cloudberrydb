@@ -7,9 +7,9 @@
   <body>
     <p>The <xref href="../../utility_guide/ref/gpfdist.xml"
         >gpfdist</xref> utility serves external data files from a directory on a file host
-      to all Greenplum Database segments in parallel. </p>
+      to all Cloudberry Database segments in parallel. </p>
     <p><codeph>gpfdist</codeph> is located in the <codeph>$GPHOME/bin</codeph> directory on your
-      Greenplum Database master host and on each segment host. </p>
+      Cloudberry Database master host and on each segment host. </p>
     <p>Run <codeph>gpfdist</codeph> on the host where the external data files reside. For readable
       external tables, <codeph>gpfdist</codeph> uncompresses <codeph>gzip</codeph>
         (<codeph>.gz</codeph>) and <codeph>bzip2</codeph> (.<codeph>bz2</codeph>) files
@@ -26,9 +26,9 @@
       statement to scale the external table's scan performance. </p>
     <p><codeph>gpfdist</codeph> supports data transformations. You can write a transformation
       process to convert external data from or to a format that is not directly supported with
-      Greenplum Database external tables.</p>
+      Cloudberry Database external tables.</p>
     <p>For more information about configuring <codeph>gpfdist</codeph>, see <xref
-        href="g-using-the-greenplum-parallel-file-server--gpfdist-.xml#topic13">Using the Greenplum
+        href="g-using-the-greenplum-parallel-file-server--gpfdist-.xml#topic13">Using the Cloudberry
         Parallel File Server (gpfdist)</xref>. </p>
     <p>See the <codeph>gpfdist</codeph> reference documentation for more information about using
         <codeph>gpfdist</codeph> with external tables.</p>

@@ -44,6 +44,32 @@ select col1, col2, char_length(col3) from inserttest;
 drop table inserttest;
 
 --
+-- tuple larger than fillfactor
+--
+-- GPDB: GPDB uses 32 KiB page size. We always use the same `a` to
+-- route all tuples to the same segment.
+CREATE TABLE large_tuple_test (a int, b text) WITH (fillfactor = 10);
+ALTER TABLE large_tuple_test ALTER COLUMN b SET STORAGE plain;
+
+-- create page w/ free space in range [nearlyEmptyFreeSpace, MaxHeapTupleSize)
+INSERT INTO large_tuple_test (select 1, NULL);
+
+-- should still fit on the page
+INSERT INTO large_tuple_test (select 1, repeat('a', 8000));
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+
+-- add small record to the second page
+INSERT INTO large_tuple_test (select 1, NULL);
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+
+-- now this tuple won't fit on the second page, but the insert should
+-- still succeed by extending the relation
+INSERT INTO large_tuple_test (select 1, repeat('a', 32702));
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+
+DROP TABLE large_tuple_test;
+
+--
 -- check indirection (field/array assignment), cf bug #14265
 --
 -- these tests are aware that transformInsertStmt has 3 separate code paths
@@ -235,7 +261,7 @@ select tableoid::regclass::text, a, min(b) as min_b, max(b) as max_b from list_p
 -- direct partition inserts should check hash partition bound constraint
 
 -- Use hand-rolled hash functions and operator classes to get predictable
--- result on different matchines.  The hash function for int4 simply returns
+-- result on different machines.  The hash function for int4 simply returns
 -- the sum of the values passed to it and the one for text returns the length
 -- of the non-empty string value passed to it or 0.
 
@@ -556,9 +582,7 @@ drop table inserttest3;
 drop table brtrigpartcon;
 drop function brtrigpartcon1trigf();
 
--- check that "do nothing" BR triggers work with tuple-routing (this checks
--- that estate->es_result_relation_info is appropriately set/reset for each
--- routed tuple)
+-- check that "do nothing" BR triggers work with tuple-routing
 create table donothingbrtrig_test (a int, b text) partition by list (a);
 create table donothingbrtrig_test1 (b text, a int);
 alter table donothingbrtrig_test1 set distributed by (a);

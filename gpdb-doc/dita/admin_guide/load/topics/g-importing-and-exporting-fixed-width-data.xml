@@ -4,7 +4,7 @@
 <topic id="topic37">
     <title>Importing and Exporting Fixed Width Data</title>
     <body>
-        <p>Specify custom formats for fixed-width data with the Greenplum Database
+        <p>Specify custom formats for fixed-width data with the Cloudberry Database
             functions <codeph>fixedwith_in</codeph> and <codeph>fixedwidth_out</codeph>. These
             functions already exist in the file
                 <filepath>$GPHOME/share/postgresql/cdb_external_extensions.sql</filepath>. The
@@ -36,8 +36,8 @@ FORMAT 'CUSTOM' (formatter=fixedwidth_in,
             <li id="du200725">If you specify <codeph>preserve_blanks=on</codeph>, you must also
                 define a value for null characters. </li>
             <li id="du200726">If you specify <codeph>preserve_blanks=off</codeph>, null is not
-                defined, and the field contains only blanks, Greenplum
-                writes a null to the table. If null is defined, Greenplum writes an empty string to the table.<p>Use the
+                defined, and the field contains only blanks, Cloudberry
+                writes a null to the table. If null is defined, Cloudberry writes an empty string to the table.<p>Use the
                         <codeph>line_delim='line_ending'</codeph> parameter to specify the line
                     ending character. The following examples cover most cases. The
                         <codeph>E</codeph> specifies an escape string constant.</p>

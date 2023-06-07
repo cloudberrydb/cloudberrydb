@@ -335,6 +335,17 @@ select * from
 
 \d+ view_of_joins
 
+create table tbl1a (a int, c int);
+create view view_of_joins_2a as select * from tbl1 join tbl1a using (a);
+create view view_of_joins_2b as select * from tbl1 join tbl1a using (a) as x;
+create view view_of_joins_2c as select * from (tbl1 join tbl1a using (a)) as y;
+create view view_of_joins_2d as select * from (tbl1 join tbl1a using (a) as x) as y;
+
+select pg_get_viewdef('view_of_joins_2a', true);
+select pg_get_viewdef('view_of_joins_2b', true);
+select pg_get_viewdef('view_of_joins_2c', true);
+select pg_get_viewdef('view_of_joins_2d', true);
+
 -- Test view decompilation in the face of column addition/deletion/renaming
 
 create table tt2 (a int, b int, c int);
@@ -397,6 +408,12 @@ alter table tt5 add column cc int;
 select pg_get_viewdef('vv1', true);
 alter table tt5 drop column c;
 select pg_get_viewdef('vv1', true);
+
+create view v4 as select * from v1;
+alter view v1 rename column a to x;
+select pg_get_viewdef('v1', true);
+select pg_get_viewdef('v4', true);
+
 
 -- Unnamed FULL JOIN USING is lots of fun too
 
@@ -555,6 +572,11 @@ select * from tt17v;
 select pg_get_viewdef('tt17v', true);
 select * from int8_tbl i where i.* in (values(i.*::int8_tbl));
 
+create table tt15v_log(o tt15v, n tt15v, incr bool);
+create rule updlog as on update to tt15v do also
+  insert into tt15v_log values(old, new, row(old,old) < row(new,new));
+\d+ tt15v
+
 -- check unique-ification of overlength names
 
 create view tt18v as
@@ -587,6 +609,31 @@ select * from
   cast(1+2 as int8) as i8;
 select pg_get_viewdef('tt20v', true);
 
+-- reverse-listing of various special function syntaxes required by SQL
+
+create view tt201v as
+select
+  extract(day from now()) as extr,
+  (now(), '1 day'::interval) overlaps
+    (current_timestamp(2), '1 day'::interval) as o,
+  'foo' is normalized isn,
+  'foo' is nfkc normalized isnn,
+  normalize('foo') as n,
+  normalize('foo', nfkd) as nfkd,
+  overlay('foo' placing 'bar' from 2) as ovl,
+  overlay('foo' placing 'bar' from 2 for 3) as ovl2,
+  position('foo' in 'foobar') as p,
+  substring('foo' from 2 for 3) as s,
+  substring('foo' similar 'f' escape '#') as ss,
+  substring('foo' from 'oo') as ssf,  -- historically-permitted abuse
+  trim(' ' from ' foo ') as bt,
+  trim(leading ' ' from ' foo ') as lt,
+  trim(trailing ' foo ') as rt,
+  trim(E'\\000'::bytea from E'\\000Tom\\000'::bytea) as btb,
+  trim(leading E'\\000'::bytea from E'\\000Tom\\000'::bytea) as ltb,
+  trim(trailing E'\\000'::bytea from E'\\000Tom\\000'::bytea) as rtb;
+select pg_get_viewdef('tt201v', true);
+
 -- corner cases with empty join conditions
 
 create view tt21v as
@@ -607,6 +654,41 @@ select 42, 43;
 select pg_get_viewdef('tt23v', true);
 select pg_get_ruledef(oid, true) from pg_rewrite
   where ev_class = 'tt23v'::regclass and ev_type = '1';
+
+-- test extraction of FieldSelect field names (get_name_for_var_field)
+
+create view tt24v as
+with cte as materialized (select r from (values(1,2),(3,4)) r)
+select (r).column2 as col_a, (rr).column2 as col_b from
+  cte join (select rr from (values(1,7),(3,8)) rr limit 2) ss
+  on (r).column1 = (rr).column1;
+select pg_get_viewdef('tt24v', true);
+create view tt25v as
+with cte as materialized (select pg_get_keywords() k)
+select (k).word from cte;
+select pg_get_viewdef('tt25v', true);
+-- also check cases seen only in EXPLAIN
+explain (verbose, costs off)
+select * from tt24v;
+explain (verbose, costs off)
+select (r).column2 from (select r from (values(1,2),(3,4)) r limit 1) ss;
+
+-- test pretty-print parenthesization rules, and SubLink deparsing
+
+create view tt26v as
+select x + y + z as c1,
+       (x * y) + z as c2,
+       x + (y * z) as c3,
+       (x + y) * z as c4,
+       x * (y + z) as c5,
+       x + (y + z) as c6,
+       x + (y # z) as c7,
+       (x > y) AND (y > z OR x > z) as c8,
+       (x > y) OR (y > z AND NOT (x > z)) as c9,
+       (x,y) <> ALL (values(1,2),(3,4)) as c10,
+       (x,y) <= ANY (values(1,2),(3,4)) as c11
+from (values(1,2,3)) v(x,y,z);
+select pg_get_viewdef('tt26v', true);
 
 -- clean up all the random objects we made above
 DROP SCHEMA temp_view_test CASCADE;

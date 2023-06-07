@@ -1,4 +1,7 @@
 -- Validate that standby performs DTM recovery upon promotion.
+-- start_ignore
+set statement_timeout='180s';
+-- end_ignore
 
 -- Check that are starting with a clean slate, standby must be in sync
 -- with master.
@@ -35,6 +38,7 @@ from gp_segment_configuration where content = -1 and role = 'p';
 select pg_ctl(datadir, 'promote') from gp_segment_configuration
 where content = -1 and role = 'm';
 
+!\retcode gpfts -A -D;
 -- "-1S" means connect to standby's port assuming it's accepting
 -- connections.  This select should succeed because the create table
 -- transaction's commit prepared broadcast must have been sent by
@@ -58,6 +62,8 @@ from gp_segment_configuration where content = -1 and role = 'p';
 -- Destroy and recreate the standby
 select pg_ctl(datadir, 'stop', 'immediate') from gp_segment_configuration
 where content = -1 and role = 'm';
+!\retcode gpfts -A -D;
+
 -- Standby details need to be stored in a separate table because
 -- reinitialize_standby() first removes standby from catalog and then
 -- adds it to the catalog using gpinitstandby.  If temp table is not
@@ -87,6 +93,8 @@ returns text as $$
         remove_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii')
         cmd = 'gpinitstandby -ar -P %d' % master['port']
         remove_output += subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii')
+        cmd = 'gpfts -A -D;'
+        remove_output += subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii')
         cmd = 'export PGPORT=%d; gpinitstandby -a -s %s -S %s -P %d' % (master['port'], standby['hostname'], standby['datadir'], standby['port'])
         init_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii')
     except subprocess.CalledProcessError as e:
@@ -101,6 +109,11 @@ returns text as $$
 $$ language plpython3u;
 
 select reinitialize_standby();
+!\retcode gpfts -A -D;
 
 -- Sync state between master and standby must be restored at the end.
 select wait_until_standby_in_state('streaming');
+
+-- start_ignore
+reset statement_timeout;
+-- end_ignore

@@ -4,7 +4,7 @@
  *	  routines to search and manipulate one FSM page.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -273,7 +273,7 @@ restart:
 			BlockNumber blknum;
 
 			BufferGetTag(buf, &rnode, &forknum, &blknum);
-			elog(DEBUG1, "fixing corrupt FSM block %u, relation %u/%u/%u",
+			elog(DEBUG1, "fixing corrupt FSM block %u, relation %u/%u/%lu",
 				 blknum, rnode.spcNode, rnode.dbNode, rnode.relNode);
 
 			/* make sure we hold an exclusive lock */

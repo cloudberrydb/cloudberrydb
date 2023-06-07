@@ -57,7 +57,7 @@ SELECT ctid,cmin,* FROM combocidtest;
  (0,2) |    1 |      2 |        
 (2 rows)
 
--- Test combo cids with portals
+-- Test combo CIDs with portals
 BEGIN;
 INSERT INTO combocidtest VALUES (333);
 -- In GPDB, the cursor starts executing in the segments as soon as the

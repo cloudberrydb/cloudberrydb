@@ -3,7 +3,7 @@
  * cdbcat.c
  *	  Routines for dealing with GpPolicy
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -41,6 +41,8 @@
 #include "utils/memutils.h"
 #include "utils/regproc.h"
 #include "utils/syscache.h"
+
+#include "catalog/gp_indexing.h"
 
 static int errdetails_index_policy(char *attname,
 								   Oid policy_indclass,
@@ -450,7 +452,10 @@ GpPolicyFetch(Oid tbloid)
 					Assert(distopclasses->dim1 == nattrs);
 				}
 				else
+				{
 					nattrs = 0;
+					distopclasses = NULL;
+				}
 
 				/* Create a GpPolicy object. */
 				policy = makeGpPolicy(POLICYTYPE_PARTITIONED,
@@ -832,7 +837,6 @@ index_check_policy_compatible(GpPolicy *policy,
 		Oid			policy_typeid;
 		Oid			policy_eqop;
 		bool		found;
-		bool		found_col;
 		Oid			found_col_indclass;
 
 		/* Look up the equality operator for the distribution key opclass */
@@ -847,7 +851,6 @@ index_check_policy_compatible(GpPolicy *policy,
 		 * key.
 		 */
 		found = false;
-		found_col = false;
 		found_col_indclass = InvalidOid;
 		for (j = 0; j < nidxatts; j++)
 		{
@@ -857,7 +860,6 @@ index_check_policy_compatible(GpPolicy *policy,
 
 			if (indattr[j] != policy_attr)
 				continue;
-			found_col = true;
 
 			/*
 			 * Is the index's operator class is compatible with the

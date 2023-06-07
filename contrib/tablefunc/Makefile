@@ -3,7 +3,8 @@
 MODULES = tablefunc
 
 EXTENSION = tablefunc
-DATA = tablefunc--1.0.sql tablefunc--unpackaged--1.0.sql
+DATA = tablefunc--1.0.sql
+PGFILEDESC = "tablefunc - various functions that return tables"
 
 REGRESS = tablefunc
 REGRESS_OPTS += --init-file=$(top_srcdir)/src/test/regress/init_file

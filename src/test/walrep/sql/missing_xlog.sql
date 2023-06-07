@@ -75,12 +75,31 @@ begin
 end;
 $$ language plpgsql;
 
+create or replace function wait_for_mirror_up(contentid smallint, timeout_sec integer) returns bool as
+$$
+declare i int;
+begin
+	i := 0;
+	loop
+		perform gp_request_fts_probe_scan();
+		if (select count(1) from gp_segment_configuration where role='m' and content=$1 and status='u') = 1 then
+			return true;
+		end if;
+		if i >= 2 * $2 then
+			return false;
+		end if;
+		perform pg_sleep(0.5);
+		i = i + 1;
+	end loop;
+end;
+$$ language plpgsql;
+
 -- start_ignore
 -- let the mirror be marked as 'down' quickly
 \! gpconfig -c gp_fts_mark_mirror_down_grace_period -v 2
--- since setting wal_keep_segments to 0 is not safe for master/standby,
--- we are not going to set wal_keep_segments to 0 now, to avoid flaky tests
-\! gpconfig -c wal_keep_segments -v 1
+-- since setting wal_keep_size to 0MiB is not safe for master/standby,
+-- we are not going to set wal_keep_size to 0 now, to avoid flaky tests
+\! gpconfig -c wal_keep_size -v 64
 \! gpstop -u
 -- end_ignore
 -- stop a mirror
@@ -96,7 +115,7 @@ checkpoint;
 select gp_wait_until_triggered_fault('keep_log_seg', 1, dbid)
   from gp_segment_configuration where role='p' and content = 0;
 -- wait for the mirror down, so the following SQLs needs no replication on seg0
-select wait_for_mirror_down(0::smallint, 30);
+select wait_for_mirror_down(0::smallint, 90);
 -- running pg_switch_wal() several times and `checkpoint` to remove old WAL files
 do $$
     declare i int;
@@ -130,7 +149,7 @@ select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' a
 -- wait for mirror is marked down
 -- the status of the mirror is not marked as 'd' immediately
 -- even if we run gp_request_fts_probe_scan() or pg_sleep()
-select wait_for_mirror_down(0::smallint, 30);
+select wait_for_mirror_down(0::smallint, 90);
 
 -- let the primary be normal before do full recovery for mirror
 select gp_inject_fault('keep_log_seg', 'reset', dbid)
@@ -146,6 +165,7 @@ select wait_for_replication_error('none', 0, 500);
 select sync_error from gp_stat_replication where gp_segment_id = 0;
 
 select gp_request_fts_probe_scan();
+select wait_for_mirror_up(0::smallint, 90);
 -- Validate that the mirror for content=0 is marked up.
 select count(*) = 2 as mirror_up from gp_segment_configuration
  where content=0 and status='u';
@@ -153,9 +173,9 @@ select count(*) = 2 as mirror_up from gp_segment_configuration
 -- affecting other tests. Thumb rule: leave cluster in same state as
 -- test started.
 select wait_for_mirror_sync(0::smallint);
-select role, preferred_role, content, mode, status from gp_segment_configuration;
+select role, preferred_role, content, status from gp_segment_configuration;
 -- start_ignore
 \! gpconfig -r gp_fts_mark_mirror_down_grace_period
-\! gpconfig -r wal_keep_segments
+\! gpconfig -r wal_keep_size
 \! gpstop -u
 -- end_ignore

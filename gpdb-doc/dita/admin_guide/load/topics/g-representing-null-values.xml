@@ -12,7 +12,7 @@
             using the <codeph>NULL</codeph> clause of <codeph>COPY</codeph>, <codeph>CREATE EXTERNAL
                 TABLE </codeph>or <codeph>gpload</codeph> when defining your data format. For
             example, you can use an empty string if you do not want to distinguish nulls from empty
-            strings. When using the Greenplum Database loading tools, any data item
+            strings. When using the Cloudberry Database loading tools, any data item
             that matches the designated null string is considered a null value.</p>
     </body>
 </topic>

@@ -4,7 +4,7 @@
  *		Routines for handling specialized SET variables.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -25,14 +25,14 @@
 #include "catalog/pg_authid.h"
 #include "cdb/cdbvars.h"
 #include "commands/variable.h"
+#include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
-#include "utils/syscache.h"
 #include "utils/snapmgr.h"
+#include "utils/syscache.h"
 #include "utils/timestamp.h"
 #include "utils/varlena.h"
-#include "mb/pg_wchar.h"
 
 /*
  * DATESTYLE
@@ -555,7 +555,7 @@ check_XactIsoLevel(int *newval, void **extra, GucSource source)
 	/*
 	 * GPDB_91_MERGE_FIXME: Prior to PostgreSQL 9.1, serializable isolation was
 	 * implemented as read committed.  True serializable isolation level is
-	 * supported as of PostgreSQL 9.1.  However, Greenplum lacks the support to
+	 * supported as of PostgreSQL 9.1.  However, Cloudberry lacks the support to
 	 * detect serialization conflicts using predicate locks at cluster level.
 	 * Until that support is implemented, let's keep old behavior by falling
 	 * back to repeatable read. Also, for similar reasons guc
@@ -567,7 +567,7 @@ check_XactIsoLevel(int *newval, void **extra, GucSource source)
 	if (newXactIsoLevel == XACT_SERIALIZABLE)
 	{
 		elog(LOG, "serializable isolation requested, falling back to "
-			 "repeatable read until serializable is supported in Greenplum");
+			 "repeatable read until serializable is supported in Cloudberry");
 		*newval = XACT_REPEATABLE_READ;
 	}
 
@@ -584,7 +584,7 @@ check_DefaultXactIsoLevel(int *newval, void **extra, GucSource source)
 	if (*newval == XACT_SERIALIZABLE)
 	{
 		elog(LOG, "default serializable isolation requested, falling back to "
-				  "repeatable read until serializable is supported in Greenplum");
+				  "repeatable read until serializable is supported in Cloudberry");
 		*newval = XACT_REPEATABLE_READ;
 	}
 
@@ -804,6 +804,17 @@ check_session_authorization(char **newval, void **extra, GucSource source)
 	roleTup = SearchSysCache1(AUTHNAME, PointerGetDatum(*newval));
 	if (!HeapTupleIsValid(roleTup))
 	{
+		/*
+		 * When source == PGC_S_TEST, we don't throw a hard error for a
+		 * nonexistent user name, only a NOTICE.  See comments in guc.h.
+		 */
+		if (source == PGC_S_TEST)
+		{
+			ereport(NOTICE,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					 errmsg("role \"%s\" does not exist", *newval)));
+			return true;
+		}
 		GUC_check_errmsg("role \"%s\" does not exist", *newval);
 		return false;
 	}
@@ -874,10 +885,23 @@ check_role(char **newval, void **extra, GucSource source)
 			return false;
 		}
 
+		/*
+		 * When source == PGC_S_TEST, we don't throw a hard error for a
+		 * nonexistent user name or insufficient privileges, only a NOTICE.
+		 * See comments in guc.h.
+		 */
+
 		/* Look up the username */
 		roleTup = SearchSysCache1(AUTHNAME, PointerGetDatum(*newval));
 		if (!HeapTupleIsValid(roleTup))
 		{
+			if (source == PGC_S_TEST)
+			{
+				ereport(NOTICE,
+						(errcode(ERRCODE_UNDEFINED_OBJECT),
+						 errmsg("role \"%s\" does not exist", *newval)));
+				return true;
+			}
 			GUC_check_errmsg("role \"%s\" does not exist", *newval);
 			return false;
 		}
@@ -896,6 +920,14 @@ check_role(char **newval, void **extra, GucSource source)
 		if (!InitializingParallelWorker &&
 			!is_member_of_role(GetSessionUserId(), roleid))
 		{
+			if (source == PGC_S_TEST)
+			{
+				ereport(NOTICE,
+						(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+						 errmsg("permission will be denied to set role \"%s\"",
+								*newval)));
+				return true;
+			}
 			GUC_check_errcode(ERRCODE_INSUFFICIENT_PRIVILEGE);
 			GUC_check_errmsg("permission denied to set role \"%s\"",
 							 *newval);

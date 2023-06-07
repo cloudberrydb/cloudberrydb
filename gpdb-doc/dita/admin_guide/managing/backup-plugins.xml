@@ -3,14 +3,14 @@
 <topic id="topic_isj_khw_sbs">
   <title>Using gpbackup Storage Plugins</title>
   <body>
-    <p>You can configure the Greenplum Database <xref
+    <p>You can configure the Cloudberry Database <xref
         href="../../utility_guide/ref/gpbackup.xml"><codeph>gpbackup</codeph></xref> and
         <xref href="../../utility_guide/ref/gprestore.xml"
         ><codeph>gprestore</codeph></xref> utilities to use a storage plugin to process backup files
       during a backup or restore operation. For example, during a backup operation, the plugin sends
       the backup files to a remote location. During a restore operation, the plugin retrieves the
       files from the remote location. </p>
-    <p>You can also develop a custom storage plugin with the Greenplum Database Backup/Restore
+    <p>You can also develop a custom storage plugin with the Cloudberry Database Backup/Restore
       Storage Plugin API (Beta). See <xref href="backup-plugin-api.xml"/>.</p>
   </body>
 </topic>

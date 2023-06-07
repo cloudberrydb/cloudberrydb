@@ -2,8 +2,8 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="expand-planning" xml:lang="en">
-  <title id="no159872">Planning Greenplum System Expansion</title>
-  <shortdesc>Careful planning will help to ensure a successful Greenplum expansion
+  <title id="no159872">Planning Cloudberry System Expansion</title>
+  <shortdesc>Careful planning will help to ensure a successful Cloudberry expansion
     project.</shortdesc>
   <body>
     <p>The topics in this section help to ensure that you are prepared to perform a system
@@ -18,24 +18,24 @@
       <li><xref href="#topic10" format="dita"/> provides information about planning the data
         redistribution after the new segment hosts have been initialized.</li>
     </ul>
-    <note type="important">When expanding a Greenplum Database system, you must disable Greenplum
+    <note type="important">When expanding a Cloudberry Database system, you must disable Cloudberry
       interconnect proxies before adding new hosts and segment instances to the system, and you must
       update the <codeph>gp_interconnect_proxy_addresses</codeph> parameter with the newly-added
       segment instances before you re-enable interconnect proxies. For example, these commands
-      disable Greenplum interconnect proxies by setting the interconnect to the default
+      disable Cloudberry interconnect proxies by setting the interconnect to the default
         (<codeph>UDPIFC</codeph>) and reloading the <codeph>postgresql.conf</codeph> file to update
-      the Greenplum system
+      the Cloudberry system
         configuration.<codeblock><xref href="../../utility_guide/ref/gpconfig.xml">gpconfig</xref> -r gp_interconnect_type
 <xref href="../../utility_guide/ref/gpstop.xml">gpstop</xref> -u</codeblock><p>For
-        information about Greenplum interconnect proxies, see <xref
+        information about Cloudberry interconnect proxies, see <xref
           href="../managing/proxy-ic.xml#topic1"/>.</p></note>
   </body>
   <topic id="topic4" xml:lang="en">
     <title>System Expansion Checklist</title>
     <body>
-      <p>This checklist summarizes the tasks for a Greenplum Database system expansion. <table
+      <p>This checklist summarizes the tasks for a Cloudberry Database system expansion. <table
           frame="all" id="table_pvq_yzl_2r">
-          <title>Greenplum Database System Expansion Checklist</title>
+          <title>Cloudberry Database System Expansion Checklist</title>
           <tgroup cols="2">
             <colspec colname="c1" colnum="1" colwidth="1*"/>
             <colspec colname="c2" colnum="2" colwidth="7.95*"/>
@@ -74,7 +74,7 @@
                   <image href="../graphics/green-checkbox.jpg" width="29px" height="28px"
                     id="image_yq5_s1m_2r"/>
                 </entry>
-                <entry>Install Greenplum Database binaries on new hosts. </entry>
+                <entry>Install Cloudberry Database binaries on new hosts. </entry>
               </row>
               <row>
                 <entry>
@@ -188,7 +188,7 @@
                 <entry>Back up databases using the <codeph>gpbackup</codeph> utility. Backups you
                   created before you began the system expansion cannot be restored to the newly
                   expanded system because the <codeph>gprestore</codeph> utility can only restore
-                  backups to a Greenplum Database system with the same number of segments.</entry>
+                  backups to a Cloudberry Database system with the same number of segments.</entry>
               </row>
             </tbody>
           </tgroup>
@@ -202,7 +202,7 @@
         the expansion process.</p>
       <p>Hardware resources and configurations for new segment hosts should match those of the
         existing hosts. Work with <i>VMware Support</i> before making a hardware purchase to expand
-        Greenplum Database.</p>
+        Cloudberry Database.</p>
       <p>The steps to plan and set up new hardware platforms vary for each deployment. Some
         considerations include how to:</p>
       <ul id="ul_alt_tl5_mr">
@@ -224,10 +224,10 @@
   <topic id="topic6" xml:lang="en">
     <title>Planning New Segment Initialization</title>
     <body>
-      <p>Expanding Greenplum Database can be performed when the system is up and available. Run
+      <p>Expanding Cloudberry Database can be performed when the system is up and available. Run
           <codeph>gpexpand</codeph> to initialize new segment instances into the system and create
         an expansion schema.</p>
-      <p>The time required depends on the number of schema objects in the Greenplum system and other
+      <p>The time required depends on the number of schema objects in the Cloudberry system and other
         factors related to hardware performance. In most environments, the initialization of new
         segments requires less than thirty minutes offline.</p>
       <p>These utilities cannot be run while <codeph>gpexpand</codeph> is performing segment
@@ -252,7 +252,7 @@
           see <xref
             href="../highavail/topics/g-overview-of-segment-mirroring.xml#topic3/mirror_configs"
           />.</p>
-        <p>For Greenplum Database systems with mirror segments, ensure you add enough new host
+        <p>For Cloudberry Database systems with mirror segments, ensure you add enough new host
           machines to accommodate new mirror segments. The number of new hosts required depends on
           your mirroring strategy:</p>
         <ul id="ul_dnt_tl5_mr">
@@ -317,7 +317,7 @@
   <topic id="topic10" xml:lang="en">
     <title id="no165351">Planning Table Redistribution</title>
     <body>
-      <p>Table redistribution is performed while the system is online. For many Greenplum systems,
+      <p>Table redistribution is performed while the system is online. For many Cloudberry systems,
         table redistribution completes in a single <codeph>gpexpand</codeph> session scheduled
         during a low-use period. Larger systems may require multiple sessions and setting the order
         of table redistribution to minimize performance impact. Complete the table redistribution in
@@ -333,7 +333,7 @@
         database workloads.</p>
     </body>
     <topic id="topic11" xml:lang="en">
-      <title id="no167000">Managing Redistribution in Large-Scale Greenplum Systems</title>
+      <title id="no167000">Managing Redistribution in Large-Scale Cloudberry Systems</title>
       <body>
         <p>When planning the redistribution phase, consider the impact of the <codeph>ACCESS
             EXCLUSIVE</codeph> lock taken on each table, and the table data redistribution method.
@@ -345,7 +345,7 @@
           optimal query performance for high-priority queries sooner. </p>
         <section>
           <title>Table Redistribution Methods</title>
-          <p>There are two methods of redistributing data when performing a Greenplum Database
+          <p>There are two methods of redistributing data when performing a Cloudberry Database
             expansion. <ul id="ul_hkz_jdv_kgb">
               <li><codeph>rebuild</codeph> - Create a new table, copy all the data from the old to
                 the new table, and replace the old table. This is the default. The rebuild method is
@@ -385,7 +385,7 @@
             <li id="no167009">Run multiple parallel redistribution processes during off-peak hours
               to maximize available system resources.</li>
             <li id="no170138">When running multiple processes, operate within the connection limits
-              for your Greenplum system. For information about limiting concurrent connections, see
+              for your Cloudberry system. For information about limiting concurrent connections, see
                 <xref href="../client_auth.xml#topic4" type="topic" format="dita"/>.</li>
           </ul></p>
       </body>

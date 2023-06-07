@@ -1,12 +1,12 @@
-# Greenplum Database End-User Documentation
+# Cloudberry Database End-User Documentation
 
-The latest Greenplum Database documentation is available at [https://docs.greenplum.org](https://docs.greenplum.org).
+The latest Cloudberry Database documentation is available at [https://docs.greenplum.org](https://docs.greenplum.org).
 
-Greenplum Database provides the full source for end-user documentation. The documentation is in a combination of DITA XML and markdown formats. You can build source documentation into HTML output using [Bookbinder](https://github.com/cloudfoundry-incubator/bookbinder) and the DITA Open Toolkit (DITA-OT).  
+Cloudberry Database provides the full source for end-user documentation. The documentation is in a combination of DITA XML and markdown formats. You can build source documentation into HTML output using [Bookbinder](https://github.com/cloudfoundry-incubator/bookbinder) and the DITA Open Toolkit (DITA-OT).  
 
 Bookbinder is a Ruby gem that binds together a unified documentation web application from markdown, html, and DITA source material. The source material for bookbinder must be stored either in local directories or in GitHub repositories. Bookbinder runs [middleman](http://middlemanapp.com/) to produce a Rackup app that can be deployed locally or as a Web application.
 
-This document contains instructions for building the local Greenplum Database documentation. It contains the sections:
+This document contains instructions for building the local Cloudberry Database documentation. It contains the sections:
 
 * [Bookbinder Usage](#usage)
 * [Prerequisites](#prereq)
@@ -19,7 +19,7 @@ This document contains instructions for building the local Greenplum Database do
 
 Bookbinder is meant to be used from within a project called a **book**. The book includes a configuration file that describes which documentation repositories to use as source materials. Bookbinder provides a set of scripts to aggregate those repositories and publish them to various locations in your final web application.
 
-For Greenplum Database, a preconfigured **book** is provided in the `/gpdb-doc/book` directory of this repo.  You can use this configuration to build HTML for Greenplum Database on your local system.
+For Cloudberry Database, a preconfigured **book** is provided in the `/gpdb-doc/book` directory of this repo.  You can use this configuration to build HTML for Cloudberry Database on your local system.
 
 <a name="prereq"></a>
 ## Prerequisites
@@ -54,7 +54,7 @@ gem install libv8 -v '3.16.14.7' -- --with-system-v8
     $ bundle install
     ```
 
-3. The installed `config.yml` file configures the Greenplum Database book for building from your local source files.  Build the output HTML files by executing the command:
+3. The installed `config.yml` file configures the Cloudberry Database book for building from your local source files.  Build the output HTML files by executing the command:
     ``` bash
     $ bundle exec bookbinder bind local
     ```
@@ -73,7 +73,7 @@ gem install libv8 -v '3.16.14.7' -- --with-system-v8
 
 <a name="publishing"></a>
 ## Publishing the Documentation
-Because the `final_app` directory contains the full output of the HTML conversion process, you can easily publish this directory as a hosted Web application. The instructions that follow describe how to push your local build of the Greenplum Database user documentation either to a locally-installed instance of [Pivotal Cloud Foundry](http://cloudfoundry.org/index.html) or to an application instance on [Pivotal Web Services](https://run.pivotal.io/).  
+Because the `final_app` directory contains the full output of the HTML conversion process, you can easily publish this directory as a hosted Web application. The instructions that follow describe how to push your local build of the Cloudberry Database user documentation either to a locally-installed instance of [Pivotal Cloud Foundry](http://cloudfoundry.org/index.html) or to an application instance on [Pivotal Web Services](https://run.pivotal.io/).  
 
 1. Make sure that you have created an account on your local Cloud Foundry instance or on Pivotal Web Services, and that you have installed the latest [cf command line interface](http://docs.cloudfoundry.org/devguide/installcf/). For example:
 
@@ -88,7 +88,7 @@ Because the `final_app` directory contains the full output of the HTML conversio
     $ cf login -u me@mycompany.com -o myorg -s gpdb-space
     ```
 
-3. Change to the `final_app` directory where you built the Greenplum Database documentation:
+3. Change to the `final_app` directory where you built the Cloudberry Database documentation:
 
     ``` bash
     $ cd /github/gpdb/gpdb-doc/book/final_app
@@ -97,7 +97,7 @@ Because the `final_app` directory contains the full output of the HTML conversio
 4. Use the `cf` command to push the current directory as a new application to a specified host and domain. For example:
 
     ``` bash
-    $ cf push Greenplum Database-docs-build -p . -n my-gpdb-docs -d example.com 
+    $ cf push Cloudberry Database-docs-build -p . -n my-gpdb-docs -d example.com 
     ```
 
   The `cf` tool uploads and starts the application, using a default Web server. In the above example, the pushed application becomes available at [http://my-gpdb-docs.example.com](http://my-gpdb-docs.example.com).

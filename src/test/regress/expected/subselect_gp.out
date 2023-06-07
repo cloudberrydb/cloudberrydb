@@ -78,61 +78,61 @@ partition by range (y) ( start (0) end (4) every (1))
 insert into csq_t1 select * from csq_t1_base;
 insert into csq_t2 select * from csq_t2_base;
 explain select * from csq_t1 where csq_t1.x >ALL (select csq_t2.x from csq_t2 where csq_t2.y=csq_t1.y) order by 1;
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=2292862681.00..2292863111.50 rows=172200 width=8)
-   Merge Key: csq_t1_1_prt_1.x
-   ->  Sort  (cost=2292862681.00..2292863111.50 rows=57400 width=8)
-         Sort Key: csq_t1_1_prt_1.x
-         ->  Append  (cost=0.00..2292847705.00 rows=57400 width=8)
-               ->  Seq Scan on csq_t1_1_prt_1  (cost=0.00..573211926.25 rows=14350 width=8)
-                     Filter: (SubPlan 1)
-                     SubPlan 1
-                       ->  Result  (cost=0.00..12454.00 rows=344400 width=8)
-                             Filter: (csq_t2_1_prt_1.y = csq_t1_1_prt_1.y)
-                             ->  Materialize  (cost=0.00..12454.00 rows=344400 width=8)
-                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..10732.00 rows=114800 width=8)
-                                         ->  Append  (cost=0.00..3844.00 rows=114800 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_1  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_2  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_3  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_4  (cost=0.00..961.00 rows=28700 width=8)
-               ->  Seq Scan on csq_t1_1_prt_2  (cost=0.00..573211926.25 rows=14350 width=8)
-                     Filter: (SubPlan 1)
-                     SubPlan 1
-                       ->  Result  (cost=0.00..12454.00 rows=344400 width=8)
-                             Filter: (csq_t2_1_prt_1_1.y = csq_t1_1_prt_2.y)
-                             ->  Materialize  (cost=0.00..12454.00 rows=344400 width=8)
-                                   ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..10732.00 rows=114800 width=8)
-                                         ->  Append  (cost=0.00..3844.00 rows=114800 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_1_prt_1_1  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_1_prt_2_1  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_1_prt_3_1  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_1_prt_4_1  (cost=0.00..961.00 rows=28700 width=8)
-               ->  Seq Scan on csq_t1_1_prt_3  (cost=0.00..573211926.25 rows=14350 width=8)
-                     Filter: (SubPlan 1)
-                     SubPlan 1
-                       ->  Result  (cost=0.00..12454.00 rows=344400 width=8)
-                             Filter: (csq_t2_1_prt_1_2.y = csq_t1_1_prt_3.y)
-                             ->  Materialize  (cost=0.00..12454.00 rows=344400 width=8)
-                                   ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..10732.00 rows=114800 width=8)
-                                         ->  Append  (cost=0.00..3844.00 rows=114800 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_1_prt_1_2  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_1_prt_2_2  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_1_prt_3_2  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_1_prt_4_2  (cost=0.00..961.00 rows=28700 width=8)
-               ->  Seq Scan on csq_t1_1_prt_4  (cost=0.00..573211926.25 rows=14350 width=8)
-                     Filter: (SubPlan 1)
-                     SubPlan 1
-                       ->  Result  (cost=0.00..12454.00 rows=344400 width=8)
-                             Filter: (csq_t2_1_prt_1_3.y = csq_t1_1_prt_4.y)
-                             ->  Materialize  (cost=0.00..12454.00 rows=344400 width=8)
-                                   ->  Broadcast Motion 3:3  (slice5; segments: 3)  (cost=0.00..10732.00 rows=114800 width=8)
-                                         ->  Append  (cost=0.00..3844.00 rows=114800 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_1_prt_1_3  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_1_prt_2_3  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_1_prt_3_3  (cost=0.00..961.00 rows=28700 width=8)
-                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_1_prt_4_3  (cost=0.00..961.00 rows=28700 width=8)
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=6108.12..8547.62 rows=172200 width=8)
+   Merge Key: csq_t1.x
+   ->  Sort  (cost=6108.12..6251.62 rows=57400 width=8)
+         Sort Key: csq_t1.x
+         ->  Append  (cost=0.00..1571.00 rows=57400 width=8)
+               ->  Seq Scan on csq_t1_1_prt_1 csq_t1_1  (cost=0.00..321.00 rows=14350 width=8)
+                     Filter: (SubPlan 1 (copy 2))
+                     SubPlan 1 (copy 2)
+                       ->  Result  (cost=0.00..11616.00 rows=344400 width=4)
+                             Filter: (csq_t2.y = csq_t1_1.y)
+                             ->  Materialize  (cost=0.00..8172.00 rows=344400 width=8)
+                                   ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..6450.00 rows=344400 width=8)
+                                         ->  Append  (cost=0.00..1858.00 rows=114800 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_1  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_2  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_3  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_4  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on csq_t1_1_prt_2 csq_t1_2  (cost=0.00..321.00 rows=14350 width=8)
+                     Filter: (SubPlan 1 (copy 3))
+                     SubPlan 1 (copy 3)
+                       ->  Result  (cost=0.00..11616.00 rows=344400 width=4)
+                             Filter: (csq_t2_5.y = csq_t1_2.y)
+                             ->  Materialize  (cost=0.00..8172.00 rows=344400 width=8)
+                                   ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..6450.00 rows=344400 width=8)
+                                         ->  Append  (cost=0.00..1858.00 rows=114800 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_6  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_7  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_8  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_9  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on csq_t1_1_prt_3 csq_t1_3  (cost=0.00..321.00 rows=14350 width=8)
+                     Filter: (SubPlan 1 (copy 4))
+                     SubPlan 1 (copy 4)
+                       ->  Result  (cost=0.00..11616.00 rows=344400 width=4)
+                             Filter: (csq_t2_10.y = csq_t1_3.y)
+                             ->  Materialize  (cost=0.00..8172.00 rows=344400 width=8)
+                                   ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..6450.00 rows=344400 width=8)
+                                         ->  Append  (cost=0.00..1858.00 rows=114800 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_11  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_12  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_13  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_14  (cost=0.00..321.00 rows=28700 width=8)
+               ->  Seq Scan on csq_t1_1_prt_4 csq_t1_4  (cost=0.00..321.00 rows=14350 width=8)
+                     Filter: (SubPlan 1 (copy 5))
+                     SubPlan 1 (copy 5)
+                       ->  Result  (cost=0.00..11616.00 rows=344400 width=4)
+                             Filter: (csq_t2_15.y = csq_t1_4.y)
+                             ->  Materialize  (cost=0.00..8172.00 rows=344400 width=8)
+                                   ->  Broadcast Motion 3:3  (slice5; segments: 3)  (cost=0.00..6450.00 rows=344400 width=8)
+                                         ->  Append  (cost=0.00..1858.00 rows=114800 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_1 csq_t2_16  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_2 csq_t2_17  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_3 csq_t2_18  (cost=0.00..321.00 rows=28700 width=8)
+                                               ->  Seq Scan on csq_t2_1_prt_4 csq_t2_19  (cost=0.00..321.00 rows=28700 width=8)
  Optimizer: Postgres query optimizer
 (54 rows)
 
@@ -242,10 +242,10 @@ NOTICE:  table "mrs_u1" does not exist, skipping
 drop table if exists mrs_u2;
 NOTICE:  table "mrs_u2" does not exist, skipping
 create TABLE mrs_u1 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create TABLE mrs_u2 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mrs_u1 values (1,2),(11,22);
 insert into mrs_u2 values (1,2),(11,22),(33,44);
@@ -1004,16 +1004,16 @@ drop table if exists t2;
 drop table if exists t3; 
 drop table if exists t4; 
 CREATE TABLE t1 AS (SELECT generate_series(1, 5000) AS i, generate_series(5001, 10000) AS j);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE t2 AS (SELECT * FROM t1 WHERE gp_segment_id = 0);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE t3 AS (SELECT * FROM t1 WHERE gp_segment_id = 1);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE t4 (i1 int, i2 int); 
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 set gp_interconnect_queue_depth=1;
 -- This query was deadlocking on a 2P system
@@ -1041,10 +1041,10 @@ NOTICE:  table "t1" does not exist, skipping
 drop table if exists t2;
 NOTICE:  table "t2" does not exist, skipping
 create table t1(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table t2(b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'b' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'b' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select * from t1 where a=1 and a=2 and a > (select t2.b from t2);
  a 
@@ -1152,7 +1152,7 @@ drop table if exists t2;
 -- present.
 --
 CREATE TABLE initplan_x (i int4, t text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into initplan_x values
  (1, 'foobar1'),
@@ -1161,7 +1161,7 @@ insert into initplan_x values
  (4, 'foobar4'),
  (5, 'foobar5');
 CREATE TABLE initplan_y (content int4);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'content' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'content' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into initplan_y values (5);
 select i, t from initplan_x
@@ -1179,7 +1179,7 @@ drop table if exists initplan_y;
 -- Test Initplans that return multiple params.
 --
 create table initplan_test(i int, j int, m int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into initplan_test values (1,1,1);
 select * from initplan_test where row(j, m) = (select j, m from initplan_test where i = 1);
@@ -1249,20 +1249,20 @@ FROM t_mpp_20470 b;
 explain SELECT  cc, sum(nn) over() FROM v1_mpp_20470;
                                                    QUERY PLAN                                                    
 -----------------------------------------------------------------------------------------------------------------
- WindowAgg  (cost=0.00..433054904.00 rows=93400 width=40)
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..3002.00 rows=93400 width=28)
-         ->  Append  (cost=0.00..1134.00 rows=31134 width=28)
-               ->  Seq Scan on t_mpp_20470_ptr1 b  (cost=0.00..567.00 rows=15567 width=28)
-               ->  Seq Scan on t_mpp_20470_ptr2 b_1  (cost=0.00..567.00 rows=15567 width=28)
+ WindowAgg  (cost=0.00..318950015.67 rows=93400 width=40)
+   ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..1780.33 rows=93400 width=28)
+         ->  Append  (cost=0.00..535.00 rows=31133 width=28)
+               ->  Seq Scan on t_mpp_20470_ptr1 b_1  (cost=0.00..189.67 rows=15567 width=28)
+               ->  Seq Scan on t_mpp_20470_ptr2 b_2  (cost=0.00..189.67 rows=15567 width=28)
    SubPlan 1
-     ->  Aggregate  (cost=4636.50..4636.51 rows=1 width=8)
-           ->  Result  (cost=0.00..4403.00 rows=93400 width=4)
+     ->  Aggregate  (cost=3414.83..3414.84 rows=1 width=8)
+           ->  Result  (cost=0.00..3181.33 rows=93400 width=4)
                  Filter: ((a.col_name)::text = (b.col_name)::text)
-                 ->  Materialize  (cost=0.00..3469.00 rows=93400 width=32)
-                       ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..3002.00 rows=93400 width=32)
-                             ->  Append  (cost=0.00..1134.00 rows=31134 width=32)
-                                   ->  Seq Scan on t_mpp_20470_ptr1 a  (cost=0.00..567.00 rows=15567 width=32)
-                                   ->  Seq Scan on t_mpp_20470_ptr2 a_1  (cost=0.00..567.00 rows=15567 width=32)
+                 ->  Materialize  (cost=0.00..2247.33 rows=93400 width=32)
+                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1780.33 rows=93400 width=32)
+                             ->  Append  (cost=0.00..535.00 rows=31133 width=32)
+                                   ->  Seq Scan on t_mpp_20470_ptr1 a_1  (cost=0.00..189.67 rows=15567 width=32)
+                                   ->  Seq Scan on t_mpp_20470_ptr2 a_2  (cost=0.00..189.67 rows=15567 width=32)
  Optimizer: Postgres query optimizer
 (15 rows)
 
@@ -1355,7 +1355,7 @@ drop table bar;
 -- Multiple SUBPLAN nodes referring to the same plan_id
 --
 CREATE TABLE bar_s (c integer, d character varying(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO bar_s VALUES (9,9);
 ANALYZE bar_s;
@@ -1368,7 +1368,7 @@ SELECT * FROM bar_s T1 WHERE c = (SELECT max(c) FROM bar_s T2 WHERE T2.d = T1.d 
 CREATE TABLE foo_s (a integer, b integer)  PARTITION BY RANGE(b)
     (PARTITION sub_one START (1) END (10),
      PARTITION sub_two START (11) END (22));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO foo_s VALUES (9,9);
 INSERT INTO foo_s VALUES (2,9);
@@ -1379,7 +1379,7 @@ SELECT bar_s.c from bar_s, foo_s WHERE foo_s.a=2 AND foo_s.b = (SELECT max(b) FR
 (1 row)
 
 CREATE TABLE baz_s (i int4);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO baz_s VALUES (9);
 ANALYZE baz_s;
@@ -1401,14 +1401,14 @@ SELECT bar_s.c FROM bar_s, foo_s WHERE foo_s.b = (SELECT max(i) FROM baz_s WHERE
 explain SELECT bar_s.c FROM bar_s, foo_s WHERE foo_s.b = (SELECT max(i) FROM baz_s WHERE bar_s.c = 9) AND foo_s.b = (select bar_s.d::int4);
                                                            QUERY PLAN                                                            
 ---------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice2; segments: 3)  (cost=2.16..2571.63 rows=173 width=4)
-   ->  Hash Join  (cost=2.16..2571.63 rows=58 width=4)
-         Hash Cond: (foo_s_1_prt_sub_one.b = ((SubPlan 1)))
-         ->  Append  (cost=0.00..1922.00 rows=57400 width=4)
-               ->  Seq Scan on foo_s_1_prt_sub_one  (cost=0.00..961.00 rows=28700 width=4)
-               ->  Seq Scan on foo_s_1_prt_sub_two  (cost=0.00..961.00 rows=28700 width=4)
-         ->  Hash  (cost=2.12..2.12 rows=1 width=10)
-               ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..2.12 rows=1 width=10)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.12..1077.56 rows=172 width=4)
+   ->  Hash Join  (cost=2.12..1075.26 rows=57 width=4)
+         Hash Cond: (foo_s.b = ((SubPlan 1)))
+         ->  Append  (cost=0.00..929.00 rows=57400 width=4)
+               ->  Seq Scan on foo_s_1_prt_sub_one foo_s_1  (cost=0.00..321.00 rows=28700 width=4)
+               ->  Seq Scan on foo_s_1_prt_sub_two foo_s_2  (cost=0.00..321.00 rows=28700 width=4)
+         ->  Hash  (cost=2.10..2.10 rows=1 width=10)
+               ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..2.10 rows=1 width=10)
                      ->  Seq Scan on bar_s  (cost=0.00..2.08 rows=1 width=10)
                            Filter: ((SubPlan 1) = (SubPlan 2))
                            SubPlan 1
@@ -1442,7 +1442,7 @@ CREATE TABLE SUBSELECT_TBL (
   f2 integer,
   f3 float
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO SUBSELECT_TBL VALUES (1, 2, 3);
 INSERT INTO SUBSELECT_TBL VALUES (2, 3, 4);
@@ -1733,23 +1733,17 @@ EXPLAIN select count(distinct ss.ten) from
 -- we should see 2 subplans in the explain
 --
 EXPLAIN SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) FROM tenk2 LIMIT 1;
-                                                        QUERY PLAN                                                        
---------------------------------------------------------------------------------------------------------------------------
- Limit  (cost=0.00..0.08 rows=1 width=4)
-   ->  Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..0.08 rows=1 width=4)
-         ->  Limit  (cost=0.00..0.06 rows=1 width=4)
-               ->  Seq Scan on tenk2  (cost=0.00..625.00 rows=3334 width=4)
-                     SubPlan 1
-                       ->  Result  (cost=0.00..439.00 rows=10000 width=4)
-                             Filter: (tenk1.unique1 = tenk2.unique1)
-                             ->  Materialize  (cost=0.00..439.00 rows=10000 width=4)
-                                   ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..389.00 rows=3334 width=4)
-                                         ->  Seq Scan on tenk1  (cost=0.00..189.00 rows=3334 width=4)
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
+ Limit  (cost=17.76..17.79 rows=1 width=1)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=17.76..17.85 rows=3 width=1)
+         ->  Limit  (cost=17.76..17.81 rows=1 width=1)
+               ->  Seq Scan on tenk2  (cost=0.00..177.56 rows=3333 width=1)
                      SubPlan 2
-                       ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..189.00 rows=3334 width=4)
-                             ->  Seq Scan on tenk1 tenk1_1  (cost=0.00..189.00 rows=3334 width=4)
+                       ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..62.33 rows=3333 width=4)
+                             ->  Seq Scan on tenk1  (cost=0.00..62.33 rows=3333 width=4)
  Optimizer: Postgres query optimizer
-(14 rows)
+(8 rows)
 
 SELECT EXISTS(SELECT * FROM tenk1 WHERE tenk1.unique1 = tenk2.unique1) FROM tenk2 LIMIT 1;
  exists 
@@ -1786,20 +1780,20 @@ ANALYZE dedup_test1;
 ANALYZE dedup_test2;
 ANALYZE dedup_test3;
 EXPLAIN SELECT * FROM dedup_test1 INNER JOIN dedup_test2 ON dedup_test1.a= dedup_test2.e WHERE (a) IN (SELECT a FROM dedup_test3);
-                                              QUERY PLAN                                               
--------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=2.10..3.17 rows=3 width=16)
-   ->  Hash Join  (cost=2.10..3.13 rows=1 width=16)
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=2.11..3.18 rows=3 width=16)
+   ->  Hash Join  (cost=2.11..3.14 rows=1 width=16)
          Hash Cond: (dedup_test2.e = dedup_test1.a)
          ->  Seq Scan on dedup_test2  (cost=0.00..1.01 rows=1 width=8)
          ->  Hash  (cost=2.09..2.09 rows=1 width=12)
                ->  Hash Join  (cost=1.06..2.09 rows=1 width=12)
-                     Hash Cond: (dedup_test1.a = dedup_test3_1_prt_1.a)
+                     Hash Cond: (dedup_test1.a = dedup_test3.a)
                      ->  Seq Scan on dedup_test1  (cost=0.00..1.01 rows=1 width=8)
                      ->  Hash  (cost=1.05..1.05 rows=1 width=4)
                            ->  HashAggregate  (cost=1.04..1.05 rows=1 width=4)
-                                 Group Key: dedup_test3_1_prt_1.a
-                                 ->  Seq Scan on dedup_test3_1_prt_1  (cost=0.00..1.03 rows=3 width=4)
+                                 Group Key: dedup_test3.a
+                                 ->  Seq Scan on dedup_test3_1_prt_1 dedup_test3  (cost=0.00..1.03 rows=3 width=4)
  Optimizer: Postgres query optimizer
 (13 rows)
 
@@ -2000,22 +1994,14 @@ create function dedup_func_volatile() RETURNS int AS $$
 $$ LANGUAGE SQL VOLATILE;
 explain (costs off)
 select * from dedup_func() r(a) where r.a in (select t.a/10 from dedup_tab t);
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Nested Loop Semi Join
    ->  Result
-         ->  Unique
-               Group Key: (RowIdExpr)
-               ->  Sort
-                     Sort Key (Distinct): (RowIdExpr)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: (RowIdExpr)
-                           ->  Hash Join
-                                 Hash Cond: ((t.a / 10) = r.a)
-                                 ->  Seq Scan on dedup_tab t
-                                 ->  Hash
-                                       ->  Broadcast Motion 1:3  (slice3; segments: 1)
-                                             ->  Function Scan on r
+   ->  Materialize
+         ->  Gather Motion 3:1  (slice1; segments: 3)
+               ->  Seq Scan on dedup_tab t
+                     Filter: (5 = (a / 10))
  Optimizer: Postgres query optimizer
 (15 rows)
 
@@ -2027,22 +2013,14 @@ select * from dedup_func() r(a) where r.a in (select t.a/10 from dedup_tab t);
 
 explain (costs off)
 select * from dedup_func_stable() r(a) where r.a in (select t.a/10 from dedup_tab t);
-                                      QUERY PLAN                                       
----------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Nested Loop Semi Join
    ->  Result
-         ->  Unique
-               Group Key: (RowIdExpr)
-               ->  Sort
-                     Sort Key (Distinct): (RowIdExpr)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: (RowIdExpr)
-                           ->  Hash Join
-                                 Hash Cond: ((t.a / 10) = r.a)
-                                 ->  Seq Scan on dedup_tab t
-                                 ->  Hash
-                                       ->  Broadcast Motion 1:3  (slice3; segments: 1)
-                                             ->  Function Scan on r
+   ->  Materialize
+         ->  Gather Motion 3:1  (slice1; segments: 3)
+               ->  Seq Scan on dedup_tab t
+                     Filter: (5 = (a / 10))
  Optimizer: Postgres query optimizer
 (15 rows)
 
@@ -2086,7 +2064,7 @@ select * from dedup_func_volatile() r(a) where r.a in (select t.a/10 from dedup_
 -- Test init/main plan are not both parallel
 --
 create table init_main_plan_parallel (c1 int, c2 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- case 1: init plan is parallel, main plan is not.
 select relname from pg_class where exists(select * from init_main_plan_parallel);
@@ -2130,7 +2108,7 @@ WHERE A.C01 IN(SELECT C02 FROM TEST_IN);
 -- mutate a plan tree (plan_tree_mutator()).
 --
 create temp table onerowtmp as select 1;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named '?column?' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named '?column?' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select val.x
   from generate_series(1,10) as s(i),
@@ -2557,10 +2535,10 @@ select * from foo where
 -- unexpected gang size: XX
 -- This related to issue: https://github.com/greenplum-db/gpdb/issues/12371
 create table extra_flow_dist(a int, b int, c date);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table extra_flow_dist1(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into extra_flow_dist select i, i, '1949-10-01'::date from generate_series(1, 10)i;
 insert into extra_flow_dist1 select i, i from generate_series(20, 22)i;
@@ -2835,8 +2813,8 @@ explain (verbose, costs off) select * from (
 ) run_dt,
 extra_flow_dist1
 where dt < '2010-01-01'::date;
-                                                     QUERY PLAN                                                     
---------------------------------------------------------------------------------------------------------------------
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Output: tbl.dt, extra_flow_dist1.a, extra_flow_dist1.b
    ->  Nested Loop
@@ -2844,44 +2822,47 @@ where dt < '2010-01-01'::date;
          ->  Subquery Scan on tbl
                Output: tbl.dt
                Filter: (tbl.dt < '01-01-2010'::date)
-               ->  HashAggregate
+               ->  Unique
                      Output: ((SubPlan 1))
                      Group Key: ((SubPlan 1))
-                     ->  Append
-                           ->  Subquery Scan on a
-                                 Output: (SubPlan 1)
-                                 ->  Aggregate
-                                       Output: max(1)
-                                       ->  Result
-                                 SubPlan 1
-                                   ->  Result
-                                         Output: extra_flow_dist.c
-                                         Filter: (extra_flow_dist.b = a.x)
-                                         ->  Materialize
-                                               Output: extra_flow_dist.c, extra_flow_dist.b
-                                               ->  Broadcast Motion 3:3  (slice2; segments: 3)
+                     ->  Sort
+                           Output: ((SubPlan 1))
+                           Sort Key: ((SubPlan 1))
+                           ->  Append
+                                 ->  Subquery Scan on a
+                                       Output: (SubPlan 1)
+                                       ->  Aggregate
+                                             Output: max(1)
+                                             ->  Result
+                                       SubPlan 1
+                                         ->  Result
+                                               Output: extra_flow_dist.c
+                                               Filter: (extra_flow_dist.b = a.x)
+                                               ->  Materialize
                                                      Output: extra_flow_dist.c, extra_flow_dist.b
-                                                     ->  Seq Scan on subselect_gp.extra_flow_dist
+                                                     ->  Broadcast Motion 3:3  (slice2; segments: 3)
                                                            Output: extra_flow_dist.c, extra_flow_dist.b
-                           ->  Subquery Scan on aa
-                                 Output: (SubPlan 2)
-                                 ->  Aggregate
-                                       Output: max(1)
-                                       ->  Result
-                                 SubPlan 2
-                                   ->  Result
-                                         Output: extra_flow_dist_1.c
-                                         Filter: (extra_flow_dist_1.b = aa.x)
-                                         ->  Materialize
-                                               Output: extra_flow_dist_1.c, extra_flow_dist_1.b
-                                               ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                                                           ->  Seq Scan on subselect_gp.extra_flow_dist
+                                                                 Output: extra_flow_dist.c, extra_flow_dist.b
+                                 ->  Subquery Scan on aa
+                                       Output: (SubPlan 2)
+                                       ->  Aggregate
+                                             Output: max(1)
+                                             ->  Result
+                                       SubPlan 2
+                                         ->  Result
+                                               Output: extra_flow_dist_1.c
+                                               Filter: (extra_flow_dist_1.b = aa.x)
+                                               ->  Materialize
                                                      Output: extra_flow_dist_1.c, extra_flow_dist_1.b
-                                                     ->  Seq Scan on subselect_gp.extra_flow_dist extra_flow_dist_1
+                                                     ->  Broadcast Motion 3:3  (slice3; segments: 3)
                                                            Output: extra_flow_dist_1.c, extra_flow_dist_1.b
+                                                           ->  Seq Scan on subselect_gp.extra_flow_dist extra_flow_dist_1
+                                                                 Output: extra_flow_dist_1.c, extra_flow_dist_1.b
          ->  Seq Scan on subselect_gp.extra_flow_dist1
                Output: extra_flow_dist1.a, extra_flow_dist1.b
  Optimizer: Postgres query optimizer
-(44 rows)
+(47 rows)
 
 -- Check DISTINCT ON clause and ORDER BY clause in SubLink, See https://github.com/greenplum-db/gpdb/issues/12656.
 -- For EXISTS SubLink, we don’t need to care about the data deduplication problem, we can delete DISTINCT ON clause and

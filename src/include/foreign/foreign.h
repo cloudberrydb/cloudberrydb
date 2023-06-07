@@ -4,7 +4,7 @@
  *	  support for foreign-data wrappers, servers and user mappings.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * src/include/foreign/foreign.h
  *
@@ -21,17 +21,6 @@
 	(OidIsValid(userid) ? GetUserNameFromId(userid, false) : "public")
 
 
-/*
- * Generic option types for validation.
- * NB! These are treated as flags, so use only powers of two here.
- */
-typedef enum
-{
-	ServerOpt = 1,				/* options applicable to SERVER */
-	UserMappingOpt = 2,			/* options for USER MAPPING */
-	FdwOpt = 4					/* options for FOREIGN DATA WRAPPER */
-} GenericOptionFlags;
-
 typedef struct ForeignDataWrapper
 {
 	Oid			fdwid;			/* FDW Oid */
@@ -40,7 +29,7 @@ typedef struct ForeignDataWrapper
 	Oid			fdwhandler;		/* Oid of handler function, or 0 */
 	Oid			fdwvalidator;	/* Oid of validator function, or 0 */
 	List	   *options;		/* fdwoptions as DefElem list */
-	char		exec_location;  /* execute on MASTER, ANY or ALL SEGMENTS, Greenplum MPP specific */
+	char		exec_location;  /* execute on MASTER, ANY or ALL SEGMENTS, Cloudberry MPP specific */
 } ForeignDataWrapper;
 
 typedef struct ForeignServer
@@ -52,7 +41,7 @@ typedef struct ForeignServer
 	char	   *servertype;		/* server type, optional */
 	char	   *serverversion;	/* server version, optional */
 	List	   *options;		/* srvoptions as DefElem list */
-	char		exec_location;  /* execute on MASTER, ANY or ALL SEGMENTS, Greenplum MPP specific */
+	char		exec_location;  /* execute on MASTER, ANY or ALL SEGMENTS, Cloudberry MPP specific */
 	int32		num_segments;	/* the number of segments of the foreign cluster */
 } ForeignServer;
 
@@ -69,7 +58,7 @@ typedef struct ForeignTable
 	Oid			relid;			/* relation Oid */
 	Oid			serverid;		/* server Oid */
 	List	   *options;		/* ftoptions as DefElem list */
-	char		exec_location;  /* execute on COORDINATOR, ANY or ALL SEGMENTS, Greenplum MPP specific */
+	char		exec_location;  /* execute on COORDINATOR, ANY or ALL SEGMENTS, Cloudberry MPP specific */
 	int32		num_segments;	/* the number of segments of the foreign table */
 } ForeignTable;
 

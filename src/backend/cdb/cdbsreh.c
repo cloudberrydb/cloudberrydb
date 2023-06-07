@@ -4,7 +4,7 @@
  *	  Provides routines for single row error handling for COPY and external
  *	  tables.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -131,7 +131,6 @@ makeCdbSreh(int rejectlimit, bool is_limit_in_rows,
 	h->rejectlimit = rejectlimit;
 	h->is_limit_in_rows = is_limit_in_rows;
 	h->rejectcount = 0;
-	h->is_server_enc = false;
 	h->logerrors = logerrors;
 
 	snprintf(h->filename, sizeof(h->filename),
@@ -254,18 +253,9 @@ FormErrorTuple(CdbSreh *cdbsreh)
 		nulls[errtable_linenum - 1] = false;
 	}
 
-	if (cdbsreh->is_server_enc)
-	{
-		/* raw data */
-		values[errtable_rawdata - 1] = CStringGetTextDatum(cdbsreh->rawdata->data);
-		nulls[errtable_rawdata - 1] = false;
-	}
-	else
-	{
-		/* raw bytes */
-		values[errtable_rawbytes - 1] = DirectFunctionCall1(bytearecv, PointerGetDatum(cdbsreh->rawdata));
-		nulls[errtable_rawbytes - 1] = false;
-	}
+	/* raw data */
+	values[errtable_rawdata - 1] = CStringGetTextDatum(cdbsreh->rawdata->data);
+	nulls[errtable_rawdata - 1] = false;
 
 	/* file name */
 	values[errtable_filename - 1] = CStringGetTextDatum(cdbsreh->filename);
@@ -782,7 +772,7 @@ RetrievePersistentErrorLogFromRangeVar(RangeVar *relrv, AclMode mode, char *fnam
 				pg_namespace_tuple = (Form_pg_namespace) GETSTRUCT(tuple);
 				schemaname = pstrdup(NameStr(pg_namespace_tuple->nspname));
 				ReleaseSysCache(tuple);
-				StrNCpy(fname, filename, MAXPGPATH);
+				strlcpy(fname, filename, MAXPGPATH);
 				findfile = true;
 				break;
 			}

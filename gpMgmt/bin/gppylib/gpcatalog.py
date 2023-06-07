@@ -24,7 +24,6 @@ class GPCatalogException(Exception):
 # Hard coded since "coordinator only" is not defined in the catalog
 COORDINATOR_ONLY_TABLES = [
     'gp_configuration_history',
-    'gp_segment_configuration',
     'pg_auth_time_constraint',
     'pg_description',
     'pg_shdescription',
@@ -34,6 +33,7 @@ COORDINATOR_ONLY_TABLES = [
     'pg_statistic_ext',
     'pg_statistic_ext_data',
     'gp_partition_template', # GPDB_12_MERGE_FIXME: is gp_partition_template intentionally missing from segments?
+    'pg_event_trigger'
     ]
 
 # Hard coded tables that have different values on every segment

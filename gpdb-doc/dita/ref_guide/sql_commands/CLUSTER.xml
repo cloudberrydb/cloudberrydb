@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1"><title id="bh20941">CLUSTER</title><body><p id="sql_command_desc">Physically reorders a heap storage table on disk according to an index.
-Not a recommended operation in Greenplum Database.</p><section id="section2"><title>Synopsis</title><codeblock id="sql_command_synopsis">CLUSTER <varname>indexname</varname> ON <varname>tablename</varname>
+Not a recommended operation in Cloudberry Database.</p><section id="section2"><title>Synopsis</title><codeblock id="sql_command_synopsis">CLUSTER <varname>indexname</varname> ON <varname>tablename</varname>
 
 CLUSTER [VERBOSE] <varname>tablename</varname> [ USING index_name ]
 
@@ -21,7 +21,7 @@ according to their index order. If you wish, you can periodically
 recluster by issuing the command again. Setting the table's <codeph>FILLFACTOR</codeph> storage parameter to less than
         100% can aid in preserving cluster ordering during updates, because updated
         rows are kept on the same page if enough space is available there.
-</p><p>When a table is clustered using this command, Greenplum Database remembers on which index it was
+</p><p>When a table is clustered using this command, Cloudberry Database remembers on which index it was
                                 clustered. The form <codeph>CLUSTER</codeph>
                                 <varname>tablename</varname> reclusters the table on the same index
                                 that it was clustered before. You can use the

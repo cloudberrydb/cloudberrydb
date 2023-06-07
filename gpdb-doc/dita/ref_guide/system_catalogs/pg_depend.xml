@@ -9,7 +9,7 @@
       other objects must be dropped by <codeph>DROP CASCADE</codeph> or prevent dropping in the
         <codeph>DROP RESTRICT</codeph> case. See also <xref href="pg_shdepend.xml#topic1"
         >pg_shdepend</xref>, which performs a similar function for dependencies involving objects
-      that are shared across a Greenplum system. </p>
+      that are shared across a Cloudberry system. </p>
     <p>In all cases, a <codeph>pg_depend</codeph> entry indicates that the referenced object may not
       be dropped without also dropping the dependent object. However, there are several subflavors
       identified by <codeph>deptype</codeph>: </p>

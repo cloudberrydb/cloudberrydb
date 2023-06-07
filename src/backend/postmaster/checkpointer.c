@@ -26,7 +26,7 @@
  * restart needs to be forced.)
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -36,10 +36,8 @@
  */
 #include "postgres.h"
 
-#include <signal.h>
 #include <sys/time.h>
 #include <time.h>
-#include <unistd.h>
 
 #include "access/htup_details.h"
 #include "access/xlog.h"
@@ -48,6 +46,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/bgwriter.h"
+#include "postmaster/interrupt.h"
 #include "replication/syncrep.h"
 #include "storage/bufmgr.h"
 #include "storage/condition_variable.h"
@@ -55,6 +54,7 @@
 #include "storage/ipc.h"
 #include "storage/lwlock.h"
 #include "storage/proc.h"
+#include "storage/procsignal.h"
 #include "storage/shmem.h"
 #include "storage/smgr.h"
 #include "storage/spin.h"
@@ -146,13 +146,7 @@ static CheckpointerShmemStruct *CheckpointerShmem;
  */
 int			CheckPointTimeout = 300;
 int			CheckPointWarning = 30;
-double		CheckPointCompletionTarget = 0.5;
-
-/*
- * Flags set by interrupt handlers for later service in the main loop.
- */
-static volatile sig_atomic_t got_SIGHUP = false;
-static volatile sig_atomic_t shutdown_requested = false;
+double		CheckPointCompletionTarget = 0.9;
 
 /*
  * Private state
@@ -169,6 +163,7 @@ static pg_time_t last_xlog_switch_time;
 
 /* Prototypes for private functions */
 
+static void HandleCheckpointerInterrupts(void);
 static void CheckArchiveTimeout(void);
 static bool IsCheckpointOnSchedule(double progress);
 static bool ImmediateCheckpointRequested(void);
@@ -176,12 +171,7 @@ static bool CompactCheckpointerRequestQueue(void);
 static void UpdateSharedMemoryConfig(void);
 
 /* Signal handlers */
-
-static void chkpt_quickdie(SIGNAL_ARGS);
-static void ChkptSigHupHandler(SIGNAL_ARGS);
 static void ReqCheckpointHandler(SIGNAL_ARGS);
-static void chkpt_sigusr1_handler(SIGNAL_ARGS);
-static void ReqShutdownHandler(SIGNAL_ARGS);
 
 
 /*
@@ -206,22 +196,19 @@ CheckpointerMain(void)
 	 * want to wait for the backends to exit, whereupon the postmaster will
 	 * tell us it's okay to shut down (via SIGUSR2).
 	 */
-	pqsignal(SIGHUP, ChkptSigHupHandler);	/* set flag to read config file */
+	pqsignal(SIGHUP, SignalHandlerForConfigReload);
 	pqsignal(SIGINT, ReqCheckpointHandler); /* request checkpoint */
 	pqsignal(SIGTERM, SIG_IGN); /* ignore SIGTERM */
-	pqsignal(SIGQUIT, chkpt_quickdie);	/* hard crash time */
+	/* SIGQUIT handler was already set up by InitPostmasterChild */
 	pqsignal(SIGALRM, SIG_IGN);
 	pqsignal(SIGPIPE, SIG_IGN);
-	pqsignal(SIGUSR1, chkpt_sigusr1_handler);
-	pqsignal(SIGUSR2, ReqShutdownHandler);	/* request shutdown */
+	pqsignal(SIGUSR1, procsignal_sigusr1_handler);
+	pqsignal(SIGUSR2, SignalHandlerForShutdownRequest);
 
 	/*
 	 * Reset some signals that are accepted by postmaster but not here
 	 */
 	pqsignal(SIGCHLD, SIG_DFL);
-
-	/* We allow SIGQUIT (quickdie) at all times */
-	sigdelset(&BlockSig, SIGQUIT);
 
 	/*
 	 * Initialize so that first time-driven event happens at the correct time.
@@ -242,7 +229,20 @@ CheckpointerMain(void)
 	/*
 	 * If an exception is encountered, processing resumes here.
 	 *
-	 * See notes in postgres.c about the design of this coding.
+	 * You might wonder why this isn't coded as an infinite loop around a
+	 * PG_TRY construct.  The reason is that this is the bottom of the
+	 * exception stack, and so with PG_TRY there would be no exception handler
+	 * in force at all during the CATCH part.  By leaving the outermost setjmp
+	 * always active, we have at least some chance of recovering from an error
+	 * during error recovery.  (If we get into an infinite loop thereby, it
+	 * will soon be stopped by overflow of elog.c's internal state stack.)
+	 *
+	 * Note that we use sigsetjmp(..., 1), so that the prevailing signal mask
+	 * (to wit, BlockSig) will be restored when longjmp'ing to here.  Thus,
+	 * signals other than SIGQUIT will be blocked until we complete error
+	 * recovery.  It might seem that this policy makes the HOLD_INTERRUPTS()
+	 * call redundant, but it is not since InterruptPending might be set
+	 * already.
 	 */
 	if (sigsetjmp(local_sigjmp_buf, 1) != 0)
 	{
@@ -351,37 +351,7 @@ CheckpointerMain(void)
 		 * Process any requests or signals received recently.
 		 */
 		AbsorbSyncRequests();
-
-		if (got_SIGHUP)
-		{
-			got_SIGHUP = false;
-			ProcessConfigFile(PGC_SIGHUP);
-
-			/*
-			 * Checkpointer is the last process to shut down, so we ask it to
-			 * hold the keys for a range of other tasks required most of which
-			 * have nothing to do with checkpointing at all.
-			 *
-			 * For various reasons, some config values can change dynamically
-			 * so the primary copy of them is held in shared memory to make
-			 * sure all backends see the same value.  We make Checkpointer
-			 * responsible for updating the shared memory copy if the
-			 * parameter setting changes because of SIGHUP.
-			 */
-			UpdateSharedMemoryConfig();
-		}
-		if (shutdown_requested)
-		{
-			/*
-			 * From here on, elog(ERROR) should end with exit(1), not send
-			 * control back to the sigsetjmp block above
-			 */
-			ExitOnAnyError = true;
-			/* Close down the database */
-			ShutdownXLOG(0, 0);
-			/* Normal exit from the checkpointer is here */
-			proc_exit(0);		/* done */
-		}
+		HandleCheckpointerInterrupts();
 
 		/*
 		 * Detect a pending checkpoint request by checking whether the flags
@@ -521,6 +491,9 @@ CheckpointerMain(void)
 			}
 
 			ckpt_active = false;
+
+			/* We may have received an interrupt during the checkpoint. */
+			HandleCheckpointerInterrupts();
 		}
 
 		/* Check for archive_timeout and switch xlog files if necessary. */
@@ -534,6 +507,16 @@ CheckpointerMain(void)
 		 * stats message types.)
 		 */
 		pgstat_send_bgwriter();
+
+		/* Send WAL statistics to the stats collector. */
+		pgstat_send_wal(true);
+
+		/*
+		 * If any checkpoint flags have been set, redo the loop to handle the
+		 * checkpoint without sleeping.
+		 */
+		if (((volatile CheckpointerShmemStruct *) CheckpointerShmem)->ckpt_flags)
+			continue;
 
 		/*
 		 * Sleep until we are signaled or it's time for another checkpoint or
@@ -556,6 +539,58 @@ CheckpointerMain(void)
 						 WL_LATCH_SET | WL_TIMEOUT | WL_EXIT_ON_PM_DEATH,
 						 cur_timeout * 1000L /* convert to ms */ ,
 						 WAIT_EVENT_CHECKPOINTER_MAIN);
+	}
+}
+
+/*
+ * Process any new interrupts.
+ */
+static void
+HandleCheckpointerInterrupts(void)
+{
+	if (ProcSignalBarrierPending)
+		ProcessProcSignalBarrier();
+
+	if (ConfigReloadPending)
+	{
+		ConfigReloadPending = false;
+		ProcessConfigFile(PGC_SIGHUP);
+
+		/*
+		 * Checkpointer is the last process to shut down, so we ask it to hold
+		 * the keys for a range of other tasks required most of which have
+		 * nothing to do with checkpointing at all.
+		 *
+		 * For various reasons, some config values can change dynamically so
+		 * the primary copy of them is held in shared memory to make sure all
+		 * backends see the same value.  We make Checkpointer responsible for
+		 * updating the shared memory copy if the parameter setting changes
+		 * because of SIGHUP.
+		 */
+		UpdateSharedMemoryConfig();
+	}
+	if (ShutdownRequestPending)
+	{
+		/*
+		 * From here on, elog(ERROR) should end with exit(1), not send control
+		 * back to the sigsetjmp block above
+		 */
+		ExitOnAnyError = true;
+
+		/*
+		 * Close down the database.
+		 *
+		 * Since ShutdownXLOG() creates restartpoint or checkpoint, and
+		 * updates the statistics, increment the checkpoint request and send
+		 * the statistics to the stats collector.
+		 */
+		BgWriterStats.m_requested_checkpoints++;
+		ShutdownXLOG(0, 0);
+		pgstat_send_bgwriter();
+		pgstat_send_wal(true);
+
+		/* Normal exit from the checkpointer is here */
+		proc_exit(0);			/* done */
 	}
 }
 
@@ -673,13 +708,13 @@ CheckpointWriteDelay(int flags, double progress)
 	 * in which case we just try to catch up as quickly as possible.
 	 */
 	if (!(flags & CHECKPOINT_IMMEDIATE) &&
-		!shutdown_requested &&
+		!ShutdownRequestPending &&
 		!ImmediateCheckpointRequested() &&
 		IsCheckpointOnSchedule(progress))
 	{
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 			/* update shmem copies of config variables */
 			UpdateSharedMemoryConfig();
@@ -701,7 +736,10 @@ CheckpointWriteDelay(int flags, double progress)
 		 * Checkpointer and bgwriter are no longer related so take the Big
 		 * Sleep.
 		 */
-		pg_usleep(100000L);
+		WaitLatch(MyLatch, WL_LATCH_SET | WL_EXIT_ON_PM_DEATH | WL_TIMEOUT,
+				  100,
+				  WAIT_EVENT_CHECKPOINT_WRITE_DELAY);
+		ResetLatch(MyLatch);
 	}
 	else if (--absorb_counter <= 0)
 	{
@@ -713,6 +751,10 @@ CheckpointWriteDelay(int flags, double progress)
 		AbsorbSyncRequests();
 		absorb_counter = WRITES_PER_ABSORB;
 	}
+
+	/* Check for barrier events. */
+	if (ProcSignalBarrierPending)
+		ProcessProcSignalBarrier();
 }
 
 /*
@@ -751,7 +793,7 @@ IsCheckpointOnSchedule(double progress)
 	 * We compare the current WAL insert location against the location
 	 * computed before calling CreateCheckPoint. The code in XLogInsert that
 	 * actually triggers a checkpoint when CheckPointSegments is exceeded
-	 * compares against RedoRecptr, so this is not completely accurate.
+	 * compares against RedoRecPtr, so this is not completely accurate.
 	 * However, it's good enough for our purposes, we're only calculating an
 	 * estimate anyway.
 	 *
@@ -801,44 +843,6 @@ IsCheckpointOnSchedule(double progress)
  * --------------------------------
  */
 
-/*
- * chkpt_quickdie() occurs when signalled SIGQUIT by the postmaster.
- *
- * Some backend has bought the farm,
- * so we need to stop what we're doing and exit.
- */
-static void
-chkpt_quickdie(SIGNAL_ARGS)
-{
-	/*
-	 * We DO NOT want to run proc_exit() or atexit() callbacks -- we're here
-	 * because shared memory may be corrupted, so we don't want to try to
-	 * clean up our transaction.  Just nail the windows shut and get out of
-	 * town.  The callbacks wouldn't be safe to run from a signal handler,
-	 * anyway.
-	 *
-	 * Note we do _exit(2) not _exit(0).  This is to force the postmaster into
-	 * a system reset cycle if someone sends a manual SIGQUIT to a random
-	 * backend.  This is necessary precisely because we don't clean up our
-	 * shared memory state.  (The "dead man switch" mechanism in pmsignal.c
-	 * should ensure the postmaster sees this as a crash, too, but no harm in
-	 * being doubly sure.)
-	 */
-	_exit(2);
-}
-
-/* SIGHUP: set flag to re-read config file at next convenient time */
-static void
-ChkptSigHupHandler(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	got_SIGHUP = true;
-	SetLatch(MyLatch);
-
-	errno = save_errno;
-}
-
 /* SIGINT: set flag to run a normal checkpoint right away */
 static void
 ReqCheckpointHandler(SIGNAL_ARGS)
@@ -846,32 +850,9 @@ ReqCheckpointHandler(SIGNAL_ARGS)
 	int			save_errno = errno;
 
 	/*
-	 * The signalling process should have set ckpt_flags nonzero, so all we
+	 * The signaling process should have set ckpt_flags nonzero, so all we
 	 * need do is ensure that our main loop gets kicked out of any wait.
 	 */
-	SetLatch(MyLatch);
-
-	errno = save_errno;
-}
-
-/* SIGUSR1: used for latch wakeups */
-static void
-chkpt_sigusr1_handler(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	latch_sigusr1_handler();
-
-	errno = save_errno;
-}
-
-/* SIGUSR2: set flag to run a shutdown checkpoint and exit */
-static void
-ReqShutdownHandler(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	shutdown_requested = true;
 	SetLatch(MyLatch);
 
 	errno = save_errno;
@@ -1198,7 +1179,6 @@ CompactCheckpointerRequestQueue(void)
 	skip_slot = palloc0(sizeof(bool) * CheckpointerShmem->num_requests);
 
 	/* Initialize temporary hash table */
-	MemSet(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(CheckpointerRequest);
 	ctl.entrysize = sizeof(struct CheckpointerSlotMapping);
 	ctl.hcxt = CurrentMemoryContext;
@@ -1264,8 +1244,8 @@ CompactCheckpointerRequestQueue(void)
 		CheckpointerShmem->requests[preserve_count++] = CheckpointerShmem->requests[n];
 	}
 	ereport(DEBUG1,
-			(errmsg("compacted fsync request queue from %d entries to %d entries",
-					CheckpointerShmem->num_requests, preserve_count)));
+			(errmsg_internal("compacted fsync request queue from %d entries to %d entries",
+							 CheckpointerShmem->num_requests, preserve_count)));
 	CheckpointerShmem->num_requests = preserve_count;
 
 	/* Cleanup. */

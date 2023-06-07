@@ -13,8 +13,9 @@
  */
 
 #include "postgres.h"
+#include "access/detoast.h"
+#include "access/heaptoast.h"
 #include "access/tupmacs.h"
-#include "access/tuptoaster.h"
 #include "utils/datumstreamblock.h"
 #include "utils/guc.h"
 
@@ -5477,16 +5478,16 @@ VarlenaInfoToBuffer(char *buffer, uint8 * p)
 	if (VARATT_IS_EXTERNAL(p))
 	{
 		struct varatt_external *ext = (struct varatt_external *) p;
-		bool		externalIsCompressed = (ext->va_extsize != ext->va_rawsize - VARHDRSZ);
+		bool		externalIsCompressed = VARATT_EXTERNAL_IS_COMPRESSED(*ext);
 
 		sprintf(buffer,
 			 "external (header ptr %p, header alignment %u, header 0x%.8x): "
-				"va_rawsize: %d, va_extsize %d, valueid %u, toastrelid %u (compressed %s)",
+				"va_rawsize: %d, va_extinfo %u, valueid %u, toastrelid %u (compressed %s)",
 				p,
 				alignment,
 				*((uint32 *) p),
 				ext->va_rawsize,
-				ext->va_extsize,
+				ext->va_extinfo,
 				ext->va_valueid,
 				ext->va_toastrelid,
 				(externalIsCompressed ? "true" : "false"));
@@ -5508,12 +5509,12 @@ VarlenaInfoToBuffer(char *buffer, uint8 * p)
 
 		sprintf(buffer,
 		   "compressed (header ptr %p, header alignment %u, header 0x%.8x): "
-				"va_rawsize: %d, "
+				"va_tcinfo: %u, "
 				"VARSIZE_ANY %d, VARDATA_ANY %p",
 				p,
 				alignment,
 				*((uint32 *) p),
-				(int32) comp->va_compressed.va_rawsize,
+				(uint32) comp->va_compressed.va_tcinfo,
 				(int32) VARSIZE_ANY(p),
 				VARDATA_ANY(p));
 	}

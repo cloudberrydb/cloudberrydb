@@ -6,7 +6,7 @@
   <body>
     <!--6.0 table -WAL replication for both master and segments-->
     <p>The <codeph>gp_stat_replication</codeph> view contains replication statistics of the
-        <codeph>walsender</codeph> process that is used for Greenplum Database Write-Ahead Logging
+        <codeph>walsender</codeph> process that is used for Cloudberry Database Write-Ahead Logging
       (WAL) replication when master or segment mirroring is enabled.</p>
     <table id="op164584">
       <title>pg_catalog.gp_stat_replication</title>

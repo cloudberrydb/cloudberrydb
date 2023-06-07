@@ -89,4 +89,6 @@ RESET ROLE;
 DROP ROLE role_dumpinfo_test;
 DROP ROLE role_permission;
 DROP RESOURCE GROUP rg_dumpinfo_test;
+-- start_ignore
 DROP LANGUAGE plpython3u CASCADE;
+-- end_ignore

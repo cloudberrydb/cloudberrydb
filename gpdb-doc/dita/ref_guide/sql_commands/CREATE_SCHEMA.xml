@@ -31,7 +31,7 @@ owned by roles other than themselves.</pd></plentry><plentry><pt><varname>schema
               INDEX</codeph>, <codeph>CREATE SEQUENCE</codeph>, <codeph>CREATE TRIGGER</codeph> and
               <codeph>GRANT</codeph> are accepted as clauses within <codeph>CREATE SCHEMA</codeph>.
             Other kinds of objects may be created in separate commands after the schema is
-            created.<note>Greenplum Database does not support triggers.</note></pd></plentry>      
+            created.<note>Cloudberry Database does not support triggers.</note></pd></plentry>      
         <plentry>
           <pt><codeph>IF NOT EXISTS</codeph></pt>
           <pd>Do nothing (except issuing a notice) if a schema with the same name already exists.
@@ -49,14 +49,14 @@ privilege for the current database or be a superuser.</p></section><section id="
       </p>
 </section><section id="section7"><title>Compatibility</title><p>The SQL standard allows a <codeph>DEFAULT CHARACTER SET</codeph> clause
 in <codeph>CREATE SCHEMA</codeph>, as well as more subcommand types than
-are presently accepted by Greenplum Database. </p><p>The SQL standard specifies that the subcommands in <codeph>CREATE
-SCHEMA</codeph> may appear in any order. The present Greenplum Database
+are presently accepted by Cloudberry Database. </p><p>The SQL standard specifies that the subcommands in <codeph>CREATE
+SCHEMA</codeph> may appear in any order. The present Cloudberry Database
 implementation does not handle all cases of forward references in subcommands;
 it may sometimes be necessary to reorder the subcommands in order to
 avoid forward references. </p><p>According to the SQL standard, the owner of a schema always owns all
-objects within it. Greenplum Database allows schemas to contain objects
+objects within it. Cloudberry Database allows schemas to contain objects
 owned by users other than the schema owner. This can happen only if the
 schema owner grants the <codeph>CREATE</codeph> privilege on the schema
 to someone else, or a superuser chooses to create objects in it.</p>
-      <p>The <codeph>IF NOT EXISTS</codeph> option is a Greenplum Database extension.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="ALTER_SCHEMA.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
+      <p>The <codeph>IF NOT EXISTS</codeph> option is a Cloudberry Database extension.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="ALTER_SCHEMA.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
             href="./DROP_SCHEMA.xml#topic1" type="topic" format="dita"/></codeph></p></section></body></topic>

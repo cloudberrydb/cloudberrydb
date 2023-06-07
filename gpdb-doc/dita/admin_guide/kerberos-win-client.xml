@@ -3,13 +3,13 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1">
   <title>Configuring Kerberos For Windows Clients</title>
-  <shortdesc>You can configure Microsoft Windows client applications to connect to a Greenplum
+  <shortdesc>You can configure Microsoft Windows client applications to connect to a Cloudberry
     Database system that is configured to authenticate with Kerberos.</shortdesc>
   <body>
-    <p>When a Greenplum Database system is configured to authenticate with
-      Kerberos, you can configure Kerberos authentication for the Greenplum
+    <p>When a Cloudberry Database system is configured to authenticate with
+      Kerberos, you can configure Kerberos authentication for the Cloudberry
       Database client utilities <codeph>gpload</codeph> and
-        <codeph>psql</codeph> on a Microsoft Windows system. The Greenplum
+        <codeph>psql</codeph> on a Microsoft Windows system. The Cloudberry
       Database clients authenticate with Kerberos directly.</p>
     <p>This section contains the following information.</p>
     <p>
@@ -20,8 +20,8 @@
         <li><xref href="#topic_win_keytab" format="dita"/></li>
         <li><xref href="#topic_win_kerberos_issues" format="dita"/></li>
       </ul></p>
-    <p>These topics assume that the Greenplum Database system is configured to authenticate with
-      Kerberos. For information about configuring Greenplum Database with Kerberos
+    <p>These topics assume that the Cloudberry Database system is configured to authenticate with
+      Kerberos. For information about configuring Cloudberry Database with Kerberos
       authentication, refer to <xref href="kerberos.xml#topic1"/>.</p>
   </body>
   <topic id="topic_win_kerberos_install">
@@ -29,17 +29,17 @@
     <body>
       <p>The <codeph>kinit</codeph>, <codeph>kdestroy</codeph>, and <codeph>klist</codeph> MIT
         Kerberos Windows client programs and supporting libraries are installed on your system
-        when you install the Greenplum Database Client and Load Tools package:</p>
+        when you install the Cloudberry Database Client and Load Tools package:</p>
           <ul>
             <li><codeph>kinit</codeph> - generate a Kerberos ticket </li>
             <li><codeph>kdestroy</codeph> - destroy active Kerberos tickets </li>
             <li><codeph>klist</codeph> - list Kerberos tickets</li>
           </ul>
       <p>You must configure Kerberos on the Windows client to authenticate with
-        Greenplum Database:</p>
+        Cloudberry Database:</p>
       <ol>
         <li>Copy the Kerberos configuration file <codeph>/etc/krb5.conf</codeph> from the
-        Greenplum Database master to the Windows system, rename it to
+        Cloudberry Database master to the Windows system, rename it to
         <codeph>krb5.ini</codeph>, and place it in the
         default Kerberos location on the Windows
         system, <codeph>C:\ProgramData\MIT\Kerberos5\krb5.ini</codeph>. This directory may be hidden.
@@ -86,9 +86,9 @@
         <codeblock>kinit [&lt;principal>]</codeblock>
         <p>To generate a ticket using a keytab (as described in <xref href="#topic_win_keytab" format="dita"/>):
           <codeblock>kinit -k -t &lt;keytab_filepath> [&lt;principal>]</codeblock></p></li>
-      <li>Set up the Greenplum clients environment:
+      <li>Set up the Cloudberry clients environment:
         <codeblock>set PGGSSLIB=gssapi
-"c:\Program Files\Greenplum\greenplum-clients\greenplum_clients_path.bat"</codeblock></li>
+"c:\Program Files\Cloudberry\greenplum-clients\greenplum_clients_path.bat"</codeblock></li>
       </ol>
     </body>
   </topic>
@@ -96,7 +96,7 @@
     <title>Running the psql Utility</title>
     <body>
       <p>After you configure Kerberos and generate the Kerberos ticket on a Windows system,
-        you can run the Greenplum Database command line client <codeph>psql</codeph>.</p>
+        you can run the Cloudberry Database command line client <codeph>psql</codeph>.</p>
       <p>If you get warnings indicating that the Console code page differs from Windows code page,
         you can run the Windows utility <codeph>chcp</codeph> to change the code page. This is an
         example of the warning and fix:</p>
@@ -122,7 +122,7 @@ Type "help" for help.</codeblock>
     <body>
       <p>You can create and use a Kerberos <codeph>keytab</codeph> file to avoid entering a
         password at the command line or listing a password in a script file when you connect
-        to a Greenplum Database system, perhaps when automating a scheduled Greenplum task
+        to a Cloudberry Database system, perhaps when automating a scheduled Cloudberry task
         such as <codeph>gpload</codeph>. You can create a keytab file with the Java JRE keytab
         utility <codeph>ktab</codeph>. If you use AES256-CTS-HMAC-SHA1-96
               encryption, you need to download and install the Java extension <cite>Java
@@ -156,7 +156,7 @@ KVNO Timestamp Principal
   <topic id="topic_win_gpload_kerb">
     <title>Example gpload YAML File</title>
     <body>
-      <p>When you initiate a <codeph>gpload</codeph> job to a Greenplum Database
+      <p>When you initiate a <codeph>gpload</codeph> job to a Cloudberry Database
         system using Kerberos authentication, you omit the <codeph>USER:</codeph>
         property and value from the YAML control file.</p>
       <p>This example <codeph>gpload</codeph> YAML control file named
@@ -222,15 +222,15 @@ kinit</codeblock></li>
     <title>Configuring Client Authentication with Active Directory </title>
     <body>
       <p>You can configure a Microsoft Windows user with a Microsoft Active Directory (AD) account
-        for single sign-on to a Greenplum Database system. </p>
+        for single sign-on to a Cloudberry Database system. </p>
       <p>You configure an AD user account to support logging in with Kerberos authentication. </p>
       <p>With AD single sign-on, a Windows user can use Active Directory credentials with a Windows
-        client application to log into a Greenplum Database system. 
+        client application to log into a Cloudberry Database system. 
         For Windows applications that use ODBC, the ODBC driver can use Active Directory
-        credentials to connect to a Greenplum Database system.</p>
-      <note>Greenplum Database clients that run on Windows, like <codeph>gpload</codeph>, connect
-        with Greenplum Database directly and do not use Active Directory. For information about
-        connecting Greenplum Database clients on Windows to a Greenplum Database system with
+        credentials to connect to a Cloudberry Database system.</p>
+      <note>Cloudberry Database clients that run on Windows, like <codeph>gpload</codeph>, connect
+        with Cloudberry Database directly and do not use Active Directory. For information about
+        connecting Cloudberry Database clients on Windows to a Cloudberry Database system with
         Kerberos authentication, see <xref href="#topic_vjg_d5m_sv" format="dita"/>.</note>
       <p>This section contains the following information.<ul id="ul_o1g_1qs_bz">
           <li><xref href="#topic_uzb_t5m_sv/ad_prereq" format="dita"/></li>
@@ -241,18 +241,18 @@ kinit</codeblock></li>
         </ul></p>
       <section id="ad_prereq">
         <title>Prerequisites</title>
-        <p>These items are required enable AD single sign-on to a Greenplum Database system.</p>
+        <p>These items are required enable AD single sign-on to a Cloudberry Database system.</p>
         <ul id="ul_v2b_5n2_pw">
-          <li>The Greenplum Database system must be configured to support Kerberos authentication.
-            For information about configuring Greenplum Database with Kerberos authentication, see
+          <li>The Cloudberry Database system must be configured to support Kerberos authentication.
+            For information about configuring Cloudberry Database with Kerberos authentication, see
               <xref href="#topic1" format="dita"/>. </li>
-          <li>You must know the fully-qualified domain name (FQDN) of the Greenplum Database master
-            host. Also, the Greenplum Database master host name must have a domain portion. If the
+          <li>You must know the fully-qualified domain name (FQDN) of the Cloudberry Database master
+            host. Also, the Cloudberry Database master host name must have a domain portion. If the
             system does do not have a domain, you must configure the system to use a domain.<p>This
               Linux <codeph>hostname</codeph> command displays the
             FQDN.</p><codeblock>hostname &#8211;&#8211;fqdn</codeblock></li>
-          <li>You must confirm that the Greenplum Database system has the same date and time as the
-            Active Directory domain. For example, you could set the Greenplum Database system NTP
+          <li>You must confirm that the Cloudberry Database system has the same date and time as the
+            Active Directory domain. For example, you could set the Cloudberry Database system NTP
             time source to be an AD Domain Controller, or configure the master host to use the same
             external time source as the AD Domain Controller.</li>
           <li>To support single sign-on, you configure an AD user account as a Managed Service
@@ -260,7 +260,7 @@ kinit</codeblock></li>
               <li>You need to add the Service Principal Name (SPN) attribute to the user account
                 information because the Kerberos utilities require the information during Kerberos
                 authentication. </li>
-              <li>Also, as Greenplum Database has unattended startups, you must also provide the
+              <li>Also, as Cloudberry Database has unattended startups, you must also provide the
                 account login details in a Kerberos keytab file.</li>
             </ul><note>Setting the SPN and creating the keytab requires AD administrative
               permissions.</note></li>
@@ -268,14 +268,14 @@ kinit</codeblock></li>
       </section>
       <section id="ad_setup">
         <title>Setting Up Active Directory</title>
-        <p>The AD naming convention should support multiple Greenplum Database systems. In this
+        <p>The AD naming convention should support multiple Cloudberry Database systems. In this
           example, we create a new AD Managed Service Account <codeph>svcPostresProd1</codeph> for
-          our <codeph>prod1</codeph> Greenplum Database system master host. </p>
+          our <codeph>prod1</codeph> Cloudberry Database system master host. </p>
         <p>The Active Directory domain is <codeph>example.local</codeph>.</p>
-        <p>The fully qualified domain name for the Greenplum Database master host is
+        <p>The fully qualified domain name for the Cloudberry Database master host is
             <codeph>prod1.example.local</codeph>.</p>
         <p>We will add the SPN <codeph>postgres/prod1.example.local</codeph> to this account.
-          Service accounts for other Greenplum Database systems will all be in the form
+          Service accounts for other Cloudberry Database systems will all be in the form
               <codeph>postgres/<varname>fully.qualified.hostname</varname></codeph>.</p>
         <p>
           <image href="graphics/kerb-ms-ad-new-object.png" placement="break" width="412px"
@@ -319,7 +319,7 @@ kinit</codeblock></li>
         <codeblock>ktpass -out svcPostgresProd1.keytab -princ postgres/prod1.example.local@EXAMPLE.LOCAL -mapUser svcPostgresProd1
    -pass <varname>your_password</varname> -crypto all -ptype KRB5_NT_PRINCIPAL</codeblock>
         <note>The AD domain <codeph>@EXAMPLE.LOCAL</codeph> is appended to the SPN.</note>
-        <p>You copy the keytab file <codeph>svcPostgresProd1.keytab</codeph> to the Greenplum
+        <p>You copy the keytab file <codeph>svcPostgresProd1.keytab</codeph> to the Cloudberry
           Database master host.</p>
         <p>As an alternative to running <codeph>ktpass</codeph> as an AD Domain Administrator, you
           can run the Java <codeph>ktab.exe</codeph> utility to generate a keytab file if you have
@@ -336,9 +336,9 @@ Service key for svcPostgresprod1 is saved in svcPostgresProd1.keytab</codeblock>
               Files for JDK/JRE</cite> from Oracle. </note></p>
       </section>
       <section id="gpdb_ad_setup">
-        <title>Setting Up Greenplum Database for Active Directory</title>
+        <title>Setting Up Cloudberry Database for Active Directory</title>
         <p>These instructions assume that the Kerberos workstation utilities
-            <codeph>krb5-workstation</codeph> are installed on the Greenplum Database master
+            <codeph>krb5-workstation</codeph> are installed on the Cloudberry Database master
           host.</p>
         <p>Update <codeph>/etc/krb5.conf</codeph> with the AD domain name details and the location
           of an AD domain controller. This is an example configuration.</p>
@@ -364,18 +364,18 @@ Service key for svcPostgresprod1 is saved in svcPostgresProd1.keytab</codeblock>
 [domain_realm]
  .example.local = EXAMPLE.LOCAL
  example.com = EXAMPLE.LOCAL</codeblock>
-        <p>Copy the Kerberos keytab file that contains the AD user information to the Greenplum
+        <p>Copy the Kerberos keytab file that contains the AD user information to the Cloudberry
           Database master directory. This example copies the
             <codeph>svcPostgresProd1.keytab</codeph> that was created in <xref
             href="#topic_uzb_t5m_sv/ad_setup" format="dita">Active Directory Setup</xref>.</p>
         <codeblock>mv svcPostgresProd1.keytab $COORDINATOR_DATA_DIRECTORY
 chown gpadmin:gpadmin $COORDINATOR_DATA_DIRECTORY/svcPostgresProd1.keytab
 chmod 600 $COORDINATOR_DATA_DIRECTORY/svcPostgresProd1.keytab</codeblock>
-        <p>Add this line as the last line in the Greenplum Database <codeph>pg_hba.conf</codeph>
-          file. This line configures Greenplum Database authentication to use Active Directory for
+        <p>Add this line as the last line in the Cloudberry Database <codeph>pg_hba.conf</codeph>
+          file. This line configures Cloudberry Database authentication to use Active Directory for
           authentication for connection any attempt that is not matched by a previous line.</p>
         <codeblock>host all all 0.0.0.0/0 gss include_realm=0</codeblock>
-        <p>Update the Greenplum Database <codeph>postgresql.conf</codeph> file with the location
+        <p>Update the Cloudberry Database <codeph>postgresql.conf</codeph> file with the location
           details for the keytab file and the principal name to use. The fully qualified host name
           and the default realm from <codeph>/etc/krb5.conf</codeph> forms the full service
           principal name.</p>
@@ -390,15 +390,15 @@ create role dev1 with login superuser;</codeblock>
         <p>Restart the database to use the updated authentication information:</p>
         <codeblock>gpstop -a
 gpstart  </codeblock>
-        <note>The Greenplum Database libraries might conflict with the Kerberos workstation
+        <note>The Cloudberry Database libraries might conflict with the Kerberos workstation
           utilities such as <codeph>kinit</codeph>. If you are using these utilities on the
-          Greenplum Database master, you can either run a <codeph>gpadmin</codeph> shell that does
+          Cloudberry Database master, you can either run a <codeph>gpadmin</codeph> shell that does
           not source the <codeph>$GPHOME/greenplum_path.sh</codeph> script, or unset the
             <codeph>LD_LIBRARY_PATH</codeph> environment variable similar to this
           example:<codeblock>unset LD_LIBRARY_PATH
 kinit
 source $GPHOME/greenplum_path.sh</codeblock></note>
-        <p>Confirm Greenplum Database access with Kerberos authentication:</p>
+        <p>Confirm Cloudberry Database access with Kerberos authentication:</p>
         <codeblock>kinit dev1
 psql -h prod1.example.local -U dev1</codeblock>
       </section>
@@ -406,7 +406,7 @@ psql -h prod1.example.local -U dev1</codeblock>
         <title>Single Sign-On Examples</title>
         <p>These single sign-on examples that use AD and Kerberos assume that the AD user
             <codeph>dev1</codeph> configured for single sign-on is logged into the Windows desktop. </p>
-        <p>This example configures Aginity Workbench for Greenplum Database. When using single
+        <p>This example configures Aginity Workbench for Cloudberry Database. When using single
           sign-on, you enable Use Integrated Security.</p>
         <p>
           <image href="graphics/kerb-aginity-config.png" placement="break" width="351px"
@@ -439,16 +439,16 @@ print(my_data)</codeblock>
         </ul>
         <ul id="ul_azk_1bs_wv">
           <li>This login error can occur when there is a mismatch between the Windows ID and the
-            Greenplum Database user role ID. This log file entry shows the login error. A user
+            Cloudberry Database user role ID. This log file entry shows the login error. A user
               <codeph>dev22</codeph> is attempting to login from a Windows desktop where the user is
             logged in as a different Windows
               user.<codeblock>2016-03-29 14:30:54.041151 PDT,"dev22","gpadmin",p15370,th2040321824,
   "172.28.9.181","49283",2016-03-29 14:30:53 PDT,1917,con32,,seg-1,,,x1917,sx1,
   "FATAL","28000","authentication failed for user ""dev22"": valid 
   until timestamp expired",,,,,,,0,,"auth.c",628,</codeblock><p>The
-              error can also occur when the user can be authenticated, but does not have a Greenplum
+              error can also occur when the user can be authenticated, but does not have a Cloudberry
               Database user role. </p><p>Ensure that the user is using the correct Windows ID and
-              that a Greenplum Database user role is configured for the user ID.</p></li>
+              that a Cloudberry Database user role is configured for the user ID.</p></li>
           <li>
             <p>This error can occur when the Kerberos keytab does not contain a matching
               cryptographic type to a client attempting to connect.

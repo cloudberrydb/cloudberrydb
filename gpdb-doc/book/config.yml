@@ -72,10 +72,10 @@ dita_sections:
   ditaval_location: ../gpdb-oss-webhelp.ditaval
 
 template_variables:
-  book_title: Greenplum Database Documentation
-  book_title_short:  Greenplum Database Docs
+  book_title: Cloudberry Database Documentation
+  book_title_short:  Cloudberry Database Docs
   domain_name: greenplum.org
-  product_link: <div class="header-item"><a href="https://greenplum.org">Back to Greenplum Database</a></div>
+  product_link: <div class="header-item"><a href="https://greenplum.org">Back to Cloudberry Database</a></div>
   product_url: https://greenplum.org
   support_call_to_action: <a href="https://greenplum.org/community/" target="_blank">Need Support?</a>
   support_link: <a href="https://github.com/greenplum-db/gpdb/wiki">Wiki</a>

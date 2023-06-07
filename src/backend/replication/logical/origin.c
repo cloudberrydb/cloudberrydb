@@ -3,7 +3,7 @@
  * origin.c
  *	  Logical replication progress tracking support.
  *
- * Copyright (c) 2013-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/logical/origin.c
@@ -70,33 +70,29 @@
 #include <unistd.h>
 #include <sys/stat.h>
 
-#include "funcapi.h"
-#include "miscadmin.h"
-
 #include "access/genam.h"
 #include "access/htup_details.h"
 #include "access/table.h"
 #include "access/xact.h"
-
 #include "catalog/catalog.h"
 #include "catalog/indexing.h"
+#include "funcapi.h"
+#include "miscadmin.h"
 #include "nodes/execnodes.h"
-
-#include "replication/origin.h"
-#include "replication/logical.h"
 #include "pgstat.h"
+#include "replication/logical.h"
+#include "replication/origin.h"
+#include "storage/condition_variable.h"
+#include "storage/copydir.h"
 #include "storage/fd.h"
 #include "storage/ipc.h"
 #include "storage/lmgr.h"
-#include "storage/condition_variable.h"
-#include "storage/copydir.h"
-
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/pg_lsn.h"
 #include "utils/rel.h"
-#include "utils/syscache.h"
 #include "utils/snapmgr.h"
+#include "utils/syscache.h"
 
 /*
  * Replay progress of a single remote node.
@@ -126,7 +122,7 @@ typedef struct ReplicationState
 	int			acquired_by;
 
 	/*
-	 * Condition variable that's signalled when acquired_by changes.
+	 * Condition variable that's signaled when acquired_by changes.
 	 */
 	ConditionVariable origin_cv;
 
@@ -148,7 +144,9 @@ typedef struct ReplicationStateOnDisk
 
 typedef struct ReplicationStateCtl
 {
+	/* Tranche to use for per-origin LWLocks */
 	int			tranche_id;
+	/* Array of length max_replication_slots */
 	ReplicationState states[FLEXIBLE_ARRAY_MEMBER];
 } ReplicationStateCtl;
 
@@ -165,6 +163,10 @@ TimestampTz replorigin_session_origin_timestamp = 0;
  * max_replication_slots?
  */
 static ReplicationState *replication_states;
+
+/*
+ * Actual shared memory block (replication_states[] is now part of this).
+ */
 static ReplicationStateCtl *replication_states_ctl;
 
 /*
@@ -180,11 +182,6 @@ static ReplicationState *session_replication_state = NULL;
 static void
 replorigin_check_prerequisites(bool check_slots, bool recoveryOK)
 {
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("only superusers can query or manipulate replication origins")));
-
 	if (check_slots && max_replication_slots == 0)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
@@ -209,7 +206,7 @@ replorigin_check_prerequisites(bool check_slots, bool recoveryOK)
  * Returns InvalidOid if the node isn't known yet and missing_ok is true.
  */
 RepOriginId
-replorigin_by_name(char *roname, bool missing_ok)
+replorigin_by_name(const char *roname, bool missing_ok)
 {
 	Form_pg_replication_origin ident;
 	Oid			roident = InvalidOid;
@@ -240,7 +237,7 @@ replorigin_by_name(char *roname, bool missing_ok)
  * Needs to be called in a transaction.
  */
 RepOriginId
-replorigin_create(char *roname)
+replorigin_create(const char *roname)
 {
 	Oid			roident;
 	HeapTuple	tuple = NULL;
@@ -325,26 +322,14 @@ replorigin_create(char *roname)
 	return roident;
 }
 
-
 /*
- * Drop replication origin.
- *
- * Needs to be called in a transaction.
+ * Helper function to drop a replication origin.
  */
-void
-replorigin_drop(RepOriginId roident, bool nowait)
+static void
+replorigin_drop_guts(Relation rel, RepOriginId roident, bool nowait)
 {
 	HeapTuple	tuple;
-	Relation	rel;
 	int			i;
-
-	Assert(IsTransactionState());
-
-	/*
-	 * To interlock against concurrent drops, we hold ExclusiveLock on
-	 * pg_replication_origin throughout this function.
-	 */
-	rel = table_open(ReplicationOriginRelationId, ExclusiveLock);
 
 	/*
 	 * First, clean up the slot state info, if there is any matching slot.
@@ -418,14 +403,43 @@ restart:
 	ReleaseSysCache(tuple);
 
 	CommandCounterIncrement();
-
-	/* now release lock again */
-	table_close(rel, ExclusiveLock);
 }
 
+/*
+ * Drop replication origin (by name).
+ *
+ * Needs to be called in a transaction.
+ */
+void
+replorigin_drop_by_name(const char *name, bool missing_ok, bool nowait)
+{
+	RepOriginId roident;
+	Relation	rel;
+
+	Assert(IsTransactionState());
+
+	/*
+	 * To interlock against concurrent drops, we hold ExclusiveLock on
+	 * pg_replication_origin till xact commit.
+	 *
+	 * XXX We can optimize this by acquiring the lock on a specific origin by
+	 * using LockSharedObject if required. However, for that, we first to
+	 * acquire a lock on ReplicationOriginRelationId, get the origin_id, lock
+	 * the specific origin and then re-check if the origin still exists.
+	 */
+	rel = table_open(ReplicationOriginRelationId, ExclusiveLock);
+
+	roident = replorigin_by_name(name, missing_ok);
+
+	if (OidIsValid(roident))
+		replorigin_drop_guts(rel, roident, nowait);
+
+	/* We keep the lock on pg_replication_origin until commit */
+	table_close(rel, NoLock);
+}
 
 /*
- * Lookup replication origin via it's oid and return the name.
+ * Lookup replication origin via its oid and return the name.
  *
  * The external name is palloc'd in the calling context.
  *
@@ -480,7 +494,7 @@ ReplicationOriginShmemSize(void)
 	/*
 	 * XXX: max_replication_slots is arguably the wrong thing to use, as here
 	 * we keep the replay state of *remote* transactions. But for now it seems
-	 * sufficient to reuse it, lest we introduce a separate GUC.
+	 * sufficient to reuse it, rather than introduce a separate GUC.
 	 */
 	if (max_replication_slots == 0)
 		return size;
@@ -510,9 +524,9 @@ ReplicationOriginShmemInit(void)
 	{
 		int			i;
 
-		replication_states_ctl->tranche_id = LWTRANCHE_REPLICATION_ORIGIN;
+		MemSet(replication_states_ctl, 0, ReplicationOriginShmemSize());
 
-		MemSet(replication_states, 0, ReplicationOriginShmemSize());
+		replication_states_ctl->tranche_id = LWTRANCHE_REPLICATION_ORIGIN_STATE;
 
 		for (i = 0; i < max_replication_slots; i++)
 		{
@@ -521,9 +535,6 @@ ReplicationOriginShmemInit(void)
 			ConditionVariableInit(&replication_states[i].origin_cv);
 		}
 	}
-
-	LWLockRegisterTranche(replication_states_ctl->tranche_id,
-						  "replication_origin");
 }
 
 /* ---------------------------------------------------------------------------
@@ -565,8 +576,8 @@ CheckPointReplicationOrigin(void)
 						tmppath)));
 
 	/*
-	 * no other backend can perform this at the same time, we're protected by
-	 * CheckpointLock.
+	 * no other backend can perform this at the same time; only one checkpoint
+	 * can happen at a time.
 	 */
 	tmpfd = OpenTransientFile(tmppath,
 							  O_CREAT | O_EXCL | O_WRONLY | PG_BINARY);
@@ -650,7 +661,7 @@ CheckPointReplicationOrigin(void)
 						tmppath)));
 	}
 
-	if (CloseTransientFile(tmpfd))
+	if (CloseTransientFile(tmpfd) != 0)
 		ereport(PANIC,
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m",
@@ -775,21 +786,21 @@ StartupReplicationOrigin(void)
 		replication_states[last_state].remote_lsn = disk_state.remote_lsn;
 		last_state++;
 
-		elog(LOG, "recovered replication state of node %u to %X/%X",
-			 disk_state.roident,
-			 (uint32) (disk_state.remote_lsn >> 32),
-			 (uint32) disk_state.remote_lsn);
+		ereport(LOG,
+				(errmsg("recovered replication state of node %u to %X/%X",
+						disk_state.roident,
+						LSN_FORMAT_ARGS(disk_state.remote_lsn))));
 	}
 
 	/* now check checksum */
 	FIN_CRC32C(crc);
 	if (file_crc != crc)
 		ereport(PANIC,
-				(errcode(ERRCODE_CONFIGURATION_LIMIT_EXCEEDED),
+				(errcode(ERRCODE_DATA_CORRUPTED),
 				 errmsg("replication slot checkpoint has wrong checksum %u, expected %u",
 						crc, file_crc)));
 
-	if (CloseTransientFile(fd))
+	if (CloseTransientFile(fd) != 0)
 		ereport(PANIC,
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m",
@@ -848,7 +859,7 @@ replorigin_redo(XLogReaderState *record)
  * that originated at the LSN remote_commit on the remote node was replayed
  * successfully and that we don't need to do so again. In combination with
  * setting up replorigin_session_origin_lsn and replorigin_session_origin
- * that ensures we won't loose knowledge about that after a crash if the
+ * that ensures we won't lose knowledge about that after a crash if the
  * transaction had a persistent effect (think of asynchronous commits).
  *
  * local_commit needs to be a local LSN of the commit so that we can make sure
@@ -1100,7 +1111,7 @@ replorigin_session_setup(RepOriginId node)
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_IN_USE),
-					 errmsg("replication identifier %d is already active for PID %d",
+					 errmsg("replication origin with OID %d is already active for PID %d",
 							curstate->roident, curstate->acquired_by)));
 		}
 
@@ -1261,16 +1272,12 @@ Datum
 pg_replication_origin_drop(PG_FUNCTION_ARGS)
 {
 	char	   *name;
-	RepOriginId roident;
 
 	replorigin_check_prerequisites(false, false);
 
 	name = text_to_cstring((text *) DatumGetPointer(PG_GETARG_DATUM(0)));
 
-	roident = replorigin_by_name(name, false);
-	Assert(OidIsValid(roident));
-
-	replorigin_drop(roident, true);
+	replorigin_drop_by_name(name, false, true);
 
 	pfree(name);
 

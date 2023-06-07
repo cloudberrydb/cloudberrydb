@@ -5,7 +5,7 @@
  *
  * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
- * Portions Copyright (c) 2008-2009, Greenplum Inc.
+ * Portions Copyright (c) 2008-2009, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -35,13 +35,14 @@
 #include "access/multixact.h"
 #include "catalog/storage_xlog.h"
 
+#include "access/amapi.h"
 #include "access/aosegfiles.h"
 #include "access/appendonlytid.h"
 #include "access/appendonlywriter.h"
 #include "access/aomd.h"
 #include "access/transam.h"
 #include "access/tupdesc.h"
-#include "access/tuptoaster.h"
+#include "access/heaptoast.h"
 #include "access/valid.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
@@ -54,6 +55,7 @@
 #include "cdb/cdbappendonlystorageformat.h"
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "cdb/cdbvars.h"
+#include "executor/executor.h"
 #include "fmgr.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -141,6 +143,12 @@ static void AppendOnlyExecutorReadBlock_Finish(
 
 static void AppendOnlyExecutorReadBlock_ResetCounts(
 										AppendOnlyExecutorReadBlock *executorReadBlock);
+
+extern void finishWriteBlock(AppendOnlyInsertDesc aoInsertDesc);
+extern void setupNextWriteBlock(AppendOnlyInsertDesc aoInsertDesc);
+
+/* Hook for plugins to get control in appendonly_delete() */
+appendonly_delete_hook_type appendonly_delete_hook = NULL;
 
 /* ----------------
  *		initscan - scan code common to appendonly_beginscan and appendonly_rescan
@@ -346,7 +354,7 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 
 
 	elogif(Debug_appendonly_print_scan, LOG,
-		   "Append-only scan initialize for table '%s', %u/%u/%u, segment file %u, EOF " INT64_FORMAT ", "
+		   "Append-only scan initialize for table '%s', %u/%u/%lu, segment file %u, EOF " INT64_FORMAT ", "
 		   "(compression = %s, usable blocksize %d)",
 		   NameStr(scan->aos_rd->rd_rel->relname),
 		   scan->aos_rd->rd_node.spcNode,
@@ -1326,6 +1334,7 @@ appendonlygettup(AppendOnlyScanDesc scan,
 			}
 
 			scan->bufferDone = false;
+			scan->rs_nblocks++;
 		}
 
 		found = AppendOnlyExecutorReadBlock_ScanNextTuple(&scan->executorReadBlock,
@@ -1376,7 +1385,7 @@ cancelLastBuffer(AppendOnlyInsertDesc aoInsertDesc)
 		Assert(!AppendOnlyStorageWrite_IsBufferAllocated(&aoInsertDesc->storageWrite));
 }
 
-static void
+void
 setupNextWriteBlock(AppendOnlyInsertDesc aoInsertDesc)
 {
 	Assert(aoInsertDesc->nonCompressedData == NULL);
@@ -1405,7 +1414,7 @@ setupNextWriteBlock(AppendOnlyInsertDesc aoInsertDesc)
 	aoInsertDesc->bufferCount++;
 }
 
-static void
+void
 finishWriteBlock(AppendOnlyInsertDesc aoInsertDesc)
 {
 	int			executorBlockKind;
@@ -1676,7 +1685,7 @@ appendonly_beginscan(Relation relation,
 	 * Get the pg_appendonly information for this table
 	 */
 	seginfo = GetAllFileSegInfo(relation,
-								appendOnlyMetaDataSnapshot, &segfile_count);
+								appendOnlyMetaDataSnapshot, &segfile_count, NULL);
 
 	aoscan = appendonly_beginrangescan_internal(relation,
 												snapshot,
@@ -1782,20 +1791,33 @@ bool
 appendonly_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
 {
 	AppendOnlyScanDesc aoscan = (AppendOnlyScanDesc) scan;
-
-	if (appendonlygettup(aoscan, direction, aoscan->rs_base.rs_nkeys, aoscan->aos_key, slot))
+	while (appendonlygettup(aoscan, direction, aoscan->rs_base.rs_nkeys, aoscan->aos_key, slot))
 	{
+		/* predicate pushdown test */
+		if (aoscan->aos_pushdown_qual)
+		{
+			/*
+			 * place the current tuple into the expr context
+			 */
+			aoscan->aos_pushdown_econtext->ecxt_scantuple = slot;
+
+			if (!ExecQual(aoscan->aos_pushdown_qual, aoscan->aos_pushdown_econtext))
+			{
+				/* Tuple fails qual, so free per-tuple memory and try again. */
+				ResetExprContext(aoscan->aos_pushdown_econtext);
+				continue;
+			}
+		}
+
 		pgstat_count_heap_getnext(aoscan->aos_rd);
 
 		return true;
 	}
-	else
-	{
-		if (slot)
-			ExecClearTuple(slot);
 
-		return false;
-	}
+	if (slot)
+		ExecClearTuple(slot);
+
+	return false;
 }
 
 static void
@@ -2152,9 +2174,20 @@ appendonly_fetch_init(Relation relation,
 		GetAllFileSegInfo(
 						  relation,
 						  appendOnlyMetaDataSnapshot,
-						  &aoFetchDesc->totalSegfiles);
-	for (segno = 0; segno < AOTupleId_MultiplierSegmentFileNum; ++segno)
+						  &aoFetchDesc->totalSegfiles,
+						  NULL);
+
+	/* 
+	 * Initialize lastSequence only for segments which we got above is sufficient,
+	 * rather than all AOTupleId_MultiplierSegmentFileNum ones that introducing
+	 * too many unnecessary calls in most cases.
+	 */
+	memset(aoFetchDesc->lastSequence, -1, sizeof(aoFetchDesc->lastSequence));
+	for (int i = -1; i < aoFetchDesc->totalSegfiles; i++)
 	{
+		/* always initailize segment 0 */
+		segno = (i < 0 ? 0 : aoFetchDesc->segmentFileInfo[i]->segno);
+		/* set corresponding bit for target segment */
 		aoFetchDesc->lastSequence[segno] = ReadLastSequence(aoFormData.segrelid, segno);
 	}
 
@@ -2229,6 +2262,14 @@ appendonly_fetch(AppendOnlyFetchDesc aoFetchDesc,
 	int			segmentFileNum = AOTupleIdGet_segmentFileNum(aoTupleId);
 	int64		rowNum = AOTupleIdGet_rowNum(aoTupleId);
 	bool		isSnapshotAny = (aoFetchDesc->snapshot == SnapshotAny);
+
+	Assert(segmentFileNum >= 0);
+
+	if (aoFetchDesc->lastSequence[segmentFileNum] == InvalidAORowNum)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("Row No. %ld in segment file No. %d is out of scanning scope for target relfilenode %lu.",
+				 		rowNum, segmentFileNum, aoFetchDesc->relation->rd_node.relNode)));
 
 	/*
 	 * This is an improvement for brin. BRIN index stores ranges of TIDs in
@@ -2507,6 +2548,9 @@ TM_Result
 appendonly_delete(AppendOnlyDeleteDesc aoDeleteDesc,
 				  AOTupleId *aoTupleId)
 {
+	TM_Result 	result;
+	ItemPointer tid;
+
 	Assert(aoDeleteDesc);
 	Assert(aoTupleId);
 
@@ -2524,7 +2568,14 @@ appendonly_delete(AppendOnlyDeleteDesc aoDeleteDesc,
 	/* tableName */
 #endif
 
-	return AppendOnlyVisimapDelete_Hide(&aoDeleteDesc->visiMapDelete, aoTupleId);
+	result = AppendOnlyVisimapDelete_Hide(&aoDeleteDesc->visiMapDelete, aoTupleId);
+	if (result == TM_Ok)
+	{
+		tid = (ItemPointer) aoTupleId;
+		if (appendonly_delete_hook)
+			(*appendonly_delete_hook) (aoDeleteDesc->aod_rel, tid);
+	}
+	return result;
 }
 
 /*
@@ -2815,11 +2866,8 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 	 * into the relation; instup is the caller's original untoasted data.
 	 */
 	if (need_toast)
-		tup = toast_insert_or_update_memtup(relation, instup,
-											NULL, aoInsertDesc->mt_bind,
-											aoInsertDesc->toast_tuple_target,
-											false,	/* errtbl is never AO */
-											0);
+		tup = memtup_toast_insert_or_update(relation, instup,
+											NULL, aoInsertDesc->mt_bind, 0);
 	else
 		tup = instup;
 
@@ -3029,3 +3077,20 @@ appendonly_insert_finish(AppendOnlyInsertDesc aoInsertDesc)
 	pfree(aoInsertDesc->title);
 	pfree(aoInsertDesc);
 }
+
+ExprState *
+appendonly_predicate_pushdown_prepare(AppendOnlyScanDesc aoscan,
+									  ExprState *qual,
+									  ExprContext *ecxt)
+{
+	aoscan->aos_pushdown_qual = qual;
+	aoscan->aos_pushdown_econtext = ecxt;
+
+	/*
+	 * For appendonly table, the whole qual can be push down, so no left qual
+	 * with seqscan node.
+	 */
+	return NULL;
+}
+
+/* end of file */

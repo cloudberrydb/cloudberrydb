@@ -17,7 +17,7 @@
  * distributed transaction identifier -- the timestamp -- also so we can
  * be sure which distributed transaction we are looking at.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -115,7 +115,7 @@ void
 DistributedLog_InitOldestXmin(void)
 {
 	TransactionId oldestXmin = ShmemVariableCache->oldestXid;
-	TransactionId latestXid = ShmemVariableCache->latestCompletedXid;
+	TransactionId latestXid = XidFromFullTransactionId(ShmemVariableCache->latestCompletedXid);
 
 	/*
 	 * Start scanning from oldest datfrozenxid, until we find a
@@ -272,8 +272,20 @@ DistributedLog_AdvanceOldestXmin(TransactionId oldestLocalXmin,
 											&expected, (uint32)oldestXmin))
 				break;
 
+			/*
+			* GPDB_14_MERGE_FIXME:
+			* Other processes may set DistributedLogShared->oldestXmin,
+			* should we return the more accurate value instead of oldestXmin we got ?
+			*/
 			if (TransactionIdPrecedesOrEquals(oldestXmin, expected))
+			{
+				/*
+				* If we got here, other process must have updated the oldestXmin.
+				* Return the more accurate value.
+				*/
+				oldestXmin = expected;
 				break;
+			}
 		}
 	}
 
@@ -653,7 +665,8 @@ DistributedLog_ShmemInit(void)
 	DistributedLogCtl->PagePrecedes = DistributedLog_PagePrecedes;
 	SimpleLruInit(DistributedLogCtl, "DistributedLogCtl", DistributedLog_ShmemBuffers(), 0,
 				  DistributedLogControlLock, "pg_distributedlog",
-				  LWTRANCHE_DISTRIBUTEDLOG_BUFFERS);
+				  LWTRANCHE_DISTRIBUTEDLOG_BUFFERS,
+				  SYNC_HANDLER_DISTRIBUTED_LOG);
 
 	/* Create or attach to the shared structure */
 	DistributedLogShared =
@@ -829,22 +842,6 @@ DistributedLog_Startup(TransactionId oldestActiveXid,
 }
 
 /*
- * This must be called ONCE during postmaster or standalone-backend shutdown
- */
-void
-DistributedLog_Shutdown(void)
-{
-	if (IS_QUERY_DISPATCHER())
-		return;
-
-	elog((Debug_print_full_dtm ? LOG : DEBUG5),
-		 "DistributedLog_Shutdown");
-
-	/* Flush dirty DistributedLog pages to disk */
-	SimpleLruFlush(DistributedLogCtl, false);
-}
-
-/*
  * Perform a checkpoint --- either during shutdown, or on-the-fly
  */
 void
@@ -857,7 +854,7 @@ DistributedLog_CheckPoint(void)
 		 "DistributedLog_CheckPoint");
 
 	/* Flush dirty DistributedLog pages to disk */
-	SimpleLruFlush(DistributedLogCtl, true);
+	SimpleLruWriteAll(DistributedLogCtl, true);
 }
 
 
@@ -1076,4 +1073,13 @@ DistributedLog_redo(XLogReaderState *record)
 	}
 	else
 		elog(PANIC, "DistributedLog_redo: unknown op code %u", info);
+}
+
+/*
+ * Entrypoint for sync.c to distributed log files.
+ */
+int
+DistributedLog_syncfiletag(const FileTag *ftag, char *path)
+{
+	return SlruSyncFileTag(DistributedLogCtl, ftag, path);
 }

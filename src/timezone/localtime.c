@@ -36,7 +36,7 @@
  *		in which Daylight Saving Time is never observed.
  *	4.	They might reference tzname[0] after setting to a time zone
  *		in which Standard Time is never observed.
- *	5.	They might reference tm.TM_ZONE after calling offtime.
+ *	5.	They might reference tm.tm_zone after calling offtime.
  * What's best to do in the above cases is open to debate;
  * for now, we just set things up so that in any of the five cases
  * WILDABBR is used. Another possibility: initialize tzname[0] to the
@@ -53,14 +53,7 @@ static const char wildabbr[] = WILDABBR;
 static const char gmt[] = "GMT";
 
 /*
- * PG: We cache the result of trying to load the TZDEFRULES zone here.
- * tzdefrules_loaded is 0 if not tried yet, +1 if good, -1 if failed.
- */
-static struct state *tzdefrules_s = NULL;
-static int	tzdefrules_loaded = 0;
-
-/*
- * The DST rules to use if TZ has no rules and we can't load TZDEFRULES.
+ * The DST rules to use if a POSIX TZ string has no rules.
  * Default to US rules as of 2017-05-07.
  * POSIX does not specify the default DST rules;
  * for historical reasons, US rules are a common default.
@@ -92,6 +85,7 @@ struct rule
 static struct pg_tm *gmtsub(pg_time_t const *, int32, struct pg_tm *);
 static bool increment_overflow(int *, int);
 static bool increment_overflow_time(pg_time_t *, int32);
+static int64 leapcorr(struct state const *, pg_time_t);
 static struct pg_tm *timesub(pg_time_t const *, int32, struct state const *,
 							 struct pg_tm *);
 static bool typesequiv(struct state const *, int, int);
@@ -138,7 +132,7 @@ detzcode(const char *const codep)
 		 * Do two's-complement negation even on non-two's-complement machines.
 		 * If the result would be minval - 1, return minval.
 		 */
-		result -= !TWOS_COMPLEMENT(int32) &&result != 0;
+		result -= !TWOS_COMPLEMENT(int32) && result != 0;
 		result += minval;
 	}
 	return result;
@@ -152,7 +146,7 @@ detzcode64(const char *const codep)
 	int64		one = 1;
 	int64		halfmaxval = one << (64 - 2);
 	int64		maxval = halfmaxval - 1 + halfmaxval;
-	int64		minval = -TWOS_COMPLEMENT(int64) -maxval;
+	int64		minval = -TWOS_COMPLEMENT(int64) - maxval;
 
 	result = codep[0] & 0x7f;
 	for (i = 1; i < 8; ++i)
@@ -164,7 +158,7 @@ detzcode64(const char *const codep)
 		 * Do two's-complement negation even on non-two's-complement machines.
 		 * If the result would be minval - 1, return minval.
 		 */
-		result -= !TWOS_COMPLEMENT(int64) &&result != 0;
+		result -= !TWOS_COMPLEMENT(int64) && result != 0;
 		result += minval;
 	}
 	return result;
@@ -173,7 +167,7 @@ detzcode64(const char *const codep)
 static bool
 differ_by_repeat(const pg_time_t t1, const pg_time_t t0)
 {
-	if (TYPE_BIT(pg_time_t) -TYPE_SIGNED(pg_time_t) <SECSPERREPEAT_BITS)
+	if (TYPE_BIT(pg_time_t) - TYPE_SIGNED(pg_time_t) < SECSPERREPEAT_BITS)
 		return 0;
 	return t1 - t0 == SECSPERREPEAT;
 }
@@ -477,12 +471,14 @@ tzloadbody(char const *name, char *canonname, struct state *sp, bool doextend,
 
 				for (i = 0; i < ts->timecnt; i++)
 					if (sp->timecnt == 0
-						|| sp->ats[sp->timecnt - 1] < ts->ats[i])
+						|| (sp->ats[sp->timecnt - 1]
+							< ts->ats[i] + leapcorr(sp, ts->ats[i])))
 						break;
 				while (i < ts->timecnt
 					   && sp->timecnt < TZ_MAX_TIMES)
 				{
-					sp->ats[sp->timecnt] = ts->ats[i];
+					sp->ats[sp->timecnt]
+						= ts->ats[i] + leapcorr(sp, ts->ats[i]);
 					sp->types[sp->timecnt] = (sp->typecnt
 											  + ts->types[i]);
 					sp->timecnt++;
@@ -983,14 +979,15 @@ tzparse(const char *name, struct state *sp, bool lastditch)
 		return false;
 
 	/*
-	 * The IANA code always tries tzload(TZDEFRULES) here.  We do not want to
-	 * do that; it would be bad news in the lastditch case, where we can't
-	 * assume pg_open_tzfile() is sane yet.  Moreover, the only reason to do
-	 * it unconditionally is to absorb the TZDEFRULES zone's leap second info,
-	 * which we don't want to do anyway.  Without that, we only need to load
-	 * TZDEFRULES if the zone name specifies DST but doesn't incorporate a
-	 * POSIX-style transition date rule, which is not a common case.
+	 * The IANA code always tries to tzload(TZDEFRULES) here.  We do not want
+	 * to do that; it would be bad news in the lastditch case, where we can't
+	 * assume pg_open_tzfile() is sane yet.  Moreover, if we did load it and
+	 * it contains leap-second-dependent info, that would cause problems too.
+	 * Finally, IANA has deprecated the TZDEFRULES feature, so it presumably
+	 * will die at some point.  Desupporting it now seems like good
+	 * future-proofing.
 	 */
+	load_ok = false;
 	sp->goback = sp->goahead = false;	/* simulate failed tzload() */
 	sp->leapcnt = 0;			/* intentionally assume no leap seconds */
 
@@ -1024,38 +1021,8 @@ tzparse(const char *name, struct state *sp, bool lastditch)
 		}
 		else
 			dstoffset = stdoffset - SECSPERHOUR;
-		if (*name == '\0')
-		{
-			/*
-			 * The POSIX zone name does not provide a transition-date rule.
-			 * Here we must load the TZDEFRULES zone, if possible, to serve as
-			 * source data for the transition dates.  Unlike the IANA code, we
-			 * try to cache the data so it's only loaded once.
-			 */
-			if (tzdefrules_loaded == 0)
-			{
-				/* Allocate on first use */
-				if (tzdefrules_s == NULL)
-					tzdefrules_s = (struct state *) malloc(sizeof(struct state));
-				if (tzdefrules_s != NULL)
-				{
-					if (tzload(TZDEFRULES, NULL, tzdefrules_s, false) == 0)
-						tzdefrules_loaded = 1;
-					else
-						tzdefrules_loaded = -1;
-					/* In any case, we ignore leap-second data from the file */
-					tzdefrules_s->leapcnt = 0;
-				}
-			}
-			load_ok = (tzdefrules_loaded > 0);
-			if (load_ok)
-				memcpy(sp, tzdefrules_s, sizeof(struct state));
-			else
-			{
-				/* If we can't load TZDEFRULES, fall back to hard-wired rule */
-				name = TZDEFRULESTRING;
-			}
-		}
+		if (*name == '\0' && !load_ok)
+			name = TZDEFRULESTRING;
 		if (*name == ',' || *name == ';')
 		{
 			struct rule start;
@@ -1491,7 +1458,7 @@ timesub(const pg_time_t *timep, int32 offset,
 		int			leapdays;
 
 		tdelta = tdays / DAYSPERLYEAR;
-		if (!((!TYPE_SIGNED(pg_time_t) ||INT_MIN <= tdelta)
+		if (!((!TYPE_SIGNED(pg_time_t) || INT_MIN <= tdelta)
 			  && tdelta <= INT_MAX))
 			goto out_of_range;
 		idelta = tdelta;
@@ -1610,6 +1577,22 @@ increment_overflow_time(pg_time_t *tp, int32 j)
 		return true;
 	*tp += j;
 	return false;
+}
+
+static int64
+leapcorr(struct state const *sp, pg_time_t t)
+{
+	struct lsinfo const *lp;
+	int			i;
+
+	i = sp->leapcnt;
+	while (--i >= 0)
+	{
+		lp = &sp->lsis[i];
+		if (t >= lp->ls_trans)
+			return lp->ls_corr;
+	}
+	return 0;
 }
 
 /*

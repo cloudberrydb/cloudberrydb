@@ -16,17 +16,17 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
         </section>
         <section id="section3">
             <title>Description</title>
-            <p><codeph>CREATE LANGUAGE</codeph> registers a new procedural language with a Greenplum
+            <p><codeph>CREATE LANGUAGE</codeph> registers a new procedural language with a Cloudberry
                 database. Subsequently, functions and trigger procedures can be defined in this new
                 language.</p> 
-            <note>Procedural languages for Greenplum Database have been made into "extensions," and
+            <note>Procedural languages for Cloudberry Database have been made into "extensions," and
                 should therefore be installed with <xref href="CREATE_EXTENSION.xml#topic1"/>, not
                     <codeph>CREATE LANGUAGE</codeph>. Using <codeph>CREATE LANGUAGE</codeph>
                 directly should be restricted to extension installation scripts. If you have a
                 "bare" language in your database, perhaps as a result of an upgrade, you can convert
                 it to an extension using <codeph>CREATE EXTENSION <varname>langname</varname> FROM
                     unpackaged</codeph>. </note>
-            <p>Superusers can register a new language with a Greenplum database. A database owner
+            <p>Superusers can register a new language with a Cloudberry database. A database owner
                 can also register within that database any language listed in the
                     <codeph>pg_pltemplate</codeph> catalog in which the
                     <codeph>tmpldbacreate</codeph> field is true. The default configuration allows
@@ -54,13 +54,13 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                 database server has no built-in knowledge about how to interpret the function's
                 source code. The task is passed to a special handler that knows the details of the
                 language. The handler could either do all the work of parsing, syntax analysis,
-                execution, and so on or it could serve as a bridge between Greenplum Database and an
+                execution, and so on or it could serve as a bridge between Cloudberry Database and an
                 existing implementation of a programming language. The handler itself is a C
                 language function compiled into a shared object and loaded on demand, just like any
                 other C function. Therese procedural language packages are included in the standard
-                Greenplum Database distribution: PL/pgSQL, PL/Perl, and PL/Python. Language handlers
+                Cloudberry Database distribution: PL/pgSQL, PL/Perl, and PL/Python. Language handlers
                 have also been added for PL/Java and PL/R, but those languages are not pre-installed
-                with Greenplum Database. See the topic on <xref
+                with Cloudberry Database. See the topic on <xref
                     href="https://www.postgresql.org/docs/9.4/xplang.html" scope="external"
                     format="html">Procedural Languages</xref> in the PostgreSQL documentation for
                 more information on developing functions using these procedural languages.</p>
@@ -68,12 +68,12 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                 and R to be installed, respectively. </p>
             <p otherprops="pivotal">On RHEL and SUSE platforms, download the appropriate extensions
                 from <xref href="https://network.pivotal.io/products/pivotal-gpdb" scope="external" format="html">VMware Tanzu
-                    Network</xref>, then install the extensions using the Greenplum Package Manager
+                    Network</xref>, then install the extensions using the Cloudberry Package Manager
                     (<codeph>gppkg</codeph>) utility to ensure that all dependencies are installed
-                as well as the extensions. See the Greenplum Database Utility Guide for details
+                as well as the extensions. See the Cloudberry Database Utility Guide for details
                 about <codeph>gppkg</codeph>. </p>
             <p>There are two forms of the <codeph>CREATE LANGUAGE</codeph> command. In the first
-                form, the user specifies the name of the desired language and the Greenplum Database
+                form, the user specifies the name of the desired language and the Cloudberry Database
                 server uses the <codeph>pg_pltemplate</codeph> system catalog to determine the
                 correct parameters. In the second form, the user specifies the language parameters
                 as well as the language name. You can use the second form to create a language that
@@ -92,7 +92,7 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                         not grant access to data that the user would not otherwise
                         have. If this key word is omitted
                         when registering the language, only users with the
-                        Greenplum Database superuser privilege can
+                        Cloudberry Database superuser privilege can
                         use this language to create new functions.</pd>
                 </plentry>
                 <plentry>
@@ -108,7 +108,7 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                             <codeph>plpgsql</codeph>, <codeph>plperl</codeph>, and
                             <codeph>plpythonu</codeph>. The languages <codeph>plpgsql</codeph>
                         (PL/pgSQL) and <codeph>plpythonu</codeph> (PL/Python) are installed by
-                        default in Greenplum Database.</pd>
+                        default in Cloudberry Database.</pd>
                 </plentry>
                 <plentry>
                     <pt>HANDLER <varname>call_handler</varname></pt>
@@ -117,7 +117,7 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                         function that will be called to run the procedural language functions.
                         The call handler for a procedural language must be written in a compiled
                         language such as C with version 1 call convention and registered with
-                        Greenplum Database as a function taking no arguments and returning the
+                        Cloudberry Database as a function taking no arguments and returning the
                             <codeph>language_handler</codeph> type, a placeholder type that is
                         simply used to identify the function as a call handler.</pd>
                 </plentry>
@@ -140,7 +140,7 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                         function that will be called to run the procedural language functions.
                         The call handler for a procedural language must be written in a compiled
                         language such as C with version 1 call convention and registered with
-                        Greenplum Database as a function taking no arguments and returning the
+                        Cloudberry Database as a function taking no arguments and returning the
                             <codeph>language_handler</codeph> type, a placeholder type that is
                         simply used to identify the function as a call handler.</pd>
                 </plentry>
@@ -163,7 +163,7 @@ CREATE [ OR REPLACE ] [ TRUSTED ] [ PROCEDURAL ] LANGUAGE <varname>name</varname
                 <codeph>pg_pltemplate</codeph>. But when there is an entry, the functions need not
                 already exist; they will be automatically defined if not present in the database. </p>
             <p>Any shared library that implements a language must be located in the same
-                    <codeph>LD_LIBRARY_PATH</codeph> location on all segment hosts in your Greenplum
+                    <codeph>LD_LIBRARY_PATH</codeph> location on all segment hosts in your Cloudberry
                 Database array.</p>
         </section>
         <section id="section6">
@@ -182,7 +182,7 @@ CREATE LANGUAGE plsample
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>CREATE LANGUAGE</codeph> is a Greenplum Database extension. </p>
+            <p><codeph>CREATE LANGUAGE</codeph> is a Cloudberry Database extension. </p>
         </section>
         <section id="section8">
             <title>See Also</title>

@@ -3,7 +3,7 @@
  * orclauses.c
  *	  Routines to extract restriction OR clauses from join OR clauses
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -236,7 +236,7 @@ extract_or_clause(RestrictInfo *or_rinfo, RelOptInfo *rel)
 		subclause = (Node *) make_ands_explicit(subclauses);
 		if (is_orclause(subclause))
 			clauselist = list_concat(clauselist,
-									 list_copy(((BoolExpr *) subclause)->args));
+									 ((BoolExpr *) subclause)->args);
 		else
 			clauselist = lappend(clauselist, subclause);
 	}
@@ -268,7 +268,8 @@ consider_new_or_clause(PlannerInfo *root, RelOptInfo *rel,
 	 * Build a RestrictInfo from the new OR clause.  We can assume it's valid
 	 * as a base restriction clause.
 	 */
-	or_rinfo = make_restrictinfo(orclause,
+	or_rinfo = make_restrictinfo(root,
+								 orclause,
 								 true,
 								 false,
 								 false,

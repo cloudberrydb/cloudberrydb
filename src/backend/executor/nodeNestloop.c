@@ -3,9 +3,9 @@
  * nodeNestloop.c
  *	  routines to support nest-loop joins
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -115,7 +115,7 @@ ExecNestLoop_guts(PlanState *pstate)
 	if (node->prefetch_inner)
 	{
 		/*
-		 * Prefetch inner is Greenplum specific behavior.
+		 * Prefetch inner is Cloudberry specific behavior.
 		 * However, inner plan may depend on outer plan as
 		 * outerParams. If so, we have to fake those params
 		 * to avoid null pointer reference issue. And because

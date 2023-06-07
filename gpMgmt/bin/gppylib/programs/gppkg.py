@@ -1,5 +1,5 @@
 # Line too long - pylint: disable=C0301
-# Copyright (c) Greenplum Inc 2011. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2011. All Rights Reserved.
 
 from optparse import OptionGroup
 import os
@@ -87,7 +87,7 @@ class GpPkgProgram:
     @staticmethod
     def create_parser():
         parser = OptParser(option_class=OptChecker,
-            description="Greenplum Package Manager",
+            description="Cloudberry Package Manager",
             version='%prog version $Revision: #1 $')
         parser.setHelp([])
 

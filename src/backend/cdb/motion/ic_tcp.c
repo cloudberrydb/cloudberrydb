@@ -2,7 +2,7 @@
  * ic_tcp.c
  *	   Interconnect code specific to TCP transport.
  *
- * Portions Copyright (c) 2005-2008, Greenplum, Inc.
+ * Portions Copyright (c) 2005-2008, Cloudberry, Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -1270,7 +1270,6 @@ SetupTCPInterconnect(EState *estate)
 	interconnect_context = palloc0(sizeof(ChunkTransportState));
 
 	/* initialize state variables */
-	Assert(interconnect_context->size == 0);
 	interconnect_context->estate = estate;
 	interconnect_context->size = CTS_INITIAL_SIZE;
 	interconnect_context->states = palloc0(CTS_INITIAL_SIZE * sizeof(ChunkTransportStateEntry));
@@ -1708,23 +1707,18 @@ SetupTCPInterconnect(EState *estate)
 		 * receive the REGISTER message.  this is why they are all in a single
 		 * list.
 		 *
-		 * NOTE: we don't use foreach() here because we want to trim from the
-		 * list as we go.
-		 *
 		 * We used to bail out of the while loop when incoming_count hit
 		 * expectedTotalIncoming, but that causes problems if some connections
 		 * are left over -- better to just process them here.
 		 */
 		cell = list_head(interconnect_context->incompleteConns);
-		while (n > 0 && cell != NULL)
+		foreach (cell, interconnect_context->incompleteConns)
 		{
-			conn = (MotionConn *) lfirst(cell);
+			if (n <= 0) {
+				break;
+			}
 
-			/*
-			 * we'll get the next cell ready now in case we need to delete the
-			 * cell that corresponds to our MotionConn
-			 */
-			cell = lnext(cell);
+			conn = (MotionConn *) lfirst(cell);
 
 			if (MPP_FD_ISSET(conn->sockfd, &rset))
 			{
@@ -1736,7 +1730,7 @@ SetupTCPInterconnect(EState *estate)
 					 * (and has been dropped), or we've added it to the
 					 * appropriate hash table)
 					 */
-					interconnect_context->incompleteConns = list_delete_ptr(interconnect_context->incompleteConns, conn);
+					interconnect_context->incompleteConns = foreach_delete_current(interconnect_context->incompleteConns, cell);
 
 					/* is the connection ready ? */
 					if (conn->sockfd != -1)
@@ -1847,7 +1841,7 @@ SetupTCPInterconnect(EState *estate)
 			elog(DEBUG2, "Incomplete connections after known connections done, cleaning %d",
 				 list_length(interconnect_context->incompleteConns));
 
-		while ((cell = list_head(interconnect_context->incompleteConns)) != NULL)
+		foreach(cell, interconnect_context->incompleteConns)
 		{
 			conn = (MotionConn *) lfirst(cell);
 
@@ -1859,11 +1853,11 @@ SetupTCPInterconnect(EState *estate)
 				conn->sockfd = -1;
 			}
 
-			interconnect_context->incompleteConns = list_delete_ptr(interconnect_context->incompleteConns, conn);
-
 			if (conn->pBuff)
 				pfree(conn->pBuff);
 			pfree(conn);
+
+			interconnect_context->incompleteConns = foreach_delete_current(interconnect_context->incompleteConns, cell);
 		}
 	}
 
@@ -2524,14 +2518,15 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 						 int16 *srcRoute)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
 	TupleChunkListItem tcItem;
+	MotionConn 	*conn;
 	mpp_fd_set	rset;
 	int			n,
 				i,
 				index;
 	bool		skipSelect = false;
-	int			waitFd = PGINVALID_SOCKET;
+	int 		nwaitfds = 0;
+	int 		*waitFds = NULL;
 
 #ifdef AMS_VERBOSE_LOGGING
 	elog(DEBUG5, "RecvTupleChunkFromAny(motNodeId=%d)", motNodeID);
@@ -2582,21 +2577,27 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 		if (skipSelect)
 			break;
 
-		/* 
+		/*
 		 * Also monitor the events on dispatch fds, eg, errors or sequence
 		 * request from QEs.
 		 */
+		nwaitfds = 0;
 		if (Gp_role == GP_ROLE_DISPATCH)
 		{
-			waitFd = cdbdisp_getWaitSocketFd(transportStates->estate->dispatcherState);
-			if (waitFd != PGINVALID_SOCKET)
-			{
-				MPP_FD_SET(waitFd, &rset);
-				if (waitFd > nfds)
-					nfds = waitFd;
-			}
+			waitFds = cdbdisp_getWaitSocketFds(transportStates->estate->dispatcherState, &nwaitfds);
+			if (waitFds != NULL)
+				for (i = 0; i < nwaitfds; i++)
+				{
+					MPP_FD_SET(waitFds[i], &rset);
+					/* record the max fd number for select() later */
+					if (waitFds[i] > nfds)
+						nfds = waitFds[i];
+				}
+
 		}
 
+		// GPDB_12_MERGE_FIXME: should use WaitEventSetWait() instead of select()
+		// follow the routine in ic_udpifc.c
 		n = select(nfds + 1, (fd_set *) &rset, NULL, NULL, &timeout);
 		if (n < 0)
 		{
@@ -2607,12 +2608,23 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState *transportStates,
 					 errmsg("interconnect error receiving an incoming packet"),
 					 errdetail("%s: %m", "select")));
 		}
-		else if (n > 0 && waitFd != PGINVALID_SOCKET && MPP_FD_ISSET(waitFd, &rset))
+		else if (n > 0 && nwaitfds > 0)
 		{
+			bool need_check = false;
+			for (i = 0; i < nwaitfds; i++)
+				if (MPP_FD_ISSET(waitFds[i], &rset))
+				{
+					need_check = true;
+					n--;
+				}
+
 			/* handle events on dispatch connection */
-			checkForCancelFromQD(transportStates);
-			n--;
+			if (need_check)
+				checkForCancelFromQD(transportStates);
 		}
+
+		if (waitFds)
+			pfree(waitFds);
 
 #ifdef AMS_VERBOSE_LOGGING
 		elog(DEBUG5, "RecvTupleChunkFromAny() select() returned %d ready sockets", n);

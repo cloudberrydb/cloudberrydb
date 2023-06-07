@@ -39,7 +39,7 @@ MPP_20426(void **state, TransactionId nextXid)
 	VariableCacheData data;
 	ShmemVariableCache = &data;
 	ShmemVariableCache->oldestXid = 3;
-	ShmemVariableCache->latestCompletedXid = 4;
+	ShmemVariableCache->latestCompletedXid = FullTransactionIdFromU64(4);
 	DistributedLogShmem dls;
 	DistributedLogShared = &dls;
 

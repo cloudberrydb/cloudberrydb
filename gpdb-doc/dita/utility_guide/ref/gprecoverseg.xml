@@ -35,10 +35,10 @@
         for the segment, does not attempt to recover that segment instance, and continues the
         recovery process. </p><p>A segment instance can fail for several reasons, such as a host
         failure, network failure, or disk failure. When a segment instance fails, its status is
-        marked as <codeph>d</codeph> (down) in the Greenplum Database system catalog, and its mirror
+        marked as <codeph>d</codeph> (down) in the Cloudberry Database system catalog, and its mirror
         is activated in <codeph>Not in Sync</codeph> mode. In order to bring the failed segment
         instance back into operation again, you must first correct the problem that made it fail in
-        the first place, and then recover the segment instance in Greenplum Database using
+        the first place, and then recover the segment instance in Cloudberry Database using
           <codeph>gprecoverseg</codeph>.</p><note otherprops="pivotal"> If incremental recovery was
         not successful and the down segment instance data is not corrupted, contact VMware Support.
         </note><p>Segment recovery using <codeph>gprecoverseg</codeph> requires that you have an
@@ -67,11 +67,11 @@
         query:</p><codeblock>=# SELECT dbid, content, address, port, datadir 
    FROM gp_segment_configuration
    ORDER BY dbid;</codeblock><p>The
-        new recovery segment host must be pre-installed with the Greenplum Database software and
+        new recovery segment host must be pre-installed with the Cloudberry Database software and
         configured exactly the same as the existing segment hosts. A spare data directory location
         must exist on all currently configured segment hosts and have enough disk space to
         accommodate the failed segments.</p><p>The recovery process marks the segment as up again in
-        the Greenplum Database system catalog, and then initiates the resynchronization process to
+        the Cloudberry Database system catalog, and then initiates the resynchronization process to
         bring the transactional state of the segment up-to-date with the latest changes. The system
         is online and available during <codeph>Not in Sync</codeph> mode. </p></section>
     <section id="section4">
@@ -123,11 +123,11 @@
           <pt>--hba-hostnames <varname>boolean</varname></pt>
           <pd>Optional. Controls whether this utility uses IP addresses or host names in the
               <codeph>pg_hba.conf</codeph> file when updating this file with addresses that can
-            connect to Greenplum Database. When set to 0 -- the default value -- this utility uses
+            connect to Cloudberry Database. When set to 0 -- the default value -- this utility uses
             IP addresses when updating this file. When set to 1, this utility uses host names when
             updating this file. For consistency, use the same value that was specified for
-              <codeph>HBA_HOSTNAMES</codeph> when the Greenplum Database system was initialized. For
-            information about how Greenplum Database resolves host names in the
+              <codeph>HBA_HOSTNAMES</codeph> when the Cloudberry Database system was initialized. For
+            information about how Cloudberry Database resolves host names in the
               <codeph>pg_hba.conf</codeph> file, see <xref href="../../admin_guide/client_auth.xml"
             />.</pd>
         </plentry>
@@ -170,15 +170,15 @@ newPort|newDataDirectory</codeblock>
         </plentry>
         <plentry>
           <pt>-p <varname>new_recover_host</varname>[,...]</pt>
-          <pd>Specifies a new host outside of the currently configured Greenplum Database array on
+          <pd>Specifies a new host outside of the currently configured Cloudberry Database array on
             which to recover invalid segments.</pd>
-          <pd>The new host must have the Greenplum Database software installed and configured, and
+          <pd>The new host must have the Cloudberry Database software installed and configured, and
             have the same hardware and OS configuration as the current segment hosts (same OS
             version, locales, <codeph>gpadmin</codeph> user account, data directory locations
             created, ssh keys exchanged, number of network interfaces, network interface naming
-            convention, and so on). Specifically, the Greenplum Database binaries must be installed,
+            convention, and so on). Specifically, the Cloudberry Database binaries must be installed,
             the new host must be able to connect password-less with all segments including the
-            Greenplum master, and any other Greenplum Database specific OS configuration parameters
+            Cloudberry master, and any other Cloudberry Database specific OS configuration parameters
             must be applied.</pd>
           <pd>
             <note>In the case of multiple failed segment hosts, you can specify the hosts to recover

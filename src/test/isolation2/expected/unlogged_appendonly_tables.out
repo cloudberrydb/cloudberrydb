@@ -18,11 +18,6 @@ SELECT gp_request_fts_probe_scan();
 ---------------------------
  t                         
 (1 row)
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
- gp_wait_until_triggered_fault 
--------------------------------
- Success:                      
-(1 row)
 
 -- expect: insert/update/select works
 insert into unlogged_appendonly_table_managers values (1, 'Joe');

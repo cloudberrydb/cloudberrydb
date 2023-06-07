@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2018 VMware, Inc. or its affiliates.
 //
 //	Implementation of inner / left outer index apply operator

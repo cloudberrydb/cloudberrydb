@@ -33,13 +33,13 @@ begin;
 create function num_dirty_on_qes(relid oid) returns setof bigint as
 $$
 declare
-  rfnode oid;
+  rfnode int8;
   result int4;
 begin
    select relfilenode into rfnode from pg_class where oid=$1;
 
    select count(*) into result from dirty_buffers_on_qes()
-     as (tablespace oid, database oid, relfilenode oid, block int)
+     as (tablespace oid, database oid, relfilenode int8, block int)
      where relfilenode = rfnode;
    return next result;
 end
@@ -121,13 +121,13 @@ from gp_segment_configuration where role = 'p' and content > -1;
 
 -- Ensure no buffers are dirty before we start.
 select * from dirty_buffers_on_qd()
- as (tablespace oid, database oid, relfilenode oid, block int);
+ as (tablespace oid, database oid, relfilenode int8, block int);
  tablespace | database | relfilenode | block 
 ------------+----------+-------------+-------
 (0 rows)
 
 select * from dirty_buffers_on_qes()
- as (tablespace oid, database oid, relfilenode oid, block int);
+ as (tablespace oid, database oid, relfilenode int8, block int);
  tablespace | database | relfilenode | block 
 ------------+----------+-------------+-------
 (0 rows)
@@ -208,7 +208,7 @@ from gp_segment_configuration where role = 'p' and content > -1;
 checkpoint;
 -- There should be no dirty buffers after checkpoint.
 select * from dirty_buffers_on_qes()
- as (tablespace oid, database oid, relfilenode oid, block int);
+ as (tablespace oid, database oid, relfilenode int8, block int);
  tablespace | database | relfilenode | block 
 ------------+----------+-------------+-------
 (0 rows)

@@ -4,7 +4,7 @@
  *
  * Functions returning results from a remote database
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -25,7 +25,7 @@ typedef struct SegmentDatabaseDescriptor
 	/*
 	 * Points to the SegmentDatabaseInfo structure describing the
 	 * parameters for this segment database.  Information in this structure is
-	 * obtained from the Greenplum administrative schema tables.
+	 * obtained from the Cloudberry administrative schema tables.
 	 */
 	struct CdbComponentDatabaseInfo *segment_database_info;
 	

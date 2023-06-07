@@ -1,7 +1,7 @@
 /*
- * Greenplum system views and functions.
+ * Cloudberry system views and functions.
  *
- * Portions Copyright (c) 2009-2010, Greenplum inc.
+ * Portions Copyright (c) 2009-2010, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  */
@@ -1417,9 +1417,9 @@ AS
                         THEN 0
                         ELSE pg_catalog.pg_relation_size(sotd.sotdoid) *
                                 CASE
-                                    WHEN pg_catalog.get_ao_compression_ratio(sotd.sotdoid) = -1
+                                    WHEN (select pg_catalog.get_ao_compression_ratio(sotd.sotdoid)) = -1
                                     THEN NULL
-                                    ELSE pg_catalog.get_ao_compression_ratio(sotd.sotdoid)
+                                    ELSE (select pg_catalog.get_ao_compression_ratio(sotd.sotdoid))
                                 END
                     END
                 ELSE sotd.sotdsize

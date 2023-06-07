@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #	Filename:-		gp_bash_functions.sh
 #	Status:-		Released
-#	Author:-		G L Coombe (Greenplum)
+#	Author:-		G L Coombe (Cloudberry)
 #	Contact:-		gcoombe@greenplum.com
 #	Release date:-		March 2006
-#	Release stat:-		Greenplum Internal
+#	Release stat:-		Cloudberry Internal
 #                               Copyright (c) Metapa 2005. All Rights Reserved.
-#                               Copyright (c) Greenplum 2005. All Rights Reserved
+#                               Copyright (c) Cloudberry 2005. All Rights Reserved
 #	Brief descn:-		Common functions used by various scripts
 #***************************************************************
 # Location Functions
@@ -20,7 +20,7 @@ fi
 declare -a CMDPATH
 CMDPATH=(/usr/kerberos/bin /usr/sfw/bin /opt/sfw/bin /usr/local/bin /bin /usr/bin /sbin /usr/sbin /usr/ucb /sw/bin)
 
-#GPPATH is the list of possible locations for the Greenplum Database binaries, in precedence order
+#GPPATH is the list of possible locations for the Cloudberry Database binaries, in precedence order
 declare -a GPPATH
 GPPATH=( $GPHOME $MPPHOME $BIZHOME )
 if [ ${#GPPATH[@]} -eq 0 ];then
@@ -95,6 +95,10 @@ TEE=`findCmdInPath tee`
 TOUCH=`findCmdInPath touch`
 TR=`findCmdInPath tr`
 WC=`findCmdInPath wc`
+ETCD_ACCOUNT_ID="gp_etcd_account_id"
+ETCD_CLUSTER_ID="gp_etcd_cluster_id"
+ETCD_NAMESPACE="gp_etcd_namespace"
+ETCD_ENDPOINTS="gp_etcd_endpoints"
 #***************#******************************************************************************
 # Script Specific Variables
 #******************************************************************************
@@ -107,20 +111,20 @@ PROG_PIDNAME=`echo $$ $PROG_NAME | awk '{printf "%06d %s\n", $1, $2}'`
 CALL_HOST=`$HOSTNAME|$CUT -d. -f1`
 
 #******************************************************************************
-# Locate the postgres routines from the Greenplum release
+# Locate the postgres routines from the Cloudberry release
 #******************************************************************************
 PSQLBIN=`findMppPath`
 
 if [ x"$PSQLBIN" = x"" ];then
-		echo "Problem in gp_bash_functions, command '$GP_UNIQUE_COMMAND' not found in Greenplum path."
-		echo "Try setting GPHOME to the location of your Greenplum distribution."
+		echo "Problem in gp_bash_functions, command '$GP_UNIQUE_COMMAND' not found in Cloudberry path."
+		echo "Try setting GPHOME to the location of your Cloudberry distribution."
 		exit 1
 fi
 
 PSQLBIN=`$DIRNAME $PSQLBIN`
 SCRIPTDIR="`$DIRNAME $PSQLBIN`/bin"
 #******************************************************************************
-# Greenplum Scripts
+# Cloudberry Scripts
 #******************************************************************************
 GPINITSYSTEM=$SCRIPTDIR/gpinitsystem
 GPCONFIG=$SCRIPTDIR/gpconfig
@@ -131,14 +135,14 @@ GPSTATE=$SCRIPTDIR/gpstate
 GPSTOP=$SCRIPTDIR/gpstop
 GPDOCDIR=${GPHOME}/docs/cli_help/
 #******************************************************************************
-# Greenplum Command Variables
+# Cloudberry Command Variables
 #******************************************************************************
 INITDB=$PSQLBIN/initdb
 PG_CTL=$PSQLBIN/pg_ctl
 PSQL=$PSQLBIN/psql
 
 #******************************************************************************
-# Greenplum OS Settings
+# Cloudberry OS Settings
 #******************************************************************************
 OS_OPENFILES=65535
 #******************************************************************************
@@ -154,7 +158,9 @@ if [ x"$TRUSTED_SHELL" = x"" ]; then TRUSTED_SHELL="$SSH"; fi
 if [ x"$TRUSTED_COPY" = x"" ]; then TRUSTED_COPY="$SCP"; fi
 PG_CONF_ADD_FILE=$WORKDIR/postgresql_conf_gp_additions
 DEFAULTDB=template1
-
+ETCD_CONFIG_TMP_FILE=/tmp/cbdb_etcd.conf
+ETCD_HOST_FILE=etcd_host
+FTS_HOST_FILE=fts_host
 DEFAULT_CHK_PT_SEG=8
 DEFAULT_QD_MAX_CONNECT=250
 QE_CONNECT_FACTOR=3
@@ -171,13 +177,36 @@ WARN_MARK="<<<<<"
 # Functions
 #******************************************************************************
 
-IN_ARRAY () {
-    for v in $2; do
-        if [ x"$1" == x"$v" ]; then
-            return 1
-        fi
-    done
-    return 0
+#
+# Simplified version of _nl_normalize_codeset from glibc
+# https://sourceware.org/git/?p=glibc.git;a=blob;f=intl/l10nflist.c;h=078a450dfec21faf2d26dc5d0cb02158c1f23229;hb=1305edd42c44fee6f8660734d2dfa4911ec755d6#l294
+# Input parameter - string with locale define as [language[_territory][.codeset][@modifier]]
+NORMALIZE_CODESET_IN_LOCALE () {
+	local language_and_territory=$(echo $1 | perl -ne 'print for /(^.+?(?=\.|@|$))/s')
+	local codeset=$(echo $1 | perl -ne 'print for /((?<=\.).+?(?=@|$))/s')
+	local modifier=$(echo -n $1 | perl -ne 'print for /((?<=@).+)/s' )
+
+	local digit_pattern='^[0-9]+$'
+	if [[ $codeset =~ $digit_pattern ]] ;
+	then
+		codeset="iso$codeset"
+	else
+		codeset=$(echo $codeset | perl -pe 's/([[:alpha:]])/\L\1/g; s/[^[:alnum:]]//g')
+	fi
+
+	echo "$language_and_territory$([ ! -z $codeset ] && echo ".$codeset")$([ ! -z $modifier ] && echo "@$modifier")"
+}
+
+LOCALE_IS_AVAILABLE () {
+	local locale=$(NORMALIZE_CODESET_IN_LOCALE $1)
+	local all_available_locales=$(locale -a)
+
+	for v in $all_available_locales; do
+		if [ x"$locale" == x"$v" ] || [ x"$1" == x"$v" ]; then
+			return 1
+		fi
+	done
+	return 0
 }
 
 #
@@ -277,7 +306,7 @@ ERROR_EXIT () {
 		DEBUG_LEVEL=1
 		if [ $BACKOUT_FILE ]; then
 				if [ -s $BACKOUT_FILE ]; then
-						LOG_MSG "[WARN]:-Script has left Greenplum Database in an incomplete state"
+						LOG_MSG "[WARN]:-Script has left Cloudberry Database in an incomplete state"
 						LOG_MSG "[WARN]:-Run command bash $BACKOUT_FILE on coordinator to remove these changes"
 						$ECHO "$RM -f $BACKOUT_FILE" >> $BACKOUT_FILE
 				fi
@@ -770,6 +799,15 @@ BUILD_COORDINATOR_PG_HBA_FILE () {
                 $ECHO "host     replication $USER_NAME         $STANDBY_HOSTNAME       trust" >> ${GP_DIR}/$PG_HBA
             fi
         fi
+        if [ "$CLUSTER_BOOT_MODE" = "PRODUCTION" ];then
+                for fts in ${FTS_HOST_MACHINE_LIST[*]}
+                do
+                        if [ ! "$FTS_HOST" = "$COORDINATOR_HOSTNAME" ];then
+                                $ECHO "host     all         $USER_NAME         $fts       trust" >> ${GP_DIR}/$PG_HBA
+                                $ECHO "hostssl     all         $USER_NAME         $fts       trust" >> ${GP_DIR}/$PG_HBA
+                        fi
+                done
+        fi
         LOG_MSG "[INFO]:-Complete Coordinator $PG_HBA configuration"
         LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -1099,9 +1137,9 @@ CHK_GPDB_ID () {
 		elif [ x$GPDB_GROUPID_CHK == x$COORDINATOR_INITDB_GROUPID ] && [ x"x" == x"$GROUP_EXECUTE" ] ; then
 		    LOG_MSG "[INFO]:-Current group id of $GPDB_GROUPID, matches initdb group id of $COORDINATOR_INITDB_GROUPID"
 		else
-			LOG_MSG "[WARN]:-File permission mismatch.  The $GPDB_ID_CHK owns the Greenplum Database installation directory."
+			LOG_MSG "[WARN]:-File permission mismatch.  The $GPDB_ID_CHK owns the Cloudberry Database installation directory."
 			LOG_MSG "[WARN]:-You are currently logged in as $COORDINATOR_INITDB_ID and may not have sufficient"
-			LOG_MSG "[WARN]:-permissions to run the Greenplum binaries and management utilities."
+			LOG_MSG "[WARN]:-permissions to run the Cloudberry binaries and management utilities."
 		fi
 
 		if [ x"" != x"$USER" ];then
@@ -1151,8 +1189,137 @@ SET_GP_USER_PW () {
       --variable=username="$USER_NAME" \
       --variable=password="$GP_PASSWD" <<< "$alter_statement" >> $LOG_FILE 2>&1
 
-    ERROR_CHK $? "update Greenplum superuser password" 1
+    ERROR_CHK $? "update Cloudberry superuser password" 1
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
+}
+
+RESOLVE_HOSTNAME() {
+    if [ "$#" -ne 1 ]
+    then
+        echo "RESOLVE_HOSTNAME invalid params..."
+    fi
+    HOSTNAME=$1
+    HOSTIP=`getent hosts $HOSTNAME | awk '{ print $1 }'`
+    echo "$HOSTIP"
+}
+
+OUTPUT_HOST_TO_FILE() {
+    if [ "$#" -ne 2 ];then
+        LOG_MSG "[ERROR]: OUTPUT_CONFIG invalid params..."
+    fi
+    CONFIG_FILE=$1
+    HOST=$2
+    local config_dir=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/config
+    local config_file=$config_dir/$CONFIG_FILE
+    if [ ! -d $config_dir ];then
+        mkdir -p $config_dir
+    fi
+    echo $HOST >> $config_file
+}
+
+PRECHECK_CBDB_CONFIG_FILE() {
+    local config_dir=$COORDINATOR_DATA_DIRECTORY/config
+    if [ -d $config_dir ];then
+        rm -rf $config_dir
+    fi
+}
+
+CLEANUP_ETCD() {
+    if [ "$#" -ne 1 ];then
+        LOG_MSG "[ERROR]: RETRIVE_ETCD_CONFIG_VAL invalid params..."
+    fi
+    local etcd_account_id=`RETRIVE_ETCD_CONFIG_VAL $ETCD_ACCOUNT_ID`
+    local etcd_cluster_id=`RETRIVE_ETCD_CONFIG_VAL $ETCD_CLUSTER_ID`
+    local etcd_namespace=`RETRIVE_ETCD_CONFIG_VAL $ETCD_NAMESPACE`
+    local etcd_endpoints=`RETRIVE_ETCD_CONFIG_VAL $ETCD_ENDPOINTS`
+    if [ \( ! "$etcd_account_id" = "" \) -a \( ! "$etcd_cluster_id" = "" \) -a \( ! "$etcd_namespace" = "" \) -a \( ! "$etcd_endpoints" = "" \) ];then
+	local etcd_key="/cbdb/fts/default/$etcd_account_id/$etcd_cluster_id/$etcd_namespace/fts_dump_file_key"
+	etcd_cleanup_res=`export ETCDCTL_API=3;etcdctl --endpoints=$etcd_endpoints del $etcd_key`
+	if [ "$etcd_cleanup_res" = "1" ]; then
+		ERROR_EXIT "[FATAL]: ETCD HOST key cleanup failed with key: $etcd_key, result: $etcd_cleanup_res"
+	fi
+    else
+        LOG_MSG "[WARNING]: CLEANUP_ETCD skipped caused by inproper key."
+    fi
+}
+
+RETRIVE_ETCD_CONFIG_VAL() {
+    if [ "$#" -ne 1 ];then
+        LOG_MSG "[ERROR]: RETRIVE_ETCD_CONFIG_VAL invalid params..."
+    fi
+    ETCD_CONFIG_VAL=$1
+    local tmpstr=`cat $ETCD_CONFIG_FILE_PATH | grep $ETCD_CONFIG_VAL | sed "s/['\"]//g"`
+    ETCD_CONFIG_VAL_RES=${tmpstr#*=}
+    echo "$ETCD_CONFIG_VAL_RES"
+}
+
+SETUP_ETCD () {
+    if [ "$#" -ne 4 ];then
+        LOG_MSG "[ERROR]: SETUP_ETCD invalid params..."
+    fi
+    ETCD_HOST=$1
+    ETCD_HOST_LIST=$2
+    ETCD_HOST_NUM=$3
+    ETCD_START_MODE=$4
+    ETCD_IP=`RESOLVE_HOSTNAME $ETCD_HOST`
+    if [ "$ETCD_START_MODE" = "DEMO" ];then
+        nohup etcd > /dev/null 2>&1 &
+    else
+        ETCD_START_CMD="nohup ${GPHOME}/bin/etcd --name ${ETCD_HOST_NUM} --listen-client-urls http://${ETCD_IP}:2379,http://127.0.0.1:2379 --advertise-client-urls http://${ETCD_IP}:2379 --listen-peer-urls http://${ETCD_IP}:2380 --initial-advertise-peer-urls http://${ETCD_IP}:2380 --initial-cluster-token etcd-cluster-1 --initial-cluster ${ETCD_HOST_LIST} --initial-cluster-state new --enable-pprof &"
+        gpssh -h $ETCD_HOST -e "${ETCD_START_CMD}"
+    fi
+    LOG_MSG "[INFO]: ETCD already installed on host $ETCD_HOST"
+}
+
+CHECK_ETCD () {
+    ret=1
+    if [ "$#" -ne 2 ];then
+        LOG_MSG "[ERROR]: CHECK_ETCD invalid params..."
+    fi
+    ETCD_HOST=$1
+    ETCD_START_MODE=$2
+    if [ "$ETCD_START_MODE" = "DEMO" ];then
+        ETCD_CHECK_CMD="ps -ef | grep -i 'etcd' | grep -v 'grep'"
+    else
+        ETCD_CHECK_CMD="ps -ef | grep -i 'etcd' | grep 'initial-cluster' | grep -v 'grep'"
+    fi
+    ETCD_PROCESS_RES=`gpssh -h ${ETCD_HOST} -e "${ETCD_CHECK_CMD}" | wc -l`
+    if [ ! "$ETCD_PROCESS_RES" -eq "1" ]; then
+        ret=0
+    fi
+    return $ret
+}
+
+SETUP_FTS() {
+    if [ "$#" -ne 3 ];then
+        LOG_MSG "[ERROR]: SETUP_FTS invalid params..."
+    fi
+    FTS_HOST=$1
+    FTS_LOG_DIR=$2
+    FTS_START_MODE=$3
+    if [ "$FTS_START_MODE" = "DEMO" ];then
+        nohup $GPHOME/bin/gpfts -F $GPHOME/bin/config/cbdb_etcd_default.conf -d ${FTS_LOG_DIR}/log/fts -D -C -a >/dev/null 2>&1 &
+    else
+        gpscp -h ${FTS_HOST} $ETCD_CONFIG_FILE_PATH =:${ETCD_CONFIG_TMP_FILE}
+        FTS_CMD="mkdir -p ${FTS_LOG_DIR}/log/fts;nohup ${GPHOME}/bin/gpfts -F ${ETCD_CONFIG_TMP_FILE} -d ${FTS_LOG_DIR}/log/fts >/dev/null 2>&1 &"
+        gpssh -h ${FTS_HOST} -e "${FTS_CMD}"
+    fi
+    OUTPUT_HOST_TO_FILE $FTS_HOST_FILE $ETCD_HOST
+    LOG_MSG "[INFO]: FTS already installed on host $FTS_HOST"
+}
+
+CHECK_FTS () {
+    ret=1
+    if [ "$#" -ne 2 ];then
+        LOG_MSG "[ERROR]: CHECK_FTS invalid params..."
+    fi
+    FTS_HOST=$1
+    FTS_CHECK_CMD="ps -ef | grep -i 'gpfts' | grep -v grep"
+    FTS_PROCESS_RES=`gpssh -h ${FTS_HOST} -e "${FTS_CHECK_CMD}" | wc -l`
+    if [ ! "$FTS_PROCESS_RES" -eq "1" ]; then
+        ret=0
+    fi
+    return $ret
 }
 
 #******************************************************************************

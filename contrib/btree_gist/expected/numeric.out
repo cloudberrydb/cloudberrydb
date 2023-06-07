@@ -190,13 +190,16 @@ SELECT count(*) FROM numerictmp WHERE a >  0 ;
 SET enable_bitmapscan=off;
 EXPLAIN (COSTS OFF)
 SELECT * FROM numerictmp WHERE a BETWEEN 1 AND 300 ORDER BY a;
-                             QUERY PLAN                              
----------------------------------------------------------------------
- Sort
-   Sort Key: a
-   ->  Index Only Scan using numericidx on numerictmp
-         Index Cond: ((a >= '1'::numeric) AND (a <= '300'::numeric))
-(4 rows)
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: a
+   ->  Sort
+         Sort Key: a
+         ->  Index Only Scan using numericidx on numerictmp
+               Index Cond: ((a >= '1'::numeric) AND (a <= '300'::numeric))
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 SELECT * FROM numerictmp WHERE a BETWEEN 1 AND 300 ORDER BY a;
      a      

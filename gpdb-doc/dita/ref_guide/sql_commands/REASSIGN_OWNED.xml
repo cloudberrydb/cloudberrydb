@@ -54,7 +54,7 @@
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p>The <codeph>REASSIGN OWNED</codeph> command is a Greenplum Database extension. </p>
+      <p>The <codeph>REASSIGN OWNED</codeph> command is a Cloudberry Database extension. </p>
     </section>
     <section id="section8">
       <title>See Also</title>

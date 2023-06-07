@@ -8,7 +8,7 @@
  * or call FUNCAPI-callable functions or macros.
  *
  *
- * Copyright (c) 2002-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2021, PostgreSQL Global Development Group
  *
  * src/include/funcapi.h
  *
@@ -17,11 +17,10 @@
 #ifndef FUNCAPI_H
 #define FUNCAPI_H
 
-#include "fmgr.h"
 #include "access/tupdesc.h"
 #include "executor/executor.h"
 #include "executor/tuptable.h"
-
+#include "fmgr.h"
 
 /*-------------------------------------------------------------------------
  *	Support to ease writing Functions returning composite types
@@ -236,7 +235,7 @@ extern Datum HeapTupleHeaderGetDatum(HeapTupleHeader tuple);
 /*----------
  *		Support for Set Returning Functions (SRFs)
  *
- * The basic API for SRFs looks something like:
+ * The basic API for SRFs using ValuePerCall mode looks something like this:
  *
  * Datum
  * my_Set_Returning_Function(PG_FUNCTION_ARGS)
@@ -272,6 +271,17 @@ extern Datum HeapTupleHeaderGetDatum(HeapTupleHeader tuple);
  *	else
  *		SRF_RETURN_DONE(funcctx);
  * }
+ *
+ * NOTE: there is no guarantee that a SRF using ValuePerCall mode will be
+ * run to completion; for example, a query with LIMIT might stop short of
+ * fetching all the rows.  Therefore, do not expect that you can do resource
+ * cleanup just before SRF_RETURN_DONE().  You need not worry about releasing
+ * memory allocated in multi_call_memory_ctx, but holding file descriptors or
+ * other non-memory resources open across calls is a bug.  SRFs that need
+ * such resources should not use these macros, but instead populate a
+ * tuplestore during a single call, and return that using SFRM_Materialize
+ * mode (see fmgr/README).  Alternatively, set up a callback to release
+ * resources at query shutdown, using RegisterExprContextCallback().
  *
  *----------
  */

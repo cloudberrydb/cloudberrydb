@@ -4,9 +4,9 @@
  *	  prototypes for pathnode.c, relnode.c.
  *
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/pathnode.h
@@ -30,7 +30,7 @@ extern int	compare_path_costs(Path *path1, Path *path2,
 extern int	compare_fractional_path_costs(Path *path1, Path *path2,
 										  double fraction);
 extern void set_cheapest(RelOptInfo *parent_rel);
-extern void add_path(RelOptInfo *parent_rel, Path *new_path);
+extern void add_path(RelOptInfo *parent_rel, Path *new_path, PlannerInfo *root);
 extern Path *create_seqscan_path(PlannerInfo *root, RelOptInfo *rel,
 					Relids required_outer, int parallel_workers);
 extern AppendOnlyPath *create_appendonly_path(PlannerInfo *root, RelOptInfo *rel,
@@ -71,22 +71,37 @@ extern BitmapOrPath *create_bitmap_or_path(PlannerInfo *root,
 										   List *bitmapquals);
 extern TidPath *create_tidscan_path(PlannerInfo *root, RelOptInfo *rel,
                                     List *tidquals, Relids required_outer);
+
+extern TidRangePath *create_tidrangescan_path(PlannerInfo *root,
+											  RelOptInfo *rel,
+											  List *tidrangequals,
+											  Relids required_outer);
 extern AppendPath *create_append_path(PlannerInfo *root, RelOptInfo *rel,
-                                      List *subpaths, List *partial_subpaths,
-                                      List *pathkeys, Relids required_outer,
-                                      int parallel_workers, bool parallel_aware,
-                                      List *partitioned_rels, double rows);
+									  List *subpaths, List *partial_subpaths,
+									  List *pathkeys, Relids required_outer,
+									  int parallel_workers, bool parallel_aware,
+									  double rows);
+
 extern MergeAppendPath *create_merge_append_path(PlannerInfo *root,
 												 RelOptInfo *rel,
 												 List *subpaths,
 												 List *pathkeys,
-												 Relids required_outer,
-												 List *partitioned_rels);
+												 Relids required_outer);
 extern GroupResultPath *create_group_result_path(PlannerInfo *root,
 												 RelOptInfo *rel,
 												 PathTarget *target,
 												 List *havingqual);
-extern MaterialPath *create_material_path(PlannerInfo *root, RelOptInfo *rel, Path *subpath);
+
+extern MaterialPath *create_material_path(RelOptInfo *rel, Path *subpath);
+extern MemoizePath *create_memoize_path(PlannerInfo *root,
+										RelOptInfo *rel,
+										Path *subpath,
+										List *param_exprs,
+										List *hash_operators,
+										bool singlerow,
+										bool binary_mode,
+										double calls);
+
 extern UniquePath *create_unique_path(PlannerInfo *root, RelOptInfo *rel,
 									  Path *subpath, SpecialJoinInfo *sjinfo);
 extern UniquePath *create_unique_rowid_path(PlannerInfo *root,
@@ -225,6 +240,12 @@ extern SortPath *create_sort_path(PlannerInfo *root,
 								  Path *subpath,
 								  List *pathkeys,
 								  double limit_tuples);
+extern IncrementalSortPath *create_incremental_sort_path(PlannerInfo *root,
+														 RelOptInfo *rel,
+														 Path *subpath,
+														 List *pathkeys,
+														 int presorted_keys,
+														 double limit_tuples);
 extern GroupPath *create_group_path(PlannerInfo *root,
 									RelOptInfo *rel,
 									Path *subpath,
@@ -254,6 +275,14 @@ extern TupleSplitPath *create_tup_split_path(PlannerInfo *root,
                                              PathTarget *target,
                                              List *groupClause,
 											 List *dqa_expr_lst);
+extern AggPath *create_agg_sorted_path(PlannerInfo *root,
+									   RelOptInfo *rel,
+									   Path *subpath,
+									   RelAggInfo *agg_info);
+extern AggPath *create_agg_hashed_path(PlannerInfo *root,
+									   RelOptInfo *rel,
+									   Path *subpath,
+									   RelAggInfo *agg_info);
 extern GroupingSetsPath *create_groupingsets_path(PlannerInfo *root,
 												  RelOptInfo *rel,
 												  Path *subpath,
@@ -261,8 +290,7 @@ extern GroupingSetsPath *create_groupingsets_path(PlannerInfo *root,
 												  List *having_qual,
 												  AggStrategy aggstrategy,
 												  List *rollups,
-												  const AggClauseCosts *agg_costs,
-												  double numGroups);
+												  const AggClauseCosts *agg_costs);
 extern MinMaxAggPath *create_minmaxagg_path(PlannerInfo *root,
 											RelOptInfo *rel,
 											PathTarget *target,
@@ -296,18 +324,20 @@ extern LockRowsPath *create_lockrows_path(PlannerInfo *root, RelOptInfo *rel,
 										  Path *subpath, List *rowMarks, int epqParam);
 extern ModifyTablePath *create_modifytable_path(PlannerInfo *root,
 												RelOptInfo *rel,
+												Path *subpath,
 												CmdType operation, bool canSetTag,
 												Index nominalRelation, Index rootRelation,
 												bool partColsUpdated,
-												List *resultRelations, List *subpaths,
-												List *subroots,
+												bool splitUpdate,
+												List *resultRelations,
+												List *updateColnosLists,
 												List *withCheckOptionLists, List *returningLists,
-												List *is_split_updates,
 												List *rowMarks, OnConflictExpr *onconflict,
 												int epqParam);
 extern Path *create_limit_path(PlannerInfo *root, RelOptInfo *rel,
 									Path *subpath,
 									Node *limitOffset, Node *limitCount,
+									LimitOption limitOption,
 									int64 offset_est, int64 count_est);
 extern void adjust_limit_rows_costs(double *rows,
 									Cost *startup_cost, Cost *total_cost,
@@ -323,7 +353,6 @@ extern Path *reparameterize_path_by_child(PlannerInfo *root, Path *path,
  * prototypes for relnode.c
  */
 extern void setup_simple_rel_arrays(PlannerInfo *root);
-extern void setup_append_rel_array(PlannerInfo *root);
 extern void expand_planner_arrays(PlannerInfo *root, int add_size);
 extern RelOptInfo *build_simple_rel(PlannerInfo *root, int relid,
 									RelOptInfo *parent);
@@ -334,7 +363,17 @@ extern RelOptInfo *build_join_rel(PlannerInfo *root,
 								  RelOptInfo *outer_rel,
 								  RelOptInfo *inner_rel,
 								  SpecialJoinInfo *sjinfo,
-								  List **restrictlist_ptr);
+								  List **restrictlist_ptr,
+								  RelAggInfo *agg_info);
+extern RelOptInfo *build_base_grouped_rel(PlannerInfo *root, RelOptInfo *rel,
+											RelAggInfo **agg_info_p);
+extern void add_grouped_rel_agg_info(PlannerInfo *root, RelOptInfo *rel,
+									 RelAggInfo *agginfo);
+extern RelAggInfo *find_grouped_rel_agg_info(PlannerInfo *root, Relids relids);
+extern RelAggInfo *get_grouped_rel_agg_info(PlannerInfo *root,
+											RelOptInfo *joinrel_plain);
+extern RelOptInfo *find_grouped_rel(PlannerInfo *root, Relids relids);
+extern RelOptInfo *get_grouped_rel(PlannerInfo *root, RelOptInfo *rel);
 extern Relids min_join_parameterization(PlannerInfo *root,
 										Relids joinrelids,
 										RelOptInfo *outer_rel,
@@ -361,5 +400,7 @@ extern RelOptInfo *build_child_join_rel(PlannerInfo *root,
 										RelOptInfo *outer_rel, RelOptInfo *inner_rel,
 										RelOptInfo *parent_joinrel, List *restrictlist,
 										SpecialJoinInfo *sjinfo, JoinType jointype);
+
+extern RelAggInfo *create_rel_agg_info(PlannerInfo *root, RelOptInfo *rel);
 
 #endif							/* PATHNODE_H */

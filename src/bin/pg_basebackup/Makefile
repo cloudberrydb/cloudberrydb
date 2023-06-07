@@ -2,7 +2,7 @@
 #
 # Makefile for src/bin/pg_basebackup
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/bin/pg_basebackup/Makefile
@@ -18,10 +18,17 @@ subdir = src/bin/pg_basebackup
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
+# make this available to TAP test scripts
+export TAR
+
 override CPPFLAGS := -I$(libpq_srcdir) $(CPPFLAGS)
 LDFLAGS_INTERNAL += -L$(top_builddir)/src/fe_utils -lpgfeutils $(libpq_pgport)
 
-OBJS=receivelog.o streamutil.o walmethods.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	receivelog.o \
+	streamutil.o \
+	walmethods.o
 
 all: pg_basebackup pg_receivewal pg_recvlogical
 
@@ -58,4 +65,3 @@ check:
 
 installcheck:
 	$(prove_installcheck)
-

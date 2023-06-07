@@ -2,14 +2,14 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="ih135496">Working with XML Data</title>
-  <shortdesc>Greenplum Database supports the <codeph>xml</codeph> data type that stores XML data. </shortdesc>
+  <shortdesc>Cloudberry Database supports the <codeph>xml</codeph> data type that stores XML data. </shortdesc>
   <body>
     <p>The <codeph>xml</codeph> data type checks the input values for well-formedness, providing an
       advantage over simply storing XML data in a text field. Additionally, support functions allow
       you to perform type-safe operations on this data; refer to <xref href="#topic_gn4_x3w_mq"
         format="dita"/>, below. </p>
     <p>Use of this data type requires the installation to have been built with <codeph>configure
-        --with-libxml</codeph>. This is enabled by default for VMware Tanzu Greenplum builds. </p>
+        --with-libxml</codeph>. This is enabled by default for VMware Tanzu Cloudberry builds. </p>
     <p>The <codeph>xml</codeph> type can store well-formed "documents", as defined by the XML
       standard, as well as "content" fragments, which are defined by reference to the more
       permissive <xref href="https://www.w3.org/TR/2010/REC-xpath-datamodel-20101214/#DocumentNode"
@@ -36,7 +36,7 @@
         example:<codeblock>XMLPARSE (DOCUMENT '&lt;?xml version="1.0"?>&lt;book>&lt;title>Manual&lt;/title>&lt;chapter>...&lt;/chapter>&lt;/book>')
 XMLPARSE (CONTENT 'abc&lt;foo>bar&lt;/foo>&lt;bar>foo&lt;/bar>')</codeblock></p>
       <p>The above method  converts character strings into XML values according to the SQL standard,
-        but you can also use Greenplum Database syntax like the
+        but you can also use Cloudberry Database syntax like the
         following:<codeblock>xml '&lt;foo>bar&lt;/foo>'
 '&lt;foo>bar&lt;/foo>'::xml</codeblock></p>
       <p>The <codeph>xml</codeph> type does not validate input values against a document type
@@ -48,7 +48,7 @@ XMLPARSE (CONTENT 'abc&lt;foo>bar&lt;/foo>&lt;bar>foo&lt;/bar>')</codeblock></p>
       <p><varname>type</varname> can be <codeph>character</codeph>, <codeph>character
           varying</codeph>, or <codeph>text</codeph> (or an alias for one of those). Again,
         according to the SQL standard, this is the only way to convert between type
-          <codeph>xml</codeph> and character types, but Greenplum Database also allows you to simply
+          <codeph>xml</codeph> and character types, but Cloudberry Database also allows you to simply
         cast the value.</p>
       <p>When a character string value is cast to or from type <codeph>xml</codeph> without going
         through <codeph>XMLPARSE</codeph> or <codeph>XMLSERIALIZE</codeph>, respectively, the choice
@@ -56,7 +56,7 @@ XMLPARSE (CONTENT 'abc&lt;foo>bar&lt;/foo>&lt;bar>foo&lt;/bar>')</codeblock></p>
           <codeph>XML OPTION</codeph> session configuration parameter, which can be set using the
         standard command:<codeblock>SET XML OPTION { DOCUMENT | CONTENT };
 </codeblock></p>
-      <p>or simply like Greenplum
+      <p>or simply like Cloudberry
         Database:<codeblock>SET XML OPTION TO { DOCUMENT | CONTENT };</codeblock></p>
       <p>The default is CONTENT, so all forms of XML data are allowed.</p>
     </body>
@@ -66,7 +66,7 @@ XMLPARSE (CONTENT 'abc&lt;foo>bar&lt;/foo>&lt;bar>foo&lt;/bar>')</codeblock></p>
     <body>
       <p>Be careful when dealing with multiple character encodings on the client, server, and in the
         XML data passed through them. When using the text mode to pass queries to the server and
-        query results to the client (which is the normal mode), Greenplum Database converts all
+        query results to the client (which is the normal mode), Cloudberry Database converts all
         character data passed between the client and the server, and vice versa, to the character
         encoding of the respective endpoint; see <xref
           href="../../../ref_guide/character_sets.xml#topic1/ig167937">Character Set Support</xref>.
@@ -85,12 +85,12 @@ XMLPARSE (CONTENT 'abc&lt;foo>bar&lt;/foo>&lt;bar>foo&lt;/bar>')</codeblock></p>
       <p>When using binary mode to pass query parameters to the server and query results back to the
         client, no character set conversion is performed, so the situation is different. In this
         case, an encoding declaration in the XML data will be observed, and if it is absent, the
-        data will be assumed to be in UTF-8 (as required by the XML standard; note that Greenplum
+        data will be assumed to be in UTF-8 (as required by the XML standard; note that Cloudberry
         Database does not support UTF-16). On output, data will have an encoding declaration
         specifying the client encoding, unless the client encoding is UTF-8, in which case it will
         be omitted.</p>
       <note>
-        <p>Processing XML data with Greenplum Database will be less error-prone and more efficient
+        <p>Processing XML data with Cloudberry Database will be less error-prone and more efficient
           if the XML data encoding, client encoding, and server encoding are the same. Because XML
           data is internally processed in UTF-8, computations will be most efficient if the server
           encoding is also UTF-8.</p>
@@ -117,7 +117,7 @@ XMLPARSE (CONTENT 'abc&lt;foo>bar&lt;/foo>&lt;bar>foo&lt;/bar>')</codeblock></p>
   <topic id="topic_a4k_w33_xz">
     <title>Processing XML</title>
     <body>
-      <p>To process values of data type <codeph>xml</codeph>, Greenplum Database offers the
+      <p>To process values of data type <codeph>xml</codeph>, Cloudberry Database offers the
         functions <codeph>xpath</codeph> and <codeph>xpath_exists</codeph>, which evaluate XPath 1.0
         expressions.<codeblock>xpath(&lt;xpath>, &lt;xml> [, &lt;nsarray>])
 </codeblock></p>
@@ -450,7 +450,7 @@ SELECT xmlelement(name test, xmlattributes(func(a, b))) FROM test;</codeblock></
         setting of the configuration parameter <xref
           href="https://www.postgresql.org/docs/9.4/runtime-config-client.html#GUC-XMLBINARY"
           format="html" scope="external">xmlbinary</xref>. The particular behavior for individual
-        data types is expected to evolve in order to align the SQL and Greenplum Database data types
+        data types is expected to evolve in order to align the SQL and Cloudberry Database data types
         with the XML schema specification, at which point a more precise description will
         appear.</p>
       <p><b>Function:</b></p>
@@ -579,11 +579,11 @@ SELECT xmlagg(x) FROM test;
  t
 (1 row)
 </codeblock></p>
-      <p>The <codeph>BY REF</codeph> clauses have no effect in Greenplum Database, but are allowed
+      <p>The <codeph>BY REF</codeph> clauses have no effect in Cloudberry Database, but are allowed
         for SQL conformance and compatibility with other implementations. Per SQL standard, the
         first <codeph>BY REF</codeph> is required, the second is optional. Also note that the SQL
         standard specifies the <codeph>xmlexists</codeph> construct to take an XQuery expression as
-        first argument, but Greenplum Database currently only supports XPath, which is a subset of
+        first argument, but Cloudberry Database currently only supports XPath, which is a subset of
         XQuery.</p>
       <p><b>Expression:</b></p>
       <p><codeph><cmdname>xml_is_well_formed</cmdname></codeph></p>

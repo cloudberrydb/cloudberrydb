@@ -15,7 +15,7 @@ Database bloat occurs in heap tables, append-optimized tables, indexes, and syst
 
 Database bloat is disk space that was used by a table or index and is available for reuse by the database but has not been reclaimed. Bloat is created when updating tables or indexes.
 
-Because Greenplum Database heap tables use the PostgreSQL Multiversion Concurrency Control \(MVCC\) storage implementation, a deleted or updated row is logically deleted from the database, but a non-visible image of the row remains in the table. These deleted rows, also called expired rows, are tracked in a free space map. Running `VACUUM` marks the expired rows as free space that is available for reuse by subsequent inserts.
+Because Cloudberry Database heap tables use the PostgreSQL Multiversion Concurrency Control \(MVCC\) storage implementation, a deleted or updated row is logically deleted from the database, but a non-visible image of the row remains in the table. These deleted rows, also called expired rows, are tracked in a free space map. Running `VACUUM` marks the expired rows as free space that is available for reuse by subsequent inserts.
 
 It is normal for tables that have frequent updates to have a small or moderate amount of expired rows and free space that will be reused as new data is added. But when the table is allowed to grow so large that active data occupies just a small fraction of the space, the table has become significantly bloated. Bloated tables require more disk storage and additional I/O that can slow down query execution.
 
@@ -81,13 +81,13 @@ To rebuild all indexes on a table run `REINDEX *table\_name*;`. To rebuild a par
 
 ## <a id="bloat_catalog"></a>Removing Bloat from System Catalogs 
 
-Greenplum Database system catalog tables are heap tables and can become bloated over time. As database objects are created, altered, or dropped, expired rows are left in the system catalogs. Using `gpload` to load data contributes to the bloat since `gpload` creates and drops external tables. \(Rather than use `gpload`, it is recommended to use `gpfdist` to load data.\)
+Cloudberry Database system catalog tables are heap tables and can become bloated over time. As database objects are created, altered, or dropped, expired rows are left in the system catalogs. Using `gpload` to load data contributes to the bloat since `gpload` creates and drops external tables. \(Rather than use `gpload`, it is recommended to use `gpfdist` to load data.\)
 
 Bloat in the system catalogs increases the time require to scan the tables, for example, when creating explain plans. System catalogs are scanned frequently and if they become bloated, overall system performance is degraded.
 
 It is recommended to run `VACUUM` on system catalog tables nightly and at least weekly. At the same time, running `REINDEX SYSTEM` on system catalog tables removes bloat from the indexes. Alternatively, you can reindex system tables using the `reindexdb` utility with the `-s` \(`--system`\) option. After removing catalog bloat, run `ANALYZE` to update catalog table statistics.
 
-These are Greenplum Database system catalog maintenance steps.
+These are Cloudberry Database system catalog maintenance steps.
 
 1.  Perform a `REINDEX` on the system catalog tables to rebuild the system catalog indexes. This removes bloat in the indexes and improves `VACUUM` performance.
 
@@ -96,7 +96,7 @@ These are Greenplum Database system catalog maintenance steps.
 2.  Perform a `VACUUM` on system catalog tables.
 3.  Perform an `ANALYZE` on the system catalog tables to update the table statistics.
 
-If you are performing system catalog maintenance during a maintenance period and you need to stop a process due to time constraints, run the Greenplum Database function `pg_cancel_backend(<PID>)` to safely stop a Greenplum Database process.
+If you are performing system catalog maintenance during a maintenance period and you need to stop a process due to time constraints, run the Cloudberry Database function `pg_cancel_backend(<PID>)` to safely stop a Cloudberry Database process.
 
 The following script runs `REINDEX`, `VACUUM`, and `ANALYZE` on the system catalogs.
 
@@ -115,7 +115,7 @@ If the system catalogs become significantly bloated, you must run `VACUUM FULL` 
 
 These are steps for intensive system catalog maintenance.
 
-1.  Stop all catalog activity on the Greenplum Database system.
+1.  Stop all catalog activity on the Cloudberry Database system.
 2.  Perform a `VACUUM FULL` on the system catalog tables. See the following Note.
 3.  Perform an `ANALYZE` on the system catalog tables to update the catalog table statistics.
 

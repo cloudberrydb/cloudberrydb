@@ -1,4 +1,4 @@
-# Greenplum-specific tests
+# Cloudberry-specific tests
 #
 # The order of the tests is fairly random, but there are a couple of things
 # to consider when placing a new test:
@@ -94,7 +94,7 @@ test: cursor
 # so it needs to be in a group by itself
 test: query_finish_pending
 
-test: gpdiffcheck gptokencheck gp_hashagg sequence_gp tidscan_gp co_nestloop_idxscan dml_in_udf gpdtm_plpgsql
+test: gpdiffcheck gptokencheck gp_hashagg sequence_gp tidscan_gp co_nestloop_idxscan dml_in_udf gpdtm_plpgsql agg_pushdown
 
 # The test must be run by itself as it injects a fault on QE to fail
 # at the 2nd phase of 2PC.
@@ -115,6 +115,10 @@ test: brin_ao brin_aocs
 test: sreh
 
 test: rle rle_delta dsp not_out_of_shmem_exit_slots create_am_gp
+
+# Cloudberry-specific tests
+test: cbdb_optimizer_test
+test: gp_runtime_filter
 
 # Disabled tests. XXX: Why are these disabled?
 #test: olap_window

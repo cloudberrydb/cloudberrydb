@@ -65,7 +65,7 @@ db = ...
           </plentry>
           <plentry>
             <pt>host</pt>
-            <pd>The name or IP address of the Greenplum coordinator host. Host names are resolved at
+            <pd>The name or IP address of the Cloudberry coordinator host. Host names are resolved at
               connect time. If DNS returns several results, they are used in a round-robin
               manner. The DNS result is cached and the <codeph>dns_max_ttl</codeph> parameter
               determines when the cache entry expires. </pd>
@@ -75,7 +75,7 @@ db = ...
           </plentry>
           <plentry>
             <pt>port</pt>
-            <pd>The Greenplum Database coordinator port.</pd>
+            <pd>The Cloudberry Database coordinator port.</pd>
             <pd><p>Default: 5432</p></pd>
           </plentry>
           <plentry>
@@ -93,7 +93,7 @@ db = ...
                 <codeph>auth_file</codeph> is authenticated by querying the
                 <codeph>pg_shadow</codeph> database view. PgBouncer performs this
                 query as the
-                <codeph>auth_user</codeph> Greenplum Database user. <codeph>auth_user</codeph>'s password must be set
+                <codeph>auth_user</codeph> Cloudberry Database user. <codeph>auth_user</codeph>'s password must be set
               in the <codeph>auth_file</codeph>.</pd>
           </plentry>
           <plentry>
@@ -195,7 +195,7 @@ db = ...
           <plentry>
             <pt>auth_file</pt>
             <pd>The name of the file containing the user names and passwords to load. The file
-              format is the same as the Greenplum Database <filepath>pg_auth</filepath>
+              format is the same as the Cloudberry Database <filepath>pg_auth</filepath>
               file.<p>Default: not set</p></pd>
           </plentry>
           <plentry>
@@ -260,8 +260,8 @@ db = ...
                 <codeph>auth_file</codeph> is authenticated through the 
                 <codeph>auth_query</codeph> query from the <codeph>pg_shadow</codeph> database view. PgBouncer performs this
                 query as the
-                <codeph>auth_user</codeph> Greenplum Database user. <codeph>auth_user</codeph>'s password must be set
-              in the <codeph>auth_file</codeph>.<p>Direct access to <codeph>pg_shadow</codeph> requires Greenplum Database administrative privileges. It is preferable to use a non-admin user that calls <codeph>SECURITY DEFINER</codeph> function instead.</p></pd>
+                <codeph>auth_user</codeph> Cloudberry Database user. <codeph>auth_user</codeph>'s password must be set
+              in the <codeph>auth_file</codeph>.<p>Direct access to <codeph>pg_shadow</codeph> requires Cloudberry Database administrative privileges. It is preferable to use a non-admin user that calls <codeph>SECURITY DEFINER</codeph> function instead.</p></pd>
           </plentry>
           <plentry>
             <pt>pool_mode</pt>
@@ -448,14 +448,14 @@ db = ...
                 changes made to a database session so that the next client gets a connection in a
                 well-defined state. Default is <codeph>DISCARD ALL</codeph> which cleans everything,
                 but that leaves the next client no pre-cached state.
-                <note>Greenplum Database does not support <codeph>DISCARD ALL</codeph>.
+                <note>Cloudberry Database does not support <codeph>DISCARD ALL</codeph>.
                 </note></p><p>You can use other commands to clean up the session state. For example,
                   <codeph>DEALLOCATE ALL</codeph> drops prepared statements, and <codeph>DISCARD
                   TEMP</codeph> drops temporary tables. </p><p>When transaction pooling is used, the
                   <codeph>server_reset_query</codeph> should be empty, as clients should not use any
                 session features. If clients do use session features, they will be broken because
                 transaction pooling does not guarantee that the next query will run on the same
-                connection.</p><p>Default: <codeph>DISCARD ALL;</codeph> (Not supported by Greenplum
+                connection.</p><p>Default: <codeph>DISCARD ALL;</codeph> (Not supported by Cloudberry
                 Database.)</p></pd>
           </plentry>
           <plentry>
@@ -560,7 +560,7 @@ db = ...
           </plentry>
           <plentry><pt>client_tls_dheparams</pt><pd>DHE key exchange type.</pd><pd>Allowed values: <codeph>none</codeph> (DH is disabled), <codeph>auto</codeph> (2048-bit DH), <codeph>legacy</codeph> (1024-bit DH).</pd><pd><p>Default: <codeph>auto</codeph></p></pd>
           </plentry>
-          <plentry><pt>server_tls_sslmode</pt><pd>TLS mode to use for connections to Greenplum Database and PostgreSQL servers. TLS connections are disabled by default.<ul id="ul_hyh_1td_bt">
+          <plentry><pt>server_tls_sslmode</pt><pd>TLS mode to use for connections to Cloudberry Database and PostgreSQL servers. TLS connections are disabled by default.<ul id="ul_hyh_1td_bt">
             <li><codeph>disabled</codeph>: Plain TCP. TLS is not requested from the server. Default.</li>
             <li><codeph>allow</codeph>: If server rejects plain, try TLS. (<i>PgBouncer Documentation is speculative on this..</i>)</li>
             <li><codeph>prefer</codeph>: TLS connection is always requested first. When connection is refused, plain TPC is used. Server certificate is not validated.</li>
@@ -568,11 +568,11 @@ db = ...
             <li><codeph>verify-ca</codeph>: Connection must use TLS and server certificate must be valid according to <codeph>server_tls_ca_file</codeph>. The server hostname is not verfied against the certificate.</li>
             <li><codeph>verify-full</codeph>: Connection must use TLS and the server certificate must be valid according to <codeph>server_tls_ca_file</codeph>. The server hostname must match the hostname in the certificate.</li></ul></pd>
           </plentry>
-          <plentry><pt>server_tls_ca_file</pt><pd>Path to the root certificate file used to validate Greenplum Database and PostgreSQL server certificates.</pd><pd><p>Default: unset</p></pd>
+          <plentry><pt>server_tls_ca_file</pt><pd>Path to the root certificate file used to validate Cloudberry Database and PostgreSQL server certificates.</pd><pd><p>Default: unset</p></pd>
           </plentry>
-          <plentry><pt>server_tls_key_file</pt><pd>The private key for PgBouncer to authenticate against Greenplum Database or PostgreSQL server.</pd><pd><p>Default: not set</p></pd>
+          <plentry><pt>server_tls_key_file</pt><pd>The private key for PgBouncer to authenticate against Cloudberry Database or PostgreSQL server.</pd><pd><p>Default: not set</p></pd>
           </plentry>
-          <plentry><pt>server_tls_cert_file</pt><pd>Certificate for private key. Greenplum Database or PostgreSQL servers can validate it.</pd><pd><p>Default: not set</p></pd>
+          <plentry><pt>server_tls_cert_file</pt><pd>Certificate for private key. Cloudberry Database or PostgreSQL servers can validate it.</pd><pd><p>Default: not set</p></pd>
           </plentry>
           <plentry><pt>server_tls_protocols</pt><pd>Which TLS protocol versions are allowed. </pd><pd>Valid values are: <codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>. </pd><pd>Shortcuts: <codeph>all</codeph> (<codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>); <codeph>secure</codeph> (<codeph>tlsv1.2</codeph>); <codeph>legacy</codeph> (<codeph>all</codeph>).</pd><pd><p>Default: <codeph>all</codeph></p></pd>
           </plentry>

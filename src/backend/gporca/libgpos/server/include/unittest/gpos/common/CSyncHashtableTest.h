@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2008 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2008 Cloudberry, Inc.
 //
 //	@filename:
 //		CSyncHashtableTest.h

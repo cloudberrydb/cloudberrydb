@@ -141,7 +141,7 @@ where c.oid = a.segrelid and
 	   (a.relid = 'ao_empty'::regclass or
 	    a.relid = 'aocs_empty'::regclass);
 -- Verify that age of toast table is updated by vacuum.
--- AOCS doesn't have a valid reltoastrelid from Greenplum 7.
+-- AOCS doesn't have a valid reltoastrelid from Cloudberry 7.
 select 0 < age(relfrozenxid) as age_positive,
        age(relfrozenxid) < 100 as age_within_limit
 from pg_class where oid in (select reltoastrelid from pg_class

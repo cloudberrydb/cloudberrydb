@@ -3,7 +3,7 @@
  * gistdesc.c
  *	  rmgr descriptor routines for access/gist/gistxlog.c
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,10 +26,11 @@ out_gistxlogPageUpdate(StringInfo buf, gistxlogPageUpdate *xlrec)
 static void
 out_gistxlogPageReuse(StringInfo buf, gistxlogPageReuse *xlrec)
 {
-	appendStringInfo(buf, "rel %u/%u/%u; blk %u; latestRemovedXid %u",
+	appendStringInfo(buf, "rel %u/%u/%lu; blk %u; latestRemovedXid %u:%u",
 					 xlrec->node.spcNode, xlrec->node.dbNode,
 					 xlrec->node.relNode, xlrec->block,
-					 xlrec->latestRemovedXid);
+					 EpochFromFullTransactionId(xlrec->latestRemovedFullXid),
+					 XidFromFullTransactionId(xlrec->latestRemovedFullXid));
 }
 
 static void
@@ -50,8 +51,10 @@ out_gistxlogPageSplit(StringInfo buf, gistxlogPageSplit *xlrec)
 static void
 out_gistxlogPageDelete(StringInfo buf, gistxlogPageDelete *xlrec)
 {
-	appendStringInfo(buf, "deleteXid %u; downlink %u",
-					 xlrec->deleteXid, xlrec->downlinkOffset);
+	appendStringInfo(buf, "deleteXid %u:%u; downlink %u",
+					 EpochFromFullTransactionId(xlrec->deleteXid),
+					 XidFromFullTransactionId(xlrec->deleteXid),
+					 xlrec->downlinkOffset);
 }
 
 void
@@ -77,6 +80,9 @@ gist_desc(StringInfo buf, XLogReaderState *record)
 		case XLOG_GIST_PAGE_DELETE:
 			out_gistxlogPageDelete(buf, (gistxlogPageDelete *) rec);
 			break;
+		case XLOG_GIST_ASSIGN_LSN:
+			/* No details to write out */
+			break;
 	}
 }
 
@@ -101,6 +107,9 @@ gist_identify(uint8 info)
 			break;
 		case XLOG_GIST_PAGE_DELETE:
 			id = "PAGE_DELETE";
+			break;
+		case XLOG_GIST_ASSIGN_LSN:
+			id = "ASSIGN_LSN";
 			break;
 	}
 

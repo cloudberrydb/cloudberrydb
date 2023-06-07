@@ -2,7 +2,7 @@
  * Copyright (c) 1983, 1995, 1996 Eric P. Allman
  * Copyright (c) 1988, 1993
  *	The Regents of the University of California.  All rights reserved.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -320,7 +320,7 @@ static bool find_arguments(const char *format, va_list args,
 						   PrintfArgValue *argvalues);
 static void fmtstr(const char *value, int leftjust, int minlen, int maxwidth,
 				   int pointflag, PrintfTarget *target);
-static void fmtptr(void *value, PrintfTarget *target);
+static void fmtptr(const void *value, PrintfTarget *target);
 static void fmtint(long long value, char type, int forcesign,
 				   int leftjust, int minlen, int zpad, int precision, int pointflag,
 				   PrintfTarget *target);
@@ -394,7 +394,7 @@ dopr(PrintfTarget *target, const char *format, va_list args)
 	int			cvalue;
 	long long	numvalue;
 	double		fvalue;
-	char	   *strvalue;
+	const char *strvalue;
 	PrintfArgValue argvalues[PG_NL_ARGMAX + 1];
 
 	/*
@@ -439,7 +439,8 @@ dopr(PrintfTarget *target, const char *format, va_list args)
 		{
 			format++;
 			strvalue = va_arg(args, char *);
-			Assert(strvalue != NULL);
+			if (strvalue == NULL)
+				strvalue = "(null)";
 			dostr(strvalue, strlen(strvalue), target);
 			if (target->failed)
 				break;
@@ -670,8 +671,9 @@ nextch2:
 					strvalue = argvalues[fmtpos].cptr;
 				else
 					strvalue = va_arg(args, char *);
-				/* Whine if someone tries to print a NULL string */
-				Assert(strvalue != NULL);
+				/* If string is NULL, silently substitute "(null)" */
+				if (strvalue == NULL)
+					strvalue = "(null)";
 				fmtstr(strvalue, leftjust, fieldwidth, precision, pointflag,
 					   target);
 				break;
@@ -681,7 +683,7 @@ nextch2:
 					strvalue = argvalues[fmtpos].cptr;
 				else
 					strvalue = va_arg(args, char *);
-				fmtptr((void *) strvalue, target);
+				fmtptr((const void *) strvalue, target);
 				break;
 			case 'e':
 			case 'E':
@@ -995,7 +997,7 @@ fmtstr(const char *value, int leftjust, int minlen, int maxwidth,
 }
 
 static void
-fmtptr(void *value, PrintfTarget *target)
+fmtptr(const void *value, PrintfTarget *target)
 {
 	int			vallen;
 	char		convert[64];
@@ -1052,7 +1054,7 @@ fmtint(long long value, char type, int forcesign, int leftjust,
 	}
 
 	/* disable MSVC warning about applying unary minus to an unsigned value */
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable: 4146)
 #endif
@@ -1061,7 +1063,7 @@ fmtint(long long value, char type, int forcesign, int leftjust,
 		uvalue = -(unsigned long long) value;
 	else
 		uvalue = (unsigned long long) value;
-#if _MSC_VER
+#ifdef _MSC_VER
 #pragma warning(pop)
 #endif
 
@@ -1227,16 +1229,14 @@ fmtfloat(double value, char type, int forcesign, int leftjust,
 		{
 			/* pad before exponent */
 			dostr(convert, epos - convert, target);
-			if (zeropadlen > 0)
-				dopr_outchmulti('0', zeropadlen, target);
+			dopr_outchmulti('0', zeropadlen, target);
 			dostr(epos, vallen - (epos - convert), target);
 		}
 		else
 		{
 			/* no exponent, pad after the digits */
 			dostr(convert, vallen, target);
-			if (zeropadlen > 0)
-				dopr_outchmulti('0', zeropadlen, target);
+			dopr_outchmulti('0', zeropadlen, target);
 		}
 	}
 	else

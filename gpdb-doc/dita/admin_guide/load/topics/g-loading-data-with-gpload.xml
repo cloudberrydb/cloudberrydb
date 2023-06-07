@@ -4,15 +4,15 @@
 <topic id="topic62">
     <title>Loading Data with gpload</title>
     <body>
-        <p>The Greenplum <codeph>gpload</codeph> utility loads data using readable external tables
-            and the Greenplum parallel file server (<cmdname>gpfdist</cmdname> or
+        <p>The Cloudberry <codeph>gpload</codeph> utility loads data using readable external tables
+            and the Cloudberry parallel file server (<cmdname>gpfdist</cmdname> or
                 <codeph>gpfdists</codeph>). It handles parallel file-based external table setup and
             allows users to configure their data format, external table definition, and
                 <cmdname>gpfdist</cmdname> or <codeph>gpfdists</codeph> setup in a single
             configuration file.<note><codeph>gpfdist</codeph> and <codeph>gpload</codeph> are
-                compatible only with the Greenplum Database major version in which they are shipped.
-                For example, a <codeph>gpfdist</codeph> utility that is installed with Greenplum
-                Database 4.x cannot be used with Greenplum Database 5.x or 6.x.</note><note
+                compatible only with the Cloudberry Database major version in which they are shipped.
+                For example, a <codeph>gpfdist</codeph> utility that is installed with Cloudberry
+                Database 4.x cannot be used with Cloudberry Database 5.x or 6.x.</note><note
                 id="gpload-limitation"><codeph>MERGE</codeph> and <codeph>UPDATE</codeph> operations
                 are not supported if the target table column name is a reserved keyword, has capital
                 letters, or includes any character that requires quotes (" ") to identify the
@@ -21,15 +21,15 @@
             <title>To use gpload</title>
             <ol>
                 <li id="du168152">Ensure that your environment is set up to run
-                        <codeph>gpload</codeph>. Some dependent files from your Greenplum Database
+                        <codeph>gpload</codeph>. Some dependent files from your Cloudberry Database
                     installation are required, such as <cmdname>gpfdist</cmdname> and Python, as
-                    well as network access to the Greenplum segment hosts. <p>See the <i>Greenplum
+                    well as network access to the Cloudberry segment hosts. <p>See the <i>Cloudberry
                             Database Reference Guide</i> for details.</p>
                 </li>
                 <li id="du168179">Create your load control file. This is a YAML-formatted file that
-                    specifies the Greenplum Database connection information,
+                    specifies the Cloudberry Database connection information,
                         <cmdname>gpfdist</cmdname> configuration information, external table
-                    options, and data format. <p>See the <i>Greenplum Database Reference Guide</i>
+                    options, and data format. <p>See the <i>Cloudberry Database Reference Guide</i>
                         for details. </p><p>For example:</p>
                     <p>
                         <codeblock>---

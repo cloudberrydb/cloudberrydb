@@ -42,7 +42,7 @@ Alternatively `apt-get install clang-tidy` will give you a "default" version of 
 
 ### Generating ORCA Build Directories With A Compilation Database
 
-Here's an example of generating two build directories, `build.debug` and `build.release` at the root of Greenplum repository:
+Here's an example of generating two build directories, `build.debug` and `build.release` at the root of Cloudberry repository:
 
 for debug build:
 
@@ -81,7 +81,7 @@ $ CLANG_TIDY=/usr/local/opt/llvm/bin/clang-tidy src/tools/tidy chk-orca build.de
 
 [bear]: https://github.com/rizsotto/Bear
 
-The main Greenplum codebase, like upstream PostgreSQL, uses autoconf and GNU Make as the build system. This means that we'll need another tool, like [Bear][bear]. The following example assumes you start from the root of a check-out of our Git repository:
+The main Cloudberry codebase, like upstream PostgreSQL, uses autoconf and GNU Make as the build system. This means that we'll need another tool, like [Bear][bear]. The following example assumes you start from the root of a check-out of our Git repository:
 
 ```
 mkdir ../vpath.debug

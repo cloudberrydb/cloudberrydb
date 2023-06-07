@@ -7,7 +7,7 @@
  * Splits jsonpath string into tokens represented as JsonPathString structs.
  * Decodes unicode and hex escaped strings.
  *
- * Copyright (c) 2019, PostgreSQL Global Development Group
+ * Copyright (c) 2019-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	src/backend/utils/adt/jsonpath_scan.l
@@ -43,6 +43,8 @@ fprintf_to_ereport(const char *fmt, const char *msg)
 	ereport(ERROR, (errmsg_internal("%s", msg)));
 }
 
+/* LCOV_EXCL_START */
+
 %}
 
 %option 8bit
@@ -59,25 +61,24 @@ fprintf_to_ereport(const char *fmt, const char *msg)
 %option noyyfree
 
 /*
- * We use exclusive states for quoted, signle-quoted and non-quoted strings,
- * quoted variable names and C-tyle comments.
+ * We use exclusive states for quoted and non-quoted strings,
+ * quoted variable names and C-style comments.
  * Exclusive states:
  *  <xq> - quoted strings
  *  <xnq> - non-quoted strings
  *  <xvq> - quoted variable names
- *  <xsq> - single-quoted strings
  *  <xc> - C-style comment
  */
 
 %x xq
 %x xnq
 %x xvq
-%x xsq
 %x xc
 
-special		 [\?\%\$\.\[\]\{\}\(\)\|\&\!\=\<\>\@\#\,\*:\-\+\/]
-any			[^\?\%\$\.\[\]\{\}\(\)\|\&\!\=\<\>\@\#\,\*:\-\+\/\\\"\' \t\n\r\f]
+special		[\?\%\$\.\[\]\{\}\(\)\|\&\!\=\<\>\@\#\,\*:\-\+\/]
 blank		[ \t\n\r\f]
+/* "other" means anything that's not special, blank, or '\' or '"' */
+other		[^\?\%\$\.\[\]\{\}\(\)\|\&\!\=\<\>\@\#\,\*:\-\+\/\\\" \t\n\r\f]
 
 digit		[0-9]
 integer		(0|[1-9]{digit}*)
@@ -95,7 +96,7 @@ hex_fail	\\x{hex_dig}{0,1}
 
 %%
 
-<xnq>{any}+						{
+<xnq>{other}+					{
 									addstring(false, yytext, yyleng);
 								}
 
@@ -105,13 +106,12 @@ hex_fail	\\x{hex_dig}{0,1}
 									return checkKeyword();
 								}
 
-
 <xnq>\/\*						{
 									yylval->str = scanstring;
 									BEGIN xc;
 								}
 
-<xnq>({special}|\"|\')			{
+<xnq>({special}|\")				{
 									yylval->str = scanstring;
 									yyless(0);
 									BEGIN INITIAL;
@@ -124,39 +124,37 @@ hex_fail	\\x{hex_dig}{0,1}
 									return checkKeyword();
 								}
 
-<xnq,xq,xvq,xsq>\\[\"\'\\]		{ addchar(false, yytext[1]); }
+<xnq,xq,xvq>\\b				{ addchar(false, '\b'); }
 
-<xnq,xq,xvq,xsq>\\b				{ addchar(false, '\b'); }
+<xnq,xq,xvq>\\f				{ addchar(false, '\f'); }
 
-<xnq,xq,xvq,xsq>\\f				{ addchar(false, '\f'); }
+<xnq,xq,xvq>\\n				{ addchar(false, '\n'); }
 
-<xnq,xq,xvq,xsq>\\n				{ addchar(false, '\n'); }
+<xnq,xq,xvq>\\r				{ addchar(false, '\r'); }
 
-<xnq,xq,xvq,xsq>\\r				{ addchar(false, '\r'); }
+<xnq,xq,xvq>\\t				{ addchar(false, '\t'); }
 
-<xnq,xq,xvq,xsq>\\t				{ addchar(false, '\t'); }
+<xnq,xq,xvq>\\v				{ addchar(false, '\v'); }
 
-<xnq,xq,xvq,xsq>\\v				{ addchar(false, '\v'); }
+<xnq,xq,xvq>{unicode}+		{ parseUnicode(yytext, yyleng); }
 
-<xnq,xq,xvq,xsq>{unicode}+		{ parseUnicode(yytext, yyleng); }
+<xnq,xq,xvq>{hex_char}		{ parseHexChar(yytext); }
 
-<xnq,xq,xvq,xsq>{hex_char}		{ parseHexChar(yytext); }
+<xnq,xq,xvq>{unicode}*{unicodefail}	{ yyerror(NULL, "invalid unicode sequence"); }
 
-<xnq,xq,xvq,xsq>{unicode}*{unicodefail}	{ yyerror(NULL, "invalid unicode sequence"); }
+<xnq,xq,xvq>{hex_fail}		{ yyerror(NULL, "invalid hex character sequence"); }
 
-<xnq,xq,xvq,xsq>{hex_fail}		{ yyerror(NULL, "invalid hex character sequence"); }
+<xnq,xq,xvq>{unicode}+\\	{
+								/* throw back the \\, and treat as unicode */
+								yyless(yyleng - 1);
+								parseUnicode(yytext, yyleng);
+							}
 
-<xnq,xq,xvq,xsq>{unicode}+\\	{
-									/* throw back the \\, and treat as unicode */
-									yyless(yyleng - 1);
-									parseUnicode(yytext, yyleng);
-								}
+<xnq,xq,xvq>\\.				{ addchar(false, yytext[1]); }
 
-<xnq,xq,xvq,xsq>\\.				{ yyerror(NULL, "escape sequence is invalid"); }
+<xnq,xq,xvq>\\				{ yyerror(NULL, "unexpected end after backslash"); }
 
-<xnq,xq,xvq,xsq>\\				{ yyerror(NULL, "unexpected end after backslash"); }
-
-<xq,xvq,xsq><<EOF>>				{ yyerror(NULL, "unexpected end of quoted string"); }
+<xq,xvq><<EOF>>				{ yyerror(NULL, "unexpected end of quoted string"); }
 
 <xq>\"							{
 									yylval->str = scanstring;
@@ -170,15 +168,7 @@ hex_fail	\\x{hex_dig}{0,1}
 									return VARIABLE_P;
 								}
 
-<xsq>\'							{
-									yylval->str = scanstring;
-									BEGIN INITIAL;
-									return STRING_P;
-								}
-
 <xq,xvq>[^\\\"]+				{ addstring(false, yytext, yyleng); }
-
-<xsq>[^\\\']+					{ addstring(false, yytext, yyleng); }
 
 <xc>\*\/						{ BEGIN INITIAL; }
 
@@ -210,7 +200,7 @@ hex_fail	\\x{hex_dig}{0,1}
 
 \>								{ return GREATER_P; }
 
-\${any}+						{
+\${other}+						{
 									addstring(true, yytext + 1, yyleng - 1);
 									addchar(false, '\0');
 									yylval->str = scanstring;
@@ -263,19 +253,9 @@ hex_fail	\\x{hex_dig}{0,1}
 
 ({realfail1}|{realfail2})		{ yyerror(NULL, "invalid floating point number"); }
 
-{any}+							{
-									addstring(true, yytext, yyleng);
-									BEGIN xnq;
-								}
-
 \"								{
 									addchar(true, '\0');
 									BEGIN xq;
-								}
-
-\'								{
-									addchar(true, '\0');
-									BEGIN xsq;
 								}
 
 \\								{
@@ -284,9 +264,16 @@ hex_fail	\\x{hex_dig}{0,1}
 									BEGIN xnq;
 								}
 
+{other}+						{
+									addstring(true, yytext, yyleng);
+									BEGIN xnq;
+								}
+
 <<EOF>>							{ yyterminate(); }
 
 %%
+
+/* LCOV_EXCL_STOP */
 
 void
 jsonpath_yyerror(JsonPathParseResult **result, const char *message)
@@ -340,6 +327,7 @@ static const JsonPathKeyword keywords[] = {
 	{ 6, false,	STRICT_P,	"strict"},
 	{ 7, false,	CEILING_P,	"ceiling"},
 	{ 7, false,	UNKNOWN_P,	"unknown"},
+	{ 8, false,	DATETIME_P,	"datetime"},
 	{ 8, false,	KEYVALUE_P,	"keyvalue"},
 	{ 10,false, LIKE_REGEX_P, "like_regex"},
 };
@@ -502,13 +490,6 @@ hexval(char c)
 static void
 addUnicodeChar(int ch)
 {
-	/*
-	 * For UTF8, replace the escape sequence by the actual
-	 * utf8 character in lex->strval. Do this also for other
-	 * encodings if the escape designates an ASCII character,
-	 * otherwise raise an error.
-	 */
-
 	if (ch == 0)
 	{
 		/* We can't allow this, since our TEXT type doesn't */
@@ -517,40 +498,20 @@ addUnicodeChar(int ch)
 				 errmsg("unsupported Unicode escape sequence"),
 				  errdetail("\\u0000 cannot be converted to text.")));
 	}
-	else if (GetDatabaseEncoding() == PG_UTF8)
-	{
-		char utf8str[5];
-		int utf8len;
-
-		unicode_to_utf8(ch, (unsigned char *) utf8str);
-		utf8len = pg_utf_mblen((unsigned char *) utf8str);
-		addstring(false, utf8str, utf8len);
-	}
-	else if (ch <= 0x007f)
-	{
-		/*
-		 * This is the only way to designate things like a
-		 * form feed character in JSON, so it's useful in all
-		 * encodings.
-		 */
-		addchar(false, (char) ch);
-	}
 	else
 	{
-		ereport(ERROR,
-				(errcode(ERRCODE_INVALID_TEXT_REPRESENTATION),
-				 errmsg("invalid input syntax for type %s", "jsonpath"),
-				 errdetail("Unicode escape values cannot be used for code "
-						   "point values above 007F when the server encoding "
-						   "is not UTF8.")));
+		char		cbuf[MAX_UNICODE_EQUIVALENT_STRING + 1];
+
+		pg_unicode_to_server(ch, (unsigned char *) cbuf);
+		addstring(false, cbuf, strlen(cbuf));
 	}
 }
 
-/* Add unicode character and process its hi surrogate */
+/* Add unicode character, processing any surrogate pairs */
 static void
 addUnicode(int ch, int *hi_surrogate)
 {
-	if (ch >= 0xd800 && ch <= 0xdbff)
+	if (is_utf16_surrogate_first(ch))
 	{
 		if (*hi_surrogate != -1)
 			ereport(ERROR,
@@ -558,10 +519,10 @@ addUnicode(int ch, int *hi_surrogate)
 					 errmsg("invalid input syntax for type %s", "jsonpath"),
 					 errdetail("Unicode high surrogate must not follow "
 							   "a high surrogate.")));
-		*hi_surrogate = (ch & 0x3ff) << 10;
+		*hi_surrogate = ch;
 		return;
 	}
-	else if (ch >= 0xdc00 && ch <= 0xdfff)
+	else if (is_utf16_surrogate_second(ch))
 	{
 		if (*hi_surrogate == -1)
 			ereport(ERROR,
@@ -569,7 +530,7 @@ addUnicode(int ch, int *hi_surrogate)
 					 errmsg("invalid input syntax for type %s", "jsonpath"),
 					 errdetail("Unicode low surrogate must follow a high "
 							   "surrogate.")));
-		ch = 0x10000 + *hi_surrogate + (ch & 0x3ff);
+		ch = surrogate_pair_to_codepoint(*hi_surrogate, ch);
 		*hi_surrogate = -1;
 	}
 	else if (*hi_surrogate != -1)

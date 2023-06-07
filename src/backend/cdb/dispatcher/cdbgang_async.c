@@ -6,7 +6,7 @@
  * GPDB_12_MERGE_FIXME: Like in cdbdisp_async.c, we should replace poll()
  * with WaitEventSetWait() here.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -96,6 +96,7 @@ cdbgang_createGang_async(List *segments, SegmentType segmentType)
 		{
 			if (FtsIsSegmentDown(newGangDefinition->db_descriptors[i]->segment_database_info))
 			{
+				FtsNotifyProber();
 				resetSessionForPrimaryGangLoss();
 				elog(ERROR, "gang was lost due to cluster reconfiguration");
 			}
@@ -326,8 +327,10 @@ create_gang_retry:
 	}
 	PG_CATCH();
 	{
-		FtsNotifyProber();
 		/* FTS shows some segment DBs are down */
+		/* FTS_FIXME: remove cdbfts.c and query segment info from cdbutils.c, Also remove FtsNotifyProber*/ 
+		FtsNotifyProber();
+		
 		if (FtsTestSegmentDBIsDown(newGangDefinition->db_descriptors, size))
 		{
 			ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),

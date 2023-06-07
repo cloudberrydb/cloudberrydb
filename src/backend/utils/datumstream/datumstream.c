@@ -2,7 +2,7 @@
  *
  * datumstream.c
  *
- * Portions Copyright (c) 2009, Greenplum Inc.
+ * Portions Copyright (c) 2009, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -20,8 +20,9 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "access/detoast.h"
+#include "access/heaptoast.h"
 #include "access/tupmacs.h"
-#include "access/tuptoaster.h"
 
 #include "catalog/pg_attribute_encoding.h"
 #include "cdb/cdbappendonlyam.h"
@@ -1046,7 +1047,7 @@ datumstreamwrite_lob(DatumStreamWrite * acc,
 	 */
 	if (VARATT_IS_EXTERNAL(DatumGetPointer(d)))
 	{
-		d = PointerGetDatum(heap_tuple_fetch_attr(
+		d = PointerGetDatum(detoast_external_attr(
 								(struct varlena *) DatumGetPointer(d)));
 	}
 

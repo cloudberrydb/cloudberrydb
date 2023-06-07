@@ -116,7 +116,7 @@ PQserverVersion           113
 PQgetssl                  114
 pg_char_to_encoding       115
 pg_valid_server_encoding  116
-# pqsignal                117  # no longer exported, see libpgport instead
+pqsignal                  117
 PQprepare                 118
 PQsendPrepare             119
 PQgetCancel               120
@@ -176,3 +176,13 @@ PQresultMemorySize        173
 PQhostaddr                174
 PQgssEncInUse             175
 PQgetgssctx               176
+PQsetSSLKeyPassHook_OpenSSL         177
+PQgetSSLKeyPassHook_OpenSSL         178
+PQdefaultSSLKeyPassHook_OpenSSL     179
+PQenterPipelineMode       180
+PQexitPipelineMode        181
+PQpipelineSync            182
+PQpipelineStatus          183
+PQsetTraceFlags           184
+PQmblenBounded            185
+PQsendFlushRequest        186

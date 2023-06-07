@@ -9,6 +9,11 @@
 
 /* generic file access functions */
 
+/*
+These functions are already implemented internally in GPDB
+Remove function list:pg_file_write、pg_file_rename、pg_file_unlink、pg_logdir_ls、pg_file_read、pg_file_length、pg_logfile_rotate.
+*/
+/*
 CREATE FUNCTION pg_catalog.pg_file_write(text, text, bool)
 RETURNS bigint
 AS 'MODULE_PATHNAME', 'pg_file_write'
@@ -18,12 +23,14 @@ CREATE FUNCTION pg_catalog.pg_file_rename(text, text, text)
 RETURNS bool
 AS 'MODULE_PATHNAME', 'pg_file_rename'
 LANGUAGE C VOLATILE;
+*/
 
 CREATE FUNCTION pg_catalog.pg_file_rename(text, text)
 RETURNS bool
 AS 'SELECT pg_catalog.pg_file_rename($1, $2, NULL::pg_catalog.text);'
 LANGUAGE SQL VOLATILE STRICT;
 
+/*
 CREATE FUNCTION pg_catalog.pg_file_unlink(text)
 RETURNS bool
 AS 'MODULE_PATHNAME', 'pg_file_unlink'
@@ -33,10 +40,12 @@ CREATE FUNCTION pg_catalog.pg_logdir_ls()
 RETURNS setof record
 AS 'MODULE_PATHNAME', 'pg_logdir_ls'
 LANGUAGE C VOLATILE STRICT;
+*/
 
 
 /* Renaming of existing backend functions for pgAdmin compatibility */
 
+/*
 CREATE FUNCTION pg_catalog.pg_file_read(text, bigint, bigint)
 RETURNS text
 AS 'pg_read_file'
@@ -51,3 +60,4 @@ CREATE FUNCTION pg_catalog.pg_logfile_rotate()
 RETURNS int4
 AS 'pg_rotate_logfile'
 LANGUAGE INTERNAL VOLATILE STRICT;
+*/

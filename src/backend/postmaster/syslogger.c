@@ -13,7 +13,7 @@
  *
  * Author: Andreas Pflug <pgadmin@pse-consulting.de>
  *
- * Copyright (c) 2004-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2004-2021, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -39,6 +39,7 @@
 #include "pgstat.h"
 #include "pgtime.h"
 #include "postmaster/fork_process.h"
+#include "postmaster/interrupt.h"
 #include "postmaster/postmaster.h"
 #include "postmaster/syslogger.h"
 #include "storage/dsm.h"
@@ -52,8 +53,6 @@
 #include "utils/timestamp.h"
 
 #include "cdb/cdbvars.h"
-
-#define READ_BUF_SIZE (2 * PIPE_CHUNK_SIZE)
 
 /* The maximum bytes for error message */
 #define ERROR_MESSAGE_MAX_SIZE 200
@@ -82,11 +81,6 @@ bool		Log_truncate_on_rotation = false;
 int			Log_file_mode = S_IRUSR | S_IWUSR;
 int         gp_log_format = 0; /* Text format */
 
-/*
- * Globally visible state (used by elog.c)
- */
-bool		am_syslogger = false;
-
 extern bool redirection_done;
 
 /*
@@ -112,11 +106,14 @@ static char *last_csv_file_name = NULL;
  * An inactive buffer is not removed from its list, just held for re-use.
  * An inactive buffer has pid == 0 and undefined contents of data.
  */
+typedef struct
+{
+	int32		pid;			/* PID of source process */
+	StringInfoData data;		/* accumulated data, as a StringInfo */
+} save_buffer;
 
-#if 0
 #define NBUFFER_LISTS 256
 static List *buffer_lists[NBUFFER_LISTS];
-#endif
 
 /* These must be exported for EXEC_BACKEND case ... annoying */
 #ifndef WIN32
@@ -144,14 +141,9 @@ static bool chunk_is_postgres_chunk(PipeProtoHeader *hdr)
 		(hdr->is_last == 't' || hdr->is_last == 'f');
 }
 
-
-static void syslogger_handle_chunk(PipeProtoChunk *savedchunk);
-static void syslogger_flush_chunks(void);
-
 /*
  * Flags set by interrupt handlers for later service in the main loop.
  */
-static volatile sig_atomic_t got_SIGHUP = false;
 static volatile sig_atomic_t rotation_requested = false;
 
 
@@ -161,10 +153,8 @@ static pid_t syslogger_forkexec(void);
 static void syslogger_parseArgs(int argc, char *argv[]);
 #endif
 NON_EXEC_STATIC void SysLoggerMain(int argc, char *argv[]) pg_attribute_noreturn();
-#if 0
 static void process_pipe_input(char *logbuffer, int *bytes_in_logbuffer);
 static void flush_pipe_input(char *logbuffer, int *bytes_in_logbuffer);
-#endif
 static FILE *logfile_open(const char *filename, const char *mode,
 						  bool allow_errors);
 
@@ -176,82 +166,8 @@ static bool logfile_rotate(bool time_based_rotation, bool size_based_rotation, c
                            FILE **fh, char **last_log_file_name);
 static char *logfile_getname(pg_time_t timestamp, const char *suffix, const char *log_directory, const char *log_file_pattern);
 static void set_next_rotation_time(void);
-static void sigHupHandler(SIGNAL_ARGS);
 static void sigUsr1Handler(SIGNAL_ARGS);
 static void update_metainfo_datafile(void);
-
-/*
- * GPDB_94_MERGE_FIXME: We might need to refactor the code to make future
- * merge easier.
- */
-
-/*
- * GPDB_92_MERGE_FIXME: This is a ugly hack.
- * PG 9.2 changes to use dynamic lists for chunk use. It uses the pid of as
- * index. pid is extracted from the data after pipe read, however our current code
- * is differnt than upstream pg. PG has a temp buffer. It analyzes the buffer
- * to get pid and then allocates a chunk if needed using the pid as an index,
- * and finally copies the buffer to the new chunk. GP code does not do copy
- * so it is impossible (or ugly hacking needed) to get a new chunk from the
- * unknown pid information. GP code is faster of course, however given this
- * code is not hot spot, maybe we should refactor our code to align with pg upstream.
- * GP seems to have special and better logging for 3rd party module output.
- * I'm not sure about other reasons of the different GP implmentation, but
- * We'd better refer pg (9.2 and latest) code and refactor the code after
- * gp code is running.
- *
- * To workaround previous constraint, I temporarily revert to use previous
- * non-pid indexed chunks but keep the pg9.2 code in this file, some of
- * which is commented out. Note other changes in pg 9.2 e.g. latch changes
- * are kept.
- *
- */
-PipeProtoChunk saved_chunks[CHUNK_SLOTS];
-
-/* Get an available chunk */
-static PipeProtoChunk *
-get_avail_chunk()
-{
-	int			i;
-
-	for(i = 0; i < CHUNK_SLOTS; ++i)
-	{
-		if (saved_chunks[i].hdr.pid == 0)
-			return &saved_chunks[i];
-	}
-
-	syslogger_flush_chunks();
-
-	/* Recheck again. */
-	for (i = 0; i < CHUNK_SLOTS; ++i)
-	{
-		if (saved_chunks[i].hdr.pid == 0)
-			return &saved_chunks[i];
-	}
-
-	pg_unreachable();
-#if 0
-	List *buffer_list;
-	ListCell   *cell;
-	PipeProtoChunk *buf;
-
-	buffer_list = buffer_lists[pid % NBUFFER_LISTS];
-	foreach(cell, buffer_list)
-	{
-		buf =  (PipeProtoChunk *) lfirst(cell);
-
-		if (buf->hdr.pid == 0)
-			return buf;
-	}
-
-	buf = palloc(sizeof(PipeProtoChunk));
-	buf->hdr.pid = 0;
-	buffer_list = lappend(buffer_list, buf);
-	buffer_lists[p.pid % NBUFFER_LISTS] = buffer_list;
-
-    return buf;
-#endif
-}
 
 /*
  * Main entry point for syslogger process
@@ -260,6 +176,10 @@ get_avail_chunk()
 NON_EXEC_STATIC void
 SysLoggerMain(int argc, char *argv[])
 {
+#ifndef WIN32
+	char		logbuffer[READ_BUF_SIZE];
+	int			bytes_in_logbuffer = 0;
+#endif
 	char	   *currentLogDir;
 	char	   *currentLogFilename;
 	int			currentLogRotationAge;
@@ -272,12 +192,11 @@ SysLoggerMain(int argc, char *argv[])
 	syslogger_parseArgs(argc, argv);
 #endif							/* EXEC_BACKEND */
 
-	am_syslogger = true;
-
+	MyBackendType = B_LOGGER;
 	if (Gp_role == GP_ROLE_DISPATCH)
-		init_ps_display("master logger process", "", "", "");
+		init_ps_display("master logger process");
 	else
-		init_ps_display("logger process", "", "", "");
+		init_ps_display("logger process");
 
 	/*
 	 * If we restarted, our stderr is already redirected into our own input
@@ -344,7 +263,8 @@ SysLoggerMain(int argc, char *argv[])
 	 * broken backends...
 	 */
 
-	pqsignal(SIGHUP, sigHupHandler);	/* set flag to read config file */
+	pqsignal(SIGHUP, SignalHandlerForConfigReload); /* set flag to read config
+													 * file */
 	pqsignal(SIGINT, SIG_IGN);
 	pqsignal(SIGTERM, SIG_IGN);
 	pqsignal(SIGQUIT, SIG_IGN);
@@ -426,7 +346,6 @@ SysLoggerMain(int argc, char *argv[])
 		WaitEvent	event;
 
 #ifndef WIN32
-		int			bytesRead = 0;
 		int			rc;
 #endif
 
@@ -438,9 +357,9 @@ SysLoggerMain(int argc, char *argv[])
 		/*
 		 * Process any requests or signals received recently.
 		 */
-		if (got_SIGHUP)
+		if (ConfigReloadPending)
 		{
-			got_SIGHUP = false;
+			ConfigReloadPending = false;
 			ProcessConfigFile(PGC_SIGHUP);
 
 			/*
@@ -605,29 +524,25 @@ SysLoggerMain(int argc, char *argv[])
 
 		if (rc == 1 && event.events == WL_SOCKET_READABLE)
 		{
-			PipeProtoChunk *chunk = get_avail_chunk();
-			int			readPos = 0;
+			int			bytesRead;
 
-			/* Read data to fill the buffer up to PIPE_CHUNK_SIZE bytes */
-		next_chunkloop:
-			if (bytesRead < sizeof(PipeProtoHeader))
+			bytesRead = read(syslogPipe[0],
+							 logbuffer + bytes_in_logbuffer,
+							 sizeof(logbuffer) - bytes_in_logbuffer);
+			if (bytesRead < 0)
 			{
-				/*
-				 * We always try to make sure that the buffer has at least sizeof(PipeProtoHeader)
-				 * bytes if we have read several bytes in the previous read. This handles the case
-				 * when a valid chunk has to be read in two read calls, and the first read only
-				 * picks up less than sizeof(PipeProtoHeader) bytes.
-				 *
-				 * However, this read may force some 3rd party error messages (less than
-				 * sizeof(PipeProtoHeader) bytes) to sits in the buffer until the next message
-				 * comes in. Thus you may experience some delays for small 3rd party error messages
-				 * showing up in the logfile. Hopefully, this is very rare.
-				 */
-				readPos = bytesRead;
-				bytesRead = read(syslogPipe[0], (char *)chunk + readPos, PIPE_CHUNK_SIZE - readPos);
+				if (errno != EINTR)
+					ereport(LOG,
+							(errcode_for_socket_access(),
+							 errmsg("could not read from logger pipe: %m")));
 			}
-
-			if (bytesRead == 0)
+			else if (bytesRead > 0)
+			{
+				bytes_in_logbuffer += bytesRead;
+				process_pipe_input(logbuffer, &bytes_in_logbuffer);
+				continue;
+			}
+			else
 			{
 				/*
 				 * Zero bytes read when select() is saying read-ready means
@@ -638,119 +553,7 @@ SysLoggerMain(int argc, char *argv[])
 				pipe_eof_seen = true;
 
 				/* if there's any data left then force it out now */
-				syslogger_flush_chunks();
-			}
-			else if (bytesRead < 0)
-			{
-				if (errno != EINTR)
-					elog(ERROR, "Syslogger could not read from logger pipe: %m");
-			}
-			else
-			{
-				if (bytesRead + readPos >= sizeof(PipeProtoHeader) &&
-					chunk_is_postgres_chunk((PipeProtoHeader *)chunk))
-				{
-					int			chunk_size = chunk->hdr.len + sizeof(PipeProtoHeader);
-					int			needBytes = chunk_size - (bytesRead + readPos);
-
-					/*
-					 * Finish reading a chunk if the bytes we have read so far
-					 * is not sufficient.
-					 */
-					if (needBytes > 0)
-					{
-						bytesRead =	read(syslogPipe[0],
-											 ((char *)chunk) + (bytesRead + readPos),
-											 needBytes);
-
-						Assert(bytesRead == needBytes);
-					}
-
-					syslogger_handle_chunk(chunk);
-
-					/*
-					 * Copy the remaining bytes to the beginning of a new unused chunk
-					 * buffer if we have read too much.
-					 */
-					if (needBytes < 0)
-					{
-						int			moreBytes = bytesRead + readPos - chunk_size;
-						PipeProtoChunk *new_chunk = get_avail_chunk();
-
-						Assert(moreBytes > 0);
-
-						memmove((char *)new_chunk, ((char *)chunk) + chunk_size, moreBytes);
-						chunk = new_chunk;
-						bytesRead = moreBytes;
-						readPos = 0;
-
-						goto next_chunkloop;
-					}
-
-					/* go back to the main loop */
-				}
-				else
-				{
-					/*
-					 * This is a 3rd party error. We may read parts of the standard
-					 * error message along with the 3rd party error. So here, we
-					 * scan the data byte by byte until we find a byte that is 0.
-					 */
-					char	   *msgEnd = (char *) chunk;
-					char	   *chunkEnd = ((char *) chunk) + (bytesRead + readPos);
-
-					while (*msgEnd != 0 && msgEnd < chunkEnd)
-						msgEnd++;
-
-					if (msgEnd >= chunkEnd)
-					{
-						char		lastChar = '\0';
-
-						/*
-						 * We didn't find a byte '0', so the whole message
-						 * is one 3rd party error message.
-						 */
-						if (bytesRead + readPos >= PIPE_CHUNK_SIZE)
-						{
-							msgEnd --;
-							lastChar = *msgEnd;
-						}
-
-						/* Add a '\0' terminator */
-						*msgEnd = '\0';
-
-						elog(LOG, "3rd party error log:\n%s%c", (char *)chunk, lastChar);
-
-						/* remember to free this chunk */
-						chunk->hdr.pid = 0;
-					}
-					else
-					{
-						Assert(*msgEnd == 0);
-
-						/*
-						 * If a 3rd party error does not start with byte '0',
-						 * write the message.
-						 */
-						if (msgEnd != (char *)chunk)
-							elog(LOG, "3rd party error log:\n%s", (char *)chunk);
-						else
-						{
-							/* A 3rd party error starts with bytes '0', ignore this bytes. */
-							msgEnd++;
-						}
-
-						if (chunkEnd - msgEnd > 0)
-						{
-							/* We copy the rest of bytes to the beginning of the chunk buffer. */
-							memmove((char *)chunk, msgEnd, chunkEnd - msgEnd);
-							bytesRead = chunkEnd - msgEnd;
-							readPos = 0;
-
-							goto next_chunkloop;
-						}
-					}
-				}
+				flush_pipe_input(logbuffer, &bytes_in_logbuffer);
 			}
 		}
 #else							/* WIN32 */
@@ -779,7 +582,7 @@ SysLoggerMain(int argc, char *argv[])
 			 * it DEBUG1 to suppress in normal use.
 			 */
 			ereport(DEBUG1,
-					(errmsg("logger shutting down")));
+					(errmsg_internal("logger shutting down")));
 
 			/*
 			 * Normal exit from the syslogger is here.  Note that we
@@ -816,6 +619,11 @@ SysLogger_Start(void)
 	 * This means the postmaster must continue to hold the read end of the
 	 * pipe open, so we can pass it down to the reincarnated syslogger. This
 	 * is a bit klugy but we have little choice.
+	 *
+	 * Also note that we don't bother counting the pipe FDs by calling
+	 * Reserve/ReleaseExternalFD.  There's no real need to account for them
+	 * accurately in the postmaster or syslogger process, and both ends of the
+	 * pipe will wind up closed in all other postmaster children.
 	 */
 #ifndef WIN32
 	if (syslogPipe[0] < 0)
@@ -823,7 +631,7 @@ SysLogger_Start(void)
 		if (pipe(syslogPipe) < 0)
 			ereport(FATAL,
 					(errcode_for_socket_access(),
-					 (errmsg("could not create pipe for syslog: %m"))));
+					 errmsg("could not create pipe for syslog: %m")));
 	}
 #else
 	if (!syslogPipe[0])
@@ -837,7 +645,7 @@ SysLogger_Start(void)
 		if (!CreatePipe(&syslogPipe[0], &syslogPipe[1], &sa, 32768))
 			ereport(FATAL,
 					(errcode_for_file_access(),
-					 (errmsg("could not create pipe for syslog: %m"))));
+					 errmsg("could not create pipe for syslog: %m")));
 	}
 #endif
 
@@ -1215,86 +1023,6 @@ int syslogger_write_str(const char *data, int len, bool amsyslogger, bool csv)
     return cnt;
 }
 
-/*
- * Write a string, ended with '\0', in a specific chunk to the log.
- *
- * If csv is true, this function puts double-quotes around the string.
- * If both csv and quote_empty_string are true, this function puts
- * double-quotes around an empty string.
- * If append_comma is true, this function appends a comma after the string.
- */
-static void
-syslogger_write_str_from_chunk(CSVChunkStr *chunkstr, bool csv,
-							   bool quote_empty_string, bool append_comma)
-{
-    int wlen = 0; 
-    int len = 0;
-	bool is_empty_string = false;
-
-    if (chunkstr->chunk != NULL)
-	{
-		len = chunkstr->chunk->hdr.len - (chunkstr->p - chunkstr->chunk->data);
-
-		/* Check if the string is an empty string */
-		if (len > 0 && chunkstr->p[0] == '\0')
-			is_empty_string = true;
-		if (len == 0 && chunkstr->chunk->hdr.next >= 0)
-		{
-			PipeProtoChunk *next_chunk = &saved_chunks[chunkstr->chunk->hdr.next];
-			if (next_chunk->hdr.len > 0 && next_chunk->data[0] == '\0')
-				is_empty_string = true;
-		}
-	}
-	else
-	{
-		Assert(chunkstr->p == NULL);
-		is_empty_string = true;
-	}
-
-    if(csv && (!is_empty_string || quote_empty_string))
-        write_syslogger_file_binary("\"", 1, LOG_DESTINATION_STDERR);
-
-    while(chunkstr->p)
-    {
-        bool done = false;
-        wlen = syslogger_write_str(chunkstr->p, len, true, csv);
-
-        /* Write OK, don't forget to account for the trailing 0 */
-        if(wlen < len)
-        { 
-            done = true;
-            chunkstr->p += wlen + 1;
-        }
-        else
-            chunkstr->p += wlen;
-
-        if(chunkstr->p - chunkstr->chunk->data == chunkstr->chunk->hdr.len)
-        {
-            /* switch to next chunk */
-            if(chunkstr->chunk->hdr.next >= 0)
-            {
-                chunkstr->chunk = &saved_chunks[chunkstr->chunk->hdr.next];
-                chunkstr->p = chunkstr->chunk->data;
-                len = chunkstr->chunk->hdr.len - (chunkstr->p - chunkstr->chunk->data);
-            }
-            else
-            {
-                chunkstr->chunk = NULL;
-                chunkstr->p = NULL;
-            }
-        }
-
-        if(done)
-            break;
-    }
-
-    if(csv && (!is_empty_string || quote_empty_string))
-        write_syslogger_file_binary("\"", 1, LOG_DESTINATION_STDERR);
-
-    if (append_comma)
-        write_syslogger_file_binary(",", 1, LOG_DESTINATION_STDERR);
-}
-
 void
 syslogger_write_int32(bool test0, const char *prefix, int32 i, bool amsyslogger, bool append_comma)
 {
@@ -1541,7 +1269,7 @@ syslogger_write_errordata(PipeProtoHeader *chunkHeader, GpErrorData *errorData, 
 
 /*
  * syslogger_log_segv_chunk
- *   Write the chunk for the message sent inside a SEGV/BUS/ILL handler to the log.
+ * Write the chunk for the message sent inside a SEGV/BUS/ILL handler to the log.
  */
 static void
 syslogger_log_segv_chunk(PipeProtoChunk *chunk)
@@ -1549,16 +1277,10 @@ syslogger_log_segv_chunk(PipeProtoChunk *chunk)
 	Assert(chunk->hdr.is_segv_msg == 't' && chunk->hdr.is_last == 't');
 	Assert(chunk->hdr.thid == FIXED_THREAD_ID);
 
-	/* Reset the thread id */
-	chunk->hdr.thid = 0;
-
 	GpErrorData errorData;
 	fillinErrorDataFromSegvChunk(&errorData, chunk);
 	syslogger_write_errordata(&chunk->hdr, &errorData, chunk->hdr.log_format == 'c');
 	freeErrorDataFields(&errorData);
-	
-	/* mark chunk as unused */
-	chunk->hdr.pid = 0;
 }
 
 static size_t
@@ -1571,356 +1293,151 @@ pg_strnlen(const char *str, size_t maxlen)
 	return p - str;
 }
 
-static void move_to_next_chunk(CSVChunkStr * chunkstr,
-		const PipeProtoChunk * saved_chunks)
-{
-	Assert(chunkstr != NULL);
-	Assert(saved_chunks != NULL);
-
-	if (chunkstr->chunk != NULL)
-		if (chunkstr->p - chunkstr->chunk->data >= chunkstr->chunk->hdr.len)
-		{
-			/* switch to next chunk */
-			if (chunkstr->chunk->hdr.next >= 0)
-			{
-				chunkstr->chunk = &saved_chunks[chunkstr->chunk->hdr.next];
-				chunkstr->p = chunkstr->chunk->data;
-			}
-			else
-			{
-				/* no more chunks */
-				chunkstr->chunk = NULL;
-				chunkstr->p = NULL;
-			}
-		}
-}
-
 static char *
-get_str_from_chunk(CSVChunkStr *chunkstr, const PipeProtoChunk *saved_chunks)
+get_str_from_chunk_data(char *str, int *cursor, int total)
 {
-	int wlen = 0;
-	int len = 0;
+	Assert(str != NULL);
+
 	char * out = NULL;
-
-	Assert(chunkstr != NULL);
-	Assert(saved_chunks != NULL);
-
-	move_to_next_chunk(chunkstr, saved_chunks);
-
-	if (chunkstr->p == NULL)
-	{
-		return strdup("");
-	}
-
-	len = chunkstr->chunk->hdr.len - (chunkstr->p - chunkstr->chunk->data);
+	int left = total - (*cursor);
 
 	/* Check if the string is an empty string */
-	if (len > 0 && chunkstr->p[0] == '\0')
+	if (left > 0 && str[(*cursor)] == '\0')
 	{
-		chunkstr->p++;
-		move_to_next_chunk(chunkstr, saved_chunks);
-
+		(*cursor)++;
 		return strdup("");
 	}
 
-	if (len == 0 && chunkstr->chunk->hdr.next >= 0)
-	{
-		const PipeProtoChunk *next_chunk =
-				&saved_chunks[chunkstr->chunk->hdr.next];
-		if (next_chunk->hdr.len > 0 && next_chunk->data[0] == '\0')
-		{
-			chunkstr->p++;
-			move_to_next_chunk(chunkstr, saved_chunks);
-			return strdup("");
-		}
-	}
-
-	wlen = pg_strnlen(chunkstr->p, len);
-
-	if (wlen < len)
-	{
-		// String all contained in this chunk
-		out = malloc(wlen + 1);
-		if (!out)
-			return NULL;
-		memcpy(out, chunkstr->p, wlen + 1); // include the null byte
-		chunkstr->p += wlen + 1; // skip to start of next string.
-		return out;
-	}
+	int wlen = pg_strnlen(str + (*cursor), left);
 
 	out = malloc(wlen + 1);
 	if (!out)
 		return NULL;
-	memcpy(out, chunkstr->p, wlen);
+
+	memcpy(out, str + (*cursor), wlen);
 	out[wlen] = '\0';
-	chunkstr->p += wlen;
-
-	while (chunkstr->p)
-	{
-		move_to_next_chunk(chunkstr, saved_chunks);
-		if (chunkstr->p == NULL)
-			break;
-		len = chunkstr->chunk->hdr.len - (chunkstr->p - chunkstr->chunk->data);
-
-		wlen = pg_strnlen(chunkstr->p, len);
-
-		/* Write OK, don't forget to account for the trailing 0 */
-		if (wlen < len)
-		{
-			// Remainder of String all contained in this chunk
-			out = realloc(out, strlen(out) + wlen + 1);
-			if (!out)
-				return NULL;
-			strncat(out, chunkstr->p, wlen + 1); // include the null byte
-
-			chunkstr->p += wlen + 1; // skip to start of next string.
-			return out;
-		}
-		else
-		{
-			int newlen = strlen(out) + wlen;
-			out = realloc(out, newlen + 1);
-			if (!out)
-				return NULL;
-			strncat(out, chunkstr->p, wlen);
-			out[newlen] = '\0';
-
-			chunkstr->p += wlen;
-		}
-	}
+	(*cursor) += wlen + 1; // skip to start of next string.
 
 	return out;
 }
 
-void syslogger_log_chunk_list(PipeProtoChunk *chunk)
+void syslogger_log_chunk_data(PipeProtoHeader* p, char *data, int len)
 {
-    GpErrorDataFixFields *pfixed = (GpErrorDataFixFields *) (chunk->data);
-
-    if(chunk->hdr.log_format == 't')
-    {
-        CSVChunkStr chunkstr = { chunk, chunk->data };
-        syslogger_write_str_from_chunk(&chunkstr, false, false, false);
-    }
-    else
-    {
-        CSVChunkStr chunkstr = { chunk, chunk->data + sizeof(GpErrorDataFixFields) };
-	    GpErrorData errorData;
-        memset(&errorData, 0, sizeof(errorData));
-        memcpy(&errorData.fix_fields, chunk->data, sizeof(errorData.fix_fields));
-        errorData.username = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.databasename = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.remote_host = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.remote_port = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_severity = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.sql_state = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_message = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_detail = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_hint = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.internal_query = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_context = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.debug_query_string = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_func_name = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.error_filename = get_str_from_chunk(&chunkstr,saved_chunks);
-        errorData.stacktrace = get_str_from_chunk(&chunkstr,saved_chunks);
-
-        /*
-         * timestamp_with_milliseconds 
-         */
-        syslogger_append_current_timestamp(true);
-
-        /* username */
-        syslogger_write_str_with_comma(errorData.username, true, true, false);
-
-        /* databasename */
-        syslogger_write_str_with_comma(errorData.databasename, true, true, false);
-
-        /* Process id, thread id */
-        syslogger_write_int32(false, "p", chunk->hdr.pid, true, true);
-        syslogger_write_int32(false, "th", chunk->hdr.thid, true, true);
-
-        /* Remote host */
-        syslogger_write_str_with_comma(errorData.remote_host, true, true, false);
-        /* Remote port */
-        syslogger_write_str_with_comma(errorData.remote_port, true, true, false);
-
-        /* session start timestamp */
-        syslogger_append_timestamp(pfixed->session_start_time, true, true);
-
-        /* Transaction id */
-        syslogger_write_int32(false, "", pfixed->top_trans_id, true, true);
-
-        /* GPDB specific options. */
-        syslogger_write_int32(true, "con", pfixed->gp_session_id, true, true); 
-        syslogger_write_int32(true, "cmd", pfixed->gp_command_count, true, true); 
-        syslogger_write_int32(false, pfixed->gp_is_primary == 't'? "seg" : "mir", pfixed->gp_segment_id,
-							  true, true); 
-        syslogger_write_int32(true, "slice", pfixed->slice_id, true, true); 
-        syslogger_write_int32(true, "dx", pfixed->dist_trans_id, true, true);
-        syslogger_write_int32(true, "x", pfixed->local_trans_id, true, true); 
-        syslogger_write_int32(true, "sx", pfixed->subtrans_id, true, true); 
-
-        /* error severity */
-        syslogger_write_str_with_comma(errorData.error_severity, true, true, false);
-        /* sql state code */
-        syslogger_write_str_with_comma(errorData.sql_state, true, true, false);
-        /* errmsg */
-        syslogger_write_str_with_comma(errorData.error_message, true, true, false);
-        /* errdetail */
-        syslogger_write_str_with_comma(errorData.error_detail, true, true, false);
-        /* errhint */
-        syslogger_write_str_with_comma(errorData.error_hint, true, true, false);
-        /* internal query */
-        syslogger_write_str_with_comma(errorData.internal_query, true, true, false);
-        /* internal query pos */
-        syslogger_write_int32(true, "", pfixed->internal_query_pos, true, true);
-        /* err ctxt */
-        syslogger_write_str_with_comma(errorData.error_context, true, true, false);
-        /* user query */
-        syslogger_write_str_with_comma(errorData.debug_query_string, true, true, false);
-        /* cursor pos */
-        syslogger_write_int32(false, "", pfixed->error_cursor_pos, true, true); 
-        /* func name */
-        syslogger_write_str_with_comma(errorData.error_func_name, true, true, false);
-        /* file name */
-        syslogger_write_str_with_comma(errorData.error_filename, true, true, false);
-        /* line number */
-        syslogger_write_int32(true, "", pfixed->error_fileline, true, true);
-        /* stack trace */
-        syslogger_write_str_end(errorData.stacktrace, true, true, false);
-
-        /* EOL */
-        write_syslogger_file_binary(LOG_EOL, strlen(LOG_EOL), LOG_DESTINATION_STDERR);
-
-        free(errorData.stacktrace ); errorData.stacktrace = NULL;
-        free((char *)errorData.error_filename ); errorData.error_filename = NULL;
-        free((char *)errorData.error_func_name ); errorData.error_func_name = NULL;
-        free(errorData.debug_query_string ); errorData.debug_query_string = NULL;
-        free(errorData.error_context); errorData.error_context = NULL;
-        free(errorData.internal_query ); errorData.internal_query = NULL;
-        free(errorData.error_hint ); errorData.error_hint = NULL;
-        free(errorData.error_detail ); errorData.error_detail = NULL;
-        free(errorData.error_message ); errorData.error_message = NULL;
-        free(errorData.sql_state ); errorData.sql_state = NULL;
-        free((char *)errorData.error_severity ); errorData.error_severity = NULL;
-        free(errorData.remote_port ); errorData.remote_port = NULL;
-        free(errorData.remote_host ); errorData.remote_host = NULL;
-        free(errorData.databasename ); errorData.databasename = NULL;
-        free(errorData.username ); errorData.username = NULL;
-    }
-
-    /* Free the chunks */
-    while(true)
-    {
-        chunk->hdr.pid = 0;
-        if(chunk->hdr.next == -1)
-            break;
-        chunk = &saved_chunks[chunk->hdr.next];
-    }
-}
-
-static void syslogger_flush_chunks()
-{
-    PipeProtoChunk * chunk = NULL;
-    int i;
-
-    for(i=0; i<CHUNK_SLOTS; ++i)
-    {
-        if(saved_chunks[i].hdr.pid != 0
-                && saved_chunks[i].hdr.chunk_no == 0)
-        {
-            chunk = &saved_chunks[i];
-            syslogger_log_chunk_list(chunk);
-        }
-    }
-
-    /* make sure we free everything */
-    for (i=0; i<CHUNK_SLOTS; ++i)
-    {
-        saved_chunks[i].hdr.pid = 0;
-    }
-
-#if 0
-	int			i;
-
-	/* Dump any incomplete protocol messages */
-	for (i = 0; i < NBUFFER_LISTS; i++)
+	if (p->log_format == 't')
 	{
-		List	   *list = buffer_lists[i];
-		ListCell   *cell;
-
-		foreach(cell, list)
-		{
-			PipeProtoChunk *buf = (PipeProtoChunk *) lfirst(cell);
-			StringInfo	str = &(buf->data);
-
-			if(buf->hdr.pid != 0 && buf->hdr.chunk_no == 0)
-				syslogger_log_chunk_list(buf);
-
-			buf->hdr.pid = 0;
-		}
+		/* text format chunk data always ended with '\0' */
+		write_syslogger_file(data, len, LOG_DESTINATION_STDERR);
 	}
-#endif
-}
-
-static void syslogger_handle_chunk(PipeProtoChunk *chunk)
-{
-    int i;
-    PipeProtoChunk *first = NULL; 
-    PipeProtoChunk *prev = NULL; 
-
-    Assert(chunk->hdr.log_format == 'c' || chunk->hdr.log_format == 't'); 
-          
-    /* I am the last, so chain no one */
-    chunk->hdr.next = -1; 
-
-    /* find interesting things */
-    for(i = 0; i<CHUNK_SLOTS; ++i)
-    {
-        if(saved_chunks[i].hdr.pid == chunk->hdr.pid && 
-                saved_chunks[i].hdr.thid == chunk->hdr.thid && 
-                saved_chunks[i].hdr.log_line_number == chunk->hdr.log_line_number)
-        {
-            if(saved_chunks[i].hdr.chunk_no == 0)
-                first = &saved_chunks[i];
-
-            if(saved_chunks[i].hdr.chunk_no == chunk->hdr.chunk_no - 1)
-                prev = &saved_chunks[i];
-        }
-    }
-
-    /* Chain me */
-    if(prev)
-        prev->hdr.next = chunk - &saved_chunks[0];
-    else if(chunk->hdr.chunk_no != 0)
-    {
-        /* A chunk without prev, drop it on the floor */
-        elog(LOG, "Out of order or dangling chunks from pid %d", chunk->hdr.pid);
-
-        /* remember to free this chunk */
-        chunk->hdr.pid = 0;
-
-        /* Out of order chunk, if we have something before this, output */
-        if(first)
-            syslogger_log_chunk_list(first);
-
-        return;
-    }
-
-    if(chunk->hdr.is_last == 't')
+	else 
 	{
-		if (chunk->hdr.is_segv_msg == 't')
-		{
-			syslogger_log_segv_chunk(first);
-		}
-		else
-		{
-			syslogger_log_chunk_list(first);
-		}
+		GpErrorData errorData;
+		memset(&errorData, 0, sizeof(errorData));
+		memcpy(&errorData.fix_fields, data, sizeof(errorData.fix_fields));
+		GpErrorDataFixFields *pfixed = &(errorData.fix_fields);
+
+		int cur = sizeof(GpErrorDataFixFields);
+		errorData.username = get_str_from_chunk_data(data, &cur, len);
+		errorData.databasename = get_str_from_chunk_data(data, &cur, len);
+		errorData.remote_host = get_str_from_chunk_data(data, &cur, len);
+		errorData.remote_port = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_severity = get_str_from_chunk_data(data, &cur, len);
+		errorData.sql_state = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_message = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_detail = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_hint = get_str_from_chunk_data(data, &cur, len);
+		errorData.internal_query = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_context = get_str_from_chunk_data(data, &cur, len);
+		errorData.debug_query_string = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_func_name = get_str_from_chunk_data(data, &cur, len);
+		errorData.error_filename = get_str_from_chunk_data(data, &cur, len);
+		errorData.stacktrace = get_str_from_chunk_data(data, &cur, len);
+
+		/*
+		* timestamp_with_milliseconds 
+		*/
+		syslogger_append_current_timestamp(true);
+
+		/* username */
+		syslogger_write_str_with_comma(errorData.username, true, true, false);
+
+		/* databasename */
+		syslogger_write_str_with_comma(errorData.databasename, true, true, false);
+
+		/* Process id, thread id */
+		syslogger_write_int32(false, "p", p->pid, true, true);
+		syslogger_write_int32(false, "th", p->thid, true, true);
+
+		/* Remote host */
+		syslogger_write_str_with_comma(errorData.remote_host, true, true, false);
+		/* Remote port */
+		syslogger_write_str_with_comma(errorData.remote_port, true, true, false);
+
+		/* session start timestamp */
+		syslogger_append_timestamp(pfixed->session_start_time, true, true);
+
+		/* Transaction id */
+		syslogger_write_int32(false, "", pfixed->top_trans_id, true, true);
+
+		/* GPDB specific options. */
+		syslogger_write_int32(true, "con", pfixed->gp_session_id, true, true);
+		syslogger_write_int32(true, "cmd", pfixed->gp_command_count, true, true);
+		syslogger_write_int32(false, pfixed->gp_is_primary == 't'? "seg" : "mir", pfixed->gp_segment_id,
+								true, true);
+		syslogger_write_int32(true, "slice", pfixed->slice_id, true, true);
+		syslogger_write_int32(true, "dx", pfixed->dist_trans_id, true, true);
+		syslogger_write_int32(true, "x", pfixed->local_trans_id, true, true);
+		syslogger_write_int32(true, "sx", pfixed->subtrans_id, true, true);
+
+		/* error severity */
+		syslogger_write_str_with_comma(errorData.error_severity, true, true, false);
+		/* sql state code */
+		syslogger_write_str_with_comma(errorData.sql_state, true, true, false);
+		/* errmsg */
+		syslogger_write_str_with_comma(errorData.error_message, true, true, false);
+		/* errdetail */
+		syslogger_write_str_with_comma(errorData.error_detail, true, true, false);
+		/* errhint */
+		syslogger_write_str_with_comma(errorData.error_hint, true, true, false);
+		/* internal query */
+		syslogger_write_str_with_comma(errorData.internal_query, true, true, false);
+		/* internal query pos */
+		syslogger_write_int32(true, "", pfixed->internal_query_pos, true, true);
+		/* err ctxt */
+		syslogger_write_str_with_comma(errorData.error_context, true, true, false);
+		/* user query */
+		syslogger_write_str_with_comma(errorData.debug_query_string, true, true, false);
+		/* cursor pos */
+		syslogger_write_int32(false, "", pfixed->error_cursor_pos, true, true);
+		/* func name */
+		syslogger_write_str_with_comma(errorData.error_func_name, true, true, false);
+		/* file name */
+		syslogger_write_str_with_comma(errorData.error_filename, true, true, false);
+		/* line number */
+		syslogger_write_int32(true, "", pfixed->error_fileline, true, true);
+		/* stack trace */
+		syslogger_write_str_end(errorData.stacktrace, true, true, false);
+
+		/* EOL */
+		write_syslogger_file_binary(LOG_EOL, strlen(LOG_EOL), LOG_DESTINATION_STDERR);
+
+		free(errorData.stacktrace ); errorData.stacktrace = NULL;
+		free((char *)errorData.error_filename ); errorData.error_filename = NULL;
+		free((char *)errorData.error_func_name ); errorData.error_func_name = NULL;
+		free(errorData.debug_query_string ); errorData.debug_query_string = NULL;
+		free(errorData.error_context); errorData.error_context = NULL;
+		free(errorData.internal_query ); errorData.internal_query = NULL;
+		free(errorData.error_hint ); errorData.error_hint = NULL;
+		free(errorData.error_detail ); errorData.error_detail = NULL;
+		free(errorData.error_message ); errorData.error_message = NULL;
+		free(errorData.sql_state ); errorData.sql_state = NULL;
+		free((char *)errorData.error_severity ); errorData.error_severity = NULL;
+		free(errorData.remote_port ); errorData.remote_port = NULL;
+		free(errorData.remote_host ); errorData.remote_host = NULL;
+		free(errorData.databasename ); errorData.databasename = NULL;
+		free(errorData.username ); errorData.username = NULL;
 	}
 }
 
-
-#ifdef WIN32
 /* --------------------------------
  *		pipe protocol handling
  * --------------------------------
@@ -1957,19 +1474,14 @@ process_pipe_input(char *logbuffer, int *bytes_in_logbuffer)
 	int			dest = LOG_DESTINATION_STDERR;
 
 	/* While we have enough for a header, process data... */
-	while (count >= (int) (offsetof(PipeProtoHeader, data) + 1))
+	while (count >= sizeof(PipeProtoHeader))
 	{
 		PipeProtoHeader p;
-		int			chunklen;
+		int chunklen;
 
 		/* Do we have a valid header? */
-		memcpy(&p, cursor, offsetof(PipeProtoHeader, data));
-		if (p.nuls[0] == '\0' && p.nuls[1] == '\0' &&
-			p.len > 0 && p.len <= PIPE_MAX_PAYLOAD &&
-			p.pid != 0 &&
-			p.thid != 0 &&
-			(p.is_last == 't' || p.is_last == 'f' ||
-			 p.is_last == 'T' || p.is_last == 'F'))
+		memcpy(&p, cursor, PIPE_HEADER_SIZE);
+		if (chunk_is_postgres_chunk(&p))
 		{
 			List	   *buffer_list;
 			ListCell   *cell;
@@ -1984,7 +1496,91 @@ process_pipe_input(char *logbuffer, int *bytes_in_logbuffer)
 				break;
 
 			dest = (p.log_format == 'c' || p.log_format == 'f') ?
-			 	LOG_DESTINATION_CSVLOG : LOG_DESTINATION_STDERR;
+				LOG_DESTINATION_CSVLOG : LOG_DESTINATION_STDERR;
+
+			/* Locate any existing buffer for this source pid */
+			buffer_list = buffer_lists[p.pid % NBUFFER_LISTS];
+			foreach(cell, buffer_list)
+			{
+				save_buffer *buf = (save_buffer *) lfirst(cell);
+
+				if (buf->pid == p.pid)
+				{
+					existing_slot = buf;
+					break;
+				}
+				if (buf->pid == 0 && free_slot == NULL)
+					free_slot = buf;
+			}
+
+			if (p.is_last == 'f' || p.is_last == 'F')
+			{
+				/*
+				 * Save a complete non-final chunk in a per-pid buffer
+				 */
+				if (existing_slot != NULL)
+				{
+					/* Add chunk to data from preceding chunks */
+					str = &(existing_slot->data);
+					appendBinaryStringInfo(str,
+										   cursor + PIPE_HEADER_SIZE,
+										   p.len);
+				}
+				else
+				{
+					/* First chunk of message, save in a new buffer */
+					if (free_slot == NULL)
+					{
+						/*
+						 * Need a free slot, but there isn't one in the list,
+						 * so create a new one and extend the list with it.
+						 */
+						free_slot = palloc(sizeof(save_buffer));
+						buffer_list = lappend(buffer_list, free_slot);
+						buffer_lists[p.pid % NBUFFER_LISTS] = buffer_list;
+					}
+					free_slot->pid = p.pid;
+					str = &(free_slot->data);
+					initStringInfo(str);
+					appendBinaryStringInfo(str,
+										   cursor + PIPE_HEADER_SIZE,
+										   p.len);
+				}
+			}
+			else
+			{
+				/*
+				 * Final chunk --- add it to anything saved for that pid, and
+				 * either way write the whole thing out.
+				 */
+				if (existing_slot != NULL)
+				{
+					str = &(existing_slot->data);
+					appendBinaryStringInfo(str,
+										   cursor + PIPE_HEADER_SIZE,
+										   p.len);
+					syslogger_log_chunk_data(&p, str->data, str->len);
+					/* Mark the buffer unused, and reclaim string storage */
+					existing_slot->pid = 0;
+					pfree(str->data);
+				}
+				else
+				{
+					/* The whole message was one chunk, evidently. */
+					if (p.is_segv_msg == 't')
+					{
+						/*
+						 * SEGV/BUS/ILL logs should be handled separately.
+						 * These messages will be at most one chunk size.
+						 */
+						syslogger_log_segv_chunk((PipeProtoChunk *)cursor);
+					}
+					else
+					{
+						syslogger_log_chunk_data(&p, cursor + PIPE_HEADER_SIZE, p.len);
+					}
+				}
+			}
 
 			/* Finished processing this chunk */
 			cursor += chunklen;
@@ -2003,13 +1599,41 @@ process_pipe_input(char *logbuffer, int *bytes_in_logbuffer)
 			 * message will arrive all in one read(), and we want to respect
 			 * the read() boundary if possible.)
 			 */
-			for (chunklen = 1; chunklen < count; chunklen++)
+			for (chunklen = 0; chunklen < count; chunklen++)
 			{
 				if (cursor[chunklen] == '\0')
 					break;
 			}
-			/* fall back on the stderr log as the destination */
-			write_syslogger_file(cursor, chunklen /*, LOG_DESTINATION_STDERR*/);
+
+			if (chunklen >= count)
+			{
+				/*
+				 * FIXME: I think if we didn't find '0', we should try to read some more bytes
+				 * from the PIPE so that we won't divide longer non-protocol messages into
+				 * two parts.
+				 * An example of this looks like following:
+				 * Chunk0 [protocol message 1, protocol message 2, non-protocol message...]
+				 * Chunk1 [continued non-protocol message, \0, protocol message 3, ...]
+				 */
+
+				/*
+				 * We didn't find a byte '0', so the whole buffer
+				 * cached one 3rd party error message.
+				 */
+				char lastChar = cursor[chunklen - 1];
+				cursor[chunklen - 1] = '\0';
+				elog(LOG, "3rd party error log:\n%s%c", cursor, lastChar);
+			}
+			else
+			{
+				/* If a 3rd party error starts with bytes '0', ignore this byte. */
+				if (chunklen == 0)
+					chunklen++;
+				else
+					elog(LOG, "3rd party error log:\n%s", cursor);
+			}
+
+			/* Finished processing this chunk */
 			cursor += chunklen;
 			count -= chunklen;
 		}
@@ -2030,9 +1654,40 @@ process_pipe_input(char *logbuffer, int *bytes_in_logbuffer)
 static void
 flush_pipe_input(char *logbuffer, int *bytes_in_logbuffer)
 {
-    syslogger_flush_chunks(); 
+	int			i;
+
+	/* Dump any incomplete protocol messages */
+	for (i = 0; i < NBUFFER_LISTS; i++)
+	{
+		List	   *list = buffer_lists[i];
+		ListCell   *cell;
+
+		foreach(cell, list)
+		{
+			save_buffer *buf = (save_buffer *) lfirst(cell);
+
+			if (buf->pid != 0)
+			{
+				StringInfo	str = &(buf->data);
+
+				write_syslogger_file(str->data, str->len,
+									 LOG_DESTINATION_STDERR);
+				/* Mark the buffer unused, and reclaim string storage */
+				buf->pid = 0;
+				pfree(str->data);
+			}
+		}
+	}
+
+	/*
+	 * Force out any remaining pipe data as-is; we don't bother trying to
+	 * remove any protocol headers that may exist in it.
+	 */
+	if (*bytes_in_logbuffer > 0)
+		write_syslogger_file(logbuffer, *bytes_in_logbuffer,
+							 LOG_DESTINATION_STDERR);
+	*bytes_in_logbuffer = 0;
 }
-#endif
 
 static void
 write_binary_to_file(const char *buffer, int count, FILE *fh)
@@ -2068,9 +1723,15 @@ write_binary_to_file(const char *buffer, int count, FILE *fh)
  *
  * On Windows the data arriving in the pipe already has CR/LF newlines,
  * so we must send it to the file without further translation.
+ *
+ * This is exported so that elog.c can call it when MyBackendType is B_LOGGER.
+ * This allows the syslogger process to record elog messages of its own,
+ * even though its stderr does not point at the syslog pipe.
  */
 void write_syslogger_file_binary(const char *buffer, int count, int destination)
 {
+	FILE	   *logfile;
+
 	/*
 	 * If we're told to write to csvlogFile, but it's not open, dump the data
 	 * to syslogFile (which is always open) instead.  This can happen if CSV
@@ -2082,12 +1743,19 @@ void write_syslogger_file_binary(const char *buffer, int count, int destination)
 	 *
 	 * Think not to improve this by trying to open csvlogFile on-the-fly.  Any
 	 * failure in that would lead to recursion.
+	 *
+	 * The following logic is a little different from GP7.
+	 * We follow the upstream pattern. Use ternary operator to set the `logfile`
+	 * variable to csvlogFile or syslogFile in different situations.
+	 * Thus we can write to it directly without if-else sentences.
+	 * We need to ensure that everytime we call write_syslogger_file_binary, the
+	 * destination should always be LOG_DESTINATION_CSVLOG
+	 * or LOG_DESTINATION_STDERR.
 	 */
-	if (destination == LOG_DESTINATION_STDERR)
-		write_binary_to_file(buffer, count, syslogFile);
-	else if (destination &= LOG_DESTINATION_CSVLOG)
-		write_binary_to_file(buffer, count,
-							 csvlogFile != NULL ? csvlogFile : syslogFile);
+	logfile = (destination == LOG_DESTINATION_CSVLOG &&
+			   csvlogFile != NULL) ? csvlogFile : syslogFile;
+
+	write_binary_to_file(buffer, count, logfile);
 }
 /*
  * Write text to the currently open logfile
@@ -2106,7 +1774,7 @@ void write_syslogger_file(const char *buffer, int count, int destination)
 /*
  * Worker thread to transfer data from the pipe to the current logfile.
  *
- * We need this because on Windows, WaitforMultipleObjects does not work on
+ * We need this because on Windows, WaitForMultipleObjects does not work on
  * unnamed pipes: it always reports "signaled", so the blocking ReadFile won't
  * allow for SIGHUP; and select is for sockets only.
  */
@@ -2312,10 +1980,13 @@ logfile_rotate(bool time_based_rotation, bool size_based_rotation,
 		filename = NULL;
 	}
 
-/* GPDB_94_MERGE_FIXME: We earlier removed the code below. Why not keep them
- * even we might not call them (I'm not sure though)? Note the API for this
- * function is different. pg upstream has size_rotation_for however gpdb does
- * not have.
+/* 
+ * In gpdb, `logfile_rotate` will be called separately for both csv and std log destination.
+ * We keep the code below in order to make code merging easier.
+ * Note the API for this function is different. PG upstream has size_rotation_for however gpdb
+ * does not have. That's becasue we deal with size_rotation_for before calling this function.
+ * We'll call this function separately for both cases and only pass the size_based_rotation
+ * as arguments.
  */
 #if 0
 	/*
@@ -2592,18 +2263,6 @@ void
 RemoveLogrotateSignalFiles(void)
 {
 	unlink(LOGROTATE_SIGNAL_FILE);
-}
-
-/* SIGHUP: set flag to reload config file */
-static void
-sigHupHandler(SIGNAL_ARGS)
-{
-	int			save_errno = errno;
-
-	got_SIGHUP = true;
-	SetLatch(MyLatch);
-
-	errno = save_errno;
 }
 
 /* SIGUSR1: set flag to rotate logfile */

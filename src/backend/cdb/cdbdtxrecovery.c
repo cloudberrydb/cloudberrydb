@@ -324,7 +324,7 @@ gatherRMInDoubtTransactions(int prepared_seconds, bool raiseError)
 				hctl.keysize = TMGIDSIZE;	/* GID */
 				hctl.entrysize = sizeof(InDoubtDtx);
 
-				htab = hash_create("InDoubtDtxHash", 10, &hctl, HASH_ELEM);
+				htab = hash_create("InDoubtDtxHash", 10, &hctl, HASH_ELEM | HASH_STRINGS);
 
 				if (htab == NULL)
 					ereport(FATAL,
@@ -631,14 +631,14 @@ DtxRecoveryMain(Datum main_arg)
 	 */
 	if (!*shmDtmStarted)
 	{
-		set_ps_display("recovering", false);
+		set_ps_display("recovering");
 
 		StartTransactionCommand();
 		recoverTM();
 		CommitTransactionCommand();
 		DisconnectAndDestroyAllGangs(true);
 
-		set_ps_display("", false);
+		set_ps_display("");
 	}
 
 	/* Fetch the gxid batch in advance. */

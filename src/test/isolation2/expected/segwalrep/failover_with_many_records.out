@@ -57,6 +57,11 @@ CHECKPOINT
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 4:SELECT role, preferred_role FROM gp_segment_configuration WHERE content = 1;
  role | preferred_role 
 ------+----------------
@@ -74,6 +79,12 @@ SELECT count(*) FROM t;
 -- end_ignore
 (exited with code 0)
 
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
+
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
  wait_until_all_segments_synchronized 
@@ -83,6 +94,12 @@ select wait_until_all_segments_synchronized();
 
 !\retcode gprecoverseg -ar;
 -- start_ignore
+-- end_ignore
+(exited with code 0)
+
+!\retcode gpfts -A -D;
+-- start_ignore
+
 -- end_ignore
 (exited with code 0)
 

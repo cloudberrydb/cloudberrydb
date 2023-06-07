@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
@@ -38,7 +38,7 @@ struct Query;
 typedef struct ScanKeyData *ScanKey;
 struct Bitmapset;
 struct Plan;
-struct ListCell;
+union ListCell;
 struct TargetEntry;
 struct Expr;
 struct ExtTableEntry;
@@ -517,21 +517,24 @@ void GetOpInputTypes(Oid opno, Oid *lefttype, Oid *righttype);
 bool OperatorExists(Oid oid);
 
 // expression tree walker
-bool WalkExpressionTree(Node *node, bool (*walker)(), void *context);
+bool WalkExpressionTree(Node *node, bool (*walker)(Node *,void *), void *context);
 
 // query or expression tree walker
-bool WalkQueryOrExpressionTree(Node *node, bool (*walker)(), void *context,
+bool WalkQueryOrExpressionTree(Node *node, bool (*walker)(Node *, void *), void *context,
 							   int flags);
 
 // modify the components of a Query tree
-Query *MutateQueryTree(Query *query, Node *(*mutator)(), void *context,
+Query *MutateQueryTree(Query *query, Node *(*mutator)(Node *, void *), void *context,
 					   int flags);
 
+bool WalkQueryTree(Query *query, bool (*walker)(Node *, void *), void *context,
+				   int flags);
+
 // modify an expression tree
-Node *MutateExpressionTree(Node *node, Node *(*mutator)(), void *context);
+Node *MutateExpressionTree(Node *node, Node *(*mutator)(Node *, void *), void *context);
 
 // modify a query or an expression tree
-Node *MutateQueryOrExpressionTree(Node *node, Node *(*mutator)(), void *context,
+Node *MutateQueryOrExpressionTree(Node *node, Node *(*mutator)(Node *, void *), void *context,
 								  int flags);
 
 #if 0
@@ -749,23 +752,23 @@ void GPDBLockRelationOid(Oid reloid, int lockmode);
 }  //namespace gpdb
 
 #define ForEach(cell, l) \
-	for ((cell) = gpdb::ListHead(l); (cell) != NULL; (cell) = lnext(cell))
+	for ((cell) = gpdb::ListHead(l); (cell) != NULL; (cell) = lnext(l, cell))
 
 #define ForBoth(cell1, list1, cell2, list2)                                \
 	for ((cell1) = gpdb::ListHead(list1), (cell2) = gpdb::ListHead(list2); \
 		 (cell1) != NULL && (cell2) != NULL;                               \
-		 (cell1) = lnext(cell1), (cell2) = lnext(cell2))
+		 (cell1) = lnext(list1, cell1), (cell2) = lnext(list2, cell2))
 
 #define ForThree(cell1, list1, cell2, list2, cell3, list3)                 \
 	for ((cell1) = gpdb::ListHead(list1), (cell2) = gpdb::ListHead(list2), \
 		(cell3) = gpdb::ListHead(list3);                                   \
 		 (cell1) != NULL && (cell2) != NULL && (cell3) != NULL;            \
-		 (cell1) = lnext(cell1), (cell2) = lnext(cell2),                   \
-		(cell3) = lnext(cell3))
+		 (cell1) = lnext(list1, cell1), (cell2) = lnext(list2, cell2),                   \
+		(cell3) = lnext(list3, cell3))
 
 #define ForEachWithCount(cell, list, counter)                          \
 	for ((cell) = gpdb::ListHead(list), (counter) = 0; (cell) != NULL; \
-		 (cell) = lnext(cell), ++(counter))
+		 (cell) = lnext(list, cell), ++(counter))
 
 #define ListMake1(x1) gpdb::LPrepend(x1, NIL)
 

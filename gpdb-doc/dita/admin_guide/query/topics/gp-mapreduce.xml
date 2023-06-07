@@ -2,36 +2,36 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="ii20941">Using Greenplum MapReduce</title>
+  <title id="ii20941">Using Cloudberry MapReduce</title>
   <shortdesc>MapReduce is a programming model developed by Google for processing and generating
-      large data sets on an array of commodity servers. Greenplum MapReduce allows programmers who
+      large data sets on an array of commodity servers. Cloudberry MapReduce allows programmers who
       are familiar with the MapReduce model to write map and reduce functions and submit them to the
-      Greenplum Database parallel engine for processing. </shortdesc>
+      Cloudberry Database parallel engine for processing. </shortdesc>
   <body>
-    <p>You configure a Greenplum MapReduce job via a YAML-formatted configuration
-      file, then pass the file to the Greenplum MapReduce program, <codeph>gpmapreduce</codeph>,
-      for execution by the Greenplum Database parallel engine. The Greenplum Database system distributes
+    <p>You configure a Cloudberry MapReduce job via a YAML-formatted configuration
+      file, then pass the file to the Cloudberry MapReduce program, <codeph>gpmapreduce</codeph>,
+      for execution by the Cloudberry Database parallel engine. The Cloudberry Database system distributes
       the input data, runs the program across a set of machines, handles machine failures, and
       manages the required inter-machine communication.</p>
     <p>Refer to <xref href="../../../utility_guide/ref/gpmapreduce.xml#topic1" type="topic" format="dita"/>
-      for details about running the Greenplum MapReduce program.</p>
+      for details about running the Cloudberry MapReduce program.</p>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="ii133181">About the Greenplum MapReduce Configuration File</title>
+    <title id="ii133181">About the Cloudberry MapReduce Configuration File</title>
     <body>
-      <p>This section explains some basics of the Greenplum MapReduce configuration file format
-        to help you get started creating your own Greenplum MapReduce configuration files.
-        Greenplum uses the <xref
+      <p>This section explains some basics of the Cloudberry MapReduce configuration file format
+        to help you get started creating your own Cloudberry MapReduce configuration files.
+        Cloudberry uses the <xref
           href="http://yaml.org/spec/1.1/" scope="external" format="html">YAML 1.1</xref> document
         format and then implements its own schema for defining the various steps of a MapReduce
         job.</p>
-      <p>All Greenplum MapReduce configuration files must first declare the version of the
+      <p>All Cloudberry MapReduce configuration files must first declare the version of the
         YAML specification they
         are using. After that, three dashes (<codeph>---</codeph>) denote the start of a document,
         and three dots (<codeph>...</codeph>) indicate the end of a document without starting a new
         one. (A document in this context is equivalent to a MapReduce job.)
         Comment lines are prefixed with a pound symbol (<codeph>#</codeph>). You can
-        declare multiple Greenplum MapReduce documents/jobs in the same file:</p>
+        declare multiple Cloudberry MapReduce documents/jobs in the same file:</p>
       <codeblock>%YAML 1.1
 ---
 # Begin Document 1
@@ -39,7 +39,7 @@
 ---
 # Begin Document 2
 # ...</codeblock>
-      <p>Within a Greenplum MapReduce document, there are three basic types of data structures or
+      <p>Within a Cloudberry MapReduce document, there are three basic types of data structures or
           <i>nodes</i>: <i>scalars</i>, <i>sequences</i> and <i>mappings</i>.</p>
       <p>A <i>scalar</i> is a basic string of text indented by a space. If you have a scalar input
         that spans multiple lines, a preceding pipe ( <codeph>|</codeph> ) denotes a <i>literal</i>
@@ -60,7 +60,7 @@ ThirdKey: "This is a string: not a mapping"</codeblock>
       <p>A <i>sequence</i> is a list with each entry in the list on its own line denoted by a dash
         and a space (<codeph>- </codeph>). Alternatively, you can specify an inline sequence as a
         comma-separated list within square brackets. A sequence provides a set of data and gives it
-        an order. When you load a list into the Greenplum MapReduce program, the order is kept.</p>
+        an order. When you load a list into the Cloudberry MapReduce program, the order is kept.</p>
       <codeblock># list sequence
 - this
 - is
@@ -81,29 +81,29 @@ date: 1865
 {title: War and Peace, author: Leo Tolstoy, date: 1865}</codeblock>
       <p>Keys are used to associate meta information with each node and specify the expected node
         type (<i>scalar</i>, <i>sequence</i> or <i>mapping</i>).</p>
-      <p>The Greenplum MapReduce program processes the nodes of a document in order and uses
+      <p>The Cloudberry MapReduce program processes the nodes of a document in order and uses
         indentation (spaces) to determine the document hierarchy and the relationships of the nodes
         to one another. The use of white space is significant. White space should not be used simply
         for formatting purposes, and tabs should not be used at all.</p>
       <p>Refer to
         <xref href="../../../utility_guide/ref/gpmapreduce-yaml.xml#topic1" type="topic" format="dita"/>
-        for detailed information about the Greenplum MapReduce configuration file
+        for detailed information about the Cloudberry MapReduce configuration file
 format
          and the keys and values supported.</p>
     </body>
   </topic>
   <topic id="topic59" xml:lang="en">
-    <title id="ii140655">Example Greenplum MapReduce Job</title>
+    <title id="ii140655">Example Cloudberry MapReduce Job</title>
     <body>
       <p>In this example, you create a MapReduce job that processes text documents and
         reports on the number of occurrences of certain keywords in each document.
-        The documents and keywords are stored in separate Greenplum Database tables
+        The documents and keywords are stored in separate Cloudberry Database tables
         that you create as part of the exercise.</p>
       <p>This example MapReduce job utilizes the untrusted <codeph>plpythonu</codeph>
-        language; as such, you must run the job as a user with Greenplum Database
+        language; as such, you must run the job as a user with Cloudberry Database
         administrative privileges.</p>
       <ol>
-        <li>Log in to the Greenplum Database master host as the <codeph>gpadmin</codeph>
+        <li>Log in to the Cloudberry Database master host as the <codeph>gpadmin</codeph>
           administrative user and set up your environment. For example:
           <codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
 gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
@@ -143,7 +143,7 @@ INSERT INTO keywords VALUES (8, 'third');</codeblock></li>
 ---
 VERSION: 1.0.0.2
 
-# Connect to Greenplum Database using this database and role
+# Connect to Cloudberry Database using this database and role
 DATABASE: mapredex_db
 USER: gpadmin
 
@@ -233,7 +233,7 @@ DEFINE:
         - positions text
 
   # A TASK is an object that defines an entire INPUT/MAP/REDUCE stage
-  # within a Greenplum MapReduce pipeline. It is like EXECUTION, but it is
+  # within a Cloudberry MapReduce pipeline. It is like EXECUTION, but it is
   # run only when called as input to other processing stages.
   # Identify a task called 'doc_prep' which takes in the 'doc' INPUT defined earlier
   # and runs the 'doc_map' MAP function which returns doc_id, term, [term_position]
@@ -249,7 +249,7 @@ DEFINE:
       SOURCE: kw
       MAP: kw_map
 
-  # One advantage of Greenplum MapReduce is that MapReduce tasks can be
+  # One advantage of Cloudberry MapReduce is that MapReduce tasks can be
   # used as input to SQL operations and SQL can be used to process a MapReduce task.
   # This INPUT defines a SQL query that joins the output of the 'doc_prep' 
   # TASK to that of the 'kw_prep' TASK. Matching terms are output to the 'candidate' 
@@ -262,7 +262,7 @@ DEFINE:
                kw.positions as kw_positions
           FROM doc_prep doc INNER JOIN kw_prep kw ON (doc.term = kw.term)
 
-  # In Greenplum MapReduce, a REDUCE function is comprised of one or more functions.
+  # In Cloudberry MapReduce, a REDUCE function is comprised of one or more functions.
   # A REDUCE has an initial 'state' variable defined for each grouping key. that is 
   # A TRANSITION function adjusts the state for every value in a key grouping.
   # If present, an optional CONSOLIDATE function combines multiple 

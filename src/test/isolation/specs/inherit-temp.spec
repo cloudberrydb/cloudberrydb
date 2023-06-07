@@ -19,7 +19,7 @@ teardown
 # Session 1 executes actions which act directly on both the parent and
 # its child.  Abbreviation "c" is used for queries working on the child
 # and "p" on the parent.
-session "s1"
+session s1
 setup
 {
   CREATE TEMPORARY TABLE inh_temp_child_s1 () INHERITS (inh_parent);
@@ -41,7 +41,7 @@ teardown
 }
 
 # Session 2 executes actions on the parent which act only on the child.
-session "s2"
+session s2
 setup
 {
   CREATE TEMPORARY TABLE inh_temp_child_s2 () INHERITS (inh_parent);
@@ -58,21 +58,21 @@ teardown
 }
 
 # Check INSERT behavior across sessions
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
+permutation s1_insert_p s1_insert_c s2_insert_c s1_select_p s1_select_c s2_select_p s2_select_c
 
 # Check UPDATE behavior across sessions
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s1_update_p" "s1_update_c" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s2_update_c" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
+permutation s1_insert_p s1_insert_c s2_insert_c s1_update_p s1_update_c s1_select_p s1_select_c s2_select_p s2_select_c
+permutation s1_insert_p s1_insert_c s2_insert_c s2_update_c s1_select_p s1_select_c s2_select_p s2_select_c
 
 # Check DELETE behavior across sessions
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s1_delete_p" "s1_delete_c" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s2_delete_c" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
+permutation s1_insert_p s1_insert_c s2_insert_c s1_delete_p s1_delete_c s1_select_p s1_select_c s2_select_p s2_select_c
+permutation s1_insert_p s1_insert_c s2_insert_c s2_delete_c s1_select_p s1_select_c s2_select_p s2_select_c
 
 # Check TRUNCATE behavior across sessions
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s1_truncate_p" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s2_truncate_p" "s1_select_p" "s1_select_c" "s2_select_p" "s2_select_c"
+permutation s1_insert_p s1_insert_c s2_insert_c s1_truncate_p s1_select_p s1_select_c s2_select_p s2_select_c
+permutation s1_insert_p s1_insert_c s2_insert_c s2_truncate_p s1_select_p s1_select_c s2_select_p s2_select_c
 
 # TRUNCATE on a parent tree does not block access to temporary child relation
 # of another session, and blocks when scanning the parent.
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s1_begin" "s1_truncate_p" "s2_select_p" "s1_commit"
-permutation "s1_insert_p" "s1_insert_c" "s2_insert_c" "s1_begin" "s1_truncate_p" "s2_select_c" "s1_commit"
+permutation s1_insert_p s1_insert_c s2_insert_c s1_begin s1_truncate_p s2_select_p s1_commit
+permutation s1_insert_p s1_insert_c s2_insert_c s1_begin s1_truncate_p s2_select_c s1_commit

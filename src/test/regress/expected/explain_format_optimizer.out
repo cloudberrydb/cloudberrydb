@@ -30,8 +30,8 @@ CREATE TABLE apples(id int PRIMARY KEY, type text);
 INSERT INTO apples(id) SELECT generate_series(1, 100000);
 CREATE TABLE box_locations(id int PRIMARY KEY, address text);
 CREATE TABLE boxes(id int PRIMARY KEY, apple_id int REFERENCES apples(id), location_id int REFERENCES box_locations(id));
-WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
-WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Greenplum Database, will not be enforced
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 --- Check Explain Text format output
 -- explain_processing_off
 EXPLAIN SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.apple_id LEFT JOIN box_locations ON box_locations.id = boxes.location_id;
@@ -132,6 +132,7 @@ QUERY PLAN
     Segments: 3
     Gang Type: "primary reader"
     Parallel Aware: false
+    Async Capable: false
     Startup Cost: 0.00
     Total Cost: 449.00
     Plan Rows: 3
@@ -143,6 +144,7 @@ QUERY PLAN
         Segments: 3
         Gang Type: "primary reader"
         Parallel Aware: false
+        Async Capable: false
         Join Type: "Left"
         Startup Cost: 0.00
         Total Cost: 449.00
@@ -159,6 +161,7 @@ QUERY PLAN
             Segments: 3
             Gang Type: "primary reader"
             Parallel Aware: false
+            Async Capable: false
             Startup Cost: 0.00
             Total Cost: 437.00
             Plan Rows: 1
@@ -171,6 +174,7 @@ QUERY PLAN
                 Segments: 3
                 Gang Type: "primary reader"
                 Parallel Aware: false
+                Async Capable: false
                 Join Type: "Left"
                 Startup Cost: 0.00
                 Total Cost: 437.00
@@ -187,6 +191,7 @@ QUERY PLAN
                     Segments: 3
                     Gang Type: "primary reader"
                     Parallel Aware: false
+                    Async Capable: false
                     Startup Cost: 0.00
                     Total Cost: 431.00
                     Plan Rows: 1
@@ -199,6 +204,7 @@ QUERY PLAN
                         Segments: 3
                         Gang Type: "primary reader"
                         Parallel Aware: false
+                        Async Capable: false
                         Relation Name: "boxes"
                         Alias: "boxes"
                         Startup Cost: 0.00
@@ -211,6 +217,7 @@ QUERY PLAN
                     Segments: 3
                     Gang Type: "primary reader"
                     Parallel Aware: false
+                    Async Capable: false
                     Scan Direction: "Forward"
                     Index Name: "box_locations_pkey"
                     Relation Name: "box_locations"
@@ -226,6 +233,7 @@ QUERY PLAN
             Segments: 3
             Gang Type: "primary reader"
             Parallel Aware: false
+            Async Capable: false
             Scan Direction: "Forward"
             Index Name: "apples_pkey"
             Relation Name: "apples"
@@ -250,6 +258,7 @@ QUERY PLAN
     Segments: 3
     Gang Type: "primary reader"
     Parallel Aware: false
+    Async Capable: false
     Startup Cost: 0.00
     Total Cost: 449.00
     Plan Rows: 3
@@ -265,6 +274,7 @@ QUERY PLAN
         Segments: 3
         Gang Type: "primary reader"
         Parallel Aware: false
+        Async Capable: false
         Join Type: "Left"
         Startup Cost: 0.00
         Total Cost: 449.00
@@ -286,6 +296,7 @@ QUERY PLAN
             Segments: 3
             Gang Type: "primary reader"
             Parallel Aware: false
+            Async Capable: false
             Startup Cost: 0.00
             Total Cost: 437.00
             Plan Rows: 1
@@ -302,6 +313,7 @@ QUERY PLAN
                 Segments: 3
                 Gang Type: "primary reader"
                 Parallel Aware: false
+                Async Capable: false
                 Join Type: "Left"
                 Startup Cost: 0.00
                 Total Cost: 437.00
@@ -323,6 +335,7 @@ QUERY PLAN
                     Segments: 3
                     Gang Type: "primary reader"
                     Parallel Aware: false
+                    Async Capable: false
                     Startup Cost: 0.00
                     Total Cost: 431.00
                     Plan Rows: 1
@@ -339,6 +352,7 @@ QUERY PLAN
                         Segments: 3
                         Gang Type: "primary reader"
                         Parallel Aware: false
+                        Async Capable: false
                         Relation Name: "boxes"
                         Alias: "boxes"
                         Startup Cost: 0.00
@@ -355,6 +369,7 @@ QUERY PLAN
                     Segments: 3
                     Gang Type: "primary reader"
                     Parallel Aware: false
+                    Async Capable: false
                     Scan Direction: "Forward"
                     Index Name: "box_locations_pkey"
                     Relation Name: "box_locations"
@@ -375,6 +390,7 @@ QUERY PLAN
             Segments: 3
             Gang Type: "primary reader"
             Parallel Aware: false
+            Async Capable: false
             Scan Direction: "Forward"
             Index Name: "apples_pkey"
             Relation Name: "apples"
@@ -389,6 +405,8 @@ QUERY PLAN
             Actual Loops: 0
             Index Cond: "(id = boxes.apple_id)"
             Rows Removed by Index Recheck: 0
+  Settings: 
+    Optimizer: "Pivotal Optimizer (GPORCA)"
   Planning Time: 14.827
   Triggers: 
   Slice statistics: 
@@ -411,8 +429,6 @@ QUERY PLAN
         Maximum Memory Used: 60624
   Statement statistics: 
     Memory used: 128000
-  Settings: 
-    Optimizer: "Pivotal Optimizer (GPORCA)"
   Execution Time: 3.332
 (1 row)
 -- explain_processing_on
@@ -438,6 +454,7 @@ QUERY PLAN
       "Segments": 0,
       "Gang Type": "unallocated",
       "Parallel Aware": false,
+      "Async Capable": false,
       "Function Name": "generate_series",
       "Alias": "generate_series"
     },
@@ -457,6 +474,7 @@ QUERY PLAN
       <Segments>0</Segments>
       <Gang-Type>unallocated</Gang-Type>
       <Parallel-Aware>false</Parallel-Aware>
+      <Async-Capable>false</Async-Capable>
       <Function-Name>generate_series</Function-Name>
       <Alias>generate_series</Alias>
     </Plan>
@@ -469,7 +487,7 @@ QUERY PLAN
 -- Test for an old bug in printing Sequence nodes in JSON/XML format
 -- (https://github.com/greenplum-db/gpdb/issues/9410)
 CREATE TABLE jsonexplaintest (i int4) PARTITION BY RANGE (i) (START(1) END(3) EVERY(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 EXPLAIN (FORMAT JSON, COSTS OFF) SELECT * FROM jsonexplaintest WHERE i = 2;
 QUERY PLAN
@@ -483,6 +501,7 @@ QUERY PLAN
       "Segments": 1,
       "Gang Type": "primary reader",
       "Parallel Aware": false,
+      "Async Capable": false,
       "Plans": [
         {
           "Node Type": "Append",
@@ -491,6 +510,8 @@ QUERY PLAN
           "Segments": 1,
           "Gang Type": "primary reader",
           "Parallel Aware": false,
+          "Async Capable": false,
+          "Subplans Removed": 0,
           "Plans": [
             {
               "Node Type": "Seq Scan",
@@ -499,6 +520,7 @@ QUERY PLAN
               "Segments": 1,
               "Gang Type": "primary reader",
               "Parallel Aware": false,
+              "Async Capable": false,
               "Relation Name": "jsonexplaintest_1_prt_2",
               "Alias": "jsonexplaintest_1_prt_2",
               "Filter": "(i = 2)"

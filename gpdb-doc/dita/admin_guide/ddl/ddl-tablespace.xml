@@ -9,12 +9,12 @@
       the I/O performance on certain database objects. For example, place frequently-used tables on
       file systems that use high performance solid-state drives (SSD), and place other tables on
       standard hard drives.</p>
-    <p>A tablespace requires a host file system location to store its database files. In Greenplum
+    <p>A tablespace requires a host file system location to store its database files. In Cloudberry
       Database, the file system location must exist on all hosts including the hosts running the
       master, standby master, each primary segment, and each mirror segment. </p>
-    <p>A tablespace is Greenplum Database system object (a global object), you can use a tablespace
+    <p>A tablespace is Cloudberry Database system object (a global object), you can use a tablespace
       from any database if you have appropriate privileges.</p>
-    <note>Greenplum Database does not support different tablespace locations for a primary-mirror
+    <note>Cloudberry Database does not support different tablespace locations for a primary-mirror
       pair with the same content ID. It is only possible to configure different locations for
       different content IDs. Do not modify symbolic links under the <codeph>pg_tblspc</codeph>
       directory so that primary-mirror pairs point to different file locations; this will lead to
@@ -70,14 +70,14 @@ CREATE TABLE foo(i int);
           <codeph>TABLESPACE</codeph> is specified when the objects are created. If you do not
         specify a tablespace when you create a database, the database uses the same tablespace used
         by its template database.</p>
-      <p>You can use a tablespace from any database in the Greenplum Database system if you have
+      <p>You can use a tablespace from any database in the Cloudberry Database system if you have
         appropriate privileges.</p>
     </body>
   </topic>
   <topic id="topic15" xml:lang="en">
     <title>Viewing Existing Tablespaces</title>
     <body>
-      <p>Every Greenplum Database system has the following default tablespaces.</p>
+      <p>Every Cloudberry Database system has the following default tablespaces.</p>
       <ul id="ul_mml_hvy_sp">
         <li id="im200050"><codeph>pg_global</codeph> for shared system catalogs.</li>
         <li id="im200067"><codeph>pg_default</codeph>, the default tablespace. Used by the
@@ -146,7 +146,7 @@ CREATE TABLE foo(i int);
     <body>
       <p>You can move temporary or transaction files to a specific tablespace to improve database
         performance when running queries, creating backups, and to store data more sequentially. </p>
-      <p>The Greenplum Database server configuration parameter <codeph>temp_tablespaces</codeph>
+      <p>The Cloudberry Database server configuration parameter <codeph>temp_tablespaces</codeph>
         controls the location for both temporary tables and temporary spill files for hash aggregate
         and hash join queries. Temporary files for purposes such as sorting large data sets are also
         created in these tablespaces.</p>

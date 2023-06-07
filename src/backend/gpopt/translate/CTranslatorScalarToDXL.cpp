@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2011 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2011 Cloudberry, Inc.
 //
 //	@filename:
 //		CTranslatorScalarToDXL.cpp
@@ -1314,7 +1314,7 @@ CTranslatorScalarToDXL::TranslateFuncExprToDXL(
 		CDXLNode(m_mp, GPOS_NEW(m_mp) CDXLScalarFuncExpr(
 						   m_mp, mdid_func,
 						   GPOS_NEW(m_mp) CMDIdGPDB(func_expr->funcresulttype),
-						   type_modifier, func_expr->funcretset));
+						   type_modifier, func_expr->funcretset, static_cast<INT>(func_expr->funcformat)));
 
 	const IMDFunction *md_func = m_md_accessor->RetrieveFunc(mdid_func);
 	if (IMDFunction::EfsVolatile == md_func->GetFuncStability())

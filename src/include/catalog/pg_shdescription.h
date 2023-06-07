@@ -16,7 +16,7 @@
  * across tables.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_shdescription.h
@@ -57,5 +57,15 @@ FOREIGN_KEY(classoid REFERENCES pg_class(oid));
  * ----------------
  */
 typedef FormData_pg_shdescription * Form_pg_shdescription;
+
+DECLARE_TOAST(pg_shdescription, 2846, 2847);
+#define PgShdescriptionToastTable 2846
+#define PgShdescriptionToastIndex 2847
+
+DECLARE_UNIQUE_INDEX_PKEY(pg_shdescription_o_c_index, 2397, on pg_shdescription using btree(objoid oid_ops, classoid oid_ops));
+#define SharedDescriptionObjIndexId 2397
+
+/* We do not use BKI_LOOKUP here because it causes problems for genbki.pl */
+DECLARE_FOREIGN_KEY((classoid), pg_class, (oid));
 
 #endif							/* PG_SHDESCRIPTION_H */

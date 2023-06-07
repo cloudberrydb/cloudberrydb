@@ -3,7 +3,7 @@
  * pread.c
  *	  Implementation of pread(2) for platforms that lack one.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/port/pread.c
@@ -41,6 +41,9 @@ pg_pread(int fd, void *buf, size_t size, off_t offset)
 	overlapped.Offset = offset;
 	if (!ReadFile(handle, buf, size, &result, &overlapped))
 	{
+		if (GetLastError() == ERROR_HANDLE_EOF)
+			return 0;
+
 		_dosmaperr(GetLastError());
 		return -1;
 	}

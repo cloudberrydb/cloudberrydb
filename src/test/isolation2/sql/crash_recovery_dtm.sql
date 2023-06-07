@@ -17,7 +17,7 @@
 alter system set dtx_phase2_retry_second to 5;
 select pg_reload_conf();
 
-1:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+1:SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 -- Scenario 1: Test to fail broadcasting of COMMIT PREPARED to one
 -- segment and hence trigger PANIC in master while after completing
 -- phase 2 of 2PC. Master's recovery cycle should correctly broadcast
@@ -114,8 +114,6 @@ select pg_reload_conf();
 11: SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid)
     from gp_segment_configuration where role='p' and content=-1;
 11: SELECT gp_request_fts_probe_scan();
-11: select gp_wait_until_triggered_fault('fts_probe', 1, dbid)
-    from gp_segment_configuration where role='p' and content=-1;
 11: SELECT gp_inject_fault('end_prepare_two_phase', 'infinite_loop', dbid)
     from gp_segment_configuration where role='p' and content=0;
 -- statement to trigger fault after writing prepare record

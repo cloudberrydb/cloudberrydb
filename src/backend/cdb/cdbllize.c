@@ -3,7 +3,7 @@
  * cdbllize.c
  *	  Parallelize a PostgreSQL sequential plan tree.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * This file contains functions to process plan tree, at various stages in
@@ -492,7 +492,7 @@ cdbllize_adjust_top_path(PlannerInfo *root, Path *best_path,
 				ereport(NOTICE,
 						(errcode(ERRCODE_SUCCESSFUL_COMPLETION),
 						 errmsg("Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) "
-								"named '%s' as the Greenplum Database data distribution key for this "
+								"named '%s' as the Cloudberry Database data distribution key for this "
 								"table. ", columnsbuf.data),
 						 errhint("The 'DISTRIBUTED BY' clause determines the distribution of data."
 								 " Make sure column(s) chosen are the optimal data distribution key to minimize skew.")));
@@ -1177,7 +1177,8 @@ cdbllize_build_slice_table(PlannerInfo *root, Plan *top_plan,
 			 * list, because that would screw up the plan_id numbering of the
 			 * subplans).
 			 */
-			pfree(lfirst(lc));
+			if (lfirst(lc))
+				pfree(lfirst(lc));
 			dummy_plan = (Plan *) make_result(NIL,
 											  (Node *) list_make1(makeBoolConst(false, false)),
 											  NULL);
@@ -1482,6 +1483,7 @@ motion_sanity_walker(Node *node, sanity_result_t *result)
 		case T_Unique:
 		case T_Hash:
 		case T_SetOp:
+		case T_RuntimeFilter:
 		case T_Limit:
 		case T_Sort:
 		case T_Material:

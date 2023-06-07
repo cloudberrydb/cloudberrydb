@@ -42,7 +42,7 @@ drop function if exists test_call_set_command();
 NOTICE:  function test_call_set_command() does not exist, skipping
 -- end_ignore
 create table test_cursor_set_table as select * from generate_series(1, 100);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'generate_series' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'generate_series' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE FUNCTION test_set_in_loop () RETURNS numeric
     AS $$
@@ -89,7 +89,7 @@ END;
 $$
 	LANGUAGE plpgsql;
 CREATE TABLE test_initplan_set_table as select * from test_set_within_initplan();
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'test_set_within_initplan' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'test_set_within_initplan' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 DROP TABLE if exists test_initplan_set_table;
 DROP TABLE if exists test_cursor_set_table;
@@ -300,7 +300,7 @@ HINT:  Consider alternatives as DEALLOCATE ALL, or DISCARD TEMP if a clusterwide
 CREATE TEMP TABLE reset_test ( data text ) ON COMMIT PRESERVE ROWS;
 ERROR:  relation "reset_test" already exists  (seg0 127.0.1.1:7002 pid=26153)
 CREATE TABLE guc_gp_t1(i int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO guc_gp_t1 VALUES(1),(2);
 -- generate an idle redaer gang by the following query
@@ -414,7 +414,7 @@ RESET search_path;
 -- however, the dispatch command is "set xxx to ;" that is wrong.
 create extension if not exists gp_inject_fault;
 create table public.restore_guc_test(tc1 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'tc1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'tc1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- inject fault to change the value of search_path during creating materialized view
 SELECT gp_inject_fault('change_string_guc', 'skip', 1);

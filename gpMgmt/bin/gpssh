@@ -103,6 +103,7 @@ def parseCommandLine():
 
 def parseConfigFile():
     if GV.DELAY_BEFORE_SEND is not None and GV.PROMPT_VALIDATION_TIMEOUT is not None:
+        GV.SYNC_RETRIES = 3
         if GV.opt['-v']:
             print('Skip parsing gpssh.conf as both -d and -t are being used')
         return

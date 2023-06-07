@@ -8,9 +8,9 @@
  * doesn't actually run the executor for them.
  *
  *
- * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 2006-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -126,7 +126,7 @@ EnablePortalManager(void)
 	 * create, initially
 	 */
 	PortalHashTable = hash_create("Portal hash", PORTALS_PER_USER,
-								  &ctl, HASH_ELEM);
+								  &ctl, HASH_ELEM | HASH_STRINGS);
 }
 
 /*
@@ -217,6 +217,7 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 	portal->cleanup = PortalCleanup;
 	portal->createSubid = GetCurrentSubTransactionId();
 	portal->activeSubid = portal->createSubid;
+	portal->createLevel = GetCurrentTransactionNestLevel();
 	portal->strategy = PORTAL_MULTI_QUERY;
 	portal->cursorOptions = CURSOR_OPT_NO_SCROLL;
 	portal->atStart = true;
@@ -240,8 +241,8 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 	/* put portal in table (sets portal->name) */
 	PortalHashTableInsert(portal, name);
 
-	/* reuse portal->name copy */
-	MemoryContextSetIdentifier(portal->portalContext, portal->name);
+	/* for named portals reuse portal->name copy */
+	MemoryContextSetIdentifier(portal->portalContext, portal->name[0] ? portal->name : "<unnamed>");
 
 	return portal;
 }
@@ -302,7 +303,7 @@ PortalDefineQuery(Portal portal,
 				  const char *prepStmtName,
 				  const char *sourceText,
 				  NodeTag	  sourceTag,
-				  const char *commandTag,
+				  CommandTag commandTag,
 				  List *stmts,
 				  CachedPlan *cplan)
 {
@@ -310,11 +311,13 @@ PortalDefineQuery(Portal portal,
 	AssertState(portal->status == PORTAL_NEW);
 
 	AssertArg(sourceText != NULL);
-	AssertArg(commandTag != NULL || stmts == NIL);
+	AssertArg(commandTag != CMDTAG_UNKNOWN || stmts == NIL);
 
 	portal->prepStmtName = prepStmtName;
 	portal->sourceText = sourceText;
 	portal->sourceTag = sourceTag;
+	portal->qc.commandTag = commandTag;
+	portal->qc.nprocessed = 0;
 	portal->commandTag = commandTag;
 	portal->stmts = stmts;
 	portal->cplan = cplan;
@@ -330,7 +333,7 @@ PortalReleaseCachedPlan(Portal portal)
 {
 	if (portal->cplan)
 	{
-		ReleaseCachedPlan(portal->cplan, false);
+		ReleaseCachedPlan(portal->cplan, NULL);
 		portal->cplan = NULL;
 
 		/*
@@ -522,6 +525,9 @@ PortalDrop(Portal portal, bool isTopCommit)
 		portal->cleanup = NULL;
 	}
 
+	/* There shouldn't be an active snapshot anymore, except after error */
+	Assert(portal->portalSnapshot == NULL || !isTopCommit);
+
 	/*
 	 * Remove portal from hash table.  Because we do this here, we will not
 	 * come back to try to remove the portal again if there's any error in the
@@ -679,6 +685,7 @@ HoldPortal(Portal portal)
 	 */
 	portal->createSubid = InvalidSubTransactionId;
 	portal->activeSubid = InvalidSubTransactionId;
+	portal->createLevel = 0;
 }
 
 /*
@@ -734,6 +741,8 @@ PreCommit_Portals(bool isPrepare)
 				portal->holdSnapshot = NULL;
 			}
 			portal->resowner = NULL;
+			/* Clear portalSnapshot too, for cleanliness */
+			portal->portalSnapshot = NULL;
 			continue;
 		}
 
@@ -977,6 +986,7 @@ PortalErrorCleanup(void)
 void
 AtSubCommit_Portals(SubTransactionId mySubid,
 					SubTransactionId parentSubid,
+					int parentLevel,
 					ResourceOwner parentXactOwner)
 {
 	HASH_SEQ_STATUS status;
@@ -991,6 +1001,7 @@ AtSubCommit_Portals(SubTransactionId mySubid,
 		if (portal->createSubid == mySubid)
 		{
 			portal->createSubid = parentSubid;
+			portal->createLevel = parentLevel;
 			if (portal->resowner)
 				ResourceOwnerNewParent(portal->resowner, parentXactOwner);
 		}
@@ -1266,8 +1277,7 @@ pg_cursor(PG_FUNCTION_ARGS)
 	if (!(rsinfo->allowedModes & SFRM_Materialize))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("materialize mode required, but it is not " \
-						"allowed in this context")));
+				 errmsg("materialize mode required, but it is not allowed in this context")));
 
 	/* need to build tuplestore in query context */
 	per_query_ctx = rsinfo->econtext->ecxt_per_query_memory;
@@ -1410,4 +1420,55 @@ HoldPinnedPortals(void)
 			portal->autoHeld = true;
 		}
 	}
+}
+
+/*
+ * Drop the outer active snapshots for all portals, so that no snapshots
+ * remain active.
+ *
+ * Like HoldPinnedPortals, this must be called when initiating a COMMIT or
+ * ROLLBACK inside a procedure.  This has to be separate from that since it
+ * should not be run until we're done with steps that are likely to fail.
+ *
+ * It's tempting to fold this into PreCommit_Portals, but to do so, we'd
+ * need to clean up snapshot management in VACUUM and perhaps other places.
+ */
+void
+ForgetPortalSnapshots(void)
+{
+	HASH_SEQ_STATUS status;
+	PortalHashEnt *hentry;
+	int			numPortalSnaps = 0;
+	int			numActiveSnaps = 0;
+
+	/* First, scan PortalHashTable and clear portalSnapshot fields */
+	hash_seq_init(&status, PortalHashTable);
+
+	while ((hentry = (PortalHashEnt *) hash_seq_search(&status)) != NULL)
+	{
+		Portal		portal = hentry->portal;
+
+		if (portal->portalSnapshot != NULL)
+		{
+			portal->portalSnapshot = NULL;
+			numPortalSnaps++;
+		}
+		/* portal->holdSnapshot will be cleaned up in PreCommit_Portals */
+	}
+
+	/*
+	 * Now, pop all the active snapshots, which should be just those that were
+	 * portal snapshots.  Ideally we'd drive this directly off the portal
+	 * scan, but there's no good way to visit the portals in the correct
+	 * order.  So just cross-check after the fact.
+	 */
+	while (ActiveSnapshotSet())
+	{
+		PopActiveSnapshot();
+		numActiveSnaps++;
+	}
+
+	if (numPortalSnaps != numActiveSnaps)
+		elog(ERROR, "portal snapshots (%d) did not account for all active snapshots (%d)",
+			 numPortalSnaps, numActiveSnaps);
 }

@@ -10,10 +10,10 @@
         >gpexpand</xref>. Plan to run this during low-use hours when the utility's CPU
       usage and table locks have minimal impact on operations. Rank tables to redistribute the
       largest or most critical tables first.</p>
-    <note>When redistributing data, Greenplum Database must be running in production mode. Greenplum
+    <note>When redistributing data, Cloudberry Database must be running in production mode. Cloudberry
       Database cannot be in restricted mode or in master mode. The <xref
           href="../../utility_guide/ref/gpstart.xml">gpstart</xref> options
-        <codeph>-R</codeph> or <codeph>-m</codeph> cannot be specified to start Greenplum
+        <codeph>-R</codeph> or <codeph>-m</codeph> cannot be specified to start Cloudberry
       Database.</note>
     <p>While table redistribution is underway, any new tables or partitions created are distributed
       across all segments exactly as they would be under normal operating conditions. Queries can
@@ -41,7 +41,7 @@
           href="expand-planning.xml#topic11" type="topic" format="dita"/>.</p>
       <p>To rank tables for redistribution by updating <codeph>rank</codeph> values in <i><xref
             href="../../ref_guide/system_catalogs/gp_expansion_tables.xml"
-            >gpexpand.status_detail</xref></i>, connect to Greenplum Database using
+            >gpexpand.status_detail</xref></i>, connect to Cloudberry Database using
           <codeph>psql</codeph> or another supported client. Update <i>gpexpand.status_detail</i>
         with commands such as:</p>
       <codeblock>=&gt; UPDATE gpexpand.status_detail SET rank=10;
@@ -62,7 +62,7 @@
       <section id="no162282">
         <title>To redistribute tables with gpexpand</title>
         <ol>
-          <li id="no162285">Log in on the master host as the user who will run your Greenplum
+          <li id="no162285">Log in on the master host as the user who will run your Cloudberry
             Database system, for example, <codeph>gpadmin</codeph>.</li>
           <li id="no162763">Run the <codeph>gpexpand</codeph> utility. You can use the
               <codeph>-d</codeph> or <codeph>-e</codeph> option to define the expansion session time
@@ -108,7 +108,7 @@
         <p>After the first table completes redistribution, <i>gpexpand.expansion_progress</i>
           calculates its estimates and refreshes them based on all tables' redistribution rates.
           Calculations restart each time you start a table redistribution session with
-            <codeph>gpexpand</codeph>. To monitor progress, connect to Greenplum Database using
+            <codeph>gpexpand</codeph>. To monitor progress, connect to Cloudberry Database using
             <codeph>psql</codeph> or another supported client; query
             <i>gpexpand.expansion_progress</i> with a command like the following:</p>
         <p>
@@ -129,7 +129,7 @@
       <title>Viewing Table Status</title>
       <body>
         <p>The table <i>gpexpand.status_detail</i> stores status, time of last update, and more
-          facts about each table in the schema. To see a table's status, connect to Greenplum
+          facts about each table in the schema. To see a table's status, connect to Cloudberry
           Database using <codeph>psql</codeph> or another supported client and query
             <i>gpexpand.status_detail</i>:</p>
         <p>

@@ -5,16 +5,16 @@
     <title>gp_legacy_string_agg</title>
     <body>
       <p>The <codeph>gp_legacy_string_agg</codeph> module re-introduces the single-argument
-        <codeph>string_agg()</codeph> function that was present in Greenplum Database 5.</p>
-      <p>The <codeph>gp_legacy_string_agg</codeph> module is a Greenplum Database extension.</p>
-      <note>Use this module to aid migration from Greenplum Database 5 to the native,
-        two-argument <codeph>string_agg()</codeph> function included in Greenplum 6.</note>
+        <codeph>string_agg()</codeph> function that was present in Cloudberry Database 5.</p>
+      <p>The <codeph>gp_legacy_string_agg</codeph> module is a Cloudberry Database extension.</p>
+      <note>Use this module to aid migration from Cloudberry Database 5 to the native,
+        two-argument <codeph>string_agg()</codeph> function included in Cloudberry 6.</note>
     </body>
     <topic id="topic_reg">
       <title>Installing and Registering the Module</title>
       <body>
         <p>The <codeph>gp_legacy_string_agg</codeph> module is installed when you install
-          Greenplum Database. Before you can use the function defined in the module, you
+          Cloudberry Database. Before you can use the function defined in the module, you
           must register the <codeph>gp_legacy_string_agg</codeph> extension in each database
           where you want to use the function.
           <ph otherprops="pivotal">Refer to <xref href="../../install_guide/install_modules.html"
@@ -55,7 +55,7 @@ WARNING:  Deprecated call to string_agg(text), use string_agg(text, text) instea
     <topic id="topic_migrate">
       <title>Migrating to the Two-Argument string_agg() Function</title>
       <body>
-        <p>Greenplum Database 6 includes a native, two-argument, text input
+        <p>Cloudberry Database 6 includes a native, two-argument, text input
           <codeph>string_agg()</codeph> function:</p>
         <codeblock>string_agg( text, text )</codeblock>
         <p>The following function invocation is equivalent to the single-argument

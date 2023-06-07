@@ -10,7 +10,7 @@
  *	  Over time, this has also become the preferred place for widely known
  *	  resource-limitation stuff, such as work_mem and check_stack_depth().
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/miscadmin.h
@@ -25,7 +25,7 @@
 
 #include <signal.h>
 
-#include "datatype/timestamp.h" /* for TimestampTZ */
+#include "datatype/timestamp.h" /* for TimestampTz */
 #include "pgtime.h"				/* for pg_time_t */
 
 
@@ -57,6 +57,15 @@
  * allowing die interrupts: HOLD_CANCEL_INTERRUPTS() and
  * RESUME_CANCEL_INTERRUPTS().
  *
+ * Note that ProcessInterrupts() has also acquired a number of tasks that
+ * do not necessarily cause a query-cancel-or-die response.  Hence, it's
+ * possible that it will just clear InterruptPending and return.
+ *
+ * INTERRUPTS_PENDING_CONDITION() can be checked to see whether an
+ * interrupt needs to be serviced, without trying to do so immediately.
+ * Some callers are also interested in INTERRUPTS_CAN_BE_PROCESSED(),
+ * which tells whether ProcessInterrupts is sure to clear the interrupt.
+ *
  * Special mechanisms are used to let an interrupt be accepted when we are
  * waiting for a lock or when we are waiting for command input (but, of
  * course, only if the interrupt holdoff counter is zero).  See the
@@ -84,8 +93,11 @@ extern PGDLLIMPORT volatile sig_atomic_t QueryCancelCleanup; /* GPDB only */
 extern PGDLLIMPORT volatile sig_atomic_t QueryFinishPending;
 extern PGDLLIMPORT volatile sig_atomic_t ProcDiePending;
 extern PGDLLIMPORT volatile sig_atomic_t IdleInTransactionSessionTimeoutPending;
-extern PGDLLIMPORT volatile sig_atomic_t ConfigReloadPending;
+extern PGDLLIMPORT volatile sig_atomic_t IdleSessionTimeoutPending;
+extern PGDLLIMPORT volatile sig_atomic_t ProcSignalBarrierPending;
+extern PGDLLIMPORT volatile sig_atomic_t LogMemoryContextPending;
 
+extern PGDLLIMPORT volatile sig_atomic_t CheckClientConnectionPending;
 extern PGDLLIMPORT volatile sig_atomic_t ClientConnectionLost;
 
 /* these are marked volatile because they are examined by signal handlers: */
@@ -127,28 +139,34 @@ BackoffBackendTick(void)
 	}
 }
 
+/* Test whether an interrupt is pending */
 #ifndef WIN32
+#define INTERRUPTS_PENDING_CONDITION() \
+	(unlikely(InterruptPending))
+#define INTERRUPTS_MORE_CHECK() do { \
+		BackoffBackendTick(); \
+		ReportOOMConsumption(); \
+		RedZoneHandler_DetectRunawaySession(); \
+	} while(0)
+#else
+#define INTERRUPTS_PENDING_CONDITION() \
+	(unlikely(UNBLOCKED_SIGNAL_QUEUE()) ? pgwin32_dispatch_queued_signals() : 0, \
+	 unlikely(InterruptPending))
+#define INTERRUPTS_MORE_CHECK() do {} while(0)
+#endif
 
+/* Service interrupt, if one is pending and it's safe to service it now */
 #define CHECK_FOR_INTERRUPTS() \
 do { \
-	if (InterruptPending) \
+	if (INTERRUPTS_PENDING_CONDITION()) \
 		ProcessInterrupts(__FILE__, __LINE__); \
-	BackoffBackendTick(); \
-	ReportOOMConsumption(); \
-	RedZoneHandler_DetectRunawaySession();\
+	INTERRUPTS_MORE_CHECK(); \
 } while(0)
 
-#else							/* WIN32 */
-
-#define CHECK_FOR_INTERRUPTS() \
-do { \
-	if (UNBLOCKED_SIGNAL_QUEUE()) \
-		pgwin32_dispatch_queued_signals(); \
-	if (InterruptPending) \
-		ProcessInterrupts(__FILE__, __LINE__); \
-} while(0)
-#endif							/* WIN32 */
-
+/* Is ProcessInterrupts() guaranteed to clear InterruptPending? */
+#define INTERRUPTS_CAN_BE_PROCESSED() \
+	(InterruptHoldoffCount == 0 && CritSectionCount == 0 && \
+	 QueryCancelHoldoffCount == 0)
 
 #define HOLD_INTERRUPTS() \
 do { \
@@ -314,6 +332,7 @@ extern bool enableFsync;
 extern PGDLLIMPORT bool allowSystemTableMods;
 extern PGDLLIMPORT int planner_work_mem;
 extern PGDLLIMPORT int work_mem;
+extern PGDLLIMPORT double hash_mem_multiplier;
 extern PGDLLIMPORT int maintenance_work_mem;
 extern PGDLLIMPORT int max_parallel_maintenance_workers;
 extern PGDLLIMPORT int statement_mem;
@@ -326,9 +345,9 @@ extern int	VacuumCostPageDirty;
 extern int	VacuumCostLimit;
 extern double VacuumCostDelay;
 
-extern int	VacuumPageHit;
-extern int	VacuumPageMiss;
-extern int	VacuumPageDirty;
+extern int64 VacuumPageHit;
+extern int64 VacuumPageMiss;
+extern int64 VacuumPageDirty;
 
 extern int	VacuumCostBalance;
 extern bool VacuumCostActive;
@@ -354,8 +373,6 @@ extern pg_stack_base_t set_stack_base(void);
 extern void restore_stack_base(pg_stack_base_t base);
 extern void check_stack_depth(void);
 extern bool stack_is_too_deep(void);
-
-extern void PostgresSigHupHandler(SIGNAL_ARGS);
 
 /* in tcop/utility.c */
 extern void PreventCommandIfReadOnly(const char *cmdname);
@@ -393,8 +410,35 @@ extern char *DatabasePath;
 /* now in utils/init/miscinit.c */
 extern void InitPostmasterChild(void);
 extern void InitStandaloneProcess(const char *argv0);
+extern void SwitchToSharedLatch(void);
+extern void SwitchBackToLocalLatch(void);
+
+typedef enum BackendType
+{
+	B_INVALID = 0,
+	B_AUTOVAC_LAUNCHER,
+	B_AUTOVAC_WORKER,
+	B_BACKEND,
+	B_BG_WORKER,
+	B_BG_WRITER,
+	B_CHECKPOINTER,
+	B_STARTUP,
+	B_WAL_RECEIVER,
+	B_WAL_SENDER,
+	B_WAL_WRITER,
+	B_ARCHIVER,
+	B_STATS_COLLECTOR,
+	B_LOGGER,
+} BackendType;
+
+extern BackendType MyBackendType;
+
+extern const char *GetBackendTypeDesc(BackendType backendType);
 
 extern void SetDatabasePath(const char *path);
+extern void checkDataDir(void);
+extern void SetDataDir(const char *dir);
+extern void ChangeToDataDir(void);
 
 extern char *GetUserNameFromId(Oid roleid, bool noerr);
 extern Oid	GetUserId(void);
@@ -415,13 +459,6 @@ extern void InitializeSessionUserIdStandalone(void);
 extern void SetSessionAuthorization(Oid userid, bool is_superuser);
 extern Oid	GetCurrentRoleId(void);
 extern void SetCurrentRoleId(Oid roleid, bool is_superuser);
-
-extern void checkDataDir(void);
-extern void SetDataDir(const char *dir);
-extern void ChangeToDataDir(void);
-
-extern void SwitchToSharedLatch(void);
-extern void SwitchBackToLocalLatch(void);
 
 /* in utils/misc/superuser.c */
 extern bool superuser(void);	/* current user is superuser */
@@ -490,6 +527,7 @@ typedef enum
 	BootstrapProcess,
 	StartupProcess,
 	BgWriterProcess,
+	ArchiverProcess,
 	CheckpointerProcess,
 	WalWriterProcess,
 	WalReceiverProcess,
@@ -502,6 +540,7 @@ extern AuxProcType MyAuxProcType;
 #define AmBootstrapProcess()		(MyAuxProcType == BootstrapProcess)
 #define AmStartupProcess()			(MyAuxProcType == StartupProcess)
 #define AmBackgroundWriterProcess() (MyAuxProcType == BgWriterProcess)
+#define AmArchiverProcess()			(MyAuxProcType == ArchiverProcess)
 #define AmCheckpointerProcess()		(MyAuxProcType == CheckpointerProcess)
 #define AmWalWriterProcess()		(MyAuxProcType == WalWriterProcess)
 #define AmWalReceiverProcess()		(MyAuxProcType == WalReceiverProcess)
@@ -542,5 +581,36 @@ extern bool has_rolreplication(Oid roleid);
 /* in access/transam/xlog.c */
 extern bool BackupInProgress(void);
 extern void CancelBackup(void);
+
+/* in executor/nodeHash.c */
+extern size_t get_hash_memory_limit(void);
+extern int	get_hash_mem(void);
+
+/*
+ * In GPDB, some utility commands may execute nested in another utilities,
+ * while the inner utility may still dispatch the command to QEs, which is
+ * not allowed. Because the inner utility executes before the outer utility
+ * command in QEs, which is the wrong execution sequence compared with QD.
+ *
+ * Now, when the outer utility begins to process inner utility, it calls
+ * HOLD_DISPATCH() to disable dispatch temporarily, and calls RESUME_DISPATCH()
+ * to resume the dispatch states to allow the outer utility to normally
+ * dispatch the commands to the QEs.
+ */
+extern int dispatch_nest_level;
+extern void GpRecoveryFromError(void);
+
+#define ENABLE_DISPATCH()		(dispatch_nest_level == 0)
+#define HOLD_DISPATCH()		do { \
+	Assert(dispatch_nest_level >= 0); \
+	dispatch_nest_level++; \
+} while(0)
+#define RESUME_DISPATCH()	do { \
+	Assert(dispatch_nest_level >  0); \
+	dispatch_nest_level--; \
+} while(0)
+#define CLEAR_DISPATCH()	do { \
+	dispatch_nest_level = 0; \
+} while(0)
 
 #endif							/* MISCADMIN_H */

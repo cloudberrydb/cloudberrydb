@@ -3,14 +3,14 @@
  * outfast.c
  *	  Fast serialization functions for Postgres tree nodes.
  *
- * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 2005-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * NOTES
- *	  Every node type that can appear in an Greenplum Database serialized query or plan
+ *	  Every node type that can appear in an Cloudberry Database serialized query or plan
  *    tree must have an output function defined here.
  *
  * 	  There *MUST* be a one-to-one correspondence between this routine
@@ -37,7 +37,9 @@
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
 #include "utils/datum.h"
+#include "utils/expandeddatum.h"
 #include "catalog/heap.h"
+#include "catalog/index.h"
 #include "cdb/cdbgang.h"
 #include "utils/workfile_mgr.h"
 #include "parser/parsetree.h"
@@ -325,19 +327,6 @@ _outDatum(StringInfo str, Datum value, int typlen, bool typbyval)
 #define COMPILING_BINARY_FUNCS
 #include "outfuncs.c"
 
-static void
-_outCopyStmt(StringInfo str, CopyStmt *node)
-{
-	WRITE_NODE_TYPE("COPYSTMT");
-	WRITE_NODE_FIELD(relation);
-	WRITE_NODE_FIELD(attlist);
-	WRITE_BOOL_FIELD(is_from);
-	WRITE_BOOL_FIELD(is_program);
-	WRITE_STRING_FIELD(filename);
-	WRITE_NODE_FIELD(options);
-	WRITE_NODE_FIELD(sreh);
-}
-
 /*****************************************************************************
  *
  *	Stuff from primnodes.h.
@@ -369,32 +358,6 @@ _outBoolExpr(StringInfo str, BoolExpr *node)
 
 	WRITE_NODE_FIELD(args);
 	WRITE_LOCATION_FIELD(location);
-}
-
-static void
-_outCurrentOfExpr(StringInfo str, CurrentOfExpr *node)
-{
-	WRITE_NODE_TYPE("CURRENTOFEXPR");
-
-	WRITE_UINT_FIELD(cvarno);
-	WRITE_STRING_FIELD(cursor_name);
-	WRITE_INT_FIELD(cursor_param);
-	WRITE_OID_FIELD(target_relid);
-}
-
-static void
-_outJoinExpr(StringInfo str, JoinExpr *node)
-{
-	WRITE_NODE_TYPE("JOINEXPR");
-
-	WRITE_ENUM_FIELD(jointype, JoinType);
-	WRITE_BOOL_FIELD(isNatural);
-	WRITE_NODE_FIELD(larg);
-	WRITE_NODE_FIELD(rarg);
-	WRITE_NODE_FIELD(usingClause);
-	WRITE_NODE_FIELD(quals);
-	WRITE_NODE_FIELD(alias);
-	WRITE_INT_FIELD(rtindex);
 }
 
 /*****************************************************************************
@@ -446,28 +409,6 @@ _outRoleSpec(StringInfo str, const RoleSpec *node)
 	WRITE_ENUM_FIELD(roletype, RoleSpecType);
 	WRITE_STRING_FIELD(rolename);
 	WRITE_LOCATION_FIELD(location);
-}
-
-static void
-_outCreateDomainStmt(StringInfo str, CreateDomainStmt *node)
-{
-	WRITE_NODE_TYPE("CREATEDOMAINSTMT");
-	WRITE_NODE_FIELD(domainname);
-	WRITE_NODE_FIELD(typeName);
-	WRITE_NODE_FIELD(collClause);
-	WRITE_NODE_FIELD(constraints);
-}
-
-static void
-_outAlterDomainStmt(StringInfo str, AlterDomainStmt *node)
-{
-	WRITE_NODE_TYPE("ALTERDOMAINSTMT");
-	WRITE_CHAR_FIELD(subtype);
-	WRITE_NODE_FIELD(typeName);
-	WRITE_STRING_FIELD(name);
-	WRITE_NODE_FIELD(def);
-	WRITE_ENUM_FIELD(behavior, DropBehavior);
-	WRITE_BOOL_FIELD(missing_ok);
 }
 
 static void
@@ -555,10 +496,7 @@ _outAExpr(StringInfo str, A_Expr *node)
 
 			WRITE_NODE_FIELD(name);
 			break;
-		case AEXPR_OF:
 
-			WRITE_NODE_FIELD(name);
-			break;
 		case AEXPR_IN:
 
 			WRITE_NODE_FIELD(name);
@@ -590,9 +528,6 @@ _outAExpr(StringInfo str, A_Expr *node)
 		case AEXPR_NOT_BETWEEN_SYM:
 
 			WRITE_NODE_FIELD(name);
-			break;
-		case AEXPR_PAREN:
-
 			break;
 
 		default:
@@ -643,69 +578,6 @@ _outAConst(StringInfo str, A_Const *node)
 	_outValue(str, &(node->val));
 	WRITE_LOCATION_FIELD(location);  /*CDB*/
 
-}
-
-static void
-_outCreateQueueStmt(StringInfo str, CreateQueueStmt *node)
-{
-	WRITE_NODE_TYPE("CREATEQUEUESTMT");
-
-	WRITE_STRING_FIELD(queue);
-	WRITE_NODE_FIELD(options); /* List of DefElem nodes */
-}
-
-static void
-_outAlterQueueStmt(StringInfo str, AlterQueueStmt *node)
-{
-	WRITE_NODE_TYPE("ALTERQUEUESTMT");
-
-	WRITE_STRING_FIELD(queue);
-	WRITE_NODE_FIELD(options); /* List of DefElem nodes */
-}
-
-static void
-_outCreateResourceGroupStmt(StringInfo str, CreateResourceGroupStmt *node)
-{
-	WRITE_NODE_TYPE("CREATERESOURCEGROUPSTMT");
-
-	WRITE_STRING_FIELD(name);
-	WRITE_NODE_FIELD(options); /* List of DefElem nodes */
-}
-
-static void
-_outAlterResourceGroupStmt(StringInfo str, AlterResourceGroupStmt *node)
-{
-	WRITE_NODE_TYPE("ALTERRESOURCEGROUPSTMT");
-
-	WRITE_STRING_FIELD(name);
-	WRITE_NODE_FIELD(options); /* List of DefElem nodes */
-}
-
-/*
- * Support for serializing TupleDescs and ParamListInfos.
- *
- * TupleDescs and ParamListInfos are not Nodes as such, but if you wrap them
- * in TupleDescNode and ParamListInfoNode structs, we allow serializing them.
- */
-static void
-_outTupleDescNode(StringInfo str, TupleDescNode *node)
-{
-	int			i;
-
-	Assert(node->tuple->tdtypeid == RECORDOID);
-
-	WRITE_NODE_TYPE("TUPLEDESCNODE");
-	WRITE_INT_FIELD(natts);
-	WRITE_INT_FIELD(tuple->natts);
-
-	for (i = 0; i < node->tuple->natts; i++)
-		appendBinaryStringInfo(str, (char *) &node->tuple->attrs[i], ATTRIBUTE_FIXED_PART_SIZE);
-
-	Assert(node->tuple->constr == NULL);
-
-	WRITE_OID_FIELD(tuple->tdtypeid);
-	WRITE_INT_FIELD(tuple->tdtypmod);
-	WRITE_INT_FIELD(tuple->tdrefcount);
 }
 
 static void
@@ -900,6 +772,18 @@ _outRowIdExpr(StringInfo str, const RowIdExpr *node)
 	WRITE_INT_FIELD(rowidexpr_id);
 }
 
+static void
+_outGpSplitPartitionCmd(StringInfo str, const GpSplitPartitionCmd *node)
+{
+	WRITE_NODE_TYPE("GPSPLITPARTITIONCMD");
+
+	WRITE_NODE_FIELD(partid);
+	WRITE_NODE_FIELD(start);
+	WRITE_NODE_FIELD(end);
+	WRITE_NODE_FIELD(at);
+	WRITE_NODE_FIELD(arg2);
+}
+
 /*
  * _outNode -
  *	  converts a Node into binary string and append it to 'str'
@@ -931,6 +815,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_QueryDispatchDesc:
 				_outQueryDispatchDesc(str,obj);
+				break;
+			case T_SerializedParams:
+				_outSerializedParams(str, obj);
 				break;
 			case T_OidAssignment:
 				_outOidAssignment(str,obj);
@@ -977,26 +864,11 @@ _outNode(StringInfo str, void *obj)
 			case T_SeqScan:
 				_outSeqScan(str, obj);
 				break;
-			case T_SampleScan:
-				_outSampleScan(str, obj);
-				break;
-			case T_CteScan:
-				_outCteScan(str, obj);
-				break;
-			case T_NamedTuplestoreScan:
-				_outNamedTuplestoreScan(str, obj);
-				break;
-			case T_WorkTableScan:
-				_outWorkTableScan(str, obj);
-				break;
-			case T_ForeignScan:
-				_outForeignScan(str, obj);
-				break;
-			case T_CustomScan:
-				_outCustomScan(str, obj);
-				break;
 			case T_ExternalScanInfo:
 				_outExternalScanInfo(str, obj);
+				break;
+			case T_SampleScan:
+				_outSampleScan(str, obj);
 				break;
 			case T_IndexScan:
 				_outIndexScan(str, obj);
@@ -1013,6 +885,9 @@ _outNode(StringInfo str, void *obj)
 			case T_TidScan:
 				_outTidScan(str, obj);
 				break;
+			case T_TidRangeScan:
+				_outTidRangeScan(str, obj);
+				break;
 			case T_SubqueryScan:
 				_outSubqueryScan(str, obj);
 				break;
@@ -1024,6 +899,21 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_ValuesScan:
 				_outValuesScan(str, obj);
+				break;
+			case T_CteScan:
+				_outCteScan(str, obj);
+				break;
+			case T_NamedTuplestoreScan:
+				_outNamedTuplestoreScan(str, obj);
+				break;
+			case T_WorkTableScan:
+				_outWorkTableScan(str, obj);
+				break;
+			case T_ForeignScan:
+				_outForeignScan(str, obj);
+				break;
+			case T_CustomScan:
+				_outCustomScan(str, obj);
 				break;
 			case T_Join:
 				_outJoin(str, obj);
@@ -1049,6 +939,9 @@ _outNode(StringInfo str, void *obj)
 			case T_WindowAgg:
 				_outWindowAgg(str, obj);
 				break;
+			case T_Group:
+				_outGroup(str, obj);
+				break;
 			case T_TableFunctionScan:
 				_outTableFunctionScan(str, obj);
 				break;
@@ -1058,17 +951,29 @@ _outNode(StringInfo str, void *obj)
 			case T_ShareInputScan:
 				_outShareInputScan(str, obj);
 				break;
+			case T_Memoize:
+				_outMemoize(str, obj);
+				break;
 			case T_Sort:
 				_outSort(str, obj);
 				break;
+			case T_IncrementalSort:
+				_outIncrementalSort(str, obj);
+				break;
 			case T_Unique:
 				_outUnique(str, obj);
+				break;
+			case T_Hash:
+				_outHash(str, obj);
 				break;
 			case T_SetOp:
 				_outSetOp(str, obj);
 				break;
 			case T_LockRows:
 				_outLockRows(str, obj);
+				break;
+			case T_RuntimeFilter:
+				_outRuntimeFilter(str, obj);
 				break;
 			case T_Limit:
 				_outLimit(str, obj);
@@ -1091,9 +996,6 @@ _outNode(StringInfo str, void *obj)
 			case T_PartitionPruneStepCombine:
 				_outPartitionPruneStepCombine(str, obj);
 				break;
-			case T_Hash:
-				_outHash(str, obj);
-				break;
 			case T_Motion:
 				_outMotion(str, obj);
 				break;
@@ -1105,6 +1007,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_PartitionSelector:
 				_outPartitionSelector(str, obj);
+				break;
+			case T_GpPartDefElem:
+				_outGpPartDefElem(str, obj);
 				break;
 			case T_Alias:
 				_outAlias(str, obj);
@@ -1327,6 +1232,9 @@ _outNode(StringInfo str, void *obj)
 			case T_ReindexStmt:
 				_outReindexStmt(str, obj);
 				break;
+			case T_ReindexIndexInfo:
+				_outReindexIndexInfo(str, obj);
+				break;
 
 			case T_ConstraintsSetStmt:
 				_outConstraintsSetStmt(str, obj);
@@ -1478,6 +1386,9 @@ _outNode(StringInfo str, void *obj)
 			case T_CreateStatsStmt:
 				_outCreateStatsStmt(str, obj);
 				break;
+			case T_AlterStatsStmt:
+				_outAlterStatsStmt(str, obj);
+				break;
 			case T_NotifyStmt:
 				_outNotifyStmt(str, obj);
 				break;
@@ -1540,6 +1451,12 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_WithClause:
 				_outWithClause(str, obj);
+				break;
+			case T_CTESearchClause:
+				_outCTESearchClause(str, obj);
+				break;
+			case T_CTECycleClause:
+				_outCTECycleClause(str, obj);
 				break;
 			case T_CommonTableExpr:
 				_outCommonTableExpr(str, obj);
@@ -1722,9 +1639,6 @@ _outNode(StringInfo str, void *obj)
 			case T_TupleDescNode:
 				_outTupleDescNode(str, obj);
 				break;
-			case T_SerializedParams:
-				_outSerializedParams(str, obj);
-				break;
 
 			case T_AlterTSConfigurationStmt:
 				_outAlterTSConfigurationStmt(str, obj);
@@ -1808,10 +1722,57 @@ _outNode(StringInfo str, void *obj)
 			case T_RowIdExpr:
 				_outRowIdExpr(str, obj);
 				break;
+			case T_RelAggInfo:
+				_outRelAggInfo(str, obj);
+				break;
 			case T_RestrictInfo:
 				_outRestrictInfo(str, obj);
 				break;
-
+			case T_IndexClause:
+				_outIndexClause(str, obj);
+				break;
+			case T_PlaceHolderVar:
+				_outPlaceHolderVar(str, obj);
+				break;
+			case T_SpecialJoinInfo:
+				_outSpecialJoinInfo(str, obj);
+				break;
+			case T_AppendRelInfo:
+				_outAppendRelInfo(str, obj);
+				break;
+			case T_PlaceHolderInfo:
+				_outPlaceHolderInfo(str, obj);
+				break;
+			case T_GroupedVarInfo:
+				_outGroupedVarInfo(str, obj);
+				break;
+			case T_MinMaxAggInfo:
+				_outMinMaxAggInfo(str, obj);
+				break;
+			case T_PlannerParamItem:
+				_outPlannerParamItem(str, obj);
+				break;
+			case T_GpPartitionRangeSpec:
+				_outGpPartitionRangeSpec(str, obj);
+				break;
+			case T_GpPartitionRangeItem:
+				_outGpPartitionRangeItem(str, obj);
+				break;
+			case T_GpPartitionListSpec:
+				_outGpPartitionListSpec(str, obj);
+				break;
+			case T_GpSplitPartitionCmd:
+				_outGpSplitPartitionCmd(str, obj);
+				break;
+			case T_GpPartitionDefinition:
+				_outGpPartitionDefinition(str, obj);
+				break;
+			case T_StatsElem:
+				_outStatsElem(str, obj);
+				break;
+			case T_ReturnStmt:
+				_outReturnStmt(str, obj);
+				break;
 			default:
 				elog(ERROR, "could not serialize unrecognized node type: %d",
 						 (int) nodeTag(obj));

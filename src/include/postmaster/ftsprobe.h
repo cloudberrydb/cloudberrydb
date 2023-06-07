@@ -72,6 +72,9 @@ typedef struct
 	 */
 	CdbComponentDatabaseInfo *primary_cdbinfo;
 	CdbComponentDatabaseInfo *mirror_cdbinfo;
+#ifndef USE_INTERNAL_FTS
+    bool has_mirror_configured;
+#endif
 	fts_result result;
 	FtsMessageState state;
 	short poll_events;
@@ -86,11 +89,16 @@ typedef struct
 	bool recovery_making_progress;
 } fts_segment_info;
 
+#ifdef USE_INTERNAL_FTS
 typedef struct
 {
 	int num_pairs; /* number of primary-mirror pairs FTS wants to probe */
+
 	fts_segment_info *perSegInfos;
 } fts_context;
 
+
 extern bool FtsWalRepMessageSegments(CdbComponentDatabases *context);
+#endif  /* USE_INTERNAL_FTS */
+
 #endif

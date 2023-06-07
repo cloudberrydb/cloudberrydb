@@ -18,15 +18,15 @@
         <section id="section3">
             <title>Description</title>
             <p>The <codeph>gpssh-exkeys</codeph> utility exchanges SSH keys between the specified
-                host names (or host addresses). This allows SSH connections between Greenplum hosts
+                host names (or host addresses). This allows SSH connections between Cloudberry hosts
                 and network interfaces without a password prompt. The utility is used to initially
-                prepare a Greenplum Database system for passwordless SSH access, and also to prepare
-                additional hosts for passwordless SSH access when expanding a Greenplum Database 
+                prepare a Cloudberry Database system for passwordless SSH access, and also to prepare
+                additional hosts for passwordless SSH access when expanding a Cloudberry Database 
                 system.</p>
             <p>Keys are exchanged as the currently logged in user. You run the utility on the coordinator
-                host as the <codeph>gpadmin</codeph> user (the user designated to own your Greenplum
-                Database installation). Greenplum Database management utilities require that the
-                    <codeph>gpadmin</codeph> user be created on all hosts in the Greenplum Database
+                host as the <codeph>gpadmin</codeph> user (the user designated to own your Cloudberry
+                Database installation). Cloudberry Database management utilities require that the
+                    <codeph>gpadmin</codeph> user be created on all hosts in the Cloudberry Database
                 system, and the utilities must be able to connect as that user to all hosts without
                 a password prompt.</p>
             <p>You can also use <codeph>gpssh-exkeys</codeph> to enable passwordless SSH for
@@ -34,7 +34,7 @@
             <p>The <codeph>gpssh-exkeys</codeph> utility has the following prerequisites:<ul
                     id="ul_fgv_hjd_vhb">
                     <li>The user must have an account on the coordinator, standby, and every segment host
-                        in the Greenplum Database cluster.</li>
+                        in the Cloudberry Database cluster.</li>
                     <li>The user must have an <codeph>id_rsa</codeph> SSH key pair installed on the
                         coordinator host.</li>
                     <li>The user must be able to connect with SSH from the coordinator host to every
@@ -51,7 +51,7 @@
                     <codeph>-h</codeph> option to name single host names on the command-line. At
                 least one host name (<codeph>-h</codeph>) or a host file (<codeph>-f</codeph>) is
                 required. Note that the local host is included in the key exchange by default.</p>
-            <p>To specify new expansion hosts to be added to an existing Greenplum Database system,
+            <p>To specify new expansion hosts to be added to an existing Cloudberry Database system,
                 use the <codeph>-e</codeph> and <codeph>-x</codeph> options. The <codeph>-e</codeph>
                 option specifies a file containing a list of existing hosts in the system that have
                 already exchanged SSH keys. The <codeph>-x</codeph> option specifies a file
@@ -81,7 +81,7 @@
                     <pt>-e <varname>hostfile_exkeys</varname></pt>
                     <pd>When doing a system expansion, this is the name and location of a file
                         containing all configured host names and host addresses (interface names)
-                        for each host in your <varname>current</varname> Greenplum system (coordinator,
+                        for each host in your <varname>current</varname> Cloudberry system (coordinator,
                         standby coordinator, and segments), one name per line without blank lines or
                         extra spaces. Hosts specified in this file cannot be specified in the host
                         file used with <codeph>-x</codeph>. </pd>
@@ -89,7 +89,7 @@
                 <plentry>
                     <pt>-f <varname>hostfile_exkeys</varname></pt>
                     <pd>Specifies the name and location of a file containing all configured host
-                        names and host addresses (interface names) for each host in your Greenplum
+                        names and host addresses (interface names) for each host in your Cloudberry
                         system (coordinator, standby coordinator and segments), one name per line without
                         blank lines or extra spaces.</pd>
                 </plentry>
@@ -108,7 +108,7 @@
                     <pd>When doing a system expansion, this is the name and location of a file
                         containing all configured host names and host addresses (interface names)
                         for each <varname>new segment host</varname> you are adding to your
-                        Greenplum system, one name per line without blank lines or extra spaces.
+                        Cloudberry system, one name per line without blank lines or extra spaces.
                         Hosts specified in this file cannot be specified in the host file used with
                             <codeph>-e</codeph>.</pd>
                 </plentry>

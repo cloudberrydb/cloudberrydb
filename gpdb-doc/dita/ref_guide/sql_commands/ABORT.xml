@@ -6,7 +6,7 @@
         command <codeph><xref href="./ROLLBACK.xml#topic1" type="topic" format="dita"/></codeph>,
         and is present only for historical reasons. </p></section><section id="section4"><title>Parameters</title><parml><plentry><pt>WORK</pt><pt>TRANSACTION</pt><pd>Optional key words. They have no effect.</pd></plentry></parml></section><section id="section5"><title>Notes</title><p>Use <codeph>COMMIT</codeph> to successfully terminate a transaction.
 </p><p>Issuing <codeph>ABORT</codeph> when not inside a transaction does
-no harm, but it will provoke a warning message.</p></section><section id="section6"><title>Compatibility</title><p>This command is a Greenplum Database extension present for historical
+no harm, but it will provoke a warning message.</p></section><section id="section6"><title>Compatibility</title><p>This command is a Cloudberry Database extension present for historical
 reasons. <codeph>ROLLBACK</codeph> is the equivalent standard SQL command.
 </p></section><section id="section7"><title>See Also</title><p><codeph><xref href="./BEGIN.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
             href="./COMMIT.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref

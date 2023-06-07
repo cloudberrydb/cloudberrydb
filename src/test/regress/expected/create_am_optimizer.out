@@ -27,8 +27,6 @@ CREATE OPERATOR CLASS box_ops DEFAULT
 	OPERATOR 10	<<|,
 	OPERATOR 11	|>>,
 	OPERATOR 12	|&>,
-	OPERATOR 13	~,
-	OPERATOR 14	@,
 	FUNCTION 1	gist_box_consistent(internal, box, smallint, oid, internal),
 	FUNCTION 2	gist_box_union(internal, internal),
 	-- don't need compress, decompress, or fetch functions
@@ -46,22 +44,22 @@ SET enable_indexscan = ON;
 SET enable_bitmapscan = OFF;
 EXPLAIN (COSTS OFF)
 SELECT * FROM fast_emp4000
-    WHERE home_base @ '(200,200),(2000,1000)'::box
+    WHERE home_base <@ '(200,200),(2000,1000)'::box
     ORDER BY (home_base[0])[0];
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Result
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: ((home_base[0])[0])
          ->  Sort
                Sort Key: ((home_base[0])[0])
                ->  Seq Scan on fast_emp4000
-                     Filter: (home_base @ '(2000,1000),(200,200)'::box)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+                     Filter: (home_base <@ '(2000,1000),(200,200)'::box)
+ Optimizer: Pivotal Optimizer (GPORCA)
 (8 rows)
 
 SELECT * FROM fast_emp4000
-    WHERE home_base @ '(200,200),(2000,1000)'::box
+    WHERE home_base <@ '(200,200),(2000,1000)'::box
     ORDER BY (home_base[0])[0];
        home_base       
 -----------------------
@@ -78,6 +76,7 @@ SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
          ->  Partial Aggregate
                ->  Seq Scan on fast_emp4000
                      Filter: (home_base && '(1000,1000),(0,0)'::box)
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
@@ -88,13 +87,14 @@ SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM fast_emp4000 WHERE home_base IS NULL;
-                      QUERY PLAN                      
-------------------------------------------------------
+                   QUERY PLAN                    
+-------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Seq Scan on fast_emp4000
                      Filter: (home_base IS NULL)
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 SELECT count(*) FROM fast_emp4000 WHERE home_base IS NULL;
@@ -110,8 +110,13 @@ ERROR:  cannot drop access method gist2 because other objects depend on it
 DETAIL:  index grect2ind2 depends on operator class box_ops for access method gist2
 HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 -- Drop access method cascade
+-- To prevent a (rare) deadlock against autovacuum,
+-- we must lock the table that owns the index that will be dropped
+BEGIN;
+LOCK TABLE fast_emp4000;
 DROP ACCESS METHOD gist2 CASCADE;
 NOTICE:  drop cascades to index grect2ind2
+COMMIT;
 --
 -- Test table access methods
 --

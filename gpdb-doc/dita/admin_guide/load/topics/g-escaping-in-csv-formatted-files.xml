@@ -43,6 +43,6 @@
          white space, or any characters other than <codeph>DELIMITER</codeph>, includes those
          characters. This can cause errors if you import data from a system that pads CSV lines with
          white space to some fixed width. In this case, preprocess the CSV file to remove the
-         trailing white space before importing the data into Greenplum Database.</note>
+         trailing white space before importing the data into Cloudberry Database.</note>
    </body>
 </topic>

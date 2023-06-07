@@ -62,7 +62,7 @@
  * except the root.  For the root node, we are setting the boundaries
  * that we don't yet have as infinity.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -749,8 +749,13 @@ spg_box_quad_leaf_consistent(PG_FUNCTION_ARGS)
 	/* All tests are exact. */
 	out->recheck = false;
 
-	/* leafDatum is what it is... */
-	out->leafValue = in->leafDatum;
+	/*
+	 * Don't return leafValue unless told to; this is used for both box and
+	 * polygon opclasses, and in the latter case the leaf datum is not even of
+	 * the right type to return.
+	 */
+	if (in->returnData)
+		out->leafValue = leaf;
 
 	/* Perform the required comparison(s) */
 	for (i = 0; i < in->nkeys; i++)

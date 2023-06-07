@@ -6,12 +6,12 @@ about database objects (tables, views, etc.).</p><table id="hr138428"><title>pg_
 </entry></row><row><entry colname="col1"><codeph id="hr138559">objid</codeph></entry><entry colname="col2">oid</entry><entry colname="col3">any OID column</entry><entry colname="col4">OID of the object within its system catalog.</entry></row><row><entry colname="col1"><codeph id="hr138567">staactionname</codeph></entry><entry colname="col2">name</entry><entry colname="col3"/><entry colname="col4">The action that was taken on the object.</entry></row><row><entry colname="col1"><codeph id="hr138575">stasysid</codeph></entry><entry colname="col2">oid</entry><entry colname="col3">pg_authid.oid</entry><entry colname="col4">A foreign key to pg_authid.oid.</entry></row><row><entry colname="col1"><codeph id="hr138583">stausename</codeph></entry><entry colname="col2">name</entry><entry colname="col3"/><entry colname="col4">The name of the role that performed the operation
 on this object.</entry></row><row><entry colname="col1"><codeph id="hr138447">stasubtype</codeph></entry><entry colname="col2">text</entry><entry colname="col3"/><entry colname="col4">The type of object operated on or the subclass
 of operation performed.</entry></row><row><entry colname="col1"><codeph id="hr138456">statime</codeph></entry><entry colname="col2">timestamp with timezone</entry><entry colname="col3"/><entry colname="col4">The timestamp of the operation. This is the same timestamp that is written to
-              the Greenplum Database server log files in case you need to look up more
+              the Cloudberry Database server log files in case you need to look up more
               detailed information about the operation in the logs.</entry></row></tbody></tgroup></table>
 
     <p>The <codeph>pg_stat_last_operation</codeph> table contains metadata tracking
       information about operations on database objects. This information includes the
-      object id, DDL action, user, type of object, and operation timestamp. Greenplum
+      object id, DDL action, user, type of object, and operation timestamp. Cloudberry
       Database updates this table when a database object is created, altered,
       truncated, vacuumed, analyzed, or partitioned, and when privileges are granted
       to an object.</p>

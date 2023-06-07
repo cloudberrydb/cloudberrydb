@@ -5,5 +5,5 @@
   <title id="ns173529">Working with Databases</title>
   <shortdesc>The topics in this section describe how to create and manage database objects and
     manipulate data in the database. Additional topics describe parallel data loading and writing
-    SQL queries in the Greenplum MPP environment.</shortdesc>
+    SQL queries in the Cloudberry MPP environment.</shortdesc>
 </topic>

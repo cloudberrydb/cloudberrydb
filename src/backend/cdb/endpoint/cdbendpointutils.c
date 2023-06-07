@@ -253,8 +253,8 @@ gp_endpoints(PG_FUNCTION_ARGS)
 
 				for (int j = 0; j < PQntuples(result); j++)
 				{
-					StrNCpy(all_info->infos[idx].name, PQgetvalue(result, j, 0), NAMEDATALEN);
-					StrNCpy(all_info->infos[idx].cursorName, PQgetvalue(result, j, 1), NAMEDATALEN);
+					strlcpy(all_info->infos[idx].name, PQgetvalue(result, j, 0), NAMEDATALEN);
+					strlcpy(all_info->infos[idx].cursorName, PQgetvalue(result, j, 1), NAMEDATALEN);
 					endpoint_token_str2hex(all_info->infos[idx].token, PQgetvalue(result, j, 2));
 					all_info->infos[idx].dbid = atoi(PQgetvalue(result, j, 3));
 					all_info->infos[idx].state = state_string_to_enum(PQgetvalue(result, j, 4));
@@ -311,8 +311,8 @@ gp_endpoints(PG_FUNCTION_ARGS)
 										   false);
 					get_token_from_session_hashtable(entry->sessionID, entry->userID,
 													 info->token);
-					StrNCpy(info->name, entry->name, NAMEDATALEN);
-					StrNCpy(info->cursorName, entry->cursorName, NAMEDATALEN);
+					strlcpy(info->name, entry->name, NAMEDATALEN);
+					strlcpy(info->cursorName, entry->cursorName, NAMEDATALEN);
 					info->state = entry->state;
 					info->sessionId = entry->sessionID;
 					info->userId = entry->userID;

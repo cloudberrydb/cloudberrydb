@@ -3,9 +3,9 @@
  * tlist.c
  *	  Target list manipulation routines
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -31,11 +31,6 @@ typedef struct maxSortGroupRef_context
 
 static
 bool maxSortGroupRef_walker(Node *node, maxSortGroupRef_context *cxt);
-
-/* Test if an expression node represents a SRF call.  Beware multiple eval! */
-#define IS_SRF_CALL(node) \
-	((IsA(node, FuncExpr) && ((FuncExpr *) (node))->funcretset) || \
-	 (IsA(node, OpExpr) && ((OpExpr *) (node))->opretset))
 
 /*
  * Data structures for split_pathtarget_at_srfs().  To preserve the identity
@@ -329,7 +324,7 @@ tlist_same_datatypes(List *tlist, List *colTypes, bool junkOK)
 				return false;	/* tlist longer than colTypes */
 			if (exprType((Node *) tle->expr) != lfirst_oid(curColType))
 				return false;
-			curColType = lnext(curColType);
+			curColType = lnext(colTypes, curColType);
 		}
 	}
 	if (curColType != NULL)
@@ -363,7 +358,7 @@ tlist_same_collations(List *tlist, List *colCollations, bool junkOK)
 				return false;	/* tlist longer than colCollations */
 			if (exprCollation((Node *) tle->expr) != lfirst_oid(curColColl))
 				return false;
-			curColColl = lnext(curColColl);
+			curColColl = lnext(colCollations, curColColl);
 		}
 	}
 	if (curColColl != NULL)
@@ -843,6 +838,13 @@ make_pathtarget_from_tlist(List *tlist)
 		i++;
 	}
 
+	/*
+	 * Mark volatility as unknown.  The contain_volatile_functions function
+	 * will determine if there are any volatile functions when called for the
+	 * first time with this PathTarget.
+	 */
+	target->has_volatile_expr = VOLATILITY_UNKNOWN;
+
 	return target;
 }
 
@@ -880,9 +882,8 @@ make_tlist_from_pathtarget(PathTarget *target)
  * copy_pathtarget
  *	  Copy a PathTarget.
  *
- * The new PathTarget has its own List cells, but shares the underlying
- * target expression trees with the old one.  We duplicate the List cells
- * so that items can be added to one target without damaging the other.
+ * The new PathTarget has its own exprs List, but shares the underlying
+ * target expression trees with the old one.
  */
 PathTarget *
 copy_pathtarget(PathTarget *src)
@@ -945,6 +946,16 @@ add_column_to_pathtarget(PathTarget *target, Expr *expr, Index sortgroupref)
 		target->sortgrouprefs = (Index *) palloc0(nexprs * sizeof(Index));
 		target->sortgrouprefs[nexprs - 1] = sortgroupref;
 	}
+
+	/*
+	 * Reset has_volatile_expr to UNKNOWN.  We just leave it up to
+	 * contain_volatile_functions to set this properly again.  Technically we
+	 * could save some effort here and just check the new Expr, but it seems
+	 * better to keep the logic for setting this flag in one location rather
+	 * than duplicating the logic here.
+	 */
+	if (target->has_volatile_expr == VOLATILITY_NOVOLATILE)
+		target->has_volatile_expr = VOLATILITY_UNKNOWN;
 }
 
 /*
@@ -1237,7 +1248,7 @@ split_pathtarget_at_srfs(PlannerInfo *root,
 		List	   *level_srfs = (List *) lfirst(lc1);
 		PathTarget *ntarget;
 
-		if (lnext(lc1) == NULL)
+		if (lnext(context.level_srfs, lc1) == NULL)
 		{
 			ntarget = target;
 		}
@@ -1252,13 +1263,15 @@ split_pathtarget_at_srfs(PlannerInfo *root,
 			 * later levels.
 			 */
 			add_sp_items_to_pathtarget(ntarget, level_srfs);
-			for_each_cell(lc, lnext(lc2))
+			for_each_cell(lc, context.level_input_vars,
+						  lnext(context.level_input_vars, lc2))
 			{
 				List	   *input_vars = (List *) lfirst(lc);
 
 				add_sp_items_to_pathtarget(ntarget, input_vars);
 			}
-			for_each_cell(lc, lnext(lc3))
+			for_each_cell(lc, context.level_input_srfs,
+						  lnext(context.level_input_srfs, lc3))
 			{
 				List	   *input_srfs = (List *) lfirst(lc);
 				ListCell   *lcx;

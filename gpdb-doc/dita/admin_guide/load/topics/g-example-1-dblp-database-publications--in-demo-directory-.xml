@@ -21,7 +21,7 @@
 </codeblock>
       </p>
       <p>The goal is to import these <codeph>&lt;mastersthesis&gt;</codeph> and
-            <codeph>&lt;phdthesis&gt;</codeph> records into the Greenplum Database. The sample
+            <codeph>&lt;phdthesis&gt;</codeph> records into the Cloudberry Database. The sample
          document, <i>dblp.xml</i>, is about 130MB in size uncompressed. The input contains no tabs,
          so the relevant information can be converted into tab-delimited records as follows:</p>
       <codeblock>ms/Brown92 <i>tab</i> masters <i>tab</i> Kurt P. Brown <i>tab</i> PRPL: A Database 
@@ -42,7 +42,7 @@ Wisconsin-Madison <i>newline</i>
          <li>
             <codeph>school text</codeph>, -- e.g. Univ. of Wisconsin-Madison</li>
       </ul>
-      <p>Then, load the data into Greenplum Database. After the data loads, verify the data by
+      <p>Then, load the data into Cloudberry Database. After the data loads, verify the data by
          extracting the loaded records as XML with an output transformation. </p>
    </body>
 </topic>

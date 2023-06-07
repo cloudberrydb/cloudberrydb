@@ -3,7 +3,7 @@
  * test_integerset.c
  *		Test integer set data structure.
  *
- * Copyright (c) 2019, PostgreSQL Global Development Group
+ * Copyright (c) 2019-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/test/modules/test_integerset/test_integerset.c
@@ -14,12 +14,12 @@
 
 #include "fmgr.h"
 #include "lib/integerset.h"
+#include "miscadmin.h"
 #include "nodes/bitmapset.h"
-#include "utils/memutils.h"
-#include "utils/timestamp.h"
 #include "storage/block.h"
 #include "storage/itemptr.h"
-#include "miscadmin.h"
+#include "utils/memutils.h"
+#include "utils/timestamp.h"
 
 /*
  * If you enable this, the "pattern" tests will print information about

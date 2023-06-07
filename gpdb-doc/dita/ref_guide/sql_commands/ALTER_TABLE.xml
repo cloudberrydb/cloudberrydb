@@ -140,7 +140,7 @@ where <varname>action</varname> is one of:
                                                 TABLE</xref></codeph>. The <codeph>ENCODING</codeph>
                                         clause is valid only for append-optimized, column-oriented
                                                 tables.<p>When you add a column to an
-                                                append-optimized, column-oriented table, Greenplum
+                                                append-optimized, column-oriented table, Cloudberry
                                                 Database sets each data compression parameter for
                                                 the column (<codeph>compresstype</codeph>,
                                                   <codeph>compresslevel</codeph>, and
@@ -166,7 +166,7 @@ where <varname>action</varname> is one of:
                                                 >Notes</xref>.</p></li>
                                 <li><b>DROP COLUMN [IF EXISTS]</b> — Drops a column from a table.
                                         Note that if you drop table columns that are being used as
-                                        the Greenplum Database distribution key, the distribution
+                                        the Cloudberry Database distribution key, the distribution
                                         policy for the table will be changed to <codeph>DISTRIBUTED
                                                 RANDOMLY</codeph>. Indexes and table constraints
                                         involving the column are automatically dropped as well. You
@@ -193,7 +193,7 @@ where <varname>action</varname> is one of:
                                         old to new type.
                                         <note>GPORCA supports collation only when all columns in the
                                                 query use the same collation. If columns in the
-                                                query use different collations, then Greenplum uses
+                                                query use different collations, then Cloudberry uses
                                                 the Postgres Planner.</note><p>Changing a column
                                                 data type requires a table rewrite. For information
                                                 about table rewrites performed by <codeph>ALTER
@@ -256,7 +256,7 @@ where <varname>action</varname> is one of:
                                                 TABLE</codeph>. The <codeph>NOT VALID</codeph>
                                         option is currently only allowed for foreign key and
                                                 <codeph>CHECK</codeph> constraints. If the
-                                        constraint is marked <codeph>NOT VALID</codeph>, Greenplum
+                                        constraint is marked <codeph>NOT VALID</codeph>, Cloudberry
                                         Database skips the potentially-lengthy initial check to
                                         verify that all rows in the table satisfy the constraint.
                                         The constraint will still be enforced against subsequent
@@ -323,15 +323,15 @@ where <varname>action</varname> is one of:
                                         triggers on the table, or only user-created triggers.
                                         Disabling or enabling constraint triggers requires superuser
                                                 privileges.<note> triggers are not supported in
-                                                Greenplum Database. Triggers in general have very
+                                                Cloudberry Database. Triggers in general have very
                                                 limited functionality due to the parallelism of
-                                                Greenplum Database.</note></li>
+                                                Cloudberry Database.</note></li>
                                 <li id="ay137071"><b>CLUSTER ON/SET WITHOUT CLUSTER</b> — Selects or
                                         removes the default index for future
                                                 <codeph>CLUSTER</codeph> operations. It does not
                                         actually re-cluster the table. Note that
                                                 <codeph>CLUSTER</codeph> is not the recommended way
-                                        to physically reorder a table in Greenplum Database because
+                                        to physically reorder a table in Cloudberry Database because
                                         it takes so long. It is better to recreate the table with
                                                   <codeph><xref href="./CREATE_TABLE_AS.xml#topic1"
                                                   type="topic" format="dita"/></codeph> and order it
@@ -344,19 +344,19 @@ where <varname>action</varname> is one of:
                                                   using <codeph>SET WITH OIDS</codeph> or
                                                   <codeph>oids=TRUE</codeph> to assign an OID system
                                                   column. </ph>On large tables, such as those in a
-                                                typical Greenplum Database system, using OIDs for
+                                                typical Cloudberry Database system, using OIDs for
                                                 table rows can cause wrap-around of the 32-bit OID
                                                 counter. Once the counter wraps around, OIDs can no
                                                 longer be assumed to be unique, which not only makes
                                                 them useless to user applications, but can also
-                                                cause problems in the Greenplum Database system
+                                                cause problems in the Cloudberry Database system
                                                 catalog tables. In addition, excluding OIDs from a
                                                 table reduces the space required to store the table
                                                 on disk by 4 bytes per row, slightly improving
                                                 performance. You cannot create OIDS on a partitioned
                                                 or column-oriented table (an error is displayed).
                                                 This syntax is deprecated and will be removed in a
-                                                future Greenplum release.</note></li>
+                                                future Cloudberry release.</note></li>
                                 <li id="ay137192"><b>SET ( FILLFACTOR = <varname>value</varname>) /
                                                 RESET (FILLFACTOR)</b> — Changes the fillfactor for
                                         the table. The fillfactor for a table is a percentage
@@ -444,7 +444,7 @@ where <varname>action</varname> is one of:
                                         index, sequence, view, or materialized view), the name of an
                                         individual column in a table, or the name of a constraint of
                                         the table. There is no effect on the stored data. Note that
-                                        Greenplum Database distribution key columns cannot be
+                                        Cloudberry Database distribution key columns cannot be
                                         renamed.</li>
                                 <li id="ay137307"><b>SET SCHEMA</b> — Moves the table into another
                                         schema. Associated indexes, constraints, and sequences owned
@@ -529,7 +529,7 @@ where <varname>action</varname> is one of:
                                         <pt>
                                                 <varname>column_name</varname>
                                         </pt>
-                                        <pd>Name of a new or existing column. Note that Greenplum
+                                        <pd>Name of a new or existing column. Note that Cloudberry
                                                 Database distribution key columns must be treated
                                                 with special care. Altering or dropping these
                                                 columns can change the distribution policy for the
@@ -553,7 +553,7 @@ where <varname>action</varname> is one of:
                                         </pt>
                                         <pd>Data type of the new column, or new data type for an
                                                 existing column. If changing the data type of a
-                                                Greenplum distribution key column, you are only
+                                                Cloudberry distribution key column, you are only
                                                 allowed to change it to a compatible type (for
                                                 example, <codeph>text</codeph> to
                                                   <codeph>varchar</codeph> is OK, but
@@ -566,9 +566,9 @@ where <varname>action</varname> is one of:
                                         </pt>
                                         <pd>New table constraint for the table. Note that foreign
                                                 key constraints are currently not supported in
-                                                Greenplum Database. Also a table is only allowed one
+                                                Cloudberry Database. Also a table is only allowed one
                                                 unique constraint and the uniqueness must be within
-                                                the Greenplum Database distribution key.</pd>
+                                                the Cloudberry Database distribution key.</pd>
                                 </plentry>
                                 <plentry>
                                         <pt>
@@ -593,7 +593,7 @@ where <varname>action</varname> is one of:
                                                 <varname>trigger_name</varname>
                                         </pt>
                                         <pd>Name of a single trigger to disable or enable. Note that
-                                                Greenplum Database does not support triggers.</pd>
+                                                Cloudberry Database does not support triggers.</pd>
                                 </plentry>
                                 <plentry>
                                         <pt>ALL</pt>
@@ -618,7 +618,7 @@ where <varname>action</varname> is one of:
                                         <pd>The index name on which the table should be marked for
                                                 clustering. Note that <codeph>CLUSTER</codeph> is
                                                 not the recommended way to physically reorder a
-                                                table in Greenplum Database because it takes so
+                                                table in Cloudberry Database because it takes so
                                                 long. It is better to recreate the table with
                                                   <codeph><xref href="./CREATE_TABLE_AS.xml#topic1"
                                                   type="topic" format="dita"/></codeph> and order it
@@ -788,12 +788,12 @@ where <varname>action</varname> is one of:
                                                 multi-level partition design, you can only exchange
                                                 the lowest level partitions (those that contain
                                                 data). </pd>
-                                        <pd>The Greenplum Database server configuration parameter
+                                        <pd>The Cloudberry Database server configuration parameter
                                                   <codeph>gp_enable_exchange_default_partition</codeph>
                                                 controls availability of the <codeph>EXCHANGE
                                                   DEFAULT PARTITION</codeph> clause. The default
                                                 value for the parameter is <codeph>off</codeph>. The
-                                                clause is not available and Greenplum Database
+                                                clause is not available and Cloudberry Database
                                                 returns an error if the clause is specified in an
                                                   <codeph>ALTER TABLE</codeph> command.</pd>
                                         <pd>For information about the parameter, see <xref
@@ -935,10 +935,10 @@ where <varname>action</varname> is one of:
                         <p>The table name specified in the <codeph>ALTER TABLE</codeph> command
                                 cannot be the name of a partition within a table. </p>
                         <p>Take special care when altering or dropping columns that are part of the
-                                Greenplum Database distribution key as this can change the
+                                Cloudberry Database distribution key as this can change the
                                 distribution policy for the table.</p>
-                        <p>Greenplum Database does not currently support foreign key constraints.
-                                For a unique constraint to be enforced in Greenplum Database, the
+                        <p>Cloudberry Database does not currently support foreign key constraints.
+                                For a unique constraint to be enforced in Cloudberry Database, the
                                 table must be hash-distributed (not <codeph>DISTRIBUTED
                                         RANDOMLY</codeph>), and all of the distribution key columns
                                 must be the same as the initial columns of the unique constraint
@@ -1152,7 +1152,7 @@ INTO (PARTITION jan081to15, PARTITION jan0816to31);</codeblock>
                                         <codeph>DROP</codeph>, <codeph>SET DEFAULT</codeph>, and
                                         <codeph>SET DATA TYPE</codeph> (without
                                         <codeph>USING</codeph>) conform with the SQL standard. The
-                                other forms are Greenplum Database extensions of the SQL standard.
+                                other forms are Cloudberry Database extensions of the SQL standard.
                                 Also, the ability to specify more than one manipulation in a single
                                         <codeph>ALTER TABLE</codeph> command is an extension.</p>
                         <p><codeph>ALTER TABLE DROP COLUMN</codeph> can be used to drop the only

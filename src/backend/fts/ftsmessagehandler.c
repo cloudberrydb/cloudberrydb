@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <replication/slot.h>
 
+#include "access/xact.h"
 #include "access/xlog.h"
 #include "cdb/cdbvars.h"
 #include "libpq/pqformat.h"
@@ -177,9 +178,12 @@ checkIODataDirectory(void)
 static void
 SendFtsResponse(FtsResponse *response, const char *messagetype)
 {
-	StringInfoData buf;
+	StringInfoData	buf;
+	QueryCompletion	qc = {0};
 
-	BeginCommand(messagetype, DestRemote);
+	qc.commandTag = GetCommandTagEnum(messagetype);
+
+	BeginCommand(qc.commandTag, DestRemote);
 
 	pq_beginmessage(&buf, 'T');
 	pq_sendint(&buf, Natts_fts_message_response, 2); /* # of columns */
@@ -246,7 +250,7 @@ SendFtsResponse(FtsResponse *response, const char *messagetype)
 	pq_sendint(&buf, response->RequestRetry, 1);
 
 	pq_endmessage(&buf);
-	EndCommand(messagetype, DestRemote);
+	EndCommand(&qc, DestRemote, false);
 	pq_flush();
 }
 
@@ -268,6 +272,10 @@ HandleFtsWalRepProbe(void)
 	}
 	else
 	{
+#ifndef USE_INTERNAL_FTS
+		if (IS_QUERY_DISPATCHER())
+			ShmemSegmentConfigsCacheReset();
+#endif
 		GetMirrorStatus(&response);
 
 		/*
@@ -304,6 +312,14 @@ HandleFtsWalRepSyncRepOff(void)
 		false, /* RequestRetry */
 	};
 
+	if (FaultInjector_InjectFaultIfSet("fts_probe",
+										   DDLNotSpecified,
+										   "" /* databaseName */,
+										   "" /* tableName */) == FaultInjectorTypeSkip)
+	{
+		SendFtsResponse(&response, FTS_MSG_SYNCREP_OFF);
+	}
+
 	ereport(LOG,
 			(errmsg("turning off synchronous wal replication due to FTS request")));
 	UnsetSyncStandbysDefined();
@@ -337,7 +353,7 @@ CreateReplicationSlotOnPromote(const char *name)
 	if (MyReplicationSlot == NULL)
 	{
 		ereport(LOG, (errmsg("creating replication slot %s", name)));
-		ReplicationSlotCreate(name, false, RS_PERSISTENT);
+		ReplicationSlotCreate(name, false, RS_PERSISTENT, false);
 	}
 	else
 		ereport(LOG, (errmsg("replication slot %s exists", name)));
@@ -376,6 +392,33 @@ HandleFtsWalRepPromote(void)
 	ereport(LOG,
 			(errmsg("promoting mirror to primary due to FTS request")));
 
+	if (FaultInjector_InjectFaultIfSet("fts_probe",
+										   DDLNotSpecified,
+										   "" /* databaseName */,
+										   "" /* tableName */) == FaultInjectorTypeSkip)
+	{
+		goto skip_promote;
+	}
+	
+#ifndef USE_INTERNAL_FTS
+	if (IS_QUERY_DISPATCHER()) {
+		bool succ;
+		bool ready;
+		succ = getStandbyPromoteReady(&ready);
+
+		if (!succ || !ready) {
+			elog(LOG, "ignoring promote request, standby not ready to promote, result=%d, ready=%d"
+			 	, succ, ready);
+			goto skip_promote;
+		}
+
+		/* Reset standby promote ready */ 
+		if (!setStandbyPromoteReady(false)) {
+			elog(WARNING, "ignoring promote request, fail to reset promote ready info.");
+			goto skip_promote;
+		}
+	} 
+#endif
 	/*
 	 * FTS sends promote message to a mirror.  The mirror may be undergoing
 	 * promotion.  Promote messages should therefore be handled in an
@@ -404,6 +447,7 @@ HandleFtsWalRepPromote(void)
 			 " DBState = %d", state);
 	}
 
+skip_promote:
 	SendFtsResponse(&response, FTS_MSG_PROMOTE);
 }
 

@@ -6,7 +6,7 @@
 #	Release date:-		March 2006
 #	Release stat:-		Released
 #                               Copyright (c) Metapa 2005. All Rights Reserved.
-#                               Copyright Greenplum database cluster
+#                               Copyright Cloudberry database cluster
 #******************************************************************************
 # Update History
 #******************************************************************************
@@ -48,7 +48,7 @@ VERBOSE=1
 INTERACTIVE=1
 MIRRORING=0
 INST_COUNT=0
-# Greenplum database specific parameters
+# Cloudberry database specific parameters
 GP_USER=$USER_NAME
 # System table names
 GP_TBL=gp_id
@@ -77,6 +77,18 @@ SINGLE_HOST_BATCH_LIMIT=4
 INPUT_CONFIG=""
 OUTPUT_CONFIG=""
 STANDBY_RET_CODE=0
+CLUSTER_BOOT_MODE="PRODUCTION"
+ETCD_HOST_CONFIG=""
+FTS_HOST_CONFIG=""
+ETCD_HOST_CONFIG_NUM=0
+ETCD_CONFIG_FILE_PATH=$GPHOME/bin/config/cbdb_etcd_default.conf
+FTS_HOST_CONFIG_NUM=0
+FTS_HOST_STRING_LIST=""
+declare -a ETCD_HOST_MACHINE_LIST
+declare -a FTS_HOST_MACHINE_LIST
+USE_EXTERNAL_FTS=0
+DEMO_CLUSTER_HOST="127.0.0.1"
+ETCD_EXIST="false"
 
 #******************************************************************************
 # DCA Specific Variables
@@ -106,7 +118,7 @@ USAGE () {
 		$ECHO
 		$ECHO "      `basename $0` -c gp_config_file [OPTIONS]"
 		$ECHO
-		$ECHO "      Creates a new Greenplum Database instance on a Coordinator host and a number of"
+		$ECHO "      Creates a new Cloudberry Database instance on a Coordinator host and a number of"
 		$ECHO "      segment instance hosts."
 		$ECHO
 		$ECHO "      General options:"
@@ -126,19 +138,19 @@ USAGE () {
 		$ECHO "          Applies to coordinator and all segments."
 		$ECHO "      -B, <number> run this batch of create segment processes in parallel [default $BATCH_DEFAULT]"
 		$ECHO "      -c, gp_config_file [mandatory]"
-		$ECHO "          Supplies all Greenplum configuration information required by this utility."
+		$ECHO "          Supplies all Cloudberry configuration information required by this utility."
 		$ECHO "          Full description of all parameters contained within the example file"
 		$ECHO "          supplied with this distribution."
 		$ECHO "          Also see gpinitsystem_INSTRUCTIONS file for greater detail on"
 		$ECHO "          the operation and configuration of this script"
-		$ECHO "      -e, <password>, password to set for Greenplum superuser in database [default $GP_PASSWD]"
+		$ECHO "      -e, <password>, password to set for Cloudberry superuser in database [default $GP_PASSWD]"
 		$ECHO "      -S, standby_datadir [optional]"
 		$ECHO "      -h, gp_hostlist_file [optional]"
 		$ECHO "          Contains a list of all segment instance hostnames required to participate in"
-		$ECHO "          the new Greenplum instance. Normally set in gp_config_file."
+		$ECHO "          the new Cloudberry instance. Normally set in gp_config_file."
 		$ECHO "      -I, <input_configuration_file>"
 		$ECHO "          The full path and filename of an input configuration file, which defines the"
-		$ECHO "          Greenplum Database members and segments using the QD_PRIMARY_ARRAY and"
+		$ECHO "          Cloudberry Database members and segments using the QD_PRIMARY_ARRAY and"
 		$ECHO "          PRIMARY_ARRAY parameters. The input configuration file is typically created by"
 		$ECHO "          using gpinitsystem with the -O <output_configuration_file> option. You must"
 		$ECHO "          provide either the -c <cluster_configuration_file> option or the -I"
@@ -146,17 +158,20 @@ USAGE () {
 		$ECHO "      -m, maximum number of connections for coordinator instance [default ${DEFAULT_QD_MAX_CONNECT}]"
 		$ECHO "      -n, <locale>, setting for locale to be set when database initialized [defaults to system locale]"
 		$ECHO "      -O, <output_configuration_file>"
-		$ECHO "          When used with the -O option, gpinitsystem does not create a new Greenplum"
+		$ECHO "          When used with the -O option, gpinitsystem does not create a new Cloudberry"
 		$ECHO "          Database cluster but instead writes the supplied cluster configuration"
 		$ECHO "          information to the specified output_configuration_file. This file defines"
-		$ECHO "          Greenplum Database members and segments using the QD_PRIMARY_ARRAY and"
+		$ECHO "          Cloudberry Database members and segments using the QD_PRIMARY_ARRAY and"
 		$ECHO "          PRIMARY_ARRAY parameters, and can be later used with -I"
 		$ECHO "          <input_configuration_file> to initialize a new cluster."
 		$ECHO "      -p, postgresql_conf_gp_additions [optional]"
 		$ECHO "          List of additional PostgreSQL parameters to be applied to each Coordinator/Segment"
-		$ECHO "          postgresql.conf file during Greenplum database initialization."
+		$ECHO "          postgresql.conf file during Cloudberry database initialization."
 		$ECHO "      -P, standby_port [optional]"
 		$ECHO "      -s, standby_hostname [optional]"
+		$ECHO "      -U, Use external FTS, default false"
+		$ECHO "      -E, ETCD cluster host list, default deployed on master/standby/segment0 node [optional]"
+		$ECHO "      -F, FTS cluster host list, default deployed on master/standby/segment0 node [optional]"
 		$ECHO
 		$ECHO "      Return codes:"
 		$ECHO "      0 - No problems encountered with requested operation"
@@ -248,7 +263,7 @@ CHK_PARAMS () {
 		    $CAT $CLUSTER_CONFIG|$GREP -v "^\s*\(#.*\)\?$" >> $LOG_FILE
 		    LOG_MSG "[INFO]:-Completed $CLUSTER_CONFIG dump to logfile"
 		    # Source the cluster configuration file
-		    LOG_MSG "[INFO]:-Reading Greenplum configuration file $CLUSTER_CONFIG" 1
+		    LOG_MSG "[INFO]:-Reading Cloudberry configuration file $CLUSTER_CONFIG" 1
 			. $CLUSTER_CONFIG
 		    ASSIGN_COORDINATOR_VARS
 		    
@@ -265,7 +280,7 @@ CHK_PARAMS () {
 		    fi
 
 		else
-		    LOG_MSG "[INFO]:-Reading Greenplum input configuration file $INPUT_CONFIG"
+		    LOG_MSG "[INFO]:-Reading Cloudberry input configuration file $INPUT_CONFIG"
 		    READ_INPUT_CONFIG
 		fi
 
@@ -278,9 +293,38 @@ CHK_PARAMS () {
                     fi
 		    # Now check to see if MACHINE_LIST_FILE is still empty
 		    if [ x"" == x"$MACHINE_LIST_FILE" ];then
-			LOG_MSG "[FATAL]:-MACHINE_LIST_FILE variable is unset, and -h option not supplied" 1
-			ERROR_EXIT "[FATAL]:-Unable to continue"
+				LOG_MSG "[FATAL]:-MACHINE_LIST_FILE variable is unset, and -h option not supplied" 1
+				ERROR_EXIT "[FATAL]:-Unable to continue"
+		    else
+		    	MACHINE_LIST_NUM=${#MACHINE_LIST_FILE[@]}
+			if [ $MACHINE_LIST_NUM -eq 1 ];then
+				local HOSTFILE=${MACHINE_LIST_FILE[0]}
+				local SEG_HOSTNAME=(`$CAT $HOSTFILE`)
+				if [ x"$COORDINATOR_HOSTNAME" == x"$SEG_HOSTNAME" ];then
+					CLUSTER_BOOT_MODE="DEMO"
+				fi
+			fi
 		    fi
+		fi
+
+		if [ x"$ETCD_HOST_CONFIG" = x"" ] || [ x"$CLUSTER_BOOT_MODE" = x"DEMO" ]; then
+			LOG_MSG "[WARN]:-No ETCD cluster host config provided, use default configuration."
+		else
+			ETCD_HOST_MACHINE_LIST=(`$CAT $ETCD_HOST_CONFIG`)
+			ETCD_HOST_CONFIG_NUM=${#ETCD_HOST_MACHINE_LIST[@]}
+			if [ $ETCD_HOST_CONFIG_NUM -lt 2 ]; then
+				ERROR_EXIT "[FATAL]:-ETCD host number should be larger or equal to 2 nodes."
+			fi
+		fi
+
+		if [ x"$FTS_HOST_CONFIG" = x"" ] || [ x"$CLUSTER_BOOT_MODE" = x"DEMO" ]; then
+			LOG_MSG "[WARN]:-No FTS cluster host config provided, use default configuration."
+		else
+			FTS_HOST_MACHINE_LIST=(`$CAT $FTS_HOST_CONFIG`)
+			FTS_HOST_CONFIG_NUM=${#FTS_HOST_MACHINE_LIST[@]}
+			if [ $FTS_HOST_CONFIG_NUM -lt 2 ]; then
+				ERROR_EXIT "[FATAL]:-FTS host number should be larger or equal to 2 nodes."
+			fi
 		fi
 
 		# Check for required definitions in the CLUSTER_CONFIG file
@@ -319,7 +363,7 @@ CHK_PARAMS () {
 		    FILE_LIST=($MACHINE_LIST_FILE)
 		    for FILE in "${FILE_LIST[@]}"
 		    do
-			CHK_FILE $FILE
+				CHK_FILE $FILE
 			if [ $EXISTS -ne 0 ]; then
 			    ERROR_EXIT "[FATAL]:-Expected file \"$FILE\" not found"
 			else
@@ -330,6 +374,19 @@ CHK_PARAMS () {
 		    # Set up the machine list array
 		    LOG_MSG "[INFO]:-Setting up segment instance list array"
 		    declare -a MACHINE_LIST=(`$CAT $MACHINE_LIST_FILE|$SORT`)
+		    MACHINE_HOST_NUM=${#MACHINE_LIST[@]}
+			if [ x"$FTS_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+				FTS_HOST_MACHINE_LIST[1]=${MACHINE_LIST[0]}
+				if [ x"$STANDBY_HOSTNAME" = x"" ] && [ $MACHINE_HOST_NUM -ge 2 ];then
+					FTS_HOST_MACHINE_LIST[2]=${MACHINE_LIST[1]}
+				fi
+			fi
+			if [ x"$ETCD_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+				ETCD_HOST_MACHINE_LIST[1]=${MACHINE_LIST[0]}
+				if [ x"$STANDBY_HOSTNAME" = x"" ] && [ $MACHINE_HOST_NUM -ge 2 ];then
+					ETCD_HOST_MACHINE_LIST[2]=${MACHINE_LIST[1]}
+				fi
+			fi
 		fi
 		# Now process contents for the configuration file
 		# Make sure that this script is running on the QD host
@@ -477,7 +534,7 @@ CHK_PARAMS () {
 		# segment hosts.
 		LOCALE_SETTING=$(USE_FIRST_SET_ARG $REQ_LOCALE_SETTING $LC_ALL)
 		if [ x"" != x"$LOCALE_SETTING" ]; then
-			IN_ARRAY $LOCALE_SETTING "`locale -a`"
+			LOCALE_IS_AVAILABLE $LOCALE_SETTING
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LOCALE_SETTING is not a valid value for --locale on this system."
 			fi
@@ -485,7 +542,7 @@ CHK_PARAMS () {
 
 		LCCOLLATE=$(USE_FIRST_SET_ARG $LCCOLLATE $LC_COLLATE $LOCALE_SETTING)
 		if [ x"" != x"$LCCOLLATE" ]; then
-			IN_ARRAY $LCCOLLATE "`locale -a`"
+			LOCALE_IS_AVAILABLE $LCCOLLATE
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LCCOLLATE is not a valid value for --lc-collate on this system."
 			fi	
@@ -493,7 +550,7 @@ CHK_PARAMS () {
 
 		LCCTYPE=$(USE_FIRST_SET_ARG $LCCTYPE $LC_CTYPE $LOCALE_SETTING)
 		if [ x"" != x"$LCCTYPE" ]; then
-			IN_ARRAY $LCCTYPE "`locale -a`"
+			LOCALE_IS_AVAILABLE $LCCTYPE
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LCCTYPE is not a valid value for --lc-ctype on this system."
 			fi
@@ -501,7 +558,7 @@ CHK_PARAMS () {
 
 		LCMESSAGES=$(USE_FIRST_SET_ARG $LCMESSAGES $LC_MESSAGES $LOCALE_SETTING)
 		if [ x"" != x"$LCMESSAGES" ]; then
-			IN_ARRAY $LCMESSAGES "`locale -a`"
+			LOCALE_IS_AVAILABLE $LCMESSAGES
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LCMESSAGES is not a valid value for --lc-messages on this system."
 			fi
@@ -509,7 +566,7 @@ CHK_PARAMS () {
 		
 		LCMONETARY=$(USE_FIRST_SET_ARG $LCMONETARY $LC_MONETARY $LOCALE_SETTING)
 		if [ x"" != x"$LCMONETARY" ]; then
-			IN_ARRAY $LCMONETARY "`locale -a`"
+			LOCALE_IS_AVAILABLE $LCMONETARY
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LCMONETARY is not a valid value for --lc-monetary on this system."
 			fi
@@ -517,7 +574,7 @@ CHK_PARAMS () {
 		
 		LCNUMERIC=$(USE_FIRST_SET_ARG $LCNUMERIC $LC_NUMERIC $LOCALE_SETTING)
 		if [ x"" != x"$LCNUMERIC" ]; then
-			IN_ARRAY $LCNUMERIC "`locale -a`"
+			LOCALE_IS_AVAILABLE $LCNUMERIC
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LCNUMERIC is not a valid value for --lc-numeric on this system."
 			fi
@@ -525,11 +582,12 @@ CHK_PARAMS () {
 		
 		LCTIME=$(USE_FIRST_SET_ARG $LCTIME $LC_TIME $LOCALE_SETTING)
 		if [ x"" != x"$LCTIME" ]; then
-			IN_ARRAY $LCTIME "`locale -a`"
+			LOCALE_IS_AVAILABLE $LCTIME
 			if [ $? -eq 0 ]; then
 				ERROR_EXIT "[FATAL]-Value $LCTIME is not a valid value for --lc-time on this system."
 			fi
 		fi
+
 		LOG_MSG "[INFO]:-Checking configuration parameters, Completed" 1
 		LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -641,7 +699,8 @@ CHK_LOCALE_KNOWN () {
 
 	LOG_MSG "[INFO]:-Start Function $FUNCNAME"
 	if [ $# -eq 0 ];then
-		if [ `$LOCALE -a |$GREP -ic $LOCALE_SETTING` -eq 0 ];then
+		if [ `$LOCALE -a |$GREP -ic $(NORMALIZE_CODESET_IN_LOCALE $LOCALE_SETTING)` -eq 0 ] \
+			&& [`$LOCALE -a |$GREP -ic $LOCALE_SETTING` -eq 0];then
 			LOG_MSG "[INFO]:-Coordinator host available locale values"
 			$LOCALE -a >> $LOG_FILE
 			LOG_MSG "[FATAL]:-Unable to locate locale value $LOCALE_SETTING on this host" 1
@@ -653,7 +712,8 @@ CHK_LOCALE_KNOWN () {
 		fi
 	else
 		# Hostname has been passed so check remote locale value
-		if [ $( REMOTE_EXECUTE_AND_GET_OUTPUT $1 "$LOCALE -a|$GREP -ic '$LOCALE_SETTING'" ) -eq 0 ];then
+		if [ $( REMOTE_EXECUTE_AND_GET_OUTPUT $1 "$LOCALE -a|$GREP -ic '$(NORMALIZE_CODESET_IN_LOCALE $LOCALE_SETTING)'" ) -eq 0 ] \
+			&& [$( REMOTE_EXECUTE_AND_GET_OUTPUT $1 "$LOCALE -a|$GREP -ic '$LOCALE_SETTING'" ) -eq 0] ;then
 			LOG_MSG "[INFO]:-Host $1 available locale values"
 			`$TRUSTED_SHELL $1 "$LOCALE -a"` >> $LOG_FILE
 			LOG_MSG "[FATAL]:-Unable to locate locale value $LOCALE_SETTING on $1" 1
@@ -812,6 +872,12 @@ CHK_QES () {
         if [ $EXISTS -ne 0 ];then
             ERROR_EXIT "[FATAL]:-Standby host directory $COORDINATOR_DIRECTORY, does not exist"
         fi
+        if [ x"$FTS_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+            FTS_HOST_MACHINE_LIST[2]=$STANDBY_HOSTNAME
+        fi
+        if [ x"$ETCD_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+            ETCD_HOST_MACHINE_LIST[2]=$STANDBY_HOSTNAME
+        fi
     fi
 
 	if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
@@ -889,6 +955,12 @@ CHK_QES_FROM_INPUTFILE () {
 		CHK_DIR $COORDINATOR_DIRECTORY $STANDBY_HOSTNAME
 		if [ $EXISTS -ne 0 ];then
 			ERROR_EXIT "[FATAL]:-Standby host directory $COORDINATOR_DIRECTORY, does not exist"
+		fi
+ 		if [ x"$FTS_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+			FTS_HOST_MACHINE_LIST[2]=$STANDBY_HOSTNAME
+		fi
+		if [ x"$ETCD_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+			ETCD_HOST_MACHINE_LIST[2]=$STANDBY_HOSTNAME
 		fi
 	fi
 	
@@ -1035,7 +1107,7 @@ DISPLAY_CONFIG () {
 		export QD_DIR=$GP_DIR
 	if [ x"" != x"$INTERACTIVE" ];then
 		SET_VAR $QD_PRIMARY_ARRAY
-		LOG_MSG "[INFO]:-Greenplum Database Creation Parameters" 1
+		LOG_MSG "[INFO]:-Cloudberry Database Creation Parameters" 1
 		LOG_MSG "[INFO]:---------------------------------------" 1
 		LOG_MSG "[INFO]:-Coordinator Configuration" 1
 		LOG_MSG "[INFO]:---------------------------------------" 1
@@ -1043,7 +1115,7 @@ DISPLAY_CONFIG () {
 		LOG_MSG "[INFO]:-Coordinator port           = $COORDINATOR_PORT" 1
 		LOG_MSG "[INFO]:-Coordinator instance dir   = $GP_DIR" 1
 		LOG_MSG "[INFO]:-Coordinator LOCALE         = $LOCALE_SETTING" 1
-		LOG_MSG "[INFO]:-Greenplum segment prefix   = $SEG_PREFIX" 1
+		LOG_MSG "[INFO]:-Cloudberry segment prefix   = $SEG_PREFIX" 1
 		LOG_MSG "[INFO]:-Coordinator Database       = $DATABASE_NAME" 1
 		LOG_MSG "[INFO]:-Coordinator connections    = $COORDINATOR_MAX_CONNECT" 1
 		LOG_MSG "[INFO]:-Coordinator buffers        = $COORDINATOR_SHARED_BUFFERS" 1
@@ -1106,7 +1178,7 @@ DISPLAY_CONFIG () {
             LOG_MSG "[INFO]:-Mirroring config           = OFF" 1
         fi
         LOG_MSG "[INFO]:----------------------------------------" 1
-        LOG_MSG "[INFO]:-Greenplum Primary Segment Configuration" 1
+        LOG_MSG "[INFO]:-Cloudberry Primary Segment Configuration" 1
         LOG_MSG "[INFO]:----------------------------------------" 1
         for I in "${QE_PRIMARY_ARRAY[@]}"
         do
@@ -1115,7 +1187,7 @@ DISPLAY_CONFIG () {
         done
         if [ $MIRRORING -ne 0 ]; then
             LOG_MSG "[INFO]:---------------------------------------" 1
-            LOG_MSG "[INFO]:-Greenplum Mirror Segment Configuration" 1
+            LOG_MSG "[INFO]:-Cloudberry Mirror Segment Configuration" 1
             LOG_MSG "[INFO]:---------------------------------------" 1
             for I in  "${QE_MIRROR_ARRAY[@]}"
             do
@@ -1124,7 +1196,7 @@ DISPLAY_CONFIG () {
             done
         fi
 
-		GET_REPLY "Continue with Greenplum creation" 
+		GET_REPLY "Continue with Cloudberry creation" 
 	fi
 	LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -1226,7 +1298,7 @@ CREATE_QD_DB () {
 		BACKOUT_COMMAND "if [ -d $GP_DIR ]; then $RM -Rf $GP_DIR; fi"
 		BACKOUT_COMMAND "$ECHO Removing Coordinator data directory files"
 		LOG_MSG "[INFO]:-Completed Coordinator instance initialization"
-		$ECHO "#Greenplum specific configuration parameters for Coordinator instance database" >> ${GP_DIR}/$PG_CONF
+		$ECHO "#Cloudberry specific configuration parameters for Coordinator instance database" >> ${GP_DIR}/$PG_CONF
 		$ECHO "#------------------------------------------------------------------------" >> ${GP_DIR}/$PG_CONF
 		LOG_MSG "[INFO]:-Setting the Coordinator port to $GP_PORT"
 		SED_PG_CONF ${GP_DIR}/$PG_CONF "$PORT_TXT" port=$GP_PORT 0
@@ -1418,6 +1490,7 @@ REGISTER_MIRRORS () {
 		for I in "${QE_MIRROR_ARRAY_SORTED_ON_CONTENT_ID[@]}"
 		do
 			SET_VAR $I
+			GP_HOSTNAME=$GP_HOSTADDRESS
 			dbid=`env PGOPTIONS="-c gp_role=utility" $PSQL -p $COORDINATOR_PORT -d "${DEFAULTDB}" -X -A -t -c "select pg_catalog.gp_add_segment_mirror(${GP_CONTENT}::int2, '${GP_HOSTNAME}', '${GP_HOSTADDRESS}', ${GP_PORT}, '${GP_DIR}');" 2>>${LOG_FILE}` >> $LOG_FILE 2>&1
 			ERROR_CHK $? "failed to register mirror for contentid=${GP_CONTENT}" 2
 			MIRRORS_UPDATED_DBID=(${MIRRORS_UPDATED_DBID[@]} ${GP_HOSTNAME}~${GP_HOSTADDRESS}~${GP_PORT}~${GP_DIR}~${dbid}~${GP_CONTENT})
@@ -1429,16 +1502,16 @@ REGISTER_MIRRORS () {
 
 STOP_QD_PRODUCTION () {
     LOG_MSG "[INFO]:-Start Function $FUNCNAME"
-    LOG_MSG "[INFO]:-Restarting the Greenplum instance in production mode" 1
+    LOG_MSG "[INFO]:-Restarting the Cloudberry instance in production mode" 1
     if [ -f $GPSTOP ]; then
         GPSTOP_OPTS=$(OUTPUT_LEVEL_OPTS)
         export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1
         $GPSTOP -a -l $LOG_DIR -m -d $COORDINATOR_DATA_DIRECTORY $GPSTOP_OPTS
         RETVAL=$?
         if [ $RETVAL -eq 0 ]; then
-            LOG_MSG "[INFO]:-Successfully shutdown the new Greenplum instance"
+            LOG_MSG "[INFO]:-Successfully shutdown the new Cloudberry instance"
         else
-            ERROR_EXIT "[FATAL]:-Error from Greenplum instance shutdown, check log files"
+            ERROR_EXIT "[FATAL]:-Error from Cloudberry instance shutdown, check log files"
         fi
     else
         ERROR_EXIT "[FATAL]:-$GPSTOP not located"
@@ -1463,7 +1536,11 @@ CREATE_STANDBY_QD () {
 		if [ $HBA_HOSTNAMES -eq 1 ]; then
 		    INIT_STANDBY_ARGS+=" --hba-hostnames"
 		fi
-		export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
+		if [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+		    export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a -f $FTS_HOST_STRING_LIST
+		else
+		    export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1;$INIT_STANDBY_PROG -s $STANDBY_HOSTNAME $INIT_STANDBY_ARGS -a
+		fi
 		STANDBY_RET_CODE=$?
 		if [ $STANDBY_RET_CODE -eq 0 ]; then
 			LOG_MSG "[INFO]:-Successfully completed standby coordinator initialization" 1
@@ -1486,12 +1563,12 @@ START_QD_PRODUCTION () {
 	$GPSTART -a -l $LOG_DIR -d $COORDINATOR_DATA_DIRECTORY $GPSTART_OPTS
 
         if [ $? -eq 0 ];then
-            LOG_MSG "[INFO]:-Successfully started new Greenplum instance"
+            LOG_MSG "[INFO]:-Successfully started new Cloudberry instance"
         else
 
             # this text is duplicated below
             LOG_MSG "[WARN]:" 1
-            LOG_MSG "[WARN]:-Failed to start Greenplum instance; review gpstart output to" 1
+            LOG_MSG "[WARN]:-Failed to start Cloudberry instance; review gpstart output to" 1
             LOG_MSG "[WARN]:- determine why gpstart failed and reinitialize cluster after resolving" 1
             LOG_MSG "[WARN]:- issues.  Not all initialization tasks have completed so the cluster" 1
             LOG_MSG "[WARN]:- should not be used." 1
@@ -1505,9 +1582,9 @@ START_QD_PRODUCTION () {
 
                 RETVAL=$?
                 if [ $RETVAL -eq 0 ]; then
-                    LOG_MSG "[INFO]:-Successfully shutdown the Greenplum instance" 1
+                    LOG_MSG "[INFO]:-Successfully shutdown the Cloudberry instance" 1
                 else
-                    ERROR_EXIT "[FATAL]:-Error from Greenplum instance shutdown, check log files"
+                    ERROR_EXIT "[FATAL]:-Error from Cloudberry instance shutdown, check log files"
                 fi
             else
                 LOG_MSG "[WARN]:-$GPSTOP not located" 1
@@ -1515,7 +1592,7 @@ START_QD_PRODUCTION () {
 
             # this text is duplicated above
             LOG_MSG "[WARN]:" 1
-            LOG_MSG "[WARN]:-Failed to start Greenplum instance; review gpstart output to" 1
+            LOG_MSG "[WARN]:-Failed to start Cloudberry instance; review gpstart output to" 1
             LOG_MSG "[WARN]:- determine why gpstart failed and reinitialize cluster after resolving" 1
             LOG_MSG "[WARN]:- issues.  Not all initialization tasks have completed so the cluster" 1
             LOG_MSG "[WARN]:- should not be used." 1
@@ -1525,7 +1602,7 @@ START_QD_PRODUCTION () {
     else
 	ERROR_EXIT "[FATAL]:-$GPSTART not located"
     fi
-    LOG_MSG "[INFO]:-Completed restart of Greenplum instance in production mode" 1
+    LOG_MSG "[INFO]:-Completed restart of Cloudberry instance in production mode" 1
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
 
@@ -1546,17 +1623,16 @@ FORCE_FTS_PROBE () {
             $PSQL -p $GP_PORT -d "$DEFAULTDB" -A -t -c "select * from gp_segment_configuration where (mode = 'n' or status = 'd') and content != -1;" >> $LOG_FILE 2>&1
             $PSQL -p $GP_PORT -d "$DEFAULTDB" -A -t -c "select * from gp_stat_replication where sync_error != 'none' or sync_state != 'sync';" >> $LOG_FILE 2>&1
             LOG_MSG "[WARN]:" 1
-            LOG_MSG "[WARN]:-Failed to start Greenplum instance; please review gpinitsystem log to determine failure." 1
-            ERROR_EXIT "[FATAL]:-Some primary/mirror segment pairs were found to be not in sync"
+            LOG_MSG "[WARN]:-Failed to start Cloudberry instance; please review gpinitsystem log to determine failure." 1
+			# FTS_TODO: should support notify fts, then re-enable this function 
+            # ERROR_EXIT "[FATAL]:-Some primary/mirror segment pairs were found to be not in sync"
             break;
         fi
 
         RESULT=$( $PSQL -p $GP_PORT -d "$DEFAULTDB" -X -A -t -c "select count(*) > 0 from gp_segment_configuration where (mode = 'n' or status = 'd') and content != -1;" )
         if [ x"$RESULT" == x"f" ]; then
-            break
+        	break
         fi
-
-        $PSQL -p $GP_PORT -d "$DEFAULTDB" -c "select gp_request_fts_probe_scan()" >> ${LOG_FILE} 2>&1
     done
     LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -1645,6 +1721,12 @@ ASSIGN_COORDINATOR_VARS() {
 			export COORDINATOR_DIRECTORY=$MASTER_DIRECTORY
 		fi
 	fi
+	if [ x"$FTS_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+		FTS_HOST_MACHINE_LIST[0]=$COORDINATOR_HOSTNAME
+	fi
+	if [ x"$ETCD_HOST_CONFIG" = x"" ] && [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ]; then
+		ETCD_HOST_MACHINE_LIST[0]=$COORDINATOR_HOSTNAME
+	fi
 }
 
 READ_INPUT_CONFIG () {
@@ -1677,7 +1759,7 @@ READ_INPUT_CONFIG () {
     $CAT $INPUT_CONFIG|$GREP -v "^\s*\(#.*\)\?$" >> $LOG_FILE
     LOG_MSG "[INFO]:-Completed $INPUT_CONFIG dump to logfile"
     # Source the cluster configuration file
-    LOG_MSG "[INFO]:-Reading Greenplum configuration file $INPUT_CONFIG"
+    LOG_MSG "[INFO]:-Reading Cloudberry configuration file $INPUT_CONFIG"
 
     . $INPUT_CONFIG
     SET_VAR $QD_PRIMARY_ARRAY
@@ -1837,11 +1919,175 @@ SET_MIRROR_MODE() {
 	fi
 }
 
+GENERATE_ETCD_URL() {
+	if [ "$#" -ne 1 ]; then
+		LOG_MSG "[ERROR] GENERATE_ETCD_URL invalid params..."
+	fi
+	ETCD_PORT=$1
+	ETCD_CMD=""
+	local etcd_num=0
+	for etcd in ${ETCD_HOST_MACHINE_LIST[*]}
+	do
+		local etcd_ip=`RESOLVE_HOSTNAME ${etcd}`
+		if [ -z "$ETCD_CMD" ]; then
+			ETCD_CMD="etcd-$etcd_num=http://$etcd_ip:$ETCD_PORT"
+		else
+			ETCD_CMD="$ETCD_CMD,etcd-$etcd_num=http://$etcd_ip:$ETCD_PORT"
+		fi
+		etcd_num=$(( $etcd_num + 1 ))
+	done
+	echo "$ETCD_CMD"
+}
+
+GENERATE_ETCD_CLIENT_URL() {
+	if [ "$#" -ne 1 ];then
+		LOG_MSG "[ERROR] GENERATE_ETCD_URL invalid params..."
+	fi
+	ETCD_PORT=$1
+	ETCD_CMD=""
+	local etcd_num=0
+	for etcd in ${ETCD_HOST_MACHINE_LIST[*]}
+	do
+		local etcd_ip=`RESOLVE_HOSTNAME ${etcd}`
+		if [ -z "$ETCD_CMD" ]; then
+			ETCD_CMD="http://$etcd_ip:$ETCD_PORT"
+		else
+			ETCD_CMD="$ETCD_CMD,http://$etcd_ip:$ETCD_PORT"
+		fi
+		etcd_num=$(( $etcd_num + 1 ))
+	done
+	echo "$ETCD_CMD"
+}
+
+GENERATE_ETCD_HOST_CONFIG() {
+	LOG_MSG "[INFO]: GENERATE ETCD HOST CONFIG in $ETCD_HOST_FILE"
+	for etcd in ${ETCD_HOST_MACHINE_LIST[*]}
+	do
+		OUTPUT_HOST_TO_FILE $ETCD_HOST_FILE $etcd
+	done
+}
+
+GENERATE_FTS_HOST_CONFIG() {
+	LOG_MSG "[INFO]: GENERATE FTS HOST CONFIG in $FTS_HOST_FILE"
+	for fts in ${FTS_HOST_MACHINE_LIST[*]}
+	do
+		OUTPUT_HOST_TO_FILE $FTS_HOST_FILE $fts
+	done
+}
+
+CBDB_PRECHECK() {
+        if [ x"$CLUSTER_BOOT_MODE" = x"DEMO" ];then
+            FTS_HOST_MACHINE_LIST[0]=$DEMO_CLUSTER_HOST
+            ETCD_HOST_MACHINE_LIST[0]=$DEMO_CLUSTER_HOST
+        fi
+        for fts in ${FTS_HOST_MACHINE_LIST[*]}
+        do
+                CHECK_FTS $fts
+                if [ $? -eq 0 ];then
+                        ERROR_EXIT "[FATAL]: FTS HOST $fts has alived fts process, please cleanup the environment first."
+                fi
+                if [ -z FTS_HOST_STRING_LIST ];then
+                         FTS_HOST_STRING_LIST="$fts"
+                else
+                         FTS_HOST_STRING_LIST="$FTS_HOST_STRING_LIST,$fts"
+                fi
+        done
+
+        for etcd in ${ETCD_HOST_MACHINE_LIST[*]}
+        do
+                CHECK_ETCD $etcd $CLUSTER_BOOT_MODE
+                if [ $? -eq 0 ];then
+                        LOG_MSG "[INFO]: ETCD HOST $etcd has alived etcd process."
+                        ETCD_EXIST="true";
+                fi
+        done
+        PRECHECK_CBDB_CONFIG_FILE
+}
+
+CREATE_ETCD() {
+        if [[ `uname -i` = aarch64 ]]; then
+            export ETCD_UNSUPPORTED_ARCH=arm64
+        fi
+        if [ x"$CLUSTER_BOOT_MODE" = x"PRODUCTION" ];then
+            ETCD_CONFIG_FILE_PATH=`readlink -f $PG_CONF_ADD_FILE`
+            if [ ! -x ${GPHOME}/bin/etcd ];then
+                ERROR_EXIT "[FATAL]: No mgmt executables(etcd) found for Cloudberry installation in ${GPHOME}/bin"
+            fi
+        fi
+        local etcd_url=`GENERATE_ETCD_URL 2380`
+        local etcd_num=0
+        if [ "$ETCD_EXIST" = "false" ];then
+            for etcd in ${ETCD_HOST_MACHINE_LIST[*]}
+            do
+                local etcd_host_num=etcd-${etcd_num}
+                SETUP_ETCD $etcd $etcd_url $etcd_host_num $CLUSTER_BOOT_MODE
+                etcd_num=$(( $etcd_num + 1 ))
+            done
+        else
+            LOG_MSG "[WARN]: The ETCD cluster already exists and skip installing ETCD."
+        fi
+        sleep 5
+        for etcd in ${ETCD_HOST_MACHINE_LIST[*]}
+        do
+               CHECK_ETCD $etcd $CLUSTER_BOOT_MODE
+               if [ $? -eq 1 ];then
+                       ERROR_EXIT "[FATAL]: ETCD HOST $etcd error check process alive failed!"
+               fi
+        done
+        etcd_num_res=$(( $etcd_num + 1 ))
+        local etcd_client_url=`GENERATE_ETCD_CLIENT_URL 2379`
+        local health_check_res=`export ETCDCTL_API=3;etcdctl --endpoints $etcd_client_url endpoint health | grep 'healthy'`
+        if [ !"$health_check_res" = "$etcd_num_res" ]; then
+                ERROR_EXIT "[FATAL]: ETCD HOST health check failed with result: $health_check_res"
+        fi
+        CLEANUP_ETCD $ETCD_CONFIG_FILE_PATH
+}
+
+CREATE_FTS() {
+        if [ ! -x ${GPHOME}/bin/gpfts ]; then
+            ERROR_EXIT "[FATAL]: No mgmt executables(gpfts) found for Cloudberry installation in ${GPHOME}/bin"
+        fi
+        for fts in ${FTS_HOST_MACHINE_LIST[*]}
+        do
+                local log_dir=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1
+                SETUP_FTS $fts $log_dir $CLUSTER_BOOT_MODE
+        done
+        sleep 5
+        for fts in ${FTS_HOST_MACHINE_LIST[*]}
+        do
+                CHECK_FTS $fts
+                if [ $? -eq 1 ];then
+                        ERROR_EXIT "[FATAL]: FTS HOST $etcd failed to start!"
+                fi
+        done
+
+        if [ "$FTS_START_MODE" = "DEMO" ];then
+            local health_check_res=`$GPHOME/bin/gpfts -F $ETCD_CONFIG_FILE_PATH -d ${FTS_LOG_DIR}/log/fts -W 2 | wc -l`
+        else
+            FTS_CMD="mkdir -p ${FTS_LOG_DIR}/log/fts;${GPHOME}/bin/gpfts -F ${ETCD_CONFIG_TMP_FILE} -d ${FTS_LOG_DIR}/log/fts -W 2"
+            local health_check_res=`gpssh -h $fts -e "${FTS_CMD}" | wc -l`
+        fi
+        if [ "$health_check_res" = "1" ]; then
+                ERROR_EXIT "[FATAL]: FTS node health check failed!"
+        fi
+}
+
+CHECK_DEPLOYMENT_MODE() {
+	if [[ -n "${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1"  &&  -f ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/postgresql.conf ]]; then
+		gp_cbdb_deploy=`grep gp_cbdb_deploy ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/postgresql.conf | awk -F= '{print $1}'`
+		deployment_mode=`grep gp_cbdb_deploy ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/postgresql.conf | awk -F= '{print $2}'`
+		if [[ ${gp_cbdb_deploy:0:1} != '#' && $deployment_mode == "'cloud'" ]]; then
+			ERROR_EXIT "[FATAL]:gpinitsystem is disabled in cloud mode."
+		fi
+	fi
+}
+
 #******************************************************************************
 # Main Section
 #******************************************************************************
+CHECK_DEPLOYMENT_MODE
 trap 'ERROR_EXIT "[FATAL]:-Received INT or TERM signal"' INT TERM
-while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:" opt
+while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:" opt
 		do
 		case $opt in
 				v ) print_version ;;
@@ -1862,6 +2108,9 @@ while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:" opt
 				B ) BATCH_DEFAULT=$OPTARG ;;
 				I ) INPUT_CONFIG=$OPTARG ;;
 				O ) OUTPUT_CONFIG=$OPTARG ;;
+				U ) USE_EXTERNAL_FTS=$OPTARG ;;
+				E ) ETCD_HOST_CONFIG=$OPTARG ;;
+				F ) FTS_HOST_CONFIG=$OPTARG ;;
 				- ) # Long options ...
 					NAME=${OPTARG%%=*}
 					VAL=${OPTARG#*=}
@@ -1946,6 +2195,16 @@ else
     ARRAY_REORDER
 fi
 
+if [ $USE_EXTERNAL_FTS -ne 0 ];then
+	CBDB_PRECHECK
+
+	LOG_MSG "[INFO]:-------------------------------------------------------" 1
+	LOG_MSG "[INFO]:-Start to install ETCD cluster" 1
+	CREATE_ETCD
+	LOG_MSG "[INFO]:-ETCD cluster successfully created" 1
+	LOG_MSG "[INFO]:-------------------------------------------------------" 1
+fi
+
 CREATE_QD_DB
 
 CREATE_ARRAY_SORTED_ON_CONTENT_ID
@@ -1963,6 +2222,18 @@ fi
 
 if [ -f $DCA_VERSION_FILE ]; then
 	SET_DCA_CONFIG_SETTINGS	
+fi
+
+if [ $USE_EXTERNAL_FTS -ne 0 ];then
+	GENERATE_FTS_HOST_CONFIG
+	GENERATE_ETCD_HOST_CONFIG
+	if [ x"$CLUSTER_BOOT_MODE" = x"DEMO" ];then
+		ETCD_CONFIG_PATH=`readlink -f $GPHOME/bin/config/cbdb_etcd_default.conf`
+	else
+		ETCD_CONFIG_PATH=`readlink -f $PG_CONF_ADD_FILE`
+	fi
+	LOG_MSG "[INFO]: Copy etcd config file from $ETCD_CONFIG_PATH to ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/config/cbdb_etcd.conf"
+	cp  $ETCD_CONFIG_PATH ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1/config/cbdb_etcd.conf
 fi
 
 STOP_QD_PRODUCTION
@@ -1985,14 +2256,14 @@ if [ x"" != x"$STANDBY_HOSTNAME" ];then
 fi
 
 SCAN_LOG
-LOG_MSG "[INFO]:-Greenplum Database instance successfully created" 1
+LOG_MSG "[INFO]:-Cloudberry Database instance successfully created" 1
 LOG_MSG "[INFO]:-------------------------------------------------------" 1
 LOG_MSG "[INFO]:-To complete the environment configuration, please " 1
 LOG_MSG "[INFO]:-update $USER_NAME .bashrc file with the following" 1
 LOG_MSG "[INFO]:-1. Ensure that the greenplum_path.sh file is sourced" 1
 LOG_MSG "[INFO]:-2. Add \"export COORDINATOR_DATA_DIRECTORY=${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1\"" 1
-LOG_MSG "[INFO]:-   to access the Greenplum scripts for this instance:" 1
-LOG_MSG "[INFO]:-   or, use -d ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1 option for the Greenplum scripts" 1
+LOG_MSG "[INFO]:-   to access the Cloudberry scripts for this instance:" 1
+LOG_MSG "[INFO]:-   or, use -d ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1 option for the Cloudberry scripts" 1
 LOG_MSG "[INFO]:-   Example gpstate -d ${COORDINATOR_DIRECTORY}/${SEG_PREFIX}-1" 1
 LOG_MSG "[INFO]:-Script log file = $LOG_FILE" 1
 LOG_MSG "[INFO]:-To remove instance, run gpdeletesystem utility" 1
@@ -2006,7 +2277,7 @@ if [ x"" != x"$STANDBY_HOSTNAME" ];then
 		*) LOG_MSG "[WARN]:-Standby Coordinator failed to initialize" 1
 	esac
 else
-    LOG_MSG "[INFO]:-To initialize a Standby Coordinator Segment for this Greenplum instance" 1
+    LOG_MSG "[INFO]:-To initialize a Standby Coordinator Segment for this Cloudberry instance" 1
     LOG_MSG "[INFO]:-Review options for gpinitstandby" 1
 fi
 
@@ -2015,7 +2286,7 @@ LOG_MSG "[INFO]:-The Coordinator ${COORDINATOR_DATA_DIRECTORY}/$PG_HBA post gpin
 LOG_MSG "[INFO]:-has been configured to allow all hosts within this new" 1
 LOG_MSG "[INFO]:-array to intercommunicate. Any hosts external to this" 1
 LOG_MSG "[INFO]:-new array must be explicitly added to this file" 1
-LOG_MSG "[INFO]:-Refer to the Greenplum Admin support guide which is" 1
+LOG_MSG "[INFO]:-Refer to the Cloudberry Admin support guide which is" 1
 LOG_MSG "[INFO]:-located in the $GPHOME/docs directory" 1
 LOG_MSG "[INFO]:-------------------------------------------------------" 1
 

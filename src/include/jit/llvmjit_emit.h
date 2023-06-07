@@ -1,10 +1,10 @@
 /*
  * llvmjit_emit.h
- *	  Helpers to make emitting LLVM IR a it more concise and pgindent proof.
+ *	  Helpers to make emitting LLVM IR a bit more concise and pgindent proof.
  *
- * Copyright (c) 2018-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2018-2021, PostgreSQL Global Development Group
  *
- * src/include/lib/llvmjit_emit.h
+ * src/include/jit/llvmjit_emit.h
  */
 #ifndef LLVMJIT_EMIT_H
 #define LLVMJIT_EMIT_H
@@ -17,7 +17,6 @@
 
 #include <llvm-c/Core.h>
 
-#include "fmgr.h"
 #include "jit/llvmjit.h"
 
 

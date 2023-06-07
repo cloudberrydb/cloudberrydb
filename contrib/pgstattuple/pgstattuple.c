@@ -173,7 +173,7 @@ pgstattuple(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	/* open relation */
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
@@ -213,7 +213,7 @@ pgstattuplebyid(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	/* open relation */
 	rel = relation_open(relid, AccessShareLock);
@@ -433,7 +433,7 @@ pgstat_btree_page(pgstattuple_type *stat, Relation rel, BlockNumber blkno,
 		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 		if (P_IGNORE(opaque))
 		{
-			/* recyclable page */
+			/* deleted or half-dead page */
 			stat->free_space += BLCKSZ;
 		}
 		else if (P_ISLEAF(opaque))
@@ -443,7 +443,7 @@ pgstat_btree_page(pgstattuple_type *stat, Relation rel, BlockNumber blkno,
 		}
 		else
 		{
-			/* root or node */
+			/* internal page */
 		}
 	}
 

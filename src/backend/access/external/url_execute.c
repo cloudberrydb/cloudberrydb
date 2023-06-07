@@ -3,7 +3,7 @@
  * url_execute.c
  *	  Core support for opening external relations via a URL execute
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
@@ -226,7 +226,8 @@ make_command(const char *cmd, extvar_t *ev)
 	make_export("GP_SEG_PORT", ev->GP_SEG_PORT, &buf);
 	make_export("GP_SESSION_ID", ev->GP_SESSION_ID, &buf);
 	make_export("GP_SEGMENT_COUNT", ev->GP_SEGMENT_COUNT, &buf);
-	make_export("GP_QUERY_STRING", ev->GP_QUERY_STRING, &buf);
+	if (ev->GP_QUERY_STRING)
+		make_export("GP_QUERY_STRING", ev->GP_QUERY_STRING, &buf);
 
 	appendStringInfoString(&buf, cmd);
 
@@ -239,7 +240,7 @@ make_command(const char *cmd, extvar_t *ev)
  * refactor the fopen code for execute into this routine
  */
 URL_FILE *
-url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
+url_execute_fopen(char *url, bool forwrite, extvar_t *ev)
 {
 	URL_EXECUTE_FILE *file;
 	int			save_errno;
@@ -397,7 +398,7 @@ reread:
 }
 
 size_t
-url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate)
 {
 	URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
 	ssize_t		n;
@@ -419,7 +420,7 @@ url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 }
 
 size_t
-url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate)
 {
     URL_EXECUTE_FILE *efile = (URL_EXECUTE_FILE *) file;
     int fd = efile->handle->pipes[EXEC_DATA_P];

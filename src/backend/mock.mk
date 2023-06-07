@@ -48,7 +48,6 @@ EXCL_OBJS+=\
 	src/backend/utils/adt/geo_selfuncs.o \
 	src/backend/utils/adt/gp_optimizer_functions.o \
 	src/backend/utils/adt/interpolate.o \
-	src/backend/utils/adt/jsonfuncs.o \
 	src/backend/utils/adt/like.o \
 	src/backend/utils/adt/like_match.o \
 	src/backend/utils/adt/mac.o \
@@ -71,7 +70,6 @@ EXCL_OBJS+=\
 	src/backend/utils/adt/tsvector_op.o \
 	src/backend/utils/adt/tsvector_parser.o \
 	src/backend/utils/adt/txid.o \
-	src/backend/utils/adt/uuid.o \
 	src/backend/tsearch/dict.o \
 	src/backend/tsearch/dict_ispell.o \
 	src/backend/tsearch/dict_simple.o \
@@ -115,10 +113,12 @@ BACKEND_OBJS=$(filter-out $(1), $(ALL_OBJS))
 
 # If we are using linker's wrap feature in unit test, add wrap flags for
 # those mocked functions
-WRAP_FLAGS=-Wl,--wrap=
+WRAP_FLAGS=-Wl,--defsym,
 WRAP_SED_REGEXP='s/.*__wrap_\(\w*\)(.*/\1/p'
+# Find all wrapped functions and replace symbols by setting flag `-Wl,--defsym,{func_name}=__wrap_{func_name}`
 WRAP_FUNCS=$(addprefix $(WRAP_FLAGS), \
-			$(sort $(shell sed -n $(WRAP_SED_REGEXP) $(1))))
+				$(join $(addsuffix =, $(sort $(shell sed -n $(WRAP_SED_REGEXP) $(1)))), \
+						$(addprefix __wrap_, $(sort $(shell sed -n $(WRAP_SED_REGEXP) $(1))))))
 
 # The test target depends on $(OBJFILES) which would update files including mocks.
 %.t: $(OBJFILES) $(CMOCKERY_OBJS) $(MOCK_OBJS) %_test.o

@@ -13,7 +13,7 @@
         href="./pg_roles.xml#topic1" type="topic" format="dita"/> is a publicly readable view on
         <codeph>pg_authid</codeph> that blanks out the password field.</p>
     <p>Because user identities are system-wide, <codeph>pg_authid</codeph> is shared across all
-      databases in a Greenplum Database system: there is only one copy of
+      databases in a Cloudberry Database system: there is only one copy of
         <codeph>pg_authid</codeph> per system, not one per database.</p>
     <table id="gd143898">
       <title>pg_catalog.pg_authid</title>
@@ -127,8 +127,8 @@
               encrypted, this column will begin with the string <codeph>md5</codeph> followed by a
               32-character hexadecimal MD5 hash. The MD5 hash will be the user's password concatenated
               to their user name. For example, if user <codeph>joe</codeph> has password
-              <codeph>xyzzy</codeph>, Greenplum Database will store the md5 hash of
-              <codeph>xyzzyjoe</codeph>. Greenplum assumes that a password that does not follow that
+              <codeph>xyzzy</codeph>, Cloudberry Database will store the md5 hash of
+              <codeph>xyzzyjoe</codeph>. Cloudberry assumes that a password that does not follow that
               format is unencrypted.</entry>
           </row>
           <row>

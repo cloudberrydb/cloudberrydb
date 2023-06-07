@@ -159,7 +159,7 @@ DROP
 
 -- The following test cases are to test that QEs can get
 -- latest distribute snapshot to scan normal tables (not catalog).
--- Greenplum tests the visibility of heap tuples firstly using
+-- Cloudberry tests the visibility of heap tuples firstly using
 -- distributed snapshot. Distributed snapshot is generated on
 -- QD and then dispatched to QEs. Some utility statement needs
 -- to work under latest snapshot when executing, so that they
@@ -304,7 +304,7 @@ ALTER
 END
 -- after 1 commit, 2 can go on and it should fail
 2<:  <... completed>
-ERROR:  check constraint "mychk" is violated by some row  (seg1 127.0.1.1:7003 pid=39163)
+ERROR:  check constraint "mychk" of relation "t_alter_snapshot_test" is violated by some row  (seg1 127.0.1.1:8003 pid=423039)
 
 drop table t_alter_snapshot_test;
 DROP

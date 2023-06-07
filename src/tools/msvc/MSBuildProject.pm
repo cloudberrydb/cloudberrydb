@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 package MSBuildProject;
 
 #
@@ -36,16 +39,23 @@ sub WriteHeader
 EOF
 	$self->WriteConfigurationHeader($f, 'Debug');
 	$self->WriteConfigurationHeader($f, 'Release');
-	my $sdkversion=$ENV{'WindowsSDKVersion'};
-	if ($sdkversion =~ /.*\\$/)
-	{
-		chop $sdkversion;
-	}
 	print $f <<EOF;
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>$self->{guid}</ProjectGuid>
-    <WindowsTargetPlatformVersion>$sdkversion</WindowsTargetPlatformVersion>
+EOF
+	# Check whether WindowsSDKVersion env variable is present.
+	# Add WindowsTargetPlatformVersion node if so.
+	my $sdkVersion = $ENV{'WindowsSDKVersion'};
+	if (defined($sdkVersion))
+	{
+		# remove trailing backslash if necessary.
+		$sdkVersion =~ s/\\$//;
+		print $f <<EOF
+    <WindowsTargetPlatformVersion>$sdkVersion</WindowsTargetPlatformVersion>
+EOF
+	}
+	print $f <<EOF;
   </PropertyGroup>
   <Import Project="\$(VCTargetsPath)\\Microsoft.Cpp.Default.props" />
 EOF
@@ -313,7 +323,7 @@ sub WriteItemDefinitionGroup
     <ClCompile>
       <Optimization>$p->{opt}</Optimization>
       <AdditionalIncludeDirectories>$self->{prefixincludes}src/include;src/include/port/win32;src/include/port/win32_msvc;$includes\%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>WIN32;_WINDOWS;__WINDOWS__;__WIN32__;EXEC_BACKEND;WIN32_STACK_RLIMIT=4194304;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE$self->{defines}$p->{defs}\%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;__WINDOWS__;__WIN32__;WIN32_STACK_RLIMIT=4194304;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE$self->{defines}$p->{defs}\%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <StringPooling>$p->{strpool}</StringPooling>
       <RuntimeLibrary>$p->{runtime}</RuntimeLibrary>
       <DisableSpecificWarnings>$self->{disablewarnings};\%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -469,6 +479,56 @@ sub new
 	$self->{vcver}           = '15.00';
 	$self->{PlatformToolset} = 'v141';
 	$self->{ToolsVersion}    = '15.0';
+
+	return $self;
+}
+
+package VC2019Project;
+
+#
+# Package that encapsulates a Visual C++ 2019 project file
+#
+
+use strict;
+use warnings;
+use base qw(MSBuildProject);
+
+no warnings qw(redefine);    ## no critic
+
+sub new
+{
+	my $classname = shift;
+	my $self      = $classname->SUPER::_new(@_);
+	bless($self, $classname);
+
+	$self->{vcver}           = '16.00';
+	$self->{PlatformToolset} = 'v142';
+	$self->{ToolsVersion}    = '16.0';
+
+	return $self;
+}
+
+package VC2022Project;
+
+#
+# Package that encapsulates a Visual C++ 2022 project file
+#
+
+use strict;
+use warnings;
+use base qw(MSBuildProject);
+
+no warnings qw(redefine);    ## no critic
+
+sub new
+{
+	my $classname = shift;
+	my $self      = $classname->SUPER::_new(@_);
+	bless($self, $classname);
+
+	$self->{vcver}           = '17.00';
+	$self->{PlatformToolset} = 'v143';
+	$self->{ToolsVersion}    = '17.0';
 
 	return $self;
 }

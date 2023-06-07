@@ -21,38 +21,38 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-Source code for the Greenplum Database documentation is shared between Greenplum Database and
-VMware Tanzu Greenplum. Some features of Tanzu Greenplum are not present in the
-open source Greenplum Database code but are described in the Greenplum Database documentation. 
+Source code for the Cloudberry Database documentation is shared between Cloudberry Database and
+VMware Tanzu Cloudberry. Some features of Tanzu Cloudberry are not present in the
+open source Cloudberry Database code but are described in the Cloudberry Database documentation. 
 
-The term "Tanzu Greenplum" refers to VMware's commercial, supported product offering that is 
-based on open source Greenplum Database.  "Tanzu Greenplum" is used in this documentation when 
-describing features that are available only in the commercial offering. The term "Greenplum
-Database" refers to features available in open source Greenplum Database (and in the commercial Tanzu 
-Greenplum product). Commercial support for "Greenplum Database" is offered by VMware as "Greenplum Database by VMware Tanzu."
+The term "Tanzu Cloudberry" refers to VMware's commercial, supported product offering that is 
+based on open source Cloudberry Database.  "Tanzu Cloudberry" is used in this documentation when 
+describing features that are available only in the commercial offering. The term "Cloudberry
+Database" refers to features available in open source Cloudberry Database (and in the commercial Tanzu 
+Cloudberry product). Commercial support for "Cloudberry Database" is offered by VMware as "Cloudberry Database by VMware Tanzu."
 
-The following is a list of Tanzu Greenplum features that are not provided or supported in open
-source Greenplum Database, but may be documented or referenced in this documentation.
+The following is a list of Tanzu Cloudberry features that are not provided or supported in open
+source Cloudberry Database, but may be documented or referenced in this documentation.
 
-- Code to produce the Tanzu Greenplum binary installer packages is not included
-in the open source Greenplum Database repository. 
+- Code to produce the Tanzu Cloudberry binary installer packages is not included
+in the open source Cloudberry Database repository. 
 
-- Greenplum Database does not include EMC DD Boost integration. Backing up to an EMC Data
+- Cloudberry Database does not include EMC DD Boost integration. Backing up to an EMC Data
 Domain appliance is only supported when the Data Domain system is mounted as an NFS share on
-the Greenplum hosts. 
+the Cloudberry hosts. 
 
-- Greenplum Database does not include Symantec NetBackup integration. 
+- Cloudberry Database does not include Symantec NetBackup integration. 
 
-- The QuickLZ compression method is not available in Greenplum Database. QuickLZ <codeph>compresstype</codeph> values are ignored when specified in a <codeph>CREATE TABLE
+- The QuickLZ compression method is not available in Cloudberry Database. QuickLZ <codeph>compresstype</codeph> values are ignored when specified in a <codeph>CREATE TABLE
 [AS]</codeph> operation, but will cause an error on subsequent <codeph>INSERT</codeph> or
 <codeph>SELECT</codeph> operations on the table.
 
-- The deprecated <codeph>gpcheck</codeph> management utility and its replacement <codeph>gpsupport</codeph> are only supported with Tanzu Greenplum. 
+- The deprecated <codeph>gpcheck</codeph> management utility and its replacement <codeph>gpsupport</codeph> are only supported with Tanzu Cloudberry. 
 
-- Suggestions to contact VMware Technical Support in this documentation are intended only for Tanzu Greenplum customers. 
+- Suggestions to contact VMware Technical Support in this documentation are intended only for Tanzu Cloudberry customers. 
 
-Source code for the following open source Greenplum Database components are located in repositories outside of the Greenplum Database repo:
+Source code for the following open source Cloudberry Database components are located in repositories outside of the Cloudberry Database repo:
 
-- To use Backup and Restore with open source Greenplum Database, you must separately build and install the backup/restore software. Refer to the build instructions in the [README](https://github.com/greenplum-db/gpbackup/blob/master/README.md) file located in the Greenplum Backup and Restore github repository.
+- To use Backup and Restore with open source Cloudberry Database, you must separately build and install the backup/restore software. Refer to the build instructions in the [README](https://github.com/greenplum-db/gpbackup/blob/master/README.md) file located in the Cloudberry Backup and Restore github repository.
 
-- To use the Greenplum Platform Extension Framework (PXF) with open source Greenplum Database, you must separately build and install the PXF software. Refer to the build and packaging instructions in the [PXF Packaging README](https://github.com/greenplum-db/pxf/blob/master/package/README.md) file located in the PXF github repository.
+- To use the Cloudberry Platform Extension Framework (PXF) with open source Cloudberry Database, you must separately build and install the PXF software. Refer to the build and packaging instructions in the [PXF Packaging README](https://github.com/greenplum-db/pxf/blob/master/package/README.md) file located in the PXF github repository.

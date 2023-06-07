@@ -18,6 +18,7 @@
 #ifndef PG_ATTRIBUTE_ENCODING_H
 #define PG_ATTRIBUTE_ENCODING_H
 
+#include "fmgr.h"
 #include "catalog/genbki.h"
 #include "catalog/pg_attribute_encoding_d.h"
 #include "utils/rel.h"
@@ -45,6 +46,7 @@ FOREIGN_KEY(attrelid REFERENCES pg_attribute(attrelid));
  * ----------------
  */
 typedef FormData_pg_attribute_encoding *Form_pg_attribute_encoding;
+DECLARE_TOAST(pg_attribute_encoding, 6233, 6234);
 
 
 extern PGFunction *get_funcs_for_compression(char *compresstype);
@@ -55,5 +57,6 @@ extern void AddRelationAttributeEncodings(Relation rel, List *attr_encodings);
 extern void RemoveAttributeEncodingsByRelid(Oid relid);
 extern void cloneAttributeEncoding(Oid oldrelid, Oid newrelid, AttrNumber max_attno);
 extern Datum *get_rel_attoptions(Oid relid, AttrNumber max_attno);
+extern List * rel_get_column_encodings(Relation rel);
 
 #endif   /* PG_ATTRIBUTE_ENCODING_H */

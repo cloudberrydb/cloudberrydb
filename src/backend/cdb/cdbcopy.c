@@ -29,7 +29,7 @@
  * PG_END_TRY();
  *
  *
- * makeCdbCopy() creates a struct to hold information about the on-going COPY.
+ * makeCdbCopyFrom()/makeCdbCopyTo() creates a struct to hold information about the on-going COPY.
  * It does not change the state of the connection yet.
  *
  * cdbCopyStart() puts the connections in the gang into COPY mode. If an error
@@ -41,7 +41,7 @@
  *
  * When you're done, call cdbCopyEnd().
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -65,6 +65,8 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
+#include "commands/copyfrom_internal.h"
+#include "commands/copyto_internal.h"
 #include "commands/defrem.h"
 #include "mb/pg_wchar.h"
 #include "nodes/makefuncs.h"
@@ -93,13 +95,11 @@ getCdbCopyPrimaryGang(CdbCopy *c)
  * Create a cdbCopy object that includes all the cdb
  * information and state needed by the backend COPY.
  */
-CdbCopy *
-makeCdbCopy(CopyState cstate, bool is_copy_in)
+static CdbCopy *
+makeCdbCopy(GpPolicy *policy, bool on_segment, bool is_copy_in)
 {
 	CdbCopy		*c;
-	GpPolicy	*policy;
 
-	policy = cstate->rel->rd_cdbpolicy;
 	Assert(policy);
 
 	c = palloc0(sizeof(CdbCopy));
@@ -115,7 +115,7 @@ makeCdbCopy(CopyState cstate, bool is_copy_in)
 	 * COPY replicated table TO file, pick only one replica, otherwise, duplicate
 	 * rows will be copied.
 	 */
-	if (!is_copy_in && GpPolicyIsReplicated(policy) && !cstate->on_segment)
+	if (!is_copy_in && GpPolicyIsReplicated(policy) && !on_segment)
 	{
 		c->total_segs = 1;
 		c->seglist = list_make1_int(gp_session_id % c->total_segs);
@@ -130,11 +130,23 @@ makeCdbCopy(CopyState cstate, bool is_copy_in)
 			c->seglist = lappend_int(c->seglist, i);
 	}
 
-	cstate->cdbCopy = c;
 
 	return c;
 }
 
+CdbCopy *
+makeCdbCopyFrom(CopyFromState cstate)
+{
+	cstate->cdbCopy = makeCdbCopy(cstate->rel->rd_cdbpolicy, cstate->opts.on_segment, true /* is_copy_in */);
+	return cstate->cdbCopy;
+}
+
+CdbCopy *
+makeCdbCopyTo(CopyToState cstate)
+{
+	cstate->cdbCopy = makeCdbCopy(cstate->rel->rd_cdbpolicy, cstate->opts.on_segment, false /* is_copy_in */);
+	return cstate->cdbCopy;
+}
 
 /*
  * starts a copy command on a specific segment database.
@@ -510,7 +522,6 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 	for (seg = 0; seg < gp->size; seg++)
 	{
 		SegmentDatabaseDescriptor *q = gp->db_descriptors[seg];
-		int			result;
 		PGresult   *res;
 		int64		segment_rows_completed = 0; /* # of rows completed by this QE */
 		int64		segment_rows_rejected = 0;	/* # of rows rejected by this QE */
@@ -590,7 +601,7 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 			if (PQresultStatus(res) == PGRES_COPY_IN)
 			{
 				elog(LOG, "Segment still in copy in, retrying the putCopyEnd");
-				result = PQputCopyEnd(q->conn, NULL);
+				PQputCopyEnd(q->conn, NULL);
 			}
 			else if (PQresultStatus(res) == PGRES_COPY_OUT)
 			{

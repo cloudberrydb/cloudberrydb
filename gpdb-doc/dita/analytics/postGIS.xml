@@ -21,17 +21,17 @@
         <xref href="#postgis_support" format="dita"/>
       </li>
     </ul>
-    <p>For information about upgrading PostGIS on Greenplum Database 6 systems, see <xref
+    <p>For information about upgrading PostGIS on Cloudberry Database 6 systems, see <xref
         href="postgis-upgrade.xml"/></p>
   </body>
   <topic id="topic2" xml:lang="en">
     <title id="ij166739">About PostGIS</title>
     <body>
       <p>PostGIS is a spatial database extension for PostgreSQL that allows GIS (Geographic
-        Information Systems) objects to be stored in the database. The Greenplum PostGIS extension
+        Information Systems) objects to be stored in the database. The Cloudberry PostGIS extension
         includes support for GiST-based R-Tree spatial indexes and functions for analysis and
         processing of GIS objects. </p>
-      <p>The Greenplum PostGIS extension supports some PostGIS optional extensions and includes
+      <p>The Cloudberry PostGIS extension supports some PostGIS optional extensions and includes
         support for the PostGIS <codeph>raster</codeph> data type. With the PostGIS Raster objects,
         PostGIS <codeph>geometry</codeph> data type offers a single set of overlay SQL functions
         (such as <codeph>ST_Intersects</codeph>) operating seamlessly on vector and raster
@@ -39,7 +39,7 @@
         translator library for raster geospatial data formats that presents a <xref
           href="https://gdal.org/user/raster_data_model.html" format="html" scope="external">single
           raster abstract data model</xref> to a calling application. </p>
-      <p>For information about Greenplum Database PostGIS extension support, see <xref
+      <p>For information about Cloudberry Database PostGIS extension support, see <xref
           href="#postgis_support" format="dita"/>.</p>
       <p>For information about PostGIS, see <xref href="https://postgis.net/" scope="external"
           format="html">https://postgis.net/</xref>
@@ -49,18 +49,18 @@
     </body>
   </topic>
   <topic id="topic3" xml:lang="en">
-    <title id="ij168742">Greenplum PostGIS Extension</title>
+    <title id="ij168742">Cloudberry PostGIS Extension</title>
     <body>
-      <p><ph otherprops="pivotal">The Greenplum PostGIS extension package is available from <xref
+      <p><ph otherprops="pivotal">The Cloudberry PostGIS extension package is available from <xref
             href="https://network.pivotal.io/products/pivotal-gpdb" scope="external" format="html"
             >VMware Tanzu Network</xref>. After you download the package, you can follow the
            instructions in <xref href="../install_guide/verify_sw.xml#topic1"
-             scope="peer" format="dita">Verifying the Greenplum Database Software Download</xref>
-           to verify the integrity of the <b>Greenplum Advanced Analytics PostGIS</b>
-           software.</ph> You can install the package using the Greenplum
+             scope="peer" format="dita">Verifying the Cloudberry Database Software Download</xref>
+           to verify the integrity of the <b>Cloudberry Advanced Analytics PostGIS</b>
+           software.</ph> You can install the package using the Cloudberry
         Package Manager (<codeph>gppkg</codeph>). For details, see <codeph>gppkg</codeph> in the
-          <cite>Greenplum Database Utility Guide</cite>.</p>
-      <p>Greenplum Database supports the PostGIS extension with these component versions.<ul
+          <cite>Cloudberry Database Utility Guide</cite>.</p>
+      <p>Cloudberry Database supports the PostGIS extension with these component versions.<ul
           id="ul_csh_q3z_d1b">
           <li>PostGIS 2.5.4</li>
           <li>Proj 4.8.0 </li>
@@ -69,7 +69,7 @@
           <li>Json 0.12</li>
           <li>Expat 2.1.0</li>
         </ul></p>
-      <p otherprops="pivotal">For the information about supported Greenplum extension packages and
+      <p otherprops="pivotal">For the information about supported Cloudberry extension packages and
         software versions, see <xref href="../install_guide/platform-requirements.html" scope="external" type="html"/>. </p>
       <p>There have been significant changes in PostGIS 2.5.4 compared with the previously supported
         version of 2.1.5. For a list of new and enhanced functions in PostGIS 2.5, see the PostGIS
@@ -79,30 +79,30 @@
       <p>For a comprehensive list of PostGIS changes in PostGIS 2.5.4 and earlier, see PostGIS 2.5
         Appendix A <xref href="https://postgis.net/docs/manual-2.5/release_notes.html" format="html"
           scope="external">Release 2.5.4</xref>.</p>
-      <note>If you installed Greenplum PostGIS 2.1.5, you cannot upgrade from PostGIS 2.1.5 to
+      <note>If you installed Cloudberry PostGIS 2.1.5, you cannot upgrade from PostGIS 2.1.5 to
         2.5.4. You must uninstall PostGIS 2.1.5 and install PostGIS 2.5.4.</note>
-      <p>This table lists the PostGIS extensions support by Greenplum PostGIS. </p>
+      <p>This table lists the PostGIS extensions support by Cloudberry PostGIS. </p>
       <table frame="all" rowsep="1" colsep="1" id="table_owt_4ml_xlb">
-        <title>Greenplum PostGIS Extensions</title>
+        <title>Cloudberry PostGIS Extensions</title>
         <tgroup cols="2">
           <colspec colname="c1" colnum="1" colwidth="1*"/>
           <colspec colname="c2" colnum="2" colwidth="2.05*"/>
           <thead>
             <row>
               <entry>PostGIS Extension</entry>
-              <entry>Greenplum PostGIS Notes</entry>
+              <entry>Cloudberry PostGIS Notes</entry>
             </row>
           </thead>
           <tbody>
             <row>
               <entry><codeph>postgis</codeph><p dir="ltr">PostGIS and PostGIS Raster
                 support</p></entry>
-              <entry>Supported. Both PostGIS and PostGIS Raster are enabled when the Greenplum
+              <entry>Supported. Both PostGIS and PostGIS Raster are enabled when the Cloudberry
                   <codeph>postgis</codeph> extension is enabled.</entry>
             </row>
             <row>
               <entry><codeph>postgis_tiger_geocoder</codeph><p>The US TIGER geocoder</p></entry>
-              <entry>Supported. Installed with Greenplum PostGIS. <p>Requires the
+              <entry>Supported. Installed with Cloudberry PostGIS. <p>Requires the
                     <codeph>postgis</codeph> and <codeph>fuzzystrmatch</codeph>
                   extensions.</p><p>The US TIGER geocoder converts addresses (like a street address)
                   to geographic coordinates.</p></entry>
@@ -110,7 +110,7 @@
             <row>
               <entry><codeph>address_standardizer</codeph><p>Rule-based address
                 standardizer</p></entry>
-              <entry>Supported. Installed but not enabled with Greenplum PostGIS. <p>Can be used
+              <entry>Supported. Installed but not enabled with Cloudberry PostGIS. <p>Can be used
                   with TIGER geocoder.</p><p>A single line address parser that takes an input
                   address and normalizes it based on a set of rules stored in a table and helper
                     <codeph>lex</codeph> and <codeph>gaz</codeph> tables.</p></entry>
@@ -118,7 +118,7 @@
             <row>
               <entry><codeph>address_standardizer_data_us</codeph><p>Sample rules tables for US
                   address data</p></entry>
-              <entry>Supported. Installed but not enabled with Greenplum PostGIS.<p>Can be used with
+              <entry>Supported. Installed but not enabled with Cloudberry PostGIS.<p>Can be used with
                   the address standardizer.</p><p>The extension contains <codeph>gaz</codeph>,
                     <codeph>lex</codeph>, and <codeph>rules</codeph> tables for US address data. If
                   you are using other types of tables, see <xref href="#topic_wy2_rkb_3p"
@@ -126,19 +126,19 @@
             </row>
             <row>
               <entry><codeph>fuzzystrmatch</codeph><p>Fuzzy string matching</p></entry>
-              <entry>Supported. This extension is bundled but not enabled with Greenplum
+              <entry>Supported. This extension is bundled but not enabled with Cloudberry
                   Database.<p>Required for the PostGIS TIGER geocoder.</p></entry>
             </row>
           </tbody>
         </tgroup>
       </table>
       <note>The PostGIS topology extension <codeph>postgis_topology</codeph> and the PostGIS 3D and
-        geoprocessing extension <codeph>postgis_sfcgal</codeph> are not supported by Greenplum
-        PostGIS and are not included in the Greenplum PostGIS extension package.</note>
+        geoprocessing extension <codeph>postgis_sfcgal</codeph> are not supported by Cloudberry
+        PostGIS and are not included in the Cloudberry PostGIS extension package.</note>
       <p>For information about the PostGIS extensions, see the <xref
           href="https://postgis.net/documentation/" format="html" scope="external">PostGIS 2.5
           documentation</xref>.</p>
-      <p>For information about Greenplum PostGIS feature support, see <xref href="#postgis_support"
+      <p>For information about Cloudberry PostGIS feature support, see <xref href="#postgis_support"
           format="dita"/>.</p>
     </body>
   </topic>
@@ -152,24 +152,24 @@
           <li><xref href="#topic_fx2_fpx_llb" format="dita"/></li>
           <li><xref href="#topic_bgz_vcl_r1b" format="dita"/></li>
         </ul></p>
-      <p>For information about upgrading PostGIS on Greenplum Database 6 systems, see <xref
+      <p>For information about upgrading PostGIS on Cloudberry Database 6 systems, see <xref
           href="postgis-upgrade.xml"/></p>
     </body>
     <topic id="topic_ln5_xcl_r1b">
       <title>Enabling PostGIS Support</title>
       <body>
-        <p>To enable PostGIS support, install the Greenplum PostGIS extension package into the
-          Greenplum Database system, and then use the <codeph>CREATE EXTENSION</codeph> command to
+        <p>To enable PostGIS support, install the Cloudberry PostGIS extension package into the
+          Cloudberry Database system, and then use the <codeph>CREATE EXTENSION</codeph> command to
           enable PostGIS support for an individual database.</p>
         <section id="section_dlv_xv1_rqb">
-          <title>Installing the Greenplum PostGIS Extension Package</title>
-          <p>Install Greenplum PostGIS extension package with the <codeph>gppkg</codeph> utility.
+          <title>Installing the Cloudberry PostGIS Extension Package</title>
+          <p>Install Cloudberry PostGIS extension package with the <codeph>gppkg</codeph> utility.
             For example, this command installs the package for RHEL 7.
             <codeblock>gppkg -i postgis-2.5.4+pivotal.2.build.1-gp6-rhel7-x86_64.gppkg</codeblock></p>
           <p>After installing the package, source the <codeph>greenplum_path.sh</codeph> file and
-            restart Greenplum Database. This command restarts Greenplum Database.</p>
+            restart Cloudberry Database. This command restarts Cloudberry Database.</p>
           <codeblock>gpstop -ra</codeblock>
-          <p dir="ltr">Installing the Greenplum PostGIS extension package updates the Greenplum
+          <p dir="ltr">Installing the Cloudberry PostGIS extension package updates the Cloudberry
             Database system, including installing the supported PostGIS extensions to the system and
             updating <codeph>greenplum_path.sh</codeph> file with these lines for PostGIS Raster
             support.</p>
@@ -214,16 +214,16 @@ CREATE EXTENSION address_standardizer_data_us ;</codeblock></li>
             <codeph>ST_AsJPEG()</codeph>. As the default, PostGIS disables all raster drivers. You
           enable raster drivers by setting the value of the
             <codeph>POSTGIS_GDAL_ENABLED_DRIVERS</codeph> environment variable in the
-            <codeph>greenplum_path.sh</codeph> file on all Greenplum Database hosts.</p>
+            <codeph>greenplum_path.sh</codeph> file on all Cloudberry Database hosts.</p>
         <p>Alternatively, you can do it at the session level by setting
-            <codeph>postgis.gdal_enabled_drivers</codeph>. For a Greenplum Database session, this
+            <codeph>postgis.gdal_enabled_drivers</codeph>. For a Cloudberry Database session, this
           example <codeph>SET</codeph> command enables three GDAL raster
           drivers.<codeblock>SET postgis.gdal_enabled_drivers TO 'GTiff PNG JPEG';</codeblock></p>
         <p>This <codeph>SET</codeph> command sets the enabled drivers to the default for a session.
           <codeblock>SET postgis.gdal_enabled_drivers = default;</codeblock></p>
-        <p>To see the list of supported GDAL raster drivers for a Greenplum Database system, run the
+        <p>To see the list of supported GDAL raster drivers for a Cloudberry Database system, run the
             <codeph>raster2pgsql</codeph> utility with the <codeph>-G</codeph> option on the
-          Greenplum Database master.</p>
+          Cloudberry Database master.</p>
         <p>
           <codeblock>raster2pgsql -G </codeblock>
         </p>
@@ -234,10 +234,10 @@ CREATE EXTENSION address_standardizer_data_us ;</codeblock></li>
           example, the code for the long name Portable Network Graphics is <codeph>PNG</codeph>.
           This example <codeph>export</codeph> line enables four GDAL raster drivers.</p>
         <codeblock>export POSTGIS_GDAL_ENABLED_DRIVERS="GTiff PNG JPEG GIF"</codeblock>
-        <p>The <codeph>gpstop -r</codeph> command restarts the Greenplum Database system to use the
+        <p>The <codeph>gpstop -r</codeph> command restarts the Cloudberry Database system to use the
           updated settings in the <codeph>greenplum_path.sh</codeph> file.</p>
         <p>After you have updated the <codeph>greenplum_path.sh</codeph> file on all hosts, and have
-          restarted the Greenplum Database system, you can display the enabled raster drivers with
+          restarted the Cloudberry Database system, you can display the enabled raster drivers with
           the <codeph>ST_GDALDrivers()</codeph> function. This <codeph>SELECT</codeph> command lists
           the enabled raster drivers.</p>
         <codeblock>SELECT short_name, long_name FROM ST_GDALDrivers();</codeblock>
@@ -250,8 +250,8 @@ CREATE EXTENSION address_standardizer_data_us ;</codeblock></li>
             <codeph>POSTGIS_ENABLE_OUTDB_RASTERS=0</codeph> in the
             <codeph>greenplum_path.sh</codeph> file disables support for to out-of-database rasters.
           To enable this feature, you can set the value to true (a non-zero value) on all hosts and
-          restart the Greenplum Database system. </p>
-        <p>You can also enable or disable this feature for a Greenplum Database session. For
+          restart the Cloudberry Database system. </p>
+        <p>You can also enable or disable this feature for a Cloudberry Database session. For
           example, this <codeph>SET</codeph> command enables the feature for the current
           session.</p>
         <codeblock>SET postgis.enable_outdb_rasters = true;				</codeblock>
@@ -295,8 +295,8 @@ DROP EXTENSION IF EXISTS fuzzystrmatch;</codeblock></li>
           </ol>
         </section>
         <section id="section_wvr_wv1_rqb">
-          <title>Uninstalling the Greenplum PostGIS Extension Package</title>
-          <p>After PostGIS support has been removed from all databases in the Greenplum Database
+          <title>Uninstalling the Cloudberry PostGIS Extension Package</title>
+          <p>After PostGIS support has been removed from all databases in the Cloudberry Database
             system, you can remove the PostGIS extension package. For example, this
               <codeph>gppkg</codeph> command removes the PostGIS extension package.
             <codeblock>gppkg -r postgis-2.5.4+pivotal.2</codeblock></p>
@@ -305,8 +305,8 @@ DROP EXTENSION IF EXISTS fuzzystrmatch;</codeblock></li>
           <codeblock>export GDAL_DATA=$GPHOME/share/gdal
 export POSTGIS_ENABLE_OUTDB_RASTERS=0
 export POSTGIS_GDAL_ENABLED_DRIVERS=DISABLE_ALL</codeblock>
-          <p>Source the <codeph>greenplum_path.sh</codeph> file and restart Greenplum Database. This
-            command restarts Greenplum Database.</p>
+          <p>Source the <codeph>greenplum_path.sh</codeph> file and restart Cloudberry Database. This
+            command restarts Cloudberry Database.</p>
           <codeblock>gpstop -ra</codeblock>
         </section>
         <section id="postgis_note">
@@ -390,7 +390,7 @@ SELECT name,ST_AsText(geopoint) FROM geotest;</codeblock>
   <topic id="postgis_support">
     <title>PostGIS Extension Support and Limitations</title>
     <body>
-      <p>This section describes Greenplum PostGIS extension feature support and limitations.</p>
+      <p>This section describes Cloudberry PostGIS extension feature support and limitations.</p>
       <ul id="ul_gvb_b4b_3p">
         <li>
           <xref href="#topic_g2d_hkb_3p" format="dita"/>
@@ -404,20 +404,20 @@ SELECT name,ST_AsText(geopoint) FROM geotest;</codeblock>
           <xref href="#topic_wy2_rkb_3p" format="dita"/>
         </li>
       </ul>
-      <p>In general, the Greenplum PostGIS extension does not support the following features:</p>
+      <p>In general, the Cloudberry PostGIS extension does not support the following features:</p>
       <ul id="ul_kjr_tpl_1mb">
         <li>The PostGIS topology extension <codeph>postgis_topology</codeph></li>
         <li>The PostGIS 3D and geoprocessing extension <codeph>postgis_sfcgal</codeph></li>
         <li>A small number of user defined functions and aggregates</li>
         <li>PostGIS long transactions</li>
       </ul>
-      <p>For the PostGIS extensions supported by Greenplum PostGIS, see <xref href="#topic3"
+      <p>For the PostGIS extensions supported by Cloudberry PostGIS, see <xref href="#topic3"
           format="dita"/>.</p>
     </body>
     <topic id="topic_g2d_hkb_3p">
       <title>Supported PostGIS Data Types</title>
       <body>
-        <p>Greenplum PostGIS extension supports these PostGIS data types:</p>
+        <p>Cloudberry PostGIS extension supports these PostGIS data types:</p>
         <ul id="ul_bdm_qnp_fp">
           <li dir="ltr">box2d</li>
           <li dir="ltr">box3d</li>
@@ -432,7 +432,7 @@ SELECT name,ST_AsText(geopoint) FROM geotest;</codeblock>
     <topic id="topic_bl3_4vy_d1b">
       <title>Supported PostGIS Raster Data Types</title>
       <body>
-        <p dir="ltr">Greenplum PostGIS supports these PostGIS Raster data types. </p>
+        <p dir="ltr">Cloudberry PostGIS supports these PostGIS Raster data types. </p>
         <ul id="ul_obf_z2m_d1b">
           <li dir="ltr">geomval</li>
           <li dir="ltr">addbandarg</li>
@@ -454,32 +454,32 @@ SELECT name,ST_AsText(geopoint) FROM geotest;</codeblock>
     <topic id="topic_y5z_nkb_3p">
       <title>Supported PostGIS Index</title>
       <body>
-        <p>Greenplum PostGIS extension supports the GiST (Generalized Search Tree) index.</p>
+        <p>Cloudberry PostGIS extension supports the GiST (Generalized Search Tree) index.</p>
       </body>
     </topic>
     <topic id="topic_wy2_rkb_3p">
       <title>PostGIS Extension Limitations</title>
       <body>
-        <p>This section lists the Greenplum PostGIS extension limitations for user-defined functions
+        <p>This section lists the Cloudberry PostGIS extension limitations for user-defined functions
           (UDFs), data types, and aggregates. </p>
         <ul id="ul_vzc_bpb_3p">
           <li>Data types and functions related to PostGIS topology functionality, such as
-              <apiname>TopoGeometry</apiname>, are not supported by Greenplum Database.</li>
-          <li>These PostGIS aggregates are not supported by Greenplum Database:<ul
+              <apiname>TopoGeometry</apiname>, are not supported by Cloudberry Database.</li>
+          <li>These PostGIS aggregates are not supported by Cloudberry Database:<ul
               id="ul_ylg_hpb_3p">
               <li><apiname>ST_Collect</apiname></li>
               <li><apiname>ST_MakeLine</apiname></li>
-            </ul><p>On a Greenplum Database with multiple segments, the aggregate might return
+            </ul><p>On a Cloudberry Database with multiple segments, the aggregate might return
               different answers if it is called several times repeatedly.</p></li>
           <li>
-            <p>Greenplum Database does not support PostGIS long transactions.</p>
+            <p>Cloudberry Database does not support PostGIS long transactions.</p>
             <p>PostGIS relies on triggers and the PostGIS table
                 <codeph>public.authorization_table</codeph> for long transaction support. When
-              PostGIS attempts to acquire locks for long transactions, Greenplum Database reports
+              PostGIS attempts to acquire locks for long transactions, Cloudberry Database reports
               errors citing that the function cannot access the relation,
                 <codeph>authorization_table</codeph>.</p>
           </li>
-          <li>Greenplum Database does not support type modifiers for user defined types. <p>The work
+          <li>Cloudberry Database does not support type modifiers for user defined types. <p>The work
               around is to use the <codeph>AddGeometryColumn</codeph> function for PostGIS geometry.
               For example, a table with PostGIS geometry cannot be created with the following SQL
               command:<codeblock>CREATE TABLE geometries(id INTEGER, geom geometry(LINESTRING));</codeblock>Use
@@ -488,12 +488,12 @@ SELECT name,ST_AsText(geopoint) FROM geotest;</codeblock>
               the
               table:<codeblock>CREATE TABLE geometries(id INTEGER);
 SELECT AddGeometryColumn('public', 'geometries', 'geom', 0, 'LINESTRING', 2);</codeblock></p></li>
-          <li>The <codeph>_postgis_index_extent</codeph> function is not supported on Greenplum
+          <li>The <codeph>_postgis_index_extent</codeph> function is not supported on Cloudberry
             Database 6 due to its dependence on spatial index operations.</li>
           <li>The <codeph>&lt;-></codeph> operator (<codeph><varname>geometry</varname> &lt;->
                 <varname>geometry</varname></codeph>) returns the centroid/centroid distance for
-            Greenplum Database 6.</li>
-          <li>The following PostGIS functions are not currently supported because Greenplum PostGIS
+            Cloudberry Database 6.</li>
+          <li>The following PostGIS functions are not currently supported because Cloudberry PostGIS
             is compiled with Geos 3.4.2:<ul id="ul_hdm_j4l_xlb">
               <li dir="ltr">ST_Subdivide</li>
               <li dir="ltr">​ST_ClipByBox2D</li>
@@ -506,7 +506,7 @@ SELECT AddGeometryColumn('public', 'geometries', 'geom', 0, 'LINESTRING', 2);</c
               <codeph>gaz</codeph> or <codeph>rules</codeph> tables as parameters. If you are using
             tables apart from <codeph>us_lex</codeph>, <codeph>us_gaz</codeph> or
               <codeph>us_rules</codeph>, you should create them with the distribution policy
-              <codeph>DISTRIBUTED REPLICATED</codeph> to work for Greenplum. </li>
+              <codeph>DISTRIBUTED REPLICATED</codeph> to work for Cloudberry. </li>
         </ul>
       </body>
     </topic>

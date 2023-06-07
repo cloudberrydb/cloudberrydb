@@ -4,7 +4,7 @@
  *
  *	  Routines for operator manipulation commands
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -27,9 +27,6 @@
  *		"create operator":
  *				operators
  *
- *		Most of the parse-tree manipulation routines are defined in
- *		commands/manip.c.
- *
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
@@ -48,6 +45,7 @@
 #include "parser/parse_func.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_type.h"
+#include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
@@ -186,10 +184,22 @@ DefineOperator(List *names, List *parameters)
 	if (typeName2)
 		typeId2 = typenameTypeId(NULL, typeName2);
 
+	/*
+	 * If only the right argument is missing, the user is likely trying to
+	 * create a postfix operator, so give them a hint about why that does not
+	 * work.  But if both arguments are missing, do not mention postfix
+	 * operators, as the user most likely simply neglected to mention the
+	 * arguments.
+	 */
 	if (!OidIsValid(typeId1) && !OidIsValid(typeId2))
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
-				 errmsg("at least one of leftarg or rightarg must be specified")));
+				 errmsg("operator argument types must be specified")));
+	if (!OidIsValid(typeId2))
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
+				 errmsg("operator right argument type must be specified"),
+				 errdetail("Postfix operators are not supported.")));
 
 	if (typeName1)
 	{
@@ -288,7 +298,7 @@ DefineOperator(List *names, List *parameters)
 }
 
 /*
- * Look up a restriction estimator function ny name, and verify that it has
+ * Look up a restriction estimator function by name, and verify that it has
  * the correct signature and we have the permissions to attach it to an
  * operator.
  */
@@ -323,7 +333,7 @@ ValidateRestrictionEstimator(List *restrictionName)
 }
 
 /*
- * Look up a join estimator function ny name, and verify that it has the
+ * Look up a join estimator function by name, and verify that it has the
  * correct signature and we have the permissions to attach it to an
  * operator.
  */
@@ -332,6 +342,7 @@ ValidateJoinEstimator(List *joinName)
 {
 	Oid			typeId[5];
 	Oid			joinOid;
+	Oid			joinOid2;
 	AclResult	aclresult;
 
 	typeId[0] = INTERNALOID;	/* PlannerInfo */
@@ -342,15 +353,26 @@ ValidateJoinEstimator(List *joinName)
 
 	/*
 	 * As of Postgres 8.4, the preferred signature for join estimators has 5
-	 * arguments, but we still allow the old 4-argument form. Try the
-	 * preferred form first.
+	 * arguments, but we still allow the old 4-argument form.  Whine about
+	 * ambiguity if both forms exist.
 	 */
 	joinOid = LookupFuncName(joinName, 5, typeId, true);
-	if (!OidIsValid(joinOid))
-		joinOid = LookupFuncName(joinName, 4, typeId, true);
-	/* If not found, reference the 5-argument signature in error msg */
-	if (!OidIsValid(joinOid))
-		joinOid = LookupFuncName(joinName, 5, typeId, false);
+	joinOid2 = LookupFuncName(joinName, 4, typeId, true);
+	if (OidIsValid(joinOid))
+	{
+		if (OidIsValid(joinOid2))
+			ereport(ERROR,
+					(errcode(ERRCODE_AMBIGUOUS_FUNCTION),
+					 errmsg("join estimator function %s has multiple matches",
+							NameListToString(joinName))));
+	}
+	else
+	{
+		joinOid = joinOid2;
+		/* If not found, reference the 5-argument signature in error msg */
+		if (!OidIsValid(joinOid))
+			joinOid = LookupFuncName(joinName, 5, typeId, false);
+	}
 
 	/* estimators must return float8 */
 	if (get_func_rettype(joinOid) != FLOAT8OID)
@@ -553,7 +575,7 @@ AlterOperator(AlterOperatorStmt *stmt)
 
 	CatalogTupleUpdate(catalog, &tup->t_self, tup);
 
-	address = makeOperatorDependencies(tup, true);
+	address = makeOperatorDependencies(tup, false, true);
 
 	InvokeObjectPostAlterHook(OperatorRelationId, oprId, 0);
 

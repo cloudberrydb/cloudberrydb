@@ -2,7 +2,7 @@
 
 # src/bin/pg_upgrade/test_gpdb.sh
 #
-# Test driver for upgrading a Greenplum cluster with pg_upgrade.
+# Test driver for upgrading a Cloudberry cluster with pg_upgrade.
 # The upgraded cluster will be a newly created gpdemo
 # cluster created by this script.  This test assumes that all pre-upgrade 
 # clusters, whether for 5 or 6, have been created as standard gpdemo clusters.
@@ -428,7 +428,7 @@ main() {
 		echo done
 	fi
 	
-	${OLD_BINDIR}/gpstop -a
+	${OLD_BINDIR}/gpstop -a -E ${COORDINATOR_DATA_DIRECTORY}/config/etcd_host
 	
 	COORDINATOR_DATA_DIRECTORY=""; unset COORDINATOR_DATA_DIRECTORY
 	PGPORT=""; unset PGPORT

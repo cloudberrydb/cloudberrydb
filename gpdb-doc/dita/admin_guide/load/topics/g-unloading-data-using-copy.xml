@@ -6,8 +6,8 @@
    <body>
       <p>
          <codeph>COPY TO</codeph> copies data from a table to a file (or standard input) on the
-            Greenplum master host using a single process on the
-            Greenplum master instance. Use <codeph>COPY</codeph> to
+            Cloudberry master host using a single process on the
+            Cloudberry master instance. Use <codeph>COPY</codeph> to
          output a table's entire contents, or filter the output using a <codeph>SELECT</codeph>
          statement. For example:</p>
       <p>

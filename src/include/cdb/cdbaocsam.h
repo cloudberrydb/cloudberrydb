@@ -3,7 +3,7 @@
  * cdbaocsam.h
  *	  append-only columnar relation access method definitions.
  *
- * Portions Copyright (c) 2009, Greenplum Inc.
+ * Portions Copyright (c) 2009, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -23,6 +23,7 @@
 #include "access/appendonlytid.h"
 #include "access/appendonly_visimap.h"
 #include "executor/tuptable.h"
+#include "nodes/execnodes.h"
 #include "nodes/primnodes.h"
 #include "storage/block.h"
 #include "utils/rel.h"
@@ -119,6 +120,11 @@ typedef struct AOCSScanDescData
 	int64		targetTupleId;
 
 	/*
+ 	 * Only used by `sample scan`
+ 	 */	 	
+	int64		fetchTupleId;
+	int64		totalTuples;
+	/*
 	 * Part of the struct to be used only inside aocsam.c
 	 */
 
@@ -180,6 +186,15 @@ typedef struct AOCSScanDescData
 	 */
 	AppendOnlyBlockDirectory *blockDirectory;
 	AppendOnlyVisimap visibilityMap;
+
+	/* used in predicate pushdown */
+	int				aos_qual_col_num;
+	ExprContext		*aos_pushdown_econtext;
+	ExprState		**aos_pushdown_qual;
+	int				aos_sample_rows;
+	int				aos_scaned_rows;
+	int				*aos_qual_rows;
+
 } AOCSScanDescData;
 
 typedef AOCSScanDescData *AOCSScanDesc;
@@ -206,13 +221,15 @@ typedef struct AOCSFetchDescData
 	struct AOCSFileSegInfo **segmentFileInfo;
 
 	/*
-	 * The largest row number of this aoseg. Maximum row number is required in
-	 * function "aocs_fetch". If we have no updates and deletes, the
-	 * total_tupcount is equal to the maximum row number. But after some updates
-	 * and deletes, the maximum row number always much bigger than
-	 * total_tupcount. The appendonly_insert function will get fast sequence and
-	 * use it as the row number. So the last sequence will be the correct
-	 * maximum row number.
+	 * Array containing the maximum row number in each aoseg (to be consulted
+	 * during fetch). This is a sparse array as not all segments are involved
+	 * in a scan. Sparse entries are marked with InvalidAORowNum.
+	 *
+	 * Note:
+	 * If we have no updates and deletes, the total_tupcount is equal to the
+	 * maximum row number. But after some updates and deletes, the maximum row
+	 * number is always much bigger than total_tupcount, so this carries the
+	 * last sequence from gp_fastsequence.
 	 */
 	int64			lastSequence[AOTupleId_MultiplierSegmentFileNum];
 
@@ -352,4 +369,10 @@ extern void aocs_addcol_setfirstrownum(AOCSAddColumnDesc desc,
 extern void aoco_dml_init(Relation relation, CmdType operation);
 extern void aoco_dml_finish(Relation relation, CmdType operation);
 
+extern bool extractcolumns_from_node(Node *expr, bool *cols, AttrNumber natts);
+extern ExprState * aocs_predicate_pushdown_prepare(AOCSScanDesc scan,
+								List *qual,
+								ExprState *state,
+								ExprContext *ecxt,
+								PlanState *ps);
 #endif   /* AOCSAM_H */

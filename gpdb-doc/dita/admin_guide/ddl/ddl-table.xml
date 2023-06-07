@@ -3,7 +3,7 @@
 <topic id="topic_jtv_5vy_sp">
   <title id="im140266">Creating and Managing Tables</title>
   <body>
-    <p> Greenplum Database tables are similar to tables in any relational database, except that
+    <p> Cloudberry Database tables are similar to tables in any relational database, except that
       table rows are distributed across the different segments in the system. When you create a
       table, you specify the table's distribution policy.</p>
   </body>
@@ -17,7 +17,7 @@
             href="#topic27" type="topic" format="dita"/>.</li>
         <li id="im142082">Any table or column constraints to limit the data that a column or table
           can contain. See <xref href="#topic28" type="topic" format="dita"/>.</li>
-        <li id="im163705">The distribution policy of the table, which determines how Greenplum
+        <li id="im163705">The distribution policy of the table, which determines how Cloudberry
           Database divides data across the segments. See <xref href="#topic34" type="topic"
             format="dita"/>.</li>
         <li id="im163709">The way the table is stored on disk. <ph>See <xref
@@ -36,11 +36,11 @@
           date or timestamp data types for dates, and numeric data types for numbers.</p>
         <p>For table columns that contain textual data, specify the data type
             <codeph>VARCHAR</codeph> or <codeph>TEXT</codeph>. Specifying the data type
-            <codeph>CHAR</codeph> is not recommended. In Greenplum Database, the data types
+            <codeph>CHAR</codeph> is not recommended. In Cloudberry Database, the data types
             <codeph>VARCHAR</codeph> or <codeph>TEXT</codeph> handle padding added to the data
           (space characters added after the last non-space character) as significant characters, the
           data type <codeph>CHAR</codeph> does not. For information on the character data types, see
-          the <codeph>CREATE TABLE</codeph> command in the <cite>Greenplum Database Reference
+          the <codeph>CREATE TABLE</codeph> command in the <cite>Cloudberry Database Reference
             Guide</cite>.</p>
         <p>Use the smallest numeric data type that will accommodate your numeric data and allow for
           future expansion. For example, using <codeph>BIGINT</codeph> for data that fits in
@@ -53,8 +53,8 @@
           Cross-table joins usually use the primary key in one table and a foreign key in the other
           table. When the data types are different, the database must convert one of them so that
           the data values can be compared correctly, which adds unnecessary overhead.</p>
-        <p>Greenplum Database has a rich set of native data types available to
-          users. See the <cite>Greenplum Database Reference Guide</cite> for information about the
+        <p>Cloudberry Database has a rich set of native data types available to
+          users. See the <cite>Cloudberry Database Reference Guide</cite> for information about the
           built-in data types.</p>
       </body>
     </topic>
@@ -62,7 +62,7 @@
       <title id="im140306">Setting Table and Column Constraints</title>
       <body>
         <p>You can define constraints on columns and tables to restrict the data in your tables.
-          Greenplum Database support for constraints is the same as PostgreSQL with some
+          Cloudberry Database support for constraints is the same as PostgreSQL with some
           limitations, including:</p>
         <ul id="ul_u12_vvy_sp">
           <li id="im206975"><codeph>CHECK</codeph> constraints can refer only to the table on which
@@ -151,22 +151,22 @@
           <p>Foreign key constraints specify that the values in a column or a group of columns must
             match the values appearing in some row of another table to maintain referential
             integrity between two related tables. Referential integrity checks cannot be enforced
-            between the distributed table segments of a Greenplum database.</p>
+            between the distributed table segments of a Cloudberry database.</p>
         </body>
       </topic>
     </topic>
     <topic id="topic34" xml:lang="en">
       <title id="im140308">Choosing the Table Distribution Policy</title>
       <body>
-        <p>All Greenplum Database tables are distributed. When you create or alter a table, you
+        <p>All Cloudberry Database tables are distributed. When you create or alter a table, you
           optionally specify <codeph>DISTRIBUTED BY</codeph> (hash distribution),
             <codeph>DISTRIBUTED RANDOMLY</codeph> (round-robin distribution), or <codeph>DISTRIBUTED
             REPLICATED</codeph> (fully distributed) to determine the table row distribution.</p>
-        <note>The Greenplum Database server configuration parameter
+        <note>The Cloudberry Database server configuration parameter
             <codeph>gp_create_table_random_default_distribution</codeph> controls the table
           distribution policy if the <cmdname>DISTRIBUTED BY</cmdname> clause is not specified when
           you create a table. <p>For information about the parameter, see "Server
-            Configuration Parameters" of the <cite>Greenplum Database Reference
+            Configuration Parameters" of the <cite>Cloudberry Database Reference
           Guide</cite>.</p></note>
         <p>Consider the following points when deciding on a table distribution policy.</p>
         <ul id="ul_dc2_vvy_sp">
@@ -202,7 +202,7 @@
         <note>The hidden system columns (<codeph>ctid</codeph>, <codeph>cmin</codeph>,
             <codeph>cmax</codeph>, <codeph>xmin</codeph>, <codeph>xmax</codeph>, and
             <codeph>gp_segment_id</codeph>) cannot be referenced in user queries on replicated
-          tables because they have no single, unambiguous value. Greenplum Database returns a
+          tables because they have no single, unambiguous value. Cloudberry Database returns a
             <codeph>column does not exist</codeph> error for the query.</note>
       </body>
       <topic id="topic35" xml:lang="en">
@@ -213,11 +213,11 @@
             specify the distribution policy for a table. The default is a hash distribution policy
             that uses either the <codeph>PRIMARY KEY</codeph> (if the table has one) or the first
             column of the table as the distribution key. Columns with geometric or user-defined data
-            types are not eligible as Greenplum Database distribution key columns. If a table does
-            not have an eligible column, Greenplum Database distributes the rows randomly or in
+            types are not eligible as Cloudberry Database distribution key columns. If a table does
+            not have an eligible column, Cloudberry Database distributes the rows randomly or in
             round-robin fashion. </p>
           <p>Replicated tables have no distribution key because every row is distributed to every
-            Greenplum Database segment instance.</p>
+            Cloudberry Database segment instance.</p>
           <p>To ensure even distribution of hash-distributed data, choose a distribution key that is
             unique for each record. If that is not possible, choose <codeph>DISTRIBUTED
               RANDOMLY</codeph>. For example:</p>
@@ -244,7 +244,7 @@
         <title>Custom Distribution Key Hash Functions</title>
         <body>
           <p>The hash function used for hash distribution policy is defined by the hash operator
-            class for the column's data type. As the default Greenplum Database uses the data type's
+            class for the column's data type. As the default Cloudberry Database uses the data type's
             default hash operator class, the same operator class used for hash joins and hash
             aggregates, which is suitable for most use cases. However, you can declare a non-default
             hash operator class in the <codeph>DISTRIBUTED BY</codeph> clause. </p>

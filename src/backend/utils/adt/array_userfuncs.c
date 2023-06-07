@@ -3,7 +3,7 @@
  * array_userfuncs.c
  *	  Misc user-visible array support functions
  *
- * Copyright (c) 2003-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/utils/adt/array_userfuncs.c
@@ -411,6 +411,7 @@ array_cat(PG_FUNCTION_ARGS)
 
 	/* Do this mainly for overflow checking */
 	nitems = ArrayGetNItems(ndims, dims);
+	ArrayCheckBounds(ndims, dims, lbs);
 
 	/* build the result array */
 	ndatabytes = ndatabytes1 + ndatabytes2;
@@ -530,7 +531,7 @@ array_agg_finalfn(PG_FUNCTION_ARGS)
 	PG_RETURN_DATUM(result);
 }
 
-/* Greenplum Database Additions: */
+/* Cloudberry Database Additions: */
 
 
 /*-----------------------------------------------------------------------------

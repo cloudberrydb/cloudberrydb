@@ -44,12 +44,12 @@ CREATE TABLE datatype_table (
     v_json         JSON,
     v_xml          XML,
     v_uuid         UUID,
-    v_txid_snapshot txid_snapshot,
+    v_pg_snapshot  pg_snapshot,
     v_enum         ENUM_TEST,
     v_postal_code  japanese_postal_code,
     v_int2range    int2range,
     PRIMARY KEY (id),
-    UNIQUE (id_big)
+    UNIQUE (id_big, id)
 );
 
 -- Constraint definitions
@@ -63,9 +63,9 @@ CREATE TABLE IF NOT EXISTS fkey_table (
     check_col_2  INT NOT NULL,
     PRIMARY KEY  (id),
     CONSTRAINT fkey_big_id
-      FOREIGN KEY (big_id)
-      REFERENCES datatype_table(id_big),
-    EXCLUDE USING btree (check_col_2 WITH =)
+      FOREIGN KEY (big_id, id)
+      REFERENCES datatype_table(id_big, id),
+    EXCLUDE USING btree (check_col_2 WITH =, id with =)
 );
 
 -- Typed table

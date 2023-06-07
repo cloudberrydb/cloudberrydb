@@ -2,10 +2,12 @@
 -- pg_rewind due to lock conflict of database template1 when it runs the single
 -- mode instance to ensure clean shutdown on the target postgres instance.
 
+-- start_ignore
 -- set GUCs to speed-up the test
 1: alter system set gp_fts_probe_retries to 2;
 1: alter system set gp_fts_probe_timeout to 5;
 1: select pg_reload_conf();
+--end_ignore
 
 1: select gp_inject_fault('after_xlog_xact_prepare_flushed', 'suspend', dbid) from gp_segment_configuration where role='p' and content = 0;
 2&: create database db_orphan_prepare;
@@ -14,9 +16,14 @@
 -- immediate shutdown the primary and then promote the mirror.
 1: select pg_ctl((select datadir from gp_segment_configuration c where c.role='p' and c.content=0), 'stop');
 1: select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 1: select content, preferred_role, role, status, mode from gp_segment_configuration where content = 0;
+-- start_ignore
+1: select gp_inject_fault('after_xlog_xact_prepare_flushed', 'reset', dbid) from gp_segment_configuration where role='p' and content = 0;
+-- end_ignore
 
 -- wait until promote is finished.
+select pg_sleep(2);
 0U: select 1;
 0Uq:
 2<:
@@ -29,11 +36,15 @@
 -- with mode 5, but that conflicts with the mode 3 lock which is needed during
 -- postgres starting in InitPostgres() and thus pg_rewind hangs forever.
 !\retcode gprecoverseg -a;
+!\retcode gpfts -A -D;
 select wait_until_all_segments_synchronized();
 !\retcode gprecoverseg -ar;
+!\retcode gpfts -A -D;
 select wait_until_all_segments_synchronized();
 
+-- start_ignore
 -- reset fts GUCs.
 3: alter system reset gp_fts_probe_retries;
 3: alter system reset gp_fts_probe_timeout;
 3: select pg_reload_conf();
+-- end_ignore

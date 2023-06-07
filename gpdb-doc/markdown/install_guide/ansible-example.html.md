@@ -2,21 +2,21 @@
 title: Example Ansible Playbook 
 ---
 
-A sample Ansible playbook to install a Greenplum Database software release onto the hosts that will comprise a Greenplum Database system.
+A sample Ansible playbook to install a Cloudberry Database software release onto the hosts that will comprise a Cloudberry Database system.
 
-This Ansible playbook shows how tasks described in [Installing the Greenplum Database Software](install_gpdb.html) might be automated using [Ansible](https://docs.ansible.com).
+This Ansible playbook shows how tasks described in [Installing the Cloudberry Database Software](install_gpdb.html) might be automated using [Ansible](https://docs.ansible.com).
 
-**Important:** This playbook is provided as an *example only* to illustrate how Greenplum Database cluster configuration and software installation tasks can be automated using provisioning tools such as Ansible, Chef, or Puppet. VMware does not provide support for Ansible or for the playbook presented in this example.
+**Important:** This playbook is provided as an *example only* to illustrate how Cloudberry Database cluster configuration and software installation tasks can be automated using provisioning tools such as Ansible, Chef, or Puppet. VMware does not provide support for Ansible or for the playbook presented in this example.
 
-The example playbook is designed for use with CentOS 7. It creates the `gpadmin` user, installs the Greenplum Database software release, sets the owner and group of the installed software to `gpadmin`, and sets the Pam security limits for the `gpadmin` user.
+The example playbook is designed for use with CentOS 7. It creates the `gpadmin` user, installs the Cloudberry Database software release, sets the owner and group of the installed software to `gpadmin`, and sets the Pam security limits for the `gpadmin` user.
 
 You can revise the script to work with your operating system platform and to perform additional host configuration tasks.
 
 Following are steps to use this Ansible playbook.
 
 1.  Install Ansible on the control node using your package manager. See the [Ansible documentation](https://docs.ansible.com) for help with installation.
-2.  Set up passwordless SSH from the control node to all hosts that will be a part of the Greenplum Database cluster. You can use the `ssh-copy-id` command to install your public SSH key on each host in the cluster. Alternatively, your provisioning software may provide more convenient ways to securely install public keys on multiple hosts.
-3.  Create an Ansible inventory by creating a file called `hosts` with a list of the hosts that will comprise your Greenplum Database cluster. For example:
+2.  Set up passwordless SSH from the control node to all hosts that will be a part of the Cloudberry Database cluster. You can use the `ssh-copy-id` command to install your public SSH key on each host in the cluster. Alternatively, your provisioning software may provide more convenient ways to securely install public keys on multiple hosts.
+3.  Create an Ansible inventory by creating a file called `hosts` with a list of the hosts that will comprise your Cloudberry Database cluster. For example:
 
     ```
     mdw
@@ -25,10 +25,10 @@ Following are steps to use this Ansible playbook.
     ...
     ```
 
-    This file can be edited and used with the Greenplum Database `gpssh-exkeys` and `gpinitsystem` utilities later on.
+    This file can be edited and used with the Cloudberry Database `gpssh-exkeys` and `gpinitsystem` utilities later on.
 
 4.  Copy the playbook code below to a file `ansible-playbook.yml` on your Ansible control node.
-5.  Edit the playbook variables at the top of the playbook, such as the `gpadmin` administrative user and password to create, and the version of Greenplum Database you are installing.
+5.  Edit the playbook variables at the top of the playbook, such as the `gpadmin` administrative user and password to create, and the version of Cloudberry Database you are installing.
 6.  Run the playbook, passing the package to be installed to the `package_path` parameter.
 
     ```
@@ -36,7 +36,7 @@ Following are steps to use this Ansible playbook.
     ```
 
 
-## <a id="fixme"></a>Ansible Playbook - Greenplum Database Installation for CentOS 7 
+## <a id="fixme"></a>Ansible Playbook - Cloudberry Database Installation for CentOS 7 
 
 ```
 
@@ -102,7 +102,7 @@ Following are steps to use this Ansible playbook.
 
 ```
 
-When the playbook has run successfully, you can proceed with [Creating the Data Storage Areas](create_data_dirs.html) and [Initializing a Greenplum Database System](init_gpdb.html).
+When the playbook has run successfully, you can proceed with [Creating the Data Storage Areas](create_data_dirs.html) and [Initializing a Cloudberry Database System](init_gpdb.html).
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 

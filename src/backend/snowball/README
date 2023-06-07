@@ -7,7 +7,7 @@ This module uses the word stemming code developed by the Snowball project,
 http://snowballstem.org (formerly http://snowball.tartarus.org)
 which is released by them under a BSD-style license.
 
-The Snowball project is not currently making formal releases; it's best
+The Snowball project does not often make formal releases; it's best
 to pull from their git repository
 
 git clone https://github.com/snowballstem/snowball.git
@@ -22,15 +22,15 @@ At least on Linux, no platform-specific adjustment is needed.
 Postgres' files under src/backend/snowball/libstemmer/ and
 src/include/snowball/libstemmer/ are taken directly from the Snowball
 files, with only some minor adjustments of file inclusions.  Note
-that most of these files are in fact derived files, not master source.
-The master sources are in the Snowball language, and are built using
+that most of these files are in fact derived files, not original source.
+The original sources are in the Snowball language, and are built using
 the Snowball-to-C compiler that is also part of the Snowball project.
 We choose to include the derived files in the PostgreSQL distribution
 because most installations will not have the Snowball compiler available.
 
 We are currently synced with the Snowball git commit
-1964ce688cbeca505263c8f77e16ed923296ce7a
-of 2018-06-29.
+4764395431c8f2a0b4fe18b816ab1fc966a45837 (tag v2.1.0)
+of 2021-01-21.
 
 To update the PostgreSQL sources from a new Snowball version:
 
@@ -44,6 +44,9 @@ do
     sed 's|\.\./runtime/header\.h|header.h|' $f >libstemmer/`basename $f`
 done
 
+Do not copy stemmers that are listed in libstemmer/modules.txt as
+nonstandard, such as "german2" or "lovins".
+
 2. Copy the *.c files in snowball/runtime/ to
 src/backend/snowball/libstemmer, and edit them to remove direct inclusions
 of system headers such as <stdio.h> --- they should only include "header.h".
@@ -56,8 +59,9 @@ do not require any changes.
 
 4. Check whether any stemmer modules have been added or removed.  If so, edit
 the OBJS list in Makefile, the list of #include's in dict_snowball.c, and the
-stemmer_modules[] table in dict_snowball.c.  You might also need to change
-the LANGUAGES list in Makefile.
+stemmer_modules[] table in dict_snowball.c, as well as the list in the
+documentation in textsearch.sgml.  You might also need to change
+the LANGUAGES list in Makefile and tsearch_config_languages in initdb.c.
 
 5. The various stopword files in stopwords/ must be downloaded
 individually from pages on the snowballstem.org website.

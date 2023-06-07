@@ -176,7 +176,7 @@ failedAddress3|failedPort3|failedDataDirectory3</codeblock></li>
         <body>
           <p>The new host must:<ul id="ul_flg_dl1_yqb">
               <li dir="ltr">
-                <p dir="ltr">have the same Greenplum Database software installed and configured as
+                <p dir="ltr">have the same Cloudberry Database software installed and configured as
                   the failed host</p>
               </li>
               <li dir="ltr">
@@ -190,7 +190,7 @@ failedAddress3|failedPort3|failedDataDirectory3</codeblock></li>
               </li>
               <li dir="ltr">
                 <p dir="ltr">be able to connect password-less with all other existing segments and
-                  Greenplum master.</p>
+                  Cloudberry master.</p>
               </li>
             </ul></p>
         </body>

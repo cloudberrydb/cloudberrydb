@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * debugutils.c
- *	  Routines for debugging Greenplum DB
+ *	  Routines for debugging Cloudberry DB
  * 
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

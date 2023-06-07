@@ -3,7 +3,7 @@
 <topic id="topic_ddb-plugin">
   <title>Using the DD Boost Storage Plugin with gpbackup, gprestore, and gpbackup_manager</title>
   <body>
-    <note>The DD Boost storage plugin is available only with the commercial release of Tanzu Greenplum
+    <note>The DD Boost storage plugin is available only with the commercial release of Tanzu Cloudberry
       Backup and Restore.</note>
     <p>Dell EMC Data Domain Boost (DD Boost) is Dell EMC software that can be used with the
           <xref href="../../utility_guide/ref/gpbackup.xml">gpbackup</xref> and
@@ -22,10 +22,10 @@
       option when you restore the backup with <codeph>gprestore</codeph>. </p>
     <section id="ddb-plugin-config">
       <title>DD Boost Storage Plugin Configuration File Format</title>
-      <p>The configuration file specifies the absolute path to the Greenplum Database DD Boost
+      <p>The configuration file specifies the absolute path to the Cloudberry Database DD Boost
         storage plugin executable, DD Boost connection credentials, and Data Domain location. The
         configuration file is required only on the master host. The DD Boost storage plugin
-        application must be in the same location on every Greenplum Database host. </p>
+        application must be in the same location on every Cloudberry Database host. </p>
       <p>The DD Boost storage plugin configuration file uses the <xref
           href="http://yaml.org/spec/1.1/" scope="external" format="html">YAML 1.1</xref> document
         format and implements its own schema for specifying the DD Boost information. </p>
@@ -54,9 +54,9 @@ options:
       <parml id="ddb-exe-path">
         <plentry id="plugin-exe">
           <pt>executablepath</pt>
-          <pd>Required. Absolute path to the plugin executable. For example, the Greenplum
+          <pd>Required. Absolute path to the plugin executable. For example, the Cloudberry
             Database installation location is <codeph>$GPHOME/bin/gpbackup_ddboost_plugin</codeph>.
-            The plugin must be in the same location on every Greenplum Database host.</pd>
+            The plugin must be in the same location on every Cloudberry Database host.</pd>
         </plentry>
         <plentry id="ddb-options">
           <pt>options</pt>
@@ -231,9 +231,9 @@ options:
     </section>
     <section id="ddboost_notes">
       <title>Notes</title>
-      <p>Dell EMC DD Boost is integrated with Tanzu Greenplum and requires a DD Boost
-        license. Open source Greenplum Database cannot use the DD Boost software, but can back up to
-        a Dell EMC Data Domain system mounted as an NFS share on the Greenplum master and segment
+      <p>Dell EMC DD Boost is integrated with Tanzu Cloudberry and requires a DD Boost
+        license. Open source Cloudberry Database cannot use the DD Boost software, but can back up to
+        a Dell EMC Data Domain system mounted as an NFS share on the Cloudberry master and segment
         hosts.</p>
       <p>When you perform a backup with the DD Boost storage plugin, the plugin stores the backup
         files in this location in the Data Domain storage unit. </p>

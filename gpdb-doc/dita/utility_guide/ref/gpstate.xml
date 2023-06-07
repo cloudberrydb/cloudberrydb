@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="md20941">gpstate</title>
   <body>
-    <p>Shows the status of a running Greenplum Database system.</p>
+    <p>Shows the status of a running Cloudberry Database system.</p>
     <section id="section2">
       <title>Synopsis</title>
       <codeblock><b>gpstate</b> [<b>-d</b> <varname>coordinator_data_directory</varname>] [<b>-B</b> <varname>parallel_processes</varname>] 
@@ -15,10 +15,10 @@
     </section>
     <section id="section3">
       <title>Description</title>
-      <p>The <codeph>gpstate</codeph> utility displays information about a running Greenplum Database instance. There is additional information you may want to know
-        about a Greenplum Database system, since it is comprised of multiple
+      <p>The <codeph>gpstate</codeph> utility displays information about a running Cloudberry Database instance. There is additional information you may want to know
+        about a Cloudberry Database system, since it is comprised of multiple
         PostgreSQL database instances (segments) spanning multiple machines. The
-          <codeph>gpstate</codeph> utility provides additional status information for a Greenplum Database system, such as:</p>
+          <codeph>gpstate</codeph> utility provides additional status information for a Cloudberry Database system, such as:</p>
       <ul>
         <li id="md136156">Which segments are down.</li>
         <li id="md136689">Coordinator and segment configuration information (hosts, data directories,
@@ -32,7 +32,7 @@
       <parml>
         <plentry>
           <pt>-b (brief status)</pt>
-          <pd>Optional. Display a brief summary of the state of the Greenplum Database
+          <pd>Optional. Display a brief summary of the state of the Cloudberry Database
             system. This is the default option.</pd>
         </plentry>
         <plentry>
@@ -73,8 +73,8 @@
           <pd>Display details of the standby coordinator host if configured.</pd>
         </plentry>
         <plentry>
-          <pt>-i (show Greenplum Database version)</pt>
-          <pd>Display the Greenplum Database software version information for each
+          <pt>-i (show Cloudberry Database version)</pt>
+          <pd>Display the Cloudberry Database software version information for each
             instance.</pd>
         </plentry>
         <plentry>
@@ -87,7 +87,7 @@
         </plentry>
         <plentry>
           <pt>-p (show ports)</pt>
-          <pd>List the port numbers used throughout the Greenplum Database
+          <pd>List the port numbers used throughout the Cloudberry Database
             system.</pd>
         </plentry>
         <plentry>
@@ -103,7 +103,7 @@
         </plentry>
         <plentry>
           <pt>-s (detailed status)</pt>
-          <pd>Optional. Displays detailed status information about the Greenplum Database system. </pd>
+          <pd>Optional. Displays detailed status information about the Cloudberry Database system. </pd>
         </plentry>
         <plentry>
           <pt>-v (verbose output)</pt>
@@ -112,7 +112,7 @@
         </plentry>
         <plentry>
           <pt>-x (expand)</pt>
-          <pd>Optional. Displays detailed information about the progress and state of a Greenplum
+          <pd>Optional. Displays detailed information about the progress and state of a Cloudberry
             system expansion.</pd>
         </plentry>
         <plentry>
@@ -157,26 +157,26 @@
                 </p></entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum array configuration type</entry>
+              <entry colname="col1">Cloudberry array configuration type</entry>
               <entry colname="col2">Standard = one NIC per host <p>Multi-Home = multiple NICs per
                   host</p></entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum initsystem version</entry>
-              <entry colname="col2">version of Greenplum Database when system was first
+              <entry colname="col1">Cloudberry initsystem version</entry>
+              <entry colname="col2">version of Cloudberry Database when system was first
                 initialized</entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum current version</entry>
-              <entry colname="col2">current version of Greenplum Database</entry>
+              <entry colname="col1">Cloudberry current version</entry>
+              <entry colname="col2">current version of Cloudberry Database</entry>
             </row>
             <row>
               <entry colname="col1">Postgres version</entry>
-              <entry colname="col2">version of PostgreSQL that Greenplum Database is based
+              <entry colname="col2">version of PostgreSQL that Cloudberry Database is based
                 on</entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum mirroring status</entry>
+              <entry colname="col1">Cloudberry mirroring status</entry>
               <entry colname="col2">physical mirroring or none</entry>
             </row>
             <row>
@@ -256,7 +256,7 @@
             </row>
             <row>
               <entry colname="col1">Database status</entry>
-              <entry colname="col2">status of Greenplum Database to incoming requests:
+              <entry colname="col2">status of Cloudberry Database to incoming requests:
                   <varname>Up</varname>, <varname>Down</varname>, or <varname>Suspended</varname>. A
                   <varname>Suspended</varname> state means database activity is temporarily paused
                 while a segment transitions from one state to another.</entry>
@@ -346,7 +346,7 @@
             </row>
             <row>
               <entry colname="col1">Database status</entry>
-              <entry colname="col2">status of Greenplum Database to incoming requests:
+              <entry colname="col2">status of Cloudberry Database to incoming requests:
                   <varname>Up</varname>, <varname>Down</varname>, or <varname>Suspended</varname>. A
                   <varname>Suspended</varname> state means database activity is temporarily paused
                 while a segment transitions from one state to another.</entry>
@@ -430,7 +430,7 @@
       </table></section>
     <section id="section6">
       <title>Examples</title>
-      <p>Show detailed status information of a Greenplum Database system:</p>
+      <p>Show detailed status information of a Cloudberry Database system:</p>
       <codeblock>gpstate -s</codeblock>
       <p>Do a quick check for down segments in the coordinator host system catalog:</p>
       <codeblock>gpstate -Q</codeblock>
@@ -438,7 +438,7 @@
         instances:<codeblock>gpstate -m</codeblock></p>
       <p>Show information about the standby coordinator configuration:</p>
       <codeblock>gpstate -f</codeblock>
-      <p>Display the Greenplum software version information:</p>
+      <p>Display the Cloudberry software version information:</p>
       <codeblock>gpstate -i</codeblock>
     </section>
     <section id="section7">

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
 #
 
 """
@@ -705,6 +705,7 @@ class GpStandbyStart(CoordinatorStart, object):
         cmd = GpStandbyStart(name, datadir, port, ctxt=REMOTE,
                              remoteHost=host, era=era,
                              wrapper=wrapper, wrapper_args=wrapper_args)
+
         cmd.run(validateAfter=True)
         return cmd
 
@@ -801,6 +802,27 @@ class GpStop(Command):
     @staticmethod
     def local(name,coordinatorOnly=False, verbose=False, quiet=False,restart=False, fast=False, force=False, datadir=None, parallel=None, reload=False):
         cmd=GpStop(name,coordinatorOnly,verbose,quiet,restart,fast,force,datadir,parallel,reload)
+        cmd.run(validateAfter=True)
+        return cmd
+
+#-----------------------------------------------
+class GpFts(Command):
+    """
+    Use some tool functions provided by gpfts.
+    More usage `gpfts -h` 
+    """
+    def __init__(self, name, etcd_conf=None, warp_args=-1, fts_file=None, ctxt=LOCAL, remoteHost=None):
+        self.cmdStr = "$GPHOME/bin/gpfts -d /tmp/log"
+        if etcd_conf:
+            self.cmdStr += " -F %s" % etcd_conf
+        self.cmdStr += " -W %d" % warp_args
+        if warp_args == 1 and fts_file:
+            self.cmdStr += " -L %d" % fts_file
+        Command.__init__(self,name, self.cmdStr, ctxt, remoteHost)
+
+    @staticmethod
+    def local(name, etcd_conf=None, warp_args=-1, fts_file=None):
+        cmd=GpFts(name, etcd_conf, warp_args, fts_file)
         cmd.run(validateAfter=True)
         return cmd
 
@@ -1501,7 +1523,7 @@ def chk_gpdb_id(username):
     path="%s/bin/initdb" % GPHOME
     if not os.access(path,os.X_OK):
         raise GpError("File permission mismatch.  The current user %s does not have sufficient"
-                      " privileges to run the Greenplum binaries and management utilities." % username )
+                      " privileges to run the Cloudberry binaries and management utilities." % username )
 
 
 def chk_local_db_running(datadir, port):
@@ -1549,7 +1571,7 @@ def get_lockfile_name(port):
 
 
 def get_local_db_mode(coordinator_data_dir):
-    """ Gets the mode Greenplum is running in.
+    """ Gets the mode Cloudberry is running in.
         Possible return values are:
             'NORMAL'
             'RESTRICTED'
@@ -1558,7 +1580,7 @@ def get_local_db_mode(coordinator_data_dir):
     mode = 'NORMAL'
 
     if not os.path.exists(coordinator_data_dir + '/postmaster.pid'):
-        raise Exception('Greenplum database appears to be stopped')
+        raise Exception('Cloudberry database appears to be stopped')
 
     try:
         fp = open(coordinator_data_dir + '/postmaster.opts', 'r')
@@ -1568,7 +1590,7 @@ def get_local_db_mode(coordinator_data_dir):
         elif optline.find('gp_role=utility') > 0:
             mode = 'UTILITY'
     except OSError:
-        raise Exception('Failed to open %s.  Is Greenplum Database running?' % coordinator_data_dir + '/postmaster.opts')
+        raise Exception('Failed to open %s.  Is Cloudberry Database running?' % coordinator_data_dir + '/postmaster.opts')
     except IOError:
         raise Exception('Failed to read options from %s' % coordinator_data_dir + '/postmaster.opts')
     finally:

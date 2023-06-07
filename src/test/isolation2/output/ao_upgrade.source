@@ -149,7 +149,7 @@ SET
 -- Ensure we're using a bitmap scan for our tests. Upgrade note to developers:
 -- the only thing that this test needs to verify is that a fetch-based scan is
 -- in use. Other diffs are fine.
-EXPLAIN SELECT n FROM ao_upgrade_test WHERE n = (9 !);
+EXPLAIN SELECT n FROM ao_upgrade_test WHERE n = factorial(9);
  QUERY PLAN                                                                                            
 -------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                      
@@ -160,7 +160,7 @@ EXPLAIN SELECT n FROM ao_upgrade_test WHERE n = (9 !);
  Settings:  enable_seqscan=off                                                                         
  Optimizer status: Postgres query optimizer                                                              
 (7 rows)
-EXPLAIN SELECT n FROM aocs_upgrade_test WHERE n = (9 !);
+EXPLAIN SELECT n FROM aocs_upgrade_test WHERE n = factorial(9);
  QUERY PLAN                                                                                                 
 ------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                           
@@ -171,7 +171,7 @@ EXPLAIN SELECT n FROM aocs_upgrade_test WHERE n = (9 !);
  Settings:  enable_seqscan=off                                                                              
  Optimizer status: Postgres query optimizer                                                                   
 (7 rows)
-EXPLAIN SELECT n FROM aocs_rle_upgrade_test WHERE n = (9 !);
+EXPLAIN SELECT n FROM aocs_rle_upgrade_test WHERE n = factorial(9);
  QUERY PLAN                                                                                                     
 ----------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                               
@@ -183,17 +183,17 @@ EXPLAIN SELECT n FROM aocs_rle_upgrade_test WHERE n = (9 !);
  Optimizer status: Postgres query optimizer                                                                       
 (7 rows)
 
-SELECT n FROM ao_upgrade_test WHERE n = (9 !);
+SELECT n FROM ao_upgrade_test WHERE n = factorial(9);
  n      
 --------
  362880 
 (1 row)
-SELECT n FROM aocs_upgrade_test WHERE n = (9 !);
+SELECT n FROM aocs_upgrade_test WHERE n = factorial(9);
  n      
 --------
  362880 
 (1 row)
-SELECT n FROM aocs_rle_upgrade_test WHERE n = (9 !);
+SELECT n FROM aocs_rle_upgrade_test WHERE n = factorial(9);
  n      
 --------
  362880 

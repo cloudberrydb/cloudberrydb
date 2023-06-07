@@ -10,7 +10,7 @@
  * separate state in pg_stat_activity. It's also potentially more efficient.
  *
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -107,12 +107,12 @@ static void cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
 static void	cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds);
 
 static bool	cdbdisp_checkForCancel_async(struct CdbDispatcherState *ds);
-static int cdbdisp_getWaitSocketFd_async(struct CdbDispatcherState *ds);
+static int *cdbdisp_getWaitSocketFds_async(struct CdbDispatcherState *ds, int *nsocks);
 
 DispatcherInternalFuncs DispatcherAsyncFuncs =
 {
 	cdbdisp_checkForCancel_async,
-	cdbdisp_getWaitSocketFd_async,
+	cdbdisp_getWaitSocketFds_async,
 	cdbdisp_makeDispatchParams_async,
 	cdbdisp_checkAckMessage_async,
 	cdbdisp_checkDispatchResult_async,
@@ -160,18 +160,27 @@ cdbdisp_checkForCancel_async(struct CdbDispatcherState *ds)
 }
 
 /*
- * Return a FD to wait for, after dispatching.
+ * Return all FDs to wait for, after dispatching.
+ *
+ * nsocks is the returned socket fds number (as an output param):
+ *
+ * Return value is the array of waiting socket fds.
+ * It's be palloced in this function, so caller need to pfree it.
  */
-static int
-cdbdisp_getWaitSocketFd_async(struct CdbDispatcherState *ds)
+static int *
+cdbdisp_getWaitSocketFds_async(struct CdbDispatcherState *ds, int *nsocks)
 {
 	CdbDispatchCmdAsync *pParms = (CdbDispatchCmdAsync *) ds->dispatchParams;
 	int			i;
+	int			*fds = NULL;
 
 	Assert(ds);
 
+	*nsocks = 0;
 	if (proc_exit_inprogress)
-		return PGINVALID_SOCKET;
+		return NULL;
+
+	fds = palloc(pParms->dispatchCount * sizeof(int));
 
 	/*
 	 * This should match the logic in cdbdisp_checkForCancel_async(). In
@@ -187,18 +196,12 @@ cdbdisp_getWaitSocketFd_async(struct CdbDispatcherState *ds)
 		dispatchResult = pParms->dispatchResultPtrArray[i];
 		segdbDesc = dispatchResult->segdbDesc;
 
-		/*
-		 * Already finished with this QE?
-		 */
-		if (!dispatchResult->stillRunning)
-			continue;
-
 		Assert(!cdbconn_isBadConnection(segdbDesc));
 
-		return PQsocket(segdbDesc->conn);
+		(fds)[(*nsocks)++] = PQsocket(segdbDesc->conn);
 	}
 
-	return PGINVALID_SOCKET;
+	return fds;
 }
 
 /*
@@ -454,8 +457,10 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 	int			timeout = 0;
 	bool		sentSignal = false;
 	struct pollfd *fds;
-	uint8 ftsVersion = 0;
 	struct timeval start_ts, now;
+#ifdef USE_INTERNAL_FTS
+	uint8 ftsVersion = 0;
+#endif
 	int64		diff_us;
 
 	db_count = pParms->dispatchCount;
@@ -495,8 +500,6 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 		for (i = 0; i < db_count; i++)
 		{
 			dispatchResult = pParms->dispatchResultPtrArray[i];
-			segdbDesc = dispatchResult->segdbDesc;
-			conn = segdbDesc->conn;
 
 			if (pParms->waitMode == DISPATCH_WAIT_ACK_ROOT &&
 				checkAckMessage(dispatchResult, pParms->ackMessage))
@@ -507,9 +510,17 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 
 			/*
 			 * Already finished with this QE?
+			 * NB: Since we might call cdbdisp_termResult before checkDispatchResult, 
+			 * `stillRunning` should be checked before accessing segdbDesc->conn.
+			 * One case it will happen is that you cancel the query after 
+			 * mppExecutorFinishup->cdbdisp_destroyDispatcherState and before 
+			 * the Finishing is done.
 			 */
 			if (!dispatchResult->stillRunning)
 				continue;
+
+			segdbDesc = dispatchResult->segdbDesc;
+			conn = segdbDesc->conn;
 
 			Assert(!cdbconn_isBadConnection(segdbDesc));
 
@@ -610,7 +621,10 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 				signalQEs(pParms);
 				sentSignal = true;
 			}
-
+#ifndef USE_INTERNAL_FTS
+			/* FTS_FIXME: need set a interval to replace fts_version */ 
+			checkSegmentAlive(pParms);
+#else
 			/*
 			 * This code relies on FTS being triggered at regular
 			 * intervals. Iff FTS detects change in configuration
@@ -623,7 +637,7 @@ checkDispatchResult(CdbDispatcherState *ds, int timeout_sec)
 				ftsVersion = getFtsVersion();
 				checkSegmentAlive(pParms);
 			}
-
+#endif
 			gettimeofday(&now, NULL);
 			diff_us = (now.tv_sec - start_ts.tv_sec) * 1000000;
 			diff_us += (int) now.tv_usec - (int) start_ts.tv_usec;
@@ -949,7 +963,7 @@ checkSegmentAlive(CdbDispatchCmdAsync *pParms)
 static inline void
 send_sequence_response(PGconn *conn, Oid oid, int64 last, int64 cached, int64 increment, bool overflow, bool error)
 {
-	if (pqPutMsgStart(SEQ_NEXTVAL_QUERY_RESPONSE, false, conn) < 0)
+	if (pqPutMsgStart(SEQ_NEXTVAL_QUERY_RESPONSE, conn) < 0)
 		elog(ERROR, "Failed to send sequence response: %s", PQerrorMessage(conn));
 	pqPutInt(oid, 4, conn);
 	pqPutInt(last >> 32, 4, conn);

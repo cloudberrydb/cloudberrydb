@@ -7,9 +7,9 @@
  * the nature and use of path keys.
  *
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -145,7 +145,7 @@ gen_implied_qual(PlannerInfo *root,
 	if (ctx.numReplacementsDone == 0)
 		return;
 
-	new_qualscope = pull_varnos(new_clause);
+	new_qualscope = pull_varnos(root, new_clause);
 	if (new_qualscope == NULL)
 		return;
 
@@ -171,7 +171,8 @@ gen_implied_qual(PlannerInfo *root,
 	 * equivalence class machinery, because it's derived from a clause that
 	 * wasn't either.
 	 */
-	new_rinfo = make_restrictinfo((Expr *) new_clause,
+	new_rinfo = make_restrictinfo(root,
+								  (Expr *) new_clause,
 								  old_rinfo->is_pushed_down,
 								  old_rinfo->outerjoin_delayed,
 								  old_rinfo->pseudoconstant,
@@ -376,9 +377,7 @@ generate_implied_quals(PlannerInfo *root)
  *	  entry if there's not one already.
  *
  * Note that this function must not be used until after we have completed
- * merging EquivalenceClasses.  (We don't try to enforce that here; instead,
- * equivclass.c will complain if a merge occurs after root->canon_pathkeys
- * has become nonempty.)
+ * merging EquivalenceClasses.
  */
 PathKey *
 make_canonical_pathkey(PlannerInfo *root,
@@ -388,6 +387,10 @@ make_canonical_pathkey(PlannerInfo *root,
 	PathKey    *pk;
 	ListCell   *lc;
 	MemoryContext oldcontext;
+
+	/* Can't make canonical pathkeys if the set of ECs might still change */
+	if (!root->ec_merging_done)
+		elog(ERROR, "too soon to build canonical pathkeys");
 
 	/* The passed eclass might be non-canonical, so chase up to the top */
 	while (eclass->ec_merged)
@@ -661,6 +664,60 @@ pathkeys_contained_in(List *keys1, List *keys2)
 }
 
 /*
+ * pathkeys_count_contained_in
+ *    Same as pathkeys_contained_in, but also sets length of longest
+ *    common prefix of keys1 and keys2.
+ */
+bool
+pathkeys_count_contained_in(List *keys1, List *keys2, int *n_common)
+{
+	int			n = 0;
+	ListCell   *key1,
+			   *key2;
+
+	/*
+	 * See if we can avoiding looping through both lists. This optimization
+	 * gains us several percent in planning time in a worst-case test.
+	 */
+	if (keys1 == keys2)
+	{
+		*n_common = list_length(keys1);
+		return true;
+	}
+	else if (keys1 == NIL)
+	{
+		*n_common = 0;
+		return true;
+	}
+	else if (keys2 == NIL)
+	{
+		*n_common = 0;
+		return false;
+	}
+
+	/*
+	 * If both lists are non-empty, iterate through both to find out how many
+	 * items are shared.
+	 */
+	forboth(key1, keys1, key2, keys2)
+	{
+		PathKey    *pathkey1 = (PathKey *) lfirst(key1);
+		PathKey    *pathkey2 = (PathKey *) lfirst(key2);
+
+		if (pathkey1 != pathkey2)
+		{
+			*n_common = n;
+			return false;
+		}
+		n++;
+	}
+
+	/* If we ended with a null value, then we've processed the whole list. */
+	*n_common = n;
+	return (key1 == NULL);
+}
+
+/*
  * get_cheapest_path_for_pathkeys
  *	  Find the cheapest path (according to the specified criterion) that
  *	  satisfies the given pathkeys and parameterization.
@@ -870,7 +927,7 @@ build_index_pathkeys(PlannerInfo *root,
 			 * should stop considering index columns; any lower-order sort
 			 * keys won't be useful either.
 			 */
-			if (!indexcol_is_bool_constant_for_query(index, i))
+			if (!indexcol_is_bool_constant_for_query(root, index, i))
 				break;
 		}
 
@@ -2116,7 +2173,7 @@ make_inner_pathkeys_for_merge(PlannerInfo *root,
 			if (!lop)
 				elog(ERROR, "too few pathkeys for mergeclauses");
 			opathkey = (PathKey *) lfirst(lop);
-			lop = lnext(lop);
+			lop = lnext(outer_pathkeys, lop);
 			lastoeclass = opathkey->pk_eclass;
 			if (oeclass != lastoeclass)
 				elog(ERROR, "outer pathkeys do not match mergeclause");
@@ -2196,7 +2253,7 @@ trim_mergeclauses_for_inner_pathkeys(PlannerInfo *root,
 	lip = list_head(pathkeys);
 	pathkey = (PathKey *) lfirst(lip);
 	pathkey_ec = pathkey->pk_eclass;
-	lip = lnext(lip);
+	lip = lnext(pathkeys, lip);
 	matched_pathkey = false;
 
 	/* Scan mergeclauses to see how many we can use */
@@ -2223,7 +2280,7 @@ trim_mergeclauses_for_inner_pathkeys(PlannerInfo *root,
 				break;
 			pathkey = (PathKey *) lfirst(lip);
 			pathkey_ec = pathkey->pk_eclass;
-			lip = lnext(lip);
+			lip = lnext(pathkeys, lip);
 			matched_pathkey = false;
 		}
 
@@ -2371,26 +2428,26 @@ right_merge_direction(PlannerInfo *root, PathKey *pathkey)
  *		Count the number of pathkeys that are useful for meeting the
  *		query's requested output ordering.
  *
- * Unlike merge pathkeys, this is an all-or-nothing affair: it does us
- * no good to order by just the first key(s) of the requested ordering.
- * So the result is always either 0 or list_length(root->query_pathkeys).
+ * Because we the have the possibility of incremental sort, a prefix list of
+ * keys is potentially useful for improving the performance of the requested
+ * ordering. Thus we return 0, if no valuable keys are found, or the number
+ * of leading keys shared by the list and the requested ordering..
  */
 static int
 pathkeys_useful_for_ordering(PlannerInfo *root, List *pathkeys)
 {
+	int			n_common_pathkeys;
+
 	if (root->query_pathkeys == NIL)
 		return 0;				/* no special ordering requested */
 
 	if (pathkeys == NIL)
 		return 0;				/* unordered path */
 
-	if (pathkeys_contained_in(root->query_pathkeys, pathkeys))
-	{
-		/* It's useful ... or at least the first N keys are */
-		return list_length(root->query_pathkeys);
-	}
+	(void) pathkeys_count_contained_in(root->query_pathkeys, pathkeys,
+									   &n_common_pathkeys);
 
-	return 0;					/* path ordering not useful */
+	return n_common_pathkeys;
 }
 
 /*

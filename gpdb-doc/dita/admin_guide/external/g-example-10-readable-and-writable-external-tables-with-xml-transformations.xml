@@ -4,7 +4,7 @@
 <topic id="topic54">
   <title>Example 10—Readable and Writable External Tables with XML Transformations</title>
   <body>
-    <p>Greenplum Database can read and write XML data to and from external tables with gpfdist. For
+    <p>Cloudberry Database can read and write XML data to and from external tables with gpfdist. For
       information about setting up an XML transform, see <xref
         href="../load/topics/transforming-xml-data.xml#topic75"/>. </p>
   </body>

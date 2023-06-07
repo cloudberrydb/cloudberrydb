@@ -70,22 +70,16 @@ from basictest;
 (3 rows)
 
 -- check that union/case/coalesce type resolution handles domains properly
-select coalesce(4::domainint4, 7) is of (int4) as t;
- t 
----
- t
+select pg_typeof(coalesce(4::domainint4, 7));
+ pg_typeof 
+-----------
+ integer
 (1 row)
 
-select coalesce(4::domainint4, 7) is of (domainint4) as f;
- f 
----
- f
-(1 row)
-
-select coalesce(4::domainint4, 7::domainint4) is of (domainint4) as t;
- t 
----
- t
+select pg_typeof(coalesce(4::domainint4, 7::domainint4));
+ pg_typeof  
+------------
+ domainint4
 (1 row)
 
 drop table basictest;
@@ -270,8 +264,8 @@ explain (verbose, costs off)
    ->  Seq Scan on public.dcomptable
          Output: ROW(((d1).r - '1'::double precision), ((d1).i + '1'::double precision)), ctid, gp_segment_id
          Filter: ((dcomptable.d1).i > '0'::double precision)
+ Settings: optimizer = 'on'
  Optimizer: Postgres query optimizer
- Settings: optimizer=off
 (6 rows)
 
 create rule silly as on delete to dcomptable do instead
@@ -289,6 +283,29 @@ Rules:
   WHERE (dcomptable.d1).i > 0::double precision
 Distributed Replicated
 
+create function makedcomp(r float8, i float8) returns dcomptype
+as 'select row(r, i)' language sql;
+select makedcomp(1,2);
+ makedcomp 
+-----------
+ (1,2)
+(1 row)
+
+select makedcomp(2,1);  -- fail
+ERROR:  value for domain dcomptype violates check constraint "c1"
+select * from makedcomp(1,2) m;
+ r | i 
+---+---
+ 1 | 2
+(1 row)
+
+select m, m is not null from makedcomp(1,2) m;
+   m   | ?column? 
+-------+----------
+ (1,2) | t
+(1 row)
+
+drop function makedcomp(float8, float8);
 drop table dcomptable;
 drop type comptype cascade;
 NOTICE:  drop cascades to type dcomptype
@@ -321,17 +338,13 @@ NOTICE:  drop cascades to type dcomptype
 create type comptype as (r float8, i float8);
 create domain dcomptypea as comptype[];
 create table dcomptable (d1 dcomptypea unique);
-ERROR:  data type dcomptypea has no default operator class for access method "hash"
-HINT:  You must specify an operator class or define a default operator class for the data type.
--- GPDB: marking the column as 'unique' fails, because a unique column needs
--- to be part of the distribution key, and composite types can't be used as
--- distribution keys because they have no hash opclasses.
-create table dcomptable (d1 dcomptypea /*unique*/);
 create index on dcomptable (d1);
 insert into dcomptable values (array[row(1,2)]::dcomptypea);
 insert into dcomptable values (array[row(3,4), row(5,6)]::comptype[]);
 insert into dcomptable values (array[row(7,8)::comptype, row(9,10)::comptype]);
---insert into dcomptable values (array[row(1,2)]::dcomptypea);  -- fail on uniqueness
+insert into dcomptable values (array[row(1,2)]::dcomptypea);  -- fail on uniqueness
+ERROR:  duplicate key value violates unique constraint "dcomptable_d1_key"  (seg1 127.0.0.1:7003 pid=999195)
+DETAIL:  Key (d1)=({"(1,2)"}) already exists.
 insert into dcomptable (d1[1]) values(row(9,10));
 insert into dcomptable (d1[1].r) values(11);
 select * from dcomptable;
@@ -408,15 +421,18 @@ select * from dcomptable;
 explain (verbose, costs off)
   update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
     where d1[1].i > 0;
-                                                          QUERY PLAN                                                           
--------------------------------------------------------------------------------------------------------------------------------
+                                                                           QUERY PLAN                                                                           
+----------------------------------------------------------------------------------------------------------------------------------------------------------------
  Update on public.dcomptable
-   ->  Seq Scan on public.dcomptable
-         Output: (d1[1].r := (d1[1].r - '1'::double precision))[1].i := (d1[1].i + '1'::double precision), ctid, gp_segment_id
-         Filter: (dcomptable.d1[1].i > '0'::double precision)
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
+         Output: (((d1[1].r := (d1[1].r - '1'::double precision))[1].i := (d1[1].i + '1'::double precision))::dcomptypea), ctid, gp_segment_id, (DMLAction)
+         ->  Split
+               Output: (((d1[1].r := (d1[1].r - '1'::double precision))[1].i := (d1[1].i + '1'::double precision))::dcomptypea), ctid, gp_segment_id, DMLAction
+               ->  Seq Scan on public.dcomptable
+                     Output: (d1[1].r := (d1[1].r - '1'::double precision))[1].i := (d1[1].i + '1'::double precision), ctid, gp_segment_id
+                     Filter: (dcomptable.d1[1].i > '0'::double precision)
  Optimizer: Postgres query optimizer
- Settings: optimizer=off
-(6 rows)
+(9 rows)
 
 create rule silly as on delete to dcomptable do instead
   update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
@@ -428,11 +444,12 @@ create rule silly as on delete to dcomptable do instead
  d1     | dcomptypea |           |          |         | extended |              | 
 Indexes:
     "dcomptable_d1_idx" btree (d1)
+    "dcomptable_d1_key" UNIQUE CONSTRAINT, btree (d1)
 Rules:
     silly AS
     ON DELETE TO dcomptable DO INSTEAD  UPDATE dcomptable SET d1[1].r = dcomptable.d1[1].r - 1::double precision, d1[1].i = dcomptable.d1[1].i + 1::double precision
   WHERE dcomptable.d1[1].i > 0::double precision
-Distributed randomly
+Distributed by: (d1)
 
 drop table dcomptable;
 drop type comptype cascade;
@@ -532,6 +549,36 @@ LINE 1: update dposintatable set (f1[2])[1] = array[98];
 drop table dposintatable;
 drop domain posint cascade;
 NOTICE:  drop cascades to type dposinta
+-- Test arrays over domains of composite
+create type comptype as (cf1 int, cf2 int);
+create domain dcomptype as comptype check ((value).cf1 > 0);
+create table dcomptable (f1 dcomptype[]);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into dcomptable values (null);
+update dcomptable set f1[1].cf2 = 5;
+table dcomptable;
+NOTICE:  One or more columns in the following table(s) do not have statistics: dcomptable
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+    f1    
+----------
+ {"(,5)"}
+(1 row)
+
+update dcomptable set f1[1].cf1 = -1;  -- fail
+ERROR:  value for domain dcomptype violates check constraint "dcomptype_check"  (seg2 slice1 127.0.0.1:7004 pid=999259)
+update dcomptable set f1[1].cf1 = 1;
+table dcomptable;
+NOTICE:  One or more columns in the following table(s) do not have statistics: dcomptable
+HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
+    f1     
+-----------
+ {"(1,5)"}
+(1 row)
+
+drop table dcomptable;
+drop type comptype cascade;
+NOTICE:  drop cascades to type dcomptype
 -- Test not-null restrictions
 create domain dnotnull varchar(15) NOT NULL;
 create domain dnull    varchar(15);
@@ -544,7 +591,7 @@ create table nulltest
            , col5 dcheck CHECK (col5 IN ('c', 'd'))
            );
 INSERT INTO nulltest DEFAULT VALUES;
-ERROR:  null value in column "col3" violates not-null constraint  (seg0 127.0.0.1:7002 pid=20315)
+ERROR:  null value in column "col3" of relation "nulltest" violates not-null constraint
 DETAIL:  Failing row contains (null, null, null, null, null).
 INSERT INTO nulltest values ('a', 'b', 'c', 'd', 'c');  -- Good
 insert into nulltest values ('a', 'b', 'c', 'd', NULL);
@@ -557,12 +604,12 @@ ERROR:  domain dnotnull does not allow null values
 INSERT INTO nulltest values ('a', NULL, 'c', 'd', 'c');
 ERROR:  domain dnotnull does not allow null values
 INSERT INTO nulltest values ('a', 'b', NULL, 'd', 'c');
-ERROR:  null value in column "col3" violates not-null constraint
+ERROR:  null value in column "col3" of relation "nulltest" violates not-null constraint
 DETAIL:  Failing row contains (a, b, null, d, c).
 INSERT INTO nulltest values ('a', 'b', 'c', NULL, 'd'); -- Good
 -- Test copy
 COPY nulltest FROM stdin; --fail
-ERROR:  null value in column "col3" violates not-null constraint
+ERROR:  null value in column "col3" of relation "nulltest" violates not-null constraint
 DETAIL:  Failing row contains (a, b, null, d, d).
 CONTEXT:  COPY nulltest, line 1: "a	b	\N	d	d"
 COPY nulltest FROM stdin; --fail
@@ -616,14 +663,14 @@ create table defaulttest
             , col8 ddef5
             );
 insert into defaulttest(col4) values(0); -- fails, col5 defaults to null
-ERROR:  null value in column "col5" violates not-null constraint
+ERROR:  null value in column "col5" of relation "defaulttest" violates not-null constraint
 DETAIL:  Failing row contains (3, 12, 5, 0, null, 88, 8000, 12.12).
 alter table defaulttest alter column col5 drop default;
 insert into defaulttest default values; -- succeeds, inserts domain default
 -- We used to treat SET DEFAULT NULL as equivalent to DROP DEFAULT; wrong
 alter table defaulttest alter column col5 set default null;
 insert into defaulttest(col4) values(0); -- fails
-ERROR:  null value in column "col5" violates not-null constraint
+ERROR:  null value in column "col5" of relation "defaulttest" violates not-null constraint
 DETAIL:  Failing row contains (3, 12, 5, 0, null, 88, 8000, 12.12).
 alter table defaulttest alter column col5 drop default;
 insert into defaulttest default values;
@@ -717,7 +764,7 @@ NOTICE:  constraint "nonexistent" of domain "con" does not exist, skipping
 -- Test ALTER DOMAIN .. CONSTRAINT .. NOT VALID
 create domain things AS INT;
 CREATE TABLE thethings (id int, stuff things);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO thethings (stuff) VALUES (55);
 ALTER DOMAIN things ADD CONSTRAINT meow CHECK (VALUE < 11);

@@ -8,7 +8,7 @@
  * non-planner code.  Declarations here are meant for use by other
  * planner modules.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/planner.h
@@ -25,6 +25,7 @@
 
 /* Hook for plugins to get control in planner() */
 typedef PlannedStmt *(*planner_hook_type) (Query *parse,
+										   const char *query_string,
 										   int cursorOptions,
 										   ParamListInfo boundParams);
 extern PGDLLIMPORT planner_hook_type planner_hook;
@@ -38,7 +39,8 @@ typedef void (*create_upper_paths_hook_type) (PlannerInfo *root,
 extern PGDLLIMPORT create_upper_paths_hook_type create_upper_paths_hook;
 
 
-extern PlannedStmt *standard_planner(Query *parse, int cursorOptions,
+extern PlannedStmt *standard_planner(Query *parse, const char *query_string,
+									 int cursorOptions,
 									 ParamListInfo boundParams);
 
 extern PlannerInfo *subquery_planner(PlannerGlobal *glob, Query *parse,

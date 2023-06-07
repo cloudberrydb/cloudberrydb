@@ -29,6 +29,8 @@ REGRESS = test_ddl_deparse \
 	defprivs \
 	matviews
 
+REGRESS_OPTS += --init-file=$(top_builddir)/src/test/regress/init_file
+
 EXTRA_INSTALL = contrib/pg_stat_statements
 
 ifdef USE_PGXS

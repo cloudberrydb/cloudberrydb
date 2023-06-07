@@ -2,9 +2,9 @@
  *
  * cdbhash.c
  *	  Provides hashing routines to support consistant data distribution/location
- *    within Greenplum Database.
+ *    within Cloudberry Database.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -68,7 +68,7 @@ static inline int32 jump_consistent_hash(uint64 key, int32 num_segments);
  * In here we set the variables that should not change in the scope of the newly created
  * CdbHash, these are:
  *
- * 1 - number of segments in Greenplum Database.
+ * 1 - number of segments in Cloudberry Database.
  * 2 - reduction method.
  * 3 - distribution key column hash functions.
  *
@@ -186,8 +186,7 @@ cdbhash(CdbHash *h, int attno, Datum datum, bool isnull)
 			uint32		hkey;
 
 			InitFunctionCallInfoData(*fcinfo, &h->hashfuncs[attno - 1], 1,
-									 /* GPDB_12_MERGE_FIXME: always use default collation. Is that OK? */
-									 DEFAULT_COLLATION_OID,
+									 DEFAULT_COLLATION_OID, /* have to specify collation for attribute of text or bpchar */
 									 NULL, NULL);
 
 			fcinfo->args[0].value = datum;
@@ -240,7 +239,7 @@ cdbhashreduce(CdbHash *h)
 {
 	int			result = 0;		/* TODO: what is a good initialization value?
 								 * could we guarantee at this point that there
-								 * will not be a negative segid in Greenplum
+								 * will not be a negative segid in Cloudberry
 								 * Database and therefore initialize to this
 								 * value for error checking? */
 

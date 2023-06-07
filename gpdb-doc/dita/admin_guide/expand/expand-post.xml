@@ -15,12 +15,12 @@
     <title>Removing the Expansion Schema</title>
     <body>
       <p>You must remove the existing expansion schema before you can perform another expansion
-        operation on the Greenplum system.</p>
+        operation on the Cloudberry system.</p>
       <p>You can safely remove the expansion schema after the expansion operation is complete and
-        verified. To run another expansion operation on a Greenplum system, first remove the
+        verified. To run another expansion operation on a Cloudberry system, first remove the
         existing expansion schema.</p>
       <ol id="ol_kpd_w42_hpb">
-        <li id="no163298">Log in on the master host as the user who will be running your Greenplum
+        <li id="no163298">Log in on the master host as the user who will be running your Cloudberry
           Database system (for example, <codeph>gpadmin</codeph>).</li>
         <li id="no163294">Run the <codeph>gpexpand</codeph> utility with the <codeph>-c</codeph>
           option. For example:<codeblock>$ gpexpand -c</codeblock><note type="note">Some systems
@@ -31,7 +31,7 @@
   <topic id="topic_pxl_1q2_hpb">
     <title>Setting Up PXF on the New Host</title>
     <body>
-      <p>If you are using PXF in your Greenplum Database cluster, you must perform some
+      <p>If you are using PXF in your Cloudberry Database cluster, you must perform some
         configuration steps on the new hosts.</p>
       <p>There are different steps to follow depending on your PXF version and the type of
         installation.</p>
@@ -41,7 +41,7 @@
           <li>You must <xref href="../../../pxf/latest/installing_pxf.html"
                 >install</xref> the same version of the PXF
            <codeph>rpm</codeph> or <codeph>deb</codeph> on the new hosts.</li>
-          <li>Log into the Greenplum Master and run the following
+          <li>Log into the Cloudberry Master and run the following
             commands:<codeblock>gpadmin@gpmaster$ pxf cluster reset
 gpadmin@gpmaster$ pxf cluster init</codeblock></li>
         </ul>
@@ -52,7 +52,7 @@ gpadmin@gpmaster$ pxf cluster init</codeblock></li>
           <li>You must <xref href="../../../pxf/latest/installing_pxf.html"
                 >install</xref> the same version of the PXF
            <codeph>rpm</codeph> or <codeph>deb</codeph> on the new hosts.</li>
-          <li>Log into the Greenplum Master and run the following commands:
+          <li>Log into the Cloudberry Master and run the following commands:
             <codeblock>gpadmin@gpmaster$ pxf cluster register
 gpadmin@gpmaster$ pxf cluster sync</codeblock></li>
         </ul>

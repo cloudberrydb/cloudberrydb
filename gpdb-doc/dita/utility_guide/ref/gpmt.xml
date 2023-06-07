@@ -3,7 +3,7 @@
 <topic id="topic_vzy_mkx_bpb">
   <title>gpmt</title>
   <body>
-    <p> GPMT (Greenplum Magic Tool) provides a set of diagnostic utilities to troubleshoot and
+    <p> GPMT (Cloudberry Magic Tool) provides a set of diagnostic utilities to troubleshoot and
       resolve common supportability issues, along with a consistent method for gathering information
       required by VMware Support.</p>
     <section>
@@ -19,11 +19,11 @@
     </section>
     <section>
       <title>Tools</title>
-      <sectiondiv><b>Greenplum</b></sectiondiv>
+      <sectiondiv><b>Cloudberry</b></sectiondiv>
       <parml>
         <plentry>
           <pt><xref href="gpmt-analyze_session.xml" type="topic" format="dita">analyze_session</xref></pt>
-          <pd>Collect information from a hung Greenplum Database session for remote analysis.</pd>
+          <pd>Collect information from a hung Cloudberry Database session for remote analysis.</pd>
         </plentry>
         <plentry>
           <pt><varname>catalogbackup</varname></pt>
@@ -32,15 +32,15 @@
         <plentry>
           <pt><xref href="gpmt-gp_log_collector.xml" type="topic" format="dita">gp_log_collector</xref>
           </pt>
-          <pd>Basic Greenplum Database log collection utility.</pd>
+          <pd>Basic Cloudberry Database log collection utility.</pd>
         </plentry>
         <plentry>
           <pt><varname>gpcheckcat</varname></pt>
-          <pd>For VMware Support use only. Greenplum Database gpcheckcat log analysis.</pd>
+          <pd>For VMware Support use only. Cloudberry Database gpcheckcat log analysis.</pd>
         </plentry>
         <plentry>
           <pt><varname>gpcheckup</varname></pt>
-          <pd>For VMware Support use only. Greenplum Database Health Check.</pd>
+          <pd>For VMware Support use only. Cloudberry Database Health Check.</pd>
         </plentry>
         <plentry>
           <pt><xref href="gpmt-gpstatscheck.xml" type="topic" format="dita">gpstatscheck</xref></pt>

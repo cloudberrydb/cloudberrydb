@@ -9,9 +9,13 @@ subdir = src/test/isolation
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
-override CPPFLAGS := -I$(srcdir) -I$(libpq_srcdir) -I$(srcdir)/../regress $(CPPFLAGS)
+override CPPFLAGS := -I. -I$(srcdir) -I$(libpq_srcdir) \
+	-I$(srcdir)/../regress $(CPPFLAGS)
 
-OBJS =  specparse.o isolationtester.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	isolationtester.o \
+	specparse.o
 
 all: isolationtester$(X) pg_isolation_regress$(X)
 
@@ -35,7 +39,16 @@ explain.pm:
 # installcheck-world" would spawn multiple, concurrent builds in this
 # directory.  Later builds would overwrite files while earlier builds are
 # reading them, causing occasional failures.
-install: | all
+install: all installdirs
+	$(INSTALL_PROGRAM) pg_isolation_regress$(X) '$(DESTDIR)$(pgxsdir)/$(subdir)/pg_isolation_regress$(X)'
+	$(INSTALL_PROGRAM) isolationtester$(X) '$(DESTDIR)$(pgxsdir)/$(subdir)/isolationtester$(X)'
+
+installdirs:
+	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/$(subdir)'
+
+uninstall:
+	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/pg_isolation_regress$(X)'
+	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/isolationtester$(X)'
 
 submake-regress:
 	$(MAKE) -C $(top_builddir)/src/test/regress pg_regress.o
@@ -47,7 +60,7 @@ pg_isolation_regress$(X): isolation_main.o pg_regress.o $(WIN32RES)
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
 
 isolationtester$(X): $(OBJS) | submake-libpq submake-libpgport
-	$(CC) $(CFLAGS) $^ $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
+	$(CC) $(CFLAGS) $^ $(libpq_pgport) $(LDFLAGS) $(rpath) $(LDFLAGS_EX) $(LIBS) -o $@
 
 distprep: specparse.c specscanner.c
 
@@ -79,12 +92,11 @@ installcheck: all gpdiff.pl gpstringsubs.pl install-tests
 check: all
 	$(pg_isolation_regress_check) --schedule=$(srcdir)/isolation_schedule
 
-# Versions of the check tests that include the prepared_transactions test
-# It only makes sense to run these if set up to use prepared transactions,
-# via TEMP_CONFIG for the check case, or via the postgresql.conf for the
-# installcheck case.
+# Non-default tests.  It only makes sense to run these if set up to use
+# prepared transactions, via TEMP_CONFIG for the check case, or via the
+# postgresql.conf for the installcheck case.
 installcheck-prepared-txns: all temp-install
-	$(pg_isolation_regress_installcheck) --schedule=$(srcdir)/isolation_schedule prepared-transactions
+	$(pg_isolation_regress_installcheck) --schedule=$(srcdir)/isolation_schedule prepared-transactions prepared-transactions-cic
 
 check-prepared-txns: all temp-install
-	$(pg_isolation_regress_check) --schedule=$(srcdir)/isolation_schedule prepared-transactions
+	$(pg_isolation_regress_check) --schedule=$(srcdir)/isolation_schedule prepared-transactions prepared-transactions-cic

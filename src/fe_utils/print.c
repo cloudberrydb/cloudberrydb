@@ -8,7 +8,7 @@
  * pager open/close functions, all that stuff came with it.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/fe_utils/print.c
@@ -19,7 +19,6 @@
 
 #include <limits.h>
 #include <math.h>
-#include <signal.h>
 #include <unistd.h>
 
 #ifndef WIN32
@@ -30,11 +29,9 @@
 #include <termios.h>
 #endif
 
-#include "fe_utils/print.h"
-
 #include "catalog/pg_type_d.h"
 #include "fe_utils/mbprint.h"
-
+#include "fe_utils/print.h"
 
 /*
  * If the calling program doesn't have any mechanism for setting
@@ -43,7 +40,7 @@
  * Note: print.c's general strategy for when to check cancel_pressed is to do
  * so at completion of each row of output.
  */
-volatile bool cancel_pressed = false;
+volatile sig_atomic_t cancel_pressed = false;
 
 static bool always_ignore_sigpipe = false;
 
@@ -305,20 +302,6 @@ format_numeric_locale(const char *my_str)
 	Assert(strlen(new_str) <= new_len);
 
 	return new_str;
-}
-
-
-/*
- * fputnbytes: print exactly N bytes to a file
- *
- * We avoid using %.*s here because it can misbehave if the data
- * is not valid in what libc thinks is the prevailing encoding.
- */
-static void
-fputnbytes(FILE *f, const char *str, size_t n)
-{
-	while (n-- > 0)
-		fputc(*str++, f);
 }
 
 
@@ -913,7 +896,8 @@ print_aligned_text(const printTableContent *cont, FILE *fout, bool is_pager)
 
 			more_col_wrapping = col_count;
 			curr_nl_line = 0;
-			memset(header_done, false, col_count * sizeof(bool));
+			if (col_count > 0)
+				memset(header_done, false, col_count * sizeof(bool));
 			while (more_col_wrapping)
 			{
 				if (opt_border == 2)
@@ -1045,16 +1029,14 @@ print_aligned_text(const printTableContent *cont, FILE *fout, bool is_pager)
 					{
 						/* spaces first */
 						fprintf(fout, "%*s", width_wrap[j] - chars_to_output, "");
-						fputnbytes(fout,
-								   (char *) (this_line->ptr + bytes_output[j]),
-								   bytes_to_output);
+						fwrite((char *) (this_line->ptr + bytes_output[j]),
+							   1, bytes_to_output, fout);
 					}
 					else		/* Left aligned cell */
 					{
 						/* spaces second */
-						fputnbytes(fout,
-								   (char *) (this_line->ptr + bytes_output[j]),
-								   bytes_to_output);
+						fwrite((char *) (this_line->ptr + bytes_output[j]),
+							   1, bytes_to_output, fout);
 					}
 
 					bytes_output[j] += bytes_to_output;
@@ -1640,8 +1622,8 @@ print_aligned_vertical(const printTableContent *cont,
 				 */
 				bytes_to_output = strlen_max_width(dlineptr[dline].ptr + offset,
 												   &target_width, encoding);
-				fputnbytes(fout, (char *) (dlineptr[dline].ptr + offset),
-						   bytes_to_output);
+				fwrite((char *) (dlineptr[dline].ptr + offset),
+					   1, bytes_to_output, fout);
 
 				chars_to_output -= target_width;
 				offset += bytes_to_output;
@@ -3350,6 +3332,9 @@ printTable(const printTableContent *cont,
 		is_local_pager = is_pager;
 	}
 
+	/* clear any pre-existing error indication on the output stream */
+	clearerr(fout);
+
 	/* print the stuff */
 
 	if (flog)
@@ -3512,8 +3497,9 @@ column_type_alignment(Oid ftype)
 		case NUMERICOID:
 		case OIDOID:
 		case XIDOID:
+		case XID8OID:
 		case CIDOID:
-		case CASHOID:
+		case MONEYOID:
 			align = 'r';
 			break;
 		default:
@@ -3621,8 +3607,6 @@ refresh_utf8format(const printTableOpt *opt)
 	popt->wrap_left = unicode_style.wrap_left;
 	popt->wrap_right = unicode_style.wrap_right;
 	popt->wrap_right_border = unicode_style.wrap_right_border;
-
-	return;
 }
 
 /*
@@ -3653,6 +3637,9 @@ strlen_max_width(unsigned char *str, int *target_width, int encoding)
 		curr_width += char_width;
 
 		str += PQmblen((char *) str, encoding);
+
+		if (str > end)			/* Don't overrun invalid string */
+			str = end;
 	}
 
 	*target_width = curr_width;

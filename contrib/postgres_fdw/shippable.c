@@ -7,13 +7,13 @@
  * data types are shippable to a remote server for execution --- that is,
  * do they exist and have the same behavior remotely as they do locally?
  * Built-in objects are generally considered shippable.  Other objects can
- * be shipped if they are white-listed by the user.
+ * be shipped if they are declared as such by the user.
  *
  * Note: there are additional filter rules that prevent shipping mutable
  * functions or functions using nonportable collations.  Those considerations
  * need not be accounted for here.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/postgres_fdw/shippable.c
@@ -23,14 +23,12 @@
 
 #include "postgres.h"
 
-#include "postgres_fdw.h"
-
 #include "access/transam.h"
 #include "catalog/dependency.h"
+#include "postgres_fdw.h"
 #include "utils/hsearch.h"
 #include "utils/inval.h"
 #include "utils/syscache.h"
-
 
 /* Hash table for caching the results of shippability lookups */
 static HTAB *ShippableCacheHash = NULL;
@@ -95,7 +93,6 @@ InitializeShippableCache(void)
 	HASHCTL		ctl;
 
 	/* Create the hash table. */
-	MemSet(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(ShippableCacheKey);
 	ctl.entrysize = sizeof(ShippableCacheEntry);
 	ShippableCacheHash =
@@ -113,7 +110,7 @@ InitializeShippableCache(void)
  *
  * Right now "shippability" is exclusively a function of whether the object
  * belongs to an extension declared by the user.  In the future we could
- * additionally have a whitelist of functions/operators declared one at a time.
+ * additionally have a list of functions/operators declared one at a time.
  */
 static bool
 lookup_shippable(Oid objectId, Oid classId, PgFdwRelationInfo *fpinfo)

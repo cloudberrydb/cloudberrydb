@@ -14,7 +14,7 @@
  *	plan --- consider improving this someday.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * src/backend/utils/adt/ri_triggers.c
  *
@@ -36,9 +36,9 @@
 #include "executor/executor.h"
 #include "executor/spi.h"
 #include "lib/ilist.h"
+#include "miscadmin.h"
 #include "parser/parse_coerce.h"
 #include "parser/parse_relation.h"
-#include "miscadmin.h"
 #include "storage/bufmgr.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
@@ -53,7 +53,6 @@
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
-
 
 /*
  * Local definitions
@@ -102,7 +101,10 @@ typedef struct RI_ConstraintInfo
 {
 	Oid			constraint_id;	/* OID of pg_constraint entry (hash key) */
 	bool		valid;			/* successfully initialized? */
-	uint32		oidHashValue;	/* hash value of pg_constraint OID */
+	Oid			constraint_root_id; /* OID of topmost ancestor constraint;
+									 * same as constraint_id if not inherited */
+	uint32		oidHashValue;	/* hash value of constraint_id */
+	uint32		rootHashValue;	/* hash value of constraint_root_id */
 	NameData	conname;		/* name of the FK constraint */
 	Oid			pk_relid;		/* referenced relation */
 	Oid			fk_relid;		/* referencing relation */
@@ -208,9 +210,9 @@ static void ri_CheckTrigger(FunctionCallInfo fcinfo, const char *funcname,
 static const RI_ConstraintInfo *ri_FetchConstraintInfo(Trigger *trigger,
 													   Relation trig_rel, bool rel_is_pk);
 static const RI_ConstraintInfo *ri_LoadConstraintInfo(Oid constraintOid);
+static Oid	get_ri_constraint_root(Oid constrOid);
 static SPIPlanPtr ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
-							   RI_QueryKey *qkey, Relation fk_rel, Relation pk_rel,
-							   bool cache_plan);
+							   RI_QueryKey *qkey, Relation fk_rel, Relation pk_rel);
 static bool ri_PerformCheck(const RI_ConstraintInfo *riinfo,
 							RI_QueryKey *qkey, SPIPlanPtr qplan,
 							Relation fk_rel, Relation pk_rel,
@@ -385,16 +387,20 @@ RI_FKey_check(TriggerData *trigdata)
 
 		/* Prepare and save the plan */
 		qplan = ri_PlanCheck(querybuf.data, riinfo->nkeys, queryoids,
-							 &qkey, fk_rel, pk_rel, true);
+							 &qkey, fk_rel, pk_rel);
 	}
 
 	/*
 	 * Now check that foreign key exists in PK table
+	 *
+	 * XXX detectNewRows must be true when a partitioned table is on the
+	 * referenced side.  The reason is that our snapshot must be fresh in
+	 * order for the hack in find_inheritance_children() to work.
 	 */
 	ri_PerformCheck(riinfo, &qkey, qplan,
 					fk_rel, pk_rel,
 					NULL, newslot,
-					false,
+					pk_rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE,
 					SPI_OK_SELECT);
 
 	if (SPI_finish() != SPI_OK_FINISH)
@@ -512,7 +518,7 @@ ri_Check_Pk_Match(Relation pk_rel, Relation fk_rel,
 
 		/* Prepare and save the plan */
 		qplan = ri_PlanCheck(querybuf.data, riinfo->nkeys, queryoids,
-							 &qkey, fk_rel, pk_rel, true);
+							 &qkey, fk_rel, pk_rel);
 	}
 
 	/*
@@ -704,7 +710,7 @@ ri_restrict(TriggerData *trigdata, bool is_no_action)
 
 		/* Prepare and save the plan */
 		qplan = ri_PlanCheck(querybuf.data, riinfo->nkeys, queryoids,
-							 &qkey, fk_rel, pk_rel, true);
+							 &qkey, fk_rel, pk_rel);
 	}
 
 	/*
@@ -809,7 +815,7 @@ RI_FKey_cascade_del(PG_FUNCTION_ARGS)
 
 		/* Prepare and save the plan */
 		qplan = ri_PlanCheck(querybuf.data, riinfo->nkeys, queryoids,
-							 &qkey, fk_rel, pk_rel, true);
+							 &qkey, fk_rel, pk_rel);
 	}
 
 	/*
@@ -927,11 +933,11 @@ RI_FKey_cascade_upd(PG_FUNCTION_ARGS)
 			queryoids[i] = pk_type;
 			queryoids[j] = pk_type;
 		}
-		appendStringInfoString(&querybuf, qualbuf.data);
+		appendBinaryStringInfo(&querybuf, qualbuf.data, qualbuf.len);
 
 		/* Prepare and save the plan */
 		qplan = ri_PlanCheck(querybuf.data, riinfo->nkeys * 2, queryoids,
-							 &qkey, fk_rel, pk_rel, true);
+							 &qkey, fk_rel, pk_rel);
 	}
 
 	/*
@@ -1106,11 +1112,11 @@ ri_set(TriggerData *trigdata, bool is_set_null)
 			qualsep = "AND";
 			queryoids[i] = pk_type;
 		}
-		appendStringInfoString(&querybuf, qualbuf.data);
+		appendBinaryStringInfo(&querybuf, qualbuf.data, qualbuf.len);
 
 		/* Prepare and save the plan */
 		qplan = ri_PlanCheck(querybuf.data, riinfo->nkeys, queryoids,
-							 &qkey, fk_rel, pk_rel, true);
+							 &qkey, fk_rel, pk_rel);
 	}
 
 	/*
@@ -1452,7 +1458,9 @@ RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 	 * enough to not use a multiple of work_mem, and one typically would not
 	 * have many large foreign-key validations happening concurrently.  So
 	 * this seems to meet the criteria for being considered a "maintenance"
-	 * operation, and accordingly we use maintenance_work_mem.
+	 * operation, and accordingly we use maintenance_work_mem.  However, we
+	 * must also set hash_mem_multiplier to 1, since it is surely not okay to
+	 * let that get applied to the maintenance_work_mem value.
 	 *
 	 * We use the equivalent of a function SET option to allow the setting to
 	 * persist for exactly the duration of the check query.  guc.c also takes
@@ -1462,6 +1470,9 @@ RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 
 	snprintf(workmembuf, sizeof(workmembuf), "%d", maintenance_work_mem);
 	(void) set_config_option("work_mem", workmembuf,
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
+	(void) set_config_option("hash_mem_multiplier", "1",
 							 PGC_USERSET, PGC_S_SESSION,
 							 GUC_ACTION_SAVE, true, 0, false);
 
@@ -1555,7 +1566,7 @@ RI_Initial_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 		elog(ERROR, "SPI_finish failed");
 
 	/*
-	 * Restore work_mem.
+	 * Restore work_mem and hash_mem_multiplier.
 	 */
 	AtEOXact_GUC(true, save_nestlevel);
 
@@ -1660,7 +1671,7 @@ RI_PartitionRemove_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 		appendStringInfo(&querybuf, ") WHERE %s AND (",
 						 constraintDef);
 	else
-		appendStringInfo(&querybuf, ") WHERE (");
+		appendStringInfoString(&querybuf, ") WHERE (");
 
 	sep = "";
 	for (i = 0; i < riinfo->nkeys; i++)
@@ -1687,7 +1698,9 @@ RI_PartitionRemove_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 	 * enough to not use a multiple of work_mem, and one typically would not
 	 * have many large foreign-key validations happening concurrently.  So
 	 * this seems to meet the criteria for being considered a "maintenance"
-	 * operation, and accordingly we use maintenance_work_mem.
+	 * operation, and accordingly we use maintenance_work_mem.  However, we
+	 * must also set hash_mem_multiplier to 1, since it is surely not okay to
+	 * let that get applied to the maintenance_work_mem value.
 	 *
 	 * We use the equivalent of a function SET option to allow the setting to
 	 * persist for exactly the duration of the check query.  guc.c also takes
@@ -1697,6 +1710,9 @@ RI_PartitionRemove_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 
 	snprintf(workmembuf, sizeof(workmembuf), "%d", maintenance_work_mem);
 	(void) set_config_option("work_mem", workmembuf,
+							 PGC_USERSET, PGC_S_SESSION,
+							 GUC_ACTION_SAVE, true, 0, false);
+	(void) set_config_option("hash_mem_multiplier", "1",
 							 PGC_USERSET, PGC_S_SESSION,
 							 GUC_ACTION_SAVE, true, 0, false);
 
@@ -1765,7 +1781,7 @@ RI_PartitionRemove_Check(Trigger *trigger, Relation fk_rel, Relation pk_rel)
 		elog(ERROR, "SPI_finish failed");
 
 	/*
-	 * Restore work_mem.
+	 * Restore work_mem and hash_mem_multiplier.
 	 */
 	AtEOXact_GUC(true, save_nestlevel);
 }
@@ -1884,7 +1900,7 @@ ri_GenerateQualCollation(StringInfo buf, Oid collation)
  *	Construct a hashtable key for a prepared SPI plan of an FK constraint.
  *
  *		key: output argument, *key is filled in based on the other arguments
- *		riinfo: info from pg_constraint entry
+ *		riinfo: info derived from pg_constraint entry
  *		constr_queryno: an internal number identifying the query type
  *			(see RI_PLAN_XXX constants at head of file)
  * ----------
@@ -1894,10 +1910,27 @@ ri_BuildQueryKey(RI_QueryKey *key, const RI_ConstraintInfo *riinfo,
 				 int32 constr_queryno)
 {
 	/*
+	 * Inherited constraints with a common ancestor can share ri_query_cache
+	 * entries for all query types except RI_PLAN_CHECK_LOOKUPPK_FROM_PK.
+	 * Except in that case, the query processes the other table involved in
+	 * the FK constraint (i.e., not the table on which the trigger has been
+	 * fired), and so it will be the same for all members of the inheritance
+	 * tree.  So we may use the root constraint's OID in the hash key, rather
+	 * than the constraint's own OID.  This avoids creating duplicate SPI
+	 * plans, saving lots of work and memory when there are many partitions
+	 * with similar FK constraints.
+	 *
+	 * (Note that we must still have a separate RI_ConstraintInfo for each
+	 * constraint, because partitions can have different column orders,
+	 * resulting in different pk_attnums[] or fk_attnums[] array contents.)
+	 *
 	 * We assume struct RI_QueryKey contains no padding bytes, else we'd need
 	 * to use memset to clear them.
 	 */
-	key->constr_id = riinfo->constraint_id;
+	if (constr_queryno != RI_PLAN_CHECK_LOOKUPPK_FROM_PK)
+		key->constr_id = riinfo->constraint_root_id;
+	else
+		key->constr_id = riinfo->constraint_id;
 	key->constr_queryno = constr_queryno;
 }
 
@@ -2043,8 +2076,15 @@ ri_LoadConstraintInfo(Oid constraintOid)
 
 	/* And extract data */
 	Assert(riinfo->constraint_id == constraintOid);
+	if (OidIsValid(conForm->conparentid))
+		riinfo->constraint_root_id =
+			get_ri_constraint_root(conForm->conparentid);
+	else
+		riinfo->constraint_root_id = constraintOid;
 	riinfo->oidHashValue = GetSysCacheHashValue1(CONSTROID,
 												 ObjectIdGetDatum(constraintOid));
+	riinfo->rootHashValue = GetSysCacheHashValue1(CONSTROID,
+												  ObjectIdGetDatum(riinfo->constraint_root_id));
 	memcpy(&riinfo->conname, &conForm->conname, sizeof(NameData));
 	riinfo->pk_relid = conForm->confrelid;
 	riinfo->fk_relid = conForm->conrelid;
@@ -2072,6 +2112,30 @@ ri_LoadConstraintInfo(Oid constraintOid)
 	riinfo->valid = true;
 
 	return riinfo;
+}
+
+/*
+ * get_ri_constraint_root
+ *		Returns the OID of the constraint's root parent
+ */
+static Oid
+get_ri_constraint_root(Oid constrOid)
+{
+	for (;;)
+	{
+		HeapTuple	tuple;
+		Oid			constrParentOid;
+
+		tuple = SearchSysCache1(CONSTROID, ObjectIdGetDatum(constrOid));
+		if (!HeapTupleIsValid(tuple))
+			elog(ERROR, "cache lookup failed for constraint %u", constrOid);
+		constrParentOid = ((Form_pg_constraint) GETSTRUCT(tuple))->conparentid;
+		ReleaseSysCache(tuple);
+		if (!OidIsValid(constrParentOid))
+			break;				/* we reached the root constraint */
+		constrOid = constrParentOid;
+	}
+	return constrOid;
 }
 
 /*
@@ -2109,7 +2173,14 @@ InvalidateConstraintCacheCallBack(Datum arg, int cacheid, uint32 hashvalue)
 		RI_ConstraintInfo *riinfo = dlist_container(RI_ConstraintInfo,
 													valid_link, iter.cur);
 
-		if (hashvalue == 0 || riinfo->oidHashValue == hashvalue)
+		/*
+		 * We must invalidate not only entries directly matching the given
+		 * hash value, but also child entries, in case the invalidation
+		 * affects a root constraint.
+		 */
+		if (hashvalue == 0 ||
+			riinfo->oidHashValue == hashvalue ||
+			riinfo->rootHashValue == hashvalue)
 		{
 			riinfo->valid = false;
 			/* Remove invalidated entries from the list, too */
@@ -2122,14 +2193,10 @@ InvalidateConstraintCacheCallBack(Datum arg, int cacheid, uint32 hashvalue)
 
 /*
  * Prepare execution plan for a query to enforce an RI restriction
- *
- * If cache_plan is true, the plan is saved into our plan hashtable
- * so that we don't need to plan it again.
  */
 static SPIPlanPtr
 ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
-			 RI_QueryKey *qkey, Relation fk_rel, Relation pk_rel,
-			 bool cache_plan)
+			 RI_QueryKey *qkey, Relation fk_rel, Relation pk_rel)
 {
 	SPIPlanPtr	qplan;
 	Relation	query_rel;
@@ -2160,12 +2227,9 @@ ri_PlanCheck(const char *querystr, int nargs, Oid *argtypes,
 	/* Restore UID and security context */
 	SetUserIdAndSecContext(save_userid, save_sec_context);
 
-	/* Save the plan if requested */
-	if (cache_plan)
-	{
-		SPI_keepplan(qplan);
-		ri_HashPreparedPlan(qkey, qplan);
-	}
+	/* Save the plan */
+	SPI_keepplan(qplan);
+	ri_HashPreparedPlan(qkey, qplan);
 
 	return qplan;
 }
@@ -2456,9 +2520,10 @@ ri_ReportViolation(const RI_ConstraintInfo *riinfo,
 				 errmsg("removing partition \"%s\" violates foreign key constraint \"%s\"",
 						RelationGetRelationName(pk_rel),
 						NameStr(riinfo->conname)),
-				 errdetail("Key (%s)=(%s) still referenced from table \"%s\".",
+				 errdetail("Key (%s)=(%s) is still referenced from table \"%s\".",
 						   key_names.data, key_values.data,
-						   RelationGetRelationName(fk_rel))));
+						   RelationGetRelationName(fk_rel)),
+				 errtableconstraint(fk_rel, NameStr(riinfo->conname))));
 	else if (onfk)
 		ereport(ERROR,
 				(errcode(ERRCODE_FOREIGN_KEY_VIOLATION),
@@ -2538,7 +2603,6 @@ ri_InitHashTables(void)
 {
 	HASHCTL		ctl;
 
-	memset(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(Oid);
 	ctl.entrysize = sizeof(RI_ConstraintInfo);
 	ri_constraint_cache = hash_create("RI constraint cache",
@@ -2550,14 +2614,12 @@ ri_InitHashTables(void)
 								  InvalidateConstraintCacheCallBack,
 								  (Datum) 0);
 
-	memset(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(RI_QueryKey);
 	ctl.entrysize = sizeof(RI_QueryHashEntry);
 	ri_query_cache = hash_create("RI query cache",
 								 RI_INIT_QUERYHASHSIZE,
 								 &ctl, HASH_ELEM | HASH_BLOBS);
 
-	memset(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(RI_CompareKey);
 	ctl.entrysize = sizeof(RI_CompareHashEntry);
 	ri_compare_cache = hash_create("RI compare cache",

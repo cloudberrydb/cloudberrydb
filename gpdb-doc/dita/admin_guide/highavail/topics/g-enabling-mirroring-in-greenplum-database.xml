@@ -2,9 +2,9 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic6">
-   <title>Enabling Mirroring in Greenplum Database</title>
+   <title>Enabling Mirroring in Cloudberry Database</title>
    <body>
-      <p>You can configure your Greenplum Database system with mirroring at setup time
+      <p>You can configure your Cloudberry Database system with mirroring at setup time
          using <codeph>gpinitsystem</codeph> or enable mirroring later using
             <codeph>gpaddmirrors</codeph> and <codeph>gpinitstandby</codeph>. This topic assumes you
          are adding mirrors to an existing system that was initialized without mirrors.</p>

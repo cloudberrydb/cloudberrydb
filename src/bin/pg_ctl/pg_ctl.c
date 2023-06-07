@@ -2,7 +2,7 @@
  *
  * pg_ctl --- start/stops/restarts the PostgreSQL server
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * src/bin/pg_ctl/pg_ctl.c
  *
@@ -27,6 +27,7 @@
 #include "common/controldata_utils.h"
 #include "common/file_perm.h"
 #include "common/logging.h"
+#include "common/string.h"
 #include "getopt_long.h"
 #include "utils/pidfile.h"
 
@@ -39,7 +40,7 @@ typedef long pgpid_t;
 
 
 /* postgres version ident string */
-#define PM_VERSIONSTR "postgres (Greenplum Database) " PG_VERSION "\n"
+#define PM_VERSIONSTR "postgres (Cloudberry Database) " PG_VERSION "\n"
 
 
 typedef enum
@@ -141,12 +142,7 @@ static void print_msg(const char *msg);
 static void adjust_data_dir(void);
 
 #ifdef WIN32
-#if (_MSC_VER >= 1800)
 #include <versionhelpers.h>
-#else
-static bool IsWindowsXPOrGreater(void);
-static bool IsWindows7OrGreater(void);
-#endif
 static bool pgwin32_IsInstalled(SC_HANDLE);
 static char *pgwin32_CommandLine(bool);
 static void pgwin32_doRegister(void);
@@ -170,7 +166,9 @@ static pgpid_t start_postmaster(void);
 static void read_post_opts(void);
 
 static bool is_secondary_instance(const char *pg_data);
-static WaitPMResult wait_for_postmaster(pgpid_t pm_pid, bool do_checkpoint);
+static WaitPMResult wait_for_postmaster_start(pgpid_t pm_pid, bool do_checkpoint);
+static bool wait_for_postmaster_stop(void);
+static bool wait_for_postmaster_promote(void);
 static bool postmaster_is_alive(pid_t pid);
 
 #if defined(HAVE_GETRLIMIT) && defined(RLIMIT_CORE)
@@ -437,8 +435,6 @@ free_readfile(char **optlines)
 		free(curr_line);
 
 	free(optlines);
-
-	return;
 }
 
 /*
@@ -460,7 +456,7 @@ static pgpid_t
 start_postmaster(void)
 {
 	char		launcher[MAXPGPATH] = "";
-	char		cmd[MAXPGPATH];
+	char	   *cmd;
 
 #ifndef WIN32
 	pgpid_t		pm_pid;
@@ -513,12 +509,12 @@ start_postmaster(void)
 	 * has the same PID as the current child process.
 	 */
 	if (log_file != NULL)
-		snprintf(cmd, MAXPGPATH, "exec %s \"%s\" %s%s < \"%s\" >> \"%s\" 2>&1",
-				 launcher, exec_path, pgdata_opt, post_opts,
-				 DEVNULL, log_file);
+		cmd = psprintf("exec %s \"%s\" %s%s < \"%s\" >> \"%s\" 2>&1",
+					   launcher, exec_path, pgdata_opt, post_opts,
+					   DEVNULL, log_file);
 	else
-		snprintf(cmd, MAXPGPATH, "exec %s \"%s\" %s%s < \"%s\" 2>&1",
-				 launcher, exec_path, pgdata_opt, post_opts, DEVNULL);
+		cmd = psprintf("exec %s \"%s\" %s%s < \"%s\" 2>&1",
+					   launcher, exec_path, pgdata_opt, post_opts, DEVNULL);
 
 	(void) execl("/bin/sh", "/bin/sh", "-c", cmd, (char *) NULL);
 
@@ -537,13 +533,54 @@ start_postmaster(void)
 	 * "exec", so we don't get to find out the postmaster's PID immediately.
 	 */
 	PROCESS_INFORMATION pi;
+	const char *comspec;
+
+	/* Find CMD.EXE location using COMSPEC, if it's set */
+	comspec = getenv("COMSPEC");
+	if (comspec == NULL)
+		comspec = "CMD";
 
 	if (log_file != NULL)
-		snprintf(cmd, MAXPGPATH, "CMD /C \"\"%s\" %s%s < \"%s\" >> \"%s\" 2>&1\"",
-				 exec_path, pgdata_opt, post_opts, DEVNULL, log_file);
+	{
+		/*
+		 * First, open the log file if it exists.  The idea is that if the
+		 * file is still locked by a previous postmaster run, we'll wait until
+		 * it comes free, instead of failing with ERROR_SHARING_VIOLATION.
+		 * (It'd be better to open the file in a sharing-friendly mode, but we
+		 * can't use CMD.EXE to do that, so work around it.  Note that the
+		 * previous postmaster will still have the file open for a short time
+		 * after removing postmaster.pid.)
+		 *
+		 * If the log file doesn't exist, we *must not* create it here.  If we
+		 * were launched with higher privileges than the restricted process
+		 * will have, the log file might end up with permissions settings that
+		 * prevent the postmaster from writing on it.
+		 */
+		int			fd = open(log_file, O_RDWR, 0);
+
+		if (fd == -1)
+		{
+			/*
+			 * ENOENT is expectable since we didn't use O_CREAT.  Otherwise
+			 * complain.  We could just fall through and let CMD.EXE report
+			 * the problem, but its error reporting is pretty miserable.
+			 */
+			if (errno != ENOENT)
+			{
+				write_stderr(_("%s: could not open log file \"%s\": %s\n"),
+							 progname, log_file, strerror(errno));
+				exit(1);
+			}
+		}
+		else
+			close(fd);
+
+		cmd = psprintf("\"%s\" /C \"\"%s\" %s%s < \"%s\" >> \"%s\" 2>&1\"",
+					   comspec, exec_path, pgdata_opt, post_opts, DEVNULL, log_file);
+	}
 	else
-		snprintf(cmd, MAXPGPATH, "CMD /C \"\"%s\" %s%s < \"%s\" 2>&1\"",
-				 exec_path, pgdata_opt, post_opts, DEVNULL);
+		cmd = psprintf("\"%s\" /C \"\"%s\" %s%s < \"%s\" 2>&1\"",
+					   comspec, exec_path, pgdata_opt, post_opts, DEVNULL);
 
 	if (!CreateRestrictedProcess(cmd, &pi, false))
 	{
@@ -589,7 +626,7 @@ is_secondary_instance(const char *pg_data)
  * manager checkpoint, it's got nothing to do with database checkpoints!!
  */
 static WaitPMResult
-wait_for_postmaster(pgpid_t pm_pid, bool do_checkpoint)
+wait_for_postmaster_start(pgpid_t pm_pid, bool do_checkpoint)
 {
 	int			i;
 	bool		is_coordinator;
@@ -708,6 +745,76 @@ wait_for_postmaster(pgpid_t pm_pid, bool do_checkpoint)
 }
 
 
+/*
+ * Wait for the postmaster to stop.
+ *
+ * Returns true if the postmaster stopped cleanly (i.e., removed its pidfile).
+ * Returns false if the postmaster dies uncleanly, or if we time out.
+ */
+static bool
+wait_for_postmaster_stop(void)
+{
+	int			cnt;
+
+	for (cnt = 0; cnt < wait_seconds * WAITS_PER_SEC; cnt++)
+	{
+		pgpid_t		pid;
+
+		if ((pid = get_pgpid(false)) == 0)
+			return true;		/* pid file is gone */
+
+		if (kill((pid_t) pid, 0) != 0)
+		{
+			/*
+			 * Postmaster seems to have died.  Check the pid file once more to
+			 * avoid a race condition, but give up waiting.
+			 */
+			if (get_pgpid(false) == 0)
+				return true;	/* pid file is gone */
+			return false;		/* postmaster died untimely */
+		}
+
+		if (cnt % WAITS_PER_SEC == 0)
+			print_msg(".");
+		pg_usleep(USEC_PER_SEC / WAITS_PER_SEC);
+	}
+	return false;				/* timeout reached */
+}
+
+
+/*
+ * Wait for the postmaster to promote.
+ *
+ * Returns true on success, else false.
+ * To avoid waiting uselessly, we check for postmaster death here too.
+ */
+static bool
+wait_for_postmaster_promote(void)
+{
+	int			cnt;
+
+	for (cnt = 0; cnt < wait_seconds * WAITS_PER_SEC; cnt++)
+	{
+		pgpid_t		pid;
+		DBState		state;
+
+		if ((pid = get_pgpid(false)) == 0)
+			return false;		/* pid file is gone */
+		if (kill((pid_t) pid, 0) != 0)
+			return false;		/* postmaster died */
+
+		state = get_control_dbstate();
+		if (state == DB_IN_PRODUCTION)
+			return true;		/* successful promotion */
+
+		if (cnt % WAITS_PER_SEC == 0)
+			print_msg(".");
+		pg_usleep(USEC_PER_SEC / WAITS_PER_SEC);
+	}
+	return false;				/* timeout reached */
+}
+
+
 #if defined(HAVE_GETRLIMIT) && defined(RLIMIT_CORE)
 static void
 unlimit_core_size(void)
@@ -818,8 +925,7 @@ find_other_exec_or_die(const char *argv0, const char *target, const char *versio
 			strlcpy(full_path, progname, sizeof(full_path));
 
 		if (ret == -1)
-			write_stderr(_("The program \"%s\" is needed by %s "
-						   "but was not found in the\n"
+			write_stderr(_("The program \"%s\" is needed by %s but was not found in the\n"
 						   "same directory as \"%s\".\n"
 						   "Check your installation.\n"),
 						 target, progname, full_path);
@@ -837,10 +943,10 @@ find_other_exec_or_die(const char *argv0, const char *target, const char *versio
 static void
 do_init(void)
 {
-	char		cmd[MAXPGPATH];
+	char	   *cmd;
 
 	if (exec_path == NULL)
-		exec_path = find_other_exec_or_die(argv0, "initdb", "initdb (Greenplum Database) " PG_VERSION "\n");
+		exec_path = find_other_exec_or_die(argv0, "initdb", "initdb (Cloudberry Database) " PG_VERSION "\n");
 
 	if (pgdata_opt == NULL)
 		pgdata_opt = "";
@@ -849,11 +955,11 @@ do_init(void)
 		post_opts = "";
 
 	if (!silent_mode)
-		snprintf(cmd, MAXPGPATH, "\"%s\" %s%s",
-				 exec_path, pgdata_opt, post_opts);
+		cmd = psprintf("\"%s\" %s%s",
+					   exec_path, pgdata_opt, post_opts);
 	else
-		snprintf(cmd, MAXPGPATH, "\"%s\" %s%s > \"%s\"",
-				 exec_path, pgdata_opt, post_opts, DEVNULL);
+		cmd = psprintf("\"%s\" %s%s > \"%s\"",
+					   exec_path, pgdata_opt, post_opts, DEVNULL);
 
 	if (system(cmd) != 0)
 	{
@@ -898,11 +1004,10 @@ do_start(void)
 	 */
 #ifndef WIN32
 	{
-		static char env_var[32];
+		char		env_var[32];
 
-		snprintf(env_var, sizeof(env_var), "PG_GRANDPARENT_PID=%d",
-				 (int) getppid());
-		putenv(env_var);
+		snprintf(env_var, sizeof(env_var), "%d", (int) getppid());
+		setenv("PG_GRANDPARENT_PID", env_var, 1);
 	}
 #endif
 
@@ -923,7 +1028,7 @@ do_start(void)
 
 		print_msg(_("waiting for server to start..."));
 
-		switch (wait_for_postmaster(pm_pid, false))
+		switch (wait_for_postmaster_start(pm_pid, false))
 		{
 			case POSTMASTER_READY:
 				print_msg(_(" done\n"));
@@ -958,7 +1063,6 @@ do_start(void)
 static void
 do_stop(void)
 {
-	int			cnt;
 	pgpid_t		pid;
 	struct stat statbuf;
 
@@ -1009,19 +1113,7 @@ do_stop(void)
 
 		print_msg(_("waiting for server to shut down..."));
 
-		for (cnt = 0; cnt < wait_seconds * WAITS_PER_SEC; cnt++)
-		{
-			if ((pid = get_pgpid(false)) != 0)
-			{
-				if (cnt % WAITS_PER_SEC == 0)
-					print_msg(".");
-				pg_usleep(USEC_PER_SEC / WAITS_PER_SEC);
-			}
-			else
-				break;
-		}
-
-		if (pid != 0)			/* pid file still exists */
+		if (!wait_for_postmaster_stop())
 		{
 			print_msg(_(" failed\n"));
 
@@ -1045,7 +1137,6 @@ do_stop(void)
 static void
 do_restart(void)
 {
-	int			cnt;
 	pgpid_t		pid;
 	struct stat statbuf;
 
@@ -1099,20 +1190,7 @@ do_restart(void)
 		print_msg(_("waiting for server to shut down..."));
 
 		/* always wait for restart */
-
-		for (cnt = 0; cnt < wait_seconds * WAITS_PER_SEC; cnt++)
-		{
-			if ((pid = get_pgpid(false)) != 0)
-			{
-				if (cnt % WAITS_PER_SEC == 0)
-					print_msg(".");
-				pg_usleep(USEC_PER_SEC / WAITS_PER_SEC);
-			}
-			else
-				break;
-		}
-
-		if (pid != 0)			/* pid file still exists */
+		if (!wait_for_postmaster_stop())
 		{
 			print_msg(_(" failed\n"));
 
@@ -1204,11 +1282,6 @@ do_promote(void)
 		exit(1);
 	}
 
-	/*
-	 * For 9.3 onwards, "fast" promotion is performed. Promotion with a full
-	 * checkpoint is still possible by writing a file called
-	 * "fallback_promote" instead of "promote"
-	 */
 	snprintf(promote_file, MAXPGPATH, "%s/promote", pg_data);
 
 	if ((prmfile = fopen(promote_file, "w")) == NULL)
@@ -1237,21 +1310,8 @@ do_promote(void)
 
 	if (do_wait)
 	{
-		DBState		state = DB_STARTUP;
-		int			cnt;
-
 		print_msg(_("waiting for server to promote..."));
-		for (cnt = 0; cnt < wait_seconds * WAITS_PER_SEC; cnt++)
-		{
-			state = get_control_dbstate();
-			if (state == DB_IN_PRODUCTION)
-				break;
-
-			if (cnt % WAITS_PER_SEC == 0)
-				print_msg(".");
-			pg_usleep(USEC_PER_SEC / WAITS_PER_SEC);
-		}
-		if (state == DB_IN_PRODUCTION)
+		if (wait_for_postmaster_promote())
 		{
 			print_msg(_(" done\n"));
 			print_msg(_("server promoted\n"));
@@ -1423,32 +1483,6 @@ do_kill(pgpid_t pid)
 
 #ifdef WIN32
 
-#if (_MSC_VER < 1800)
-static bool
-IsWindowsXPOrGreater(void)
-{
-	OSVERSIONINFO osv;
-
-	osv.dwOSVersionInfoSize = sizeof(osv);
-
-	/* Windows XP = Version 5.1 */
-	return (!GetVersionEx(&osv) ||	/* could not get version */
-			osv.dwMajorVersion > 5 || (osv.dwMajorVersion == 5 && osv.dwMinorVersion >= 1));
-}
-
-static bool
-IsWindows7OrGreater(void)
-{
-	OSVERSIONINFO osv;
-
-	osv.dwOSVersionInfoSize = sizeof(osv);
-
-	/* Windows 7 = Version 6.0 */
-	return (!GetVersionEx(&osv) ||	/* could not get version */
-			osv.dwMajorVersion > 6 || (osv.dwMajorVersion == 6 && osv.dwMinorVersion >= 0));
-}
-#endif
-
 static bool
 pgwin32_IsInstalled(SC_HANDLE hSCM)
 {
@@ -1524,14 +1558,14 @@ pgwin32_CommandLine(bool registration)
 		appendPQExpBuffer(cmdLine, " -e \"%s\"", event_source);
 
 	if (registration && do_wait)
-		appendPQExpBuffer(cmdLine, " -w");
+		appendPQExpBufferStr(cmdLine, " -w");
 
 	/* Don't propagate a value from an environment variable. */
 	if (registration && wait_seconds_arg && wait_seconds != DEFAULT_WAIT)
 		appendPQExpBuffer(cmdLine, " -t %d", wait_seconds);
 
 	if (registration && silent_mode)
-		appendPQExpBuffer(cmdLine, " -s");
+		appendPQExpBufferStr(cmdLine, " -s");
 
 	if (post_opts)
 	{
@@ -1696,7 +1730,7 @@ pgwin32_ServiceMain(DWORD argc, LPTSTR *argv)
 	if (do_wait)
 	{
 		write_eventlog(EVENTLOG_INFORMATION_TYPE, _("Waiting for server startup...\n"));
-		if (wait_for_postmaster(postmasterPID, true) != POSTMASTER_READY)
+		if (wait_for_postmaster_start(postmasterPID, true) != POSTMASTER_READY)
 		{
 			write_eventlog(EVENTLOG_ERROR_TYPE, _("Timed out waiting for server startup\n"));
 			pgwin32_SetServiceStatus(SERVICE_STOPPED);
@@ -1717,7 +1751,7 @@ pgwin32_ServiceMain(DWORD argc, LPTSTR *argv)
 			{
 				/*
 				 * status.dwCheckPoint can be incremented by
-				 * wait_for_postmaster(), so it might not start from 0.
+				 * wait_for_postmaster_start(), so it might not start from 0.
 				 */
 				int			maxShutdownCheckPoint = status.dwCheckPoint + 12;
 
@@ -1922,7 +1956,7 @@ pgwin32_is_service(void)
 /*
  * Mingw headers are incomplete, and so are the libraries. So we have to load
  * a whole lot of API functions dynamically. Since we have to do this anyway,
- * also load the couple of functions that *do* exist in minwg headers but not
+ * also load the couple of functions that *do* exist in mingw headers but not
  * on NT4. That way, we don't break on NT4.
  */
 typedef BOOL (WINAPI * __CreateRestrictedToken) (HANDLE, DWORD, DWORD, PSID_AND_ATTRIBUTES, DWORD, PLUID_AND_ATTRIBUTES, DWORD, PSID_AND_ATTRIBUTES, PHANDLE);
@@ -1972,7 +2006,7 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, bool as_ser
 	Advapi32Handle = LoadLibrary("ADVAPI32.DLL");
 	if (Advapi32Handle != NULL)
 	{
-		_CreateRestrictedToken = (__CreateRestrictedToken) GetProcAddress(Advapi32Handle, "CreateRestrictedToken");
+		_CreateRestrictedToken = (__CreateRestrictedToken) (pg_funcptr_t) GetProcAddress(Advapi32Handle, "CreateRestrictedToken");
 	}
 
 	if (_CreateRestrictedToken == NULL)
@@ -2046,11 +2080,11 @@ CreateRestrictedProcess(char *cmd, PROCESS_INFORMATION *processInfo, bool as_ser
 	Kernel32Handle = LoadLibrary("KERNEL32.DLL");
 	if (Kernel32Handle != NULL)
 	{
-		_IsProcessInJob = (__IsProcessInJob) GetProcAddress(Kernel32Handle, "IsProcessInJob");
-		_CreateJobObject = (__CreateJobObject) GetProcAddress(Kernel32Handle, "CreateJobObjectA");
-		_SetInformationJobObject = (__SetInformationJobObject) GetProcAddress(Kernel32Handle, "SetInformationJobObject");
-		_AssignProcessToJobObject = (__AssignProcessToJobObject) GetProcAddress(Kernel32Handle, "AssignProcessToJobObject");
-		_QueryInformationJobObject = (__QueryInformationJobObject) GetProcAddress(Kernel32Handle, "QueryInformationJobObject");
+		_IsProcessInJob = (__IsProcessInJob) (pg_funcptr_t) GetProcAddress(Kernel32Handle, "IsProcessInJob");
+		_CreateJobObject = (__CreateJobObject) (pg_funcptr_t) GetProcAddress(Kernel32Handle, "CreateJobObjectA");
+		_SetInformationJobObject = (__SetInformationJobObject) (pg_funcptr_t) GetProcAddress(Kernel32Handle, "SetInformationJobObject");
+		_AssignProcessToJobObject = (__AssignProcessToJobObject) (pg_funcptr_t) GetProcAddress(Kernel32Handle, "AssignProcessToJobObject");
+		_QueryInformationJobObject = (__QueryInformationJobObject) (pg_funcptr_t) GetProcAddress(Kernel32Handle, "QueryInformationJobObject");
 	}
 
 	/* Verify that we found all functions */
@@ -2249,7 +2283,7 @@ do_help(void)
 	printf(_("  -w, --wait             wait until operation completes (default)\n"));
 	printf(_("  -W, --no-wait          do not wait until operation completes\n"));
 	printf(_("  -?, --help             show this help, then exit\n"));
-	printf(_("  --gp-version           output Greenplum version information, then exit\n"));
+	printf(_("  --gp-version           output Cloudberry version information, then exit\n"));
 	printf(_("(The default is to wait for shutdown, but not for start or restart.)\n\n"));
 	printf(_("If the -D option is omitted, the environment variable PGDATA is used.\n"));
 
@@ -2286,7 +2320,8 @@ do_help(void)
 	printf(_("  demand     start service on demand\n"));
 #endif
 
-	printf(_("\nReport bugs to <bugs@greenplum.org>.\n"));
+	printf(_("\nReport bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }
 
 
@@ -2372,9 +2407,9 @@ set_starttype(char *starttypeopt)
 static void
 adjust_data_dir(void)
 {
-	char		cmd[MAXPGPATH],
-				filename[MAXPGPATH],
-			   *my_exec_path;
+	char		filename[MAXPGPATH];
+	char	   *my_exec_path,
+			   *cmd;
 	FILE	   *fd;
 
 	/* do nothing if we're working without knowledge of data dir */
@@ -2404,10 +2439,10 @@ adjust_data_dir(void)
 		my_exec_path = pg_strdup(exec_path);
 
 	/* it's important for -C to be the first option, see main.c */
-	snprintf(cmd, MAXPGPATH, "\"%s\" -C data_directory %s%s",
-			 my_exec_path,
-			 pgdata_opt ? pgdata_opt : "",
-			 post_opts ? post_opts : "");
+	cmd = psprintf("\"%s\" -C data_directory %s%s",
+				   my_exec_path,
+				   pgdata_opt ? pgdata_opt : "",
+				   post_opts ? post_opts : "");
 
 	fd = popen(cmd, "r");
 	if (fd == NULL || fgets(filename, sizeof(filename), fd) == NULL)
@@ -2418,9 +2453,8 @@ adjust_data_dir(void)
 	pclose(fd);
 	free(my_exec_path);
 
-	/* Remove trailing newline */
-	if (strchr(filename, '\n') != NULL)
-		*strchr(filename, '\n') = '\0';
+	/* strip trailing newline and carriage return */
+	(void) pg_strip_crlf(filename);
 
 	free(pg_data);
 	pg_data = pg_strdup(filename);
@@ -2468,7 +2502,6 @@ main(int argc, char **argv)
 	};
 
 	char	   *env_wait;
-	int			option_index;
 	int			c;
 	pgpid_t		killproc = 0;
 
@@ -2496,12 +2529,12 @@ main(int argc, char **argv)
 		}
 		else if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			printf("%s (Greenplum Database) %s\n", progname, PG_VERSION);
+			printf("%s (Cloudberry Database) %s\n", progname, PG_VERSION);
 			exit(0);
 		}
 		else if (strcmp(argv[1], "--gp-version") == 0)
 		{
-			printf("%s (Greenplum Database) %s\n", progname, GP_VERSION);
+			printf("%s (Cloudberry Database) %s\n", progname, GP_VERSION);
 			exit(0);
 		}
 	}
@@ -2537,19 +2570,17 @@ main(int argc, char **argv)
 	while (optind < argc)
 	{
 		while ((c = getopt_long(argc, argv, "cD:e:l:m:N:o:p:P:sS:t:U:wW",
-								long_options, &option_index)) != -1)
+								long_options, NULL)) != -1)
 		{
 			switch (c)
 			{
 				case 'D':
 					{
 						char	   *pgdata_D;
-						char	   *env_var;
 
 						pgdata_D = pg_strdup(optarg);
 						canonicalize_path(pgdata_D);
-						env_var = psprintf("PGDATA=%s", pgdata_D);
-						putenv(env_var);
+						setenv("PGDATA", pgdata_D, 1);
 
 						/*
 						 * We could pass PGDATA just in an environment
@@ -2557,6 +2588,7 @@ main(int argc, char **argv)
 						 * 'ps' display
 						 */
 						pgdata_opt = psprintf("-D \"%s\" ", pgdata_D);
+						free(pgdata_D);
 						break;
 					}
 				case 'e':

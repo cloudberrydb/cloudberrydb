@@ -84,7 +84,9 @@ enum PGP_SYMENC_TYPE
 	PGP_SYM_AES_128 = 7,		/* should */
 	PGP_SYM_AES_192 = 8,
 	PGP_SYM_AES_256 = 9,
-	PGP_SYM_TWOFISH = 10
+	PGP_SYM_TWOFISH = 10,
+	PGP_SYM_SM4_ECB = 11,
+	PGP_SYM_SM4_CBC = 12
 };
 
 enum PGP_COMPR_TYPE
@@ -106,7 +108,8 @@ enum PGP_DIGEST_TYPE
 	PGP_DIGEST_HAVAL5_160 = 7,	/* obsolete */
 	PGP_DIGEST_SHA256 = 8,
 	PGP_DIGEST_SHA384 = 9,
-	PGP_DIGEST_SHA512 = 10
+	PGP_DIGEST_SHA512 = 10,
+	PGP_DIGEST_SM3 = 11
 };
 
 #define PGP_MAX_KEY    (256/8)
@@ -279,7 +282,7 @@ int			pgp_s2k_process(PGP_S2K *s2k, int cipher, const uint8 *key, int klen);
 
 typedef struct PGP_CFB PGP_CFB;
 int			pgp_cfb_create(PGP_CFB **ctx_p, int algo,
-						   const uint8 *key, int key_len, int recync, uint8 *iv);
+						   const uint8 *key, int key_len, int resync, uint8 *iv);
 void		pgp_cfb_free(PGP_CFB *ctx);
 int			pgp_cfb_encrypt(PGP_CFB *ctx, const uint8 *data, int len, uint8 *dst);
 int			pgp_cfb_decrypt(PGP_CFB *ctx, const uint8 *data, int len, uint8 *dst);

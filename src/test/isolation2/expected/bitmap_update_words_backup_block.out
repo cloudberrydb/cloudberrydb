@@ -13,12 +13,6 @@ CREATE
 ---------------------------
  t                         
 (1 row)
-1:SELECT gp_wait_until_triggered_fault('fts_probe', 1, dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
- gp_wait_until_triggered_fault 
--------------------------------
- Success:                      
-(1 row)
-
 CREATE TABLE bm_update_words_backup_block (id int) WITH (appendonly = true);
 CREATE
 

@@ -36,7 +36,7 @@ CATALOG(pg_compression,7056,CompressionRelationId)
 	regproc		compcompressor BKI_LOOKUP(pg_proc);
 	regproc		compdecompressor BKI_LOOKUP(pg_proc);
 	regproc		compvalidator BKI_LOOKUP(pg_proc);
-	Oid			compowner BKI_DEFAULT(PGUID);
+	Oid			compowner BKI_DEFAULT(POSTGRES) BKI_LOOKUP(pg_authid);
 } FormData_pg_compression;
 
 /* GPDB added foreign key definitions for gpcheckcat. */
@@ -98,8 +98,6 @@ extern void callCompressionValidator(PGFunction func, char *comptype,
 									 Oid typid);
 
 extern bool compresstype_is_valid(char *compresstype);
-extern List *default_column_encoding_clause(Relation rel);
 extern PGFunction *GetCompressionImplementation(char *comptype);
-extern bool is_storage_encoding_directive(char *name);
 
 #endif   /* PG_COMPRESSION */

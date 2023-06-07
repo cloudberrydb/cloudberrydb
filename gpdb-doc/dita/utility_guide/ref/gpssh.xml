@@ -135,7 +135,7 @@
                 defined or the <codeph>gpssh.conf</codeph> file does not exist,
                     <codeph>gpssh</codeph> uses the default values or the values set with the
                     <codeph>-d</codeph> and <codeph>-t</codeph> options. For information about the
-                environment variable, see the <cite>Greenplum Database Reference Guide</cite>. </p>
+                environment variable, see the <cite>Cloudberry Database Reference Guide</cite>. </p>
             <p>The <codeph>gpssh.conf</codeph> file is a text file that consists of a
                     <codeph>[gpssh]</codeph> section and parameters. On a line, the
                     <codeph>#</codeph> (pound sign) indicates the start of a comment. This is an
@@ -165,7 +165,7 @@ sync_retries = 5</codeblock>
                 <plentry>
                     <pt>sync_retries = <varname>attempts</varname></pt>
                     <pd>A non-negative integer that specifies the maximum number of times that
-                            <codeph>gpssh</codeph> attempts to connect to a remote Greenplum
+                            <codeph>gpssh</codeph> attempts to connect to a remote Cloudberry
                         Database host. The default is 3. If the value is 0, <codeph>gpssh</codeph>
                         returns an error if the initial connection attempt fails. Increasing the
                         number of attempts also increases the time between retry attempts. This

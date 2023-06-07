@@ -1,4 +1,5 @@
 import os, mmap
+import re
 from test.behave_utils.utils import drop_database_if_exists, drop_table_if_exists
 
 @given('database "{dbname}" does not exist')

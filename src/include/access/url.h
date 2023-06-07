@@ -4,7 +4,7 @@
  *    routines for external table access to urls.
  *    to the qExec processes.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * src/include/access/url.h
@@ -80,45 +80,45 @@ extern void external_set_env_vars_ext(extvar_t *extvar, char *uri, bool csv, cha
 									  uint32 scancounter, List *params);
 
 /* exported functions */
-extern URL_FILE *url_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, ExternalSelectDesc desc);
+extern URL_FILE *url_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts, ExternalSelectDesc desc, char *relname);
 extern void url_fclose(URL_FILE *file, bool failOnError, const char *relname);
 extern bool url_feof(URL_FILE *file, int bytesread);
 extern bool url_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen);
-extern size_t url_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
-extern size_t url_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
-extern void url_fflush(URL_FILE *file, CopyState pstate);
+extern size_t url_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate);
+extern size_t url_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate);
+extern void url_fflush(URL_FILE *file, CopyToState pstate);
 
 /* prototypes for functions in url_execute.c */
 extern char *make_command(const char *cmd, extvar_t *ev);
 
 /* implementation-specific functions. */
-extern URL_FILE *url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate);
+extern URL_FILE *url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts);
 extern void url_curl_fclose(URL_FILE *file, bool failOnError, const char *relname);
 extern bool url_curl_feof(URL_FILE *file, int bytesread);
 extern bool url_curl_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen);
-extern size_t url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
-extern size_t url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
-extern void url_curl_fflush(URL_FILE *file, CopyState pstate);
+extern size_t url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate);
+extern size_t url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate);
+extern void url_curl_fflush(URL_FILE *file, CopyToState pstate);
 
-extern URL_FILE *url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate);
+extern URL_FILE *url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts, char *relname);
 extern void url_file_fclose(URL_FILE *file, bool failOnError, const char *relname);
 extern bool url_file_feof(URL_FILE *file, int bytesread);
 extern bool url_file_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen);
-extern size_t url_file_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
+extern size_t url_file_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate);
 
-extern URL_FILE *url_execute_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate);
+extern URL_FILE *url_execute_fopen(char *url, bool forwrite, extvar_t *ev);
 extern void url_execute_fclose(URL_FILE *file, bool failOnError, const char *relname);
 extern bool url_execute_feof(URL_FILE *file, int bytesread);
 extern bool url_execute_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen);
-extern size_t url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
-extern size_t url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
+extern size_t url_execute_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate);
+extern size_t url_execute_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate);
 
-extern URL_FILE *url_custom_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, ExternalSelectDesc desc);
+extern URL_FILE *url_custom_fopen(char *url, bool forwrite, extvar_t *ev, ExternalSelectDesc desc);
 extern void url_custom_fclose(URL_FILE *file, bool failOnError, const char *relname);
 extern bool url_custom_feof(URL_FILE *file, int bytesread);
 extern bool url_custom_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen);
-extern size_t url_custom_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
-extern size_t url_custom_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate);
+extern size_t url_custom_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate);
+extern size_t url_custom_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate);
 
 /* GUC */
 extern int readable_external_table_timeout;

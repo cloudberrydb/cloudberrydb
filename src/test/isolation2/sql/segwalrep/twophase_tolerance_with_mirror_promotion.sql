@@ -22,7 +22,6 @@
 --
 -- end_matchsubs
 
-!\retcode gpconfig -c gp_fts_probe_retries -v 2 --masteronly;
 -- Allow extra time for mirror promotion to complete recovery to avoid
 -- gprecoverseg BEGIN failures due to gang creation failure as some primaries
 -- are not up. Setting these increase the number of retries in gang creation in
@@ -42,7 +41,9 @@
   FROM gp_segment_configuration WHERE content = 0 AND role = 'p';
 -- do fts probe request twice to guarantee the fault is triggered
 2:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 2:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 1<:
 
 1:SELECT gp_inject_fault('start_prepare', 'reset', dbid)
@@ -64,7 +65,9 @@
   FROM gp_segment_configuration WHERE content = 1 AND role = 'p';
 -- do fts probe request twice to guarantee the fault is triggered
 3:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 3:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 3:SELECT gp_inject_fault('transaction_abort_after_distributed_prepared', 'resume', dbid)
   FROM gp_segment_configuration WHERE content = -1 AND role = 'p';
 1<:
@@ -87,7 +90,9 @@
   FROM gp_segment_configuration WHERE content = 2 AND role = 'p';
 -- do fts probe request twice to guarantee the fault is triggered
 4:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 4:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 1<:
 
 -- Use new connection session. This helps is to make sure master is up and
@@ -96,10 +101,10 @@
 5:SELECT role, preferred_role FROM gp_segment_configuration WHERE content = 2;
 
 5:!\retcode gprecoverseg -aF \-\-no-progress;
-
+!\retcode gpfts -A -D;
 5:!\retcode gprecoverseg -ar;
+!\retcode gpfts -A -D;
 
-!\retcode gpconfig -r gp_fts_probe_retries --masteronly;
 !\retcode gpconfig -r gp_gang_creation_retry_count --skipvalidation --masteronly;
 !\retcode gpconfig -r gp_gang_creation_retry_timer --skipvalidation --masteronly;
 !\retcode gpstop -u;

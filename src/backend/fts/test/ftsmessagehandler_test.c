@@ -10,9 +10,9 @@
 #include "../ftsmessagehandler.c"
 
 static void
-expectSendFtsResponse(const char *expectedMessageType, const FtsResponse *expectedResponse)
+expectSendFtsResponse(const QueryCompletion *qc, const FtsResponse *expectedResponse)
 {
-	expect_value(BeginCommand, commandTag, expectedMessageType);
+	expect_value(BeginCommand, commandTag, qc->commandTag);
 	expect_value(BeginCommand, dest, DestRemote);
 	will_be_called(BeginCommand);
 
@@ -58,8 +58,10 @@ expectSendFtsResponse(const char *expectedMessageType, const FtsResponse *expect
 	expect_any_count(pq_sendstring, str, -1);
 	will_be_called_count(pq_sendstring, Natts_fts_message_response);
 
-	expect_value(EndCommand, commandTag, expectedMessageType);
+	// Be careful for the padding bits
+	expect_memory(EndCommand, qc, qc, sizeof(*qc));
 	expect_value(EndCommand, dest, DestRemote);
+	expect_value(EndCommand, force_undecorated_output, false);
 	will_be_called(EndCommand);
 
 	will_be_called(socket_flush);
@@ -68,6 +70,9 @@ expectSendFtsResponse(const char *expectedMessageType, const FtsResponse *expect
 static void
 test_HandleFtsWalRepProbePrimary(void **state)
 {
+	QueryCompletion qc = {0};
+	qc.commandTag = CMDTAG_FTS_MSG_PROBE;
+
 	FtsResponse mockresponse;
 	mockresponse.IsMirrorUp = true;
 	mockresponse.IsInSync = true;
@@ -83,7 +88,7 @@ test_HandleFtsWalRepProbePrimary(void **state)
 
 	/* SyncRep should be enabled as soon as we found mirror is up. */
 	mockresponse.IsSyncRepEnabled = true;
-	expectSendFtsResponse(FTS_MSG_PROBE, &mockresponse);
+	expectSendFtsResponse(&qc, &mockresponse);
 
 	HandleFtsWalRepProbe();
 }
@@ -91,6 +96,9 @@ test_HandleFtsWalRepProbePrimary(void **state)
 static void
 test_HandleFtsWalRepSyncRepOff(void **state)
 {
+	QueryCompletion qc = {0};
+	qc.commandTag = CMDTAG_FTS_MSG_SYNCREP_OFF;
+
 	FtsResponse mockresponse;
 	mockresponse.IsMirrorUp = false;
 	mockresponse.IsInSync = false;
@@ -106,7 +114,7 @@ test_HandleFtsWalRepSyncRepOff(void **state)
 	will_be_called(UnsetSyncStandbysDefined);
 
 	/* since this function doesn't have any logic, the test just verified the message type */
-	expectSendFtsResponse(FTS_MSG_SYNCREP_OFF, &mockresponse);
+	expectSendFtsResponse(&qc, &mockresponse);
 	
 	HandleFtsWalRepSyncRepOff();
 }
@@ -114,6 +122,9 @@ test_HandleFtsWalRepSyncRepOff(void **state)
 static void
 test_HandleFtsWalRepProbeMirror(void **state)
 {
+	QueryCompletion qc = {0};
+	qc.commandTag = CMDTAG_FTS_MSG_PROBE;
+
 	FtsResponse mockresponse;
 	mockresponse.IsMirrorUp       = false;
 	mockresponse.IsInSync         = false;
@@ -124,7 +135,7 @@ test_HandleFtsWalRepProbeMirror(void **state)
 	/* expect the IsRoleMirror changed to reflect the global variable */
 	am_mirror = true;
 	mockresponse.IsRoleMirror = true;
-	expectSendFtsResponse(FTS_MSG_PROBE, &mockresponse);
+	expectSendFtsResponse(&qc, &mockresponse);
 
 	HandleFtsWalRepProbe();
 }
@@ -144,6 +155,9 @@ set_replication_slot(void *ptr)
 static void
 test_HandleFtsWalRepPromoteMirror(void **state)
 {
+	QueryCompletion qc = {0};
+	qc.commandTag = CMDTAG_FTS_MSG_PROMOTE;
+
 	ReplicationSlotCtlData repCtl;
 	ReplicationSlotCtl = &repCtl;
 	max_replication_slots = 1;
@@ -170,11 +184,12 @@ test_HandleFtsWalRepPromoteMirror(void **state)
 	expect_value(ReplicationSlotCreate, name, INTERNAL_WAL_REPLICATION_SLOT_NAME);
 	expect_value(ReplicationSlotCreate, db_specific, false);
 	expect_value(ReplicationSlotCreate, persistency, RS_PERSISTENT);
+	expect_value(ReplicationSlotCreate, two_phase, false);
 	will_be_called_with_sideeffect(ReplicationSlotCreate,
-								   set_replication_slot, &ReplicationSlotCtl);
+								   &set_replication_slot, ReplicationSlotCtl);
 
 	/* expect SignalPromote() */
-	expectSendFtsResponse(FTS_MSG_PROMOTE, &mockresponse);
+	expectSendFtsResponse(&qc, &mockresponse);
 
 	HandleFtsWalRepPromote();
 }
@@ -182,6 +197,9 @@ test_HandleFtsWalRepPromoteMirror(void **state)
 static void
 test_HandleFtsWalRepPromotePrimary(void **state)
 {
+	QueryCompletion qc = {0};
+	qc.commandTag = CMDTAG_FTS_MSG_PROMOTE;
+
 	am_mirror = false;
 
 	will_return(GetCurrentDBState, DB_IN_PRODUCTION);
@@ -194,7 +212,7 @@ test_HandleFtsWalRepPromotePrimary(void **state)
 	mockresponse.RequestRetry     = false;
 
 	/* expect no SignalPromote() */
-	expectSendFtsResponse(FTS_MSG_PROMOTE, &mockresponse);
+	expectSendFtsResponse(&qc, &mockresponse);
 
 	HandleFtsWalRepPromote();
 }

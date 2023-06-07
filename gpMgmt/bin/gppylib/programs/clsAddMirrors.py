@@ -2,7 +2,7 @@
 # Line too long            - pylint: disable=C0301
 # Invalid name             - pylint: disable=C0103
 #
-# Copyright (c) Greenplum Inc 2010. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2010. All Rights Reserved.
 #
 # import mainUtils FIRST to get python version check
 # THIS IMPORT SHOULD COME FIRST
@@ -422,10 +422,10 @@ class GpAddMirrorsProgram:
             return self.__generateMirrorsToBuild(gpEnv, gpArray)
 
     def __displayAddMirrors(self, gpEnv, mirrorBuilder, gpArray):
-        logger.info('Greenplum Add Mirrors Parameters')
+        logger.info('Cloudberry Add Mirrors Parameters')
         logger.info('--------------------------------------------')
-        logger.info('Greenplum coordinator data directory    = %s' % gpEnv.getCoordinatorDataDir())
-        logger.info('Greenplum coordinator port              = %d' % gpEnv.getCoordinatorPort())
+        logger.info('Cloudberry coordinator data directory    = %s' % gpEnv.getCoordinatorDataDir())
+        logger.info('Cloudberry coordinator port              = %d' % gpEnv.getCoordinatorPort())
         logger.info('Batch size                              = %d' % self.__options.batch_size)
         logger.info('Segment batch size                      = %d' % self.__options.segment_batch_size)
 

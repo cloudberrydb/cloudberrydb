@@ -335,7 +335,7 @@ create_partition_selector_plan(PlannerInfo *root, PartitionSelectorPath *best_pa
  */
 List *
 make_partition_join_pruneinfos(PlannerInfo *root, RelOptInfo *parentrel,
-							   List *subpaths, List *partitioned_rels)
+							   List *subpaths)
 {
 	PartitionPruneInfo *part_prune_info;
 	List	   *result = NIL;
@@ -367,7 +367,7 @@ make_partition_join_pruneinfos(PlannerInfo *root, RelOptInfo *parentrel,
 
 		part_prune_info =
 			make_partition_pruneinfo_ext(root, parentrel,
-										 subpaths, partitioned_rels,
+										 subpaths,
 										 candidate->joinrestrictinfo,
 										 candidate->inner_relids);
 

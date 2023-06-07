@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 # Test for promotion handling with WAL records generated post-promotion
 # before the first checkpoint is generated.  This test case checks for
 # invalid page references at replay based on the minimum consistent
@@ -26,7 +29,6 @@ my $bravo = get_new_node('bravo');
 $bravo->init_from_backup($alpha, 'bkp', has_streaming => 1);
 $bravo->append_conf('postgresql.conf', <<EOF);
 checkpoint_timeout=1h
-checkpoint_completion_target=0.9
 EOF
 $bravo->start;
 

@@ -28,6 +28,60 @@ begin
 end;
 $$ language plpgsql;
 
+-- Same, for EXPLAIN ANALYZE WAL
+create or replace function get_explain_analyze_wal_output(explain_query text) returns setof text as
+$$
+declare
+  explainrow text;
+begin
+  for explainrow in execute 'EXPLAIN (ANALYZE, WAL) ' || explain_query
+  loop
+    return next explainrow;
+  end loop;
+end;
+$$ language plpgsql;
+
+-- Test explain wal option
+CREATE TABLE explainwal (id int4);
+
+WITH query_plan (et) AS
+(
+  select get_explain_analyze_wal_output($$
+    INSERT INTO explainwal SELECT generate_series(1, 10);
+  $$)
+),
+count_result AS
+(
+  SELECT COUNT(*) FROM query_plan WHERE et LIKE '%WAL%'
+)
+select
+  (SELECT COUNT(*) FROM count_result WHERE count > 0) as wal_reserved_lines;
+
+WITH query_plan (et) AS
+(
+  select get_explain_analyze_wal_output($$
+    UPDATE explainwal SET id=11 WHERE id=10;
+  $$)
+),
+count_result AS
+(
+  SELECT COUNT(*) FROM query_plan WHERE et LIKE '%WAL%'
+)
+select
+  (SELECT COUNT(*) FROM count_result WHERE count > 0) as wal_reserved_lines;
+
+WITH query_plan (et) AS
+(
+  select get_explain_analyze_wal_output($$
+    DELETE FROM explainwal
+  $$)
+),
+count_result AS
+(
+  SELECT COUNT(*) FROM query_plan WHERE et LIKE '%WAL%'
+)
+select
+  (SELECT COUNT(*) FROM count_result WHERE count > 0) as wal_reserved_lines;
 
 --
 -- Test explain_memory_verbosity option
@@ -100,20 +154,18 @@ CREATE TABLE mpp22263 (
         tenthous        int4,
         odd                     int4,
         even            int4,
-        stringu1        name,
-        stringu2        name,
-        string4         name
+        stringu1        name    COLLATE pg_catalog."default",
+        stringu2        name    COLLATE pg_catalog."default",
+        string4         name    COLLATE pg_catalog."default"
 ) distributed by (unique1);
 
 create index mpp22263_idx1 on mpp22263 using btree(unique1);
--- GPDB_12_MERGE_FIXME: Non default collation
 explain select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
 WHERE mpp22263.unique1 = v.i and mpp22263.stringu1 = v.j;
 
 -- atmsort.pm masks out differences in the Filter line, so just memorizing
 -- the output of the above EXPLAIN isn't enough to catch a faulty Filter line.
 -- Extract the Filter explicitly.
--- GPDB_12_MERGE_FIXME: Non default collation
 SELECT * from
   get_explain_output($$
 select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)

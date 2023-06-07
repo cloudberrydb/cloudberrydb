@@ -63,7 +63,6 @@ typedef struct FormatterData
 	
 	/* encoding */
 	bool			fmt_needs_transcoding;
-	FmgrInfo*		fmt_conversion_proc;
 	int				fmt_external_encoding;
 		
 } FormatterData;
@@ -122,15 +121,13 @@ typedef struct FormatterData
 		if (((FormatterData*) fcinfo->context)->fmt_needs_transcoding) \
 		{\
 			if(is_import) \
-				cvt = pg_custom_to_server(p, \
-										n, \
-										((FormatterData*) fcinfo->context)->fmt_external_encoding, \
-										((FormatterData*) fcinfo->context)->fmt_conversion_proc); \
+				cvt = pg_any_to_server(p, \
+									   n, \
+									   ((FormatterData*) fcinfo->context)->fmt_external_encoding); \
 			else \
-				cvt = pg_server_to_custom(p, \
-										n, \
-										((FormatterData*) fcinfo->context)->fmt_external_encoding, \
-										((FormatterData*) fcinfo->context)->fmt_conversion_proc); \
+				cvt = pg_server_to_any(p, \
+									   n, \
+									   ((FormatterData*) fcinfo->context)->fmt_external_encoding); \
 		}\
 	} while (0)
 

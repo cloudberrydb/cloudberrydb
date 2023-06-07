@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
  *
  * cdbvars.c
- *	  Provides storage areas and processing routines for Greenplum Database variables
+ *	  Provides storage areas and processing routines for Cloudberry Database variables
  *	  managed by GUC.
  *
- * Portions Copyright (c) 2003-2010, Greenplum inc
+ * Portions Copyright (c) 2003-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -49,7 +49,7 @@
 
 
 
-GpRoleValue Gp_role;			/* Role paid by this Greenplum Database
+GpRoleValue Gp_role;			/* Role paid by this Cloudberry Database
 								 * backend */
 char	   *gp_role_string;		/* Staging area for guc.c */
 
@@ -103,14 +103,7 @@ int         gp_segment_connect_timeout = 180;  /* Maximum time (in seconds) allo
 												* for a new worker process to start
 												* or a mirror to respond.
 												*/
-
-/*
- * Configurable timeout for snapshot add: exceptionally busy systems may take
- * longer than our old hard-coded version -- so here is a tuneable version.
- */
-int			gp_snapshotadd_timeout = 10;
-
-
+#ifdef USE_INTERNAL_FTS
 /*
  * Probe retry count for fts prober.
  */
@@ -126,6 +119,13 @@ int			gp_fts_probe_timeout = 20;
  * every time this expires.
  */
 int			gp_fts_probe_interval = 60;
+#endif
+
+/*
+ * Configurable timeout for snapshot add: exceptionally busy systems may take
+ * longer than our old hard-coded version -- so here is a tuneable version.
+ */
+int			gp_snapshotadd_timeout = 10;
 
 /*
  * If mirror disconnects and re-connects between this period, or just takes
@@ -251,7 +251,7 @@ int			gp_udpic_network_disable_ipv6 = 0;
 uint32		gp_interconnect_id = 0;
 
 /* --------------------------------------------------------------------------------------------------
- * Greenplum Optimizer GUCs
+ * Cloudberry Optimizer GUCs
  */
 
 double		gp_motion_cost_per_row = 0;
@@ -263,6 +263,7 @@ bool		gp_adjust_selectivity_for_outerjoins = true;
 bool		gp_selectivity_damping_for_scans = false;
 bool		gp_selectivity_damping_for_joins = false;
 double		gp_selectivity_damping_factor = 1;
+bool		gp_enable_runtime_filter = false;
 bool		gp_selectivity_damping_sigsort = true;
 
 int			gp_hashjoin_tuples_per_bucket = 5;
@@ -271,12 +272,14 @@ int			gp_hashagg_groups_per_bucket = 5;
 /* Analyzing aid */
 int			gp_motion_slice_noop = 0;
 
-/* Greenplum Database Experimental Feature GUCs */
+/* Cloudberry Database Experimental Feature GUCs */
 bool		gp_enable_explain_allstat = false;
 bool		gp_enable_motion_deadlock_sanity = false;	/* planning time sanity
 														 * check */
 
 bool		gp_enable_tablespace_auto_mkdir = false;
+
+bool		gp_enable_ao_indexscan = false;
 
 /* Enable check for compatibility of encoding and locale in createdb */
 bool		gp_encoding_check_locale_compatibility = true;
@@ -372,7 +375,7 @@ static GpRoleValue string_to_role(const char *string);
 
 
 /*
- * Convert a Greenplum Database role string (as for gp_role) to an
+ * Convert a Cloudberry Database role string (as for gp_role) to an
  * enum value of type GpRoleValue. Return GP_ROLE_UNDEFINED in case the
  * string is unrecognized.
  */

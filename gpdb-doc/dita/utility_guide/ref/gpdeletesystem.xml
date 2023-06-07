@@ -4,7 +4,7 @@
 <topic id="topic1">
     <title id="jr20941">gpdeletesystem</title>
     <body>
-        <p>Deletes a Greenplum Database system that was initialized using
+        <p>Deletes a Cloudberry Database system that was initialized using
                 <codeph>gpinitsystem</codeph>.</p>
         <section id="section2">
             <title>Synopsis</title>
@@ -27,12 +27,12 @@
             <ul>
                 <li id="jr138354">Move any backup files out of the coordinator and segment data
                     directories.</li>
-                <li id="jr138357">Make sure that Greenplum Database is running.</li>
+                <li id="jr138357">Make sure that Cloudberry Database is running.</li>
                 <li id="jr138359">If you are currently in a segment data directory, change directory
                     to another location. The utility fails with an error when run from within a
                     segment data directory. </li>
             </ul>
-            <p>This utility will not uninstall the Greenplum Database software.</p>
+            <p>This utility will not uninstall the Cloudberry Database software.</p>
         </section>
         <section id="section4">
             <title>Options</title>
@@ -54,7 +54,7 @@
                 <plentry>
                     <pt>-f (force)</pt>
                     <pd>Force a delete even if backup files are found in the data directories. The
-                        default is to not delete Greenplum Database instances if backup files are
+                        default is to not delete Cloudberry Database instances if backup files are
                         present.</pd>
                 </plentry>
                 <plentry>
@@ -79,9 +79,9 @@
         </section>
         <section id="section5">
             <title>Examples</title>
-            <p>Delete a Greenplum Database system:</p>
+            <p>Delete a Cloudberry Database system:</p>
             <codeblock>gpdeletesystem -d /gpdata/gp-1</codeblock>
-            <p>Delete a Greenplum Database system even if backup files are present:</p>
+            <p>Delete a Cloudberry Database system even if backup files are present:</p>
             <codeblock>gpdeletesystem -d /gpdata/gp-1 -f</codeblock>
         </section>
         <section>

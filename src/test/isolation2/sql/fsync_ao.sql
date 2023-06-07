@@ -41,15 +41,15 @@ select gp_wait_until_triggered_fault('restartpoint_guts', 1, dbid)
 -- wal segments.  Neither of that can happen until this test calls
 -- explicit checkpoint.
 
+-- Inject fault to count relfiles fsync'ed by checkpointer on mirror.
+select gp_inject_fault_infinite('ao_fsync_counter', 'skip', dbid)
+	from gp_segment_configuration where content=0 and role='m';
+
 -- Write ao and co data files including aoseg & gp_fastsequence.
 -- These should be fsync-ed by checkpoint & restartpoint.
 insert into fsync_ao select i, i from generate_series(1,20)i;
 insert into fsync_co select i, i from generate_series(1,20)i;
 insert into ul_fsync_co select i, i, i from generate_series(1,20)i;
-
--- Inject fault to count relfiles fsync'ed by checkpointer on mirror.
-select gp_inject_fault_infinite('ao_fsync_counter', 'skip', dbid)
-	from gp_segment_configuration where content=0 and role='m';
 
 checkpoint;
 

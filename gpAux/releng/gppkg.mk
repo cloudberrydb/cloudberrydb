@@ -47,7 +47,7 @@ PWD=$(shell pwd)
 	mkdir RPMS BUILD SPECS
 	cp $(RPM_NAME).spec SPECS/
 	rpmbuild -bb SPECS/$(RPM_NAME).spec --buildroot $(PWD)/BUILD --define '_topdir $(PWD)' --define '__os_install_post \%{nil}' --define 'buildarch $(ARCH)' $(RPM_FLAGS)
-	mv RPMS/$(ARCH)/$*.rpm .
+	mv RPMS/$(ARCH)/*.rpm .
 	rm -rf RPMS BUILD SPECS
 
 gppkg_spec.yml: gppkg_spec.yml.in

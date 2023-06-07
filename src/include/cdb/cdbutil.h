@@ -4,7 +4,7 @@
  *	  Header file for routines in cdbutil.c and results returned by
  *	  those routines.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -16,103 +16,35 @@
 
 #ifndef CDBUTIL_H
 #define CDBUTIL_H
-
+#include "postgres.h"
+#ifdef USE_INTERNAL_FTS
 #include "catalog/gp_segment_configuration.h"
+#include "catalog/gp_segment_configuration_indexing.h"
+#endif
+#include "postmaster/fts_comm.h"
 #include "nodes/pg_list.h"
 #include "nodes/plannodes.h"
+#include "utils/palloc.h"
+#include <sys/param.h>			/* for MAXHOSTNAMELEN */
 
 struct SegmentDatabaseDescriptor;
 
 extern MemoryContext CdbComponentsContext;
 
-typedef struct CdbComponentDatabaseInfo CdbComponentDatabaseInfo;
-typedef struct CdbComponentDatabases CdbComponentDatabases;
+extern bool gp_etcd_enable_cache;
+extern char *gp_etcd_account_id;
+extern char *gp_etcd_cluster_id;
+extern char *gp_etcd_namespace;
+extern char *gp_etcd_endpoints;
+extern char *gp_cbdb_deploy;
 
-/* --------------------------------------------------------------------------------------------------
- * Structure for MPP 2.0 database information
- *
- * The information contained in this structure represents logically a row from
- * gp_configuration.  It is used to describe either an entry
- * database or a segment database.
- *
- * Storage for instances of this structure are palloc'd.  Storage for the values
- * pointed to by non-NULL char*'s are also palloc'd.
- *
- */
-#define COMPONENT_DBS_MAX_ADDRS (8)
-typedef struct GpSegConfigEntry 
+typedef struct GpSegConfigEntryForUDF
 {
-	/* copy of entry in gp_segment_configuration */
-	int16		dbid;			/* the dbid of this database */
-	int16		segindex;		/* content indicator: -1 for entry database,
-								 * 0, ..., n-1 for segment database */
+	GpSegConfigEntry * config_entry;
+	int16 current_index;
+	int16 total_dbs;
+} GpSegConfigEntryForUDF;
 
-	char		role;			/* primary, master, mirror, master-standby */
-	char		preferred_role; /* what role would we "like" to have this segment in ? */
-	char		mode;
-	char		status;
-	int32		port;			/* port that instance is listening on */
-	char		*hostname;		/* name or ip address of host machine */
-	char		*address;		/* ip address of host machine */
-	char		*datadir;		/* absolute path to data directory on the host. */
-
-	/* additional cached info */
-	char		*hostip;	/* cached lookup of name */
-	char		*hostaddrs[COMPONENT_DBS_MAX_ADDRS];	/* cached lookup of names */	
-} GpSegConfigEntry;
-
-struct CdbComponentDatabaseInfo
-{
-	struct GpSegConfigEntry	*config;
-
-	CdbComponentDatabases	*cdbs; /* point to owners */
-
-	int16		hostSegs;	/* number of primary segments on the same hosts */
-	List		*freelist;	/* list of idle segment dbs */
-	int			numIdleQEs;
-	int			numActiveQEs;
-};
-
-
-#define SEGMENT_IS_ACTIVE_MIRROR(p) \
-	((p)->config->role == GP_SEGMENT_CONFIGURATION_ROLE_MIRROR ? true : false)
-#define SEGMENT_IS_ACTIVE_PRIMARY(p) \
-	((p)->config->role == GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY ? true : false)
-
-#define SEGMENT_IS_ALIVE(p) \
-	((p)->config->status == GP_SEGMENT_CONFIGURATION_STATUS_UP ? true : false)
-
-#define SEGMENT_IS_IN_SYNC(p) \
-	((p)->config->mode == GP_SEGMENT_CONFIGURATION_MODE_INSYNC ? true : false)
-#define SEGMENT_IS_NOT_INSYNC(p) \
-	((p)->config->mode == GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC ? true : false)
-
-/* --------------------------------------------------------------------------------------------------
- * Structure for return value from getCdbSegmentDatabases()
- *
- * The storage for instances of this structure returned by getCdbSegmentInstances() is palloc'd.
- * freeCdbSegmentDatabases() can be used to release the structure.
- */
-struct CdbComponentDatabases
-{
-	CdbComponentDatabaseInfo *segment_db_info;	/* array of
-												 * SegmentDatabaseInfo's for
-												 * segment databases */
-	int			total_segment_dbs;		/* count of the array  */
-	CdbComponentDatabaseInfo *entry_db_info;	/* array of
-												 * SegmentDatabaseInfo's for
-												 * entry databases */
-	int			total_entry_dbs;	/* count of the array  */
-	int			total_segments; /* count of distinct segindexes */
-	uint8		fts_version;	/* the version of fts */
-	int			expand_version;
-	int			numActiveQEs;
-	int			numIdleQEs;
-	int			qeCounter;
-	List		*freeCounterList;
-};
-
-//
 typedef enum SegmentType
 {
 	SEGMENTTYPE_EXPLICT_WRITER = 1,
@@ -121,7 +53,7 @@ typedef enum SegmentType
 }SegmentType;
 
 /*
- * performs all necessary setup required for initializing Greenplum Database components.
+ * performs all necessary setup required for initializing Cloudberry Database components.
  *
  * This includes cdblink_setup() and initializing the Motion Layer.
  *
@@ -130,8 +62,8 @@ extern void cdb_setup(void);
 
 
 /*
- * performs all necessary cleanup required when cleaning up Greenplum Database components
- * when disabling Greenplum Database functionality.
+ * performs all necessary cleanup required when cleaning up Cloudberry Database components
+ * when disabling Cloudberry Database functionality.
  *
  */
 extern void cdb_cleanup(int code, Datum arg  pg_attribute_unused() );
@@ -183,8 +115,6 @@ bool cdbcomponent_activeQEsExist(void);
 
 List *cdbcomponent_getCdbComponentsList(void);
 
-extern void writeGpSegConfigToFTSFiles(void);
-
 /*
  * Given total number of primary segment databases and a number of segments
  * to "skip" - this routine creates a boolean map (array) the size of total
@@ -200,9 +130,47 @@ extern bool *makeRandomSegMap(int total_primaries, int total_to_skip);
  */
 extern char *getDnsAddress(char *name, int port, int elevel);
 
+
+#ifdef USE_INTERNAL_FTS
+extern void writeGpSegConfigToFTSFiles(void);
+#else
+
+GpSegConfigEntry * readGpSegConfig(char * buff, int *total_dbs);
+GpSegConfigEntry * readGpSegConfigFromETCDAllowNull(int *total_dbs);
+GpSegConfigEntry * readGpSegConfigFromETCD(int *total_dbs, bool allow_null);
+void cleanGpSegConfigs(GpSegConfigEntry *configs, int total_dbs);
+
+bool setStandbyPromoteReady(bool standby_promote_ready);
+bool getStandbyPromoteReady(bool *standby_promote_ready);
+
+/* segment configurations cache ops */ 
+Size ShmemSegmentConfigsCacheSize(void);
+void ShmemSegmentConfigsCacheAllocation(void);
+void ShmemSegmentConfigsCacheReset(void);
+void ShmemSegmentConfigsCacheForceFlush(void);
+
+bool isSegmentConfigsCacheEnable(void);
+bool isSegmentConfigsCached(void);
+char *readSegmentConfigsCache(int *total_dbs);
+void writeSegmentConfigsCacheBuff(char * config_buff, int buff_length, int total_dbs);
+
+
+/* segment configurations ops */ 
+void addSegment(GpSegConfigEntry *new_segment_information);
+void delSegment(int16 dbid);
+void rewriteSegments(char *rewrite_string, bool allow_diff_db_counts);
+void cleanSegments(void);
+void activateStandby(int16 standby_dbid, int16 master_dbid);
+void updateSegmentModeStatus(int16 dbid, char mode, char status);
+
+#endif
+
 extern int16 master_standby_dbid(void);
 extern GpSegConfigEntry *dbid_get_dbinfo(int16 dbid);
 extern int16 contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRole);
+extern int16 cdbcomponent_get_maxdbid(void);
+extern int16 cdbcomponent_get_availableDbId(void);
+extern int16 cdbcomponent_get_maxcontentid(void);
 
 extern int numsegmentsFromQD;
 /*
@@ -217,5 +185,7 @@ extern void AvoidCorefileGeneration(void);
 #define ELOG_DISPATCHER_DEBUG(...) do { \
        if (gp_log_gang >= GPVARS_VERBOSITY_DEBUG) elog(LOG, __VA_ARGS__); \
     } while(false);
+
+
 
 #endif   /* CDBUTIL_H */

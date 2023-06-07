@@ -3,7 +3,7 @@
  * relfilenodemap.c
  *	  relfilenode to oid mapping cache.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -16,15 +16,14 @@
 #include "access/genam.h"
 #include "access/htup_details.h"
 #include "access/table.h"
-#include "catalog/indexing.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_tablespace.h"
 #include "miscadmin.h"
 #include "utils/builtins.h"
 #include "utils/catcache.h"
+#include "utils/fmgroids.h"
 #include "utils/hsearch.h"
 #include "utils/inval.h"
-#include "utils/fmgroids.h"
 #include "utils/rel.h"
 #include "utils/relfilenodemap.h"
 #include "utils/relmapper.h"
@@ -38,7 +37,7 @@ static ScanKeyData relfilenode_skey[2];
 typedef struct
 {
 	Oid			reltablespace;
-	Oid			relfilenode;
+	RelFileNodeId relfilenode;
 } RelfilenodeMapKey;
 
 typedef struct
@@ -64,7 +63,7 @@ RelfilenodeMapInvalidateCallback(Datum arg, Oid relid)
 	while ((entry = (RelfilenodeMapEntry *) hash_seq_search(&status)) != NULL)
 	{
 		/*
-		 * If relid is InvalidOid, signalling a complete reset, we must remove
+		 * If relid is InvalidOid, signaling a complete reset, we must remove
 		 * all entries, otherwise just remove the specific relation's entry.
 		 * Always remove negative cache entries.
 		 */
@@ -82,7 +81,7 @@ RelfilenodeMapInvalidateCallback(Datum arg, Oid relid)
 }
 
 /*
- * RelfilenodeMapInvalidateCallback
+ * InitializeRelfilenodeMap
  *		Initialize cache, either on first use or after a reset.
  */
 static void
@@ -111,17 +110,15 @@ InitializeRelfilenodeMap(void)
 	relfilenode_skey[0].sk_attno = Anum_pg_class_reltablespace;
 	relfilenode_skey[1].sk_attno = Anum_pg_class_relfilenode;
 
-	/* Initialize the hash table. */
-	MemSet(&ctl, 0, sizeof(ctl));
-	ctl.keysize = sizeof(RelfilenodeMapKey);
-	ctl.entrysize = sizeof(RelfilenodeMapEntry);
-	ctl.hcxt = CacheMemoryContext;
-
 	/*
 	 * Only create the RelfilenodeMapHash now, so we don't end up partially
 	 * initialized when fmgr_info_cxt() above ERRORs out with an out of memory
 	 * error.
 	 */
+	ctl.keysize = sizeof(RelfilenodeMapKey);
+	ctl.entrysize = sizeof(RelfilenodeMapEntry);
+	ctl.hcxt = CacheMemoryContext;
+
 	RelfilenodeMapHash =
 		hash_create("RelfilenodeMap cache", 64, &ctl,
 					HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
@@ -138,7 +135,7 @@ InitializeRelfilenodeMap(void)
  * Returns InvalidOid if no relation matching the criteria could be found.
  */
 Oid
-RelidByRelfilenode(Oid reltablespace, Oid relfilenode)
+RelidByRelfilenode(Oid reltablespace, RelFileNodeId relfilenode)
 {
 	RelfilenodeMapKey key;
 	RelfilenodeMapEntry *entry;
@@ -216,7 +213,7 @@ RelidByRelfilenode(Oid reltablespace, Oid relfilenode)
 
 			if (found)
 				elog(ERROR,
-					 "unexpected duplicate for tablespace %u, relfilenode %u",
+					 "unexpected duplicate for tablespace %u, relfilenode %lu",
 					 reltablespace, relfilenode);
 			found = true;
 

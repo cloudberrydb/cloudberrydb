@@ -5,7 +5,7 @@
   <shortdesc>Describes basic security best practices that you should follow to ensure the highest
     level of system security. </shortdesc>
   <body>
-    <p>In the default Greenplum Database security configuration:<ul id="ul_mhk_rrg_4r">
+    <p>In the default Cloudberry Database security configuration:<ul id="ul_mhk_rrg_4r">
         <li>Only local connections are allowed. </li>
         <li>Basic authentication is configured for the superuser (<codeph>gpadmin</codeph>).</li>
         <li>The superuser is authorized to do anything.</li>
@@ -14,19 +14,19 @@
     <section>
       <title>System User (gpadmin)</title>
       <p>Secure and limit access to the <codeph>gpadmin</codeph> system user. </p>
-      <p>Greenplum requires a UNIX user id to install and initialize the Greenplum Database system.
-        This system user is referred to as <codeph>gpadmin</codeph> in the Greenplum documentation.
-        The <codeph>gpadmin</codeph> user is the default database superuser in Greenplum Database,
-        as well as the file system owner of the Greenplum installation and its underlying data
-        files. The default administrator account is fundamental to the design of Greenplum Database.
+      <p>Cloudberry requires a UNIX user id to install and initialize the Cloudberry Database system.
+        This system user is referred to as <codeph>gpadmin</codeph> in the Cloudberry documentation.
+        The <codeph>gpadmin</codeph> user is the default database superuser in Cloudberry Database,
+        as well as the file system owner of the Cloudberry installation and its underlying data
+        files. The default administrator account is fundamental to the design of Cloudberry Database.
         The system cannot run without it, and there is no way to limit the access of the
           <codeph>gpadmin</codeph> user id. </p>
-      <p>The <codeph>gpadmin</codeph> user can bypass all security features of Greenplum Database.
-        Anyone who logs on to a Greenplum host with this user id can read, alter, or delete any
+      <p>The <codeph>gpadmin</codeph> user can bypass all security features of Cloudberry Database.
+        Anyone who logs on to a Cloudberry host with this user id can read, alter, or delete any
         data, including system catalog data and database access rights. Therefore, it is very
         important to secure the <codeph>gpadmin</codeph> user id and only allow essential system
         administrators access to it. </p>
-      <p>Administrators should only log in to Greenplum as <codeph>gpadmin</codeph> when performing
+      <p>Administrators should only log in to Cloudberry as <codeph>gpadmin</codeph> when performing
         certain system maintenance tasks (such as upgrade or expansion). </p>
       <p>Database users should never log on as <codeph>gpadmin</codeph>, and ETL or production
         workloads should never run as <codeph>gpadmin</codeph>. </p>
@@ -36,16 +36,16 @@
       <p>Roles granted the <codeph>SUPERUSER</codeph> attribute are superusers. Superusers bypass
         all access privilege checks and resource queues. Only system administrators should be given
         superuser rights. </p>
-      <p> See "Altering Role Attributes" in the <i>Greenplum Database Administrator Guide</i>. </p>
+      <p> See "Altering Role Attributes" in the <i>Cloudberry Database Administrator Guide</i>. </p>
     </section>
     <section>
       <title>Login Users</title>
       <p>Assign a distinct role to each user who logs in and set the <codeph>LOGIN</codeph>
         attribute. </p>
-      <p>For logging and auditing purposes, each user who is allowed to log in to Greenplum Database
+      <p>For logging and auditing purposes, each user who is allowed to log in to Cloudberry Database
         should be given their own database role. For applications or web services, consider creating
         a distinct role for each application or service. See "Creating New Roles (Users)" in the
-          <i>Greenplum Database Administrator Guide</i>. </p>
+          <i>Cloudberry Database Administrator Guide</i>. </p>
       <p>Each login role should be assigned to a single, non-default resource queue.</p>
     </section>
     <section>
@@ -56,7 +56,7 @@
         statement to add group access to a role. Use the <codeph>REVOKE</codeph> statement to remove
         group access from a role. </p>
       <p>The <codeph>LOGIN</codeph> attribute should not be set for group roles. </p>
-      <p>See "Creating Groups (Role Membership)" in the <i>Greenplum Database Administrator
+      <p>See "Creating Groups (Role Membership)" in the <i>Cloudberry Database Administrator
           Guide</i>. </p>
     </section>
     <section>

@@ -12,3 +12,4 @@ fe-secure-openssl.c
 fe-secure.c
 getpeereid.c
 pqexpbuffer.c
+fe-trace.c

@@ -42,7 +42,7 @@
  * catalog in a transaction. During normal operation this is achieved by using
  * CommandIds/cmin/cmax. The problem with that however is that for space
  * efficiency reasons only one value of that is stored
- * (cf. combocid.c). Since ComboCids are only available in memory we log
+ * (cf. combocid.c). Since combo CIDs are only available in memory we log
  * additional information which allows us to get the original (cmin, cmax)
  * pair during visibility checks. Check the reorderbuffer.c's comment above
  * ResolveCminCmaxDuringDecoding() for details.
@@ -107,7 +107,7 @@
  * is a convenient point to initialize replication from, which is why we
  * export a snapshot at that point, which *can* be used to read normal data.
  *
- * Copyright (c) 2012-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/snapbuild.c
@@ -120,29 +120,24 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "miscadmin.h"
-
 #include "access/heapam_xlog.h"
 #include "access/transam.h"
 #include "access/xact.h"
-
+#include "miscadmin.h"
 #include "pgstat.h"
-
 #include "replication/logical.h"
 #include "replication/reorderbuffer.h"
 #include "replication/snapbuild.h"
-
-#include "utils/builtins.h"
-#include "utils/memutils.h"
-#include "utils/snapshot.h"
-#include "utils/snapmgr.h"
-
 #include "storage/block.h"		/* debugging output */
 #include "storage/fd.h"
 #include "storage/lmgr.h"
 #include "storage/proc.h"
 #include "storage/procarray.h"
 #include "storage/standby.h"
+#include "utils/builtins.h"
+#include "utils/memutils.h"
+#include "utils/snapmgr.h"
+#include "utils/snapshot.h"
 
 /*
  * This struct contains the current state of the snapshot building
@@ -170,6 +165,17 @@ struct SnapBuild
 	XLogRecPtr	start_decoding_at;
 
 	/*
+	 * LSN at which we found a consistent point at the time of slot creation.
+	 * This is also the point where we have exported a snapshot for the
+	 * initial copy.
+	 *
+	 * The prepared transactions that are not covered by initial snapshot
+	 * needs to be sent later along with commit prepared and they must be
+	 * before this point.
+	 */
+	XLogRecPtr	initial_consistent_point;
+
+	/*
 	 * Don't start decoding WAL until the "xl_running_xacts" information
 	 * indicates there are no running xids with an xid smaller than this.
 	 */
@@ -194,24 +200,11 @@ struct SnapBuild
 	ReorderBuffer *reorder;
 
 	/*
-	 * Outdated: This struct isn't used for its original purpose anymore, but
-	 * can't be removed / changed in a minor version, because it's stored
-	 * on-disk.
+	 * TransactionId at which the next phase of initial snapshot building will
+	 * happen. InvalidTransactionId if not known (i.e. SNAPBUILD_START), or
+	 * when no next phase necessary (SNAPBUILD_CONSISTENT).
 	 */
-	struct
-	{
-		/*
-		 * NB: This field is misused, until a major version can break on-disk
-		 * compatibility. See SnapBuildNextPhaseAt() /
-		 * SnapBuildStartNextPhaseAt().
-		 */
-		TransactionId was_xmin;
-		TransactionId was_xmax;
-
-		size_t		was_xcnt;	/* number of used xip entries */
-		size_t		was_xcnt_space; /* allocated size of xip */
-		TransactionId *was_xip; /* running xacts array, xidComparator-sorted */
-	}			was_running;
+	TransactionId next_phase_at;
 
 	/*
 	 * Array of transactions which could have catalog changes that committed
@@ -269,41 +262,13 @@ static void SnapBuildSnapIncRefcount(Snapshot snap);
 
 static void SnapBuildDistributeNewCatalogSnapshot(SnapBuild *builder, XLogRecPtr lsn);
 
-/* xlog reading helper functions for SnapBuildProcessRecord */
+/* xlog reading helper functions for SnapBuildProcessRunningXacts */
 static bool SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *running);
 static void SnapBuildWaitSnapshot(xl_running_xacts *running, TransactionId cutoff);
 
 /* serialization functions */
 static void SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn);
 static bool SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn);
-
-/*
- * Return TransactionId after which the next phase of initial snapshot
- * building will happen.
- */
-static inline TransactionId
-SnapBuildNextPhaseAt(SnapBuild *builder)
-{
-	/*
-	 * For backward compatibility reasons this has to be stored in the wrongly
-	 * named field.  Will be fixed in next major version.
-	 */
-	return builder->was_running.was_xmax;
-}
-
-/*
- * Set TransactionId after which the next phase of initial snapshot building
- * will happen.
- */
-static inline void
-SnapBuildStartNextPhaseAt(SnapBuild *builder, TransactionId at)
-{
-	/*
-	 * For backward compatibility reasons this has to be stored in the wrongly
-	 * named field.  Will be fixed in next major version.
-	 */
-	builder->was_running.was_xmax = at;
-}
 
 /*
  * Allocate a new snapshot builder.
@@ -315,7 +280,8 @@ SnapBuild *
 AllocateSnapshotBuilder(ReorderBuffer *reorder,
 						TransactionId xmin_horizon,
 						XLogRecPtr start_lsn,
-						bool need_full_snapshot)
+						bool need_full_snapshot,
+						XLogRecPtr initial_consistent_point)
 {
 	MemoryContext context;
 	MemoryContext oldcontext;
@@ -343,6 +309,7 @@ AllocateSnapshotBuilder(ReorderBuffer *reorder,
 	builder->initial_xmin_horizon = xmin_horizon;
 	builder->start_decoding_at = start_lsn;
 	builder->building_full_snapshot = need_full_snapshot;
+	builder->initial_consistent_point = initial_consistent_point;
 
 	MemoryContextSwitchTo(oldcontext);
 
@@ -400,6 +367,15 @@ SnapBuildState
 SnapBuildCurrentState(SnapBuild *builder)
 {
 	return builder->state;
+}
+
+/*
+ * Return the LSN at which the snapshot was exported
+ */
+XLogRecPtr
+SnapBuildInitialConsistentPoint(SnapBuild *builder)
+{
+	return builder->initial_consistent_point;
 }
 
 /*
@@ -529,6 +505,7 @@ SnapBuildBuildSnapshot(SnapBuild *builder)
 	snapshot->curcid = FirstCommandId;
 	snapshot->active_count = 0;
 	snapshot->regd_count = 0;
+	snapshot->snapXactCompletionCount = 0;
 
 	return snapshot;
 }
@@ -558,8 +535,8 @@ SnapBuildInitialSnapshot(SnapBuild *builder)
 		elog(ERROR, "cannot build an initial slot snapshot, not all transactions are monitored anymore");
 
 	/* so we don't overwrite the existing value */
-	if (TransactionIdIsValid(MyPgXact->xmin))
-		elog(ERROR, "cannot build an initial slot snapshot when MyPgXact->xmin already is valid");
+	if (TransactionIdIsValid(MyProc->xmin))
+		elog(ERROR, "cannot build an initial slot snapshot when MyProc->xmin already is valid");
 
 	snap = SnapBuildBuildSnapshot(builder);
 
@@ -580,7 +557,7 @@ SnapBuildInitialSnapshot(SnapBuild *builder)
 	}
 #endif
 
-	MyPgXact->xmin = snap->xmin;
+	MyProc->xmin = snap->xmin;
 
 	/* allocate in transaction context */
 	newxip = (TransactionId *)
@@ -696,6 +673,8 @@ SnapBuildGetOrBuildSnapshot(SnapBuild *builder, TransactionId xid)
 void
 SnapBuildClearExportedSnapshot(void)
 {
+	ResourceOwner tmpResOwner;
+
 	/* nothing exported, that is the usual case */
 	if (!ExportInProgress)
 		return;
@@ -703,10 +682,24 @@ SnapBuildClearExportedSnapshot(void)
 	if (!IsTransactionState())
 		elog(ERROR, "clearing exported snapshot in wrong transaction state");
 
-	/* make sure nothing  could have ever happened */
+	/*
+	 * AbortCurrentTransaction() takes care of resetting the snapshot state,
+	 * so remember SavedResourceOwnerDuringExport.
+	 */
+	tmpResOwner = SavedResourceOwnerDuringExport;
+
+	/* make sure nothing could have ever happened */
 	AbortCurrentTransaction();
 
-	CurrentResourceOwner = SavedResourceOwnerDuringExport;
+	CurrentResourceOwner = tmpResOwner;
+}
+
+/*
+ * Clear snapshot export state during transaction abort.
+ */
+void
+SnapBuildResetExportedSnapshotState(void)
+{
 	SavedResourceOwnerDuringExport = NULL;
 	ExportInProgress = false;
 }
@@ -732,7 +725,7 @@ SnapBuildProcessChange(SnapBuild *builder, TransactionId xid, XLogRecPtr lsn)
 	 * we got into the SNAPBUILD_FULL_SNAPSHOT state.
 	 */
 	if (builder->state < SNAPBUILD_CONSISTENT &&
-		TransactionIdPrecedes(xid, SnapBuildNextPhaseAt(builder)))
+		TransactionIdPrecedes(xid, builder->next_phase_at))
 		return false;
 
 	/*
@@ -762,7 +755,7 @@ SnapBuildProcessChange(SnapBuild *builder, TransactionId xid, XLogRecPtr lsn)
 }
 
 /*
- * Do CommandId/ComboCid handling after reading an xl_heap_new_cid record.
+ * Do CommandId/combo CID handling after reading an xl_heap_new_cid record.
  * This implies that a transaction has done some form of write to system
  * catalogs.
  */
@@ -838,8 +831,15 @@ SnapBuildDistributeNewCatalogSnapshot(SnapBuild *builder, XLogRecPtr lsn)
 		if (!ReorderBufferXidHasBaseSnapshot(builder->reorder, txn->xid))
 			continue;
 
+		/*
+		 * We don't need to add snapshot to prepared transactions as they
+		 * should not see the new catalog contents.
+		 */
+		if (rbtxn_prepared(txn) || rbtxn_skip_prepared(txn))
+			continue;
+
 		elog(DEBUG2, "adding a new snapshot to %u at %X/%X",
-			 txn->xid, (uint32) (lsn >> 32), (uint32) lsn);
+			 txn->xid, LSN_FORMAT_ARGS(lsn));
 
 		/*
 		 * increase the snapshot's refcount for the transaction we are handing
@@ -942,7 +942,7 @@ SnapBuildCommitTxn(SnapBuild *builder, XLogRecPtr lsn, TransactionId xid,
 	 */
 	if (builder->state == SNAPBUILD_START ||
 		(builder->state == SNAPBUILD_BUILDING_SNAPSHOT &&
-		 TransactionIdPrecedes(xid, SnapBuildNextPhaseAt(builder))))
+		 TransactionIdPrecedes(xid, builder->next_phase_at)))
 	{
 		/* ensure that only commits after this are getting replayed */
 		if (builder->start_decoding_at <= lsn)
@@ -1229,7 +1229,7 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
 	{
 		ereport(DEBUG1,
 				(errmsg_internal("skipping snapshot at %X/%X while building logical decoding snapshot, xmin horizon too low",
-								 (uint32) (lsn >> 32), (uint32) lsn),
+								 LSN_FORMAT_ARGS(lsn)),
 				 errdetail_internal("initial xmin horizon of %u vs the snapshot's %u",
 									builder->initial_xmin_horizon, running->oldestRunningXid)));
 
@@ -1264,11 +1264,11 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
 		Assert(TransactionIdIsNormal(builder->xmax));
 
 		builder->state = SNAPBUILD_CONSISTENT;
-		SnapBuildStartNextPhaseAt(builder, InvalidTransactionId);
+		builder->next_phase_at = InvalidTransactionId;
 
 		ereport(LOG,
 				(errmsg("logical decoding found consistent point at %X/%X",
-						(uint32) (lsn >> 32), (uint32) lsn),
+						LSN_FORMAT_ARGS(lsn)),
 				 errdetail("There are no running transactions.")));
 
 		return false;
@@ -1295,7 +1295,7 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
 	else if (builder->state == SNAPBUILD_START)
 	{
 		builder->state = SNAPBUILD_BUILDING_SNAPSHOT;
-		SnapBuildStartNextPhaseAt(builder, running->nextXid);
+		builder->next_phase_at = running->nextXid;
 
 		/*
 		 * Start with an xmin/xmax that's correct for future, when all the
@@ -1311,7 +1311,7 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
 
 		ereport(LOG,
 				(errmsg("logical decoding found initial starting point at %X/%X",
-						(uint32) (lsn >> 32), (uint32) lsn),
+						LSN_FORMAT_ARGS(lsn)),
 				 errdetail("Waiting for transactions (approximately %d) older than %u to end.",
 						   running->xcnt, running->nextXid)));
 
@@ -1327,15 +1327,15 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
 	 * be decoded.  Switch to FULL_SNAPSHOT.
 	 */
 	else if (builder->state == SNAPBUILD_BUILDING_SNAPSHOT &&
-			 TransactionIdPrecedesOrEquals(SnapBuildNextPhaseAt(builder),
+			 TransactionIdPrecedesOrEquals(builder->next_phase_at,
 										   running->oldestRunningXid))
 	{
 		builder->state = SNAPBUILD_FULL_SNAPSHOT;
-		SnapBuildStartNextPhaseAt(builder, running->nextXid);
+		builder->next_phase_at = running->nextXid;
 
 		ereport(LOG,
 				(errmsg("logical decoding found initial consistent point at %X/%X",
-						(uint32) (lsn >> 32), (uint32) lsn),
+						LSN_FORMAT_ARGS(lsn)),
 				 errdetail("Waiting for transactions (approximately %d) older than %u to end.",
 						   running->xcnt, running->nextXid)));
 
@@ -1352,15 +1352,15 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
 	 * collected.  Switch to CONSISTENT.
 	 */
 	else if (builder->state == SNAPBUILD_FULL_SNAPSHOT &&
-			 TransactionIdPrecedesOrEquals(SnapBuildNextPhaseAt(builder),
+			 TransactionIdPrecedesOrEquals(builder->next_phase_at,
 										   running->oldestRunningXid))
 	{
 		builder->state = SNAPBUILD_CONSISTENT;
-		SnapBuildStartNextPhaseAt(builder, InvalidTransactionId);
+		builder->next_phase_at = InvalidTransactionId;
 
 		ereport(LOG,
 				(errmsg("logical decoding found consistent point at %X/%X",
-						(uint32) (lsn >> 32), (uint32) lsn),
+						LSN_FORMAT_ARGS(lsn)),
 				 errdetail("There are no old transactions anymore.")));
 	}
 
@@ -1381,7 +1381,7 @@ SnapBuildFindSnapshot(SnapBuild *builder, XLogRecPtr lsn, xl_running_xacts *runn
  * a) allow isolationtester to notice that we're currently waiting for
  *	  something.
  * b) log a new xl_running_xacts record where it'd be helpful, without having
- *	  to write for bgwriter or checkpointer.
+ *	  to wait for bgwriter or checkpointer.
  * ---
  */
 static void
@@ -1410,8 +1410,8 @@ SnapBuildWaitSnapshot(xl_running_xacts *running, TransactionId cutoff)
 	/*
 	 * All transactions we needed to finish finished - try to ensure there is
 	 * another xl_running_xacts record in a timely manner, without having to
-	 * write for bgwriter or checkpointer to log one.  During recovery we
-	 * can't enforce that, so we'll have to wait.
+	 * wait for bgwriter or checkpointer to log one.  During recovery we can't
+	 * enforce that, so we'll have to wait.
 	 */
 	if (!RecoveryInProgress())
 	{
@@ -1459,7 +1459,7 @@ typedef struct SnapBuildOnDisk
 	offsetof(SnapBuildOnDisk, version)
 
 #define SNAPBUILD_MAGIC 0x51A1E001
-#define SNAPBUILD_VERSION 2
+#define SNAPBUILD_VERSION 4
 
 /*
  * Store/Load a snapshot from disk, depending on the snapshot builder's state.
@@ -1484,7 +1484,7 @@ static void
 SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 {
 	Size		needed_length;
-	SnapBuildOnDisk *ondisk;
+	SnapBuildOnDisk *ondisk = NULL;
 	char	   *ondisk_c;
 	int			fd;
 	char		tmppath[MAXPGPATH];
@@ -1504,6 +1504,9 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	if (builder->state < SNAPBUILD_CONSISTENT)
 		return;
 
+	/* consistent snapshots have no next phase */
+	Assert(builder->next_phase_at == InvalidTransactionId);
+
 	/*
 	 * We identify snapshots by the LSN they are valid for. We don't need to
 	 * include timelines in the name as each LSN maps to exactly one timeline
@@ -1511,7 +1514,7 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	 * no hope continuing to decode anyway.
 	 */
 	sprintf(path, "pg_logical/snapshots/%X-%X.snap",
-			(uint32) (lsn >> 32), (uint32) lsn);
+			LSN_FORMAT_ARGS(lsn));
 
 	/*
 	 * first check whether some other backend already has written the snapshot
@@ -1553,8 +1556,8 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	elog(DEBUG1, "serializing snapshot to %s", path);
 
 	/* to make sure only we will write to this tempfile, include pid */
-	sprintf(tmppath, "pg_logical/snapshots/%X-%X.snap.%u.tmp",
-			(uint32) (lsn >> 32), (uint32) lsn, MyProcPid);
+	sprintf(tmppath, "pg_logical/snapshots/%X-%X.snap.%d.tmp",
+			LSN_FORMAT_ARGS(lsn), MyProcPid);
 
 	/*
 	 * Unlink temporary file if it already exists, needs to have been before a
@@ -1591,9 +1594,6 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	COMP_CRC32C(ondisk->checksum,
 				&ondisk->builder,
 				sizeof(SnapBuild));
-
-	/* there shouldn't be any running xacts */
-	Assert(builder->was_running.was_xcnt == 0);
 
 	/* copy committed xacts */
 	sz = sizeof(TransactionId) * builder->committed.xcnt;
@@ -1651,7 +1651,7 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 	}
 	pgstat_report_wait_end();
 
-	if (CloseTransientFile(fd))
+	if (CloseTransientFile(fd) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m", tmppath)));
@@ -1683,6 +1683,9 @@ SnapBuildSerialize(SnapBuild *builder, XLogRecPtr lsn)
 out:
 	ReorderBufferSetRestartPoint(builder->reorder,
 								 builder->last_serialized_snapshot);
+	/* be tidy */
+	if (ondisk)
+		pfree(ondisk);
 }
 
 /*
@@ -1704,7 +1707,7 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 		return false;
 
 	sprintf(path, "pg_logical/snapshots/%X-%X.snap",
-			(uint32) (lsn >> 32), (uint32) lsn);
+			LSN_FORMAT_ARGS(lsn));
 
 	fd = OpenTransientFile(path, O_RDONLY | PG_BINARY);
 
@@ -1794,34 +1797,6 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 	}
 	COMP_CRC32C(checksum, &ondisk.builder, sizeof(SnapBuild));
 
-	/* restore running xacts (dead, but kept for backward compat) */
-	sz = sizeof(TransactionId) * ondisk.builder.was_running.was_xcnt_space;
-	ondisk.builder.was_running.was_xip =
-		MemoryContextAllocZero(builder->context, sz);
-	pgstat_report_wait_start(WAIT_EVENT_SNAPBUILD_READ);
-	readBytes = read(fd, ondisk.builder.was_running.was_xip, sz);
-	pgstat_report_wait_end();
-	if (readBytes != sz)
-	{
-		int			save_errno = errno;
-
-		CloseTransientFile(fd);
-
-		if (readBytes < 0)
-		{
-			errno = save_errno;
-			ereport(ERROR,
-					(errcode_for_file_access(),
-					 errmsg("could not read file \"%s\": %m", path)));
-		}
-		else
-			ereport(ERROR,
-					(errcode(ERRCODE_DATA_CORRUPTED),
-					 errmsg("could not read file \"%s\": read %d of %zu",
-							path, readBytes, sz)));
-	}
-	COMP_CRC32C(checksum, ondisk.builder.was_running.was_xip, sz);
-
 	/* restore committed xacts information */
 	sz = sizeof(TransactionId) * ondisk.builder.committed.xcnt;
 	ondisk.builder.committed.xip = MemoryContextAllocZero(builder->context, sz);
@@ -1849,7 +1824,7 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 	}
 	COMP_CRC32C(checksum, ondisk.builder.committed.xip, sz);
 
-	if (CloseTransientFile(fd))
+	if (CloseTransientFile(fd) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m", path)));
@@ -1883,6 +1858,8 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 	if (TransactionIdPrecedes(ondisk.builder.xmin, builder->initial_xmin_horizon))
 		goto snapshot_not_interesting;
 
+	/* consistent snapshots have no next phase */
+	Assert(ondisk.builder.next_phase_at == InvalidTransactionId);
 
 	/* ok, we think the snapshot is sensible, copy over everything important */
 	builder->xmin = ondisk.builder.xmin;
@@ -1914,7 +1891,7 @@ SnapBuildRestore(SnapBuild *builder, XLogRecPtr lsn)
 
 	ereport(LOG,
 			(errmsg("logical decoding found consistent point at %X/%X",
-					(uint32) (lsn >> 32), (uint32) lsn),
+					LSN_FORMAT_ARGS(lsn)),
 			 errdetail("Logical decoding will begin using saved snapshot.")));
 	return true;
 

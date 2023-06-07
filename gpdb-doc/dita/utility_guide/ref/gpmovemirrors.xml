@@ -51,11 +51,11 @@
           <pt>--hba-hostnames <varname>boolean</varname></pt>
           <pd>Optional. Controls whether this utility uses IP addresses or host names in the
               <codeph>pg_hba.conf</codeph> file when updating this file with addresses that can
-            connect to Greenplum Database. When set to 0 -- the default value -- this utility uses
+            connect to Cloudberry Database. When set to 0 -- the default value -- this utility uses
             IP addresses when updating this file. When set to 1, this utility uses host names when
             updating this file. For consistency, use the same value that was specified for
-              <codeph>HBA_HOSTNAMES</codeph> when the Greenplum Database system was initialized. For
-            information about how Greenplum Database resolves host names in the
+              <codeph>HBA_HOSTNAMES</codeph> when the Cloudberry Database system was initialized. For
+            information about how Cloudberry Database resolves host names in the
               <codeph>pg_hba.conf</codeph> file, see <xref href="../../admin_guide/client_auth.xml"
             />.</pd>
         </plentry>
@@ -94,7 +94,7 @@
     </section>
     <section id="section5">
       <title>Examples</title>
-      <p>Moves mirrors from an existing Greenplum Database system to a different set of hosts:</p>
+      <p>Moves mirrors from an existing Cloudberry Database system to a different set of hosts:</p>
       <codeblock>$ gpmovemirrors -i move_config_file</codeblock>
       <p>Where the <codeph>move_config_file</codeph> looks something like this:</p>
       <codeblock>sdw2|50000|/data2/mirror/gpseg0 sdw3|50000|/data/mirror/gpseg0

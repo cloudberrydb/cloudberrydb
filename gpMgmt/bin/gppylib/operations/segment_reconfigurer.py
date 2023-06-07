@@ -4,7 +4,6 @@ from gppylib.commands import base
 from gppylib.db import dbconn
 import pg
 
-
 FTS_PROBE_QUERY = 'SELECT pg_catalog.gp_request_fts_probe_scan()'
 
 class SegmentReconfigurer:
@@ -32,6 +31,7 @@ class SegmentReconfigurer:
         self._trigger_fts_probe(dburl)
         start_time = time.time()
         while True:
+            time.sleep(1)
             try:
                 # Empty block of 'BEGIN' and 'END' won't start a distributed transaction,
                 # execute a DDL query to start a distributed transaction.
@@ -40,6 +40,9 @@ class SegmentReconfigurer:
                 conn.cursor().execute('CREATE TEMP TABLE temp_test(a int)')
                 conn.cursor().execute('COMMIT')
             except Exception as e:
+                # Should close conn here
+                # Otherwise, the postmaster will be blocked by abort transaction
+                conn.close()
                 now = time.time()
                 if now < start_time + self.timeout:
                     continue

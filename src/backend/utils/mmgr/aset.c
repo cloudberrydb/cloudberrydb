@@ -7,9 +7,9 @@
  * type.
  *
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -48,6 +48,7 @@
 
 #include "postgres.h"
 
+#include "port/pg_bitutils.h"
 #include "utils/memdebug.h"
 #include "utils/memutils.h"
 #include "utils/gp_alloc.h"
@@ -56,12 +57,6 @@
 
 /* Define this to detail debug alloc information */
 /* #define HAVE_ALLOCINFO */
-
-#ifdef CDB_PALLOC_CALLER_ID
-#define CDB_MCXT_WHERE(context) (context)->callerFile, (context)->callerLine
-#else
-#define CDB_MCXT_WHERE(context) __FILE__, __LINE__
-#endif
 
 #if defined(CDB_PALLOC_TAGS) && !defined(CDB_PALLOC_CALLER_ID)
 #error "If CDB_PALLOC_TAGS is defined, CDB_PALLOC_CALLER_ID must be defined too"
@@ -164,9 +159,6 @@ typedef struct AllocSetContext
 	 * localAllocated: This is the memory allocated (in bytes) for this memory
 	 * context alone (i.e. it does not consider the memory allocated for any
 	 * members of the context's subtree).
-	 * GPDB_13_MERGE_FIXME: PostgreSQL v13 added a field like this in
-	 * MemoryContextData.mem_allocated. We should probably switch to using that
-	 * once we catch up.
 	 *
 	 * currentAllocated: This field is only applicable to a MemoryContext
 	 * designated as an account. It tracks the current bytes allocated in all
@@ -362,7 +354,8 @@ static Size AllocSetGetChunkSpace(MemoryContext context, void *pointer);
 static bool AllocSetIsEmpty(MemoryContext context);
 static void AllocSetStats(MemoryContext context,
 						  MemoryStatsPrintFunc printfunc, void *passthru,
-						  MemoryContextCounters *totals);
+						  MemoryContextCounters *totals,
+						  bool print_to_stderr);
 
 static void AllocSetDeclareAccountingRoot(MemoryContext context);
 static Size AllocSetGetCurrentUsage(MemoryContext context);
@@ -396,33 +389,6 @@ static const MemoryContextMethods AllocSetMethods = {
 #endif
 };
 
-/*
- * Table for AllocSetFreeIndex
- */
-#define LT16(n) n, n, n, n, n, n, n, n, n, n, n, n, n, n, n, n
-
-static const unsigned char LogTable256[256] =
-{
-	0, 1, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4,
-	LT16(5), LT16(6), LT16(6), LT16(7), LT16(7), LT16(7), LT16(7),
-	LT16(8), LT16(8), LT16(8), LT16(8), LT16(8), LT16(8), LT16(8), LT16(8)
-};
-
-/* ----------
- * Debug macros
- * ----------
- */
-#ifdef HAVE_ALLOCINFO
-#define AllocFreeInfo(_cxt, _chunk) \
-			fprintf(stderr, "AllocFree: %s: %p, %zu\n", \
-				(_cxt)->header.name, (_chunk), (_chunk)->size)
-#define AllocAllocInfo(_cxt, _chunk) \
-			fprintf(stderr, "AllocAlloc: %s: %p, %zu\n", \
-				(_cxt)->header.name, (_chunk), (_chunk)->size)
-#else
-#define AllocFreeInfo(_cxt, _chunk)
-#define AllocAllocInfo(_cxt, _chunk)
-#endif
 
 /* ----------
  * AllocSetFreeIndex -
@@ -436,24 +402,41 @@ static inline int
 AllocSetFreeIndex(Size size)
 {
 	int			idx;
-	unsigned int t,
-				tsize;
 
 	if (size > (1 << ALLOC_MINBITS))
 	{
-		tsize = (size - 1) >> ALLOC_MINBITS;
-
-		/*
-		 * At this point we need to obtain log2(tsize)+1, ie, the number of
-		 * not-all-zero bits at the right.  We used to do this with a
-		 * shift-and-count loop, but this function is enough of a hotspot to
-		 * justify micro-optimization effort.  The best approach seems to be
-		 * to use a lookup table.  Note that this code assumes that
-		 * ALLOCSET_NUM_FREELISTS <= 17, since we only cope with two bytes of
-		 * the tsize value.
+		/*----------
+		 * At this point we must compute ceil(log2(size >> ALLOC_MINBITS)).
+		 * This is the same as
+		 *		pg_leftmost_one_pos32((size - 1) >> ALLOC_MINBITS) + 1
+		 * or equivalently
+		 *		pg_leftmost_one_pos32(size - 1) - ALLOC_MINBITS + 1
+		 *
+		 * However, rather than just calling that function, we duplicate the
+		 * logic here, allowing an additional optimization.  It's reasonable
+		 * to assume that ALLOC_CHUNK_LIMIT fits in 16 bits, so we can unroll
+		 * the byte-at-a-time loop in pg_leftmost_one_pos32 and just handle
+		 * the last two bytes.
+		 *
+		 * Yes, this function is enough of a hot-spot to make it worth this
+		 * much trouble.
+		 *----------
 		 */
+#ifdef HAVE__BUILTIN_CLZ
+		idx = 31 - __builtin_clz((uint32) size - 1) - ALLOC_MINBITS + 1;
+#else
+		uint32		t,
+					tsize;
+
+		/* Statically assert that we only have a 16-bit input value. */
+		StaticAssertStmt(ALLOC_CHUNK_LIMIT < (1 << 16),
+						 "ALLOC_CHUNK_LIMIT must be less than 64kB");
+
+		tsize = size - 1;
 		t = tsize >> 8;
-		idx = t ? LogTable256[t] + 8 : LogTable256[tsize];
+		idx = t ? pg_leftmost_one_pos[t] + 8 : pg_leftmost_one_pos[tsize];
+		idx -= ALLOC_MINBITS - 1;
+#endif
 
 		Assert(idx < ALLOCSET_NUM_FREELISTS);
 	}
@@ -690,7 +673,8 @@ AllocSetReset(MemoryContext context)
 {
 	AllocSet	set = (AllocSet) context;
 	AllocBlock	block;
-	Size		keepersize PG_USED_FOR_ASSERTS_ONLY = set->keeper->endptr - ((char *) set);
+	Size		keepersize PG_USED_FOR_ASSERTS_ONLY
+	= set->keeper->endptr - ((char *) set);
 
 	AssertArg(AllocSetIsValid(set));
 
@@ -736,7 +720,7 @@ AllocSetReset(MemoryContext context)
 		else
 		{
 			/* Normal case, release the block */
-			context->mem_allocated -= block->endptr - ((char*) block);
+			context->mem_allocated -= block->endptr - ((char *) block);
 
 #ifdef CLOBBER_FREED_MEMORY
 			wipe_mem(block, block->freeptr - ((char *) block));
@@ -764,7 +748,8 @@ AllocSetDelete(MemoryContext context, MemoryContext parent)
 {
 	AllocSet	set = (AllocSet) context;
 	AllocBlock	block = set->blocks;
-	Size		keepersize PG_USED_FOR_ASSERTS_ONLY = set->keeper->endptr - ((char *) set);
+	Size		keepersize PG_USED_FOR_ASSERTS_ONLY
+	= set->keeper->endptr - ((char *) set);
 
 	AssertArg(AllocSetIsValid(set));
 
@@ -937,8 +922,6 @@ AllocSetAlloc(MemoryContext context, Size size)
 			set->blocks = block;
 		}
 
-		AllocAllocInfo(set, chunk);
-
 		/* Ensure any padding bytes are marked NOACCESS. */
 		VALGRIND_MAKE_MEM_NOACCESS((char *) AllocChunkGetPointer(chunk) + size,
 								   chunk_size - size);
@@ -977,8 +960,6 @@ AllocSetAlloc(MemoryContext context, Size size)
 		/* fill the allocated space with junk */
 		randomize_mem((char *) AllocChunkGetPointer(chunk), size);
 #endif
-
-		AllocAllocInfo(set, chunk);
 
 		/* Ensure any padding bytes are marked NOACCESS. */
 		VALGRIND_MAKE_MEM_NOACCESS((char *) AllocChunkGetPointer(chunk) + size,
@@ -1087,7 +1068,7 @@ AllocSetAlloc(MemoryContext context, Size size)
 
 		/*
 		 * We could be asking for pretty big blocks here, so cope if malloc
-		 * fails.  But give up if there's less than a meg or so available...
+		 * fails.  But give up if there's less than 1 MB or so available...
 		 */
 		while (block == NULL && blksize > 1024 * 1024)
 		{
@@ -1141,8 +1122,6 @@ AllocSetAlloc(MemoryContext context, Size size)
 	randomize_mem((char *) AllocChunkGetPointer(chunk), size);
 #endif
 
-	AllocAllocInfo(set, chunk);
-
 	/* Ensure any padding bytes are marked NOACCESS. */
 	VALGRIND_MAKE_MEM_NOACCESS((char *) AllocChunkGetPointer(chunk) + size,
 							   chunk_size - size);
@@ -1167,8 +1146,6 @@ AllocSetFree(MemoryContext context, void *pointer)
 
 	/* Allow access to private part of chunk header. */
 	VALGRIND_MAKE_MEM_DEFINED(chunk, ALLOCCHUNK_PRIVATE_LEN);
-
-	AllocFreeInfo(set, chunk);
 
 	MEMORY_ACCOUNT_DEC_ALLOCATED(set, chunk->size);
 
@@ -1220,7 +1197,7 @@ AllocSetFree(MemoryContext context, void *pointer)
 		if (block->next)
 			block->next->prev = block->prev;
 
-		context->mem_allocated -= block->endptr - ((char*) block);
+		context->mem_allocated -= block->endptr - ((char *) block);
 
 #ifdef CLOBBER_FREED_MEMORY
 		wipe_mem(block, block->freeptr - ((char *) block));
@@ -1349,8 +1326,9 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 		chksize = MAXALIGN(chksize);
 
 		/* Do the realloc */
-		oldblksize = UserPtr_GetUserPtrSize(block);
 		blksize = chksize + ALLOC_BLOCKHDRSZ + ALLOC_CHUNKHDRSZ;
+		oldblksize = block->endptr - ((char *) block);
+
 		block = (AllocBlock) gp_realloc(block, blksize);
 		if (block == NULL)
 		{
@@ -1359,7 +1337,9 @@ AllocSetRealloc(MemoryContext context, void *pointer, Size size)
 			return NULL;
 		}
 
-		context->mem_allocated += blksize - oldblksize;
+		/* updated separately, not to underflow when (oldblksize > blksize) */
+		context->mem_allocated -= oldblksize;
+		context->mem_allocated += blksize;
 
 		block->freeptr = block->endptr = ((char *) block) + blksize;
 
@@ -1569,11 +1549,12 @@ AllocSetIsEmpty(MemoryContext context)
  * printfunc: if not NULL, pass a human-readable stats string to this.
  * passthru: pass this pointer through to printfunc.
  * totals: if not NULL, add stats about this context into *totals.
+ * print_to_stderr: print stats to stderr if true, elog otherwise.
  */
 static void
 AllocSetStats(MemoryContext context,
 			  MemoryStatsPrintFunc printfunc, void *passthru,
-			  MemoryContextCounters *totals)
+			  MemoryContextCounters *totals, bool print_to_stderr)
 {
 	AllocSet	set = (AllocSet) context;
 	Size		nblocks = 0;
@@ -1612,7 +1593,7 @@ AllocSetStats(MemoryContext context,
 				 "%zu total in %zd blocks; %zu free (%zd chunks); %zu used",
 				 totalspace, nblocks, freespace, freechunks,
 				 totalspace - freespace);
-		printfunc(context, passthru, stats_string);
+		printfunc(context, passthru, stats_string, print_to_stderr);
 	}
 
 	if (totals)
@@ -1699,9 +1680,10 @@ AllocSetSetPeakUsage(MemoryContext context, Size nbytes)
 void
 AllocSetTransferAccounting(MemoryContext context, MemoryContext new_parent)
 {
-	/* GPDB_12_MERGE_FIXME: If you mix AllocSetContexts and other contexts,
-	 * what happens to accounting? */
-	if (!IsA(context, AllocSetContext))
+	/*
+	* Mixing AllocSetContexts and other contexts parent will lose the accounting info.
+	*/
+	if (!IsA(context, AllocSetContext) || (new_parent != NULL && !IsA(new_parent, AllocSetContext)))
 		return;
 
 	AllocSet set = (AllocSet)context;
@@ -1749,7 +1731,7 @@ AllocSetCheck(MemoryContext context)
 	const char *name = set->header.name;
 	AllocBlock	prevblock;
 	AllocBlock	block;
-	int64		total_allocated = 0;
+	Size		total_allocated = 0;
 
 	for (prevblock = NULL, block = set->blocks;
 		 block != NULL;

@@ -4,7 +4,7 @@
  *    a table maintaining a light-weight fast sequence number for a unique
  *    object.
  *
- * Portions Copyright (c) 2009-2011, Greenplum Inc.
+ * Portions Copyright (c) 2009-2011, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -22,7 +22,7 @@
 /*
  * gp_fastsequence definition
  */
-CATALOG(gp_fastsequence,5043,FastSequenceRelationId)
+CATALOG(gp_fastsequence,7023,FastSequenceRelationId)
 {
 	Oid				objid;				/* object oid */
 	int8			objmod;				/* object modifier */

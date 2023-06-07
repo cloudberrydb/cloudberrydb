@@ -141,14 +141,14 @@ create table ao1(col1 varchar(2), col2 int) WITH (APPENDONLY=TRUE) distributed r
 insert into ao1 values('a', 1); 
 -- should fail
 alter table ao1 add column col3 char(1) not null default NULL; 
-ERROR:  column "col3" contains null values  (seg2 rh55-qavm63:18508 pid=26649)
+ERROR:  column "col3" of relation "ao1" contains null values  (seg0 127.0.1.1:7002 pid=1940514)
 drop table if exists ao1;
 create table ao1(col1 varchar(2), col2 int) WITH (APPENDONLY=TRUE) distributed randomly;
 -- should pass
 alter table ao1 add column col3 char(1) not null default NULL; 
 -- this should fail (same behavior as heap tables)
 insert into ao1(col1, col2) values('a', 10);
-ERROR:  null value in column "col3" violates not-null constraint  (seg1 127.0.0.1:25433 pid=17664)
+ERROR:  null value in column "col3" of relation "ao1" violates not-null constraint  (seg1 127.0.1.1:7003 pid=1940513)
 DETAIL:  Failing row contains (a, 10, null).
 ---
 --- alter add with no default should continue to fail
@@ -266,13 +266,13 @@ WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
 insert into aoco1 values('a', 1); 
 -- should fail (rewrite needs to do null checking) 
 alter table aoco1 add column col3 char(1) not null default NULL; 
-ERROR:  column "col3" contains null values  (seg0 usxxreddyr3mbp1.corp.emc.com:40000 pid=87838)
+ERROR:  column "col3" of relation "aoco1" contains null values  (seg1 127.0.1.1:7003 pid=2288373)
 alter table aoco1 add column c5 int check (c5 IS NOT NULL) default NULL;
-ERROR:  check constraint "aoco1_c5_check" is violated by some row
+ERROR:  check constraint "aoco1_c5_check" of relation "aoco1" is violated by some row  (seg0 127.0.1.1:7002 pid=1940514)
 -- should fail (rewrite needs to do constraint checking) 
 insert into aoco1(col1, col2) values('a', NULL);
 alter table aoco1 alter column col2 set not null; 
-ERROR:  column "col2" contains null values  (seg0 usxxreddyr3mbp1.corp.emc.com:40000 pid=87838)
+ERROR:  column "col2" of relation "aoco1" contains null values  (seg0 127.0.1.1:7002 pid=2288374)
 -- should pass (rewrite needs to do constraint checking) 
 alter table aoco1 alter column col2 type int; 
 drop table if exists aoco1;
@@ -282,7 +282,7 @@ WITH (APPENDONLY=TRUE, ORIENTATION=column) distributed randomly;
 alter table aoco1 add column col3 char(1) not null default NULL; 
 -- this should fail (same behavior as heap tables)
 insert into aoco1 (col1, col2) values('a', 10);
-ERROR:  null value in column "col3" violates not-null constraint  (seg1 127.0.0.1:25433 pid=17664)
+ERROR:  null value in column "col3" of relation "aoco1" violates not-null constraint  (seg1 127.0.1.1:7003 pid=1940513)
 DETAIL:  Failing row contains (a, 10, null).
 drop table if exists aoco1;
 create table aoco1(col1 varchar(2), col2 int not null)
@@ -298,7 +298,7 @@ select * from aoco1;
 (2 rows)
 
 alter table aoco1 add column col4 char(1) not NULL default NULL;
-ERROR:  column "col4" contains null values  (seg1 usxxreddyr3mbp1.corp.emc.com:40001 pid=90925)
+ERROR:  column "col4" of relation "aoco1" contains null values  (seg1 127.0.1.1:7003 pid=2359913)
 select * from aoco1;
  col1 | col2 | col3 
 ------+------+------
@@ -577,7 +577,7 @@ select * from testbug_char5 where tag1='1';
 -- Check NL Index scan plan
 --
 create table dim(tag1 char(5));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'tag1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'tag1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into dim values('1');
 set enable_hashjoin=off;

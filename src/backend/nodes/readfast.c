@@ -3,7 +3,7 @@
  * readfast.c
  *	  Binary Reader functions for Postgres tree nodes.
  *
- * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 2005-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -13,7 +13,7 @@
  *
  * For most node types, these routines are identical to the text reader
  * functions, in readfuncs.c. To avoid code duplication and merge hazards
- * (readfast.c is a Greenplum addon), most read routines borrow the source
+ * (readfast.c is a Cloudberry addon), most read routines borrow the source
  * definition from readfuncs.c, we just compile it with different READ_*
  * macros.
  *
@@ -382,6 +382,7 @@ _readSelectStmt(void)
 	READ_NODE_FIELD(fromClause);
 	READ_NODE_FIELD(whereClause);
 	READ_NODE_FIELD(groupClause);
+	READ_BOOL_FIELD(groupDistinct);
 	READ_NODE_FIELD(havingClause);
 	READ_NODE_FIELD(windowClause);
 	READ_NODE_FIELD(valuesLists);
@@ -389,6 +390,7 @@ _readSelectStmt(void)
 	READ_NODE_FIELD(scatterClause);
 	READ_NODE_FIELD(limitOffset);
 	READ_NODE_FIELD(limitCount);
+	READ_ENUM_FIELD(limitOption, LimitOption);
 	READ_NODE_FIELD(lockingClause);
 	READ_NODE_FIELD(withClause);
 	READ_ENUM_FIELD(op, SetOperation);
@@ -480,7 +482,6 @@ _readA_Star(void)
 	READ_DONE();
 }
 
-
 static A_Indices *
 _readA_Indices(void)
 {
@@ -519,8 +520,6 @@ _readAExpr(void)
 
 	READ_ENUM_FIELD(kind, A_Expr_Kind);
 
-	Assert(local_node->kind <= AEXPR_PAREN);
-
 	switch (local_node->kind)
 	{
 		case AEXPR_OP:
@@ -545,10 +544,7 @@ _readAExpr(void)
 
 			READ_NODE_FIELD(name);
 			break;
-		case AEXPR_OF:
 
-			READ_NODE_FIELD(name);
-			break;
 		case AEXPR_IN:
 
 			READ_NODE_FIELD(name);
@@ -581,10 +577,7 @@ _readAExpr(void)
 
 			READ_NODE_FIELD(name);
 			break;
-		case AEXPR_PAREN:
 
-			READ_NODE_FIELD(name);
-			break;
 		default:
 			elog(ERROR,"Unable to understand A_Expr node ");
 			break;
@@ -706,7 +699,7 @@ _readExtensibleNode(void)
 }
 
 /*
- * Greenplum Database additions for serialization support
+ * Cloudberry Database additions for serialization support
  */
 #include "nodes/plannodes.h"
 
@@ -803,33 +796,6 @@ _readCreateForeignTableStmt(void)
 	READ_DONE();
 }
 
-static ColumnReferenceStorageDirective *
-_readColumnReferenceStorageDirective(void)
-{
-	READ_LOCALS(ColumnReferenceStorageDirective);
-
-	READ_STRING_FIELD(column);
-	READ_BOOL_FIELD(deflt);
-	READ_NODE_FIELD(encoding);
-
-	READ_DONE();
-}
-
-static AlterDomainStmt *
-_readAlterDomainStmt(void)
-{
-	READ_LOCALS(AlterDomainStmt);
-
-	READ_CHAR_FIELD(subtype);
-	READ_NODE_FIELD(typeName);
-	READ_STRING_FIELD(name);
-	READ_NODE_FIELD(def);
-	READ_ENUM_FIELD(behavior, DropBehavior); Assert(local_node->behavior <= DROP_CASCADE);
-	READ_BOOL_FIELD(missing_ok);
-
-	READ_DONE();
-}
-
 static AlterDefaultPrivilegesStmt *
 _readAlterDefaultPrivilegesStmt(void)
 {
@@ -853,20 +819,6 @@ _readCopyStmt(void)
 	READ_STRING_FIELD(filename);
 	READ_NODE_FIELD(options);
 	READ_NODE_FIELD(sreh);
-
-	READ_DONE();
-}
-
-static GrantRoleStmt *
-_readGrantRoleStmt(void)
-{
-	READ_LOCALS(GrantRoleStmt);
-	READ_NODE_FIELD(granted_roles);
-	READ_NODE_FIELD(grantee_roles);
-	READ_BOOL_FIELD(is_grant);
-	READ_BOOL_FIELD(admin_opt);
-	READ_NODE_FIELD(grantor);
-	READ_ENUM_FIELD(behavior, DropBehavior); Assert(local_node->behavior <= DROP_CASCADE);
 
 	READ_DONE();
 }
@@ -1129,6 +1081,7 @@ _readCreateTrigStmt(void)
 {
 	READ_LOCALS(CreateTrigStmt);
 
+	READ_BOOL_FIELD(replace);
 	READ_STRING_FIELD(trigname);
 	READ_NODE_FIELD(relation);
 	READ_NODE_FIELD(funcname);
@@ -1559,6 +1512,16 @@ _readRowIdExpr(void)
 	READ_DONE();
 }
 
+static GpDropPartitionCmd *
+_readGpDropPartitionCmd(void)
+{
+	READ_LOCALS(GpDropPartitionCmd);
+	READ_NODE_FIELD(partid);
+	READ_ENUM_FIELD(behavior, DropBehavior);
+	READ_BOOL_FIELD(missing_ok);
+	READ_DONE();
+}
+
 static Node *
 _readValue(NodeTag nt)
 {
@@ -1631,6 +1594,45 @@ _readGpPolicy(void)
 	READ_DONE();
 }
 
+static GpSplitPartitionCmd *
+_readGpSplitPartitionCmd(void)
+{
+	READ_LOCALS(GpSplitPartitionCmd);
+
+	READ_NODE_FIELD(partid);
+	READ_NODE_FIELD(start);
+	READ_NODE_FIELD(end);
+	READ_NODE_FIELD(at);
+	READ_NODE_FIELD(arg2);
+
+	READ_DONE();
+}
+
+static StatsElem *
+_readStatsElem(void)
+{
+	READ_LOCALS(StatsElem);
+
+	READ_STRING_FIELD(name);
+	READ_NODE_FIELD(expr);
+
+	READ_DONE();
+}
+
+static CreateStatsStmt *
+_readCreateStatsStmt(void)
+{
+	READ_LOCALS(CreateStatsStmt);
+	READ_NODE_FIELD(defnames);
+	READ_NODE_FIELD(stat_types);
+	READ_NODE_FIELD(exprs);
+	READ_NODE_FIELD(relations);
+	READ_STRING_FIELD(stxcomment);
+	READ_BOOL_FIELD(transformed);
+	READ_BOOL_FIELD(if_not_exists);
+
+	READ_DONE();
+}
 
 static void *
 readNodeBinary(void)
@@ -1771,6 +1773,9 @@ readNodeBinary(void)
 			case T_TidScan:
 				return_value = _readTidScan();
 				break;
+			case T_TidRangeScan:
+				return_value = _readTidRangeScan();
+				break;
 			case T_SubqueryScan:
 				return_value = _readSubqueryScan();
 				break;
@@ -1822,17 +1827,26 @@ readNodeBinary(void)
 			case T_Material:
 				return_value = _readMaterial();
 				break;
+			case T_Memoize:
+				return_value = _readMemoize();
+				break;
 			case T_ShareInputScan:
 				return_value = _readShareInputScan();
 				break;
 			case T_Sort:
 				return_value = _readSort();
 				break;
+			case T_IncrementalSort:
+				return_value = _readIncrementalSort();
+				break;
 			case T_Unique:
 				return_value = _readUnique();
 				break;
 			case T_SetOp:
 				return_value = _readSetOp();
+				break;
+			case T_RuntimeFilter:
+				return_value = _readRuntimeFilter();
 				break;
 			case T_Limit:
 				return_value = _readLimit();
@@ -1872,6 +1886,9 @@ readNodeBinary(void)
 				break;
 			case T_PartitionSelector:
 				return_value = _readPartitionSelector();
+				break;
+			case T_GpPartDefElem:
+				return_value = _readGpPartDefElem();
 				break;
 			case T_Alias:
 				return_value = _readAlias();
@@ -2047,6 +2064,9 @@ readNodeBinary(void)
 			case T_OnConflictExpr:
 				return_value = _readOnConflictExpr();
 				break;
+			case T_AppendRelInfo:
+				return_value = _readAppendRelInfo();
+				break;
 			case T_GrantStmt:
 				return_value = _readGrantStmt();
 				break;
@@ -2074,6 +2094,9 @@ readNodeBinary(void)
 				break;
 			case T_PartitionCmd:
 				return_value = _readPartitionCmd();
+				break;
+			case T_GpAlterPartitionId:
+				return_value = _readGpAlterPartitionId();
 				break;
 			case T_DistributionKeyElem:
 				return_value = _readDistributionKeyElem();
@@ -2113,6 +2136,9 @@ readNodeBinary(void)
 				break;
 			case T_ReindexStmt:
 				return_value = _readReindexStmt();
+				break;
+			case T_ReindexIndexInfo:
+				return_value = _readReindexIndexInfo();
 				break;
 
 			case T_ConstraintsSetStmt:
@@ -2156,6 +2182,9 @@ readNodeBinary(void)
 				break;
 			case T_CreateOpFamilyStmt:
 				return_value = _readCreateOpFamilyStmt();
+				break;
+			case T_CreateStatsStmt:
+				return_value = _readCreateStatsStmt();
 				break;
 			case T_AlterOpFamilyStmt:
 				return_value = _readAlterOpFamilyStmt();
@@ -2325,6 +2354,12 @@ readNodeBinary(void)
 			case T_RowMarkClause:
 				return_value = _readRowMarkClause();
 				break;
+			case T_CTESearchClause:
+				return_value = _readCTESearchClause();
+				break;
+			case T_CTECycleClause:
+				return_value = _readCTECycleClause();
+				break;
 			case T_WithClause:
 				return_value = _readWithClause();
 				break;
@@ -2345,6 +2380,9 @@ readNodeBinary(void)
 				break;
 			case T_ColumnRef:
 				return_value = _readColumnRef();
+				break;
+			case T_ParamRef:
+				return_value = _readParamRef();
 				break;
 			case T_A_Const:
 				return_value = _readAConst();
@@ -2552,6 +2590,33 @@ readNodeBinary(void)
 				break;
 			case T_RowIdExpr:
 				return_value = _readRowIdExpr();
+				break;
+			case T_GpDropPartitionCmd:
+				return_value = _readGpDropPartitionCmd();
+				break;
+			case T_GpPartitionRangeSpec:
+				return_value = _readGpPartitionRangeSpec();
+				break;
+			case T_GpPartitionRangeItem:
+				return_value = _readGpPartitionRangeItem();
+				break;
+			case T_GpPartitionListSpec:
+				return_value = _readGpPartitionListSpec();
+				break;
+			case T_GpAlterPartitionCmd:
+				return_value = _readGpAlterPartitionCmd();
+				break;
+			case T_GpPartitionDefinition:
+				return_value = _readGpPartitionDefinition();
+				break;
+			case T_GpSplitPartitionCmd:
+				return_value = _readGpSplitPartitionCmd();
+				break;
+			case T_ReturnStmt:
+				return_value = _readReturnStmt();
+				break;
+			case T_StatsElem:
+				return_value = _readStatsElem();
 				break;
 			default:
 				return_value = NULL; /* keep the compiler silent */

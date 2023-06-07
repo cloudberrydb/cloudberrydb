@@ -51,12 +51,12 @@
                     format="html">User Defined Functions</xref> section of the PostgreSQL
                 documentation.</p>
             <sectiondiv id="section4"><b>Limited Use of VOLATILE and STABLE Functions</b><p>To
-                    prevent data from becoming out-of-sync across the segments in Greenplum
+                    prevent data from becoming out-of-sync across the segments in Cloudberry
                     Database, any function classified as <codeph>STABLE</codeph> or
                         <codeph>VOLATILE</codeph> cannot be run at the segment level if it
                     contains SQL or modifies the database in any way. For example, functions such as
                         <codeph>random()</codeph> or <codeph>timeofday()</codeph> are not allowed to
-                    run on distributed data in Greenplum Database because they could potentially
+                    run on distributed data in Cloudberry Database because they could potentially
                     cause inconsistent data between the segment instances.</p><p>To ensure data
                     consistency, <codeph>VOLATILE</codeph> and <codeph>STABLE</codeph> functions can
                     safely be used in statements that are evaluated on and run from the master.
@@ -71,7 +71,7 @@ SELECT foo();</codeblock><p>In
                     rule are functions that return a table reference (<codeph>rangeFuncs</codeph>)
                     or functions that use the <codeph>refCursor</codeph> data type. Note that you
                     cannot return a <codeph>refcursor</codeph> from any kind of function in
-                    Greenplum Database.</p></sectiondiv>
+                    Cloudberry Database.</p></sectiondiv>
             <sectiondiv><b>Function Volatility and EXECUTE ON Attributes</b><p>Volatility attributes
                         (<codeph>IMMUTABLE</codeph>, <codeph>STABLE</codeph>,
                         <codeph>VOLATILE</codeph>) and <codeph>EXECUTE ON</codeph> attributes
@@ -85,7 +85,7 @@ SELECT foo();</codeblock><p>In
                     function with the <codeph>EXECUTE ON ALL SEGMENTS</codeph> attribute is run 
                     on all primary segment instances (not the master).</p><p>See <xref
                         href="../../admin_guide/query/topics/functions-operators.xml#topic26/in151167"
-                        >Using Functions and Operators</xref> in the <cite>Greenplum Database
+                        >Using Functions and Operators</xref> in the <cite>Cloudberry Database
                         Administrator Guide</cite>.</p></sectiondiv>
             <sectiondiv><b>Functions And Replicated Tables</b><p>A user-defined function that
                     runs only <codeph>SELECT</codeph> commands on replicated tables can run on
@@ -178,7 +178,7 @@ SELECT foo();</codeblock><p>In
                             <codeph>SQL</codeph>, <codeph>C</codeph>, <codeph>internal</codeph>, or
                         the name of a user-defined procedural language. See <codeph><xref
                                 href="./CREATE_LANGUAGE.xml#topic1" type="topic" format="dita"
-                            /></codeph> for the procedural languages supported in Greenplum
+                            /></codeph> for the procedural languages supported in Cloudberry
                         Database. For backward compatibility, the name may be enclosed by single
                         quotes. </pd>
                 </plentry>
@@ -196,7 +196,7 @@ SELECT foo();</codeblock><p>In
                     <pt>LEAKPROOF</pt>
                     <pd>These attributes inform the query optimizer about the behavior of the
                         function. At most one choice may be specified. If none of these appear,
-                            <codeph>VOLATILE</codeph> is the default assumption. Since Greenplum
+                            <codeph>VOLATILE</codeph> is the default assumption. Since Cloudberry
                         Database currently has limited use of <codeph>VOLATILE</codeph> functions,
                         if a function is truly <codeph>IMMUTABLE</codeph>, you must declare it as so
                         to be able to use it without restrictions.</pd>
@@ -282,7 +282,7 @@ SELECT foo();</codeblock><p>In
                         process.</pd>
                     <pd><codeph>EXECUTE ON ANY</codeph> (the default) indicates that the function
                         can be run on the master, or any segment instance, and it returns the
-                        same result regardless of where it is run. Greenplum Database
+                        same result regardless of where it is run. Cloudberry Database
                         determines where the function runs.</pd>
                     <pd><codeph>EXECUTE ON MASTER</codeph> indicates that the function must run
                         only on the master instance. </pd>
@@ -292,7 +292,7 @@ SELECT foo();</codeblock><p>In
                             ALL</codeph> of the results from all segment instances. </pd>
                     <pd><codeph>EXECUTE ON INITPLAN</codeph> indicates that the function contains an
                         SQL command that dispatches queries to the segment instances and requires
-                        special processing on the master instance by Greenplum Database when
+                        special processing on the master instance by Cloudberry Database when
                         possible.
                         <note><codeph>EXECUTE ON INITPLAN</codeph> is only supported in functions
                             that are used in the <codeph>FROM</codeph> clause of a <codeph>CREATE
@@ -300,7 +300,7 @@ SELECT foo();</codeblock><p>In
                                 <codeph>get_data()</codeph> function in these
                             commands.<codeblock>CREATE TABLE t AS SELECT * FROM get_data();
 
-INSERT INTO t1 SELECT * FROM get_data();</codeblock><p>Greenplum
+INSERT INTO t1 SELECT * FROM get_data();</codeblock><p>Cloudberry
                                 Database does not support the <codeph>EXECUTE ON INITPLAN</codeph>
                                 attribute in a function that is used in the <codeph>WITH</codeph>
                                 clause of a query, a CTE (common table expression). For example,
@@ -369,18 +369,18 @@ INSERT INTO t1 SELECT * FROM get_data();</codeblock><p>Greenplum
                 </plentry>
             </parml></section>
         <section id="section6"><title>Notes</title><p>Any compiled code (shared library files) for
-                custom functions must be placed in the same location on every host in your Greenplum
+                custom functions must be placed in the same location on every host in your Cloudberry
                 Database array (master and all segments). This location must also be in the
                     <codeph>LD_LIBRARY_PATH</codeph> so that the server can locate the files. It is
                 recommended to locate shared libraries either relative to <codeph>$libdir</codeph>
                 (which is located at <codeph>$GPHOME/lib</codeph>) or through the dynamic library
                 path (set by the <codeph>dynamic_library_path</codeph> server configuration
-                parameter) on all master segment instances in the Greenplum array.</p><p>The full
+                parameter) on all master segment instances in the Cloudberry array.</p><p>The full
                 SQL type syntax is allowed for input arguments and return value. However, some
                 details of the type specification (such as the precision field for type
                     <varname>numeric</varname>) are the responsibility of the underlying function
                 implementation and are not recognized or enforced by the <codeph>CREATE
-                    FUNCTION</codeph> command. </p><p>Greenplum Database allows function overloading. The same name can be used for several different
+                    FUNCTION</codeph> command. </p><p>Cloudberry Database allows function overloading. The same name can be used for several different
                 functions so long as they have distinct input argument types. However, the C names
                 of all functions must be different, so you must give overloaded C functions
                 different C names (for example, use the argument types as part of the C names). </p><p>Two functions are considered
@@ -433,15 +433,15 @@ $SomeTag$Dianne's horse$SomeTag$</codeblock>
                 existing calls of the function do not stop working when it is replaced.
             </p>
             <sectiondiv id="section7"><b>Using Functions with Queries on Distributed Data</b><p>In
-                    some cases, Greenplum Database does not support using functions in a query where
+                    some cases, Cloudberry Database does not support using functions in a query where
                     the data in a table specified in the <codeph>FROM</codeph> clause is distributed
-                    over Greenplum Database segments. As an example, this SQL query contains the
+                    over Cloudberry Database segments. As an example, this SQL query contains the
                     function
                     <codeph>func()</codeph>:</p><codeblock>SELECT func(a) FROM table1;</codeblock><p>The
                     function is not supported for use in the query if all of the following
                     conditions are met:</p><ul>
                     <li id="bs144942">The data of table <codeph>table1</codeph> is distributed over
-                        Greenplum Database segments.</li>
+                        Cloudberry Database segments.</li>
                     <li id="bs144694">The function <codeph>func()</codeph> reads or modifies data
                         from distributed tables. </li>
                     <li id="bs145327">The function <codeph>func()</codeph> returns more than one row
@@ -451,7 +451,7 @@ $SomeTag$Dianne's horse$SomeTag$</codeblock>
                     Specifically, the function is supported if any of the following conditions
                     apply:</p><ul>
                     <li id="bs144699">The function <codeph>func()</codeph> does not access data from
-                        distributed tables, or accesses data that is only on the Greenplum Database
+                        distributed tables, or accesses data that is only on the Cloudberry Database
                         master. </li>
                     <li id="bs144700">The table <codeph>table1</codeph> is a master only table.</li>
                     <li id="bs144701">The function <codeph>func()</codeph> returns only one row and
@@ -477,15 +477,15 @@ $SomeTag$Dianne's horse$SomeTag$</codeblock>
                         Planner.</li>
                 </ul><p>The attribute <codeph>EXECUTE ON INITPLAN</codeph> indicates that the
                     function contains an SQL command that dispatches queries to the segment
-                    instances and requires special processing on the master instance by Greenplum
-                    Database. When possible, Greenplum Database handles the function on the master
+                    instances and requires special processing on the master instance by Cloudberry
+                    Database. When possible, Cloudberry Database handles the function on the master
                     instance in the following manner.<ol id="ol_dnl_fqh_ykb">
-                        <li>First, Greenplum Database runs the function as part of an InitPlan
+                        <li>First, Cloudberry Database runs the function as part of an InitPlan
                             node on the master instance and holds the function output
                             temporarily.</li>
                         <li>Then, in the MainPlan of the query plan, the function is called in an
                             EntryDB (a special query executor (QE) that runs on the master instance)
-                            and Greenplum Database returns the data that was captured when the
+                            and Cloudberry Database returns the data that was captured when the
                             function was run as part of the InitPlan node. The function is not
                             run in the MainPlan.</li>
                     </ol></p><p>This simple example uses the function <codeph>get_data()</codeph> in
@@ -618,7 +618,7 @@ $$ LANGUAGE plpgsql;</codeblock>If
                 <codeph>get_part_name()</codeph> function runs on the primary
             segments.<codeblock><codeph>SELECT order_id, get_part_name(orders.part_no) FROM orders;</codeph></codeblock></section>
         <section id="section9"><title>Compatibility</title><p><codeph>CREATE FUNCTION</codeph> is
-                defined in SQL:1999 and later. The Greenplum Database version is similar but not
+                defined in SQL:1999 and later. The Cloudberry Database version is similar but not
                 fully compatible. The attributes are not portable, neither are the different
                 available languages. </p><p>For compatibility with some other database systems,
                     <varname>argmode</varname> can be written either before or after

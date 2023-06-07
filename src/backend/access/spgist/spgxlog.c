@@ -4,7 +4,7 @@
  *	  WAL replay logic for SP-GiST
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -122,8 +122,8 @@ spgRedoAddLeaf(XLogReaderState *record)
 
 				head = (SpGistLeafTuple) PageGetItem(page,
 													 PageGetItemId(page, xldata->offnumHeadLeaf));
-				Assert(head->nextOffset == leafTupleHdr.nextOffset);
-				head->nextOffset = xldata->offnumLeaf;
+				Assert(SGLT_GET_NEXTOFFSET(head) == SGLT_GET_NEXTOFFSET(&leafTupleHdr));
+				SGLT_SET_NEXTOFFSET(head, xldata->offnumLeaf);
 			}
 		}
 		else
@@ -822,7 +822,7 @@ spgRedoVacuumLeaf(XLogReaderState *record)
 			lt = (SpGistLeafTuple) PageGetItem(page,
 											   PageGetItemId(page, chainSrc[i]));
 			Assert(lt->tupstate == SPGIST_LIVE);
-			lt->nextOffset = chainDest[i];
+			SGLT_SET_NEXTOFFSET(lt, chainDest[i]);
 		}
 
 		PageSetLSN(page, lsn);
@@ -1008,6 +1008,6 @@ spg_mask(char *pagedata, BlockNumber blkno)
 	 * Mask the unused space, but only if the page's pd_lower appears to have
 	 * been set correctly.
 	 */
-	if (pagehdr->pd_lower > SizeOfPageHeaderData)
+	if (pagehdr->pd_lower >= SizeOfPageHeaderData)
 		mask_unused_space(page);
 }

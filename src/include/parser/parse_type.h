@@ -3,7 +3,7 @@
  * parse_type.h
  *		handle type operations for parser
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_type.h
@@ -21,6 +21,9 @@ typedef HeapTuple Type;
 
 extern Type LookupTypeName(ParseState *pstate, const TypeName *typeName,
 						   int32 *typmod_p, bool missing_ok);
+extern Type LookupTypeNameExtended(ParseState *pstate,
+								   const TypeName *typeName, int32 *typmod_p,
+								   bool temp_ok, bool missing_ok);
 extern Oid	LookupTypeNameOid(ParseState *pstate, const TypeName *typeName,
 							  bool missing_ok);
 extern Type typenameType(ParseState *pstate, const TypeName *typeName,

@@ -45,16 +45,12 @@
 #include <termios.h>
 #endif
 
-#include "getopt_long.h"
-
 #include "dumputils.h"
+#include "getopt_long.h"
 #include "parallel.h"
 #include "pg_backup_utils.h"
 
-
 static void usage(const char *progname);
-
-typedef struct option optType;
 
 int
 main(int argc, char **argv)
@@ -152,7 +148,7 @@ main(int argc, char **argv)
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_restore (Greenplum Database) " PG_VERSION);
+			puts("pg_restore (Cloudberry Database) " PG_VERSION);
 			exit_nicely(0);
 		}
 	}
@@ -172,7 +168,7 @@ main(int argc, char **argv)
 				opts->createDB = 1;
 				break;
 			case 'd':
-				opts->dbname = pg_strdup(optarg);
+				opts->cparams.dbname = pg_strdup(optarg);
 				break;
 			case 'e':
 				opts->exit_on_error = true;
@@ -186,7 +182,7 @@ main(int argc, char **argv)
 				break;
 			case 'h':
 				if (strlen(optarg) != 0)
-					opts->pghost = pg_strdup(optarg);
+					opts->cparams.pghost = pg_strdup(optarg);
 				break;
 
 			case 'j':			/* number of restore jobs */
@@ -215,7 +211,7 @@ main(int argc, char **argv)
 
 			case 'p':
 				if (strlen(optarg) != 0)
-					opts->pgport = pg_strdup(optarg);
+					opts->cparams.pgport = pg_strdup(optarg);
 				break;
 			case 'R':
 				/* no-op, still accepted for backwards compatibility */
@@ -249,20 +245,20 @@ main(int argc, char **argv)
 				break;
 
 			case 'U':
-				opts->username = pg_strdup(optarg);
+				opts->cparams.username = pg_strdup(optarg);
 				break;
 
 			case 'v':			/* verbose */
 				opts->verbose = 1;
-				pg_logging_set_level(PG_LOG_INFO);
+				pg_logging_increase_verbosity();
 				break;
 
 			case 'w':
-				opts->promptPassword = TRI_NO;
+				opts->cparams.promptPassword = TRI_NO;
 				break;
 
 			case 'W':
-				opts->promptPassword = TRI_YES;
+				opts->cparams.promptPassword = TRI_YES;
 				break;
 
 			case 'x':			/* skip ACL dump */
@@ -312,14 +308,14 @@ main(int argc, char **argv)
 	}
 
 	/* Complain if neither -f nor -d was specified (except if dumping TOC) */
-	if (!opts->dbname && !opts->filename && !opts->tocSummary)
+	if (!opts->cparams.dbname && !opts->filename && !opts->tocSummary)
 	{
 		pg_log_error("one of -d/--dbname and -f/--file must be specified");
 		exit_nicely(1);
 	}
 
 	/* Should get at most one of -d and -f, else user is confused */
-	if (opts->dbname)
+	if (opts->cparams.dbname)
 	{
 		if (opts->filename)
 		{
@@ -532,5 +528,6 @@ usage(const char *progname)
 			 "The options -I, -n, -N, -P, -t, -T, and --section can be combined and specified\n"
 			 "multiple times to select multiple objects.\n"));
 	printf(_("\nIf no input file name is supplied, then standard input is used.\n\n"));
-	printf(_("Report bugs to <bugs@greenplum.org>.\n"));
+	printf(_("Report bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }

@@ -23,10 +23,10 @@ SET SESSION CHARACTERISTICS AS TRANSACTION <varname>transaction_mode</varname>
         transaction. It has no effect on any subsequent transactions.</p>
       <p>The available transaction characteristics are the transaction isolation level, the
         transaction access mode (read/write or read-only), and the deferrable mode. </p>
-      <note>Deferrable transactions require the transaction to be serializable. Greenplum Database
+      <note>Deferrable transactions require the transaction to be serializable. Cloudberry Database
         does not support serializable transactions, so including the <codeph>DEFERRABLE</codeph>
         clause has no effect.</note>
-      <p>Greenplum Database does not support the <codeph>SET TRANSACTION SNAPSHOT</codeph> command. </p>
+      <p>Cloudberry Database does not support the <codeph>SET TRANSACTION SNAPSHOT</codeph> command. </p>
       <p>The isolation level of a transaction determines what data the transaction can see when
         other transactions are running concurrently.</p>
       <ul>
@@ -37,9 +37,9 @@ SET SESSION CHARACTERISTICS AS TRANSACTION <varname>transaction_mode</varname>
           the transaction.</li>
       </ul>
       <p>The SQL standard defines two additional levels, <codeph>READ UNCOMMITTED</codeph> and
-          <codeph>SERIALIZABLE</codeph>. In Greenplum Database <codeph>READ UNCOMMITTED</codeph> is
+          <codeph>SERIALIZABLE</codeph>. In Cloudberry Database <codeph>READ UNCOMMITTED</codeph> is
         treated as <codeph>READ COMMITTED</codeph>. If you specify <codeph>SERIALIZABLE</codeph>,
-        Greenplum Database falls back to <codeph>REPEATABLE READ</codeph>.</p>
+        Cloudberry Database falls back to <codeph>REPEATABLE READ</codeph>.</p>
       <p>The transaction isolation level cannot be changed after the first query or
         data-modification statement (<codeph>SELECT</codeph>, <codeph>INSERT</codeph>,
           <codeph>DELETE</codeph>, <codeph>UPDATE</codeph>, <codeph>FETCH</codeph>, or
@@ -58,9 +58,9 @@ SET SESSION CHARACTERISTICS AS TRANSACTION <varname>transaction_mode</varname>
         properties are set on a transaction, the transaction may block when first acquiring its
         snapshot, after which it is able to run without the normal overhead of a
           <codeph>SERIALIZABLE</codeph> transaction and without any risk of contributing to or being
-        cancelled by a serialization failure. Because Greenplum Database does not support
+        cancelled by a serialization failure. Because Cloudberry Database does not support
         serializable transactions, the <codeph>DEFERRABLE</codeph> transaction property has no
-        effect in Greenplum Database. </p>
+        effect in Cloudberry Database. </p>
     </section>
     <section id="section4">
       <title>Parameters</title>
@@ -79,16 +79,16 @@ SET SESSION CHARACTERISTICS AS TRANSACTION <varname>transaction_mode</varname>
               UNCOMMITTED</codeph>, <codeph>READ COMMITTED</codeph>, <codeph>REPEATABLE
               READ</codeph>, and <codeph>SERIALIZABLE</codeph>.</pd>
           <pd><codeph>READ UNCOMMITTED</codeph> allows transactions to see changes made by
-            uncomitted concurrent transactions. This is not possible in Greenplum Database, so
+            uncomitted concurrent transactions. This is not possible in Cloudberry Database, so
               <codeph>READ UNCOMMITTED</codeph> is treated the same as <codeph>READ
               COMMITTED</codeph>.</pd>
-          <pd><codeph>READ COMMITTED</codeph>, the default isolation level in Greenplum Database,
+          <pd><codeph>READ COMMITTED</codeph>, the default isolation level in Cloudberry Database,
             guarantees that a statement can only see rows committed before it began. The same
             statement run twice in a transaction can produce different results if another
             concurrent transaction commits after the statement is run the first time. </pd>
           <pd>The <codeph>REPEATABLE READ</codeph> isolation level guarantees that a transaction can
             only see rows committed before it began. <codeph>REPEATABLE READ</codeph> is the
-            strictest transaction isolation level Greenplum Database supports. Applications that use
+            strictest transaction isolation level Cloudberry Database supports. Applications that use
             the <codeph>REPEATABLE READ</codeph> isolation level must be prepared to retry
             transactions due to serialization failures.</pd>
           <pd>The <codeph>SERIALIZABLE</codeph> transaction isolation level guarantees that all
@@ -97,11 +97,11 @@ SET SESSION CHARACTERISTICS AS TRANSACTION <varname>transaction_mode</varname>
             and writes among concurrent serializable transactions would create a situation which
             could not have occurred for any serial (one-at-a-time) execution of those transactions,
             one of the transactions will be rolled back with a
-              <codeph>serialization_failure</codeph> error. Greenplum Database does not fully
+              <codeph>serialization_failure</codeph> error. Cloudberry Database does not fully
             support <codeph>SERIALIZABLE</codeph> as defined by the standard, so if you specify
-              <codeph>SERIALIZABLE</codeph>, Greenplum Database falls back to <codeph>REPEATABLE
+              <codeph>SERIALIZABLE</codeph>, Cloudberry Database falls back to <codeph>REPEATABLE
               READ</codeph>. See <xref href="#topic1/section7" format="dita"/> for more information
-            about transaction serializability in Greenplum Database.</pd>
+            about transaction serializability in Cloudberry Database.</pd>
         </plentry>
         <plentry>
           <pt>READ WRITE</pt>
@@ -117,7 +117,7 @@ SET SESSION CHARACTERISTICS AS TRANSACTION <varname>transaction_mode</varname>
         </plentry>
         <plentry>
           <pt>[NOT] DEFERRABLE</pt>
-          <pd>The <codeph>DEFERRABLE</codeph> transaction property has no effect in Greenplum
+          <pd>The <codeph>DEFERRABLE</codeph> transaction property has no effect in Cloudberry
             Database because <codeph>SERIALIZABLE</codeph> transactions are not supported. If
               <codeph>DEFERRABLE</codeph> is specified and the transaction is also
               <codeph>SERIALIZABLE</codeph> and <codeph>READ ONLY</codeph>, the transaction may
@@ -151,24 +151,24 @@ SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;</codeblock>
     <section id="section7">
       <title>Compatibility</title>
       <p>Both commands are defined in the SQL standard. <codeph>SERIALIZABLE</codeph> is the default
-        transaction isolation level in the standard. In Greenplum Database the default is
-          <codeph>READ COMMITTED</codeph>. Due to lack of predicate locking, Greenplum Database does
+        transaction isolation level in the standard. In Cloudberry Database the default is
+          <codeph>READ COMMITTED</codeph>. Due to lack of predicate locking, Cloudberry Database does
         not fully support the <codeph>SERIALIZABLE</codeph> level, so it falls back to the
           <codeph>REPEATABLE READ</codeph> level when <codeph>SERIAL</codeph> is specified.
         Essentially, a predicate-locking system prevents phantom reads by restricting what is
-        written, whereas a multi-version concurrency control model (MVCC) as used in Greenplum
+        written, whereas a multi-version concurrency control model (MVCC) as used in Cloudberry
         Database prevents them by restricting what is read. </p>
       <p>PostgreSQL provides a true serializable isolation level, called serializable snapshot
         isolation (SSI), which monitors concurrent transactions and rolls back transactions that
-        could introduce serialization anomalies. Greenplum Database does not implement this
+        could introduce serialization anomalies. Cloudberry Database does not implement this
         isolation mode.</p>
       <p>In the SQL standard, there is one other transaction characteristic that can be set with
         these commands: the size of the diagnostics area. This concept is specific to embedded SQL,
-        and therefore is not implemented in the Greenplum Database server. </p>
-      <p>The <codeph>DEFERRABLE</codeph> transaction mode is a Greenplum Database language
+        and therefore is not implemented in the Cloudberry Database server. </p>
+      <p>The <codeph>DEFERRABLE</codeph> transaction mode is a Cloudberry Database language
         extension.</p>
       <p>The SQL standard requires commas between successive <varname>transaction_modes</varname>,
-        but for historical reasons Greenplum Database allows the commas to be omitted.</p>
+        but for historical reasons Cloudberry Database allows the commas to be omitted.</p>
     </section>
     <section id="section8">
       <title>See Also</title>

@@ -24,7 +24,7 @@ override LDLIBS := $(libpq_pgport) $(LDLIBS)
 installcheck: install
 
 extended_protocol_commit_test: extended_protocol_commit_test.c
-	$(CC) $(CPPFLAGS) -I$(top_builddir)/src/interfaces/libpq -L$(top_builddir)/src/interfaces/libpq -o $@ $< -lpq
+	$(CC) $(CPPFLAGS) $(rpath) -I$(top_builddir)/src/interfaces/libpq -L$(top_builddir)/src/interfaces/libpq -o $@ $< -lpq
 
 
 $(call recurse,all clean installcheck)

@@ -29,7 +29,7 @@
  *		typedef struct FormData_gp_partition_template
  * ----------------
  */
-CATALOG(gp_partition_template,5022,PartitionTemplateRelationId)
+CATALOG(gp_partition_template,7131,PartitionTemplateRelationId)
 {
 	Oid			relid;		/* partitioned table oid */
 	int16       level;
@@ -47,6 +47,7 @@ FOREIGN_KEY(relid REFERENCES pg_class(oid));
  * ----------------
  */
 typedef FormData_gp_partition_template *Form_gp_partition_template;
+DECLARE_TOAST(gp_partition_template, 7170, 7172);
 
 extern void StoreGpPartitionTemplate(Oid relid, int32 level,
 									 GpPartitionDefinition *gpPartDef);

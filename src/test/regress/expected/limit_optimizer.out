@@ -131,7 +131,8 @@ select * from int8_tbl offset (case when random() < 0.5 then null::bigint end);
 (5 rows)
 
 -- Test assorted cases involving backwards fetch from a LIMIT plan node
--- Disable backward scan test which is not supported in this version of Greenplum Database
+-- Disable backward scan test which is not supported in this version of Cloudberry Database
+--start_ignore
 /*
  * begin;
  * 
@@ -169,6 +170,7 @@ select * from int8_tbl offset (case when random() < 0.5 then null::bigint end);
  * 
  * rollback;
  */
+--end_ignore
 -- Stress test for variable LIMIT in conjunction with bounded-heap sorting
 SELECT
   (SELECT n
@@ -214,7 +216,7 @@ select unique1, unique2, nextval('testseq')
                            Sort Key: tenk1.unique2
                            ->  Seq Scan on public.tenk1
                                  Output: unique1, unique2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.79.1
+ Optimizer: Pivotal Optimizer (GPORCA)
  Settings: optimizer=on
 (16 rows)
 
@@ -254,7 +256,7 @@ select unique1, unique2, generate_series(1,10)
                            Sort Key: tenk1.unique2
                            ->  Seq Scan on public.tenk1
                                  Output: unique1, unique2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.79.1
+ Optimizer: Pivotal Optimizer (GPORCA)
  Settings: optimizer=on
 (16 rows)
 
@@ -292,7 +294,7 @@ select unique1, unique2, generate_series(1,10)
                                  Sort Key: tenk1.tenthous
                                  ->  Seq Scan on public.tenk1
                                        Output: unique1, unique2, tenthous
- Optimizer: Pivotal Optimizer (GPORCA) version 3.79.1
+ Optimizer: Pivotal Optimizer (GPORCA)
  Settings: optimizer=on
 (18 rows)
 
@@ -317,8 +319,9 @@ select generate_series(0,2) as s1, generate_series((random()*.1)::int,2) as s2;
  ProjectSet
    Output: generate_series(0, 2), generate_series(((random() * '0.1'::double precision))::integer, 2)
    ->  Result
+ Settings: optimizer = 'on'
  Optimizer: Postgres query optimizer
-(3 rows)
+(5 rows)
 
 select generate_series(0,2) as s1, generate_series((random()*.1)::int,2) as s2;
  s1 | s2 
@@ -380,9 +383,8 @@ select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
                                              Group Key: tenk1.thousand
                                              ->  Seq Scan on public.tenk1
                                                    Output: thousand, tenthous
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
- Settings: optimizer=on
-(25 rows)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(24 rows)
 
 select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
   from tenk1 group by thousand order by thousand limit 3;
@@ -393,3 +395,140 @@ select sum(tenthous) as s1, sum(tenthous) + random()*0 as s2
  45020 | 45020
 (3 rows)
 
+--
+-- FETCH FIRST
+-- Check the WITH TIES clause
+--
+SELECT  thousand
+		FROM onek WHERE thousand < 5
+		ORDER BY thousand FETCH FIRST 2 ROW WITH TIES;
+ thousand 
+----------
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+(10 rows)
+
+SELECT  thousand
+		FROM onek WHERE thousand < 5
+		ORDER BY thousand FETCH FIRST ROWS WITH TIES;
+ thousand 
+----------
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+(10 rows)
+
+SELECT  thousand
+		FROM onek WHERE thousand < 5
+		ORDER BY thousand FETCH FIRST 1 ROW WITH TIES;
+ thousand 
+----------
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+        0
+(10 rows)
+
+SELECT  thousand
+		FROM onek WHERE thousand < 5
+		ORDER BY thousand FETCH FIRST 2 ROW ONLY;
+ thousand 
+----------
+        0
+        0
+(2 rows)
+
+-- SKIP LOCKED and WITH TIES are incompatible
+SELECT  thousand
+		FROM onek WHERE thousand < 5
+		ORDER BY thousand FETCH FIRST 1 ROW WITH TIES FOR UPDATE SKIP LOCKED;
+ERROR:  SKIP LOCKED and WITH TIES options cannot be used together
+-- should fail
+SELECT ''::text AS two, unique1, unique2, stringu1
+		FROM onek WHERE unique1 > 50
+		FETCH FIRST 2 ROW WITH TIES;
+ERROR:  WITH TIES cannot be specified without ORDER BY clause
+-- test ruleutils
+CREATE VIEW limit_thousand_v_1 AS SELECT thousand FROM onek WHERE thousand < 995
+		ORDER BY thousand FETCH FIRST 5 ROWS WITH TIES OFFSET 10;
+\d+ limit_thousand_v_1
+                      View "public.limit_thousand_v_1"
+  Column  |  Type   | Collation | Nullable | Default | Storage | Description 
+----------+---------+-----------+----------+---------+---------+-------------
+ thousand | integer |           |          |         | plain   | 
+View definition:
+ SELECT onek.thousand
+   FROM onek
+  WHERE onek.thousand < 995
+  ORDER BY onek.thousand
+ OFFSET 10
+ FETCH FIRST 5 ROWS WITH TIES;
+
+CREATE VIEW limit_thousand_v_2 AS SELECT thousand FROM onek WHERE thousand < 995
+		ORDER BY thousand OFFSET 10 FETCH FIRST 5 ROWS ONLY;
+\d+ limit_thousand_v_2
+                      View "public.limit_thousand_v_2"
+  Column  |  Type   | Collation | Nullable | Default | Storage | Description 
+----------+---------+-----------+----------+---------+---------+-------------
+ thousand | integer |           |          |         | plain   | 
+View definition:
+ SELECT onek.thousand
+   FROM onek
+  WHERE onek.thousand < 995
+  ORDER BY onek.thousand
+ OFFSET 10
+ LIMIT 5;
+
+CREATE VIEW limit_thousand_v_3 AS SELECT thousand FROM onek WHERE thousand < 995
+		ORDER BY thousand FETCH FIRST NULL ROWS WITH TIES;		-- fails
+ERROR:  row count cannot be null in FETCH FIRST ... WITH TIES clause
+CREATE VIEW limit_thousand_v_3 AS SELECT thousand FROM onek WHERE thousand < 995
+		ORDER BY thousand FETCH FIRST (NULL+1) ROWS WITH TIES;
+\d+ limit_thousand_v_3
+                      View "public.limit_thousand_v_3"
+  Column  |  Type   | Collation | Nullable | Default | Storage | Description 
+----------+---------+-----------+----------+---------+---------+-------------
+ thousand | integer |           |          |         | plain   | 
+View definition:
+ SELECT onek.thousand
+   FROM onek
+  WHERE onek.thousand < 995
+  ORDER BY onek.thousand
+ FETCH FIRST (NULL::integer + 1) ROWS WITH TIES;
+
+CREATE VIEW limit_thousand_v_4 AS SELECT thousand FROM onek WHERE thousand < 995
+		ORDER BY thousand FETCH FIRST NULL ROWS ONLY;
+\d+ limit_thousand_v_4
+                      View "public.limit_thousand_v_4"
+  Column  |  Type   | Collation | Nullable | Default | Storage | Description 
+----------+---------+-----------+----------+---------+---------+-------------
+ thousand | integer |           |          |         | plain   | 
+View definition:
+ SELECT onek.thousand
+   FROM onek
+  WHERE onek.thousand < 995
+  ORDER BY onek.thousand
+ LIMIT ALL;
+
+-- leave these views

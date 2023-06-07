@@ -2,13 +2,13 @@
 title: Creating the Data Storage Areas 
 ---
 
-Describes how to create the directory locations where Greenplum Database data is stored for each coordinator, standby, and segment instance.
+Describes how to create the directory locations where Cloudberry Database data is stored for each coordinator, standby, and segment instance.
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 
 ## <a id="topic_wqb_1lc_wp"></a>Creating Data Storage Areas on the Coordinator and Standby Coordinator Hosts 
 
-A data storage area is required on the Greenplum Database coordinator and standby coordinator hosts to store Greenplum Database system data such as catalog data and other system metadata.
+A data storage area is required on the Cloudberry Database coordinator and standby coordinator hosts to store Cloudberry Database system data such as catalog data and other system metadata.
 
 ### <a id="topic_ix1_x1n_tp"></a>To create the data directory location on the coordinator 
 
@@ -37,7 +37,7 @@ The data directory location on the coordinator is different than those on the se
 
 ## <a id="topic_plx_zps_vhb"></a>Creating Data Storage Areas on Segment Hosts 
 
-Data storage areas are required on the Greenplum Database segment hosts for primary segments. Separate storage areas are required for mirror segments.
+Data storage areas are required on the Cloudberry Database segment hosts for primary segments. Separate storage areas are required for mirror segments.
 
 ### <a id="topic_tnb_v1n_tp"></a>To create the data directory locations on all segment hosts 
 
@@ -68,5 +68,5 @@ Data storage areas are required on the Greenplum Database segment hosts for prim
 ## <a id="topic_cwj_hzb_vhb"></a>Next Steps 
 
 -   [Validating Your Systems](validate.html)
--   [Initializing a Greenplum Database System](init_gpdb.html)
+-   [Initializing a Cloudberry Database System](init_gpdb.html)
 

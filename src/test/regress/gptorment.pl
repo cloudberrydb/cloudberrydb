@@ -339,7 +339,7 @@ BEGIN {
         #
         #    version
         # --------------
-        # PostgreSQL 8.2.5 (Greenplum Database...
+        # PostgreSQL 8.2.5 (Cloudberry Database...
         #
         my @l3 = split(/\n/, $tabdef, 3);
 

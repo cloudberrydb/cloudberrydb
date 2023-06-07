@@ -4,9 +4,9 @@
  *	  POSTGRES relation descriptor (a/k/a relcache entry) definitions.
  *
  *
- * Portions Copyright (c) 2005-2009, Greenplum inc.
+ * Portions Copyright (c) 2005-2009, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/rel.h
@@ -16,17 +16,19 @@
 #ifndef REL_H
 #define REL_H
 
+#include "fmgr.h"
 #include "access/tupdesc.h"
 #include "access/xlog.h"
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
 #include "catalog/pg_publication.h"
-#include "fmgr.h"
 #include "nodes/bitmapset.h"
+#include "partitioning/partdefs.h"
 #include "rewrite/prs2lock.h"
 #include "storage/block.h"
 #include "storage/relfilenode.h"
+#include "utils/fmgroids.h"
 #include "utils/relcache.h"
 #include "utils/reltrigger.h"
 
@@ -69,22 +71,47 @@ typedef struct RelationData
 								 * rd_replidindex) */
 	bool		rd_statvalid;	/* is rd_statlist valid? */
 
-	/*
+	/*----------
 	 * rd_createSubid is the ID of the highest subtransaction the rel has
-	 * survived into; or zero if the rel was not created in the current top
-	 * transaction.  This can be now be relied on, whereas previously it could
-	 * be "forgotten" in earlier releases. Likewise, rd_newRelfilenodeSubid is
-	 * the ID of the highest subtransaction the relfilenode change has
-	 * survived into, or zero if not changed in the current transaction (or we
-	 * have forgotten changing it). rd_newRelfilenodeSubid can be forgotten
-	 * when a relation has multiple new relfilenodes within a single
-	 * transaction, with one of them occurring in a subsequently aborted
-	 * subtransaction, e.g. BEGIN; TRUNCATE t; SAVEPOINT save; TRUNCATE t;
-	 * ROLLBACK TO save; -- rd_newRelfilenode is now forgotten
+	 * survived into or zero if the rel or its rd_node was created before the
+	 * current top transaction.  (IndexStmt.oldNode leads to the case of a new
+	 * rel with an old rd_node.)  rd_firstRelfilenodeSubid is the ID of the
+	 * highest subtransaction an rd_node change has survived into or zero if
+	 * rd_node matches the value it had at the start of the current top
+	 * transaction.  (Rolling back the subtransaction that
+	 * rd_firstRelfilenodeSubid denotes would restore rd_node to the value it
+	 * had at the start of the current top transaction.  Rolling back any
+	 * lower subtransaction would not.)  Their accuracy is critical to
+	 * RelationNeedsWAL().
+	 *
+	 * rd_newRelfilenodeSubid is the ID of the highest subtransaction the
+	 * most-recent relfilenode change has survived into or zero if not changed
+	 * in the current transaction (or we have forgotten changing it).  This
+	 * field is accurate when non-zero, but it can be zero when a relation has
+	 * multiple new relfilenodes within a single transaction, with one of them
+	 * occurring in a subsequently aborted subtransaction, e.g.
+	 *		BEGIN;
+	 *		TRUNCATE t;
+	 *		SAVEPOINT save;
+	 *		TRUNCATE t;
+	 *		ROLLBACK TO save;
+	 *		-- rd_newRelfilenodeSubid is now forgotten
+	 *
+	 * If every rd_*Subid field is zero, they are read-only outside
+	 * relcache.c.  Files that trigger rd_node changes by updating
+	 * pg_class.reltablespace and/or pg_class.relfilenode call
+	 * RelationAssumeNewRelfilenode() to update rd_*Subid.
+	 *
+	 * rd_droppedSubid is the ID of the highest subtransaction that a drop of
+	 * the rel has survived into.  In entries visible outside relcache.c, this
+	 * is always zero.
 	 */
 	SubTransactionId rd_createSubid;	/* rel was created in current xact */
-	SubTransactionId rd_newRelfilenodeSubid;	/* new relfilenode assigned in
-												 * current xact */
+	SubTransactionId rd_newRelfilenodeSubid;	/* highest subxact changing
+												 * rd_node to current value */
+	SubTransactionId rd_firstRelfilenodeSubid;	/* highest subxact changing
+												 * rd_node to any value */
+	SubTransactionId rd_droppedSubid;	/* dropped with another Subid set */
 
 	Form_pg_class rd_rel;		/* RELATION tuple */
 	TupleDesc	rd_att;			/* tuple descriptor */
@@ -102,10 +129,28 @@ typedef struct RelationData
 	List	   *rd_fkeylist;	/* list of ForeignKeyCacheInfo (see below) */
 	bool		rd_fkeyvalid;	/* true if list has been computed */
 
-	struct PartitionKeyData *rd_partkey;	/* partition key, or NULL */
+	/* data managed by RelationGetPartitionKey: */
+	PartitionKey rd_partkey;	/* partition key, or NULL */
 	MemoryContext rd_partkeycxt;	/* private context for rd_partkey, if any */
-	struct PartitionDescData *rd_partdesc;	/* partitions, or NULL */
+
+	/* data managed by RelationGetPartitionDesc: */
+	PartitionDesc rd_partdesc;	/* partition descriptor, or NULL */
 	MemoryContext rd_pdcxt;		/* private context for rd_partdesc, if any */
+
+	/* Same as above, for partdescs that omit detached partitions */
+	PartitionDesc rd_partdesc_nodetached;	/* partdesc w/o detached parts */
+	MemoryContext rd_pddcxt;	/* for rd_partdesc_nodetached, if any */
+
+	/*
+	 * pg_inherits.xmin of the partition that was excluded in
+	 * rd_partdesc_nodetached.  This informs a future user of that partdesc:
+	 * if this value is not in progress for the active snapshot, then the
+	 * partdesc can be used, otherwise they have to build a new one.  (This
+	 * matches what find_inheritance_children_extended would do).
+	 */
+	TransactionId rd_partdesc_nodetached_xmin;
+
+	/* data managed by RelationGetPartitionQual: */
 	List	   *rd_partcheck;	/* partition CHECK quals */
 	bool		rd_partcheckvalid;	/* true if list has been computed */
 	MemoryContext rd_partcheckcxt;	/* private cxt for rd_partcheck, if any */
@@ -159,13 +204,6 @@ typedef struct RelationData
 	 * those with lefttype and righttype equal to the opclass's opcintype. The
 	 * arrays are indexed by support function number, which is a sufficient
 	 * identifier given that restriction.
-	 *
-	 * Note: rd_amcache is available for index AMs to cache private data about
-	 * an index.  This must be just a cache since it may get reset at any time
-	 * (in particular, it will get reset by a relcache inval message for the
-	 * index).  If used, it must point to a single memory chunk palloc'd in
-	 * rd_indexcxt.  A relcache reset will include freeing that chunk and
-	 * setting rd_amcache = NULL.
 	 */
 	MemoryContext rd_indexcxt;	/* private memory cxt for this stuff */
 	/* use "struct" here to avoid needing to include amapi.h: */
@@ -173,15 +211,26 @@ typedef struct RelationData
 	Oid		   *rd_opfamily;	/* OIDs of op families for each index col */
 	Oid		   *rd_opcintype;	/* OIDs of opclass declared input data types */
 	RegProcedure *rd_support;	/* OIDs of support procedures */
-	FmgrInfo   *rd_supportinfo; /* lookup info for support procedures */
+	struct FmgrInfo *rd_supportinfo;	/* lookup info for support procedures */
 	int16	   *rd_indoption;	/* per-column AM-specific flags */
 	List	   *rd_indexprs;	/* index expression trees, if any */
 	List	   *rd_indpred;		/* index predicate tree, if any */
 	Oid		   *rd_exclops;		/* OIDs of exclusion operators, if any */
 	Oid		   *rd_exclprocs;	/* OIDs of exclusion ops' procs, if any */
 	uint16	   *rd_exclstrats;	/* exclusion ops' strategy numbers, if any */
-	void	   *rd_amcache;		/* available for use by index AM */
 	Oid		   *rd_indcollation;	/* OIDs of index collations */
+	bytea	  **rd_opcoptions;	/* parsed opclass-specific options */
+
+	/*
+	 * rd_amcache is available for index and table AMs to cache private data
+	 * about the relation.  This must be just a cache since it may get reset
+	 * at any time (in particular, it will get reset by a relcache inval
+	 * message for the relation).  If used, it must point to a single memory
+	 * chunk palloc'd in CacheMemoryContext, or in rd_indexcxt for an index
+	 * relation.  A relcache reset will include freeing that chunk and setting
+	 * rd_amcache = NULL.
+	 */
+	void	   *rd_amcache;		/* available for use by index/table AM */
 
 	/*
 	 * foreign-table support
@@ -240,7 +289,7 @@ typedef struct ForeignKeyCacheInfo
 
 /*
  * StdRdOptions
- *		Standard contents of rd_options for heaps and generic indexes.
+ *		Standard contents of rd_options for heaps.
  *
  * RelationGetFillFactor() and RelationGetTargetPageFreeSpace() can only
  * be applied to relations that use this format or a superset for
@@ -251,6 +300,7 @@ typedef struct AutoVacOpts
 {
 	bool		enabled;
 	int			vacuum_threshold;
+	int			vacuum_ins_threshold;
 	int			analyze_threshold;
 	int			vacuum_cost_limit;
 	int			freeze_min_age;
@@ -262,20 +312,27 @@ typedef struct AutoVacOpts
 	int			log_min_duration;
 	float8		vacuum_cost_delay;
 	float8		vacuum_scale_factor;
+	float8		vacuum_ins_scale_factor;
 	float8		analyze_scale_factor;
 } AutoVacOpts;
+
+/* StdRdOptions->vacuum_index_cleanup values */
+typedef enum StdRdOptIndexCleanup
+{
+	STDRD_OPTION_VACUUM_INDEX_CLEANUP_AUTO = 0,
+	STDRD_OPTION_VACUUM_INDEX_CLEANUP_OFF,
+	STDRD_OPTION_VACUUM_INDEX_CLEANUP_ON
+} StdRdOptIndexCleanup;
 
 typedef struct StdRdOptions
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int			fillfactor;		/* page fill factor in percent (0..100) */
-	/* fraction of newly inserted tuples prior to trigger index cleanup */
-	float8		vacuum_cleanup_index_scale_factor;
 	int			toast_tuple_target; /* target for tuple toasting */
 	AutoVacOpts autovacuum;		/* autovacuum-related options */
 	bool		user_catalog_table; /* use as an additional catalog relation */
 	int			parallel_workers;	/* max number of parallel workers */
-	bool		vacuum_index_cleanup;	/* enables index vacuuming and cleanup */
+	StdRdOptIndexCleanup vacuum_index_cleanup;	/* controls index vacuuming */
 	bool		vacuum_truncate;	/* enables vacuum to truncate a relation */
 
 	int			blocksize;		/* max varblock size (AO rels only) */
@@ -337,6 +394,13 @@ typedef struct StdRdOptions
 	((relation)->rd_options ? \
 	 ((StdRdOptions *) (relation)->rd_options)->parallel_workers : (defaultpw))
 
+/* ViewOptions->check_option values */
+typedef enum ViewOptCheckOption
+{
+	VIEW_OPTION_CHECK_OPTION_NOT_SET,
+	VIEW_OPTION_CHECK_OPTION_LOCAL,
+	VIEW_OPTION_CHECK_OPTION_CASCADED
+} ViewOptCheckOption;
 
 /*
  * ViewOptions
@@ -346,7 +410,7 @@ typedef struct ViewOptions
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	bool		security_barrier;
-	int			check_option_offset;
+	ViewOptCheckOption check_option;
 } ViewOptions;
 
 /*
@@ -354,9 +418,10 @@ typedef struct ViewOptions
  *		Returns whether the relation is security view, or not.  Note multiple
  *		eval of argument!
  */
-#define RelationIsSecurityView(relation)	\
-	((relation)->rd_options ?				\
-	 ((ViewOptions *) (relation)->rd_options)->security_barrier : false)
+#define RelationIsSecurityView(relation)									\
+	(AssertMacro(relation->rd_rel->relkind == RELKIND_VIEW),				\
+	 (relation)->rd_options ?												\
+	  ((ViewOptions *) (relation)->rd_options)->security_barrier : false)
 
 /*
  * RelationHasCheckOption
@@ -364,8 +429,10 @@ typedef struct ViewOptions
  *		or the cascaded check option.  Note multiple eval of argument!
  */
 #define RelationHasCheckOption(relation)									\
-	((relation)->rd_options &&												\
-	 ((ViewOptions *) (relation)->rd_options)->check_option_offset != 0)
+	(AssertMacro(relation->rd_rel->relkind == RELKIND_VIEW),				\
+	 (relation)->rd_options &&												\
+	 ((ViewOptions *) (relation)->rd_options)->check_option !=				\
+	 VIEW_OPTION_CHECK_OPTION_NOT_SET)
 
 /*
  * RelationHasLocalCheckOption
@@ -373,11 +440,10 @@ typedef struct ViewOptions
  *		option.  Note multiple eval of argument!
  */
 #define RelationHasLocalCheckOption(relation)								\
-	((relation)->rd_options &&												\
-	 ((ViewOptions *) (relation)->rd_options)->check_option_offset != 0 ?	\
-	 strcmp((char *) (relation)->rd_options +								\
-			((ViewOptions *) (relation)->rd_options)->check_option_offset,	\
-			"local") == 0 : false)
+	(AssertMacro(relation->rd_rel->relkind == RELKIND_VIEW),				\
+	 (relation)->rd_options &&												\
+	 ((ViewOptions *) (relation)->rd_options)->check_option ==				\
+	 VIEW_OPTION_CHECK_OPTION_LOCAL)
 
 /*
  * RelationHasCascadedCheckOption
@@ -385,12 +451,10 @@ typedef struct ViewOptions
  *		option.  Note multiple eval of argument!
  */
 #define RelationHasCascadedCheckOption(relation)							\
-	((relation)->rd_options &&												\
-	 ((ViewOptions *) (relation)->rd_options)->check_option_offset != 0 ?	\
-	 strcmp((char *) (relation)->rd_options +								\
-			((ViewOptions *) (relation)->rd_options)->check_option_offset,	\
-			"cascaded") == 0 : false)
-
+	(AssertMacro(relation->rd_rel->relkind == RELKIND_VIEW),				\
+	 (relation)->rd_options &&												\
+	 ((ViewOptions *) (relation)->rd_options)->check_option ==				\
+	  VIEW_OPTION_CHECK_OPTION_CASCADED)
 
 /*
  * RelationIsValid
@@ -406,8 +470,13 @@ typedef struct ViewOptions
  */
 
 #define RelationIsHeap(relation) \
-	((relation)->rd_amhandler == HEAP_TABLE_AM_HANDLER_OID)
+	((relation)->rd_amhandler == F_HEAP_TABLEAM_HANDLER)
 
+#define AMHandlerIsAoRows(amhandler) ((amhandler) == F_AO_ROW_TABLEAM_HANDLER)
+#define AMHandlerIsAoCols(amhandler) \
+	((amhandler) == F_AO_COLUMN_TABLEAM_HANDLER)
+#define AMHandlerIsAO(amhandler) \
+	(AMHandlerIsAoRows(amhandler) || AMHandlerIsAoCols(amhandler))
 /*
  * CAUTION: this macro is a violation of the absraction that table AM and
  * index AM interfaces provide.  Use of this macro is discouraged.  If
@@ -418,7 +487,7 @@ typedef struct ViewOptions
  * 		True iff relation has append only storage with row orientation
  */
 #define RelationIsAoRows(relation) \
-	((relation)->rd_amhandler == AO_ROW_TABLE_AM_HANDLER_OID)
+	AMHandlerIsAoRows((relation)->rd_amhandler)
 
 /*
  * CAUTION: this macro is a violation of the absraction that table AM and
@@ -430,7 +499,7 @@ typedef struct ViewOptions
  * 		True iff relation has append only storage with column orientation
  */
 #define RelationIsAoCols(relation) \
-	((relation)->rd_amhandler == AO_COLUMN_TABLE_AM_HANDLER_OID)
+	AMHandlerIsAoCols((relation)->rd_amhandler)
 
 /*
  * CAUTION: this macro is a violation of the absraction that table AM and
@@ -442,14 +511,14 @@ typedef struct ViewOptions
  * 		True iff relation has append only storage (can be row or column orientation)
  */
 #define RelationIsAppendOptimized(relation) \
-	(RelationIsAoRows(relation) || RelationIsAoCols(relation))
+	AMHandlerIsAO((relation)->rd_amhandler)
 
 /*
  * RelationIsBitmapIndex
  *      True iff relation is a bitmap index
  */
 #define RelationIsBitmapIndex(relation) \
-	((bool)((relation)->rd_amhandler == BITMAP_INDEXAM_HANDLER_OID))
+	((bool)((relation)->rd_amhandler == F_BMHANDLER))
 
 /*
  * RelationHasReferenceCountZero
@@ -576,11 +645,24 @@ typedef struct ViewOptions
 	} while (0)
 
 /*
+ * RelationIsPermanent
+ *		True if relation is permanent.
+ */
+#define RelationIsPermanent(relation) \
+	((relation)->rd_rel->relpersistence == RELPERSISTENCE_PERMANENT)
+
+/*
  * RelationNeedsWAL
  *		True if relation needs WAL.
+ *
+ * Returns false if wal_level = minimal and this relation is created or
+ * truncated in the current transaction.  See "Skipping WAL for New
+ * RelFileNode" in src/backend/access/transam/README.
  */
-#define RelationNeedsWAL(relation) \
-	((relation)->rd_rel->relpersistence == RELPERSISTENCE_PERMANENT)
+#define RelationNeedsWAL(relation)										\
+	(RelationIsPermanent(relation) && (XLogIsNeeded() ||				\
+	  (relation->rd_createSubid == InvalidSubTransactionId &&			\
+	   relation->rd_firstRelfilenodeSubid == InvalidSubTransactionId)))
 
 /*
  * RelationUsesLocalBuffers
@@ -593,7 +675,7 @@ typedef struct ViewOptions
 #define RelationUsesLocalBuffers(relation) false
 
 /*
- * Greenplum: a separate implementation of the SMGR API is used for
+ * Cloudberry: a separate implementation of the SMGR API is used for
  * append-optimized relations.  This implementation is intended for relations
  * that do not use shared/local buffers.
  */
@@ -662,7 +744,8 @@ typedef struct ViewOptions
  *		WAL stream.
  *
  * We don't log information for unlogged tables (since they don't WAL log
- * anyway) and for system tables (their content is hard to make sense of, and
+ * anyway), for foreign tables (since they don't WAL log, either),
+ * and for system tables (their content is hard to make sense of, and
  * it would complicate decoding slightly for little gain). Note that we *do*
  * log information for user defined catalog tables since they presumably are
  * interesting to the user...
@@ -670,24 +753,11 @@ typedef struct ViewOptions
 #define RelationIsLogicallyLogged(relation) \
 	(XLogLogicalInfoActive() && \
 	 RelationNeedsWAL(relation) && \
+	 (relation)->rd_rel->relkind != RELKIND_FOREIGN_TABLE &&	\
 	 !IsCatalogRelation(relation))
-
-/*
- * RelationGetPartitionKey
- *		Returns the PartitionKey of a relation
- */
-#define RelationGetPartitionKey(relation) ((relation)->rd_partkey)
-
-/*
- * RelationGetPartitionDesc
- *		Returns partition descriptor for a relation.
- */
-#define RelationGetPartitionDesc(relation) ((relation)->rd_partdesc)
 
 /* routines in utils/cache/relcache.c */
 extern void RelationIncrementReferenceCount(Relation rel);
 extern void RelationDecrementReferenceCount(Relation rel);
-extern bool RelationHasUnloggedIndex(Relation rel);
-extern List *RelationGetRepsetList(Relation rel);
 
 #endif							/* REL_H */

@@ -34,7 +34,7 @@ create table distpol as select random(), 1 as a, 2 as b distributed by (random);
 select distkey, distclass from gp_distribution_policy where localoid = 'distpol'::regclass;
  distkey | distclass 
 ---------+-----------
- 1       | 10048
+ 1       | 10014
 (1 row)
 
 drop table distpol;
@@ -42,7 +42,7 @@ create table distpol as select random(), 2 as foo distributed by (foo);
 select distkey, distclass from gp_distribution_policy where localoid = 'distpol'::regclass;
  distkey | distclass 
 ---------+-----------
- 2       | 10054
+ 2       | 10020
 (1 row)
 
 drop table distpol;
@@ -68,8 +68,8 @@ select localoid::regclass, distkey, distclass from gp_distribution_policy where
       localoid       | distkey |  distclass  
 ---------------------+---------+-------------
  distpol_no_pk       |         | 
- distpol_with_pk     | 1       | 10054
- distpol_with_unique | 1 2     | 10054 10054
+ distpol_with_pk     | 1       | 10020
+ distpol_with_unique | 1 2     | 10020 10020
 (3 rows)
 
 -- If a table is previously DISTRIBUTED RANDOMLY, you cannot add a primary key
@@ -81,17 +81,17 @@ ERROR:  PRIMARY KEY and DISTRIBUTED RANDOMLY are incompatible
 RESET gp_create_table_random_default_distribution;
 -- MPP-2872: set ops with distributed by should work as advertised
 create table distpol1 (i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table distpol2 (i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table distpol3 as select i, j from distpol1 union 
   select i, j from distpol2 distributed by (j);
 select distkey, distclass from gp_distribution_policy where localoid = 'distpol3'::regclass;
  distkey | distclass 
 ---------+-----------
- 2       | 10054
+ 2       | 10020
 (1 row)
 
 drop table distpol3;
@@ -100,7 +100,7 @@ create table distpol3 as (select i, j from distpol1 union
 select distkey, distclass from gp_distribution_policy where localoid = 'distpol3'::regclass;
  distkey | distclass 
 ---------+-----------
- 2       | 10054
+ 2       | 10020
 (1 row)
 
 -- MPP-7268: CTAS produces incorrect distribution.
@@ -113,7 +113,7 @@ create table bar as select * from foo distributed by (b);
 select distkey, distclass from gp_distribution_policy where localoid='bar'::regclass;
  distkey | distclass 
 ---------+-----------
- 2       | 10054
+ 2       | 10020
 (1 row)
 
 drop table if exists foo;
@@ -123,7 +123,7 @@ create table bar as select * from foo distributed by (b);
 select distkey, distclass from gp_distribution_policy where localoid='bar'::regclass;
  distkey | distclass 
 ---------+-----------
- 2       | 10072
+ 2       | 10039
 (1 row)
 
 drop table if exists foo;
@@ -137,7 +137,7 @@ CREATE TABLE bar AS SELECT * FROM foo distributed by (col_with_constraint);
 select distkey, distclass from gp_distribution_policy where localoid='bar'::regclass;
  distkey | distclass 
 ---------+-----------
- 3       | 10064
+ 3       | 10030
 (1 row)
 
 drop table if exists foo;
@@ -175,7 +175,7 @@ create table foo ("I" int, i int) distributed by ("I",I);
 select distkey, distclass from gp_distribution_policy where localoid='foo'::regclass;
  distkey |  distclass  
 ---------+-------------
- 1 2     | 10054 10054
+ 1 2     | 10020 10020
 (1 row)
 
 create table fooctas as select * from foo distributed by (i,i);

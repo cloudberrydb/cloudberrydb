@@ -42,6 +42,10 @@ typedef enum UserAuth
 #define USER_AUTH_LAST uaPeer	/* Must be last value of this enum */
 } UserAuth;
 
+/*
+ * Data structures representing pg_hba.conf entries
+ */
+
 typedef enum IPCompareMethod
 {
 	ipCmpMask,
@@ -67,6 +71,12 @@ typedef enum ClientCertMode
 	clientCertFull
 } ClientCertMode;
 
+typedef enum ClientCertName
+{
+	clientCertCN,
+	clientCertDN
+} ClientCertName;
+
 typedef struct HbaLine
 {
 	int			linenumber;
@@ -75,11 +85,12 @@ typedef struct HbaLine
 	List	   *databases;
 	List	   *roles;
 	struct sockaddr_storage addr;
+	int			addrlen;		/* zero if we don't have a valid addr */
 	struct sockaddr_storage mask;
+	int			masklen;		/* zero if we don't have a valid mask */
 	IPCompareMethod ip_cmp_method;
 	char	   *hostname;
 	UserAuth	auth_method;
-
 	char	   *usermap;
 	char	   *pamservice;
 	bool		pam_use_hostname;
@@ -96,6 +107,7 @@ typedef struct HbaLine
 	char	   *ldapprefix;
 	char	   *ldapsuffix;
 	ClientCertMode clientcert;
+	ClientCertName clientcertname;
 	char	   *krb_realm;
 	bool		include_realm;
 	bool		compat_realm;
@@ -125,6 +137,7 @@ typedef struct Port hbaPort;
 
 extern bool load_hba(void);
 extern bool load_ident(void);
+extern const char *hba_authname(UserAuth auth_method);
 extern void hba_getauthmethod(hbaPort *port);
 extern int	check_usermap(const char *usermap_name,
 						  const char *pg_role, const char *auth_user,

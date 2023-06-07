@@ -16,7 +16,7 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
     </section>
     <section id="section3">
       <title>Description</title>
-      <p><codeph>VACUUM</codeph> reclaims storage occupied by deleted tuples. In normal Greenplum
+      <p><codeph>VACUUM</codeph> reclaims storage occupied by deleted tuples. In normal Cloudberry
         Database operation, tuples that are deleted or obsoleted by an update are not physically
         removed from their table; they remain present on disk until a <codeph>VACUUM</codeph> is
         done. Therefore it is necessary to do <codeph>VACUUM</codeph> periodically, especially on
@@ -55,7 +55,7 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
       </p>
       <p>When the option list is surrounded by parentheses, the options can be written in any order.
         Without parentheses, options must be specified in exactly the order shown above. The
-        parenthesized syntax was added in Greenplum Database 6.0; the unparenthesized syntax is
+        parenthesized syntax was added in Cloudberry Database 6.0; the unparenthesized syntax is
         deprecated.</p>
       <note type="important">For information on the use of <codeph>VACUUM</codeph>, <codeph>VACUUM
           FULL</codeph>, and <codeph>VACUUM ANALYZE</codeph>, see <xref href="#topic1/section6"
@@ -119,12 +119,12 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
       <p>Vacuum active databases frequently (at least nightly), in order to remove expired rows.
         After adding or deleting a large number of rows, running the <codeph>VACUUM ANALYZE</codeph>
         command for the affected table might be useful. This updates the system catalogs with the
-        results of all recent changes, and allows the Greenplum Database query optimizer to make
+        results of all recent changes, and allows the Cloudberry Database query optimizer to make
         better choices in planning queries.</p>
       <note type="important">PostgreSQL has a separate optional server process called the
           <i>autovacuum daemon</i>, whose purpose is to automate the execution of
-          <codeph>VACUUM</codeph> and <codeph>ANALYZE</codeph> commands. Greenplum Database enables
-        the autovacuum daemon to perform <codeph>VACUUM</codeph> operations only on the Greenplum
+          <codeph>VACUUM</codeph> and <codeph>ANALYZE</codeph> commands. Cloudberry Database enables
+        the autovacuum daemon to perform <codeph>VACUUM</codeph> operations only on the Cloudberry
         Database template database <codeph>template0</codeph>. Autovacuum is enabled for
           <codeph>template0</codeph> because connections are not allowed to
           <codeph>template0</codeph>. The autovacuum daemon performs <codeph>VACUUM</codeph>
@@ -138,7 +138,7 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
       <p><codeph>VACUUM</codeph> commands skip external and foreign tables.</p>
       <p><codeph>VACUUM FULL</codeph> reclaims all expired row space, however it requires an
         exclusive lock on each table being processed, is a very expensive operation, and might take
-        a long time to complete on large, distributed Greenplum Database tables. Perform
+        a long time to complete on large, distributed Cloudberry Database tables. Perform
           <codeph>VACUUM FULL</codeph> operations during database maintenance periods.</p>
       <p>The <codeph>FULL</codeph> option is not recommended for routine use,
         but might be useful in special cases. An example is when you have deleted
@@ -164,8 +164,8 @@ VACUUM [FULL] [FREEZE] [VERBOSE] ANALYZE
         file has been compacted but a concurrent serializable transaction is detected in the
         transaction that drops the original segment file, the drop is skipped. This could leave one
         or two segment files in an "awaiting drop" state after the vacuum has completed.</p>
-      <p>For more information about concurrency control in Greenplum Database, see "Routine System
-        Maintenance Tasks" in <i>Greenplum Database Administrator Guide</i>.</p>
+      <p>For more information about concurrency control in Cloudberry Database, see "Routine System
+        Maintenance Tasks" in <i>Cloudberry Database Administrator Guide</i>.</p>
     </section>
     <section id="section7">
       <title>Examples</title>

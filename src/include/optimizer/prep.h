@@ -4,9 +4,9 @@
  *	  prototypes for files in optimizer/prep/
  *
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/prep.h
@@ -25,7 +25,7 @@
  */
 extern void replace_empty_jointree(Query *parse);
 extern void pull_up_sublinks(PlannerInfo *root);
-extern void inline_set_returning_functions(PlannerInfo *root);
+extern void preprocess_function_rtes(PlannerInfo *root);
 extern void pull_up_subqueries(PlannerInfo *root);
 extern void flatten_simple_union_all(PlannerInfo *root);
 extern void reduce_outer_joins(PlannerInfo *root);
@@ -38,13 +38,26 @@ extern List *init_list_cteplaninfo(int numCtes);
 /*
  * prototypes for preptlist.c
  */
-extern List *preprocess_targetlist(PlannerInfo *root);
+extern void preprocess_targetlist(PlannerInfo *root);
+
+extern List *extract_update_targetlist_colnos(List *tlist, bool reorder_resno);
 
 extern PlanRowMark *get_plan_rowmark(List *rowmarks, Index rtindex);
+
+/*
+ * prototypes for prepagg.c
+ */
+extern void get_agg_clause_costs(PlannerInfo *root, AggSplit aggsplit,
+								 AggClauseCosts *agg_costs);
+extern void get_agg_clause_costs_multi_stage(PlannerInfo *root, PathTarget* partially_grouped_target, AggSplit aggsplit, AggClauseCosts *costs);
+extern void compute_agg_clause_costs(PlannerInfo *root, AggSplit aggsplit,
+								 AggClauseCosts *agg_costs);
+extern void preprocess_aggrefs(PlannerInfo *root, Node *clause);
 
 /*
  * prototypes for prepunion.c
  */
 extern RelOptInfo *plan_set_operations(PlannerInfo *root);
+
 
 #endif							/* PREP_H */

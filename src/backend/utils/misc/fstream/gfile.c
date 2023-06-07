@@ -848,6 +848,30 @@ subprocess_open(gfile_t* fd, const char* fpath, int for_write, int* rcode, const
 		fd->transform->for_write = 0;
 	}
 
+	/* 
+	 * For read requests, if we've been requested to send stderr output to the server,
+	 * we need prepare a temporary file to hold it.
+	 */
+	if (for_write && fd->transform->stderr_server) {
+		const char*	 tempdir = NULL;
+		char*		 tempfilename = NULL;
+		apr_file_t*	 f = NULL;
+		if ((rv = apr_temp_dir_get(&tempdir, mp)) != APR_SUCCESS)
+		{
+			return subprocess_open_failed(rcode, rstring, "subprocess_open: failed to get temporary directory for stderr");
+		}
+
+		tempfilename = apr_pstrcat(mp, tempdir, "/stderrXXXXXX", NULL);
+		if ((rv = apr_file_mktemp(&f, tempfilename, APR_CREATE|APR_WRITE|APR_EXCL, mp)) != APR_SUCCESS)
+		{
+			return subprocess_open_failed(rcode, rstring, "subprocess_open: failed to create temporary file for stderr");
+		}
+
+		gfile_printf_then_putc_newline("writable request opened stderr file %s\n", tempfilename);
+		fd->transform->errfilename = tempfilename;
+		fd->transform->errfile = f;
+	}
+
 	/* setup child stderr */
 	if (fd->transform->errfile)
 	{
@@ -903,9 +927,14 @@ static ssize_t
 write_subprocess(gfile_t *fd, void *ptr, size_t size)
 {
 	apr_size_t      nbytes = size;
+	apr_status_t    rv;
 
-	apr_file_write(fd->transform->proc.in, ptr, &nbytes);
-	return nbytes;
+	rv = apr_file_write(fd->transform->proc.in, ptr, &nbytes);
+
+	if (rv == APR_SUCCESS)
+		return nbytes;
+
+	return -1;
 }
 
 static int

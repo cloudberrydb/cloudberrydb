@@ -8,7 +8,6 @@ create unlogged table unlogged_heap_table_managers (
 SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
 SELECT gp_request_fts_probe_scan();
 SELECT gp_request_fts_probe_scan();
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
 
 -- expect: insert/update/select works
 insert into unlogged_heap_table_managers values (1, 'Joe');

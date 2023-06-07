@@ -1,7 +1,9 @@
 # contrib/hstore_plperl/Makefile
 
 MODULE_big = hstore_plperl
-OBJS = hstore_plperl.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	hstore_plperl.o
 PGFILEDESC = "hstore_plperl - hstore transform for plperl"
 
 
@@ -37,3 +39,5 @@ endif
 
 # As with plperl we need to include the perl_includespec directory last.
 override CPPFLAGS := $(CPPFLAGS) $(perl_embed_ccflags) $(perl_includespec)
+
+REGRESS_OPTS = --init-file=init_file

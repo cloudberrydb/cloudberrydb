@@ -34,12 +34,12 @@
     </ul>
   </body>
   <topic xml:lang="en" id="topic2">
-    <title>About Greenplum Database PL/R</title>
+    <title>About Cloudberry Database PL/R</title>
     <body>
-      <p>PL/R is a procedural language. With the Greenplum Database PL/R extension you can write
+      <p>PL/R is a procedural language. With the Cloudberry Database PL/R extension you can write
         database functions in the R programming language and use R packages that contain R functions
         and data sets. </p>
-      <p>For information about supported PL/R versions, see the <cite>Greenplum Database Release
+      <p>For information about supported PL/R versions, see the <cite>Cloudberry Database Release
           Notes</cite>. </p>
     </body>
     <topic id="topic_irz_m3l_v3b">
@@ -47,8 +47,8 @@
       <body>
         <p>For RHEL and CentOS, installing the PL/R package installs R in
               <codeph>$GPHOME/ext/R-&lt;<varname>version</varname>></codeph> and updates
-            <codeph>$GPHOME/greenplum_path.sh</codeph> for Greenplum Database to use R.</p>
-        <p>To use PL/R on Ubuntu host systems, you must install and configure R on all Greenplum
+            <codeph>$GPHOME/greenplum_path.sh</codeph> for Cloudberry Database to use R.</p>
+        <p>To use PL/R on Ubuntu host systems, you must install and configure R on all Cloudberry
           Database host systems before installing PL/R.</p>
         <note>You can use the <codeph><xref href="../utility_guide/ref/gpssh.xml" scope="peer">gpssh</xref>
         </codeph> utility to run bash shell commands on multiple remote hosts.</note>
@@ -57,15 +57,15 @@
               systems.<codeblock>$ sudo apt update &amp;&amp; sudo apt install r-base</codeblock><p>Installing
                 <codeph>r-base</codeph> also installs dependent packages including
                 <codeph>r-base-core</codeph>.</p></li>
-          <li>To configure Greenplum Database to use R, add the <codeph>R_HOME</codeph> environment
+          <li>To configure Cloudberry Database to use R, add the <codeph>R_HOME</codeph> environment
             variable to <codeph>$GPHOME/greenplum_path.sh</codeph> on all hosts. This example
             command returns the R home directory.
               <codeblock>$ R RHOME
 /usr/lib/R</codeblock><p>Using the previous R home directory as
               an example, add this line to the file on all
             hosts.</p><codeblock>export R_HOME=/usr/lib/R</codeblock></li>
-          <li>Source <codeph>$GPHOME/greenplum_path.sh</codeph> and restart Greenplum Database. For
-            example, run these commands on the Greenplum Database master
+          <li>Source <codeph>$GPHOME/greenplum_path.sh</codeph> and restart Cloudberry Database. For
+            example, run these commands on the Cloudberry Database master
             host.<codeblock>$ source $GPHOME/greenplum_path.sh
 $ gpstop -r</codeblock></li>
         </ol>
@@ -76,9 +76,9 @@ $ gpstop -r</codeblock></li>
       <body>
         <p otherprops="pivotal">The PL/R extension is available as a package. Download the package
           from <xref href="https://network.pivotal.io/products/pivotal-gpdb" format="html"
-            scope="external">VMware Tanzu Network</xref> and install it with the Greenplum Package
+            scope="external">VMware Tanzu Network</xref> and install it with the Cloudberry Package
           Manager (<codeph>gppkg</codeph>). </p>
-        <p>The <xref href="../utility_guide/ref/gppkg.xml" scope="peer">gppkg</xref> utility installs Greenplum
+        <p>The <xref href="../utility_guide/ref/gppkg.xml" scope="peer">gppkg</xref> utility installs Cloudberry
           Database extensions, along with any dependencies, on all hosts across a cluster. It also
           automatically installs extensions on new hosts in the case of system expansion and segment
           recovery.</p>
@@ -86,7 +86,7 @@ $ gpstop -r</codeblock></li>
       <topic id="topic4" xml:lang="en">
         <title>Installing the Extension Package</title>
         <body>
-          <p>Before you install the PL/R extension, make sure that your Greenplum Database is
+          <p>Before you install the PL/R extension, make sure that your Cloudberry Database is
             running, you have sourced <codeph>greenplum_path.sh</codeph>, and that the
               <codeph>$MASTER_DATA_DIRECTORY</codeph> and <codeph>$GPHOME</codeph> variables are
             set.</p>
@@ -95,14 +95,14 @@ $ gpstop -r</codeblock></li>
                 href="https://network.pivotal.io/products/pivotal-gpdb" format="html"
                 scope="external">VMware Tanzu Network</xref>.</li>
             <li>Follow the instructions in <xref href="../install_guide/verify_sw.xml#topic1"
-              scope="peer" format="dita">Verifying the Greenplum Database Software Download</xref>
-              to verify the integrity of the <b>Greenplum Procedural Languages PL/R</b> software.</li>
-            <li>Copy the PL/R package to the Greenplum Database master host. </li>
+              scope="peer" format="dita">Verifying the Cloudberry Database Software Download</xref>
+              to verify the integrity of the <b>Cloudberry Procedural Languages PL/R</b> software.</li>
+            <li>Copy the PL/R package to the Cloudberry Database master host. </li>
             <li id="py214844">Install the software extension package by running the
                 <codeph>gppkg</codeph> command. This example installs the PL/R extension on a Linux
               system:<codeblock>$ gppkg -i plr-3.0.3-gp6-rhel7_x86_64.gppkg</codeblock></li>
             <li id="py215434">Source the file <codeph>$GPHOME/greenplum_path.sh</codeph>.</li>
-            <li id="py215420">Restart Greenplum Database.<codeblock>$ gpstop -r</codeblock></li>
+            <li id="py215420">Restart Cloudberry Database.<codeblock>$ gpstop -r</codeblock></li>
           </ol>
         </body>
       </topic>
@@ -151,7 +151,7 @@ $ gpstop -r</codeblock></li>
       <topic id="topic8" xml:lang="en">
         <title id="py216924">Uninstall the Extension Package</title>
         <body>
-          <p>If no databases have PL/R as a registered language, uninstall the Greenplum PL/R
+          <p>If no databases have PL/R as a registered language, uninstall the Cloudberry PL/R
             extension with the <codeph>gppkg</codeph> utility. This example uninstalls PL/R package
             version 3.0.3.</p>
           <codeblock>$ gppkg -r plr-3.0.3</codeblock>
@@ -160,7 +160,7 @@ $ gpstop -r</codeblock></li>
           <p>You can run the <codeph>gppkg</codeph> utility with the options <codeph>-q
               --all</codeph> to list the installed extensions and their versions.</p>
           <p>For Ubuntu systems, remove the <codeph>R_HOME</codeph> environment variable from
-              <codeph>greenplum_path.sh</codeph> on all Greenplum Database host systems.</p>
+              <codeph>greenplum_path.sh</codeph> on all Cloudberry Database host systems.</p>
           <p>Source the file <codeph>$GPHOME/greenplum_path.sh</codeph> and restart the
             database.</p>
           <codeblock>$ gpstop -r</codeblock>
@@ -169,7 +169,7 @@ $ gpstop -r</codeblock></li>
       <topic id="topic_ifv_tsf_w3b">
         <title>Uninstall R (Ubuntu)</title>
         <body>
-          <p>For Ubuntu systems, remove R from all Greenplum Database host systems. These commands
+          <p>For Ubuntu systems, remove R from all Cloudberry Database host systems. These commands
             remove R from an Ubuntu
             system.<codeblock>$ sudo apt remove r-base
 $ sudo apt remove r-base-core</codeblock></p>
@@ -211,7 +211,7 @@ LANGUAGE 'plr';</codeblock>
             unless you want to use arrays of arrays, some work is required to see your
               <codeph>data.frame</codeph> from PL/R as a simple SQL table:</p>
           <ul id="ul_dsh_tl2_4p">
-            <li id="py213770">Create a <codeph>TYPE</codeph> in a Greenplum database with the same
+            <li id="py213770">Create a <codeph>TYPE</codeph> in a Cloudberry database with the same
               dimensions as your R
               <codeph>data.frame:</codeph><codeblock>CREATE TYPE t1 AS ...</codeblock></li>
             <li id="py213772">Use this <codeph>TYPE</codeph> when defining your PL/R function
@@ -268,15 +268,15 @@ CREATE TABLE wj_model_results_roi AS SELECT *
       <title id="py218988">Downloading and Installing R Packages</title>
       <body>
         <p>R packages are modules that contain R functions and data sets. You can install R packages
-          to extend R and PL/R functionality in Greenplum Database. </p>
-        <p otherprops="pivotal">Greenplum Database provides a collection of data science-related R
-          libraries that can be used with the Greenplum Database PL/R language. You can download
+          to extend R and PL/R functionality in Cloudberry Database. </p>
+        <p otherprops="pivotal">Cloudberry Database provides a collection of data science-related R
+          libraries that can be used with the Cloudberry Database PL/R language. You can download
           these libraries in <codeph>.gppkg</codeph> format from <xref
             href="https://network.pivotal.io/products/pivotal-gpdb" format="html" scope="external"
             >VMware Tanzu Network</xref>. For information about the libraries, see <xref scope="external"
             type="html" href="../install_guide/install_r_dslib.html#topic1">R Data
             Science Library Package</xref>.</p>
-        <note type="note">If you expand Greenplum Database and add segment hosts, you must install
+        <note type="note">If you expand Cloudberry Database and add segment hosts, you must install
           the R packages in the R installation of the new hosts. </note>
         <ol id="ol_bjw_tl2_4p">
           <li id="py218997">For an R package, identify all dependent R packages and each package web
@@ -287,20 +287,20 @@ CREATE TABLE wj_model_results_roi AS SELECT *
               indicates that the package requires the following R libraries: Matrix, lattice, lme4,
               R2WinBUGS, coda, abind, foreign, and MASS.</p><p>You can also try installing the
               package with <codeph>R CMD INSTALL</codeph> command to determine the dependent
-              packages.</p><p>For the R installation included with the Greenplum Database PL/R
+              packages.</p><p>For the R installation included with the Cloudberry Database PL/R
               extension, the required R packages are installed with the PL/R extension. However, the
               Matrix package requires a newer version. </p></li>
           <li id="py219006">From the command line, use the <codeph>wget</codeph> utility to download
-            the <codeph>tar.gz</codeph> files for the arm package to the Greenplum Database master
+            the <codeph>tar.gz</codeph> files for the arm package to the Cloudberry Database master
             host:<codeblock>wget https://cran.r-project.org/src/contrib/Archive/arm/arm_1.5-03.tar.gz</codeblock><codeblock>wget https://cran.r-project.org/src/contrib/Archive/Matrix/Matrix_0.9996875-1.tar.gz</codeblock></li>
           <li id="py219012">Use the <codeph><xref href="../utility_guide/ref/gpscp.xml" scope="peer"
               >gpscp</xref></codeph> utility and the <codeph>hosts_all</codeph> file to copy the
-              <codeph>tar.gz</codeph> files to the same directory on all nodes of the Greenplum
+              <codeph>tar.gz</codeph> files to the same directory on all nodes of the Cloudberry
             Database cluster. The <codeph>hosts_all</codeph> file contains a list of all the
-            Greenplum Database segment hosts. You might require root access to do
+            Cloudberry Database segment hosts. You might require root access to do
             this.<codeblock>gpscp -f hosts_all Matrix_0.9996875-1.tar.gz =:/home/gpadmin </codeblock><codeblock>gpscp -f /hosts_all arm_1.5-03.tar.gz =:/home/gpadmin</codeblock></li>
           <li id="py219020">Use the <codeph>gpssh</codeph> utility in interactive mode to log into
-            each Greenplum Database segment host (<codeph>gpssh -f all_hosts</codeph>). Install the
+            each Cloudberry Database segment host (<codeph>gpssh -f all_hosts</codeph>). Install the
             packages from the command prompt using the <codeph>R CMD INSTALL</codeph> command. Note
             that this may require root access. For example, this R install command installs the
             packages for the arm package.
@@ -330,7 +330,7 @@ LANGUAGE 'plr';</codeblock><p>This
       <title id="py217297">Displaying R Library Information</title>
       <body>
         <p>You can use the R command line to display information about the installed libraries and
-          functions on the Greenplum Database host. You can also add and remove libraries from the R
+          functions on the Cloudberry Database host. You can also add and remove libraries from the R
           installation. To start the R command line on the host, log into the host as the
             <codeph>gadmin</codeph> user and run the script R from the directory
             <codeph>$GPHOME/ext/R-3.3.3/bin</codeph>.</p>
@@ -367,7 +367,7 @@ LANGUAGE 'plr';</codeblock><p>This
           feature, you create the <codeph>plr_modules</codeph> database table and then insert the R
           modules you want to auto-load into the table. If the table exists, PL/R will load the code
           it contains into the interpreter.</p>
-        <p>In a Greenplum Database system, table rows are usually distributed so that each row
+        <p>In a Cloudberry Database system, table rows are usually distributed so that each row
           exists at only one segment instance. The R interpreter at each segment instance, however,
           needs to load all of the modules, so a normally distributed table will not work. You must
           create the <codeph>plr_modules</codeph> table as a <i>replicated table</i> in the default
@@ -388,7 +388,7 @@ LANGUAGE 'plr';</codeblock><p>This
             >https://www.r-project.org/</xref> - The R Project home page</p>
         <p><xref href="https://cran.r-project.org/web/packages/PivotalR/" format="html"
             scope="external">https://cran.r-project.org/web/packages/PivotalR/</xref> - The home
-          page for PivotalR, a package that provides an R interface to operate on Greenplum Database
+          page for PivotalR, a package that provides an R interface to operate on Cloudberry Database
           tables and views that is similar to the R <cmdname>data.frame</cmdname>. PivotalR also
           supports using the machine learning package <xref href="https://madlib.apache.org/"
             format="html" scope="external">MADlib</xref> directly from R.</p>

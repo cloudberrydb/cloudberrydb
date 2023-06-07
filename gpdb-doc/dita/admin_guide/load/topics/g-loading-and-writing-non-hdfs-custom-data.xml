@@ -4,7 +4,7 @@
 <topic id="topic35">
    <title>Loading and Writing Non-HDFS Custom Data</title>
    <body>
-      <p>Greenplum Database supports <codeph>TEXT</codeph> and <codeph>CSV</codeph> formats for
+      <p>Cloudberry Database supports <codeph>TEXT</codeph> and <codeph>CSV</codeph> formats for
          importing and exporting data through external tables. You can load and save data in other
          formats by defining a custom format or custom protocol or by setting up a transformation
          with the <codeph>gpfdist</codeph> parallel file server.</p>

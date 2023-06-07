@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -495,7 +495,7 @@ CTranslatorDXLToExpr::PexprLogicalTVF(const CDXLNode *dxlnode)
 	for (ULONG ul = 0; ul < ulColumns; ul++)
 	{
 		const CDXLColDescr *pdxlcoldesc = dxl_op->GetColumnDescrAt(ul);
-		GPOS_ASSERT(pdxlcoldesc->MdidType()->IsValid());
+		GPOS_ASSERT_FIXME(pdxlcoldesc->MdidType()->IsValid());
 
 		const IMDType *pmdtype = m_pmda->RetrieveType(pdxlcoldesc->MdidType());
 
@@ -2947,7 +2947,7 @@ CTranslatorDXLToExpr::PexprScalarFunc(const CDXLNode *pdxlnFunc)
 		pop = GPOS_NEW(m_mp) CScalarFunc(
 			m_mp, mdid_func, mdid_return_type, pdxlopFuncExpr->TypeModifier(),
 			GPOS_NEW(m_mp) CWStringConst(
-				m_mp, (pmdfunc->Mdname().GetMDName())->GetBuffer()));
+				m_mp, (pmdfunc->Mdname().GetMDName())->GetBuffer()), pdxlopFuncExpr->FuncFormat());
 	}
 
 	CExpression *pexprFunc = nullptr;

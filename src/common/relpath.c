@@ -4,7 +4,7 @@
  *
  * This module also contains some logic associated with fork names.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -36,6 +36,9 @@ const char *const forkNames[] = {
 	"vm",						/* VISIBILITYMAP_FORKNUM */
 	"init"						/* INIT_FORKNUM */
 };
+
+StaticAssertDecl(lengthof(forkNames) == (MAX_FORKNUM + 1),
+				 "array length mismatch");
 
 /*
  * forkname_to_number - look up fork number by name
@@ -143,7 +146,7 @@ GetDatabasePath(Oid dbNode, Oid spcNode)
  * TempRelBackendId.
  */
 char *
-GetRelationPath(Oid dbNode, Oid spcNode, Oid relNode,
+GetRelationPath(Oid dbNode, Oid spcNode, RelFileNodeId relNode,
 				int backendId, ForkNumber forkNumber)
 {
 	char	   *path;
@@ -154,10 +157,10 @@ GetRelationPath(Oid dbNode, Oid spcNode, Oid relNode,
 		Assert(dbNode == 0);
 		Assert(backendId == InvalidBackendId);
 		if (forkNumber != MAIN_FORKNUM)
-			path = psprintf("global/%u_%s",
+			path = psprintf("global/%lu_%s",
 							relNode, forkNames[forkNumber]);
 		else
-			path = psprintf("global/%u", relNode);
+			path = psprintf("global/%lu", relNode);
 	}
 	else if (spcNode == DEFAULTTABLESPACE_OID)
 	{
@@ -165,21 +168,21 @@ GetRelationPath(Oid dbNode, Oid spcNode, Oid relNode,
 		if (backendId == InvalidBackendId)
 		{
 			if (forkNumber != MAIN_FORKNUM)
-				path = psprintf("base/%u/%u_%s",
+				path = psprintf("base/%u/%lu_%s",
 								dbNode, relNode,
 								forkNames[forkNumber]);
 			else
-				path = psprintf("base/%u/%u",
+				path = psprintf("base/%u/%lu",
 								dbNode, relNode);
 		}
 		else
 		{
 			if (forkNumber != MAIN_FORKNUM)
-				path = psprintf("base/%u/t_%u_%s",
+				path = psprintf("base/%u/t_%lu_%s",
 								dbNode, relNode,
 								forkNames[forkNumber]);
 			else
-				path = psprintf("base/%u/t_%u",
+				path = psprintf("base/%u/t_%lu",
 								dbNode, relNode);
 		}
 	}
@@ -189,24 +192,24 @@ GetRelationPath(Oid dbNode, Oid spcNode, Oid relNode,
 		if (backendId == InvalidBackendId)
 		{
 			if (forkNumber != MAIN_FORKNUM)
-				path = psprintf("pg_tblspc/%u/%s/%u/%u_%s",
+				path = psprintf("pg_tblspc/%u/%s/%u/%lu_%s",
 								spcNode, GP_TABLESPACE_VERSION_DIRECTORY,
 								dbNode, relNode,
 								forkNames[forkNumber]);
 			else
-				path = psprintf("pg_tblspc/%u/%s/%u/%u",
+				path = psprintf("pg_tblspc/%u/%s/%u/%lu",
 								spcNode, GP_TABLESPACE_VERSION_DIRECTORY,
 								dbNode, relNode);
 		}
 		else
 		{
 			if (forkNumber != MAIN_FORKNUM)
-				path = psprintf("pg_tblspc/%u/%s/%u/t_%u_%s",
+				path = psprintf("pg_tblspc/%u/%s/%u/t_%lu_%s",
 								spcNode, GP_TABLESPACE_VERSION_DIRECTORY,
 								dbNode, relNode,
 								forkNames[forkNumber]);
 			else
-				path = psprintf("pg_tblspc/%u/%s/%u/t_%u",
+				path = psprintf("pg_tblspc/%u/%s/%u/t_%lu",
 								spcNode, GP_TABLESPACE_VERSION_DIRECTORY,
 								dbNode, relNode);
 		}

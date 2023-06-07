@@ -8,6 +8,8 @@ DATA = dummy_seclabel--1.0.sql
 
 REGRESS = dummy_seclabel
 
+REGRESS_OPTS += --init-file=$(top_builddir)/src/test/regress/init_file
+
 ifdef USE_PGXS
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)

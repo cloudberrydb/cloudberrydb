@@ -4,7 +4,7 @@
  *		parse analysis for optimizable statements
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/analyze.h
@@ -15,10 +15,12 @@
 #define ANALYZE_H
 
 #include "parser/parse_node.h"
+#include "utils/queryjumble.h"
 
 /* Hook for plugins to get control at end of parse analysis */
 typedef void (*post_parse_analyze_hook_type) (ParseState *pstate,
-											  Query *query);
+											  Query *query,
+											  JumbleState *jstate);
 extern PGDLLIMPORT post_parse_analyze_hook_type post_parse_analyze_hook;
 
 
@@ -43,9 +45,9 @@ extern void applyLockingClause(Query *qry, Index rtindex,
 							   LockClauseStrength strength,
 							   LockWaitPolicy waitPolicy, bool pushedDown);
 
-extern List *TypeNameGetStorageDirective(TypeName *typname);
-
 extern List *BuildOnConflictExcludedTargetlist(Relation targetrel,
 											   Index exclRelIndex);
+
+extern SortGroupClause *makeSortGroupClauseForSetOp(Oid rescoltype, bool require_hash);
 
 #endif							/* ANALYZE_H */

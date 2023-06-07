@@ -3,6 +3,10 @@
 -- back for these queries. To detect that, turn optimizer_trace_fallback on,
 -- and watch for "falling back to planner" messages.
 --
+-- start_matchignore
+-- m/^DETAIL:  GPDB Expression type: .* not supported in DXL/
+-- end_matchignore
+
 set optimizer_trace_fallback='on';
 
 create temp table gstest1 (a int, b int, c int, d int, v int);

@@ -8,22 +8,17 @@
 
 #include "access/xact.h"
 #include "mb/pg_wchar.h"
-#include "utils/builtins.h"
-#include "utils/snapmgr.h"
-
-#include "plpython.h"
-
-#include "plpy_plpymodule.h"
-
 #include "plpy_cursorobject.h"
 #include "plpy_elog.h"
 #include "plpy_main.h"
 #include "plpy_planobject.h"
+#include "plpy_plpymodule.h"
 #include "plpy_resultobject.h"
 #include "plpy_spi.h"
 #include "plpy_subxactobject.h"
-#include "plpy_main.h"
-
+#include "plpython.h"
+#include "utils/builtins.h"
+#include "utils/snapmgr.h"
 
 HTAB	   *PLy_spi_exceptions = NULL;
 
@@ -66,13 +61,13 @@ static PyMethodDef PLy_methods[] = {
 	/*
 	 * logging methods
 	 */
-	{"debug", (PyCFunction) PLy_debug, METH_VARARGS | METH_KEYWORDS, NULL},
-	{"log", (PyCFunction) PLy_log, METH_VARARGS | METH_KEYWORDS, NULL},
-	{"info", (PyCFunction) PLy_info, METH_VARARGS | METH_KEYWORDS, NULL},
-	{"notice", (PyCFunction) PLy_notice, METH_VARARGS | METH_KEYWORDS, NULL},
-	{"warning", (PyCFunction) PLy_warning, METH_VARARGS | METH_KEYWORDS, NULL},
-	{"error", (PyCFunction) PLy_error, METH_VARARGS | METH_KEYWORDS, NULL},
-	{"fatal", (PyCFunction) PLy_fatal, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"debug", (PyCFunction) (pg_funcptr_t) PLy_debug, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"log", (PyCFunction) (pg_funcptr_t) PLy_log, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"info", (PyCFunction) (pg_funcptr_t) PLy_info, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"notice", (PyCFunction) (pg_funcptr_t) PLy_notice, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"warning", (PyCFunction) (pg_funcptr_t) PLy_warning, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"error", (PyCFunction) (pg_funcptr_t) PLy_error, METH_VARARGS | METH_KEYWORDS, NULL},
+	{"fatal", (PyCFunction) (pg_funcptr_t) PLy_fatal, METH_VARARGS | METH_KEYWORDS, NULL},
 
 	/*
 	 * create a stored plan
@@ -219,7 +214,6 @@ PLy_add_exceptions(PyObject *plpy)
 	PLy_exc_spi_error = PLy_create_exception("plpy.SPIError", NULL, NULL,
 											 "SPIError", plpy);
 
-	memset(&hash_ctl, 0, sizeof(hash_ctl));
 	hash_ctl.keysize = sizeof(int);
 	hash_ctl.entrysize = sizeof(PLyExceptionEntry);
 	PLy_spi_exceptions = hash_create("PL/Python SPI exceptions", 256,

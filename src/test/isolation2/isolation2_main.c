@@ -140,5 +140,5 @@ isolation_init(int argc, char **argv)
 int
 main(int argc, char *argv[])
 {
-	return regression_main(argc, argv, isolation_init, isolation_start_test);
+	return regression_main(argc, argv, isolation_init, isolation_start_test, NULL);
 }

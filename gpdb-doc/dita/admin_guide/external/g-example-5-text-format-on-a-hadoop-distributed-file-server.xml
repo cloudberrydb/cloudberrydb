@@ -15,7 +15,7 @@
 </codeblock>
       </p>
       <p>Refer to <xref href="pxf-overview.xml" type="topic">Accessing External Data with PXF</xref>
-        for information about using the Greenplum Platform Extension Framework (PXF)
+        for information about using the Cloudberry Platform Extension Framework (PXF)
         to access data on a Hadoop Distributed File System.</p>
    </body>
 </topic>

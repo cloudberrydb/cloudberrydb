@@ -1,8 +1,11 @@
 # -*-perl-*- hey - emacs - this is a perl file
 
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 # src/tools/msvc/vcregress.pl
 
 use strict;
+use warnings;
 
 our $config;
 
@@ -11,8 +14,10 @@ use File::Basename;
 use File::Copy;
 use File::Find ();
 use File::Path qw(rmtree);
-use File::Spec;
-BEGIN { use lib File::Spec->rel2abs(dirname(__FILE__)); }
+use File::Spec qw(devnull);
+
+use FindBin;
+use lib $FindBin::RealBin;
 
 use Install qw(Install);
 
@@ -25,6 +30,15 @@ my $tmp_installdir = "$topdir/tmp_install";
 
 do './src/tools/msvc/config_default.pl';
 do './src/tools/msvc/config.pl' if (-f 'src/tools/msvc/config.pl');
+
+my $devnull = File::Spec->devnull;
+
+# These values are defaults that can be overridden by the calling environment
+# (see buildenv.pl processing below).  We assume that the ones listed here
+# always exist by default.  Other values may optionally be set for bincheck
+# or taptest, see set_command_env() below.
+# c.f. src/Makefile.global.in and configure.ac
+$ENV{TAR} ||= 'tar';
 
 # buildenv.pl is for specifying the build environment settings
 # it should contain lines like:
@@ -55,6 +69,14 @@ copy("$Config/autoinc/autoinc.dll",               "src/test/regress");
 copy("$Config/regress/regress.dll",               "src/test/regress");
 copy("$Config/dummy_seclabel/dummy_seclabel.dll", "src/test/regress");
 
+# Configuration settings used by TAP tests
+$ENV{with_ssl} = $config->{openssl} ? 'openssl' : 'no';
+$ENV{with_ldap} = $config->{ldap} ? 'yes' : 'no';
+$ENV{with_icu} = $config->{icu} ? 'yes' : 'no';
+$ENV{with_gssapi} = $config->{gss} ? 'yes' : 'no';
+$ENV{with_krb_srvnam} = $config->{krb_srvnam} || 'postgres';
+$ENV{with_readline} = 'no';
+
 $ENV{PATH} = "$topdir/$Config/libpq;$ENV{PATH}";
 
 if ($ENV{PERL5LIB})
@@ -67,7 +89,7 @@ else
 }
 
 my $maxconn = "";
-$maxconn = "--max_connections=$ENV{MAX_CONNECTIONS}"
+$maxconn = "--max-connections=$ENV{MAX_CONNECTIONS}"
   if $ENV{MAX_CONNECTIONS};
 
 my $temp_config = "";
@@ -99,15 +121,49 @@ exit 0;
 
 ########################################################################
 
+# Helper function for set_command_env, to set one environment command.
+sub set_single_env
+{
+	my $envname    = shift;
+	my $envdefault = shift;
+
+	# If a command is defined by the environment, just use it.
+	return if (defined($ENV{$envname}));
+
+	# Nothing is defined, so attempt to assign a default.  The command
+	# may not be in the current environment, hence check if it can be
+	# executed.
+	my $rc = system("$envdefault --version >$devnull 2>&1");
+
+	# Set the environment to the default if it exists, else leave it.
+	$ENV{$envname} = $envdefault if $rc == 0;
+	return;
+}
+
+# Set environment values for various command types.  These can be used
+# in the TAP tests.
+sub set_command_env
+{
+	set_single_env('GZIP_PROGRAM', 'gzip');
+	set_single_env('LZ4',          'lz4');
+}
+
 sub installcheck_internal
 {
 	my ($schedule, @EXTRA_REGRESS_OPTS) = @_;
+	# for backwards compatibility, "serial" runs the tests in
+	# parallel_schedule one by one.
+	my $maxconn = $maxconn;
+	$maxconn  = "--max-connections=1" if $schedule eq 'serial';
+	$schedule = 'parallel'            if $schedule eq 'serial';
+
 	my @args = (
 		"../../../$Config/pg_regress/pg_regress",
 		"--dlpath=.",
 		"--bindir=../../../$Config/psql",
 		"--schedule=${schedule}_schedule",
 		"--max-concurrent-tests=20",
+		"--make-testtablespace-dir",
 		"--encoding=SQL_ASCII",
 		"--no-locale");
 	push(@args, $maxconn) if $maxconn;
@@ -128,6 +184,12 @@ sub installcheck
 sub check
 {
 	my $schedule = shift || 'parallel';
+	# for backwards compatibility, "serial" runs the tests in
+	# parallel_schedule one by one.
+	my $maxconn = $maxconn;
+	$maxconn  = "--max-connections=1" if $schedule eq 'serial';
+	$schedule = 'parallel'            if $schedule eq 'serial';
+
 	InstallTemp();
 	chdir "${topdir}/src/test/regress";
 	my @args = (
@@ -136,6 +198,7 @@ sub check
 		"--bindir=",
 		"--schedule=${schedule}_schedule",
 		"--max-concurrent-tests=20",
+		"--make-testtablespace-dir",
 		"--encoding=SQL_ASCII",
 		"--no-locale",
 		"--temp-instance=./tmp_check");
@@ -196,7 +259,7 @@ sub tap_check
 	  unless $config->{tap_tests};
 
 	my @flags;
-	foreach my $arg (0 .. scalar(@_))
+	foreach my $arg (0 .. scalar(@_) - 1)
 	{
 		next unless $_[$arg] =~ /^PROVE_FLAGS=(.*)/;
 		@flags = split(/\s+/, $1);
@@ -207,7 +270,21 @@ sub tap_check
 	my $dir = shift;
 	chdir $dir;
 
-	my @args = ("prove", @flags, "t/*.pl");
+	# Fetch and adjust PROVE_TESTS, applying glob() to each element
+	# defined to build a list of all the tests matching patterns.
+	my $prove_tests_val = $ENV{PROVE_TESTS} || "t/*.pl";
+	my @prove_tests_array = split(/\s+/, $prove_tests_val);
+	my @prove_tests = ();
+	foreach (@prove_tests_array)
+	{
+		push(@prove_tests, glob($_));
+	}
+
+	# Fetch and adjust PROVE_FLAGS, handling multiple arguments.
+	my $prove_flags_val = $ENV{PROVE_FLAGS} || "";
+	my @prove_flags = split(/\s+/, $prove_flags_val);
+
+	my @args = ("prove", @flags, @prove_tests, @prove_flags);
 
 	# adjust the environment for just this test
 	local %ENV = %ENV;
@@ -216,6 +293,9 @@ sub tap_check
 	$ENV{REGRESS_SHLIB} = "$topdir/src/test/regress/regress.dll";
 
 	$ENV{TESTDIR} = "$dir";
+	my $module = basename $dir;
+	# add the module build dir as the second element in the PATH
+	$ENV{PATH} =~ s!;!;$topdir/$Config/$module;!;
 
 	rmtree('tmp_check');
 	system(@args);
@@ -226,6 +306,8 @@ sub tap_check
 sub bincheck
 {
 	InstallTemp();
+
+	set_command_env();
 
 	my $mstat = 0;
 
@@ -260,6 +342,9 @@ sub taptest
 	push(@args, "$topdir/$dir");
 
 	InstallTemp();
+
+	set_command_env();
+
 	my $status = tap_check(@args);
 	exit $status if $status;
 	return;
@@ -290,7 +375,6 @@ sub mangle_plpython3
 				close($handle);
 				do
 				{
-					s/except ([[:alpha:]][[:alpha:].]*), *([[:alpha:]][[:alpha:]]*):/except $1 as $2:/g;
 					s/<type 'exceptions\.([[:alpha:]]*)'>/<class '$1'>/g;
 					s/<type 'long'>/<class 'int'>/g;
 					s/([0-9][0-9]*)L/$1/g;
@@ -298,7 +382,7 @@ sub mangle_plpython3
 					s/([ [{])u'/$1'/g;
 					s/def next/def __next__/g;
 					s/LANGUAGE plpython2?u/LANGUAGE plpython3u/g;
-					s/EXTENSION ([^ ]*_)*plpython2?u/EXTENSION $1plpython3u/g;
+					s/EXTENSION (\S*?)plpython2?u/EXTENSION $1plpython3u/g;
 					s/installing required extension "plpython2u"/installing required extension "plpython3u"/g;
 				  }
 				  for ($contents);
@@ -354,8 +438,8 @@ sub plcheck
 		if ($lang eq 'plperl')
 		{
 
-			# run both trusted and untrusted perl tests
-			push(@lang_args, "--load-extension=plperlu");
+			# plperl tests will install the extensions themselves
+			@lang_args = ();
 
 			# assume we're using this perl to built postgres
 			# test if we can run two interpreters in one backend, and if so
@@ -578,10 +662,7 @@ sub upgradecheck
 	$ENV{PGDATA} = "$data.old";
 	my $outputdir          = "$tmp_root/regress";
 	my @EXTRA_REGRESS_OPTS = ("--outputdir=$outputdir");
-	mkdir "$outputdir"                || die $!;
-	mkdir "$outputdir/sql"            || die $!;
-	mkdir "$outputdir/expected"       || die $!;
-	mkdir "$outputdir/testtablespace" || die $!;
+	mkdir "$outputdir" || die $!;
 
 	my $logdir = "$topdir/src/bin/pg_upgrade/log";
 	rmtree($logdir);
@@ -611,15 +692,11 @@ sub upgradecheck
 	print "\nSetting up new cluster\n\n";
 	standard_initdb() or exit 1;
 	print "\nRunning pg_upgrade\n\n";
-	@args = (
-		'pg_upgrade', '-d', "$data.old", '-D', $data, '-b',
-		$bindir,      '-B', $bindir);
+	@args = ('pg_upgrade', '-d', "$data.old", '-D', $data, '-b', $bindir);
 	system(@args) == 0 or exit 1;
 	print "\nStarting new cluster\n\n";
 	@args = ('pg_ctl', '-l', "$logdir/postmaster2.log", 'start');
 	system(@args) == 0 or exit 1;
-	print "\nSetting up stats on new cluster\n\n";
-	system(".\\analyze_new_cluster.bat") == 0 or exit 1;
 	print "\nDumping new cluster\n\n";
 	@args = ('pg_dumpall', '-f', "$tmp_root/dump2.sql");
 	system(@args) == 0 or exit 1;

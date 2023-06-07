@@ -4,7 +4,7 @@
   <topic id="topic1" xml:lang="en">
     <title id="if135496">Data Types</title>
     <body>
-      <p>Greenplum Database has a rich set of native data types available to users. Users may also
+      <p>Cloudberry Database has a rich set of native data types available to users. Users may also
         define new data types using the <codeph>CREATE TYPE</codeph> command. This reference shows
         all of the built-in data types. In addition to the types listed here, there are also some
         internally used data types, such as <i>oid</i> (object identifier), but those are not
@@ -21,12 +21,12 @@
           <i>timestamp</i> (with or without time zone). </p>
       <p>Each data type has an external representation determined by its input and output functions.
         Many of the built-in types have obvious external formats. However, several types are either
-        unique to PostgreSQL (and Greenplum Database), such as geometric paths, or have several
+        unique to PostgreSQL (and Cloudberry Database), such as geometric paths, or have several
         possibilities for formats, such as the date and time types. Some of the input and output
         functions are not invertible. That is, the result of an output function may lose accuracy
         when compared to the original input.</p>
       <table id="if139202">
-        <title>Greenplum Database Built-in Data Types</title>
+        <title>Cloudberry Database Built-in Data Types</title>
         <tgroup cols="5">
           <colspec colnum="1" colname="col1" colwidth="95pt"/>
           <colspec colnum="2" colname="col2" colwidth="74pt"/>

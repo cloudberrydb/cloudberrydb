@@ -1,7 +1,7 @@
 --
 -- Extra GPDB tests for triggers
 --
--- We generally claim that triggers are not supported in Greenplum, period.
+-- We generally claim that triggers are not supported in Cloudberry, period.
 -- But row-level AFTER triggers actually do work to some extent, even though
 -- we've never documented how exactly they behave. This file covers those
 -- cases.

@@ -156,7 +156,7 @@ $$ language plpython3u;
 --   datadir: data directory of process to target with `pg_ctl`
 --   port: which port the server should start on
 --
-create or replace function pg_ctl_start(datadir text, port int)
+create or replace function pg_ctl_start(datadir text, port bigint)
 returns text as $$
     import subprocess
     cmd = 'pg_ctl -l postmaster.log -D %s ' % datadir
@@ -232,7 +232,7 @@ $$ language sql;
 
 create or replace function wait_until_segment_synchronized(segment_number int) returns text as $$
 begin
-	for i in 1..1200 loop
+	for i in 1..6000 loop
 		if (select count(*) = 0 from gp_segment_configuration where content = segment_number and mode != 's') then
 			return 'OK'; /* in func */
 		end if; /* in func */
@@ -245,7 +245,7 @@ $$ language plpgsql;
 
 create or replace function wait_until_all_segments_synchronized() returns text as $$
 begin
-	for i in 1..1200 loop
+	for i in 1..6000 loop
 		if (select count(*) = 0 from gp_segment_configuration where content != -1 and mode != 's') then
 			return 'OK'; /* in func */
 		end if; /* in func */
@@ -311,7 +311,7 @@ $$ language plpgsql;
 --
 -- usage: `select pg_basebackup('somehost', 12345, 'some_slot_name', '/some/destination/data/directory')`
 --
-create or replace function pg_basebackup(host text, dbid int, port int, create_slot boolean, slotname text, datadir text, force_overwrite boolean, xlog_method text) returns text as $$
+create or replace function pg_basebackup(host text, dbid int, port bigint, create_slot boolean, slotname text, datadir text, force_overwrite boolean, xlog_method text) returns text as $$
     import subprocess
     import os
     cmd = 'pg_basebackup --no-sync --checkpoint=fast -h %s -p %d -R -D %s --target-gp-dbid %d' % (host, port, datadir, dbid)
@@ -344,7 +344,7 @@ create or replace function pg_basebackup(host text, dbid int, port int, create_s
             os.environ.pop('PGAPPNAME')
         results = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True).replace(b'.', b'').decode()
     except subprocess.CalledProcessError as e:
-        results = str(e) + "\ncommand output: " + e.output
+        results = str(e) + "\ncommand output: " + str(e.output)
 
     return results
 $$ language plpython3u;
@@ -387,3 +387,7 @@ $$
     end loop; /* in func */
   END; /* in func */
 $$ LANGUAGE plpgsql;
+
+-- start_ignore
+set statement_timeout='180s';
+-- end_ignore

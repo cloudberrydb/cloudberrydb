@@ -143,7 +143,7 @@
       </tgroup>
     </table>
     <p>
-      <note><sup>1</sup> In Greenplum Database, the autovacuum daemon is disabled and not supported
+      <note><sup>1</sup> In Cloudberry Database, the autovacuum daemon is disabled and not supported
         for user defined databases.</note>
     </p>
   </body>

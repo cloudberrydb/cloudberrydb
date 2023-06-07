@@ -2,23 +2,21 @@
  * logical.h
  *	   PostgreSQL logical decoding coordination
  *
- * Copyright (c) 2012-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
 #ifndef LOGICAL_H
 #define LOGICAL_H
 
-#include "replication/slot.h"
-
 #include "access/xlog.h"
 #include "access/xlogreader.h"
 #include "replication/output_plugin.h"
+#include "replication/slot.h"
 
 struct LogicalDecodingContext;
 
-typedef void (*LogicalOutputPluginWriterWrite) (
-												struct LogicalDecodingContext *lr,
+typedef void (*LogicalOutputPluginWriterWrite) (struct LogicalDecodingContext *lr,
 												XLogRecPtr Ptr,
 												TransactionId xid,
 												bool last_write
@@ -26,8 +24,7 @@ typedef void (*LogicalOutputPluginWriterWrite) (
 
 typedef LogicalOutputPluginWriterWrite LogicalOutputPluginWriterPrepareWrite;
 
-typedef void (*LogicalOutputPluginWriterUpdateProgress) (
-														 struct LogicalDecodingContext *lr,
+typedef void (*LogicalOutputPluginWriterUpdateProgress) (struct LogicalDecodingContext *lr,
 														 XLogRecPtr Ptr,
 														 TransactionId xid
 );
@@ -51,6 +48,9 @@ typedef struct LogicalDecodingContext
 	 * are unused.
 	 */
 	bool		fast_forward;
+
+	/* Are we processing the end LSN of a transaction? */
+	bool		end_xact;
 
 	OutputPluginCallbacks callbacks;
 	OutputPluginOptions options;
@@ -83,6 +83,16 @@ typedef struct LogicalDecodingContext
 	void	   *output_writer_private;
 
 	/*
+	 * Does the output plugin support streaming, and is it enabled?
+	 */
+	bool		streaming;
+
+	/*
+	 * Does the output plugin support two-phase decoding, and is it enabled?
+	 */
+	bool		twophase;
+
+	/*
 	 * State for writing output.
 	 */
 	bool		accept_writes;
@@ -94,19 +104,18 @@ typedef struct LogicalDecodingContext
 
 extern void CheckLogicalDecodingRequirements(void);
 
-extern LogicalDecodingContext *CreateInitDecodingContext(char *plugin,
+extern LogicalDecodingContext *CreateInitDecodingContext(const char *plugin,
 														 List *output_plugin_options,
 														 bool need_full_snapshot,
 														 XLogRecPtr restart_lsn,
-														 XLogPageReadCB read_page,
+														 XLogReaderRoutine *xl_routine,
 														 LogicalOutputPluginWriterPrepareWrite prepare_write,
 														 LogicalOutputPluginWriterWrite do_write,
 														 LogicalOutputPluginWriterUpdateProgress update_progress);
-extern LogicalDecodingContext *CreateDecodingContext(
-													 XLogRecPtr start_lsn,
+extern LogicalDecodingContext *CreateDecodingContext(XLogRecPtr start_lsn,
 													 List *output_plugin_options,
 													 bool fast_forward,
-													 XLogPageReadCB read_page,
+													 XLogReaderRoutine *xl_routine,
 													 LogicalOutputPluginWriterPrepareWrite prepare_write,
 													 LogicalOutputPluginWriterWrite do_write,
 													 LogicalOutputPluginWriterUpdateProgress update_progress);
@@ -119,6 +128,10 @@ extern void LogicalIncreaseRestartDecodingForSlot(XLogRecPtr current_lsn,
 												  XLogRecPtr restart_lsn);
 extern void LogicalConfirmReceivedLocation(XLogRecPtr lsn);
 
+extern bool filter_prepare_cb_wrapper(LogicalDecodingContext *ctx,
+									  TransactionId xid, const char *gid);
 extern bool filter_by_origin_cb_wrapper(LogicalDecodingContext *ctx, RepOriginId origin_id);
+extern void ResetLogicalStreamingState(void);
+extern void UpdateDecodingStats(LogicalDecodingContext *ctx);
 
 #endif

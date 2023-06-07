@@ -3,7 +3,7 @@
  * pg_lsn.c
  *	  Operations for the pg_lsn datatype.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -16,6 +16,7 @@
 #include "funcapi.h"
 #include "libpq/pqformat.h"
 #include "utils/builtins.h"
+#include "utils/numeric.h"
 #include "utils/pg_lsn.h"
 
 #define MAXPG_LSNLEN			17
@@ -33,6 +34,9 @@ pg_lsn_in_internal(const char *str, bool *have_error)
 	uint32		id,
 				off;
 	XLogRecPtr	result;
+
+	Assert(have_error != NULL);
+	*have_error = false;
 
 	/* Sanity check input format. */
 	len1 = strspn(str, "0123456789abcdefABCDEF");
@@ -79,14 +83,8 @@ pg_lsn_out(PG_FUNCTION_ARGS)
 	XLogRecPtr	lsn = PG_GETARG_LSN(0);
 	char		buf[MAXPG_LSNLEN + 1];
 	char	   *result;
-	uint32		id,
-				off;
 
-	/* Decode ID and offset */
-	id = (uint32) (lsn >> 32);
-	off = (uint32) lsn;
-
-	snprintf(buf, sizeof buf, "%X/%X", id, off);
+	snprintf(buf, sizeof buf, "%X/%X", LSN_FORMAT_ARGS(lsn));
 	result = pstrdup(buf);
 	PG_RETURN_CSTRING(result);
 }
@@ -171,6 +169,24 @@ pg_lsn_ge(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(lsn1 >= lsn2);
 }
 
+Datum
+pg_lsn_larger(PG_FUNCTION_ARGS)
+{
+	XLogRecPtr	lsn1 = PG_GETARG_LSN(0);
+	XLogRecPtr	lsn2 = PG_GETARG_LSN(1);
+
+	PG_RETURN_LSN((lsn1 > lsn2) ? lsn1 : lsn2);
+}
+
+Datum
+pg_lsn_smaller(PG_FUNCTION_ARGS)
+{
+	XLogRecPtr	lsn1 = PG_GETARG_LSN(0);
+	XLogRecPtr	lsn2 = PG_GETARG_LSN(1);
+
+	PG_RETURN_LSN((lsn1 < lsn2) ? lsn1 : lsn2);
+}
+
 /* btree index opclass support */
 Datum
 pg_lsn_cmp(PG_FUNCTION_ARGS)
@@ -226,4 +242,72 @@ pg_lsn_mi(PG_FUNCTION_ARGS)
 								 Int32GetDatum(-1));
 
 	return result;
+}
+
+/*
+ * Add the number of bytes to pg_lsn, giving a new pg_lsn.
+ * Must handle both positive and negative numbers of bytes.
+ */
+Datum
+pg_lsn_pli(PG_FUNCTION_ARGS)
+{
+	XLogRecPtr	lsn = PG_GETARG_LSN(0);
+	Numeric		nbytes = PG_GETARG_NUMERIC(1);
+	Datum		num;
+	Datum		res;
+	char		buf[32];
+
+	if (numeric_is_nan(nbytes))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot add NaN to pg_lsn")));
+
+	/* Convert to numeric */
+	snprintf(buf, sizeof(buf), UINT64_FORMAT, lsn);
+	num = DirectFunctionCall3(numeric_in,
+							  CStringGetDatum(buf),
+							  ObjectIdGetDatum(0),
+							  Int32GetDatum(-1));
+
+	/* Add two numerics */
+	res = DirectFunctionCall2(numeric_add,
+							  NumericGetDatum(num),
+							  NumericGetDatum(nbytes));
+
+	/* Convert to pg_lsn */
+	return DirectFunctionCall1(numeric_pg_lsn, res);
+}
+
+/*
+ * Subtract the number of bytes from pg_lsn, giving a new pg_lsn.
+ * Must handle both positive and negative numbers of bytes.
+ */
+Datum
+pg_lsn_mii(PG_FUNCTION_ARGS)
+{
+	XLogRecPtr	lsn = PG_GETARG_LSN(0);
+	Numeric		nbytes = PG_GETARG_NUMERIC(1);
+	Datum		num;
+	Datum		res;
+	char		buf[32];
+
+	if (numeric_is_nan(nbytes))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot subtract NaN from pg_lsn")));
+
+	/* Convert to numeric */
+	snprintf(buf, sizeof(buf), UINT64_FORMAT, lsn);
+	num = DirectFunctionCall3(numeric_in,
+							  CStringGetDatum(buf),
+							  ObjectIdGetDatum(0),
+							  Int32GetDatum(-1));
+
+	/* Subtract two numerics */
+	res = DirectFunctionCall2(numeric_sub,
+							  NumericGetDatum(num),
+							  NumericGetDatum(nbytes));
+
+	/* Convert to pg_lsn */
+	return DirectFunctionCall1(numeric_pg_lsn, res);
 }

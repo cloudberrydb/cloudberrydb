@@ -36,8 +36,8 @@ SELECT SESSION_USER, CURRENT_USER;
  session_user | current_user 
 --------------+--------------
  paul         | paul</codeblock></section><section id="section6"><title>Compatibility</title><p>The SQL standard allows some other expressions to appear in place of the literal <varname>rolename</varname>,
-    but these options are not important in practice. Greenplum Database allows identifier syntax
+    but these options are not important in practice. Cloudberry Database allows identifier syntax
      (<varname>rolename</varname>), which SQL does not. SQL does not allow this command during a transaction;
-    Greenplum Database does not make this restriction. The <codeph>SESSION</codeph> and
-     <codeph>LOCAL</codeph> modifiers are a Greenplum Database extension, as is the
+    Cloudberry Database does not make this restriction. The <codeph>SESSION</codeph> and
+     <codeph>LOCAL</codeph> modifiers are a Cloudberry Database extension, as is the
      <codeph>RESET</codeph> syntax.</p></section><section id="section7"><title>See Also</title><p><codeph><xref href="SET_ROLE.xml#topic1" type="topic" format="dita"/></codeph></p></section></body></topic>

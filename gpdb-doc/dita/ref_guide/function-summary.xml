@@ -2,10 +2,10 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="ih135496">Summary of Built-in Functions</title>
-  <abstract>Greenplum Database supports built-in functions and operators including analytic
+  <abstract>Cloudberry Database supports built-in functions and operators including analytic
     functions and window functions that can be used in window expressions. For information about
-    using built-in Greenplum Database functions see, "Using Functions and Operators" in the
-      <cite>Greenplum Database Administrator Guide</cite>.</abstract>
+    using built-in Cloudberry Database functions see, "Using Functions and Operators" in the
+      <cite>Cloudberry Database Administrator Guide</cite>.</abstract>
   <body>
     <p>
       <ul id="ul_tpq_zwq_kr">
@@ -29,14 +29,14 @@
     </p>
   </body>
   <topic id="topic27" xml:lang="en">
-    <title id="in201560">Greenplum Database Function Types</title>
+    <title id="in201560">Cloudberry Database Function Types</title>
     <body>
-      <p>Greenplum Database evaluates functions and operators used in SQL expressions. Some
+      <p>Cloudberry Database evaluates functions and operators used in SQL expressions. Some
         functions and operators are only allowed to run on the master since they could lead to
-        inconsistencies in Greenplum Database segment instances. This table describes the Greenplum
+        inconsistencies in Cloudberry Database segment instances. This table describes the Cloudberry
         Database Function Types.</p>
       <table id="in201681">
-        <title>Functions in Greenplum Database</title>
+        <title>Functions in Cloudberry Database</title>
         <tgroup cols="4">
           <colspec colname="col1" colnum="1" colwidth="77*"/>
           <colspec colname="col2" colnum="2" colwidth="86*"/>
@@ -45,7 +45,7 @@
           <thead>
             <row>
               <entry colname="col1">Function Type</entry>
-              <entry colname="col2">Greenplum Support</entry>
+              <entry colname="col2">Cloudberry Support</entry>
               <entry colname="col3">Description</entry>
               <entry colname="col4">Comments</entry>
             </row>
@@ -78,11 +78,11 @@
           </tbody>
         </tgroup>
       </table>
-      <p>In Greenplum Database, data is divided up across segments — each segment is a distinct
+      <p>In Cloudberry Database, data is divided up across segments — each segment is a distinct
         PostgreSQL database. To prevent inconsistent or unexpected results, do not run functions
         classified as <codeph>VOLATILE</codeph> at the segment level if they contain SQL commands or
         modify the database in any way. For example, functions such as <codeph>setval()</codeph> are
-        not allowed to run on distributed data in Greenplum Database because they can cause
+        not allowed to run on distributed data in Cloudberry Database because they can cause
         inconsistent data between segment instances.</p>
       <p>To ensure data consistency, you can safely use <codeph>VOLATILE</codeph> and
           <codeph>STABLE</codeph> functions in statements that are evaluated on and run from the
@@ -100,7 +100,7 @@ SELECT foo();
         <codeblock>SELECT * from foo();
 </codeblock>
       </p>
-      <p>Greenplum Database does not support functions that return a table reference
+      <p>Cloudberry Database does not support functions that return a table reference
           (<codeph>rangeFuncs</codeph>) or functions that use the <codeph>refCursor</codeph>
         datatype.</p>
     </body>
@@ -109,7 +109,7 @@ SELECT foo();
     <title id="in141007">Built-in Functions and Operators</title>
     <body>
       <p>The following table lists the categories of built-in functions and operators supported by
-        PostgreSQL. All functions and operators are supported in Greenplum Database as in PostgreSQL
+        PostgreSQL. All functions and operators are supported in Cloudberry Database as in PostgreSQL
         with the exception of <codeph>STABLE</codeph> and <codeph>VOLATILE</codeph> functions, which
         are subject to the restrictions noted in <xref href="#topic27" format="dita"/>. See the
           <xref format="html" href="https://www.postgresql.org/docs/9.4/functions.html"
@@ -450,7 +450,7 @@ SELECT foo();
   <topic id="topic_gn4_x3w_mq">
     <title>JSON Functions and Operators</title>
     <body>
-      <p>Greenplum Database includes built-in functions and operators that create and manipulate
+      <p>Cloudberry Database includes built-in functions and operators that create and manipulate
         JSON data.<ul id="ul_ypx_f4w_2z">
           <li><xref href="#topic_o5y_14w_2z" format="dita"/></li>
           <li><xref href="#topic_u4s_wnw_2z" format="dita"/></li>
@@ -462,7 +462,7 @@ SELECT foo();
         last value as the operative one. For the <codeph>jsonb</codeph> data type, duplicate object
         keys are not kept. If the input includes duplicate keys, only the last value is kept. See
           <xref href="../admin_guide/query/topics/json-data.xml#topic_upc_tcs_fz" format="dita"/><ph
-          otherprops="op-print"> in the <cite>Greenplum Database Administrator
+          otherprops="op-print"> in the <cite>Cloudberry Database Administrator
         Guide</cite></ph>.</note>
     </body>
     <topic id="topic_o5y_14w_2z">
@@ -592,11 +592,11 @@ SELECT foo();
             <codeph>jsonb</codeph> operator classes. For a full description of
             <codeph>jsonb</codeph> containment and existence semantics, see <xref
             href="../admin_guide/query/topics/json-data.xml#topic_isx_2tw_mq" format="dita"/><ph
-            otherprops="op-print"> in the <cite>Greenplum Database Administrator Guide</cite></ph>.
+            otherprops="op-print"> in the <cite>Cloudberry Database Administrator Guide</cite></ph>.
           For information about how these operators can be used to effectively index
             <codeph>jsonb</codeph> data, see <xref
             href="../admin_guide/query/topics/json-data.xml#topic_aqt_1tw_mq" format="dita"/><ph
-            otherprops="op-print"> in the <cite>Greenplum Database Administrator
+            otherprops="op-print"> in the <cite>Cloudberry Database Administrator
           Guide</cite></ph>.</p>
         <table id="table_dcb_y3w_mq">
           <title><codeph>jsonb</codeph> Operators</title>
@@ -681,7 +681,7 @@ SELECT foo();
             <codeph>jsonb</codeph> data type, not for the <codeph>json</codeph> data type. They
           follow the ordering rules for B-tree operations described in <xref
             href="../admin_guide/query/topics/json-data.xml#topic_aqt_1tw_mq" format="dita"/><ph
-            otherprops="op-print"> in the <cite>Greenplum Database Administrator
+            otherprops="op-print"> in the <cite>Cloudberry Database Administrator
           Guide</cite></ph>.</p>
         <table id="table_j4w_z5n_vq">
           <title><codeph>jsonb</codeph> Comparison Operators</title>
@@ -935,7 +935,7 @@ SELECT foo();
             <codeph>jsonb</codeph>, because the conversion was already done. However, for
             <codeph>json</codeph> data type input, this might result in an error being thrown. See
             <xref href="../admin_guide/query/topics/json-data.xml#topic_upc_tcs_fz"/><ph
-            otherprops="op-print"> in the <cite>Greenplum Database Administrator
+            otherprops="op-print"> in the <cite>Cloudberry Database Administrator
           Guide</cite></ph>.</p>
         <table id="table_wfc_y3w_mb">
           <title>JSON Processing Functions</title>
@@ -1228,9 +1228,9 @@ SELECT foo();
   <topic id="topic30" xml:lang="en">
     <title id="in179666">Window Functions</title>
     <body>
-      <p>The following are Greenplum Database built-in window functions. All window functions are
+      <p>The following are Cloudberry Database built-in window functions. All window functions are
           <i>immutable</i>. For more information about window functions, see "Window Expressions" in
-        the <cite>Greenplum Database Administrator Guide</cite>.</p>
+        the <cite>Cloudberry Database Administrator Guide</cite>.</p>
       <table id="in164369">
         <title>Window functions</title>
         <tgroup cols="4">
@@ -1412,10 +1412,10 @@ SELECT foo();
   <topic id="topic31" xml:lang="en">
     <title id="in184703">Advanced Aggregate Functions</title>
     <body>
-      <p>The following built-in advanced analytic functions are Greenplum extensions of the
+      <p>The following built-in advanced analytic functions are Cloudberry extensions of the
         PostgreSQL database. Analytic functions are <i>immutable</i>.</p>
-      <note>The Greenplum MADlib Extension for Analytics provides additional advanced functions to
-        perform statistical analysis and machine learning with Greenplum Database data. See <xref
+      <note>The Cloudberry MADlib Extension for Analytics provides additional advanced functions to
+        perform statistical analysis and machine learning with Cloudberry Database data. See <xref
           href="../analytics/madlib.xml#topic1" scope="peer">MADlib Extension for
         Analytics</xref>.</note>
       <table id="in2073121">
@@ -1559,7 +1559,7 @@ SELECT sum(myvalue) FROM mymatrix;
     <body>
       <p>The following tables summarize the functions and operators that are provided for full text
         searching. See <xref href="../admin_guide/textsearch/full-text-search.xml"/> for a detailed
-        explanation of Greenplum Database's text search facility.</p>
+        explanation of Cloudberry Database's text search facility.</p>
       <table id="table_t3f_vs1_lfb">
         <title>Text Search Operators</title>
         <tgroup cols="4">

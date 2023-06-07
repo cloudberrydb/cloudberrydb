@@ -16,7 +16,7 @@
       underlying table column. Currently, entries for index expressions always have
       <codeph>stainherit = false</codeph>.</p>
     <p>When <codeph>stainherit = false</codeph>, there is normally one entry for each table column
-      that has been analyzed. If the table has inheritance children, Greenplum Database creates
+      that has been analyzed. If the table has inheritance children, Cloudberry Database creates
       a second entry with <codeph>stainherit = true</codeph>. This row represents the column's
        statistics over the inheritance tree, for example, statistics for the data you would see
         with <codeph>SELECT <varname>column</varname> FROM <varname>table</varname>*</codeph>,

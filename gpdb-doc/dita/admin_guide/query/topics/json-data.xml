@@ -2,10 +2,10 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="ih135496">Working with JSON Data</title>
-  <shortdesc>Greenplum Database supports the <codeph>json</codeph> and <codeph>jsonb</codeph> data
+  <shortdesc>Cloudberry Database supports the <codeph>json</codeph> and <codeph>jsonb</codeph> data
     types that store JSON (JavaScript Object Notation) data.</shortdesc>
   <body>
-    <p>Greenplum Database supports JSON as specified in the <xref
+    <p>Cloudberry Database supports JSON as specified in the <xref
         href="https://tools.ietf.org/html/rfc7159" format="html" scope="external">RFC 7159</xref>
       document and enforces data validity according to the JSON rules. There are also JSON-specific
       functions and operators available for the <codeph>json</codeph> and <codeph>jsonb</codeph>
@@ -22,7 +22,7 @@
   <topic id="topic_upc_tcs_fz">
     <title>About JSON Data</title>
     <body>
-      <p>Greenplum Database supports two JSON data types: <codeph>json</codeph> and
+      <p>Cloudberry Database supports two JSON data types: <codeph>json</codeph> and
           <codeph>jsonb</codeph>. They accept almost identical sets of values as input. The major
         difference is one of efficiency. <ul id="ul_qv2_zrw_mq">
           <li>The <codeph>json</codeph> data type stores an exact copy of the input text. This
@@ -53,7 +53,7 @@
         <title>About Unicode Characters in JSON Data</title>
         <p>The <xref href="https://tools.ietf.org/html/rfc7159" format="html" scope="external">RFC
             7159</xref> document permits JSON strings to contain Unicode escape sequences denoted by
-              <codeph>\u<varname>XXXX</varname></codeph>. However, Greenplum Database allows only
+              <codeph>\u<varname>XXXX</varname></codeph>. However, Cloudberry Database allows only
           one character set encoding per database. It is not possible for the <codeph>json</codeph>
           data type to conform rigidly to the JSON specification unless the database encoding is
           UTF8. Attempts to include characters that cannot be represented in the database encoding
@@ -61,13 +61,13 @@
           are allowed.</p>
         <p>
           <ul id="ul_ejw_ppf_pfb">
-            <li>The Greenplum Database input function for the <codeph>json</codeph> data type allows
+            <li>The Cloudberry Database input function for the <codeph>json</codeph> data type allows
               Unicode escapes regardless of the database encoding and checks Unicode escapes only
               for syntactic correctness (a <codeph>\u</codeph> followed by four hex digits). </li>
-            <li>The Greenplum Database input function for the <codeph>jsonb</codeph> data type is
+            <li>The Cloudberry Database input function for the <codeph>jsonb</codeph> data type is
               more strict. It does not allow Unicode escapes for non-ASCII characters (those above
                 <codeph>U+007F</codeph>) unless the database encoding is UTF8. It also rejects
-                <codeph>\u0000</codeph>, which cannot be represented in the Greenplum Database
+                <codeph>\u0000</codeph>, which cannot be represented in the Cloudberry Database
                 <codeph>text</codeph> type, and it requires that any use of Unicode surrogate pairs
               to designate characters outside the Unicode Basic Multilingual Plane be correct. Valid
               Unicode escapes, except for <codeph>\u0000</codeph>, are converted to the equivalent
@@ -82,12 +82,12 @@
           database encoding, if possible.</note>
       </section>
       <section>
-        <title>Mapping JSON Data Types to Greenplum Data Types</title>
+        <title>Mapping JSON Data Types to Cloudberry Data Types</title>
         <p>When converting JSON text input into <codeph>jsonb</codeph> data, the primitive data
-          types described by RFC 7159 are effectively mapped onto native Greenplum Database data
+          types described by RFC 7159 are effectively mapped onto native Cloudberry Database data
           types, as shown in the following table.</p>
         <table id="table_spm_m3w_mq">
-          <title>JSON Primitive Types and Corresponding Greenplum Database Data Types</title>
+          <title>JSON Primitive Types and Corresponding Cloudberry Database Data Types</title>
           <tgroup cols="3">
             <colspec colnum="1" colname="col1"/>
             <colspec colnum="2" colname="col2"/>
@@ -95,7 +95,7 @@
             <thead>
               <row>
                 <entry>JSON primitive data type</entry>
-                <entry>Greenplum Database data type</entry>
+                <entry>Cloudberry Database data type</entry>
                 <entry>Notes</entry>
               </row>
             </thead>
@@ -138,16 +138,16 @@
           that do not apply to the <codeph>json</codeph> data type, nor to JSON in the abstract,
           corresponding to limits on what can be represented by the underlying data type. Notably,
           when converting data to the <codeph>jsonb</codeph> data type, numbers that are outside the
-          range of the Greenplum Database <codeph>numeric</codeph> data type are rejected, while the
+          range of the Cloudberry Database <codeph>numeric</codeph> data type are rejected, while the
             <codeph>json</codeph> data type does not reject such numbers. </p>
         <p>Such implementation-defined restrictions are permitted by RFC 7159. However, in practice
           such problems might occur in other implementations, as it is common to represent the JSON
             <codeph>number</codeph> primitive type as IEEE 754 double precision floating point
           (which RFC 7159 explicitly anticipates and allows for). </p>
         <p>When using JSON as an interchange format with other systems, be aware of the possibility
-          of losing numeric precision compared to data originally stored by Greenplum Database.</p>
+          of losing numeric precision compared to data originally stored by Cloudberry Database.</p>
         <p>Also, as noted in the previous table, there are some minor restrictions on the input
-          format of JSON primitive types that do not apply to the corresponding Greenplum Database
+          format of JSON primitive types that do not apply to the corresponding Cloudberry Database
           data types.</p>
       </section>
     </body>
@@ -241,7 +241,7 @@ SELECT '[1, 2, 3]'::jsonb @> '[1, 2, 2]'::jsonb;
 
 -- The object with a single pair on the right side is contained
 -- within the object on the left side:
-SELECT '{"product": "Greenplum", "version": "7.0.0", "jsonb":true}'::jsonb @> '{"version":"7.0.0"}'::jsonb;
+SELECT '{"product": "Cloudberry", "version": "7.0.0", "jsonb":true}'::jsonb @> '{"version":"7.0.0"}'::jsonb;
 
 -- The array on the right side is not considered contained within the
 -- array on the left, even though a similar array is nested within it:
@@ -309,7 +309,7 @@ SELECT '"foo"'::jsonb ? 'foo';</codeblock>
   <topic id="topic_aqt_1tw_mq">
     <title>jsonb Indexing</title>
     <body>
-      <p>The Greenplum Database <codeph>jsonb</codeph> data type, supports GIN, btree, and hash
+      <p>The Cloudberry Database <codeph>jsonb</codeph> data type, supports GIN, btree, and hash
           indexes.<ul id="ul_mqh_pq2_rfb">
           <li><xref href="#topic_yjx_dq2_rfb" format="dita"/></li>
           <li><xref href="#topic_ahb_5ly_wq" format="dita"/></li>
@@ -431,7 +431,7 @@ Array with n elements > array with n - 1 elements</pre>
         <p>Similarly, arrays with equal numbers of elements are compared in the order:</p>
         <pre>element-1, element-2 ...</pre>
         <p>Primitive JSON values are compared using the same comparison rules as for the underlying
-          Greenplum Database data type. Strings are compared using the default database
+          Cloudberry Database data type. Strings are compared using the default database
           collation.</p>
       </body>
     </topic>
@@ -439,7 +439,7 @@ Array with n elements > array with n - 1 elements</pre>
   <topic id="topic_gn4_x3w_mq">
     <title>JSON Functions and Operators</title>
     <body>
-      <p>Greenplum Database includes built-in functions and operators that create and manipulate
+      <p>Cloudberry Database includes built-in functions and operators that create and manipulate
         JSON data.<ul id="ul_ypx_f4w_2z">
           <li><xref href="#topic_o5y_14w_2z" format="dita"/></li>
           <li><xref href="#topic_u4s_wnw_2z" format="dita"/></li>

@@ -3,7 +3,7 @@
  * cdbtm.c
  *	  Provides routines for performing distributed transaction
  *
- * Portions Copyright (c) 2005-2009, Greenplum inc
+ * Portions Copyright (c) 2005-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -301,7 +301,24 @@ currentDtxActivate(void)
 		SpinLockAcquire(shmGxidGenLock);
 		if (ShmemVariableCache->GxidCount > 0)
 		{
-			MyTmGxact->gxid = ShmemVariableCache->nextGxid++;
+			/*
+			* pg_atomic_write_u64 is necessary.
+			* Though we have shmGxidGenLock when assigning gxid and
+			* have ProcArrayLock when fetching gxid during
+			* CreateDistributedSnapshot(), it is not enough as the
+			* DistributedTransactionId is unit64 now.
+			* We need to keep gxid atomic.
+			*/
+			pg_atomic_write_u64(&MyTmGxact->atomic_gxid, ShmemVariableCache->nextGxid++);
+
+			/*
+			* We must ensure using the new value here.
+			* It's safe to assign gxid here because we use pg_atomic_read_u64
+			* to fetch gxid during CreateDistributedSnapshot().
+			*/
+			pg_write_barrier();
+			MyTmGxact->gxid = MyTmGxact->atomic_gxid.value;
+
 			ShmemVariableCache->GxidCount--;
 			SpinLockRelease(shmGxidGenLock);
 			break;
@@ -788,18 +805,11 @@ doNotifyingAbort(void)
 		case DTX_STATE_NOTIFYING_ABORT_PREPARED:
 			{
 				DtxProtocolCommand dtxProtocolCommand;
-				char	   *abortString;
 
 				if (MyTmGxactLocal->state == DTX_STATE_NOTIFYING_ABORT_SOME_PREPARED)
-				{
 					dtxProtocolCommand = DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED;
-					abortString = "Abort [Prepared]";
-				}
 				else
-				{
 					dtxProtocolCommand = DTX_PROTOCOL_COMMAND_ABORT_PREPARED;
-					abortString = "Abort Prepared";
-				}
 
 				savedInterruptHoldoffCount = InterruptHoldoffCount;
 
@@ -1226,7 +1236,7 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 				resultCount,
 				numOfFailed = 0;
 
-	char	   *dtxProtocolCommandStr = 0;
+	const char	   *dtxProtocolCommandStr;
 
 	struct pg_result **results;
 	MemoryContext oldContext;
@@ -1498,7 +1508,7 @@ insertedDistributedCommitted(void)
 	 * We don't have to hold ProcArrayLock here because needIncludedInCkpt is used
 	 * during creating checkpoint and we already set delayChkpt before we got here.
 	 */
-	Assert(MyPgXact->delayChkpt);
+	Assert(MyProc->delayChkpt);
 	if (IS_QUERY_DISPATCHER())
 		MyTmGxact->includeInCkpt = true;
 }

@@ -34,7 +34,7 @@ select * from nhtest a join nhtest b using (i);
 (2 rows)
 
 create temp table l(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into l values (1), (1), (2);
 select * from l l1 join l l2 on l1.a = l2.a left join l l3 on l1.a = l3.a and l1.a = 2 order by 1,2,3;
@@ -218,7 +218,7 @@ select * from int4_tbl a join int4_tbl b on (a.f1 = (select f1 from int4_tbl c w
 -- Result node to do projection of the hash expression, as Append is not
 -- projection-capable)
 create table part4_tbl (f1 int4) partition by range (f1) (start(-1000000) end (1000000) every (1000000));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into part4_tbl values
        (-123457), (-123456), (-123455),
@@ -351,7 +351,7 @@ create table dept
 	pid int,
 	name char(40)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into dept values(3, 0, 'root');
 insert into dept values(4, 3, '2<-1');
@@ -546,7 +546,7 @@ drop table t5370_2;
 --         ->  Seq Scan on int4_tbl a
 --         ->  Seq Scan on int4_tbl b
 --```
--- Greenplum will raise an Assert Fail.
+-- Cloudberry will raise an Assert Fail.
 -- We force adding a material node for
 -- merge full join on true.
 drop table if exists t6215;
@@ -828,7 +828,7 @@ explain select tenk1.unique2 >= 0 from tenk1 left join tenk2 on true limit 1;
                      ->  Index Only Scan using tenk1_unique2 on tenk1  (cost=0.16..1650.16 rows=3334 width=4)
                      ->  Materialize  (cost=0.16..18479.11 rows=10000 width=0)
                            ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.16..18329.11 rows=10000 width=0)
-                                 ->  Index Only Scan using tenk2_unique2 on tenk2  (cost=0.16..17929.11 rows=3334 width=0)
+                                 ->  Index Only Scan using tenk2_hundred on tenk2  (cost=0.16..223.47 rows=3333 width=0)
  Optimizer: Postgres query optimizer
 (9 rows)
 
@@ -1126,12 +1126,12 @@ explain select * from (t_joinsize_1 join t_joinsize_2 on t_joinsize_1.c2 = t_joi
                      ->  Hash Join  (cost=2.42..17.67 rows=200 width=12)
                            Hash Cond: (t_joinsize_1_1_prt_2.c1 = t_joinsize_3.c)
                            ->  Append  (cost=0.00..12.00 rows=400 width=8)
-                                 ->  Seq Scan on t_joinsize_1_1_prt_2  (cost=0.00..1.13 rows=13 width=8)
-                                 ->  Seq Scan on t_joinsize_1_1_prt_3  (cost=0.00..1.13 rows=13 width=8)
-                                 ->  Seq Scan on t_joinsize_1_1_prt_4  (cost=0.00..1.13 rows=13 width=8)
-                                 ->  Seq Scan on t_joinsize_1_1_prt_5  (cost=0.00..1.13 rows=13 width=8)
-                                 ->  Seq Scan on t_joinsize_1_1_prt_6  (cost=0.00..1.13 rows=13 width=8)
-                                 ->  Seq Scan on t_joinsize_1_1_prt_extra  (cost=0.00..4.33 rows=333 width=8)
+                                 ->  Seq Scan on t_joinsize_1_1_prt_2 t_joinsize_1_1  (cost=0.00..1.13 rows=13 width=8)
+                                 ->  Seq Scan on t_joinsize_1_1_prt_3 t_joinsize_1_2  (cost=0.00..1.13 rows=13 width=8)
+                                 ->  Seq Scan on t_joinsize_1_1_prt_4 t_joinsize_1_3  (cost=0.00..1.13 rows=13 width=8)
+                                 ->  Seq Scan on t_joinsize_1_1_prt_5 t_joinsize_1_4  (cost=0.00..1.13 rows=13 width=8)
+                                 ->  Seq Scan on t_joinsize_1_1_prt_6 t_joinsize_1_5  (cost=0.00..1.13 rows=13 width=8)
+                                 ->  Seq Scan on t_joinsize_1_1_prt_extra t_joinsize_1_6  (cost=0.00..4.33 rows=333 width=8)
                            ->  Hash  (cost=2.00..2.00 rows=33 width=4)
                                  ->  Redistribute Motion 3:3  (slice4; segments: 3)  (cost=0.00..2.00 rows=33 width=4)
                                        Hash Key: t_joinsize_3.c
@@ -1326,10 +1326,10 @@ set Test_print_prefetch_joinqual = true;
 -- prefetch join qual is only set correct for planner
 set optimizer = off;
 create table t1_test_pretch_join_qual(a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table t2_test_pretch_join_qual(a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- the following plan contains redistribute motion in both inner and outer plan
 -- the join qual is t1.c > t2.c, it contains no motion, should not prefetch
@@ -1352,7 +1352,7 @@ on t1.b = t2.b and t1.c > t2.c;
 (12 rows)
 
 create table t3_test_pretch_join_qual(a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- the following plan contains motion in both outer plan and join qual,
 -- so we should prefetch join qual
@@ -1408,7 +1408,22 @@ select p from
           (box(point(0.8,0.8), point(1.0,1.0)))) as v(bb)
 cross join lateral
   (select p from gist_tbl_github9733 where p <@ bb order by p <-> bb[0] limit 2) ss;
-ERROR:  could not devise a query plan for the given query (pathnode.c:265)
+                                     QUERY PLAN                                      
+-------------------------------------------------------------------------------------
+ Nested Loop
+   ->  Values Scan on "*VALUES*"
+   ->  Materialize
+         ->  Limit
+               ->  Sort
+                     Sort Key: ((gist_tbl_github9733.p <-> ("*VALUES*".column1)[0]))
+                     ->  Result
+                           Filter: (gist_tbl_github9733.p <@ "*VALUES*".column1)
+                           ->  Materialize
+                                 ->  Gather Motion 3:1  (slice1; segments: 3)
+                                       ->  Seq Scan on gist_tbl_github9733
+ Optimizer: Postgres query optimizer
+(12 rows)
+
 reset enable_seqscan;
 explain (costs off)
 select p from
@@ -1535,11 +1550,11 @@ drop table foo;
 drop table bar;
 -- Fix github issue 10012
 create table fix_param_a (i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table fix_param_b (i int UNIQUE, j int);
 create table fix_param_c (i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into fix_param_a select i, i from generate_series(1,20)i;
 insert into fix_param_b select i, i from generate_series(1,2000)i;
@@ -1600,7 +1615,7 @@ select * from fix_param_a left join fix_param_b on
 
 -- Test targetlist contains placeholder var
 -- When creating a redistributed motion with hash keys,
--- Greenplum planner will invoke `cdbpullup_findEclassInTargetList`.
+-- Cloudberry planner will invoke `cdbpullup_findEclassInTargetList`.
 -- The following test case contains non-strict function `coalesce`
 -- in the subquery at nullable-side of outerjoin and thus will
 -- have PlaceHolderVar in targetlist. The case is to test if
@@ -1608,7 +1623,7 @@ select * from fix_param_a left join fix_param_b on
 -- correct.
 -- See github issue: https://github.com/greenplum-db/gpdb/issues/10315
 create table t_issue_10315 ( id1 int, id2 int );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into t_issue_10315 select i,i from generate_series(1, 2)i;
 insert into t_issue_10315 select i,null from generate_series(1, 2)i;

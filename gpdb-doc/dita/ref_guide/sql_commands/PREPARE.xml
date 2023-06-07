@@ -83,20 +83,20 @@
           <codeph>force_custom_plan</codeph> respectively. This setting is primarily useful if the
         generic plan's cost estimate is badly off for some reason, allowing it to be chosen even
         though its actual cost is much more than that of a custom plan.</p>
-      <p>To examine the query plan Greenplum Database is using for a prepared statement, use
+      <p>To examine the query plan Cloudberry Database is using for a prepared statement, use
             <codeph><xref href="../sql_commands/EXPLAIN.xml">EXPLAIN</xref></codeph>, for
         example</p>
       <codeblock>EXPLAIN EXECUTE &lt;name>(&lt;parameter_values>);</codeblock>
       <p>If a generic plan is in use, it will contain parameter symbols <codeph>$n</codeph>, while a
         custom plan will have the supplied parameter values substituted into it.</p>
-      <p>For more information on query planning and the statistics collected by Greenplum Database
+      <p>For more information on query planning and the statistics collected by Cloudberry Database
         for that purpose, see the <codeph>ANALYZE</codeph> documentation.</p>
       <p>Although the main point of a prepared statement is to avoid repeated parse analysis and
-        planning of the statement, Greenplum will force re-analysis and re-planning of the statement
+        planning of the statement, Cloudberry will force re-analysis and re-planning of the statement
         before using it whenever database objects used in the statement have undergone definitional
         (DDL) changes since the previous use of the prepared statement. Also, if the value of
           <codeph>search_path</codeph> changes from one use to the next, the statement will be
-        re-parsed using the new search_path. (This latter behavior is new as of Greenplum 6.) These
+        re-parsed using the new search_path. (This latter behavior is new as of Cloudberry 6.) These
         rules make use of a prepared statement semantically almost equivalent to re-submitting the
         same query text over and over, but with a performance benefit if no object definitions are
         changed, especially if the best plan remains the same across uses. An example of a case

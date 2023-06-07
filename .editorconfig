@@ -1,6 +1,19 @@
 root = true
 
-[*.{c,cpp,h,y}]
+[*.{c,h,l,y,pl,pm}]
+indent_style = tab
+indent_size = tab
+tab_width = 4
+
+[*.{sgml,xml}]
+indent_style = space
+indent_size = 1
+
+[*.xsl]
+indent_style = space
+indent_size = 2
+
+[*.cpp]
 indent_style = tab
 indent_size = 4
 

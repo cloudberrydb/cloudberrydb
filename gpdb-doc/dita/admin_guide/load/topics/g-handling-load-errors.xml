@@ -21,12 +21,12 @@
             number of error rows does not reach the <codeph>SEGMENT REJECT LIMIT</codeph>.</p>
         <p>The <codeph>LOG ERRORS</codeph> clause allows you to keep error rows for further
             examination. For information about the <codeph>LOG ERRORS</codeph> clause, see the
-                <codeph>CREATE EXTERNAL TABLE</codeph> command in the <cite>Greenplum Database
+                <codeph>CREATE EXTERNAL TABLE</codeph> command in the <cite>Cloudberry Database
                 Reference Guide</cite>.</p>
-        <p>When you set <codeph>SEGMENT REJECT LIMIT</codeph>, Greenplum scans the external data in
+        <p>When you set <codeph>SEGMENT REJECT LIMIT</codeph>, Cloudberry scans the external data in
             single row error isolation mode. Single row error isolation mode applies to external
             data rows with format errors such as extra or missing attributes, attributes of a wrong
-            data type, or invalid client encoding sequences. Greenplum does not check constraint
+            data type, or invalid client encoding sequences. Cloudberry does not check constraint
             errors, but you can filter constraint errors by limiting the <codeph>SELECT</codeph>
             from an external table at runtime. For example, to eliminate duplicate key errors:</p>
         <codeblock>=# INSERT INTO table_with_pkeys 
@@ -36,7 +36,7 @@
             external table, the value of the server configuration parameter
                 <codeph>gp_initial_bad_row_limit</codeph> limits the initial number of rows that are
             processed that are not formatted properly. The default is to stop processing if the
-            first 1000 rows contain formatting errors. See the <cite>Greenplum Database Reference
+            first 1000 rows contain formatting errors. See the <cite>Cloudberry Database Reference
                 Guide</cite> for information about the parameter.</note>
     </body>
 </topic>

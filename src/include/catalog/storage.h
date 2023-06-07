@@ -4,7 +4,7 @@
  *	  prototypes for functions in backend/catalog/storage.c
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/storage.h
@@ -19,20 +19,29 @@
 #include "storage/smgr.h"
 #include "utils/relcache.h"
 
+/* GUC variables */
+extern int	wal_skip_threshold;
+
 extern SMgrRelation RelationCreateStorage(RelFileNode rnode,
 										  char relpersistence,
 										  SMgrImpl smgr_which);
 extern void RelationDropStorage(Relation rel);
 extern void RelationPreserveStorage(RelFileNode rnode, bool atCommit);
+extern void RelationPreTruncate(Relation rel);
 extern void RelationTruncate(Relation rel, BlockNumber nblocks);
 extern void RelationCopyStorage(SMgrRelation src, SMgrRelation dst,
 								ForkNumber forkNum, char relpersistence);
+extern bool RelFileNodeSkippingWAL(RelFileNode rnode);
+extern Size EstimatePendingSyncsSpace(void);
+extern void SerializePendingSyncs(Size maxSize, char *startAddress);
+extern void RestorePendingSyncs(char *startAddress);
 
 /*
  * These functions used to be in storage/smgr/smgr.c, which explains the
  * naming
  */
 extern void smgrDoPendingDeletes(bool isCommit);
+extern void smgrDoPendingSyncs(bool isCommit, bool isParallelWorker);
 extern int	smgrGetPendingDeletes(bool forCommit, RelFileNodePendingDelete **ptr);
 extern void AtSubCommit_smgr(void);
 extern void AtSubAbort_smgr(void);

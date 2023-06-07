@@ -9,7 +9,7 @@
  * visibility routines for better performance.  Used to avoid reading the
  * distributed log SLRU files too frequently.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -25,6 +25,7 @@
 #include "access/twophase.h"
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbvars.h"
+#include "common/hashfn.h"
 #include "lib/ilist.h"
 #include "miscadmin.h"
 #include "storage/proc.h"
@@ -62,7 +63,6 @@ LocalDistribXact_ChangeState(int pgprocno,
 							 LocalDistribXactState newState)
 {
 	PGPROC *proc = &ProcGlobal->allProcs[pgprocno];
-	PGXACT *pgxact = &ProcGlobal->allPgXact[pgprocno];
 	LocalDistribXactState oldState;
 	DistributedTransactionId distribXid;
 
@@ -119,7 +119,7 @@ LocalDistribXact_ChangeState(int pgprocno,
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "Moved distributed transaction xid = "UINT64_FORMAT" (local xid = %u) from \"%s\" to \"%s\"",
 		 distribXid,
-		 pgxact->xid,
+		 proc->xid,
 		 LocalDistribXactStateToString(oldState),
 		 LocalDistribXactStateToString(newState));
 }
@@ -131,7 +131,6 @@ char *
 LocalDistribXact_DisplayString(int pgprocno)
 {
 	PGPROC *proc = &ProcGlobal->allProcs[pgprocno];
-	PGXACT *pgxact = &ProcGlobal->allPgXact[pgprocno];
 	int			snprintfResult;
 
 	snprintfResult =
@@ -140,7 +139,7 @@ LocalDistribXact_DisplayString(int pgprocno)
 				 MAX_LOCAL_DISTRIB_DISPLAY_BUFFER,
 				 "distributed transaction {gxid "UINT64_FORMAT" for local xid %u",
 				 proc->localDistribXactData.distribXid,
-				 pgxact->xid);
+				 proc->xid);
 
 	Assert(snprintfResult >= 0);
 	Assert(snprintfResult < MAX_LOCAL_DISTRIB_DISPLAY_BUFFER);

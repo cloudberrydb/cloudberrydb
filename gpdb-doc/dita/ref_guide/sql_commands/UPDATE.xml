@@ -33,7 +33,7 @@ UPDATE [ONLY] <varname>table</varname> [[AS] <varname>alias</varname>]
         column(s) that are listed to be updated. You must also have the <codeph>SELECT</codeph>
         privilege on any column whose values are read in the <varname>expression</varname>s or
           <varname>condition</varname>.</p>
-      <note>As the default, Greenplum Database acquires an <codeph>EXCLUSIVE</codeph> lock on tables
+      <note>As the default, Cloudberry Database acquires an <codeph>EXCLUSIVE</codeph> lock on tables
         for <codeph>UPDATE</codeph> operations on heap tables. When the Global Deadlock Detector is
         enabled, the lock mode for <codeph>UPDATE</codeph> operations on heap tables is <codeph>ROW
           EXCLUSIVE</codeph>. See <xref href="../../admin_guide/dml.xml#topic_gdd" format="dita"
@@ -159,7 +159,7 @@ UPDATE [ONLY] <varname>table</varname> [[AS] <varname>alias</varname>]
     </section>
     <section id="section6">
       <title>Notes</title>
-      <p><codeph>SET</codeph> is not allowed on the Greenplum distribution key columns of a
+      <p><codeph>SET</codeph> is not allowed on the Cloudberry distribution key columns of a
         table.</p>
       <p>When a <codeph>FROM</codeph> clause is present, what essentially happens is that the target
         table is joined to the tables mentioned in the from list, and each output row of the join
@@ -196,7 +196,7 @@ temp_lo+15, DEFAULT)
 WHERE city = 'San Francisco' AND date = '2016-07-03';</codeblock>
       <p>Increment the sales count of the salesperson who manages the account for Acme Corporation,
         using the <codeph>FROM</codeph> clause syntax (assuming both tables being joined are
-        distributed in Greenplum Database on the <codeph>id</codeph> column):</p>
+        distributed in Cloudberry Database on the <codeph>id</codeph> column):</p>
       <codeblock>UPDATE employees SET sales_count = sales_count + 1 FROM 
 accounts
 WHERE accounts.name = 'Acme Corporation'
@@ -222,7 +222,7 @@ COMMIT;</codeblock>
     <section id="section8">
       <title>Compatibility</title>
       <p>This command conforms to the SQL standard, except that the <codeph>FROM</codeph> clause is
-        a Greenplum Database extension. </p>
+        a Cloudberry Database extension. </p>
       <p>According to the standard, the column-list syntax should allow a list of columns to be
         assigned from a single row-valued expression, such as a sub-select:</p>
       <codeblock>UPDATE accounts SET (contact_last_name, contact_first_name) =
@@ -231,7 +231,7 @@ COMMIT;</codeblock>
       <p>This is not currently implemented — the source must be a list of independent
         expressions.</p>
       <p>Some other database systems offer a <codeph>FROM</codeph> option in which the target table
-        is supposed to be listed again within <codeph>FROM</codeph>. That is not how Greenplum
+        is supposed to be listed again within <codeph>FROM</codeph>. That is not how Cloudberry
         Database interprets <codeph>FROM</codeph>. Be careful when porting applications that use
         this extension.</p>
     </section>

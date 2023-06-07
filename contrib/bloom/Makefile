@@ -1,7 +1,14 @@
 # contrib/bloom/Makefile
 
 MODULE_big = bloom
-OBJS = blcost.o blinsert.o blscan.o blutils.o blvacuum.o blvalidate.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	blcost.o \
+	blinsert.o \
+	blscan.o \
+	blutils.o \
+	blvacuum.o \
+	blvalidate.o
 
 EXTENSION = bloom
 DATA = bloom--1.0.sql
@@ -9,9 +16,7 @@ PGFILEDESC = "bloom access method - signature file based index"
 
 REGRESS = bloom
 
-# Disable TAP tests for this module for now, as these are unstable on several
-# buildfarm environments.
-# TAP_TESTS = 1
+TAP_TESTS = 1
 
 ifdef USE_PGXS
 PG_CONFIG = pg_config

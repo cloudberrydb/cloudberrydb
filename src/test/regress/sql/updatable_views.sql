@@ -106,6 +106,20 @@ DELETE FROM ro_view18;
 UPDATE ro_view19 SET last_value=1000;
 UPDATE ro_view20 SET b=upper(b);
 
+-- A view with a conditional INSTEAD rule but no unconditional INSTEAD rules
+-- or INSTEAD OF triggers should be non-updatable and generate useful error
+-- messages with appropriate detail
+CREATE RULE rw_view16_ins_rule AS ON INSERT TO rw_view16
+  WHERE NEW.a > 0 DO INSTEAD INSERT INTO base_tbl VALUES (NEW.a, NEW.b);
+CREATE RULE rw_view16_upd_rule AS ON UPDATE TO rw_view16
+  WHERE OLD.a > 0 DO INSTEAD UPDATE base_tbl SET b=NEW.b WHERE a=OLD.a;
+CREATE RULE rw_view16_del_rule AS ON DELETE TO rw_view16
+  WHERE OLD.a > 0 DO INSTEAD DELETE FROM base_tbl WHERE a=OLD.a;
+
+INSERT INTO rw_view16 (a, b) VALUES (3, 'Row 3'); -- should fail
+UPDATE rw_view16 SET b='ROW 2' WHERE a=2; -- should fail
+DELETE FROM rw_view16 WHERE a=2; -- should fail
+
 DROP TABLE base_tbl CASCADE;
 DROP VIEW ro_view10, ro_view12, ro_view18;
 DROP SEQUENCE uv_seq CASCADE;
@@ -694,6 +708,27 @@ SELECT events & 4 != 0 AS upd,
 
 DROP TABLE base_tbl CASCADE;
 
+-- view on table with GENERATED columns
+
+CREATE TABLE base_tbl (id int, idplus1 int GENERATED ALWAYS AS (id + 1) STORED);
+CREATE VIEW rw_view1 AS SELECT * FROM base_tbl;
+
+INSERT INTO base_tbl (id) VALUES (1);
+INSERT INTO rw_view1 (id) VALUES (2);
+INSERT INTO base_tbl (id, idplus1) VALUES (3, DEFAULT);
+INSERT INTO rw_view1 (id, idplus1) VALUES (4, DEFAULT);
+INSERT INTO base_tbl (id, idplus1) VALUES (5, 6);  -- error
+INSERT INTO rw_view1 (id, idplus1) VALUES (6, 7);  -- error
+
+SELECT * FROM base_tbl;
+
+UPDATE base_tbl SET id = 2000 WHERE id = 2;
+UPDATE rw_view1 SET id = 3000 WHERE id = 3;
+
+SELECT * FROM base_tbl;
+
+DROP TABLE base_tbl CASCADE;
+
 -- inheritance tests
 
 CREATE TABLE base_tbl_parent (a int);
@@ -927,8 +962,8 @@ INSERT INTO rw_view2 VALUES (-5); -- should fail
 INSERT INTO rw_view2 VALUES (5); -- ok
 INSERT INTO rw_view2 VALUES (50); -- ok, but not in view
 UPDATE rw_view2 SET a = a - 10; -- should fail
--- Greenplum doesn't fail because nothing was inserted into view, which is
--- because Greenplum doesn't support INSTEAD OF triggers.
+-- Cloudberry doesn't fail because nothing was inserted into view, which is
+-- because Cloudberry doesn't support INSTEAD OF triggers.
 SELECT * FROM base_tbl;
 
 -- Check option won't cascade down to base view with INSTEAD OF triggers

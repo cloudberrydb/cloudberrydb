@@ -4,7 +4,7 @@
  *
  *	A directory format dump is a directory, which contains a "toc.dat" file
  *	for the TOC, and a separate file for each data entry, named "<oid>.dat".
- *	Large objects (BLOBs) are stored in separate files named "blob_<uid>.dat",
+ *	Large objects (BLOBs) are stored in separate files named "blob_<oid>.dat",
  *	and there's a plain-text TOC file for them called "blobs.toc". If
  *	compression is used, each data file is individually compressed and the
  *	".gz" suffix is added to the filenames. The TOC files are never
@@ -17,7 +17,7 @@
  *	sync.
  *
  *
- *	Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ *	Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *	Portions Copyright (c) 1994, Regents of the University of California
  *	Portions Copyright (c) 2000, Philip Warner
  *
@@ -34,13 +34,13 @@
  */
 #include "postgres_fe.h"
 
+#include <dirent.h>
+#include <sys/stat.h>
+
+#include "common/file_utils.h"
 #include "compress_io.h"
 #include "parallel.h"
 #include "pg_backup_utils.h"
-#include "common/file_utils.h"
-
-#include <dirent.h>
-#include <sys/stat.h>
 
 typedef struct
 {
@@ -346,12 +346,15 @@ _WriteData(ArchiveHandle *AH, const void *data, size_t dLen)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
+	errno = 0;
 	if (dLen > 0 && cfwrite(data, dLen, ctx->dataFH) != dLen)
+	{
+		/* if write didn't set errno, assume problem is no disk space */
+		if (errno == 0)
+			errno = ENOSPC;
 		fatal("could not write to output file: %s",
 			  get_cfp_error(ctx->dataFH));
-
-
-	return;
+	}
 }
 
 /*
@@ -366,7 +369,8 @@ _EndData(ArchiveHandle *AH, TocEntry *te)
 	lclContext *ctx = (lclContext *) AH->formatData;
 
 	/* Close the file */
-	cfclose(ctx->dataFH);
+	if (cfclose(ctx->dataFH) != 0)
+		fatal("could not close data file: %m");
 
 	ctx->dataFH = NULL;
 }
@@ -399,8 +403,8 @@ _PrintFileData(ArchiveHandle *AH, char *filename)
 	}
 
 	free(buf);
-	if (cfclose(cfp) !=0)
-		fatal("could not close data file: %m");
+	if (cfclose(cfp) != 0)
+		fatal("could not close data file \"%s\": %m", filename);
 }
 
 /*
@@ -430,42 +434,42 @@ _LoadBlobs(ArchiveHandle *AH)
 {
 	Oid			oid;
 	lclContext *ctx = (lclContext *) AH->formatData;
-	char		fname[MAXPGPATH];
+	char		tocfname[MAXPGPATH];
 	char		line[MAXPGPATH];
 
 	StartRestoreBlobs(AH);
 
-	setFilePath(AH, fname, "blobs.toc");
+	setFilePath(AH, tocfname, "blobs.toc");
 
-	ctx->blobsTocFH = cfopen_read(fname, PG_BINARY_R);
+	ctx->blobsTocFH = cfopen_read(tocfname, PG_BINARY_R);
 
 	if (ctx->blobsTocFH == NULL)
 		fatal("could not open large object TOC file \"%s\" for input: %m",
-			  fname);
+			  tocfname);
 
 	/* Read the blobs TOC file line-by-line, and process each blob */
 	while ((cfgets(ctx->blobsTocFH, line, MAXPGPATH)) != NULL)
 	{
-		char		fname[MAXPGPATH];
+		char		blobfname[MAXPGPATH + 1];
 		char		path[MAXPGPATH];
 
-		/* Can't overflow because line and fname are the same length. */
-		if (sscanf(line, "%u %s\n", &oid, fname) != 2)
+		/* Can't overflow because line and blobfname are the same length */
+		if (sscanf(line, "%u %" CppAsString2(MAXPGPATH) "s\n", &oid, blobfname) != 2)
 			fatal("invalid line in large object TOC file \"%s\": \"%s\"",
-				  fname, line);
+				  tocfname, line);
 
 		StartRestoreBlob(AH, oid, AH->public.ropt->dropSchema);
-		snprintf(path, MAXPGPATH, "%s/%s", ctx->directory, fname);
+		snprintf(path, MAXPGPATH, "%s/%s", ctx->directory, blobfname);
 		_PrintFileData(AH, path);
 		EndRestoreBlob(AH, oid);
 	}
 	if (!cfeof(ctx->blobsTocFH))
 		fatal("error reading large object TOC file \"%s\"",
-			  fname);
+			  tocfname);
 
 	if (cfclose(ctx->blobsTocFH) != 0)
 		fatal("could not close large object TOC file \"%s\": %m",
-			  fname);
+			  tocfname);
 
 	ctx->blobsTocFH = NULL;
 
@@ -484,9 +488,15 @@ _WriteByte(ArchiveHandle *AH, const int i)
 	unsigned char c = (unsigned char) i;
 	lclContext *ctx = (lclContext *) AH->formatData;
 
+	errno = 0;
 	if (cfwrite(&c, 1, ctx->dataFH) != 1)
+	{
+		/* if write didn't set errno, assume problem is no disk space */
+		if (errno == 0)
+			errno = ENOSPC;
 		fatal("could not write to output file: %s",
 			  get_cfp_error(ctx->dataFH));
+	}
 
 	return 1;
 }
@@ -514,11 +524,15 @@ _WriteBuf(ArchiveHandle *AH, const void *buf, size_t len)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
+	errno = 0;
 	if (cfwrite(buf, len, ctx->dataFH) != len)
+	{
+		/* if write didn't set errno, assume problem is no disk space */
+		if (errno == 0)
+			errno = ENOSPC;
 		fatal("could not write to output file: %s",
 			  get_cfp_error(ctx->dataFH));
-
-	return;
+	}
 }
 
 /*
@@ -537,8 +551,6 @@ _ReadBuf(ArchiveHandle *AH, void *buf, size_t len)
 	 */
 	if (cfread(buf, len, ctx->dataFH) != len)
 		fatal("could not read from input file: end of file");
-
-	return;
 }
 
 /*
@@ -669,7 +681,8 @@ _EndBlob(ArchiveHandle *AH, TocEntry *te, Oid oid)
 	int			len;
 
 	/* Close the BLOB data file itself */
-	cfclose(ctx->dataFH);
+	if (cfclose(ctx->dataFH) != 0)
+		fatal("could not close blob data file: %m");
 	ctx->dataFH = NULL;
 
 	/* register the blob in blobs.toc */
@@ -688,7 +701,8 @@ _EndBlobs(ArchiveHandle *AH, TocEntry *te)
 {
 	lclContext *ctx = (lclContext *) AH->formatData;
 
-	cfclose(ctx->blobsTocFH);
+	if (cfclose(ctx->blobsTocFH) != 0)
+		fatal("could not close blobs TOC file: %m");
 	ctx->blobsTocFH = NULL;
 }
 
@@ -796,7 +810,7 @@ _Clone(ArchiveHandle *AH)
 	 */
 
 	/*
-	 * We also don't copy the ParallelState pointer (pstate), only the master
+	 * We also don't copy the ParallelState pointer (pstate), only the leader
 	 * process ever writes to it.
 	 */
 }

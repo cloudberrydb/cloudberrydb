@@ -19,22 +19,33 @@ override CPPFLAGS := -I. -I$(srcdir) $(CPPFLAGS)
 SHLIB_LINK = $(filter -lintl, $(LIBS))
 rpath =
 
-OBJS = pl_gram.o pl_handler.o pl_comp.o pl_exec.o \
-	pl_funcs.o pl_scanner.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	pl_comp.o \
+	pl_exec.o \
+	pl_funcs.o \
+	pl_gram.o \
+	pl_handler.o \
+	pl_scanner.o
 
-DATA = plpgsql.control plpgsql--1.0.sql plpgsql--unpackaged--1.0.sql
+DATA = plpgsql.control plpgsql--1.0.sql
 
 REGRESS_OPTS = --dbname=$(PL_TESTDB)
 REGRESS_OPTS += --init-file=init_file
 
-REGRESS = plpgsql_call plpgsql_control plpgsql_domain plpgsql_record \
-	plpgsql_cache plpgsql_transaction plpgsql_trap \
-	plpgsql_trigger plpgsql_varprops
+REGRESS = plpgsql_array plpgsql_call plpgsql_control plpgsql_copy plpgsql_domain \
+	plpgsql_record plpgsql_cache plpgsql_simple plpgsql_transaction \
+	plpgsql_trap plpgsql_trigger plpgsql_varprops
 
 # where to find gen_keywordlist.pl and subsidiary files
 TOOLSDIR = $(top_srcdir)/src/tools
 GEN_KEYWORDLIST = $(PERL) -I $(TOOLSDIR) $(TOOLSDIR)/gen_keywordlist.pl
 GEN_KEYWORDLIST_DEPS = $(TOOLSDIR)/gen_keywordlist.pl $(TOOLSDIR)/PerfectHash.pm
+
+# Test input and expected files.  These are created by pg_regress itself, so we
+# don't have a rule to create them.  We do need rules to clean them however.
+input_files = $(patsubst $(srcdir)/input/%.source,sql/%.sql, $(wildcard $(srcdir)/input/*.source))
+output_files := $(patsubst $(srcdir)/output/%.source,expected/%.out, $(wildcard $(srcdir)/output/*.source))
 
 all: all-lib
 
@@ -106,6 +117,7 @@ distprep: pl_gram.h pl_gram.c plerrcodes.h pl_reserved_kwlist_d.h pl_unreserved_
 # are not cleaned here.
 clean distclean: clean-lib
 	rm -f $(OBJS)
+	rm -f $(output_files) $(input_files)
 	rm -rf $(pg_regress_clean_files)
 
 maintainer-clean: distclean

@@ -114,7 +114,7 @@ ORDER BY oid;
 ------+----------------
    11 | pg_catalog
    99 | pg_toast
- 6104 | pg_aoseg
  7012 | pg_bitmapindex
+ 7134 | pg_aoseg
 (4 rows)
 

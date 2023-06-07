@@ -21,7 +21,7 @@
                 obtained, the lock is held for the remainder of the current transaction. There is no
                     <codeph>UNLOCK TABLE</codeph> command; locks are always released at transaction
                 end.</p>
-            <p>When acquiring locks automatically for commands that reference tables, Greenplum
+            <p>When acquiring locks automatically for commands that reference tables, Cloudberry
                 Database always uses the least restrictive lock mode possible. <codeph>LOCK
                     TABLE</codeph> provides for cases when you might need more restrictive locking.
                 For example, suppose an application runs a transaction at the <i>Read Committed</i>
@@ -116,7 +116,7 @@
                                     <codeph>SHARE</codeph>, <codeph>SHARE ROW EXCLUSIVE</codeph>,
                                     <codeph>EXCLUSIVE</codeph>, and <codeph>ACCESS
                                     EXCLUSIVE</codeph> lock modes. This lock mode is not
-                                automatically acquired by any Greenplum Database command. </li>
+                                automatically acquired by any Cloudberry Database command. </li>
                             <li id="dv157754">EXCLUSIVE — Conflicts with the <codeph>ROW
                                     SHARE</codeph>, <codeph>ROW EXCLUSIVE</codeph>, <codeph>SHARE
                                     UPDATE EXCLUSIVE</codeph>, <codeph>SHARE</codeph>, <codeph>SHARE
@@ -126,7 +126,7 @@
                                 reads from the table can proceed in parallel with a transaction
                                 holding this lock mode. This lock mode is automatically acquired for
                                     <codeph>UPDATE</codeph>, <codeph>SELECT FOR UPDATE</codeph>, and
-                                    <codeph>DELETE</codeph> in Greenplum Database (which is more
+                                    <codeph>DELETE</codeph> in Cloudberry Database (which is more
                                 restrictive locking than in regular PostgreSQL). See <xref
                                     href="#topic1/lock_note" format="dita">Note</xref>.</li>
                             <li id="dv157757">ACCESS EXCLUSIVE — Conflicts with locks of all modes
@@ -146,7 +146,7 @@
                                     <codeph>VACUUM</codeph> (without <codeph>FULL</codeph>) on
                                 append-optimized tables during processing. </li>
                         </ul>
-                        <note id="lock_note">As the default, Greenplum Database acquires an
+                        <note id="lock_note">As the default, Cloudberry Database acquires an
                                 <codeph>EXCLUSIVE</codeph> lock on tables for
                                 <codeph>DELETE</codeph>, <codeph>UPDATE</codeph>, and <codeph>SELECT
                                 FOR UPDATE</codeph> operations on heap tables. When the Global
@@ -172,7 +172,7 @@
                     <codeph>TRUNCATE</codeph> privileges.</p>
             <p><codeph>LOCK TABLE</codeph> is useless outside of a transaction block: the lock would
                 be held only to the completion of the <codeph>LOCK</codeph> statement. Therefore,
-                Greenplum Database reports an error if <codeph>LOCK</codeph> is used outside of a
+                Cloudberry Database reports an error if <codeph>LOCK</codeph> is used outside of a
                 transaction block. Use <codeph>BEGIN</codeph> and <codeph>END</codeph> to define a
                 transaction block. </p>
             <p><codeph>LOCK TABLE</codeph> only deals with table-level locks, and so the mode names
@@ -211,9 +211,9 @@ COMMIT WORK;</codeblock>
             <title>Compatibility</title>
             <p>There is no <codeph>LOCK TABLE</codeph> in the SQL standard, which instead uses
                     <codeph>SET TRANSACTION</codeph> to specify concurrency levels on transactions.
-                Greenplum Database supports that too. </p>
+                Cloudberry Database supports that too. </p>
             <p>Except for <codeph>ACCESS SHARE</codeph>, <codeph>ACCESS EXCLUSIVE</codeph>, and
-                    <codeph>SHARE UPDATE EXCLUSIVE</codeph> lock modes, the Greenplum Database lock
+                    <codeph>SHARE UPDATE EXCLUSIVE</codeph> lock modes, the Cloudberry Database lock
                 modes and the <codeph>LOCK TABLE</codeph> syntax are compatible with those present
                 in Oracle.</p>
         </section>

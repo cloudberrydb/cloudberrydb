@@ -4,7 +4,7 @@
  *	Routines for type coercion.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_coerce.h
@@ -74,6 +74,9 @@ extern Oid	select_common_type(ParseState *pstate, List *exprs,
 extern Node *coerce_to_common_type(ParseState *pstate, Node *node,
 								   Oid targetTypeId,
 								   const char *context);
+extern bool verify_common_type(Oid common_type, List *exprs);
+
+extern int32 select_common_typmod(ParseState *pstate, List *exprs, Oid common_type);
 
 extern void fixup_unknown_vars_in_exprlist(ParseState *pstate, List *exprlist);
 extern void fixup_unknown_vars_in_targetlist(ParseState *pstate, 
@@ -87,9 +90,13 @@ extern Oid	enforce_generic_type_consistency(const Oid *actual_arg_types,
 											 int nargs,
 											 Oid rettype,
 											 bool allow_poly);
-extern Oid	resolve_generic_type(Oid declared_type,
-								 Oid context_actual_type,
-								 Oid context_declared_type);
+
+extern char *check_valid_polymorphic_signature(Oid ret_type,
+											   const Oid *declared_arg_types,
+											   int nargs);
+extern char *check_valid_internal_signature(Oid ret_type,
+											const Oid *declared_arg_types,
+											int nargs);
 
 extern CoercionPathType find_coercion_pathway(Oid targetTypeId,
 											  Oid sourceTypeId,

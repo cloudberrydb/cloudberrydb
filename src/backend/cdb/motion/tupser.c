@@ -2,7 +2,7 @@
  * tupser.c
  *	   Functions for serializing and deserializing a heap tuple.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -15,9 +15,10 @@
  */
 #include "postgres.h"
 
+#include "access/detoast.h"
 #include "access/htup.h"
 #include "access/memtup.h"
-#include "access/tuptoaster.h"
+#include "access/heaptoast.h"
 #include "catalog/pg_type.h"
 #include "cdb/cdbmotion.h"
 #include "cdb/cdbsrlz.h"
@@ -443,7 +444,7 @@ SerializeTuple(TupleTableSlot *slot, SerTupInfo *pSerInfo, struct directTranspor
 						memcpy(values, slot->tts_values, tupdesc->natts * sizeof(Datum));
 					}
 					Assert(&values[i] != &slot->tts_values[i]);
-					values[i] = PointerGetDatum(heap_tuple_fetch_attr((struct varlena *)
+					values[i] = PointerGetDatum(detoast_external_attr((struct varlena *)
 																DatumGetPointer(val)));
 				}
 			}

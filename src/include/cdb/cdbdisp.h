@@ -4,7 +4,7 @@
  * routines for dispatching commands from the dispatcher process
  * to the qExec processes.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -56,7 +56,7 @@ typedef struct CdbDispatcherState
 typedef struct DispatcherInternalFuncs
 {
 	bool (*checkForCancel)(struct CdbDispatcherState *ds);
-	int (*getWaitSocketFd)(struct CdbDispatcherState *ds);
+	int* (*getWaitSocketFds)(struct CdbDispatcherState *ds, int *nsocks);
 	void* (*makeDispatchParams)(int maxSlices, int largestGangSize, char *queryText, int queryTextLen);
 	bool (*checkAckMessage)(struct CdbDispatcherState *ds, const char* message, int timeout_sec);
 	void (*checkResults)(struct CdbDispatcherState *ds, DispatchWaitMode waitMode);
@@ -210,7 +210,7 @@ cdbdisp_makeDispatchParams(CdbDispatcherState *ds,
 						   int queryTextLen);
 
 bool cdbdisp_checkForCancel(CdbDispatcherState * ds);
-int cdbdisp_getWaitSocketFd(CdbDispatcherState *ds);
+int *cdbdisp_getWaitSocketFds(CdbDispatcherState *ds, int *nsocks);
 
 void cdbdisp_cleanupDispatcherHandle(const struct ResourceOwnerData * owner);
 

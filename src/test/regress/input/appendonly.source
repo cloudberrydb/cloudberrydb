@@ -49,6 +49,11 @@ CREATE TABLE tenk_ao13 (like tenk_heap) with (appendoptimized=true);
 CREATE TABLE tenk_ao14 (like tenk_heap) with (appendonly=true, appendoptimized=false);
 CREATE TABLE tenk_ao14 (like tenk_heap) with (appendoptimized=maybe);
 CREATE TABLE tenk_ao14 (like tenk_heap) with (appendoptimized=true, appendoptimized=true);
+CREATE TABLE tenk_ao14 (like tenk_heap) with (orientation=row);
+CREATE TABLE tenk_ao14 (like tenk_heap) with (appendoptimized=false, orientation=row);
+CREATE TABLE tenk_ao14 (like tenk_heap) with (appendoptimized=true, orientation=foo);
+CREATE TABLE tenk_ao14 (like tenk_heap) with (appendoptimized=true, orientation);
+CREATE TABLE tenk_ao14 (like tenk_heap) with (appendoptimized=true, orientation=row, orientation=row);
 CREATE TABLE tenk_ao15 (like tenk_heap) with (appendoptimized=true) 
 PARTITION BY RANGE(unique2)
 (
@@ -373,8 +378,8 @@ WHERE objid IN (SELECT segrelid FROM pg_appendonly WHERE relid IN (
 -- TRUNCATE
 TRUNCATE tenk_ao2;
 
--- Truncate changes relfilnode, as a result old pg_aoseg table is truncated but
--- gp_fastsequence remains intact.
+-- Truncate changes relfilnode, as a result old pg_aoseg table is truncated and
+-- gp_fastsequence entries are also reinitialized.
 SELECT CASE WHEN xmin = 2 THEN 'FrozenXid' ELSE 'NormalXid' END,
        objmod,
        CASE WHEN last_sequence = 0 THEN 'zero'
@@ -788,8 +793,8 @@ SELECT * FROM trigger_aocs_test;
 -- Inheritance
 -----------------
 
-CREATE TABLE ao_inh_p1(a int, b int) WITH (appendonly = true);
-CREATE TABLE ao_inh_p2(a int, b int) INHERITS (ao_inh_p1) WITH (appendonly = true);
+CREATE TABLE ao_inh_p1(a int, b int) WITH (appendonly = true) DISTRIBUTED RANDOMLY;
+CREATE TABLE ao_inh_p2(a int, b int) INHERITS (ao_inh_p1) WITH (appendonly = true) DISTRIBUTED RANDOMLY;
 CREATE TABLE ao_inh_p3(a int, b int) INHERITS (ao_inh_p1) WITH (appendonly = true);
 CREATE TABLE ao_inh_p4(a int, b int, c int) INHERITS (ao_inh_p2) WITH (appendonly = true);
 
@@ -847,3 +852,36 @@ a.c1
 ;
 
 drop table bms_ao_bug;
+
+
+-- test truncate ao table in current transaction and sub-transaction
+-- more details can look at https://github.com/greenplum-db/gpdb/issues/13699
+
+-- should success, create and truncate ao table in the same transaction;
+begin;
+create table fix_ao_truncate_last_sequence(a int, b int) with (appendonly = true);
+create index index_fix_ao_truncate_last_sequence on fix_ao_truncate_last_sequence(b);
+insert into fix_ao_truncate_last_sequence select i, i from generate_series(1, 5) i;
+select count(*) from fix_ao_truncate_last_sequence;
+truncate table fix_ao_truncate_last_sequence;
+select count(*) from fix_ao_truncate_last_sequence;
+abort;
+
+-- should success, create and truncate ao table in the different transaction,
+-- and create index for it.
+begin;
+create table fix_ao_truncate_last_sequence(a int, b int) with (appendonly = true);
+create index index_fix_ao_truncate_last_sequence on fix_ao_truncate_last_sequence(b);
+insert into fix_ao_truncate_last_sequence select i, i from generate_series(1, 5) i;
+select count(*) from fix_ao_truncate_last_sequence;
+savepoint s1;
+truncate table fix_ao_truncate_last_sequence;
+insert into fix_ao_truncate_last_sequence select 1, 1 from generate_series(1, 10);
+select count(*) from fix_ao_truncate_last_sequence;
+rollback to s1;
+select count(*) from fix_ao_truncate_last_sequence;
+truncate table fix_ao_truncate_last_sequence;
+insert into fix_ao_truncate_last_sequence select 1, 1 from generate_series(1, 5);
+select count(*) from fix_ao_truncate_last_sequence;
+abort;
+

@@ -4,9 +4,9 @@
  *	  prototypes for functions in backend/catalog/heap.c
  *
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/heap.h
@@ -24,16 +24,17 @@
 /* flag bits for CheckAttributeType/CheckAttributeNamesTypes */
 #define CHKATYPE_ANYARRAY		0x01	/* allow ANYARRAY */
 #define CHKATYPE_ANYRECORD		0x02	/* allow RECORD and RECORD[] */
+#define CHKATYPE_IS_PARTKEY		0x04	/* attname is part key # not column */
 
 typedef struct RawColumnDefault
 {
 	AttrNumber	attnum;			/* attribute to attach default to */
 	Node	   *raw_default;	/* default value (untransformed parse tree) */
 	bool		missingMode;	/* true if part of add column processing */
-	bool		hasCookedMissingVal;
-	Datum		missingVal;
-	bool		missingIsNull;
 	char		generated;		/* attgenerated setting */
+	bool		hasCookedMissingVal;
+	bool		missingIsNull;
+	Datum		missingVal;
 } RawColumnDefault;
 
 typedef struct CookedConstraint
@@ -66,7 +67,7 @@ extern Relation heap_create(const char *relname,
 							Oid relnamespace,
 							Oid reltablespace,
 							Oid relid,
-							Oid relfilenode,
+							RelFileNodeId relfilenode,
 							Oid accessmtd,
 							TupleDesc tupDesc,
 							char relkind,
@@ -111,9 +112,11 @@ extern void heap_truncate_check_FKs(List *relations, bool tempTables);
 
 extern List *heap_truncate_find_FKs(List *relationIds);
 
-extern void InsertPgAttributeTuple(Relation pg_attribute_rel,
-								   Form_pg_attribute new_attribute,
-								   CatalogIndexState indstate);
+extern void InsertPgAttributeTuples(Relation pg_attribute_rel,
+									TupleDesc tupdesc,
+									Oid new_rel_oid,
+									Datum *attoptions,
+									CatalogIndexState indstate);
 
 extern void InsertPgClassTuple(Relation pg_class_desc,
 							   Relation new_rel_desc,
@@ -157,6 +160,7 @@ extern void RemoveAttributeById(Oid relid, AttrNumber attnum);
 extern void RemoveAttrDefault(Oid relid, AttrNumber attnum,
 							  DropBehavior behavior, bool complain, bool internal);
 extern void RemoveAttrDefaultById(Oid attrdefId);
+extern void CopyStatistics(Oid fromrelid, Oid torelid);
 extern void RemoveStatistics(Oid relid, AttrNumber attnum);
 
 extern const FormData_pg_attribute *SystemAttributeDefinition(AttrNumber attno);

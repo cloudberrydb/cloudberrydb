@@ -787,7 +787,7 @@ CREATE FOREIGN TABLE ft_part2 (a INT NOT NULL) SERVER s0;
 ALTER TABLE lt1 ATTACH PARTITION ft_part2
   FOR VALUES FROM (1000) TO (2000);                             -- ERROR
 ERROR:  cannot attach foreign table "ft_part2" as partition of partitioned table "lt1"
-DETAIL:  Table "lt1" contains unique indexes.
+DETAIL:  Partitioned table "lt1" contains unique indexes.
 DROP TABLE lt1;
 DROP FOREIGN TABLE ft_part2;
 CREATE TABLE lt1 (a INT) PARTITION BY RANGE (a);
@@ -815,7 +815,7 @@ DETAIL:  Table "lt1_part1" contains indexes that are unique.
 CREATE FOREIGN TABLE ft_part_1_2 (a INT NOT NULL) SERVER s0;
 ALTER TABLE lt1_part1 ATTACH PARTITION ft_part_1_2 FOR VALUES FROM (100) TO (200);
 ERROR:  cannot attach foreign table "ft_part_1_2" as partition of partitioned table "lt1_part1"
-DETAIL:  Table "lt1_part1" contains unique indexes.
+DETAIL:  Partitioned table "lt1_part1" contains unique indexes.
 DROP TABLE lt1;
 DROP FOREIGN TABLE ft_part_1_2;
 -- ALTER FOREIGN TABLE
@@ -894,6 +894,8 @@ ALTER FOREIGN TABLE ft1 DROP COLUMN c9;
 ALTER FOREIGN TABLE ft1 SET SCHEMA foreign_schema;
 ALTER FOREIGN TABLE ft1 SET TABLESPACE ts;                      -- ERROR
 ERROR:  relation "ft1" does not exist
+ALTER FOREIGN TABLE foreign_schema.ft1 SET TABLESPACE ts;       -- ERROR
+ERROR:  "ft1" is not a table, materialized view, index, or partitioned index
 ALTER FOREIGN TABLE foreign_schema.ft1 RENAME c1 TO foreign_column_1;
 ALTER FOREIGN TABLE foreign_schema.ft1 RENAME TO foreign_table_1;
 \d foreign_schema.foreign_table_1
@@ -1808,9 +1810,9 @@ Inherits: fd_pt1
 
 -- TRUNCATE doesn't work on foreign tables, either directly or recursively
 TRUNCATE ft2;  -- ERROR
-ERROR:  "ft2" is not a table
+ERROR:  foreign-data wrapper "dummy" has no handler
 TRUNCATE fd_pt1;  -- ERROR
-ERROR:  "ft2" is not a table
+ERROR:  foreign-data wrapper "dummy" has no handler
 DROP TABLE fd_pt1 CASCADE;
 NOTICE:  drop cascades to foreign table ft2
 -- IMPORT FOREIGN SCHEMA
@@ -2032,9 +2034,9 @@ ALTER FOREIGN TABLE fd_pt2_1 ADD CONSTRAINT fd_pt2chk1 CHECK (c1 > 0);
 ALTER TABLE fd_pt2 ATTACH PARTITION fd_pt2_1 FOR VALUES IN (1);
 -- TRUNCATE doesn't work on foreign tables, either directly or recursively
 TRUNCATE fd_pt2_1;  -- ERROR
-ERROR:  "fd_pt2_1" is not a table
+ERROR:  foreign-data wrapper "dummy" has no handler
 TRUNCATE fd_pt2;  -- ERROR
-ERROR:  "fd_pt2_1" is not a table
+ERROR:  foreign-data wrapper "dummy" has no handler
 DROP FOREIGN TABLE fd_pt2_1;
 DROP TABLE fd_pt2;
 -- foreign table cannot be part of partition tree made of temporary

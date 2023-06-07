@@ -1,6 +1,6 @@
 COMMAND NAME: gpstate
 
-Shows the status of a running Greenplum Database system.
+Shows the status of a running Cloudberry Database system.
 
 
 *****************************************************
@@ -19,11 +19,11 @@ DESCRIPTION
 *****************************************************
 
 The gpstate utility displays information about a running 
-Greenplum Database instance. There is additional information 
-you may want to know about a Greenplum Database system, since 
+Cloudberry Database instance. There is additional information 
+you may want to know about a Cloudberry Database system, since 
 it is comprised of multiple PostgreSQL database instances (segments) 
 spanning multiple machines. The gpstate utility provides 
-additional status information for a Greenplum Database system, 
+additional status information for a Cloudberry Database system, 
 such as:
 * Which segments are down.
 * Coordinator and segment configuration information (hosts, 
@@ -39,7 +39,7 @@ OPTIONS
 -b (brief status)
 
   Optional. Display a brief summary of the state of the 
-  Greenplum Database system. This is the default option.
+  Cloudberry Database system. This is the default option.
 
 
 -B <parallel_processes>
@@ -78,9 +78,9 @@ OPTIONS
   Display details of the standby coordinator host if configured.
 
 
--i (show Greenplum Database version)
+-i (show Cloudberry Database version)
   
-  Display the Greenplum Database software version information 
+  Display the Cloudberry Database software version information 
   for each instance.
 
 
@@ -97,7 +97,7 @@ OPTIONS
 
 -p (show ports)
 
-  List the port numbers used throughout the Greenplum Database 
+  List the port numbers used throughout the Cloudberry Database 
   system.
 
 
@@ -122,7 +122,7 @@ OPTIONS
 -s (detailed status)
 
   Optional. Displays detailed status information for the 
-  Greenplum Database system.
+  Cloudberry Database system.
 
 
 -v (verbose output)
@@ -155,18 +155,18 @@ COORDINATOR OUTPUT DATA
 * Coordinator current role - dispatch = regular operating mode 
                         utility = maintenance mode 
 
-* Greenplum array configuration type - Standard = one NIC per host 
+* Cloudberry array configuration type - Standard = one NIC per host 
                                        Multi-Home = multiple NICs per host
 
-* Greenplum initsystem version - version of Greenplum Database when 
+* Cloudberry initsystem version - version of Cloudberry Database when 
                                  system was first initialized
 
-* Greenplum current version - current version of Greenplum Database
+* Cloudberry current version - current version of Cloudberry Database
 
-* Postgres version - version of PostgreSQL that Greenplum Database 
+* Postgres version - version of PostgreSQL that Cloudberry Database 
                      is based on
 
-* Greenplum mirroring status - physical mirroring, SAN or none
+* Cloudberry mirroring status - physical mirroring, SAN or none
 
 * Coordinator standby - host name of the standby coordinator
 
@@ -213,7 +213,7 @@ SEGMENT OUTPUT DATA
 * Coordinator reports status as - segment status as reported in the system catalog:
                            Up or Down
 
-* Database status - status of Greenplum Database to incoming requests:
+* Database status - status of Cloudberry Database to incoming requests:
                 Up, Down, or Suspended. A Suspended state means database 
                 activity is temporarily paused while a segment transitions from 
                 one state to another.
@@ -222,7 +222,7 @@ SEGMENT OUTPUT DATA
 EXAMPLES
 *****************************************************
 
-Show detailed status information of a Greenplum Database system:
+Show detailed status information of a Cloudberry Database system:
 
    gpstate -s
 
@@ -247,7 +247,7 @@ Show details of any current gpexpand:
    gpstate -x
 
 
-Display the Greenplum software version information:
+Display the Cloudberry software version information:
 
    gpstate -i
 

@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/startup.c
  */
@@ -14,20 +14,17 @@
 #include <win32.h>
 #endif							/* WIN32 */
 
-#include "getopt_long.h"
-
-#include "common/logging.h"
-#include "fe_utils/print.h"
-
 #include "command.h"
 #include "common.h"
+#include "common/logging.h"
+#include "common/string.h"
 #include "describe.h"
+#include "fe_utils/print.h"
+#include "getopt_long.h"
 #include "help.h"
 #include "input.h"
 #include "mainloop.h"
 #include "settings.h"
-
-
 
 /*
  * Global psql options
@@ -123,8 +120,7 @@ main(int argc, char *argv[])
 {
 	struct adhoc_opts options;
 	int			successResult;
-	bool		have_password = false;
-	char		password[100];
+	char	   *password = NULL;
 	bool		new_pass;
 
 	pg_logging_init(argv[0]);
@@ -149,6 +145,7 @@ main(int argc, char *argv[])
 	pset.progname = get_progname(argv[0]);
 
 	pset.db = NULL;
+	pset.dead_conn = NULL;
 	setDecimalLocale();
 	pset.encoding = PQenv2encoding();
 	pset.queryFout = stdout;
@@ -237,8 +234,7 @@ main(int argc, char *argv[])
 		 * offer a potentially wrong one.  Typical uses of this option are
 		 * noninteractive anyway.
 		 */
-		simple_prompt("Password: ", password, sizeof(password), false);
-		have_password = true;
+		password = simple_prompt("Password: ", false);
 	}
 
 	/* loop until we have a password if requested by backend */
@@ -255,7 +251,7 @@ main(int argc, char *argv[])
 		keywords[2] = "user";
 		values[2] = options.username;
 		keywords[3] = "password";
-		values[3] = have_password ? password : NULL;
+		values[3] = password;
 		keywords[4] = "dbname"; /* see do_connect() */
 		values[4] = (options.list_dbs && options.dbname == NULL) ?
 			"postgres" : options.dbname;
@@ -273,7 +269,7 @@ main(int argc, char *argv[])
 
 		if (PQstatus(pset.db) == CONNECTION_BAD &&
 			PQconnectionNeedsPassword(pset.db) &&
-			!have_password &&
+			!password &&
 			pset.getPassword != TRI_NO)
 		{
 			/*
@@ -291,9 +287,8 @@ main(int argc, char *argv[])
 				password_prompt = pg_strdup(_("Password: "));
 			PQfinish(pset.db);
 
-			simple_prompt(password_prompt, password, sizeof(password), false);
+			password = simple_prompt(password_prompt, false);
 			free(password_prompt);
-			have_password = true;
 			new_pass = true;
 		}
 	} while (new_pass);
@@ -305,7 +300,7 @@ main(int argc, char *argv[])
 		exit(EXIT_BADCONN);
 	}
 
-	setup_cancel_handler();
+	psql_setup_cancel_handler();
 
 	PQsetNoticeProcessor(pset.db, NoticeProcessor, NULL);
 
@@ -448,7 +443,10 @@ error:
 	/* clean up */
 	if (pset.logfile)
 		fclose(pset.logfile);
-	PQfinish(pset.db);
+	if (pset.db)
+		PQfinish(pset.db);
+	if (pset.dead_conn)
+		PQfinish(pset.dead_conn);
 	setQFout(NULL);
 
 	return successResult;
@@ -824,7 +822,7 @@ process_psqlrc_file(char *filename)
 static void
 showVersion(void)
 {
-	puts("psql (PostgreSQL) " PG_VERSION);
+	puts("psql (Cloudberry Database) " PG_VERSION);
 }
 
 
@@ -1162,6 +1160,13 @@ show_context_hook(const char *newval)
 }
 
 static bool
+hide_compression_hook(const char *newval)
+{
+	return ParseVariableBool(newval, "HIDE_TOAST_COMPRESSION",
+							 &pset.hide_compression);
+}
+
+static bool
 hide_tableam_hook(const char *newval)
 {
 	return ParseVariableBool(newval, "HIDE_TABLEAM", &pset.hide_tableam);
@@ -1229,6 +1234,9 @@ EstablishVariableSpace(void)
 	SetVariableHooks(pset.vars, "SHOW_CONTEXT",
 					 show_context_substitute_hook,
 					 show_context_hook);
+	SetVariableHooks(pset.vars, "HIDE_TOAST_COMPRESSION",
+					 bool_substitute_hook,
+					 hide_compression_hook);
 	SetVariableHooks(pset.vars, "HIDE_TABLEAM",
 					 bool_substitute_hook,
 					 hide_tableam_hook);

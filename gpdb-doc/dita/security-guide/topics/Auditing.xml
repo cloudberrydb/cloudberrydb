@@ -2,34 +2,34 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_ufw_zn2_jr">
   <title>Auditing</title>
-  <shortdesc>Describes Greenplum Database events that are logged and should be monitored to detect
+  <shortdesc>Describes Cloudberry Database events that are logged and should be monitored to detect
     security threats.</shortdesc>
   <body>
-    <p>Greenplum Database is capable of auditing a variety of events, including startup and shutdown
+    <p>Cloudberry Database is capable of auditing a variety of events, including startup and shutdown
       of the system, segment database failures, SQL statements that result in an error, and all
-      connection attempts and disconnections. Greenplum Database also logs SQL statements and
+      connection attempts and disconnections. Cloudberry Database also logs SQL statements and
       information regarding SQL statements, and can be configured in a variety of ways to record
       audit information with more or less detail. The <codeph>log_error_verbosity</codeph>
       configuration parameter controls the amount of detail written in the server log for each
       message that is logged.  Similarly, the <codeph>log_min_error_statement</codeph> parameter
       allows administrators to configure the level of detail recorded specifically for SQL
       statements, and the <codeph>log_statement</codeph> parameter determines the kind of SQL
-      statements that are audited. Greenplum Database records the username for all auditable events,
-      when the event is initiated by a subject outside the Greenplum Database.</p>
-    <p>Greenplum Database prevents unauthorized modification and deletion of audit records by only
+      statements that are audited. Cloudberry Database records the username for all auditable events,
+      when the event is initiated by a subject outside the Cloudberry Database.</p>
+    <p>Cloudberry Database prevents unauthorized modification and deletion of audit records by only
       allowing administrators with an appropriate role to perform any operations on log files.  Logs
       are stored in a proprietary format using comma-separated values (CSV).  Each segment and the
       master stores its own log files, although these can be accessed remotely by an administrator. 
-      Greenplum Database also authorizes overwriting of old log files via the
+      Cloudberry Database also authorizes overwriting of old log files via the
         <codeph>log_truncate_on_rotation</codeph> parameter.  This is a local parameter and must be
       set on each segment and master configuration file.</p>
-    <p>Greenplum provides an administrative schema called <codeph>gp_toolkit</codeph> that you can
+    <p>Cloudberry provides an administrative schema called <codeph>gp_toolkit</codeph> that you can
       use to query log files, as well as system catalogs and operating environment for system status
       information. For more information, including usage, refer to <i>The gp_tookit Administrative
-        Schema</i> appendix in the <i>Greenplum Database Reference Guide</i>.</p>
+        Schema</i> appendix in the <i>Cloudberry Database Reference Guide</i>.</p>
     <section>
       <title>Viewing the Database Server Log Files</title>
-      <p> Every database instance in Greenplum Database (master and segments) is a running
+      <p> Every database instance in Cloudberry Database (master and segments) is a running
         PostgreSQL database server with its own server log file. Daily log files are created in the
           <codeph>log</codeph> directory of the master and each segment data directory. </p>
       <p> The server log files are written in comma-separated values (CSV) format. Not all log
@@ -488,9 +488,9 @@
           </tbody>
         </tgroup>
       </table>
-      <p>Greenplum provides a utility called <codeph>gplogfilter</codeph> that can be used to search
-        through a Greenplum Database log file for entries matching the specified criteria. By
-        default, this utility searches through the Greenplum master log file in the default logging
+      <p>Cloudberry provides a utility called <codeph>gplogfilter</codeph> that can be used to search
+        through a Cloudberry Database log file for entries matching the specified criteria. By
+        default, this utility searches through the Cloudberry master log file in the default logging
         location. For example, to display the last three lines of the master log file:
         <codeblock>$ gplogfilter -n 3</codeblock></p>
       <p> You can also use <codeph>gplogfilter</codeph> to search through all segment log files at
@@ -499,7 +499,7 @@
         file:<codeblock>$ gpssh -f seg_host_file
   => source /usr/local/greenplum-db/greenplum_path.sh
   => gplogfilter -n 3 /data*/*/gp*/pg_log/gpdb*.csv</codeblock></p>
-      <p> The following are the Greenplum security-related audit (or logging) server configuration
+      <p> The following are the Cloudberry security-related audit (or logging) server configuration
         parameters that are set in the postgresql.conf configuration file:</p>
       <table>
         <tgroup cols="0">

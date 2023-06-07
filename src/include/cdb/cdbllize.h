@@ -3,7 +3,7 @@
  * cdbllize.h
  *	  definitions for parallelizing a PostgreSQL sequential plan tree.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

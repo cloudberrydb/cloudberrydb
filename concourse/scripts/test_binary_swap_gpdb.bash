@@ -10,11 +10,11 @@ fi
 
 function gen_env() {
     cat > $tmpdir/run_test.sh <<-EOF
-        source /usr/local/greenplum-db-devel/greenplum_path.sh
+        source /usr/local/cloudberry-db-devel/greenplum_path.sh
         [ -e \${1}/gpdb_src/gpAux/gpdemo/gpdemo-env.sh ] && \
         source \${1}/gpdb_src/gpAux/gpdemo/gpdemo-env.sh
         cd "\${1}/gpdb_src/src/test/binary_swap"
-        ./test_binary_swap.sh -b /tmp/local/greenplum-db-devel \
+        ./test_binary_swap.sh -b /tmp/local/cloudberry-db-devel \
             -v "${BINARY_SWAP_VARIANT}" || (
             errcode=\$?
             find . -name regression.diffs \
@@ -36,9 +36,9 @@ EOF
 }
 
 function install_gpdb_binary_swap() {
-    [ ! -d /tmp/local/greenplum-db-devel ] && mkdir -p /tmp/local/greenplum-db-devel
-    tar -xzf binary_swap_gpdb/bin_gpdb.tar.gz -C /tmp/local/greenplum-db-devel
-    sed -i -e "s/\/usr\/local/\/tmp\/local/" /tmp/local/greenplum-db-devel/greenplum_path.sh
+    [ ! -d /tmp/local/cloudberry-db-devel ] && mkdir -p /tmp/local/cloudberry-db-devel
+    tar -xzf binary_swap_gpdb/bin_gpdb.tar.gz -C /tmp/local/cloudberry-db-devel
+    sed -i -e "s/\/usr\/local/\/tmp\/local/" /tmp/local/cloudberry-db-devel/greenplum_path.sh
     chown -R gpadmin:gpadmin /tmp/local
 }
 

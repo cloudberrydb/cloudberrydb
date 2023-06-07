@@ -243,12 +243,12 @@ select relpages, reltuples from pg_class where oid = 'rankpart_1_prt_5'::regclas
 select relpages, reltuples from pg_class where oid = 'rankpart_1_prt_6'::regclass;
  relpages | reltuples 
 ----------+-----------
- 0        | 0         
+ 0        | -1        
 (1 row)
 select relpages, reltuples from pg_class where oid = 'rankpart'::regclass;
  relpages | reltuples 
 ----------+-----------
- 0        | 0         
+ 0        | -1        
 (1 row)
 
 
@@ -362,7 +362,7 @@ SELECT count(*) FROM pg_statistic where starelid = 'anaabort'::regclass;
 select relpages, reltuples from pg_class where oid = 'anaabort'::regclass;
  relpages | reltuples 
 ----------+-----------
- 0        | 0         
+ 0        | -1        
 (1 row)
 
 1: END;

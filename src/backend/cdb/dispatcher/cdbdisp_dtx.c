@@ -4,7 +4,7 @@
  *	  Functions to dispatch DTX commands to QExecutors.
  *
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -36,7 +36,7 @@
 typedef struct DispatchCommandDtxProtocolParms
 {
 	DtxProtocolCommand dtxProtocolCommand;
-	char	   *dtxProtocolCommandLoggingStr;
+	const char *dtxProtocolCommandLoggingStr;
 	char		gid[TMGIDSIZE];
 	char	   *serializedDtxContextInfo;
 	int			serializedDtxContextInfoLen;
@@ -66,7 +66,7 @@ static char *buildGpDtxProtocolCommand(DispatchCommandDtxProtocolParms *pDtxProt
  */
 struct pg_result **
 CdbDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
-							  char *dtxProtocolCommandLoggingStr,
+							  const char *dtxProtocolCommandLoggingStr,
 							  char *gid,
 							  ErrorData **qeError,
 							  int *numresults,
@@ -215,7 +215,7 @@ buildGpDtxProtocolCommand(DispatchCommandDtxProtocolParms *pDtxProtocolParms,
 						 int *finalLen)
 {
 	int			dtxProtocolCommand = (int) pDtxProtocolParms->dtxProtocolCommand;
-	char	   *dtxProtocolCommandLoggingStr = pDtxProtocolParms->dtxProtocolCommandLoggingStr;
+	const char *dtxProtocolCommandLoggingStr = pDtxProtocolParms->dtxProtocolCommandLoggingStr;
 	char	   *gid = pDtxProtocolParms->gid;
 	char	   *serializedDtxContextInfo = pDtxProtocolParms->serializedDtxContextInfo;
 	int			serializedDtxContextInfoLen = pDtxProtocolParms->serializedDtxContextInfoLen;

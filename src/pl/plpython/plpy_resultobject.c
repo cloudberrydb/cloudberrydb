@@ -6,11 +6,9 @@
 
 #include "postgres.h"
 
-#include "plpython.h"
-
-#include "plpy_resultobject.h"
 #include "plpy_elog.h"
-
+#include "plpy_resultobject.h"
+#include "plpython.h"
 
 static void PLy_result_dealloc(PyObject *arg);
 static PyObject *PLy_result_colnames(PyObject *self, PyObject *unused);
@@ -24,9 +22,7 @@ static PyObject *PLy_result_str(PyObject *arg);
 static PyObject *PLy_result_subscript(PyObject *arg, PyObject *item);
 static int	PLy_result_ass_subscript(PyObject *self, PyObject *item, PyObject *value);
 
-static char PLy_result_doc[] = {
-	"Results of a PostgreSQL query"
-};
+static char PLy_result_doc[] = "Results of a PostgreSQL query";
 
 static PySequenceMethods PLy_result_as_sequence = {
 	.sq_length = PLy_result_length,

@@ -1628,7 +1628,7 @@ drop table foo, bar;
 CREATE TABLE foo (a int, b int, c int, d int);
 insert into foo select i,i,i,i from generate_series(1, 10) i;
 
-EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
+EXPLAIN (COSTS OFF) SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY b, c) as count2,
        count(*) over (PARTITION BY a ORDER BY b) as count3,
        count(*) over (PARTITION BY a ORDER BY c) as count1,

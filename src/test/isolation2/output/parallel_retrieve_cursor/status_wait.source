@@ -39,7 +39,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT1': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT1";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -333,7 +333,7 @@ DECLARE
 (0 rows)
 -- finished retrieving all endpoints and check state
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  

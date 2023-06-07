@@ -186,14 +186,17 @@ SELECT * FROM savepoints;
 BEGIN;
 	INSERT INTO savepoints VALUES (6);
 	SAVEPOINT one;
-		INSERT INTO savepoints VALUES (7);
+		INSERT INTO savepoints VALUES (9);
 	RELEASE SAVEPOINT one;
-	INSERT INTO savepoints VALUES (8);
+	INSERT INTO savepoints VALUES (10);
 COMMIT;
--- rows 6 and 8 should have been created by the same xact
-SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=8;
--- rows 6 and 7 should have been created by different xacts
-SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=7;
+-- CBDB: 6, 9, 10 are routed to the same segment(numseg=3)
+-- rows 6 and 10 should have been created by the same xact
+SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=10;
+-- rows 6 and 9 should have been created by different xacts
+SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=9;
+-- CBDB: delete 9, 10, so the following test is not interferred.
+DELETE FROM savepoints WHERE a in (9, 10);
 
 BEGIN;
 	INSERT INTO savepoints VALUES (9);
@@ -282,38 +285,50 @@ COMMIT;
 select * from xacttest;
 
 create or replace function max_xacttest() returns smallint language sql as
-'select max(a) from xacttest' stable READS SQL DATA;
+'select max(a) from xacttest' stable execute on coordinator;
 
 begin;
-update xacttest set a = max_xacttest() + 10 where a > 0;
+update xacttest set a = (select max_xacttest()) + 10 where a > 0;
 select * from xacttest;
 rollback;
+
+-- start_ignore
+-- CBDB: The following test expects to evaluate max_xacttest() for each
+-- updated tuple. The result of max_xacttest() is updated every time
+-- when it's evaluated. So, it can't be run on QD process.
 
 -- But a volatile function can see the partial results of the calling query
 create or replace function max_xacttest() returns smallint language sql as
-'select max(a) from xacttest' volatile READS SQL DATA;
+'select max(a) from xacttest' volatile;
 
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
 select * from xacttest;
 rollback;
+-- end_ignore
 
 -- Now the same test with plpgsql (since it depends on SPI which is different)
 create or replace function max_xacttest() returns smallint language plpgsql as
-'begin return max(a) from xacttest; end' stable READS SQL DATA;
+'begin return max(a) from xacttest; end' stable execute on coordinator;
 
 begin;
-update xacttest set a = max_xacttest() + 10 where a > 0;
+update xacttest set a = (select max_xacttest()) + 10 where a > 0;
 select * from xacttest;
 rollback;
+
+-- start_ignore
+-- CBDB: The following test expects to evaluate max_xacttest() for each
+-- updated tuple. The result of max_xacttest() is updated every time
+-- when it's evaluated. So, it can't be run on QD process.
 
 create or replace function max_xacttest() returns smallint language plpgsql as
-'begin return max(a) from xacttest; end' volatile READS SQL DATA;
+'begin return max(a) from xacttest; end' volatile;
 
 begin;
 update xacttest set a = max_xacttest() + 10 where a > 0;
 select * from xacttest;
 rollback;
+-- end_ignore
 
 
 -- test case for problems with dropping an open relation during abort
@@ -377,13 +392,20 @@ insert into abc values (10);
 insert into abc values (15);
 declare foo cursor for select * from abc;
 
+-- CBDB: the order of value is not guaranteed
+-- start_ignore
 fetch from foo;
+-- end_ignore
 
 savepoint x;
+-- start_ignore
 fetch from foo;
+-- end_ignore
 rollback to x;
 
+-- start_ignore
 fetch from foo;
+-- end_ignore
 
 abort;
 
@@ -406,12 +428,18 @@ END $$;
 BEGIN;
 DECLARE ok CURSOR FOR SELECT * FROM int8_tbl;
 DECLARE ctt CURSOR FOR SELECT create_temp_tab();
+-- start_ignore
 FETCH ok;
+-- end_ignore
 SAVEPOINT s1;
+-- start_ignore
 FETCH ok;  -- should work
+-- end_ignore
 FETCH ctt; -- error occurs here
 ROLLBACK TO s1;
+-- start_ignore
 FETCH ok;  -- should work
+-- end_ignore
 FETCH ctt; -- must be rejected
 COMMIT;
 
@@ -458,6 +486,17 @@ SHOW transaction_deferrable;
 INSERT INTO abc VALUES (5);
 COMMIT;
 
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ, READ WRITE, DEFERRABLE;
+SHOW transaction_isolation;
+SHOW transaction_read_only;
+SHOW transaction_deferrable;
+SAVEPOINT x;
+COMMIT AND CHAIN;  -- TBLOCK_SUBCOMMIT
+SHOW transaction_isolation;
+SHOW transaction_read_only;
+SHOW transaction_deferrable;
+COMMIT;
+
 -- different mix of options just for fun
 START TRANSACTION ISOLATION LEVEL SERIALIZABLE, READ WRITE, NOT DEFERRABLE;
 SHOW transaction_isolation;
@@ -474,6 +513,10 @@ SHOW transaction_isolation;
 SHOW transaction_read_only;
 SHOW transaction_deferrable;
 ROLLBACK;
+
+-- not allowed outside a transaction block
+COMMIT AND CHAIN;  -- error
+ROLLBACK AND CHAIN;  -- error
 
 SELECT * FROM abc ORDER BY 1;
 
@@ -534,6 +577,49 @@ SELECT 2\; RELEASE SAVEPOINT sp\; SELECT 3;
 
 -- but this is OK, because the BEGIN converts it to a regular xact
 SELECT 1\; BEGIN\; SAVEPOINT sp\; ROLLBACK TO SAVEPOINT sp\; COMMIT;
+
+
+-- Tests for AND CHAIN in implicit transaction blocks
+
+SET TRANSACTION READ ONLY\; COMMIT AND CHAIN;  -- error
+SHOW transaction_read_only;
+
+SET TRANSACTION READ ONLY\; ROLLBACK AND CHAIN;  -- error
+SHOW transaction_read_only;
+
+CREATE TABLE abc (a int);
+
+-- COMMIT/ROLLBACK + COMMIT/ROLLBACK AND CHAIN
+INSERT INTO abc VALUES (7)\; COMMIT\; INSERT INTO abc VALUES (8)\; COMMIT AND CHAIN;  -- 7 commit, 8 error
+INSERT INTO abc VALUES (9)\; ROLLBACK\; INSERT INTO abc VALUES (10)\; ROLLBACK AND CHAIN;  -- 9 rollback, 10 error
+
+-- COMMIT/ROLLBACK AND CHAIN + COMMIT/ROLLBACK
+INSERT INTO abc VALUES (11)\; COMMIT AND CHAIN\; INSERT INTO abc VALUES (12)\; COMMIT;  -- 11 error, 12 not reached
+INSERT INTO abc VALUES (13)\; ROLLBACK AND CHAIN\; INSERT INTO abc VALUES (14)\; ROLLBACK;  -- 13 error, 14 not reached
+
+-- START TRANSACTION + COMMIT/ROLLBACK AND CHAIN
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (15)\; COMMIT AND CHAIN;  -- 15 ok
+SHOW transaction_isolation;  -- transaction is active at this point
+COMMIT;
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (16)\; ROLLBACK AND CHAIN;  -- 16 ok
+SHOW transaction_isolation;  -- transaction is active at this point
+ROLLBACK;
+
+SET default_transaction_isolation = 'read committed';
+
+-- START TRANSACTION + COMMIT/ROLLBACK + COMMIT/ROLLBACK AND CHAIN
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (17)\; COMMIT\; INSERT INTO abc VALUES (18)\; COMMIT AND CHAIN;  -- 17 commit, 18 error
+SHOW transaction_isolation;  -- out of transaction block
+
+START TRANSACTION ISOLATION LEVEL REPEATABLE READ\; INSERT INTO abc VALUES (19)\; ROLLBACK\; INSERT INTO abc VALUES (20)\; ROLLBACK AND CHAIN;  -- 19 rollback, 20 error
+SHOW transaction_isolation;  -- out of transaction block
+
+RESET default_transaction_isolation;
+
+SELECT * FROM abc ORDER BY 1;
+
+DROP TABLE abc;
 
 
 -- Test for successful cleanup of an aborted transaction at session exit.

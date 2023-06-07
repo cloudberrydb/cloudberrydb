@@ -2,10 +2,10 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic2">
-   <title>Overview of Greenplum Database High Availability</title>
+   <title>Overview of Cloudberry Database High Availability</title>
    <body>
-      <p>A Greenplum Database system can be made highly available by providing a fault-tolerant
-         hardware platform, by enabling Greenplum Database high-availability features, and by
+      <p>A Cloudberry Database system can be made highly available by providing a fault-tolerant
+         hardware platform, by enabling Cloudberry Database high-availability features, and by
          performing regular monitoring and maintenance procedures to ensure the health of all system
          components. </p>
       <p>Hardware components will eventually fail, whether due to normal wear or an unexpected
@@ -15,12 +15,12 @@
          redundancy is higher than users' tolerance for interruption in service. When this is the
          case, the goal is to ensure that full service is able to be restored, and can be restored
          within an expected timeframe.</p>
-      <p>With Greenplum Database, fault tolerance and data availability is achieved with:<ul
+      <p>With Cloudberry Database, fault tolerance and data availability is achieved with:<ul
             id="ul_lft_kpv_tp">
             <li><xref href="#topic2/raid" format="dita">Hardware level RAID storage
                   protection</xref></li>
             <li><xref href="#topic2/checksums" format="dita"/></li>
-            <li><xref href="#topic2/segment_mirroring" format="dita">Greenplum segment
+            <li><xref href="#topic2/segment_mirroring" format="dita">Cloudberry segment
                   mirroring</xref></li>
             <li><xref href="#topic2/master_mirroring" format="dita">Master mirroring</xref></li>
             <li><xref href="#topic2/dual_clusters" format="dita">Dual clusters</xref></li>
@@ -29,27 +29,27 @@
          </ul></p>
       <section id="raid">
          <title>Hardware level RAID</title>
-         <p>A best practice Greenplum Database deployment uses hardware level RAID to provide high
+         <p>A best practice Cloudberry Database deployment uses hardware level RAID to provide high
             performance redundancy for single disk failure without having to go into the database
             level fault tolerance. This provides a lower level of redundancy at the disk level.</p>
       </section>
       <section id="checksums">
          <title>Data storage checksums</title>
-         <p>Greenplum Database uses checksums to verify that data loaded from disk to memory has not
+         <p>Cloudberry Database uses checksums to verify that data loaded from disk to memory has not
             been corrupted on the file system. </p>
-         <p>Greenplum Database has two kinds of storage for user data: heap and append-optimized.
+         <p>Cloudberry Database has two kinds of storage for user data: heap and append-optimized.
             Both storage models use checksums to verify data read from the file system and, with the
             default settings, they handle checksum verification errors in a similar way.</p>
-         <p>Greenplum Database master and segment database processes update data on pages in the
+         <p>Cloudberry Database master and segment database processes update data on pages in the
             memory they manage. When a memory page is updated and flushed to disk, checksums are
             computed and saved with the page. When a page is later retrieved from disk, the
             checksums are verified and the page is only permitted to enter managed memory if the
             verification succeeds. A failed checksum verification is an indication of corruption in
-            the file system and causes Greenplum Database to generate an error, cancelling the
+            the file system and causes Cloudberry Database to generate an error, cancelling the
             transaction.</p>
          <p>The default checksum settings provide the best level of protection from undetected disk
             corruption propagating into the database and to mirror segments.</p>
-         <p>Heap checksum support is enabled by default when the Greenplum Database cluster is
+         <p>Heap checksum support is enabled by default when the Cloudberry Database cluster is
             initialized with the <codeph>gpinitsystem</codeph> management utility. Although it is
             strongly discouraged, a cluster can be initialized without heap checksum support by
             setting the <codeph>HEAP_CHECKSUM</codeph> parameter to off in the
@@ -61,14 +61,14 @@
                   href="../../../ref_guide/config_params/guc-list.xml#data_checksums"/> to
             see if heap checksums are enabled in a cluster:</p>
          <codeblock>$ gpconfig -s data_checksums</codeblock>
-         <p>When a Greenplum Database cluster starts up, the <codeph>gpstart</codeph> utility checks
+         <p>When a Cloudberry Database cluster starts up, the <codeph>gpstart</codeph> utility checks
             that heap checksums are consistently enabled or disabled on the master and all segments.
             If there are any differences, the cluster fails to start. See <xref
                   href="../../../utility_guide/ref/gpstart.xml#topic1"/>.</p>
          <p>In cases where it is necessary to ignore heap checksum verification errors so that data
             can be recovered, setting the <xref
                   href="../../../ref_guide/config_params/guc-list.xml#ignore_checksum_failure"
-               /> system configuration parameter to on causes Greenplum Database to issue a
+               /> system configuration parameter to on causes Cloudberry Database to issue a
             warning when a heap checksum verification fails, but the page is then permitted to load
             into managed memory. If the page is updated and saved to disk, the corrupted data could
             be replicated to the mirror segment. Because this can lead to data loss, setting
@@ -97,8 +97,8 @@
       </section>
       <section id="segment_mirroring">
          <title>Segment Mirroring</title>
-         <p>Greenplum Database stores data in multiple segment instances, each of which is a
-            Greenplum Database PostgreSQL instance. The data for each table is spread between the
+         <p>Cloudberry Database stores data in multiple segment instances, each of which is a
+            Cloudberry Database PostgreSQL instance. The data for each table is spread between the
             segments based on the distribution policy that is defined for the table in the DDL at
             the time the table is created. When segment mirroring is enabled, for each segment
             instance there is a <i>primary</i> and <i>mirror</i> pair. The mirror segment is kept up
@@ -130,7 +130,7 @@
       </section>
       <section id="dual_clusters">
          <title>Dual Clusters</title>
-         <p>An additional level of redundancy can be provided by maintaining two Greenplum Database
+         <p>An additional level of redundancy can be provided by maintaining two Cloudberry Database
             clusters, both storing the same data. </p>
          <p>Two methods for keeping data synchronized on dual clusters are "dual ETL" and
             "backup/restore."</p>
@@ -153,7 +153,7 @@
             database can be easily regenerated from the source data. Backups should be taken to
             protect from operational, software, and hardware errors. </p>
          <p>Use the <xref href="../../../utility_guide/ref/gpbackup.xml"
-               /> utility to backup Greenplum databases. <codeph>gpbackup</codeph> performs
+               /> utility to backup Cloudberry databases. <codeph>gpbackup</codeph> performs
             the backup in parallel across segments, so backup performance scales up as hardware is
             added to the cluster. </p>
          <p>When designing a backup strategy, a primary concern is where to store the backup data.
@@ -163,14 +163,14 @@
             segment's live data and the backup. After performing a backup, the backup files should
             be moved from the primary cluster to separate, safe storage. Alternatively, the backup
             can be made directly to separate storage. </p>
-         <p>Using a Greenplum Database storage plugin with the <codeph>gpbackup</codeph> and
+         <p>Using a Cloudberry Database storage plugin with the <codeph>gpbackup</codeph> and
                <codeph>gprestore</codeph> utilities, you can send a backup to, or retrieve a backup
-            from a remote location or a storage appliance. Greenplum Database storage plugins
+            from a remote location or a storage appliance. Cloudberry Database storage plugins
             support connecting to locations including Amazon Simple Storage Service (Amazon S3)
             locations and Dell EMC Data Domain storage appliances.</p>
          <p>Using the Backup/Restore Storage Plugin API you can create a custom plugin that the
                <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> utilities can use to
-            integrate a custom backup storage system with the Greenplum Database. </p>
+            integrate a custom backup storage system with the Cloudberry Database. </p>
          <p>For information about using <codeph>gpbackup</codeph> and <codeph>gprestore</codeph>,
             see <xref href="../../managing/backup-gpbackup.xml"/>.</p>
       </section>

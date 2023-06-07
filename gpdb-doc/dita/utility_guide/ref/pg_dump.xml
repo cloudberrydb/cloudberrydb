@@ -17,30 +17,30 @@
     <section id="section3">
       <title>Description</title>
       <p><codeph>pg_dump</codeph> is a standard PostgreSQL utility for backing up a database, and is
-        also supported in Greenplum Database. It creates a single (non-parallel) dump file. For
-        routine backups of Greenplum Database, it is better to use the Greenplum Database backup
+        also supported in Cloudberry Database. It creates a single (non-parallel) dump file. For
+        routine backups of Cloudberry Database, it is better to use the Cloudberry Database backup
         utility, <codeph><xref href="gpbackup.xml#topic1"/></codeph>, for the
         best performance.</p>
       <p>Use <codeph>pg_dump</codeph> if you are migrating your data to another database vendor's
-        system, or to another Greenplum Database system with a different segment configuration (for
+        system, or to another Cloudberry Database system with a different segment configuration (for
         example, if the system you are migrating to has greater or fewer segment instances). To
         restore, you must use the corresponding <xref href="./pg_restore.xml#topic1" type="topic"
           format="dita"/> utility (if the dump file is in archive format), or you can use a client
         program such as <codeph><xref href="psql.xml#topic1" type="topic" format="dita"/></codeph>
         (if the dump file is in plain text format). </p>
       <p>Since <codeph>pg_dump</codeph> is compatible with regular PostgreSQL, it can be used to
-        migrate data into Greenplum Database. The <codeph>pg_dump</codeph> utility in Greenplum
+        migrate data into Cloudberry Database. The <codeph>pg_dump</codeph> utility in Cloudberry
         Database is very similar to the PostgreSQL <codeph>pg_dump</codeph> utility, with the
         following exceptions and limitations:</p>
       <ul>
-        <li id="os142186">If using <codeph>pg_dump</codeph> to backup a Greenplum Database database,
+        <li id="os142186">If using <codeph>pg_dump</codeph> to backup a Cloudberry Database database,
           keep in mind that the dump operation can take a long time (several hours) for very large
           databases. Also, you must make sure you have sufficient disk space to create the dump
           file.</li>
-        <li id="os142181">If you are migrating data from one Greenplum Database system to another,
+        <li id="os142181">If you are migrating data from one Cloudberry Database system to another,
           use the <codeph>--gp-syntax</codeph> command-line option to include the
             <codeph>DISTRIBUTED BY</codeph> clause in <codeph>CREATE TABLE</codeph> statements. This
-          ensures that Greenplum Database table data is distributed with the correct distribution
+          ensures that Cloudberry Database table data is distributed with the correct distribution
           key columns upon restore.</li>
       </ul>
       <p><codeph>pg_dump</codeph> makes consistent backups even if the database is being used
@@ -86,7 +86,7 @@
               where a specific schema or table has been requested. Note that
               blobs are considered data and therefore will be included when
               <codeph>--data-only</codeph> is used, but not when <codeph>--schema-only</codeph> is.
-              <note>Greenplum Database does not
+              <note>Cloudberry Database does not
                 support the PostgreSQL <xref
                   href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
                   scope="external">large object facility</xref> for streaming user data that is
@@ -188,7 +188,7 @@
               requested an exclusive lock in the meantime and there is no way to continue with the
               dump, so <codeph>pg_dump</codeph> has no choice but to cancel the dump.</pd>
             <pd>For a consistent backup, the database server needs to support synchronized
-              snapshots, a feature that was introduced in Greenplum Database 6.0. With this
+              snapshots, a feature that was introduced in Cloudberry Database 6.0. With this
               feature, database clients can ensure they see the same data set even though they
               use different connections. <codeph>pg_dump -j</codeph> uses multiple database
               connections; it connects to the database once with the coordinator process and once
@@ -201,7 +201,7 @@
               easiest way to do this is to halt any data modifying processes (DDL and DML)
               accessing the database before starting the backup. You also need to specify the
               <codeph>--no-synchronized-snapshots</codeph> parameter when running
-              <codeph>pg_dump -j</codeph> against a pre-6.0 Greenplum Database server.</pd>
+              <codeph>pg_dump -j</codeph> against a pre-6.0 Cloudberry Database server.</pd>
           </plentry>
           <plentry>
             <pt>-n <varname>schema</varname> | --schema=<varname>schema</varname></pt>
@@ -235,7 +235,7 @@
           <plentry>
             <pt>-o | --oids</pt>
             <pd>Dump object identifiers (OIDs) as part of the data for every table. Use of this
-              option is not recommended for files that are intended to be restored into Greenplum
+              option is not recommended for files that are intended to be restored into Cloudberry
               Database.</pd>
           </plentry>
           <plentry>
@@ -266,7 +266,7 @@
             <pt>-S <varname>username</varname> | --superuser=<varname>username</varname></pt>
             <pd>Specify the superuser user name to use when disabling triggers. This is
               relevant only if <codeph>--disable-triggers</codeph> is used. It is better to leave this
-              out, and instead start the resulting script as a superuser.<note>Greenplum Database
+              out, and instead start the resulting script as a superuser.<note>Cloudberry Database
                 does not support user-defined triggers.</note></pd>
           </plentry>
           <plentry>
@@ -355,7 +355,7 @@
               the resulting script as a superuser. This option is only meaningful for the plain-text
               format. For the archive formats, you may specify the option when you call
                   <codeph><xref href="./pg_restore.xml#topic1" type="topic" format="dita"
-                /></codeph>.<note>Greenplum Database does not support user-defined
+                /></codeph>.<note>Cloudberry Database does not support user-defined
               triggers.</note></pd>
           </plentry>
           <plentry>
@@ -397,7 +397,7 @@
           </plentry>
           <plentry>
             <pt>--no-synchronized-snapshots</pt>
-            <pd>This option allows running <codeph>pg_dump -j</codeph> against a pre-6.0 Greenplum
+            <pd>This option allows running <codeph>pg_dump -j</codeph> against a pre-6.0 Cloudberry
               Database server; see the documentation of the <codeph>-j</codeph> parameter for more
               details.</pd>
           </plentry>
@@ -419,7 +419,7 @@
           <plentry>
             <pt>--quote-all-identifiers</pt>
             <pd>Force quoting of all identifiers. This option is recommended when dumping
-               a database from a server whose Greenplum Database major version is different
+               a database from a server whose Cloudberry Database major version is different
                from <codeph>pg_dump</codeph>'s, or when the output is intended to be loaded
                into a server of a different major version. By default,
                <codeph>pg_dump</codeph> quotes only identifiers that are reserved words in
@@ -457,9 +457,9 @@
               active when <codeph>pg_dump</codeph> is started. If read-write transactions
               are active, the start of the dump may be delayed for an indeterminate length
               of time. Once running, performance with or without the switch is the same.</pd>
-            <pd><note>Because Greenplum Database does not support serializable transactions,
+            <pd><note>Because Cloudberry Database does not support serializable transactions,
               the <codeph>--serializable-deferrable</codeph> option has no effect in
-              Greenplum Database.</note></pd>
+              Cloudberry Database.</note></pd>
           </plentry>
           <plentry>
             <pt>--use-set-session-authorization</pt>
@@ -472,12 +472,12 @@
           </plentry>
           <plentry>
             <pt>--gp-syntax | --no-gp-syntax </pt>
-            <pd>Use <codeph>--gp-syntax</codeph> to dump Greenplum Database syntax in the
+            <pd>Use <codeph>--gp-syntax</codeph> to dump Cloudberry Database syntax in the
                 <codeph>CREATE TABLE</codeph> statements. This allows the distribution policy
                 (<codeph>DISTRIBUTED BY</codeph> or <codeph>DISTRIBUTED RANDOMLY</codeph> clauses)
-              of a Greenplum Database table to be dumped, which is useful for restoring into other
-              Greenplum Database systems. The default is to include Greenplum Database syntax when
-              connected to a Greenplum Database system, and to exclude it when connected to a
+              of a Cloudberry Database table to be dumped, which is useful for restoring into other
+              Cloudberry Database systems. The default is to include Cloudberry Database syntax when
+              connected to a Cloudberry Database system, and to exclude it when connected to a
               regular PostgreSQL system.</pd>
           </plentry>
           <plentry>
@@ -517,13 +517,13 @@
           </plentry>
           <plentry>
             <pt>-h <varname>host</varname> | --host=<varname>host</varname></pt>
-            <pd>The host name of the machine on which the Greenplum Database coordinator database server
+            <pd>The host name of the machine on which the Cloudberry Database coordinator database server
               is running. If not specified, reads from the environment variable
                 <codeph>PGHOST</codeph> or defaults to localhost.</pd>
           </plentry>
           <plentry>
             <pt>-p <varname>port</varname> | --port=<varname>port</varname></pt>
-            <pd>The TCP port on which the Greenplum Database coordinator database server is listening for
+            <pd>The TCP port on which the Cloudberry Database coordinator database server is listening for
               connections. If not specified, reads from the environment variable
                 <codeph>PGPORT</codeph> or defaults to 5432.</pd>
           </plentry>
@@ -570,17 +570,17 @@
         collector. If this is undesirable, you can set parameter <codeph>track_counts</codeph> to
         false via <codeph>PGOPTIONS</codeph> or the <codeph>ALTER USER</codeph> command.</p>
       <p>Because <codeph>pg_dump</codeph> may be used to transfer data to newer versions of
-        Greenplum Database, the output of <codeph>pg_dump</codeph> can be expected to load into
-        Greenplum Database versions newer than <codeph>pg_dump</codeph>'s version.
-          <codeph>pg_dump</codeph> can also dump from Greenplum Database versions older than its own
-        version. However, <codeph>pg_dump</codeph> cannot dump from Greenplum Database versions
+        Cloudberry Database, the output of <codeph>pg_dump</codeph> can be expected to load into
+        Cloudberry Database versions newer than <codeph>pg_dump</codeph>'s version.
+          <codeph>pg_dump</codeph> can also dump from Cloudberry Database versions older than its own
+        version. However, <codeph>pg_dump</codeph> cannot dump from Cloudberry Database versions
         newer than its own major version; it will refuse to even try, rather than risk making an
         invalid dump. Also, it is not guaranteed that <codeph>pg_dump</codeph>'s output can be
         loaded into a server of an older major version — not even if the dump was taken from a
         server of that version. Loading a dump file into an older server may require manual editing
         of the dump file to remove syntax not understood by the older server. Use of the
           <codeph>--quote-all-identifiers</codeph> option is recommended in cross-version cases, as
-        it can prevent problems arising from varying reserved-word lists in different Greenplum
+        it can prevent problems arising from varying reserved-word lists in different Cloudberry
         Database versions.</p>
     </section>
     <section id="section8">
@@ -589,7 +589,7 @@
       <codeblock>pg_dump mydb &gt; db.sql</codeblock>
       <p>To reload such a script into a (freshly created) database named <codeph>newdb</codeph>: </p>
       <codeblock>psql -d newdb -f db.sql</codeblock>
-      <p>Dump a Greenplum Database in tar file format and include distribution policy
+      <p>Dump a Cloudberry Database in tar file format and include distribution policy
         information:</p>
       <codeblock>pg_dump -Ft --gp-syntax mydb &gt; db.tar</codeblock>
       <p>To dump a database into a custom-format archive file: </p>

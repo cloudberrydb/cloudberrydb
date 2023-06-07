@@ -19,7 +19,7 @@ ALTER FOREIGN DATA WRAPPER <varname>name</varname> RENAME TO <varname>new_name</
             <title>Description</title>
             <p><codeph>ALTER FOREIGN DATA WRAPPER</codeph> changes the definition of a foreign-data wrapper.
                 The first form of the command changes the support functions or generic options of 
-                the foreign-data wrapper. Greenplum Database requires at least one clause. The second and third forms of the command change the owner or name of the foreign-data wrapper.</p>
+                the foreign-data wrapper. Cloudberry Database requires at least one clause. The second and third forms of the command change the owner or name of the foreign-data wrapper.</p>
             <p>Only superusers can alter foreign-data wrappers. Additionally, only superusers can own foreign-data wrappers</p>
         </section>
         <section id="section4">
@@ -46,7 +46,7 @@ ALTER FOREIGN DATA WRAPPER <varname>name</varname> RENAME TO <varname>new_name</
                 <plentry>
                     <pt>VALIDATOR <varname>validator_function</varname></pt>
                     <pd>
-                        <p>Specifies a new validator function for the foreign-data wrapper.</p><p>Options to the foreign-data wrapper, servers, and user mappings may become invalid when you change the validator function. You must make sure that these options are correct before using the modified foreign-data wrapper. Note that Greenplum Database checks any options specified in this <codeph>ALTER FOREIGN DATA WRAPPER</codeph> command using the new validator.</p>
+                        <p>Specifies a new validator function for the foreign-data wrapper.</p><p>Options to the foreign-data wrapper, servers, and user mappings may become invalid when you change the validator function. You must make sure that these options are correct before using the modified foreign-data wrapper. Note that Cloudberry Database checks any options specified in this <codeph>ALTER FOREIGN DATA WRAPPER</codeph> command using the new validator.</p>
                     </pd>
                 </plentry>
                 <plentry>
@@ -58,7 +58,7 @@ ALTER FOREIGN DATA WRAPPER <varname>name</varname> RENAME TO <varname>new_name</
                 <plentry>
                     <pt>OPTIONS ( [ ADD | SET | DROP ] <varname>option</varname> ['<varname>value</varname>'] [, ... ] )</pt>
                     <pd>
-                        <p>Change the foreign-data wrapper's options. <codeph>ADD</codeph>, <codeph>SET</codeph>, and <codeph>DROP</codeph> specify the action to perform. If no operation is explicitly specified, the default operation is <codeph>ADD</codeph>. Option names must be unique. Greenplum Database validates names and values using the foreign-data wrapper's validator function, if any.</p>
+                        <p>Change the foreign-data wrapper's options. <codeph>ADD</codeph>, <codeph>SET</codeph>, and <codeph>DROP</codeph> specify the action to perform. If no operation is explicitly specified, the default operation is <codeph>ADD</codeph>. Option names must be unique. Cloudberry Database validates names and values using the foreign-data wrapper's validator function, if any.</p>
                     </pd>
                 </plentry>
                 <plentry>
@@ -82,7 +82,7 @@ ALTER FOREIGN DATA WRAPPER <varname>name</varname> RENAME TO <varname>new_name</
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>ALTER FOREIGN DATA WRAPPER</codeph> conforms to ISO/IEC 9075-9 (SQL/MED), with the exception that the <codeph>HANDLER</codeph>, <codeph>VALIDATOR</codeph>, <codeph>OWNER TO</codeph>, and <codeph>RENAME TO</codeph> clauses are Greenplum Database extensions.</p>
+            <p><codeph>ALTER FOREIGN DATA WRAPPER</codeph> conforms to ISO/IEC 9075-9 (SQL/MED), with the exception that the <codeph>HANDLER</codeph>, <codeph>VALIDATOR</codeph>, <codeph>OWNER TO</codeph>, and <codeph>RENAME TO</codeph> clauses are Cloudberry Database extensions.</p>
         </section>
         <section id="section8">
             <title>See Also</title>

@@ -3,12 +3,12 @@
 set -exo pipefail
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-GPDB_INSTALL_DIR="/usr/local/greenplum-db-devel"
+GPDB_INSTALL_DIR="/usr/local/cloudberry-db-devel"
 
 function gen_local_regression_script(){
 cat > /home/gpadmin/run_regression_test.sh <<-EOF
 set -exo pipefail
-INSTALL_DIR=/usr/local/greenplum-db-devel
+INSTALL_DIR=$GPDB_INSTALL_DIR
 GPDB_SRC_DIR=\${1}/gpdb_src
 
 source \$INSTALL_DIR/greenplum_path.sh
@@ -37,7 +37,7 @@ function setup_gpadmin_user() {
 }
 
 function make_cluster() {
-  PYTHONPATH=${SCRIPT_DIR}:${PYTHONPATH} python2 -c "from builds.GpBuild import GpBuild; GpBuild(\"planner\").create_demo_cluster(install_dir='/usr/local/greenplum-db-devel')"
+  PYTHONPATH=${SCRIPT_DIR}:${PYTHONPATH} python2 -c "from builds.GpBuild import GpBuild; GpBuild(\"planner\").create_demo_cluster(install_dir='$GPDB_INSTALL_DIR')"
 }
 
 function configure_with_planner() {

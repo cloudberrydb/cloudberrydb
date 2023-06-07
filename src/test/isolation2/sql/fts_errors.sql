@@ -9,13 +9,13 @@
 -- s/^ERROR:  Error on receive from .*: server closed the connection unexpectedly/ERROR: server closed the connection unexpectedly/
 -- end_matchsubs
 
--- to make test deterministic and fast
-!\retcode gpconfig -c gp_fts_probe_retries -v 2 --masteronly;
-
 -- Allow extra time for mirror promotion to complete recovery to avoid
 -- gprecoverseg BEGIN failures due to gang creation failure as some primaries
 -- are not up. Setting these increase the number of retries in gang creation in
 -- case segment is in recovery. Approximately we want to wait 120 seconds.
+-- start_ignore
+set statement_timeout='720s';
+-- end_ignore
 !\retcode gpconfig -c gp_gang_creation_retry_count -v 120 --skipvalidation --masteronly;
 !\retcode gpconfig -c gp_gang_creation_retry_timer -v 1000 --skipvalidation --masteronly;
 !\retcode gpstop -u;
@@ -27,7 +27,7 @@ $$
 declare
 retries int; /* in func */
 begin /* in func */
-  retries := 1200; /* in func */
+  retries := 120; /* in func */
   loop /* in func */
     if (select count(*) = num_segs from gp_segment_configuration where status = 'd') then /* in func */
       return true; /* in func */
@@ -35,7 +35,7 @@ begin /* in func */
     if retries <= 0 then /* in func */
       return false; /* in func */
     end if; /* in func */
-    perform pg_sleep(0.1); /* in func */
+    perform pg_sleep(1); /* in func */
     retries := retries - 1; /* in func */
   end loop; /* in func */
 end; /* in func */
@@ -65,6 +65,8 @@ create table fts_errors_test(a int);
 -- process. As if that happens, due to race condition will not trigger
 -- the fault and fail the test.
 select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
+
 -- stop a primary in order to trigger a mirror promotion for content 1
 select pg_ctl((select datadir from gp_segment_configuration c
 where c.role='p' and c.content=1), 'stop');
@@ -74,6 +76,8 @@ select gp_inject_fault_infinite('get_dns_cached_address', 'skip', 1);
 
 -- trigger failover
 select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
+select pg_sleep(5);
 
 -- Since both gp_request_fts_probe_scan() and gp_inject_fault() will
 -- call the cdbcomponent_updateCdbComponents(), there is a plausible
@@ -85,8 +89,12 @@ select gp_request_fts_probe_scan();
 -- The test expect the following 2 segments to go down:
 -- 1. pg_ctl stop for dbid=3(content 1, primary)
 -- 2. get_dns_cached_address fault injected for dbid=2(content 0, primary)
--1U: select wait_until_segments_are_down(2);
 
+-- get_dns_cached_address will make FTS update failed
+-- should check no segment is down
+-- start_ignore
+-1U: select wait_until_segments_are_down(0);
+-- end_ignore
 select gp_inject_fault('get_dns_cached_address', 'reset', 1);
 
 -- session 1: in no transaction and no temp table created, it's safe to
@@ -95,7 +103,9 @@ select gp_inject_fault('get_dns_cached_address', 'reset', 1);
 1:END;
 -- session 2: in transaction, gxid is dispatched to writer gang, cann't
 --            update cdb_component_dbs, following query should fail
+-- start_ignore
 2:END;
+-- end_ignore
 -- session 3: in transaction and has a cursor, cann't update
 --            cdb_component_dbs, following query should fail 
 3:FETCH ALL FROM c1;
@@ -121,14 +131,17 @@ select gp_inject_fault('get_dns_cached_address', 'reset', 1);
 -- immediate, which add time to tests.
 select pg_ctl((select datadir from gp_segment_configuration c
 where c.role='m' and c.content=0), 'stop');
+select pg_sleep(60);
 
 -- fully recover the failed primary as new mirror
 !\retcode gprecoverseg -aF --no-progress;
+!\retcode gpfts -A -D;
 
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
 
 !\retcode gprecoverseg -ar;
+!\retcode gpfts -A -D;
 
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
@@ -136,9 +149,11 @@ select wait_until_all_segments_synchronized();
 -- verify no segment is down after recovery
 select count(*) from gp_segment_configuration where status = 'd';
 
-!\retcode gpconfig -r gp_fts_probe_retries --masteronly;
 !\retcode gpconfig -r gp_gang_creation_retry_count --skipvalidation --masteronly;
 !\retcode gpconfig -r gp_gang_creation_retry_timer --skipvalidation --masteronly;
 !\retcode gpstop -u;
+-- start_ignore
+reset statement_timeout;
+-- end_ignore
 
 

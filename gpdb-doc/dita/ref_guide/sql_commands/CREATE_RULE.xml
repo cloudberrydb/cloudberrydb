@@ -7,7 +7,7 @@
   ...) }</codeblock></section><section id="section3"><title>Description</title><p><codeph>CREATE RULE</codeph> defines a new rule applying to a specified
 table or view. <codeph>CREATE OR REPLACE RULE</codeph> will either create
 a new rule, or replace an existing rule of the same name for the same
-table. </p><p>The Greenplum Database rule system allows one to define an alternate action to be performed on
+table. </p><p>The Cloudberry Database rule system allows one to define an alternate action to be performed on
         insertions, updates, or deletions in database tables. A rule causes additional or alternate
         commands to be run when a given command on a given table is run. An
           <codeph>INSTEAD</codeph> rule can replace a given command by another, or cause a command
@@ -70,7 +70,7 @@ rules are not validated at rule create time, but will report an error
 at execution time.</p></section><section id="section6"><title>Examples</title><p>Create a rule that inserts rows into the child table <codeph>b2001</codeph> when a user tries to
         insert into the partitioned parent table <codeph>rank</codeph>:</p><codeblock>CREATE RULE b2001 AS ON INSERT TO rank WHERE gender='M' and 
 year='2001' DO INSTEAD INSERT INTO b2001 VALUES (NEW.id, 
-NEW.rank, NEW.year, NEW.gender, NEW.count);</codeblock></section><section id="section7"><title>Compatibility</title><p><codeph>CREATE RULE</codeph> is a Greenplum Database language extension,
+NEW.rank, NEW.year, NEW.gender, NEW.count);</codeblock></section><section id="section7"><title>Compatibility</title><p><codeph>CREATE RULE</codeph> is a Cloudberry Database language extension,
 as is the entire query rewrite system.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="ALTER_RULE.xml#topic1"/></codeph><codeph><xref href="./DROP_RULE.xml#topic1"
             type="topic" format="dita"/></codeph>, <codeph><xref href="./CREATE_TABLE.xml#topic1"
             type="topic" format="dita"/></codeph>, <codeph><xref href="./CREATE_VIEW.xml#topic1"

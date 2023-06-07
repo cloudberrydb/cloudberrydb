@@ -7,7 +7,7 @@
  * Unlike cdbtm.c, this file deals mainly with packing and unpacking
  * structures, converting values to strings, etc.
  *
- * Portions Copyright (c) 2005-2009, Greenplum inc
+ * Portions Copyright (c) 2005-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -41,9 +41,9 @@ dtxDeformGid(
 		 * Returning without an error here allows tests inheritied from
 		 * upstream PostgreSQL to run without errors.  These tests execute
 		 * PREPARE TRANSACTION command with a GID that doesn't conform to the
-		 * Greenplum specific format.  Note that DTM messages sent from QD
+		 * Cloudberry specific format.  Note that DTM messages sent from QD
 		 * cannot be processed in utility mode.  Therefore, we can safely
-		 * allow non-Greenplum GIDs only in utility mode.
+		 * allow non-Cloudberry GIDs only in utility mode.
 		 */
 		if (Gp_role == GP_ROLE_UTILITY)
 			*distribXid = 0;
@@ -60,7 +60,7 @@ dtxFormGid(char *gid, DistributedTransactionId gxid)
 	Assert(strlen(gid) < TMGIDSIZE);
 }
 
-char *
+const char *
 DtxStateToString(DtxState state)
 {
 	switch (state)
@@ -102,45 +102,13 @@ DtxStateToString(DtxState state)
 	}
 }
 
-char *
+const char *
 DtxProtocolCommandToString(DtxProtocolCommand command)
 {
-	switch (command)
-	{
-		case DTX_PROTOCOL_COMMAND_NONE:
-			return "None";
-		case DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED:
-			return "Distributed Abort (No Prepared)";
-		case DTX_PROTOCOL_COMMAND_PREPARE:
-			return "Distributed Prepare";
-		case DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED:
-			return "Distributed Abort (Some Prepared)";
-		case DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE:
-			return "Distributed Commit (one-phase)";
-		case DTX_PROTOCOL_COMMAND_COMMIT_PREPARED:
-			return "Distributed Commit Prepared";
-		case DTX_PROTOCOL_COMMAND_ABORT_PREPARED:
-			return "Distributed Abort Prepared";
-		case DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED:
-			return "Retry Distributed Commit Prepared";
-		case DTX_PROTOCOL_COMMAND_RETRY_ABORT_PREPARED:
-			return "Retry Distributed Abort Prepared";
-		case DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED:
-			return "Recovery Commit Prepared";
-		case DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED:
-			return "Recovery Abort Prepared";
-		case DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL:
-			return " Begin Internal Subtransaction";
-		case DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL:
-			return "Release Current Subtransaction";
-		case DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL:
-			return "Rollback Current Subtransaction";
-	}
-
-	return "Unknown";
+	return GetCommandTagName(command);
 }
 
-char *
+const char *
 DtxContextToString(DtxContext context)
 {
 	switch (context)

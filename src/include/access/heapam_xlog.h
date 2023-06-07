@@ -4,7 +4,7 @@
  *	  POSTGRES heap access XLOG definitions.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/heapam_xlog.h
@@ -51,9 +51,9 @@
  * these, too.
  */
 #define XLOG_HEAP2_REWRITE		0x00
-#define XLOG_HEAP2_CLEAN		0x10
-#define XLOG_HEAP2_FREEZE_PAGE	0x20
-#define XLOG_HEAP2_CLEANUP_INFO 0x30
+#define XLOG_HEAP2_PRUNE		0x10
+#define XLOG_HEAP2_VACUUM		0x20
+#define XLOG_HEAP2_FREEZE_PAGE	0x30
 #define XLOG_HEAP2_VISIBLE		0x40
 #define XLOG_HEAP2_MULTI_INSERT 0x50
 #define XLOG_HEAP2_LOCK_UPDATED 0x60
@@ -67,6 +67,10 @@
 #define XLH_INSERT_LAST_IN_MULTI				(1<<1)
 #define XLH_INSERT_IS_SPECULATIVE				(1<<2)
 #define XLH_INSERT_CONTAINS_NEW_TUPLE			(1<<3)
+#define XLH_INSERT_ON_TOAST_RELATION			(1<<4)
+
+/* all_frozen_set always implies all_visible_set */
+#define XLH_INSERT_ALL_FROZEN_SET				(1<<5)
 
 /*
  * xl_heap_update flag values, 8 bits are available.
@@ -136,8 +140,6 @@ typedef struct xl_heap_truncate
  * or updated tuple in WAL; we can save a few bytes by reconstructing the
  * fields that are available elsewhere in the WAL record, or perhaps just
  * plain needn't be reconstructed.  These are the fields we must store.
- * NOTE: t_hoff could be recomputed, but we may as well store it because
- * it will come for free due to alignment considerations.
  */
 typedef struct xl_heap_header
 {
@@ -168,7 +170,7 @@ typedef struct xl_heap_insert
  *
  * In block 0's data portion, there is an xl_multi_insert_tuple struct,
  * followed by the tuple data for each tuple. There is padding to align
- * each xl_multi_insert struct.
+ * each xl_multi_insert_tuple struct.
  */
 typedef struct xl_heap_multi_insert
 {
@@ -195,14 +197,14 @@ typedef struct xl_multi_insert_tuple
  *
  * Backup blk 0: new page
  *
- * If XLOG_HEAP_PREFIX_FROM_OLD or XLOG_HEAP_SUFFIX_FROM_OLD flags are set,
+ * If XLH_UPDATE_PREFIX_FROM_OLD or XLH_UPDATE_SUFFIX_FROM_OLD flags are set,
  * the prefix and/or suffix come first, as one or two uint16s.
  *
  * After that, xl_heap_header and new tuple data follow.  The new tuple
  * data doesn't include the prefix and suffix, which are copied from the
  * old tuple on replay.
  *
- * If HEAP_CONTAINS_NEW_TUPLE_DATA flag is given, the tuple data is
+ * If XLH_UPDATE_CONTAINS_NEW_TUPLE flag is given, the tuple data is
  * included even if a full-page image was taken.
  *
  * Backup blk 1: old page, if different. (no data, just a reference to the blk)
@@ -217,15 +219,16 @@ typedef struct xl_heap_update
 	OffsetNumber new_offnum;	/* new tuple's offset */
 
 	/*
-	 * If XLOG_HEAP_CONTAINS_OLD_TUPLE or XLOG_HEAP_CONTAINS_OLD_KEY flags are
-	 * set, a xl_heap_header struct and tuple data for the old tuple follows.
+	 * If XLH_UPDATE_CONTAINS_OLD_TUPLE or XLH_UPDATE_CONTAINS_OLD_KEY flags
+	 * are set, xl_heap_header and tuple data for the old tuple follow.
 	 */
 } xl_heap_update;
 
 #define SizeOfHeapUpdate	(offsetof(xl_heap_update, new_offnum) + sizeof(OffsetNumber))
 
 /*
- * This is what we need to know about vacuum page cleanup/redirect
+ * This is what we need to know about page pruning (both during VACUUM and
+ * during opportunistic pruning)
  *
  * The array of OffsetNumbers following the fixed part of the record contains:
  *	* for each redirected item: the item offset, then the offset redirected to
@@ -234,29 +237,32 @@ typedef struct xl_heap_update
  * The total number of OffsetNumbers is therefore 2*nredirected+ndead+nunused.
  * Note that nunused is not explicitly stored, but may be found by reference
  * to the total record length.
+ *
+ * Requires a super-exclusive lock.
  */
-typedef struct xl_heap_clean
+typedef struct xl_heap_prune
 {
 	TransactionId latestRemovedXid;
 	uint16		nredirected;
 	uint16		ndead;
 	/* OFFSET NUMBERS are in the block reference 0 */
-} xl_heap_clean;
+} xl_heap_prune;
 
-#define SizeOfHeapClean (offsetof(xl_heap_clean, ndead) + sizeof(uint16))
+#define SizeOfHeapPrune (offsetof(xl_heap_prune, ndead) + sizeof(uint16))
 
 /*
- * Cleanup_info is required in some cases during a lazy VACUUM.
- * Used for reporting the results of HeapTupleHeaderAdvanceLatestRemovedXid()
- * see vacuumlazy.c for full explanation
+ * The vacuum page record is similar to the prune record, but can only mark
+ * already dead items as unused
+ *
+ * Used by heap vacuuming only.  Does not require a super-exclusive lock.
  */
-typedef struct xl_heap_cleanup_info
+typedef struct xl_heap_vacuum
 {
-	RelFileNode node;
-	TransactionId latestRemovedXid;
-} xl_heap_cleanup_info;
+	uint16		nunused;
+	/* OFFSET NUMBERS are in the block reference 0 */
+} xl_heap_vacuum;
 
-#define SizeOfHeapCleanupInfo (sizeof(xl_heap_cleanup_info))
+#define SizeOfHeapVacuum (offsetof(xl_heap_vacuum, nunused) + sizeof(uint16))
 
 /* flags for infobits_set */
 #define XLHL_XMAX_IS_MULTI		0x01
@@ -396,13 +402,6 @@ extern const char *heap2_identify(uint8 info);
 extern void heap_xlog_logical_rewrite(XLogReaderState *r);
 extern void heap_mask(char *pagedata, BlockNumber blkno);
 
-extern XLogRecPtr log_heap_cleanup_info(RelFileNode rnode,
-										TransactionId latestRemovedXid);
-extern XLogRecPtr log_heap_clean(Relation reln, Buffer buffer,
-								 OffsetNumber *redirected, int nredirected,
-								 OffsetNumber *nowdead, int ndead,
-								 OffsetNumber *nowunused, int nunused,
-								 TransactionId latestRemovedXid);
 extern XLogRecPtr log_heap_freeze(Relation reln, Buffer buffer,
 								  TransactionId cutoff_xid, xl_heap_freeze_tuple *tuples,
 								  int ntuples);

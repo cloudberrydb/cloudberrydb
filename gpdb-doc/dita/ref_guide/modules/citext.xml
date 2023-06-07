@@ -8,15 +8,15 @@
       <codeph>citext</codeph>. Essentially, it internally calls the
       <codeph>lower()</codeph> function when comparing values. Otherwise, it behaves
       almost exactly like the <codeph>text</codeph> data type.</p>
-    <p>The Greenplum Database <codeph>citext</codeph> module is equivalent to the
-      PostgreSQL <codeph>citext</codeph> module. There are no Greenplum Database or
+    <p>The Cloudberry Database <codeph>citext</codeph> module is equivalent to the
+      PostgreSQL <codeph>citext</codeph> module. There are no Cloudberry Database or
       MPP-specific considerations for the module.</p>
   </body>
   <topic id="topic_reg">
     <title>Installing and Registering the Module</title>
     <body>
       <p>The <codeph>citext</codeph> module is installed when you install
-        Greenplum Database. Before you can use any of the data types, operators, or
+        Cloudberry Database. Before you can use any of the data types, operators, or
         functions defined in the module, you must register the <codeph>citext</codeph>
         extension in each database in which you want to use the objects.
         <ph otherprops="pivotal">Refer to <xref href="../../install_guide/install_modules.html"

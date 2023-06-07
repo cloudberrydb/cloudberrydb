@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="cw20941">ALTER EXTENSION</title>
   <body>
-    <p id="sql_command_desc">Change the definition of an extension that is registered in a Greenplum
+    <p id="sql_command_desc">Change the definition of an extension that is registered in a Cloudberry
       database.</p>
     <section id="section2">
       <title>Synopsis</title>
@@ -205,7 +205,7 @@ and <varname>aggregate_signature</varname> is:
     </section>
     <section id="section6">
       <title>Compatibility</title>
-      <p><codeph>ALTER EXTENSION</codeph> is a Greenplum Database extension. </p>
+      <p><codeph>ALTER EXTENSION</codeph> is a Cloudberry Database extension. </p>
     </section>
     <section id="section7">
       <title>See Also</title>

@@ -2149,7 +2149,7 @@ select 129::bigint, 5623::int, 45::smallint from orca.r;
 
 --  distributed tables
 create table orca.foo (x1 int, x2 int, x3 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca.bar1 (x1 int, x2 int, x3 int) distributed randomly;
 create table orca.bar2 (x1 int, x2 int, x3 int) distributed randomly;
@@ -2395,16 +2395,16 @@ explain select case when bar1.x2 = bar2.x2 then coalesce((select 1 from orca.foo
 from orca.bar1 inner join orca.bar2 on (bar1.x2 = bar2.x2) order by bar1.x1; 
                                                        QUERY PLAN                                                       
 ------------------------------------------------------------------------------------------------------------------------
- Sort  (cost=0.00..1765423.13 rows=7 width=8)
+ Sort  (cost=0.00..1765423.13 rows=20 width=8)
    Sort Key: bar1.x1
-   ->  Gather Motion 3:1  (slice4; segments: 3)  (cost=0.00..1765423.13 rows=20 width=8)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1765423.13 rows=20 width=8)
          ->  Hash Join  (cost=0.00..862.00 rows=7 width=12)
                Hash Cond: (bar1.x2 = bar2.x2)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=7 width=8)
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=7 width=8)
                      Hash Key: bar1.x2
                      ->  Seq Scan on bar1  (cost=0.00..431.00 rows=7 width=8)
                ->  Hash  (cost=431.00..431.00 rows=10 width=4)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
+                     ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
                            Hash Key: bar2.x2
                            ->  Seq Scan on bar2  (cost=0.00..431.00 rows=10 width=4)
                SubPlan 1
@@ -2413,9 +2413,9 @@ from orca.bar1 inner join orca.bar2 on (bar1.x2 = bar2.x2) order by bar1.x1;
                              One-Time Filter: (bar1.x2 = bar2.x2)
                              Filter: (((bar1.x2)::double precision = random()) AND (foo.x2 = bar2.x2))
                              ->  Materialize  (cost=0.00..431.00 rows=10 width=4)
-                                   ->  Broadcast Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
+                                   ->  Broadcast Motion 3:3  (slice4; segments: 3)  (cost=0.00..431.00 rows=10 width=4)
                                          ->  Seq Scan on foo  (cost=0.00..431.00 rows=4 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (21 rows)
 
 select case when bar1.x2 = bar2.x2 then coalesce((select 1 from orca.foo where bar1.x2 = bar2.x2 and bar1.x2 = random() and foo.x2 = bar2.x2),0) else 1 end as col1, bar1.x1
@@ -3494,7 +3494,7 @@ explain  select * from orca.r, orca.s where r.a is not distinct from s.c;
          ->  Seq Scan on s  (cost=0.00..431.00 rows=10 width=8)
          ->  Hash  (cost=431.00..431.00 rows=7 width=8)
                ->  Seq Scan on r  (cost=0.00..431.00 rows=7 width=8)
- Optimizer: Pivotal Optimizer (GPORCA) version 2.64.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
 
 -- explain Hash Join with equality join condition
@@ -4567,12 +4567,12 @@ SELECT a from orca.m UNION ALL select b from orca.m UNION ALL select a+b from or
 
 drop table if exists orca.foo;
 create table orca.foo(a int, b int, c int, d int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table if exists orca.bar;
 NOTICE:  table "bar" does not exist, skipping
 create table orca.bar(a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.foo select i, i%2, i%4, i-1 from generate_series(1,40)i;
 insert into orca.bar select i, i%3, i%2 from generate_series(1,30)i;
@@ -6547,13 +6547,13 @@ select lead(c,c+d,1000) over(order by c,d) from orca.s order by 1;
 
 -- test normalization of window functions
 create table orca_w1(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca_w2(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca_w3(a int, b text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca_w1 select i, i from generate_series(1, 3) i;
 insert into orca_w2 select i, i from generate_series(2, 4) i;
@@ -6842,7 +6842,7 @@ DETAIL:  Query-to-DXL Translation: No attribute entry found due to incorrect nor
 drop table if exists orca.rcte;
 NOTICE:  table "rcte" does not exist, skipping
 create table orca.rcte(a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.rcte select i, i%2, i%3 from generate_series(1,40)i;
 with x as (select * from orca.rcte where a < 10) select * from x x1, x x2;
@@ -7973,18 +7973,14 @@ with x as (select * from orca.r) select * from x order by a;
 -- with x as (select * from orca.rcte where a < 10) select * from x x1, x x2 where x2.a = x1.b limit 1;
 -- correlated execution
 select (select 1 union select 2);
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
-ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  one or more assertions failed
+DETAIL:  Expected no more than one row to be returned by expression
 select (select generate_series(1,5));
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
-ERROR:  more than one row returned by a subquery used as an expression
+ERROR:  one or more assertions failed
+DETAIL:  Expected no more than one row to be returned by expression
 select (select a from orca.foo inner1 where inner1.a=outer1.a  union select b from orca.foo inner2 where inner2.b=outer1.b) from orca.foo outer1;
-ERROR:  more than one row returned by a subquery used as an expression  (seg0 slice1 127.0.1.1:7002 pid=573815)
+ERROR:  more than one row returned by a subquery used as an expression
 select (select generate_series(1,1)) as series;
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
  series 
 --------
       1
@@ -8131,7 +8127,7 @@ stringu1 name,
 stringu2 name,
 string4 name
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'unique1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'unique1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.onek values (931,1,1,3,1,11,1,31,131,431,931,2,3,'VJAAAA','BAAAAA','HHHHxx');
 INFO:  GPORCA failed to produce a plan, falling back to planner
@@ -8168,7 +8164,7 @@ having exists (select 1 from orca.onek b where sum(distinct a.four) = b.four);
 
 -- indexes on partitioned tables
 create table orca.pp(a int) partition by range(a)(partition pp1 start(1) end(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create index pp_a on orca.pp(a);
 -- list partition tests
@@ -8221,7 +8217,7 @@ subpartition sp2 start(10) end(200) every(50)
 )
 (partition aa start(0) end (100) every (50),
 partition bb start(100) end(200) every (50) );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.multilevel_p values (1,1), (100,200);
 INFO:  GPORCA failed to produce a plan, falling back to planner
@@ -8509,7 +8505,7 @@ reset optimizer_enable_partial_index;
 -- test project elements in TVF
 CREATE FUNCTION orca.csq_f(a int) RETURNS int AS $$ select $1 $$ LANGUAGE SQL;
 CREATE TABLE orca.csq_r(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO orca.csq_r VALUES (1);
 SELECT * FROM orca.csq_r WHERE a IN (SELECT * FROM orca.csq_f(orca.csq_r.a));
@@ -8522,7 +8518,7 @@ SELECT * FROM orca.csq_r WHERE a IN (SELECT * FROM orca.csq_f(orca.csq_r.a));
 drop table if exists orca.tab1;
 NOTICE:  table "tab1" does not exist, skipping
 create table orca.tab1(a int, b int, c int, d int, e int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.tab1 values (1,2,3,4,5);
 insert into orca.tab1 values (1,2,3,4,5);
@@ -8546,10 +8542,10 @@ select b,d from orca.tab1 group by b,d having min(distinct d)>b;
 (1 row)
 
 create table orca.fooh1 (a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca.fooh2 (a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.fooh1 select i%4, i%3, i from generate_series(1,20) i;
 insert into orca.fooh2 select i%3, i%2, i from generate_series(1,20) i;
@@ -8697,13 +8693,13 @@ select sum(f1.a+1)+avg(f1.a+1), sum(f1.a), sum(f1.a+1) from orca.fooh1 f1 group 
 drop table if exists foo, bar, jazz;
 NOTICE:  table "jazz" does not exist, skipping
 create table foo (a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table bar (d int, e int, f int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'd' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'd' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table jazz (g int, h int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'g' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'g' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into foo values (1, 1, 1), (2, 2, 2), (3, 3, 3);
 insert into bar values (1, 1, 1), (2, 2, 2), (3, 3, 3);
@@ -8762,8 +8758,6 @@ select (select (select sum(foo.a + bar.d) * 2 from jazz) from bar) from foo grou
 
 -- nested group by
 select (select max(f) from bar where d = 1 group by a, e) from foo group by a;
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
  max 
 -----
    1
@@ -8800,8 +8794,6 @@ select max(a) from foo group by (select e from bar where bar.e = foo.a);
 
 -- nested subquery in group by
 select max(a) from foo group by (select g from jazz where foo.a = (select max(a) from foo where c = 1 group by b));
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
  max 
 -----
    3
@@ -8810,8 +8802,6 @@ DETAIL:  DXL-to-PlStmt Translation: Assert not supported
 
 -- group by inside groupby inside group by
 select max(a) from foo group by (select min(g) from jazz where foo.a = (select max(g) from jazz group by h) group by h);
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
  max 
 -----
    2
@@ -8838,8 +8828,6 @@ select * from foo order by ((select min(bar.e + 1) * 2 from bar group by foo.a) 
 
 -- everything in the kitchen sink
 select max(b), (select foo.a * count(bar.e) from bar), (with cte as (select e, min(d) as dd from bar group by e) select max(a) * sum(dd) from cte), count(*) from foo group by foo.a, (select min(g) from jazz where foo.a = (select max(g) from jazz group by h) group by h), (with cte as (select min(g) from jazz group by h) select a from cte) order by ((select min(bar.e + 1) * 2 from bar group by foo.a) - foo.a);
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
  max | ?column? | ?column? | count 
 -----+----------+----------+-------
    3 |        9 |       18 |     1
@@ -8894,7 +8882,7 @@ DETAIL:  No plan has been computed for required properties
 
 drop table foo, bar, jazz;
 create table orca.t77(C952 text) WITH (compresstype=zlib,compresslevel=2,appendonly=true,blocksize=393216,checksum=true);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c952' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c952' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.t77 select 'text'::text;
 insert into orca.t77 select 'mine'::text;
@@ -8909,7 +8897,7 @@ SELECT to_char(AVG( char_length(DT466.C952) ), '9999999.9999999'), MAX( char_len
 (3 rows)
 
 create table orca.prod9 (sale integer, prodnm varchar,price integer);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'sale' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'sale' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.prod9 values (100, 'shirts', 500);
 insert into orca.prod9 values (200, 'pants',800);
@@ -8924,7 +8912,7 @@ select prodnm, price from orca.prod9 GROUP BY prodnm, price HAVING price !=300;
 
 -- analyze on tables with dropped attributes
 create table orca.toanalyze(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.toanalyze values (1,1), (2,2), (3,3);
 alter table orca.toanalyze drop column a;
@@ -8932,16 +8920,16 @@ NOTICE:  dropping a column that is part of the distribution policy forces a NULL
 analyze orca.toanalyze;
 -- union
 create table orca.ur (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca.us (c int, d int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca.ut(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table orca.uu(c int, d bigint);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.ur values (1,1);
 insert into orca.ur values (1,2);
@@ -9132,7 +9120,7 @@ CREATE FUNCTION gptfp(anyarray,anyelement) RETURNS anyarray AS 'select $1 || $2'
 CREATE FUNCTION gpffp(anyarray) RETURNS anyarray AS 'select $1' LANGUAGE SQL;
 CREATE AGGREGATE myagg3(BASETYPE = anyelement, SFUNC = gptfp, STYPE = anyarray, FINALFUNC = gpffp, INITCOND = '{}');
 CREATE TABLE array_table(f1 int, f2 int[], f3 text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO array_table values(1,array[1],'a');
 INSERT INTO array_table values(2,array[11],'b');
@@ -9156,7 +9144,7 @@ DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
 
 -- MPP-22453: wrong result in indexscan when the indexqual compares different data types
 create table mpp22453(a int, d date);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mpp22453 values (1, '2012-01-01'), (2, '2012-01-02'), (3, '2012-12-31');
 create index mpp22453_idx on mpp22453(d);
@@ -9176,7 +9164,7 @@ select * from mpp22453 where d > '2012-02-01';
 reset optimizer_enable_tablescan;
 -- MPP-22791: SIGSEGV when querying a table with default partition only
 create table mpp22791(a int, b int) partition by range(b) (default partition d);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mpp22791 values (1, 1), (2, 2), (3, 3);
 select * from mpp22791 where b > 1;
@@ -9202,7 +9190,7 @@ select 1 as x where 1 in (2, 3);
 
 -- MPP-23081: keys of partitioned tables
 create table orca.p1(a int) partition by range(a)(partition pp1 start(1) end(10), partition pp2 start(10) end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.p1 select * from generate_series(2,15);
 select count(*) from (select gp_segment_id,ctid,tableoid from orca.p1 group by gp_segment_id,ctid,tableoid) as foo;
@@ -9817,11 +9805,11 @@ SELECT generate_series(1,10) UNION SELECT 1;
 
 -- warning messages for missing stats
 create table foo_missing_stats(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into foo_missing_stats select i, i%5 from generate_series(1,20) i;
 create table bar_missing_stats(c int, d int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into bar_missing_stats select i, i%8 from generate_series(1,30) i;
 analyze foo_missing_stats;
@@ -9882,7 +9870,7 @@ NOTICE:  table "table_with_small_statistic_precision_diff" does not exist, skipp
 CREATE TABLE orca.table_with_small_statistic_precision_diff (
     col1 double precision
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'col1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'col1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 SET allow_system_table_mods=true;
 DELETE FROM pg_statistic WHERE starelid='table_with_small_statistic_precision_diff'::regclass;
@@ -9956,7 +9944,7 @@ where c.cid = s.cid and s.date_sk = d.date_sk and
       ((d.year = 2001 and lower(s.type) = 't1' and plusone(d.moy) = 5) or (d.moy = 4 and upper(s.type) = 'T2'));
                                                                                       QUERY PLAN
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..1293.00 rows=1 width=24)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1293.00 rows=1 width=24)
    ->  Hash Join  (cost=0.00..1293.00 rows=1 width=24)
          Hash Cond: (cust.cid = sales.cid)
          ->  Seq Scan on cust  (cost=0.00..431.00 rows=1 width=20)
@@ -9981,7 +9969,7 @@ reset optimizer_segments;
 drop table if exists orca.bm_test;
 NOTICE:  table "bm_test" does not exist, skipping
 create table orca.bm_test (i int, t text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.bm_test select i % 10, (i % 10)::text  from generate_series(1, 100) i;
 analyze orca.bm_test;
@@ -10105,21 +10093,21 @@ set optimizer_enable_dynamictablescan = off;
 explain select * from orca.bm_dyn_test_onepart where i=2 and t='2';
 INFO:  GPORCA failed to produce a plan, falling back to planner
 DETAIL:  No plan has been computed for required properties
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                                    QUERY PLAN                                                    
+------------------------------------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..6.85 rows=22 width=10)
    ->  Append  (cost=0.00..6.55 rows=7 width=10)
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part0  (cost=0.00..1.10 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part0 bm_dyn_test_onepart_1  (cost=0.00..1.10 rows=1 width=10)
                Filter: ((i = 2) AND (t = '2'::text))
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1  (cost=0.00..1.10 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part1 bm_dyn_test_onepart_2  (cost=0.00..1.10 rows=1 width=10)
                Filter: ((i = 2) AND (t = '2'::text))
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part2  (cost=0.00..1.10 rows=2 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part2 bm_dyn_test_onepart_3  (cost=0.00..1.10 rows=2 width=10)
                Filter: ((i = 2) AND (t = '2'::text))
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3  (cost=0.00..1.10 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part3 bm_dyn_test_onepart_4  (cost=0.00..1.10 rows=1 width=10)
                Filter: ((i = 2) AND (t = '2'::text))
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part4  (cost=0.00..1.10 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part4 bm_dyn_test_onepart_5  (cost=0.00..1.10 rows=1 width=10)
                Filter: ((i = 2) AND (t = '2'::text))
-         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part5  (cost=0.00..1.01 rows=1 width=10)
+         ->  Seq Scan on bm_dyn_test_onepart_1_prt_part5 bm_dyn_test_onepart_6  (cost=0.00..1.01 rows=1 width=10)
                Filter: ((i = 2) AND (t = '2'::text))
  Optimizer: Postgres query optimizer
 (15 rows)
@@ -10168,13 +10156,13 @@ DETAIL:  Feature not supported: Multi-level partitioned tables
 --------------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..7.95 rows=53 width=18)
    ->  Append  (cost=0.00..6.89 rows=18 width=18)
-         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_1_3_prt_usa  (cost=0.00..1.00 rows=1 width=44)
+         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_1_3_prt_usa bm_dyn_test_multilvl_part_1  (cost=0.00..1.01 rows=1 width=44)
                Filter: (year = 2019)
-         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_1_3_prt_other_regions  (cost=0.00..1.00 rows=1 width=44)
+         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_1_3_prt_other_regions bm_dyn_test_multilvl_part_2  (cost=0.00..1.01 rows=1 width=44)
                Filter: (year = 2019)
-         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_2_3_prt_usa  (cost=0.00..3.62 rows=17 width=16)
+         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_2_3_prt_usa bm_dyn_test_multilvl_part_3  (cost=0.00..1.21 rows=17 width=16)
                Filter: (year = 2019)
-         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_2_3_prt_other_regions  (cost=0.00..1.00 rows=1 width=44)
+         ->  Seq Scan on bm_dyn_test_multilvl_part_1_prt_2_2_prt_2_3_prt_other_regions bm_dyn_test_multilvl_part_4  (cost=0.00..1.01 rows=1 width=44)
                Filter: (year = 2019)
  Optimizer: Postgres query optimizer
 (11 rows)
@@ -10339,7 +10327,7 @@ id serial,
 code character varying(25),
 name character varying(40)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into bm.outer_tab select i % 10, i % 5, i % 2 from generate_series(1, 100) i;
 set optimizer_enable_hashjoin = off;
@@ -10454,12 +10442,12 @@ DETAIL:  No plan has been computed for required properties
                                  ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..544.00 rows=13600 width=98)
                                        Hash Key: tq.sym
                                        ->  Append  (cost=0.00..272.00 rows=13600 width=98)
-                                             ->  Seq Scan on my_tq_agg_opt_part_1_prt_p1 tq  (cost=0.00..102.00 rows=6800 width=98)
-                                             ->  Seq Scan on my_tq_agg_opt_part_1_prt_p2 tq_1  (cost=0.00..102.00 rows=6800 width=98)
+                                             ->  Seq Scan on my_tq_agg_opt_part_1_prt_p1 tq_1  (cost=0.00..102.00 rows=6800 width=98)
+                                             ->  Seq Scan on my_tq_agg_opt_part_1_prt_p2 tq_2  (cost=0.00..102.00 rows=6800 width=98)
                                  ->  Hash  (cost=108.67..108.67 rows=7467 width=108)
                                        ->  Seq Scan on my_tt_agg_opt tt  (cost=0.00..108.67 rows=7467 width=108)
  Optimizer: Postgres query optimizer
-(19 rows)
+(21 rows)
 
 reset optimizer_segments;
 reset optimizer_enable_constant_expression_evaluation;
@@ -10500,7 +10488,7 @@ id serial,
 code character varying(25),
 name character varying(40)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table if exists idxscan_inner;
 NOTICE:  table "idxscan_inner" does not exist, skipping
@@ -10540,7 +10528,7 @@ where ordernum between 10 and 20;
                      Hash Key: idxscan_inner.productid
                      ->  Index Scan using idxscan_inner_ordernum_key on idxscan_inner  (cost=0.00..6.00 rows=1 width=9)
                            Index Cond: ((ordernum >= 10) AND (ordernum <= 20))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.1.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (10 rows)
 
 select id, comment from idxscan_outer as o join idxscan_inner as i on o.id = i.productid
@@ -10557,7 +10545,7 @@ drop table idxscan_inner;
 drop table if exists ggg;
 NOTICE:  table "ggg" does not exist, skipping
 create table ggg (a char(1), b char(2), d char(3));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into ggg values ('x', 'a', 'c');
 insert into ggg values ('x', 'a');
@@ -10566,7 +10554,7 @@ insert into ggg values ('x');
 drop table if exists orca.t3;
 NOTICE:  table "t3" does not exist, skipping
 create table orca.t3 (c1 timestamp without time zone);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into orca.t3 values  ('2015-07-03 00:00:00'::timestamp without time zone);
 select to_char(c1, 'YYYY-MM-DD HH24:MI:SS') from orca.t3 where c1 = TO_DATE('2015-07-03','YYYY-MM-DD');
@@ -10632,7 +10620,7 @@ create table can_set_tag_target
 	y int,
 	z char
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table if exists can_set_tag_audit;
 NOTICE:  table "can_set_tag_audit" does not exist, skipping
@@ -10643,7 +10631,7 @@ create table can_set_tag_audit
 	y int,
 	z char
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create rule can_set_tag_audit_update AS
     ON UPDATE TO can_set_tag_target DO  INSERT INTO can_set_tag_audit (t, x, y, z)
@@ -10691,8 +10679,6 @@ insert into canSetTag_input_data values(3, 0, 'B', 1);
 create table canSetTag_bug_table as
 SELECT attr, class, (select canSetTag_Func(count(distinct class)::int) from canSetTag_input_data)
    as dclass FROM canSetTag_input_data GROUP BY attr, class distributed by (attr);
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
 drop function canSetTag_Func(x int);
 drop table canSetTag_bug_table;
 drop table canSetTag_input_data;
@@ -10717,7 +10703,7 @@ EXPLAIN SELECT * FROM btree_test WHERE a in (1, 47);
          Recheck Cond: (a = ANY ('{1,47}'::integer[]))
          ->  Bitmap Index Scan on btree_test_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: (a = ANY ('{1,47}'::integer[]))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 EXPLAIN SELECT * FROM btree_test WHERE a in ('2', 47);
@@ -10728,7 +10714,7 @@ EXPLAIN SELECT * FROM btree_test WHERE a in ('2', 47);
          Recheck Cond: (a = ANY ('{2,47}'::integer[]))
          ->  Bitmap Index Scan on btree_test_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: (a = ANY ('{2,47}'::integer[]))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2');
@@ -10739,7 +10725,7 @@ EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2');
          Recheck Cond: (a = ANY ('{1,2}'::integer[]))
          ->  Bitmap Index Scan on btree_test_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: (a = ANY ('{1,2}'::integer[]))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2', 47);
@@ -10750,7 +10736,7 @@ EXPLAIN SELECT * FROM btree_test WHERE a in ('1', '2', 47);
          Recheck Cond: (a = ANY ('{1,2,47}'::integer[]))
          ->  Bitmap Index Scan on btree_test_index  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: (a = ANY ('{1,2,47}'::integer[]))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 SELECT * FROM btree_test WHERE a in ('1', '2', 47);
@@ -10770,7 +10756,7 @@ EXPLAIN SELECT * FROM btree_test WHERE a in (1, 2, 47) AND b > 1;
          Recheck Cond: ((a = ANY ('{1,2,47}'::integer[])) AND (b > 1))
          ->  Bitmap Index Scan on btree_test_index_ab  (cost=0.00..0.00 rows=0 width=0)
                Index Cond: ((a = ANY ('{1,2,47}'::integer[])) AND (b > 1))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.82.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 SELECT * FROM btree_test WHERE a in (1, 2, 47) AND b > 1;
@@ -11008,7 +10994,7 @@ drop table foo;
 -- Test GPDB Expr (T_ArrayCoerceExpr) conversion to Scalar Array Coerce Expr
 -- start_ignore
 create table foo (a int, b character varying(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- end_ignore
 -- Query should not fallback to planner
@@ -11036,10 +11022,10 @@ reset optimizer_enable_ctas;
 -- Test to ensure that ORCA produces correct results for a query with an Agg on top of LOJ
 -- start_ignore
 create table input_tab1 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table input_tab2 (c int, d int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into input_tab1 values (1, 1);
 insert into input_tab1 values (NULL, NULL);
@@ -11065,7 +11051,7 @@ explain (costs off) select count(*), t2.c from input_tab1 t1 left join input_tab
                                        ->  Seq Scan on input_tab1
                                        ->  Hash
                                              ->  Seq Scan on input_tab2
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (17 rows)
 
 select count(*), t2.c from input_tab1 t1 left join input_tab2 t2 on t1.a = t2.c group by t2.c;
@@ -11119,7 +11105,7 @@ FROM   (SELECT *
                            ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=7)
                                  ->  Seq Scan on tab_2  (cost=0.00..431.00 rows=1 width=7)
                ->  Seq Scan on tab_3  (cost=0.00..431.00 rows=1 width=8)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (11 rows)
 
 SELECT Count(*)
@@ -11145,10 +11131,10 @@ FROM   (SELECT *
 --
 -- start_ignore
 create table t_outer (c1 integer);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table t_inner (c2 integer);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c2' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c2' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into t_outer values (generate_series (1,10));
 insert into t_inner values (generate_series (1,300));
@@ -11193,13 +11179,13 @@ NOTICE:  table "wst0" does not exist, skipping
 NOTICE:  table "wst1" does not exist, skipping
 NOTICE:  table "wst2" does not exist, skipping
 create table wst0(a0 int, b0 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a0' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a0' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table wst1(a1 int, b1 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table wst2(a2 int, b2 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a2' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a2' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into wst0 select i, i from generate_series(1,10) i;
 insert into wst1 select i, i from generate_series(1,10) i;
@@ -11221,7 +11207,7 @@ select count(*) from wst0 where exists (select 1, rank() over (order by wst1.a1)
 --
 -- start_ignore
 create table test1 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into test1 select generate_series(1,100),generate_series(1,100);
 -- end_ignore
@@ -11253,13 +11239,13 @@ reset optimizer_enable_gather_on_segment_for_DML;
 --
 -- start_ignore
 create table x_tab(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table y_tab(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table z_tab(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into x_tab values(1);
 insert into y_tab values(0);
@@ -11315,12 +11301,10 @@ ERROR:  table "bar" does not exist
 -- end_ignore
 -- TVF with a subplan that generates an RTABLE entry
 create table bar(name text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'name' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'name' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into bar values('person');
 select * from unnest((select string_to_array(name, ',') from bar)) as a;
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  DXL-to-PlStmt Translation: Assert not supported
    a    
 --------
  person
@@ -11342,13 +11326,13 @@ CREATE TYPE myint
 CREATE FUNCTION myint_int8(myint) RETURNS int8 AS 'int48' LANGUAGE INTERNAL STRICT IMMUTABLE;
 CREATE CAST (myint AS int8) WITH FUNCTION myint_int8(myint) AS IMPLICIT;
 CREATE TABLE csq_cast_param_outer (a int, b myint);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO csq_cast_param_outer VALUES
 	(1, '42'),
 	(2, '12');
 CREATE TABLE csq_cast_param_inner (c int, d myint);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO csq_cast_param_inner VALUES
 	(11, '11'),
@@ -11364,7 +11348,7 @@ EXPLAIN SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 TH
                  ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
                        ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
                              ->  Seq Scan on csq_cast_param_inner  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 THEN d ELSE '42' END FROM csq_cast_param_inner);
@@ -11388,7 +11372,7 @@ EXPLAIN SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 TH
                  ->  Materialize  (cost=0.00..431.00 rows=2 width=4)
                        ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
                              ->  Seq Scan on csq_cast_param_inner  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
 SELECT a FROM csq_cast_param_outer WHERE b in (SELECT CASE WHEN a > 1 THEN d ELSE '42' END FROM csq_cast_param_inner);
@@ -11426,10 +11410,10 @@ EXPLAIN SELECT a FROM ggg WHERE a IN (NULL, 'x');
 
 -- result node with one time filter and filter
 CREATE TABLE onetimefilter1 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE onetimefilter2 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO onetimefilter1 SELECT i, i FROM generate_series(1,10)i;
 INSERT INTO onetimefilter2 SELECT i, i FROM generate_series(1,10)i;
@@ -11586,13 +11570,13 @@ SELECT * FROM touter LEFT JOIN tinnerbtree ON touter.a = tinnerbtree.a AND tinne
 
 -- test subplan in a qual under dynamic scan
 CREATE TABLE ds_part ( a INT, b INT, c INT) PARTITION BY RANGE(c)( START(1) END (10) EVERY (2), DEFAULT PARTITION deflt);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE non_part1 (c INT);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE non_part2 (e INT, f INT);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'e' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'e' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO ds_part SELECT i, i, i FROM generate_series (1, 1000)i; 
 INSERT INTO non_part1 SELECT i FROM generate_series(1, 100)i; 
@@ -11660,7 +11644,7 @@ SELECT *, a IN ( SELECT b + 1 FROM non_part1) FROM ds_part, non_part2 WHERE ds_p
 RESET optimizer_enforce_subplans;
 -- implied predicate must be generated for the type cast(ident) scalar array cmp const array
 CREATE TABLE varchar_sc_array_cmp(a varchar);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO varchar_sc_array_cmp VALUES ('a'), ('b'), ('c'), ('d');
 EXPLAIN SELECT * FROM varchar_sc_array_cmp t1, varchar_sc_array_cmp t2 where t1.a = t2.a and t1.a in ('b', 'c');
@@ -11718,7 +11702,7 @@ NOTICE:  table "tc3" does not exist, skipping
 NOTICE:  table "tc4" does not exist, skipping
 -- end_ignore
 CREATE TABLE tc0 (a int check (a = 5));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO tc0 VALUES (NULL);
 -- FIXME: Planner gives wrong result
@@ -11729,7 +11713,7 @@ SELECT * from tc0 where a IS NULL;
 (1 row)
 
 CREATE TABLE tc1 (a int check (a between 1 and 2 or a != 3 and a > 5));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO tc1 VALUES (NULL);
 SELECT * from tc1 where a IS NULL;
@@ -11739,7 +11723,7 @@ SELECT * from tc1 where a IS NULL;
 (1 row)
 
 CREATE TABLE tc2 (a int check (a in (1,2)));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO tc2 VALUES (NULL);
 SELECT * from tc2 where a IS NULL;
@@ -11750,7 +11734,7 @@ SELECT * from tc2 where a IS NULL;
 
 set optimizer_array_constraints = on;
 CREATE TABLE tc3 (a int check (a = ANY (ARRAY[1,2])));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO tc3 VALUES (NULL);
 SELECT * from tc3 where a IS NULL;
@@ -11761,7 +11745,7 @@ SELECT * from tc3 where a IS NULL;
 
 reset optimizer_array_constraints;
 CREATE TABLE tc4 (a int, b int, check(a + b > 1 and a = b));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO tc4 VALUES(NULL, NULL);
 SELECT * from tc4 where a IS NULL;
@@ -12028,10 +12012,10 @@ DETAIL:  Unknown error: Partially Distributed Data
 (1 row)
 
 create table part1(a int, b int) partition by range(b) (start(1) end(5) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table part2(a int, b int) partition by range(b) (start(1) end(5) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into part1 select i, (i % 2) + 1 from generate_series(1, 1000) i;
 insert into part2 select i, (i % 2) + 1 from generate_series(1, 100) i;
@@ -12152,17 +12136,17 @@ CREATE OPERATOR CLASS abs_int_btree_ops FOR TYPE int4
 EXPLAIN SELECT a, b FROM atab_old_hash INNER JOIN btab_old_hash ON a |=| b;
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..862.00 rows=5 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=5 width=8)
    ->  Hash Join  (cost=0.00..862.00 rows=2 width=8)
          Hash Cond: (btab_old_hash.b |=| atab_old_hash.a)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
                Hash Key: btab_old_hash.b
                ->  Seq Scan on btab_old_hash  (cost=0.00..431.00 rows=2 width=4)
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                      Hash Key: atab_old_hash.a
                      ->  Seq Scan on atab_old_hash  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.93.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (11 rows)
 
 SELECT a, b FROM atab_old_hash INNER JOIN btab_old_hash ON a |=| b;
@@ -12178,17 +12162,17 @@ SELECT a, b FROM atab_old_hash INNER JOIN btab_old_hash ON a |=| b;
 EXPLAIN SELECT a, b FROM btab_old_hash LEFT OUTER JOIN atab_old_hash ON a |=| b;
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice3; segments: 3)  (cost=0.00..862.00 rows=7 width=8)
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=7 width=8)
    ->  Hash Left Join  (cost=0.00..862.00 rows=3 width=8)
          Hash Cond: (btab_old_hash.b |=| atab_old_hash.a)
-         ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
+         ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=2 width=4)
                Hash Key: btab_old_hash.b
                ->  Seq Scan on btab_old_hash  (cost=0.00..431.00 rows=2 width=4)
          ->  Hash  (cost=431.00..431.00 rows=1 width=4)
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+               ->  Redistribute Motion 3:3  (slice3; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
                      Hash Key: atab_old_hash.a
                      ->  Seq Scan on atab_old_hash  (cost=0.00..431.00 rows=1 width=4)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.93.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (11 rows)
 
 SELECT a, b FROM btab_old_hash LEFT OUTER JOIN atab_old_hash ON a |=| b;
@@ -12259,13 +12243,13 @@ NOTICE:  table "foo2" does not exist, skipping
 DROP TABLE IF EXISTS foo3 CASCADE;
 NOTICE:  table "foo3" does not exist, skipping
 CREATE table foo1(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE table foo2(a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE table foo3(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE index f2c on foo2 using bitmap(c);
 INSERT INTO foo1 values (1), (2);
@@ -12326,7 +12310,7 @@ NOTICE:  table "t55" does not exist, skipping
 drop table if exists tp;
 NOTICE:  table "tp" does not exist, skipping
 create table t55 (c int, lid int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into t55 select i, i from generate_series(1, 1000) i;
 analyze t55;
@@ -12386,7 +12370,7 @@ SELECT * from tp;
 
 -- Test partition selection for lossy casts
 create table lossycastrangepart(a float, b float) partition by range(b) (start(0) end(40) every(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  CREATE TABLE will create partition "lossycastrangepart_1_prt_1" for table "lossycastrangepart"
 NOTICE:  CREATE TABLE will create partition "lossycastrangepart_1_prt_2" for table "lossycastrangepart"
@@ -12488,7 +12472,7 @@ select * from lossycastrangepart where b::int < 11;
 (4 rows)
 
 create table lossycastlistpart( a int, b float) partition by list(b) (partition l1 values(1.7, 2.1), partition l2 values(1.3, 2.7), partition l3 values(1.8, 2.8));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  CREATE TABLE will create partition "lossycastlistpart_1_prt_l1" for table "lossycastlistpart"
 NOTICE:  CREATE TABLE will create partition "lossycastlistpart_1_prt_l2" for table "lossycastlistpart"
@@ -12542,7 +12526,7 @@ drop table if exists sales;
 create table sales(id int, prod_id int, cust_id int, sales_ts timestamp)
 partition by range(sales_ts) (start (timestamp '2010-01-01 00:00:00') end(timestamp '2010-02-02 23:59:59')
 every (interval '1 day'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  CREATE TABLE will create partition "sales_1_prt_1" for table "sales"
 NOTICE:  CREATE TABLE will create partition "sales_1_prt_2" for table "sales"
@@ -12620,10 +12604,10 @@ drop table if exists tcorr1, tcorr2;
 NOTICE:  table "tcorr1" does not exist, skipping
 NOTICE:  table "tcorr2" does not exist, skipping
 create table tcorr1(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table tcorr2(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into tcorr1 values (1,99);
 insert into tcorr2 values (1,1);
@@ -13406,10 +13390,10 @@ reset optimizer_enable_hashjoin;
 reset optimizer_enable_groupagg;
 -- ROJ must use the hash side for deriving the distribution spec. Force a non-redistribute plan to ensure we get some motion (gather)
 create table roj1 (a int, b int) ;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table roj2 (c int, d int) ;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into roj1 values (1, 1);
 insert into roj1 values (2, 2);
@@ -13717,7 +13701,7 @@ reset optimizer_enable_indexjoin;
 -- InferPredicatesBCC-vcpart-txt.mdp
 -- from comment
 create table infer_txt (a text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into infer_txt select * from generate_series(1,1000);
 analyze infer_txt;
@@ -14103,10 +14087,10 @@ select r.a, r.b, r.c, l.c from left_outer_index_nl_foo r left outer join left_ou
 (4 rows)
 
 create table left_outer_index_nl_foo_hash (a integer, b integer, c text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table left_outer_index_nl_bar_hash (a integer, b integer, c text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create index left_outer_index_nl_bar_hash_idx on left_outer_index_nl_bar_hash using btree (b);
 insert into left_outer_index_nl_foo_hash select i, i, i from generate_series(1, 4)i;
@@ -14217,10 +14201,10 @@ reset enable_hashjoin;
 --- IS DISTINCT FROM FALSE previously simplified to IS TRUE, returning incorrect results for some hash anti joins
 --- the following tests were added to verify the behavior is correct
 CREATE TABLE tt1 (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE tt2 (c int, d int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO tt1 VALUES (1, NULL), (2, 2), (3, 4), (NULL, 5);
 INSERT INTO tt2 VALUES (1, 1), (2, NULL), (4, 4), (NULL, 2);
@@ -14310,7 +14294,7 @@ reset statement_timeout;
 -- optimizer must not eliminate the SRF or it can produce incorrect results
 set optimizer_trace_fallback = on;
 create table nested_srf(a text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into nested_srf values ('abc,def,ghi');
 select * from (select regexp_split_to_table((a)::text, ','::text) from nested_srf)a;
@@ -14381,7 +14365,7 @@ reset optimizer_trace_fallback;
 --- if the inner child is already distributed on the join column, orca should
 --- not place any motion on the inner child
 CREATE TABLE tone (a int, b int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into tone select i,i,i from generate_series(1, 10) i;
 ANALYZE tone;

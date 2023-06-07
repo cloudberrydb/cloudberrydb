@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2009. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2009. All Rights Reserved.
 #
 # gpconfig will guarantee that all segments have valid conf files if gpconfig runs successfully, but we do not handle
 # sequence races. To be specific, suppose there are two simultaneous callers of gpconfig, U1 and U2, that modify

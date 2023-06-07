@@ -3,7 +3,7 @@
  * indexam.c
  *	  general index access method routines
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -45,17 +45,23 @@
 
 #include "access/amapi.h"
 #include "access/heapam.h"
+#include "access/reloptions.h"
 #include "access/relscan.h"
 #include "access/tableam.h"
 #include "access/transam.h"
 #include "access/xlog.h"
 #include "catalog/index.h"
+#include "catalog/pg_amproc.h"
 #include "catalog/pg_type.h"
+#include "commands/defrem.h"
+#include "nodes/makefuncs.h"
 #include "pgstat.h"
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
 #include "storage/predicate.h"
+#include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
+#include "utils/syscache.h"
 
 
 /* ----------------------------------------------------------------
@@ -87,14 +93,14 @@
 #define CHECK_REL_PROCEDURE(pname) \
 do { \
 	if (indexRelation->rd_indam->pname == NULL) \
-		elog(ERROR, "function %s is not defined for index %s", \
+		elog(ERROR, "function \"%s\" is not defined for index \"%s\"", \
 			 CppAsString(pname), RelationGetRelationName(indexRelation)); \
 } while(0)
 
 #define CHECK_SCAN_PROCEDURE(pname) \
 do { \
 	if (scan->indexRelation->rd_indam->pname == NULL) \
-		elog(ERROR, "function %s is not defined for index %s", \
+		elog(ERROR, "function \"%s\" is not defined for index \"%s\"", \
 			 CppAsString(pname), RelationGetRelationName(scan->indexRelation)); \
 } while(0)
 
@@ -173,6 +179,7 @@ index_insert(Relation indexRelation,
 			 ItemPointer heap_t_ctid,
 			 Relation heapRelation,
 			 IndexUniqueCheck checkUnique,
+			 bool indexUnchanged,
 			 IndexInfo *indexInfo)
 {
 	RELATION_CHECKS;
@@ -180,12 +187,13 @@ index_insert(Relation indexRelation,
 
 	if (!(indexRelation->rd_indam->ampredlocks))
 		CheckForSerializableConflictIn(indexRelation,
-									   (HeapTuple) NULL,
-									   InvalidBuffer);
+									   (ItemPointer) NULL,
+									   InvalidBlockNumber);
 
 	return indexRelation->rd_indam->aminsert(indexRelation, values, isnull,
 											 heap_t_ctid, heapRelation,
-											 checkUnique, indexInfo);
+											 checkUnique, indexUnchanged,
+											 indexInfo);
 }
 
 /*
@@ -513,7 +521,8 @@ index_getnext_tid(IndexScanDesc scan, ScanDirection direction)
 	SCAN_CHECKS;
 	CHECK_SCAN_PROCEDURE(amgettuple);
 
-	Assert(TransactionIdIsValid(RecentGlobalXmin));
+	/* XXX: we should assert that a snapshot is pushed or registered */
+	Assert(TransactionIdIsValid(RecentXmin));
 
 	/*
 	 * The AM's amgettuple proc finds the next index entry matching the scan
@@ -681,7 +690,7 @@ index_getbitmap(IndexScanDesc scan, Node **bitmapP)
  */
 IndexBulkDeleteResult *
 index_bulk_delete(IndexVacuumInfo *info,
-				  IndexBulkDeleteResult *stats,
+				  IndexBulkDeleteResult *istat,
 				  IndexBulkDeleteCallback callback,
 				  void *callback_state)
 {
@@ -690,7 +699,7 @@ index_bulk_delete(IndexVacuumInfo *info,
 	RELATION_CHECKS;
 	CHECK_REL_PROCEDURE(ambulkdelete);
 
-	return indexRelation->rd_indam->ambulkdelete(info, stats,
+	return indexRelation->rd_indam->ambulkdelete(info, istat,
 												 callback, callback_state);
 }
 
@@ -702,14 +711,14 @@ index_bulk_delete(IndexVacuumInfo *info,
  */
 IndexBulkDeleteResult *
 index_vacuum_cleanup(IndexVacuumInfo *info,
-					 IndexBulkDeleteResult *stats)
+					 IndexBulkDeleteResult *istat)
 {
 	Relation	indexRelation = info->index;
 
 	RELATION_CHECKS;
 	CHECK_REL_PROCEDURE(amvacuumcleanup);
 
-	return indexRelation->rd_indam->amvacuumcleanup(info, stats);
+	return indexRelation->rd_indam->amvacuumcleanup(info, istat);
 }
 
 /* ----------------
@@ -798,9 +807,11 @@ index_getprocinfo(Relation irel,
 {
 	FmgrInfo   *locinfo;
 	int			nproc;
+	int			optsproc;
 	int			procindex;
 
 	nproc = irel->rd_indam->amsupport;
+	optsproc = irel->rd_indam->amoptsprocnum;
 
 	Assert(procnum > 0 && procnum <= (uint16) nproc);
 
@@ -833,6 +844,17 @@ index_getprocinfo(Relation irel,
 				 procnum, attnum, RelationGetRelationName(irel));
 
 		fmgr_info_cxt(procId, locinfo, irel->rd_indexcxt);
+
+		if (procnum != optsproc)
+		{
+			/* Initialize locinfo->fn_expr with opclass options Const */
+			bytea	  **attoptions = RelationGetIndexAttOptions(irel, false);
+			MemoryContext oldcxt = MemoryContextSwitchTo(irel->rd_indexcxt);
+
+			set_fn_opclass_options(locinfo, attoptions[attnum - 1]);
+
+			MemoryContextSwitchTo(oldcxt);
+		}
 	}
 
 	return locinfo;
@@ -848,33 +870,17 @@ index_getprocinfo(Relation irel,
  */
 void
 index_store_float8_orderby_distances(IndexScanDesc scan, Oid *orderByTypes,
-									 double *distanceValues,
-									 bool *distanceNulls, bool recheckOrderBy)
+									 IndexOrderByDistance *distances,
+									 bool recheckOrderBy)
 {
 	int			i;
 
+	Assert(distances || !recheckOrderBy);
+
 	scan->xs_recheckorderby = recheckOrderBy;
-
-	if (!distanceValues)
-	{
-		Assert(!scan->xs_recheckorderby);
-
-		for (i = 0; i < scan->numberOfOrderBys; i++)
-		{
-			scan->xs_orderbyvals[i] = (Datum) 0;
-			scan->xs_orderbynulls[i] = true;
-		}
-
-		return;
-	}
 
 	for (i = 0; i < scan->numberOfOrderBys; i++)
 	{
-		if (distanceNulls && distanceNulls[i])
-		{
-			scan->xs_orderbyvals[i] = (Datum) 0;
-			scan->xs_orderbynulls[i] = true;
-		}
 		if (orderByTypes[i] == FLOAT8OID)
 		{
 #ifndef USE_FLOAT8_BYVAL
@@ -882,8 +888,16 @@ index_store_float8_orderby_distances(IndexScanDesc scan, Oid *orderByTypes,
 			if (!scan->xs_orderbynulls[i])
 				pfree(DatumGetPointer(scan->xs_orderbyvals[i]));
 #endif
-			scan->xs_orderbyvals[i] = Float8GetDatum(distanceValues[i]);
-			scan->xs_orderbynulls[i] = false;
+			if (distances && !distances[i].isnull)
+			{
+				scan->xs_orderbyvals[i] = Float8GetDatum(distances[i].value);
+				scan->xs_orderbynulls[i] = false;
+			}
+			else
+			{
+				scan->xs_orderbyvals[i] = (Datum) 0;
+				scan->xs_orderbynulls[i] = true;
+			}
 		}
 		else if (orderByTypes[i] == FLOAT4OID)
 		{
@@ -893,8 +907,16 @@ index_store_float8_orderby_distances(IndexScanDesc scan, Oid *orderByTypes,
 			if (!scan->xs_orderbynulls[i])
 				pfree(DatumGetPointer(scan->xs_orderbyvals[i]));
 #endif
-			scan->xs_orderbyvals[i] = Float4GetDatum((float4) distanceValues[i]);
-			scan->xs_orderbynulls[i] = false;
+			if (distances && !distances[i].isnull)
+			{
+				scan->xs_orderbyvals[i] = Float4GetDatum((float4) distances[i].value);
+				scan->xs_orderbynulls[i] = false;
+			}
+			else
+			{
+				scan->xs_orderbyvals[i] = (Datum) 0;
+				scan->xs_orderbynulls[i] = true;
+			}
 		}
 		else
 		{
@@ -911,4 +933,58 @@ index_store_float8_orderby_distances(IndexScanDesc scan, Oid *orderByTypes,
 			scan->xs_orderbynulls[i] = true;
 		}
 	}
+}
+
+/* ----------------
+ *      index_opclass_options
+ *
+ *      Parse opclass-specific options for index column.
+ * ----------------
+ */
+bytea *
+index_opclass_options(Relation indrel, AttrNumber attnum, Datum attoptions,
+					  bool validate)
+{
+	int			amoptsprocnum = indrel->rd_indam->amoptsprocnum;
+	Oid			procid = InvalidOid;
+	FmgrInfo   *procinfo;
+	local_relopts relopts;
+
+	/* fetch options support procedure if specified */
+	if (amoptsprocnum != 0)
+		procid = index_getprocid(indrel, attnum, amoptsprocnum);
+
+	if (!OidIsValid(procid))
+	{
+		Oid			opclass;
+		Datum		indclassDatum;
+		oidvector  *indclass;
+		bool		isnull;
+
+		if (!DatumGetPointer(attoptions))
+			return NULL;		/* ok, no options, no procedure */
+
+		/*
+		 * Report an error if the opclass's options-parsing procedure does not
+		 * exist but the opclass options are specified.
+		 */
+		indclassDatum = SysCacheGetAttr(INDEXRELID, indrel->rd_indextuple,
+										Anum_pg_index_indclass, &isnull);
+		Assert(!isnull);
+		indclass = (oidvector *) DatumGetPointer(indclassDatum);
+		opclass = indclass->values[attnum - 1];
+
+		ereport(ERROR,
+				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+				 errmsg("operator class %s has no options",
+						generate_opclass_name(opclass))));
+	}
+
+	init_local_reloptions(&relopts, 0);
+
+	procinfo = index_getprocinfo(indrel, attnum, amoptsprocnum);
+
+	(void) FunctionCall1(procinfo, PointerGetDatum(&relopts));
+
+	return build_local_reloptions(&relopts, attoptions, validate);
 }

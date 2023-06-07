@@ -58,9 +58,9 @@ do
 		EXPECTED="expected/${i}.out"
 	fi
 
-	if [ `gpdiff.pl -I GP_IGNORE: ${EXPECTED} results/${i}.out | wc -l` -ne 0 ]
+	if [ `../regress/gpdiff.pl -gpd_init ../regress/init_file -I GP_IGNORE: ${EXPECTED} results/${i}.out | wc -l` -ne 0 ]
 	then
-		( gpdiff.pl -I GP_IGNORE: -C3 ${EXPECTED} results/${i}.out; \
+		( ../gpdiff.pl -gpd_init ../regress/init_file -I GP_IGNORE: -C3 ${EXPECTED} results/${i}.out; \
 		echo "";  \
 		echo "----------------------"; \
 		echo "" ) >> regression.diffs

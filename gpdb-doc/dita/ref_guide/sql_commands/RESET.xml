@@ -46,7 +46,7 @@ RESET ALL</codeblock>
     </section>
     <section id="section6">
       <title>Compatibility</title>
-      <p><codeph>RESET</codeph> is a Greenplum Database extension.</p>
+      <p><codeph>RESET</codeph> is a Cloudberry Database extension.</p>
     </section>
     <section id="section7">
       <title>See Also</title>

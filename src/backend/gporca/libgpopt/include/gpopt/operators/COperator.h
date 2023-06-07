@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2009-2011 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2009-2011 Cloudberry, Inc.
 //
 //	@filename:
 //		COperator.h

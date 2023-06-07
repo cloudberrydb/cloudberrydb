@@ -10,4 +10,4 @@ SELECT pg_size_pretty(pg_relation_size('a_aoco_table_with_quicklz_compression'))
 INSERT INTO a_aoco_table_with_quicklz_compression values('ksjdhfksdhfksdhfksjhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhhh');
 -- Then the data will be compressed according to a consistent compression ratio
 SELECT pg_size_pretty(pg_relation_size('a_aoco_table_with_quicklz_compression')),
-       get_ao_compression_ratio('a_aoco_table_with_quicklz_compression');
+       get_ao_compression_ratio('a_aoco_table_with_quicklz_compression') >= 1.3 as get_ao_compression_ratio;

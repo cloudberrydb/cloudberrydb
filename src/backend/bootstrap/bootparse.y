@@ -4,9 +4,9 @@
  * bootparse.y
  *	  yacc grammar for the "bootstrap" mode (BKI file format)
  *
- * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 2006-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,16 +20,10 @@
 
 #include <unistd.h>
 
-#include "access/attnum.h"
-#include "access/htup.h"
-#include "access/itup.h"
-#include "access/tupdesc.h"
 #include "bootstrap/bootstrap.h"
-#include "catalog/catalog.h"
 #include "catalog/heap.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_am.h"
-#include "catalog/pg_attribute.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_auth_members.h"
 #include "catalog/pg_class.h"
@@ -40,20 +34,7 @@
 #include "commands/defrem.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
-#include "nodes/nodes.h"
-#include "nodes/parsenodes.h"
-#include "nodes/pg_list.h"
-#include "nodes/primnodes.h"
-#include "rewrite/prs2lock.h"
-#include "storage/block.h"
-#include "storage/fd.h"
-#include "storage/ipc.h"
-#include "storage/itemptr.h"
-#include "storage/off.h"
-#include "storage/smgr.h"
-#include "tcop/dest.h"
 #include "utils/memutils.h"
-#include "utils/rel.h"
 
 
 /*
@@ -312,6 +293,8 @@ Boot_DeclareIndexStmt:
 					stmt->idxcomment = NULL;
 					stmt->indexOid = InvalidOid;
 					stmt->oldNode = InvalidOid;
+					stmt->oldCreateSubid = InvalidSubTransactionId;
+					stmt->oldFirstRelfilenodeSubid = InvalidSubTransactionId;
 					stmt->unique = false;
 					stmt->primary = false;
 					stmt->isconstraint = false;
@@ -335,8 +318,7 @@ Boot_DeclareIndexStmt:
 								false,
 								false,
 								true, /* skip_build */
-								false,
-								false /* is_new_table */);
+								false);
 					do_end();
 				}
 		;
@@ -363,6 +345,8 @@ Boot_DeclareUniqueIndexStmt:
 					stmt->idxcomment = NULL;
 					stmt->indexOid = InvalidOid;
 					stmt->oldNode = InvalidOid;
+					stmt->oldCreateSubid = InvalidSubTransactionId;
+					stmt->oldFirstRelfilenodeSubid = InvalidSubTransactionId;
 					stmt->unique = true;
 					stmt->primary = false;
 					stmt->isconstraint = false;
@@ -386,8 +370,7 @@ Boot_DeclareUniqueIndexStmt:
 								false,
 								false,
 								true, /* skip_build */
-								false,
-								false /* is_new_table */);
+								false);
 					do_end();
 				}
 		;

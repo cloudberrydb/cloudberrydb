@@ -25,8 +25,8 @@
  *
  * The rule for developers is: if you commit a change that requires
  * an initdb, you should update the catalog version number (as well as
- * notifying the pghackers mailing list, which has been the informal
- * practice for a long time).
+ * notifying the pgsql-hackers mailing list, which has been the
+ * informal practice for a long time).
  *
  * The catalog version number is placed here since modifying files in
  * include/catalog is the most common kind of initdb-forcing change.
@@ -34,7 +34,7 @@
  * database contents or layout, such as altering tuple headers.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/catversion.h
@@ -51,11 +51,11 @@
  * on that day.  (Hopefully we'll never commit ten independent sets of
  * catalog changes on the same day...)
  *
- * For Greenplum, use 3 as the first digit, to distinguish PostgreSQL
- * catalog versions from Greenplum.
+ * For Cloudberry, use 3 as the first digit, to distinguish PostgreSQL
+ * catalog versions from Cloudberry.
  */
 
 /*							3yyymmddN */
-#define CATALOG_VERSION_NO	302109291
+#define CATALOG_VERSION_NO	302206171
 
 #endif

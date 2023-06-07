@@ -169,7 +169,7 @@ class pxssh (spawn):
             try:
                 prompt += self.read_nonblocking(size=1, timeout=timeout)
                 expired = time.time() - begin # updated total time expired
-                timeout = inter_char_timeout 
+                timeout = inter_char_timeout
             except TIMEOUT:
                 break
 
@@ -245,7 +245,7 @@ class pxssh (spawn):
         manually set the :attr:`PROMPT` attribute.
         '''
 
-        ssh_options = ''.join([" -o '%s=%s'" % (o, v) for (o, v) in self.options.items()]) 
+        ssh_options = ''.join([" -o '%s=%s'" % (o, v) for (o, v) in self.options.items()])
         if quiet:
             ssh_options = ssh_options + ' -q'
         if not check_local_ip:

@@ -3,9 +3,9 @@
  * cdbcopy.h
  *	 Definitions and API functions for cdbcopy.c
  *	 These are functions that are used by the backend
- *	 COPY command in Greenplum Database.
+ *	 COPY command in Cloudberry Database.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -24,7 +24,8 @@
 #define COPYOUT_CHUNK_SIZE 16 * 1024
 
 struct CdbDispatcherState;
-struct CopyStateData;
+struct CopyFromStateData;
+struct CopyToStateData;
 
 typedef struct CdbCopy
 {
@@ -42,7 +43,8 @@ typedef struct CdbCopy
 
 
 /* global function declarations */
-extern CdbCopy *makeCdbCopy(struct CopyStateData *cstate, bool copy_in);
+extern CdbCopy *makeCdbCopyFrom(struct CopyFromStateData *cstate);
+extern CdbCopy *makeCdbCopyTo(struct CopyToStateData *cstate);
 extern void cdbCopyStart(CdbCopy *cdbCopy, CopyStmt *stmt, int file_encoding);
 extern void cdbCopySendDataToAll(CdbCopy *c, const char *buffer, int nbytes);
 extern void cdbCopySendData(CdbCopy *c, int target_seg, const char *buffer, int nbytes);

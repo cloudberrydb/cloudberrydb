@@ -16,6 +16,6 @@
 # The contract of the gp_id table is that it must have exactly one row on
 # every segment.  The contents of the row do not matter.
 {
-  gpname => 'Greenplum', content => '-1', dbid => '-1', numsegments => '-1' },
+  gpname => 'Cloudberry', content => '-1', dbid => '-1', numsegments => '-1' },
 
 ]

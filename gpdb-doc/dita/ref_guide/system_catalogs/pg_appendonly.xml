@@ -162,6 +162,6 @@
       </tgroup>
     </table>
     <note type="note" otherprops="pivotal"><sup>1</sup>QuickLZ compression is available only in the
-      commercial release of Tanzu Greenplum.</note>
+      commercial release of Tanzu Cloudberry.</note>
   </body>
 </topic>

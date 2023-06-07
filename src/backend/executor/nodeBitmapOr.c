@@ -3,7 +3,7 @@
  * nodeBitmapOr.c
  *	  routines to handle BitmapOr nodes.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -123,7 +123,7 @@ MultiExecBitmapOr(BitmapOrState *node)
 	int			nplans;
 	int			i;
 	/*
-	 * Greenplum uses result for TIDBitmap result, and node->bitmap for
+	 * Cloudberry uses result for TIDBitmap result, and node->bitmap for
 	 * StreamBitmap result if there is any StreamBitmap.
 	 *
 	 * At last it will union them and return.
@@ -150,7 +150,7 @@ MultiExecBitmapOr(BitmapOrState *node)
 
 		/*
 		 * Note for further merge iteration:
-		 *     Greenplum's BitmapIndexScan returns a StreamBitmap
+		 *     Cloudberry's BitmapIndexScan returns a StreamBitmap
 		 */
 		subresult = MultiExecProcNode(subnode);
 

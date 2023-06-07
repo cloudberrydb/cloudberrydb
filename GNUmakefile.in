@@ -25,12 +25,14 @@ all:
 	$(MAKE) -C contrib/pgcrypto all
 	$(MAKE) -C contrib/btree_gin all
 	$(MAKE) -C contrib/pg_trgm all
+	$(MAKE) -C contrib/tablefunc all
+	$(MAKE) -C contrib/passwordcheck all
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo all
 endif
 	$(MAKE) -C gpMgmt all
 	$(MAKE) -C gpcontrib all
-	+@echo "All of Greenplum Database successfully made. Ready to install."
+	+@echo "All of Cloudberry Database successfully made. Ready to install."
 
 docs:
 	$(MAKE) -C doc all
@@ -41,6 +43,11 @@ world:
 
 # build src/ before contrib/
 world-contrib-recurse: world-src-recurse
+
+$(call recurse,world-bin,src config contrib,all)
+
+# build src/ before contrib/
+world-bin-contrib-recurse: world-bin-src-recurse
 
 html man:
 	$(MAKE) -C doc $@
@@ -60,12 +67,14 @@ install:
 	$(MAKE) -C contrib/pgcrypto $@
 	$(MAKE) -C contrib/btree_gin $@
 	$(MAKE) -C contrib/pg_trgm $@
+	$(MAKE) -C contrib/tablefunc $@
+	$(MAKE) -C contrib/passwordcheck $@
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo $@
 endif
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C gpcontrib $@
-	+@echo "Greenplum Database installation complete."
+	+@echo "Cloudberry Database installation complete."
 
 install-docs:
 	$(MAKE) -C doc install
@@ -77,7 +86,12 @@ install-world:
 # build src/ before contrib/
 install-world-contrib-recurse: install-world-src-recurse
 
-$(call recurse,installdirs uninstall init-po update-po,doc src config gpcontrib)
+$(call recurse,install-world-bin,src config contrib gpcontrib,install)
+
+# build src/ before contrib/
+install-world-bin-contrib-recurse: install-world-bin-src-recurse
+
+$(call recurse,installdirs uninstall init-po update-po,doc src config contrib gpcontrib)
 
 $(call recurse,distprep coverage,doc src config contrib gpcontrib)
 
@@ -117,6 +131,7 @@ create-demo-cluster:
 destroy-demo-cluster:
 	$(MAKE) -C gpAux/gpdemo destroy-demo-cluster
 
+#check-tests: | temp-install
 check-tests installcheck installcheck-parallel installcheck-tests: CHECKPREP_TOP=src/test/regress
 check-tests installcheck installcheck-parallel installcheck-tests: submake-generated-headers
 	$(MAKE) -C src/test/regress $@
@@ -147,18 +162,20 @@ $(call recurse,checkprep,  src/test src/pl src/interfaces/ecpg contrib src/bin g
 # which probably indicates that we're relying on undefined behavior... we should
 # probably pull anything order-dependent out of recurse() and back into the
 # recipe body).
-ICW_TARGETS  = src/test src/pl src/interfaces/gppc
+ICW_TARGETS  = src/interfaces/gppc
 ICW_TARGETS += contrib/auto_explain contrib/citext contrib/btree_gin
 ICW_TARGETS += contrib/file_fdw contrib/formatter_fixedwidth
 ICW_TARGETS += contrib/extprotocol contrib/dblink contrib/pg_trgm
 ICW_TARGETS += contrib/indexscan contrib/hstore contrib/pgcrypto
+ICW_TARGETS += contrib/tablefunc contrib/passwordcheck
 # sslinfo depends on openssl
 ifeq ($(with_openssl), yes)
 ICW_TARGETS += contrib/sslinfo
 endif
-ICW_TARGETS += gpcontrib src/bin gpMgmt/bin
+ICW_TARGETS += gpcontrib gpMgmt/bin
 
-$(call recurse,installcheck-world, $(ICW_TARGETS),installcheck)
+$(call recurse,installcheck-world,src/test src/pl src/interfaces/ecpg $(ICW_TARGETS) src/bin,installcheck)
+$(call recurse,install-tests,src/test/regress,install-tests)
 
 # GPDB: Postgres disables the SSL tests during ICW because of the TCP port that
 # it opens to other users on the same machine during testing. GPDB makes no such
@@ -185,6 +202,10 @@ unittest-check:
 
 GNUmakefile: GNUmakefile.in $(top_builddir)/config.status
 	./config.status $@
+
+update-unicode: | submake-generated-headers submake-libpgport
+	$(MAKE) -C src/common/unicode $@
+	$(MAKE) -C contrib/unaccent $@
 
 
 ##########################################################################
@@ -239,7 +260,10 @@ distcheck: dist
 	rm -rf $(distdir) $(dummy)
 	@echo "Distribution integrity checks out."
 
+headerscheck: submake-generated-headers
+	$(top_srcdir)/src/tools/pginclude/headerscheck $(top_srcdir) $(abs_top_builddir)
+
 cpluspluscheck: submake-generated-headers
 	$(top_srcdir)/src/tools/pginclude/cpluspluscheck $(top_srcdir) $(abs_top_builddir)
 
-.PHONY: dist distdir distcheck docs install-docs world check-world install-world installcheck-world
+.PHONY: dist distdir distcheck docs install-docs world check-world install-world installcheck-world headerscheck cpluspluscheck

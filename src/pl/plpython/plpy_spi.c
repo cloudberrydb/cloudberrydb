@@ -14,21 +14,17 @@
 #include "executor/spi.h"
 #include "mb/pg_wchar.h"
 #include "parser/parse_type.h"
-#include "utils/memutils.h"
-#include "utils/syscache.h"
-#include "utils/faultinjector.h"
-
-#include "plpython.h"
-
-#include "plpy_spi.h"
-
 #include "plpy_elog.h"
 #include "plpy_main.h"
 #include "plpy_planobject.h"
 #include "plpy_plpymodule.h"
 #include "plpy_procedure.h"
 #include "plpy_resultobject.h"
-
+#include "plpy_spi.h"
+#include "plpython.h"
+#include "utils/faultinjector.h"
+#include "utils/memutils.h"
+#include "utils/syscache.h"
 
 static PyObject *PLy_spi_execute_query(char *query, long limit);
 static PyObject *PLy_spi_execute_fetch_result(SPITupleTable *tuptable,
@@ -268,13 +264,11 @@ PLy_spi_execute_plan(PyObject *ob, PyObject *list, int64 limit)
 				plan->values[j] = PLy_output_convert(arg, elem, &isnull);
 				nulls[j] = isnull ? 'n' : ' ';
 			}
-			PG_CATCH();
+			PG_FINALLY();
 			{
 				Py_DECREF(elem);
-				PG_RE_THROW();
 			}
 			PG_END_TRY();
-			Py_DECREF(elem);
 		}
 
 		rv = SPI_execute_plan(plan->plan, plan->values, nulls,

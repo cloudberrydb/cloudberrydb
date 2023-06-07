@@ -3,17 +3,15 @@
  *
  *	information support functions
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/info.c
  */
 
 #include "postgres_fe.h"
 
-#include "pg_upgrade.h"
-
 #include "access/transam.h"
 #include "catalog/pg_class_d.h"
-
+#include "pg_upgrade.h"
 #include "greenplum/pg_upgrade_greenplum.h"
 
 static void create_rel_filename_map(const char *old_data, const char *new_data,
@@ -327,7 +325,7 @@ print_maps(FileNameMap *maps, int n_maps, const char *db_name)
 		pg_log(PG_VERBOSE, "mappings for database \"%s\":\n", db_name);
 
 		for (mapnum = 0; mapnum < n_maps; mapnum++)
-			pg_log(PG_VERBOSE, "%s.%s: %u to %u\n",
+			pg_log(PG_VERBOSE, "%s.%s: %lu to %lu\n",
 				   maps[mapnum].nspname, maps[mapnum].relname,
 				   maps[mapnum].old_relfilenode,
 				   maps[mapnum].new_relfilenode);
@@ -479,7 +477,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 	int			i;
 
 	/*
-	 * If we are upgrading from Greenplum 4.3.x we need to record which rels
+	 * If we are upgrading from Cloudberry 4.3.x we need to record which rels
 	 * have numeric attributes, as they need to be rewritten.
 	 */
 	if (GET_MAJOR_VERSION(old_cluster.major_version) == 802)
@@ -556,7 +554,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 			 CppAsString2(RELKIND_AOSEGMENTS) ", "
 			 CppAsString2(RELKIND_AOBLOCKDIR) ", "
 			 CppAsString2(RELKIND_MATVIEW) " %s) AND "
-	/* workaround for Greenplum 4.3 bugs */
+	/* workaround for Cloudberry 4.3 bugs */
 			 " %s "
 	/* exclude possible orphaned temp tables */
 			 "    ((n.nspname !~ '^pg_temp_' AND "
@@ -570,7 +568,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 	/* see the comment at the top of old_8_3_create_sequence_script() */
 			 (GET_MAJOR_VERSION(old_cluster.major_version) <= 803) ?
 			 "" : ", " CppAsString2(RELKIND_SEQUENCE),
-	/* workaround for Greenplum 4.3 bugs */
+	/* workaround for Cloudberry 4.3 bugs */
 			 (GET_MAJOR_VERSION(old_cluster.major_version) > 802) ?
 			 "" : "  relname NOT IN ('__gp_localid', '__gp_masterid', "
 			 		 "'__gp_log_segment_ext', '__gp_log_master_ext', 'gp_disk_free') AND ",
@@ -702,7 +700,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 		relname = PQgetvalue(res, relnum, i_relname);
 		curr->relname = pg_strdup(relname);
 
-		curr->relfilenode = atooid(PQgetvalue(res, relnum, i_relfilenode));
+		curr->relfilenode = atorelfilenodeid(PQgetvalue(res, relnum, i_relfilenode));
 		curr->tblsp_alloc = false;
 
 		/* Is the tablespace oid non-default? */
@@ -1078,7 +1076,7 @@ get_rel_infos(ClusterInfo *cluster, DbInfo *dbinfo)
 			/*
 			 * Regardless of if there is a NUMERIC attribute there is a
 			 * conversion needed to fix the headers of heap pages if the old
-			 * cluster is based on PostgreSQL 8.2  (Greenplum 4.3.x).
+			 * cluster is based on PostgreSQL 8.2  (Cloudberry 4.3.x).
 			 */
 			curr->gpdb4_heap_conversion_needed = true;
 		}

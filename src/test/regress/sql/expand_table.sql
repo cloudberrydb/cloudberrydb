@@ -253,7 +253,7 @@ select gp_segment_id, count(*) from table_with_update_trigger group by 1 order b
 -- numsegments with child tables.
 --
 select gp_debug_set_create_table_default_numsegments(2);
-create table mix_base_tbl (a int4, b int4) distributed by (a);
+create table mix_base_tbl (a int4, b int4) DISTRIBUTED RANDOMLY;
 insert into mix_base_tbl select g, g from generate_series(1, 3) g;
 select gp_debug_set_create_table_default_numsegments('full');
 create table mix_child_a (a int4, b int4) inherits (mix_base_tbl) distributed by (a);
@@ -261,14 +261,14 @@ insert into mix_child_a select g, g from generate_series(11, 13) g;
 select gp_debug_set_create_table_default_numsegments(2);
 create table mix_child_b (a int4, b int4) inherits (mix_base_tbl) distributed by (b);
 insert into mix_child_b select g, g from generate_series(21, 23) g;
-select gp_segment_id, * from mix_base_tbl order by 2, 1;
+select * from mix_base_tbl order by 2, 1;
 -- update distributed column, numsegments does not change
 update mix_base_tbl set a=a+1;
-select gp_segment_id, * from mix_base_tbl order by 2, 1;
+select * from mix_base_tbl order by 2, 1;
 -- expand the parent table, both parent and child table will be rebalanced to all
 -- segments
 Alter table mix_base_tbl expand table;
-select gp_segment_id, * from mix_base_tbl order by 2, 1;
+select * from mix_base_tbl order by 2, 1;
 
 -- multi-level partition tables
 select gp_debug_set_create_table_default_numsegments(2);

@@ -21,8 +21,10 @@ from gp_segment_configuration where content = 0 and role = 'p';
 -- end_ignore
 -- Wait a few seconds, to ensure the config changes take effect.
 select pg_sleep(5);
-show gp_fts_probe_retries;
 select gp_request_fts_probe_scan();
+-- start_ignore
+\!gpfts -A -D
+-- end_ignore
 select gp_wait_until_triggered_fault('fts_conn_startup_packet', 3, dbid)
 from gp_segment_configuration where content = 0 and role = 'p';
 select role, preferred_role, mode, status from gp_segment_configuration where content = 0;
@@ -38,6 +40,10 @@ from gp_segment_configuration where content = 0 and role = 'p';
 -- see the effect due to the fault.
 select gp_request_fts_probe_scan();
 select gp_request_fts_probe_scan();
+-- start_ignore
+\!gpfts -A -D
+\!gpfts -A -D
+-- end_ignore
 select role, preferred_role, mode, status from gp_segment_configuration where content = 0;
 
 -- The remaining steps are to bring back the cluster to original state.
@@ -57,13 +63,14 @@ begin
     exception
       when others then
         raise notice 'mirror may not be promoted yet: %', sqlerrm;
-        perform pg_sleep(0.5);
+        perform pg_sleep(1);
     end;
   end loop;
 end;
 $$;
 
 \! gprecoverseg -av --no-progress
+\!gpfts -A -D
 -- end_ignore
 
 -- loop while segments come in sync
@@ -81,6 +88,7 @@ select role, preferred_role, mode, status from gp_segment_configuration where co
 
 -- start_ignore
 \! gprecoverseg -arv
+\!gpfts -A -D
 -- end_ignore
 
 -- loop while segments come in sync
@@ -97,7 +105,6 @@ $$;
 select role, preferred_role, mode, status from gp_segment_configuration where content = 0;
 
 -- start_ignore
-\!gpconfig -r gp_fts_probe_retries --masteronly
 \!gpconfig -r gp_gang_creation_retry_count --skipvalidation --masteronly
 \!gpconfig -r gp_gang_creation_retry_timer --skipvalidation --masteronly
 \!gpstop -u

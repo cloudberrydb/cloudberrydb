@@ -6,7 +6,7 @@ associated action to be taken when that point is hit during execution.
 Fault points are defined in the instrumented code using
 SIMPLE_FAULT_INJECTOR() macro.  A fault point is identifed by a name.
 This module provides an interface to inject a predefined fault point
-into a running Greenplum cluster by associating an action with the
+into a running Cloudberry cluster by associating an action with the
 fault point.  Action can be error, panic, sleep, skip, infinite_loop,
 etc.
 
@@ -142,3 +142,23 @@ many backends, such as in parallel regress tests.
 
 * Be sure to "reset" all fault points at the end of a test that
 associates actions with them.
+
+* Supplementary details
+==========================================================
+
+  When we injected PANIC fault for Segment node, FTS will promote Mirror node to Primary node
+so that causes a change in the cluster topology and tests have side effects. To prevent this kind
+of situation from happening, when injecting PANIC faults into Segment nodes. If the FTS function is
+enabled, we need to print a warning message to prompt the user to prevent such operations.
+
+  The current implementation is achieved by calling the _PG_init function to register the 
+callback function when the dynamic library is loaded. But this implementation is problematic. 
+This is because we connect the Master, the newly generated QE node will not actively load the 
+gp_fault_inject dynamic library into the QE process. 
+
+  To achieve this, we will explicitly load the gp_fault_inject dynamic library in the QE node 
+processing function HandleFaultMessage to inject our pre-written warning callback function. 
+In addition, since the warning callback function needs to determine whether the FTS process is 
+enabled on the Segment node, we need to synchronize the information on whether the FTS on the
+Master is enabled to the corresponding QE process.
+

@@ -2,9 +2,9 @@
 title: Loading Data 
 ---
 
-Description of the different ways to add data to Greenplum Database.
+Description of the different ways to add data to Cloudberry Database.
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 
 ## <a id="topic_tmf_t2t_bp"></a>INSERT Statement with Column Values 
 
@@ -30,17 +30,17 @@ You can run multiple concurrent `COPY` commands to improve performance.
 
 ## <a id="topic_kgp_z2t_bp"></a>External Tables 
 
-External tables provide access to data in sources outside of Greenplum Database. They can be accessed with `SELECT` statements and are commonly used with the Extract, Load, Transform \(ELT\) pattern, a variant of the Extract, Transform, Load \(ETL\) pattern that takes advantage of Greenplum Database's fast parallel data loading capability.
+External tables provide access to data in sources outside of Cloudberry Database. They can be accessed with `SELECT` statements and are commonly used with the Extract, Load, Transform \(ELT\) pattern, a variant of the Extract, Transform, Load \(ETL\) pattern that takes advantage of Cloudberry Database's fast parallel data loading capability.
 
 With ETL, data is extracted from its source, transformed outside of the database using external transformation tools, such as Informatica or Datastage, and then loaded into the database.
 
-With ELT, Greenplum external tables provide access to data in external sources, which could be read-only files \(for example, text, CSV, or XML files\), Web servers, Hadoop file systems, executable OS programs, or the Greenplum `gpfdist` file server, described in the next section. External tables support SQL operations such as select, sort, and join so the data can be loaded and transformed simultaneously, or loaded into a *load table* and transformed in the database into target tables.
+With ELT, Cloudberry external tables provide access to data in external sources, which could be read-only files \(for example, text, CSV, or XML files\), Web servers, Hadoop file systems, executable OS programs, or the Cloudberry `gpfdist` file server, described in the next section. External tables support SQL operations such as select, sort, and join so the data can be loaded and transformed simultaneously, or loaded into a *load table* and transformed in the database into target tables.
 
-The external table is defined with a `CREATE EXTERNAL TABLE` statement, which has a `LOCATION` clause to define the location of the data and a `FORMAT` clause to define the formatting of the source data so that the system can parse the input data. Files use the `file://` protocol, and must reside on a segment host in a location accessible by the Greenplum superuser. The data can be spread out among the segment hosts with no more than one file per primary segment on each host. The number of files listed in the `LOCATION` clause is the number of segments that will read the external table in parallel.
+The external table is defined with a `CREATE EXTERNAL TABLE` statement, which has a `LOCATION` clause to define the location of the data and a `FORMAT` clause to define the formatting of the source data so that the system can parse the input data. Files use the `file://` protocol, and must reside on a segment host in a location accessible by the Cloudberry superuser. The data can be spread out among the segment hosts with no more than one file per primary segment on each host. The number of files listed in the `LOCATION` clause is the number of segments that will read the external table in parallel.
 
 ## <a id="topic_x2l_bft_bp"></a>External Tables with Gpfdist 
 
-The fastest way to load large fact tables is to use external tables with `gpfdist`. `gpfdist` is a file server program using an HTTP protocol that serves external data files to Greenplum Database segments in parallel. A `gpfdist` instance can serve 200 MB/second and many `gpfdist` processes can run simultaneously, each serving up a portion of the data to be loaded. When you begin the load using a statement such as `INSERT INTO <table> SELECT * FROM <external_table>`, the `INSERT` statement is parsed by the master and distributed to the primary segments. The segments connect to the `gpfdist` servers and retrieve the data in parallel, parse and validate the data, calculate a hash from the distribution key data and, based on the hash key, send the row to its destination segment. By default, each `gpfdist` instance will accept up to 64 connections from segments. With many segments and `gpfdist` servers participating in the load, data can be loaded at very high rates.
+The fastest way to load large fact tables is to use external tables with `gpfdist`. `gpfdist` is a file server program using an HTTP protocol that serves external data files to Cloudberry Database segments in parallel. A `gpfdist` instance can serve 200 MB/second and many `gpfdist` processes can run simultaneously, each serving up a portion of the data to be loaded. When you begin the load using a statement such as `INSERT INTO <table> SELECT * FROM <external_table>`, the `INSERT` statement is parsed by the master and distributed to the primary segments. The segments connect to the `gpfdist` servers and retrieve the data in parallel, parse and validate the data, calculate a hash from the distribution key data and, based on the hash key, send the row to its destination segment. By default, each `gpfdist` instance will accept up to 64 connections from segments. With many segments and `gpfdist` servers participating in the load, data can be loaded at very high rates.
 
 Primary segments access external files in parallel when using `gpfdist` up to the value of `gp_external_max_segs`. When optimizing `gpfdist` performance, maximize the parallelism as the number of segments increase. Spread the data evenly across as many ETL nodes as possible. Split very large data files into equal parts and spread the data across as many file systems as possible.
 
@@ -73,7 +73,7 @@ Performing small, high frequency data loads into heavily partitioned column-orie
 
 ## <a id="topic_xyt_cft_bp"></a>Gpload 
 
-`gpload` is a data loading utility that acts as an interface to the Greenplum external table parallel loading feature.
+`gpload` is a data loading utility that acts as an interface to the Cloudberry external table parallel loading feature.
 
 Beware of using `gpload` as it can cause catalog bloat by creating and dropping external tables. Use `gpfdist` instead, since it provides the best performance.
 
@@ -93,8 +93,8 @@ The load is accomplished in a single transaction.
 -   Disable automatic statistics collection during loading by setting the `gp_autostats_mode` configuration parameter to `NONE`.
 -   External tables are not intended for frequent or ad hoc access.
 -   When using `gpfdist`, maximize network bandwidth by running one `gpfdist` instance for each NIC on the ETL server. Divide the source data evenly between the `gpfdist` instances.
--   When using `gpload`, run as many simultaneous `gpload` instances as resources allow. Take advantage of the CPU, memory, and networking resources available to increase the amount of data that can be transferred from ETL servers to the Greenplum Database.
--   Use the `SEGMENT REJECT LIMIT` clause of the `COPY` statement to set a limit for the number or percentage of rows that can have errors before the `COPY FROM` command is cancelled. The reject limit is per segment; when any one segment exceeds the limit, the command is cancelled and no rows are added. Use the `LOG ERRORS` clause to save error rows. If a row has errors in the formatting—for example missing or extra values, or incorrect data types—Greenplum Database stores the error information and row internally. Use the `gp_read_error_log()` built-in SQL function to access this stored information.
+-   When using `gpload`, run as many simultaneous `gpload` instances as resources allow. Take advantage of the CPU, memory, and networking resources available to increase the amount of data that can be transferred from ETL servers to the Cloudberry Database.
+-   Use the `SEGMENT REJECT LIMIT` clause of the `COPY` statement to set a limit for the number or percentage of rows that can have errors before the `COPY FROM` command is cancelled. The reject limit is per segment; when any one segment exceeds the limit, the command is cancelled and no rows are added. Use the `LOG ERRORS` clause to save error rows. If a row has errors in the formatting—for example missing or extra values, or incorrect data types—Cloudberry Database stores the error information and row internally. Use the `gp_read_error_log()` built-in SQL function to access this stored information.
 -   If the load has errors, run `VACUUM` on the table to recover space.
 -   After you load data into a table, run `VACUUM` on heap tables, including system catalogs, and `ANALYZE` on all tables. It is not necessary to run `VACUUM` on append-optimized tables. If the table is partitioned, you can vacuum and analyze just the partitions affected by the data load. These steps clean up any rows from prematurely ended loads, deletes, or updates and update statistics for the table.
 -   Recheck for segment skew in the table after loading a large amount of data. You can use a query like the following to check for skew:
@@ -112,5 +112,5 @@ The load is accomplished in a single transaction.
 
 ### <a id="addinfo"></a>Additional Information 
 
-See the *Greenplum Database Reference Guide* for detailed instructions for loading data using `gpfdist` and `gpload`.
+See the *Cloudberry Database Reference Guide* for detailed instructions for loading data using `gpfdist` and `gpload`.
 

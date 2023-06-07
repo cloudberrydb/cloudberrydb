@@ -5,20 +5,20 @@
 
 <b>createdb</b> <b>-? | --help</b>
 
-<b>createdb</b> <b>-V | --version</b></codeblock></section><section id="section3"><title>Description</title><p><codeph>createdb</codeph> creates a new database in a Greenplum Database system. </p><p>Normally, the database user who runs this command becomes the
+<b>createdb</b> <b>-V | --version</b></codeblock></section><section id="section3"><title>Description</title><p><codeph>createdb</codeph> creates a new database in a Cloudberry Database system. </p><p>Normally, the database user who runs this command becomes the
 owner of the new database. However, a different owner can be specified
 via the <codeph>-O</codeph> option, if the executing user has appropriate
 privileges.</p><p><codeph>createdb</codeph> is a wrapper around the SQL command <codeph><xref
               href="../../ref_guide/sql_commands/CREATE_DATABASE.xml#topic1"/>
 </codeph>.</p></section><section id="section4"><title>Options</title><parml><plentry><pt><varname>dbname</varname></pt><pd>The name of the database to be created. The name must be unique among all other databases in the
-              Greenplum system. If not specified, reads from the
+              Cloudberry system. If not specified, reads from the
             environment variable <codeph>PGDATABASE</codeph>, then <codeph>PGUSER</codeph> or
             defaults to the current system user.</pd></plentry><plentry><pt><varname>description</varname></pt><pd>A comment to be associated with the newly created database. Descriptions
               containing white space must be enclosed in quotes.</pd></plentry><plentry><pt>-D <varname>tablespace</varname> | --tablespace=<varname>tablespace</varname></pt><pd>Specifies the default tablespace for the database. (This name
                 is processed as a double-quoted identifier.)</pd></plentry><plentry><pt>-e echo</pt><pd>Echo the commands that <codeph>createdb</codeph> generates and sends to the server.</pd></plentry>
         <plentry><pt>-E <varname>encoding</varname> | --encoding <varname>encoding</varname></pt><pd>Character set encoding to use in the new database. Specify a string constant (such as
               <codeph>'UTF8'</codeph>), an integer encoding number, or <codeph>DEFAULT</codeph> to
-            use the default encoding. <ph>See the Greenplum Database Reference
+            use the default encoding. <ph>See the Cloudberry Database Reference
               Guide for information about supported character sets.</ph></pd>
         </plentry>
         <plentry>
@@ -52,10 +52,10 @@ privileges.</p><p><codeph>createdb</codeph> is a wrapper around the SQL command 
           <codeph>-O</codeph>, and <codeph>-T</codeph> correspond to options of the underlying SQL
         command <codeph>CREATE DATABASE</codeph>; see <ph><codeph><xref
               href="../../ref_guide/sql_commands/CREATE_DATABASE.xml#topic1"
-            /></codeph></ph><ph><codeph>CREATE DATABASE</codeph> in the <i>Greenplum Database
-            Reference Guide</i></ph> for more information about them. </p><sectiondiv id="section5"><b>Connection Options</b><parml><plentry><pt>-h <varname>host</varname> | --host=<varname>host</varname></pt><pd>The host name of the machine on which the Greenplum coordinator database
+            /></codeph></ph><ph><codeph>CREATE DATABASE</codeph> in the <i>Cloudberry Database
+            Reference Guide</i></ph> for more information about them. </p><sectiondiv id="section5"><b>Connection Options</b><parml><plentry><pt>-h <varname>host</varname> | --host=<varname>host</varname></pt><pd>The host name of the machine on which the Cloudberry coordinator database
               server is running. If not specified, reads from the environment variable
-                <codeph>PGHOST</codeph> or defaults to localhost.</pd></plentry><plentry><pt>-p <varname>port</varname> | --port=<varname>port</varname></pt><pd>The TCP port on which the Greenplum coordinator database server is
+                <codeph>PGHOST</codeph> or defaults to localhost.</pd></plentry><plentry><pt>-p <varname>port</varname> | --port=<varname>port</varname></pt><pd>The TCP port on which the Cloudberry coordinator database server is
               listening for connections. If not specified, reads from the environment variable
                 <codeph>PGPORT</codeph> or defaults to 5432.</pd></plentry><plentry><pt>-U <varname>username</varname> | --username=<varname>username</varname></pt><pd>The database role name to connect as. If not specified, reads from
 the environment variable <codeph>PGUSER</codeph> or defaults to the current
@@ -69,11 +69,11 @@ batch jobs and scripts where no user is present to enter a password.</pd></plent
               not specified, the <codeph>postgres</codeph> database will be used; if that does not
               exist (or if it is the name of the new database being created),
                 <codeph>template1</codeph> will be used.</pd>
-          </plentry></parml></sectiondiv></section><section id="section6"><title>Examples</title><p>To create the database <codeph>test</codeph> using the default options:</p><codeblock>createdb test</codeblock><p>To create the database <codeph>demo</codeph> using the Greenplum
+          </plentry></parml></sectiondiv></section><section id="section6"><title>Examples</title><p>To create the database <codeph>test</codeph> using the default options:</p><codeblock>createdb test</codeblock><p>To create the database <codeph>demo</codeph> using the Cloudberry
         coordinator on host <codeph>gpmaster</codeph>, port <codeph>54321</codeph>, using the
           <codeph>LATIN1</codeph> encoding scheme:</p><codeblock>createdb -p 54321 -h gpmaster -E LATIN1 demo</codeblock></section><section id="section7">
       <title>See Also</title>
-      <p><ph otherprops="op-print"><codeph>CREATE DATABASE</codeph> in the <i>Greenplum Database
+      <p><ph otherprops="op-print"><codeph>CREATE DATABASE</codeph> in the <i>Cloudberry Database
             Reference Guide</i></ph><ph><codeph><xref
               href="../../ref_guide/sql_commands/CREATE_DATABASE.xml#topic1"/></codeph>,
               <codeph><xref href="dropdb.xml#topic1"/></codeph></ph></p>

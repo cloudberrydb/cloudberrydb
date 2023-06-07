@@ -3,7 +3,7 @@
  * trigger.h
  *	  Declarations for trigger handling.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/commands/trigger.h
@@ -42,13 +42,14 @@ typedef struct TriggerData
 	TupleTableSlot *tg_newslot;
 	Tuplestorestate *tg_oldtable;
 	Tuplestorestate *tg_newtable;
+	const Bitmapset *tg_updatedcols;
 } TriggerData;
 
 /*
  * The state for capturing old and new tuples into transition tables for a
- * single ModifyTable node (or other operation source, e.g. copy.c).
+ * single ModifyTable node (or other operation source, e.g. copyfrom.c).
  *
- * This is per-caller to avoid conflicts in setting tcs_map or
+ * This is per-caller to avoid conflicts in setting
  * tcs_original_insert_tuple.  Note, however, that the pointed-to
  * private data may be shared across multiple callers.
  */
@@ -68,19 +69,11 @@ typedef struct TransitionCaptureState
 	bool		tcs_insert_new_table;
 
 	/*
-	 * For UPDATE and DELETE, AfterTriggerSaveEvent may need to convert the
-	 * new and old tuples from a child table's format to the format of the
-	 * relation named in a query so that it is compatible with the transition
-	 * tuplestores.  The caller must store the conversion map here if so.
-	 */
-	TupleConversionMap *tcs_map;
-
-	/*
 	 * For INSERT and COPY, it would be wasteful to convert tuples from child
 	 * format to parent format after they have already been converted in the
 	 * opposite direction during routing.  In that case we bypass conversion
-	 * and allow the inserting code (copy.c and nodeModifyTable.c) to provide
-	 * a slot containing the original tuple directly.
+	 * and allow the inserting code (copyfrom.c and nodeModifyTable.c) to
+	 * provide a slot containing the original tuple directly.
 	 */
 	TupleTableSlot *tcs_original_insert_tuple;
 
@@ -164,6 +157,11 @@ extern ObjectAddress CreateTrigger(CreateTrigStmt *stmt, const char *queryString
 								   Oid relOid, Oid refRelOid, Oid constraintOid, Oid indexOid,
 								   Oid funcoid, Oid parentTriggerOid, Node *whenClause,
 								   bool isInternal, bool in_partition);
+extern ObjectAddress CreateTriggerFiringOn(CreateTrigStmt *stmt, const char *queryString,
+										   Oid relOid, Oid refRelOid, Oid constraintOid,
+										   Oid indexOid, Oid funcoid, Oid parentTriggerOid,
+										   Node *whenClause, bool isInternal, bool in_partition,
+										   char trigger_fires_when);
 
 extern void RemoveTriggerById(Oid trigOid);
 extern Oid	get_trigger_oid(Oid relid, const char *name, bool missing_ok);

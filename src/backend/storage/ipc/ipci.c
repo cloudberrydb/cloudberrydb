@@ -3,7 +3,7 @@
  * ipci.c
  *	  POSTGRES inter-process communication initialization code.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,6 +22,7 @@
 #include "access/multixact.h"
 #include "access/nbtree.h"
 #include "access/subtrans.h"
+#include "access/syncscan.h"
 #include "access/twophase.h"
 #include "access/distributedlog.h"
 #include "cdb/cdblocaldistribxact.h"
@@ -36,10 +37,10 @@
 #include "postmaster/postmaster.h"
 #include "postmaster/fts.h"
 #include "replication/logicallauncher.h"
+#include "replication/origin.h"
 #include "replication/slot.h"
 #include "replication/walreceiver.h"
 #include "replication/walsender.h"
-#include "replication/origin.h"
 #include "storage/bufmgr.h"
 #include "storage/dsm.h"
 #include "storage/ipc.h"
@@ -116,7 +117,7 @@ RequestAddinShmemSpace(Size size)
  * This is a bit code-wasteful and could be cleaned up.)
  */
 void
-CreateSharedMemoryAndSemaphores(int port)
+CreateSharedMemoryAndSemaphores(void)
 {
 	PGShmemHeader *shim = NULL;
 
@@ -145,6 +146,7 @@ CreateSharedMemoryAndSemaphores(int port)
 		size = add_size(size, SpinlockSemaSize());
 		size = add_size(size, hash_estimate_size(SHMEM_INDEX_SIZE,
 												 sizeof(ShmemIndexEnt)));
+		size = add_size(size, dsm_estimate_size());
 		size = add_size(size, BufferShmemSize());
 		size = add_size(size, LockShmemSize());
 		size = add_size(size, PredicateLockShmemSize());
@@ -157,9 +159,10 @@ CreateSharedMemoryAndSemaphores(int port)
 		else if (IsResGroupEnabled())
 			size = add_size(size, ResGroupShmemSize());
 		size = add_size(size, SharedSnapshotShmemSize());
+#ifdef USE_INTERNAL_FTS
 		if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
 			size = add_size(size, FtsShmemSize());
-
+#endif
 		size = add_size(size, ProcGlobalShmemSize());
 		size = add_size(size, XLOGShmemSize());
 		size = add_size(size, DistributedLog_ShmemSize());
@@ -181,6 +184,7 @@ CreateSharedMemoryAndSemaphores(int port)
 		size = add_size(size, ReplicationOriginShmemSize());
 		size = add_size(size, WalSndShmemSize());
 		size = add_size(size, WalRcvShmemSize());
+		size = add_size(size, PgArchShmemSize());
 		size = add_size(size, ApplyLauncherShmemSize());
 		size = add_size(size, FTSReplicationStatusShmemSize());
 		size = add_size(size, SnapMgrShmemSize());
@@ -223,20 +227,27 @@ CreateSharedMemoryAndSemaphores(int port)
 
 		/* size of token and endpoint shared memory */
 		size = add_size(size, EndpointShmemSize());
+#ifndef USE_INTERNAL_FTS
+		/* size of cdb etcd result cache */
+		if (Gp_role != GP_ROLE_EXECUTE)
+			size = add_size(size, ShmemSegmentConfigsCacheSize());
 
+		/* size of standby promote flags */
+		size = add_size(size, ShmemStandbyPromoteReadySize());
+#endif
 		elog(DEBUG3, "invoking IpcMemoryCreate(size=%zu)", size);
 
 		/*
 		 * Create the shmem segment
 		 */
-		seghdr = PGSharedMemoryCreate(size, port, &shim);
+		seghdr = PGSharedMemoryCreate(size, &shim);
 
 		InitShmemAccess(seghdr);
 
 		/*
 		 * Create semaphores
 		 */
-		PGReserveSemaphores(numSemas, port);
+		PGReserveSemaphores(numSemas);
 
 		/*
 		 * If spinlocks are disabled, initialize emulation layer (which
@@ -274,6 +285,8 @@ CreateSharedMemoryAndSemaphores(int port)
 	 */
 	InitShmemIndex();
 
+	dsm_shmem_init();
+
 	/*
 	 * Set up xlog, clog, and buffers
 	 */
@@ -283,8 +296,10 @@ CreateSharedMemoryAndSemaphores(int port)
 	CommitTsShmemInit();
 	SUBTRANSShmemInit();
 	MultiXactShmemInit();
+#ifdef USE_INTERNAL_FTS
 	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
 		FtsShmemInit();
+#endif
 	tmShmemInit();
 	InitBufferPool();
 
@@ -345,6 +360,7 @@ CreateSharedMemoryAndSemaphores(int port)
 	ReplicationOriginShmemInit();
 	WalSndShmemInit();
 	WalRcvShmemInit();
+	PgArchShmemInit();
 	ApplyLauncherShmemInit();
 	FTSReplicationStatusShmemInit();
 
@@ -390,7 +406,14 @@ CreateSharedMemoryAndSemaphores(int port)
 	/* Initialize shared memory for parallel retrieve cursor */
 	if (!IsUnderPostmaster)
 		EndpointShmemInit();
+#ifndef USE_INTERNAL_FTS
+	/* Initialize shared memory for cdb etcd cache */
+	if (Gp_role != GP_ROLE_EXECUTE)
+		ShmemSegmentConfigsCacheAllocation();
 
+	/* Initialize shared memory for standby_promote_ready */
+	ShmemStandbyPromoteReadyAllocation();
+#endif
 	/*
 	 * Now give loadable modules a chance to set up their shmem allocations
 	 */

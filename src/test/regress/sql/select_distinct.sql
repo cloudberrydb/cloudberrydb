@@ -5,24 +5,24 @@
 --
 -- awk '{print $3;}' onek.data | sort -n | uniq
 --
-SELECT DISTINCT two FROM tmp ORDER BY 1;
+SELECT DISTINCT two FROM onek ORDER BY 1;
 
 --
 -- awk '{print $5;}' onek.data | sort -n | uniq
 --
-SELECT DISTINCT ten FROM tmp ORDER BY 1;
+SELECT DISTINCT ten FROM onek ORDER BY 1;
 
 --
 -- awk '{print $16;}' onek.data | sort -d | uniq
 --
-SELECT DISTINCT string4 FROM tmp ORDER BY 1;
+SELECT DISTINCT string4 FROM onek ORDER BY 1;
 
 --
 -- awk '{print $3,$16,$5;}' onek.data | sort -d | uniq |
 -- sort +0n -1 +1d -2 +2n -3
 --
 SELECT DISTINCT two, string4, ten
-   FROM tmp
+   FROM onek
    ORDER BY two using <, string4 using <, ten using <;
 
 --
@@ -137,3 +137,54 @@ SELECT 1 IS NOT DISTINCT FROM 2 as "no";
 SELECT 2 IS NOT DISTINCT FROM 2 as "yes";
 SELECT 2 IS NOT DISTINCT FROM null as "no";
 SELECT null IS NOT DISTINCT FROM null as "yes";
+
+-- join cases
+-- test IS DISTINCT FROM and IS NOT DISTINCT FROM join qual. the postgres planner doesn't support hash join
+-- on IS NOT DISTINCT FROM for now, ORCA support "IS NOT DISTINCT FROM" Hash Join but generates wrong result,
+-- DISABLE ORCA. Please fix me later if ORCA resolve the problem.
+SET optimizer TO off;
+CREATE TABLE distinct_1(a int);
+CREATE TABLE distinct_2(a int);
+INSERT INTO distinct_1 VALUES(1),(2),(NULL);
+INSERT INTO distinct_2 VALUES(1),(NULL);
+EXPLAIN SELECT * FROM distinct_1, distinct_2 WHERE distinct_1.a IS DISTINCT FROM distinct_2.a;
+EXPLAIN SELECT * FROM distinct_1, distinct_2 WHERE distinct_1.a IS NOT DISTINCT FROM distinct_2.a;
+SELECT * FROM distinct_1, distinct_2 WHERE distinct_1.a IS DISTINCT FROM distinct_2.a;
+SELECT * FROM distinct_1, distinct_2 WHERE distinct_1.a IS NOT DISTINCT FROM distinct_2.a;
+DROP TABLE distinct_1;
+DROP TABLE distinct_2;
+RESET optimizer;
+
+-- gpdb start: test inherit/partition table distinct when gp_statistics_pullup_from_child_partition is on
+set gp_statistics_pullup_from_child_partition to on;
+CREATE TABLE sales (id int, date date, amt decimal(10,2))
+DISTRIBUTED BY (id);
+insert into sales values (1,'20210202',20), (2,'20210602',9) ,(3,'20211002',100);
+select distinct * from sales order by 1;
+select distinct sales from sales order by 1;
+CREATE TABLE sales_partition (id int, date date, amt decimal(10,2))
+DISTRIBUTED BY (id)
+PARTITION BY RANGE (date)
+( START (date '2021-01-01') INCLUSIVE
+  END (date '2022-01-01') EXCLUSIVE
+  EVERY (INTERVAL '1 month') );
+insert into sales_partition values (1,'20210202',20), (2,'20210602',9) ,(3,'20211002',100);
+select distinct * from sales_partition order by 1;
+select distinct sales_partition from sales_partition order by 1;
+DROP TABLE sales;
+DROP TABLE sales_partition;
+
+CREATE TABLE cities (
+    name            text,
+    population      float,
+    altitude        int
+); 
+CREATE TABLE capitals (
+    state           char(2)
+) INHERITS (cities);
+select distinct * from cities;
+select distinct cities from cities;
+DROP TABLE capitals;
+DROP TABLE cities;
+set gp_statistics_pullup_from_child_partition to off;
+-- gpdb end: test inherit/partition table distinct when gp_statistics_pullup_from_child_partition is on

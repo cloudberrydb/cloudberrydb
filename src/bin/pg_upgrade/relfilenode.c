@@ -3,20 +3,21 @@
  *
  *	relfilenode functions
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/relfilenode.c
  */
 
 #include "postgres_fe.h"
 
+#include <sys/stat.h>
+
+#include "access/transam.h"
+#include "catalog/pg_class_d.h"
 #include "pg_upgrade.h"
 
-#include <sys/stat.h>
-#include "catalog/pg_class_d.h"
 #include "access/aomd.h"
 #include "access/appendonlytid.h"
 #include "access/htup_details.h"
-#include "access/transam.h"
 
 #include "greenplum/pg_upgrade_greenplum.h"
 
@@ -81,8 +82,6 @@ transfer_all_new_tablespaces(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 
 	end_progress_output();
 	check_ok();
-
-	return;
 }
 
 
@@ -136,8 +135,6 @@ transfer_all_new_dbs(DbInfoArr *old_db_arr, DbInfoArr *new_db_arr,
 		/* We allocate something even for n_maps == 0 */
 		pg_free(mappings);
 	}
-
-	return;
 }
 
 /*
@@ -252,14 +249,14 @@ transfer_relfile_segment(int segno, FileNameMap *map,
 	else
 		snprintf(extent_suffix, sizeof(extent_suffix), ".%d", segno);
 
-	snprintf(old_file, sizeof(old_file), "%s%s/%u/%u%s%s",
+	snprintf(old_file, sizeof(old_file), "%s%s/%u/%lu%s%s",
 			map->old_tablespace,
 			map->old_tablespace_suffix,
 			map->old_db_oid,
 			map->old_relfilenode,
 			type_suffix,
 			extent_suffix);
-	snprintf(new_file, sizeof(new_file), "%s%s/%u/%u%s%s",
+	snprintf(new_file, sizeof(new_file), "%s%s/%u/%lu%s%s",
 			map->new_tablespace,
 			map->new_tablespace_suffix,
 			map->new_db_oid,

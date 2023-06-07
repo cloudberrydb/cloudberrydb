@@ -3,8 +3,8 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic3" xml:lang="en">
   <title>System Expansion Overview</title>
-  <shortdesc>You can perform a Greenplum Database expansion to add segment instances and segment
-    hosts with minimal downtime. In general, adding nodes to a Greenplum cluster achieves a linear scaling 
+  <shortdesc>You can perform a Cloudberry Database expansion to add segment instances and segment
+    hosts with minimal downtime. In general, adding nodes to a Cloudberry cluster achieves a linear scaling 
     of performance and storage capacity. </shortdesc>
   <body>
     <p>Data warehouses typically grow over time, often at a continuous pace, as additional data is
@@ -17,7 +17,7 @@
       should expect to have to run periodically. </p>
     <p>When you expand your database, you should expect the following qualities:<ul
         id="ul_tgf_gpg_mr">
-        <li>Scalable capacity and performance. When you add resources to a Greenplum Database, the
+        <li>Scalable capacity and performance. When you add resources to a Cloudberry Database, the
           capacity and performance are the same as if the system had been originally implemented
           with the added resources. </li>
         <li>Uninterrupted service during expansion. Regular workloads, both scheduled and ad-hoc,
@@ -28,7 +28,7 @@
         <li>Replication and disaster recovery. Any existing replication mechanisms continue to
           function during expansion. Restore mechanisms needed in case of a failure or catastrophic
           event remain effective. </li>
-        <li>Transparency of process. The expansion process employs standard Greenplum Database
+        <li>Transparency of process. The expansion process employs standard Cloudberry Database
           mechanisms, so administrators can diagnose and troubleshoot any problems.</li>
         <li>Configurable process. Expansion can be a long running process, but it can be fit into a
           schedule of ongoing operations. The expansion schema's tables allow administrators to
@@ -43,19 +43,19 @@
         href="expand-planning.xml#topic5" type="topic" format="dita"/> describes general
       considerations for deploying new hardware. </p>
     <p>After you provision the new hardware platforms and set up their networks, configure the
-      operating systems and run performance tests using Greenplum utilities. The Greenplum Database
+      operating systems and run performance tests using Cloudberry utilities. The Cloudberry Database
       software distribution includes utilities that are helpful to test and burn-in the new servers
       before beginning the software phase of the expansion. See <xref href="expand-nodes.xml#topic1"
-      /> for steps to prepare the new hosts for Greenplum Database.</p>
-    <p>Once the new servers are installed and tested, the software phase of the Greenplum Database
+      /> for steps to prepare the new hosts for Cloudberry Database.</p>
+    <p>Once the new servers are installed and tested, the software phase of the Cloudberry Database
       expansion process begins. The software phase is designed to be minimally disruptive,
       transactionally consistent, reliable, and flexible. <ul id="ul_zwt_png_tt">
-        <li>The first step of the software phase of expansion process is preparing the Greenplum
+        <li>The first step of the software phase of expansion process is preparing the Cloudberry
           Database system: adding new segment hosts and initializing new segment instances. This
           phase can be scheduled to occur during a period of low activity to avoid disrupting
           ongoing business operations. During the initialization process, the following tasks are
             performed:<ul id="ul_s3v_vfh_mr">
-            <li>Greenplum Database software is installed. </li>
+            <li>Cloudberry Database software is installed. </li>
             <li>Databases and database objects are created in the new segment instances on the new
               segment hosts. </li>
             <li>The <i>gpexpand</i> schema is created in the postgres database. You can use the
@@ -111,7 +111,7 @@
             <codeph>gpexpand</codeph> several times to complete the expansion in large-scale systems
           that require multiple redistribution sessions. <codeph>gpexpand</codeph> can benefit from
           explicit table redistribution ranking; see <xref href="expand-planning.xml#topic10"
-            type="topic" format="dita"/>.</p><p>Users can access Greenplum Database during
+            type="topic" format="dita"/>.</p><p>Users can access Cloudberry Database during
           initialization, but they may experience performance degradation on systems that rely
           heavily on hash distribution of tables. Normal operations such as ETL jobs, user queries,
           and reporting can continue, though users might experience slower response times.</p></li>
@@ -119,7 +119,7 @@
     </ol>
     <p>For information about the <xref
           href="../../utility_guide/ref/gpexpand.xml">gpexpand</xref> utility
-      and the other utilities that are used for system expansion, see the <i>Greenplum Database
+      and the other utilities that are used for system expansion, see the <i>Cloudberry Database
         Utility Guide</i>. </p>
   </body>
 </topic>

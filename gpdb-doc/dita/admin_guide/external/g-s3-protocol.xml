@@ -11,7 +11,7 @@
             format="html" scope="external">Amazon S3</xref>. </p>
       <p>You can define read-only external tables that use existing data files in the S3 bucket for
          table data, or writable external tables that store the data from INSERT operations to files
-         in the S3 bucket. Greenplum Database uses the S3 URL and prefix specified in the protocol
+         in the S3 bucket. Cloudberry Database uses the S3 URL and prefix specified in the protocol
          URL either to select one or more files for a read-only table, or to define the location and
          filename format to use when uploading S3 files for <codeph>INSERT</codeph> operations to
          writable tables.</p>
@@ -47,13 +47,13 @@
              created in the previous step:<codeblock>CREATE PROTOCOL s3 (writefunc = write_to_s3, readfunc = read_from_s3);</codeblock>
              <note>The protocol name <codeph>s3</codeph> must be the same as the protocol
                of the URL specified for the external table that you create to access an S3
-               resource. <p>The corresponding function is called by every Greenplum
+               resource. <p>The corresponding function is called by every Cloudberry
                Database segment instance.</p></note></li>
          </ol>
       </section>
       <section id="s3_using">
          <title>Using s3 External Tables</title>
-         <p>Follow these basic steps to use the <codeph>s3</codeph> protocol with Greenplum
+         <p>Follow these basic steps to use the <codeph>s3</codeph> protocol with Cloudberry
             Database external tables. Each step includes links to relevant topics from
             which you can obtain more information. See also <xref
                href="#amazon-emr/section_tsq_n3t_3x" format="dita"/> to better understand the
@@ -71,7 +71,7 @@
                     other <codeph>s3</codeph> protocol configuration parameters.</li>
                 </ol>
               </li>
-              <li>Greenplum Database can access an <codeph>s3</codeph> protocol
+              <li>Cloudberry Database can access an <codeph>s3</codeph> protocol
                 configuration file when the file is located on each segment host or when the
                 file is served up by an <codeph>http/https</codeph> server. Identify where you
                 plan to locate the configuration file, and note the location and configuration
@@ -101,9 +101,9 @@
                      <codeblock>CREATE READABLE EXTERNAL TABLE S3TBL (date text, time text, amt int)
    LOCATION('s3://s3-us-west-2.amazonaws.com/s3test.example.com/dataset1/normal/ config=/home/gpadmin/aws_s3/s3.conf')
    FORMAT 'csv';</codeblock></p><p>For
-                     writable s3 tables, the protocol URL defines the S3 location in which Greenplum
+                     writable s3 tables, the protocol URL defines the S3 location in which Cloudberry
                      Database writes the data files that back the table for <codeph>INSERT</codeph>
-                     operations. You can also specify a prefix that Greenplum will add to the files
+                     operations. You can also specify a prefix that Cloudberry will add to the files
                      that it creates. For
                      example:<codeblock>CREATE WRITABLE EXTERNAL TABLE S3WRIT (LIKE S3TBL)
    LOCATION('s3://s3-us-west-2.amazonaws.com/s3test.example.com/dataset1/normal/ config=/home/gpadmin/aws_s3/s3.conf')
@@ -120,10 +120,10 @@
             of the <codeph>CREATE EXTERNAL TABLE</codeph> command. The syntax follows:</p>
          <codeblock>'s3://&lt;S3_endpoint>[:&lt;port>]/&lt;bucket_name>/[&lt;S3_prefix>] [region=&lt;S3_region>] [config=&lt;config_file_location> | config_server=&lt;url>]'</codeblock>
          <p>The <codeph>s3</codeph> protocol requires that you specify the S3 endpoint and S3 bucket
-            name. Each Greenplum Database segment host must have access to the S3 location. The
+            name. Each Cloudberry Database segment host must have access to the S3 location. The
             optional <varname>S3_prefix</varname> value is used to select files for read-only S3
             tables, or as a filename prefix to use when uploading files for s3 writable tables.</p>
-         <note>The Greenplum Database <codeph>s3</codeph> protocol URL must include the S3 endpoint
+         <note>The Cloudberry Database <codeph>s3</codeph> protocol URL must include the S3 endpoint
             hostname.</note>
          <p>To specify an ECS endpoint (an Amazon S3 compatible service) in the
                <codeph>LOCATION</codeph> clause, you must set the <codeph>s3</codeph> protocol configuration
@@ -139,7 +139,7 @@
                   href="../../ref_guide/sql_commands/CREATE_EXTERNAL_TABLE.xml#topic1">CREATE
                   EXTERNAL TABLE</xref> syntax.</note>
          <p>For writable s3 tables, the <codeph>s3</codeph> protocol URL specifies the endpoint and
-            bucket name where Greenplum Database uploads data files for the table.
+            bucket name where Cloudberry Database uploads data files for the table.
             The S3 file prefix is used for each new file uploaded to the S3 location as a
             result of inserting data to the table. See <xref href="#amazon-emr/section_c2f_zvs_3x"
                format="dita"/>.</p>
@@ -218,11 +218,11 @@ s3://s3-us-west-2.amazonaws.com/test1/abcdefff</codeblock>
             protocol recognizes the format of a gzip compressed file. For deflate compression, the
             protocol assumes a file with the <codeph>.deflate</codeph> suffix is a deflate
             compressed file.</p>
-           <p>Each Greenplum Database segment can download one file at a time from the S3 location
+           <p>Each Cloudberry Database segment can download one file at a time from the S3 location
             using several threads. To take advantage of the parallel processing performed by the
-            Greenplum Database segments, the files in the S3 location should be similar in size and
+            Cloudberry Database segments, the files in the S3 location should be similar in size and
             the number of files should allow for multiple segments to download the data from the S3
-            location. For example, if the Greenplum Database system consists of 16 segments and
+            location. For example, if the Cloudberry Database system consists of 16 segments and
             there was sufficient network bandwidth, creating 16 files in the S3 location allows each
             segment to download a file from the S3 location. In contrast, if the location contained
             only 1 or 2 files, only 1 or 2 segments download data.</p>
@@ -232,12 +232,12 @@ s3://s3-us-west-2.amazonaws.com/test1/abcdefff</codeblock>
            <p> Writing a file to S3 requires that the S3 user ID have
              <codeph>Upload/Delete</codeph> permissions.</p>
            <p>When you initiate an <codeph>INSERT</codeph> operation on a writable s3 table,
-             each Greenplum Database segment uploads a single file to the configured S3 bucket
+             each Cloudberry Database segment uploads a single file to the configured S3 bucket
              using the filename
              format <codeph>&lt;prefix>&lt;segment_id>&lt;random>.&lt;extension>[.gz]</codeph>
                where:<ul id="ul_sw1_qvs_3x">
                <li><codeph>&lt;prefix></codeph> is the prefix specified in the S3 URL.</li>
-               <li><codeph>&lt;segment_id></codeph> is the Greenplum Database segment ID.</li>
+               <li><codeph>&lt;segment_id></codeph> is the Cloudberry Database segment ID.</li>
                <li><codeph>&lt;random></codeph> is a random number that is used to ensure that the
                   filename is unique.</li>
                <li><codeph>&lt;extension></codeph> describes the file type (<codeph>.txt</codeph> or
@@ -255,7 +255,7 @@ s3://s3-us-west-2.amazonaws.com/test1/abcdefff</codeblock>
       </section>
       <section id="s3_serversideencrypt">
          <title>s3 Protocol AWS Server-Side Encryption Support</title>
-         <p>Greenplum Database supports server-side encryption using Amazon S3-managed keys (SSE-S3)
+         <p>Cloudberry Database supports server-side encryption using Amazon S3-managed keys (SSE-S3)
             for AWS S3 files you access with readable and writable external tables created using the
                <codeph>s3</codeph> protocol. SSE-S3 encrypts your object data as it writes to disk,
             and transparently decrypts the data for you when you access it.</p>
@@ -271,7 +271,7 @@ s3://s3-us-west-2.amazonaws.com/test1/abcdefff</codeblock>
          <sectiondiv>
             <p><b>Configuring S3 Server-Side Encryption</b></p>
             <p><codeph>s3</codeph> protocol server-side encryption is disabled by default. To take
-               advantage of server-side encryption on AWS S3 objects you write using the Greenplum
+               advantage of server-side encryption on AWS S3 objects you write using the Cloudberry
                Database <codeph>s3</codeph> protocol, you must set the
                   <codeph>server_side_encryption</codeph> configuration parameter in your
                   <codeph>s3</codeph> protocol configuration file to the value <codeph>sse-s3</codeph>:</p>
@@ -282,7 +282,7 @@ server_side_encryption = sse-s3
             </p>
             <p>When the configuration file you provide to a <codeph>CREATE WRITABLE EXTERNAL
                   TABLE</codeph> call using the <codeph>s3</codeph> protocol includes the
-                  <codeph>server_side_encryption = sse-s3</codeph> setting, Greenplum Database
+                  <codeph>server_side_encryption = sse-s3</codeph> setting, Cloudberry Database
                applies encryption headers for you on all <codeph>INSERT</codeph> operations on that
                external table. S3 then encrypts on write the object(s) identified by the URI you
                provided in the <codeph>LOCATION</codeph> clause.</p>
@@ -313,8 +313,8 @@ server_side_encryption = sse-s3
                <li><codeph>no_proxy</codeph> specifies a comma-separated list of hosts names that do
                   not use the proxy specified by an environment variable. </li>
             </ul></p>
-         <p>The environment variables must be set must and must be accessible to Greenplum Database
-            on all Greenplum Database hosts.</p>
+         <p>The environment variables must be set must and must be accessible to Cloudberry Database
+            on all Cloudberry Database hosts.</p>
          <p>For information about the configuration parameter <codeph>proxy</codeph>, see <xref
                href="#amazon-emr/s3_config_file" format="dita"/>.</p>
       </section>
@@ -330,7 +330,7 @@ secret = "secret"
 accessid = "user access id"
 threadnum = 3
 chunksize = 67108864</codeblock></p>
-         <p>You can use the Greenplum Database <codeph>gpcheckcloud</codeph> utility to test the s3
+         <p>You can use the Cloudberry Database <codeph>gpcheckcloud</codeph> utility to test the s3
             protocol configuration file. See <xref href="#amazon-emr/s3chkcfg_utility" format="dita"/>.</p>
          <sectiondiv>
             <p><b>s3 Configuration File Parameters</b></p>
@@ -353,14 +353,14 @@ chunksize = 67108864</codeblock></p>
                   <pt>chunksize</pt>
                   <pd>The buffer size that each segment thread uses for reading from or writing to
                      the S3 server. The default is 64 MB. The minimum is 8MB and the maximum is
-                     128MB. <p>When inserting data to a writable s3 table, each Greenplum Database
+                     128MB. <p>When inserting data to a writable s3 table, each Cloudberry Database
                         segment writes the data into its buffer (using multiple threads up to the
                            <codeph>threadnum</codeph> value) until it is full, after which it writes
                         the buffer to a file in the S3 bucket. This process is then repeated as
                         necessary on each segment until the insert operation
                         completes.</p><p>Because Amazon S3 allows a maximum of 10,000 parts for
                         multipart uploads, the minimum <codeph>chunksize</codeph> value of 8MB
-                        supports a maximum insert size of 80GB per Greenplum database segment. The
+                        supports a maximum insert size of 80GB per Cloudberry database segment. The
                         maximum <codeph>chunksize</codeph> value of 128MB supports a maximum insert
                         size 1.28TB per segment. For writable s3 tables, you must ensure that the
                            <codeph>chunksize</codeph> setting can support the anticipated table size
@@ -428,7 +428,7 @@ chunksize = 67108864</codeblock></p>
                <plentry>
                   <pt>server_side_encryption</pt>
                   <pd>The S3 server-side encryption method that has been configured for the bucket.
-                     Greenplum Database supports only server-side encryption with Amazon S3-managed
+                     Cloudberry Database supports only server-side encryption with Amazon S3-managed
                      keys, identified by the configuration parameter value <codeph>sse-s3</codeph>.
                      Server-side encryption is disabled (<codeph>none</codeph>) by default.</pd>
                </plentry>
@@ -484,23 +484,23 @@ chunksize = 67108864</codeblock></p>
                      parameter.<codeblock>LOCATION ('s3://s3-us-west-2.amazonaws.com/s3test.example.com/dataset1/normal/ region=us-west-2 config=/home/gpadmin/aws_s3/s3.conf') </codeblock></pd>
                </plentry>
             </parml>
-            <note><ph id="memory-phrase">Greenplum Database can require up to <codeph>threadnum *
+            <note><ph id="memory-phrase">Cloudberry Database can require up to <codeph>threadnum *
                      chunksize</codeph> memory on each segment host when uploading or downloading S3
                   files. Consider this <codeph>s3</codeph> protocol memory requirement when you
-                  configure overall Greenplum Database memory.</ph>
+                  configure overall Cloudberry Database memory.</ph>
             </note>
          </sectiondiv>
       </section>
       <section id="s3_config_param">
          <title>About Specifying the Configuration File Location</title>
          <p>The default location of the <codeph>s3</codeph> protocol configuration file is a file
-            named <codeph>s3.conf</codeph> that resides in the data directory of each Greenplum
+            named <codeph>s3.conf</codeph> that resides in the data directory of each Cloudberry
             Database segment instance:
             <codeblock>&lt;gpseg_data_dir>/&lt;gpseg_prefix>&lt;N>/s3/s3.conf</codeblock> The
-               <varname>gpseg_data_dir</varname> is the path to the Greenplum Database segment data
+               <varname>gpseg_data_dir</varname> is the path to the Cloudberry Database segment data
             directory, the <varname>gpseg_prefix</varname> is the segment prefix, and
                <varname>N</varname> is the segment ID. The segment data directory, prefix, and ID
-            are set when you initialize a Greenplum Database system.</p>
+            are set when you initialize a Cloudberry Database system.</p>
          <p>You may choose an alternate location for the <codeph>s3</codeph> protocol
            configuration file by specifying the optional <codeph>config</codeph> or
            <codeph>config_server</codeph> parameters in the <codeph>LOCATION</codeph> URL:</p>
@@ -518,7 +518,7 @@ chunksize = 67108864</codeblock></p>
            <li>You also have the option to use an <codeph>http/https</codeph> server to serve up the
              configuration file. In this scenario, you specify an <codeph>http/https</codeph>
              server URL in the <codeph>config_server</codeph> parameter. You are responsible
-             for configuring and starting the server, and each Greenplum Database segment host
+             for configuring and starting the server, and each Cloudberry Database segment host
              must be able to access the server. The following example specifies an IP address
              and port for an <codeph>https</codeph> server:
              <codeblock>LOCATION ('s3://s3-us-west-2.amazonaws.com/test/my_data config_server=https://203.0.113.0:8553')</codeblock>
@@ -550,30 +550,30 @@ chunksize = 67108864</codeblock></p>
                      <codeph>TRUNCATE</codeph> operations are not supported.</li>
                <li>Because Amazon S3 allows a maximum of 10,000 parts for multipart uploads, the
                   maximum <codeph>chunksize</codeph> value of 128MB supports a maximum insert size
-                  of 1.28TB per Greenplum database segment for writable s3 tables. You must ensure
+                  of 1.28TB per Cloudberry database segment for writable s3 tables. You must ensure
                   that the <codeph>chunksize</codeph> setting can support the anticipated table size
                   of your table. See <xref
                      href="http://docs.aws.amazon.com/AmazonS3/latest/dev/mpuoverview.html"
                      format="html" scope="external">Multipart Upload Overview</xref> in the S3
                   documentation for more information about uploads to S3.</li>
-               <li>To take advantage of the parallel processing performed by the Greenplum Database
+               <li>To take advantage of the parallel processing performed by the Cloudberry Database
                   segment instances, the files in the S3 location for read-only s3 tables should be
                   similar in size and the number of files should allow for multiple segments to
-                  download the data from the S3 location. For example, if the Greenplum Database
+                  download the data from the S3 location. For example, if the Cloudberry Database
                   system consists of 16 segments and there was sufficient network bandwidth,
                   creating 16 files in the S3 location allows each segment to download a file from
                   the S3 location. In contrast, if the location contained only 1 or 2 files, only 1
                   or 2 segments download data.</li>
             </ul></p>
       </section>
-      <section id="s3chkcfg_utility"><title>Using the gpcheckcloud Utility</title><p>The Greenplum
+      <section id="s3chkcfg_utility"><title>Using the gpcheckcloud Utility</title><p>The Cloudberry
             Database utility <codeph>gpcheckcloud</codeph> helps users create an <codeph>s3</codeph>
             protocol configuration file and test a configuration file. You can specify options to
             test the ability to access an S3 bucket with a configuration file, and optionally upload
             data to or download data from files in the bucket.</p><p>If you run the utility without
             any options, it sends a template configuration file to <codeph>STDOUT</codeph>. You can
             capture the output and create an <codeph>s3</codeph> configuration file to connect to
-            Amazon S3. </p><p>The utility is installed in the Greenplum Database
+            Amazon S3. </p><p>The utility is installed in the Cloudberry Database
                <codeph>$GPHOME/bin</codeph> directory.</p><b>Syntax</b>
          <codeblock>gpcheckcloud {-c | -d} "s3://&lt;S3_endpoint>/&lt;bucketname>/[&lt;S3_prefix>] [config=&lt;path_to_config_file>]"
 

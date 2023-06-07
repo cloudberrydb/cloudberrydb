@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2009 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2009 Cloudberry, Inc.
 //
 //	@filename:
 //		CGroupExpression.cpp

@@ -5,8 +5,8 @@
     <title>advanced_password_check</title>
     <body>
       <p>The <codeph>advanced_password_check</codeph> module provides password
-        quality checking for Greenplum Database.</p>
-      <p>The Greenplum Database <codeph>advanced_password_check</codeph> module
+        quality checking for Cloudberry Database.</p>
+      <p>The Cloudberry Database <codeph>advanced_password_check</codeph> module
         is based on the <codeph>passwordcheck_extra</codeph> module, which
         enhances the PostgreSQL <codeph>passwordcheck</codeph> module to
         support user-defined policies to strengthen
@@ -24,13 +24,13 @@
           <codeph>shared_preload_libraries</codeph> in <codeph>postgresql.conf</codeph>:
           <codeblock>shared_preload_libraries = '<i>other_libraries</i>,advanced_password_check'
 </codeblock>
-          and then restarting the Greenplum Database server.</p>
+          and then restarting the Cloudberry Database server.</p>
       </body>
     </topic>
     <topic id="topic_using">
       <title>Using the advanced_password_check Module</title>
       <body>
-        <p><codeph>advanced_password_check</codeph> is a Greenplum Database module
+        <p><codeph>advanced_password_check</codeph> is a Cloudberry Database module
           that you can enable and configure to check password strings against
           one or more user-defined policies. You can configure policies that:
           <ul>
@@ -64,21 +64,21 @@
                 <entry colname="col1">minimum_length</entry>
                 <entry colname="col2">int</entry>
                 <entry colname="col3">8</entry>
-                <entry colname="col4">The minimum allowable length of a Greenplum
+                <entry colname="col4">The minimum allowable length of a Cloudberry
                   Database password.</entry>
               </row>
               <row>
                 <entry colname="col1">maxmum_length</entry>
                 <entry colname="col2">int</entry>
                 <entry colname="col3">15</entry>
-                <entry colname="col4">The maximum allowable length of Greenplum
+                <entry colname="col4">The maximum allowable length of Cloudberry
                   Database password.</entry>
               </row>
               <row>
                 <entry colname="col1">special_chars</entry>
                 <entry colname="col2">string</entry>
                 <entry colname="col3">!@#$%^&#x26;*()_+{}|&lt;>?=</entry>
-                <entry colname="col4">The set of characters that Greenplum
+                <entry colname="col4">The set of characters that Cloudberry
                   Database considers to be special characters in a password.</entry>
               </row>
               <row>
@@ -115,12 +115,12 @@
         <p>After you define your password policies, you run the
           <codeph>gpconfig</codeph> command for each configuration parameter
           that you must set. When you run the command, you must qualify the
-          parameter with the module name. For example, to configure Greenplum
+          parameter with the module name. For example, to configure Cloudberry
           Database to remove any requirements for a lower case letter in the
           password string, you run the following command:</p>
         <codeblock>gpadmin@gpmaster$ gpconfig -c advanced_password_check.restrict_lower -v false</codeblock>
         <p>After you set or change module configuration in this manner, you
-          must reload the Greenplum Database configuration:</p>
+          must reload the Cloudberry Database configuration:</p>
         <codeblock>gpadmin@gpmaster$ gpstop -u</codeblock>
       </body>
     </topic>
@@ -137,16 +137,16 @@
              characters.</li>
           <li>The are no requirements that the password contain a number.</li>
         </ul>
-        <p>You would run the following commands to configure Greenplum Database
+        <p>You would run the following commands to configure Cloudberry Database
           to enforce these policies:</p>
       <codeblock>
 gpadmin@gpmaster$ gpconfig -c advanced_password_check.minimum_length -v 10
 gpadmin@gpmaster$ gpconfig -c advanced_password_check.maximum_length -v 18
 gpadmin@gpmaster$ gpconfig -c advanced_password_check.restrict_number -v false
 gpadmin@gpmaster$ gpstop -u</codeblock> 
-      <p>After loading the new configuration, passwords that the Greenplum
-        superuser sets must now follow the policies, and Greenplum returns an
-        error for every policy that is not met. Note that Greenplum checks the
+      <p>After loading the new configuration, passwords that the Cloudberry
+        superuser sets must now follow the policies, and Cloudberry returns an
+        error for every policy that is not met. Note that Cloudberry checks the
         password string against all of the policies, and concatenates together
         the messages for any errors that it encounters.
         For example (line breaks added for better viewability):</p>

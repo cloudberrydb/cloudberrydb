@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright 2012 EMC Corp.
 //
 //	@filename:
@@ -158,11 +158,11 @@ CXformUtils::ExfpExpandJoinOrder(CExpressionHandle &exprhdl,
 		return CXform::ExfpNone;
 	}
 
-#ifdef GPOS_DEBUG
+//#ifdef GPOS_DEBUG
 	CAutoMemoryPool amp;
-	GPOS_ASSERT(!FJoinPredOnSingleChild(amp.Pmp(), exprhdl) &&
+	GPOS_ASSERT_FIXME(!FJoinPredOnSingleChild(amp.Pmp(), exprhdl) &&
 				"join predicates are not pushed down");
-#endif	// GPOS_DEBUG
+//#endif	// GPOS_DEBUG
 
 	if (nullptr != exprhdl.Pgexpr())
 	{

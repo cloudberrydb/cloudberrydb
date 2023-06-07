@@ -67,7 +67,7 @@
       <p><codeph>CREATE AGGREGATE</codeph> defines a new aggregate function. Some basic and
         commonly-used aggregate functions such as <codeph>count</codeph>, <codeph>min</codeph>,
           <codeph>max</codeph>, <codeph>sum</codeph>, <codeph>avg</codeph> and so on are already
-        provided in Greenplum Database. If you define new types or need an aggregate function not
+        provided in Cloudberry Database. If you define new types or need an aggregate function not
         already provided, you can use <codeph>CREATE AGGREGATE</codeph> to provide the desired
         features.</p>
       <p>If a schema name is given (for example, <codeph>CREATE AGGREGATE myschema.myagg
@@ -90,7 +90,7 @@
       <codeblock><varname>statefunc</varname>( internal-state, next-data-values ) ---&gt; next-internal-state
 <varname>ffunc</varname>( internal-state ) ---&gt; aggregate-value
 <varname>combinefunc</varname>( internal-state, internal-state ) ---&gt; next-internal-state</codeblock>
-      <p>Greenplum Database creates a temporary variable of data type
+      <p>Cloudberry Database creates a temporary variable of data type
           <varname>state_data_type</varname> to hold the current internal state of the aggregate
         function. At each input row, the aggregate argument values are calculated and the state
         transition function is invoked with the current state value and the new argument values to
@@ -102,13 +102,13 @@
         an out-of-memory error occurring. If <codeph>internal</codeph> state values are not properly
         managed and a query acquires too much memory for state values, an out-of-memory error could
         occur. To prevent this, use <codeph>mpool_alloc(<varname>mpool</varname>,
-            <varname>size</varname>)</codeph> to have Greenplum manage and allocate memory for
+            <varname>size</varname>)</codeph> to have Cloudberry manage and allocate memory for
         non-temporary state values, that is, state values that have a lifespan for the entire
         aggregation. The argument <codeph><varname>mpool</varname></codeph> of the
           <codeph>mpool_alloc()</codeph> function is
           <codeph>aggstate->hhashtable->group_buf</codeph>. For an example, see the implementation
         of the numeric data type aggregates in <codeph>src/backend/utils/adt/numeric.c</codeph> in
-        the Greenplum Database open source code.</note>
+        the Cloudberry Database open source code.</note>
       <p>You can specify <codeph><varname>combinefunc</varname></codeph> as a method for optimizing
         aggregate execution. By specifying <codeph><varname>combinefunc</varname></codeph>, the
         aggregate can be run in parallel on segments first and then on the master. When a
@@ -287,7 +287,7 @@
               <varname>state_data_type</varname>. It must return a value of
               <varname>state_data_type</varname>. A combine function takes two transition state
             values and returns a new transition state value representing the combined aggregation.
-            In Greenplum Database, if the result of the aggregate function is computed in a
+            In Cloudberry Database, if the result of the aggregate function is computed in a
             segmented fashion, the combine function is invoked on the individual internal states in
             order to combine them into an ending internal state.</pd>
           <pd>Note that this function is also called in hash aggregate mode within a segment.
@@ -380,22 +380,22 @@
     <section id="section6">
       <title>Notes</title>
       <p>The ordinary functions used to define a new aggregate function must be defined first. Note
-        that in this release of Greenplum Database, it is required that the
+        that in this release of Cloudberry Database, it is required that the
           <varname>statefunc</varname>, <varname>ffunc</varname>, and <varname>combinefunc</varname>
         functions used to create the aggregate are defined as <codeph>IMMUTABLE</codeph>.</p>
-      <p>If the value of the Greenplum Database server configuration parameter
+      <p>If the value of the Cloudberry Database server configuration parameter
           <codeph>gp_enable_multiphase_agg</codeph> is <codeph>off</codeph>, only single-level
         aggregation is performed. </p>
       <p>Any compiled code (shared library files) for custom functions must be placed in the same
-        location on every host in your Greenplum Database array (master and all segments). This
+        location on every host in your Cloudberry Database array (master and all segments). This
         location must also be in the <codeph>LD_LIBRARY_PATH</codeph> so that the server can locate
         the files.</p>
-      <p>In previous versions of Greenplum Database, there was a concept of ordered aggregates.
+      <p>In previous versions of Cloudberry Database, there was a concept of ordered aggregates.
         Since version 6, any aggregate can be called as an ordered aggregate, using the syntax:
         <codeblock>name ( arg [ , ... ] [ORDER BY sortspec [ , ...]] )</codeblock></p>
       <p>The <codeph>ORDERED</codeph> keyword is accepted for backwards compatibility, but is
         ignored.</p>
-      <p>In previous versions of Greenplum Database, the <codeph>COMBINEFUNC</codeph> option was
+      <p>In previous versions of Cloudberry Database, the <codeph>COMBINEFUNC</codeph> option was
         called <codeph>PREFUNC</codeph>. It is still accepted for backwards compatibility, as a
         synonym for <codeph>COMBINEFUNC</codeph>.</p>
     </section>
@@ -451,7 +451,7 @@ Aggregate (cost=1.10..1.11 rows=1 width=32)  
     </section>
     <section id="section8">
       <title>Compatibility</title>
-      <p><codeph>CREATE AGGREGATE</codeph> is a Greenplum Database language extension. The SQL
+      <p><codeph>CREATE AGGREGATE</codeph> is a Cloudberry Database language extension. The SQL
         standard does not provide for user-defined aggregate functions.</p>
     </section>
     <section id="section9">

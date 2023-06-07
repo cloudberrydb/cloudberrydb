@@ -3,9 +3,9 @@
 <topic id="topic1">
   <title>gprestore</title>
   <body>
-    <p>Restore a Greenplum Database backup that was created using the <codeph>gpbackup</codeph>
+    <p>Restore a Cloudberry Database backup that was created using the <codeph>gpbackup</codeph>
       utility. By default <codeph>gprestore</codeph> uses backed up metadata files and DDL files
-      located in the Greenplum Database master host data directory, with table data stored locally
+      located in the Cloudberry Database master host data directory, with table data stored locally
       on segment hosts in CSV data files.</p>
     <section>
       <title>Synopsis</title>
@@ -65,7 +65,7 @@
           <codeph>--include-table-file</codeph> and the text file lists some leaf partitions of a
         partitioned table. Restoring the backup creates the partitioned table and restores the data
         only for the leaf partitions listed in the file. </p>
-      <p>By default, only database objects in the backup set are restored. Greenplum Database system
+      <p>By default, only database objects in the backup set are restored. Cloudberry Database system
         objects are automatically included in a <codeph>gpbackup</codeph> backup set, but these
         objects are only restored if you include the <codeph>--with-globals</codeph> option to
           <codeph>gprestore</codeph>. </p>
@@ -95,7 +95,7 @@
         />.</p>
     </section>
     <note>This utility uses secure shell (SSH) connections between systems to perform its tasks. In
-      large Greenplum Database deployments, cloud deployments, or deployments with a large number of
+      large Cloudberry Database deployments, cloud deployments, or deployments with a large number of
       segments per host, this utility may exceed the host's maximum threshold for unauthenticated
       connections. Consider updating the SSH <codeph>MaxStartups</codeph> and
         <codeph>MaxSessions</codeph> configuration parameters to increase this threshold. For more
@@ -109,7 +109,7 @@
             <varname>YYYYMMDDHHMMSS</varname></pt>
           <pd>Required. Specifies the timestamp of the <codeph>gpbackup</codeph> backup set to
             restore. By default <codeph>gprestore</codeph> tries to locate metadata files for the
-            timestamp on the Greenplum Database master host in the
+            timestamp on the Cloudberry Database master host in the
               <filepath>$MASTER_DATA_DIRECTORY/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath>
             directory, and CSV data files in the
               <filepath>&lt;seg_dir>/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath> directory of each
@@ -121,7 +121,7 @@
           <pd>Optional. Sources all backup files (metadata files and data files) from the specified
             directory. You must specify <varname>directory</varname> as an absolute path (not
             relative). If you do not supply this option, <codeph>gprestore</codeph> tries to locate
-            metadata files for the timestamp on the Greenplum Database master host in the
+            metadata files for the timestamp on the Cloudberry Database master host in the
               <filepath>$MASTER_DATA_DIRECTORY/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath>
             directory. CSV data files must be available on each segment in the
               <filepath>&lt;seg_dir>/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath> directory. Include
@@ -273,7 +273,7 @@
           <pd>If you use the <codeph>--include-table-file</codeph> option,
               <codeph>gprestore</codeph> does not create roles or set the owner of the tables. The
             utility restores table indexes and rules. Triggers are also restored but are not
-            supported in Greenplum Database.</pd>
+            supported in Cloudberry Database.</pd>
           <pd>See <xref href="../../admin_guide/managing/backup-gpbackup.xml#topic_et4_b5d_tbb"/>
             for more information.</pd>
         </plentry>
@@ -353,7 +353,7 @@
             assumes the tables do not exist in the target database. To create a specific set of
             tables from a backup set, you can specify an option to include tables or schemas or
             exclude tables or schemas. Specify the option <codeph>--with-globals</codeph> to restore
-            the Greenplum Database system objects.</pd>
+            the Cloudberry Database system objects.</pd>
           <pd>The backup set must contain the DDL for tables to be restored. For example, a backup
             created with the <codeph>gpbackup</codeph> option <codeph>--data-only</codeph> does not
             contain the DDL for tables. </pd>
@@ -411,7 +411,7 @@
         </plentry>
         <plentry>
           <pt><b>--with-globals</b></pt>
-          <pd>Optional. Restores Greenplum Database system objects in the backup set, in addition to
+          <pd>Optional. Restores Cloudberry Database system objects in the backup set, in addition to
             database objects. See <xref
               href="../../admin_guide/managing/backup-gpbackup.xml#topic_x3s_lqj_tbb"/>.</pd>
         </plentry>
@@ -434,9 +434,9 @@
           <pd>If the backup being restored used the <codeph>gpbackup</codeph> option <codeph><xref
                 href="gpbackup.xml#topic1/backup_leaf_part">--leaf-partition-data</xref></codeph>,
               <codeph>gprestore</codeph> runs <codeph>ANALYZE</codeph> only on the individual leaf
-            partitions that are restored, not the root partitioned table. For Greenplum Database 5,
+            partitions that are restored, not the root partitioned table. For Cloudberry Database 5,
               <codeph>ANALYZE</codeph> updates the root partitioned table statistics when all leaf
-            partitions have statistics as the default. For Greenplum Database 4, you must run
+            partitions have statistics as the default. For Cloudberry Database 4, you must run
               <codeph>ANALYZE</codeph> on the root partitioned table to update the root partition
             statistics.</pd>
           <pd>Depending the tables being restored, running <codeph>ANALYZE</codeph> on restored
@@ -468,7 +468,7 @@ $ gprestore --timestamp 20171103152558 --create-db</codeblock></p>
         backed
         up:<codeblock>$ createdb demo2
 $ gprestore --timestamp 20171103152558 --redirect-db demo2</codeblock></p>
-      <p>Restore global Greenplum Database metadata and query plan statistics in addition to the
+      <p>Restore global Cloudberry Database metadata and query plan statistics in addition to the
         database
         objects:<codeblock>$ gprestore --timestamp 20171103152558 --create-db --with-globals --with-stats</codeblock></p>
       <p>Restore, using backup files that were created in the

@@ -2,9 +2,13 @@ subdir=src/backend/postmaster
 top_builddir=../../../..
 include $(top_builddir)/src/Makefile.global
 
-TARGETS=checkpointer
+TARGETS=checkpointer syslogger
 
 include $(top_srcdir)/src/backend/mock.mk
 checkpointer.t: $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o \
+	$(MOCK_DIR)/backend/access/hash/hash_mock.o \
+	$(MOCK_DIR)/backend/utils/fmgr/fmgr_mock.o
+
+syslogger.t: $(MOCK_DIR)/backend/storage/lmgr/lwlock_mock.o \
 	$(MOCK_DIR)/backend/access/hash/hash_mock.o \
 	$(MOCK_DIR)/backend/utils/fmgr/fmgr_mock.o

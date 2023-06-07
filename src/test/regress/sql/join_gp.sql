@@ -330,7 +330,7 @@ drop table t5370_2;
 --         ->  Seq Scan on int4_tbl a
 --         ->  Seq Scan on int4_tbl b
 --```
--- Greenplum will raise an Assert Fail.
+-- Cloudberry will raise an Assert Fail.
 -- We force adding a material node for
 -- merge full join on true.
 drop table if exists t6215;
@@ -746,7 +746,7 @@ select * from fix_param_a left join fix_param_b on
 
 -- Test targetlist contains placeholder var
 -- When creating a redistributed motion with hash keys,
--- Greenplum planner will invoke `cdbpullup_findEclassInTargetList`.
+-- Cloudberry planner will invoke `cdbpullup_findEclassInTargetList`.
 -- The following test case contains non-strict function `coalesce`
 -- in the subquery at nullable-side of outerjoin and thus will
 -- have PlaceHolderVar in targetlist. The case is to test if

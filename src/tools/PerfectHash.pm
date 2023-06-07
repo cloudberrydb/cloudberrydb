@@ -20,7 +20,7 @@
 # not in the set.
 #
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/tools/PerfectHash.pm
@@ -81,13 +81,13 @@ sub generate_hash_function
 	# to calculate via shift-and-add, so don't change them without care.
 	# (Commonly, random seeds are tried, but we want reproducible results
 	# from this program so we don't do that.)
-	my $hash_mult1 = 31;
+	my $hash_mult1 = 257;
 	my $hash_mult2;
 	my $hash_seed1;
 	my $hash_seed2;
 	my @subresult;
   FIND_PARAMS:
-	foreach (127, 257, 521, 1033, 2053)
+	foreach (17, 31, 127, 8191)
 	{
 		$hash_mult2 = $_;    # "foreach $hash_mult2" doesn't work
 		for ($hash_seed1 = 0; $hash_seed1 < 10; $hash_seed1++)
@@ -121,13 +121,16 @@ sub generate_hash_function
 	{
 		$f .= sprintf "%s(const void *key, size_t keylen)\n{\n", $funcname;
 	}
-	$f .= sprintf "\tstatic const %s h[%d] = {\n", $elemtype, $nhash;
+	$f .= sprintf "\tstatic const %s h[%d] = {\n\t\t", $elemtype, $nhash;
 	for (my $i = 0; $i < $nhash; $i++)
 	{
-		$f .= sprintf "%s%6d,%s",
-		  ($i % 8 == 0 ? "\t\t" : " "),
-		  $hashtab[$i],
-		  ($i % 8 == 7 ? "\n" : "");
+		# Hash element.
+		$f .= sprintf "%d", $hashtab[$i];
+		next if ($i == $nhash - 1);
+
+		# Optional indentation and newline, with eight items per line.
+		$f .= sprintf ",%s",
+		  ($i % 8 == 7 ? "\n\t\t" : ' ' x (6 - length($hashtab[$i])));
 	}
 	$f .= sprintf "\n" if ($nhash % 8 != 0);
 	$f .= sprintf "\t};\n\n";

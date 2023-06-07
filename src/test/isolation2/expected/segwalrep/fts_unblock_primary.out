@@ -1,17 +1,17 @@
 -- This test assumes 3 primaries and 3 mirrors from a gpdemo segwalrep cluster
 
 -- make sure we are in-sync for the primary we will be testing with
-select content, role, preferred_role, mode, status from gp_segment_configuration;
- content | role | preferred_role | mode | status 
----------+------+----------------+------+--------
- -1      | p    | p              | n    | u      
- -1      | m    | m              | s    | u      
- 2       | p    | p              | s    | u      
- 2       | m    | m              | s    | u      
- 1       | p    | p              | s    | u      
- 1       | m    | m              | s    | u      
- 0       | p    | p              | s    | u      
- 0       | m    | m              | s    | u      
+select content, role, preferred_role, status from gp_segment_configuration;
+ content | role | preferred_role | status 
+---------+------+----------------+--------
+ -1      | p    | p              | u      
+ -1      | m    | m              | u      
+ 1       | p    | p              | u      
+ 1       | m    | m              | u      
+ 2       | p    | p              | u      
+ 2       | m    | m              | u      
+ 0       | p    | p              | u      
+ 0       | m    | m              | u      
 (8 rows)
 
 -- synchronous_standby_names should be set to '*' by default on primary 2, since
@@ -26,6 +26,15 @@ select content, role, preferred_role, mode, status from gp_segment_configuration
 --------------------------------------
  30s                                  
 (1 row)
+
+!\retcode gpconfig -c gp_fts_mark_mirror_down_grace_period -v 300;
+-- start_ignore
+-- end_ignore
+(exited with code 0)
+!\retcode gpstop -u;
+-- start_ignore
+-- end_ignore
+(exited with code 0)
 
 -- create table and show commits are not blocked
 create table fts_unblock_primary (a int) distributed by (a);
@@ -52,12 +61,6 @@ select gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
-(1 row)
--- verify the failure should be triggered once
-select gp_wait_until_triggered_fault('fts_probe', 1, 1);
- gp_wait_until_triggered_fault 
--------------------------------
- Success:                      
 (1 row)
 
 -- stop a mirror
@@ -121,6 +124,11 @@ select gp_request_fts_probe_scan();
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 select content, role, preferred_role, mode, status from gp_segment_configuration where content=2;
  content | role | preferred_role | mode | status 
 ---------+------+----------------+------+--------
@@ -170,6 +178,11 @@ select gp_request_fts_probe_scan();
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 -- mirror should continue to be reported as down since walsender is in startup
 select content, role, preferred_role, mode, status from gp_segment_configuration where content=2;
  content | role | preferred_role | mode | status 

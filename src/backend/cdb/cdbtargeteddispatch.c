@@ -2,7 +2,7 @@
  *
  * cdbtargeteddispatch.c
  *
- * Portions Copyright (c) 2009, Greenplum inc
+ * Portions Copyright (c) 2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -503,6 +503,7 @@ DirectDispatchUpdateContentIdsFromPlan(PlannerInfo *root, Plan *plan)
 		case T_FunctionScan:
 		case T_TableFuncScan:
 		case T_WorkTableScan:
+		case T_TidRangeScan:
 			DisableTargetedDispatch(&dispatchInfo);
 			break;
 		case T_ValuesScan:
@@ -527,6 +528,7 @@ DirectDispatchUpdateContentIdsFromPlan(PlannerInfo *root, Plan *plan)
 		case T_Gather:
 		case T_Hash:
 		case T_SetOp:
+		case T_RuntimeFilter:
 		case T_Limit:
 		case T_PartitionSelector:
 			break;

@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="oz137116">gpmt gp_log_collector</title>
   <body>
-    <p>This tool collects Greenplum and system log files, along with the relevant configuration
+    <p>This tool collects Cloudberry and system log files, along with the relevant configuration
       parameters, and generates a file which can be provided to VMware Customer Support for
       diagnosis of errors or system failures.</p>
     <section>
@@ -62,12 +62,12 @@
         <plentry>
           <pt><varname>-skip-master</varname></pt>
           <pd>When running gp_log_collector, the generated tarball can be very large. Use this
-            option to skip Greenplum Master log collection when only Greenplum Segment logs are
+            option to skip Cloudberry Master log collection when only Cloudberry Segment logs are
             required.</pd>
         </plentry>
         <plentry>
           <pt><varname>-with-gptext</varname></pt>
-          <pd>Collect all GPText logs along with the Greenplum logs.</pd>
+          <pd>Collect all GPText logs along with the Cloudberry logs.</pd>
         </plentry>
         <plentry>
           <pt><varname>-with-gptext-only</varname>
@@ -166,14 +166,14 @@
     <p>Note: some commands might not be able to be run if user does not have enough permission.</p>
     <section>
       <title>Examples</title>
-      <p>Collect Greenplum master and segment logs listed in a hostfile from today:</p>
+      <p>Collect Cloudberry master and segment logs listed in a hostfile from today:</p>
       <codeblock>gpmt gp_log_collector -hostfile ~/gpconfig/hostfile</codeblock>
       <p>Collect logs for any segments marked down from 21-03-2016 until today:</p>
       <codeblock>gpmt gp_log_collector -failed-segs -start 2016-03-21</codeblock>
       <p>Collect logs from host <codeph>sdw2.gpdb.local</codeph> between 2016-03-21 and
         2016-03-23:</p>
       <codeblock>gpmt gp_log_collector -failed-segs -start 2016-03-21 -end 2016-03-21</codeblock>
-      <p>Collect only GPText logs for all segments, without any Greenplum logs:</p>
+      <p>Collect only GPText logs for all segments, without any Cloudberry logs:</p>
       <codeblock>gpmt gp_log_collector -with-gptext-only</codeblock>
     </section>
   </body>

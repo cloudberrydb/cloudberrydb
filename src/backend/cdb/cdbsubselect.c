@@ -3,7 +3,7 @@
  * cdbsubselect.c
  *	  Flattens subqueries, transforms them to joins.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -637,7 +637,7 @@ convert_EXPR_to_join(PlannerInfo *root, OpExpr *opexp)
 
 /* check if NOT IN conversion to antijoin is possible */
 static bool
-safe_to_convert_NOTIN(SubLink *sublink, Relids available_rels)
+safe_to_convert_NOTIN(PlannerInfo *root, SubLink *sublink, Relids available_rels)
 {
 	Query	   *subselect = (Query *) sublink->subselect;
 	Relids		left_varnos;
@@ -661,7 +661,7 @@ safe_to_convert_NOTIN(SubLink *sublink, Relids available_rels)
 	}
 
 	/* Left-hand expressions must contain some Vars of the current */
-	left_varnos = pull_varnos(sublink->testexpr);
+	left_varnos = pull_varnos(root, sublink->testexpr);
 	if (bms_is_empty(left_varnos))
 		return false;
 
@@ -691,7 +691,7 @@ inline static bool
 has_resjunk(List *tlist)
 {
 	bool		resjunk = false;
-	Node	   *tlnode = (Node *) (lfirst(tlist->tail));
+	Node	   *tlnode = (Node *) (llast(tlist));
 
 	if (IsA(tlnode, TargetEntry))
 	{
@@ -774,8 +774,12 @@ mutate_targetlist(List *tlist)
 static int
 add_notin_subquery_rte(Query *parse, Query *subselect)
 {
-	RangeTblEntry *subq_rte;
-	int			subq_indx;
+	int					subq_indx;
+	ParseNamespaceItem	*pni;
+	ParseState			*pstate;
+
+	/* Create a dummy ParseState for addRangeTableEntryForSubquery */
+	pstate = make_parsestate(NULL);
 
 	/*
 	 * Create a RTE entry in the parent query for the subquery.
@@ -783,16 +787,17 @@ add_notin_subquery_rte(Query *parse, Query *subselect)
 	 * refer to other RTEs in the parent query.
 	 */
 	subselect->targetList = mutate_targetlist(subselect->targetList);
-	subq_rte = addRangeTableEntryForSubquery(NULL,	/* pstate */
-											 subselect,
-											 makeAlias("NotIn_SUBQUERY", NIL),
-											 false, /* not lateral */
-											 false /* inFromClause */ );
-	parse->rtable = lappend(parse->rtable, subq_rte);
+	pni = addRangeTableEntryForSubquery(pstate,
+										subselect,
+										makeAlias("NotIn_SUBQUERY", NIL),
+										false, /* not lateral */
+										false /* inFromClause */ );
+
+	parse->rtable = lappend(parse->rtable, pni->p_rte);
 
 	/* assume new rte is at end */
 	subq_indx = list_length(parse->rtable);
-	Assert(subq_rte == rt_fetch(subq_indx, parse->rtable));
+	Assert(pni->p_rte == rt_fetch(subq_indx, parse->rtable));
 
 	return subq_indx;
 }
@@ -803,8 +808,9 @@ add_notin_subquery_rte(Query *parse, Query *subselect)
 static int
 add_expr_subquery_rte(Query *parse, Query *subselect)
 {
-	RangeTblEntry *subq_rte;
-	int			subq_indx;
+	int					subq_indx;
+	ParseNamespaceItem	*pni;
+	ParseState			*pstate;
 
 	/**
 	 * Generate column names.
@@ -821,21 +827,24 @@ add_expr_subquery_rte(Query *parse, Query *subselect)
 		teNum++;
 	}
 
+	/* Create a dummy ParseState for addRangeTableEntryForSubquery */
+	pstate = make_parsestate(NULL);
+
 	/*
 	 * Create a RTE entry in the parent query for the subquery.
 	 * It is marked as lateral, because any correlation quals will
 	 * refer to other RTEs in the parent query.
 	 */
-	subq_rte = addRangeTableEntryForSubquery(NULL,	/* pstate */
-											 subselect,
-											 makeAlias("Expr_SUBQUERY", NIL),
-											 true, /* lateral */
-											 false /* inFromClause */ );
-	parse->rtable = lappend(parse->rtable, subq_rte);
+	pni = addRangeTableEntryForSubquery(pstate,
+										subselect,
+										makeAlias("Expr_SUBQUERY", NIL),
+										true, /* lateral */
+										false /* inFromClause */ );
+	parse->rtable = lappend(parse->rtable, pni->p_rte);
 
 	/* assume new rte is at end */
 	subq_indx = list_length(parse->rtable);
-	Assert(subq_rte == rt_fetch(subq_indx, parse->rtable));
+	Assert(pni->p_rte == rt_fetch(subq_indx, parse->rtable));
 
 	return subq_indx;
 }
@@ -1404,7 +1413,7 @@ convert_IN_to_antijoin(PlannerInfo *root, SubLink *sublink,
 	Query	   *parse = root->parse;
 	Query	   *subselect = (Query *) sublink->subselect;
 
-	if (safe_to_convert_NOTIN(sublink, available_rels))
+	if (safe_to_convert_NOTIN(root, sublink, available_rels))
 	{
 		int			subq_indx      = add_notin_subquery_rte(parse, subselect);
 		List       *inner_exprs    = NIL;

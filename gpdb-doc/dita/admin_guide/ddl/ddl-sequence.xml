@@ -3,17 +3,17 @@
 <topic id="topic_eys_3wy_sp">
   <title id="im148803">Creating and Using Sequences</title>
   <body>
-    <p>A Greenplum Database sequence object is a special single row table that functions as a
+    <p>A Cloudberry Database sequence object is a special single row table that functions as a
       number generator. You can use a sequence to generate unique integer identifiers for a row
       that you add to a table.  Declaring a column of type <codeph>SERIAL</codeph> implicitly
       creates a sequence counter for use in that table column.
     </p>
-    <p>Greenplum Database provides commands to create, alter, and drop a sequence. Greenplum Database
+    <p>Cloudberry Database provides commands to create, alter, and drop a sequence. Cloudberry Database
        also provides built-in functions to return the next value in the
        sequence (<codeph>nextval()</codeph>) or to set the sequence to a specific start
        value (<codeph>setval()</codeph>).</p>
     <note>The PostgreSQL <codeph>currval()</codeph> and <codeph>lastval()</codeph> sequence
-       functions are not supported in Greenplum Database.</note>
+       functions are not supported in Cloudberry Database.</note>
    <p>Attributes of a sequence object include the name of the sequence, its increment value, and the last, minimum, and
      maximum values of the sequence counter. Sequences also have a special boolean attribute
      named <codeph>is_called</codeph> that governs the auto-increment behavior of
@@ -35,7 +35,7 @@
         <codeblock>CREATE SEQUENCE myserial START 101;
 </codeblock>
       </p>
-      <p>When you create a new sequence, Greenplum Database sets the sequence
+      <p>When you create a new sequence, Cloudberry Database sets the sequence
          <codeph>is_called</codeph> attribute to <codeph>false</codeph>.
          Invoking <codeph>nextval()</codeph> on a newly-created sequence does not increment
          the sequence counter, but returns the sequence start value and sets
@@ -76,11 +76,11 @@
         that failed transactions can leave unused holes in the sequence of assigned values.</p>
       <note>You cannot use the <codeph>nextval()</codeph> function in <codeph>UPDATE</codeph>
         or <codeph>DELETE</codeph> statements if mirroring is enabled in
-        Greenplum Database.</note>
+        Cloudberry Database.</note>
      </section>
      <section>
        <title>Setting the Sequence Counter Value</title>
-      <p>You can use the Greenplum Database <codeph>setval()</codeph> built-in function to 
+      <p>You can use the Cloudberry Database <codeph>setval()</codeph> built-in function to 
         set the counter value for a sequence. For example, the following command sets the counter value of the sequence named <codeph>myserial</codeph> to <codeph>201</codeph>:</p>
       <p>
         <codeblock>SELECT setval('myserial', 201);

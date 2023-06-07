@@ -4,7 +4,7 @@
  *	  Functions for dealing with encrypted passwords stored in
  *	  pg_authid.rolpassword.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/backend/libpq/crypt.c
@@ -14,9 +14,6 @@
 #include "postgres.h"
 
 #include <unistd.h>
-#ifdef HAVE_CRYPT_H
-#include <crypt.h>
-#endif
 
 #include "catalog/pg_authid.h"
 #include "common/md5.h"
@@ -86,7 +83,7 @@ get_role_password(const char *role, char **logdetail)
 }
 
 /*
- * What kind of a password verifier is 'shadow_pass'?
+ * What kind of a password type is 'shadow_pass'?
  */
 PasswordType
 get_password_type(const char *shadow_pass)
@@ -100,14 +97,14 @@ get_password_type(const char *shadow_pass)
 		strlen(shadow_pass) == MD5_PASSWD_LEN &&
 		strspn(shadow_pass + 3, MD5_PASSWD_CHARSET) == MD5_PASSWD_LEN - 3)
 		return PASSWORD_TYPE_MD5;
-	if (parse_scram_verifier(shadow_pass, &iterations, &encoded_salt,
-							 stored_key, server_key))
+	if (parse_scram_secret(shadow_pass, &iterations, &encoded_salt,
+						   stored_key, server_key))
 		return PASSWORD_TYPE_SCRAM_SHA_256;
 	return PASSWORD_TYPE_PLAINTEXT;
 }
 
 /*
- * Given a user-supplied password, convert it into a verifier of
+ * Given a user-supplied password, convert it into a secret of
  * 'target_type' kind.
  *
  * If the password is already in encrypted form, we cannot reverse the
@@ -140,7 +137,7 @@ encrypt_password(PasswordType target_type, const char *role,
 			return encrypted_password;
 
 		case PASSWORD_TYPE_SCRAM_SHA_256:
-			return pg_be_scram_build_verifier(password);
+			return pg_be_scram_build_secret(password);
 
 		case PASSWORD_TYPE_PLAINTEXT:
 			elog(ERROR, "cannot encrypt password with 'plaintext'");

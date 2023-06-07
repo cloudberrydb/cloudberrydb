@@ -2,14 +2,14 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="parsers">
   <title>Text Search Parsers</title>
-  <shortdesc>This topic describes the types of tokens the Greenplum Database
+  <shortdesc>This topic describes the types of tokens the Cloudberry Database
     text search parser produces from raw text.  </shortdesc>
   <body>
     <p>Text search parsers are responsible for splitting raw document text into <i>tokens</i> and
       identifying each token's type, where the set of possible types is defined by the parser
       itself. Note that a parser does not modify the text at all — it simply identifies plausible
       word boundaries. Because of this limited scope, there is less need for application-specific
-      custom parsers than there is for custom dictionaries. At present Greenplum Database provides
+      custom parsers than there is for custom dictionaries. At present Cloudberry Database provides
       just one built-in parser, which has been found to be useful for a wide range of
       applications.</p>
     <p>The built-in parser is named <codeph>pg_catalog.default</codeph>. It recognizes 23 token

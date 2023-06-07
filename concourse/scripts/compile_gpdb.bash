@@ -16,8 +16,8 @@ function prep_env() {
 	GPDB_BIN_FILENAME=${GPDB_BIN_FILENAME:="bin_gpdb.tar.gz"}
 	GPDB_CL_FILENAME=${GPDB_CL_FILENAME:="bin_gpdb_clients.tar.gz"}
 
-	GREENPLUM_INSTALL_DIR=/usr/local/greenplum-db-devel
-	GREENPLUM_CL_INSTALL_DIR=/usr/local/greenplum-clients-devel
+	GREENPLUM_INSTALL_DIR=$INSTALL_DIR
+	GREENPLUM_CL_INSTALL_DIR=$CLIENT_INSTALL_DIR
 
 	mkdir -p "${GPDB_ARTIFACTS_DIR}"
 
@@ -76,6 +76,12 @@ function unittest_check_gpdb() {
 	popd
 }
 
+function download_extra_dependencies() {
+	download_etcd ${GREENPLUM_INSTALL_DIR}/bin
+	download_jansson ${GREENPLUM_INSTALL_DIR}/lib
+	download_java ${GREENPLUM_INSTALL_DIR}/ext
+}
+
 function include_dependencies() {
 
 	mkdir -p ${GREENPLUM_INSTALL_DIR}/{lib/pkgconfig,include}
@@ -86,13 +92,13 @@ function include_dependencies() {
 	library_search_path+=(/lib64 /usr/lib64 /lib /usr/lib)
 
 	pkgconfigs=(quicklz.pc)
-	vendored_libs=(libquicklz.so{,.1,.1.5.0} libxerces-c{,-3.1}.so)
+	vendored_libs=(libquicklz.so{,.1,.1.5,.1.5.0} libxerces-c{,-3.1,-3.2}.so)
 
 	# If not building for rhel8, vendor libzstd and libuv shared library, headers, and pkgconfig
 	if [[ "${BLD_ARCH}" != "rhel8_x86_64"* ]]; then
 		vendored_headers=(zstd*.h uv.h uv)
 		pkgconfigs+=(libzstd.pc libuv.pc)
-		vendored_libs+=(libzstd.so{,.1,.1.3.7} libuv.so{,.1,.1.0.0})
+		vendored_libs+=(libzstd.so{,.1,.1.3.7,.1.4,.1.4.2,.1.4.5,.1.5,.1.5.2} libuv.so{,.1,.1.0.0})
 
 		# Vendor headers - follow symlinks
 		for path in "${header_search_path[@]}"; do if [[ -d "${path}" ]]; then for header in "${vendored_headers[@]}"; do find -L $path -name $header -exec cp -avn '{}' ${GREENPLUM_INSTALL_DIR}/include \;; done; fi; done
@@ -103,6 +109,7 @@ function include_dependencies() {
 	# vendor pkgconfig files
 	for path in "${library_search_path[@]}"; do if [[ -d "${path}/pkgconfig" ]]; then for pkg in "${pkgconfigs[@]}"; do find -L $path/pkgconfig/ -name $pkg -exec cp -avn '{}' ${GREENPLUM_INSTALL_DIR}/lib/pkgconfig \;; done; fi; done
 
+	download_extra_dependencies
 }
 function export_gpdb() {
 	TARBALL="${GPDB_ARTIFACTS_DIR}/${GPDB_BIN_FILENAME}"

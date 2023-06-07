@@ -752,6 +752,27 @@ DROP EXTERNAL TABLE ext_transform;
 select count(*) from ext_whois;
 NOTICE:  HEADER means that each one of the data files has a header row
 ERROR:  connection with gpfdist failed for gpfdist://@hostname@:7070/whois.csv. effective url: http://127.0.0.1:7070/whois.csv. error code = 61 (Connection refused)  (seg1 slice1 @hostname@:50001 pid=64820)
+-- test writable transform table error report to server.
+CREATE WRITABLE EXTERNAL TABLE writable_transform (a text) location('gpfdist://localhost:7081/filename#transform=write') format 'text';
+CREATE EXTERNAL WEB TABLE gpfdist3_transform_start (x text)
+execute E'((@bindir@/gpfdist -p 7081 -d @abs_srcdir@/data/transform -c @abs_srcdir@/data/errtransform_stderr_server.yml </dev/null >/dev/null 2>&1 &); for i in `seq 1 30`; do curl 127.0.0.1:7081 >/dev/null 2>&1 && break; sleep 1; done; echo "starting...") '
+on SEGMENT 0
+FORMAT 'text' (delimiter '|');
+-- start_ignore
+-- end_ignore
+insert into writable_transform values('hello');
+ERROR:  http response code 500 from gpfdist (gpfdist://localhost:7081/filename#transform=write): HTTP/1.0 500 bash: /home/gpadmin/gpfdist/not_exist.sh: No such file or directory  (seg1 127.0.1.1:8003 pid=658139)
+-- test writable transform table error report to console.
+CREATE EXTERNAL WEB TABLE gpfdist4_transform_start (x text)
+execute E'((@bindir@/gpfdist -p 7081 -d @abs_srcdir@/data/transform -c @abs_srcdir@/data/errtransform_stderr_console.yml </dev/null >/dev/null 2>&1 &); for i in `seq 1 30`; do curl 127.0.0.1:7081 >/dev/null 2>&1 && break; sleep 1; done; echo "starting...") '
+on SEGMENT 0
+FORMAT 'text' (delimiter '|');
+-- start_ignore
+-- end_ignore
+-- this insert will succeed because transform error is in gpfdist console
+insert into writable_transform values('stderr'),('in'),('console');
+DROP EXTERNAL TABLE writable_transform;
+DROP EXTERNAL TABLE gpfdist4_transform_start;
 -- Test external table sreh output in gp_read_error_log() print rawbytes with \0 in it.
 -- start_ignore
 select * from exttab1_gpfdist_stop;
@@ -772,17 +793,15 @@ drop external table if exists external_sreh_bad_data_text;
 NOTICE:  foreign table "external_sreh_bad_data_text" does not exist, skipping
 create external table external_sreh_bad_data_text(name text) location('gpfdist://@hostname@:7070/exttab1/bad_data.tbl') format 'text' log errors segment reject limit 3;
 select * from external_sreh_bad_data_text;
-NOTICE:  found 1 data formatting errors (1 or more input rows), rejected related input data
- name  
--------
- AAABB
-(1 row)
-
+ERROR:  segment reject limit reached, aborting operation
+CONTEXT:  External table external_sreh_bad_data_text, line 4 of gpfdist://@hostname:7070/exttab1/bad_data.tbl: ""
 select rawbytes from gp_read_error_log('external_sreh_bad_data_text');
-  rawbytes  
-------------
- \x31003132
-(1 row)
+ rawbytes 
+----------
+ 
+ 
+ 
+(3 rows)
 
 drop external table external_sreh_bad_data_text;
 -- sreh 2 custom format with bad data.
@@ -797,9 +816,9 @@ NOTICE:  found 1 data formatting errors (1 or more input rows), rejected related
 (1 row)
 
 select rawbytes from gp_read_error_log('external_sreh_bad_data');
-  rawbytes  
-------------
- \x31003132
+ rawbytes 
+----------
+ 
 (1 row)
 
 drop external table external_sreh_bad_data;

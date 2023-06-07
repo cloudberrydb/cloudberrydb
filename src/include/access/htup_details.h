@@ -4,7 +4,7 @@
  *	  POSTGRES heap tuple header definitions.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/htup_details.h
@@ -15,9 +15,9 @@
 #define HTUP_DETAILS_H
 
 #include "access/htup.h"
+#include "access/transam.h"
 #include "access/tupdesc.h"
 #include "access/tupmacs.h"
-#include "access/transam.h"
 #include "storage/bufpage.h"
 
 /*
@@ -192,7 +192,7 @@ struct HeapTupleHeaderData
 #define HEAP_HASEXTERNAL		0x0004	/* has external stored attribute(s) */
 #define HEAP_HASOID_OLD			0x0008	/* has an object-id field */
 #define HEAP_XMAX_KEYSHR_LOCK	0x0010	/* xmax is a key-shared locker */
-#define HEAP_COMBOCID			0x0020	/* t_cid is a combo cid */
+#define HEAP_COMBOCID			0x0020	/* t_cid is a combo CID */
 #define HEAP_XMAX_EXCL_LOCK		0x0040	/* xmax is exclusive locker */
 #define HEAP_XMAX_LOCK_ONLY		0x0080	/* xmax, if valid, is only a locker */
 
@@ -234,7 +234,7 @@ struct HeapTupleHeaderData
 
 /*
  * A tuple that has HEAP_XMAX_IS_MULTI and HEAP_XMAX_LOCK_ONLY but neither of
- * XMAX_EXCL_LOCK and XMAX_KEYSHR_LOCK must come from a tuple that was
+ * HEAP_XMAX_EXCL_LOCK and HEAP_XMAX_KEYSHR_LOCK must come from a tuple that was
  * share-locked in 9.2 or earlier and then pg_upgrade'd.
  *
  * In 9.2 and prior, HEAP_XMAX_IS_MULTI was only set when there were multiple
@@ -454,11 +454,10 @@ do { \
 )
 
 #define HeapTupleHeaderIndicatesMovedPartitions(tup) \
-	(ItemPointerGetOffsetNumber(&(tup)->t_ctid) == MovedPartitionsOffsetNumber && \
-	 ItemPointerGetBlockNumberNoCheck(&(tup)->t_ctid) == MovedPartitionsBlockNumber)
+	ItemPointerIndicatesMovedPartitions(&(tup)->t_ctid)
 
 #define HeapTupleHeaderSetMovedPartitions(tup) \
-	ItemPointerSet(&(tup)->t_ctid, MovedPartitionsBlockNumber, MovedPartitionsOffsetNumber)
+	ItemPointerSetMovedPartitions(&(tup)->t_ctid)
 
 #define HeapTupleHeaderGetDatumLength(tup) \
 	VARSIZE(tup)

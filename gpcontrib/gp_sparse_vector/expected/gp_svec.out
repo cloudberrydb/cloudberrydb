@@ -271,7 +271,6 @@ WHERE a.character_maximum_length == b.character_maximum_length ORDER BY a.table_
  routines                          |                        3
  sequences                         |                        3
  sql_features                      |                        3
- sql_packages                      |                        3
  sql_parts                         |                        3
  table_constraints                 |                        3
  table_privileges                  |                        3
@@ -280,7 +279,7 @@ WHERE a.character_maximum_length == b.character_maximum_length ORDER BY a.table_
  usage_privileges                  |                        3
  user_defined_types                |                        3
  views                             |                        3
-(25 rows)
+(24 rows)
 
 DROP EXTENSION gp_sparse_vector;
 RESET search_path;

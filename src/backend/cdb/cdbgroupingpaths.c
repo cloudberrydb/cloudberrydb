@@ -63,6 +63,7 @@
 #include "optimizer/optimizer.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/paths.h"
+#include "optimizer/prep.h"
 #include "optimizer/tlist.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_oper.h"
@@ -161,13 +162,8 @@ typedef struct
 
 static void create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 								   RelOptInfo *input_rel, RelOptInfo *output_rel);
-static List *get_common_group_tles(PathTarget *target,
-								   List *groupClause,
-								   List *rollups);
+
 static List *get_all_rollup_groupclauses(List *rollups);
-static CdbPathLocus choose_grouping_locus(PlannerInfo *root, Path *path,
-										  List *group_tles,
-										  bool *need_redistribute_p);
 
 static Index add_gsetid_tlist(List *tlist);
 
@@ -255,7 +251,7 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 {
 	Query	   *parse = root->parse;
 	Path	   *cheapest_path = input_rel->cheapest_total_path;
-	bool		has_ordered_aggs = agg_costs->numPureOrderedAggs > 0;
+	bool		has_ordered_aggs = root->numPureOrderedAggs > 0;
 	cdb_agg_planning_context ctx;
 	bool		can_sort;
 	bool		can_hash;
@@ -268,7 +264,7 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 	 * functions per DQA and were willing to plan some DQAs as single and
 	 * some as multiple phases.  Not currently, however.
 	 */
-	Assert(!agg_costs->hasNonCombine && !agg_costs->hasNonSerial);
+	Assert(!root->hasNonCombine && !root->hasNonSerialAggs);
 	Assert(root->config->gp_enable_multiphase_agg);
 
 	/*
@@ -297,7 +293,7 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 	 */
 	can_sort = grouping_is_sortable(parse->groupClause);
 	can_hash = (parse->groupClause != NIL &&
-				agg_costs->numPureOrderedAggs == 0 &&
+				root->numPureOrderedAggs == 0 &&
 				grouping_is_hashable(parse->groupClause));
 
 	/*
@@ -501,7 +497,29 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 		case MULTI_DQAS:
 			{
 				fetch_multi_dqas_info(root, cheapest_path, &ctx, &info);
-
+				/* 
+				 * GPDB_14_MERGE_FIXME: We have done some copy job in
+				 * make_partial_grouping_target, so that the agg references
+				 * in plan is actually different from 
+				 * agg_partial_costs->distinctAggrefs. And it has to be
+				 * different since we need to compute and set agg_expr_id for
+				 * tuple split cases.
+				 * However, we need to push multi dqa's filter to tuplesplit
+				 * to get the correct result. And thus we need to remove the
+				 * filter in aggref referenced by the plan.
+				 * 
+				 * It's not that trivial to fix it perfectly. By manually
+				 * removing the origin plan's aggfilter can work around
+				 * this problem. We'll look at it again later.
+				 */
+				ListCell   *lc;
+				foreach(lc, root->agginfos)
+				{
+					AggInfo    *agginfo = (AggInfo *) lfirst(lc);
+					Aggref	   *aggref = agginfo->representative_aggref;
+					if (aggref->aggdistinct != NIL)
+						aggref->aggfilter = NULL;
+				}
 				add_multi_dqas_hash_agg_path(root,
 											 cheapest_path,
 											 &ctx,
@@ -649,7 +667,7 @@ create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 	 * The first stage's output is Partially Aggregated. The paths are
 	 * collected to the ctx->partial_rel, by calling add_path(). We do *not*
 	 * use add_partial_path(), these partially aggregated paths are considered
-	 * more like MPP paths in Greenplum in general.
+	 * more like MPP paths in Cloudberry in general.
 	 *
 	 * First consider sorted Aggregate paths.
 	 */
@@ -905,10 +923,8 @@ static void
 											  NIL,
 											  AGG_SORTED,
 											  ctx->rollups,
-											  ctx->agg_partial_costs,
-											  estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
-																			 path->rows, path->locus));
-		add_path(ctx->partial_rel, first_stage_agg_path);
+											  ctx->agg_partial_costs);
+		add_path(ctx->partial_rel, first_stage_agg_path, root);
 	}
 	else if (ctx->hasAggs || ctx->groupClause)
 	{
@@ -924,7 +940,8 @@ static void
 									 NIL,
 									 ctx->agg_partial_costs,
 									 estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
-																	path->rows, path->locus)));
+																	path->rows, path->locus)),
+				 root);
 	}
 	else
 	{
@@ -1001,7 +1018,7 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 										ctx->dNumGroupsTotal);
 		path->pathkeys = strip_gsetid_from_pathkeys(ctx->gsetid_sortref, path->pathkeys);
 
-		add_path(output_rel, path);
+		add_path(output_rel, path, root);
 	}
 
 	/*
@@ -1035,7 +1052,7 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 									ctx->agg_final_costs,
 									ctx->dNumGroupsTotal);
 	path->pathkeys = strip_gsetid_from_pathkeys(ctx->gsetid_sortref, path->pathkeys);
-	add_path(output_rel, path);
+	add_path(output_rel, path, root);
 }
 
 /*
@@ -1053,10 +1070,6 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 	dNumGroups = estimate_num_groups_on_segment(ctx->dNumGroupsTotal,
 												path->rows, path->locus);
 
-	/*
-	 * FIXME:
-	 * Shall we compute hash table size and compare with work_mem here?
-	 */
 
 	if (parse->groupingSets && ctx->new_rollups)
 	{
@@ -1068,11 +1081,10 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 											  NIL,
 											  ctx->strat,
 											  ctx->new_rollups,
-											  ctx->agg_partial_costs,
-											  dNumGroups);
+											  ctx->agg_partial_costs);
 		CdbPathLocus_MakeStrewn(&(first_stage_agg_path->locus),
 								CdbPathLocus_NumSegments(first_stage_agg_path->locus));
-		add_path(ctx->partial_rel, first_stage_agg_path);
+		add_path(ctx->partial_rel, first_stage_agg_path, root);
 	}
 	else
 	{
@@ -1087,7 +1099,8 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 										  ctx->groupClause,
 										  NIL,
 										  ctx->agg_partial_costs,
-										  dNumGroups));
+										  dNumGroups),
+				 root);
 	}
 }
 
@@ -1143,7 +1156,7 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 										ctx->havingQual,
 										ctx->agg_final_costs,
 										dNumGroups);
-		add_path(output_rel, path);
+		add_path(output_rel, path, root);
 	}
 
 	/*
@@ -1180,7 +1193,7 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 											ctx->havingQual,
 											ctx->agg_final_costs,
 											ctx->dNumGroupsTotal);
-			add_path(output_rel, path);
+			add_path(output_rel, path, root);
 		}
 	}
 }
@@ -1282,7 +1295,7 @@ static void add_single_mixed_dqa_hash_agg_path(PlannerInfo *root,
 									ctx->havingQual,
 									ctx->agg_final_costs,
 									ctx->dNumGroupsTotal);
-	add_path(output_rel, path);
+	add_path(output_rel, path, root);
 }
 
 /*
@@ -1390,7 +1403,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										ctx->havingQual,
 										ctx->agg_final_costs,
 										dNumGroups);
-		add_path(output_rel, path);
+		add_path(output_rel, path, root);
 	}
 	else if (CdbPathLocus_IsHashed(group_locus))
 	{
@@ -1446,7 +1459,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										ctx->havingQual,
 										ctx->agg_final_costs,
 										dNumGroups);
-		add_path(output_rel, path);
+		add_path(output_rel, path, root);
 	}
 	else if (CdbPathLocus_IsHashed(distinct_locus))
 	{
@@ -1514,7 +1527,7 @@ add_single_dqa_hash_agg_path(PlannerInfo *root,
 										ctx->agg_final_costs,
 										dNumGroups);
 
-		add_path(output_rel, path);
+		add_path(output_rel, path, root);
 	}
 	else
 		return;
@@ -1578,7 +1591,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 										  info->dqa_expr_lst);
 
 	AggClauseCosts DedupCost = {};
-	get_agg_clause_costs(root, (Node *) info->tup_split_target->exprs,
+	get_agg_clause_costs(root,
 						 AGGSPLIT_SIMPLE,
 						 &DedupCost);
 
@@ -1681,7 +1694,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
 									ctx->agg_final_costs,
 									ctx->dNumGroupsTotal);
 
-	add_path(output_rel, path);
+	add_path(output_rel, path, root);
 }
 
 /*
@@ -1695,7 +1708,7 @@ add_multi_dqas_hash_agg_path(PlannerInfo *root,
  *
  * the common cols are b and c.
  */
-static List *
+List *
 get_common_group_tles(PathTarget *target,
 					  List *groupClause,
 					  List *rollups)
@@ -1804,7 +1817,7 @@ get_all_rollup_groupclauses(List *rollups)
  * multple grouping sets. Use get_common_group_tles() to build that
  * list.
  */
-static CdbPathLocus
+CdbPathLocus
 choose_grouping_locus(PlannerInfo *root, Path *path,
 					  List *group_tles,
 					  bool *need_redistribute_p)
@@ -2051,12 +2064,29 @@ fetch_multi_dqas_info(PlannerInfo *root,
 			arg_tle = get_sortgroupclause_tle(arg_sortcl, aggref->args);
 			ListCell    *lc3;
 			int         dqa_idx = 0;
+			Expr		*naked_tle_expr = arg_tle->expr;
+
+			/*
+			 * When conversions between two binary-compatible types happen in
+			 * DQA expressions, the expr(s) in arg_tle and proj_target->exprs
+			 * may be wrapped with a RelabelType node. The RelabelType node doesn't
+			 * affect the semantics, so we ignore it here.
+			 * For conversions that are not binary-compatible, the exprs are wrapped
+			 * with other types of node, e.g., CoerceViaIO.
+			 * Relevent bug report: https://github.com/greenplum-db/gpdb/issues/14096
+			 */
+			while (naked_tle_expr && IsA(naked_tle_expr, RelabelType))
+				naked_tle_expr = ((RelabelType *) naked_tle_expr)->arg;
 
 			foreach (lc3, proj_target->exprs)
 			{
 				Expr    *expr = lfirst(lc3);
+				Expr	*naked_expr = expr;
+				/* Ignore the RelabelType node. */
+				while (naked_expr && IsA(naked_expr, RelabelType))
+					naked_expr = ((RelabelType *) naked_expr)->arg;
 
-				if (equal(arg_tle->expr, expr))
+				if (equal(naked_tle_expr, naked_expr))
 					break;
 
 				dqa_idx++;
@@ -2158,7 +2188,7 @@ fetch_multi_dqas_info(PlannerInfo *root,
 			dNumDistinctGroups += estimate_num_groups(root,
 			                                          this_dqa_group_exprs,
 			                                          num_total_input_rows,
-			                                          NULL);
+													  NULL, NULL);
 		}
 
 		/* assign an agg_expr_id value to aggref*/
@@ -2287,7 +2317,7 @@ fetch_single_dqa_info(PlannerInfo *root,
 	info->dNumDistinctGroups = estimate_num_groups(root,
 												   dqa_group_exprs,
 												   num_total_input_rows,
-												   NULL);
+												   NULL, NULL);
 }
 
 /*
@@ -2316,6 +2346,7 @@ fetch_single_dqa_info(PlannerInfo *root,
 Path *
 cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 								bool is_sorted,
+								int presorted_keys,
 								/* args corresponding to create_sort_path */
 								RelOptInfo *rel,
 								Path *subpath,
@@ -2328,6 +2359,7 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 {
 	CdbPathLocus locus;
 	bool		need_redistribute;
+	bool 		use_incremental_sort =  (presorted_keys != 0 && enable_incremental_sort);
 
 	/*
 	 * If the input is already collected to a single segment, just add a Sort
@@ -2354,12 +2386,24 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 	{
 		if (!is_sorted)
 		{
-			subpath = (Path *) create_sort_path(root,
-												rel,
-												subpath,
-												group_pathkeys,
-												-1.0);
+			if (!use_incremental_sort)
+				subpath = (Path *) create_sort_path(root,
+													rel,
+													subpath,
+													group_pathkeys,
+													-1.0);
+			else
+			{
+				subpath = (Path *) create_incremental_sort_path(root,
+																rel,
+																subpath,
+																group_pathkeys,
+																presorted_keys,
+																-1.0);
+			}
 		}
+
+		
 		return subpath;
 	}
 
@@ -2393,11 +2437,21 @@ cdb_prepare_path_for_sorted_agg(PlannerInfo *root,
 			subpath = cdbpath_create_motion_path(root, subpath, NIL,
 												 false, locus);
 
-		subpath = (Path *) create_sort_path(root,
-											rel,
-											subpath,
-											group_pathkeys,
-											-1.0);
+		if (!use_incremental_sort)
+			subpath = (Path *) create_sort_path(root,
+												rel,
+												subpath,
+												group_pathkeys,
+												-1.0);
+		else
+		{
+			subpath = (Path *) create_incremental_sort_path(root,
+															rel,
+															subpath,
+															group_pathkeys,
+															presorted_keys,
+															-1.0);
+		}
 
 		if (!CdbPathLocus_IsPartitioned(locus))
 			subpath = cdbpath_create_motion_path(root, subpath,

@@ -64,14 +64,14 @@
         <plentry>
           <pt>INSENSITIVE</pt>
           <pd>Indicates that data retrieved from the cursor should be unaffected by updates to the
-            tables underlying the cursor while the cursor exists. In Greenplum Database, all cursors
+            tables underlying the cursor while the cursor exists. In Cloudberry Database, all cursors
             are insensitive. This key word currently has no effect and is present for compatibility
             with the SQL standard. </pd>
         </plentry>
         <plentry>
           <pt>NO SCROLL</pt>
           <pd>A cursor cannot be used to retrieve rows in a nonsequential fashion. This is the
-            default behavior in Greenplum Database, since scrollable cursors
+            default behavior in Cloudberry Database, since scrollable cursors
               (<codeph>SCROLL</codeph>) are not supported.</pd>
         </plentry>
         <plentry>
@@ -132,7 +132,7 @@
       <p>Unless <codeph>WITH HOLD</codeph> is specified, the cursor created by this command can only
         be used within the current transaction. Thus, <codeph>DECLARE</codeph> without <codeph>WITH
           HOLD</codeph> is useless outside a transaction block: the cursor would survive only to the
-        completion of the statement. Therefore Greenplum Database reports an error if this command
+        completion of the statement. Therefore Cloudberry Database reports an error if this command
         is used outside a transaction block. Use <codeph>BEGIN</codeph> and <codeph>COMMIT</codeph>
         (or <codeph>ROLLBACK</codeph>) to define a transaction block.</p>
       <p>If <codeph>WITH HOLD</codeph> is specified and the transaction that created the cursor
@@ -145,7 +145,7 @@
       <p>If you create a cursor with the <codeph>DECLARE</codeph> command in a transaction, you
         cannot use the <codeph>SET</codeph> command in the transaction until you close the cursor
         with the <codeph>CLOSE</codeph> command.</p>
-      <p>Scrollable cursors are not currently supported in Greenplum Database. You can only use
+      <p>Scrollable cursors are not currently supported in Cloudberry Database. You can only use
           <codeph>FETCH</codeph> to move the cursor position forward, not backwards.</p>
       <p><codeph>DECLARE...FOR UPDATE</codeph> is not supported with append-optimized tables.</p>
       <p>You can see all available cursors by querying the <codeph>pg_cursors</codeph> system view.
@@ -158,13 +158,13 @@
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p>SQL standard allows cursors only in embedded SQL and in modules. Greenplum Database permits
+      <p>SQL standard allows cursors only in embedded SQL and in modules. Cloudberry Database permits
         cursors to be used interactively. </p>
-      <p>Greenplum Database does not implement an <codeph>OPEN</codeph> statement for cursors. A
+      <p>Cloudberry Database does not implement an <codeph>OPEN</codeph> statement for cursors. A
         cursor is considered to be open when it is declared.</p>
-      <p>The SQL standard allows cursors to move both forward and backward. All Greenplum Database
+      <p>The SQL standard allows cursors to move both forward and backward. All Cloudberry Database
         cursors are forward moving only (not scrollable).</p>
-      <p>Binary cursors are a Greenplum Database extension. </p>
+      <p>Binary cursors are a Cloudberry Database extension. </p>
     </section>
     <section id="section8">
       <title>See Also</title>

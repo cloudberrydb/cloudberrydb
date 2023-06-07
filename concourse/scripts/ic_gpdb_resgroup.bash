@@ -56,14 +56,14 @@ run_resgroup_test() {
     local gpdb_master_alias=$1
 
     ssh $gpdb_master_alias bash -ex <<EOF
-        source /usr/local/greenplum-db-devel/greenplum_path.sh
+        source /usr/local/cloudberry-db-devel/greenplum_path.sh
         export PGPORT=5432
         export COORDINATOR_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
         export LDFLAGS="-L\${GPHOME}/lib"
         export CPPFLAGS="-I\${GPHOME}/include"
 
         cd /home/gpadmin/gpdb_src
-        PYTHON=python3 ./configure --prefix=/usr/local/greenplum-db-devel \
+        PYTHON=python3 ./configure --prefix=/usr/local/cloudberry-db-devel \
             --without-zlib --without-rt --without-libcurl \
             --without-libedit-preferred --without-docdir --without-readline \
             --disable-gpcloud --disable-gpfdist --disable-orca \
@@ -112,11 +112,11 @@ setup_binary_swap_test() {
         return 0
     fi
 
-    ssh $gpdb_master_alias mkdir -p /tmp/local/greenplum-db-devel
-    ssh $gpdb_master_alias tar -zxf - -C /tmp/local/greenplum-db-devel \
+    ssh $gpdb_master_alias mkdir -p /tmp/local/cloudberry-db-devel
+    ssh $gpdb_master_alias tar -zxf - -C /tmp/local/cloudberry-db-devel \
         < binary_swap_gpdb/bin_gpdb.tar.gz
     ssh $gpdb_master_alias sed -i -e "s@/usr/local@/tmp/local@" \
-        /tmp/local/greenplum-db-devel/greenplum_path.sh
+        /tmp/local/cloudberry-db-devel/greenplum_path.sh
 }
 
 run_binary_swap_test() {
@@ -128,7 +128,7 @@ run_binary_swap_test() {
 
     scp -r /tmp/build/*/binary_swap_gpdb/ $gpdb_master_alias:/home/gpadmin/
     ssh $gpdb_master_alias bash -ex <<EOF
-        source /usr/local/greenplum-db-devel/greenplum_path.sh
+        source /usr/local/cloudberry-db-devel/greenplum_path.sh
         export PGPORT=5432
         export COORDINATOR_DATA_DIRECTORY=/data/gpdata/master/gpseg-1
         export BINARY_SWAP_VARIANT=_resgroup

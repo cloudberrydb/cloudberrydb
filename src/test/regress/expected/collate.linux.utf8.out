@@ -3,6 +3,13 @@
  * locales is installed.  It must be run in a database with UTF-8 encoding,
  * because other encodings don't support all the characters used.
  */
+SELECT getdatabaseencoding() <> 'UTF8' OR
+       (SELECT count(*) FROM pg_collation WHERE collname IN ('de_DE', 'en_US', 'sv_SE', 'tr_TR') AND collencoding = pg_char_to_encoding('UTF8')) <> 4 OR
+       version() !~ 'linux-gnu'
+       AS skip_test \gset
+\if :skip_test
+\quit
+\endif
 SET client_encoding TO UTF8;
 CREATE SCHEMA collate_tests;
 SET search_path = collate_tests;
@@ -454,6 +461,22 @@ SELECT to_char(date '2010-04-01', 'DD TMMON YYYY' COLLATE "tr_TR");
  01 NİS 2010
 (1 row)
 
+-- to_date
+SELECT to_date('01 ŞUB 2010', 'DD TMMON YYYY');
+  to_date   
+------------
+ 02-01-2010
+(1 row)
+
+SELECT to_date('01 Şub 2010', 'DD TMMON YYYY');
+  to_date   
+------------
+ 02-01-2010
+(1 row)
+
+SELECT to_date('1234567890ab 2010', 'TMMONTH YYYY'); -- fail
+ERROR:  invalid value "1234567890ab" for "MONTH"
+DETAIL:  The given value did not match any of the allowed values for this field.
 -- backwards parsing
 CREATE VIEW collview1 AS SELECT * FROM collate_test1 WHERE b COLLATE "C" >= 'bbc';
 CREATE VIEW collview2 AS SELECT a, b FROM collate_test1 ORDER BY b COLLATE "C";
@@ -1026,8 +1049,6 @@ ERROR:  parameter "lc_ctype" must be specified
 CREATE COLLATION testx (locale = 'nonsense'); -- fail
 ERROR:  could not create locale "nonsense": No such file or directory
 DETAIL:  The operating system could not find any locale data for the locale name "nonsense".
-CREATE COLLATION testy (locale = 'en_US.utf8', version = 'foo'); -- fail, no versions for libc
-ERROR:  collation "testy" has no actual version, but a version was specified
 CREATE COLLATION test4 FROM nonsense;
 ERROR:  collation "nonsense" for encoding "UTF8" does not exist
 CREATE COLLATION test5 FROM test0;

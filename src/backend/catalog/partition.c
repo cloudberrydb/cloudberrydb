@@ -3,7 +3,7 @@
  * partition.c
  *		  Partitioning related data structures and functions.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -14,11 +14,11 @@
 */
 #include "postgres.h"
 
+#include "access/attmap.h"
 #include "access/genam.h"
 #include "access/htup_details.h"
-#include "access/table.h"
-#include "access/tupconvert.h"
 #include "access/sysattr.h"
+#include "access/table.h"
 #include "catalog/indexing.h"
 #include "catalog/partition.h"
 #include "catalog/pg_inherits.h"
@@ -32,8 +32,8 @@
 #include "utils/rel.h"
 #include "utils/syscache.h"
 
-
-static Oid	get_partition_parent_worker(Relation inhRel, Oid relid);
+static Oid	get_partition_parent_worker(Relation inhRel, Oid relid,
+										bool *detach_pending);
 static void get_partition_ancestors_worker(Relation inhRel, Oid relid,
 										   List **ancestors);
 
@@ -43,22 +43,31 @@ static void get_partition_ancestors_worker(Relation inhRel, Oid relid,
  *
  * Returns inheritance parent of a partition by scanning pg_inherits
  *
+ * If the partition is in the process of being detached, an error is thrown,
+ * unless even_if_detached is passed as true.
+ *
  * Note: Because this function assumes that the relation whose OID is passed
  * as an argument will have precisely one parent, it should only be called
  * when it is known that the relation is a partition.
  */
 Oid
-get_partition_parent(Oid relid)
+get_partition_parent(Oid relid, bool even_if_detached)
 {
 	Relation	catalogRelation;
 	Oid			result;
+	bool		detach_pending;
 
 	catalogRelation = table_open(InheritsRelationId, AccessShareLock);
 
-	result = get_partition_parent_worker(catalogRelation, relid);
+	result = get_partition_parent_worker(catalogRelation, relid,
+										 &detach_pending);
 
 	if (!OidIsValid(result))
 		elog(ERROR, "could not find tuple for parent of relation %u", relid);
+
+	if (detach_pending && !even_if_detached)
+		elog(ERROR, "relation %u has no parent because it's being detached",
+			 relid);
 
 	table_close(catalogRelation, AccessShareLock);
 
@@ -69,14 +78,19 @@ get_partition_parent(Oid relid)
  * get_partition_parent_worker
  *		Scan the pg_inherits relation to return the OID of the parent of the
  *		given relation
+ *
+ * If the partition is being detached, *detach_pending is set true (but the
+ * original parent is still returned.)
  */
 static Oid
-get_partition_parent_worker(Relation inhRel, Oid relid)
+get_partition_parent_worker(Relation inhRel, Oid relid, bool *detach_pending)
 {
 	SysScanDesc scan;
 	ScanKeyData key[2];
 	Oid			result = InvalidOid;
 	HeapTuple	tuple;
+
+	*detach_pending = false;
 
 	ScanKeyInit(&key[0],
 				Anum_pg_inherits_inhrelid,
@@ -94,6 +108,9 @@ get_partition_parent_worker(Relation inhRel, Oid relid)
 	{
 		Form_pg_inherits form = (Form_pg_inherits) GETSTRUCT(tuple);
 
+		/* Let caller know of partition being detached */
+		if (form->inhdetachpending)
+			*detach_pending = true;
 		result = form->inhparent;
 	}
 
@@ -135,10 +152,14 @@ static void
 get_partition_ancestors_worker(Relation inhRel, Oid relid, List **ancestors)
 {
 	Oid			parentOid;
+	bool		detach_pending;
 
-	/* Recursion ends at the topmost level, ie., when there's no parent */
-	parentOid = get_partition_parent_worker(inhRel, relid);
-	if (parentOid == InvalidOid)
+	/*
+	 * Recursion ends at the topmost level, ie., when there's no parent; also
+	 * when the partition is being detached.
+	 */
+	parentOid = get_partition_parent_worker(inhRel, relid, &detach_pending);
+	if (parentOid == InvalidOid || detach_pending)
 		return;
 
 	*ancestors = lappend_oid(*ancestors, parentOid);
@@ -171,28 +192,26 @@ index_get_partition(Relation partition, Oid indexId)
 		ReleaseSysCache(tup);
 		if (!ispartition)
 			continue;
-		if (get_partition_parent(lfirst_oid(l)) == indexId)
+		if (get_partition_parent(partIdx, false) == indexId)
 		{
 			list_free(idxlist);
 			return partIdx;
 		}
 	}
 
+	list_free(idxlist);
 	return InvalidOid;
 }
 
 /*
- * map_partition_varattnos - maps varattno of any Vars in expr from the
- * attno's of 'from_rel' to the attno's of 'to_rel' partition, each of which
- * may be either a leaf partition or a partitioned table, but both of which
- * must be from the same partitioning hierarchy.
+ * map_partition_varattnos - maps varattnos of all Vars in 'expr' (that have
+ * varno 'fromrel_varno') from the attnums of 'from_rel' to the attnums of
+ * 'to_rel', each of which may be either a leaf partition or a partitioned
+ * table, but both of which must be from the same partitioning hierarchy.
  *
- * Even though all of the same column names must be present in all relations
- * in the hierarchy, and they must also have the same types, the attnos may
- * be different.
- *
- * If found_whole_row is not NULL, *found_whole_row returns whether a
- * whole-row variable was found in the input expression.
+ * We need this because even though all of the same column names must be
+ * present in all relations in the hierarchy, and they must also have the
+ * same types, the attnums may be different.
  *
  * Note: this will work on any node tree, so really the argument and result
  * should be declared "Node *".  But a substantial majority of the callers
@@ -200,28 +219,22 @@ index_get_partition(Relation partition, Oid indexId)
  */
 List *
 map_partition_varattnos(List *expr, int fromrel_varno,
-						Relation to_rel, Relation from_rel,
-						bool *found_whole_row)
+						Relation to_rel, Relation from_rel)
 {
-	bool		my_found_whole_row = false;
-
 	if (expr != NIL)
 	{
-		AttrNumber *part_attnos;
+		AttrMap    *part_attmap;
+		bool		found_whole_row;
 
-		part_attnos = convert_tuples_by_name_map(RelationGetDescr(to_rel),
-												 RelationGetDescr(from_rel),
-												 gettext_noop("could not convert row type"));
+		part_attmap = build_attrmap_by_name(RelationGetDescr(to_rel),
+											RelationGetDescr(from_rel));
 		expr = (List *) map_variable_attnos((Node *) expr,
 											fromrel_varno, 0,
-											part_attnos,
-											RelationGetDescr(from_rel)->natts,
+											part_attmap,
 											RelationGetForm(to_rel)->reltype,
-											&my_found_whole_row);
+											&found_whole_row);
+		/* Since we provided a to_rowtype, we may ignore found_whole_row. */
 	}
-
-	if (found_whole_row)
-		*found_whole_row = my_found_whole_row;
 
 	return expr;
 }
@@ -275,7 +288,7 @@ has_partition_attrs(Relation rel, Bitmapset *attnums, bool *used_in_expr)
 
 			/* Find all attributes referenced */
 			pull_varattnos(expr, 1, &expr_attrs);
-			partexprs_item = lnext(partexprs_item);
+			partexprs_item = lnext(partexprs, partexprs_item);
 
 			if (bms_overlap(attnums, expr_attrs))
 			{

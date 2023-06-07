@@ -2,27 +2,27 @@
 title: Memory and Resource Management with Resource Queues 
 ---
 
-Avoid memory errors and manage Greenplum Database resources.
+Avoid memory errors and manage Cloudberry Database resources.
 
-**Note:** Resource groups are a newer resource management scheme that enforces memory, CPU, and concurrent transaction limits in Greenplum Database. The [Managing Resources](../admin_guide/wlmgmt.html) topic provides a comparison of the resource queue and the resource group management schemes. Refer to [Using Resource Groups](../admin_guide/workload_mgmt_resgroups.html) for configuration and usage information for this resource management scheme.
+**Note:** Resource groups are a newer resource management scheme that enforces memory, CPU, and concurrent transaction limits in Cloudberry Database. The [Managing Resources](../admin_guide/wlmgmt.html) topic provides a comparison of the resource queue and the resource group management schemes. Refer to [Using Resource Groups](../admin_guide/workload_mgmt_resgroups.html) for configuration and usage information for this resource management scheme.
 
-Memory management has a significant impact on performance in a Greenplum Database cluster. The default settings are suitable for most environments. Do not change the default settings until you understand the memory characteristics and usage on your system.
+Memory management has a significant impact on performance in a Cloudberry Database cluster. The default settings are suitable for most environments. Do not change the default settings until you understand the memory characteristics and usage on your system.
 
 -   [Resolving Out of Memory Errors](#section_jqw_qbl_zt)
 -   [Low Memory Queries](#section113x)
--   [Configuring Memory for Greenplum Database](#section_r52_rbl_zt)
+-   [Configuring Memory for Cloudberry Database](#section_r52_rbl_zt)
 -   [Configuring Resource Queues](#configuring_rq)
 
 ## <a id="section_jqw_qbl_zt"></a>Resolving Out of Memory Errors 
 
-An out of memory error message identifies the Greenplum segment, host, and process that experienced the out of memory error. For example:
+An out of memory error message identifies the Cloudberry segment, host, and process that experienced the out of memory error. For example:
 
 ```
 Out of memory (seg27 host.example.com pid=47093)
 VM Protect failed to allocate 4096 bytes, 0 MB available
 ```
 
-Some common causes of out-of-memory conditions in Greenplum Database are:
+Some common causes of out-of-memory conditions in Cloudberry Database are:
 
 -   Insufficient system memory \(RAM\) available on the cluster
 -   Improperly configured memory parameters
@@ -33,11 +33,11 @@ Following are possible solutions to out of memory conditions:
 
 -   Tune the query to require less memory
 -   Reduce query concurrency using a resource queue
--   Validate the `gp_vmem_protect_limit` configuration parameter at the database level. See calculations for the maximum safe setting in [Configuring Memory for Greenplum Database](#section_r52_rbl_zt).
+-   Validate the `gp_vmem_protect_limit` configuration parameter at the database level. See calculations for the maximum safe setting in [Configuring Memory for Cloudberry Database](#section_r52_rbl_zt).
 -   Set the memory quota on a resource queue to limit the memory used by queries run within the resource queue
 -   Use a session setting to reduce the `statement_mem` used by specific queries
 -   Decrease `statement_mem` at the database level
--   Decrease the number of segments per host in the Greenplum Database cluster. This solution requires a re-initializing Greenplum Database and reloading your data.
+-   Decrease the number of segments per host in the Cloudberry Database cluster. This solution requires a re-initializing Cloudberry Database and reloading your data.
 -   Increase memory on the host, if possible. \(Additional hardware may be required.\)
 
 Adding segment hosts to the cluster will not in itself alleviate out of memory problems. The memory used by each query is determined by the `statement_mem` parameter and it is set when the query is invoked. However, if adding more hosts allows decreasing the number of segments per host, then the amount of memory allocated in `gp_vmem_protect_limit` can be raised.
@@ -50,7 +50,7 @@ A low `statement_mem` setting \(for example, in the 1-3MB range\) has been shown
 SET statement_mem='2MB';
 ```
 
-## <a id="section_r52_rbl_zt"></a>Configuring Memory for Greenplum Database 
+## <a id="section_r52_rbl_zt"></a>Configuring Memory for Cloudberry Database 
 
 Most out of memory conditions can be avoided if memory is thoughtfully managed.
 
@@ -58,20 +58,20 @@ It is not always possible to increase system memory, but you can prevent out-of-
 
 It is important to include memory requirements for mirror segments that become primary segments during a failure to ensure that the cluster can continue when primary segments or segment hosts fail.
 
-The following are recommended operating system and Greenplum Database memory settings:
+The following are recommended operating system and Cloudberry Database memory settings:
 
 -   Do not configure the OS to use huge pages.
 -   **vm.overcommit\_memory**
 
-    This is a Linux kernel parameter, set in `/etc/sysctl.conf` and it should always be set to 2. It determines the method the OS uses for determining how much memory can be allocated to processes and 2 is the only safe setting for Greenplum Database. Please review the sysctl parameters in the [Greenplum Database Installation Guide](../install_guide/prep_os.html#topic3__sysctl_file).
+    This is a Linux kernel parameter, set in `/etc/sysctl.conf` and it should always be set to 2. It determines the method the OS uses for determining how much memory can be allocated to processes and 2 is the only safe setting for Cloudberry Database. Please review the sysctl parameters in the [Cloudberry Database Installation Guide](../install_guide/prep_os.html#topic3__sysctl_file).
 
 -   **vm.overcommit\_ratio**
 
     This is a Linux kernel parameter, set in [`/etc/sysctl.conf`](../install_guide/prep_os.html#topic3__sysctl_file). It is the percentage of RAM that is used for application processes. The remainder is reserved for the operating system. The default on Red Hat is 50.
 
-    Setting `vm.overcommit_ratio` too high may result in not enough memory being reserved for the operating system, which can result in segment host failure or database failure. Setting the value too low reduces the amount of concurrency and query complexity that can be run by reducing the amount of memory available to Greenplum Database. When increasing the setting it is important to remember to always reserve some memory for operating system activities.
+    Setting `vm.overcommit_ratio` too high may result in not enough memory being reserved for the operating system, which can result in segment host failure or database failure. Setting the value too low reduces the amount of concurrency and query complexity that can be run by reducing the amount of memory available to Cloudberry Database. When increasing the setting it is important to remember to always reserve some memory for operating system activities.
 
-    See [Greenplum Database Memory Overview](../admin_guide/wlmgmt_intro.html) for instructions to calculate a value for `vm.overcommit_ratio`.
+    See [Cloudberry Database Memory Overview](../admin_guide/wlmgmt_intro.html) for instructions to calculate a value for `vm.overcommit_ratio`.
 
 -   **gp\_vmem\_protect\_limit**
 
@@ -81,7 +81,7 @@ The following are recommended operating system and Greenplum Database memory set
 
 -   **runaway\_detector\_activation\_percent**
 
-    Runaway Query Termination, introduced in Greenplum Database 4.3.4, prevents out of memory conditions. The `runaway_detector_activation_percent` system parameter controls the percentage of `gp_vmem_protect_limit` memory utilized that triggers termination of queries. It is set on by default at 90%. If the percentage of `gp_vmem_protect_limit` memory that is utilized for a segment exceeds the specified value, Greenplum Database terminates queries based on memory usage, beginning with the query consuming the largest amount of memory. Queries are terminated until the utilized percentage of `gp_vmem_protect_limit` is below the specified percentage.
+    Runaway Query Termination, introduced in Cloudberry Database 4.3.4, prevents out of memory conditions. The `runaway_detector_activation_percent` system parameter controls the percentage of `gp_vmem_protect_limit` memory utilized that triggers termination of queries. It is set on by default at 90%. If the percentage of `gp_vmem_protect_limit` memory that is utilized for a segment exceeds the specified value, Cloudberry Database terminates queries based on memory usage, beginning with the query consuming the largest amount of memory. Queries are terminated until the utilized percentage of `gp_vmem_protect_limit` is below the specified percentage.
 
 -   **statement\_mem**
 
@@ -104,7 +104,7 @@ The following are recommended operating system and Greenplum Database memory set
 
 ## <a id="configuring_rq"></a>Configuring Resource Queues 
 
-Greenplum Database resource queues provide a powerful mechanism for managing the workload of the cluster. Queues can be used to limit both the numbers of active queries and the amount of memory that can be used by queries in the queue. When a query is submitted to Greenplum Database, it is added to a resource queue, which determines if the query should be accepted and when the resources are available to run it.
+Cloudberry Database resource queues provide a powerful mechanism for managing the workload of the cluster. Queues can be used to limit both the numbers of active queries and the amount of memory that can be used by queries in the queue. When a query is submitted to Cloudberry Database, it is added to a resource queue, which determines if the query should be accepted and when the resources are available to run it.
 
 -   Associate all roles with an administrator-defined resource queue.
 
@@ -129,5 +129,5 @@ Greenplum Database resource queues provide a powerful mechanism for managing the
 -   Use gptoolkit to view resource queue usage and to understand how the queues are working.
 
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 

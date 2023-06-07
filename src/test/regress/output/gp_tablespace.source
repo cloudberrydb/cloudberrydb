@@ -148,11 +148,11 @@ ALTER INDEX ao_ul_ts_index SET TABLESPACE ul_testspace;
 ALTER TABLE aoco_ul_ts_table SET TABLESPACE ul_testspace;
 -- Unlogged tables with .0 segfiles
 CREATE UNLOGGED TABLE ao_ul_ctas USING ao_row AS select * from ao_ul_ts_table distributed by (id);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ALTER TABLE ao_ul_ctas SET TABLESPACE ul_testspace;
 CREATE UNLOGGED TABLE aoco_ul_ctas USING ao_column AS select * from aoco_ul_ts_table distributed by (id);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ALTER TABLE aoco_ul_ctas SET TABLESPACE ul_testspace;
 -- The .0 segfile should have been moved correctly, leading to
@@ -363,7 +363,7 @@ drop table aoco_ul_ts_table;
 drop table ao_ul_ctas;
 drop table aoco_ul_ctas;
 drop tablespace ul_testspace;
--- Greenplum tablespaces have the option to define tablespace location for specific segments
+-- Cloudberry tablespaces have the option to define tablespace location for specific segments
 CREATE TABLESPACE testspace_otherloc LOCATION '@testtablespace@' WITH (content9999='@testtablespace@_otherloc'); -- should fail
 ERROR:  segment content ID 9999 does not exist
 HINT:  Segment content IDs can be found in gp_segment_configuration table.

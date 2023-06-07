@@ -142,7 +142,7 @@ def main():
     'database': db,
     'options': pgoptions
     }
-    sys.stdout.writelines(['\n-- Greenplum database Statistics Dump',
+    sys.stdout.writelines(['\n-- Cloudberry database Statistics Dump',
                            '\n-- Copyright (C) 2007 - 2014 Pivotal'
                            '\n-- Database: ' + db,
                            '\n-- Date:     ' + timestamp.date().isoformat(),
@@ -182,7 +182,7 @@ def main():
 
     except pgdb.DatabaseError as err:  # catch *all* exceptions
         sys.stderr.write('Error while dumping statistics:\n')
-        sys.stderr.write(err.message)
+        sys.stderr.write(str(err))
         sys.exit(1)
 
 

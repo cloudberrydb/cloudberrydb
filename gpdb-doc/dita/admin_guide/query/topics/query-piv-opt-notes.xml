@@ -12,7 +12,7 @@
             href="query-piv-uniform-part-tbl.xml#topic1"/>.</li>
         <li>The server configuration parameter <codeph>optimizer_enable_master_only_queries</codeph>
           is set to <codeph>on</codeph> when running against master only tables such as the system
-          table <i>pg_attribute</i>. For information about the parameter, see the <cite>Greenplum
+          table <i>pg_attribute</i>. For information about the parameter, see the <cite>Cloudberry
             Database Reference Guide</cite>.<note>Enabling this parameter decreases performance of
             short running catalog queries. To avoid this issue, set this parameter only for a
             session or a query. </note></li>
@@ -65,10 +65,10 @@
       <li><codeph>optimizer_print_optimization_stats</codeph> controls the logging of GPORCA query
         optimization metrics for a query (default is <codeph>off</codeph>)</li>
     </ul>
-    <p> For information about the parameters, see the <cite>Greenplum Database Reference
+    <p> For information about the parameters, see the <cite>Cloudberry Database Reference
         Guide</cite>.</p>
     <p>GPORCA generates minidumps to describe the optimization context for a given query. The
-      minidump files are used by VMware support to analyze Greenplum Database issues. The
+      minidump files are used by VMware support to analyze Cloudberry Database issues. The
       information in the file is not in a format that can be easily used for debugging or
       troubleshooting. The minidump file is located under the master data directory and uses the
       following naming format:</p>
@@ -76,7 +76,7 @@
       <codeph>Minidump_<varname>date</varname>_<varname>time</varname>.mdp</codeph>
     </p>
     <p>For information about the minidump file, see the server configuration parameter
-        <codeph>optimizer_minidump</codeph> in the <cite>Greenplum Database Reference
+        <codeph>optimizer_minidump</codeph> in the <cite>Cloudberry Database Reference
       Guide</cite>.</p>
     <p>When the <codeph>EXPLAIN ANALYZE</codeph> command uses GPORCA, the <codeph>EXPLAIN</codeph>
       plan shows only the number of partitions that are being eliminated. The scanned partitions are

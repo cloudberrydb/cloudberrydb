@@ -4,7 +4,7 @@
  *	  Public header file for SP-GiST access method.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/spgist.h
@@ -16,13 +16,8 @@
 
 #include "access/amapi.h"
 #include "access/xlogreader.h"
-#include "fmgr.h"
 #include "lib/stringinfo.h"
 
-
-/* reloption parameters */
-#define SPGIST_MIN_FILLFACTOR			10
-#define SPGIST_DEFAULT_FILLFACTOR		80
 
 /* SPGiST opclass support function numbers */
 #define SPGIST_CONFIG_PROC				1
@@ -31,8 +26,9 @@
 #define SPGIST_INNER_CONSISTENT_PROC	4
 #define SPGIST_LEAF_CONSISTENT_PROC		5
 #define SPGIST_COMPRESS_PROC			6
+#define SPGIST_OPTIONS_PROC				7
 #define SPGISTNRequiredProc				5
-#define SPGISTNProc						6
+#define SPGISTNProc						7
 
 /*
  * Argument structs for spg_config method
@@ -203,6 +199,7 @@ extern void spgbuildempty(Relation index);
 extern bool spginsert(Relation index, Datum *values, bool *isnull,
 					  ItemPointer ht_ctid, Relation heapRel,
 					  IndexUniqueCheck checkUnique,
+					  bool indexUnchanged,
 					  struct IndexInfo *indexInfo);
 
 /* spgscan.c */
@@ -224,5 +221,9 @@ extern IndexBulkDeleteResult *spgvacuumcleanup(IndexVacuumInfo *info,
 
 /* spgvalidate.c */
 extern bool spgvalidate(Oid opclassoid);
+extern void spgadjustmembers(Oid opfamilyoid,
+							 Oid opclassoid,
+							 List *operators,
+							 List *functions);
 
 #endif							/* SPGIST_H */

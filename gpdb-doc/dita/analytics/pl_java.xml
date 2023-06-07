@@ -4,7 +4,7 @@
 <topic id="topic1" xml:lang="en">
   <title id="pv161085">PL/Java Language</title>
   <body>
-    <p>This section contains an overview of the Greenplum Database PL/Java language.</p>
+    <p>This section contains an overview of the Cloudberry Database PL/Java language.</p>
     <ul>
       <li id="pv161174">
         <xref href="#topic2" type="topic" format="dita"/>
@@ -52,10 +52,10 @@
   <topic id="topic2" xml:lang="en">
     <title id="pv161093">About PL/Java </title>
     <body>
-      <p>With the Greenplum Database PL/Java extension, you can write Java methods using your
-        favorite Java IDE and install the JAR files that contain those methods into Greenplum
+      <p>With the Cloudberry Database PL/Java extension, you can write Java methods using your
+        favorite Java IDE and install the JAR files that contain those methods into Cloudberry
         Database. </p>
-      <p>Greenplum Database PL/Java package is based on the open source PL/Java 1.5.0. Greenplum
+      <p>Cloudberry Database PL/Java package is based on the open source PL/Java 1.5.0. Cloudberry
         Database PL/Java provides the following features.</p>
       <ul>
         <li id="pv161029">Ability to run PL/Java functions with Java 8 or Java 11.</li>
@@ -65,7 +65,7 @@
         <li id="pv161031">Standardized mappings of parameters and result. Complex types as well as
           sets are supported.</li>
         <li id="pv161032">An embedded, high performance, JDBC driver utilizing the internal
-          Greenplum Database SPI routines.</li>
+          Cloudberry Database SPI routines.</li>
         <li id="pv161033">Metadata support for the JDBC driver. Both
             <codeph>DatabaseMetaData</codeph> and <codeph>ResultSetMetaData</codeph> are
           included.</li>
@@ -73,7 +73,7 @@
           building a ResultSet row by row.</li>
         <li id="pv161035">Full support for savepoints and exception handling.</li>
         <li id="pv161036">The ability to use IN, INOUT, and OUT parameters. </li>
-        <li id="pv161037">Two separate Greenplum Database languages:<ul id="ul_rl4_vc5_lv">
+        <li id="pv161037">Two separate Cloudberry Database languages:<ul id="ul_rl4_vc5_lv">
             <li>pljava, TRUSTED PL/Java language</li>
             <li>pljavau, UNTRUSTED PL/Java language</li>
           </ul></li>
@@ -82,7 +82,7 @@
         <li id="pv161039">Integration with GNU GCJ on selected platforms.</li>
       </ul>
       <p>A function in SQL will appoint a static method in a Java class. In order for the function
-        to run, the appointed class must available on the class path specified by the Greenplum
+        to run, the appointed class must available on the class path specified by the Cloudberry
         Database server configuration parameter <codeph>pljava_classpath</codeph>. The PL/Java
         extension adds a set of functions that helps installing and maintaining the java classes.
         Classes are stored in normal Java archives, JAR files. A JAR file can optionally contain a
@@ -91,7 +91,7 @@
         2003.</p>
       <p>PL/Java implements a standardized way of passing parameters and return values. Complex
         types and sets are passed using the standard JDBC ResultSet class. </p>
-      <p>A JDBC driver is included in PL/Java. This driver calls Greenplum Database internal SPI
+      <p>A JDBC driver is included in PL/Java. This driver calls Cloudberry Database internal SPI
         routines. The driver is essential since it is common for functions to make calls back to the
         database to fetch data. When PL/Java functions fetch data, they must use the same
         transactional boundaries that are used by the main function that entered PL/Java execution
@@ -105,16 +105,16 @@
     </body>
   </topic>
   <topic id="topic10" xml:lang="en">
-    <title id="pv159836">About Greenplum Database PL/Java</title>
+    <title id="pv159836">About Cloudberry Database PL/Java</title>
     <body>
       <p>There are a few key differences between the implementation of PL/Java in standard
-        PostgreSQL and Greenplum Database.</p>
+        PostgreSQL and Cloudberry Database.</p>
     </body>
     <topic id="topic11" xml:lang="en">
       <title>Functions</title>
       <body>
-        <p>The following functions are not supported in Greenplum Database. The classpath is handled
-          differently in a distributed Greenplum Database environment than in the PostgreSQL environment.<sl>
+        <p>The following functions are not supported in Cloudberry Database. The classpath is handled
+          differently in a distributed Cloudberry Database environment than in the PostgreSQL environment.<sl>
             <sli><codeph>sqlj.install_jar</codeph>
             </sli>
             <sli><codeph>sqlj.replace_jar</codeph>
@@ -123,14 +123,14 @@
             <sli><codeph>sqlj.get_classpath</codeph></sli>
             <sli><codeph>sqlj.set_classpath</codeph></sli>
           </sl></p>
-        <p> Greenplum Database uses the <codeph>pljava_classpath</codeph> server configuration
+        <p> Cloudberry Database uses the <codeph>pljava_classpath</codeph> server configuration
           parameter in place of the <codeph>sqlj.set_classpath</codeph> function. </p>
       </body>
     </topic>
     <topic id="topic12" xml:lang="en">
       <title>Server Configuration Parameters</title>
       <body>
-        <p>The following server configuration parameters are used by PL/Java in Greenplum Database.
+        <p>The following server configuration parameters are used by PL/Java in Cloudberry Database.
           These parameters replace the <codeph>pljava.*</codeph> parameters that are used in the
           standard PostgreSQL PL/Java implementation:</p>
         <ul id="ul_ksz_5r5_b1b">
@@ -138,14 +138,14 @@
             <codeph>pljava_classpath</codeph>
             <p>A colon (<codeph>:</codeph>) separated list of the jar files containing the Java
               classes used in any PL/Java functions. The jar files must be installed in the same
-              locations on all Greenplum Database hosts. With the trusted PL/Java language handler,
+              locations on all Cloudberry Database hosts. With the trusted PL/Java language handler,
               jar file paths must be relative to the <codeph>$GPHOME/lib/postgresql/java/</codeph>
               directory. With the untrusted language handler (javaU language tag), paths may be
               relative to <codeph>$GPHOME/lib/postgresql/java/</codeph> or absolute. </p><p>The
               server configuration parameter <codeph>pljava_classpath_insecure</codeph> controls
               whether the server configuration parameter <codeph>pljava_classpath</codeph> can be
-              set by a user without Greenplum Database superuser privileges. When
-                <codeph>pljava_classpath_insecure</codeph> is enabled, Greenplum Database developers
+              set by a user without Cloudberry Database superuser privileges. When
+                <codeph>pljava_classpath_insecure</codeph> is enabled, Cloudberry Database developers
               who are working on PL/Java functions do not have to be database superusers to change
                 <codeph>pljava_classpath</codeph>.</p>
             <note type="warning">Enabling <codeph>pljava_classpath_insecure</codeph> exposes a
@@ -161,17 +161,17 @@
                 <codeph>FALSE</codeph>, they will be rolled back. </p></li>
           <li id="pv159859">
             <codeph>pljava_vmoptions</codeph>
-            <p>Defines the start up options for the Greenplum Database Java VM. </p></li>
+            <p>Defines the start up options for the Cloudberry Database Java VM. </p></li>
         </ul>
-        <p>See the <cite>Greenplum Database Reference Guide</cite> for information about the
-          Greenplum Database server configuration parameters.</p>
+        <p>See the <cite>Cloudberry Database Reference Guide</cite> for information about the
+          Cloudberry Database server configuration parameters.</p>
       </body>
     </topic>
   </topic>
   <topic id="topic_qx1_xcp_w3b">
     <title>Installing Java</title>
     <body>
-      <p>PL/Java requires a Java runtime environment on each Greenplum Database host. Ensure that
+      <p>PL/Java requires a Java runtime environment on each Cloudberry Database host. Ensure that
         the same Java environment is at the same location on all hosts: masters and segments. The
         command <codeph>java -version</codeph> displays the Java version.</p>
       <p>The commands that you use to install Java depend on the host system operating system and
@@ -221,13 +221,13 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
   <topic id="topic4" xml:lang="en" otherprops="pivotal">
     <title id="pv158223">Installing PL/Java</title>
     <body>
-      <p>For Greenplum Database, the PL/Java extension is available as a package. Download the
-        package from the Greenplum Database page on <xref
+      <p>For Cloudberry Database, the PL/Java extension is available as a package. Download the
+        package from the Cloudberry Database page on <xref
           href="https://network.pivotal.io/products/pivotal-gpdb" scope="external" format="html"
           class="- topic/xref ">VMware Tanzu Network</xref> and then install the software with
-        the Greenplum Package Manager (<codeph>gppkg</codeph>).</p>
+        the Cloudberry Package Manager (<codeph>gppkg</codeph>).</p>
 
-      <p>The <xref href="../utility_guide/ref/gppkg.xml" scope="peer">gppkg</xref> utility installs Greenplum
+      <p>The <xref href="../utility_guide/ref/gppkg.xml" scope="peer">gppkg</xref> utility installs Cloudberry
         Database extensions, along with any dependencies, on all hosts across a cluster. It also
         automatically installs extensions on new hosts in the case of system expansion and segment
         recovery.</p>
@@ -236,21 +236,21 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
         <li>Specify the Java version used by PL/Java. Set the environment variables
             <codeph>JAVA_HOME</codeph> and <codeph>LD_LIBRARY_PATH</codeph> in the
             <codeph>greenplum_path.sh</codeph>.</li>
-        <li id="pv158542">Install the Greenplum Database PL/Java extension. </li>
+        <li id="pv158542">Install the Cloudberry Database PL/Java extension. </li>
         <li id="pv158366">Enable the language for each database where you intend to use
           PL/Java.</li>
         <li id="pv158382">Install user-created JAR files containing Java methods into the same
-          directory on all Greenplum Database hosts.</li>
-        <li id="pv158391">Add the name of the JAR file to the Greenplum Database server
+          directory on all Cloudberry Database hosts.</li>
+        <li id="pv158391">Add the name of the JAR file to the Cloudberry Database server
           configuration parameter <codeph>pljava_classpath</codeph>. The parameter lists the
-          installed JAR files. For information about the parameter, see the <cite>Greenplum Database
+          installed JAR files. For information about the parameter, see the <cite>Cloudberry Database
             Reference Guide</cite>.</li>
       </ol>
     </body>
     <topic id="topic5" xml:lang="en">
-      <title>Installing the Greenplum PL/Java Extension</title>
+      <title>Installing the Cloudberry PL/Java Extension</title>
       <body>
-        <p>Before you install the PL/Java extension, make sure that your Greenplum database is
+        <p>Before you install the PL/Java extension, make sure that your Cloudberry database is
           running, you have sourced <codeph>greenplum_path.sh</codeph>, and that the
             <codeph>$MASTER_DATA_DIRECTORY</codeph> and <codeph>$GPHOME</codeph> variables are
           set.</p>
@@ -259,15 +259,15 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
               href="https://network.pivotal.io/products/pivotal-gpdb" scope="external" format="html"
               class="- topic/xref ">VMware Tanzu Network</xref> then copy it to the master host. </li>
           <li>Follow the instructions in <xref href="../install_guide/verify_sw.xml#topic1"
-            scope="peer" format="dita">Verifying the Greenplum Database Software Download</xref>
-            to verify the integrity of the <b>Greenplum Procedural Languages PL/Java</b> software.</li>
+            scope="peer" format="dita">Verifying the Cloudberry Database Software Download</xref>
+            to verify the integrity of the <b>Cloudberry Procedural Languages PL/Java</b> software.</li>
           <li id="pv160918">Install the software extension package by running the
               <codeph>gppkg</codeph> command. This example installs the PL/Java extension package on
             a Linux
             system:<codeblock>$ gppkg -i pljava-1.4.3-gp5-rhel<varname>osversion</varname>_x86_64.gppkg</codeblock></li>
           <li>Ensure that the environment variables <codeph>JAVA_HOME</codeph> and
               <codeph>LD_LIBRARY_PATH</codeph> are set properly in
-              <codeph>$GPHOME/greenplum_path.sh</codeph> on all Greenplum Database hosts.<ul
+              <codeph>$GPHOME/greenplum_path.sh</codeph> on all Cloudberry Database hosts.<ul
               id="ul_mgq_wgh_qw">
               <li>Set the <codeph>JAVA_HOME</codeph> variable to the directory where your Java
                 Runtime is installed. For example, for Oracle JRE this directory would be
@@ -288,7 +288,7 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
 =:$GPHOME/greenplum_path.sh</codeblock></li>
           <li dir="ltr">Reload
             <codeph>greenplum_path.sh</codeph>.<codeblock dir="ltr">$ source $GPHOME/greenplum_path.sh</codeblock></li>
-          <li id="pv162228">Restart Greenplum Database.<codeblock>$ gpstop -r</codeblock></li>
+          <li id="pv162228">Restart Cloudberry Database.<codeblock>$ gpstop -r</codeblock></li>
         </ol>
       </body>
     </topic>
@@ -296,7 +296,7 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
   <topic id="topic6" xml:lang="en">
     <title id="pv161784">Enabling PL/Java and Installing JAR Files</title>
     <body>
-      <p>Perform the following steps as the Greenplum Database administrator
+      <p>Perform the following steps as the Cloudberry Database administrator
           <codeph>gpadmin</codeph>.</p>
       <ol id="ol_dpn_qr5_b1b">
         <li id="pv162268">Enable PL/Java in a database by running the <codeph>CREATE
@@ -304,12 +304,12 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
           PL/Java in the <codeph>testdb</codeph> database:<codeblock>$ psql -d testdb -c 'CREATE EXTENSION pljava;'</codeblock>
           <note>The PL/Java <codeph>install.sql</codeph> script, used in previous releases to
             register the language, is deprecated.</note></li>
-        <li id="pv160325">Copy your Java archives (JAR files) to the same directory on all Greenplum
-          Database hosts. This example uses the Greenplum Database <codeph>gpscp</codeph> utility to
+        <li id="pv160325">Copy your Java archives (JAR files) to the same directory on all Cloudberry
+          Database hosts. This example uses the Cloudberry Database <codeph>gpscp</codeph> utility to
           copy the file <codeph>myclasses.jar</codeph> to the directory
             <codeph>$GPHOME/lib/postgresql/java/</codeph>:<codeblock>$ gpscp -f gphosts_file myclasses.jar 
 =:/usr/local/greenplum-db/lib/postgresql/java/</codeblock><p>The
-            file <codeph>gphosts_file</codeph> contains a list of the Greenplum Database
+            file <codeph>gphosts_file</codeph> contains a list of the Cloudberry Database
           hosts.</p></li>
         <li id="pv160327">Set the <codeph>pljava_classpath</codeph> server configuration parameter
           in the master <codeph>postgresql.conf</codeph> file. For this example, the parameter value
@@ -319,13 +319,13 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
             package with the <codeph>gppkg</codeph> utility.</p>
           <note>If you install JAR files in a directory other than
               <codeph>$GPHOME/lib/postgresql/java/</codeph>, you must specify the absolute path to
-            the JAR file. Each JAR file must be in the same location on all Greenplum Database
+            the JAR file. Each JAR file must be in the same location on all Cloudberry Database
             hosts. For more information about specifying the location of JAR files, see the
             information about the <codeph>pljava_classpath</codeph> server configuration parameter
-            in the <cite>Greenplum Database Reference Guide</cite>.</note></li>
+            in the <cite>Cloudberry Database Reference Guide</cite>.</note></li>
         <li id="pv160329">Reload the <codeph>postgresql.conf</codeph>
           file.<codeblock>$ gpstop -u</codeblock></li>
-        <li id="pv160335">(optional) Greenplum provides an <codeph>examples.sql</codeph> file
+        <li id="pv160335">(optional) Cloudberry provides an <codeph>examples.sql</codeph> file
           containing sample PL/Java functions that you can use for testing. Run the commands in this
           file to create the test functions (which use the Java classes in
             <codeph>examples.jar</codeph>).
@@ -361,15 +361,15 @@ $ sudo apt install openjdk-&lt;<varname>version</varname>>-jdk</codeblock><p>For
       <title id="pv165506">Uninstall the Java JAR files and Software Package</title>
       <body>
         <p>If no databases have PL/Java as a registered language, remove the Java JAR files and
-          uninstall the Greenplum PL/Java extension with the <codeph>gppkg</codeph> utility. </p>
+          uninstall the Cloudberry PL/Java extension with the <codeph>gppkg</codeph> utility. </p>
         <ol id="ol_atz_fs5_b1b">
           <li id="pv165538">Remove the <codeph>pljava_classpath</codeph> server configuration
-            parameter from the <codeph>postgresql.conf</codeph> file on all Greenplum Database
+            parameter from the <codeph>postgresql.conf</codeph> file on all Cloudberry Database
             hosts. For example:<codeblock>$ gpconfig -r pljava_classpath</codeblock></li>
           <li id="pv165539">Remove the JAR files from the directories where they were installed on
-            all Greenplum Database hosts. For information about JAR file installation directories,
+            all Cloudberry Database hosts. For information about JAR file installation directories,
             see <xref href="#topic6" format="dita"/>.</li>
-          <li id="pv160641">Use the Greenplum <codeph>gppkg</codeph> utility with the
+          <li id="pv160641">Use the Cloudberry <codeph>gppkg</codeph> utility with the
               <codeph>-r</codeph> option to uninstall the PL/Java extension. This example uninstalls
             the PL/Java extension on a Linux
               system:<codeblock>$ gppkg -r pljava-1.4.3</codeblock><p>You can run the
@@ -614,7 +614,7 @@ throws SQLException
       <body>
         <p>When returning result set, you should not build a result set before returning it, because
           building a large result set would consume a large amount of resources. It is better to
-          produce one row at a time. Incidentally, that is what the Greenplum Database backend
+          produce one row at a time. Incidentally, that is what the Cloudberry Database backend
           expects a function with SETOF return to do. You can return a SETOF a scalar type such as
           an <codeph>int</codeph>, <codeph>float</codeph> or <codeph>varchar</codeph>, or you can
           return a SETOF a complex type. </p>
@@ -664,7 +664,7 @@ public class Bar
         <body>
           <p>This interface has two methods. The boolean <codeph>assignRowValues(java.sql.ResultSet
               tupleBuilder, int rowNumber)</codeph> and the <codeph>void close()</codeph> method.
-            The Greenplum Database query evaluator will call the <codeph>assignRowValues</codeph>
+            The Cloudberry Database query evaluator will call the <codeph>assignRowValues</codeph>
             repeatedly until it returns false or until the evaluator decides that it does not need
             any more rows. Then it calls close.</p>
           <p>You can use this interface the following way:</p>
@@ -811,7 +811,7 @@ eateStatement();
   <topic id="topic25" xml:lang="en">
     <title id="pv157578">Exception Handling</title>
     <body>
-      <p>You can catch and handle an exception in the Greenplum Database backend just like any other
+      <p>You can catch and handle an exception in the Cloudberry Database backend just like any other
         exception. The backend ErrorData structure is exposed as a property in a class called
           <codeph>org.postgresql.pljava.ServerException</codeph> (derived from
           <codeph>java.sql.SQLException</codeph>) and the Java try/catch mechanism is synchronized
@@ -825,7 +825,7 @@ eateStatement();
   <topic id="topic26" xml:lang="en">
     <title id="pv157582">Savepoints</title>
     <body>
-      <p>Greenplum Database savepoints are exposed using the java.sql.Connection interface. Two
+      <p>Cloudberry Database savepoints are exposed using the java.sql.Connection interface. Two
         restrictions apply.</p>
       <ul>
         <li id="pv157584">A savepoint must be rolled back or released in the function where it was
@@ -840,14 +840,14 @@ eateStatement();
       <p>PL/Java uses the standard Java Logger. Hence, you can write things like:</p>
       <codeblock>Logger.getAnonymousLogger().info( "Time is " + new 
 Date(System.currentTimeMillis()));</codeblock>
-      <p>At present, the logger uses a handler that maps the current state of the Greenplum Database
+      <p>At present, the logger uses a handler that maps the current state of the Cloudberry Database
         configuration setting <codeph>log_min_messages</codeph> to a valid Logger level and that
-        outputs all messages using the Greenplum Database backend function <codeph>elog()</codeph>. </p>
+        outputs all messages using the Cloudberry Database backend function <codeph>elog()</codeph>. </p>
       <note>The <codeph>log_min_messages</codeph> setting is read from the database the first time a
         PL/Java function in a session is run. On the Java side, the setting does not change
-        after the first PL/Java function execution in a specific session until the Greenplum
+        after the first PL/Java function execution in a specific session until the Cloudberry
         Database session that is working with PL/Java is restarted.</note>
-      <p>The following mapping apply between the Logger levels and the Greenplum Database backend
+      <p>The following mapping apply between the Logger levels and the Cloudberry Database backend
         levels.</p>
       <table id="pv157590">
         <title>PL/Java Logging Levels</title>
@@ -857,7 +857,7 @@ Date(System.currentTimeMillis()));</codeblock>
           <thead>
             <row>
               <entry colname="col1">java.util.logging.Level</entry>
-              <entry colname="col2">Greenplum Database Level</entry>
+              <entry colname="col2">Cloudberry Database Level</entry>
             </row>
           </thead>
           <tbody>
@@ -935,7 +935,7 @@ Date(System.currentTimeMillis()));</codeblock>
   <topic id="topic33" xml:lang="en">
     <title id="pv157633">Some PL/Java Issues and Solutions</title>
     <body>
-      <p>When writing the PL/Java, mapping the JVM into the same process-space as the Greenplum
+      <p>When writing the PL/Java, mapping the JVM into the same process-space as the Cloudberry
         Database backend code, some concerns have been raised regarding multiple threads, exception
         handling, and memory management. Here are brief descriptions explaining how these issues
         where resolved.</p>
@@ -954,11 +954,11 @@ Date(System.currentTimeMillis()));</codeblock>
     <topic id="topic34" xml:lang="en">
       <title id="pv157635">Multi-threading</title>
       <body>
-        <p>Java is inherently multi-threaded. The Greenplum Database backend is not. There is
+        <p>Java is inherently multi-threaded. The Cloudberry Database backend is not. There is
           nothing stopping a developer from utilizing multiple Threads class in the Java code.
           Finalizers that call out to the backend might have been spawned from a background Garbage
           Collection thread. Several third party Java-packages that are likely to be used make use
-          of multiple threads. How can this model coexist with the Greenplum Database backend in the
+          of multiple threads. How can this model coexist with the Cloudberry Database backend in the
           same process?</p>
       </body>
       <topic id="topic35" xml:lang="en">
@@ -977,7 +977,7 @@ Date(System.currentTimeMillis()));</codeblock>
     <topic id="topic36" xml:lang="en">
       <title id="pv157639">Exception Handling</title>
       <body>
-        <p>Java makes frequent use of try/catch/finally blocks. Greenplum Database sometimes use an
+        <p>Java makes frequent use of try/catch/finally blocks. Cloudberry Database sometimes use an
           exception mechanism that calls <codeph>longjmp</codeph> to transfer control to a known
           state. Such a jump would normally effectively bypass the JVM. </p>
       </body>
@@ -1043,13 +1043,13 @@ Build-Date: 01/20/2013 10:09 AM</codeblock>
       <p>Create a JAR archive named analytics.jar that contains the class file and the manifest file
         MANIFEST file in the JAR.</p>
       <codeblock>jar cfm analytics.jar manifest.txt *.class</codeblock>
-      <p>Upload the jar file to the Greenplum master host.</p>
-      <p>Run the <codeph>gpscp</codeph> utility to copy the jar file to the Greenplum Java
+      <p>Upload the jar file to the Cloudberry master host.</p>
+      <p>Run the <codeph>gpscp</codeph> utility to copy the jar file to the Cloudberry Java
         directory. Use the <codeph>-f</codeph> option to specify the file that contains a list of
         the master and segment hosts.</p>
       <codeblock>gpscp -f gphosts_file analytics.jar 
 =:/usr/local/greenplum-db/lib/postgresql/java/</codeblock>
-      <p>Use the <codeph>gpconfig</codeph> utility to set the Greenplum
+      <p>Use the <codeph>gpconfig</codeph> utility to set the Cloudberry
           <codeph>pljava_classpath</codeph> server configuration parameter. The parameter lists the
         installed jar files.</p>
       <codeblock>gpconfig -c pljava_classpath -v 'analytics.jar'</codeblock>

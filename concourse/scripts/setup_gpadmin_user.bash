@@ -3,6 +3,7 @@
 # Based on install_hawq_toolchain.bash in Pivotal-DataFabric/ci-infrastructure repo
 
 set -euxo pipefail
+INSTALL_DIR=${INSTALL_DIR:-/usr/local/cloudberry-db-devel}
 setup_ssh_for_user() {
   local user="${1}"
   local home_dir
@@ -40,7 +41,8 @@ transfer_ownership() {
     # Needed for the gpload test
     [ -f gpdb_src/gpMgmt/bin/gpload_test/gpload2/data_file.csv ] && chown gpadmin:gpadmin gpdb_src/gpMgmt/bin/gpload_test/gpload2/data_file.csv
     [ -d /usr/local/gpdb ] && chown -R gpadmin:gpadmin /usr/local/gpdb
-    [ -d /usr/local/greenplum-db-devel ] && chown -R gpadmin:gpadmin /usr/local/greenplum-db-devel
+    [ -d /usr/local/cloudberry-db ] && chown -R gpadmin:gpadmin /usr/local/cloudberry-db*
+    [ -d "$INSTALL_DIR" ] && chown -R gpadmin:gpadmin $INSTALL_DIR
     chown -R gpadmin:gpadmin /home/gpadmin
 }
 
@@ -69,7 +71,7 @@ create_gpadmin_if_not_existing() {
 setup_gpadmin_user() {
   groupadd supergroup
   case "$TEST_OS" in
-    centos*)
+    centos*|kylin*)
       user_add_cmd="/usr/sbin/useradd -G supergroup,tty gpadmin"
       create_gpadmin_if_not_existing ${user_add_cmd}
       ;;
@@ -79,7 +81,7 @@ setup_gpadmin_user() {
       ;;
     *) echo "Unknown OS: $TEST_OS"; exit 1 ;;
   esac
-  echo -e "password\npassword" | passwd gpadmin
+  echo -e "Fassw0rd\nFassw0rd" | passwd gpadmin
   setup_ssh_for_user gpadmin
   transfer_ownership
   set_limits
@@ -126,6 +128,9 @@ determine_os() {
   elif grep -q ubuntu /etc/os-release ; then
     name="ubuntu"
     version=$(awk -F " *= *" '$1 == "VERSION_ID" { print $2 }' /etc/os-release | tr -d \")
+  elif [ -f /etc/kylin-release ]; then
+    name="kylin"
+    version=$(sed -n </etc/os-release '/VERSION_ID=/s/.*="V\([0-9]\+\)"/\1/p')
   else
     echo "Could not determine operating system type" >/dev/stderr
     exit 1

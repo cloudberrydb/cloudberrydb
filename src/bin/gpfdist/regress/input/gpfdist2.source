@@ -1109,6 +1109,12 @@ FORMAT 'text'
 )
 ;
 SELECT count(*) FROM ext_lineitem;
+
+CREATE EXTERNAL WEB TABLE lineitem_out_check(x text)
+execute E'(rm -f @abs_srcdir@/data/gpfdist2/lineitem.tbl.out.zst) > /dev/null 2>&1; echo "delete lineitem.tbl.out.zst..."'
+on SEGMENT 0 FORMAT 'text' (delimiter '|');
+select * from lineitem_out_check;
+
 CREATE WRITABLE EXTERNAL TABLE ext_lineitem_out (
                 L_ORDERKEY INT8,
                 L_PARTKEY INTEGER,

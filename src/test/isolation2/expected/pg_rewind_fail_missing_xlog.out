@@ -8,7 +8,7 @@ INSERT INTO tst_missing_tbl values(2),(1),(5);
 INSERT 3
 
 -- make the test faster.
-!\retcode gpconfig -c wal_keep_segments -v 2;
+!\retcode gpconfig -c wal_keep_size -v 128;
 (exited with code 0)
 !\retcode gpstop -ari;
 (exited with code 0)
@@ -83,6 +83,14 @@ CHECKPOINT
 0M: CHECKPOINT;
 CHECKPOINT
 
+-- Wait some seconds until the promotion is done. When the query comes too early,
+-- the promoted primary is still hot-standby, but we don't support hot-standby now.
+2: select pg_sleep(2);
+ pg_sleep 
+----------
+          
+(1 row)
+
 -- Write something (promote adds a 'End Of Recovery' xlog that causes the
 -- divergence between primary and mirror, but I add a write here so that we
 -- know that a wal divergence is explicitly triggered and 100% completed.  Also
@@ -100,14 +108,6 @@ INSERT 3
 -- Ensure that pg_rewind succeeds. Previously it could fail since the divergence
 -- LSN wal file is missing.
 !\retcode gprecoverseg -av;
--- start_ignore
-20210429:15:31:23:021451 gprecoverseg:host67:pguo-[DEBUG]:-pg_rewind results: cmd had rc=1 completed=True halted=False
-  stdout=''
-  stderr=''
-20210429:15:31:23:021451 gprecoverseg:host67:pguo-[DEBUG]:-rewind dbid: 2 failed
-20210429:15:31:23:021451 gprecoverseg:host67:pguo-[WARNING]:-
-20210429:15:31:23:021451 gprecoverseg:host67:pguo-[WARNING]:-Incremental recovery failed for dbid 2. You must use gprecoverseg -F to recover the segment.
--- end_ignore
 (exited with code 0)
 -- In case it fails it should not affect subsequent testing.
 !\retcode gprecoverseg -aF;
@@ -248,7 +248,7 @@ DROP
 --------------------------------------
  OK                                   
 (1 row)
-!\retcode gpconfig -r wal_keep_segments;
+!\retcode gpconfig -r wal_keep_size;
 (exited with code 0)
 !\retcode gpstop -ari;
 (exited with code 0)

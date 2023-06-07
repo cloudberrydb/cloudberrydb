@@ -22,10 +22,6 @@
 --
 -- end_matchsubs
 
-!\retcode gpconfig -c gp_fts_probe_retries -v 2 --masteronly;
--- start_ignore
--- end_ignore
-(exited with code 0)
 -- Allow extra time for mirror promotion to complete recovery to avoid
 -- gprecoverseg BEGIN failures due to gang creation failure as some primaries
 -- are not up. Setting these increase the number of retries in gang creation in
@@ -78,11 +74,21 @@
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 2:SELECT gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 1<:  <... completed>
 ERROR:  FTS detected connection lost during dispatch to seg0 127.0.0.1:7002 pid=5106:
 
@@ -132,11 +138,21 @@ LINE 1: INSERT INTO tolerance_test_table VALUES(42);
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 3:SELECT gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 3:SELECT gp_inject_fault('transaction_abort_after_distributed_prepared', 'resume', dbid) FROM gp_segment_configuration WHERE content = -1 AND role = 'p';
  gp_inject_fault 
 -----------------
@@ -188,11 +204,21 @@ INSERT 1
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 4:SELECT gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 1<:  <... completed>
 DROP
 
@@ -210,16 +236,21 @@ DROP
 -- start_ignore
 -- end_ignore
 (exited with code 0)
+!\retcode gpfts -A -D;
+-- start_ignore
 
+-- end_ignore
+(exited with code 0)
 5:!\retcode gprecoverseg -ar;
 -- start_ignore
 -- end_ignore
 (exited with code 0)
-
-!\retcode gpconfig -r gp_fts_probe_retries --masteronly;
+!\retcode gpfts -A -D;
 -- start_ignore
+
 -- end_ignore
 (exited with code 0)
+
 !\retcode gpconfig -r gp_gang_creation_retry_count --skipvalidation --masteronly;
 -- start_ignore
 -- end_ignore

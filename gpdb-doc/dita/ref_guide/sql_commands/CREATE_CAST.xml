@@ -64,7 +64,7 @@ CREATE CAST (<varname>sourcetype</varname> AS <varname>targettype</varname>)
         mixed <codeph>numeric</codeph>-and-<codeph>integer</codeph> expression as
           <codeph>numeric</codeph>; the parser has no built-in knowledge about that.</p>
       <p>It is wise to be conservative about marking casts as implicit. An overabundance of implicit
-        casting paths can cause Greenplum Database to choose surprising interpretations of commands,
+        casting paths can cause Cloudberry Database to choose surprising interpretations of commands,
         or to be unable to resolve commands at all because there are multiple possible
         interpretations. A good general rule is to make a cast implicitly invokable only for
         information-preserving transformations between types in the same general type category. For
@@ -84,7 +84,7 @@ CREATE CAST (<varname>sourcetype</varname> AS <varname>targettype</varname>)
         conversion can easily crash the server.)</p></section>
 <section id="section4"><title>Parameters</title><parml><plentry><pt><varname>sourcetype</varname></pt><pd>The name of the source data type of the cast. </pd></plentry><plentry><pt><varname>targettype</varname></pt><pd>The name of the target data type of the cast. </pd></plentry><plentry><pt><varname>funcname</varname>(<varname>argtype</varname> [, ...])</pt>
   <pd>The function used to perform the cast. The function name may be schema-qualified.
-If it is not, Greenplum Database looks for the function in the schema search path.
+If it is not, Cloudberry Database looks for the function in the schema search path.
 The function's result data type must match the target type of the cast.</pd><pd>Cast implementation functions may have one to three arguments. The first argument type must be
             identical to or binary-coercible from the cast's source type. The second
             argument, if present, must be type
@@ -114,17 +114,17 @@ so no function is required to perform the cast.</pd></plentry>
       cast, performed by invoking the output function of the source data type,
       and passing the resulting string to the input function of the target data type.</pd></plentry>
     <plentry><pt>AS ASSIGNMENT</pt><pd>Indicates that the cast may be invoked implicitly in assignment contexts.</pd></plentry>
-    <plentry><pt>AS IMPLICIT</pt><pd>Indicates that the cast may be invoked implicitly in any context.</pd></plentry></parml></section><section id="section5"><title>Notes</title><p>Note that in this release of Greenplum Database, user-defined functions
+    <plentry><pt>AS IMPLICIT</pt><pd>Indicates that the cast may be invoked implicitly in any context.</pd></plentry></parml></section><section id="section5"><title>Notes</title><p>Note that in this release of Cloudberry Database, user-defined functions
 used in a user-defined cast must be defined as <codeph>IMMUTABLE</codeph>.
 Any compiled code (shared library files) for custom functions must be
-placed in the same location on every host in your Greenplum Database
+placed in the same location on every host in your Cloudberry Database
 array (master and all segments). This location must also be in the <codeph>LD_LIBRARY_PATH</codeph>
 so that the server can locate the files.</p><p>Remember that if you want to be able to convert types both ways you
 need to declare casts both ways explicitly. </p>
   <p>It is normally not necessary to create casts between user-defined types
     and the standard string types (<codeph>text</codeph>, <codeph>varchar</codeph>,
     and <codeph>char(<i>n</i>)</codeph>, as well as user-defined types that
-    are defined to be in the string category). Greenplum Database provides
+    are defined to be in the string category). Cloudberry Database provides
     automatic I/O conversion casts for these. The automatic casts to string
     types are treated as assignment casts, while the automatic casts from
     string types are explicit-only. You can override this behavior by
@@ -145,7 +145,7 @@ need to declare casts both ways explicitly. </p>
     any existing function, but <codeph><i>name</i></codeph> is the name of
     a data type and <codeph>pg_cast</codeph> provides a binary-coercible
     cast to this type from the type of <codeph><i>x</i></codeph>, then the
-    call will be construed as a binary-coercible cast. Greenplum Database
+    call will be construed as a binary-coercible cast. Cloudberry Database
     makes this exception so that binary-coercible casts can be invoked
     using functional syntax, even though they lack any function. Likewise,
     if there is no <codeph>pg_cast</codeph> entry but the cast would be to
@@ -162,6 +162,6 @@ need to declare casts both ways explicitly. </p>
           <codeph>int4(bigint)</codeph> (This cast is already predefined in the system.):</p><codeblock>CREATE CAST (bigint AS int4) WITH FUNCTION int4(bigint) AS ASSIGNMENT;</codeblock></section><section id="section7"><title>Compatibility</title><p>The <codeph>CREATE CAST</codeph> command conforms to the SQL standard,
 except that SQL does not make provisions for binary-coercible types
 or extra arguments to implementation functions. <codeph>AS IMPLICIT</codeph>
-is a Greenplum Database extension, too.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="./CREATE_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph>,
+is a Cloudberry Database extension, too.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="./CREATE_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./CREATE_TYPE.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./DROP_CAST.xml#topic1" type="topic" format="dita"/></codeph></p></section></body></topic>

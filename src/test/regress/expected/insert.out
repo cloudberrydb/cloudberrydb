@@ -9,7 +9,7 @@
 --
 create table inserttest (col1 int4, col2 int4 NOT NULL, col3 text default 'testing');
 insert into inserttest (col1, col2, col3) values (DEFAULT, DEFAULT, DEFAULT);
-ERROR:  null value in column "col2" violates not-null constraint
+ERROR:  null value in column "col2" of relation "inserttest" violates not-null constraint
 DETAIL:  Failing row contains (null, null, testing).
 insert into inserttest (col2, col3) values (3, DEFAULT);
 insert into inserttest (col1, col2, col3) values (DEFAULT, 5, DEFAULT);
@@ -87,6 +87,41 @@ select col1, col2, char_length(col3) from inserttest;
 (8 rows)
 
 drop table inserttest;
+--
+-- tuple larger than fillfactor
+--
+-- GPDB: GPDB uses 32 KiB page size. We always use the same `a` to
+-- route all tuples to the same segment.
+CREATE TABLE large_tuple_test (a int, b text) WITH (fillfactor = 10);
+ALTER TABLE large_tuple_test ALTER COLUMN b SET STORAGE plain;
+-- create page w/ free space in range [nearlyEmptyFreeSpace, MaxHeapTupleSize)
+INSERT INTO large_tuple_test (select 1, NULL);
+-- should still fit on the page
+INSERT INTO large_tuple_test (select 1, repeat('a', 8000));
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+ pg_size_pretty 
+----------------
+ 32 kB
+(1 row)
+
+-- add small record to the second page
+INSERT INTO large_tuple_test (select 1, NULL);
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+ pg_size_pretty 
+----------------
+ 64 kB
+(1 row)
+
+-- now this tuple won't fit on the second page, but the insert should
+-- still succeed by extending the relation
+INSERT INTO large_tuple_test (select 1, repeat('a', 32702));
+SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
+ pg_size_pretty 
+----------------
+ 96 kB
+(1 row)
+
+DROP TABLE large_tuple_test;
 --
 -- check indirection (field/array assignment), cf bug #14265
 --
@@ -394,7 +429,7 @@ select tableoid::regclass::text, a, min(b) as min_b, max(b) as max_b from list_p
 
 -- direct partition inserts should check hash partition bound constraint
 -- Use hand-rolled hash functions and operator classes to get predictable
--- result on different matchines.  The hash function for int4 simply returns
+-- result on different machines.  The hash function for int4 simply returns
 -- the sum of the values passed to it and the one for text returns the length
 -- of the non-empty string value passed to it or 0.
 create or replace function part_hashint4_noop(value int4, seed int8)
@@ -822,7 +857,7 @@ set role regress_coldesc_role;
 with result as (insert into brtrigpartcon values (1, 'hi there') returning 1)
   insert into inserttest3 (f3) select * from result;
 ERROR:  writable CTE queries cannot be themselves writable
-DETAIL:  Greenplum Database currently only support CTEs with one writable clause, called in a non-writable context.
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
 HINT:  Rewrite the query to only include one writable clause.
 reset role;
 -- cleanup
@@ -832,9 +867,7 @@ drop role regress_coldesc_role;
 drop table inserttest3;
 drop table brtrigpartcon;
 drop function brtrigpartcon1trigf();
--- check that "do nothing" BR triggers work with tuple-routing (this checks
--- that estate->es_result_relation_info is appropriately set/reset for each
--- routed tuple)
+-- check that "do nothing" BR triggers work with tuple-routing
 create table donothingbrtrig_test (a int, b text) partition by list (a);
 create table donothingbrtrig_test1 (b text, a int);
 alter table donothingbrtrig_test1 set distributed by (a);

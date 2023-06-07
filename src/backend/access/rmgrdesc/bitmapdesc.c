@@ -22,7 +22,7 @@
 static void
 out_target(StringInfo buf, RelFileNode *node)
 {
-	appendStringInfo(buf, ", rel %u/%u/%u",
+	appendStringInfo(buf, ", rel %u/%u/%lu",
 			node->spcNode, node->dbNode, node->relNode);
 }
 

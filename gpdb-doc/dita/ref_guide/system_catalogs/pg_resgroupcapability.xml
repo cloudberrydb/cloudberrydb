@@ -6,7 +6,7 @@
   <body>
     <note>The <codeph>pg_resgroupcapability</codeph> system catalog table is valid only when resource group-based resource management is active.</note>
     <p>The <codeph>pg_resgroupcapability</codeph> system catalog table contains information about
-      the capabilities and limits of defined Greenplum Database resource groups.
+      the capabilities and limits of defined Cloudberry Database resource groups.
       You can join this table to the <xref
         href="pg_resgroup.xml#topic1" type="topic" format="dita"/> table by resource group object
       ID.</p>

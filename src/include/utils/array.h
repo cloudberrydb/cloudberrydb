@@ -51,7 +51,7 @@
  * arrays holding the elements.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/array.h
@@ -68,6 +68,11 @@
 struct ExprState;
 struct ExprContext;
 
+
+/*
+ * Maximum number of array subscripts (arbitrary limit)
+ */
+#define MAXDIM 6
 
 /*
  * Arrays are varlena objects, so must meet the varlena convention that
@@ -438,6 +443,7 @@ extern void array_free_iterator(ArrayIterator iterator);
 extern int	ArrayGetOffset(int n, const int *dim, const int *lb, const int *indx);
 extern int	ArrayGetOffset0(int n, const int *tup, const int *scale);
 extern int	ArrayGetNItems(int ndim, const int *dims);
+extern void ArrayCheckBounds(int ndim, const int *dims, const int *lb);
 extern void mda_get_range(int n, int *span, const int *st, const int *endp);
 extern void mda_get_prod(int n, const int *range, int *prod);
 extern void mda_get_offset_values(int n, int *dist, const int *prod, const int *span);

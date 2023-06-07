@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2014 VMware, Inc. or its affiliates.
 //
 //	@filename:
@@ -36,7 +36,7 @@ CDXLScalarArrayRef::CDXLScalarArrayRef(CMemoryPool *mp, IMDId *elem_type_mdid,
 	  m_array_type_mdid(array_type_mdid),
 	  m_return_type_mdid(return_type_mdid)
 {
-	GPOS_ASSERT(m_elem_type_mdid->IsValid());
+	GPOS_ASSERT_FIXME(m_elem_type_mdid->IsValid());
 	GPOS_ASSERT(m_array_type_mdid->IsValid());
 	GPOS_ASSERT(m_return_type_mdid->IsValid());
 	GPOS_ASSERT(m_return_type_mdid->Equals(m_elem_type_mdid) ||

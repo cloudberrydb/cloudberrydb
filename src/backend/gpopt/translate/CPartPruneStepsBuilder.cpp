@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
@@ -70,7 +70,8 @@ CPartPruneStepsBuilder::CreatePartPruneInfoForOneLevel(CDXLNode *filterNode)
 {
 	PartitionedRelPruneInfo *pinfo = MakeNode(PartitionedRelPruneInfo);
 	pinfo->rtindex = m_rtindex;
-	pinfo->nparts = m_relation->rd_partdesc->nparts;
+
+	pinfo->nparts = RelationGetPartitionDesc(m_relation, true)->nparts;
 
 	pinfo->subpart_map = (int *) palloc(sizeof(int) * pinfo->nparts);
 	pinfo->subplan_map = (int *) palloc(sizeof(int) * pinfo->nparts);
@@ -84,11 +85,11 @@ CPartPruneStepsBuilder::CreatePartPruneInfoForOneLevel(CDXLNode *filterNode)
 	{
 		pinfo->subpart_map[i] = -1;
 		if (part_ptr < m_part_indexes->Size() &&
-			i == *(*m_part_indexes)[part_ptr])
+			i == (int)(*(*m_part_indexes)[part_ptr]))
 		{
 			// partition did survive pruning
 			pinfo->subplan_map[i] = part_ptr;
-			pinfo->relid_map[i] = m_relation->rd_partdesc->oids[i];
+			pinfo->relid_map[i] = RelationGetPartitionDesc(m_relation, true)->oids[i];
 			pinfo->present_parts = bms_add_member(pinfo->present_parts, i);
 			++part_ptr;
 		}
@@ -114,7 +115,7 @@ CPartPruneStepsBuilder::PartPruneStepFromScalarCmp(CDXLNode *node, int *step_id,
 	GPOS_ASSERT(nullptr != node);
 	CDXLScalarComp *dxlop = CDXLScalarComp::Cast(node->GetOperator());
 	Oid opno = CMDIdGPDB::CastMdid(dxlop->MDId())->Oid();
-	Oid opfamily = m_relation->rd_partkey->partopfamily[0 /* col */];
+	Oid opfamily = RelationGetPartitionKey(m_relation)->partopfamily[0 /* col */];
 
 	// GPDB_12_MERGE_FIXME: This *should* be StrategyNumber, but IndexOpProperties takes an INT
 	INT strategy;
@@ -144,7 +145,7 @@ CPartPruneStepsBuilder::PartPruneStepFromScalarCmp(CDXLNode *node, int *step_id,
 	// to be part of partitioning column opfamily above.
 	// ORCA doesn't support multi-key (a.k.a composite) partition keys. So these
 	// lists will be of size 1.
-	step->cmpfns = ListMake1Oid(m_relation->rd_partkey->partsupfunc[0].fn_oid);
+	step->cmpfns = ListMake1Oid(RelationGetPartitionKey(m_relation)->partsupfunc[0].fn_oid);
 	step->exprs = ListMake1(expr);
 
 	return gpdb::LAppend(steps_list, (PartitionPruneStep *) step);

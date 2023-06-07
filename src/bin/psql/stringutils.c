@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/stringutils.c
  */
@@ -143,7 +143,7 @@ strtokx(const char *s,
 		/* okay, we have a quoted token, now scan for the closer */
 		char		thisquote = *p++;
 
-		for (; *p; p += PQmblen(p, encoding))
+		for (; *p; p += PQmblenBounded(p, encoding))
 		{
 			if (*p == escape && p[1] != '\0')
 				p++;			/* process escaped anything */
@@ -262,7 +262,7 @@ strip_quotes(char *source, char quote, char escape, int encoding)
 		else if (c == escape && src[1] != '\0')
 			src++;				/* process escaped character */
 
-		i = PQmblen(src, encoding);
+		i = PQmblenBounded(src, encoding);
 		while (i--)
 			*dst++ = *src++;
 	}
@@ -282,6 +282,7 @@ strip_quotes(char *source, char quote, char escape, int encoding)
  * entails_quote -	any of these present?  need outer quotes
  * quote -			doubled within string, affixed to both ends
  * escape -			doubled within string
+ * force_quote -	if true, quote the output even if it doesn't "need" it
  * encoding -		the active character-set encoding
  *
  * Do not use this as a substitute for PQescapeStringConn().  Use it for
@@ -289,12 +290,13 @@ strip_quotes(char *source, char quote, char escape, int encoding)
  */
 char *
 quote_if_needed(const char *source, const char *entails_quote,
-				char quote, char escape, int encoding)
+				char quote, char escape, bool force_quote,
+				int encoding)
 {
 	const char *src;
 	char	   *ret;
 	char	   *dst;
-	bool		need_quotes = false;
+	bool		need_quotes = force_quote;
 
 	Assert(source != NULL);
 	Assert(quote != '\0');
@@ -322,7 +324,7 @@ quote_if_needed(const char *source, const char *entails_quote,
 		else if (strchr(entails_quote, c))
 			need_quotes = true;
 
-		i = PQmblen(src, encoding);
+		i = PQmblenBounded(src, encoding);
 		while (i--)
 			*dst++ = *src++;
 	}

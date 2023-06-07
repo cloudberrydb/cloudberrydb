@@ -9,7 +9,7 @@
  * See utils/resowner/README for more info.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/resowner.h
@@ -29,6 +29,7 @@
  * resowner.c.
  */
 typedef struct ResourceOwnerData *ResourceOwner;
+typedef struct CachedPlan CachedPlan;
 
 
 /*
@@ -76,6 +77,7 @@ extern void ResourceOwnerRelease(ResourceOwner owner,
 								 ResourceReleasePhase phase,
 								 bool isCommit,
 								 bool isTopLevel);
+extern void ResourceOwnerReleaseAllPlanCacheRefs(ResourceOwner owner);
 extern void ResourceOwnerDelete(ResourceOwner owner);
 extern ResourceOwner ResourceOwnerGetParent(ResourceOwner owner);
 extern void ResourceOwnerNewParent(ResourceOwner owner,

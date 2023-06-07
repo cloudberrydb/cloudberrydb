@@ -73,7 +73,7 @@ walk_plan_node_fields(Plan *plan,
 	if (walker((Node *) (plan->initPlan), context))
 		return true;
 
-	/* Greenplum Database Flow node */
+	/* Cloudberry Database Flow node */
 	if (walker((Node *) (plan->flow), context))
 		return true;
 
@@ -320,6 +320,13 @@ plan_tree_walker(Node *node,
 				return true;
 			break;
 
+		case T_TidRangeScan:
+			if (walk_scan_node_fields((Scan *) node, walker, context))
+				return true;
+			if (walker((Node *) ((TidRangeScan *) node)->tidrangequals, context))
+				return true;
+			break;
+
 		case T_SubqueryScan:
 			if (walk_scan_node_fields((Scan *) node, walker, context))
 				return true;
@@ -358,6 +365,7 @@ plan_tree_walker(Node *node,
 			break;
 
 		case T_Sort:
+		case T_IncrementalSort:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;
 			/* Other fields are simple counts and lists of indexes and oids. */
@@ -416,16 +424,23 @@ plan_tree_walker(Node *node,
 			/* Other fields are simple items and lists of simple items. */
 			break;
 
+		case T_RuntimeFilter:
+
+			if (walk_plan_node_fields((Plan *) node, walker, context))
+				return true;
+			/* Other fields are simple items and lists of simple items. */
+			break;
+
 		case T_Limit:
 
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;
 
-			/* Greenplum Database Limit Count */
+			/* Cloudberry Database Limit Count */
 			if (walker((Node *) (((Limit*) node)->limitCount), context))
 					return true;
 
-			/* Greenplum Database Limit Offset */
+			/* Cloudberry Database Limit Offset */
 			if (walker((Node *) (((Limit*) node)->limitOffset), context))
 					return true;
 
@@ -499,8 +514,8 @@ plan_tree_walker(Node *node,
 		case T_ModifyTable:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;
-			if (walker((Node *) ((ModifyTable *) node)->plans, context))
-				return true;
+			// if (walker((Node *) ((ModifyTable *) node)->plans, context))
+			// 	return true;
 			if (walker((Node *) ((ModifyTable *) node)->withCheckOptionLists, context))
 				return true;
 			if (walker((Node *) ((ModifyTable *) node)->onConflictSet, context))
@@ -520,6 +535,13 @@ plan_tree_walker(Node *node,
 		case T_SplitUpdate:
 		case T_AssertOp:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
+				return true;
+			break;
+
+		case T_Memoize:
+			if (walk_plan_node_fields((Plan *) node, walker, context))
+				return true;
+			if (walker((Node *) ((Memoize *) node)->param_exprs, context))
 				return true;
 			break;
 

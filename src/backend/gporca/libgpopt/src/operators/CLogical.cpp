@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2009 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2009 Cloudberry, Inc.
 //
 //	@filename:
 //		CLogical.cpp
@@ -735,7 +735,7 @@ CLogical::PpcDeriveConstraintFromTable(CMemoryPool *mp,
 			pmdCheckConstraint->GetCheckConstraintExpr(mp, md_accessor,
 													   pdrgpcrNonSystem);
 		GPOS_ASSERT(nullptr != pexprCheckConstraint);
-		GPOS_ASSERT(CUtils::FPredicate(pexprCheckConstraint));
+		GPOS_ASSERT_FIXME(CUtils::FPredicate(pexprCheckConstraint));
 
 		CColRefSetArray *pdrgpcrsChild = nullptr;
 

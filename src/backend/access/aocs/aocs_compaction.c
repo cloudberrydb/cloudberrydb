@@ -15,6 +15,7 @@
 
 #include <limits.h>
 
+#include "access/amapi.h"
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/transam.h"
@@ -38,6 +39,15 @@
 #include "utils/snapmgr.h"
 #include "utils/guc.h"
 #include "miscadmin.h"
+
+/* 
+ * Hook for plugins to get control after move or throw away tuple in 
+ * AOCSSegmentFileFullCompaction().
+ * 
+ * For example, zombodb will delete the corresponding docs after the tuple
+ * is moved or thrown away.
+ */
+aocs_compaction_delete_hook_type aocs_compaction_delete_hook = NULL;
 
 /*
  * Drops a segment file.
@@ -123,7 +133,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo)
 		MakeAOSegmentFileName(aorel, segno, j, &fileSegNo, filenamepath);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
-			   "Opening AO COL relation \"%s.%s\", relation id %u, relfilenode %u column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+			   "Opening AO COL relation \"%s.%s\", relation id %u, relfilenode %lu column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 			   get_namespace_name(RelationGetNamespace(aorel)),
 			   relname,
 			   aorel->rd_id,
@@ -140,7 +150,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo)
 			CloseAOSegmentFile(fd);
 
 			elogif(Debug_appendonly_print_compaction, LOG,
-				   "Successfully truncated AO COL relation \"%s.%s\", relation id %u, relfilenode %u column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+				   "Successfully truncated AO COL relation \"%s.%s\", relation id %u, relfilenode %lu column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 				   get_namespace_name(RelationGetNamespace(aorel)),
 				   relname,
 				   aorel->rd_id,
@@ -153,7 +163,7 @@ AOCSSegmentFileTruncateToEOF(Relation aorel, int segno, AOCSVPInfo *vpinfo)
 		else
 		{
 			elogif(Debug_appendonly_print_compaction, LOG,
-				   "No gp_relation_node entry for AO COL relation \"%s.%s\", relation id %u, relfilenode %u column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+				   "No gp_relation_node entry for AO COL relation \"%s.%s\", relation id %u, relfilenode %lu column #%d, logical segment #%d (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 				   get_namespace_name(RelationGetNamespace(aorel)),
 				   relname,
 				   aorel->rd_id,
@@ -192,7 +202,9 @@ AOCSMoveTuple(TupleTableSlot *slot,
 	/* insert index' tuples if needed */
 	if (resultRelInfo->ri_NumIndices > 0)
 	{
-		ExecInsertIndexTuples(slot, estate, false, false, NIL);
+		ExecInsertIndexTuples(resultRelInfo,
+							  slot, estate, false, false,
+							  NULL, NIL);
 		ResetPerTupleExprContext(estate);
 	}
 
@@ -222,6 +234,7 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	MemTupleBinding *mt_bind;
 	EState	   *estate;
 	AOTupleId  *aoTupleId;
+	ItemPointerData otid;
 	int64		tupleCount = 0;
 	int64		tuplePerPage = INT_MAX;
 
@@ -266,15 +279,15 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	resultRelInfo->ri_RelationDesc = aorel;
 	resultRelInfo->ri_TrigDesc = NULL;	/* we don't fire triggers */
 	ExecOpenIndices(resultRelInfo, false);
-	estate->es_result_relations = resultRelInfo;
-	estate->es_num_result_relations = 1;
-	estate->es_result_relation_info = resultRelInfo;
+	estate->es_opened_result_relations =
+			lappend(estate->es_opened_result_relations, resultRelInfo);
 
 	while (aocs_getnext(scanDesc, ForwardScanDirection, slot))
 	{
 		CHECK_FOR_INTERRUPTS();
 
 		aoTupleId = (AOTupleId *) &slot->tts_tid;
+		otid = slot->tts_tid;
 		if (AppendOnlyVisimap_IsVisible(&scanDesc->visibilityMap, aoTupleId))
 		{
 			AOCSMoveTuple(slot,
@@ -286,8 +299,11 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 		else
 		{
 			/* Tuple is invisible and needs to be dropped */
-			AppendOnlyThrowAwayTuple(aorel, slot);
+			AppendOnlyThrowAwayTuple(aorel, slot, mt_bind);
 		}
+
+		if (aocs_compaction_delete_hook)
+			(*aocs_compaction_delete_hook) (aorel, &otid);
 
 		/*
 		 * Check for vacuum delay point after approximatly a var block

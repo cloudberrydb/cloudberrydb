@@ -58,6 +58,20 @@ typedef enum _teSection
 	SECTION_POST_DATA			/* stuff to be processed after data */
 } teSection;
 
+/* Parameters needed by ConnectDatabase; same for dump and restore */
+typedef struct _connParams
+{
+	/* These fields record the actual command line parameters */
+	char	   *dbname;			/* this may be a connstring! */
+	char	   *pgport;
+	char	   *pghost;
+	char	   *username;
+	trivalue	promptPassword;
+	/* If not NULL, this overrides the dbname obtained from command line */
+	/* (but *only* the DB name, not anything else in the connstring) */
+	char	   *override_dbname;
+} ConnParams;
+
 typedef struct _restoreOptions
 {
 	int			createDB;		/* Issue commands to create the database */
@@ -72,7 +86,7 @@ typedef struct _restoreOptions
 	int			postdataSchemaRestore;
 	int			dropSchema;
 	int			disable_dollar_quoting;
-	int			dump_inserts;
+	int			dump_inserts;	/* 0 = COPY, otherwise rows per INSERT */
 	int			column_inserts;
 	int			if_exists;
 	int			no_comments;	/* Skip comments */
@@ -108,12 +122,9 @@ typedef struct _restoreOptions
 	SimpleStringList tableNames;
 
 	int			useDB;
-	char	   *dbname;			/* subject to expand_dbname */
-	char	   *pgport;
-	char	   *pghost;
-	char	   *username;
+	ConnParams	cparams;		/* parameters to use if useDB */
+
 	int			noDataForFailedTables;
-	trivalue	promptPassword;
 	int			exit_on_error;
 	int			compression;
 	int			suppressDumpWarnings;	/* Suppress output of WARNING entries
@@ -129,10 +140,7 @@ typedef struct _restoreOptions
 
 typedef struct _dumpOptions
 {
-	const char *dbname;			/* subject to expand_dbname */
-	const char *pghost;
-	const char *pgport;
-	const char *username;
+	ConnParams	cparams;
 
 	int			binary_upgrade;
 
@@ -153,9 +161,9 @@ typedef struct _dumpOptions
 	int			no_publications;
 	int			no_subscriptions;
 	int			no_synchronized_snapshots;
+	int			no_toast_compression;
 	int			no_unlogged_table_data;
 	int			serializable_deferrable;
-	int			quote_all_identifiers;
 	int			disable_triggers;
 	int			outputNoTablespaces;
 	int			use_setsessauth;
@@ -236,7 +244,13 @@ typedef struct
 
 typedef int DumpId;
 
-typedef int (*DataDumperPtr) (Archive *AH, void *userArg);
+#define InvalidDumpId 0
+
+/*
+ * Function pointer prototypes for assorted callback methods.
+ */
+
+typedef int (*DataDumperPtr) (Archive *AH, const void *userArg);
 
 typedef void (*SetupWorkerPtrType) (Archive *AH);
 
@@ -244,12 +258,9 @@ typedef void (*SetupWorkerPtrType) (Archive *AH);
  * Main archiver interface.
  */
 
-extern void ConnectDatabase(Archive *AH,
-							const char *dbname,
-							const char *pghost,
-							const char *pgport,
-							const char *username,
-							trivalue prompt_password,
+extern void ConnectDatabase(Archive *AHX,
+							const ConnParams *cparams,
+							bool isReconnect,
 							bool binary_upgrade);
 extern void DisconnectDatabase(Archive *AHX);
 extern PGconn *GetConnection(Archive *AHX);

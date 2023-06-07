@@ -4,11 +4,11 @@ title: Encrypting Data and Database Connections
 
 Best practices for implementing encryption and managing keys.
 
-Encryption can be used to protect data in a Greenplum Database system in the following ways:
+Encryption can be used to protect data in a Cloudberry Database system in the following ways:
 
--   Connections between clients and the master database can be encrypted with SSL. This is enabled by setting the `ssl` server configuration parameter to `on` and editing the `pg_hba.conf` file. See "Encrypting Client/Server Connections" in the *Greenplum Database Administrator Guide* for information about enabling SSL in Greenplum Database.
--   Greenplum Database 4.2.1 and above allow SSL encryption of data in transit between the Greenplum parallel file distribution server, `gpfdist`, and segment hosts. See [Encrypting gpfdist Connections](#section_kjt_3kr_bs) for more information. 
--   Network communications between hosts in the Greenplum Database cluster can be encrypted using IPsec. An authenticated, encrypted VPN is established between every pair of hosts in the cluster. Check your operating system documentation for IPsec support, or consider a third-party solution such as that provided by [Zettaset](https://www.zettaset.com).
+-   Connections between clients and the master database can be encrypted with SSL. This is enabled by setting the `ssl` server configuration parameter to `on` and editing the `pg_hba.conf` file. See "Encrypting Client/Server Connections" in the *Cloudberry Database Administrator Guide* for information about enabling SSL in Cloudberry Database.
+-   Cloudberry Database 4.2.1 and above allow SSL encryption of data in transit between the Cloudberry parallel file distribution server, `gpfdist`, and segment hosts. See [Encrypting gpfdist Connections](#section_kjt_3kr_bs) for more information. 
+-   Network communications between hosts in the Cloudberry Database cluster can be encrypted using IPsec. An authenticated, encrypted VPN is established between every pair of hosts in the cluster. Check your operating system documentation for IPsec support, or consider a third-party solution such as that provided by [Zettaset](https://www.zettaset.com).
 -   The `pgcrypto` module of encryption/decryption functions protects data at rest in the database. Encryption at the column level protects sensitive information, such as passwords, Social Security numbers, or credit card numbers. See [Encrypting Data in Tables using PGP](#section_emf_3kr_bs) for an example.
 
 ## <a id="bp1"></a>Best Practices 
@@ -16,8 +16,8 @@ Encryption can be used to protect data in a Greenplum Database system in the fol
 -   Encryption ensures that data can be seen only by users who have the key required to decrypt the data.
 -   Encrypting and decrypting data has a performance cost; only encrypt data that requires encryption.
 -   Do performance testing before implementing any encryption solution in a production system.
--   Server certificates in a production Greenplum Database system should be signed by a certificate authority \(CA\) so that clients can authenticate the server. The CA may be local if all clients are local to the organization.
--   Client connections to Greenplum Database should use SSL encryption whenever the connection goes through an insecure link.
+-   Server certificates in a production Cloudberry Database system should be signed by a certificate authority \(CA\) so that clients can authenticate the server. The CA may be local if all clients are local to the organization.
+-   Client connections to Cloudberry Database should use SSL encryption whenever the connection goes through an insecure link.
 -   A symmetric encryption scheme, where the same key is used to both encrypt and decrypt, has better performance than an asymmetric scheme and should be used when the key can be shared safely.
 -   Use functions from the pgcrypto module to encrypt data on disk. The data is encrypted and decrypted in the database process, so it is important to secure the client connection with SSL to avoid transmitting unencrypted data.
 -   Use the gpfdists protocol to secure ETL data as it is loaded into or unloaded from the database. See [Encrypting gpfdist Connections](#section_kjt_3kr_bs).
@@ -38,9 +38,9 @@ The Open Web Application Security Project \(OWASP\) provides a very comprehensiv
 
 ## <a id="encdat"></a>Encrypting Data at Rest with pgcrypto 
 
-The pgcrypto module for Greenplum Database provides functions for encrypting data at rest in the database. Administrators can encrypt columns with sensitive information, such as social security numbers or credit card numbers, to provide an extra layer of protection. Database data stored in encrypted form cannot be read by users who do not have the encryption key, and the data cannot be read directly from disk.
+The pgcrypto module for Cloudberry Database provides functions for encrypting data at rest in the database. Administrators can encrypt columns with sensitive information, such as social security numbers or credit card numbers, to provide an extra layer of protection. Database data stored in encrypted form cannot be read by users who do not have the encryption key, and the data cannot be read directly from disk.
 
-pgcrypto is installed by default when you install Greenplum Database. You must explicitly enable pgcrypto in each database in which you want to use the module.
+pgcrypto is installed by default when you install Cloudberry Database. You must explicitly enable pgcrypto in each database in which you want to use the module.
 
 pgcrypto allows PGP encryption using symmetric and asymmetric encryption. Symmetric encryption encrypts and decrypts data using the same key and is faster than asymmetric encryption. It is the preferred method in an environment where exchanging secret keys is not an issue. With asymmetric encryption, a public key is used to encrypt data and a private key is used to decrypt data. This is slower then symmetric encryption and it requires a stronger key.
 
@@ -52,7 +52,7 @@ Before you implement in-database encryption, consider the following PGP limitati
 -   No support for encryption key as master key. This practice is generally discouraged, so this limitation should not be a problem.
 -   No support for several subkeys. This may seem like a problem, as this is common practice. On the other hand, you should not use your regular GPG/PGP keys with pgcrypto, but create new ones, as the usage scenario is rather different.
 
-Greenplum Database is compiled with zlib by default; this allows PGP encryption functions to compress data before encrypting. When compiled with OpenSSL, more algorithms will be available.
+Cloudberry Database is compiled with zlib by default; this allows PGP encryption functions to compress data before encrypting. When compiled with OpenSSL, more algorithms will be available.
 
 Because pgcrypto functions run inside the database server, the data and passwords move between pgcrypto and the client application in clear-text. For optimal security, you should connect locally or use SSL connections and you should trust both the system and database administrators.
 
@@ -77,9 +77,9 @@ Pgcrypto has various levels of encryption ranging from basic to advanced built-i
 
 ## <a id="creating_pgp_keys"></a>Creating PGP Keys 
 
-To use PGP asymmetric encryption in Greenplum Database, you must first create public and private keys and install them.
+To use PGP asymmetric encryption in Cloudberry Database, you must first create public and private keys and install them.
 
-This section assumes you are installing Greenplum Database on a Linux machine with the Gnu Privacy Guard \(`gpg`\) command line tool. VMware recommends using the latest version of GPG to create keys. Download and install Gnu Privacy Guard \(GPG\) for your operating system from [https://www.gnupg.org/download/](https://www.gnupg.org/download/). On the GnuPG website you will find installers for popular Linux distributions and links for Windows and Mac OS X installers.
+This section assumes you are installing Cloudberry Database on a Linux machine with the Gnu Privacy Guard \(`gpg`\) command line tool. VMware recommends using the latest version of GPG to create keys. Download and install Gnu Privacy Guard \(GPG\) for your operating system from [https://www.gnupg.org/download/](https://www.gnupg.org/download/). On the GnuPG website you will find installers for popular Linux distributions and links for Windows and Mac OS X installers.
 
 1.  As root, run the following command and choose option 1 from the menu:
 
@@ -351,7 +351,7 @@ This section shows how to encrypt data inserted into a column using the PGP keys
 
 ## <a id="section_kjt_3kr_bs"></a>Encrypting gpfdist Connections 
 
-The `gpfdists` protocol is a secure version of the `gpfdist` protocol that securely identifies the file server and the Greenplum Database and encrypts the communications between them. Using `gpfdists` protects against eavesdropping and man-in-the-middle attacks.
+The `gpfdists` protocol is a secure version of the `gpfdist` protocol that securely identifies the file server and the Cloudberry Database and encrypts the communications between them. Using `gpfdists` protects against eavesdropping and man-in-the-middle attacks.
 
 The `gpfdists` protocol implements client/server SSL security with the following notable features:
 
@@ -361,10 +361,10 @@ The `gpfdists` protocol implements client/server SSL security with the following
 -   The TLSv1 protocol is used with the `TLS_RSA_WITH_AES_128_CBC_SHA` encryption algorithm. These SSL parameters cannot be changed.
 -   SSL renegotiation is supported.
 -   The SSL ignore host mismatch parameter is set to false.
--   Private keys containing a passphrase are not supported for the `gpfdist` file server \(server.key\) or for the Greenplum Database \(client.key\).
+-   Private keys containing a passphrase are not supported for the `gpfdist` file server \(server.key\) or for the Cloudberry Database \(client.key\).
 -   It is the user's responsibility to issue certificates that are appropriate for the operating system in use. Generally, converting certificates to the required format is supported, for example using the SSL Converter at [https://www.sslshopper.com/ssl-converter.html](http://www.commoncriteriaportal.org/products/?expand#ALL).
 
-A `gpfdist` server started with the `--ssl` option can only communicate with the `gpfdists` protocol. A `gpfdist` server started without the `--ssl` option can only communicate with the `gpfdist` protocol. For more detail about `gpfdist` refer to the *Greenplum Database Administrator Guide*.
+A `gpfdist` server started with the `--ssl` option can only communicate with the `gpfdists` protocol. A `gpfdist` server started without the `--ssl` option can only communicate with the `gpfdist` protocol. For more detail about `gpfdist` refer to the *Cloudberry Database Administrator Guide*.
 
 There are two ways to enable the `gpfdists` protocol:
 
@@ -396,7 +396,7 @@ The following example shows how to securely load data into an external table. Th
     ```
 
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 
 [1](#fnsrc_1) SHA2 algorithms were added to OpenSSL in version 0.9.8. For older versions, pgcrypto will use built-in code[2](#fnsrc_2) Any digest algorithm OpenSSL supports is automatically picked up. This is not possible with ciphers, which need to be supported explicitly.[3](#fnsrc_3) AES is included in OpenSSL since version 0.9.7. For older versions, pgcrypto will use built-in code.
 

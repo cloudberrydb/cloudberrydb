@@ -20,15 +20,15 @@ pgbouncer [ -V | --version ] | [ -h | --help ]</codeblock>
       </section>
       <section>
         <title>Description</title>
-        <p>PgBouncer is a light-weight connection pool manager for Greenplum and PostgreSQL
-          databases. Databases may be on different Greenplum Database clusters or PostgreSQL
+        <p>PgBouncer is a light-weight connection pool manager for Cloudberry and PostgreSQL
+          databases. Databases may be on different Cloudberry Database clusters or PostgreSQL
           backends. PgBouncer creates a pool for each database user and database combination. A
           pooled connection can only be reused for another connection request for the same user and
           database. The client application connects to the connection pool's host and port instead
-          of the Greenplum Database coordinator host and port. PgBouncer either creates a new database
+          of the Cloudberry Database coordinator host and port. PgBouncer either creates a new database
           connection for the client or reuses an existing connection. When the client disconnects,
           the connection is returned to the pool for re-use. </p>
-        <p>PgBouncer supports the standard connection interface that PostgreSQL and Greenplum
+        <p>PgBouncer supports the standard connection interface that PostgreSQL and Cloudberry
           Database share. A client requesting a database connection provides the host name and port
           where PgBouncer is running, as well as the database name, username, and password.
           PgBouncer looks up the requested database (which may be an alias for the actual database)
@@ -62,7 +62,7 @@ pgbouncer [ -V | --version ] | [ -h | --help ]</codeblock>
           clients and PgBouncer, you can use <xref href="https://www.stunnel.org" format="html"
             scope="external">stunnel</xref>, a free software utility that creates TLS-encrypted
           tunnels using the OpenSSL cryptography library. See "Securing PgBouncer Connections with
-          stunnel" in the <i>Greenplum Database Administrator Guide</i> for directions.</p>
+          stunnel" in the <i>Cloudberry Database Administrator Guide</i> for directions.</p>
         <p>See the <xref href="https://pgbouncer.github.io/faq.html" format="html" scope="external"
             >PgBouncer FAQ</xref> for additional usage information.</p>
         <p>This reference topic includes the following additional reference information:<ul
@@ -179,7 +179,7 @@ db = ...
               </plentry>
               <plentry>
                 <pt>host</pt>
-                <pd>The name or IP address of the Greenplum coordinator host. Host names are resolved at
+                <pd>The name or IP address of the Cloudberry coordinator host. Host names are resolved at
                   connect time. If DNS returns several results, they are used in a round-robin
                   manner. The DNS result is cached and the <codeph>dns_max_ttl</codeph> parameter
                   determines when the cache entry expires. </pd>
@@ -189,7 +189,7 @@ db = ...
               </plentry>
               <plentry>
                 <pt>port</pt>
-                <pd>The Greenplum Database coordinator port. Default: 5432</pd>
+                <pd>The Cloudberry Database coordinator port. Default: 5432</pd>
               </plentry>
               <plentry>
                 <pt>user, password</pt>
@@ -314,7 +314,7 @@ db = ...
               <plentry>
                 <pt>auth_file</pt>
                 <pd>The name of the file containing the user names and passwords to load. The file
-                  format is the same as the Greenplum Database <filepath>pg_auth/pg_pwd</filepath>
+                  format is the same as the Cloudberry Database <filepath>pg_auth/pg_pwd</filepath>
                   file, so this parameter can be set to one of those backend files. See <xref
                     href="#topic_v4s_htc_gs" format="dita">Authentication File Format</xref> for
                     details.<p>Default: not set.</p></pd>
@@ -529,7 +529,7 @@ db = ...
                 <pd>Query sent to server on connection release, before making it available to other
                   clients. At that moment no transaction is in progress so it should not include
                     <codeph>ABORT</codeph> or <codeph>ROLLBACK</codeph>.<p>A good choice for
-                    Postgres 8.2 and below, and Greenplum Database,
+                    Postgres 8.2 and below, and Cloudberry Database,
                     is:</p><codeblock>server_reset_query = RESET ALL; SET SESSION AUTHORIZATION DEFAULT;
 </codeblock><p>For
                     Postgres 8.3 and above, the following is
@@ -650,7 +650,7 @@ db = ...
               </plentry>
             </parml>
           </section>
-          <!--<section><title>TLS settings</title><parml><plentry><pt>client_tls_sslmode</pt><pd>TLS mode to use for connections from clients. TLS connections are disabled by default. When enabled, <codeph>client_tls_key_file</codeph> and <codeph>client_tls_cert_file</codeph> must be also configured to set up the key and certificate PgBouncer uses to accept client connections.<ul id="ul_dgn_drd_bt"><li><codeph>disabled</codeph>: Plain TCP. If client requests TLS, it’s ignored. Default.</li><li><codeph>allow</codeph>: If client requests TLS, it is used. If not, plain TCP is used. If client uses client-certificate, it is not validated.</li><li><codeph>prefer</codeph>: Same as <codeph>allow</codeph>.</li><li><codeph>require</codeph>: Client must use TLS. If not, client connection is rejected. If client uses client-certificate, it is not validated.</li><li><codeph>verify-ca</codeph>: Client must use TLS with valid client certificate.</li><li><codeph>verify-full</codeph>: Same as <codeph>verify-ca</codeph>.</li></ul></pd></plentry><plentry><pt>client_tls_key_file</pt><pd>Private key for PgBouncer to accept client connections.</pd><pd>Default: not set.</pd></plentry><plentry><pt>client_tls_cert_file</pt><pd>Root certificate file to validate client certificates.</pd><pd>Default: unset.</pd></plentry><plentry><pt>client_tls_ca_file</pt><pd>Root certificate to validate client certificates.</pd><pd>Default: unset.</pd></plentry><plentry><pt>client_tls_protocols</pt><pd>Which TLS protocol versions are allowed. </pd><pd>Valid values: are <codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>. </pd><pd>Shortcuts: <codeph>all</codeph> (<codeph>tlsv1.0</codeph>,<codeph>tlsv1.1</codeph>,<codeph>tlsv1.2</codeph>), <codeph>secure</codeph> (<codeph>tlsv1.2</codeph>), <codeph>legacy</codeph> (<codeph>all</codeph>).</pd><pd>Default: <codeph>all</codeph>.</pd></plentry><plentry><pt>client_tls_ciphers</pt><pd>Default: <codeph>fast</codeph>.</pd></plentry><plentry><pt>client_tls_ecdhcurve</pt><pd>Elliptic Curve name to use for ECDH key exchanges.</pd><pd>Allowed values: <codeph>none</codeph> (DH is disabled), <codeph>auto</codeph> (256-bit ECDH), curve name.</pd><pd>Default: auto</pd></plentry><plentry><pt>client_tls_dheparams</pt><pd>DHE key exchange type.</pd><pd>Allowed values: <codeph>none</codeph> (DH is disabled), <codeph>auto</codeph> (2048-bit DH), <codeph>legacy</codeph> (1024-bit DH).</pd><pd>Default: <codeph>auto</codeph>.</pd></plentry><plentry><pt>server_tls_sslmode</pt><pd>TLS mode to use for connections to Greenplum Database and PostgreSQL servers. TLS connections are disabled by default.<ul id="ul_hyh_1td_bt"><li><codeph>disabled</codeph>: Plain TCP. TLS is not requested from the server. Default.</li><li><codeph>allow</codeph>: If server rejects plain, try TLS. (<i>PgBouncer Documentation is speculative on this..</i>)</li><li><codeph>prefer</codeph>: Same as <codeph>allow</codeph>.</li><li><codeph>require</codeph>: Connection must use TLS. If server rejects it, plain TCP is not attempted. Server certificate is not validated.</li><li><codeph>verify-ca</codeph>: Connection must use TLS and server certificate must be valid according to <codeph>server_tls_ca_file</codeph>. The server hostname is not verfied against the certificate.</li><li><codeph>verify-full</codeph>: Connection must use TLS and the server certificate must be valid according to <codeph>server_tls_ca_file</codeph>. The server hostname must match the hostname in the certificate.</li></ul></pd></plentry><plentry><pt>server_tls_ca_file</pt><pd>Path to the root certificate file used to validate Greenplum Database and PostgreSQL server certificates.</pd><pd>Default: unset.</pd></plentry><plentry><pt>server_tls_key_file</pt><pd>The private key for PgBouncer to authenticate against Greenplum Database or PostgreSQL server.</pd><pd>Default: not set.</pd></plentry><plentry><pt>server_tls_cert_file</pt><pd>Certificate for private key. Greenplum Database or PostgreSQL servers can validate it.</pd><pd>Default: not set.</pd></plentry><plentry><pt>server_tls_protocols</pt><pd>Which TLS protocol versions are allowed. </pd><pd>Valid values are: <codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>. </pd><pd>Shortcuts: <codeph>all</codeph> (<codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>); <codeph>secure</codeph> (<codeph>tlsv1.2</codeph>); <codeph>legacy</codeph> (<codeph>all</codeph>).</pd><pd>Default: <codeph>all</codeph>.</pd></plentry><plentry><pt>server_tls_ciphers</pt><pd>Default: <codeph>fast</codeph>.</pd></plentry></parml></section>-->
+          <!--<section><title>TLS settings</title><parml><plentry><pt>client_tls_sslmode</pt><pd>TLS mode to use for connections from clients. TLS connections are disabled by default. When enabled, <codeph>client_tls_key_file</codeph> and <codeph>client_tls_cert_file</codeph> must be also configured to set up the key and certificate PgBouncer uses to accept client connections.<ul id="ul_dgn_drd_bt"><li><codeph>disabled</codeph>: Plain TCP. If client requests TLS, it’s ignored. Default.</li><li><codeph>allow</codeph>: If client requests TLS, it is used. If not, plain TCP is used. If client uses client-certificate, it is not validated.</li><li><codeph>prefer</codeph>: Same as <codeph>allow</codeph>.</li><li><codeph>require</codeph>: Client must use TLS. If not, client connection is rejected. If client uses client-certificate, it is not validated.</li><li><codeph>verify-ca</codeph>: Client must use TLS with valid client certificate.</li><li><codeph>verify-full</codeph>: Same as <codeph>verify-ca</codeph>.</li></ul></pd></plentry><plentry><pt>client_tls_key_file</pt><pd>Private key for PgBouncer to accept client connections.</pd><pd>Default: not set.</pd></plentry><plentry><pt>client_tls_cert_file</pt><pd>Root certificate file to validate client certificates.</pd><pd>Default: unset.</pd></plentry><plentry><pt>client_tls_ca_file</pt><pd>Root certificate to validate client certificates.</pd><pd>Default: unset.</pd></plentry><plentry><pt>client_tls_protocols</pt><pd>Which TLS protocol versions are allowed. </pd><pd>Valid values: are <codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>. </pd><pd>Shortcuts: <codeph>all</codeph> (<codeph>tlsv1.0</codeph>,<codeph>tlsv1.1</codeph>,<codeph>tlsv1.2</codeph>), <codeph>secure</codeph> (<codeph>tlsv1.2</codeph>), <codeph>legacy</codeph> (<codeph>all</codeph>).</pd><pd>Default: <codeph>all</codeph>.</pd></plentry><plentry><pt>client_tls_ciphers</pt><pd>Default: <codeph>fast</codeph>.</pd></plentry><plentry><pt>client_tls_ecdhcurve</pt><pd>Elliptic Curve name to use for ECDH key exchanges.</pd><pd>Allowed values: <codeph>none</codeph> (DH is disabled), <codeph>auto</codeph> (256-bit ECDH), curve name.</pd><pd>Default: auto</pd></plentry><plentry><pt>client_tls_dheparams</pt><pd>DHE key exchange type.</pd><pd>Allowed values: <codeph>none</codeph> (DH is disabled), <codeph>auto</codeph> (2048-bit DH), <codeph>legacy</codeph> (1024-bit DH).</pd><pd>Default: <codeph>auto</codeph>.</pd></plentry><plentry><pt>server_tls_sslmode</pt><pd>TLS mode to use for connections to Cloudberry Database and PostgreSQL servers. TLS connections are disabled by default.<ul id="ul_hyh_1td_bt"><li><codeph>disabled</codeph>: Plain TCP. TLS is not requested from the server. Default.</li><li><codeph>allow</codeph>: If server rejects plain, try TLS. (<i>PgBouncer Documentation is speculative on this..</i>)</li><li><codeph>prefer</codeph>: Same as <codeph>allow</codeph>.</li><li><codeph>require</codeph>: Connection must use TLS. If server rejects it, plain TCP is not attempted. Server certificate is not validated.</li><li><codeph>verify-ca</codeph>: Connection must use TLS and server certificate must be valid according to <codeph>server_tls_ca_file</codeph>. The server hostname is not verfied against the certificate.</li><li><codeph>verify-full</codeph>: Connection must use TLS and the server certificate must be valid according to <codeph>server_tls_ca_file</codeph>. The server hostname must match the hostname in the certificate.</li></ul></pd></plentry><plentry><pt>server_tls_ca_file</pt><pd>Path to the root certificate file used to validate Cloudberry Database and PostgreSQL server certificates.</pd><pd>Default: unset.</pd></plentry><plentry><pt>server_tls_key_file</pt><pd>The private key for PgBouncer to authenticate against Cloudberry Database or PostgreSQL server.</pd><pd>Default: not set.</pd></plentry><plentry><pt>server_tls_cert_file</pt><pd>Certificate for private key. Cloudberry Database or PostgreSQL servers can validate it.</pd><pd>Default: not set.</pd></plentry><plentry><pt>server_tls_protocols</pt><pd>Which TLS protocol versions are allowed. </pd><pd>Valid values are: <codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>. </pd><pd>Shortcuts: <codeph>all</codeph> (<codeph>tlsv1.0</codeph>, <codeph>tlsv1.1</codeph>, <codeph>tlsv1.2</codeph>); <codeph>secure</codeph> (<codeph>tlsv1.2</codeph>); <codeph>legacy</codeph> (<codeph>all</codeph>).</pd><pd>Default: <codeph>all</codeph>.</pd></plentry><plentry><pt>server_tls_ciphers</pt><pd>Default: <codeph>fast</codeph>.</pd></plentry></parml></section>-->
           <section>
             <title>Low-level Network Settings</title>
             <parml>
@@ -791,8 +791,8 @@ forcedb = host=127.0.0.1 port=300 user=baz password=foo client_encoding=UNICODE 
         <p>There is one line per user. Each line must have at least two fields. Fields are enclosed
           in double quotes (<codeph>"</codeph>). The first field is the user name and the second is
           either a plain-text or an MD5-encoded password. The remainder of the line is ignored.</p>
-        <p>This file format is similar to text files used by Greenplum Database for authentication
-          information, and PgBouncer can work directly with the Greenplum Database authentication
+        <p>This file format is similar to text files used by Cloudberry Database for authentication
+          information, and PgBouncer can work directly with the Cloudberry Database authentication
           files.</p>
         <p>To avoid plain-text passwords, encode user passwords with MD5. The format for an MD5
           encoded password is: </p>
@@ -842,7 +842,7 @@ DETAIL:
         <title>Administration Commands</title>
         <body>
           <p>From the PgBouncer Administrator console you can control connections between PgBouncer
-            and Greenplum Database. You can also set PgBouncer configuration parameters. </p>
+            and Cloudberry Database. You can also set PgBouncer configuration parameters. </p>
           <p>The following PgBouncer administration commands control the PgBouncer process.</p>
           <parml>
             <plentry>
@@ -1537,11 +1537,11 @@ DETAIL:
                   </row>
                   <row>
                     <entry>addr</entry>
-                    <entry>IP address of the Greenplum or PostgreSQL server.</entry>
+                    <entry>IP address of the Cloudberry or PostgreSQL server.</entry>
                   </row>
                   <row>
                     <entry>port</entry>
-                    <entry>Port of the Greenplum or PostgreSQL server.</entry>
+                    <entry>Port of the Cloudberry or PostgreSQL server.</entry>
                   </row>
                   <row>
                     <entry>local_addr</entry>

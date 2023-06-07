@@ -31,7 +31,7 @@ privilege. (Note that superusers have all these privileges automatically.)</p>
     default tablespace to the new tablespace.  Note that tables and indexes
     in non-default tablespaces are not affected.</p>
 <p>The remaining forms change the session default for a configuration
-parameter for a Greenplum database. Whenever a new session is subsequently
+parameter for a Cloudberry database. Whenever a new session is subsequently
 started in that database, the specified value becomes the session default
 value. The database-specific default overrides whatever setting is present
 in the server configuration file (<codeph>postgresql.conf</codeph>).
@@ -52,7 +52,7 @@ of -1 means there is no limitation.</pd></plentry><plentry><pt><varname>paramete
 for a specific role (user) rather than to a database. Role-specific settings
 override database-specific ones if there is a conflict. See <codeph>ALTER
 ROLE</codeph>.</p></section><section id="section6"><title>Examples</title><p>To set the default schema search path for the <codeph>mydatabase</codeph> database:</p><codeblock>ALTER DATABASE mydatabase SET search_path TO myschema, 
-public, pg_catalog;</codeblock></section><section id="section7"><title>Compatibility</title><p>The <codeph>ALTER DATABASE</codeph> statement is a Greenplum Database
+public, pg_catalog;</codeblock></section><section id="section7"><title>Compatibility</title><p>The <codeph>ALTER DATABASE</codeph> statement is a Cloudberry Database
 extension. </p></section><section id="section8"><title>See Also</title><p><codeph><xref href="./CREATE_DATABASE.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./DROP_DATABASE.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./SET.xml#topic1" type="topic" format="dita"/></codeph>,

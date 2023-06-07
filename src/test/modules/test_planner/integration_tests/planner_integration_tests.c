@@ -15,7 +15,7 @@ test_stable_function_in_subquery_is_evaluated_to_const()
 	const char *query_string = "select * from (select now()) a;";
 
 	Query *query = make_query(query_string);
-	PlannedStmt *plannedstmt = planner(query, 0, NULL);
+	PlannedStmt *plannedstmt = planner(query, query_string, 0, NULL);
 
 	TargetEntry *tle = get_target_entry_from_root_plan_node(plannedstmt);
 
@@ -28,7 +28,7 @@ test_stable_function_in_simple_query_is_not_evaluated_in_planner()
 	const char *query_string = "select now();";
 
 	Query *query = make_query(query_string);
-	PlannedStmt *plannedstmt = planner(query, 0, NULL);
+	PlannedStmt *plannedstmt = planner(query, query_string, 0, NULL);
 
 	TargetEntry *tle = get_target_entry_from_root_plan_node(plannedstmt);
 

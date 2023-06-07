@@ -341,7 +341,7 @@ list_qsort_arg(List *list, qsort_arg_comparator cmp, void *arg)
 
 	i = 0;
 	foreach(cell, list)
-		cell->data.ptr_value = create_stmts[i++];
+		cell->ptr_value = create_stmts[i++];
 
 	pfree(create_stmts);
 }
@@ -355,7 +355,8 @@ static void
 deduceImplicitRangeBounds(ParseState *pstate, Relation parentrel, List *stmts)
 {
 	PartitionKey key = RelationGetPartitionKey(parentrel);
-	PartitionDesc desc = RelationGetPartitionDesc(parentrel);
+	/* GPDB_14_MERGE_FIXEME: most places use true for new api, need to check */
+	PartitionDesc desc = RelationGetPartitionDesc(parentrel, true);
 
 	list_qsort_arg(stmts, qsort_stmt_cmp, key);
 
@@ -408,7 +409,7 @@ deduceImplicitRangeBounds(ParseState *pstate, Relation parentrel, List *stmts)
 			}
 			if (!stmt->partbound->upperdatums)
 			{
-				Node *next = lc->next ? lfirst(lc->next) : NULL;
+				Node *next = lnext(stmts, lc) ? lfirst(lnext(stmts, lc)) : NULL;
 				if (next)
 				{
 					CreateStmt *nextstmt = (CreateStmt *)next;
@@ -942,10 +943,12 @@ generateRangePartitions(ParseState *pstate,
 	partkey = RelationGetPartitionKey(parentrel);
 
 	/*
-	 * GPDB_12_MERGE_FIXME: We currently disabled support for multi column
-	 * range partitioned tables. PostgreSQL doesn't support that. Not sure
-	 * what to do about that.  Add support for it to PostgreSQL? Simplify the
-	 * grammar to not allow that?
+	 * GPDB_12_MERGE_FEATURE_NOT_SUPPORTED: We currently disabled support for multi-column
+	 * range partitioned tables. If user want to define partition table with multi-column
+	 * range, can use PostgreSQL's grammar:
+	 *
+	 * create table z (a int, b int, c int) partition by range(b, c);
+	 * create table z1 partition of z for values from (10, 10) TO (20, 20);
 	 */
 	if (partkey->partnatts != 1)
 		ereport(ERROR,
@@ -1085,10 +1088,12 @@ generateListPartition(ParseState *pstate,
 	boundspec->is_default = false;
 
 	/*
-	 * GPDB_12_MERGE_FIXME: Greenplum historically does not support multi column
-	 * List partitions. Upstream Postgres allows it. Keep this restriction for
-	 * now and most likely we will get the functionality for free from the merge
-	 * and we should remove this restriction once we verifies that.
+	 * GPDB_12_MERGE_FEATURE_NOT_SUPPORTED: We currently disabled support for multi-column
+	 * range partitioned tables. If user want to define partition table with multi-column
+	 * range, can use PostgreSQL's grammar:
+	 *
+	 * create table z (a int, b int, c int) partition by range(b, c);
+	 * create table z1 partition of z for values from (10, 10) TO (20, 20);
 	 */
 
 	listdatums = NIL;
@@ -1137,7 +1142,6 @@ static char *
 extract_tablename_from_options(List **options)
 {
 	ListCell *o_lc;
-	ListCell *prev_lc = NULL;
 	char *tablename = NULL;
 
 	foreach (o_lc, *options)
@@ -1157,11 +1161,10 @@ extract_tablename_from_options(List **options)
 						 errmsg("invalid tablename specification")));
 
 			char *relname_str = defGetString(pDef);
-			*options = list_delete_cell(*options, o_lc, prev_lc);
+			*options = foreach_delete_current(*options, o_lc);
 			tablename = pstrdup(relname_str);
 			break;
 		}
-		prev_lc = o_lc;
 	}
 
 	return tablename;

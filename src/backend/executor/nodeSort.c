@@ -3,9 +3,9 @@
  * nodeSort.c
  *	  Routines to handle sorting of relations.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -52,10 +52,7 @@ ExecSort(PlanState *pstate)
 	EState	   *estate;
 	ScanDirection dir;
 	Tuplesortstate *tuplesortstate;
-	TupleTableSlot *slot = NULL;
-	Sort 		*plannode = NULL;
-	PlanState  *outerNode = NULL;
-	TupleDesc	tupDesc = NULL;
+	TupleTableSlot *slot;
 
 	CHECK_FOR_INTERRUPTS();
 
@@ -80,15 +77,17 @@ ExecSort(PlanState *pstate)
 		return NULL;
 	}
 
-	plannode = (Sort *) node->ss.ps.plan;
-
-
 	/*
-	 * If called for the first time, initialize tuplesort_state
+	 * If first time through, read all tuples from outer plan and pass them to
+	 * tuplesort.c. Subsequent calls just fetch tuples from tuplesort.
 	 */
 
 	if (!node->sort_Done)
 	{
+		Sort	   *plannode = (Sort *) node->ss.ps.plan;
+		PlanState  *outerNode;
+		TupleDesc	tupDesc;
+
 		SO1_printf("ExecSort: %s\n",
 				   "sorting subplan");
 
@@ -107,8 +106,7 @@ ExecSort(PlanState *pstate)
 		outerNode = outerPlanState(node);
 		tupDesc = ExecGetResultType(outerNode);
 
-		tuplesortstate = tuplesort_begin_heap(//&node->ss,
-											  tupDesc,
+		tuplesortstate = tuplesort_begin_heap(tupDesc,
 											  plannode->numCols,
 											  plannode->sortColIdx,
 											  plannode->sortOperators,
@@ -117,25 +115,11 @@ ExecSort(PlanState *pstate)
 											  PlanStateOperatorMemKB((PlanState *) node),
 											  NULL,
 											  node->randomAccess);
-
 		if (node->bounded)
 			tuplesort_set_bound(tuplesortstate, node->bound);
 		node->tuplesortstate = (void *) tuplesortstate;
 
 		/* CDB */
-		/* GPDB_12_MERGE_FIXME: these optimizations are currently broken */
-#if 0
-		{
-			int 		unique = 0;
-			int 		sort_flags = gp_sort_flags; /* get the guc */
-			int         maxdistinct = gp_sort_max_distinct; /* get the guc */
-
-			if (node->noduplicates)
-				unique = 1;
-			
-			cdb_tuplesort_init(tuplesortstate, unique, sort_flags, maxdistinct);
-		}
-#endif
 
 		/* If EXPLAIN ANALYZE, share our Instrumentation object with sort. */
 		/* GPDB_12_MERGE_FIXME: broken */
@@ -145,18 +129,6 @@ ExecSort(PlanState *pstate)
 									 node->ss.ps.instrument,
 									 node->ss.ps.cdbexplainbuf);
 #endif
-	}
-
-	/*
-	 * If first time through,
-	 * read all tuples from outer plan and pass them to
-	 * tuplesort.c. Subsequent calls just fetch tuples from tuplesort.
-	 */
-	if (!node->sort_Done)
-	{
-
-		Assert(outerNode != NULL);
-
 		/*
 		 * Scan the subplan and feed all the tuples to tuplesort.
 		 */

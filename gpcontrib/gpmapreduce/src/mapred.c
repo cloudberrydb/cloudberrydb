@@ -1624,13 +1624,15 @@ void mapred_setup_columns(PGconn *conn, mapred_object_t *obj)
 					{
 						char *name = PQgetvalue(result, i, 0);
 						char *type = PQgetvalue(result, i, 1);
-
+						
+						size_t name_len = strlen(name) + 1;
+						size_t type_len = strlen(type) + 1;
 						/* Add the column to the list */
 						newitem = mapred_malloc(sizeof(mapred_plist_t));
-						newitem->name = mapred_malloc(strlen(name)+1);
-						strncpy(newitem->name, name, strlen(name)+1);
-						newitem->type = mapred_malloc(strlen(type)+1);
-						strncpy(newitem->type, type, strlen(type)+1);
+						newitem->name = mapred_malloc(name_len);
+						strncpy(newitem->name, name, name_len);
+						newitem->type = mapred_malloc(type_len);
+						strncpy(newitem->type, type, type_len);
 						newitem->next = obj->u.input.columns;
 						obj->u.input.columns = newitem;
 					}

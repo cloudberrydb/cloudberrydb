@@ -2,7 +2,7 @@
 #
 # Makefile for tools/thread
 #
-# Copyright (c) 2003-2019, PostgreSQL Global Development Group
+# Copyright (c) 2003-2020, PostgreSQL Global Development Group
 #
 # src/test/thread/Makefile
 #
@@ -13,6 +13,7 @@ top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
 override CFLAGS += $(PTHREAD_CFLAGS)
+LDFLAGS_INTERNAL += $(libpq_pgport)
 
 all: thread_test
 

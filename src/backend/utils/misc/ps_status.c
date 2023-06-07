@@ -7,9 +7,9 @@
  *
  * src/backend/utils/misc/ps_status.c
  *
- * Portions Copyright (c) 2005-2009, Greenplum inc
+ * Portions Copyright (c) 2005-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  * various details abducted from various places
  *--------------------------------------------------------------------
  */
@@ -30,8 +30,9 @@
 
 #include "libpq/libpq.h"
 #include "miscadmin.h"
-#include "utils/ps_status.h"
+#include "pgstat.h"
 #include "utils/guc.h"
+#include "utils/ps_status.h"
 
 #include "cdb/cdbvars.h"        /* Gp_role, GpIdentity.segindex, currentSliceId */
 
@@ -94,6 +95,8 @@ bool		update_process_title = true;
 #endif
 
 
+#ifndef PS_USE_NONE
+
 #ifndef PS_USE_CLOBBER_ARGV
 /* all but one option need a buffer to write their ps line in */
 #define PS_BUFFER_SIZE 256
@@ -109,6 +112,8 @@ static size_t ps_buffer_cur_len;	/* nominal strlen(ps_buffer) */
 
 static size_t ps_buffer_fixed_size; /* size of the constant prefix */
 static char     ps_username[NAMEDATALEN];        /*CDB*/
+
+#endif							/* not PS_USE_NONE */
 
 /* save the original argv[] location here */
 static int	save_argc;
@@ -257,17 +262,22 @@ save_ps_display_args(int argc, char **argv)
 
 /*
  * Call this once during subprocess startup to set the identification
- * values.  At this point, the original argv[] array may be overwritten.
+ * values.
+ *
+ * If fixed_part is NULL, a default will be obtained from MyBackendType.
+ *
+ * At this point, the original argv[] array may be overwritten.
  */
 void
-init_ps_display(const char *username, const char *dbname,
-				const char *host_info, const char *initial_str)
+init_ps_display(const char *fixed_part)
 {
-	Assert(username);
-	Assert(dbname);
-	Assert(host_info);
+#ifndef PS_USE_NONE
+	bool		save_update_process_title;
+#endif
 
-	StrNCpy(ps_username, username, sizeof(ps_username));    /*CDB*/
+	Assert(fixed_part || MyBackendType);
+	if (!fixed_part)
+		fixed_part = GetBackendTypeDesc(MyBackendType);
 
 #ifndef PS_USE_NONE
 	/* no ps display for stand-alone backend */
@@ -321,20 +331,26 @@ init_ps_display(const char *username, const char *dbname,
 	if (*cluster_name == '\0')
 	{
 		snprintf(ps_buffer, ps_buffer_size,
-				 PROGRAM_NAME_PREFIX "%5d, %s %s %s ",
-				 PostPortNumber, username, dbname, host_info);
+				 PROGRAM_NAME_PREFIX "%5d, %s ",
+				 PostPortNumber, fixed_part);
 	}
 	else
 	{
 		snprintf(ps_buffer, ps_buffer_size,
-				 PROGRAM_NAME_PREFIX "%5d, %s: %s %s %s ",
-				 PostPortNumber, cluster_name, username, dbname, host_info);
+				 PROGRAM_NAME_PREFIX "%5d, %s: %s ",
+				 PostPortNumber, cluster_name, fixed_part);
 	}
 
 	ps_buffer_cur_len = ps_buffer_fixed_size = strlen(ps_buffer);
 	real_act_prefix_size = ps_buffer_fixed_size;
 
-	set_ps_display(initial_str, true);
+	/*
+	 * On the first run, force the update.
+	 */
+	save_update_process_title = update_process_title;
+	update_process_title = true;
+	set_ps_display("");
+	update_process_title = save_update_process_title;
 #endif							/* not PS_USE_NONE */
 }
 
@@ -345,14 +361,14 @@ init_ps_display(const char *username, const char *dbname,
  * indication of what you're currently doing passed in the argument.
  */
 void
-set_ps_display(const char *activity, bool force)
+set_ps_display(const char *activity)
 {
 #ifndef PS_USE_NONE
-	/* update_process_title=off disables updates, unless force = true */
 	char	   *cp = ps_buffer + ps_buffer_fixed_size;
 	char	   *ep = ps_buffer + ps_buffer_size;
 
-	if (!force && !update_process_title)
+	/* update_process_title=off disables updates */
+	if (!update_process_title)
 		return;
 
 	/* no ps display for stand-alone backend */
@@ -474,9 +490,14 @@ get_ps_display_from_position(size_t pos, int *displen)
 	}
 #endif
 
+#ifndef PS_USE_NONE
 	*displen = (int) (ps_buffer_cur_len - real_act_prefix_size);
 
 	return ps_buffer + pos;
+#else
+	*displen = 0;
+	return "";
+#endif
 }
 
 /*
@@ -499,6 +520,11 @@ get_ps_display_username(void)
 	return ps_username;
 }
 
+void
+set_ps_display_username(const char* username)
+{
+	strlcpy(ps_username, username, sizeof(ps_username));
+}
 /*
  * Returns the real activity string in the ps display without prefix
  * strings like "con1 seg1 cmd1" for GPDB. On some platforms the

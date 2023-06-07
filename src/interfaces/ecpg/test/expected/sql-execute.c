@@ -77,8 +77,8 @@ if (sqlca.sqlcode < 0) sqlprint();}
 #line 26 "execute.pgc"
 
 
-	sprintf(command, "insert into test (name, amount, letter) values ('db: ''r1''', 1, 'f')");
-	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_exec_immediate, command, ECPGt_EOIT, ECPGt_EORT);
+	/* test handling of embedded quotes in EXECUTE IMMEDIATE "literal" */
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_exec_immediate, "insert into test (name, \042amount\042, letter) values ('db: ''r1''', 1, 'f')", ECPGt_EOIT, ECPGt_EORT);
 #line 29 "execute.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
@@ -140,7 +140,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 #line 50 "execute.pgc"
 
 
-	{ ECPGopen("CUR", "f", __LINE__, 0, 1, NULL, 0, ECPGst_normal, "declare CUR cursor for $1", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "declare CUR cursor for $1", 
 	ECPGt_char_variable,(ECPGprepared_statement(NULL, "f", __LINE__)),(long)1,(long)1,(1)*sizeof(char), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, ECPGt_EOIT, ECPGt_EORT);
 #line 52 "execute.pgc"
@@ -148,7 +148,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 52 "execute.pgc"
 
-	{ ECPGfetch("CUR", __LINE__, 0, 1, NULL, 0, ECPGst_normal, "fetch 8 in CUR", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "fetch 8 in CUR", ECPGt_EOIT, 
 	ECPGt_char,(name),(long)8,(long)8,(8)*sizeof(char), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_int,(amount),(long)1,(long)8,sizeof(int), 
@@ -180,7 +180,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 		printf("name[%d]=%8.8s\tamount[%d]=%d\tletter[%d]=%c\n", i, n, i, a, i, l);
 	}
 
-	{ ECPGclose("CUR", __LINE__, 0, 1, NULL, 0, ECPGst_normal, "close CUR", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "close CUR", ECPGt_EOIT, ECPGt_EORT);
 #line 66 "execute.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}
@@ -205,7 +205,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 #line 72 "execute.pgc"
 
 
-	{ ECPGopen("CUR2", "f", __LINE__, 0, 1, NULL, 0, ECPGst_normal, "declare CUR2 cursor for $1", 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "declare CUR2 cursor for $1", 
 	ECPGt_char_variable,(ECPGprepared_statement(NULL, "f", __LINE__)),(long)1,(long)1,(1)*sizeof(char), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_const,"1",(long)1,(long)1,strlen("1"), 
@@ -215,7 +215,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 if (sqlca.sqlcode < 0) sqlprint();}
 #line 74 "execute.pgc"
 
-	{ ECPGfetch("CUR2", __LINE__, 0, 1, NULL, 0, ECPGst_normal, "fetch in CUR2", ECPGt_EOIT, 
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "fetch in CUR2", ECPGt_EOIT, 
 	ECPGt_char,(name),(long)8,(long)8,(8)*sizeof(char), 
 	ECPGt_NO_INDICATOR, NULL , 0L, 0L, 0L, 
 	ECPGt_int,(amount),(long)1,(long)8,sizeof(int), 
@@ -247,7 +247,7 @@ if (sqlca.sqlcode < 0) sqlprint();}
 		printf("name[%d]=%8.8s\tamount[%d]=%d\tletter[%d]=%c\n", i, n, i, a, i, l);
 	}
 
-	{ ECPGclose("CUR2", __LINE__, 0, 1, NULL, 0, ECPGst_normal, "close CUR2", ECPGt_EOIT, ECPGt_EORT);
+	{ ECPGdo(__LINE__, 0, 1, NULL, 0, ECPGst_normal, "close CUR2", ECPGt_EOIT, ECPGt_EORT);
 #line 88 "execute.pgc"
 
 if (sqlca.sqlcode < 0) sqlprint();}

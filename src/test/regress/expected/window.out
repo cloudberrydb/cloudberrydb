@@ -300,6 +300,21 @@ SELECT lag(ten, four, 0) OVER (PARTITION BY four ORDER BY ten), ten, four FROM t
    0 |   3 |    3
 (10 rows)
 
+SELECT lag(ten, four, 0.7) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten;
+ lag | ten | four 
+-----+-----+------
+   0 |   0 |    0
+   0 |   0 |    0
+   4 |   4 |    0
+ 0.7 |   1 |    1
+   1 |   1 |    1
+   1 |   7 |    1
+   7 |   9 |    1
+ 0.7 |   0 |    2
+ 0.7 |   1 |    3
+ 0.7 |   3 |    3
+(10 rows)
+
 SELECT lead(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10;
  lead | ten | four 
 ------+-----+------
@@ -343,6 +358,21 @@ SELECT lead(ten * 2, 1, -1) OVER (PARTITION BY four ORDER BY ten), ten, four FRO
    18 |   7 |    1
    -1 |   9 |    1
    -1 |   0 |    2
+(10 rows)
+
+SELECT lead(ten * 2, 1, -1.4) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10 ORDER BY four, ten;
+ lead | ten | four 
+------+-----+------
+    0 |   0 |    0
+    8 |   0 |    0
+ -1.4 |   4 |    0
+    2 |   1 |    1
+   14 |   1 |    1
+   18 |   7 |    1
+ -1.4 |   9 |    1
+ -1.4 |   0 |    2
+    6 |   1 |    3
+ -1.4 |   3 |    3
 (10 rows)
 
 SELECT first_value(ten) OVER (PARTITION BY four ORDER BY ten), ten, four FROM tenk1 WHERE unique2 < 10;
@@ -1885,7 +1915,7 @@ create temp table numerics(
     f_numeric numeric
 );
 insert into numerics values
-(0, '-infinity', '-infinity', '-1000'),  -- numeric type lacks infinities
+(0, '-infinity', '-infinity', '-infinity'),
 (1, -3, -3, -3),
 (2, -1, -1, -1),
 (3, 0, 0, 0),
@@ -1893,7 +1923,7 @@ insert into numerics values
 (5, 1.12, 1.12, 1.12),
 (6, 2, 2, 2),
 (7, 100, 100, 100),
-(8, 'infinity', 'infinity', '1000'),
+(8, 'infinity', 'infinity', 'infinity'),
 (9, 'NaN', 'NaN', 'NaN');
 select id, f_float4, first_value(id) over w, last_value(id) over w
 from numerics
@@ -1946,6 +1976,42 @@ window w as (order by f_float4 range between
   6 |         2 |           0 |          8
   7 |       100 |           0 |          8
   8 |  Infinity |           0 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             'inf' preceding and 'inf' preceding);
+ id | f_float4  | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          0
+  1 |        -3 |           0 |          0
+  2 |        -1 |           0 |          0
+  3 |         0 |           0 |          0
+  4 |       1.1 |           0 |          0
+  5 |      1.12 |           0 |          0
+  6 |         2 |           0 |          0
+  7 |       100 |           0 |          0
+  8 |  Infinity |           0 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
+select id, f_float4, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float4 range between
+             'inf' following and 'inf' following);
+ id | f_float4  | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          8
+  1 |        -3 |           8 |          8
+  2 |        -1 |           8 |          8
+  3 |         0 |           8 |          8
+  4 |       1.1 |           8 |          8
+  5 |      1.12 |           8 |          8
+  6 |         2 |           8 |          8
+  7 |       100 |           8 |          8
+  8 |  Infinity |           8 |          8
   9 |       NaN |           9 |          9
 (10 rows)
 
@@ -2011,6 +2077,42 @@ window w as (order by f_float8 range between
 select id, f_float8, first_value(id) over w, last_value(id) over w
 from numerics
 window w as (order by f_float8 range between
+             'inf' preceding and 'inf' preceding);
+ id | f_float8  | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          0
+  1 |        -3 |           0 |          0
+  2 |        -1 |           0 |          0
+  3 |         0 |           0 |          0
+  4 |       1.1 |           0 |          0
+  5 |      1.12 |           0 |          0
+  6 |         2 |           0 |          0
+  7 |       100 |           0 |          0
+  8 |  Infinity |           0 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
+             'inf' following and 'inf' following);
+ id | f_float8  | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          8
+  1 |        -3 |           8 |          8
+  2 |        -1 |           8 |          8
+  3 |         0 |           8 |          8
+  4 |       1.1 |           8 |          8
+  5 |      1.12 |           8 |          8
+  6 |         2 |           8 |          8
+  7 |       100 |           8 |          8
+  8 |  Infinity |           8 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
+select id, f_float8, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_float8 range between
              1.1 preceding and 'NaN' following);  -- error, NaN disallowed
 ERROR:  invalid preceding or following size in window function
 select id, f_numeric, first_value(id) over w, last_value(id) over w
@@ -2019,7 +2121,7 @@ window w as (order by f_numeric range between
              1 preceding and 1 following);
  id | f_numeric | first_value | last_value 
 ----+-----------+-------------+------------
-  0 |     -1000 |           0 |          0
+  0 | -Infinity |           0 |          0
   1 |        -3 |           1 |          1
   2 |        -1 |           2 |          3
   3 |         0 |           2 |          3
@@ -2027,7 +2129,7 @@ window w as (order by f_numeric range between
   5 |      1.12 |           4 |          6
   6 |         2 |           4 |          6
   7 |       100 |           7 |          7
-  8 |      1000 |           8 |          8
+  8 |  Infinity |           8 |          8
   9 |       NaN |           9 |          9
 (10 rows)
 
@@ -2037,7 +2139,7 @@ window w as (order by f_numeric range between
              1 preceding and 1.1::numeric following);
  id | f_numeric | first_value | last_value 
 ----+-----------+-------------+------------
-  0 |     -1000 |           0 |          0
+  0 | -Infinity |           0 |          0
   1 |        -3 |           1 |          1
   2 |        -1 |           2 |          3
   3 |         0 |           2 |          4
@@ -2045,7 +2147,7 @@ window w as (order by f_numeric range between
   5 |      1.12 |           4 |          6
   6 |         2 |           4 |          6
   7 |       100 |           7 |          7
-  8 |      1000 |           8 |          8
+  8 |  Infinity |           8 |          8
   9 |       NaN |           9 |          9
 (10 rows)
 
@@ -2057,6 +2159,60 @@ ERROR:  RANGE with offset PRECEDING/FOLLOWING is not supported for column type n
 LINE 4:              1 preceding and 1.1::float8 following);
                                      ^
 HINT:  Cast the offset value to an appropriate type.
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             'inf' preceding and 'inf' following);
+ id | f_numeric | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          8
+  1 |        -3 |           0 |          8
+  2 |        -1 |           0 |          8
+  3 |         0 |           0 |          8
+  4 |       1.1 |           0 |          8
+  5 |      1.12 |           0 |          8
+  6 |         2 |           0 |          8
+  7 |       100 |           0 |          8
+  8 |  Infinity |           0 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             'inf' preceding and 'inf' preceding);
+ id | f_numeric | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          0
+  1 |        -3 |           0 |          0
+  2 |        -1 |           0 |          0
+  3 |         0 |           0 |          0
+  4 |       1.1 |           0 |          0
+  5 |      1.12 |           0 |          0
+  6 |         2 |           0 |          0
+  7 |       100 |           0 |          0
+  8 |  Infinity |           0 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
+select id, f_numeric, first_value(id) over w, last_value(id) over w
+from numerics
+window w as (order by f_numeric range between
+             'inf' following and 'inf' following);
+ id | f_numeric | first_value | last_value 
+----+-----------+-------------+------------
+  0 | -Infinity |           0 |          8
+  1 |        -3 |           8 |          8
+  2 |        -1 |           8 |          8
+  3 |         0 |           8 |          8
+  4 |       1.1 |           8 |          8
+  5 |      1.12 |           8 |          8
+  6 |         2 |           8 |          8
+  7 |       100 |           8 |          8
+  8 |  Infinity |           8 |          8
+  9 |       NaN |           9 |          9
+(10 rows)
+
 select id, f_numeric, first_value(id) over w, last_value(id) over w
 from numerics
 window w as (order by f_numeric range between
@@ -3154,6 +3310,57 @@ FROM empsalary;
  Optimizer: Postgres query optimizer
 (11 rows)
 
+-- Test incremental sorting
+EXPLAIN (COSTS OFF)
+SELECT * FROM
+  (SELECT depname,
+          empno,
+          salary,
+          enroll_date,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date) AS first_emp,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date DESC) AS last_emp
+   FROM empsalary) emp
+WHERE first_emp = 1 OR last_emp = 1;
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Subquery Scan on emp
+   Filter: ((emp.first_emp = 1) OR (emp.last_emp = 1))
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: empsalary.depname, empsalary.enroll_date
+         ->  WindowAgg
+               Partition By: empsalary.depname
+               Order By: empsalary.enroll_date
+               ->  Incremental Sort
+                     Sort Key: empsalary.depname, empsalary.enroll_date
+                     Presorted Key: empsalary.depname
+                     ->  WindowAgg
+                           Partition By: empsalary.depname
+                           Order By: empsalary.enroll_date
+                           ->  Sort
+                                 Sort Key: empsalary.depname, empsalary.enroll_date DESC
+                                 ->  Seq Scan on empsalary
+ Optimizer: Postgres query optimizer
+(17 rows)
+
+SELECT * FROM
+  (SELECT depname,
+          empno,
+          salary,
+          enroll_date,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date) AS first_emp,
+          row_number() OVER (PARTITION BY depname ORDER BY enroll_date DESC) AS last_emp
+   FROM empsalary) emp
+WHERE first_emp = 1 OR last_emp = 1;
+  depname  | empno | salary | enroll_date | first_emp | last_emp 
+-----------+-------+--------+-------------+-----------+----------
+ develop   |     8 |   6000 | 10-01-2006  |         1 |        5
+ develop   |     7 |   4200 | 01-01-2008  |         5 |        1
+ personnel |     2 |   3900 | 12-23-2006  |         1 |        2
+ personnel |     5 |   3500 | 12-10-2007  |         2 |        1
+ sales     |     1 |   5000 | 10-01-2006  |         1 |        3
+ sales     |     4 |   4800 | 08-08-2007  |         3 |        1
+(6 rows)
+
 -- cleanup
 DROP TABLE empsalary;
 -- test user-defined window function with named args and default args
@@ -4008,5 +4215,48 @@ SELECT i, b, bool_and(b) OVER w, bool_or(b) OVER w
  3 | f | f        | f
  4 | f | f        | t
  5 | t | t        | t
+(5 rows)
+
+-- Tests for problems with failure to walk or mutate expressions
+-- within window frame clauses.
+-- test walker (fails with collation error if expressions are not walked)
+SELECT array_agg(i) OVER w
+  FROM generate_series(1,5) i
+WINDOW w AS (ORDER BY i ROWS BETWEEN (('foo' < 'foobar')::integer) PRECEDING AND CURRENT ROW);
+ array_agg 
+-----------
+ {1}
+ {1,2}
+ {2,3}
+ {3,4}
+ {4,5}
+(5 rows)
+
+-- test mutator (fails when inlined if expressions are not mutated)
+CREATE FUNCTION pg_temp.f(group_size BIGINT) RETURNS SETOF integer[]
+AS $$
+    SELECT array_agg(s) OVER w
+      FROM generate_series(1,5) s
+    WINDOW w AS (ORDER BY s ROWS BETWEEN CURRENT ROW AND GROUP_SIZE FOLLOWING)
+$$ LANGUAGE SQL STABLE;
+EXPLAIN (costs off) SELECT * FROM pg_temp.f(2);
+                      QUERY PLAN                      
+------------------------------------------------------
+ Subquery Scan on f
+   ->  WindowAgg
+         Order By: s.s
+         ->  Sort
+               Sort Key: s.s
+               ->  Function Scan on generate_series s
+(5 rows)
+
+SELECT * FROM pg_temp.f(2);
+    f    
+---------
+ {1,2,3}
+ {2,3,4}
+ {3,4,5}
+ {4,5}
+ {5}
 (5 rows)
 

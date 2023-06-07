@@ -224,7 +224,7 @@ script:
             --with-perl \
             --with-python \
             --enable-orca \
-            --with-openssl \
+            --with-ssl=openssl \
             --with-ldap \
             --with-libcurl \
             --with-libxml \
@@ -252,7 +252,7 @@ script:
             --with-perl \
             --with-python \
             --enable-orca \
-            --with-openssl \
+            --with-ssl=openssl \
             --with-ldap \
             --with-libcurl \
             --with-libxml \

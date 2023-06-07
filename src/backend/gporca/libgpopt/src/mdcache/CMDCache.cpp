@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -122,6 +122,12 @@ CMDCache::Reset()
 {
 	Shutdown();
 	Init();
+}
+
+ULLONG
+GetCacheEvictionCounter()
+{
+	return CMDCache::ULLGetCacheEvictionCounter();
 }
 
 // EOF

@@ -3,7 +3,7 @@
  * aocsam_handler.c
  *	  Append only columnar access methods handler
  *
- * Portions Copyright (c) 2009-2010, Greenplum Inc.
+ * Portions Copyright (c) 2009-2010, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -19,6 +19,7 @@
 #include "access/heapam.h"
 #include "access/multixact.h"
 #include "access/tableam.h"
+#include "access/tsmapi.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/heap.h"
@@ -29,6 +30,7 @@
 #include "catalog/storage_xlog.h"
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbvars.h"
+#include "commands/progress.h"
 #include "commands/vacuum.h"
 #include "executor/executor.h"
 #include "nodes/nodeFuncs.h"
@@ -42,6 +44,8 @@
 #include "utils/pg_rusage.h"
 
 #define IS_BTREE(r) ((r)->rd_rel->relam == BTREE_AM_OID)
+
+extern  BlockNumber system_nextsampleblock(SampleScanState *node, BlockNumber nblocks);
 
 /*
  * Used for bitmapHeapScan. Also look at the comment in cdbaocsam.h regarding
@@ -81,9 +85,9 @@ typedef struct AOCSBitmapScanData
 
 typedef struct AOCODMLState
 {
-	Oid relationOid;
-	AOCSInsertDesc insertDesc;
-	AOCSDeleteDesc deleteDesc;
+	Oid				relationOid;
+	AOCSInsertDesc	insertDesc;
+	AOCSDeleteDesc	deleteDesc;
 } AOCODMLState;
 
 static void reset_state_cb(void *arg);
@@ -181,10 +185,10 @@ enter_dml_state(const Oid relationOid)
 		HASH_ENTER,
 		&found);
 
-	Assert(!found);
-
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
+
+	Assert(!found);
 
 	aocoLocal.last_used_state = state;
 	return state;
@@ -234,7 +238,8 @@ remove_dml_state(const Oid relationOid)
 		HASH_REMOVE,
 		NULL);
 
-	Assert(state);
+	if (!state)
+		return NULL;
 
 	if (aocoLocal.last_used_state &&
 		aocoLocal.last_used_state->relationOid == relationOid)
@@ -265,6 +270,9 @@ aoco_dml_finish(Relation relation, CmdType operation)
 	AOCODMLState *state;
 
 	state = remove_dml_state(RelationGetRelid(relation));
+
+	if (!state)
+		return;
 
 	if (state->deleteDesc)
 	{
@@ -404,7 +412,7 @@ extractcolumns_walker(Node *node, struct ExtractcolumnContext *ecCtx)
 	return expression_tree_walker(node, extractcolumns_walker, (void *)ecCtx);
 }
 
-static bool
+bool
 extractcolumns_from_node(Node *expr, bool *cols, AttrNumber natts)
 {
 	struct ExtractcolumnContext	ecCtx;
@@ -614,10 +622,14 @@ static void
 aoco_index_fetch_reset(IndexFetchTableData *scan)
 {
 	/*
-	 * GPDB_12_MERGE_FIXME: Should we close the underlying AOCO fetch desc
-	 * here?  Remember to change the rescan case in aoco_rescan for bitmap
-	 * scan descriptor (AOCSBITMAPSCANDATA).
+	 * Unlike Heap, we don't release the resources (fetch descriptor and its
+	 * members) here because it is more like a global data structure shared
+	 * across scans, rather than an iterator to yield a granularity of data.
+	 * 
+	 * Additionally, should be aware of that no matter whether allocation or
+	 * release on fetch descriptor, it is considerably expensive.
 	 */
+	return;
 }
 
 static void
@@ -637,6 +649,7 @@ aoco_index_fetch_end(IndexFetchTableData *scan)
 		pfree(aocoscan->proj);
 		aocoscan->proj = NULL;
 	}
+	pfree(aocoscan);
 }
 
 static bool
@@ -674,11 +687,13 @@ aoco_index_fetch_tuple(struct IndexFetchTableData *scan,
 											  appendOnlyMetaDataSnapshot,
 											  aocoscan->proj);
 	}
-	else
-	{
-		/* GPDB_12_MERGE_FIXME: Is it possible for the 'snapshot' to change
-		 * between calls? Add a sanity check for that here. */
-	}
+
+	/*
+	 * There is no reason to expect changes on snapshot between tuple
+	 * fetching calls after fech_init is called, treat it as a
+	 * programming error in case of occurrence.
+	 */
+	Assert(aocoscan->aocofetch->snapshot == snapshot);
 
 	ExecClearTuple(slot);
 
@@ -732,12 +747,16 @@ static void
 aoco_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
                         CommandId cid, int options, BulkInsertState bistate)
 {
-	/*
-	* GPDB_12_MERGE_FIXME: Poor man's implementation for now in order to make
-		* the tests pass. Implement properly.
-		*/
+	AOCSInsertDesc insertDesc;
+	insertDesc = get_insert_descriptor(relation);
+
 	for (int i = 0; i < ntuples; i++)
-		aoco_tuple_insert(relation, slots[i], cid, options, bistate);
+	{
+		slot_getallattrs(slots[i]);
+		aocs_insert_values(insertDesc, slots[i]->tts_values, slots[i]->tts_isnull, (AOTupleId *) &slots[i]->tts_tid);
+	}
+
+	pgstat_count_heap_insert(relation, ntuples);
 }
 
 static TM_Result
@@ -897,13 +916,13 @@ aoco_tuple_satisfies_snapshot(Relation rel, TupleTableSlot *slot,
 }
 
 static TransactionId
-aoco_compute_xid_horizon_for_tuples(Relation rel,
-                                          ItemPointerData *tids,
-                                          int nitems)
+aoco_index_delete_tuples(Relation rel,
+						 TM_IndexDeleteOp *delstate)
 {
-	// GPDB_12_MERGE_FIXME: vacuum related call back.
+	// GPDB_14_MERGE_FIXME: vacuum related call back.
 	elog(ERROR, "not implemented yet");
 }
+
 
 /* ------------------------------------------------------------------------
  * DDL related callbacks for ao_column AM.
@@ -948,7 +967,7 @@ aoco_relation_set_new_filenode(Relation rel,
 			   rel->rd_rel->relkind == RELKIND_MATVIEW ||
 			   rel->rd_rel->relkind == RELKIND_TOASTVALUE);
 		smgrcreate(srel, INIT_FORKNUM, false);
-		log_smgrcreate(newrnode, INIT_FORKNUM);
+		log_smgrcreate(newrnode, INIT_FORKNUM, SMGR_AO);
 		smgrimmedsync(srel, INIT_FORKNUM);
 	}
 
@@ -1026,7 +1045,7 @@ aoco_relation_copy_data(Relation rel, const RelFileNode *newrnode)
 		 */
 		smgrcreate(dstrel, INIT_FORKNUM, false);
 
-		log_smgrcreate(newrnode, INIT_FORKNUM);
+		log_smgrcreate(newrnode, INIT_FORKNUM, SMGR_AO);
 	}
 
 	/* drop old relation, and close new one */
@@ -1039,13 +1058,12 @@ aoco_vacuum_rel(Relation onerel, VacuumParams *params,
                       BufferAccessStrategy bstrategy)
 {
 	/*
-	 * GPDB_12_MERGE_FIXME: This is a dummy function in order to proceed with
-	 * the implementation of the aocsam_handler.
-	 *
-	 * It's not invoked ever, we do the AO different phases vacuuming in
-	 * vacuum_rel() directly for now.
+	 * Implemented but not invoked, we do the AO_COLUMN different phases vacuuming by
+	 * calling ao_vacuum_rel() in vacuum_rel() directly for now.
 	 */
-	elog(ERROR, "not implemented yet");
+	ao_vacuum_rel(onerel, params, bstrategy);
+
+	return;
 }
 
 static void
@@ -1284,6 +1302,11 @@ aoco_index_build_range_scan(Relation heapRelation,
 	Snapshot	snapshot;
 	bool		need_unregister_snapshot = false;
 	TransactionId OldestXmin;
+	AOCSFileSegInfo **seginfo = NULL;
+	int32 segfile_count;
+	int64 total_blockcount = 0; 
+	BlockNumber lastBlock = start_blockno;
+	int64 blockcounts = 0;
 
 	/*
 	 * sanity checks
@@ -1334,7 +1357,7 @@ aoco_index_build_range_scan(Relation heapRelation,
 
 	/* okay to ignore lazy VACUUMs here */
 	if (!IsBootstrapProcessingMode() && !indexInfo->ii_Concurrent)
-		OldestXmin = GetOldestXmin(heapRelation, PROCARRAY_FLAGS_VACUUM);
+		OldestXmin = GetOldestNonRemovableTransactionId(heapRelation);
 
 	if (!scan)
 	{
@@ -1405,29 +1428,26 @@ aoco_index_build_range_scan(Relation heapRelation,
 	}
 	relation_close(blkdir, NoLock);
 
-
-	/* GPDB_12_MERGE_FIXME */
-#if 0
-	/* Publish number of blocks to scan */
+	/*
+	 * When Parallel index build,there is no additional operation to update the number of tuples
+	 * that supports this logic. Uniform processing is used here. 
+	 */ 
 	if (progress)
 	{
-		BlockNumber nblocks;
-
-		if (aoscan->rs_base.rs_parallel != NULL)
-		{
-			ParallelBlockTableScanDesc pbscan;
-
-			pbscan = (ParallelBlockTableScanDesc) aoscan->rs_base.rs_parallel;
-			nblocks = pbscan->phs_nblocks;
-		}
-		else
-			nblocks = aoscan->rs_nblocks;
+		seginfo = GetAllAOCSFileSegInfo(heapRelation, NULL, &segfile_count, NULL);
+		for (int seginfo_no = 0; seginfo_no < segfile_count; seginfo_no++)
+			total_blockcount += seginfo[seginfo_no]->varblockcount;
 
 		pgstat_progress_update_param(PROGRESS_SCAN_BLOCKS_TOTAL,
-									 nblocks);
+									total_blockcount);
 	}
-#endif
 
+
+	/*
+	* GPDB_14_MERGE_FIXME
+	* Same as in appendonly_handler.c:
+	* Need to check the comments here as GetOldestXmin() has been removed.
+	*/
 	/*
 	 * Must call GetOldestXmin() with SnapshotAny.  Should never call
 	 * GetOldestXmin() with MVCC snapshot. (It's especially worth checking
@@ -1458,33 +1478,30 @@ aoco_index_build_range_scan(Relation heapRelation,
 	while (aoco_getnextslot(&aocoscan->rs_base, ForwardScanDirection, slot))
 	{
 		bool		tupleIsAlive;
+		BlockNumber		blockno;
 
 		CHECK_FOR_INTERRUPTS();
+		blockno = ItemPointerGetBlockNumber(&slot->tts_tid);
+		if (blockno != lastBlock)
+		{
+			lastBlock = blockno;
+			++blockcounts;
+		}
 
 		/*
 		 * GPDB_12_MERGE_FIXME: How to properly do a partial scan? Currently,
 		 * we scan the whole table, and throw away tuples that are not in the
 		 * range. That's clearly very inefficient.
 		 */
-		if (ItemPointerGetBlockNumber(&slot->tts_tid) < start_blockno ||
-			(numblocks != InvalidBlockNumber && ItemPointerGetBlockNumber(&slot->tts_tid) >= numblocks))
+		if (blockno < start_blockno ||
+			(numblocks != InvalidBlockNumber && blockno >= numblocks))
 			continue;
 
-		/* GPDB_12_MERGE_FIXME */
-#if 0
-		/* Report scan progress, if asked to. */
 		if (progress)
 		{
-			BlockNumber blocks_done = appendonly_scan_get_blocks_done(aoscan);
-
-			if (blocks_done != previous_blkno)
-			{
-				pgstat_progress_update_param(PROGRESS_SCAN_BLOCKS_DONE,
-											 blocks_done);
-				previous_blkno = blocks_done;
-			}
+			pgstat_progress_update_param(PROGRESS_SCAN_BLOCKS_DONE,
+										blockcounts);
 		}
-#endif
 
 		/*
 		 * appendonly_getnext did the time qual check
@@ -1535,27 +1552,16 @@ aoco_index_build_range_scan(Relation heapRelation,
 
 	}
 
-	/* GPDB_12_MERGE_FIXME */
-#if 0
-	/* Report scan progress one last time. */
 	if (progress)
 	{
-		BlockNumber blks_done;
-
-		if (aoscan->rs_base.rs_parallel != NULL)
-		{
-			ParallelBlockTableScanDesc pbscan;
-
-			pbscan = (ParallelBlockTableScanDesc) aoscan->rs_base.rs_parallel;
-			blks_done = pbscan->phs_nblocks;
-		}
-		else
-			blks_done = aoscan->rs_nblocks;
-
 		pgstat_progress_update_param(PROGRESS_SCAN_BLOCKS_DONE,
-									 blks_done);
+									total_blockcount);
+		if (seginfo)
+		{
+			FreeAllAOCSSegFileInfo(seginfo, segfile_count);
+			pfree(seginfo);
+		}
 	}
-#endif
 
 	table_endscan(scan);
 
@@ -1605,7 +1611,7 @@ aoco_relation_size(Relation rel, ForkNumber forkNumber)
 		return totalbytes;
 
 	snapshot = RegisterSnapshot(GetLatestSnapshot());
-	allseg = GetAllAOCSFileSegInfo(rel, snapshot, &totalseg);
+	allseg = GetAllAOCSFileSegInfo(rel, snapshot, &totalseg, NULL);
 	for (int seg = 0; seg < totalseg; seg++)
 	{
 		for (int attr = 0; attr < RelationGetNumberOfAttributes(rel); attr++)
@@ -1642,11 +1648,10 @@ aoco_relation_needs_toast_table(Relation rel)
 {
 	/*
 	 * AO_COLUMN never used the toasting, don't create the toast table from
-	 * Greenplum 7
+	 * Cloudberry 7
 	 */
 	return false;
 }
-
 
 /* ------------------------------------------------------------------------
  * Planner related callbacks for the heap AM
@@ -1685,10 +1690,15 @@ aoco_estimate_rel_size(Relation rel, int32 *attr_widths,
 					(uint64)fileSegTotals->totalbytesuncompressed);
 
 	UnregisterSnapshot(snapshot);
+	
 	/*
-	 * GPDB_12_MERGE_FIXME: Do not bother scanning the visimap aux table.
-	 * Investigate if really needed
+	 * Do not bother scanning the visimap aux table.
+	 * Investigate if really needed.
+	 * 
+	 * Refer to the comments at the end of function
+	 * appendonly_estimate_rel_size().
 	 */
+
 	return;
 }
 
@@ -1798,26 +1808,75 @@ aoco_scan_bitmap_next_tuple(TableScanDesc scan,
 static bool
 aoco_scan_sample_next_block(TableScanDesc scan, SampleScanState *scanstate)
 {
-	/*
-	 * GPDB_95_MERGE_FIXME: Add support for AO_COLUMN tables
-	 */
-	ereport(ERROR,
-			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("invalid relation type"),
-			 errhint("Sampling is only supported in heap tables.")));
+	AOCSScanDesc aoscan = (AOCSScanDesc) scan;
+	TsmRoutine *tsm = scanstate->tsmroutine;
+	BlockNumber blockno = 0;
+
+	if (aoscan->totalTuples == 0)
+	{
+		AOCSFileSegInfo **seginfo;
+		int segfile_count;
+		int64 total_tupcount = 0;
+
+		seginfo = GetAllAOCSFileSegInfo(aoscan->rs_base.rs_rd, NULL, &segfile_count, NULL);
+		for (int seginfo_no = 0; seginfo_no < segfile_count; seginfo_no++)
+		{
+			total_tupcount += seginfo[seginfo_no]->total_tupcount;
+		}		
+
+		aoscan->totalTuples = total_tupcount;
+
+		if (seginfo)
+		{
+			FreeAllAOCSSegFileInfo(seginfo, segfile_count);
+			pfree(seginfo);
+		}
+	}
+	
+	if (tsm->NextSampleBlock)
+	{
+		blockno = tsm->NextSampleBlock(scanstate, aoscan->totalTuples);
+	}
+	else
+	{
+		/*
+		 * Tuple sampling is in advance implemented in next_block because 
+		 * next_tuple operates on a tuple, not on a block, and cannot be sampled.  
+		 * The reason the whole logic is implemented this way is because 
+		 * variable length blocks cannot be accessed randomly, and the tuple visibility
+		 * needs to be determined by traversing the block. Therefore, the current implementation is adopted.
+		 */
+		blockno = system_nextsampleblock(scanstate, aoscan->totalTuples);
+	}
+
+	if (!BlockNumberIsValid(blockno))
+		return false;
+
+	aoscan->fetchTupleId = blockno;
+	return true;
 }
 
 static bool
 aoco_scan_sample_next_tuple(TableScanDesc scan, SampleScanState *scanstate,
                                   TupleTableSlot *slot)
 {
-	/*
-	 * GPDB_95_MERGE_FIXME: Add support for AO_COLUMN tables
-	 */
-	ereport(ERROR,
-			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-			 errmsg("invalid relation type"),
-			 errhint("Sampling is only supported in heap tables.")));
+	AOCSScanDesc aoscan = (AOCSScanDesc) scan;
+	bool		ret = false;
+
+	/* skip several tuples if they are not sampling target */
+	while (aoscan->fetchTupleId > aoscan->nextTupleId)
+	{
+		aoco_getnextslot(scan, ForwardScanDirection, slot);
+		aoscan->nextTupleId++;
+	}
+
+	if (aoscan->fetchTupleId == aoscan->nextTupleId)
+	{
+		ret = aoco_getnextslot(scan, ForwardScanDirection, slot);
+		aoscan->nextTupleId++;
+	}
+
+	return ret;
 }
 
 /* ------------------------------------------------------------------------
@@ -1828,7 +1887,7 @@ aoco_scan_sample_next_tuple(TableScanDesc scan, SampleScanState *scanstate,
  * honour the contract of the access method interface.
  * ------------------------------------------------------------------------
  */
-static const TableAmRoutine ao_column_methods = {
+static TableAmRoutine ao_column_methods = {
 	.type = T_TableAmRoutine,
 	.slot_callbacks = aoco_slot_callbacks,
 
@@ -1873,7 +1932,7 @@ static const TableAmRoutine ao_column_methods = {
 	.tuple_get_latest_tid = aoco_get_latest_tid,
 	.tuple_tid_valid = aoco_tuple_tid_valid,
 	.tuple_satisfies_snapshot = aoco_tuple_satisfies_snapshot,
-	.compute_xid_horizon_for_tuples = aoco_compute_xid_horizon_for_tuples,
+	.index_delete_tuples = aoco_index_delete_tuples,
 
 	.relation_set_new_filenode = aoco_relation_set_new_filenode,
 	.relation_nontransactional_truncate = aoco_relation_nontransactional_truncate,

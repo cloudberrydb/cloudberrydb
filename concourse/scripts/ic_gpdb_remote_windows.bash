@@ -133,7 +133,7 @@ function install_packages {
 }
 
 function create_cluster() {
-    export CONFIGURE_FLAGS="--enable-gpfdist --with-openssl"
+    export CONFIGURE_FLAGS="--enable-gpfdist --with-ssl=openssl"
     time install_and_configure_gpdb
     export WITH_MIRRORS=false
     time make_cluster
@@ -151,7 +151,7 @@ function gpadmin_run_tests(){
     export REMOTE_PORT
     export REMOTE_USER
     source ./gpdb_src/gpAux/gpdemo/gpdemo-env.sh
-    source /usr/local/greenplum-db-devel/greenplum_path.sh
+    source $INSTALL_DIR/greenplum_path.sh
     configure_gpdb_ssl_kerberos
     time import_remote_key
     time run_remote_test

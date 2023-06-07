@@ -238,6 +238,45 @@ select x, not x as not_x, q2 from
   group by grouping sets(x, q2)
   order by x, q2;
 
+-- check qual push-down rules for a subquery with grouping sets
+explain (verbose, costs off)
+select * from (
+  select 1 as x, q1, sum(q2)
+  from int8_tbl i1
+  group by grouping sets(1, 2)
+) ss
+where x = 1 and q1 = 123;
+
+select * from (
+  select 1 as x, q1, sum(q2)
+  from int8_tbl i1
+  group by grouping sets(1, 2)
+) ss
+where x = 1 and q1 = 123;
+
+-- check handling of pulled-up SubPlan in GROUPING() argument (bug #17479)
+explain (verbose, costs off)
+select grouping(ss.x)
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+
+select grouping(ss.x)
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+
+explain (verbose, costs off)
+select (select grouping(ss.x))
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+
+select (select grouping(ss.x))
+from int8_tbl i1
+cross join lateral (select (select i1.q1) as x) ss
+group by ss.x;
+
 -- simple rescan tests
 
 select a, b, sum(v.x)
@@ -440,10 +479,10 @@ select a, b, grouping(a,b), sum(v), count(*), max(v)
 explain (costs off)
   select a, b, grouping(a,b), sum(v), count(*), max(v)
     from gstest1 group by grouping sets ((a,b),(a+1,b+1),(a+2,b+2)) order by 3,6;
-select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+select a, b, sum(c), sum(d), sum(e), sum(sum(c)) over (order by a,b) as rsum
   from gstest2 group by cube (a,b) order by rsum, a, b;
 explain (costs off)
-  select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+  select a, b, sum(c), sum(d), sum(e), sum(sum(c)) over (order by a,b) as rsum
     from gstest2 group by cube (a,b) order by rsum, a, b;
 select a, b, sum(v.x)
   from (values (1),(2)) v(x), gstest_data(v.x)
@@ -452,6 +491,18 @@ explain (costs off)
   select a, b, sum(v.x)
     from (values (1),(2)) v(x), gstest_data(v.x)
    group by cube (a,b) order by a,b;
+
+-- Verify that we correctly handle the child node returning a
+-- non-minimal slot, which happens if the input is pre-sorted,
+-- e.g. due to an index scan.
+BEGIN;
+SET LOCAL enable_hashagg = false;
+EXPLAIN (COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+SET LOCAL enable_seqscan = false;
+EXPLAIN (COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
+COMMIT;
 
 -- More rescan tests
 -- start_ignore
@@ -501,81 +552,66 @@ select v||'a', case when grouping(v||'a') = 1 then 1 else 0 end, count(*)
   from unnest(array[1,1], array['a','b']) u(i,v)
  group by rollup(i, v||'a') order by 1,3;
 
+-- Bug #16784
+create table bug_16784(i int, j int);
+analyze bug_16784;
+alter table bug_16784 set (autovacuum_enabled = 'false');
+update pg_class set reltuples = 10 where relname='bug_16784';
+
+insert into bug_16784 select g/10, g from generate_series(1,40) g;
+
+set work_mem='64kB';
+set enable_sort = false;
+
+select * from
+  (values (1),(2)) v(a),
+  lateral (select a, i, j, count(*) from
+             bug_16784 group by cube(i,j)) s
+  order by v.a, i, j;
+
 --
 -- Compare results between plans using sorting and plans using hash
 -- aggregation. Force spilling in both cases by setting work_mem low
--- and turning on enable_groupingsets_hash_disk.
+-- and altering the statistics.
 --
 
-SET enable_groupingsets_hash_disk = true;
-SET work_mem='64kB';
+create table gs_data_1 as
+select g%1000 as g1000, g%100 as g100, g%10 as g10, g
+   from generate_series(0,1999) g;
+
+analyze gs_data_1;
+alter table gs_data_1 set (autovacuum_enabled = 'false');
+update pg_class set reltuples = 10 where relname='gs_data_1';
+
+set work_mem='64kB';
 
 -- Produce results with sorting.
 
+set enable_sort = true;
 set enable_hashagg = false;
 
 set jit_above_cost = 0;
 
 explain (costs off)
-select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
-  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
-   from generate_series(0,199999) g) s
-group by cube (g1000,g100,g10);
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
 
 create table gs_group_1 as
-select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
-  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
-   from generate_series(0,199999) g) s
-group by cube (g1000,g100,g10);
-
-set jit_above_cost to default;
-
-create table gs_group_2 as
-select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
-  (select g/20 as g1000, g/200 as g100, g/2000 as g10, g
-   from generate_series(0,19999) g) s
-group by cube (g1000,g100,g10);
-
-create table gs_group_3 as
-select g100, g10, array_agg(g) as a, count(*) as c, max(g::text) as m from
-  (select g/200 as g100, g/2000 as g10, g
-   from generate_series(0,19999) g) s
-group by grouping sets (g100,g10);
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
 
 -- Produce results with hash aggregation.
 
 set enable_hashagg = true;
 set enable_sort = false;
-set work_mem='64kB';
-
-set jit_above_cost = 0;
 
 explain (costs off)
-select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
-  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
-   from generate_series(0,199999) g) s
-group by cube (g1000,g100,g10);
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
 
 create table gs_hash_1 as
-select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
-  (select g%1000 as g1000, g%100 as g100, g%10 as g10, g
-   from generate_series(0,199999) g) s
-group by cube (g1000,g100,g10);
-
-set jit_above_cost to default;
-
-create table gs_hash_2 as
-select g1000, g100, g10, sum(g::numeric), count(*), max(g::text) from
-  (select g/20 as g1000, g/200 as g100, g/2000 as g10, g
-   from generate_series(0,19999) g) s
-group by cube (g1000,g100,g10);
-
-create table gs_hash_3 as
-select g100, g10, array_agg(g) as a, count(*) as c, max(g::text) as m from
-  (select g/200 as g100, g/2000 as g10, g
-   from generate_series(0,19999) g) s
-group by grouping sets (g100,g10);
-
+select g100, g10, sum(g::numeric), count(*), max(g::text)
+from gs_data_1 group by cube (g1000, g100,g10);
 set enable_sort = true;
 set work_mem to default;
 
@@ -590,26 +626,45 @@ SET optimizer TO off;
   union all
 (select * from gs_group_1 except select * from gs_hash_1);
 
-(select * from gs_hash_2 except select * from gs_group_2)
-  union all
-(select * from gs_group_2 except select * from gs_hash_2);
-
-(select g100,g10,unnest(a),c,m from gs_hash_3 except
-  select g100,g10,unnest(a),c,m from gs_group_3)
-    union all
-(select g100,g10,unnest(a),c,m from gs_group_3 except
-  select g100,g10,unnest(a),c,m from gs_hash_3);
-
 RESET optimizer;
 
 drop table gs_group_1;
-drop table gs_group_2;
-drop table gs_group_3;
 drop table gs_hash_1;
-drop table gs_hash_2;
-drop table gs_hash_3;
 
-SET enable_groupingsets_hash_disk TO DEFAULT;
+-- GROUP BY DISTINCT
+
+-- "normal" behavior...
+select a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by all rollup(a, b), rollup(a, c)
+order by a, b, c;
+
+-- ...which is also the default
+select a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by rollup(a, b), rollup(a, c)
+order by a, b, c;
+
+-- "group by distinct" behavior...
+select a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by distinct rollup(a, b), rollup(a, c)
+order by a, b, c;
+
+-- ...which is not the same as "select distinct"
+select distinct a, b, c
+from (values (1, 2, 3), (4, null, 6), (7, 8, 9)) as t (a, b, c)
+group by rollup(a, b), rollup(a, c)
+order by a, b, c;
+
+-- test handling of outer GroupingFunc within subqueries
+explain (costs off)
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
+
+explain (costs off)
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
+select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
 
 select a, rank(a+3) within group (order by b nulls last)
 from (values (1,1),(1,4),(1,5),(3,1),(3,2)) v(a,b)

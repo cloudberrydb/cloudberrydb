@@ -57,14 +57,14 @@ ALTER FOREIGN TABLE [ IF EXISTS ] <varname>name</varname>
                                 <codeph>CASCADE</codeph> if any objects outside of the table depend
                             on the column; for example, views. If you specify <codeph>IF
                                 EXISTS</codeph> and the column does not exist, no error is thrown.
-                            Greenplum Database issues a notice instead.</p>
+                            Cloudberry Database issues a notice instead.</p>
                     </pd>
                 </plentry>
                 <plentry>
                     <pt>IF EXISTS</pt>
                     <pd>
                         <p>If you specify <codeph>IF EXISTS</codeph> and the foreign table does not
-                            exist, no error is thrown. Greenplum Database issues a notice
+                            exist, no error is thrown. Cloudberry Database issues a notice
                             instead.</p>
                     </pd>
                 </plentry>
@@ -144,12 +144,12 @@ ALTER FOREIGN TABLE [ IF EXISTS ] <varname>name</varname>
                                 <codeph>SET</codeph>, and <codeph>DROP</codeph> specify the action
                             to perform. If no operation is explicitly specified, the default
                             operation is <codeph>ADD</codeph>. Option names must be unique.
-                            Greenplum Database validates names and values using the server's
+                            Cloudberry Database validates names and values using the server's
                             foreign-data wrapper.</p>
                     </pd>
                 </plentry>
             </parml>
-            <p>You can combine all of the actions except <codeph>RENAME</codeph> and <codeph>SET SCHEMA</codeph> into a list of multiple alterations for Greenplum Database to apply in parallel. For example, it is possible to add several columns and/or alter the type of several columns in a single command.</p>
+            <p>You can combine all of the actions except <codeph>RENAME</codeph> and <codeph>SET SCHEMA</codeph> into a list of multiple alterations for Cloudberry Database to apply in parallel. For example, it is possible to add several columns and/or alter the type of several columns in a single command.</p>
             <p>You must own the table to use <codeph>ALTER FOREIGN TABLE</codeph>. To change the schema of a foreign table, you must also have <codeph>CREATE</codeph> privilege on the new schema. To alter the owner, you must also be a direct or indirect member of the new owning role, and that role must have <codeph>CREATE</codeph> privilege on the table's schema. (These restrictions enforce that altering the owner doesn't do anything you couldn't do by dropping and recreating the table. However, a superuser can alter ownership of any table anyway.) To add a column or to alter a column type, you must also have <codeph>USAGE</codeph> privilege on the data type.</p>
         </section>
         <section id="section4">
@@ -249,7 +249,7 @@ ALTER FOREIGN TABLE [ IF EXISTS ] <varname>name</varname>
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p>The forms <codeph>ADD</codeph>, <codeph>DROP</codeph>, and <codeph>SET DATA TYPE</codeph> conform with the SQL standard. The other forms are Greenplum Database extensions of the SQL standard. The ability to specify more than one manipulation in a single <codeph>ALTER FOREIGN TABLE</codeph> command is also a Greenplum Database extension.</p>
+            <p>The forms <codeph>ADD</codeph>, <codeph>DROP</codeph>, and <codeph>SET DATA TYPE</codeph> conform with the SQL standard. The other forms are Cloudberry Database extensions of the SQL standard. The ability to specify more than one manipulation in a single <codeph>ALTER FOREIGN TABLE</codeph> command is also a Cloudberry Database extension.</p>
             <p>You can use <codeph>ALTER FOREIGN TABLE ... DROP COLUMN</codeph> to drop the only column of a foreign table, leaving a zero-column table. This is an extension of SQL, which disallows zero-column foreign tables.</p>
         </section>
         <section id="section8">

@@ -22,8 +22,7 @@ PostgreSQL documentation
  <refsynopsisdiv>
 <synopsis>
 CREATE [ [ GLOBAL | LOCAL ] { TEMPORARY | TEMP } | UNLOGGED ] TABLE [ IF NOT EXISTS ] <replaceable class="parameter">table_name</replaceable> ( [
-  { <replaceable class="parameter">column_name</replaceable> <replaceable class="parameter">data_type</replaceable> [ COLLATE <replaceable>collation</replaceable> ] [ <replaceable class="parameter">column_constraint</replaceable> [ ... ] ]
-[ ENCODING ( storage_directive [,...] ) ]
+  { <replaceable class="parameter">column_name</replaceable> <replaceable class="parameter">data_type</replaceable> [ COMPRESSION <replaceable>compression_method</replaceable> ] [ COLLATE <replaceable>collation</replaceable> ] [ <replaceable class="parameter">column_constraint</replaceable> [ ... ] ]
     | <replaceable>table_constraint</replaceable>
     | LIKE <replaceable>source_table</replaceable> [ <replaceable>like_option</replaceable> ... ] }
     | [<replaceable>column_reference_storage_directive</replaceable> [, ... ]
@@ -118,7 +117,7 @@ class="parameter">referential_action</replaceable> ] [ ON UPDATE <replaceable cl
 
 <phrase>and <replaceable class="parameter">like_option</replaceable> is:</phrase>
 
-{ INCLUDING | EXCLUDING } { COMMENTS | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }
+{ INCLUDING | EXCLUDING } { COMMENTS | COMPRESSION | CONSTRAINTS | DEFAULTS | GENERATED | IDENTITY | INDEXES | STATISTICS | STORAGE | ALL }
 
 <phrase>and <replaceable class="parameter">partition_bound_spec</replaceable> is:</phrase>
 
@@ -228,7 +227,7 @@ Where column_reference_storage_directive is:
    a column constraint is only a notational convenience for use when the
    constraint only affects one column.    For more information, search for 
    
-   "Column-level Compression" in the Greenplum Database Administrator Guide.
+   "Column-level Compression" in the Cloudberry Database Administrator Guide.
   </para>
 
   <para>
@@ -256,8 +255,9 @@ Where column_reference_storage_directive is:
       If specified, the table is created as a temporary table.
       Temporary tables are automatically dropped at the end of a
       session, or optionally at the end of the current transaction
-      (see <literal>ON COMMIT</literal> below).  Existing permanent
-      tables with the same name are not visible to the current session
+      (see <literal>ON COMMIT</literal> below).  The default
+      search_path includes the temporary schema first and so identically
+      named existing permanent tables are not chosen for new plans
       while the temporary table exists, unless they are referenced
       with schema-qualified names. Any indexes created on a temporary
       table are automatically temporary as well.
@@ -277,8 +277,7 @@ Where column_reference_storage_directive is:
       can be written before <literal>TEMPORARY</literal> or <literal>TEMP</literal>.
       This presently makes no difference in <productname>PostgreSQL</productname>
       and is deprecated; see
-      <xref linkend="sql-createtable-compatibility"
-      endterm="sql-createtable-compatibility-title"/>.
+      <xref linkend="sql-createtable-compatibility"/> below.
      </para>
     </listitem>
    </varlistentry>
@@ -369,6 +368,31 @@ Where column_reference_storage_directive is:
       The <literal>COLLATE</literal> clause assigns a collation to
       the column (which must be of a collatable data type).
       If not specified, the column data type's default collation is used.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry>
+    <term><literal>COMPRESSION <replaceable class="parameter">compression_method</replaceable></literal></term>
+    <listitem>
+     <para>
+      The <literal>COMPRESSION</literal> clause sets the compression method
+      for the column.  Compression is supported only for variable-width data
+      types, and is used only when the column's storage mode
+      is <literal>main</literal> or <literal>extended</literal>.
+      (See <xref linkend="sql-altertable"/> for information on
+      column storage modes.) Setting this property for a partitioned table
+      has no direct effect, because such tables have no storage of their own,
+      but the configured value will be inherited by newly-created partitions.
+      The supported compression methods are <literal>pglz</literal> and
+      <literal>lz4</literal>.  (<literal>lz4</literal> is available only if
+      <option>--with-lz4</option> was used when building
+      <productname>PostgreSQL</productname>.)  In addition,
+      <replaceable class="parameter">compression_method</replaceable>
+      can be <literal>default</literal> to explicitly specify the default
+      behavior, which is to consult the
+      <xref linkend="guc-default-toast-compression"/> setting at the time of
+      data insertion to determine the method to use.
      </para>
     </listitem>
    </varlistentry>
@@ -484,8 +508,9 @@ Where column_reference_storage_directive is:
       Creates the table as a <firstterm>partition</firstterm> of the specified
       parent table. The table can be created either as a partition for specific
       values using <literal>FOR VALUES</literal> or as a default partition
-      using <literal>DEFAULT</literal>.  This option is not available for
-      hash-partitioned tables.
+      using <literal>DEFAULT</literal>.  Any indexes, constraints and
+      user-defined row-level triggers that exist in the parent table are cloned
+      on the new partition.
      </para>
 
      <para>
@@ -576,16 +601,15 @@ Where column_reference_storage_directive is:
 
      <para>
       If <literal>DEFAULT</literal> is specified, the table will be
-      created as a default partition of the parent table. The parent can
-      either be a list or range partitioned table. A partition key value
+      created as the default partition of the parent table.  This option
+      is not available for hash-partitioned tables.  A partition key value
       not fitting into any other partition of the given parent will be
-      routed to the default partition. There can be only one default
-      partition for a given parent table.
+      routed to the default partition.
      </para>
 
      <para>
       When a table has an existing <literal>DEFAULT</literal> partition and
-      a new partition is added to it, the existing default partition must
+      a new partition is added to it, the default partition must
       be scanned to verify that it does not contain any rows which properly
       belong in the new partition.  If the default partition contains a
       large number of rows, this may be slow.  The scan will be skipped if
@@ -626,6 +650,8 @@ Where column_reference_storage_directive is:
       <literal>CHECK</literal> constraints; additional constraints with the
       same name and condition as in the parent will be merged with the parent
       constraint.  Defaults may be specified separately for each partition.
+      But note that a partition's default value is not applied when inserting
+      a tuple through a partitioned table.
      </para>
 
      <para>
@@ -684,6 +710,17 @@ Where column_reference_storage_directive is:
           copied.  The default behavior is to exclude comments, resulting in
           the copied columns and constraints in the new table having no
           comments.
+         </para>
+        </listitem>
+       </varlistentry>
+
+       <varlistentry>
+        <term><literal>INCLUDING COMPRESSION</literal></term>
+        <listitem>
+         <para>
+          Compression method of the columns will be copied.  The default
+          behavior is to exclude compression methods, resulting in columns
+          having the default compression method.
          </para>
         </listitem>
        </varlistentry>
@@ -932,19 +969,32 @@ Where column_reference_storage_directive is:
       column</firstterm>.  It will have an implicit sequence attached to it
       and the column in new rows will automatically have values from the
       sequence assigned to it.
+      Such a column is implicitly <literal>NOT NULL</literal>.
      </para>
 
      <para>
       The clauses <literal>ALWAYS</literal> and <literal>BY DEFAULT</literal>
-      determine how the sequence value is given precedence over a
-      user-specified value in an <command>INSERT</command> statement.
-      If <literal>ALWAYS</literal> is specified, a user-specified value is
-      only accepted if the <command>INSERT</command> statement
-      specifies <literal>OVERRIDING SYSTEM VALUE</literal>.  If <literal>BY
-      DEFAULT</literal> is specified, then the user-specified value takes
-      precedence.  See <xref linkend="sql-insert"/> for details.  (In
-      the <command>COPY</command> command, user-specified values are always
-      used regardless of this setting.)
+      determine how explicitly user-specified values are handled in
+      <command>INSERT</command> and <command>UPDATE</command> commands.
+     </para>
+
+     <para>
+      In an <command>INSERT</command> command, if <literal>ALWAYS</literal> is
+      selected, a user-specified value is only accepted if the
+      <command>INSERT</command> statement specifies <literal>OVERRIDING SYSTEM
+      VALUE</literal>.  If <literal>BY DEFAULT</literal> is selected, then the
+      user-specified value takes precedence.  See <xref linkend="sql-insert"/>
+      for details.  (In the <command>COPY</command> command, user-specified
+      values are always used regardless of this setting.)
+     </para>
+
+     <para>
+      In an <command>UPDATE</command> command, if <literal>ALWAYS</literal> is
+      selected, any update of the column to any value other than
+      <literal>DEFAULT</literal> will be rejected.  If <literal>BY
+      DEFAULT</literal> is selected, the column can be updated normally.
+      (There is no <literal>OVERRIDING</literal> clause for the
+      <command>UPDATE</command> command.)
      </para>
 
      <para>
@@ -958,15 +1008,17 @@ Where column_reference_storage_directive is:
    <varlistentry>
     <term><literal>UNIQUE</literal> (column constraint)</term>
     <term><literal>UNIQUE ( <replaceable class="parameter">column_name</replaceable> [, ... ] )</literal>
-    <optional> INCLUDE ( <replaceable class="parameter">column_name</replaceable> [, ...]) </optional> (table constraint)</term>
+    <optional> <literal>INCLUDE ( <replaceable class="parameter">column_name</replaceable> [, ...])</literal> </optional> (table constraint)</term>
 
     <listitem>
      <para>
       The <literal>UNIQUE</literal> constraint specifies that a
       group of one or more columns of a table can contain
-      only unique values. The behavior of the unique table constraint
-      is the same as that for column constraints, with the additional
-      capability to span multiple columns.
+      only unique values. The behavior of a unique table constraint
+      is the same as that of a unique column constraint, with the
+      additional capability to span multiple columns.  The constraint
+      therefore enforces that any two rows must differ in at least one
+      of these columns.
      </para>
 
      <para>
@@ -975,10 +1027,10 @@ Where column_reference_storage_directive is:
      </para>
 
      <para>
-      Each unique table constraint must name a set of columns that is
+      Each unique constraint should name a set of columns that is
       different from the set of columns named by any other unique or
-      primary key constraint defined for the table.  (Otherwise it
-      would just be the same constraint listed twice.)
+      primary key constraint defined for the table.  (Otherwise, redundant
+      unique constraints will be discarded.)
      </para>
 
      <para>
@@ -991,11 +1043,16 @@ Where column_reference_storage_directive is:
      <para>
       Adding a unique constraint will automatically create a unique btree
       index on the column or group of columns used in the constraint.
-      The optional clause <literal>INCLUDE</literal> adds to that index
-      one or more columns on which the uniqueness is not enforced.
-      Note that although the constraint is not enforced on the included columns,
-      it still depends on them.  Consequently, some operations on these columns
-      (e.g. <literal>DROP COLUMN</literal>) can cause cascaded constraint and
+     </para>
+
+     <para>
+      The optional <literal>INCLUDE</literal> clause adds to that index
+      one or more columns that are simply <quote>payload</quote>: uniqueness
+      is not enforced on them, and the index cannot be searched on the basis
+      of those columns.  However they can be retrieved by an index-only scan.
+      Note that although the constraint is not enforced on included columns,
+      it still depends on them.  Consequently, some operations on such columns
+      (e.g., <literal>DROP COLUMN</literal>) can cause cascaded constraint and
       index deletion.
      </para>
     </listitem>
@@ -1004,7 +1061,7 @@ Where column_reference_storage_directive is:
    <varlistentry>
     <term><literal>PRIMARY KEY</literal> (column constraint)</term>
     <term><literal>PRIMARY KEY ( <replaceable class="parameter">column_name</replaceable> [, ... ] )</literal>
-    <optional> INCLUDE ( <replaceable class="parameter">column_name</replaceable> [, ...]) </optional> (table constraint)</term>
+    <optional> <literal>INCLUDE ( <replaceable class="parameter">column_name</replaceable> [, ...])</literal> </optional> (table constraint)</term>
     <listitem>
      <para>
       The <literal>PRIMARY KEY</literal> constraint specifies that a column or
@@ -1022,27 +1079,34 @@ Where column_reference_storage_directive is:
 
      <para>
       <literal>PRIMARY KEY</literal> enforces the same data constraints as
-      a combination of <literal>UNIQUE</literal> and <literal>NOT NULL</literal>, but
+      a combination of <literal>UNIQUE</literal> and <literal>NOT
+      NULL</literal>.  However,
       identifying a set of columns as the primary key also provides metadata
       about the design of the schema, since a primary key implies that other
       tables can rely on this set of columns as a unique identifier for rows.
      </para>
 
      <para>
-      <literal>PRIMARY KEY</literal> constraints share the restrictions that
-      <literal>UNIQUE</literal> constraints have when placed on partitioned
-      tables.
+      When placed on a partitioned table, <literal>PRIMARY KEY</literal>
+      constraints share the restrictions previously described
+      for <literal>UNIQUE</literal> constraints.
      </para>
 
      <para>
       Adding a <literal>PRIMARY KEY</literal> constraint will automatically
       create a unique btree index on the column or group of columns used in the
-      constraint.  The optional <literal>INCLUDE</literal> clause allows a list
-      of columns to be specified which will be included in the non-key portion
-      of the index.  Although uniqueness is not enforced on the included columns,
-      the constraint still depends on them. Consequently, some operations on the
-      included columns (e.g. <literal>DROP COLUMN</literal>) can cause cascaded
-      constraint and index deletion.
+      constraint.
+     </para>
+
+     <para>
+      The optional <literal>INCLUDE</literal> clause adds to that index
+      one or more columns that are simply <quote>payload</quote>: uniqueness
+      is not enforced on them, and the index cannot be searched on the basis
+      of those columns.  However they can be retrieved by an index-only scan.
+      Note that although the constraint is not enforced on included columns,
+      it still depends on them.  Consequently, some operations on such columns
+      (e.g., <literal>DROP COLUMN</literal>) can cause cascaded constraint and
+      index deletion.
      </para>
     </listitem>
    </varlistentry>
@@ -1233,7 +1297,7 @@ Where column_reference_storage_directive is:
       constraint that is not deferrable will be checked immediately
       after every command.  Checking of constraints that are
       deferrable can be postponed until the end of the transaction
-      (using the <xref linkend="sql-set-constraints"/> command).
+      (using the <link linkend="sql-set-constraints"><command>SET CONSTRAINTS</command></link> command).
       <literal>NOT DEFERRABLE</literal> is the default.
       Currently, only <literal>UNIQUE</literal>, <literal>PRIMARY KEY</literal>,
       <literal>EXCLUDE</literal>, and
@@ -1257,7 +1321,7 @@ Where column_reference_storage_directive is:
       statement. This is the default.  If the constraint is
       <literal>INITIALLY DEFERRED</literal>, it is checked only at the
       end of the transaction.  The constraint check time can be
-      altered with the <xref linkend="sql-set-constraints"/> command.
+      altered with the <link linkend="sql-set-constraints"><command>SET CONSTRAINTS</command></link> command.
      </para>
     </listitem>
    </varlistentry>
@@ -1281,8 +1345,7 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       This clause specifies optional storage parameters for a table or index;
-      see <xref linkend="sql-createtable-storage-parameters"
-      endterm="sql-createtable-storage-parameters-title"/> for more
+      see <xref linkend="sql-createtable-storage-parameters"/> below for more
       information.  For backward-compatibility the <literal>WITH</literal>
       clause for a table can also include <literal>OIDS=FALSE</literal> to
       specify that rows of the new table should not contain OIDs (object
@@ -1326,8 +1389,8 @@ Where column_reference_storage_directive is:
         <listitem>
          <para>
           All rows in the temporary table will be deleted at the end
-          of each transaction block.  Essentially, an automatic <xref
-          linkend="sql-truncate"/> is done
+          of each transaction block.  Essentially, an automatic <link
+          linkend="sql-truncate"><command>TRUNCATE</command></link> is done
           at each commit.  When used on a partitioned table, this
           is not cascaded to its partitions.
          </para>
@@ -1382,8 +1445,8 @@ Where column_reference_storage_directive is:
 
   </variablelist>
 
-  <refsect2 id="sql-createtable-storage-parameters">
-   <title id="sql-createtable-storage-parameters-title">Storage Parameters</title>
+  <refsect2 id="sql-createtable-storage-parameters" xreflabel="Storage Parameters">
+   <title>Storage Parameters</title>
 
  <indexterm zone="sql-createtable-storage-parameters">
   <primary>storage parameters</primary>
@@ -1441,13 +1504,14 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       The toast_tuple_target specifies the minimum tuple length required before
-      we try to move long column values into TOAST tables, and is also the
-      target length we try to reduce the length below once toasting begins.
-      This only affects columns marked as either External or Extended
-      and applies only to new tuples - there is no effect on existing rows.
+      we try to compress and/or move long column values into TOAST tables, and
+      is also the target length we try to reduce the length below once toasting
+      begins. This affects columns marked as External (for move),
+      Main (for compression), or Extended (for both) and applies only to new
+      tuples. There is no effect on existing rows.
       By default this parameter is set to allow at least 4 tuples per block,
-      which with the default blocksize will be 2040 bytes. Valid values are
-      between 128 bytes and the (blocksize - header), by default 8160 bytes.
+      which with the default block size will be 2040 bytes. Valid values are
+      between 128 bytes and the (block size - header), by default 8160 bytes.
       Changing this value may not be useful for very short or very long rows.
       Note that the default setting is often close to optimal, and
       it is possible that setting this parameter could have negative
@@ -1500,20 +1564,27 @@ Where column_reference_storage_directive is:
    </varlistentry>
 
    <varlistentry id="reloption-vacuum-index-cleanup" xreflabel="vacuum_index_cleanup">
-    <term><literal>vacuum_index_cleanup</literal>, <literal>toast.vacuum_index_cleanup</literal> (<type>boolean</type>)
+    <term><literal>vacuum_index_cleanup</literal>, <literal>toast.vacuum_index_cleanup</literal> (<type>enum</type>)
     <indexterm>
      <primary><varname>vacuum_index_cleanup</varname> storage parameter</primary>
     </indexterm>
     </term>
     <listitem>
      <para>
-      Enables or disables index cleanup when <command>VACUUM</command> is
-      run on this table.  The default value is <literal>true</literal>.
-      Disabling index cleanup can speed up <command>VACUUM</command> very
-      significantly, but may also lead to severely bloated indexes if table
-      modifications are frequent.  The <literal>INDEX_CLEANUP</literal>
-      parameter of <xref linkend="sql-vacuum"/>, if specified, overrides
-      the value of this option.
+      Forces or disables index cleanup when <command>VACUUM</command>
+      is run on this table.  The default value is
+      <literal>AUTO</literal>.  With <literal>OFF</literal>, index
+      cleanup is disabled, with <literal>ON</literal> it is enabled,
+      and with <literal>AUTO</literal> a decision is made dynamically,
+      each time <command>VACUUM</command> runs.  The dynamic behavior
+      allows <command>VACUUM</command> to avoid needlessly scanning
+      indexes to remove very few dead tuples.  Forcibly disabling all
+      index cleanup can speed up <command>VACUUM</command> very
+      significantly, but may also lead to severely bloated indexes if
+      table modifications are frequent.  The
+      <literal>INDEX_CLEANUP</literal> parameter of <link
+       linkend="sql-vacuum"><command>VACUUM</command></link>, if
+      specified, overrides the value of this option.
      </para>
     </listitem>
    </varlistentry>
@@ -1533,7 +1604,7 @@ Where column_reference_storage_directive is:
       the truncated pages is returned to the operating system.
       Note that the truncation requires <literal>ACCESS EXCLUSIVE</literal>
       lock on the table. The <literal>TRUNCATE</literal> parameter
-      of <xref linkend="sql-vacuum"/>, if specified, overrides the value
+      of <link linkend="sql-vacuum"><command>VACUUM</command></link>, if specified, overrides the value
       of this option.
      </para>
     </listitem>
@@ -1554,8 +1625,8 @@ Where column_reference_storage_directive is:
     </listitem>
    </varlistentry>
 
-   <varlistentry id="reloption-autovacuum-vauum-scale-factor" xreflabel="autovacuum_vacuum_scale_factor">
-    <term><literal>autovacuum_vacuum_scale_factor</literal>, <literal>toast.autovacuum_vacuum_scale_factor</literal> (<type>float4</type>)
+   <varlistentry id="reloption-autovacuum-vacuum-scale-factor" xreflabel="autovacuum_vacuum_scale_factor">
+    <term><literal>autovacuum_vacuum_scale_factor</literal>, <literal>toast.autovacuum_vacuum_scale_factor</literal> (<type>floating point</type>)
     <indexterm>
      <primary><varname>autovacuum_vacuum_scale_factor</varname> </primary>
      <secondary>storage parameter</secondary>
@@ -1564,6 +1635,36 @@ Where column_reference_storage_directive is:
     <listitem>
      <para>
       Per-table value for <xref linkend="guc-autovacuum-vacuum-scale-factor"/>
+      parameter.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry id="reloption-autovacuum-vacuum-insert-threshold" xreflabel="autovacuum_vacuum_insert_threshold">
+    <term><literal>autovacuum_vacuum_insert_threshold</literal>, <literal>toast.autovacuum_vacuum_insert_threshold</literal> (<type>integer</type>)
+    <indexterm>
+     <primary><varname>autovacuum_vacuum_insert_threshold</varname></primary>
+     <secondary>storage parameter</secondary>
+    </indexterm>
+    </term>
+    <listitem>
+     <para>
+      Per-table value for <xref linkend="guc-autovacuum-vacuum-insert-threshold"/>
+      parameter.  The special value of -1 may be used to disable insert vacuums on the table.
+     </para>
+    </listitem>
+   </varlistentry>
+
+   <varlistentry id="reloption-autovacuum-vacuum-insert-scale-factor" xreflabel="autovacuum_vacuum_insert_scale_factor">
+    <term><literal>autovacuum_vacuum_insert_scale_factor</literal>, <literal>toast.autovacuum_vacuum_insert_scale_factor</literal> (<type>floating point</type>)
+    <indexterm>
+     <primary><varname>autovacuum_vacuum_insert_scale_factor</varname> </primary>
+     <secondary>storage parameter</secondary>
+    </indexterm>
+    </term>
+    <listitem>
+     <para>
+      Per-table value for <xref linkend="guc-autovacuum-vacuum-insert-scale-factor"/>
       parameter.
      </para>
     </listitem>
@@ -1585,7 +1686,7 @@ Where column_reference_storage_directive is:
    </varlistentry>
 
    <varlistentry id="reloption-autovacuum-analyze-scale-factor" xreflabel="autovacuum_analyze_scale_factor">
-    <term><literal>autovacuum_analyze_scale_factor</literal> (<type>float4</type>)
+    <term><literal>autovacuum_analyze_scale_factor</literal> (<type>floating point</type>)
     <indexterm>
      <primary><varname>autovacuum_analyze_scale_factor</varname></primary>
      <secondary>storage parameter</secondary>
@@ -1614,7 +1715,7 @@ Where column_reference_storage_directive is:
     </listitem>
    </varlistentry>
 
-   <varlistentry id="reloption-autovacuum-vauum-cost-limit" xreflabel="autovacuum_vacuum_cost_limit">
+   <varlistentry id="reloption-autovacuum-vacuum-cost-limit" xreflabel="autovacuum_vacuum_cost_limit">
     <term><literal>autovacuum_vacuum_cost_limit</literal>, <literal>toast.autovacuum_vacuum_cost_limit</literal> (<type>integer</type>)
     <indexterm>
      <primary><varname>autovacuum_vacuum_cost_limit</varname></primary>
@@ -2113,8 +2214,8 @@ CREATE TABLE cities_partdef
 </programlisting></para>
  </refsect1>
 
- <refsect1 id="sql-createtable-compatibility">
-  <title id="sql-createtable-compatibility-title">Compatibility</title>
+ <refsect1 id="sql-createtable-compatibility" xreflabel="Compatibility">
+  <title>Compatibility</title>
 
   <para>
    The <command>CREATE TABLE</command> command conforms to the
@@ -2174,7 +2275,7 @@ CREATE TABLE cities_partdef
   </refsect2>
 
   <refsect2>
-   <title>Non-deferred Uniqueness Constraints</title>
+   <title>Non-Deferred Uniqueness Constraints</title>
 
    <para>
     When a <literal>UNIQUE</literal> or <literal>PRIMARY KEY</literal> constraint is
@@ -2262,7 +2363,7 @@ CREATE TABLE cities_partdef
   </refsect2>
 
   <refsect2>
-   <title>Zero-column Tables</title>
+   <title>Zero-Column Tables</title>
 
    <para>
     <productname>PostgreSQL</productname> allows a table of no columns
@@ -2335,9 +2436,9 @@ CREATE TABLE cities_partdef
     Typed tables implement a subset of the SQL standard.  According to
     the standard, a typed table has columns corresponding to the
     underlying composite type as well as one other column that is
-    the <quote>self-referencing column</quote>.  PostgreSQL does not
-    support these self-referencing columns explicitly, but the same
-    effect can be had using the OID feature.
+    the <quote>self-referencing column</quote>.
+    <productname>PostgreSQL</productname> does not support self-referencing
+    columns explicitly.
    </para>
   </refsect2>
 

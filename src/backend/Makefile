@@ -2,7 +2,7 @@
 #
 # Makefile for the postgres backend
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/backend/Makefile
@@ -27,6 +27,10 @@ SUBDIRS += fts cdb
 ifeq ($(enable_orca),yes)
 SUBDIRS += gporca gpopt
 endif
+ifeq ($(enable_catalog_ext),yes)
+SUBDIRS += catalog-extension
+LDFLAGS += -lprotobuf -lstdc++
+endif
 
 include $(srcdir)/common.mk
 
@@ -42,8 +46,11 @@ LOCALOBJS += utils/probes.o
 endif
 endif
 
-OBJS = $(SUBDIROBJS) $(LOCALOBJS) $(top_builddir)/src/port/libpgport_srv.a \
-       $(top_builddir)/src/common/libpgcommon_srv.a
+OBJS = \
+	$(LOCALOBJS) \
+	$(SUBDIROBJS) \
+	$(top_builddir)/src/common/libpgcommon_srv.a \
+	$(top_builddir)/src/port/libpgport_srv.a
 
 ifeq ($(PORTNAME), darwin)
 LDOPTS = -Z
@@ -56,7 +63,7 @@ LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS)) $(LDAP_LIBS_BE) $(ICU_LIBS)
 # The backend doesn't need everything that's in LIBS, however
 LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
 
-# Greenplum uses threads in the backend
+# Cloudberry uses threads in the backend
 LIBS := $(LIBS) -lpthread
 
 ifeq ($(with_systemd),yes)
@@ -199,7 +206,6 @@ distprep:
 	$(MAKE) -C utils	distprep
 	$(MAKE) -C utils/adt	jsonpath_gram.c jsonpath_scan.c
 	$(MAKE) -C utils/misc	guc-file.c
-	$(MAKE) -C utils/sort	qsort_tuple.c
 
 
 ##########################################################################
@@ -224,6 +230,9 @@ endif
 ifeq ($(enable_orca), yes)
 	$(MAKE) -C gporca $@ INSTLOC=$(DESTDIR)$(libdir)
 	$(MAKE) -C gpopt $@ INSTLOC=$(DESTDIR)$(libdir)
+endif
+ifeq ($(enable_catalog_ext), yes)
+	$(MAKE) -C catalog-extension $@ INSTLOC=$(DESTDIR)$(libdir)
 endif
 
 ifeq ($(with_llvm), yes)
@@ -325,8 +334,7 @@ maintainer-clean: distclean
 	      storage/lmgr/lwlocknames.h \
 	      utils/adt/jsonpath_gram.c \
 	      utils/adt/jsonpath_scan.c \
-	      utils/misc/guc-file.c \
-	      utils/sort/qsort_tuple.c
+	      utils/misc/guc-file.c
 
 
 ##########################################################################

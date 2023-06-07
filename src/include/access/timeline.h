@@ -3,7 +3,7 @@
  *
  * Functions for reading and writing timeline history files.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/timeline.h
@@ -36,7 +36,7 @@ extern void writeTimeLineHistory(TimeLineID newTLI, TimeLineID parentTLI,
 								 XLogRecPtr switchpoint, char *reason);
 extern void writeTimeLineHistoryFile(TimeLineID tli, char *content, int size);
 extern void restoreTimeLineHistoryFiles(TimeLineID begin, TimeLineID end);
-extern bool tliInHistory(TimeLineID tli, List *expectedTLIs);
+extern bool tliInHistory(TimeLineID tli, List *expectedTLEs);
 extern TimeLineID tliOfPointInHistory(XLogRecPtr ptr, List *history);
 extern XLogRecPtr tliSwitchPoint(TimeLineID tli, List *history,
 								 TimeLineID *nextTLI);

@@ -3,7 +3,7 @@
  * execCurrent.c
  *	  executor support for WHERE CURRENT OF cursor
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/executor/execCurrent.c
@@ -543,6 +543,10 @@ fetch_cursor_param_value(ExprContext *econtext, int paramId)
  * Search through a PlanState tree for a scan node on the specified table.
  * Return NULL if not found or multiple candidates.
  *
+ * CAUTION: this function is not charged simply with finding some candidate
+ * scan, but with ensuring that that scan returned the plan tree's current
+ * output row.  That's why we must reject multiple-match cases.
+ *
  * If a candidate is found, set *pending_rescan to true if that candidate
  * or any node above it has a pending rescan action, i.e. chgParam != NULL.
  * That indicates that we shouldn't consider the node to be positioned on a
@@ -560,28 +564,55 @@ search_plan_tree(PlanState *node, Oid table_oid,
 		return NULL;
 	switch (nodeTag(node))
 	{
-		/*
-		 * Relation scan nodes can all be treated alike
-		 */
+			/*
+			 * Relation scan nodes can all be treated alike: check to see if
+			 * they are scanning the specified table.
+			 *
+			 * ForeignScan and CustomScan might not have a currentRelation, in
+			 * which case we just ignore them.  (We dare not descend to any
+			 * child plan nodes they might have, since we do not know the
+			 * relationship of such a node's current output tuple to the
+			 * children's current outputs.)
+			 */
 		case T_SeqScanState:
 		case T_SampleScanState:
 		case T_IndexScanState:
 		case T_IndexOnlyScanState:
 		case T_BitmapHeapScanState:
 		case T_TidScanState:
+		case T_TidRangeScanState:
 		case T_ForeignScanState:
 		case T_CustomScanState:
 			{
 				ScanState  *sstate = (ScanState *) node;
 
-				if (RelationGetRelid(sstate->ss_currentRelation) == table_oid)
+				if (sstate->ss_currentRelation &&
+					RelationGetRelid(sstate->ss_currentRelation) == table_oid)
 					result = sstate;
 				break;
 			}
 
 			/*
-			 * For Append, we must look through the members; watch out for
-			 * multiple matches (possible if it was from UNION ALL)
+			 * For Append, we can check each input node.  It is safe to
+			 * descend to the inputs because only the input that resulted in
+			 * the Append's current output node could be positioned on a tuple
+			 * at all; the other inputs are either at EOF or not yet started.
+			 * Hence, if the desired table is scanned by some
+			 * currently-inactive input node, we will find that node but then
+			 * our caller will realize that it didn't emit the tuple of
+			 * interest.
+			 *
+			 * We do need to watch out for multiple matches (possible if
+			 * Append was from UNION ALL rather than an inheritance tree).
+			 *
+			 * Note: we can NOT descend through MergeAppend similarly, since
+			 * its inputs are likely all active, and we don't know which one
+			 * returned the current output tuple.  (Perhaps that could be
+			 * fixed if we were to let this code know more about MergeAppend's
+			 * internal state, but it does not seem worth the trouble.  Users
+			 * should not expect plans for ORDER BY queries to be considered
+			 * simply-updatable, since they won't be if the sorting is
+			 * implemented by a Sort node.)
 			 */
 		case T_AppendState:
 			{
@@ -604,33 +635,11 @@ search_plan_tree(PlanState *node, Oid table_oid,
 			}
 
 			/*
-			 * Similarly for MergeAppend
-			 */
-		case T_MergeAppendState:
-			{
-				MergeAppendState *mstate = (MergeAppendState *) node;
-				int			i;
-
-				for (i = 0; i < mstate->ms_nplans; i++)
-				{
-					ScanState  *elem = search_plan_tree(mstate->mergeplans[i],
-														table_oid,
-														pending_rescan);
-
-					if (!elem)
-						continue;
-					if (result)
-						return NULL;	/* multiple matches */
-					result = elem;
-				}
-				break;
-			}
-
-			/*
 			 * Result and Limit can be descended through (these are safe
 			 * because they always return their input's current row)
 			 */
 		case T_ResultState:
+		case T_RuntimeFilterState:
 		case T_LimitState:
 			result = search_plan_tree(node->lefttree,
 									  table_oid,

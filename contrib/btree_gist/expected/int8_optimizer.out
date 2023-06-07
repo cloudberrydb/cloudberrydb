@@ -1,0 +1,95 @@
+-- int8 check
+CREATE TABLE int8tmp (a int8);
+\copy int8tmp from 'data/int8.data'
+SET enable_seqscan=on;
+SELECT count(*) FROM int8tmp WHERE a <  464571291354841;
+ count 
+-------
+   276
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a <= 464571291354841;
+ count 
+-------
+   277
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a  = 464571291354841;
+ count 
+-------
+     1
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a >= 464571291354841;
+ count 
+-------
+   271
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a >  464571291354841;
+ count 
+-------
+   270
+(1 row)
+
+SELECT a, a <-> '464571291354841' FROM int8tmp ORDER BY a <-> '464571291354841' LIMIT 3;
+        a        |    ?column?    
+-----------------+----------------
+ 464571291354841 |              0
+ 457257666629329 |  7313624725512
+ 478227196042750 | 13655904687909
+(3 rows)
+
+CREATE INDEX int8idx ON int8tmp USING gist ( a );
+SET enable_seqscan=off;
+SELECT count(*) FROM int8tmp WHERE a <  464571291354841::int8;
+ count 
+-------
+   276
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a <= 464571291354841::int8;
+ count 
+-------
+   277
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a  = 464571291354841::int8;
+ count 
+-------
+     1
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a >= 464571291354841::int8;
+ count 
+-------
+   271
+(1 row)
+
+SELECT count(*) FROM int8tmp WHERE a >  464571291354841::int8;
+ count 
+-------
+   270
+(1 row)
+
+EXPLAIN (COSTS OFF)
+SELECT a, a <-> '464571291354841' FROM int8tmp ORDER BY a <-> '464571291354841' LIMIT 3;
+                         QUERY PLAN                          
+-------------------------------------------------------------
+ Limit
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: ((a <-> '464571291354841'::bigint))
+         ->  Sort
+               Sort Key: ((a <-> '464571291354841'::bigint))
+               ->  Seq Scan on int8tmp
+ Optimizer: Pivotal Optimizer (GPORCA)
+(7 rows)
+
+SELECT a, a <-> '464571291354841' FROM int8tmp ORDER BY a <-> '464571291354841' LIMIT 3;
+        a        |    ?column?    
+-----------------+----------------
+ 464571291354841 |              0
+ 457257666629329 |  7313624725512
+ 478227196042750 | 13655904687909
+(3 rows)
+

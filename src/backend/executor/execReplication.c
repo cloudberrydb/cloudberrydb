@@ -3,7 +3,7 @@
  * execReplication.c
  *	  miscellaneous executor routines for logical replication
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -57,7 +57,8 @@ build_replindex_scan_key(ScanKey skey, Relation rel, Relation idxrel,
 	int2vector *indkey = &idxrel->rd_index->indkey;
 	bool		hasnulls = false;
 
-	Assert(RelationGetReplicaIndex(rel) == RelationGetRelid(idxrel));
+	Assert(RelationGetReplicaIndex(rel) == RelationGetRelid(idxrel) ||
+		   RelationGetPrimaryKeyIndex(rel) == RelationGetRelid(idxrel));
 
 	indclassDatum = SysCacheGetAttr(INDEXRELID, idxrel->rd_indextuple,
 									Anum_pg_index_indclass, &isnull);
@@ -225,7 +226,8 @@ retry:
  * Compare the tuples in the slots by checking if they have equal values.
  */
 static bool
-tuples_equal(TupleTableSlot *slot1, TupleTableSlot *slot2)
+tuples_equal(TupleTableSlot *slot1, TupleTableSlot *slot2,
+			 TypeCacheEntry **eq)
 {
 	int			attrnum;
 
@@ -256,12 +258,18 @@ tuples_equal(TupleTableSlot *slot1, TupleTableSlot *slot2)
 
 		att = TupleDescAttr(slot1->tts_tupleDescriptor, attrnum);
 
-		typentry = lookup_type_cache(att->atttypid, TYPECACHE_EQ_OPR_FINFO);
-		if (!OidIsValid(typentry->eq_opr_finfo.fn_oid))
-			ereport(ERROR,
-					(errcode(ERRCODE_UNDEFINED_FUNCTION),
-					 errmsg("could not identify an equality operator for type %s",
-							format_type_be(att->atttypid))));
+		typentry = eq[attrnum];
+		if (typentry == NULL)
+		{
+			typentry = lookup_type_cache(att->atttypid,
+										 TYPECACHE_EQ_OPR_FINFO);
+			if (!OidIsValid(typentry->eq_opr_finfo.fn_oid))
+				ereport(ERROR,
+						(errcode(ERRCODE_UNDEFINED_FUNCTION),
+						 errmsg("could not identify an equality operator for type %s",
+								format_type_be(att->atttypid))));
+			eq[attrnum] = typentry;
+		}
 
 		if (!DatumGetBool(FunctionCall2Coll(&typentry->eq_opr_finfo,
 											att->attcollation,
@@ -290,11 +298,14 @@ RelationFindReplTupleSeq(Relation rel, LockTupleMode lockmode,
 	TupleTableSlot *scanslot;
 	TableScanDesc scan;
 	SnapshotData snap;
+	TypeCacheEntry **eq;
 	TransactionId xwait;
 	bool		found;
 	TupleDesc	desc PG_USED_FOR_ASSERTS_ONLY = RelationGetDescr(rel);
 
 	Assert(equalTupleDescs(desc, outslot->tts_tupleDescriptor, true));
+
+	eq = palloc0(sizeof(*eq) * outslot->tts_tupleDescriptor->natts);
 
 	/* Start a heap scan. */
 	InitDirtySnapshot(snap);
@@ -309,7 +320,7 @@ retry:
 	/* Try to find the tuple */
 	while (table_scan_getnextslot(scan, ForwardScanDirection, scanslot))
 	{
-		if (!tuples_equal(scanslot, searchslot))
+		if (!tuples_equal(scanslot, searchslot, eq))
 			continue;
 
 		found = true;
@@ -327,6 +338,9 @@ retry:
 			XactLockTableWait(xwait, NULL, NULL, XLTW_None);
 			goto retry;
 		}
+
+		/* Found our tuple and it's not locked */
+		break;
 	}
 
 	/* Found tuple, try to lock it in the lockmode. */
@@ -390,10 +404,10 @@ retry:
  * Caller is responsible for opening the indexes.
  */
 void
-ExecSimpleRelationInsert(EState *estate, TupleTableSlot *slot)
+ExecSimpleRelationInsert(ResultRelInfo *resultRelInfo,
+						 EState *estate, TupleTableSlot *slot)
 {
 	bool		skip_tuple = false;
-	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 
 	/* For now we support only tables. */
@@ -416,20 +430,22 @@ ExecSimpleRelationInsert(EState *estate, TupleTableSlot *slot)
 		/* Compute stored generated columns */
 		if (rel->rd_att->constr &&
 			rel->rd_att->constr->has_generated_stored)
-			ExecComputeStoredGenerated(estate, slot);
+			ExecComputeStoredGenerated(resultRelInfo, estate, slot,
+									   CMD_INSERT);
 
 		/* Check the constraints of the tuple */
 		if (rel->rd_att->constr)
 			ExecConstraints(resultRelInfo, slot, estate);
-		if (resultRelInfo->ri_PartitionCheck)
+		if (rel->rd_rel->relispartition)
 			ExecPartitionCheck(resultRelInfo, slot, estate, true);
 
 		/* OK, store the tuple and create index entries for it */
 		simple_table_tuple_insert(resultRelInfo->ri_RelationDesc, slot);
 
 		if (resultRelInfo->ri_NumIndices > 0)
-			recheckIndexes = ExecInsertIndexTuples(slot, estate, false, NULL,
-												   NIL);
+			recheckIndexes = ExecInsertIndexTuples(resultRelInfo,
+												   slot, estate, false, false,
+												   NULL, NIL);
 
 		/* AFTER ROW INSERT Triggers */
 		ExecARInsertTriggers(estate, resultRelInfo, slot,
@@ -452,11 +468,11 @@ ExecSimpleRelationInsert(EState *estate, TupleTableSlot *slot)
  * Caller is responsible for opening the indexes.
  */
 void
-ExecSimpleRelationUpdate(EState *estate, EPQState *epqstate,
+ExecSimpleRelationUpdate(ResultRelInfo *resultRelInfo,
+						 EState *estate, EPQState *epqstate,
 						 TupleTableSlot *searchslot, TupleTableSlot *slot)
 {
 	bool		skip_tuple = false;
-	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	ItemPointer tid = &(searchslot->tts_tid);
 
@@ -482,20 +498,22 @@ ExecSimpleRelationUpdate(EState *estate, EPQState *epqstate,
 		/* Compute stored generated columns */
 		if (rel->rd_att->constr &&
 			rel->rd_att->constr->has_generated_stored)
-			ExecComputeStoredGenerated(estate, slot);
+			ExecComputeStoredGenerated(resultRelInfo, estate, slot,
+									   CMD_UPDATE);
 
 		/* Check the constraints of the tuple */
 		if (rel->rd_att->constr)
 			ExecConstraints(resultRelInfo, slot, estate);
-		if (resultRelInfo->ri_PartitionCheck)
+		if (rel->rd_rel->relispartition)
 			ExecPartitionCheck(resultRelInfo, slot, estate, true);
 
 		simple_table_tuple_update(rel, tid, slot, estate->es_snapshot,
 								  &update_indexes);
 
 		if (resultRelInfo->ri_NumIndices > 0 && update_indexes)
-			recheckIndexes = ExecInsertIndexTuples(slot, estate, false, NULL,
-												   NIL);
+			recheckIndexes = ExecInsertIndexTuples(resultRelInfo,
+												   slot, estate, true, false,
+												   NULL, NIL);
 
 		/* AFTER ROW UPDATE Triggers */
 		ExecARUpdateTriggers(estate, resultRelInfo,
@@ -513,11 +531,11 @@ ExecSimpleRelationUpdate(EState *estate, EPQState *epqstate,
  * Caller is responsible for opening the indexes.
  */
 void
-ExecSimpleRelationDelete(EState *estate, EPQState *epqstate,
+ExecSimpleRelationDelete(ResultRelInfo *resultRelInfo,
+						 EState *estate, EPQState *epqstate,
 						 TupleTableSlot *searchslot)
 {
 	bool		skip_tuple = false;
-	ResultRelInfo *resultRelInfo = estate->es_result_relation_info;
 	Relation	rel = resultRelInfo->ri_RelationDesc;
 	ItemPointer tid = &searchslot->tts_tid;
 
@@ -591,17 +609,9 @@ CheckSubscriptionRelkind(char relkind, const char *nspname,
 						 const char *relname)
 {
 	/*
-	 * We currently only support writing to regular tables.  However, give a
-	 * more specific error for partitioned and foreign tables.
+	 * Give a more specific error for foreign tables.
 	 */
-	if (relkind == RELKIND_PARTITIONED_TABLE)
-		ereport(ERROR,
-				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("cannot use relation \"%s.%s\" as logical replication target",
-						nspname, relname),
-				 errdetail("\"%s.%s\" is a partitioned table.",
-						   nspname, relname)));
-	else if (relkind == RELKIND_FOREIGN_TABLE)
+	if (relkind == RELKIND_FOREIGN_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("cannot use relation \"%s.%s\" as logical replication target",
@@ -609,7 +619,7 @@ CheckSubscriptionRelkind(char relkind, const char *nspname,
 				 errdetail("\"%s.%s\" is a foreign table.",
 						   nspname, relname)));
 
-	if (relkind != RELKIND_RELATION)
+	if (relkind != RELKIND_RELATION && relkind != RELKIND_PARTITIONED_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("cannot use relation \"%s.%s\" as logical replication target",

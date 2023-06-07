@@ -36,12 +36,6 @@ select pg_sleep(5);
  
 (1 row)
 
-show gp_fts_probe_retries;
- gp_fts_probe_retries 
-----------------------
- 2
-(1 row)
-
 select gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
@@ -159,7 +153,6 @@ select role, preferred_role, mode, status from gp_segment_configuration where co
 (2 rows)
 
 -- start_ignore
-\!gpconfig -r gp_fts_probe_retries --masteronly
 \!gpconfig -r gp_gang_creation_retry_count --skipvalidation --masteronly
 \!gpconfig -r gp_gang_creation_retry_timer --skipvalidation --masteronly
 \!gpstop -u

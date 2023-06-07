@@ -22,6 +22,8 @@
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 
+#include "catalog/gp_indexing.h"
+
 void
 StoreGpPartitionTemplate(Oid relid, int32 level,
 						 GpPartitionDefinition *gpPartDef)

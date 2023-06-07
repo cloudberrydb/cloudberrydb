@@ -3,7 +3,7 @@
  * nodeLockRows.c
  *	  Routines to handle FOR UPDATE/FOR SHARE row locking
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -59,16 +59,14 @@ lnext:
 	slot = ExecProcNode(outerPlan);
 
 	if (TupIsNull(slot))
+	{
+		/* Release any resources held by EPQ mechanism before exiting */
+		EvalPlanQualEnd(&node->lr_epqstate);
 		return NULL;
+	}
 
 	/* We don't need EvalPlanQual unless we get updated tuple version(s) */
 	epq_needed = false;
-
-	/*
-	 * Initialize EPQ machinery. Need to do that early because source tuples
-	 * are stored in slots initialized therein.
-	 */
-	EvalPlanQualBegin(&node->lr_epqstate, estate);
 
 	/*
 	 * Attempt to lock the source tuple(s).  (Note we only have locking
@@ -264,12 +262,14 @@ lnext:
 	 */
 	if (epq_needed)
 	{
+		/* Initialize EPQ machinery */
+		EvalPlanQualBegin(&node->lr_epqstate);
+
 		/*
-		 * Now fetch any non-locked source rows --- the EPQ logic knows how to
-		 * do that.
+		 * To fetch non-locked source rows the EPQ logic needs to access junk
+		 * columns from the tuple being tested.
 		 */
 		EvalPlanQualSetSlot(&node->lr_epqstate, slot);
-		EvalPlanQualFetchRowMarks(&node->lr_epqstate);
 
 		/*
 		 * And finally we can re-evaluate the tuple.
@@ -390,6 +390,7 @@ ExecInitLockRows(LockRows *node, EState *estate, int eflags)
 void
 ExecEndLockRows(LockRowsState *node)
 {
+	/* We may have shut down EPQ already, but no harm in another call */
 	EvalPlanQualEnd(&node->lr_epqstate);
 	ExecEndNode(outerPlanState(node));
 }

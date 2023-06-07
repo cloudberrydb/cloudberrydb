@@ -8,7 +8,7 @@ Fault Tolerance Service (FTS):
  - This sections explains how FTS probe process is started. The FTS
    probe process is running on the coordinator node only. It starts as a
    background worker process managed by the BackgroundWorker structure
-   (see src/include/postmaster/bgworker.h).  Greenplum sets up a group of
+   (see src/include/postmaster/bgworker.h).  Cloudberry sets up a group of
    GP background processes through an array structure PMAuxProcList. A
    entry in that struct represents a GP background process.
 

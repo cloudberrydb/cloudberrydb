@@ -3,7 +3,7 @@
  * relation.c
  *	  Generic relation related routines.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -106,7 +106,7 @@ try_relation_open(Oid relationId, LOCKMODE lockmode, bool noWait)
 		else
 		{
 			/*
-			 * noWait is a Greenplum addition to the open_relation code
+			 * noWait is a Cloudberry addition to the open_relation code
 			 * basically to support INSERT ... FOR UPDATE NOWAIT.  Our NoWait
 			 * handling needs to be more tolerant of failed locks than standard
 			 * postgres largely due to the fact that we have to promote certain

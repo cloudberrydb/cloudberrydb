@@ -2,7 +2,7 @@
 <!DOCTYPE map
   PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
 <map id="d1-d1">
-   <title>Configuring the Greenplum System</title>
+   <title>Configuring the Cloudberry System</title>
    <topicref href="topics/g-configuring-the-greenplum-system.xml" type="topic">
       <topicref href="topics/g-about-greenplum-master-and-local-parameters.xml" type="topic"/>
       <topicref href="topics/g-setting-configuration-parameters.xml" type="topic">

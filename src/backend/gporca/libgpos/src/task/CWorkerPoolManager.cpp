@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2008 - 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2008 - 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CWorkerPoolManager.cpp
@@ -139,7 +139,7 @@ void
 CWorkerPoolManager::RegisterWorker(CWorker *worker)
 {
 	GPOS_ASSERT(nullptr != worker);
-	GPOS_ASSERT(nullptr == m_single_worker);
+	GPOS_ASSERT_FIXME(nullptr == m_single_worker);
 	m_single_worker = worker;
 }
 

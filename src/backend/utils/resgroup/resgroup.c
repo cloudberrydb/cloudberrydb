@@ -24,7 +24,7 @@
  *   A resource group must acquire a free slot in this pool for a new
  *   transaction to run in it.
  *
- * Portions Copyright (c) 2006-2010, Greenplum inc.
+ * Portions Copyright (c) 2006-2010, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -52,6 +52,7 @@
 #include "cdb/cdbdisp_query.h"
 #include "cdb/memquota.h"
 #include "commands/resgroupcmds.h"
+#include "common/hashfn.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -645,7 +646,7 @@ InitResGroups(void)
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						 errmsg("cgroup is not properly configured to use the cpuset feature"),
 						 errhint("Extra cgroup configurations are required to enable this feature, "
-								 "please refer to the Greenplum Documentations for details")));
+								 "please refer to the Cloudberry Documentations for details")));
 			}
 
 			Assert(caps.cpuRateLimit == CPU_RATE_LIMIT_DISABLED);
@@ -1036,10 +1037,10 @@ ResGroupGetStat(Oid groupId, ResGroupStatType type)
 			result = Int32GetDatum(group->waitProcs.size);
 			break;
 		case RES_GROUP_STAT_TOTAL_EXECUTED:
-			result = Int32GetDatum(group->totalExecuted);
+			result = Int64GetDatum(group->totalExecuted);
 			break;
 		case RES_GROUP_STAT_TOTAL_QUEUED:
-			result = Int32GetDatum(group->totalQueued);
+			result = Int64GetDatum(group->totalQueued);
 			break;
 		case RES_GROUP_STAT_TOTAL_QUEUE_TIME:
 			/*
@@ -2882,7 +2883,7 @@ waitOnGroup(ResGroupData *group, bool isMoveQuery)
 		new_status = (char *) palloc(len + strlen(queueStr) + 1);
 		memcpy(new_status, old_status, len);
 		strcpy(new_status + len, queueStr);
-		set_ps_display(new_status, false);
+		set_ps_display(new_status);
 		/* truncate off " queuing" */
 		new_status[len] = '\0';
 	}
@@ -2941,7 +2942,7 @@ waitOnGroup(ResGroupData *group, bool isMoveQuery)
 		/* reset ps status */
 		if (update_process_title)
 		{
-			set_ps_display(new_status, false);
+			set_ps_display(new_status);
 			pfree(new_status);
 		}
 
@@ -2955,7 +2956,7 @@ waitOnGroup(ResGroupData *group, bool isMoveQuery)
 	/* reset ps status */
 	if (update_process_title)
 	{
-		set_ps_display(new_status, false);
+		set_ps_display(new_status);
 		pfree(new_status);
 	}
 }
@@ -4326,7 +4327,7 @@ bool CpusetIsEmpty(const char *cpuset)
  */
 void SetCpusetEmpty(char *cpuset, int cpusetSize)
 {
-	StrNCpy(cpuset, DefaultCpuset, cpusetSize);
+	strlcpy(cpuset, DefaultCpuset, cpusetSize);
 }
 
 /*
@@ -4484,7 +4485,7 @@ EnsureCpusetIsAvailable(int elevel)
 				(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 				 errmsg("cgroup is not properly configured to use the cpuset feature"),
 				 errhint("Extra cgroup configurations are required to enable this feature, "
-						 "please refer to the Greenplum Documentations for details")));
+						 "please refer to the Cloudberry Documentations for details")));
 
 		return false;
 	}

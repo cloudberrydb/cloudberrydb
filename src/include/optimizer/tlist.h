@@ -4,9 +4,9 @@
  *	  prototypes for tlist.c.
  *
  *
- * Portions Copyright (c) 2007-2009, Greenplum inc
+ * Portions Copyright (c) 2007-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/optimizer/tlist.h
@@ -21,7 +21,6 @@
 
 extern TargetEntry *tlist_member(Expr *node, List *targetlist);
 extern TargetEntry *tlist_member_ignore_relabel(Expr *node, List *targetlist);
-
 // return a list a target entries that match the node expression
 extern List *tlist_members(Node *node, List *targetlist);
 

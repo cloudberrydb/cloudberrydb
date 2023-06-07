@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="ku137116">gpfdist</title>
   <body>
-    <p>Serves data files to or writes data files out from Greenplum Database segments.</p>
+    <p>Serves data files to or writes data files out from Cloudberry Database segments.</p>
     <section id="section2">
       <title>Synopsis</title>
       <codeblock><b>gpfdist</b> [<b>-d</b> <varname>directory</varname>] [<b>-p</b> <varname>http_port</varname>] [<b>-P</b> <varname>last_http_port</varname>] [<b>-l</b> <varname>log_file</varname>]
@@ -18,18 +18,18 @@
     </section>
     <section id="section3">
       <title>Description</title>
-      <p><codeph>gpfdist</codeph> is Greenplum Database parallel file distribution program. It is
+      <p><codeph>gpfdist</codeph> is Cloudberry Database parallel file distribution program. It is
         used by readable external tables and <codeph>gpload</codeph> to serve external table files
-        to all Greenplum Database segments in parallel. It is used by writable external tables to
-        accept output streams from Greenplum Database segments in parallel and write them out to a
+        to all Cloudberry Database segments in parallel. It is used by writable external tables to
+        accept output streams from Cloudberry Database segments in parallel and write them out to a
         file.</p>
       <note><codeph>gpfdist</codeph> and <codeph>gpload</codeph> are compatible only with the
-        Greenplum Database major version in which they are shipped. For example, a
-          <codeph>gpfdist</codeph> utility that is installed with Greenplum Database 4.x cannot be
-        used with Greenplum Database 5.x or 6.x.</note>
+        Cloudberry Database major version in which they are shipped. For example, a
+          <codeph>gpfdist</codeph> utility that is installed with Cloudberry Database 4.x cannot be
+        used with Cloudberry Database 5.x or 6.x.</note>
       <p>In order for <codeph>gpfdist</codeph> to be used by an external table, the
           <codeph>LOCATION</codeph> clause of the external table definition must specify the
-        external table data using the <codeph>gpfdist://</codeph> protocol (see the Greenplum
+        external table data using the <codeph>gpfdist://</codeph> protocol (see the Cloudberry
         Database command <codeph>CREATE EXTERNAL TABLE</codeph>). </p>
       <note>If the <codeph>--ssl</codeph> option is specified to enable SSL security, create the
         external table with the <codeph>gpfdists://</codeph> protocol.</note>
@@ -37,7 +37,7 @@
         parallelism while reading from or writing to external tables, thereby offering the best
         performance as well as easier administration of external tables.</p>
       <p>For readable external tables, <codeph>gpfdist</codeph> parses and serves data files evenly
-        to all the segment instances in the Greenplum Database system when users
+        to all the segment instances in the Cloudberry Database system when users
           <codeph>SELECT</codeph> from the external table. For writable external tables,
           <codeph>gpfdist</codeph> accepts parallel output streams from the segments when users
           <codeph>INSERT</codeph> into the external table, and writes to an output file.</p>
@@ -54,11 +54,11 @@
       <note type="note">Compression is not supported for readable and writeable external tables when
         the <codeph>gpfdist</codeph> utility runs on Windows platforms.</note>
       <p>When reading or writing data with the <codeph>gpfdist</codeph> or <codeph>gpfdists</codeph>
-        protocol, Greenplum Database includes <codeph>X-GP-PROTO</codeph> in the HTTP request header
-        to indicate that the request is from Greenplum Database. The utility rejects HTTP requests
+        protocol, Cloudberry Database includes <codeph>X-GP-PROTO</codeph> in the HTTP request header
+        to indicate that the request is from Cloudberry Database. The utility rejects HTTP requests
         that do not include <codeph>X-GP-PROTO</codeph> in the request header.</p>
       <p>Most likely, you will want to run <codeph>gpfdist</codeph> on your ETL machines rather than
-        the hosts where Greenplum Database is installed. To install <codeph>gpfdist</codeph> on
+        the hosts where Cloudberry Database is installed. To install <codeph>gpfdist</codeph> on
         another host, simply copy the utility over to that host and add <codeph>gpfdist</codeph> to
         your <codeph>$PATH</codeph>.</p>
       <note type="note">When using IPv6, always enclose the numeric IP address in brackets.</note>
@@ -91,7 +91,7 @@
         </plentry>
         <plentry>
           <pt>-t <varname>timeout</varname></pt>
-          <pd>Sets the time allowed for Greenplum Database to establish a connection to a
+          <pd>Sets the time allowed for Cloudberry Database to establish a connection to a
               <codeph>gpfdist</codeph> process. Default is 5 seconds. Allowed values are 2 to 7200
             seconds (2 hours). May need to be increased on systems with a lot of network
             traffic.</pd>
@@ -129,12 +129,12 @@
         </plentry>
         <plentry>
           <pt>-w <varname>time</varname></pt>
-          <pd>Sets the number of seconds that Greenplum Database delays before closing a target file
+          <pd>Sets the number of seconds that Cloudberry Database delays before closing a target file
             such as a named pipe. The default value is 0, no delay. The maximum value is 7200
             seconds (2 hours). </pd>
-          <pd>For a Greenplum Database with multiple segments, there might be a delay between
+          <pd>For a Cloudberry Database with multiple segments, there might be a delay between
             segments when writing data from different segments to the file. You can specify a time
-            to wait before Greenplum Database closes the file to ensure all the data is written to
+            to wait before Cloudberry Database closes the file to ensure all the data is written to
             the file. </pd>
         </plentry>
         <plentry>
@@ -144,7 +144,7 @@
               <varname>certificate_path</varname></codeph> option, the only way to load data from
             this file server is with the <codeph>gpfdist://</codeph> protocol. <ph>For information
               on the <codeph>gpfdist://</codeph> protocol, see "Loading and Unloading Data" in the
-                <i>Greenplum Database Administrator Guide</i>.</ph></pd>
+                <i>Cloudberry Database Administrator Guide</i>.</ph></pd>
           <pd>The location specified in <varname>certificate_path</varname> must contain the
             following files:<ul id="ul_dyp_eqt_mo">
               <li id="ku140282">The server certificate file, <codeph>server.crt</codeph></li>
@@ -157,7 +157,7 @@
           <pt>--sslclean <varname>wait_time</varname></pt>
           <pd>When the utility is run with the <codeph>--ssl</codeph> option, sets the number of
             seconds that the utility delays before closing an SSL session and cleaning up the SSL
-            resources after it completes writing data to or from a Greenplum Database segment. The
+            resources after it completes writing data to or from a Cloudberry Database segment. The
             default value is 0, no delay. The maximum value is 500 seconds. If the delay is
             increased, the transfer speed decreases.</pd>
           <pd>In some cases, this error might occur when copying large amounts of data:
@@ -171,10 +171,10 @@
             1.1 document. </pd>
           <pd>For information about the file format, see <xref
               href="../../admin_guide/load/topics/transforming-xml-data.xml#topic83"/> in the
-              <cite>Greenplum Database Administrator Guide</cite>. For information about configuring
+              <cite>Cloudberry Database Administrator Guide</cite>. For information about configuring
             data transformation with <codeph>gpfdist</codeph>, see <xref
               href="../../admin_guide/load/topics/transforming-xml-data.xml#topic75"/> in the
-              <cite>Greenplum Database Administrator Guide</cite>.</pd>
+              <cite>Cloudberry Database Administrator Guide</cite>.</pd>
           <pd>This option is not available on Windows platforms.</pd>
         </plentry>
         <plentry>
@@ -200,14 +200,14 @@
       <p>The server configuration parameter <codeph><xref
             href="../../ref_guide/config_params/guc-list.xml#verify_gpfdists_cert"
             >verify_gpfdists_cert</xref></codeph> controls whether SSL certificate authentication is
-        enabled when Greenplum Database communicates with the <codeph>gpfdist</codeph> utility to
+        enabled when Cloudberry Database communicates with the <codeph>gpfdist</codeph> utility to
         either read data from or write data to an external data source. You can set the parameter
         value to <codeph>false</codeph> to disable authentication when testing the communication
-        between the Greenplum Database external table and the <codeph>gpfdist</codeph> utility that
+        between the Cloudberry Database external table and the <codeph>gpfdist</codeph> utility that
         is serving the external data. If the value is <codeph>false</codeph>, these SSL exceptions
         are ignored:<ul id="ul_vvb_5lj_mdb">
           <li>The self-signed SSL certificate that is used by <codeph>gpfdist</codeph> is not
-            trusted by Greenplum Database.</li>
+            trusted by Cloudberry Database.</li>
           <li>The host name contained in the SSL certificate does not match the host name that is
             running <codeph>gpfdist</codeph>.</li>
         </ul>
@@ -215,8 +215,8 @@
           validating the <codeph>gpfdists</codeph> SSL certificate. </note></p>
       <p>You can set the server configuration parameter <codeph><xref
             href="../../ref_guide/config_params/guc-list.xml#gpfdist_retry_timeout"/></codeph> to
-        control the time that Greenplum Database waits before returning an error when a
-          <codeph>gpfdist</codeph> server does not respond while Greenplum Database is attempting to
+        control the time that Cloudberry Database waits before returning an error when a
+          <codeph>gpfdist</codeph> server does not respond while Cloudberry Database is attempting to
         write data to <codeph>gpfdist</codeph>. The default is 300 seconds (5 minutes).</p>
       <p>If the <codeph>gpfdist</codeph> utility hangs with no read or write activity occurring, you
         can generate a core dump the next time a hang occurs to help debug the issue. Set the
@@ -246,7 +246,7 @@
     <section id="section7">
       <title>See Also</title>
       <p><codeph><xref href="./gpload.xml#topic1" type="topic" format="dita"/></codeph>,
-          <codeph>CREATE EXTERNAL TABLE</codeph><ph> in the <i>Greenplum Database Reference
+          <codeph>CREATE EXTERNAL TABLE</codeph><ph> in the <i>Cloudberry Database Reference
             Guide</i></ph></p>
     </section>
   </body>

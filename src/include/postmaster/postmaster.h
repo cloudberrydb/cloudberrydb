@@ -3,7 +3,7 @@
  * postmaster.h
  *	  Exports from postmaster/postmaster.c.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/postmaster/postmaster.h
@@ -30,6 +30,7 @@ extern bool log_hostname;
 extern bool enable_bonjour;
 extern char *bonjour_name;
 extern bool restart_after_crash;
+extern bool remove_temp_files_after_crash;
 
 #ifdef WIN32
 extern HANDLE PostmasterHandle;
@@ -59,7 +60,6 @@ extern void InitProcessGlobals(void);
 
 extern int	MaxLivePostmasterChildren(void);
 
-extern int	GetNumShmemAttachedBgworkers(void);
 extern bool PostmasterMarkPIDForWorkerNotify(int);
 
 extern void ResetMirrorReadyFlag(void);
@@ -81,6 +81,12 @@ extern bool amAuxiliaryBgWorker(void);
 # define IC_PROXY_NUM_BGWORKER 0
 #endif  /* ENABLE_IC_PROXY */
 
+#ifdef USE_INTERNAL_FTS
+# define FTS_NUM_BGWORKER 1
+#else
+# define FTS_NUM_BGWORKER 0
+#endif
+
 /*
  * Note: MAX_BACKENDS is limited to 2^18-1 because that's the width reserved
  * for buffer references in buf_internals.h.  This limitation could be lifted
@@ -92,6 +98,7 @@ extern bool amAuxiliaryBgWorker(void);
  * relevant GUC check hooks and in RegisterBackgroundWorker().
  */
 #define MAX_BACKENDS	0x3FFFF
-#define MaxPMAuxProc	(4 + IC_PROXY_NUM_BGWORKER)
+
+#define MaxPMAuxProc	(3 + IC_PROXY_NUM_BGWORKER + FTS_NUM_BGWORKER)
 
 #endif							/* _POSTMASTER_H */

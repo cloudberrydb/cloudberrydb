@@ -4,7 +4,7 @@
  *	  postgres transaction system definitions
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/xact.h
@@ -16,6 +16,7 @@
 
 #include "access/transam.h"
 #include "access/xlogreader.h"
+#include "datatype/timestamp.h"
 #include "lib/stringinfo.h"
 #include "nodes/pg_list.h"
 #include "storage/relfilenode.h"
@@ -76,7 +77,8 @@ typedef enum
 	SYNCHRONOUS_COMMIT_REMOTE_WRITE,	/* wait for local flush and remote
 										 * write */
 	SYNCHRONOUS_COMMIT_REMOTE_FLUSH,	/* wait for local and remote flush */
-	SYNCHRONOUS_COMMIT_REMOTE_APPLY /* wait for local flush and remote apply */
+	SYNCHRONOUS_COMMIT_REMOTE_APPLY /* wait for local and remote flush and
+									 * remote apply */
 }			SyncCommitLevel;
 
 /* Define the default setting for synchronous_commit */
@@ -84,6 +86,10 @@ typedef enum
 
 /* Synchronous commit level */
 extern int	synchronous_commit;
+
+/* used during logical streaming of a transaction */
+extern PGDLLIMPORT TransactionId CheckXidAlive;
+extern PGDLLIMPORT bool bsysscan;
 
 /*
  * Miscellaneous flag bits to record events which occur on the top level
@@ -147,18 +153,22 @@ typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
  * XLOG allows to store some information in high 4 bits of log record xl_info
  * field. We use 3 for the opcode, and one about an optional flag variable.
  */
+/*
+* GPDB use the high 4 bits for the opcode, XLOG_XACT_HAS_INFO not needed anymore.
+* xinfo field default owned by xl_xact_commit and xl_xact_abort.
+*/
 #define XLOG_XACT_COMMIT			0x00
 #define XLOG_XACT_PREPARE			0x10
 #define XLOG_XACT_ABORT				0x20
 #define XLOG_XACT_COMMIT_PREPARED	0x30
 #define XLOG_XACT_ABORT_PREPARED	0x40
 #define XLOG_XACT_ASSIGNMENT		0x50
-/* GPDB takes the last available three opcodes */
-#define XLOG_XACT_DISTRIBUTED_COMMIT 0x60
-#define XLOG_XACT_DISTRIBUTED_FORGET 0x70
+#define XLOG_XACT_INVALIDATIONS		0x60
+#define XLOG_XACT_DISTRIBUTED_COMMIT 0x70
+#define XLOG_XACT_DISTRIBUTED_FORGET 0x80
 
 /* mask for filtering opcodes out of xl_info */
-#define XLOG_XACT_OPMASK			0x70
+#define XLOG_XACT_OPMASK			0xF0
 
 /* does this record have a 'xinfo' field or not */
 #define XLOG_XACT_HAS_INFO			0x80
@@ -214,8 +224,8 @@ typedef struct xl_xact_assignment
  *
  * A minimal commit/abort record only consists of a xl_xact_commit/abort
  * struct. The presence of additional information is indicated by bits set in
- * 'xl_xact_xinfo->xinfo'. The presence of the xinfo field itself is signalled
- * by a set XLOG_XACT_HAS_INFO bit in the xl_info field.
+ * 'xl_xact_xinfo->xinfo'. The presence of the xinfo field itself is default
+ * owned by xl_xact_commit and xl_xact_abort.
  *
  * NB: All the individual data chunks should be sized to multiples of
  * sizeof(int) and only require int32 alignment. If they require bigger
@@ -289,7 +299,7 @@ typedef struct xl_xact_commit
 	TimestampTz xact_time;		/* time of commit */
 	Oid	tablespace_oid_to_delete_on_commit;
 
-	/* xl_xact_xinfo follows if XLOG_XACT_HAS_INFO */
+	/* xl_xact_xinfo follows default */
 	/* xl_xact_dbinfo follows if XINFO_HAS_DBINFO */
 	/* xl_xact_subxacts follows if XINFO_HAS_SUBXACT */
 	/* xl_xact_relfilenodes follows if XINFO_HAS_RELFILENODES */
@@ -306,17 +316,35 @@ typedef struct xl_xact_abort
 	TimestampTz xact_time;		/* time of abort */
 	Oid tablespace_oid_to_delete_on_abort;
 
-	/* xl_xact_xinfo follows if XLOG_XACT_HAS_INFO */
+	/* xl_xact_xinfo follows default */
 	/* xl_xact_dbinfo follows if XINFO_HAS_DBINFO */
-	/* xl_xact_subxacts follows if HAS_SUBXACT */
-	/* xl_xact_relfilenodes follows if HAS_RELFILENODES */
-	/* xl_xact_deldbs follows if HAS_DELDBS */
+	/* xl_xact_subxacts follows if XINFO_HAS_SUBXACT */
+	/* xl_xact_relfilenodes follows if XINFO_HAS_RELFILENODES */
+	/* xl_xact_deldbs follows if XINFO_HAS_DELDBS */
 	/* No invalidation messages needed. */
 	/* xl_xact_twophase follows if XINFO_HAS_TWOPHASE */
 	/* twophase_gid follows if XINFO_HAS_GID. As a null-terminated string. */
 	/* xl_xact_origin follows if XINFO_HAS_ORIGIN, stored unaligned! */
 } xl_xact_abort;
 #define MinSizeOfXactAbort sizeof(xl_xact_abort)
+
+typedef struct xl_xact_prepare
+{
+	uint32		magic;			/* format identifier */
+	uint32		total_len;		/* actual file length */
+	TransactionId xid;			/* original transaction XID */
+	Oid			database;		/* OID of database it was in */
+	TimestampTz prepared_at;	/* time of preparation */
+	Oid			owner;			/* user running the transaction */
+	int32		nsubxacts;		/* number of following subxact XIDs */
+	int32		ncommitrels;	/* number of delete-on-commit rels */
+	int32		nabortrels;		/* number of delete-on-abort rels */
+	int32		ninvalmsgs;		/* number of cache invalidation messages */
+	bool		initfileinval;	/* does relcache init file need invalidation? */
+	uint16		gidlen;			/* length of the GID - GID follows the header */
+	XLogRecPtr	origin_lsn;		/* lsn of this record at origin node */
+	TimestampTz origin_timestamp;	/* time of prepare at origin node */
+} xl_xact_prepare;
 
 /*
  * Commit/Abort records in the above form are a bit verbose to parse, so
@@ -396,7 +424,7 @@ typedef struct xl_xact_distributed_forget
  * ----------------
  */
 
-/* Greenplum Database specific */ 
+/* Cloudberry Database specific */ 
 extern void SetSharedTransactionId_writer(DtxContext distributedTransactionContext);
 extern void SetSharedTransactionId_reader(FullTransactionId xid, CommandId cid, DtxContext distributedTransactionContext);
 extern bool IsTransactionState(void);
@@ -474,6 +502,8 @@ extern void RegisterSubXactCallback(SubXactCallback callback, void *arg);
 extern void UnregisterSubXactCallback(SubXactCallback callback, void *arg);
 
 extern void RecordDistributedForgetCommitted(DistributedTransactionId gxid);
+extern bool IsSubTransactionAssignmentPending(void);
+extern void MarkSubTransactionAssigned(void);
 
 extern int	xactGetCommittedChildren(TransactionId **ptr);
 
@@ -483,8 +513,9 @@ extern XLogRecPtr XactLogCommitRecord(TimestampTz commit_time,
 									  int nrels, RelFileNodePendingDelete *rels,
 									  int nmsgs, SharedInvalidationMessage *msgs,
 									  int ndeldbs, DbDirNode *deldbs,
-									  bool relcacheInval, bool forceSync,
-									  int xactflags, TransactionId twophase_xid,
+									  bool relcacheInval,
+									  int xactflags,
+									  TransactionId twophase_xid,
 									  const char *twophase_gid);
 
 extern XLogRecPtr XactLogAbortRecord(TimestampTz abort_time,
@@ -503,6 +534,7 @@ extern const char *xact_identify(uint8 info);
 /* also in xactdesc.c, so they can be shared between front/backend code */
 extern void ParseCommitRecord(uint8 info, xl_xact_commit *xlrec, xl_xact_parsed_commit *parsed);
 extern void ParseAbortRecord(uint8 info, xl_xact_abort *xlrec, xl_xact_parsed_abort *parsed);
+extern void ParsePrepareRecord(uint8 info, xl_xact_prepare *xlrec, xl_xact_parsed_prepare *parsed);
 
 extern void EnterParallelMode(void);
 extern void ExitParallelMode(void);

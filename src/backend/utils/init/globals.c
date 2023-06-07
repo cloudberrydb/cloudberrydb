@@ -3,7 +3,7 @@
  * globals.c
  *	  global variable declarations
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -33,9 +33,12 @@ volatile sig_atomic_t QueryCancelPending = false;
 volatile sig_atomic_t QueryCancelCleanup = false;
 volatile sig_atomic_t QueryFinishPending = false;
 volatile sig_atomic_t ProcDiePending = false;
+volatile sig_atomic_t CheckClientConnectionPending = false;
 volatile sig_atomic_t ClientConnectionLost = false;
 volatile sig_atomic_t IdleInTransactionSessionTimeoutPending = false;
-volatile sig_atomic_t ConfigReloadPending = false;
+volatile sig_atomic_t IdleSessionTimeoutPending = false;
+volatile sig_atomic_t ProcSignalBarrierPending = false;
+
 /*
  * GPDB: Make these signed integers (instead of uint32) to detect garbage
  * negative values.
@@ -43,6 +46,7 @@ volatile sig_atomic_t ConfigReloadPending = false;
 volatile int32 InterruptHoldoffCount = 0;
 volatile int32 QueryCancelHoldoffCount = 0;
 volatile int32 CritSectionCount = 0;
+volatile sig_atomic_t LogMemoryContextPending = false;
 
 int			MyProcPid;
 pg_time_t	MyStartTime;
@@ -87,7 +91,7 @@ char		postgres_exec_path[MAXPGPATH];	/* full path to backend */
 
 BackendId	MyBackendId = InvalidBackendId;
 
-BackendId	ParallelMasterBackendId = InvalidBackendId;
+BackendId	ParallelLeaderBackendId = InvalidBackendId;
 
 Oid			MyDatabaseId = InvalidOid;
 
@@ -117,7 +121,7 @@ bool		IsUnderPostmaster = false;
 bool		IsBinaryUpgrade = false;
 bool		IsBackgroundWorker = false;
 
-/* Greenplum seeds the creation of a segment from a copy of the master segment
+/* Cloudberry seeds the creation of a segment from a copy of the master segment
  * directory.  However, the first time the segment starts up small adjustments
  * need to be made to complete the transformation to a segment directory, and
  * these changes will be triggered by this global.
@@ -141,6 +145,7 @@ int			max_statement_mem = 2048000;
  * do not enforce per-query memory limit
  */
 int			gp_vmem_limit_per_query = 0;
+double		hash_mem_multiplier = 1.0;
 int			maintenance_work_mem = 65536;
 int			max_parallel_maintenance_workers = 2;
 
@@ -157,14 +162,14 @@ int			max_parallel_workers = 8;
 int			MaxBackends = 0;
 
 int			VacuumCostPageHit = 1;	/* GUC parameters for vacuum */
-int			VacuumCostPageMiss = 10;
+int			VacuumCostPageMiss = 2;
 int			VacuumCostPageDirty = 20;
 int			VacuumCostLimit = 200;
 double		VacuumCostDelay = 0;
 
-int			VacuumPageHit = 0;
-int			VacuumPageMiss = 0;
-int			VacuumPageDirty = 0;
+int64		VacuumPageHit = 0;
+int64		VacuumPageMiss = 0;
+int64		VacuumPageDirty = 0;
 
 int			VacuumCostBalance = 0;	/* working state for vacuum */
 bool		VacuumCostActive = false;

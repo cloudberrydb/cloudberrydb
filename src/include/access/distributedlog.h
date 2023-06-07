@@ -17,7 +17,7 @@
  * distributed transaction identifier -- the timestamp -- also so we can
  * be sure which distributed transaction we are looking at.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -30,6 +30,7 @@
 #define DISTRIBUTEDLOG_H
 
 #include "access/xlog.h"
+#include "storage/sync.h"
 
 /*
  * The full binary representation of the distributed transaction id.
@@ -61,7 +62,6 @@ extern void DistributedLog_BootStrap(void);
 extern void DistributedLog_Startup(
 					   TransactionId oldestActiveXid,
 					   TransactionId nextXid);
-extern void DistributedLog_Shutdown(void);
 extern void DistributedLog_CheckPoint(void);
 extern void DistributedLog_Extend(TransactionId newestXid);
 extern bool DistributedLog_GetLowWaterXid(
@@ -78,5 +78,7 @@ extern const char *DistributedLog_identify(uint8 info);
 extern void DistributedLog_GetDistributedXid(
 				TransactionId 						localXid,
 				DistributedTransactionId 			*distribXid);
+
+extern int DistributedLog_syncfiletag(const FileTag *ftag, char *path);
 
 #endif							/* DISTRIBUTEDLOG_H */

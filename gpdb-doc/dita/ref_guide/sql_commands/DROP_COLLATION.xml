@@ -45,7 +45,7 @@
     <section id="section7">
       <title>Compatibility</title>
       <p> The <codeph>DROP COLLATION</codeph> command conforms to the SQL standard, apart from the
-          <codeph>IF EXISTS</codeph> option, which is a Greenplum Database extension. </p>
+          <codeph>IF EXISTS</codeph> option, which is a Cloudberry Database extension. </p>
     </section>
     <section id="section8">
       <title>See Also</title>

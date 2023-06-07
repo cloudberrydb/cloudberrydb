@@ -19,7 +19,7 @@
  * memory context given to inv_open (for LargeObjectDesc structs).
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -32,10 +32,11 @@
 
 #include <limits.h>
 
+#include "access/detoast.h"
 #include "access/genam.h"
+#include "access/htup_details.h"
 #include "access/sysattr.h"
 #include "access/table.h"
-#include "access/tuptoaster.h"
 #include "access/xact.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
@@ -45,6 +46,7 @@
 #include "libpq/libpq-fs.h"
 #include "miscadmin.h"
 #include "storage/large_object.h"
+#include "utils/acl.h"
 #include "utils/fmgroids.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
@@ -179,7 +181,7 @@ getdatafield(Form_pg_largeobject tuple,
 	if (VARATT_IS_EXTENDED(datafield))
 	{
 		datafield = (bytea *)
-			heap_tuple_untoast_attr((struct varlena *) datafield);
+			detoast_attr((struct varlena *) datafield);
 		freeit = true;
 	}
 	len = VARSIZE(datafield) - VARHDRSZ;
@@ -242,10 +244,12 @@ inv_create(Oid lobjId)
 /*
  *	inv_open -- access an existing large object.
  *
- *		Returns:
- *		  Large object descriptor, appropriately filled in.  The descriptor
- *		  and subsidiary data are allocated in the specified memory context,
- *		  which must be suitably long-lived for the caller's purposes.
+ * Returns a large object descriptor, appropriately filled in.
+ * The descriptor and subsidiary data are allocated in the specified
+ * memory context, which must be suitably long-lived for the caller's
+ * purposes.  If the returned descriptor has a snapshot associated
+ * with it, the caller must ensure that it also lives long enough,
+ * e.g. by calling RegisterSnapshotOnOwner
  */
 LargeObjectDesc *
 inv_open(Oid lobjId, int flags, MemoryContext mcxt)
@@ -312,19 +316,16 @@ inv_open(Oid lobjId, int flags, MemoryContext mcxt)
 	retval = (LargeObjectDesc *) MemoryContextAlloc(mcxt,
 													sizeof(LargeObjectDesc));
 	retval->id = lobjId;
-	retval->subid = GetCurrentSubTransactionId();
 	retval->offset = 0;
 	retval->flags = descflags;
 
+	/* caller sets if needed, not used by the functions in this file */
+	retval->subid = InvalidSubTransactionId;
+
 	/*
-	 * We must register the snapshot in TopTransaction's resowner, because it
-	 * must stay alive until the LO is closed rather than until the current
-	 * portal shuts down.  Do this last to avoid uselessly leaking the
-	 * snapshot if an error is thrown above.
+	 * The snapshot (if any) is just the currently active snapshot.  The
+	 * caller will replace it with a longer-lived copy if needed.
 	 */
-	if (snapshot)
-		snapshot = RegisterSnapshotOnOwner(snapshot,
-										   TopTransactionResourceOwner);
 	retval->snapshot = snapshot;
 
 	return retval;
@@ -338,10 +339,6 @@ void
 inv_close(LargeObjectDesc *obj_desc)
 {
 	Assert(PointerIsValid(obj_desc));
-
-	UnregisterSnapshotFromOwner(obj_desc->snapshot,
-								TopTransactionResourceOwner);
-
 	pfree(obj_desc);
 }
 

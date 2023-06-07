@@ -4,10 +4,10 @@
     <topic id="topic_kmz_lbg_rp">
         <title>Recommended Monitoring and Maintenance Tasks</title>
         <shortdesc>This section lists monitoring and maintenance activities recommended to ensure
-            high availability and consistent performance of your Greenplum Database
+            high availability and consistent performance of your Cloudberry Database
             cluster.</shortdesc>
         <body>
-            <p>The tables in the following sections suggest activities that a Greenplum System Administrator can perform periodically to
+            <p>The tables in the following sections suggest activities that a Cloudberry System Administrator can perform periodically to
                 ensure that all components of the system are operating optimally. Monitoring
                 activities help you to detect and diagnose problems early. Maintenance activities
                 help you to keep the system up-to-date and avoid deteriorating performance, for
@@ -105,7 +105,7 @@ GROUP BY 1;</codeblock></p>
                             </row>
                             
                             <row>
-                                <entry>Test the state of master mirroring on Greenplum Database. If
+                                <entry>Test the state of master mirroring on Cloudberry Database. If
                                     the value is not "STREAMING", raise an alert or
                                         warning.<p>Recommended frequency: run every 5 to 10
                                         minutes</p><p>Severity: IMPORTANT</p></entry>
@@ -160,7 +160,7 @@ GROUP BY 1;</codeblock></p>
                         </thead>
                         <tbody>
                             <row>
-                                <entry>Check disk space usage on volumes used for Greenplum Database data storage and the OS.
+                                <entry>Check disk space usage on volumes used for Cloudberry Database data storage and the OS.
                                         <p>Recommended frequency: every 5 to 30
                                         minutes</p><p>Severity: CRITICAL</p></entry>
                                 <entry>
@@ -201,7 +201,7 @@ GROUP BY 1;</codeblock></p>
                                 <entry>Check for adequate I/O bandwidth and I/O skew.<p>Recommended
                                         frequency: when create a cluster or when hardware issues are
                                         suspected.</p></entry>
-                                <entry>Run the Greenplum
+                                <entry>Run the Cloudberry
                                     <codeph>gpcheckperf</codeph> utility. </entry>
                                 <entry>
                                     <p>The cluster may be under-specified if data transfer rates are
@@ -244,7 +244,7 @@ GROUP BY 1;</codeblock></p>
                                         state.<p>You may run this command while the database is up
                                         and running. </p><p>Recommended frequency:
                                         weekly</p><p>Severity: IMPORTANT</p></entry>
-                                <entry>Run the Greenplum <codeph>gpcheckcat</codeph> utility in each
+                                <entry>Run the Cloudberry <codeph>gpcheckcat</codeph> utility in each
                                         database:<codeblock>gpcheckcat -O</codeblock><note> With the
                                             <codeph>-O</codeph> option, <codeph>gpcheckcat</codeph>
                                         runs just 10 of its usual 15 tests.</note></entry>
@@ -255,7 +255,7 @@ GROUP BY 1;</codeblock></p>
                                     corresponding pg_<codeph>attribute</codeph> entry.<p>Recommended
                                         frequency: monthly</p><p>Severity: IMPORTANT</p></entry>
                                 <entry>During a downtime, with no users on the system, run the
-                                        Greenplum
+                                        Cloudberry
                                     <codeph>gpcheckcat</codeph> utility in each
                                     database:<codeblock>gpcheckcat -R pgclass</codeblock></entry>
                                 <entry>Run the repair scripts for any issues identified.</entry>
@@ -265,7 +265,7 @@ GROUP BY 1;</codeblock></p>
                                         definition.<p>Recommended frequency: monthly</p><p>Severity:
                                         IMPORTANT</p></entry>
                                 <entry>During a downtime, with no users on the system, run the
-                                        Greenplum
+                                        Cloudberry
                                     <codeph>gpcheckcat</codeph> utility in each
                                     database:<codeblock>gpcheckcat -R namespace</codeblock></entry>
                                 <entry>Run the repair scripts for any issues identified.</entry>
@@ -275,7 +275,7 @@ GROUP BY 1;</codeblock></p>
                                         tables.<p>Recommended frequency: monthly</p><p>Severity:
                                         IMPORTANT</p></entry>
                                 <entry>During a downtime, with no users on the system, run the
-                                        Greenplum
+                                        Cloudberry
                                     <codeph>gpcheckcat</codeph> utility in each
                                     database:<codeblock>gpcheckcat -R distribution_policy</codeblock></entry>
                                 <entry>Run the repair scripts for any issues identified.</entry>
@@ -284,7 +284,7 @@ GROUP BY 1;</codeblock></p>
                                 <entry>Check for dependencies on non-existent objects.<p>Recommended
                                         frequency: monthly</p><p>Severity: IMPORTANT</p></entry>
                                 <entry>During a downtime, with no users on the system, run the
-                                        Greenplum
+                                        Cloudberry
                                     <codeph>gpcheckcat</codeph> utility in each
                                     database:<codeblock>gpcheckcat -R dependency</codeblock></entry>
                                 <entry>Run the repair scripts for any issues identified.</entry>
@@ -446,15 +446,15 @@ GROUP BY 1;</codeblock></p>
                                     fixes, and to avoid difficult future upgrades. </entry>
                             </row>
                             <row>
-                                <entry>Install Greenplum Database minor releases<ph>, for example
+                                <entry>Install Cloudberry Database minor releases<ph>, for example
                                             5.0.<i>x</i></ph>.<p>Recommended frequency:
                                         quarterly</p><p>Severity: IMPORTANT</p></entry>
-                                <entry>Follow upgrade instructions in the Greenplum Database
+                                <entry>Follow upgrade instructions in the Cloudberry Database
                                     <i>Release Notes</i>. Always upgrade to the latest in the
                                     series.</entry>
-                                <entry>Keep the Greenplum Database software current to
+                                <entry>Keep the Cloudberry Database software current to
                                     incorporate bug fixes, performance enhancements, and feature
-                                    enhancements into your Greenplum
+                                    enhancements into your Cloudberry
                                     cluster. </entry>
                             </row>
                         </tbody>

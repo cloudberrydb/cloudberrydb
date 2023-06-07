@@ -43,9 +43,9 @@
  * overflow.)
  *
  *
- * Portions Copyright (c) 2005-2009, Greenplum inc
+ * Portions Copyright (c) 2005-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -64,6 +64,9 @@
 #ifdef HAVE_SYSLOG
 #include <syslog.h>
 #endif
+#ifdef HAVE_EXECINFO_H
+#include <execinfo.h>
+#endif
 
 #ifdef HAVE_EXECINFO_H
 #include <execinfo.h>
@@ -76,6 +79,8 @@
 #include "libpq/pqsignal.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
+#include "pgstat.h"
+#include "postmaster/bgworker.h"
 #include "postmaster/postmaster.h"
 #include "postmaster/syslogger.h"
 #include "storage/ipc.h"
@@ -212,6 +217,7 @@ static char formatted_log_time[FORMATTED_TS_LEN];
 
 static void cdb_tidy_message(ErrorData *edata);
 static const char *err_gettext(const char *str) pg_attribute_format_arg(1);
+static pg_noinline void set_backtrace(ErrorData *edata, int num_skip);
 static void set_errdata_field(MemoryContextData *cxt, char **ptr, const char *str);
 static void write_console(const char *line, int len);
 static void setup_formatted_log_time(void);
@@ -239,6 +245,98 @@ ignore_returned_result(long long int result)
 static void setup_formatted_log_time(void);
 static void setup_formatted_start_time(void);
 
+
+/*
+ * is_log_level_output -- is elevel logically >= log_min_level?
+ *
+ * We use this for tests that should consider LOG to sort out-of-order,
+ * between ERROR and FATAL.  Generally this is the right thing for testing
+ * whether a message should go to the postmaster log, whereas a simple >=
+ * test is correct for testing whether the message should go to the client.
+ */
+static inline bool
+is_log_level_output(int elevel, int log_min_level)
+{
+	if (elevel == LOG || elevel == LOG_SERVER_ONLY)
+	{
+		if (log_min_level == LOG || log_min_level <= ERROR)
+			return true;
+	}
+	else if (elevel == WARNING_CLIENT_ONLY)
+	{
+		/* never sent to log, regardless of log_min_level */
+		return false;
+	}
+	else if (log_min_level == LOG)
+	{
+		/* elevel != LOG */
+		if (elevel >= FATAL)
+			return true;
+	}
+	/* Neither is LOG */
+	else if (elevel >= log_min_level)
+		return true;
+
+	return false;
+}
+
+/*
+ * Policy-setting subroutines.  These are fairly simple, but it seems wise
+ * to have the code in just one place.
+ */
+
+/*
+ * should_output_to_server --- should message of given elevel go to the log?
+ */
+static inline bool
+should_output_to_server(int elevel)
+{
+	return is_log_level_output(elevel, log_min_messages);
+}
+
+/*
+ * should_output_to_client --- should message of given elevel go to the client?
+ */
+static inline bool
+should_output_to_client(int elevel)
+{
+	if (whereToSendOutput == DestRemote && elevel != LOG_SERVER_ONLY)
+	{
+		/*
+		 * client_min_messages is honored only after we complete the
+		 * authentication handshake.  This is required both for security
+		 * reasons and because many clients can't handle NOTICE messages
+		 * during authentication.
+		 */
+		if (ClientAuthInProgress)
+			return (elevel >= ERROR);
+		else
+			return (elevel >= client_min_messages || elevel == INFO);
+	}
+	return false;
+}
+
+
+/*
+ * message_level_is_interesting --- would ereport/elog do anything?
+ *
+ * Returns true if ereport/elog with this elevel will not be a no-op.
+ * This is useful to short-circuit any expensive preparatory work that
+ * might be needed for a logging message.  There is no point in
+ * prepending this to a bare ereport/elog call, however.
+ */
+bool
+message_level_is_interesting(int elevel)
+{
+	/*
+	 * Keep this in sync with the decision-making in errstart().
+	 */
+	if (elevel >= ERROR ||
+		should_output_to_server(elevel) ||
+		should_output_to_client(elevel))
+		return true;
+	return false;
+}
 
 /*
  * in_error_recursion_trouble --- are we at risk of infinite error recursion?
@@ -270,6 +368,20 @@ err_gettext(const char *str)
 #else
 	return str;
 #endif
+}
+
+/*
+ * errstart_cold
+ *		A simple wrapper around errstart, but hinted to be "cold".  Supporting
+ *		compilers are more likely to move code for branches containing this
+ *		function into an area away from the calling function's code.  This can
+ *		result in more commonly executed code being more compact and fitting
+ *		on fewer cache lines.
+ */
+pg_attribute_cold bool
+errstart_cold(int elevel, const char *domain)
+{
+	return errstart(elevel, domain);
 }
 
 /*
@@ -375,27 +487,8 @@ errstart(int elevel, const char *domain)
 	 * warning or less and not enabled for logging, just return false without
 	 * starting up any error logging machinery.
 	 */
-
-	/* Determine whether message is enabled for server log output */
-	output_to_server = is_log_level_output(elevel, log_min_messages);
-
-	/* Determine whether message is enabled for client output */
-	if (whereToSendOutput == DestRemote && elevel != LOG_SERVER_ONLY)
-	{
-		/*
-		 * client_min_messages is honored only after we complete the
-		 * authentication handshake.  This is required both for security
-		 * reasons and because many clients can't handle NOTICE messages
-		 * during authentication.
-		 */
-		if (ClientAuthInProgress)
-			output_to_client = (elevel >= ERROR);
-		else
-			output_to_client = (elevel >= client_min_messages ||
-								elevel == INFO);
-	}
-
-	/* Skip processing effort if non-error message will not be output */
+	output_to_server = should_output_to_server(elevel);
+	output_to_client = should_output_to_client(elevel);
 	if (elevel < ERROR && !output_to_server && !output_to_client)
 		return false;
 
@@ -475,7 +568,7 @@ errstart(int elevel, const char *domain)
 		edata->sqlerrcode = ERRCODE_INTERNAL_ERROR;
 		edata->omit_location = false;
 	}
-	else if (elevel == WARNING)
+	else if (elevel >= WARNING)
 		edata->sqlerrcode = ERRCODE_WARNING;
 	else
 		edata->sqlerrcode = ERRCODE_SUCCESSFUL_COMPLETION;
@@ -495,6 +588,32 @@ errstart(int elevel, const char *domain)
 
 	recursion_depth--;
 	return true;
+}
+
+/*
+ * Checks whether the given funcname matches backtrace_functions; see
+ * check_backtrace_functions.
+ */
+static bool
+matches_backtrace_functions(const char *funcname)
+{
+	char	   *p;
+
+	if (!backtrace_symbol_list || funcname == NULL || funcname[0] == '\0')
+		return false;
+
+	p = backtrace_symbol_list;
+	for (;;)
+	{
+		if (*p == '\0')			/* end of backtrace_symbol_list */
+			break;
+
+		if (strcmp(funcname, p) == 0)
+			return true;
+		p += strlen(p) + 1;
+	}
+
+	return false;
 }
 
 /*
@@ -527,6 +646,10 @@ errfinish(const char *filename, int lineno, const char *funcname)
 		slash = strrchr(filename, '/');
 		if (slash)
 			filename = slash + 1;
+		/* Some Windows compilers use backslashes in __FILE__ strings */
+		slash = strrchr(filename, '\\');
+		if (slash)
+			filename = slash + 1;
 	}
 
 	edata->filename = filename;
@@ -540,6 +663,12 @@ errfinish(const char *filename, int lineno, const char *funcname)
 	 * to report an error.
 	 */
 	oldcontext = MemoryContextSwitchTo(ErrorContext);
+
+	if (!edata->backtrace &&
+		edata->funcname &&
+		backtrace_functions &&
+		matches_backtrace_functions(edata->funcname))
+		set_backtrace(edata, 2);
 
 	/*
 	 * Call any context callback functions.  Errors occurring in callback
@@ -581,22 +710,11 @@ errfinish(const char *filename, int lineno, const char *funcname)
 		PG_RE_THROW();
 	}
 
-	/*
-	 * If we are doing FATAL or PANIC, abort any old-style COPY OUT in
-	 * progress, so that we can report the message before dying.  (Without
-	 * this, pq_putmessage will refuse to send the message at all, which is
-	 * what we want for NOTICE messages, but not for fatal exits.) This hack
-	 * is necessary because of poor design of old-style copy protocol.
-	 */
-	if (elevel >= FATAL && whereToSendOutput == DestRemote)
-		pq_endcopyout(true);
-
 	/* CDB: If fatal internal error, linger so user can attach a debugger. */
 	if (elevel == FATAL &&
 		edata->sqlerrcode == ERRCODE_INTERNAL_ERROR &&
 		gp_debug_linger > 0)
 		elog_debug_linger(edata);
-
 	/* Emit the message to the right places */
 	else
 		EmitErrorReport();
@@ -627,6 +745,8 @@ errfinish(const char *filename, int lineno, const char *funcname)
 		pfree(edata->hint);
 	if (edata->context)
 		pfree(edata->context);
+	if (edata->backtrace)
+		pfree(edata->backtrace);
 	if (edata->schema_name)
 		pfree(edata->schema_name);
 	if (edata->table_name)
@@ -668,6 +788,13 @@ errfinish(const char *filename, int lineno, const char *funcname)
 		 */
 		fflush(stdout);
 		fflush(stderr);
+
+		/*
+		 * Let the statistics collector know. Only mark the session as
+		 * terminated by fatal error if there is no other known cause.
+		 */
+		if (pgStatSessionEndCause == DISCONNECT_NORMAL)
+			pgStatSessionEndCause = DISCONNECT_FATAL;
 
 		/*
 		 * Do normal process-exit cleanup, then return exit code 1 to indicate
@@ -901,10 +1028,7 @@ errcode_for_socket_access(void)
 	switch (edata->saved_errno)
 	{
 			/* Loss of connection */
-		case EPIPE:
-#ifdef ECONNRESET
-		case ECONNRESET:
-#endif
+		case ALL_CONNECTION_FAILURE_ERRNOS:
 			edata->sqlerrcode = ERRCODE_CONNECTION_FAILURE;
 			break;
 
@@ -1051,6 +1175,64 @@ errmsg(const char *fmt,...)
 	MemoryContextSwitchTo(oldcontext);
 	recursion_depth--;
 	errno = edata->saved_errno; /*CDB*/
+}
+
+/*
+ * Add a backtrace to the containing ereport() call.  This is intended to be
+ * added temporarily during debugging.
+ */
+int
+errbacktrace(void)
+{
+	ErrorData  *edata = &errordata[errordata_stack_depth];
+	MemoryContext oldcontext;
+
+	recursion_depth++;
+	CHECK_STACK_DEPTH();
+	oldcontext = MemoryContextSwitchTo(edata->assoc_context);
+
+	set_backtrace(edata, 1);
+
+	MemoryContextSwitchTo(oldcontext);
+	recursion_depth--;
+
+	return 0;
+}
+
+/*
+ * Compute backtrace data and add it to the supplied ErrorData.  num_skip
+ * specifies how many inner frames to skip.  Use this to avoid showing the
+ * internal backtrace support functions in the backtrace.  This requires that
+ * this and related functions are not inlined.
+ */
+static void
+set_backtrace(ErrorData *edata, int num_skip)
+{
+	StringInfoData errtrace;
+
+	initStringInfo(&errtrace);
+
+#ifdef HAVE_BACKTRACE_SYMBOLS
+	{
+		void	   *buf[100];
+		int			nframes;
+		char	  **strfrms;
+
+		nframes = backtrace(buf, lengthof(buf));
+		strfrms = backtrace_symbols(buf, nframes);
+		if (strfrms == NULL)
+			return;
+
+		for (int i = num_skip; i < nframes; i++)
+			appendStringInfo(&errtrace, "\n%s", strfrms[i]);
+		free(strfrms);
+	}
+#else
+	appendStringInfoString(&errtrace,
+						   "backtrace generation is not supported by this installation");
+#endif
+
+	edata->backtrace = errtrace.data;
 }
 
 /*
@@ -1241,13 +1423,36 @@ errhint(const char *fmt,...)
 
 
 /*
+ * errhint_plural --- add a hint error message text to the current error,
+ * with support for pluralization of the message text
+ */
+int
+errhint_plural(const char *fmt_singular, const char *fmt_plural,
+			   unsigned long n,...)
+{
+	ErrorData  *edata = &errordata[errordata_stack_depth];
+	MemoryContext oldcontext;
+
+	recursion_depth++;
+	CHECK_STACK_DEPTH();
+	oldcontext = MemoryContextSwitchTo(edata->assoc_context);
+
+	EVALUATE_MESSAGE_PLURAL(edata->domain, hint, false);
+
+	MemoryContextSwitchTo(oldcontext);
+	recursion_depth--;
+	return 0;					/* return value does not matter */
+}
+
+
+/*
  * errcontext_msg --- add a context error message text to the current error
  *
  * Unlike other cases, multiple calls are allowed to build up a stack of
  * context information.  We assume earlier calls represent more-closely-nested
  * states.
  */
-void
+int
 errcontext_msg(const char *fmt,...)
 {
 	ErrorData  *edata = &errordata[errordata_stack_depth];
@@ -1262,6 +1467,7 @@ errcontext_msg(const char *fmt,...)
 	MemoryContextSwitchTo(oldcontext);
 	recursion_depth--;
 	errno = edata->saved_errno; /*CDB*/
+	return 0;					/* return value does not matter */
 }
 
 /*
@@ -1273,7 +1479,7 @@ errcontext_msg(const char *fmt,...)
  * a set_errcontext_domain() call to specify the domain.  This is usually
  * done transparently by the errcontext() macro.
  */
-void
+int
 set_errcontext_domain(const char *domain)
 {
 	ErrorData  *edata = &errordata[errordata_stack_depth];
@@ -1283,6 +1489,8 @@ set_errcontext_domain(const char *domain)
 
 	/* the default text domain is the backend's */
 	edata->context_domain = domain ? domain : PG_TEXTDOMAIN("postgres");
+
+	return 0;					/* return value does not matter */
 }
 
 
@@ -1321,28 +1529,9 @@ errhidecontext(bool hide_ctx)
 
 
 /*
- * errfunction --- add reporting function name to the current error
- *
- * This is used when backwards compatibility demands that the function
- * name appear in messages sent to old-protocol clients.  Note that the
- * passed string is expected to be a non-freeable constant string.
- */
-void
-errfunction(const char *funcname)
-{
-	ErrorData  *edata = &errordata[errordata_stack_depth];
-
-	/* we don't bother incrementing recursion_depth */
-	CHECK_STACK_DEPTH();
-
-	edata->funcname = funcname;
-	edata->show_funcname = true;
-}
-
-/*
  * errposition --- add cursor position to the current error
  */
-void
+int
 errposition(int cursorpos)
 {
 	ErrorData  *edata = &errordata[errordata_stack_depth];
@@ -1351,6 +1540,8 @@ errposition(int cursorpos)
 	CHECK_STACK_DEPTH();
 
 	edata->cursorpos = cursorpos;
+
+	return 0;
 }
 
 /*
@@ -1680,6 +1871,8 @@ CopyErrorData(void)
 		newedata->hint = pstrdup(newedata->hint);
 	if (newedata->context)
 		newedata->context = pstrdup(newedata->context);
+	if (newedata->backtrace)
+		newedata->backtrace = pstrdup(newedata->backtrace);
 	if (newedata->schema_name)
 		newedata->schema_name = pstrdup(newedata->schema_name);
 	if (newedata->table_name)
@@ -1718,6 +1911,8 @@ FreeErrorData(ErrorData *edata)
 		pfree(edata->hint);
 	if (edata->context)
 		pfree(edata->context);
+	if (edata->backtrace)
+		pfree(edata->backtrace);
 	if (edata->schema_name)
 		pfree(edata->schema_name);
 	if (edata->table_name)
@@ -1792,6 +1987,8 @@ ThrowErrorData(ErrorData *edata)
 		newedata->hint = pstrdup(edata->hint);
 	if (edata->context)
 		newedata->context = pstrdup(edata->context);
+	if (edata->backtrace)
+		newedata->backtrace = pstrdup(edata->backtrace);
 	/* assume message_id is not available */
 	if (edata->schema_name)
 		newedata->schema_name = pstrdup(edata->schema_name);
@@ -1861,6 +2058,8 @@ ReThrowError(ErrorData *edata)
 		newedata->hint = pstrdup(newedata->hint);
 	if (newedata->context)
 		newedata->context = pstrdup(newedata->context);
+	if (newedata->backtrace)
+		newedata->backtrace = pstrdup(newedata->backtrace);
 	if (newedata->schema_name)
 		newedata->schema_name = pstrdup(newedata->schema_name);
 	if (newedata->table_name)
@@ -1908,16 +2107,10 @@ pg_re_throw(void)
 
 		/*
 		 * At least in principle, the increase in severity could have changed
-		 * where-to-output decisions, so recalculate.  This should stay in
-		 * sync with errstart(), which see for comments.
+		 * where-to-output decisions, so recalculate.
 		 */
-		if (IsPostmasterEnvironment)
-			edata->output_to_server = is_log_level_output(FATAL,
-														  log_min_messages);
-		else
-			edata->output_to_server = (FATAL >= log_min_messages);
-		if (whereToSendOutput == DestRemote)
-			edata->output_to_client = true;
+		edata->output_to_server = should_output_to_server(FATAL);
+		edata->output_to_client = should_output_to_client(FATAL);
 
 		/*
 		 * We can use errfinish() for the rest, but we don't want it to call
@@ -2437,6 +2630,7 @@ write_eventlog(int level, const char *line, int len)
 			eventlevel = EVENTLOG_INFORMATION_TYPE;
 			break;
 		case WARNING:
+		case WARNING_CLIENT_ONLY:
 			eventlevel = EVENTLOG_WARNING_TYPE;
 			break;
 		case ERROR:
@@ -2644,6 +2838,8 @@ write_console(const char *line, int len)
 	 * Conversion on non-win32 platforms is not implemented yet. It requires
 	 * non-throw version of pg_do_encoding_conversion(), that converts
 	 * unconvertable characters to '?' without errors.
+	 *
+	 * XXX: We have a no-throw version now. It doesn't convert to '?' though.
 	 */
 #endif
 
@@ -2831,6 +3027,23 @@ log_line_prefix(StringInfo buf, ErrorData *edata)
 										   padding > 0 ? padding : -padding);
 
 				break;
+			case 'b':
+				{
+					const char *backend_type_str;
+
+					if (MyProcPid == PostmasterPid)
+						backend_type_str = "postmaster";
+					else if (MyBackendType == B_BG_WORKER)
+						backend_type_str = MyBgworkerEntry->bgw_type;
+					else
+						backend_type_str = GetBackendTypeDesc(MyBackendType);
+
+					if (padding != 0)
+						appendStringInfo(buf, "%*s", padding, backend_type_str);
+					else
+						appendStringInfoString(buf, backend_type_str);
+					break;
+				}
 			case 'u':
 				if (MyProcPort)
 				{
@@ -2881,6 +3094,29 @@ log_line_prefix(StringInfo buf, ErrorData *edata)
 				else
 					appendStringInfo(buf, "%d", MyProcPid);
 				break;
+
+			case 'P':
+				if (MyProc)
+				{
+					PGPROC	   *leader = MyProc->lockGroupLeader;
+
+					/*
+					 * Show the leader only for active parallel workers. This
+					 * leaves out the leader of a parallel group.
+					 */
+					if (leader == NULL || leader->pid == MyProcPid)
+						appendStringInfoSpaces(buf,
+											   padding > 0 ? padding : -padding);
+					else if (padding != 0)
+						appendStringInfo(buf, "%*d", padding, leader->pid);
+					else
+						appendStringInfo(buf, "%d", leader->pid);
+				}
+				else if (padding != 0)
+					appendStringInfoSpaces(buf,
+										   padding > 0 ? padding : -padding);
+				break;
+
 			case 'l':
 				if (padding != 0)
 					appendStringInfo(buf, "%*ld", padding, log_line_number);
@@ -3072,7 +3308,7 @@ log_line_prefix(StringInfo buf, ErrorData *edata)
 					buf->data[buf->len - 1] == ' ')
 					buf->len--;
 				break;
-			case 'P':
+			case 'G':
 				if( Gp_role == GP_ROLE_EXECUTE )
 				{
 					appendStringInfoChar(buf, 'P');
@@ -3131,6 +3367,14 @@ log_line_prefix(StringInfo buf, ErrorData *edata)
 					appendStringInfo(buf, "%*s", padding, unpack_sql_state(edata->sqlerrcode));
 				else
 					appendStringInfoString(buf, unpack_sql_state(edata->sqlerrcode));
+				break;
+			case 'Q':
+				if (padding != 0)
+					appendStringInfo(buf, "%*lld", padding,
+									 (long long) pgstat_get_my_query_id());
+				else
+					appendStringInfo(buf, "%lld",
+									 (long long) pgstat_get_my_query_id());
 				break;
 			default:
 				/* format error - ignore it */
@@ -3350,10 +3594,39 @@ write_csvlog(ErrorData *edata)
 	if (application_name)
 		appendCSVLiteral(&buf, application_name);
 
+	appendStringInfoChar(&buf, ',');
+
+	/* backend type */
+	if (MyProcPid == PostmasterPid)
+		appendCSVLiteral(&buf, "postmaster");
+	else if (MyBackendType == B_BG_WORKER)
+		appendCSVLiteral(&buf, MyBgworkerEntry->bgw_type);
+	else
+		appendCSVLiteral(&buf, GetBackendTypeDesc(MyBackendType));
+
+	appendStringInfoChar(&buf, ',');
+
+	/* leader PID */
+	if (MyProc)
+	{
+		PGPROC	   *leader = MyProc->lockGroupLeader;
+
+		/*
+		 * Show the leader only for active parallel workers.  This leaves out
+		 * the leader of a parallel group.
+		 */
+		if (leader && leader->pid != MyProcPid)
+			appendStringInfo(&buf, "%d", leader->pid);
+	}
+	appendStringInfoChar(&buf, ',');
+
+	/* query id */
+	appendStringInfo(&buf, "%lld", (long long) pgstat_get_my_query_id());
+
 	appendStringInfoChar(&buf, '\n');
 
 	/* If in the syslogger process, try to write messages direct to file */
-	if (am_syslogger)
+	if (MyBackendType == B_LOGGER)
 		write_syslogger_file(buf.data, buf.len, LOG_DESTINATION_CSVLOG);
 	else
 		write_pipe_chunks(buf.data, buf.len, LOG_DESTINATION_CSVLOG);
@@ -3469,7 +3742,7 @@ gp_write_pipe_chunk(const char *buffer, int len)
 static inline void
 append_string_to_pipe_chunk(PipeProtoChunk *buffer, const char* input)
 {
-	if(am_syslogger)
+	if(MyBackendType == B_LOGGER)
 		return;
 
 	int len = 0;
@@ -3926,7 +4199,7 @@ write_message_to_server_log(int elevel,
 	GpErrorDataFixFields fix_fields;
 	static uint64 log_line_number = 0;
 
-	Assert(!am_syslogger);
+	Assert(MyBackendType != B_LOGGER);
 
 	buffer.hdr.zero = 0;
 	buffer.hdr.len = 0;
@@ -4065,7 +4338,7 @@ send_message_to_server_log(ErrorData *edata)
 		{
 			if (redirection_done)
 			{
-				if (!am_syslogger)
+				if (MyBackendType != B_LOGGER)
 					write_message_to_server_log(edata->elevel,
 												edata->sqlerrcode,
 												edata->message,
@@ -4191,6 +4464,13 @@ send_message_to_server_log(ErrorData *edata)
 			append_with_tabs(&buf, edata->context);
 			appendStringInfoChar(&buf, '\n');
 		}
+		if (edata->backtrace)
+		{
+			log_line_prefix(&buf, edata);
+			appendStringInfoString(&buf, _("BACKTRACE:  "));
+			append_with_tabs(&buf, edata->backtrace);
+			appendStringInfoChar(&buf, '\n');
+		}
 		if (Log_error_verbosity >= PGERROR_VERBOSE)
 		{
 			if (edata->elevel == INFO || edata->omit_location)
@@ -4270,6 +4550,7 @@ send_message_to_server_log(ErrorData *edata)
 				break;
 			case NOTICE:
 			case WARNING:
+			case WARNING_CLIENT_ONLY:
 				syslog_level = LOG_NOTICE;
 				break;
 			case ERROR:
@@ -4304,7 +4585,7 @@ send_message_to_server_log(ErrorData *edata)
 		 * catching stderr output, and we are not ourselves the syslogger.
 		 * Otherwise, just do a vanilla write to stderr.
 		 */
-		if (redirection_done && !am_syslogger)
+		if (redirection_done && MyBackendType != B_LOGGER)
 			write_pipe_chunks(buf.data, buf.len, LOG_DESTINATION_STDERR);
 #ifdef WIN32
 
@@ -4315,29 +4596,28 @@ send_message_to_server_log(ErrorData *edata)
 		 * If stderr redirection is active, it was OK to write to stderr above
 		 * because that's really a pipe to the syslogger process.
 		 */
-		else if (pgwin32_is_service() && (!redirection_done || am_syslogger) )
+		else if (pgwin32_is_service() && (!redirection_done || (MyBackendType == B_LOGGER)) )
 			write_eventlog(edata->elevel, buf.data, buf.len);
 #endif
 			/* only use the chunking protocol if we know the syslogger should
 			 * be catching stderr output, and we are not ourselves the
 			 * syslogger. Otherwise, go directly to stderr.
 			 */
-			if (redirection_done && !am_syslogger)
+			if (redirection_done && (MyBackendType != B_LOGGER))
 				write_pipe_chunks(buf.data, buf.len, LOG_DESTINATION_STDERR);
 			else
 				write_console(buf.data, buf.len);
 	}
 
 	/* If in the syslogger process, try to write messages direct to file */
-	if (am_syslogger)
-		write_syslogger_file_binary(buf.data, buf.len, LOG_DESTINATION_STDERR);
-
+	if (MyBackendType == B_LOGGER)
+		write_syslogger_file(buf.data, buf.len, LOG_DESTINATION_STDERR);
 	pfree(prefix.data);
 
 	/* Write to CSV log if enabled */
 	if (Log_destination & LOG_DESTINATION_CSVLOG)
 	{
-		if (redirection_done || am_syslogger)
+		if (redirection_done || MyBackendType == B_LOGGER)
 		{
 			/*
 			 * send CSV data if it's safe to do so (syslogger doesn't need the
@@ -4463,16 +4743,23 @@ send_message_to_frontend(ErrorData *edata)
 {
 	StringInfoData msgbuf;
 
-	/* 'N' (Notice) is for nonfatal conditions, 'E' is for errors */
-	pq_beginmessage(&msgbuf, (edata->elevel < ERROR) ? 'N' : 'E');
-
-	if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3)
+	/*
+	 * We no longer support pre-3.0 FE/BE protocol, except here.  If a client
+	 * tries to connect using an older protocol version, it's nice to send the
+	 * "protocol version not supported" error in a format the client
+	 * understands.  If protocol hasn't been set yet, early in backend
+	 * startup, assume modern protocol.
+	 */
+	if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3 || FrontendProtocol == 0)
 	{
 		/* New style with separate fields */
 		const char *sev;
 		char		tbuf[12];
 		int			ssval;
 		int			i;
+
+		/* 'N' (Notice) is for nonfatal conditions, 'E' is for errors */
+		pq_beginmessage(&msgbuf, (edata->elevel < ERROR) ? 'N' : 'E');
 
 		sev = error_severity(edata->elevel);
 		pq_sendbyte(&msgbuf, PG_DIAG_SEVERITY);
@@ -4589,6 +4876,8 @@ send_message_to_frontend(ErrorData *edata)
 		}
 
 		pq_sendbyte(&msgbuf, '\0'); /* terminator */
+
+		pq_endmessage(&msgbuf);
 	}
 	else
 	{
@@ -4599,29 +4888,18 @@ send_message_to_frontend(ErrorData *edata)
 
 		appendStringInfo(&buf, "%s:  ", _(error_severity(edata->elevel)));
 
-		if (edata->show_funcname && edata->funcname)
-			appendStringInfo(&buf, "%s: ", edata->funcname);
-
 		if (edata->message)
 			appendStringInfoString(&buf, edata->message);
 		else
 			appendStringInfoString(&buf, _("missing error text"));
 
-		if (edata->cursorpos > 0)
-			appendStringInfo(&buf, _(" at character %d"),
-							 edata->cursorpos);
-		else if (edata->internalpos > 0)
-			appendStringInfo(&buf, _(" at character %d"),
-							 edata->internalpos);
-
 		appendStringInfoChar(&buf, '\n');
 
-		err_sendstring(&msgbuf, buf.data);
+		/* 'N' (Notice) is for nonfatal conditions, 'E' is for errors */
+		pq_putmessage_v2((edata->elevel < ERROR) ? 'N' : 'E', buf.data, buf.len + 1);
 
 		pfree(buf.data);
 	}
-
-	pq_endmessage(&msgbuf);
 
 	/*
 	 * This flush is normally not necessary, since postgres.c will flush out
@@ -4671,6 +4949,7 @@ error_severity(int elevel)
 			prefix = gettext_noop("NOTICE");
 			break;
 		case WARNING:
+		case WARNING_CLIENT_ONLY:
 			prefix = gettext_noop("WARNING");
 			break;
 		case ERROR:
@@ -4735,7 +5014,7 @@ write_stderr(const char *fmt,...)
 
 		vsnprintf(errbuf, sizeof(errbuf), fmt, ap);
 
-		if (!am_syslogger)
+		if (MyBackendType != B_LOGGER)
 		{
 			/* Write the message in the CSV format */
 			write_message_to_server_log(LOG,
@@ -4799,35 +5078,6 @@ write_stderr(const char *fmt,...)
 	va_end(ap);
 }
 
-
-/*
- * is_log_level_output -- is elevel logically >= log_min_level?
- *
- * We use this for tests that should consider LOG to sort out-of-order,
- * between ERROR and FATAL.  Generally this is the right thing for testing
- * whether a message should go to the postmaster log, whereas a simple >=
- * test is correct for testing whether the message should go to the client.
- */
-static bool
-is_log_level_output(int elevel, int log_min_level)
-{
-	if (elevel == LOG || elevel == LOG_SERVER_ONLY)
-	{
-		if (log_min_level == LOG || log_min_level <= ERROR)
-			return true;
-	}
-	else if (log_min_level == LOG)
-	{
-		/* elevel != LOG */
-		if (elevel >= FATAL)
-			return true;
-	}
-	/* Neither is LOG */
-	else if (elevel >= log_min_level)
-		return true;
-
-	return false;
-}
 
 /*
  * Adjust the level of a recovery-related message per trace_recovery_messages.
@@ -4897,7 +5147,7 @@ elog_debug_linger(ErrorData *edata)
 				 "error exit in %dm %ds",
 				 minutes_left,
 				 seconds_left - minutes_left * 60);
-		set_ps_display(buf, true);
+		set_ps_display(buf);
 
 		/* Sleep. */
 		sleep_seconds = Min(seconds_left, setproctitle_seconds);

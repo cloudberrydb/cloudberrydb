@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_gk2_nwy_sp">
-  <title id="im143866">Using Indexes in Greenplum Database</title>
+  <title id="im143866">Using Indexes in Cloudberry Database</title>
   <body>
     <p>In most traditional databases, indexes can greatly improve data access times. However, in a
-      distributed database such as Greenplum, indexes should be used more sparingly. Greenplum
+      distributed database such as Cloudberry, indexes should be used more sparingly. Cloudberry
       Database performs very fast sequential scans; indexes use a random seek pattern to locate
-      records on disk. Greenplum data is distributed across the segments, so each segment scans a
+      records on disk. Cloudberry data is distributed across the segments, so each segment scans a
       smaller portion of the overall data to get the result. With table partitioning, the total data
       to scan may be even smaller. Because business intelligence (BI) query workloads generally
       return very large data sets, using indexes is not efficient.</p>
@@ -16,10 +16,10 @@
       queries that return a targeted set of rows, as the optimizer can use an index access method
       rather than a full table scan when appropriate. For compressed data, an index access method
       means only the necessary rows are uncompressed. </p>
-    <p>Greenplum Database automatically creates <codeph>PRIMARY KEY</codeph> constraints for tables
+    <p>Cloudberry Database automatically creates <codeph>PRIMARY KEY</codeph> constraints for tables
       with primary keys. To create an index on a partitioned table, create an index on the
       partitioned table that you created. The index is propagated to all the child tables created by
-      Greenplum Database. Creating an index on a table that is created by Greenplum Database for use
+      Cloudberry Database. Creating an index on a table that is created by Cloudberry Database for use
       by a partitioned table is not supported. </p>
     <p>Note that a <codeph>UNIQUE CONSTRAINT</codeph> (such as a <codeph>PRIMARY KEY
         CONSTRAINT</codeph>) implicitly creates a <codeph>UNIQUE INDEX</codeph> that must include
@@ -46,9 +46,9 @@
         number of distinct values a column has divided by the number of rows in a table. For
         example, if a table has 1000 rows and a column has 800 distinct values, the selectivity of
         the index is 0.8, which is considered good. Unique indexes always have a selectivity ratio
-        of 1.0, which is the best possible. Greenplum Database allows unique indexes only on
+        of 1.0, which is the best possible. Cloudberry Database allows unique indexes only on
         distribution key columns.</li>
-      <li id="im151760"><b>Use Bitmap indexes for low selectivity columns. </b>The Greenplum
+      <li id="im151760"><b>Use Bitmap indexes for low selectivity columns. </b>The Cloudberry
         Database Bitmap index type is not available in regular PostgreSQL. See <xref href="#topic93"
           type="topic" format="dita"/>.</li>
       <li id="im151764"><b>Index columns used in joins.</b> An index on a column used for frequent
@@ -71,7 +71,7 @@
         the disk, which leverages fast sequential access.</li>
     </ul>
     <section id="im151772">
-      <title>To cluster an index in Greenplum Database</title>
+      <title>To cluster an index in Cloudberry Database</title>
       <p>Using the <codeph>CLUSTER</codeph> command to physically reorder a table based on an index
         can take a long time with very large tables. To achieve the same results much faster, you
         can manually reorder the data on disk by creating an intermediate table and loading the data
@@ -90,15 +90,15 @@ VACUUM ANALYZE old_table;
   <topic id="topic92" xml:lang="en">
     <title>Index Types</title>
     <body>
-      <p>Greenplum Database supports the Postgres index types B-tree, GiST, SP-GiST, and GIN. Hash indexes
+      <p>Cloudberry Database supports the Postgres index types B-tree, GiST, SP-GiST, and GIN. Hash indexes
         are not supported. Each index type uses a different algorithm that is best suited to
         different types of queries. B-tree indexes fit the most common situations and are the
         default index type. See <xref
           href="https://www.postgresql.org/docs/9.4/indexes-types.html" scope="external"
           format="html"><ph>Index Types</ph></xref> in the PostgreSQL documentation for a
         description of these types.</p>
-      <note type="note">Greenplum Database allows unique indexes only if the columns of the index
-        key are the same as (or a superset of) the Greenplum distribution key. Unique indexes are
+      <note type="note">Cloudberry Database allows unique indexes only if the columns of the index
+        key are the same as (or a superset of) the Cloudberry distribution key. Unique indexes are
         not supported on append-optimized tables. On partitioned tables, a unique index cannot be
         enforced across all child table partitions of a partitioned table. A unique index is
         supported only within a partition.</note>
@@ -106,7 +106,7 @@ VACUUM ANALYZE old_table;
     <topic id="topic93" xml:lang="en">
       <title id="im143283">About Bitmap Indexes</title>
       <body>
-        <p>Greenplum Database provides the Bitmap index type. Bitmap indexes are best suited to data
+        <p>Cloudberry Database provides the Bitmap index type. Bitmap indexes are best suited to data
           warehousing applications and decision support systems with large amounts of data, many ad
           hoc queries, and few data modification (DML) transactions.</p>
         <p>An index provides pointers to the rows in a table that contain a given key value. A
@@ -207,7 +207,7 @@ VACUUM ANALYZE old_table;
   <topic id="topic97" xml:lang="en">
     <title>Examining Index Usage</title>
     <body>
-      <p>Greenplum Database indexes do not require maintenance and tuning. You can check which
+      <p>Cloudberry Database indexes do not require maintenance and tuning. You can check which
         indexes are used by the real-life query workload. Use the <codeph>EXPLAIN</codeph> command
         to examine index usage for a query.</p>
       <p>The query plan shows the steps or <i>plan nodes</i> that the database will take to answer a

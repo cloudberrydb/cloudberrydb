@@ -8,16 +8,9 @@
 --
 -- start_ignore
 \! gpconfig -c create_restartpoint_on_ckpt_record_replay -v on --skipvalidation;
-20190628:12:33:28:008807 gpconfig:Adams-MBP:adamberlin-[INFO]:-completed successfully with parameters '-c create_restartpoint_on_ckpt_record_replay -v on --skipvalidation'
 \! gpstop -u;
-20190628:12:33:28:008863 gpstop:Adams-MBP:adamberlin-[INFO]:-Starting gpstop with args: -u
-20190628:12:33:28:008863 gpstop:Adams-MBP:adamberlin-[INFO]:-Gathering information and validating the environment...
-20190628:12:33:28:008863 gpstop:Adams-MBP:adamberlin-[INFO]:-Obtaining Greenplum Master catalog information
-20190628:12:33:28:008863 gpstop:Adams-MBP:adamberlin-[INFO]:-Obtaining Segment details from master...
-20190628:12:33:29:008863 gpstop:Adams-MBP:adamberlin-[INFO]:-Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.479.gb6a83cfcde build dev'
-20190628:12:33:29:008863 gpstop:Adams-MBP:adamberlin-[INFO]:-Signalling all postmaster processes to reload
+create extension if not exists plpython3u;
 -- end_ignore
-create or replace language plpython3u;
 create or replace function remove_tablespace_location_directory(tablespace_location_dir text) returns void as $$
 	import shutil
 	import os
@@ -66,13 +59,6 @@ create or replace function disable_fts() returns void as $$
 
 		perform gp_request_fts_probe_scan();
 
-		-- also, ensure that the fts loop observes the probe being skipped before
-		-- continuing with the test because it could still be in the middle of a
-		-- previous probe
-		perform gp_wait_until_triggered_fault('fts_probe', 1, dbid)
-			from gp_segment_configuration
-			where content = master_content_id
-			and role = master_primary_role;
 	end;
 $$ language plpgsql;
 create or replace function setup(content_id integer, fault_name text, fault_action_type text, tablespace_dir text) returns void as $$
@@ -84,8 +70,8 @@ create or replace function setup(content_id integer, fault_name text, fault_acti
 
 		-- setup faults
 		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
-		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
 		perform disable_fts();
+		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
 	end;
 $$ LANGUAGE plpgsql;
 create or replace function cleanup(content_id integer, tablespace_location_dir text) returns void as $$
@@ -245,6 +231,8 @@ select cleanup(:content_id_under_test, :'tablespace_location');
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set after_xlog_xact_prepare_flushed
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  setup 
 -------
  
@@ -363,6 +351,8 @@ select cleanup(:content_id_under_test, :'tablespace_location');
 \set tablespace_location /tmp/my_tablespace_for_testing
 \set fault_to_set before_xlog_xact_prepare
 select setup(:content_id_under_test, :'fault_to_set', :'error_type', :'tablespace_location');
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  setup 
 -------
  
@@ -856,6 +846,8 @@ select disable_fts();
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  gp_inject_fault 
 -----------------
  Success:
@@ -943,6 +935,8 @@ select disable_fts();
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  gp_inject_fault 
 -----------------
  Success:
@@ -1034,6 +1028,8 @@ select disable_fts();
 
 CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select gp_inject_fault(:'fault_name', :'fault_type', dbid) from gp_segment_configuration where role = 'p' and content = :content_id_under_test;
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  gp_inject_fault 
 -----------------
  Success:
@@ -1178,8 +1174,8 @@ select cleanup(:content_id_under_test, :'tablespace_location');
 \! gpstop -u;
 20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Starting gpstop with args: -u
 20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Gathering information and validating the environment...
-20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Obtaining Greenplum Master catalog information
+20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Obtaining Cloudberry Master catalog information
 20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Obtaining Segment details from master...
-20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.479.gb6a83cfcde build dev'
+20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Cloudberry Version: 'postgres (Cloudberry Database) 7.0.0-alpha.0+dev.479.gb6a83cfcde build dev'
 20190628:12:36:21:009819 gpstop:Adams-MBP:adamberlin-[INFO]:-Signalling all postmaster processes to reload
 -- end_ignore

@@ -20,7 +20,7 @@
                 <plentry>
                     <pt>IF EXISTS</pt>
                     <pd>
-                        <p>Do not throw an error if the server does not exist. Greenplum Database issues a notice in this case.</p>
+                        <p>Do not throw an error if the server does not exist. Cloudberry Database issues a notice in this case.</p>
                     </pd>
                 </plentry>
                 <plentry>
@@ -49,7 +49,7 @@
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>DROP SERVER</codeph> conforms to ISO/IEC 9075-9 (SQL/MED). The <codeph>IF EXISTS</codeph> clause is a Greenplum Database extension.</p>
+            <p><codeph>DROP SERVER</codeph> conforms to ISO/IEC 9075-9 (SQL/MED). The <codeph>IF EXISTS</codeph> clause is a Cloudberry Database extension.</p>
         </section>
         <section id="section8">
             <title>See Also</title>

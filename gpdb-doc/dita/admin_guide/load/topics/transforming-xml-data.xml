@@ -4,7 +4,7 @@
 <topic id="topic75">
    <title>Transforming External Data with gpfdist and gpload</title>
    <shortdesc>The <codeph>gpfdist</codeph> parallel file server allows you to set up transformations
-      that enable Greenplum Database external tables to read and write files in formats that are not
+      that enable Cloudberry Database external tables to read and write files in formats that are not
       supported with the <codeph>CREATE EXTERNAL TABLE</codeph> command's <codeph>FORMAT</codeph>
       clause. An <i>input</i> transformation reads a file in the foreign data format and outputs
       rows to <codeph>gpfdist</codeph> in the CSV or other text format specified in the external
@@ -13,12 +13,12 @@
       format.</shortdesc>
    <body>
       <note><codeph>gpfdist</codeph> and <codeph>gpload</codeph> are compatible only with the
-         Greenplum Database major version in which they are shipped. For example, a
-            <codeph>gpfdist</codeph> utility that is installed with Greenplum Database 4.x cannot be
-         used with Greenplum Database 5.x or 6.x.</note>
+         Cloudberry Database major version in which they are shipped. For example, a
+            <codeph>gpfdist</codeph> utility that is installed with Cloudberry Database 4.x cannot be
+         used with Cloudberry Database 5.x or 6.x.</note>
       <p>This topic describes the tasks to set up data transformations that work with
             <codeph>gpfdist</codeph> to read or write external data files with formats that
-         Greenplum Database does not support. </p>
+         Cloudberry Database does not support. </p>
       <ul id="ul_xlm_13m_pbb">
          <li><xref href="#topic_mdl_thm_pbb" format="dita"/></li>
          <li><xref href="#topic_el5_k12_pbb" format="dita"/></li>
@@ -39,7 +39,7 @@
             and rows delimited with linefeeds. </p>
          <p>Transformations are configured in a YAML-formatted configuration file passed to
                <codeph>gpfdist</codeph> on the command line. </p>
-         <p>If you want to load the external data into a table in the Greenplum database, you can
+         <p>If you want to load the external data into a table in the Cloudberry database, you can
             use the <codeph>gpload</codeph> utility to automate the tasks to create an external
             table, run <codeph>gpfdist</codeph>, and load the transformed data into the database
             table.</p>
@@ -91,7 +91,7 @@
   &lt;/pricerecord&gt;
 &lt;/prices&gt;
 </codeblock>
-         <p>The goal of this transformation is to import all the data into a Greenplum Database
+         <p>The goal of this transformation is to import all the data into a Cloudberry Database
             readable external table with an integer <codeph>itemnumber</codeph> column and a decimal
                <codeph>price</codeph> column.</p>
       </body>
@@ -209,7 +209,7 @@ TRANSFORMATIONS:
          <codeblock>#!/bin/bash
 # input_transform.sh - sample input transformation, 
 # demonstrating use of Java and Joost STX to convert XML into
-# text to load into Greenplum Database.
+# text to load into Cloudberry Database.
 # java arguments:
 #   -jar joost.jar         joost STX engine
 #   -nodecl                  don't generate a &lt;?xml?&gt; declaration
@@ -236,7 +236,7 @@ java \
       <body>
          <p>Create the target database tables with SQL statements based on the appropriate
             schema.</p>
-         <p>There are no special requirements for Greenplum Database tables that hold loaded data.
+         <p>There are no special requirements for Cloudberry Database tables that hold loaded data.
             In the prices example, the following command creates the <codeph>prices</codeph> table,
             where the data is to be loaded.</p>
          <codeblock>CREATE TABLE prices (
@@ -260,7 +260,7 @@ DISTRIBUTED BY (itemnumber);
       <topic id="topic81">
          <title>Transforming with gpload</title>
          <body>
-            <p>The Greenplum Database <codeph>gpload</codeph> utility orchestrates a data load
+            <p>The Cloudberry Database <codeph>gpload</codeph> utility orchestrates a data load
                operation using the <codeph>gpfdist</codeph> parallel file server and a
                YAML-formatted configuration file. <codeph>gpload</codeph> automates these tasks:</p>
             <ul id="ul_rt1_jnk_pbb">
@@ -275,7 +275,7 @@ DISTRIBUTED BY (itemnumber);
                   <codeph>TRANSFORM</codeph> and <codeph>TRANSFORM_CONFIG</codeph> appear in the
                   <codeph>INPUT</codeph> section of the <codeph>gpload</codeph> control file.</p>
             <p>For more information about the syntax and placement of these settings in the
-                  <codeph>gpload</codeph> control file, see the <i>Greenplum Database Reference
+                  <codeph>gpload</codeph> control file, see the <i>Cloudberry Database Reference
                   Guide</i>.</p>
             <ul id="ul_sy3_l32_pbb">
                <li id="du187470">
@@ -375,12 +375,12 @@ TRANSFORMATIONS:
                         <li id="du198814">
                            <codeph>input</codeph>: <cmdname>gpfdist</cmdname> treats the standard
                            output of the transformation process as a stream of records to load into
-                           Greenplum Database.</li>
+                           Cloudberry Database.</li>
                         <li id="du198815">
                            <codeph>output</codeph>
                            <ph>: </ph>
                            <cmdname>gpfdist</cmdname> treats the standard input of the
-                           transformation process as a stream of records from Greenplum Database to
+                           transformation process as a stream of records from Cloudberry Database to
                            transform and write to the appropriate output.</li>
                      </ul>
                   </pd>
@@ -393,7 +393,7 @@ TRANSFORMATIONS:
                      <p>For input transformations, <cmdname>gpfdist</cmdname> invokes the command
                         specified in the <codeph>CONTENT</codeph> setting. The command is expected
                         to open the underlying file(s) as appropriate and produce one line of
-                           <codeph>TEXT</codeph> for each row to load into Greenplum Database. The
+                           <codeph>TEXT</codeph> for each row to load into Cloudberry Database. The
                         input transform determines whether the entire content should be converted to
                         one row or to multiple rows.</p>
                      <p>For output transformations, <cmdname>gpfdist</cmdname> invokes this command
@@ -443,7 +443,7 @@ TRANSFORMATIONS:
                         transformation. The default, <codeph>server</codeph>, specifies that
                            <cmdname>gpfdist</cmdname> will capture the standard error output from
                         the transformation in a temporary file and send the first 8k of that file to
-                        Greenplum Database as an error message. The error message will appear as an
+                        Cloudberry Database as an error message. The error message will appear as an
                         SQL error. <codeph>Console</codeph> specifies that
                            <cmdname>gpfdist</cmdname> does not redirect or transmit the standard
                         error output from the transformation. </p>
@@ -553,7 +553,7 @@ TRANSFORMATIONS:
    &lt;/ReturnHeader&gt;
    ... more data ..
 </codeblock>
-            <p>The goal is to import all the data into a Greenplum database. First, convert the XML
+            <p>The goal is to import all the data into a Cloudberry database. First, convert the XML
                document into text with newlines "escaped", with two columns:
                   <codeph>ReturnId</codeph> and a single column on the end for the entire MeF tax
                return. For example:</p>
@@ -561,7 +561,7 @@ TRANSFORMATIONS:
                <codeblock>AAAAAAAAAAAAAAAAAAAA|&lt;Return returnVersion="2006v2.0"... 
 </codeblock>
             </p>
-            <p>Load the data into Greenplum Database.</p>
+            <p>Load the data into Cloudberry Database.</p>
          </body>
       </topic>
       <topic id="topic94">
@@ -601,7 +601,7 @@ TRANSFORMATIONS:
      &lt;classRig&gt;ABS Class A1 M CSDU AMS ACCU&lt;/classRig&gt;
      &lt;approvals&gt;DNV&lt;/approvals&gt;
  ... more data ...</codeblock>
-            <p>The goal is to import the information for this rig into Greenplum Database. </p>
+            <p>The goal is to import the information for this rig into Cloudberry Database. </p>
             <p>The sample document, <i>rig.xml</i>, is about 11KB in size. The input does not
                contain tabs so the relevant information can be converted into records delimited with
                a pipe (|).</p>
@@ -629,7 +629,7 @@ TRANSFORMATIONS:
                   <codeph>doc xml</codeph>
                </li>
             </ul>
-            <p>Then, load the data into Greenplum Database.</p>
+            <p>Then, load the data into Cloudberry Database.</p>
          </body>
       </topic>
    </topic>

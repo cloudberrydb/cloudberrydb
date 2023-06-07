@@ -10,7 +10,7 @@
  * the real work, IterateForeignScan for example just calls
  * external_getnext().
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -37,6 +37,7 @@
 #include "catalog/pg_foreign_table.h"
 #include "commands/defrem.h"
 #include "commands/copy.h"
+#include "commands/copyfrom_internal.h"
 #include "cdb/cdbsreh.h"
 #include "foreign/fdwapi.h"
 #include "funcapi.h"
@@ -562,7 +563,7 @@ exttable_GetForeignPaths(PlannerInfo *root,
 
 	cost_externalscan(pathnode, root, baserel, pathnode->path.param_info);
 
-	add_path(baserel, (Path *) pathnode);
+	add_path(baserel, (Path *) pathnode, root);
 	set_cheapest(baserel);
 }
 
@@ -842,7 +843,7 @@ exttable_EndForeignScan(ForeignScanState *node)
 	 * in cdbdisp_sumRejectedRows()
 	*/
 	if (Gp_role == GP_ROLE_DISPATCH) {
-		CopyState cstate = fdw_state->ess_ScanDesc->fs_pstate;
+		CopyFromState cstate = fdw_state->ess_ScanDesc->fs_pstate;
 		if (cstate && cstate->cdbsreh)
 		{
 			CdbSreh	 *cdbsreh = cstate->cdbsreh;

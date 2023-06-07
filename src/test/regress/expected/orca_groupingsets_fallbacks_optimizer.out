@@ -3,9 +3,12 @@
 -- back for these queries. To detect that, turn optimizer_trace_fallback on,
 -- and watch for "falling back to planner" messages.
 --
+-- start_matchignore
+-- m/^DETAIL:  GPDB Expression type: .* not supported in DXL/
+-- end_matchignore
 set optimizer_trace_fallback='on';
 create temp table gstest1 (a int, b int, c int, d int, v int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into gstest1 values (1, 5, 10, 0, 100);
 insert into gstest1 values (1, 42, 20, 7, 200);
@@ -127,7 +130,7 @@ DETAIL:  Query-to-DXL Translation: No attribute entry found due to incorrect nor
 -- Orca falls back due to HAVING clause with outer references
 select v.c, (select count(*) from gstest1 group by () having v.c) from (values (false),(true)) v(c);
 INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  GPDB Expression type: {TARGETENTRY :expr {VAR :varno 1 :varattno 2 :vartype 20 :vartypmod -1 :varcollid 0 :varlevelsup 0 :varnoold 1 :varoattno 2 :location -1} :resno 1 :resname count :ressortgroupref 0 :resorigtbl 0 :resorigcol 0 :resjunk false} not supported in DXL
+DETAIL:  GPDB Expression type: ({RTE :alias <> :eref {ALIAS :aliasname gstest1 :colnames ("a" "b" "c" "d" "v")} :rtekind 0 :relid 61133 :relkind r :rellockmode 1 :tablesample <> :lateral false :inh true :inFromCl true :requiredPerms 2 :checkAsUser 0 :selectedCols (b) :insertedCols (b) :updatedCols (b) :extraUpdatedCols (b) :securityQuals <> :forceDistRandom false}) not supported in DXL
  c | count 
 ---+-------
  f |      

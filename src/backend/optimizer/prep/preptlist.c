@@ -3,35 +3,31 @@
  * preptlist.c
  *	  Routines to preprocess the parse tree target list
  *
- * For INSERT and UPDATE queries, the targetlist must contain an entry for
- * each attribute of the target relation in the correct order.  For UPDATE and
- * DELETE queries, it must also contain junk tlist entries needed to allow the
- * executor to identify the rows to be updated or deleted.  For all query
- * types, we may need to add junk tlist entries for Vars used in the RETURNING
- * list and row ID information needed for SELECT FOR UPDATE locking and/or
- * EvalPlanQual checking.
+ * For an INSERT, the targetlist must contain an entry for each attribute of
+ * the target relation in the correct order.
+ *
+ * For an UPDATE, the targetlist just contains the expressions for the new
+ * column values.
+ *
+ * For UPDATE and DELETE queries, the targetlist must also contain "junk"
+ * tlist entries needed to allow the executor to identify the rows to be
+ * updated or deleted; for example, the ctid of a heap row.  (The planner
+ * adds these; they're not in what we receive from the planner/rewriter.)
+ *
+ * For all query types, there can be additional junk tlist entries, such as
+ * sort keys, Vars needed for a RETURNING list, and row ID information needed
+ * for SELECT FOR UPDATE locking and/or EvalPlanQual checking.
  *
  * The query rewrite phase also does preprocessing of the targetlist (see
  * rewriteTargetListIU).  The division of labor between here and there is
- * partially historical, but it's not entirely arbitrary.  In particular,
- * consider an UPDATE across an inheritance tree.  What rewriteTargetListIU
- * does need be done only once (because it depends only on the properties of
- * the parent relation).  What's done here has to be done over again for each
- * child relation, because it depends on the properties of the child, which
- * might be of a different relation type, or have more columns and/or a
- * different column order than the parent.
- *
- * The fact that rewriteTargetListIU sorts non-resjunk tlist entries by column
- * position, which expand_targetlist depends on, violates the above comment
- * because the sorting is only valid for the parent relation.  In inherited
- * UPDATE cases, adjust_inherited_tlist runs in between to take care of fixing
- * the tlists for child tables to keep expand_targetlist happy.  We do it like
- * that because it's faster in typical non-inherited cases.
+ * partially historical, but it's not entirely arbitrary.  The stuff done
+ * here is closely connected to physical access to tables, whereas the
+ * rewriter's work is more concerned with SQL semantics.
  *
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -42,16 +38,14 @@
 
 #include "postgres.h"
 
-#include "access/sysattr.h"
 #include "access/table.h"
-#include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/appendinfo.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/prep.h"
 #include "optimizer/tlist.h"
-#include "parser/parsetree.h"
 #include "parser/parse_coerce.h"
-#include "rewrite/rewriteHandler.h"
+#include "parser/parsetree.h"
 #include "utils/rel.h"
 
 #include "catalog/gp_distribution_policy.h"     /* CDB: POLICYTYPE_PARTITIONED */
@@ -60,23 +54,25 @@
 #include "parser/parse_relation.h"
 #include "utils/lsyscache.h"
 
-static List *expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
-							   Index result_relation, Relation rel);
+static bool check_splitupdate(List *tlist, Index result_relation, Relation rel);
 static List *supplement_simply_updatable_targetlist(PlannerInfo *root,
 													List *range_table,
 													List *tlist);
+
+static List *expand_insert_targetlist(List *tlist, Relation rel, Index split_update_result_relation);
+
 
 
 /*
  * preprocess_targetlist
  *	  Driver for preprocessing the parse tree targetlist.
  *
- *	  Returns the new targetlist.
- *
- * As a side effect, if there's an ON CONFLICT UPDATE clause, its targetlist
- * is also preprocessed (and updated in-place).
+ * The preprocessed targetlist is returned in root->processed_tlist.
+ * Also, if this is an UPDATE, we return a list of target column numbers
+ * in root->update_colnos.  (Resnos in processed_tlist will be consecutive,
+ * so do not look at that to find out which columns are targets!)
  */
-List *
+void
 preprocess_targetlist(PlannerInfo *root)
 {
 	Query	   *parse = root->parse;
@@ -110,23 +106,58 @@ preprocess_targetlist(PlannerInfo *root)
 		Assert(command_type == CMD_SELECT);
 
 	/*
-	 * For UPDATE/DELETE, add any junk column(s) needed to allow the executor
-	 * to identify the rows to be updated or deleted.  Note that this step
-	 * scribbles on parse->targetList, which is not very desirable, but we
-	 * keep it that way to avoid changing APIs used by FDWs.
-	 */
-	if (command_type == CMD_UPDATE || command_type == CMD_DELETE)
-		rewriteTargetListUD(parse, target_rte, target_relation);
-
-	/*
-	 * for heap_form_tuple to work, the targetlist must match the exact order
-	 * of the attributes. We also need to fill in any missing attributes. -ay
-	 * 10/94
+	 * In an INSERT, the executor expects the targetlist to match the exact
+	 * order of the target table's attributes, including entries for
+	 * attributes not mentioned in the source query.
+	 *
+	 * In an UPDATE, we don't rearrange the tlist order, but we need to make a
+	 * separate list of the target attribute numbers, in tlist order, and then
+	 * renumber the processed_tlist entries to be consecutive.
 	 */
 	tlist = parse->targetList;
-	if (command_type == CMD_INSERT || command_type == CMD_UPDATE)
-		tlist = expand_targetlist(root, tlist, command_type,
-								  result_relation, target_relation);
+	if (command_type == CMD_INSERT)
+		tlist = expand_insert_targetlist(tlist, target_relation, 0);
+	else if (command_type == CMD_UPDATE)
+	{
+		/*
+		 * Since we just went through a lot of work to determine whether a
+		 * Split Update is needed, memorize that in the PlannerInfo, so that
+		 * we don't need redo all that work later in the planner, when it's
+		 * time to actually create the ModifyTable, and SplitUpdate, node.
+		 */
+		root->is_split_update = check_splitupdate(tlist, result_relation, target_relation);
+		root->update_colnos = extract_update_targetlist_colnos(tlist, !root->is_split_update);
+		/*
+		 * For split update, the target list must expand, so the INSERT segment
+		 * will get the complete attributes from the DELETE segment.
+		 */
+		if (root->is_split_update)
+		{
+			if (target_rte->inh && target_rte->rtekind == RTE_RELATION &&
+				target_rte->relkind != RELKIND_PARTITIONED_TABLE)
+				ereport(ERROR, (errmsg("can't split update for inherit table: %s",
+								RelationGetRelationName(target_relation))));
+			tlist = expand_insert_targetlist(tlist, target_relation, result_relation);
+		}
+	}
+
+	/*
+	 * For non-inherited UPDATE/DELETE, register any junk column(s) needed to
+	 * allow the executor to identify the rows to be updated or deleted.  In
+	 * the inheritance case, we do nothing now, leaving this to be dealt with
+	 * when expand_inherited_rtentry() makes the leaf target relations.  (But
+	 * there might not be any leaf target relations, in which case we must do
+	 * this in distribute_row_identity_vars().)
+	 */
+	if ((command_type == CMD_UPDATE || command_type == CMD_DELETE) &&
+		!target_rte->inh)
+	{
+		/* row-identity logic expects to add stuff to processed_tlist */
+		root->processed_tlist = tlist;
+		add_row_identity_columns(root, result_relation,
+								 target_rte, target_relation);
+		tlist = root->processed_tlist;
+	}
 
 	/* simply updatable cursors */
 	if (root->glob->simplyUpdatableRel != InvalidOid)
@@ -138,6 +169,14 @@ preprocess_targetlist(PlannerInfo *root)
 	 * rechecking.  See comments for PlanRowMark in plannodes.h.  If you
 	 * change this stanza, see also expand_inherited_rtentry(), which has to
 	 * be able to add on junk columns equivalent to these.
+	 *
+	 * (Someday it might be useful to fold these resjunk columns into the
+	 * row-identity-column management used for UPDATE/DELETE.  Today is not
+	 * that day, however.  One notable issue is that it seems important that
+	 * the whole-row Vars made here use the real table rowtype, not RECORD, so
+	 * that conversion to/from child relations' rowtypes will happen.  Also,
+	 * since these entries don't potentially bloat with more and more child
+	 * relations, there's not really much need for column sharing.)
 	 */
 	foreach(lc, root->rowMarks)
 	{
@@ -237,21 +276,43 @@ preprocess_targetlist(PlannerInfo *root)
 		list_free(vars);
 	}
 
-	/*
-	 * If there's an ON CONFLICT UPDATE clause, preprocess its targetlist too
-	 * while we have the relation open.
-	 */
-	if (parse->onConflict)
-		parse->onConflict->onConflictSet =
-			expand_targetlist(root, parse->onConflict->onConflictSet,
-							  CMD_UPDATE,
-							  result_relation,
-							  target_relation);
+	root->processed_tlist = tlist;
 
 	if (target_relation)
 		table_close(target_relation, NoLock);
+}
 
-	return tlist;
+/*
+ * extract_update_targetlist_colnos
+ * 		Extract a list of the target-table column numbers that
+ * 		an UPDATE's targetlist wants to assign to, then renumber.
+ *
+ * The convention in the parser and rewriter is that the resnos in an
+ * UPDATE's non-resjunk TLE entries are the target column numbers
+ * to assign to.  Here, we extract that info into a separate list, and
+ * then convert the tlist to the sequential-numbering convention that's
+ * used by all other query types.
+ *
+ * This is also applied to the tlist associated with INSERT ... ON CONFLICT
+ * ... UPDATE, although not till much later in planning.
+ */
+List *
+extract_update_targetlist_colnos(List *tlist, bool reorder_resno)
+{
+	List	   *update_colnos = NIL;
+	AttrNumber	nextresno = 1;
+	ListCell   *lc;
+
+	foreach(lc, tlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+		if (!tle->resjunk)
+			update_colnos = lappend_int(update_colnos, tle->resno);
+		if (reorder_resno)
+			tle->resno = nextresno++;
+	}
+	return update_colnos;
 }
 
 
@@ -262,20 +323,24 @@ preprocess_targetlist(PlannerInfo *root)
  *****************************************************************************/
 
 /*
- * expand_targetlist
+ * expand_insert_targetlist
  *	  Given a target list as generated by the parser and a result relation,
  *	  add targetlist entries for any missing attributes, and ensure the
  *	  non-junk attributes appear in proper field order.
+ *
+ *	  split_update_result_relation is non-zero if it's the result relation
+ *	  for split update.
+ *
+ * Once upon a time we also did more or less this with UPDATE targetlists,
+ * but now this code is only applied to INSERT targetlists.
  */
 static List *
-expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
-				  Index result_relation, Relation rel)
+expand_insert_targetlist(List *tlist, Relation rel, Index split_update_result_relation)
 {
 	List	   *new_tlist = NIL;
 	ListCell   *tlist_item;
 	int			attrno,
 				numattrs;
-	Bitmapset  *changed_cols = NULL;
 
 	tlist_item = list_head(tlist);
 
@@ -300,34 +365,8 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 			if (!old_tle->resjunk && old_tle->resno == attrno)
 			{
 				new_tle = old_tle;
-				tlist_item = lnext(tlist_item);
+				tlist_item = lnext(tlist, tlist_item);
 			}
-		}
-
-		/*
-		 * GPDB: If it's an UPDATE, keep track of which columns are being
-		 * updated, and which ones are just passed through from old relation.
-		 * We need that information later, to determine whether this UPDATE
-		 * can move tuples from one segment to another.
-		 */
-		if (new_tle && command_type == CMD_UPDATE)
-		{
-			bool		col_changed = true;
-
-			/*
-			 * The column is unchanged, if the new value is a Var that refers
-			 * directly to the same attribute in the same table.
-			 */
-			if (IsA(new_tle->expr, Var))
-			{
-				Var		   *var = (Var *) new_tle->expr;
-
-				if (var->varno == result_relation && var->varattno == attrno)
-					col_changed = false;
-			}
-
-			if (col_changed)
-				changed_cols = bms_add_member(changed_cols, attrno);
 		}
 
 		if (new_tle == NULL)
@@ -335,15 +374,11 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 			/*
 			 * Didn't find a matching tlist entry, so make one.
 			 *
-			 * For INSERT, generate a NULL constant.  (We assume the rewriter
-			 * would have inserted any available default value.) Also, if the
-			 * column isn't dropped, apply any domain constraints that might
-			 * exist --- this is to catch domain NOT NULL.
-			 *
-			 * For UPDATE, generate a Var reference to the existing value of
-			 * the attribute, so that it gets copied to the new tuple. But
-			 * generate a NULL for dropped columns (we want to drop any old
-			 * values).
+			 * INSERTs should insert NULL in this case.  (We assume the
+			 * rewriter would have inserted any available non-NULL default
+			 * value.)  Also, if the column isn't dropped, apply any domain
+			 * constraints that might exist --- this is to catch domain NOT
+			 * NULL.
 			 *
 			 * When generating a NULL constant for a dropped column, we label
 			 * it INT4 (any other guaranteed-to-exist datatype would do as
@@ -355,69 +390,48 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 			 * relation, however.
 			 */
 			Oid			atttype = att_tup->atttypid;
-			int32		atttypmod = att_tup->atttypmod;
 			Oid			attcollation = att_tup->attcollation;
 			Node	   *new_expr;
 
-			switch (command_type)
+			if (!att_tup->attisdropped)
 			{
-				case CMD_INSERT:
-					if (!att_tup->attisdropped)
-					{
-						new_expr = (Node *) makeConst(atttype,
-													  -1,
-													  attcollation,
-													  att_tup->attlen,
-													  (Datum) 0,
-													  true, /* isnull */
-													  att_tup->attbyval);
-						new_expr = coerce_to_domain(new_expr,
-													InvalidOid, -1,
-													atttype,
-													COERCION_IMPLICIT,
-													COERCE_IMPLICIT_CAST,
-													-1,
-													false);
-					}
-					else
-					{
-						/* Insert NULL for dropped column */
-						new_expr = (Node *) makeConst(INT4OID,
-													  -1,
-													  InvalidOid,
-													  sizeof(int32),
-													  (Datum) 0,
-													  true, /* isnull */
-													  true /* byval */ );
-					}
-					break;
-				case CMD_UPDATE:
-					if (!att_tup->attisdropped)
-					{
-						new_expr = (Node *) makeVar(result_relation,
-													attrno,
-													atttype,
-													atttypmod,
-													attcollation,
-													0);
-					}
-					else
-					{
-						/* Insert NULL for dropped column */
-						new_expr = (Node *) makeConst(INT4OID,
-													  -1,
-													  InvalidOid,
-													  sizeof(int32),
-													  (Datum) 0,
-													  true, /* isnull */
-													  true /* byval */ );
-					}
-					break;
-				default:
-					elog(ERROR, "unrecognized command_type: %d",
-						 (int) command_type);
-					new_expr = NULL;	/* keep compiler quiet */
-					break;
+				if (split_update_result_relation)
+				{
+					new_expr = (Node *) makeVar(split_update_result_relation,
+												attrno,
+												atttype,
+												att_tup->atttypmod,
+												attcollation,
+												0);
+				}
+				else
+				{
+				new_expr = (Node *) makeConst(atttype,
+											  -1,
+											  attcollation,
+											  att_tup->attlen,
+											  (Datum) 0,
+											  true, /* isnull */
+											  att_tup->attbyval);
+				new_expr = coerce_to_domain(new_expr,
+											InvalidOid, -1,
+											atttype,
+											COERCION_IMPLICIT,
+											COERCE_IMPLICIT_CAST,
+											-1,
+											false);
+				}
+			}
+			else
+			{
+				/* Insert NULL for dropped column */
+				new_expr = (Node *) makeConst(INT4OID,
+											  -1,
+											  InvalidOid,
+											  sizeof(int32),
+											  (Datum) 0,
+											  true, /* isnull */
+											  true /* byval */ );
 			}
 
 			new_tle = makeTargetEntry((Expr *) new_expr,
@@ -427,6 +441,75 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 		}
 
 		new_tlist = lappend(new_tlist, new_tle);
+	}
+
+	/*
+	 * The remaining tlist entries should be resjunk; append them all to the
+	 * end of the new tlist, making sure they have resnos higher than the last
+	 * real attribute.  (Note: although the rewriter already did such
+	 * renumbering, we have to do it again here in case we added NULL entries
+	 * above.)
+	 */
+	while (tlist_item)
+	{
+		TargetEntry *old_tle = (TargetEntry *) lfirst(tlist_item);
+
+		if (!old_tle->resjunk)
+			elog(ERROR, "targetlist is not sorted correctly");
+		/* Get the resno right, but don't copy unnecessarily */
+		if (old_tle->resno != attrno)
+		{
+			old_tle = flatCopyTargetEntry(old_tle);
+			old_tle->resno = attrno;
+		}
+		new_tlist = lappend(new_tlist, old_tle);
+		attrno++;
+		tlist_item = lnext(tlist, tlist_item);
+	}
+
+	return new_tlist;
+}
+
+static bool
+check_splitupdate(List *tlist, Index result_relation, Relation rel)
+{
+	ListCell   *lc;
+	int			attrno;
+	Bitmapset  *changed_cols = NULL;
+
+	foreach(lc, tlist)
+	{
+		TargetEntry *tle = (TargetEntry *) lfirst(lc);
+		attrno = tle->resno;
+
+		if (tle->resjunk)
+			continue;
+
+		/*
+		 * GPDB: If it's an UPDATE, keep track of which columns are being
+		 * updated, and which ones are just passed through from old relation.
+		 * We need that information later, to determine whether this UPDATE
+		 * can move tuples from one segment to another.
+		 */
+
+		{
+			bool		col_changed = true;
+
+			/*
+			 * The column is unchanged, if the new value is a Var that refers
+			 * directly to the same attribute in the same table.
+			 */
+			if (IsA(tle->expr, Var))
+			{
+				Var		   *var = (Var *) tle->expr;
+
+				if (var->varno == result_relation && var->varattno == attrno)
+					col_changed = false;
+			}
+
+			if (col_changed)
+				changed_cols = bms_add_member(changed_cols, attrno);
+		}
 	}
 
 
@@ -444,7 +527,6 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 	 * GPDB_12_MERGE_FIXME: Tables with special OIDS is now gone. We can
 	 * definitely get rid of this now.
 	 */
-	if (command_type == CMD_UPDATE)
 	{
 		GpPolicy   *targetPolicy;
 		bool		key_col_updated = false;
@@ -464,47 +546,10 @@ expand_targetlist(PlannerInfo *root, List *tlist, int command_type,
 				}
 			}
 		}
-
-		if (key_col_updated)
-		{
-			/*
-			 * Since we just went through a lot of work to determine whether a
-			 * Split Update is needed, memorize that in the PlannerInfo, so that
-			 * we don't need redo all that work later in the planner, when it's
-			 * time to actually create the ModifyTable, and SplitUpdate, node.
-			 */
-			root->is_split_update = true;
-		}
+		bms_free(changed_cols);
+		return key_col_updated;
 	}
-
-	/*
-	 * The remaining tlist entries should be resjunk; append them all to the
-	 * end of the new tlist, making sure they have resnos higher than the last
-	 * real attribute.  (Note: although the rewriter already did such
-	 * renumbering, we have to do it again here in case we are doing an UPDATE
-	 * in a table with dropped columns, or an inheritance child table with
-	 * extra columns.)
-	 */
-	while (tlist_item)
-	{
-		TargetEntry *old_tle = (TargetEntry *) lfirst(tlist_item);
-
-		if (!old_tle->resjunk)
-			elog(ERROR, "targetlist is not sorted correctly");
-		/* Get the resno right, but don't copy unnecessarily */
-		if (old_tle->resno != attrno)
-		{
-			old_tle = flatCopyTargetEntry(old_tle);
-			old_tle->resno = attrno;
-		}
-		new_tlist = lappend(new_tlist, old_tle);
-		attrno++;
-		tlist_item = lnext(tlist_item);
-	}
-
-	return new_tlist;
 }
-
 
 /*
  * Locate PlanRowMark for given RT index, or return NULL if none

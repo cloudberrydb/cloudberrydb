@@ -347,7 +347,7 @@ m/^NOTICE:  dropping a column that is part of the distribution policy/
 
 m/^NOTICE:  table has parent\, setting distribution columns to match parent table/
 
-m/^WARNING:  referential integrity \(.*\) constraints are not supported in Greenplum Database/
+m/^WARNING:  referential integrity \(.*\) constraints are not supported in Cloudberry Database/
 
         # ignore notices for DROP sqlobject IF EXISTS "objectname"
         # eg NOTICE:  table "foo" does not exist, skipping
@@ -1083,7 +1083,7 @@ sub atmsort_bigloop
 
         # if MATCH then IGNORE
         # see HERE document for definitions
-        if ( match_then_ignore($ini))
+        if (!$ini || match_then_ignore($ini))
         {
             next; # ignore matching lines
         }

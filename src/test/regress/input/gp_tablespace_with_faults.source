@@ -9,11 +9,8 @@
 -- start_ignore
 \! gpconfig -c create_restartpoint_on_ckpt_record_replay -v on --skipvalidation;
 \! gpstop -u;
+create extension if not exists plpython3u;
 -- end_ignore
-
-
-create or replace language plpython3u;
-
 
 create or replace function remove_tablespace_location_directory(tablespace_location_dir text) returns void as $$
 	import shutil
@@ -67,13 +64,6 @@ create or replace function disable_fts() returns void as $$
 
 		perform gp_request_fts_probe_scan();
 
-		-- also, ensure that the fts loop observes the probe being skipped before
-		-- continuing with the test because it could still be in the middle of a
-		-- previous probe
-		perform gp_wait_until_triggered_fault('fts_probe', 1, dbid)
-			from gp_segment_configuration
-			where content = master_content_id
-			and role = master_primary_role;
 	end;
 $$ language plpgsql;
 
@@ -87,8 +77,8 @@ create or replace function setup(content_id integer, fault_name text, fault_acti
 
 		-- setup faults
 		perform gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration where content = content_id and role = 'p';
-		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
 		perform disable_fts();
+		perform gp_inject_fault(fault_name, fault_action_type, dbid) from gp_segment_configuration where content = content_id and role = 'p';
 	end;
 $$ LANGUAGE plpgsql;
 

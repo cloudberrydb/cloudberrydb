@@ -4,8 +4,8 @@
  * Copyright (c) 2017-Present VMware, Inc. or its affiliates.
  *
  */
-
 #include "postgres.h"
+#ifdef USE_INTERNAL_FTS
 
 #include "catalog/gp_segment_configuration.h"
 #include "access/genam.h"
@@ -50,3 +50,4 @@ gp_segment_config_has_mirrors()
 
 	return mirrors_exist;
 }
+#endif

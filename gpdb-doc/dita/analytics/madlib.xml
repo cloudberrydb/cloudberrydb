@@ -4,9 +4,9 @@
 <topic id="topic1" xml:lang="en">
   <title id="pz212122">Machine Learning and Deep Learning using MADlib</title>
   <body>
-    <p>Apache MADlib is an open-source library for scalable in-database analytics. The Greenplum
+    <p>Apache MADlib is an open-source library for scalable in-database analytics. The Cloudberry
       MADlib extension provides the ability to run machine learning and deep learning workloads in a
-      Greenplum Database.</p>
+      Cloudberry Database.</p>
     <p>This chapter includes the following information:</p>
     <ul>
       <li id="pz213664" otherprops="pivotal"><xref href="#topic3" type="topic" format="dita"/></li>
@@ -15,19 +15,19 @@
       <li id="pz215253"><xref href="#topic9" type="topic" format="dita"/></li>
       <li id="pz213676"><xref href="#topic10" type="topic" format="dita"/></li>
     </ul>
-    <p>You can install it as an extension in a Greenplum Database system you can run data-parallel
+    <p>You can install it as an extension in a Cloudberry Database system you can run data-parallel
       implementations of mathematical, statistical, graph, machine learning, and deep learning
-      methods on structured and unstructured data. For Greenplum and MADlib version compatibility,
+      methods on structured and unstructured data. For Cloudberry and MADlib version compatibility,
       refer to <xref
         href="https://cwiki.apache.org/confluence/display/MADLIB/FAQ#FAQ-Q1-2WhatdatabaseplatformsdoesMADlibsupportandwhatistheupgradematrix?"
         format="html" scope="external">MADlib FAQ</xref>.</p>
-    <p>MADlib’s suite of SQL-based algorithms run at scale within a single Greenplum Database engine
+    <p>MADlib’s suite of SQL-based algorithms run at scale within a single Cloudberry Database engine
       without needing to transfer data between the database and other tools.</p>
-    <p>MADlib is part of the database fabric with no changes to the Greenplum architecture. This
+    <p>MADlib is part of the database fabric with no changes to the Cloudberry architecture. This
       makes it easy for database administrators to deploy and manage since it is not a separate
       daemon or separate software running outside the database.</p>
     <fig id="madlib_architecture">
-      <title>Greenplum MADlib Analytics Architecture</title>
+      <title>Cloudberry MADlib Analytics Architecture</title>
       <image placement="break" href="graphics/gp_greenplum_diagram.png" width="750" height="450"
         align="center" id="image_t43_zdr_2kb"/>
     </fig>
@@ -46,7 +46,7 @@
     </section>
     <section id="section_hrn_pv1_rqb">
       <title> Deep Learning</title>
-      <p dir="ltr">Starting in Apache MADlib release 1.16, Greenplum Database supports using Keras
+      <p dir="ltr">Starting in Apache MADlib release 1.16, Cloudberry Database supports using Keras
         and TensorFlow for deep learning. You can review the <xref
           href="https://cwiki.apache.org/confluence/display/MADLIB/Deep+Learning" format="html"
           scope="external">supported libraries and configuration instructions</xref> on the Apache
@@ -65,12 +65,12 @@
     <section id="section_wp5_pv1_rqb">
       <title>PivotalR</title>
       <p>MADlib can be used with PivotalR, an R client package that enables users to interact with
-        data resident in the Greenplum Database. PivotalR can be considered as a wrapper around
+        data resident in the Cloudberry Database. PivotalR can be considered as a wrapper around
         MADlib that translates R code into SQL to run on MPP databases and is designed for users
         familiar with R but with data sets that are too large for R.</p>
       <p>The R language is an open-source language that is used for statistical computing. PivotalR
-        is an R package that enables users to interact with data resident in Greenplum Database
-        using the R client. Using PivotalR requires that MADlib is installed on the Greenplum
+        is an R package that enables users to interact with data resident in Cloudberry Database
+        using the R client. Using PivotalR requires that MADlib is installed on the Cloudberry
         Database.</p>
       <p>PivotalR allows R users to leverage the scalability and performance of in-database
         analytics without leaving the R command line. The computational work is run in-database,
@@ -101,11 +101,11 @@
     <body>
       <p><b>Note</b>: MADlib requires the <codeph>m4</codeph> macro processor version 1.4.13 or
         later.</p>
-      <p>To install MADlib on Greenplum Database, you first install a compatible Greenplum MADlib
+      <p>To install MADlib on Cloudberry Database, you first install a compatible Cloudberry MADlib
         package and then install the MADlib function libraries on all databases that will use
         MADlib.</p>
       <p>The <codeph><xref href="../utility_guide/ref/gppkg.xml#topic1">gppkg</xref></codeph>
-        utility installs Greenplum Database extensions, along with any dependencies, on all hosts
+        utility installs Cloudberry Database extensions, along with any dependencies, on all hosts
         across a cluster. It also automatically installs extensions on new hosts in the case of
         system expansion segment recovery. </p>
       <p dir="ltr">If you have GPUs installed on some or across all hosts in the cluster, then the
@@ -118,19 +118,19 @@
           scope="external">MADlib user documentation for deep learning</xref> .</p>
     </body>
     <topic id="topic4" xml:lang="en">
-      <title>Installing the Greenplum Database MADlib Package</title>
+      <title>Installing the Cloudberry Database MADlib Package</title>
       <body>
-        <p>Before you install the MADlib package, make sure that your Greenplum database is running,
+        <p>Before you install the MADlib package, make sure that your Cloudberry database is running,
           you have sourced <codeph>greenplum_path.sh</codeph>, and that the<codeph>
             $MASTER_DATA_DIRECTORY</codeph> and <codeph>$GPHOME</codeph> variables are set.</p>
         <ol>
           <li id="pz214496" otherprops="pivotal">Download the MADlib extension package from <xref
               href="https://network.pivotal.io/products/pivotal-gpdb" format="html" scope="external"
               >VMware Tanzu Network</xref>.</li>
-          <li>Copy the MADlib package to the Greenplum Database master host.</li>
+          <li>Copy the MADlib package to the Cloudberry Database master host.</li>
           <li>Follow the instructions in <xref href="../install_guide/verify_sw.xml#topic1"
-            scope="peer" format="dita">Verifying the Greenplum Database Software Download</xref>
-            to verify the integrity of the <b>Greenplum Advanced Analytics MADlib</b> software.</li>
+            scope="peer" format="dita">Verifying the Cloudberry Database Software Download</xref>
+            to verify the integrity of the <b>Cloudberry Advanced Analytics MADlib</b> software.</li>
           <li>Unpack the MADlib distribution package. For
             example:<codeblock>$ tar xzvf madlib-1.17.0+3-gp6-rhel7-x86_64.tar.gz</codeblock></li>
           <li id="pz216990">Install the software package by running the <codeph>gppkg</codeph>
@@ -143,16 +143,16 @@
       <title>Adding MADlib Functions to a Database</title>
       <body>
         <p>After installing the MADlib package, run the <codeph>madpack</codeph> command to add
-          MADlib functions to Greenplum Database. <codeph>madpack</codeph> is in
+          MADlib functions to Cloudberry Database. <codeph>madpack</codeph> is in
             <codeph>$GPHOME/madlib/bin</codeph>. </p>
         <codeblock>$ madpack [-s <varname>schema_name</varname>] -p greenplum -c <varname>user</varname>@<varname>host</varname>:<varname>port</varname>/<varname>database</varname> install</codeblock>
-        <p>For example, this command creates MADlib functions in the Greenplum database
+        <p>For example, this command creates MADlib functions in the Cloudberry database
             <codeph>testdb</codeph> running on server <codeph>mdw</codeph> on port
             <codeph>5432</codeph>. The <codeph>madpack</codeph> command logs in as the user
             <codeph>gpadmin</codeph> and prompts for password. The target schema is
             <codeph>madlib</codeph>.</p>
         <codeblock>$ madpack -s madlib -p greenplum -c gpadmin@mdw:5432/testdb install</codeblock>
-        <p>After installing the functions, The Greenplum Database gpadmin superuser role should
+        <p>After installing the functions, The Cloudberry Database gpadmin superuser role should
           grant all privileges on the target schema (in the example <codeph>madlib</codeph>) to
           users who will be accessing MADlib functions. Users without access to the functions will
           get the error <codeph>ERROR: permission denied for schema MADlib</codeph>.</p>
@@ -167,7 +167,7 @@
   <topic id="topic_eqm_klx_hw" otherprops="pivotal">
     <title>Upgrading MADlib </title>
     <body>
-      <p>You upgrade an installed MADlib package with the Greenplum Database <codeph>gppkg</codeph>
+      <p>You upgrade an installed MADlib package with the Cloudberry Database <codeph>gppkg</codeph>
         utility and the MADlib <codeph>madpack</codeph> command.</p>
       <p>For information about the upgrade paths that MADlib supports, see the MADlib support and
         upgrade matrix in the <xref
@@ -192,7 +192,7 @@
           version, for example from 1.15 to 1.17.0. You do not need to update the functions within a
           patch version upgrade, for example from 1.16+1 to 1.16+3.</note>
         <p>This example command upgrades the MADlib functions in the schema <codeph>madlib</codeph>
-          of the Greenplum Database <codeph>test</codeph>. </p>
+          of the Cloudberry Database <codeph>test</codeph>. </p>
         <codeblock>madpack -s madlib -p greenplum -c gpadmin@mdw:5432/testdb upgrade</codeblock>
       </body>
     </topic>
@@ -211,15 +211,15 @@
       <title id="pz217588">Remove MADlib objects from the database</title>
       <body>
         <p>Use the <codeph>madpack uninstall</codeph> command to remove MADlib objects from a
-          Greenplum database. For example, this command removes MADlib objects from the database
+          Cloudberry database. For example, this command removes MADlib objects from the database
             <codeph>testdb</codeph>.</p>
         <codeblock>$ madpack  -s madlib -p greenplum -c gpadmin@mdw:5432/testdb uninstall</codeblock>
       </body>
     </topic>
     <topic id="topic8" xml:lang="en">
-      <title id="pz213708">Uninstall the Greenplum Database MADlib Package</title>
+      <title id="pz213708">Uninstall the Cloudberry Database MADlib Package</title>
       <body>
-        <p>If no databases use the MADlib functions, use the Greenplum <codeph>gppkg</codeph>
+        <p>If no databases use the MADlib functions, use the Cloudberry <codeph>gppkg</codeph>
           utility with the <codeph>-r</codeph> option to uninstall the MADlib package. When removing
           the package you must specify the package and version. This example uninstalls MADlib
           package version 1.17.</p>
@@ -234,7 +234,7 @@
   <topic id="topic9" xml:lang="en">
     <title id="pz215232">Examples</title>
     <body>
-      <p>Following are examples using the Greenplum MADlib extension:</p>
+      <p>Following are examples using the Cloudberry MADlib extension:</p>
       <ul id="ul_wr3_lss_bz">
         <li><xref href="#topic9/mlogr" format="dita">Linear Regression</xref></li>
         <li><xref href="#topic9/assoc_rules" format="dita"/></li>
@@ -597,7 +597,7 @@ insert into t1 values
       <p>MADlib documentation is at <xref href="http://madlib.apache.org/documentation.html"
           format="html" scope="external">http://madlib.apache.org/documentation.html</xref>.</p>
       <p>PivotalR is a first class R package that enables users to interact with data resident in
-        Greenplum Database and MADLib using an R client.</p>
+        Cloudberry Database and MADLib using an R client.</p>
     </body>
   </topic>
 </topic>

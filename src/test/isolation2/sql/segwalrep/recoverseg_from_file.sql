@@ -13,6 +13,9 @@
 --   we should recover the segment to a different datadir location instead of its
 --   original one.
 --
+-- start_ignore
+set statement_timeout='180s';
+-- end_ignore
 create or replace function generate_recover_config_file(datadir text, port text)
 returns void as $$
     import io
@@ -32,7 +35,7 @@ returns void as $$
     f.close()
 $$ language plpython3u;
 
-SELECT dbid, role, preferred_role, content, mode, status FROM gp_segment_configuration order by dbid;
+SELECT dbid, role, preferred_role, content, status FROM gp_segment_configuration order by dbid;
 -- stop a primary in order to trigger a mirror promotion
 select pg_ctl((select datadir from gp_segment_configuration c
 where c.role='p' and c.content=1), 'stop');
@@ -41,22 +44,7 @@ where c.role='p' and c.content=1), 'stop');
 select gp_request_fts_probe_scan();
 
 -- wait for content 1 (earlier mirror, now primary) to finish the promotion
-1U: select 1;
--- Quit this utility mode session, as need to start fresh one below
-1Uq:
-
--- make the dbid in gp_segment_configuration not continuous
--- dbid=2 corresponds to content 0 and role p, change it to dbid=9
-set allow_system_table_mods to true;
-update gp_segment_configuration set dbid=9 where content=0 and role='p';
-
--- trigger failover
-select gp_request_fts_probe_scan();
-
--- wait for content 0 (earlier mirror, now primary) to finish the promotion
-0U: select 1;
--- Quit this utility mode session, as need to start fresh one below
-0Uq:
+!\retcode gpfts -A -D;
 
 -- generate recover config file
 select generate_recover_config_file(
@@ -65,6 +53,8 @@ select generate_recover_config_file(
 
 -- recover from config file, only seg with content=1 will be recovered
 !\retcode gprecoverseg -a -i /tmp/recover_config_file1;
+
+!\retcode gpfts -A -D;
 
 -- after gprecoverseg -i, the down segemnt should be up
 -- in mirror mode
@@ -77,13 +67,7 @@ select dbid from gp_segment_configuration where dbid=2;
 -- recover the segment to its original datadir
 !\retcode gprecoverseg -a -i /tmp/recover_config_file2;
 
-update gp_segment_configuration set dbid=2 where dbid=9;
-set allow_system_table_mods to false;
-
--- we manually change dbid from 2 to 9, which causes the
--- corresponding segment down as well, so recovery full
--- at here
-!\retcode gprecoverseg -a;
+!\retcode gpfts -A -D;
 
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
@@ -91,14 +75,24 @@ select wait_until_all_segments_synchronized();
 -- rebalance the cluster
 !\retcode gprecoverseg -ar;
 
+!\retcode gpfts -A -D;
+
+-- after rebalance walrec in mirror(content=0) will failed to connect 
+!\retcode gprecoverseg -a;
+
+!\retcode gpfts -A -D;
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
 
 -- recheck gp_segment_configuration after rebalance
-SELECT dbid, role, preferred_role, content, mode, status FROM gp_segment_configuration order by dbid;
+SELECT dbid, role, preferred_role, content, status FROM gp_segment_configuration order by dbid;
 
 -- remove recovered segment's temp datadir
 !\retcode rm -rf `cat /tmp/recover_config_file2 | awk 'BEGIN {FS=" "}  {print $1}' | awk 'BEGIN {FS="|"}  {print $3}'`; 
 -- remove the config file
 !\retcode rm /tmp/recover_config_file1;
 !\retcode rm /tmp/recover_config_file2;
+
+-- start_ignore
+reset statement_timeout;
+-- end_ignore

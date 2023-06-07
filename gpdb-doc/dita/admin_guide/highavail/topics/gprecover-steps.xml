@@ -5,7 +5,7 @@
   <body>
     <p>This topic describes the process for recovering segments, initiated by the
         <codeph>gprecoverseg</codeph> management utility. It describes actions
-        <codeph>gprecoverseg</codeph> performs and how the Greenplum File Replication and FTS (fault
+        <codeph>gprecoverseg</codeph> performs and how the Cloudberry File Replication and FTS (fault
       tolerance service) processes complete the recovery initiated with
         <codeph>gprecoverseg</codeph>. </p>
     <p>Although <codeph>gprecoverseg</codeph> is an online operation, there are two brief periods
@@ -72,7 +72,7 @@
     <section>
       <title>Segment Recovery Preparation</title>
       <p>The <codeph>gprecoverseg</codeph> utility prepares the segments for recovery and then
-        exits, allowing the Greenplum file replication processes to copy data from the primary to
+        exits, allowing the Cloudberry file replication processes to copy data from the primary to
         the mirror. </p>
       <p> During the <codeph>gprecoverseg</codeph> execution the following recovery process steps
         are completed. </p>
@@ -137,7 +137,7 @@
     <section>
       <title>Data File Replication</title>
       <p>Data file resynchronization is performed in the background by file replication processes.
-        Run <codeph>gpstate -e</codeph> to check the process of resynchronization. The Greenplum
+        Run <codeph>gpstate -e</codeph> to check the process of resynchronization. The Cloudberry
         system is fully available for workloads while this process completes. </p>
       <p>Following are steps in the resynchronization process:</p>
       <ol id="ol_a2z_2dt_bx">

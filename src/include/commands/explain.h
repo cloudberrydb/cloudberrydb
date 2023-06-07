@@ -3,7 +3,7 @@
  * explain.h
  *	  prototypes for explain.c
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994-5, Regents of the University of California
  *
  * src/include/commands/explain.h
@@ -25,6 +25,15 @@ typedef enum ExplainFormat
 	EXPLAIN_FORMAT_YAML
 } ExplainFormat;
 
+typedef struct ExplainWorkersState
+{
+	int			num_workers;	/* # of worker processes the plan used */
+	bool	   *worker_inited;	/* per-worker state-initialized flags */
+	StringInfoData *worker_str; /* per-worker transient output buffers */
+	int		   *worker_state_save;	/* per-worker grouping state save areas */
+	StringInfo	prev_str;		/* saved output buffer while redirecting */
+} ExplainWorkersState;
+
 typedef struct ExplainState
 {
 	StringInfo	str;			/* output buffer */
@@ -36,6 +45,7 @@ typedef struct ExplainState
 	bool		dxl;			/* CDB: print DXL */
 	bool		slicetable;		/* CDB: print slice table */
 	bool		memory_detail;	/* CDB: print per-node memory usage */
+	bool		wal;			/* print WAL usage */
 	bool		timing;			/* print detailed node timing */
 	bool		summary;		/* print total planning and execution timing */
 	bool		settings;		/* print modified settings */
@@ -56,6 +66,9 @@ typedef struct ExplainState
 	bool		subplanDispatchedSeparately;
 
 	PlanState  *parentPlanState;
+	bool		hide_workers;	/* set if we find an invisible Gather */
+	/* state related to the current plan node */
+	ExplainWorkersState *workers_state; /* needed if parallel plan */
 } ExplainState;
 
 /* Hook for plugins to get control in ExplainOneQuery() */
@@ -73,8 +86,8 @@ typedef const char *(*explain_get_index_name_hook_type) (Oid indexId);
 extern PGDLLIMPORT explain_get_index_name_hook_type explain_get_index_name_hook;
 
 
-extern void ExplainQuery(ParseState *pstate, ExplainStmt *stmt, const char *queryString,
-						 ParamListInfo params, QueryEnvironment *queryEnv, DestReceiver *dest);
+extern void ExplainQuery(ParseState *pstate, ExplainStmt *stmt,
+						 ParamListInfo params, DestReceiver *dest);
 
 extern ExplainState *NewExplainState(void);
 
@@ -87,7 +100,9 @@ extern void ExplainOneUtility(Node *utilityStmt, IntoClause *into,
 extern void ExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into,
 						   ExplainState *es, const char *queryString,
 						   ParamListInfo params, QueryEnvironment *queryEnv,
-						   const instr_time *planduration, int cursorOptions);
+						   const instr_time *planduration,
+						   const BufferUsage *bufusage,
+						   int cursorOptions);
 
 extern void ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc);
 extern void ExplainPrintTriggers(ExplainState *es, QueryDesc *queryDesc);
@@ -95,8 +110,6 @@ extern void ExplainParallelRetrieveCursor(ExplainState *es, QueryDesc* queryDesc
 extern void ExplainPrintSliceTable(ExplainState *es, QueryDesc *queryDesc);
 
 extern void ExplainPrintJITSummary(ExplainState *es, QueryDesc *queryDesc);
-extern void ExplainPrintJIT(ExplainState *es, int jit_flags,
-							struct JitInstrumentation *jit_instr, int worker_i);
 
 extern void ExplainQueryText(ExplainState *es, QueryDesc *queryDesc);
 
@@ -112,6 +125,8 @@ extern void ExplainPropertyText(const char *qlabel, const char *value,
 								ExplainState *es);
 extern void ExplainPropertyInteger(const char *qlabel, const char *unit,
 								   int64 value, ExplainState *es);
+extern void ExplainPropertyUInteger(const char *qlabel, const char *unit,
+									uint64 value, ExplainState *es);
 extern void ExplainPropertyFloat(const char *qlabel, const char *unit,
 								 double value, int ndigits, ExplainState *es);
 extern void ExplainPropertyBool(const char *qlabel, bool value,

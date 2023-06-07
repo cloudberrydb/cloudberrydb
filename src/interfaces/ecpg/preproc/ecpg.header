@@ -38,7 +38,6 @@ char *current_function;
 int ecpg_internal_var = 0;
 char	*connection = NULL;
 char	*input_filename = NULL;
-char	*g_cursor_name = NULL;
 
 static int	FoundInto = 0;
 static int	initializer = 0;
@@ -64,6 +63,8 @@ struct variable no_indicator = {"no_indicator", &ecpg_no_indicator, 0, NULL};
 static struct ECPGtype ecpg_query = {ECPGt_char_variable, NULL, NULL, NULL, {NULL}, 0};
 
 static void vmmerror(int error_code, enum errortype type, const char *error, va_list ap) pg_attribute_printf(3, 0);
+
+static bool check_declared_list(const char*);
 
 /*
  * Handle parsing errors and warnings
@@ -290,7 +291,8 @@ adjust_outofscope_cursor_vars(struct cursor *cur)
 			else if ((ptr->variable->type->type != ECPGt_varchar
 					  && ptr->variable->type->type != ECPGt_char
 					  && ptr->variable->type->type != ECPGt_unsigned_char
-					  && ptr->variable->type->type != ECPGt_string)
+					  && ptr->variable->type->type != ECPGt_string
+					  && ptr->variable->type->type != ECPGt_bytea)
 					 && atoi(ptr->variable->type->size) > 1)
 			{
 				newvar = new_variable(cat_str(4, mm_strdup("("),
@@ -306,7 +308,8 @@ adjust_outofscope_cursor_vars(struct cursor *cur)
 			else if ((ptr->variable->type->type == ECPGt_varchar
 					  || ptr->variable->type->type == ECPGt_char
 					  || ptr->variable->type->type == ECPGt_unsigned_char
-					  || ptr->variable->type->type == ECPGt_string)
+					  || ptr->variable->type->type == ECPGt_string
+					  || ptr->variable->type->type == ECPGt_bytea)
 					 && atoi(ptr->variable->type->size) > 1)
 			{
 				newvar = new_variable(cat_str(4, mm_strdup("("),
@@ -317,7 +320,8 @@ adjust_outofscope_cursor_vars(struct cursor *cur)
 														   ptr->variable->type->size,
 														   ptr->variable->type->counter),
 									  0);
-				if (ptr->variable->type->type == ECPGt_varchar)
+				if (ptr->variable->type->type == ECPGt_varchar ||
+					ptr->variable->type->type == ECPGt_bytea)
 					var_ptr = true;
 			}
 			else if (ptr->variable->type->type == ECPGt_struct
@@ -574,6 +578,30 @@ add_typedef(char *name, char *dimension, char *length, enum ECPGttype type_enum,
 		types = this;
 	}
 }
+
+/*
+ * check an SQL identifier is declared or not.
+ * If it is already declared, the global variable
+ * connection will be changed to the related connection.
+ */
+static bool
+check_declared_list(const char *name)
+{
+	struct declared_list *ptr = NULL;
+	for (ptr = g_declared_list; ptr != NULL; ptr = ptr -> next)
+	{
+		if (!ptr->connection)
+			continue;
+		if (strcmp(name, ptr -> name) == 0)
+		{
+			if (connection && strcmp(ptr->connection, connection) != 0)
+				mmerror(PARSE_ERROR, ET_WARNING, "connection %s is overwritten with %s by DECLARE statement %s", connection, ptr->connection, name);
+			connection = mm_strdup(ptr -> connection);
+			return true;
+		}
+	}
+	return false;
+}
 %}
 
 %expect 0
@@ -594,4 +622,5 @@ add_typedef(char *name, char *dimension, char *length, enum ECPGttype type_enum,
 	struct  su_symbol	struct_union;
 	struct	prep		prep;
 	struct	exec		exec;
+	struct describe		describe;
 }

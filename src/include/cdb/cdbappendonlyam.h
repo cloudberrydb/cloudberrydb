@@ -6,7 +6,7 @@
  *
  * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
- * Portions Copyright (c) 2007, Greenplum Inc.
+ * Portions Copyright (c) 2007, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -28,6 +28,7 @@
 #include "access/xlog.h"
 #include "access/appendonly_visimap.h"
 #include "executor/tuptable.h"
+#include "nodes/execnodes.h"
 #include "nodes/primnodes.h"
 #include "nodes/bitmapset.h"
 #include "storage/block.h"
@@ -231,9 +232,23 @@ typedef struct AppendOnlyScanDescData
 	int64		nextTupleId;
 	int64		targetTupleId;
 
+	/* scan current state */
+	BlockNumber rs_nblocks;		/* current block */
+
+	/*
+	 * Only used by `sample scan`
+	 */
+	int64		fetchTupleId;
+	int64		nextScanTupleId;
+	int64		totalTuples;
+
 	/* For Bitmap scan */
 	int			rs_cindex;		/* current tuple's index in tbmres->offsets */
 	struct AppendOnlyFetchDescData *aofetch;
+
+	/* used in predicate pushdown */
+	ExprContext		*aos_pushdown_econtext;
+	ExprState		*aos_pushdown_qual;
 
 }	AppendOnlyScanDescData;
 
@@ -307,13 +322,15 @@ typedef struct AppendOnlyFetchDescData
 	int				segmentFileNameMaxLen;
 
 	/*
-	 * The largest row number of this aoseg. Maximum row number is required in
-	 * function "aocs_fetch". If we have no updates and deletes, the
-	 * total_tupcount is equal to the maximum row number. But after some updates
-	 * and deletes, the maximum row number always much bigger than
-	 * total_tupcount. The appendonly_insert function will get fast sequence and
-	 * use it as the row number. So the last sequence will be the correct
-	 * maximum row number.
+	 * Array containing the maximum row number in each aoseg (to be consulted
+	 * during fetch). This is a sparse array as not all segments are involved
+	 * in a scan. Sparse entries are marked with InvalidAORowNum.
+	 *
+	 * Note:
+	 * If we have no updates and deletes, the total_tupcount is equal to the
+	 * maximum row number. But after some updates and deletes, the maximum row
+	 * number is always much bigger than total_tupcount, so this carries the
+	 * last sequence from gp_fastsequence.
 	 */
 	int64			lastSequence[AOTupleId_MultiplierSegmentFileNum];
 
@@ -399,5 +416,12 @@ extern TM_Result appendonly_delete(
 		AppendOnlyDeleteDesc aoDeleteDesc,
 		AOTupleId* aoTupleId);
 extern void appendonly_delete_finish(AppendOnlyDeleteDesc aoDeleteDesc);
+
+void setupNextWriteBlock(AppendOnlyInsertDesc aoInsertDesc);
+void finishWriteBlock(AppendOnlyInsertDesc aoInsertDesc);
+
+extern ExprState* appendonly_predicate_pushdown_prepare(AppendOnlyScanDesc scan,
+												   ExprState *qual,
+												   ExprContext *ecxt);
 
 #endif   /* CDBAPPENDONLYAM_H */

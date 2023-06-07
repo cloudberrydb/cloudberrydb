@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="ad143465">SQL Commands</title>
   <body>
-    <p>The following SQL commands are available in Greenplum Database:</p>
+    <p>The following SQL commands are available in Cloudberry Database:</p>
     <ul otherprops="op-print">
       <li id="ad139887">
         <xref href="./ABORT.xml#topic1" type="topic" format="dita"/>

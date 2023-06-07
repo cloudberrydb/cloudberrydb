@@ -3,7 +3,7 @@
  * dict_snowball.c
  *		Snowball dictionary
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/snowball/dict_snowball.c
@@ -26,6 +26,8 @@
 
 /* Now we can include the original Snowball header.h */
 #include "snowball/libstemmer/header.h"
+#include "snowball/libstemmer/stem_ISO_8859_1_basque.h"
+#include "snowball/libstemmer/stem_ISO_8859_1_catalan.h"
 #include "snowball/libstemmer/stem_ISO_8859_1_danish.h"
 #include "snowball/libstemmer/stem_ISO_8859_1_dutch.h"
 #include "snowball/libstemmer/stem_ISO_8859_1_english.h"
@@ -44,12 +46,17 @@
 #include "snowball/libstemmer/stem_ISO_8859_2_romanian.h"
 #include "snowball/libstemmer/stem_KOI8_R_russian.h"
 #include "snowball/libstemmer/stem_UTF_8_arabic.h"
+#include "snowball/libstemmer/stem_UTF_8_armenian.h"
+#include "snowball/libstemmer/stem_UTF_8_basque.h"
+#include "snowball/libstemmer/stem_UTF_8_catalan.h"
 #include "snowball/libstemmer/stem_UTF_8_danish.h"
 #include "snowball/libstemmer/stem_UTF_8_dutch.h"
 #include "snowball/libstemmer/stem_UTF_8_english.h"
 #include "snowball/libstemmer/stem_UTF_8_finnish.h"
 #include "snowball/libstemmer/stem_UTF_8_french.h"
 #include "snowball/libstemmer/stem_UTF_8_german.h"
+#include "snowball/libstemmer/stem_UTF_8_greek.h"
+#include "snowball/libstemmer/stem_UTF_8_hindi.h"
 #include "snowball/libstemmer/stem_UTF_8_hungarian.h"
 #include "snowball/libstemmer/stem_UTF_8_indonesian.h"
 #include "snowball/libstemmer/stem_UTF_8_irish.h"
@@ -61,10 +68,12 @@
 #include "snowball/libstemmer/stem_UTF_8_portuguese.h"
 #include "snowball/libstemmer/stem_UTF_8_romanian.h"
 #include "snowball/libstemmer/stem_UTF_8_russian.h"
+#include "snowball/libstemmer/stem_UTF_8_serbian.h"
 #include "snowball/libstemmer/stem_UTF_8_spanish.h"
 #include "snowball/libstemmer/stem_UTF_8_swedish.h"
 #include "snowball/libstemmer/stem_UTF_8_tamil.h"
 #include "snowball/libstemmer/stem_UTF_8_turkish.h"
+#include "snowball/libstemmer/stem_UTF_8_yiddish.h"
 
 PG_MODULE_MAGIC;
 
@@ -91,6 +100,8 @@ static const stemmer_module stemmer_modules[] =
 	/*
 	 * Stemmers list from Snowball distribution
 	 */
+	STEMMER_MODULE(basque, PG_LATIN1, ISO_8859_1),
+	STEMMER_MODULE(catalan, PG_LATIN1, ISO_8859_1),
 	STEMMER_MODULE(danish, PG_LATIN1, ISO_8859_1),
 	STEMMER_MODULE(dutch, PG_LATIN1, ISO_8859_1),
 	STEMMER_MODULE(english, PG_LATIN1, ISO_8859_1),
@@ -109,12 +120,17 @@ static const stemmer_module stemmer_modules[] =
 	STEMMER_MODULE(romanian, PG_LATIN2, ISO_8859_2),
 	STEMMER_MODULE(russian, PG_KOI8R, KOI8_R),
 	STEMMER_MODULE(arabic, PG_UTF8, UTF_8),
+	STEMMER_MODULE(armenian, PG_UTF8, UTF_8),
+	STEMMER_MODULE(basque, PG_UTF8, UTF_8),
+	STEMMER_MODULE(catalan, PG_UTF8, UTF_8),
 	STEMMER_MODULE(danish, PG_UTF8, UTF_8),
 	STEMMER_MODULE(dutch, PG_UTF8, UTF_8),
 	STEMMER_MODULE(english, PG_UTF8, UTF_8),
 	STEMMER_MODULE(finnish, PG_UTF8, UTF_8),
 	STEMMER_MODULE(french, PG_UTF8, UTF_8),
 	STEMMER_MODULE(german, PG_UTF8, UTF_8),
+	STEMMER_MODULE(greek, PG_UTF8, UTF_8),
+	STEMMER_MODULE(hindi, PG_UTF8, UTF_8),
 	STEMMER_MODULE(hungarian, PG_UTF8, UTF_8),
 	STEMMER_MODULE(indonesian, PG_UTF8, UTF_8),
 	STEMMER_MODULE(irish, PG_UTF8, UTF_8),
@@ -126,10 +142,12 @@ static const stemmer_module stemmer_modules[] =
 	STEMMER_MODULE(portuguese, PG_UTF8, UTF_8),
 	STEMMER_MODULE(romanian, PG_UTF8, UTF_8),
 	STEMMER_MODULE(russian, PG_UTF8, UTF_8),
+	STEMMER_MODULE(serbian, PG_UTF8, UTF_8),
 	STEMMER_MODULE(spanish, PG_UTF8, UTF_8),
 	STEMMER_MODULE(swedish, PG_UTF8, UTF_8),
 	STEMMER_MODULE(tamil, PG_UTF8, UTF_8),
 	STEMMER_MODULE(turkish, PG_UTF8, UTF_8),
+	STEMMER_MODULE(yiddish, PG_UTF8, UTF_8),
 
 	/*
 	 * Stemmer with PG_SQL_ASCII encoding should be valid for any server

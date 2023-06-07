@@ -3,7 +3,7 @@
  * aocssegfiles.h
  *      AOCS segment files
  *
- * Portions Copyright (c) 2009, Greenplum INC.
+ * Portions Copyright (c) 2009, Cloudberry INC.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -138,7 +138,8 @@ extern AOCSFileSegInfo *GetAOCSFileSegInfo(Relation prel,
 
 extern AOCSFileSegInfo **GetAllAOCSFileSegInfo(Relation prel,
 					  Snapshot appendOnlyMetaDataSnapshot,
-					  int *totalseg);
+					  int *totalseg,
+					  Oid *segrelidptr);
 extern void FreeAllAOCSSegFileInfo(AOCSFileSegInfo **allAOCSSegInfo, int totalSegFiles);
 
 extern FileSegTotals *GetAOCSSSegFilesTotals(Relation parentrel,

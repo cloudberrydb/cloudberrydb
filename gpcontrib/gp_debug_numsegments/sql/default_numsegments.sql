@@ -11,7 +11,7 @@ create table t_default_first (c1 int, c2 int) distributed by (c1);
 select gp_debug_set_create_table_default_numsegments('random');
 select gp_debug_get_create_table_default_numsegments();
 create table t_default_random (c1 int, c2 int) distributed by (c1);
-select localoid::regclass, attrnums, policytype
+select localoid::regclass, policytype
   from gp_distribution_policy
  where localoid='t_default_random'::regclass
    and numsegments between 1 and 3;
@@ -50,7 +50,7 @@ select gp_debug_set_create_table_default_numsegments(3);
 select gp_debug_get_create_table_default_numsegments();
 create table t_default_3 (c1 int, c2 int) distributed by (c1);
 
-select c.relname, d.attrnums, d.policytype, d.numsegments
+select c.relname, d.policytype, d.numsegments
   from gp_distribution_policy d
   join pg_class c
     on d.localoid=c.oid

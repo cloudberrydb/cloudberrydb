@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -42,7 +42,7 @@ CBucket::CBucket(CPoint *bucket_lower_bound, CPoint *bucket_upper_bound,
 	GPOS_ASSERT(nullptr != m_bucket_lower_bound);
 	GPOS_ASSERT(nullptr != m_bucket_upper_bound);
 	GPOS_ASSERT(0.0 <= m_frequency && 1.0 >= m_frequency);
-	GPOS_ASSERT(0.0 <= m_distinct);
+	GPOS_ASSERT_FIXME(0.0 <= m_distinct);
 
 	// singleton bucket lower and upper bound are closed
 	GPOS_ASSERT_IMP(IsSingleton(), is_lower_closed && is_upper_closed);

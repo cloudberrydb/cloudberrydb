@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2017 VMware, Inc. or its affiliates.
 //
 //	Class for representing DXL Part List Values expressions

@@ -6,6 +6,7 @@
 #include "access/gistxlog.h"
 #include "access/ginxlog.h"
 #include "commands/sequence.h"
+#include "common/hashfn.h"
 #include "postmaster/bgwriter.h"
 #include "replication/walsender_private.h"
 #include "replication/walsender.h"
@@ -77,7 +78,7 @@ typedef struct RelationTypeData
  * The AM handler functions need to be looked up and compared instead.
  * E.g. to tell if it's an appendoptimized row oriented table, look up the
  * handler function for that table's AM in pg_am_handler and compare it with
- * AO_ROW_TABLE_AM_HANDLER_OID.
+ * F_AO_ROW_TABLEAM_HANDLER.
  *
  * If the tool is desired to be used against pre-defined access methods only,
  * then no change would be needed.
@@ -537,10 +538,6 @@ get_relfilenode_map()
 		if (classtuple->relpersistence == RELPERSISTENCE_UNLOGGED)
 			continue;
 
-		/* unlogged tables do not propagate to replica servers */
-		if (classtuple->relpersistence == RELPERSISTENCE_UNLOGGED)
-			continue;
-
 		RelfilenodeEntry *rentry;
 		Oid rnode;
 		/* Its relmapped relation, need to fetch the mapping from relmap file */
@@ -639,7 +636,7 @@ gp_replica_check(PG_FUNCTION_ARGS)
 		if (rentry == NULL)
 		{
 			ereport(WARNING,
-					(errmsg("relfilenode %s not present in primary's pg_class",
+					(errmsg("relfilenode %s not present in primary's pg_class, maybe it is an unlogged table",
 							relfilenode)));
 			continue;
 		}

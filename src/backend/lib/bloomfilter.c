@@ -24,7 +24,7 @@
  * caller many authoritative lookups, such as expensive probes of a much larger
  * on-disk structure.
  *
- * Copyright (c) 2018-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2018-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/lib/bloomfilter.c
@@ -35,9 +35,9 @@
 
 #include <math.h>
 
+#include "common/hashfn.h"
 #include "lib/bloomfilter.h"
 #include "port/pg_bitutils.h"
-#include "utils/hashutils.h"
 
 #define MAX_HASH_FUNCS		10
 
@@ -292,4 +292,64 @@ mod_m(uint32 val, uint64 m)
 	Assert(((m - 1) & m) == 0);
 
 	return val & (m - 1);
+}
+
+double
+bloom_false_positive_rate(bloom_filter *filter)
+{
+	if (filter == NULL)
+		return 0;
+
+	double prop = bloom_prop_bits_set(filter);
+	return pow(prop, filter->k_hash_funcs);
+}
+
+uint64
+bloom_total_bits(bloom_filter *filter)
+{
+	if (filter == NULL)
+		return 0;
+	return filter->m;
+}
+
+/*
+ * Create Bloom filter in caller's memory context.
+ *
+ * Our goal is to limit the size of the filter to 2MB, and if possible, use
+ * memory as little as possible with false positive rate around 10%.
+ * 
+ * If there are too many elements that cause us to fail to guarantee an
+ * appropriate false positive rate, we will give up this strategy and return
+ * a NULL value.
+ */
+bloom_filter *
+bloom_create_aggresive(int64 total_elems, int work_mem, uint64 seed)
+{
+	bloom_filter *filter;
+	int		bloom_power;
+	uint64	bitset_bytes;
+	uint64	bitset_bits;
+	double	bits_per_elem;
+
+	bitset_bytes = Min(work_mem * UINT64CONST(1024), total_elems * 9 / 8);
+	bitset_bytes = Max(128 * 1024, bitset_bytes); /* at least 1M bits */
+	bitset_bytes = Min(2 * 1024 * 1024, bitset_bytes); /* up to 2MB */
+
+	bloom_power = my_bloom_power(bitset_bytes * BITS_PER_BYTE);
+	bitset_bits = UINT64CONST(1) << bloom_power;
+	bitset_bytes = bitset_bits / BITS_PER_BYTE;
+	bits_per_elem = 1.0 * bitset_bits / total_elems;
+
+	if (bits_per_elem < 1.6)
+		return NULL; /* too many elements */
+
+	/* Allocate bloom filter with unset bitset */
+	filter = palloc0(offsetof(bloom_filter, bitset) +
+					 sizeof(unsigned char) * bitset_bytes);
+	/* balance false positive rate and calculation costs */
+	filter->k_hash_funcs = bits_per_elem >= 3.5 ? 3 : 2;
+	filter->seed = seed;
+	filter->m = bitset_bits;
+
+	return filter;
 }

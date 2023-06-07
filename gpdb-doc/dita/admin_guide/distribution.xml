@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="distribution">
   <title>Distribution and Skew</title>
-    <shortdesc>Greenplum Database relies on even distribution of data across segments.</shortdesc>
+    <shortdesc>Cloudberry Database relies on even distribution of data across segments.</shortdesc>
     <body>
       <p>In an MPP shared nothing environment, overall response time for
         a query is measured by the completion time for all segments. The system is only as fast as
@@ -72,11 +72,11 @@ FROM (SELECT count(*) c, gp_segment_id FROM facts GROUP BY 2) AS a;</codeblock>
       <section id="section_unk_dpf_kgb">
         <title>Considerations for Replicated Tables</title>
         <p>When you create a replicated table (with the <codeph>CREATE TABLE</codeph> clause
-            <codeph>DISTRIBUTED REPLICATED</codeph>), Greenplum Database distributes every table row
+            <codeph>DISTRIBUTED REPLICATED</codeph>), Cloudberry Database distributes every table row
           to every segment instance. Replicated table data is evenly distributed because every
           segment has the same rows. A query that uses the <codeph>gp_segment_id</codeph> system
           column on a replicated table to verify evenly distributed data, will fail because
-          Greenplum Database does not allow queries to reference replicated tables' system
+          Cloudberry Database does not allow queries to reference replicated tables' system
           columns.</p>
       </section>
         </body>
@@ -85,7 +85,7 @@ FROM (SELECT count(*) c, gp_segment_id FROM facts GROUP BY 2) AS a;</codeblock>
         <title>Processing Skew</title>
     <body>
         <p>Processing skew results when a disproportionate amount of data flows to, and is processed
-          by, one or a few segments. It is often the culprit behind Greenplum Database performance
+          by, one or a few segments. It is often the culprit behind Cloudberry Database performance
           and stability issues. It can happen with operations such join, sort, aggregation, and
           various OLAP operations. Processing skew happens in flight while a query is running and
           is not as easy to detect as data skew.</p>

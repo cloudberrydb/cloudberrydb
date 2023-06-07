@@ -5,7 +5,7 @@
 
 <b>dropuser</b> <b>-? | --help</b> 
 
-<b>dropuser</b> <b>-V | --version</b></codeblock></section><section id="section3"><title>Description</title><p><codeph>dropuser</codeph> removes an existing role from Greenplum Database. Only
+<b>dropuser</b> <b>-V | --version</b></codeblock></section><section id="section3"><title>Description</title><p><codeph>dropuser</codeph> removes an existing role from Cloudberry Database. Only
         superusers and users with the <codeph>CREATEROLE</codeph> privilege can remove roles. To
         remove a superuser role, you must yourself be a superuser.</p><p><codeph>dropuser</codeph> is a wrapper around the SQL command <codeph>DROP
 ROLE</codeph>.</p></section><section id="section4"><title>Options</title><parml><plentry><pt><varname>role_name</varname></pt><pd>The name of the role to be removed. You will be prompted for a name if not specified on the
@@ -25,9 +25,9 @@ ROLE</codeph>.</p></section><section id="section4"><title>Options</title><parml>
         <plentry>
           <pt>-? | --help</pt>
           <pd>Show help about <codeph>dropuser</codeph> command line arguments, and exit.</pd>
-        </plentry></parml><sectiondiv id="section5"><b>Connection Options</b><parml><plentry><pt>-h <varname>host</varname> | --host=<varname>host</varname></pt><pd>The host name of the machine on which the Greenplum coordinator database
+        </plentry></parml><sectiondiv id="section5"><b>Connection Options</b><parml><plentry><pt>-h <varname>host</varname> | --host=<varname>host</varname></pt><pd>The host name of the machine on which the Cloudberry coordinator database
               server is running. If not specified, reads from the environment variable
-                <codeph>PGHOST</codeph> or defaults to localhost.</pd></plentry><plentry><pt>-p <varname>port</varname> | --port=<varname>port</varname></pt><pd>The TCP port on which the Greenplum coordinator database server is
+                <codeph>PGHOST</codeph> or defaults to localhost.</pd></plentry><plentry><pt>-p <varname>port</varname> | --port=<varname>port</varname></pt><pd>The TCP port on which the Cloudberry coordinator database server is
               listening for connections. If not specified, reads from the environment variable
                 <codeph>PGPORT</codeph> or defaults to 5432.</pd></plentry><plentry><pt>-U <varname>username</varname> | --username=<varname>username</varname></pt><pd>The database role name to connect as. If not specified, reads from
 the environment variable <codeph>PGUSER</codeph> or defaults to the current
@@ -42,7 +42,7 @@ Are you sure? (y/n) <b>y</b>
 DROP ROLE "joe"
 DROP ROLE</codeblock></section><section id="section7">
       <title>See Also</title>
-      <p><ph otherprops="op-print"><codeph>DROP ROLE</codeph> in the <i>Greenplum Database Reference
+      <p><ph otherprops="op-print"><codeph>DROP ROLE</codeph> in the <i>Cloudberry Database Reference
             Guide</i></ph><ph><codeph><xref href="createuser.xml#topic1"/></codeph>, <codeph><xref
               href="../../ref_guide/sql_commands/DROP_ROLE.xml#topic1"/></codeph></ph></p>
     </section></body></topic>

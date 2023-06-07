@@ -5,10 +5,9 @@
 
 #include <limits.h>
 
-#include "catalog/pg_type.h"
-
 #include "_int.h"
-
+#include "catalog/pg_type.h"
+#include "lib/qunique.h"
 
 /* arguments are assumed sorted & unique-ified */
 bool
@@ -256,7 +255,7 @@ resize_intArrayType(ArrayType *a, int num)
 	if (num <= 0)
 	{
 		Assert(num == 0);
-		ARR_NDIM(a) = 0;
+		a = construct_empty_array(INT4OID);
 		return a;
 	}
 
@@ -310,34 +309,24 @@ internal_size(int *a, int len)
 ArrayType *
 _int_unique(ArrayType *r)
 {
-	int		   *tmp,
-			   *dr,
-			   *data;
 	int			num = ARRNELEMS(r);
+	bool		duplicates_found;	/* not used */
 
-	if (num < 2)
-		return r;
+	num = qunique_arg(ARRPTR(r), num, sizeof(int), isort_cmp,
+					  &duplicates_found);
 
-	data = tmp = dr = ARRPTR(r);
-	while (tmp - data < num)
-	{
-		if (*tmp != *dr)
-			*(++dr) = *tmp++;
-		else
-			tmp++;
-	}
-	return resize_intArrayType(r, dr + 1 - ARRPTR(r));
+	return resize_intArrayType(r, num);
 }
 
 void
-gensign(BITVEC sign, int *a, int len)
+gensign(BITVECP sign, int *a, int len, int siglen)
 {
 	int			i;
 
 	/* we assume that the sign vector is previously zeroed */
 	for (i = 0; i < len; i++)
 	{
-		HASH(sign, *a);
+		HASH(sign, *a, siglen);
 		a++;
 	}
 }

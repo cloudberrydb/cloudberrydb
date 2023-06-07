@@ -16,7 +16,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
     <section id="section3">
       <title>Description</title>
       <p><codeph>ANALYZE</codeph> collects statistics about the contents of tables in the database,
-        and stores the results in the system table <i>pg_statistic</i>. Subsequently, Greenplum
+        and stores the results in the system table <i>pg_statistic</i>. Subsequently, Cloudberry
         Database uses these statistics to help determine the most efficient execution plans for
         queries. For information about the table statistics that are collected, see <xref
           href="#topic1/section5" format="dita">Notes</xref>.</p>
@@ -44,12 +44,12 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
         tables and when the <codeph>ROOTPARTITION</codeph> keyword is required, see <xref
           href="#topic1/section5" format="dita">Notes</xref>. For information about GPORCA, see
           <xref href="../../admin_guide/query/topics/query-piv-opt-overview.xml"/><ph
-          otherprops="op-print"> in the <cite>Greenplum Database Administrator Guide</cite></ph>. </note>
-      <note>You can also use the Greenplum Database utility <codeph>analyzedb</codeph> to update
+          otherprops="op-print"> in the <cite>Cloudberry Database Administrator Guide</cite></ph>. </note>
+      <note>You can also use the Cloudberry Database utility <codeph>analyzedb</codeph> to update
         table statistics. The <codeph>analyzedb</codeph> utility can update statistics for multiple
         tables concurrently. The utility can also check table statistics and update statistics only
         if the statistics are not current or do not exist. For information about the utility, see
-        the <cite>Greenplum Database Utility Guide</cite>.</note>
+        the <cite>Cloudberry Database Utility Guide</cite>.</note>
     </section>
     <section id="section4">
       <title>Parameters</title>
@@ -82,7 +82,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
               <xref href="#topic1/section5" format="dita">Notes</xref>.</pd>
           <pd>When you specify <codeph>ROOTPARTITION</codeph>, you must specify either
               <codeph>ALL</codeph> or the name of a partitioned table. </pd>
-          <pd>If you specify <codeph>ALL</codeph> with <codeph>ROOTPARTITION</codeph>, Greenplum
+          <pd>If you specify <codeph>ALL</codeph> with <codeph>ROOTPARTITION</codeph>, Cloudberry
             Database collects statistics for the root partition of all partitioned tables in the
             database. If there are no partitioned tables in the database, a message stating that
             there are no partitioned tables is returned. For tables that are not partitioned tables,
@@ -139,7 +139,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
         support <codeph>ANALYZE</codeph>. If the table's wrapper does not support
           <codeph>ANALYZE</codeph>, the command prints a warning and does nothing.</p>
       <p>It is a good idea to run <codeph>ANALYZE</codeph> periodically, or just after making major
-        changes in the contents of a table. Accurate statistics helps Greenplum Database choose the
+        changes in the contents of a table. Accurate statistics helps Cloudberry Database choose the
         most appropriate query plan, and thereby improve the speed of query processing. A common
         strategy for read-mostly databases is to run <codeph><xref href="./VACUUM.xml#topic1"
             type="topic" format="dita"/></codeph> and <codeph>ANALYZE</codeph> once a day during a
@@ -159,13 +159,13 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
         partition or subpartitions (leaf child partition tables) can be useful if the partitioned
         table has a large number of partitions that have been analyzed and only a few leaf child
         partitions have changed. <note>When you create a partitioned table with the <codeph>CREATE
-            TABLE</codeph> command, Greenplum Database creates the table that you specify (the root
+            TABLE</codeph> command, Cloudberry Database creates the table that you specify (the root
           partition or parent table), and also creates a hierarchy of tables based on the partition
           hierarchy that you specified (the child tables). </note></p>
       <ul>
         <li id="bd138200">When you run <codeph>ANALYZE</codeph> on the root partitioned table,
           statistics are collected for all the leaf child partitions. Leaf child partitions are the
-          lowest-level tables in the hierarchy of child tables created by Greenplum Database for use
+          lowest-level tables in the hierarchy of child tables created by Cloudberry Database for use
           by the partitioned table. </li>
         <li id="bd138204">When you run <codeph>ANALYZE</codeph> on a leaf child partition,
           statistics are collected only for that leaf child partition and the root partition. If
@@ -197,7 +197,7 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
         <li>If the <codeph>VERBOSE</codeph> clause is specified, an informational message is
           displayed: <codeph>skipping external table</codeph>.</li>
       </ul>
-      <p>The Greenplum Database server configuration parameter <codeph><xref
+      <p>The Cloudberry Database server configuration parameter <codeph><xref
             href="../config_params/guc-list.xml#optimizer_analyze_root_partition"
             >optimizer_analyze_root_partition</xref></codeph> affects when statistics are collected
         on the root partition of a partitioned table. If the parameter is <codeph>on</codeph> (the
@@ -241,9 +241,9 @@ ANALYZE [VERBOSE] ROOTPARTITION {ALL | <varname>root_partition_table_name</varna
         inaccuracy leads to bad query plans, a more accurate value can be determined manually and
         then installed with <codeph>ALTER TABLE ... ALTER COLUMN ... SET STATISTICS
           DISTINCT</codeph> (see <xref href="ALTER_TABLE.xml#topic1"/>).</p>
-      <p>When Greenplum Database performs an <codeph>ANALYZE</codeph> operation to collect
+      <p>When Cloudberry Database performs an <codeph>ANALYZE</codeph> operation to collect
         statistics for a table and detects that all the sampled table data pages are empty (do not
-        contain valid data), Greenplum Database displays a message that a <codeph>VACUUM
+        contain valid data), Cloudberry Database displays a message that a <codeph>VACUUM
           FULL</codeph> operation should be performed. If the sampled pages are empty, the table
         statistics will be inaccurate. Pages become empty after a large number of changes to the
         table, for example deleting a large number of rows. A <codeph>VACUUM FULL</codeph> operation

@@ -20,13 +20,13 @@ override LDLIBS := $(libpq_pgport) $(LDLIBS)
 all: pg_isolation2_regress$(X) all-lib data extended_protocol_test test_parallel_retrieve_cursor_extended_query test_parallel_retrieve_cursor_extended_query_error
 
 extended_protocol_test: extended_protocol_test.c
-	$(CC) $(CPPFLAGS) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
+	$(CC) $(CPPFLAGS) $(rpath) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
 
 test_parallel_retrieve_cursor_extended_query: test_parallel_retrieve_cursor_extended_query.c
-	$(CC) $(CPPFLAGS) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
+	$(CC) $(CPPFLAGS) $(rpath) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
 
 test_parallel_retrieve_cursor_extended_query_error: test_parallel_retrieve_cursor_extended_query_error.c
-	$(CC) $(CPPFLAGS) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
+	$(CC) $(CPPFLAGS) $(rpath) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
 
 pg_regress.o:
 	$(MAKE) -C $(top_builddir)/src/test/regress pg_regress.o
@@ -51,7 +51,7 @@ data:
 	rm -f $@ && $(LN_S) $(top_builddir)/src/test/regress/data
 
 pg_isolation2_regress$(X): isolation2_main.o pg_regress.o submake-libpq submake-libpgport
-	$(CC) $(CFLAGS) $(filter %.o,$^) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
+	$(CC) $(CFLAGS) $(rpath) $(filter %.o,$^) $(libpq_pgport) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
 
 clean distclean:
 	rm -f pg_isolation2_regress$(X) $(OBJS) isolation2_main.o

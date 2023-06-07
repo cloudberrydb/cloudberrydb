@@ -3,16 +3,14 @@
  *
  *	dump functions
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/dump.c
  */
 
 #include "postgres_fe.h"
 
-#include "pg_upgrade.h"
-
 #include "fe_utils/string_utils.h"
-
+#include "pg_upgrade.h"
 #include "greenplum/pg_upgrade_greenplum.h"
 
 void
@@ -44,7 +42,7 @@ generate_old_dump(void)
 					escaped_connstr;
 
 		initPQExpBuffer(&connstr);
-		appendPQExpBuffer(&connstr, "dbname=");
+		appendPQExpBufferStr(&connstr, "dbname=");
 		appendConnStrVal(&connstr, old_db->db_name);
 		initPQExpBuffer(&escaped_connstr);
 		appendShellString(&escaped_connstr, connstr.data);

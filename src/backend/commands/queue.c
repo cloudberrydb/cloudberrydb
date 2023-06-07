@@ -3,7 +3,7 @@
  * queue.c
  *	  Commands for manipulating resource queues.
  *
- * Portions Copyright (c) 2006-2010, Greenplum inc.
+ * Portions Copyright (c) 2006-2010, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -46,6 +46,8 @@
 #include "utils/syscache.h"
 #include "cdb/memquota.h"
 #include "utils/guc_tables.h"
+
+#include "catalog/gp_indexing.h"
 
 #define INVALID_RES_LIMIT_STRING		"-1"
 
@@ -273,6 +275,7 @@ AddUpdResqueueCapabilityEntryInternal(
 /* MPP-6923: */				  
 static void
 AlterResqueueCapabilityEntry(Oid queueid,
+							 List *list,
 							 ListCell *initcell,
 							 bool bCreate)
 {
@@ -292,11 +295,11 @@ AlterResqueueCapabilityEntry(Oid queueid,
 	}
 #endif
 
-	initcell = lnext(initcell);
+	initcell = lnext(list, initcell);
 
 	/* walk the original list and build a list of valid entries */
 
-	for_each_cell(lc, initcell)
+	for_each_cell(lc, list, initcell)
 	{
 		DefElem *defel		= (DefElem *) lfirst(lc);
 		Oid		 resTypeOid = InvalidOid;
@@ -531,7 +534,7 @@ AlterResqueueCapabilityEntry(Oid queueid,
 		
 		resTypeInt = intVal(lfirst(lc2));
 
-		lc2 = lnext(lc2);
+		lc2 = lnext(pentry, lc2);
 		
 		pVal = lfirst(lc2);
 
@@ -598,7 +601,7 @@ AlterResqueueCapabilityEntry(Oid queueid,
 		
 		resTypeInt = intVal(lfirst(lc2));
 
-		lc2 = lnext(lc2);
+		lc2 = lnext(list, lc2);
 		
 		pVal = lfirst(lc2);
 
@@ -923,7 +926,7 @@ CreateQueue(CreateQueueStmt *stmt)
 
 	/* process the remainder of the WITH (...) list items */
 	if (bWith)
-		AlterResqueueCapabilityEntry(queueid, pWithList, true);
+		AlterResqueueCapabilityEntry(queueid, stmt->options, pWithList, true);
 
 	/* 
 	 * We must bump the command counter to make the new entry 
@@ -1208,7 +1211,7 @@ AlterQueue(AlterQueueStmt *stmt)
 	{
 		ListCell		*initcell = pWithList;
 
-		if (bWith && initcell && lnext(initcell))
+		if (bWith && initcell && lnext(stmt->options, initcell))
 		{
 			/* if have an item on the "with list", don't need to set a
 			 * threshold 
@@ -1330,7 +1333,7 @@ AlterQueue(AlterQueueStmt *stmt)
 
 	/* process the remainder of the WITH (...) list items */
 	if (bWith)
-		AlterResqueueCapabilityEntry(queueid, pWithList, false);
+		AlterResqueueCapabilityEntry(queueid, stmt->options, pWithList, false);
 
 	/* 
 	 * We must bump the command counter to make the altered memory limit 

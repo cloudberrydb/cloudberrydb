@@ -3,7 +3,7 @@
  * cdbhash.h
  *	 Definitions and API functions for cdbhash.c
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -31,12 +31,12 @@ typedef enum
 } CdbHashReduce;
 
 /*
- * Structure that holds Greenplum Database hashing information.
+ * Structure that holds Cloudberry Database hashing information.
  */
 typedef struct CdbHash
 {
 	uint32		hash;			/* The result hash value							*/
-	int			numsegs;		/* number of segments in Greenplum Database used for
+	int			numsegs;		/* number of segments in Cloudberry Database used for
 								 * partitioning  */
 	CdbHashReduce reducealg;	/* the algorithm used for reducing to buckets		*/
 	bool		is_legacy_hash;

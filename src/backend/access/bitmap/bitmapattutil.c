@@ -4,7 +4,7 @@
  *	  Defines the routines to maintain all distinct attribute values
  *	  which are indexed in the on-disk bitmap index.
  *
- * Portions Copyright (c) 2007-2010 Greenplum Inc
+ * Portions Copyright (c) 2007-2010 Cloudberry Inc
  * Portions Copyright (c) 2010-2012 EMC Corporation
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 2006-2008, PostgreSQL Global Development Group
@@ -131,7 +131,7 @@ _bitmap_create_lov_heapandindex(Relation rel,
 		btree_metabuf = _bt_getbuf(lovIndex, P_NEW, BT_WRITE);
 		Assert (BTREE_METAPAGE == BufferGetBlockNumber(btree_metabuf));
 		btree_metapage = BufferGetPage(btree_metabuf);
-		_bt_initmetapage(btree_metapage, P_NONE, 0);
+		_bt_initmetapage(btree_metapage, P_NONE, 0, _bt_allequalimage(lovIndex, true));
 
 		/* XLOG the metapage */
 
@@ -339,7 +339,7 @@ _bitmap_insert_lov(Relation lovHeap, Relation lovIndex, Datum *datum,
 	memcpy(indexDatum, datum, (tupDesc->natts - 2) * sizeof(Datum));
 	memcpy(indexNulls, nulls, (tupDesc->natts - 2) * sizeof(bool));
 	result = index_insert(lovIndex, indexDatum, indexNulls,
-					 	  &(tuple->t_self), lovHeap, true, NULL);
+					 	  &(tuple->t_self), lovHeap, true, false, NULL);
 
 	pfree(indexDatum);
 	pfree(indexNulls);

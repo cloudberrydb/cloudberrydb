@@ -4,7 +4,7 @@
 <topic id="topic1" xml:lang="en"><title id="hi141670">pg_resgroup</title>
   <body>
     <note>The <codeph>pg_resgroup</codeph> system catalog table is valid only when resource group-based resource management is active.</note>
-    <p>The <codeph>pg_resgroup</codeph> system catalog table contains information about Greenplum Database resource groups, which are used for managing concurrent statements, CPU, and memory resources.
+    <p>The <codeph>pg_resgroup</codeph> system catalog table contains information about Cloudberry Database resource groups, which are used for managing concurrent statements, CPU, and memory resources.
       This table, defined in the
         <codeph>pg_global</codeph> tablespace, is globally shared across all databases in
       the system.</p>

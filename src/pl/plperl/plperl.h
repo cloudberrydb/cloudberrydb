@@ -5,7 +5,7 @@
  *
  * This should be included _AFTER_ postgres.h and system include files
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1995, Regents of the University of California
  *
  * src/pl/plperl/plperl.h
@@ -64,7 +64,7 @@
  * warnings.  If PostgreSQL does not but Perl does, we need to undefine bool
  * after we include the Perl headers; see below.
  */
-#ifdef USE_STDBOOL
+#ifdef PG_USE_STDBOOL
 #define HAS_BOOL 1
 #endif
 
@@ -99,6 +99,7 @@
 #undef bind
 #undef connect
 #undef fopen
+#undef fstat
 #undef kill
 #undef listen
 #undef lstat
@@ -170,9 +171,6 @@
 #endif
 
 /* perl version and platform portability */
-#define NEED_eval_pv
-#define NEED_newRV_noinc
-#define NEED_sv_2pv_flags
 #include "ppport.h"
 
 /*
@@ -182,7 +180,7 @@
  * makes bool a macro, but our own replacement is a typedef, so the undef
  * makes ours visible again).
  */
-#ifndef USE_STDBOOL
+#ifndef PG_USE_STDBOOL
 #ifdef bool
 #undef bool
 #endif

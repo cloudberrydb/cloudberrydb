@@ -34,15 +34,15 @@
     <section>
       <title>Installing the S3 Storage Plugin</title>
     </section>
-    <p>The S3 storage plugin is included with the Tanzu Greenplum Backup and Restore release. Use
+    <p>The S3 storage plugin is included with the Tanzu Cloudberry Backup and Restore release. Use
       the latest S3 plugin release with the latest Tanzu Backup and Restore, to avoid any
       incompatibilities. </p>
-    <p>Open Source Greenplum Backup and Restore customers may get the utility from <xref
+    <p>Open Source Cloudberry Backup and Restore customers may get the utility from <xref
         href="https://github.com/greenplum-db/gpbackup-s3-plugin" format="html" scope="external"
         >gpbackup-s3-plugin</xref>. Build the utility following the steps in <xref
         href=" https://github.com/greenplum-db/gpbackup-s3-plugin#building-and-installing-binaries"
         format="html" scope="external">Building and Installing the S3 plugin</xref>.</p>
-    <p>The S3 storage plugin application must be in the same location on every Greenplum Database
+    <p>The S3 storage plugin application must be in the same location on every Cloudberry Database
       host, for example <codeph>$GPHOME/bin/gpbackup_s3_plugin</codeph>. The S3 storage plugin
       requires a configuration file, installed only on the master host.</p>
     <section><title>Using the S3 Storage Plugin</title><p>To use the S3 storage plugin application,
@@ -62,7 +62,7 @@
           <varname>datestamp</varname> and <varname>timestamp</varname> are the backup date and time
         stamps. </p><p>The S3 storage plugin logs are in
             <codeph>&lt;gpadmin_home>/gpAdmin/gpbackup_s3_plugin_<varname>timestamp</varname>.log</codeph>
-        on each Greenplum host system. The <varname>timestamp</varname> format is
+        on each Cloudberry host system. The <varname>timestamp</varname> format is
           <codeph>YYYYMMDDHHMMSS</codeph>.</p><b> Example</b><p>This is an example S3 storage plugin
         configuration file, named <codeph>s3-test-config.yaml</codeph>, that is used in the next
           <codeph>gpbackup</codeph> example
@@ -84,11 +84,11 @@ options:
     <codeblock>gprestore --timestamp 20201206233124 --plugin-config /home/gpadmin/s3-test/s3-test-config.yaml</codeblock>
     <section id="s3-plugin-config">
       <title>S3 Storage Plugin Configuration File Format</title>
-      <p>The configuration file specifies the absolute path to the Greenplum Database S3 storage
+      <p>The configuration file specifies the absolute path to the Cloudberry Database S3 storage
         plugin executable, connection credentials, and S3 location. </p><p>The S3 storage plugin
         configuration file uses the <xref href="http://yaml.org/spec/1.1/" scope="external"
           format="html">YAML 1.1</xref> document format and implements its own schema for specifying
-        the location of the Greenplum Database S3 storage plugin, connection credentials, and S3
+        the location of the Cloudberry Database S3 storage plugin, connection credentials, and S3
         location and login information. </p><p>The configuration file must be a valid YAML document.
         The <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> utilities process the control
         file document in order and use indentation (spaces) to determine the document hierarchy and
@@ -119,9 +119,9 @@ options:
       <parml id="s3-exe-path">
         <plentry>
           <pt>executablepath</pt>
-          <pd>Required. Absolute path to the plugin executable. For example, the Tanzu Greenplum
+          <pd>Required. Absolute path to the plugin executable. For example, the Tanzu Cloudberry
             installation location is <codeph>$GPHOME/bin/gpbackup_s3_plugin</codeph>. The plugin
-            must be in the same location on every Greenplum Database host.</pd>
+            must be in the same location on every Cloudberry Database host.</pd>
         </plentry>
         <plentry id="s3-options">
           <pt>options</pt>

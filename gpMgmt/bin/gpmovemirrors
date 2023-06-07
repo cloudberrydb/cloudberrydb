@@ -4,7 +4,7 @@
 #
 # Copyright (c) EMC Inc 2010. All Rights Reserved.
 #
-from gppylib.mainUtils import SimpleMainLock, ExceptionNoStackTraceNeeded
+from gppylib.mainUtils import SimpleMainLock, ExceptionNoStackTraceNeeded, check_deployment_mode
 
 import os
 import sys
@@ -55,6 +55,7 @@ The input file should be a plain text file with the format:
          An input file must be specified.
          """,
          ]
+check_deployment_mode('gpmovemirrors')
 
 
 # ----------------------- Command line option parser ----------------------
@@ -338,7 +339,7 @@ try:
         gpArrayInstance = GpArray.initFromCatalog(dburl, utility=True)
     except DatabaseError as ex:
         logger.error('Failed to connect to database.  Make sure the')
-        logger.error('Greenplum instance is running, and that')
+        logger.error('Cloudberry instance is running, and that')
         logger.error('your environment is correct, then rerun')
         logger.error('gpmovemirrors ' + ' '.join(sys.argv[1:]))
         sys.exit(1)

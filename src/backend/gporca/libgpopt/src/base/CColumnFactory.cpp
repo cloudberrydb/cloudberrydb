@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2008, 2009 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2008, 2009 Cloudberry, Inc.
 //
 //	@filename:
 //		CColumnFactory.cpp

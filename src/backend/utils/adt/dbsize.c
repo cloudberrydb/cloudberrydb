@@ -2,7 +2,7 @@
  * dbsize.c
  *		Database object size functions, and related inquiries
  *
- * Copyright (c) 2002-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2002-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/utils/adt/dbsize.c
@@ -47,8 +47,8 @@
 #include "cdb/cdbvars.h"
 #include "utils/snapmgr.h"
 
-/* Divide by two and round towards positive infinity. */
-#define half_rounded(x)   (((x) + ((x) < 0 ? 0 : 1)) / 2)
+/* Divide by two and round away from zero */
+#define half_rounded(x)   (((x) + ((x) < 0 ? -1 : 1)) / 2)
 
 static int64 calculate_total_relation_size(Relation rel);
 
@@ -173,7 +173,7 @@ calculate_database_size(Oid dbOid)
 	 */
 	aclresult = pg_database_aclcheck(dbOid, GetUserId(), ACL_CONNECT);
 	if (aclresult != ACLCHECK_OK &&
-		!is_member_of_role(GetUserId(), DEFAULT_ROLE_READ_ALL_STATS))
+		!is_member_of_role(GetUserId(), ROLE_PG_READ_ALL_STATS))
 	{
 		aclcheck_error(aclresult, OBJECT_DATABASE,
 					   get_database_name(dbOid));
@@ -280,7 +280,7 @@ calculate_tablespace_size(Oid tblspcOid)
 	 * is default for current database.
 	 */
 	if (tblspcOid != MyDatabaseTableSpace &&
-		!is_member_of_role(GetUserId(), DEFAULT_ROLE_READ_ALL_STATS))
+		!is_member_of_role(GetUserId(), ROLE_PG_READ_ALL_STATS))
 	{
 		aclresult = pg_tablespace_aclcheck(tblspcOid, GetUserId(), ACL_CREATE);
 		if (aclresult != ACLCHECK_OK)
@@ -783,25 +783,29 @@ pg_size_pretty(PG_FUNCTION_ARGS)
 		snprintf(buf, sizeof(buf), INT64_FORMAT " bytes", size);
 	else
 	{
-		size >>= 9;				/* keep one extra bit for rounding */
+		/*
+		 * We use divide instead of bit shifting so that behavior matches for
+		 * both positive and negative size values.
+		 */
+		size /= (1 << 9);		/* keep one extra bit for rounding */
 		if (Abs(size) < limit2)
 			snprintf(buf, sizeof(buf), INT64_FORMAT " kB",
 					 half_rounded(size));
 		else
 		{
-			size >>= 10;
+			size /= (1 << 10);
 			if (Abs(size) < limit2)
 				snprintf(buf, sizeof(buf), INT64_FORMAT " MB",
 						 half_rounded(size));
 			else
 			{
-				size >>= 10;
+				size /= (1 << 10);
 				if (Abs(size) < limit2)
 					snprintf(buf, sizeof(buf), INT64_FORMAT " GB",
 							 half_rounded(size));
 				else
 				{
-					size >>= 10;
+					size /= (1 << 10);
 					snprintf(buf, sizeof(buf), INT64_FORMAT " TB",
 							 half_rounded(size));
 				}
@@ -818,14 +822,6 @@ numeric_to_cstring(Numeric n)
 	Datum		d = NumericGetDatum(n);
 
 	return DatumGetCString(DirectFunctionCall1(numeric_out, d));
-}
-
-static Numeric
-int64_to_numeric(int64 v)
-{
-	Datum		d = Int64GetDatum(v);
-
-	return DatumGetNumeric(DirectFunctionCall1(int8_numeric, d));
 }
 
 static bool
@@ -856,9 +852,9 @@ numeric_half_rounded(Numeric n)
 	Datum		two;
 	Datum		result;
 
-	zero = DirectFunctionCall1(int8_numeric, Int64GetDatum(0));
-	one = DirectFunctionCall1(int8_numeric, Int64GetDatum(1));
-	two = DirectFunctionCall1(int8_numeric, Int64GetDatum(2));
+	zero = NumericGetDatum(int64_to_numeric(0));
+	one = NumericGetDatum(int64_to_numeric(1));
+	two = NumericGetDatum(int64_to_numeric(2));
 
 	if (DatumGetBool(DirectFunctionCall2(numeric_ge, d, zero)))
 		d = DirectFunctionCall2(numeric_add, d, one);
@@ -870,15 +866,13 @@ numeric_half_rounded(Numeric n)
 }
 
 static Numeric
-numeric_shift_right(Numeric n, unsigned count)
+numeric_truncated_divide(Numeric n, int64 divisor)
 {
 	Datum		d = NumericGetDatum(n);
-	Datum		divisor_int64;
 	Datum		divisor_numeric;
 	Datum		result;
 
-	divisor_int64 = Int64GetDatum((int64) (1LL << count));
-	divisor_numeric = DirectFunctionCall1(int8_numeric, divisor_int64);
+	divisor_numeric = NumericGetDatum(int64_to_numeric(divisor));
 	result = DirectFunctionCall2(numeric_div_trunc, d, divisor_numeric);
 	return DatumGetNumeric(result);
 }
@@ -901,8 +895,8 @@ pg_size_pretty_numeric(PG_FUNCTION_ARGS)
 	else
 	{
 		/* keep one extra bit for rounding */
-		/* size >>= 9 */
-		size = numeric_shift_right(size, 9);
+		/* size /= (1 << 9) */
+		size = numeric_truncated_divide(size, 1 << 9);
 
 		if (numeric_is_less(numeric_absolute(size), limit2))
 		{
@@ -911,8 +905,9 @@ pg_size_pretty_numeric(PG_FUNCTION_ARGS)
 		}
 		else
 		{
-			/* size >>= 10 */
-			size = numeric_shift_right(size, 10);
+			/* size /= (1 << 10) */
+			size = numeric_truncated_divide(size, 1 << 10);
+
 			if (numeric_is_less(numeric_absolute(size), limit2))
 			{
 				size = numeric_half_rounded(size);
@@ -920,8 +915,8 @@ pg_size_pretty_numeric(PG_FUNCTION_ARGS)
 			}
 			else
 			{
-				/* size >>= 10 */
-				size = numeric_shift_right(size, 10);
+				/* size /= (1 << 10) */
+				size = numeric_truncated_divide(size, 1 << 10);
 
 				if (numeric_is_less(numeric_absolute(size), limit2))
 				{
@@ -930,8 +925,8 @@ pg_size_pretty_numeric(PG_FUNCTION_ARGS)
 				}
 				else
 				{
-					/* size >>= 10 */
-					size = numeric_shift_right(size, 10);
+					/* size /= (1 << 10) */
+					size = numeric_truncated_divide(size, 1 << 10);
 					size = numeric_half_rounded(size);
 					result = psprintf("%s TB", numeric_to_cstring(size));
 				}
@@ -1073,8 +1068,7 @@ pg_size_bytes(PG_FUNCTION_ARGS)
 		{
 			Numeric		mul_num;
 
-			mul_num = DatumGetNumeric(DirectFunctionCall1(int8_numeric,
-														  Int64GetDatum(multiplier)));
+			mul_num = int64_to_numeric(multiplier);
 
 			num = DatumGetNumeric(DirectFunctionCall2(numeric_mul,
 													  NumericGetDatum(mul_num),
@@ -1106,7 +1100,7 @@ Datum
 pg_relation_filenode(PG_FUNCTION_ARGS)
 {
 	Oid			relid = PG_GETARG_OID(0);
-	Oid			result;
+	RelFileNodeId result;
 	HeapTuple	tuple;
 	Form_pg_class relform;
 
@@ -1144,7 +1138,7 @@ pg_relation_filenode(PG_FUNCTION_ARGS)
 	if (!OidIsValid(result))
 		PG_RETURN_NULL();
 
-	PG_RETURN_OID(result);
+	PG_RETURN_UINT64(result);
 }
 
 /*
@@ -1164,8 +1158,12 @@ Datum
 pg_filenode_relation(PG_FUNCTION_ARGS)
 {
 	Oid			reltablespace = PG_GETARG_OID(0);
-	Oid			relfilenode = PG_GETARG_OID(1);
-	Oid			heaprel = InvalidOid;
+	RelFileNodeId relfilenode = PG_GETARG_INT64(1);
+	Oid			heaprel;
+
+	/* test needed so RelidByRelfilenode doesn't misbehave */
+	if (!OidIsValid(relfilenode))
+		PG_RETURN_NULL();
 
 	heaprel = RelidByRelfilenode(reltablespace, relfilenode);
 

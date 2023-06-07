@@ -1,15 +1,15 @@
-The Greenplum pg_upgrade code has been extended to work with Greenplum. This
+The Cloudberry pg_upgrade code has been extended to work with Cloudberry. This
 README is intended to document the changes that have been done.
 
 Operation of pg_upgrade remains unchanged as are the available command line
-parameters. Upgrading a Greenplum cluster with pg_upgrade is done by first
+parameters. Upgrading a Cloudberry cluster with pg_upgrade is done by first
 upgrading the QD and then the QEs.
 
 
-Distributed Greenplum upgrades
+Distributed Cloudberry upgrades
 ------------------------------
 
-Greenplum requires that all Oids are synchronized between the QD and the QEs,
+Cloudberry requires that all Oids are synchronized between the QD and the QEs,
 so the upgrade must maintain this invariant.  Further, the upgrade must do as
 much as it can in parallel to ensure the cluster is upgraded with as little
 downtime as possible.  To satisfy both requirements, the upgrade process is
@@ -23,7 +23,7 @@ Extensions to upstream pg_upgrade
 ---------------------------------
 
 Functionality for restoring the append-only catalog relations is in
-aotable.c, Greenplum specific checks for upgrading from GPDB 4 are added to
+aotable.c, Cloudberry specific checks for upgrading from GPDB 4 are added to
 version_old_gpdb4.c.
 
 
@@ -47,7 +47,7 @@ synchronization.
   merge of PostgreSQL 8.3, both heap and AO tables are affected by this. There
   were also changes to the flags in the heap page header. PostgreSQL doesn't
   support upgrading with pg_upgrade from 8.2 to 8.3, thus handling this format
-  change was added to pg_upgrade for Greenplum:
+  change was added to pg_upgrade for Cloudberry:
 
   - Heap tables are rewritten as part of the upgrade, any pages containing
     numeric attributes will be converted when the segment files are copied
@@ -72,7 +72,7 @@ that indexes must be dropped and recreated as part of the upgrade to ensure
 correct results.
 
 
-Testing Greenplum pg_upgrade
+Testing Cloudberry pg_upgrade
 ----------------------------
 
 There is a testrunner script in contrib/pg_upgrade which runs a full upgrade of
@@ -81,7 +81,7 @@ to test upgrades by running as the final step of ICW. The test can be invoked
 by "make installcheck" in the contrib/pg_upgrade directory.
 
 The testscript also has a "smoketest" option which only tests upgrading a
-single node.  This is *not* a test of an actual Greenplum cluster upgrade,
+single node.  This is *not* a test of an actual Cloudberry cluster upgrade,
 but a test of the Oid synchronization required to handle a node upgrade. The
 intention is for this to be a quick test that all objects are handled by
 pg_upgrade; upgrade testing still requires the full run across all

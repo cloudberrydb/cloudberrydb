@@ -10,7 +10,7 @@
  * NOTE: If new fields are added to these structs, remember to update
  * outfuncs.c/readfuncs.c
  *
- * Portions Copyright (c) 2006-2009, Greenplum inc
+ * Portions Copyright (c) 2006-2009, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -45,11 +45,13 @@
 #define AT_PASS_OLD_CONSTR		3	/* re-add existing constraints */
 /* We could support a RENAME COLUMN pass here, but not currently used */
 #define AT_PASS_ADD_COL			4	/* ADD COLUMN */
-#define AT_PASS_COL_ATTRS		5	/* set other column attributes */
-#define AT_PASS_ADD_INDEX		6	/* ADD indexes */
-#define AT_PASS_ADD_CONSTR		7	/* ADD constraints, defaults */
-#define AT_PASS_MISC			8	/* other stuff */
-#define AT_NUM_PASSES			9
+#define AT_PASS_ADD_CONSTR		5	/* ADD constraints (initial examination) */
+#define AT_PASS_COL_ATTRS		6	/* set other column attributes */
+#define AT_PASS_ADD_INDEXCONSTR	7	/* ADD index-based constraints */
+#define AT_PASS_ADD_INDEX		8	/* ADD indexes */
+#define AT_PASS_ADD_OTHERCONSTR	9	/* ADD other constraints, defaults */
+#define AT_PASS_MISC			10	/* other stuff */
+#define AT_NUM_PASSES			11
 
 typedef struct AlteredTableInfo
 {
@@ -59,11 +61,22 @@ typedef struct AlteredTableInfo
 	Oid			relid;			/* Relation to work on */
 	char		relkind;		/* Its relkind */
 	TupleDesc	oldDesc;		/* Pre-modification tuple descriptor */
+
+	/*
+	 * Transiently set during Phase 2, normally set to NULL.
+	 *
+	 * ATRewriteCatalogs sets this when it starts, and closes when ATExecCmd
+	 * returns control.  This can be exploited by ATExecCmd subroutines to
+	 * close/reopen across transaction boundaries.
+	 */
+	Relation	rel;
+
 	/* Information saved by Phase 1 for Phase 2: */
 	List	   *subcmds[AT_NUM_PASSES]; /* Lists of AlterTableCmd */
 	/* Information saved by Phases 1/2 for Phase 3: */
 	List	   *constraints;	/* List of NewConstraint */
 	List	   *newvals;		/* List of NewColumnValue */
+	List	   *afterStmts;		/* List of utility command parsetrees */
 	bool		verify_new_notnull; /* T if we should recheck NOT NULL */
 	int			rewrite;		/* Reason for forced rewrite, if any */
 	bool		dist_opfamily_changed; /* T if changing datatype of distribution key column and new opclass is in different opfamily than old one */
@@ -79,7 +92,36 @@ typedef struct AlteredTableInfo
 	List	   *changedConstraintDefs;	/* string definitions of same */
 	List	   *changedIndexOids;	/* OIDs of indexes to rebuild */
 	List	   *changedIndexDefs;	/* string definitions of same */
+	char	   *replicaIdentityIndex;	/* index to reset as REPLICA IDENTITY */
+	char	   *clusterOnIndex;	/* index to use for CLUSTER */
+	List	   *changedStatisticsOids;	/* OIDs of statistics to rebuild */
+	List	   *changedStatisticsDefs;	/* string definitions of same */
+
+	/*
+	 * Saved before/constraint list(list of list) in transformAlterTableStmt.
+	 * `transformAlterTableStmt()` will not execute on QEs, so QD must dispatch
+	 * these results to the QEs. The 2 fields are lists of list, whenever
+	 * `transformAlterTableStmt()` is called, the QD saves the lists to the current
+	 * `AlteredTableInfo` and the QE consumes the list item from `AlteredTableInfo`
+	 * dispatched from QD.
+	 *
+	 * beforeStmtLists: transformAlterTableStmt() generates some utility commands to run
+	 * 			before the current action. See the usage of ProcessUtilityForAlterTable.
+	 * 			These utility commands should be generated in QD, because it needs to
+	 * 			choose some names, like relation/index/sequence name. The QEs are not
+	 * 			allowed to choose a name that is different to that in QD side.
+	 * 			The BEFORE commands don't run all at one point like `afterStmts`,
+	 * 			so we must exactly pick up the list of commands that was generated
+	 * 			by QD at the same running sequence.
+	 * constraintLists: transformAlterTableStmt() normally sets `atstmt.cmds` to
+	 * 			the same cmd-list that passes in, but it will generate some new cmd-list
+	 * 			driven by the constraint.
+	 */
+	List	   *beforeStmtLists;
+	List	   *constraintLists;
 } AlteredTableInfo;
+
+typedef struct ExprState ExprState;
 
 /* Struct describing one new constraint to check in Phase 3 scan */
 /* Note: new NOT NULL constraints are handled elsewhere */

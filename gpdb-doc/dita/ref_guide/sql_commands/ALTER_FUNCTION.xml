@@ -113,7 +113,7 @@ RESET ALL</codeblock></section>
             a function runs when it is invoked during the query execution process.</pd>
           <pd><codeph>EXECUTE ON ANY</codeph> (the default) indicates that the function can be
             run on the master, or any segment instance, and it returns the same result
-            regardless of where it is run. Greenplum Database determines where the function
+            regardless of where it is run. Cloudberry Database determines where the function
             runs.</pd>
           <pd><codeph>EXECUTE ON MASTER</codeph> indicates that the function must run only on
             the master instance. </pd>
@@ -123,7 +123,7 @@ RESET ALL</codeblock></section>
             instances. </pd>
           <pd><codeph>EXECUTE ON INITPLAN</codeph> indicates that the function contains an SQL
             command that dispatches queries to the segment instances and requires special processing
-            on the master instance by Greenplum Database when possible. </pd>
+            on the master instance by Cloudberry Database when possible. </pd>
           <pd>For more information about the <codeph>EXECUTE ON</codeph> attributes, see
                 <codeph><xref href="CREATE_FUNCTION.xml#topic1">CREATE
             FUNCTION</xref></codeph>.</pd>
@@ -150,7 +150,7 @@ RESET ALL</codeblock></section>
           <pd>Ignored for conformance with the SQL standard. </pd>
         </plentry>
       </parml></section>
-    <section id="section5"><title>Notes</title><p>Greenplum Database has limitations on the use of
+    <section id="section5"><title>Notes</title><p>Cloudberry Database has limitations on the use of
         functions defined as <codeph>STABLE</codeph> or <codeph>VOLATILE</codeph>. See <codeph><xref
             href="./CREATE_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph> for more
         information.</p></section>
@@ -168,7 +168,7 @@ RESET ALL</codeblock></section>
         more properties of a function to be modified, but does not provide the ability to rename a
         function, make a function a security definer, or change the owner, schema, or volatility of
         a function. The standard also requires the <codeph>RESTRICT</codeph> key word, which is
-        optional in Greenplum Database. </p></section>
+        optional in Cloudberry Database. </p></section>
     <section id="section8"><title>See Also</title><p><codeph><xref
             href="./CREATE_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph>, <codeph><xref
             href="./DROP_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph></p></section>

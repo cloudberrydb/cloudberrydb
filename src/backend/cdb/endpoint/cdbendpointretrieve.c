@@ -33,6 +33,7 @@
 
 #include "access/session.h"
 #include "access/xact.h"
+#include "common/hashfn.h"
 #include "storage/ipc.h"
 #include "utils/backend_cancel.h"
 #include "utils/dynahash.h"
@@ -453,7 +454,7 @@ attach_receiver_mq(RetrieveExecEntry * entry, dsm_handle dsmHandle)
 	if (entry->retrieveTs != NULL)
 		ExecClearTuple(entry->retrieveTs);
 	else
-		entry->retrieveTs = MakeTupleTableSlot(td, &TTSOpsHeapTuple);
+		entry->retrieveTs = MakeTupleTableSlot(td, &TTSOpsMinimalTuple);
 
 	/* Create the tuple queue reader. */
 	entry->tqReader = CreateTupleQueueReader(entry->mqHandle);
@@ -502,7 +503,7 @@ static TupleTableSlot *
 receive_tuple_slot(RetrieveExecEntry * entry)
 {
 	TupleTableSlot *result = NULL;
-	HeapTuple	tup = NULL;
+	MinimalTuple	tup = NULL;
 	bool		readerdone = false;
 
 	CHECK_FOR_INTERRUPTS();
@@ -560,13 +561,13 @@ receive_tuple_slot(RetrieveExecEntry * entry)
 		return NULL;
 	}
 
-	if (HeapTupleIsValid(tup))
+	if (tup)
 	{
 		ExecClearTuple(entry->retrieveTs);
 		result = entry->retrieveTs;
-		ExecStoreHeapTuple(tup, /* tuple to store */
-						   result,	/* slot in which to store the tuple */
-						   false);	/* slot should not pfree tuple */
+		ExecStoreMinimalTuple(tup, /* tuple to store */
+							  result,	/* slot in which to store the tuple */
+							  false);	/* slot should not pfree tuple */
 	}
 	return result;
 }

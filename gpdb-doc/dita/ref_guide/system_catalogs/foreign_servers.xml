@@ -5,7 +5,7 @@
   <title id="fs142834">foreign_servers</title>
   <body>
     <p>The <codeph>foreign_servers</codeph> view contains all foreign servers  defined
-      in the current database. Greenplum Database displays only those foreign servers to
+      in the current database. Cloudberry Database displays only those foreign servers to
        which the current user has access (by way of being the owner or having some privilege).</p>
     <table id="fs142842">
       <title>foreign_servers</title>

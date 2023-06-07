@@ -73,7 +73,7 @@ CREATE COLLATION <varname>name</varname> FROM <varname>existing_collation</varna
       <p>Use <codeph>DROP COLLATION</codeph> to remove user-defined collations.</p>
       <p>See <xref href="https://www.postgresql.org/docs/9.4/collation.html" format="html"
           scope="external">Collation Support</xref> in the PostgreSQL documentation for more
-        information about collation support in Greenplum Database.</p>
+        information about collation support in Cloudberry Database.</p>
     </section>
     <section id="section6">
       <title>Examples</title>
@@ -90,7 +90,7 @@ CREATE COLLATION <varname>name</varname> FROM <varname>existing_collation</varna
       <title>Compatibility</title>
       <p>There is a <codeph>CREATE COLLATION</codeph> statement in the SQL standard, but it is
         limited to copying an existing collation. The syntax to create a new collation is a
-        Greenplum Database extension.</p>
+        Cloudberry Database extension.</p>
     </section>
     <section id="section8">
       <title>See Also</title>

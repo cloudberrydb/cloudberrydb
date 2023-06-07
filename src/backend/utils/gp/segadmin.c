@@ -3,7 +3,7 @@
  * segadmin.c
  *	  Functions to support administrative tasks with GPDB segments.
  *
- * Portions Copyright (c) 2010 Greenplum
+ * Portions Copyright (c) 2010 Cloudberry
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -20,17 +20,22 @@
 
 #include "access/genam.h"
 #include "access/table.h"
-#include "catalog/gp_segment_configuration.h"
 #include "catalog/pg_proc.h"
 #include "catalog/indexing.h"
+#ifdef USE_INTERNAL_FTS
+#include "catalog/gp_segment_configuration.h"
+#endif
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "cdb/cdbfts.h"
+#include "common/hashfn.h"
 #include "postmaster/startup.h"
 #include "utils/builtins.h"
 #include "utils/fmgroids.h"
 #include "utils/rel.h"
+
+#include "catalog/gp_indexing.h"
 
 #define MASTER_ONLY 0x1
 #define UTILITY_MODE 0x2
@@ -91,21 +96,7 @@ standby_exists()
 static int16
 get_maxdbid()
 {
-	Relation	rel = table_open(GpSegmentConfigRelationId, AccessExclusiveLock);
-	int16		dbid = 0;
-	HeapTuple	tuple;
-	SysScanDesc sscan;
-
-	sscan = systable_beginscan(rel, InvalidOid, false, NULL, 0, NULL);
-	while ((tuple = systable_getnext(sscan)) != NULL)
-	{
-		dbid = Max(dbid,
-				   ((Form_gp_segment_configuration) GETSTRUCT(tuple))->dbid);
-	}
-	systable_endscan(sscan);
-	table_close(rel, NoLock);
-
-	return dbid;
+	return cdbcomponent_get_maxdbid();
 }
 
 /**
@@ -116,50 +107,7 @@ get_maxdbid()
 static int16
 get_availableDbId()
 {
-	/*
-	 * Set up hash of used dbids.  We use int32 here because int16 doesn't
-	 * have a convenient hash and we can use casting below to check for
-	 * overflow of int16
-	 */
-	HASHCTL		hash_ctl;
-
-	memset(&hash_ctl, 0, sizeof(hash_ctl));
-	hash_ctl.keysize = sizeof(int32);
-	hash_ctl.entrysize = sizeof(int32);
-	hash_ctl.hash = int32_hash;
-	HTAB	   *htab = hash_create("Temporary table of dbids",
-								   1024,
-								   &hash_ctl,
-								   HASH_ELEM | HASH_FUNCTION);
-
-	/* scan GpSegmentConfigRelationId */
-	Relation	rel = heap_open(GpSegmentConfigRelationId, AccessExclusiveLock);
-	HeapTuple	tuple;
-	SysScanDesc sscan;
-
-	sscan = systable_beginscan(rel, InvalidOid, false, NULL, 0, NULL);
-	while ((tuple = systable_getnext(sscan)) != NULL)
-	{
-		int32		dbid = (int32) ((Form_gp_segment_configuration) GETSTRUCT(tuple))->dbid;
-
-		(void) hash_search(htab, (void *) &dbid, HASH_ENTER, NULL);
-	}
-	systable_endscan(sscan);
-
-	heap_close(rel, NoLock);
-
-	/* search for available dbid */
-	for (int32 dbid = 1;; dbid++)
-	{
-		if (dbid != (int16) dbid)
-			elog(ERROR, "unable to find available dbid");
-
-		if (hash_search(htab, (void *) &dbid, HASH_FIND, NULL) == NULL)
-		{
-			hash_destroy(htab);
-			return dbid;
-		}
-	}
+	return cdbcomponent_get_availableDbId();
 }
 
 
@@ -171,21 +119,7 @@ get_availableDbId()
 static int16
 get_maxcontentid()
 {
-	Relation	rel = heap_open(GpSegmentConfigRelationId, AccessExclusiveLock);
-	int16		contentid = 0;
-	HeapTuple	tuple;
-	SysScanDesc sscan;
-
-	sscan = systable_beginscan(rel, InvalidOid, false, NULL, 0, NULL);
-	while ((tuple = systable_getnext(sscan)) != NULL)
-	{
-		contentid = Max(contentid,
-						((Form_gp_segment_configuration) GETSTRUCT(tuple))->content);
-	}
-	systable_endscan(sscan);
-	heap_close(rel, NoLock);
-
-	return contentid;
+	return cdbcomponent_get_maxcontentid();
 }
 
 /*
@@ -241,10 +175,45 @@ mirroring_sanity_check(int flags, const char *func)
 }
 
 /*
- * Add a new row to gp_segment_configuration.
+ * Remove a gp_segment_configuration entry
  */
 static void
-add_segment_config(GpSegConfigEntry *i)
+remove_segment_config(int16 dbid)
+{
+#ifdef USE_INTERNAL_FTS
+	int			numDel = 0;
+	ScanKeyData scankey;
+	SysScanDesc sscan;
+	HeapTuple	tuple;
+	Relation	rel;
+
+	rel = table_open(GpSegmentConfigRelationId, RowExclusiveLock);
+
+	ScanKeyInit(&scankey,
+				Anum_gp_segment_configuration_dbid,
+				BTEqualStrategyNumber, F_INT2EQ,
+				Int16GetDatum(dbid));
+
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+							   NULL, 1, &scankey);
+	while ((tuple = systable_getnext(sscan)) != NULL)
+	{
+		CatalogTupleDelete(rel, &tuple->t_self);
+		numDel++;
+	}
+	systable_endscan(sscan);
+
+	Assert(numDel > 0);
+
+	table_close(rel, NoLock);
+#else
+	delSegment(dbid);
+#endif
+}
+
+#ifdef USE_INTERNAL_FTS
+static void
+add_segment_config_entry(GpSegConfigEntry *i)
 {
 	Relation	rel = table_open(GpSegmentConfigRelationId, AccessExclusiveLock);
 	Datum		values[Natts_gp_segment_configuration];
@@ -278,49 +247,7 @@ add_segment_config(GpSegConfigEntry *i)
 
 	table_close(rel, NoLock);
 }
-
-/*
- * Master function for adding a new segment
- */
-static void
-add_segment_config_entry(GpSegConfigEntry *i)
-{
-	/* Add gp_segment_configuration entry */
-	add_segment_config(i);
-}
-
-/*
- * Remove a gp_segment_configuration entry
- */
-static void
-remove_segment_config(int16 dbid)
-{
-	int			numDel = 0;
-	ScanKeyData scankey;
-	SysScanDesc sscan;
-	HeapTuple	tuple;
-	Relation	rel;
-
-	rel = table_open(GpSegmentConfigRelationId, RowExclusiveLock);
-
-	ScanKeyInit(&scankey,
-				Anum_gp_segment_configuration_dbid,
-				BTEqualStrategyNumber, F_INT2EQ,
-				Int16GetDatum(dbid));
-
-	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
-							   NULL, 1, &scankey);
-	while ((tuple = systable_getnext(sscan)) != NULL)
-	{
-		CatalogTupleDelete(rel, &tuple->t_self);
-		numDel++;
-	}
-	systable_endscan(sscan);
-
-	Assert(numDel > 0);
-
-	table_close(rel, NoLock);
-}
+#endif
 
 static void
 add_segment(GpSegConfigEntry *new_segment_information)
@@ -354,8 +281,11 @@ add_segment(GpSegConfigEntry *new_segment_information)
 			new_segment_information->preferred_role = GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY;
 		}
 	}
-
+#ifdef USE_INTERNAL_FTS
 	add_segment_config_entry(new_segment_information);
+#else
+	addSegment(new_segment_information);
+#endif
 }
 
 /*
@@ -570,18 +500,21 @@ Datum
 gp_remove_segment_mirror(PG_FUNCTION_ARGS)
 {
 	int16		contentid = 0;
-	Relation	rel;
 	int16		pridbid;
 	int16		mirdbid;
+	Relation	rel;
 
 	if (PG_ARGISNULL(0))
 		elog(ERROR, "dbid cannot be NULL");
 	contentid = PG_GETARG_INT16(0);
 
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_remove_segment_mirror");
-
+#ifdef USE_INTERNAL_FTS
 	/* avoid races */
 	rel = heap_open(GpSegmentConfigRelationId, AccessExclusiveLock);
+#else
+	(void) rel;
+#endif
 
 	pridbid = contentid_get_dbid(contentid, GP_SEGMENT_CONFIGURATION_ROLE_PRIMARY, false /* false == current, not
 								   * preferred, role */ );
@@ -599,7 +532,9 @@ gp_remove_segment_mirror(PG_FUNCTION_ARGS)
 
 	remove_segment(pridbid, mirdbid);
 
+#ifdef USE_INTERNAL_FTS
 	heap_close(rel, NoLock);
+#endif
 
 	PG_RETURN_BOOL(true);
 }
@@ -628,8 +563,8 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 {
 	int			maxdbid;
 	int16		master_dbid;
-	Relation	gprel;
 	GpSegConfigEntry	*config;
+	Relation	gprel;
 
 	if (PG_ARGISNULL(0))
 		elog(ERROR, "host name cannot be NULL");
@@ -644,10 +579,12 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 	/* Check if the system is ok */
 	if (standby_exists())
 		elog(ERROR, "only a single master standby may be defined");
-
+#ifdef USE_INTERNAL_FTS
 	/* Lock exclusively to avoid concurrent changes */
 	gprel = heap_open(GpSegmentConfigRelationId, AccessExclusiveLock);
-
+#else
+	(void) gprel;
+#endif
 	maxdbid = get_maxdbid();
 
 	/*
@@ -675,11 +612,12 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 	/* Use the new port number if specified */
 	if (PG_NARGS() > 3 && !PG_ARGISNULL(3))
 		config->port = PG_GETARG_INT32(3);
-
+#ifdef USE_INTERNAL_FTS
 	add_segment_config_entry(config);
-	
 	heap_close(gprel, NoLock);
-
+#else
+	addSegment(config);
+#endif
 	PG_RETURN_INT16(config->dbid);
 }
 
@@ -707,9 +645,13 @@ gp_remove_master_standby(PG_FUNCTION_ARGS)
 	PG_RETURN_BOOL(true);
 }
 
+/*
+ * Update gp_segment_configuration to activate a standby.
+ */
 static void
-segment_config_activate_standby(int16 standby_dbid, int16 master_dbid)
+catalog_activate_standby(int16 standby_dbid, int16 master_dbid)
 {
+#ifdef USE_INTERNAL_FTS
 	/* we use AccessExclusiveLock to prevent races */
 	Relation	rel = table_open(GpSegmentConfigRelationId, AccessExclusiveLock);
 	HeapTuple	tuple;
@@ -757,15 +699,9 @@ segment_config_activate_standby(int16 standby_dbid, int16 master_dbid)
 	systable_endscan(sscan);
 
 	table_close(rel, NoLock);
-}
-
-/*
- * Update gp_segment_configuration to activate a standby.
- */
-static void
-catalog_activate_standby(int16 standby_dbid, int16 master_dbid)
-{
-	segment_config_activate_standby(standby_dbid, master_dbid);
+#else
+	activateStandby(standby_dbid, master_dbid);
+#endif
 }
 
 /*
@@ -813,8 +749,7 @@ gp_request_fts_probe_scan(PG_FUNCTION_ARGS)
 {
 	if (Gp_role != GP_ROLE_DISPATCH)
 	{
-		ereport(ERROR,
-				(errmsg("this function can only be called by master (without utility mode)")));
+		elog(ERROR, "this function can only be called by master (without utility mode)");
 		PG_RETURN_BOOL(false);
 	}
 
@@ -822,3 +757,107 @@ gp_request_fts_probe_scan(PG_FUNCTION_ARGS)
 
 	PG_RETURN_BOOL(true);
 }
+
+Datum
+gp_rewrite_segments_info(PG_FUNCTION_ARGS)
+{
+#ifdef USE_INTERNAL_FTS
+	ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+		errmsg("Should not call this function when using internal fts module")));
+#else
+	char * content = NULL;
+	if (PG_ARGISNULL(0)) {
+		elog(ERROR, "content cannot be NULL");
+		PG_RETURN_BOOL(false);
+	}
+	content = TextDatumGetCString(PG_GETARG_DATUM(0));
+
+	if (FaultInjector_InjectFaultIfSet("fts_probe",
+										   DDLNotSpecified,
+										   "" /* databaseName */,
+										   "" /* tableName */) == FaultInjectorTypeSkip)
+	{
+		PG_RETURN_BOOL(true);
+	}
+
+	rewriteSegments(content, false);
+
+	PG_RETURN_BOOL(true);
+#endif
+}
+
+Datum
+gp_update_segment_configuration_mode_status(PG_FUNCTION_ARGS)
+{
+	int dbid = -1;
+	char mode,status;
+	if (PG_ARGISNULL(0)) {
+		elog(ERROR, "dbid cannot be NULL");
+		PG_RETURN_BOOL(false);
+	}
+	if (PG_ARGISNULL(1)) {
+		elog(ERROR, "mode cannot be NULL");
+		PG_RETURN_BOOL(false);
+	}
+		
+	if (PG_ARGISNULL(2))
+	{
+		elog(ERROR, "status cannot be NULL");
+		PG_RETURN_BOOL(false);
+	}
+	dbid = PG_GETARG_INT16(0);
+	mode = PG_GETARG_CHAR(1);
+	status = PG_GETARG_CHAR(2);
+
+	if (dbid < 0) {
+		elog(ERROR, "dbid should not less than 0.");
+		PG_RETURN_BOOL(false);
+	}
+
+	if (mode != GP_SEGMENT_CONFIGURATION_MODE_INSYNC &&
+		mode != GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC) {
+		elog(ERROR, "mode shoud be sync or nosync");
+		PG_RETURN_BOOL(false);
+	}
+
+	if (status != GP_SEGMENT_CONFIGURATION_STATUS_UP &&
+		status != GP_SEGMENT_CONFIGURATION_STATUS_DOWN) {
+		elog(ERROR, "mode shoud be up or down");
+		PG_RETURN_BOOL(false);
+	}
+#ifdef USE_INTERNAL_FTS
+	/* we use AccessExclusiveLock to prevent races */
+	Relation	rel = table_open(GpSegmentConfigRelationId, AccessExclusiveLock);
+	HeapTuple	tuple;
+	ScanKeyData scankey;
+	SysScanDesc sscan;
+
+	/* now, set out rows for old standby. */
+	ScanKeyInit(&scankey,
+				Anum_gp_segment_configuration_dbid,
+				BTEqualStrategyNumber, F_INT2EQ,
+				Int16GetDatum(dbid));
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+							   NULL, 1, &scankey);
+
+	tuple = systable_getnext(sscan);
+
+	if (!HeapTupleIsValid(tuple))
+		elog(ERROR, "cannot find, dbid %i", dbid);
+
+	tuple = heap_copytuple(tuple);
+	/* old standby keeps its previous dbid. */
+	((Form_gp_segment_configuration) GETSTRUCT(tuple))->mode = mode;
+	((Form_gp_segment_configuration) GETSTRUCT(tuple))->status = status;
+
+	CatalogTupleUpdate(rel, &tuple->t_self, tuple);
+
+	systable_endscan(sscan);
+
+	table_close(rel, NoLock);
+#else
+	updateSegmentModeStatus(dbid, mode, status);	
+#endif
+	PG_RETURN_BOOL(true);
+}
+

@@ -5,6 +5,7 @@
 
 /* For RemoveLocalLock, we need to check if NULL is not passed to pfree */
 #include "postgres.h"
+#include "common/hashfn.h"
 #undef pfree
 #define pfree(x) do { \
 	assert_true(x != NULL); \

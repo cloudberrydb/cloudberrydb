@@ -14,7 +14,7 @@
 ALLOW_EXCEPTIONS;
 
 static char  VERSION[] =
-	"Greenplum Map/Reduce Driver 1.00b2";
+	"Cloudberry Map/Reduce Driver 1.00b2";
 
 static char *wordchars =
 	"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
@@ -498,7 +498,7 @@ void check_version(PGconn *conn)
 	PGresult *result;
 
 	result = PQexec(conn, "select (regexp_matches(version(), "
-					"E'\\\\(Greenplum Database ([^)]+)\\\\)'))[1]");
+					"E'\\\\(Cloudberry Database ([^)]+)\\\\)'))[1]");
 
 	if (PQresultStatus(result) == PGRES_TUPLES_OK && PQntuples(result) == 1)
 	{
@@ -507,6 +507,7 @@ void check_version(PGconn *conn)
 		if (global_verbose_flag)
 			fprintf(stderr, "    VERSION: %s\n", version);
 
+#if 0
 		/* Determine if this version is approved for mapreduce usage */
 		if (strncmp(version, "main", 4) != 0)
 		{
@@ -522,11 +523,12 @@ void check_version(PGconn *conn)
 				XRAISE(VERSION_ERROR, strdup(buf));
 			}
 		}
+#endif
 	}
 	else
 	{
 		fprintf(stderr, "%s", PQerrorMessage(conn));
-		XRAISE(MAPRED_SQL_ERROR, "Unable to determine Greenplum version\n");
+		XRAISE(MAPRED_SQL_ERROR, "Unable to determine Cloudberry version\n");
 	}
 
 	PQclear(result);

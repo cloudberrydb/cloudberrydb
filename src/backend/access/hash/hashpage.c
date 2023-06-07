@@ -3,7 +3,7 @@
  * hashpage.c
  *	  Hash table page management code for the Postgres hash access method
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -31,10 +31,10 @@
 #include "access/hash.h"
 #include "access/hash_xlog.h"
 #include "miscadmin.h"
+#include "port/pg_bitutils.h"
 #include "storage/lmgr.h"
-#include "storage/smgr.h"
 #include "storage/predicate.h"
-
+#include "storage/smgr.h"
 
 static bool _hash_alloc_buckets(Relation rel, BlockNumber firstblock,
 								uint32 nblocks);
@@ -359,7 +359,7 @@ _hash_init(Relation rel, double num_tuples, ForkNumber forkNum)
 	data_width = sizeof(uint32);
 	item_width = MAXALIGN(sizeof(IndexTupleData)) + MAXALIGN(data_width) +
 		sizeof(ItemIdData);		/* include the line pointer */
-	ffactor = RelationGetTargetPageUsage(rel, HASH_DEFAULT_FILLFACTOR) / item_width;
+	ffactor = HashGetTargetPageUsage(rel) / item_width;
 	/* keep to a sane range */
 	if (ffactor < 10)
 		ffactor = 10;
@@ -503,13 +503,13 @@ _hash_init_metabuffer(Buffer buf, double num_tuples, RegProcedure procid,
 	double		dnumbuckets;
 	uint32		num_buckets;
 	uint32		spare_index;
-	uint32		i;
+	uint32		lshift;
 
 	/*
 	 * Choose the number of initial bucket pages to match the fill factor
 	 * given the estimated number of tuples.  We round up the result to the
 	 * total number of buckets which has to be allocated before using its
-	 * _hashm_spare element. However always force at least 2 bucket pages. The
+	 * hashm_spares element. However always force at least 2 bucket pages. The
 	 * upper limit is determined by considerations explained in
 	 * _hash_expandtable().
 	 */
@@ -543,15 +543,12 @@ _hash_init_metabuffer(Buffer buf, double num_tuples, RegProcedure procid,
 	metap->hashm_nmaps = 0;
 	metap->hashm_ffactor = ffactor;
 	metap->hashm_bsize = HashGetMaxBitmapSize(page);
+
 	/* find largest bitmap array size that will fit in page size */
-	for (i = _hash_log2(metap->hashm_bsize); i > 0; --i)
-	{
-		if ((1 << i) <= metap->hashm_bsize)
-			break;
-	}
-	Assert(i > 0);
-	metap->hashm_bmsize = 1 << i;
-	metap->hashm_bmshift = i + BYTE_TO_BIT;
+	lshift = pg_leftmost_one_pos32(metap->hashm_bsize);
+	Assert(lshift > 0);
+	metap->hashm_bmsize = 1 << lshift;
+	metap->hashm_bmshift = lshift + BYTE_TO_BIT;
 	Assert((1 << BMPG_SHIFT(metap)) == (BMPG_MASK(metap) + 1));
 
 	/*
@@ -571,7 +568,7 @@ _hash_init_metabuffer(Buffer buf, double num_tuples, RegProcedure procid,
 	 * Set highmask as next immediate ((2 ^ x) - 1), which should be
 	 * sufficient to cover num_buckets.
 	 */
-	metap->hashm_highmask = (1 << (_hash_log2(num_buckets + 1))) - 1;
+	metap->hashm_highmask = pg_nextpower2_32(num_buckets + 1) - 1;
 	metap->hashm_lowmask = (metap->hashm_highmask >> 1);
 
 	MemSet(metap->hashm_spares, 0, sizeof(metap->hashm_spares));
@@ -660,9 +657,9 @@ restart_expand:
 	 *
 	 * Ideally we'd allow bucket numbers up to UINT_MAX-1 (no higher because
 	 * the calculation maxbucket+1 mustn't overflow).  Currently we restrict
-	 * to half that because of overflow looping in _hash_log2() and
-	 * insufficient space in hashm_spares[].  It's moot anyway because an
-	 * index with 2^32 buckets would certainly overflow BlockNumber and hence
+	 * to half that to prevent failure of pg_ceil_log2_32() and insufficient
+	 * space in hashm_spares[].  It's moot anyway because an index with 2^32
+	 * buckets would certainly overflow BlockNumber and hence
 	 * _hash_alloc_buckets() would fail, but if we supported buckets smaller
 	 * than a disk block then this would be an independent constraint.
 	 *
@@ -1366,7 +1363,6 @@ _hash_finish_split(Relation rel, Buffer metabuf, Buffer obuf, Bucket obucket,
 	bool		found;
 
 	/* Initialize hash tables used to track TIDs */
-	memset(&hash_ctl, 0, sizeof(hash_ctl));
 	hash_ctl.keysize = sizeof(ItemPointerData);
 	hash_ctl.entrysize = sizeof(ItemPointerData);
 	hash_ctl.hcxt = CurrentMemoryContext;
@@ -1510,7 +1506,7 @@ _hash_getcachedmetap(Relation rel, Buffer *metabuf, bool force_refresh)
 		 * It's important that we don't set rd_amcache to an invalid value.
 		 * Either MemoryContextAlloc or _hash_getbuf could fail, so don't
 		 * install a pointer to the newly-allocated storage in the actual
-		 * relcache entry until both have succeeeded.
+		 * relcache entry until both have succeeded.
 		 */
 		if (rel->rd_amcache == NULL)
 			cache = MemoryContextAlloc(rel->rd_indexcxt,

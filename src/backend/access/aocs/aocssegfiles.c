@@ -3,7 +3,7 @@
  * aocssegfiles.c
  *	  AOCS Segment files.
  *
- * Portions Copyright (c) 2009, Greenplum Inc.
+ * Portions Copyright (c) 2009, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -24,7 +24,7 @@
 #include "access/hio.h"
 #include "access/multixact.h"
 #include "access/transam.h"
-#include "access/tuptoaster.h"
+#include "access/heaptoast.h"
 #include "access/valid.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
@@ -267,7 +267,8 @@ GetAOCSFileSegInfo(Relation prel,
 AOCSFileSegInfo **
 GetAllAOCSFileSegInfo(Relation prel,
 					  Snapshot appendOnlyMetaDataSnapshot,
-					  int32 *totalseg)
+					  int32 *totalseg,
+					  Oid *segrelidptr)
 {
 	Relation	pg_aocsseg_rel;
 	AOCSFileSegInfo **results;
@@ -283,6 +284,9 @@ GetAllAOCSFileSegInfo(Relation prel,
 	if (segrelid == InvalidOid)
 		elog(ERROR, "could not find pg_aoseg aux table for AOCO table \"%s\"",
 			 RelationGetRelationName(prel));
+
+	if (segrelidptr != NULL)
+		*segrelidptr = segrelid;
 
 	pg_aocsseg_rel = relation_open(segrelid, AccessShareLock);
 
@@ -392,16 +396,29 @@ GetAllAOCSFileSegInfo_pg_aocsseg_rel(int numOfColumns,
 
 		Assert(!null[Anum_pg_aocs_vpinfo - 1]);
 		{
+			uint32 len;
 			struct varlena *v = (struct varlena *) DatumGetPointer(d[Anum_pg_aocs_vpinfo - 1]);
 			struct varlena *dv = pg_detoast_datum(v);
 
 			/*
 			 * VARSIZE(dv) may be less than aocs_vpinfo_size, in case of add
 			 * column, we try to do a ctas from old table to new table.
+			 *
+			 * Also, VARSIZE(dv) may be greater than aocs_vpinfo_size, in case
+			 * of begin transaction, add column and assign a new segno for insert,
+			 * and then rollback transaction. In this case, we must be using
+			 * RESERVED_SEGNO (check ChooseSegnoForWrite() for more detail).
 			 */
-			Assert(VARSIZE(dv) <= aocs_vpinfo_size(nvp));
+			Assert(VARSIZE(dv) <= aocs_vpinfo_size(nvp) || aocs_seginfo->segno == RESERVED_SEGNO);
 
-			memcpy(&aocs_seginfo->vpinfo, dv, VARSIZE(dv));
+			len = (VARSIZE(dv) <= aocs_vpinfo_size(nvp)) ? VARSIZE(dv) : aocs_vpinfo_size(nvp);
+			memcpy(&aocs_seginfo->vpinfo, dv, len);
+			if (len != VARSIZE(dv))
+			{
+				/* truncate VPInfoEntry of useless columns  */
+				SET_VARSIZE(&aocs_seginfo->vpinfo, len);
+				aocs_seginfo->vpinfo.nEntry = nvp;
+			}
 			if (dv != v)
 				pfree(dv);
 		}
@@ -449,7 +466,7 @@ GetAOCSSSegFilesTotals(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot)
 	totals = (FileSegTotals *) palloc0(sizeof(FileSegTotals));
 	memset(totals, 0, sizeof(FileSegTotals));
 
-	allseg = GetAllAOCSFileSegInfo(parentrel, appendOnlyMetaDataSnapshot, &totalseg);
+	allseg = GetAllAOCSFileSegInfo(parentrel, appendOnlyMetaDataSnapshot, &totalseg, NULL);
 	for (s = 0; s < totalseg; s++)
 	{
 		int32		nEntry;
@@ -800,7 +817,7 @@ UpdateAOCSFileSegInfo(AOCSInsertDesc idesc)
 		}
 		else
 		{
-			elog(ERROR, "Unexpected compressed EOF for relation %s, relfilenode %u, segment file %d coln %d. "
+			elog(ERROR, "Unexpected compressed EOF for relation %s, relfilenode %lu, segment file %d coln %d. "
 				 "EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aocsseg",
 				 RelationGetRelationName(prel), prel->rd_node.relNode,
 				 idesc->cur_segno, i, idesc->ds[i]->eof, oldvpinfo->entry[i].eof);
@@ -812,7 +829,7 @@ UpdateAOCSFileSegInfo(AOCSInsertDesc idesc)
 		}
 		else
 		{
-			elog(ERROR, "Unexpected EOF for relation %s, relfilenode %u, segment file %d coln %d. "
+			elog(ERROR, "Unexpected EOF for relation %s, relfilenode %lu, segment file %d coln %d. "
 				 "EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aocsseg",
 				 RelationGetRelationName(prel), prel->rd_node.relNode,
 				 idesc->cur_segno, i, idesc->ds[i]->eofUncompress, oldvpinfo->entry[i].eof_uncompressed);
@@ -1535,6 +1552,8 @@ aocol_compression_ratio_internal(Relation parentrel)
 										 * available" */
 
 	Oid			segrelid = InvalidOid;
+
+	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
 
 	GetAppendOnlyEntryAuxOids(RelationGetRelid(parentrel), NULL,
 							  &segrelid, NULL, NULL, NULL, NULL);

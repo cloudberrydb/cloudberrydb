@@ -42,7 +42,11 @@ typedef struct PxfFdwScanState
 	List	   *fragments;
 	List	   *retrieved_attrs;
 	PxfOptions *options;
+#if PG_VERSION_NUM < 140000
 	CopyState	cstate;
+#else
+	CopyFromState	cstate;
+#endif
 } PxfFdwScanState;
 
 /*
@@ -50,7 +54,11 @@ typedef struct PxfFdwScanState
  */
 typedef struct PxfFdwModifyState
 {
+#if PG_VERSION_NUM < 140000
 	CopyState	cstate;			/* state of writing to PXF */
+#else
+	CopyToState	cstate;			/* state of writing to PXF */
+#endif
 
 	CHURL_HANDLE churl_handle;	/* curl handle */
 	CHURL_HEADERS churl_headers;	/* curl headers */

@@ -1,4 +1,4 @@
--- Greenplum specific access method tests, in addition to what's
+-- Cloudberry specific access method tests, in addition to what's
 -- covered by upstream create_am.sql tests
 
 \set HIDE_TABLEAM off

@@ -22,7 +22,7 @@
  */
 #include "pxf_filter.h"
 
-#include "catalog/pg_operator.h"
+#include "catalog/pg_operator_d.h"
 #include "optimizer/clauses.h"
 #include "parser/parse_expr.h"
 #include "utils/builtins.h"
@@ -178,7 +178,7 @@ dbop_pxfop_map pxf_supported_opr_op_expr[] =
 	{85 /* boolne */ , PXFOP_NE},
 
 	/* bpchar */
-	{BPCharEqualOperator /* bpchareq */ , PXFOP_EQ},
+	{BpcharEqualOperator /* bpchareq */ , PXFOP_EQ},
 	{1058 /* bpcharlt */ , PXFOP_LT},
 	{1060 /* bpchargt */ , PXFOP_GT},
 	{1059 /* bpcharle */ , PXFOP_LE},
@@ -239,7 +239,7 @@ dbop_pxfop_array_map pxf_supported_opr_scalar_array_op_expr[] =
 	{1120 /* float48eq */ , PXFOP_IN, true},
 
 	/* bpchar */
-	{BPCharEqualOperator /* bpchareq */ , PXFOP_IN,
+	{BpcharEqualOperator /* bpchareq */ , PXFOP_IN,
 	true},
 };
 

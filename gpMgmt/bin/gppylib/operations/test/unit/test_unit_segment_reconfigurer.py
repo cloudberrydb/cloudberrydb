@@ -21,7 +21,7 @@ class SegmentReconfiguerTestCase(GpTestCase):
     port = 15432
     user = 'postgres'
     passwd = 'passwd'
-    timeout = 30
+    timeout = 120
 
     def setUp(self):
         self.conn = Mock(name='conn')

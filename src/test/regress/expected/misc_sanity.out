@@ -43,6 +43,9 @@ WHERE refclassid = 0 OR refobjid = 0 OR
 -- whatever OID the test is complaining about must have been added later
 -- in initdb, where it intentionally isn't pinned.  Legitimate exceptions
 -- to that rule are listed in the comments in setup_depend().
+-- Currently, pg_rewrite is also listed by this check, even though it is
+-- covered by setup_depend().  That happens because there are no rules in
+-- the pinned data, but initdb creates some intentionally-not-pinned views.
 do $$
 declare relnm text;
   reloid oid;
@@ -73,7 +76,6 @@ loop
   end if;
 end loop;
 end$$;
-NOTICE:  pg_constraint contains unpinned initdb-created object(s)
 NOTICE:  pg_database contains unpinned initdb-created object(s)
 NOTICE:  pg_extension contains unpinned initdb-created object(s)
 NOTICE:  pg_foreign_data_wrapper contains unpinned initdb-created object(s)
@@ -121,4 +123,52 @@ ORDER BY 1, 2;
  pg_stat_last_operation   | stasubtype         | text
  pg_stat_last_shoperation | stasubtype         | text
 (19 rows)
+
+-- system catalogs without primary keys
+--
+-- Current exceptions:
+-- * pg_depend, pg_shdepend don't have a unique key
+SELECT relname
+FROM pg_class
+WHERE relnamespace = 'pg_catalog'::regnamespace AND relkind = 'r'
+      AND pg_class.oid NOT IN (SELECT indrelid FROM pg_index WHERE indisprimary)
+      AND relname NOT like 'gp_segment_configuration'
+ORDER BY 1;
+         relname          
+--------------------------
+ gp_configuration_history
+ gp_distribution_policy
+ gp_fastsequence
+ gp_id
+ gp_partition_template
+ gp_version_at_initdb
+ pg_appendonly
+ pg_attribute_encoding
+ pg_auth_time_constraint
+ pg_compression
+ pg_depend
+ pg_extprotocol
+ pg_proc_callback
+ pg_resgroup
+ pg_resgroupcapability
+ pg_resourcetype
+ pg_resqueue
+ pg_resqueuecapability
+ pg_shdepend
+ pg_stat_last_operation
+ pg_stat_last_shoperation
+ pg_type_encoding
+(22 rows)
+
+-- system catalog unique indexes not wrapped in a constraint
+-- (There should be none.)
+SELECT relname
+FROM pg_class c JOIN pg_index i ON c.oid = i.indexrelid
+WHERE relnamespace = 'pg_catalog'::regnamespace AND relkind = 'i'
+      AND i.indisunique
+      AND c.oid NOT IN (SELECT conindid FROM pg_constraint)
+ORDER BY 1;
+ relname 
+---------
+(0 rows)
 

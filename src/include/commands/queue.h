@@ -3,7 +3,7 @@
  * queue.h
  *	  Commands for manipulating resource queues.
  *
- * Portions Copyright (c) 2006-2010, Greenplum inc.
+ * Portions Copyright (c) 2006-2010, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

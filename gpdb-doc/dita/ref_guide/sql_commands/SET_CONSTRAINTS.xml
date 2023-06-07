@@ -51,7 +51,7 @@
       </section>
       <section id="section4">
          <title>Notes</title>
-         <p>Because Greenplum Database does not require constraint names to be unique within a
+         <p>Because Cloudberry Database does not require constraint names to be unique within a
             schema (but only per-table), it is possible that there is more than one match for a
             specified constraint name. In this case <codeph>SET CONSTRAINTS</codeph> will act on all
             matches. For a non-schema-qualified name, once a match or matches have been found in
@@ -63,8 +63,8 @@
       <section id="section5">
          <title>Compatibility</title>
          <p>This command complies with the behavior defined in the SQL standard, except for the
-            limitation that, in Greenplum Database, it does not apply to <codeph>NOT NULL</codeph>
-            and <codeph>CHECK</codeph> constraints. Also, Greenplum Database checks non-deferrable
+            limitation that, in Cloudberry Database, it does not apply to <codeph>NOT NULL</codeph>
+            and <codeph>CHECK</codeph> constraints. Also, Cloudberry Database checks non-deferrable
             uniqueness constraints immediately, not at end of statement as the standard would
             suggest. </p>
       </section>

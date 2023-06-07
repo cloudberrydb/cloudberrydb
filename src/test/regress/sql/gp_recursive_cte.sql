@@ -432,3 +432,77 @@ with recursive the_cte_here(n) as (
   select n+1 from the_cte_here join t_rand_test_rcte
 	              on t_rand_test_rcte.c = the_cte_here.n)
 select * from the_cte_here;
+
+-- WITH RECURSIVE non-recursive shouldn't have hash locus
+create table recursive_locus_t1(id int, pid int, name text) distributed by(id);
+insert into recursive_locus_t1 values(0, -1, 'AAA');
+insert into recursive_locus_t1 values(1,  0, 'B1');
+insert into recursive_locus_t1 values(2,  0, 'B2');
+insert into recursive_locus_t1 values(3,  1, 'C1_1');
+insert into recursive_locus_t1 values(4,  1, 'C1_2');
+insert into recursive_locus_t1 values(5,  1, 'C1_3');
+insert into recursive_locus_t1 values(6,  2, 'C2_1');
+insert into recursive_locus_t1 values(7,  2, 'C2_2');
+insert into recursive_locus_t1 values(8,  2, 'C2_3');
+
+explain (costs off) with RECURSIVE cte as (
+  select a.id, a.name from recursive_locus_t1 a where id=0
+  union all
+  select k.id, (c.name || '>' || k.name) as name  from recursive_locus_t1 k inner join cte c on c.id = k.pid
+)
+select id,name from cte;
+with RECURSIVE cte as (
+  select a.id, a.name from recursive_locus_t1 a where id=0
+  union all
+  select k.id, (c.name || '>' || k.name) as name  from recursive_locus_t1 k inner join cte c on c.id = k.pid
+)
+select id,name from cte;
+
+create table recursive_locus_t2(id int, pid int, name text) distributed replicated;
+insert into recursive_locus_t2 values(0, -1, 'AAA');
+insert into recursive_locus_t2 values(1,  0, 'B1');
+insert into recursive_locus_t2 values(2,  0, 'B2');
+insert into recursive_locus_t2 values(3,  1, 'C1_1');
+insert into recursive_locus_t2 values(4,  1, 'C1_2');
+insert into recursive_locus_t2 values(5,  1, 'C1_3');
+insert into recursive_locus_t2 values(6,  2, 'C2_1');
+insert into recursive_locus_t2 values(7,  2, 'C2_2');
+insert into recursive_locus_t2 values(8,  2, 'C2_3');
+
+explain (costs off) with RECURSIVE cte as (
+  select a.id, a.name from recursive_locus_t2 a where id=0
+  union all
+  select k.id, (c.name || '>' || k.name) as name  from recursive_locus_t2 k inner join cte c on c.id = k.pid
+)
+select id,name from cte;
+with RECURSIVE cte as (
+  select a.id, a.name from recursive_locus_t2 a where id=0
+  union all
+  select k.id, (c.name || '>' || k.name) as name  from recursive_locus_t2 k inner join cte c on c.id = k.pid
+)
+select id,name from cte;
+
+create table recursive_locus_t3(id int, pid int, name text) distributed randomly;
+insert into recursive_locus_t3 values(0, -1, 'AAA');
+insert into recursive_locus_t3 values(1,  0, 'B1');
+insert into recursive_locus_t3 values(2,  0, 'B2');
+insert into recursive_locus_t3 values(3,  1, 'C1_1');
+insert into recursive_locus_t3 values(4,  1, 'C1_2');
+insert into recursive_locus_t3 values(5,  1, 'C1_3');
+insert into recursive_locus_t3 values(6,  2, 'C2_1');
+insert into recursive_locus_t3 values(7,  2, 'C2_2');
+insert into recursive_locus_t3 values(8,  2, 'C2_3');
+
+explain (costs off) with RECURSIVE cte as (
+  select a.id, a.name from recursive_locus_t3 a where id=0
+  union all
+  select k.id, (c.name || '>' || k.name) as name  from recursive_locus_t3 k inner join cte c on c.id = k.pid
+)
+select id,name from cte;
+with RECURSIVE cte as (
+  select a.id, a.name from recursive_locus_t3 a where id=0
+  union all
+  select k.id, (c.name || '>' || k.name) as name  from recursive_locus_t3 k inner join cte c on c.id = k.pid
+)
+select id,name from cte;
+

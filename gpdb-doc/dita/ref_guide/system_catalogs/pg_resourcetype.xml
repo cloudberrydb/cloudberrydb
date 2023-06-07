@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en"><title id="hh141670">pg_resourcetype</title><body><p>The <codeph>pg_resourcetype</codeph> system catalog table contains information about the extended
-      attributes that can be assigned to Greenplum Database resource queues. Each row
+      attributes that can be assigned to Cloudberry Database resource queues. Each row
       details an attribute and inherent qualities such as its default setting, whether it is
       required, and the value to disable it (when allowed).</p><p>This table is populated only on the master. This table is defined
 in the <codeph>pg_global</codeph> tablespace, meaning it is globally

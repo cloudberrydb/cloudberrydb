@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
 #
 """
   gparray.py:
 
     Contains three classes representing configuration information of a
-    Greenplum array:
+    Cloudberry array:
 
       GpArray - The primary interface - collection of all Segment within an array
       Segment    - represents configuration information for a single dbid
@@ -85,7 +85,7 @@ class InvalidSegmentConfiguration(Exception):
 class Segment:
     """
     Segment class representing configuration information for a single dbid
-    within a Greenplum Array.
+    within a Cloudberry Array.
     """
 
     # --------------------------------------------------------------------
@@ -113,7 +113,13 @@ class Segment:
         self.unreachable = False
 
         # Todo: Remove old dead code
-        self.valid = (status == 'u')
+        
+        # It should be assumed that all segments are reliable. 
+        # If there is a problem with the segment itself, it will fail to start.
+        # The previous assumption is that the master and FTS end together.
+        # So the status of the healthy node itself will not be updated.
+        # But after splitting FTS, all node status will be updated externally.
+        self.valid = True
 
     # --------------------------------------------------------------------
     def __str__(self):
@@ -772,9 +778,9 @@ def createSegmentRowsFromSegmentList( newHostlist
 # ============================================================================
 class GpArray:
     """
-    GpArray is a python class that describes a Greenplum array.
+    GpArray is a python class that describes a Cloudberry array.
 
-    A Greenplum array consists of:
+    A Cloudberry array consists of:
       coordinator         - The primary QD for the array
       standby coordinator - The mirror QD for the array [optional]
       segmentPairs array  - an array of segmentPairs within the cluster

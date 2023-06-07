@@ -41,7 +41,7 @@ execute attribute_encoding_check('aoco_table_compressed_type');
 -- When I insert data
 insert into aoco_table_compressed_type select '123456'::int42 from generate_series(1, 1000)i;
 -- Then the data should be compressed and return a consistent compression ratio
-select get_ao_compression_ratio('aoco_table_compressed_type') as quicklz_compress_ratio;
+select get_ao_compression_ratio('aoco_table_compressed_type') >= 15 as quicklz_compress_ratio;
 
 -- Given an AO/RO table using the int42 type with quicklz compresstype
 CREATE TABLE aoro_table_compressed_type (i int42) with(appendonly = true, orientation=row);

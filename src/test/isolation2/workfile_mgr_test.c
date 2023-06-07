@@ -195,13 +195,10 @@ create_text_stringinfo(int64 n_chars)
 static bool
 execworkfile_buffile_test(void)
 {
-/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
-#if 0
 	int64 result = 0;
 	bool success = false;
 	int64 expected_size = 0;
 	int64 final_size = 0;
-	int64 current_size = 0;
 	int64 initial_diskspace = WorkfileSegspace_GetSize();
 
 	unit_test_reset();
@@ -218,11 +215,7 @@ execworkfile_buffile_test(void)
 
 	elog(LOG, "Running sub-test: Creating EWF/Buffile");
 
-	BufFile *ewf = BufFileCreateNamedTemp(file_name,
-										  false /* interXact */,
-										  NULL /* work_set */);
-
-	BufFile *write_ewf = ewf;
+	BufFile *ewf = BufFileCreateTemp(file_name, false /* interXact */);
 
 	unit_test_result(ewf != NULL);
 
@@ -231,67 +224,42 @@ execworkfile_buffile_test(void)
 
 	elog(LOG, "Running sub-test: Writing small amount data to EWF/Buffile and checking size");
 
-	size_t written = BufFileWrite(ewf, text->data, 20);
+	BufFileWrite(ewf, text->data, 20);
 	expected_size += 20;
 
-	unit_test_result(written == 20 && expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
+	unit_test_result(expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
 
 
 	elog(LOG, "Running sub-test: Writing larger amount data (%d bytes) to EWF/Buffile and checking size", nchars);
-	written = BufFileWrite(ewf, text->data, nchars);
+	BufFileWrite(ewf, text->data, nchars);
 	expected_size += nchars;
 
-	unit_test_result(written == nchars && expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
+	unit_test_result(expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
 
 	elog(LOG, "Running sub-test: Writing to the middle of a EWF/Buffile and checking size");
-	result = BufFileSeek(ewf, 0 /* fileno */, BufFileGetSize(ewf) / 2, SEEK_SET);
+	result = BufFileSeek(ewf, 0 /* fileno */, BufFileSize(ewf) / 2, SEEK_SET);
 	Assert(result == 0);
 	/* This write should not add to the size */
-	success = BufFileWrite(ewf, text->data, BufFileGetSize(ewf) / 10);
+	BufFileWrite(ewf, text->data, BufFileSize(ewf) / 10);
 
-	unit_test_result(success && expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
+	unit_test_result(expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
 
 	elog(LOG, "Running sub-test: Seeking past end and writing data to EWF/Buffile and checking size");
 	int past_end_offset = 100;
 	int past_end_write = 200;
-	result = BufFileSeek(ewf, 0 /* fileno */, BufFileGetSize(ewf) + past_end_offset, SEEK_SET);
+	result = BufFileSeek(ewf, 0 /* fileno */, BufFileSize(ewf) + past_end_offset, SEEK_SET);
 	Assert(result == 0);
-	written = BufFileWrite(ewf, text->data, past_end_write);
+	BufFileWrite(ewf, text->data, past_end_write);
 	expected_size += past_end_offset + past_end_write;
 
-	unit_test_result(written == past_end_write && expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
+	unit_test_result(expected_size == WorkfileSegspace_GetSize() - initial_diskspace);
 
 	elog(LOG, "Running sub-test: Closing EWF/Buffile"); // keep it open
-	final_size = BufFileGetSize(ewf);
+	final_size = BufFileSize(ewf);
 	unit_test_result(final_size == expected_size);
 
-	write_ewf = ewf;
-
-	elog(LOG, "Running sub-test: Opening existing EWF/Buffile and checking size");
-
-	ewf = BufFileOpenNamedTemp(file_name,
-							   false /* interXact */);
-
-	current_size = BufFileGetSize(ewf);
-	unit_test_result(current_size == final_size);
-
-	elog(LOG, "Running sub-test: Reading from reopened EWF/Buffile file");
-
-	int buf_size = 100;
-	char *buf = (char *) palloc(buf_size);
-
-	result = BufFileRead(ewf, buf, buf_size);
-	unit_test_result(result == buf_size);
-	pfree(buf);
-
-	elog(LOG, "Running sub-test: Closing EWF/Buffile");
-	final_size = BufFileGetSize(ewf);
-	BufFileClose(ewf);
-
-	unit_test_result(final_size == current_size);
-
 	elog(LOG, "Running sub-test: Closing and deleting file from disk");
-	BufFileClose(write_ewf);
+	BufFileClose(ewf);
 
 	unit_test_result(success);
 
@@ -299,10 +267,6 @@ execworkfile_buffile_test(void)
 	pfree(text);
 
 	return unit_test_summary();
-#else
-	elog(ERROR, "broken test");
-	return 0;
-#endif
 }
 
 /*
@@ -311,8 +275,6 @@ execworkfile_buffile_test(void)
 static bool
 buffile_size_test(void)
 {
-/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
-#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: buffile_size_test");
 
@@ -321,14 +283,12 @@ buffile_size_test(void)
 	/* Create file name */
 	char *file_name = "test_buffile.dat";
 
-	BufFile *testBf = BufFileCreateNamedTemp(file_name,
-											 false /* interXact */,
-											 NULL /* workfile_set */);
+	BufFile *testBf = BufFileCreateTemp(file_name, false /* interXact */);
 
 	unit_test_result(NULL != testBf);
 
 	elog(LOG, "Running sub-test: Size of newly created buffile");
-	int64 test_size = BufFileGetSize(testBf);
+	int64 test_size = BufFileSize(testBf);
 	unit_test_result(test_size == 0);
 
 	elog(LOG, "Running sub-test: Writing to new buffile and reading size < bufsize");
@@ -338,7 +298,7 @@ buffile_size_test(void)
 	BufFileWrite(testBf, text->data, nchars);
 	pfree(text->data);
 	pfree(text);
-	test_size = BufFileGetSize(testBf);
+	test_size = BufFileSize(testBf);
 
 	unit_test_result(test_size == expected_size);
 
@@ -347,37 +307,29 @@ buffile_size_test(void)
 	expected_size += nchars;
 	text = create_text_stringinfo(nchars);
 	BufFileWrite(testBf, text->data, nchars);
-	test_size = BufFileGetSize(testBf);
+	test_size = BufFileSize(testBf);
 
 	unit_test_result(test_size == expected_size);
 
 	elog(LOG, "Running sub-test: seeking back and writing then testing size");
-	BufFileSeek(testBf, 0 /* fileno */, expected_size/2, SEEK_SET);
+	BufFileSeek(testBf, 0 /* fileno */, expected_size / 2, SEEK_SET);
 	/* This write should not add to the size */
 	BufFileWrite(testBf, text->data, expected_size / 10);
-	test_size = BufFileGetSize(testBf);
-
-	unit_test_result(test_size == expected_size);
-
-	elog(LOG, "Running sub-test: Opening existing and testing size");
-	BufFile *testBf1 = BufFileOpenNamedTemp(file_name,
-								  false /*interXact */);
-	test_size = BufFileGetSize(testBf1);
+	test_size = BufFileSize(testBf);
 
 	unit_test_result(test_size == expected_size);
 
 	elog(LOG, "Running sub-test: Seek past end, appending and testing size");
 	int past_end_offset = 100;
 	int past_end_write = 200;
-	BufFileSeek(testBf1, 0 /* fileno */, expected_size + past_end_offset, SEEK_SET);
-	BufFileWrite(testBf1, text->data, past_end_write);
+	BufFileSeek(testBf, 0 /* fileno */, expected_size + past_end_offset, SEEK_SET);
+	BufFileWrite(testBf, text->data, past_end_write);
 	expected_size += past_end_offset + past_end_write;
-	test_size = BufFileGetSize(testBf1);
+	test_size = BufFileSize(testBf);
 
 	unit_test_result(test_size == expected_size);
 
 	elog(LOG, "Running sub-test: Closing buffile");
-	BufFileClose(testBf1);
 	BufFileClose(testBf);
 	unit_test_result(true);
 
@@ -385,10 +337,6 @@ buffile_size_test(void)
 	pfree(text);
 
 	return unit_test_summary();
-#else
-	elog(ERROR, "broken test");
-	return 0;
-#endif
 }
 
 /*
@@ -469,15 +417,11 @@ atomic_test(void)
 static bool
 buffile_large_file_test(void)
 {
-/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
-#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: buffile_large_file_test");
 	char *file_name = "Test_large_buff.dat";
 
-	BufFile *bfile = BufFileCreateNamedTemp(file_name,
-											true /* interXact */,
-											NULL /* workfile_set */);
+	BufFile *bfile = BufFileCreateTemp(file_name, true /* interXact */);
 
 	int nchars = 100000;
 	/* 4.5 GBs */
@@ -523,10 +467,6 @@ buffile_large_file_test(void)
 	pfree(test_string);
 
 	return unit_test_summary();
-#else
-	elog(ERROR, "broken test");
-	return 0;
-#endif
 }
 
 /*
@@ -535,10 +475,6 @@ buffile_large_file_test(void)
 static bool
 logicaltape_test(void)
 {
-/* GPDB_12_MERGE_FIXME: tuplesort and logtape.c were replaced with upstream versions
- * which broke this
- */
-#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: logicaltape_test");
 
@@ -550,11 +486,10 @@ logicaltape_test(void)
 	/* Target record values */
 	int test_tape = 5;
 	int test_entry = 45000;
-	LogicalTapePos entryPos;
+	long test_entry_block = 0;
+	int test_entry_offset = 0;
 
-	LogicalTapeSet *tape_set = LogicalTapeSetCreate(max_tapes);
-
-	LogicalTape *work_tape = NULL;
+	LogicalTapeSet *tape_set = LogicalTapeSetCreate(max_tapes, false, NULL, NULL, -1);
 
 	StringInfo test_string = create_text_stringinfo(nchars);
 
@@ -563,8 +498,6 @@ logicaltape_test(void)
 	/* Fill LogicalTapeSet */
 	for (int i = 0; i < max_tapes; i++)
 	{
-		work_tape = LogicalTapeSetGetTape(tape_set, i);
-
 		/* Create large SpillFile for LogicalTape */
 		if (test_tape == i)
 		{
@@ -574,16 +507,16 @@ logicaltape_test(void)
 				if ( j == test_entry)
 				{
 					/* Keep record position of target record in LogicalTape */
-					LogicalTapeUnfrozenTell(tape_set, work_tape, &entryPos);
+					LogicalTapeTell(tape_set, i, &test_entry_block, &test_entry_offset);
 
-					LogicalTapeWrite(tape_set, work_tape, test_string->data, (size_t)test_string->len);
+					LogicalTapeWrite(tape_set, i, test_string->data, (size_t)test_string->len);
 				}
 				else
 				{
 					/* Add additional records */
 					StringInfo text = create_text_stringinfo(nchars);
 
-					LogicalTapeWrite(tape_set, work_tape, text->data, (size_t)text->len);
+					LogicalTapeWrite(tape_set, i, text->data, (size_t)text->len);
 
 					pfree(text->data);
 					pfree(text);
@@ -595,7 +528,7 @@ logicaltape_test(void)
 			/* Add additional records */
 			StringInfo text = create_text_stringinfo(nchars);
 
-			LogicalTapeWrite(tape_set, work_tape, text->data, (size_t)text->len);
+			LogicalTapeWrite(tape_set, i, text->data, (size_t)text->len);
 
 			pfree(text->data);
 			pfree(text);
@@ -604,27 +537,22 @@ logicaltape_test(void)
 	}
 
 	/* Set target LogicalTape */
-	work_tape = LogicalTapeSetGetTape(tape_set, test_tape);
 	char *buffer = palloc(nchars * sizeof(char));
 
 	elog(LOG, "Running sub-test: Freeze LogicalTape");
-	LogicalTapeFreeze(tape_set, work_tape);
+	LogicalTapeFreeze(tape_set, test_tape, NULL);
 
 	elog(LOG, "Running sub-test: Seek in LogicalTape");
-	LogicalTapeSeek(tape_set, work_tape, &entryPos);
+	LogicalTapeSeek(tape_set, test_tape, test_entry_block, test_entry_offset);
 
 	elog(LOG, "Running sub-test: Reading from LogicalTape");
-	LogicalTapeRead(tape_set, work_tape, buffer, (size_t)(nchars*sizeof(char)));
+	LogicalTapeRead(tape_set, test_tape, buffer, (size_t)(nchars*sizeof(char)));
 
-	LogicalTapeSetClose(tape_set, NULL /* work_set */);
+	LogicalTapeSetClose(tape_set);
 
 	unit_test_result (strncmp(test_string->data, buffer, test_string->len) == 0);
 
 	return unit_test_summary();
-#else
-	elog(ERROR, "broken test");
-	return 0;
-#endif
 }
 
 /*
@@ -634,8 +562,6 @@ logicaltape_test(void)
 static bool
 execworkfile_create_one_MB_file(void)
 {
-/* GPDB_12_MERGE_FIXME: Broken by the BufFile API changes */
-#if 0
 	unit_test_reset();
 	elog(LOG, "Running test: execworkfile_one_MB_file_test");
 
@@ -645,9 +571,7 @@ execworkfile_create_one_MB_file(void)
 					 "%s",
 					 "Test_buffile_one_MB_file_test.dat");
 
-	BufFile *ewf = BufFileCreateNamedTemp(filename->data,
-										  false /* interXact */,
-										  NULL /* work_set */);
+	BufFile *ewf = BufFileCreateTemp(filename->data, false /* interXact */);
 
 	/* Number of characters in a MB */
 	int nchars = (int)((1<<20)/sizeof(char));
@@ -663,7 +587,7 @@ execworkfile_create_one_MB_file(void)
 
 	elog(LOG, "Running sub-test: Closing file %s", filename->data);
 
-	int64 final_size = BufFileGetSize(ewf);
+	int64 final_size = BufFileSize(ewf);
 
 	BufFileClose(ewf);
 
@@ -674,10 +598,6 @@ execworkfile_create_one_MB_file(void)
 	pfree(filename);
 
 	return unit_test_summary();
-#else
-	elog(ERROR, "broken test");
-	return 0;
-#endif
 }
 
 /*

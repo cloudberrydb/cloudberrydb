@@ -7,23 +7,23 @@
   <topic id="topic_k35_qtx_kr">
     <title>Access Permissions and Roles</title>
     <body>
-      <p>Greenplum Database manages database access permissions using <i>roles</i>. The concept of
+      <p>Cloudberry Database manages database access permissions using <i>roles</i>. The concept of
         roles subsumes the concepts of users and groups. A role can be a database user, a group, or
         both. Roles can own database objects (for example, tables) and can assign privileges on
         those objects to other roles to control access to the objects. Roles can be members of other
         roles, thus a member role can inherit the object privileges of its parent role. </p>
-      <p>Every Greenplum Database system contains a set of database roles (users and groups). Those
+      <p>Every Cloudberry Database system contains a set of database roles (users and groups). Those
         roles are separate from the users and groups managed by the operating system on which the
         server runs. However, for convenience you may want to maintain a relationship between
-        operating system user names and Greenplum Database role names, since many of the client
+        operating system user names and Cloudberry Database role names, since many of the client
         applications use the current operating system user name as the default. </p>
-      <p> In Greenplum Database, users log in and connect through the master instance, which
+      <p> In Cloudberry Database, users log in and connect through the master instance, which
         verifies their role and access privileges. The master then issues out commands to the
         segment instances behind the scenes using the currently logged in role. </p>
       <p> Roles are defined at the system level, so they are valid for all databases in the system. </p>
-      <p> To bootstrap the Greenplum Database system, a freshly initialized system always contains
+      <p> To bootstrap the Cloudberry Database system, a freshly initialized system always contains
         one predefined superuser role (also referred to as the system user). This role will have the
-        same name as the operating system user that initialized the Greenplum Database system.
+        same name as the operating system user that initialized the Cloudberry Database system.
         Customarily, this role is named <codeph>gpadmin</codeph>. To create more roles you first
         must connect as this initial role. </p>
     </body>
@@ -35,7 +35,7 @@
         tablespace) is created, it is assigned an owner. The owner is normally the role that
         ran the creation statement. For most kinds of objects, the initial state is that only
         the owner (or a superuser) can do anything with the object. To allow other roles to use it,
-        privileges must be granted. Greenplum Database supports the following privileges for each
+        privileges must be granted. Cloudberry Database supports the following privileges for each
         object type: </p>
       <table>
         <tgroup cols="0">
@@ -157,7 +157,7 @@
   <topic id="time-based-restriction">
     <title>Restricting Access by Time</title>
     <body>
-      <p> Greenplum Database enables the administrator to restrict access to certain times by role.
+      <p> Cloudberry Database enables the administrator to restrict access to certain times by role.
         Use the <codeph>CREATE ROLE</codeph> or <codeph>ALTER ROLE</codeph> commands to specify
         time-based constraints. </p>
       <p> Access can be restricted by day or by day and time. The constraints are removable without
@@ -261,7 +261,7 @@ DENY DAY 'Sunday'</codeblock>
       <p> The following examples demonstrate creating a role with time-based constraints and
         modifying a role to add time-based constraints. Only the statements needed for time-based
         constraints are shown. For more details on creating and altering roles see the descriptions
-        of <codeph>CREATE ROLE</codeph> and <codeph>ALTER ROLE</codeph> in the <i>Greenplum
+        of <codeph>CREATE ROLE</codeph> and <codeph>ALTER ROLE</codeph> in the <i>Cloudberry
           Database Reference Guide</i>. </p>
       <section>
         <title> Example 1 – Create a New Role with Time-based Constraints </title>

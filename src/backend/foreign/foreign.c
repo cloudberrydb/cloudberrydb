@@ -3,7 +3,7 @@
  * foreign.c
  *		  support for foreign-data wrappers, servers and user mappings.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/backend/foreign/foreign.c
@@ -38,7 +38,6 @@ char
 SeparateOutMppExecute(List **options)
 {
 	ListCell *lc = NULL;
-	ListCell *prev = NULL;
 	char *mpp_execute = NULL;
 	char exec_location = FTEXECLOCATION_NOT_DEFINED;
 
@@ -66,10 +65,9 @@ SeparateOutMppExecute(List **options)
 								mpp_execute)));
 			}
 
-			*options = list_delete_cell(*options, lc, prev);
+			*options = list_delete_cell(*options, lc);
 			break;
 		}
-		prev = lc;
 	}
 
 	return exec_location;
@@ -80,7 +78,6 @@ int32
 SeparateOutNumSegments(List **options)
 {
 	ListCell *lc = NULL;
-	ListCell *prev = NULL;
 	char *num_segments_str = NULL;
 	int32 num_segments = 0;
 
@@ -101,11 +98,9 @@ SeparateOutNumSegments(List **options)
 								num_segments)));
 			}
 
-			*options = list_delete_cell(*options, lc, prev);
+			*options = list_delete_cell(*options, lc);
 			break;
 		}
-
-		prev = lc;
 	}
 	return num_segments;
 }
@@ -679,7 +674,7 @@ deflist_to_tuplestore(ReturnSetInfo *rsinfo, List *options)
 		nulls[0] = false;
 		if (def->arg)
 		{
-			values[1] = CStringGetTextDatum(((Value *) (def->arg))->val.str);
+			values[1] = CStringGetTextDatum(strVal(def->arg));
 			nulls[1] = false;
 		}
 		else

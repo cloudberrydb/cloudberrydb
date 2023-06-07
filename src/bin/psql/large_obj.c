@@ -1,17 +1,17 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/large_obj.c
  */
 #include "postgres_fe.h"
-#include "large_obj.h"
 
-#include "settings.h"
 #include "common.h"
-
 #include "common/logging.h"
+#include "fe_utils/cancel.h"
+#include "large_obj.h"
+#include "settings.h"
 
 static void print_lo_result(const char *fmt,...) pg_attribute_printf(1, 2);
 
@@ -147,7 +147,7 @@ do_lo_export(const char *loid_arg, const char *filename_arg)
 	if (!start_lo_xact("\\lo_export", &own_transaction))
 		return false;
 
-	SetCancelConn();
+	SetCancelConn(NULL);
 	status = lo_export(pset.db, atooid(loid_arg), filename_arg);
 	ResetCancelConn();
 
@@ -183,7 +183,7 @@ do_lo_import(const char *filename_arg, const char *comment_arg)
 	if (!start_lo_xact("\\lo_import", &own_transaction))
 		return false;
 
-	SetCancelConn();
+	SetCancelConn(NULL);
 	loid = lo_import(pset.db, filename_arg);
 	ResetCancelConn();
 
@@ -245,7 +245,7 @@ do_lo_unlink(const char *loid_arg)
 	if (!start_lo_xact("\\lo_unlink", &own_transaction))
 		return false;
 
-	SetCancelConn();
+	SetCancelConn(NULL);
 	status = lo_unlink(pset.db, loid);
 	ResetCancelConn();
 

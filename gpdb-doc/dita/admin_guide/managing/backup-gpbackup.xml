@@ -3,10 +3,10 @@
 <topic id="topic_yrr_hqw_sbb">
   <title>Parallel Backup with gpbackup and gprestore</title>
   <body>
-    <p><codeph>gpbackup</codeph> and <codeph>gprestore</codeph> are Greenplum Database utilities
-      that create and restore backup sets for Greenplum Database. By default,
+    <p><codeph>gpbackup</codeph> and <codeph>gprestore</codeph> are Cloudberry Database utilities
+      that create and restore backup sets for Cloudberry Database. By default,
         <codeph>gpbackup</codeph> stores only the object metadata files and DDL files for a backup
-      in the Greenplum Database master data directory. Greenplum Database segments use the
+      in the Cloudberry Database master data directory. Cloudberry Database segments use the
         <codeph>COPY ... ON SEGMENT</codeph> command to store their data for backed-up tables in
       compressed CSV data files, located in each segment's <filepath>backups</filepath>
       directory.</p>
@@ -21,7 +21,7 @@
         <codeph>gpbackup</codeph> to create one data file per leaf partition of a partitioned table,
       instead of a single file. This option also enables you to filter backup sets by leaf
       partitions.</p>
-    <p>Each <codeph>gpbackup</codeph> task uses a single transaction in Greenplum Database. During
+    <p>Each <codeph>gpbackup</codeph> task uses a single transaction in Cloudberry Database. During
       this transaction, metadata is backed up on the master host, and data for each table on each
       segment host is written to CSV backup files using <codeph>COPY ... ON SEGMENT</codeph>
       commands in parallel. The backup process acquires an <codeph>ACCESS SHARE</codeph> lock on
@@ -34,11 +34,11 @@
     <title>Requirements and Limitations</title>
     <body>
       <p>The <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> utilities are compatible with
-        these Greenplum Database versions:</p>
+        these Cloudberry Database versions:</p>
       <ul id="ul_jlm_wnd_hjb">
-        <li>Pivotal Greenplum Database 4.3.22 and later</li>
-        <li>Pivotal Greenplum Database 5.5.0 and later</li>
-        <li>Tanzu Greenplum 6.0.0 and later</li>
+        <li>Pivotal Cloudberry Database 4.3.22 and later</li>
+        <li>Pivotal Cloudberry Database 5.5.0 and later</li>
+        <li>Tanzu Cloudberry 6.0.0 and later</li>
       </ul>
       <p><codeph>gpbackup</codeph> and <codeph>gprestore</codeph> have the following limitations:<ul
           id="ul_uqh_hhd_tbb">
@@ -90,7 +90,7 @@
               be dropped during a backup, you can exclude the tables from a backup with a
                 <codeph>gpbackup</codeph> table filtering option such as
                 <codeph>--exclude-table</codeph> or <codeph>--exclude-schema</codeph>.</p></li>
-          <li>A backup created with <codeph>gpbackup</codeph> can only be restored to a Greenplum
+          <li>A backup created with <codeph>gpbackup</codeph> can only be restored to a Cloudberry
             Database cluster with the same number of segment instances as the source cluster. If you
             run <codeph>gpexpand</codeph> to add segments to the cluster, backups you made before
             starting the expand cannot be restored after the expansion has completed.</li>
@@ -103,7 +103,7 @@
       <p>The following table lists the objects that are backed up and restored with
           <codeph>gpbackup</codeph> and <codeph>gprestore</codeph>. Database objects are backed up
         for the database you specify with the <codeph>--dbname</codeph> option. Global objects
-        (Greenplum Database system objects) are also backed up by default, but they are restored
+        (Cloudberry Database system objects) are also backed up by default, but they are restored
         only if you include the <codeph>--with-globals</codeph> option to
           <codeph>gprestore</codeph>.<table frame="all" rowsep="1" colsep="1" id="table_vqq_3rj_tbb">
           <title>Objects that are backed up and restored</title>
@@ -139,7 +139,7 @@
                     <li dir="ltr">Views</li>
                     <li>Materialized Views (DDL only)</li>
                     <li dir="ltr">Protocols</li>
-                    <li dir="ltr">Triggers. (While Greenplum Database does not support triggers, any
+                    <li dir="ltr">Triggers. (While Cloudberry Database does not support triggers, any
                       trigger definitions that are present are backed up and restored.)</li>
                     <li dir="ltr">Rules</li>
                     <li dir="ltr">Domains</li>
@@ -187,7 +187,7 @@
   <topic id="topic_qgj_b3d_tbb">
     <title>Performing Basic Backup and Restore Operations</title>
     <body>
-      <p>To perform a complete backup of a database, as well as Greenplum Database system metadata,
+      <p>To perform a complete backup of a database, as well as Cloudberry Database system metadata,
         use the command: <codeblock>$ gpbackup --dbname &lt;database_name></codeblock></p>
       <p>For
         example:<codeblock>$ gpbackup --dbname demo
@@ -212,7 +212,7 @@ Tables backed up:  3 / 3 [======================================================
 20180105:11:27:54 gpbackup:gpadmin:centos6.localdomain:002182-[INFO]:-Email containing gpbackup report /gpmaster/seg-1/backups/20180105/20180105112754/gpbackup_20180105112754_report will not be sent
 20180105:11:27:55 gpbackup:gpadmin:centos6.localdomain:002182-[INFO]:-Backup completed successfully</codeblock></p>
       <p>The above command creates a file that contains global and database-specific metadata on the
-        Greenplum Database master host in the default directory,
+        Cloudberry Database master host in the default directory,
           <codeph>$COORDINATOR_DATA_DIRECTORY/backups/&lt;YYYYMMDD>/&lt;YYYYMMDDHHMMSS>/</codeph>. For
         example:<codeblock>$ ls /gpmaster/gpsne-1/backups/20180105/20180105112754
 gpbackup_20180105112754_config.yaml   gpbackup_20180105112754_report
@@ -270,7 +270,7 @@ $ gprestore --backup-dir /home/gpadmin/backups/ --timestamp 20171103153156 --cre
 20171103:15:51:02 gprestore:gpadmin:0ee2f5fb02c9:017819-[INFO]:-Restore Key = 20171103153156
 ...
 20171103:15:51:17 gprestore:gpadmin:0ee2f5fb02c9:017819-[INFO]:-Post-data metadata restore complete</codeblock></p>
-        <p><codeph>gprestore</codeph> does not attempt to restore global metadata for the Greenplum
+        <p><codeph>gprestore</codeph> does not attempt to restore global metadata for the Cloudberry
           System by default. If this is required, include the <codeph>--with-globals</codeph>
           argument.</p>
         <p>By default, <codeph>gprestore</codeph> uses 1 connection to restore table data and
@@ -294,7 +294,7 @@ $ gprestore --backup-dir /home/gpadmin/backups/ --timestamp 20171103153156 --cre
           operation, <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> generate a report
           file. When email notification is configured, the email sent contains the contents of the
           report file. For information about email notification, see <xref href="#topic_qwd_d5d_tbb"
-            format="dita"/>. </p><p>The report file is placed in the Greenplum Database master
+            format="dita"/>. </p><p>The report file is placed in the Cloudberry Database master
           backup directory. The report file name contains the timestamp of the operation. These are
           the formats of the <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> report file
           names.</p><codeblock>gpbackup_&lt;backup_timestamp>_report
@@ -303,7 +303,7 @@ gprestore_&lt;backup_timestamp>_&lt;restore_timesamp>_report</codeblock>For
         backup and <codeph>20180213115426</codeph> is the timestamp of the restore
           operation.<codeblock>gpbackup_20180213114446_report
 gprestore_20180213114446_20180213115426_report</codeblock><p>This
-          backup directory on a Greenplum Database master host contains both a
+          backup directory on a Cloudberry Database master host contains both a
             <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> report
           file.</p><codeblock>$ ls -l /gpmaster/seg-1/backups/20180213/20180213114446
 total 36
@@ -314,7 +314,7 @@ total 36
 -r--r--r--. 1 gpadmin gpadmin  404 Feb 13 11:54 gprestore_20180213114446_20180213115426_report</codeblock><p>The
           contents of the report files are similar. This is an example of the contents of a
             <codeph>gprestore</codeph> report
-        file.</p><codeblock>Greenplum Database Restore Report
+        file.</p><codeblock>Cloudberry Database Restore Report
 
 Timestamp Key: 20180213114446
 GPDB Version: 5.4.1+dev.8.g9f83645 build commit:9f836456b00f855959d52749d5790ed1c6efc042
@@ -331,7 +331,7 @@ Restore Status: Success</codeblock></section>
       <section>
         <title>History File</title>
         <p>When performing a backup operation, <codeph>gpbackup</codeph> appends backup information
-          in the gpbackup history file, <codeph>gpbackup_history.yaml</codeph>, in the Greenplum
+          in the gpbackup history file, <codeph>gpbackup_history.yaml</codeph>, in the Cloudberry
           Database master data directory. The file contains the backup timestamp, information about
           the backup options, and backup set information for incremental backups. This file is not
           backed up by <codeph>gpbackup</codeph>.</p>
@@ -484,7 +484,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
             <li>If you use the <codeph>--include-table-file</codeph> option,
                 <codeph>gprestore</codeph> does not create roles or set the owner of the tables. The
               utility restores table indexes and rules. Triggers are also restored but are not
-              supported in Greenplum Database.</li>
+              supported in Cloudberry Database.</li>
             <li>The file that you specify with <codeph>--include-table-file</codeph> cannot include
               a leaf partition name, as it can when you specify this option with
                 <codeph>gpbackup</codeph>. If you specified leaf partitions in the backup set,
@@ -512,7 +512,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
         location. If both locations contain a <codeph>.yaml</codeph> file, the utility uses the file
         in user <codeph>$HOME</codeph>. </p>
       <p>The email subject line includes the utility name, timestamp, status, and the name of the
-        Greenplum Database master. This is an example subject line for a <codeph>gpbackup</codeph>
+        Cloudberry Database master. This is an example subject line for a <codeph>gpbackup</codeph>
         email.</p>
       <p>
         <codeblock>gpbackup 20180202133601 on gp-master completed</codeblock>
@@ -520,8 +520,8 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
       <p>The email contains summary information about the operation including options, duration, and
         number of objects backed up or restored. For information about the contents of a
         notification email, see <xref href="#topic_qgj_b3d_tbb/report_files" format="dita"/>.</p>
-      <note>The UNIX mail utility must be running on the Greenplum Database host and must be
-        configured to allow the Greenplum superuser (<codeph>gpadmin</codeph>) to send email. Also
+      <note>The UNIX mail utility must be running on the Cloudberry Database host and must be
+        configured to allow the Cloudberry superuser (<codeph>gpadmin</codeph>) to send email. Also
         ensure that the mail program executable is locatable via the <codeph>gpadmin</codeph> user's
           <codeph>$PATH</codeph>.</note>
     </body>
@@ -652,7 +652,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
       <p>A complete backup set for <codeph>gpbackup</codeph> includes multiple metadata files,
         supporting files, and CSV data files, each designated with the timestamp at which the backup
         was created.</p>
-      <p>By default, metadata and supporting files are stored on the Greenplum Database master host
+      <p>By default, metadata and supporting files are stored on the Cloudberry Database master host
         in the directory
           <filepath>$COORDINATOR_DATA_DIRECTORY/backups/YYYYMMDD/YYYYMMDDHHMMSS/</filepath>. If you
         specify a custom backup directory, this same file path is created as a subdirectory of the
@@ -672,7 +672,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
               <row>
                 <entry><filepath>gpbackup_&lt;YYYYMMDDHHMMSS>_metadata.sql</filepath></entry>
                 <entry>Contains global and database-specific metadata:<ul id="ul_l2c_dtv_scb">
-                    <li>DDL for objects that are global to the Greenplum Database cluster, and not
+                    <li>DDL for objects that are global to the Cloudberry Database cluster, and not
                       owned by a specific database within the cluster.</li>
                     <li>DDL for objects in the backed-up database (specified with
                         <codeph>--dbname)</codeph> that must be created <i>before</i> to restoring
@@ -710,7 +710,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
                   actual data include:<ul id="ul_br4_wsv_scb">
                     <li dir="ltr">Indexes</li>
                     <li dir="ltr">Rules</li>
-                    <li dir="ltr">Triggers. (While Greenplum Database does not support triggers, any
+                    <li dir="ltr">Triggers. (While Cloudberry Database does not support triggers, any
                       trigger definitions that are present are backed up and restored.)</li>
                   </ul></entry>
               </row>
@@ -739,7 +739,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
                   including: <ul id="ul_ids_vgj_tbb">
                     <li dir="ltr"><codeph>gpbackup</codeph> version</li>
                     <li dir="ltr">Database name</li>
-                    <li dir="ltr">Greenplum Database version</li>
+                    <li dir="ltr">Cloudberry Database version</li>
                     <li dir="ltr">Additional option settings such as
                         <codeph>--no-compression</codeph>, <codeph>--compression-level</codeph>,
                         <codeph>--metadata-only</codeph>, <codeph>--data-only</codeph>, and
@@ -750,7 +750,7 @@ public.sales_1_prt_dec17 </codeblock></p><p>Then
                 <entry><filepath>gpbackup_history.yaml</filepath></entry>
                 <entry>Contains information about options that were used when creating a backup with
                     <codeph>gpbackup</codeph>, and information about incremental backups.<p>Stored
-                    on the Greenplum Database master host in the Greenplum Database master data
+                    on the Cloudberry Database master host in the Cloudberry Database master data
                     directory.</p><p>This file is not backed up by <codeph>gpbackup</codeph>.</p><p>
                     For information about incremental backups, see <xref
                       href="backup-gpbackup-incremental.xml"/>.</p></entry>

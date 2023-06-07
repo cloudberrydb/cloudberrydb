@@ -30,6 +30,7 @@ typedef struct MCVFreqPair
 {
 	Datum mcv;
 	float4 count;
+	int position;
 	TypInfo *typinfo; /* type information of datum type */
 } MCVFreqPair;
 

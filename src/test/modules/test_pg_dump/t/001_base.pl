@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 use strict;
 use warnings;
 
@@ -135,6 +138,20 @@ my %pgdump_runs = (
 			"$tempdir/defaults_tar_format.tar",
 		],
 	},
+	exclude_table => {
+		dump_cmd => [
+			'pg_dump',
+			'--exclude-table=regress_table_dumpable',
+			"--file=$tempdir/exclude_table.sql",
+			'postgres',
+		],
+	},
+	extension_schema => {
+		dump_cmd => [
+			'pg_dump',                              '--schema=public',
+			"--file=$tempdir/extension_schema.sql", 'postgres',
+		],
+	},
 	pg_dumpall_globals => {
 		dump_cmd => [
 			'pg_dumpall',                             '--no-sync',
@@ -180,6 +197,48 @@ my %pgdump_runs = (
 			'pg_dump', '--no-sync', "--file=$tempdir/section_post_data.sql",
 			'--section=post-data', 'postgres',
 		],
+	},
+	with_extension => {
+		dump_cmd => [
+			'pg_dump', '--no-sync', "--file=$tempdir/with_extension.sql",
+			'--extension=test_pg_dump', 'postgres',
+		],
+	},
+
+	# plgsql in the list blocks the dump of extension test_pg_dump
+	without_extension => {
+		dump_cmd => [
+			'pg_dump', '--no-sync', "--file=$tempdir/without_extension.sql",
+			'--extension=plpgsql', 'postgres',
+		],
+	},
+
+	# plgsql in the list of extensions blocks the dump of extension
+	# test_pg_dump.  "public" is the schema used by the extension
+	# test_pg_dump, but none of its objects should be dumped.
+	without_extension_explicit_schema => {
+		dump_cmd => [
+			'pg_dump',
+			'--no-sync',
+			"--file=$tempdir/without_extension_explicit_schema.sql",
+			'--extension=plpgsql',
+			'--schema=public',
+			'postgres',
+		],
+	},
+
+	# plgsql in the list of extensions blocks the dump of extension
+	# test_pg_dump, but not the dump of objects not dependent on the
+	# extension located on a schema maintained by the extension.
+	without_extension_internal_schema => {
+		dump_cmd => [
+			'pg_dump',
+			'--no-sync',
+			"--file=$tempdir/without_extension_internal_schema.sql",
+			'--extension=plpgsql',
+			'--schema=regress_pg_dump_schema',
+			'postgres',
+		],
 	},);
 
 ###############################################################
@@ -214,13 +273,16 @@ my %pgdump_runs = (
 # Tests which are considered 'full' dumps by pg_dump, but there
 # are flags used to exclude specific items (ACLs, blobs, etc).
 my %full_runs = (
-	binary_upgrade  => 1,
-	clean           => 1,
-	clean_if_exists => 1,
-	createdb        => 1,
-	defaults        => 1,
-	no_privs        => 1,
-	no_owner        => 1,);
+	binary_upgrade    => 1,
+	clean             => 1,
+	clean_if_exists   => 1,
+	createdb          => 1,
+	defaults          => 1,
+	exclude_table     => 1,
+	no_privs          => 1,
+	no_owner          => 1,
+	with_extension    => 1,
+	without_extension => 1);
 
 my %tests = (
 	'ALTER EXTENSION test_pg_dump' => {
@@ -246,7 +308,7 @@ my %tests = (
 			schema_only      => 1,
 			section_pre_data => 1,
 		},
-		unlike => { binary_upgrade => 1, },
+		unlike => { binary_upgrade => 1, without_extension => 1 },
 	},
 
 	'CREATE ROLE regress_dump_test_role' => {
@@ -301,18 +363,77 @@ my %tests = (
 			\n/xm,
 		like => {
 			%full_runs,
-			data_only    => 1,
-			section_data => 1,
+			data_only        => 1,
+			section_data     => 1,
+			extension_schema => 1,
 		},
+		unlike => { without_extension => 1, },
 	},
 
 	'CREATE TABLE regress_pg_dump_table' => {
 		regexp => qr/^
 			\QCREATE TABLE public.regress_pg_dump_table (\E
 			\n\s+\Qcol1 integer NOT NULL,\E
-			\n\s+\Qcol2 integer\E
+			\n\s+\Qcol2 integer,\E
+			\n\s+\QCONSTRAINT regress_pg_dump_table_col2_check CHECK ((col2 > 0))\E
 			\n\);\n/xm,
 		like => { binary_upgrade => 1, },
+	},
+
+	'COPY public.regress_table_dumpable (col1)' => {
+		regexp => qr/^
+			\QCOPY public.regress_table_dumpable (col1) FROM stdin;\E
+			\n/xm,
+		like => {
+			%full_runs,
+			data_only        => 1,
+			section_data     => 1,
+			extension_schema => 1,
+		},
+		unlike => {
+			binary_upgrade    => 1,
+			exclude_table     => 1,
+			without_extension => 1,
+		},
+	},
+
+	'REVOKE ALL ON FUNCTION wgo_then_no_access' => {
+		create_order => 3,
+		create_sql   => q{
+			DO $$BEGIN EXECUTE format(
+				'REVOKE ALL ON FUNCTION wgo_then_no_access()
+				 FROM pg_signal_backend, public, %I',
+				(SELECT usename
+				 FROM pg_user JOIN pg_proc ON proowner = usesysid
+				 WHERE proname = 'wgo_then_no_access')); END$$;},
+		regexp => qr/^
+			\QREVOKE ALL ON FUNCTION public.wgo_then_no_access() FROM PUBLIC;\E
+			\n\QREVOKE ALL ON FUNCTION public.wgo_then_no_access() FROM \E.*;
+			\n\QREVOKE ALL ON FUNCTION public.wgo_then_no_access() FROM pg_signal_backend;\E
+			/xm,
+		like => {
+			%full_runs,
+			schema_only      => 1,
+			section_pre_data => 1,
+		},
+		unlike => { no_privs => 1, without_extension => 1, },
+	},
+
+	'REVOKE GRANT OPTION FOR UPDATE ON SEQUENCE wgo_then_regular' => {
+		create_order => 3,
+		create_sql   => 'REVOKE GRANT OPTION FOR UPDATE ON SEQUENCE
+							wgo_then_regular FROM pg_signal_backend;',
+		regexp => qr/^
+			\QREVOKE ALL ON SEQUENCE public.wgo_then_regular FROM pg_signal_backend;\E
+			\n\QGRANT SELECT,UPDATE ON SEQUENCE public.wgo_then_regular TO pg_signal_backend;\E
+			\n\QGRANT USAGE ON SEQUENCE public.wgo_then_regular TO pg_signal_backend WITH GRANT OPTION;\E
+			/xm,
+		like => {
+			%full_runs,
+			schema_only      => 1,
+			section_pre_data => 1,
+		},
+		unlike => { no_privs => 1, without_extension => 1, },
 	},
 
 	'CREATE ACCESS METHOD regress_test_am' => {
@@ -332,6 +453,7 @@ my %tests = (
 			schema_only      => 1,
 			section_pre_data => 1,
 		},
+		unlike => { without_extension => 1, },
 	},
 
 	'GRANT SELECT regress_pg_dump_table_added pre-ALTER EXTENSION' => {
@@ -356,7 +478,7 @@ my %tests = (
 			schema_only      => 1,
 			section_pre_data => 1,
 		},
-		unlike => { no_privs => 1, },
+		unlike => { no_privs => 1, without_extension => 1, },
 	},
 
 	'GRANT SELECT ON TABLE regress_pg_dump_table' => {
@@ -390,7 +512,7 @@ my %tests = (
 			schema_only      => 1,
 			section_pre_data => 1,
 		},
-		unlike => { no_privs => 1, },
+		unlike => { no_privs => 1, without_extension => 1 },
 	  },
 
 	'GRANT USAGE ON regress_pg_dump_table_col1_seq TO regress_dump_test_role'
@@ -406,7 +528,7 @@ my %tests = (
 			schema_only      => 1,
 			section_pre_data => 1,
 		},
-		unlike => { no_privs => 1, },
+		unlike => { no_privs => 1, without_extension => 1, },
 	  },
 
 	'GRANT USAGE ON regress_pg_dump_seq TO regress_dump_test_role' => {
@@ -428,7 +550,7 @@ my %tests = (
 			schema_only      => 1,
 			section_pre_data => 1,
 		},
-		unlike => { no_privs => 1, },
+		unlike => { no_privs => 1, without_extension => 1, },
 	},
 
 	# Objects included in extension part of a schema created by this extension */
@@ -436,7 +558,8 @@ my %tests = (
 		regexp => qr/^
 			\QCREATE TABLE regress_pg_dump_schema.test_table (\E
 			\n\s+\Qcol1 integer,\E
-			\n\s+\Qcol2 integer\E
+			\n\s+\Qcol2 integer,\E
+			\n\s+\QCONSTRAINT test_table_col2_check CHECK ((col2 > 0))\E
 			\n\);\n/xm,
 		like => { binary_upgrade => 1, },
 	},
@@ -523,6 +646,44 @@ my %tests = (
 		like => { binary_upgrade => 1, },
 	},
 
+	'ALTER INDEX pkey DEPENDS ON extension' => {
+		create_order => 11,
+		create_sql =>
+		  'CREATE TABLE regress_pg_dump_schema.extdependtab (col1 integer primary key, col2 int);
+		CREATE INDEX ON regress_pg_dump_schema.extdependtab (col2);
+		ALTER INDEX regress_pg_dump_schema.extdependtab_col2_idx DEPENDS ON EXTENSION test_pg_dump;
+		ALTER INDEX regress_pg_dump_schema.extdependtab_pkey DEPENDS ON EXTENSION test_pg_dump;',
+		regexp => qr/^
+		\QALTER INDEX regress_pg_dump_schema.extdependtab_pkey DEPENDS ON EXTENSION test_pg_dump;\E\n
+		/xms,
+		like   => {%pgdump_runs},
+		unlike => {
+			data_only          => 1,
+			extension_schema   => 1,
+			pg_dumpall_globals => 1,
+			section_data       => 1,
+			section_pre_data   => 1,
+			# Excludes this schema as extension is not listed.
+			without_extension_explicit_schema => 1,
+		},
+	},
+
+	'ALTER INDEX idx DEPENDS ON extension' => {
+		regexp => qr/^
+			\QALTER INDEX regress_pg_dump_schema.extdependtab_col2_idx DEPENDS ON EXTENSION test_pg_dump;\E\n
+			/xms,
+		like   => {%pgdump_runs},
+		unlike => {
+			data_only          => 1,
+			extension_schema   => 1,
+			pg_dumpall_globals => 1,
+			section_data       => 1,
+			section_pre_data   => 1,
+			# Excludes this schema as extension is not listed.
+			without_extension_explicit_schema => 1,
+		},
+	},
+
 	# Objects not included in extension, part of schema created by extension
 	'CREATE TABLE regress_pg_dump_schema.external_tab' => {
 		create_order => 4,
@@ -536,6 +697,8 @@ my %tests = (
 			%full_runs,
 			schema_only      => 1,
 			section_pre_data => 1,
+			# Excludes the extension and keeps the schema's data.
+			without_extension_internal_schema => 1,
 		},
 	},);
 

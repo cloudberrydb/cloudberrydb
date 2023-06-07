@@ -18,15 +18,18 @@ test: boolean char name varchar text int2 int4 int8 oid float4 float8 bit numeri
 # The second group of parallel tests
 # strings depends on char, varchar and text
 # numerology depends on int2, int4, int8, float4, float8
+# multirangetypes depends on rangetypes
+# multirangetypes shouldn't run concurrently with type_sanity
 # ----------
-test: strings numerology point lseg line box path polygon circle date time timetz timestamp timestamptz interval inet macaddr macaddr8 tstypes
+test: strings numerology point lseg line box path polygon circle date time timetz timestamp timestamptz interval inet macaddr macaddr8 multirangetypes create_function_0
 
 # ----------
 # Another group of parallel tests
 # geometry depends on point, lseg, box, path, polygon and circle
 # horology depends on interval, timetz, timestamp, timestamptz
+# opr_sanity depends on create_function_0
 # ----------
-test: geometry horology regex oidjoins type_sanity opr_sanity misc_sanity comments expressions
+test: geometry horology tstypes regex type_sanity opr_sanity misc_sanity comments expressions unicode xid mvcc
 
 # ----------
 # These four each depend on the previous one
@@ -56,7 +59,7 @@ test: gp_gin_index
 # ----------
 # Another group of parallel tests
 # ----------
-test: create_aggregate create_function_3 create_cast constraints triggers select inherit typed_table vacuum drop_if_exists updatable_views roleattributes create_am hash_func errors
+test: create_aggregate create_function_3 create_cast constraints triggers select inherit typed_table vacuum drop_if_exists updatable_views roleattributes create_am hash_func errors infinite_recurse
 
 # ----------
 # Because vacuum will detect concurrently running transactions, it is necessary to
@@ -69,10 +72,7 @@ test: enable_autovacuum
 # ----------
 # sanity_check does a vacuum, affecting the sort order of SELECT *
 # results. So it should not run parallel to other tests.
-#
-# Disabled in GPDB. FIXME: why?
-# ----------
-#test: sanity_check
+test: sanity_check
 
 # ----------
 # Another group of parallel tests
@@ -89,24 +89,25 @@ test: namespace
 # 2-phase commit is not supported by GPDB.
 #test: prepared_xacts
 
-# The 'transactions' test is disabled in GPDB, because it uses functions
-# in segments in a way that doesn't work:
-# ERROR:  function cannot execute on a QE slice because it accesses relation "public.xacttest"
-#test: transactions
+test: transactions
 
 # ----------
 # Another group of parallel tests
 # ----------
-test: brin gin gist spgist privileges init_privs security_label collate matview lock replica_identity rowsecurity object_address tablesample groupingsets drop_operator password identity generated join_hash
+test: brin gin gist spgist privileges init_privs security_label collate matview lock replica_identity rowsecurity object_address tablesample groupingsets drop_operator password identity generated join_hash appendonly_sample aocs_sample
+
+# ----------
+# Additional BRIN tests
+# ----------
+test: brin_bloom brin_multi
 
 # ----------
 # Another group of parallel tests
 # ----------
-test: create_table_like alter_generic alter_operator misc async dbsize misc_functions sysviews tsrf tidscan
+test: create_table_like alter_generic alter_operator misc async dbsize misc_functions sysviews tsrf tid tidscan tidrangescan collate.icu.utf8 incremental_sort
 
 # rules cannot run concurrently with any test that creates
 # a view or rule in the public schema
-test: psql psql_crosstab amutils stats_ext
 #
 # 'rules' test is disabled in GPDB. Maintaining the list of views in it is
 # too painful, and there are also errors because of cross-segment UPDATEs
@@ -116,10 +117,13 @@ test: psql psql_crosstab amutils stats_ext
 # merge, it was done a long time ago, it's time to revisit this so we can re-
 # enable it
 #test: rules
+# collate.*.utf8 tests cannot be run in parallel with each other
+test: psql psql_crosstab amutils stats_ext collate.linux.utf8
 
 # run by itself so it can run parallel workers
 test: select_parallel
 test: write_parallel
+test: vacuum_parallel
 
 # no relation related tests can be put in this group
 test: publication subscription
@@ -152,16 +156,13 @@ test: gp_foreign_data
 # ----------
 # Another group of parallel tests
 # ----------
-test: partition_join partition_prune reloptions hash_part indexing partition_aggregate partition_info
+test: partition_join partition_prune reloptions hash_part indexing partition_aggregate partition_info tuplesort explain compression memoize
 
 # event triggers cannot run concurrently with any test that runs DDL
-test: event_trigger
+# oidjoins is read-only, though, and should run late for best coverage
+test: event_trigger oidjoins
 # this test also uses event triggers, so likewise run it by itself
 test: fast_default
 
 # run stats by itself because its delay may be insufficient under heavy load
-#
-# 'stats' test has been disabled in GPDB, because it tries to set stats-related
-# GUCs stats_block_level and stats_row_level, which have been removed from
-# GPDB.
-#test: stats
+test: stats

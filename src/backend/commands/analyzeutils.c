@@ -50,7 +50,7 @@ static HTAB *createDatumHashTable(unsigned int nEntries);
 static MCVFreqPair *MCVFreqPairCopy(MCVFreqPair *mcvFreqPair);
 static bool containsDatum(HTAB *datumHash, MCVFreqPair *mcvFreqPair);
 static void addLeafPartitionMCVsToHashTable(HTAB *datumHash, HeapTuple heaptupleStats,
-			 float4 partReltuples, TypInfo *typInfo
+			 float4 partReltuples, TypInfo *typInfo, int *idx
 );
 static void addMCVToHashTable(HTAB *datumHash, MCVFreqPair *mcvFreqPair);
 static int	mcvpair_cmp(const void *a, const void *b);
@@ -119,9 +119,11 @@ get_rel_relpages(Oid relid)
  */
 static void
 addLeafPartitionMCVsToHashTable (HTAB *datumHash, HeapTuple heaptupleStats,
-								 float4 partReltuples, TypInfo * typInfo)
+								 float4 partReltuples, TypInfo * typInfo,
+								 int *idx)
 {
 	AttStatsSlot mcvSlot;
+	int position = *idx;
 
 	(void) get_attstatsslot(&mcvSlot, heaptupleStats, STATISTIC_KIND_MCV,
 							InvalidOid, ATTSTATSSLOT_VALUES | ATTSTATSSLOT_NUMBERS);
@@ -135,10 +137,12 @@ addLeafPartitionMCVsToHashTable (HTAB *datumHash, HeapTuple heaptupleStats,
 
 		mcvFreqPair->mcv = mcv;
 		mcvFreqPair->count = count;
+		mcvFreqPair->position = position++;
 		mcvFreqPair->typinfo = typInfo;
 		addMCVToHashTable(datumHash, mcvFreqPair);
 		pfree(mcvFreqPair);
 	}
+	*idx = position;
 	free_attstatsslot(&mcvSlot);
 }
 
@@ -178,6 +182,7 @@ aggregate_leaf_partition_MCVs(Oid relationOid,
 	/* Hash table for storing combined MCVs */
 	HTAB	   *datumHash = createDatumHashTable(nEntries);
 	float4		sumReltuples = 0;
+	int			orderIdx = 0;
 
 	for (int i = 0; i < numPartitions; i++)
 	{
@@ -185,7 +190,7 @@ aggregate_leaf_partition_MCVs(Oid relationOid,
 			continue;
 
 		addLeafPartitionMCVsToHashTable(datumHash, heaptupleStats[i], relTuples[i],
-										typInfo);
+										typInfo, &orderIdx);
 		sumReltuples += relTuples[i];
 	}
 
@@ -268,7 +273,7 @@ buildMCVArrayForStatsEntry(MCVFreqPair **mcvpairArray,
 		/* estimate # of occurrences in sample of a typical value */
 		avgcount = (double) nrows / ndistinct;
 		/* set minimum threshold count to store a value */
-		mincount = avgcount * 1.25;
+		mincount = avgcount * 0.80;
 		if (mincount < 2)
 			mincount = 2;
 		/* don't let threshold exceed 1/K, however */
@@ -344,8 +349,8 @@ mcvpair_cmp(const void *a, const void *b)
 		return -1;
 	if (mcvFreqPair1->count < mcvFreqPair2->count)
 		return 1;
-	else
-		return 0;
+
+	return mcvFreqPair1->position - mcvFreqPair2->position;
 }
 
 /**
@@ -399,6 +404,7 @@ MCVFreqPairCopy(MCVFreqPair *mcvFreqPair)
 	MCVFreqPair *result = (MCVFreqPair *) palloc(sizeof(MCVFreqPair));
 
 	result->count = mcvFreqPair->count;
+	result->position = mcvFreqPair->position;
 	result->typinfo = mcvFreqPair->typinfo;
 	result->mcv = datumCopy(mcvFreqPair->mcv,
 							mcvFreqPair->typinfo->typbyval,
@@ -1203,10 +1209,9 @@ leaf_parts_analyzed(Oid attrelid, Oid relid_exclude, List *va_cols, int elevel)
 			continue;
 
 		float4		relTuples = get_rel_reltuples(partRelid);
-		int32		relpages = get_rel_relpages(partRelid);
 
 		/* Partition is not analyzed */
-		if (relTuples == 0.0 && relpages == 0)
+		if (relTuples < 0.0)
 		{
 			if (relid_exclude == InvalidOid)
 				ereport(elevel,
@@ -1224,7 +1229,8 @@ leaf_parts_analyzed(Oid attrelid, Oid relid_exclude, List *va_cols, int elevel)
 	{
 		Oid			partRelid = lfirst_oid(lc);
 
-		if (partRelid == relid_exclude)
+		if (partRelid == relid_exclude ||
+			get_rel_relkind(partRelid) == RELKIND_PARTITIONED_TABLE)
 			continue;
 
 		float4		relTuples = get_rel_reltuples(partRelid);

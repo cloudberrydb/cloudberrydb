@@ -3,7 +3,7 @@
  * aomd.h
  *	  Declarations and functions for supporting aomd.c
  *
- * Portions Copyright (c) 2008, Greenplum Inc.
+ * Portions Copyright (c) 2008, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

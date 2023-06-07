@@ -23,6 +23,7 @@
 
 #include "postgres.h"
 
+#include "access/amapi.h"
 #include "access/aocs_compaction.h"
 #include "access/aomd.h"
 #include "access/aosegfiles.h"
@@ -30,8 +31,9 @@
 #include "access/appendonlywriter.h"
 #include "access/genam.h"
 #include "access/heapam.h"
+#include "access/toast_internals.h"
 #include "access/transam.h"
-#include "access/tuptoaster.h"
+#include "access/heaptoast.h"
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/indexing.h"
@@ -51,6 +53,14 @@
 #include "utils/snapmgr.h"
 #include "miscadmin.h"
 
+/* 
+ * Hook for plugins to get control after move or throw away tuple in 
+ * AppendOnlySegmentFileFullCompaction().
+ * 
+ * For example, zombodb will delete the corresponding docs after the tuple
+ * is deleted or thrown away.
+ */
+appendonly_compaction_delete_hook_type appendonly_compaction_delete_hook = NULL;
 
 /*
  * Drops a segment file.
@@ -234,7 +244,7 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel, int segno, int64 segeof)
 	MakeAOSegmentFileName(aorel, segno, -1, &fileSegNo, filenamepath);
 
 	elogif(Debug_appendonly_print_compaction, LOG,
-		   "Opening AO relation \"%s.%s\", relation id %u, relfilenode %u (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+		   "Opening AO relation \"%s.%s\", relation id %u, relfilenode %lu (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 		   get_namespace_name(RelationGetNamespace(aorel)),
 		   relname,
 		   aorel->rd_id,
@@ -249,7 +259,7 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel, int segno, int64 segeof)
 		CloseAOSegmentFile(fd);
 
 		elogif(Debug_appendonly_print_compaction, LOG,
-			   "Successfully truncated AO ROW relation \"%s.%s\", relation id %u, relfilenode %u (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+			   "Successfully truncated AO ROW relation \"%s.%s\", relation id %u, relfilenode %lu (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 			   get_namespace_name(RelationGetNamespace(aorel)),
 			   relname,
 			   aorel->rd_id,
@@ -260,7 +270,7 @@ AppendOnlySegmentFileTruncateToEOF(Relation aorel, int segno, int64 segeof)
 	else
 	{
 		elogif(Debug_appendonly_print_compaction, LOG,
-			   "No gp_relation_node entry for AO ROW relation \"%s.%s\", relation id %u, relfilenode %u (physical segment file #%d, logical EOF " INT64_FORMAT ")",
+			   "No gp_relation_node entry for AO ROW relation \"%s.%s\", relation id %u, relfilenode %lu (physical segment file #%d, logical EOF " INT64_FORMAT ")",
 			   get_namespace_name(RelationGetNamespace(aorel)),
 			   relname,
 			   aorel->rd_id,
@@ -278,7 +288,6 @@ AppendOnlyMoveTuple(TupleTableSlot *slot,
 					EState *estate)
 {
 	MemTuple	tuple;
-	bool		shouldFree;
 	AOTupleId  *oldAoTupleId;
 	AOTupleId	newAoTupleId;
 
@@ -291,7 +300,7 @@ AppendOnlyMoveTuple(TupleTableSlot *slot,
 	/* Extract all the values of the tuple */
 	slot_getallattrs(slot);
 
-	tuple = ExecFetchSlotMemTuple(slot, &shouldFree, mt_bind);
+	tuple = appendonly_form_memtuple(slot, mt_bind);
 	appendonly_insert(insertDesc,
 					  tuple,
 					  &newAoTupleId);
@@ -300,16 +309,13 @@ AppendOnlyMoveTuple(TupleTableSlot *slot,
 	/* insert index' tuples if needed */
 	if (resultRelInfo->ri_NumIndices > 0)
 	{
-		ExecInsertIndexTuples(slot,
-							  estate,
-							  false, /* noDupError */
-							  NULL, /* specConflict */
-							  NIL /* arbiterIndexes */);
+		ExecInsertIndexTuples(resultRelInfo,
+													slot, estate, false, false,
+													NULL, NIL);
 		ResetPerTupleExprContext(estate);
 	}
 
-	if (shouldFree)
-		pfree(tuple);
+	appendonly_free_memtuple(tuple);
 
 	if (Debug_appendonly_print_compaction)
 		ereport(DEBUG5,
@@ -319,31 +325,51 @@ AppendOnlyMoveTuple(TupleTableSlot *slot,
 }
 
 void
-AppendOnlyThrowAwayTuple(Relation rel, TupleTableSlot *slot)
+AppendOnlyThrowAwayTuple(Relation rel, TupleTableSlot *slot, MemTupleBinding *mt_bind)
 {
-	AOTupleId  *oldAoTupleId;
+	int			i;
+	int			numAttrs;
+	MemTuple	tuple;
+	TupleDesc	tupleDesc;
+	AOTupleId  *aoTupleId;
+	Datum		toast_values[MaxHeapAttributeNumber];
+	bool		toast_isnull[MaxHeapAttributeNumber];
 
 	Assert(slot);
 
-	oldAoTupleId = (AOTupleId *) &slot->tts_tid;
+	aoTupleId = (AOTupleId *) &slot->tts_tid;
 	/* Extract all the values of the tuple */
 	slot_getallattrs(slot);
 
-	/* GPDB_12_MERGE_FIXME: loop through all attributes, call toast_delete_datum()
-	 * on any toasted datums, like toast_delete does for heap tuples */
-#if 0
-	tuple = TupGetMemTuple(slot);
-	if (MemTupleHasExternal(tuple, mt_bind))
+	tuple = appendonly_form_memtuple(slot, mt_bind);
+	tupleDesc = rel->rd_att;
+	numAttrs = tupleDesc->natts;
+
+	Assert(numAttrs <= MaxHeapAttributeNumber);
+
+	memtuple_deform((MemTuple) tuple, mt_bind, toast_values, toast_isnull);
+
+	/* loop through all attributes, delete external stored values */
+	for (i = 0; i < numAttrs; i++)
 	{
-		toast_delete_memtup(rel, tuple, mt_bind);
+		if (TupleDescAttr(tupleDesc, i)->attlen == -1)
+		{
+			Datum		value = toast_values[i];
+
+			if (toast_isnull[i])
+				continue;
+			else if (VARATT_IS_EXTERNAL_ONDISK(PointerGetDatum(value)))
+				toast_delete_datum(rel, value, false);
+		}
 	}
-#endif
+
+	appendonly_free_memtuple(tuple);
 	
 	if (Debug_appendonly_print_compaction)
 		ereport(DEBUG5,
 				(errmsg("Compaction: Throw away tuple (%d," INT64_FORMAT ")",
-						AOTupleIdGet_segmentFileNum(oldAoTupleId),
-						AOTupleIdGet_rowNum(oldAoTupleId))));
+						AOTupleIdGet_segmentFileNum(aoTupleId),
+						AOTupleIdGet_rowNum(aoTupleId))));
 }
 
 /*
@@ -368,6 +394,7 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 	ResultRelInfo *resultRelInfo;
 	EState	   *estate;
 	AOTupleId  *aoTupleId;
+	ItemPointerData otid;
 	int64		tupleCount = 0;
 	int64		tuplePerPage = INT_MAX;
     Oid         visimaprelid;
@@ -424,9 +451,8 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 	resultRelInfo->ri_RelationDesc = aorel;
 	resultRelInfo->ri_TrigDesc = NULL;	/* we don't fire triggers */
 	ExecOpenIndices(resultRelInfo, false);
-	estate->es_result_relations = resultRelInfo;
-	estate->es_num_result_relations = 1;
-	estate->es_result_relation_info = resultRelInfo;
+	estate->es_opened_result_relations =
+			lappend(estate->es_opened_result_relations, resultRelInfo);
 
 	/*
 	 * Go through all visible tuples and move them to a new segfile.
@@ -437,6 +463,7 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 		CHECK_FOR_INTERRUPTS();
 
 		aoTupleId = (AOTupleId *) &slot->tts_tid;
+		otid = slot->tts_tid;
 		if (AppendOnlyVisimap_IsVisible(&scanDesc->visibilityMap, aoTupleId))
 		{
 			AppendOnlyMoveTuple(slot,
@@ -449,9 +476,12 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
 		else
 		{
 			/* Tuple is invisible and needs to be dropped */
-			AppendOnlyThrowAwayTuple(aorel, slot);
+			AppendOnlyThrowAwayTuple(aorel, slot, mt_bind);
 		}
 
+		if (appendonly_compaction_delete_hook)
+			(*appendonly_compaction_delete_hook) (aorel, &otid);
+		
 		/*
 		 * Check for vacuum delay point after approximately a var block
 		 */
@@ -497,7 +527,7 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
  * available. If it's not, no segments are dropped.
  */
 void
-AppendOnlyRecycleDeadSegments(Relation aorel)
+AppendOptimizedRecycleDeadSegments(Relation aorel)
 {
 	Relation	pg_aoseg_rel;
 	TupleDesc	pg_aoseg_dsc;
@@ -516,7 +546,7 @@ AppendOnlyRecycleDeadSegments(Relation aorel)
 	 *
 	 * INterlocks with SetSegnoInternal()
 	 */
-	LockRelationForExtension(aorel, ExclusiveLock);
+	LockDatabaseObject(aorel->rd_node.dbNode, (Oid)aorel->rd_node.relNode, 0, ExclusiveLock);
 
 	GetAppendOnlyEntryAuxOids(aorel->rd_id, appendOnlyMetaDataSnapshot,
 							  &segrelid, NULL, NULL, NULL, NULL);
@@ -595,7 +625,8 @@ AppendOnlyRecycleDeadSegments(Relation aorel)
 		else
 		{
 			if (cutoff_xid == InvalidTransactionId)
-				cutoff_xid = GetOldestXmin(NULL, true);
+				/* no need to get xmin across all databases */
+				cutoff_xid = GetOldestNonRemovableTransactionId(aorel);
 
 			visible_to_all = TransactionIdPrecedes(xmin, cutoff_xid);
 		}
@@ -616,7 +647,7 @@ AppendOnlyRecycleDeadSegments(Relation aorel)
 	}
 	systable_endscan(aoscan);
 
-	UnlockRelationForExtension(aorel, ExclusiveLock);
+	UnlockDatabaseObject(aorel->rd_node.dbNode, (Oid)aorel->rd_node.relNode, 0, ExclusiveLock);
 
 	heap_close(pg_aoseg_rel, AccessShareLock);
 
@@ -629,7 +660,7 @@ AppendOnlyRecycleDeadSegments(Relation aorel)
  * the segment file is skipped.
  */
 void
-AppendOnlyTruncateToEOF(Relation aorel)
+AppendOptimizedTruncateToEOF(Relation aorel)
 {
 	const char *relname;
 	Relation	pg_aoseg_rel;
@@ -647,7 +678,7 @@ AppendOnlyTruncateToEOF(Relation aorel)
 	 * The algorithm below for choosing a target segment is not concurrent-safe.
 	 * Grab a lock to serialize.
 	 */
-	LockRelationForExtension(aorel, ExclusiveLock);
+	LockDatabaseObject(aorel->rd_node.dbNode, (Oid)aorel->rd_node.relNode, 0, ExclusiveLock);
 
 	GetAppendOnlyEntryAuxOids(aorel->rd_id, appendOnlyMetaDataSnapshot,
 							  &segrelid, NULL, NULL, NULL, NULL);
@@ -711,7 +742,7 @@ AppendOnlyTruncateToEOF(Relation aorel)
 		}
 	}
 	systable_endscan(aoscan);
-	UnlockRelationForExtension(aorel, ExclusiveLock);
+	UnlockDatabaseObject(aorel->rd_node.dbNode, (Oid)aorel->rd_node.relNode, 0, ExclusiveLock);
 	heap_close(pg_aoseg_rel, AccessShareLock);
 	UnregisterSnapshot(appendOnlyMetaDataSnapshot);
 }

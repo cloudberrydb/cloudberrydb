@@ -6,24 +6,19 @@
 
 #include "postgres.h"
 
-#include "plpython.h"
-
-#include "plpy_planobject.h"
-
 #include "plpy_cursorobject.h"
 #include "plpy_elog.h"
+#include "plpy_planobject.h"
 #include "plpy_spi.h"
+#include "plpython.h"
 #include "utils/memutils.h"
-
 
 static void PLy_plan_dealloc(PyObject *arg);
 static PyObject *PLy_plan_cursor(PyObject *self, PyObject *args);
 static PyObject *PLy_plan_execute(PyObject *self, PyObject *args);
 static PyObject *PLy_plan_status(PyObject *self, PyObject *args);
 
-static char PLy_plan_doc[] = {
-	"Store a PostgreSQL plan"
-};
+static char PLy_plan_doc[] = "Store a PostgreSQL plan";
 
 static PyMethodDef PLy_plan_methods[] = {
 	{"cursor", PLy_plan_cursor, METH_VARARGS, NULL},

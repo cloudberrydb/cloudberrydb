@@ -1,3 +1,9 @@
+-- start_matchsubs
+-- m/ERROR:  could not devise a plan \(cdbpath.c:.*\)/
+-- s/ERROR:  could not devise a plan \(cdbpath.c:.*\)/ERROR:  could not devise a plan/
+-- m/ERROR:  could not devise a plan\. \(cdbpath.c:.*\)/
+-- s/ERROR:  could not devise a plan\. \(cdbpath.c:.*\)/ERROR:  could not devise a plan \. /
+-- end_matchsubs
 --
 -- Basic tests for replicated table
 --

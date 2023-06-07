@@ -70,8 +70,8 @@ select * from check_env;
                                                                                                                                                                                                                                       x                                                                                                                                                                                                                                      
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  CLICOLOR=1
- DYLD_LIBRARY_PATH=/Users/@curusername@/greenplum-db-devel/lib:/Users/@curusername@/greenplum-db-devel/ext/python/lib:/opt/gcc_infrastructure/lib:/Users/@curusername@/greenplum-perfmon-web-4.0.1.0/lib:/Users/@curusername@/greenplum-db-devel/lib:/Users/@curusername@/greenplum-db-devel/ext/python/lib:
- GPHOME=/Users/@curusername@/greenplum-db-devel
+ DYLD_LIBRARY_PATH=/Users/@curusername@/cloudberry-db-devel/lib:/Users/@curusername@/cloudberry-db-devel/ext/python/lib:/opt/gcc_infrastructure/lib:/Users/@curusername@/greenplum-perfmon-web-4.0.1.0/lib:/Users/@curusername@/cloudberry-db-devel/lib:/Users/@curusername@/cloudberry-db-devel/ext/python/lib:
+ GPHOME=/Users/@curusername@/cloudberry-db-devel
  GPROOT=/Users/@curusername@
  GP_CID=0
  GP_DATABASE=regression
@@ -104,15 +104,15 @@ select * from check_env;
  LOGNAME=@curusername@
  MAIL=/var/mail/@curusername@
  COORDINATOR_DATA_DIRECTORY=//Users/@curusername@/greenplum-master/gpseg-1
- OPENSSL_CONF=/Users/@curusername@/greenplum-db-devel/etc/openssl.cnf
+ OPENSSL_CONF=/Users/@curusername@/cloudberry-db-devel/etc/openssl.cnf
  P4CONFIG=.p4config
- PATH=/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/opt/gcc-4.4.2/bin:/Users/@curusername@/Workdir/mybin:/Users/@curusername@/greenplum-perfmon-web-4.0.1.0/bin:/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/Users/@curusername@/greenplum-db-devel/bin:/Users/@curusername@/greenplum-db-devel/ext/python/bin:/usr/bin:/bin:/usr/sbin:/sbin
+ PATH=/Users/@curusername@/cloudberry-db-devel/bin:/Users/@curusername@/cloudberry-db-devel/ext/python/bin:/Users/@curusername@/cloudberry-db-devel/bin:/Users/@curusername@/cloudberry-db-devel/ext/python/bin:/opt/gcc-4.4.2/bin:/Users/@curusername@/Workdir/mybin:/Users/@curusername@/greenplum-perfmon-web-4.0.1.0/bin:/Users/@curusername@/cloudberry-db-devel/bin:/Users/@curusername@/cloudberry-db-devel/ext/python/bin:/Users/@curusername@/cloudberry-db-devel/bin:/Users/@curusername@/cloudberry-db-devel/ext/python/bin:/usr/bin:/bin:/usr/sbin:/sbin
  PGDATA=/Users/@curusername@/greenplum-db-data/dbfast1/gpseg0
  PGHOST=127.0.0.1
- PGSYSCONFDIR=/Users/@curusername@/greenplum-db-devel/etc/postgresql
+ PGSYSCONFDIR=/Users/@curusername@/cloudberry-db-devel/etc/postgresql
  PWD=/Users/@curusername@/greenplum-db-data/dbfast1/gpseg0
- PYTHONHOME=/Users/@curusername@/greenplum-db-devel/ext/python
- PYTHONPATH=/Users/@curusername@/greenplum-db-devel/lib/python
+ PYTHONHOME=/Users/@curusername@/cloudberry-db-devel/ext/python
+ PYTHONPATH=/Users/@curusername@/cloudberry-db-devel/lib/python
  SHELL=/bin/bash
  SHLVL=4
  SSH_CLIENT=127.0.0.1 50658 22
@@ -227,7 +227,7 @@ alter external table ext alter column x type integer; -- pass
 -- TRUNCATE/UPDATE/DELETE/INSERT (INTO RET)
 --
 truncate ext;
-ERROR:  "ext" is not a table
+ERROR:  cannot truncate foreign table "ext"
 delete from ext;
 ERROR:  cannot delete from foreign table "ext"
 update ext set x='1' where x='2';
@@ -703,7 +703,7 @@ CREATE EXTERNAL TABLE exttab_basic_6( i int, j text )
 LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_more_errors.data') FORMAT 'TEXT' (DELIMITER '|')
 LOG ERRORS SEGMENT REJECT LIMIT 100;
 CREATE TABLE exttab_ctas_1 as SELECT * FROM exttab_basic_6;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  found 6 data formatting errors (6 or more input rows), rejected related input data
 -- CTAS should go through fine
@@ -738,7 +738,7 @@ LOCATION ('file://@hostname@@abs_srcdir@/data/exttab_more_errors.data') FORMAT '
 LOG ERRORS SEGMENT REJECT LIMIT 5;
 -- CTAS should fail
 CREATE TABLE exttab_ctas_2 AS select * from exttab_basic_7;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  segment reject limit reached, aborting operation
 DETAIL:  Last error was: invalid input syntax for type integer: "error_1", column i  (seg0 slice1 127.0.0.1:40000 pid=12121)
@@ -1690,7 +1690,7 @@ SELECT * FROM gp_read_error_log('exttab_udfs_2')
 DROP TABLE IF EXISTS exttab_udfs_insert_1;
 NOTICE:  table "exttab_udfs_insert_1" does not exist, skipping
 CREATE TABLE exttab_udfs_insert_1(a boolean);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 SELECT gp_truncate_error_log('exttab_udfs_1');
  gp_truncate_error_log 
@@ -1884,7 +1884,7 @@ SELECT gp_truncate_error_log('exttab_udfs_2');
 (1 row)
 
 CREATE TABLE exttab_udfs_ctas_2 AS SELECT * FROM exttab_udfs_func2();
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'exttab_udfs_func2' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'exttab_udfs_func2' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 NOTICE:  found 2 data formatting errors (2 or more input rows), rejected related input data
 ERROR:  segment reject limit reached, aborting operation
@@ -2073,7 +2073,7 @@ SELECT * FROM gp_read_error_log('exttab_views_2')
 DROP TABLE IF EXISTS exttab_views_insert_1;
 NOTICE:  table "exttab_views_insert_1" does not exist, skipping
 CREATE TABLE exttab_views_insert_1 (i int, j int, k text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 SELECT gp_truncate_error_log('exttab_views_1');
  gp_truncate_error_log 
@@ -2127,7 +2127,7 @@ SELECT gp_truncate_error_log('exttab_views_2');
 
 -- Should fail
 CREATE TABLE exttab_views_ctas_1 AS SELECT * FROM exttab_views_3 where length(j) < 100;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'j' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'j' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  segment reject limit reached, aborting operation
 DETAIL:  Last error was: invalid input syntax for type integer: "error_1", column i  (seg0 slice1 127.0.0.1:40000 pid=12322)
@@ -2165,7 +2165,7 @@ SELECT gp_truncate_error_log('exttab_views_2');
 
 -- Should fail here
 CREATE TABLE exttab_views_ctas_1 AS SELECT * FROM exttab_views_3;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'j' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'j' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  segment reject limit reached, aborting operation
 DETAIL:  Last error was: invalid input syntax for type integer: "error_1", column i  (seg0 slice1 127.0.0.1:40000 pid=12313)
@@ -2593,7 +2593,7 @@ LOG ERRORS SEGMENT REJECT LIMIT 10;
 DROP TABLE IF EXISTS test_ext_heap_join;
 NOTICE:  table "test_ext_heap_join" does not exist, skipping
 CREATE TABLE test_ext_heap_join( i int, j text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- Turn off stats
 SET gp_autostats_mode = 'NONE';
@@ -4779,9 +4779,9 @@ select gp_debug_reset_create_table_default_numsegments();
 --
 CREATE READABLE EXTERNAL TABLE ext_invalid_host() LOCATION ('gpfdist://not-exist-host/data.csv') FORMAT 'CSV' ( DELIMITER AS ',');
 SELECT * from ext_invalid_host;
-WARNING:  could not translate host name "not-exist-host", port "8080" to address: Name or service not known  (seg0 slice1 127.0.0.1:5434 pid=181826)
-WARNING:  could not translate host name "not-exist-host", port "8080" to address: Name or service not known  (seg1 slice1 127.0.0.1:5435 pid=181824)
-WARNING:  could not translate host name "not-exist-host", port "8080" to address: Name or service not known  (seg2 slice1 127.0.0.1:5436 pid=181825)
+WARNING:  could not translate host name "not-exist-host", port "8080" to address: Name or service not known
+WARNING:  could not translate host name "not-exist-host", port "8080" to address: Name or service not known
+WARNING:  could not translate host name "not-exist-host", port "8080" to address: Name or service not known
 ERROR:  hostname cannot be resolved 'gpfdist://not-exist-host:8080/data.csv'  (seg0 slice1 127.0.0.1:5434 pid=181826)
 -- Test delimiter off
 CREATE EXTERNAL TABLE test_delimiter(data text) LOCATION('gpfdist://127.0.0.1/test_delimiter.txt') FORMAT 'text' (DELIMITER 'off');
@@ -4892,3 +4892,92 @@ SELECT * FROM test_part_integrity;
  2 | 3
 (4 rows)
 
+DROP TABLE test_part_integrity;
+-- Testing altering the distribution policy of external tables.
+CREATE WRITABLE EXTERNAL WEB TABLE ext_w_dist(a int, b int) EXECUTE 'cat > @abs_srcdir@/data/ext_w_dist.tbl' FORMAT 'TEXT' (DELIMITER AS '|' NULL AS 'null' ESCAPE AS ' ') DISTRIBUTED BY (a);
+ALTER TABLE ext_w_dist SET WITH (reorganize=true); -- should error out if forcing reorganize
+ERROR:  "ext_w_dist" is not a table
+SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_dist'::regclass;
+ policytype | distkey 
+------------+---------
+ p          | 1
+(1 row)
+
+ALTER TABLE ext_w_dist SET DISTRIBUTED BY (b);
+ERROR:  "ext_w_dist" is not a table
+SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_dist'::regclass;
+ policytype | distkey 
+------------+---------
+ p          | 1
+(1 row)
+
+ALTER TABLE ext_w_dist SET DISTRIBUTED RANDOMLY;
+ERROR:  "ext_w_dist" is not a table
+SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_dist'::regclass;
+ policytype | distkey 
+------------+---------
+ p          | 1
+(1 row)
+
+CREATE EXTERNAL WEB TABLE ext_r_dist(a int) EXECUTE 'printf ${GP_SEGMENT_ID}' FORMAT 'TEXT' DISTRIBUTED BY (a);
+ERROR:  readable external tables can't specify a DISTRIBUTED BY clause
+CREATE EXTERNAL WEB TABLE ext_r_dist(a int) EXECUTE 'printf ${GP_SEGMENT_ID}' FORMAT 'TEXT';
+ALTER TABLE ext_r_dist SET DISTRIBUTED BY (a); -- should error out altering readable external tables' distribution policy
+ERROR:  "ext_r_dist" is not a table
+-- Testing external table as the partition child.
+CREATE TABLE part_root(a int) PARTITION BY RANGE(a);
+CREATE TABLE part_child (LIKE part_root);
+CREATE WRITABLE EXTERNAL WEB TABLE part_ext_w(a int) EXECUTE 'cat > @abs_srcdir@/data/part_ext.tbl' FORMAT 'TEXT' (DELIMITER AS '|' NULL AS 'null' ESCAPE AS ' ') DISTRIBUTED BY (a);
+ALTER TABLE part_root ATTACH PARTITION part_child FOR VALUES FROM (0) TO (10);
+ALTER TABLE part_root ATTACH PARTITION part_ext_w FOR VALUES FROM (10) TO (20);
+-- Adding column should work fine
+ALTER TABLE part_root ADD COLUMN b int;
+INSERT INTO part_root SELECT i,i FROM generate_series(1,19)i;
+-- altering distribution policy should work fine
+SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'part_ext_w'::regclass;
+ policytype | distkey 
+------------+---------
+ p          | 1
+(1 row)
+
+ALTER TABLE part_root SET DISTRIBUTED BY (b);
+ERROR:  "part_ext_w" is not a table
+SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'part_ext_w'::regclass;
+ policytype | distkey 
+------------+---------
+ p          | 1
+(1 row)
+
+DROP TABLE part_root;
+-- check logerrors value of pg_exttable
+CREATE EXTERNAL TABLE ext_false (c INT)
+location ('file://@hostname@@abs_srcdir@/data/ext_fasle.tbl' )
+FORMAT 'text' (delimiter '|');
+CREATE EXTERNAL TABLE ext_true (c INT)
+location ('file://@hostname@@abs_srcdir@/data/ext_true.tbl' )
+FORMAT 'text' (delimiter '|') LOG ERRORS SEGMENT REJECT LIMIT 100;
+CREATE EXTERNAL TABLE ext_persistently (c INT)
+location ('file://@hostname@@abs_srcdir@/data/ext_persistently.tbl' )
+FORMAT 'text' (delimiter '|') LOG ERRORS PERSISTENTLY SEGMENT REJECT LIMIT 100;
+SELECT logerrors from pg_exttable a, pg_class b where a.reloid = b.oid and b.relname = 'ext_false';
+ logerrors 
+-----------
+ f
+(1 row)
+
+SELECT logerrors from pg_exttable a, pg_class b where a.reloid = b.oid and b.relname = 'ext_true';
+ logerrors 
+-----------
+ t
+(1 row)
+
+SELECT logerrors from pg_exttable a, pg_class b where a.reloid = b.oid and b.relname = 'ext_persistently';
+ logerrors 
+-----------
+ p
+(1 row)
+
+-- drop tables
+DROP EXTERNAL TABLE ext_false;
+DROP EXTERNAL TABLE ext_true;
+DROP EXTERNAL TABLE ext_persistently;

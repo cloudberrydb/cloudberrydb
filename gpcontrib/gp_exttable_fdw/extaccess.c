@@ -21,7 +21,7 @@
  * single row error handling the first error will raise an error and the
  * query will terminate.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -45,6 +45,7 @@
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
+#include "commands/copyto_internal.h"
 #include "commands/defrem.h"
 #include "funcapi.h"
 #include "mb/pg_wchar.h"
@@ -56,28 +57,35 @@
 #include "utils/memutils.h"
 
 static HeapTuple externalgettup(FileScanDesc scan, ScanDirection dir);
-static void InitParseState(CopyState pstate, Relation relation,
-			   bool writable,
+static void InitParseStateFrom(CopyFromState pstate, Relation relation,
+			   char fmtType,
+			   char *uri, int rejectlimit,
+			   bool islimitinrows, char logerrors);
+
+static void InitParseStateTo(CopyToState pstate, Relation relation,
 			   char fmtType,
 			   char *uri, int rejectlimit,
 			   bool islimitinrows, char logerrors);
 
 static void FunctionCallPrepareFormatter(FunctionCallInfoBaseData *fcinfo,
 							 int nArgs,
-							 CopyState pstate,
+							 CopyFormatOptions *opts,
 							 FmgrInfo *formatter_func,
 							 List *formatter_params,
 							 FormatterData *formatter,
 							 Relation rel,
 							 TupleDesc tupDesc,
 							 FmgrInfo *convFuncs,
-							 Oid *typioparams);
+							 Oid *typioparams,
+							 bool raw_reached_eof,
+							 bool need_transcoding,
+							 MemoryContext rowcontext);
 
 static void open_external_readable_source(FileScanDesc scan, ExternalSelectDesc desc);
 static void open_external_writable_source(ExternalInsertDesc extInsertDesc);
 static int	external_getdata_callback(void *outbuf, int minread, int maxread, void *extra);
-static int	external_getdata(URL_FILE *extfile, CopyState pstate, void *outbuf, int maxread);
-static void external_senddata(URL_FILE *extfile, CopyState pstate);
+static int	external_getdata(URL_FILE *extfile, CopyFromState pstate, void *outbuf, int maxread);
+static void external_senddata(URL_FILE *extfile, CopyToState pstate);
 static void external_scan_error_callback(void *arg);
 static Oid lookupCustomFormatter(List **options, bool iswritable);
 static void justifyDatabuf(StringInfo buf);
@@ -264,20 +272,20 @@ external_beginscan(Relation relation, uint32 scancounter,
 	 * Allocate and init our structure that keeps track of data parsing state
 	 */
 	scan->fs_pstate = BeginCopyFrom(NULL,
-									relation, NULL, false,
+									relation, NULL, NULL, false,
 									external_getdata_callback,
 									(void *) scan,
 									NIL,
 									(fmttype_is_custom(fmtType) ? NIL : extOptions));
 
-	if (scan->fs_pstate->header_line && Gp_role == GP_ROLE_DISPATCH)
+	if (scan->fs_pstate->opts.header_line && Gp_role == GP_ROLE_DISPATCH)
 	{
 		ereport(NOTICE,
 				(errmsg("HEADER means that each one of the data files has a header row")));
 	}
 
 	/* Initialize all the parsing and state variables */
-	InitParseState(scan->fs_pstate, relation, false, fmtType,
+	InitParseStateFrom(scan->fs_pstate, relation, fmtType,
 				   scan->fs_uri, rejLimit, rejLimitInRows, logErrors);
 
 	if (fmttype_is_custom(fmtType))
@@ -324,10 +332,13 @@ external_rescan(FileScanDesc scan)
 					 errmsg("The file parse state of external scan is invalid")));
 
 	/* reset some parse state variables */
-	scan->fs_pstate->reached_eof = false;
+	scan->fs_pstate->raw_reached_eof = false;
+	scan->fs_pstate->input_reached_eof = false;
 	scan->fs_pstate->cur_lineno = 0;
 	scan->fs_pstate->cur_attname = NULL;
 	scan->fs_pstate->raw_buf_len = 0;
+	scan->fs_pstate->input_buf_len = 0;
+	scan->fs_pstate->input_buf_index = 0;
 }
 
 /* ----------------
@@ -412,10 +423,10 @@ external_endscan(FileScanDesc scan)
 			pfree(scan->fs_pstate->attribute_buf.data);
 		if (scan->fs_pstate->line_buf.data)
 			pfree(scan->fs_pstate->line_buf.data);
-		if (scan->fs_pstate->force_quote_flags)
-			pfree(scan->fs_pstate->force_quote_flags);
-		if (scan->fs_pstate->force_notnull_flags)
-			pfree(scan->fs_pstate->force_notnull_flags);
+		if (scan->fs_pstate->opts.force_quote_flags)
+			pfree(scan->fs_pstate->opts.force_quote_flags);
+		if (scan->fs_pstate->opts.force_notnull_flags)
+			pfree(scan->fs_pstate->opts.force_notnull_flags);
 
 		pfree(scan->fs_pstate);
 		scan->fs_pstate = NULL;
@@ -587,7 +598,7 @@ external_insert_init(Relation rel)
 	/*
 	 * Allocate and init our structure that keeps track of data parsing state
 	 */
-	extInsertDesc->ext_pstate = (CopyStateData *) palloc0(sizeof(CopyStateData));
+	extInsertDesc->ext_pstate = (CopyToStateData *) palloc0(sizeof(CopyToStateData));
 	extInsertDesc->ext_tupDesc = RelationGetDescr(rel);
 
 	/*
@@ -607,14 +618,13 @@ external_insert_init(Relation rel)
 	copyFmtOpts = appendCopyEncodingOption(list_copy(extentry->options), extentry->encoding);
 
 	extInsertDesc->ext_pstate = BeginCopyToForeignTable(rel, (fmttype_is_custom(extentry->fmtcode) ? NIL : copyFmtOpts));
-	InitParseState(extInsertDesc->ext_pstate,
-				   rel,
-				   true,
-				   extentry->fmtcode,
-				   extInsertDesc->ext_uri,
-				   extentry->rejectlimit,
-				   (extentry->rejectlimittype == 'r'),
-				   extentry->logerrors);
+	InitParseStateTo(extInsertDesc->ext_pstate,
+					 rel,
+					 extentry->fmtcode,
+					 extInsertDesc->ext_uri,
+					 extentry->rejectlimit,
+					 (extentry->rejectlimittype == 'r'),
+					 extentry->logerrors);
 
 	if (fmttype_is_custom(extentry->fmtcode))
 	{
@@ -653,7 +663,7 @@ void
 external_insert(ExternalInsertDesc extInsertDesc, TupleTableSlot *slot)
 {
 	TupleDesc	tupDesc = extInsertDesc->ext_tupDesc;
-	CopyStateData *pstate = extInsertDesc->ext_pstate;
+	CopyToStateData *pstate = extInsertDesc->ext_pstate;
 	bool		customFormat = (extInsertDesc->ext_custom_formatter_func != NULL);
 
 	if (extInsertDesc->ext_noop)
@@ -693,14 +703,17 @@ external_insert(ExternalInsertDesc extInsertDesc, TupleTableSlot *slot)
 		/* per call formatter prep */
 		FunctionCallPrepareFormatter(fcinfo,
 									 1,
-									 pstate,
+									 &pstate->opts,
 									 extInsertDesc->ext_custom_formatter_func,
 									 extInsertDesc->ext_custom_formatter_params,
 									 formatter,
 									 extInsertDesc->ext_rel,
 									 extInsertDesc->ext_tupDesc,
 									 pstate->out_functions,
-									 NULL);
+									 NULL,
+									 false /* raw_reached_eof */,
+									 pstate->need_transcoding,
+									 pstate->rowcontext);
 
 		/* Mark the correct record type in the passed tuple */
 
@@ -762,6 +775,9 @@ external_insert_finish(ExternalInsertDesc extInsertDesc)
 	if (extInsertDesc->ext_formatter_data)
 		pfree(extInsertDesc->ext_formatter_data);
 
+	pfree(extInsertDesc->ext_pstate->fe_msgbuf->data);
+	pfree(extInsertDesc->ext_pstate->fe_msgbuf);
+	pfree(extInsertDesc->ext_pstate);
 	pfree(extInsertDesc);
 }
 
@@ -816,11 +832,10 @@ else \
 	if (!elog_dismiss(DEBUG5)) \
 		PG_RE_THROW(); /* <-- hope to never get here! */ \
 \
-	truncateEol(&pstate->line_buf, pstate->eol_type); \
+	truncateEol(&pstate->line_buf, pstate->opts.eol_type); \
 	pstate->cdbsreh->rawdata->cursor = 0; \
 	pstate->cdbsreh->rawdata->data = pstate->line_buf.data; \
 	pstate->cdbsreh->rawdata->len = pstate->line_buf.len; \
-	pstate->cdbsreh->is_server_enc = pstate->line_buf_converted; \
 	pstate->cdbsreh->linenumber = pstate->cur_lineno; \
 	pstate->cdbsreh->processed++; \
 \
@@ -846,7 +861,7 @@ static HeapTuple
 externalgettup_defined(FileScanDesc scan)
 {
 	HeapTuple	tuple = NULL;
-	CopyState	pstate = scan->fs_pstate;
+	CopyFromState	pstate = scan->fs_pstate;
 	MemoryContext oldcontext;
 
 	MemoryContextReset(pstate->rowcontext);
@@ -880,7 +895,7 @@ static HeapTuple
 externalgettup_custom(FileScanDesc scan)
 {
 	HeapTuple	tuple;
-	CopyState	pstate = scan->fs_pstate;
+	CopyFromState	pstate = scan->fs_pstate;
 	FormatterData *formatter = scan->fs_formatter;
 	MemoryContext oldctxt = CurrentMemoryContext;
 
@@ -889,7 +904,7 @@ externalgettup_custom(FileScanDesc scan)
 
 	/* while didn't finish processing the entire file */
 	/* raw_buf_len was set to 0 in BeginCopyFrom() or external_rescan() */
-	while (pstate->raw_buf_len != 0 || !pstate->reached_eof)
+	while (pstate->raw_buf_len != 0 || !pstate->raw_reached_eof)
 	{
 		/* need to fill our buffer with data? */
 		if (pstate->raw_buf_len == 0)
@@ -903,7 +918,7 @@ externalgettup_custom(FileScanDesc scan)
 			}
 
 			/* HEADER not yet supported ... */
-			if (pstate->header_line)
+			if (pstate->opts.header_line)
 				elog(ERROR, "header line in custom format is not yet supported");
 		}
 
@@ -922,14 +937,17 @@ externalgettup_custom(FileScanDesc scan)
 				/* per call formatter prep */
 				FunctionCallPrepareFormatter(fcinfo,
 						0,
-						pstate,
+						&pstate->opts,
 						scan->fs_custom_formatter_func,
 						scan->fs_custom_formatter_params,
 						formatter,
 						scan->fs_rd,
 						scan->fs_tupDesc,
 						scan->in_functions,
-						scan->typioparams);
+						scan->typioparams,
+						pstate->raw_reached_eof,
+						pstate->need_transcoding,
+						pstate->rowcontext);
 				(void) FunctionCallInvoke(fcinfo);
 
 			}
@@ -1081,8 +1099,7 @@ static Oid
 lookupCustomFormatter(List **options, bool iswritable)
 {
 	ListCell   *cell;
-	ListCell   *prev = NULL;
-	char	   *formatter_name;
+	char	   *formatter_name = NULL;
 	List	   *funcname = NIL;
 	Oid			procOid = InvalidOid;
 	Oid			argList[1];
@@ -1101,10 +1118,9 @@ lookupCustomFormatter(List **options, bool iswritable)
 		{
 			formatter_name = defGetString(defel);
 			funcname = list_make1(makeString(formatter_name));
-			*options = list_delete_cell(*options, cell, prev);
+			*options = foreach_delete_current(*options, cell);
 			break;
 		}
-		prev = cell;
 	}
 	if (list_length(funcname) == 0)
 		ereport(ERROR,
@@ -1140,10 +1156,11 @@ lookupCustomFormatter(List **options, bool iswritable)
 						(iswritable ? "writable" : "readable"))));
 
 	/* check allowed volatility */
-	if (func_volatile(procOid) != PROVOLATILE_STABLE)
+	if (func_volatile(procOid) != PROVOLATILE_STABLE &&
+		func_volatile(procOid) != PROVOLATILE_IMMUTABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_FUNCTION_DEFINITION),
-				 errmsg("formatter function %s is not declared STABLE",
+				 errmsg("formatter function %s is not declared STABLE or IMMUTABLE",
 						formatter_name)));
 
 	return procOid;
@@ -1156,11 +1173,10 @@ lookupCustomFormatter(List **options, bool iswritable)
  * (text, csv), etc...
  */
 static void
-InitParseState(CopyState pstate, Relation relation,
-			   bool iswritable,
-			   char fmtType,
-			   char *uri, int rejectlimit,
-			   bool islimitinrows, char logerrors)
+InitParseStateFrom(CopyFromState pstate, Relation relation,
+				   char fmtType,
+				   char *uri, int rejectlimit,
+				   bool islimitinrows, char logerrors)
 {
 	/*
 	 * Error handling setup
@@ -1195,20 +1211,43 @@ InitParseState(CopyState pstate, Relation relation,
 		pstate->cdbsreh->relid = RelationGetRelid(relation);
 	}
 
+	/* and 'fe_mgbuf' */
+	pstate->fe_msgbuf = makeStringInfo();
+
+	/*
+	 * Create a temporary memory context that we can reset once per row to
+	 * recover palloc'd memory.  This avoids any problems with leaks inside
+	 * datatype input or output routines, and should be faster than retail
+	 * pfree's anyway.
+	 */
+	pstate->rowcontext = AllocSetContextCreate(CurrentMemoryContext,
+											   "ExtTableMemCxt",
+											   ALLOCSET_DEFAULT_MINSIZE,
+											   ALLOCSET_DEFAULT_INITSIZE,
+											   ALLOCSET_DEFAULT_MAXSIZE);
+}
+
+static void
+InitParseStateTo(CopyToState pstate, Relation relation,
+				 char fmtType,
+				 char *uri, int rejectlimit,
+				 bool islimitinrows, char logerrors)
+{
+	Assert(rejectlimit == -1);
+
 	/* Initialize 'out_functions', like CopyTo() would. */
-	CopyState cstate = pstate;
-	TupleDesc tupDesc = RelationGetDescr(cstate->rel);
+	TupleDesc tupDesc = RelationGetDescr(pstate->rel);
 	int num_phys_attrs = tupDesc->natts;
-	cstate->out_functions = (FmgrInfo *) palloc(num_phys_attrs * sizeof(FmgrInfo));
+	pstate->out_functions = (FmgrInfo *) palloc(num_phys_attrs * sizeof(FmgrInfo));
 	ListCell *cur;
-	foreach(cur, cstate->attnumlist)
+	foreach(cur, pstate->attnumlist)
 	{
 		int			attnum = lfirst_int(cur);
 		Form_pg_attribute attr = TupleDescAttr(tupDesc, attnum - 1);
 		Oid			out_func_oid;
 		bool		isvarlena;
 
-		if (cstate->binary)
+		if (pstate->opts.binary)
 			getTypeBinaryOutputInfo(attr->atttypid,
 									&out_func_oid,
 									&isvarlena);
@@ -1216,11 +1255,11 @@ InitParseState(CopyState pstate, Relation relation,
 			getTypeOutputInfo(attr->atttypid,
 							  &out_func_oid,
 							  &isvarlena);
-		fmgr_info(out_func_oid, &cstate->out_functions[attnum - 1]);
+		fmgr_info(out_func_oid, &pstate->out_functions[attnum - 1]);
 	}
 
 	/* and 'fe_mgbuf' */
-	cstate->fe_msgbuf = makeStringInfo();
+	pstate->fe_msgbuf = makeStringInfo();
 
 	/*
 	 * Create a temporary memory context that we can reset once per row to
@@ -1248,14 +1287,17 @@ InitParseState(CopyState pstate, Relation relation,
 static void
 FunctionCallPrepareFormatter(FunctionCallInfoBaseData *fcinfo,
 							 int nArgs,
-							 CopyState pstate,
+							 CopyFormatOptions *opts,
 							 FmgrInfo *formatter_func,
 							 List *formatter_params,
 							 FormatterData *formatter,
 							 Relation rel,
 							 TupleDesc tupDesc,
 							 FmgrInfo *convFuncs,
-							 Oid *typioparams)
+							 Oid *typioparams,
+							 bool raw_reached_eof,
+							 bool need_transcoding,
+							 MemoryContext rowcontext)
 {
 	formatter->type = T_FormatterData;
 	formatter->fmt_relation = rel;
@@ -1265,12 +1307,11 @@ FunctionCallPrepareFormatter(FunctionCallInfoBaseData *fcinfo,
 	formatter->fmt_badrow_num = 0;
 	formatter->fmt_args = formatter_params;
 	formatter->fmt_conv_funcs = convFuncs;
-	formatter->fmt_saw_eof = pstate->reached_eof;
+	formatter->fmt_saw_eof = raw_reached_eof;
 	formatter->fmt_typioparams = typioparams;
-	formatter->fmt_perrow_ctx = pstate->rowcontext;
-	formatter->fmt_needs_transcoding = pstate->need_transcoding;
-	formatter->fmt_conversion_proc = pstate->enc_conversion_proc;
-	formatter->fmt_external_encoding = pstate->file_encoding;
+	formatter->fmt_perrow_ctx = rowcontext;
+	formatter->fmt_needs_transcoding = need_transcoding;
+	formatter->fmt_external_encoding = opts->file_encoding;
 
 	InitFunctionCallInfoData( /* FunctionCallInfoData */ *fcinfo,
 							  /* FmgrInfo */ formatter_func,
@@ -1299,11 +1340,11 @@ open_external_readable_source(FileScanDesc scan, ExternalSelectDesc desc)
 	memset(&extvar, 0, sizeof(extvar));
 	external_set_env_vars_ext(&extvar,
 							  scan->fs_uri,
-							  scan->fs_pstate->csv_mode,
-							  scan->fs_pstate->escape,
-							  scan->fs_pstate->quote,
-							  scan->fs_pstate->eol_type,
-							  scan->fs_pstate->header_line,
+							  scan->fs_pstate->opts.csv_mode,
+							  scan->fs_pstate->opts.escape,
+							  scan->fs_pstate->opts.quote,
+							  scan->fs_pstate->opts.eol_type,
+							  scan->fs_pstate->opts.header_line,
 							  scan->fs_scancounter,
 							  scan->fs_custom_formatter_params);
 
@@ -1311,8 +1352,9 @@ open_external_readable_source(FileScanDesc scan, ExternalSelectDesc desc)
 	scan->fs_file = url_fopen(scan->fs_uri,
 							  false /* for read */ ,
 							  &extvar,
-							  scan->fs_pstate,
-							  desc);
+							  &scan->fs_pstate->opts,
+							  desc,
+							  RelationGetRelationName(scan->fs_rd));
 }
 
 /*
@@ -1331,11 +1373,11 @@ open_external_writable_source(ExternalInsertDesc extInsertDesc)
 	memset(&extvar, 0, sizeof(extvar));
 	external_set_env_vars_ext(&extvar,
 							  extInsertDesc->ext_uri,
-							  extInsertDesc->ext_pstate->csv_mode,
-							  extInsertDesc->ext_pstate->escape,
-							  extInsertDesc->ext_pstate->quote,
-							  extInsertDesc->ext_pstate->eol_type,
-							  extInsertDesc->ext_pstate->header_line,
+							  extInsertDesc->ext_pstate->opts.csv_mode,
+							  extInsertDesc->ext_pstate->opts.escape,
+							  extInsertDesc->ext_pstate->opts.quote,
+							  extInsertDesc->ext_pstate->opts.eol_type,
+							  extInsertDesc->ext_pstate->opts.header_line,
 							  0,
 						 extInsertDesc->ext_custom_formatter_params);
 
@@ -1343,8 +1385,9 @@ open_external_writable_source(ExternalInsertDesc extInsertDesc)
 	extInsertDesc->ext_file = url_fopen(extInsertDesc->ext_uri,
 										true /* forwrite */ ,
 										&extvar,
-										extInsertDesc->ext_pstate,
-										NULL);
+										&extInsertDesc->ext_pstate->opts,
+										NULL,
+										RelationGetRelationName(extInsertDesc->ext_rel));
 }
 
 /*
@@ -1363,21 +1406,21 @@ external_getdata_callback(void *outbuf, int minread, int maxread, void *extra)
  * get a chunk of data from the external data file.
  */
 static int
-external_getdata(URL_FILE *extfile, CopyState pstate, void *outbuf, int maxread)
+external_getdata(URL_FILE *extfile, CopyFromState pstate, void *outbuf, int maxread)
 {
 	int			bytesread;
 
 	/*
 	 * CK: this code is very delicate. The caller expects this: - if url_fread
 	 * returns something, and the EOF is reached, it this call must return
-	 * with both the content and the reached_eof flag set. - failing to do so will
+	 * with both the content and the raw_reached_eof flag set. - failing to do so will
 	 * result in skipping the last line.
 	 */
 	bytesread = url_fread((void *) outbuf, maxread, extfile, pstate);
 
 	if (url_feof(extfile, bytesread))
 	{
-		pstate->reached_eof = true;
+		pstate->raw_reached_eof = true;
 	}
 
 	if (bytesread <= 0)
@@ -1396,7 +1439,7 @@ external_getdata(URL_FILE *extfile, CopyState pstate, void *outbuf, int maxread)
  * send a chunk of data from the external data file.
  */
 static void
-external_senddata(URL_FILE *extfile, CopyState pstate)
+external_senddata(URL_FILE *extfile, CopyToState pstate)
 {
 	StringInfo	fe_msgbuf = pstate->fe_msgbuf;
 	static char ebuf[512] = {0};
@@ -1437,7 +1480,7 @@ static void
 external_scan_error_callback(void *arg)
 {
 	FileScanDesc scan = (FileScanDesc) arg;
-	CopyState	cstate = scan->fs_pstate;
+	CopyFromState	cstate = scan->fs_pstate;
 	char		buffer[20];
 
 	/*
@@ -1464,12 +1507,12 @@ external_scan_error_callback(void *arg)
 	else
 	{
 		/* error is relevant to a particular line */
-		if (cstate->line_buf_converted || !cstate->need_transcoding)
+		if (!cstate->need_transcoding)
 		{
 			char	   *line_buf;
 
 			line_buf = limit_printout_length(cstate->line_buf.data);
-			truncateEolStr(line_buf, cstate->eol_type);
+			truncateEolStr(line_buf, cstate->opts.eol_type);
 
 			errcontext("External table %s, line %s of %s: \"%s\"",
 					   cstate->cur_relname,

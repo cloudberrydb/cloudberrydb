@@ -3,7 +3,7 @@
  * cdbicudpfaultinjection.h
  *	   Fault injection code for UDP interconnect.
  *
- * Portions Copyright (c) 2005-2011, Greenplum Inc.
+ * Portions Copyright (c) 2005-2011, Cloudberry Inc.
  * Portions Copyright (c) 2011-2012, EMC Corporation
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
@@ -85,6 +85,7 @@ typedef enum {
 	FINC_OS_CREATE_THREAD = 21,
 
 	/* These are used to inject network faults. */
+	FINC_NET_RECV_ERROR = 23,
 	FINC_NET_PKT_DUP = 24,
 	FINC_NET_RECV_ZERO = 25,
 
@@ -96,6 +97,29 @@ typedef enum {
 } FAULT_INJECTION_TYPE;
 
 #define FINC_HAS_FAULT(type) (gp_udpic_fault_inject_bitmap & (1U << (type)))
+
+/*
+* FAULT_TYPE_FUNCTION
+*                define the all test function name which uses fault injection test.
+*/
+typedef enum {
+	FUNC_TESTMODE_RECVFROM,
+	FUNC_TESTMODE_MAX
+} FAULT_TYPE_FUNCTION;
+
+/*
+* fault_type_array_length
+*                record acutal fault type number for every test function which uses fault injection test.
+*/
+static unsigned int fault_type_array_length[FUNC_TESTMODE_MAX][1] = { 0 };
+
+/*
+* fault_type_array
+*                define the fault type for for every test function which uses fault injection test.
+*/
+static const unsigned int fault_type_array[][FINC_MAX_LIMITATION + 1] = {
+	{ FINC_OS_EAGAIN,  FINC_OS_EINTR, FINC_OS_EWOULDBLOCK, FINC_NET_RECV_ZERO, FINC_OS_NET_INTERFACE, FINC_NET_RECV_ERROR, FINC_MAX_LIMITATION }
+};
 
 /*
  * testmode_check_interrupts
@@ -132,6 +156,37 @@ do { \
 	pktModified = true; \
 	memcpy(&hdrbk, (void *) buffer, sizeof(icpkthdr)); \
 } while (0)
+
+/*
+ * get_fault_type_array_length
+ * 		Retrive test function fault type size recorded in array fault_type_array_length.
+ */
+static inline unsigned int
+get_fault_type_array_length(unsigned int func_name)
+{
+	if (!fault_type_array_length[func_name][0]) {
+		for (unsigned int i = 0; i < FINC_MAX_LIMITATION + 1; i++) {
+			if (fault_type_array[func_name][i] == FINC_MAX_LIMITATION) {
+				fault_type_array_length[func_name][0] = i;
+				break;
+			}
+		}
+	}
+	return fault_type_array_length[func_name][0];
+}
+
+/*
+ * random_with_range
+ * 		Generate the random value predefined in fault_type_array.
+ */
+static inline int
+random_with_array(unsigned int func_name)
+{
+	Assert((func_name < FUNC_TESTMODE_MAX) && (fault_type_array!= NULL));
+	unsigned int length = get_fault_type_array_length(func_name);
+	Assert((length != 0) && (length < FINC_MAX_LIMITATION));
+	return fault_type_array[func_name][(rand() % length)];
+}
 
 /*
  * testmode_sendto
@@ -272,7 +327,7 @@ testmode_recvfrom(const char *caller_name, int socket, void *restrict buffer,
 	if (!testmode_inject_fault(gp_udpic_fault_inject_percent))
 		goto no_fault_inject;
 
-	fault_type = random() % FINC_MAX_LIMITATION;
+	fault_type = random_with_array(FUNC_TESTMODE_RECVFROM);
 
 	switch (fault_type)
 	{
@@ -309,6 +364,13 @@ testmode_recvfrom(const char *caller_name, int socket, void *restrict buffer,
 			if (!FINC_HAS_FAULT(fault_type))
 				break;
 			write_log("inject fault to recvfrom: FINC_OS_NET_INTERFACE");
+			errno = EFAULT;
+			return -1;
+
+		case FINC_NET_RECV_ERROR:
+			if (!FINC_HAS_FAULT(fault_type))
+				break;
+			write_log("inject fault to recvfrom: FINC_NET_RECV_ERROR");
 			errno = EFAULT;
 			return -1;
 

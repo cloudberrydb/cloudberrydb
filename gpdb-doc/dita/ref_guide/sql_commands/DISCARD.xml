@@ -14,7 +14,7 @@
       <p><codeph>DISCARD</codeph> releases internal resources associated with a database session.
         This command is useful for partially or fully resetting the session's state. There are
         several subcommands to release different types of resources. <codeph>DISCARD ALL</codeph> is
-        not supported by Greenplum Database. </p>
+        not supported by Cloudberry Database. </p>
     </section>
     <section id="section4">
       <title>Parameters</title>
@@ -38,7 +38,7 @@
           <pt>ALL</pt>
           <pd>Releases all temporary resources associated with the current session and resets the
             session to its initial state.
-            <note>Greenplum Database does not support <codeph>DISCARD ALL</codeph> and returns a
+            <note>Cloudberry Database does not support <codeph>DISCARD ALL</codeph> and returns a
               notice message if you attempt to run the command.</note></pd>
           <pd>As an alternative, you can the run following commands to release temporary session
             resources:
@@ -55,7 +55,7 @@ DISCARD TEMP;</codeblock></pd>
     </section>
     <section id="section6">
       <title>Compatibility</title>
-      <p><codeph>DISCARD</codeph> is a Greenplum Database extension.</p>
+      <p><codeph>DISCARD</codeph> is a Cloudberry Database extension.</p>
     </section>
   </body>
 </topic>

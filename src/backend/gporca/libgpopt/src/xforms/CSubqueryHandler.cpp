@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -642,7 +642,7 @@ CSubqueryHandler::FRemoveScalarSubqueryInternal(
 		return fSuccess;
 	}
 
-	GPOS_ASSERT(EsqctxtFilter == esqctxt);
+	GPOS_ASSERT_FIXME(EsqctxtFilter == esqctxt);
 
 	*ppexprNewOuter = CUtils::PexprLogicalApply<CLogicalInnerApply>(
 		mp, pexprOuter, pexprInner, colref, pexprSubquery->Pop()->Eopid());

@@ -41,9 +41,9 @@
  * and munge the system catalogs of the new database.
  *
  *
- * Portions Copyright (c) 2005-2010 Greenplum Inc
+ * Portions Copyright (c) 2005-2010 Cloudberry Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -61,8 +61,8 @@
 #include <utils/faultinjector.h>
 
 #include "access/heapam.h"
-#include "access/reloptions.h"
 #include "access/htup_details.h"
+#include "access/reloptions.h"
 #include "access/sysattr.h"
 #include "access/tableam.h"
 #include "access/xact.h"
@@ -479,7 +479,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	/* We keep the lock on pg_tablespace until commit */
 	table_close(rel, NoLock);
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
@@ -590,8 +590,8 @@ ensure_tablespace_directory_is_empty(const Oid tablespace_oid,
  *
  * Be careful to check that the tablespace is empty.
  *
- * The way drop tablespace is handled in Greenplum is slightly
- * different than upstream Postgres. In Greenplum, due to 2 phase commit,
+ * The way drop tablespace is handled in Cloudberry is slightly
+ * different than upstream Postgres. In Cloudberry, due to 2 phase commit,
  * there is a small window after the dispatch of Drop Tablespace command
  * to the QE's and before the QE acquires the TablespaceCreateLock lock,
  * in which a table could be created in the tablespace which is currently
@@ -620,6 +620,8 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	Form_pg_tablespace spcform;
 	ScanKeyData entry[1];
 	Oid			tablespaceoid;
+	char	   *detail;
+	char	   *detail_log;
 
 	/*
 	 * Find the target tuple
@@ -667,6 +669,16 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 		tablespaceoid == DEFAULTTABLESPACE_OID)
 		aclcheck_error(ACLCHECK_NO_PRIV, OBJECT_TABLESPACE,
 					   tablespacename);
+
+	/* Check for pg_shdepend entries depending on this tablespace */
+	if (checkSharedDependencies(TableSpaceRelationId, tablespaceoid,
+								&detail, &detail_log))
+		ereport(ERROR,
+				(errcode(ERRCODE_DEPENDENT_OBJECTS_STILL_EXIST),
+				 errmsg("tablespace \"%s\" cannot be dropped because some objects depend on it",
+						tablespacename),
+				 errdetail_internal("%s", detail),
+				 errdetail_log("%s", detail_log)));
 
 	/* DROP hook for the tablespace being removed */
 	InvokeObjectDropHook(TableSpaceRelationId, tablespaceoid, 0);
@@ -744,7 +756,7 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 	/*
 	 * If we are the QD, dispatch this DROP command to all the QEs
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
@@ -802,23 +814,6 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 							location)));
 	}
 
-	if (InRecovery)
-	{
-		/*
-		 * Our theory for replaying a CREATE is to forcibly drop the target
-		 * subdirectory if present, and then recreate it. This may be more
-		 * work than needed, but it is simple to implement.
-		 */
-		if (stat(location_with_version_dir, &st) == 0 && S_ISDIR(st.st_mode))
-		{
-			if (!rmtree(location_with_version_dir, true))
-				/* If this failed, MakePGDirectory() below is going to error. */
-				ereport(WARNING,
-						(errmsg("some useless files may be left behind in old database directory \"%s\"",
-								location_with_version_dir)));
-		}
-	}
-
 	/*
 	 * In GPDB each segment has a directory with its unique dbid under the
 	 * tablespace path. Unlike the location_with_version_dir, do not error out
@@ -846,21 +841,34 @@ create_tablespace_directories(const char *location, const Oid tablespaceoid)
 
 	/*
 	 * The creation of the version directory prevents more than one tablespace
-	 * in a single location.
+	 * in a single location.  This imitates TablespaceCreateDbspace(), but it
+	 * ignores concurrency and missing parent directories.  The chmod() would
+	 * have failed in the absence of a parent.  pg_tablespace_spcname_index
+	 * prevents concurrency.
 	 */
-	if (MakePGDirectory(location_with_version_dir) < 0)
+	if (stat(location_with_version_dir, &st) < 0)
 	{
-		if (errno == EEXIST)
+		if (errno != ENOENT)
 			ereport(ERROR,
-					(errcode(ERRCODE_OBJECT_IN_USE),
-					 errmsg("directory \"%s\" already in use as a tablespace",
+					(errcode_for_file_access(),
+					 errmsg("could not stat directory \"%s\": %m",
 							location_with_version_dir)));
-		else
+		else if (MakePGDirectory(location_with_version_dir) < 0)
 			ereport(ERROR,
 					(errcode_for_file_access(),
 				  errmsg("could not create directory \"%s\": %m",
 						 location_with_version_dir)));
 	}
+	else if (!S_ISDIR(st.st_mode))
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("\"%s\" exists but is not a directory",
+						location_with_version_dir)));
+	else if (!InRecovery)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_IN_USE),
+				 errmsg("directory \"%s\" already in use as a tablespace",
+						location_with_version_dir)));
 
 	/*
 	 * In recovery, remove old symlink, in case it points to the wrong place.
@@ -1479,7 +1487,7 @@ AlterTableSpaceOptions(AlterTableSpaceOptionsStmt *stmt)
 	table_endscan(scandesc);
 	table_close(rel, NoLock);
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
 									DF_CANCEL_ON_ERROR|
@@ -1641,6 +1649,7 @@ GetDefaultTablespace(char relpersistence, bool partitioned)
 
 typedef struct
 {
+	/* Array of OIDs to be passed to SetTempTablespaces() */
 	int			numSpcs;
 	Oid			tblSpcs[FLEXIBLE_ARRAY_MEMBER];
 } temp_tablespaces_extra;
@@ -1690,6 +1699,7 @@ check_temp_tablespaces(char **newval, void **extra, GucSource source)
 			/* Allow an empty string (signifying database default) */
 			if (curname[0] == '\0')
 			{
+				/* InvalidOid signifies database's default tablespace */
 				tblSpcs[numSpcs++] = InvalidOid;
 				continue;
 			}
@@ -1716,6 +1726,7 @@ check_temp_tablespaces(char **newval, void **extra, GucSource source)
 			 */
 			if (curoid == MyDatabaseTableSpace)
 			{
+				/* InvalidOid signifies database's default tablespace */
 				tblSpcs[numSpcs++] = InvalidOid;
 				continue;
 			}
@@ -1826,6 +1837,7 @@ PrepareTempTablespaces(void)
 		/* Allow an empty string (signifying database default) */
 		if (curname[0] == '\0')
 		{
+			/* InvalidOid signifies database's default tablespace */
 			tblSpcs[numSpcs++] = InvalidOid;
 			continue;
 		}
@@ -1844,6 +1856,7 @@ PrepareTempTablespaces(void)
 		 */
 		if (curoid == MyDatabaseTableSpace)
 		{
+			/* InvalidOid signifies database's default tablespace */
 			tblSpcs[numSpcs++] = InvalidOid;
 			continue;
 		}

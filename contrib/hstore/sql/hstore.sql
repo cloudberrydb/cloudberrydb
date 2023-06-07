@@ -305,6 +305,19 @@ select count(*) from testhstore where h ?| ARRAY['public','disabled'];
 select count(*) from testhstore where h ?& ARRAY['public','disabled'];
 
 drop index hidx;
+create index hidx on testhstore using gist(h gist_hstore_ops(siglen=0));
+create index hidx on testhstore using gist(h gist_hstore_ops(siglen=8169));
+create index hidx on testhstore using gist(h gist_hstore_ops(siglen=8168));
+set enable_seqscan=off;
+
+select count(*) from testhstore where h @> 'wait=>NULL';
+select count(*) from testhstore where h @> 'wait=>CC';
+select count(*) from testhstore where h @> 'wait=>CC, public=>t';
+select count(*) from testhstore where h ? 'public';
+select count(*) from testhstore where h ?| ARRAY['public','disabled'];
+select count(*) from testhstore where h ?& ARRAY['public','disabled'];
+
+drop index hidx;
 create index hidx on testhstore using gin (h);
 set enable_seqscan=off;
 
@@ -355,6 +368,18 @@ insert into test_json_agg values ('rec1','"a key" =>1, b => t, c => null, d=> 12
        ('rec2','"a key" =>2, b => f, c => "null", d=> -12345, e => 012345.6, f=> -1.234, g=> 0.345e-4');
 select json_agg(q) from test_json_agg q;
 select json_agg(q) from (select f1, hstore_to_json_loose(f2) as f2 from test_json_agg) q;
+
+-- Test subscripting
+insert into test_json_agg default values;
+select f2['d'], f2['x'] is null as x_isnull from test_json_agg;
+select f2['d']['e'] from test_json_agg;  -- error
+select f2['d':'e'] from test_json_agg;  -- error
+update test_json_agg set f2['d'] = f2['e'], f2['x'] = 'xyzzy';
+select f2 from test_json_agg;
+
+-- Test subscripting in plpgsql
+do $$ declare h hstore;
+begin h['a'] := 'b'; raise notice 'h = %, h[a] = %', h, h['a']; end $$;
 
 -- Check the hstore_hash() and hstore_hash_extended() function explicitly.
 SELECT v as value, hstore_hash(v)::bit(32) as standard,

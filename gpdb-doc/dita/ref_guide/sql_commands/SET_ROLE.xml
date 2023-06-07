@@ -46,10 +46,10 @@ SET ROLE 'paul';
 SELECT SESSION_USER, CURRENT_USER;
  session_user | current_user 
 --------------+--------------
- peter        | paul</codeblock></section><section id="section7"><title>Compatibility</title><p>Greenplum Database allows identifier syntax (<varname>rolename</varname>), while
+ peter        | paul</codeblock></section><section id="section7"><title>Compatibility</title><p>Cloudberry Database allows identifier syntax (<varname>rolename</varname>), while
 the SQL standard requires the role name to be written as a string literal.
-SQL does not allow this command during a transaction; Greenplum Database
+SQL does not allow this command during a transaction; Cloudberry Database
 does not make this restriction. The <codeph>SESSION</codeph> and <codeph>LOCAL</codeph>
-modifiers are a Greenplum Database extension, as is the <codeph>RESET</codeph>
+modifiers are a Cloudberry Database extension, as is the <codeph>RESET</codeph>
 syntax.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="./SET_SESSION_AUTHORIZATION.xml#topic1" type="topic" format="dita"
     /></codeph></p></section></body></topic>

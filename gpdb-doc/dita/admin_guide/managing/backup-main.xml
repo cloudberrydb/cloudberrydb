@@ -3,11 +3,11 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="backup-main" xml:lang="en">
   <title id="kk159835">Backing Up and Restoring Databases</title>
-  <shortdesc>This topic describes how to use Greenplum backup and restore features.</shortdesc>
+  <shortdesc>This topic describes how to use Cloudberry backup and restore features.</shortdesc>
   <body>
-    <p>Performing backups regularly ensures that you can restore your data or rebuild your Greenplum
+    <p>Performing backups regularly ensures that you can restore your data or rebuild your Cloudberry
       Database system if data corruption or system failure occur. You can also use backups to
-      migrate data from one Greenplum Database system to another.</p>
+      migrate data from one Cloudberry Database system to another.</p>
     <!--<ul id="ul_pcd_tm4_1r"><li> <xref href="backup-overview.xml" format="dita"/></li><li><xref href="backup-gpcrondump.xml#automate-gpcrondump"/></li><li><xref href="backup-sets.xml#backup-sets"/></li><li><xref href="backup-incremental.xml#backup-incremental"/></li><li><xref href="backup-locks.xml#backup-locks"/></li><li><xref href="backup-named-pipes.xml#topic26"/></li><li><xref href="backup-ddboost.xml#topic17"/></li><li><xref href="backup-veritas.xml#backup-veritas"/></li><li><xref href="restore-parallel.xml#restore-parallel"/></li><li><xref href="gpdbrestore.xml#restore-parallel"/></li><li><xref href="restore-diff-system.xml#restore-new-target"/></li></ul>-->
   </body>
 

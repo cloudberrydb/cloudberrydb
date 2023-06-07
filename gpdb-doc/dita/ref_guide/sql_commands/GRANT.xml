@@ -71,7 +71,7 @@ GRANT { SELECT | INSERT | ALL [PRIVILEGES] }
     </section>
     <section id="section3">
       <title>Description</title>
-      <p>Greenplum Database unifies the concepts of users and groups into a single kind of entity
+      <p>Cloudberry Database unifies the concepts of users and groups into a single kind of entity
         called a role. It is therefore not necessary to use the keyword <codeph>GROUP</codeph> to
         identify whether a grantee is a user or a group. <codeph>GROUP</codeph> is still allowed in
         the command, but it is a noise word.</p>
@@ -100,7 +100,7 @@ GRANT { SELECT | INSERT | ALL [PRIVILEGES] }
           object, or to alter its definition in any way is not treated as a grantable privilege; it
           is inherent in the owner, and cannot be granted or revoked.  (However, a similar effect
           can be obtained by granting or revoking membership in the role that owns the object; see
-          below.) The owner implicitly has all grant options for the object, too.</p><p>Greenplum
+          below.) The owner implicitly has all grant options for the object, too.</p><p>Cloudberry
           Database grants default privileges on some types of objects to <codeph>PUBLIC</codeph>. No
           privileges are granted to <codeph>PUBLIC</codeph> by default on tables, table columns,
           sequences, foreign data wrappers, foreign servers, large objects, schemas, or tablespaces.
@@ -136,7 +136,7 @@ to <codeph>PUBLIC</codeph>.</p></sectiondiv><sectiondiv id="section6"><b>GRANT o
             <codeph>pxf</codeph> external tables. However, external tables of
           type <codeph>http</codeph>, <codeph>https</codeph>,
             <codeph>gpfdist</codeph>, and <codeph>gpfdists</codeph>, are
-          implemented internally in Greenplum Database instead of as custom
+          implemented internally in Cloudberry Database instead of as custom
           protocols. For these types, use the <codeph>CREATE ROLE</codeph> or
             <codeph>ALTER ROLE</codeph> command to set the
             <codeph>CREATEEXTTABLE</codeph> or <codeph>NOCREATEEXTTABLE</codeph>
@@ -154,9 +154,9 @@ also require this privilege on at least one column, (as well as the <codeph>SELE
 For sequences, this privilege allows the use of the <codeph>nextval()</codeph>
 and <codeph>setval()</codeph> functions.</pd></plentry><plentry><pt>DELETE</pt><pd>Allows <codeph>DELETE</codeph> of a row from the specified table.
 </pd></plentry><plentry><pt>REFERENCES</pt><pd>This keyword is accepted, although foreign key constraints are currently
-not supported in Greenplum Database. To create a foreign key constraint,
+not supported in Cloudberry Database. To create a foreign key constraint,
 it is necessary to have this privilege on both the referencing and referenced
-columns. The privilege may be granted for all columns of a table, or just specific columns.</pd></plentry><plentry><pt>TRIGGER</pt><pd>Allows the creation of a trigger on the specified table.<note>Greenplum Database does not
+columns. The privilege may be granted for all columns of a table, or just specific columns.</pd></plentry><plentry><pt>TRIGGER</pt><pd>Allows the creation of a trigger on the specified table.<note>Cloudberry Database does not
               support triggers.</note></pd></plentry>
         <plentry>
           <pt>TRUNCATE</pt>
@@ -223,7 +223,7 @@ columns. The privilege may be granted for all columns of a table, or just specif
         <plentry>
           <pt>ALL PRIVILEGES</pt>
           <pd>Grant all of the available privileges at once. The
-              <codeph>PRIVILEGES</codeph> key word is optional in Greenplum
+              <codeph>PRIVILEGES</codeph> key word is optional in Cloudberry
             Database, though it is required by strict SQL. </pd>
         </plentry>
         <plentry>
@@ -276,7 +276,7 @@ columns. The privilege may be granted for all columns of a table, or just specif
       <p>The <codeph>GRANT</codeph> command cannot be used to set privileges for
         the protocols <codeph>file</codeph>, <codeph>gpfdist</codeph>, or
           <codeph>gpfdists</codeph>. These protocols are implemented internally
-        in Greenplum Database. Instead, use the <xref
+        in Cloudberry Database. Instead, use the <xref
           href="CREATE_ROLE.xml#topic1"/> or <xref href="ALTER_ROLE.xml#topic1"
         /> command to set the <codeph>CREATEEXTTABLE</codeph> attribute for the
         role. </p>
@@ -303,14 +303,14 @@ objects.</p>
     <section id="section10">
       <title>Compatibility</title>
       <p>The <codeph>PRIVILEGES</codeph> key word is required in the SQL
-        standard, but optional in Greenplum Database. The SQL standard does not
+        standard, but optional in Cloudberry Database. The SQL standard does not
         support setting the privileges on more than one object per command. </p>
-      <p>Greenplum Database allows an object owner to revoke their own ordinary
+      <p>Cloudberry Database allows an object owner to revoke their own ordinary
         privileges: for example, a table owner can make the table read-only to
         theirself by revoking their own <codeph>INSERT</codeph>,
           <codeph>UPDATE</codeph>, <codeph>DELETE</codeph>, and
           <codeph>TRUNCATE</codeph> privileges. This is not possible according
-        to the SQL standard. Greenplum Database treats the owner's privileges as
+        to the SQL standard. Cloudberry Database treats the owner's privileges as
         having been granted by the owner to the owner; therefore they can revoke
         them too. In the SQL standard, the owner's privileges are granted by an
         assumed <i>system</i> entity. </p>
@@ -318,12 +318,12 @@ objects.</p>
         character sets, collations, translations. </p>
       <p>In the SQL standard, sequences only have a <codeph>USAGE</codeph> privilege, which controls
         the use of the <codeph>NEXT VALUE FOR</codeph> expression, which is equivalent to the
-        function <codeph>nextval</codeph> in Greenplum Database. The sequence privileges
-          <codeph>SELECT</codeph> and <codeph>UPDATE</codeph> are Greenplum Database extensions. The
+        function <codeph>nextval</codeph> in Cloudberry Database. The sequence privileges
+          <codeph>SELECT</codeph> and <codeph>UPDATE</codeph> are Cloudberry Database extensions. The
         application of the sequence <codeph>USAGE</codeph> privilege to the <codeph>currval</codeph>
-        function is also a Greenplum Database extension (as is the function itself).</p>
+        function is also a Cloudberry Database extension (as is the function itself).</p>
       <p>Privileges on databases, tablespaces, schemas, and languages are
-        Greenplum Database extensions.</p>
+        Cloudberry Database extensions.</p>
     </section>
     <section id="section11">
       <title>See Also</title>

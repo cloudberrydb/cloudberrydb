@@ -13,9 +13,9 @@
  * fact that a particular page needs to be visited.
  *
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Copyright (c) 2003-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2021, PostgreSQL Global Development Group
  *
  * src/include/nodes/tidbitmap.h
  *
@@ -67,11 +67,6 @@ struct Instrumentation;                 /* #include "executor/instrument.h" */
 #define BITMAP_IS_LOSSY -1
 
 /* The bitmap unit size can be adjusted by changing these declarations: */
-/*
- * GPDB_12_MERGE_FIXME The bitmapword type in bitmapset.h can now be 64-bit
- * wide.  Does it make sense to remove this Greenplum specific type to better
- * align with upstream?
- */
 #define TBM_BITS_PER_BITMAPWORD 64
 typedef uint64 tbm_bitmapword;		/* must be an unsigned type */
 

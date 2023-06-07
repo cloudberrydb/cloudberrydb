@@ -1,5 +1,5 @@
 # pxf_fdw extension
-comment = 'PXF Foreign Data Wrapper for Greenplum'
+comment = 'PXF Foreign Data Wrapper for Cloudberry'
 default_version = '1.0'
 module_pathname = '$libdir/pxf_fdw'
 relocatable = true

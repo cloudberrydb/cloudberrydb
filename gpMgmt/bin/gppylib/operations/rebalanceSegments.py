@@ -8,7 +8,7 @@ from gppylib import gplog
 
 from gppylib.operations.segment_reconfigurer import SegmentReconfigurer
 
-MIRROR_PROMOTION_TIMEOUT=30
+MIRROR_PROMOTION_TIMEOUT=120
 
 
 class ReconfigDetectionSQLQueryCommand(base.SQLCommand):

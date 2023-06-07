@@ -88,7 +88,7 @@ CREATE VIEW [ <varname>schema</varname> . ] <varname>view_name</varname> AS WITH
     </section>
     <section id="section5">
       <title>Notes</title>
-      <p>Views in Greenplum Database are read only. The system will not allow an insert, update, or
+      <p>Views in Cloudberry Database are read only. The system will not allow an insert, update, or
         delete on a view. You can get the effect of an updatable view by creating rewrite rules on
         the view into appropriate actions on other tables. For more information see <codeph>CREATE
           RULE</codeph>. </p>
@@ -138,7 +138,7 @@ UNION ALL
     <section id="section7">
       <title>Compatibility</title>
       <p>The SQL standard specifies some additional capabilities for the <codeph>CREATE
-          VIEW</codeph> statement that are not in Greenplum Database. The optional clauses for the
+          VIEW</codeph> statement that are not in Cloudberry Database. The optional clauses for the
         full SQL command in the standard are: </p>
       <ul>
         <li id="cj152047"><b>CHECK OPTION</b> — This option has to do with updatable views. All
@@ -150,7 +150,7 @@ UNION ALL
           view. <codeph>CASCADED</codeph> is assumed if neither <codeph>CASCADED</codeph> nor
             <codeph>LOCAL</codeph> is specified. </li>
       </ul>
-      <p><codeph>CREATE OR REPLACE VIEW</codeph> is a Greenplum Database language extension. So is
+      <p><codeph>CREATE OR REPLACE VIEW</codeph> is a Cloudberry Database language extension. So is
         the concept of a temporary view. </p>
     </section>
     <section id="section8">

@@ -4,7 +4,7 @@
  *	  prototypes for typecmds.c.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/commands/typecmds.h
@@ -17,7 +17,7 @@
 #include "catalog/dependency.h"
 #include "access/htup.h"
 #include "catalog/dependency.h"
-#include "nodes/parsenodes.h"
+#include "parser/parse_node.h"
 
 
 #define DEFAULT_TYPDELIM		','
@@ -29,7 +29,11 @@ extern ObjectAddress DefineEnum(CreateEnumStmt *stmt);
 extern ObjectAddress DefineRange(CreateRangeStmt *stmt);
 extern ObjectAddress AlterEnum(AlterEnumStmt *stmt);
 extern ObjectAddress DefineCompositeType(RangeVar *typevar, List *coldeflist);
+
 extern Oid AssignTypeArrayOid(char *arrayTypeName, Oid typeNamespace);
+extern Oid  AssignTypeMultirangeOid(char* multirangeName, Oid multirangeNamespace);
+extern Oid  AssignTypeMultirangeArrayOid(char* multirangeArrayName, Oid multirangeArrayNamespace);
+
 
 extern ObjectAddress AlterDomainDefault(List *names, Node *defaultRaw);
 extern ObjectAddress AlterDomainNotNull(List *names, bool notNull);
@@ -55,6 +59,9 @@ extern Oid AlterTypeNamespaceInternal(Oid typeOid, Oid nspOid,
 									  bool isImplicitArray,
 									  bool errorOnTableType,
 									  ObjectAddresses *objsMoved);
-extern void AlterType(AlterTypeStmt *stmt);
+
+/* GPDB_13_MERGE_FIXME: We need to double check compatibility between 
+ * AlterType in GPDB and that in upstream */
+extern ObjectAddress AlterType(AlterTypeStmt *stmt);
 
 #endif							/* TYPECMDS_H */

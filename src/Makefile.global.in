@@ -23,7 +23,7 @@ standard_targets = all install installdirs uninstall distprep clean distclean ma
 # these targets should recurse even into subdirectories not being built:
 standard_always_targets = distprep clean distclean maintainer-clean
 
-.PHONY: $(standard_targets) install-strip html man installcheck-parallel maintainer-check installcheck-good
+.PHONY: $(standard_targets) install-strip html man installcheck-parallel maintainer-check installcheck-good update-unicode
 
 # make `all' the default target
 all:
@@ -48,6 +48,7 @@ VERSION_NUM = @PG_VERSION_NUM@
 # GPDB version number
 GP_VERSION = @GP_VERSION_SHORT@
 GP_MAJORVERSION = @GP_MAJORVERSION@
+PACKAGE_URL = @PACKAGE_URL@
 
 # Set top_srcdir, srcdir, and VPATH.
 ifdef PGXS
@@ -82,9 +83,6 @@ endif
 endif # not PGXS
 
 vpathsearch = `for f in $(addsuffix /$(1),$(subst :, ,. $(VPATH))); do test -r $$f && echo $$f && break; done`
-
-# Saved arguments from configure
-configure_args = @configure_args@
 
 
 ##########################################################################
@@ -194,8 +192,10 @@ bitcodedir = $(pkglibdir)/bitcode
 with_icu	= @with_icu@
 with_perl	= @with_perl@
 with_python	= @with_python@
+with_pythonsrc_ext = @with_pythonsrc_ext@
 with_tcl	= @with_tcl@
-with_openssl	= @with_openssl@
+with_ssl	= @with_ssl@
+with_readline	= @with_readline@
 with_selinux	= @with_selinux@
 with_systemd	= @with_systemd@
 with_gssapi	= @with_gssapi@
@@ -211,7 +211,7 @@ with_libbz2	= @with_libbz2@
 with_apr_config	= @with_apr_config@
 enable_shared	= @enable_shared@
 enable_rpath	= @enable_rpath@
-# NLS is not supported in Greenplum, see comment documenting
+# NLS is not supported in Cloudberry, see comment documenting
 # this in configure.in
 # enable_nls	= @enable_nls@
 enable_debug	= @enable_debug@
@@ -222,6 +222,7 @@ enable_thread_safety	= @enable_thread_safety@
 enable_strong_random	= @enable_strong_random@
 enable_largefile	= @enable_largefile@
 enable_orca		= @enable_orca@
+enable_catalog_ext  = @enable_catalog_ext@
 enable_gpfdist		= @enable_gpfdist@
 enable_pxf			= @enable_pxf@
 enable_debug_extensions = @enable_debug_extensions@
@@ -294,7 +295,9 @@ GCC = @GCC@
 SUN_STUDIO_CC = @SUN_STUDIO_CC@
 CXX = @CXX@
 CFLAGS = @CFLAGS@
-CFLAGS_VECTOR = @CFLAGS_VECTOR@
+CFLAGS_SL = @CFLAGS_SL@
+CFLAGS_UNROLL_LOOPS = @CFLAGS_UNROLL_LOOPS@
+CFLAGS_VECTORIZE = @CFLAGS_VECTORIZE@
 CFLAGS_SSE42 = @CFLAGS_SSE42@
 CFLAGS_ARMV8_CRC32C = @CFLAGS_ARMV8_CRC32C@
 PERMIT_DECLARATION_AFTER_STATEMENT = @PERMIT_DECLARATION_AFTER_STATEMENT@
@@ -326,12 +329,11 @@ LIBS = @LIBS@
 LDAP_LIBS_FE = @LDAP_LIBS_FE@
 LDAP_LIBS_BE = @LDAP_LIBS_BE@
 UUID_LIBS = @UUID_LIBS@
-UUID_EXTRA_OBJS = @UUID_EXTRA_OBJS@
 LLVM_LIBS=@LLVM_LIBS@
 LD = @LD@
 with_gnu_ld = @with_gnu_ld@
 
-# Greenplum uses zstd in frontend and backend
+# Cloudberry uses zstd in frontend and backend
 LIBS := $(LIBS) $(ZSTD_LIBS)
 
 # It's critical that within LDFLAGS, all -L switches pointing to build-tree
@@ -399,6 +401,22 @@ XGETTEXT = @XGETTEXT@
 
 GZIP	= gzip
 BZIP2	= bzip2
+
+DOWNLOAD = wget -O $@ --no-use-server-timestamps
+#DOWNLOAD = curl -o $@
+
+
+# Unicode data information
+
+# Before each major release, update these and run make update-unicode.
+
+# Pick a release from here: <https://www.unicode.org/Public/>.  Note
+# that the most recent release listed there is often a pre-release;
+# don't pick that one, except for testing.
+UNICODE_VERSION = 13.0.0
+
+# Pick a release from here: <http://cldr.unicode.org/index/downloads>
+CLDR_VERSION = 39
 
 
 # Tree-wide build support
@@ -477,21 +495,41 @@ ld_library_path_var = LD_LIBRARY_PATH
 # need something more here. If not defined then the expansion does
 # nothing.
 with_temp_install = \
-	PATH="$(abs_top_builddir)/tmp_install$(bindir):$$PATH" \
+	PATH="$(abs_top_builddir)/tmp_install$(bindir):$(CURDIR):$$PATH" \
 	$(call add_to_path,$(strip $(ld_library_path_var)),$(abs_top_builddir)/tmp_install$(libdir)) \
 	$(with_temp_install_extra)
 
 ifeq ($(enable_tap_tests),yes)
+
+ifndef PGXS
 define prove_installcheck
 rm -rf '$(CURDIR)'/tmp_check
 $(MKDIR_P) '$(CURDIR)'/tmp_check
-cd $(srcdir) && TESTDIR='$(CURDIR)' PATH="$(bindir):$$PATH" PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' PG_REGRESS='$(CURDIR)/$(top_builddir)/src/test/regress/pg_regress' REGRESS_SHLIB='$(abs_top_builddir)/src/test/regress/regress$(DLSUFFIX)' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(if $(PROVE_TESTS),$(PROVE_TESTS),t/*.pl)
+cd $(srcdir) && \
+   TESTDIR='$(CURDIR)' PATH="$(bindir):$(CURDIR):$$PATH" \
+   PGPORT='6$(DEF_PGPORT)' top_builddir='$(CURDIR)/$(top_builddir)' \
+   PG_REGRESS='$(CURDIR)/$(top_builddir)/src/test/regress/pg_regress' \
+   $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(if $(PROVE_TESTS),$(PROVE_TESTS),t/*.pl)
 endef
+else # PGXS case
+define prove_installcheck
+rm -rf '$(CURDIR)'/tmp_check
+$(MKDIR_P) '$(CURDIR)'/tmp_check
+cd $(srcdir) && \
+   TESTDIR='$(CURDIR)' PATH="$(bindir):$(CURDIR):$$PATH" \
+   PGPORT='6$(DEF_PGPORT)' top_builddir='$(top_builddir)' \
+   PG_REGRESS='$(top_builddir)/src/test/regress/pg_regress' \
+   $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(if $(PROVE_TESTS),$(PROVE_TESTS),t/*.pl)
+endef
+endif # PGXS
 
 define prove_check
 rm -rf '$(CURDIR)'/tmp_check
 $(MKDIR_P) '$(CURDIR)'/tmp_check
-cd $(srcdir) && TESTDIR='$(CURDIR)' $(with_temp_install) PGPORT='6$(DEF_PGPORT)' PG_REGRESS='$(CURDIR)/$(top_builddir)/src/test/regress/pg_regress' REGRESS_SHLIB='$(abs_top_builddir)/src/test/regress/regress$(DLSUFFIX)' $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(if $(PROVE_TESTS),$(PROVE_TESTS),t/*.pl)
+cd $(srcdir) && \
+   TESTDIR='$(CURDIR)' $(with_temp_install) PGPORT='6$(DEF_PGPORT)' \
+   PG_REGRESS='$(CURDIR)/$(top_builddir)/src/test/regress/pg_regress' \
+   $(PROVE) $(PG_PROVE_FLAGS) $(PROVE_FLAGS) $(if $(PROVE_TESTS),$(PROVE_TESTS),t/*.pl)
 endef
 
 else
@@ -554,15 +592,10 @@ GCOV = @GCOV@
 LCOV = @LCOV@
 GENHTML = @GENHTML@
 
-ifeq ($(enable_coverage),yes)
-# ccache loses .gcno files
-export CCACHE_DISABLE = 1
-endif
-
 # Feature settings
 
 DEF_PGPORT = @default_port@
-# NLS is not supported in Greenplum, see comment documenting
+# NLS is not supported in Cloudberry, see comment documenting
 # this in configure.in
 # WANTED_LANGUAGES = @WANTED_LANGUAGES@
 
@@ -581,10 +614,6 @@ build_os = @build_os@
 host_tuple = @host@
 host_os = @host_os@
 host_cpu = @host_cpu@
-
-# This is mainly for use on FreeBSD, where we have both a.out and elf
-# systems now.  May be applicable to other systems to?
-ELF_SYSTEM= @ELF_SYS@
 
 # Backend stack size limit has to be hard-wired on Windows (it's in bytes)
 WIN32_STACK_RLIMIT=4194304

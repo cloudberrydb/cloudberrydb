@@ -16,7 +16,7 @@
  * be linked into libpq.
  *
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/interfaces/libpq/pqexpbuffer.c
@@ -28,7 +28,7 @@
  * This file is compiled with both frontend and backend codes, symlinked by
  * src/backend/Makefile, and use macro FRONTEND to switch.
  *
- * Include "c.h" to adopt Greenplum C types. Don't include "postgres_fe.h",
+ * Include "c.h" to adopt Cloudberry C types. Don't include "postgres_fe.h",
  * which only defines FRONTEND besides including "c.h"
  */
 #include "c.h"

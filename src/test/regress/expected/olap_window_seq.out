@@ -624,7 +624,7 @@ group by vn; -- mvd 3->1
 
 -- Test NULLS FIRST/LAST in window clauses
 create table tbl_with_nulls_seq (t text, a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into tbl_with_nulls_seq values
   ( 'a', 1, 10),
@@ -1288,7 +1288,7 @@ LINE 1: SELECT count(distinct sale.pn) OVER (order by sale.pn) from ...
                ^
 -- Aggregate nesting --
 create table olap_tmp_for_window_seq(g integer, h integer, i integer, x integer);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'g' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'g' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into olap_tmp_for_window_seq values 
     (9,1,1,1),
@@ -2351,7 +2351,7 @@ unbounded following) as fv from sale; --mvd 1,2->3
 
 -- Test obscure types
 create table typetest_for_window_seq (i int[], j box, k bit, l bytea, m text[]);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into typetest_for_window_seq values('{1, 2, 3}', '(1, 2), (3, 4)', '1', E'\012\001', 
 '{foo, bar}');
@@ -3944,7 +3944,7 @@ CREATE TABLE FACT_TEST
  TIME_KEY    INTEGER  NOT NULL,
  EVENT_TYPE  text  NOT NULL
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'date_key' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'date_key' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into fact_test values
   (20070101, 'W', 100, 'c'),
@@ -7380,7 +7380,7 @@ LINE 2: ...lect dt, sum(cn) over(order by grouping(cn) range grouping(c...
 -- MPP-2194, MPP-2236
 drop table if exists win_test_for_window_seq;
 create table win_test_for_window_seq (i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into win_test_for_window_seq values (0,0), (1,null), (2, null), (3,null);
 select i,j,sum(i) over(order by j range 1 preceding) from win_test_for_window_seq; --mvd 2->3
@@ -7901,7 +7901,7 @@ explain select count(*) over (order by i), count(*) over (partition by i order b
 -- End of MPP-13710
 -- MPP-13879
 create table num_range as select a::numeric from generate_series(1, 10)a;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select a, max(a) over (order by a range between current row and 2 following) from num_range;
  a  | max 
@@ -7921,7 +7921,7 @@ select a, max(a) over (order by a range between current row and 2 following) fro
 -- End of MPP-13879
 -- MPP-13969
 create table esc176_1(id int, seq int, val float, clickdate timestamp);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into esc176_1 values(1, 1, 0.2, '2011-08-18 04:59:35.471494'),
 	(1, 2, 0.1, '2011-08-18 04:59:45.920501'),
@@ -7942,7 +7942,7 @@ select id, seq, clickdate, sum(val) over
 drop table if exists olap_window_seq_test;
 NOTICE:  table "olap_window_seq_test" does not exist, skipping
 create table olap_window_seq_test (n numeric, d date);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'n' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'n' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into olap_window_seq_test values (12, '2011-05-01'), (34, '2011-05-02'), (89, '2011-05-03');
 select stddev(n) over(order by d range interval '1 day' preceding), n from olap_window_seq_test;
@@ -7993,7 +7993,7 @@ CREATE TABLE empsalary(
   salary char(8),
   enroll_date date
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'depname' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'depname' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO empsalary VALUES('develop', 8, '6000', '2006/10/01');
 INSERT INTO empsalary VALUES('develop', 11, '5200', '2007/08/15');
@@ -8032,7 +8032,7 @@ CREATE TABLE empsalary(
   salary numeric(22, 6),
   enroll_date date
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'depname' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'depname' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO empsalary VALUES('develop', 8, 6000, '2006/10/01');
 INSERT INTO empsalary VALUES('develop', 11, 5200, '2007/08/15');
@@ -8057,7 +8057,7 @@ CREATE TABLE empsalary(
   salary int,
   enroll_date date
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'depname' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'depname' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO empsalary VALUES('develop', 8, 6000, '2006/10/01');
 INSERT INTO empsalary VALUES('develop', 11, 5200, '2007/08/15');
@@ -8134,10 +8134,10 @@ SELECT bar.*, count(*) OVER() AS e FROM foo, bar where foo.b = bar.d;
 reset optimizer_segments;
 drop table foo, bar;
 CREATE TABLE foo (a int, b int, c int, d int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into foo select i,i,i,i from generate_series(1, 10) i;
-EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
+EXPLAIN (COSTS OFF) SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
        count(*) over (PARTITION BY a ORDER BY b, c) as count2,
        count(*) over (PARTITION BY a ORDER BY b) as count3,
        count(*) over (PARTITION BY a ORDER BY c) as count1,
@@ -8146,32 +8146,33 @@ EXPLAIN SELECT count(*) over (PARTITION BY a ORDER BY b, c, d) as count1,
 FROM foo;
                                                 QUERY PLAN                                                
 ----------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=4.06..4.68 rows=10 width=16)
-   ->  WindowAgg  (cost=4.06..4.68 rows=4 width=16)
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  WindowAgg
          Partition By: a
          Order By: b
-         ->  WindowAgg  (cost=4.06..4.51 rows=4 width=16)
+         ->  WindowAgg
                Partition By: a
                Order By: b, c
-               ->  WindowAgg  (cost=4.06..4.31 rows=4 width=16)
+               ->  WindowAgg
                      Partition By: a
                      Order By: b, c, d
-                     ->  Sort  (cost=4.06..4.08 rows=4 width=16)
+                     ->  Incremental Sort
                            Sort Key: a, b, c, d
-                           ->  WindowAgg  (cost=3.27..3.89 rows=4 width=16)
+                           Presorted Key: a
+                           ->  WindowAgg
                                  Partition By: a
                                  Order By: c
-                                 ->  WindowAgg  (cost=3.27..3.72 rows=4 width=16)
+                                 ->  WindowAgg
                                        Partition By: a
                                        Order By: c, b
-                                       ->  WindowAgg  (cost=3.27..3.52 rows=4 width=16)
+                                       ->  WindowAgg
                                              Partition By: a
                                              Order By: c, b, d
-                                             ->  Sort  (cost=3.27..3.29 rows=4 width=16)
+                                             ->  Sort
                                                    Sort Key: a, c, b, d
-                                                   ->  Seq Scan on foo  (cost=0.00..3.10 rows=4 width=16)
+                                                   ->  Seq Scan on foo
  Optimizer: Postgres query optimizer
-(25 rows)
+(26 rows)
 
 drop table foo;
 -- test predicate push down in subqueries for quals containing windowref nodes
@@ -8179,7 +8180,7 @@ drop table foo;
 drop table if exists window_preds;
 NOTICE:  table "window_preds" does not exist, skipping
 create table window_preds(i int, j int, k int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into window_preds values(1,2,3);
 analyze window_preds;
@@ -8275,7 +8276,7 @@ explain with CTE as (select i, row_number() over (partition by j) j from window_
    ->  Subquery Scan on cte  (cost=0.00..0.04 rows=1 width=12)
          Filter: cte.j = 1
          ->  Append  (cost=1.04..2.14 rows=1 width=12)
-               ->  Subquery Scan on "*SELECT* 1"  (cost=1.04..1.07 rows=1 width=12)
+               ->  Subquery Scan on "*SELECT* 1_1"  (cost=1.04..1.07 rows=1 width=12)
                      ->  WindowAgg  (cost=1.04..1.06 rows=1 width=8)
                            Partition By: window_preds.j
                            ->  Sort  (cost=1.04..1.04 rows=1 width=8)
@@ -8364,7 +8365,7 @@ explain with CTE as (select i, row_number() over (partition by j) j from window_
    ->  Subquery Scan on cte  (cost=0.00..0.04 rows=1 width=12)
          Filter: cte.i = 1
          ->  Append  (cost=1.04..2.14 rows=1 width=12)
-               ->  Subquery Scan on "*SELECT* 1"  (cost=1.04..1.07 rows=1 width=12)
+               ->  Subquery Scan on "*SELECT* 1_1"  (cost=1.04..1.07 rows=1 width=12)
                      ->  WindowAgg  (cost=1.04..1.06 rows=1 width=8)
                            Partition By: window_preds.j
                            ->  Sort  (cost=1.04..1.04 rows=1 width=8)
@@ -8506,130 +8507,130 @@ EXPLAIN WITH cte as (SELECT *, row_number() over () FROM window_part_sales) SELE
    Filter: ((cte.date > '03-01-2011'::date) AND (cte.region = 'usa'::text))
    ->  WindowAgg  (cost=0.00..27819.00 rows=560400 width=48)
          ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..20814.00 rows=560400 width=40)
-               ->  Append  (cost=0.00..9606.00 rows=186800 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_2_2_prt_other_regions  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_3_2_prt_other_regions  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_4_2_prt_other_regions  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_5_2_prt_other_regions  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_6_2_prt_other_regions  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa  (cost=0.00..567.00 rows=15567 width=40)
-                     ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_other_regions  (cost=0.00..567.00 rows=15567 width=40)
+               ->  Append  (cost=0.00..3210.00 rows=186800 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa window_part_sales_1  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_2_2_prt_other_regions window_part_sales_2  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa window_part_sales_3  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_3_2_prt_other_regions window_part_sales_4  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa window_part_sales_5  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_4_2_prt_other_regions window_part_sales_6  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa window_part_sales_7  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_5_2_prt_other_regions window_part_sales_8  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa window_part_sales_9  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_6_2_prt_other_regions window_part_sales_10  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa window_part_sales_11  (cost=0.00..189.67 rows=15567 width=40)
+                     ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_other_regions window_part_sales_12  (cost=0.00..189.67 rows=15567 width=40)
  Optimizer: Postgres query optimizer
 (18 rows)
 
 -- If there is a PARTITION BY in the window function, we can push down ONLY the predicates that match the PARTITION BY column.
 EXPLAIN WITH cte as (SELECT *, row_number() over (PARTITION BY region) FROM window_part_sales) SELECT * FROM cte WHERE date > '2011-03-01' AND region = 'usa';
-                                                            QUERY PLAN                                                            
-----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..4115.58 rows=94 width=48)
-   ->  Subquery Scan on cte  (cost=0.00..4113.71 rows=32 width=48)
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1376.48 rows=93 width=48)
+   ->  Subquery Scan on cte  (cost=0.00..1375.24 rows=31 width=48)
          Filter: (cte.date > '03-01-2011'::date)
-         ->  WindowAgg  (cost=0.00..4113.71 rows=94 width=48)
-               Partition By: window_part_sales_1_prt_2_2_prt_usa.region
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..4109.51 rows=94 width=40)
-                     Hash Key: window_part_sales_1_prt_2_2_prt_usa.region
-                     ->  Append  (cost=0.00..4103.90 rows=94 width=40)
-                           ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+         ->  WindowAgg  (cost=0.00..1375.24 rows=93 width=48)
+               Partition By: window_part_sales.region
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1373.84 rows=93 width=40)
+                     Hash Key: window_part_sales.region
+                     ->  Append  (cost=0.00..1371.97 rows=93 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa window_part_sales_1  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa window_part_sales_2  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa window_part_sales_3  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa window_part_sales_4  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa window_part_sales_5  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa window_part_sales_6  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
  Optimizer: Postgres query optimizer
 (21 rows)
 
 -- When both columns in the filter predicates are in the window function, it is possible to push both down.
 EXPLAIN WITH cte as (SELECT *, row_number() over (PARTITION BY date,region) FROM window_part_sales) SELECT * FROM cte WHERE date > '2011-03-01' AND region = 'usa';
-                                                           QUERY PLAN                                                            
----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=3208.34..3212.65 rows=108 width=48)
-   ->  WindowAgg  (cost=3208.34..3210.49 rows=36 width=48)
-         Partition By: window_part_sales_1_prt_4_2_prt_usa.date, window_part_sales_1_prt_4_2_prt_usa.region
-         ->  Sort  (cost=3208.34..3208.61 rows=36 width=40)
-               Sort Key: window_part_sales_1_prt_4_2_prt_usa.date
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..3204.70 rows=36 width=40)
-                     Hash Key: window_part_sales_1_prt_4_2_prt_usa.date, window_part_sales_1_prt_4_2_prt_usa.region
-                     ->  Append  (cost=0.00..3202.54 rows=36 width=40)
-                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa  (cost=0.00..800.50 rows=9 width=40)
+                                                                     QUERY PLAN                                                                      
+-----------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1071.83..1073.98 rows=108 width=48)
+   ->  WindowAgg  (cost=1071.83..1072.55 rows=36 width=48)
+         Partition By: window_part_sales.date, window_part_sales.region
+         ->  Sort  (cost=1071.83..1071.92 rows=36 width=40)
+               Sort Key: window_part_sales.date
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1070.90 rows=36 width=40)
+                     Hash Key: window_part_sales.date, window_part_sales.region
+                     ->  Append  (cost=0.00..1070.18 rows=36 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa window_part_sales_1  (cost=0.00..267.50 rows=9 width=40)
                                  Filter: ((date > '03-01-2011'::date) AND (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa  (cost=0.00..800.50 rows=9 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa window_part_sales_2  (cost=0.00..267.50 rows=9 width=40)
                                  Filter: ((date > '03-01-2011'::date) AND (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa  (cost=0.00..800.50 rows=9 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa window_part_sales_3  (cost=0.00..267.50 rows=9 width=40)
                                  Filter: ((date > '03-01-2011'::date) AND (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa  (cost=0.00..800.50 rows=9 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa window_part_sales_4  (cost=0.00..267.50 rows=9 width=40)
                                  Filter: ((date > '03-01-2011'::date) AND (region = 'usa'::text))
  Optimizer: Postgres query optimizer
 (17 rows)
 
 -- When the column in the filter predicates is also present in the window function, it is possible to push it down.
 EXPLAIN WITH cte as (SELECT *, row_number() over (PARTITION BY date,region) FROM window_part_sales) SELECT * FROM cte WHERE region = 'usa';
-                                                            QUERY PLAN                                                            
-----------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=4120.90..4132.10 rows=281 width=48)
-   ->  WindowAgg  (cost=4120.90..4126.50 rows=94 width=48)
-         Partition By: window_part_sales_1_prt_2_2_prt_usa.date, window_part_sales_1_prt_2_2_prt_usa.region
-         ->  Sort  (cost=4120.90..4121.60 rows=94 width=40)
-               Sort Key: window_part_sales_1_prt_2_2_prt_usa.date
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..4109.51 rows=94 width=40)
-                     Hash Key: window_part_sales_1_prt_2_2_prt_usa.date, window_part_sales_1_prt_2_2_prt_usa.region
-                     ->  Append  (cost=0.00..4103.90 rows=94 width=40)
-                           ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=1376.89..1382.50 rows=280 width=48)
+   ->  WindowAgg  (cost=1376.89..1378.76 rows=93 width=48)
+         Partition By: window_part_sales.date, window_part_sales.region
+         ->  Sort  (cost=1376.89..1377.13 rows=93 width=40)
+               Sort Key: window_part_sales.date
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..1373.84 rows=93 width=40)
+                     Hash Key: window_part_sales.date, window_part_sales.region
+                     ->  Append  (cost=0.00..1371.97 rows=93 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa window_part_sales_1  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa window_part_sales_2  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa window_part_sales_3  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa window_part_sales_4  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa window_part_sales_5  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
-                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa  (cost=0.00..683.75 rows=16 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa window_part_sales_6  (cost=0.00..228.58 rows=16 width=40)
                                  Filter: (region = 'usa'::text)
  Optimizer: Postgres query optimizer
 (21 rows)
 
 -- When there is a disjunct in the filter predicates, it is not possible to push down either into the window function.
 EXPLAIN WITH cte as (SELECT *, row_number() over (PARTITION BY date,region) FROM window_part_sales) SELECT * FROM cte WHERE date > '2011-03-01' OR region = 'usa';
-                                                                  QUERY PLAN                                                                  
-----------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=25358.32..31597.44 rows=155978 width=48)
-   ->  WindowAgg  (cost=25358.32..28477.88 rows=51993 width=48)
-         Partition By: window_part_sales_1_prt_2_2_prt_usa.date, window_part_sales_1_prt_2_2_prt_usa.region
-         ->  Sort  (cost=25358.32..25748.26 rows=51993 width=40)
-               Sort Key: window_part_sales_1_prt_2_2_prt_usa.date, window_part_sales_1_prt_2_2_prt_usa.region
-               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..11904.45 rows=51993 width=40)
-                     Hash Key: window_part_sales_1_prt_2_2_prt_usa.date, window_part_sales_1_prt_2_2_prt_usa.region
-                     ->  Append  (cost=0.00..8784.89 rows=51993 width=40)
-                           ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa  (cost=0.00..800.50 rows=5200 width=40)
+                                                                            QUERY PLAN                                                                             
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=8047.41..11166.97 rows=155978 width=48)
+   ->  WindowAgg  (cost=8047.41..9087.26 rows=51993 width=48)
+         Partition By: window_part_sales.date, window_part_sales.region
+         ->  Sort  (cost=8047.41..8177.39 rows=51993 width=40)
+               Sort Key: window_part_sales.date, window_part_sales.region
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..3974.82 rows=51993 width=40)
+                     Hash Key: window_part_sales.date, window_part_sales.region
+                     ->  Append  (cost=0.00..2934.96 rows=51993 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_2_2_prt_usa window_part_sales_1  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_3_2_prt_usa window_part_sales_2  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_usa window_part_sales_3  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_other_regions  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_4_2_prt_other_regions window_part_sales_4  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_usa window_part_sales_5  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_other_regions  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_5_2_prt_other_regions window_part_sales_6  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_usa window_part_sales_7  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_other_regions  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_6_2_prt_other_regions window_part_sales_8  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_usa window_part_sales_9  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
-                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_other_regions  (cost=0.00..800.50 rows=5200 width=40)
+                           ->  Seq Scan on window_part_sales_1_prt_outlying_dates_2_prt_other_regions window_part_sales_10  (cost=0.00..267.50 rows=5199 width=40)
                                  Filter: ((date > '03-01-2011'::date) OR (region = 'usa'::text))
  Optimizer: Postgres query optimizer
 (29 rows)

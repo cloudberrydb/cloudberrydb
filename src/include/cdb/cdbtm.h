@@ -15,8 +15,10 @@
 #include "cdb/cdbpublic.h"
 #ifndef FRONTEND
 #include "storage/s_lock.h"
+#include "port/atomics.h"
 #endif
 #include "nodes/plannodes.h"
+#include "tcop/cmdtag.h"
 
 struct Gang;
 
@@ -86,33 +88,28 @@ typedef enum
  * Transaction Management QD to QE protocol commands
  *
  */
-typedef enum
-{
-	DTX_PROTOCOL_COMMAND_NONE = 0,
-
+typedef CommandTag DtxProtocolCommand;
+#define DTX_PROTOCOL_COMMAND_NONE                                  CMDTAG_DTX_NONE
 	/**
 	 * Instruct the QE to go into implied writer state if not already.  This
 	 *   is used when promoting a direct-dispatch transaction to a full-cluster
 	 *   transaction
 	 */
-	DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED = 1,
-	DTX_PROTOCOL_COMMAND_PREPARE,
-	DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED,
-	DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE,
-	DTX_PROTOCOL_COMMAND_COMMIT_PREPARED,
+#define DTX_PROTOCOL_COMMAND_ABORT_NO_PREPARED                     CMDTAG_DTX_ABORT_NO_PREPARED
+#define DTX_PROTOCOL_COMMAND_ABORT_SOME_PREPARED                   CMDTAG_DTX_ABORT_SOME_PREPARED
+#define DTX_PROTOCOL_COMMAND_COMMIT_ONEPHASE                       CMDTAG_DTX_COMMIT_ONEPHASE
+#define DTX_PROTOCOL_COMMAND_COMMIT_PREPARED                       CMDTAG_DTX_COMMIT_PREPARED
+#define DTX_PROTOCOL_COMMAND_PREPARE                               CMDTAG_DTX_PREPARE
 	/* for explicit transaction that doesn't write any xlog */
-	DTX_PROTOCOL_COMMAND_ABORT_PREPARED,
-	DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED,
-	DTX_PROTOCOL_COMMAND_RETRY_ABORT_PREPARED,
-	DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED,
-	DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED,
+#define DTX_PROTOCOL_COMMAND_ABORT_PREPARED                        CMDTAG_DTX_ABORT_PREPARED
+#define DTX_PROTOCOL_COMMAND_RETRY_ABORT_PREPARED                  CMDTAG_DTX_RETRY_ABORT_PREPARED
+#define DTX_PROTOCOL_COMMAND_RETRY_COMMIT_PREPARED                 CMDTAG_DTX_RETRY_COMMIT_PREPARED
+#define DTX_PROTOCOL_COMMAND_RECOVERY_ABORT_PREPARED               CMDTAG_DTX_RECOVERY_ABORT_PREPARED
+#define DTX_PROTOCOL_COMMAND_RECOVERY_COMMIT_PREPARED              CMDTAG_DTX_RECOVERY_COMMIT_PREPARED
 
-	DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL,
-	DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL,
-	DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL,
-
-	DTX_PROTOCOL_COMMAND_LAST = DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL
-} DtxProtocolCommand;
+#define DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL         CMDTAG_DTX_BEGIN_INTERNAL_SUBTRANSACTION
+#define DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL       CMDTAG_DTX_RELEASE_CURRENT_SUBTRANSACTION
+#define DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL      CMDTAG_DTX_ROLLBACK_CURRENT_SUBTRANSACTION
 
 /* DTX Context above xact.c */
 typedef enum
@@ -208,6 +205,18 @@ typedef struct TMGXACT
 	 */
 	DistributedTransactionId	gxid;
 
+#ifndef FRONTEND
+	/*
+	* Atomic assign and fetch an uint64 DistributedTransactionId,
+	* cooperate with gxid.
+	* When first assigning and fetching gxid, using this to keep
+	* atomic and then assign/fetch gxid with its value.
+	* Only use this on QD when necessary as QE's gxid and
+	* DistributedSnapshot is dispathed from QD.
+	*/
+	pg_atomic_uint64 			atomic_gxid;
+#endif
+
 	/*
 	 * This is similar to xmin of PROC, stores lowest dxid on first snapshot
 	 * by process with this as MyTmGxact.
@@ -280,9 +289,9 @@ extern slock_t *shmGxidGenLock;
 extern DistributedTransactionId *shmCommittedGxidArray;
 extern volatile int *shmNumCommittedGxacts;
 
-extern char *DtxStateToString(DtxState state);
-extern char *DtxProtocolCommandToString(DtxProtocolCommand command);
-extern char *DtxContextToString(DtxContext context);
+extern const char *DtxStateToString(DtxState state);
+extern const char *DtxProtocolCommandToString(DtxProtocolCommand command);
+extern const char *DtxContextToString(DtxContext context);
 extern void dtxDeformGid(const char	*gid,
 							DistributedTransactionId		*distribXid);
 extern void dtxFormGid(char *gid, DistributedTransactionId gxid);

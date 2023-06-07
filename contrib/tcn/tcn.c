@@ -3,7 +3,7 @@
  * tcn.c
  *	  triggered change notification support for PostgreSQL
  *
- * Portions Copyright (c) 2011-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2011-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,9 +16,9 @@
 #include "postgres.h"
 
 #include "access/htup_details.h"
-#include "executor/spi.h"
 #include "commands/async.h"
 #include "commands/trigger.h"
+#include "executor/spi.h"
 #include "lib/stringinfo.h"
 #include "utils/rel.h"
 #include "utils/syscache.h"

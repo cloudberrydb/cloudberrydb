@@ -4,7 +4,7 @@
  *	  private declarations for GiST -- declarations related to the
  *	  internal implementation of GiST, not the public API
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/gist_private.h
@@ -18,7 +18,6 @@
 #include "access/genam.h"
 #include "access/gist.h"
 #include "access/itup.h"
-#include "fmgr.h"
 #include "lib/pairingheap.h"
 #include "storage/bufmgr.h"
 #include "storage/buffile.h"
@@ -145,23 +144,15 @@ typedef struct GISTSearchItem
 	 * IndexScanDesc->numberOfOrderBys. See macros below for accessing those
 	 * arrays.
 	 */
+	/* numberOfOrderBys entries */
+	IndexOrderByDistance distances[FLEXIBLE_ARRAY_MEMBER];
 } GISTSearchItem;
 
 #define GISTSearchItemIsHeap(item)	((item).blkno == InvalidBlockNumber)
 
-#define SizeOfGISTSearchItem(n_distances) (DOUBLEALIGN(sizeof(GISTSearchItem)) + \
-	(sizeof(double) + sizeof(bool)) * (n_distances))
-
-/*
- * We actually don't need n_distances compute pointer to distance values.
- * Nevertheless take n_distances as argument to have same arguments list for
- * GISTSearchItemDistanceValues() and GISTSearchItemDistanceNulls().
- */
-#define GISTSearchItemDistanceValues(item, n_distances) \
-	((double *) ((Pointer) (item) + DOUBLEALIGN(sizeof(GISTSearchItem))))
-
-#define GISTSearchItemDistanceNulls(item, n_distances) \
-	((bool *) ((Pointer) (item) + DOUBLEALIGN(sizeof(GISTSearchItem)) + sizeof(double) * (n_distances)))
+#define SizeOfGISTSearchItem(n_distances) \
+	(offsetof(GISTSearchItem, distances) + \
+	 sizeof(IndexOrderByDistance) * (n_distances))
 
 /*
  * GISTScanOpaqueData: private state for a scan of a GiST index
@@ -177,8 +168,7 @@ typedef struct GISTScanOpaqueData
 	bool		firstCall;		/* true until first gistgettuple call */
 
 	/* pre-allocated workspace arrays */
-	double	   *distanceValues; /* output area for gistindex_keytest */
-	bool	   *distanceNulls;
+	IndexOrderByDistance *distances;	/* output area for gistindex_keytest */
 
 	/* info about killed items if any (killedItems is NULL if never used) */
 	OffsetNumber *killedItems;	/* offset numbers of killed items */
@@ -396,6 +386,14 @@ typedef struct GISTBuildBuffers
 	int			rootlevel;
 } GISTBuildBuffers;
 
+/* GiSTOptions->buffering_mode values */
+typedef enum GistOptBufferingMode
+{
+	GIST_OPTION_BUFFERING_AUTO,
+	GIST_OPTION_BUFFERING_ON,
+	GIST_OPTION_BUFFERING_OFF
+} GistOptBufferingMode;
+
 /*
  * Storage type for GiST's reloptions
  */
@@ -403,7 +401,7 @@ typedef struct GiSTOptions
 {
 	int32		vl_len_;		/* varlena header (do not touch directly!) */
 	int			fillfactor;		/* page fill factor in percent (0..100) */
-	int			bufferingModeOffset;	/* use buffering build? */
+	GistOptBufferingMode buffering_mode;	/* buffering build mode */
 } GiSTOptions;
 
 /* gist.c */
@@ -411,6 +409,7 @@ extern void gistbuildempty(Relation index);
 extern bool gistinsert(Relation r, Datum *values, bool *isnull,
 					   ItemPointer ht_ctid, Relation heapRel,
 					   IndexUniqueCheck checkUnique,
+					   bool indexUnchanged,
 					   struct IndexInfo *indexInfo);
 extern MemoryContext createTempGistContext(void);
 extern GISTSTATE *initGISTstate(Relation index);
@@ -418,7 +417,7 @@ extern void freeGISTstate(GISTSTATE *giststate);
 extern void gistdoinsert(Relation r,
 						 IndexTuple itup,
 						 Size freespace,
-						 GISTSTATE *GISTstate,
+						 GISTSTATE *giststate,
 						 Relation heapRel,
 						 bool is_build);
 
@@ -435,7 +434,7 @@ extern bool gistplacetopage(Relation rel, Size freespace, GISTSTATE *giststate,
 							OffsetNumber oldoffnum, BlockNumber *newblkno,
 							Buffer leftchildbuf,
 							List **splitinfo,
-							bool markleftchild,
+							bool markfollowright,
 							Relation heapRel,
 							bool is_build);
 
@@ -444,11 +443,11 @@ extern SplitedPageLayout *gistSplit(Relation r, Page page, IndexTuple *itup,
 
 /* gistxlog.c */
 extern XLogRecPtr gistXLogPageDelete(Buffer buffer,
-									 TransactionId xid, Buffer parentBuffer,
+									 FullTransactionId xid, Buffer parentBuffer,
 									 OffsetNumber downlinkOffset);
 
 extern void gistXLogPageReuse(Relation rel, BlockNumber blkno,
-							  TransactionId latestRemovedXid);
+							  FullTransactionId latestRemovedXid);
 
 extern XLogRecPtr gistXLogUpdate(Buffer buffer,
 								 OffsetNumber *todelete, int ntodelete,
@@ -463,6 +462,8 @@ extern XLogRecPtr gistXLogSplit(bool page_is_leaf,
 								BlockNumber origrlink, GistNSN oldnsn,
 								Buffer leftchild, bool markfollowright);
 
+extern XLogRecPtr gistXLogAssignLSN(void);
+
 /* gistget.c */
 extern bool gistgettuple(IndexScanDesc scan, ScanDirection dir);
 extern int64 gistgetbitmap(IndexScanDesc scan, Node **bmNodeP);
@@ -470,6 +471,10 @@ extern bool gistcanreturn(Relation index, int attno);
 
 /* gistvalidate.c */
 extern bool gistvalidate(Oid opclassoid);
+extern void gistadjustmembers(Oid opfamilyoid,
+							  Oid opclassoid,
+							  List *operators,
+							  List *functions);
 
 /* gistutil.c */
 
@@ -491,8 +496,7 @@ extern bool gistPageRecyclable(Page page);
 extern void gistfillbuffer(Page page, IndexTuple *itup, int len,
 						   OffsetNumber off);
 extern IndexTuple *gistextractpage(Page page, int *len /* out */ );
-extern IndexTuple *gistjoinvector(
-								  IndexTuple *itvec, int *len,
+extern IndexTuple *gistjoinvector(IndexTuple *itvec, int *len,
 								  IndexTuple *additvec, int addlen);
 extern IndexTupleData *gistfillitupvec(IndexTuple *vec, int veclen, int *memlen);
 
@@ -504,12 +508,15 @@ extern IndexTuple gistgetadjusted(Relation r,
 								  GISTSTATE *giststate);
 extern IndexTuple gistFormTuple(GISTSTATE *giststate,
 								Relation r, Datum *attdata, bool *isnull, bool isleaf);
+extern void gistCompressValues(GISTSTATE *giststate, Relation r,
+							   Datum *attdata, bool *isnull, bool isleaf, Datum *compatt);
 
 extern OffsetNumber gistchoose(Relation r, Page p,
 							   IndexTuple it,
 							   GISTSTATE *giststate);
 
 extern void GISTInitBuffer(Buffer b, uint32 f);
+extern void gistinitpage(Page page, uint32 f);
 extern void gistdentryinit(GISTSTATE *giststate, int nkey, GISTENTRY *e,
 						   Datum k, Relation r, Page pg, OffsetNumber o,
 						   bool l, bool isNull);

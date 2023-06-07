@@ -3,7 +3,7 @@
  * parse_agg.c
  *	  handle aggregates in parser
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -63,7 +63,7 @@ static int	check_agg_arguments(ParseState *pstate,
 static bool check_agg_arguments_walker(Node *node,
 									   check_agg_arguments_context *context);
 static void check_ungrouped_columns(Node *node, ParseState *pstate, Query *qry,
-									List *groupClauses, List *groupClauseVars,
+									List *groupClauses, List *groupClauseCommonVars,
 									bool have_non_var_grouping,
 									List **func_grouped_rels);
 static bool check_ungrouped_columns_walker(Node *node,
@@ -516,6 +516,13 @@ check_agglevels_and_constraints(ParseState *pstate, Node *expr)
 				err = _("grouping operations are not allowed in index predicates");
 
 			break;
+		case EXPR_KIND_STATS_EXPRESSION:
+			if (isAgg)
+				err = _("aggregate functions are not allowed in statistics expressions");
+			else
+				err = _("grouping operations are not allowed in statistics expressions");
+
+			break;
 		case EXPR_KIND_ALTER_COL_TRANSFORM:
 			if (isAgg)
 				err = _("aggregate functions are not allowed in transform expressions");
@@ -577,6 +584,10 @@ check_agglevels_and_constraints(ParseState *pstate, Node *expr)
 			else
 				err = _("grouping operations are not allowed in COPY FROM WHERE conditions");
 
+			break;
+
+		case EXPR_KIND_CYCLE_MARK:
+			errkind = true;
 			break;
 
 			/*
@@ -650,13 +661,8 @@ check_agg_arguments(ParseState *pstate,
 	context.min_agglevel = -1;
 	context.sublevels_up = 0;
 
-	(void) expression_tree_walker((Node *) args,
-								  check_agg_arguments_walker,
-								  (void *) &context);
-
-	(void) expression_tree_walker((Node *) filter,
-								  check_agg_arguments_walker,
-								  (void *) &context);
+	(void) check_agg_arguments_walker((Node *) args, &context);
+	(void) check_agg_arguments_walker((Node *) filter, &context);
 
 	/*
 	 * If we found no vars nor aggs at all, it's a level-zero aggregate;
@@ -703,9 +709,7 @@ check_agg_arguments(ParseState *pstate,
 	{
 		context.min_varlevel = -1;
 		context.min_agglevel = -1;
-		(void) expression_tree_walker((Node *) directargs,
-									  check_agg_arguments_walker,
-									  (void *) &context);
+		(void) check_agg_arguments_walker((Node *) directargs, &context);
 		if (context.min_varlevel >= 0 && context.min_varlevel < agglevel)
 			ereport(ERROR,
 					(errcode(ERRCODE_GROUPING_ERROR),
@@ -798,8 +802,8 @@ check_agg_arguments_walker(Node *node,
 	 */
 	if (context->sublevels_up == 0)
 	{
-		if ((IsA(node, FuncExpr) &&((FuncExpr *) node)->funcretset) ||
-			(IsA(node, OpExpr) &&((OpExpr *) node)->opretset))
+		if ((IsA(node, FuncExpr) && ((FuncExpr *) node)->funcretset) ||
+			(IsA(node, OpExpr) && ((OpExpr *) node)->opretset))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("aggregate function calls cannot contain set-returning function calls"),
@@ -955,6 +959,9 @@ transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
 		case EXPR_KIND_INDEX_EXPRESSION:
 			err = _("window functions are not allowed in index expressions");
 			break;
+		case EXPR_KIND_STATS_EXPRESSION:
+			err = _("window functions are not allowed in statistics expressions");
+			break;
 		case EXPR_KIND_INDEX_PREDICATE:
 			err = _("window functions are not allowed in index predicates");
 			break;
@@ -984,6 +991,9 @@ transformWindowFuncCall(ParseState *pstate, WindowFunc *wfunc,
 			break;
 		case EXPR_KIND_GENERATED_COLUMN:
 			err = _("window functions are not allowed in column generation expressions");
+			break;
+		case EXPR_KIND_CYCLE_MARK:
+			errkind = true;
 			break;
 
 			/*
@@ -1134,7 +1144,7 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 		 * The limit of 4096 is arbitrary and exists simply to avoid resource
 		 * issues from pathological constructs.
 		 */
-		List	   *gsets = expand_grouping_sets(qry->groupingSets, 4096);
+		List	   *gsets = expand_grouping_sets(qry->groupingSets, qry->groupDistinct, 4096);
 
 		if (!gsets)
 			ereport(ERROR,
@@ -1153,7 +1163,7 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 
 		if (gset_common)
 		{
-			for_each_cell(l, lnext(list_head(gsets)))
+			for_each_from(l, gsets, 1)
 			{
 				gset_common = list_intersection_int(gset_common, lfirst(l));
 				if (!gset_common)
@@ -1202,7 +1212,7 @@ parseCheckAggregates(ParseState *pstate, Query *qry)
 		if (expr == NULL)
 			continue;			/* probably cannot happen */
 
-		groupClauses = lcons(expr, groupClauses);
+		groupClauses = lappend(groupClauses, expr);
 	}
 
 	/*
@@ -1729,9 +1739,8 @@ expand_groupingset_node(GroupingSet *gs)
 
 						Assert(gs_current->kind == GROUPING_SET_SIMPLE);
 
-						current_result
-							= list_concat(current_result,
-										  list_copy(gs_current->content));
+						current_result = list_concat(current_result,
+													 gs_current->content);
 
 						/* If we are done with making the current group, break */
 						if (--i == 0)
@@ -1771,11 +1780,8 @@ expand_groupingset_node(GroupingSet *gs)
 						Assert(gs_current->kind == GROUPING_SET_SIMPLE);
 
 						if (mask & i)
-						{
-							current_result
-								= list_concat(current_result,
-											  list_copy(gs_current->content));
-						}
+							current_result = list_concat(current_result,
+														 gs_current->content);
 
 						mask <<= 1;
 					}
@@ -1802,13 +1808,42 @@ expand_groupingset_node(GroupingSet *gs)
 	return result;
 }
 
+/* list_sort comparator to sort sub-lists by length */
 static int
-cmp_list_len_asc(const void *a, const void *b)
+cmp_list_len_asc(const ListCell *a, const ListCell *b)
 {
-	int			la = list_length(*(List *const *) a);
-	int			lb = list_length(*(List *const *) b);
+	int			la = list_length((const List *) lfirst(a));
+	int			lb = list_length((const List *) lfirst(b));
 
 	return (la > lb) ? 1 : (la == lb) ? 0 : -1;
+}
+
+/* list_sort comparator to sort sub-lists by length and contents */
+static int
+cmp_list_len_contents_asc(const ListCell *a, const ListCell *b)
+{
+	int			res = cmp_list_len_asc(a, b);
+
+	if (res == 0)
+	{
+		List	   *la = (List *) lfirst(a);
+		List	   *lb = (List *) lfirst(b);
+		ListCell   *lca;
+		ListCell   *lcb;
+
+		forboth(lca, la, lcb, lb)
+		{
+			int			va = lfirst_int(lca);
+			int			vb = lfirst_int(lcb);
+
+			if (va > vb)
+				return 1;
+			if (va < vb)
+				return -1;
+		}
+	}
+
+	return res;
 }
 
 /*
@@ -1819,7 +1854,7 @@ cmp_list_len_asc(const void *a, const void *b)
  * some consistency checks.
  */
 List *
-expand_grouping_sets(List *groupingSets, int limit)
+expand_grouping_sets(List *groupingSets, bool groupDistinct, int limit)
 {
 	List	   *expanded_groups = NIL;
 	List	   *result = NIL;
@@ -1857,7 +1892,7 @@ expand_grouping_sets(List *groupingSets, int limit)
 		result = lappend(result, list_union_int(NIL, (List *) lfirst(lc)));
 	}
 
-	for_each_cell(lc, lnext(list_head(expanded_groups)))
+	for_each_from(lc, expanded_groups, 1)
 	{
 		List	   *p = lfirst(lc);
 		List	   *new_result = NIL;
@@ -1877,26 +1912,30 @@ expand_grouping_sets(List *groupingSets, int limit)
 		result = new_result;
 	}
 
-	if (list_length(result) > 1)
+	/* Now sort the lists by length and deduplicate if necessary */
+	if (!groupDistinct || list_length(result) < 2)
+		list_sort(result, cmp_list_len_asc);
+	else
 	{
-		int			result_len = list_length(result);
-		List	  **buf = palloc(sizeof(List *) * result_len);
-		List	  **ptr = buf;
+		ListCell   *cell;
+		List	   *prev;
 
-		foreach(lc, result)
+		/* Sort each groupset individually */
+		foreach(cell, result)
+			list_sort(lfirst(cell), list_int_cmp);
+
+		/* Now sort the list of groupsets by length and contents */
+		list_sort(result, cmp_list_len_contents_asc);
+
+		/* Finally, remove duplicates */
+		prev = linitial(result);
+		for_each_from(cell, result, 1)
 		{
-			*ptr++ = lfirst(lc);
+			if (equal(lfirst(cell), prev))
+				result = foreach_delete_current(result, cell);
+			else
+				prev = lfirst(cell);
 		}
-
-		qsort(buf, result_len, sizeof(List *), cmp_list_len_asc);
-
-		result = NIL;
-		ptr = buf;
-
-		while (result_len-- > 0)
-			result = lappend(result, *ptr++);
-
-		pfree(buf);
 	}
 
 	return result;

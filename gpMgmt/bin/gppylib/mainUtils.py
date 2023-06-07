@@ -16,9 +16,12 @@ extend common functions of our gp utilities.  Please keep this in mind
 and try to avoid placing logic for a specific utility here.
 """
 
-import errno, os, sys, shutil
+import errno, os, sys, shutil, subprocess
 
 gProgramName = os.path.split(sys.argv[0])[-1]
+_FTS_LOG_DIR = "/tmp/fts/log"
+_ETCD_CONFIG_TMP_FILE = "/tmp/cbdb_etcd.conf"
+
 if sys.version_info < (2, 5, 0):
     sys.exit(
         '''Error: %s is supported on Python versions 2.5 or greater
@@ -462,4 +465,72 @@ def parseStatusLine(line, isStart = False, isStop = False):
     reasonArr = reasonArr[1:]
     reasonStr = ":".join(reasonArr)
     return reasonCode, reasonStr, started, dir
+
+def check_deployment_mode(program_name):
+    deploymentMode = subprocess.check_output("gpconfig -s gp_cbdb_deploy | grep 'Coordinator value'| awk '{print $3}'", shell=True).decode().strip()
+    if deploymentMode == "cloud":
+        raise gp.GpError("%s is not supported in cloud deployment mode" % program_name)
+    
+def check_fts(fts):
+    fts_check_cmd= "ps -ef | awk '{print \$2, \$8}' | grep gpfts | grep -v grep"
+    process_cmd = "gpssh -h %s -e \"%s\" | wc -l" % (fts, fts_check_cmd)
+    fts_process_res=int(subprocess.check_output(process_cmd, shell=True).decode().strip())
+    return fts_process_res == 2
+
+def check_etcd(etcd):
+    etcd_check_cmd = "ps -ef | grep -i 'etcd' | grep 'initial-cluster'| grep -v 'grep'"
+    process_cmd = "gpssh -h %s -e \"%s\"| wc -l" % (etcd, etcd_check_cmd)
+    etcd_process_res = int(subprocess.check_output(process_cmd, shell=True).decode().strip())
+    if etcd_process_res == 2:
+        return True
+    # for demo cluster
+    etcd_check_cmd = "ps -ef | awk '{print \$2, \$8}' | grep etcd | grep -v grep"
+    process_cmd = "gpssh -h %s -e \"%s\"| wc -l" % (etcd, etcd_check_cmd)
+    etcd_process_res = int(subprocess.check_output(process_cmd, shell=True).decode().strip())
+    return etcd_process_res == 2
+
+def read_hosts(filename):
+    with open(filename, "r") as f:
+        lines = f.readlines()
+    return [line.strip() for line in lines]
+
+
+def start_etcd(etcd, etcd_home_num, etcd_host_list):
+    gphome = os.environ.get("GPHOME")
+    etcd_ip = resolve_hostname(etcd)
+    etcd_start_cmd=f"if [[ `uname -i` = aarch64 ]]; then export ETCD_UNSUPPORTED_ARCH=arm64; fi; nohup {gphome}/bin/etcd --name etcd-{etcd_home_num} --listen-client-urls http://{etcd_ip}:2379,http://127.0.0.1:2379 --advertise-client-urls http://{etcd_ip}:2379 --listen-peer-urls http://{etcd_ip}:2380 --initial-advertise-peer-urls http://{etcd_ip}:2380 --initial-cluster-token etcd-cluster-1 --initial-cluster {etcd_host_list} --initial-cluster-state new --enable-pprof &"
+    cmd = f"gpssh -h {etcd} -e \"{etcd_start_cmd}\""
+    subprocess.check_output(cmd, shell=True).decode()
+
+def start_fts(fts, isdemo):
+    gphome = os.environ.get("GPHOME")
+    if isdemo:
+        fts_cmd=f"mkdir -p {_FTS_LOG_DIR};nohup {gphome}/bin/gpfts -F {_ETCD_CONFIG_TMP_FILE} -d {_FTS_LOG_DIR} -D -a -C >/dev/null 2>&1 &"
+    else:
+        fts_cmd=f"mkdir -p {_FTS_LOG_DIR};nohup {gphome}/bin/gpfts -F {_ETCD_CONFIG_TMP_FILE} -d {_FTS_LOG_DIR} >/dev/null 2>&1 &"
+    subprocess.check_output(f"gpssh -h {fts} -e \"{fts_cmd}\"", shell=True)
+        
+
+def kill_fts(fts):
+    kill_cmd = "pkill fts"
+    process_cmd = f"gpssh -h {fts} -e \"{kill_cmd}\"" 
+    subprocess.call(process_cmd, shell=True)
+
+def kill_etcd(etcd):
+    kill_cmd = "pkill etcd"
+    process_cmd = f"gpssh -h {etcd} -e \"{kill_cmd}\"" 
+    subprocess.call(process_cmd, shell=True)
+
+def resolve_hostname(hostname):
+    cmd = "getent hosts %s | awk '{ print $1 }'" % hostname
+    return subprocess.check_output(cmd, shell=True).decode().strip() 
+
+def start_single_etcd(etcd):
+    cmd = "if [[ `uname -i` = aarch64 ]]; then export ETCD_UNSUPPORTED_ARCH=arm64; fi; nohup etcd > /dev/null 2>&1 &"
+    process_cmd = f"gpssh -h {etcd} -e \"{cmd}\""
+    subprocess.check_output(process_cmd, shell=True)
+
+def is_external_fts():
+    cmd = "pg_config --configure | grep  \\\'--enable-external-fts\\\' | grep -v grep | wc -l"
+    return 1 == int(subprocess.check_output(cmd, shell=True).decode().strip())
 

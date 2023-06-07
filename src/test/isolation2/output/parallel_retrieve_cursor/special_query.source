@@ -62,7 +62,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT1': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT1";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  make_record 
@@ -113,9 +113,9 @@ CLOSE
 -- start_ignore
 20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Starting gpstop with args: -u
 20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Gathering information and validating the environment...
-20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Obtaining Greenplum Coordinator catalog information
+20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Obtaining Cloudberry Coordinator catalog information
 20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Obtaining Segment details from coordinator...
-20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.14885.ga86b597 build dev'
+20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Cloudberry Version: 'postgres (Cloudberry Database) 7.0.0-alpha.0+dev.14885.ga86b597 build dev'
 20210729:16:19:41:030829 gpstop:lhlgpdb7:gpadmin-[INFO]:-Signalling all postmaster processes to reload
 
 -- end_ignore
@@ -169,9 +169,9 @@ DROP
 -- start_ignore
 20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Starting gpstop with args: -u
 20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Gathering information and validating the environment...
-20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Obtaining Greenplum Coordinator catalog information
+20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Obtaining Cloudberry Coordinator catalog information
 20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Obtaining Segment details from coordinator...
-20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Greenplum Version: 'postgres (Greenplum Database) 7.0.0-alpha.0+dev.14885.ga86b597 build dev'
+20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Cloudberry Version: 'postgres (Cloudberry Database) 7.0.0-alpha.0+dev.14885.ga86b597 build dev'
 20210729:16:23:43:000702 gpstop:lhlgpdb7:gpadmin-[INFO]:-Signalling all postmaster processes to reload
 
 -- end_ignore

@@ -40,7 +40,7 @@ ALL_PO_FILES = $(addprefix po/, $(addsuffix .po, $(AVAIL_LANGUAGES)))
 MO_FILES = $(addprefix po/, $(addsuffix .mo, $(LANGUAGES)))
 
 ifdef XGETTEXT
-XGETTEXT += -ctranslator --copyright-holder='Greenplum Project' --msgid-bugs-address=bugs@greenplum.org --no-wrap --sort-by-file --package-name='$(CATALOG_NAME) (Greenplum)' --package-version='$(MAJORVERSION)'
+XGETTEXT += -ctranslator --copyright-holder='Cloudberry Project' --msgid-bugs-address=bugs@greenplum.org --no-wrap --sort-by-file --package-name='$(CATALOG_NAME) (Cloudberry)' --package-version='$(MAJORVERSION)'
 endif
 
 ifdef MSGMERGE
@@ -54,17 +54,19 @@ GETTEXT_FLAGS    += _:1:pass-c-format
 
 # common settings that apply to backend and all backend modules
 BACKEND_COMMON_GETTEXT_TRIGGERS = \
+    $(FRONTEND_COMMON_GETTEXT_TRIGGERS) \
     errmsg errmsg_plural:1,2 \
     errdetail errdetail_log errdetail_plural:1,2 \
-    errhint \
+    errhint errhint_plural:1,2 \
     errcontext \
     XactLockTableWait:4 \
     MultiXactIdWait:6 \
     ConditionalMultiXactIdWait:6
 BACKEND_COMMON_GETTEXT_FLAGS = \
+    $(FRONTEND_COMMON_GETTEXT_FLAGS) \
     errmsg:1:c-format errmsg_plural:1:c-format errmsg_plural:2:c-format \
     errdetail:1:c-format errdetail_log:1:c-format errdetail_plural:1:c-format errdetail_plural:2:c-format \
-    errhint:1:c-format \
+    errhint:1:c-format errhint_plural:1:c-format errhint_plural:2:c-format \
     errcontext:1:c-format
 
 FRONTEND_COMMON_GETTEXT_FILES = $(top_srcdir)/src/common/logging.c

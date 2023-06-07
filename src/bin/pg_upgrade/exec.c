@@ -3,7 +3,7 @@
  *
  *	execution functions
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/exec.c
  */
 
@@ -11,12 +11,13 @@
 
 #include <fcntl.h>
 
+#include "common/string.h"
 #include "pg_upgrade.h"
 
 static void check_data_dir(ClusterInfo *cluster);
-static void check_bin_dir(ClusterInfo *cluster);
+static void check_bin_dir(ClusterInfo *cluster, bool check_versions);
 static void get_bin_version(ClusterInfo *cluster);
-static void validate_exec(const char *dir, const char *cmdName);
+static void check_exec(const char *dir, const char *program, bool check_version);
 
 #ifdef WIN32
 static int	win32_check_directory_write_permissions(void);
@@ -46,7 +47,7 @@ get_bin_version(ClusterInfo *cluster)
 
 	pclose(output);
 
-	if (sscanf(cmd_output, "%*s (Greenplum Database) %d.%d", &v1, &v2) < 1)
+	if (sscanf(cmd_output, "%*s (Cloudberry Database) %d.%d", &v1, &v2) < 1)
 		pg_fatal("could not get pg_ctl version output from %s\n", cmd);
 
 	if (v1 < 10)
@@ -254,9 +255,9 @@ verify_directories(void)
 #endif
 		pg_fatal("You must have read and write access in the current directory.\n");
 
-	check_bin_dir(&old_cluster);
+	check_bin_dir(&old_cluster, false);
 	check_data_dir(&old_cluster);
-	check_bin_dir(&new_cluster);
+	check_bin_dir(&new_cluster, true);
 	check_data_dir(&new_cluster);
 }
 
@@ -339,13 +340,13 @@ check_data_dir(ClusterInfo *cluster)
 	check_single_dir(pg_data, "pg_twophase");
 
 	/* pg_xlog has been renamed to pg_wal in v10 */
-	if (GET_MAJOR_VERSION(cluster->major_version) < 1000)
+	if (GET_MAJOR_VERSION(cluster->major_version) <= 906)
 		check_single_dir(pg_data, "pg_xlog");
 	else
 		check_single_dir(pg_data, "pg_wal");
 
 	/* pg_clog has been renamed to pg_xact in v10 */
-	if (GET_MAJOR_VERSION(cluster->major_version) < 1000)
+	if (GET_MAJOR_VERSION(cluster->major_version) <= 906)
 		check_single_dir(pg_data, "pg_clog");
 	else
 		check_single_dir(pg_data, "pg_xact");
@@ -359,9 +360,13 @@ check_data_dir(ClusterInfo *cluster)
  *	in the binaries directory.  If we find that a required executable
  *	is missing (or secured against us), we display an error message and
  *	exit().
+ *
+ *	If check_versions is true, then the versions of the binaries are checked
+ *	against the version of this pg_upgrade.  This is for checking the target
+ *	bindir.
  */
 static void
-check_bin_dir(ClusterInfo *cluster)
+check_bin_dir(ClusterInfo *cluster, bool check_versions)
 {
 	struct stat statBuf;
 
@@ -373,8 +378,9 @@ check_bin_dir(ClusterInfo *cluster)
 		report_status(PG_FATAL, "\"%s\" is not a directory\n",
 					  cluster->bindir);
 
-	validate_exec(cluster->bindir, "postgres");
-	validate_exec(cluster->bindir, "pg_ctl");
+	check_exec(cluster->bindir, "postgres", check_versions);
+	check_exec(cluster->bindir, "pg_controldata", check_versions);
+	check_exec(cluster->bindir, "pg_ctl", check_versions);
 
 	/*
 	 * Fetch the binary version after checking for the existence of pg_ctl.
@@ -384,67 +390,61 @@ check_bin_dir(ClusterInfo *cluster)
 	get_bin_version(cluster);
 
 	/* pg_resetxlog has been renamed to pg_resetwal in version 10 */
-	if (GET_MAJOR_VERSION(cluster->bin_version) < 1000)
-		validate_exec(cluster->bindir, "pg_resetxlog");
+	if (GET_MAJOR_VERSION(cluster->bin_version) <= 906)
+		check_exec(cluster->bindir, "pg_resetxlog", check_versions);
 	else
-		validate_exec(cluster->bindir, "pg_resetwal");
+		check_exec(cluster->bindir, "pg_resetwal", check_versions);
+
 	if (cluster == &new_cluster)
 	{
-		/* these are only needed in the new cluster */
-		validate_exec(cluster->bindir, "psql");
-		validate_exec(cluster->bindir, "pg_dump");
-		validate_exec(cluster->bindir, "pg_dumpall");
+		/*
+		 * These binaries are only needed for the target version. pg_dump and
+		 * pg_dumpall are used to dump the old cluster, but must be of the
+		 * target version.
+		 */
+		check_exec(cluster->bindir, "initdb", check_versions);
+		check_exec(cluster->bindir, "pg_dump", check_versions);
+		check_exec(cluster->bindir, "pg_dumpall", check_versions);
+		check_exec(cluster->bindir, "pg_restore", check_versions);
+		check_exec(cluster->bindir, "psql", check_versions);
+		check_exec(cluster->bindir, "vacuumdb", check_versions);
 	}
 }
 
-
-/*
- * validate_exec()
- *
- * validate "path" as an executable file
- */
 static void
-validate_exec(const char *dir, const char *cmdName)
+check_exec(const char *dir, const char *program, bool check_version)
 {
 	char		path[MAXPGPATH];
-	struct stat buf;
+	char		line[MAXPGPATH];
+	char		cmd[MAXPGPATH];
+	char		versionstr[128];
+	int			ret;
 
-	snprintf(path, sizeof(path), "%s/%s", dir, cmdName);
+	snprintf(path, sizeof(path), "%s/%s", dir, program);
 
-#ifdef WIN32
-	/* Windows requires a .exe suffix for stat() */
-	if (strlen(path) <= strlen(EXE_EXT) ||
-		pg_strcasecmp(path + strlen(path) - strlen(EXE_EXT), EXE_EXT) != 0)
-		strlcat(path, EXE_EXT, sizeof(path));
-#endif
+	ret = validate_exec(path);
 
-	/*
-	 * Ensure that the file exists and is a regular file.
-	 */
-	if (stat(path, &buf) < 0)
-		pg_fatal("check for \"%s\" failed: %s\n",
-				 path, strerror(errno));
-	else if (!S_ISREG(buf.st_mode))
+	if (ret == -1)
 		pg_fatal("check for \"%s\" failed: not a regular file\n",
 				 path);
-
-	/*
-	 * Ensure that the file is both executable and readable (required for
-	 * dynamic loading).
-	 */
-#ifndef WIN32
-	if (access(path, R_OK) != 0)
-#else
-	if ((buf.st_mode & S_IRUSR) == 0)
-#endif
-		pg_fatal("check for \"%s\" failed: cannot read file (permission denied)\n",
-				 path);
-
-#ifndef WIN32
-	if (access(path, X_OK) != 0)
-#else
-	if ((buf.st_mode & S_IXUSR) == 0)
-#endif
+	else if (ret == -2)
 		pg_fatal("check for \"%s\" failed: cannot execute (permission denied)\n",
 				 path);
+
+	snprintf(cmd, sizeof(cmd), "\"%s\" -V", path);
+
+	if (!pipe_read_line(cmd, line, sizeof(line)))
+		pg_fatal("check for \"%s\" failed: cannot execute\n",
+				 path);
+
+	if (check_version)
+	{
+		pg_strip_crlf(line);
+
+		snprintf(versionstr, sizeof(versionstr), "%s (Cloudberry Database) " PG_VERSION, program);
+
+		if (strcmp(line, versionstr) != 0)
+			pg_fatal("check for \"%s\" failed: incorrect version: found \"%s\", expected \"%s\"\n",
+					 path, line, versionstr);
+	}
 }

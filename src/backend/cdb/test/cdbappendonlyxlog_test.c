@@ -8,7 +8,7 @@
 
 #include "../cdbappendonlyxlog.c"
 
-#include "catalog/pg_magic_oid.h"
+#include "access/transam.h"
 #include "catalog/pg_tablespace.h"
 
 static int
@@ -45,7 +45,7 @@ ao_invalid_segment_file_test(uint8 xl_info)
 	record.xl_info = xl_info;
 	record.xl_rmid = RM_APPEND_ONLY_ID;
 
-	mockrecord = XLogReaderAllocate(DEFAULT_XLOG_SEG_SIZE, NULL, NULL);
+	mockrecord = XLogReaderAllocate(DEFAULT_XLOG_SEG_SIZE, NULL, XL_ROUTINE(), NULL);
 
 	if (xl_info == XLOG_APPENDONLY_INSERT)
 	{

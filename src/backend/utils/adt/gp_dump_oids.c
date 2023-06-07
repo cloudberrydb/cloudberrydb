@@ -14,6 +14,7 @@
 
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_proc.h"
+#include "common/hashfn.h"
 #include "tcop/tcopprot.h"
 #include "optimizer/optimizer.h"
 #include "optimizer/planmain.h"

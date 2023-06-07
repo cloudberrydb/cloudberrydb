@@ -7,7 +7,7 @@
  * detection and resolution algorithms.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -549,7 +549,6 @@ FindLockCycleRecurseMember(PGPROC *checkProc,
 {
 	PGPROC	   *proc;
 	LOCK	   *lock = checkProc->waitLock;
-	PGXACT	   *pgxact;
 	PROCLOCK   *proclock;
 	SHM_QUEUE  *procLocks;
 	LockMethod	lockMethodTable;
@@ -559,6 +558,15 @@ FindLockCycleRecurseMember(PGPROC *checkProc,
 	int			i;
 	int			numLockModes,
 				lm;
+
+	/*
+	 * The relation extension or page lock can never participate in actual
+	 * deadlock cycle.  See Asserts in LockAcquireExtended.  So, there is no
+	 * advantage in checking wait edges from them.
+	 */
+	if (LOCK_LOCKTAG(*lock) == LOCKTAG_RELATION_EXTEND ||
+		(LOCK_LOCKTAG(*lock) == LOCKTAG_PAGE))
+		return false;
 
 	lockMethodTable = GetLocksMethodTable(lock);
 	numLockModes = lockMethodTable->numLockModes;
@@ -578,7 +586,6 @@ FindLockCycleRecurseMember(PGPROC *checkProc,
 		PGPROC	   *leader;
 
 		proc = proclock->tag.myProc;
-		pgxact = &ProcGlobal->allPgXact[proc->pgprocno];
 		leader = proc->lockGroupLeader == NULL ? proc : proc->lockGroupLeader;
 
 		/* A proc never blocks itself or any other lock group member */
@@ -616,17 +623,17 @@ FindLockCycleRecurseMember(PGPROC *checkProc,
 					 * that an autovacuum won't be canceled with less than
 					 * deadlock_timeout grace period.
 					 *
-					 * Note we read vacuumFlags without any locking.  This is
+					 * Note we read statusFlags without any locking.  This is
 					 * OK only for checking the PROC_IS_AUTOVACUUM flag,
 					 * because that flag is set at process start and never
 					 * reset.  There is logic elsewhere to avoid canceling an
 					 * autovacuum that is working to prevent XID wraparound
-					 * problems (which needs to read a different vacuumFlag
+					 * problems (which needs to read a different statusFlags
 					 * bit), but we don't do that here to avoid grabbing
 					 * ProcArrayLock.
 					 */
 					if (checkProc == MyProc &&
-						pgxact->vacuumFlags & PROC_IS_AUTOVACUUM)
+						proc->statusFlags & PROC_IS_AUTOVACUUM)
 						blocking_autovacuum_proc = proc;
 
 					/* We're done looking at this proclock */
@@ -927,6 +934,12 @@ TopoSort(LOCK *lock,
 		 * in the same lock group on the queue, set their number of
 		 * beforeConstraints to -1 to indicate that they should be emitted
 		 * with their groupmates rather than considered separately.
+		 *
+		 * In this loop and the similar one just below, it's critical that we
+		 * consistently select the same representative member of any one lock
+		 * group, so that all the constraints are associated with the same
+		 * proc, and the -1's are only associated with not-representative
+		 * members.  We select the last one in the topoProcs array.
 		 */
 		proc = constraints[i].waiter;
 		Assert(proc != NULL);
@@ -945,7 +958,6 @@ TopoSort(LOCK *lock,
 					Assert(beforeConstraints[j] <= 0);
 					beforeConstraints[j] = -1;
 				}
-				break;
 			}
 		}
 
@@ -982,6 +994,7 @@ TopoSort(LOCK *lock,
 		if (kk < 0)
 			continue;
 
+		Assert(beforeConstraints[jj] >= 0);
 		beforeConstraints[jj]++;	/* waiter must come before */
 		/* add this constraint to list of after-constraints for blocker */
 		constraints[i].pred = jj;
@@ -1120,7 +1133,7 @@ DeadLockReport(void)
 	}
 
 	/* Duplicate all the above for the server ... */
-	appendStringInfoString(&logbuf, clientbuf.data);
+	appendBinaryStringInfo(&logbuf, clientbuf.data, clientbuf.len);
 
 	/* ... and add info about query strings */
 	for (i = 0; i < nDeadlockDetails; i++)

@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 use strict;
 use warnings;
 use TestLib;
@@ -69,6 +72,8 @@ command_fails_like(
 
 sub run_check
 {
+	local $Test::Builder::Level = $Test::Builder::Level + 1;
+
 	my ($suffix, $test_name) = @_;
 
 	create_files();

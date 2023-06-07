@@ -2,7 +2,7 @@
 
 CREATE TABLE moneytmp (a money);
 
-\copy moneytmp (a) from 'data/cash.data'
+\copy moneytmp from 'data/cash.data'
 
 SET enable_seqscan=on;
 

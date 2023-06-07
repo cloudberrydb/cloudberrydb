@@ -19,8 +19,8 @@ fi
 
 QDDIR=$DATADIRS/qddir
 SEG_PREFIX=demoDataDir
-
 STANDBYDIR=$DATADIRS/standby
+EXTERNAL_FTS_ENABLED="false"
 
 # ======================================================================
 # Database Ports
@@ -175,20 +175,23 @@ if [ -z "${GPHOME}" ]; then
     echo "FATAL: The GPHOME environment variable is not set."
     echo ""
     echo "  You can set it by sourcing the greenplum_path.sh"
-    echo "  file in your Greenplum installation directory."
+    echo "  file in your Cloudberry installation directory."
     echo ""
     exit 1
 fi
 
 cat <<-EOF
 	======================================================================
-	            ______  _____  ______  _______ _______  _____
-	           |  ____ |_____] |     \ |______ |  |  | |     |
-	           |_____| |       |_____/ |______ |  |  | |_____|
 
+	  ____ _                 _ _
+	 / ___| | ___  _   _  __| | |__   ___ _ __ _ __ _   _
+	| |   | |/ _ \| | | |/ _  |  _ \ / _ \ '__| '__| | | |
+	| |___| | (_) | |_| | (_| | |_) |  __/ |  | |  | |_| |
+	 \____|_|\___/ \__,_|\__,_|_.__/ \___|_|  |_|   \__, |
+	                                                |___/
 	----------------------------------------------------------------------
 
-	  This is a demo of the Greenplum Database system.  We will create
+	  This is a demo of the Cloudberry Database system.  We will create
 	  a cluster installation with coordinator and `expr 2 \* ${NUM_PRIMARY_MIRROR_PAIRS}` segment instances
 	  (${NUM_PRIMARY_MIRROR_PAIRS} primary & ${NUM_PRIMARY_MIRROR_PAIRS} mirror).
 
@@ -212,17 +215,17 @@ GPPATH=`find -H $GPHOME -name gpstart| tail -1`
 RETVAL=$?
 
 if [ "$RETVAL" -ne 0 ]; then
-    echo "Error attempting to find Greenplum executables in $GPHOME"
+    echo "Error attempting to find Cloudberry executables in $GPHOME"
     exit 1
 fi
 
 if [ ! -x "$GPPATH" ]; then
-    echo "No executables found for Greenplum installation in $GPHOME"
+    echo "No executables found for Cloudberry installation in $GPHOME"
     exit 1
 fi
 GPPATH=`dirname $GPPATH`
 if [ ! -x $GPPATH/gpinitsystem ]; then
-    echo "No mgmt executables found for Greenplum installation in $GPPATH"
+    echo "No mgmt executables(gpinitsystem) found for Cloudberry installation in $GPPATH"
     exit 1
 fi
 
@@ -274,7 +277,7 @@ cat >> $CLUSTER_CONFIG <<-EOF
 	# This names the data directories for the Segment Instances and the Entry Postmaster
 	SEG_PREFIX=$SEG_PREFIX
 	
-	# This is the port at which to contact the resulting Greenplum database, e.g.
+	# This is the port at which to contact the resulting Cloudberry database, e.g.
 	#   psql -p \$PORT_BASE -d template1
 	PORT_BASE=${DEMO_PORT_BASE}
 	
@@ -382,20 +385,41 @@ if [ "${BLDWRAP_POSTGRES_CONF_ADDONS}" != "__none__" ]  && \
     echo ""
 fi
 
+if [ `pg_config --configure | grep  \'--enable-external-fts\' | wc -l` == 1 ]; then
+    EXTERNAL_FTS_ENABLED="true"
+fi
 if [ -f "${CLUSTER_CONFIG_POSTGRES_ADDONS}" ]; then
-    echo "=========================================================================================="
-    echo "executing:"
-    echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} \"$@\""
-    echo "=========================================================================================="
-    echo ""
-    $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} "$@"
+    if [ $EXTERNAL_FTS_ENABLED == "true" ]; then
+        echo "=========================================================================================="
+        echo "executing:"
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -U 1 -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} \"$@\""
+        echo "=========================================================================================="
+        echo ""
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -U 1 -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} "$@"        
+    else
+        echo "=========================================================================================="
+        echo "executing:"
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} \"$@\""
+        echo "=========================================================================================="
+        echo ""
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} "$@"
+    fi
 else
-    echo "=========================================================================================="
-    echo "executing:"
-    echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} \"$@\""
-    echo "=========================================================================================="
-    echo ""
-    $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} "$@"
+    if [ $EXTERNAL_FTS_ENABLED == "true" ]; then
+        echo "=========================================================================================="
+        echo "executing:"
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -U 1 -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} \"$@\""
+        echo "=========================================================================================="
+        echo ""
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -U 1 -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} "$@"
+    else
+        echo "=========================================================================================="
+        echo "executing:"
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} \"$@\""
+        echo "=========================================================================================="
+        echo ""
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} "$@"
+    fi
 fi
 RETURN=$?
 

@@ -361,7 +361,11 @@ ValidateCopyOptions(List *options_list, Oid catalog)
 	/*
 	 * Apply the core COPY code's validation logic for more checks.
 	 */
+#if (PG_VERSION_NUM < 140000)
 	ProcessCopyOptions(NULL, NULL, true, copy_options);
+#else
+	ProcessCopyOptions(NULL, NULL, true, copy_options, InvalidOid);
+#endif
 
 	PG_RETURN_VOID();
 }

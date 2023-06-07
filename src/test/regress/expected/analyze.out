@@ -26,20 +26,20 @@ analyze p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
  p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        1
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        1
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        1
 (15 rows)
 
@@ -78,21 +78,21 @@ WARNING:  skipping "p3_sales_1_prt_2" --- cannot analyze a mid-level partition. 
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -124,21 +124,21 @@ analyze p3_sales_1_prt_2_2_prt_2_3_prt_usa;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -175,20 +175,20 @@ analyze;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
  p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        1
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        1
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        1
 (15 rows)
 
@@ -226,20 +226,20 @@ vacuum analyze;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
  p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        1
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        1
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        1
 (15 rows)
 
@@ -283,21 +283,21 @@ analyze rootpartition p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -335,21 +335,21 @@ WARNING:  skipping "p3_sales_1_prt_2" --- cannot analyze a non-root partition us
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -382,21 +382,21 @@ WARNING:  skipping "p3_sales_1_prt_2_2_prt_2_3_prt_usa" --- cannot analyze a non
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -428,20 +428,20 @@ analyze p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
  p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        1
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        1
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
  p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        1
 (15 rows)
 
@@ -484,21 +484,21 @@ analyze rootpartition p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -535,20 +535,20 @@ analyze p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |         2 |       -1
+ p3_sales_1_prt_2_2_prt_2                                        |         2 |       -1
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |         0 |       -1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        1
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
+ p3_sales_1_prt_outlying_years                                   |         0 |       -1
+ p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |       -1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        1
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |       -1
  p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        1
 (15 rows)
 
@@ -601,21 +601,21 @@ analyze rootpartition p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -652,21 +652,21 @@ analyze rootpartition p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;
@@ -703,20 +703,20 @@ analyze p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
+ p3_sales                                                        |        -1 |        0
+ p3_sales_1_prt_2                                                |         2 |       -1
+ p3_sales_1_prt_2_2_prt_2                                        |         2 |       -1
  p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        1
  p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         2 |        1
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |         0 |       -1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        1
  p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        1
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
+ p3_sales_1_prt_outlying_years                                   |         0 |       -1
+ p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |       -1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        1
  p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        1
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |       -1
  p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        1
 (15 rows)
 
@@ -764,21 +764,21 @@ analyze rootpartition p3_sales;
 select relname, reltuples, relpages from pg_class where relname like 'p3_sales%' order by relname;
                              relname                             | reltuples | relpages 
 -----------------------------------------------------------------+-----------+----------
- p3_sales                                                        |         0 |        0
- p3_sales_1_prt_2                                                |         0 |        0
- p3_sales_1_prt_2_2_prt_2                                        |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |         0 |        0
- p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months                             |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |         0 |        0
- p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |         0 |        0
- p3_sales_1_prt_outlying_years                                   |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2                           |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months                |         0 |        0
- p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |         0 |        0
+ p3_sales                                                        |         2 |       -1
+ p3_sales_1_prt_2                                                |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2                                        |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_other_regions                    |        -1 |        0
+ p3_sales_1_prt_2_2_prt_2_3_prt_usa                              |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months                             |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_other_regions         |        -1 |        0
+ p3_sales_1_prt_2_2_prt_other_months_3_prt_usa                   |        -1 |        0
+ p3_sales_1_prt_outlying_years                                   |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2                           |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_other_regions       |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_2_3_prt_usa                 |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_m_3_prt_other_regions |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months                |        -1 |        0
+ p3_sales_1_prt_outlying_years_2_prt_other_months_3_prt_usa      |        -1 |        0
 (15 rows)
 
 select * from pg_stats where tablename like 'p3_sales%' order by tablename, attname;

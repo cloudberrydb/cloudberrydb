@@ -235,34 +235,44 @@ struct session_t
 	apr_hash_t		*requests;
 };
 
+typedef struct session_free_res session_free_res;
+struct session_free_res
+{
+	int  is_error; /* error code */
+	char msg[FILE_ERROR_SZ]; /* error message */
+};
+
 /*  An http request */
 typedef struct request_t request_t;
 struct request_t
 {
-	long			id;			/* request id (auto increment) */
-	long			sid;		/* session id (auto increment) */
-	long			bytes; 		/* bytes sent to TCP or receive from TCP */
-	apr_time_t		last; 		/* last timestamp for send/receive data */
-	apr_int64_t     seq;        /* sequence number */
+	long			id;						/* request id (auto increment) */
+	long			sid;					/* session id (auto increment) */
+	long			bytes;					/* bytes sent to TCP or receive from TCP */
+	apr_time_t		last;					/* last timestamp for send/receive data */
+	apr_int64_t		seq;					/* sequence number */
 
-	unsigned short  port;
-	SOCKET 			sock; 		/* the socket */
-	apr_pool_t* 	pool; 		/* memory pool container */
-	struct timeval 	tm; 		/* timeout for struct event */
-	struct event 	ev; 		/* event we are watching for this request */
-	const char* 	peer; 		/* peer IP:port string */
-	const char* 	path; 		/* path to file */
-	const char* 	tid; 		/* transaction id */
-	const char* 	csvopt; 	/* options for csv file */
+	unsigned short	port;
+	SOCKET 			sock;					/* the socket */
+	apr_pool_t*		pool;					/* memory pool container */
+	struct timeval	tm;						/* timeout for struct event */
+	struct event	ev;						/* event we are watching for this request */
+	const char*		peer;					/* peer IP:port string */
+	const char*		path;					/* path to file */
+	const char*		tid;					/* transaction id */
+	const char*		csvopt;					/* options for csv file */
+	
+	char			ferror[FILE_ERROR_SZ];	/* error string copy from session fstream */
 
 #ifdef GPFXDIST
 	struct
 	{
-		const char* name;		/* requested transformation */
-		char*		command;	/* command associated with transform */
-		int			paths;		/* 1 if filename passed to transform should contain paths to data files */
-		const char* errfilename; /* name of temporary file holding stderr to send to server */
-		apr_file_t* errfile;	/* temporary file holding stderr to send to server */
+		const char* name;           /* requested transformation */
+		char*       command;	    /* command associated with transform */
+		int         paths;          /* 1 if filename passed to transform should contain paths to data files */
+		const char* errfilename;    /* name of temporary file holding stderr to send to server */
+		apr_file_t* errfile;	    /* temporary file holding stderr to send to server */
+		int         stderr_server;  /* 1 if stderr output should go server 0 if go console */
 	} trans;
 #endif
 
@@ -343,7 +353,7 @@ static void setup_do_close(request_t* r);
 static int session_attach(request_t* r);
 static void session_detach(request_t* r);
 static void session_end(session_t* s, int error);
-static void session_free(session_t* s);
+static void session_free(session_t* s, session_free_res* res);
 static void session_active_segs_dump(session_t* session);
 static int session_active_segs_isempty(session_t* session);
 static int request_validate(request_t *r);
@@ -1091,7 +1101,7 @@ static apr_status_t send_gpfdist_status(request_t* r)
  * Maybe there is a request out there (of the same session), that still
  * has a block to send out.
  */
-static void request_end(request_t* r, int error, const char* errmsg)
+static void request_end(request_t* r, int error, const char* errmsg, int sendheader)
 {
 	session_t* s = r->session;
 
@@ -1148,6 +1158,15 @@ static void request_end(request_t* r, int error, const char* errmsg)
 	{
 		/* detach this request from its session */
 		session_detach(r);
+	}
+
+	/* For writing request we will send header in request_end not before it. */
+	if (!r->is_get && sendheader) {
+		if (strlen(r->ferror)) {
+			http_error(r, FDIST_INTERNAL_ERROR, r->ferror);
+		} else {
+			http_ok(r);
+		}
 	}
 
 	/* If we still have data in the buffer - flush it */
@@ -1366,19 +1385,47 @@ static void session_end(session_t* session, int error)
 	if (session->fstream)
 	{
 		gprintln(NULL, "close fstream");
+#ifdef GPFXDIST
+		fstream_t* fs = session->fstream;
+		/* error file will be removed during fstream closing if it exists */
+		if (fs->options.forwrite && fs->fd.transform && fs->fd.transform->errfile)
+		{
+			/*
+			 * The logging method in GP7 contained request info.
+			 * However, the life cycle of the error file is not related to request anymore.
+			 * So to print log with request info is meaningless. Instead, 
+			 * we print the log with session info now.
+			 */
+			gprintln(NULL, "session(%ld) to remove stderr file %s", session->id, fs->fd.transform->errfilename);
+		}
+#endif
 		fstream_close(session->fstream);
 		session->fstream = 0;
 	}
 }
 
 /* deallocate session, remove from hashtable */
-static void session_free(session_t* session)
+static void session_free(session_t* session, session_free_res* res)
 {
 	gprintln(NULL, "free session %s", session->key);
 
 	if (session->fstream)
 	{
-		fstream_close(session->fstream);
+#ifdef GPFXDIST
+		fstream_t* fs = session->fstream;
+		/* error file will be removed during fstream closing if it exists */
+		if (fs->options.forwrite && fs->fd.transform && fs->fd.transform->errfile)
+		{
+			/*
+			 * The logging method in GP7 contained request info.
+			 * However, the life cycle of the error file is not related to request anymore.
+			 * So to print log with request info is meaningless. Instead, 
+			 * we print the log with session info now.
+			 */
+			gprintln(NULL, "session(%ld) to remove stderr file %s", session->id, fs->fd.transform->errfilename);
+		}
+#endif
+		res->is_error = fstream_close_with_error(session->fstream, res->msg);
 		session->fstream = 0;
 	}
 
@@ -1399,6 +1446,7 @@ static void session_detach(request_t* r)
 
 	if (session)
 	{
+		session_free_res* res = malloc(sizeof(session_free_res));
 		if (session->nrequest <= 0)
 			gfatal(r, "internal error - detaching a request from an empty session");
 
@@ -1417,7 +1465,7 @@ static void session_detach(request_t* r)
 			if (session->nrequest != 0)
 				gwarning(r, "internal error - expected an empty auto-tid session but saw %d requests", session->nrequest);
 
-			session_free(session);
+			session_free(session, res);
 		}
 		else if (! session->is_get && session->nrequest == 0 && session_active_segs_isempty(session))
 		{
@@ -1433,13 +1481,18 @@ static void session_detach(request_t* r)
 #ifdef WIN32
 			if(!fstream_is_win_pipe(session->fstream))
 			{
-				session_free(session);
+				session_free(session, res);
+				free(res);
 				return;
 			}
 #endif
 
 			if (opt.w == 0) {
-				session_free(session);
+				session_free(session, res);
+				if (res->is_error) {
+					strcpy(r->ferror, res->msg);
+				}
+				free(res);
 				return;
 			}
 
@@ -1449,6 +1502,7 @@ static void session_detach(request_t* r)
 			session->tm.tv_usec = 0;
 			(void)evtimer_add(&session->ev, &session->tm);
 		}
+		free(res);
 	}
 }
 
@@ -1485,13 +1539,15 @@ static void sessions_cleanup(void)
 		}
 	}
 
+	session_free_res* res = malloc(sizeof(session_free_res));
 	for (i = 0; i < n; i++)
 	{
 		gprint(NULL, "remove out-dated session %s\n", session[i]->key);
-		session_free(session[i]);
+		session_free(session[i], res);
 		session[i] = 0;
 	}
 
+	free(res);
 	free(session);
 }
 
@@ -1512,7 +1568,7 @@ static int session_attach(request_t* r)
 										r->tid, r->path))
 	{
 		http_error(r, FDIST_BAD_REQUEST, "path too long");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 
@@ -1543,7 +1599,7 @@ static int session_attach(request_t* r)
 		{
 			gprintln(r, "got a final write request. skipping session creation");
 			http_empty(r);
-			request_end(r, 0, 0);
+			request_end(r, 0, 0, 0);
 			return -1;
 		}
 
@@ -1551,7 +1607,7 @@ static int session_attach(request_t* r)
 		{
 			gwarning(r, "out of memory");
 			http_error(r, FDIST_INTERNAL_ERROR, "internal error - out of memory");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return -1;
 		}
 
@@ -1581,7 +1637,7 @@ static int session_attach(request_t* r)
 				}
 				else{
 					http_error(r, FDIST_BAD_REQUEST, "bad request, csvopt doesn't match the format");
-					request_end(r, 1, 0);
+					request_end(r, 1, 0, 0);
 					return -1;
 				}
 			}
@@ -1608,6 +1664,7 @@ static int session_attach(request_t* r)
             fstream_options.transform->for_write  = fstream_options.forwrite;
             fstream_options.transform->mp         = pool;
 			fstream_options.transform->errfile    = r->trans.errfile;
+			fstream_options.transform->stderr_server = r->trans.stderr_server;
         }
 		gprintlnif(r, "r->path %s", r->path);
 #endif
@@ -1621,7 +1678,7 @@ static int session_attach(request_t* r)
 		{
 			gwarning(r, "reject request from %s, path %s", r->peer, r->path);
 			http_error(r, response_code, response_string);
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			apr_pool_destroy(pool);
 			return -1;
 		}
@@ -1668,7 +1725,7 @@ static int session_attach(request_t* r)
 	if (session->is_error)
 	{
 		http_error(r, FDIST_INTERNAL_ERROR, "session error");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 	/* session already ended. send an empty response, and close. */
@@ -1677,7 +1734,7 @@ static int session_attach(request_t* r)
 		gprintln(r, "session already ended. return empty response (OK)");
 
 		http_empty(r);
-		request_end(r, 0, 0);
+		request_end(r, 0, 0, 0);
 		return -1;
 	}
 
@@ -1690,7 +1747,7 @@ static int session_attach(request_t* r)
 	{
 		http_error(r, FDIST_BAD_REQUEST, "can\'t write to and read from the same "
 										 "gpfdist server simultaneously");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 
@@ -1777,13 +1834,13 @@ static void do_write(int fd, short event, void* arg)
 
 			if (ferror)
 			{
-				request_end(r, 1, ferror);
+				request_end(r, 1, ferror, 0);
 				gfile_printf_then_putc_newline("ERROR: %s", ferror);
 				return;
 			}
 			if (!r->outblock.top)
 			{
-				request_end(r, 0, 0);
+				request_end(r, 0, 0, 0);
 				return;
 			}
 		}
@@ -1808,7 +1865,7 @@ static void do_write(int fd, short event, void* arg)
 					 */
 					if (errno == EPIPE || errno == ECONNRESET)
 						r->outblock.bot = r->outblock.top;
-					request_end(r, 1, "gpfdist send block header failure");
+					request_end(r, 1, "gpfdist send block header failure", 0);
 					return;
 				}
 
@@ -1840,7 +1897,7 @@ static void do_write(int fd, short event, void* arg)
 			 */
 			if (errno == EPIPE || errno == ECONNRESET)
 				r->outblock.bot = r->outblock.top;
-			request_end(r, 1, "gpfdist send data failure");
+			request_end(r, 1, "gpfdist send data failure", 0);
 			return;
 		}
 
@@ -1860,7 +1917,7 @@ static void do_write(int fd, short event, void* arg)
 
 	/* Set up for this routine to be called again */
 	if (setup_write(r))
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 }
 
 /*
@@ -1907,7 +1964,7 @@ static void do_read_request(int fd, short event, void* arg)
 	{
 		gwarning(r, "do_read_request time out");
 		http_error(r, FDIST_TIMEOUT, "time out");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return;
 	}
 
@@ -1933,7 +1990,7 @@ static void do_read_request(int fd, short event, void* arg)
 	{
 		gwarning(r, "do_read_request internal error. max: %d, top: %d", r->in.hbufmax, r->in.hbuftop);
 		http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return;
 	}
 
@@ -1952,7 +2009,7 @@ static void do_read_request(int fd, short event, void* arg)
 		gwarning(r, "do_read_request receive failed. errno: %d, msg: %s", errno, strerror(errno));
 		if (!ok)
 		{
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return;
 		}
 	}
@@ -1960,7 +2017,7 @@ static void do_read_request(int fd, short event, void* arg)
 	{
 		/* socket close by peer will return 0 */
 		gwarning(r, "do_read_request receive failed. socket closed by peer. errno: %d, msg: %s", errno, strerror(errno));
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return;
 	}
 	else
@@ -1974,7 +2031,7 @@ static void do_read_request(int fd, short event, void* arg)
 			/* not available, but headerbuf is full - send error and close */
 			gwarning(r, "do_read_request bad request");
 			http_error(r, FDIST_BAD_REQUEST, "forbidden");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return;
 		}
 	}
@@ -1989,7 +2046,7 @@ static void do_read_request(int fd, short event, void* arg)
 		{
 			gwarning(r, "do_read_request, failed to read a complete request");
 			http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 		}
 		return;
 	}
@@ -2028,7 +2085,7 @@ static void do_read_request(int fd, short event, void* arg)
 	if (!strcmp(path, "/gpfdist/status"))
 	{
 		send_gpfdist_status(r);
-		request_end(r, 0, 0);
+		request_end(r, 0, 0, 0);
 		return;
 	}
 
@@ -2216,7 +2273,7 @@ static void do_accept(int fd, short event, void* arg)
 	if (setup_read(r))
 	{
 		http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 	}
 
 	return;
@@ -2960,14 +3017,14 @@ static void handle_get_request(request_t *r)
 	{
 		gwarning(r, "handle_get_request failed to setup write handler");
 		http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return;
 	}
 
 	if (0 != http_ok(r))
 	{
 		gwarning(r, "handle_get_request failed to send HTTP OK");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 	}
 }
 
@@ -3029,7 +3086,7 @@ static void handle_post_request(request_t *r, int header_end)
 #endif
 				http_error(r, FDIST_BAD_REQUEST, "invalid request due to missing sequence number");
 				gwarning(r, "got an request missing sequence number");
-				request_end(r, 1, 0);
+				request_end(r, 1, 0, 0);
 				return;
 			} else {
 				/* old version GPDB, don't have sequence number */
@@ -3059,7 +3116,7 @@ static void handle_post_request(request_t *r, int header_end)
 #endif
 				http_error(r, FDIST_BAD_REQUEST, "invalid request due to wrong sequence number");
 				gwarning(r, "got an out of order request");
-				request_end(r, 1, 0);
+				request_end(r, 1, 0, 0);
 				return;
 			}
 	}
@@ -3094,7 +3151,7 @@ static void handle_post_request(request_t *r, int header_end)
 			{
 				/* write error */
 				http_error(r, FDIST_INTERNAL_ERROR, fstream_get_error(session->fstream));
-				request_end(r, 1, 0);
+				request_end(r, 1, 0, 0);
 				return;
 			}
 		}
@@ -3131,7 +3188,7 @@ static void handle_post_request(request_t *r, int header_end)
 			{
 				gwarning(r, "handle_post_request receive errno: %d, msg: %s", e, strerror(e));
 			    http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-				request_end(r, 1, 0);
+				request_end(r, 1, 0, 0);
 				return;
 			}
 		}
@@ -3139,7 +3196,7 @@ static void handle_post_request(request_t *r, int header_end)
 		{
 			/* socket close by peer will return 0 */
 			gwarning(r, "handle_post_request socket closed by peer");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return;
 		}
 		else
@@ -3164,7 +3221,7 @@ static void handle_post_request(request_t *r, int header_end)
 					/* write error */
 					gwarning(r, "handle_post_request, write error: %s", fstream_get_error(session->fstream));
 					http_error(r, FDIST_INTERNAL_ERROR, fstream_get_error(session->fstream));
-					request_end(r, 1, 0);
+					request_end(r, 1, 0, 0);
 					return;
 				}
 				else if(wrote == r->in.dbuftop)
@@ -3188,13 +3245,8 @@ static void handle_post_request(request_t *r, int header_end)
 	session->seq_segs[r->segid] = r->seq;
 
 done_processing_request:
-
-	/* send our success response and end the request */
-	if (0 != http_ok(r))
-		request_end(r, 1, 0);
-	else
-		request_end(r, 0, 0); /* we're done! */
-
+	/* end the request */
+	request_end(r, 0, 0, 1);
 }
 
 static int request_set_path(request_t *r, const char* d, char* p, char* pp, char* path)
@@ -3234,7 +3286,7 @@ static int request_set_path(request_t *r, const char* d, char* p, char* pp, char
 	if (!r->path)
 	{
 		http_error(r, FDIST_BAD_REQUEST, "invalid request (unable to set path)");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 
@@ -3279,7 +3331,7 @@ static int request_path_validate(request_t *r, const char* path)
 						warn_msg);
 
 		http_error(r, FDIST_BAD_REQUEST, http_err_msg);
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 
@@ -3293,14 +3345,14 @@ static int request_validate(request_t *r)
 	{
 		gprintln(r, "reject invalid request from %s", r->peer);
 		http_error(r, FDIST_BAD_REQUEST, "invalid request");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 	if (0 != strncmp("HTTP/1.", r->in.req->argv[2], 7))
 	{
 		gprintln(r, "reject invalid protocol from %s [%s]", r->peer, r->in.req->argv[2]);
 		http_error(r, FDIST_BAD_REQUEST, "invalid request");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 	if (0 != strcmp("GET", r->in.req->argv[0]) &&
@@ -3309,7 +3361,7 @@ static int request_validate(request_t *r)
 		gprintln(r, "reject invalid request from %s [%s %s]", r->peer,
 				r->in.req->argv[0], r->in.req->argv[1]);
 		http_error(r, FDIST_BAD_REQUEST, "invalid request");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 
@@ -3384,7 +3436,7 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 			{
 				gwarning(r, "reject invalid request from %s, invalid EOL encoding: %s", r->peer, r->in.req->hvalue[i]);
 				http_error(r, FDIST_BAD_REQUEST, "invalid EOL encoding");
-				request_end(r, 1, 0);
+				request_end(r, 1, 0, 0);
 				return -1;
 			}
 			r->line_delim_str = r->in.req->hvalue[i];
@@ -3403,7 +3455,7 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 			{
 				gwarning(r, "reject invalid request from %s, invalid sequence number: %s", r->peer, r->in.req->hvalue[i]);
 				http_error(r, FDIST_BAD_REQUEST, "invalid sequence number");
-				request_end(r, 1, 0);
+				request_end(r, 1, 0, 0);
 				return -1;
 			}
 		}
@@ -3415,7 +3467,7 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 		{
 			gwarning(r, "reject invalid request from %s, invalid EOL length: %d, EOL: %s", r->peer, r->line_delim_length, r->line_delim_str);
 			http_error(r, FDIST_BAD_REQUEST, "invalid EOL length");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return -1;
 		}
 	}
@@ -3439,7 +3491,7 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 			http_error(r, FDIST_BAD_REQUEST, "invalid request (invalid gp-proto)");
 		}
 
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 
@@ -3455,7 +3507,7 @@ static int request_parse_gp_headers(request_t *r, int opt_g)
 		gwarning(r, "reject invalid request from %s [%s %s] - missing X-GP-* header",
 				 r->peer, r->in.req->argv[0], r->in.req->argv[1]);
 		http_error(r, FDIST_BAD_REQUEST, "invalid request (missing X-GP-* header)");
-		request_end(r, 1, 0);
+		request_end(r, 1, 0, 0);
 		return -1;
 	}
 	else
@@ -3524,7 +3576,7 @@ static int request_set_transform(request_t *r)
                      r->peer, r->in.req->argv[0], r->in.req->argv[1]);
             http_error(r, FDIST_BAD_REQUEST, "invalid request (unsupported output #transform)");
         }
-        request_end(r, 1, 0);
+        request_end(r, 1, 0, 0);
         return -1;
     }
 
@@ -3533,8 +3585,9 @@ static int request_set_transform(request_t *r)
 	/*
 	 * propagate details for this transformation
 	 */
-	r->trans.command = transform_command(tr);
-	r->trans.paths   = transform_content_paths(tr);
+	r->trans.command       = transform_command(tr);
+	r->trans.paths         = transform_content_paths(tr);
+	r->trans.stderr_server = transform_stderr_server(tr);
 
 	/*
 	 * if safe regex is specified, check that the path matches it
@@ -3552,7 +3605,7 @@ static int request_set_transform(request_t *r)
 			gprintln(r, "reject invalid request from %s [%s %s] - path does not match safe regex %s: %s",
 					 r->peer, r->in.req->argv[0], r->in.req->argv[1], safe, buf);
 			http_error(r, FDIST_BAD_REQUEST, "invalid request (path does not match safe regex)");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return -1;
 		}
 		else
@@ -3562,11 +3615,12 @@ static int request_set_transform(request_t *r)
 	}
 
 	/*
-	 * if we've been requested to send stderr output to the server,
+	 * For read requests, if we've been requested to send stderr output to the server,
 	 * we prepare a temporary file to hold it.	when the request is
 	 * done we'll forward the output as error messages.
+	 * However, for write requests, we will create the temporary file during subprocess_open.
 	 */
-	if (transform_stderr_server(tr))
+	if (r->is_get && transform_stderr_server(tr))
 	{
 		apr_pool_t*	 mp = r->pool;
 		apr_file_t*	 f = NULL;
@@ -3579,7 +3633,7 @@ static int request_set_transform(request_t *r)
 			gprintln(r, "request failed from %s [%s %s] - failed to get temporary directory for stderr",
 					 r->peer, r->in.req->argv[0], r->in.req->argv[1]);
 			http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return -1;
 		}
 
@@ -3589,7 +3643,7 @@ static int request_set_transform(request_t *r)
 			gprintln(r, "request failed from %s [%s %s] - failed to create temporary file for stderr",
 					 r->peer, r->in.req->argv[0], r->in.req->argv[1]);
 			http_error(r, FDIST_INTERNAL_ERROR, "internal error");
-			request_end(r, 1, 0);
+			request_end(r, 1, 0, 0);
 			return -1;
 		}
 
@@ -4435,6 +4489,7 @@ static void request_cleanup_and_free_SSL_resources(request_t *r)
 static void free_session_cb(int fd, short event, void* arg)
 {
 	session_t* session = (session_t *)arg;
+	session_free_res* res = malloc(sizeof(session_free_res));
 	/*
 	 * free the session if there's no POST request from other
 	 * segments since the timer get started.
@@ -4443,8 +4498,9 @@ static void free_session_cb(int fd, short event, void* arg)
 		session->nrequest == 0 &&
 		session_active_segs_isempty(session))
 	{
-		session_free(session);
+		session_free(session, res);
 	}
+	free(res);
 }
 
 static void *

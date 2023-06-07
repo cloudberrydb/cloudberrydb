@@ -3,7 +3,7 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1">
   <title>System Views</title>
-  <abstract>Greenplum Database provides the following system views not available in
+  <abstract>Cloudberry Database provides the following system views not available in
     PostgreSQL.</abstract>
   <body>
     <ul id="ul_hsv_3bd_xp">
@@ -73,7 +73,7 @@
       <li>session_level_memory_consumption (See <xref
           href="../../admin_guide/managing/monitor.xml#topic_slt_ddv_1q"/>.)</li>
     </ul>
-    <p>For more information about the standard system views supported in PostgreSQL and Greenplum
+    <p>For more information about the standard system views supported in PostgreSQL and Cloudberry
       Database, see the following sections of the PostgreSQL documentation:</p>
     <ul id="ul_c5v_3bd_xp">
       <li>

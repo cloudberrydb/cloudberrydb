@@ -1,13 +1,16 @@
 # src/test/modules/test_predtest/Makefile
 
 MODULE_big = test_predtest
-OBJS = test_predtest.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	test_predtest.o
 PGFILEDESC = "test_predtest - test code for optimizer/util/predtest.c"
 
 EXTENSION = test_predtest
 DATA = test_predtest--1.0.sql
 
 REGRESS = test_predtest
+REGRESS_OPTS += --init-file=$(top_builddir)/src/test/regress/init_file
 
 ifdef USE_PGXS
 PG_CONFIG = pg_config

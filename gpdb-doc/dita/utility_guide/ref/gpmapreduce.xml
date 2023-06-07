@@ -5,7 +5,7 @@
   <title id="kx20941">gpmapreduce</title>
   <!-- This file is the target of a conref from client_tool_guides/client/unix/gpmapreduce.xml. -->
   <body>
-    <p>Runs Greenplum MapReduce jobs as defined in a YAML specification document. </p>
+    <p>Runs Cloudberry MapReduce jobs as defined in a YAML specification document. </p>
     <section id="section2">
       <title>Synopsis</title>
       <codeblock><b>gpmapreduce</b> <b>-f</b> <varname>config.yaml</varname> [<varname>dbname</varname> [<varname>username</varname>]] 
@@ -28,12 +28,12 @@
         <li id="kx142094">You must have your MapReduce job defined in a YAML file. See
           <codeph><xref href="gpmapreduce-yaml.xml#topic1" type="topic" format="dita"/></codeph>
           for more information about the format of, and keywords supported in, the
-          Greenplum MapReduce YAML configuration file.</li>
-        <li id="kx141300">You must be a Greenplum Database superuser to run MapReduce jobs written
+          Cloudberry MapReduce YAML configuration file.</li>
+        <li id="kx141300">You must be a Cloudberry Database superuser to run MapReduce jobs written
           in untrusted Perl or Python.</li>
-        <li id="kx141310">You must be a Greenplum Database superuser to run MapReduce jobs with
+        <li id="kx141310">You must be a Cloudberry Database superuser to run MapReduce jobs with
             <codeph>EXEC</codeph> and <codeph>FILE</codeph> inputs.</li>
-        <li id="kx141334">You must be a Greenplum Database superuser to run MapReduce jobs with
+        <li id="kx141334">You must be a Cloudberry Database superuser to run MapReduce jobs with
             <codeph>GPFDIST</codeph> input unless the user has the appropriate rights granted.
         </li>
       </ul>
@@ -42,13 +42,13 @@
       <title>Description</title>
       <p><xref href="https://en.wikipedia.org/wiki/MapReduce" scope="external" format="html"
           >MapReduce</xref> is a programming model developed by Google for processing and generating
-        large data sets on an array of commodity servers. Greenplum MapReduce allows programmers who
+        large data sets on an array of commodity servers. Cloudberry MapReduce allows programmers who
         are familiar with the MapReduce paradigm to write map and reduce functions and submit them
-        to the Greenplum Database parallel engine for processing.</p>
-      <p><codeph>gpmapreduce</codeph> is the Greenplum MapReduce program. You configure a
-        Greenplum MapReduce job via a YAML-formatted configuration file that you pass to
-        the program for execution by the Greenplum Database parallel engine. The
-        Greenplum Database system distributes the input data, runs the program
+        to the Cloudberry Database parallel engine for processing.</p>
+      <p><codeph>gpmapreduce</codeph> is the Cloudberry MapReduce program. You configure a
+        Cloudberry MapReduce job via a YAML-formatted configuration file that you pass to
+        the program for execution by the Cloudberry Database parallel engine. The
+        Cloudberry Database system distributes the input data, runs the program
         across a set of machines, handles machine failures, and manages the required
         inter-machine communication.</p>
     </section>
@@ -57,7 +57,7 @@
       <parml>
         <plentry>
           <pt>-f <varname>config.yaml</varname></pt>
-          <pd>Required. The YAML file that contains the Greenplum MapReduce job definitions. Refer
+          <pd>Required. The YAML file that contains the Cloudberry MapReduce job definitions. Refer
            to <codeph><xref href="gpmapreduce-yaml.xml#topic1" type="topic" format="dita"/></codeph>
            for the format and content of the parameters that you specify in this file.</pd>
         </plentry>
@@ -92,13 +92,13 @@
         <parml>
           <plentry>
             <pt>-h <varname>host</varname> | --host <varname>host</varname></pt>
-            <pd>Specifies the host name of the machine on which the Greenplum coordinator database server
+            <pd>Specifies the host name of the machine on which the Cloudberry coordinator database server
               is running. If not specified, reads from the environment variable
                 <codeph>PGHOST</codeph> or defaults to localhost.</pd>
           </plentry>
           <plentry>
             <pt>-p <varname>port</varname> | --port <varname>port</varname></pt>
-            <pd>Specifies the TCP port on which the Greenplum coordinator database server is listening
+            <pd>Specifies the TCP port on which the Cloudberry coordinator database server is listening
               for connections. If not specified, reads from the environment variable
                 <codeph>PGPORT</codeph> or defaults to 5432.</pd>
           </plentry>

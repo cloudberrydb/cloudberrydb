@@ -23,9 +23,9 @@
                 <li id="ke147925">The <codeph><xref href="gpfdist.xml#topic1" type="topic"
                             format="dita"/></codeph> parallel file distribution program installed
                     and in your <codeph>$PATH</codeph>. This program is located in
-                        <codeph>$GPHOME/bin</codeph> of your Greenplum Database server
+                        <codeph>$GPHOME/bin</codeph> of your Cloudberry Database server
                     installation.</li>
-                <li id="ke144650">Network access to and from all hosts in your Greenplum Database
+                <li id="ke144650">Network access to and from all hosts in your Cloudberry Database
                     array (coordinator and segments).</li>
                 <li id="ke145550">Network access to and from the hosts where the data to be loaded
                     resides (ETL servers).</li>
@@ -34,21 +34,21 @@
         <section id="section4">
             <title>Description</title>
             <p><codeph>gpload</codeph> is a data loading utility that acts as an interface to the
-                Greenplum Database external table parallel loading feature. Using a load
+                Cloudberry Database external table parallel loading feature. Using a load
                 specification defined in a YAML formatted control file, <codeph>gpload</codeph>
-                runs a load by invoking the Greenplum Database parallel file server
+                runs a load by invoking the Cloudberry Database parallel file server
                         (<codeph><xref href="gpfdist.xml" type="topic" format="dita"/></codeph>),
                 creating an external table definition based on the source data defined, and
                 running an <codeph>INSERT</codeph>, <codeph>UPDATE</codeph> or
                     <codeph>MERGE</codeph> operation to load the source data into the target table
                 in the database.
                 <note><codeph>gpfdist</codeph> is compatible only with
-                    the Greenplum Database major version in which it is shipped. For example, a
-                        <codeph>gpfdist</codeph> utility that is installed with Greenplum Database
-                    4.x cannot be used with Greenplum Database 5.x or 6.x.</note>
-                <note>The Greenplum Database 5.22 and later <codeph>gpload</codeph> for Linux is
-                    compatible with Greenplum Database 6.x. The Greenplum Database 6.x
-                  <codeph>gpload</codeph> for both Linux and Windows is compatible with Greenplum 5.x.</note>
+                    the Cloudberry Database major version in which it is shipped. For example, a
+                        <codeph>gpfdist</codeph> utility that is installed with Cloudberry Database
+                    4.x cannot be used with Cloudberry Database 5.x or 6.x.</note>
+                <note>The Cloudberry Database 5.22 and later <codeph>gpload</codeph> for Linux is
+                    compatible with Cloudberry Database 6.x. The Cloudberry Database 6.x
+                  <codeph>gpload</codeph> for both Linux and Windows is compatible with Cloudberry 5.x.</note>
                 <note id="gpload-limitation"><codeph>MERGE</codeph> and <codeph>UPDATE</codeph>
                     operations are not supported if the target table column name is a reserved
                     keyword, has capital letters, or includes any character that requires quotes ("
@@ -128,14 +128,14 @@
                     </plentry>
                     <plentry>
                         <pt>-h <varname>hostname</varname></pt>
-                        <pd>Specifies the host name of the machine on which the Greenplum Database
+                        <pd>Specifies the host name of the machine on which the Cloudberry Database
                             coordinator database server is running. If not specified, reads from the load
                             control file, the environment variable <codeph>$PGHOST</codeph> or
                             defaults to <codeph>localhost</codeph>.</pd>
                     </plentry>
                     <plentry>
                         <pt>-p <varname>port</varname></pt>
-                        <pd>Specifies the TCP port on which the Greenplum Database coordinator database
+                        <pd>Specifies the TCP port on which the Cloudberry Database coordinator database
                             server is listening for connections. If not specified, reads from the
                             load control file, the environment variable <codeph>$PGPORT</codeph> or
                             defaults to 5432.</pd>
@@ -144,7 +144,7 @@
                         <pt>--max_retries <varname>retry_times</varname></pt>
                         <pd>
                             <p>Specifies the maximum number of times <codeph>gpload</codeph>
-                                attempts to connect to Greenplum Database after a connection
+                                attempts to connect to Cloudberry Database after a connection
                                 timeout. The default value is <codeph>0</codeph>, do not attempt to
                                 connect after a connection timeout. A negative integer, such as
                                     <codeph>-1</codeph>, specifies an unlimited number of
@@ -174,7 +174,7 @@
             <p>The <codeph>gpload</codeph> control file uses the <xref
                     href="http://yaml.org/spec/1.1/" scope="external" format="html">YAML 1.1</xref>
                 document format and then implements its own schema for defining the various steps of
-                a Greenplum Database load operation. The control file must be a valid YAML
+                a Cloudberry Database load operation. The control file must be a valid YAML
                 document.</p>
             <p>The <codeph>gpload</codeph> program processes the control file document in order and
                 uses indentation (spaces) to determine the document hierarchy and the relationships
@@ -245,7 +245,7 @@
                 </plentry>
                 <plentry>
                     <pt id="cfdatabase">DATABASE</pt>
-                    <pd>Optional. Specifies which database in the Greenplum Database system to
+                    <pd>Optional. Specifies which database in the Cloudberry Database system to
                         connect to. If not specified, defaults to <codeph>$PGDATABASE</codeph> if
                         set or the current system user name. You can also specify the database on
                         the command line using the <codeph>-d</codeph> option. </pd>
@@ -256,21 +256,21 @@
                         defaults to the current user or <codeph>$PGUSER</codeph> if set. You can
                         also specify the database role on the command line using the
                             <codeph>-U</codeph> option. </pd>
-                    <pd>If the user running <codeph>gpload</codeph> is not a Greenplum Database
+                    <pd>If the user running <codeph>gpload</codeph> is not a Cloudberry Database
                         superuser, then the appropriate rights must be granted to the user for the
-                        load to be processed. See the <cite>Greenplum Database Reference
+                        load to be processed. See the <cite>Cloudberry Database Reference
                             Guide</cite> for more information.</pd>
                 </plentry>
                 <plentry>
                     <pt id="cfhost">HOST</pt>
-                    <pd>Optional. Specifies Greenplum Database coordinator host name. If not specified,
+                    <pd>Optional. Specifies Cloudberry Database coordinator host name. If not specified,
                         defaults to localhost or <codeph>$PGHOST</codeph> if set. You can also
                         specify the coordinator host name on the command line using the
                             <codeph>-h</codeph> option.</pd>
                 </plentry>
                 <plentry>
                     <pt id="cfport">PORT</pt>
-                    <pd>Optional. Specifies Greenplum Database coordinator port. If not specified,
+                    <pd>Optional. Specifies Cloudberry Database coordinator port. If not specified,
                         defaults to 5432 or <codeph>$PGPORT</codeph> if set. You can also specify
                         the coordinator port on the command line using the <codeph>-p</codeph>
                         option.</pd>
@@ -287,10 +287,10 @@
                                     instances of the <codeph><xref href="gpfdist.xml#topic1"
                                             type="topic" format="dita"/></codeph> file distribution
                                     program on the current host and create the required external
-                                    table definition(s) in Greenplum Database that point to the
+                                    table definition(s) in Cloudberry Database that point to the
                                     source data. Note that the host from which you run
                                         <codeph>gpload</codeph> must be accessible over the network
-                                    by all Greenplum Database hosts (coordinator and segments).<parml>
+                                    by all Cloudberry Database hosts (coordinator and segments).<parml>
                                         <plentry>
                                             <pt id="cfsource">SOURCE</pt>
                                             <pd>Required. The <codeph>SOURCE</codeph> block of an
@@ -417,7 +417,7 @@
                                                 resolution is to the local hostname. The default is
                                                   <codeph>false</codeph>.<p>A fully qualified domain
                                                   name might be required in some situations. For
-                                                  example, if the Greenplum Database system is in a
+                                                  example, if the Cloudberry Database system is in a
                                                   different domain than an ETL application that is
                                                   being accessed by
                                                 <codeph>gpload</codeph>.</p></pd>
@@ -447,7 +447,7 @@
                                             <pd>Optional. Specifies the name of the input
                                                 transformation passed to <codeph>gpload</codeph>.
                                                 For information about XML transformations, see
-                                                "Loading and Unloading Data" in the <cite>Greenplum
+                                                "Loading and Unloading Data" in the <cite>Cloudberry
                                                   Database Administrator Guide</cite>.</pd>
                                         </plentry>
                                         <plentry>
@@ -519,7 +519,7 @@
                                              <li>CR (Carriage return, 0x0D)</li>
                                              <li>CRLF (Carriage return plus line feed, 0x0D 0x0A).</li>
                                             </ul>
-                                            <p>If not specified, Greenplum Database detects the
+                                            <p>If not specified, Cloudberry Database detects the
                                              newline type by examining the first row of data that
                                              it receives, and uses the first newline type that it
                                              encounters.</p>
@@ -544,7 +544,7 @@
                                                   <codeph>false</codeph>. When reading a row of data
                                                 that has missing trailing field values (the row of
                                                 data has missing data fields at the end of a line or
-                                                row), Greenplum Database returns an error.</pd>
+                                                row), Cloudberry Database returns an error.</pd>
                                             <pd>If the value is <codeph>true</codeph>, when reading
                                                 a row of data that has missing trailing field
                                                 values, the values are set to <codeph>NULL</codeph>.
@@ -591,7 +591,7 @@
                                                 default client encoding. If not specified, the
                                                 default client encoding is used. For information
                                                 about supported character sets, see the
-                                                  <cite>Greenplum Database Reference Guide</cite>.
+                                                  <cite>Cloudberry Database Reference Guide</cite>.
                                                 <note>If you <i>change</i> the
                                                   <codeph>ENCODING</codeph> value in an existing
                                                   <codeph>gpload</codeph> control file, you must
@@ -610,7 +610,7 @@
                                                 for this load operation. When enabled, input rows
                                                 that have format errors will be discarded provided
                                                 that the error limit count is not reached on any
-                                                Greenplum Database segment instance during input
+                                                Cloudberry Database segment instance during input
                                                 processing. If the error limit is not reached, all
                                                 good rows will be loaded and any error rows will
                                                 either be discarded or captured as part of error log
@@ -636,7 +636,7 @@
                                                   <codeph>true</codeph>, rows with formatting errors
                                                 are logged internally when running in single row
                                                 error isolation mode. You can examine formatting
-                                                errors with the Greenplum Database built-in SQL
+                                                errors with the Cloudberry Database built-in SQL
                                                 function
                                                   <codeph>gp_read_error_log('<varname>table_name</varname>')</codeph>.
                                                 If formatting errors are detected when loading data,
@@ -648,13 +648,13 @@
                                             <pd>If <codeph>LOG_ERRORS: true</codeph> is specified,
                                                   <codeph>REUSE_TABLES: true</codeph> must be
                                                 specified to retain the formatting errors in
-                                                Greenplum Database error logs. If
+                                                Cloudberry Database error logs. If
                                                   <codeph>REUSE_TABLES: true</codeph> is not
                                                 specified, the error information is deleted after
                                                 the <codeph>gpload</codeph> operation. Only summary
                                                 information about formatting errors is returned. You
                                                 can delete the formatting errors from the error logs
-                                                with the Greenplum Database function
+                                                with the Cloudberry Database function
                                                   <codeph>gp_truncate_error_log()</codeph>.
                                                 <note>When <codeph>gpfdist</codeph> reads data and
                                                   encounters a data formatting error, the error
@@ -665,7 +665,7 @@
                                                   <codeph>gpfdist</codeph> might not capture the
                                                   exact row for some formatting errors.</note></pd>
                                             <pd>For more information about handling load errors, see
-                                                "Loading and Unloading Data" in the <cite>Greenplum
+                                                "Loading and Unloading Data" in the <cite>Cloudberry
                                                   Database Administrator Guide</cite>. For
                                                 information about the
                                                   <codeph>gp_read_error_log()</codeph> function, see
@@ -677,7 +677,7 @@
                                             <pt id="cfexternal">EXTERNAL</pt>
                                             <pd>Optional. Defines the schema of the external table
                                                 database objects created by <codeph>gpload</codeph>. </pd>
-                                            <pd>The default is to use the Greenplum Database
+                                            <pd>The default is to use the Cloudberry Database
                                                   <codeph>search_path</codeph>. </pd>
                                             <pd>
                                                 <parml>
@@ -819,7 +819,7 @@
                                     table).</pd>
                                 <pd>If <codeph>LOG_ERRORS: true</codeph> is specified,
                                         <codeph>REUSE_TABLES: true</codeph> must be specified to
-                                    retain the formatting errors in Greenplum Database error logs.
+                                    retain the formatting errors in Cloudberry Database error logs.
                                     If <codeph>REUSE_TABLES: true</codeph> is not specified,
                                     formatting error information is deleted after the
                                         <codeph>gpload</codeph> operation.</pd>
@@ -934,7 +934,7 @@ INFO|<varname>#</varname> bad rows</codeblock>
 OUTPUT:
    - TABLE: public.'"MyTable"'</codeblock>
             <p>If the YAML control file contains the <codeph>ERROR_TABLE</codeph> element that was
-                available in Greenplum Database 4.3.x, <codeph>gpload</codeph> logs a warning
+                available in Cloudberry Database 4.3.x, <codeph>gpload</codeph> logs a warning
                 stating that <codeph>ERROR_TABLE</codeph> is not supported, and load errors are
                 handled as if the <codeph>LOG_ERRORS</codeph> and <codeph>REUSE_TABLE</codeph>
                 elements were set to <codeph>true</codeph>. Rows with formatting errors are logged

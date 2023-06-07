@@ -4,10 +4,10 @@
 <topic id="backup-plugin-api" xml:lang="en">
   <title id="kk1598353">Backup/Restore Storage Plugin API </title>
   <body>
-    <p>This topic describes how to develop a custom storage plugin with the Greenplum Database
+    <p>This topic describes how to develop a custom storage plugin with the Cloudberry Database
       Backup/Restore Storage Plugin API.</p>
     <p>The Backup/Restore Storage Plugin API provides a framework that you can use to develop and
-      integrate a custom backup storage system with the Greenplum Database <xref
+      integrate a custom backup storage system with the Cloudberry Database <xref
         href="../../utility_guide/ref/gpbackup.xml"><codeph>gpbackup</codeph></xref>, <xref
         href="../../utility_guide/ref/gpbackup_manager.xml"
       ><codeph>gpbackup_manager</codeph></xref>, and <xref
@@ -15,8 +15,8 @@
       utilities.</p>
     <p>The Backup/Restore Storage Plugin API defines a set of interfaces that a plugin must support.
       The API also specifies the format and content of a configuration file for a plugin.</p>
-    <p>When you use the Backup/Restore Storage Plugin API, you create a plugin that the Greenplum
-      Database administrator deploys to the Greenplum Database cluster. Once deployed, the plugin is
+    <p>When you use the Backup/Restore Storage Plugin API, you create a plugin that the Cloudberry
+      Database administrator deploys to the Cloudberry Database cluster. Once deployed, the plugin is
       available for use in certain backup and restore operations.</p>
 
     <p>This topic includes the following subtopics:</p>
@@ -49,7 +49,7 @@
       <p>Specifying the <codeph>--plugin-config</codeph> option to the <codeph>gpbackup</codeph> and
           <codeph>gprestore</codeph> commands instructs the utilities to use the plugin specified in
         the configuration file for the operation.</p>
-      <p>The plugin configuration file provides information for both Greenplum Database and the
+      <p>The plugin configuration file provides information for both Cloudberry Database and the
         plugin. The Backup/Restore Storage Plugin API defines the format of, and certain keywords
         used in, the plugin configuration file.</p>
       <p>A plugin configuration file is a YAML file in the following format:
@@ -69,7 +69,7 @@ options:
         for example. The plugin should both specify and consume the content of this information in
             <codeph><varname>keyword</varname>:<varname>value</varname></codeph> syntax.</p>
 
-      <p>A sample plugin configuration file for the Greenplum Database S3 backup/restore storage
+      <p>A sample plugin configuration file for the Cloudberry Database S3 backup/restore storage
         plugin
         follows:<codeblock>executablepath: $GPHOME/bin/gpbackup_s3_plugin
 options:
@@ -89,7 +89,7 @@ options:
           <codeph>gpbackup</codeph> and <codeph>gprestore</codeph> at defined points in their
         respective life cycle operations:</p>
       <ul>
-        <li>The Greenplum Database Backup/Restore Storage Plugin API provides hooks into the
+        <li>The Cloudberry Database Backup/Restore Storage Plugin API provides hooks into the
             <codeph>gpbackup</codeph> lifecycle at initialization, during backup, and at
           cleanup/exit time.</li>
         <li>The API provides hooks into the <codeph>gprestore</codeph> lifecycle at initialization,
@@ -102,7 +102,7 @@ options:
               hosts.</li>
             <li><codeph>segment</codeph> - Run the plugin once for each active segment instance
               on the host running the segment instance.</li>
-          </ul>The Greenplum Database hosts and segment instances are based on the Greenplum
+          </ul>The Cloudberry Database hosts and segment instances are based on the Cloudberry
           Database configuration when the back up started. The values <codeph>segment_host</codeph>
           and <codeph>segment</codeph> are provided as a segment host can host multiple segment
           instances. There might be some setup or cleanup required at the segment host level as
@@ -111,7 +111,7 @@ options:
       <p>The Plugin API also defines the <codeph>delete_backup</codeph>
         command, which is called by the <codeph>gpbackup_manager</codeph> utility. (The
           <codeph>gpbackup_manager</codeph> source code is proprietary and the utility is available
-        only in the Tanzu Greenplum Backup and Restore download from <xref
+        only in the Tanzu Cloudberry Backup and Restore download from <xref
           href="https://network.pivotal.io" format="html" scope="external">VMware Tanzu Network</xref>.)</p>
       <p>The Backup/Restore Storage Plugin API defines the following call syntax for a
         backup/restore storage plugin executable
@@ -136,7 +136,7 @@ options:
     <topic id="topic_commands" xml:lang="en">
       <title>Plugin Commands</title>
       <body>
-        <p>The Greenplum Database Backup/Restore Storage Plugin API defines the following commands:
+        <p>The Cloudberry Database Backup/Restore Storage Plugin API defines the following commands:
             <table class="- topic/table " id="table_b1q_m2h_zz">
             <title class="- topic/title ">Backup/Restore Storage Plugin API Commands</title>
             <tgroup cols="2" class="- topic/tgroup ">
@@ -269,8 +269,8 @@ options:
       <p>The Backup/Restore Storage Plugin API includes a test bench that you can run to ensure that
         a plugin is well integrated with <codeph>gpbackup</codeph> and
         <codeph>gprestore</codeph>.</p>
-      <p>The test bench is a <codeph>bash</codeph> script that you run in a Greenplum Database
-        installation. The script generates a small (&lt;1MB) data set in a Greenplum Database table,
+      <p>The test bench is a <codeph>bash</codeph> script that you run in a Cloudberry Database
+        installation. The script generates a small (&lt;1MB) data set in a Cloudberry Database table,
         explicitly tests each command, and runs a backup and restore of the data (file and
         streaming). The test bench invokes <codeph>gpbackup</codeph> and <codeph>gprestore</codeph>,
         which in turn individually call/test each Backup/Restore Storage Plugin API command
@@ -280,7 +280,7 @@ options:
       <section id="topic8339191" xml:lang="en">
         <title>Procedure</title>
         <p>To run the Backup/Restore Storage Plugin API test bench against a plugin:</p><ol>
-          <li>Log in to the Greenplum Database master host and set up your environment. For
+          <li>Log in to the Cloudberry Database master host and set up your environment. For
             example:<codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
 gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
           <li>Obtain a copy of the test bench from the <codeph>gpbackup</codeph> github repository.
@@ -292,12 +292,12 @@ gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
             directory. For
             example:<codeblock>$ ls gpbackup/master/plugins/plugin_test_bench.sh</codeblock></li>
           <li>Copy the plugin executable program and the plugin configuration YAML file from your
-            development system to the Greenplum Database master host. Note the file system location
+            development system to the Cloudberry Database master host. Note the file system location
             to which you copied the files.</li>
-          <li>Copy the plugin executable program from the Greenplum Database master host to the same
+          <li>Copy the plugin executable program from the Cloudberry Database master host to the same
             file system location on each segment host.</li>
           <li>If required, edit the plugin configuration YAML file to specify the absolute path of
-            the plugin executable program that you just copied to the Greenplum segments.</li>
+            the plugin executable program that you just copied to the Cloudberry segments.</li>
           <li>Run the test bench program against the plugin. For
             example:<codeblock>$ gpbackup/master/plugins/plugin_test_bench.sh /path/to/pluginexec /path/to/plugincfg.yaml</codeblock></li>
           <li>Examine the test bench output. Your plugin passed the test bench if all output
@@ -336,12 +336,12 @@ gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
   <topic id="topic9339b" xml:lang="en">
     <title>Packaging and Deploying a Backup/Restore Storage Plugin</title>
     <body>
-      <p>Your backup/restore storage plugin is ready to be deployed to a Greenplum Database
+      <p>Your backup/restore storage plugin is ready to be deployed to a Cloudberry Database
         installation after the plugin passes your testing and the test bench verification. When you
         package the backup/restore storage plugin, consider the following:</p>
       <ul>
         <li>The backup/restore storage plugin must be installed in the same file system location on
-          every host in the Greenplum Database cluster. Provide installation instructions for the
+          every host in the Cloudberry Database cluster. Provide installation instructions for the
           plugin identifying the same.</li>
         <li>The <codeph>gpadmin</codeph> user must have permission to traverse the file system path
           to the backup/restore plugin executable program.</li>

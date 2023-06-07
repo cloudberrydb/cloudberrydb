@@ -3,7 +3,7 @@
  * pg_extprotocol.c
  *	  routines to support manipulation of the pg_extprotocol relation
  *
- * Portions Copyright (c) 2011, Greenplum/EMC
+ * Portions Copyright (c) 2011, Cloudberry/EMC
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2009, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -37,6 +37,8 @@
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
+
+#include "catalog/gp_indexing.h"
 
 static Oid ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype);
 static char *func_type_to_name(ExtPtcFuncType ftype);
@@ -215,7 +217,7 @@ ValidateProtocolFunction(List *fnName, ExtPtcFuncType fntype)
 	 * the function.
 	 */
 	fdresult = func_get_detail(fnName, NIL, NIL,
-							   nargs, inputTypes, false, false,
+							   nargs, inputTypes, false, false, false,
 							   &fnOid, &actual_rettype, &retset,
 							   &nvargs, &vatype, &true_oid_array, NULL);
 

@@ -3,7 +3,7 @@
  *
  *	tablespace functions
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/tablespace.c
  */
 
@@ -60,8 +60,8 @@ get_tablespace_paths(void)
 	res = executeQueryOrDie(conn, "%s", query);
 
 	if ((os_info.num_old_tablespaces = PQntuples(res)) != 0)
-		os_info.old_tablespaces = (char **) pg_malloc(
-													  os_info.num_old_tablespaces * sizeof(char *));
+		os_info.old_tablespaces =
+			(char **) pg_malloc(os_info.num_old_tablespaces * sizeof(char *));
 	else
 		os_info.old_tablespaces = NULL;
 
@@ -71,8 +71,7 @@ get_tablespace_paths(void)
 	{
 		struct stat statBuf;
 
-		os_info.old_tablespaces[tblnum] = pg_strdup(
-													PQgetvalue(res, tblnum, i_spclocation));
+		os_info.old_tablespaces[tblnum] = pg_strdup(PQgetvalue(res, tblnum, i_spclocation));
 
 		/*
 		 * Check that the tablespace path exists and is a directory.
@@ -103,8 +102,6 @@ get_tablespace_paths(void)
 	PQclear(res);
 
 	PQfinish(conn);
-
-	return;
 }
 
 

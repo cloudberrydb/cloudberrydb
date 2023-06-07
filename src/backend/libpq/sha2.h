@@ -48,6 +48,9 @@
 #define SHA512_Init pg_SHA512_Init
 #define SHA512_Update pg_SHA512_Update
 #define SHA512_Final pg_SHA512_Final
+#define SM3_Init pg_SM3_Init
+#define SM3_Update pg_SM3_Update
+#define SM3_Final pg_SM3_Final
 
 /*** SHA-224/256/384/512 Various Length Definitions ***********************/
 #define SHA224_BLOCK_LENGTH		64
@@ -80,6 +83,7 @@ typedef struct _SHA512_CTX
 
 typedef SHA256_CTX SHA224_CTX;
 typedef SHA512_CTX SHA384_CTX;
+typedef SHA256_CTX SM3_CTX;
 
 void		SHA224_Init(SHA224_CTX *);
 void		SHA224_Update(SHA224_CTX *, const uint8 *, size_t);
@@ -96,5 +100,9 @@ void		SHA384_Final(uint8[SHA384_DIGEST_LENGTH], SHA384_CTX *);
 void		SHA512_Init(SHA512_CTX *);
 void		SHA512_Update(SHA512_CTX *, const uint8 *, size_t);
 void		SHA512_Final(uint8[SHA512_DIGEST_LENGTH], SHA512_CTX *);
+
+void		SM3_Init(SM3_CTX *);
+void		SM3_Update(SM3_CTX *, const uint8 *, size_t);
+void		SM3_Final(uint8[SHA512_DIGEST_LENGTH], SM3_CTX *);
 
 #endif   /* _SHA2_H */

@@ -2,9 +2,9 @@
  *
  * pg_dumpall.c
  *
- * Portions Copyright (c) 2006-2010, Greenplum inc.
+ * Portions Copyright (c) 2006-2010, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * pg_dumpall forces all pg_dump output to be text, since it also outputs
@@ -20,17 +20,17 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "getopt_long.h"
-
-#include "dumputils.h"
-#include "pg_backup.h"
+#include "common/connect.h"
 #include "common/file_utils.h"
 #include "common/logging.h"
-#include "fe_utils/connect.h"
+#include "common/string.h"
+#include "dumputils.h"
 #include "fe_utils/string_utils.h"
+#include "getopt_long.h"
+#include "pg_backup.h"
 
 /* version string we expect back from pg_dump */
-#define PGDUMP_VERSIONSTR "pg_dump (PostgreSQL) " PG_VERSION "\n"
+#define PGDUMP_VERSIONSTR "pg_dump (Cloudberry Database) " PG_VERSION "\n"
 
 
 static void help(void);
@@ -87,6 +87,7 @@ static int	no_comments = 0;
 static int	no_publications = 0;
 static int	no_security_labels = 0;
 static int	no_subscriptions = 0;
+static int	no_toast_compression = 0;
 static int	no_unlogged_table_data = 0;
 static int	no_role_passwords = 0;
 static int	server_version;
@@ -156,6 +157,7 @@ main(int argc, char *argv[])
 		{"no-security-labels", no_argument, &no_security_labels, 1},
 		{"no-subscriptions", no_argument, &no_subscriptions, 1},
 		{"no-sync", no_argument, NULL, 4},
+		{"no-toast-compression", no_argument, &no_toast_compression, 1},
 		{"no-unlogged-table-data", no_argument, &no_unlogged_table_data, 1},
 		{"on-conflict-do-nothing", no_argument, &on_conflict_do_nothing, 1},
 		{"rows-per-insert", required_argument, NULL, 7},
@@ -202,7 +204,7 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_dumpall (PostgreSQL) " PG_VERSION);
+			puts("pg_dumpall (Cloudberry Database) " PG_VERSION);
 			exit_nicely(0);
 		}
 	}
@@ -216,15 +218,15 @@ main(int argc, char *argv[])
 			strlcpy(full_path, progname, sizeof(full_path));
 
 		if (ret == -1)
-			pg_log_error("The program \"pg_dump\" is needed by %s but was not found in the\n"
+			pg_log_error("The program \"%s\" is needed by %s but was not found in the\n"
 						 "same directory as \"%s\".\n"
 						 "Check your installation.",
-						 progname, full_path);
+						 "pg_dump", progname, full_path);
 		else
-			pg_log_error("The program \"pg_dump\" was found by \"%s\"\n"
+			pg_log_error("The program \"%s\" was found by \"%s\"\n"
 						 "but was not the same version as %s.\n"
 						 "Check your installation.",
-						 full_path, progname);
+						 "pg_dump", full_path, progname);
 		exit_nicely(1);
 	}
 
@@ -280,7 +282,7 @@ main(int argc, char *argv[])
 				break;
 
 			/*
-			 * Both Greenplum and PostgreSQL have used -r but for different
+			 * Both Cloudberry and PostgreSQL have used -r but for different
 			 * options, disallow the short option entirely to avoid confusion
 			 * and require the use of long options for the conflicting pair.
 			 */
@@ -312,7 +314,7 @@ main(int argc, char *argv[])
 
 			case 'v':
 				verbose = true;
-				pg_logging_set_level(PG_LOG_INFO);
+				pg_logging_increase_verbosity();
 				appendPQExpBufferStr(pgdumpopts, " -v");
 				break;
 
@@ -481,6 +483,8 @@ main(int argc, char *argv[])
 		appendPQExpBufferStr(pgdumpopts, " --no-security-labels");
 	if (no_subscriptions)
 		appendPQExpBufferStr(pgdumpopts, " --no-subscriptions");
+	if (no_toast_compression)
+		appendPQExpBufferStr(pgdumpopts, " --no-toast-compression");
 	if (no_unlogged_table_data)
 		appendPQExpBufferStr(pgdumpopts, " --no-unlogged-table-data");
 	if (on_conflict_do_nothing)
@@ -537,7 +541,7 @@ main(int argc, char *argv[])
 		OPF = fopen(filename, PG_BINARY_W);
 		if (!OPF)
 		{
-			pg_log_error("could not open the output file \"%s\": %m",
+			pg_log_error("could not open output file \"%s\": %m",
 						 filename);
 			exit_nicely(1);
 		}
@@ -581,7 +585,7 @@ main(int argc, char *argv[])
 	if (quote_all_identifiers && server_version >= 80300)
 		executeCommand(conn, "SET quote_all_identifiers = true");
 
-	fprintf(OPF,"--\n-- Greenplum Database cluster dump\n--\n\n");
+	fprintf(OPF,"--\n-- Cloudberry Database cluster dump\n--\n\n");
 	if (verbose)
 		dumpTimestamp("Started on");
 
@@ -606,7 +610,7 @@ main(int argc, char *argv[])
 	if (binary_upgrade)
 	{
 		/*
-		 * Greenplum doesn't allow altering system catalogs without
+		 * Cloudberry doesn't allow altering system catalogs without
 		 * setting the allow_system_table_mods GUC first.
 		 */
 		fprintf(OPF, "SET allow_system_table_mods = true;\n");
@@ -727,6 +731,7 @@ help(void)
 	printf(_("  --no-subscriptions           do not dump subscriptions\n"));
 	printf(_("  --no-sync                    do not wait for changes to be written safely to disk\n"));
 	printf(_("  --no-tablespaces             do not dump tablespace assignments\n"));
+	printf(_("  --no-toast-compression       do not dump TOAST compression methods\n"));
 	printf(_("  --no-unlogged-table-data     do not dump unlogged table data\n"));
 	printf(_("  --on-conflict-do-nothing     add ON CONFLICT DO NOTHING to INSERT commands\n"));
 	printf(_("  --quote-all-identifiers      quote all identifiers, even if not key words\n"));
@@ -734,8 +739,8 @@ help(void)
 	printf(_("  --use-set-session-authorization\n"
 			 "                               use SET SESSION AUTHORIZATION commands instead of\n"
 			 "                               ALTER OWNER commands to set ownership\n"));
-	printf(_("  --gp-syntax                  dump with Greenplum Database syntax (default if gpdb)\n"));
-	printf(_("  --no-gp-syntax               dump without Greenplum Database syntax (default if postgresql)\n"));
+	printf(_("  --gp-syntax                  dump with Cloudberry Database syntax (default if gpdb)\n"));
+	printf(_("  --no-gp-syntax               dump without Cloudberry Database syntax (default if postgresql)\n"));
 
 	printf(_("\nConnection options:\n"));
 	printf(_("  -d, --dbname=CONNSTR     connect using connection string\n"));
@@ -749,7 +754,8 @@ help(void)
 
 	printf(_("\nIf -f/--file is not used, then the SQL script will be written to the standard\n"
 			 "output.\n\n"));
-	printf(_("Report bugs to <bugs@greenplum.org>.\n"));
+	printf(_("Report bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }
 
 
@@ -1187,7 +1193,7 @@ dumpRoles(PGconn *conn)
 	int			i;
 	bool		exttab_auth = (server_version >= 80214);
 	/*
-	 * Support for gphdfs was removed in Greenplum 6
+	 * Support for gphdfs was removed in Cloudberry 6
 	 */
 	bool		hdfs_auth = (server_version >= 80215 && server_version < 80400);
 	char	   *resq_col = resource_queues ? ", (SELECT rsqname FROM pg_resqueue WHERE "
@@ -1643,7 +1649,7 @@ dumpTablespaces(PGconn *conn)
 	 * pg_xxx)
 	 *
 	 * [FIXME] the queries need to be slightly different if the backend isn't
-	 * Greenplum, and the dump format should vary depending on if the dump is
+	 * Cloudberry, and the dump format should vary depending on if the dump is
 	 * --gp-syntax or --no-gp-syntax.
 	 *
 	 * For the tablespace ACLs, as of 9.6, we extract both the positive (as
@@ -1926,10 +1932,21 @@ expand_dbname_patterns(PGconn *conn,
 
 	for (SimpleStringListCell *cell = patterns->head; cell; cell = cell->next)
 	{
-		appendPQExpBuffer(query,
-						  "SELECT datname FROM pg_catalog.pg_database n\n");
+		int		dotcnt;
+
+		appendPQExpBufferStr(query,
+							 "SELECT datname FROM pg_catalog.pg_database n\n");
 		processSQLNamePattern(conn, query, cell->val, false,
-							  false, NULL, "datname", NULL, NULL);
+							  false, NULL, "datname", NULL, NULL, NULL,
+							  &dotcnt);
+
+		if (dotcnt > 0)
+		{
+			pg_log_error("improper qualified name (too many dotted names): %s",
+						 cell->val);
+			PQfinish(conn);
+			exit_nicely(1);
+		}
 
 		res = executeQuery(conn, query->data);
 		for (int i = 0; i < PQntuples(res); i++)
@@ -1986,11 +2003,11 @@ dumpDatabases(PGconn *conn)
 		/* Skip any explicitly excluded database */
 		if (simple_string_list_member(&database_exclude_names, dbname))
 		{
-			pg_log_info("excluding database \"%s\"...", dbname);
+			pg_log_info("excluding database \"%s\"", dbname);
 			continue;
 		}
 
-		pg_log_info("dumping database \"%s\"...", dbname);
+		pg_log_info("dumping database \"%s\"", dbname);
 
 		fprintf(OPF, "--\n-- Database \"%s\" dump\n--\n\n", dbname);
 
@@ -2107,7 +2124,7 @@ buildShSecLabels(PGconn *conn, const char *catalog_name, Oid objectId,
 	PQExpBuffer sql = createPQExpBuffer();
 	PGresult   *res;
 
-	buildShSecLabelQuery(conn, catalog_name, objectId, sql);
+	buildShSecLabelQuery(catalog_name, objectId, sql);
 	res = executeQuery(conn, sql->data);
 	emitShSecLabels(conn, res, buffer, objtype, objname);
 
@@ -2137,14 +2154,10 @@ connectDatabase(const char *dbname, const char *connection_string,
 	const char **keywords = NULL;
 	const char **values = NULL;
 	PQconninfoOption *conn_opts = NULL;
-	static bool have_password = false;
-	static char password[100];
+	static char *password = NULL;
 
-	if (prompt_password == TRI_YES && !have_password)
-	{
-		simple_prompt("Password: ", password, sizeof(password), false);
-		have_password = true;
-	}
+	if (prompt_password == TRI_YES && !password)
+		password = simple_prompt("Password: ", false);
 
 	/*
 	 * Start the connection.  Loop until we have a password if requested by
@@ -2224,7 +2237,7 @@ connectDatabase(const char *dbname, const char *connection_string,
 			values[i] = pguser;
 			i++;
 		}
-		if (have_password)
+		if (password)
 		{
 			keywords[i] = "password";
 			values[i] = password;
@@ -2251,12 +2264,11 @@ connectDatabase(const char *dbname, const char *connection_string,
 
 		if (PQstatus(conn) == CONNECTION_BAD &&
 			PQconnectionNeedsPassword(conn) &&
-			!have_password &&
+			!password &&
 			prompt_password != TRI_NO)
 		{
 			PQfinish(conn);
-			simple_prompt("Password: ", password, sizeof(password), false);
-			have_password = true;
+			password = simple_prompt("Password: ", false);
 			new_pass = true;
 		}
 	} while (new_pass);
@@ -2266,8 +2278,7 @@ connectDatabase(const char *dbname, const char *connection_string,
 	{
 		if (fail_on_error)
 		{
-			pg_log_error("could not connect to database \"%s\": %s",
-						 dbname, PQerrorMessage(conn));
+			pg_log_error("%s", PQerrorMessage(conn));
 			exit_nicely(1);
 		}
 		else

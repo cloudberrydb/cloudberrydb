@@ -1,6 +1,6 @@
 -- tests for tidscans
 CREATE TABLE tidscan(id integer);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- GPDB: we need some preparation, to make the output the same as in upstream.
 -- Firstly, force all the rows to the same segment, so that selecting by ctid
@@ -204,7 +204,7 @@ FETCH ALL FROM c;
 (2 rows)
 
 FETCH BACKWARD 1 FROM c;
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 FETCH FIRST FROM c;
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 ROLLBACK;
@@ -331,4 +331,11 @@ SELECT count(*) FROM tenk1 t1 JOIN tenk1 t2 ON t1.ctid = t2.ctid and t1.gp_segme
 (1 row)
 
 RESET enable_hashjoin;
+-- GPDB_13_MERGE_FIXME
+-- --check predicate lock on CTID
+-- BEGIN ISOLATION LEVEL SERIALIZABLE;
+-- SELECT * FROM tidscan WHERE ctid = '(0,1)';
+-- -- locktype should be 'tuple'
+-- SELECT locktype, mode FROM pg_locks WHERE pid = pg_backend_pid() AND mode = 'SIReadLock';
+-- ROLLBACK;
 DROP TABLE tidscan;

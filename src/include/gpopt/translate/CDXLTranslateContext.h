@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CDXLTranslateContext.h
@@ -35,6 +35,10 @@ using namespace gpos;
 typedef CHashMap<ULONG, TargetEntry, gpos::HashValue<ULONG>,
 				 gpos::Equals<ULONG>, CleanupDelete<ULONG>, CleanupNULL>
 	ULongToTargetEntryMap;
+
+typedef CHashMapIter<ULONG, TargetEntry, gpos::HashValue<ULONG>,
+				 gpos::Equals<ULONG>, CleanupDelete<ULONG>, CleanupNULL>
+	ULongToTargetEntryMapIter;
 
 // hash maps mapping ULONG -> CMappingElementColIdParamId
 typedef CHashMap<ULONG, CMappingElementColIdParamId, gpos::HashValue<ULONG>,
@@ -77,6 +81,7 @@ private:
 
 	// copy the params hashmap
 	void CopyParamHashmap(ULongToColParamMap *original);
+	void CopyTargetEntryHashmap(ULongToTargetEntryMap *original);
 
 public:
 	CDXLTranslateContext(const CDXLTranslateContext &) = delete;
@@ -99,6 +104,12 @@ public:
 		return m_colid_to_paramid_map;
 	}
 
+	ULongToTargetEntryMap*
+	GetColIdToTargetEntryMap() const
+	{
+		return m_colid_to_target_entry_map;
+	}
+
 	// return the target entry corresponding to the given ColId
 	const TargetEntry *GetTargetEntry(ULONG colid) const;
 
@@ -112,6 +123,8 @@ public:
 	// store the mapping of the given column id and param id
 	BOOL FInsertParamMapping(ULONG colid,
 							 CMappingElementColIdParamId *pmecolidparamid);
+	// merge another context
+	void MergeTcxt(CDXLTranslateContext *tcxt);
 };
 
 

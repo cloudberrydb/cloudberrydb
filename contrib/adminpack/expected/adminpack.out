@@ -37,25 +37,37 @@ SELECT pg_read_file('test_file1');
 -- disallowed file paths for non-superusers and users who are
 -- not members of pg_write_server_files
 CREATE ROLE regress_user1;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
 GRANT pg_read_all_settings TO regress_user1;
 GRANT EXECUTE ON FUNCTION pg_file_write(text,text,bool) TO regress_user1;
 SET ROLE regress_user1;
 SELECT pg_file_write('../test_file0', 'test0', false);
-ERROR:  path must be in or below the current directory
+ERROR:  only superuser may access generic file functions
 SELECT pg_file_write('/tmp/test_file0', 'test0', false);
-ERROR:  absolute path not allowed
+ERROR:  only superuser may access generic file functions
 SELECT pg_file_write(current_setting('data_directory') || '/test_file4', 'test4', false);
- pg_file_write 
----------------
-             5
-(1 row)
-
+ERROR:  only superuser may access generic file functions
 SELECT pg_file_write(current_setting('data_directory') || '/../test_file4', 'test4', false);
-ERROR:  reference to parent directory ("..") not allowed
+ERROR:  only superuser may access generic file functions
 RESET ROLE;
 REVOKE EXECUTE ON FUNCTION pg_file_write(text,text,bool) FROM regress_user1;
 REVOKE pg_read_all_settings FROM regress_user1;
 DROP ROLE regress_user1;
+-- sync
+SELECT pg_file_sync('test_file1'); -- sync file
+ pg_file_sync 
+--------------
+ 
+(1 row)
+
+SELECT pg_file_sync('pg_stat'); -- sync directory
+ pg_file_sync 
+--------------
+ 
+(1 row)
+
+SELECT pg_file_sync('test_file2'); -- not there
+ERROR:  could not stat file "test_file2": No such file or directory
 -- rename file
 SELECT pg_file_rename('test_file1', 'test_file2');
  pg_file_rename 
@@ -64,7 +76,7 @@ SELECT pg_file_rename('test_file1', 'test_file2');
 (1 row)
 
 SELECT pg_read_file('test_file1');  -- not there
-ERROR:  could not stat file "test_file1": No such file or directory
+ERROR:  could not open file "test_file1" for reading: No such file or directory
 SELECT pg_read_file('test_file2');
  pg_read_file 
 --------------
@@ -93,7 +105,7 @@ SELECT pg_file_rename('test_file2', 'test_file3', 'test_file3_archive');
 (1 row)
 
 SELECT pg_read_file('test_file2');  -- not there
-ERROR:  could not stat file "test_file2": No such file or directory
+ERROR:  could not open file "test_file2" for reading: No such file or directory
 SELECT pg_read_file('test_file3');
  pg_read_file 
 --------------
@@ -134,14 +146,17 @@ SELECT pg_file_unlink('test_file3_archive');
 SELECT pg_file_unlink('test_file4');
  pg_file_unlink 
 ----------------
- t
+ f
 (1 row)
 
 -- superuser checks
 CREATE USER regress_user1;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
 SET ROLE regress_user1;
 SELECT pg_file_write('test_file0', 'test0', false);
 ERROR:  permission denied for function pg_file_write
+SELECT pg_file_sync('test_file0');
+ERROR:  permission denied for function pg_file_sync
 SELECT pg_file_rename('test_file0', 'test_file0');
 ERROR:  permission denied for function pg_file_rename
 CONTEXT:  SQL function "pg_file_rename" statement 1
@@ -151,5 +166,62 @@ SELECT pg_logdir_ls();
 ERROR:  permission denied for function pg_logdir_ls
 RESET ROLE;
 DROP USER regress_user1;
+-- allowed file paths for superuser test
+CREATE ROLE regress_superuser1 SUPERUSER;
+GRANT pg_read_all_settings TO regress_superuser1;
+GRANT EXECUTE ON FUNCTION pg_file_write(text,text,bool) TO regress_superuser1;
+SET ROLE regress_superuser1;
+SELECT pg_file_write('../supper_test_file0', 'test0', false);
+ pg_file_write 
+---------------
+             5
+(1 row)
+
+SELECT pg_file_write('/tmp/supper_test_file0', 'test0', false);
+ pg_file_write 
+---------------
+             5
+(1 row)
+
+SELECT pg_file_write(current_setting('data_directory') || '/supper_test_file4', 'test4', false);
+ pg_file_write 
+---------------
+             5
+(1 row)
+
+SELECT pg_file_write(current_setting('data_directory') || '/../supper_test_file4', 'test4', false);
+ pg_file_write 
+---------------
+             5
+(1 row)
+
+SELECT pg_file_unlink('../supper_test_file0');
+ pg_file_unlink 
+----------------
+ t
+(1 row)
+
+SELECT pg_file_unlink('/tmp/supper_test_file0');
+ pg_file_unlink 
+----------------
+ t
+(1 row)
+
+SELECT pg_file_unlink(current_setting('data_directory') || '/supper_test_file4');
+ pg_file_unlink 
+----------------
+ t
+(1 row)
+
+SELECT pg_file_unlink(current_setting('data_directory') || '/../supper_test_file4');
+ pg_file_unlink 
+----------------
+ t
+(1 row)
+
+RESET ROLE;
+REVOKE EXECUTE ON FUNCTION pg_file_write(text,text,bool) FROM regress_superuser1;
+REVOKE pg_read_all_settings FROM regress_superuser1;
+DROP ROLE regress_superuser1;
 -- no further tests for pg_logdir_ls() because it depends on the
 -- server's logging setup

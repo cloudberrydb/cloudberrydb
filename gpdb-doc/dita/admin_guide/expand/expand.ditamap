@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE map PUBLIC "-//OASIS//DTD DITA Map//EN" "map.dtd">
 <map>
- <title>Expanding a Greenplum System</title>
+ <title>Expanding a Cloudberry System</title>
  <topicref href="expand-main.xml">
   <topicref href="expand-overview.xml"/>
   <topicref href="expand-planning.xml"/>

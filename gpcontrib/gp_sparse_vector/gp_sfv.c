@@ -2,7 +2,7 @@
  *
  * gp_sfv.c
  *
- * Copyright (c) 2010, Greenplum Software
+ * Copyright (c) 2010, Cloudberry Software
  * Portions Copyright (c) 2013-Present VMware, Inc. or its affiliates.
  *
  *
@@ -40,7 +40,7 @@ Datum gp_extract_feature_histogram(PG_FUNCTION_ARGS);
 
 /*
  * 	gp_extract_feature_histogram
- * 	By: Luke Lonergan, November 2009, Greenplum Inc.
+ * 	By: Luke Lonergan, November 2009, Cloudberry Inc.
  * 	Credits:
  * 		This was motivated by discussions with Brian Dolan at FIM / MySpace
  *

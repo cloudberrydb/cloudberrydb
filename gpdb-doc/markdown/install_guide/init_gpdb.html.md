@@ -1,41 +1,41 @@
 ---
-title: Initializing a Greenplum Database System 
+title: Initializing a Cloudberry Database System 
 ---
 
-Describes how to initialize a Greenplum Database database system.
+Describes how to initialize a Cloudberry Database database system.
 
-The instructions in this chapter assume you have already prepared your hosts as described in [Configuring Your Systems](prep_os.html) and installed the Greenplum Database software on all of the hosts in the system according to the instructions in [Installing the Greenplum Database Software](install_gpdb.html).
+The instructions in this chapter assume you have already prepared your hosts as described in [Configuring Your Systems](prep_os.html) and installed the Cloudberry Database software on all of the hosts in the system according to the instructions in [Installing the Cloudberry Database Software](install_gpdb.html).
 
 This chapter contains the following topics:
 
 -   [Overview](#topic2)
--   [Initializing Greenplum Database](#topic3)
--   [Setting Greenplum Environment Variables](#topic8)
+-   [Initializing Cloudberry Database](#topic3)
+-   [Setting Cloudberry Environment Variables](#topic8)
 -   [Next Steps](#topic9)
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 
 ## <a id="topic2"></a>Overview 
 
-Because Greenplum Database is distributed, the process for initializing a Greenplum Database management system \(DBMS\) involves initializing several individual PostgreSQL database instances \(called *segment instances* in Greenplum\).
+Because Cloudberry Database is distributed, the process for initializing a Cloudberry Database management system \(DBMS\) involves initializing several individual PostgreSQL database instances \(called *segment instances* in Cloudberry\).
 
-Each database instance \(the master and all segments\) must be initialized across all of the hosts in the system in such a way that they can all work together as a unified DBMS. Greenplum provides its own version of `initdb` called [gpinitsystem](../utility_guide/ref/gpinitsystem.html), which takes care of initializing the database on the master and on each segment instance, and starting each instance in the correct order.
+Each database instance \(the master and all segments\) must be initialized across all of the hosts in the system in such a way that they can all work together as a unified DBMS. Cloudberry provides its own version of `initdb` called [gpinitsystem](../utility_guide/ref/gpinitsystem.html), which takes care of initializing the database on the master and on each segment instance, and starting each instance in the correct order.
 
-After the Greenplum Database database system has been initialized and started, you can then create and manage databases as you would in a regular PostgreSQL DBMS by connecting to the Greenplum master.
+After the Cloudberry Database database system has been initialized and started, you can then create and manage databases as you would in a regular PostgreSQL DBMS by connecting to the Cloudberry master.
 
-## <a id="topic3"></a>Initializing Greenplum Database 
+## <a id="topic3"></a>Initializing Cloudberry Database 
 
-These are the high-level tasks for initializing Greenplum Database:
+These are the high-level tasks for initializing Cloudberry Database:
 
-1.  Make sure you have completed all of the installation tasks described in [Configuring Your Systems](prep_os.html) and [Installing the Greenplum Database Software](install_gpdb.html).
+1.  Make sure you have completed all of the installation tasks described in [Configuring Your Systems](prep_os.html) and [Installing the Cloudberry Database Software](install_gpdb.html).
 2.  Create a host file that contains the host addresses of your segments. See [Creating the Initialization Host File](#topic4).
-3.  Create your Greenplum Database system configuration file. See [Creating the Greenplum Database Configuration File](#topic5).
-4.  By default, Greenplum Database will be initialized using the locale of the master host system. Make sure this is the correct locale you want to use, as some locale options cannot be changed after initialization. See [Configuring Timezone and Localization Settings](localization.html) for more information.
-5.  Run the Greenplum Database initialization utility on the master host. See [Running the Initialization Utility](#topic6).
-6.  Set the Greenplum Database timezone. See [Setting the Greenplum Database Timezone](#topic_xkd_d1q_l2b).
-7.  Set environment variables for the Greenplum Database user. See [Setting Greenplum Environment Variables](#topic8).
+3.  Create your Cloudberry Database system configuration file. See [Creating the Cloudberry Database Configuration File](#topic5).
+4.  By default, Cloudberry Database will be initialized using the locale of the master host system. Make sure this is the correct locale you want to use, as some locale options cannot be changed after initialization. See [Configuring Timezone and Localization Settings](localization.html) for more information.
+5.  Run the Cloudberry Database initialization utility on the master host. See [Running the Initialization Utility](#topic6).
+6.  Set the Cloudberry Database timezone. See [Setting the Cloudberry Database Timezone](#topic_xkd_d1q_l2b).
+7.  Set environment variables for the Cloudberry Database user. See [Setting Cloudberry Environment Variables](#topic8).
 
-When performing the following initialization tasks, you must be logged into the master host as the `gpadmin` user, and to run Greenplum Database utilities, you must source the `greenplum_path.sh` file to set Greenplum Database environment variables. For example, if you are logged into the master, run these commands.
+When performing the following initialization tasks, you must be logged into the master host as the `gpadmin` user, and to run Cloudberry Database utilities, you must source the `greenplum_path.sh` file to set Cloudberry Database environment variables. For example, if you are logged into the master, run these commands.
 
 ```
 $ su - gpadmin
@@ -48,7 +48,7 @@ The [gpinitsystem](../utility_guide/ref/gpinitsystem.html) utility requires a ho
 
 This file should only contain segment host addresses \(not the master or standby master\). For segment machines with multiple, unbonded network interfaces, this file should list the host address names for each interface — one per line.
 
-**Note:** The Greenplum Database segment host naming convention is sdwN where sdw is a prefix and N is an integer. For example, `sdw2` and so on. If hosts have multiple unbonded NICs, the convention is to append a dash \(`-`\) and number to the host name. For example, `sdw1-1` and `sdw1-2` are the two interface names for host `sdw1`. However, NIC bonding is recommended to create a load-balanced, fault-tolerant network.
+**Note:** The Cloudberry Database segment host naming convention is sdwN where sdw is a prefix and N is an integer. For example, `sdw2` and so on. If hosts have multiple unbonded NICs, the convention is to append a dash \(`-`\) and number to the host name. For example, `sdw1-1` and `sdw1-2` are the two interface names for host `sdw1`. However, NIC bonding is recommended to create a load-balanced, fault-tolerant network.
 
 #### <a id="jm138608"></a>To create the initialization host file 
 
@@ -69,9 +69,9 @@ This file should only contain segment host addresses \(not the master or standby
 
 **Note:** If you are not sure of the host names and/or interface address names used by your machines, look in the `/etc/hosts` file.
 
-### <a id="topic5"></a>Creating the Greenplum Database Configuration File 
+### <a id="topic5"></a>Creating the Cloudberry Database Configuration File 
 
-Your Greenplum Database configuration file tells the [gpinitsystem](../utility_guide/ref/gpinitsystem.html) utility how you want to configure your Greenplum Database system. An example configuration file can be found in `$GPHOME/docs/cli_help/gpconfigs/gpinitsystem_config`.
+Your Cloudberry Database configuration file tells the [gpinitsystem](../utility_guide/ref/gpinitsystem.html) utility how you want to configure your Cloudberry Database system. An example configuration file can be found in `$GPHOME/docs/cli_help/gpconfigs/gpinitsystem_config`.
 
 #### <a id="jm138725"></a>To create a gpinitsystem\_config file 
 
@@ -84,7 +84,7 @@ Your Greenplum Database configuration file tells the [gpinitsystem](../utility_g
 
 2.  Open the file you just copied in a text editor.
 
-    Set all of the required parameters according to your environment. See [gpinitsystem](../utility_guide/ref/gpinitsystem.html) for more information. A Greenplum Database system must contain a master instance and at *least two* segment instances \(even if setting up a single node system\).
+    Set all of the required parameters according to your environment. See [gpinitsystem](../utility_guide/ref/gpinitsystem.html) for more information. A Cloudberry Database system must contain a master instance and at *least two* segment instances \(even if setting up a single node system\).
 
     The `DATA_DIRECTORY` parameter is what determines how many segments per host will be created. If your segment hosts have multiple network interfaces, and you used their interface address names in your host file, the number of segments will be evenly spread over the number of available interfaces.
 
@@ -111,15 +111,15 @@ Your Greenplum Database configuration file tells the [gpinitsystem](../utility_g
     declare -a MIRROR_DATA_DIRECTORY=(/data1/mirror /data1/mirror /data1/mirror /data2/mirror /data2/mirror /data2/mirror)
     ```
 
-    **Note:** You can initialize your Greenplum system with primary segments only and deploy mirrors later using the [gpaddmirrors](../utility_guide/ref/gpaddmirrors.html) utility.
+    **Note:** You can initialize your Cloudberry system with primary segments only and deploy mirrors later using the [gpaddmirrors](../utility_guide/ref/gpaddmirrors.html) utility.
 
 4.  Save and close the file.
 
 ### <a id="topic6"></a>Running the Initialization Utility 
 
-The [gpinitsystem](../utility_guide/ref/gpinitsystem.html) utility will create a Greenplum Database system using the values defined in the configuration file.
+The [gpinitsystem](../utility_guide/ref/gpinitsystem.html) utility will create a Cloudberry Database system using the values defined in the configuration file.
 
-These steps assume you are logged in as the `gpadmin` user and have sourced the `greenplum_path.sh` file to set Greenplum Database environment variables.
+These steps assume you are logged in as the `gpadmin` user and have sourced the `greenplum_path.sh` file to set Cloudberry Database environment variables.
 
 #### <a id="jm138821"></a>To run the initialization utility 
 
@@ -145,20 +145,20 @@ These steps assume you are logged in as the `gpadmin` user and have sourced the 
 
     This output file can be edited and used at a later stage as the input file of the `-I` option, to create a new cluster or to recover from a backup. See [gpinitsystem](../utility_guide/ref/gpinitsystem.html) for further details.
 
-    **Note:** Calling `gpinitsystem` with the `-O` option does not initialize the Greenplum Database system; it merely generates and saves a file with cluster configuration details.
+    **Note:** Calling `gpinitsystem` with the `-O` option does not initialize the Cloudberry Database system; it merely generates and saves a file with cluster configuration details.
 
 2.  The utility will verify your setup information and make sure it can connect to each host and access the data directories specified in your configuration. If all of the pre-checks are successful, the utility will prompt you to confirm your configuration. For example:
 
     ```
-    => Continue with Greenplum creation? Yy/Nn
+    => Continue with Cloudberry creation? Yy/Nn
     ```
 
 3.  Press `y` to start the initialization.
 4.  The utility will then begin setup and initialization of the master instance and each segment instance in the system. Each segment instance is set up in parallel. Depending on the number of segments, this process can take a while.
-5.  At the end of a successful setup, the utility will start your Greenplum Database system. You should see:
+5.  At the end of a successful setup, the utility will start your Cloudberry Database system. You should see:
 
     ```
-    => Greenplum Database instance successfully created.
+    => Cloudberry Database instance successfully created.
     ```
 
 
@@ -174,7 +174,7 @@ If the gpinitsystem utility fails, it will create the following backout script i
 
 `~/gpAdminLogs/backout_gpinitsystem_<user>_<timestamp>`
 
-You can use this script to clean up a partially created Greenplum Database system. This backout script will remove any utility-created data directories, `postgres` processes, and log files. After correcting the error that caused `gpinitsystem` to fail and running the backout script, you should be ready to retry initializing your Greenplum Database array.
+You can use this script to clean up a partially created Cloudberry Database system. This backout script will remove any utility-created data directories, `postgres` processes, and log files. After correcting the error that caused `gpinitsystem` to fail and running the backout script, you should be ready to retry initializing your Cloudberry Database array.
 
 The following example shows how to run the backout script:
 
@@ -182,32 +182,32 @@ The following example shows how to run the backout script:
 $ bash ~/gpAdminLogs/backout_gpinitsystem_gpadmin_20071031_121053
 ```
 
-### <a id="topic_xkd_d1q_l2b"></a>Setting the Greenplum Database Timezone 
+### <a id="topic_xkd_d1q_l2b"></a>Setting the Cloudberry Database Timezone 
 
-As a best practice, configure Greenplum Database and the host systems to use a known, supported timezone. Greenplum Database uses a timezone from a set of internally stored PostgreSQL timezones. Setting the Greenplum Database timezone prevents Greenplum Database from selecting a timezone each time the cluster is restarted and sets the timezone for the Greenplum Database master and segment instances.
+As a best practice, configure Cloudberry Database and the host systems to use a known, supported timezone. Cloudberry Database uses a timezone from a set of internally stored PostgreSQL timezones. Setting the Cloudberry Database timezone prevents Cloudberry Database from selecting a timezone each time the cluster is restarted and sets the timezone for the Cloudberry Database master and segment instances.
 
-Use the [gpconfig](../utility_guide/ref/gpconfig.html) utility to show and set the Greenplum Database timezone. For example, these commands show the Greenplum Database timezone and set the timezone to `US/Pacific`.
+Use the [gpconfig](../utility_guide/ref/gpconfig.html) utility to show and set the Cloudberry Database timezone. For example, these commands show the Cloudberry Database timezone and set the timezone to `US/Pacific`.
 
 ```
 $ gpconfig -s TimeZone
 $ gpconfig -c TimeZone -v 'US/Pacific'
 ```
 
-You must restart Greenplum Database after changing the timezone. The command `gpstop -ra` restarts Greenplum Database. The catalog view `pg_timezone_names` provides Greenplum Database timezone information.
+You must restart Cloudberry Database after changing the timezone. The command `gpstop -ra` restarts Cloudberry Database. The catalog view `pg_timezone_names` provides Cloudberry Database timezone information.
 
-For more information about the Greenplum Database timezone, see [Configuring Timezone and Localization Settings](localization.html).
+For more information about the Cloudberry Database timezone, see [Configuring Timezone and Localization Settings](localization.html).
 
-## <a id="topic8"></a>Setting Greenplum Environment Variables 
+## <a id="topic8"></a>Setting Cloudberry Environment Variables 
 
-You must set environment variables in the Greenplum Database user \(`gpadmin`\) environment that runs Greenplum Database on the Greenplum Database master and standby master hosts. A `greenplum_path.sh` file is provided in the Greenplum Database installation directory with environment variable settings for Greenplum Database.
+You must set environment variables in the Cloudberry Database user \(`gpadmin`\) environment that runs Cloudberry Database on the Cloudberry Database master and standby master hosts. A `greenplum_path.sh` file is provided in the Cloudberry Database installation directory with environment variable settings for Cloudberry Database.
 
-The Greenplum Database management utilities also require that the `MASTER_DATA_DIRECTORY` environment variable be set. This should point to the directory created by the `gpinitsystem` utility in the master data directory location.
+The Cloudberry Database management utilities also require that the `MASTER_DATA_DIRECTORY` environment variable be set. This should point to the directory created by the `gpinitsystem` utility in the master data directory location.
 
-**Note:** The `greenplum_path.sh` script changes the operating environment in order to support running the Greenplum Database-specific utilities. These same changes to the environment can negatively affect the operation of other system-level utilities, such as `ps` or `yum`. Use separate accounts for performing system administration and database administration, instead of attempting to perform both functions as `gpadmin`.
+**Note:** The `greenplum_path.sh` script changes the operating environment in order to support running the Cloudberry Database-specific utilities. These same changes to the environment can negatively affect the operation of other system-level utilities, such as `ps` or `yum`. Use separate accounts for performing system administration and database administration, instead of attempting to perform both functions as `gpadmin`.
 
 These steps ensure that the environment variables are set for the `gpadmin` user after a system reboot.
 
-### <a id="jm144961"></a>To set up the gpadmin environment for Greenplum Database 
+### <a id="jm144961"></a>To set up the gpadmin environment for Cloudberry Database 
 
 1.  Open the `gpadmin` profile file \(such as `.bashrc`\) in a text editor. For example:
 
@@ -263,9 +263,9 @@ After your system is up and running, the next steps are:
 
 ### <a id="topic10"></a>Allowing Client Connections 
 
-After a Greenplum Database is first initialized it will only allow local connections to the database from the `gpadmin` role \(or whatever system user ran `gpinitsystem`\). If you would like other users or client machines to be able to connect to Greenplum Database, you must give them access. See the *Greenplum Database Administrator Guide* for more information.
+After a Cloudberry Database is first initialized it will only allow local connections to the database from the `gpadmin` role \(or whatever system user ran `gpinitsystem`\). If you would like other users or client machines to be able to connect to Cloudberry Database, you must give them access. See the *Cloudberry Database Administrator Guide* for more information.
 
 ### <a id="topic11"></a>Creating Databases and Loading Data 
 
-After verifying your installation, you may want to begin creating databases and loading data. See [Defining Database Objects](../admin_guide/ddl/ddl.html) and [Loading and Unloading Data](../admin_guide/load/topics/g-loading-and-unloading-data.html) in the *Greenplum Database Administrator Guide* for more information about creating databases, schemas, tables, and other database objects in Greenplum Database and loading your data.
+After verifying your installation, you may want to begin creating databases and loading data. See [Defining Database Objects](../admin_guide/ddl/ddl.html) and [Loading and Unloading Data](../admin_guide/load/topics/g-loading-and-unloading-data.html) in the *Cloudberry Database Administrator Guide* for more information about creating databases, schemas, tables, and other database objects in Cloudberry Database and loading your data.
 

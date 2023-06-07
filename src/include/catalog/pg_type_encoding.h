@@ -40,5 +40,6 @@ FOREIGN_KEY(typid REFERENCES pg_type(oid));
  * ----------------
  */
 typedef FormData_pg_type_encoding *Form_pg_type_encoding;
+DECLARE_TOAST(pg_type_encoding, 6222, 6223);
 
 #endif   /* PG_TYPE_ENCODING_H */

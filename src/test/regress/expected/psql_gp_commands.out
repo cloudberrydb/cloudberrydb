@@ -130,13 +130,13 @@ GRANT CREATE, USAGE ON SCHEMA test_psql_schema TO test_psql_de_role;
 SET search_path = 'test_psql_schema';
 SET ROLE test_psql_de_role;
 CREATE TABLE d_heap (i int4) with (appendonly = false);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE d_ao (i int4) with (appendonly = true, orientation = row);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE TABLE d_aocs (i int4) with (appendonly = true, orientation = column);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE VIEW d_view as SELECT 123;
 CREATE INDEX d_index on d_heap(i);
@@ -162,15 +162,15 @@ ALTER EXTERNAL TABLE "dE_external_table" OWNER TO test_psql_de_role;
 (6 rows)
 
 \d+
-                                                    List of relations
-      Schema      |       Name        |     Type      |       Owner       |       Storage        |  Size   | Description 
-------------------+-------------------+---------------+-------------------+----------------------+---------+-------------
- test_psql_schema | dE_external_table | foreign table | test_psql_de_role |                      | 0 bytes | 
- test_psql_schema | dE_foreign_table  | foreign table | test_psql_de_role |                      | 0 bytes | 
- test_psql_schema | d_ao              | table         | test_psql_de_role | append only          | 128 kB  | 
- test_psql_schema | d_aocs            | table         | test_psql_de_role | append only columnar | 128 kB  | 
- test_psql_schema | d_heap            | table         | test_psql_de_role | heap                 | 0 bytes | 
- test_psql_schema | d_view            | view          | test_psql_de_role |                      | 0 bytes | 
+                                                           List of relations
+      Schema      |       Name        |     Type      |       Owner       |       Storage        | Persistence |  Size   | Description 
+------------------+-------------------+---------------+-------------------+----------------------+-------------+---------+-------------
+ test_psql_schema | dE_external_table | foreign table | test_psql_de_role |                      | permanent   | 0 bytes | 
+ test_psql_schema | dE_foreign_table  | foreign table | test_psql_de_role |                      | permanent   | 0 bytes | 
+ test_psql_schema | d_ao              | table         | test_psql_de_role | append only          | permanent   | 128 kB  | 
+ test_psql_schema | d_aocs            | table         | test_psql_de_role | append only columnar | permanent   | 128 kB  | 
+ test_psql_schema | d_heap            | table         | test_psql_de_role | heap                 | permanent   | 0 bytes | 
+ test_psql_schema | d_view            | view          | test_psql_de_role |                      | permanent   | 0 bytes | 
 (6 rows)
 
 -- The Storage column is not interesting for indexes, so it's omitted with
@@ -183,10 +183,10 @@ ALTER EXTERNAL TABLE "dE_external_table" OWNER TO test_psql_de_role;
 (1 row)
 
 \di+
-                                   List of relations
-      Schema      |  Name   | Type  |       Owner       | Table  |  Size  | Description 
-------------------+---------+-------+-------------------+--------+--------+-------------
- test_psql_schema | d_index | index | test_psql_de_role | d_heap | 128 kB | 
+                                          List of relations
+      Schema      |  Name   | Type  |       Owner       | Table  | Persistence |  Size  | Description 
+------------------+---------+-------+-------------------+--------+-------------+--------+-------------
+ test_psql_schema | d_index | index | test_psql_de_role | d_heap | permanent   | 128 kB | 
 (1 row)
 
 -- But if tables are shown, too, then it's interesting again.
@@ -197,7 +197,7 @@ ALTER EXTERNAL TABLE "dE_external_table" OWNER TO test_psql_de_role;
  test_psql_schema | d_ao    | table | test_psql_de_role | append only          | 
  test_psql_schema | d_aocs  | table | test_psql_de_role | append only columnar | 
  test_psql_schema | d_heap  | table | test_psql_de_role | heap                 | 
- test_psql_schema | d_index | index | test_psql_de_role |                      | d_heap
+ test_psql_schema | d_index | index | test_psql_de_role | btree                | d_heap
 (4 rows)
 
 -- \dE should display both external and foreign tables

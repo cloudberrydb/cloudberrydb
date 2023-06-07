@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CDXLTranslateContext.cpp
@@ -106,6 +106,21 @@ CDXLTranslateContext::CopyParamHashmap(ULongToColParamMap *original)
 	}
 }
 
+void
+CDXLTranslateContext::CopyTargetEntryHashmap(ULongToTargetEntryMap *original)
+{
+	// iterate over full map
+	ULongToTargetEntryMapIter hashmapiter(original);
+	while (hashmapiter.Advance())
+	{
+		TargetEntry *te =
+			const_cast<TargetEntry *>(hashmapiter.Value());
+
+		const ULONG colid = *hashmapiter.Key();
+		InsertMapping(colid, te);
+	}
+}
+
 //---------------------------------------------------------------------------
 //	@function:
 //		CDXLTranslateContext::GetTargetEntry
@@ -174,6 +189,13 @@ CDXLTranslateContext::FInsertParamMapping(
 
 	// insert colid->target entry mapping in the hash map
 	return m_colid_to_paramid_map->Insert(key, colidparamid);
+}
+
+void
+CDXLTranslateContext::MergeTcxt(CDXLTranslateContext *tcxt)
+{
+	CopyTargetEntryHashmap(tcxt->GetColIdToTargetEntryMap());
+	CopyParamHashmap(tcxt->GetColIdToParamIdMap());
 }
 
 // EOF

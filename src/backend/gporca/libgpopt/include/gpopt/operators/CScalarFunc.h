@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -56,6 +56,9 @@ protected:
 	// is operator return type BOOL?
 	BOOL m_fBoolReturnType;
 
+	// how to display function expr
+	INT m_func_format;
+
 private:
 public:
 	CScalarFunc(const CScalarFunc &) = delete;
@@ -64,7 +67,7 @@ public:
 
 	// ctor
 	CScalarFunc(CMemoryPool *mp, IMDId *mdid_func, IMDId *mdid_return_type,
-				INT return_type_modifier, const CWStringConst *pstrFunc);
+				INT return_type_modifier, const CWStringConst *pstrFunc, INT func_format);
 
 	// dtor
 	~CScalarFunc() override;
@@ -149,6 +152,9 @@ public:
 
 	// print
 	IOstream &OsPrint(IOstream &os) const override;
+
+	// how to display function expr
+	INT FuncFormat() const;
 
 
 };	// class CScalarFunc

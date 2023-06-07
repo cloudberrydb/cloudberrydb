@@ -26,7 +26,7 @@ top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
 
-# Don't build the upstream HTML docs or man pages in Greenplum. The Greenplum
+# Don't build the upstream HTML docs or man pages in Cloudberry. The Cloudberry
 # docs live in the gpdb-doc directory.
 #all: html man
 all:
@@ -167,13 +167,15 @@ postgres.txt: postgres.html
 postgres.pdf:
 	$(error Invalid target;  use postgres-A4.pdf or postgres-US.pdf as targets)
 
+XSLTPROC_FO_FLAGS += --stringparam img.src.path '$(srcdir)/'
+
 %-A4.fo: stylesheet-fo.xsl %.sgml $(ALLSGML)
 	$(XMLLINT) $(XMLINCLUDE) --noout --valid $(word 2,$^)
-	$(XSLTPROC) $(XMLINCLUDE) $(XSLTPROCFLAGS) --stringparam paper.type A4 -o $@ $(wordlist 1,2,$^)
+	$(XSLTPROC) $(XMLINCLUDE) $(XSLTPROCFLAGS) $(XSLTPROC_FO_FLAGS) --stringparam paper.type A4 -o $@ $(wordlist 1,2,$^)
 
 %-US.fo: stylesheet-fo.xsl %.sgml $(ALLSGML)
 	$(XMLLINT) $(XMLINCLUDE) --noout --valid $(word 2,$^)
-	$(XSLTPROC) $(XMLINCLUDE) $(XSLTPROCFLAGS) --stringparam paper.type USletter -o $@ $(wordlist 1,2,$^)
+	$(XSLTPROC) $(XMLINCLUDE) $(XSLTPROCFLAGS) $(XSLTPROC_FO_FLAGS) --stringparam paper.type USletter -o $@ $(wordlist 1,2,$^)
 
 %.pdf: %.fo $(ALL_IMAGES)
 	$(FOP) -fo $< -pdf $@

@@ -2,9 +2,9 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="defining-queries">
     <title id="in140509">Defining Queries</title>
-    <shortdesc>Greenplum Database is based on the PostgreSQL implementation of the SQL standard. </shortdesc>
+    <shortdesc>Cloudberry Database is based on the PostgreSQL implementation of the SQL standard. </shortdesc>
     <body>
-        <p>This topic describes how to construct SQL queries in Greenplum Database.</p>
+        <p>This topic describes how to construct SQL queries in Cloudberry Database.</p>
         <ul>
             <li id="in143747">
                 <xref format="dita" href="#topic3" type="topic"/>
@@ -19,14 +19,14 @@
         <body>
             <p>SQL is a standard language for accessing databases. The language consists of elements
                 that enable data storage, retrieval, analysis, viewing, manipulation, and so on. You
-                use SQL commands to construct queries and commands that the Greenplum Database
+                use SQL commands to construct queries and commands that the Cloudberry Database
                 engine understands. SQL queries consist of a sequence of commands. Commands consist
                 of a sequence of valid tokens in correct syntax order, terminated by a semicolon
                     (<codeph>;</codeph>). </p>
             <p>For more information about SQL commands, see <xref
                     href="../../../ref_guide/sql_commands/sql_ref.xml">SQL Command
                 Reference</xref>.</p>
-            <p>Greenplum Database uses PostgreSQL's structure and syntax, with some exceptions. For
+            <p>Cloudberry Database uses PostgreSQL's structure and syntax, with some exceptions. For
                 more information about SQL rules and concepts in PostgreSQL, see "SQL Syntax" in the
                 PostgreSQL documentation.</p>
         </body>
@@ -230,7 +230,7 @@ FROM generate_series(1,10) AS s(i);
                 <p>For predefined aggregate functions, see <xref
                         href="../topics/functions-operators.xml#topic29"/>. You can also add custom
                     aggregate functions.</p>
-                <p>Greenplum Database provides the <codeph>MEDIAN</codeph> aggregate function, which
+                <p>Cloudberry Database provides the <codeph>MEDIAN</codeph> aggregate function, which
                     returns the fiftieth percentile of the <codeph>PERCENTILE_CONT</codeph> result
                     and special aggregate expressions for inverse distribution functions as
                     follows:</p>
@@ -248,7 +248,7 @@ FROM generate_series(1,10) AS s(i);
                 <body>
                     <p>The following are current limitations of the aggregate expressions:</p>
                     <ul>
-                        <li id="in199103">Greenplum Database does not support the following
+                        <li id="in199103">Cloudberry Database does not support the following
                             keywords: <codeph>ALL</codeph>, <codeph>DISTINCT</codeph>, and
                                 <codeph>OVER</codeph>. See <xref
                                 href="../topics/functions-operators.xml#topic31/in2073121"/> for
@@ -272,9 +272,9 @@ FROM generate_series(1,10) AS s(i);
                             to the query level at which the aggregate appears. See <xref
                                 format="dita" href="#topic15" type="topic"/> and <xref
                                 href="../topics/functions-operators.xml#topic29/in204913"/>.</li>
-                        <li id="in2009151">Greenplum Database does not support specifying an
+                        <li id="in2009151">Cloudberry Database does not support specifying an
                             aggregate function as an argument to another aggregate function.</li>
-                        <li id="in2009152">Greenplum Database does not support specifying a window
+                        <li id="in2009152">Cloudberry Database does not support specifying a window
                             function as an argument to an aggregate function.</li>
                     </ul>
                 </body>
@@ -299,7 +299,7 @@ FROM generate_series(1,10) AS s(i);
                         <i>partitions</i> and then further restricting the window frame by
                     specifying which rows preceding or following the current row within its
                     partition to include in the calculation.</p>
-                <p>Greenplum Database does not support specifying a window function as an argument
+                <p>Cloudberry Database does not support specifying a window function as an argument
                     to another window function.</p>
                 <p>The syntax of a window expression is:</p>
                 <p>
@@ -339,7 +339,7 @@ FROM generate_series(1,10) AS s(i);
                     clause. The <codeph>OVER</codeph> clause specifies the window frame—the rows to
                     be processed by the window function. This syntactically distinguishes the
                     function from a regular or aggregate function.</p>
-                <p>In a window aggregate function that is used in a window expression, Greenplum
+                <p>In a window aggregate function that is used in a window expression, Cloudberry
                     Database does not support a <codeph>DISTINCT</codeph> clause with multiple input
                     expressions.</p>
                 <p>A window specification has the following characteristics:</p>
@@ -514,16 +514,16 @@ FROM empsalary ORDER BY depname, sum;
                     represents the initial assignment of a type to a literal constant value, so it
                     succeeds for any type if the contents of the string literal are acceptable input
                     syntax for the data type.</p>
-                <p>Greenplum Database supports three types of casts applied to a value expression:
+                <p>Cloudberry Database supports three types of casts applied to a value expression:
                         <ul id="ul_f4w_svt_rdb">
-                        <li><i>Explicit cast</i> - Greenplum Database applies a cast when you
-                            explicitly specify a cast between two data types. Greenplum Database
+                        <li><i>Explicit cast</i> - Cloudberry Database applies a cast when you
+                            explicitly specify a cast between two data types. Cloudberry Database
                             accepts two equivalent syntaxes for explicit type casts:<p>
                                 <codeblock>CAST ( expression AS type )
 expression::type</codeblock>
                             </p><p>The <codeph>CAST</codeph> syntax conforms to SQL; the syntax using
                                     <codeph>::</codeph> is historical PostgreSQL usage.</p></li>
-                        <li><i>Assignment cast</i> - Greenplum Database implicitly invokes a cast in
+                        <li><i>Assignment cast</i> - Cloudberry Database implicitly invokes a cast in
                             assignment contexts, when assigning a value to a column of the target
                             data type. For example, a <xref
                                     href="../../../ref_guide/sql_commands/CREATE_CAST.xml">CREATE
@@ -535,7 +535,7 @@ expression::type</codeblock>
                             implicitly cast from the <codeph>integer</codeph> to
                                 <codeph>text</codeph> type.
                             <codeblock>INSERT INTO tbl1 (f1) VALUES (42);</codeblock></li>
-                        <li><i>Implicit cast</i> - Greenplum Database implicitly invokes a cast in
+                        <li><i>Implicit cast</i> - Cloudberry Database implicitly invokes a cast in
                             assignment or expression contexts. For example, a <codeph>CREATE
                                 CAST</codeph> command with the <codeph>AS IMPLICIT</codeph> clause
                             creates an implicit cast, a cast that is applied implicitly in both the
@@ -548,7 +548,7 @@ expression::type</codeblock>
                     </ul></p>
                 <p>You can usually omit an explicit type cast if there is no ambiguity about the
                     type a value expression must produce (for example, when it is assigned to a
-                    table column); the system automatically applies a type cast. Greenplum Database
+                    table column); the system automatically applies a type cast. Cloudberry Database
                     implicitly applies casts only to casts defined with a cast context of
                     assignment or explicit in the system catalogs. Other casts must be
                     invoked with explicit casting syntax to prevent unexpected conversions from
@@ -575,9 +575,9 @@ expression::type</codeblock>
                 <p>A correlated subquery (CSQ) is a <codeph>SELECT</codeph> query with a
                         <codeph>WHERE</codeph> clause or target list that contains references to the
                     parent outer clause. CSQs efficiently express results in terms of results of
-                    another query. Greenplum Database supports correlated subqueries that provide
+                    another query. Cloudberry Database supports correlated subqueries that provide
                     compatibility with many existing applications. A CSQ is a scalar or table
-                    subquery, depending on whether it returns one or multiple rows. Greenplum
+                    subquery, depending on whether it returns one or multiple rows. Cloudberry
                     Database does not support correlated subqueries with skip-level
                     correlations.</p>
             </body>
@@ -598,13 +598,13 @@ expression::type</codeblock>
                     <codeblock>SELECT * FROM t1 WHERE 
 EXISTS (SELECT 1 FROM t2 WHERE t2.x = t1.x);
 </codeblock>
-                    <p>Greenplum Database uses one of the following methods to run CSQs:</p>
+                    <p>Cloudberry Database uses one of the following methods to run CSQs:</p>
                     <ul>
                         <li id="in197793">Unnest the CSQ into join operations &#8211; This method is
-                            most efficient, and it is how Greenplum Database runs most CSQs,
+                            most efficient, and it is how Cloudberry Database runs most CSQs,
                             including queries from the TPC-H benchmark.</li>
                         <li id="in197800">Run the CSQ on every row of the outer query &#8211; This
-                            method is relatively inefficient, and it is how Greenplum Database runs
+                            method is relatively inefficient, and it is how Cloudberry Database runs
                             queries that contain CSQs in the <codeph>SELECT</codeph> list or are
                             connected by <codeph>OR</codeph> conditions.</li>
                     </ul>

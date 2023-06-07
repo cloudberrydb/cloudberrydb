@@ -7,7 +7,7 @@ is issued in this case. </pd></plentry><plentry><pt><varname>name</varname></pt>
 conversions.</pd></plentry></parml></section><section id="section5"><title>Examples</title><p>Drop the conversion named <codeph>myname</codeph>: </p><codeblock>DROP CONVERSION myname;</codeblock></section><section id="section6"><title>Compatibility</title>
   <p>There is no <codeph>DROP CONVERSION</codeph> statement in the SQL standard. The standard has
           <codeph>CREATE TRANSLATION</codeph> and <codeph>DROP TRANSLATION</codeph> statements that
-        are similar to the Greenplum Database <codeph>CREATE CONVERSION</codeph> and <codeph>DROP
+        are similar to the Cloudberry Database <codeph>CREATE CONVERSION</codeph> and <codeph>DROP
           CONVERSION</codeph> statements.</p></section>
   <section id="section7"><title>See Also</title><p><codeph><xref href="ALTER_CONVERSION.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="CREATE_CONVERSION.xml#topic1" type="topic" format="dita"

@@ -74,4 +74,7 @@ s/\.c:\d+/\.c:LINENUMBER/
 m/^Checksum:.*/
 s/^Checksum:.*//
 
+m/connection to server at ".*", port \d+ failed: /
+s/connection to server at ".*", port \d+ failed: //
+
 -- end_matchsubs

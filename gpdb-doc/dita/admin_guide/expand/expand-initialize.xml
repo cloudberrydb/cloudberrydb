@@ -52,7 +52,7 @@
         <section id="no163887">
           <title>To create an input file in interactive mode</title>
           <ol>
-            <li id="no163902">Log in on the master host as the user who will run your Greenplum
+            <li id="no163902">Log in on the master host as the user who will run your Cloudberry
               Database system; for example, <codeph>gpadmin</codeph>.</li>
             <li id="no163931">Run <codeph>gpexpand</codeph>. The utility displays messages about how
               to prepare for an expansion operation, and it prompts you to quit or
@@ -106,7 +106,7 @@
                 </p><p>After you have entered all required information, the utility generates an
                 input file and saves it in the current directory. For
                 example:</p><codeblock>gpexpand_inputfile_yyyymmdd_145134</codeblock><p>If the
-                Greenplum cluster is configured with tablespaces, the utility automatically
+                Cloudberry cluster is configured with tablespaces, the utility automatically
                 generates an additional tablespace mapping file. This file is required for later
                 parsing by the utility so make sure it is present before proceeding with the next
                 step. For example:
@@ -200,18 +200,18 @@ sdw5|sdw5-1|60012|/gpdata/mirror/gp10|14|10|m</codeblock>
       <section id="no160378">
         <title>To run gpexpand with an input file</title>
         <ol>
-          <li id="no160392">Log in on the master host as the user who will run your Greenplum
+          <li id="no160392">Log in on the master host as the user who will run your Cloudberry
             Database system; for example, <codeph>gpadmin</codeph>.</li>
           <li id="no161427">Run the <codeph>gpexpand</codeph> utility, specifying the input file
             with <codeph>-i</codeph>. For
               example:<codeblock>$ gpexpand -i input_file</codeblock><p>The utility detects if an
-              expansion schema exists for the Greenplum Database system. If a
+              expansion schema exists for the Cloudberry Database system. If a
                 <i>gpexpand</i> schema exists, remove it with <codeph>gpexpand -c</codeph>
                 before you start a new expansion operation. See <xref href="expand-post.xml#topic_xvp_5p2_hpb"
                 type="topic" format="dita"/>.</p><p>When the new segments are initialized and the
               expansion schema is created, the utility prints a success message and exits. </p></li>
         </ol>
-        <p>When the initialization process completes, you can connect to Greenplum Database and view
+        <p>When the initialization process completes, you can connect to Cloudberry Database and view
           the expansion schema. The <i>gpexpand</i> schema resides in the
             postgres database. For more information, see <xref
             href="expand-planning.xml#topic9" type="topic" format="dita"/>.</p>

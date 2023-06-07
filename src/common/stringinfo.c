@@ -7,7 +7,7 @@
  * (null-terminated text) or arbitrary binary data.  All storage is allocated
  * with palloc() (falling back to malloc in frontend code).
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	  src/common/stringinfo.c
@@ -68,7 +68,7 @@ initStringInfo(StringInfo str)
 /*
  * initStringInfoOfSize
  *
- * Initialize a StringInfoData struct with data buffer of 'size' bytes 
+ * Initialize a StringInfoData struct with data buffer of 'size' bytes
  */
 void
 initStringInfoOfSize(StringInfo str, int size)
@@ -364,7 +364,7 @@ enlargeStringInfo(StringInfo str, int needed)
 void
 replaceStringInfoString(StringInfo str, char *replace, char *replacement)
 {
-	char	   *ptr;
+	char	*ptr;
 
 	while ((ptr = strstr(str->data, replace)) != NULL)
 	{
@@ -377,4 +377,3 @@ replaceStringInfoString(StringInfo str, char *replace, char *replacement)
 		pfree(dup);
 	}
 }
-

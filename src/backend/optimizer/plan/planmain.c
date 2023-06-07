@@ -9,9 +9,9 @@
  * shorn of features like subselects, inheritance, aggregates, grouping,
  * and so on.  (Those are the things planner.c deals with.)
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -75,6 +75,9 @@ query_planner(PlannerInfo *root,
 	 */
 	root->join_rel_list = NIL;
 	root->join_rel_hash = NULL;
+	root->setup_agg_pushdown = false;
+	root->grouped_rel_info_list = NIL;
+	root->grouped_rel_info_hash = NULL;
 	root->join_rel_level = NULL;
 	root->join_cur_level = 0;
 	root->canon_pathkeys = NIL;
@@ -83,13 +86,12 @@ query_planner(PlannerInfo *root,
 	root->full_join_clauses = NIL;
 	root->join_info_list = NIL;
 	root->placeholder_list = NIL;
+	root->grouped_var_list = NIL;
 	root->fkey_list = NIL;
 	root->initial_rels = NIL;
 
 	/*
-	 * Make a flattened version of the rangetable for faster access (this is
-	 * OK because the rangetable won't change any more), and set up an empty
-	 * array for indexing base relations.
+	 * Set up arrays for accessing base relations and AppendRelInfos.
 	 */
 	setup_simple_rel_arrays(root);
 
@@ -143,10 +145,16 @@ query_planner(PlannerInfo *root,
 						 create_group_result_path(root, final_rel,
 												  final_rel->reltarget,
 												  (List *) parse->jointree->quals);
-				add_path(final_rel, result_path);
+				add_path(final_rel, result_path, root);
 
 				/* Select cheapest path (pretty easy in this case...) */
 				set_cheapest(final_rel);
+
+				/*
+				 * We don't need to run generate_base_implied_equalities, but
+				 * we do need to pretend that EC merging is complete.
+				 */
+				root->ec_merging_done = true;
 
 				/*
 				 * We still are required to call qp_callback, in case it's
@@ -173,12 +181,6 @@ query_planner(PlannerInfo *root,
 			}
 		}
 	}
-
-	/*
-	 * Populate append_rel_array with each AppendRelInfo to allow direct
-	 * lookups by child relid.
-	 */
-	setup_append_rel_array(root);
 
 	/*
 	 * Construct RelOptInfo nodes for all base relations used in the query.
@@ -288,6 +290,16 @@ query_planner(PlannerInfo *root,
 	extract_restriction_or_clauses(root);
 
 	/*
+	 * If the query result can be grouped, check if any grouping can be
+	 * performed below the top-level join. If so, setup
+	 * root->grouped_var_list.
+	 *
+	 * The base relations should be fully initialized now, so that we have
+	 * enough info to decide whether grouping is possible.
+	 */
+	setup_aggregate_pushdown(root);
+
+	/*
 	 * Now expand appendrels by adding "otherrels" for their children.  We
 	 * delay this to the end so that we have as much information as possible
 	 * available for each baserel, including all restriction clauses.  That
@@ -296,6 +308,13 @@ query_planner(PlannerInfo *root,
 	 * from baserels to otherrels here, so we must have computed it already.
 	 */
 	add_other_rels_to_query(root);
+
+	/*
+	 * Distribute any UPDATE/DELETE row identity variables to the target
+	 * relations.  This can't be done till we've finished expansion of
+	 * appendrels.
+	 */
+	distribute_row_identity_vars(root);
 
 	/*
 	 * Ready to do the primary planning.

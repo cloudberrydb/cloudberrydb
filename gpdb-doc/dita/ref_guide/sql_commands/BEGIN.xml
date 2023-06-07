@@ -18,7 +18,7 @@
             <p><codeph>BEGIN</codeph> initiates a transaction block, that is, all statements after a
                     <codeph>BEGIN</codeph> command will be run in a single transaction until an
                 explicit <codeph>COMMIT</codeph> or <codeph>ROLLBACK</codeph> is given. By default
-                (without <codeph>BEGIN</codeph>), Greenplum Database runs transactions in
+                (without <codeph>BEGIN</codeph>), Cloudberry Database runs transactions in
                 autocommit mode, that is, each statement is run in its own transaction and a
                 commit is implicitly performed at the end of the statement (if execution was
                 successful, otherwise a rollback is done). </p>
@@ -49,29 +49,29 @@
                             <codeph>REPEATABLE READ</codeph>, and
                         <codeph>SERIALIZABLE</codeph>.</pd>
                     <pd><codeph>READ UNCOMMITTED</codeph> allows transactions to see changes made by
-                        uncomitted concurrent transactions. This is not possible in Greenplum
+                        uncomitted concurrent transactions. This is not possible in Cloudberry
                         Database, so <codeph>READ UNCOMMITTED</codeph> is treated the same as
                             <codeph>READ COMMITTED</codeph>.</pd>
-                    <pd><codeph>READ COMMITTED</codeph>, the default isolation level in Greenplum
+                    <pd><codeph>READ COMMITTED</codeph>, the default isolation level in Cloudberry
                         Database, guarantees that a statement can only see rows committed before it
                         began. The same statement run twice in a transaction can produce
                         different results if another concurrent transaction commits after the
                         statement is run the first time. </pd>
                     <pd>The <codeph>REPEATABLE READ</codeph> isolation level guarantees that a
                         transaction can only see rows committed before it began. <codeph>REPEATABLE
-                            READ</codeph> is the strictest transaction isolation level Greenplum
+                            READ</codeph> is the strictest transaction isolation level Cloudberry
                         Database supports. Applications that use the <codeph>REPEATABLE
                             READ</codeph> isolation level must be prepared to retry transactions due
                         to serialization failures.</pd>
                     <pd>The <codeph>SERIALIZABLE</codeph> transaction isolation level guarantees
                         that running multiple concurrent transactions produces the same effects as
                         running the same transactions one at a time. If you specify
-                            <codeph>SERIALIZABLE</codeph>, Greenplum Database falls back to
+                            <codeph>SERIALIZABLE</codeph>, Cloudberry Database falls back to
                             <codeph>REPEATABLE READ</codeph>.</pd>
-                    <pd>Specifying <codeph>DEFERRABLE</codeph> has no effect in Greenplum Database,
+                    <pd>Specifying <codeph>DEFERRABLE</codeph> has no effect in Cloudberry Database,
                         but the syntax is supported for compatibility with PostgreSQL. A transaction
                         can only be deferred if it is <codeph>READ ONLY</codeph> and
-                            <codeph>SERIALIZABLE</codeph>, and Greenplum Database does not support
+                            <codeph>SERIALIZABLE</codeph>, and Cloudberry Database does not support
                             <codeph>SERIALIAZABLE</codeph> transactions. </pd>
                 </plentry>
             </parml>
@@ -96,11 +96,11 @@
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>BEGIN</codeph> is a Greenplum Database language extension. It is equivalent
+            <p><codeph>BEGIN</codeph> is a Cloudberry Database language extension. It is equivalent
                 to the SQL-standard command <codeph><xref href="./START_TRANSACTION.xml#topic1"
                         type="topic" format="dita"/></codeph>.</p>
             <p><codeph>DEFERRABLE</codeph>
-                <varname>transaction_mode</varname> is a Greenplum Database language extension.</p>
+                <varname>transaction_mode</varname> is a Cloudberry Database language extension.</p>
             <p>Incidentally, the <codeph>BEGIN</codeph> key word is used for a different purpose in
                 embedded SQL. You are advised to be careful about the transaction semantics when
                 porting database applications.</p>

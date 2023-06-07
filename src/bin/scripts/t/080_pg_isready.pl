@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 use strict;
 use warnings;
 
@@ -15,6 +18,6 @@ my $node = get_new_node('main');
 $node->init;
 $node->start;
 
-# use a long timeout for the benefit of very slow buildfarm machines
-$node->command_ok([qw(pg_isready --timeout=60)],
+$node->command_ok(
+	[ 'pg_isready', "--timeout=$TestLib::timeout_default" ],
 	'succeeds with server running');

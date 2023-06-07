@@ -4,7 +4,7 @@
  *	pg_upgrade.h
  *
  *	Portions Copyright (c) 2016-Present, VMware, Inc. or its affiliates
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/pg_upgrade.h
  */
 
@@ -20,14 +20,8 @@
 /* Use port in the private/dynamic port number range */
 #define DEF_PGUPORT			50432
 
-/* Allocate for null byte */
-#define USER_NAME_SIZE		128
-
 #define MAX_STRING			1024
-#define LINE_ALLOC			4096
 #define QUERY_ALLOC			8192
-
-#define MIGRATOR_API_VERSION	1
 
 #define MESSAGE_WIDTH		60
 
@@ -76,7 +70,6 @@ extern char *output_files[];
 
 #ifndef WIN32
 #define pg_mv_file			rename
-#define pg_link_file		link
 #define PATH_SEPARATOR		'/'
 #define PATH_QUOTE	'\''
 #define RM_CMD				"rm -f"
@@ -87,7 +80,6 @@ extern char *output_files[];
 #define ECHO_BLANK	""
 #else
 #define pg_mv_file			pgrename
-#define pg_link_file		win32_pghardlink
 #define PATH_SEPARATOR		'\\'
 #define PATH_QUOTE	'"'
 #define RM_CMD				"DEL /q"
@@ -101,6 +93,7 @@ extern char *output_files[];
 
 
 #define atooid(x)  ((Oid) strtoul((x), NULL, 10))
+#define atorelfilenodeid(x) ((RelFileNodeId) strtoul((x), NULL, 10))
 
 /* OID system catalog preservation added during PG 9.0 development */
 #define TABLE_SPACE_SUBDIRS_CAT_VER 201001111
@@ -218,9 +211,9 @@ typedef struct
 	/* Can't use NAMEDATALEN; not guaranteed to be same on client */
 	char	   *nspname;		/* namespace name */
 	char	   *relname;		/* relation name */
-	Oid			reloid;			/* relation oid */
+	Oid			reloid;			/* relation OID */
 	char		relstorage;
-	Oid			relfilenode;	/* relation relfile node */
+	RelFileNodeId relfilenode;	/* relation file node */
 	Oid			indtable;		/* if index, OID of its table, else 0 */
 	Oid			toastheap;		/* if toast table, OID of base table, else 0 */
 	char	   *tablespace;		/* tablespace path; "" for cluster default */
@@ -267,8 +260,8 @@ typedef struct
 	 * old/new relfilenodes might differ for pg_largeobject(_metadata) indexes
 	 * due to VACUUM FULL or REINDEX.  Other relfilenodes are preserved.
 	 */
-	Oid			old_relfilenode;
-	Oid			new_relfilenode;
+	RelFileNodeId old_relfilenode;
+	RelFileNodeId new_relfilenode;
 	/* the rest are used only for logging and error reporting */
 	char	   *nspname;		/* namespaces */
 	char	   *relname;
@@ -322,6 +315,7 @@ typedef struct
 	uint32		chkpnt_nxtmulti;
 	uint32		chkpnt_nxtmxoff;
 	uint32		chkpnt_oldstMulti;
+	uint32		chkpnt_oldstxid;
 	uint32		align;
 	uint32		blocksz;
 	uint32		largesz;
@@ -420,7 +414,6 @@ typedef struct
 typedef struct
 {
 	const char *progname;		/* complete pathname for this program */
-	char	   *exec_path;		/* full path to my executable */
 	char	   *user;			/* username for clusters */
 	bool		user_specified; /* user specified on command-line */
 	char	  **old_tablespaces;	/* tablespaces */
@@ -446,9 +439,9 @@ void		output_check_banner(bool live_check);
 void		check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name);
 void		check_new_cluster(void);
 void		report_clusters_compatible(void);
+
 void		issue_warnings_and_set_wal_level(char *sequence_script_file_name);
-void		output_completion_banner(char *analyze_script_file_name,
-									 char *deletion_script_file_name);
+void		output_completion_banner(char *deletion_script_file_name);
 void		check_cluster_versions(void);
 void		check_cluster_compatibility(bool live_check);
 void		create_script_for_old_cluster_deletion(char **deletion_script_file_name);
@@ -560,6 +553,12 @@ void		pg_putenv(const char *var, const char *val);
 
 /* version.c */
 
+bool		check_for_data_types_usage(ClusterInfo *cluster,
+									   const char *base_query,
+									   const char *output_path);
+bool		check_for_data_type_usage(ClusterInfo *cluster,
+									  const char *type_name,
+									  const char *output_path);
 void		new_9_0_populate_pg_largeobject_metadata(ClusterInfo *cluster,
 													 bool check_mode);
 void		old_9_3_check_for_line_data_type_usage(ClusterInfo *cluster);
@@ -577,6 +576,8 @@ void		old_8_3_invalidate_hash_gin_indexes(ClusterInfo *cluster, bool check_mode)
 void old_8_3_invalidate_bpchar_pattern_ops_indexes(ClusterInfo *cluster,
 											  bool check_mode);
 char	   *old_8_3_create_sequence_script(ClusterInfo *cluster);
+void		old_11_check_for_sql_identifier_data_type_usage(ClusterInfo *cluster);
+void		report_extension_updates(ClusterInfo *cluster);
 
 /* parallel.c */
 void		parallel_exec_prog(const char *log_file, const char *opt_log_file,

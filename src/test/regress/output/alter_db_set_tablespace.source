@@ -1041,13 +1041,6 @@ SELECT gp_request_fts_probe_scan();
  t
 (1 row)
 
--- Verify the failure should be triggered once.
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
- gp_wait_until_triggered_fault 
--------------------------------
- Success:
-(1 row)
-
 -- And we track the removal of the dboid dir by all mirrors including the standby master, except the mirror of the primary about to panic.
 SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM gp_segment_configuration c WHERE role='m' AND content!=0;
  gp_inject_fault 
@@ -1059,6 +1052,8 @@ SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM 
 
 -- And introduce a panic on a primary directly before the primary writes the XLOG_XACT_PREPARE record during the dispatch of the PREPARE TRANSACTION command.
 SELECT gp_inject_fault('start_prepare', 'panic', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 0;
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  gp_inject_fault 
 -----------------
  Success:
@@ -1176,13 +1171,6 @@ SELECT gp_request_fts_probe_scan();
  t
 (1 row)
 
--- Verify the failure should be triggered once.
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
- gp_wait_until_triggered_fault 
--------------------------------
- Success:
-(1 row)
-
 -- And we track the removal of the dboid dir by all mirrors including the standby master.
 SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM gp_segment_configuration c WHERE role='m';
  gp_inject_fault 
@@ -1195,6 +1183,8 @@ SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM 
 
 -- And introduce a panic on a primary directly after the primary writes the XLOG_XACT_PREPARE record during the dispatch of the PREPARE TRANSACTION command.
 SELECT gp_inject_fault('after_xlog_xact_prepare_flushed', 'panic', dbid) FROM gp_segment_configuration WHERE role = 'p' AND content = 0;
+HINT:  Inject an infinite 'skip' into the 'fts_probe' fault to disable FTS probing.
+WARNING:  consider disabling FTS probes while injecting a panic.
  gp_inject_fault 
 -----------------
  Success:

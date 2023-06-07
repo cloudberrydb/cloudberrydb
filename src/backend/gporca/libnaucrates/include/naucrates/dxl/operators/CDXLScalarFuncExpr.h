@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2011 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2011 Cloudberry, Inc.
 //
 //	@filename:
 //		CDXLScalarFuncExpr.h
@@ -44,13 +44,16 @@ private:
 	// does the func return a set
 	BOOL m_returns_set;
 
+	// how to display function expr
+	const INT m_func_format;
+
 public:
 	CDXLScalarFuncExpr(const CDXLScalarFuncExpr &) = delete;
 
 	// ctor
 	CDXLScalarFuncExpr(CMemoryPool *mp, IMDId *mdid_func,
 					   IMDId *mdid_return_type, INT return_type_modifier,
-					   BOOL returns_set);
+					   BOOL returns_set, INT func_format);
 
 	//dtor
 	~CDXLScalarFuncExpr() override;
@@ -71,6 +74,9 @@ public:
 
 	// does function return a set
 	BOOL ReturnsSet() const;
+
+	// how to display function expr
+	INT FuncFormat() const;
 
 	// serialize operator in DXL format
 	void SerializeToDXL(CXMLSerializer *xml_serializer,

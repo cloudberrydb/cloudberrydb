@@ -31,7 +31,7 @@
                 <plentry>
                     <pt><varname>servername</varname></pt>
                     <pd>
-                        <p>The name of an existing server for which Greenplum Database is to create the user mapping.</p>
+                        <p>The name of an existing server for which Cloudberry Database is to create the user mapping.</p>
                     </pd>
                 </plentry>
                 <plentry>

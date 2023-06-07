@@ -11,7 +11,7 @@
  * bms_is_empty() in preference to testing for NULL.)
  *
  *
- * Copyright (c) 2003-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2021, PostgreSQL Global Development Group
  *
  * src/include/nodes/bitmapset.h
  *
@@ -43,7 +43,7 @@ struct List;
  * is to explore if the performance benefit of larger bitmapwords can still be
  * availed by distinguishing on-disk bitmap usage from strictly in-memory
  * bitmap usage.  E.g. define a new type bitmapword32 and use it in
- * appendoptimized code.  On a related note, tbm_bitmapword is Greenplum
+ * appendoptimized code.  On a related note, tbm_bitmapword is Cloudberry
  * specific 64-bit wide type used for TID bitmaps.  Can we start using
  * bitmapword for TID bitmaps, just like upastream, and eliminate
  * tbm_bitmapword?
@@ -132,6 +132,8 @@ extern int	bms_prev_member(const Bitmapset *a, int prevbit);
 
 /* support for hashtables using Bitmapsets as keys: */
 extern uint32 bms_hash_value(const Bitmapset *a);
+extern uint32 bitmap_hash(const void *key, Size keysize);
+extern int	bitmap_match(const void *key1, const void *key2, Size keysize);
 
 /* 
  * returns true iff the bitmap is sufficently large that

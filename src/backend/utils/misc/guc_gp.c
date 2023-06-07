@@ -1,11 +1,11 @@
 /*--------------------------------------------------------------------
  * guc_gp.c
  *
- * Additional Greenplum-specific GUCs are defined in this file, to
+ * Additional Cloudberry-specific GUCs are defined in this file, to
  * avoid adding so much stuff to guc.c. This makes it easier to diff
  * and merge with upstream.
  *
- * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 2005-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Copyright (c) 2000-2009, PostgreSQL Global Development Group
  *
@@ -31,6 +31,7 @@
 #include "cdb/cdbhash.h"
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
+#include "cdb/cdbutil.h"
 #include "cdb/memquota.h"
 #include "commands/defrem.h"
 #include "commands/vacuum.h"
@@ -96,13 +97,7 @@ static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 static int guc_array_compare(const void *a, const void *b);
 
-extern struct config_generic *find_option(const char *name, bool create_placeholders, int elevel);
-
 extern int listenerBacklog;
-
-/* GUC lists for gp_guc_list_show().  (List of struct config_generic) */
-List	   *gp_guc_list_for_explain;
-List	   *gp_guc_list_for_no_plan;
 
 /* For synchornized GUC value is cache in HashTable,
  * dispatch value along with query when some guc changed
@@ -230,7 +225,6 @@ bool		execute_pruned_plan = false;
 bool		gp_maintenance_mode;
 bool		gp_maintenance_conn;
 bool		allow_segment_DML;
-bool		gp_allow_rename_relation_without_lock = false;
 
 /* Time based authentication GUC */
 char	   *gp_auth_time_override_str = NULL;
@@ -255,6 +249,7 @@ bool		gp_enable_multiphase_agg = true;
 bool		gp_enable_preunique = true;
 bool		gp_enable_agg_distinct = true;
 bool		gp_enable_dqa_pruning = true;
+bool		gp_enable_agg_pushdown = false;
 bool		gp_dynamic_partition_pruning = true;
 bool		gp_log_dynamic_partition_pruning = false;
 bool		gp_cte_sharing = false;
@@ -421,6 +416,9 @@ bool		gp_external_enable_filter_pushdown = true;
 /* Enable GDD */
 bool		gp_enable_global_deadlock_detector = false;
 
+bool gp_enable_predicate_pushdown;
+int  gp_predicate_pushdown_sample_rows;
+
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
 	{"csv", 1},
@@ -582,16 +580,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 	{
-		{"gp_allow_rename_relation_without_lock", PGC_USERSET, CUSTOM_OPTIONS,
-			gettext_noop("Allow ALTER TABLE RENAME without AccessExclusiveLock"),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&gp_allow_rename_relation_without_lock,
-		false,
-		NULL, NULL, NULL
-	},
-	{
 		{"enable_groupagg", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enables the planner's use of grouping aggregation plans."),
 			NULL
@@ -634,6 +622,15 @@ struct config_bool ConfigureNamesBool_gp[] =
 		&gp_enable_predicate_propagation,
 		true,
 		NULL, NULL, NULL
+	},
+	{
+		{"gp_enable_predicate_pushdown", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enable predicate pushdown, some quals will be pushed down to lower data source for AO."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_enable_predicate_pushdown,
+		true, NULL, NULL
 	},
 	{
 		{"debug_print_prelim_plan", PGC_USERSET, LOGGING_WHAT,
@@ -711,6 +708,26 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&gp_enable_dqa_pruning,
 		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_enable_agg_pushdown", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Enables aggregate push-down."),
+			NULL,
+		},
+		&gp_enable_agg_pushdown,
+		false,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_enable_ao_indexscan", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Enable index scan for Append-Optimized tables."),
+			NULL,
+		},
+		&gp_enable_ao_indexscan,
+		false,
 		NULL, NULL, NULL
 	},
 
@@ -2734,6 +2751,15 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_enable_runtime_filter", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop(""),
+			NULL
+		},
+		&gp_enable_runtime_filter,
+		false, NULL, NULL
+	},
+
+	{
 		{"gp_resource_group_bypass", PGC_USERSET, RESOURCES,
 			gettext_noop("If the value is true, the query in this session will not be limited by resource group."),
 			NULL
@@ -2852,7 +2878,18 @@ struct config_bool ConfigureNamesBool_gp[] =
 		 false,
 		 NULL, NULL, NULL
 	},
-
+#ifndef USE_INTERNAL_FTS
+	{
+		{"gp_etcd_enable_cache", PGC_SUSET, CUSTOM_OPTIONS,
+			gettext_noop("Enable ETCD result cache."),
+			gettext_noop("This guc value controls whether to open the cache for reading and writing to ETCD. Default is true"),
+			GUC_SUPERUSER_ONLY
+		},
+		&gp_etcd_enable_cache,
+		true,
+		NULL, NULL, NULL
+	},
+#endif
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, false, NULL, NULL
@@ -2902,6 +2939,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		&gp_max_local_distributed_cache,
 		1024, 0, INT_MAX,
 		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_predicate_pushdown_sample_rows", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Max sample rows during predicate pushdown"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_predicate_pushdown_sample_rows,
+		10000, 0, INT_MAX, NULL, NULL
 	},
 
 	{
@@ -3478,7 +3525,7 @@ struct config_int ConfigureNamesInt_gp[] =
 		180, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
-
+#ifdef USE_INTERNAL_FTS
 	{
 		{"gp_fts_probe_retries", PGC_SIGHUP, GP_ARRAY_TUNING,
 			gettext_noop("Number of retries for FTS to complete probing a segment."),
@@ -3510,7 +3557,7 @@ struct config_int ConfigureNamesInt_gp[] =
 		60, 10, 3600,
 		NULL, NULL, NULL
 	},
-
+#endif
 	{
 		{"gp_fts_mark_mirror_down_grace_period", PGC_SIGHUP, GP_ARRAY_TUNING,
 			gettext_noop("Time (in seconds) allowed to mirror after disconnection, to reconnect before being marked as down in configuration by FTS."),
@@ -3578,7 +3625,7 @@ struct config_int ConfigureNamesInt_gp[] =
 
 	{
 		{"gp_session_id", PGC_BACKEND, CLIENT_CONN_OTHER,
-			gettext_noop("Global ID used to uniquely identify a particular session in an Greenplum Database array"),
+			gettext_noop("Global ID used to uniquely identify a particular session in an Cloudberry Database array"),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
 		},
@@ -3664,7 +3711,7 @@ struct config_int ConfigureNamesInt_gp[] =
 
 	{
 		{"gp_vmem_protect_limit", PGC_POSTMASTER, RESOURCES_MEM,
-			gettext_noop("Virtual memory limit (in MB) of Greenplum memory protection."),
+			gettext_noop("Virtual memory limit (in MB) of Cloudberry memory protection."),
 			NULL,
 		},
 		&gp_vmem_protect_limit,
@@ -3974,7 +4021,7 @@ struct config_int ConfigureNamesInt_gp[] =
 	},
 
 	{
-		{"wait_for_replication_threshold", PGC_SIGHUP, REPLICATION_MASTER,
+		{"wait_for_replication_threshold", PGC_SIGHUP, REPLICATION_PRIMARY,
 			gettext_noop("Maximum amount of WAL written by a transaction prior to waiting for replication."),
 			gettext_noop("This is used just to prevent primary from racing too ahead "
 						 "and avoid huge replication lag. A value of 0 disables "
@@ -4024,7 +4071,7 @@ struct config_int ConfigureNamesInt_gp[] =
 	{
 		/* Can't be set in postgresql.conf */
 		{"gp_server_version_num", PGC_INTERNAL, PRESET_OPTIONS,
-			gettext_noop("Shows the Greenplum server version as an integer."),
+			gettext_noop("Shows the Cloudberry server version as an integer."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
 		},
@@ -4077,7 +4124,6 @@ struct config_int ConfigureNamesInt_gp[] =
 		0, 0, MAX_GP_DISPATCH_KEEPALIVES_COUNT,
 		NULL, NULL, NULL
 	},
-
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, 0, 0, 0, NULL, NULL
@@ -4369,7 +4415,7 @@ struct config_string ConfigureNamesString_gp[] =
 	{
 		/* Can't be set in postgresql.conf */
 		{"gp_server_version", PGC_INTERNAL, PRESET_OPTIONS,
-			gettext_noop("Shows the Greenplum server version."),
+			gettext_noop("Shows the Cloudberry server version."),
 			NULL,
 			GUC_REPORT | GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
 		},
@@ -4377,7 +4423,58 @@ struct config_string ConfigureNamesString_gp[] =
 		GP_VERSION,
 		NULL, NULL, NULL
 	},
-
+#ifndef USE_INTERNAL_FTS
+	{
+		{"gp_etcd_account_id", PGC_BACKEND, CUSTOM_OPTIONS,
+			gettext_noop("ETCD metadata acount id information."),
+			gettext_noop("This controls the account id which ETCD use to store metadata. Default is 00000000-0000-0000-0000-000000000000"),
+			GUC_SUPERUSER_ONLY
+		},
+		&gp_etcd_account_id,
+		"00000000-0000-0000-0000-000000000000",
+		NULL, NULL, NULL
+	},
+	{
+		{"gp_etcd_cluster_id", PGC_BACKEND, CUSTOM_OPTIONS,
+			gettext_noop("ETCD metadata cluster id information."),
+			gettext_noop("This controls the cluster id which ETCD use to store metadata. Default is 00000000-0000-0000-0000-000000000000"),
+			GUC_SUPERUSER_ONLY
+		},
+		&gp_etcd_cluster_id,
+		"00000000-0000-0000-0000-000000000000",
+		NULL, NULL, NULL
+	},
+	{
+		{"gp_etcd_namespace", PGC_BACKEND, CUSTOM_OPTIONS,
+			gettext_noop("ETCD metadata etcd namespace information."),
+			gettext_noop("This controls the namespace which ETCD use to store metadata. Default is default"),
+			GUC_SUPERUSER_ONLY
+		},
+		&gp_etcd_namespace,
+		"default",
+		NULL, NULL, NULL
+	},
+	{
+		{"gp_etcd_endpoints", PGC_BACKEND, CUSTOM_OPTIONS,
+			gettext_noop("ETCD metadata etcd endpoints information."),
+			gettext_noop("This controls the endpoints which ETCD use to store metadata. Default is localhost:2379"),
+			GUC_SUPERUSER_ONLY
+		},
+		&gp_etcd_endpoints,
+		"localhost:2379",
+		NULL, NULL, NULL
+	},
+	{
+		{"gp_cbdb_deploy", PGC_BACKEND, CUSTOM_OPTIONS,
+			gettext_noop("CBDB deploy environment setup."),
+			gettext_noop("This indicates the cbdb is deployed with onpromise or cloud environment. Default is onpromise"),
+			GUC_SUPERUSER_ONLY
+		},
+		&gp_cbdb_deploy,
+		"onpromise",
+		NULL, NULL, NULL
+	},
+#endif
 #ifdef ENABLE_IC_PROXY
 	{
 		{"gp_interconnect_proxy_addresses", PGC_SIGHUP, GP_ARRAY_CONFIGURATION,
@@ -4714,7 +4811,7 @@ check_pljava_classpath_insecure(bool *newval, void **extra, GucSource source)
 {
 	if ( *newval == true )
 	{
-		struct config_generic *pljava_cp = find_option("pljava_classpath", false, ERROR);
+		struct config_generic *pljava_cp = find_option("pljava_classpath", false, true, ERROR);
 		if (pljava_cp != NULL)
 		{
 			pljava_cp->context = PGC_USERSET;
@@ -4733,7 +4830,7 @@ assign_pljava_classpath_insecure(bool newval, void *extra)
 {
 	if ( newval == true )
 	{
-		struct config_generic *pljava_cp = find_option("pljava_classpath", false, ERROR);
+		struct config_generic *pljava_cp = find_option("pljava_classpath", false, true, ERROR);
 		if (pljava_cp != NULL)
 		{
 			pljava_cp->context = PGC_USERSET;
@@ -4778,7 +4875,7 @@ static bool
 check_verify_gpfdists_cert(bool *newval, void **extra, GucSource source)
 {
 	if (!*newval && Gp_role == GP_ROLE_DISPATCH)
-		elog(WARNING, "verify_gpfdists_cert=off. Greenplum Database will stop validating "
+		elog(WARNING, "verify_gpfdists_cert=off. Cloudberry Database will stop validating "
 				"the gpfdists SSL certificate for connections between segments and gpfdists");
 	return true;
 }
@@ -5032,7 +5129,7 @@ DispatchSyncPGVariable(struct config_generic * gconfig)
 					char	   *curname = (char *) lfirst(lc);
 
 					appendStringInfoString(&buffer, quote_literal_cstr(curname));
-					if (lnext(lc))
+					if (lnext(namelist, lc))
 						appendStringInfoString(&buffer, ", ");
 				}
 			}

@@ -9,4 +9,4 @@ override CPPFLAGS+= -I$(top_srcdir)/src/interfaces/libpq
 include $(top_srcdir)/src/Makefile.mock
 
 dumputils.t: dumputils_test.o $(CMOCKERY_OBJS)
-	$(CC) $^ $(libpq_pgport) $(LDFLAGS) $(LIBS) $(libpq) -o $@
+	$(CC) $^ $(libpq_pgport) $(LDFLAGS) $(rpath) $(LIBS) $(libpq) -o $@

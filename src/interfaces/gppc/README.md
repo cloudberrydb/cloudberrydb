@@ -1,17 +1,17 @@
-The Greenplum Partner Connector (GPPC) is a Greenplum Database extension
-that lets you create a Greenplum Database user-defined function (UDF)
+The Cloudberry Partner Connector (GPPC) is a Cloudberry Database extension
+that lets you create a Cloudberry Database user-defined function (UDF)
 written in C/C++.
 
-Take GPPC as a wrapper that links the C/C++ UDF and Greenplum Database.
+Take GPPC as a wrapper that links the C/C++ UDF and Cloudberry Database.
 You can define a UDF with with the GPPC API, and GPPC translates the UDF
-to Greenplum Database compatible UDFs. This lets the GPPC UDF work on
+to Cloudberry Database compatible UDFs. This lets the GPPC UDF work on
 different GPDB platforms, for example, different version of GPDB,
 without the need to recompile or modify the GPPC UDF.
 
 GPPC supports UDFs written in C/C++ and is similar to the Postgres UDFs written
 in C.
 
-In a Greenplum Database UDF:
+In a Cloudberry Database UDF:
 
 ```
 PG_FUNCTION_INFO_V1(int2mulfunc);
@@ -44,7 +44,7 @@ GppcDatum int2mulfunc(GPPC_FUNCTION_ARGS)
 ### Usage
 
 1. Compile the UDF as a dynamic library (with include "gppc.h")  and
-place it in a location accessible to Greenplum Database. For example,
+place it in a location accessible to Cloudberry Database. For example,
 $libdir
 
 2. Define a GPPC function in the database. For example:
@@ -85,12 +85,12 @@ GppcDatum textcopyfunc(GPPC_FUNCTION_ARGS)
 }
 ```
 
-### To create a GPPC UDF in Greenplum Database:
+### To create a GPPC UDF in Cloudberry Database:
 
 Copy the code for the function into a text file named textcopy.c.
 
 Run `make` and `make install` to create a dynamic library textcopy.so
-and install the library into Greenplum Database. In the Makefile, we
+and install the library into Cloudberry Database. In the Makefile, we
 need to link the GPPC and may use PGXS to compile. E.g. we can add the
 following option into Makefile
 
@@ -123,12 +123,12 @@ There is a demo folder which include the usage for the APIs in GPPC, the link
 is included in the reference section.
 
 Notes:
-1. The minimum required version of Greenplum Database is 4.2.2.0.
+1. The minimum required version of Cloudberry Database is 4.2.2.0.
 2. The UDF must be written in C/C++ language, and it must use the GPPC API and
    macros.
 3. Memory must be allocated or freed with the GPPC wrapped functions (for
    example. GppcAlloc(), GppcAlloc0(), GppcRealloc(), and GppcFree()).
-4. The UDF cannot use Greenplum Database C language UDF API or macros.
+4. The UDF cannot use Cloudberry Database C language UDF API or macros.
 5. The GPPC API and macros can be found in gppc.h located in
 `$GPDB_INSTALLED_DIR/include/gppc.h`
 

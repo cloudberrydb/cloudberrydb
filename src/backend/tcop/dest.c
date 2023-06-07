@@ -4,7 +4,7 @@
  *	  support for communication destinations
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -102,7 +102,7 @@ DestReceiver *None_Receiver = (DestReceiver *) &donothingDR;
  * ----------------
  */
 void
-BeginCommand(const char *commandTag, CommandDest dest)
+BeginCommand(CommandTag commandTag, CommandDest dest)
 {
 	/* Nothing to do at present */
 }
@@ -165,8 +165,12 @@ CreateDestReceiver(CommandDest dest)
  * ----------------
  */
 void
-EndCommand(const char *commandTag, CommandDest dest)
+EndCommand(const QueryCompletion *qc, CommandDest dest, bool force_undecorated_output)
 {
+	char		completionTag[COMPLETION_TAG_BUFSIZE];
+	CommandTag	tag;
+	const char *tagname;
+
 	switch (dest)
 	{
 		case DestRemote:
@@ -174,11 +178,27 @@ EndCommand(const char *commandTag, CommandDest dest)
 		case DestRemoteSimple:
 
 			/*
-			 * We assume the commandTag is plain ASCII and therefore requires
-			 * no encoding conversion.
+			 * We assume the tagname is plain ASCII and therefore requires no
+			 * encoding conversion.
+			 *
+			 * We no longer display LastOid, but to preserve the wire
+			 * protocol, we write InvalidOid where the LastOid used to be
+			 * written.
+			 *
+			 * All cases where LastOid was written also write nprocessed
+			 * count, so just Assert that rather than having an extra test.
 			 */
-			pq_putmessage('C', commandTag, strlen(commandTag) + 1);
-			break;
+			tag = qc->commandTag;
+			tagname = GetCommandTagName(tag);
+
+			if (command_tag_display_rowcount(tag) && !force_undecorated_output)
+				snprintf(completionTag, COMPLETION_TAG_BUFSIZE,
+						 tag == CMDTAG_INSERT ?
+						 "%s 0 " UINT64_FORMAT : "%s " UINT64_FORMAT,
+						 tagname, qc->nprocessed);
+			else
+				snprintf(completionTag, COMPLETION_TAG_BUFSIZE, "%s", tagname);
+			pq_putmessage('C', completionTag, strlen(completionTag) + 1);
 
 		case DestNone:
 		case DestDebug:
@@ -194,15 +214,22 @@ EndCommand(const char *commandTag, CommandDest dest)
 }
 
 /* ----------------
+ *		EndReplicationCommand - stripped down version of EndCommand
+ *
+ *		For use by replication commands.
+ * ----------------
+ */
+void
+EndReplicationCommand(const char *commandTag)
+{
+	pq_putmessage('C', commandTag, strlen(commandTag) + 1);
+}
+
+/* ----------------
  *		NullCommand - tell dest that an empty query string was recognized
  *
- *		In FE/BE protocol version 1.0, this hack is necessary to support
- *		libpq's crufty way of determining whether a multiple-command
- *		query string is done.  In protocol 2.0 it's probably not really
- *		necessary to distinguish empty queries anymore, but we still do it
- *		for backwards compatibility with 1.0.  In protocol 3.0 it has some
- *		use again, since it ensures that there will be a recognizable end
- *		to the response to an Execute message.
+ *		This ensures that there will be a recognizable end to the response
+ *		to an Execute message in the extended query protocol.
  * ----------------
  */
 void
@@ -214,14 +241,8 @@ NullCommand(CommandDest dest)
 		case DestRemoteExecute:
 		case DestRemoteSimple:
 
-			/*
-			 * tell the fe that we saw an empty query string.  In protocols
-			 * before 3.0 this has a useless empty-string message body.
-			 */
-			if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3)
-				pq_putemptymessage('I');
-			else
-				pq_putmessage('I', "", 1);
+			/* Tell the FE that we saw an empty query string */
+			pq_putemptymessage('I');
 			break;
 
 		case DestNone:
@@ -256,7 +277,6 @@ ReadyForQuery(CommandDest dest)
 		case DestRemote:
 		case DestRemoteExecute:
 		case DestRemoteSimple:
-			if (PG_PROTOCOL_MAJOR(FrontendProtocol) >= 3)
 			{
 				StringInfoData buf;
 
@@ -275,8 +295,6 @@ ReadyForQuery(CommandDest dest)
 				pq_sendbyte(&buf, TransactionBlockStatusCode());
 				pq_endmessage(&buf);
 			}
-			else
-				pq_putemptymessage('Z');
 			/* Flush output at end of cycle in any case. */
 			pq_flush();
 			break;

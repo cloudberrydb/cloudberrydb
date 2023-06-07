@@ -51,7 +51,7 @@ from generate_series(0,10000) as i;
 
 vacuum analyze gist_tbl;
 
--- this query doesn't work with index scan on Greenplum, check it before setting GUCs
+-- this query doesn't work with index scan on Cloudberry, check it before setting GUCs
 select p from
   (values (box(point(0,0), point(0.5,0.5))),
           (box(point(0.5,0.5), point(0.75,0.75))),
@@ -117,6 +117,22 @@ select b from gist_tbl where b <@ box(point(5,5), point(6,6));
 -- execute the same
 select b from gist_tbl where b <@ box(point(5,5), point(6,6));
 
+-- Also test an index-only knn-search
+explain (costs off)
+select b from gist_tbl where b <@ box(point(5,5), point(6,6))
+order by b <-> point(5.2, 5.91);
+
+select b from gist_tbl where b <@ box(point(5,5), point(6,6))
+order by b <-> point(5.2, 5.91);
+
+-- Check commuted case as well
+explain (costs off)
+select b from gist_tbl where b <@ box(point(5,5), point(6,6))
+order by point(5.2, 5.91) <-> b;
+
+select b from gist_tbl where b <@ box(point(5,5), point(6,6))
+order by point(5.2, 5.91) <-> b;
+
 drop index gist_tbl_box_index;
 
 -- Test that an index-only scan is not chosen, when the query involves the
@@ -134,6 +150,32 @@ and p <@ box(point(5,5), point(6, 6));
 
 drop index gist_tbl_multi_index;
 
+-- Test that we don't try to return the value of a non-returnable
+-- column in an index-only scan.  (This isn't GIST-specific, but
+-- it only applies to index AMs that can return some columns and not
+-- others, so GIST with appropriate opclasses is a convenient test case.)
+create index gist_tbl_multi_index on gist_tbl using gist (circle(p,1), p);
+explain (verbose, costs off)
+select circle(p,1) from gist_tbl
+where p <@ box(point(5, 5), point(5.3, 5.3));
+select circle(p,1) from gist_tbl
+where p <@ box(point(5, 5), point(5.3, 5.3));
+
+-- Similarly, test that index rechecks involving a non-returnable column
+-- are done correctly.
+explain (verbose, costs off)
+select p from gist_tbl where circle(p,1) @> circle(point(0,0),0.95);
+select p from gist_tbl where circle(p,1) @> circle(point(0,0),0.95);
+
+-- Also check that use_physical_tlist doesn't trigger in such cases.
+explain (verbose, costs off)
+select count(*) from gist_tbl;
+select count(*) from gist_tbl;
+
+-- This case isn't supported, but it should at least EXPLAIN correctly.
+explain (verbose, costs off)
+select p from gist_tbl order by circle(p,1) <-> point(0,0), p <-> point(0,0) limit 15;
+select p from gist_tbl order by circle(p,1) <-> point(0,0), p <-> point(0,0) limit 15;
 -- Clean up
 reset enable_seqscan;
 reset enable_bitmapscan;

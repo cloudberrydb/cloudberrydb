@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/common.h
  */
@@ -10,9 +10,9 @@
 
 #include <setjmp.h>
 
-#include "libpq-fe.h"
 #include "fe_utils/print.h"
 #include "fe_utils/psqlscan.h"
+#include "libpq-fe.h"
 
 extern bool openQueryOutputFile(const char *fname, FILE **fout, bool *is_pipe);
 extern bool setQFout(const char *fname);
@@ -26,10 +26,7 @@ extern volatile bool sigint_interrupt_enabled;
 
 extern sigjmp_buf sigint_interrupt_jmp;
 
-extern void setup_cancel_handler(void);
-
-extern void SetCancelConn(void);
-extern void ResetCancelConn(void);
+extern void psql_setup_cancel_handler(void);
 
 extern PGresult *PSQLexec(const char *query);
 extern int	PSQLexecWatch(const char *query, const printQueryOpt *opt);

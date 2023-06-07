@@ -4,7 +4,7 @@
  *	  routines to manage scans on GiST index relations
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -33,26 +33,23 @@ pairingheap_GISTSearchItem_cmp(const pairingheap_node *a, const pairingheap_node
 	const GISTSearchItem *sb = (const GISTSearchItem *) b;
 	IndexScanDesc scan = (IndexScanDesc) arg;
 	int			i;
-	double	   *da = GISTSearchItemDistanceValues(sa, scan->numberOfOrderBys),
-			   *db = GISTSearchItemDistanceValues(sb, scan->numberOfOrderBys);
-	bool	   *na = GISTSearchItemDistanceNulls(sa, scan->numberOfOrderBys),
-			   *nb = GISTSearchItemDistanceNulls(sb, scan->numberOfOrderBys);
 
 	/* Order according to distance comparison */
 	for (i = 0; i < scan->numberOfOrderBys; i++)
 	{
-		if (na[i])
+		if (sa->distances[i].isnull)
 		{
-			if (!nb[i])
+			if (!sb->distances[i].isnull)
 				return -1;
 		}
-		else if (nb[i])
+		else if (sb->distances[i].isnull)
 		{
 			return 1;
 		}
 		else
 		{
-			int			cmp = -float8_cmp_internal(da[i], db[i]);
+			int			cmp = -float8_cmp_internal(sa->distances[i].value,
+												   sb->distances[i].value);
 
 			if (cmp != 0)
 				return cmp;
@@ -100,8 +97,7 @@ gistbeginscan(Relation r, int nkeys, int norderbys)
 	so->queueCxt = giststate->scanCxt;	/* see gistrescan */
 
 	/* workspaces with size dependent on numberOfOrderBys: */
-	so->distanceValues = palloc(sizeof(double) * scan->numberOfOrderBys);
-	so->distanceNulls = palloc(sizeof(bool) * scan->numberOfOrderBys);
+	so->distances = palloc(sizeof(so->distances[0]) * scan->numberOfOrderBys);
 	so->qual_ok = true;			/* in case there are zero keys */
 	if (scan->numberOfOrderBys > 0)
 	{

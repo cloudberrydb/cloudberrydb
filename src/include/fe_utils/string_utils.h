@@ -6,7 +6,7 @@
  * assorted contexts.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/fe_utils/string_utils.h
@@ -57,6 +57,12 @@ extern bool processSQLNamePattern(PGconn *conn, PQExpBuffer buf,
 								  const char *pattern,
 								  bool have_where, bool force_escape,
 								  const char *schemavar, const char *namevar,
-								  const char *altnamevar, const char *visibilityrule);
+								  const char *altnamevar, const char *visibilityrule,
+								  PQExpBuffer dbnamebuf, int *dotcnt);
+
+extern void patternToSQLRegex(int encoding, PQExpBuffer dbnamebuf,
+							  PQExpBuffer schemabuf, PQExpBuffer namebuf,
+							  const char *pattern, bool force_escape,
+							  bool want_literal_dbname, int *dotcnt);
 
 #endif							/* STRING_UTILS_H */

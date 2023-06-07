@@ -4,7 +4,7 @@
 <topic id="topic1" xml:lang="en">
   <title id="pt212122">PL/pgSQL Language</title>
   <body>
-    <p>This section contains an overview of the Greenplum Database PL/pgSQL language.</p>
+    <p>This section contains an overview of the Cloudberry Database PL/pgSQL language.</p>
     <ul>
       <li id="pt222286">
         <xref href="#topic2" type="topic" format="dita"/>
@@ -21,42 +21,42 @@
     </ul>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="pt218674">About Greenplum Database PL/pgSQL</title>
+    <title id="pt218674">About Cloudberry Database PL/pgSQL</title>
     <body>
-      <p>Greenplum Database PL/pgSQL is a loadable procedural language that is installed and
-        registered by default with Greenplum Database. You can create user-defined functions using
+      <p>Cloudberry Database PL/pgSQL is a loadable procedural language that is installed and
+        registered by default with Cloudberry Database. You can create user-defined functions using
         SQL statements, functions, and operators.</p>
       <p>With PL/pgSQL you can group a block of computation and a series of SQL queries inside the
         database server, thus having the power of a procedural language and the ease of use of SQL.
-        Also, with PL/pgSQL you can use all the data types, operators and functions of Greenplum
+        Also, with PL/pgSQL you can use all the data types, operators and functions of Cloudberry
         Database SQL. </p>
-      <p>The PL/pgSQL language is a subset of Oracle PL/SQL. Greenplum Database PL/pgSQL is based on
+      <p>The PL/pgSQL language is a subset of Oracle PL/SQL. Cloudberry Database PL/pgSQL is based on
         Postgres PL/pgSQL. The Postgres PL/pgSQL documentation is at <xref
           href="https://www.postgresql.org/docs/9.4/plpgsql.html" scope="external"
           format="html">https://www.postgresql.org/docs/9.4/plpgsql.html</xref></p>
-      <p>When using PL/pgSQL functions, function attributes affect how Greenplum Database creates
+      <p>When using PL/pgSQL functions, function attributes affect how Cloudberry Database creates
         query plans. You can specify the attribute <codeph>IMMUTABLE</codeph>,
           <codeph>STABLE</codeph>, or <codeph>VOLATILE</codeph> as part of the
           <codeph>LANGUAGE</codeph> clause to classify the type of function, For information about
         the creating functions and function attributes, see the <codeph><xref
             href="../ref_guide/sql_commands/CREATE_FUNCTION.xml#topic1" scope="peer">CREATE FUNCTION</xref></codeph>
-        command in the <cite>Greenplum Database Reference Guide</cite>.</p>
+        command in the <cite>Cloudberry Database Reference Guide</cite>.</p>
       <p>You can run PL/SQL code blocks as anonymous code blocks. See the <codeph><xref
-            href="../ref_guide/sql_commands/DO.xml#topic1">DO</xref></codeph> command in the <cite>Greenplum Database
+            href="../ref_guide/sql_commands/DO.xml#topic1">DO</xref></codeph> command in the <cite>Cloudberry Database
           Reference Guide</cite>.</p>
     </body>
     <topic id="topic3" xml:lang="en">
-      <title>Greenplum Database SQL Limitations</title>
+      <title>Cloudberry Database SQL Limitations</title>
       <body>
-        <p>When using Greenplum Database PL/pgSQL, limitations include</p>
+        <p>When using Cloudberry Database PL/pgSQL, limitations include</p>
         <ul>
           <li id="pt219857">Triggers are not supported</li>
           <li id="pt222490">Cursors are forward moving only (not scrollable)</li>
           <li>Updatable cursors (<codeph>UPDATE...WHERE CURRENT OF</codeph> and
               <codeph>DELETE...WHERE CURRENT OF</codeph>) are not supported.</li>
         </ul>
-        <p>For information about Greenplum Database SQL conformance, see <xref
-          href="../ref_guide/feature_summary.xml#topic1">Summary of Greenplum Features</xref> in the <cite>Greenplum Database Reference
+        <p>For information about Cloudberry Database SQL conformance, see <xref
+          href="../ref_guide/feature_summary.xml#topic1">Summary of Cloudberry Features</xref> in the <cite>Cloudberry Database Reference
             Guide</cite>.</p>
       </body>
     </topic>
@@ -147,10 +147,10 @@ $$ LANGUAGE plpgsql;</codeblock>
   <topic id="topic67" xml:lang="en">
     <title id="pt21749299">PL/pgSQL Plan Caching</title>
     <body>
-        <p>A PL/pgSQL function’s volatility classification has implications on how Greenplum Database caches plans that reference the function.  Refer to <xref href="../admin_guide/query/topics/functions-operators.xml#topic281">Function Volatility and Plan Caching</xref> in the <cite>Greenplum Database Administrator
-              Guide</cite> for information on plan caching considerations for Greenplum Database function volatility categories.</p>
+        <p>A PL/pgSQL function’s volatility classification has implications on how Cloudberry Database caches plans that reference the function.  Refer to <xref href="../admin_guide/query/topics/functions-operators.xml#topic281">Function Volatility and Plan Caching</xref> in the <cite>Cloudberry Database Administrator
+              Guide</cite> for information on plan caching considerations for Cloudberry Database function volatility categories.</p>
         <p>When a PL/pgSQL function runs for the first time in a database session, the PL/pgSQL interpreter parses the function’s SQL expressions and commands. The interpreter creates a prepared execution plan as each expression and SQL command is first run in the function. The PL/pgSQL interpreter reuses the execution plan for a specific expression and SQL command for the life of the database connection. While this reuse substantially reduces the total amount of time required to parse and generate plans, errors in a specific expression or command cannot be detected until run time when that part of the function is run.</p>
-        <p>Greenplum Database will automatically re-plan a saved query plan if there is any schema change to any relation used in the query, or if any user-defined function used in the query is redefined. This makes the re-use of a prepared plan transparent in most cases.</p>
+        <p>Cloudberry Database will automatically re-plan a saved query plan if there is any schema change to any relation used in the query, or if any user-defined function used in the query is redefined. This makes the re-use of a prepared plan transparent in most cases.</p>
         <p>The SQL commands that you use in a PL/pgSQL function must refer to the same tables and columns on every execution. You cannot use a parameter as the name of a table or a column in an SQL command.</p>
         <p>PL/pgSQL caches a separate query plan for each combination of actual argument types in which you invoke a polymorphic function to ensure that data type differences do not cause unexpected failures.</p>
         <p>Refer to the PostgreSQL <xref href="https://www.postgresql.org/docs/9.4/plpgsql-implementation.html#PLPGSQL-PLAN-CACHING" scope="external" format="html">Plan Caching</xref> documentation for a detailed discussion of plan caching considerations in the PL/pgSQL language.</p>
@@ -348,8 +348,8 @@ SELECT use_default_args(10);
         <p>PL/pgSQL supports the polymorphic <i>anyelement</i>, <i>anyarray</i>, <i>anyenum</i>, and
             <i>anynonarray</i> types. Using these types, you can create a single PL/pgSQL function
           that operates on multiple data types. Refer to <xref href="../ref_guide/data_types.xml#topic1"
-            >Greenplum Database Data Types</xref> for additional information on polymorphic type
-          support in Greenplum Database.</p>
+            >Cloudberry Database Data Types</xref> for additional information on polymorphic type
+          support in Cloudberry Database.</p>
         <p>A special parameter named <codeph>$0</codeph> is created when the return type of
           a PL/pgSQL function is declared as a polymorphic type. The data type of <codeph>$0</codeph>
           identifies the return type of the function as deduced from the actual input types.</p>
@@ -413,16 +413,16 @@ END $$ LANGUAGE plpgsql ;</codeblock></p>
           href="https://www.postgresql.org/docs/9.4/plpgsql.html" scope="external"
           format="html">https://www.postgresql.org/docs/9.4/plpgsql.html</xref></p>
       <p>Also, see the <codeph><xref href="../ref_guide/sql_commands/CREATE_FUNCTION.xml#topic1">CREATE FUNCTION</xref></codeph>
-        command in the <cite>Greenplum Database Reference Guide</cite>.</p>
-      <p>For a summary of built-in Greenplum Database functions, see <xref
-        href="../ref_guide/function-summary.xml#topic1">Summary of Built-in Functions</xref> in the <cite>Greenplum Database Reference
-          Guide</cite>. For information about using Greenplum Database functions see "Querying Data"
-        in the <cite>Greenplum Database Administrator Guide</cite></p>
+        command in the <cite>Cloudberry Database Reference Guide</cite>.</p>
+      <p>For a summary of built-in Cloudberry Database functions, see <xref
+        href="../ref_guide/function-summary.xml#topic1">Summary of Built-in Functions</xref> in the <cite>Cloudberry Database Reference
+          Guide</cite>. For information about using Cloudberry Database functions see "Querying Data"
+        in the <cite>Cloudberry Database Administrator Guide</cite></p>
       <p>For information about porting Oracle functions, see <xref
           href="https://www.postgresql.org/docs/9.4/plpgsql-porting.html" scope="external"
           format="html">https://www.postgresql.org/docs/9.4/plpgsql-porting.html</xref>. For
-        information about installing and using the Oracle compatibility functions with Greenplum
-        Database, see "Oracle Compatibility Functions" in the <cite>Greenplum Database Utility
+        information about installing and using the Oracle compatibility functions with Cloudberry
+        Database, see "Oracle Compatibility Functions" in the <cite>Cloudberry Database Utility
           Guide</cite>.</p>
     </body>
   </topic>

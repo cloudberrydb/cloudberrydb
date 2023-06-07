@@ -40,7 +40,7 @@ By default, `gp_autostats_mode` is `on_no_stats`, which triggers statistics coll
 
 Setting `gp_autostats_mode` to `on_change` triggers statistics collection only when the number of rows affected exceeds the threshold defined by `gp_autostats_on_change_threshold`, which has a default value of 2147483647. The following operations invoked on a table by its owner can trigger automatic statistics collection with `on_change`: `CREATE TABLE AS SELECT`, `UPDATE`, `DELETE`, `INSERT`, and `COPY`.
 
-Setting the `gp_autostats_allow_nonowner` server configuration parameter to `true` also instructs Greenplum Database to trigger automatic statistics collection on a table when:
+Setting the `gp_autostats_allow_nonowner` server configuration parameter to `true` also instructs Cloudberry Database to trigger automatic statistics collection on a table when:
 
 -   `gp_autostats_mode=on_change` and the table is modified by a non-owner.
 -   `gp_autostats_mode=on_no_stats` and the first user to `INSERT` or `COPY` into the table is a non-owner.

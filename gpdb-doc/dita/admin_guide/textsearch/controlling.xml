@@ -10,7 +10,7 @@
         <codeph>tsvector</codeph> from a document and a <codeph>tsquery</codeph> from a user query.
       Also, we need to return results in a useful order, so we need a function that compares
       documents with respect to their relevance to the query. It's also important to be able to
-      display the results nicely. Greenplum Database provides support for all of these
+      display the results nicely. Cloudberry Database provides support for all of these
       functions.</p>
     <p>This topic contains the following subtopics:</p>
     <ul id="ul_pnw_xxw_4fb">
@@ -21,7 +21,7 @@
     </ul>
     <section id="parsing-documents">
       <title>Parsing Documents</title>
-      <p>Greenplum Database provides the function <codeph>to_tsvector</codeph> for converting a
+      <p>Cloudberry Database provides the function <codeph>to_tsvector</codeph> for converting a
         document to the <codeph>tsvector</codeph> data type.</p>
       <codeblock>to_tsvector([&lt;config> regconfig, ] &lt;document> text) returns tsvector</codeblock>
       <p><codeph>to_tsvector</codeph> parses a textual document into tokens, reduces the tokens to
@@ -83,7 +83,7 @@
     </section>
     <section id="parsing-queries">
       <title>Parsing Queries</title>
-      <p>Greenplum Database provides the functions <codeph>to_tsquery</codeph> and
+      <p>Cloudberry Database provides the functions <codeph>to_tsquery</codeph> and
           <codeph>plainto_tsquery</codeph> for converting a query to the <codeph>tsquery</codeph>
         data type. <codeph>to_tsquery</codeph> offers access to more features than
           <codeph>plainto_tsquery</codeph>, but is less forgiving about its input.</p>
@@ -147,7 +147,7 @@
       <title>Ranking Search Results</title>
       <p>Ranking attempts to measure how relevant documents are to a particular
         query, so that when there are many matches the most relevant ones can be
-        shown first. Greenplum Database provides two predefined ranking
+        shown first. Cloudberry Database provides two predefined ranking
         functions, which take into account lexical, proximity, and structural
         information; that is, they consider how often the query terms appear in
         the document, how close together the terms are in the document, and how
@@ -275,7 +275,7 @@ LIMIT 10;
       <title>Highlighting Results</title>
       <p>To present search results it is ideal to show a part of each document
         and how it is related to the query. Usually, search engines show
-        fragments of the document with marked search terms. Greenplum Database
+        fragments of the document with marked search terms. Cloudberry Database
         provides a function <codeph>ts_headline</codeph> that implements this
         functionality.</p>
       <codeblock>ts_headline([&lt;config> regconfig, ] &lt;document> text, &lt;query> tsquery [, &lt;options> text ]) returns text</codeblock>

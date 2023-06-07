@@ -24,8 +24,8 @@ test__set_ps_display(void **state)
 	gp_command_count = 1024;
 	currentSliceId = 40;
 
-	set_ps_display("testing activity", true);
-	set_ps_display("testing activity", false);
+	set_ps_display("testing activity");
+	set_ps_display("testing activity");
 
 	assert_true(ps_buffer[32] == 0x7f);
 	free(ps_buffer);
@@ -53,7 +53,7 @@ test__set_ps_display__real_act_prefix_size_overflow(void **state)
 	gp_command_count = 964;
 	currentSliceId = -1;
 
-	set_ps_display("testing activity", true);
+	set_ps_display("testing activity");
 	assert_true(real_act_prefix_size <= ps_buffer_size);
 
 	get_real_act_ps_display(&len);
@@ -69,7 +69,7 @@ static void
 test__set_ps_display__real_act_prefix_size(void **state)
 {
 	int		len;
-	char* activity = "testing activity";
+	const char* activity = "testing activity";
 
 	last_status_len = 0;
 	ps_buffer_size = 100;
@@ -85,7 +85,7 @@ test__set_ps_display__real_act_prefix_size(void **state)
 	gp_command_count = 964;
 	currentSliceId = -1;
 
-	set_ps_display(activity, true);
+	set_ps_display(activity);
 	assert_true(real_act_prefix_size <= ps_buffer_size);
 
 	assert_true(strcmp(activity, get_real_act_ps_display(&len)) == 0);

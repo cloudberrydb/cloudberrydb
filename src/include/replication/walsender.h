@@ -3,7 +3,7 @@
  * walsender.h
  *	  Exports from replication/walsender.c.
  *
- * Portions Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *
  * src/include/replication/walsender.h
  *
@@ -43,6 +43,7 @@ extern int	repl_catchup_within_range;
 extern void InitWalSender(void);
 extern bool exec_replication_command(const char *query_string);
 extern void WalSndErrorCleanup(void);
+extern void WalSndResourceCleanup(bool isCommit);
 extern void WalSndSignals(void);
 extern Size WalSndShmemSize(void);
 extern void WalSndShmemInit(void);

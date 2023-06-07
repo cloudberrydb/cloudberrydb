@@ -83,9 +83,9 @@ specify multiple initialization files, use multiple gpd_init arguments, eg:
 =head1 DESCRIPTION
 
 gpdiff compares files using diff after processing them with atmsort.pm.
-This comparison is designed to ignore certain Greenplum-specific
+This comparison is designed to ignore certain Cloudberry-specific
 informational messages, as well as handle the cases where query output
-order may differ for a multi-segment Greenplum database versus a
+order may differ for a multi-segment Cloudberry database versus a
 single PostgreSQL instance.  Type "atmsort.pl --man" for more details.
 gpdiff is invoked by pg_regress as part of "make installcheck-world".
 In this case the diff options are something like:

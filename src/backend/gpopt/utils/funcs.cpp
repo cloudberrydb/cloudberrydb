@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2011 EMC Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2011 EMC Cloudberry, Inc.
 //
 //	@filename:
 //		funcs.cpp

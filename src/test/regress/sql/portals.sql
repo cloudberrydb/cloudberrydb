@@ -173,6 +173,26 @@ SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
 
 CLOSE foo25;
 
+BEGIN;
+
+DECLARE foo25ns NO SCROLL CURSOR WITH HOLD FOR SELECT * FROM tenk2 ORDER BY 1,2,3,4;
+
+FETCH FROM foo25ns;
+
+FETCH FROM foo25ns;
+
+COMMIT;
+
+FETCH FROM foo25ns;
+
+FETCH ABSOLUTE 4 FROM foo25ns;
+
+FETCH ABSOLUTE 4 FROM foo25ns; -- fail
+
+SELECT name, statement, is_holdable, is_binary, is_scrollable FROM pg_cursors;
+
+CLOSE foo25ns;
+
 --
 -- ROLLBACK should close holdable cursors
 --
@@ -345,6 +365,21 @@ SELECT f1, f2 FROM uctest;
 FETCH RELATIVE 0 FROM c1;
 ROLLBACK;
 SELECT f1, f2 FROM uctest;
+
+-- Check insensitive cursor with INSERT
+-- (The above tests don't test the SQL notion of an insensitive cursor
+-- correctly, because per SQL standard, changes from WHERE CURRENT OF
+-- commands should be visible in the cursor.  So here we make the
+-- changes with a command that is independent of the cursor.)
+BEGIN;
+DECLARE c1 INSENSITIVE CURSOR FOR SELECT * FROM uctest;
+INSERT INTO uctest VALUES (10, 'ten');
+FETCH NEXT FROM c1;
+FETCH NEXT FROM c1;
+FETCH NEXT FROM c1;  -- insert not visible
+COMMIT;
+SELECT * FROM uctest;
+DELETE FROM uctest WHERE f1 = 10;  -- restore test table state
 
 -- Check inheritance cases
 CREATE TEMP TABLE ucchild () inherits (uctest);

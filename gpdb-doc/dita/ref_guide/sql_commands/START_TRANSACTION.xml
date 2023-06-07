@@ -32,24 +32,24 @@
                             <codeph>REPEATABLE READ</codeph>, and
                         <codeph>SERIALIZABLE</codeph>.</pd>
                     <pd><codeph>READ UNCOMMITTED</codeph> allows transactions to see changes made by
-                        uncomitted concurrent transactions. This is not possible in Greenplum
+                        uncomitted concurrent transactions. This is not possible in Cloudberry
                         Database, so <codeph>READ UNCOMMITTED</codeph> is treated the same as
                             <codeph>READ COMMITTED</codeph>.</pd>
-                    <pd><codeph>READ COMMITTED</codeph>, the default isolation level in Greenplum
+                    <pd><codeph>READ COMMITTED</codeph>, the default isolation level in Cloudberry
                         Database, guarantees that a statement can only see rows committed before it
                         began. The same statement run twice in a transaction can produce
                         different results if another concurrent transaction commits after the
                         statement is run the first time. </pd>
                     <pd>The <codeph>REPEATABLE READ</codeph> isolation level guarantees that a
                         transaction can only see rows committed before it began. <codeph>REPEATABLE
-                            READ</codeph> is the strictest transaction isolation level Greenplum
+                            READ</codeph> is the strictest transaction isolation level Cloudberry
                         Database supports. Applications that use the <codeph>REPEATABLE
                             READ</codeph> isolation level must be prepared to retry transactions due
                         to serialization failures.</pd>
                     <pd>The <codeph>SERIALIZABLE</codeph> transaction isolation level guarantees
                         that running multiple concurrent transactions produces the same effects as
                         running the same transactions one at a time. If you specify
-                            <codeph>SERIALIZABLE</codeph>, Greenplum Database falls back to
+                            <codeph>SERIALIZABLE</codeph>, Cloudberry Database falls back to
                             <codeph>REPEATABLE READ</codeph>.</pd>
                 </plentry>
                 <plentry>
@@ -76,13 +76,13 @@
         <section id="section6">
             <title>Compatibility</title>
             <p>In the standard, it is not necessary to issue <codeph>START TRANSACTION</codeph> to
-                start a transaction block: any SQL command implicitly begins a block. Greenplum
+                start a transaction block: any SQL command implicitly begins a block. Cloudberry
                 Database behavior can be seen as implicitly issuing a <codeph>COMMIT</codeph> after
                 each command that does not follow <codeph>START TRANSACTION</codeph> (or
                     <codeph>BEGIN</codeph>), and it is therefore often called 'autocommit'. Other
                 relational database systems may offer an autocommit feature as a convenience. </p>
             <p>The SQL standard requires commas between successive
-                    <varname>transaction_modes</varname>, but for historical reasons Greenplum
+                    <varname>transaction_modes</varname>, but for historical reasons Cloudberry
                 Database allows the commas to be omitted.</p>
             <p>See also the compatibility section of <codeph><xref href="SET_TRANSACTION.xml#topic1"
                         type="topic" format="dita"/></codeph>.</p>

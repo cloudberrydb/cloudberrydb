@@ -4,7 +4,7 @@
  *	  routines to support manipulation of the pg_aoseg_<oid> relation
  *	  that accompanies each Append Only relation.
  *
- * Portions Copyright (c) 2008, Greenplum Inc
+ * Portions Copyright (c) 2008, Cloudberry Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -348,7 +348,8 @@ GetFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int segn
 FileSegInfo **
 GetAllFileSegInfo(Relation parentrel,
 				  Snapshot appendOnlyMetaDataSnapshot,
-				  int *totalsegs)
+				  int *totalsegs,
+				  Oid *segrelidptr)
 {
 	Relation	pg_aoseg_rel;
 	FileSegInfo **result;
@@ -361,6 +362,9 @@ GetAllFileSegInfo(Relation parentrel,
 			 RelationGetRelationName(parentrel));
 
 	Assert(RelationIsAoRows(parentrel));
+
+	if (segrelidptr != NULL)
+		*segrelidptr = segrelid;
 
 	pg_aoseg_rel = table_open(segrelid, AccessShareLock);
 
@@ -821,7 +825,7 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	}
 	else if (eof < old_eof)
 	{
-		elog(ERROR, "Unexpected compressed EOF for relation %s, relfilenode %u, segment file %d. "
+		elog(ERROR, "Unexpected compressed EOF for relation %s, relfilenode %lu, segment file %d. "
 			 "EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aoseg",
 			 RelationGetRelationName(parentrel), parentrel->rd_node.relNode,
 			 segno, eof, old_eof);
@@ -842,7 +846,7 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	}
 	else if (eof_uncompressed < old_eof_uncompressed)
 	{
-		elog(ERROR, "Unexpected EOF for relation %s, relfilenode %u, segment file %d."
+		elog(ERROR, "Unexpected EOF for relation %s, relfilenode %lu, segment file %d."
 			 "EOF " INT64_FORMAT " to be updated cannot be smaller than current EOF " INT64_FORMAT " in pg_aoseg",
 			 RelationGetRelationName(parentrel), parentrel->rd_node.relNode,
 			 segno, eof_uncompressed, old_eof_uncompressed);
@@ -1521,7 +1525,9 @@ get_ao_compression_ratio(PG_FUNCTION_ARGS)
 	Relation	parentrel;
 	float8		result;
 
-	Assert(Gp_role == GP_ROLE_DISPATCH);
+	if (Gp_role == GP_ROLE_EXECUTE)
+		ereport(ERROR,
+				(errmsg("get_ao_compression_ratio is expected to run in QD process, or utility mode")));
 
 	/* open the parent (main) relation */
 	parentrel = table_open(relid, AccessShareLock);
@@ -1554,7 +1560,7 @@ aorow_compression_ratio_internal(Relation parentrel)
 										 * available" */
 	Oid			segrelid = InvalidOid;
 
-	Assert(Gp_role == GP_ROLE_DISPATCH);
+	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
 
 	GetAppendOnlyEntryAuxOids(RelationGetRelid(parentrel), NULL,
 							  &segrelid,
@@ -1566,10 +1572,16 @@ aorow_compression_ratio_internal(Relation parentrel)
 	 */
 	aosegrel = table_open(segrelid, AccessShareLock);
 	initStringInfo(&sqlstmt);
-	appendStringInfo(&sqlstmt, "select sum(eof), sum(eofuncompressed) "
-					 "from gp_dist_random('%s.%s')",
-					 get_namespace_name(RelationGetNamespace(aosegrel)),
-					 RelationGetRelationName(aosegrel));
+	if (Gp_role == GP_ROLE_DISPATCH)
+		appendStringInfo(&sqlstmt, "select sum(eof), sum(eofuncompressed) "
+						 "from gp_dist_random('%s.%s')",
+						 get_namespace_name(RelationGetNamespace(aosegrel)),
+						 RelationGetRelationName(aosegrel));
+	else
+		appendStringInfo(&sqlstmt, "select sum(eof), sum(eofuncompressed) "
+						 "from %s.%s",
+						 get_namespace_name(RelationGetNamespace(aosegrel)),
+						 RelationGetRelationName(aosegrel));
 
 	table_close(aosegrel, AccessShareLock);
 

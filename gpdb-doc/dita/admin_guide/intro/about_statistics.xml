@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_gwc_jkd_3s">
-  <title>About Database Statistics in Greenplum Database</title>
-  <shortdesc>An overview of statistics gathered by the ANALYZE command in Greenplum
+  <title>About Database Statistics in Cloudberry Database</title>
+  <shortdesc>An overview of statistics gathered by the ANALYZE command in Cloudberry
     Database.</shortdesc>
   <body>
     <p>Statistics are metadata that describe the data stored in the database. The query optimizer
@@ -21,7 +21,7 @@
       </ul>These methods are described in the following sections. The <codeph>VACUUM
         ANALYZE</codeph> command is another way to initiate an analyze operation, but its use is
       discouraged because vacuum and analyze are different operations with different purposes. </p>
-    <p>Calculating statistics consumes time and resources, so Greenplum Database produces estimates
+    <p>Calculating statistics consumes time and resources, so Cloudberry Database produces estimates
       by calculating statistics on samples of large tables. In most cases, the default settings
       provide the information needed to generate correct execution plans for queries. If the
       statistics produced are not producing optimal query execution plans, the administrator can
@@ -120,7 +120,7 @@
             <codeph>stavalues1</codeph>.</p>
         <p>The <codeph>stakind<varname>N</varname></codeph> columns each contain a numeric code to
           describe the type of statistics stored in their slot. The <codeph>stakind</codeph> code
-          numbers from 1 to 99 are reserved for core PostgreSQL data types. Greenplum Database uses
+          numbers from 1 to 99 are reserved for core PostgreSQL data types. Cloudberry Database uses
           code numbers 1, 2, 3, 4, 5, and 99. A value of 0 means the slot is unused. The following
           table describes the kinds of statistics stored for the three codes.<table frame="all"
             id="table_upf_1yc_nt">
@@ -308,7 +308,7 @@
             </dlentry>
             <dlentry>
               <dt>correlation</dt>
-              <dd>Greenplum Database computes correlation statistics for both heap and
+              <dd>Cloudberry Database computes correlation statistics for both heap and
                AO/AOCO tables, but the Postgres Planner uses these statistics only for heap
                tables.</dd>
             </dlentry>
@@ -334,7 +334,7 @@
       </section>
       <section id="section_wsy_1rv_mt">
         <title>Sampling</title>
-        <p>When calculating statistics for large tables, Greenplum Database creates a smaller table
+        <p>When calculating statistics for large tables, Cloudberry Database creates a smaller table
           by sampling the base table. If the table is partitioned, samples are taken from all
           partitions. </p>
       </section>
@@ -348,9 +348,9 @@
             <codeph>HAVING</codeph> clauses. </p>
         <p>Analyzing a severely bloated table can generate poor statistics if the sample contains
           empty pages, so it is good practice to vacuum a bloated table before analyzing it. </p>
-        <p>See the <i>SQL Command Reference</i> in the <i>Greenplum Database Reference Guide</i> for
+        <p>See the <i>SQL Command Reference</i> in the <i>Cloudberry Database Reference Guide</i> for
           details of running the <codeph>ANALYZE</codeph> command.</p>
-        <p>Refer to the <i>Greenplum Database Management Utility Reference</i> for details of
+        <p>Refer to the <i>Cloudberry Database Management Utility Reference</i> for details of
           running the <codeph>analyzedb</codeph> command.</p>
       </section>
       <section id="section_cv2_crv_mt"><title>Analyzing Partitioned Tables</title><p>When the
@@ -377,7 +377,7 @@
           If some of the leaf partitions do not have statistics, then all the table data is sampled
           to generate root partition statistics. Sampling table data takes longer and results in
           lower quality root partition statistics.</p>
-        <p>The Greenplum Database server configuration parameter <xref
+        <p>The Cloudberry Database server configuration parameter <xref
               href="../../ref_guide/config_params/guc-list.xml#optimizer_analyze_root_partition"
               >optimizer_analyze_root_partition</xref> affects when statistics are
           collected on the root partition of a partitioned table. If the parameter is
@@ -400,7 +400,7 @@
   <topic id="topic_gyb_qrd_2t">
     <title>Configuring Statistics</title>
     <body>
-      <p>There are several options for configuring Greenplum Database statistics collection.</p>
+      <p>There are several options for configuring Cloudberry Database statistics collection.</p>
       <section>
         <title>Statistics Target</title>
         <p>The statistics target is the size of the <codeph>most_common_vals</codeph>,
@@ -435,7 +435,7 @@
       </section>
       <section id="section_j3p_drv_mt">
         <title>Automatic Statistics Collection</title>
-        <p>Greenplum Database can be set to automatically run <codeph>ANALYZE</codeph> on a table
+        <p>Cloudberry Database can be set to automatically run <codeph>ANALYZE</codeph> on a table
           that either has no statistics or has changed significantly when certain operations are
           performed on the table. For partitioned tables, automatic statistics collection is only
           triggered when the operation is run directly on a leaf table, and then only the leaf table
@@ -473,7 +473,7 @@
           that could disrupt the system, so it is not recommended to set it globally. It could be
           useful in a session, for example to automatically analyze a table following a load.</p>
         <p>Setting the <codeph>gp_autostats_allow_nonowner</codeph> server configuration
-          parameter to <codeph>true</codeph> also instructs Greenplum Database to trigger
+          parameter to <codeph>true</codeph> also instructs Cloudberry Database to trigger
           automatic statistics collection on a table when:</p>
         <ul>
           <li><codeph>gp_autostats_mode=on_change</codeph> and the table is modified by a non-owner.</li>

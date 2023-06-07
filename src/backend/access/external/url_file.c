@@ -3,7 +3,7 @@
  * url_file.c
  *	  Core support for opening external relations via a file URL
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
@@ -17,6 +17,7 @@
 #include "access/url.h"
 #include "cdb/cdbsreh.h"
 #include "commands/copy.h"
+#include "commands/copyfrom_internal.h"
 #include "fstream/gfile.h"
 #include "fstream/fstream.h"
 #include "utils/uri.h"
@@ -33,7 +34,7 @@ typedef struct URL_FSTREAM_FILE
 } URL_FSTREAM_FILE;
 
 URL_FILE *
-url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
+url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts, char *relname)
 {
 	URL_FSTREAM_FILE *file;
 	char	   *path = strchr(url + strlen(PROTOCOL_FILE), '/');
@@ -42,7 +43,7 @@ url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 	const char *response_string;
 
 	if (forwrite)
-		elog(ERROR, "cannot change a readable external table \"%s\"", pstate->cur_relname);
+		elog(ERROR, "cannot change a readable external table \"%s\"", relname);
 
 	memset(&fo, 0, sizeof fo);
 
@@ -54,13 +55,13 @@ url_file_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 	file->common.type = CFTYPE_FILE; /* marked as local FILE */
 	file->common.url = pstrdup(url);
 
-	fo.is_csv = pstate->csv_mode;
-	fo.quote = pstate->quote ? *pstate->quote : 0;
-	fo.escape = pstate->escape ? *pstate->escape : 0;
-	fo.eol_type = pstate->eol_type;
-	fo.header = pstate->header_line;
+	fo.is_csv = opts->csv_mode;
+	fo.quote = opts->quote ? *opts->quote : 0;
+	fo.escape = opts->escape ? *opts->escape : 0;
+	fo.eol_type = opts->eol_type;
+	fo.header = opts->header_line;
 	fo.bufsize = 32 * 1024;
-	pstate->header_line = 0;
+	opts->header_line = 0;
 
 	/*
 	 * Open the file stream. This includes opening the first file to be read
@@ -92,7 +93,7 @@ url_file_fclose(URL_FILE *file, bool failOnError, const char *relname)
 }
 
 size_t
-url_file_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+url_file_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate)
 {
 	URL_FSTREAM_FILE *ffile = (URL_FSTREAM_FILE *) file;
 	struct fstream_filename_and_offset fo;

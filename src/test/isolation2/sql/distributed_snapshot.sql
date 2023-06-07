@@ -88,7 +88,7 @@ DROP TABLE distributed_snapshot_test3;
 
 -- The following test cases are to test that QEs can get
 -- latest distribute snapshot to scan normal tables (not catalog).
--- Greenplum tests the visibility of heap tuples firstly using
+-- Cloudberry tests the visibility of heap tuples firstly using
 -- distributed snapshot. Distributed snapshot is generated on
 -- QD and then dispatched to QEs. Some utility statement needs
 -- to work under latest snapshot when executing, so that they

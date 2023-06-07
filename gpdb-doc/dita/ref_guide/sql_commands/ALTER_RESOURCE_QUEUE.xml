@@ -101,14 +101,14 @@
       <title>Notes</title>
         <p>GPORCA and the Postgres planner utilize different
            query costing models and may compute different costs for the same query.
-           The Greenplum Database resource queue resource management scheme neither
+           The Cloudberry Database resource queue resource management scheme neither
            differentiates nor aligns costs between GPORCA and the Postgres Planner; it
            uses the literal cost value returned from the optimizer to throttle
            queries.</p>
         <p>When resource queue-based resource management is active, use the
            <codeph>MEMORY_LIMIT</codeph> and <codeph>ACTIVE_STATEMENTS</codeph> limits for
            resource queues rather than configuring cost-based limits. Even when using GPORCA,
-           Greenplum Database may fall back to using the Postgres Planner for certain
+           Cloudberry Database may fall back to using the Postgres Planner for certain
            queries, so using cost-based limits can lead to unexpected results.</p>
     </section>
     <section id="section6">
@@ -132,7 +132,7 @@
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p>The <codeph>ALTER RESOURCE QUEUE</codeph> statement is a Greenplum Database extension. This
+      <p>The <codeph>ALTER RESOURCE QUEUE</codeph> statement is a Cloudberry Database extension. This
         command does not exist in standard PostgreSQL.</p>
     </section>
     <section id="section8">

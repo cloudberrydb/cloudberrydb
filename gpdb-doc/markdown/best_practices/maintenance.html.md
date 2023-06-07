@@ -2,34 +2,34 @@
 title: System Monitoring and Maintenance 
 ---
 
-Best practices for regular maintenance that will ensure Greenplum Database high availability and optimal performance.
+Best practices for regular maintenance that will ensure Cloudberry Database high availability and optimal performance.
 
 -   **[Updating Statistics with ANALYZE](analyze.html)**  
 
 -   **[Managing Bloat in a Database](bloat.html)**  
 
--   **[Monitoring Greenplum Database Log Files](logfiles.html)**  
+-   **[Monitoring Cloudberry Database Log Files](logfiles.html)**  
 
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 
 ## <a id="topic_izw_bwb_s4"></a>Monitoring 
 
-Greenplum Database includes utilities that are useful for monitoring the system.
+Cloudberry Database includes utilities that are useful for monitoring the system.
 
 The `gp_toolkit` schema contains several views that can be accessed using SQL commands to query system catalogs, log files, and operating environment for system status information.
 
 The `gp_stats_missing` view shows tables that do not have statistics and require `ANALYZE` to be run.
 
-For additional information on `gpstate` and `gpcheckperf` refer to the *Greenplum Database Utility Guide*. For information about the gp\_`toolkit` schema, see the *Greenplum Database Reference Guide*.
+For additional information on `gpstate` and `gpcheckperf` refer to the *Cloudberry Database Utility Guide*. For information about the gp\_`toolkit` schema, see the *Cloudberry Database Reference Guide*.
 
 ### <a id="gpstate"></a>gpstate 
 
-The `gpstate` utility program displays the status of the Greenplum system, including which segments are down, master and segment configuration information \(hosts, data directories, etc.\), the ports used by the system, and mapping of primary segments to their corresponding mirror segments.
+The `gpstate` utility program displays the status of the Cloudberry system, including which segments are down, master and segment configuration information \(hosts, data directories, etc.\), the ports used by the system, and mapping of primary segments to their corresponding mirror segments.
 
 Run `gpstate -Q` to get a list of segments that are marked "down" in the master system catalog.
 
-To get detailed status information for the Greenplum system, run `gpstate -s`.
+To get detailed status information for the Cloudberry system, run `gpstate -s`.
 
 ### <a id="gpcheckperf"></a>gpcheckperf 
 
@@ -49,7 +49,7 @@ By default, `gpcheckperf` runs the disk I/O test, the memory test, and a serial 
 $ gpcheckperf -f subnet_1_hosts -d /data1 -d /data2 -r ds
 ```
 
-The `-r` option selects the tests to run: disk I/O \(`d`\), memory bandwidth \(`s`\), network parallel pair \(`N`\), network serial pair test \(`n`\), network full-matrix test \(`M`\). Only one network mode can be selected per execution. See the *Greenplum Database Reference Guide* for the detailed `gpcheckperf` reference.
+The `-r` option selects the tests to run: disk I/O \(`d`\), memory bandwidth \(`s`\), network parallel pair \(`N`\), network serial pair test \(`n`\), network full-matrix test \(`M`\). Only one network mode can be selected per execution. See the *Cloudberry Database Reference Guide* for the detailed `gpcheckperf` reference.
 
 ### <a id="monos"></a>Monitoring with Operating System Utilities 
 
@@ -63,7 +63,7 @@ You can use `gpssh` to run utilities on multiple hosts.
 
 ### <a id="bp1"></a>Best Practices 
 
--   Implement the "Recommended Monitoring and Maintenance Tasks" in the *Greenplum Database Administrator Guide*.
+-   Implement the "Recommended Monitoring and Maintenance Tasks" in the *Cloudberry Database Administrator Guide*.
 -   Run `gpcheckperf` at install time and periodically thereafter, saving the output to compare system performance over time.
 -   Use all the tools at your disposal to understand how your system behaves under different loads.
 -   Examine any unusual event to determine the cause.
@@ -72,8 +72,8 @@ You can use `gpssh` to run utilities on multiple hosts.
 
 ### <a id="addinfo"></a>Additional Information 
 
--   `gpcheckperf` reference in the *Greenplum Database Utility Guide*.
--   "Recommended Monitoring and Maintenance Tasks" in the *Greenplum Database Administrator Guide*.
+-   `gpcheckperf` reference in the *Cloudberry Database Utility Guide*.
+-   "Recommended Monitoring and Maintenance Tasks" in the *Cloudberry Database Administrator Guide*.
 -   [Sustainable Memory Bandwidth in Current High Performance Computers](http://www.cs.virginia.edu/%7Emccalpin/papers/bandwidth/bandwidth.html). John D. McCalpin. Oct 12, 1995.
 -   [www.netperf.org](http://www.netperf.org/netperf) to use `netperf`, netperf must be installed on each host you test. See `gpcheckperf` reference for more information.
 

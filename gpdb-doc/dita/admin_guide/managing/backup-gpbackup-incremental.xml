@@ -121,7 +121,7 @@
         <p>You created incremental backups with this command:</p>
         <codeblock>gpbackup --dbname mytest --backup-dir /mybackup --leaf-partition-data --incremental</codeblock>
         <p>When you specify the <codeph>--backup-dir</codeph> option, the backups are created in the
-            <codeph>/mybackup</codeph> directory on each Greenplum Database host.</p>
+            <codeph>/mybackup</codeph> directory on each Cloudberry Database host.</p>
         <p>In the example, the full backups have the timestamp keys <codeph>20170514054532</codeph>
           and <codeph>20171114064330</codeph>. The other backups are incremental backups. The
           example consists of two backup sets, the first with two incremental backups, and second
@@ -228,7 +228,7 @@ Tables backed up:  4 / 4 [======================================================
           set must be archived. You must archive all the files created on the master and all
           segments. </p>
         <p>Each time <codeph>gpbackup</codeph> runs, the utility adds backup information to the
-          history file <codeph>gpbackup_history.yaml</codeph> in the Greenplum Database master data
+          history file <codeph>gpbackup_history.yaml</codeph> in the Cloudberry Database master data
           directory. The file includes backup options and other backup information. </p>
         <p>If you do not specify the <codeph>--from-timestamp</codeph> option when you create an
           incremental backup, <codeph>gpbackup</codeph> uses the most recent backup with a
@@ -259,7 +259,7 @@ Tables backed up:  4 / 4 [======================================================
             <codeph>--data-only</codeph> option. Before performing the restore operation,
             <codeph>gprestore</codeph> ensures that the tables being restored exist. If a table does
           not exist, <codeph>gprestore</codeph> returns an error and exits. </p>
-        <note type="warning">Changes to the Greenplum Database segment configuration invalidate
+        <note type="warning">Changes to the Cloudberry Database segment configuration invalidate
           incremental backups. After you change the segment configuration (add or remove segment
           instances), you must create a full backup before you can create an incremental
           backup.</note>

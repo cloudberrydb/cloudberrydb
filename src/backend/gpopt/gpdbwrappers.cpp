@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
@@ -62,6 +62,11 @@ extern "C" {
 	}
 
 using namespace gpos;
+
+void debug_gpos_assert(const char *filename, long line, const char *msg)
+{
+	elog(LOG, "[debug_gpos_assert]: '%s':%ld  %s", filename, line, msg);
+}
 
 bool
 gpdb::BoolFromDatum(Datum d)
@@ -385,22 +390,22 @@ gpdb::DatumSize(Datum value, bool type_by_val, int iTypLen)
 }
 
 Node *
-gpdb::MutateExpressionTree(Node *node, Node *(*mutator)(), void *context)
+gpdb::MutateExpressionTree(Node *node, Node *(*mutator)(Node *, void *), void *context)
 {
 	GP_WRAP_START;
 	{
-		return expression_tree_mutator(node, mutator, context);
+		return expression_tree_mutator_wrapper(node, mutator, context);
 	}
 	GP_WRAP_END;
 	return nullptr;
 }
 
 bool
-gpdb::WalkExpressionTree(Node *node, bool (*walker)(), void *context)
+gpdb::WalkExpressionTree(Node *node, bool (*walker)(Node *, void *), void *context)
 {
 	GP_WRAP_START;
 	{
-		return expression_tree_walker(node, walker, context);
+		return expression_tree_walker_wrapper(node, walker, context);
 	}
 	GP_WRAP_END;
 	return false;
@@ -464,19 +469,10 @@ gpdb::TypeCollation(Oid type)
 {
 	GP_WRAP_START;
 	{
-		Oid collation = InvalidOid;
+		// The real oid returned by the get_typcollation function as the result
+		// Cancel the logic that used the value DEFAULT_COLLATION_OID
 		Oid typcollation = get_typcollation(type);
-		// GPDB_12_MERGE_FIXME: brittle assumption: we only let in NAME,
-		// default-collated non-name, or non-collatable expressions
-		// This and a lot of other hacks can go away if only collation on
-		// expressions just roundtrips through ORCA
-		if (OidIsValid(typcollation))
-		{
-			if (type == NAMEOID)
-				return typcollation;  // As of v12, this is C_COLLATION_OID
-			return DEFAULT_COLLATION_OID;
-		}
-		return collation;
+		return OidIsValid(typcollation) ? typcollation : InvalidOid;
 	}
 	GP_WRAP_END;
 	return 0;
@@ -527,22 +523,22 @@ gpdb::IsFuncAllowedForPartitionSelection(Oid funcid)
 			// These are the functions we have allowed as lossy casts for Partition selection.
 			// For range partition selection, the logic in ORCA checks on bounds of the partition ranges.
 			// Hence these must be increasing functions.
-		case F_TIMESTAMP_DATE:	// date(timestamp) -> date
-		case F_DTOI4:			// int4(float8) -> int4
-		case F_FTOI4:			// int4(float4) -> int4
-		case F_INT82:			// int2(int8) -> int2
-		case F_INT84:			// int4(int8) -> int4
-		case F_I4TOI2:			// int2(int4) -> int2
-		case F_FTOI8:			// int8(float4) -> int8
-		case F_FTOI2:			// int2(float4) -> int2
-		case F_FLOAT4_NUMERIC:	// numeric(float4) -> numeric
-		case F_DTOI8:			// int8(float8) -> int8
-		case F_DTOI2:			// int2(float4) -> int2
-		case F_DTOF:			// float4(float8) -> float4
-		case F_FLOAT8_NUMERIC:	// numeric(float8) -> numeric
-		case F_NUMERIC_INT8:	// int8(numeric) -> int8
-		case F_NUMERIC_INT2:	// int2(numeric) -> int2
-		case F_NUMERIC_INT4:	// int4(numeric) -> int4
+		case F_TIMESTAMP_DATE:		// date(timestamp) -> date
+		case F_INT4_FLOAT8:			// int4(float8) -> int4
+		case F_INT4_FLOAT4:			// int4(float4) -> int4
+		case F_INT2_INT8:			// int2(int8) -> int2
+		case F_INT4_INT8:			// int4(int8) -> int4
+		case F_INT2_INT4:			// int2(int4) -> int2
+		case F_INT8_FLOAT4:			// int8(float4) -> int8
+		case F_INT2_FLOAT4:			// int2(float4) -> int2
+		case F_NUMERIC_FLOAT4:		// numeric(float4) -> numeric
+		case F_INT8_FLOAT8:			// int8(float8) -> int8
+		case F_INT2_FLOAT8:			// int2(float4) -> int2
+		case F_FLOAT4_FLOAT8:		// float4(float8) -> float4
+		case F_FLOAT8_NUMERIC:		// numeric(float8) -> numeric
+		case F_NUMERIC_INT8:		// int8(numeric) -> int8
+		case F_NUMERIC_INT2:		// int2(numeric) -> int2
+		case F_NUMERIC_INT4:		// int4(numeric) -> int4
 			return true;
 		default:
 			return false;
@@ -570,11 +566,11 @@ gpdb::IsFuncNDVPreserving(Oid funcid)
 	switch (funcid)
 	{
 		// for now, these are the functions we consider for this optimization
-		case F_LOWER:
-		case F_LTRIM1:
-		case F_BTRIM1:
-		case F_RTRIM1:
-		case F_UPPER:
+		case F_LOWER_TEXT:
+		case F_LTRIM_TEXT:
+		case F_BTRIM_TEXT:
+		case F_RTRIM_TEXT:
+		case F_UPPER_TEXT:
 			return true;
 		default:
 			return false;
@@ -1848,39 +1844,51 @@ gpdb::GPDBFree(void *ptr)
 }
 
 bool
-gpdb::WalkQueryOrExpressionTree(Node *node, bool (*walker)(), void *context,
+gpdb::WalkQueryOrExpressionTree(Node *node, bool (*walker)(Node *, void *), void *context,
 								int flags)
 {
 	GP_WRAP_START;
 	{
-		return query_or_expression_tree_walker(node, walker, context, flags);
+		return query_or_expression_tree_walker_wrapper(node, walker, context, flags);
 	}
 	GP_WRAP_END;
 	return false;
 }
 
 Node *
-gpdb::MutateQueryOrExpressionTree(Node *node, Node *(*mutator)(), void *context,
+gpdb::MutateQueryOrExpressionTree(Node *node, Node *(*mutator)(Node *, void *), void *context,
 								  int flags)
 {
 	GP_WRAP_START;
 	{
-		return query_or_expression_tree_mutator(node, mutator, context, flags);
+		return query_or_expression_tree_mutator_wrapper(node, mutator, context, flags);
 	}
 	GP_WRAP_END;
 	return nullptr;
 }
 
 Query *
-gpdb::MutateQueryTree(Query *query, Node *(*mutator)(), void *context,
+gpdb::MutateQueryTree(Query *query, Node *(*mutator)(Node *, void *), void *context,
 					  int flags)
 {
 	GP_WRAP_START;
 	{
-		return query_tree_mutator(query, mutator, context, flags);
+		return query_tree_mutator_wrapper(query, mutator, context, flags);
 	}
 	GP_WRAP_END;
 	return nullptr;
+}
+
+bool
+gpdb::WalkQueryTree(Query *query, bool (*walker)(Node *, void *), void *context,
+					  int flags)
+{
+	GP_WRAP_START;
+	{
+		return query_tree_walker_wrapper(query, walker, context, flags);
+	}
+	GP_WRAP_END;
+	return false;
 }
 
 #if 0
@@ -2820,13 +2828,20 @@ gpdb::GetRelChildIndexes(Oid reloid)
 	return partoids;
 }
 
+// Locks on partition leafs and indexes are held during optimizer (after
+// parse-analyze stage). ORCA need this function to lock relation. Here
+// we do not need to consider lock-upgrade issue, reasons are:
+//   1. Only UPDATE|DELETE statement may upgrade lock level
+//   2. ORCA currently does not support DML on partition tables
+//   3. If not partition table, then parser should have already locked
+//   4. Even later ORCA support DML on partition tables, the lock mode
+//      of leafs should be the same as the mode in root's RTE's rellockmode
+//   5. Index does not have lock-upgrade problem.
 void
 gpdb::GPDBLockRelationOid(Oid reloid, LOCKMODE lockmode)
 {
 	GP_WRAP_START;
 	{
-		bool lockUpgraded;
-		lockmode = UpgradeRelLockIfNecessary(reloid, lockmode, &lockUpgraded);
 		LockRelationOid(reloid, lockmode);
 	}
 	GP_WRAP_END;

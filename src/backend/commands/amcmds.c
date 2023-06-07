@@ -3,7 +3,7 @@
  * amcmds.c
  *	  Routines for SQL commands that manipulate access methods.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -18,6 +18,7 @@
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
 #include "catalog/indexing.h"
+#include "catalog/objectaccess.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
@@ -111,6 +112,8 @@ CreateAccessMethod(CreateAmStmt *stmt)
 
 	recordDependencyOnCurrentExtension(&myself, false);
 
+	InvokeObjectPostCreateHook(AccessMethodRelationId, amoid, 0);
+
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
 		CdbDispatchUtilityStatement((Node *) stmt,
@@ -124,33 +127,6 @@ CreateAccessMethod(CreateAmStmt *stmt)
 	table_close(rel, RowExclusiveLock);
 
 	return myself;
-}
-
-/*
- * Guts of access method deletion.
- */
-void
-RemoveAccessMethodById(Oid amOid)
-{
-	Relation	relation;
-	HeapTuple	tup;
-
-	if (!superuser())
-		ereport(ERROR,
-				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 errmsg("must be superuser to drop access methods")));
-
-	relation = table_open(AccessMethodRelationId, RowExclusiveLock);
-
-	tup = SearchSysCache1(AMOID, ObjectIdGetDatum(amOid));
-	if (!HeapTupleIsValid(tup))
-		elog(ERROR, "cache lookup failed for access method %u", amOid);
-
-	CatalogTupleDelete(relation, &tup->t_self);
-
-	ReleaseSysCache(tup);
-
-	table_close(relation, RowExclusiveLock);
 }
 
 /*
@@ -244,7 +220,7 @@ get_am_oid(const char *amname, bool missing_ok)
 }
 
 /*
- * get_am_name - given an access method OID name and type, look up its name.
+ * get_am_name - given an access method OID, look up its name.
  */
 char *
 get_am_name(Oid amOid)

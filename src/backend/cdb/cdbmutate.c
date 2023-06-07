@@ -3,7 +3,7 @@
  * cdbmutate.c
  *	  Parallelize a PostgreSQL sequential plan tree.
  *
- * Portions Copyright (c) 2004-2008, Greenplum inc
+ * Portions Copyright (c) 2004-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -389,14 +389,15 @@ shareinput_walker(SHAREINPUT_MUTATOR f, Node *node, PlannerInfo *root)
 			foreach(cell, app->appendplans)
 				shareinput_walker(f, (Node *) lfirst(cell), root);
 		}
-		else if (IsA(node, ModifyTable))
-		{
-			ListCell   *cell;
-			ModifyTable *mt = (ModifyTable *) node;
+		/* GPDB_14_MERGE_FIXME: double check on following logics. */
+		// else if (IsA(node, ModifyTable))
+		// {
+		// 	ListCell   *cell;
+		// 	ModifyTable *mt = (ModifyTable *) node;
 
-			foreach(cell, mt->plans)
-				shareinput_walker(f, (Node *) lfirst(cell), root);
-		}
+		// 	foreach(cell, mt->plans)
+		// 		shareinput_walker(f, (Node *) lfirst(cell), root);
+		// }
 		else if (IsA(node, SubqueryScan))
 		{
 			SubqueryScan  *subqscan = (SubqueryScan *) node;
@@ -781,7 +782,7 @@ shareinput_pushmot(ApplyShareInputContext *ctxt, int motid)
 static void
 shareinput_popmot(ApplyShareInputContext *ctxt)
 {
-	list_delete_first(ctxt->motStack);
+	ctxt->motStack = list_delete_first(ctxt->motStack);
 }
 static int
 shareinput_peekmot(ApplyShareInputContext *ctxt)
@@ -1133,7 +1134,7 @@ makeSegmentFilterExpr(int segid)
 		make_opclause(Int4EqualOperator,
 					  BOOLOID,
 					  false,	/* opretset */
-					  (Expr *) makeFuncExpr(F_MPP_EXECUTION_SEGMENT,
+					  (Expr *) makeFuncExpr(F_GP_EXECUTION_SEGMENT,
 											INT4OID,
 											NIL,	/* args */
 											InvalidOid,
@@ -1603,8 +1604,8 @@ pre_dispatch_function_evaluation_mutator(Node *node,
 			 * xlog which will also flush any xlog writes that the sequence
 			 * server might do.
 			 */
-			if (funcid == F_NEXTVAL_OID || funcid == F_CURRVAL_OID ||
-				funcid == F_SETVAL_OID)
+			if (funcid == F_NEXTVAL || funcid == F_CURRVAL ||
+				funcid == F_SETVAL_REGCLASS_INT8)
 			{
 				ExecutorMarkTransactionUsesSequences();
 				is_seq_func = true;

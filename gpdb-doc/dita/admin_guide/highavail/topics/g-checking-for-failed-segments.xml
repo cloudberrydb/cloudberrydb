@@ -11,7 +11,7 @@
     <section id="use_gpstate">
       <title>Check for failed segments using gpstate</title>
       <p>The <codeph>gpstate</codeph> utility provides the status of each individual component of a
-        Greenplum Database system, including primary segments, mirror segments, master, and standby
+        Cloudberry Database system, including primary segments, mirror segments, master, and standby
         master.</p>
       
        <p>On the master host, run the <xref
@@ -47,7 +47,7 @@
       instances each have their own log file in <codeph>log</codeph> of the data directory. The
       master log file contains the most information and you should always check it first. </p>
     <p>Use the <xref href="../../../utility_guide/ref/gplogfilter.xml" type="topic"
-          format="dita"/> utility to check the Greenplum Database log files for additional
+          format="dita"/> utility to check the Cloudberry Database log files for additional
       information. To check the segment log files, run <codeph>gplogfilter</codeph> on the segment
       hosts using <xref href="../../../utility_guide/ref/gpssh.xml" type="topic"
           format="dita"/>.</p>

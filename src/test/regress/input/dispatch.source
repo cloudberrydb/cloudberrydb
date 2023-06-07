@@ -12,12 +12,15 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 -- s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/DETAIL:  Internal error: No motion listener port/
 -- m/WARNING:.*Any temporary tables for this session have been dropped because the gang was disconnected/
 -- s/session id \=\s*\d+/session id \= DUMMY/gm
+-- m/^DETAIL:  connection to server at .*, port \d+ failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'/
+-- s/^DETAIL:  connection to server at .*, port \d+ failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'/^DETAIL:  connection to server at XX, port XX failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'/
+-- m/ERROR:  Query plan size limit exceeded, current size: 1[1-2]KB, max allowed size: 10KB/
+-- s/ERROR:  Query plan size limit exceeded, current size: 1[1-2]KB, max allowed size: 10KB/ERROR:  Query plan size limit exceeded, current size: /
 -- end_matchsubs
 
 -- skip FTS probes always
 select gp_inject_fault_infinite('fts_probe', 'skip', 1);
 select gp_request_fts_probe_scan();
-select gp_wait_until_triggered_fault('fts_probe', 1, 1);
 
 -- Test cdbdisp_getDispatchResults() fail in CdbDispatchCopyStart()
 
@@ -536,3 +539,19 @@ select fault_exec_plan(false);
 select fault_exec_plan(true);
 \c regression
 DROP DATABASE dispatch_test_db;
+
+-- issue: https://github.com/greenplum-db/gpdb/issues/13393
+-- We should avoid a double free and resultant PANIC if the
+-- process of recycling the gang is interrupted by a signal
+CREATE EXTENSION if not exists gp_inject_fault;
+create table t13393(tc1 int);
+insert into t13393 select generate_series(1,10000);
+-- start_ignore
+analyze gp_segment_configuration;
+-- end_ignore
+SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'interrupt', dbid, current_setting('gp_session_id')::int)
+ from gp_segment_configuration where content=-1 and role='p';
+select * from gp_segment_configuration a, t13393 ,gp_segment_configuration b where a.dbid = t13393.tc1 limit 0;
+SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'reset', dbid, current_setting('gp_session_id')::int)
+ from gp_segment_configuration where content=-1 and role='p';
+drop table t13393;

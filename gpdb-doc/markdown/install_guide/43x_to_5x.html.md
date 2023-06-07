@@ -1,19 +1,19 @@
 ---
-title: About Implicit Text Casting in Greenplum Database 
+title: About Implicit Text Casting in Cloudberry Database 
 ---
 
-Greenplum Database version 4.3.x is based on PostgreSQL version 8.2. Greenplum Database version 6.x is based on PostgreSQL version 9.4. PostgreSQL 8.3 removed automatic implicit casts between the `text` type and other data types. When you migrate from Greenplum Database version 4.3.x to version 6, this change in behavior might impact existing applications and queries.
+Cloudberry Database version 4.3.x is based on PostgreSQL version 8.2. Cloudberry Database version 6.x is based on PostgreSQL version 9.4. PostgreSQL 8.3 removed automatic implicit casts between the `text` type and other data types. When you migrate from Cloudberry Database version 4.3.x to version 6, this change in behavior might impact existing applications and queries.
 
-For information about how Greenplum Database 6 performs type casts, see [Type Casts](../admin_guide/query/topics/defining-queries.html).
+For information about how Cloudberry Database 6 performs type casts, see [Type Casts](../admin_guide/query/topics/defining-queries.html).
 
-**What is different in Greenplum Database 6**
+**What is different in Cloudberry Database 6**
 
-Greenplum Database 6 does not automatically implicitly cast between text and other data types. Greenplum Database 6 also treats certain automatic implicit casts differently than version 4.3.x, and in some cases does not handle them at all. **Applications or queries that you wrote for Greenplum Database 4.3.x that rely on automatic implicit casting may fail on Greenplum Database version 6.**
+Cloudberry Database 6 does not automatically implicitly cast between text and other data types. Cloudberry Database 6 also treats certain automatic implicit casts differently than version 4.3.x, and in some cases does not handle them at all. **Applications or queries that you wrote for Cloudberry Database 4.3.x that rely on automatic implicit casting may fail on Cloudberry Database version 6.**
 
-\(The term *implicit cast*, when used in the remainder of this section, refers to implicit casts automatically applied by Greenplum Database.\)
+\(The term *implicit cast*, when used in the remainder of this section, refers to implicit casts automatically applied by Cloudberry Database.\)
 
--   Greenplum Database 6 has downgraded implicit casts in the to-text type direction; these casts are now treated as assignment casts. A cast from a data type to the text type will continue to work in Greenplum Database 6 if used in assignment contexts.
--   Greenplum Database 6 no longer automatically provides an implicit cast in the to-text type direction that can be used in expression contexts. Additionally, Greenplum Database 6 no longer provides implicit casts in the from-text type direction. When such expressions or assignments are encountered, Greenplum Database 6 returns an error and the following message:
+-   Cloudberry Database 6 has downgraded implicit casts in the to-text type direction; these casts are now treated as assignment casts. A cast from a data type to the text type will continue to work in Cloudberry Database 6 if used in assignment contexts.
+-   Cloudberry Database 6 no longer automatically provides an implicit cast in the to-text type direction that can be used in expression contexts. Additionally, Cloudberry Database 6 no longer provides implicit casts in the from-text type direction. When such expressions or assignments are encountered, Cloudberry Database 6 returns an error and the following message:
 
     ```
     HINT:  No operator matches the given name and argument type(s). You might need to add explicit type casts.
@@ -26,7 +26,7 @@ Greenplum Database 6 does not automatically implicitly cast between text and oth
     CREATE TABLE bar (b text) DISTRIBUTED RANDOMLY ;
     ```
 
-    The following examples demonstrate certain types of text comparison queries that will fail on Greenplum Database 6.
+    The following examples demonstrate certain types of text comparison queries that will fail on Cloudberry Database 6.
 
     **Note:** This is not an exhaustive list of failure scenarios.
 
@@ -75,7 +75,7 @@ Greenplum Database 6 does not automatically implicitly cast between text and oth
         SELECT * FROM bar WHERE b = 123::text;
         ```
 
-    -   Queries that perform comparisons between a `date` type column or literal and an integer-like column \(Greenplum Database internally converts date types to the text type\) . This example query that compares an `integer` column with a literal of type `date` returns an error.
+    -   Queries that perform comparisons between a `date` type column or literal and an integer-like column \(Cloudberry Database internally converts date types to the text type\) . This example query that compares an `integer` column with a literal of type `date` returns an error.
 
         ```
         SELECT * FROM foo WHERE a = '20130101'::DATE;
@@ -89,9 +89,9 @@ Greenplum Database 6 does not automatically implicitly cast between text and oth
         ```
 
 
-**The only supported workaround for the implicit casting differences between Greenplum Database versions 4.3.x and 6 is to analyze failing applications and queries and update the application or query to use explicit casts to fix the failures.**
+**The only supported workaround for the implicit casting differences between Cloudberry Database versions 4.3.x and 6 is to analyze failing applications and queries and update the application or query to use explicit casts to fix the failures.**
 
-If rewriting the application or query is not feasible, you may choose to temporarily work around the change in behaviour introduced by the removal of automatic implicit casts in Greenplum Database 6. There are two well-known workarounds to this PostgreSQL issue:
+If rewriting the application or query is not feasible, you may choose to temporarily work around the change in behaviour introduced by the removal of automatic implicit casts in Cloudberry Database 6. There are two well-known workarounds to this PostgreSQL issue:
 
 -   Re-create the implicit casts \(described in [Readding implicit casts in PostgreSQL 8.3](http://petereisentraut.blogspot.com/2008/03/readding-implicit-casts-in-postgresql.html)\).
 -   Create missing operators \(described in [Problems and workaround recreating implicit casts using 8.3+](http://blog.ioguix.net/postgresql/2010/12/11/Problems-and-workaround-recreating-casts-with-8.3+.html)\).
@@ -100,13 +100,13 @@ The workaround to re-create the implicit casts is not recommended as it breaks c
 
 ## <a id="temp_workaround"></a>Workaround: Manually Creating Missing Operators 
 
-**Warning:** Use this workaround only to aid migration to Greenplum Database 6 for evaluation purposes. Do not use this workaround in a production environment.
+**Warning:** Use this workaround only to aid migration to Cloudberry Database 6 for evaluation purposes. Do not use this workaround in a production environment.
 
-When you create an operator, you identify the data types of the left operand and the right operand. You also identify the name of a function that Greenplum Database invokes to evaluate the operator expression between the specified data types. The operator function evaluates the expression by performing either to-text or from-text conversion using the INPUT/OUTPUT methods of the data types involved. By creating operators for each \(text type, other data type\) and \(other data type, text type\) combination, you effectively implement the casts that are missing in Greenplum Database 6.
+When you create an operator, you identify the data types of the left operand and the right operand. You also identify the name of a function that Cloudberry Database invokes to evaluate the operator expression between the specified data types. The operator function evaluates the expression by performing either to-text or from-text conversion using the INPUT/OUTPUT methods of the data types involved. By creating operators for each \(text type, other data type\) and \(other data type, text type\) combination, you effectively implement the casts that are missing in Cloudberry Database 6.
 
-To implement this workaround, complete the following tasks **after** you install Greenplum Database 6:
+To implement this workaround, complete the following tasks **after** you install Cloudberry Database 6:
 
-1.  Identify and note the names of the Greenplum 6 databases in which you want to create the missing operators. Consider applying this workaround to all databases in your Greenplum Database deployment.
+1.  Identify and note the names of the Cloudberry 6 databases in which you want to create the missing operators. Consider applying this workaround to all databases in your Cloudberry Database deployment.
 2.  Identify a schema in which to create the operators and functions. Use a schema other than `pg_catalog` to ensure that these objects are included in a `pg_dump` or `gpbackup` of the database. This procedure will use a schema named `cast_fix` for illustrative purposes.
 3.  Review the blog entry [Problems and workaround recreating implicit casts using 8.3+](http://blog.ioguix.net/postgresql/2010/12/11/Problems-and-workaround-recreating-casts-with-8.3+.html). The blog discusses this temporary workaround to the casting issue, i.e. creating missing operators. It also references a SQL script that you can run to create a set of equality \(`=`\) operators and functions for several text and other data type comparisons.
 4.  Download the [8.3 operator workaround.sql](https://gist.github.com/ioguix/4dd187986c4a1b7e1160) script referenced on the blog page, noting the location to which the file was downloaded on your local system.
@@ -168,9 +168,9 @@ To implement this workaround, complete the following tasks **after** you install
         \i '/tmp/8.3 operator workaround.sql'
         ```
 
-    You must create the schema and run the script for every new database that you create in your Greenplum Database cluster.
+    You must create the schema and run the script for every new database that you create in your Cloudberry Database cluster.
 
-10. Identify and note the names of the users/roles to which you want to provide this capability. Consider exposing this to all roles in your Greenplum Database deployment.
+10. Identify and note the names of the users/roles to which you want to provide this capability. Consider exposing this to all roles in your Cloudberry Database deployment.
 11. For each role that you identified in Step 10, add the schema to the role's `search_path`. For example:
 
     ```

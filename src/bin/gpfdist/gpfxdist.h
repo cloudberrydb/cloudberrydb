@@ -27,6 +27,7 @@ struct gpfxdist_t
 	char*		tempfilename; /* name of temporary file containing file paths, removed at end */
 	char*		errfilename; /* name of temporary file containing stderr output, removed at end */
 	apr_file_t* errfile;	/* APR handle for errfilename */
+	int         stderr_server; /* 1 if stderr output should go server not console */
 };
 
 #endif

@@ -2,16 +2,16 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_n5w_gtd_jr">
   <title>Configuring Client Authentication</title>
-  <shortdesc>Describes the available methods for authenticating Greenplum Database
+  <shortdesc>Describes the available methods for authenticating Cloudberry Database
     clients.</shortdesc>
   <body>
-    <p>When a Greenplum Database system is first initialized, the system contains one predefined
+    <p>When a Cloudberry Database system is first initialized, the system contains one predefined
       superuser role. This role will have the same name as the operating system user who initialized
-      the Greenplum Database system. This role is referred to as gpadmin. By default, the system is
+      the Cloudberry Database system. This role is referred to as gpadmin. By default, the system is
       configured to only allow local connections to the database from the gpadmin role. If you want
       to allow any other roles to connect, or if you want to allow connections from remote hosts,
-      you have to configure Greenplum Database to allow such connections. This section explains how
-      to configure client connections and authentication to Greenplum Database.<ul
+      you have to configure Cloudberry Database to allow such connections. This section explains how
+      to configure client connections and authentication to Cloudberry Database.<ul
         id="ul_kpg_sgq_kr">
         <li><xref href="#topic_ln1_ptd_jr" format="dita"/></li>
         <li><xref href="#topic_xwr_rvd_jr" format="dita"/></li>
@@ -21,15 +21,15 @@
       </ul></p>
   </body>
   <topic id="topic_ln1_ptd_jr">
-    <title>Allowing Connections to Greenplum Database</title>
+    <title>Allowing Connections to Cloudberry Database</title>
     <body>
       <p>Client access and authentication is controlled by a configuration file named
           <codeph>pg_hba.conf</codeph> (the standard PostgreSQL host-based authentication file). For
         detailed information about this file, see <xref
           href="https://www.postgresql.org/docs/9.4/auth-pg-hba-conf.html" format="html"
           scope="external">The pg_hba.conf File</xref> in the PostgreSQL documentation. </p>
-      <p>In Greenplum Database, the <codeph>pg_hba.conf</codeph> file of the master instance
-        controls client access and authentication to your Greenplum system. The segments also have
+      <p>In Cloudberry Database, the <codeph>pg_hba.conf</codeph> file of the master instance
+        controls client access and authentication to your Cloudberry system. The segments also have
           <codeph>pg_hba.conf</codeph> files, but these are already correctly configured to only
         allow client connections from the master host. The segments never accept outside client
         connections, so there is no need to alter the <codeph>pg_hba.conf</codeph> file on segments. </p>
@@ -55,7 +55,7 @@ hostnossl  <varname>database</varname>  <varname>user</varname>  <varname>IP-add
             <pt><codeph>host</codeph></pt>
             <pd>Matches connection attempts made using TCP/IP. Remote TCP/IP connections will not be
               possible unless the server is started with an appropriate value for the
-                <codeph>listen_addresses</codeph> server configuration parameter. Greenplum Database
+                <codeph>listen_addresses</codeph> server configuration parameter. Cloudberry Database
               by default allows connections from all hosts (<codeph>'*'</codeph>).</pd>
           </plentry>
           <plentry>
@@ -191,7 +191,7 @@ hostnossl  <varname>database</varname>  <varname>user</varname>  <varname>IP-add
     <title>Editing the pg_hba.conf File</title>
     <body>
       <p>Initially, the <codeph>pg_hba.conf</codeph> file is set up with generous permissions for
-        the gpadmin user and no database access for other Greenplum Database roles. You will need to
+        the gpadmin user and no database access for other Cloudberry Database roles. You will need to
         edit the <codeph>pg_hba.conf</codeph> file to enable users' access to databases and to
         secure the gpadmin user. Consider removing entries that have <codeph>trust</codeph> authentication, since
         they allow anyone with access to the server to connect with any role they choose. For local
@@ -202,10 +202,10 @@ hostnossl  <varname>database</varname>  <varname>user</varname>  <varname>IP-add
           <codeph>127.0.0.1/28</codeph>. Using <codeph>ident</codeph> authentication for remote TCP connections is
         less secure because it requires you to trust the integrity of the ident service on the
         client's host. </p>
-      <note otherprops="pivotal"> Greenplum Command Center provides an interface for editing the
+      <note otherprops="pivotal"> Cloudberry Command Center provides an interface for editing the
           <codeph>pg_hba.conf</codeph> file. It verifies entries before you save them, keeps a
         version history of the file so that you can reload a previous version of the file, and
-        reloads the file into Greenplum Database. </note>
+        reloads the file into Cloudberry Database. </note>
       <p>This example shows how to edit the <codeph>pg_hba.conf</codeph> file on the master host to
         allow remote client access to all databases from all roles using encrypted password
         authentication. </p>
@@ -261,7 +261,7 @@ host    all   dba   192.168.0.0/32  md5</codeblock></li>
               <pt>Trust</pt>
               <pd>Allows the connection unconditionally, without the need for a password or any
                 other authentication. This entry is required for the <codeph>gpadmin</codeph> role,
-                and for Greenplum utilities (for example <codeph>gpinitsystem</codeph>,
+                and for Cloudberry utilities (for example <codeph>gpinitsystem</codeph>,
                   <codeph>gpstop</codeph>, or <codeph>gpstart</codeph> amongst others) that need to
                 connect between nodes without prompting for input or a password. </pd>
               <pd>
@@ -325,14 +325,14 @@ host     all           all             0.0.0.0/0     md5</codeblock>
       <section id="kerberos_auth">
         <title>GSSAPI Authentication</title>
         <p>GSSAPI is an industry-standard protocol for secure authentication defined in RFC 2743.
-          Greenplum Database supports GSSAPI with Kerberos authentication according to RFC 1964.
+          Cloudberry Database supports GSSAPI with Kerberos authentication according to RFC 1964.
           GSSAPI provides automatic authentication (single sign-on) for systems that support it. The
           authentication itself is secure, but the data sent over the database connection will be
           sent unencrypted unless SSL is used.</p>
         <p>The <codeph>gss</codeph> authentication method is only available for TCP/IP
           connections.</p>
         <p>When GSSAPI uses Kerberos, it uses a standard principal in the format
-              <codeph><varname>servicename/hostname@realm</varname></codeph>. The Greenplum Database
+              <codeph><varname>servicename/hostname@realm</varname></codeph>. The Cloudberry Database
           server will accept any principal that is included in the keytab file used by the server,
           but care needs to be taken to specify the correct principal details when making the
           connection from the client using the <codeph>krbsrvname</codeph> connection parameter.
@@ -345,10 +345,10 @@ host     all           all             0.0.0.0/0     md5</codeblock>
         <p><codeph><varname>hostname</varname></codeph> is the fully qualified host name of the
           server machine. The service principal's realm is the preferred realm of the server
           machine.</p>
-        <p>Client principals must have their Greenplum Database user name as their first component,
+        <p>Client principals must have their Cloudberry Database user name as their first component,
           for example <codeph>gpusername@realm</codeph>. Alternatively, you can use a user name
           mapping to map from the first component of the principal name to the database user name.
-          By default, Greenplum Database does not check the realm of the client. If you have
+          By default, Cloudberry Database does not check the realm of the client. If you have
           cross-realm authentication enabled and need to verify the realm, use the
             <codeph>krb_realm</codeph> parameter, or enable <codeph>include_realm</codeph> and use
           user name mapping to check the realm.</p>
@@ -356,7 +356,7 @@ host     all           all             0.0.0.0/0     md5</codeblock>
           <codeph>gpadmin</codeph> server account. The location of the key file is specified by the <xref
             href="../../ref_guide/config_params/guc-list.xml#krb_server_keyfile"/> configuration
           parameter. For security reasons, it is recommended to use a separate keytab just for the
-          Greenplum Database server rather than opening up permissions on the system keytab
+          Cloudberry Database server rather than opening up permissions on the system keytab
           file.</p>
         <p>The keytab file is generated by the Kerberos software; see the Kerberos documentation for
           details. The following example is for MIT-compatible Kerberos 5 implementations:</p>
@@ -377,7 +377,7 @@ kadmin% <b>ktadd -k krb5.keytab postgres/server.my.domain.org</b></codeblock>
               configuration as, otherwise, it is impossible to differentiate users with the same
               username who are from different realms. The default for this parameter is 0 (meaning
               to not include the realm in the system user name) but may change to 1 in a future
-              version of Greenplum Database. You can set it explicitly to avoid any issues when
+              version of Cloudberry Database. You can set it explicitly to avoid any issues when
               upgrading.</pd>
           </plentry>
           <plentry>
@@ -523,7 +523,7 @@ Hostssl testdb all 192.168.0.0/16 cert map=gpuser
         <p>You can make changes to the OpenSSL configuration by updating the
             <codeph>openssl.cnf</codeph> file under your OpenSSL installation directory, or the file
           referenced by <codeph>$OPENSSL_CONF</codeph>, if present, and then restarting the
-          Greenplum Database server.</p>
+          Cloudberry Database server.</p>
       </section>
       <section id="create_a_cert">
         <title>Creating a Self-Signed Certificate</title>
@@ -577,14 +577,14 @@ rm privkey.pem</codeblock></li>
                   minimal compared to the overhead of authentication. For these reasons, NULL
                   ciphers should not be used.</p></note></li>
           </ul></p>
-        <p>The default location for the following SSL server files is the Greenplum Database master
+        <p>The default location for the following SSL server files is the Cloudberry Database master
           data directory (<codeph>$MASTER_DATA_DIRECTORY</codeph>): <ul id="ul_gzs_b22_jr">
             <li><codeph>server.crt</codeph> - Server certificate.</li>
             <li><codeph>server.key</codeph> - Server private key.</li>
             <li><codeph>root.crt</codeph> - Trusted certificate authorities.</li>
             <li><codeph>root.crl</codeph> - Certificates revoked by certificate authorities.</li>
           </ul></p>
-        <p>If Greenplum Database master mirroring is enabled with SSL client authentication, the SSL
+        <p>If Cloudberry Database master mirroring is enabled with SSL client authentication, the SSL
           server files <i>should not be placed</i> in the default directory
             <codeph>$MASTER_DATA_DIRECTORY</codeph>. If a <codeph>gpinitstandby</codeph> operation
           is performed, the contents of <codeph>$MASTER_DATA_DIRECTORY</codeph> is copied from the
@@ -664,21 +664,21 @@ rm privkey.pem</codeblock></li>
     <body>
       <p>The "PAM" (Pluggable Authentication Modules) authentication method validates
         username/password pairs, similar to basic authentication. To use PAM
-        authentication, the user must already exist as a Greenplum Database role name.</p>
-      <p>Greenplum uses the <codeph>pamservice</codeph> authentication parameter
+        authentication, the user must already exist as a Cloudberry Database role name.</p>
+      <p>Cloudberry uses the <codeph>pamservice</codeph> authentication parameter
         to identify the service from which to obtain the PAM configuration.</p>
       <note>If PAM is set up to read <codeph>/etc/shadow</codeph>, authentication will
         fail because the PostgreSQL server is started by a non-root user. This is not
         an issue when PAM is configured to use LDAP or another authentication method.</note>
-      <p>Greenplum Database does not install a PAM configuration file. If you choose
-        to use PAM authentication with Greenplum, you must identify the PAM service
-        name for Greenplum and create the associated PAM service configuration file
-        and configure Greenplum Database to use PAM authentication as described below:</p>
+      <p>Cloudberry Database does not install a PAM configuration file. If you choose
+        to use PAM authentication with Cloudberry, you must identify the PAM service
+        name for Cloudberry and create the associated PAM service configuration file
+        and configure Cloudberry Database to use PAM authentication as described below:</p>
       <ol>
-        <li>Log in to the Greenplum Database master host and set up your environment.
+        <li>Log in to the Cloudberry Database master host and set up your environment.
           For example:<codeblock>$ ssh gpadmin@&lt;gpmaster&gt;
 gpadmin@gpmaster$ . /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
-        <li>Identify the <codeph>pamservice</codeph> name for Greenplum Database. In
+        <li>Identify the <codeph>pamservice</codeph> name for Cloudberry Database. In
           this procedure, we choose the name <codeph>greenplum</codeph>.</li>
         <li>Create the PAM service configuration file, <codeph>/etc/pam.d/greenplum</codeph>,
           and add the text below. You must have operating system superuser
@@ -693,13 +693,13 @@ account		include		password-auth
         <li>Ensure that the <codeph>/etc/pam.d/greenplum</codeph> file is readable
           by all users: <codeblock>sudo chmod 644 /etc/pam.d/greenplum</codeblock></li>
         <li>Add one or more entries to the <codeph>pg_hba.conf</codeph> configuration
-          file to enable PAM authentication in Greenplum Database. These entries must
+          file to enable PAM authentication in Cloudberry Database. These entries must
           specify the <codeph>pam</codeph> <i>auth-method</i>. You must also specify
           the <codeph>pamservice=greenplum</codeph> <i>auth-option</i>. For example:
 <codeblock>
 host     &lt;user-name>     &lt;db-name>     &lt;address>     pam     pamservice=greenplum
 </codeblock></li>
-        <li>Reload the Greenplum Database configuration:
+        <li>Reload the Cloudberry Database configuration:
           <codeblock>$ gpstop -u</codeblock></li>
       </ol>
     </body>
@@ -745,7 +745,7 @@ host     &lt;user-name>     &lt;db-name>     &lt;address>     pam     pamservice
   <topic id="topic_hwn_bk2_jr">
     <title>Limiting Concurrent Connections</title>
     <body>
-      <p>To limit the number of active concurrent sessions to your Greenplum Database system, you
+      <p>To limit the number of active concurrent sessions to your Cloudberry Database system, you
         can configure the <codeph>max_connections</codeph> server configuration parameter. This is a
         local parameter, meaning that you must set it in the <codeph>postgresql.conf</codeph> file
         of the master, the standby master, and each segment instance (primary and mirror). The value
@@ -760,11 +760,11 @@ max_prepared_transactions=100</codeblock></p>
       <p>In <codeph>SEGMENT_DATA_DIRECTORY/postgresql.conf</codeph> for all segment
         instances:<codeblock>max_connections=500
 max_prepared_transactions=100</codeblock></p>
-      <note>Note: Raising the values of these parameters may cause Greenplum Database to request
+      <note>Note: Raising the values of these parameters may cause Cloudberry Database to request
         more shared memory. To mitigate this effect, consider decreasing other memory-related
         parameters such as <codeph>gp_cached_segworkers_threshold</codeph>.</note>
       <p>To change the number of allowed connections:<ol id="ol_etb_rk2_jr">
-          <li>Stop your Greenplum Database system:<codeblock>$ gpstop</codeblock></li>
+          <li>Stop your Cloudberry Database system:<codeblock>$ gpstop</codeblock></li>
           <li>On the master host, edit <codeph>$MASTER_DATA_DIRECTORY/postgresql.conf</codeph> and
             change the following two parameters:<ul id="ul_e5k_vk2_jr">
               <li><codeph>max_connections</codeph> – the number of active user sessions you want to
@@ -779,25 +779,25 @@ max_prepared_transactions=100</codeblock></p>
               <li><codeph>max_prepared_transactions</codeph> – must be equal to the value on the
                 master.</li>
             </ul></li>
-          <li>Restart your Greenplum Database system:<codeblock>$ gpstart</codeblock></li>
+          <li>Restart your Cloudberry Database system:<codeblock>$ gpstart</codeblock></li>
         </ol></p>
     </body>
   </topic>
   <topic id="topic_ibc_nl2_jr">
     <title>Encrypting Client/Server Connections</title>
     <body>
-      <p>Greenplum Database has native support for SSL connections between the client and the master
+      <p>Cloudberry Database has native support for SSL connections between the client and the master
         server. SSL connections prevent third parties from snooping on the packets, and also prevent
         man-in-the-middle attacks. SSL should be used whenever the client connection goes through an
         insecure link, and must be used whenever client certificate authentication is used. </p>
       <note>For information about encrypting data between the <codeph>gpfdist</codeph> server and
-        Greenplum Database segment hosts, see <xref href="Encryption.xml#gpfdist_connections"/>. </note>
+        Cloudberry Database segment hosts, see <xref href="Encryption.xml#gpfdist_connections"/>. </note>
       <p>To enable SSL requires that OpenSSL be installed on both the client and the master server
-        systems. Greenplum can be started with SSL enabled by setting the server configuration
+        systems. Cloudberry can be started with SSL enabled by setting the server configuration
         parameter <codeph>ssl=on</codeph> in the master <codeph>postgresql.conf</codeph>. When
         starting in SSL mode, the server will look for the files <codeph>server.key</codeph> (server
         private key) and <codeph>server.crt</codeph> (server certificate) in the master data
-        directory. These files must be set up correctly before an SSL-enabled Greenplum system can
+        directory. These files must be set up correctly before an SSL-enabled Cloudberry system can
         start.</p>
       <note type="important">Do not protect the private key with a passphrase. The server does not
         prompt for a passphrase for the private key, and the database startup fails with an error if

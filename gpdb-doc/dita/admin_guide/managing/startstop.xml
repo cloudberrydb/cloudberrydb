@@ -2,38 +2,38 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="kg138244">Starting and Stopping Greenplum Database</title>
-  <shortdesc>In a Greenplum Database DBMS, the database server instances (the master and all
+  <title id="kg138244">Starting and Stopping Cloudberry Database</title>
+  <shortdesc>In a Cloudberry Database DBMS, the database server instances (the master and all
     segments) are started or stopped across all of the hosts in the system in such a way that they
     can work together as a unified DBMS. </shortdesc>
   <body>
-    <p>Because a Greenplum Database system is distributed across many machines, the process for
-      starting and stopping a Greenplum Database system is different than the process for starting
+    <p>Because a Cloudberry Database system is distributed across many machines, the process for
+      starting and stopping a Cloudberry Database system is different than the process for starting
       and stopping a regular PostgreSQL DBMS.</p>
     <p>Use the <codeph>gpstart</codeph> and <codeph>gpstop</codeph> utilities to start and stop
-      Greenplum Database, respectively. These utilities are located in the
-        <filepath>$GPHOME/bin</filepath> directory on your Greenplum Database master host.</p>
+      Cloudberry Database, respectively. These utilities are located in the
+        <filepath>$GPHOME/bin</filepath> directory on your Cloudberry Database master host.</p>
     <note type="important">Do not issue a <codeph>kill</codeph> command to end any Postgres process.
       Instead, use the database command <codeph>pg_cancel_backend()</codeph>. <p>Issuing a
           <codeph>kill -9</codeph> or <codeph>kill -11</codeph> can introduce database corruption
         and prevent root cause analysis from being performed.</p></note>
     <p>For information about <codeph>gpstart</codeph> and <codeph>gpstop</codeph>, see the
-        <cite>Greenplum Database Utility Guide</cite>.</p>
+        <cite>Cloudberry Database Utility Guide</cite>.</p>
   </body>
   <task id="task_hkd_gzv_fp">
-    <title>Starting Greenplum Database</title>
-    <shortdesc>Start an initialized Greenplum Database system by running the
+    <title>Starting Cloudberry Database</title>
+    <shortdesc>Start an initialized Cloudberry Database system by running the
         <codeph>gpstart</codeph> utility on the master instance.</shortdesc>
     <taskbody>
-      <context>Use the <codeph>gpstart</codeph> utility to start a Greenplum Database system that
+      <context>Use the <codeph>gpstart</codeph> utility to start a Cloudberry Database system that
         has already been initialized by the <codeph>gpinitsystem</codeph> utility, but has been
         stopped by the <codeph>gpstop</codeph> utility. The <codeph>gpstart</codeph> utility starts
-        Greenplum Database by starting all the Postgres database instances on the Greenplum Database
+        Cloudberry Database by starting all the Postgres database instances on the Cloudberry Database
         cluster. <codeph>gpstart</codeph> orchestrates this process and performs the process in
         parallel.</context>
       <steps-unordered id="steps-unordered_ot5_ntk_gp">
         <step>
-          <cmd>Run <codeph>gpstart</codeph> on the master host to start Greenplum Database:</cmd>
+          <cmd>Run <codeph>gpstart</codeph> on the master host to start Cloudberry Database:</cmd>
           <stepxmp>
             <codeblock>$ gpstart</codeblock>
           </stepxmp>
@@ -42,14 +42,14 @@
     </taskbody>
   </task>
   <task id="task_gpdb_restart">
-    <title>Restarting Greenplum Database</title>
-    <shortdesc>Stop the Greenplum Database system and then restart it.</shortdesc>
+    <title>Restarting Cloudberry Database</title>
+    <shortdesc>Stop the Cloudberry Database system and then restart it.</shortdesc>
     <taskbody>
       <context>The <codeph>gpstop</codeph> utility with the <codeph>-r</codeph> option can stop and
-        then restart Greenplum Database after the shutdown completes. </context>
+        then restart Cloudberry Database after the shutdown completes. </context>
       <steps-unordered id="steps-unordered_c51_ntk_gp">
         <step>
-          <cmd>To restart Greenplum Database, enter the following command on the master host:</cmd>
+          <cmd>To restart Cloudberry Database, enter the following command on the master host:</cmd>
           <stepxmp>
             <codeblock>$ gpstop -r</codeblock>
           </stepxmp>
@@ -59,7 +59,7 @@
   </task>
   <task id="task_upload_config">
     <title>Reloading Configuration File Changes Only</title>
-    <shortdesc>Reload changes to Greenplum Database configuration files without interrupting the
+    <shortdesc>Reload changes to Cloudberry Database configuration files without interrupting the
       system.</shortdesc>
     <taskbody>
       <context>The <codeph>gpstop</codeph> utility can reload changes to the
@@ -68,10 +68,10 @@
 Active sessions pick up changes when they reconnect to
         the database. Many server configuration parameters require a full system restart
           (<codeph>gpstop -r</codeph>) to activate. For information about server configuration
-        parameters, see the <cite>Greenplum Database Reference Guide</cite>.</context>
+        parameters, see the <cite>Cloudberry Database Reference Guide</cite>.</context>
       <steps-unordered id="steps-unordered_n3k_mtk_gp">
         <step>
-          <cmd>Reload configuration file changes without shutting down the Greenplum Database system using the
+          <cmd>Reload configuration file changes without shutting down the Cloudberry Database system using the
               <codeph>gpstop</codeph> utility:</cmd>
           <stepxmp>
             <codeblock>$ gpstop -u</codeblock>
@@ -88,7 +88,7 @@ Active sessions pick up changes when they reconnect to
       <context>Maintenance mode should only be used with direction from VMware Technical Support.
         For example, you could connect to a database only on the master instance in maintenance mode
         and edit system catalog settings. For more information about system catalog tables, see the
-          <cite>Greenplum Database Reference Guide</cite>.</context>
+          <cite>Cloudberry Database Reference Guide</cite>.</context>
       <steps id="steps_gnq_3rk_gp">
         <step>
           <cmd>Run <codeph>gpstart</codeph> using the <option>-m</option> option:</cmd>
@@ -121,33 +121,33 @@ $ gpstart</codeblock>
     </taskbody>
   </task>
   <task id="task_gpdb_stop">
-    <title id="kg156168">Stopping Greenplum Database</title>
+    <title id="kg156168">Stopping Cloudberry Database</title>
     <taskbody>
-      <context>The <codeph>gpstop</codeph> utility stops or restarts your Greenplum Database system
+      <context>The <codeph>gpstop</codeph> utility stops or restarts your Cloudberry Database system
         and always runs on the master host. When activated, <codeph>gpstop</codeph> stops all
           <codeph>postgres</codeph> processes in the system, including the master and all segment
         instances. The <codeph>gpstop</codeph> utility uses a default of up to 64 parallel worker
-        threads to bring down the Postgres instances that make up the Greenplum Database cluster.
+        threads to bring down the Postgres instances that make up the Cloudberry Database cluster.
         The system waits for any active transactions to finish before shutting down. If after two
         minutes there are still active connections, <codeph>gpstop</codeph> will prompt you to
         either continue waiting in smart mode, stop in fast mode, or stop in immediate mode. To stop
-        Greenplum Database immediately, use fast mode. <note type="important">Immediate shut down
+        Cloudberry Database immediately, use fast mode. <note type="important">Immediate shut down
           mode is not recommended. This mode stops all database processes without allowing the
           database server to complete transaction processing or clean up any temporary or in-process
           work files.</note></context>
       <steps-unordered>
         <step>
-          <cmd>To stop Greenplum Database:</cmd>
+          <cmd>To stop Cloudberry Database:</cmd>
           <stepxmp>
             <codeblock>$ gpstop</codeblock>
           </stepxmp>
         </step>
         <step>
-          <cmd>To stop Greenplum Database in fast mode:</cmd>
+          <cmd>To stop Cloudberry Database in fast mode:</cmd>
           <stepxmp>
             <codeblock>$ gpstop -M fast</codeblock>
           </stepxmp>
-          <stepresult>By default, you are not allowed to shut down Greenplum Database if there are
+          <stepresult>By default, you are not allowed to shut down Cloudberry Database if there are
             any client connections to the database. Use the <codeph>-M fast</codeph> option to roll
             back all in progress transactions and terminate any connections before shutting
             down.</stepresult>
@@ -158,7 +158,7 @@ $ gpstart</codeblock>
   <topic id="topic13">
     <title>Stopping Client Processes</title>
     <body>
-      <p>Greenplum Database launches a new backend process for each client connection. A Greenplum Database user with <codeph>SUPERUSER</codeph> privileges can cancel and terminate these client backend processes.</p>
+      <p>Cloudberry Database launches a new backend process for each client connection. A Cloudberry Database user with <codeph>SUPERUSER</codeph> privileges can cancel and terminate these client backend processes.</p>
       <p>Canceling a backend process with the <codeph>pg_cancel_backend()</codeph> function ends a specific queued or active client query. Terminating a backend process with the <codeph>pg_terminate_backend()</codeph> function terminates a client connection to a database.</p>
       <p>The <codeph>pg_cancel_backend()</codeph> function has two signatures:<ul>
         <li><codeph>pg_cancel_backend( pid int4 )</codeph></li>
@@ -168,8 +168,8 @@ $ gpstart</codeblock>
         <li><codeph>pg_terminate_backend( pid int4 )</codeph></li>
         <li><codeph>pg_terminate_backend( pid int4, msg text )</codeph></li>
       </ul></p>
-      <p>If you provide a <codeph>msg</codeph>, Greenplum Database includes the text in the cancel
-        message returned to the client. <codeph>msg</codeph> is limited to 128 bytes; Greenplum
+      <p>If you provide a <codeph>msg</codeph>, Cloudberry Database includes the text in the cancel
+        message returned to the client. <codeph>msg</codeph> is limited to 128 bytes; Cloudberry
         Database truncates anything longer.</p>
       <p>The <codeph>pg_cancel_backend()</codeph> and <codeph>pg_terminate_backend()</codeph>
         functions return <codeph>true</codeph> if successful, and <codeph>false</codeph>

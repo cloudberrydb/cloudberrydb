@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CTranslatorDXLToPlStmt.cpp
@@ -439,8 +439,12 @@ CTranslatorDXLToPlStmt::TranslateDXLOperatorToPlan(
 									 ctxt_translation_prev_siblings);
 			break;
 		}
-		// GPDB_12_MERGE_FIXME: stop generating AssertOp from ORCA
-		//			case EdxlopPhysicalAssert: { plan = TranslateDXLAssert(dxlnode, output_context, ctxt_translation_prev_siblings); break;}
+		case EdxlopPhysicalAssert:
+		{
+			plan = TranslateDXLAssert(dxlnode, output_context,
+									  ctxt_translation_prev_siblings);
+			break;
+		}
 		case EdxlopPhysicalCTEProducer:
 		{
 			plan = TranslateDXLCTEProducerToSharedScan(
@@ -656,7 +660,7 @@ CTranslatorDXLToPlStmt::SetIndexVarAttnoWalker(
 	}
 
 	return gpdb::WalkExpressionTree(
-		node, (BOOL(*)()) CTranslatorDXLToPlStmt::SetIndexVarAttnoWalker,
+		node, (BOOL(*)(Node *, void *)) CTranslatorDXLToPlStmt::SetIndexVarAttnoWalker,
 		ctxt_index_var_attno_walker);
 }
 
@@ -1398,6 +1402,71 @@ CTranslatorDXLToPlStmt::TranslateDXLHashJoin(
 
 	GPOS_ASSERT(NIL != hashjoin->hashclauses);
 
+	CDXLTranslationContextArray *hash_child_contexts =
+		GPOS_NEW(m_mp) CDXLTranslationContextArray(m_mp);
+	hash_child_contexts->Append(&left_dxl_translate_ctxt);
+	left_dxl_translate_ctxt.MergeTcxt(&right_dxl_translate_ctxt);
+	hash_child_contexts->Append(&right_dxl_translate_ctxt);
+
+	List* hashclause_list = NIL;
+
+	for (ULONG ul = 0; ul < arity; ul++)
+	{
+		CDXLNode *hash_cond_dxlnode = (*hash_cond_list_dxlnode)[ul];
+
+		if (EdxlopScalarBoolExpr ==
+			hash_cond_dxlnode->GetOperator()->GetDXLOperator())
+		{
+			// clause is a NOT DISTINCT FROM check -> extract the distinct comparison node
+			GPOS_ASSERT(Edxlnot == CDXLScalarBoolExpr::Cast(
+										hash_cond_dxlnode->GetOperator())
+										->GetDxlBoolTypeStr());
+			hash_cond_dxlnode = (*hash_cond_dxlnode)[0];
+			GPOS_ASSERT(EdxlopScalarDistinct ==
+						hash_cond_dxlnode->GetOperator()->GetDXLOperator());
+		}
+
+		CMappingColIdVarPlStmt hj_colid_var_mapping =
+				CMappingColIdVarPlStmt(m_mp, nullptr, hash_child_contexts,
+									   output_context, m_dxl_to_plstmt_context);
+
+		// translate the DXL scalar or scalar distinct comparison into an equality comparison
+		// to store in the hashclause_list
+		Expr *hash_clause_expr =
+			(Expr *)
+				m_translator_dxl_to_scalar->TranslateDXLToScalar(
+					hash_cond_dxlnode, &hj_colid_var_mapping);
+		hashclause_list =
+			gpdb::LAppend(hashclause_list, hash_clause_expr);
+
+	}
+
+	List	   *hashoperators = NIL;
+	List	   *hashcollations = NIL;
+	List	   *inner_hashkeys = NIL;
+	List	   *outer_hashkeys = NIL;
+	ListCell   *lc;
+
+	Hash *hash = (Hash *) right_plan;
+
+	ForEach(lc, hashclause_list)
+	{
+		Node	   *clause = (Node *) lfirst(lc);
+		GPOS_ASSERT((IsA(clause, OpExpr) || IsA(clause, DistinctExpr)));
+		OpExpr	   *hclause = (OpExpr *) clause;
+
+		hashoperators = gpdb::LAppendOid(hashoperators, hclause->opno);
+		hashcollations = gpdb::LAppendOid(hashcollations, hclause->inputcollid);
+
+		outer_hashkeys = gpdb::LAppend(outer_hashkeys, linitial(hclause->args));
+		inner_hashkeys = gpdb::LAppend(inner_hashkeys, lsecond(hclause->args));
+	}
+
+	hashjoin->hashoperators = hashoperators;
+	hashjoin->hashcollations = hashcollations;
+	hashjoin->hashkeys = outer_hashkeys;
+	hash->hashkeys = inner_hashkeys;
+
 	plan->lefttree = left_plan;
 	plan->righttree = right_plan;
 	SetParamIds(plan);
@@ -1405,6 +1474,7 @@ CTranslatorDXLToPlStmt::TranslateDXLHashJoin(
 	// cleanup
 	translation_context_arr_with_siblings->Release();
 	child_contexts->Release();
+	hash_child_contexts->Release();
 
 	return (Plan *) hashjoin;
 }
@@ -2553,16 +2623,35 @@ CTranslatorDXLToPlStmt::TranslateDXLAgg(
 							   child_contexts,	// pdxltrctxRight,
 							   &plan->targetlist, &plan->qual, output_context);
 
+	/*
+	 * GPDB_14_MERGE_FIXME: TODO Deduplicate aggregates and transition functions in orca
+	 */
 	// Set the aggsplit for the agg node
 	ListCell *lc;
-	foreach (lc, plan->targetlist)
+	int idx = 0;
+	ForEach (lc, plan->targetlist)
 	{
 		TargetEntry *te = (TargetEntry *) lfirst(lc);
 		if (IsA(te->expr, Aggref))
 		{
 			Aggref *aggref = (Aggref *) te->expr;
-			agg->aggsplit = aggref->aggsplit;
-			break;
+			// initialize the aggsplit once
+			if (idx == 0)
+				agg->aggsplit = aggref->aggsplit;
+			aggref->aggno = idx;
+			aggref->aggtransno = idx;
+			idx++;
+		}
+	}
+	ForEach (lc, plan->qual)
+	{
+		Expr *expr = (Expr *) lfirst(lc);
+		if (IsA(expr, Aggref))
+		{
+			Aggref *aggref = (Aggref *) expr;
+			aggref->aggno = idx;
+			aggref->aggtransno = idx;
+			idx++;
 		}
 	}
 
@@ -3897,8 +3986,6 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	RangeTblEntry *rte = TranslateDXLTblDescrToRangeTblEntry(
 		table_descr, index, &base_table_context);
 	GPOS_ASSERT(nullptr != rte);
-	// GPDB_12_MERGE_FIXME: Make this an parameter in TranslateDXLTblDescrToRangeTblEntry
-	rte->rellockmode = RowExclusiveLock;
 	rte->requiredPerms |= acl_mode;
 	m_dxl_to_plstmt_context->AddRTE(rte, true);
 
@@ -3964,22 +4051,41 @@ CTranslatorDXLToPlStmt::TranslateDXLDml(
 	result_plan->targetlist = target_list_with_dropped_cols;
 	SetParamIds(result_plan);
 
+	if (m_cmd_type == CMD_UPDATE)
+	{
+		Result *final_result = MakeNode(Result);
+		Plan *final_result_plan = &(final_result->plan);
+
+		final_result_plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
+		final_result_plan->lefttree = result_plan;
+		final_result_plan->targetlist = CreateDirectCopyTargetList(target_list_with_dropped_cols);
+		final_result->resconstantqual =
+			(Node *) gpdb::LAppend(NIL, gpdb::MakeBoolConst(true /*value*/, false /*isnull*/));
+
+		SetParamIds(final_result_plan);
+
+		result = final_result;
+		result_plan = final_result_plan;
+	}
+
 	child_plan = (Plan *) result;
 
 	dml->operation = m_cmd_type;
 	dml->canSetTag = true;	// FIXME
 	dml->nominalRelation = index;
 	dml->resultRelations = ListMake1Int(index);
-	dml->resultRelIndex = list_length(m_result_rel_list) - 1;
+	// GPDB_14_MERGE_FIXME: fix split update and missing partColsUpdated
 	dml->rootRelation = md_rel->IsPartitioned() ? index : 0;
-	dml->plans = ListMake1(child_plan);
+	//dml->plans = ListMake1(child_plan);
 
 	dml->fdwPrivLists = ListMake1(NIL);
 
 	// ORCA plans all updates as split updates
 	if (m_cmd_type == CMD_UPDATE)
-		dml->isSplitUpdates = ListMake1Int((int) true);
+		dml->splitUpdate = true;
 
+	plan->lefttree = child_plan;
+	plan->righttree = NULL;
 	plan->targetlist = NIL;
 	plan->plan_node_id = m_dxl_to_plstmt_context->GetNextPlanId();
 
@@ -4319,8 +4425,7 @@ CTranslatorDXLToPlStmt::TranslateDXLTblDescrToRangeTblEntry(
 	rte->relid = oid;
 	rte->checkAsUser = table_descr->GetExecuteAsUserId();
 	rte->requiredPerms |= ACL_NO_RIGHTS;
-	// GPDB_12_MERGE_FIXME: Make this an parameter
-	rte->rellockmode = AccessShareLock;
+	rte->rellockmode = table_descr->LockMode();
 
 	// save oid and range index in translation context
 	base_table_context->SetOID(oid);
@@ -4514,7 +4619,7 @@ List *
 CTranslatorDXLToPlStmt::CreateTargetListWithNullsForDroppedCols(
 	List *target_list, const IMDRelation *md_rel)
 {
-	GPOS_ASSERT(nullptr != target_list);
+	GPOS_ASSERT_FIXME(nullptr != target_list);
 	GPOS_ASSERT(gpdb::ListLength(target_list) <= md_rel->ColumnCount());
 
 	List *result_list = NIL;
@@ -4606,8 +4711,8 @@ CTranslatorDXLToPlStmt::TranslateDXLProjectListToHashTargetList(
 		if (IsA(te_child->expr, Var))
 		{
 			Var *pv = (Var *) te_child->expr;
-			idx_varnoold = pv->varnoold;
-			attno_old = pv->varoattno;
+			idx_varnoold = pv->varnosyn;
+			attno_old = pv->varattnosyn;
 		}
 		else
 		{
@@ -4622,8 +4727,8 @@ CTranslatorDXLToPlStmt::TranslateDXLProjectListToHashTargetList(
 			);
 
 		// set old varno and varattno since makeVar does not set them
-		var->varnoold = idx_varnoold;
-		var->varoattno = attno_old;
+		var->varnosyn = idx_varnoold;
+		var->varattnosyn = attno_old;
 
 		CHAR *resname = CTranslatorUtils::CreateMultiByteCharStringFromWCString(
 			sc_proj_elem_dxlop->GetMdNameAlias()->GetMDName()->GetBuffer());
@@ -5593,8 +5698,8 @@ CTranslatorDXLToPlStmt::TranslateNestLoopParamList(
 		Var *new_var =
 			gpdb::MakeVar(OUTER_VAR, target_entry->resno, old_var->vartype,
 						  old_var->vartypmod, 0 /*varlevelsup*/);
-		new_var->varnoold = old_var->varnoold;
-		new_var->varoattno = old_var->varoattno;
+		new_var->varnosyn = old_var->varnosyn;
+		new_var->varattnosyn = old_var->varattnosyn;
 
 		NestLoopParam *nest_params = MakeNode(NestLoopParam);
 		// right child context contains the param entry for the nest params col refs
@@ -5607,5 +5712,26 @@ CTranslatorDXLToPlStmt::TranslateNestLoopParamList(
 			gpdb::LAppend(nest_params_list, (void *) nest_params);
 	}
 	return nest_params_list;
+}
+
+List *
+CTranslatorDXLToPlStmt::CreateDirectCopyTargetList(List *target_list)
+{
+	List *result_target_list = NIL;
+	ListCell *lc = nullptr;
+
+	ForEach(lc, target_list)
+	{
+		TargetEntry *te = (TargetEntry *) lfirst(lc);
+		Node *expr = (Node *) te->expr;
+
+		Var *var = gpdb::MakeVar(OUTER_VAR, te->resno, gpdb::ExprType(expr),
+				gpdb::ExprTypeMod(expr), 0 /* varlevelsup */);
+		TargetEntry *new_te = gpdb::MakeTargetEntry((Expr *) var, te->resno, te->resname, te->resjunk);
+
+		result_target_list = gpdb::LAppend(result_target_list, new_te);
+	}
+
+	return result_target_list;
 }
 // EOF

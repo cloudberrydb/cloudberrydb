@@ -28,15 +28,20 @@
 
 -- Make sure we see the segment is down before trying to recover...
 4:SELECT gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 4:SELECT role, preferred_role FROM gp_segment_configuration WHERE content = 1;
 
 SELECT count(*) FROM t;
 !\retcode gprecoverseg -a;
 
+!\retcode gpfts -A -D;
+
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
 
 !\retcode gprecoverseg -ar;
+
+!\retcode gpfts -A -D;
 
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();

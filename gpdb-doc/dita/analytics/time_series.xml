@@ -4,10 +4,10 @@
   <title>Time Series</title>
   <body>
      <p>This section describes the Time Series capabilities available
-       with Greenplum Database.</p>
+       with Cloudberry Database.</p>
 
      
-     <p>The Greenplum Database distribution supports the following procedural
+     <p>The Cloudberry Database distribution supports the following procedural
        languages; refer to the linked language documentation for <ph otherprops="pivotal"> installation
        and </ph> usage instructions:</p>
      <ul>
@@ -18,7 +18,7 @@
        <li><xref href="pl_python.xml" format="dita" >PL/Python</xref></li>
        <li><xref href="pl_r.xml" format="dita">PL/R</xref></li>
      </ul>
-     <p>You can use the following analytics extensions with Greenplum Database; refer
+     <p>You can use the following analytics extensions with Cloudberry Database; refer
        to the linked documentation for installation and usage instructions:</p>
      <ul>
        <li><xref href="madlib.xml" format="dita">MADlib</xref></li>

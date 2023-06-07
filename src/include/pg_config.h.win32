@@ -684,10 +684,10 @@
 #define PACKAGE_BUGREPORT "support@greenplum.com"
 
 /* Define to the full name of this package. */
-#define PACKAGE_NAME "Greenplum Database"
+#define PACKAGE_NAME "Cloudberry Database"
 
 /* Define to the full name and version of this package. */
-#define PACKAGE_STRING "Greenplum Database 7.0.0-alpha"
+#define PACKAGE_STRING "Cloudberry Database 7.0.0-alpha"
 
 /* Define to the version of this package. */
 #define PACKAGE_VERSION "12beta2"

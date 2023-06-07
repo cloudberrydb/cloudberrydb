@@ -3,18 +3,11 @@
  *
  *	file system operations
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/file.c
  */
 
 #include "postgres_fe.h"
-
-#include "access/visibilitymap.h"
-#include "common/file_perm.h"
-#include "pg_upgrade.h"
-#include "storage/bufpage.h"
-#include "storage/checksum.h"
-#include "storage/checksum_impl.h"
 
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -26,11 +19,13 @@
 #include <linux/fs.h>
 #endif
 
+#include "access/visibilitymapdefs.h"
+#include "common/file_perm.h"
+#include "pg_upgrade.h"
+#include "storage/bufpage.h"
+#include "storage/checksum.h"
+#include "storage/checksum_impl.h"
 #include "greenplum/pg_upgrade_greenplum.h"
-
-#ifdef WIN32
-static int	win32_pghardlink(const char *src, const char *dst);
-#endif
 
 
 /*
@@ -157,7 +152,7 @@ linkFile(const char *src, const char *dst,
 {
 	report_progress(NULL, FILE_COPY, "Link \"%s\" to \"%s\"", src, dst);
 
-	if (pg_link_file(src, dst) < 0)
+	if (link(src, dst) < 0)
 		pg_fatal("error while creating link for relation \"%s.%s\" (\"%s\" to \"%s\"): %s\n",
 				 schemaName, relName, src, dst, strerror(errno));
 }
@@ -375,29 +370,10 @@ check_hard_link(void)
 	snprintf(new_link_file, sizeof(new_link_file), "%s/PG_VERSION.linktest", new_cluster.pgdata);
 	unlink(new_link_file);		/* might fail */
 
-	if (pg_link_file(existing_file, new_link_file) < 0)
+	if (link(existing_file, new_link_file) < 0)
 		pg_fatal("could not create hard link between old and new data directories: %s\n"
 				 "In link mode the old and new data directories must be on the same file system.\n",
 				 strerror(errno));
 
 	unlink(new_link_file);
 }
-
-#ifdef WIN32
-/* implementation of pg_link_file() on Windows */
-static int
-win32_pghardlink(const char *src, const char *dst)
-{
-	/*
-	 * CreateHardLinkA returns zero for failure
-	 * http://msdn.microsoft.com/en-us/library/aa363860(VS.85).aspx
-	 */
-	if (CreateHardLinkA(dst, src, NULL) == 0)
-	{
-		_dosmaperr(GetLastError());
-		return -1;
-	}
-	else
-		return 0;
-}
-#endif

@@ -36,13 +36,13 @@
         </section>
         <section id="section3">
             <title>Description</title>
-            <p><codeph>CREATE ROLE</codeph> adds a new role to a Greenplum Database system. A role
+            <p><codeph>CREATE ROLE</codeph> adds a new role to a Cloudberry Database system. A role
                 is an entity that can own database objects and have database privileges. A role can
                 be considered a user, a group, or both depending on how it is used. You must have
                     <codeph>CREATEROLE</codeph> privilege or be a database superuser to use this
                 command. </p>
             <p>Note that roles are defined at the system-level and are valid for all databases in
-                your Greenplum Database system.</p>
+                your Cloudberry Database system.</p>
         </section>
         <section id="section4">
             <title>Parameters</title>
@@ -101,7 +101,7 @@
                     <pd>Use the <codeph>GRANT...ON PROTOCOL</codeph> command to allow users to
                         create and use external tables with a custom protocol type, including the
                             <codeph>s3</codeph> and <codeph>pxf</codeph> protocols included with
-                        Greenplum Database.</pd>
+                        Cloudberry Database.</pd>
                 </plentry>
                 <plentry>
                     <pt>INHERIT</pt>
@@ -234,7 +234,7 @@
                             <varname>deny_point</varname>
                         parameters:<codeblock>DENY BETWEEN <varname>deny_point</varname> AND <varname>deny_point</varname></codeblock></pd>
                     <pd>For more information and examples about time-based constraints, see
-                        "Managing Roles and Privileges" in the <i>Greenplum Database Administrator
+                        "Managing Roles and Privileges" in the <i>Cloudberry Database Administrator
                             Guide</i>.</pd>
                 </plentry>
             </parml>
@@ -260,7 +260,7 @@
                     GROUP</codeph>, and <codeph>RESOURCE QUEUE</codeph>. The attributes must be set
                 on each user-level role.</p>
             <p>The <codeph>INHERIT</codeph> attribute is the default for reasons of backwards
-                compatibility. In prior releases of Greenplum Database, users always had access to
+                compatibility. In prior releases of Cloudberry Database, users always had access to
                 all privileges of groups they were members of. However, <codeph>NOINHERIT</codeph>
                 provides a closer match to the semantics specified in the SQL standard.</p>
             <p>Be careful with the <codeph>CREATEROLE</codeph> privilege. There is no concept of
@@ -305,14 +305,14 @@
             <title>Compatibility</title>
             <p>The SQL standard defines the concepts of users and roles, but it regards them as
                 distinct concepts and leaves all commands defining users to be specified by the
-                database implementation. In Greenplum Database users and roles are unified into a
+                database implementation. In Cloudberry Database users and roles are unified into a
                 single type of object. Roles therefore have many more optional attributes than they
                 do in the standard. </p>
             <p><codeph>CREATE ROLE</codeph> is in the SQL standard, but the standard only requires
                 the syntax:</p>
             <codeblock>CREATE ROLE <varname>name</varname> [WITH ADMIN <varname>rolename</varname>]</codeblock>
             <p>Allowing multiple initial administrators, and all the other options of <codeph>CREATE
-                    ROLE</codeph>, are Greenplum Database extensions.</p>
+                    ROLE</codeph>, are Cloudberry Database extensions.</p>
             <p>The behavior specified by the SQL standard is most closely approximated by giving
                 users the <codeph>NOINHERIT</codeph> attribute, while roles are given the
                     <codeph>INHERIT</codeph> attribute.</p>

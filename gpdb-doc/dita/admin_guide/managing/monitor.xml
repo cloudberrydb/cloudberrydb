@@ -2,11 +2,11 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="kj138244">Monitoring a Greenplum System</title>
-  <shortdesc>You can monitor a Greenplum Database system using a variety of tools included with the
+  <title id="kj138244">Monitoring a Cloudberry System</title>
+  <shortdesc>You can monitor a Cloudberry Database system using a variety of tools included with the
     system or available as add-ons.</shortdesc>
   <body>
-    <p>Observing the Greenplum Database system day-to-day performance helps administrators
+    <p>Observing the Cloudberry Database system day-to-day performance helps administrators
       understand the system behavior, plan workflow, and troubleshoot problems. This chapter
       discusses tools for monitoring database performance and activity.</p>
     <p>Also, be sure to review <xref href="../monitoring/monitoring.dita#topic_kmz_lbg_rp"/> for
@@ -15,22 +15,22 @@
   <topic id="topic2" xml:lang="en">
     <title id="kj157177">Monitoring Database Activity and Performance</title>
     <body>
-      <p>Tanzu Greenplum Command Center, an optional web-based interface, provides cluster status
+      <p>Tanzu Cloudberry Command Center, an optional web-based interface, provides cluster status
         information, graphical administrative tools, real-time query monitoring, and historical
-        cluster and query data. Download the Greenplum Command Center package from <xref
+        cluster and query data. Download the Cloudberry Command Center package from <xref
           href="https://network.pivotal.io/products/pivotal-gpdb" scope="external" format="html"
           >VMware Tanzu Network</xref> and view the documentation at the <xref
-          href="http://gpcc.docs.pivotal.io" scope="external" format="html">Greenplum Command Center
+          href="http://gpcc.docs.pivotal.io" scope="external" format="html">Cloudberry Command Center
           Documentation</xref> web site. </p>
     </body>
   </topic>
   <topic id="topic3" xml:lang="en">
     <title id="kj155080">Monitoring System State</title>
     <body>
-      <p>As a Greenplum Database administrator, you must monitor the system for problem events such
+      <p>As a Cloudberry Database administrator, you must monitor the system for problem events such
         as a segment going down or running out of disk space on a segment host. The following topics
-        describe how to monitor the health of a Greenplum Database system and examine certain state
-        information for a Greenplum Database system.</p>
+        describe how to monitor the health of a Cloudberry Database system and examine certain state
+        information for a Cloudberry Database system.</p>
       <ul>
         <li id="kj167000">
           <xref href="#topic12" type="topic" format="dita"/>
@@ -56,23 +56,23 @@
     <topic id="topic12" xml:lang="en">
       <title id="kj169037">Checking System State</title>
       <body>
-        <p>A Greenplum Database system is comprised of multiple PostgreSQL instances (the master and
-          segments) spanning multiple machines. To monitor a Greenplum Database system, you need to
+        <p>A Cloudberry Database system is comprised of multiple PostgreSQL instances (the master and
+          segments) spanning multiple machines. To monitor a Cloudberry Database system, you need to
           know information about the system as a whole, as well as status information of the
           individual instances. The <codeph>gpstate</codeph> utility provides status information
-          about a Greenplum Database system. </p>
+          about a Cloudberry Database system. </p>
       </body>
       <topic id="topic13" xml:lang="en">
         <title>Viewing Master and Segment Status and Configuration </title>
         <body>
           <p>The default <codeph>gpstate</codeph> action is to check segment instances and show a
             brief status of the valid and failed segments. For example, to see a quick status of
-            your Greenplum Database system: </p>
+            your Cloudberry Database system: </p>
           <p>
             <codeblock>$ gpstate
 </codeblock>
           </p>
-          <p>To see more detailed information about your Greenplum Database array configuration, use
+          <p>To see more detailed information about your Cloudberry Database array configuration, use
               <codeph>gpstate</codeph> with the <codeph>-s</codeph> option:</p>
           <p>
             <codeblock>$ gpstate -s
@@ -124,10 +124,10 @@
         <title>Checking Sizing of Distributed Databases and Tables</title>
         <body>
           <p>The <codeph>gp_toolkit</codeph> administrative schema contains several views that you
-            can use to determine the disk space usage for a distributed Greenplum Database database,
+            can use to determine the disk space usage for a distributed Cloudberry Database database,
             schema, table, or index. </p>
           <p>For a list of the available sizing views for checking database object sizes and disk
-            space, see the <i>Greenplum Database Reference Guide</i>.</p>
+            space, see the <i>Cloudberry Database Reference Guide</i>.</p>
         </body>
         <topic id="topic17" xml:lang="en">
           <title id="kj155338">Viewing Disk Space Usage for a Database </title>
@@ -155,7 +155,7 @@
    WHERE sotd.sotdoid=pg_class.oid ORDER BY relname;
 </codeblock>
             </p>
-            <p>For a list of the available table sizing views, see the <i>Greenplum Database
+            <p>For a list of the available table sizing views, see the <i>Cloudberry Database
                 Reference Guide</i>.</p>
           </body>
         </topic>
@@ -183,7 +183,7 @@
     <topic id="topic20" xml:lang="en">
       <title id="kj155117">Checking for Data Distribution Skew</title>
       <body>
-        <p>All tables in Greenplum Database are distributed, meaning their data is divided across
+        <p>All tables in Cloudberry Database are distributed, meaning their data is divided across
         all of the segments in the system. Unevenly distributed data may diminish query processing
         performance. A table's distribution policy, set at table creation time, determines how the
         table's rows are distributed. For information about choosing the table distribution policy,
@@ -201,7 +201,7 @@
         </ul>
         <p>The <i>gp_toolkit</i> administrative schema also contains a number of views for checking
           data distribution skew on a table. For information about how to check for uneven data
-          distribution, see the <cite>Greenplum Database Reference Guide</cite>.</p>
+          distribution, see the <cite>Cloudberry Database Reference Guide</cite>.</p>
       </body>
       <topic id="topic21" xml:lang="en">
         <title id="kj155907">Viewing a Table's Distribution Key</title>
@@ -221,7 +221,7 @@ Has OIDs: no
 Distributed by: (sale_id)
 </codeblock>
           </p>
-        <p>When you create a <i>replicated</i> table, Greenplum Database stores all rows in the
+        <p>When you create a <i>replicated</i> table, Cloudberry Database stores all rows in the
           table on every segment. Replicated tables have no distribution key. Where the
             <codeph>\d+</codeph> meta-command reports the distribution key for a normally
           distributed table, it shows <codeph>Distributed Replicated</codeph> for a replicated
@@ -240,7 +240,7 @@ Distributed by: (sale_id)
           </p>
           <p>A table is considered to have a balanced distribution if all segments have roughly the
             same number of rows.</p>
-        <note>If you run this query on a replicated table, it fails because Greenplum Database does
+        <note>If you run this query on a replicated table, it fails because Cloudberry Database does
           not permit user queries to reference the system column <codeph>gp_segment_id</codeph> (or
           the system columns <codeph>ctid</codeph>, <codeph>cmin</codeph>, <codeph>cmax</codeph>,
             <codeph>xmin</codeph>, and <codeph>xmax</codeph>) in replicated tables. Because every
@@ -305,7 +305,7 @@ Distributed by: (sale_id)
     <topic id="topic24" xml:lang="en">
       <title id="kj164952">Viewing Metadata Information about Database Objects</title>
       <body>
-        <p>Greenplum Database tracks various metadata information in its system catalogs about the
+        <p>Cloudberry Database tracks various metadata information in its system catalogs about the
           objects stored in a database, such as tables, views, indexes and so on, as well as global
           objects such as roles and tablespaces. </p>
       </body>
@@ -350,7 +350,7 @@ Distributed by: (sale_id)
       <body>
         <p>You can create and use the <i>session_level_memory_consumption</i> view that provides
           information about the current memory utilization for sessions that are running queries on
-          Greenplum Database. The view contains session information and information such as the
+          Cloudberry Database. The view contains session information and information such as the
           database that the session is connected to, the query that the session is currently
           running, and memory consumed by the session processes. </p>
         <ul id="ul_hwv_bbb_dq">
@@ -365,7 +365,7 @@ Distributed by: (sale_id)
       <topic id="topic_nby_j1b_dq">
         <title>Creating the session_level_memory_consumption View</title>
         <body>
-        <p>To create the <i>session_state.session_level_memory_consumption</i> view in a Greenplum
+        <p>To create the <i>session_state.session_level_memory_consumption</i> view in a Cloudberry
           Database, run the script <codeph>CREATE EXTENSION gp_internal_tools;</codeph> once for
           each database. For example, to install the view in the database <codeph>testdb</codeph>,
           use this
@@ -378,12 +378,12 @@ Distributed by: (sale_id)
         <p>The <i>session_state.session_level_memory_consumption</i> view provides information about
           memory consumption and idle time for sessions that are running SQL queries. </p>
           <p>When resource queue-based resource management is active, the column
-            <codeph>is_runaway</codeph> indicates whether Greenplum Database considers the session a
+            <codeph>is_runaway</codeph> indicates whether Cloudberry Database considers the session a
           runaway session based on the vmem memory consumption of the session's queries. Under the
-          resource queue-based resource management scheme, Greenplum Database considers the session
-          a runaway when the queries consume an excessive amount of memory. The Greenplum Database
+          resource queue-based resource management scheme, Cloudberry Database considers the session
+          a runaway when the queries consume an excessive amount of memory. The Cloudberry Database
           server configuration parameter <codeph>runaway_detector_activation_percent</codeph>
-          governs the conditions under which Greenplum Database considers a session a runaway
+          governs the conditions under which Cloudberry Database considers a session a runaway
           session. </p>
           <p>The <codeph>is_runaway</codeph>, <codeph>runaway_vmem_mb</codeph>, and
             <codeph>runaway_command_cnt</codeph> columns are not applicable when resource
@@ -523,11 +523,11 @@ Distributed by: (sale_id)
     <topic id="topic27" xml:lang="en">
       <title id="kj185498">Viewing Query Workfile Usage Information</title>
       <body>
-        <p>The Greenplum Database administrative schema <i>gp_toolkit</i> contains views that
-          display information about Greenplum Database workfiles. Greenplum Database creates
+        <p>The Cloudberry Database administrative schema <i>gp_toolkit</i> contains views that
+          display information about Cloudberry Database workfiles. Cloudberry Database creates
           workfiles on disk if it does not have sufficient memory to run the query in memory.
           This information can be used for troubleshooting and tuning queries. The information in
-          the views can also be used to specify the values for the Greenplum Database configuration
+          the views can also be used to specify the values for the Cloudberry Database configuration
           parameters <codeph>gp_workfile_limit_per_query</codeph> and
             <codeph>gp_workfile_limit_per_segment</codeph>. </p>
         <p>These are the views in the schema <i>gp_toolkit</i>:</p>
@@ -547,7 +547,7 @@ Distributed by: (sale_id)
   <topic id="topic28" xml:lang="en">
     <title id="kj166926">Viewing the Database Server Log Files</title>
     <body>
-      <p>Every database instance in Greenplum Database (master and segments) runs a PostgreSQL
+      <p>Every database instance in Cloudberry Database (master and segments) runs a PostgreSQL
         database server with its own server log file. Log files are created in the
           <codeph>log</codeph> directory of the master and each segment data directory.</p>
     </body>
@@ -562,7 +562,7 @@ Distributed by: (sale_id)
             (<codeph>gp_command_count</codeph>).</p>
         <p>The following fields are written to the log:</p>
         <table id="kj165707">
-          <title>Greenplum Database Server Log Format</title>
+          <title>Cloudberry Database Server Log Format</title>
           <tgroup cols="4">
             <colspec colnum="1" colname="col1" colwidth="28*"/>
             <colspec colnum="2" colname="col2" colwidth="90*"/>
@@ -773,11 +773,11 @@ Distributed by: (sale_id)
       </body>
     </topic>
     <topic id="topic30" xml:lang="en">
-      <title>Searching the Greenplum Server Log Files</title>
+      <title>Searching the Cloudberry Server Log Files</title>
       <body>
-        <p>Greenplum Database provides a utility called <codeph>gplogfilter</codeph> can search
-          through a Greenplum Database log file for entries matching the specified criteria. By
-          default, this utility searches through the Greenplum Database master log file in the
+        <p>Cloudberry Database provides a utility called <codeph>gplogfilter</codeph> can search
+          through a Cloudberry Database log file for entries matching the specified criteria. By
+          default, this utility searches through the Cloudberry Database master log file in the
           default logging location. For example, to display the last three lines of each of the log
           files under the master directory:</p>
         <p>
@@ -799,7 +799,7 @@ Distributed by: (sale_id)
   <topic id="topic31" xml:lang="en">
     <title id="kj168900">Using gp_toolkit</title>
     <body>
-      <p>Use the Greenplum Database administrative schema <i>gp_toolkit</i> to query the system
+      <p>Use the Cloudberry Database administrative schema <i>gp_toolkit</i> to query the system
         catalogs, log files, and operating environment for system status information. The
           <codeph>gp_toolkit</codeph> schema contains several views you can access using SQL
         commands. The <i>gp_toolkit</i> schema is accessible to all database users. Some objects
@@ -807,7 +807,7 @@ Distributed by: (sale_id)
           <i>gp_toolkit</i> schema to your schema search path:</p>
       <codeblock>=&gt; ALTER ROLE myrole SET search_path TO myschema,gp_toolkit;</codeblock>
       <p>For a description of the available administrative schema views and their usages, see the
-          <cite>Greenplum Database Reference Guide</cite>.</p>
+          <cite>Cloudberry Database Reference Guide</cite>.</p>
     </body>
   </topic>
     <topic id="topic_pyh_sqg_kp">
@@ -1826,7 +1826,7 @@ Distributed by: (sale_id)
               </row>
               <row>
                 <entry namest="col1" nameend="col3"><b>Class 58</b> — System Error (errors external
-                  to Greenplum Database )</entry>
+                  to Cloudberry Database )</entry>
               </row>
               <row>
                 <entry>58030</entry>

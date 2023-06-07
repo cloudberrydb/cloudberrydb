@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -410,12 +410,12 @@ CTranslatorRelcacheToDXL::RetrieveRel(CMemoryPool *mp, CMDAccessor *md_accessor,
 	{
 		// FIXME_GPDB_12_MERGE_FIXME: misestimate (most likely underestimate) the number of leaf partitions
 		// ORCA doesn't really care, except to determine whether to sort before inserting
-		num_leaf_partitions = rel->rd_partdesc->nparts;
+		num_leaf_partitions = RelationGetPartitionDesc(rel.get(), true)->nparts;
 		partition_oids = GPOS_NEW(mp) IMdIdArray(mp);
 
-		for (int i = 0; i < rel->rd_partdesc->nparts; ++i)
+		for (int i = 0; i < RelationGetPartitionDesc(rel.get(), true)->nparts; ++i)
 		{
-			Oid oid = rel->rd_partdesc->oids[i];
+			Oid oid = RelationGetPartitionDesc(rel.get(), true)->oids[i];
 			partition_oids->Append(GPOS_NEW(mp) CMDIdGPDB(oid));
 			if (gpdb::RelIsPartitioned(oid))
 			{
@@ -1097,7 +1097,7 @@ CTranslatorRelcacheToDXL::RetrieveType(CMemoryPool *mp, IMDId *mdid)
 		GPOS_NEW(mp) CMDIdGPDB(gpdb::GetAggregate("sum", oid_type));
 
 	// count aggregate is the same for all types
-	CMDIdGPDB *mdid_count = GPOS_NEW(mp) CMDIdGPDB(COUNT_ANY_OID);
+	CMDIdGPDB *mdid_count = GPOS_NEW(mp) CMDIdGPDB(F_COUNT_ANY);
 
 	// check if type is composite
 	CMDIdGPDB *mdid_type_relid = nullptr;
@@ -1664,10 +1664,10 @@ CTranslatorRelcacheToDXL::RetrieveRelStats(CMemoryPool *mp, IMDId *mdid)
 
 	/*
 	 * relation_empty should be set to true only if the total row
-	 * count of the partition table is 0.
+	 * count of the partition table is -1.
 	 */
 	BOOL relation_empty = false;
-	if (num_rows == 0.0)
+	if (num_rows == -1.0)
 	{
 		relation_empty = true;
 	}
@@ -2974,13 +2974,17 @@ CTranslatorRelcacheToDXL::RetrieveStorageTypeForPartitionedTable(Relation rel)
 {
 	IMDRelation::Erelstoragetype rel_storage_type =
 		IMDRelation::ErelstorageSentinel;
-	if (rel->rd_partdesc->nparts == 0)
+	// FIXME: RelationGetPartitionDesc() may call the internal function that
+	// causes gporca generate another query plan. The problem is that the CWorkerPoolManager
+	// holds a static worker pointer, executing gporca nestly is not supported now.
+	// See CWorkerPoolManager::RegisterWorker()
+	if (RelationGetPartitionDesc(rel, true)->nparts == 0)
 	{
 		return IMDRelation::ErelstorageHeap;
 	}
-	for (int i = 0; i < rel->rd_partdesc->nparts; ++i)
+	for (int i = 0; i < RelationGetPartitionDesc(rel, true)->nparts; ++i)
 	{
-		Oid oid = rel->rd_partdesc->oids[i];
+		Oid oid = RelationGetPartitionDesc(rel, true)->oids[i];
 		gpdb::RelationWrapper child_rel = gpdb::GetRelation(oid);
 		IMDRelation::Erelstoragetype child_storage =
 			RetrieveRelStorageType(child_rel.get());

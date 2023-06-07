@@ -4,7 +4,7 @@
 <topic id="topic1" xml:lang="en">
   <title id="ix146103">Inserting, Updating, and Deleting Data</title>
   <shortdesc>This section provides information about manipulating data and concurrent access in
-    Greenplum Database.</shortdesc>
+    Cloudberry Database.</shortdesc>
   <body>
     <p>This topic includes the following subtopics:<ul id="ul_ahw_hty_sp">
         <li><xref href="#topic2" format="dita"/></li>
@@ -18,25 +18,25 @@
       </ul></p>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="ix140249">About Concurrency Control in Greenplum Database</title>
+    <title id="ix140249">About Concurrency Control in Cloudberry Database</title>
     <body>
-      <p>Greenplum Database and PostgreSQL do not use locks for concurrency control. They maintain
+      <p>Cloudberry Database and PostgreSQL do not use locks for concurrency control. They maintain
         data consistency using a multiversion model, Multiversion Concurrency Control (MVCC). MVCC
         achieves transaction isolation for each database session, and each query transaction sees a
         snapshot of data. This ensures the transaction sees consistent data that is not affected by
         other concurrent transactions. </p>
       <p>Because MVCC does not use explicit locks for concurrency control, lock contention is
-        minimized and Greenplum Database maintains reasonable performance in multiuser environments.
+        minimized and Cloudberry Database maintains reasonable performance in multiuser environments.
         Locks acquired for querying (reading) data do not conflict with locks acquired for writing
         data.</p>
-      <p>Greenplum Database provides multiple lock modes to control concurrent access to data in
-        tables. Most Greenplum Database SQL commands automatically acquire the appropriate locks to
+      <p>Cloudberry Database provides multiple lock modes to control concurrent access to data in
+        tables. Most Cloudberry Database SQL commands automatically acquire the appropriate locks to
         ensure that referenced tables are not dropped or modified in incompatible ways while a
         command runs. For applications that cannot adapt easily to MVCC behavior, you can use
         the <codeph>LOCK</codeph> command to acquire explicit locks. However, proper use of MVCC
         generally provides better performance.</p>
       <table id="ix140861">
-        <title>Lock Modes in Greenplum Database</title>
+        <title>Lock Modes in Cloudberry Database</title>
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="2*"/>
           <colspec colnum="2" colname="col2" colwidth="3*"/>
@@ -109,7 +109,7 @@
           </tbody>
         </tgroup>
       </table>
-      <note id="lock_note">By default, the Global Deadlock Detector is disabled, and Greenplum
+      <note id="lock_note">By default, the Global Deadlock Detector is disabled, and Cloudberry
         Database acquires the more restrictive <codeph>EXCLUSIVE</codeph> lock (rather than
           <codeph>ROW EXCLUSIVE</codeph> in PostgreSQL) for <codeph>UPDATE</codeph>,
           <codeph>DELETE</codeph>, and <codeph>SELECT</codeph> queries with a locking clause
@@ -162,9 +162,9 @@
         These load mechanisms are more efficient than <codeph>INSERT</codeph> for inserting large
         quantities of rows. See <xref href="load/topics/g-loading-and-unloading-data.xml#topic1"/>
         for more information about bulk data loading.</p>
-      <p>The storage model of append-optimized tables is optimized for bulk data loading. Greenplum
+      <p>The storage model of append-optimized tables is optimized for bulk data loading. Cloudberry
         does not recommend single row <codeph>INSERT</codeph> statements for append-optimized
-        tables. For append-optimized tables, Greenplum Database supports a maximum of 127 concurrent
+        tables. For append-optimized tables, Cloudberry Database supports a maximum of 127 concurrent
           <codeph>INSERT</codeph> transactions into a single append-optimized table.</p>
     </body>
   </topic>
@@ -186,13 +186,13 @@
         <codeblock>UPDATE products SET price = 10 WHERE price = 5;
 </codeblock>
       </p>
-      <p>Using <codeph>UPDATE</codeph> in Greenplum Database has the following restrictions:</p>
+      <p>Using <codeph>UPDATE</codeph> in Cloudberry Database has the following restrictions:</p>
       <ul>
-        <li id="ix155050">While GPORCA supports updates to Greenplum distribution key columns, the
+        <li id="ix155050">While GPORCA supports updates to Cloudberry distribution key columns, the
           Postgres Planner does not.</li>
         <li id="ix142137">If mirrors are enabled, you cannot use <codeph>STABLE</codeph> or
             <codeph>VOLATILE</codeph> functions in an <codeph>UPDATE</codeph> statement.</li>
-        <li id="ix155339">Greenplum Database partitioning columns cannot be updated.</li>
+        <li id="ix155339">Cloudberry Database partitioning columns cannot be updated.</li>
       </ul>
     </body>
   </topic>
@@ -213,7 +213,7 @@
         <codeblock>DELETE FROM products; 
 </codeblock>
       </p>
-      <p>Using <codeph>DELETE</codeph> in Greenplum Database has similar restrictions to using
+      <p>Using <codeph>DELETE</codeph> in Cloudberry Database has similar restrictions to using
           <codeph>UPDATE</codeph>:</p>
       <ul>
         <li id="ix155065">If mirrors are enabled, you cannot use <codeph>STABLE</codeph> or
@@ -241,7 +241,7 @@
     <body>
       <p>Transactions allow you to bundle multiple SQL statements in one all-or-nothing
         operation.</p>
-      <p>The following are the Greenplum Database SQL transaction commands:</p>
+      <p>The following are the Cloudberry Database SQL transaction commands:</p>
       <ul>
         <li id="ix140816"><codeph>BEGIN</codeph> or <codeph>START TRANSACTION </codeph>starts a
           transaction block. </li>
@@ -261,17 +261,17 @@
     <topic id="topic8" xml:lang="en">
       <title id="ix153949">Transaction Isolation Levels</title>
       <body>
-        <p>Greenplum Database accepts the standard SQL transaction levels as follows:</p>
+        <p>Cloudberry Database accepts the standard SQL transaction levels as follows:</p>
         <ul>
           <li id="ix153961"><codeph>READ UNCOMMITTED</codeph> and <codeph>READ COMMITTED</codeph>
             behave like the standard <codeph>READ COMMITTED</codeph>.</li>
           <li><codeph>REPEATABLE READ</codeph> and <codeph>SERIALIZABLE</codeph> behave like
               <codeph>REPEATABLE READ</codeph>.</li>
         </ul>
-        <p>The following information describes the behavior of the Greenplum transaction levels.</p>
+        <p>The following information describes the behavior of the Cloudberry transaction levels.</p>
         <section>
           <title>Read Uncommitted and Read Committed</title>
-          <p>Greenplum Database does not allow any command to see an uncommitted update in another
+          <p>Cloudberry Database does not allow any command to see an uncommitted update in another
             concurrent transaction, so <codeph>READ UNCOMMITTED</codeph> behaves the same as
               <codeph>READ COMMITTED</codeph>. <codeph>READ COMMITTED</codeph> provides fast,
             simple, partial transaction isolation. <codeph>SELECT</codeph>, <codeph>UPDATE</codeph>,
@@ -300,10 +300,10 @@
           <title>Repeatable Read and Serializable</title>
           <p><codeph>SERIALIZABLE</codeph> transaction isolation, as defined by the SQL standard,
             ensures that transactions that run concurrently produce the same results as if they were
-            run one after another. If you specify <codeph>SERIALIZABLE</codeph> Greenplum Database
+            run one after another. If you specify <codeph>SERIALIZABLE</codeph> Cloudberry Database
             falls back to <codeph>REPEATABLE READ</codeph>. <codeph>REPEATABLE READ</codeph>
             transactions prevent dirty reads, non-repeatable reads, and phantom reads without
-            expensive locking, but Greenplum Database does not detect all serializability
+            expensive locking, but Cloudberry Database does not detect all serializability
             interactions that can occur during concurrent transaction execution. Concurrent
             transactions should be examined to identify interactions that are not prevented by
             disallowing concurrent updates of the same data. You can prevent these interactions by
@@ -330,7 +330,7 @@
                 <codeph>REPEATABLE READ</codeph> transaction can commit its changes. </li>
           </ul>
         </section>
-        <p id="ix141505">The default transaction isolation level in Greenplum Database is
+        <p id="ix141505">The default transaction isolation level in Cloudberry Database is
             <codeph>READ COMMITTED</codeph>. To change the isolation level for a transaction, declare
           the isolation level when you <codeph>BEGIN</codeph> the transaction or use the <codeph>SET
             TRANSACTION</codeph> command after the transaction starts.</p>
@@ -340,21 +340,21 @@
   <topic id="topic_gdd" xml:lang="en">
     <title>Global Deadlock Detector</title>
     <body>
-      <p>The Greenplum Database Global Deadlock Detector background worker process collects lock
+      <p>The Cloudberry Database Global Deadlock Detector background worker process collects lock
         information on all segments and uses a directed algorithm to detect the existence of local
-        and global deadlocks. This algorithm allows Greenplum Database to relax concurrent update
-        and delete restrictions on heap tables. (Greenplum Database still employs table-level
+        and global deadlocks. This algorithm allows Cloudberry Database to relax concurrent update
+        and delete restrictions on heap tables. (Cloudberry Database still employs table-level
         locking on AO/CO tables, restricting concurrent <codeph>UPDATE</codeph>,
           <codeph>DELETE</codeph>, and <codeph>SELECT...FOR
           <varname>lock_strength</varname></codeph> operations.) </p>
-      <p>By default, the Global Deadlock Detector is disabled and Greenplum Database runs the
+      <p>By default, the Global Deadlock Detector is disabled and Cloudberry Database runs the
         concurrent <codeph>UPDATE</codeph> and <codeph>DELETE</codeph> operations on a heap table
         serially. You can enable these concurrent updates and have the Global Deadlock Detector
         determine when a deadlock exists by setting the server configuration parameter <xref
           href="../ref_guide/config_params/guc-list.xml#gp_enable_global_deadlock_detector"
             ><codeph>gp_enable_global_deadlock_detector</codeph></xref>. </p>
       <p>When the Global Deadlock Detector is enabled, the background worker process is
-        automatically started on the master host when you start Greenplum Database. You configure
+        automatically started on the master host when you start Cloudberry Database. You configure
         the interval at which the Global Deadlock Detector collects and analyzes lock waiting data
         via the <xref
             href="../ref_guide/config_params/guc-list.xml#gp_global_deadlock_detector_period"
@@ -375,16 +375,16 @@
           <li>Concurrent update transactions on the same row of a hash table that are run by
             the GPORCA optimizer.</li>
         </ul></p>
-      <note>Greenplum Database uses the interval specified in the <xref
+      <note>Cloudberry Database uses the interval specified in the <xref
             href="../ref_guide/config_params/guc-list.xml#deadlock_timeout" type="section"
             >deadlock_timeout</xref> server configuration parameter for local deadlock
         detection. Because the local and global deadlock detection algorithms differ, the cancelled
-        process(es) may differ depending upon which detector (local or global) Greenplum Database
+        process(es) may differ depending upon which detector (local or global) Cloudberry Database
         triggers first.</note>
        <note>If the <xref href="../ref_guide/config_params/guc-list.xml#lock_timeout"
             type="section">lock_timeout</xref> server configuration parameter is turned on
         and set to a value smaller than <codeph>deadlock_timeout</codeph> and
-          <codeph>gp_global_deadlock_detector_period</codeph>, Greenplum Database will cancel a
+          <codeph>gp_global_deadlock_detector_period</codeph>, Cloudberry Database will cancel a
         statement before it would ever trigger a deadlock check in that session.</note>
       <p>To view lock waiting information for all segments, run the
           <codeph>gp_dist_wait_status()</codeph> user-defined function. You can use the output of
@@ -534,24 +534,24 @@ holder_sessionid | 8
           href="managing/maintain.xml#topic2" type="topic" format="dita"/>.</p>
       <note type="important">The <codeph>VACUUM</codeph>, <codeph>VACUUM FULL</codeph>, and
           <codeph>VACUUM ANALYZE</codeph> commands should be used to maintain the data in a
-        Greenplum database especially if updates and deletes are frequently performed on your
-        database data. See the <codeph>VACUUM</codeph> command in the <cite>Greenplum Database
+        Cloudberry database especially if updates and deletes are frequently performed on your
+        database data. See the <codeph>VACUUM</codeph> command in the <cite>Cloudberry Database
           Reference Guide</cite> for information about using the command.</note>
     </body>
   </topic>
   <topic id="topic11" xml:lang="en">
     <title id="ix141487">Running Out of Locks</title>
     <body>
-      <p>Greenplum Database can potentially run out of locks when a database
+      <p>Cloudberry Database can potentially run out of locks when a database
         operation accesses multiple tables in a single transaction. Backup
         and restore are examples of such operations.</p>
-      <p>When Greenplum Database runs out of locks, the error message that
+      <p>When Cloudberry Database runs out of locks, the error message that
         you may observe references a shared memory error:
         <codeblock>... "WARNING","53200","out of shared memory",,,,,,"LOCK TABLE ...
 ... "ERROR","53200","out of shared memory",,"You might need to increase max_locks_per_transaction.",,,,"LOCK TABLE ...</codeblock></p>
       <note>"shared memory" in this context refers to the shared memory of
         the internal object: the lock slots. "Out of shared memory" does
-        <i>not</i> refer to exhaustion of system- or Greenplum-level memory
+        <i>not</i> refer to exhaustion of system- or Cloudberry-level memory
         resources.</note>
       <p>As the hint describes, consider increasing the
         <xref href="../ref_guide/config_params/guc-list.xml#max_locks_per_transaction"><codeph>max_locks_per_transaction</codeph></xref>

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved. 
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved. 
 #
 
 import os
@@ -234,7 +234,7 @@ class PgBaseBackup(Command):
         if recovery_mode:
             cmd_tokens.append('--write-recovery-conf')
 
-        # This is needed to handle Greenplum tablespaces
+        # This is needed to handle Cloudberry tablespaces
         cmd_tokens.append('--target-gp-dbid')
         cmd_tokens.append(str(target_gp_dbid))
 

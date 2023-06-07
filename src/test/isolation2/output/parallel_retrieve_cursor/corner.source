@@ -227,7 +227,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -419,7 +419,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -596,13 +596,13 @@ DECLARE
  10 
 (10 rows)
 
-#0retrieve> FATAL:  retrieve auth token is invalid
+#0retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#1retrieve> FATAL:  retrieve auth token is invalid
+#1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#2retrieve> FATAL:  retrieve auth token is invalid
+#2retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 -- test check and wait after finished retrieving
@@ -667,13 +667,13 @@ DECLARE
 ---
 (0 rows)
 
-#0retrieve> FATAL:  retrieve auth token is invalid
+#0retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#1retrieve> FATAL:  retrieve auth token is invalid
+#1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#2retrieve> FATAL:  retrieve auth token is invalid
+#2retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 1<:  <... completed>
@@ -737,7 +737,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a 
@@ -815,7 +815,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a     
@@ -903,7 +903,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a 
@@ -1126,7 +1126,7 @@ DECLARE
 1&: SELECT * FROM gp_wait_parallel_retrieve_cursor('c1', -1);  <waiting ...>
 
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a | b 
@@ -1234,7 +1234,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -1385,7 +1385,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -1552,7 +1552,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -1707,7 +1707,7 @@ DECLARE
  READY 
 (1 row)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  
@@ -1957,13 +1957,13 @@ DECLARE
  9               
 (10 rows)
 
-#0retrieve> FATAL:  retrieve auth token is invalid
+#0retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#1retrieve> FATAL:  retrieve auth token is invalid
+#1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#2retrieve> FATAL:  retrieve auth token is invalid
+#2retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 -- test check and wait after finished retrieving
@@ -2025,13 +2025,13 @@ DECLARE
  pg_class 
 (1 row)
 
-#0retrieve> FATAL:  retrieve auth token is invalid
+#0retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#1retrieve> FATAL:  retrieve auth token is invalid
+#1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#2retrieve> FATAL:  retrieve auth token is invalid
+#2retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 -- test check and wait after finished retrieving
@@ -2079,7 +2079,7 @@ DECLARE
  endpoint_id24_2 | token_id | host_id | port_id | READY
 (3 rows)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT24': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT24";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  b 
@@ -2104,7 +2104,7 @@ DECLARE
  10 
 (4 rows)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT24_1': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT24_1";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  b 
@@ -2129,7 +2129,7 @@ DECLARE
  10 
 (4 rows)
 *R: @pre_run 'set_endpoint_variable @ENDPOINT24_2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT24_2";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  b 
@@ -2251,13 +2251,13 @@ DECLARE
  10              
 (10 rows)
 
-#0retrieve> FATAL:  retrieve auth token is invalid
+#0retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#1retrieve> FATAL:  retrieve auth token is invalid
+#1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
-#2retrieve> FATAL:  retrieve auth token is invalid
+#2retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 -- test check and wait after finished retrieving

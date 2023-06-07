@@ -3,7 +3,7 @@
  * aocsam.c
  *	  Append only columnar access methods
  *
- * Portions Copyright (c) 2009-2010, Greenplum Inc.
+ * Portions Copyright (c) 2009-2010, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -16,6 +16,7 @@
 #include "postgres.h"
 
 #include "common/relpath.h"
+#include "access/amapi.h"
 #include "access/aocssegfiles.h"
 #include "access/aomd.h"
 #include "access/appendonlytid.h"
@@ -34,6 +35,7 @@
 #include "cdb/cdbappendonlystorageread.h"
 #include "cdb/cdbappendonlystoragewrite.h"
 #include "cdb/cdbvars.h"
+#include "executor/executor.h"
 #include "fmgr.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -56,6 +58,13 @@ static AOCSScanDesc aocs_beginscan_internal(Relation relation,
 						Snapshot appendOnlyMetaDataSnapshot,
 						bool *proj,
 						uint32 flags);
+
+static void reorder_qual_col(AOCSScanDesc scan);
+static bool aocs_col_predicate_test(AOCSScanDesc scan, TupleTableSlot *slot, int i, bool sample_phase);
+static bool aocs_getnext_sample(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot);
+
+/* Hook for plugins to get control in aocs_delete() */
+aocs_delete_hook_type aocs_delete_hook = NULL;
 
 /*
  * Open the segment file for a specified column associated with the datum
@@ -284,12 +293,8 @@ close_ds_write(DatumStreamWrite **ds, int nvp)
 	}
 }
 
-/*
- * GPDB_12_MERGE_FIXME: Find a better name to match what this function is
- * actually doing
- */
 static void
-aocs_initscan(AOCSScanDesc scan)
+initscan_with_colinfo(AOCSScanDesc scan)
 {
 	MemoryContext	oldCtx;
 	AttrNumber		natts;
@@ -504,7 +509,7 @@ aocs_beginscan(Relation relation,
 	else
 		aocsMetaDataSnapshot = GetTransactionSnapshot();
 
-	seginfo = GetAllAOCSFileSegInfo(relation, aocsMetaDataSnapshot, &total_seg);
+	seginfo = GetAllAOCSFileSegInfo(relation, aocsMetaDataSnapshot, &total_seg, NULL);
 	return aocs_beginscan_internal(relation,
 								   seginfo,
 								   total_seg,
@@ -597,7 +602,7 @@ aocs_rescan(AOCSScanDesc scan)
 	close_cur_scan_seg(scan);
 	if (scan->columnScanInfo.ds)
 		close_ds_read(scan->columnScanInfo.ds, scan->columnScanInfo.relationTupleDesc->natts);
-	aocs_initscan(scan);
+	initscan_with_colinfo(scan);
 }
 
 void
@@ -721,6 +726,23 @@ static void upgrade_datum_fetch(AOCSFetchDesc fetch, int attno, Datum values[],
 bool
 aocs_getnext(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
 {
+	if (scan->aos_pushdown_qual && scan->aos_scaned_rows < scan->aos_sample_rows)
+	{
+		if (aocs_getnext_sample(scan, direction, slot))
+			return true;
+
+		/* No more seg, we are at the end */
+		if (scan->cur_seg == -1)
+			return false;
+
+		/*
+		 * "aocs_getnext_sample() == false && scan->cur_seg != -1"
+		 * means that we have got enough sample rows but the last sample row
+		 * does not match the qual, so we must go ahead.
+		 */
+		Assert(scan->aos_scaned_rows >= scan->aos_sample_rows);
+	}
+
 	Datum	   *d = slot->tts_values;
 	bool	   *null = slot->tts_isnull;
 
@@ -737,7 +759,7 @@ aocs_getnext(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
 		scan->columnScanInfo.relationTupleDesc = slot->tts_tupleDescriptor;
 		/* Pin it! ... and of course release it upon destruction / rescan */
 		PinTupleDesc(scan->columnScanInfo.relationTupleDesc);
-		aocs_initscan(scan);
+		initscan_with_colinfo(scan);
 	}
 
 	natts = slot->tts_tupleDescriptor->natts;
@@ -746,6 +768,8 @@ aocs_getnext(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
 	while (1)
 	{
 		AOCSFileSegInfo *curseginfo;
+		bool visible_pass;
+		bool predicate_pass;
 
 ReadNext:
 		/* If necessary, open next seg */
@@ -766,6 +790,7 @@ ReadNext:
 		curseginfo = scan->seginfo[scan->cur_seg];
 
 		/* Read from cur_seg */
+		visible_pass = predicate_pass = true;
 		for (AttrNumber i = 0; i < scan->columnScanInfo.num_proj_atts; i++)
 		{
 			AttrNumber	attno = scan->columnScanInfo.proj_atts[i];
@@ -787,6 +812,8 @@ ReadNext:
 				err = datumstreamread_advance(scan->columnScanInfo.ds[attno]);
 				Assert(err > 0);
 			}
+			if (!visible_pass || !predicate_pass)
+				continue; /* not break, need advance for other cols */
 
 			/*
 			 * Get the column's datum right here since the data structures
@@ -803,34 +830,44 @@ ReadNext:
 								   curseginfo->formatversion);
 			}
 
-			if (rowNum == INT64CONST(-1) &&
-				scan->columnScanInfo.ds[attno]->blockFirstRowNum != INT64CONST(-1))
+			if (i == 0)
 			{
-				Assert(scan->columnScanInfo.ds[attno]->blockFirstRowNum > 0);
-				rowNum = scan->columnScanInfo.ds[attno]->blockFirstRowNum +
-					datumstreamread_nth(scan->columnScanInfo.ds[attno]);
+				if (rowNum == INT64CONST(-1) &&
+					scan->columnScanInfo.ds[attno]->blockFirstRowNum != INT64CONST(-1))
+				{
+					Assert(scan->columnScanInfo.ds[attno]->blockFirstRowNum > 0);
+					rowNum = scan->columnScanInfo.ds[attno]->blockFirstRowNum +
+						datumstreamread_nth(scan->columnScanInfo.ds[attno]);
+				}
+				scan->cur_seg_row++;
+				if (rowNum == INT64CONST(-1))
+				{
+					AOTupleIdInit(&aoTupleId, curseginfo->segno, scan->cur_seg_row);
+				}
+				else
+				{
+					AOTupleIdInit(&aoTupleId, curseginfo->segno, rowNum);
+				}
+
+				if (!isSnapshotAny && !AppendOnlyVisimap_IsVisible(&scan->visibilityMap, &aoTupleId))
+				{
+					/*
+					 * The tuple is invisible.
+					 * In `analyze`, we can simply return false
+					 */
+					if ((scan->rs_base.rs_flags & SO_TYPE_ANALYZE) != 0)
+						return false;
+
+					rowNum = INT64CONST(-1);
+					visible_pass = false;
+					continue; /* not break, need advance for other cols */
+				}
 			}
+			if (scan->aos_pushdown_qual && scan->aos_pushdown_qual[i])
+				predicate_pass &= aocs_col_predicate_test(scan, slot, i, true);
 		}
-
-		scan->cur_seg_row++;
-		if (rowNum == INT64CONST(-1))
+		if (!visible_pass || !predicate_pass)
 		{
-			AOTupleIdInit(&aoTupleId, curseginfo->segno, scan->cur_seg_row);
-		}
-		else
-		{
-			AOTupleIdInit(&aoTupleId, curseginfo->segno, rowNum);
-		}
-
-		if (!isSnapshotAny && !AppendOnlyVisimap_IsVisible(&scan->visibilityMap, &aoTupleId))
-		{
-			/*
-			 * The tuple is invisible.
-			 * In `analyze`, we can simply return false
-			 */
-			if ((scan->rs_base.rs_flags & SO_TYPE_ANALYZE) != 0)
-				return false;
-
 			rowNum = INT64CONST(-1);
 			goto ReadNext;
 		}
@@ -1354,13 +1391,20 @@ aocs_fetch_init(Relation relation,
                                  NULL);
 
 	aocsFetchDesc->segmentFileInfo =
-		GetAllAOCSFileSegInfo(relation, appendOnlyMetaDataSnapshot, &aocsFetchDesc->totalSegfiles);
+		GetAllAOCSFileSegInfo(relation, appendOnlyMetaDataSnapshot, &aocsFetchDesc->totalSegfiles, NULL);
 
-	/* Init the biggest row number of each aoseg */
-	for (segno = 0; segno < AOTupleId_MultiplierSegmentFileNum; ++segno)
+	/* 
+	 * Initialize lastSequence only for segments which we got above is sufficient,
+	 * rather than all AOTupleId_MultiplierSegmentFileNum ones that introducing
+	 * too many unnecessary calls in most cases.
+	 */
+	memset(aocsFetchDesc->lastSequence, -1, sizeof(aocsFetchDesc->lastSequence));
+	for (int i = -1; i < aocsFetchDesc->totalSegfiles; i++)
 	{
-		aocsFetchDesc->lastSequence[segno] =
-			ReadLastSequence(aocsFetchDesc->segrelid, segno);
+		/* always initailize segment 0 */
+		segno = (i < 0 ? 0 : aocsFetchDesc->segmentFileInfo[i]->segno);
+		/* set corresponding bit for target segment */
+		aocsFetchDesc->lastSequence[segno] = ReadLastSequence(aocsFetchDesc->segrelid, segno);
 	}
 
 	AppendOnlyBlockDirectory_Init_forSearch(
@@ -1457,6 +1501,14 @@ aocs_fetch(AOCSFetchDesc aocsFetchDesc,
 	bool		isSnapshotAny = (aocsFetchDesc->snapshot == SnapshotAny);
 
 	Assert(numCols > 0);
+
+	Assert(segmentFileNum >= 0);
+
+	if (aocsFetchDesc->lastSequence[segmentFileNum] == InvalidAORowNum)
+		ereport(ERROR,
+				(errcode(ERRCODE_INTERNAL_ERROR),
+				 errmsg("Row No. %ld in segment file No. %d is out of scanning scope for target relfilenode %lu.",
+				 		rowNum, segmentFileNum, aocsFetchDesc->relation->rd_node.relNode)));
 
 	/*
 	 * if the rowNum is bigger than lastsequence, skip it.
@@ -1843,6 +1895,8 @@ TM_Result
 aocs_delete(AOCSDeleteDesc aoDeleteDesc,
 			AOTupleId *aoTupleId)
 {
+	TM_Result 	result;
+	ItemPointer tid;
 	Assert(aoDeleteDesc);
 	Assert(aoTupleId);
 
@@ -1859,7 +1913,14 @@ aocs_delete(AOCSDeleteDesc aoDeleteDesc,
 								   RelationGetRelationName(aoDeleteDesc->aod_rel)); /* tableName */
 #endif
 
-	return AppendOnlyVisimapDelete_Hide(&aoDeleteDesc->visiMapDelete, aoTupleId);
+	result = AppendOnlyVisimapDelete_Hide(&aoDeleteDesc->visiMapDelete, aoTupleId);
+	if (result == TM_Ok)
+	{
+		tid = (ItemPointer) aoTupleId;
+		if (aocs_delete_hook)
+			(*aocs_delete_hook) (aoDeleteDesc->aod_rel, tid);
+	}
+	return result;
 }
 
 /*
@@ -2207,3 +2268,389 @@ aocs_addcol_emptyvpe(Relation rel,
 		}
 	}
 }
+
+static bool
+aocs_col_predicate_test(AOCSScanDesc scan, TupleTableSlot *slot, int i, bool sample_phase)
+{
+	bool predicate_pass = true;
+	int attno = scan->columnScanInfo.proj_atts[i];
+
+	/*
+	 * place the current tuple into the expr context
+	 */
+	uint16 orig_flag = slot->tts_flags;
+	slot->tts_nvalid = attno + 1;
+	scan->aos_pushdown_econtext->ecxt_scantuple = slot;
+
+	if (!ExecQual(scan->aos_pushdown_qual[i], scan->aos_pushdown_econtext))
+	{
+		predicate_pass = false;
+	}
+	else
+	{
+		if (sample_phase)
+			++scan->aos_qual_rows[i];
+	}
+
+	slot->tts_flags = orig_flag;
+	ResetExprContext(scan->aos_pushdown_econtext);
+
+	return predicate_pass;
+}
+
+static void
+move_attr_forward(AOCSScanDesc scan, int attrno, int pos)
+{
+	if (scan->columnScanInfo.proj_atts[pos] == attrno)
+		return;
+
+	int other_attrno = scan->columnScanInfo.proj_atts[pos];
+
+	for (int i = 0; i < scan->columnScanInfo.num_proj_atts; ++i)
+	{
+		if (scan->columnScanInfo.proj_atts[i] == attrno)
+		{
+			scan->columnScanInfo.proj_atts[pos] = attrno;
+			scan->columnScanInfo.proj_atts[i] = other_attrno;
+			return;
+		}
+	}
+
+	Assert(!"Never here");
+}
+
+static void
+find_attrs_in_qual(Node *qual, bool *proj, int ncol, int *proj_atts, int *num_proj_atts)
+{
+	int i, k;
+	/* get attrs in qual */
+	extractcolumns_from_node(qual, proj, ncol);
+
+	/* collect the number of proj attr and attr_no from proj[] */
+	k = 0;
+	for (i = 0; i < ncol; i++)
+	{
+		if (proj[i])
+			proj_atts[k++] = i;
+	}
+	*num_proj_atts = k;
+}
+
+ExprState *
+aocs_predicate_pushdown_prepare(AOCSScanDesc scan,
+								List *qual,
+								ExprState *state,
+								ExprContext *ecxt,
+								PlanState *ps)
+{
+	int  ncol  = scan->rs_base.rs_rd->rd_att->natts;
+
+	List **qual_list = (List **)palloc0(sizeof(List *) * ncol);
+	/* alloc qual array */
+	scan->aos_qual_col_num      = 0;
+	scan->aos_pushdown_econtext = ecxt;
+	scan->aos_pushdown_qual     = (ExprState**)palloc0(sizeof(ExprState *) * ncol);
+	scan->aos_sample_rows       = gp_predicate_pushdown_sample_rows;
+	scan->aos_scaned_rows       = 0;
+	scan->aos_qual_rows         = (int *)palloc0(sizeof(int) * ncol);
+
+	if (!qual)
+		return state;
+	bool *proj = palloc0(ncol * sizeof(bool));
+	int num_qual_atts = 0;
+	int *qual_atts    = palloc(ncol * sizeof(int));
+
+	/* get the number of attr in qual */
+	find_attrs_in_qual((Node *) qual, proj, ncol, qual_atts, &num_qual_atts);
+
+	/* only system col in qual */
+	if (num_qual_atts == 0)
+		return state;
+
+	/* only one attr in qual, so the whole qual can be pushed down */
+	if (num_qual_atts == 1)
+	{
+		/* move attr in qual at the begin of scan->proj_atts */
+		move_attr_forward(scan, qual_atts[0], 0);
+
+		Assert(scan->aos_pushdown_qual[0] == NULL);
+		scan->aos_pushdown_qual[0] = state;
+		scan->aos_qual_col_num = 1;
+
+		/* The whole qual can be pushed down, so no left qual with seqscan node. */
+		return NULL;
+	}
+
+	/* Only List[BoolExpr(AND)] can be processed with predicate pushdown currently */
+	if (!IsA(qual, List))
+		return state;
+	if ((list_length(qual) == 1 && IsA(linitial(qual), BoolExpr)))
+	{
+		// What's the real structure of qual?
+		BoolExpr *boolexpr = (BoolExpr *)linitial(qual);
+		if (boolexpr->boolop != AND_EXPR)
+			return state;
+		qual = boolexpr->args;
+	}
+
+	List *quals_in_scan = NIL;
+	int qual_attr_num = 0;
+
+	ListCell *lc;
+	foreach(lc, qual)
+	{
+		Expr *subexpr = (Expr *)lfirst(lc);
+
+		/* get the number of attr in sub expr */
+		memset(proj, 0, sizeof(bool) * ncol);
+		find_attrs_in_qual((Node *) subexpr, proj, ncol, qual_atts, &num_qual_atts);
+
+		/*
+		 * cann't push down the subexpr in which only system col or the number
+		 * of attr > 1
+		 */
+		if (num_qual_atts == 0 || num_qual_atts > 1)
+		{
+			quals_in_scan = lappend(quals_in_scan, subexpr);
+			continue;
+		}
+
+		/* "c1 > 1 and c1 < 5", merge sub quals which contains the same attr */
+		bool found_same_attr = false;
+		for (int i = 0; i < qual_attr_num; ++i)
+		{
+			if (scan->columnScanInfo.proj_atts[i] == qual_atts[0])
+			{
+				/* find the same attrno, merge quals */
+				Assert(qual_list[i]);
+				qual_list[i] = lappend(qual_list[i], subexpr);
+				found_same_attr = true;
+				break;
+			}
+		}
+
+		if (found_same_attr)
+			continue;
+
+		/*
+		 * find new attr no and it's qual, move the attr forwark in
+		 * scan->proj_atts[], and save it's expr into scan->aos_pushdown_qual
+		 */
+		move_attr_forward(scan, qual_atts[0], qual_attr_num);
+
+		Assert(qual_list[qual_attr_num] == NIL);
+		qual_list[qual_attr_num] =
+					lappend(qual_list[qual_attr_num], subexpr);
+
+		qual_attr_num++;
+	}
+	for (int i = 0; i < qual_attr_num; i++)
+	{
+		Assert(qual_list[i]);
+		scan->aos_pushdown_qual[i] = ExecInitQual(qual_list[i], ps);
+	}
+	scan->aos_qual_col_num = qual_attr_num;
+	return ExecInitQual(quals_in_scan, ps);
+}
+
+struct qual_sort_item {
+	int aos_qual_rows;
+	int proj_atts;
+	ExprState *aos_pushdown_qual;
+};
+static int
+compare_qual_item(const void *a, const void *b)
+{
+	const struct qual_sort_item *qa = (const struct qual_sort_item *)a;
+	const struct qual_sort_item *qb = (const struct qual_sort_item *)b;
+	return qa->aos_qual_rows - qb->aos_qual_rows;
+}
+
+static void
+reorder_qual_col(AOCSScanDesc scan)
+{
+	struct qual_sort_item *items;
+	int i, n;
+	n = scan->aos_qual_col_num;
+	if (n < 2)
+		return;
+
+	items = palloc(sizeof(struct qual_sort_item) * scan->aos_qual_col_num);
+
+	for (i = 0; i < n; i++)
+	{
+		items[i].aos_qual_rows = scan->aos_qual_rows[i];
+		items[i].proj_atts = scan->columnScanInfo.proj_atts[i];
+		items[i].aos_pushdown_qual = scan->aos_pushdown_qual[i];
+	}
+	qsort(items, n, sizeof(struct qual_sort_item), compare_qual_item);
+	for (i = 0; i < n; i++)
+	{
+		scan->aos_qual_rows[i] = items[i].aos_qual_rows;
+		scan->columnScanInfo.proj_atts[i] = items[i].proj_atts;
+		scan->aos_pushdown_qual[i] = items[i].aos_pushdown_qual;
+	}
+	pfree(items);
+}
+
+bool
+aocs_getnext_sample(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot)
+{
+	Datum	   *d = slot->tts_values;
+	bool	   *null = slot->tts_isnull;
+
+	AOTupleId	aoTupleId;
+	int64		rowNum = INT64CONST(-1);
+	int			err = 0;
+	bool		isSnapshotAny = (scan->rs_base.rs_snapshot == SnapshotAny);
+	bool visible_pass;
+	bool predicate_pass;
+
+	AttrNumber	natts;
+
+	Assert(ScanDirectionIsForward(direction));
+
+	if (scan->columnScanInfo.relationTupleDesc == NULL)
+	{
+		scan->columnScanInfo.relationTupleDesc = slot->tts_tupleDescriptor;
+		/* Pin it! ... and of course release it upon destruction / rescan */
+		PinTupleDesc(scan->columnScanInfo.relationTupleDesc);
+		initscan_with_colinfo(scan);
+	}
+
+	natts = slot->tts_tupleDescriptor->natts;
+	Assert(natts <= scan->columnScanInfo.relationTupleDesc->natts);
+
+	while (1)
+	{
+		AOCSFileSegInfo *curseginfo;
+
+ReadNext:
+		/* If necessary, open next seg */
+		if (scan->cur_seg < 0 || err < 0)
+		{
+			err = open_next_scan_seg(scan);
+			if (err < 0)
+			{
+				/* No more seg, we are at the end */
+				ExecClearTuple(slot);
+				scan->cur_seg = -1;
+				return false;
+			}
+			scan->cur_seg_row = 0;
+		}
+
+		Assert(scan->cur_seg >= 0);
+		curseginfo = scan->seginfo[scan->cur_seg];
+
+		/* Read from cur_seg */
+		visible_pass = predicate_pass = true;
+		for (AttrNumber i = 0; i < scan->columnScanInfo.num_proj_atts; i++)
+		{
+			AttrNumber	attno = scan->columnScanInfo.proj_atts[i];
+
+			err = datumstreamread_advance(scan->columnScanInfo.ds[attno]);
+			Assert(err >= 0);
+			if (err == 0)
+			{
+				err = datumstreamread_block(scan->columnScanInfo.ds[attno], scan->blockDirectory, attno);
+				if (err < 0)
+				{
+					/*
+					 * Ha, cannot read next block, we need to go to next seg
+					 */
+					close_cur_scan_seg(scan);
+					goto ReadNext;
+				}
+
+				err = datumstreamread_advance(scan->columnScanInfo.ds[attno]);
+				Assert(err > 0);
+			}
+			/* test all qual cols whatever predicate_pass is true or false */
+			if (!visible_pass || (!predicate_pass && i >= scan->aos_qual_col_num))
+				continue; /* can not break, need advance for other cols */
+
+
+			/*
+			 * Get the column's datum right here since the data structures
+			 * should still be hot in CPU data cache memory.
+			 */
+			datumstreamread_get(scan->columnScanInfo.ds[attno], &d[attno], &null[attno]);
+
+			/*
+			 * Perform any required upgrades on the Datum we just fetched.
+			 */
+			if (curseginfo->formatversion < AORelationVersion_GetLatest())
+			{
+				upgrade_datum_scan(scan, attno, d, null,
+								   curseginfo->formatversion);
+			}
+
+			/*
+			 * set rowNum, aoTupleId and test visibility.
+			 */
+			if (i == 0)
+			{
+				if (rowNum == INT64CONST(-1) &&
+					scan->columnScanInfo.ds[attno]->blockFirstRowNum != INT64CONST(-1))
+				{
+					Assert(scan->columnScanInfo.ds[attno]->blockFirstRowNum > 0);
+					rowNum = scan->columnScanInfo.ds[attno]->blockFirstRowNum +
+						datumstreamread_nth(scan->columnScanInfo.ds[attno]);
+				}
+				scan->cur_seg_row++;
+				if (rowNum == INT64CONST(-1))
+				{
+					AOTupleIdInit(&aoTupleId, curseginfo->segno, scan->cur_seg_row);
+				}
+				else
+				{
+					AOTupleIdInit(&aoTupleId, curseginfo->segno, rowNum);
+				}
+
+				if (!isSnapshotAny && !AppendOnlyVisimap_IsVisible(&scan->visibilityMap, &aoTupleId))
+				{
+					/*
+					 * The tuple is invisible.
+					 * In `analyze`, we can simply return false
+					 */
+					visible_pass = false;
+					continue;
+				}
+			}
+			if (scan->aos_pushdown_qual && scan->aos_pushdown_qual[i])
+				predicate_pass &= aocs_col_predicate_test(scan, slot, i, true);
+		}
+		if (!visible_pass)
+		{
+			rowNum = INT64CONST(-1);
+			goto ReadNext;
+		}
+
+		++scan->aos_scaned_rows;
+		if (scan->aos_scaned_rows >= scan->aos_sample_rows)
+		{
+			/* adjust the order of the qual col with selective */
+			reorder_qual_col(scan);
+			if (!predicate_pass)
+				return false;
+		}
+		else
+		{
+			if (!predicate_pass)
+			{
+				rowNum = INT64CONST(-1);
+				goto ReadNext;
+			}
+		}
+		scan->cdb_fake_ctid = *((ItemPointer) &aoTupleId);
+
+		slot->tts_nvalid = natts;
+		slot->tts_tid = scan->cdb_fake_ctid;
+		return true;
+	}
+
+	Assert(!"Never here");
+	return false;
+}
+

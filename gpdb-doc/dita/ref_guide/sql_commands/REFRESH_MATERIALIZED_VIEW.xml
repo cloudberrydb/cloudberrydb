@@ -75,7 +75,7 @@
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p><codeph>REFRESH MATERIALIZED VIEW</codeph> is a Greenplum Database extension of the SQL
+      <p><codeph>REFRESH MATERIALIZED VIEW</codeph> is a Cloudberry Database extension of the SQL
         standard.</p>
     </section>
     <section id="section8"><title>See Also</title><codeph><xref href="ALTER_MATERIALIZED_VIEW.xml"

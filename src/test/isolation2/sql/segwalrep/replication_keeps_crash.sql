@@ -10,11 +10,9 @@
 -- More details please refer to FTSGetReplicationDisconnectTime.
 
 -- modify fts gucs to speed up the test.
-1: alter system set gp_fts_probe_interval to 10;
-1: alter system set gp_fts_replication_attempt_count to 3;
 1: select pg_reload_conf();
 
-SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 
 -- Error out before walsender streaming data
 select gp_inject_fault_infinite('wal_sender_loop', 'error', dbid)
@@ -28,6 +26,7 @@ select gp_wait_until_triggered_fault('wal_sender_loop', 1, dbid) from gp_segment
 
 -- trigger fts to mark mirror down.
 select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 
 -- After gp_fts_replication_attempt_count attempts mirror will be marked down, and syncrep will
 -- be marked off and hence the commit should get unblocked.
@@ -49,10 +48,8 @@ select gp_inject_fault('wal_sender_loop', 'reset', dbid)
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
 
-SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 
 drop table mirror_block_t1;
 
-1: alter system reset gp_fts_probe_interval;
-1: alter system reset gp_fts_replication_attempt_count;
 1: select pg_reload_conf();

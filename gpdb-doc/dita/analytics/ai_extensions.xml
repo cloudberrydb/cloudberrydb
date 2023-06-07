@@ -4,14 +4,14 @@
   <title>Machine Learning and Deep Learning</title>
   <body>
      <p>This section describes the procedural languages and analytics extensions available
-       with Greenplum Database.</p>
+       with Cloudberry Database.</p>
      <p otherprops="oss-only">Procedural languages are typically packaged as extensions. You
       register a language in a database using the <codeph><xref
           href="../ref_guide/sql_commands/CREATE_EXTENSION.xml#topic1" scope="peer">CREATE
           EXTENSION</xref></codeph> command. You remove a language from a database with
           <codeph><xref href="../ref_guide/sql_commands/DROP_EXTENSION.xml#topic1" scope="peer">DROP
           EXTENSION</xref></codeph>.</p>
-     <p>The Greenplum Database distribution supports the following procedural
+     <p>The Cloudberry Database distribution supports the following procedural
        languages; refer to the linked language documentation for <ph otherprops="pivotal"> installation
        and </ph> usage instructions:</p>
      <ul>
@@ -22,7 +22,7 @@
        <li><xref href="pl_python.xml" format="dita" >PL/Python</xref></li>
        <li><xref href="pl_r.xml" format="dita">PL/R</xref></li>
      </ul>
-     <p>You can use the following analytics extensions with Greenplum Database; refer
+     <p>You can use the following analytics extensions with Cloudberry Database; refer
        to the linked documentation for installation and usage instructions:</p>
      <ul>
        <li><xref href="madlib.xml" format="dita">MADlib</xref></li>

@@ -1,6 +1,6 @@
-# PXF Foreign Data Wrapper for Greenplum and PostgreSQL
+# PXF Foreign Data Wrapper for Cloudberry and PostgreSQL
 
-This Greenplum and PostgreSQL extension implements a Foreign Data Wrapper (FDW)
+This Cloudberry and PostgreSQL extension implements a Foreign Data Wrapper (FDW)
 for [PXF](https://github.com/greenplum-db/pxf).
 
 PXF is a query federation engine that accesses data residing in external systems

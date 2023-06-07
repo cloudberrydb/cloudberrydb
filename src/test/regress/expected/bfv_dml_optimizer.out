@@ -186,11 +186,13 @@ explain update update_pk_test set b = 5;
                                              QUERY PLAN                                             
 ----------------------------------------------------------------------------------------------------
  Update on update_pk_test  (cost=0.00..431.07 rows=1 width=1)
-   ->  Result  (cost=0.00..431.00 rows=1 width=26)
-         ->  Split  (cost=0.00..431.00 rows=1 width=22)
-               ->  Seq Scan on update_pk_test update_pk_test_1  (cost=0.00..431.00 rows=1 width=18)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
-(5 rows)
+   ->  Result  (cost=0.00..0.00 rows=0 width=0)
+         One-Time Filter: true
+         ->  Result  (cost=0.00..431.00 rows=2 width=26)
+               ->  Split  (cost=0.00..431.00 rows=2 width=22)
+                     ->  Seq Scan on update_pk_test update_pk_test_1  (cost=0.00..431.00 rows=1 width=18)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(7 rows)
 
 update update_pk_test set b = 5;
 select * from update_pk_test order by 1,2;
@@ -203,15 +205,17 @@ explain update update_pk_test set a = 5;
                                                    QUERY PLAN                                                   
 ----------------------------------------------------------------------------------------------------------------
  Update on update_pk_test  (cost=0.00..431.07 rows=1 width=1)
-   ->  Result  (cost=0.00..431.00 rows=1 width=26)
-         ->  Sort  (cost=0.00..431.00 rows=1 width=22)
-               Sort Key: (DMLAction)
-               ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=22)
-                     Hash Key: update_pk_test_1.a
-                     ->  Split  (cost=0.00..431.00 rows=1 width=22)
-                           ->  Seq Scan on update_pk_test update_pk_test_1  (cost=0.00..431.00 rows=1 width=18)
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
-(9 rows)
+   ->  Result  (cost=0.00..0.00 rows=0 width=0)
+         One-Time Filter: true
+         ->  Result  (cost=0.00..431.00 rows=2 width=26)
+               ->  Sort  (cost=0.00..431.00 rows=2 width=22)
+                     Sort Key: (DMLAction)
+                     ->  Redistribute Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=22)
+                           Hash Key: update_pk_test_1.a
+                           ->  Split  (cost=0.00..431.00 rows=1 width=22)
+                                 ->  Seq Scan on update_pk_test update_pk_test_1  (cost=0.00..431.00 rows=1 width=18)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(11 rows)
 
 update update_pk_test set a = 5;
 select * from update_pk_test order by 1,2;
@@ -308,9 +312,9 @@ NOTICE:  table "foo" does not exist, skipping
 drop table if exists bar;
 NOTICE:  table "bar" does not exist, skipping
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 create table bar(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 insert into bar select generate_series(1,10);
 -- Previously, table foo is defined as  randomly distributed and 
@@ -347,9 +351,9 @@ select * from foo;
 drop table foo;
 drop table bar;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 create table bar(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 insert into bar select generate_series(1,10);
 alter table foo set with(REORGANIZE=false) distributed randomly;
@@ -394,7 +398,7 @@ select * from foo;
 drop table foo;
 drop table bar;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 alter table foo set with(REORGANIZE=false) distributed randomly;
 analyze foo;
@@ -410,9 +414,9 @@ explain delete from foo where foo.a=1;
 delete from foo where foo.a=1;
 drop table foo;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 create table bar(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 insert into bar select generate_series(1,10);
 alter table foo set with(REORGANIZE=false) distributed randomly;
@@ -435,7 +439,7 @@ delete from foo using bar where foo.a=bar.b;
 drop table foo;
 drop table bar;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 alter table foo set with(REORGANIZE=false) distributed randomly;
 analyze foo;
@@ -460,7 +464,7 @@ delete from foo using foo foo_1 where foo_1.a=foo.a;
 reset optimizer_enable_motion_redistribute;
 drop table foo;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 alter table foo set with(REORGANIZE=false) distributed randomly;
 analyze foo;
@@ -475,9 +479,9 @@ explain delete from foo;
 delete from foo;
 drop table foo;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 create table bar(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into foo select generate_series(1,10);
 insert into bar select generate_series(1,10);
 alter table foo set with(REORGANIZE=false) distributed randomly;
@@ -501,9 +505,9 @@ delete from foo using bar;
 drop table foo;
 drop table bar;
 create table foo (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 create table bar(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 insert into bar select i, i from generate_series(1, 1000)i;
 insert into foo select i,i from generate_series(1, 10)i;
 alter table foo set with(REORGANIZE=false) distributed randomly;
@@ -558,16 +562,18 @@ explain update foo set a=4 from bar where foo.a=bar.a;
                                                   QUERY PLAN                                                   
 ---------------------------------------------------------------------------------------------------------------
  Update on foo  (cost=0.00..862.07 rows=1 width=1)
-   ->  Result  (cost=0.00..862.00 rows=2 width=26)
-         ->  Split  (cost=0.00..862.00 rows=2 width=22)
-               ->  Hash Join  (cost=0.00..862.00 rows=1 width=18)
-                     Hash Cond: (foo_1.a = bar.a)
-                     ->  Seq Scan on foo foo_1  (cost=0.00..431.00 rows=1 width=18)
-                     ->  Hash  (cost=431.00..431.00 rows=3 width=4)
-                           ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
-                                 ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=4)
+   ->  Result  (cost=0.00..0.00 rows=0 width=0)
+         One-Time Filter: true
+         ->  Result  (cost=0.00..862.00 rows=2 width=26)
+               ->  Split  (cost=0.00..862.00 rows=2 width=22)
+                     ->  Hash Join  (cost=0.00..862.00 rows=1 width=18)
+                           Hash Cond: (foo_1.a = bar.a)
+                           ->  Seq Scan on foo foo_1  (cost=0.00..431.00 rows=1 width=18)
+                           ->  Hash  (cost=431.00..431.00 rows=3 width=4)
+                                 ->  Broadcast Motion 3:3  (slice1; segments: 3)  (cost=0.00..431.00 rows=3 width=4)
+                                       ->  Seq Scan on bar  (cost=0.00..431.00 rows=1 width=4)
  Optimizer: Pivotal Optimizer (GPORCA)
-(10 rows)
+(12 rows)
 
 update foo set a=4 from bar where foo.a=bar.a;
 select * from foo;
@@ -611,9 +617,9 @@ drop table foo;
 drop table bar;
 drop table jazz;
 create table foo (a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 create table bar (b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'b' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'b' as the Cloudberry Database data distribution key for this table.
 insert into foo select i from generate_series(1, 10)i;
 insert into bar select i from generate_series(1, 10)i;
 alter table foo set with(REORGANIZE=false) distributed randomly;

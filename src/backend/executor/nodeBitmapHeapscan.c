@@ -20,9 +20,9 @@
  *
  * This can also be used in "Dynamic" mode.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
- * Portions Copyright (c) 2008-2009, Greenplum Inc.
+ * Portions Copyright (c) 2008-2009, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -57,21 +57,19 @@
 #include "parser/parsetree.h"
 #include "nodes/tidbitmap.h"
 #include "utils/rel.h"
-#include "utils/spccache.h"
 #include "utils/snapmgr.h"
 
 #include "cdb/cdbvars.h" /* gp_select_invisible */
+#include "utils/spccache.h"
 
 static TupleTableSlot *BitmapHeapNext(BitmapHeapScanState *node);
-static inline void BitmapDoneInitializingSharedState(
-													 ParallelBitmapHeapState *pstate);
+static inline void BitmapDoneInitializingSharedState(ParallelBitmapHeapState *pstate);
 static inline void BitmapAdjustPrefetchIterator(BitmapHeapScanState *node,
 												TBMIterateResult *tbmres);
 static inline void BitmapAdjustPrefetchTarget(BitmapHeapScanState *node);
 static inline void BitmapPrefetch(BitmapHeapScanState *node,
 								  TableScanDesc scan);
-static bool BitmapShouldInitializeSharedState(
-											  ParallelBitmapHeapState *pstate);
+static bool BitmapShouldInitializeSharedState(ParallelBitmapHeapState *pstate);
 static void ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node);
 
 
@@ -169,7 +167,7 @@ BitmapHeapNext(BitmapHeapScanState *node)
 		else
 		{
 			/*
-			 * GPDB_12_MERGE_FIXME the parallel StreamBitmap scan is not
+			 * GPDB_12_MERGE_FEATURE_NOT_SUPPORTED: the parallel StreamBitmap scan is not
 			 * implemented, it must be a TIDBitmap here
 			 */
 			/*
@@ -754,7 +752,6 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 {
 	BitmapHeapScanState *scanstate;
 	Relation	currentRelation;
-	int			io_concurrency;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
@@ -787,8 +784,6 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 	scanstate->prefetch_iterator = NULL;
 	scanstate->prefetch_pages = 0;
 	scanstate->prefetch_target = 0;
-	/* may be updated below */
-	scanstate->prefetch_maximum = target_prefetch_pages;
 	scanstate->pscan_len = 0;
 	scanstate->initialized = false;
 	scanstate->shared_tbmiterator = NULL;
@@ -844,20 +839,11 @@ ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags)
 		ExecInitQual(node->bitmapqualorig, (PlanState *) scanstate);
 
 	/*
-	 * Determine the maximum for prefetch_target.  If the tablespace has a
-	 * specific IO concurrency set, use that to compute the corresponding
-	 * maximum value; otherwise, we already initialized to the value computed
-	 * by the GUC machinery.
+	 * Maximum number of prefetches for the tablespace if configured,
+	 * otherwise the current value of the effective_io_concurrency GUC.
 	 */
-	io_concurrency =
+	scanstate->prefetch_maximum =
 		get_tablespace_io_concurrency(currentRelation->rd_rel->reltablespace);
-	if (io_concurrency != effective_io_concurrency)
-	{
-		double		maximum;
-
-		if (ComputeIoConcurrency(io_concurrency, &maximum))
-			scanstate->prefetch_maximum = rint(maximum);
-	}
 
 	/* Prefetching hasn't been implemented for AO tables */
 	if (RelationIsAppendOptimized(currentRelation))

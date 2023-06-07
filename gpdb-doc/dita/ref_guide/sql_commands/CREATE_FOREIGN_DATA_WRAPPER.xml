@@ -32,13 +32,13 @@
                 <plentry>
                     <pt>HANDLER <varname>handler_function</varname></pt>
                     <pd>
-                        <p>The name of a previously registered function that Greenplum Database calls to retrieve the execution functions for foreign tables.  <varname>hander_function</varname> must take no arguments, and its return type must be <codeph>fdw_handler</codeph>.</p><p>It is possible to create a foreign-data wrapper with no handler function, but you can only declare, not access, foreign tables using such a wrapper.</p>
+                        <p>The name of a previously registered function that Cloudberry Database calls to retrieve the execution functions for foreign tables.  <varname>hander_function</varname> must take no arguments, and its return type must be <codeph>fdw_handler</codeph>.</p><p>It is possible to create a foreign-data wrapper with no handler function, but you can only declare, not access, foreign tables using such a wrapper.</p>
                     </pd>
                 </plentry>
                 <plentry>
                     <pt>VALIDATOR <varname>validator_function</varname></pt>
                     <pd>
-                        <p>The name of a previously registered function that Greenplum Database calls to check the options provided to the foreign-data wrapper. This function also checks the options for foreign servers, user mappings, and foreign tables that use the foreign-data wrapper. If no validator function or <codeph>NO VALIDATOR</codeph> is specified, Greenplum Database does not check options at creation time. (Depending upon the implementation, foreign-data wrappers may ignore or reject invalid options at runtime.)</p><p><varname>validator_function</varname> must take two arguments: one of type <codeph>text[]</codeph>, which contains the array of options as stored in the system catalogs, and one of type <codeph>oid</codeph>, which identifies the OID of the system catalog containing the options.</p><p>The return type is ignored; <varname>validator_function</varname> should report invalid options using the <codeph>ereport(ERROR)</codeph> function.</p>
+                        <p>The name of a previously registered function that Cloudberry Database calls to check the options provided to the foreign-data wrapper. This function also checks the options for foreign servers, user mappings, and foreign tables that use the foreign-data wrapper. If no validator function or <codeph>NO VALIDATOR</codeph> is specified, Cloudberry Database does not check options at creation time. (Depending upon the implementation, foreign-data wrappers may ignore or reject invalid options at runtime.)</p><p><varname>validator_function</varname> must take two arguments: one of type <codeph>text[]</codeph>, which contains the array of options as stored in the system catalogs, and one of type <codeph>oid</codeph>, which identifies the OID of the system catalog containing the options.</p><p>The return type is ignored; <varname>validator_function</varname> should report invalid options using the <codeph>ereport(ERROR)</codeph> function.</p>
                     </pd>
                 </plentry>
                 <plentry>
@@ -81,7 +81,7 @@
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>CREATE FOREIGN DATA WRAPPER</codeph> conforms to ISO/IEC 9075-9 (SQL/MED), with the exception that the <codeph>HANDLER</codeph> and <codeph>VALIDATOR</codeph> clauses are extensions, and the standard clauses <codeph>LIBRARY</codeph> and <codeph>LANGUAGE</codeph> are not implemented in Greenplum Database.</p>
+            <p><codeph>CREATE FOREIGN DATA WRAPPER</codeph> conforms to ISO/IEC 9075-9 (SQL/MED), with the exception that the <codeph>HANDLER</codeph> and <codeph>VALIDATOR</codeph> clauses are extensions, and the standard clauses <codeph>LIBRARY</codeph> and <codeph>LANGUAGE</codeph> are not implemented in Cloudberry Database.</p>
             <p>Note, however, that the SQL/MED functionality as a whole is not yet conforming.</p>
         </section>
         <section id="section8">

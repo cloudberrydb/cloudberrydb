@@ -198,7 +198,7 @@ gpinitsystem_for_upgrade() {
     #
     # FIXME: the checksum/string settings below need to be pulled from the
     # previous database, not hardcoded. And long-term, we need to decide how
-    # Greenplum clusters should be upgraded when GUC settings' defaults change.
+    # Cloudberry clusters should be upgraded when GUC settings' defaults change.
     ssh -ttn ${MASTER_HOST} '
         source '"${OLD_GPHOME}"'/greenplum_path.sh
         gpstop -a -d '"${OLD_COORDINATOR_DATA_DIRECTORY}"'
@@ -372,7 +372,7 @@ done
 # mode.
 if (( $CONCOURSE_MODE )); then
     MASTER_HOST=mdw
-    OLD_GPHOME=/usr/local/greenplum-db-devel
+    OLD_GPHOME=/usr/local/cloudberry-db-devel
     NEW_GPHOME=/usr/local/gpdb_master
     DATADIR_PREFIX=/data/gpdata
     OLD_COORDINATOR_DATA_DIRECTORY=/data/gpdata/master/gpseg-1

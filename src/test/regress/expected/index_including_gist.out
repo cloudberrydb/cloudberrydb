@@ -79,11 +79,11 @@ DROP TABLE tbl_gist;
 CREATE TABLE tbl_gist (c1 int, c2 int, c3 int, c4 box);
 INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(x,x+1),point(2*x,2*x+1)) FROM generate_series(1,10) AS x;
 CREATE INDEX CONCURRENTLY tbl_gist_idx ON tbl_gist using gist (c4) INCLUDE (c1,c2,c3);
-ERROR:  CREATE INDEX CONCURRENTLY is not supported
 SELECT indexdef FROM pg_indexes WHERE tablename = 'tbl_gist' ORDER BY indexname;
- indexdef 
-----------
-(0 rows)
+                                     indexdef                                      
+-----------------------------------------------------------------------------------
+ CREATE INDEX tbl_gist_idx ON public.tbl_gist USING gist (c4) INCLUDE (c1, c2, c3)
+(1 row)
 
 DROP TABLE tbl_gist;
 /*

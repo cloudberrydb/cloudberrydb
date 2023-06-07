@@ -34,7 +34,6 @@ typedef struct SharedSnapshotSlot
 	int32			slotindex;  /* where in the array this one is. */
 	int32	 		slotid;
 	PGPROC			*writer_proc;
-	PGXACT			*writer_xact;
 
 	/* only used by cursor dump identification, dose not always set */
 	volatile DistributedTransactionId distributedXid;

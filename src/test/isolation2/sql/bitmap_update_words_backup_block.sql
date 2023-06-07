@@ -5,9 +5,6 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 1:SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid)
     FROM gp_segment_configuration WHERE role='p' AND content=-1;
 1:SELECT gp_request_fts_probe_scan();
-1:SELECT gp_wait_until_triggered_fault('fts_probe', 1, dbid)
-    FROM gp_segment_configuration WHERE role='p' AND content=-1;
-
 CREATE TABLE bm_update_words_backup_block (id int) WITH (appendonly = true);
 
 1: BEGIN;

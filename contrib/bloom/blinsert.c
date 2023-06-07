@@ -3,7 +3,7 @@
  * blinsert.c
  *		Bloom index build and insert functions.
  *
- * Copyright (c) 2016-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2016-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/bloom/blinsert.c
@@ -15,6 +15,7 @@
 #include "access/genam.h"
 #include "access/generic_xlog.h"
 #include "access/tableam.h"
+#include "bloom.h"
 #include "catalog/index.h"
 #include "miscadmin.h"
 #include "storage/bufmgr.h"
@@ -22,8 +23,6 @@
 #include "storage/smgr.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
-
-#include "bloom.h"
 
 PG_MODULE_MAGIC;
 
@@ -64,7 +63,6 @@ flushCachedPage(Relation index, BloomBuildState *buildstate)
 static void
 initCachedPage(BloomBuildState *buildstate)
 {
-	memset(buildstate->data.data, 0, BLCKSZ);
 	BloomInitPage(buildstate->data.data, 0);
 	buildstate->count = 0;
 }
@@ -73,7 +71,7 @@ initCachedPage(BloomBuildState *buildstate)
  * Per-tuple callback for table_index_build_scan.
  */
 static void
-bloomBuildCallback(Relation index, ItemPointer tupleId, Datum *values,
+bloomBuildCallback(Relation index, ItemPointer tid, Datum *values,
 				   bool *isnull, bool tupleIsAlive, void *state)
 {
 	BloomBuildState *buildstate = (BloomBuildState *) state;
@@ -82,7 +80,7 @@ bloomBuildCallback(Relation index, ItemPointer tupleId, Datum *values,
 
 	oldCtx = MemoryContextSwitchTo(buildstate->tmpCtx);
 
-	itup = BloomFormTuple(&buildstate->blstate, tupleId, values, isnull);
+	itup = BloomFormTuple(&buildstate->blstate, tid, values, isnull);
 
 	/* Try to add next item to cached page */
 	if (BloomPageAddItem(&buildstate->blstate, buildstate->data.data, itup))
@@ -199,6 +197,7 @@ bool
 blinsert(Relation index, Datum *values, bool *isnull,
 		 ItemPointer ht_ctid, Relation heapRel,
 		 IndexUniqueCheck checkUnique,
+		 bool indexUnchanged,
 		 IndexInfo *indexInfo)
 {
 	BloomState	blstate;

@@ -423,7 +423,7 @@ dumpCancelResult(StringInfo str, List *xids)
 
 		appendStringInfo(str, UINT64_FORMAT"(Master Pid: %d)", xid, GetPidByGxid(xid));
 
-		if (lnext(cell))
+		if (lnext(xids, cell))
 			appendStringInfo(str, ",");
 	}
 }

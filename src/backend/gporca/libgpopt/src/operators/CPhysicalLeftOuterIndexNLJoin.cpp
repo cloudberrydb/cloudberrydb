@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2017 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2017 Cloudberry, Inc.
 //
 //	Implementation of left outer index nested-loops join operator
 //---------------------------------------------------------------------------

@@ -10,12 +10,14 @@ VACUUM;
 -- temporarily disable fancy output, so catalog changes create less diff noise
 \a\t
 
+-- filter tables with same name under schema singleseg created by GPDB 
 SELECT relname, relhasindex
    FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = relnamespace
    WHERE relkind IN ('r', 'p') AND (nspname ~ '^pg_temp_') IS NOT TRUE
    AND relname NOT LIKE 'gp_%'
    AND relname NOT LIKE '__gp_%'
    AND relname <> 'pg_resqueue'
+   AND n.nspname <> 'singleseg'
    ORDER BY relname;
 
 -- restore normal output mode

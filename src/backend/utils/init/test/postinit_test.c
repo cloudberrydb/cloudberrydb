@@ -17,16 +17,18 @@ _errfinish_impl()
 
 static void expect_ereport(int expect_elevel)
 {
-	expect_value(errstart, elevel, expect_elevel);
-	expect_any(errstart, domain);
 	if (expect_elevel < ERROR)
 	{
+		expect_value(errstart, elevel, expect_elevel);
+		expect_any(errstart, domain);
 		will_return(errstart, false);
 	}
-    else
-    {
-		will_return_with_sideeffect(errstart, false, &_errfinish_impl, NULL);
-    }
+	else
+	{
+		expect_value(errstart_cold, elevel, expect_elevel);
+		expect_any(errstart_cold, domain);
+		will_return_with_sideeffect(errstart_cold, false, &_errfinish_impl, NULL);
+	}
 }
 
 #include "../postinit.c"

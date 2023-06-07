@@ -2,10 +2,14 @@
 set -e
 set -u
 
-source /usr/local/greenplum-db-devel/greenplum_path.sh
+# INSTALL_DIR is set manually in pipeline for release
+INSTALL_DIR=${INSTALL_DIR:-/usr/local/cloudberry-db-devel}
+source $INSTALL_DIR/greenplum_path.sh
 source ./gpdb_src/gpAux/gpdemo/gpdemo-env.sh
 
 gpstart -a
+sleep 60
+./gpdb_src/concourse/scripts/ic_start_fts_once.bash
 
 psql \
     -X \

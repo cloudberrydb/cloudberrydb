@@ -5,7 +5,7 @@
   <title id="fs142834">foreign_table_options</title>
   <body>
     <p>The <codeph>foreign_table_options</codeph> view contains all of the options defined for
-      foreign tables in the current database. Greenplum Database displays only those foreign
+      foreign tables in the current database. Cloudberry Database displays only those foreign
        tables to which the current user has access (by way of being the owner or having some privilege).</p>
     <table id="fs142842">
       <title>foreign_table_options</title>

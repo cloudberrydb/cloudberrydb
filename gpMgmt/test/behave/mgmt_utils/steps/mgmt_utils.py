@@ -401,7 +401,7 @@ def impl(context, segment, content):
 @then('the user waits until all bytes are sent to mirror on content {content}')
 def impl(context, content):
     host, port = get_primary_segment_host_port_for_content(content)
-    query = "SELECT pg_current_wal_lsn() - sent_lsn FROM pg_stat_replication;"
+    query = "SELECT CASE WHEN sync_state='sync' THEN (pg_current_wal_lsn() - sent_lsn) ELSE 1 END FROM pg_stat_replication;"
     desired_result = 0
     wait_for_desired_query_result_on_segment(host, port, query, desired_result)
 

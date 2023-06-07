@@ -4,7 +4,7 @@
  *	  Physical access information for relations.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/relfilenode.h
@@ -56,9 +56,9 @@
  */
 typedef struct RelFileNode
 {
-	Oid			spcNode;		/* tablespace */
-	Oid			dbNode;			/* database */
-	Oid			relNode;		/* relation */
+	Oid				spcNode;		/* tablespace */
+	Oid				dbNode;			/* database */
+	RelFileNodeId	relNode;		/* relation */
 } RelFileNode;
 
 /*

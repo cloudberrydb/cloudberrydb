@@ -6,8 +6,8 @@
    <body>
       <p>You can define writable external web tables to send output rows to an application or
          script. The application must accept an input stream, reside in the same location on all of
-         the Greenplum segment hosts, and be executable by the <codeph>gpadmin</codeph> user. All
-         segments in the Greenplum system run the application or script, whether or not a segment
+         the Cloudberry segment hosts, and be executable by the <codeph>gpadmin</codeph> user. All
+         segments in the Cloudberry system run the application or script, whether or not a segment
          has output rows to process.</p>
       <p>Use <codeph>CREATE WRITABLE EXTERNAL WEB TABLE</codeph> to define the external table and
          specify the application or script to run on the segment hosts. Commands run from within
@@ -23,10 +23,10 @@
     DISTRIBUTED RANDOMLY;
 </codeblock>
       </p>
-      <p>The following Greenplum Database variables are available for use in OS commands run by
+      <p>The following Cloudberry Database variables are available for use in OS commands run by
          a web or writable external table. Set these variables as environment variables in the shell
          that runs the command(s). They can be used to identify a set of requests made by an
-         external table statement across the Greenplum Database array of hosts and segment
+         external table statement across the Cloudberry Database array of hosts and segment
          instances.</p>
       <table id="du224024">
          <title>External Table EXECUTE Variables</title>
@@ -56,17 +56,17 @@
                </row>
                <row>
                   <entry colname="col1">$GP_MASTER_HOST</entry>
-                  <entry colname="col2">The host name of the Greenplum master host from which the
+                  <entry colname="col2">The host name of the Cloudberry master host from which the
                      external table statement was dispatched.</entry>
                </row>
                <row>
                   <entry colname="col1">$GP_MASTER_PORT</entry>
-                  <entry colname="col2">The port number of the Greenplum master instance from which
+                  <entry colname="col2">The port number of the Cloudberry master instance from which
                      the external table statement was dispatched.</entry>
                </row>
                <row>
                   <entry colname="col1">$GP_QUERY_STRING</entry>
-                  <entry colname="col2">The SQL command (DML or SQL query) run by Greenplum
+                  <entry colname="col2">The SQL command (DML or SQL query) run by Cloudberry
                      Database.</entry>
                </row>
                <row>
@@ -87,7 +87,7 @@
                <row>
                   <entry colname="col1">$GP_SEGMENT_COUNT</entry>
                   <entry colname="col2">The total number of primary segment instances in the
-                     Greenplum Database system.</entry>
+                     Cloudberry Database system.</entry>
                </row>
                <row>
                   <entry colname="col1">$GP_SEGMENT_ID</entry>

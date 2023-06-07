@@ -4,15 +4,15 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/parser/parse_func.h
  *
  *-------------------------------------------------------------------------
  */
-#ifndef PARSER_FUNC_H
-#define PARSER_FUNC_H
+#ifndef PARSE_FUNC_H
+#define PARSE_FUNC_H
 
 #include "catalog/namespace.h"
 #include "parser/parse_node.h"
@@ -39,6 +39,7 @@ extern FuncDetailCode func_get_detail(List *funcname,
 									  List *fargs, List *fargnames,
 									  int nargs, Oid *argtypes,
 									  bool expand_variadic, bool expand_defaults,
+									  bool include_out_arguments,
 									  Oid *funcid, Oid *rettype,
 									  bool *retset, int *nvargs, Oid *vatype,
 									  Oid **true_typeids, List **argdefaults);

@@ -68,7 +68,7 @@ SELECT [ALL | DISTINCT [ON ( <varname>expression</varname> [, ...] )]]
         <section id="section6">
             <title>Compatibility</title>
             <p>The SQL standard uses <codeph>SELECT INTO</codeph> to represent selecting values into
-                scalar variables of a host program, rather than creating a new table. The Greenplum
+                scalar variables of a host program, rather than creating a new table. The Cloudberry
                 Database usage of <codeph>SELECT INTO</codeph> to represent table creation is
                 historical. It is best to use <codeph><xref href="CREATE_TABLE_AS.xml#topic1"
                         type="topic" format="dita"/></codeph> for this purpose in new

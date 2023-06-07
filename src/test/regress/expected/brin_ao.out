@@ -445,7 +445,7 @@ UPDATE brintest_ao SET textcol = '' WHERE textcol IS NOT NULL;
 -- Vaccum again so that a new segment file is created.
 VACUUM brintest_ao;
 INSERT INTO brintest_ao SELECT * FROM brintest_ao;
--- We should have two segment files per Greenplum segment (QE). 
+-- We should have two segment files per Cloudberry segment (QE). 
 -- start_ignore
 SELECT segment_id, segno, tupcount, state FROM gp_toolkit.__gp_aoseg('brintest_ao');
  segment_id | segno | tupcount | state 

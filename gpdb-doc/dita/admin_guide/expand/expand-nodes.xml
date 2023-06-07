@@ -3,24 +3,24 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title>Preparing and Adding Hosts</title>
-  <shortdesc>Verify your new host systems are ready for integration into the existing Greenplum
+  <shortdesc>Verify your new host systems are ready for integration into the existing Cloudberry
     system. </shortdesc>
   <body>
-    <p>To prepare new host systems for expansion, install the Greenplum Database software binaries,
+    <p>To prepare new host systems for expansion, install the Cloudberry Database software binaries,
       exchange the required SSH keys, and run performance tests. </p>
     <p>Run performance tests first on the new hosts and then all hosts. Run the tests on all hosts
       with the system offline so user activity does not distort results.</p>
     <p>Generally, you should run performance tests when an administrator modifies host networking or
       other special conditions in the system. For example, if you will run the expanded system on
       two network clusters, run tests on each cluster.</p>
-    <note>Preparing host systems for use by a Greenplum Database system assumes that the new hosts'
+    <note>Preparing host systems for use by a Cloudberry Database system assumes that the new hosts'
       operating system has been properly configured to match the existing hosts, described in <xref
         href="../../install_guide/prep_os.html" format="html" scope="external"/>.</note>
   </body>
   <topic id="topic18" xml:lang="en">
     <title id="no159311">Adding New Hosts to the Trusted Host Environment</title>
     <body>
-      <p>New hosts must exchange SSH keys with the existing hosts to enable Greenplum administrative
+      <p>New hosts must exchange SSH keys with the existing hosts to enable Cloudberry administrative
         utilities to connect to all segments without a password prompt. Perform the key exchange
         process twice with the <xref href="../../utility_guide/ref/gpssh-exkeys.xml"
             >gpssh-exkeys</xref> utility.</p>
@@ -38,7 +38,7 @@
           <xref href="#topic18/sshexch_gpadmin" type="section" format="dita"/>
         </li>
       </ol>
-      <note type="note">The Greenplum Database segment host naming convention is
+      <note type="note">The Cloudberry Database segment host naming convention is
           <codeph>sdwN</codeph> where <codeph>sdw</codeph> is a prefix and <codeph>N</codeph> is an
         integer ( <codeph>sdw1</codeph>, <codeph>sdw2</codeph> and so on). For hosts with multiple
         interfaces, the convention is to append a dash (<codeph>-</codeph>) and number to the host
@@ -69,7 +69,7 @@ sdw3-2
 sdw3-3
 sdw3-4</codeblock></li>
           <li id="no175582">Log in as <codeph>root</codeph> on the master host, and source the
-              <codeph>greenplum_path.sh</codeph> file from your Greenplum
+              <codeph>greenplum_path.sh</codeph> file from your Cloudberry
             installation.<codeblock>$ su - 
 # source /usr/local/greenplum-db/greenplum_path.sh</codeblock></li>
           <li id="no160584">Run the <codeph>gpssh-exkeys</codeph> utility referencing the host list

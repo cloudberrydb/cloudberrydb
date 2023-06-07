@@ -2,7 +2,7 @@
 title: R Data Science Library Package 
 ---
 
-R packages are modules that contain R functions and data sets. Greenplum Database provides a collection of data science-related R libraries that can be used with the Greenplum Database PL/R language. You can download these libraries in `.gppkg` format from [VMware Tanzu Network](https://network.pivotal.io/products/pivotal-gpdb).
+R packages are modules that contain R functions and data sets. Cloudberry Database provides a collection of data science-related R libraries that can be used with the Cloudberry Database PL/R language. You can download these libraries in `.gppkg` format from [VMware Tanzu Network](https://network.pivotal.io/products/pivotal-gpdb).
 
 This chapter contains the following information:
 
@@ -10,9 +10,9 @@ This chapter contains the following information:
 -   [Installing the R Data Science Library Package](#topic_instpdsl)
 -   [Uninstalling the R Data Science Library Package](#topic_removepdsl)
 
-For information about the Greenplum Database PL/R Language, see [Greenplum PL/R Language Extension](../analytics/pl_r.html).
+For information about the Cloudberry Database PL/R Language, see [Cloudberry PL/R Language Extension](../analytics/pl_r.html).
 
-**Parent topic:**[Installing Optional Extensions \(Tanzu Greenplum\)](data_sci_pkgs.html)
+**Parent topic:**[Installing Optional Extensions \(Tanzu Cloudberry\)](data_sci_pkgs.html)
 
 ## <a id="topic2"></a>R Data Science Libraries 
 
@@ -277,23 +277,23 @@ Libraries provided in the R Data Science package include:
 
 ## <a id="topic_instpdsl"></a>Installing the R Data Science Library Package 
 
-Before you install the R Data Science Library package, make sure that your Greenplum Database is running, you have sourced `greenplum_path.sh`, and that the `$MASTER_DATA_DIRECTORY` and `$GPHOME` environment variables are set.
+Before you install the R Data Science Library package, make sure that your Cloudberry Database is running, you have sourced `greenplum_path.sh`, and that the `$MASTER_DATA_DIRECTORY` and `$GPHOME` environment variables are set.
 
 1.  Locate the R Data Science library package that you built or downloaded.
 
     The file name format of the package is `DataScienceR-<version>-relhel<N>_x86_64.gppkg`.
 
-2.  Copy the package to the Greenplum Database coordinator host.
-3.  Follow the instructions in [Verifying the Greenplum Database Software Download](../install_guide/verify_sw.html) to verify the integrity of the *Greenplum Procedural Languages R Data Science Package* software.
+2.  Copy the package to the Cloudberry Database coordinator host.
+3.  Follow the instructions in [Verifying the Cloudberry Database Software Download](../install_guide/verify_sw.html) to verify the integrity of the *Cloudberry Procedural Languages R Data Science Package* software.
 3.  Use the `gppkg` command to install the package. For example:
 
     ```
     $ gppkg -i DataScienceR-<version>-relhel<N>_x86_64.gppkg
     ```
 
-    `gppkg` installs the R Data Science libraries on all nodes in your Greenplum Database cluster. The command also sets the `R_LIBS_USER` environment variable and updates the `PATH` and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file.
+    `gppkg` installs the R Data Science libraries on all nodes in your Cloudberry Database cluster. The command also sets the `R_LIBS_USER` environment variable and updates the `PATH` and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file.
 
-4.  Restart Greenplum Database. You must re-source `greenplum_path.sh` before restarting your Greenplum cluster:
+4.  Restart Cloudberry Database. You must re-source `greenplum_path.sh` before restarting your Cloudberry cluster:
 
     ```
     $ source /usr/local/greenplum-db/greenplum_path.sh
@@ -301,13 +301,13 @@ Before you install the R Data Science Library package, make sure that your Green
     ```
 
 
-The Greenplum Database R Data Science Modules are installed in the following directory:
+The Cloudberry Database R Data Science Modules are installed in the following directory:
 
 ```
 $GPHOME/ext/DataScienceR/library
 ```
 
-**Note:** `rjags` libraries are installed in the `$GPHOME/ext/DataScienceR/extlib/lib` directory. If you want to use `rjags` and your `$GPHOME` is not `/usr/local/greenplum-db`, you must perform additional configuration steps to create a symbolic link from `$GPHOME` to `/usr/local/greenplum-db` on each node in your Greenplum Database cluster. For example:
+**Note:** `rjags` libraries are installed in the `$GPHOME/ext/DataScienceR/extlib/lib` directory. If you want to use `rjags` and your `$GPHOME` is not `/usr/local/greenplum-db`, you must perform additional configuration steps to create a symbolic link from `$GPHOME` to `/usr/local/greenplum-db` on each node in your Cloudberry Database cluster. For example:
 
 ```
 $ gpssh -f all_hosts -e 'ln -s $GPHOME /usr/local/greenplum-db'
@@ -327,14 +327,14 @@ DataScienceR-<version>
 $ gppkg -r DataScienceR-<version>
 ```
 
-The command removes the R Data Science libraries from your Greenplum Database cluster. It also removes the `R_LIBS_USER` environment variable and updates the `PATH` and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file to their pre-installation values.
+The command removes the R Data Science libraries from your Cloudberry Database cluster. It also removes the `R_LIBS_USER` environment variable and updates the `PATH` and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file to their pre-installation values.
 
-Re-source `greenplum_path.sh` and restart Greenplum Database after you remove the R Data Science Library package:
+Re-source `greenplum_path.sh` and restart Cloudberry Database after you remove the R Data Science Library package:
 
 ```
 $ . /usr/local/greenplum-db/greenplum_path.sh
 $ gpstop -r 
 ```
 
-**Note:** When you uninstall the R Data Science Library package from your Greenplum Database cluster, any UDFs that you have created that use R libraries installed with this package will return an error.
+**Note:** When you uninstall the R Data Science Library package from your Cloudberry Database cluster, any UDFs that you have created that use R libraries installed with this package will return an error.
 

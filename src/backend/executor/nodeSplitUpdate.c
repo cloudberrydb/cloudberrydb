@@ -14,6 +14,7 @@
  */
 
 #include "postgres.h"
+#include "fmgr.h"
 #include "miscadmin.h"
 
 #include "cdb/cdbhash.h"
@@ -118,8 +119,8 @@ SplitTupleTableSlot(TupleTableSlot *slot,
 			insert_values[attno - 1] = values[insertAttNo - 1];
 			insert_nulls[attno - 1] = nulls[insertAttNo - 1];
 
-			deleteAtt = lnext(deleteAtt);
-			insertAtt = lnext(insertAtt);
+			deleteAtt = lnext(plannode->deleteColIdx, deleteAtt);
+			insertAtt = lnext(plannode->insertColIdx, insertAtt);
 		}
 		else if (attno == node->output_segid_attno)
 		{

@@ -22,7 +22,7 @@ select count(*)  from sto_uao_city_analyze_everydml;
 select relname, reltuples from pg_class where oid='sto_uao_city_analyze_everydml'::regclass;
             relname            | reltuples 
 -------------------------------+-----------
- sto_uao_city_analyze_everydml |         0
+ sto_uao_city_analyze_everydml |        -1
 (1 row)
 
 SELECT 1 AS VisimapPresent FROM pg_appendonly WHERE visimaprelid is not NULL AND

@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CDXLOperatorFactory.cpp
@@ -1037,7 +1037,7 @@ CDXLOperatorFactory::MakeDXLFuncExpr(CDXLMemoryManager *dxl_memory_manager,
 		default_type_modifier);
 
 	return GPOS_NEW(mp) CDXLScalarFuncExpr(mp, mdid_func, mdid_return_type,
-										   type_modifier, is_retset);
+										   type_modifier, is_retset, 0);
 }
 
 //---------------------------------------------------------------------------

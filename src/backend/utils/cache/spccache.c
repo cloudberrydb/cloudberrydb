@@ -8,7 +8,7 @@
  * be a measurable performance gain from doing this, but that might change
  * in the future as we add more options.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -79,7 +79,6 @@ InitializeTableSpaceCache(void)
 	HASHCTL		ctl;
 
 	/* Initialize the hash table. */
-	MemSet(&ctl, 0, sizeof(ctl));
 	ctl.keysize = sizeof(Oid);
 	ctl.entrysize = sizeof(TableSpaceCacheEntry);
 	TableSpaceCacheHash =
@@ -220,4 +219,18 @@ get_tablespace_io_concurrency(Oid spcid)
 		return effective_io_concurrency;
 	else
 		return spc->opts->effective_io_concurrency;
+}
+
+/*
+ * get_tablespace_maintenance_io_concurrency
+ */
+int
+get_tablespace_maintenance_io_concurrency(Oid spcid)
+{
+	TableSpaceCacheEntry *spc = get_tablespace(spcid);
+
+	if (!spc->opts || spc->opts->maintenance_io_concurrency < 0)
+		return maintenance_io_concurrency;
+	else
+		return spc->opts->maintenance_io_concurrency;
 }

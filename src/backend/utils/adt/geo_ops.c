@@ -13,7 +13,7 @@
  * - circle
  * - polygon
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -1055,12 +1055,19 @@ line_send(PG_FUNCTION_ARGS)
 static inline void
 line_construct(LINE *result, Point *pt, float8 m)
 {
-	if (m == DBL_MAX)
+	if (isinf(m))
 	{
 		/* vertical - use "x = C" */
 		result->A = -1.0;
 		result->B = 0.0;
 		result->C = pt->x;
+	}
+	else if (m == 0)
+	{
+		/* horizontal - use "y = C" */
+		result->A = 0.0;
+		result->B = -1.0;
+		result->C = pt->y;
 	}
 	else
 	{
@@ -1155,9 +1162,6 @@ line_horizontal(PG_FUNCTION_ARGS)
 
 /*
  * Check whether the two lines are the same
- *
- * We consider NaNs values to be equal to each other to let those lines
- * to be found.
  */
 Datum
 line_eq(PG_FUNCTION_ARGS)
@@ -1166,21 +1170,28 @@ line_eq(PG_FUNCTION_ARGS)
 	LINE	   *l2 = PG_GETARG_LINE_P(1);
 	float8		ratio;
 
-	if (!FPzero(l2->A) && !isnan(l2->A))
+	/* If any NaNs are involved, insist on exact equality */
+	if (unlikely(isnan(l1->A) || isnan(l1->B) || isnan(l1->C) ||
+				 isnan(l2->A) || isnan(l2->B) || isnan(l2->C)))
+	{
+		PG_RETURN_BOOL(float8_eq(l1->A, l2->A) &&
+					   float8_eq(l1->B, l2->B) &&
+					   float8_eq(l1->C, l2->C));
+	}
+
+	/* Otherwise, lines whose parameters are proportional are the same */
+	if (!FPzero(l2->A))
 		ratio = float8_div(l1->A, l2->A);
-	else if (!FPzero(l2->B) && !isnan(l2->B))
+	else if (!FPzero(l2->B))
 		ratio = float8_div(l1->B, l2->B);
-	else if (!FPzero(l2->C) && !isnan(l2->C))
+	else if (!FPzero(l2->C))
 		ratio = float8_div(l1->C, l2->C);
 	else
 		ratio = 1.0;
 
-	PG_RETURN_BOOL((FPeq(l1->A, float8_mul(ratio, l2->A)) &&
-					FPeq(l1->B, float8_mul(ratio, l2->B)) &&
-					FPeq(l1->C, float8_mul(ratio, l2->C))) ||
-				   (float8_eq(l1->A, l2->A) &&
-					float8_eq(l1->B, l2->B) &&
-					float8_eq(l1->C, l2->C)));
+	PG_RETURN_BOOL(FPeq(l1->A, float8_mul(ratio, l2->A)) &&
+				   FPeq(l1->B, float8_mul(ratio, l2->B)) &&
+				   FPeq(l1->C, float8_mul(ratio, l2->C)));
 }
 
 
@@ -1197,7 +1208,7 @@ line_sl(LINE *line)
 	if (FPzero(line->A))
 		return 0.0;
 	if (FPzero(line->B))
-		return DBL_MAX;
+		return get_float8_infinity();
 	return float8_div(line->A, -line->B);
 }
 
@@ -1209,7 +1220,7 @@ static inline float8
 line_invsl(LINE *line)
 {
 	if (FPzero(line->A))
-		return DBL_MAX;
+		return get_float8_infinity();
 	if (FPzero(line->B))
 		return 0.0;
 	return float8_div(line->B, line->A);
@@ -1930,15 +1941,16 @@ point_ne(PG_FUNCTION_ARGS)
 
 /*
  * Check whether the two points are the same
- *
- * We consider NaNs coordinates to be equal to each other to let those points
- * to be found.
  */
 static inline bool
 point_eq_point(Point *pt1, Point *pt2)
 {
-	return ((FPeq(pt1->x, pt2->x) && FPeq(pt1->y, pt2->y)) ||
-			(float8_eq(pt1->x, pt2->x) && float8_eq(pt1->y, pt2->y)));
+	/* If any NaNs are involved, insist on exact equality */
+	if (unlikely(isnan(pt1->x) || isnan(pt1->y) ||
+				 isnan(pt2->x) || isnan(pt2->y)))
+		return (float8_eq(pt1->x, pt2->x) && float8_eq(pt1->y, pt2->y));
+
+	return (FPeq(pt1->x, pt2->x) && FPeq(pt1->y, pt2->y));
 }
 
 
@@ -1974,13 +1986,13 @@ point_slope(PG_FUNCTION_ARGS)
 /*
  * Return slope of two points
  *
- * Note that this function returns DBL_MAX when the points are the same.
+ * Note that this function returns Inf when the points are the same.
  */
 static inline float8
 point_sl(Point *pt1, Point *pt2)
 {
 	if (FPeq(pt1->x, pt2->x))
-		return DBL_MAX;
+		return get_float8_infinity();
 	if (FPeq(pt1->y, pt2->y))
 		return 0.0;
 	return float8_div(float8_mi(pt1->y, pt2->y), float8_mi(pt1->x, pt2->x));
@@ -1998,7 +2010,7 @@ point_invsl(Point *pt1, Point *pt2)
 	if (FPeq(pt1->x, pt2->x))
 		return 0.0;
 	if (FPeq(pt1->y, pt2->y))
-		return DBL_MAX;
+		return get_float8_infinity();
 	return float8_div(float8_mi(pt1->x, pt2->x), float8_mi(pt2->y, pt1->y));
 }
 
@@ -2348,6 +2360,17 @@ dist_pl(PG_FUNCTION_ARGS)
 	PG_RETURN_FLOAT8(line_closept_point(NULL, line, pt));
 }
 
+/*
+ * Distance from a line to a point
+ */
+Datum
+dist_lp(PG_FUNCTION_ARGS)
+{
+	LINE	   *line = PG_GETARG_LINE_P(0);
+	Point	   *pt = PG_GETARG_POINT_P(1);
+
+	PG_RETURN_FLOAT8(line_closept_point(NULL, line, pt));
+}
 
 /*
  * Distance from a point to a lseg
@@ -2362,13 +2385,20 @@ dist_ps(PG_FUNCTION_ARGS)
 }
 
 /*
- * Distance from a point to a path
+ * Distance from a lseg to a point
  */
 Datum
-dist_ppath(PG_FUNCTION_ARGS)
+dist_sp(PG_FUNCTION_ARGS)
 {
-	Point	   *pt = PG_GETARG_POINT_P(0);
-	PATH	   *path = PG_GETARG_PATH_P(1);
+	LSEG	   *lseg = PG_GETARG_LSEG_P(0);
+	Point	   *pt = PG_GETARG_POINT_P(1);
+
+	PG_RETURN_FLOAT8(lseg_closept_point(NULL, lseg, pt));
+}
+
+static float8
+dist_ppath_internal(Point *pt, PATH *path)
+{
 	float8		result = 0.0;	/* keep compiler quiet */
 	bool		have_min = false;
 	float8		tmp;
@@ -2403,7 +2433,31 @@ dist_ppath(PG_FUNCTION_ARGS)
 		}
 	}
 
-	PG_RETURN_FLOAT8(result);
+	return result;
+}
+
+/*
+ * Distance from a point to a path
+ */
+Datum
+dist_ppath(PG_FUNCTION_ARGS)
+{
+	Point	   *pt = PG_GETARG_POINT_P(0);
+	PATH	   *path = PG_GETARG_PATH_P(1);
+
+	PG_RETURN_FLOAT8(dist_ppath_internal(pt, path));
+}
+
+/*
+ * Distance from a path to a point
+ */
+Datum
+dist_pathp(PG_FUNCTION_ARGS)
+{
+	PATH	   *path = PG_GETARG_PATH_P(0);
+	Point	   *pt = PG_GETARG_POINT_P(1);
+
+	PG_RETURN_FLOAT8(dist_ppath_internal(pt, path));
 }
 
 /*
@@ -2414,6 +2468,18 @@ dist_pb(PG_FUNCTION_ARGS)
 {
 	Point	   *pt = PG_GETARG_POINT_P(0);
 	BOX		   *box = PG_GETARG_BOX_P(1);
+
+	PG_RETURN_FLOAT8(box_closept_point(NULL, box, pt));
+}
+
+/*
+ * Distance from a box to a point
+ */
+Datum
+dist_bp(PG_FUNCTION_ARGS)
+{
+	BOX		   *box = PG_GETARG_BOX_P(0);
+	Point	   *pt = PG_GETARG_POINT_P(1);
 
 	PG_RETURN_FLOAT8(box_closept_point(NULL, box, pt));
 }
@@ -2431,6 +2497,18 @@ dist_sl(PG_FUNCTION_ARGS)
 }
 
 /*
+ * Distance from a line to a lseg
+ */
+Datum
+dist_ls(PG_FUNCTION_ARGS)
+{
+	LINE	   *line = PG_GETARG_LINE_P(0);
+	LSEG	   *lseg = PG_GETARG_LSEG_P(1);
+
+	PG_RETURN_FLOAT8(lseg_closept_line(NULL, lseg, line));
+}
+
+/*
  * Distance from a lseg to a box
  */
 Datum
@@ -2438,6 +2516,18 @@ dist_sb(PG_FUNCTION_ARGS)
 {
 	LSEG	   *lseg = PG_GETARG_LSEG_P(0);
 	BOX		   *box = PG_GETARG_BOX_P(1);
+
+	PG_RETURN_FLOAT8(box_closept_lseg(NULL, box, lseg));
+}
+
+/*
+ * Distance from a box to a lseg
+ */
+Datum
+dist_bs(PG_FUNCTION_ARGS)
+{
+	BOX		   *box = PG_GETARG_BOX_P(0);
+	LSEG	   *lseg = PG_GETARG_LSEG_P(1);
 
 	PG_RETURN_FLOAT8(box_closept_lseg(NULL, box, lseg));
 }
@@ -2462,13 +2552,27 @@ dist_lb(PG_FUNCTION_ARGS)
 }
 
 /*
- * Distance from a circle to a polygon
+ * Distance from a box to a line
  */
 Datum
-dist_cpoly(PG_FUNCTION_ARGS)
+dist_bl(PG_FUNCTION_ARGS)
 {
-	CIRCLE	   *circle = PG_GETARG_CIRCLE_P(0);
-	POLYGON    *poly = PG_GETARG_POLYGON_P(1);
+#ifdef NOT_USED
+	BOX		   *box = PG_GETARG_BOX_P(0);
+	LINE	   *line = PG_GETARG_LINE_P(1);
+#endif
+
+	/* need to think about this one for a while */
+	ereport(ERROR,
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("function \"dist_bl\" not implemented")));
+
+	PG_RETURN_NULL();
+}
+
+static float8
+dist_cpoly_internal(CIRCLE *circle, POLYGON *poly)
+{
 	float8		result;
 
 	/* calculate distance to center, and subtract radius */
@@ -2477,7 +2581,31 @@ dist_cpoly(PG_FUNCTION_ARGS)
 	if (result < 0.0)
 		result = 0.0;
 
-	PG_RETURN_FLOAT8(result);
+	return result;
+}
+
+/*
+ * Distance from a circle to a polygon
+ */
+Datum
+dist_cpoly(PG_FUNCTION_ARGS)
+{
+	CIRCLE	   *circle = PG_GETARG_CIRCLE_P(0);
+	POLYGON    *poly = PG_GETARG_POLYGON_P(1);
+
+	PG_RETURN_FLOAT8(dist_cpoly_internal(circle, poly));
+}
+
+/*
+ * Distance from a polygon to a circle
+ */
+Datum
+dist_polyc(PG_FUNCTION_ARGS)
+{
+	POLYGON    *poly = PG_GETARG_POLYGON_P(0);
+	CIRCLE	   *circle = PG_GETARG_CIRCLE_P(1);
+
+	PG_RETURN_FLOAT8(dist_cpoly_internal(circle, poly));
 }
 
 /*
@@ -4488,8 +4616,8 @@ poly_path(PG_FUNCTION_ARGS)
 /*		circle_in		-		convert a string to internal form.
  *
  *		External format: (center and radius of circle)
- *				"((f8,f8)<f8>)"
- *				also supports quick entry style "(f8,f8,f8)"
+ *				"<(f8,f8),f8>"
+ *				also supports quick entry style "f8,f8,f8"
  */
 Datum
 circle_in(PG_FUNCTION_ARGS)
@@ -4503,16 +4631,19 @@ circle_in(PG_FUNCTION_ARGS)
 	s = str;
 	while (isspace((unsigned char) *s))
 		s++;
-	if ((*s == LDELIM_C) || (*s == LDELIM))
+	if (*s == LDELIM_C)
+		depth++, s++;
+	else if (*s == LDELIM)
 	{
-		depth++;
+		/* If there are two left parens, consume the first one */
 		cp = (s + 1);
 		while (isspace((unsigned char) *cp))
 			cp++;
 		if (*cp == LDELIM)
-			s = cp;
+			depth++, s = cp;
 	}
 
+	/* pair_decode will consume parens around the pair, if any */
 	pair_decode(s, &circle->center.x, &circle->center.y, &s, "circle", str);
 
 	if (*s == DELIM)
@@ -5429,7 +5560,10 @@ pg_hypot(float8 x, float8 y)
 	yx = y / x;
 	result = x * sqrt(1.0 + (yx * yx));
 
-	check_float8_val(result, false, false);
+	if (unlikely(isinf(result)))
+		float_overflow_error();
+	if (unlikely(result == 0.0))
+		float_underflow_error();
 
 	return result;
 }

@@ -43,7 +43,6 @@
 -- skip FTS probes always
 SELECT gp_inject_fault_infinite('fts_probe', 'skip', 1);
 SELECT gp_request_fts_probe_scan();
-select gp_wait_until_triggered_fault('fts_probe', 1, 1);
 CREATE OR REPLACE FUNCTION test_excep (arg INTEGER) RETURNS INTEGER
 AS $$
     DECLARE res INTEGER; /* in func */
@@ -95,7 +94,7 @@ BEGIN /* in func */
 END; /* in func */
 $$
 LANGUAGE plpgsql;
-SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 SET debug_dtm_action_segment=0;
 SET debug_dtm_action_target=protocol;
 SET debug_dtm_action_protocol=subtransaction_begin;

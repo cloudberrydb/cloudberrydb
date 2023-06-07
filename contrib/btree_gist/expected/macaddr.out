@@ -68,11 +68,13 @@ SELECT count(*) FROM macaddrtmp WHERE a >  '22:00:5c:e5:9b:0d'::macaddr;
 SET enable_bitmapscan=off;
 EXPLAIN (COSTS OFF)
 SELECT * FROM macaddrtmp WHERE a < '02:03:04:05:06:07'::macaddr;
-                    QUERY PLAN                    
---------------------------------------------------
- Index Only Scan using macaddridx on macaddrtmp
-   Index Cond: (a < '02:03:04:05:06:07'::macaddr)
-(2 rows)
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   ->  Index Only Scan using macaddridx on macaddrtmp
+         Index Cond: (a < '02:03:04:05:06:07'::macaddr)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT * FROM macaddrtmp WHERE a < '02:03:04:05:06:07'::macaddr;
          a         

@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2011 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2011 Cloudberry, Inc.
 //
 //	@filename:
 //		CEnfdDistribution.cpp
@@ -92,6 +92,7 @@ CEnfdDistribution::FCompatible(CDistributionSpec *pds) const
 				return CDistributionSpecHashed::PdsConvert(pds)->FMatchSubset(
 					CDistributionSpecHashed::PdsConvert(m_pds));
 			}
+			// fallthrough
 
 		case (EdmSentinel):
 			GPOS_ASSERT("invalid matching type");

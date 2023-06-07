@@ -1,0 +1,225 @@
+--
+-- SM4 cipher (aka sm4-128)
+-- including sm4-128-ecb and sm4-128-cbc
+--
+-- `icw_bash` will used `--with-openssl` version.
+-- but openssl version which cbdb required have not SM2/SM3/SM4
+-- 
+-- start_ignore
+
+-- ensure consistent test output regardless of the default bytea format
+SET bytea_output TO escape;
+-- some standard SM4 testvalues
+SELECT encode(encrypt(
+decode('00112233445566778899aabbccddeeff', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+'sm4-ecb/pad:none'), 'hex');
+              encode              
+----------------------------------
+ ae9be90b4cbfd64fe7483c5462cfc7e8
+(1 row)
+
+SELECT encode(encrypt(
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+'sm4-ecb/pad:none'), 'hex');
+              encode              
+----------------------------------
+ 314e6bc74f35ebe04f35f99f7b08d770
+(1 row)
+
+-- cbc 
+SELECT encode(encrypt(
+decode('00112233445566778899aabbccddeeff', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+'sm4-cbc/pad:none'), 'hex');
+              encode              
+----------------------------------
+ ae9be90b4cbfd64fe7483c5462cfc7e8
+(1 row)
+
+SELECT encode(encrypt(
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+'sm4-cbc/pad:none'), 'hex');
+              encode              
+----------------------------------
+ 314e6bc74f35ebe04f35f99f7b08d770
+(1 row)
+
+SELECT encode(encrypt_iv(
+decode('00112233445566778899aabbccddeeff', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+'sm4-cbc/pad:none'), 'hex');
+              encode              
+----------------------------------
+ 28b6a4c8e4062f248dfb297a5ed7a9e1
+(1 row)
+
+SELECT encode(encrypt_iv(
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+'sm4-cbc/pad:none'), 'hex');
+              encode              
+----------------------------------
+ 3f3c5e360e7e07f7dcc851fdbd85e4b9
+(1 row)
+
+-- key padding
+SELECT encode(encrypt(
+decode('00112233445566778899aabbccddeeff', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+'sm4-ecb'), 'hex');
+                              encode                              
+------------------------------------------------------------------
+ ae9be90b4cbfd64fe7483c5462cfc7e88b19d6bca6c63e8e65f24edb0ba096e6
+(1 row)
+
+SELECT encode(encrypt(
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+'sm4-ecb'), 'hex');
+                              encode                              
+------------------------------------------------------------------
+ 314e6bc74f35ebe04f35f99f7b08d770da09ccdaa42830b9f1083d50654284be
+(1 row)
+
+-- cbc without iv
+SELECT encode(encrypt(
+decode('00112233445566778899aabbccddeeff', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+'sm4-cbc'), 'hex');
+                              encode                              
+------------------------------------------------------------------
+ ae9be90b4cbfd64fe7483c5462cfc7e8af11c63b65482e3aa50feaa2a703f529
+(1 row)
+
+SELECT encode(encrypt(
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+'sm4-cbc'), 'hex');
+                              encode                              
+------------------------------------------------------------------
+ 314e6bc74f35ebe04f35f99f7b08d770a6f53c60be8aa663eaf1df5dc263bd8d
+(1 row)
+
+SELECT encode(encrypt_iv(
+decode('00112233445566778899aabbccddeeff', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+decode('000102030405060708090a0b0c0d0e0f', 'hex'),
+'sm4-cbc'), 'hex');
+                              encode                              
+------------------------------------------------------------------
+ 28b6a4c8e4062f248dfb297a5ed7a9e171525bb14ddcab5deb7e11c37d4cdb82
+(1 row)
+
+SELECT encode(encrypt_iv(
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+decode('0123456789abcdeffedcba9876543210', 'hex'),
+'sm4-cbc'), 'hex');
+                              encode                              
+------------------------------------------------------------------
+ 3f3c5e360e7e07f7dcc851fdbd85e4b9530daf8c5b240f12717abc648b2ac345
+(1 row)
+
+-- data test
+select encode(encrypt('', 'foo', 'sm4-ecb'), 'hex');
+              encode              
+----------------------------------
+ 52fca7e118ce4959706bae619a9da457
+(1 row)
+
+select encode(encrypt('foo', '0123456789', 'sm4-ecb'), 'hex');
+              encode              
+----------------------------------
+ b5bae67f701a98ef459828259e30af11
+(1 row)
+
+select encode(encrypt('foo', '0123456789012345678901', 'sm4-ecb'), 'hex');
+ERROR:  encrypt error: Key was too big
+select encode(encrypt('', 'foo', 'sm4-cbc'), 'hex');
+              encode              
+----------------------------------
+ 52fca7e118ce4959706bae619a9da457
+(1 row)
+
+select encode(encrypt('foo', '0123456789', 'sm4-cbc'), 'hex');
+              encode              
+----------------------------------
+ b5bae67f701a98ef459828259e30af11
+(1 row)
+
+select encode(encrypt('foo', '0123456789012345678901', 'sm4-cbc'), 'hex');
+ERROR:  encrypt error: Key was too big
+select encode(encrypt_iv('', 'foo', 'foo', 'sm4-cbc'), 'hex');
+              encode              
+----------------------------------
+ 05a3a29002e69e2a3cf3a25af150c557
+(1 row)
+
+select encode(encrypt_iv('foo', '0123456789', '0123456789', 'sm4-cbc'), 'hex');
+              encode              
+----------------------------------
+ b5b300b02807a3c95a5d00a2d9cd54ec
+(1 row)
+
+select encode(encrypt_iv('foo', '0123456789012345678901', '0123456789012345678901','sm4-cbc'), 'hex');
+ERROR:  encrypt_iv error: Key was too big
+-- decrypt
+select decrypt(encrypt('', 'foo', 'sm4-ecb'), 'foo', 'sm4-ecb');
+ decrypt 
+---------
+ 
+(1 row)
+
+select decrypt(encrypt('foo', '0123456', 'sm4-ecb'), '0123456', 'sm4-ecb');
+ decrypt 
+---------
+ foo
+(1 row)
+
+select decrypt(encrypt('foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo', '01234567', 'sm4-ecb'), '01234567', 'sm4-ecb');
+                                                                                decrypt                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+(1 row)
+
+select decrypt(encrypt('', 'foo', 'sm4-cbc'), 'foo', 'sm4-cbc');
+ decrypt 
+---------
+ 
+(1 row)
+
+select decrypt(encrypt('foo', '0123456', 'sm4-cbc'), '0123456', 'sm4-cbc');
+ decrypt 
+---------
+ foo
+(1 row)
+
+select decrypt(encrypt('foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo', '01234567', 'sm4-cbc'), '01234567', 'sm4-cbc');
+                                                                                decrypt                                                                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+(1 row)
+
+select decrypt_iv(encrypt_iv('', 'foo', 'foo123','sm4-cbc'), 'foo', 'foo123', 'sm4-cbc');
+ decrypt_iv 
+------------
+ 
+(1 row)
+
+select decrypt_iv(encrypt_iv('foo', '0123456', '012345678', 'sm4-cbc'), '0123456', '012345678', 'sm4-cbc');
+ decrypt_iv 
+------------
+ foo
+(1 row)
+
+select decrypt_iv(encrypt_iv('foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo', '01234567', 'foofoo', 'sm4-cbc'), '01234567', 'foofoo', 'sm4-cbc');
+                                                                              decrypt_iv                                                                               
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ foofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoofoo
+(1 row)
+-- end_ignore

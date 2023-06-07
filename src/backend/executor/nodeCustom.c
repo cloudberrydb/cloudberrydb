@@ -3,7 +3,7 @@
  * nodeCustom.c
  *		Routines to handle execution of custom scan node
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * ------------------------------------------------------------------------
@@ -13,15 +13,14 @@
 #include "access/parallel.h"
 #include "executor/executor.h"
 #include "executor/nodeCustom.h"
+#include "miscadmin.h"
 #include "nodes/execnodes.h"
 #include "nodes/extensible.h"
 #include "nodes/plannodes.h"
-#include "miscadmin.h"
 #include "parser/parsetree.h"
 #include "utils/hsearch.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
-
 
 static TupleTableSlot *ExecCustomScan(PlanState *pstate);
 

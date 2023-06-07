@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2017 VMware, Inc. or its affiliates.
 //
 //  Implementation of DXL Part list null test expression

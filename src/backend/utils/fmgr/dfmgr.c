@@ -3,7 +3,7 @@
  * dfmgr.c
  *	  Dynamic function manager code.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -23,7 +23,7 @@
  * On macOS, <dlfcn.h> insists on including <stdbool.h>.  If we're not
  * using stdbool, undef bool to undo the damage.
  */
-#ifndef USE_STDBOOL
+#ifndef PG_USE_STDBOOL
 #ifdef bool
 #undef bool
 #endif
@@ -96,7 +96,7 @@ static const Pg_magic_struct magic_data = PG_MODULE_MAGIC_DATA;
  * named funcname in it.
  *
  * If the function is not found, we raise an error if signalNotFound is true,
- * else return (PGFunction) NULL.  Note that errors in loading the library
+ * else return NULL.  Note that errors in loading the library
  * will provoke ereport() regardless of signalNotFound.
  *
  * If filehandle is not NULL, then *filehandle will be set to a handle
@@ -104,13 +104,13 @@ static const Pg_magic_struct magic_data = PG_MODULE_MAGIC_DATA;
  * lookup_external_function to lookup additional functions in the same file
  * at less cost than repeating load_external_function.
  */
-PGFunction
+void *
 load_external_function(const char *filename, const char *funcname,
 					   bool signalNotFound, void **filehandle)
 {
 	char	   *fullname;
 	void	   *lib_handle;
-	PGFunction	retval;
+	void	   *retval;
 
 	/* Expand the possibly-abbreviated filename to an exact path name */
 	fullname = expand_dynamic_library_name(filename);
@@ -123,7 +123,7 @@ load_external_function(const char *filename, const char *funcname,
 		*filehandle = lib_handle;
 
 	/* Look up the function within the library. */
-	retval = (PGFunction) dlsym(lib_handle, funcname);
+	retval = dlsym(lib_handle, funcname);
 
 	if (retval == NULL && signalNotFound)
 		ereport(ERROR,
@@ -166,12 +166,12 @@ load_file(const char *filename, bool restricted)
 
 /*
  * Lookup a function whose library file is already loaded.
- * Return (PGFunction) NULL if not found.
+ * Return NULL if not found.
  */
-PGFunction
+void *
 lookup_external_function(void *filehandle, const char *funcname)
 {
-	return (PGFunction) dlsym(filehandle, funcname);
+	return dlsym(filehandle, funcname);
 }
 
 
@@ -319,8 +319,8 @@ get_magic_product(const Pg_magic_struct *module_magic_data)
 		case PgMagicProductPostgres:
 			return "PostgreSQL";
 
-		case PgMagicProductGreenplum:
-			return "Greenplum";
+		case PgMagicProductCloudberry:
+			return "Cloudberry";
 
 		/* Handle Unrecognized product codes */
 		default:
@@ -412,15 +412,6 @@ incompatible_module_error(const char *libname,
 						 _("Server has NAMEDATALEN = %d, library has %d."),
 						 magic_data.namedatalen,
 						 module_magic_data->namedatalen);
-	}
-	if (module_magic_data->float4byval != magic_data.float4byval)
-	{
-		if (details.len)
-			appendStringInfoChar(&details, '\n');
-		appendStringInfo(&details,
-						 _("Server has FLOAT4PASSBYVAL = %s, library has %s."),
-						 magic_data.float4byval ? "true" : "false",
-						 module_magic_data->float4byval ? "true" : "false");
 	}
 	if (module_magic_data->float8byval != magic_data.float8byval)
 	{
@@ -737,13 +728,12 @@ find_rendezvous_variable(const char *varName)
 	{
 		HASHCTL		ctl;
 
-		MemSet(&ctl, 0, sizeof(ctl));
 		ctl.keysize = NAMEDATALEN;
 		ctl.entrysize = sizeof(rendezvousHashEntry);
 		rendezvousHash = hash_create("Rendezvous variable hash",
 									 16,
 									 &ctl,
-									 HASH_ELEM);
+									 HASH_ELEM | HASH_STRINGS);
 	}
 
 	/* Find or create the hashtable entry for this varName */

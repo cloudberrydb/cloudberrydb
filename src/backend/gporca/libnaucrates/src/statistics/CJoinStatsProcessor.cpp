@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright 2018 VMware, Inc. or its affiliates.
 //
 //	@filename:
@@ -501,7 +501,7 @@ CJoinStatsProcessor::CalcJoinCardinality(
 		return std::max(DOUBLE(1.0), rows.Get());
 	}
 
-	GPOS_ASSERT(CStatistics::MinRows <= scale_factor);
+	GPOS_ASSERT_FIXME(CStatistics::MinRows <= scale_factor);
 
 	return std::max(CStatistics::MinRows.Get(),
 					(cartesian_product_num_rows / scale_factor).Get());

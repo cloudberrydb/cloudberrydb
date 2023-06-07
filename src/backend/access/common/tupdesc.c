@@ -3,7 +3,7 @@
  * tupdesc.c
  *	  POSTGRES tuple descriptor support code
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,15 +20,16 @@
 #include "postgres.h"
 
 #include "access/htup_details.h"
+#include "access/toast_compression.h"
 #include "access/tupdesc_details.h"
 #include "catalog/pg_collation.h"
 #include "catalog/pg_type.h"
+#include "common/hashfn.h"
 #include "miscadmin.h"
 #include "parser/parse_type.h"
 #include "utils/acl.h"
 #include "utils/builtins.h"
 #include "utils/datum.h"
-#include "utils/hashutils.h"
 #include "utils/resowner_private.h"
 #include "utils/syscache.h"
 
@@ -173,10 +174,7 @@ CreateTupleDescCopyConstr(TupleDesc tupdesc)
 			cpy->defval = (AttrDefault *) palloc(cpy->num_defval * sizeof(AttrDefault));
 			memcpy(cpy->defval, constr->defval, cpy->num_defval * sizeof(AttrDefault));
 			for (i = cpy->num_defval - 1; i >= 0; i--)
-			{
-				if (constr->defval[i].adbin)
-					cpy->defval[i].adbin = pstrdup(constr->defval[i].adbin);
-			}
+				cpy->defval[i].adbin = pstrdup(constr->defval[i].adbin);
 		}
 
 		if (constr->missing)
@@ -202,10 +200,8 @@ CreateTupleDescCopyConstr(TupleDesc tupdesc)
 			memcpy(cpy->check, constr->check, cpy->num_check * sizeof(ConstrCheck));
 			for (i = cpy->num_check - 1; i >= 0; i--)
 			{
-				if (constr->check[i].ccname)
-					cpy->check[i].ccname = pstrdup(constr->check[i].ccname);
-				if (constr->check[i].ccbin)
-					cpy->check[i].ccbin = pstrdup(constr->check[i].ccbin);
+				cpy->check[i].ccname = pstrdup(constr->check[i].ccname);
+				cpy->check[i].ccbin = pstrdup(constr->check[i].ccbin);
 				cpy->check[i].ccvalid = constr->check[i].ccvalid;
 				cpy->check[i].ccnoinherit = constr->check[i].ccnoinherit;
 			}
@@ -327,10 +323,7 @@ FreeTupleDesc(TupleDesc tupdesc)
 			AttrDefault *attrdef = tupdesc->constr->defval;
 
 			for (i = tupdesc->constr->num_defval - 1; i >= 0; i--)
-			{
-				if (attrdef[i].adbin)
-					pfree(attrdef[i].adbin);
-			}
+				pfree(attrdef[i].adbin);
 			pfree(attrdef);
 		}
 		if (tupdesc->constr->missing)
@@ -351,10 +344,8 @@ FreeTupleDesc(TupleDesc tupdesc)
 
 			for (i = tupdesc->constr->num_check - 1; i >= 0; i--)
 			{
-				if (check[i].ccname)
-					pfree(check[i].ccname);
-				if (check[i].ccbin)
-					pfree(check[i].ccbin);
+				pfree(check[i].ccname);
+				pfree(check[i].ccbin);
 			}
 			pfree(check);
 		}
@@ -411,7 +402,6 @@ bool
 equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 {
 	int			i,
-				j,
 				n;
 
 	if (tupdesc1->natts != tupdesc2->natts)
@@ -434,7 +424,8 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 		 * general it seems safer to check them always.
 		 *
 		 * attcacheoff must NOT be checked since it's possibly not set in both
-		 * copies.
+		 * copies.  We also intentionally ignore atthasmissing, since that's
+		 * not very relevant in tupdescs, which lack the attmissingval field.
 		 */
 		if (strcmp(NameStr(attr1->attname), NameStr(attr2->attname)) != 0)
 			return false;
@@ -450,9 +441,11 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 			return false;
 		if (attr1->attbyval != attr2->attbyval)
 			return false;
+		if (attr1->attalign != attr2->attalign)
+			return false;
 		if (attr1->attstorage != attr2->attstorage)
 			return false;
-		if (attr1->attalign != attr2->attalign)
+		if (attr1->attcompression != attr2->attcompression)
 			return false;
 
 		if (strict)
@@ -475,6 +468,7 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 				return false;
 			/* attacl and attoptions are not even present... */
 		}
+		/* variable-length fields are not even present... */
 	}
 
 	if (!strict)
@@ -494,22 +488,13 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 		n = constr1->num_defval;
 		if (n != (int) constr2->num_defval)
 			return false;
+		/* We assume here that both AttrDefault arrays are in adnum order */
 		for (i = 0; i < n; i++)
 		{
 			AttrDefault *defval1 = constr1->defval + i;
-			AttrDefault *defval2 = constr2->defval;
+			AttrDefault *defval2 = constr2->defval + i;
 
-			/*
-			 * We can't assume that the items are always read from the system
-			 * catalogs in the same order; so use the adnum field to identify
-			 * the matching item to compare.
-			 */
-			for (j = 0; j < n; defval2++, j++)
-			{
-				if (defval1->adnum == defval2->adnum)
-					break;
-			}
-			if (j >= n)
+			if (defval1->adnum != defval2->adnum)
 				return false;
 			if (strcmp(defval1->adbin, defval2->adbin) != 0)
 				return false;
@@ -540,25 +525,21 @@ equalTupleDescs(TupleDesc tupdesc1, TupleDesc tupdesc2, bool strict)
 		n = constr1->num_check;
 		if (n != (int) constr2->num_check)
 			return false;
+
+		/*
+		 * Similarly, we rely here on the ConstrCheck entries being sorted by
+		 * name.  If there are duplicate names, the outcome of the comparison
+		 * is uncertain, but that should not happen.
+		 */
 		for (i = 0; i < n; i++)
 		{
 			ConstrCheck *check1 = constr1->check + i;
-			ConstrCheck *check2 = constr2->check;
+			ConstrCheck *check2 = constr2->check + i;
 
-			/*
-			 * Similarly, don't assume that the checks are always read in the
-			 * same order; match them up by name and contents. (The name
-			 * *should* be unique, but...)
-			 */
-			for (j = 0; j < n; check2++, j++)
-			{
-				if (strcmp(check1->ccname, check2->ccname) == 0 &&
-					strcmp(check1->ccbin, check2->ccbin) == 0 &&
-					check1->ccvalid == check2->ccvalid &&
-					check1->ccnoinherit == check2->ccnoinherit)
-					break;
-			}
-			if (j >= n)
+			if (!(strcmp(check1->ccname, check2->ccname) == 0 &&
+				  strcmp(check1->ccbin, check2->ccbin) == 0 &&
+				  check1->ccvalid == check2->ccvalid &&
+				  check1->ccnoinherit == check2->ccnoinherit))
 				return false;
 		}
 	}
@@ -669,6 +650,7 @@ TupleDescInitEntry(TupleDesc desc,
 	att->attbyval = typeForm->typbyval;
 	att->attalign = typeForm->typalign;
 	att->attstorage = typeForm->typstorage;
+	att->attcompression = InvalidCompressionMethod;
 	att->attcollation = typeForm->typcollation;
 
 	ReleaseSysCache(tuple);
@@ -732,32 +714,36 @@ TupleDescInitBuiltinEntry(TupleDesc desc,
 		case TEXTARRAYOID:
 			att->attlen = -1;
 			att->attbyval = false;
-			att->attalign = 'i';
-			att->attstorage = 'x';
+			att->attalign = TYPALIGN_INT;
+			att->attstorage = TYPSTORAGE_EXTENDED;
+			att->attcompression = InvalidCompressionMethod;
 			att->attcollation = DEFAULT_COLLATION_OID;
 			break;
 
 		case BOOLOID:
 			att->attlen = 1;
 			att->attbyval = true;
-			att->attalign = 'c';
-			att->attstorage = 'p';
+			att->attalign = TYPALIGN_CHAR;
+			att->attstorage = TYPSTORAGE_PLAIN;
+			att->attcompression = InvalidCompressionMethod;
 			att->attcollation = InvalidOid;
 			break;
 
 		case INT4OID:
 			att->attlen = 4;
 			att->attbyval = true;
-			att->attalign = 'i';
-			att->attstorage = 'p';
+			att->attalign = TYPALIGN_INT;
+			att->attstorage = TYPSTORAGE_PLAIN;
+			att->attcompression = InvalidCompressionMethod;
 			att->attcollation = InvalidOid;
 			break;
 
 		case INT8OID:
 			att->attlen = 8;
 			att->attbyval = FLOAT8PASSBYVAL;
-			att->attalign = 'd';
-			att->attstorage = 'p';
+			att->attalign = TYPALIGN_DOUBLE;
+			att->attstorage = TYPSTORAGE_PLAIN;
+			att->attcompression = InvalidCompressionMethod;
 			att->attcollation = InvalidOid;
 			break;
 
@@ -793,9 +779,7 @@ TupleDescInitEntryCollation(TupleDesc desc,
  *
  * Given a relation schema (list of ColumnDef nodes), build a TupleDesc.
  *
- * Note: the default assumption is no OIDs; caller may modify the returned
- * TupleDesc if it wants OIDs.  Also, tdtypeid will need to be filled in
- * later on.
+ * Note: tdtypeid will need to be filled in later on.
  */
 TupleDesc
 BuildDescForRelation(List *schema)

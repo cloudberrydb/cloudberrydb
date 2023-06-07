@@ -4,7 +4,7 @@
  *	  POSTGRES resource scheduler definitions.
  *
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc.
+ * Portions Copyright (c) 2006-2008, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -136,9 +136,6 @@ extern LockAcquireResult ResLockAcquire(LOCKTAG *locktag,
 										ResPortalIncrement *incrementSet);
 extern bool				ResLockRelease(LOCKTAG *locktag, uint32 resPortalId);
 extern bool             IsResQueueLockedForPortal(Portal portal);
-extern int				ResLockCheckLimit(LOCK *lock, PROCLOCK *proclock, 
-										  ResPortalIncrement *incrementSet,
-										  bool increment);
 extern ResQueue			GetResQueueFromLock(LOCK *lock);
 
 extern void				ResProcLockRemoveSelfAndWakeup(LOCK *lock);

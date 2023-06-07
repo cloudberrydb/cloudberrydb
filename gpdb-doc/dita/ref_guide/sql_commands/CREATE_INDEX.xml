@@ -29,7 +29,7 @@
                                 For example, an index computed on <codeph>upper(col)</codeph> would
                                 allow the clause <codeph>WHERE upper(col) = 'JIM'</codeph> to use an
                                 index. </p>
-                        <p>Greenplum Database provides the index methods B-tree, bitmap, GiST,
+                        <p>Cloudberry Database provides the index methods B-tree, bitmap, GiST,
                                 SP-GiST, and GIN. Users can also define their own index methods, but
                                 that is fairly complicated. </p>
                         <p>When the <codeph>WHERE</codeph> clause is present, a partial index is
@@ -62,10 +62,10 @@
                                         <pd>Checks for duplicate values in the table when the index
                                                 is created and each time data is added. Duplicate
                                                 entries will generate an error. Unique indexes only
-                                                apply to B-tree indexes. In Greenplum Database,
+                                                apply to B-tree indexes. In Cloudberry Database,
                                                 unique indexes are allowed only if the columns of
                                                 the index key are the same as (or a superset of) the
-                                                Greenplum distribution key. On partitioned tables, a
+                                                Cloudberry distribution key. On partitioned tables, a
                                                 unique index is only supported within an individual
                                                 partition - not across all partitions.</pd>
                                 </plentry>
@@ -75,7 +75,7 @@
                                         </pt>
                                         <pd>The name of the index to be created. The index is always
                                                 created in the same schema as its parent table. If
-                                                the name is omitted, Greenplum Database chooses a
+                                                the name is omitted, Cloudberry Database chooses a
                                                 suitable name based on the parent table's name and
                                                 the indexed column name(s). </pd>
                                 </plentry>
@@ -201,7 +201,7 @@
                                                   <codeph>FILLFACTOR</codeph>, GiST indexes
                                                 additionally accept the <codeph>BUFFERING</codeph>
                                                 parameter. <codeph>BUFFERING</codeph> determines
-                                                whether Greenplum Database builds the index using
+                                                whether Cloudberry Database builds the index using
                                                 the buffering build technique described in <xref
                                                   href="https://www.postgresql.org/docs/9.4/gist-implementation.html"
                                                   format="html" scope="external">GiST buffering
@@ -282,11 +282,11 @@
                                 make it larger than the amount of memory really available, which
                                 would drive the machine into swapping.</p>
                         <p>When an index is created on a partitioned table, the index is propagated
-                                to all the child tables created by Greenplum Database. Creating an
-                                index on a table that is created by Greenplum Database for use by a
+                                to all the child tables created by Cloudberry Database. Creating an
+                                index on a table that is created by Cloudberry Database for use by a
                                 partitioned table is not supported.</p>
                         <p><codeph>UNIQUE</codeph> indexes are allowed only if the index columns are
-                                the same as (or a superset of) the Greenplum distribution key
+                                the same as (or a superset of) the Cloudberry distribution key
                                 columns.</p>
                         <p><codeph>UNIQUE</codeph> indexes are not allowed on append-optimized
                                 tables.</p>
@@ -310,7 +310,7 @@
                                 from any type of index. For example, a gender column with only two
                                 distinct values for male and female would not be a good candidate
                                 for an index. </p>
-                        <p>Prior releases of Greenplum Database also had an R-tree index method.
+                        <p>Prior releases of Cloudberry Database also had an R-tree index method.
                                 This method has been removed because it had no significant
                                 advantages over the GiST method. If <codeph>USING rtree</codeph> is
                                 specified, <codeph>CREATE INDEX</codeph> will interpret it as
@@ -319,7 +319,7 @@
                                         href="https://www.postgresql.org/docs/9.4/indexes-types.html"
                                         scope="external" format="html">PostgreSQL
                                         documentation</xref>.</p>
-                        <p>The use of hash indexes has been disabled in Greenplum Database.</p>
+                        <p>The use of hash indexes has been disabled in Cloudberry Database.</p>
                 </section>
                 <section id="section6">
                         <title>Examples</title>
@@ -355,9 +355,9 @@ SELECT * FROM points WHERE box(location,location) &amp;&amp; '(0,0),(1,1)'::box;
                 </section>
                 <section id="section7">
                         <title>Compatibility</title>
-                        <p><codeph>CREATE INDEX</codeph> is a Greenplum Database language extension.
+                        <p><codeph>CREATE INDEX</codeph> is a Cloudberry Database language extension.
                                 There are no provisions for indexes in the SQL standard. </p>
-                        <p>Greenplum Database does not support the concurrent creation of indexes
+                        <p>Cloudberry Database does not support the concurrent creation of indexes
                                         (<codeph>CONCURRENTLY</codeph> keyword not supported).</p>
                 </section>
                 <section id="section8">

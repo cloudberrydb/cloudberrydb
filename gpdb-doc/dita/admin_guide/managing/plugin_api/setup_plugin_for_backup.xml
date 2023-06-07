@@ -28,11 +28,11 @@
         </plentry>
         <plentry>
           <pt><varname>local_backup_dir</varname></pt>
-          <pd>The local directory on the Greenplum Database host (master and segments) to which
+          <pd>The local directory on the Cloudberry Database host (master and segments) to which
               <codeph>gpbackup</codeph> will write backup files. <codeph>gpbackup</codeph> creates
             this local directory.<ul id="ul_rrs_vts_m2b">
               <li>When <varname>scope</varname> is <codeph>master</codeph>, the
-                  <varname>local_backup_dir</varname> is the backup directory of the Greenplum
+                  <varname>local_backup_dir</varname> is the backup directory of the Cloudberry
                 Database master.</li>
               <li>When <varname>scope</varname> is <codeph>segment</codeph>, the
                   <varname>local_backup_dir</varname> is the backup directory of a segment instance.
@@ -53,12 +53,12 @@
                 instance on the host running the segment instance. The <varname>contentID</varname>
                 identifies the segment instance.</li>
             </ul></pd>
-          <pd>The Greenplum Database hosts and segment instances are based on the Greenplum Database
+          <pd>The Cloudberry Database hosts and segment instances are based on the Cloudberry Database
             configuration when the back up was first initiated. </pd>
         </plentry>
         <plentry>
           <pt><varname>contentID</varname></pt>
-          <pd>The contentID of the Greenplum Database master or segment instance corresponding to
+          <pd>The contentID of the Cloudberry Database master or segment instance corresponding to
             the scope. <varname>contentID</varname> is passed only when the <varname>scope</varname>
             is <codeph>master</codeph> or <codeph>segment</codeph>.<ul id="ul_okg_2bs_m2b">
               <li>When <varname>scope</varname> is <codeph>master</codeph>, the

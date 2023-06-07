@@ -4,7 +4,7 @@
   <topic id="topic_vmf_z4c_qfb">
     <title>Pseudo-Types</title>
     <body>
-      <p>Greenplum Database supports special-purpose data type entries that are collectively called
+      <p>Cloudberry Database supports special-purpose data type entries that are collectively called
           <i>pseudo-types</i>. A pseudo-type cannot be used as a column data type, but it can be
         used to declare a function's argument or result type. Each of the available pseudo-types is
         useful in situations where a function's behavior does not correspond to simply taking or
@@ -17,13 +17,13 @@
         composite datums carry their own type identification, no extra knowledge is needed at the
         array level.</p>
       <p>The pseudo-type <i>void</i> indicates that a function returns no value.</p>
-      <note>Greenplum Database does not support triggers and the pseudo-type <i>trigger</i>.</note>
+      <note>Cloudberry Database does not support triggers and the pseudo-type <i>trigger</i>.</note>
       <p>The types <i>anyelement</i>, <i>anyarray</i>, <i>anynonarray</i>, and <i>anyenum</i> are
         pseudo-types called polymorphic types. Some procedural languages also support polymorphic
         functions using the types <i>anyarray</i>, <i>anyelement</i>, <i>anyenum</i>, and
           <i>anynonarray</i>.</p>
-      <p>The pseudo-type <i>anytable</i> is a Greenplum Database type that specifies a table
-        expression—an expression that computes a table. Greenplum Database allows this type only as
+      <p>The pseudo-type <i>anytable</i> is a Cloudberry Database type that specifies a table
+        expression—an expression that computes a table. Cloudberry Database allows this type only as
         an argument to a user-defined function. See <xref href="#topic_ig2_1pc_qfb" format="dita"/>
         for more about the <i>anytable</i> pseudo-type.</p>
       <p>For more information about pseudo-types, see the PostgreSQL documentation about <xref
@@ -96,10 +96,10 @@
         <p>The <codeph>SELECT</codeph> statement may include joins on multiple base tables,
             <codeph>WHERE</codeph> clauses, aggregates, and any other valid query syntax.</p>
         <p>The <i>anytable</i> type is only permitted in functions implemented in the C or C++
-          languages. The body of the function can access the table using the Greenplum Database
-          Server Programming Interface (SPI) or the Greenplum Partner Connector (GPPC) API. </p>
+          languages. The body of the function can access the table using the Cloudberry Database
+          Server Programming Interface (SPI) or the Cloudberry Partner Connector (GPPC) API. </p>
         <p otherprops="pivotal">The <i>anytable</i> type is used in some user-defined functions in
-          the Tanzu Greenplum Text API. The following GPText example uses the <codeph>TABLE</codeph>
+          the Tanzu Cloudberry Text API. The following GPText example uses the <codeph>TABLE</codeph>
           function with the <codeph>SCATTER BY</codeph> clause in the GPText function
             <codeph>gptext.index()</codeph> to populate the index
             <codeph>mydb.mytest.articles</codeph> with data from the messages
@@ -107,7 +107,7 @@
           SCATTER BY distrib_id), 'mydb.mytest.messages');
         </codeblock></p>
         <p otherprops="pivotal">For information about the function <codeph>gptext.index()</codeph>,
-          see the Tanzu Greenplum Text documentation.</p>
+          see the Tanzu Cloudberry Text documentation.</p>
       </body>
     </topic>
   </topic>

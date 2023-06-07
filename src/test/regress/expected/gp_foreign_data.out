@@ -1,5 +1,5 @@
 --
--- Test foreign-data wrapper and server management. Greenplum MPP specific
+-- Test foreign-data wrapper and server management. Cloudberry MPP specific
 --
 CREATE FOREIGN DATA WRAPPER dummy;
 COMMENT ON FOREIGN DATA WRAPPER dummy IS 'useless';
@@ -39,3 +39,6 @@ CREATE FOREIGN TABLE ft5 (
 Server: s1
 FDW options: (delimiter ',', mpp_execute 'all segments', num_segments '5')
 
+--start_ignore
+DROP FOREIGN DATA WRAPPER dummy CASCADE;
+--end_ignore

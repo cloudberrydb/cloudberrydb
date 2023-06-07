@@ -26,7 +26,7 @@
 		 (iter).cell = list_head((iter).list); \
 		 (iter).cell != NULL; \
 		 (iter).prev = (iter).cell, \
-		 (iter).cell = (iter).cell ? lnext((iter).cell) : list_head((iter).list))
+		 (iter).cell = (iter).cell ? lnext(_list, (iter).cell) : list_head((iter).list))
 
 /*
  * Helper functions to get the information stored in iter.
@@ -46,7 +46,7 @@
  */
 #define gdd_list_iter_delete(iter) do \
 { \
-	(iter).list = list_delete_cell((iter).list, (iter).cell, (iter).prev); \
+	(iter).list = list_delete_cell((iter).list, (iter).cell); \
 	(iter).prev = (iter).list != NIL ? (iter).prev : NULL; \
 	(iter).cell = (iter).prev; \
 } while (0)

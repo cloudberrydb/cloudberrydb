@@ -4,8 +4,8 @@
 <topic id="topic1" xml:lang="en">
   <title id="pz212122">PL/Container Language</title>
   <body>
-    <p>Pl/Container enables users to run Greenplum procedural language functions inside a Docker
-      container, to avoid security risks associated with running Python or R code on Greenplum
+    <p>Pl/Container enables users to run Cloudberry procedural language functions inside a Docker
+      container, to avoid security risks associated with running Python or R code on Cloudberry
       segment hosts. This topic covers information about the architecture, installation, and setup
       of PL/Container:</p>
     <ul>
@@ -32,7 +32,7 @@
   <topic id="about_pl_container" xml:lang="en">
     <title>About the PL/Container Language Extension</title>
     <body>
-      <p>The Greenplum Database PL/Container language extension allows users to create and run
+      <p>The Cloudberry Database PL/Container language extension allows users to create and run
         PL/Python or PL/R user-defined functions (UDFs) securely, inside a Docker container. Docker
         provides the ability to package and run an application in a loosely isolated environment
         called a container. For information about Docker, see the <xref
@@ -45,7 +45,7 @@
           the container side. </li>
         <li>User code cannot access the OS or the file system of the local host.</li>
         <li>User code cannot introduce any security risks.</li>
-        <li>Functions cannot connect back to the Greenplum Database if the container is started with
+        <li>Functions cannot connect back to the Cloudberry Database if the container is started with
           limited or no network access.</li>
       </ul>
       
@@ -67,15 +67,15 @@
         <p>A container running in standby mode waits on the socket and does not consume any CPU
           resources. PL/Container memory consumption depends on the amount of data cached in global
           dictionaries.</p>
-        <p>The container connection is closed by closing the Greenplum Database session that started
+        <p>The container connection is closed by closing the Cloudberry Database session that started
           the container, and the container shuts down.</p>
         
       </section>
       <section id="section_d32_nv1_rqb">
         <title>About PL/Container 3 Beta</title>
-        <p>Greenplum Database 6.5 introduces PL/Container version 3 Beta, which:<ul
+        <p>Cloudberry Database 6.5 introduces PL/Container version 3 Beta, which:<ul
             id="ul_jj3_lyq_blb">
-            <li>Provides support for the new GreenplumR interface.</li>
+            <li>Provides support for the new CloudberryR interface.</li>
             <li>Reduces the number of processes created by PL/Container, in order to save system
               resources.</li>
             <li>Supports more containers running concurrently.</li>
@@ -106,10 +106,10 @@
     <section id="requirements">
           <title>Prerequisites</title>
         <ul>
-          <li>For PL/Container 2.1.x use Greenplum Database 6 on CentOS 7.x (or later), RHEL 7.x (or
+          <li>For PL/Container 2.1.x use Cloudberry Database 6 on CentOS 7.x (or later), RHEL 7.x (or
             later), or Ubuntu 18.04. <note>PL/Container 2.1.x supports Docker images with Python 3
               installed.</note></li>
-          <li>For PL/Container 3 Beta use Greenplum Database 6.1 or later on CentOS 7.x (or later),
+          <li>For PL/Container 3 Beta use Cloudberry Database 6.1 or later on CentOS 7.x (or later),
             RHEL 7.x (or later), or Ubuntu 18.04.</li>
           <li>The minimum Linux OS kernel version supported is 3.10. To verfiy your kernel release
             use: <codeblock>$ uname -r</codeblock>
@@ -121,7 +121,7 @@
     
     <section id="install_docker">
         <title>Install Docker</title>
-        <p>To use PL/Container you need to install Docker on all Greenplum Database host systems.
+        <p>To use PL/Container you need to install Docker on all Cloudberry Database host systems.
           These instructions show how to set up the Docker service on CentOS 7 but RHEL 7 is a
           similar process.</p>
         <p>These steps install the docker package and start the Docker service as a user with sudo
@@ -135,17 +135,17 @@
           <li>Update yum cache:<codeblock>sudo yum makecache fast</codeblock></li>
           <li>Install Docker:<codeblock>sudo yum -y install docker-ce</codeblock></li>
           <li>Start Docker daemon:<codeblock>sudo systemctl start docker</codeblock></li>
-          <li>On each Greenplum Database host, the <codeph>gpadmin</codeph> user should be part of
+          <li>On each Cloudberry Database host, the <codeph>gpadmin</codeph> user should be part of
             the docker group for the user to be able to manage Docker images and containers. Assign
-            the Greenplum Database administrator <codeph>gpadmin</codeph> to the group
+            the Cloudberry Database administrator <codeph>gpadmin</codeph> to the group
               <codeph>docker</codeph>: <codeblock>sudo usermod -aG docker gpadmin</codeblock></li>
           <li>Exit the session and login again to update the privileges.</li>
           <li>Configure Docker to start when the host system
             starts:<codeblock>sudo systemctl enable docker.service</codeblock><codeblock>sudo systemctl start docker.service</codeblock></li>
           <li>Run a Docker command to test the Docker installation. This command lists the currently
             running Docker containers. <codeblock>docker ps</codeblock></li>
-          <li>After you install Docker on all Greenplum Database hosts, restart the Greenplum
-            Database system to give Greenplum Database access to Docker.
+          <li>After you install Docker on all Cloudberry Database hosts, restart the Cloudberry
+            Database system to give Cloudberry Database access to Docker.
             <codeblock>gpstop -ra</codeblock></li>
         </ol>
         <p>For a list of observations while using Docker and PL/Container, see the <xref
@@ -158,24 +158,24 @@
         <!--Pivotal content-->
         <p>Install the PL/Container language extension using the <codeph>gppkg</codeph> utility.</p>
         <ol id="ul_w5b_nzp_dw">
-          <li>Download the "PL/Container for RHEL 7" package that applies to your Greenplum Database
+          <li>Download the "PL/Container for RHEL 7" package that applies to your Cloudberry Database
             version, from the <xref href="https://network.pivotal.io/products/pivotal-gpdb/"
               format="html" scope="external">VMware Tanzu Network</xref>. PL/Container is listed
-            under Greenplum Procedural Languages. </li>
+            under Cloudberry Procedural Languages. </li>
           <li>As <codeph>gpadmin</codeph>, copy the PL/Container language extension package to the
             master host.</li>
           <li>Follow the instructions in <xref href="../install_guide/verify_sw.xml#topic1"
-            scope="peer" format="dita">Verifying the Greenplum Database Software Download</xref>
-            to verify the integrity of the <b>Greenplum Procedural Languages PL/Container</b>
+            scope="peer" format="dita">Verifying the Cloudberry Database Software Download</xref>
+            to verify the integrity of the <b>Cloudberry Procedural Languages PL/Container</b>
             software.</li>
           <li>Run the package installation
             command:<codeblock>gppkg -i plcontainer-2.1.1-rhel7-x86_64.gppkg</codeblock></li>
           <li>Source the file
             <codeph>$GPHOME/greenplum_path.sh</codeph>:<codeblock>source $GPHOME/greenplum_path.sh</codeblock></li>
-          <li>Make sure Greenplum Database is up and running:<codeblock>gpstate -s</codeblock>If
+          <li>Make sure Cloudberry Database is up and running:<codeblock>gpstate -s</codeblock>If
             it's not, start it:<codeblock>gpstart -a</codeblock></li>
           <li>For PL/Container version 3 Beta only, add the <codeph>plc_coordinator</codeph>
-            shared library to the Greenplum Database <codeph>shared_preload_libraries</codeph>
+            shared library to the Cloudberry Database <codeph>shared_preload_libraries</codeph>
             server configuration parameter. Be sure to retain any previous setting of the
             parameter. For example:<codeblock>gpconfig -s shared_preload_libraries
 Values on all segments are consistent
@@ -183,7 +183,7 @@ GUC              : shared_preload_libraries
 Coordinator value: diskquota
 Segment     value: diskquota
 gpconfig -c shared_preload_libraries -v 'diskquota,plc_coordinator'</codeblock></li>
-          <li>Restart Greenplum Database:<codeblock>gpstop -ra</codeblock></li>
+          <li>Restart Cloudberry Database:<codeblock>gpstop -ra</codeblock></li>
           <li>Login into one of the available databases, for example:
             <codeblock>psql postgres</codeblock></li>
           <li>Register the PL/Container extension, which installs the <codeph>plcontainer</codeph>
@@ -207,22 +207,22 @@ gpconfig -c shared_preload_libraries -v 'diskquota,plc_coordinator'</codeblock><
         <ul id="ul_h5t_sbz_vkb">
           <li>Download the files that contain the Docker images from the <xref
               href="https://network.pivotal.io" format="html" scope="external">VMware Tanzu
-              Network</xref>. For example, for Greenplum 6.5, click on "PL/Container Docker Image
+              Network</xref>. For example, for Cloudberry 6.5, click on "PL/Container Docker Image
             for Python 2.1.1" which downloads <b>plcontainer-python-image-2.1.1-gp6.tar.gz </b> with
             Python 2.7.12 and the <i>Python Data Science Module Package</i>. <p>If you require
-              different images from the ones provided by Pivotal Greenplum, you can create custom
+              different images from the ones provided by Pivotal Cloudberry, you can create custom
               Docker images, install the image and add the image to the PL/ Container configuration.
             </p></li>
           <li>If you are using PL/Container 3 Beta, note that this Beta version is compatible only
             with the associated <filepath>plcontainer-r-image-3.0.0-beta-gp6.tar.gz</filepath>
             image.</li>
           <li>Follow the instructions in <xref href="../install_guide/verify_sw.xml#topic1"
-            scope="peer" format="dita">Verifying the Greenplum Database Software Download</xref>
-            to verify the integrity of the <b>Greenplum Procedural Languages PL/Container Image</b>
+            scope="peer" format="dita">Verifying the Cloudberry Database Software Download</xref>
+            to verify the integrity of the <b>Cloudberry Procedural Languages PL/Container Image</b>
             software.</li>
           <li>
             <p>Use the <codeph>plcontainer image-add</codeph> command to install an image on
-              all Greenplum Database hosts. Provide the <codeph>-f</codeph> option to specify
+              all Cloudberry Database hosts. Provide the <codeph>-f</codeph> option to specify
               the file system location of a downloaded image file. For example: </p>
             <codeblock># Install a Python 2 based Docker image
 plcontainer image-add -f /home/gpadmin/plcontainer-python-image-2.1.1-gp6.tar.gz
@@ -240,7 +240,7 @@ plcontainer image-add -f /home/gpadmin/plcontainer-r-image-3.0.0-beta-gp6.tar.gz
 20200127:21:54:43:004607 plcontainer:mdw:gpadmin-[INFO]:-Distributing image file /home/gpadmin/plcontainer-python-images-1.5.0.tar to all hosts...
 20200127:21:54:55:004607 plcontainer:mdw:gpadmin-[INFO]:-Loading image on all hosts...
 20200127:21:55:37:004607 plcontainer:mdw:gpadmin-[INFO]:-Removing temporary image files on all hosts...</codeblock>
-            <p>By default, the <codeph>image-add</codeph> command copies the image to each Greenplum
+            <p>By default, the <codeph>image-add</codeph> command copies the image to each Cloudberry
               Database segment and standby master host, and installs the image. When you specify
               the <codeph>[-ulc | --use_local_copy]</codeph> option, <codeph>plcontainer</codeph>
               installs the image only on the host on which you run the command. Use this option
@@ -292,16 +292,16 @@ plcontainer runtime-add -r plc_python3_shared -i pivotaldata/plcontainer_python3
 # Add an R based runtime
 plcontainer runtime-add -r plc_r_shared -i pivotaldata/plcontainer_r_shared:devel -l r</codeblock>The
             utility displays progress information as it updates the PL/Container configuration file
-            on the Greenplum Database instances. <p>For details on other
+            on the Cloudberry Database instances. <p>For details on other
                 <codeph>runtime-add</codeph> options, see the <xref
                 href="../utility_guide/ref/plcontainer.xml#topic_rw3_52s_dw">plcontainer</xref>
               reference page. </p></li>
-          <li>Optional: Use Greenplum Database resource groups to manage and limit the total CPU and
+          <li>Optional: Use Cloudberry Database resource groups to manage and limit the total CPU and
             memory resources of containers in PL/Container runtimes. In this example, the Python
             runtime will be used with a preconfigured resource group
               16391:.<codeblock>plcontainer runtime-add -r plc_python_shared -i pivotaldata/plcontainer_python_shared:devel -l
       python -s resource_group_id=16391</codeblock><p>For
-              more information about enabling, configuring, and using Greenplum Database resource
+              more information about enabling, configuring, and using Cloudberry Database resource
               groups with PL/Container, see <xref href="pl_container_using.xml#topic_resmgmt"
                 >PL/Container Resource Management </xref> . </p></li>
         </ul>
@@ -369,8 +369,8 @@ postgres=# select dummyR();
         then restore the configuration after upgrade. There is no need to update the Docker images
         when you upgrade PL/Container.</p>
         <note>Before you perform this upgrade procedure, ensure that you have migrated your
-          PL/Container package from your previous Greenplum Database installation to your new
-          Greenplum Database installation. Refer to the <xref
+          PL/Container package from your previous Cloudberry Database installation to your new
+          Cloudberry Database installation. Refer to the <xref
             href="../utility_guide/ref/gppkg.xml#topic1" format="dita" scope="peer">gppkg</xref>
           command for package installation and migration information.</note>
       <note>You cannot upgrade to PL/Container 3 Beta. To install PL/Container 3 Beta, first save
@@ -381,16 +381,16 @@ postgres=# select dummyR();
             <li>Save the PL/Container configuration. For example, to save the configuration to a
             file named <codeph>plcontainer202-backup.xml</codeph> in the local
             directory:<codeblock>$ plcontainer runtime-backup -f plcontainer202-backup.xml</codeblock></li>
-            <li>Use the Greenplum Database <codeph>gppkg</codeph> utility with the
+            <li>Use the Cloudberry Database <codeph>gppkg</codeph> utility with the
                 <codeph>-u</codeph> option to update the PL/Container language extension. For
               example, the following command updates the PL/Container language extension to version
               2.1.1 on a Linux
               system:<codeblock>$ gppkg -u plcontainer-2.1.1-gp6-rhel7_x86_64.gppkg</codeblock></li>
-            <li>Source the Greenplum Database environment file
+            <li>Source the Cloudberry Database environment file
                 <codeph>$GPHOME/greenplum_path.sh</codeph>.<codeblock>$ source $GPHOME/greenplum_path.sh</codeblock></li>
             <li>Restore the PL/Container configuration that you saved in a previous step:
             <codeblock>$ plcontainer runtime-restore -f plcontainer202-backup.xml</codeblock></li>
-            <li>Restart Greenplum Database.<codeblock>$ gpstop -ra</codeblock></li>
+            <li>Restart Cloudberry Database.<codeblock>$ gpstop -ra</codeblock></li>
             <li>You do not need to re-register the PL/Container extension in the databases in which
             you previously created the extension but ensure that you register the PL/Container
             extension in each new database that will run PL/Container UDFs. For example, the
@@ -406,19 +406,19 @@ postgres=# select dummyR();
     <title id="pz213704">Uninstall PL/Container</title>
     <body>
       <p>To uninstall PL/Container, remove Docker containers and images, and then remove the
-        PL/Container support from Greenplum Database.</p>
+        PL/Container support from Cloudberry Database.</p>
       <p>When you remove support for PL/Container, the <codeph>plcontainer</codeph> user-defined
         functions that you created in the database will no longer work. </p>
     </body>
     <topic id="topic_rnb_4s5_lw">
       <title>Uninstall Docker Containers and Images</title>
       <body>
-        <p>On the Greenplum Database hosts, uninstall the Docker containers and images that are no
+        <p>On the Cloudberry Database hosts, uninstall the Docker containers and images that are no
           longer required. </p>
         <p>The <codeph>plcontainer image-list</codeph> command lists the Docker images that are
-          installed on the local Greenplum Database host. </p>
+          installed on the local Cloudberry Database host. </p>
         <p>The <codeph>plcontainer image-delete</codeph> command deletes a specified Docker image
-          from all Greenplum Database hosts. </p>
+          from all Cloudberry Database hosts. </p>
         <p>Some Docker containers might exist on a host if the containers were not managed by
           PL/Container. You might need to remove the containers with Docker commands. These
             <codeph>docker</codeph> commands manage Docker containers and images on a local host.<ul
@@ -460,7 +460,7 @@ postgres=# select dummyR();
                 to <codeph>'diskquota,plc_coordinator'</codeph>:
                 <codeblock>$ gpconfig -c shared_preload_libraries -v 'diskquota'</codeblock></li>
             </ul></li>
-          <li>Restart the Greenplum Database cluster:<codeblock>$ gpstop -ra</codeblock></li>
+          <li>Restart the Cloudberry Database cluster:<codeblock>$ gpstop -ra</codeblock></li>
         </ol>
       </body>
     </topic>
@@ -468,10 +468,10 @@ postgres=# select dummyR();
       <title>Uninstall the PL/Container Language Extension</title>
       <body>
         <p>If no databases have <codeph>plcontainer</codeph> as a registered language, uninstall the
-          Greenplum Database PL/Container language extension with the <codeph>gppkg</codeph>
+          Cloudberry Database PL/Container language extension with the <codeph>gppkg</codeph>
           utility. </p>
         <ol id="ol_ety_fcj_kw">
-          <li>Use the Greenplum Database <codeph>gppkg</codeph> utility with the <codeph>-r</codeph>
+          <li>Use the Cloudberry Database <codeph>gppkg</codeph> utility with the <codeph>-r</codeph>
             option to uninstall the PL/Container language extension. This example uninstalls the
             PL/Container language extension on a Linux
               system:<codeblock>$ gppkg -r plcontainer-2.1.1</codeblock><p>You can run the
@@ -503,7 +503,7 @@ postgres=# select dummyR();
             information about Docker storage drivers, see the Docker information <xref
               href="https://docs.docker.com/engine/reference/commandline/dockerd/#daemon-storage-driver"
               format="html" scope="external">Daemon storage-driver</xref>. <p>When setting the
-              Docker base device size, the size must be set on all Greenplum Database
+              Docker base device size, the size must be set on all Cloudberry Database
             hosts.</p></li>
         <li>
           <p><i>Known issue</i>: </p>
@@ -511,7 +511,7 @@ postgres=# select dummyR();
             Docker daemon hangs with log entries that indicate a memory shortage. This can happen
             even when the system seems to have adequate free memory.</p>
           <p>The issue seems to be triggered by the aggressive virtual memory requirement of the Go
-            language (golang) runtime that is used by PL/Container, and the Greenplum Database Linux
+            language (golang) runtime that is used by PL/Container, and the Cloudberry Database Linux
             server kernel parameter setting for <i>overcommit_memory</i>. The parameter is set to 2
             which does not allow memory overcommit. </p>
           <p>A workaround that might help is to increase the amount of swap space and increase the

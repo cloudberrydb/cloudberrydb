@@ -3,7 +3,7 @@
  * bitmaputil.c
  *	  Utility routines for on-disk bitmap index access method.
  *
- * Portions Copyright (c) 2007-2010 Greenplum Inc
+ * Portions Copyright (c) 2007-2010 Cloudberry Inc
  * Portions Copyright (c) 2010-2012 EMC Corporation
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 2006-2008, PostgreSQL Global Development Group
@@ -102,7 +102,7 @@ _bitmap_get_metapage_data(Relation rel, Buffer metabuf)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_INTERNAL_ERROR),
-				 errmsg("the disk format for \"%s\" is not valid for this version of Greenplum Database",
+				 errmsg("the disk format for \"%s\" is not valid for this version of Cloudberry Database",
 						RelationGetRelationName(rel)),
 				 errhint("Use REINDEX to update this index.")));
 	}
@@ -1258,7 +1258,7 @@ _dump_page(char *file, XLogRecPtr recptr, RelFileNode *relfilenode, Buffer buf)
 		}
 	}
 
-	fprintf(dump_file, "LSN %X/%08X relfilenode %u/%u/%u blk %u\n",
+	fprintf(dump_file, "LSN %X/%08X relfilenode %u/%u/%lu blk %u\n",
 			(uint32) (recptr >> 32), (uint32) recptr,
 			relfilenode->spcNode,
 			relfilenode->dbNode,

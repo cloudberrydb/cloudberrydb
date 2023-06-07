@@ -315,7 +315,7 @@ set up for recursive handling of subqueries
   preprocess target list for non-SELECT queries
   handle UNION/INTERSECT/EXCEPT, GROUP BY, HAVING, aggregates,
 	ORDER BY, DISTINCT, LIMIT
---query_planner()
+---query_planner()
    make list of base relations used in query
    split up the qual into restrictions (a=1) and joins (b=c)
    find qual clauses that enable merge and hash joins
@@ -325,7 +325,7 @@ set up for recursive handling of subqueries
       find selectivity of columns used in joins
      make_rel_from_joinlist()
       hand off join subproblems to a plugin, GEQO, or standard_join_search()
------standard_join_search()
+------standard_join_search()
       call join_search_one_level() for each level of join tree needed
       join_search_one_level():
         For each joinrel of the prior level, do make_rels_by_clause_joins()
@@ -374,6 +374,7 @@ RelOptInfo      - a relation or joined relations
   IndexPath     - index scan
   BitmapHeapPath - top of a bitmapped index scan
   TidPath       - scan by CTID
+  TidRangePath  - scan a contiguous range of CTIDs
   SubqueryScanPath - scan a subquery-in-FROM
   ForeignPath   - scan a foreign table, foreign join or foreign upper-relation
   CustomPath    - for custom scan providers
@@ -381,12 +382,14 @@ RelOptInfo      - a relation or joined relations
   MergeAppendPath - merge multiple subpaths, preserving their common sort order
   GroupResultPath - childless Result plan node (used for degenerate grouping)
   MaterialPath  - a Material plan node
+  MemoizePath   - a Memoize plan node for caching tuples from sub-paths
   UniquePath    - remove duplicate rows (either by hashing or sorting)
   GatherPath    - collect the results of parallel workers
   GatherMergePath - collect parallel results, preserving their common sort order
   ProjectionPath - a Result plan node with child (used for projection)
   ProjectSetPath - a ProjectSet plan node applied to some sub-path
   SortPath      - a Sort plan node applied to some sub-path
+  IncrementalSortPath - an IncrementalSort plan node applied to some sub-path
   GroupPath     - a Group plan node applied to some sub-path
   UpperUniquePath - a Unique plan node applied to some sub-path
   AggPath       - an Agg plan node applied to some sub-path
@@ -1106,6 +1109,33 @@ into joins between their partitions is called partitionwise join. We will use
 term "partitioned relation" for either a partitioned table or a join between
 compatibly partitioned tables.
 
+Even if the joining relations don't have exactly the same partition bounds,
+partitionwise join can still be applied by using an advanced
+partition-matching algorithm.  For both the joining relations, the algorithm
+checks whether every partition of one joining relation only matches one
+partition of the other joining relation at most.  In such a case the join
+between the joining relations can be broken down into joins between the
+matching partitions.  The join relation can then be considered partitioned.
+The algorithm produces the pairs of the matching partitions, plus the
+partition bounds for the join relation, to allow partitionwise join for
+computing the join.  The algorithm is implemented in partition_bounds_merge().
+For an N-way join relation considered partitioned this way, not every pair of
+joining relations can use partitionwise join.  For example:
+
+	(A leftjoin B on (Pab)) innerjoin C on (Pac)
+
+where A, B, and C are partitioned tables, and A has an extra partition
+compared to B and C.  When considering partitionwise join for the join {A B},
+the extra partition of A doesn't have a matching partition on the nullable
+side, which is the case that the current implementation of partitionwise join
+can't handle.  So {A B} is not considered partitioned, and the pair of {A B}
+and C considered for the 3-way join can't use partitionwise join.  On the
+other hand, the pair of {A C} and B can use partitionwise join because {A C}
+is considered partitioned by eliminating the extra partition (see identity 1
+on outer join reordering).  Whether an N-way join can use partitionwise join
+is determined based on the first pair of joining relations that are both
+partitioned and can use partitionwise join.
+
 The partitioning properties of a partitioned relation are stored in its
 RelOptInfo.  The information about data types of partition keys are stored in
 PartitionSchemeData structure. The planner maintains a list of canonical
@@ -1127,3 +1157,71 @@ breaking down aggregation or grouping over a partitioned relation into
 aggregation or grouping over its partitions is called partitionwise
 aggregation.  Especially when the partition keys match the GROUP BY clause,
 this can be significantly faster than the regular method.
+
+Aggregate push-down
+-------------------
+
+The obvious way to evaluate aggregates is to evaluate the FROM clause of the
+SQL query (this is what query_planner does) and use the resulting paths as the
+input of Agg node. However, if the groups are large enough, it may be more
+efficient to apply the partial aggregation to the output of base relation
+scan, and finalize it when we have all relations of the query joined:
+
+  EXPLAIN
+  SELECT a.i, avg(b.y)
+  FROM a JOIN b ON b.j = a.i
+  GROUP BY a.i;
+
+  Finalize HashAggregate
+    Group Key: a.i
+    ->  Nested Loop
+          ->  Partial HashAggregate
+                Group Key: b.j
+                ->  Seq Scan on b
+          ->  Index Only Scan using a_pkey on a
+                Index Cond: (i = b.j)
+
+Thus the join above the partial aggregate node receives fewer input rows, and
+so the number of outer-to-inner pairs of tuples to be checked can be
+significantly lower, which can in turn lead to considerably lower join cost.
+
+Note that there's often no GROUP BY expression to be used for the partial
+aggregation, so we use equivalence classes to derive grouping expression: in
+the example above, the grouping key "b.j" was derived from "a.i".
+
+Also note that in this case the partial aggregate uses the "b.j" as grouping
+column although the column does not appear in the query target list. The point
+is that "b.j" is needed to evaluate the join condition, and there's no other
+way for the partial aggregate to emit its values.
+
+Besides base relation, the aggregation can also be pushed down to join:
+
+  EXPLAIN
+  SELECT a.i, avg(b.y + c.v)
+  FROM   a JOIN b ON b.j = a.i
+         JOIN c ON c.k = a.i
+  WHERE b.j = c.k GROUP BY a.i;
+
+  Finalize HashAggregate
+    Group Key: a.i
+    ->  Hash Join
+	  Hash Cond: (b.j = a.i)
+	  ->  Partial HashAggregate
+		Group Key: b.j
+		->  Hash Join
+		      Hash Cond: (b.j = c.k)
+		      ->  Seq Scan on b
+		      ->  Hash
+			    ->  Seq Scan on c
+	  ->  Hash
+		->  Seq Scan on a
+
+Whether the Agg node is created out of base relation or out of join, it's
+added to a separate RelOptInfo that we call "grouped relation". Grouped
+relation can be joined to a non-grouped relation, which results in a grouped
+relation too. Join of two grouped relations does not seem to be very useful
+and is currently not supported.
+
+If query_planner produces a grouped relation that contains valid paths, these
+are added to the special hash table. Further processing of grouping path will
+try to use these partial grouped paths.

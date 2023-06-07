@@ -4,9 +4,9 @@
  *	  handle CTEs (common table expressions) in parser
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
- * Portions Copyright (c) 2011 - present, EMC Greenplum.
+ * Portions Copyright (c) 2011 - present, EMC Cloudberry.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * src/include/parser/parse_cte.h

@@ -193,7 +193,7 @@ drop table ao_ul_ctas;
 drop table aoco_ul_ctas;
 drop tablespace ul_testspace;
 
--- Greenplum tablespaces have the option to define tablespace location for specific segments
+-- Cloudberry tablespaces have the option to define tablespace location for specific segments
 CREATE TABLESPACE testspace_otherloc LOCATION '@testtablespace@' WITH (content9999='@testtablespace@_otherloc'); -- should fail
 CREATE TABLESPACE testspace_otherloc LOCATION '@testtablespace@' WITH (content1='@testtablespace@_otherloc');
 SELECT gp_segment_id,

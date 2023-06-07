@@ -7,8 +7,9 @@ int
 PQsendGpQuery_shared(PGconn *conn, char *shared_query, int query_len, bool nonblock)
 {
 	int ret;
+	PGcmdQueueEntry *entry = NULL;
 
-	if (!PQsendQueryStart(conn))
+	if (!PQsendQueryStart(conn, true))
 		return 0;
 
 	if (!shared_query)
@@ -25,6 +26,10 @@ PQsendGpQuery_shared(PGconn *conn, char *shared_query, int query_len, bool nonbl
 		return 0;
 	}
 
+	entry = pqAllocCmdQueueEntry(conn);
+	if (entry == NULL)
+		return 0;				/* error msg already set */
+
 	/*
 	 * Stash the original buffer and switch to the incoming pointer.
 	 * We will restore the buffer after completing to send the shared query.
@@ -39,7 +44,7 @@ PQsendGpQuery_shared(PGconn *conn, char *shared_query, int query_len, bool nonbl
 	conn->outCount = query_len;
 
 	/* remember we are using simple query protocol */
-	conn->queryclass = PGQUERY_SIMPLE;
+	entry->queryclass = PGQUERY_SIMPLE;
 
 	/*
 	 * Give the data a push.  In nonblock mode, don't complain if we're unable
@@ -53,10 +58,12 @@ PQsendGpQuery_shared(PGconn *conn, char *shared_query, int query_len, bool nonbl
 	if (ret < 0)
 	{
 		/* error message should be set up already */
+		pqRecycleCmdQueueEntry(conn, entry);
 		return 0;
 	}
 
 	/* OK, it's launched! */
 	conn->asyncStatus = PGASYNC_BUSY;
+	pqAppendCmdQueueEntry(conn, entry);
 	return 1;
 }

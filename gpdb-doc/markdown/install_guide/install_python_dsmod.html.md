@@ -2,7 +2,7 @@
 title: Python Data Science Module Package 
 ---
 
-Greenplum Database provides a collection of data science-related Python modules that can be used with the Greenplum Database PL/Python language. You can download these modules in `.gppkg` format from [VMware Tanzu Network](https://network.pivotal.io/products/pivotal-gpdb).
+Cloudberry Database provides a collection of data science-related Python modules that can be used with the Cloudberry Database PL/Python language. You can download these modules in `.gppkg` format from [VMware Tanzu Network](https://network.pivotal.io/products/pivotal-gpdb).
 
 This section contains the following information:
 
@@ -10,9 +10,9 @@ This section contains the following information:
 -   [Installing the Python Data Science Module Package](#topic_instpdsm)
 -   [Uninstalling the Python Data Science Module Package](#topic_removepdsm)
 
-For information about the Greenplum Database PL/Python Language, see [Greenplum PL/Python Language Extension](../analytics/pl_python.html).
+For information about the Cloudberry Database PL/Python Language, see [Cloudberry PL/Python Language Extension](../analytics/pl_python.html).
 
-**Parent topic:**[Installing Optional Extensions \(Tanzu Greenplum\)](data_sci_pkgs.html)
+**Parent topic:**[Installing Optional Extensions \(Tanzu Cloudberry\)](data_sci_pkgs.html)
 
 ## <a id="topic_pydatascimod"></a>Python Data Science Modules 
 
@@ -113,7 +113,7 @@ Packages required for Deep Learning features of MADlib are now included. Note th
 
 ## <a id="topic_instpdsm"></a>Installing the Python Data Science Module Package 
 
-Before you install the Python Data Science Module package, make sure that your Greenplum Database is running, you have sourced `greenplum_path.sh`, and that the `$MASTER_DATA_DIRECTORY` and `$GPHOME` environment variables are set.
+Before you install the Python Data Science Module package, make sure that your Cloudberry Database is running, you have sourced `greenplum_path.sh`, and that the `$MASTER_DATA_DIRECTORY` and `$GPHOME` environment variables are set.
 
 **Note:** The `PyMC3` module depends on `Tk`. If you want to use `PyMC3`, you must install the `tk` OS package on every node in your cluster. For example:
 
@@ -126,17 +126,17 @@ $ sudo yum install tk
 
     The file name format of the package is `DataSciencePython-<version>-relhel<N>-x86_64.gppkg`.
 
-2.  Copy the package to the Greenplum Database coordinator host.
-3.  Follow the instructions in [Verifying the Greenplum Database Software Download](../install_guide/verify_sw.html) to verify the integrity of the *Greenplum Procedural Languages Python Data Science Package* software.
+2.  Copy the package to the Cloudberry Database coordinator host.
+3.  Follow the instructions in [Verifying the Cloudberry Database Software Download](../install_guide/verify_sw.html) to verify the integrity of the *Cloudberry Procedural Languages Python Data Science Package* software.
 4.  Use the `gppkg` command to install the package. For example:
 
     ```
     $ gppkg -i DataSciencePython-<version>-relhel<N>_x86_64.gppkg
     ```
 
-    `gppkg` installs the Python Data Science modules on all nodes in your Greenplum Database cluster. The command also updates the `PYTHONPATH`, `PATH`, and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file.
+    `gppkg` installs the Python Data Science modules on all nodes in your Cloudberry Database cluster. The command also updates the `PYTHONPATH`, `PATH`, and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file.
 
-5.  Restart Greenplum Database. You must re-source `greenplum_path.sh` before restarting your Greenplum cluster:
+5.  Restart Cloudberry Database. You must re-source `greenplum_path.sh` before restarting your Cloudberry cluster:
 
     ```
     $ source /usr/local/greenplum-db/greenplum_path.sh
@@ -144,7 +144,7 @@ $ sudo yum install tk
     ```
 
 
-The Greenplum Database Python Data Science Modules are installed in the following directory:
+The Cloudberry Database Python Data Science Modules are installed in the following directory:
 
 ```
 $GPHOME/ext/DataSciencePython/lib/python2.7/site-packages/
@@ -162,14 +162,14 @@ DataSciencePython-<version>
 $ gppkg -r DataSciencePython-<version>
 ```
 
-The command removes the Python Data Science modules from your Greenplum Database cluster. It also updates the `PYTHONPATH`, `PATH`, and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file to their pre-installation values.
+The command removes the Python Data Science modules from your Cloudberry Database cluster. It also updates the `PYTHONPATH`, `PATH`, and `LD_LIBRARY_PATH` environment variables in your `greenplum_path.sh` file to their pre-installation values.
 
-Re-source `greenplum_path.sh` and restart Greenplum Database after you remove the Python Data Science Module package:
+Re-source `greenplum_path.sh` and restart Cloudberry Database after you remove the Python Data Science Module package:
 
 ```
 $ . /usr/local/greenplum-db/greenplum_path.sh
 $ gpstop -r 
 ```
 
-**Note:** When you uninstall the Python Data Science Module package from your Greenplum Database cluster, any UDFs that you have created that import Python modules installed with this package will return an error.
+**Note:** When you uninstall the Python Data Science Module package from your Cloudberry Database cluster, any UDFs that you have created that import Python modules installed with this package will return an error.
 

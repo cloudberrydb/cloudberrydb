@@ -4,7 +4,7 @@
  *	  postgres transaction access method support code
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/transam.h
@@ -14,7 +14,6 @@
 #ifndef TRANSAM_H
 #define TRANSAM_H
 
-#include "catalog/pg_magic_oid.h"
 #include "access/xlogdefs.h"
 
 
@@ -48,9 +47,15 @@
 #define EpochFromFullTransactionId(x)	((uint32) ((x).value >> 32))
 #define XidFromFullTransactionId(x)		((uint32) (x).value)
 #define U64FromFullTransactionId(x)		((x).value)
+#define FullTransactionIdEquals(a, b)	((a).value == (b).value)
 #define FullTransactionIdPrecedes(a, b)	((a).value < (b).value)
+#define FullTransactionIdPrecedesOrEquals(a, b) ((a).value <= (b).value)
+#define FullTransactionIdFollows(a, b) ((a).value > (b).value)
+#define FullTransactionIdFollowsOrEquals(a, b) ((a).value >= (b).value)
 #define FullTransactionIdIsValid(x)		TransactionIdIsValid(XidFromFullTransactionId(x))
 #define InvalidFullTransactionId		FullTransactionIdFromEpochAndXid(0, InvalidTransactionId)
+#define FirstNormalFullTransactionId	FullTransactionIdFromEpochAndXid(0, FirstNormalTransactionId)
+#define FullTransactionIdIsNormal(x)	FullTransactionIdFollowsOrEquals(x, FirstNormalFullTransactionId)
 
 /*
  * A 64 bit value that contains an epoch and a TransactionId.  This is
@@ -72,6 +77,16 @@ FullTransactionIdFromEpochAndXid(uint32 epoch, TransactionId xid)
 	return result;
 }
 
+static inline FullTransactionId
+FullTransactionIdFromU64(uint64 value)
+{
+	FullTransactionId result;
+
+	result.value = value;
+
+	return result;
+}
+
 /* advance a transaction ID variable, handling wraparound correctly */
 #define TransactionIdAdvance(dest)	\
 	do { \
@@ -80,11 +95,44 @@ FullTransactionIdFromEpochAndXid(uint32 epoch, TransactionId xid)
 			(dest) = FirstNormalTransactionId; \
 	} while(0)
 
-/* advance a FullTransactionId variable, stepping over special XIDs */
+/*
+ * Retreat a FullTransactionId variable, stepping over xids that would appear
+ * to be special only when viewed as 32bit XIDs.
+ */
+static inline void
+FullTransactionIdRetreat(FullTransactionId *dest)
+{
+	dest->value--;
+
+	/*
+	 * In contrast to 32bit XIDs don't step over the "actual" special xids.
+	 * For 64bit xids these can't be reached as part of a wraparound as they
+	 * can in the 32bit case.
+	 */
+	if (FullTransactionIdPrecedes(*dest, FirstNormalFullTransactionId))
+		return;
+
+	/*
+	 * But we do need to step over XIDs that'd appear special only for 32bit
+	 * XIDs.
+	 */
+	while (XidFromFullTransactionId(*dest) < FirstNormalTransactionId)
+		dest->value--;
+}
+
+/*
+ * Advance a FullTransactionId variable, stepping over xids that would appear
+ * to be special only when viewed as 32bit XIDs.
+ */
 static inline void
 FullTransactionIdAdvance(FullTransactionId *dest)
 {
 	dest->value++;
+
+	/* see FullTransactionIdAdvance() */
+	if (FullTransactionIdPrecedes(*dest, FirstNormalFullTransactionId))
+		return;
+
 	while (XidFromFullTransactionId(*dest) < FirstNormalTransactionId)
 		dest->value++;
 }
@@ -104,6 +152,61 @@ FullTransactionIdAdvance(FullTransactionId *dest)
 #define NormalTransactionIdFollows(id1, id2) \
 	(AssertMacro(TransactionIdIsNormal(id1) && TransactionIdIsNormal(id2)), \
 	(int32) ((id1) - (id2)) > 0)
+
+/* ----------
+ *		Object ID (OID) zero is InvalidOid.
+ *
+ *		OIDs 1-9999 are reserved for manual assignment (see .dat files in
+ *		src/include/catalog/).  Of these, 8000-9999 are reserved for
+ *		development purposes (such as in-progress patches and forks);
+ *		they should not appear in released versions.
+ *
+ *		OIDs 10000-11999 are reserved for assignment by genbki.pl, for use
+ *		when the .dat files in src/include/catalog/ do not specify an OID
+ *		for a catalog entry that requires one.  Note that genbki.pl assigns
+ *		these OIDs independently in each catalog, so they're not guaranteed
+ *		to be globally unique.
+ *
+ *		OIDS 12000-16383 are reserved for assignment during initdb
+ *		using the OID generator.  (We start the generator at 12000.)
+ *
+ *		OIDs beginning at 16384 are assigned from the OID generator
+ *		during normal multiuser operation.  (We force the generator up to
+ *		16384 as soon as we are in normal operation.)
+ *
+ * The choices of 8000, 10000 and 12000 are completely arbitrary, and can be
+ * moved if we run low on OIDs in any category.  Changing the macros below,
+ * and updating relevant documentation (see bki.sgml and RELEASE_CHANGES),
+ * should be sufficient to do this.  Moving the 16384 boundary between
+ * initdb-assigned OIDs and user-defined objects would be substantially
+ * more painful, however, since some user-defined OIDs will appear in
+ * on-disk data; such a change would probably break pg_upgrade.
+ *
+ * NOTE: if the OID generator wraps around, we skip over OIDs 0-16383
+ * and resume with 16384.  This minimizes the odds of OID conflict, by not
+ * reassigning OIDs that might have been assigned during initdb.
+ * ----------
+ */
+#define FirstGenbkiObjectId		10000
+#define FirstBootstrapObjectId	12000
+#define FirstNormalObjectId		16384
+
+/*
+ * For the time being, we split the OID range so that newly added objects
+ * won't conflict between GPDB and GPSQL.  If two merge into one in some day,
+ * this boundary will disappear.
+ */
+#define LowestGPSQLBootstrapObjectId 7500
+
+/*
+ * Reserve a block of OIDs for use during binary upgrade. We create functions
+ * needed during the upgrade here, but they are dropped after the ugprade, so
+ * should not be present in other contexts. They need a reserved block of OIDs
+ * to avoid colliding with user objects that are created later in the upgrade
+ * process.
+ */
+#define FirstBinaryUpgradeReservedObjectId 9000
+#define LastBinaryUpgradeReservedObjectId 9100
 
 /*
  * VariableCache is a data structure in shared memory that is used to track
@@ -126,18 +229,18 @@ typedef struct VariableCacheData
 	/*
 	 * These fields are protected by RelfilenodeGenLock.
 	 */
-	Oid			nextRelfilenode;	/* next relfilenode to assign */
+	RelFileNodeId nextRelfilenode;	/* next relfilenode to assign */
 	uint32		relfilenodeCount;	/* relfilenodes available before we must do XLOG work */
 
 	/*
 	 * These fields are protected by XidGenLock.
 	 */
-	FullTransactionId nextFullXid;	/* next full XID to assign */
+	FullTransactionId nextXid;	/* next XID to assign */
 
 	TransactionId oldestXid;	/* cluster-wide minimum datfrozenxid */
 	TransactionId xidVacLimit;	/* start forcing autovacuums here */
 	TransactionId xidWarnLimit; /* start complaining here */
-	TransactionId xidStopLimit; /* refuse to advance nextFullXid beyond here */
+	TransactionId xidStopLimit; /* refuse to advance nextXid beyond here */
 	TransactionId xidWrapLimit; /* where the world ends */
 	Oid			oldestXidDB;	/* database with minimum datfrozenxid */
 
@@ -150,9 +253,9 @@ typedef struct VariableCacheData
 	/*
 	 * These fields are protected by ProcArrayLock.
 	 */
-	TransactionId latestCompletedXid;	/* newest XID that has committed or
-										 * aborted */
-	TransactionId latestCompletedGxid;	/* newest distributed XID that has
+	FullTransactionId latestCompletedXid;	/* newest full XID that has
+											 * committed or aborted */
+	DistributedTransactionId latestCompletedGxid;	/* newest distributed XID that has
 										   committed or aborted */
 
 	/*
@@ -165,7 +268,16 @@ typedef struct VariableCacheData
 	uint32		GxidCount;		/* Gxids available before must do XLOG work */
 
 	/*
-	 * These fields are protected by CLogTruncationLock
+	 * Number of top-level transactions with xids (i.e. which may have
+	 * modified the database) that completed in some form since the start of
+	 * the server. This currently is solely used to check whether
+	 * GetSnapshotData() needs to recompute the contents of the snapshot, or
+	 * not. There are likely other users of this.  Always above 1.
+	 */
+	uint64		xactCompletionCount;
+
+	/*
+	 * These fields are protected by XactTruncationLock
 	 */
 	TransactionId oldestClogXid;	/* oldest it's safe to look up in clog */
 
@@ -219,8 +331,14 @@ extern void AdvanceOldestClogXid(TransactionId oldest_datfrozenxid);
 extern bool ForceTransactionIdLimitUpdate(void);
 extern Oid	GetNewObjectId(void);
 extern void AdvanceObjectId(Oid newOid);
-extern Oid	GetNewSegRelfilenode(void);
+extern RelFileNodeId	GetNewSegRelfilenode(void);
 extern bool OidFollowsNextOid(Oid id);
+
+#ifdef USE_ASSERT_CHECKING
+extern void AssertTransactionIdInAllowableRange(TransactionId xid);
+#else
+#define AssertTransactionIdInAllowableRange(xid) ((void)true)
+#endif
 
 /*
  * Some frontend programs include this header.  For compilers that emit static
@@ -233,9 +351,62 @@ extern bool OidFollowsNextOid(Oid id);
  * For callers that just need the XID part of the next transaction ID.
  */
 static inline TransactionId
-ReadNewTransactionId(void)
+ReadNextTransactionId(void)
 {
 	return XidFromFullTransactionId(ReadNextFullTransactionId());
+}
+
+/* return transaction ID backed up by amount, handling wraparound correctly */
+static inline TransactionId
+TransactionIdRetreatedBy(TransactionId xid, uint32 amount)
+{
+	xid -= amount;
+
+	while (xid < FirstNormalTransactionId)
+		xid--;
+
+	return xid;
+}
+
+/* return the older of the two IDs */
+static inline TransactionId
+TransactionIdOlder(TransactionId a, TransactionId b)
+{
+	if (!TransactionIdIsValid(a))
+		return b;
+
+	if (!TransactionIdIsValid(b))
+		return a;
+
+	if (TransactionIdPrecedes(a, b))
+		return a;
+	return b;
+}
+
+/* return the older of the two IDs, assuming they're both normal */
+static inline TransactionId
+NormalTransactionIdOlder(TransactionId a, TransactionId b)
+{
+	Assert(TransactionIdIsNormal(a));
+	Assert(TransactionIdIsNormal(b));
+	if (NormalTransactionIdPrecedes(a, b))
+		return a;
+	return b;
+}
+
+/* return the newer of the two IDs */
+static inline FullTransactionId
+FullTransactionIdNewer(FullTransactionId a, FullTransactionId b)
+{
+	if (!FullTransactionIdIsValid(a))
+		return b;
+
+	if (!FullTransactionIdIsValid(b))
+		return a;
+
+	if (FullTransactionIdFollows(a, b))
+		return a;
+	return b;
 }
 
 #endif							/* FRONTEND */

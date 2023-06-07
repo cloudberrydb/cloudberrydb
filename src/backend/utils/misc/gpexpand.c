@@ -13,6 +13,9 @@
 
 #include "postgres.h"
 
+#ifdef USE_INTERNAL_FTS
+#include "catalog/gp_segment_configuration.h"
+#endif
 #include "catalog/gp_configuration_history.h"
 #include "catalog/pg_auth_time_constraint.h"
 #include "catalog/pg_description.h"
@@ -121,7 +124,9 @@ gp_expand_protect_catalog_changes(Relation relation)
 
 	switch (RelationGetRelid(relation))
 	{
+#ifdef USE_INTERNAL_FTS
 		case GpSegmentConfigRelationId:
+#endif
 		case GpConfigHistoryRelationId:
 		case DescriptionRelationId:
 		case SharedDescriptionRelationId:

@@ -134,7 +134,6 @@ struct cursor
 	char	   *command;
 	char	   *connection;
 	bool		opened;
-	char	   *prepared_name;
 	struct arguments *argsinsert;
 	struct arguments *argsinsert_oos;
 	struct arguments *argsresult;
@@ -142,11 +141,11 @@ struct cursor
 	struct cursor *next;
 };
 
-/* structure to store declared name */
-struct declared_name_st
+struct declared_list
 {
-	char	   *name;			/* declared name */
-	struct declared_name_st *next;
+	char	   *name;
+	char	   *connection;
+	struct declared_list *next;
 };
 
 struct typedefs
@@ -206,6 +205,12 @@ struct fetch_desc
 {
 	char	   *str;
 	char	   *name;
+};
+
+struct describe
+{
+	int			input;
+	char	   *stmt_name;
 };
 
 #endif							/* _ECPG_PREPROC_TYPE_H */

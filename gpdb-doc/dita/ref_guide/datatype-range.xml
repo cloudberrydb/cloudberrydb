@@ -21,7 +21,7 @@
       <topic xml:lang="en-us" id="rangetypes-builtin">
          <title>Built-in Range Types</title>
          <body>
-            <p> Greenplum Database comes with the following built-in range types: <ul>
+            <p> Cloudberry Database comes with the following built-in range types: <ul>
                   <li>
                      <p>
                         <codeph>int4range</codeph> -- Range of <codeph>integer</codeph>

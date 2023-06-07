@@ -70,6 +70,24 @@ begin
 	end loop;
 end;
 $$ language plpgsql;
+create or replace function wait_for_mirror_up(contentid smallint, timeout_sec integer) returns bool as
+$$
+declare i int;
+begin
+	i := 0;
+	loop
+		perform gp_request_fts_probe_scan();
+		if (select count(1) from gp_segment_configuration where role='m' and content=$1 and status='u') = 1 then
+			return true;
+		end if;
+		if i >= 2 * $2 then
+			return false;
+		end if;
+		perform pg_sleep(0.5);
+		i = i + 1;
+	end loop;
+end;
+$$ language plpgsql;
 -- stop a mirror
 select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' and c.content=0), 'stop', NULL);
                 pg_ctl                
@@ -99,7 +117,7 @@ select gp_wait_until_triggered_fault('keep_log_seg', 1, dbid)
 (1 row)
 
 -- wait for the mirror down, so the following SQLs needs no replication on seg0
-select wait_for_mirror_down(0::smallint, 30);
+select wait_for_mirror_down(0::smallint, 90);
  wait_for_mirror_down 
 ----------------------
  t
@@ -153,7 +171,7 @@ select pg_ctl((select datadir from gp_segment_configuration c where c.role='m' a
 -- wait for mirror is marked down
 -- the status of the mirror is not marked as 'd' immediately
 -- even if we run gp_request_fts_probe_scan() or pg_sleep()
-select wait_for_mirror_down(0::smallint, 30);
+select wait_for_mirror_down(0::smallint, 90);
  wait_for_mirror_down 
 ----------------------
  t
@@ -191,6 +209,12 @@ select gp_request_fts_probe_scan();
  t
 (1 row)
 
+select wait_for_mirror_up(0::smallint, 90);
+ wait_for_mirror_up 
+--------------------
+ t
+(1 row)
+
 -- Validate that the mirror for content=0 is marked up.
 select count(*) = 2 as mirror_up from gp_segment_configuration
  where content=0 and status='u';
@@ -208,16 +232,16 @@ select wait_for_mirror_sync(0::smallint);
  
 (1 row)
 
-select role, preferred_role, content, mode, status from gp_segment_configuration;
- role | preferred_role | content | mode | status 
-------+----------------+---------+------+--------
- p    | p              |      -1 | n    | u
- p    | p              |       1 | s    | u
- m    | m              |       1 | s    | u
- p    | p              |       2 | s    | u
- m    | m              |       2 | s    | u
- m    | m              |      -1 | s    | u
- p    | p              |       0 | s    | u
- m    | m              |       0 | s    | u
+select role, preferred_role, content, status from gp_segment_configuration;
+ role | preferred_role | content | status 
+------+----------------+---------+--------
+ p    | p              |      -1 | u
+ m    | m              |      -1 | u
+ p    | p              |       2 | u
+ m    | m              |       2 | u
+ p    | p              |       1 | u
+ m    | m              |       1 | u
+ p    | p              |       0 | u
+ m    | m              |       0 | u
 (8 rows)
 

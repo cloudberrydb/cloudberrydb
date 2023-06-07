@@ -4,7 +4,7 @@
  *	  Catalog-to-filenode mapping
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/relmapper.h
@@ -35,11 +35,11 @@ typedef struct xl_relmap_update
 #define MinSizeOfRelmapUpdate offsetof(xl_relmap_update, data)
 
 
-extern Oid	RelationMapOidToFilenode(Oid relationId, bool shared);
+extern RelFileNodeId    RelationMapOidToFilenode(Oid relationId, bool shared);
 
-extern Oid	RelationMapFilenodeToOid(Oid relationId, bool shared);
+extern Oid	RelationMapFilenodeToOid(RelFileNodeId filenode, bool shared);
 
-extern void RelationMapUpdateMap(Oid relationId, Oid fileNode, bool shared,
+extern void RelationMapUpdateMap(Oid relationId, RelFileNodeId fileNode, bool shared,
 								 bool immediate);
 
 extern void RelationMapRemoveMapping(Oid relationId);

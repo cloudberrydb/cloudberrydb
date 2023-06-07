@@ -2,7 +2,7 @@
  *  faultinjector.h
  *  
  *
- *  Copyright 2009-2010, Greenplum Inc. All rights reserved.
+ *  Copyright 2009-2010, Cloudberry Inc. All rights reserved.
  *
  */
 
@@ -103,6 +103,13 @@ extern FaultInjectorType_e FaultInjector_InjectFaultIfSet_out_of_line(
 	 FaultInjector_InjectFaultIfSet_out_of_line(faultName, ddlStatement, databaseName, tableName) : \
 	 FaultInjectorTypeNotSpecified)
 
+/*
+ * The fault injection in the shared memory table is queried by the fault name,
+ * without changing any information of the existing fault,
+ * such as reference count, status, etc. 
+ */
+extern FaultInjectorType_e FaultInjector_LookupCheck(const char* faultName);
+
 extern int *numActiveFaults_ptr;
 
 
@@ -119,6 +126,8 @@ void register_fault_injection_warning(fault_injection_warning_function warning);
 extern bool am_faulthandler;
 #define SIMPLE_FAULT_INJECTOR(FaultName) \
 	FaultInjector_InjectFaultIfSet(FaultName, DDLNotSpecified, "", "")
+#define LOOKUP_FAULT_INJECTOR_CHECK(FaultName) \
+	FaultInjector_LookupCheck(FaultName)
 #else
 #define am_faulthandler false
 #define SIMPLE_FAULT_INJECTOR(FaultName)

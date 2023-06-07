@@ -188,15 +188,15 @@ DECLARE
 (1 row)
 --- Login as uu1 and retrieve, only u1 can retrieve
 3R: SELECT SESSION_USER, CURRENT_USER;
-#3retrieve> FATAL:  Authentication failure (Wrong password or no endpoint for the user)
+#3retrieve> connection to server at "host_id", port port_id failed: FATAL:  Authentication failure (Wrong password or no endpoint for the user)
 
 3R: @pre_run 'set_endpoint_variable @ENDPOINT3': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT3";
-#3retrieve> FATAL:  Authentication failure (Wrong password or no endpoint for the user)
+#3retrieve> connection to server at "host_id", port port_id failed: FATAL:  Authentication failure (Wrong password or no endpoint for the user)
 
 
 --- Retrieve c2(which belongs to u1) but current user is uu1.
 3R: @pre_run 'set_endpoint_variable @ENDPOINT2': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT2";
-#3retrieve> FATAL:  Authentication failure (Wrong password or no endpoint for the user)
+#3retrieve> connection to server at "host_id", port port_id failed: FATAL:  Authentication failure (Wrong password or no endpoint for the user)
 
 0Rq: ... <quitting>
 3Rq:Sessions not started cannot be quit
@@ -252,7 +252,7 @@ DECLARE
  1        
 (1 row)
 *R: SET SESSION AUTHORIZATION adminuser;
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
@@ -261,7 +261,7 @@ ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
 
 ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
 *R: SELECT SESSION_USER, CURRENT_USER;
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
@@ -270,7 +270,7 @@ ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
 
 ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
 *R: @pre_run 'set_endpoint_variable @ENDPOINT4': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT4";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 ERROR:  the PARALLEL RETRIEVE CURSOR was created by a different user
@@ -362,7 +362,7 @@ SET
 
 --- u2 is not able to see u1's endpoints in RETRIEVE mode
 *R: @pre_run 'export CURRENT_ENDPOINT_POSTFIX=50 ; export RETRIEVE_USER="adminuser" ; echo $RAW_STR' : SET SESSION AUTHORIZATION u2;
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
@@ -395,7 +395,7 @@ ERROR:  This is a retrieve connection, but the query is not a RETRIEVE.
 
 --- u2 is not able to retrieve from u1's endpoints in RETRIEVE mode
 *R: @pre_run 'set_endpoint_variable @ENDPOINT5': RETRIEVE ALL FROM ENDPOINT "@ENDPOINT5";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
 ERROR:  the PARALLEL RETRIEVE CURSOR was created by a different user

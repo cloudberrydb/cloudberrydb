@@ -7,7 +7,7 @@
     performance problems, and applying the tools and techniques available to you to remedy the
     problems. </shortdesc>
   <body>
-    <p>Greenplum measures database performance based on the rate at
+    <p>Cloudberry measures database performance based on the rate at
       which the database management system (DBMS) supplies information to requesters.</p>
   </body>
   <topic id="topic2" xml:lang="en">
@@ -41,8 +41,8 @@
           which your DBMS is deployed. Performance of hardware components such as CPUs, hard disks,
           disk controllers, RAM, and network interfaces will significantly affect how fast your
           database performs.</p>
-        <note>Do not install anti-virus software on Greenplum Database hosts as the software might cause extra CPU and IO
-          load that interferes with Greenplum Database operations.</note>
+        <note>Do not install anti-virus software on Cloudberry Database hosts as the software might cause extra CPU and IO
+          load that interferes with Cloudberry Database operations.</note>
       </body>
     </topic>
     <topic id="topic4" xml:lang="en">
@@ -110,7 +110,7 @@
           hardware and operating system (OS) will help you identify and troubleshoot
           hardware-related problems before you explore database-level or query-level tuning
           initiatives. </p>
-        <p>See the <i>Greenplum Database Reference Guide</i> for information about
+        <p>See the <i>Cloudberry Database Reference Guide</i> for information about
           running the <codeph>gpcheckperf</codeph> utility to validate hardware and network
           performance.</p>
       </body>

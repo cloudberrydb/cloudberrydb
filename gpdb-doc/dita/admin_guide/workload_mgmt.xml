@@ -4,10 +4,10 @@
 <topic id="topic1" xml:lang="en">
   <title id="iz173472">Using Resource Queues</title>
   <body>
-    <p>Use Greenplum Database resource queues to prioritize and allocate resources to queries
+    <p>Use Cloudberry Database resource queues to prioritize and allocate resources to queries
       according to business requirements and to prevent queries from starting when resources are
       unavailable.</p>
-    <p>Resource queues are one tool to manage the degree of concurrency in a Greenplum Database
+    <p>Resource queues are one tool to manage the degree of concurrency in a Cloudberry Database
       system. Resource queues are database objects that you create with the <codeph>CREATE RESOURCE
         QUEUE</codeph> SQL statement. You can use them to manage the number of active queries that
       may run concurrently, the amount of memory each type of query is allocated, and the
@@ -70,24 +70,24 @@
         <plentry>
           <pt>MAX_COST</pt>
           <pd>Query plan cost limit. </pd>
-          <pd>The Greenplum Database optimizer assigns a numeric cost to each query. If the cost
+          <pd>The Cloudberry Database optimizer assigns a numeric cost to each query. If the cost
             exceeds the <codeph>MAX_COST</codeph> value set for the resource queue, the query is
             rejected as too expensive.</pd>
           <pd>
             <note>GPORCA and the Postgres Planner utilize different
               query costing models and may compute different costs for the same query.
-              The Greenplum Database resource queue resource management scheme neither
+              The Cloudberry Database resource queue resource management scheme neither
               differentiates nor aligns costs between GPORCA and the Postgres Planner; it
               uses the literal cost value returned from the optimizer to throttle
               queries.<p> When resource queue-based resource management is active, use the
               <codeph>MEMORY_LIMIT</codeph> and <codeph>ACTIVE_STATEMENTS</codeph> limits for
               resource queues rather than configuring cost-based limits. Even when using GPORCA,
-              Greenplum Database may fall back to using the Postgres Planner for certain
+              Cloudberry Database may fall back to using the Postgres Planner for certain
               queries, so using cost-based limits can lead to unexpected results.</p></note>
           </pd>
         </plentry>
       </parml></p>
-    <p>The default configuration for a Greenplum Database system has a single default resource queue
+    <p>The default configuration for a Cloudberry Database system has a single default resource queue
       named <codeph>pg_default</codeph>. The <codeph>pg_default</codeph> resource queue has an
         <codeph>ACTIVE_STATEMENTS</codeph> setting of 20, no <codeph>MEMORY_LIMIT</codeph>, medium
         <codeph>PRIORITY</codeph>, and no set <codeph>MAX_COST</codeph>. This means that all queries
@@ -131,7 +131,7 @@
         expectations, you can define classes of queries and assign them to resource queues
         configured to run them with the concurrency, memory, and CPU resources best suited for
         that class of query.</p>
-      <p>The following illustration shows an example resource queue configuration for a Greenplum
+      <p>The following illustration shows an example resource queue configuration for a Cloudberry
         Database system with <codeph>gp_vmem_protect_limit</codeph> set to 8GB:<fig
           id="fig_p3y_mg5_1q">
           <title>Resource Queue Configuration Example</title>
@@ -180,7 +180,7 @@
         Allowing a safety margin of 20% accommodates some operators and queries that are known to
         use more memory than they are allocated by the resource queue. </p>
       <p>See the <codeph>CREATE RESOURCE QUEUE</codeph> and <codeph>CREATE/ALTER ROLE</codeph>
-        statements in the <cite>Greenplum Database Reference Guide</cite> for help with command
+        statements in the <cite>Cloudberry Database Reference Guide</cite> for help with command
         syntax and detailed reference information.</p>
     </body>
   </topic>
@@ -308,7 +308,7 @@
   <topic id="topic8" xml:lang="en">
     <title id="iz153124">Steps to Enable Resource Management</title>
     <body>
-      <p>Enabling and using resource management in Greenplum Database involves the following
+      <p>Enabling and using resource management in Cloudberry Database involves the following
         high-level tasks:</p>
       <ol id="ol_ec5_4dy_wq">
         <li>Configure resource management. See <xref href="#topic9" format="dita"/>.</li>
@@ -325,7 +325,7 @@
   <topic id="topic9" xml:lang="en">
     <title id="iz139711">Configuring Resource Management</title>
     <body>
-      <p>Resource scheduling is enabled by default when you install Greenplum Database, and is
+      <p>Resource scheduling is enabled by default when you install Cloudberry Database, and is
         required for all roles. The default resource queue, <codeph>pg_default</codeph>, has an
         active statement limit of 20, no memory limit, and a medium priority setting. Create
         resource queues for the various types of workloads.</p>
@@ -353,14 +353,14 @@
             </ul></li>
           <li id="iz169478">The following parameters are related to memory utilization:<ul
               id="ul_ehc_w3c_34">
-              <li id="iz172344"><codeph>gp_resqueue_memory_policy</codeph> - Enables Greenplum
-                Database memory management features. <p>In Greenplum Database<ph> 4.2 and
+              <li id="iz172344"><codeph>gp_resqueue_memory_policy</codeph> - Enables Cloudberry
+                Database memory management features. <p>In Cloudberry Database<ph> 4.2 and
                   later</ph>, the distribution algorithm <codeph>eager_free</codeph> takes advantage
                   of the fact that not all operators run at the same time. The query plan is
-                  divided into stages and Greenplum Database eagerly frees memory allocated to a
+                  divided into stages and Cloudberry Database eagerly frees memory allocated to a
                   previous stage at the end of that stage's execution, then allocates the eagerly
                   freed memory to the new stage.</p><p><ph>When set to <codeph>none</codeph>, memory
-                    management is the same as in Greenplum Database releases prior to 4.1. </ph>When
+                    management is the same as in Cloudberry Database releases prior to 4.1. </ph>When
                   set to <codeph>auto</codeph>, query memory usage is controlled by
                     <codeph>statement_mem</codeph> and resource queue memory limits. </p></li>
               <li id="iz172366"><codeph>statement_mem</codeph> and
@@ -376,11 +376,11 @@
                   <codeph>gp_vmem_protect_segworker_cache_limit</codeph> - used to free memory on
                 segment hosts held by idle database processes. Administrators may want to adjust
                 these settings on systems with lots of concurrency.</li>
-              <li><codeph>shared_buffers</codeph> - Sets the amount of memory a Greenplum server
+              <li><codeph>shared_buffers</codeph> - Sets the amount of memory a Cloudberry server
                 instance uses for shared memory buffers. This setting must be at least 128 kilobytes
                 and at least 16 kilobytes times <codeph>max_connections</codeph>. The value must not
                 exceed the operating system shared memory maximum allocation request size,
-                  <codeph>shmmax</codeph> on Linux. See the <i>Greenplum Database Installation
+                  <codeph>shmmax</codeph> on Linux. See the <i>Cloudberry Database Installation
                   Guide</i> for recommended OS memory settings for your platform.</li>
             </ul></li>
           <li id="iz169487">The following parameters are related to query prioritization. Note that
@@ -397,7 +397,7 @@
                 segment host. If the segment is configured with primary-mirror segment
                 instance pairs, use the
                 number of primary segment instances on the host in the calculation. The default value
-                is 4 for the master and segment hosts. <p>Each Greenplum host checks its
+                is 4 for the master and segment hosts. <p>Each Cloudberry host checks its
                   own <codeph>postgresql.conf</codeph> file for the value of this parameter. This
                   parameter also affects the master host, where it should be set to a value
                   reflecting the higher ratio of CPU cores. For example, on a cluster that has 10
@@ -411,10 +411,10 @@
                   </ul>
                 <p>If the
                   parameter value is not set correctly, either the CPU might not be fully utilized,
-                  or query prioritization might not work as expected. For example, if the Greenplum
+                  or query prioritization might not work as expected. For example, if the Cloudberry
                   Database cluster has fewer than one segment instance per CPU core on your segment
                   hosts, make sure that you adjust this value accordingly. </p><p>Actual CPU core
-                  utilization is based on the ability of Greenplum Database to parallelize a query
+                  utilization is based on the ability of Cloudberry Database to parallelize a query
                   and the resources required to run the query. </p><p>Note: Include any CPU core that is
                   available to the operating system in the number of CPU cores, including
                   virtual CPU cores.</p></li>
@@ -430,7 +430,7 @@
               <codeblock>$ gpconfig -c gp_resqueue_priority_cpucores_per_segment -v 2 -m 8
 </codeblock>
             </p></li>
-          <li id="iz169522">Restart Greenplum Database to make the configuration changes effective:<p>
+          <li id="iz169522">Restart Cloudberry Database to make the configuration changes effective:<p>
               <codeblock>$ gpstop -r
 </codeblock>
             </p></li>
@@ -676,7 +676,7 @@ MEMORY_LIMIT='2000MB');
           initial diagnostics and administrative planning, and then disable the feature for
           continued use.</p>
         <p>See the Statistics Collector section in the PostgreSQL documentation for more information
-          about collecting statistics in Greenplum Database.</p>
+          about collecting statistics in Cloudberry Database.</p>
       </body>
     </topic>
     <topic id="topic25" xml:lang="en">
@@ -773,7 +773,7 @@ MEMORY_LIMIT='2000MB');
             <i>gp_resq_priority_statement</i>, which lists all statements currently being run
           and provides the priority, session ID, and other information.</p>
         <p>This view is only available through the <codeph>gp_toolkit</codeph> administrative
-          schema. <ph>See the <i>Greenplum Database Reference Guide</i> for more
+          schema. <ph>See the <i>Cloudberry Database Reference Guide</i> for more
           information.</ph></p>
       </body>
     </topic>

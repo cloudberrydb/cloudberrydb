@@ -77,7 +77,7 @@
           <pt>DISTRIBUTED BY (column [opclass], [ ... ] )</pt>
           <pt>DISTRIBUTED RANDOMLY</pt>
           <pt>DISTRIBUTED REPLICATED</pt>
-          <pd>Used to declare the Greenplum Database distribution policy for the materialized view
+          <pd>Used to declare the Cloudberry Database distribution policy for the materialized view
             data. For information about a table distribution policy, see <codeph><xref
                 href="CREATE_TABLE.xml"/></codeph>.</pd>
         </plentry>
@@ -108,7 +108,7 @@ names, rank WHERE rank &lt; '11' AND names.id=rank.id;</codeblock>
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p><codeph>CREATE MATERIALIZED VIEW</codeph> is a Greenplum Database extension of the SQL
+      <p><codeph>CREATE MATERIALIZED VIEW</codeph> is a Cloudberry Database extension of the SQL
         standard.</p>
     </section>
     <section id="section8">

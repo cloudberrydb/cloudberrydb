@@ -22,7 +22,7 @@ PostgreSQL documentation
  <refsynopsisdiv>
 <synopsis>
 ALTER TRIGGER <replaceable class="parameter">name</replaceable> ON <replaceable class="parameter">table_name</replaceable> RENAME TO <replaceable class="parameter">new_name</replaceable>
-ALTER TRIGGER <replaceable class="parameter">name</replaceable> ON <replaceable class="parameter">table_name</replaceable> DEPENDS ON EXTENSION <replaceable class="parameter">extension_name</replaceable>
+ALTER TRIGGER <replaceable class="parameter">name</replaceable> ON <replaceable class="parameter">table_name</replaceable> [ NO ] DEPENDS ON EXTENSION <replaceable class="parameter">extension_name</replaceable>
 </synopsis>
  </refsynopsisdiv>
 
@@ -78,7 +78,10 @@ ALTER TRIGGER <replaceable class="parameter">name</replaceable> ON <replaceable 
     <term><replaceable class="parameter">extension_name</replaceable></term>
     <listitem>
      <para>
-      The name of the extension that the trigger is to depend on.
+      The name of the extension that the trigger is to depend on (or no longer
+      dependent on, if <literal>NO</literal> is specified).  A trigger
+      that's marked as dependent on an extension is automatically dropped when
+      the extension is dropped.
      </para>
     </listitem>
    </varlistentry>
@@ -90,7 +93,7 @@ ALTER TRIGGER <replaceable class="parameter">name</replaceable> ON <replaceable 
 
    <para>
     The ability to temporarily enable or disable a trigger is provided by
-    <xref linkend="sql-altertable"/>, not by
+    <link linkend="sql-altertable"><command>ALTER TABLE</command></link>, not by
     <command>ALTER TRIGGER</command>, because <command>ALTER TRIGGER</command> has no
     convenient way to express the option of enabling or disabling all of
     a table's triggers at once.

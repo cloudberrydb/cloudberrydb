@@ -6,7 +6,7 @@
  *    optimizer/prep/prepunion.c, although some functions are not
  *    externalized.
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -239,7 +239,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 		if (subpath != adjusted_path)
 		{
 			subpath = adjusted_path;
-			pathcell->data.ptr_value = subpath;
+			pathcell->ptr_value = subpath;
 		}
 	}
 

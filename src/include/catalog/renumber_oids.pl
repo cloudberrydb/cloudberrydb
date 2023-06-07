@@ -8,7 +8,7 @@
 #    Note: This does not reformat the .dat files, so you may want
 #    to run reformat_dat_file.pl afterwards.
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/include/catalog/renumber_oids.pl
@@ -29,7 +29,7 @@ use Catalog;
 
 # We'll need this number.
 my $FirstGenbkiObjectId =
-  Catalog::FindDefinedSymbol('catalog/pg_magic_oid.h', '..', 'FirstGenbkiObjectId');
+  Catalog::FindDefinedSymbol('access/transam.h', '..', 'FirstGenbkiObjectId');
 
 # Process command line switches.
 my $output_path      = '';
@@ -61,8 +61,8 @@ if ($output_path ne '' && substr($output_path, -1) ne '/')
 }
 
 # Collect all the existing assigned OIDs (including those to be remapped).
-my @header_files = (glob("pg_*.h"), qw(indexing.h toasting.h));
-my $oids = Catalog::FindAllOidsFromHeaders(@header_files);
+my @header_files = glob("pg_*.h");
+my $oids         = Catalog::FindAllOidsFromHeaders(@header_files);
 
 # Hash-ify the existing OIDs for convenient lookup.
 my %oidhash;
@@ -170,19 +170,6 @@ foreach my $input_file (@header_files)
 					$line =~ s/BKI_ROWTYPE_OID\(\d+,\w+\)/$repl/;
 					$changed = 1;
 				}
-			}
-		}
-
-		# In indexing.h and toasting.h only, check for #define SYM nnnn,
-		# and replace if within mapped range.
-		elsif ($line =~ m/^(\s*#\s*define\s+\w+\s+)(\d+)\b/)
-		{
-			if (($catname eq 'indexing' || $catname eq 'toasting')
-				&& exists $maphash{$2})
-			{
-				my $repl = $1 . $maphash{$2};
-				$line =~ s/^\s*#\s*define\s+\w+\s+\d+\b/$repl/;
-				$changed = 1;
 			}
 		}
 

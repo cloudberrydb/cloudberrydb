@@ -43,8 +43,24 @@ SELECT var_samp(b::numeric) FROM aggtest;
 
 -- population variance is defined for a single tuple, sample variance
 -- is not
-SELECT var_pop(1.0), var_samp(2.0);
+SELECT var_pop(1.0::float8), var_samp(2.0::float8);
+SELECT stddev_pop(3.0::float8), stddev_samp(4.0::float8);
+SELECT var_pop('inf'::float8), var_samp('inf'::float8);
+SELECT stddev_pop('inf'::float8), stddev_samp('inf'::float8);
+SELECT var_pop('nan'::float8), var_samp('nan'::float8);
+SELECT stddev_pop('nan'::float8), stddev_samp('nan'::float8);
+SELECT var_pop(1.0::float4), var_samp(2.0::float4);
+SELECT stddev_pop(3.0::float4), stddev_samp(4.0::float4);
+SELECT var_pop('inf'::float4), var_samp('inf'::float4);
+SELECT stddev_pop('inf'::float4), stddev_samp('inf'::float4);
+SELECT var_pop('nan'::float4), var_samp('nan'::float4);
+SELECT stddev_pop('nan'::float4), stddev_samp('nan'::float4);
+SELECT var_pop(1.0::numeric), var_samp(2.0::numeric);
 SELECT stddev_pop(3.0::numeric), stddev_samp(4.0::numeric);
+SELECT var_pop('inf'::numeric), var_samp('inf'::numeric);
+SELECT stddev_pop('inf'::numeric), stddev_samp('inf'::numeric);
+SELECT var_pop('nan'::numeric), var_samp('nan'::numeric);
+SELECT stddev_pop('nan'::numeric), stddev_samp('nan'::numeric);
 
 -- verify correct results for null and NaN inputs
 select sum(null::int4) from generate_series(1,3);
@@ -59,14 +75,26 @@ select sum('NaN'::numeric) from generate_series(1,3);
 select avg('NaN'::numeric) from generate_series(1,3);
 
 -- verify correct results for infinite inputs
-SELECT avg(x::float8), var_pop(x::float8)
+SELECT sum(x::float8), avg(x::float8), var_pop(x::float8)
 FROM (VALUES ('1'), ('infinity')) v(x);
-SELECT avg(x::float8), var_pop(x::float8)
+SELECT sum(x::float8), avg(x::float8), var_pop(x::float8)
 FROM (VALUES ('infinity'), ('1')) v(x);
-SELECT avg(x::float8), var_pop(x::float8)
+SELECT sum(x::float8), avg(x::float8), var_pop(x::float8)
 FROM (VALUES ('infinity'), ('infinity')) v(x);
-SELECT avg(x::float8), var_pop(x::float8)
+SELECT sum(x::float8), avg(x::float8), var_pop(x::float8)
 FROM (VALUES ('-infinity'), ('infinity')) v(x);
+SELECT sum(x::float8), avg(x::float8), var_pop(x::float8)
+FROM (VALUES ('-infinity'), ('-infinity')) v(x);
+SELECT sum(x::numeric), avg(x::numeric), var_pop(x::numeric)
+FROM (VALUES ('1'), ('infinity')) v(x);
+SELECT sum(x::numeric), avg(x::numeric), var_pop(x::numeric)
+FROM (VALUES ('infinity'), ('1')) v(x);
+SELECT sum(x::numeric), avg(x::numeric), var_pop(x::numeric)
+FROM (VALUES ('infinity'), ('infinity')) v(x);
+SELECT sum(x::numeric), avg(x::numeric), var_pop(x::numeric)
+FROM (VALUES ('-infinity'), ('infinity')) v(x);
+SELECT sum(x::numeric), avg(x::numeric), var_pop(x::numeric)
+FROM (VALUES ('-infinity'), ('-infinity')) v(x);
 
 -- test accuracy with a large input offset
 SELECT avg(x::float8), var_pop(x::float8)
@@ -84,6 +112,11 @@ SELECT regr_r2(b, a) FROM aggtest;
 SELECT regr_slope(b, a), regr_intercept(b, a) FROM aggtest;
 SELECT covar_pop(b, a), covar_samp(b, a) FROM aggtest;
 SELECT corr(b, a) FROM aggtest;
+
+-- check single-tuple behavior
+SELECT covar_pop(1::float8,2::float8), covar_samp(3::float8,4::float8);
+SELECT covar_pop(1::float8,'inf'::float8), covar_samp(3::float8,'inf'::float8);
+SELECT covar_pop(1::float8,'nan'::float8), covar_samp(3::float8,'nan'::float8);
 
 -- test accum and combine functions directly
 CREATE TABLE regr_test (x float8, y float8);
@@ -183,7 +216,8 @@ CREATE TEMPORARY TABLE bitwise_test(
 -- empty case
 SELECT
   BIT_AND(i2) AS "?",
-  BIT_OR(i4)  AS "?"
+  BIT_OR(i4)  AS "?",
+  BIT_XOR(i8) AS "?"
 FROM bitwise_test;
 
 COPY bitwise_test FROM STDIN NULL 'null';
@@ -205,7 +239,14 @@ SELECT
   BIT_OR(i8)  AS "7",
   BIT_OR(i)   AS "?",
   BIT_OR(x)   AS "7",
-  BIT_OR(y)   AS "1101"
+  BIT_OR(y)   AS "1101",
+
+  BIT_XOR(i2) AS "5",
+  BIT_XOR(i4) AS "5",
+  BIT_XOR(i8) AS "5",
+  BIT_XOR(i)  AS "?",
+  BIT_XOR(x)  AS "7",
+  BIT_XOR(y)  AS "1101"
 FROM bitwise_test;
 
 --
@@ -421,9 +462,46 @@ group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.z;
 -- Cannot optimize when PK is deferrable
 explain (costs off) select * from t3 group by a,b,c;
 
-drop table t1;
+create temp table t1c () inherits (t1);
+
+-- Ensure we don't remove any columns when t1 has a child table
+explain (costs off) select * from t1 group by a,b,c,d;
+
+-- Okay to remove columns if we're only querying the parent.
+explain (costs off) select * from only t1 group by a,b,c,d;
+
+create temp table p_t1 (
+  a int,
+  b int,
+  c int,
+  d int,
+  primary key(a,b)
+) partition by list(a);
+create temp table p_t1_1 partition of p_t1 for values in(1);
+create temp table p_t1_2 partition of p_t1 for values in(2);
+
+-- Ensure we can remove non-PK columns for partitioned tables.
+explain (costs off) select * from p_t1 group by a,b,c,d;
+
+drop table t1 cascade;
 drop table t2;
 drop table t3;
+drop table p_t1;
+
+--
+-- Test GROUP BY matching of join columns that are type-coerced due to USING
+--
+
+create temp table t1(f1 int, f2 bigint);
+create temp table t2(f1 bigint, f22 bigint);
+
+select f1 from t1 left join t2 using (f1) group by f1;
+select f1 from t1 left join t2 using (f1) group by t1.f1;
+select t1.f1 from t1 left join t2 using (f1) group by t1.f1;
+-- only this one should fail:
+select t1.f1 from t1 left join t2 using (f1) group by f1;
+
+drop table t1, t2;
 
 --
 -- Test combinations of DISTINCT and/or ORDER BY
@@ -776,6 +854,17 @@ select aggfns(distinct a,b,c order by a,c using ~<~,b) filter (where a > 1)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
     generate_series(1,2) i;
 
+-- check handling of bare boolean Var in FILTER
+select max(0) filter (where b1) from bool_test;
+select (select max(0) filter (where b1)) from bool_test;
+
+-- check for correct detection of nested-aggregate errors in FILTER
+select max(unique1) filter (where sum(ten) > 0) from tenk1;
+select (select max(unique1) filter (where sum(ten) > 0) from int8_tbl) from tenk1;
+select max(unique1) filter (where bool_or(ten > 0)) from tenk1;
+select (select max(unique1) filter (where bool_or(ten > 0)) from int8_tbl) from tenk1;
+
+
 -- ordered-set aggregates
 
 select p, percentile_cont(p) within group (order by x::float8)
@@ -883,6 +972,10 @@ drop view aggordview1;
 select least_agg(q1,q2) from int8_tbl;
 select least_agg(variadic array[q1,q2]) from int8_tbl;
 
+select cleast_agg(q1,q2) from int8_tbl;
+select cleast_agg(4.5,f1) from int4_tbl;
+select cleast_agg(variadic array[4.5,f1]) from int4_tbl;
+select pg_typeof(cleast_agg(variadic array[4.5,f1])) from int4_tbl;
 
 -- test aggregates with common transition functions share the same states
 begin work;
@@ -1100,7 +1193,7 @@ ROLLBACK;
 -- Secondly test the case of a parallel aggregate combiner function
 -- returning NULL. For that use normal transition function, but a
 -- combiner function returning NULL.
-BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN;
 CREATE FUNCTION balkifnull(int8, int8)
 RETURNS int8
 PARALLEL SAFE
@@ -1133,21 +1226,45 @@ SELECT balk(hundred) FROM tenk1;
 ROLLBACK;
 
 -- test coverage for aggregate combine/serial/deserial functions
-BEGIN ISOLATION LEVEL REPEATABLE READ;
+BEGIN;
 
 SET parallel_setup_cost = 0;
 SET parallel_tuple_cost = 0;
 SET min_parallel_table_scan_size = 0;
 SET max_parallel_workers_per_gather = 4;
+SET parallel_leader_participation = off;
 SET enable_indexonlyscan = off;
 
 -- variance(int4) covers numeric_poly_combine
 -- sum(int8) covers int8_avg_combine
 -- regr_count(float8, float8) covers int8inc_float8_float8 and aggregates with > 1 arg
 EXPLAIN (COSTS OFF, VERBOSE)
-  SELECT variance(unique1::int4), sum(unique1::int8), regr_count(unique1::float8, unique1::float8) FROM tenk1;
+SELECT variance(unique1::int4), sum(unique1::int8), regr_count(unique1::float8, unique1::float8)
+FROM (SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1) u;
 
-SELECT variance(unique1::int4), sum(unique1::int8), regr_count(unique1::float8, unique1::float8) FROM tenk1;
+SELECT variance(unique1::int4), sum(unique1::int8), regr_count(unique1::float8, unique1::float8)
+FROM (SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1) u;
+
+-- variance(int8) covers numeric_combine
+-- avg(numeric) covers numeric_avg_combine
+EXPLAIN (COSTS OFF, VERBOSE)
+SELECT variance(unique1::int8), avg(unique1::numeric)
+FROM (SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1) u;
+
+SELECT variance(unique1::int8), avg(unique1::numeric)
+FROM (SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1
+      UNION ALL SELECT * FROM tenk1) u;
 
 ROLLBACK;
 
@@ -1172,9 +1289,11 @@ select v||'a', case when v||'a' = 'aa' then 1 else 0 end, count(*)
 -- Make sure that generation of HashAggregate for uniqification purposes
 -- does not lead to array overflow due to unexpected duplicate hash keys
 -- see CAFeeJoKKu0u+A_A9R9316djW-YW3-+Gtgvy3ju655qRHR3jtdA@mail.gmail.com
+set enable_memoize to off;
 explain (costs off)
   select 1 from tenk1
    where (hundred, thousand) in (select twothousand, twothousand from onek);
+reset enable_memoize;
 
 --
 -- Hash Aggregation Spill tests
@@ -1198,6 +1317,14 @@ set enable_sort to default;
 
 set work_mem='64kB';
 
+create table agg_data_2k as
+select g from generate_series(0, 1999) g;
+analyze agg_data_2k;
+
+create table agg_data_20k as
+select g from generate_series(0, 19999) g;
+analyze agg_data_20k;
+
 -- Produce results with sorting.
 
 set enable_hashagg = false;
@@ -1205,14 +1332,12 @@ set enable_hashagg = false;
 set jit_above_cost = 0;
 
 explain (costs off)
-select g%100000 as c1, sum(g::numeric) as c2, count(*) as c3
-  from generate_series(0, 199999) g
-  group by g%100000;
+select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
+  from agg_data_20k group by g%10000;
 
 create table agg_group_1 as
-select g%100000 as c1, sum(g::numeric) as c2, count(*) as c3
-  from generate_series(0, 199999) g
-  group by g%100000;
+select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
+  from agg_data_20k group by g%10000;
 
 /*
  * create table agg_group_2 as
@@ -1221,7 +1346,7 @@ select g%100000 as c1, sum(g::numeric) as c2, count(*) as c3
  *   lateral (
  *     select (g/2)::numeric as c1,
  *            array_agg(g::numeric) as c2,
- *            count(*) as c3
+ *        count(*) as c3
  *     from generate_series(0, 1999) g
  *     where g < r.a
  *     group by g/2) as s;
@@ -1231,13 +1356,11 @@ set jit_above_cost to default;
 
 create table agg_group_3 as
 select (g/2)::numeric as c1, sum(7::int4) as c2, count(*) as c3
-  from generate_series(0, 1999) g
-  group by g/2;
+  from agg_data_2k group by g/2;
 
 create table agg_group_4 as
 select (g/2)::numeric as c1, array_agg(g::numeric) as c2, count(*) as c3
-  from generate_series(0, 1999) g
-  group by g/2;
+  from agg_data_2k group by g/2;
 
 -- Produce results with hash aggregation
 
@@ -1247,14 +1370,12 @@ set enable_sort = false;
 set jit_above_cost = 0;
 
 explain (costs off)
-select g%100000 as c1, sum(g::numeric) as c2, count(*) as c3
-  from generate_series(0, 199999) g
-  group by g%100000;
+select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
+  from agg_data_20k group by g%10000;
 
 create table agg_hash_1 as
-select g%100000 as c1, sum(g::numeric) as c2, count(*) as c3
-  from generate_series(0, 199999) g
-  group by g%100000;
+select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
+  from agg_data_20k group by g%10000;
 
 /*
  * create table agg_hash_2 as
@@ -1263,7 +1384,7 @@ select g%100000 as c1, sum(g::numeric) as c2, count(*) as c3
  *   lateral (
  *     select (g/2)::numeric as c1,
  *            array_agg(g::numeric) as c2,
- *            count(*) as c3
+ *        count(*) as c3
  *     from generate_series(0, 1999) g
  *     where g < r.a
  *     group by g/2) as s;
@@ -1273,13 +1394,11 @@ set jit_above_cost to default;
 
 create table agg_hash_3 as
 select (g/2)::numeric as c1, sum(7::int4) as c2, count(*) as c3
-  from generate_series(0, 1999) g
-  group by g/2;
+  from agg_data_2k group by g/2;
 
 create table agg_hash_4 as
 select (g/2)::numeric as c1, array_agg(g::numeric) as c2, count(*) as c3
-  from generate_series(0, 1999) g
-  group by g/2;
+  from agg_data_2k group by g/2;
 
 set enable_sort = true;
 set work_mem to default;
@@ -1290,19 +1409,18 @@ set work_mem to default;
   union all
 (select * from agg_group_1 except select * from agg_hash_1);
 
-/*
- * (select * from agg_hash_2 except select * from agg_group_2)
- *   union all
- * (select * from agg_group_2 except select * from agg_hash_2);
- */
+--(select * from agg_hash_2 except select * from agg_group_2)
+--  union all
+--(select * from agg_group_2 except select * from agg_hash_2);
 
 (select * from agg_hash_3 except select * from agg_group_3)
   union all
 (select * from agg_group_3 except select * from agg_hash_3);
 
-(select * from agg_hash_4 except select * from agg_group_4)
-  union all
-(select * from agg_group_4 except select * from agg_hash_4);
+-- CBDB: array_agg() makes the result unstable, so ignore this check
+--(select * from agg_hash_4 except select * from agg_group_4)
+--  union all
+--(select * from agg_group_4 except select * from agg_hash_4);
 
 drop table agg_group_1;
 --  drop table agg_group_2;
@@ -1314,4 +1432,8 @@ drop table agg_hash_3;
 drop table agg_hash_4;
 
 -- fix github issue #12061 numsegments of general locus is not -1 on create_minmaxagg_path
+/*
+ * On the arm platform, `Seq Scan` is executed frequently, resulting in unstable output.
+ */
+set enable_indexonlyscan = off;
 explain analyze select count(*) from pg_class,  (select count(*) >0 from  (select count(*) from pg_class where relname like 't%')x)y;

@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="pj138418">gpreload</title>
   <body>
-    <p>Reloads Greenplum Database table data sorting the data based on specified columns. </p>
+    <p>Reloads Cloudberry Database table data sorting the data based on specified columns. </p>
     <section id="section2"
       ><title>Synopsis</title><codeblock><b>gpreload</b> <b>-d</b> <varname>database</varname> [<b>-p</b> <varname>port</varname>] {<b>-t</b> | <b>--table-file</b>} <varname>path_to_file</varname> [<b>-a</b>]
 
@@ -45,14 +45,14 @@ public.cust_table: city, state</codeblock><p>For
         </plentry>
         <plentry>
           <pt>-p <varname>port</varname></pt>
-          <pd>The Greenplum Database coordinator port. If not specified, the value of the
+          <pd>The Cloudberry Database coordinator port. If not specified, the value of the
               <codeph>PGPORT</codeph> environment variable is used. If the value is not available,
             an error is returned. </pd>
         </plentry>
         <plentry>
           <pt>{-t | --table-file } <varname>path_to_file</varname></pt>
           <pd>The location and name of file containing list of schema qualified table names to
-            reload and the column names to reorder from the Greenplum Database. Only user defined
+            reload and the column names to reorder from the Cloudberry Database. Only user defined
             tables are supported. Views or system catalog tables are not supported.</pd>
           <pd>If indexes are defined on table listed in the file, <codeph>gpreload</codeph> prompts
             to continue.</pd>
@@ -88,6 +88,6 @@ test.lineitem: group, assy, whse </codeblock></pd>
           <codeph>data-tables.txt</codeph>.
       </p><codeblock>gpreload -d mytest --table-file data-tables.txt</codeblock></section>
     <section id="section7"><title>See Also</title><p><codeph>CREATE TABLE</codeph> in the
-          <i>Greenplum Database Reference Guide</i></p></section>
+          <i>Cloudberry Database Reference Guide</i></p></section>
   </body>
 </topic>

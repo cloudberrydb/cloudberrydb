@@ -3,9 +3,9 @@
  * syscache.c
  *	  System cache management routines
  *
- * Portions Copyright (c) 2007-2010, Greenplum inc
+ * Portions Copyright (c) 2007-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -22,12 +22,8 @@
  */
 #include "postgres.h"
 
-#include "miscadmin.h"
-
-#include "access/heapam.h"
 #include "access/htup_details.h"
 #include "access/sysattr.h"
-#include "catalog/indexing.h"
 #include "catalog/pg_aggregate.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_amop.h"
@@ -58,13 +54,13 @@
 #include "catalog/pg_publication.h"
 #include "catalog/pg_publication_rel.h"
 #include "catalog/pg_range.h"
+#include "catalog/pg_replication_origin.h"
 #include "catalog/pg_rewrite.h"
 #include "catalog/pg_seclabel.h"
 #include "catalog/pg_sequence.h"
 #include "catalog/pg_shdepend.h"
 #include "catalog/pg_shdescription.h"
 #include "catalog/pg_shseclabel.h"
-#include "catalog/pg_replication_origin.h"
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_statistic_ext_data.h"
@@ -79,12 +75,17 @@
 #include "catalog/pg_ts_template.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_user_mapping.h"
-#include "catalog/pg_resgroup.h"
-#include "catalog/pg_extprotocol.h"
-#include "utils/rel.h"
+#include "lib/qunique.h"
 #include "utils/catcache.h"
+#include "utils/rel.h"
 #include "utils/syscache.h"
 
+#include "access/heapam.h"
+#include "catalog/pg_resgroup.h"
+#include "catalog/pg_extprotocol.h"
+#include "miscadmin.h"
+
+#include "catalog/gp_indexing.h"
 
 /*---------------------------------------------------------------------------
 
@@ -104,7 +105,7 @@
 
 	There must be a unique index underlying each syscache (ie, an index
 	whose key is the same as that of the cache).  If there is not one
-	already, add definitions for it to include/catalog/indexing.h: you need
+	already, add definitions for it to include/catalog/pg_*.h: you need
 	to add a DECLARE_UNIQUE_INDEX macro and a #define for the index OID.
 	(Adding an index requires a catversion.h update, while simply
 	adding/deleting caches only requires a recompile.)
@@ -261,7 +262,8 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		8
 	},
-	{CastRelationId,			/* CASTSOURCETARGET */
+	{
+		CastRelationId,			/* CASTSOURCETARGET */
 		CastSourceTargetIndexId,
 		2,
 		{
@@ -690,6 +692,18 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		64
 	},
+	{RangeRelationId,			/* RANGEMULTIRANGE */
+		RangeMultirangeTypidIndexId,
+		1,
+		{
+			Anum_pg_range_rngmultitypid,
+			0,
+			0,
+			0
+		},
+		4
+	},
+
 	{RangeRelationId,			/* RANGETYPE */
 		RangeTypidIndexId,
 		1,
@@ -1071,8 +1085,6 @@ void
 InitCatalogCache(void)
 {
 	int			cacheId;
-	int			i,
-				j;
 
 	StaticAssertStmt(SysCacheSize == (int) lengthof(cacheinfo),
 					 "SysCacheSize does not match syscache.c's array");
@@ -1109,21 +1121,15 @@ InitCatalogCache(void)
 	/* Sort and de-dup OID arrays, so we can use binary search. */
 	pg_qsort(SysCacheRelationOid, SysCacheRelationOidSize,
 			 sizeof(Oid), oid_compare);
-	for (i = 1, j = 0; i < SysCacheRelationOidSize; i++)
-	{
-		if (SysCacheRelationOid[i] != SysCacheRelationOid[j])
-			SysCacheRelationOid[++j] = SysCacheRelationOid[i];
-	}
-	SysCacheRelationOidSize = j + 1;
+	SysCacheRelationOidSize =
+		qunique(SysCacheRelationOid, SysCacheRelationOidSize, sizeof(Oid),
+				oid_compare);
 
 	pg_qsort(SysCacheSupportingRelOid, SysCacheSupportingRelOidSize,
 			 sizeof(Oid), oid_compare);
-	for (i = 1, j = 0; i < SysCacheSupportingRelOidSize; i++)
-	{
-		if (SysCacheSupportingRelOid[i] != SysCacheSupportingRelOid[j])
-			SysCacheSupportingRelOid[++j] = SysCacheSupportingRelOid[i];
-	}
-	SysCacheSupportingRelOidSize = j + 1;
+	SysCacheSupportingRelOidSize =
+		qunique(SysCacheSupportingRelOid, SysCacheSupportingRelOidSize,
+				sizeof(Oid), oid_compare);
 
 	CacheInitialized = true;
 }

@@ -2,11 +2,11 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1">
-   <title>Configuring the Greenplum Database System</title>
-   <abstract><shortdesc>Server configuration parameters affect the behavior of Greenplum Database.
+   <title>Configuring the Cloudberry Database System</title>
+   <abstract><shortdesc>Server configuration parameters affect the behavior of Cloudberry Database.
       </shortdesc>They are part of the PostgreSQL "Grand Unified Configuration" system, so they are
-      sometimes called "GUCs." Most of the Greenplum Database server configuration parameters are
+      sometimes called "GUCs." Most of the Cloudberry Database server configuration parameters are
       the same as the PostgreSQL configuration parameters, but some are
-      Greenplum-specific.</abstract>
+      Cloudberry-specific.</abstract>
    <body/>
 </topic>

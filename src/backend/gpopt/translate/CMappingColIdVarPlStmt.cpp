@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2011 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2011 Cloudberry, Inc.
 //
 //	@filename:
 //		CMappingColIdVarPlStmt.cpp
@@ -209,8 +209,8 @@ CMappingColIdVarPlStmt::VarFromDXLNodeScId(const CDXLScalarIdent *dxlop)
 		if (IsA(target_entry->expr, Var))
 		{
 			Var *var = (Var *) target_entry->expr;
-			varno_old = var->varnoold;
-			attno_old = var->varoattno;
+			varno_old = var->varnosyn;
+			attno_old = var->varattnosyn;
 		}
 		else
 		{
@@ -226,8 +226,8 @@ CMappingColIdVarPlStmt::VarFromDXLNodeScId(const CDXLScalarIdent *dxlop)
 	);
 
 	// set varnoold and varoattno since makeVar does not set them properly
-	var->varnoold = varno_old;
-	var->varoattno = attno_old;
+	var->varnosyn = varno_old;
+	var->varattnosyn = attno_old;
 
 	return var;
 }

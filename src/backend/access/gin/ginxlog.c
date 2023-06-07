@@ -4,7 +4,7 @@
  *	  WAL replay logic for inverted index.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -100,7 +100,7 @@ ginRedoInsertEntry(Buffer buffer, bool isLeaf, BlockNumber rightblkno, void *rda
 		BlockNumber blknum;
 
 		BufferGetTag(buffer, &node, &forknum, &blknum);
-		elog(ERROR, "failed to add item to index page in %u/%u/%u",
+		elog(ERROR, "failed to add item to index page in %u/%u/%lu",
 			 node.spcNode, node.dbNode, node.relNode);
 	}
 }
@@ -500,7 +500,7 @@ ginRedoDeletePage(XLogReaderState *record)
 	{
 		page = BufferGetPage(dbuffer);
 		Assert(GinPageIsData(page));
-		GinPageGetOpaque(page)->flags = GIN_DELETED;
+		GinPageSetDeleted(page);
 		GinPageSetDeleteXid(page, data->deleteXid);
 		PageSetLSN(page, lsn);
 		MarkBufferDirty(dbuffer);

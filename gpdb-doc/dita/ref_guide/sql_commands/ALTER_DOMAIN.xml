@@ -81,7 +81,7 @@ This is the default behavior. </pd></plentry>
           <codeblock>ALTER DOMAIN zipcode SET SCHEMA customers;</codeblock></section><section id="section6"><title>Compatibility</title>
       <p><codeph>ALTER DOMAIN</codeph> conforms to the SQL standard, except for the
           <codeph>OWNER</codeph>, <codeph>RENAME</codeph>, <codeph>SET SCHEMA</codeph>, and
-          <codeph>VALIDATE CONSTRAINT</codeph> variants, which are Greenplum Database extensions.
+          <codeph>VALIDATE CONSTRAINT</codeph> variants, which are Cloudberry Database extensions.
         The <codeph>NOT VALID</codeph> clause of the <codeph>ADD CONSTRAINT</codeph> variant is also
-        a Greenplum Database extension. </p></section><section id="section7"><title>See Also</title><p><codeph><xref href="./CREATE_DOMAIN.xml#topic1" type="topic" format="dita"/></codeph>,
+        a Cloudberry Database extension. </p></section><section id="section7"><title>See Also</title><p><codeph><xref href="./CREATE_DOMAIN.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./DROP_DOMAIN.xml#topic1" type="topic" format="dita"/></codeph></p></section></body></topic>

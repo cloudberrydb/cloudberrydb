@@ -22,17 +22,17 @@ select pg_reload_conf();
  t              
 (1 row)
 
-1:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
- role | preferred_role | content | mode | status 
-------+----------------+---------+------+--------
- m    | m              | -1      | s    | u      
- m    | m              | 0       | s    | u      
- m    | m              | 1       | s    | u      
- m    | m              | 2       | s    | u      
- p    | p              | -1      | n    | u      
- p    | p              | 0       | s    | u      
- p    | p              | 1       | s    | u      
- p    | p              | 2       | s    | u      
+1:SELECT role, preferred_role, content, status FROM gp_segment_configuration;
+ role | preferred_role | content | status 
+------+----------------+---------+--------
+ p    | p              | -1      | u      
+ m    | m              | -1      | u      
+ p    | p              | 2       | u      
+ m    | m              | 2       | u      
+ p    | p              | 1       | u      
+ m    | m              | 1       | u      
+ p    | p              | 0       | u      
+ m    | m              | 0       | u      
 (8 rows)
 -- Scenario 1: Test to fail broadcasting of COMMIT PREPARED to one
 -- segment and hence trigger PANIC in master while after completing
@@ -213,11 +213,6 @@ ALTER
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
-(1 row)
-11: select gp_wait_until_triggered_fault('fts_probe', 1, dbid) from gp_segment_configuration where role='p' and content=-1;
- gp_wait_until_triggered_fault 
--------------------------------
- Success:                      
 (1 row)
 11: SELECT gp_inject_fault('end_prepare_two_phase', 'infinite_loop', dbid) from gp_segment_configuration where role='p' and content=0;
  gp_inject_fault 

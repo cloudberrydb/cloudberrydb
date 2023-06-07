@@ -5,7 +5,7 @@
  *
  * See logtape.c for explanations.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/logtape.h
@@ -54,8 +54,11 @@ typedef struct TapeShare
  * prototypes for functions in logtape.c
  */
 
+
 extern char * LogicalTapeGetBufFilename(const LogicalTapeSet *lts);
-extern LogicalTapeSet *LogicalTapeSetCreate(int ntapes, TapeShare *shared,
+
+extern LogicalTapeSet *LogicalTapeSetCreate(int ntapes, bool preallocate,
+											TapeShare *shared,
 											SharedFileSet *fileset, int worker);
 extern void LogicalTapeSetClose(LogicalTapeSet *lts);
 extern void LogicalTapeSetForgetFreeSpace(LogicalTapeSet *lts);

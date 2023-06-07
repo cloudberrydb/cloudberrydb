@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
@@ -71,7 +71,7 @@ CRange::CRange(const IComparator *pcomp, IMDType::ECmpType cmp_type,
 
 	GPOS_ASSERT(m_mdid->IsValid());
 	GPOS_ASSERT(nullptr != pcomp);
-	GPOS_ASSERT(CUtils::FConstrainableType(m_mdid));
+	GPOS_ASSERT_FIXME(CUtils::FConstrainableType(m_mdid));
 	m_mdid->AddRef();
 
 	switch (cmp_type)

@@ -5,7 +5,7 @@
   <title id="fs142834">foreign_tables</title>
   <body>
     <p>The <codeph>foreign_tables</codeph> view contains all foreign tables defined
-      in the current database. Greenplum Database displays only those foreign tables to
+      in the current database. Cloudberry Database displays only those foreign tables to
        which the current user has access (by way of being the owner or having some privilege).</p>
     <table id="fs142842">
       <title>foreign_tables</title>

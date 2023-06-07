@@ -20,7 +20,7 @@
  * point, but for now that seems useless complexity.
  *
  *
- * Copyright (c) 2003-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2003-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/nodes/tidbitmap.c
@@ -34,11 +34,11 @@
 #include "access/htup.h"
 #include "access/htup_details.h"
 #include "access/bitmap.h"		/* XXX: remove once pull_stream is generic */
+#include "common/hashfn.h"
 #include "executor/instrument.h"	/* Instrumentation */
 #include "nodes/tidbitmap.h"
 #include "storage/lwlock.h"
 #include "utils/dsa.h"
-#include "utils/hashutils.h"
 
 #define WORDNUM(x)	((x) / TBM_BITS_PER_BITMAPWORD)
 #define BITNUM(x)	((x) % TBM_BITS_PER_BITMAPWORD)
@@ -1026,7 +1026,7 @@ tbm_prepare_shared_iterate(TIDBitmap *tbm)
 		pg_atomic_add_fetch_u32(&ptchunks->refcount, 1);
 
 	/* Initialize the iterator lock */
-	LWLockInitialize(&istate->lock, LWTRANCHE_TBM);
+	LWLockInitialize(&istate->lock, LWTRANCHE_SHARED_TIDBITMAP);
 
 	/* Initialize the shared iterator state */
 	istate->schunkbit = 0;
@@ -1204,7 +1204,7 @@ tbm_next_page(TBMIterator *iterator, bool *more)
 	{
 		PagetableEntry *e;
 
-		/* In ONE_PAGE state, we don't allocate an spages[] array */
+		/* In TBM_ONE_PAGE state, we don't allocate an spages[] array */
 		if (tbm->status == TBM_ONE_PAGE)
 			e = &tbm->entry1;
 		else

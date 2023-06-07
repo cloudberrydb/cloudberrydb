@@ -3,7 +3,7 @@
  *
  * pl_gram.y			- Parser for the PL/pgSQL procedural language
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -51,7 +51,6 @@
 typedef struct
 {
 	int			location;
-	int			leaderlen;
 } sql_error_callback_arg;
 
 #define parser_errposition(pos)  plpgsql_scanner_errposition(pos)
@@ -67,7 +66,7 @@ static	PLpgSQL_expr	*read_sql_construct(int until,
 											int until2,
 											int until3,
 											const char *expected,
-											const char *sqlstart,
+											RawParseMode parsemode,
 											bool isexpression,
 											bool valid_sql,
 											bool trim,
@@ -78,7 +77,7 @@ static	PLpgSQL_expr	*read_sql_expression(int until,
 static	PLpgSQL_expr	*read_sql_expression2(int until, int until2,
 											  const char *expected,
 											  int *endtoken);
-static	PLpgSQL_expr	*read_sql_stmt(const char *sqlstart);
+static	PLpgSQL_expr	*read_sql_stmt(void);
 static	PLpgSQL_type	*read_datatype(int tok);
 static	PLpgSQL_stmt	*make_execsql_stmt(int firsttoken, int location);
 static	PLpgSQL_stmt_fetch *read_fetch_direction(void);
@@ -99,15 +98,15 @@ static	PLpgSQL_row		*read_into_scalar_list(char *initial_name,
 static	PLpgSQL_row		*make_scalar_list1(char *initial_name,
 										   PLpgSQL_datum *initial_datum,
 										   int lineno, int location);
-static	void			 check_sql_expr(const char *stmt, int location,
-										int leaderlen);
+static	void			 check_sql_expr(const char *stmt,
+										RawParseMode parseMode, int location);
 static	void			 plpgsql_sql_error_callback(void *arg);
 static	PLpgSQL_type	*parse_datatype(const char *string, int location);
 static	void			 check_labels(const char *start_label,
 									  const char *end_label,
 									  int end_location);
 static	PLpgSQL_expr	*read_cursor_args(PLpgSQL_var *cursor,
-										  int until, const char *expected);
+										  int until);
 static	List			*read_raise_options(void);
 static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
 
@@ -178,11 +177,10 @@ static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
 %type <list>	decl_cursor_arglist
 %type <nsitem>	decl_aliasitem
 
-%type <expr>	expr_until_semi expr_until_rightbracket
+%type <expr>	expr_until_semi
 %type <expr>	expr_until_then expr_until_loop opt_expr_until_when
 %type <expr>	opt_exitcond
 
-%type <datum>	assign_var
 %type <var>		cursor_variable
 %type <datum>	decl_cursor_arg
 %type <forvariable>	for_variable
@@ -199,7 +197,7 @@ static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
 %type <stmt>	stmt_return stmt_raise stmt_assert stmt_execsql
 %type <stmt>	stmt_dynexecute stmt_for stmt_perform stmt_call stmt_getdiag
 %type <stmt>	stmt_open stmt_fetch stmt_move stmt_close stmt_null
-%type <stmt>	stmt_commit stmt_rollback stmt_set
+%type <stmt>	stmt_commit stmt_rollback
 %type <stmt>	stmt_case stmt_foreach_a
 
 %type <list>	proc_exceptions
@@ -232,7 +230,7 @@ static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
  * Some of these are not directly referenced in this file, but they must be
  * here anyway.
  */
-%token <str>	IDENT FCONST SCONST BCONST XCONST Op
+%token <str>	IDENT UIDENT FCONST SCONST USCONST BCONST XCONST Op
 %token <ival>	ICONST PARAM
 %token			TYPECAST DOT_DOT COLON_EQUALS EQUALS_GREATER
 %token			LESS_EQUALS GREATER_EQUALS NOT_EQUALS
@@ -330,7 +328,6 @@ static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
 %token <keyword>	K_QUERY
 %token <keyword>	K_RAISE
 %token <keyword>	K_RELATIVE
-%token <keyword>	K_RESET
 %token <keyword>	K_RETURN
 %token <keyword>	K_RETURNED_SQLSTATE
 %token <keyword>	K_REVERSE
@@ -340,7 +337,6 @@ static	void			check_raise_parameters(PLpgSQL_stmt_raise *stmt);
 %token <keyword>	K_SCHEMA
 %token <keyword>	K_SCHEMA_NAME
 %token <keyword>	K_SCROLL
-%token <keyword>	K_SET
 %token <keyword>	K_SLICE
 %token <keyword>	K_SQLSTATE
 %token <keyword>	K_STACKED
@@ -540,7 +536,7 @@ decl_statement	: decl_varname decl_const decl_datatype decl_collate decl_notnull
 					{
 						PLpgSQL_var *new;
 						PLpgSQL_expr *curname_def;
-						char		buf[1024];
+						char		buf[NAMEDATALEN * 2 + 64];
 						char		*cp1;
 						char		*cp2;
 
@@ -551,14 +547,15 @@ decl_statement	: decl_varname decl_const decl_datatype decl_collate decl_notnull
 							plpgsql_build_variable($1.name, $1.lineno,
 												   plpgsql_build_datatype(REFCURSOROID,
 																		  -1,
-																		  InvalidOid),
+																		  InvalidOid,
+																		  NULL),
 												   true);
 
 						curname_def = palloc0(sizeof(PLpgSQL_expr));
 
-						strcpy(buf, "SELECT ");
+						/* Note: refname has been truncated to NAMEDATALEN */
 						cp1 = new->refname;
-						cp2 = buf + strlen(buf);
+						cp2 = buf;
 						/*
 						 * Don't trust standard_conforming_strings here;
 						 * it might change before we use the string.
@@ -574,6 +571,7 @@ decl_statement	: decl_varname decl_const decl_datatype decl_collate decl_notnull
 						}
 						strcpy(cp2, "'::pg_catalog.refcursor");
 						curname_def->query = pstrdup(buf);
+						curname_def->parseMode = RAW_PARSE_PLPGSQL_EXPR;
 						new->default_val = curname_def;
 
 						new->cursor_explicit_expr = $7;
@@ -601,7 +599,7 @@ opt_scrollable :
 
 decl_cursor_query :
 					{
-						$$ = read_sql_stmt("");
+						$$ = read_sql_stmt();
 					}
 				;
 
@@ -899,19 +897,39 @@ proc_stmt		: pl_block ';'
 						{ $$ = $1; }
 				| stmt_rollback
 						{ $$ = $1; }
-				| stmt_set
-						{ $$ = $1; }
 				;
 
-stmt_perform	: K_PERFORM expr_until_semi
+stmt_perform	: K_PERFORM
 					{
 						PLpgSQL_stmt_perform *new;
+						int		startloc;
 
 						new = palloc0(sizeof(PLpgSQL_stmt_perform));
 						new->cmd_type = PLPGSQL_STMT_PERFORM;
 						new->lineno   = plpgsql_location_to_lineno(@1);
 						new->stmtid = ++plpgsql_curr_compile->nstatements;
-						new->expr  = $2;
+						plpgsql_push_back_token(K_PERFORM);
+
+						/*
+						 * Since PERFORM isn't legal SQL, we have to cheat to
+						 * the extent of substituting "SELECT" for "PERFORM"
+						 * in the parsed text.  It does not seem worth
+						 * inventing a separate parse mode for this one case.
+						 * We can't do syntax-checking until after we make the
+						 * substitution.
+						 */
+						new->expr = read_sql_construct(';', 0, 0, ";",
+													   RAW_PARSE_DEFAULT,
+													   false, false, true,
+													   &startloc, NULL);
+						/* overwrite "perform" ... */
+						memcpy(new->expr->query, " SELECT", 7);
+						/* left-justify to get rid of the leading space */
+						memmove(new->expr->query, new->expr->query + 1,
+								strlen(new->expr->query));
+						/* offset syntax error position to account for that */
+						check_sql_expr(new->expr->query, new->expr->parseMode,
+									   startloc + 1);
 
 						$$ = (PLpgSQL_stmt *)new;
 					}
@@ -925,8 +943,12 @@ stmt_call		: K_CALL
 						new->cmd_type = PLPGSQL_STMT_CALL;
 						new->lineno = plpgsql_location_to_lineno(@1);
 						new->stmtid = ++plpgsql_curr_compile->nstatements;
-						new->expr = read_sql_stmt("CALL ");
+						plpgsql_push_back_token(K_CALL);
+						new->expr = read_sql_stmt();
 						new->is_call = true;
+
+						/* Remember we may need a procedure resource owner */
+						plpgsql_curr_compile->requires_procedure_resowner = true;
 
 						$$ = (PLpgSQL_stmt *)new;
 
@@ -940,24 +962,52 @@ stmt_call		: K_CALL
 						new->cmd_type = PLPGSQL_STMT_CALL;
 						new->lineno = plpgsql_location_to_lineno(@1);
 						new->stmtid = ++plpgsql_curr_compile->nstatements;
-						new->expr = read_sql_stmt("DO ");
+						plpgsql_push_back_token(K_DO);
+						new->expr = read_sql_stmt();
 						new->is_call = false;
+
+						/* Remember we may need a procedure resource owner */
+						plpgsql_curr_compile->requires_procedure_resowner = true;
 
 						$$ = (PLpgSQL_stmt *)new;
 
 					}
 				;
 
-stmt_assign		: assign_var assign_operator expr_until_semi
+stmt_assign		: T_DATUM
 					{
 						PLpgSQL_stmt_assign *new;
+						RawParseMode pmode;
 
+						/* see how many names identify the datum */
+						switch ($1.ident ? 1 : list_length($1.idents))
+						{
+							case 1:
+								pmode = RAW_PARSE_PLPGSQL_ASSIGN1;
+								break;
+							case 2:
+								pmode = RAW_PARSE_PLPGSQL_ASSIGN2;
+								break;
+							case 3:
+								pmode = RAW_PARSE_PLPGSQL_ASSIGN3;
+								break;
+							default:
+								elog(ERROR, "unexpected number of names");
+								pmode = 0; /* keep compiler quiet */
+						}
+
+						check_assignable($1.datum, @1);
 						new = palloc0(sizeof(PLpgSQL_stmt_assign));
 						new->cmd_type = PLPGSQL_STMT_ASSIGN;
 						new->lineno   = plpgsql_location_to_lineno(@1);
 						new->stmtid = ++plpgsql_curr_compile->nstatements;
-						new->varno = $1->dno;
-						new->expr  = $3;
+						new->varno = $1.datum->dno;
+						/* Push back the head name to include it in the stmt */
+						plpgsql_push_back_token(T_DATUM);
+						new->expr = read_sql_construct(';', 0, 0, ";",
+													   pmode,
+													   false, true, true,
+													   NULL, NULL);
 
 						$$ = (PLpgSQL_stmt *)new;
 					}
@@ -1106,16 +1156,23 @@ getdiag_item :
 					}
 				;
 
-getdiag_target	: assign_var
+getdiag_target	: T_DATUM
 					{
-						if ($1->dtype == PLPGSQL_DTYPE_ROW ||
-							$1->dtype == PLPGSQL_DTYPE_REC)
+						/*
+						 * In principle we should support a getdiag_target
+						 * that is an array element, but for now we don't, so
+						 * just throw an error if next token is '['.
+						 */
+						if ($1.datum->dtype == PLPGSQL_DTYPE_ROW ||
+							$1.datum->dtype == PLPGSQL_DTYPE_REC ||
+							plpgsql_peek() == '[')
 							ereport(ERROR,
 									(errcode(ERRCODE_SYNTAX_ERROR),
 									 errmsg("\"%s\" is not a scalar variable",
-											((PLpgSQL_variable *) $1)->refname),
+											NameOfDatum(&($1))),
 									 parser_errposition(@1)));
-						$$ = $1;
+						check_assignable($1.datum, @1);
+						$$ = $1.datum;
 					}
 				| T_WORD
 					{
@@ -1126,29 +1183,6 @@ getdiag_target	: assign_var
 					{
 						/* just to give a better message than "syntax error" */
 						cword_is_not_variable(&($1), @1);
-					}
-				;
-
-
-assign_var		: T_DATUM
-					{
-						check_assignable($1.datum, @1);
-						$$ = $1.datum;
-					}
-				| assign_var '[' expr_until_rightbracket
-					{
-						PLpgSQL_arrayelem	*new;
-
-						new = palloc0(sizeof(PLpgSQL_arrayelem));
-						new->dtype		= PLPGSQL_DTYPE_ARRAYELEM;
-						new->subscript	= $3;
-						new->arrayparentno = $1->dno;
-						/* initialize cached type data to "not valid" */
-						new->parenttypoid = InvalidOid;
-
-						plpgsql_adddatum((PLpgSQL_datum *) new);
-
-						$$ = (PLpgSQL_datum *) new;
 					}
 				;
 
@@ -1303,7 +1337,6 @@ stmt_for		: opt_loop_label K_FOR for_control loop_body
 
 							new = (PLpgSQL_stmt_fori *) $3;
 							new->lineno   = plpgsql_location_to_lineno(@2);
-							new->stmtid	  = ++plpgsql_curr_compile->nstatements;
 							new->label	  = $1;
 							new->body	  = $4.stmts;
 							$$ = (PLpgSQL_stmt *) new;
@@ -1318,7 +1351,6 @@ stmt_for		: opt_loop_label K_FOR for_control loop_body
 							/* forq is the common supertype of all three */
 							new = (PLpgSQL_stmt_forq *) $3;
 							new->lineno   = plpgsql_location_to_lineno(@2);
-							new->stmtid	  = ++plpgsql_curr_compile->nstatements;
 							new->label	  = $1;
 							new->body	  = $4.stmts;
 							$$ = (PLpgSQL_stmt *) new;
@@ -1413,8 +1445,7 @@ for_control		: for_variable K_IN
 
 							/* collect cursor's parameters if any */
 							new->argquery = read_cursor_args(cursor,
-															 K_LOOP,
-															 "LOOP");
+															 K_LOOP);
 
 							/* create loop's private RECORD variable */
 							new->var = (PLpgSQL_variable *)
@@ -1452,16 +1483,16 @@ for_control		: for_variable K_IN
 
 							/*
 							 * Read tokens until we see either a ".."
-							 * or a LOOP. The text we read may not
-							 * necessarily be a well-formed SQL
-							 * statement, so we need to invoke
-							 * read_sql_construct directly.
+							 * or a LOOP.  The text we read may be either
+							 * an expression or a whole SQL statement, so
+							 * we need to invoke read_sql_construct directly,
+							 * and tell it not to check syntax yet.
 							 */
 							expr1 = read_sql_construct(DOT_DOT,
 													   K_LOOP,
 													   0,
 													   "LOOP",
-													   "SELECT ",
+													   RAW_PARSE_DEFAULT,
 													   true,
 													   false,
 													   true,
@@ -1476,8 +1507,13 @@ for_control		: for_variable K_IN
 								PLpgSQL_var			*fvar;
 								PLpgSQL_stmt_fori	*new;
 
-								/* Check first expression is well-formed */
-								check_sql_expr(expr1->query, expr1loc, 7);
+								/*
+								 * Relabel first expression as an expression;
+								 * then we can check its syntax.
+								 */
+								expr1->parseMode = RAW_PARSE_PLPGSQL_EXPR;
+								check_sql_expr(expr1->query, expr1->parseMode,
+											   expr1loc);
 
 								/* Read and check the second one */
 								expr2 = read_sql_expression2(K_LOOP, K_BY,
@@ -1504,7 +1540,8 @@ for_control		: for_variable K_IN
 														   $1.lineno,
 														   plpgsql_build_datatype(INT4OID,
 																				  -1,
-																				  InvalidOid),
+																				  InvalidOid,
+																				  NULL),
 														   true);
 
 								new = palloc0(sizeof(PLpgSQL_stmt_fori));
@@ -1521,12 +1558,8 @@ for_control		: for_variable K_IN
 							else
 							{
 								/*
-								 * No "..", so it must be a query loop. We've
-								 * prefixed an extra SELECT to the query text,
-								 * so we need to remove that before performing
-								 * syntax checking.
+								 * No "..", so it must be a query loop.
 								 */
-								char				*tmp_query;
 								PLpgSQL_stmt_fors	*new;
 
 								if (reverse)
@@ -1535,12 +1568,9 @@ for_control		: for_variable K_IN
 											 errmsg("cannot specify REVERSE in query FOR loop"),
 											 parser_errposition(tokloc)));
 
-								Assert(strncmp(expr1->query, "SELECT ", 7) == 0);
-								tmp_query = pstrdup(expr1->query + 7);
-								pfree(expr1->query);
-								expr1->query = tmp_query;
-
-								check_sql_expr(expr1->query, expr1loc, 0);
+								/* Check syntax as a regular query */
+								check_sql_expr(expr1->query, expr1->parseMode,
+											   expr1loc);
 
 								new = palloc0(sizeof(PLpgSQL_stmt_fors));
 								new->cmd_type = PLPGSQL_STMT_FORS;
@@ -1723,7 +1753,7 @@ stmt_exit		: exit_type opt_label opt_exitcond
 						{
 							/*
 							 * No label, so make sure there is some loop (an
-							 * unlabelled EXIT does not match a block, so this
+							 * unlabeled EXIT does not match a block, so this
 							 * is the same test for both EXIT and CONTINUE)
 							 */
 							if (plpgsql_ns_find_nearest_loop(plpgsql_ns_top()) == NULL)
@@ -1869,7 +1899,7 @@ stmt_raise		: K_RAISE
 
 									expr = read_sql_construct(',', ';', K_USING,
 															  ", or ; or USING",
-															  "SELECT ",
+															  RAW_PARSE_PLPGSQL_EXPR,
 															  true, true, true,
 															  NULL, &tok);
 									new->params = lappend(new->params, expr);
@@ -1957,7 +1987,7 @@ loop_body		: proc_sect K_END K_LOOP opt_label ';'
  * variable.  (The composite case is probably a syntax error, but we'll let
  * the core parser decide that.)  Normally, we should assume that such a
  * word is a SQL statement keyword that isn't also a plpgsql keyword.
- * However, if the next token is assignment or '[', it can't be a valid
+ * However, if the next token is assignment or '[' or '.', it can't be a valid
  * SQL statement, and what we're probably looking at is an intended variable
  * assignment.  Give an appropriate complaint for that, instead of letting
  * the core parser throw an unhelpful "syntax error".
@@ -1976,7 +2006,8 @@ stmt_execsql	: K_IMPORT
 
 						tok = yylex();
 						plpgsql_push_back_token(tok);
-						if (tok == '=' || tok == COLON_EQUALS || tok == '[')
+						if (tok == '=' || tok == COLON_EQUALS ||
+							tok == '[' || tok == '.')
 							word_is_not_variable(&($1), @1);
 						$$ = make_execsql_stmt(T_WORD, @1);
 					}
@@ -1986,7 +2017,8 @@ stmt_execsql	: K_IMPORT
 
 						tok = yylex();
 						plpgsql_push_back_token(tok);
-						if (tok == '=' || tok == COLON_EQUALS || tok == '[')
+						if (tok == '=' || tok == COLON_EQUALS ||
+							tok == '[' || tok == '.')
 							cword_is_not_variable(&($1), @1);
 						$$ = make_execsql_stmt(T_CWORD, @1);
 					}
@@ -2000,7 +2032,7 @@ stmt_dynexecute : K_EXECUTE
 
 						expr = read_sql_construct(K_INTO, K_USING, ';',
 												  "INTO or USING or ;",
-												  "SELECT ",
+												  RAW_PARSE_PLPGSQL_EXPR,
 												  true, true, true,
 												  NULL, &endtoken);
 
@@ -2039,7 +2071,7 @@ stmt_dynexecute : K_EXECUTE
 								{
 									expr = read_sql_construct(',', ';', K_INTO,
 															  ", or ; or INTO",
-															  "SELECT ",
+															  RAW_PARSE_PLPGSQL_EXPR,
 															  true, true, true,
 															  NULL, &endtoken);
 									new->params = lappend(new->params, expr);
@@ -2121,13 +2153,13 @@ stmt_open		: K_OPEN cursor_variable
 							else
 							{
 								plpgsql_push_back_token(tok);
-								new->query = read_sql_stmt("");
+								new->query = read_sql_stmt();
 							}
 						}
 						else
 						{
 							/* predefined cursor query, so read args */
-							new->argquery = read_cursor_args($2, ';', ";");
+							new->argquery = read_cursor_args($2, ';');
 						}
 
 						$$ = (PLpgSQL_stmt *)new;
@@ -2237,33 +2269,6 @@ opt_transaction_chain:
 			| /* EMPTY */			{ $$ = false; }
 				;
 
-stmt_set	: K_SET
-					{
-						PLpgSQL_stmt_set *new;
-
-						new = palloc0(sizeof(PLpgSQL_stmt_set));
-						new->cmd_type = PLPGSQL_STMT_SET;
-						new->lineno = plpgsql_location_to_lineno(@1);
-						new->stmtid = ++plpgsql_curr_compile->nstatements;
-
-						new->expr = read_sql_stmt("SET ");
-
-						$$ = (PLpgSQL_stmt *)new;
-					}
-			| K_RESET
-					{
-						PLpgSQL_stmt_set *new;
-
-						new = palloc0(sizeof(PLpgSQL_stmt_set));
-						new->cmd_type = PLPGSQL_STMT_SET;
-						new->lineno = plpgsql_location_to_lineno(@1);
-						new->stmtid = ++plpgsql_curr_compile->nstatements;
-						new->expr = read_sql_stmt("RESET ");
-
-						$$ = (PLpgSQL_stmt *)new;
-					}
-			;
-
 
 cursor_variable	: T_DATUM
 					{
@@ -2317,7 +2322,8 @@ exception_sect	:
 						var = plpgsql_build_variable("sqlstate", lineno,
 													 plpgsql_build_datatype(TEXTOID,
 																			-1,
-																			plpgsql_curr_compile->fn_input_collation),
+																			plpgsql_curr_compile->fn_input_collation,
+																			NULL),
 													 true);
 						var->isconst = true;
 						new->sqlstate_varno = var->dno;
@@ -2325,7 +2331,8 @@ exception_sect	:
 						var = plpgsql_build_variable("sqlerrm", lineno,
 													 plpgsql_build_datatype(TEXTOID,
 																			-1,
-																			plpgsql_curr_compile->fn_input_collation),
+																			plpgsql_curr_compile->fn_input_collation,
+																			NULL),
 													 true);
 						var->isconst = true;
 						new->sqlerrm_varno = var->dno;
@@ -2417,10 +2424,6 @@ proc_condition	: any_identifier
 
 expr_until_semi :
 					{ $$ = read_sql_expression(';', ";"); }
-				;
-
-expr_until_rightbracket :
-					{ $$ = read_sql_expression(']', "]"); }
 				;
 
 expr_until_then :
@@ -2553,7 +2556,6 @@ unreserved_keyword	:
 				| K_QUERY
 				| K_RAISE
 				| K_RELATIVE
-				| K_RESET
 				| K_RETURN
 				| K_RETURNED_SQLSTATE
 				| K_REVERSE
@@ -2563,7 +2565,6 @@ unreserved_keyword	:
 				| K_SCHEMA
 				| K_SCHEMA_NAME
 				| K_SCROLL
-				| K_SET
 				| K_SLICE
 				| K_SQLSTATE
 				| K_STACKED
@@ -2653,7 +2654,8 @@ static PLpgSQL_expr *
 read_sql_expression(int until, const char *expected)
 {
 	return read_sql_construct(until, 0, 0, expected,
-							  "SELECT ", true, true, true, NULL, NULL);
+							  RAW_PARSE_PLPGSQL_EXPR,
+							  true, true, true, NULL, NULL);
 }
 
 /* Convenience routine to read an expression with two possible terminators */
@@ -2662,15 +2664,17 @@ read_sql_expression2(int until, int until2, const char *expected,
 					 int *endtoken)
 {
 	return read_sql_construct(until, until2, 0, expected,
-							  "SELECT ", true, true, true, NULL, endtoken);
+							  RAW_PARSE_PLPGSQL_EXPR,
+							  true, true, true, NULL, endtoken);
 }
 
 /* Convenience routine to read a SQL statement that must end with ';' */
 static PLpgSQL_expr *
-read_sql_stmt(const char *sqlstart)
+read_sql_stmt(void)
 {
 	return read_sql_construct(';', 0, 0, ";",
-							  sqlstart, false, true, true, NULL, NULL);
+							  RAW_PARSE_DEFAULT,
+							  false, true, true, NULL, NULL);
 }
 
 /*
@@ -2680,9 +2684,9 @@ read_sql_stmt(const char *sqlstart)
  * until2:		token code for alternate terminator (pass 0 if none)
  * until3:		token code for another alternate terminator (pass 0 if none)
  * expected:	text to use in complaining that terminator was not found
- * sqlstart:	text to prefix to the accumulated SQL text
+ * parsemode:	raw_parser() mode to use
  * isexpression: whether to say we're reading an "expression" or a "statement"
- * valid_sql:   whether to check the syntax of the expr (prefixed with sqlstart)
+ * valid_sql:   whether to check the syntax of the expr
  * trim:		trim trailing whitespace
  * startloc:	if not NULL, location of first token is stored at *startloc
  * endtoken:	if not NULL, ending token is stored at *endtoken
@@ -2693,7 +2697,7 @@ read_sql_construct(int until,
 				   int until2,
 				   int until3,
 				   const char *expected,
-				   const char *sqlstart,
+				   RawParseMode parsemode,
 				   bool isexpression,
 				   bool valid_sql,
 				   bool trim,
@@ -2708,7 +2712,6 @@ read_sql_construct(int until,
 	PLpgSQL_expr		*expr;
 
 	initStringInfo(&ds);
-	appendStringInfoString(&ds, sqlstart);
 
 	/* special lookup mode for identifiers within the SQL text */
 	save_IdentifierLookup = plpgsql_IdentifierLookup;
@@ -2784,14 +2787,15 @@ read_sql_construct(int until,
 
 	expr = palloc0(sizeof(PLpgSQL_expr));
 	expr->query			= pstrdup(ds.data);
+	expr->parseMode		= parsemode;
 	expr->plan			= NULL;
 	expr->paramnos		= NULL;
-	expr->rwparam		= -1;
+	expr->target_param	= -1;
 	expr->ns			= plpgsql_ns_top();
 	pfree(ds.data);
 
 	if (valid_sql)
-		check_sql_expr(expr->query, startlocation, strlen(sqlstart));
+		check_sql_expr(expr->query, expr->parseMode, startlocation);
 
 	return expr;
 }
@@ -3030,15 +3034,16 @@ make_execsql_stmt(int firsttoken, int location)
 
 	expr = palloc0(sizeof(PLpgSQL_expr));
 	expr->query			= pstrdup(ds.data);
+	expr->parseMode		= RAW_PARSE_DEFAULT;
 	expr->plan			= NULL;
 	expr->paramnos		= NULL;
-	expr->rwparam		= -1;
+	expr->target_param	= -1;
 	expr->ns			= plpgsql_ns_top();
 	pfree(ds.data);
 
-	check_sql_expr(expr->query, location, 0);
+	check_sql_expr(expr->query, expr->parseMode, location);
 
-	execsql = palloc(sizeof(PLpgSQL_stmt_execsql));
+	execsql = palloc0(sizeof(PLpgSQL_stmt_execsql));
 	execsql->cmd_type = PLPGSQL_STMT_EXECSQL;
 	execsql->lineno  = plpgsql_location_to_lineno(location);
 	execsql->stmtid  = ++plpgsql_curr_compile->nstatements;
@@ -3379,7 +3384,7 @@ make_return_query_stmt(int location)
 	{
 		/* ordinary static query */
 		plpgsql_push_back_token(tok);
-		new->query = read_sql_stmt("");
+		new->query = read_sql_stmt();
 	}
 	else
 	{
@@ -3435,11 +3440,6 @@ check_assignable(PLpgSQL_datum *datum, int location)
 		case PLPGSQL_DTYPE_RECFIELD:
 			/* assignable if parent record is */
 			check_assignable(plpgsql_Datums[((PLpgSQL_recfield *) datum)->recparentno],
-							 location);
-			break;
-		case PLPGSQL_DTYPE_ARRAYELEM:
-			/* assignable if parent array is */
-			check_assignable(plpgsql_Datums[((PLpgSQL_arrayelem *) datum)->arrayparentno],
 							 location);
 			break;
 		default:
@@ -3634,13 +3634,12 @@ make_scalar_list1(char *initial_name,
  * borders. So it is best to bail out as early as we can.
  *
  * It is assumed that "stmt" represents a copy of the function source text
- * beginning at offset "location", with leader text of length "leaderlen"
- * (typically "SELECT ") prefixed to the source text.  We use this assumption
- * to transpose any error cursor position back to the function source text.
+ * beginning at offset "location".  We use this assumption to transpose
+ * any error cursor position back to the function source text.
  * If no error cursor is provided, we'll just point at "location".
  */
 static void
-check_sql_expr(const char *stmt, int location, int leaderlen)
+check_sql_expr(const char *stmt, RawParseMode parseMode, int location)
 {
 	sql_error_callback_arg cbarg;
 	ErrorContextCallback  syntax_errcontext;
@@ -3650,7 +3649,6 @@ check_sql_expr(const char *stmt, int location, int leaderlen)
 		return;
 
 	cbarg.location = location;
-	cbarg.leaderlen = leaderlen;
 
 	syntax_errcontext.callback = plpgsql_sql_error_callback;
 	syntax_errcontext.arg = &cbarg;
@@ -3658,7 +3656,7 @@ check_sql_expr(const char *stmt, int location, int leaderlen)
 	error_context_stack = &syntax_errcontext;
 
 	oldCxt = MemoryContextSwitchTo(plpgsql_compile_tmp_cxt);
-	(void) raw_parser(stmt);
+	(void) raw_parser(stmt, parseMode);
 	MemoryContextSwitchTo(oldCxt);
 
 	/* Restore former ereport callback */
@@ -3683,15 +3681,15 @@ plpgsql_sql_error_callback(void *arg)
 	 * Note we are dealing with 1-based character numbers at this point.
 	 */
 	errpos = geterrposition();
-	if (errpos > cbarg->leaderlen)
+	if (errpos > 0)
 	{
 		int		myerrpos = getinternalerrposition();
 
 		if (myerrpos > 0)		/* safety check */
-			internalerrposition(myerrpos + errpos - cbarg->leaderlen - 1);
+			internalerrposition(myerrpos + errpos - 1);
 	}
 
-	/* In any case, flush errposition --- we want internalerrpos only */
+	/* In any case, flush errposition --- we want internalerrposition only */
 	errposition(0);
 }
 
@@ -3707,13 +3705,13 @@ plpgsql_sql_error_callback(void *arg)
 static PLpgSQL_type *
 parse_datatype(const char *string, int location)
 {
+	TypeName   *typeName;
 	Oid			type_id;
 	int32		typmod;
 	sql_error_callback_arg cbarg;
 	ErrorContextCallback  syntax_errcontext;
 
 	cbarg.location = location;
-	cbarg.leaderlen = 0;
 
 	syntax_errcontext.callback = plpgsql_sql_error_callback;
 	syntax_errcontext.arg = &cbarg;
@@ -3721,14 +3719,16 @@ parse_datatype(const char *string, int location)
 	error_context_stack = &syntax_errcontext;
 
 	/* Let the main parser try to parse it under standard SQL rules */
-	parseTypeString(string, &type_id, &typmod, false);
+	typeName = typeStringToTypeName(string);
+	typenameTypeIdAndMod(NULL, typeName, &type_id, &typmod);
 
 	/* Restore former ereport callback */
 	error_context_stack = syntax_errcontext.previous;
 
 	/* Okay, build a PLpgSQL_type data structure for it */
 	return plpgsql_build_datatype(type_id, typmod,
-								  plpgsql_curr_compile->fn_input_collation);
+								  plpgsql_curr_compile->fn_input_collation,
+								  typeName);
 }
 
 /*
@@ -3742,7 +3742,7 @@ check_labels(const char *start_label, const char *end_label, int end_location)
 		if (!start_label)
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
-					 errmsg("end label \"%s\" specified for unlabelled block",
+					 errmsg("end label \"%s\" specified for unlabeled block",
 							end_label),
 					 parser_errposition(end_location)));
 
@@ -3766,7 +3766,7 @@ check_labels(const char *start_label, const char *end_label, int end_location)
  * parens).
  */
 static PLpgSQL_expr *
-read_cursor_args(PLpgSQL_var *cursor, int until, const char *expected)
+read_cursor_args(PLpgSQL_var *cursor, int until)
 {
 	PLpgSQL_expr *expr;
 	PLpgSQL_row *row;
@@ -3774,7 +3774,6 @@ read_cursor_args(PLpgSQL_var *cursor, int until, const char *expected)
 	int			argc;
 	char	  **argv;
 	StringInfoData ds;
-	char	   *sqlstart = "SELECT ";
 	bool		any_named = false;
 
 	tok = yylex();
@@ -3875,12 +3874,12 @@ read_cursor_args(PLpgSQL_var *cursor, int until, const char *expected)
 		 */
 		item = read_sql_construct(',', ')', 0,
 								  ",\" or \")",
-								  sqlstart,
+								  RAW_PARSE_PLPGSQL_EXPR,
 								  true, true,
 								  false, /* do not trim */
 								  NULL, &endtoken);
 
-		argv[argpos] = item->query + strlen(sqlstart);
+		argv[argpos] = item->query;
 
 		if (endtoken == ')' && !(argc == row->nfields - 1))
 			ereport(ERROR,
@@ -3899,7 +3898,6 @@ read_cursor_args(PLpgSQL_var *cursor, int until, const char *expected)
 
 	/* Make positional argument list */
 	initStringInfo(&ds);
-	appendStringInfoString(&ds, sqlstart);
 	for (argc = 0; argc < row->nfields; argc++)
 	{
 		Assert(argv[argc] != NULL);
@@ -3915,13 +3913,13 @@ read_cursor_args(PLpgSQL_var *cursor, int until, const char *expected)
 		if (argc < row->nfields - 1)
 			appendStringInfoString(&ds, ", ");
 	}
-	appendStringInfoChar(&ds, ';');
 
 	expr = palloc0(sizeof(PLpgSQL_expr));
 	expr->query			= pstrdup(ds.data);
+	expr->parseMode		= RAW_PARSE_PLPGSQL_EXPR;
 	expr->plan			= NULL;
 	expr->paramnos		= NULL;
-	expr->rwparam		= -1;
+	expr->target_param	= -1;
 	expr->ns            = plpgsql_ns_top();
 	pfree(ds.data);
 
@@ -4080,7 +4078,8 @@ make_case(int location, PLpgSQL_expr *t_expr,
 			plpgsql_build_variable(varname, new->lineno,
 								   plpgsql_build_datatype(INT4OID,
 														  -1,
-														  InvalidOid),
+														  InvalidOid,
+														  NULL),
 								   true);
 		new->t_varno = t_var->dno;
 
@@ -4090,14 +4089,14 @@ make_case(int location, PLpgSQL_expr *t_expr,
 			PLpgSQL_expr *expr = cwt->expr;
 			StringInfoData	ds;
 
-			/* copy expression query without SELECT keyword (expr->query + 7) */
-			Assert(strncmp(expr->query, "SELECT ", 7) == 0);
+			/* We expect to have expressions not statements */
+			Assert(expr->parseMode == RAW_PARSE_PLPGSQL_EXPR);
 
-			/* And do the string hacking */
+			/* Do the string hacking */
 			initStringInfo(&ds);
 
-			appendStringInfo(&ds, "SELECT \"%s\" IN (%s)",
-							 varname, expr->query + 7);
+			appendStringInfo(&ds, "\"%s\" IN (%s)",
+							 varname, expr->query);
 
 			pfree(expr->query);
 			expr->query = pstrdup(ds.data);

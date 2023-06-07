@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_kl4_pl2_2s">
-  <title>About Concurrency Control in Greenplum Database</title>
-  <shortdesc>Greenplum Database uses the PostgreSQL Multiversion Concurrency Control (MVCC) model to
+  <title>About Concurrency Control in Cloudberry Database</title>
+  <shortdesc>Cloudberry Database uses the PostgreSQL Multiversion Concurrency Control (MVCC) model to
     manage concurrent transactions for heap tables. </shortdesc>
   <body>
     <p>Concurrency control in a database management system allows concurrent queries to complete
@@ -11,7 +11,7 @@
       by another concurrent transaction and prevents any concurrent transaction from reading or
       writing data that another transaction has updated. The locks required to coordinate
       transactions add contention to the database, reducing overall transaction throughput. </p>
-    <p>Greenplum Database uses the PostgreSQL Multiversion Concurrency Control (MVCC) model to
+    <p>Cloudberry Database uses the PostgreSQL Multiversion Concurrency Control (MVCC) model to
       manage concurrency for heap tables. With MVCC, each query operates on a snapshot of the
       database when the query starts. While it runs, a query cannot see changes made by other
       concurrent transactions. This ensures that a query sees a consistent view of the database.
@@ -34,7 +34,7 @@
         not enclosed in a transaction is treated as a single-statement transaction—the
           <codeph>BEGIN</codeph> and <codeph>COMMIT</codeph> are added implicitly. This is similar
         to autocommit in some database systems. </p>
-      <note>Greenplum Database assigns XID values only to transactions that involve DDL or DML
+      <note>Cloudberry Database assigns XID values only to transactions that involve DDL or DML
         operations, which are typically the only transactions that require an XID.</note>
       <p>When a transaction inserts a row, the XID is saved with the row in the
           <codeph>xmin</codeph> system column. When a transaction deletes a row, the XID is saved in
@@ -65,11 +65,11 @@
         distributed transactions IDs. If you could run the command in an individual segment
         database, the <codeph>xmin</codeph> and <codeph>xmax</codeph> values would be the segment's
         local XIDs.</p>
-      <note>Greenplum Database distributes all of a replicated table's rows to every segment, so
+      <note>Cloudberry Database distributes all of a replicated table's rows to every segment, so
         each row is duplicated on every segment. Each segment instance maintains its own values for
         the system columns <codeph>xmin</codeph>, <codeph>xmax</codeph>, <codeph>cmin</codeph>, and
           <codeph>cmax</codeph>, as well as for the <codeph>gp_segment_id</codeph> and
-          <codeph>ctid</codeph> system columns. Greenplum Database does not permit user queries to
+          <codeph>ctid</codeph> system columns. Cloudberry Database does not permit user queries to
         access these system columns for replicated tables because they have no single, unambiguous
         value to evaluate in a query.</note>
     </section>
@@ -78,23 +78,23 @@
       <p>The MVCC model uses transaction IDs (XIDs) to determine which rows are visible at the
         beginning of a query or transaction. The XID is a 32-bit value, so a database could
         theoretically run over four billion transactions before the value overflows and wraps to
-        zero. However, Greenplum Database uses <i>modulo 2<sup>32</sup></i> arithmetic with XIDs,
+        zero. However, Cloudberry Database uses <i>modulo 2<sup>32</sup></i> arithmetic with XIDs,
         which allows the transaction IDs to wrap around, much as a clock wraps at twelve o'clock.
         For any given XID, there could be about two billion past XIDs and two billion future XIDs.
         This works until a version of a row persists through about two billion transactions, when it
-        suddenly appears to be a new row. To prevent this, Greenplum has a special XID, called
+        suddenly appears to be a new row. To prevent this, Cloudberry has a special XID, called
           <codeph>FrozenXID</codeph>, which is always considered older than any regular XID it is
         compared with. The <codeph>xmin</codeph> of a row must be replaced with
           <codeph>FrozenXID</codeph> within two billion transactions, and this is one of the
         functions the <codeph>VACUUM</codeph> command performs. </p>
       <p>Vacuuming the database at least every two billion transactions prevents XID wraparound.
-        Greenplum Database monitors the transaction ID and warns if a <codeph>VACUUM</codeph>
+        Cloudberry Database monitors the transaction ID and warns if a <codeph>VACUUM</codeph>
         operation is required. </p>
       <p>A warning is issued when a significant portion of the transaction IDs are no longer
         available and before transaction ID wraparound
         occurs:<codeblock>WARNING: database "&lt;database_name>" must be vacuumed within &lt;number_of_transactions> transactions</codeblock></p>
       <p>When the warning is issued, a <codeph>VACUUM</codeph> operation is required. If a
-          <codeph>VACUUM</codeph> operation is not performed, Greenplum Database stops creating
+          <codeph>VACUUM</codeph> operation is not performed, Cloudberry Database stops creating
         transactions to avoid possible data loss when it reaches a limit prior to when transaction
         ID wraparound occurs and issues this error:</p>
       <codeblock>FATAL: database is not accepting commands to avoid wraparound data loss in database "&lt;database_name>"</codeblock>
@@ -164,10 +164,10 @@
           </tbody>
         </tgroup>
       </table>
-      <p>Greenplum Database <codeph>READ UNCOMMITTED</codeph> and <codeph>READ COMMITTED</codeph>
-        isolation modes behave like the SQL standard <codeph>READ COMMITTED</codeph> mode. Greenplum
+      <p>Cloudberry Database <codeph>READ UNCOMMITTED</codeph> and <codeph>READ COMMITTED</codeph>
+        isolation modes behave like the SQL standard <codeph>READ COMMITTED</codeph> mode. Cloudberry
         Database <codeph>SERIALIZABLE</codeph> and <codeph>REPEATABLE READ</codeph> isolation modes
-        behave like the SQL standard <codeph>READ COMMITTED</codeph> mode, except that Greenplum
+        behave like the SQL standard <codeph>READ COMMITTED</codeph> mode, except that Cloudberry
         Database also prevents phantom reads.</p>
       <p>The difference between <codeph>READ COMMITTED</codeph> and <codeph>REPEATABLE READ</codeph>
         is that with <codeph>READ COMMITTED</codeph>, each statement in a transaction sees only rows
@@ -186,23 +186,23 @@
         prepared to handle transactions that fail due to serialization errors. If <codeph>REPEATABLE
           READ</codeph> isolation mode is not required by the application, it is better to use
           <codeph>READ COMMITTED</codeph> mode. </p>
-      <p><codeph>SERIALIZABLE</codeph> mode, which Greenplum Database does not fully support,
+      <p><codeph>SERIALIZABLE</codeph> mode, which Cloudberry Database does not fully support,
         guarantees that a set of transactions run concurrently produces the same result as if
         the transactions ran sequentially one after the other. If <codeph>SERIALIZABLE</codeph>
-        is specified, Greenplum Database falls back to <codeph>REPEATABLE READ</codeph>. The MVCC
+        is specified, Cloudberry Database falls back to <codeph>REPEATABLE READ</codeph>. The MVCC
         Snapshot Isolation (SI) model prevents dirty reads, non-repeatable reads, and phantom reads
         without expensive locking, but there are other interactions that can occur between some
-          <codeph>SERIALIZABLE</codeph> transactions in Greenplum Database that prevent them from
-        being truly serializable. These anomalies can often be attributed to the fact that Greenplum
+          <codeph>SERIALIZABLE</codeph> transactions in Cloudberry Database that prevent them from
+        being truly serializable. These anomalies can often be attributed to the fact that Cloudberry
         Database does not perform <i>predicate locking</i>, which means that a write in one
         transaction can affect the result of a previous read in another concurrent transaction.</p>
       <note>The PostgreSQL 9.1 <codeph>SERIALIZABLE</codeph> isolation level introduces a new
         Serializable Snapshot Isolation (SSI) model, which is fully compliant with the SQL standard
-        definition of serializable transactions. This model is not available in Greenplum Database.
+        definition of serializable transactions. This model is not available in Cloudberry Database.
         SSI monitors concurrent transactions for conditions that could cause serialization
         anomalies. When potential serialization problems are found, one transaction is allowed to
         commit and others are rolled back and must be retried. </note>
-      <p>Greenplum Database transactions that run concurrently should be examined to identify
+      <p>Cloudberry Database transactions that run concurrently should be examined to identify
         interactions that may update the same data concurrently.
         Problems identified can be prevented by using explicit table locks or by requiring the
         conflicting transactions to update a dummy row introduced to represent the conflict. </p>
@@ -232,7 +232,7 @@ COMMIT;
       <p>The <codeph>VACUUM</codeph> command (without <codeph>FULL</codeph>) can run concurrently
         with other queries. It marks the space previously used by the expired rows as free,
         and updates the free space map. 
-        When Greenplum Database later needs space for new rows, it first consults the table's
+        When Cloudberry Database later needs space for new rows, it first consults the table's
         free space map to find pages with available space. If none are found, new pages will be
         appended to the file. </p>
       <p><codeph>VACUUM</codeph> (without <codeph>FULL</codeph>) does not consolidate pages or
@@ -262,7 +262,7 @@ COMMIT;
       <p>Another useful tool is the <codeph>gp_bloat_diag</codeph> view in the
           <codeph>gp_toolkit</codeph> schema, which identifies bloat in tables by comparing the
         actual number of pages used by a table to the expected number. See "The gp_toolkit
-        Administrative Schema" in the <i>Greenplum Database Reference Guide</i> for more about
+        Administrative Schema" in the <i>Cloudberry Database Reference Guide</i> for more about
           <codeph>gp_bloat_diag</codeph>. </p>
     </section>
   </body>

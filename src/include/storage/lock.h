@@ -4,7 +4,7 @@
  *	  POSTGRES low-level lock mechanism
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/lock.h
@@ -18,11 +18,11 @@
 #error "lock.h may not be included from frontend code"
 #endif
 
-#include "storage/lockdefs.h"
 #include "storage/backendid.h"
+#include "storage/lockdefs.h"
 #include "storage/lwlock.h"
 #include "storage/shmem.h"
-
+#include "utils/timestamp.h"
 
 /* struct PGPROC is declared in proc.h, but must forward-reference it */
 typedef struct PGPROC PGPROC;
@@ -47,10 +47,11 @@ extern bool Debug_deadlocks;
 
 /*
  * Top-level transactions are identified by VirtualTransactionIDs comprising
- * the BackendId of the backend running the xact, plus a locally-assigned
- * LocalTransactionId.  These are guaranteed unique over the short term,
- * but will be reused after a database restart; hence they should never
- * be stored on disk.
+ * PGPROC fields backendId and lxid.  For recovered prepared transactions, the
+ * LocalTransactionId is an ordinary XID; LOCKTAG_VIRTUALTRANSACTION never
+ * refers to that kind.  These are guaranteed unique over the short term, but
+ * will be reused after a database restart or XID wraparound; hence they
+ * should never be stored on disk.
  *
  * Note that struct VirtualTransactionId can not be assumed to be atomically
  * assignable as a whole.  However, type LocalTransactionId is assumed to
@@ -62,15 +63,16 @@ extern bool Debug_deadlocks;
  */
 typedef struct
 {
-	BackendId	backendId;		/* determined at backend startup */
-	LocalTransactionId localTransactionId;	/* backend-local transaction id */
+	BackendId	backendId;		/* backendId from PGPROC */
+	LocalTransactionId localTransactionId;	/* lxid from PGPROC */
 } VirtualTransactionId;
 
 #define InvalidLocalTransactionId		0
 #define LocalTransactionIdIsValid(lxid) ((lxid) != InvalidLocalTransactionId)
 #define VirtualTransactionIdIsValid(vxid) \
-	(((vxid).backendId != InvalidBackendId) && \
-	 LocalTransactionIdIsValid((vxid).localTransactionId))
+	(LocalTransactionIdIsValid((vxid).localTransactionId))
+#define VirtualTransactionIdIsRecoveredPreparedXact(vxid) \
+	((vxid).backendId == InvalidBackendId)
 #define VirtualTransactionIdEquals(vxid1, vxid2) \
 	((vxid1).backendId == (vxid2).backendId && \
 	 (vxid1).localTransactionId == (vxid2).localTransactionId)
@@ -155,6 +157,7 @@ typedef enum LockTagType
 {
 	LOCKTAG_RELATION,			/* whole relation */
 	LOCKTAG_RELATION_EXTEND,	/* the right to extend a relation */
+	LOCKTAG_DATABASE_FROZEN_IDS,	/* pg_database.datfrozenxid */
 	LOCKTAG_PAGE,				/* one page of a relation */
 	LOCKTAG_TUPLE,				/* one physical tuple */
 	LOCKTAG_TRANSACTION,		/* transaction (for waiting for xact done) */
@@ -189,6 +192,9 @@ typedef struct LOCKTAG
 	uint8		locktag_lockmethodid;	/* lockmethod indicator */
 } LOCKTAG;
 
+#define LOCKTAG_DISTRIB_TRANSACTION_ID(locktag) \
+  ((uint64)((uint64)(locktag).locktag_field1) << 32 | (locktag).locktag_field2)
+
 /*
  * These macros define how we map logical IDs of lockable objects into
  * the physical fields of LOCKTAG.  Use these to set up LOCKTAG values,
@@ -211,6 +217,15 @@ typedef struct LOCKTAG
 	 (locktag).locktag_field3 = 0, \
 	 (locktag).locktag_field4 = 0, \
 	 (locktag).locktag_type = LOCKTAG_RELATION_EXTEND, \
+	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
+
+/* ID info for frozen IDs is DB OID */
+#define SET_LOCKTAG_DATABASE_FROZEN_IDS(locktag,dboid) \
+	((locktag).locktag_field1 = (dboid), \
+	 (locktag).locktag_field2 = 0, \
+	 (locktag).locktag_field3 = 0, \
+	 (locktag).locktag_field4 = 0, \
+	 (locktag).locktag_type = LOCKTAG_DATABASE_FROZEN_IDS, \
 	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
 
 /* ID info for a page is RELATION info + BlockNumber */
@@ -241,8 +256,8 @@ typedef struct LOCKTAG
 	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
 
 #define SET_LOCKTAG_DISTRIB_TRANSACTION(locktag,gxid) \
-	((locktag).locktag_field1 = (gxid), \
-	 (locktag).locktag_field2 = 0, \
+	((locktag).locktag_field1 = ((uint32)(gxid >> 32)), \
+	 (locktag).locktag_field2 = ((uint32)gxid), \
 	 (locktag).locktag_field3 = 0, \
 	 (locktag).locktag_field4 = 0, \
 	 (locktag).locktag_type = LOCKTAG_DISTRIB_TRANSACTION, \
@@ -338,6 +353,7 @@ typedef struct LOCK
 } LOCK;
 
 #define LOCK_LOCKMETHOD(lock) ((LOCKMETHODID) (lock).tag.locktag_lockmethodid)
+#define LOCK_LOCKTAG(lock) ((LockTagType) (lock).tag.locktag_type)
 
 
 /*
@@ -461,6 +477,7 @@ typedef struct LOCALLOCK
 } LOCALLOCK;
 
 #define LOCALLOCK_LOCKMETHOD(llock) ((llock).tag.lock.locktag_lockmethodid)
+#define LOCALLOCK_LOCKTAG(llock) ((LockTagType) (llock).tag.lock.locktag_type)
 
 /* Waiter global locallock. (needed by resource queuing). */
 extern LOCALLOCK *awaitedLock;
@@ -478,6 +495,8 @@ typedef struct LockInstanceData
 	LOCKMODE	waitLockMode;	/* lock awaited by this PGPROC, if any */
 	BackendId	backend;		/* backend ID of this PGPROC */
 	LocalTransactionId lxid;	/* local transaction ID of this PGPROC */
+	TimestampTz waitStart;		/* time at which this PGPROC started waiting
+								 * for lock */
 	int			pid;			/* pid of this PGPROC */
 	int			leaderPid;		/* pid of group leader; = pid if no group */
 	bool		fastpath;		/* taken via fastpath? */
@@ -615,6 +634,9 @@ extern void LockReleaseSession(LOCKMETHODID lockmethodid);
 extern void LockReleaseCurrentOwner(LOCALLOCK **locallocks, int nlocks);
 extern void LockReassignCurrentOwner(LOCALLOCK **locallocks, int nlocks);
 extern bool LockHeldByMe(const LOCKTAG *locktag, LOCKMODE lockmode);
+#ifdef USE_ASSERT_CHECKING
+extern HTAB *GetLockMethodLocalHash(void);
+#endif
 extern bool LockHasWaiters(const LOCKTAG *locktag,
 						   LOCKMODE lockmode, bool sessionLock);
 extern VirtualTransactionId *GetLockConflicts(const LOCKTAG *locktag,
@@ -622,7 +644,7 @@ extern VirtualTransactionId *GetLockConflicts(const LOCKTAG *locktag,
 extern void PrePrepare_Locks(void);
 extern void AtPrepare_Locks(void);
 extern void PostPrepare_Locks(TransactionId xid);
-extern int	LockCheckConflicts(LockMethod lockMethodTable,
+extern bool LockCheckConflicts(LockMethod lockMethodTable,
 							   LOCKMODE lockmode,
 							   LOCK *lock, PROCLOCK *proclock);
 extern void GrantLock(LOCK *lock, PROCLOCK *proclock, LOCKMODE lockmode);

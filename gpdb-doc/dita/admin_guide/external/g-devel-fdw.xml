@@ -6,11 +6,11 @@
     <p>This chapter outlines how to write a new foreign-data wrapper.</p>
     <p>All operations on a foreign table are handled through its foreign-data
       wrapper (FDW), a library that consists of a set of functions that the core
-      Greenplum Database server calls. The foreign-data wrapper is responsible
+      Cloudberry Database server calls. The foreign-data wrapper is responsible
       for fetching data from the remote data store and returning it to the
-      Greenplum Database executor. If updating foreign-data is supported, the
+      Cloudberry Database executor. If updating foreign-data is supported, the
       wrapper must handle that, too.</p>
-    <p>The foreign-data wrappers included in the Greenplum Database open source
+    <p>The foreign-data wrappers included in the Cloudberry Database open source
       github repository are good references when trying to write your own.
       You may want to examine the source code for the
       <xref href="https://github.com/greenplum-db/gpdb/tree/master/contrib/file_fdw" scope="external">file_fdw</xref>
@@ -19,8 +19,8 @@
        <xref href="../../ref_guide/sql_commands/CREATE_FOREIGN_DATA_WRAPPER.xml#topic1"/>
       reference page also provides some useful details.</p>
     <note>The SQL standard specifies an interface for writing foreign-data
-      wrappers. Greenplum Database does not implement that API, however,
-      because the effort to accommodate it into Greenplum would be large, and
+      wrappers. Cloudberry Database does not implement that API, however,
+      because the effort to accommodate it into Cloudberry would be large, and
       the standard API hasn't yet gained wide adoption.</note>
     <p>This topic includes the following sections:</p>
     <ul>
@@ -38,17 +38,17 @@
   <topic id="reqs">
     <title>Requirements</title>
     <body>
-      <p>When you develop with the Greenplum Database foreign-data wrapper API:</p>
+      <p>When you develop with the Cloudberry Database foreign-data wrapper API:</p>
       <ul>
         <li>You must develop your code on a system with the same hardware and
-          software architecture as that of your Greenplum Database hosts.</li>
+          software architecture as that of your Cloudberry Database hosts.</li>
         <li>Your code must be written in a compiled language such as C, using
           the version-1 interface. For details on C language calling conventions
           and dynamic loading, refer to
           <xref href="https://www.postgresql.org/docs/9.4/xfunc-c.html" scope="external" format="html">C Language Functions</xref>
           in the PostgreSQL documentation.</li>
         <li>Symbol names in your object files must not conflict with each other
-          nor with symbols defined in the Greenplum Database server. You must
+          nor with symbols defined in the Cloudberry Database server. You must
           rename your functions or variables if you get error messages to this
           effect.</li>
         <li>Review the foreign table introduction described in
@@ -59,13 +59,13 @@
   <topic id="limits">
     <title>Known Issues and Limitations</title>
     <body>
-     <p>The Greenplum Database 6 foreign-data wrapper implementation has
+     <p>The Cloudberry Database 6 foreign-data wrapper implementation has
        the following known issues and limitations:</p>
      <ul>
-       <li>The Greenplum Database 6 distribution does not install any
+       <li>The Cloudberry Database 6 distribution does not install any
          foreign data wrappers.</li>
-       <li>Greenplum Database uses the <codeph>mpp_execute</codeph> option value
-         for foreign table scans only. Greenplum does not honor the
+       <li>Cloudberry Database uses the <codeph>mpp_execute</codeph> option value
+         for foreign table scans only. Cloudberry does not honor the
          <codeph>mpp_execute</codeph> setting when you write to, or update, a
          foreign table; all write operations are initiated through the master.</li>
      </ul>
@@ -74,11 +74,11 @@
   <topic id="includes">
     <title>Header Files</title>
     <body>
-      <p>The Greenplum Database header files that you may use when you develop
+      <p>The Cloudberry Database header files that you may use when you develop
         a foreign-data wrapper are located in the
         <codeph>greenplum-db/src/include/</codeph> directory (when developing
-        against the Greenplum Database open source github repository), or
-        installed in the <codeph>$GPHOME/include/postgresql/server/</codeph> directory (when developing against a Greenplum installation):</p>
+        against the Cloudberry Database open source github repository), or
+        installed in the <codeph>$GPHOME/include/postgresql/server/</codeph> directory (when developing against a Cloudberry installation):</p>
       <ul>
         <li>foreign/fdwapi.h - FDW API structures and callback function signatures</li>
         <li>foreign/foreign.h - foreign-data wrapper helper structs and functions</li>
@@ -97,9 +97,9 @@
         function. Both functions must be written in a compiled language such as
         C, using the version-1 interface.</p>
       <p>The <i>handler</i> function simply returns a struct of function
-        pointers to callback functions that will be called by the Greenplum
+        pointers to callback functions that will be called by the Cloudberry
         Database planner, executor, and various maintenance commands. The
-        <i>handler</i> function must be registered with Greenplum Database as
+        <i>handler</i> function must be registered with Cloudberry Database as
         taking no arguments and returning the special pseudo-type
         <codeph>fdw_handler</codeph>.  For example:</p>
       <codeblock>CREATE FUNCTION NEW_fdw_handler()
@@ -127,14 +127,14 @@ LANGUAGE C STRICT;</codeblock>
         <codeph>ForeignServerRelationId</codeph>,
         <codeph>UserMappingRelationId</codeph>, or
         <codeph>ForeignTableRelationId</codeph>. If no <i>validator</i> function
-        is supplied by a foreign data wrapper, Greenplum Database does not check
+        is supplied by a foreign data wrapper, Cloudberry Database does not check
         option validity at object creation time or object alteration time.</p>
     </body>
   </topic>
   <topic id="topic3">
     <title>Foreign Data Wrapper Callback Functions</title>
     <body>
-      <p>The foreign-data wrapper API defines callback functions that Greenplum
+      <p>The foreign-data wrapper API defines callback functions that Cloudberry
         Database invokes when scanning and updating foreign tables. The API also
         includes callbacks for performing explain and analyze operations on a
         foreign table.</p>
@@ -217,7 +217,7 @@ GetForeignPaths (PlannerInfo *root,
                  RelOptInfo *baserel,
                  Oid foreigntableid)</codeblock></entry>
               <entry colname="col2">Create possible access paths for a scan on a
-                foreign table. Called during query planning. <note>A Greenplum
+                foreign table. Called during query planning. <note>A Cloudberry
                 Database-compatible FDW must call
                 <codeph>create_foreignscan_path()</codeph> in its
                 <codeph>GetForeignPaths()</codeph> callback function.</note></entry>
@@ -268,7 +268,7 @@ EndForeignScan (ForeignScanState *node)</codeblock></entry>
   <topic id="helper">
     <title>Foreign Data Wrapper Helper Functions</title>
     <body>
-      <p>The FDW API exports several helper functions from the Greenplum
+      <p>The FDW API exports several helper functions from the Cloudberry
         Database core server so that authors of foreign-data wrappers have easy
         access to attributes of FDW-related objects, such as options provided
         when the user creates or alters the foreign-data wrapper, server, or
@@ -339,17 +339,17 @@ GetForeignColumnOptions(Oid relid, AttrNumber attnum);</codeblock></entry>
     </body>
   </topic>
   <topic id="topic5">
-    <title>Greenplum Database Considerations</title>
+    <title>Cloudberry Database Considerations</title>
     <body>
-      <p>A Greenplum Database user can specify the <codeph>mpp_execute</codeph>
+      <p>A Cloudberry Database user can specify the <codeph>mpp_execute</codeph>
         option when they create or alter a foreign table, foreign server, or
-        foreign data wrapper. A Greenplum Database-compatible foreign-data
+        foreign data wrapper. A Cloudberry Database-compatible foreign-data
         wrapper examines the <codeph>mpp_execute</codeph> option value on a scan
         and uses it to determine where to request data - from the
         <codeph>master</codeph> (the default), <codeph>any</codeph> (master or
         any one segment), or <codeph>all</codeph> segments.</p>
       <note>Write/update operations using a foreign data wrapper are always
-        performed on the Greenplum Database master, regardless of the
+        performed on the Cloudberry Database master, regardless of the
         <codeph>mpp_execute</codeph> setting.</note>
       <p>The following scan code snippet probes the <codeph>mpp_execute</codeph>
         value associated with a foreign table:</p>
@@ -372,7 +372,7 @@ else if (table->exec_location == FTEXECLOCATION_COORDINATOR)
         of the foreign-data-related objects has an <codeph>mpp_execute</codeph>
         setting, the default setting is <codeph>master</codeph>.</p>
       <p>If a foreign-data wrapper supports <codeph>mpp_execute 'all'</codeph>,
-        it will implement a policy that matches Greenplum segments to data. So
+        it will implement a policy that matches Cloudberry segments to data. So
         as not to duplicate data retrieved from the remote, the FDW on each
         segment must be able to establish which portion of the data is their
         responsibility. An FDW may use the segment identifier and the number of
@@ -387,10 +387,10 @@ int totalNumberOfSegments = getgpsegmentCount();</codeblock>
     <title>Building a Foreign Data Wrapper Extension with PGXS</title>
     <body>
       <p>You compile the foreign-data wrapper functions that you write with the
-        FDW API into one or more shared libraries that the Greenplum Database
+        FDW API into one or more shared libraries that the Cloudberry Database
         server loads on demand.</p>
       <p>You can use the PostgreSQL build extension infrastructure (PGXS) to
-        build the source code for your foreign-data wrapper against a Greenplum
+        build the source code for your foreign-data wrapper against a Cloudberry
         Database installation. This framework automates common build rules for
         simple modules. If you have a more complicated use case, you will need
         to write your own build system.</p>
@@ -417,15 +417,15 @@ include $(PGXS)
       <ul>
         <li><codeph>MODULE_big</codeph> - identifes the base name of the shared
           library generated by the <codeph>Makefile</codeph></li>
-        <li><codeph>PG_CPPFLAGS</codeph> - adds the Greenplum Database installation
+        <li><codeph>PG_CPPFLAGS</codeph> - adds the Cloudberry Database installation
           <codeph>include/</codeph> directory to the compiler header file search path</li>
-        <li><codeph>SHLIB_LINK</codeph> adds the Greenplum Database installation          library directory (<codeph>$GPHOME/lib/</codeph>) to the linker search
+        <li><codeph>SHLIB_LINK</codeph> adds the Cloudberry Database installation          library directory (<codeph>$GPHOME/lib/</codeph>) to the linker search
           path</li>
         <li>The <codeph>PG_CONFIG</codeph> and <codeph>PGXS</codeph> variable
           settings and the <codeph>include</codeph> statement are required and
           typically reside in the last three lines of the <codeph>Makefile</codeph>.</li>
       </ul>
-      <p>To package the foreign-data wrapper as a Greenplum Database extension,
+      <p>To package the foreign-data wrapper as a Cloudberry Database extension,
         you create script (<codeph><varname>newfdw--version</varname>.sql</codeph>)
         and control (<codeph><varname>newfdw</varname>.control</codeph>) files
         that register the FDW <i>handler</i> and <i>validator</i> functions,
@@ -460,7 +460,7 @@ relocatable = true</codeblock>
 DATA = base_fdw--1.0.sql</codeblock>
       <p>Running <codeph>make install</codeph> with these directives in the
         <codeph>Makefile</codeph> copies the shared library and FDW SQL and
-        control files into the specified or default locations in your Greenplum
+        control files into the specified or default locations in your Cloudberry
         Database installation (<codeph>$GPHOME</codeph>).</p>
     </body>
   </topic>
@@ -468,18 +468,18 @@ DATA = base_fdw--1.0.sql</codeblock>
     <title>Deployment Considerations</title>
     <body>
       <p>You must package the FDW shared library and extension files in a form
-        suitable for deployment in a Greenplum Database cluster. When you 
+        suitable for deployment in a Cloudberry Database cluster. When you 
         construct and deploy the package, take into consideration the following:</p>
       <ul>
         <li>The FDW shared library must be installed to the same file system
           location on the master host and on every segment host in the
-          Greenplum Database cluster. You specify this location in the
+          Cloudberry Database cluster. You specify this location in the
           <codeph>.control</codeph> file. This location is typically the
           <codeph>$GPHOME/lib/postgresql/</codeph> directory.</li>
         <li>The FDW <codeph>.sql</codeph> and <codeph>.control</codeph> files
           must be installed to the 
           <codeph>$GPHOME/share/postgresql/extension/</codeph> directory
-          on the master host and on every segment host in the Greenplum
+          on the master host and on every segment host in the Cloudberry
           Database cluster.</li>
         <li>The <codeph>gpadmin</codeph> user must have permission to traverse
           the complete file system path to the FDW shared library file and

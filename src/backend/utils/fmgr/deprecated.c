@@ -9,7 +9,7 @@
  * to point to this function instead which will provide an error message
  * when the function is called.
  *
- * Portions Copyright (c) 2010, Greenplum
+ * Portions Copyright (c) 2010, Cloudberry
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

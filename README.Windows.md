@@ -116,8 +116,8 @@ nmake install NODEBUG=1
 Replace <path\to\gpdb> with real location of your gpdb source code. Make sure you have
 also cloned the submodule at gpMgmt\bin\pythonSrc\ext.
 
-We will install client package to C:\greenplum-db-devel. If you want another location,
-make sure you've replaced C:\greenplum-db-devel in the following scripts.
+We will install client package to C:\cloudberry-db-devel. If you want another location,
+make sure you've replaced C:\cloudberry-db-devel in the following scripts.
 
 
 1. Create config.pl at src/tools/msvc. If you don't build with these supports, it's ok to skip this step.
@@ -130,14 +130,14 @@ echo print "our \$config = {gss => 'c:/dep', openssl => 'c:/dep', zlib => 'c:/de
 ```
 cd <path\to\gpdb>\src\tools\msvc
 build client
-install C:\greenplum-db-devel client
+install C:\cloudberry-db-devel client
 ```
 
 3. Build gpfdist
 ```
 cd <path\to\gpdb>\src\bin\gpfdist
 cd build
-cmake -DCMAKE_PREFIX_PATH:PATH=C:\ext -DCMAKE_INSTALL_PREFIX:PATH=C:\greenplum-db-devel -G "Visual Studio 15 2017 Win64" ..
+cmake -DCMAKE_PREFIX_PATH:PATH=C:\ext -DCMAKE_INSTALL_PREFIX:PATH=C:\cloudberry-db-devel -G "Visual Studio 15 2017 Win64" ..
 cmake --build . --config Release --target ALL_BUILD
 cmake --build . --config Release --target INSTALL
 ```
@@ -147,7 +147,7 @@ cmake --build . --config Release --target INSTALL
 cd <path\to\gpdb>\gpMgmt\bin\pythonSrc\PyGreSQL
 mkdir build
 cd build
-cmake -DCMAKE_PREFIX_PATH=C:\greenplum-db-devel -DCMAKE_INSTALL_PREFIX:PATH=C:\greenplum-db-devel -G "Visual Studio 15 2017 Win64" ..
+cmake -DCMAKE_PREFIX_PATH=C:\cloudberry-db-devel -DCMAKE_INSTALL_PREFIX:PATH=C:\cloudberry-db-devel -G "Visual Studio 15 2017 Win64" ..
 cmake --build . --config Release --target ALL_BUILD
 cmake --build . --config Release --target INSTALL
 ```

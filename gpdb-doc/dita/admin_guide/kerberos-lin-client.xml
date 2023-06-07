@@ -2,12 +2,12 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_j1d_4qz_rz">
   <title>Configuring Kerberos for Linux Clients</title>
-  <shortdesc>You can configure Linux client applications to connect to a Greenplum Database system
+  <shortdesc>You can configure Linux client applications to connect to a Cloudberry Database system
     that is configured to authenticate with Kerberos.</shortdesc>
   <body>
     <p>If your JDBC application on Red Hat Enterprise Linux uses Kerberos authentication when it
-      connects to your Greenplum Database, your client system must be configured to use Kerberos
-      authentication. If you are not using Kerberos authentication to connect to a Greenplum
+      connects to your Cloudberry Database, your client system must be configured to use Kerberos
+      authentication. If you are not using Kerberos authentication to connect to a Cloudberry
       Database, Kerberos is not needed on your client system.</p>
     <ul id="ul_nmz_1rz_rz">
       <li id="kd158375">
@@ -20,14 +20,14 @@
         <xref href="#topic18" type="topic" format="dita"/>
       </li>
     </ul>
-    <p>For information about enabling Kerberos authentication with Greenplum Database, see the
-      chapter "Setting Up Kerberos Authentication" in the <i>Greenplum Database Administrator
+    <p>For information about enabling Kerberos authentication with Cloudberry Database, see the
+      chapter "Setting Up Kerberos Authentication" in the <i>Cloudberry Database Administrator
         Guide</i>. </p>
   </body>
   <topic id="topic13" xml:lang="en">
     <title id="kd158392">Requirements</title>
     <body>
-      <p>The following are requirements to connect to a Greenplum Database that is enabled with
+      <p>The following are requirements to connect to a Cloudberry Database that is enabled with
         Kerberos authentication from a client system with a JDBC application.</p>
       <ul id="ul_hrb_crz_rz">
         <li id="kd158400">
@@ -42,20 +42,20 @@
       <title id="kd158410">Prerequisites</title>
       <body>
         <ul id="ul_irb_crz_rz">
-          <li id="kd158414">Kerberos must be installed and configured on the Greenplum Database
-            master host. <note type="important">Greenplum Database must be configured so that a
-              remote user can connect to Greenplum Database with Kerberos authentication.
-              Authorization to access Greenplum Database is controlled by the
+          <li id="kd158414">Kerberos must be installed and configured on the Cloudberry Database
+            master host. <note type="important">Cloudberry Database must be configured so that a
+              remote user can connect to Cloudberry Database with Kerberos authentication.
+              Authorization to access Cloudberry Database is controlled by the
                 <codeph>pg_hba.conf</codeph> file. For details, see "Editing the pg_hba.conf File"
-              in the <i>Greenplum Database Administration Guide</i>, and also see the <i>Greenplum
+              in the <i>Cloudberry Database Administration Guide</i>, and also see the <i>Cloudberry
                 Database Security Configuration Guide</i>.</note></li>
           <li id="kd158429">The client system requires the Kerberos configuration file
-              <codeph>krb5.conf</codeph> from the Greenplum Database master. </li>
+              <codeph>krb5.conf</codeph> from the Cloudberry Database master. </li>
           <li id="kd158433">The client system requires a Kerberos keytab file that contains the
-            authentication credentials for the Greenplum Database user that is used to log into the
+            authentication credentials for the Cloudberry Database user that is used to log into the
             database. </li>
-          <li id="kd158440">The client machine must be able to connect to Greenplum Database master
-            host. <p>If necessary, add the Greenplum Database master host name and IP address to the
+          <li id="kd158440">The client machine must be able to connect to Cloudberry Database master
+            host. <p>If necessary, add the Cloudberry Database master host name and IP address to the
               system <codeph>hosts</codeph> file. On Linux systems, the <codeph>hosts</codeph> file
               is in <codeph>/etc</codeph>.</p></li>
         </ul>
@@ -88,19 +88,19 @@
   <topic id="topic17" xml:lang="en">
     <title id="kd158460">Setting Up Client System with Kerberos Authentication</title>
     <body>
-      <p>To connect to Greenplum Database with Kerberos authentication requires a Kerberos ticket.
+      <p>To connect to Cloudberry Database with Kerberos authentication requires a Kerberos ticket.
         On client systems, tickets are generated from Kerberos keytab files with the
           <codeph>kinit</codeph> utility and are stored in a cache file.</p>
       <ol id="ol_lrb_crz_rz">
         <li id="kd158467">Install a copy of the Kerberos configuration file
-            <codeph>krb5.conf</codeph> from the Greenplum Database master. The file is used by the
-          Greenplum Database client software and the Kerberos utilities. <p>Install
+            <codeph>krb5.conf</codeph> from the Cloudberry Database master. The file is used by the
+          Cloudberry Database client software and the Kerberos utilities. <p>Install
               <codeph>krb5.conf</codeph> in the directory <codeph>/etc</codeph>. </p><p>If needed,
             add the parameter <codeph>default_ccache_name</codeph> to the
               <codeph>[libdefaults]</codeph> section of the <codeph>krb5.ini</codeph> file and
             specify location of the Kerberos ticket cache file on the client system. </p></li>
         <li id="kd158474">Obtain a Kerberos keytab file that contains the authentication credentials
-          for the Greenplum Database user. </li>
+          for the Cloudberry Database user. </li>
         <li id="kd158478">Run <codeph>kinit</codeph> specifying the keytab file to create a ticket
           on the client machine. For this example, the keytab file
             <codeph>gpdb-kerberos.keytab</codeph> is in the current directory. The ticket cache
@@ -113,15 +113,15 @@
   <topic id="topic12" xml:lang="en">
     <title id="mh151086">Running psql </title>
     <body>
-      <p>From a remote system, you can access a Greenplum Database that has Kerberos authentication
+      <p>From a remote system, you can access a Cloudberry Database that has Kerberos authentication
         enabled. </p>
       <section id="mh151095">
-        <title>To connect to Greenplum Database with psql</title>
+        <title>To connect to Cloudberry Database with psql</title>
         <ol id="ol_xzc_lxj_h1b">
           <li id="mh151096">As the gpadmin user, open a command window. </li>
           <li id="mh151099">Start <codeph>psql</codeph> from the command window and specify a
-            connection to the Greenplum Database specifying the user that is configured with
-            Kerberos authentication.<p>The following example logs into the Greenplum Database on the
+            connection to the Cloudberry Database specifying the user that is configured with
+            Kerberos authentication.<p>The following example logs into the Cloudberry Database on the
               machine <codeph>kerberos-gpdb</codeph> as the <codeph>gpadmin</codeph> user with the
               Kerberos credentials
             <codeph>gpadmin/kerberos-gpdb</codeph>:</p><codeblock>$ psql -U "gpadmin/kerberos-gpdb" -h kerberos-gpdb postgres</codeblock></li>
@@ -132,7 +132,7 @@
   <topic id="topic18" xml:lang="en">
     <title id="kd158481">Running a Java Application </title>
     <body>
-      <p>Accessing Greenplum Database from a Java application with Kerberos authentication uses the
+      <p>Accessing Cloudberry Database from a Java application with Kerberos authentication uses the
         Java Authentication and Authorization Service (JAAS) </p>
       <ol id="ol_mrb_crz_rz">
         <li id="kd158486">Create the file <codeph>.java.login.config</codeph> in the user home
@@ -146,7 +146,7 @@
   debug=true
   client=true;
 };</codeblock></li>
-        <li id="kd158493">Create a Java application that connects to Greenplum Database using
+        <li id="kd158493">Create a Java application that connects to Cloudberry Database using
           Kerberos authentication and run the application as the user. </li>
       </ol>
       <p>This example database connection URL uses a PostgreSQL JDBC driver and specifies parameters

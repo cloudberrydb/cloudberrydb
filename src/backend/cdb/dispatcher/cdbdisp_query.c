@@ -4,7 +4,7 @@
  *	  Functions to dispatch command string or plan to QExecutors.
  *
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -71,7 +71,7 @@ typedef struct
 } SliceVec;
 
 /*
- * Parameter structure for Greenplum Database Queries
+ * Parameter structure for Cloudberry Database Queries
  */
 typedef struct DispatchCommandQueryParms
 {
@@ -431,6 +431,7 @@ CdbDispatchUtilityStatement(struct Node *stmt,
 	DispatchCommandQueryParms *pQueryParms;
 	bool needTwoPhase = flags & DF_NEED_TWO_PHASE;
 
+	Assert(Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH());
 	if (needTwoPhase)
 		setupDtxTransaction();
 
@@ -624,11 +625,8 @@ cdbdisp_buildPlanQueryParms(struct QueryDesc *queryDesc,
 
 	int			splan_len,
 				splan_len_uncompressed,
-				sddesc_len,
-				rootIdx;
+				sddesc_len;
 	Oid			save_userid;
-
-	rootIdx = RootSliceIndex(queryDesc->estate);
 
 	DispatchCommandQueryParms *pQueryParms = (DispatchCommandQueryParms *) palloc0(sizeof(*pQueryParms));
 

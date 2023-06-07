@@ -3,7 +3,7 @@
  *
  * PostgreSQL multi-transaction-log manager
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/multixact.h
@@ -13,6 +13,7 @@
 
 #include "access/xlogreader.h"
 #include "lib/stringinfo.h"
+#include "storage/sync.h"
 
 
 /*
@@ -29,8 +30,8 @@
 #define MaxMultiXactOffset	((MultiXactOffset) 0xFFFFFFFF)
 
 /* Number of SLRU buffers to use for multixact */
-#define NUM_MXACTOFFSET_BUFFERS		8
-#define NUM_MXACTMEMBER_BUFFERS		16
+#define NUM_MULTIXACTOFFSET_BUFFERS		8
+#define NUM_MULTIXACTMEMBER_BUFFERS		16
 
 /*
  * Possible multixact lock modes ("status").  The first four modes are for
@@ -108,6 +109,7 @@ extern MultiXactId MultiXactIdCreateFromMembers(int nmembers,
 												MultiXactMember *members);
 
 extern MultiXactId ReadNextMultiXactId(void);
+extern void ReadMultiXactIdRange(MultiXactId *oldest, MultiXactId *next);
 extern bool MultiXactIdIsRunning(MultiXactId multi, bool isLockOnly);
 extern void MultiXactIdSetOldestMember(void);
 extern int	GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **xids,
@@ -115,6 +117,9 @@ extern int	GetMultiXactIdMembers(MultiXactId multi, MultiXactMember **xids,
 extern bool MultiXactIdPrecedes(MultiXactId multi1, MultiXactId multi2);
 extern bool MultiXactIdPrecedesOrEquals(MultiXactId multi1,
 										MultiXactId multi2);
+
+extern int	multixactoffsetssyncfiletag(const FileTag *ftag, char *path);
+extern int	multixactmemberssyncfiletag(const FileTag *ftag, char *path);
 
 extern void AtEOXact_MultiXact(void);
 extern void AtPrepare_MultiXact(void);
@@ -125,7 +130,6 @@ extern void MultiXactShmemInit(void);
 extern void BootStrapMultiXact(void);
 extern void StartupMultiXact(void);
 extern void TrimMultiXact(void);
-extern void ShutdownMultiXact(void);
 extern void SetMultiXactIdLimit(MultiXactId oldest_datminmxid,
 								Oid oldest_datoid,
 								bool is_startup);

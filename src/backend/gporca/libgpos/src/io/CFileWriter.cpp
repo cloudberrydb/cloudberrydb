@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CFileWriter.cpp

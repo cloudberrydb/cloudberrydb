@@ -1,7 +1,9 @@
 # contrib/hstore_plpython/Makefile
 
 MODULE_big = hstore_plpython$(python_majorversion)
-OBJS = hstore_plpython.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	hstore_plpython.o
 PGFILEDESC = "hstore_plpython - hstore transform for plpython"
 
 EXTENSION = hstore_plpythonu hstore_plpython2u hstore_plpython3u
@@ -9,6 +11,7 @@ DATA = hstore_plpythonu--1.0.sql hstore_plpython2u--1.0.sql hstore_plpython3u--1
 
 REGRESS = hstore_plpython
 REGRESS_PLPYTHON3_MANGLE := $(REGRESS)
+REGRESS_OPTS = --init-file=$(top_srcdir)/src/test/regress/init_file
 
 PG_CPPFLAGS = $(python_includespec) -DPLPYTHON_LIBNAME='"plpython$(python_majorversion)"'
 

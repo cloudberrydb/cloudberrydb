@@ -4,7 +4,7 @@
 <topic id="topic1">
     <title id="bv20941">CREATE EXTENSION</title>
     <body>
-        <p id="sql_command_desc">Registers an extension in a Greenplum database.</p>
+        <p id="sql_command_desc">Registers an extension in a Cloudberry database.</p>
         <section id="section2">
             <title>Synopsis</title>
             <codeblock id="sql_command_synopsis">CREATE EXTENSION [ IF NOT EXISTS ] <varname>extension_name</varname>
@@ -128,7 +128,7 @@
             <p>Before you use <codeph>CREATE EXTENSION</codeph> to load an extension into a
                 database, the supporting extension files must be installed including an extension
                 control file and at least one least one SQL script file. The support files must be
-                installed in the same location on all Greenplum Database hosts. For information
+                installed in the same location on all Cloudberry Database hosts. For information
                 about creating new extensions, see PostgreSQL information about <xref
                     href="https://www.postgresql.org/docs/9.6/extend-extensions.html"
                     format="html" scope="external">Packaging Related Objects into an
@@ -136,7 +136,7 @@
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>CREATE EXTENSION</codeph> is a Greenplum Database extension. </p>
+            <p><codeph>CREATE EXTENSION</codeph> is a Cloudberry Database extension. </p>
         </section>
         <section id="section8">
             <title>See Also</title>

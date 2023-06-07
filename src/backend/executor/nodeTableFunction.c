@@ -518,11 +518,6 @@ AnyTable_GetNextTuple(AnyTable t)
 	 * ----------------------------------------
 	 */
 
-	/* GPDB_91_MERGE_FIXME: We used to call  ExecRemoveJunk here, but it
-	 * was removed in the upstream. I copied the implementation of
-	 * ExecRemoveJunk here, but based on the commit message (2e852e541c),
-	 * I don't think we should be doing this either
-	 */
 	slot = ExecFilterJunk(t->junkfilter, t->econtext->ecxt_outertuple);
 	return ExecCopySlotHeapTuple(slot);
 }

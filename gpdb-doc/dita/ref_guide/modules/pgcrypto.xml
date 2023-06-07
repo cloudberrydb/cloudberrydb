@@ -4,21 +4,21 @@
   <topic id="topic_qml_2rd_yz">
     <title>pgcrypto</title>
     <body>
-      <p>Greenplum Database is installed with an optional module of encryption/decryption functions
+      <p>Cloudberry Database is installed with an optional module of encryption/decryption functions
         called <codeph>pgcrypto</codeph>. The <codeph>pgcrypto</codeph> functions allow database
         administrators to store certain columns of data in encrypted form. This adds an extra layer
-        of protection for sensitive data, as data stored in Greenplum Database in encrypted form
+        of protection for sensitive data, as data stored in Cloudberry Database in encrypted form
         cannot be read by anyone who does not have the encryption key, nor can it be read directly
         from the disks.</p>
       <note>The <codeph>pgcrypto</codeph> functions run inside the database server, which means that
         all the data and passwords move between <codeph>pgcrypto</codeph> and the client application
         in clear-text. For optimal security, consider also using SSL connections between the client
-        and the Greenplum master server.</note>
+        and the Cloudberry master server.</note>
     </body>
     <topic id="topic_reg">
       <title>Installing and Registering the Module</title>
       <body>
-        <p>The <codeph>pgcrypto</codeph> module is installed when you install Greenplum Database.
+        <p>The <codeph>pgcrypto</codeph> module is installed when you install Cloudberry Database.
           Before you can use any of the functions defined in the module, you must register the
             <codeph>pgcrypto</codeph> extension in each database in which you want to use the
           functions. <ph otherprops="pivotal">Refer to <xref

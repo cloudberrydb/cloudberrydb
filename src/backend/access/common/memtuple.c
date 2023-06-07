@@ -2,7 +2,7 @@
  *
  * memtuple.c
  * 
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
@@ -16,7 +16,7 @@
 #include "access/memtup.h"
 #include "access/tupmacs.h"
 #include "access/transam.h"
-#include "access/tuptoaster.h"
+#include "access/heaptoast.h"
 #include "catalog/pg_type.h"
 #include "utils/expandeddatum.h"
 

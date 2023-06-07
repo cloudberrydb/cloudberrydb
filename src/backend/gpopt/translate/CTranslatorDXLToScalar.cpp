@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -554,6 +554,8 @@ CTranslatorDXLToScalar::TranslateDXLScalarAggrefToScalar(
 	aggref->location = -1;
 	aggref->aggtranstype = InvalidOid;
 	aggref->aggargtypes = NIL;
+	aggref->aggno = -1;
+	aggref->aggtransno = -1;
 
 	CMDIdGPDB *agg_mdid = GPOS_NEW(m_mp) CMDIdGPDB(aggref->aggfnoid);
 	const IMDAggregate *pmdagg = m_md_accessor->RetrieveAgg(agg_mdid);
@@ -762,7 +764,7 @@ CTranslatorDXLToScalar::TranslateDXLScalarFuncExprToScalar(
 	FuncExpr *func_expr = MakeNode(FuncExpr);
 	func_expr->funcid = CMDIdGPDB::CastMdid(dxlop->FuncMdId())->Oid();
 	func_expr->funcretset = dxlop->ReturnsSet();
-	func_expr->funcformat = COERCE_EXPLICIT_CALL;
+	func_expr->funcformat = static_cast<CoercionForm>(dxlop->FuncFormat());
 	func_expr->funcresulttype =
 		CMDIdGPDB::CastMdid(dxlop->ReturnTypeMdId())->Oid();
 	func_expr->args = TranslateScalarChildren(func_expr->args,
@@ -2107,6 +2109,12 @@ CTranslatorDXLToScalar::TranslateDXLScalarArrayRefToScalar(
 		array_ref->refassgnexpr =
 			TranslateDXLToScalar((*scalar_array_ref_node)[3], colid_var);
 	}
+
+	/* slice and/or store operations yield the container type */
+	if (array_ref->reflowerindexpr || array_ref->refassgnexpr)
+		array_ref->refrestype = array_ref->refcontainertype;
+	else
+		array_ref->refrestype = array_ref->refelemtype;
 
 	return (Expr *) array_ref;
 }

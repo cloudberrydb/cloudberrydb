@@ -3,7 +3,7 @@
  * misc.c
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,6 +16,7 @@
 
 #include <sys/file.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <math.h>
 #include <unistd.h>
 
@@ -24,28 +25,27 @@
 #include "catalog/catalog.h"
 #include "catalog/pg_tablespace.h"
 #include "catalog/pg_type.h"
+#include "catalog/system_fk_info.h"
 #include "commands/dbcommands.h"
 #include "commands/tablespace.h"
 #include "common/keywords.h"
 #include "funcapi.h"
 #include "miscadmin.h"
-#include "pgstat.h"
 #include "parser/scansup.h"
+#include "pgstat.h"
 #include "postmaster/syslogger.h"
 #include "rewrite/rewriteHandler.h"
 #include "storage/fd.h"
-#include "utils/lsyscache.h"
-#include "utils/ruleutils.h"
+#include "storage/latch.h"
 #include "tcop/tcopprot.h"
 #include "utils/builtins.h"
+#include "utils/fmgroids.h"
+#include "utils/lsyscache.h"
+#include "utils/ruleutils.h"
 #include "utils/timestamp.h"
-
-#include "catalog/pg_authid.h"
-#include "postmaster/fts.h"
-#include "storage/pmsignal.h"
-#include "storage/procarray.h"
-#include "utils/backend_cancel.h"
-
+#include "cdb/cdbutil.h"
+#include "cdb/cdbvars.h"
+#include "cdb/cdbdispatchresult.h"
 
 /*
  * Common subroutine for num_nulls() and num_nonnulls().
@@ -201,72 +201,82 @@ current_query(PG_FUNCTION_ARGS)
 
 /* Function to find out which databases make use of a tablespace */
 
-typedef struct
-{
-	char	   *location;
-	DIR		   *dirdesc;
-} ts_db_fctx;
-
 Datum
 pg_tablespace_databases(PG_FUNCTION_ARGS)
 {
-	FuncCallContext *funcctx;
+	Oid			tablespaceOid = PG_GETARG_OID(0);
+	ReturnSetInfo *rsinfo = (ReturnSetInfo *) fcinfo->resultinfo;
+	bool		randomAccess;
+	TupleDesc	tupdesc;
+	Tuplestorestate *tupstore;
+	char	   *location;
+	DIR		   *dirdesc;
 	struct dirent *de;
-	ts_db_fctx *fctx;
+	MemoryContext oldcontext;
 
-	if (SRF_IS_FIRSTCALL())
+	/* check to see if caller supports us returning a tuplestore */
+	if (rsinfo == NULL || !IsA(rsinfo, ReturnSetInfo))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("set-valued function called in context that cannot accept a set")));
+	if (!(rsinfo->allowedModes & SFRM_Materialize))
+		ereport(ERROR,
+				(errcode(ERRCODE_SYNTAX_ERROR),
+				 errmsg("materialize mode required, but it is not allowed in this context")));
+
+	/* The tupdesc and tuplestore must be created in ecxt_per_query_memory */
+	oldcontext = MemoryContextSwitchTo(rsinfo->econtext->ecxt_per_query_memory);
+
+	tupdesc = CreateTemplateTupleDesc(1);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "pg_tablespace_databases",
+					   OIDOID, -1, 0);
+
+	randomAccess = (rsinfo->allowedModes & SFRM_Materialize_Random) != 0;
+	tupstore = tuplestore_begin_heap(randomAccess, false, work_mem);
+
+	rsinfo->returnMode = SFRM_Materialize;
+	rsinfo->setResult = tupstore;
+	rsinfo->setDesc = tupdesc;
+
+	MemoryContextSwitchTo(oldcontext);
+
+	if (tablespaceOid == GLOBALTABLESPACE_OID)
 	{
-		MemoryContext oldcontext;
-		Oid			tablespaceOid = PG_GETARG_OID(0);
-
-		funcctx = SRF_FIRSTCALL_INIT();
-		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
-
-		fctx = palloc(sizeof(ts_db_fctx));
-
-		if (tablespaceOid == GLOBALTABLESPACE_OID)
-		{
-			fctx->dirdesc = NULL;
-			ereport(WARNING,
-					(errmsg("global tablespace never has databases")));
-		}
-		else
-		{
-			if (tablespaceOid == DEFAULTTABLESPACE_OID)
-				fctx->location = psprintf("base");
-			else
-				fctx->location = psprintf("pg_tblspc/%u/%s", tablespaceOid,
-										  GP_TABLESPACE_VERSION_DIRECTORY);
-
-			fctx->dirdesc = AllocateDir(fctx->location);
-
-			if (!fctx->dirdesc)
-			{
-				/* the only expected error is ENOENT */
-				if (errno != ENOENT)
-					ereport(ERROR,
-							(errcode_for_file_access(),
-							 errmsg("could not open directory \"%s\": %m",
-									fctx->location)));
-				ereport(WARNING,
-						(errmsg("%u is not a tablespace OID", tablespaceOid)));
-			}
-		}
-		funcctx->user_fctx = fctx;
-		MemoryContextSwitchTo(oldcontext);
+		ereport(WARNING,
+				(errmsg("global tablespace never has databases")));
+		/* return empty tuplestore */
+		return (Datum) 0;
 	}
 
-	funcctx = SRF_PERCALL_SETUP();
-	fctx = (ts_db_fctx *) funcctx->user_fctx;
+	if (tablespaceOid == DEFAULTTABLESPACE_OID)
+		location = psprintf("base");
+	else
+		location = psprintf("pg_tblspc/%u/%s", tablespaceOid,
+							GP_TABLESPACE_VERSION_DIRECTORY);
 
-	if (!fctx->dirdesc)			/* not a tablespace */
-		SRF_RETURN_DONE(funcctx);
+	dirdesc = AllocateDir(location);
 
-	while ((de = ReadDir(fctx->dirdesc, fctx->location)) != NULL)
+	if (!dirdesc)
+	{
+		/* the only expected error is ENOENT */
+		if (errno != ENOENT)
+			ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not open directory \"%s\": %m",
+							location)));
+		ereport(WARNING,
+				(errmsg("%u is not a tablespace OID", tablespaceOid)));
+		/* return empty tuplestore */
+		return (Datum) 0;
+	}
+
+	while ((de = ReadDir(dirdesc, location)) != NULL)
 	{
 		Oid			datOid = atooid(de->d_name);
 		char	   *subdir;
 		bool		isempty;
+		Datum		values[1];
+		bool		nulls[1];
 
 		/* this test skips . and .., but is awfully weak */
 		if (!datOid)
@@ -274,18 +284,21 @@ pg_tablespace_databases(PG_FUNCTION_ARGS)
 
 		/* if database subdir is empty, don't report tablespace as used */
 
-		subdir = psprintf("%s/%s", fctx->location, de->d_name);
+		subdir = psprintf("%s/%s", location, de->d_name);
 		isempty = directory_is_empty(subdir);
 		pfree(subdir);
 
 		if (isempty)
 			continue;			/* indeed, nothing in it */
 
-		SRF_RETURN_NEXT(funcctx, ObjectIdGetDatum(datOid));
+		values[0] = ObjectIdGetDatum(datOid);
+		nulls[0] = false;
+
+		tuplestore_putvalues(tupstore, tupdesc, values, nulls);
 	}
 
-	FreeDir(fctx->dirdesc);
-	SRF_RETURN_DONE(funcctx);
+	FreeDir(dirdesc);
+	return (Datum) 0;
 }
 
 
@@ -416,12 +429,16 @@ pg_get_keywords(PG_FUNCTION_ARGS)
 		funcctx = SRF_FIRSTCALL_INIT();
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
 
-		tupdesc = CreateTemplateTupleDesc(3);
+		tupdesc = CreateTemplateTupleDesc(5);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "word",
 						   TEXTOID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "catcode",
 						   CHAROID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "catdesc",
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "barelabel",
+						   BOOLOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "catdesc",
+						   TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "baredesc",
 						   TEXTOID, -1, 0);
 
 		funcctx->attinmeta = TupleDescGetAttInMetadata(tupdesc);
@@ -433,7 +450,7 @@ pg_get_keywords(PG_FUNCTION_ARGS)
 
 	if (funcctx->call_cntr < ScanKeywords.num_keywords)
 	{
-		char	   *values[3];
+		char	   *values[5];
 		HeapTuple	tuple;
 
 		/* cast-away-const is ugly but alternatives aren't much better */
@@ -445,27 +462,116 @@ pg_get_keywords(PG_FUNCTION_ARGS)
 		{
 			case UNRESERVED_KEYWORD:
 				values[1] = "U";
-				values[2] = _("unreserved");
+				values[3] = _("unreserved");
 				break;
 			case COL_NAME_KEYWORD:
 				values[1] = "C";
-				values[2] = _("unreserved (cannot be function or type name)");
+				values[3] = _("unreserved (cannot be function or type name)");
 				break;
 			case TYPE_FUNC_NAME_KEYWORD:
 				values[1] = "T";
-				values[2] = _("reserved (can be function or type name)");
+				values[3] = _("reserved (can be function or type name)");
 				break;
 			case RESERVED_KEYWORD:
 				values[1] = "R";
-				values[2] = _("reserved");
+				values[3] = _("reserved");
 				break;
 			default:			/* shouldn't be possible */
 				values[1] = NULL;
-				values[2] = NULL;
+				values[3] = NULL;
 				break;
 		}
 
+		if (ScanKeywordBareLabel[funcctx->call_cntr])
+		{
+			values[2] = "true";
+			values[4] = _("can be bare label");
+		}
+		else
+		{
+			values[2] = "false";
+			values[4] = _("requires AS");
+		}
+
 		tuple = BuildTupleFromCStrings(funcctx->attinmeta, values);
+
+		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
+	}
+
+	SRF_RETURN_DONE(funcctx);
+}
+
+
+/* Function to return the list of catalog foreign key relationships */
+Datum
+pg_get_catalog_foreign_keys(PG_FUNCTION_ARGS)
+{
+	FuncCallContext *funcctx;
+	FmgrInfo   *arrayinp;
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		MemoryContext oldcontext;
+		TupleDesc	tupdesc;
+
+		funcctx = SRF_FIRSTCALL_INIT();
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+
+		tupdesc = CreateTemplateTupleDesc(6);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "fktable",
+						   REGCLASSOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "fkcols",
+						   TEXTARRAYOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "pktable",
+						   REGCLASSOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "pkcols",
+						   TEXTARRAYOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "is_array",
+						   BOOLOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "is_opt",
+						   BOOLOID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+
+		/*
+		 * We use array_in to convert the C strings in sys_fk_relationships[]
+		 * to text arrays.  But we cannot use DirectFunctionCallN to call
+		 * array_in, and it wouldn't be very efficient if we could.  Fill an
+		 * FmgrInfo to use for the call.
+		 */
+		arrayinp = (FmgrInfo *) palloc(sizeof(FmgrInfo));
+		fmgr_info(F_ARRAY_IN, arrayinp);
+		funcctx->user_fctx = arrayinp;
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+	arrayinp = (FmgrInfo *) funcctx->user_fctx;
+
+	if (funcctx->call_cntr < lengthof(sys_fk_relationships))
+	{
+		const SysFKRelationship *fkrel = &sys_fk_relationships[funcctx->call_cntr];
+		Datum		values[6];
+		bool		nulls[6];
+		HeapTuple	tuple;
+
+		memset(nulls, false, sizeof(nulls));
+
+		values[0] = ObjectIdGetDatum(fkrel->fk_table);
+		values[1] = FunctionCall3(arrayinp,
+								  CStringGetDatum(fkrel->fk_columns),
+								  ObjectIdGetDatum(TEXTOID),
+								  Int32GetDatum(-1));
+		values[2] = ObjectIdGetDatum(fkrel->pk_table);
+		values[3] = FunctionCall3(arrayinp,
+								  CStringGetDatum(fkrel->pk_columns),
+								  ObjectIdGetDatum(TEXTOID),
+								  Int32GetDatum(-1));
+		values[4] = BoolGetDatum(fkrel->is_array);
+		values[5] = BoolGetDatum(fkrel->is_opt);
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
 
 		SRF_RETURN_NEXT(funcctx, HeapTupleGetDatum(tuple));
 	}
@@ -523,7 +629,7 @@ pg_relation_is_updatable(PG_FUNCTION_ARGS)
 	Oid			reloid = PG_GETARG_OID(0);
 	bool		include_triggers = PG_GETARG_BOOL(1);
 
-	PG_RETURN_INT32(relation_is_updatable(reloid, include_triggers, NULL));
+	PG_RETURN_INT32(relation_is_updatable(reloid, NIL, include_triggers, NULL));
 }
 
 /*
@@ -547,7 +653,7 @@ pg_column_is_updatable(PG_FUNCTION_ARGS)
 	if (attnum <= 0)
 		PG_RETURN_BOOL(false);
 
-	events = relation_is_updatable(reloid, include_triggers,
+	events = relation_is_updatable(reloid, NIL, include_triggers,
 								   bms_make_singleton(col));
 
 	/* We require both updatability and deletability of the relation */
@@ -739,9 +845,6 @@ pg_current_logfile(PG_FUNCTION_ARGS)
 	FILE	   *fd;
 	char		lbuffer[MAXPGPATH];
 	char	   *logfmt;
-	char	   *log_filepath;
-	char	   *log_format = lbuffer;
-	char	   *nlpos;
 
 	/* The log format parameter is optional */
 	if (PG_NARGS() == 0 || PG_ARGISNULL(0))
@@ -768,16 +871,23 @@ pg_current_logfile(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 	}
 
+#ifdef WIN32
+	/* syslogger.c writes CRLF line endings on Windows */
+	_setmode(_fileno(fd), _O_TEXT);
+#endif
+
 	/*
 	 * Read the file to gather current log filename(s) registered by the
 	 * syslogger.
 	 */
 	while (fgets(lbuffer, sizeof(lbuffer), fd) != NULL)
 	{
-		/*
-		 * Extract log format and log file path from the line; lbuffer ==
-		 * log_format, they share storage.
-		 */
+		char	   *log_format;
+		char	   *log_filepath;
+		char	   *nlpos;
+
+		/* Extract log format and log file path from the line. */
+		log_format = lbuffer;
 		log_filepath = strchr(lbuffer, ' ');
 		if (log_filepath == NULL)
 		{
@@ -843,4 +953,101 @@ pg_get_replica_identity_index(PG_FUNCTION_ARGS)
 		PG_RETURN_OID(idxoid);
 	else
 		PG_RETURN_NULL();
+}
+
+Datum
+gp_get_segment_configuration(PG_FUNCTION_ARGS)
+{
+#ifdef USE_INTERNAL_FTS
+	ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+		errmsg("Should not call this function when using internal fts module")));
+#else
+	GpSegConfigEntryForUDF * config_for_udf;
+
+	FuncCallContext *funcctx;
+	MemoryContext oldcontext;
+	Datum		values[GPSEGCONFIGNUMATTR];
+	bool		nulls[GPSEGCONFIGNUMATTR];
+	HeapTuple	tuple;
+
+	/* no need return in not master segments */
+	if (!IS_QUERY_DISPATCHER()) {
+		PG_RETURN_NULL();
+	}
+
+	if (SRF_IS_FIRSTCALL())
+	{
+		int total_dbs;
+
+		/* create a function context for cross-call persistence */
+		funcctx = SRF_FIRSTCALL_INIT();
+
+		/* switch to memory context appropriate for multiple function calls */
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+		
+		config_for_udf = (GpSegConfigEntryForUDF *) 
+			palloc0(sizeof(GpSegConfigEntryForUDF));
+
+		config_for_udf->config_entry = readGpSegConfigFromETCDAllowNull(&total_dbs);
+		config_for_udf->current_index = 0;
+		config_for_udf->total_dbs = total_dbs;
+
+		/* build tuple descriptor */
+		TupleDesc	tupdesc = CreateTemplateTupleDesc(GPSEGCONFIGNUMATTR);
+
+		TupleDescInitEntry(tupdesc, (AttrNumber) 1, "dbid", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 2, "content", INT4OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "role", CHAROID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "preferred_role", CHAROID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "mode", CHAROID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "status", CHAROID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "port", INT8OID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "hostname", TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 9, "address", TEXTOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 10, "datadir", TEXTOID, -1, 0);
+
+		funcctx->tuple_desc = BlessTupleDesc(tupdesc);
+		funcctx->user_fctx = (void *) config_for_udf;
+
+		/* return to original context when allocating transient memory */
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	funcctx = SRF_PERCALL_SETUP();
+
+	config_for_udf =  (GpSegConfigEntryForUDF *) funcctx->user_fctx;
+
+	if (config_for_udf->current_index < config_for_udf->total_dbs) 
+	{
+		GpSegConfigEntry *config = &config_for_udf->config_entry[config_for_udf->current_index];
+		Datum		result;
+
+		MemSet(values, 0, sizeof(values));
+		MemSet(nulls, 0, sizeof(nulls));
+
+		values[0] = Int16GetDatum(config->dbid);
+		values[1] = Int16GetDatum(config->segindex);
+		values[2] = CharGetDatum(config->role);
+		values[3] = CharGetDatum(config->preferred_role);
+		values[4] = CharGetDatum(config->mode);
+		values[5] = CharGetDatum(config->status);
+		values[6] = Int32GetDatum(config->port);
+		values[7] = CStringGetTextDatum(config->hostname);
+		values[8] = CStringGetTextDatum(config->address);
+		values[9] = CStringGetTextDatum(config->datadir);
+
+		tuple = heap_form_tuple(funcctx->tuple_desc, values, nulls);
+		result = HeapTupleGetDatum(tuple);
+
+		config_for_udf->current_index++;
+		SRF_RETURN_NEXT(funcctx, result);
+	} else  {
+		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
+		if(config_for_udf->config_entry)
+			pfree(config_for_udf->config_entry);
+		pfree(config_for_udf);
+		MemoryContextSwitchTo(oldcontext);
+		SRF_RETURN_DONE(funcctx);
+	}
+#endif
 }

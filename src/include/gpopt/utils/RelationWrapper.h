@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2020 VMware, Inc.
 //---------------------------------------------------------------------------
 #ifndef GPDB_RelationWrapper_H

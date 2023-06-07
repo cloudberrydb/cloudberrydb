@@ -6,7 +6,7 @@
  *
  * Note: This is also used by AOCS tables.
  *
- * Portions Copyright (c) 2008, Greenplum Inc
+ * Portions Copyright (c) 2008, Cloudberry Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -160,7 +160,7 @@ LockSegnoForWrite(Relation rel, int segno)
 	 * The algorithm below for choosing a target segment is not concurrent-safe.
 	 * Grab a lock to serialize.
 	 */
-	LockRelationForExtension(rel, ExclusiveLock);
+	LockDatabaseObject(rel->rd_node.dbNode, (Oid)rel->rd_node.relNode, 0, ExclusiveLock);
 
 	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
 	GetAppendOnlyEntryAuxOids(rel->rd_id, appendOnlyMetaDataSnapshot,
@@ -265,7 +265,7 @@ LockSegnoForWrite(Relation rel, int segno)
 	/* OK, we have the aoseg tuple locked for us. */
 	systable_endscan(aoscan);
 
-	UnlockRelationForExtension(rel, ExclusiveLock);
+	UnlockDatabaseObject(rel->rd_node.dbNode, (Oid)rel->rd_node.relNode, 0, ExclusiveLock);
 
 	heap_close(pg_aoseg_rel, AccessShareLock);
 
@@ -423,7 +423,7 @@ choose_segno_internal(Relation rel, List *avoid_segnos, choose_segno_mode mode)
 	 * The algorithm below for choosing a target segment is not concurrent-safe.
 	 * Grab a lock to serialize.
 	 */
-	LockRelationForExtension(rel, ExclusiveLock);
+	LockDatabaseObject(rel->rd_node.dbNode, (Oid)rel->rd_node.relNode, 0, ExclusiveLock);
 
 	/*
 	 * Obtain the snapshot that is taken at the beginning of the transaction.
@@ -602,7 +602,7 @@ choose_segno_internal(Relation rel, List *avoid_segnos, choose_segno_mode mode)
 		chosen_segno = choose_new_segfile(rel, used, avoid_segnos);
 	}
 
-	UnlockRelationForExtension(rel, ExclusiveLock);
+	UnlockDatabaseObject(rel->rd_node.dbNode, (Oid)rel->rd_node.relNode, 0, ExclusiveLock);
 
 	if (Debug_appendonly_print_segfile_choice && chosen_segno != -1)
 		ereport(LOG,

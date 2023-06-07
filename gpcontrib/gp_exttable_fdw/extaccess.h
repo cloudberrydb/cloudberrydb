@@ -3,7 +3,7 @@
 * extaccess.h
 *	  external table access method definitions.
 *
-* Portions Copyright (c) 2007-2008, Greenplum inc
+* Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -39,7 +39,7 @@ typedef struct ExternalInsertDescData
 
 	FormatterData *ext_formatter_data;
 
-	struct CopyStateData *ext_pstate;	/* data parser control chars and state */
+	struct CopyToStateData *ext_pstate;	/* data parser control chars and state */
 
 } ExternalInsertDescData;
 
@@ -69,7 +69,7 @@ typedef struct FileScanDescData
 	uint32      fs_scancounter;	/* copied from struct ExternalScan in plan */
 
 	/* current file parse state */
-	struct CopyStateData *fs_pstate;
+	struct CopyFromStateData *fs_pstate;
 
 	AttrNumber	num_phys_attrs;
 	Datum	   *values;

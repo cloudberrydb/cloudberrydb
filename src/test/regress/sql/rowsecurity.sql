@@ -6,6 +6,7 @@
 
 -- Suppress NOTICE messages when users/groups don't exist
 SET client_min_messages TO 'warning';
+SET gp_enable_relsize_collection to on;
 
 DROP USER IF EXISTS regress_rls_alice;
 DROP USER IF EXISTS regress_rls_bob;
@@ -1467,7 +1468,7 @@ ALTER TABLE t ENABLE ROW LEVEL SECURITY;
 
 SAVEPOINT q;
 CREATE RULE "_RETURN" AS ON SELECT TO t DO INSTEAD
-  SELECT * FROM generate_series(1,5) t0(c); -- fails due to row level security enabled
+  SELECT * FROM generate_series(1,5) t0(c); -- fails due to row-level security enabled
 ROLLBACK TO q;
 
 ALTER TABLE t DISABLE ROW LEVEL SECURITY;
@@ -1782,6 +1783,16 @@ CREATE POLICY p1 ON dob_t1 TO regress_rls_dob_role1,regress_rls_dob_role2 USING 
 DROP OWNED BY regress_rls_dob_role1;
 DROP POLICY p1 ON dob_t1; -- should succeed
 
+-- same cases with duplicate polroles entries
+CREATE POLICY p1 ON dob_t1 TO regress_rls_dob_role1,regress_rls_dob_role1 USING (true);
+DROP OWNED BY regress_rls_dob_role1;
+DROP POLICY p1 ON dob_t1; -- should fail, already gone
+
+CREATE POLICY p1 ON dob_t1 TO regress_rls_dob_role1,regress_rls_dob_role1,regress_rls_dob_role2 USING (true);
+DROP OWNED BY regress_rls_dob_role1;
+DROP POLICY p1 ON dob_t1; -- should succeed
+
+-- partitioned target
 CREATE POLICY p1 ON dob_t2 TO regress_rls_dob_role1,regress_rls_dob_role2 USING (true);
 DROP OWNED BY regress_rls_dob_role1;
 DROP POLICY p1 ON dob_t2; -- should succeed
@@ -1834,6 +1845,25 @@ DROP OPERATOR <<< (int, int);
 DROP FUNCTION op_leak(int, int);
 RESET SESSION AUTHORIZATION;
 DROP TABLE rls_tbl;
+
+-- Bug #16006: whole-row Vars in a policy don't play nice with sub-selects
+SET SESSION AUTHORIZATION regress_rls_alice;
+CREATE TABLE rls_tbl (a int, b int, c int);
+CREATE POLICY p1 ON rls_tbl USING (rls_tbl >= ROW(1,1,1));
+
+ALTER TABLE rls_tbl ENABLE ROW LEVEL SECURITY;
+ALTER TABLE rls_tbl FORCE ROW LEVEL SECURITY;
+
+INSERT INTO rls_tbl SELECT 10, 20, 30;
+EXPLAIN (VERBOSE, COSTS OFF)
+INSERT INTO rls_tbl
+  SELECT * FROM (SELECT b, c FROM rls_tbl ORDER BY a) ss;
+INSERT INTO rls_tbl
+  SELECT * FROM (SELECT b, c FROM rls_tbl ORDER BY a) ss;
+SELECT * FROM rls_tbl;
+
+DROP TABLE rls_tbl;
+RESET SESSION AUTHORIZATION;
 
 --
 -- Clean up objects

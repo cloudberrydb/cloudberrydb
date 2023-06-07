@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2012 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2012 Cloudberry, Inc.
 //
 //	@filename:
 //		CGPOptimizer.cpp

@@ -14,7 +14,7 @@ for queries that use that index. </p><p>The <codeph>clusterdb</codeph> utility w
 that have previously been clustered with the <codeph>CLUSTER</codeph>
 SQL command, and clusters them again on the same index that was last
 used. Tables that have never been clustered are not affected. </p><p><codeph>clusterdb</codeph> is a wrapper around the SQL command <codeph>CLUSTER</codeph>.
-Although clustering a table in this way is supported in Greenplum Database,
+Although clustering a table in this way is supported in Cloudberry Database,
 it is not recommended because the <codeph>CLUSTER</codeph> operation
 itself is extremely slow. </p><p>If you do need to order a table in this way to improve your query performance,
         use a <codeph>CREATE TABLE AS</codeph> statement to reorder the table on disk
@@ -33,9 +33,9 @@ If that is not set, the user name specified for the connection is used.</pd></pl
         <plentry>
           <pt>-? | --help</pt>
           <pd>Show help about <codeph>clusterdb</codeph> command line arguments, and exit.</pd>
-        </plentry></parml><sectiondiv id="section5"><b>Connection Options</b><parml><plentry><pt>-h <varname>host</varname> | --host=<varname>host</varname></pt><pd>The host name of the machine on which the Greenplum coordinator database
+        </plentry></parml><sectiondiv id="section5"><b>Connection Options</b><parml><plentry><pt>-h <varname>host</varname> | --host=<varname>host</varname></pt><pd>The host name of the machine on which the Cloudberry coordinator database
 server is running. If not specified, reads from the environment variable
-<codeph>PGHOST</codeph> or defaults to localhost.</pd></plentry><plentry><pt>-p <varname>port</varname> | --port=<varname>port</varname></pt><pd>The TCP port on which the Greenplum coordinator database server is listening
+<codeph>PGHOST</codeph> or defaults to localhost.</pd></plentry><plentry><pt>-p <varname>port</varname> | --port=<varname>port</varname></pt><pd>The TCP port on which the Cloudberry coordinator database server is listening
 for connections. If not specified, reads from the environment variable
 <codeph>PGPORT</codeph> or defaults to 5432.</pd></plentry><plentry><pt>-U <varname>username</varname> | --username=<varname>username</varname></pt><pd>The database role name to connect as. If not specified, reads from
 the environment variable <codeph>PGUSER</codeph> or defaults to the current
@@ -48,6 +48,6 @@ batch jobs and scripts where no user is present to enter a password.</pd></plent
             <pd> Specifies the name of the database to connect to discover what other databases
               should be clustered. If not specified, the <codeph>postgres</codeph> database will
               be used, and if that does not exist, <codeph>template1</codeph> will be used. </pd>
-          </plentry></parml></sectiondiv></section><section id="section6"><title>Examples</title><p>To cluster the database <codeph>test</codeph>:</p><codeblock>clusterdb test</codeblock><p>To cluster a single table <codeph>foo</codeph> in a database named <codeph>xyzzy</codeph>:</p><codeblock>clusterdb --table foo xyzzyb</codeblock></section><section id="section7"><title>See Also</title><p><ph><codeph>CLUSTER</codeph> in the <i>Greenplum Database Reference
+          </plentry></parml></sectiondiv></section><section id="section6"><title>Examples</title><p>To cluster the database <codeph>test</codeph>:</p><codeblock>clusterdb test</codeblock><p>To cluster a single table <codeph>foo</codeph> in a database named <codeph>xyzzy</codeph>:</p><codeblock>clusterdb --table foo xyzzyb</codeblock></section><section id="section7"><title>See Also</title><p><ph><codeph>CLUSTER</codeph> in the <i>Cloudberry Database Reference
               Guide</i></ph><ph><codeph><xref href="../../ref_guide/sql_commands/CLUSTER.xml#topic1"
             /></codeph></ph></p></section></body></topic>

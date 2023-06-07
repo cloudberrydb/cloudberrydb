@@ -4,20 +4,20 @@
 <topic id="topic1" xml:lang="en">
   <title id="nk110126">About This Guide</title>
   <body>
-    <p>This guide describes system and database administration tasks for Greenplum Database. The
+    <p>This guide describes system and database administration tasks for Cloudberry Database. The
       guide consists of five sections:</p>
     <ul id="ul_tnm_vl3_34">
       <li id="nk169273"><xref href="intro/partI.xml#topic1" type="topic" format="dita"/> describes
-        Greenplum Database architecture and components. It introduces administration topics such as
-        mirroring, parallel data loading, and Greenplum management and monitoring utilities. </li>
+        Cloudberry Database architecture and components. It introduces administration topics such as
+        mirroring, parallel data loading, and Cloudberry management and monitoring utilities. </li>
       <li id="nk169420"><xref href="managing/partII.xml#topic1" type="topic" format="dita"/>
-        contains information about everyday Greenplum Database system administration tasks. Topics
+        contains information about everyday Cloudberry Database system administration tasks. Topics
         include starting and stopping the server, client front-ends to access the database,
-        configuring Greenplum, enabling high availability features, backing up and restoring
+        configuring Cloudberry, enabling high availability features, backing up and restoring
         databases, expanding the system by adding nodes, monitoring the system, and regular
         maintenance tasks. </li>
       <li id="nk169450"><xref href="partIII.xml#topic1" type="topic" format="dita"/> covers
-        configuring Greenplum Database authentication, managing roles and privileges, and setting up
+        configuring Cloudberry Database authentication, managing roles and privileges, and setting up
         Kerberos athentication. </li>
       <li id="nk169480"><xref href="partIV.xml#topic1" type="topic" format="dita"/> contains
         information about creating and managing databases, schemas, tables and other database
@@ -30,13 +30,13 @@
     </ul>
     <p>This guide assumes knowledge of Linux/UNIX system administration and database management
       systems. Familiarity with structured query language (SQL) is helpful.</p>
-    <p>Because Greenplum Database is based on PostgreSQL 9.4, this guide assumes some familiarity
+    <p>Because Cloudberry Database is based on PostgreSQL 9.4, this guide assumes some familiarity
       with PostgreSQL. References to <xref
         href="https://www.postgresql.org/docs/9.4/index.html" scope="external" format="html"
           ><ph>PostgreSQL documentation</ph></xref> are provided throughout this guide for features
-      that are similar to those in Greenplum Database.</p>
+      that are similar to those in Cloudberry Database.</p>
     <p>This guide provides information for system administrators responsible for administering a
-      Greenplum Database system.</p>
+      Cloudberry Database system.</p>
     <ul>
       <li id="nk164243">
         <xref href="#topic3" type="topic" format="dita"/>
@@ -50,11 +50,11 @@
     </ul>
   </body>
   <topic id="topic3" xml:lang="en">
-    <title>About the Greenplum Database Documentation Set</title>
+    <title>About the Cloudberry Database Documentation Set</title>
     <body>
-      <p>The Greenplum Database 4.3 documentation set consists of the following guides.</p>
+      <p>The Cloudberry Database 4.3 documentation set consists of the following guides.</p>
       <table id="nk168103">
-        <title>Greenplum Database documentation set</title>
+        <title>Cloudberry Database documentation set</title>
         <tgroup cols="2">
           <colspec colnum="1" colname="col1" colwidth="130pt"/>
           <colspec colnum="2" colname="col2" colwidth="243pt"/>
@@ -66,31 +66,31 @@
           </thead>
           <tbody>
             <row>
-              <entry colname="col1">Greenplum Database Administrator Guide</entry>
-              <entry colname="col2">Describes the Greenplum Database architecture and concepts such
+              <entry colname="col1">Cloudberry Database Administrator Guide</entry>
+              <entry colname="col2">Describes the Cloudberry Database architecture and concepts such
                 as parallel processing, and system administration and database administration tasks
-                for Greenplum Database. System administraiton topics include configuring the server,
+                for Cloudberry Database. System administraiton topics include configuring the server,
                 monitoring system activity, enabling high-availability, backing up and restoring
                 databases, and expanding the system. Database administration topics include creating
                 databases and database objects, loading and manipulating data, writing queries, and
                 monitoring and managing database performance. </entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum Database Reference Guide</entry>
-              <entry colname="col2">Reference information for Greenplum Database systems: SQL
+              <entry colname="col1">Cloudberry Database Reference Guide</entry>
+              <entry colname="col2">Reference information for Cloudberry Database systems: SQL
                 commands, system catalogs, environment variables, character set support, datatypes,
-                the Greenplum MapReduce specification, postGIS extension, server parameters, the
+                the Cloudberry MapReduce specification, postGIS extension, server parameters, the
                 gp_toolkit administrative schema, and SQL 2008 support.</entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum Database Utility Guide</entry>
+              <entry colname="col1">Cloudberry Database Utility Guide</entry>
               <entry colname="col2">Reference information for command-line utilities, client
                 programs, and Oracle compatibility functions.</entry>
             </row>
             <row>
-              <entry colname="col1">Greenplum Database Installation Guide</entry>
+              <entry colname="col1">Cloudberry Database Installation Guide</entry>
               <entry colname="col2">Information and instructions for installing and initializing a
-                Greenplum Database system.</entry>
+                Cloudberry Database system.</entry>
             </row>
           </tbody>
         </tgroup>
@@ -100,7 +100,7 @@
   <topic id="topic4" xml:lang="en">
     <title id="nk164282">Document Conventions</title>
     <body>
-      <p>The following conventions are used throughout the Greenplum Database documentation to help
+      <p>The following conventions are used throughout the Cloudberry Database documentation to help
         you identify certain types of information.</p>
       <ul>
         <li id="nk164293">
@@ -158,7 +158,7 @@
                   <codeph>postgres</codeph>
                   <ph> process that accepts client connections.</ph>
                   <p>
-                    <ph>Catalog information for Greenplum Database resides in the </ph>
+                    <ph>Catalog information for Cloudberry Database resides in the </ph>
                     <i>pg_catalog</i>
                     <ph> schema.</ph>
                   </p>
@@ -184,7 +184,7 @@
                   <ph>Edit the </ph>
                   <codeph>postgresql.conf</codeph>
                   <ph> file.</ph>
-                  <p>Use <codeph>gpstart</codeph> to start Greenplum Database.</p>
+                  <p>Use <codeph>gpstart</codeph> to start Cloudberry Database.</p>
                 </entry>
               </row>
               <row>
@@ -343,7 +343,7 @@
                 </entry>
                 <entry colname="col2">Denotes a command prompt - do not type the prompt symbol.
                     <codeph>$</codeph> and <codeph>#</codeph> denote terminal command prompts.
-                    <codeph>=&gt;</codeph> and <codeph>=#</codeph> denote Greenplum Database
+                    <codeph>=&gt;</codeph> and <codeph>=#</codeph> denote Cloudberry Database
                   interactive program command prompts (<codeph>psql</codeph> or
                     <codeph>gpssh</codeph>, for example).</entry>
                 <entry colname="col3">

@@ -3,16 +3,15 @@
  * recovery_gen.c
  *		Generator for recovery configuration
  *
- * Portions Copyright (c) 2011-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2011-2021, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres_fe.h"
 
 #include "common/logging.h"
-#include "fe_utils/string_utils.h"
 #include "fe_utils/recovery_gen.h"
-
+#include "fe_utils/string_utils.h"
 
 static char *escape_quotes(const char *src);
 
@@ -132,7 +131,7 @@ WriteRecoveryConfig(PGconn *pgconn, char *target_dir, PQExpBuffer contents)
 	snprintf(filename, MAXPGPATH, "%s/%s", target_dir,
 			 use_recovery_conf ? "recovery.conf" : "postgresql.auto.conf");
 
-	cf = fopen(filename, use_recovery_conf ? "a" : "w");
+	cf = fopen(filename, use_recovery_conf ? "w" : "a");
 	if (cf == NULL)
 	{
 		pg_log_error("could not open file \"%s\": %m", filename);

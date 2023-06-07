@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="in198679">Enabling Compression</title>
-  <abstract><shortdesc>You can configure Greenplum Database to use data compression with some
+  <abstract><shortdesc>You can configure Cloudberry Database to use data compression with some
       database features and with some utilities. </shortdesc>Compression reduces disk usage and
     improves I/O across the system, however, it adds some performance overhead when compressing and
     decompressing data. </abstract>
@@ -30,14 +30,14 @@
           parameter <xref
               href="../../ref_guide/config_params/guc-list.xml#gp_workfile_compression"
               format="dita"/>. </li>
-        <li>The Greenplum Database utilities <xref href="../../utility_guide/ref/gpbackup.xml"
+        <li>The Cloudberry Database utilities <xref href="../../utility_guide/ref/gpbackup.xml"
             format="dita"/>, <xref href="../../utility_guide/ref/gprestore.xml" format="dita"/>,
             <xref href="../../utility_guide/ref/gpcopy.xml" format="dita" otherprops="pivotal"/>, <xref
             href="../../utility_guide/ref/gpload.xml" format="dita"/>, and <xref
             href="../../utility_guide/ref/gplogfilter.xml" format="dita"/> support compression.</li>
       </ul></p>
-    <p>For some compression algorithms (such as zlib) Greenplum Database requires software packages
+    <p>For some compression algorithms (such as zlib) Cloudberry Database requires software packages
       installed on the host system. For information about required software packages, see the
-        <cite>Greenplum Database Installation Guide</cite>.</p>
+        <cite>Cloudberry Database Installation Guide</cite>.</p>
   </body>
 </topic>

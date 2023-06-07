@@ -3,9 +3,9 @@
  * parse_type.c
  *		handle type operations for parser
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -21,13 +21,12 @@
 #include "catalog/pg_type.h"
 #include "lib/stringinfo.h"
 #include "nodes/makefuncs.h"
-#include "parser/parser.h"
 #include "parser/parse_type.h"
+#include "parser/parser.h"
 #include "utils/array.h"
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
-
 
 static int32 typenameTypeMod(ParseState *pstate, const TypeName *typeName,
 							 Type typ);
@@ -35,6 +34,18 @@ static int32 typenameTypeMod(ParseState *pstate, const TypeName *typeName,
 
 /*
  * LookupTypeName
+ *		Wrapper for typical case.
+ */
+Type
+LookupTypeName(ParseState *pstate, const TypeName *typeName,
+			   int32 *typmod_p, bool missing_ok)
+{
+	return LookupTypeNameExtended(pstate,
+								  typeName, typmod_p, true, missing_ok);
+}
+
+/*
+ * LookupTypeNameExtended
  *		Given a TypeName object, lookup the pg_type syscache entry of the type.
  *		Returns NULL if no such type can be found.  If the type is found,
  *		the typmod value represented in the TypeName struct is computed and
@@ -53,11 +64,17 @@ static int32 typenameTypeMod(ParseState *pstate, const TypeName *typeName,
  * found but is a shell, and there is typmod decoration, an error will be
  * thrown --- this is intentional.
  *
+ * If temp_ok is false, ignore types in the temporary namespace.  Pass false
+ * when the caller will decide, using goodness of fit criteria, whether the
+ * typeName is actually a type or something else.  If typeName always denotes
+ * a type (or denotes nothing), pass true.
+ *
  * pstate is only used for error location info, and may be NULL.
  */
 Type
-LookupTypeName(ParseState *pstate, const TypeName *typeName,
-			   int32 *typmod_p, bool missing_ok)
+LookupTypeNameExtended(ParseState *pstate,
+					   const TypeName *typeName, int32 *typmod_p,
+					   bool temp_ok, bool missing_ok)
 {
 	Oid			typoid;
 	HeapTuple	tup;
@@ -174,7 +191,7 @@ LookupTypeName(ParseState *pstate, const TypeName *typeName,
 		else
 		{
 			/* Unqualified type name, so search the search path */
-			typoid = TypenameGetTypid(typname);
+			typoid = TypenameGetTypidExtended(typname, temp_ok);
 		}
 
 		/* If an array reference, return the array type instead */
@@ -394,7 +411,7 @@ typenameTypeMod(ParseState *pstate, const TypeName *typeName, Type typ)
 
 	/* hardwired knowledge about cstring's representation details here */
 	arrtypmod = construct_array(datums, n, CSTRINGOID,
-								-2, false, 'c');
+								-2, false, TYPALIGN_CHAR);
 
 	/* arrange to report location if type's typmodin function fails */
 	setup_parser_errposition_callback(&pcbstate, pstate, typeName->location);
@@ -704,13 +721,6 @@ pts_error_callback(void *arg)
 	const char *str = (const char *) arg;
 
 	errcontext("invalid type name \"%s\"", str);
-
-	/*
-	 * Currently we just suppress any syntax error position report, rather
-	 * than transforming to an "internal query" error.  It's unlikely that a
-	 * type name is complex enough to need positioning.
-	 */
-	errposition(0);
 }
 
 /*
@@ -722,20 +732,13 @@ pts_error_callback(void *arg)
 TypeName *
 typeStringToTypeName(const char *str)
 {
-	StringInfoData buf;
 	List	   *raw_parsetree_list;
-	SelectStmt *stmt;
-	ResTarget  *restarget;
-	TypeCast   *typecast;
 	TypeName   *typeName;
 	ErrorContextCallback ptserrcontext;
 
 	/* make sure we give useful error for empty input */
 	if (strspn(str, " \t\n\r\f") == strlen(str))
 		goto fail;
-
-	initStringInfo(&buf);
-	appendStringInfo(&buf, "SELECT NULL::%s", str);
 
 	/*
 	 * Setup error traceback support in case of ereport() during parse
@@ -745,57 +748,17 @@ typeStringToTypeName(const char *str)
 	ptserrcontext.previous = error_context_stack;
 	error_context_stack = &ptserrcontext;
 
-	raw_parsetree_list = raw_parser(buf.data);
+	raw_parsetree_list = raw_parser(str, RAW_PARSE_TYPE_NAME);
 
 	error_context_stack = ptserrcontext.previous;
 
-	/*
-	 * Make sure we got back exactly what we expected and no more; paranoia is
-	 * justified since the string might contain anything.
-	 */
-	if (list_length(raw_parsetree_list) != 1)
-		goto fail;
-	stmt = (SelectStmt *) linitial_node(RawStmt, raw_parsetree_list)->stmt;
-	if (stmt == NULL ||
-		!IsA(stmt, SelectStmt) ||
-		stmt->distinctClause != NIL ||
-		stmt->intoClause != NULL ||
-		stmt->fromClause != NIL ||
-		stmt->whereClause != NULL ||
-		stmt->groupClause != NIL ||
-		stmt->havingClause != NULL ||
-		stmt->windowClause != NIL ||
-		stmt->valuesLists != NIL ||
-		stmt->sortClause != NIL ||
-		stmt->limitOffset != NULL ||
-		stmt->limitCount != NULL ||
-		stmt->lockingClause != NIL ||
-		stmt->withClause != NULL ||
-		stmt->op != SETOP_NONE)
-		goto fail;
-	if (list_length(stmt->targetList) != 1)
-		goto fail;
-	restarget = (ResTarget *) linitial(stmt->targetList);
-	if (restarget == NULL ||
-		!IsA(restarget, ResTarget) ||
-		restarget->name != NULL ||
-		restarget->indirection != NIL)
-		goto fail;
-	typecast = (TypeCast *) restarget->val;
-	if (typecast == NULL ||
-		!IsA(typecast, TypeCast) ||
-		typecast->arg == NULL ||
-		!IsA(typecast->arg, A_Const))
-		goto fail;
+	/* We should get back exactly one TypeName node. */
+	Assert(list_length(raw_parsetree_list) == 1);
+	typeName = linitial_node(TypeName, raw_parsetree_list);
 
-	typeName = typecast->typeName;
-	if (typeName == NULL ||
-		!IsA(typeName, TypeName))
-		goto fail;
+	/* The grammar allows SETOF in TypeName, but we don't want that here. */
 	if (typeName->setof)
 		goto fail;
-
-	pfree(buf.data);
 
 	return typeName;
 

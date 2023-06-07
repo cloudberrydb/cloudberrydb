@@ -2,7 +2,7 @@
  *
  * receivelog.h
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/receivelog.h
@@ -12,10 +12,9 @@
 #ifndef RECEIVELOG_H
 #define RECEIVELOG_H
 
+#include "access/xlogdefs.h"
 #include "libpq-fe.h"
 #include "walmethods.h"
-
-#include "access/xlogdefs.h"
 
 /*
  * Called before trying to read more data or when a segment is

@@ -19,7 +19,7 @@
  *
  *		At ExecutorStart()
  *		----------------
-
+ *
  *		- ExecInitSeqScan() calls ExecInitScanTupleSlot() to construct a
  *		  TupleTableSlots for the tuples returned by the access method, and
  *		  ExecInitResultTypeTL() to define the node's return
@@ -46,7 +46,7 @@
  *		to avoid physically constructing projection tuples in many cases.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -57,14 +57,15 @@
  */
 #include "postgres.h"
 
+#include "access/heaptoast.h"
 #include "access/htup_details.h"
 #include "access/tupdesc_details.h"
-#include "access/tuptoaster.h"
-#include "funcapi.h"
 #include "catalog/pg_type.h"
+#include "funcapi.h"
 #include "nodes/nodeFuncs.h"
 #include "storage/bufmgr.h"
 #include "utils/builtins.h"
+#include "utils/expandeddatum.h"
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
 
@@ -123,9 +124,8 @@ tts_virtual_clear(TupleTableSlot *slot)
 }
 
 /*
- * Attribute values are readily available in tts_values and tts_isnull array
- * in a VirtualTupleTableSlot. So there should be no need to call either of the
- * following two functions.
+ * VirtualTupleTableSlots always have fully populated tts_values and
+ * tts_isnull arrays.  So this function should never be called.
  */
 static void
 tts_virtual_getsomeattrs(TupleTableSlot *slot, int natts)
@@ -133,6 +133,11 @@ tts_virtual_getsomeattrs(TupleTableSlot *slot, int natts)
 	elog(ERROR, "getsomeattrs is not required to be called on a virtual tuple table slot");
 }
 
+/*
+ * VirtualTupleTableSlots never provide system attributes (except those
+ * handled generically, such as tableoid).  We generally shouldn't get
+ * here, but provide a user-friendly message if we do.
+ */
 static Datum
 tts_virtual_getsysattr(TupleTableSlot *slot, int attnum, bool *isnull)
 {
@@ -285,7 +290,6 @@ tts_virtual_copy_heap_tuple(TupleTableSlot *slot)
 	return heap_form_tuple(slot->tts_tupleDescriptor,
 						   slot->tts_values,
 						   slot->tts_isnull);
-
 }
 
 static MinimalTuple
@@ -347,6 +351,17 @@ tts_heap_getsysattr(TupleTableSlot *slot, int attnum, bool *isnull)
 {
 	HeapTupleTableSlot *hslot = (HeapTupleTableSlot *) slot;
 
+	Assert(!TTS_EMPTY(slot));
+
+	/*
+	 * In some code paths it's possible to get here with a non-materialized
+	 * slot, in which case we can't retrieve system columns.
+	 */
+	if (!hslot->tuple)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot retrieve a system column in this context")));
+
 	return heap_getsysattr(hslot->tuple, attnum,
 						   slot->tts_tupleDescriptor, isnull);
 }
@@ -359,13 +374,18 @@ tts_heap_materialize(TupleTableSlot *slot)
 
 	Assert(!TTS_EMPTY(slot));
 
-	/* This slot has it's tuple already materialized. Nothing to do. */
+	/* If slot has its tuple already materialized, nothing to do. */
 	if (TTS_SHOULDFREE(slot))
 		return;
 
-	slot->tts_flags |= TTS_FLAG_SHOULDFREE;
-
 	oldContext = MemoryContextSwitchTo(slot->tts_mcxt);
+
+	/*
+	 * Have to deform from scratch, otherwise tts_values[] entries could point
+	 * into the non-materialized tuple (which might be gone when accessed).
+	 */
+	slot->tts_nvalid = 0;
+	hslot->off = 0;
 
 	if (!hslot->tuple)
 		hslot->tuple = heap_form_tuple(slot->tts_tupleDescriptor,
@@ -381,12 +401,7 @@ tts_heap_materialize(TupleTableSlot *slot)
 		hslot->tuple = heap_copytuple(hslot->tuple);
 	}
 
-	/*
-	 * Have to deform from scratch, otherwise tts_values[] entries could point
-	 * into the non-materialized tuple (which might be gone when accessed).
-	 */
-	slot->tts_nvalid = 0;
-	hslot->off = 0;
+	slot->tts_flags |= TTS_FLAG_SHOULDFREE;
 
 	MemoryContextSwitchTo(oldContext);
 }
@@ -449,7 +464,7 @@ tts_heap_store_tuple(TupleTableSlot *slot, HeapTuple tuple, bool shouldFree)
 	slot->tts_nvalid = 0;
 	hslot->tuple = tuple;
 	hslot->off = 0;
-	slot->tts_flags &= ~TTS_FLAG_EMPTY;
+	slot->tts_flags &= ~(TTS_FLAG_EMPTY | TTS_FLAG_SHOULDFREE);
 	slot->tts_tid = tuple->t_self;
 
 	if (shouldFree)
@@ -509,7 +524,11 @@ tts_minimal_getsomeattrs(TupleTableSlot *slot, int natts)
 static Datum
 tts_minimal_getsysattr(TupleTableSlot *slot, int attnum, bool *isnull)
 {
-	elog(ERROR, "minimal tuple table slot does not have system attributes");
+	Assert(!TTS_EMPTY(slot));
+
+	ereport(ERROR,
+			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+			 errmsg("cannot retrieve a system column in this context")));
 
 	return 0;					/* silence compiler warnings */
 }
@@ -522,12 +541,18 @@ tts_minimal_materialize(TupleTableSlot *slot)
 
 	Assert(!TTS_EMPTY(slot));
 
-	/* This slot has it's tuple already materialized. Nothing to do. */
+	/* If slot has its tuple already materialized, nothing to do. */
 	if (TTS_SHOULDFREE(slot))
 		return;
 
-	slot->tts_flags |= TTS_FLAG_SHOULDFREE;
 	oldContext = MemoryContextSwitchTo(slot->tts_mcxt);
+
+	/*
+	 * Have to deform from scratch, otherwise tts_values[] entries could point
+	 * into the non-materialized tuple (which might be gone when accessed).
+	 */
+	slot->tts_nvalid = 0;
+	mslot->off = 0;
 
 	if (!mslot->mintuple)
 	{
@@ -545,19 +570,14 @@ tts_minimal_materialize(TupleTableSlot *slot)
 		mslot->mintuple = heap_copy_minimal_tuple(mslot->mintuple);
 	}
 
+	slot->tts_flags |= TTS_FLAG_SHOULDFREE;
+
 	Assert(mslot->tuple == &mslot->minhdr);
 
 	mslot->minhdr.t_len = mslot->mintuple->t_len + MINIMAL_TUPLE_OFFSET;
 	mslot->minhdr.t_data = (HeapTupleHeader) ((char *) mslot->mintuple - MINIMAL_TUPLE_OFFSET);
 
 	MemoryContextSwitchTo(oldContext);
-
-	/*
-	 * Have to deform from scratch, otherwise tts_values[] entries could point
-	 * into the non-materialized tuple (which might be gone when accessed).
-	 */
-	slot->tts_nvalid = 0;
-	mslot->off = 0;
 }
 
 static void
@@ -628,8 +648,6 @@ tts_minimal_store_tuple(TupleTableSlot *slot, MinimalTuple mtup, bool shouldFree
 
 	if (shouldFree)
 		slot->tts_flags |= TTS_FLAG_SHOULDFREE;
-	else
-		Assert(!TTS_SHOULDFREE(slot));
 }
 
 
@@ -664,8 +682,6 @@ tts_buffer_heap_clear(TupleTableSlot *slot)
 
 		heap_freetuple(bslot->base.tuple);
 		slot->tts_flags &= ~TTS_FLAG_SHOULDFREE;
-
-		Assert(!BufferIsValid(bslot->buffer));
 	}
 
 	if (BufferIsValid(bslot->buffer))
@@ -694,6 +710,17 @@ tts_buffer_heap_getsysattr(TupleTableSlot *slot, int attnum, bool *isnull)
 {
 	BufferHeapTupleTableSlot *bslot = (BufferHeapTupleTableSlot *) slot;
 
+	Assert(!TTS_EMPTY(slot));
+
+	/*
+	 * In some code paths it's possible to get here with a non-materialized
+	 * slot, in which case we can't retrieve system columns.
+	 */
+	if (!bslot->base.tuple)
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("cannot retrieve a system column in this context")));
+
 	return heap_getsysattr(bslot->base.tuple, attnum,
 						   slot->tts_tupleDescriptor, isnull);
 }
@@ -706,13 +733,18 @@ tts_buffer_heap_materialize(TupleTableSlot *slot)
 
 	Assert(!TTS_EMPTY(slot));
 
-	/* If already materialized nothing to do. */
+	/* If slot has its tuple already materialized, nothing to do. */
 	if (TTS_SHOULDFREE(slot))
 		return;
 
-	slot->tts_flags |= TTS_FLAG_SHOULDFREE;
-
 	oldContext = MemoryContextSwitchTo(slot->tts_mcxt);
+
+	/*
+	 * Have to deform from scratch, otherwise tts_values[] entries could point
+	 * into the non-materialized tuple (which might be gone when accessed).
+	 */
+	bslot->base.off = 0;
+	slot->tts_nvalid = 0;
 
 	if (!bslot->base.tuple)
 	{
@@ -726,7 +758,6 @@ tts_buffer_heap_materialize(TupleTableSlot *slot)
 		bslot->base.tuple = heap_form_tuple(slot->tts_tupleDescriptor,
 											slot->tts_values,
 											slot->tts_isnull);
-
 	}
 	else
 	{
@@ -736,19 +767,21 @@ tts_buffer_heap_materialize(TupleTableSlot *slot)
 		 * A heap tuple stored in a BufferHeapTupleTableSlot should have a
 		 * buffer associated with it, unless it's materialized or virtual.
 		 */
-		Assert(BufferIsValid(bslot->buffer));
 		if (likely(BufferIsValid(bslot->buffer)))
 			ReleaseBuffer(bslot->buffer);
 		bslot->buffer = InvalidBuffer;
 	}
-	MemoryContextSwitchTo(oldContext);
 
 	/*
-	 * Have to deform from scratch, otherwise tts_values[] entries could point
-	 * into the non-materialized tuple (which might be gone when accessed).
+	 * We don't set TTS_FLAG_SHOULDFREE until after releasing the buffer, if
+	 * any.  This avoids having a transient state that would fall foul of our
+	 * assertions that a slot with TTS_FLAG_SHOULDFREE doesn't own a buffer.
+	 * In the unlikely event that ReleaseBuffer() above errors out, we'd
+	 * effectively leak the copied tuple, but that seems fairly harmless.
 	 */
-	bslot->base.off = 0;
-	slot->tts_nvalid = 0;
+	slot->tts_flags |= TTS_FLAG_SHOULDFREE;
+
+	MemoryContextSwitchTo(oldContext);
 }
 
 static void
@@ -769,10 +802,10 @@ tts_buffer_heap_copyslot(TupleTableSlot *dstslot, TupleTableSlot *srcslot)
 		MemoryContext oldContext;
 
 		ExecClearTuple(dstslot);
-		dstslot->tts_flags |= TTS_FLAG_SHOULDFREE;
 		dstslot->tts_flags &= ~TTS_FLAG_EMPTY;
 		oldContext = MemoryContextSwitchTo(dstslot->tts_mcxt);
 		bdstslot->base.tuple = ExecCopySlotHeapTuple(srcslot);
+		dstslot->tts_flags |= TTS_FLAG_SHOULDFREE;
 		MemoryContextSwitchTo(oldContext);
 	}
 	else
@@ -1161,7 +1194,7 @@ ExecAllocTableSlot(List **tupleTable, TupleDesc desc,
  *		This releases any resources (buffer pins, tupdesc refcounts)
  *		held by the tuple table, and optionally releases the memory
  *		occupied by the tuple table data structure.
- *		It is expected that this routine be called by EndPlan().
+ *		It is expected that this routine be called by ExecEndPlan().
  * --------------------------------
  */
 void
@@ -1457,10 +1490,10 @@ ExecForceStoreHeapTuple(HeapTuple tuple,
 		BufferHeapTupleTableSlot *bslot = (BufferHeapTupleTableSlot *) slot;
 
 		ExecClearTuple(slot);
-		slot->tts_flags |= TTS_FLAG_SHOULDFREE;
 		slot->tts_flags &= ~TTS_FLAG_EMPTY;
 		oldContext = MemoryContextSwitchTo(slot->tts_mcxt);
 		bslot->base.tuple = heap_copytuple(tuple);
+		slot->tts_flags |= TTS_FLAG_SHOULDFREE;
 		MemoryContextSwitchTo(oldContext);
 
 		if (shouldFree)
@@ -1598,7 +1631,7 @@ ExecStoreHeapTupleDatum(Datum data, TupleTableSlot *slot)
 	ExecStoreVirtualTuple(slot);
 }
 
-/* --------------------------------
+/*
  * ExecFetchSlotHeapTuple - fetch HeapTuple representing the slot's content
  *
  * The returned HeapTuple represents the slot's content as closely as
@@ -1869,7 +1902,6 @@ slot_getmissingattrs(TupleTableSlot *slot, int startAttNum, int lastAttNum)
 			slot->tts_values[missattnum] = attrmiss[missattnum].am_value;
 			slot->tts_isnull[missattnum] = !attrmiss[missattnum].am_present;
 		}
-
 	}
 }
 
@@ -2000,51 +2032,40 @@ ExecTypeFromExprList(List *exprList)
 }
 
 /*
- * ExecTypeSetColNames - set column names in a TupleDesc
+ * ExecTypeSetColNames - set column names in a RECORD TupleDesc
  *
  * Column names must be provided as an alias list (list of String nodes).
- *
- * For some callers, the supplied tupdesc has a named rowtype (not RECORD)
- * and it is moderately likely that the alias list matches the column names
- * already present in the tupdesc.  If we do change any column names then
- * we must reset the tupdesc's type to anonymous RECORD; but we avoid doing
- * so if no names change.
  */
 void
 ExecTypeSetColNames(TupleDesc typeInfo, List *namesList)
 {
-	bool		modified = false;
 	int			colno = 0;
 	ListCell   *lc;
+
+	/* It's only OK to change col names in a not-yet-blessed RECORD type */
+	Assert(typeInfo->tdtypeid == RECORDOID);
+	Assert(typeInfo->tdtypmod < 0);
 
 	foreach(lc, namesList)
 	{
 		char	   *cname = strVal(lfirst(lc));
 		Form_pg_attribute attr;
 
-		/* Guard against too-long names list */
+		/* Guard against too-long names list (probably can't happen) */
 		if (colno >= typeInfo->natts)
 			break;
 		attr = TupleDescAttr(typeInfo, colno);
 		colno++;
 
-		/* Ignore empty aliases (these must be for dropped columns) */
-		if (cname[0] == '\0')
+		/*
+		 * Do nothing for empty aliases or dropped columns (these cases
+		 * probably can't arise in RECORD types, either)
+		 */
+		if (cname[0] == '\0' || attr->attisdropped)
 			continue;
 
-		/* Change tupdesc only if alias is actually different */
-		if (strcmp(cname, NameStr(attr->attname)) != 0)
-		{
-			namestrcpy(&(attr->attname), cname);
-			modified = true;
-		}
-	}
-
-	/* If we modified the tupdesc, it's now a new record type */
-	if (modified)
-	{
-		typeInfo->tdtypeid = RECORDOID;
-		typeInfo->tdtypmod = -1;
+		/* OK, assign the column name */
+		namestrcpy(&(attr->attname), cname);
 	}
 }
 

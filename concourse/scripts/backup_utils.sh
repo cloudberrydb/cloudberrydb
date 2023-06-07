@@ -2,7 +2,7 @@
 
 destroy_gpdb() {
     # Setup environment
-    source /usr/local/greenplum-db-devel/greenplum_path.sh;
+    source /usr/local/cloudberry-db-devel/greenplum_path.sh;
     export PGPORT=5432;
     export COORDINATOR_DATA_DIRECTORY=/data/gpdata/master/gpseg-1;
 

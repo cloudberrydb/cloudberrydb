@@ -3,7 +3,7 @@
  * pg_extprotocol.h
  *    an external table custom protocol table
  *
- * Portions Copyright (c) 2011, Greenplum Inc.
+ * Portions Copyright (c) 2011, Cloudberry Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -50,6 +50,7 @@ FOREIGN_KEY(ptcvalidatorfn REFERENCES pg_proc(oid));
  * ----------------
  */
 typedef FormData_pg_extprotocol *Form_pg_extprotocol;
+DECLARE_TOAST(pg_extprotocol, 7173, 7174);
 
 /*
  * Different type of functions that can be 

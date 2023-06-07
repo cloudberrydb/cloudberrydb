@@ -3,7 +3,7 @@
  * nodeSeqscan.c
  *	  Support routines for sequential scans of relations.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -34,13 +34,15 @@
 #include "utils/rel.h"
 #include "nodes/nodeFuncs.h"
 
+#include "cdb/cdbaocsam.h"
+#include "cdb/cdbappendonlyam.h"
+
 static TupleTableSlot *SeqNext(SeqScanState *node);
 
 /* ----------------------------------------------------------------
  *						Scan Support
  * ----------------------------------------------------------------
  */
-
 /* ----------------------------------------------------------------
  *		SeqNext
  *
@@ -79,6 +81,26 @@ SeqNext(SeqScanState *node)
 									  node->ss.ps.plan->targetlist,
 									  node->ss.ps.plan->qual);
 		node->ss.ss_currentScanDesc = scandesc;
+		if (gp_enable_predicate_pushdown)
+		{
+			if (RelationIsAoRows(node->ss.ss_currentRelation))
+			{
+				/* eval predicate push down */
+				node->ss.ps.qual =
+					appendonly_predicate_pushdown_prepare((AppendOnlyScanDesc)node->ss.ss_currentScanDesc,
+														  node->ss.ps.qual,
+														  node->ss.ps.ps_ExprContext);
+			}
+			else if (RelationIsAoCols(node->ss.ss_currentRelation))
+			{
+				node->ss.ps.qual =
+					aocs_predicate_pushdown_prepare((AOCSScanDesc)node->ss.ss_currentScanDesc,
+													node->ss.ps.plan->qual,
+													node->ss.ps.qual,
+													node->ss.ps.ps_ExprContext,
+													&node->ss.ps);
+			}
+		}
 	}
 
 	/*

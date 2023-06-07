@@ -4,12 +4,12 @@
 /* If objects exist, return oids */
 CREATE ROLE regress_regrole_test;
 -- without schemaname
--- GPDB: Use -|- instead of ||/ in the test, because ||/ is not unique in GPDB
+-- GPDB: Use !! instead of ||/ in the test, because ||/ is not unique in GPDB
 -- (there's an extra ||/ operator for complex datatype)
-SELECT regoper('-|-');
+SELECT regoper('!!');
  regoper 
 ---------
- -|-
+ !!
 (1 row)
 
 SELECT regoperator('+(int4,int4)');
@@ -42,10 +42,16 @@ SELECT regtype('int4');
  integer
 (1 row)
 
-SELECT to_regoper('-|-');
+SELECT regcollation('"POSIX"');
+ regcollation 
+--------------
+ "POSIX"
+(1 row)
+
+SELECT to_regoper('!!');
  to_regoper 
 ------------
- -|-
+ !!
 (1 row)
 
 SELECT to_regoperator('+(int4,int4)');
@@ -78,11 +84,17 @@ SELECT to_regtype('int4');
  integer
 (1 row)
 
+SELECT to_regcollation('"POSIX"');
+ to_regcollation 
+-----------------
+ "POSIX"
+(1 row)
+
 -- with schemaname
-SELECT regoper('pg_catalog.-|-');
+SELECT regoper('pg_catalog.!!');
  regoper 
 ---------
- -|-
+ !!
 (1 row)
 
 SELECT regoperator('pg_catalog.+(int4,int4)');
@@ -115,10 +127,16 @@ SELECT regtype('pg_catalog.int4');
  integer
 (1 row)
 
-SELECT to_regoper('pg_catalog.-|-');
+SELECT regcollation('pg_catalog."POSIX"');
+ regcollation 
+--------------
+ "POSIX"
+(1 row)
+
+SELECT to_regoper('pg_catalog.!!');
  to_regoper 
 ------------
- -|-
+ !!
 (1 row)
 
 SELECT to_regproc('pg_catalog.now');
@@ -143,6 +161,12 @@ SELECT to_regtype('pg_catalog.int4');
  to_regtype 
 ------------
  integer
+(1 row)
+
+SELECT to_regcollation('pg_catalog."POSIX"');
+ to_regcollation 
+-----------------
+ "POSIX"
 (1 row)
 
 -- schemaname not applicable
@@ -246,6 +270,10 @@ SELECT regtype('ng_catalog.int4');
 ERROR:  schema "ng_catalog" does not exist
 LINE 1: SELECT regtype('ng_catalog.int4');
                        ^
+SELECT regcollation('ng_catalog."POSIX"');
+ERROR:  schema "ng_catalog" does not exist
+LINE 1: SELECT regcollation('ng_catalog."POSIX"');
+                            ^
 -- schemaname not applicable
 SELECT regrole('regress_regrole_test');
 ERROR:  role "regress_regrole_test" does not exist
@@ -317,6 +345,12 @@ SELECT to_regtype('int3');
  
 (1 row)
 
+SELECT to_regcollation('notacollation');
+ to_regcollation 
+-----------------
+ 
+(1 row)
+
 -- with schemaname
 SELECT to_regoper('ng_catalog.||/');
  to_regoper 
@@ -351,6 +385,12 @@ SELECT to_regclass('ng_catalog.pg_class');
 SELECT to_regtype('ng_catalog.int4');
  to_regtype 
 ------------
+ 
+(1 row)
+
+SELECT to_regcollation('ng_catalog."POSIX"');
+ to_regcollation 
+-----------------
  
 (1 row)
 

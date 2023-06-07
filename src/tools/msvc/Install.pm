@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 package Install;
 
 #
@@ -20,12 +23,12 @@ our (@ISA, @EXPORT_OK);
 my $insttype;
 my @client_contribs = ('oid2name', 'pgbench', 'vacuumlo');
 my @client_program_files = (
-	'clusterdb',      'createdb',   'createuser',    'dropdb',
-	'dropuser',       'ecpg',       'libecpg',       'libecpg_compat',
-	'libpgtypes',     'libpq',      'pg_basebackup', 'pg_config',
-	'pg_dump',        'pg_dumpall', 'pg_isready',    'pg_receivewal',
-	'pg_recvlogical', 'pg_restore', 'psql',          'reindexdb',
-	'vacuumdb',       @client_contribs);
+	'clusterdb',     'createdb',       'createuser', 'dropdb',
+	'dropuser',      'ecpg',           'libecpg',    'libecpg_compat',
+	'libpgtypes',    'libpq',          'pg_amcheck', 'pg_basebackup',
+	'pg_config',     'pg_dump',        'pg_dumpall', 'pg_isready',
+	'pg_receivewal', 'pg_recvlogical', 'pg_restore', 'psql',
+	'reindexdb',     'vacuumdb',       @client_contribs);
 
 sub lcopy
 {
@@ -63,8 +66,16 @@ sub Install
 		do "./config.pl" if (-f "config.pl");
 	}
 
-	chdir("../../..")    if (-f "../../../configure");
-	chdir("../../../..") if (-f "../../../../configure");
+	# Move to the root path depending on the current location.
+	if (-f "../../../configure")
+	{
+		chdir("../../..");
+	}
+	elsif (-f "../../../../configure")
+	{
+		chdir("../../../..");
+	}
+
 	my $conf = "";
 	if (-d "debug")
 	{
@@ -371,15 +382,9 @@ sub GenerateTimezoneFiles
 	  || die "Could not find TZDATAFILES line in timezone makefile\n";
 	my @tzfiles = split /\s+/, $1;
 
-	$mf =~ /^POSIXRULES\s*:?=\s*(.*)$/m
-	  || die "Could not find POSIXRULES line in timezone makefile\n";
-	my $posixrules = $1;
-	$posixrules =~ s/\s+//g;
-
 	print "Generating timezone files...";
 
-	my @args =
-	  ("$conf/zic/zic", '-d', "$target/share/timezone", '-p', "$posixrules");
+	my @args = ("$conf/zic/zic", '-d', "$target/share/timezone");
 	foreach (@tzfiles)
 	{
 		my $tzfile = $_;
@@ -777,13 +782,10 @@ sub read_file
 {
 	my $filename = shift;
 	my $F;
-	my $t = $/;
-
-	undef $/;
+	local $/ = undef;
 	open($F, '<', $filename) || die "Could not open file $filename\n";
 	my $txt = <$F>;
 	close($F);
-	$/ = $t;
 
 	return $txt;
 }

@@ -3,21 +3,21 @@
 <topic id="topic_gzw_2wz_13b">
   <title>diskquota</title>
   <body>
-    <p>The <codeph>diskquota</codeph> module allows Greenplum Database administrators to limit the
+    <p>The <codeph>diskquota</codeph> module allows Cloudberry Database administrators to limit the
       amount of disk space used by schemas or roles in a database. </p>
   </body>
   <topic id="topic_ofb_gb1_b3b">
     <title>Installing and Registering the Module</title>
     <body>
-      <p>The <codeph>diskquota</codeph> module is installed when you install Greenplum Database.</p>
+      <p>The <codeph>diskquota</codeph> module is installed when you install Cloudberry Database.</p>
       <p>Before you can use the module, you must perform these steps:</p>
       <ol id="ol_pfb_gb1_b3b">
         <li>Create the <codeph>diskquota</codeph> database. The <codeph>diskquota</codeph> module
           uses this database to store the list of databases where the module is enabled.
           <codeblock>$ createdb diskquota;</codeblock></li>
-        <li> Add the <codeph>diskquota</codeph> shared library to the Greenplum Database
+        <li> Add the <codeph>diskquota</codeph> shared library to the Cloudberry Database
             <codeph>shared_preload_libraries</codeph> server configuration parameter and restart
-          Greenplum
+          Cloudberry
           Database. Be sure to retain the previous setting of the configuration parameter.
           For example:<codeblock>$ gpconfig -s shared_preload_libraries
 Values on all segments are consistent
@@ -42,7 +42,7 @@ $ gpstop -ar</codeblock></li>
   <topic id="topic_ndp_4wy_c3b">
     <title>About the diskquota Module</title>
     <body>
-      <p>A Greenplum Database superuser can set disk usage quotas for schemas and roles. A schema
+      <p>A Cloudberry Database superuser can set disk usage quotas for schemas and roles. A schema
         quota sets a limit on disk space used by all tables that belong to a schema. A role quota
         sets a limit on disk space used by all tables that are owned by a role.</p>
       <p>Diskquota processes running on the master and segment hosts check disk usage periodically
@@ -128,7 +128,7 @@ $ gpstop -ar</codeblock></section>
         <p>Active table shared memory holds up to 1MiB of active tables by default. Active tables
           are tables that may have changed sizes since <codeph>diskquota</codeph> last recalculated
           the table sizes. <codeph>diskquota</codeph> hook functions are called when the storage
-          manager on each Greenplum Database segment creates, extends, or truncates a table file.
+          manager on each Cloudberry Database segment creates, extends, or truncates a table file.
           The hook functions store the identity of the file in shared memory so that its file size
           can be recalculated the next time the table size data is refreshed. </p>
         <p>If the shared memory for active tables fills, <codeph>diskquota</codeph> may fail to
@@ -143,10 +143,10 @@ $ gpstop -ar</codeblock></section>
         identifies the maximum number of relations (including tables, indexes, etc.) that
         the <codeph>diskquota</codeph> module can monitor at the same time. The default
         value is <codeph>1 * 1024 * 1024</codeph>. This value should be sufficient for most
-        Greenplum Database installations. Should you change the value of this
-        configuration parameter, you must restart the Greenplum Database server.</p>
+        Cloudberry Database installations. Should you change the value of this
+        configuration parameter, you must restart the Cloudberry Database server.</p>
       <p>The <codeph>diskquota</codeph> module can be enabled in up to ten databases. One diskquota
-        worker process is created on the Greenplum Database master host for each diskquota-enabled
+        worker process is created on the Cloudberry Database master host for each diskquota-enabled
         database.</p>
       <p>The disk usage for a role is defined as the total of disk usage on all segments for all
         tables the role owns. Although a role is a cluster-level database object, the disk usage for

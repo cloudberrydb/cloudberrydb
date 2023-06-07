@@ -5,16 +5,15 @@
  *
  * This is a fairly simple bitmap.
  *
- * Copyright (c) 2013-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2013-2021, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
 
 #include "postgres_fe.h"
 
-#include "datapagemap.h"
-
 #include "common/logging.h"
+#include "datapagemap.h"
 
 struct datapagemap_iterator
 {

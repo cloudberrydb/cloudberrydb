@@ -5,10 +5,10 @@
     <title>file</title>
     <body>
         <p>The <codeph>file://</codeph> protocol requires that the external data file(s) reside on a
-            segment host in a location accessible by the Greenplum superuser
+            segment host in a location accessible by the Cloudberry superuser
                 (<codeph>gpadmin</codeph>). The number of URIs that you specify corresponds to the
             number of segment instances that will work in parallel to access the external table. For
-            example, if you have a Greenplum Database system with 8 primary segments and you specify
+            example, if you have a Cloudberry Database system with 8 primary segments and you specify
             2 external files, only 2 of the 8 segments will access the external table in parallel at
             query time. The number of external files per segment host cannot exceed the number of
             primary segment instances on that host. For example, if your array has 4 primary segment

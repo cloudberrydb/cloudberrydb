@@ -2,7 +2,7 @@
  *
  * cdbpath.c
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -579,8 +579,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	 */
 	if (CdbPathLocus_IsOuterQuery(locus))
 	{
-		return (Path *) create_material_path(root, subpath->parent,
-											 &pathnode->path);
+		return (Path *) create_material_path(subpath->parent, &pathnode->path);
 	}
 
 	return (Path *) pathnode;
@@ -782,7 +781,7 @@ cdbpath_eclass_constant_is_hashable(EquivalenceClass *ec, Oid hashOpFamily)
 
 static bool
 cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
-									ListCell *distkeycell)
+									List *list, ListCell *distkeycell)
 {
 	DistributionKey *distkey = (DistributionKey *) lfirst(distkeycell);
 	DistributionKey *codistkey;
@@ -864,10 +863,10 @@ cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
 		ctx->colocus_eq_locus = false;
 
 	/* Match remaining partkey items. */
-	distkeycell = lnext(distkeycell);
+	distkeycell = lnext(list, distkeycell);
 	if (distkeycell)
 	{
-		if (!cdbpath_match_preds_to_distkey_tail(ctx, distkeycell))
+		if (!cdbpath_match_preds_to_distkey_tail(ctx, list, distkeycell))
 			return false;
 	}
 
@@ -924,7 +923,7 @@ cdbpath_match_preds_to_distkey(PlannerInfo *root,
 	ctx.colocus = colocus;
 	ctx.colocus_eq_locus = true;
 
-	return cdbpath_match_preds_to_distkey_tail(&ctx, list_head(locus.distkey));
+	return cdbpath_match_preds_to_distkey_tail(&ctx, locus.distkey, list_head(locus.distkey));
 }
 
 
@@ -1386,7 +1385,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			 * to distinguish each logical row in that case. So force the
 			 * input to a single node first in that case.
 			 *
-			 * In previous Greenplum versions, we assumed that we can generate
+			 * In previous Cloudberry versions, we assumed that we can generate
 			 * a unique row ID for General paths, by generating the same
 			 * sequence of numbers on each segment. That works as long as the
 			 * rows are in the same order on each segment, but it seemed like
@@ -2607,10 +2606,23 @@ make_splitupdate_path(PlannerInfo *root, Path *subpath, Index rti)
 	/* Suppose we already hold locks before caller */
 	rte = planner_rt_fetch(rti, root);
 
-	/* GPDB_96_MERGE_FIXME: Why is this not allowed? */
-	/* GPDB_12_MERGE_FIXME: PostgreSQL fires the DELETE+INSERT trigger, if
-	 * you UPDATE a partitioning key column. We could probably do the same with
-	 * update on the distribution key column.
+	/*
+	 * Firstly, Trigger is not supported officially by Cloudberry.
+	 *
+	 * Secondly, the update trigger is processed in ExecUpdate.
+	 * however, splitupdate will execute ExecSplitUpdate_Insert
+	 * or ExecDelete instead of ExecUpdate. So the update trigger
+	 * will not be triggered in a split plan.
+	 *
+	 * PostgreSQL fires the row-level DELETE, INSERT, and BEFORE
+	 * UPDATE triggers, but not row-level AFTER UPDATE triggers,
+	 * if you UPDATE a partitioning key column.
+	 * Doing a similar thing doesn't help Cloudberry likely, the
+	 * behavior would be uncertain since some triggers happen on
+	 * segments and they may require cross segments data changes.
+	 *
+	 * So an update trigger is not allowed when updating the
+	 * distribution key.
 	 */
 	if (has_update_triggers(rte->relid))
 		ereport(ERROR,

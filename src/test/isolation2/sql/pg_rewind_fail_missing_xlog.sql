@@ -6,7 +6,7 @@ CREATE TABLE tst_missing_tbl (a int);
 INSERT INTO tst_missing_tbl values(2),(1),(5);
 
 -- make the test faster.
-!\retcode gpconfig -c wal_keep_segments -v 2;
+!\retcode gpconfig -c wal_keep_size -v 128;
 !\retcode gpstop -ari;
 
 -- Test 1: primary was marked down by the master but acetually it keeps running
@@ -42,6 +42,10 @@ INSERT INTO tst_missing_tbl values(2),(1),(5);
 -- file before the oldest replication slot LSN is recycled/removed.
 0M: CHECKPOINT;
 0M: CHECKPOINT;
+
+-- Wait some seconds until the promotion is done. When the query comes too early,
+-- the promoted primary is still hot-standby, but we don't support hot-standby now.
+2: select pg_sleep(2);
 
 -- Write something (promote adds a 'End Of Recovery' xlog that causes the
 -- divergence between primary and mirror, but I add a write here so that we
@@ -111,5 +115,5 @@ INSERT INTO tst_missing_tbl values(2),(1),(5);
 5: DROP TABLE tst_missing_tbl;
 !\retcode gprecoverseg -ar;
 5: SELECT wait_until_all_segments_synchronized();
-!\retcode gpconfig -r wal_keep_segments;
+!\retcode gpconfig -r wal_keep_size;
 !\retcode gpstop -ari;

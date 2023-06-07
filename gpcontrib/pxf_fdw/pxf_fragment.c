@@ -5,10 +5,13 @@
 #include "cdb/cdbtm.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
+#if (PG_VERSION_NUM <= 140000)
+#include "commands/copyfrom_internal.h"
+#endif
+#include "common/jsonapi.h"
 #include "foreign/foreign.h"
 #include "utils/builtins.h"
 #include "utils/guc.h"
-#include "utils/jsonapi.h"
 
 #define LOG_DEBUG (FRAGDEBUG >= log_min_messages) || (FRAGDEBUG >= client_min_messages)
 
@@ -289,14 +292,16 @@ PxfArrayElementEnd(void *state, bool isnull)
 static List *
 ParseGetFragmentsResponse(StringInfo rest_buf)
 {
-	JsonSemAction *sem;
-	FragmentState *state;
+	JsonSemAction	*sem;
+	FragmentState	*state;
+	text			*json;
 
 	sem = palloc0(sizeof(JsonSemAction));
 	state = palloc0(sizeof(FragmentState));
 
 	state->fragments = NIL;
-	state->lex = makeJsonLexContext(cstring_to_text(rest_buf->data), true);
+	json = cstring_to_text(rest_buf->data);
+	state->lex = makeJsonLexContextCstringLen(VARDATA_ANY(json), VARSIZE_ANY_EXHDR(json), GetDatabaseEncoding(), true);
 	state->object = PXF_PARSE_START;
 	state->arraydepth = 0;
 	state->has_replicas = false;
@@ -337,16 +342,14 @@ FilterFragmentsForSegment(List *list)
 	 * across all segments for a given query
 	 */
 
-	List	   *result = list;
-	ListCell   *previous = NULL,
-			   *current = NULL;
+	ListCell   *current;
 
 	int			index = 0;
 	int			frag_index = 1;
 	int			numsegments = PXF_SEGMENT_COUNT;
 	int32		shift = gp_session_id % numsegments;
 
-	for (current = list_head(list); current != NULL; index++)
+	foreach(current, list)
 	{
 		if (PXF_SEGMENT_ID == (index + shift + gp_command_count) % numsegments)
 		{
@@ -354,11 +357,9 @@ FilterFragmentsForSegment(List *list)
 			 * current segment is the one that should process, keep the
 			 * element, adjust cursor pointers
 			 */
-			FragmentData *frag = (FragmentData *) current->data.ptr_value;
+			FragmentData *frag = (FragmentData *) current->ptr_value;
 
 			frag->fragment_idx = frag_index++;
-			previous = current;
-			current = lnext(current);
 		}
 		else
 		{
@@ -366,15 +367,14 @@ FilterFragmentsForSegment(List *list)
 			 * current segment should not process this element, another will,
 			 * drop the element from the list
 			 */
-			ListCell   *to_delete = current;
 
-			if (to_delete->data.ptr_value)
-				FreeFragment((FragmentData *) to_delete->data.ptr_value);
-			current = lnext(to_delete);
-			result = list_delete_cell(list, to_delete, previous);
+			if (current->ptr_value)
+				FreeFragment((FragmentData *) current->ptr_value);
+			list = foreach_delete_current(list, current);
 		}
+		index++;
 	}
-	return result;
+	return list;
 }
 
 /*

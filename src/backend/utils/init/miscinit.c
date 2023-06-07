@@ -3,7 +3,7 @@
  * miscinit.c
  *	  miscellaneous initialization support stuff
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -26,19 +26,19 @@
 #include <pwd.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#ifdef HAVE_UTIME_H
 #include <utime.h>
-#endif
 
 #include "access/htup_details.h"
 #include "catalog/pg_authid.h"
 #include "common/file_perm.h"
 #include "libpq/libpq.h"
+#include "libpq/pqsignal.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "postmaster/autovacuum.h"
 #include "postmaster/fts.h"
+#include "postmaster/interrupt.h"
 #include "postmaster/postmaster.h"
 #include "postmaster/startup.h"
 #include "replication/walsender.h"
@@ -69,6 +69,8 @@
 
 ProcessingMode Mode = InitProcessing;
 
+BackendType MyBackendType;
+
 /* List of lock files to be removed at proc exit */
 static List *lock_files = NIL;
 
@@ -86,6 +88,208 @@ static Latch LocalLatchData;
 
 bool		IgnoreSystemIndexes = false;
 
+
+/* ----------------------------------------------------------------
+ *	common process startup code
+ * ----------------------------------------------------------------
+ */
+
+/*
+ * Initialize the basic environment for a postmaster child
+ *
+ * Should be called as early as possible after the child's startup.
+ */
+void
+InitPostmasterChild(void)
+{
+	IsUnderPostmaster = true;	/* we are a postmaster subprocess now */
+
+	/*
+	 * Set reference point for stack-depth checking.  This might seem
+	 * redundant in !EXEC_BACKEND builds; but it's not because the postmaster
+	 * launches its children from signal handlers, so we might be running on
+	 * an alternative stack.
+	 */
+	(void) set_stack_base();
+
+	InitProcessGlobals();
+
+	/*
+	 * make sure stderr is in binary mode before anything can possibly be
+	 * written to it, in case it's actually the syslogger pipe, so the pipe
+	 * chunking protocol isn't disturbed. Non-logpipe data gets translated on
+	 * redirection (e.g. via pg_ctl -l) anyway.
+	 */
+#ifdef WIN32
+	_setmode(fileno(stderr), _O_BINARY);
+#endif
+
+	/* We don't want the postmaster's proc_exit() handlers */
+	on_exit_reset();
+
+	/* In EXEC_BACKEND case we will not have inherited BlockSig etc values */
+#ifdef EXEC_BACKEND
+	pqinitmask();
+#endif
+
+	/* Initialize process-local latch support */
+	InitializeLatchSupport();
+	MyLatch = &LocalLatchData;
+	InitLatch(MyLatch);
+	InitializeLatchWaitSet();
+
+	/*
+	 * If possible, make this process a group leader, so that the postmaster
+	 * can signal any child processes too. Not all processes will have
+	 * children, but for consistency we make all postmaster child processes do
+	 * this.
+	 */
+#ifdef HAVE_SETSID
+	if (setsid() < 0)
+		elog(FATAL, "setsid() failed: %m");
+#endif
+
+	/*
+	 * Every postmaster child process is expected to respond promptly to
+	 * SIGQUIT at all times.  Therefore we centrally remove SIGQUIT from
+	 * BlockSig and install a suitable signal handler.  (Client-facing
+	 * processes may choose to replace this default choice of handler with
+	 * quickdie().)  All other blockable signals remain blocked for now.
+	 */
+	pqsignal(SIGQUIT, SignalHandlerForCrashExit);
+
+	sigdelset(&BlockSig, SIGQUIT);
+	PG_SETMASK(&BlockSig);
+
+	/* Request a signal if the postmaster dies, if possible. */
+	PostmasterDeathSignalInit();
+}
+
+/*
+ * Initialize the basic environment for a standalone process.
+ *
+ * argv0 has to be suitable to find the program's executable.
+ */
+void
+InitStandaloneProcess(const char *argv0)
+{
+	Assert(!IsPostmasterEnvironment);
+
+	InitProcessGlobals();
+
+	/* Initialize process-local latch support */
+	InitializeLatchSupport();
+	MyLatch = &LocalLatchData;
+	InitLatch(MyLatch);
+	InitializeLatchWaitSet();
+
+	/*
+	 * For consistency with InitPostmasterChild, initialize signal mask here.
+	 * But we don't unblock SIGQUIT or provide a default handler for it.
+	 */
+	pqinitmask();
+	PG_SETMASK(&BlockSig);
+
+	/* Compute paths, no postmaster to inherit from */
+	if (my_exec_path[0] == '\0')
+	{
+		if (find_my_exec(argv0, my_exec_path) < 0)
+			elog(FATAL, "%s: could not locate my own executable path",
+				 argv0);
+	}
+
+	if (pkglib_path[0] == '\0')
+		get_pkglib_path(my_exec_path, pkglib_path);
+}
+
+void
+SwitchToSharedLatch(void)
+{
+	Assert(MyLatch == &LocalLatchData);
+	Assert(MyProc != NULL);
+
+	MyLatch = &MyProc->procLatch;
+
+	if (FeBeWaitSet)
+		ModifyWaitEvent(FeBeWaitSet, FeBeWaitSetLatchPos, WL_LATCH_SET,
+						MyLatch);
+
+	/*
+	 * Set the shared latch as the local one might have been set. This
+	 * shouldn't normally be necessary as code is supposed to check the
+	 * condition before waiting for the latch, but a bit care can't hurt.
+	 */
+	SetLatch(MyLatch);
+}
+
+void
+SwitchBackToLocalLatch(void)
+{
+	Assert(MyLatch != &LocalLatchData);
+	Assert(MyProc != NULL && MyLatch == &MyProc->procLatch);
+
+	MyLatch = &LocalLatchData;
+
+	if (FeBeWaitSet)
+		ModifyWaitEvent(FeBeWaitSet, FeBeWaitSetLatchPos, WL_LATCH_SET,
+						MyLatch);
+
+	SetLatch(MyLatch);
+}
+
+const char *
+GetBackendTypeDesc(BackendType backendType)
+{
+	const char *backendDesc = "unknown process type";
+
+	switch (backendType)
+	{
+		case B_INVALID:
+			backendDesc = "not initialized";
+			break;
+		case B_AUTOVAC_LAUNCHER:
+			backendDesc = "autovacuum launcher";
+			break;
+		case B_AUTOVAC_WORKER:
+			backendDesc = "autovacuum worker";
+			break;
+		case B_BACKEND:
+			backendDesc = "client backend";
+			break;
+		case B_BG_WORKER:
+			backendDesc = "background worker";
+			break;
+		case B_BG_WRITER:
+			backendDesc = "background writer";
+			break;
+		case B_CHECKPOINTER:
+			backendDesc = "checkpointer";
+			break;
+		case B_STARTUP:
+			backendDesc = "startup";
+			break;
+		case B_WAL_RECEIVER:
+			backendDesc = "walreceiver";
+			break;
+		case B_WAL_SENDER:
+			backendDesc = "walsender";
+			break;
+		case B_WAL_WRITER:
+			backendDesc = "walwriter";
+			break;
+		case B_ARCHIVER:
+			backendDesc = "archiver";
+			break;
+		case B_STATS_COLLECTOR:
+			backendDesc = "stats collector";
+			break;
+		case B_LOGGER:
+			backendDesc = "logger";
+			break;
+	}
+
+	return backendDesc;
+}
 
 /* ----------------------------------------------------------------
  *				database path / name support stuff
@@ -275,113 +479,6 @@ static int	SecurityRestrictionContext = 0;
 static bool SetRoleIsActive = false;
 
 /*
- * Initialize the basic environment for a postmaster child
- *
- * Should be called as early as possible after the child's startup.
- */
-void
-InitPostmasterChild(void)
-{
-	IsUnderPostmaster = true;	/* we are a postmaster subprocess now */
-
-	InitProcessGlobals();
-
-	/*
-	 * make sure stderr is in binary mode before anything can possibly be
-	 * written to it, in case it's actually the syslogger pipe, so the pipe
-	 * chunking protocol isn't disturbed. Non-logpipe data gets translated on
-	 * redirection (e.g. via pg_ctl -l) anyway.
-	 */
-#ifdef WIN32
-	_setmode(fileno(stderr), _O_BINARY);
-#endif
-
-	/* We don't want the postmaster's proc_exit() handlers */
-	on_exit_reset();
-
-	/* Initialize process-local latch support */
-	InitializeLatchSupport();
-	MyLatch = &LocalLatchData;
-	InitLatch(MyLatch);
-
-	/*
-	 * If possible, make this process a group leader, so that the postmaster
-	 * can signal any child processes too. Not all processes will have
-	 * children, but for consistency we make all postmaster child processes do
-	 * this.
-	 */
-#ifdef HAVE_SETSID
-	if (setsid() < 0)
-		elog(FATAL, "setsid() failed: %m");
-#endif
-
-	/* Request a signal if the postmaster dies, if possible. */
-	PostmasterDeathSignalInit();
-}
-
-/*
- * Initialize the basic environment for a standalone process.
- *
- * argv0 has to be suitable to find the program's executable.
- */
-void
-InitStandaloneProcess(const char *argv0)
-{
-	Assert(!IsPostmasterEnvironment);
-
-	InitProcessGlobals();
-
-	/* Initialize process-local latch support */
-	InitializeLatchSupport();
-	MyLatch = &LocalLatchData;
-	InitLatch(MyLatch);
-
-	/* Compute paths, no postmaster to inherit from */
-	if (my_exec_path[0] == '\0')
-	{
-		if (find_my_exec(argv0, my_exec_path) < 0)
-			elog(FATAL, "%s: could not locate my own executable path",
-				 argv0);
-	}
-
-	if (pkglib_path[0] == '\0')
-		get_pkglib_path(my_exec_path, pkglib_path);
-}
-
-void
-SwitchToSharedLatch(void)
-{
-	Assert(MyLatch == &LocalLatchData);
-	Assert(MyProc != NULL);
-
-	MyLatch = &MyProc->procLatch;
-
-	if (FeBeWaitSet)
-		ModifyWaitEvent(FeBeWaitSet, 1, WL_LATCH_SET, MyLatch);
-
-	/*
-	 * Set the shared latch as the local one might have been set. This
-	 * shouldn't normally be necessary as code is supposed to check the
-	 * condition before waiting for the latch, but a bit care can't hurt.
-	 */
-	SetLatch(MyLatch);
-}
-
-void
-SwitchBackToLocalLatch(void)
-{
-	Assert(MyLatch != &LocalLatchData);
-	Assert(MyProc != NULL && MyLatch == &MyProc->procLatch);
-
-	MyLatch = &LocalLatchData;
-
-	if (FeBeWaitSet)
-		ModifyWaitEvent(FeBeWaitSet, 1, WL_LATCH_SET, MyLatch);
-
-	SetLatch(MyLatch);
-}
-
-/*
  * GetUserId - get the current effective user ID.
  *
  * Note: there's no SetUserId() anymore; use SetUserIdAndSecContext().
@@ -472,15 +569,21 @@ GetAuthenticatedUserId(void)
  * with guc.c's internal state, so SET ROLE has to be disallowed.
  *
  * SECURITY_RESTRICTED_OPERATION indicates that we are inside an operation
- * that does not wish to trust called user-defined functions at all.  This
- * bit prevents not only SET ROLE, but various other changes of session state
- * that normally is unprotected but might possibly be used to subvert the
- * calling session later.  An example is replacing an existing prepared
- * statement with new code, which will then be executed with the outer
- * session's permissions when the prepared statement is next used.  Since
- * these restrictions are fairly draconian, we apply them only in contexts
- * where the called functions are really supposed to be side-effect-free
- * anyway, such as VACUUM/ANALYZE/REINDEX.
+ * that does not wish to trust called user-defined functions at all.  The
+ * policy is to use this before operations, e.g. autovacuum and REINDEX, that
+ * enumerate relations of a database or schema and run functions associated
+ * with each found relation.  The relation owner is the new user ID.  Set this
+ * as soon as possible after locking the relation.  Restore the old user ID as
+ * late as possible before closing the relation; restoring it shortly after
+ * close is also tolerable.  If a command has both relation-enumerating and
+ * non-enumerating modes, e.g. ANALYZE, both modes set this bit.  This bit
+ * prevents not only SET ROLE, but various other changes of session state that
+ * normally is unprotected but might possibly be used to subvert the calling
+ * session later.  An example is replacing an existing prepared statement with
+ * new code, which will then be executed with the outer session's permissions
+ * when the prepared statement is next used.  These restrictions are fairly
+ * draconian, but the functions called in relation-enumerating operations are
+ * really supposed to be side-effect-free anyway.
  *
  * SECURITY_NOFORCE_RLS indicates that we are inside an operation which should
  * ignore the FORCE ROW LEVEL SECURITY per-table indication.  This is used to
@@ -868,7 +971,7 @@ GetUserNameFromId(Oid roleid, bool noerr)
  * ($DATADIR/postmaster.pid) and Unix-socket-file lockfiles ($SOCKFILE.lock).
  * Both kinds of files contain the same info initially, although we can add
  * more information to a data-directory lockfile after it's created, using
- * AddToDataDirLockFile().  See miscadmin.h for documentation of the contents
+ * AddToDataDirLockFile().  See pidfile.h for documentation of the contents
  * of these lockfiles.
  *
  * On successful lockfile creation, a proc_exit callback to remove the
@@ -1179,7 +1282,7 @@ CreateLockFile(const char *filename, bool amPostmaster,
 	}
 
 	/*
-	 * Successfully created the file, now fill it.  See comment in miscadmin.h
+	 * Successfully created the file, now fill it.  See comment in pidfile.h
 	 * about the contents.  Note that we write the same first five lines into
 	 * both datadir and socket lockfiles; although more stuff may get added to
 	 * the datadir lockfile later.
@@ -1303,29 +1406,8 @@ TouchSocketLockFiles(void)
 		if (strcmp(socketLockFile, DIRECTORY_LOCK_FILE) == 0)
 			continue;
 
-		/*
-		 * utime() is POSIX standard, utimes() is a common alternative; if we
-		 * have neither, fall back to actually reading the file (which only
-		 * sets the access time not mod time, but that should be enough in
-		 * most cases).  In all paths, we ignore errors.
-		 */
-#ifdef HAVE_UTIME
-		utime(socketLockFile, NULL);
-#else							/* !HAVE_UTIME */
-#ifdef HAVE_UTIMES
-		utimes(socketLockFile, NULL);
-#else							/* !HAVE_UTIMES */
-		int			fd;
-		char		buffer[1];
-
-		fd = open(socketLockFile, O_RDONLY | PG_BINARY, 0);
-		if (fd >= 0)
-		{
-			read(fd, buffer, sizeof(buffer));
-			close(fd);
-		}
-#endif							/* HAVE_UTIMES */
-#endif							/* HAVE_UTIME */
+		/* we just ignore any error here */
+		(void) utime(socketLockFile, NULL);
 	}
 }
 
@@ -1423,8 +1505,7 @@ AddToDataDirLockFile(int target_line, const char *str)
 	len = strlen(destbuffer);
 	errno = 0;
 	pgstat_report_wait_start(WAIT_EVENT_LOCK_FILE_ADDTODATADIR_WRITE);
-	if (lseek(fd, (off_t) 0, SEEK_SET) != 0 ||
-		(int) write(fd, destbuffer, len) != len)
+	if (pg_pwrite(fd, destbuffer, len, 0) != len)
 	{
 		pgstat_report_wait_end();
 		/* if write didn't set errno, assume problem is no disk space */
@@ -1657,7 +1738,7 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 		}
 		load_file(filename, restricted);
 		ereport(DEBUG1,
-				(errmsg("loaded library \"%s\"", filename)));
+				(errmsg_internal("loaded library \"%s\"", filename)));
 		if (expanded)
 			pfree(expanded);
 	}

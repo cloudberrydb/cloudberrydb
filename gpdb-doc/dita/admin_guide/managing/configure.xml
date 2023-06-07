@@ -2,20 +2,20 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="kh138244">Configuring the Greenplum System</title>
-  <shortdesc>Greenplum Database can be configured using server configuration parameters.</shortdesc>
+  <title id="kh138244">Configuring the Cloudberry System</title>
+  <shortdesc>Cloudberry Database can be configured using server configuration parameters.</shortdesc>
   <body>
-    <p>Server configuration parameters affect the behavior of Greenplum Database. They are part of
+    <p>Server configuration parameters affect the behavior of Cloudberry Database. They are part of
       the PostgreSQL "Grand Unified Configuration" system, so they are sometimes called "GUCs." Most
-      of the Greenplum server configuration parameters are the same as the PostgreSQL configuration
-      parameters, but some are Greenplum-specific.</p>
+      of the Cloudberry server configuration parameters are the same as the PostgreSQL configuration
+      parameters, but some are Cloudberry-specific.</p>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="kh155018">About Greenplum Master and Local Parameters</title>
+    <title id="kh155018">About Cloudberry Master and Local Parameters</title>
     <shortdesc>Server configuration parameters can affect the master, the segments, or
       both.</shortdesc>
     <body>
-      <p>Server configuration files contain parameters that configure server behavior. The Greenplum
+      <p>Server configuration files contain parameters that configure server behavior. The Cloudberry
         Database configuration file, <filepath>postgresql.conf</filepath>, resides in the data
         directory of the database instance.</p>
       <p>The master and each segment instance have their own <filepath>postgresql.conf</filepath>
@@ -25,7 +25,7 @@
       <p>Other parameters are <i>master</i> parameters that you set on the master instance. The
         value is passed down to (or in some cases ignored by) the segment instances at query run
         time.</p>
-      <p>See the <cite>Greenplum Database Reference Guide</cite> for information about <i>local</i>
+      <p>See the <cite>Cloudberry Database Reference Guide</cite> for information about <i>local</i>
         and <i>master</i> server configuration parameters.</p>
     </body>
   </topic>
@@ -35,13 +35,13 @@
       can manage the system behavior overall and in specific situations.</shortdesc>
     <body>
       <p>Many configuration parameters limit who can change them and where or when they can be set.
-        For example, to change certain parameters, you must be a Greenplum Database superuser. Other
+        For example, to change certain parameters, you must be a Cloudberry Database superuser. Other
         parameters can be set only at the system level in the <filepath>postgresql.conf</filepath>
         file or require a system restart to take effect. </p>
       <p>Many configuration parameters are <i>session</i> parameters. You can set session parameters
         at the system level, the database level, the role level or the session level. Database users
         can change most session parameters within their session, but some require superuser
-        permissions. See the <cite>Greenplum Database Reference Guide</cite> for information about
+        permissions. See the <cite>Cloudberry Database Reference Guide</cite> for information about
         setting server configuration parameters.</p>
     </body>
     <topic id="topic4" xml:lang="en">
@@ -49,12 +49,12 @@
       <body>
         <p>To change a local configuration parameter across multiple segments, update the parameter
           in the <codeph>postgresql.conf</codeph> file of each targeted segment, both primary and
-          mirror. Use the <codeph>gpconfig</codeph> utility to set a parameter in all Greenplum
+          mirror. Use the <codeph>gpconfig</codeph> utility to set a parameter in all Cloudberry
             <codeph>postgresql.conf</codeph> files. For example:</p>
         <p>
           <codeblock>$ gpconfig -c gp_vmem_protect_limit -v 4096MB</codeblock>
         </p>
-        <p>Restart Greenplum Database to make the configuration changes effective:</p>
+        <p>Restart Cloudberry Database to make the configuration changes effective:</p>
         <p>
           <codeblock>$ gpstop -r</codeblock>
         </p>
@@ -63,7 +63,7 @@
     <topic id="topic5" xml:lang="en">
       <title id="kh156891">Setting a Master Configuration Parameter</title>
       <body>
-        <p>To set a master configuration parameter, set it at the Greenplum master instance. If it
+        <p>To set a master configuration parameter, set it at the Cloudberry master instance. If it
           is also a <i>session</i> parameter, you can set the parameter for a particular database,
           role or session. If a parameter is set at multiple levels, the most granular level takes
           precedence. For example, session overrides role, role overrides database, and database
@@ -84,12 +84,12 @@
               upload the <codeph>postgresql.conf</codeph> changes as follows:<p>
                 <codeblock>$ gpstop -u</codeblock>
               </p></li>
-            <li id="kh160789">For parameter changes that require a server restart, restart Greenplum
+            <li id="kh160789">For parameter changes that require a server restart, restart Cloudberry
               Database as follows:<p>
                 <codeblock>$ gpstop -r</codeblock>
               </p></li>
           </ol>
-          <p>For details about the server configuration parameters, see the <cite>Greenplum Database
+          <p>For details about the server configuration parameters, see the <cite>Cloudberry Database
               Reference Guide</cite>.</p>
         </body>
       </topic>
@@ -158,9 +158,9 @@
       presented together in categories. </shortdesc>
     <body>
       <p>Configuration parameters affect categories of server behaviors, such as resource
-        consumption, query tuning, and authentication. The following topics describe Greenplum
+        consumption, query tuning, and authentication. The following topics describe Cloudberry
         configuration parameter categories. For details about configuration parameter categories,
-        see the <cite>Greenplum Database Reference Guide</cite>.</p>
+        see the <cite>Cloudberry Database Reference Guide</cite>.</p>
       <ul>
         <li id="kh158485">
           <xref href="#topic12" type="topic" format="dita"/>
@@ -209,7 +209,7 @@
     <topic id="topic12" xml:lang="en">
       <title id="kh155037">Connection and Authentication Parameters</title>
       <body>
-        <p>These parameters control how clients connect and authenticate to Greenplum Database. See
+        <p>These parameters control how clients connect and authenticate to Cloudberry Database. See
             <xref href="../partIII.xml#topic1" type="topic" format="dita"/> for information about
           configuring client authentication.</p>
       </body>
@@ -366,7 +366,7 @@
         <body>
           <note type="warning">VMware does not recommend cost-based vacuum delay because it runs
             asynchronously among the segment instances. The vacuum cost limit and delay is invoked
-            at the segment level without taking into account the state of the entire Greenplum
+            at the segment level without taking into account the state of the entire Cloudberry
             array.</note>
           <p>You can configure the execution cost of <codeph>VACUUM</codeph> and
               <codeph>ANALYZE</codeph> commands to reduce the I/O impact on concurrent database
@@ -497,8 +497,8 @@
       <topic id="topic23" xml:lang="en">
         <title>Query Planner Costing Parameters</title>
         <body>
-          <note type="warning">Greenplum recommends that you do not adjust these query costing
-            parameters. They are tuned to reflect Greenplum Database hardware configurations and
+          <note type="warning">Cloudberry recommends that you do not adjust these query costing
+            parameters. They are tuned to reflect Cloudberry Database hardware configurations and
             typical workloads. All of these parameters are related. Changing one without changing
             the others can have adverse effects on performance.<simpletable id="kh181234">
               <strow>
@@ -806,8 +806,8 @@
             <codeph>CREATE TABLE...AS SELECT</codeph> statement when a certain threshold of rows is
           affected (<codeph>on_change</codeph>), or when a newly generated table has no statistics
             (<codeph>on_no_stats</codeph>). To enable this feature, set the following server
-          configuration parameters in your Greenplum master <codeph>postgresql.conf</codeph> file
-          and restart Greenplum Database: </p>
+          configuration parameters in your Cloudberry master <codeph>postgresql.conf</codeph> file
+          and restart Cloudberry Database: </p>
         <ul>
           <li id="kh166083">
             <codeph>gp_autostats_mode</codeph>
@@ -942,7 +942,7 @@
     <topic id="topic44" xml:lang="en">
       <title id="kh155069">Workload Management Parameters</title>
       <body>
-        <p>The following configuration parameters configure the Greenplum Database workload
+        <p>The following configuration parameters configure the Cloudberry Database workload
           management feature (resource queues), query prioritization, memory utilization and
           concurrency control. </p>
         <simpletable id="kh157161">
@@ -991,7 +991,7 @@
     <topic id="topic45" xml:lang="en">
       <title id="kh155070">External Table Parameters</title>
       <body>
-        <p>The following parameters configure the external tables feature of Greenplum Database. See
+        <p>The following parameters configure the external tables feature of Cloudberry Database. See
             <xref href="../load/topics/g-external-tables.xml#topic3"/> for more information about
           external tables.</p>
         <simpletable id="kh164454">
@@ -1022,7 +1022,7 @@
     <topic id="topic46" xml:lang="en">
       <title id="kh155071">Append-Optimized Table Parameters</title>
       <body>
-        <p>The following parameters configure the append-optimized tables feature of Greenplum
+        <p>The following parameters configure the append-optimized tables feature of Cloudberry
           Database. See <xref href="../ddl/ddl-storage.xml#topic38"/> for more information about
           append-optimized tables.</p>
         <ul>
@@ -1042,7 +1042,7 @@
       <title id="kh178569">Past PostgreSQL Version Compatibility Parameters</title>
       <body>
         <p>The following parameters provide compatibility with older PostgreSQL versions. You do not
-          need to change these parameters in Greenplum Database.</p>
+          need to change these parameters in Cloudberry Database.</p>
         <simpletable id="kh162083">
           <strow>
             <stentry>
@@ -1072,9 +1072,9 @@
       </body>
     </topic>
     <topic id="topic49" xml:lang="en">
-      <title id="kh182770">Greenplum Array Configuration Parameters</title>
+      <title id="kh182770">Cloudberry Array Configuration Parameters</title>
       <body>
-        <p>The parameters in this topic control the configuration of the Greenplum Database array
+        <p>The parameters in this topic control the configuration of the Cloudberry Database array
           and its components: segments, master, distributed transaction manager, master mirror, and
           interconnect.</p>
       </body>
@@ -1190,10 +1190,10 @@
       </topic>
     </topic>
     <topic id="topic55" xml:lang="en">
-      <title id="kh184289">Greenplum Master Mirroring Parameters</title>
+      <title id="kh184289">Cloudberry Master Mirroring Parameters</title>
       <body>
         <p>The parameters in this topic control the configuration of the replication between
-          Greenplum Database primary master and standby master.</p>
+          Cloudberry Database primary master and standby master.</p>
         <ul>
           <li id="kh184295">
             <codeph>repl_catchup_within_range</codeph>

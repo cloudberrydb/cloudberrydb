@@ -50,14 +50,14 @@
             <varname>lang_name</varname>
           </pt>
           <pd>The name of the procedural language that the code is written in. The default is
-              <codeph>plpgsql</codeph>. The language must be installed on the Greenplum Database
+              <codeph>plpgsql</codeph>. The language must be installed on the Cloudberry Database
             system and registered in the database.</pd>
         </plentry>
       </parml>
     </section>
     <section id="section5">
       <title>Notes</title>
-      <p>The PL/pgSQL language is installed on the Greenplum Database system and is registered in a
+      <p>The PL/pgSQL language is installed on the Cloudberry Database system and is registered in a
         user created database. The PL/Python and PL/Perl languages are installed by default, but not
         registered. Other languages are not installed or registered. The system catalog
           <codeph>pg_language</codeph> contains information about the registered languages in a
@@ -80,7 +80,7 @@ BEGIN
         EXECUTE 'GRANT ALL ON ' || quote_ident(r.table_schema) || '.' || quote_ident(r.table_name) || ' TO webuser';
     END LOOP;
 END$$;</codeblock>
-      <p>This PL/pgSQL example determines if a Greenplum Database user is a superuser. In the
+      <p>This PL/pgSQL example determines if a Cloudberry Database user is a superuser. In the
         example, the anonymous block retrieves the input value from a temporary
         table.<codeblock>CREATE TEMP TABLE list AS VALUES ('gpadmin') DISTRIBUTED RANDOMLY;
 

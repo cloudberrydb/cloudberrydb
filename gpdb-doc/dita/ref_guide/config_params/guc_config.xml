@@ -4,8 +4,8 @@
 <topic id="topic1" xml:lang="en">
   <title id="ih135496">Server Configuration Parameters</title>
   <body>
-    <p>There are many Greenplum server configuration parameters that affect the behavior of the
-      Greenplum Database system. Many of these configuration parameters have the same names,
+    <p>There are many Cloudberry server configuration parameters that affect the behavior of the
+      Cloudberry Database system. Many of these configuration parameters have the same names,
       settings, and behaviors as in a regular PostgreSQL database system. </p>
     <ul id="ul_nss_zzh_3p">
       <li><xref href="#topic_vsn_22l_z4" format="dita"/> describes the parameter data types and
@@ -46,7 +46,7 @@
     <title>Setting Parameters</title>
     <body>
       <p>Many of the configuration parameters have limitations on who can change them and where or
-        when they can be set. For example, to change certain parameters, you must be a Greenplum
+        when they can be set. For example, to change certain parameters, you must be a Cloudberry
         Database superuser. Other parameters require a restart of the system for the changes to take
         effect. A parameter that is classified as <i>session</i> can be set at the system level (in
         the <codeph>postgresql.conf</codeph> file), at the database-level (using <codeph>ALTER
@@ -54,7 +54,7 @@
            database- and role-level (<codeph>ALTER ROLE...IN DATABASE...SET</codeph>, or at the
         session-level (using <codeph>SET</codeph>). System parameters can only be set in the
           <codeph>postgresql.conf</codeph> file.</p>
-      <p>In Greenplum Database, the master and each segment instance has its own
+      <p>In Cloudberry Database, the master and each segment instance has its own
           <codeph>postgresql.conf</codeph> file (located in their respective data directories). Some
         parameters are considered <i>local</i> parameters, meaning that each segment instance looks
         to its own <codeph>postgresql.conf</codeph> file to get the value of that parameter. You
@@ -78,7 +78,7 @@
             <row>
               <entry colname="col1">master or local</entry>
               <entry colname="col2">A <i>master</i> parameter only needs to be set in the
-                  <codeph>postgresql.conf</codeph> file of the Greenplum master instance. The value
+                  <codeph>postgresql.conf</codeph> file of the Cloudberry master instance. The value
                 for this parameter is then either passed to (or ignored by) the segments at run
                   time.<p>A local parameter must be set in the <codeph>postgresql.conf</codeph> file
                   of the master AND each segment instance. Each segment instance looks to its own
@@ -101,7 +101,7 @@
             <row>
               <entry colname="col1">restart or reload</entry>
               <entry colname="col2">When changing parameter values in the postgresql.conf file(s),
-                some require a <i>restart</i> of Greenplum Database for the change to take effect.
+                some require a <i>restart</i> of Cloudberry Database for the change to take effect.
                 Other parameter values can be refreshed by just reloading the server configuration
                 file (using <codeph>gpstop -u</codeph>), and do not require stopping the
                 system.</entry>

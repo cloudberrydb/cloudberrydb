@@ -3,21 +3,21 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="np160185">Routine System Maintenance Tasks</title>
-  <shortdesc>To keep a Greenplum Database system running efficiently, the database must be regularly
+  <shortdesc>To keep a Cloudberry Database system running efficiently, the database must be regularly
     cleared of expired data and the table statistics must be updated so that the query optimizer has
     accurate information. </shortdesc>
   <body>
-    <p>Greenplum Database requires that certain tasks be performed regularly to achieve optimal
+    <p>Cloudberry Database requires that certain tasks be performed regularly to achieve optimal
       performance. The tasks discussed here are required, but database administrators can automate
       them using standard UNIX tools such as <codeph>cron</codeph> scripts. An administrator sets up
       the appropriate scripts and checks that they ran successfully. See <xref
         href="../monitoring/monitoring.dita#topic_kmz_lbg_rp"/> for additional suggested maintenance
-      activities you can implement to keep your Greenplum system running optimally.</p>
+      activities you can implement to keep your Cloudberry system running optimally.</p>
   </body>
   <topic id="topic2" xml:lang="en">
     <title id="np157166">Routine Vacuum and Analyze</title>
     <body>
-      <p>The design of the MVCC transaction concurrency model used in Greenplum Database means that
+      <p>The design of the MVCC transaction concurrency model used in Cloudberry Database means that
         deleted or updated data rows still occupy physical space on disk even though they are not
         visible to new transactions. If your database has many updates and deletes, many expired
         rows exist and the space they use must be reclaimed with the <codeph>VACUUM</codeph>
@@ -39,64 +39,64 @@
           <i>gp_toolkit</i> schema to investigate the effectiveness of a <cmdname>VACUUM</cmdname>
         operation on append-optimized tables. </p>
       <p>For information about the <codeph>__gp_aovisimap_compaction_info()</codeph> function see,
-        "Checking Append-Optimized Tables" in the <cite>Greenplum Database Reference
+        "Checking Append-Optimized Tables" in the <cite>Cloudberry Database Reference
         Guide</cite>.</p>
       <p><codeph>VACUUM</codeph> can be disabled for append-optimized tables using the
           <codeph>gp_appendonly_compaction</codeph> server configuration parameter. </p>
       <p>For details about vacuuming a database, see <xref href="../dml.xml#topic9" type="topic"
           format="dita"/>. </p>
       <p>For information about the <codeph>gp_appendonly_compaction_threshold</codeph> server
-        configuration parameter and the <codeph>VACUUM</codeph> command, see the <cite>Greenplum
+        configuration parameter and the <codeph>VACUUM</codeph> command, see the <cite>Cloudberry
           Database Reference Guide</cite>.</p>
     </body>
     <topic id="topic3" xml:lang="en">
       <title>Transaction ID Management</title>
       <body>
-        <p>Greenplum's MVCC transaction semantics depend on comparing transaction ID (XID) numbers
+        <p>Cloudberry's MVCC transaction semantics depend on comparing transaction ID (XID) numbers
           to determine visibility to other transactions. Transaction ID numbers are compared using
-          modulo 2<sup>32</sup> arithmetic, so a Greenplum system that runs more than about two
+          modulo 2<sup>32</sup> arithmetic, so a Cloudberry system that runs more than about two
           billion transactions can experience transaction ID wraparound, where past transactions
           appear to be in the future. This means past transactions' outputs become invisible.
           Therefore, it is necessary to <codeph>VACUUM</codeph> every table in every database at
           least once per two billion transactions. </p>
-        <p>Greenplum Database assigns XID values only to transactions that involve DDL or DML
+        <p>Cloudberry Database assigns XID values only to transactions that involve DDL or DML
           operations, which are typically the only transactions that require an XID.</p>
-        <note type="important">Greenplum Database monitors transaction IDs. If you do not vacuum the
-          database regularly, Greenplum Database will generate a warning and error.</note>
-        <p>Greenplum Database issues the following warning when a significant portion of the
+        <note type="important">Cloudberry Database monitors transaction IDs. If you do not vacuum the
+          database regularly, Cloudberry Database will generate a warning and error.</note>
+        <p>Cloudberry Database issues the following warning when a significant portion of the
           transaction IDs are no longer available and before transaction ID wraparound occurs: </p>
         <p>
           <codeph>WARNING: database "database_name" must be vacuumed within
               <i>number_of_transactions</i> transactions</codeph>
         </p>
         <p>When the warning is issued, a <codeph>VACUUM</codeph> operation is required. If a
-            <codeph>VACUUM</codeph> operation is not performed, Greenplum Database stops creating
+            <codeph>VACUUM</codeph> operation is not performed, Cloudberry Database stops creating
           transactions when it reaches a limit prior to when transaction ID wraparound occurs.
-          Greenplum Database issues this error when it stops creating transactions to avoid possible
+          Cloudberry Database issues this error when it stops creating transactions to avoid possible
           data loss: </p>
         <p>
           <codeblock>FATAL: database is not accepting commands to avoid 
 wraparound data loss in database "database_name"
 </codeblock>
         </p>
-        <p>The Greenplum Database configuration parameter <codeph>xid_warn_limit</codeph> controls
+        <p>The Cloudberry Database configuration parameter <codeph>xid_warn_limit</codeph> controls
           when the warning is displayed. The parameter <codeph>xid_stop_limit</codeph> controls when
-          Greenplum Database stops creating transactions. </p>
+          Cloudberry Database stops creating transactions. </p>
         <section id="np160654">
           <title>Recovering from a Transaction ID Limit Error</title>
-          <p>When Greenplum Database reaches the <codeph>xid_stop_limit</codeph> transaction ID
+          <p>When Cloudberry Database reaches the <codeph>xid_stop_limit</codeph> transaction ID
             limit due to infrequent <codeph>VACUUM</codeph> maintenance, it becomes unresponsive. To
             recover from this situation, perform the following steps as database administrator:</p>
           <ol>
-            <li id="np160540">Shut down Greenplum Database.</li>
+            <li id="np160540">Shut down Cloudberry Database.</li>
             <li id="np160541">Temporarily lower the <codeph>xid_stop_limit</codeph> by
               10,000,000.</li>
-            <li id="np160542">Start Greenplum Database.</li>
+            <li id="np160542">Start Cloudberry Database.</li>
             <li id="np160543">Run <codeph>VACUUM FREEZE</codeph> on all affected databases.</li>
             <li id="np160517">Reset the <codeph>xid_stop_limit</codeph> to its original value.</li>
-            <li id="np160622">Restart Greenplum Database.</li>
+            <li id="np160622">Restart Cloudberry Database.</li>
           </ol>
-          <p>For information about the configuration parameters, see the <i>Greenplum Database
+          <p>For information about the configuration parameters, see the <i>Cloudberry Database
               Reference Guide</i>. </p>
           <p>For information about transaction ID wraparound see the <xref
               href="https://www.postgresql.org/docs/9.4/index.html" scope="external"
@@ -127,7 +127,7 @@ wraparound data loss in database "database_name"
               <codeph>DROP</codeph> statements, it is safe and appropriate to run a system catalog
             maintenance procedure with <codeph>VACUUM</codeph> daily at off-peak hours. You can do
             this while the system is available.</p>
-          <p>These are Greenplum Database system catalog maintenance steps.<ol id="ol_un5_p1l_f2b">
+          <p>These are Cloudberry Database system catalog maintenance steps.<ol id="ol_un5_p1l_f2b">
               <li>Perform a <codeph>REINDEX</codeph> on the system catalog tables to rebuild the
                 system catalog indexes. This removes bloat in the indexes and improves
                   <codeph>VACUUM</codeph> performance. <note><codeph>REINDEX</codeph> causes
@@ -139,7 +139,7 @@ wraparound data loss in database "database_name"
                 catalog table statistics. </li>
             </ol></p>
           <p>This example script performs a <codeph>REINDEX</codeph>, <codeph>VACUUM</codeph>, and
-              <codeph>ANALYZE</codeph> of a Greenplum Database system catalog. In the script,
+              <codeph>ANALYZE</codeph> of a Cloudberry Database system catalog. In the script,
             replace <codeph>&lt;<varname>database-name</varname>></codeph> with a database name.</p>
           <codeblock>#!/bin/bash
 DBNAME="&lt;database-name>"
@@ -151,9 +151,9 @@ psql -tc "SELECT 'VACUUM' || $SYSTABLES" $DBNAME | psql -a $DBNAME
 analyzedb -as pg_catalog -d $DBNAME
 </codeblock>
           <note>If you are performing catalog maintenance during a maintenance period and you need
-            to stop a process due to time constraints, run the Greenplum Database function
+            to stop a process due to time constraints, run the Cloudberry Database function
                 <codeph>pg_cancel_backend(&lt;<varname>PID</varname>>)</codeph> to safely stop the
-            Greenplum Database process.</note>
+            Cloudberry Database process.</note>
         </body>
       </topic>
       <topic id="topic6" xml:lang="en">
@@ -172,7 +172,7 @@ analyzedb -as pg_catalog -d $DBNAME
           <p>Running regular system catalog maintenance procedures can prevent the need for this
             more costly procedure.</p>
           <p>These are steps for intensive system catalog maintenance.<ol id="ol_trp_xqs_f2b">
-              <li>Stop all catalog activity on the Greenplum Database system.</li>
+              <li>Stop all catalog activity on the Cloudberry Database system.</li>
               <li>Perform a <codeph>REINDEX</codeph> on the system catalog tables to rebuild the
                 system catalog indexes. This removes bloat in the indexes and improves
                   <codeph>VACUUM</codeph> performance.</li>
@@ -198,7 +198,7 @@ analyzedb -as pg_catalog -d $DBNAME
     <topic id="topic7" xml:lang="en">
       <title>Vacuum and Analyze for Query Optimization</title>
       <body>
-        <p>Greenplum Database uses a cost-based query optimizer that relies on database statistics.
+        <p>Cloudberry Database uses a cost-based query optimizer that relies on database statistics.
           Accurate statistics allow the query optimizer to better estimate selectivity and the
           number of rows that a query operation retrieves. These estimates help it choose the most
           efficient query plan. The <codeph>ANALYZE</codeph> command collects column-level
@@ -234,7 +234,7 @@ VACUUM cust_info;</codeblock></p>
           enabled (the default), you must collect statistics on the partitioned table root partition
           with the <cmdname>ANALYZE</cmdname> command. For information about GPORCA, see <xref
             href="../query/topics/query-piv-opt-overview.xml"/>. </note>
-        <note>You can use the Greenplum Database utility <cmdname>analyzedb</cmdname> to update
+        <note>You can use the Cloudberry Database utility <cmdname>analyzedb</cmdname> to update
           table statistics. Tables can be analyzed concurrently. For append optimized tables,
             <cmdname>analyzedb</cmdname> updates statistics only if the statistics are not current.
           See the <xref href="../../utility_guide/ref/analyzedb.xml"
@@ -249,7 +249,7 @@ VACUUM cust_info;</codeblock></p>
         has been updated many times because logically adjacent pages are usually also physically
         adjacent in a newly built index. Reindexing older indexes periodically can improve access
         speed. If all but a few index keys on a page have been deleted, there will be wasted space
-        on the index page. A reindex will reclaim that wasted space. In Greenplum Database it is
+        on the index page. A reindex will reclaim that wasted space. In Cloudberry Database it is
         often faster to drop an index (<codeph>DROP INDEX</codeph>) and then recreate it
           (<codeph>CREATE INDEX</codeph>) than it is to use the <codeph>REINDEX</codeph>
         command.</p>
@@ -260,7 +260,7 @@ VACUUM cust_info;</codeblock></p>
     </body>
   </topic>
   <topic id="topic9" xml:lang="en">
-    <title id="np157216">Managing Greenplum Database Log Files</title>
+    <title id="np157216">Managing Cloudberry Database Log Files</title>
     <body>
       <ul>
         <li id="np159000">
@@ -274,10 +274,10 @@ VACUUM cust_info;</codeblock></p>
     <topic id="topic10" xml:lang="en">
       <title id="np157220">Database Server Log Files</title>
       <body>
-        <p>Greenplum Database log output tends to be voluminous, especially at higher debug levels,
+        <p>Cloudberry Database log output tends to be voluminous, especially at higher debug levels,
           and you do not need to save it indefinitely. Administrators should purge older log files
           periodically.</p>
-        <p>Greenplum Database by default has log file rotation enabled for the master and segment
+        <p>Cloudberry Database by default has log file rotation enabled for the master and segment
           database logs. Log files are created in the <codeph>log</codeph> subdirectory of the
           master and each segment data directory using the following naming convention:
               <codeph>gpdb-<i>YYYY</i>-<i>MM</i>-<i>DD_hhmmss</i>.csv</codeph>. Administrators need
@@ -303,7 +303,7 @@ VACUUM cust_info;</codeblock></p>
     <topic id="topic11" xml:lang="en">
       <title id="np158979">Management Utility Log Files</title>
       <body>
-        <p>Log files for the Greenplum Database management utilities are written to
+        <p>Log files for the Cloudberry Database management utilities are written to
             <codeph>~/gpAdminLogs</codeph> by default. The naming convention for management log
           files is: </p>
         <codeblock>&lt;script_name>_&lt;date>.log

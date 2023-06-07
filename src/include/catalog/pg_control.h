@@ -5,7 +5,7 @@
  *	  However, we define it here so that the format is documented.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/catalog/pg_control.h
@@ -27,7 +27,7 @@
  * The first four digits is the PostgreSQL version number. The last
  * four digits indicates the GPDB version.
  */
-#define PG_CONTROL_VERSION	12010700
+#define PG_CONTROL_VERSION	13000700
 
 /* Nonce key length, see below */
 #define MOCK_AUTH_NONCE_LEN		32
@@ -45,10 +45,10 @@ typedef struct CheckPoint
 	TimeLineID	PrevTimeLineID; /* previous TLI, if this record begins a new
 								 * timeline (equals ThisTimeLineID otherwise) */
 	bool		fullPageWrites; /* current full_page_writes */
-	FullTransactionId nextFullXid;	/* next free full transaction ID */
+	FullTransactionId nextXid;	/* next free transaction ID */
 	DistributedTransactionId nextGxid;	/* next free gxid */
 	Oid			nextOid;		/* next free OID */
-	Oid			nextRelfilenode;	/* next free Relfilenode */
+	RelFileNodeId nextRelfilenode;	/* next free Relfilenode */
 	MultiXactId nextMulti;		/* next free MultiXactId */
 	MultiXactOffset nextMultiOffset;	/* next free MultiXact offset */
 	TransactionId oldestXid;	/* cluster-wide minimum datfrozenxid */
@@ -87,6 +87,9 @@ typedef struct CheckPoint
 #define XLOG_FPI						0xB0
 #define XLOG_NEXTRELFILENODE			0xC0
 #define XLOG_NEXTGXID					0xD0
+/* GPDB_14_MERGE_FIXME: Compatible, Figure out whether 0xC0 already used? */
+/* 0xC0 is used in Postgres 9.5-11 */
+#define XLOG_OVERWRITE_CONTRECORD		0xE0
 
 
 /*
@@ -224,8 +227,6 @@ typedef struct ControlFileData
 	uint32		toast_max_chunk_size;	/* chunk size in TOAST tables */
 	uint32		loblksize;		/* chunk size in pg_largeobject */
 
-	/* flags indicating pass-by-value status of various types */
-	bool		float4ByVal;	/* float4 pass-by-value? */
 	bool		float8ByVal;	/* float8, int8, etc pass-by-value? */
 
 	/* Are data pages protected by checksums? Zero if no checksum version */

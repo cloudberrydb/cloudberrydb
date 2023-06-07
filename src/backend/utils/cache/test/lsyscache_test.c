@@ -44,7 +44,7 @@ test_get_func_arg_types_can_correctly_return_more_than_one_argtype(void **state)
 	assert_int_equal(2, result->length);
 
 	assert_int_equal(11, lfirst_oid(list_head(result)));
-	assert_int_equal(22, lfirst_oid(lnext(list_head(result))));
+	assert_int_equal(22, lfirst_oid(lnext(result, list_head(result))));
 }
 
 int

@@ -14,7 +14,7 @@
  * that every visible heap tuple has a matching index tuple.
  *
  *
- * Copyright (c) 2017-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2017-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  contrib/amcheck/verify_nbtree.c
@@ -35,6 +35,7 @@
 #include "lib/bloomfilter.h"
 #include "miscadmin.h"
 #include "storage/lmgr.h"
+#include "storage/smgr.h"
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
 
@@ -94,15 +95,25 @@ typedef struct BtreeCheckState
 	XLogRecPtr	targetlsn;
 
 	/*
+	 * Low key: high key of left sibling of target page.  Used only for child
+	 * verification.  So, 'lowkey' is kept only when 'readonly' is set.
+	 */
+	IndexTuple	lowkey;
+
+	/*
+	 * The rightlink and incomplete split flag of block one level down to the
+	 * target page, which was visited last time via downlink from taget page.
+	 * We use it to check for missing downlinks.
+	 */
+	BlockNumber prevrightlink;
+	bool		previncompletesplit;
+
+	/*
 	 * Mutable state, for optional heapallindexed verification:
 	 */
 
 	/* Bloom filter fingerprints B-Tree index */
 	bloom_filter *filter;
-	/* Bloom filter fingerprints downlink blocks within tree */
-	bloom_filter *downlinkfilter;
-	/* Right half of incomplete split marker */
-	bool		rightsplit;
 	/* Debug counter */
 	int64		heaptuplespresent;
 } BtreeCheckState;
@@ -128,21 +139,31 @@ PG_FUNCTION_INFO_V1(bt_index_parent_check);
 static void bt_index_check_internal(Oid indrelid, bool parentcheck,
 									bool heapallindexed, bool rootdescend);
 static inline void btree_index_checkable(Relation rel);
+static inline bool btree_index_mainfork_expected(Relation rel);
 static void bt_check_every_level(Relation rel, Relation heaprel,
 								 bool heapkeyspace, bool readonly, bool heapallindexed,
 								 bool rootdescend);
 static BtreeLevel bt_check_level_from_leftmost(BtreeCheckState *state,
 											   BtreeLevel level);
+static void bt_recheck_sibling_links(BtreeCheckState *state,
+									 BlockNumber btpo_prev_from_target,
+									 BlockNumber leftcurrent);
 static void bt_target_page_check(BtreeCheckState *state);
 static BTScanInsert bt_right_page_check_scankey(BtreeCheckState *state);
-static void bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
-							  BlockNumber childblock);
-static void bt_downlink_missing_check(BtreeCheckState *state);
-static void bt_tuple_present_callback(Relation index, HeapTuple htup,
+static void bt_child_check(BtreeCheckState *state, BTScanInsert targetkey,
+						   OffsetNumber downlinkoffnum);
+static void bt_child_highkey_check(BtreeCheckState *state,
+								   OffsetNumber target_downlinkoffnum,
+								   Page loaded_child,
+								   uint32 target_level);
+static void bt_downlink_missing_check(BtreeCheckState *state, bool rightsplit,
+									  BlockNumber targetblock, Page target);
+static void bt_tuple_present_callback(Relation index, ItemPointer tid,
 									  Datum *values, bool *isnull,
 									  bool tupleIsAlive, void *checkstate);
 static IndexTuple bt_normalize_tuple(BtreeCheckState *state,
 									 IndexTuple itup);
+static inline IndexTuple bt_posting_plain_tuple(IndexTuple itup, int n);
 static bool bt_rootdescend(BtreeCheckState *state, IndexTuple itup);
 static inline bool offset_is_negative_infinity(BTPageOpaque opaque,
 											   OffsetNumber offset);
@@ -165,6 +186,7 @@ static ItemId PageGetItemIdCareful(BtreeCheckState *state, BlockNumber block,
 								   Page page, OffsetNumber offset);
 static inline ItemPointer BTreeTupleGetHeapTIDCareful(BtreeCheckState *state,
 													  IndexTuple itup, bool nonpivot);
+static inline ItemPointer BTreeTupleGetPointsToTID(IndexTuple itup);
 
 /*
  * bt_index_check(index regclass, heapallindexed boolean)
@@ -225,8 +247,10 @@ bt_index_check_internal(Oid indrelid, bool parentcheck, bool heapallindexed,
 	Oid			heapid;
 	Relation	indrel;
 	Relation	heaprel;
-	bool		heapkeyspace;
 	LOCKMODE	lockmode;
+	Oid			save_userid;
+	int			save_sec_context;
+	int			save_nestlevel;
 
 	if (parentcheck)
 		lockmode = ShareLock;
@@ -243,9 +267,27 @@ bt_index_check_internal(Oid indrelid, bool parentcheck, bool heapallindexed,
 	 */
 	heapid = IndexGetRelation(indrelid, true);
 	if (OidIsValid(heapid))
+	{
 		heaprel = table_open(heapid, lockmode);
+
+		/*
+		 * Switch to the table owner's userid, so that any index functions are
+		 * run as that user.  Also lock down security-restricted operations
+		 * and arrange to make GUC variable changes local to this command.
+		 */
+		GetUserIdAndSecContext(&save_userid, &save_sec_context);
+		SetUserIdAndSecContext(heaprel->rd_rel->relowner,
+							   save_sec_context | SECURITY_RESTRICTED_OPERATION);
+		save_nestlevel = NewGUCNestLevel();
+	}
 	else
+	{
 		heaprel = NULL;
+		/* Set these just to suppress "uninitialized variable" warnings */
+		save_userid = InvalidOid;
+		save_sec_context = -1;
+		save_nestlevel = -1;
+	}
 
 	/*
 	 * Open the target index relations separately (like relation_openrv(), but
@@ -269,16 +311,47 @@ bt_index_check_internal(Oid indrelid, bool parentcheck, bool heapallindexed,
 	if (heaprel == NULL || heapid != IndexGetRelation(indrelid, false))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_TABLE),
-				 errmsg("could not open parent table of index %s",
+				 errmsg("could not open parent table of index \"%s\"",
 						RelationGetRelationName(indrel))));
 
 	/* Relation suitable for checking as B-Tree? */
 	btree_index_checkable(indrel);
 
-	/* Check index, possibly against table it is an index on */
-	heapkeyspace = _bt_heapkeyspace(indrel);
-	bt_check_every_level(indrel, heaprel, heapkeyspace, parentcheck,
-						 heapallindexed, rootdescend);
+	if (btree_index_mainfork_expected(indrel))
+	{
+		bool		heapkeyspace,
+					allequalimage;
+
+		RelationOpenSmgr(indrel);
+		if (!smgrexists(indrel->rd_smgr, MAIN_FORKNUM))
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("index \"%s\" lacks a main relation fork",
+							RelationGetRelationName(indrel))));
+
+		/* Extract metadata from metapage, and sanitize it in passing */
+		_bt_metaversion(indrel, &heapkeyspace, &allequalimage);
+		if (allequalimage && !heapkeyspace)
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("index \"%s\" metapage has equalimage field set on unsupported nbtree version",
+							RelationGetRelationName(indrel))));
+		if (allequalimage && !_bt_allequalimage(indrel, false))
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("index \"%s\" metapage incorrectly indicates that deduplication is safe",
+							RelationGetRelationName(indrel))));
+
+		/* Check index, possibly against table it is an index on */
+		bt_check_every_level(indrel, heaprel, heapkeyspace, parentcheck,
+							 heapallindexed, rootdescend);
+	}
+
+	/* Roll back any GUC changes executed by index functions */
+	AtEOXact_GUC(false, save_nestlevel);
+
+	/* Restore userid and security context */
+	SetUserIdAndSecContext(save_userid, save_sec_context);
 
 	/*
 	 * Release locks early. That's ok here because nothing in the called
@@ -325,6 +398,29 @@ btree_index_checkable(Relation rel)
 }
 
 /*
+ * Check if B-Tree index relation should have a file for its main relation
+ * fork.  Verification uses this to skip unlogged indexes when in hot standby
+ * mode, where there is simply nothing to verify.  We behave as if the
+ * relation is empty.
+ *
+ * NB: Caller should call btree_index_checkable() before calling here.
+ */
+static inline bool
+btree_index_mainfork_expected(Relation rel)
+{
+	if (rel->rd_rel->relpersistence != RELPERSISTENCE_UNLOGGED ||
+		!RecoveryInProgress())
+		return true;
+
+	ereport(DEBUG1,
+			(errcode(ERRCODE_READ_ONLY_SQL_TRANSACTION),
+			 errmsg("cannot verify unlogged index \"%s\" during recovery, skipping",
+					RelationGetRelationName(rel))));
+
+	return false;
+}
+
+/*
  * Main entry point for B-Tree SQL-callable functions. Walks the B-Tree in
  * logical order, verifying invariants as it goes.  Optionally, verification
  * checks if the heap relation contains any tuples that are not represented in
@@ -358,11 +454,18 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 	BtreeLevel	current;
 	Snapshot	snapshot = SnapshotAny;
 
+	if (!readonly)
+		elog(DEBUG1, "verifying consistency of tree structure for index \"%s\"",
+			 RelationGetRelationName(rel));
+	else
+		elog(DEBUG1, "verifying consistency of tree structure for index \"%s\" with cross-level checks",
+			 RelationGetRelationName(rel));
+
 	/*
-	 * RecentGlobalXmin assertion matches index_getnext_tid().  See note on
-	 * RecentGlobalXmin/B-Tree page deletion.
+	 * This assertion matches the one in index_getnext_tid().  See page
+	 * recycling/"visible to everyone" notes in nbtree README.
 	 */
-	Assert(TransactionIdIsValid(RecentGlobalXmin));
+	Assert(TransactionIdIsValid(RecentXmin));
 
 	/*
 	 * Initialize state for entire verification operation
@@ -377,11 +480,20 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 
 	if (state->heapallindexed)
 	{
+		int64		total_pages;
 		int64		total_elems;
 		uint64		seed;
 
-		/* Size Bloom filter based on estimated number of tuples in index */
-		total_elems = (int64) state->rel->rd_rel->reltuples;
+		/*
+		 * Size Bloom filter based on estimated number of tuples in index,
+		 * while conservatively assuming that each block must contain at least
+		 * MaxTIDsPerBTreePage / 3 "plain" tuples -- see
+		 * bt_posting_plain_tuple() for definition, and details of how posting
+		 * list tuples are handled.
+		 */
+		total_pages = RelationGetNumberOfBlocks(rel);
+		total_elems = Max(total_pages * (MaxTIDsPerBTreePage / 3),
+						  (int64) state->rel->rd_rel->reltuples);
 		/* Random seed relies on backend srandom() call to avoid repetition */
 		seed = random();
 		/* Create Bloom filter to fingerprint index */
@@ -394,9 +506,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 		 * happen before index fingerprinting begins, so we can later be
 		 * certain that index fingerprinting should have reached all tuples
 		 * returned by table_index_build_scan().
-		 *
-		 * In readonly case, we also check for problems with missing
-		 * downlinks. A second Bloom filter is used for this.
 		 */
 		if (!state->readonly)
 		{
@@ -422,23 +531,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 						(errcode(ERRCODE_T_R_SERIALIZATION_FAILURE),
 						 errmsg("index \"%s\" cannot be verified using transaction snapshot",
 								RelationGetRelationName(rel))));
-		}
-		else
-		{
-			int64		total_pages;
-
-			/*
-			 * Extra readonly downlink check.
-			 *
-			 * In readonly case, we know that there cannot be a concurrent
-			 * page split or a concurrent page deletion, which gives us the
-			 * opportunity to verify that every non-ignorable page had a
-			 * downlink one level up.  We must be tolerant of interrupted page
-			 * splits and page deletions, though.  This is taken care of in
-			 * bt_downlink_missing_check().
-			 */
-			total_pages = (int64) state->rel->rd_rel->relpages;
-			state->downlinkfilter = bloom_create(total_pages, work_mem, seed);
 		}
 	}
 
@@ -471,8 +563,8 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 	if (metad->btm_fastroot != metad->btm_root)
 		ereport(DEBUG1,
 				(errcode(ERRCODE_NO_DATA),
-				 errmsg("harmless fast root mismatch in index %s",
-						RelationGetRelationName(rel)),
+				 errmsg_internal("harmless fast root mismatch in index \"%s\"",
+								 RelationGetRelationName(rel)),
 				 errdetail_internal("Fast root block %u (level %u) differs from true root block %u (level %u).",
 									metad->btm_fastroot, metad->btm_fastlevel,
 									metad->btm_root, metad->btm_level)));
@@ -488,12 +580,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 	current.istruerootlevel = true;
 	while (current.leftmost != P_NONE)
 	{
-		/*
-		 * Leftmost page on level cannot be right half of incomplete split.
-		 * This can go stale immediately in !readonly case.
-		 */
-		state->rightsplit = false;
-
 		/*
 		 * Verify this level, and get left most page for next level down, if
 		 * not at leaf level
@@ -516,16 +602,6 @@ bt_check_every_level(Relation rel, Relation heaprel, bool heapkeyspace,
 	{
 		IndexInfo  *indexinfo = BuildIndexInfo(state->rel);
 		TableScanDesc scan;
-
-		/* Report on extra downlink checks performed in readonly case */
-		if (state->readonly)
-		{
-			ereport(DEBUG1,
-					(errmsg_internal("finished verifying presence of downlink blocks within index \"%s\" with bitset %.2f%% set",
-									 RelationGetRelationName(rel),
-									 100.0 * bloom_prop_bits_set(state->downlinkfilter))));
-			bloom_free(state->downlinkfilter);
-		}
 
 		/*
 		 * Create our own scan for table_index_build_scan(), rather than
@@ -625,9 +701,12 @@ bt_check_level_from_leftmost(BtreeCheckState *state, BtreeLevel level)
 	/* Use page-level context for duration of this call */
 	oldcontext = MemoryContextSwitchTo(state->targetcontext);
 
-	elog(DEBUG2, "verifying level %u%s", level.level,
+	elog(DEBUG1, "verifying level %u%s", level.level,
 		 level.istruerootlevel ?
 		 " (true root level)" : level.level == 0 ? " (leaf level)" : "");
+
+	state->prevrightlink = InvalidBlockNumber;
+	state->previncompletesplit = false;
 
 	do
 	{
@@ -648,9 +727,9 @@ bt_check_level_from_leftmost(BtreeCheckState *state, BtreeLevel level)
 			 * mode, and since a page has no links within other pages
 			 * (siblings and parent) once it is marked fully deleted, it
 			 * should be impossible to land on a fully deleted page in
-			 * readonly mode. See bt_downlink_check() for further details.
+			 * readonly mode. See bt_child_check() for further details.
 			 *
-			 * The bt_downlink_check() P_ISDELETED() check is repeated here so
+			 * The bt_child_check() P_ISDELETED() check is repeated here so
 			 * that pages that are only reachable through sibling links get
 			 * checked.
 			 */
@@ -670,8 +749,8 @@ bt_check_level_from_leftmost(BtreeCheckState *state, BtreeLevel level)
 			else
 				ereport(DEBUG1,
 						(errcode(ERRCODE_NO_DATA),
-						 errmsg("block %u of index \"%s\" ignored",
-								current, RelationGetRelationName(state->rel))));
+						 errmsg_internal("block %u of index \"%s\" concurrently deleted",
+										 current, RelationGetRelationName(state->rel))));
 			goto nextpage;
 		}
 		else if (nextleveldown.leftmost == InvalidBlockNumber)
@@ -717,8 +796,8 @@ bt_check_level_from_leftmost(BtreeCheckState *state, BtreeLevel level)
 											  state->target,
 											  P_FIRSTDATAKEY(opaque));
 				itup = (IndexTuple) PageGetItem(state->target, itemid);
-				nextleveldown.leftmost = BTreeInnerTupleGetDownLink(itup);
-				nextleveldown.level = opaque->btpo.level - 1;
+				nextleveldown.leftmost = BTreeTupleGetDownLink(itup);
+				nextleveldown.level = opaque->btpo_level - 1;
 			}
 			else
 			{
@@ -739,26 +818,18 @@ bt_check_level_from_leftmost(BtreeCheckState *state, BtreeLevel level)
 			 */
 		}
 
-		/*
-		 * readonly mode can only ever land on live pages and half-dead pages,
-		 * so sibling pointers should always be in mutual agreement
-		 */
-		if (state->readonly && opaque->btpo_prev != leftcurrent)
-			ereport(ERROR,
-					(errcode(ERRCODE_INDEX_CORRUPTED),
-					 errmsg("left link/right link pair in index \"%s\" not in agreement",
-							RelationGetRelationName(state->rel)),
-					 errdetail_internal("Block=%u left block=%u left link from block=%u.",
-										current, leftcurrent, opaque->btpo_prev)));
+		/* Sibling links should be in mutual agreement */
+		if (opaque->btpo_prev != leftcurrent)
+			bt_recheck_sibling_links(state, opaque->btpo_prev, leftcurrent);
 
-		/* Check level, which must be valid for non-ignorable page */
-		if (level.level != opaque->btpo.level)
+		/* Check level */
+		if (level.level != opaque->btpo_level)
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
 					 errmsg("leftmost down link for level points to block in index \"%s\" whose level is not one level down",
 							RelationGetRelationName(state->rel)),
 					 errdetail_internal("Block pointed to=%u expected level=%u level in pointed to block=%u.",
-										current, level.level, opaque->btpo.level)));
+										current, level.level, opaque->btpo_level)));
 
 		/* Verify invariants for page */
 		bt_target_page_check(state);
@@ -772,25 +843,195 @@ nextpage:
 					 errmsg("circular link chain found in block %u of index \"%s\"",
 							current, RelationGetRelationName(state->rel))));
 
-		/*
-		 * Record if page that is about to become target is the right half of
-		 * an incomplete page split.  This can go stale immediately in
-		 * !readonly case.
-		 */
-		state->rightsplit = P_INCOMPLETE_SPLIT(opaque);
-
 		leftcurrent = current;
 		current = opaque->btpo_next;
+
+		if (state->lowkey)
+		{
+			Assert(state->readonly);
+			pfree(state->lowkey);
+			state->lowkey = NULL;
+		}
+
+		/*
+		 * Copy current target high key as the low key of right sibling.
+		 * Allocate memory in upper level context, so it would be cleared
+		 * after reset of target context.
+		 *
+		 * We only need the low key in corner cases of checking child high
+		 * keys. We use high key only when incomplete split on the child level
+		 * falls to the boundary of pages on the target level.  See
+		 * bt_child_highkey_check() for details.  So, typically we won't end
+		 * up doing anything with low key, but it's simpler for general case
+		 * high key verification to always have it available.
+		 *
+		 * The correctness of managing low key in the case of concurrent
+		 * splits wasn't investigated yet.  Thankfully we only need low key
+		 * for readonly verification and concurrent splits won't happen.
+		 */
+		if (state->readonly && !P_RIGHTMOST(opaque))
+		{
+			IndexTuple	itup;
+			ItemId		itemid;
+
+			itemid = PageGetItemIdCareful(state, state->targetblock,
+										  state->target, P_HIKEY);
+			itup = (IndexTuple) PageGetItem(state->target, itemid);
+
+			state->lowkey = MemoryContextAlloc(oldcontext, IndexTupleSize(itup));
+			memcpy(state->lowkey, itup, IndexTupleSize(itup));
+		}
 
 		/* Free page and associated memory for this iteration */
 		MemoryContextReset(state->targetcontext);
 	}
 	while (current != P_NONE);
 
+	if (state->lowkey)
+	{
+		Assert(state->readonly);
+		pfree(state->lowkey);
+		state->lowkey = NULL;
+	}
+
 	/* Don't change context for caller */
 	MemoryContextSwitchTo(oldcontext);
 
 	return nextleveldown;
+}
+
+/*
+ * Raise an error when target page's left link does not point back to the
+ * previous target page, called leftcurrent here.  The leftcurrent page's
+ * right link was followed to get to the current target page, and we expect
+ * mutual agreement among leftcurrent and the current target page.  Make sure
+ * that this condition has definitely been violated in the !readonly case,
+ * where concurrent page splits are something that we need to deal with.
+ *
+ * Cross-page inconsistencies involving pages that don't agree about being
+ * siblings are known to be a particularly good indicator of corruption
+ * involving partial writes/lost updates.  The bt_right_page_check_scankey
+ * check also provides a way of detecting cross-page inconsistencies for
+ * !readonly callers, but it can only detect sibling pages that have an
+ * out-of-order keyspace, which can't catch many of the problems that we
+ * expect to catch here.
+ *
+ * The classic example of the kind of inconsistency that we can only catch
+ * with this check (when in !readonly mode) involves three sibling pages that
+ * were affected by a faulty page split at some point in the past.  The
+ * effects of the split are reflected in the original page and its new right
+ * sibling page, with a lack of any accompanying changes for the _original_
+ * right sibling page.  The original right sibling page's left link fails to
+ * point to the new right sibling page (its left link still points to the
+ * original page), even though the first phase of a page split is supposed to
+ * work as a single atomic action.  This subtle inconsistency will probably
+ * only break backwards scans in practice.
+ *
+ * Note that this is the only place where amcheck will "couple" buffer locks
+ * (and only for !readonly callers).  In general we prefer to avoid more
+ * thorough cross-page checks in !readonly mode, but it seems worth the
+ * complexity here.  Also, the performance overhead of performing lock
+ * coupling here is negligible in practice.  Control only reaches here with a
+ * non-corrupt index when there is a concurrent page split at the instant
+ * caller crossed over to target page from leftcurrent page.
+ */
+static void
+bt_recheck_sibling_links(BtreeCheckState *state,
+						 BlockNumber btpo_prev_from_target,
+						 BlockNumber leftcurrent)
+{
+	if (!state->readonly)
+	{
+		Buffer		lbuf;
+		Buffer		newtargetbuf;
+		Page		page;
+		BTPageOpaque opaque;
+		BlockNumber newtargetblock;
+
+		/* Couple locks in the usual order for nbtree:  Left to right */
+		lbuf = ReadBufferExtended(state->rel, MAIN_FORKNUM, leftcurrent,
+								  RBM_NORMAL, state->checkstrategy);
+		LockBuffer(lbuf, BT_READ);
+		_bt_checkpage(state->rel, lbuf);
+		page = BufferGetPage(lbuf);
+		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+		if (P_ISDELETED(opaque))
+		{
+			/*
+			 * Cannot reason about concurrently deleted page -- the left link
+			 * in the page to the right is expected to point to some other
+			 * page to the left (not leftcurrent page).
+			 *
+			 * Note that we deliberately don't give up with a half-dead page.
+			 */
+			UnlockReleaseBuffer(lbuf);
+			return;
+		}
+
+		newtargetblock = opaque->btpo_next;
+		/* Avoid self-deadlock when newtargetblock == leftcurrent */
+		if (newtargetblock != leftcurrent)
+		{
+			newtargetbuf = ReadBufferExtended(state->rel, MAIN_FORKNUM,
+											  newtargetblock, RBM_NORMAL,
+											  state->checkstrategy);
+			LockBuffer(newtargetbuf, BT_READ);
+			_bt_checkpage(state->rel, newtargetbuf);
+			page = BufferGetPage(newtargetbuf);
+			opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+			/* btpo_prev_from_target may have changed; update it */
+			btpo_prev_from_target = opaque->btpo_prev;
+		}
+		else
+		{
+			/*
+			 * leftcurrent right sibling points back to leftcurrent block.
+			 * Index is corrupt.  Easiest way to handle this is to pretend
+			 * that we actually read from a distinct page that has an invalid
+			 * block number in its btpo_prev.
+			 */
+			newtargetbuf = InvalidBuffer;
+			btpo_prev_from_target = InvalidBlockNumber;
+		}
+
+		/*
+		 * No need to check P_ISDELETED here, since new target block cannot be
+		 * marked deleted as long as we hold a lock on lbuf
+		 */
+		if (BufferIsValid(newtargetbuf))
+			UnlockReleaseBuffer(newtargetbuf);
+		UnlockReleaseBuffer(lbuf);
+
+		if (btpo_prev_from_target == leftcurrent)
+		{
+			/* Report split in left sibling, not target (or new target) */
+			ereport(DEBUG1,
+					(errcode(ERRCODE_INTERNAL_ERROR),
+					 errmsg_internal("harmless concurrent page split detected in index \"%s\"",
+									 RelationGetRelationName(state->rel)),
+					 errdetail_internal("Block=%u new right sibling=%u original right sibling=%u.",
+										leftcurrent, newtargetblock,
+										state->targetblock)));
+			return;
+		}
+
+		/*
+		 * Index is corrupt.  Make sure that we report correct target page.
+		 *
+		 * This could have changed in cases where there was a concurrent page
+		 * split, as well as index corruption (at least in theory).  Note that
+		 * btpo_prev_from_target was already updated above.
+		 */
+		state->targetblock = newtargetblock;
+	}
+
+	ereport(ERROR,
+			(errcode(ERRCODE_INDEX_CORRUPTED),
+			 errmsg("left link/right link pair in index \"%s\" not in agreement",
+					RelationGetRelationName(state->rel)),
+			 errdetail_internal("Block=%u left block=%u left link from block=%u.",
+								state->targetblock, leftcurrent,
+								btpo_prev_from_target)));
 }
 
 /*
@@ -819,7 +1060,8 @@ nextpage:
  *	 tuple.
  *
  * - That downlink to block was encountered in parent where that's expected.
- *   (Limited to heapallindexed readonly callers.)
+ *
+ * - That high keys of child pages matches corresponding pivot keys in parent.
  *
  * This is also where heapallindexed callers use their Bloom filter to
  * fingerprint IndexTuples for later table_index_build_scan() verification.
@@ -864,8 +1106,7 @@ bt_target_page_check(BtreeCheckState *state)
 										state->targetblock,
 										BTreeTupleGetNAtts(itup, state->rel),
 										P_ISLEAF(topaque) ? "heap" : "index",
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
+										LSN_FORMAT_ARGS(state->targetlsn))));
 		}
 	}
 
@@ -883,6 +1124,7 @@ bt_target_page_check(BtreeCheckState *state)
 		size_t		tupsize;
 		BTScanInsert skey;
 		bool		lowersizelimit;
+		ItemPointer scantid;
 
 		CHECK_FOR_INTERRUPTS();
 
@@ -905,21 +1147,22 @@ bt_target_page_check(BtreeCheckState *state)
 					 errdetail_internal("Index tid=(%u,%u) tuple size=%zu lp_len=%u page lsn=%X/%X.",
 										state->targetblock, offset,
 										tupsize, ItemIdGetLength(itemid),
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn),
+										LSN_FORMAT_ARGS(state->targetlsn)),
 					 errhint("This could be a torn page problem.")));
 
 		/* Check the number of index tuple attributes */
 		if (!_bt_check_natts(state->rel, state->heapkeyspace, state->target,
 							 offset))
 		{
+			ItemPointer tid;
 			char	   *itid,
 					   *htid;
 
 			itid = psprintf("(%u,%u)", state->targetblock, offset);
+			tid = BTreeTupleGetPointsToTID(itup);
 			htid = psprintf("(%u,%u)",
-							ItemPointerGetBlockNumberNoCheck(&(itup->t_tid)),
-							ItemPointerGetOffsetNumberNoCheck(&(itup->t_tid)));
+							ItemPointerGetBlockNumberNoCheck(tid),
+							ItemPointerGetOffsetNumberNoCheck(tid));
 
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
@@ -930,18 +1173,7 @@ bt_target_page_check(BtreeCheckState *state)
 										BTreeTupleGetNAtts(itup, state->rel),
 										P_ISLEAF(topaque) ? "heap" : "index",
 										htid,
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
-		}
-
-		/* Fingerprint downlink blocks in heapallindexed + readonly case */
-		if (state->heapallindexed && state->readonly && !P_ISLEAF(topaque))
-		{
-			BlockNumber childblock = BTreeInnerTupleGetDownLink(itup);
-
-			bloom_add_element(state->downlinkfilter,
-							  (unsigned char *) &childblock,
-							  sizeof(BlockNumber));
+										LSN_FORMAT_ARGS(state->targetlsn))));
 		}
 
 		/*
@@ -949,22 +1181,38 @@ bt_target_page_check(BtreeCheckState *state)
 		 * internal pages. They are always truncated to zero attributes.
 		 */
 		if (offset_is_negative_infinity(topaque, offset))
+		{
+			/*
+			 * We don't call bt_child_check() for "negative infinity" items.
+			 * But if we're performing downlink connectivity check, we do it
+			 * for every item including "negative infinity" one.
+			 */
+			if (!P_ISLEAF(topaque) && state->readonly)
+			{
+				bt_child_highkey_check(state,
+									   offset,
+									   NULL,
+									   topaque->btpo_level);
+			}
 			continue;
+		}
 
 		/*
 		 * Readonly callers may optionally verify that non-pivot tuples can
-		 * each be found by an independent search that starts from the root
+		 * each be found by an independent search that starts from the root.
+		 * Note that we deliberately don't do individual searches for each
+		 * TID, since the posting list itself is validated by other checks.
 		 */
 		if (state->rootdescend && P_ISLEAF(topaque) &&
 			!bt_rootdescend(state, itup))
 		{
+			ItemPointer tid = BTreeTupleGetPointsToTID(itup);
 			char	   *itid,
 					   *htid;
 
 			itid = psprintf("(%u,%u)", state->targetblock, offset);
-			htid = psprintf("(%u,%u)",
-							ItemPointerGetBlockNumber(&(itup->t_tid)),
-							ItemPointerGetOffsetNumber(&(itup->t_tid)));
+			htid = psprintf("(%u,%u)", ItemPointerGetBlockNumber(tid),
+							ItemPointerGetOffsetNumber(tid));
 
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
@@ -972,8 +1220,40 @@ bt_target_page_check(BtreeCheckState *state)
 							RelationGetRelationName(state->rel)),
 					 errdetail_internal("Index tid=%s points to heap tid=%s page lsn=%X/%X.",
 										itid, htid,
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
+										LSN_FORMAT_ARGS(state->targetlsn))));
+		}
+
+		/*
+		 * If tuple is a posting list tuple, make sure posting list TIDs are
+		 * in order
+		 */
+		if (BTreeTupleIsPosting(itup))
+		{
+			ItemPointerData last;
+			ItemPointer current;
+
+			ItemPointerCopy(BTreeTupleGetHeapTID(itup), &last);
+
+			for (int i = 1; i < BTreeTupleGetNPosting(itup); i++)
+			{
+
+				current = BTreeTupleGetPostingN(itup, i);
+
+				if (ItemPointerCompare(current, &last) <= 0)
+				{
+					char	   *itid = psprintf("(%u,%u)", state->targetblock, offset);
+
+					ereport(ERROR,
+							(errcode(ERRCODE_INDEX_CORRUPTED),
+							 errmsg_internal("posting list contains misplaced TID in index \"%s\"",
+											 RelationGetRelationName(state->rel)),
+							 errdetail_internal("Index tid=%s posting list offset=%d page lsn=%X/%X.",
+												itid, i,
+												LSN_FORMAT_ARGS(state->targetlsn))));
+				}
+
+				ItemPointerCopy(current, &last);
+			}
 		}
 
 		/* Build insertion scankey for current page offset */
@@ -1001,20 +1281,21 @@ bt_target_page_check(BtreeCheckState *state)
 		 * designated purpose.  Enforce the lower limit for pivot tuples when
 		 * an explicit heap TID isn't actually present. (In all other cases
 		 * suffix truncation is guaranteed to generate a pivot tuple that's no
-		 * larger than the first right tuple provided to it by its caller.)
+		 * larger than the firstright tuple provided to it by its caller.)
 		 */
 		lowersizelimit = skey->heapkeyspace &&
 			(P_ISLEAF(topaque) || BTreeTupleGetHeapTID(itup) == NULL);
 		if (tupsize > (lowersizelimit ? BTMaxItemSize(state->target) :
 					   BTMaxItemSizeNoHeapTid(state->target)))
 		{
+			ItemPointer tid = BTreeTupleGetPointsToTID(itup);
 			char	   *itid,
 					   *htid;
 
 			itid = psprintf("(%u,%u)", state->targetblock, offset);
 			htid = psprintf("(%u,%u)",
-							ItemPointerGetBlockNumberNoCheck(&(itup->t_tid)),
-							ItemPointerGetOffsetNumberNoCheck(&(itup->t_tid)));
+							ItemPointerGetBlockNumberNoCheck(tid),
+							ItemPointerGetOffsetNumberNoCheck(tid));
 
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
@@ -1024,8 +1305,7 @@ bt_target_page_check(BtreeCheckState *state)
 										itid,
 										P_ISLEAF(topaque) ? "heap" : "index",
 										htid,
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
+										LSN_FORMAT_ARGS(state->targetlsn))));
 		}
 
 		/* Fingerprint leaf page tuples (those that point to the heap) */
@@ -1033,12 +1313,32 @@ bt_target_page_check(BtreeCheckState *state)
 		{
 			IndexTuple	norm;
 
-			norm = bt_normalize_tuple(state, itup);
-			bloom_add_element(state->filter, (unsigned char *) norm,
-							  IndexTupleSize(norm));
-			/* Be tidy */
-			if (norm != itup)
-				pfree(norm);
+			if (BTreeTupleIsPosting(itup))
+			{
+				/* Fingerprint all elements as distinct "plain" tuples */
+				for (int i = 0; i < BTreeTupleGetNPosting(itup); i++)
+				{
+					IndexTuple	logtuple;
+
+					logtuple = bt_posting_plain_tuple(itup, i);
+					norm = bt_normalize_tuple(state, logtuple);
+					bloom_add_element(state->filter, (unsigned char *) norm,
+									  IndexTupleSize(norm));
+					/* Be tidy */
+					if (norm != logtuple)
+						pfree(norm);
+					pfree(logtuple);
+				}
+			}
+			else
+			{
+				norm = bt_normalize_tuple(state, itup);
+				bloom_add_element(state->filter, (unsigned char *) norm,
+								  IndexTupleSize(norm));
+				/* Be tidy */
+				if (norm != itup)
+					pfree(norm);
+			}
 		}
 
 		/*
@@ -1046,7 +1346,8 @@ bt_target_page_check(BtreeCheckState *state)
 		 *
 		 * If there is a high key (if this is not the rightmost page on its
 		 * entire level), check that high key actually is upper bound on all
-		 * page items.
+		 * page items.  If this is a posting list tuple, we'll need to set
+		 * scantid to be highest TID in posting list.
 		 *
 		 * We prefer to check all items against high key rather than checking
 		 * just the last and trusting that the operator class obeys the
@@ -1086,17 +1387,22 @@ bt_target_page_check(BtreeCheckState *state)
 		 * tuple. (See also: "Notes About Data Representation" in the nbtree
 		 * README.)
 		 */
+		scantid = skey->scantid;
+		if (state->heapkeyspace && BTreeTupleIsPosting(itup))
+			skey->scantid = BTreeTupleGetMaxHeapTID(itup);
+
 		if (!P_RIGHTMOST(topaque) &&
 			!(P_ISLEAF(topaque) ? invariant_leq_offset(state, skey, P_HIKEY) :
 			  invariant_l_offset(state, skey, P_HIKEY)))
 		{
+			ItemPointer tid = BTreeTupleGetPointsToTID(itup);
 			char	   *itid,
 					   *htid;
 
 			itid = psprintf("(%u,%u)", state->targetblock, offset);
 			htid = psprintf("(%u,%u)",
-							ItemPointerGetBlockNumberNoCheck(&(itup->t_tid)),
-							ItemPointerGetOffsetNumberNoCheck(&(itup->t_tid)));
+							ItemPointerGetBlockNumberNoCheck(tid),
+							ItemPointerGetOffsetNumberNoCheck(tid));
 
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
@@ -1106,9 +1412,10 @@ bt_target_page_check(BtreeCheckState *state)
 										itid,
 										P_ISLEAF(topaque) ? "heap" : "index",
 										htid,
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
+										LSN_FORMAT_ARGS(state->targetlsn))));
 		}
+		/* Reset, in case scantid was set to (itup) posting tuple's max TID */
+		skey->scantid = scantid;
 
 		/*
 		 * * Item order check *
@@ -1119,15 +1426,17 @@ bt_target_page_check(BtreeCheckState *state)
 		if (OffsetNumberNext(offset) <= max &&
 			!invariant_l_offset(state, skey, OffsetNumberNext(offset)))
 		{
+			ItemPointer tid;
 			char	   *itid,
 					   *htid,
 					   *nitid,
 					   *nhtid;
 
 			itid = psprintf("(%u,%u)", state->targetblock, offset);
+			tid = BTreeTupleGetPointsToTID(itup);
 			htid = psprintf("(%u,%u)",
-							ItemPointerGetBlockNumberNoCheck(&(itup->t_tid)),
-							ItemPointerGetOffsetNumberNoCheck(&(itup->t_tid)));
+							ItemPointerGetBlockNumberNoCheck(tid),
+							ItemPointerGetOffsetNumberNoCheck(tid));
 			nitid = psprintf("(%u,%u)", state->targetblock,
 							 OffsetNumberNext(offset));
 
@@ -1136,9 +1445,10 @@ bt_target_page_check(BtreeCheckState *state)
 										  state->target,
 										  OffsetNumberNext(offset));
 			itup = (IndexTuple) PageGetItem(state->target, itemid);
+			tid = BTreeTupleGetPointsToTID(itup);
 			nhtid = psprintf("(%u,%u)",
-							 ItemPointerGetBlockNumberNoCheck(&(itup->t_tid)),
-							 ItemPointerGetOffsetNumberNoCheck(&(itup->t_tid)));
+							 ItemPointerGetBlockNumberNoCheck(tid),
+							 ItemPointerGetOffsetNumberNoCheck(tid));
 
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
@@ -1153,8 +1463,7 @@ bt_target_page_check(BtreeCheckState *state)
 										nitid,
 										P_ISLEAF(topaque) ? "heap" : "index",
 										nhtid,
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
+										LSN_FORMAT_ARGS(state->targetlsn))));
 		}
 
 		/*
@@ -1211,8 +1520,7 @@ bt_target_page_check(BtreeCheckState *state)
 								RelationGetRelationName(state->rel)),
 						 errdetail_internal("Last item on page tid=(%u,%u) page lsn=%X/%X.",
 											state->targetblock, offset,
-											(uint32) (state->targetlsn >> 32),
-											(uint32) state->targetlsn)));
+											LSN_FORMAT_ARGS(state->targetlsn))));
 			}
 		}
 
@@ -1225,20 +1533,23 @@ bt_target_page_check(BtreeCheckState *state)
 		 * because it has no useful value to compare).
 		 */
 		if (!P_ISLEAF(topaque) && state->readonly)
-		{
-			BlockNumber childblock = BTreeInnerTupleGetDownLink(itup);
-
-			bt_downlink_check(state, skey, childblock);
-		}
+			bt_child_check(state, skey, offset);
 	}
 
 	/*
-	 * * Check if page has a downlink in parent *
+	 * Special case bt_child_highkey_check() call
 	 *
-	 * This can only be checked in heapallindexed + readonly case.
+	 * We don't pass a real downlink, but we've to finish the level
+	 * processing. If condition is satisfied, we've already processed all the
+	 * downlinks from the target level.  But there still might be pages to the
+	 * right of the child page pointer to by our rightmost downlink.  And they
+	 * might have missing downlinks.  This final call checks for them.
 	 */
-	if (state->heapallindexed && state->readonly)
-		bt_downlink_missing_check(state);
+	if (!P_ISLEAF(topaque) && P_RIGHTMOST(topaque) && state->readonly)
+	{
+		bt_child_highkey_check(state, InvalidOffsetNumber,
+							   NULL, topaque->btpo_level);
+	}
 }
 
 /*
@@ -1289,7 +1600,7 @@ bt_right_page_check_scankey(BtreeCheckState *state)
 	 * does not occur until no possible index scan could land on the page.
 	 * Index scans can follow links with nothing more than their snapshot as
 	 * an interlock and be sure of at least that much.  (See page
-	 * recycling/RecentGlobalXmin notes in nbtree README.)
+	 * recycling/"visible to everyone" notes in nbtree README.)
 	 *
 	 * Furthermore, it's okay if we follow a rightlink and find a half-dead or
 	 * dead (ignorable) page one or more times.  There will either be a
@@ -1309,13 +1620,17 @@ bt_right_page_check_scankey(BtreeCheckState *state)
 		if (!P_IGNORE(opaque) || P_RIGHTMOST(opaque))
 			break;
 
-		/* We landed on a deleted page, so step right to find a live page */
-		targetnext = opaque->btpo_next;
-		ereport(DEBUG1,
+		/*
+		 * We landed on a deleted or half-dead sibling page.  Step right until
+		 * we locate a live sibling page.
+		 */
+		ereport(DEBUG2,
 				(errcode(ERRCODE_NO_DATA),
-				 errmsg("level %u leftmost page of index \"%s\" was found deleted or half dead",
-						opaque->btpo.level, RelationGetRelationName(state->rel)),
+				 errmsg_internal("level %u sibling page in block %u of index \"%s\" was found deleted or half dead",
+								 opaque->btpo_level, targetnext, RelationGetRelationName(state->rel)),
 				 errdetail_internal("Deleted page found when building scankey from right sibling.")));
+
+		targetnext = opaque->btpo_next;
 
 		/* Be slightly more pro-active in freeing this memory, just in case */
 		pfree(rightpage);
@@ -1382,7 +1697,7 @@ bt_right_page_check_scankey(BtreeCheckState *state)
 	 * Top level tree walk caller moves on to next page (makes it the new
 	 * target) following recovery from this race.  (cf.  The rationale for
 	 * child/downlink verification needing a ShareLock within
-	 * bt_downlink_check(), where page deletion is also the main source of
+	 * bt_child_check(), where page deletion is also the main source of
 	 * trouble.)
 	 *
 	 * Note that it doesn't matter if right sibling page here is actually a
@@ -1439,11 +1754,11 @@ bt_right_page_check_scankey(BtreeCheckState *state)
 		 * possible that it's an internal page with only a negative infinity
 		 * item.
 		 */
-		ereport(DEBUG1,
+		ereport(DEBUG2,
 				(errcode(ERRCODE_NO_DATA),
-				 errmsg("%s block %u of index \"%s\" has no first data item",
-						P_ISLEAF(opaque) ? "leaf" : "internal", targetnext,
-						RelationGetRelationName(state->rel))));
+				 errmsg_internal("%s block %u of index \"%s\" has no first data item",
+								 P_ISLEAF(opaque) ? "leaf" : "internal", targetnext,
+								 RelationGetRelationName(state->rel))));
 		return NULL;
 	}
 
@@ -1456,6 +1771,316 @@ bt_right_page_check_scankey(BtreeCheckState *state)
 }
 
 /*
+ * Check if two tuples are binary identical except the block number.  So,
+ * this function is capable to compare pivot keys on different levels.
+ */
+static bool
+bt_pivot_tuple_identical(bool heapkeyspace, IndexTuple itup1, IndexTuple itup2)
+{
+	if (IndexTupleSize(itup1) != IndexTupleSize(itup2))
+		return false;
+
+	if (heapkeyspace)
+	{
+		/*
+		 * Offset number will contain important information in heapkeyspace
+		 * indexes: the number of attributes left in the pivot tuple following
+		 * suffix truncation.  Don't skip over it (compare it too).
+		 */
+		if (memcmp(&itup1->t_tid.ip_posid, &itup2->t_tid.ip_posid,
+				   IndexTupleSize(itup1) -
+				   offsetof(ItemPointerData, ip_posid)) != 0)
+			return false;
+	}
+	else
+	{
+		/*
+		 * Cannot rely on offset number field having consistent value across
+		 * levels on pg_upgrade'd !heapkeyspace indexes.  Compare contents of
+		 * tuple starting from just after item pointer (i.e. after block
+		 * number and offset number).
+		 */
+		if (memcmp(&itup1->t_info, &itup2->t_info,
+				   IndexTupleSize(itup1) -
+				   offsetof(IndexTupleData, t_info)) != 0)
+			return false;
+	}
+
+	return true;
+}
+
+/*---
+ * Check high keys on the child level.  Traverse rightlinks from previous
+ * downlink to the current one.  Check that there are no intermediate pages
+ * with missing downlinks.
+ *
+ * If 'loaded_child' is given, it's assumed to be the page pointed to by the
+ * downlink referenced by 'downlinkoffnum' of the target page.
+ *
+ * Basically this function is called for each target downlink and checks two
+ * invariants:
+ *
+ * 1) You can reach the next child from previous one via rightlinks;
+ * 2) Each child high key have matching pivot key on target level.
+ *
+ * Consider the sample tree picture.
+ *
+ *               1
+ *           /       \
+ *        2     <->     3
+ *      /   \        /     \
+ *    4  <>  5  <> 6 <> 7 <> 8
+ *
+ * This function will be called for blocks 4, 5, 6 and 8.  Consider what is
+ * happening for each function call.
+ *
+ * - The function call for block 4 initializes data structure and matches high
+ *   key of block 4 to downlink's pivot key of block 2.
+ * - The high key of block 5 is matched to the high key of block 2.
+ * - The block 6 has an incomplete split flag set, so its high key isn't
+ *   matched to anything.
+ * - The function call for block 8 checks that block 8 can be found while
+ *   following rightlinks from block 6.  The high key of block 7 will be
+ *   matched to downlink's pivot key in block 3.
+ *
+ * There is also final call of this function, which checks that there is no
+ * missing downlinks for children to the right of the child referenced by
+ * rightmost downlink in target level.
+ */
+static void
+bt_child_highkey_check(BtreeCheckState *state,
+					   OffsetNumber target_downlinkoffnum,
+					   Page loaded_child,
+					   uint32 target_level)
+{
+	BlockNumber blkno = state->prevrightlink;
+	Page		page;
+	BTPageOpaque opaque;
+	bool		rightsplit = state->previncompletesplit;
+	bool		first = true;
+	ItemId		itemid;
+	IndexTuple	itup;
+	BlockNumber downlink;
+
+	if (OffsetNumberIsValid(target_downlinkoffnum))
+	{
+		itemid = PageGetItemIdCareful(state, state->targetblock,
+									  state->target, target_downlinkoffnum);
+		itup = (IndexTuple) PageGetItem(state->target, itemid);
+		downlink = BTreeTupleGetDownLink(itup);
+	}
+	else
+	{
+		downlink = P_NONE;
+	}
+
+	/*
+	 * If no previous rightlink is memorized for current level just below
+	 * target page's level, we are about to start from the leftmost page. We
+	 * can't follow rightlinks from previous page, because there is no
+	 * previous page.  But we still can match high key.
+	 *
+	 * So we initialize variables for the loop above like there is previous
+	 * page referencing current child.  Also we imply previous page to not
+	 * have incomplete split flag, that would make us require downlink for
+	 * current child.  That's correct, because leftmost page on the level
+	 * should always have parent downlink.
+	 */
+	if (!BlockNumberIsValid(blkno))
+	{
+		blkno = downlink;
+		rightsplit = false;
+	}
+
+	/* Move to the right on the child level */
+	while (true)
+	{
+		/*
+		 * Did we traverse the whole tree level and this is check for pages to
+		 * the right of rightmost downlink?
+		 */
+		if (blkno == P_NONE && downlink == P_NONE)
+		{
+			state->prevrightlink = InvalidBlockNumber;
+			state->previncompletesplit = false;
+			return;
+		}
+
+		/* Did we traverse the whole tree level and don't find next downlink? */
+		if (blkno == P_NONE)
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("can't traverse from downlink %u to downlink %u of index \"%s\"",
+							state->prevrightlink, downlink,
+							RelationGetRelationName(state->rel))));
+
+		/* Load page contents */
+		if (blkno == downlink && loaded_child)
+			page = loaded_child;
+		else
+			page = palloc_btree_page(state, blkno);
+
+		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
+
+		/* The first page we visit at the level should be leftmost */
+		if (first && !BlockNumberIsValid(state->prevrightlink) && !P_LEFTMOST(opaque))
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("the first child of leftmost target page is not leftmost of its level in index \"%s\"",
+							RelationGetRelationName(state->rel)),
+					 errdetail_internal("Target block=%u child block=%u target page lsn=%X/%X.",
+										state->targetblock, blkno,
+										LSN_FORMAT_ARGS(state->targetlsn))));
+
+		/* Do level sanity check */
+		if ((!P_ISDELETED(opaque) || P_HAS_FULLXID(opaque)) &&
+			opaque->btpo_level != target_level - 1)
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("block found while following rightlinks from child of index \"%s\" has invalid level",
+							RelationGetRelationName(state->rel)),
+					 errdetail_internal("Block pointed to=%u expected level=%u level in pointed to block=%u.",
+										blkno, target_level - 1, opaque->btpo_level)));
+
+		/* Try to detect circular links */
+		if ((!first && blkno == state->prevrightlink) || blkno == opaque->btpo_prev)
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg("circular link chain found in block %u of index \"%s\"",
+							blkno, RelationGetRelationName(state->rel))));
+
+		if (blkno != downlink && !P_IGNORE(opaque))
+		{
+			/* blkno probably has missing parent downlink */
+			bt_downlink_missing_check(state, rightsplit, blkno, page);
+		}
+
+		rightsplit = P_INCOMPLETE_SPLIT(opaque);
+
+		/*
+		 * If we visit page with high key, check that it is equal to the
+		 * target key next to corresponding downlink.
+		 */
+		if (!rightsplit && !P_RIGHTMOST(opaque))
+		{
+			BTPageOpaque topaque;
+			IndexTuple	highkey;
+			OffsetNumber pivotkey_offset;
+
+			/* Get high key */
+			itemid = PageGetItemIdCareful(state, blkno, page, P_HIKEY);
+			highkey = (IndexTuple) PageGetItem(page, itemid);
+
+			/*
+			 * There might be two situations when we examine high key.  If
+			 * current child page is referenced by given target downlink, we
+			 * should look to the next offset number for matching key from
+			 * target page.
+			 *
+			 * Alternatively, we're following rightlinks somewhere in the
+			 * middle between page referenced by previous target's downlink
+			 * and the page referenced by current target's downlink.  If
+			 * current child page hasn't incomplete split flag set, then its
+			 * high key should match to the target's key of current offset
+			 * number. This happens when a previous call here (to
+			 * bt_child_highkey_check()) found an incomplete split, and we
+			 * reach a right sibling page without a downlink -- the right
+			 * sibling page's high key still needs to be matched to a
+			 * separator key on the parent/target level.
+			 *
+			 * Don't apply OffsetNumberNext() to target_downlinkoffnum when we
+			 * already had to step right on the child level. Our traversal of
+			 * the child level must try to move in perfect lockstep behind (to
+			 * the left of) the target/parent level traversal.
+			 */
+			if (blkno == downlink)
+				pivotkey_offset = OffsetNumberNext(target_downlinkoffnum);
+			else
+				pivotkey_offset = target_downlinkoffnum;
+
+			topaque = (BTPageOpaque) PageGetSpecialPointer(state->target);
+
+			if (!offset_is_negative_infinity(topaque, pivotkey_offset))
+			{
+				/*
+				 * If we're looking for the next pivot tuple in target page,
+				 * but there is no more pivot tuples, then we should match to
+				 * high key instead.
+				 */
+				if (pivotkey_offset > PageGetMaxOffsetNumber(state->target))
+				{
+					if (P_RIGHTMOST(topaque))
+						ereport(ERROR,
+								(errcode(ERRCODE_INDEX_CORRUPTED),
+								 errmsg("child high key is greater than rightmost pivot key on target level in index \"%s\"",
+										RelationGetRelationName(state->rel)),
+								 errdetail_internal("Target block=%u child block=%u target page lsn=%X/%X.",
+													state->targetblock, blkno,
+													LSN_FORMAT_ARGS(state->targetlsn))));
+					pivotkey_offset = P_HIKEY;
+				}
+				itemid = PageGetItemIdCareful(state, state->targetblock,
+											  state->target, pivotkey_offset);
+				itup = (IndexTuple) PageGetItem(state->target, itemid);
+			}
+			else
+			{
+				/*
+				 * We cannot try to match child's high key to a negative
+				 * infinity key in target, since there is nothing to compare.
+				 * However, it's still possible to match child's high key
+				 * outside of target page.  The reason why we're are is that
+				 * bt_child_highkey_check() was previously called for the
+				 * cousin page of 'loaded_child', which is incomplete split.
+				 * So, now we traverse to the right of that cousin page and
+				 * current child level page under consideration still belongs
+				 * to the subtree of target's left sibling.  Thus, we need to
+				 * match child's high key to it's left uncle page high key.
+				 * Thankfully we saved it, it's called a "low key" of target
+				 * page.
+				 */
+				if (!state->lowkey)
+					ereport(ERROR,
+							(errcode(ERRCODE_INDEX_CORRUPTED),
+							 errmsg("can't find left sibling high key in index \"%s\"",
+									RelationGetRelationName(state->rel)),
+							 errdetail_internal("Target block=%u child block=%u target page lsn=%X/%X.",
+												state->targetblock, blkno,
+												LSN_FORMAT_ARGS(state->targetlsn))));
+				itup = state->lowkey;
+			}
+
+			if (!bt_pivot_tuple_identical(state->heapkeyspace, highkey, itup))
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_INDEX_CORRUPTED),
+						 errmsg("mismatch between parent key and child high key in index \"%s\"",
+								RelationGetRelationName(state->rel)),
+						 errdetail_internal("Target block=%u child block=%u target page lsn=%X/%X.",
+											state->targetblock, blkno,
+											LSN_FORMAT_ARGS(state->targetlsn))));
+			}
+		}
+
+		/* Exit if we already found next downlink */
+		if (blkno == downlink)
+		{
+			state->prevrightlink = opaque->btpo_next;
+			state->previncompletesplit = rightsplit;
+			return;
+		}
+
+		/* Traverse to the next page using rightlink */
+		blkno = opaque->btpo_next;
+
+		/* Free page contents if it's allocated by us */
+		if (page != loaded_child)
+			pfree(page);
+		first = false;
+	}
+}
+
+/*
  * Checks one of target's downlink against its child page.
  *
  * Conceptually, the target page continues to be what is checked here.  The
@@ -1463,15 +2088,28 @@ bt_right_page_check_scankey(BtreeCheckState *state)
  * The downlink insertion into the target is probably where any problem raised
  * here arises, and there is no such thing as a parent link, so doing the
  * verification this way around is much more practical.
+ *
+ * This function visits child page and it's sequentially called for each
+ * downlink of target page.  Assuming this we also check downlink connectivity
+ * here in order to save child page visits.
  */
 static void
-bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
-				  BlockNumber childblock)
+bt_child_check(BtreeCheckState *state, BTScanInsert targetkey,
+			   OffsetNumber downlinkoffnum)
 {
+	ItemId		itemid;
+	IndexTuple	itup;
+	BlockNumber childblock;
 	OffsetNumber offset;
 	OffsetNumber maxoffset;
 	Page		child;
 	BTPageOpaque copaque;
+	BTPageOpaque topaque;
+
+	itemid = PageGetItemIdCareful(state, state->targetblock,
+								  state->target, downlinkoffnum);
+	itup = (IndexTuple) PageGetItem(state->target, itemid);
+	childblock = BTreeTupleGetDownLink(itup);
 
 	/*
 	 * Caller must have ShareLock on target relation, because of
@@ -1498,18 +2136,14 @@ bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
 	 * downlink, which was concurrently physically removed in target/parent as
 	 * part of deletion's first phase.)
 	 *
-	 * Note that while the cross-page-same-level last item check uses a trick
-	 * that allows it to perform verification for !readonly callers, a similar
-	 * trick seems difficult here.  The trick that that other check uses is,
-	 * in essence, to lock down race conditions to those that occur due to
-	 * concurrent page deletion of the target; that's a race that can be
-	 * reliably detected before actually reporting corruption.
-	 *
-	 * On the other hand, we'd need to lock down race conditions involving
-	 * deletion of child's left page, for long enough to read the child page
-	 * into memory (in other words, a scheme with concurrently held buffer
-	 * locks on both child and left-of-child pages).  That's unacceptable for
-	 * amcheck functions on general principle, though.
+	 * While we use various techniques elsewhere to perform cross-page
+	 * verification for !readonly callers, a similar trick seems difficult
+	 * here.  The tricks used by bt_recheck_sibling_links and by
+	 * bt_right_page_check_scankey both involve verification of a same-level,
+	 * cross-sibling invariant.  Cross-level invariants are far more squishy,
+	 * though.  The nbtree REDO routines do not actually couple buffer locks
+	 * across levels during page splits, so making any cross-level check work
+	 * reliably in !readonly mode may be impossible.
 	 */
 	Assert(state->readonly);
 
@@ -1521,9 +2155,17 @@ bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
 	 * Check all items, rather than checking just the first and trusting that
 	 * the operator class obeys the transitive law.
 	 */
+	topaque = (BTPageOpaque) PageGetSpecialPointer(state->target);
 	child = palloc_btree_page(state, childblock);
 	copaque = (BTPageOpaque) PageGetSpecialPointer(child);
 	maxoffset = PageGetMaxOffsetNumber(child);
+
+	/*
+	 * Since we've already loaded the child block, combine this check with
+	 * check for downlink connectivity.
+	 */
+	bt_child_highkey_check(state, downlinkoffnum,
+						   child, topaque->btpo_level);
 
 	/*
 	 * Since there cannot be a concurrent VACUUM operation in readonly mode,
@@ -1556,8 +2198,7 @@ bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
 						RelationGetRelationName(state->rel)),
 				 errdetail_internal("Parent block=%u child block=%u parent page lsn=%X/%X.",
 									state->targetblock, childblock,
-									(uint32) (state->targetlsn >> 32),
-									(uint32) state->targetlsn)));
+									LSN_FORMAT_ARGS(state->targetlsn))));
 
 	for (offset = P_FIRSTDATAKEY(copaque);
 		 offset <= maxoffset;
@@ -1598,8 +2239,7 @@ bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
 							RelationGetRelationName(state->rel)),
 					 errdetail_internal("Parent block=%u child index tid=(%u,%u) parent page lsn=%X/%X.",
 										state->targetblock, childblock, offset,
-										(uint32) (state->targetlsn >> 32),
-										(uint32) state->targetlsn)));
+										LSN_FORMAT_ARGS(state->targetlsn))));
 	}
 
 	pfree(child);
@@ -1619,22 +2259,26 @@ bt_downlink_check(BtreeCheckState *state, BTScanInsert targetkey,
  * be concerned about concurrent page splits or page deletions.
  */
 static void
-bt_downlink_missing_check(BtreeCheckState *state)
+bt_downlink_missing_check(BtreeCheckState *state, bool rightsplit,
+						  BlockNumber blkno, Page page)
 {
-	BTPageOpaque topaque = (BTPageOpaque) PageGetSpecialPointer(state->target);
+	BTPageOpaque opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 	ItemId		itemid;
 	IndexTuple	itup;
 	Page		child;
 	BTPageOpaque copaque;
 	uint32		level;
 	BlockNumber childblk;
+	XLogRecPtr	pagelsn;
 
-	Assert(state->heapallindexed && state->readonly);
-	Assert(!P_IGNORE(topaque));
+	Assert(state->readonly);
+	Assert(!P_IGNORE(opaque));
 
 	/* No next level up with downlinks to fingerprint from the true root */
-	if (P_ISROOT(topaque))
+	if (P_ISROOT(opaque))
 		return;
+
+	pagelsn = PageGetLSN(page);
 
 	/*
 	 * Incomplete (interrupted) page splits can account for the lack of a
@@ -1657,55 +2301,46 @@ bt_downlink_missing_check(BtreeCheckState *state)
 	 * by design, so it shouldn't be taken to indicate corruption.  See
 	 * _bt_pagedel() for full details.
 	 */
-	if (state->rightsplit)
+	if (rightsplit)
 	{
 		ereport(DEBUG1,
 				(errcode(ERRCODE_NO_DATA),
-				 errmsg("harmless interrupted page split detected in index %s",
-						RelationGetRelationName(state->rel)),
+				 errmsg_internal("harmless interrupted page split detected in index \"%s\"",
+								 RelationGetRelationName(state->rel)),
 				 errdetail_internal("Block=%u level=%u left sibling=%u page lsn=%X/%X.",
-									state->targetblock, topaque->btpo.level,
-									topaque->btpo_prev,
-									(uint32) (state->targetlsn >> 32),
-									(uint32) state->targetlsn)));
+									blkno, opaque->btpo_level,
+									opaque->btpo_prev,
+									LSN_FORMAT_ARGS(pagelsn))));
 		return;
 	}
 
-	/* Target's downlink is typically present in parent/fingerprinted */
-	if (!bloom_lacks_element(state->downlinkfilter,
-							 (unsigned char *) &state->targetblock,
-							 sizeof(BlockNumber)))
-		return;
-
 	/*
-	 * Target is probably the "top parent" of a multi-level page deletion.
-	 * We'll need to descend the subtree to make sure that descendant pages
-	 * are consistent with that, though.
+	 * Page under check is probably the "top parent" of a multi-level page
+	 * deletion.  We'll need to descend the subtree to make sure that
+	 * descendant pages are consistent with that, though.
 	 *
-	 * If the target page (which must be non-ignorable) is a leaf page, then
-	 * clearly it can't be the top parent.  The lack of a downlink is probably
-	 * a symptom of a broad problem that could just as easily cause
+	 * If the page (which must be non-ignorable) is a leaf page, then clearly
+	 * it can't be the top parent.  The lack of a downlink is probably a
+	 * symptom of a broad problem that could just as easily cause
 	 * inconsistencies anywhere else.
 	 */
-	if (P_ISLEAF(topaque))
+	if (P_ISLEAF(opaque))
 		ereport(ERROR,
 				(errcode(ERRCODE_INDEX_CORRUPTED),
 				 errmsg("leaf index block lacks downlink in index \"%s\"",
 						RelationGetRelationName(state->rel)),
 				 errdetail_internal("Block=%u page lsn=%X/%X.",
-									state->targetblock,
-									(uint32) (state->targetlsn >> 32),
-									(uint32) state->targetlsn)));
+									blkno,
+									LSN_FORMAT_ARGS(pagelsn))));
 
-	/* Descend from the target page, which is an internal page */
+	/* Descend from the given page, which is an internal page */
 	elog(DEBUG1, "checking for interrupted multi-level deletion due to missing downlink in index \"%s\"",
 		 RelationGetRelationName(state->rel));
 
-	level = topaque->btpo.level;
-	itemid = PageGetItemIdCareful(state, state->targetblock, state->target,
-								  P_FIRSTDATAKEY(topaque));
-	itup = (IndexTuple) PageGetItem(state->target, itemid);
-	childblk = BTreeInnerTupleGetDownLink(itup);
+	level = opaque->btpo_level;
+	itemid = PageGetItemIdCareful(state, blkno, page, P_FIRSTDATAKEY(opaque));
+	itup = (IndexTuple) PageGetItem(page, itemid);
+	childblk = BTreeTupleGetDownLink(itup);
 	for (;;)
 	{
 		CHECK_FOR_INTERRUPTS();
@@ -1717,20 +2352,20 @@ bt_downlink_missing_check(BtreeCheckState *state)
 			break;
 
 		/* Do an extra sanity check in passing on internal pages */
-		if (copaque->btpo.level != level - 1)
+		if (copaque->btpo_level != level - 1)
 			ereport(ERROR,
 					(errcode(ERRCODE_INDEX_CORRUPTED),
 					 errmsg_internal("downlink points to block in index \"%s\" whose level is not one level down",
 									 RelationGetRelationName(state->rel)),
-					 errdetail_internal("Top parent/target block=%u block pointed to=%u expected level=%u level in pointed to block=%u.",
-										state->targetblock, childblk,
-										level - 1, copaque->btpo.level)));
+					 errdetail_internal("Top parent/under check block=%u block pointed to=%u expected level=%u level in pointed to block=%u.",
+										blkno, childblk,
+										level - 1, copaque->btpo_level)));
 
-		level = copaque->btpo.level;
+		level = copaque->btpo_level;
 		itemid = PageGetItemIdCareful(state, childblk, child,
 									  P_FIRSTDATAKEY(copaque));
 		itup = (IndexTuple) PageGetItem(child, itemid);
-		childblk = BTreeInnerTupleGetDownLink(itup);
+		childblk = BTreeTupleGetDownLink(itup);
 		/* Be slightly more pro-active in freeing this memory, just in case */
 		pfree(child);
 	}
@@ -1739,12 +2374,12 @@ bt_downlink_missing_check(BtreeCheckState *state)
 	 * Since there cannot be a concurrent VACUUM operation in readonly mode,
 	 * and since a page has no links within other pages (siblings and parent)
 	 * once it is marked fully deleted, it should be impossible to land on a
-	 * fully deleted page.  See bt_downlink_check() for further details.
+	 * fully deleted page.  See bt_child_check() for further details.
 	 *
-	 * The bt_downlink_check() P_ISDELETED() check is repeated here because
-	 * bt_downlink_check() does not visit pages reachable through negative
-	 * infinity items.  Besides, bt_downlink_check() is unwilling to descend
-	 * multiple levels.  (The similar bt_downlink_check() P_ISDELETED() check
+	 * The bt_child_check() P_ISDELETED() check is repeated here because
+	 * bt_child_check() does not visit pages reachable through negative
+	 * infinity items.  Besides, bt_child_check() is unwilling to descend
+	 * multiple levels.  (The similar bt_child_check() P_ISDELETED() check
 	 * within bt_check_level_from_leftmost() won't reach the page either,
 	 * since the leaf's live siblings should have their sibling links updated
 	 * to bypass the deletion target page when it is marked fully dead.)
@@ -1760,26 +2395,25 @@ bt_downlink_missing_check(BtreeCheckState *state)
 				(errcode(ERRCODE_INDEX_CORRUPTED),
 				 errmsg_internal("downlink to deleted leaf page found in index \"%s\"",
 								 RelationGetRelationName(state->rel)),
-				 errdetail_internal("Top parent/target block=%u leaf block=%u top parent/target lsn=%X/%X.",
-									state->targetblock, childblk,
-									(uint32) (state->targetlsn >> 32),
-									(uint32) state->targetlsn)));
+				 errdetail_internal("Top parent/target block=%u leaf block=%u top parent/under check lsn=%X/%X.",
+									blkno, childblk,
+									LSN_FORMAT_ARGS(pagelsn))));
 
 	/*
 	 * Iff leaf page is half-dead, its high key top parent link should point
 	 * to what VACUUM considered to be the top parent page at the instant it
 	 * was interrupted.  Provided the high key link actually points to the
-	 * target page, the missing downlink we detected is consistent with there
-	 * having been an interrupted multi-level page deletion.  This means that
-	 * the subtree with the target page at its root (a page deletion chain) is
-	 * in a consistent state, enabling VACUUM to resume deleting the entire
-	 * chain the next time it encounters the half-dead leaf page.
+	 * page under check, the missing downlink we detected is consistent with
+	 * there having been an interrupted multi-level page deletion.  This means
+	 * that the subtree with the page under check at its root (a page deletion
+	 * chain) is in a consistent state, enabling VACUUM to resume deleting the
+	 * entire chain the next time it encounters the half-dead leaf page.
 	 */
 	if (P_ISHALFDEAD(copaque) && !P_RIGHTMOST(copaque))
 	{
 		itemid = PageGetItemIdCareful(state, childblk, child, P_HIKEY);
 		itup = (IndexTuple) PageGetItem(child, itemid);
-		if (BTreeTupleGetTopParent(itup) == state->targetblock)
+		if (BTreeTupleGetTopParent(itup) == blkno)
 			return;
 	}
 
@@ -1788,9 +2422,8 @@ bt_downlink_missing_check(BtreeCheckState *state)
 			 errmsg("internal index block lacks downlink in index \"%s\"",
 					RelationGetRelationName(state->rel)),
 			 errdetail_internal("Block=%u level=%u page lsn=%X/%X.",
-								state->targetblock, topaque->btpo.level,
-								(uint32) (state->targetlsn >> 32),
-								(uint32) state->targetlsn)));
+								blkno, opaque->btpo_level,
+								LSN_FORMAT_ARGS(pagelsn))));
 }
 
 /*
@@ -1849,7 +2482,7 @@ bt_downlink_missing_check(BtreeCheckState *state)
  * also allows us to detect the corruption in many cases.
  */
 static void
-bt_tuple_present_callback(Relation index, HeapTuple htup, Datum *values,
+bt_tuple_present_callback(Relation index, ItemPointer tid, Datum *values,
 						  bool *isnull, bool tupleIsAlive, void *checkstate)
 {
 	BtreeCheckState *state = (BtreeCheckState *) checkstate;
@@ -1860,7 +2493,7 @@ bt_tuple_present_callback(Relation index, HeapTuple htup, Datum *values,
 
 	/* Generate a normalized index tuple for fingerprinting */
 	itup = index_form_tuple(RelationGetDescr(index), values, isnull);
-	itup->t_tid = htup->t_self;
+	itup->t_tid = *tid;
 	norm = bt_normalize_tuple(state, itup);
 
 	/* Probe Bloom filter -- tuple should be present */
@@ -1912,10 +2545,9 @@ bt_tuple_present_callback(Relation index, HeapTuple htup, Datum *values,
  * verification.  In particular, it won't try to normalize opclass-equal
  * datums with potentially distinct representations (e.g., btree/numeric_ops
  * index datums will not get their display scale normalized-away here).
- * Normalization may need to be expanded to handle more cases in the future,
- * though.  For example, it's possible that non-pivot tuples could in the
- * future have alternative logically equivalent representations due to using
- * the INDEX_ALT_TID_MASK bit to implement intelligent deduplication.
+ * Caller does normalization for non-pivot tuples that have a posting list,
+ * since dummy CREATE INDEX callback code generates new tuples with the same
+ * normalized representation.
  */
 static IndexTuple
 bt_normalize_tuple(BtreeCheckState *state, IndexTuple itup)
@@ -1927,6 +2559,9 @@ bt_normalize_tuple(BtreeCheckState *state, IndexTuple itup)
 	bool		formnewtup = false;
 	IndexTuple	reformed;
 	int			i;
+
+	/* Caller should only pass "logical" non-pivot tuples here */
+	Assert(!BTreeTupleIsPosting(itup) && !BTreeTupleIsPivot(itup));
 
 	/* Easy case: It's immediately clear that tuple has no varlena datums */
 	if (!IndexTupleHasVarwidths(itup))
@@ -1991,6 +2626,29 @@ bt_normalize_tuple(BtreeCheckState *state, IndexTuple itup)
 }
 
 /*
+ * Produce palloc()'d "plain" tuple for nth posting list entry/TID.
+ *
+ * In general, deduplication is not supposed to change the logical contents of
+ * an index.  Multiple index tuples are merged together into one equivalent
+ * posting list index tuple when convenient.
+ *
+ * heapallindexed verification must normalize-away this variation in
+ * representation by converting posting list tuples into two or more "plain"
+ * tuples.  Each tuple must be fingerprinted separately -- there must be one
+ * tuple for each corresponding Bloom filter probe during the heap scan.
+ *
+ * Note: Caller still needs to call bt_normalize_tuple() with returned tuple.
+ */
+static inline IndexTuple
+bt_posting_plain_tuple(IndexTuple itup, int n)
+{
+	Assert(BTreeTupleIsPosting(itup));
+
+	/* Returns non-posting-list tuple */
+	return _bt_form_posting(itup, BTreeTupleGetPostingN(itup, n), 1);
+}
+
+/*
  * Search for itup in index, starting from fast root page.  itup must be a
  * non-pivot tuple.  This is only supported with heapkeyspace indexes, since
  * we rely on having fully unique keys to find a match with only a single
@@ -2006,7 +2664,7 @@ bt_normalize_tuple(BtreeCheckState *state, IndexTuple itup)
  * separator key value won't always be available from parent, though, because
  * the first items of internal pages are negative infinity items, truncated
  * down to zero attributes during internal page splits.  While it's true that
- * bt_downlink_check() and the high key check can detect most imaginable key
+ * bt_child_check() and the high key check can detect most imaginable key
  * space problems, there are remaining problems it won't detect with non-pivot
  * tuples in cousin leaf pages.  Starting a search from the root for every
  * existing leaf tuple detects small inconsistencies in upper levels of the
@@ -2046,6 +2704,7 @@ bt_rootdescend(BtreeCheckState *state, IndexTuple itup)
 		insertstate.itup = itup;
 		insertstate.itemsz = MAXALIGN(IndexTupleSize(itup));
 		insertstate.itup_key = key;
+		insertstate.postingoff = 0;
 		insertstate.bounds_valid = false;
 		insertstate.buf = lbuf;
 
@@ -2053,7 +2712,9 @@ bt_rootdescend(BtreeCheckState *state, IndexTuple itup)
 		offnum = _bt_binsrch_insert(state->rel, &insertstate);
 		/* Compare first >= matching item on leaf page, if any */
 		page = BufferGetPage(lbuf);
+		/* Should match on first heap TID when tuple has a posting list */
 		if (offnum <= PageGetMaxOffsetNumber(page) &&
+			insertstate.postingoff <= 0 &&
 			_bt_compare(state->rel, key, page, offnum) == 0)
 			exists = true;
 		_bt_relbuf(state->rel, lbuf);
@@ -2285,6 +2946,8 @@ invariant_l_nontarget_offset(BtreeCheckState *state, BTScanInsert key,
  * There is never an attempt to get a consistent view of multiple pages using
  * multiple concurrent buffer locks; in general, we only acquire a single pin
  * and buffer lock at a time, which is often all that the nbtree code requires.
+ * (Actually, bt_recheck_sibling_links couples buffer locks, which is the only
+ * exception to this general rule.)
  *
  * Operating on a copy of the page is useful because it prevents control
  * getting stuck in an uninterruptible state when an underlying operator class
@@ -2353,21 +3016,28 @@ palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum)
 	}
 
 	/*
-	 * Deleted pages have no sane "level" field, so can only check non-deleted
-	 * page level
+	 * Deleted pages that still use the old 32-bit XID representation have no
+	 * sane "level" field because they type pun the field, but all other pages
+	 * (including pages deleted on Postgres 14+) have a valid value.
 	 */
-	if (P_ISLEAF(opaque) && !P_ISDELETED(opaque) && opaque->btpo.level != 0)
-		ereport(ERROR,
-				(errcode(ERRCODE_INDEX_CORRUPTED),
-				 errmsg("invalid leaf page level %u for block %u in index \"%s\"",
-						opaque->btpo.level, blocknum, RelationGetRelationName(state->rel))));
+	if (!P_ISDELETED(opaque) || P_HAS_FULLXID(opaque))
+	{
+		/* Okay, no reason not to trust btpo_level field from page */
 
-	if (!P_ISLEAF(opaque) && !P_ISDELETED(opaque) &&
-		opaque->btpo.level == 0)
-		ereport(ERROR,
-				(errcode(ERRCODE_INDEX_CORRUPTED),
-				 errmsg("invalid internal page level 0 for block %u in index \"%s\"",
-						blocknum, RelationGetRelationName(state->rel))));
+		if (P_ISLEAF(opaque) && opaque->btpo_level != 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg_internal("invalid leaf page level %u for block %u in index \"%s\"",
+									 opaque->btpo_level, blocknum,
+									 RelationGetRelationName(state->rel))));
+
+		if (!P_ISLEAF(opaque) && opaque->btpo_level == 0)
+			ereport(ERROR,
+					(errcode(ERRCODE_INDEX_CORRUPTED),
+					 errmsg_internal("invalid internal page level 0 for block %u in index \"%s\"",
+									 blocknum,
+									 RelationGetRelationName(state->rel))));
+	}
 
 	/*
 	 * Sanity checks for number of items on page.
@@ -2375,7 +3045,8 @@ palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum)
 	 * As noted at the beginning of _bt_binsrch(), an internal page must have
 	 * children, since there must always be a negative infinity downlink
 	 * (there may also be a highkey).  In the case of non-rightmost leaf
-	 * pages, there must be at least a highkey.
+	 * pages, there must be at least a highkey.  The exceptions are deleted
+	 * pages, which contain no items.
 	 *
 	 * This is correct when pages are half-dead, since internal pages are
 	 * never half-dead, and leaf pages must have a high key when half-dead
@@ -2395,13 +3066,13 @@ palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum)
 						blocknum, RelationGetRelationName(state->rel),
 						MaxIndexTuplesPerPage)));
 
-	if (!P_ISLEAF(opaque) && maxoffset < P_FIRSTDATAKEY(opaque))
+	if (!P_ISLEAF(opaque) && !P_ISDELETED(opaque) && maxoffset < P_FIRSTDATAKEY(opaque))
 		ereport(ERROR,
 				(errcode(ERRCODE_INDEX_CORRUPTED),
 				 errmsg("internal block %u in index \"%s\" lacks high key and/or at least one downlink",
 						blocknum, RelationGetRelationName(state->rel))));
 
-	if (P_ISLEAF(opaque) && !P_RIGHTMOST(opaque) && maxoffset < P_HIKEY)
+	if (P_ISLEAF(opaque) && !P_ISDELETED(opaque) && !P_RIGHTMOST(opaque) && maxoffset < P_HIKEY)
 		ereport(ERROR,
 				(errcode(ERRCODE_INDEX_CORRUPTED),
 				 errmsg("non-rightmost leaf block %u in index \"%s\" lacks high key item",
@@ -2413,8 +3084,6 @@ palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum)
 	 * state.  This state is nonetheless treated as corruption by VACUUM on
 	 * from version 9.4 on, so do the same here.  See _bt_pagedel() for full
 	 * details.
-	 *
-	 * Internal pages should never have garbage items, either.
 	 */
 	if (!P_ISLEAF(opaque) && P_ISHALFDEAD(opaque))
 		ereport(ERROR,
@@ -2423,11 +3092,27 @@ palloc_btree_page(BtreeCheckState *state, BlockNumber blocknum)
 						blocknum, RelationGetRelationName(state->rel)),
 				 errhint("This can be caused by an interrupted VACUUM in version 9.3 or older, before upgrade. Please REINDEX it.")));
 
+	/*
+	 * Check that internal pages have no garbage items, and that no page has
+	 * an invalid combination of deletion-related page level flags
+	 */
 	if (!P_ISLEAF(opaque) && P_HAS_GARBAGE(opaque))
 		ereport(ERROR,
 				(errcode(ERRCODE_INDEX_CORRUPTED),
-				 errmsg("internal page block %u in index \"%s\" has garbage items",
-						blocknum, RelationGetRelationName(state->rel))));
+				 errmsg_internal("internal page block %u in index \"%s\" has garbage items",
+								 blocknum, RelationGetRelationName(state->rel))));
+
+	if (P_HAS_FULLXID(opaque) && !P_ISDELETED(opaque))
+		ereport(ERROR,
+				(errcode(ERRCODE_INDEX_CORRUPTED),
+				 errmsg_internal("full transaction id page flag appears in non-deleted block %u in index \"%s\"",
+								 blocknum, RelationGetRelationName(state->rel))));
+
+	if (P_ISDELETED(opaque) && P_ISHALFDEAD(opaque))
+		ereport(ERROR,
+				(errcode(ERRCODE_INDEX_CORRUPTED),
+				 errmsg_internal("deleted page block %u in index \"%s\" is half-dead",
+								 blocknum, RelationGetRelationName(state->rel))));
 
 	return page;
 }
@@ -2477,7 +3162,7 @@ PageGetItemIdCareful(BtreeCheckState *state, BlockNumber block, Page page,
 	ItemId		itemid = PageGetItemId(page, offset);
 
 	if (ItemIdGetOffset(itemid) + ItemIdGetLength(itemid) >
-		BLCKSZ - sizeof(BTPageOpaqueData))
+		BLCKSZ - MAXALIGN(sizeof(BTPageOpaqueData)))
 		ereport(ERROR,
 				(errcode(ERRCODE_INDEX_CORRUPTED),
 				 errmsg("line pointer points past end of tuple space in index \"%s\"",
@@ -2507,26 +3192,69 @@ PageGetItemIdCareful(BtreeCheckState *state, BlockNumber block, Page page,
 }
 
 /*
- * BTreeTupleGetHeapTID() wrapper that lets caller enforce that a heap TID must
- * be present in cases where that is mandatory.
- *
- * This doesn't add much as of BTREE_VERSION 4, since the INDEX_ALT_TID_MASK
- * bit is effectively a proxy for whether or not the tuple is a pivot tuple.
- * It may become more useful in the future, when non-pivot tuples support their
- * own alternative INDEX_ALT_TID_MASK representation.
+ * BTreeTupleGetHeapTID() wrapper that enforces that a heap TID is present in
+ * cases where that is mandatory (i.e. for non-pivot tuples)
  */
 static inline ItemPointer
 BTreeTupleGetHeapTIDCareful(BtreeCheckState *state, IndexTuple itup,
 							bool nonpivot)
 {
-	ItemPointer result = BTreeTupleGetHeapTID(itup);
-	BlockNumber targetblock = state->targetblock;
+	ItemPointer htid;
 
-	if (result == NULL && nonpivot)
+	/*
+	 * Caller determines whether this is supposed to be a pivot or non-pivot
+	 * tuple using page type and item offset number.  Verify that tuple
+	 * metadata agrees with this.
+	 */
+	Assert(state->heapkeyspace);
+	if (BTreeTupleIsPivot(itup) && nonpivot)
+		ereport(ERROR,
+				(errcode(ERRCODE_INDEX_CORRUPTED),
+				 errmsg_internal("block %u or its right sibling block or child block in index \"%s\" has unexpected pivot tuple",
+								 state->targetblock,
+								 RelationGetRelationName(state->rel))));
+
+	if (!BTreeTupleIsPivot(itup) && !nonpivot)
+		ereport(ERROR,
+				(errcode(ERRCODE_INDEX_CORRUPTED),
+				 errmsg_internal("block %u or its right sibling block or child block in index \"%s\" has unexpected non-pivot tuple",
+								 state->targetblock,
+								 RelationGetRelationName(state->rel))));
+
+	htid = BTreeTupleGetHeapTID(itup);
+	if (!ItemPointerIsValid(htid) && nonpivot)
 		ereport(ERROR,
 				(errcode(ERRCODE_INDEX_CORRUPTED),
 				 errmsg("block %u or its right sibling block or child block in index \"%s\" contains non-pivot tuple that lacks a heap TID",
-						targetblock, RelationGetRelationName(state->rel))));
+						state->targetblock,
+						RelationGetRelationName(state->rel))));
 
-	return result;
+	return htid;
+}
+
+/*
+ * Return the "pointed to" TID for itup, which is used to generate a
+ * descriptive error message.  itup must be a "data item" tuple (it wouldn't
+ * make much sense to call here with a high key tuple, since there won't be a
+ * valid downlink/block number to display).
+ *
+ * Returns either a heap TID (which will be the first heap TID in posting list
+ * if itup is posting list tuple), or a TID that contains downlink block
+ * number, plus some encoded metadata (e.g., the number of attributes present
+ * in itup).
+ */
+static inline ItemPointer
+BTreeTupleGetPointsToTID(IndexTuple itup)
+{
+	/*
+	 * Rely on the assumption that !heapkeyspace internal page data items will
+	 * correctly return TID with downlink here -- BTreeTupleGetHeapTID() won't
+	 * recognize it as a pivot tuple, but everything still works out because
+	 * the t_tid field is still returned
+	 */
+	if (!BTreeTupleIsPivot(itup))
+		return BTreeTupleGetHeapTID(itup);
+
+	/* Pivot tuple returns TID with downlink block (heapkeyspace variant) */
+	return &itup->t_tid;
 }

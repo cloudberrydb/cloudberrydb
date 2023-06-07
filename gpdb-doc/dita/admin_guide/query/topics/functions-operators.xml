@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic26" xml:lang="en">
     <title id="in151167">Using Functions and Operators</title>
-    <shortdesc>Description of user-defined and built-in functions and operators in Greenplum
+    <shortdesc>Description of user-defined and built-in functions and operators in Cloudberry
         Database.</shortdesc>
     <body>
         <ul>
@@ -23,25 +23,25 @@
         </ul>
     </body>
     <topic id="topic27" xml:lang="en">
-        <title id="in201560">Using Functions in Greenplum Database</title>
+        <title id="in201560">Using Functions in Cloudberry Database</title>
         <body>
-            <p>When you invoke a function in Greenplum Database, function attributes control the
+            <p>When you invoke a function in Cloudberry Database, function attributes control the
                 execution of the function. The volatility attributes (<codeph>IMMUTABLE</codeph>,
                     <codeph>STABLE</codeph>, <codeph>VOLATILE</codeph>) and the <codeph>EXECUTE
                     ON</codeph> attributes control two different aspects of function execution. In
                 general, volatility indicates when the function is run, and <codeph>EXECUTE
                     ON</codeph> indicates where it is run. The volatility attributes are
                 PostgreSQL based attributes, the <codeph>EXECUTE ON</codeph> attributes are
-                Greenplum Database attributes.</p>
+                Cloudberry Database attributes.</p>
             <p>For example, a function defined with the <codeph>IMMUTABLE</codeph> attribute can be run at query
                 planning time, while a function with the <codeph>VOLATILE</codeph> attribute must be run for every
                 row in the query. A function with the <codeph>EXECUTE ON MASTER</codeph> attribute runs only on the
                 master instance, and a function with the <codeph>EXECUTE ON ALL SEGMENTS</codeph> attribute runs on
                 all primary segment instances (not the master). </p>
-            <p>These tables summarize what Greenplum Database assumes about function execution based
+            <p>These tables summarize what Cloudberry Database assumes about function execution based
                 on the attribute.</p>
             <table id="in201681">
-                <title>Function Volatility Attributes in Greenplum Database</title>
+                <title>Function Volatility Attributes in Cloudberry Database</title>
                 <tgroup cols="4">
                     <colspec colname="col1" colnum="1" colwidth="77*"/>
                     <colspec colname="col2" colnum="2" colwidth="86*"/>
@@ -50,7 +50,7 @@
                     <thead>
                         <row>
                             <entry colname="col1">Function Attribute</entry>
-                            <entry colname="col2">Greenplum Support</entry>
+                            <entry colname="col2">Cloudberry Support</entry>
                             <entry colname="col3">Description</entry>
                             <entry colname="col4">Comments</entry>
                         </row>
@@ -90,7 +90,7 @@
                 </tgroup>
             </table>
             <table id="table_cnz_4ng_gcb">
-                <title>Function EXECUTE ON attributes in Greenplum Database </title>
+                <title>Function EXECUTE ON attributes in Cloudberry Database </title>
                 <tgroup cols="3">
                     <colspec colname="col1" colnum="1" colwidth="77*"/>
                     <colspec colname="col3" colnum="2" colwidth="144*"/>
@@ -109,7 +109,7 @@
                                 master, or any segment instance, and it returns the same result
                                 regardless of where it runs. This is the default
                                 attribute.</entry>
-                            <entry colname="col4">Greenplum Database determines where the function
+                            <entry colname="col4">Cloudberry Database determines where the function
                                 runs.</entry>
                         </row>
                         <row>
@@ -130,7 +130,7 @@
                             <entry colname="col1">EXECUTE ON INITPLAN</entry>
                             <entry colname="col3">Indicates that the function contains an SQL
                                 command that dispatches queries to the segment instances and
-                                requires special processing on the master instance by Greenplum
+                                requires special processing on the master instance by Cloudberry
                                 Database when possible. </entry>
                             <entry colname="col4"/>
                         </row>
@@ -143,17 +143,17 @@
             <p>Refer to the PostgreSQL <xref
                     href="https://www.postgresql.org/docs/9.4/xfunc-volatility.html"
                     scope="external" format="html">Function Volatility Categories</xref>
-                documentation for additional information about the Greenplum Database function
+                documentation for additional information about the Cloudberry Database function
                 volatility classifications.</p>
             <p>For more information about <codeph>EXECUTE ON</codeph> attributes, see <xref
                         href="../../../ref_guide/sql_commands/CREATE_FUNCTION.xml#topic1"
                         format="dita" scope="peer">CREATE FUNCTION</xref>.</p>
-            <p>In Greenplum Database, data is divided up across segments — each segment is a
+            <p>In Cloudberry Database, data is divided up across segments — each segment is a
                 distinct PostgreSQL database. To prevent inconsistent or unexpected results, do not
                 run functions classified as <codeph>VOLATILE</codeph> at the segment level if
                 they contain SQL commands or modify the database in any way. For example, functions
                 such as <codeph>setval()</codeph> are not allowed to run on distributed data in
-                Greenplum Database because they can cause inconsistent data between segment
+                Cloudberry Database because they can cause inconsistent data between segment
                 instances.</p>
             <p>A function can run read-only queries on replicated tables (<codeph>DISTRIBUTED
                     REPLICATED</codeph>) on the segments, but any SQL command that modifies data
@@ -161,7 +161,7 @@
                 <note>The hidden system columns (<codeph>ctid</codeph>, <codeph>cmin</codeph>,
                         <codeph>cmax</codeph>, <codeph>xmin</codeph>, <codeph>xmax</codeph>, and
                         <codeph>gp_segment_id</codeph>) cannot be referenced in user queries on
-                    replicated tables because they have no single, unambiguous value. Greenplum
+                    replicated tables because they have no single, unambiguous value. Cloudberry
                     Database returns a <codeph>column does not exist</codeph> error for the
                     query.</note></p>
             <p>To ensure data consistency, you can safely use <codeph>VOLATILE</codeph> and
@@ -178,7 +178,7 @@ SELECT foo();</codeblock>
             <p>
                 <codeblock>SELECT * from foo();</codeblock>
             </p>
-            <p>Greenplum Database does not support functions that return a table reference
+            <p>Cloudberry Database does not support functions that return a table reference
                     (<codeph>rangeFuncs</codeph>) or functions that use the
                     <codeph>refCursor</codeph> data type.</p>
         </body>
@@ -191,7 +191,7 @@ SELECT foo();</codeblock>
                     matter much whether a function is run once during planning or once during
                     query execution start up. But there is a big difference when you save the plan
                     and reuse it later. If you mislabel a function <codeph>IMMUTABLE</codeph>,
-                    Greenplum Database may prematurely fold it to a constant during planning,
+                    Cloudberry Database may prematurely fold it to a constant during planning,
                     possibly reusing a stale value during subsequent execution of the plan. You may
                     run into this hazard when using <codeph>PREPARE</codeph>d statements, or when
                     using languages such as PL/pgSQL that cache plans.</p>
@@ -201,7 +201,7 @@ SELECT foo();</codeblock>
     <topic id="topic28" xml:lang="en">
         <title id="in141451">User-Defined Functions</title>
         <body>
-            <p>Greenplum Database supports user-defined functions. See <xref format="html"
+            <p>Cloudberry Database supports user-defined functions. See <xref format="html"
                     href="https://www.postgresql.org/docs/9.4/extend.html" scope="external"
                     >Extending SQL</xref> in the PostgreSQL documentation for more information.</p>
             <p>Use the <codeph>CREATE FUNCTION</codeph> statement to register user-defined functions
@@ -218,12 +218,12 @@ SELECT foo();</codeblock>
                 optimization might determine it would be beneficial to push the function invocation to segment
                 instances. </p>
             <p>When you create user-defined functions, avoid using fatal errors or destructive
-                calls. Greenplum Database may respond to such errors with a sudden shutdown or
+                calls. Cloudberry Database may respond to such errors with a sudden shutdown or
                 restart.</p>
-            <p>In Greenplum Database, the shared library files for user-created functions must
-                reside in the same library path location on every host in the Greenplum Database
+            <p>In Cloudberry Database, the shared library files for user-created functions must
+                reside in the same library path location on every host in the Cloudberry Database
                 array (masters, segments, and mirrors).</p>
-            <p>You can also create and run anonymous code blocks that are written in a Greenplum
+            <p>You can also create and run anonymous code blocks that are written in a Cloudberry
                 Database procedural language such as PL/pgSQL. The anonymous blocks run as transient
                 anonymous functions. For information about creating and running anonymous blocks,
                 see the <xref href="../../../ref_guide/sql_commands/DO.xml#topic1"
@@ -234,14 +234,14 @@ SELECT foo();</codeblock>
         <title id="in141007">Built-in Functions and Operators</title>
         <body>
             <p>The following table lists the categories of built-in functions and operators
-                supported by PostgreSQL. All functions and operators are supported in Greenplum
+                supported by PostgreSQL. All functions and operators are supported in Cloudberry
                 Database as in PostgreSQL with the exception of <codeph>STABLE</codeph> and
                     <codeph>VOLATILE</codeph> functions, which are subject to the restrictions noted
                 in <xref format="dita" href="#topic27" type="topic"/>. See the <xref format="html"
                     href="https://www.postgresql.org/docs/9.4/functions.html"
                     scope="external">Functions and Operators</xref> section of the PostgreSQL
                 documentation for more information about these built-in functions and operators.</p>
-            <p>Greenplum Database includes JSON processing functions that manipulate values the
+            <p>Cloudberry Database includes JSON processing functions that manipulate values the
                     <codeph>json</codeph> data type. For information about JSON data, see <xref
                     href="json-data.xml#topic1"/>.</p>
             <table id="in204913">
@@ -594,7 +594,7 @@ SELECT foo();</codeblock>
     <topic id="topic30" xml:lang="en">
         <title id="in179666">Window Functions</title>
         <body>
-            <p>The following built-in window functions are Greenplum extensions to the PostgreSQL
+            <p>The following built-in window functions are Cloudberry extensions to the PostgreSQL
                 database. All window functions are <i>immutable</i>. For more information about
                 window functions, see <xref href="../topics/defining-queries.xml#topic13"/>.</p>
             <table id="in164369">
@@ -790,12 +790,12 @@ SELECT foo();</codeblock>
     <topic id="topic31" xml:lang="en">
         <title id="in184703">Advanced Aggregate Functions</title>
         <body>
-            <p>The following built-in advanced aggregate functions are Greenplum extensions of the
-                PostgreSQL database. These functions are <i>immutable</i>. <note>The Greenplum
+            <p>The following built-in advanced aggregate functions are Cloudberry extensions of the
+                PostgreSQL database. These functions are <i>immutable</i>. <note>The Cloudberry
                     MADlib Extension for Analytics provides additional advanced functions to perform
-                    statistical analysis and machine learning with Greenplum Database data. See
+                    statistical analysis and machine learning with Cloudberry Database data. See
                         <xref href="../../../analytics/madlib.xml#topic1" format="dita" scope="peer"
-                        >Greenplum MADlib Extension for Analytics</xref> in the <cite>Greenplum
+                        >Cloudberry MADlib Extension for Analytics</xref> in the <cite>Cloudberry
                         Database Reference Guide</cite>.</note></p>
             <table id="in2073121">
                 <title>Advanced Aggregate Functions</title>

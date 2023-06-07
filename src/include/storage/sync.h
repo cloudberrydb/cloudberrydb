@@ -3,7 +3,7 @@
  * sync.h
  *	  File synchronization management code.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/sync.h
@@ -35,7 +35,13 @@ typedef enum SyncRequestType
 typedef enum SyncRequestHandler
 {
 	SYNC_HANDLER_MD = 0,			/* md smgr */
-	SYNC_HANDLER_AO = 1
+	SYNC_HANDLER_CLOG,
+	SYNC_HANDLER_COMMIT_TS,
+	SYNC_HANDLER_MULTIXACT_OFFSET,
+	SYNC_HANDLER_MULTIXACT_MEMBER,
+	SYNC_HANDLER_NONE,
+	SYNC_HANDLER_AO,
+	SYNC_HANDLER_DISTRIBUTED_LOG
 } SyncRequestHandler;
 
 /*
@@ -49,24 +55,6 @@ typedef struct FileTag
 	int16		forknum;		/* ForkNumber, saving space */
 	RelFileNode rnode;
 	uint32		segno;
-	/*
-	 * GPDB_12_MERGE_FIXME: Should the "is this AO table?" flag be put here?
-	 * Do we need to keep track of whether this file backs an AO table? GPDB 6
-	 * has logic in md/smgr layer to optimize operations on AO tables.
-	 *
-	 * For example:
-	 *   1. delaying fsync on AO tables
-	 *      (commit 6bd76f70450)
-	 *   2. skipping heap specific functions like ForgetRelationFsyncRequests()
-	 *      and DropRelFileNodeBuffers() when operating on AO tables
-	 *      (commit 85fee7365d2)
-	 *   3. efficient unlinking of AO tables
-	 *      (commit 8838ac983c6)
-	 *
-	 * Seems like these features should come through the tableam interface.
-	 * Let's try to do that and delete this diff from upstream.
-	 */
-	/*bool		is_ao_segno;*/
 } FileTag;
 
 #define INIT_FILETAG(a,xx_rnode,xx_forknum,xx_segno,xx_handler)	\

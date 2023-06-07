@@ -221,7 +221,7 @@ create unique index partial_key_index on insertconflicttest(key) where fruit lik
 
 -- Succeeds
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' do update set fruit = excluded.fruit;
-insert into insertconflicttest values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and fruit = 'inconsequential' do nothing;
+insert into insertconflicttest as t values (23, 'Blackberry') on conflict (key) where fruit like '%berry' and t.fruit = 'inconsequential' do nothing;
 
 -- fails
 insert into insertconflicttest values (23, 'Blackberry') on conflict (key) do update set fruit = excluded.fruit;
@@ -478,7 +478,7 @@ insert into parted_conflict_test_1 values (1, 'a') on conflict (a) do nothing;
 insert into parted_conflict_test_1 values (1, 'b') on conflict (a) do update set b = excluded.b;
 
 -- start_ignore
--- Greenplum could not update the distribution column on conflict
+-- Cloudberry could not update the distribution column on conflict
 -- index on b required, which doesn't exist in parent
 insert into parted_conflict_test values (2, 'b') on conflict (b) do update set a = excluded.a;
 
@@ -563,7 +563,7 @@ alter table parted_conflict attach partition parted_conflict_1 for values from (
 truncate parted_conflict;
 insert into parted_conflict values (50, 'cincuenta', 1);
 -- start_ignore
--- Greenplum could not update the distribution column on conflict
+-- Cloudberry could not update the distribution column on conflict
 insert into parted_conflict values (50, 'cincuenta', 2)
   on conflict (a, b) do update set (a, b, c) = row(excluded.*)
   where parted_conflict = (50, text 'cincuenta', 1) and
@@ -595,7 +595,7 @@ truncate parted_conflict;
 
 insert into parted_conflict values (0, 'cero', 1);
 
--- Greenplum: this won't trigger, because the INSERT/UPDATE happens on the QEs,
+-- Cloudberry: this won't trigger, because the INSERT/UPDATE happens on the QEs,
 -- but FOR STATEMENT triggers could not be triggered on a QE
 insert into parted_conflict values(0, 'cero', 1)
   on conflict (a,b) do update set c = parted_conflict.c + 1;

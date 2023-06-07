@@ -16,7 +16,7 @@ key" references in a table with a FOREIGN_KEY line. Those declarations
 are only used by gpcheckcat, they are not used for anything by the
 server itself.
 
-For example, the Greenplum resource queue capability table is a shared
+For example, the Cloudberry resource queue capability table is a shared
 table with a unique index and two subsidiary indexes.  It also has a
 foreign key relationship with pg_resqueue and pg_resourcetype.  The
 FOREIGN_KEY definition is:

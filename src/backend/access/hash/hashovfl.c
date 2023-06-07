@@ -3,7 +3,7 @@
  * hashovfl.c
  *	  Overflow page management code for the Postgres hash access method
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -793,7 +793,7 @@ _hash_initbitmapbuffer(Buffer buf, uint16 bmsize, bool initpage)
  *	be confused into returning the same tuple more than once or some tuples
  *	not at all by the rearrangement we are performing here.  To prevent
  *	any concurrent scan to cross the squeeze scan we use lock chaining
- *	similar to hasbucketcleanup.  Refer comments atop hashbucketcleanup.
+ *	similar to hashbucketcleanup.  Refer comments atop hashbucketcleanup.
  *
  *	We need to retain a pin on the primary bucket to ensure that no concurrent
  *	split can start.

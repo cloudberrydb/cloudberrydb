@@ -3,7 +3,7 @@
 # parser generator for ecpg version 2
 # call with backend parser as stdin
 #
-# Copyright (c) 2007-2019, PostgreSQL Global Development Group
+# Copyright (c) 2007-2021, PostgreSQL Global Development Group
 #
 # Written by Mike Aubury <mike.aubury@aubit.com>
 #            Michael Meskes <meskes@postgresql.org>
@@ -38,6 +38,7 @@ my %replace_token = (
 	'BCONST' => 'ecpg_bconst',
 	'FCONST' => 'ecpg_fconst',
 	'Sconst' => 'ecpg_sconst',
+	'XCONST' => 'ecpg_xconst',
 	'IDENT'  => 'ecpg_ident',
 	'PARAM'  => 'ecpg_param',);
 
@@ -62,14 +63,19 @@ my %replace_types = (
 	'opt_array_bounds' => '<index>',
 
 	# "ignore" means: do not create type and rules for this non-term-id
-	'stmtblock'          => 'ignore',
-	'stmtmulti'          => 'ignore',
-	'CreateAsStmt'       => 'ignore',
-	'DeallocateStmt'     => 'ignore',
-	'ColId'              => 'ignore',
-	'type_function_name' => 'ignore',
-	'ColLabel'           => 'ignore',
-	'Sconst'             => 'ignore',);
+	'parse_toplevel'      => 'ignore',
+	'stmtmulti'           => 'ignore',
+	'CreateAsStmt'        => 'ignore',
+	'DeallocateStmt'      => 'ignore',
+	'ColId'               => 'ignore',
+	'type_function_name'  => 'ignore',
+	'ColLabel'            => 'ignore',
+	'Sconst'              => 'ignore',
+	'opt_distinct_clause' => 'ignore',
+	'PLpgSQL_Expr'        => 'ignore',
+	'PLAssignStmt'        => 'ignore',
+	'plassign_target'     => 'ignore',
+	'plassign_equals'     => 'ignore',);
 
 # these replace_line commands excise certain keywords from the core keyword
 # lists.  Be sure to account for these in ColLabel and related productions.
@@ -218,8 +224,8 @@ sub main
 				if ($a eq 'IDENT' && $prior eq '%nonassoc')
 				{
 
-					# add two more tokens to the list
-					$str = $str . "\n%nonassoc CSTRING\n%nonassoc UIDENT";
+					# add more tokens to the list
+					$str = $str . "\n%nonassoc CSTRING";
 				}
 				$prior = $a;
 			}

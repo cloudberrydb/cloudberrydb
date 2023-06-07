@@ -4,7 +4,7 @@
  *	  POSTGRES internals code for resource queues and locks.
  *
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc.
+ * Portions Copyright (c) 2006-2008, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -30,6 +30,7 @@
 #include "catalog/pg_type.h"
 #include "cdb/cdbgang.h"
 #include "cdb/cdbvars.h"
+#include "common/hashfn.h"
 #include "funcapi.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -68,6 +69,13 @@ static uint64 ResourceQueueGetSuperuserQueryMemoryLimit(void);
  */
 static HTAB *ResPortalIncrementHash;	/* Hash of resource increments. */
 static HTAB *ResQueueHash;		/* Hash of resource queues. */
+
+static int
+ResLockCheckLimit(LOCK *lock, PROCLOCK *proclock, ResPortalIncrement *incrementSet, bool increment);
+
+#define LIMIT_CHECK_OK		(0)
+#define LIMIT_CHECK_FOUND	(1)
+#define LIMIT_CHECK_ERROR	(-1)
 
 
 /*
@@ -391,7 +399,7 @@ ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet)
 	 * queue control is not exhausted).
 	 */
 	status = ResLockCheckLimit(lock, proclock, incrementSet, true);
-	if (status == STATUS_ERROR)
+	if (status == LIMIT_CHECK_ERROR)
 	{
 		/*
 		 * The requested lock has individual increments that are larger than
@@ -428,7 +436,7 @@ ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet)
 				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
 				 errmsg("statement requires more resources than resource queue allows")));
 	}
-	else if (status == STATUS_OK)
+	else if (status == LIMIT_CHECK_OK)
 	{
 		/*
 		 * The requested lock will *not* exhaust the limit for this resource
@@ -445,7 +453,7 @@ ResLockAcquire(LOCKTAG *locktag, ResPortalIncrement *incrementSet)
 	}
 	else
 	{
-		Assert(status == STATUS_FOUND);
+		Assert(status == LIMIT_CHECK_FOUND);
 
 		/*
 		 * The requested lock will exhaust the limit for this resource queue,
@@ -676,7 +684,7 @@ IsResQueueLockedForPortal(Portal portal) {
  *	will cause a resource to exceed its limits.
  *
  * Notes:
- *	Returns STATUS_FOUND if limit will be exhausted, STATUS_OK if not.
+ *	Returns LIMIT_CHECK_FOUND if limit will be exhausted, LIMIT_CHECK_OK if not.
  *
  *	If increment is true, then the resource counter associated with the lock
  *	is to be incremented, if false then decremented.
@@ -688,7 +696,7 @@ IsResQueueLockedForPortal(Portal portal) {
  *	The resource queue lightweight lock (ResQueueLock) must be held while
  *	this function is called.
  *
- * MPP-4340: modified logic so that we return STATUS_OK when
+ * MPP-4340: modified logic so that we return LIMIT_CHECK_OK when
  * decrementing resource -- decrements shouldn't care, let's not stop
  * them from freeing resources!
  */
@@ -699,7 +707,7 @@ ResLockCheckLimit(LOCK *lock, PROCLOCK *proclock, ResPortalIncrement *incrementS
 	ResLimit	limits;
 	bool		over_limit = false;
 	bool		will_overcommit = false;
-	int			status = STATUS_OK;
+	int			status = LIMIT_CHECK_OK;
 	Cost		increment_amt;
 	int			i;
 
@@ -818,12 +826,11 @@ ResLockCheckLimit(LOCK *lock, PROCLOCK *proclock, ResPortalIncrement *incrementS
 	}
 
 	if (will_overcommit && !queue->overcommit)
-		status = STATUS_ERROR;
+		status = LIMIT_CHECK_ERROR;
 	else if (over_limit)
-		status = STATUS_FOUND;
+		status = LIMIT_CHECK_FOUND;
 
 	return status;
-
 }
 
 
@@ -1088,7 +1095,7 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 		new_status = (char *) palloc(len + 8 + 1);
 		memcpy(new_status, old_status, len);
 		strcpy(new_status + len, " queuing");
-		set_ps_display(new_status, false);		/* truncate off " queuing" */
+		set_ps_display(new_status);		/* truncate off " queuing" */
 		new_status[len] = '\0';
 	}
 
@@ -1100,7 +1107,7 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 	 *
 	 * NOTE: self-deadlocks will throw (do a non-local return).
 	 */
-	if (ResProcSleep(ExclusiveLock, locallock, incrementSet) != STATUS_OK)
+	if (ResProcSleep(ExclusiveLock, locallock, incrementSet) != LIMIT_CHECK_OK)
 	{
 		/*
 		 * We failed as a result of a deadlock, see CheckDeadLock(). Quit now.
@@ -1114,7 +1121,7 @@ ResWaitOnLock(LOCALLOCK *locallock, ResourceOwner owner, ResPortalIncrement *inc
 	/* Report change to non-waiting status */
 	if (update_process_title)
 	{
-		set_ps_display(new_status, false);
+		set_ps_display(new_status);
 		pfree(new_status);
 	}
 
@@ -1199,7 +1206,7 @@ ResProcLockRemoveSelfAndWakeup(LOCK *lock)
 		 * the wait list, and gives back a *new* next proc).
 		 */
 		status = ResLockCheckLimit(lock, proc->waitProcLock, incrementSet, true);
-		if (status == STATUS_OK)
+		if (status == LIMIT_CHECK_OK)
 		{
 			ResGrantLock(lock, proc->waitProcLock);
 			ResLockUpdateLimit(lock, proc->waitProcLock, incrementSet, true, false);

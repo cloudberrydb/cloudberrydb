@@ -14,7 +14,7 @@ an operator name, since they will be taken as the start of a comment.
 </li><li id="bw144998">A multicharacter operator name cannot end in <codeph>+</codeph> or <codeph>-</codeph>,
 unless the name also contains at least one of these characters: <codeph>~
 ! @ # % ^ &amp; | ` ?</codeph></li></ul><p>For example, <codeph>@-</codeph> is an allowed operator name, but <codeph>*-</codeph>
-is not. This restriction allows Greenplum Database to parse SQL-compliant
+is not. This restriction allows Cloudberry Database to parse SQL-compliant
 commands without requiring spaces between tokens. </p>
 <p>The use of <codeph>=&gt;</codeph> as an operator name is deprecated.  
 It may be disallowed altogether in a future release.</p>
@@ -180,7 +180,7 @@ CREATE OPERATOR + (
     rightarg = complex,
     procedure = complex_add,
     commutator = +
-);</codeblock><p>To use this operator in a query: </p><codeblock>SELECT (a + b) AS c FROM test_complex;</codeblock></section><section id="section7"><title>Compatibility</title><p><codeph>CREATE OPERATOR</codeph> is a Greenplum Database language extension.
+);</codeblock><p>To use this operator in a query: </p><codeblock>SELECT (a + b) AS c FROM test_complex;</codeblock></section><section id="section7"><title>Compatibility</title><p><codeph>CREATE OPERATOR</codeph> is a Cloudberry Database language extension.
 The SQL standard does not provide for user-defined operators.</p></section><section id="section8"><title>See Also</title><p><codeph><xref href="CREATE_FUNCTION.xml#topic1" type="topic" format="dita"/></codeph>,
                         <codeph><xref href="./CREATE_TYPE.xml#topic1" type="topic" format="dita"
                     /></codeph>, <codeph><xref href="ALTER_OPERATOR.xml#topic1" type="topic"

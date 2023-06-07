@@ -3,7 +3,7 @@
  * gp_distribution_policy.h
  *	  definitions for the gp_distribution_policy catalog table
  *
- * Portions Copyright (c) 2005-2011, Greenplum inc
+ * Portions Copyright (c) 2005-2011, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -90,7 +90,7 @@ typedef enum GpPolicyType
 } GpPolicyType;
 
 /*
- * GpPolicy represents a Greenplum DB data distribution policy. The ptype field
+ * GpPolicy represents a Cloudberry DB data distribution policy. The ptype field
  * is always significant.  Other fields may be specific to a particular
  * type.
  *

@@ -27,13 +27,13 @@ begin;
 create function num_dirty_on_qes(relid oid) returns setof bigint as
 $$
 declare
-  rfnode oid;
+  rfnode int8;
   result int4;
 begin
    select relfilenode into rfnode from pg_class where oid=$1;
 
    select count(*) into result from dirty_buffers_on_qes()
-     as (tablespace oid, database oid, relfilenode oid, block int)
+     as (tablespace oid, database oid, relfilenode int8, block int)
      where relfilenode = rfnode;
    return next result;
 end
@@ -96,9 +96,9 @@ from gp_segment_configuration where role = 'p' and content > -1;
 
 -- Ensure no buffers are dirty before we start.
 select * from dirty_buffers_on_qd()
- as (tablespace oid, database oid, relfilenode oid, block int);
+ as (tablespace oid, database oid, relfilenode int8, block int);
 select * from dirty_buffers_on_qes()
- as (tablespace oid, database oid, relfilenode oid, block int);
+ as (tablespace oid, database oid, relfilenode int8, block int);
 
 -- Make buffers dirty.  At least two relfiles must be sync'ed during
 -- next checkpoint.
@@ -136,7 +136,7 @@ checkpoint;
 
 -- There should be no dirty buffers after checkpoint.
 select * from dirty_buffers_on_qes()
- as (tablespace oid, database oid, relfilenode oid, block int);
+ as (tablespace oid, database oid, relfilenode int8, block int);
 
 -- Validate that the number of files fsync'ed by checkpointer is at
 -- least 2.  The two files fsync'ed should be corresponding to

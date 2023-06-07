@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Recovers Greenplum segment instances that are marked as invalid, if
+# Recovers Cloudberry segment instances that are marked as invalid, if
 # mirroring is configured and operational
 #
 
@@ -14,4 +14,5 @@ from gppylib.programs.clsAddMirrors import *
 
 #-------------------------------------------------------------------------
 if __name__ == '__main__':
+    check_deployment_mode('gpaddmirrors')
     simple_main( GpAddMirrorsProgram.createParser, GpAddMirrorsProgram.createProgram)

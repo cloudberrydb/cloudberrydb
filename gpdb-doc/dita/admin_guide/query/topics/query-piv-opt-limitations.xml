@@ -3,9 +3,9 @@
 <topic id="topic1">
   <title>GPORCA Limitations</title>
   <abstract>
-    <shortdesc>There are limitations in Greenplum Database when using the default GPORCA optimizer.
-      GPORCA and the Postgres Planner currently coexist in Greenplum Database because GPORCA
-      does not support all Greenplum Database features. </shortdesc>
+    <shortdesc>There are limitations in Cloudberry Database when using the default GPORCA optimizer.
+      GPORCA and the Postgres Planner currently coexist in Cloudberry Database because GPORCA
+      does not support all Cloudberry Database features. </shortdesc>
   </abstract>
   <body>
     <p>This section describes the limitations. <ul id="ul_a3q_pbm_vp">
@@ -17,8 +17,8 @@
     <title>Unsupported SQL Query Features</title>
     <body>
       <p>Certain query features are not supported with the default GPORCA optimizer. When an
-        unsupported query is run, Greenplum logs this notice along with the query
-        text:<codeblock>Feature not supported by the Greenplum Query Optimizer: UTILITY command</codeblock></p>
+        unsupported query is run, Cloudberry logs this notice along with the query
+        text:<codeblock>Feature not supported by the Cloudberry Query Optimizer: UTILITY command</codeblock></p>
       <p>These features are unsupported when GPORCA is enabled (the default): <ul id="ul_ndm_gyl_vp">
           <li>Prepared statements that have parameterized values.</li>
           <li>Indexed expressions (an index defined as expression based on one or more columns of
@@ -60,7 +60,7 @@
           <li><codeph>SELECT</codeph>, <codeph>UPDATE</codeph>, and <codeph>DELETE</codeph> commands
             where a table name is qualified by the <codeph>ONLY</codeph> keyword.</li>
           <li>Per-column collation. GPORCA supports collation only when all columns in the query use
-            the same collation. If columns in the query use different collations, then Greenplum
+            the same collation. If columns in the query use different collations, then Cloudberry
             uses the Postgres Planner.</li>
         </ul></p>
     </body>

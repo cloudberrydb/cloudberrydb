@@ -505,4 +505,6 @@ SELECT * FROM cancel_all;
 2:DROP ROLE role2_cpu_test;
 2:DROP RESOURCE GROUP rg1_cpu_test;
 2:DROP RESOURCE GROUP rg2_cpu_test;
+-- start_ignore
 2:DROP LANGUAGE plpython3u CASCADE;
+-- end_ignore

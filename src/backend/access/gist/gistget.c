@@ -4,7 +4,7 @@
  *	  fetch tuples from a GiST scan.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -17,11 +17,11 @@
 #include "access/genam.h"
 #include "access/gist_private.h"
 #include "access/relscan.h"
+#include "lib/pairingheap.h"
 #include "miscadmin.h"
+#include "pgstat.h"
 #include "storage/lmgr.h"
 #include "storage/predicate.h"
-#include "pgstat.h"
-#include "lib/pairingheap.h"
 #include "utils/float.h"
 #include "utils/memutils.h"
 #include "utils/rel.h"
@@ -74,7 +74,7 @@ gistkillitems(IndexScanDesc scan)
 
 	/*
 	 * Mark all killedItems as dead. We need no additional recheck, because,
-	 * if page was modified, pageLSN must have changed.
+	 * if page was modified, curPageLSN must have changed.
 	 */
 	for (i = 0; i < so->numKilled; i++)
 	{
@@ -135,8 +135,7 @@ gistindex_keytest(IndexScanDesc scan,
 	GISTSTATE  *giststate = so->giststate;
 	ScanKey		key = scan->keyData;
 	int			keySize = scan->numberOfKeys;
-	double	   *distance_value_p;
-	bool	   *distance_null_p;
+	IndexOrderByDistance *distance_p;
 	Relation	r = scan->indexRelation;
 
 	*recheck_p = false;
@@ -157,8 +156,8 @@ gistindex_keytest(IndexScanDesc scan,
 
 		for (i = 0; i < scan->numberOfOrderBys; i++)
 		{
-			so->distanceValues[i] = -get_float8_infinity();
-			so->distanceNulls[i] = false;
+			so->distances[i].value = -get_float8_infinity();
+			so->distances[i].isnull = false;
 		}
 		return true;
 	}
@@ -242,8 +241,7 @@ gistindex_keytest(IndexScanDesc scan,
 
 	/* OK, it passes --- now let's compute the distances */
 	key = scan->orderByData;
-	distance_value_p = so->distanceValues;
-	distance_null_p = so->distanceNulls;
+	distance_p = so->distances;
 	keySize = scan->numberOfOrderBys;
 	while (keySize > 0)
 	{
@@ -258,8 +256,8 @@ gistindex_keytest(IndexScanDesc scan,
 		if ((key->sk_flags & SK_ISNULL) || isNull)
 		{
 			/* Assume distance computes as null */
-			*distance_value_p = 0.0;
-			*distance_null_p = true;
+			distance_p->value = 0.0;
+			distance_p->isnull = true;
 		}
 		else
 		{
@@ -296,13 +294,12 @@ gistindex_keytest(IndexScanDesc scan,
 									 ObjectIdGetDatum(key->sk_subtype),
 									 PointerGetDatum(&recheck));
 			*recheck_distances_p |= recheck;
-			*distance_value_p = DatumGetFloat8(dist);
-			*distance_null_p = false;
+			distance_p->value = DatumGetFloat8(dist);
+			distance_p->isnull = false;
 		}
 
 		key++;
-		distance_value_p++;
-		distance_null_p++;
+		distance_p++;
 		keySize--;
 	}
 
@@ -315,9 +312,8 @@ gistindex_keytest(IndexScanDesc scan,
  *
  * scan: index scan we are executing
  * pageItem: search queue item identifying an index page to scan
- * myDistanceValues: distances array associated with pageItem, or NULL at the root
- * myDistanceNulls: null flags for myDistanceValues array, or NULL at the root
  * tbm: if not NULL, gistgetbitmap's output bitmap
+ * myDistances: distances array associated with pageItem, or NULL at the root
  * ntids: if not NULL, gistgetbitmap's output tuple counter
  *
  * If tbm/ntids aren't NULL, we are doing an amgetbitmap scan, and heap
@@ -334,8 +330,7 @@ gistindex_keytest(IndexScanDesc scan,
  */
 static void
 gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem,
-			 double *myDistanceValues, bool *myDistanceNulls,
-			 TIDBitmap *tbm, int64 *ntids)
+			 IndexOrderByDistance *myDistances, TIDBitmap *tbm, int64 *ntids)
 {
 	GISTScanOpaque so = (GISTScanOpaque) scan->opaque;
 	GISTSTATE  *giststate = so->giststate;
@@ -372,7 +367,7 @@ gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem,
 		GISTSearchItem *item;
 
 		/* This can't happen when starting at the root */
-		Assert(myDistanceValues != NULL && myDistanceNulls != NULL);
+		Assert(myDistances != NULL);
 
 		oldcxt = MemoryContextSwitchTo(so->queueCxt);
 
@@ -382,14 +377,26 @@ gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem,
 		item->data.parentlsn = pageItem->data.parentlsn;
 
 		/* Insert it into the queue using same distances as for this page */
-		memcpy(GISTSearchItemDistanceValues(item, scan->numberOfOrderBys),
-			   myDistanceValues, sizeof(double) * scan->numberOfOrderBys);
-		memcpy(GISTSearchItemDistanceNulls(item, scan->numberOfOrderBys),
-			   myDistanceNulls, sizeof(bool) * scan->numberOfOrderBys);
+		memcpy(item->distances, myDistances,
+			   sizeof(item->distances[0]) * scan->numberOfOrderBys);
 
 		pairingheap_add(so->queue, &item->phNode);
 
 		MemoryContextSwitchTo(oldcxt);
+	}
+
+	/*
+	 * Check if the page was deleted after we saw the downlink. There's
+	 * nothing of interest on a deleted page. Note that we must do this after
+	 * checking the NSN for concurrent splits! It's possible that the page
+	 * originally contained some tuples that are visible to us, but was split
+	 * so that all the visible tuples were moved to another page, and then
+	 * this page was deleted.
+	 */
+	if (GistPageIsDeleted(page))
+	{
+		UnlockReleaseBuffer(buffer);
+		return;
 	}
 
 	so->nPageData = so->curPageData = 0;
@@ -515,10 +522,8 @@ gistScanPage(IndexScanDesc scan, GISTSearchItem *pageItem,
 			}
 
 			/* Insert it into the queue using new distance data */
-			memcpy(GISTSearchItemDistanceValues(item, nOrderBys),
-				   so->distanceValues, sizeof(double) * nOrderBys);
-			memcpy(GISTSearchItemDistanceNulls(item, nOrderBys),
-				   so->distanceNulls, sizeof(bool) * nOrderBys);
+			memcpy(item->distances, so->distances,
+				   sizeof(item->distances[0]) * nOrderBys);
 
 			pairingheap_add(so->queue, &item->phNode);
 
@@ -583,8 +588,7 @@ getNextNearest(IndexScanDesc scan)
 			scan->xs_recheck = item->data.heap.recheck;
 
 			index_store_float8_orderby_distances(scan, so->orderByTypes,
-												 GISTSearchItemDistanceValues(item, scan->numberOfOrderBys),
-												 GISTSearchItemDistanceNulls(item, scan->numberOfOrderBys),
+												 item->distances,
 												 item->data.heap.recheckDistances);
 
 			/* in an index-only scan, also return the reconstructed tuple. */
@@ -598,8 +602,7 @@ getNextNearest(IndexScanDesc scan)
 			CHECK_FOR_INTERRUPTS();
 
 			gistScanPage(scan, item,
-						 GISTSearchItemDistanceValues(item, scan->numberOfOrderBys),
-						 GISTSearchItemDistanceNulls(item, scan->numberOfOrderBys),
+						 item->distances,
 						 NULL, NULL);
 		}
 
@@ -638,7 +641,7 @@ gistgettuple(IndexScanDesc scan, ScanDirection dir)
 
 		fakeItem.blkno = GIST_ROOT_BLKNO;
 		memset(&fakeItem.data.parentlsn, 0, sizeof(GistNSN));
-		gistScanPage(scan, &fakeItem, NULL, NULL, NULL, NULL);
+		gistScanPage(scan, &fakeItem, NULL, NULL, NULL);
 	}
 
 	if (scan->numberOfOrderBys > 0)
@@ -685,7 +688,7 @@ gistgettuple(IndexScanDesc scan, ScanDirection dir)
 			}
 
 			/*
-			 * Check the last returned tuple and add it to killitems if
+			 * Check the last returned tuple and add it to killedItems if
 			 * necessary
 			 */
 			if (scan->kill_prior_tuple
@@ -733,8 +736,7 @@ gistgettuple(IndexScanDesc scan, ScanDirection dir)
 				 * return them.
 				 */
 				gistScanPage(scan, item,
-							 GISTSearchItemDistanceValues(item, scan->numberOfOrderBys),
-							 GISTSearchItemDistanceNulls(item, scan->numberOfOrderBys),
+							 item->distances,
 							 NULL, NULL);
 
 				pfree(item);
@@ -784,7 +786,7 @@ gistgetbitmap(IndexScanDesc scan, Node **bmNodeP)
 
 	fakeItem.blkno = GIST_ROOT_BLKNO;
 	memset(&fakeItem.data.parentlsn, 0, sizeof(GistNSN));
-	gistScanPage(scan, &fakeItem, NULL, NULL, tbm, &ntids);
+	gistScanPage(scan, &fakeItem, NULL, tbm, &ntids);
 
 	/*
 	 * While scanning a leaf page, ItemPointers of matching heap tuples will
@@ -800,8 +802,7 @@ gistgetbitmap(IndexScanDesc scan, Node **bmNodeP)
 		CHECK_FOR_INTERRUPTS();
 
 		gistScanPage(scan, item,
-					 GISTSearchItemDistanceValues(item, scan->numberOfOrderBys),
-					 GISTSearchItemDistanceNulls(item, scan->numberOfOrderBys),
+					 item->distances,
 					 tbm, &ntids);
 
 		pfree(item);

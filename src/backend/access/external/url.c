@@ -3,7 +3,7 @@
  * url.c
  *	  Core support for opening external relations via a URL
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
@@ -168,14 +168,12 @@ base16_encode(char *raw, int len, char *encoded)
 static char *
 get_eol_delimiter(List *params)
 {
-	ListCell   *lc = params->head;
+	ListCell   *lc;
 
-	while (lc)
-	{
-		if (pg_strcasecmp(((DefElem *) lc->data.ptr_value)->defname, "line_delim") == 0)
-			return pstrdup(((Value *) ((DefElem *) lc->data.ptr_value)->arg)->val.str);
-		lc = lc->next;
-	}
+	foreach(lc, params)
+		if (pg_strcasecmp(((DefElem *) lc->ptr_value)->defname, "line_delim") == 0)
+			return pstrdup(((Value *) ((DefElem *) lc->ptr_value)->arg)->val.str);
+
 	return pstrdup("");
 }
 
@@ -189,20 +187,20 @@ get_eol_delimiter(List *params)
  * On error, ereport()s
  */
 URL_FILE *
-url_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate, ExternalSelectDesc desc)
+url_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts, ExternalSelectDesc desc, char *relname)
 {
 	/*
 	 * if 'url' starts with "execute:" then it's a command to execute and
 	 * not a url (the command specified in CREATE EXTERNAL TABLE .. EXECUTE)
 	 */
 	if (pg_strncasecmp(url, EXEC_URL_PREFIX, strlen(EXEC_URL_PREFIX)) == 0)
-		return url_execute_fopen(url, forwrite, ev, pstate);
+		return url_execute_fopen(url, forwrite, ev);
 	else if (IS_FILE_URI(url))
-		return url_file_fopen(url, forwrite, ev, pstate);
+		return url_file_fopen(url, forwrite, ev, opts, relname);
 	else if (IS_HTTP_URI(url) || IS_GPFDIST_URI(url) || IS_GPFDISTS_URI(url))
-		return url_curl_fopen(url, forwrite, ev, pstate);
+		return url_curl_fopen(url, forwrite, ev, opts);
 	else
-		return url_custom_fopen(url, forwrite, ev, pstate, desc);
+		return url_custom_fopen(url, forwrite, ev, desc);
 }
 
 /*
@@ -298,7 +296,7 @@ size_t
 url_fread(void *ptr,
           size_t size,
           URL_FILE *file,
-          CopyState pstate)
+          CopyFromState pstate)
 {
     switch (file->type)
     {
@@ -320,7 +318,7 @@ url_fread(void *ptr,
 }
 
 size_t
-url_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+url_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate)
 {
     switch (file->type)
     {
@@ -346,7 +344,7 @@ url_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
  * flush all remaining buffered data waiting to be written out to external source
  */
 void
-url_fflush(URL_FILE *file, CopyState pstate)
+url_fflush(URL_FILE *file, CopyToState pstate)
 {
     switch (file->type)
     {

@@ -2,7 +2,7 @@
  * logical.c
  *	   PostgreSQL logical decoding coordination
  *
- * Copyright (c) 2012-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	  src/backend/replication/logical/logical.c
@@ -28,20 +28,19 @@
 
 #include "postgres.h"
 
-#include "miscadmin.h"
-
 #include "access/xact.h"
 #include "access/xlog_internal.h"
-
+#include "fmgr.h"
+#include "miscadmin.h"
+#include "pgstat.h"
 #include "replication/decode.h"
 #include "replication/logical.h"
-#include "replication/reorderbuffer.h"
 #include "replication/origin.h"
+#include "replication/reorderbuffer.h"
 #include "replication/snapbuild.h"
-
 #include "storage/proc.h"
 #include "storage/procarray.h"
-
+#include "utils/builtins.h"
 #include "utils/memutils.h"
 
 /* data for errcontext callback */
@@ -60,6 +59,13 @@ static void shutdown_cb_wrapper(LogicalDecodingContext *ctx);
 static void begin_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn);
 static void commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 							  XLogRecPtr commit_lsn);
+static void begin_prepare_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn);
+static void prepare_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+							   XLogRecPtr prepare_lsn);
+static void commit_prepared_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									   XLogRecPtr commit_lsn);
+static void rollback_prepared_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+										 XLogRecPtr prepare_end_lsn, TimestampTz prepare_time);
 static void change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 							  Relation relation, ReorderBufferChange *change);
 static void truncate_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
@@ -68,7 +74,26 @@ static void message_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 							   XLogRecPtr message_lsn, bool transactional,
 							   const char *prefix, Size message_size, const char *message);
 
-static void LoadOutputPlugin(OutputPluginCallbacks *callbacks, char *plugin);
+/* streaming callbacks */
+static void stream_start_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									XLogRecPtr first_lsn);
+static void stream_stop_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+								   XLogRecPtr last_lsn);
+static void stream_abort_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									XLogRecPtr abort_lsn);
+static void stream_prepare_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									  XLogRecPtr prepare_lsn);
+static void stream_commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									 XLogRecPtr commit_lsn);
+static void stream_change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									 Relation relation, ReorderBufferChange *change);
+static void stream_message_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									  XLogRecPtr message_lsn, bool transactional,
+									  const char *prefix, Size message_size, const char *message);
+static void stream_truncate_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+									   int nrelations, Relation relations[], ReorderBufferChange *change);
+
+static void LoadOutputPlugin(OutputPluginCallbacks *callbacks, const char *plugin);
 
 /*
  * Make sure the current settings & environment are capable of doing logical
@@ -123,7 +148,7 @@ StartupDecodingContext(List *output_plugin_options,
 					   TransactionId xmin_horizon,
 					   bool need_full_snapshot,
 					   bool fast_forward,
-					   XLogPageReadCB read_page,
+					   XLogReaderRoutine *xl_routine,
 					   LogicalOutputPluginWriterPrepareWrite prepare_write,
 					   LogicalOutputPluginWriterWrite do_write,
 					   LogicalOutputPluginWriterUpdateProgress update_progress)
@@ -166,13 +191,14 @@ StartupDecodingContext(List *output_plugin_options,
 	if (!IsTransactionOrTransactionBlock())
 	{
 		LWLockAcquire(ProcArrayLock, LW_EXCLUSIVE);
-		MyPgXact->vacuumFlags |= PROC_IN_LOGICAL_DECODING;
+		MyProc->statusFlags |= PROC_IN_LOGICAL_DECODING;
+		ProcGlobal->statusFlags[MyProc->pgxactoff] = MyProc->statusFlags;
 		LWLockRelease(ProcArrayLock);
 	}
 
 	ctx->slot = slot;
 
-	ctx->reader = XLogReaderAllocate(wal_segment_size, read_page, ctx);
+	ctx->reader = XLogReaderAllocate(wal_segment_size, NULL, xl_routine, ctx);
 	if (!ctx->reader)
 		ereport(ERROR,
 				(errcode(ERRCODE_OUT_OF_MEMORY),
@@ -181,7 +207,7 @@ StartupDecodingContext(List *output_plugin_options,
 	ctx->reorder = ReorderBufferAllocate();
 	ctx->snapshot_builder =
 		AllocateSnapshotBuilder(ctx->reorder, xmin_horizon, start_lsn,
-								need_full_snapshot);
+								need_full_snapshot, slot->data.initial_consistent_point);
 
 	ctx->reorder->private_data = ctx;
 
@@ -191,6 +217,65 @@ StartupDecodingContext(List *output_plugin_options,
 	ctx->reorder->apply_truncate = truncate_cb_wrapper;
 	ctx->reorder->commit = commit_cb_wrapper;
 	ctx->reorder->message = message_cb_wrapper;
+
+	/*
+	 * To support streaming, we require start/stop/abort/commit/change
+	 * callbacks. The message and truncate callbacks are optional, similar to
+	 * regular output plugins. We however enable streaming when at least one
+	 * of the methods is enabled so that we can easily identify missing
+	 * methods.
+	 *
+	 * We decide it here, but only check it later in the wrappers.
+	 */
+	ctx->streaming = (ctx->callbacks.stream_start_cb != NULL) ||
+		(ctx->callbacks.stream_stop_cb != NULL) ||
+		(ctx->callbacks.stream_abort_cb != NULL) ||
+		(ctx->callbacks.stream_commit_cb != NULL) ||
+		(ctx->callbacks.stream_change_cb != NULL) ||
+		(ctx->callbacks.stream_message_cb != NULL) ||
+		(ctx->callbacks.stream_truncate_cb != NULL);
+
+	/*
+	 * streaming callbacks
+	 *
+	 * stream_message and stream_truncate callbacks are optional, so we do not
+	 * fail with ERROR when missing, but the wrappers simply do nothing. We
+	 * must set the ReorderBuffer callbacks to something, otherwise the calls
+	 * from there will crash (we don't want to move the checks there).
+	 */
+	ctx->reorder->stream_start = stream_start_cb_wrapper;
+	ctx->reorder->stream_stop = stream_stop_cb_wrapper;
+	ctx->reorder->stream_abort = stream_abort_cb_wrapper;
+	ctx->reorder->stream_prepare = stream_prepare_cb_wrapper;
+	ctx->reorder->stream_commit = stream_commit_cb_wrapper;
+	ctx->reorder->stream_change = stream_change_cb_wrapper;
+	ctx->reorder->stream_message = stream_message_cb_wrapper;
+	ctx->reorder->stream_truncate = stream_truncate_cb_wrapper;
+
+
+	/*
+	 * To support two-phase logical decoding, we require
+	 * begin_prepare/prepare/commit-prepare/abort-prepare callbacks. The
+	 * filter_prepare callback is optional. We however enable two-phase
+	 * logical decoding when at least one of the methods is enabled so that we
+	 * can easily identify missing methods.
+	 *
+	 * We decide it here, but only check it later in the wrappers.
+	 */
+	ctx->twophase = (ctx->callbacks.begin_prepare_cb != NULL) ||
+		(ctx->callbacks.prepare_cb != NULL) ||
+		(ctx->callbacks.commit_prepared_cb != NULL) ||
+		(ctx->callbacks.rollback_prepared_cb != NULL) ||
+		(ctx->callbacks.stream_prepare_cb != NULL) ||
+		(ctx->callbacks.filter_prepare_cb != NULL);
+
+	/*
+	 * Callback to support decoding at prepare time.
+	 */
+	ctx->reorder->begin_prepare = begin_prepare_cb_wrapper;
+	ctx->reorder->prepare = prepare_cb_wrapper;
+	ctx->reorder->commit_prepared = commit_prepared_cb_wrapper;
+	ctx->reorder->rollback_prepared = rollback_prepared_cb_wrapper;
 
 	ctx->out = makeStringInfo();
 	ctx->prepare_write = prepare_write;
@@ -211,12 +296,15 @@ StartupDecodingContext(List *output_plugin_options,
  *
  * plugin -- contains the name of the output plugin
  * output_plugin_options -- contains options passed to the output plugin
+ * need_full_snapshot -- if true, must obtain a snapshot able to read all
+ *		tables; if false, one that can read only catalogs is acceptable.
  * restart_lsn -- if given as invalid, it's this routine's responsibility to
  *		mark WAL as reserved by setting a convenient restart_lsn for the slot.
  *		Otherwise, we set for decoding to start from the given LSN without
  *		marking WAL reserved beforehand.  In that scenario, it's up to the
  *		caller to guarantee that WAL remains available.
- * read_page, prepare_write, do_write, update_progress --
+ * xl_routine -- XLogReaderRoutine for underlying XLogReader
+ * prepare_write, do_write, update_progress --
  *		callbacks that perform the use-case dependent, actual, work.
  *
  * Needs to be called while in a memory context that's at least as long lived
@@ -227,17 +315,18 @@ StartupDecodingContext(List *output_plugin_options,
  * startup function.
  */
 LogicalDecodingContext *
-CreateInitDecodingContext(char *plugin,
+CreateInitDecodingContext(const char *plugin,
 						  List *output_plugin_options,
 						  bool need_full_snapshot,
 						  XLogRecPtr restart_lsn,
-						  XLogPageReadCB read_page,
+						  XLogReaderRoutine *xl_routine,
 						  LogicalOutputPluginWriterPrepareWrite prepare_write,
 						  LogicalOutputPluginWriterWrite do_write,
 						  LogicalOutputPluginWriterUpdateProgress update_progress)
 {
 	TransactionId xmin_horizon = InvalidTransactionId;
 	ReplicationSlot *slot;
+	NameData	plugin_name;
 	LogicalDecodingContext *ctx;
 	MemoryContext old_context;
 
@@ -269,9 +358,14 @@ CreateInitDecodingContext(char *plugin,
 				(errcode(ERRCODE_ACTIVE_SQL_TRANSACTION),
 				 errmsg("cannot create logical replication slot in transaction that has performed writes")));
 
-	/* register output plugin name with slot */
+	/*
+	 * Register output plugin name with slot.  We need the mutex to avoid
+	 * concurrent reading of a partially copied string.  But we don't want any
+	 * complicated code while holding a spinlock, so do namestrcpy() outside.
+	 */
+	namestrcpy(&plugin_name, plugin);
 	SpinLockAcquire(&slot->mutex);
-	StrNCpy(NameStr(slot->data.plugin), plugin, NAMEDATALEN);
+	slot->data.plugin = plugin_name;
 	SpinLockRelease(&slot->mutex);
 
 	if (XLogRecPtrIsInvalid(restart_lsn))
@@ -328,7 +422,7 @@ CreateInitDecodingContext(char *plugin,
 
 	ctx = StartupDecodingContext(NIL, restart_lsn, xmin_horizon,
 								 need_full_snapshot, false,
-								 read_page, prepare_write, do_write,
+								 xl_routine, prepare_write, do_write,
 								 update_progress);
 
 	/* call output plugin initialization callback */
@@ -336,6 +430,12 @@ CreateInitDecodingContext(char *plugin,
 	if (ctx->callbacks.startup_cb != NULL)
 		startup_cb_wrapper(ctx, &ctx->options, true);
 	MemoryContextSwitchTo(old_context);
+
+	/*
+	 * We allow decoding of prepared transactions iff the two_phase option is
+	 * enabled at the time of slot creation.
+	 */
+	ctx->twophase &= MyReplicationSlot->data.two_phase;
 
 	ctx->reorder->output_rewrites = ctx->options.receive_rewrites;
 
@@ -358,7 +458,10 @@ CreateInitDecodingContext(char *plugin,
  * fast_forward
  *		bypass the generation of logical changes.
  *
- * read_page, prepare_write, do_write, update_progress
+ * xl_routine
+ *		XLogReaderRoutine used by underlying xlogreader
+ *
+ * prepare_write, do_write, update_progress
  *		callbacks that have to be filled to perform the use-case dependent,
  *		actual work.
  *
@@ -373,7 +476,7 @@ LogicalDecodingContext *
 CreateDecodingContext(XLogRecPtr start_lsn,
 					  List *output_plugin_options,
 					  bool fast_forward,
-					  XLogPageReadCB read_page,
+					  XLogReaderRoutine *xl_routine,
 					  LogicalOutputPluginWriterPrepareWrite prepare_write,
 					  LogicalOutputPluginWriterWrite do_write,
 					  LogicalOutputPluginWriterUpdateProgress update_progress)
@@ -393,13 +496,13 @@ CreateDecodingContext(XLogRecPtr start_lsn,
 	if (SlotIsPhysical(slot))
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 (errmsg("cannot use physical replication slot for logical decoding"))));
+				 errmsg("cannot use physical replication slot for logical decoding")));
 
 	if (slot->data.database != MyDatabaseId)
 		ereport(ERROR,
 				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
-				 (errmsg("replication slot \"%s\" was not created in this database",
-						 NameStr(slot->data.name)))));
+				 errmsg("replication slot \"%s\" was not created in this database",
+						NameStr(slot->data.name))));
 
 	if (start_lsn == InvalidXLogRecPtr)
 	{
@@ -417,16 +520,15 @@ CreateDecodingContext(XLogRecPtr start_lsn,
 		 * replication.
 		 */
 		elog(DEBUG1, "cannot stream from %X/%X, minimum is %X/%X, forwarding",
-			 (uint32) (start_lsn >> 32), (uint32) start_lsn,
-			 (uint32) (slot->data.confirmed_flush >> 32),
-			 (uint32) slot->data.confirmed_flush);
+			 LSN_FORMAT_ARGS(start_lsn),
+			 LSN_FORMAT_ARGS(slot->data.confirmed_flush));
 
 		start_lsn = slot->data.confirmed_flush;
 	}
 
 	ctx = StartupDecodingContext(output_plugin_options,
 								 start_lsn, InvalidTransactionId, false,
-								 fast_forward, read_page, prepare_write,
+								 fast_forward, xl_routine, prepare_write,
 								 do_write, update_progress);
 
 	/* call output plugin initialization callback */
@@ -435,16 +537,20 @@ CreateDecodingContext(XLogRecPtr start_lsn,
 		startup_cb_wrapper(ctx, &ctx->options, false);
 	MemoryContextSwitchTo(old_context);
 
+	/*
+	 * We allow decoding of prepared transactions iff the two_phase option is
+	 * enabled at the time of slot creation.
+	 */
+	ctx->twophase &= MyReplicationSlot->data.two_phase;
+
 	ctx->reorder->output_rewrites = ctx->options.receive_rewrites;
 
 	ereport(LOG,
 			(errmsg("starting logical decoding for slot \"%s\"",
 					NameStr(slot->data.name)),
 			 errdetail("Streaming transactions committing after %X/%X, reading WAL from %X/%X.",
-					   (uint32) (slot->data.confirmed_flush >> 32),
-					   (uint32) slot->data.confirmed_flush,
-					   (uint32) (slot->data.restart_lsn >> 32),
-					   (uint32) slot->data.restart_lsn)));
+					   LSN_FORMAT_ARGS(slot->data.confirmed_flush),
+					   LSN_FORMAT_ARGS(slot->data.restart_lsn))));
 
 	return ctx;
 }
@@ -464,15 +570,13 @@ DecodingContextReady(LogicalDecodingContext *ctx)
 void
 DecodingContextFindStartpoint(LogicalDecodingContext *ctx)
 {
-	XLogRecPtr	startptr;
 	ReplicationSlot *slot = ctx->slot;
 
 	/* Initialize from where to start reading WAL. */
-	startptr = slot->data.restart_lsn;
+	XLogBeginRead(ctx->reader, slot->data.restart_lsn);
 
 	elog(DEBUG1, "searching for logical decoding starting point, starting at %X/%X",
-		 (uint32) (slot->data.restart_lsn >> 32),
-		 (uint32) slot->data.restart_lsn);
+		 LSN_FORMAT_ARGS(slot->data.restart_lsn));
 
 	/* Wait for a consistent starting point */
 	for (;;)
@@ -481,13 +585,11 @@ DecodingContextFindStartpoint(LogicalDecodingContext *ctx)
 		char	   *err = NULL;
 
 		/* the read_page callback waits for new WAL */
-		record = XLogReadRecord(ctx->reader, startptr, &err);
+		record = XLogReadRecord(ctx->reader, &err);
 		if (err)
 			elog(ERROR, "%s", err);
 		if (!record)
 			elog(ERROR, "no record found"); /* shouldn't happen */
-
-		startptr = InvalidXLogRecPtr;
 
 		LogicalDecodingProcessRecord(ctx, ctx->reader);
 
@@ -500,6 +602,7 @@ DecodingContextFindStartpoint(LogicalDecodingContext *ctx)
 
 	SpinLockAcquire(&slot->mutex);
 	slot->data.confirmed_flush = ctx->reader->EndRecPtr;
+	slot->data.initial_consistent_point = ctx->reader->EndRecPtr;
 	SpinLockRelease(&slot->mutex);
 }
 
@@ -562,7 +665,7 @@ OutputPluginUpdateProgress(struct LogicalDecodingContext *ctx)
  * that it provides the required callbacks.
  */
 static void
-LoadOutputPlugin(OutputPluginCallbacks *callbacks, char *plugin)
+LoadOutputPlugin(OutputPluginCallbacks *callbacks, const char *plugin)
 {
 	LogicalOutputPluginInit plugin_init;
 
@@ -594,8 +697,7 @@ output_plugin_error_callback(void *arg)
 				   NameStr(state->ctx->slot->data.name),
 				   NameStr(state->ctx->slot->data.plugin),
 				   state->callback_name,
-				   (uint32) (state->report_location >> 32),
-				   (uint32) state->report_location);
+				   LSN_FORMAT_ARGS(state->report_location));
 	else
 		errcontext("slot \"%s\", output plugin \"%s\", in the %s callback",
 				   NameStr(state->ctx->slot->data.name),
@@ -622,6 +724,7 @@ startup_cb_wrapper(LogicalDecodingContext *ctx, OutputPluginOptions *opt, bool i
 
 	/* set output state */
 	ctx->accept_writes = false;
+	ctx->end_xact = false;
 
 	/* do the actual work: call callback */
 	ctx->callbacks.startup_cb(ctx, opt, is_init);
@@ -649,6 +752,7 @@ shutdown_cb_wrapper(LogicalDecodingContext *ctx)
 
 	/* set output state */
 	ctx->accept_writes = false;
+	ctx->end_xact = false;
 
 	/* do the actual work: call callback */
 	ctx->callbacks.shutdown_cb(ctx);
@@ -684,6 +788,7 @@ begin_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn)
 	ctx->accept_writes = true;
 	ctx->write_xid = txn->xid;
 	ctx->write_location = txn->first_lsn;
+	ctx->end_xact = false;
 
 	/* do the actual work: call callback */
 	ctx->callbacks.begin_cb(ctx, txn);
@@ -715,9 +820,198 @@ commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 	ctx->accept_writes = true;
 	ctx->write_xid = txn->xid;
 	ctx->write_location = txn->end_lsn; /* points to the end of the record */
+	ctx->end_xact = true;
 
 	/* do the actual work: call callback */
 	ctx->callbacks.commit_cb(ctx, txn, commit_lsn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+/*
+ * The functionality of begin_prepare is quite similar to begin with the
+ * exception that this will have gid (global transaction id) information which
+ * can be used by plugin. Now, we thought about extending the existing begin
+ * but that would break the replication protocol and additionally this looks
+ * cleaner.
+ */
+static void
+begin_prepare_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when two-phase commits are supported */
+	Assert(ctx->twophase);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "begin_prepare";
+	state.report_location = txn->first_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = txn->first_lsn;
+	ctx->end_xact = false;
+
+	/*
+	 * If the plugin supports two-phase commits then begin prepare callback is
+	 * mandatory
+	 */
+	if (ctx->callbacks.begin_prepare_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical replication at prepare time requires a %s callback",
+						"begin_prepare_cb")));
+
+	/* do the actual work: call callback */
+	ctx->callbacks.begin_prepare_cb(ctx, txn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+prepare_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+				   XLogRecPtr prepare_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when two-phase commits are supported */
+	Assert(ctx->twophase);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "prepare";
+	state.report_location = txn->final_lsn; /* beginning of prepare record */
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = txn->end_lsn; /* points to the end of the record */
+	ctx->end_xact = true;
+
+	/*
+	 * If the plugin supports two-phase commits then prepare callback is
+	 * mandatory
+	 */
+	if (ctx->callbacks.prepare_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical replication at prepare time requires a %s callback",
+						"prepare_cb")));
+
+	/* do the actual work: call callback */
+	ctx->callbacks.prepare_cb(ctx, txn, prepare_lsn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+commit_prepared_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						   XLogRecPtr commit_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when two-phase commits are supported */
+	Assert(ctx->twophase);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "commit_prepared";
+	state.report_location = txn->final_lsn; /* beginning of commit record */
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = txn->end_lsn; /* points to the end of the record */
+	ctx->end_xact = true;
+
+	/*
+	 * If the plugin support two-phase commits then commit prepared callback
+	 * is mandatory
+	 */
+	if (ctx->callbacks.commit_prepared_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical replication at prepare time requires a %s callback",
+						"commit_prepared_cb")));
+
+	/* do the actual work: call callback */
+	ctx->callbacks.commit_prepared_cb(ctx, txn, commit_lsn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+rollback_prepared_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+							 XLogRecPtr prepare_end_lsn,
+							 TimestampTz prepare_time)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when two-phase commits are supported */
+	Assert(ctx->twophase);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "rollback_prepared";
+	state.report_location = txn->final_lsn; /* beginning of commit record */
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = txn->end_lsn; /* points to the end of the record */
+	ctx->end_xact = true;
+
+	/*
+	 * If the plugin support two-phase commits then rollback prepared callback
+	 * is mandatory
+	 */
+	if (ctx->callbacks.rollback_prepared_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical replication at prepare time requires a %s callback",
+						"rollback_prepared_cb")));
+
+	/* do the actual work: call callback */
+	ctx->callbacks.rollback_prepared_cb(ctx, txn, prepare_end_lsn,
+										prepare_time);
 
 	/* Pop the error context stack */
 	error_context_stack = errcallback.previous;
@@ -753,6 +1047,8 @@ change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 	 * commit to be confirmed with one message.
 	 */
 	ctx->write_location = change->lsn;
+
+	ctx->end_xact = false;
 
 	ctx->callbacks.change_cb(ctx, txn, relation, change);
 
@@ -794,10 +1090,44 @@ truncate_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 	 */
 	ctx->write_location = change->lsn;
 
+	ctx->end_xact = false;
+
 	ctx->callbacks.truncate_cb(ctx, txn, nrelations, relations, change);
 
 	/* Pop the error context stack */
 	error_context_stack = errcallback.previous;
+}
+
+bool
+filter_prepare_cb_wrapper(LogicalDecodingContext *ctx, TransactionId xid,
+						  const char *gid)
+{
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+	bool		ret;
+
+	Assert(!ctx->fast_forward);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "filter_prepare";
+	state.report_location = InvalidXLogRecPtr;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = false;
+	ctx->end_xact = false;
+
+	/* do the actual work: call callback */
+	ret = ctx->callbacks.filter_prepare_cb(ctx, xid, gid);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+
+	return ret;
 }
 
 bool
@@ -820,6 +1150,7 @@ filter_by_origin_cb_wrapper(LogicalDecodingContext *ctx, RepOriginId origin_id)
 
 	/* set output state */
 	ctx->accept_writes = false;
+	ctx->end_xact = false;
 
 	/* do the actual work: call callback */
 	ret = ctx->callbacks.filter_by_origin_cb(ctx, origin_id);
@@ -857,10 +1188,373 @@ message_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
 	ctx->accept_writes = true;
 	ctx->write_xid = txn != NULL ? txn->xid : InvalidTransactionId;
 	ctx->write_location = message_lsn;
+	ctx->end_xact = false;
 
 	/* do the actual work: call callback */
 	ctx->callbacks.message_cb(ctx, txn, message_lsn, transactional, prefix,
 							  message_size, message);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_start_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						XLogRecPtr first_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_start";
+	state.report_location = first_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+
+	/*
+	 * report this message's lsn so replies from clients can give an up2date
+	 * answer. This won't ever be enough (and shouldn't be!) to confirm
+	 * receipt of this transaction, but it might allow another transaction's
+	 * commit to be confirmed with one message.
+	 */
+	ctx->write_location = first_lsn;
+
+	ctx->end_xact = false;
+
+	/* in streaming mode, stream_start_cb is required */
+	if (ctx->callbacks.stream_start_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical streaming requires a %s callback",
+						"stream_start_cb")));
+
+	ctx->callbacks.stream_start_cb(ctx, txn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_stop_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+					   XLogRecPtr last_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_stop";
+	state.report_location = last_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+
+	/*
+	 * report this message's lsn so replies from clients can give an up2date
+	 * answer. This won't ever be enough (and shouldn't be!) to confirm
+	 * receipt of this transaction, but it might allow another transaction's
+	 * commit to be confirmed with one message.
+	 */
+	ctx->write_location = last_lsn;
+
+	ctx->end_xact = false;
+
+	/* in streaming mode, stream_stop_cb is required */
+	if (ctx->callbacks.stream_stop_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical streaming requires a %s callback",
+						"stream_stop_cb")));
+
+	ctx->callbacks.stream_stop_cb(ctx, txn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_abort_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						XLogRecPtr abort_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_abort";
+	state.report_location = abort_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = abort_lsn;
+	ctx->end_xact = true;
+
+	/* in streaming mode, stream_abort_cb is required */
+	if (ctx->callbacks.stream_abort_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical streaming requires a %s callback",
+						"stream_abort_cb")));
+
+	ctx->callbacks.stream_abort_cb(ctx, txn, abort_lsn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_prepare_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						  XLogRecPtr prepare_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/*
+	 * We're only supposed to call this when streaming and two-phase commits
+	 * are supported.
+	 */
+	Assert(ctx->streaming);
+	Assert(ctx->twophase);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_prepare";
+	state.report_location = txn->final_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = txn->end_lsn;
+	ctx->end_xact = true;
+
+	/* in streaming mode with two-phase commits, stream_prepare_cb is required */
+	if (ctx->callbacks.stream_prepare_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical streaming at prepare time requires a %s callback",
+						"stream_prepare_cb")));
+
+	ctx->callbacks.stream_prepare_cb(ctx, txn, prepare_lsn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_commit_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						 XLogRecPtr commit_lsn)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_commit";
+	state.report_location = txn->final_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+	ctx->write_location = txn->end_lsn;
+	ctx->end_xact = true;
+
+	/* in streaming mode, stream_commit_cb is required */
+	if (ctx->callbacks.stream_commit_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical streaming requires a %s callback",
+						"stream_commit_cb")));
+
+	ctx->callbacks.stream_commit_cb(ctx, txn, commit_lsn);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_change_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						 Relation relation, ReorderBufferChange *change)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_change";
+	state.report_location = change->lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+
+	/*
+	 * report this change's lsn so replies from clients can give an up2date
+	 * answer. This won't ever be enough (and shouldn't be!) to confirm
+	 * receipt of this transaction, but it might allow another transaction's
+	 * commit to be confirmed with one message.
+	 */
+	ctx->write_location = change->lsn;
+
+	ctx->end_xact = false;
+
+	/* in streaming mode, stream_change_cb is required */
+	if (ctx->callbacks.stream_change_cb == NULL)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("logical streaming requires a %s callback",
+						"stream_change_cb")));
+
+	ctx->callbacks.stream_change_cb(ctx, txn, relation, change);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_message_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						  XLogRecPtr message_lsn, bool transactional,
+						  const char *prefix, Size message_size, const char *message)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* this callback is optional */
+	if (ctx->callbacks.stream_message_cb == NULL)
+		return;
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_message";
+	state.report_location = message_lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn != NULL ? txn->xid : InvalidTransactionId;
+	ctx->write_location = message_lsn;
+	ctx->end_xact = false;
+
+	/* do the actual work: call callback */
+	ctx->callbacks.stream_message_cb(ctx, txn, message_lsn, transactional, prefix,
+									 message_size, message);
+
+	/* Pop the error context stack */
+	error_context_stack = errcallback.previous;
+}
+
+static void
+stream_truncate_cb_wrapper(ReorderBuffer *cache, ReorderBufferTXN *txn,
+						   int nrelations, Relation relations[],
+						   ReorderBufferChange *change)
+{
+	LogicalDecodingContext *ctx = cache->private_data;
+	LogicalErrorCallbackState state;
+	ErrorContextCallback errcallback;
+
+	Assert(!ctx->fast_forward);
+
+	/* We're only supposed to call this when streaming is supported. */
+	Assert(ctx->streaming);
+
+	/* this callback is optional */
+	if (!ctx->callbacks.stream_truncate_cb)
+		return;
+
+	/* Push callback + info on the error context stack */
+	state.ctx = ctx;
+	state.callback_name = "stream_truncate";
+	state.report_location = change->lsn;
+	errcallback.callback = output_plugin_error_callback;
+	errcallback.arg = (void *) &state;
+	errcallback.previous = error_context_stack;
+	error_context_stack = &errcallback;
+
+	/* set output state */
+	ctx->accept_writes = true;
+	ctx->write_xid = txn->xid;
+
+	/*
+	 * report this change's lsn so replies from clients can give an up2date
+	 * answer. This won't ever be enough (and shouldn't be!) to confirm
+	 * receipt of this transaction, but it might allow another transaction's
+	 * commit to be confirmed with one message.
+	 */
+	ctx->write_location = change->lsn;
+
+	ctx->end_xact = false;
+
+	ctx->callbacks.stream_truncate_cb(ctx, txn, nrelations, relations, change);
 
 	/* Pop the error context stack */
 	error_context_stack = errcallback.previous;
@@ -972,25 +1666,30 @@ LogicalIncreaseRestartDecodingForSlot(XLogRecPtr current_lsn, XLogRecPtr restart
 	{
 		slot->candidate_restart_valid = current_lsn;
 		slot->candidate_restart_lsn = restart_lsn;
+		SpinLockRelease(&slot->mutex);
 
 		elog(DEBUG1, "got new restart lsn %X/%X at %X/%X",
-			 (uint32) (restart_lsn >> 32), (uint32) restart_lsn,
-			 (uint32) (current_lsn >> 32), (uint32) current_lsn);
+			 LSN_FORMAT_ARGS(restart_lsn),
+			 LSN_FORMAT_ARGS(current_lsn));
 	}
 	else
 	{
+		XLogRecPtr	candidate_restart_lsn;
+		XLogRecPtr	candidate_restart_valid;
+		XLogRecPtr	confirmed_flush;
+
+		candidate_restart_lsn = slot->candidate_restart_lsn;
+		candidate_restart_valid = slot->candidate_restart_valid;
+		confirmed_flush = slot->data.confirmed_flush;
+		SpinLockRelease(&slot->mutex);
+
 		elog(DEBUG1, "failed to increase restart lsn: proposed %X/%X, after %X/%X, current candidate %X/%X, current after %X/%X, flushed up to %X/%X",
-			 (uint32) (restart_lsn >> 32), (uint32) restart_lsn,
-			 (uint32) (current_lsn >> 32), (uint32) current_lsn,
-			 (uint32) (slot->candidate_restart_lsn >> 32),
-			 (uint32) slot->candidate_restart_lsn,
-			 (uint32) (slot->candidate_restart_valid >> 32),
-			 (uint32) slot->candidate_restart_valid,
-			 (uint32) (slot->data.confirmed_flush >> 32),
-			 (uint32) slot->data.confirmed_flush
-			);
+			 LSN_FORMAT_ARGS(restart_lsn),
+			 LSN_FORMAT_ARGS(current_lsn),
+			 LSN_FORMAT_ARGS(candidate_restart_lsn),
+			 LSN_FORMAT_ARGS(candidate_restart_valid),
+			 LSN_FORMAT_ARGS(confirmed_flush));
 	}
-	SpinLockRelease(&slot->mutex);
 
 	/* candidates are already valid with the current flush position, apply */
 	if (updated_lsn)
@@ -1082,4 +1781,60 @@ LogicalConfirmReceivedLocation(XLogRecPtr lsn)
 		MyReplicationSlot->data.confirmed_flush = lsn;
 		SpinLockRelease(&MyReplicationSlot->mutex);
 	}
+}
+
+/*
+ * Clear logical streaming state during (sub)transaction abort.
+ */
+void
+ResetLogicalStreamingState(void)
+{
+	CheckXidAlive = InvalidTransactionId;
+	bsysscan = false;
+}
+
+/*
+ * Report stats for a slot.
+ */
+void
+UpdateDecodingStats(LogicalDecodingContext *ctx)
+{
+	ReorderBuffer *rb = ctx->reorder;
+	PgStat_StatReplSlotEntry repSlotStat;
+
+	/* Nothing to do if we don't have any replication stats to be sent. */
+	if (rb->spillBytes <= 0 && rb->streamBytes <= 0 && rb->totalBytes <= 0)
+		return;
+
+	elog(DEBUG2, "UpdateDecodingStats: updating stats %p %lld %lld %lld %lld %lld %lld %lld %lld",
+		 rb,
+		 (long long) rb->spillTxns,
+		 (long long) rb->spillCount,
+		 (long long) rb->spillBytes,
+		 (long long) rb->streamTxns,
+		 (long long) rb->streamCount,
+		 (long long) rb->streamBytes,
+		 (long long) rb->totalTxns,
+		 (long long) rb->totalBytes);
+
+	namestrcpy(&repSlotStat.slotname, NameStr(ctx->slot->data.name));
+	repSlotStat.spill_txns = rb->spillTxns;
+	repSlotStat.spill_count = rb->spillCount;
+	repSlotStat.spill_bytes = rb->spillBytes;
+	repSlotStat.stream_txns = rb->streamTxns;
+	repSlotStat.stream_count = rb->streamCount;
+	repSlotStat.stream_bytes = rb->streamBytes;
+	repSlotStat.total_txns = rb->totalTxns;
+	repSlotStat.total_bytes = rb->totalBytes;
+
+	pgstat_report_replslot(&repSlotStat);
+
+	rb->spillTxns = 0;
+	rb->spillCount = 0;
+	rb->spillBytes = 0;
+	rb->streamTxns = 0;
+	rb->streamCount = 0;
+	rb->streamBytes = 0;
+	rb->totalTxns = 0;
+	rb->totalBytes = 0;
 }

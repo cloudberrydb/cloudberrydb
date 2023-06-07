@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-// Greenplum Database
+// Cloudberry Database
 // Copyright (c) 2020 VMware and affiliates, Inc.
 //
 // Transform a join into a bitmap index apply. Allow a variety of nodes on

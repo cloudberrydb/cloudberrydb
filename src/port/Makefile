@@ -35,11 +35,32 @@ include $(top_builddir)/src/Makefile.global
 override CPPFLAGS := -I$(top_builddir)/src/port -DFRONTEND $(CPPFLAGS) -fPIC
 LIBS += $(PTHREAD_LIBS)
 
-OBJS = $(LIBOBJS) $(PG_CRC32C_OBJS) chklocale.o erand48.o inet_net_ntop.o \
-	noblock.o path.o pg_bitutils.o pgcheckdir.o pgmkdirp.o pgsleep.o \
-	pg_strong_random.o pgstrcasecmp.o pgstrsignal.o pqsignal.o \
-	qsort.o qsort_arg.o quotes.o snprintf.o sprompt.o strerror.o \
-	tar.o thread.o
+# If you add objects here, see also src/tools/msvc/Mkvcbuild.pm
+
+OBJS = \
+	$(LIBOBJS) \
+	$(PG_CRC32C_OBJS) \
+	bsearch_arg.o \
+	chklocale.o \
+	erand48.o \
+	inet_net_ntop.o \
+	noblock.o \
+	path.o \
+	pg_bitutils.o \
+	pg_strong_random.o \
+	pgcheckdir.o \
+	pgmkdirp.o \
+	pgsleep.o \
+	pgstrcasecmp.o \
+	pgstrsignal.o \
+	pqsignal.o \
+	qsort.o \
+	qsort_arg.o \
+	quotes.o \
+	snprintf.o \
+	strerror.o \
+	tar.o \
+	thread.o
 
 # libpgport.a, libpgport_shlib.a, and libpgport_srv.a contain the same files
 # foo.o, foo_shlib.o, and foo_srv.o are all built from foo.c

@@ -3,7 +3,7 @@
  * memquota.c
  *	  Routines related to memory quota for queries.
  *
- * Portions Copyright (c) 2010, Greenplum inc
+ * Portions Copyright (c) 2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

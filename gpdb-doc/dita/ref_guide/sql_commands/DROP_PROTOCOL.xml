@@ -36,12 +36,12 @@
       <title>Notes</title>
       <p>If you drop a data access protocol, the call handlers that defined in the database that are
         associated with the protocol are not dropped. You must drop the functions manually. </p>
-      <p>Shared libraries that were used by the protocol should also be removed from the Greenplum
+      <p>Shared libraries that were used by the protocol should also be removed from the Cloudberry
         Database hosts.</p>
     </section>
     <section id="section6">
       <title>Compatibility</title>
-      <p><codeph>DROP PROTOCOL</codeph> is a Greenplum Database extension. </p>
+      <p><codeph>DROP PROTOCOL</codeph> is a Cloudberry Database extension. </p>
     </section>
     <section id="section7">
       <title>See Also</title>

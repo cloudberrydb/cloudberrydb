@@ -3,17 +3,17 @@
 <topic id="topic1">
       <title>plcontainer Configuration File</title>
       <body>
-                <p>The Greenplum Database utility <codeph>plcontainer</codeph> manages the
-                    PL/Container configuration files in a Greenplum Database system. The utility
-                    ensures that the configuration files are consistent across the Greenplum
+                <p>The Cloudberry Database utility <codeph>plcontainer</codeph> manages the
+                    PL/Container configuration files in a Cloudberry Database system. The utility
+                    ensures that the configuration files are consistent across the Cloudberry
                     Database coordinator and segment instances.</p>
                 <note type="warning"> Modifying the configuration files on the segment instances
                     without using the utility might create different, incompatible configurations on
-                    different Greenplum Database segments that could cause unexpected behavior. </note>
+                    different Cloudberry Database segments that could cause unexpected behavior. </note>
                 <section id="topic_ojn_r2s_dw"><title>PL/Container Configuration File</title>
                     <p>PL/Container maintains a configuration file
                             <codeph>plcontainer_configuration.xml</codeph> in the data directory of
-                        all Greenplum Database segments. This query lists the Greenplum Database
+                        all Cloudberry Database segments. This query lists the Cloudberry Database
                         system data directories:
                     </p><codeblock>SELECT hostname, datadir FROM gp_segment_configuration;</codeblock>
                     A sample PL/Container configuration file is in
@@ -219,12 +219,12 @@
                                                 </plentry>
                                                 <plentry>
                                                   <pt>roles="<varname>list_of_roles</varname>"</pt>
-                                                  <pd>Optional. The value is a Greenplum Database
+                                                  <pd>Optional. The value is a Cloudberry Database
                                                   role name or a comma-separated list of roles.
                                                   PL/Container runs a container that uses the
                                                   PL/Container runtime configuration only for the
                                                   listed roles. If the attribute is not specified,
-                                                  any Greenplum Database role can run an instance of
+                                                  any Cloudberry Database role can run an instance of
                                                   this container runtime configuration. For example,
                                                   you create a UDF that specifies the
                                                   <codeph>plcontainer</codeph> language and
@@ -241,7 +241,7 @@
                                                   <codeph>yes</codeph> enables logging. The
                                                   attribute value <codeph>no</codeph> disables
                                                   logging (the default). </pd>
-                                                  <pd>The Greenplum Database server configuration
+                                                  <pd>The Cloudberry Database server configuration
                                                 parameter <codeph><xref
                                                   href="../../ref_guide/config_params/guc-list.xml#log_min_messages"
                                                   scope="local">log_min_messages</xref></codeph>
@@ -302,7 +302,7 @@
   &lt;/runtime>
 &lt;configuration></codeblock>
                     <p>Configuration changes that are made with the utility are applied to the XML
-                        files on all Greenplum Database segments. However, PL/Container
+                        files on all Cloudberry Database segments. However, PL/Container
                         configurations of currently running sessions use the configuration that
                         existed during session start up. To update the PL/Container configuration in
                         a running session, run this command in the session.</p>

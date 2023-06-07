@@ -3,7 +3,7 @@
  * test_predtest.c
  *		Test correctness of optimizer's predicate proof logic.
  *
- * Copyright (c) 2018-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2018-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		src/test/modules/test_predtest/test_predtest.c
@@ -18,6 +18,7 @@
 #include "executor/spi.h"
 #include "funcapi.h"
 #include "nodes/makefuncs.h"
+#include "nodes/nodes.h"
 #include "optimizer/optimizer.h"
 #include "utils/builtins.h"
 
@@ -131,6 +132,18 @@ test_predtest(PG_FUNCTION_ARGS)
 		elog(ERROR, "failed to decipher query plan");
 	plan = stmt->planTree;
 	Assert(list_length(plan->targetlist) >= 2);
+
+	/*
+	* GPDB will add Motion node whose target list is replaced by OUTER_VAR
+	* references to its child.
+	* Origin plan node's target list is moved to plan.lefttree
+	* This is very hacked in this very hacked test function.
+	*/
+	if (IsA(plan, Motion) && (plan->lefttree != NULL))
+	{
+		plan = plan->lefttree;
+	}
+
 	clause1 = castNode(TargetEntry, linitial(plan->targetlist))->expr;
 	clause2 = castNode(TargetEntry, lsecond(plan->targetlist))->expr;
 

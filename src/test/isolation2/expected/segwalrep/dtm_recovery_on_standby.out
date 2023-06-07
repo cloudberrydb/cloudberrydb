@@ -57,6 +57,11 @@ select pg_ctl(datadir, 'promote') from gp_segment_configuration where content = 
  OK     
 (1 row)
 
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 -- "-1S" means connect to standby's port assuming it's accepting
 -- connections.  This select should succeed because the create table
 -- transaction's commit prepared broadcast must have been sent by
@@ -95,6 +100,12 @@ select pg_ctl(datadir, 'stop', 'immediate') from gp_segment_configuration where 
 --------
  OK     
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
+
 -- Standby details need to be stored in a separate table because
 -- reinitialize_standby() first removes standby from catalog and then
 -- adds it to the catalog using gpinitstandby.  If temp table is not
@@ -114,7 +125,7 @@ ERROR:  terminating connection due to administrator command  (seg0 slice1 192.16
 create table standby_config as (select hostname, datadir, port, role from gp_segment_configuration where content = -1) distributed by (hostname);
 CREATE 2
 
-create or replace function reinitialize_standby() returns text as $$ import subprocess rv = plpy.execute("select hostname, datadir, port from standby_config order by role", 2) standby = rv[0] # role = 'm' master = rv[1] # role = 'p' try: cmd = 'rm -rf %s.dtm_recovery && cp -R %s %s.dtm_recovery' % (standby['datadir'], standby['datadir'], standby['datadir']) remove_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') cmd = 'gpinitstandby -ar -P %d' % master['port'] remove_output += subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') cmd = 'export PGPORT=%d; gpinitstandby -a -s %s -S %s -P %d' % (master['port'], standby['hostname'], standby['datadir'], standby['port']) init_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') except subprocess.CalledProcessError as e: plpy.info(e.output) raise 
+create or replace function reinitialize_standby() returns text as $$ import subprocess rv = plpy.execute("select hostname, datadir, port from standby_config order by role", 2) standby = rv[0] # role = 'm' master = rv[1] # role = 'p' try: cmd = 'rm -rf %s.dtm_recovery && cp -R %s %s.dtm_recovery' % (standby['datadir'], standby['datadir'], standby['datadir']) remove_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') cmd = 'gpinitstandby -ar -P %d' % master['port'] remove_output += subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') cmd = 'gpfts -A -D;' remove_output += subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') cmd = 'export PGPORT=%d; gpinitstandby -a -s %s -S %s -P %d' % (master['port'], standby['hostname'], standby['datadir'], standby['port']) init_output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT).decode('ascii') except subprocess.CalledProcessError as e: plpy.info(e.output) raise 
 if "ERROR" not in remove_output and "FATAL" not in remove_output and \ "ERROR" not in init_output and "FATAL" not in init_output: return "standby initialized" 
 return remove_output + "\n" + init_output $$ language plpython3u;
 CREATE
@@ -124,6 +135,11 @@ select reinitialize_standby();
 ----------------------
  standby initialized  
 (1 row)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 
 -- Sync state between master and standby must be restored at the end.
 select wait_until_standby_in_state('streaming');
@@ -131,3 +147,4 @@ select wait_until_standby_in_state('streaming');
 -----------------------------
  streaming                   
 (1 row)
+

@@ -19,7 +19,7 @@
  * tree after local transformations that might introduce nested AND/ORs.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -127,6 +127,7 @@ negate_clause(Node *node)
 
 					newopexpr->opno = negator;
 					newopexpr->opfuncid = InvalidOid;
+					newopexpr->hashfuncid = InvalidOid;
 					newopexpr->useOr = !saopexpr->useOr;
 					newopexpr->inputcollid = saopexpr->inputcollid;
 					newopexpr->args = saopexpr->args;
@@ -328,12 +329,6 @@ pull_ands(List *andlist)
 	{
 		Node	   *subexpr = (Node *) lfirst(arg);
 
-		/*
-		 * Note: we can destructively concat the subexpression's arglist
-		 * because we know the recursive invocation of pull_ands will have
-		 * built a new arglist not shared with any other expr. Otherwise we'd
-		 * need a list_copy here.
-		 */
 		if (is_andclause(subexpr))
 			out_list = list_concat(out_list,
 								   pull_ands(((BoolExpr *) subexpr)->args));
@@ -360,12 +355,6 @@ pull_ors(List *orlist)
 	{
 		Node	   *subexpr = (Node *) lfirst(arg);
 
-		/*
-		 * Note: we can destructively concat the subexpression's arglist
-		 * because we know the recursive invocation of pull_ors will have
-		 * built a new arglist not shared with any other expr. Otherwise we'd
-		 * need a list_copy here.
-		 */
 		if (is_orclause(subexpr))
 			out_list = list_concat(out_list,
 								   pull_ors(((BoolExpr *) subexpr)->args));

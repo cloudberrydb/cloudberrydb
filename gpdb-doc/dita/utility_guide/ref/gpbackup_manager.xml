@@ -5,7 +5,7 @@
   <body>
     <p>Display information about existing backups, delete existing backups, or encrypt passwords for
       secure storage in plugin configuration files. <note><codeph>gpbackup_manager</codeph> is
-        available only with the commercial release of Tanzu Greenplum Backup and Restore.</note></p>
+        available only with the commercial release of Tanzu Cloudberry Backup and Restore.</note></p>
     <section>
       <title>Synopsis</title>
       <codeblock><b>gpbackup_manager</b> [<b><varname>command</varname></b>]</codeblock>
@@ -69,9 +69,9 @@
           href="gpbackup.xml#topic1"><codeph>gpbackup</codeph></xref> utility. You can list backups,
         display a report for a backup, and delete a backup. <codeph>gpbackup_manager</codeph> can
         also encrypt passwords to store in a DD Boost plugin configuration file.</p>
-      <p>Greenplum Database must be running to use the <codeph>gpbackup_manager</codeph>
+      <p>Cloudberry Database must be running to use the <codeph>gpbackup_manager</codeph>
         utility.</p>
-      <p>Backup history is saved on the Greenplum Database coordinator host in the file
+      <p>Backup history is saved on the Cloudberry Database coordinator host in the file
           <codeph>$COORDINATOR_DATA_DIRECTORY/gpbackup_history.yaml</codeph>. If no backups have
         been created yet, or if the backup history has been deleted,
           <codeph>gpbackup_manager</codeph> commands that depend on the file will display an error
@@ -82,8 +82,8 @@
         empty for these backups.</p>
       <p>The <codeph>encrypt-password</codeph> command is used to encrypt Data Domain user passwords
         that are saved in a DD Boost plug-In configuration file. To use this option, the
-          <codeph>pgcrypto</codeph> extension must be enabled in the Greenplum Database
-          <codeph>postgres</codeph> database. See the Tanzu Greenplum Backup and Restore
+          <codeph>pgcrypto</codeph> extension must be enabled in the Cloudberry Database
+          <codeph>postgres</codeph> database. See the Tanzu Cloudberry Backup and Restore
         installation instructions for help installing <codeph>pgcrypto</codeph>.</p>
       <p>The <codeph>encrypt-password</codeph> command prompts you to enter and then re-enter the
         password to be encrypted. To maintain password secrecy, characters entered are echoed as
@@ -185,7 +185,7 @@
         <li>Display the backup report for the backup with timestamp
           20190612154608.<codeblock>$ <b>gpbackup_manager display-report 20190612154608</b>
   
-Greenplum Database Backup Report
+Cloudberry Database Backup Report
   
 Timestamp Key: 20190612154608
 GPDB Version: 5.14.0+dev.8.gdb327b2a3f build commit:db327b2a3f6f2b0673229e9aa164812e3bb56263

@@ -471,7 +471,7 @@ Memory Accounting
 -----------------
 
 One of the basic memory context operations is determining the amount of
-memory used in the context (and it's children). We have multiple places
+memory used in the context (and its children). We have multiple places
 that implement their own ad hoc memory accounting, and this is meant to
 provide a unified approach. Ad hoc accounting solutions work for places
 with tight control over the allocations or when it's easy to determine
@@ -494,4 +494,3 @@ context owning that block is updated. This means that when inquiring
 about the memory usage in a given context, we have to walk all children
 contexts recursively. This means the memory accounting is not intended
 for cases with too many memory contexts (in the relevant subtree).
-

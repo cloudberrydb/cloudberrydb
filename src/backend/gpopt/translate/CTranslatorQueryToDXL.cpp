@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//  Greenplum Database
+//  Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -459,7 +459,7 @@ CTranslatorQueryToDXL::CheckRangeTable(Query *query)
 
 		if (rte->security_barrier || rte->securityQuals)
 		{
-			GPOS_ASSERT(RTE_SUBQUERY == rte->rtekind);
+			GPOS_ASSERT_FIXME(RTE_SUBQUERY == rte->rtekind);
 			// otherwise ORCA most likely pushes potentially leaky filters down
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 					   GPOS_WSZ_LIT("views with security_barrier ON"));
@@ -528,6 +528,10 @@ CTranslatorQueryToDXL::TranslateSelectQueryToDXL()
 	if (m_query->onConflict)
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("ON CONFLICT clause"));
+
+	if (m_query->limitOption == LIMIT_OPTION_WITH_TIES)
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+				   GPOS_WSZ_LIT("LIMIT WITH TIES clause"));
 
 	CDXLNode *child_dxlnode = nullptr;
 	IntToUlongMap *sort_group_attno_to_colid_mapping =
@@ -3159,7 +3163,7 @@ CTranslatorQueryToDXL::UnsupportedRTEKind(RTEKind rtekind)
 	{
 		default:
 		{
-			GPOS_ASSERT(!"Unrecognized RTE kind");
+			GPOS_RTL_ASSERT(!"Unrecognized RTE kind");
 			__builtin_unreachable();
 		}
 		case RTE_JOIN:
@@ -3906,6 +3910,7 @@ CTranslatorQueryToDXL::TranslateJoinExprInFromToDXL(JoinExpr *join_expr)
 		if (!join_alias_node)
 			continue;
 		GPOS_ASSERT(IsA(join_alias_node, Var) ||
+					IsA(join_alias_node, FuncExpr) ||
 					IsA(join_alias_node, CoalesceExpr));
 		Value *value = (Value *) lfirst(lc_col_name);
 		CHAR *col_name_char_array = strVal(value);

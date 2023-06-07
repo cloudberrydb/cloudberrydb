@@ -12,5 +12,8 @@ extern int PQsendGpQuery_shared(PGconn       *conn,
 								 char         *query,
 								 int          query_len,
 								 bool         nonblock);
+extern PGcmdQueueEntry *pqAllocCmdQueueEntry(PGconn *conn);
+extern void pqRecycleCmdQueueEntry(PGconn *conn, PGcmdQueueEntry *entry);
+extern void pqAppendCmdQueueEntry(PGconn *conn, PGcmdQueueEntry *entry);
 
 #endif

@@ -63,7 +63,7 @@ TRANSFORMATIONS:
       <codeblock>#!/bin/bash
 # input_transform.sh - sample input transformation, 
 # demonstrating use of Java and Joost STX to convert XML into
-# text to load into Greenplum Database.
+# text to load into Cloudberry Database.
 # java arguments:
 #   -jar joost.jar         joost STX engine
 #   -nodecl                  don't generate a &lt;?xml?&gt; declaration

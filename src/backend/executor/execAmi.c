@@ -3,7 +3,7 @@
  * execAmi.c
  *	  miscellaneous executor access method routines
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *	src/backend/executor/execAmi.c
@@ -28,13 +28,16 @@
 #include "executor/nodeFunctionscan.h"
 #include "executor/nodeGather.h"
 #include "executor/nodeGatherMerge.h"
+#include "executor/nodeGroup.h"
 #include "executor/nodeHash.h"
 #include "executor/nodeHashjoin.h"
+#include "executor/nodeIncrementalSort.h"
 #include "executor/nodeIndexonlyscan.h"
 #include "executor/nodeIndexscan.h"
 #include "executor/nodeLimit.h"
 #include "executor/nodeLockRows.h"
 #include "executor/nodeMaterial.h"
+#include "executor/nodeMemoize.h"
 #include "executor/nodeMergeAppend.h"
 #include "executor/nodeMergejoin.h"
 #include "executor/nodeModifyTable.h"
@@ -43,6 +46,7 @@
 #include "executor/nodeProjectSet.h"
 #include "executor/nodeRecursiveunion.h"
 #include "executor/nodeResult.h"
+#include "executor/nodeRuntimeFilter.h"
 #include "executor/nodeSamplescan.h"
 #include "executor/nodeSeqscan.h"
 #include "executor/nodeSetOp.h"
@@ -50,6 +54,7 @@
 #include "executor/nodeSubplan.h"
 #include "executor/nodeSubqueryscan.h"
 #include "executor/nodeTableFuncscan.h"
+#include "executor/nodeTidrangescan.h"
 #include "executor/nodeTidscan.h"
 #include "executor/nodeTupleSplit.h"
 #include "executor/nodeUnique.h"
@@ -226,6 +231,10 @@ ExecReScan(PlanState *node)
 			ExecReScanTidScan((TidScanState *) node);
 			break;
 
+		case T_TidRangeScanState:
+			ExecReScanTidRangeScan((TidRangeScanState *) node);
+			break;
+
 		case T_SubqueryScanState:
 			ExecReScanSubqueryScan((SubqueryScanState *) node);
 			break;
@@ -286,16 +295,24 @@ ExecReScan(PlanState *node)
 			ExecReScanMaterial((MaterialState *) node);
 			break;
 
+		case T_MemoizeState:
+			ExecReScanMemoize((MemoizeState *) node);
+			break;
+
 		case T_SortState:
 			ExecReScanSort((SortState *) node);
 			break;
 
-		case T_AggState:
-			ExecReScanAgg((AggState *) node);
+		case T_IncrementalSortState:
+			ExecReScanIncrementalSort((IncrementalSortState *) node);
 			break;
 
-		case T_TupleSplit:
-			ExecReScanTupleSplit((TupleSplitState *) node);
+		case T_GroupState:
+			ExecReScanGroup((GroupState *) node);
+			break;
+
+		case T_AggState:
+			ExecReScanAgg((AggState *) node);
 			break;
 
 		case T_WindowAggState:
@@ -318,6 +335,10 @@ ExecReScan(PlanState *node)
 			ExecReScanLockRows((LockRowsState *) node);
 			break;
 
+		case T_RuntimeFilterState:
+			ExecReScanRuntimeFilter((RuntimeFilterState *) node);
+			break;
+
 		case T_LimitState:
 			ExecReScanLimit((LimitState *) node);
 			break;
@@ -336,6 +357,10 @@ ExecReScan(PlanState *node)
 
 		case T_PartitionSelectorState:
 			ExecReScanPartitionSelector((PartitionSelectorState *) node);
+			break;
+
+		case T_TupleSplit:
+			ExecReScanTupleSplit((TupleSplitState *) node);
 			break;
 
 		default:
@@ -488,6 +513,12 @@ ExecSupportsMarkRestore(Path *pathnode)
 	{
 		case T_IndexScan:
 		case T_IndexOnlyScan:
+
+			/*
+			 * Not all index types support mark/restore.
+			 */
+			return castNode(IndexPath, pathnode)->indexinfo->amcanmarkpos;
+
 		case T_Material:
 		case T_Sort:
 		case T_ShareInputScan:
@@ -593,6 +624,10 @@ ExecSupportsBackwardScan(Plan *node)
 			{
 				ListCell   *l;
 
+				/* With async, tuples may be interleaved, so can't back up. */
+				if (((Append *) node)->nasyncplans > 0)
+					return false;
+
 				foreach(l, ((Append *) node)->appendplans)
 				{
 					if (!ExecSupportsBackwardScan((Plan *) lfirst(l)))
@@ -601,14 +636,6 @@ ExecSupportsBackwardScan(Plan *node)
 				/* need not check tlist because Append doesn't evaluate it */
 				return true;
 			}
-
-		case T_SeqScan:
-		case T_TidScan:
-		case T_FunctionScan:
-		case T_ValuesScan:
-		case T_CteScan:
-		case T_WorkTableScan:
-			return TargetListSupportsBackwardScan(node->targetlist);
 
 		case T_SampleScan:
 			/* Simplify life for tablesample methods by disallowing this */
@@ -637,11 +664,29 @@ ExecSupportsBackwardScan(Plan *node)
 			}
 			return false;
 
+		case T_SeqScan:
+		case T_TidScan:
+		case T_TidRangeScan: /* GPDB_14_MERGE_FIXME: Does TidRangeScan support backward scan or call TargetListSupportsBackwardScan? */
+		case T_FunctionScan:
+		case T_ValuesScan:
+		case T_CteScan:
+		case T_WorkTableScan:
+			return TargetListSupportsBackwardScan(node->targetlist);
 		case T_Material:
 		case T_Sort:
+			/* these don't evaluate tlist */
 			return true;
 
+		case T_IncrementalSort:
+
+			/*
+			 * Unlike full sort, incremental sort keeps only a single group of
+			 * tuples in memory, so it can't scan backwards.
+			 */
+			return false;
+
 		case T_LockRows:
+		case T_RuntimeFilter:
 		case T_Limit:
 			return ExecSupportsBackwardScan(outerPlan(node));
 
@@ -723,6 +768,7 @@ ExecSquelchNode(PlanState *node)
 		case T_AssertOpState:
 		case T_BitmapAndState:
 		case T_BitmapOrState:
+		case T_RuntimeFilterState:
 		case T_LimitState:
 		case T_LockRowsState:
 		case T_NestLoopState:
@@ -748,6 +794,7 @@ ExecSquelchNode(PlanState *node)
 		case T_TableFuncScanState:
 		case T_ValuesScanState:
 		case T_TidScanState:
+		case T_TidRangeScanState:
 		case T_TableFunctionState:
 		case T_SampleScanState:
 			break;
@@ -802,6 +849,14 @@ ExecSquelchNode(PlanState *node)
 
 		case T_ShareInputScanState:
 			ExecSquelchShareInputScan((ShareInputScanState *) node);
+			break;
+
+		case T_IncrementalSortState:
+			ExecSquelchIncrementalSort((IncrementalSortState *) node);
+			break;
+
+		case T_MemoizeState:
+			ExecSquelchMemoize((MemoizeState *) node);
 			break;
 
 		default:

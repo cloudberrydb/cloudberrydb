@@ -3,7 +3,7 @@
 <topic id="psql-support">
   <title>psql Support</title>
   <shortdesc>The psql command-line utility provides a meta-command to display
-    information about Greenplum Database full text search configurations. </shortdesc>
+    information about Cloudberry Database full text search configurations. </shortdesc>
   <body id="body_sm1_b41_lfb">
     <p>Information about text search configuration objects can be obtained in psql using a set of
       commands:</p>

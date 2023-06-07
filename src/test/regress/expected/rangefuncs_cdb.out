@@ -1,16 +1,17 @@
 SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%';
               name              | setting 
 --------------------------------+---------
+ enable_async_append            | on
  enable_bitmapscan              | on
  enable_gathermerge             | on
  enable_groupagg                | on
- enable_groupingsets_hash_disk  | off
  enable_hashagg                 | on
- enable_hashagg_disk            | on
  enable_hashjoin                | on
+ enable_incremental_sort        | on
  enable_indexonlyscan           | on
  enable_indexscan               | on
  enable_material                | on
+ enable_memoize                 | on
  enable_mergejoin               | off
  enable_nestloop                | off
  enable_parallel_append         | on
@@ -21,7 +22,7 @@ SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%';
  enable_seqscan                 | on
  enable_sort                    | on
  enable_tidscan                 | on
-(20 rows)
+(21 rows)
 
 -- start_ignore
 create schema rangefuncs_cdb;
@@ -41,7 +42,7 @@ INSERT INTO foo2 VALUES
   (1, 11),
   (2, 22),
   (1, 111);
--- In Greenplum we do not support functions which call SQL from the segments
+-- In Cloudberry we do not support functions which call SQL from the segments
 -- for this reason we have rewritten this test to use plpgsql functions rather
 -- than SQL language functions.
 set optimizer_segments = 3;
@@ -186,7 +187,7 @@ $$  LANGUAGE plpgsql;
 --   Fails: plpgsql does not support SFRM_Materialize
 select foor(1);
 ERROR:  set-valued function called in context that cannot accept a set
-CONTEXT:  PL/pgSQL function "foor" line 5 at RETURN NEXT
+CONTEXT:  PL/pgSQL function foor(integer) line 6 at RETURN NEXT
 -- expanding columns in the select list
 --    Fails: record type not registered
 select (foor(1)).*;
@@ -209,7 +210,7 @@ select * from foor(1) as (fooid int, f2 int);
 --    Fails: plpgsql does not support SFRM_Materialize
 select foor(fooid), * from foor(3) as (fooid int, f2 int);
 ERROR:  set-valued function called in context that cannot accept a set
-CONTEXT:  PL/pgSQL function "foor"
+CONTEXT:  PL/pgSQL function foor(integer) line 6 at RETURN NEXT
 -- Joining with a table
 select * from foo2, foor(3) z(fooid int, f2 int) where foo2.f2 = z.f2;
  fooid | f2 | fooid | f2 
@@ -699,7 +700,7 @@ AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
 CREATE OR REPLACE FUNCTION foo(in f1 int) RETURNS record
 AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
 ERROR:  cannot change return type of existing function
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 -- with multiple OUT params you must get a RECORD result
 CREATE OR REPLACE FUNCTION foo(in f1 int, out f2 int, out f3 text) RETURNS int
 AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
@@ -713,13 +714,13 @@ RETURNS record
 AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
 ERROR:  cannot change return type of existing function
 DETAIL:  Row type defined by OUT parameters is different.
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 -- Can't change the result type, previously record now typed record (implied)
 CREATE OR REPLACE FUNCTION foo(in f1 int, out f2 int, out f3 text)
 AS 'select $1+1' LANGUAGE sql;
 ERROR:  cannot change return type of existing function
 DETAIL:  Row type defined by OUT parameters is different.
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 -- okay - output type is still record
 CREATE OR REPLACE FUNCTION foo(in f1 int, out x record)
 AS 'select $1+1' LANGUAGE sql;
@@ -727,7 +728,7 @@ AS 'select $1+1' LANGUAGE sql;
 CREATE OR REPLACE FUNCTION foo(in f1 int) RETURNS setof record
 AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
 ERROR:  cannot change return type of existing function
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 DROP FUNCTION foo(int);
 CREATE OR REPLACE FUNCTION foo(in f1 int) RETURNS setof record
 AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
@@ -737,14 +738,14 @@ RETURNS setof record
 AS 'select $1+1, null' LANGUAGE sql CONTAINS SQL;
 ERROR:  cannot change return type of existing function
 DETAIL:  Row type defined by OUT parameters is different.
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 -- Can't convert between setof record and TABLE
 CREATE OR REPLACE FUNCTION foo(in f1 int)
 RETURNS TABLE(f2 int, f3 text)
 AS 'select $1+1' LANGUAGE sql CONTAINS SQL;
 ERROR:  cannot change return type of existing function
 DETAIL:  Row type defined by OUT parameters is different.
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 DROP FUNCTION foo(int);
 CREATE OR REPLACE FUNCTION foo(in f1 int, out f2 int, out f3 text) 
 RETURNS setof record
@@ -759,7 +760,7 @@ RETURNS TABLE(f2 int, different text)
 AS 'select $1+1, null::text' LANGUAGE sql CONTAINS SQL;
 ERROR:  cannot change return type of existing function
 DETAIL:  Row type defined by OUT parameters is different.
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION foo(integer) first.
 CREATE OR REPLACE FUNCTION foor(in f1 int, out f2 int, out text)
 AS $$select $1-1, $1::text || 'z'$$ LANGUAGE sql;
 SELECT f1, foor(f1) FROM int4_tbl;
@@ -841,7 +842,7 @@ SELECT * FROM dup('xyz'::text);
 CREATE OR REPLACE FUNCTION dup (inout f2 anyelement, out f3 anyarray)
 AS 'select $1, array[$1,$1]' LANGUAGE sql;
 ERROR:  cannot change name of input parameter "f1"
-HINT:  Use DROP FUNCTION first.
+HINT:  Use DROP FUNCTION dup(anyelement) first.
 SELECT dup(22);
       dup       
 ----------------
@@ -853,7 +854,7 @@ DROP FUNCTION dup(anyelement);
 CREATE FUNCTION bad (f1 int, out f2 anyelement, out f3 anyarray)
 AS 'select $1, array[$1,$1]' LANGUAGE sql;
 ERROR:  cannot determine result data type
-DETAIL:  A function returning a polymorphic type must have at least one polymorphic argument.
+DETAIL:  A result of type anyelement requires at least one input of type anyelement, anyarray, anynonarray, anyenum, anyrange, or anymultirange.
 --
 -- Test that a set-returning function is not called unnecessarily.
 --

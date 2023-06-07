@@ -34,7 +34,7 @@
                 <plentry>
                     <pt>OPTIONS ( [ ADD | SET | DROP ] <varname>option</varname> ['<varname>value</varname>'] [, ... ] )</pt>
                     <pd>
-                        <p>Change options for the user mapping. The new options override any previously specified options. <codeph>ADD</codeph>, <codeph>SET</codeph>, and <codeph>DROP</codeph> specify the action to perform. If no operation is explicitly specified, the default operation is <codeph>ADD</codeph>. Option names must be unique. Greenplum Database validates names and values using the server's foreign-data wrapper.</p>
+                        <p>Change options for the user mapping. The new options override any previously specified options. <codeph>ADD</codeph>, <codeph>SET</codeph>, and <codeph>DROP</codeph> specify the action to perform. If no operation is explicitly specified, the default operation is <codeph>ADD</codeph>. Option names must be unique. Cloudberry Database validates names and values using the server's foreign-data wrapper.</p>
                     </pd>
                 </plentry>
             </parml>
@@ -45,7 +45,7 @@
         </section>
         <section id="section7">
             <title>Compatibility</title>
-            <p><codeph>ALTER USER MAPPING</codeph> conforms to ISO/IEC 9075-9 (SQL/MED). There is a subtle syntax issue: The standard omits the <codeph>FOR</codeph> key word. Since both <codeph>CREATE USER MAPPING</codeph> and <codeph>DROP USER MAPPING</codeph> use <codeph>FOR</codeph> in analogous positions, Greenplum Database diverges from the standard here in the interest of consistency and interoperability.</p>
+            <p><codeph>ALTER USER MAPPING</codeph> conforms to ISO/IEC 9075-9 (SQL/MED). There is a subtle syntax issue: The standard omits the <codeph>FOR</codeph> key word. Since both <codeph>CREATE USER MAPPING</codeph> and <codeph>DROP USER MAPPING</codeph> use <codeph>FOR</codeph> in analogous positions, Cloudberry Database diverges from the standard here in the interest of consistency and interoperability.</p>
         </section>
         <section id="section8">
             <title>See Also</title>

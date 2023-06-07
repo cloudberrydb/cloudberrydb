@@ -27,8 +27,7 @@ extern bool pop_and_inject_partition_selectors(PlannerInfo *root,
 
 extern List *make_partition_join_pruneinfos(struct PlannerInfo *root,
 											struct RelOptInfo *parentrel,
-											List *subpaths,
-											List *partitioned_rels);
+											List *subpaths);
 
 extern Plan *create_partition_selector_plan(PlannerInfo *root, PartitionSelectorPath *pspath);
 

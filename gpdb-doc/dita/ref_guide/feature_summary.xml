@@ -2,17 +2,17 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
-  <title id="ik110126">Summary of Greenplum Features</title>
+  <title id="ik110126">Summary of Cloudberry Features</title>
   <body>
     <p>This section provides a high-level overview of the system requirements and feature set of
-      Greenplum Database. It contains the following topics:</p>
+      Cloudberry Database. It contains the following topics:</p>
     <ul>
       <li id="ik143345"><xref href="#topic2" type="topic" format="dita"/></li>
       <li id="ik143353"><xref href="#topic8" type="topic" format="dita"/></li>
     </ul>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="ik215318">Greenplum SQL Standard Conformance</title>
+    <title id="ik215318">Cloudberry SQL Standard Conformance</title>
     <body>
       <p>The SQL language was first formally standardized in 1986 by the American National Standards
         Institute (ANSI) as SQL 1986. Subsequent versions of the SQL standard have been released by
@@ -21,11 +21,11 @@
         The official name of the standard is ISO/IEC 9075-14:2008. In general, each new version adds
         more features, although occasionally features are deprecated or removed.</p>
       <p>It is important to note that there are no commercial database systems that are fully
-        compliant with the SQL standard. Greenplum Database is almost fully compliant with the SQL
+        compliant with the SQL standard. Cloudberry Database is almost fully compliant with the SQL
         1992 standard, with most of the features from SQL 1999. Several features from SQL 2003 have
         also been implemented (most notably the SQL OLAP features). </p>
-      <p>This section addresses the important conformance issues of Greenplum Database as they
-        relate to the SQL standards. For a feature-by-feature list of Greenplum's support of the
+      <p>This section addresses the important conformance issues of Cloudberry Database as they
+        relate to the SQL standards. For a feature-by-feature list of Cloudberry's support of the
         latest SQL standard, see <xref href="SQL2008_support.xml#topic1" type="topic" format="dita"
         />.</p>
     </body>
@@ -33,11 +33,11 @@
       <title>Core SQL Conformance</title>
       <body>
         <p>In the process of building a parallel, shared-nothing database system and query
-          optimizer, certain common SQL constructs are not currently implemented in Greenplum
+          optimizer, certain common SQL constructs are not currently implemented in Cloudberry
           Database. The following SQL constructs are not supported:</p>
         <ol>
           <li id="ik264434">Some set returning subqueries in <codeph>EXISTS</codeph> or <codeph>NOT
-              EXISTS</codeph> clauses that Greenplum's parallel optimizer cannot rewrite into
+              EXISTS</codeph> clauses that Cloudberry's parallel optimizer cannot rewrite into
             joins.</li>
           <li id="ik264484">Backwards scrolling cursors, including the use of <codeph>FETCH
               PRIOR</codeph>, <codeph>FETCH FIRST</codeph>, <codeph>FETCH ABSOLUTE</codeph>, and
@@ -61,7 +61,7 @@
           <li id="ik264601">Triggers are not supported since they typically rely on the use of
               <codeph>VOLATILE</codeph> functions.</li>
           <li id="ik264621">Referential integrity constraints (foreign keys) are not enforced in
-            Greenplum Database. Users can declare foreign keys and this information is kept in the
+            Cloudberry Database. Users can declare foreign keys and this information is kept in the
             system catalog, however.</li>
           <li id="ik264690">Sequence manipulation functions <codeph>CURRVAL</codeph> and
               <codeph>LASTVAL</codeph>.</li>
@@ -71,56 +71,56 @@
     <topic id="topic4" xml:lang="en">
       <title>SQL 1992 Conformance</title>
       <body>
-        <p>The following features of SQL 1992 are not supported in Greenplum Database:</p>
+        <p>The following features of SQL 1992 are not supported in Cloudberry Database:</p>
         <ol>
           <li id="ik264838"><codeph>NATIONAL CHARACTER</codeph> (<codeph>NCHAR</codeph>) and
               <codeph>NATIONAL CHARACTER VARYING</codeph> (<codeph>NVARCHAR</codeph>). Users can
             declare the <codeph>NCHAR</codeph> and <codeph>NVARCHAR</codeph> types, however they are
-            just synonyms for <codeph>CHAR</codeph> and <codeph>VARCHAR</codeph> in Greenplum
+            just synonyms for <codeph>CHAR</codeph> and <codeph>VARCHAR</codeph> in Cloudberry
             Database.</li>
           <li id="ik264839"><codeph>CREATE ASSERTION</codeph> statement.</li>
-          <li id="ik264840"><codeph>INTERVAL</codeph> literals are supported in Greenplum Database,
+          <li id="ik264840"><codeph>INTERVAL</codeph> literals are supported in Cloudberry Database,
             but do not conform to the standard.</li>
           <li id="ik264841"><codeph>GET DIAGNOSTICS</codeph> statement.</li>
           <li id="ik264843"><codeph>GLOBAL TEMPORARY TABLE</codeph>s and <codeph>LOCAL TEMPORARY
-              TABLE</codeph>s. Greenplum <codeph>TEMPORARY TABLE</codeph>s do not conform to the SQL
+              TABLE</codeph>s. Cloudberry <codeph>TEMPORARY TABLE</codeph>s do not conform to the SQL
             standard, but many commercial database systems have implemented temporary tables in the
-            same way. Greenplum temporary tables are the same as <codeph>VOLATILE TABLE</codeph>s in
+            same way. Cloudberry temporary tables are the same as <codeph>VOLATILE TABLE</codeph>s in
             Teradata.</li>
           <li id="ik264844"><codeph>UNIQUE</codeph> predicate.</li>
           <li id="ik264845"><codeph>MATCH PARTIAL</codeph> for referential integrity checks (most
-            likely will not be implemented in Greenplum Database).</li>
+            likely will not be implemented in Cloudberry Database).</li>
         </ol>
       </body>
     </topic>
     <topic id="topic5" xml:lang="en">
       <title>SQL 1999 Conformance</title>
       <body>
-        <p>The following features of SQL 1999 are not supported in Greenplum Database:</p>
+        <p>The following features of SQL 1999 are not supported in Cloudberry Database:</p>
         <ol>
           <li id="ik265010">Large Object data types: <codeph>BLOB</codeph>, <codeph>CLOB</codeph>,
               <codeph>NCLOB</codeph>. However, the <codeph>BYTEA</codeph> and <codeph>TEXT</codeph>
-            columns can store very large amounts of data in Greenplum Database (hundreds of
+            columns can store very large amounts of data in Cloudberry Database (hundreds of
             megabytes).</li>
           <li id="ik265012"><codeph>MODULE</codeph> (SQL client modules).</li>
           <li id="ik265013"><codeph>CREATE PROCEDURE</codeph> (<codeph>SQL/PSM</codeph>). This can
-            be worked around in Greenplum Database by creating a <codeph>FUNCTION</codeph> that
+            be worked around in Cloudberry Database by creating a <codeph>FUNCTION</codeph> that
             returns <codeph>void</codeph>, and invoking the function as
             follows:<codeblock>SELECT <i>myfunc</i>(<i>args</i>);
 </codeblock></li>
-          <li id="ik265014">The PostgreSQL/Greenplum function definition language
+          <li id="ik265014">The PostgreSQL/Cloudberry function definition language
               (<codeph>PL/PGSQL</codeph>) is a subset of Oracle's <codeph>PL/SQL</codeph>, rather
             than being compatible with the <codeph>SQL/PSM</codeph> function definition language.
-            Greenplum Database also supports function definitions written in Python, Perl, Java, and
+            Cloudberry Database also supports function definitions written in Python, Perl, Java, and
             R.</li>
           <li id="ik265110"><codeph>BIT</codeph> and <codeph>BIT VARYING</codeph> data types
             (intentionally omitted). These were deprecated in SQL 2003, and replaced in SQL
             2008.</li>
-          <li id="ik265123">Greenplum supports identifiers up to 63 characters long. The SQL
+          <li id="ik265123">Cloudberry supports identifiers up to 63 characters long. The SQL
             standard requires support for identifiers up to 128 characters long. </li>
           <li id="ik265143">Prepared transactions (<codeph>PREPARE TRANSACTION</codeph>,
               <codeph>COMMIT PREPARED</codeph>, <codeph>ROLLBACK PREPARED</codeph>). This also means
-            Greenplum does not support <codeph>XA</codeph> Transactions (2 phase commit coordination
+            Cloudberry does not support <codeph>XA</codeph> Transactions (2 phase commit coordination
             of database transactions with external transactions).</li>
           <li id="ik265148"><codeph>CHARACTER SET</codeph> option on the definition of
               <codeph>CHAR()</codeph> or <codeph>VARCHAR()</codeph> columns. </li>
@@ -130,7 +130,7 @@
               CHARACTERS)</codeph> or <codeph>VARCHAR(15 OCTETS)</codeph> or <codeph>VARCHAR(15
               BYTES)</codeph>.</li>
           <li id="ik265021"><codeph>CREATE DISTINCT TYPE </codeph>statement. <codeph>CREATE
-              DOMAIN</codeph> can be used as a work-around in Greenplum.</li>
+              DOMAIN</codeph> can be used as a work-around in Cloudberry.</li>
           <li id="ik265210">The <i>explicit table</i> construct.</li>
         </ol>
       </body>
@@ -138,7 +138,7 @@
     <topic id="topic6" xml:lang="en">
       <title>SQL 2003 Conformance</title>
       <body>
-        <p>The following features of SQL 2003 are not supported in Greenplum Database:</p>
+        <p>The following features of SQL 2003 are not supported in Cloudberry Database:</p>
         <ol>
           <li id="ik268864"><codeph>MERGE</codeph> statements.</li>
           <li id="ik265705"><codeph>IDENTITY</codeph> columns and the associated <codeph>GENERATED
@@ -147,9 +147,9 @@
               <codeph>BIGINT GENERATED BY DEFAULT AS IDENTITY</codeph>.</li>
           <li id="ik265706"><codeph>MULTISET</codeph> modifiers on data types.</li>
           <li id="ik265707"><codeph>ROW</codeph> data type.</li>
-          <li id="ik265708">Greenplum Database syntax for using sequences is non-standard. For
+          <li id="ik265708">Cloudberry Database syntax for using sequences is non-standard. For
             example, <codeph>nextval('</codeph><codeph>seq</codeph><codeph>')</codeph> is used in
-            Greenplum instead of the standard <codeph>NEXT VALUE FOR
+            Cloudberry instead of the standard <codeph>NEXT VALUE FOR
             </codeph><codeph>seq</codeph>.</li>
           <li id="ik265709"><codeph>GENERATED ALWAYS AS </codeph>columns. Views can be used as a
             work-around.</li>
@@ -158,7 +158,7 @@
             as a work-around to get random samples from tables.</li>
           <li id="ik265712">The <i>partitioned join tables</i> construct (<codeph>PARTITION
               BY</codeph> in a join).</li>
-          <li id="ik265715">Greenplum array data types are almost SQL standard compliant with some
+          <li id="ik265715">Cloudberry array data types are almost SQL standard compliant with some
             exceptions. Generally customers should not encounter any problems using them.</li>
         </ol>
       </body>
@@ -166,14 +166,14 @@
     <topic id="topic7" xml:lang="en">
       <title>SQL 2008 Conformance</title>
       <body>
-        <p>The following features of SQL 2008 are not supported in Greenplum Database:</p>
+        <p>The following features of SQL 2008 are not supported in Cloudberry Database:</p>
         <ol>
           <li id="ik265320"><codeph>BINARY</codeph> and <codeph>VARBINARY</codeph> data types.
-              <codeph>BYTEA</codeph> can be used in place of <codeph>VARBINARY</codeph> in Greenplum
+              <codeph>BYTEA</codeph> can be used in place of <codeph>VARBINARY</codeph> in Cloudberry
             Database.</li>
           <li id="ik265322">The <codeph>ORDER BY</codeph> clause is ignored in views and subqueries
             unless a <codeph>LIMIT</codeph> clause is also used. This is intentional, as the
-            Greenplum optimizer cannot determine when it is safe to avoid the sort, causing an
+            Cloudberry optimizer cannot determine when it is safe to avoid the sort, causing an
             unexpected performance impact for such <codeph>ORDER BY</codeph> clauses. To work
             around, you can specify a really large <codeph>LIMIT</codeph>. For example:
             <codeblock>SELECT * FROM mytable ORDER BY 1 LIMIT 9999999999</codeblock></li>
@@ -185,23 +185,23 @@
     </topic>
   </topic>
   <topic id="topic8" xml:lang="en">
-    <title id="ik264019">Greenplum and PostgreSQL Compatibility</title>
+    <title id="ik264019">Cloudberry and PostgreSQL Compatibility</title>
     <body>
-      <p>Greenplum Database is based on PostgreSQL 9.4. To support the distributed nature and
-        typical workload of a Greenplum Database system, some SQL commands have been added or
-        modified, and there are a few PostgreSQL features that are not supported. Greenplum has also
+      <p>Cloudberry Database is based on PostgreSQL 9.4. To support the distributed nature and
+        typical workload of a Cloudberry Database system, some SQL commands have been added or
+        modified, and there are a few PostgreSQL features that are not supported. Cloudberry has also
         added features not found in PostgreSQL, such as physical data distribution, parallel query
         optimization, external tables, resource queues, and enhanced table partitioning. For full
         SQL syntax and references, see the <xref href="sql_commands/sql_ref.xml#topic1" type="topic"
-          format="dita"/>.<note>Greenplum Database does not support the PostgreSQL <xref
+          format="dita"/>.<note>Cloudberry Database does not support the PostgreSQL <xref
             href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
             scope="external">large object facility</xref> for streaming user data that is stored in
           large-object structures.</note><note otherprops="pivotal">VMware does not support using
             <codeph>WITH OIDS</codeph> or <codeph>oids=TRUE</codeph> to assign an OID system column
           when creating or altering a table.  This syntax is deprecated and will be removed in a
-          future Greenplum release.</note></p>
+          future Cloudberry release.</note></p>
       <table id="ik213423">
-        <title>SQL Support in Greenplum Database</title>
+        <title>SQL Support in Cloudberry Database</title>
         <tgroup cols="3">
           <colspec colnum="1" colname="col1" colwidth="143pt"/>
           <colspec colnum="2" colname="col2" colwidth="73pt"/>
@@ -209,7 +209,7 @@
           <thead>
             <row>
               <entry colname="col1">SQL Command</entry>
-              <entry colname="col2">Supported in Greenplum</entry>
+              <entry colname="col2">Supported in Cloudberry</entry>
               <entry colname="col3">Modifications, Limitations, Exceptions</entry>
             </row>
           </thead>
@@ -237,7 +237,7 @@
             <row>
               <entry colname="col1"><codeph>ALTER EXTENSION</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Changes the definition of a Greenplum Database extension - based
+              <entry colname="col3">Changes the definition of a Cloudberry Database extension - based
                 on PostgreSQL 9.6. </entry>
             </row>
             <row>
@@ -284,13 +284,13 @@
             <row>
               <entry colname="col1"><codeph>ALTER RESOURCE QUEUE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Greenplum Database resource management feature - not in
+              <entry colname="col3">Cloudberry Database resource management feature - not in
                 PostgreSQL.</entry>
             </row>
             <row>
               <entry colname="col1"><codeph>ALTER ROLE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3"><b>Greenplum Database Clauses:</b><p><codeph>RESOURCE QUEUE
+              <entry colname="col3"><b>Cloudberry Database Clauses:</b><p><codeph>RESOURCE QUEUE
                     </codeph><i>queue_name</i><codeph> | none</codeph></p></entry>
             </row>
             <row>
@@ -312,7 +312,7 @@
               <entry colname="col1"><codeph>ALTER TABLE</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Unsupported Clauses / Options:</b><p><codeph>CLUSTER
-                    ON</codeph></p><p><codeph>ENABLE/DISABLE TRIGGER</codeph></p><p><b>Greenplum
+                    ON</codeph></p><p><codeph>ENABLE/DISABLE TRIGGER</codeph></p><p><b>Cloudberry
                     Database Clauses:</b></p><p><codeph>ADD | DROP | RENAME | SPLIT | EXCHANGE
                     PARTITION | SET SUBPARTITION TEMPLATE | SET WITH
                     </codeph><codeph>(REORGANIZE=true | false) | SET DISTRIBUTED
@@ -331,7 +331,7 @@
             <row>
               <entry colname="col1"><codeph>ALTER TYPE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3"><b>Greenplum Database Clauses:</b><p><codeph>SET DEFAULT
+              <entry colname="col3"><b>Cloudberry Database Clauses:</b><p><codeph>SET DEFAULT
                     ENCODING</codeph></p></entry>
             </row>
             <row>
@@ -389,7 +389,7 @@
               <entry colname="col1"><codeph>COPY</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Modified Clauses:</b><p><codeph>ESCAPE [ AS ]
-                    '</codeph><i>escape</i><codeph>' | 'OFF'</codeph></p><p><b>Greenplum Database
+                    '</codeph><i>escape</i><codeph>' | 'OFF'</codeph></p><p><b>Cloudberry Database
                     Clauses:</b></p><p><codeph>[LOG ERRORS] SEGMENT REJECT LIMIT
                     </codeph><i>count</i><codeph> [ROWS|PERCENT]</codeph></p></entry>
             </row>
@@ -397,7 +397,7 @@
               <entry colname="col1"><codeph>CREATE AGGREGATE</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Unsupported Clauses / Options:</b><p><codeph>[ , SORTOP =
-                    </codeph><i>sort_operator</i><codeph> ]</codeph></p><p><b>Greenplum Database
+                    </codeph><i>sort_operator</i><codeph> ]</codeph></p><p><b>Cloudberry Database
                     Clauses:</b></p><p><codeph>[ , COMBINEFUNC = </codeph><i>combinefunc</i><codeph>
                     ]</codeph></p><p><b>Limitations:</b></p><p>The functions used to implement the
                   aggregate must be <codeph>IMMUTABLE</codeph> functions.</p></entry>
@@ -430,13 +430,13 @@
             <row>
               <entry colname="col1"><codeph>CREATE EXTENSION</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Loads a new extension into Greenplum Database - based on
+              <entry colname="col3">Loads a new extension into Cloudberry Database - based on
                 PostgreSQL 9.6.</entry>
             </row>
             <row>
               <entry colname="col1"><codeph>CREATE EXTERNAL TABLE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Greenplum Database parallel ETL feature - not in PostgreSQL
+              <entry colname="col3">Cloudberry Database parallel ETL feature - not in PostgreSQL
                 9.4.</entry>
             </row>
             <row>
@@ -444,7 +444,7 @@
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Limitations:</b><p>Functions defined as
                     <codeph>STABLE</codeph> or <codeph>VOLATILE</codeph> can be run in
-                  Greenplum Database provided that they are run on the master only.
+                  Cloudberry Database provided that they are run on the master only.
                     <codeph>STABLE</codeph> and <codeph>VOLATILE</codeph> functions cannot be used
                   in statements that run at the segment level. </p></entry>
             </row>
@@ -457,14 +457,14 @@
             <row>
               <entry colname="col1"><codeph>CREATE INDEX</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3"><b>Greenplum Database Clauses:</b><p><codeph>USING
+              <entry colname="col3"><b>Cloudberry Database Clauses:</b><p><codeph>USING
                     bitmap</codeph> (bitmap
                     indexes)</p><p><b>Limitations:</b></p><p><codeph>UNIQUE</codeph> indexes are
-                  allowed only if they contain all of (or a superset of) the Greenplum distribution
+                  allowed only if they contain all of (or a superset of) the Cloudberry distribution
                   key columns. On partitioned tables, a unique index is only supported within an
                   individual partition - not across all
                     partitions.</p><p><codeph>CONCURRENTLY</codeph> keyword not supported in
-                  Greenplum.</p></entry>
+                  Cloudberry.</p></entry>
             </row>
             <row>
               <entry colname="col1"><codeph>CREATE LANGUAGE</codeph></entry>
@@ -500,13 +500,13 @@
             <row>
               <entry colname="col1"><codeph>CREATE RESOURCE QUEUE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Greenplum Database resource management feature - not in
+              <entry colname="col3">Cloudberry Database resource management feature - not in
                 PostgreSQL 9.4.</entry>
             </row>
             <row>
               <entry colname="col1"><codeph>CREATE ROLE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3"><b>Greenplum Database Clauses:</b><p><codeph>RESOURCE QUEUE
+              <entry colname="col3"><b>Cloudberry Database Clauses:</b><p><codeph>RESOURCE QUEUE
                     </codeph><i>queue_name</i><codeph> | none</codeph></p></entry>
             </row>
             <row>
@@ -538,7 +538,7 @@
                   tables (<codeph>DISTRIBUTED BY</codeph>), and the constraint columns must be the
                   same as or a superset of the distribution key columns of the table and must
                   include all the distribution key columns of the partitioning
-                    key.</p><p><b>Greenplum Database Clauses:</b></p><p><codeph>DISTRIBUTED BY
+                    key.</p><p><b>Cloudberry Database Clauses:</b></p><p><codeph>DISTRIBUTED BY
                       (<i>column</i>, [ ... ] ) |</codeph></p><p><codeph>DISTRIBUTED
                     RANDOMLY</codeph></p><p><codeph>PARTITION BY <i>type</i> (<i>column</i> [, ...])
                        ( <i>partition_specification</i>, [...] )</codeph></p><p><codeph>WITH
@@ -554,7 +554,7 @@
             <row>
               <entry colname="col1"><codeph>CREATE TABLESPACE</codeph></entry>
               <entry colname="col2"><b otherprops="red">YES</b></entry>
-              <entry colname="col3"><b>Greenplum Database Clauses:</b><p>Specify host file system
+              <entry colname="col3"><b>Cloudberry Database Clauses:</b><p>Specify host file system
                   locations for specific segment instances.</p><p><codeph>WITH
                       (content<varname>ID_1</varname>='<varname>/path/to/dir1</varname>...)</codeph></p></entry>
             </row>
@@ -566,7 +566,7 @@
             <row>
               <entry colname="col1"><codeph>CREATE TYPE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3"><b>Greenplum Database Clauses:</b><p><codeph>COMPRESSTYPE |
+              <entry colname="col3"><b>Cloudberry Database Clauses:</b><p><codeph>COMPRESSTYPE |
                     COMPRESSLEVEL | BLOCKSIZE</codeph></p><p><b>Limitations:</b></p><p>The functions
                   used to implement a new base type must be <codeph>IMMUTABLE</codeph>
                   functions.</p></entry>
@@ -642,13 +642,13 @@
             <row>
               <entry colname="col1"><codeph>DROP EXTENSION</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Removes an extension from Greenplum Database – based on
+              <entry colname="col3">Removes an extension from Cloudberry Database – based on
                 PostgreSQL 9.6.</entry>
             </row>
             <row>
               <entry colname="col1"><codeph>DROP EXTERNAL TABLE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Greenplum Database parallel ETL feature - not in PostgreSQL
+              <entry colname="col3">Cloudberry Database parallel ETL feature - not in PostgreSQL
                 9.4.</entry>
             </row>
             <row>
@@ -700,7 +700,7 @@
             <row>
               <entry colname="col1"><codeph>DROP RESOURCE QUEUE</codeph></entry>
               <entry colname="col2">YES</entry>
-              <entry colname="col3">Greenplum Database resource management feature - not in
+              <entry colname="col3">Cloudberry Database resource management feature - not in
                 PostgreSQL 9.4.</entry>
             </row>
             <row>
@@ -883,7 +883,7 @@
               <entry colname="col3"><b>Limitations:</b><p>Limited use of <codeph>VOLATILE</codeph>
                   and <codeph>STABLE</codeph> functions in <codeph>FROM</codeph> or
                     <codeph>WHERE</codeph> clauses</p><p>Text search (<codeph>Tsearch2</codeph>) is
-                  not supported</p><p><b>Greenplum Database Clauses (OLAP):</b></p><p><codeph>[GROUP
+                  not supported</p><p><b>Cloudberry Database Clauses (OLAP):</b></p><p><codeph>[GROUP
                     BY </codeph><i>grouping_element</i><codeph> [,
                     ...]]</codeph></p><p><codeph>[WINDOW </codeph><i>window_name</i><codeph> AS
                     (</codeph><i>window_specification</i><codeph>)]</codeph></p><p><codeph>[FILTER
@@ -905,7 +905,7 @@
               <entry colname="col1"><codeph>SET CONSTRAINTS</codeph></entry>
               <entry colname="col2"><b otherprops="red">NO</b></entry>
               <entry colname="col3">In PostgreSQL, this only applies to foreign key constraints,
-                which are currently not enforced in Greenplum Database.</entry>
+                which are currently not enforced in Cloudberry Database.</entry>
             </row>
             <row>
               <entry colname="col1"><codeph>SET ROLE</codeph></entry>
@@ -949,13 +949,13 @@
               <entry colname="col1"><codeph>UPDATE</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Limitations:</b><p><codeph>SET</codeph> not allowed for
-                  Greenplum distribution key columns.</p></entry>
+                  Cloudberry distribution key columns.</p></entry>
             </row>
             <row>
               <entry colname="col1"><codeph>VACUUM</codeph></entry>
               <entry colname="col2">YES</entry>
               <entry colname="col3"><b>Limitations:</b><p><codeph>VACUUM FULL</codeph> is not
-                  recommended in Greenplum Database.</p></entry>
+                  recommended in Cloudberry Database.</p></entry>
             </row>
             <row>
               <entry colname="col1"><codeph>VALUES</codeph></entry>

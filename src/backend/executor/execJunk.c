@@ -3,7 +3,7 @@
  * execJunk.c
  *	  Junk attribute support stuff....
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -54,7 +54,7 @@
  *
  * The source targetlist is passed in.  The output tuple descriptor is
  * built from the non-junk tlist entries.
- * An optional resultSlot can be passed as well.
+ * An optional resultSlot can be passed as well; otherwise, we create one.
  */
 JunkFilter *
 ExecInitJunkFilter(List *targetList, TupleTableSlot *slot)
@@ -63,8 +63,6 @@ ExecInitJunkFilter(List *targetList, TupleTableSlot *slot)
 	TupleDesc	cleanTupType;
 	int			cleanLength;
 	AttrNumber *cleanMap;
-	ListCell   *t;
-	AttrNumber	cleanResno;
 
 	/*
 	 * Compute the tuple descriptor for the cleaned tuple.
@@ -92,18 +90,22 @@ ExecInitJunkFilter(List *targetList, TupleTableSlot *slot)
 	cleanLength = cleanTupType->natts;
 	if (cleanLength > 0)
 	{
+		AttrNumber	cleanResno;
+		ListCell   *t;
+
 		cleanMap = (AttrNumber *) palloc(cleanLength * sizeof(AttrNumber));
-		cleanResno = 1;
+		cleanResno = 0;
 		foreach(t, targetList)
 		{
 			TargetEntry *tle = lfirst(t);
 
 			if (!tle->resjunk)
 			{
-				cleanMap[cleanResno - 1] = tle->resno;
+				cleanMap[cleanResno] = tle->resno;
 				cleanResno++;
 			}
 		}
+		Assert(cleanResno == cleanLength);
 	}
 	else
 		cleanMap = NULL;
@@ -173,7 +175,7 @@ ExecInitJunkFilterConversion(List *targetList,
 			{
 				TargetEntry *tle = lfirst(t);
 
-				t = lnext(t);
+				t = lnext(targetList, t);
 				if (!tle->resjunk)
 				{
 					cleanMap[i] = tle->resno;
@@ -234,22 +236,6 @@ ExecFindJunkAttributeInTlist(List *targetlist, const char *attrName)
 	}
 
 	return InvalidAttrNumber;
-}
-
-/*
- * ExecGetJunkAttribute
- *
- * Given a junk filter's input tuple (slot) and a junk attribute's number
- * previously found by ExecFindJunkAttribute, extract & return the value and
- * isNull flag of the attribute.
- */
-Datum
-ExecGetJunkAttribute(TupleTableSlot *slot, AttrNumber attno,
-					 bool *isNull)
-{
-	Assert(attno > 0);
-
-	return slot_getattr(slot, attno, isNull);
 }
 
 /*

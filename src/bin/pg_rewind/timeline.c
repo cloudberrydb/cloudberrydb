@@ -3,16 +3,15 @@
  * timeline.c
  *	  timeline-related functions.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
 #include "postgres_fe.h"
 
-#include "pg_rewind.h"
-
 #include "access/timeline.h"
 #include "access/xlog_internal.h"
+#include "pg_rewind.h"
 
 /*
  * This is copy-pasted from the backend readTimeLineHistory, modified to

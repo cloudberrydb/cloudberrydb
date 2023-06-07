@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
@@ -277,7 +277,7 @@ CQueryMutators::RunIncrLevelsUpMutator(Node *node,
 	if (IsA(node, Query))
 	{
 		context->m_current_query_level++;
-		Query *query = query_tree_mutator(
+		Query *query = gpdb::MutateQueryTree(
 			(Query *) node,
 			(MutatorWalkerFn) CQueryMutators::RunIncrLevelsUpMutator, context,
 			0  // flags
@@ -287,7 +287,7 @@ CQueryMutators::RunIncrLevelsUpMutator(Node *node,
 		return (Node *) query;
 	}
 
-	return expression_tree_mutator(
+	return gpdb::MutateExpressionTree(
 		node, (MutatorWalkerFn) CQueryMutators::RunIncrLevelsUpMutator,
 		context);
 }
@@ -327,7 +327,7 @@ CQueryMutators::RunFixCTELevelsUpWalker(Node *node,
 	if (IsA(node, Query))
 	{
 		context->m_current_query_level++;
-		BOOL result = query_tree_walker(
+		BOOL result = gpdb::WalkQueryTree(
 			(Query *) node,
 			(ExprWalkerFn) CQueryMutators::RunFixCTELevelsUpWalker, context,
 			QTW_EXAMINE_RTES_BEFORE	 // flags - visit RTEs
@@ -345,7 +345,7 @@ CQueryMutators::RunFixCTELevelsUpWalker(Node *node,
 		return false;
 	}
 
-	return expression_tree_walker(
+	return gpdb::WalkExpressionTree(
 		node, (ExprWalkerFn) CQueryMutators::RunFixCTELevelsUpWalker, context);
 }
 
@@ -1553,7 +1553,7 @@ CQueryMutators::RunWindowProjListMutator(Node *node,
 		SContextIncLevelsupMutator levelsUpContext(
 			context->m_current_query_level,
 			true /* should_fix_top_level_target_list */);
-		WindowFunc *window_func = (WindowFunc *) expression_tree_mutator(
+		WindowFunc *window_func = (WindowFunc *) gpdb::MutateExpressionTree(
 			node, (MutatorWalkerFn) RunIncrLevelsUpMutator, &levelsUpContext);
 		GPOS_ASSERT(IsA(window_func, WindowFunc));
 
@@ -1619,7 +1619,7 @@ CQueryMutators::RunWindowProjListMutator(Node *node,
 	{
 		// recurse into Query nodes
 		context->m_current_query_level++;
-		Query *result = query_tree_mutator(
+		Query *result = gpdb::MutateQueryTree(
 			(Query *) node, (MutatorWalkerFn) RunWindowProjListMutator, context,
 			0);
 		context->m_current_query_level--;
@@ -1627,7 +1627,7 @@ CQueryMutators::RunWindowProjListMutator(Node *node,
 		return (Node *) result;
 	}
 
-	return expression_tree_mutator(
+	return gpdb::MutateExpressionTree(
 		node, (MutatorWalkerFn) CQueryMutators::RunWindowProjListMutator,
 		context);
 }

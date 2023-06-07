@@ -81,7 +81,7 @@ where <varname>action</varname> is one of:
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p><codeph>ALTER MATERIALIZED VIEW</codeph> is a Greenplum Database extension of the SQL
+      <p><codeph>ALTER MATERIALIZED VIEW</codeph> is a Cloudberry Database extension of the SQL
         standard.</p>
     </section>
     <section id="section8">

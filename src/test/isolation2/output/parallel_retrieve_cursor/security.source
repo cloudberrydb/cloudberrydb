@@ -17,7 +17,7 @@ CREATE
  1        
 (1 row)
 0R: SELECT 1;
-#0retrieve> FATAL:  retrieve auth token is invalid
+#0retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 0Rq:Sessions not started cannot be quit
 
@@ -94,7 +94,7 @@ ERROR:  the endpoint tktt223344556677889900112233445566 does not exist in the se
 
 -- Retrieve data.
 *R: @pre_run 'set_endpoint_variable @ENDPOINT1': RETRIEVE 10 FROM ENDPOINT "@ENDPOINT1";
-#-1retrieve> FATAL:  retrieve auth token is invalid
+#-1retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid
 
 
  a  

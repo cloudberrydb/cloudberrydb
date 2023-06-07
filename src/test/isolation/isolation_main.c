@@ -2,7 +2,7 @@
  *
  * isolation_main --- pg_regress test launcher for isolation tests
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/test/isolation/isolation_main.c
@@ -18,7 +18,7 @@ char		saved_argv0[MAXPGPATH];
 char		isolation_exec[MAXPGPATH];
 bool		looked_up_isolation_exec = false;
 
-#define PG_ISOLATION_VERSIONSTR "isolationtester (PostgreSQL) " PG_VERSION "\n"
+#define PG_ISOLATION_VERSIONSTR "isolationtester (Cloudberry Database) " PG_VERSION "\n"
 
 /*
  * start an isolation tester process for specified file (including
@@ -36,6 +36,7 @@ isolation_start_test(const char *testname,
 	char		expectfile[MAXPGPATH];
 	char		psql_cmd[MAXPGPATH * 3];
 	size_t		offset = 0;
+	char	   *appnameenv;
 
 	/* need to do the path lookup here, check isolation_init() for details */
 	if (!looked_up_isolation_exec)
@@ -97,6 +98,10 @@ isolation_start_test(const char *testname,
 		exit(2);
 	}
 
+	appnameenv = psprintf("isolation/%s", testname);
+	setenv("PGAPPNAME", appnameenv, 1);
+	free(appnameenv);
+
 	pid = spawn_process(psql_cmd);
 
 	if (pid == INVALID_PID)
@@ -105,6 +110,8 @@ isolation_start_test(const char *testname,
 				testname);
 		exit(2);
 	}
+
+	unsetenv("PGAPPNAME");
 
 	return pid;
 }
@@ -160,5 +167,8 @@ isolation_init(int argc, char **argv)
 int
 main(int argc, char *argv[])
 {
-	return regression_main(argc, argv, isolation_init, isolation_start_test);
+	return regression_main(argc, argv,
+						   isolation_init,
+						   isolation_start_test,
+						   NULL /* no postfunc needed */ );
 }

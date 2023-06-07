@@ -11,7 +11,7 @@ NOTICE:  foreign table "exttabtest_options_r" does not exist, skipping
     EXCEPT ALL
     SELECT * FROM exttabtest;
 ERROR:  This is greenplum. (gpextprotocol.c:56)
-CONTEXT:  External table exttabtest_options_r, file demoprot://exttabtest.txt
+CONTEXT:  External table exttabtest_options_r, line 1 of file demoprot://exttabtest.txt
     DROP EXTERNAL TABLE IF EXISTS exttabtest_w;
 NOTICE:  foreign table "exttabtest_w" does not exist, skipping
     CREATE WRITABLE EXTERNAL TABLE exttabtest_w(like exttabtest)
@@ -446,7 +446,7 @@ NOTICE:  foreign table "exttabtest_r_1record" does not exist, skipping
     -- and will cause following SElECT query to fail
     SELECT * FROM exttabtest_r_1record order by id;
 ERROR:  demoprot_import: could not open file "exttabtest_1record.txt" for reading: No such file or directory  (seg0 slice1 rh55-qavm55:7532 pid=23845)
-CONTEXT:  External table exttabtest_r_1record, file demoprot://exttabtest_1record.txt
+CONTEXT:  External table exttabtest_r_1record, line 1 of file demoprot://exttabtest_1record.txt
     -- Drop External Tables
     DROP EXTERNAL TABLE IF EXISTS exttabtest_r_1record;
     DROP EXTERNAL TABLE IF EXISTS exttabtest_w_1record;
@@ -780,8 +780,8 @@ select max(cnt) - min(cnt)  > 20 from t;
 (1 row)
 
 -- Test 61: create STABLE read and write functions based on example gpformatter.so
--- Note: Only STABLE is supported for formatter.
--- When it is not STABLE (VALOTILE, or IMMUTABLE),
+-- Note: Both STABLE and IMMUTABLE are supported for formatter.
+-- When it is VALOTILE,
 -- the expected output of CREATE EXTERNAL TABLE should be an error.
 CREATE OR REPLACE FUNCTION formatter_export_s(record) RETURNS bytea 
     AS '$libdir/gpformatter.so', 'formatter_export'
@@ -825,12 +825,11 @@ LANGUAGE C STABLE;
 DROP FUNCTION formatter_export_todrop(record);
 DROP FUNCTION formatter_import_todrop();
 -- Test 63: create RET and WET using demoprot protocol and STABLE formatter
--- Note: Only STABLE is supported for formatter, this is enforced
--- When it is not STABLE (VOLATILE, or IMMUTABLE),
+-- Note: Both STABLE and IMMUTABLE are supported for formatter.
+-- When it is VALOTILE,
 -- the expected error like:
--- ERROR: formatter function formatter_export_i is not declared STABLE (seg1 rh55-qavm55:7533 pid=14816)
+-- ERROR: formatter function formatter_export_i is not declared STABLE or IMMUTABLE
     -- Create RET and WET using IMMUTABLE functions will succeed
-    -- However query such RET or WET should fail
     DROP EXTERNAL TABLE IF EXISTS format_w;
 NOTICE:  foreign table "format_w" does not exist, skipping
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
@@ -843,8 +842,6 @@ NOTICE:  foreign table "format_r" does not exist, skipping
     LOCATION ('demoprot://exttabtest_test63') 
     FORMAT 'CUSTOM' (FORMATTER='formatter_import_i');
     INSERT INTO format_w (SELECT * FROM formatsource);
-ERROR:  formatter function formatter_export_i is not declared STABLE  (seg1 rh55-qavm55:7533 pid=30568)
-    -- ERROR:  formatter function formatter_export_i is not declared STABLE  (seg1 rh55-qavm55:7533 pid=14816)
     -- Create RET and WET using STABLE functions 
     DROP EXTERNAL TABLE IF EXISTS format_w;
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
@@ -1630,8 +1627,8 @@ ERROR:  protocol "demoprot" does not exist  (seg0 slice1 rh55-qavm55:7532 pid=18
     -- However demoprot implementation prevents using any other protocol name than "demoprot"
     -- therefore the error is expected.
     select count(*) from exttabtest_r_new;
-ERROR:  internal error: demoprot called with a different protocol (demoprot_new) (gpextprotocol.c:108)  (seg0 slice1 rh55-qavm55:7532 pid=18394) (cdbdisp.c:1453)
-CONTEXT:  External table exttabtest_r_new, file demoprot_new://exttabtest.txt
+ERROR:  internal error: demoprot called with a different protocol (demoprot_new) (gpextprotocol.c:107)  (seg0 slice1 rh55-qavm55:7532 pid=18394) (cdbdisp.c:1453)
+CONTEXT:  External table exttabtest_r_new, line 1 of file demoprot_new://exttabtest.txt
     -- Rename protocol name back to demoprot
     ALTER PROTOCOL demoprot_new RENAME to demoprot;
     -- Verify access old ext table that referencing old protocol name would succeed

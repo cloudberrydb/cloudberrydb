@@ -11,7 +11,7 @@
  * Note: This file must be includable in both frontend and backend contexts,
  * to allow stand-alone tools like pg_receivewal to deal with WAL files.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/xlog_internal.h
@@ -31,7 +31,7 @@
 /*
  * Each page of XLOG file has a header like this:
  */
-#define XLOG_PAGE_MAGIC 0xD101	/* can be used as WAL version indicator */
+#define XLOG_PAGE_MAGIC 0xD10D	/* can be used as WAL version indicator */
 
 typedef struct XLogPageHeaderData
 {
@@ -43,11 +43,8 @@ typedef struct XLogPageHeaderData
 	/*
 	 * When there is not enough space on current page for whole record, we
 	 * continue on the next page.  xlp_rem_len is the number of bytes
-	 * remaining from a previous page.
-	 *
-	 * Note that xl_rem_len includes backup-block data; that is, it tracks
-	 * xl_tot_len not xl_len in the initial header.  Also note that the
-	 * continuation data isn't necessarily aligned.
+	 * remaining from a previous page; it tracks xl_tot_len in the initial
+	 * header.  Note that the continuation data isn't necessarily aligned.
 	 */
 	uint32		xlp_rem_len;	/* total len of remaining data for record */
 } XLogPageHeaderData;
@@ -79,8 +76,10 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 #define XLP_LONG_HEADER				0x0002
 /* This flag indicates backup blocks starting in this page are optional */
 #define XLP_BKP_REMOVABLE			0x0004
+/* Replaces a missing contrecord; see CreateOverwriteContrecordRecord */
+#define XLP_FIRST_IS_OVERWRITE_CONTRECORD 0x0008
 /* All defined flag bits in xlp_info (used for validity checking of header) */
-#define XLP_ALL_FLAGS				0x0007
+#define XLP_ALL_FLAGS				0x000F
 
 #define XLogPageHeaderSize(hdr)		\
 	(((hdr)->xlp_info & XLP_LONG_HEADER) ? SizeOfXLogLongPHD : SizeOfXLogShortPHD)
@@ -128,6 +127,13 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 	logSegNo = ((xlrp) - 1) / (wal_segsz_bytes)
 
 /*
+ * Convert values of GUCs measured in megabytes to equiv. segment count.
+ * Rounds down.
+ */
+#define XLogMBVarToSegs(mbvar, wal_segsz_bytes) \
+	((mbvar) / ((wal_segsz_bytes) / (1024 * 1024)))
+
+/*
  * Is an XLogRecPtr within a particular XLOG segment?
  *
  * For XLByteInSeg, do the computation at face value.  For XLByteInPrevSeg,
@@ -158,6 +164,10 @@ typedef XLogLongPageHeaderData *XLogLongPageHeader;
 /* Length of XLog file name */
 #define XLOG_FNAME_LEN	   24
 
+/*
+ * Generate a WAL segment file name.  Do not use this macro in a helper
+ * function allocating the result generated.
+ */
 #define XLogFileName(fname, tli, logSegNo, wal_segsz_bytes)	\
 	snprintf(fname, MAXFNAMELEN, "%08X%08X%08X", tli,		\
 			 (uint32) ((logSegNo) / XLogSegmentsPerXLogId(wal_segsz_bytes)), \
@@ -247,6 +257,13 @@ typedef struct xl_restore_point
 	char		rp_name[MAXFNAMELEN];
 } xl_restore_point;
 
+/* Overwrite of prior contrecord */
+typedef struct xl_overwrite_contrecord
+{
+	XLogRecPtr	overwritten_lsn;
+	TimestampTz overwrite_time;
+} xl_overwrite_contrecord;
+
 /* End of recovery mark, when we don't do an END_OF_RECOVERY checkpoint */
 typedef struct xl_end_of_recovery
 {
@@ -327,23 +344,5 @@ extern bool ArchiveRecoveryRequested;
 extern bool InArchiveRecovery;
 extern bool StandbyMode;
 extern char *recoveryRestoreCommand;
-
-/*
- * Prototypes for functions in xlogarchive.c
- */
-extern bool RestoreArchivedFile(char *path, const char *xlogfname,
-								const char *recovername, off_t expectedSize,
-								bool cleanupEnabled);
-extern void ExecuteRecoveryCommand(const char *command, const char *commandName,
-								   bool failOnerror);
-extern void KeepFileRestoredFromArchive(const char *path, const char *xlogfname);
-extern void XLogArchiveNotify(const char *xlog);
-extern void XLogArchiveNotifySeg(XLogSegNo segno);
-extern void XLogArchiveForceDone(const char *xlog);
-extern bool XLogArchiveCheckDone(const char *xlog);
-extern bool XLogArchiveIsBusy(const char *xlog);
-extern bool XLogArchiveIsReady(const char *xlog);
-extern bool XLogArchiveIsReadyOrDone(const char *xlog);
-extern void XLogArchiveCleanup(const char *xlog);
 
 #endif							/* XLOG_INTERNAL_H */

@@ -4,7 +4,7 @@
  *	  definition of the system "database identifier" relation (gp_dbid)
  *	  along with the relation's initial contents.
  *
- * Portions Copyright (c) 2009-2010, Greenplum inc
+ * Portions Copyright (c) 2009-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -39,6 +39,7 @@
 /*
  * Defines for gp_id table
  */
+
 CATALOG(gp_id,5101,GpIdRelationId) BKI_SHARED_RELATION
 {
 	NameData	gpname;

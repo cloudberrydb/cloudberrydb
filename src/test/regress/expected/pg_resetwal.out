@@ -1,7 +1,7 @@
 -- setup
 \! mkdir -p /tmp/test_pg_resetwal/global /tmp/test_pg_resetwal/pg_wal
 \! touch /tmp/test_pg_resetwal/global/pg_control
-\! echo "12" > /tmp/test_pg_resetwal/PG_VERSION
+\! echo "14" > /tmp/test_pg_resetwal/PG_VERSION
 -- negative test:
 -- missing argument
 \! pg_resetwal -k -n /tmp/test_pg_resetwal

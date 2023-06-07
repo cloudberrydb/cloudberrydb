@@ -4,7 +4,7 @@
 
 """
   gp_era.py, based on gp_dbid.py
-  Copyright (c) EMC/Greenplum Inc 2011. All Rights Reserved. 
+  Copyright (c) EMC/Cloudberry Inc 2011. All Rights Reserved. 
 """
 
 import sys, os, stat, re
@@ -73,7 +73,7 @@ class GpEraFile:
         """
         Generate gp_era contents based on era value
         """
-        f.write("# Greenplum Database era.\n")
+        f.write("# Cloudberry Database era.\n")
         f.write("# Do not change the contents of this file.\n")
         f.write('era = %s\n' % self.era)
         INFO('wrote era: %s' % self.era)

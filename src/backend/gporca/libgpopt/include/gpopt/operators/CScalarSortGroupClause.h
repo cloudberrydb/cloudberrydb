@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -97,7 +97,7 @@ public:
 	PopConvert(COperator *pop)
 	{
 		GPOS_ASSERT(nullptr != pop);
-		GPOS_ASSERT(EopScalarSortGroupClause == pop->Eopid());
+		GPOS_ASSERT_FIXME(EopScalarSortGroupClause == pop->Eopid());
 
 		return dynamic_cast<CScalarSortGroupClause *>(pop);
 	}

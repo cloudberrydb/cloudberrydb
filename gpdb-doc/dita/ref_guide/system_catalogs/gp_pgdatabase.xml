@@ -4,8 +4,8 @@
 <topic id="topic1" xml:lang="en">
   <title id="fn141670">gp_pgdatabase</title>
   <body>
-    <p>The <codeph>gp_pgdatabase</codeph> view shows status information about the Greenplum segment instances and whether they are acting as the mirror or
-      the primary. This view is used internally by the Greenplum fault
+    <p>The <codeph>gp_pgdatabase</codeph> view shows status information about the Cloudberry segment instances and whether they are acting as the mirror or
+      the primary. This view is used internally by the Cloudberry fault
       detection and recovery utilities to determine failed segments.</p>
     <table id="fn141982">
       <title>pg_catalog.gp_pgdatabase</title>
@@ -49,7 +49,7 @@
             <entry colname="col3">gp_segment_configuration.content</entry>
             <entry colname="col4">The ID for the portion of data on an instance. A primary segment
               instance and its mirror will have the same content ID.<p>For a segment the value is
-                from 0-<i>N-1</i>, where <i>N</i> is the number of segments in Greenplum Database.</p><p>For the master, the value is -1.</p></entry>
+                from 0-<i>N-1</i>, where <i>N</i> is the number of segments in Cloudberry Database.</p><p>For the master, the value is -1.</p></entry>
           </row>
           <row>
             <entry><codeph>valid</codeph></entry>

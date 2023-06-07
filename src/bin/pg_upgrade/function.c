@@ -3,17 +3,15 @@
  *
  *	server-side function support
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/function.c
  */
 
 #include "postgres_fe.h"
 
-#include "pg_upgrade.h"
-
 #include "access/transam.h"
 #include "catalog/pg_language_d.h"
-
+#include "pg_upgrade.h"
 
 /*
  * qsort comparator for pointers to library names
@@ -104,7 +102,7 @@ get_loadable_libraries(void)
 		 * http://archives.postgresql.org/pgsql-hackers/2012-03/msg01101.php
 		 * http://archives.postgresql.org/pgsql-bugs/2012-05/msg00206.php
 		 */
-		if (GET_MAJOR_VERSION(old_cluster.major_version) < 901)
+		if (GET_MAJOR_VERSION(old_cluster.major_version) <= 900)
 		{
 			PGresult   *res;
 
@@ -228,15 +226,11 @@ check_loadable_libraries(void)
 			 * plpython2u language was created with library name plpython2.so
 			 * as a symbolic link to plpython.so.  In Postgres 9.1, only the
 			 * plpython2.so library was created, and both plpythonu and
-			 * plpython2u pointing to it.  For this reason, any reference to
+			 * plpython2u point to it.  For this reason, any reference to
 			 * library name "plpython" in an old PG <= 9.1 cluster must look
 			 * for "plpython2" in the new cluster.
-			 *
-			 * For this case, we could check pg_pltemplate, but that only
-			 * works for languages, and does not help with function shared
-			 * objects, so we just do a general fix.
 			 */
-			if (GET_MAJOR_VERSION(old_cluster.major_version) < 901 &&
+			if (GET_MAJOR_VERSION(old_cluster.major_version) <= 900 &&
 				strcmp(lib, "$libdir/plpython") == 0)
 			{
 				lib = "$libdir/plpython2";
@@ -268,7 +262,7 @@ check_loadable_libraries(void)
 		}
 
 		if (was_load_failure)
-			fprintf(script, _("Database: %s\n"),
+			fprintf(script, _("In database: %s\n"),
 					old_cluster.dbarr.dbs[os_info.libraries[libnum].dbnum].db_name);
 	}
 

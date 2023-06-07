@@ -3,9 +3,9 @@
 <topic id="topic_khf_ltc_vbb">
   <title>Server Programmatic Interfaces</title>
   <body>
-     <p>This section describes programmatic interfaces to the Greenplum Database server.</p>
+     <p>This section describes programmatic interfaces to the Cloudberry Database server.</p>
      <ul>
-       <li><xref href="gppc.xml">Greenplum Partner Connector API</xref></li>
+       <li><xref href="gppc.xml">Cloudberry Partner Connector API</xref></li>
        <li><xref href="bgworker.xml" format="dita">Background Worker Processes</xref></li>
      </ul>
    </body>

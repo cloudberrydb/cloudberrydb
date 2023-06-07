@@ -623,8 +623,8 @@ with t as (
 select max(cnt) - min(cnt)  > 20 from t;
 
 -- Test 61: create STABLE read and write functions based on example gpformatter.so
--- Note: Only STABLE is supported for formatter.
--- When it is not STABLE (VALOTILE, or IMMUTABLE),
+-- Note: Both STABLE and IMMUTABLE are supported for formatter.
+-- When it is VALOTILE,
 -- the expected output of CREATE EXTERNAL TABLE should be an error.
 CREATE OR REPLACE FUNCTION formatter_export_s(record) RETURNS bytea 
     AS '$libdir/gpformatter.so', 'formatter_export'
@@ -669,13 +669,11 @@ DROP FUNCTION formatter_export_todrop(record);
 DROP FUNCTION formatter_import_todrop();
 
 -- Test 63: create RET and WET using demoprot protocol and STABLE formatter
--- Note: Only STABLE is supported for formatter, this is enforced
--- When it is not STABLE (VOLATILE, or IMMUTABLE),
+-- Note: Both STABLE and IMMUTABLE are supported for formatter.
+-- When it is VALOTILE,
 -- the expected error like:
--- ERROR: formatter function formatter_export_i is not declared STABLE (seg1 rh55-qavm55:7533 pid=14816)
-
+-- ERROR: formatter function formatter_export_i is not declared STABLE or IMMUTABLE
     -- Create RET and WET using IMMUTABLE functions will succeed
-    -- However query such RET or WET should fail
     DROP EXTERNAL TABLE IF EXISTS format_w;
     CREATE WRITABLE EXTERNAL TABLE format_w(like formatsource) 
     LOCATION ('demoprot://exttabtest_test63') 
@@ -687,7 +685,6 @@ DROP FUNCTION formatter_import_todrop();
     FORMAT 'CUSTOM' (FORMATTER='formatter_import_i');
 
     INSERT INTO format_w (SELECT * FROM formatsource);
-    -- ERROR:  formatter function formatter_export_i is not declared STABLE  (seg1 rh55-qavm55:7533 pid=14816)
 
     -- Create RET and WET using STABLE functions 
     DROP EXTERNAL TABLE IF EXISTS format_w;

@@ -345,8 +345,33 @@ ERROR:  FOR NO KEY UPDATE is not allowed with UNION/INTERSECT/EXCEPT
         1 |        2 |        3
 (1 row)
 
--- exercise both hashed and sorted implementations of INTERSECT/EXCEPT
+-- exercise both hashed and sorted implementations of UNION/INTERSECT/EXCEPT
 set enable_hashagg to on;
+explain (costs off)
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         ->  Partial Aggregate
+               ->  HashAggregate
+                     Group Key: tenk1.unique1
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                           Hash Key: tenk1.unique1
+                           ->  Append
+                                 ->  Seq Scan on tenk1
+                                 ->  Seq Scan on tenk1 tenk1_1
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+ count 
+-------
+ 10000
+(1 row)
+
 explain (costs off)
 select count(*) from
   ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
@@ -404,6 +429,33 @@ select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
 set enable_hashagg to off;
 explain (costs off)
 select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         ->  Partial Aggregate
+               ->  Unique
+                     Group Key: tenk1.unique1
+                     ->  Sort
+                           Sort Key: tenk1.unique1
+                           ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                                 Hash Key: tenk1.unique1
+                                 ->  Append
+                                       ->  Seq Scan on tenk1
+                                       ->  Seq Scan on tenk1 tenk1_1
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+select count(*) from
+  ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
+ count 
+-------
+ 10000
+(1 row)
+
+explain (costs off)
+select count(*) from
   ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
                                         QUERY PLAN                                        
 ------------------------------------------------------------------------------------------
@@ -458,6 +510,353 @@ select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
  unique1 
 ---------
       10
+(1 row)
+
+reset enable_hashagg;
+-- non-hashable type
+set enable_hashagg to on;
+explain (costs off)
+select x from (values (100::money), (200::money)) _(x) union select x from (values (100::money), (300::money)) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(7 rows)
+
+set enable_hashagg to off;
+explain (costs off)
+select x from (values (100::money), (200::money)) _(x) union select x from (values (100::money), (300::money)) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(7 rows)
+
+reset enable_hashagg;
+-- arrays
+set enable_hashagg to on;
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+               QUERY PLAN                
+-----------------------------------------
+ HashAggregate
+   Group Key: "*VALUES*".column1
+   ->  Append
+         ->  Values Scan on "*VALUES*"
+         ->  Values Scan on "*VALUES*_1"
+(5 rows)
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+   x   
+-------
+ {1,4}
+ {1,2}
+ {1,3}
+(3 rows)
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ HashSetOp Intersect
+   ->  Append
+         ->  Subquery Scan on "*SELECT* 1"
+               ->  Values Scan on "*VALUES*"
+         ->  Subquery Scan on "*SELECT* 2"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+   x   
+-------
+ {1,2}
+(1 row)
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ HashSetOp Except
+   ->  Append
+         ->  Subquery Scan on "*SELECT* 1"
+               ->  Values Scan on "*VALUES*"
+         ->  Subquery Scan on "*SELECT* 2"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+   x   
+-------
+ {1,3}
+(1 row)
+
+-- non-hashable type
+explain (costs off)
+select x from (values (array[100::money]), (array[200::money])) _(x) union select x from (values (array[100::money]), (array[300::money])) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (array[100::money]), (array[200::money])) _(x) union select x from (values (array[100::money]), (array[300::money])) _(x);
+     x     
+-----------
+ {$100.00}
+ {$200.00}
+ {$300.00}
+(3 rows)
+
+set enable_hashagg to off;
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
+   x   
+-------
+ {1,2}
+ {1,3}
+ {1,4}
+(3 rows)
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+                     QUERY PLAN                      
+-----------------------------------------------------
+ SetOp Intersect
+   ->  Sort
+         Sort Key: "*SELECT* 1".x
+         ->  Append
+               ->  Subquery Scan on "*SELECT* 1"
+                     ->  Values Scan on "*VALUES*"
+               ->  Subquery Scan on "*SELECT* 2"
+                     ->  Values Scan on "*VALUES*_1"
+(8 rows)
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
+   x   
+-------
+ {1,2}
+(1 row)
+
+explain (costs off)
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+                     QUERY PLAN                      
+-----------------------------------------------------
+ SetOp Except
+   ->  Sort
+         Sort Key: "*SELECT* 1".x
+         ->  Append
+               ->  Subquery Scan on "*SELECT* 1"
+                     ->  Values Scan on "*VALUES*"
+               ->  Subquery Scan on "*SELECT* 2"
+                     ->  Values Scan on "*VALUES*_1"
+(8 rows)
+
+select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
+   x   
+-------
+ {1,3}
+(1 row)
+
+reset enable_hashagg;
+-- records
+set enable_hashagg to on;
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+   x   
+-------
+ (1,2)
+ (1,3)
+ (1,4)
+(3 rows)
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+                     QUERY PLAN                      
+-----------------------------------------------------
+ SetOp Intersect
+   ->  Sort
+         Sort Key: "*SELECT* 1".x
+         ->  Append
+               ->  Subquery Scan on "*SELECT* 1"
+                     ->  Values Scan on "*VALUES*"
+               ->  Subquery Scan on "*SELECT* 2"
+                     ->  Values Scan on "*VALUES*_1"
+(8 rows)
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+   x   
+-------
+ (1,2)
+(1 row)
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+                     QUERY PLAN                      
+-----------------------------------------------------
+ SetOp Except
+   ->  Sort
+         Sort Key: "*SELECT* 1".x
+         ->  Append
+               ->  Subquery Scan on "*SELECT* 1"
+                     ->  Values Scan on "*VALUES*"
+               ->  Subquery Scan on "*SELECT* 2"
+                     ->  Values Scan on "*VALUES*_1"
+(8 rows)
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+   x   
+-------
+ (1,3)
+(1 row)
+
+-- non-hashable type
+-- With an anonymous row type, the typcache does not report that the
+-- type is hashable.  (Otherwise, this would fail at execution time.)
+explain (costs off)
+select x from (values (row(100::money)), (row(200::money))) _(x) union select x from (values (row(100::money)), (row(300::money))) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (row(100::money)), (row(200::money))) _(x) union select x from (values (row(100::money)), (row(300::money))) _(x);
+     x     
+-----------
+ ($100.00)
+ ($200.00)
+ ($300.00)
+(3 rows)
+
+-- With a defined row type, the typcache can inspect the type's fields
+-- for hashability.
+create type ct1 as (f1 money);
+explain (costs off)
+select x from (values (row(100::money)::ct1), (row(200::money)::ct1)) _(x) union select x from (values (row(100::money)::ct1), (row(300::money)::ct1)) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (row(100::money)::ct1), (row(200::money)::ct1)) _(x) union select x from (values (row(100::money)::ct1), (row(300::money)::ct1)) _(x);
+     x     
+-----------
+ ($100.00)
+ ($200.00)
+ ($300.00)
+(3 rows)
+
+drop type ct1;
+set enable_hashagg to off;
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+                  QUERY PLAN                   
+-----------------------------------------------
+ Unique
+   Group Key: "*VALUES*".column1
+   ->  Sort
+         Sort Key: "*VALUES*".column1
+         ->  Append
+               ->  Values Scan on "*VALUES*"
+               ->  Values Scan on "*VALUES*_1"
+(6 rows)
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
+   x   
+-------
+ (1,2)
+ (1,3)
+ (1,4)
+(3 rows)
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+                     QUERY PLAN                      
+-----------------------------------------------------
+ SetOp Intersect
+   ->  Sort
+         Sort Key: "*SELECT* 1".x
+         ->  Append
+               ->  Subquery Scan on "*SELECT* 1"
+                     ->  Values Scan on "*VALUES*"
+               ->  Subquery Scan on "*SELECT* 2"
+                     ->  Values Scan on "*VALUES*_1"
+(8 rows)
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
+   x   
+-------
+ (1,2)
+(1 row)
+
+explain (costs off)
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+                     QUERY PLAN                      
+-----------------------------------------------------
+ SetOp Except
+   ->  Sort
+         Sort Key: "*SELECT* 1".x
+         ->  Append
+               ->  Subquery Scan on "*SELECT* 1"
+                     ->  Values Scan on "*VALUES*"
+               ->  Subquery Scan on "*SELECT* 2"
+                     ->  Values Scan on "*VALUES*_1"
+(8 rows)
+
+select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
+   x   
+-------
+ (1,3)
 (1 row)
 
 reset enable_hashagg;
@@ -752,20 +1151,23 @@ explain (costs off)
   UNION
   SELECT * FROM t2) t
  WHERE ab = 'ab';
-                          QUERY PLAN                           
----------------------------------------------------------------
+                             QUERY PLAN                              
+---------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  HashAggregate
+   Merge Key: ((t1.a || t1.b))
+   ->  Unique
          Group Key: ((t1.a || t1.b))
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
-               Hash Key: ((t1.a || t1.b))
-               ->  Append
-                     ->  Index Scan using t1_ab_idx on t1
-                           Index Cond: ((a || b) = 'ab'::text)
-                     ->  Index Only Scan using t2_pkey on t2
-                           Index Cond: (ab = 'ab'::text)
+         ->  Sort
+               Sort Key: ((t1.a || t1.b))
+               ->  Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: ((t1.a || t1.b))
+                     ->  Append
+                           ->  Index Scan using t1_ab_idx on t1
+                                 Index Cond: ((a || b) = 'ab'::text)
+                           ->  Index Only Scan using t2_pkey on t2
+                                 Index Cond: (ab = 'ab'::text)
  Optimizer: Postgres query optimizer
-(11 rows)
+(14 rows)
 
 --
 -- Test that ORDER BY for UNION ALL can be pushed down to inheritance
@@ -787,8 +1189,8 @@ explain (costs off)
    UNION ALL
    SELECT ab FROM t2) t
   ORDER BY 1 LIMIT 8;
-                         QUERY PLAN                         
-------------------------------------------------------------
+                           QUERY PLAN                            
+-----------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: ((t1.a || t1.b))
@@ -796,9 +1198,9 @@ explain (costs off)
                ->  Merge Append
                      Sort Key: ((t1.a || t1.b))
                      ->  Index Scan using t1_ab_idx on t1
-                     ->  Index Scan using t1c_ab_idx on t1c
+                     ->  Index Scan using t1c_ab_idx on t1c t1_1
                      ->  Index Scan using t2_pkey on t2
-                     ->  Index Scan using t2c_pkey on t2c
+                     ->  Index Scan using t2c_pkey on t2c t2_1
  Optimizer: Postgres query optimizer
 (11 rows)
 
@@ -843,8 +1245,8 @@ select event_id
          Sort Key: events.event_id
          ->  Index Scan using events_pkey on events
          ->  Sort
-               Sort Key: events_child.event_id
-               ->  Seq Scan on events_child
+               Sort Key: events_1.event_id
+               ->  Seq Scan on events_child events_1
          ->  Index Scan using other_events_pkey on other_events
  Optimizer: Postgres query optimizer
 (10 rows)
@@ -874,18 +1276,20 @@ SELECT * FROM
    SELECT 2 AS t, 4 AS x) ss
 WHERE x < 4
 ORDER BY x;
-                 QUERY PLAN                 
---------------------------------------------
+                    QUERY PLAN                    
+--------------------------------------------------
  Sort
    Sort Key: (2)
-   ->  HashAggregate
+   ->  Unique
          Group Key: (1), (2)
-         ->  Append
-               ->  Result
-               ->  Result
-                     One-Time Filter: false
+         ->  Sort
+               Sort Key: (1), (2)
+               ->  Append
+                     ->  Result
+                     ->  Result
+                           One-Time Filter: false
  Optimizer: Postgres query optimizer
-(9 rows)
+(11 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, 2 AS x
@@ -940,21 +1344,23 @@ SELECT * FROM
    SELECT 2 AS t, 4 AS x) ss
 WHERE x > 3
 ORDER BY x;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Sort
    Sort Key: ss.x
    ->  Subquery Scan on ss
          Filter: (ss.x > 3)
-         ->  HashAggregate
+         ->  Unique
                Group Key: (1), ((($0 * '3'::double precision))::integer)
-               ->  Append
-                     ->  Result
-                           InitPlan 1 (returns $0)
-                             ->  Result
-                     ->  Result
+               ->  Sort
+                     Sort Key: (1), ((($0 * '3'::double precision))::integer)
+                     ->  Append
+                           ->  Result
+                                 InitPlan 1 (returns $0)
+                                   ->  Result
+                           ->  Result
  Optimizer: Postgres query optimizer
-(12 rows)
+(14 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, (random()*3)::int AS x

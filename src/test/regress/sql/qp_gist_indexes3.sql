@@ -14,7 +14,7 @@ set search_path to qp_gist_indexes3;
 
 ------------------------------------------------------------------------------
 -- start_ignore
--- Portions Copyright (c) 2010, Greenplum, Inc.  All rights reserved.
+-- Portions Copyright (c) 2010, Cloudberry, Inc.  All rights reserved.
 -- Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
 -- PURPOSE:
 --     Test VACUUM on GiST indexes.
@@ -91,7 +91,7 @@ LANGUAGE PLPGSQL
 
 ------------------------------------------------------------------------------
 -- start_ignore
--- COPYRIGHT (c) 2010, Greenplum, Inc.  All rights reserved.  
+-- COPYRIGHT (c) 2010, Cloudberry, Inc.  All rights reserved.  
 -- PURPOSE:
 --     Test VACUUM on GiST indexes.
 --     Also test somewhat larger data sets than most of my other GiST index 
@@ -196,7 +196,7 @@ EXPLAIN SELECT id, property AS "Property" FROM GistTable3
 --     Test UNIQUE indexes and primary keys on geometric data types.
 --     It turns out that columns with the geometric data types (at least
 --     box, polygon, and circle, and probably any others) can't be part of
---     a distribution key.  And since Greenplum allows unique indexes only on
+--     a distribution key.  And since Cloudberry allows unique indexes only on
 --     columns that are part of the distribution key, GiST indexes cannot
 --     be unique.  And of course since primary keys rely on unique indexes,
 --     if we can't have unique GiST indexes, then we can't have primary

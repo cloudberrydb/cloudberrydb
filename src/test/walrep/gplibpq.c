@@ -334,7 +334,7 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 		TupleDescInitEntry(tupdesc, (AttrNumber) 3, "recordlen", INT4OID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 4, "spcNode", OIDOID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 5, "dbNode", OIDOID, -1, 0);
-		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "relNode", OIDOID, -1, 0);
+		TupleDescInitEntry(tupdesc, (AttrNumber) 6, "relNode", INT8OID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 7, "segment_filenum", INT4OID, -1, 0);
 		TupleDescInitEntry(tupdesc, (AttrNumber) 8, "file_offset", INT8OID, -1, 0);
 
@@ -404,7 +404,7 @@ test_xlog_ao(PG_FUNCTION_ARGS)
 		values[2] = Int32GetDatum(result->len);
 		values[3] = ObjectIdGetDatum(result->target.node.spcNode);
 		values[4] = ObjectIdGetDatum(result->target.node.dbNode);
-		values[5] = ObjectIdGetDatum(result->target.node.relNode);
+		values[5] = Int64GetDatum(result->target.node.relNode);
 		values[6] = Int32GetDatum(result->target.segment_filenum);
 		values[7] = Int64GetDatum(result->target.offset);
 
@@ -458,7 +458,11 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 	test_PrintLog("wal start record", dataStart, sendTime);
 	test_PrintLog("wal end record", walEnd, sendTime);
 
-	xlogreader = XLogReaderAllocate(wal_segment_size, &read_local_xlog_page, NULL);
+	xlogreader = XLogReaderAllocate(wal_segment_size, NULL,
+									XL_ROUTINE(.page_read = &read_local_xlog_page,
+											   .segment_open = &wal_segment_open,
+											   .segment_close = &wal_segment_close),
+									NULL);
 
 	/*
 	 * Find the first valid record at or after the given starting point.
@@ -471,10 +475,11 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 	if (dataStart == InvalidXLogRecPtr)
 		return 0;
 
+	XLogBeginRead(xlogreader, dataStart);
 	/* process the xlog records one at a time and check if it is an AO/AOCO record */
 	do
 	{
-		if (XLogReadRecord(xlogreader, dataStart, &errormsg))
+		if (XLogReadRecord(xlogreader, &errormsg))
 		{
 			if (XLogRecGetRmid(xlogreader) == RM_APPEND_ONLY_ID)
 			{
@@ -492,7 +497,6 @@ check_ao_record_present(unsigned char type, char *buf, Size len,
 
 				num_found++;
 			}
-			dataStart = InvalidXLogRecPtr;
 		}
 		else
 			break;

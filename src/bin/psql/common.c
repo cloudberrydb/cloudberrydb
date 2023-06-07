@@ -1,7 +1,7 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/common.c
  */
@@ -18,17 +18,16 @@
 #include <win32.h>
 #endif
 
+#include "command.h"
+#include "common.h"
 #include "common/logging.h"
+#include "copy.h"
+#include "crosstabview.h"
+#include "fe_utils/cancel.h"
 #include "fe_utils/mbprint.h"
 #include "fe_utils/string_utils.h"
 #include "portability/instr_time.h"
-
-#include "command.h"
-#include "common.h"
-#include "copy.h"
-#include "crosstabview.h"
 #include "settings.h"
-
 
 static bool DescribeQuery(const char *query, double *elapsed_msec);
 static bool ExecQueryUsingCursor(const char *query, double *elapsed_msec);
@@ -230,16 +229,7 @@ NoticeProcessor(void *arg, const char *message)
  * Code to support query cancellation
  *
  * Before we start a query, we enable the SIGINT signal catcher to send a
- * cancel request to the backend. Note that sending the cancel directly from
- * the signal handler is safe because PQcancel() is written to make it
- * so. We use write() to report to stderr because it's better to use simple
- * facilities in a signal handler.
- *
- * On win32, the signal canceling happens on a separate thread, because
- * that's how SetConsoleCtrlHandler works. The PQcancel function is safe
- * for this (unlike PQrequestCancel). However, a CRITICAL_SECTION is required
- * to protect the PGcancel structure against being changed while the signal
- * thread is using it.
+ * cancel request to the backend.
  *
  * SIGINT is supposed to abort all long-running psql operations, not only
  * database queries.  In most places, this is accomplished by checking
@@ -247,117 +237,36 @@ NoticeProcessor(void *arg, const char *message)
  * blocked on user input (in readline() or fgets()).  In those places, we
  * set sigint_interrupt_enabled true while blocked, instructing the signal
  * catcher to longjmp through sigint_interrupt_jmp.  We assume readline and
- * fgets are coded to handle possible interruption.  (XXX currently this does
- * not work on win32, so control-C is less useful there)
+ * fgets are coded to handle possible interruption.
+ *
+ * On Windows, currently this does not work, so control-C is less useful
+ * there.
  */
 volatile bool sigint_interrupt_enabled = false;
 
 sigjmp_buf	sigint_interrupt_jmp;
 
-static PGcancel *volatile cancelConn = NULL;
-
-#ifdef WIN32
-static CRITICAL_SECTION cancelConnLock;
-#endif
-
-/*
- * Write a simple string to stderr --- must be safe in a signal handler.
- * We ignore the write() result since there's not much we could do about it.
- * Certain compilers make that harder than it ought to be.
- */
-#define write_stderr(str) \
-	do { \
-		const char *str_ = (str); \
-		int		rc_; \
-		rc_ = write(fileno(stderr), str_, strlen(str_)); \
-		(void) rc_; \
-	} while (0)
-
-
-#ifndef WIN32
-
 static void
-handle_sigint(SIGNAL_ARGS)
+psql_cancel_callback(void)
 {
-	int			save_errno = errno;
-	char		errbuf[256];
-
+#ifndef WIN32
 	/* if we are waiting for input, longjmp out of it */
 	if (sigint_interrupt_enabled)
 	{
 		sigint_interrupt_enabled = false;
 		siglongjmp(sigint_interrupt_jmp, 1);
 	}
+#endif
 
 	/* else, set cancel flag to stop any long-running loops */
 	cancel_pressed = true;
-
-	/* and send QueryCancel if we are processing a database query */
-	if (cancelConn != NULL)
-	{
-		if (PQcancel(cancelConn, errbuf, sizeof(errbuf)))
-			write_stderr("Cancel request sent\n");
-		else
-		{
-			write_stderr("Could not send cancel request: ");
-			write_stderr(errbuf);
-		}
-	}
-
-	errno = save_errno;			/* just in case the write changed it */
 }
 
 void
-setup_cancel_handler(void)
+psql_setup_cancel_handler(void)
 {
-	pqsignal(SIGINT, handle_sigint);
+	setup_cancel_handler(psql_cancel_callback);
 }
-#else							/* WIN32 */
-
-static BOOL WINAPI
-consoleHandler(DWORD dwCtrlType)
-{
-	char		errbuf[256];
-
-	if (dwCtrlType == CTRL_C_EVENT ||
-		dwCtrlType == CTRL_BREAK_EVENT)
-	{
-		/*
-		 * Can't longjmp here, because we are in wrong thread :-(
-		 */
-
-		/* set cancel flag to stop any long-running loops */
-		cancel_pressed = true;
-
-		/* and send QueryCancel if we are processing a database query */
-		EnterCriticalSection(&cancelConnLock);
-		if (cancelConn != NULL)
-		{
-			if (PQcancel(cancelConn, errbuf, sizeof(errbuf)))
-				write_stderr("Cancel request sent\n");
-			else
-			{
-				write_stderr("Could not send cancel request: ");
-				write_stderr(errbuf);
-			}
-		}
-		LeaveCriticalSection(&cancelConnLock);
-
-		return TRUE;
-	}
-	else
-		/* Return FALSE for any signals not being handled */
-		return FALSE;
-}
-
-void
-setup_cancel_handler(void)
-{
-	InitializeCriticalSection(&cancelConnLock);
-
-	SetConsoleCtrlHandler(consoleHandler, TRUE);
-}
-#endif							/* WIN32 */
 
 
 /* ConnectionUp
@@ -402,75 +311,37 @@ CheckConnection(void)
 		if (!OK)
 		{
 			fprintf(stderr, _("Failed.\n"));
-			PQfinish(pset.db);
+
+			/*
+			 * Transition to having no connection; but stash away the failed
+			 * connection so that we can still refer to its parameters in a
+			 * later \connect attempt.  Keep the state cleanup here in sync
+			 * with do_connect().
+			 */
+			if (pset.dead_conn)
+				PQfinish(pset.dead_conn);
+			pset.dead_conn = pset.db;
 			pset.db = NULL;
 			ResetCancelConn();
 			UnsyncVariables();
 		}
 		else
+		{
 			fprintf(stderr, _("Succeeded.\n"));
+
+			/*
+			 * Re-sync, just in case anything changed.  Keep this in sync with
+			 * do_connect().
+			 */
+			SyncVariables();
+			connection_warnings(false); /* Must be after SyncVariables */
+		}
 	}
 
 	return OK;
 }
 
 
-
-/*
- * SetCancelConn
- *
- * Set cancelConn to point to the current database connection.
- */
-void
-SetCancelConn(void)
-{
-	PGcancel   *oldCancelConn;
-
-#ifdef WIN32
-	EnterCriticalSection(&cancelConnLock);
-#endif
-
-	/* Free the old one if we have one */
-	oldCancelConn = cancelConn;
-	/* be sure handle_sigint doesn't use pointer while freeing */
-	cancelConn = NULL;
-
-	if (oldCancelConn != NULL)
-		PQfreeCancel(oldCancelConn);
-
-	cancelConn = PQgetCancel(pset.db);
-
-#ifdef WIN32
-	LeaveCriticalSection(&cancelConnLock);
-#endif
-}
-
-
-/*
- * ResetCancelConn
- *
- * Free the current cancel connection, if any, and set to NULL.
- */
-void
-ResetCancelConn(void)
-{
-	PGcancel   *oldCancelConn;
-
-#ifdef WIN32
-	EnterCriticalSection(&cancelConnLock);
-#endif
-
-	oldCancelConn = cancelConn;
-	/* be sure handle_sigint doesn't use pointer while freeing */
-	cancelConn = NULL;
-
-	if (oldCancelConn != NULL)
-		PQfreeCancel(oldCancelConn);
-
-#ifdef WIN32
-	LeaveCriticalSection(&cancelConnLock);
-#endif
-}
 
 
 /*
@@ -695,7 +566,7 @@ PSQLexec(const char *query)
 			return NULL;
 	}
 
-	SetCancelConn();
+	SetCancelConn(pset.db);
 
 	res = PQexec(pset.db, query);
 
@@ -734,7 +605,7 @@ PSQLexecWatch(const char *query, const printQueryOpt *opt)
 		return 0;
 	}
 
-	SetCancelConn();
+	SetCancelConn(pset.db);
 
 	if (pset.timing)
 		INSTR_TIME_SET_CURRENT(before);
@@ -840,11 +711,7 @@ PrintNotifications(void)
 static bool
 PrintQueryTuples(const PGresult *results)
 {
-	printQueryOpt my_popt = pset.popt;
-
-	/* one-shot expanded output requested via \gx */
-	if (pset.g_expanded)
-		my_popt.topt.expanded = 1;
+	bool		result = true;
 
 	/* write output to \g argument, if any */
 	if (pset.gfname)
@@ -857,7 +724,12 @@ PrintQueryTuples(const PGresult *results)
 		if (is_pipe)
 			disable_sigpipe_trap();
 
-		printQuery(results, &my_popt, fout, false, pset.logfile);
+		printQuery(results, &pset.popt, fout, false, pset.logfile);
+		if (ferror(fout))
+		{
+			pg_log_error("could not print result table: %m");
+			result = false;
+		}
 
 		if (is_pipe)
 		{
@@ -868,9 +740,16 @@ PrintQueryTuples(const PGresult *results)
 			fclose(fout);
 	}
 	else
-		printQuery(results, &my_popt, pset.queryFout, false, pset.logfile);
+	{
+		printQuery(results, &pset.popt, pset.queryFout, false, pset.logfile);
+		if (ferror(pset.queryFout))
+		{
+			pg_log_error("could not print result table: %m");
+			result = false;
+		}
+	}
 
-	return true;
+	return result;
 }
 
 
@@ -906,6 +785,13 @@ StoreQueryTuple(const PGresult *result)
 
 			/* concatenate prefix and column name */
 			varname = psprintf("%s%s", pset.gset_prefix, colname);
+
+			if (VariableHasHook(pset.vars, varname))
+			{
+				pg_log_warning("attempt to \\gset into specially treated variable \"%s\" ignored",
+							   varname);
+				continue;
+			}
 
 			if (!PQgetisnull(result, 0, i))
 				value = PQgetvalue(result, 0, i);
@@ -1079,7 +965,7 @@ ProcessResult(PGresult **results)
 			FILE	   *copystream;
 			PGresult   *copy_result;
 
-			SetCancelConn();
+			SetCancelConn(pset.db);
 			if (result_status == PGRES_COPY_OUT)
 			{
 				bool		need_close = false;
@@ -1348,7 +1234,7 @@ SendQuery(const char *query)
 		fflush(pset.logfile);
 	}
 
-	SetCancelConn();
+	SetCancelConn(pset.db);
 
 	transaction_status = PQtransactionStatus(pset.db);
 
@@ -1464,12 +1350,13 @@ SendQuery(const char *query)
 
 				/*
 				 * Do nothing if they are messing with savepoints themselves:
-				 * If the user did RELEASE or ROLLBACK, our savepoint is gone.
-				 * If they issued a SAVEPOINT, releasing ours would remove
-				 * theirs.
+				 * If the user did COMMIT AND CHAIN, RELEASE or ROLLBACK, our
+				 * savepoint is gone. If they issued a SAVEPOINT, releasing
+				 * ours would remove theirs.
 				 */
 				if (results &&
-					(strcmp(PQcmdStatus(results), "SAVEPOINT") == 0 ||
+					(strcmp(PQcmdStatus(results), "COMMIT") == 0 ||
+					 strcmp(PQcmdStatus(results), "SAVEPOINT") == 0 ||
 					 strcmp(PQcmdStatus(results), "RELEASE") == 0 ||
 					 strcmp(PQcmdStatus(results), "ROLLBACK") == 0))
 					svptcmd = NULL;
@@ -1538,8 +1425,12 @@ sendquery_cleanup:
 		pset.gfname = NULL;
 	}
 
-	/* reset \gx's expanded-mode flag */
-	pset.g_expanded = false;
+	/* restore print settings if \g changed them */
+	if (pset.gsavepopt)
+	{
+		restorePsetInfo(&pset.popt, pset.gsavepopt);
+		pset.gsavepopt = NULL;
+	}
 
 	/* reset \gset trigger */
 	if (pset.gset_prefix)
@@ -1766,10 +1657,6 @@ ExecQueryUsingCursor(const char *query, double *elapsed_msec)
 			 "FETCH FORWARD %d FROM _psql_cursor",
 			 fetch_count);
 
-	/* one-shot expanded output requested via \gx */
-	if (pset.g_expanded)
-		my_popt.topt.expanded = 1;
-
 	/* prepare to write output to \g argument, if any */
 	if (pset.gfname)
 	{
@@ -1959,7 +1846,7 @@ skip_white_space(const char *query)
 
 	while (*query)
 	{
-		int			mblen = PQmblen(query, pset.encoding);
+		int			mblen = PQmblenBounded(query, pset.encoding);
 
 		/*
 		 * Note: we assume the encoding is a superset of ASCII, so that for
@@ -1996,7 +1883,7 @@ skip_white_space(const char *query)
 					query++;
 					break;
 				}
-				query += PQmblen(query, pset.encoding);
+				query += PQmblenBounded(query, pset.encoding);
 			}
 		}
 		else if (cnestlevel > 0)
@@ -2031,7 +1918,7 @@ command_no_begin(const char *query)
 	 */
 	wordlen = 0;
 	while (isalpha((unsigned char) query[wordlen]))
-		wordlen += PQmblen(&query[wordlen], pset.encoding);
+		wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 	/*
 	 * Transaction control commands.  These should include every keyword that
@@ -2062,7 +1949,7 @@ command_no_begin(const char *query)
 
 		wordlen = 0;
 		while (isalpha((unsigned char) query[wordlen]))
-			wordlen += PQmblen(&query[wordlen], pset.encoding);
+			wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 		if (wordlen == 11 && pg_strncasecmp(query, "transaction", 11) == 0)
 			return true;
@@ -2096,7 +1983,7 @@ command_no_begin(const char *query)
 
 		wordlen = 0;
 		while (isalpha((unsigned char) query[wordlen]))
-			wordlen += PQmblen(&query[wordlen], pset.encoding);
+			wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 		if (wordlen == 8 && pg_strncasecmp(query, "database", 8) == 0)
 			return true;
@@ -2112,7 +1999,7 @@ command_no_begin(const char *query)
 
 			wordlen = 0;
 			while (isalpha((unsigned char) query[wordlen]))
-				wordlen += PQmblen(&query[wordlen], pset.encoding);
+				wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 		}
 
 		if (wordlen == 5 && pg_strncasecmp(query, "index", 5) == 0)
@@ -2123,7 +2010,7 @@ command_no_begin(const char *query)
 
 			wordlen = 0;
 			while (isalpha((unsigned char) query[wordlen]))
-				wordlen += PQmblen(&query[wordlen], pset.encoding);
+				wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 			if (wordlen == 12 && pg_strncasecmp(query, "concurrently", 12) == 0)
 				return true;
@@ -2140,7 +2027,7 @@ command_no_begin(const char *query)
 
 		wordlen = 0;
 		while (isalpha((unsigned char) query[wordlen]))
-			wordlen += PQmblen(&query[wordlen], pset.encoding);
+			wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 		/* ALTER SYSTEM isn't allowed in xacts */
 		if (wordlen == 6 && pg_strncasecmp(query, "system", 6) == 0)
@@ -2163,7 +2050,7 @@ command_no_begin(const char *query)
 
 		wordlen = 0;
 		while (isalpha((unsigned char) query[wordlen]))
-			wordlen += PQmblen(&query[wordlen], pset.encoding);
+			wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 		if (wordlen == 8 && pg_strncasecmp(query, "database", 8) == 0)
 			return true;
@@ -2178,7 +2065,7 @@ command_no_begin(const char *query)
 			query = skip_white_space(query);
 			wordlen = 0;
 			while (isalpha((unsigned char) query[wordlen]))
-				wordlen += PQmblen(&query[wordlen], pset.encoding);
+				wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 			/*
 			 * REINDEX [ TABLE | INDEX ] CONCURRENTLY are not allowed in
@@ -2197,7 +2084,7 @@ command_no_begin(const char *query)
 
 			wordlen = 0;
 			while (isalpha((unsigned char) query[wordlen]))
-				wordlen += PQmblen(&query[wordlen], pset.encoding);
+				wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 			if (wordlen == 12 && pg_strncasecmp(query, "concurrently", 12) == 0)
 				return true;
@@ -2217,7 +2104,7 @@ command_no_begin(const char *query)
 
 		wordlen = 0;
 		while (isalpha((unsigned char) query[wordlen]))
-			wordlen += PQmblen(&query[wordlen], pset.encoding);
+			wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 		if (wordlen == 3 && pg_strncasecmp(query, "all", 3) == 0)
 			return true;
@@ -2253,7 +2140,7 @@ is_select_command(const char *query)
 	 */
 	wordlen = 0;
 	while (isalpha((unsigned char) query[wordlen]))
-		wordlen += PQmblen(&query[wordlen], pset.encoding);
+		wordlen += PQmblenBounded(&query[wordlen], pset.encoding);
 
 	if (wordlen == 6 && pg_strncasecmp(query, "select", 6) == 0)
 		return true;
@@ -2267,9 +2154,6 @@ is_select_command(const char *query)
 
 /*
  * Test if the current user is a database superuser.
- *
- * Note: this will correctly detect superuserness only with a protocol-3.0
- * or newer backend; otherwise it will always say "false".
  */
 bool
 is_superuser(void)
@@ -2290,9 +2174,6 @@ is_superuser(void)
 
 /*
  * Test if the current session uses standard string literals.
- *
- * Note: With a pre-protocol-3.0 connection this will always say "false",
- * which should be the right answer.
  */
 bool
 standard_strings(void)
@@ -2313,10 +2194,6 @@ standard_strings(void)
 
 /*
  * Return the session user of the current connection.
- *
- * Note: this will correctly detect the session user only with a
- * protocol-3.0 or newer backend; otherwise it will return the
- * connection user.
  */
 const char *
 session_username(void)
@@ -2387,8 +2264,6 @@ expand_tilde(char **filename)
 		}
 	}
 #endif
-
-	return;
 }
 
 /*

@@ -3,7 +3,7 @@
  * fe-secure-gssapi.c
  *   The front-end (client) encryption support for GSSAPI
  *
- * Portions Copyright (c) 2016-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2016-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *  src/interfaces/libpq/fe-secure-gssapi.c
@@ -15,14 +15,14 @@
  * This file is compiled with both frontend and backend codes, symlinked by
  * src/backend/Makefile, and use macro FRONTEND to switch.
  *
- * Include "c.h" to adopt Greenplum C types. Don't include "postgres_fe.h",
+ * Include "c.h" to adopt Cloudberry C types. Don't include "postgres_fe.h",
  * which only defines FRONTEND besides including "c.h"
  */
 #include "c.h"
 
+#include "fe-gssapi-common.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"
-#include "fe-gssapi-common.h"
 #include "port/pg_bswap.h"
 
 
@@ -85,7 +85,7 @@
  *
  * On success, returns the number of data bytes consumed (possibly less than
  * len).  On failure, returns -1 with errno set appropriately.  If the errno
- * indicates a non-retryable error, a message is put into conn->errorMessage.
+ * indicates a non-retryable error, a message is added to conn->errorMessage.
  * For retryable errors, caller should call again (passing the same data)
  * once the socket is ready.
  */
@@ -113,8 +113,8 @@ pg_GSS_write(PGconn *conn, const void *ptr, size_t len)
 	 */
 	if (len < PqGSSSendConsumed)
 	{
-		printfPQExpBuffer(&conn->errorMessage,
-						  "GSSAPI caller failed to retransmit all data needing to be retried\n");
+		appendPQExpBufferStr(&conn->errorMessage,
+							 "GSSAPI caller failed to retransmit all data needing to be retried\n");
 		errno = EINVAL;
 		return -1;
 	}
@@ -212,15 +212,15 @@ pg_GSS_write(PGconn *conn, const void *ptr, size_t len)
 
 		if (conf_state == 0)
 		{
-			printfPQExpBuffer(&conn->errorMessage,
-							  libpq_gettext("outgoing GSSAPI message would not use confidentiality\n"));
+			appendPQExpBufferStr(&conn->errorMessage,
+								 libpq_gettext("outgoing GSSAPI message would not use confidentiality\n"));
 			errno = EIO;		/* for lack of a better idea */
 			goto cleanup;
 		}
 
 		if (output.length > PQ_GSS_SEND_BUFFER_SIZE - sizeof(uint32))
 		{
-			printfPQExpBuffer(&conn->errorMessage,
+			appendPQExpBuffer(&conn->errorMessage,
 							  libpq_gettext("client tried to send oversize GSSAPI packet (%zu > %zu)\n"),
 							  (size_t) output.length,
 							  PQ_GSS_SEND_BUFFER_SIZE - sizeof(uint32));
@@ -233,7 +233,7 @@ pg_GSS_write(PGconn *conn, const void *ptr, size_t len)
 		PqGSSSendConsumed += input.length;
 
 		/* 4 network-order bytes of length, then payload */
-		netlen = htonl(output.length);
+		netlen = pg_hton32(output.length);
 		memcpy(PqGSSSendBuffer + PqGSSSendLength, &netlen, sizeof(uint32));
 		PqGSSSendLength += sizeof(uint32);
 
@@ -265,7 +265,7 @@ cleanup:
  *
  * Returns the number of data bytes read, or on failure, returns -1
  * with errno set appropriately.  If the errno indicates a non-retryable
- * error, a message is put into conn->errorMessage.  For retryable errors,
+ * error, a message is added to conn->errorMessage.  For retryable errors,
  * caller should call again once the socket is ready.
  */
 ssize_t
@@ -353,11 +353,11 @@ pg_GSS_read(PGconn *conn, void *ptr, size_t len)
 		}
 
 		/* Decode the packet length and check for overlength packet */
-		input.length = ntohl(*(uint32 *) PqGSSRecvBuffer);
+		input.length = pg_ntoh32(*(uint32 *) PqGSSRecvBuffer);
 
 		if (input.length > PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32))
 		{
-			printfPQExpBuffer(&conn->errorMessage,
+			appendPQExpBuffer(&conn->errorMessage,
 							  libpq_gettext("oversize GSSAPI packet sent by the server (%zu > %zu)\n"),
 							  (size_t) input.length,
 							  PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32));
@@ -406,8 +406,8 @@ pg_GSS_read(PGconn *conn, void *ptr, size_t len)
 
 		if (conf_state == 0)
 		{
-			printfPQExpBuffer(&conn->errorMessage,
-							  libpq_gettext("incoming GSSAPI message did not use confidentiality\n"));
+			appendPQExpBufferStr(&conn->errorMessage,
+								 libpq_gettext("incoming GSSAPI message did not use confidentiality\n"));
 			ret = -1;
 			errno = EIO;		/* for lack of a better idea */
 			goto cleanup;
@@ -507,8 +507,8 @@ pqsecure_open_gss(PGconn *conn)
 		PqGSSResultBuffer = malloc(PQ_GSS_RECV_BUFFER_SIZE);
 		if (!PqGSSSendBuffer || !PqGSSRecvBuffer || !PqGSSResultBuffer)
 		{
-			printfPQExpBuffer(&conn->errorMessage,
-							  libpq_gettext("out of memory\n"));
+			appendPQExpBufferStr(&conn->errorMessage,
+								 libpq_gettext("out of memory\n"));
 			return PGRES_POLLING_FAILED;
 		}
 		PqGSSSendLength = PqGSSSendNext = PqGSSSendConsumed = 0;
@@ -585,7 +585,7 @@ pqsecure_open_gss(PGconn *conn)
 
 			PqGSSRecvLength += ret;
 
-			printfPQExpBuffer(&conn->errorMessage, "%s\n", PqGSSRecvBuffer + 1);
+			appendPQExpBuffer(&conn->errorMessage, "%s\n", PqGSSRecvBuffer + 1);
 
 			return PGRES_POLLING_FAILED;
 		}
@@ -596,10 +596,10 @@ pqsecure_open_gss(PGconn *conn)
 		 */
 
 		/* Get the length and check for over-length packet */
-		input.length = ntohl(*(uint32 *) PqGSSRecvBuffer);
+		input.length = pg_ntoh32(*(uint32 *) PqGSSRecvBuffer);
 		if (input.length > PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32))
 		{
-			printfPQExpBuffer(&conn->errorMessage,
+			appendPQExpBuffer(&conn->errorMessage,
 							  libpq_gettext("oversize GSSAPI packet sent by the server (%zu > %zu)\n"),
 							  (size_t) input.length,
 							  PQ_GSS_RECV_BUFFER_SIZE - sizeof(uint32));
@@ -654,17 +654,14 @@ pqsecure_open_gss(PGconn *conn)
 	if (output.length == 0)
 	{
 		/*
-		 * We're done - hooray!  Kind of gross, but we need to disable SSL
-		 * here so that we don't accidentally tunnel one over the other.
+		 * We're done - hooray!  Set flag to tell the low-level I/O routines
+		 * to do GSS wrapping/unwrapping.
 		 */
-#ifdef USE_SSL
-		conn->allow_ssl_try = false;
-#endif
+		conn->gssenc = true;
 
 		/* Clean up */
 		gss_release_cred(&minor, &conn->gcred);
 		conn->gcred = GSS_C_NO_CREDENTIAL;
-		conn->gssenc = true;
 		gss_release_buffer(&minor, &output);
 
 		/*
@@ -695,7 +692,7 @@ pqsecure_open_gss(PGconn *conn)
 	}
 
 	/* Queue the token for writing */
-	netlen = htonl(output.length);
+	netlen = pg_hton32(output.length);
 
 	memcpy(PqGSSSendBuffer, (char *) &netlen, sizeof(uint32));
 	PqGSSSendLength += sizeof(uint32);

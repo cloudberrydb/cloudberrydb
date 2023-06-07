@@ -6,7 +6,7 @@
     <body>
         <p>To use the example external table protocol, you use the C compiler <codeph>cc</codeph> to
             compile and link the source code to create a shared object that can be dynamically
-            loaded by Greenplum Database. The commands to compile and link the source
+            loaded by Cloudberry Database. The commands to compile and link the source
             code on a Linux system are similar to this:</p>
         <p>
             <codeph>cc -fpic -c gpextprotocal.c cc -shared -o gpextprotocal.so
@@ -15,7 +15,7 @@
         <p>The option <codeph>-fpic</codeph> specifies creating position-independent code (PIC) and
             the <codeph>-c</codeph> option compiles the source code without linking and creates an
             object file. The object file needs to be created as position-independent code (PIC) so
-            that it can be loaded at any arbitrary location in memory by Greenplum Database.</p>
+            that it can be loaded at any arbitrary location in memory by Cloudberry Database.</p>
         <p>The flag <codeph>-shared</codeph> specifies creating a shared object (shared library) and
             the <codeph>-o</codeph> option specifies the shared object file name
                 <codeph>gpextprotocal.so</codeph>. Refer to the GCC manual for more information on
@@ -34,12 +34,12 @@
                 <codeph>ld</codeph> for your operating system also contain information on compiling
             and linking source code on your system.</p>
         <p>The compiled code (shared object file) for the custom protocol must be placed in the same
-            location on every host in your Greenplum Database array (master and all
+            location on every host in your Cloudberry Database array (master and all
             segments). This location must also be in the <codeph>LD_LIBRARY_PATH</codeph> so that
             the server can locate the files. It is recommended to locate shared libraries either
             relative to <codeph>$libdir</codeph> (which is located at <codeph>$GPHOME/lib</codeph>)
             or through the dynamic library path (set by the <codeph>dynamic_library_path</codeph>
-            server configuration parameter) on all master segment instances in the Greenplum Database array. You can use the Greenplum Database
+            server configuration parameter) on all master segment instances in the Cloudberry Database array. You can use the Cloudberry Database
             utilities <cmdname>gpssh</cmdname> and <codeph>gpscp</codeph> to update segments. </p>
     </body>
 </topic>

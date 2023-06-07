@@ -1,8 +1,8 @@
 ---
-title: Installing Optional Extensions (Tanzu Greenplum) 
+title: Installing Optional Extensions (Tanzu Cloudberry) 
 ---
 
-Information about installing optional Tanzu Greenplum Database extensions and packages, such as the Procedural Language extensions and the Python and R Data Science Packages.
+Information about installing optional Tanzu Cloudberry Database extensions and packages, such as the Procedural Language extensions and the Python and R Data Science Packages.
 
 -   **[Procedural Language, Machine Learning, and Geospatial Extensions](install_extensions.html)**  
 
@@ -10,8 +10,8 @@ Information about installing optional Tanzu Greenplum Database extensions and pa
 
 -   **[R Data Science Library Package](install_r_dslib.html)**  
 
--   **[Greenplum Platform Extension Framework \(PXF\)](install_pxf.html)**  
+-   **[Cloudberry Platform Extension Framework \(PXF\)](install_pxf.html)**  
 
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 

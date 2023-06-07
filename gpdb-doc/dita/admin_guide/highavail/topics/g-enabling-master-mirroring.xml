@@ -4,7 +4,7 @@
 <topic id="topic8">
   <title>Enabling Master Mirroring</title>
   <body>
-    <p>You can configure a new Greenplum Database system with a standby master using
+    <p>You can configure a new Cloudberry Database system with a standby master using
         <codeph>gpinitsystem</codeph> or enable it later using <codeph>gpinitstandby</codeph>. This
       topic assumes you are adding a standby master to an existing system that was initialized
       without one.</p>
@@ -12,16 +12,16 @@
           href="../../../utility_guide/ref/gpinitsystem.xml" type="topic" format="dita"
         /> and <xref
           href="../../../utility_guide/ref/gpinitstandby.xml" type="topic" format="dita"
-        />, see the <cite>Greenplum Database Utility Guide</cite>.</p>
+        />, see the <cite>Cloudberry Database Utility Guide</cite>.</p>
     <section id="ki160203">
       <title>To add a standby master to an existing system</title>
       <ol id="ol_x55_3gs_rcb">
         <li id="ki160206">Ensure the standby master host is installed and configured:
-            <codeph>gpadmin</codeph> system user created, Greenplum Database binaries installed,
+            <codeph>gpadmin</codeph> system user created, Cloudberry Database binaries installed,
           environment variables set, SSH keys exchanged, and that the data directories and
           tablespace directories, if needed, are created.</li>
         <li id="ki155475">Run the <codeph>gpinitstandby</codeph> utility on the currently active
-            <i>primary</i> master host to add a standby master host to your Greenplum Database
+            <i>primary</i> master host to add a standby master host to your Cloudberry Database
           system. For example:<codeblock>$ gpinitstandby -s smdw</codeblock> Where
             <codeph>-s</codeph> specifies the standby master host name. </li>
       </ol>
@@ -36,7 +36,7 @@
         streaming.</p>
       <p>For information about the <xref
             href="../../../utility_guide/ref/gpstate.xml" type="topic" format="dita"
-          /> utility, see the <cite>Greenplum Database Utility Guide</cite>.</p>
+          /> utility, see the <cite>Cloudberry Database Utility Guide</cite>.</p>
     </section>
   </body>
 </topic>

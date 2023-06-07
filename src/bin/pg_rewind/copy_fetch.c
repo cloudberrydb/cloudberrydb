@@ -3,7 +3,7 @@
  * copy_fetch.c
  *	  Functions for using a data directory as the source.
  *
- * Portions Copyright (c) 2013-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2013-2020, PostgreSQL Global Development Group
  *
  *-------------------------------------------------------------------------
  */
@@ -98,7 +98,7 @@ recurse_dir(const char *datadir, const char *parentpath,
 			callback(path, FILE_TYPE_REGULAR, fst.st_size, NULL);
 		else if (S_ISFIFO(fst.st_mode))
 		{
-			/* Greenplum uses FIFO for pgsql_tmp files. */
+			/* Cloudberry uses FIFO for pgsql_tmp files. */
 			callback(path, FILE_TYPE_FIFO, fst.st_size, NULL);
 		}
 		else if (S_ISDIR(fst.st_mode))

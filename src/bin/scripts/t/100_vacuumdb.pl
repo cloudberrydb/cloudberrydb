@@ -1,9 +1,12 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 use strict;
 use warnings;
 
 use PostgresNode;
 use TestLib;
-use Test::More tests => 44;
+use Test::More tests => 58;
 
 program_help_ok('vacuumdb');
 program_version_ok('vacuumdb');
@@ -48,6 +51,35 @@ $node->issues_sql_like(
 $node->command_fails(
 	[ 'vacuumdb', '--analyze-only', '--disable-page-skipping', 'postgres' ],
 	'--analyze-only and --disable-page-skipping specified together');
+$node->issues_sql_like(
+	[ 'vacuumdb', '--no-index-cleanup', 'postgres' ],
+	qr/statement: VACUUM \(INDEX_CLEANUP FALSE\).*;/,
+	'vacuumdb --no-index-cleanup');
+$node->command_fails(
+	[ 'vacuumdb', '--analyze-only', '--no-index-cleanup', 'postgres' ],
+	'--analyze-only and --no-index-cleanup specified together');
+$node->issues_sql_like(
+	[ 'vacuumdb', '--no-truncate', 'postgres' ],
+	qr/statement: VACUUM \(TRUNCATE FALSE\).*;/,
+	'vacuumdb --no-truncate');
+$node->command_fails(
+	[ 'vacuumdb', '--analyze-only', '--no-truncate', 'postgres' ],
+	'--analyze-only and --no-truncate specified together');
+$node->issues_sql_like(
+	[ 'vacuumdb', '--no-process-toast', 'postgres' ],
+	qr/statement: VACUUM \(PROCESS_TOAST FALSE\).*;/,
+	'vacuumdb --no-process-toast');
+$node->command_fails(
+	[ 'vacuumdb', '--analyze-only', '--no-process-toast', 'postgres' ],
+	'--analyze-only and --no-process-toast specified together');
+$node->issues_sql_like(
+	[ 'vacuumdb', '-P', 2, 'postgres' ],
+	qr/statement: VACUUM \(PARALLEL 2\).*;/,
+	'vacuumdb -P 2');
+$node->issues_sql_like(
+	[ 'vacuumdb', '-P', 0, 'postgres' ],
+	qr/statement: VACUUM \(PARALLEL 0\).*;/,
+	'vacuumdb -P 0');
 $node->command_ok([qw(vacuumdb -Z --table=pg_am dbname=template1)],
 	'vacuumdb with connection string');
 
@@ -81,6 +113,8 @@ $node->command_fails(
 $node->command_fails(
 	[ 'vacuumdb', '--analyze', '--table', 'vactable(c)', 'postgres' ],
 	'incorrect column name with ANALYZE');
+$node->command_fails([ 'vacuumdb', '-P', -1, 'postgres' ],
+	'negative parallel degree');
 $node->issues_sql_like(
 	[ 'vacuumdb', '--analyze', '--table', 'vactable(a, b)', 'postgres' ],
 	qr/statement: VACUUM \(ANALYZE\) public.vactable\(a, b\);/,

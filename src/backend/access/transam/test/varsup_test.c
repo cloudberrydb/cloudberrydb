@@ -5,41 +5,53 @@
 
 /* Fetch definition of PG_exception_stack */
 #include "postgres.h"
+#include "storage/ipc.h"
 
 #undef ereport
 #define ereport(elevel, ...) \
 	do { \
-	__VA_ARGS__, ereport_mock(elevel); \
+		ereport_mock(elevel, TEXTDOMAIN, __VA_ARGS__); \
 	} while(0)
 
 static int expected_elevel;
 
-static void ereport_mock(int elevel)
-{
-	assert_int_equal(elevel, expected_elevel);
-	
-	if (elevel >= ERROR)
-		siglongjmp(*PG_exception_stack, 1);
-}
+#define ereport_mock(elevel, domain, ...) \
+	do { \
+		assert_int_equal(elevel, expected_elevel); \
+		if (elevel >= ERROR) \
+			siglongjmp(*PG_exception_stack, 1); \
+		else \
+			errstart(elevel, domain); \
+	} while(0)
 
 #include "../varsup.c"
 
-#define ERRORCODE_NONE -1
-
-static void expect_ereport(int log_level, int errcode)
+static void expect_ereport(int log_level)
 {
-	expect_any(errmsg, fmt);
-	will_be_called(errmsg);
-	expect_any(errhint, fmt);
-	will_be_called(errhint);
-	
-	if (errcode != ERRORCODE_NONE)
-	{
-		expect_value(errcode, sqlerrcode, errcode);
-		will_be_called(errcode);
-	}
-
+	/* GPDB_14_MERGE_FIXME: check errcode funtion if there is an error */
 	expected_elevel = log_level;
+	if (log_level < ERROR)
+	{
+		expect_value(errstart, elevel, log_level);
+		expect_value(errstart, domain, TEXTDOMAIN);
+		will_be_called(errstart);
+	}
+}
+
+static void
+init_ProcGlobal(void)
+{
+	/* we only need one proc as there are assertions added from PG14*/
+	MyProc = (PGPROC *) malloc(sizeof(PROC_HDR));
+	MyProc->pgxactoff = 0;
+	MyProc->subxidStatus.count = 0;
+	MyProc->subxidStatus.overflowed = false;
+
+	ProcGlobal = (PROC_HDR *) malloc(sizeof(PROC_HDR));
+	ProcGlobal->subxidStates = (XidCacheStatus *) malloc(sizeof(XidCacheStatus));
+	ProcGlobal->subxidStates[MyProc->pgxactoff].count = 0;
+	ProcGlobal->subxidStates[MyProc->pgxactoff].overflowed = false;
+	ProcGlobal->xids = (TransactionId *) malloc(sizeof(TransactionId));
 }
 
 static void
@@ -52,7 +64,7 @@ test_GetNewTransactionId_xid_stop_limit(void **state)
 	 * and it's larger than xidStopLimit to trigger the ereport(ERROR).
 	 */
 	ShmemVariableCache = &data;
-	ShmemVariableCache->nextFullXid.value = 30;
+	ShmemVariableCache->nextXid = FullTransactionIdFromU64(30);
 	ShmemVariableCache->xidVacLimit = 10;
 	ShmemVariableCache->xidStopLimit = 20;
 	IsUnderPostmaster = true;
@@ -69,7 +81,8 @@ test_GetNewTransactionId_xid_stop_limit(void **state)
 	expect_any(get_database_name, dbid);
 	will_return(get_database_name, "foo");
 	
-	expect_ereport(ERROR, ERRCODE_PROGRAM_LIMIT_EXCEEDED);
+	expect_ereport(ERROR);
+	init_ProcGlobal();
 
 	PG_TRY();
 	{
@@ -87,17 +100,13 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 {
 	const int xid = 25;
 	VariableCacheData data;
-	PGPROC proc;
-	PGXACT xact;
 
-	MyProc = &proc;
-	MyPgXact = &xact;
 	/*
 	 * make sure nextXid is between xidWarnLimit and xidStopLimit to trigger
 	 * the ereport(WARNING).
 	 */
 	ShmemVariableCache = &data;
-	ShmemVariableCache->nextFullXid.value = xid;
+	ShmemVariableCache->nextXid = FullTransactionIdFromU64(xid);
 	ShmemVariableCache->xidVacLimit = 10;
 	ShmemVariableCache->xidWarnLimit = 20;
 	ShmemVariableCache->xidStopLimit = 30;
@@ -115,7 +124,7 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 	expect_any(get_database_name, dbid);
 	will_return(get_database_name, "foo");
 	
-	expect_ereport(WARNING, ERRORCODE_NONE);
+	expect_ereport(WARNING);
 
 	/*
 	 * verify rest of function logic, including assign MyProc->xid
@@ -135,11 +144,16 @@ test_GetNewTransactionId_xid_warn_limit(void **state)
 
 	expect_any(LWLockRelease, lock);
 	will_be_called(LWLockRelease);
+	/*
+	* GPDB_14_MERGE_FIXME
+	* We must put this function after all the expect*, eles it will fatal
+	*/
+	init_ProcGlobal();
 	
 	PG_TRY();
 	{
 		GetNewTransactionId(false);
-		assert_int_equal(xact.xid, xid);
+		assert_int_equal(MyProc->xid, xid);
 	}
 	PG_CATCH();
 	{

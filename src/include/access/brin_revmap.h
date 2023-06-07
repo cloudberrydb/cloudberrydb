@@ -2,7 +2,7 @@
  * brin_revmap.h
  *		Prototypes for BRIN reverse range maps
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -48,7 +48,7 @@ extern void brinRevmapExtend(BrinRevmap *revmap,
 							 BlockNumber heapBlk);
 extern Buffer brinLockRevmapPageForUpdate(BrinRevmap *revmap,
 										  BlockNumber heapBlk);
-extern void brinSetHeapBlockItemptr(Buffer rmbuf, BlockNumber pagesPerRange,
+extern void brinSetHeapBlockItemptr(Buffer buf, BlockNumber pagesPerRange,
 									BlockNumber heapBlk, ItemPointerData tid);
 extern BrinTuple *brinGetTupleForHeapBlock(BrinRevmap *revmap,
 										   BlockNumber heapBlk, Buffer *buf, OffsetNumber *off,

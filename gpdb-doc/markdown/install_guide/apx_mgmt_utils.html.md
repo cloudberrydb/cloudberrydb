@@ -2,11 +2,11 @@
 title: Installation Management Utilities 
 ---
 
-References for the command-line management utilities used to install and initialize a Greenplum Database system.
+References for the command-line management utilities used to install and initialize a Cloudberry Database system.
 
-For a full reference of all Greenplum Database utilities, see the [Greenplum Database Utility Guide](../utility_guide/utility_guide.html).
+For a full reference of all Cloudberry Database utilities, see the [Cloudberry Database Utility Guide](../utility_guide/utility_guide.html).
 
-The following Greenplum Database management utilities are located in `$GPHOME/bin`.
+The following Cloudberry Database management utilities are located in `$GPHOME/bin`.
 
 <table cellpadding="4" cellspacing="0" summary="" id="topic1__jn163810" border="1" class="simpletable"><col style="width:50%" /><col style="width:50%" /><thead></thead><tbody><tr class="strow">
           <td style="vertical-align:top;" class="stentry">
@@ -21,7 +21,7 @@ The following Greenplum Database management utilities are located in `$GPHOME/bi
               <li class="li"><a class="xref" href="../utility_guide/ref/gpcheckperf.html">gpcheckperf</a>
               </li>
 
-              <li class="li"><a class="xref" href="../utility_guide/ref/gpcopy.html">gpcopy</a> (Tanzu Greenplum only) </li>
+              <li class="li"><a class="xref" href="../utility_guide/ref/gpcopy.html">gpcopy</a> (Tanzu Cloudberry only) </li>
 
               <li class="li"><a class="xref" href="../utility_guide/ref/gpdeletesystem.html">gpdeletesystem</a>
               </li>
@@ -63,5 +63,5 @@ The following Greenplum Database management utilities are located in `$GPHOME/bi
         </tr>
 </tbody></table>
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 

@@ -6,15 +6,6 @@
 
 -- set these values purely to cut down test time, as default ts trigger is
 -- every min and 5 retries
-alter system set gp_fts_probe_interval to 10;
-ALTER
-alter system set gp_fts_probe_retries to 0;
-ALTER
-select pg_reload_conf();
- pg_reload_conf 
-----------------
- t              
-(1 row)
 
 create table test_fts_session_reset(c1 int);
 CREATE
@@ -25,16 +16,21 @@ BEGIN
 1:insert into test_fts_session_reset select * from generate_series(1,20);
 INSERT 20
 -- this injected fault can make dispatcher think the primary is down
-2:select gp_inject_fault('fts_conn_startup_packet', 'error', dbid) from gp_segment_configuration where role='p' and content=0;
- gp_inject_fault 
------------------
- Success:        
+2:select gp_inject_fault_infinite('fts_conn_startup_packet', 'error', dbid) from gp_segment_configuration where role='p' and content=0;
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
 (1 row)
 2:select gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
  t                         
 (1 row)
+!\retcode gpfts -R 0 -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 2:select status = 'd' from gp_segment_configuration where content = 0 and role = 'm';
  ?column? 
 ----------
@@ -49,10 +45,20 @@ ERROR:  gang was lost due to cluster reconfiguration (cdbgang_async.c:98)
 ERROR:  current transaction is aborted, commands ignored until end of transaction block
 1:END;
 END
+1:select pg_sleep(30);
+ pg_sleep 
+----------
+          
+(1 row)
 1:select count(*) from test_fts_session_reset;
  count 
 -------
  0     
+(1 row)
+2:select pg_sleep(30);
+ pg_sleep 
+----------
+          
 (1 row)
 2:select gp_inject_fault('fts_conn_startup_packet', 'reset', dbid) from gp_segment_configuration where content=0;
  gp_inject_fault 
@@ -75,6 +81,11 @@ select content, preferred_role, role, status, mode from gp_segment_configuration
 -- start_ignore
 -- end_ignore
 (exited with code 0)
+!\retcode gpfts -A -D;
+-- start_ignore
+
+-- end_ignore
+(exited with code 0)
 
 -- loop while segments come in sync
 select wait_until_all_segments_synchronized();
@@ -85,6 +96,11 @@ select wait_until_all_segments_synchronized();
 
 !\retcode gprecoverseg -ar;
 -- start_ignore
+-- end_ignore
+(exited with code 0)
+!\retcode gpfts -A -D;
+-- start_ignore
+
 -- end_ignore
 (exited with code 0)
 
@@ -101,14 +117,3 @@ select count(*) from gp_segment_configuration where status = 'd';
 -------
  0     
 (1 row)
-
-alter system reset gp_fts_probe_interval;
-ALTER
-alter system reset gp_fts_probe_retries;
-ALTER
-select pg_reload_conf();
- pg_reload_conf 
-----------------
- t              
-(1 row)
-

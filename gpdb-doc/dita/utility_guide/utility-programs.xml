@@ -3,37 +3,37 @@
 <dita>
     <topic xml:lang="en" id="topic1">
         <title>Utility Reference</title>
-        <shortdesc>The command-line utilities provided with Greenplum Database.</shortdesc>
+        <shortdesc>The command-line utilities provided with Cloudberry Database.</shortdesc>
         <body>
-            <p>Greenplum Database uses the standard PostgreSQL client and server programs and
-                provides additional management utilities for administering a distributed Greenplum
+            <p>Cloudberry Database uses the standard PostgreSQL client and server programs and
+                provides additional management utilities for administering a distributed Cloudberry
                 Database DBMS.</p>
-            <p>Several utilities are installed when you install the Greenplum Database server. These
+            <p>Several utilities are installed when you install the Cloudberry Database server. These
                 utilities reside in <codeph>$GPHOME/bin</codeph>. <ph otherprops="pivotal"> Other
                     utilities must be downloaded from VMware Tanzu Network and installed separately.
                     These include:</ph></p>
             <ul otherprops="pivotal">
                 <li>The <xref href="http://gpdb.docs.pivotal.io/backup-restore/latest/index.html"
-                        scope="external" format="html">Tanzu Greenplum Backup and Restore</xref>
+                        scope="external" format="html">Tanzu Cloudberry Backup and Restore</xref>
                     utilities.</li>
                 <li otherprops="pivotal">The <xref
                         href="https://gpdb.docs.pivotal.io/gpcopy/latest/index.html"
-                        scope="external" format="html">Tanzu Greenplum Copy Utility</xref>.</li>
+                        scope="external" format="html">Tanzu Cloudberry Copy Utility</xref>.</li>
                 <li otherprops="pivotal">The <xref
                         href="http://greenplum.docs.pivotal.io/streaming-server/1-5/ref/gpss-ref.html"
-                        scope="external" format="html">Tanzu Greenplum Streaming Server</xref>
+                        scope="external" format="html">Tanzu Cloudberry Streaming Server</xref>
                     utilities.</li>
             </ul>
             <p otherprops="pivotal">Additionally, the <xref
                     href="../client_tool_guides/about.xml" scope="peer"
                     >Tanzu Clients</xref> package is a separate download from VMware Tanzu
-                Network that includes selected utilities from the Greenplum Database server
+                Network that includes selected utilities from the Cloudberry Database server
                 installation that you can install on a client system.</p>
-            <p>Greenplum Database provides the following utility programs. <ph otherprops="pivotal"
+            <p>Cloudberry Database provides the following utility programs. <ph otherprops="pivotal"
                     >Superscripts identify those utilities that require separate downloads, as well
                     as those utilities that are also installed with the Client and Loader Tools
                     Packages. (See the Note following the table.) All utilities are installed when
-                    you install the Greenplum Database server, unless specifically identified by a
+                    you install the Cloudberry Database server, unless specifically identified by a
                     superscript.</ph></p>
             <simpletable frame="all" relcolwidth="1.0* 1.0* 1.0*">
                 <strow>
@@ -118,22 +118,22 @@
                 </strow>
             </simpletable>
             <note otherprops="pivotal">
-                <p><sup>1</sup> The utility program can be obtained from the <i>Greenplum Backup and
+                <p><sup>1</sup> The utility program can be obtained from the <i>Cloudberry Backup and
                         Restore</i> tile on <xref
                         href="https://network.pivotal.io/products/pivotal-gpdb-backup-restore"
                         scope="external" format="html"><ph>VMware Tanzu Network</ph></xref>.</p>
-                <p><sup>2</sup> The utility program can be obtained from the <i>Greenplum Data Copy
+                <p><sup>2</sup> The utility program can be obtained from the <i>Cloudberry Data Copy
                         Utility</i> tile on <xref
                         href="https://network.pivotal.io/products/gpdb-data-copy" scope="external"
                         format="html"><ph>VMware Tanzu Network</ph></xref>.</p>
-                <p><sup>3</sup> The utility program is also installed with the <i>Greenplum Client
+                <p><sup>3</sup> The utility program is also installed with the <i>Cloudberry Client
                         and Loader Tools Package</i>s for Linux and Windows. You can obtain these
-                    packages from the Greenplum Database <i>Greenplum Clients</i> filegroup on <xref
+                    packages from the Cloudberry Database <i>Cloudberry Clients</i> filegroup on <xref
                         href="https://network.pivotal.io/products/pivotal-gpdb" scope="external"
                         format="html"><ph>VMware Tanzu Network</ph></xref>.</p>
-                <p><sup>4</sup>The utility program is also installed with the <i>Greenplum Client
+                <p><sup>4</sup>The utility program is also installed with the <i>Cloudberry Client
                         and Loader Tools Package</i> for Linux. You can obtain the most up-to-date
-                    version of the <i>Greenplum Streaming Server</i> from <xref
+                    version of the <i>Cloudberry Streaming Server</i> from <xref
                         href="https://network.pivotal.io/products/greenplum-streaming-server"
                         scope="external" format="html"><ph>VMware Tanzu Network</ph></xref>.</p>
             </note>

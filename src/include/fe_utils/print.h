@@ -3,7 +3,7 @@
  * Query-result printing support for frontend code
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/fe_utils/print.h
@@ -12,6 +12,8 @@
  */
 #ifndef PRINT_H
 #define PRINT_H
+
+#include <signal.h>
 
 #include "libpq-fe.h"
 
@@ -175,7 +177,7 @@ typedef struct printQueryOpt
 } printQueryOpt;
 
 
-extern volatile bool cancel_pressed;
+extern volatile sig_atomic_t cancel_pressed;
 
 extern const printTextFormat pg_asciiformat;
 extern const printTextFormat pg_asciiformat_old;

@@ -48,7 +48,7 @@ begin
 		when data_exception then  -- category match
 			raise notice 'caught data_exception';
 			x := -1;
-		when NUMERIC_VALUE_OUT_OF_RANGE OR CARDINALITY_VIOLATION then
+		when NUMERIC_VALUE_OUT_OF_RANGE OR CARDINALITY_VIOLATION OR TOO_MANY_ROWS then
 			raise notice 'caught numeric_value_out_of_range or cardinality_violation';
 			x := -2;
 	end;
@@ -126,19 +126,21 @@ select test_variable_storage();
 --
 -- test foreign key error trapping
 --
+-- start_ignore
+-- greenplum doesn't support the foreign key constraint.
 
-create temp table master(f1 int primary key);
+create temp table root(f1 int primary key);
 
-create temp table slave(f1 int references master deferrable);
+create temp table leaf(f1 int references root deferrable);
 
-insert into master values(1);
-insert into slave values(1);
-insert into slave values(2);	-- fails
+insert into root values(1);
+insert into leaf values(1);
+insert into leaf values(2);	-- fails
 
 create function trap_foreign_key(int) returns int as $$
 begin
 	begin	-- start a subtransaction
-		insert into slave values($1);
+		insert into leaf values($1);
 	exception
 		when foreign_key_violation then
 			raise notice 'caught foreign_key_violation';
@@ -173,3 +175,4 @@ commit;				-- still fails
 
 drop function trap_foreign_key(int);
 drop function trap_foreign_key_2();
+-- end_ignore

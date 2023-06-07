@@ -8,7 +8,7 @@
                 <codeph>ext_expenses,</codeph> from all files with the <i>txt</i> extension. The
             column delimiter is a pipe ( | ) and NULL (' ') is a space.</p>
         <p>Access to the external table is single row error isolation mode. Input data formatting
-            errors are captured internally in Greenplum Database with a description of the error.
+            errors are captured internally in Cloudberry Database with a description of the error.
             See <xref
                 href="../load/topics/g-viewing-bad-rows-in-the-error-table-or-error-log.xml#topic58"
             /> for information about investigating error rows. You can view the errors, fix the

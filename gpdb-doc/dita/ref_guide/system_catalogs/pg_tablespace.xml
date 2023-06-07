@@ -7,7 +7,7 @@
     <p>The <codeph>pg_tablespace</codeph> system catalog table stores information about the
       available tablespaces. Tables can be placed in particular tablespaces to aid administration of
       disk layout. Unlike most system catalogs, <codeph>pg_tablespace</codeph> is shared across all
-      databases of a Greenplum system: there is only one copy of <codeph>pg_tablespace</codeph> per
+      databases of a Cloudberry system: there is only one copy of <codeph>pg_tablespace</codeph> per
       system, not one per database.</p>
     <table id="hx156260">
       <title>pg_catalog.pg_tablespace</title>

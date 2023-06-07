@@ -582,7 +582,7 @@ SELECT CASE WHEN count(*) < 50 THEN 'not many XID locks'
 FROM pg_locks WHERE locktype='transactionid';
 ROLLBACK;
 
--- Test that exported snapshots are cleared upon abort.  In Greenplum,
+-- Test that exported snapshots are cleared upon abort.  In Cloudberry,
 -- exported snapshots are cleared earlier than PostgreSQL during
 -- abort.
 begin;

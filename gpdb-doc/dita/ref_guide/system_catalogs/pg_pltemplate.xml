@@ -5,7 +5,7 @@
       procedural languages. A template for a language allows the language to be created in a
       particular database by a simple <codeph>CREATE LANGUAGE</codeph> command, with no need to
       specify implementation details. Unlike most system catalogs, <codeph>pg_pltemplate</codeph> is
-      shared across all databases of Greenplum system: there is only
+      shared across all databases of Cloudberry system: there is only
       one copy of <codeph>pg_pltemplate</codeph> per system, not one per database. This allows the
       information to be accessible in each database as it is needed. </p><p>There are not currently any commands that manipulate procedural language
 templates; to change the built-in information, a superuser must modify

@@ -15,7 +15,7 @@ DEPENDENCY_INSTALL_DIR = "/usr/local"
 SCRIPT_LOC=os.path.dirname(os.path.realpath(__file__))
 GPDB_SRC_DIR="{0}/../../".format(SCRIPT_LOC)
 
-INSTALL_DIR = "/usr/local/greenplum-db-devel"
+INSTALL_DIR = "/usr/local/cloudberry-db-devel"
 
 def create_gpadmin_user():
     status = subprocess.call("{0}/concourse/scripts/setup_gpadmin_user.bash".format(GPDB_SRC_DIR))

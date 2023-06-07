@@ -100,9 +100,9 @@ set gp_select_invisible=off;
 --CASE 4: panic after XLOG_XACT_PREPARE on segment
 --
 select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
-select gp_inject_fault('end_prepare_two_phase', 'panic', dbid)
-from gp_segment_configuration where content=0 and role='p';
 select gp_inject_fault_infinite('fts_probe', 'skip', dbid)
+from gp_segment_configuration where content=-1 and role='p';
+select gp_inject_fault('end_prepare_two_phase', 'panic', dbid)
 from gp_segment_configuration where content=0 and role='p';
 -- should fail
 create database db4;

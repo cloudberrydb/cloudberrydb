@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en"><title id="gv141670">pg_locks</title><body><p>The <codeph>pg_locks</codeph> view provides access to information about the locks held by open
-      transactions within Greenplum Database.</p><p><codeph>pg_locks</codeph> contains one row per active lockable object,
+      transactions within Cloudberry Database.</p><p><codeph>pg_locks</codeph> contains one row per active lockable object,
 requested lock mode, and relevant transaction. Thus, the same lockable
 object may appear many times if multiple transactions are holding or
 waiting for locks on it. An object with no current locks
@@ -28,5 +28,5 @@ not a general database object</entry></row><row><entry colname="col1"><codeph>vi
 this lock</entry></row><row><entry colname="col1"><codeph>pid</codeph></entry><entry colname="col2">integer</entry><entry colname="col3"/><entry colname="col4">Process ID of the server process holding or
 awaiting this lock. NULL if the lock is held by a prepared transaction</entry></row><row><entry colname="col1"><codeph>mode</codeph></entry><entry colname="col2">text</entry><entry colname="col3"/><entry colname="col4">Name of the lock mode held or desired by this
 process</entry></row><row><entry colname="col1"><codeph>granted</codeph></entry><entry colname="col2">boolean</entry><entry colname="col3"/><entry colname="col4">True if lock is held, false if lock is awaited.</entry></row><row><entry colname="col1"><codeph>fastpath</codeph></entry><entry colname="col2">boolean</entry><entry colname="col3"/><entry colname="col4">True if lock was taken via fastpath, false if lock is taken via main lock table.</entry></row><row><entry colname="col1"><codeph>mppsessionid</codeph></entry><entry colname="col2">integer</entry><entry colname="col3"/><entry colname="col4">The id of the client session associated with
-this lock.</entry></row><row><entry colname="col1"><codeph>mppiswriter</codeph></entry><entry colname="col2">boolean</entry><entry colname="col3"/><entry colname="col4">Specifies whether the lock is held by a writer process.</entry></row><row><entry colname="col1"><codeph>gp_segment_id</codeph></entry><entry colname="col2">integer</entry><entry colname="col3"/><entry colname="col4">The Greenplum segment id (<codeph>dbid</codeph>)
+this lock.</entry></row><row><entry colname="col1"><codeph>mppiswriter</codeph></entry><entry colname="col2">boolean</entry><entry colname="col3"/><entry colname="col4">Specifies whether the lock is held by a writer process.</entry></row><row><entry colname="col1"><codeph>gp_segment_id</codeph></entry><entry colname="col2">integer</entry><entry colname="col3"/><entry colname="col4">The Cloudberry segment id (<codeph>dbid</codeph>)
               where the lock is held.</entry></row></tbody></tgroup></table></body></topic>

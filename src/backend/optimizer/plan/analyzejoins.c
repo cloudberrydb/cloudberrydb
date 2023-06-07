@@ -11,7 +11,7 @@
  * is that we have to work harder to clean up after ourselves when we modify
  * the query, since the derived data structures have to be updated too.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -96,17 +96,16 @@ restart:
 
 		/*
 		 * We can delete this SpecialJoinInfo from the list too, since it's no
-		 * longer of interest.
+		 * longer of interest.  (Since we'll restart the foreach loop
+		 * immediately, we don't bother with foreach_delete_current.)
 		 */
-		root->join_info_list = list_delete_ptr(root->join_info_list, sjinfo);
+		root->join_info_list = list_delete_cell(root->join_info_list, lc);
 
 		/*
 		 * Restart the scan.  This is necessary to ensure we find all
 		 * removable joins independently of ordering of the join_info_list
 		 * (note that removal of attr_needed bits may make a join appear
-		 * removable that did not before).  Also, since we just deleted the
-		 * current list cell, we'd have to have some kluge to continue the
-		 * list scan anyway.
+		 * removable that did not before).
 		 */
 		goto restart;
 	}
@@ -232,7 +231,7 @@ join_is_removable(PlannerInfo *root, SpecialJoinInfo *sjinfo)
 			continue;			/* it definitely doesn't reference innerrel */
 		if (bms_is_subset(phinfo->ph_eval_at, innerrel->relids))
 			return false;		/* there isn't any other place to eval PHV */
-		if (bms_overlap(pull_varnos((Node *) phinfo->ph_var->phexpr),
+		if (bms_overlap(pull_varnos(root, (Node *) phinfo->ph_var->phexpr),
 						innerrel->relids))
 			return false;		/* it does reference innerrel */
 	}
@@ -316,7 +315,6 @@ remove_rel_from_query(PlannerInfo *root, int relid, Relids joinrelids)
 	List	   *joininfos;
 	Index		rti;
 	ListCell   *l;
-	ListCell   *nextl;
 
 	/*
 	 * Mark the rel as "dead" to show it is no longer part of the join tree.
@@ -373,7 +371,7 @@ remove_rel_from_query(PlannerInfo *root, int relid, Relids joinrelids)
 	 * Likewise remove references from PlaceHolderVar data structures,
 	 * removing any no-longer-needed placeholders entirely.
 	 *
-	 * Removal is a bit tricker than it might seem: we can remove PHVs that
+	 * Removal is a bit trickier than it might seem: we can remove PHVs that
 	 * are used at the target rel and/or in the join qual, but not those that
 	 * are used at join partner rels or above the join.  It's not that easy to
 	 * distinguish PHVs used at partner rels from those used in the join qual,
@@ -383,16 +381,15 @@ remove_rel_from_query(PlannerInfo *root, int relid, Relids joinrelids)
 	 * remove or just update the PHV.  There is no corresponding test in
 	 * join_is_removable because it doesn't need to distinguish those cases.
 	 */
-	for (l = list_head(root->placeholder_list); l != NULL; l = nextl)
+	foreach(l, root->placeholder_list)
 	{
 		PlaceHolderInfo *phinfo = (PlaceHolderInfo *) lfirst(l);
 
-		nextl = lnext(l);
 		Assert(!bms_is_member(relid, phinfo->ph_lateral));
 		if (bms_is_subset(phinfo->ph_needed, joinrelids) &&
 			bms_is_member(relid, phinfo->ph_eval_at))
-			root->placeholder_list = list_delete_ptr(root->placeholder_list,
-													 phinfo);
+			root->placeholder_list = foreach_delete_current(root->placeholder_list,
+															l);
 		else
 		{
 			phinfo->ph_eval_at = bms_del_member(phinfo->ph_eval_at, relid);
@@ -511,21 +508,17 @@ void
 reduce_unique_semijoins(PlannerInfo *root)
 {
 	ListCell   *lc;
-	ListCell   *next;
 
 	/*
-	 * Scan the join_info_list to find semijoins.  We can't use foreach
-	 * because we may delete the current cell.
+	 * Scan the join_info_list to find semijoins.
 	 */
-	for (lc = list_head(root->join_info_list); lc != NULL; lc = next)
+	foreach(lc, root->join_info_list)
 	{
 		SpecialJoinInfo *sjinfo = (SpecialJoinInfo *) lfirst(lc);
 		int			innerrelid;
 		RelOptInfo *innerrel;
 		Relids		joinrelids;
 		List	   *restrictlist;
-
-		next = lnext(lc);
 
 		/*
 		 * Must be a non-delaying semijoin to a single baserel, else we aren't
@@ -572,7 +565,7 @@ reduce_unique_semijoins(PlannerInfo *root)
 			continue;
 
 		/* OK, remove the SpecialJoinInfo from the list. */
-		root->join_info_list = list_delete_ptr(root->join_info_list, sjinfo);
+		root->join_info_list = foreach_delete_current(root->join_info_list, lc);
 	}
 }
 
@@ -915,7 +908,7 @@ query_is_distinct_for(Query *query, List *colnos, List *opids)
 				/* non-resjunk columns should have grouping clauses */
 				Assert(lg != NULL);
 				sgc = (SortGroupClause *) lfirst(lg);
-				lg = lnext(lg);
+				lg = lnext(topop->groupClauses, lg);
 
 				opid = distinct_col_search(tle->resno, colnos, opids);
 				if (!OidIsValid(opid) ||

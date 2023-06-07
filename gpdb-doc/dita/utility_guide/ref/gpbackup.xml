@@ -3,7 +3,7 @@
 <topic id="topic1">
   <title>gpbackup</title>
   <body>
-    <p>Create a Greenplum Database backup for use with the <codeph>gprestore</codeph> utility. </p>
+    <p>Create a Cloudberry Database backup for use with the <codeph>gprestore</codeph> utility. </p>
     <section>
       <title>Synopsis</title>
       <codeblock><b>gpbackup --dbname</b> <varname>database_name</varname>
@@ -43,7 +43,7 @@
         schema level and table level options to back up all the tables in a schema except for a
         single table. </p>
       <p>By default, <codeph>gpbackup</codeph> backs up objects in the specified database as well as
-        global Greenplum Database system objects. Use <codeph>--without-globals</codeph> to omit
+        global Cloudberry Database system objects. Use <codeph>--without-globals</codeph> to omit
         global objects. <codeph>gprestore</codeph> does not restore global objects by default; use
           <codeph>--with-globals</codeph> to restore them. See <xref
           href="../../admin_guide/managing/backup-gpbackup.xml#topic_x3s_lqj_tbb"/> for additional
@@ -51,13 +51,13 @@
       <p>For materialized views, data is not backed up, only the materialized view definition is
         backed up.</p>
       <p><codeph>gpbackup</codeph> stores the object metadata files and DDL files for a backup in
-        the Greenplum Database master data directory by default. Greenplum Database segments use the
+        the Cloudberry Database master data directory by default. Cloudberry Database segments use the
           <codeph>COPY ... ON SEGMENT</codeph> command to store their data for backed-up tables in
         compressed CSV data files, located in each segment's data directory. See <xref
           href="../../admin_guide/managing/backup-gpbackup.xml#topic_xnj_b4c_tbb"/> for additional
         information.</p>
       <p>You can add the <codeph>--backup-dir</codeph> option to copy all backup files from the
-        Greenplum Database master and segment hosts to an absolute path for later use. Additional
+        Cloudberry Database master and segment hosts to an absolute path for later use. Additional
         options are provided to filter the backup set in order to include or exclude specific
         tables.</p>
       <p>You can create an incremental backup with the <codeph><xref href="#topic1/incremental"
@@ -67,7 +67,7 @@
           href="../../admin_guide/managing/backup-gpbackup-incremental.xml"/> for information about
         incremental backups. </p>
       <p>With the default <codeph>--jobs</codeph> option (1 job), each <codeph>gpbackup</codeph>
-        operation uses a single transaction on the Greenplum Database master host. The <codeph>COPY
+        operation uses a single transaction on the Cloudberry Database master host. The <codeph>COPY
           ... ON SEGMENT</codeph> command performs the backup task in parallel on each segment host.
         The backup process acquires an <codeph>ACCESS SHARE</codeph> lock on each table that is
         backed up. During the table locking process, the database should be in a quiescent
@@ -83,7 +83,7 @@
           href="../../admin_guide/managing/backup-gpbackup.xml#topic_qwd_d5d_tbb" format="dita"
         />.</p>
       <note>This utility uses secure shell (SSH) connections between systems to perform its tasks.
-        In large Greenplum Database deployments, cloud deployments, or deployments with a large
+        In large Cloudberry Database deployments, cloud deployments, or deployments with a large
         number of segments per host, this utility may exceed the host's maximum threshold for
         unauthenticated connections. Consider updating the SSH <codeph>MaxStartups</codeph> and
           <codeph>MaxSessions</codeph> configuration parameters to increase this threshold. For more
@@ -104,7 +104,7 @@
           <pd>Optional. Copies all required backup files (metadata files and data files) to the
             specified directory. You must specify <varname>directory</varname> as an absolute path
             (not relative). If you do not supply this option, metadata files are created on the
-            Greenplum Database master host in the
+            Cloudberry Database master host in the
               <filepath>$MASTER_DATA_DIRECTORY/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath>
             directory. Segment hosts create CSV data files in the
               <filepath>&lt;seg_dir>/backups/YYYYMMDD/YYYYMMDDhhmmss/</filepath> directory. When you
@@ -390,7 +390,7 @@
         </plentry>
         <plentry>
           <pt><b>--without-globals</b></pt>
-          <pd>Optional. Omit the global Greenplum Database system objects during backup.</pd>
+          <pd>Optional. Omit the global Cloudberry Database system objects during backup.</pd>
         </plentry>
         <plentry>
           <pt>--help</pt>
@@ -437,13 +437,13 @@ my#1schema.my_$590_Table</codeblock></p>
     </section>
     <section>
       <title>Examples</title>
-      <p>Backup all schemas and tables in the "demo" database, including global Greenplum Database
+      <p>Backup all schemas and tables in the "demo" database, including global Cloudberry Database
         system objects statistics:<codeblock>$ gpbackup --dbname demo</codeblock></p>
       <p>Backup all schemas and tables in the "demo" database except for the "twitter"
         schema:<codeblock>$ gpbackup --dbname demo --exclude-schema twitter</codeblock></p>
       <p>Backup only the "twitter" schema in the "demo"
         database:<codeblock>$ gpbackup --dbname demo --include-schema twitter</codeblock></p>
-      <p>Backup all schemas and tables in the "demo" database, including global Greenplum Database
+      <p>Backup all schemas and tables in the "demo" database, including global Cloudberry Database
         system objects and query statistics, and copy all backup files to the
           <filepath>/home/gpadmin/backup</filepath>
         directory:<codeblock>$ gpbackup --dbname demo --with-stats --backup-dir /home/gpadmin/backup</codeblock></p>

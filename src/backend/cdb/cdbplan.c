@@ -3,7 +3,7 @@
  * cdbplan.c
  *	  Provides routines supporting plan tree manipulation.
  *
- * Portions Copyright (c) 2004-2008, Greenplum inc
+ * Portions Copyright (c) 2004-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -32,6 +32,7 @@
 
 static void mutate_plan_fields(Plan *newplan, Plan *oldplan, Node *(*mutator) (), void *context);
 static void mutate_join_fields(Join *newplan, Join *oldplan, Node *(*mutator) (), void *context);
+static void mutate_sort_fields(Sort* newplan, Sort* oldplan, Node *(*mutator) (), void *context);
 
 
 
@@ -137,6 +138,9 @@ plan_tree_mutator(Node *node,
 #define JOINMUTATE(newplan, oldplan) \
 		mutate_join_fields((Join*)(newplan), (Join*)(oldplan), mutator, context)
 
+#define SORTMUTATE(newplan, oldplan) \
+		mutate_sort_fields((Sort*)(newplan), (Sort*)(oldplan), mutator, context)
+
 #define COPYARRAY(dest,src,lenfld,datfld) \
 	do { \
 		(dest)->lenfld = (src)->lenfld; \
@@ -202,7 +206,7 @@ plan_tree_mutator(Node *node,
 
 				FLATCOPY(newmt, mt, ModifyTable);
 				PLANMUTATE(newmt, mt);
-				MUTATE(newmt->plans, mt->plans, List *);
+//				MUTATE(newmt->plans, mt->plans, List *);
 				MUTATE(newmt->onConflictSet, mt->onConflictSet, List *);
 				MUTATE(newmt->onConflictWhere, mt->onConflictWhere , Node *);
 				MUTATE(newmt->withCheckOptionLists, mt->withCheckOptionLists, List *);
@@ -567,10 +571,7 @@ plan_tree_mutator(Node *node,
 				Sort	   *newsort;
 
 				FLATCOPY(newsort, sort, Sort);
-				PLANMUTATE(newsort, sort);
-				COPYARRAY(newsort, sort, numCols, sortColIdx);
-				COPYARRAY(newsort, sort, numCols, sortOperators);
-				COPYARRAY(newsort, sort, numCols, nullsFirst);
+				SORTMUTATE(newsort, sort);
 				return (Node *) newsort;
 			}
 			break;
@@ -675,6 +676,17 @@ plan_tree_mutator(Node *node,
 				PLANMUTATE(newsetop, setop);
 				COPYARRAY(newsetop, setop, numCols, dupColIdx);
 				return (Node *) newsetop;
+			}
+			break;
+
+		case T_RuntimeFilter:
+			{
+				RuntimeFilter	   *filter = (RuntimeFilter *) node;
+				RuntimeFilter	   *newfilter;
+
+				FLATCOPY(newfilter, filter, RuntimeFilter);
+				PLANMUTATE(newfilter, filter);
+				return (Node *) newfilter;
 			}
 			break;
 
@@ -881,6 +893,42 @@ plan_tree_mutator(Node *node,
 			}
 			break;
 
+		case T_IncrementalSort:
+			{
+				IncrementalSort	*incrementalSort = (IncrementalSort *) node;
+				IncrementalSort	*newIncrementalSort;
+
+				FLATCOPY(newIncrementalSort, incrementalSort, IncrementalSort);
+				SORTMUTATE(newIncrementalSort, incrementalSort);
+				return (Node *) newIncrementalSort;
+			}
+			break;
+
+		case T_Memoize:
+			{
+				Memoize *memoize = (Memoize *) node;
+				Memoize *newMemoize;
+
+				FLATCOPY(newMemoize, memoize, Memoize);
+				PLANMUTATE(newMemoize, memoize);
+				MUTATE(newMemoize->param_exprs, memoize->param_exprs, List *);
+				return (Node *) newMemoize;
+			}
+			break;
+
+		case T_TidRangeScan:
+			{
+				TidRangeScan    *tidrangescan = (TidRangeScan *) node;
+				TidRangeScan    *newtidrangescan;
+
+				FLATCOPY(newtidrangescan, tidrangescan, TidRangeScan);
+				SCANMUTATE(newtidrangescan, tidrangescan);
+				MUTATE(newtidrangescan->tidrangequals, tidrangescan->tidrangequals, List *);
+				/* isTarget is scalar. */
+				return (Node *) newtidrangescan;
+			}
+			break;
+
 			/*
 			 * The following cases are handled by expression_tree_mutator.	In
 			 * addition, we let expression_tree_mutator handle unrecognized
@@ -966,13 +1014,13 @@ mutate_plan_fields(Plan *newplan, Plan *oldplan, Node *(*mutator) (), void *cont
 }
 
 
-/* Function mutate_plan_fields() is a subroutine for plan_tree_mutator().
+/* Function mutate_join_fields() is a subroutine for plan_tree_mutator().
  * It "hijacks" the macro MUTATE defined for use in that function, so don't
  * change the argument names "mutator" and "context" use in the macro
  * definition.
  *
  */
-static void 
+static void
 mutate_join_fields(Join *newjoin, Join *oldjoin, Node *(*mutator) (), void *context)
 {
 	/* A Join node is a Plan node. */
@@ -982,6 +1030,27 @@ mutate_join_fields(Join *newjoin, Join *oldjoin, Node *(*mutator) (), void *cont
 
 	/* Node fields need mutation. */
 	MUTATE(newjoin->joinqual, oldjoin->joinqual, List *);
+}
+
+/* Function mutate_sort_fields() is a subroutine for plan_tree_mutator().
+ * It "hijacks" the macro MUTATE defined for use in that function, so don't
+ * change the argument names "mutator" and "context" use in the macro
+ * definition.
+ *
+ */
+static void
+mutate_sort_fields(Sort *newsort, Sort *oldsort, Node *(*mutator) (), void *context)
+{
+	/* A Join node is a Plan node. */
+	mutate_plan_fields((Plan *) newsort, (Plan *) oldsort, mutator, context);
+
+	/* Scalar field jointype needs no mutation. */
+
+	/* Node fields need mutation. */
+	COPYARRAY(newsort, oldsort, numCols, sortColIdx);
+	COPYARRAY(newsort, oldsort, numCols, sortOperators);
+	COPYARRAY(newsort, oldsort, numCols, collations);
+	COPYARRAY(newsort, oldsort, numCols, nullsFirst);
 }
 
 

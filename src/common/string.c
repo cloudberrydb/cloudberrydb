@@ -4,7 +4,7 @@
  *		string handling helpers
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -89,4 +89,42 @@ pg_clean_ascii(char *str)
 		if (*p < 32 || *p > 126)
 			*p = '?';
 	}
+}
+
+
+/*
+ * pg_is_ascii -- Check if string is made only of ASCII characters
+ */
+bool
+pg_is_ascii(const char *str)
+{
+	while (*str)
+	{
+		if (IS_HIGHBIT_SET(*str))
+			return false;
+		str++;
+	}
+	return true;
+}
+
+
+/*
+ * pg_strip_crlf -- Remove any trailing newline and carriage return
+ *
+ * Removes any trailing newline and carriage return characters (\r on
+ * Windows) in the input string, zero-terminating it.
+ *
+ * The passed in string must be zero-terminated.  This function returns
+ * the new length of the string.
+ */
+int
+pg_strip_crlf(char *str)
+{
+	int			len = strlen(str);
+
+	while (len > 0 && (str[len - 1] == '\n' ||
+					   str[len - 1] == '\r'))
+		str[--len] = '\0';
+
+	return len;
 }

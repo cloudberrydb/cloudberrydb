@@ -4,7 +4,7 @@
  * reads the data from $PGDATA/global/pg_control
  *
  * copyright (c) Oliver Elphick <olly@lfix.co.uk>, 2001;
- * licence: BSD
+ * license: BSD
  *
  * src/bin/pg_controldata/pg_controldata.c
  */
@@ -26,9 +26,8 @@
 #include "catalog/pg_control.h"
 #include "common/controldata_utils.h"
 #include "common/logging.h"
-#include "pg_getopt.h"
 #include "getopt_long.h"
-
+#include "pg_getopt.h"
 
 static void
 usage(const char *progname)
@@ -40,10 +39,11 @@ usage(const char *progname)
 	printf(_(" [-D, --pgdata=]DATADIR  data directory\n"));
 	printf(_("  -V, --version          output version information, then exit\n"));
 	printf(_("  -?, --help             show this help, then exit\n"));
-	printf(_("  --gp-version   output Greenplum version information, then exit\n"));
+	printf(_("  --gp-version   output Cloudberry version information, then exit\n"));
 	printf(_("\nIf no data directory (DATADIR) is specified, "
 			 "the environment variable PGDATA\nis used.\n\n"));
-	printf(_("Report bugs to <bugs@greenplum.org>.\n"));
+	printf(_("Report bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }
 
 
@@ -100,7 +100,6 @@ main(int argc, char *argv[])
 	time_t		time_tmp;
 	char		pgctime_str[128];
 	char		ckpttime_str[128];
-	char		sysident_str[32];
 	char		mock_auth_nonce_str[MOCK_AUTH_NONCE_LEN * 2 + 1];
 	const char *strftime_fmt = "%c";
 	const char *progname;
@@ -122,12 +121,12 @@ main(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_controldata (Greenplum Database) " PG_VERSION);
+			puts("pg_controldata (Cloudberry Database) " PG_VERSION);
 			exit(0);
 		}
 		if (strcmp(argv[1], "--gp-version") == 0)
 		{
-			puts("pg_controldata (Greenplum Database) " GP_VERSION);
+			puts("pg_controldata (Cloudberry Database) " GP_VERSION);
 			exit(0);
 		}
 
@@ -229,13 +228,6 @@ main(int argc, char *argv[])
 	else
 		strcpy(xlogfilename, _("???"));
 
-	/*
-	 * Format system_identifier and mock_authentication_nonce separately to
-	 * keep platform-dependent format code out of the translatable message
-	 * string.
-	 */
-	snprintf(sysident_str, sizeof(sysident_str), UINT64_FORMAT,
-			 ControlFile->system_identifier);
 	for (i = 0; i < MOCK_AUTH_NONCE_LEN; i++)
 		snprintf(&mock_auth_nonce_str[i * 2], 3, "%02x",
 				 (unsigned char) ControlFile->mock_authentication_nonce[i]);
@@ -244,18 +236,16 @@ main(int argc, char *argv[])
 		   ControlFile->pg_control_version);
 	printf(_("Catalog version number:               %u\n"),
 		   ControlFile->catalog_version_no);
-	printf(_("Database system identifier:           %s\n"),
-		   sysident_str);
+	printf(_("Database system identifier:           %llu\n"),
+		   (unsigned long long) ControlFile->system_identifier);
 	printf(_("Database cluster state:               %s\n"),
 		   dbState(ControlFile->state));
 	printf(_("pg_control last modified:             %s\n"),
 		   pgctime_str);
 	printf(_("Latest checkpoint location:           %X/%X\n"),
-		   (uint32) (ControlFile->checkPoint >> 32),
-		   (uint32) ControlFile->checkPoint);
+		   LSN_FORMAT_ARGS(ControlFile->checkPoint));
 	printf(_("Latest checkpoint's REDO location:    %X/%X\n"),
-		   (uint32) (ControlFile->checkPointCopy.redo >> 32),
-		   (uint32) ControlFile->checkPointCopy.redo);
+		   LSN_FORMAT_ARGS(ControlFile->checkPointCopy.redo));
 	printf(_("Latest checkpoint's REDO WAL file:    %s\n"),
 		   xlogfilename);
 	printf(_("Latest checkpoint's TimeLineID:       %u\n"),
@@ -265,13 +255,13 @@ main(int argc, char *argv[])
 	printf(_("Latest checkpoint's full_page_writes: %s\n"),
 		   ControlFile->checkPointCopy.fullPageWrites ? _("on") : _("off"));
 	printf(_("Latest checkpoint's NextXID:          %u:%u\n"),
-		   EpochFromFullTransactionId(ControlFile->checkPointCopy.nextFullXid),
-		   XidFromFullTransactionId(ControlFile->checkPointCopy.nextFullXid));
+		   EpochFromFullTransactionId(ControlFile->checkPointCopy.nextXid),
+		   XidFromFullTransactionId(ControlFile->checkPointCopy.nextXid));
 	printf(_("Latest checkpoint's NextGxid:         "UINT64_FORMAT"\n"),
 		   ControlFile->checkPointCopy.nextGxid);
 	printf(_("Latest checkpoint's NextOID:          %u\n"),
 		   ControlFile->checkPointCopy.nextOid);
-	printf(_("Latest checkpoint's NextRelfilenode:  %u\n"),
+	printf(_("Latest checkpoint's NextRelfilenode:  %lu\n"),
 		   ControlFile->checkPointCopy.nextRelfilenode);
 	printf(_("Latest checkpoint's NextMultiXactId:  %u\n"),
 		   ControlFile->checkPointCopy.nextMulti);
@@ -294,19 +284,15 @@ main(int argc, char *argv[])
 	printf(_("Time of latest checkpoint:            %s\n"),
 		   ckpttime_str);
 	printf(_("Fake LSN counter for unlogged rels:   %X/%X\n"),
-		   (uint32) (ControlFile->unloggedLSN >> 32),
-		   (uint32) ControlFile->unloggedLSN);
+		   LSN_FORMAT_ARGS(ControlFile->unloggedLSN));
 	printf(_("Minimum recovery ending location:     %X/%X\n"),
-		   (uint32) (ControlFile->minRecoveryPoint >> 32),
-		   (uint32) ControlFile->minRecoveryPoint);
+		   LSN_FORMAT_ARGS(ControlFile->minRecoveryPoint));
 	printf(_("Min recovery ending loc's timeline:   %u\n"),
 		   ControlFile->minRecoveryPointTLI);
 	printf(_("Backup start location:                %X/%X\n"),
-		   (uint32) (ControlFile->backupStartPoint >> 32),
-		   (uint32) ControlFile->backupStartPoint);
+		   LSN_FORMAT_ARGS(ControlFile->backupStartPoint));
 	printf(_("Backup end location:                  %X/%X\n"),
-		   (uint32) (ControlFile->backupEndPoint >> 32),
-		   (uint32) ControlFile->backupEndPoint);
+		   LSN_FORMAT_ARGS(ControlFile->backupEndPoint));
 	printf(_("End-of-backup record required:        %s\n"),
 		   ControlFile->backupEndRequired ? _("yes") : _("no"));
 	printf(_("wal_level setting:                    %s\n"),
@@ -347,8 +333,6 @@ main(int argc, char *argv[])
 	/* This is no longer configurable, but users may still expect to see it: */
 	printf(_("Date/time type storage:               %s\n"),
 		   _("64-bit integers"));
-	printf(_("Float4 argument passing:              %s\n"),
-		   (ControlFile->float4ByVal ? _("by value") : _("by reference")));
 	printf(_("Float8 argument passing:              %s\n"),
 		   (ControlFile->float8ByVal ? _("by value") : _("by reference")));
 	printf(_("Data page checksum version:           %u\n"),

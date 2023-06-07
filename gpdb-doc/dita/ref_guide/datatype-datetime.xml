@@ -4,7 +4,7 @@
   <topic id="topic_abq_gfk_qfb">
     <title>Date/Time Types</title>
   <body>
-   <p>Greenplum supports the full set of SQL date and time types, shown in <xref
+   <p>Cloudberry supports the full set of SQL date and time types, shown in <xref
       href="#topic_abq_gfk_qfb/datatype-datetime-table" format="dita"/>. The operations available on
      these data types are described in <xref
       href="https://www.postgresql.org/docs/9.4/functions-datetime.html" format="html"
@@ -80,7 +80,7 @@
     </table>
 
    <note>The SQL standard requires that writing just <codeph>timestamp</codeph> be equivalent to
-      <codeph>timestamp without time zone</codeph>, and Greenplum honors that behavior.
+      <codeph>timestamp without time zone</codeph>, and Cloudberry honors that behavior.
       <codeph>timestamptz</codeph> is accepted as an abbreviation for <codeph>timestamp with time
       zone</codeph>; this is a PostgreSQL extension. </note>
 
@@ -136,12 +136,12 @@ MINUTE TO SECOND
    <p>The types <codeph>abstime</codeph> and <codeph>reltime</codeph> are lower precision types
     which are used internally. You are discouraged from using these types in applications; these
     internal types might disappear in a future release. </p>
-   <p>Greenplum Database 6 and later releases do not automatically cast text from the deprecated
+   <p>Cloudberry Database 6 and later releases do not automatically cast text from the deprecated
     timestamp format <codeph>YYYYMMDDHH24MISS</codeph>. The format could not be parsed unambiguously
-    in previous Greenplum Database releases. </p>
-   <p>For example, this command returns an error in Greenplum Database 6. In previous releases, a
+    in previous Cloudberry Database releases. </p>
+   <p>For example, this command returns an error in Cloudberry Database 6. In previous releases, a
     timestamp is returned. <codeblock># select to_timestamp('20190905140000');</codeblock></p>
-   <p>In Greenplum Database 6, this command returns a timestamp.
+   <p>In Cloudberry Database 6, this command returns a timestamp.
     <codeblock># select to_timestamp('20190905140000','YYYYMMDDHH24MISS');</codeblock></p>
    <section id="datatype-datetime-input">
     <title>Date/Time Input</title>
@@ -152,7 +152,7 @@ MINUTE TO SECOND
       <codeph>MDY</codeph> to select month-day-year interpretation, <codeph>DMY</codeph> to select
      day-month-year interpretation, or <codeph>YMD</codeph> to select year-month-day
      interpretation.</p>
-    <p>Greenplum is more flexible in handling date/time input than the SQL standard requires. See
+    <p>Cloudberry is more flexible in handling date/time input than the SQL standard requires. See
       <xref href="https://www.postgresql.org/docs/9.4/datetime-appendix.html" format="html"
       scope="external">Appendix B. Date/Time Support</xref> in the PostgreSQL documentation for the
      exact parsing rules of date/time input and for the recognized text fields including months,
@@ -416,12 +416,12 @@ January 8 04:05:06 1999 PST
       <codeph>-</codeph> symbol and time zone offset after the time. Hence, according to the
      standard, <codeph>TIMESTAMP '2004-10-19 10:23:54'</codeph> is a <codeph>timestamp without time
       zone</codeph>, while <codeph>TIMESTAMP '2004-10-19 10:23:54+02'</codeph> is a
-      <codeph>timestamp with time zone</codeph>. Greenplum never examines the content of a literal
+      <codeph>timestamp with time zone</codeph>. Cloudberry never examines the content of a literal
      string before determining its type, and therefore will treat both of the above as
       <codeph>timestamp without time zone</codeph>. To ensure that a literal is treated as
       <codeph>timestamp with time zone</codeph>, give it the correct explicit type:
       <codeph>TIMESTAMP WITH TIME ZONE '2004-10-19 10:23:54+02'</codeph> In a literal that has been
-     determined to be <codeph>timestamp without time zone</codeph>, Greenplum will silently ignore
+     determined to be <codeph>timestamp without time zone</codeph>, Cloudberry will silently ignore
      any time zone indication. That is, the resulting value is derived from the date/time fields in
      the input value, and is not adjusted for time zone.</p>
 
@@ -449,7 +449,7 @@ January 8 04:05:06 1999 PST
     <section>
      <title>Special Values</title>
 
-     <p>Greenplum supports several special date/time input values for convenience, as shown in <xref
+     <p>Cloudberry supports several special date/time input values for convenience, as shown in <xref
       href="#topic_abq_gfk_qfb/datatype-datetime-special-table" format="dita"/>. The values
       <codeph>infinity</codeph> and <codeph>-infinity</codeph> are specially represented inside the
      system and will be displayed unchanged; but the others are simply notational shorthands that
@@ -573,7 +573,7 @@ January 8 04:05:06 1999 PST
      </table>
 
     <note> ISO 8601 specifies the use of uppercase letter <codeph>T</codeph> to separate the date
-     and time. Greenplum accepts that format on input, but on output it uses a space rather than
+     and time. Cloudberry accepts that format on input, but on output it uses a space rather than
       <codeph>T</codeph>, as shown above. This is for readability and for consistency with RFC 3339
      as well as some other database systems. </note>
 
@@ -632,11 +632,11 @@ January 8 04:05:06 1999 PST
    <p>Time zones, and time-zone conventions, are influenced by political decisions, not just earth
      geometry. Time zones around the world became somewhat standardized during the 1900s, but
      continue to be prone to arbitrary changes, particularly with respect to daylight-savings rules.
-     Greenplum uses the widely-used IANA (Olson) time zone database for information about historical
+     Cloudberry uses the widely-used IANA (Olson) time zone database for information about historical
      time zone rules. For times in the future, the assumption is that the latest known rules for a
      given time zone will continue to be observed indefinitely far into the future.</p>
 
-    <p>Greenplum endeavors to be compatible with the SQL standard definitions for typical usage.
+    <p>Cloudberry endeavors to be compatible with the SQL standard definitions for typical usage.
      However, the SQL standard has an odd mix of date and time types and capabilities. Two obvious
      problems are: <ol>
       <li>Although the <codeph>date</codeph> type cannot have an associated time zone, the
@@ -650,17 +650,17 @@ January 8 04:05:06 1999 PST
 
     <p>To address these difficulties, we recommend using date/time types that contain both date and
      time when using time zones. We do <i>not</i> recommend using the type <codeph>time with time
-      zone</codeph> (though it is supported by Greenplum for legacy applications and for compliance
-     with the SQL standard). Greenplum assumes your local time zone for any type containing only
+      zone</codeph> (though it is supported by Cloudberry for legacy applications and for compliance
+     with the SQL standard). Cloudberry assumes your local time zone for any type containing only
      date or time.</p>
 
     <p>All timezone-aware dates and times are stored internally in UTC. They are converted to local
      time in the zone specified by the <codeph>TimeZone</codeph> configuration parameter before
      being displayed to the client.</p>
 
-    <p>Greenplum allows you to specify time zones in three different forms: <ol>
+    <p>Cloudberry allows you to specify time zones in three different forms: <ol>
       <li>A full time zone name, for example <codeph>America/New_York</codeph>. The recognized time
-       zone names are listed in the <codeph>pg_timezone_names</codeph> view. Greenplum uses the
+       zone names are listed in the <codeph>pg_timezone_names</codeph> view. Cloudberry uses the
        widely-used IANA time zone data for this purpose, so the same time zone names are also
        recognized by other software. </li>
       <li>A time zone abbreviation, for example <codeph>PST</codeph>. Such a specification merely
@@ -671,7 +671,7 @@ January 8 04:05:06 1999 PST
         href="config_params/guc-list.xml#log_timezone"/> to a time zone abbreviation, but you can
        use abbreviations in date/time input values and with the <codeph>AT TIME ZONE</codeph>
        operator. </li>
-      <li>In addition to the timezone names and abbreviations, Greenplum will accept POSIX-style
+      <li>In addition to the timezone names and abbreviations, Cloudberry will accept POSIX-style
        time zone specifications of the form <varname>STD</varname><varname>offset</varname> or
         <varname>STD</varname><varname>offset</varname><varname>DST</varname>, where
         <varname>STD</varname> is a zone abbreviation, <varname>offset</varname> is a numeric offset
@@ -682,7 +682,7 @@ January 8 04:05:06 1999 PST
        abbreviation can be a string of letters, or an arbitrary string surrounded by angle brackets
         (<codeph>&lt;&gt;</codeph>). When a daylight-savings zone abbreviation is present, it is
        assumed to be used according to the same daylight-savings transition rules used in the IANA
-       time zone database's entry. In a standard Greenplum installation, is the same as
+       time zone database's entry. In a standard Cloudberry installation, is the same as
         <codeph>US/Eastern</codeph>, so that POSIX-style time zone specifications follow USA
        daylight-savings rules. If needed, you can adjust this behavior by replacing the file. </li>
      </ol> In short, this is the difference between abbreviations and full names: abbreviations
@@ -696,7 +696,7 @@ January 8 04:05:06 1999 PST
 
     <p>To complicate matters, some jurisdictions have used the same timezone abbreviation to mean
      different UTC offsets at different times; for example, in Moscow <codeph>MSK</codeph> has meant
-     UTC+3 in some years and UTC+4 in others. Greenplum interprets such abbreviations according to
+     UTC+3 in some years and UTC+4 in others. Cloudberry interprets such abbreviations according to
      whatever they meant (or had most recently meant) on the specified date; but, as with the
       <codeph>EST</codeph> example above, this is not necessarily the same as local civil time on
      that date.</p>
@@ -706,7 +706,7 @@ January 8 04:05:06 1999 PST
      example, <codeph>SET TIMEZONE TO FOOBAR0</codeph> will work, leaving the system effectively
      using a rather peculiar abbreviation for UTC. Another issue to keep in mind is that in POSIX
      time zone names, positive offsets are used for locations of Greenwich. Everywhere else,
-     Greenplum follows the ISO-8601 convention that positive timezone offsets are of Greenwich.</p>
+     Cloudberry follows the ISO-8601 convention that positive timezone offsets are of Greenwich.</p>
 
     <p>In all cases, timezone names and abbreviations are recognized case-insensitively.</p>
 
@@ -831,11 +831,11 @@ P  <varname>years</varname>-<varname>months</varname>-<varname>days</varname>   
     <p>According to the SQL standard all fields of an interval value must have the same sign, so a
      leading negative sign applies to all fields; for example the negative sign in the interval
      literal <codeph>'-1 2:03:04'</codeph> applies to both the days and hour/minute/second parts.
-     Greenplum allows the fields to have different signs, and traditionally treats each field in the
+     Cloudberry allows the fields to have different signs, and traditionally treats each field in the
      textual representation as independently signed, so that the hour/minute/second part is
      considered positive in this example. If <varname>IntervalStyle</varname> is set to
       <codeph>sql_standard</codeph> then a leading sign is considered to apply to all fields (but
-     only if no additional signs appear). Otherwise the traditional Greenplum interpretation is
+     only if no additional signs appear). Otherwise the traditional Cloudberry interpretation is
      used. To avoid ambiguity, it's recommended to attach an explicit sign to each field if any
      field is negative.</p>
 

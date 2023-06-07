@@ -6,8 +6,11 @@
  *
  * This is a modified version of src/backend/parser/scan.l
  *
+ * The ecpg scanner is not backup-free, so the fail rules are
+ * only here to simplify syncing this file with scan.l.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ *
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -61,7 +64,10 @@ static bool isdefine(void);
 static bool isinformixdefine(void);
 
 char *token_start;
-static int state_before;
+
+/* vars to keep track of start conditions when scanning literals */
+static int state_before_str_start;
+static int state_before_str_stop;
 
 struct _yy_buffer
 {
@@ -73,13 +79,29 @@ struct _yy_buffer
 
 static char *old;
 
+/*
+ * Vars for handling ifdef/elif/endif constructs.  preproc_tos is the current
+ * nesting depth of such constructs, and stacked_if_value[preproc_tos] is the
+ * state for the innermost level.  (For convenience, stacked_if_value[0] is
+ * initialized as though we are in the active branch of some outermost IF.)
+ * The active field is true if the current branch is active (being expanded).
+ * The saw_active field is true if we have found any successful branch,
+ * so that all subsequent branches of this level should be skipped.
+ * The else_branch field is true if we've found an 'else' (so that another
+ * 'else' or 'elif' at this level is an error.)
+ * For IFs nested within an inactive branch, all branches always have active
+ * set to false, but saw_active and else_branch are maintained normally.
+ * ifcond is valid only while evaluating an if-condition; it's true if we
+ * are doing ifdef, false if ifndef.
+ */
 #define MAX_NESTED_IF 128
 static short preproc_tos;
-static short ifcond;
+static bool ifcond;
 static struct _if_value
 {
-	short condition;
-	short else_branch;
+	bool active;
+	bool saw_active;
+	bool else_branch;
 } stacked_if_value[MAX_NESTED_IF];
 
 %}
@@ -105,13 +127,13 @@ static struct _if_value
  * and to eliminate parsing troubles for numeric strings.
  * Exclusive states:
  *  <xb> bit string literal
- *  <xcc> extended C-style comments in C
- *  <xcsql> extended C-style comments in SQL
+ *  <xc> extended C-style comments
  *  <xd> delimited identifiers (double-quoted identifiers)
  *  <xdc> double-quoted strings in C
  *  <xh> hexadecimal numeric string
  *  <xn> national character quoted strings
  *  <xq> standard quoted strings
+ *  <xqs> quote stop (detect continued strings)
  *  <xe> extended quoted strings (support backslash escape sequences)
  *  <xqc> single-quoted strings in C
  *  <xdolq> $foo$ quoted strings
@@ -120,18 +142,21 @@ static struct _if_value
  *  <xcond> condition of an EXEC SQL IFDEF construct
  *  <xskip> skipping the inactive part of an EXEC SQL IFDEF construct
  *
+ * Note: we intentionally don't mimic the backend's <xeu> state; we have
+ * no need to distinguish it from <xe> state.
+ *
  * Remember to add an <<EOF>> case whenever you add a new exclusive state!
  * The default one is probably not the right thing.
  */
 
 %x xb
-%x xcc
-%x xcsql
+%x xc
 %x xd
 %x xdc
 %x xh
 %x xn
 %x xq
+%x xqs
 %x xe
 %x xqc
 %x xdolq
@@ -181,9 +206,17 @@ horiz_whitespace		({horiz_space}|{comment})
 whitespace_with_newline	({horiz_whitespace}*{newline}{whitespace}*)
 
 quote			'
-quotestop		{quote}{whitespace}*
-quotecontinue	{quote}{whitespace_with_newline}{quote}
-quotefail		{quote}{whitespace}*"-"
+/* If we see {quote} then {quotecontinue}, the quoted string continues */
+quotecontinue	{whitespace_with_newline}{quote}
+
+/*
+ * {quotecontinuefail} is needed to avoid lexer backup when we fail to match
+ * {quotecontinue}.  It might seem that this could just be {whitespace}*,
+ * but if there's a dash after {whitespace_with_newline}, it must be consumed
+ * to see if there's another dash --- which would start a {comment} and thus
+ * allow continuation of the {quotecontinue} token.
+ */
+quotecontinuefail	{whitespace}*"-"?
 
 /* Bit string
  */
@@ -237,19 +270,11 @@ xdstop			{dquote}
 xddouble		{dquote}{dquote}
 xdinside		[^"]+
 
-/* Unicode escapes */
-/* (The ecpg scanner is not backup-free, so the fail rules in scan.l are
- * not needed here, but could be added if desired.)
- */
-uescape			[uU][eE][sS][cC][aA][pP][eE]{whitespace}*{quote}[^']{quote}
-
 /* Quoted identifier with Unicode escapes */
 xuistart		[uU]&{dquote}
-xuistop			{dquote}({whitespace}*{uescape})?
 
 /* Quoted string with Unicode escapes */
 xusstart		[uU]&{quote}
-xusstop			{quote}({whitespace}*{uescape})?
 
 /* special stuff for C strings */
 xdcqq			\\\\
@@ -408,54 +433,58 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 {whitespace}	{
 					/* ignore */
 				}
-
-{xcstart}		{
-					token_start = yytext;
-					state_before = YYSTATE;
-					xcdepth = 0;
-					BEGIN(xcsql);
-					/* Put back any characters past slash-star; see above */
-					yyless(2);
-					fputs("/*", yyout);
-				}
 } /* <SQL> */
 
-<C>{xcstart}	{
+<C,SQL>{
+{xcstart}		{
 					token_start = yytext;
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					xcdepth = 0;
-					BEGIN(xcc);
+					BEGIN(xc);
 					/* Put back any characters past slash-star; see above */
 					yyless(2);
 					fputs("/*", yyout);
 				}
-<xcc>{xcstart}	{ ECHO; }
-<xcsql>{xcstart}	{
-					xcdepth++;
-					/* Put back any characters past slash-star; see above */
-					yyless(2);
-					fputs("/_*", yyout);
-				}
-<xcsql>{xcstop}	{
-					if (xcdepth <= 0)
+} /* <C,SQL> */
+
+<xc>{
+{xcstart}		{
+					if (state_before_str_start == SQL)
+					{
+						xcdepth++;
+						/* Put back any characters past slash-star; see above */
+						yyless(2);
+						fputs("/_*", yyout);
+					}
+					else if (state_before_str_start == C)
 					{
 						ECHO;
-						BEGIN(state_before);
-						token_start = NULL;
 					}
-					else
-					{
-						xcdepth--;
-						fputs("*_/", yyout);
-					}
-				}
-<xcc>{xcstop}	{
-					ECHO;
-					BEGIN(state_before);
-					token_start = NULL;
 				}
 
-<xcc,xcsql>{
+{xcstop}		{
+					if (state_before_str_start == SQL)
+					{
+						if (xcdepth <= 0)
+						{
+							ECHO;
+							BEGIN(SQL);
+							token_start = NULL;
+						}
+						else
+						{
+							xcdepth--;
+							fputs("*_/", yyout);
+						}
+					}
+					else if (state_before_str_start == C)
+					{
+						ECHO;
+						BEGIN(C);
+						token_start = NULL;
+					}
+				}
+
 {xcinside}		{
 					ECHO;
 				}
@@ -471,55 +500,34 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 <<EOF>>			{
 					mmfatal(PARSE_ERROR, "unterminated /* comment");
 				}
-} /* <xcc,xcsql> */
+} /* <xc> */
 
 <SQL>{
 {xbstart}		{
 					token_start = yytext;
+					state_before_str_start = YYSTATE;
 					BEGIN(xb);
 					startlit();
-					addlitchar('b');
 				}
 } /* <SQL> */
 
-<xb>{quotestop}	|
-<xb>{quotefail} {
-					yyless(1);
-					BEGIN(SQL);
-					if (literalbuf[strspn(literalbuf, "01") + 1] != '\0')
-						mmerror(PARSE_ERROR, ET_ERROR, "invalid bit string literal");
-					base_yylval.str = mm_strdup(literalbuf);
-					return BCONST;
-				}
 <xh>{xhinside}	|
 <xb>{xbinside}	{
 					addlit(yytext, yyleng);
-				}
-<xh>{quotecontinue}	|
-<xb>{quotecontinue}	{
-					/* ignore */
 				}
 <xb><<EOF>>		{ mmfatal(PARSE_ERROR, "unterminated bit string literal"); }
 
 <SQL>{xhstart}	{
 					token_start = yytext;
+					state_before_str_start = YYSTATE;
 					BEGIN(xh);
 					startlit();
-					addlitchar('x');
 				}
-<xh>{quotestop}	|
-<xh>{quotefail} {
-					yyless(1);
-					BEGIN(SQL);
-					base_yylval.str = mm_strdup(literalbuf);
-					return XCONST;
-				}
-
 <xh><<EOF>>		{ mmfatal(PARSE_ERROR, "unterminated hexadecimal string literal"); }
 
 <C>{xqstart}	{
 					token_start = yytext;
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xqc);
 					startlit();
 				}
@@ -530,64 +538,95 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 					 * Transfer it as-is to the backend.
 					 */
 					token_start = yytext;
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xn);
 					startlit();
 				}
 
 {xqstart}		{
 					token_start = yytext;
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xq);
 					startlit();
 				}
 {xestart}		{
 					token_start = yytext;
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xe);
 					startlit();
 				}
 {xusstart}		{
 					token_start = yytext;
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xus);
 					startlit();
-					addlit(yytext, yyleng);
 				}
 } /* <SQL> */
 
-<xq,xqc>{quotestop} |
-<xq,xqc>{quotefail} {
-					yyless(1);
-					BEGIN(state_before);
-					base_yylval.str = mm_strdup(literalbuf);
-					return SCONST;
+<xb,xh,xq,xqc,xe,xn,xus>{quote} {
+					/*
+					 * When we are scanning a quoted string and see an end
+					 * quote, we must look ahead for a possible continuation.
+					 * If we don't see one, we know the end quote was in fact
+					 * the end of the string.  To reduce the lexer table size,
+					 * we use a single "xqs" state to do the lookahead for all
+					 * types of strings.
+					 */
+					state_before_str_stop = YYSTATE;
+					BEGIN(xqs);
 				}
-<xe>{quotestop} |
-<xe>{quotefail} {
-					yyless(1);
-					BEGIN(state_before);
-					base_yylval.str = mm_strdup(literalbuf);
-					return ECONST;
+<xqs>{quotecontinue} {
+					/*
+					 * Found a quote continuation, so return to the in-quote
+					 * state and continue scanning the literal.  Nothing is
+					 * added to the literal's contents.
+					 */
+					BEGIN(state_before_str_stop);
 				}
-<xn>{quotestop} |
-<xn>{quotefail} {
-					yyless(1);
-					BEGIN(state_before);
-					base_yylval.str = mm_strdup(literalbuf);
-					return NCONST;
+<xqs>{quotecontinuefail} |
+<xqs>{other} |
+<xqs><<EOF>>	{
+					/*
+					 * Failed to see a quote continuation.  Throw back
+					 * everything after the end quote, and handle the string
+					 * according to the state we were in previously.
+					 */
+					yyless(0);
+					BEGIN(state_before_str_start);
+
+					switch (state_before_str_stop)
+					{
+						case xb:
+							if (literalbuf[strspn(literalbuf, "01")] != '\0')
+								mmerror(PARSE_ERROR, ET_ERROR, "invalid bit string literal");
+							base_yylval.str = psprintf("b'%s'", literalbuf);
+							return BCONST;
+						case xh:
+							if (literalbuf[strspn(literalbuf, "0123456789abcdefABCDEF")] != '\0')
+								mmerror(PARSE_ERROR, ET_ERROR, "invalid hex string literal");
+							base_yylval.str = psprintf("x'%s'", literalbuf);
+							return XCONST;
+						case xq:
+							/* fallthrough */
+						case xqc:
+							base_yylval.str = psprintf("'%s'", literalbuf);
+							return SCONST;
+						case xe:
+							base_yylval.str = psprintf("E'%s'", literalbuf);
+							return SCONST;
+						case xn:
+							base_yylval.str = psprintf("N'%s'", literalbuf);
+							return SCONST;
+						case xus:
+							base_yylval.str = psprintf("U&'%s'", literalbuf);
+							return USCONST;
+						default:
+							mmfatal(PARSE_ERROR, "unhandled previous state in xqs\n");
+					}
 				}
-<xus>{xusstop} {
-					addlit(yytext, yyleng);
-					BEGIN(state_before);
-					base_yylval.str = mm_strdup(literalbuf);
-					return UCONST;
-				}
-<xq,xe,xn,xus>{xqdouble}	{ addlitchar('\''); }
-<xqc>{xqcquote}	{
-					addlitchar('\\');
-					addlitchar('\'');
-				}
+
+<xq,xe,xn,xus>{xqdouble}	{ addlit(yytext, yyleng); }
+<xqc>{xqcquote}				{ addlit(yytext, yyleng); }
 <xq,xqc,xn,xus>{xqinside}	{ addlit(yytext, yyleng); }
 <xe>{xeinside}  {
 					addlit(yytext, yyleng);
@@ -603,9 +642,6 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 				}
 <xe>{xehexesc}  {
 					addlit(yytext, yyleng);
-				}
-<xq,xqc,xe,xn,xus>{quotecontinue}	{
-					/* ignore */
 				}
 <xe>.			{
 					/* This is only needed for \ just before EOF */
@@ -639,7 +675,7 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 						dolqstart = NULL;
 						BEGIN(SQL);
 						base_yylval.str = mm_strdup(literalbuf);
-						return DOLCONST;
+						return SCONST;
 					}
 					else
 					{
@@ -666,49 +702,54 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 
 <SQL>{
 {xdstart}		{
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xd);
 					startlit();
 				}
 {xuistart}		{
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xui);
 					startlit();
-					addlit(yytext, yyleng);
 				}
 } /* <SQL> */
 
 <xd>{xdstop}	{
-					BEGIN(state_before);
+					BEGIN(state_before_str_start);
 					if (literallen == 0)
 						mmerror(PARSE_ERROR, ET_ERROR, "zero-length delimited identifier");
-					/* The backend will truncate the identifier here. We do not as it does not change the result. */
+					/*
+					 * The server will truncate the identifier here.  We do
+					 * not, as (1) it does not change the result; (2) we don't
+					 * know what NAMEDATALEN the server might use; (3) this
+					 * code path is also taken for literal query strings in
+					 * PREPARE and EXECUTE IMMEDIATE, which can certainly be
+					 * longer than NAMEDATALEN.
+					 */
 					base_yylval.str = mm_strdup(literalbuf);
 					return CSTRING;
 				}
 <xdc>{xdstop}	{
-					BEGIN(state_before);
+					BEGIN(state_before_str_start);
 					base_yylval.str = mm_strdup(literalbuf);
 					return CSTRING;
 				}
-<xui>{xuistop}	{
-					BEGIN(state_before);
+<xui>{dquote}	{
+					BEGIN(state_before_str_start);
 					if (literallen == 2) /* "U&" */
 						mmerror(PARSE_ERROR, ET_ERROR, "zero-length delimited identifier");
 					/* The backend will truncate the identifier here. We do not as it does not change the result. */
-					addlit(yytext, yyleng);
-					base_yylval.str = mm_strdup(literalbuf);
+					base_yylval.str = psprintf("U&\"%s\"", literalbuf);
 					return UIDENT;
 				}
 <xd,xui>{xddouble}	{
-					addlitchar('"');
+					addlit(yytext, yyleng);
 				}
 <xd,xui>{xdinside}	{
 					addlit(yytext, yyleng);
 				}
 <xd,xui><<EOF>>	{ mmfatal(PARSE_ERROR, "unterminated quoted identifier"); }
 <C>{xdstart}	{
-					state_before = YYSTATE;
+					state_before_str_start = YYSTATE;
 					BEGIN(xdc);
 					startlit();
 				}
@@ -1146,11 +1187,26 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 						  return S_ANYTHING;
 					  }
 					}
-<C,xskip>{exec_sql}{ifdef}{space}*	{ ifcond = true; BEGIN(xcond); }
+<C,xskip>{exec_sql}{ifdef}{space}* {
+					  if (preproc_tos >= MAX_NESTED_IF-1)
+						  mmfatal(PARSE_ERROR, "too many nested EXEC SQL IFDEF conditions");
+					  preproc_tos++;
+					  stacked_if_value[preproc_tos].active = false;
+					  stacked_if_value[preproc_tos].saw_active = false;
+					  stacked_if_value[preproc_tos].else_branch = false;
+					  ifcond = true;
+					  BEGIN(xcond);
+					}
 <C,xskip>{informix_special}{ifdef}{space}* {
 					  /* are we simulating Informix? */
 					  if (INFORMIX_MODE)
 					  {
+						  if (preproc_tos >= MAX_NESTED_IF-1)
+							  mmfatal(PARSE_ERROR, "too many nested EXEC SQL IFDEF conditions");
+						  preproc_tos++;
+						  stacked_if_value[preproc_tos].active = false;
+						  stacked_if_value[preproc_tos].saw_active = false;
+						  stacked_if_value[preproc_tos].else_branch = false;
 						  ifcond = true;
 						  BEGIN(xcond);
 					  }
@@ -1160,11 +1216,26 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 						  return S_ANYTHING;
 					  }
 					}
-<C,xskip>{exec_sql}{ifndef}{space}* { ifcond = false; BEGIN(xcond); }
+<C,xskip>{exec_sql}{ifndef}{space}* {
+					  if (preproc_tos >= MAX_NESTED_IF-1)
+						  mmfatal(PARSE_ERROR, "too many nested EXEC SQL IFDEF conditions");
+					  preproc_tos++;
+					  stacked_if_value[preproc_tos].active = false;
+					  stacked_if_value[preproc_tos].saw_active = false;
+					  stacked_if_value[preproc_tos].else_branch = false;
+					  ifcond = false;
+					  BEGIN(xcond);
+					}
 <C,xskip>{informix_special}{ifndef}{space}* {
 					  /* are we simulating Informix? */
 					  if (INFORMIX_MODE)
 					  {
+						  if (preproc_tos >= MAX_NESTED_IF-1)
+							  mmfatal(PARSE_ERROR, "too many nested EXEC SQL IFDEF conditions");
+						  preproc_tos++;
+						  stacked_if_value[preproc_tos].active = false;
+						  stacked_if_value[preproc_tos].saw_active = false;
+						  stacked_if_value[preproc_tos].else_branch = false;
 						  ifcond = false;
 						  BEGIN(xcond);
 					  }
@@ -1174,16 +1245,13 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 						  return S_ANYTHING;
 					  }
 					}
-<C,xskip>{exec_sql}{elif}{space}*	{	/* pop stack */
-						if ( preproc_tos == 0 ) {
+<C,xskip>{exec_sql}{elif}{space}*	{
+						if (preproc_tos == 0)
 							mmfatal(PARSE_ERROR, "missing matching \"EXEC SQL IFDEF\" / \"EXEC SQL IFNDEF\"");
-						}
-						else if ( stacked_if_value[preproc_tos].else_branch )
+						if (stacked_if_value[preproc_tos].else_branch)
 							mmfatal(PARSE_ERROR, "missing \"EXEC SQL ENDIF;\"");
-						else
-							preproc_tos--;
-
-						ifcond = true; BEGIN(xcond);
+						ifcond = true;
+						BEGIN(xcond);
 					}
 <C,xskip>{informix_special}{elif}{space}* {
 					/* are we simulating Informix? */
@@ -1191,11 +1259,8 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 					{
 						if (preproc_tos == 0)
 							mmfatal(PARSE_ERROR, "missing matching \"EXEC SQL IFDEF\" / \"EXEC SQL IFNDEF\"");
-						else if (stacked_if_value[preproc_tos].else_branch)
+						if (stacked_if_value[preproc_tos].else_branch)
 							mmfatal(PARSE_ERROR, "missing \"EXEC SQL ENDIF;\"");
-						else
-							preproc_tos--;
-
 						ifcond = true;
 						BEGIN(xcond);
 					}
@@ -1207,16 +1272,19 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 				}
 
 <C,xskip>{exec_sql}{else}{space}*";" {	/* only exec sql endif pops the stack, so take care of duplicated 'else' */
-					if (stacked_if_value[preproc_tos].else_branch)
+					if ( preproc_tos == 0 )
+						mmfatal(PARSE_ERROR, "missing matching \"EXEC SQL IFDEF\" / \"EXEC SQL IFNDEF\"");
+					else if (stacked_if_value[preproc_tos].else_branch)
 						mmfatal(PARSE_ERROR, "more than one EXEC SQL ELSE");
 					else
 					{
 						stacked_if_value[preproc_tos].else_branch = true;
-						stacked_if_value[preproc_tos].condition =
-							(stacked_if_value[preproc_tos-1].condition &&
-							 !stacked_if_value[preproc_tos].condition);
+						stacked_if_value[preproc_tos].active =
+							(stacked_if_value[preproc_tos-1].active &&
+							 !stacked_if_value[preproc_tos].saw_active);
+						stacked_if_value[preproc_tos].saw_active = true;
 
-						if (stacked_if_value[preproc_tos].condition)
+						if (stacked_if_value[preproc_tos].active)
 							BEGIN(C);
 						else
 							BEGIN(xskip);
@@ -1226,16 +1294,19 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 					/* are we simulating Informix? */
 					if (INFORMIX_MODE)
 					{
-						if (stacked_if_value[preproc_tos].else_branch)
+						if ( preproc_tos == 0 )
+							mmfatal(PARSE_ERROR, "missing matching \"EXEC SQL IFDEF\" / \"EXEC SQL IFNDEF\"");
+						else if (stacked_if_value[preproc_tos].else_branch)
 							mmfatal(PARSE_ERROR, "more than one EXEC SQL ELSE");
 						else
 						{
 							stacked_if_value[preproc_tos].else_branch = true;
-							stacked_if_value[preproc_tos].condition =
-							(stacked_if_value[preproc_tos-1].condition &&
-							 !stacked_if_value[preproc_tos].condition);
+							stacked_if_value[preproc_tos].active =
+								(stacked_if_value[preproc_tos-1].active &&
+								 !stacked_if_value[preproc_tos].saw_active);
+							stacked_if_value[preproc_tos].saw_active = true;
 
-							if (stacked_if_value[preproc_tos].condition)
+							if (stacked_if_value[preproc_tos].active)
 								BEGIN(C);
 							else
 								BEGIN(xskip);
@@ -1253,7 +1324,7 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 					else
 						preproc_tos--;
 
-					if (stacked_if_value[preproc_tos].condition)
+					if (stacked_if_value[preproc_tos].active)
 					   BEGIN(C);
 					else
 					   BEGIN(xskip);
@@ -1267,7 +1338,7 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 						else
 							preproc_tos--;
 
-						if (stacked_if_value[preproc_tos].condition)
+						if (stacked_if_value[preproc_tos].active)
 							BEGIN(C);
 						else
 							BEGIN(xskip);
@@ -1282,12 +1353,10 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 <xskip>{other}		{ /* ignore */ }
 
 <xcond>{identifier}{space}*";" {
-					if (preproc_tos >= MAX_NESTED_IF-1)
-						mmfatal(PARSE_ERROR, "too many nested EXEC SQL IFDEF conditions");
-					else
 					{
 						struct _defines *defptr;
 						unsigned int i;
+						bool this_active;
 
 						/*
 						 *	Skip the ";" and trailing whitespace. Note that yytext
@@ -1305,13 +1374,15 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 							 defptr = defptr->next)
 							/* skip */ ;
 
-						preproc_tos++;
-						stacked_if_value[preproc_tos].else_branch = false;
-						stacked_if_value[preproc_tos].condition =
-						(defptr ? ifcond : !ifcond) && stacked_if_value[preproc_tos-1].condition;
+						this_active = (defptr ? ifcond : !ifcond);
+						stacked_if_value[preproc_tos].active =
+							(stacked_if_value[preproc_tos-1].active &&
+							 !stacked_if_value[preproc_tos].saw_active &&
+							 this_active);
+						stacked_if_value[preproc_tos].saw_active |= this_active;
 					}
 
-					if (stacked_if_value[preproc_tos].condition)
+					if (stacked_if_value[preproc_tos].active)
 						BEGIN(C);
 					else
 						BEGIN(xskip);
@@ -1410,7 +1481,7 @@ cppline			{space}*#([^i][A-Za-z]*|{if}|{ifdef}|{ifndef}|{import})((\/\*[^*/]*\*+
 					}
 				}
 
-<INITIAL>{other}|\n	{ mmfatal(PARSE_ERROR, "internal error: unreachable state; please report this to <bugs@greenplum.org>"); }
+<INITIAL>{other}|\n	{ mmfatal(PARSE_ERROR, "internal error: unreachable state; please report this to <%s>", PACKAGE_BUGREPORT); }
 
 %%
 
@@ -1423,10 +1494,12 @@ lex_init(void)
 	parenths_open = 0;
 	current_function = NULL;
 
-	preproc_tos = 0;
 	yylineno = 1;
-	ifcond = true;
-	stacked_if_value[preproc_tos].condition = ifcond;
+
+	/* initialize state for if/else/endif */
+	preproc_tos = 0;
+	stacked_if_value[preproc_tos].active = true;
+	stacked_if_value[preproc_tos].saw_active = true;
 	stacked_if_value[preproc_tos].else_branch = false;
 
 	/* initialize literal buffer to a reasonable but expansible size */

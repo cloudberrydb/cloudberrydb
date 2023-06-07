@@ -3,7 +3,7 @@
 # Makefile--
 #    Makefile for access/bitmap
 #
-#  Portions Copyright (c) 2007-2010 Greenplum Inc
+#  Portions Copyright (c) 2007-2010 Cloudberry Inc
 #  Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
 #  Portions Copyright (c) 2006, PostgreSQL Global Development Group
 #

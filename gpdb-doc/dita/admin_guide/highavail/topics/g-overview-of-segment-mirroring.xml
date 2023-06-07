@@ -4,26 +4,26 @@
 <topic id="topic3">
     <title>Overview of Segment Mirroring</title>
     <body>
-        <p>When Greenplum Database High Availability is enabled, there are two types of segment
+        <p>When Cloudberry Database High Availability is enabled, there are two types of segment
             instances: <i>primary</i> and <i>mirror</i>. Each primary segment has one corresponding
             mirror segment. A primary segment instance receives requests from the master to make
             changes to the segment data and then replicates those changes to the corresponding
-            mirror. If Greenplum Database detects that a primary segment has failed or become
+            mirror. If Cloudberry Database detects that a primary segment has failed or become
             unavailable, it changes the role of its mirror segment to primary segment and the role
             of the unavailable primary segment to mirror segment. Transactions in progress when the
             failure occurred roll back and must be restarted. The administrator must then recover
             the mirror segment, allow the mirror to synchronize with the current primary segment,
             and then exchange the primary and mirror segments so they are in their preferred
             roles.</p>
-        <p>If segment mirroring is not enabled, the Greenplum Database system shuts down if a
+        <p>If segment mirroring is not enabled, the Cloudberry Database system shuts down if a
             segment instance fails. Administrators must manually recover all failed segments before
-            Greenplum Database operations can resume.</p>
+            Cloudberry Database operations can resume.</p>
         <p>When segment mirroring is enabled for an existing system, the primary segment instances
             continue to provide service to users while a snapshot of the primary segments are taken.
             While the snapshots are taken and deployed on the mirror segment instances, changes to
             the primary segment are also recorded. After the snapshot has been deployed on the
             mirror segment, the mirror segment is synchronized and kept current using Write-Ahead
-            Logging (WAL)-based streaming replication. Greenplum Database WAL replication uses the
+            Logging (WAL)-based streaming replication. Cloudberry Database WAL replication uses the
                 <codeph>walsender</codeph> and <codeph>walreceiver</codeph> replication processes.
             The <codeph>walsender</codeph> process is a primary segment process. The
                 <codeph>walreceiver</codeph> is a mirror segment process. </p>
@@ -31,13 +31,13 @@
             segment to keep it current with the corresponding primary segments. During WAL
             replication, database changes are written to the logs before being applied, to ensure
             data integrity for any in-process operations. </p>
-        <p>When Greenplum Database detects a primary segment failure, the WAL replication process
+        <p>When Cloudberry Database detects a primary segment failure, the WAL replication process
             stops and the mirror segment automatically starts as the active primary segment. If a
             mirror segment fails or becomes inaccessible while the primary is active, the primary
             segment tracks database changes in logs that are applied to the mirror when it is
             recovered. For information about segment fault detection and the recovery process, see
             <xref href="g-detecting-a-failed-segment.xml#topic9"/> and <xref href="g-recovering-from-segment-failures.xml"/>. </p>
-        <p>These Greenplum Database system catalog tables contain mirroring and replication
+        <p>These Cloudberry Database system catalog tables contain mirroring and replication
             information. <ul id="ul_nn3_yjm_rdb">
                 <li>The catalog table <xref
                             href="../../../ref_guide/system_catalogs/gp_segment_configuration.xml#topic1"
@@ -46,7 +46,7 @@
                 <li>The catalog view <xref
                             href="../../../ref_guide/system_catalogs/gp_stat_replication.xml#topic1"
                         /> contains replication statistics of the
-                        <codeph>walsender</codeph> processes that are used for Greenplum Database
+                        <codeph>walsender</codeph> processes that are used for Cloudberry Database
                     master and segment mirroring.</li>
             </ul></p>
         <section id="mirror_configs">
@@ -54,7 +54,7 @@
             <p>Mirror segment instances can be placed on hosts in the cluster in different
                 configurations. As a best practice, a primary segment and the corresponding mirror
                 are placed on different hosts. Each host must have the same number of primary and
-                mirror segments. When you create segment mirrors with the Greenplum Database
+                mirror segments. When you create segment mirrors with the Cloudberry Database
                 utilities <xref href="../../../utility_guide/ref/gpinitsystem.xml"
                     /> or <xref href="../../../utility_guide/ref/gpaddmirrors.xml"
                     /> you can specify the segment mirror configuration, group mirroring
@@ -68,7 +68,7 @@
                     href="#topic3/fig_rrr_nt2_xt" format="dita"/> illustrates a group mirroring
                 configuration. </p>
             <fig id="fig_rrr_nt2_xt">
-                <title>Group Segment Mirroring in Greenplum Database</title>
+                <title>Group Segment Mirroring in Cloudberry Database</title>
                 <image href="../../graphics/group-mirroring.png" id="image_crm_pt2_xt"/>
             </fig>
             <p><i>Spread mirroring</i> can be specified during system initialization. This
@@ -78,7 +78,7 @@
                 segments per host. <xref href="#topic3/fig_ew1_qgg_xt" format="dita"/> illustrates
                 the placement of mirrors in a spread segment mirroring configuration.</p>
             <fig id="fig_ew1_qgg_xt">
-                <title>Spread Segment Mirroring in Greenplum Database</title>
+                <title>Spread Segment Mirroring in Cloudberry Database</title>
                 <image href="../../graphics/spread-mirroring.png" id="image_zjm_wgg_xt"/>
             </fig>
             <note>You must ensure you have the appropriate number of host systems for your mirroring

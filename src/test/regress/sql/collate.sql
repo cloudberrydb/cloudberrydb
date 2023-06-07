@@ -183,6 +183,14 @@ SELECT a, CAST(b AS varchar) FROM collate_test1 ORDER BY 2;
 SELECT a, CAST(b AS varchar) FROM collate_test2 ORDER BY 2;
 
 
+-- result of a SQL function
+
+CREATE FUNCTION vc (text) RETURNS text LANGUAGE sql
+    AS 'select $1::varchar';
+
+SELECT a, b FROM collate_test1 ORDER BY a, vc(b);
+
+
 -- polymorphism
 
 SELECT * FROM unnest((SELECT array_agg(b ORDER BY b) FROM collate_test1)) ORDER BY 1;
@@ -265,6 +273,12 @@ SELECT collation for ('foo'); -- unknown type - null
 SELECT collation for ('foo'::text);
 SELECT collation for ((SELECT a FROM collate_test1 LIMIT 1)); -- non-collatable type - error
 SELECT collation for ((SELECT b FROM collate_test1 LIMIT 1));
+
+-- old bug with not dropping COLLATE when coercing to non-collatable type
+CREATE VIEW collate_on_int AS
+SELECT c1+1 AS c1p FROM
+  (SELECT ('4' COLLATE "C")::INT AS c1) ss;
+\d+ collate_on_int
 
 
 --

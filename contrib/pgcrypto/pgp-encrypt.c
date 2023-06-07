@@ -34,9 +34,8 @@
 #include <time.h>
 
 #include "mbuf.h"
-#include "px.h"
 #include "pgp.h"
-
+#include "px.h"
 
 #define MDC_DIGEST_LEN 20
 #define STREAM_ID 0xE0
@@ -179,8 +178,7 @@ encrypt_init(PushFilter *next, void *init_arg, void **priv_p)
 	if (res < 0)
 		return res;
 
-	st = px_alloc(sizeof(*st));
-	memset(st, 0, sizeof(*st));
+	st = palloc0(sizeof(*st));
 	st->ciph = ciph;
 
 	*priv_p = st;
@@ -220,7 +218,7 @@ encrypt_free(void *priv)
 	if (st->ciph)
 		pgp_cfb_free(st->ciph);
 	px_memset(st, 0, sizeof(*st));
-	px_free(st);
+	pfree(st);
 }
 
 static const PushFilterOps encrypt_filter = {
@@ -242,7 +240,7 @@ pkt_stream_init(PushFilter *next, void *init_arg, void **priv_p)
 {
 	struct PktStreamStat *st;
 
-	st = px_alloc(sizeof(*st));
+	st = palloc(sizeof(*st));
 	st->final_done = 0;
 	st->pkt_block = 1 << STREAM_BLOCK_SHIFT;
 	*priv_p = st;
@@ -302,7 +300,7 @@ pkt_stream_free(void *priv)
 	struct PktStreamStat *st = priv;
 
 	px_memset(st, 0, sizeof(*st));
-	px_free(st);
+	pfree(st);
 }
 
 static const PushFilterOps pkt_stream_filter = {
@@ -618,7 +616,7 @@ pgp_encrypt(PGP_Context *ctx, MBuf *src, MBuf *dst)
 		goto out;
 
 	/*
-	 * initialize symkey
+	 * initialize sym_key
 	 */
 	if (ctx->sym_key)
 	{

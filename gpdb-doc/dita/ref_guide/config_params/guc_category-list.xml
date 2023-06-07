@@ -5,7 +5,7 @@
   <title id="kh155019">Parameter Categories</title>
   <body>
     <p>Configuration parameters affect categories of server behaviors, such as resource consumption,
-      query tuning, and authentication. The following topics describe Greenplum configuration
+      query tuning, and authentication. The following topics describe Cloudberry configuration
       parameter categories.</p>
     <ul id="ul_blz_1kk_wy">
       <li id="kh158485">
@@ -64,7 +64,7 @@
   <topic id="topic12" xml:lang="en">
     <title id="kh155037">Connection and Authentication Parameters</title>
     <body>
-      <p>These parameters control how clients connect and authenticate to Greenplum Database.</p>
+      <p>These parameters control how clients connect and authenticate to Cloudberry Database.</p>
     </body>
     <topic id="topic13" xml:lang="en">
       <title>Connection Parameters</title>
@@ -176,7 +176,7 @@
   </topic>
   <topic id="topic15" xml:lang="en">
     <title id="kh155038">System Resource Consumption Parameters</title>
-    <abstract>These parameters set the limits for system resources consumed by Greenplum
+    <abstract>These parameters set the limits for system resources consumed by Cloudberry
       Database.</abstract>
     <topic id="topic16" xml:lang="en">
       <title>Memory Consumption Parameters</title>
@@ -252,7 +252,7 @@
       <body>
         <note type="warning">Do not use cost-based vacuum delay because it runs asynchronously among
           the segment instances. The vacuum cost limit and delay is invoked at the segment level
-          without taking into account the state of the entire Greenplum Database array</note>
+          without taking into account the state of the entire Cloudberry Database array</note>
         <p>You can configure the execution cost of <codeph>VACUUM</codeph> and
             <codeph>ANALYZE</codeph> commands to reduce the I/O impact on concurrent database
           activity. When the accumulated cost of I/O operations reaches the limit, the process
@@ -307,9 +307,9 @@
   <topic id="topic57">
     <title>GPORCA Parameters</title>
     <body>
-      <p>These parameters control the usage of GPORCA by Greenplum Database. For information about
+      <p>These parameters control the usage of GPORCA by Cloudberry Database. For information about
         GPORCA, see <xref href="../../admin_guide/query/topics/query-piv-optimizer.xml">About
-          GPORCA</xref><ph otherprops="op-print"> in the <cite>Greenplum Database Administrator
+          GPORCA</xref><ph otherprops="op-print"> in the <cite>Cloudberry Database Administrator
             Guide</cite></ph>. </p>
       <simpletable frame="none" id="simpletable_nq5_z2c_kr">
         <strow>
@@ -494,7 +494,7 @@
       <title>Postgres Planner Costing Parameters</title>
       <body>
         <note type="warning">Do not adjust these query costing parameters. They are tuned to reflect
-          Greenplum Database hardware configurations and typical workloads. All of these parameters
+          Cloudberry Database hardware configurations and typical workloads. All of these parameters
           are related. Changing one without changing the others can have adverse affects on
           performance.</note>
         <simpletable id="kh181234" frame="none">
@@ -694,7 +694,7 @@
   </topic>
   <topic id="topic29" xml:lang="en">
     <title id="kh155046">Error Reporting and Logging Parameters</title>
-    <abstract>These configuration parameters control Greenplum Database logging. </abstract>
+    <abstract>These configuration parameters control Cloudberry Database logging. </abstract>
     <topic id="topic30" xml:lang="en">
       <title>Log Rotation</title>
       <body>
@@ -850,10 +850,10 @@
   <topic id="query-metrics">
     <title>Query Metrics Collection Parameters</title>
     <body>
-      <p>These parameters enable and configure query metrics collection. When enabled, Greenplum
+      <p>These parameters enable and configure query metrics collection. When enabled, Cloudberry
         Database saves metrics to shared memory during query execution. These metrics are used by
-        Tanzu Greenplum Command Center, which is included with VMware's commercial version of
-        Greenplum Database.</p>
+        Tanzu Cloudberry Command Center, which is included with VMware's commercial version of
+        Cloudberry Database.</p>
       <simpletable id="query-metrics" frame="none">
         <strow>
           <stentry>
@@ -910,8 +910,8 @@
           TABLE...AS SELECT</codeph> statement when a certain threshold of rows is affected
           (<codeph>on_change</codeph>), or when a newly generated table has no statistics
           (<codeph>on_no_stats</codeph>). To enable this feature, set the following server
-        configuration parameters in your Greenplum Database master <codeph>postgresql.conf</codeph>
-        file and restart Greenplum Database: </p>
+        configuration parameters in your Cloudberry Database master <codeph>postgresql.conf</codeph>
+        file and restart Cloudberry Database: </p>
       <simpletable id="d1e1057" frame="none">
         <strow>
           <stentry>
@@ -1083,7 +1083,7 @@
   <topic id="topic44" xml:lang="en">
     <title id="kh155069">Resource Management Parameters (Resource Queues)</title>
     <body>
-      <p>The following configuration parameters configure the Greenplum Database resource management
+      <p>The following configuration parameters configure the Cloudberry Database resource management
         feature (resource queues), query prioritization, memory utilization and concurrency control. </p>
       <simpletable id="kh157161" frame="none">
         <strow>
@@ -1157,7 +1157,7 @@
   <topic id="topic444" xml:lang="en">
     <title id="kh1550694">Resource Management Parameters (Resource Groups)</title>
     <body>
-      <p>The following parameters configure the Greenplum Database resource group workload
+      <p>The following parameters configure the Cloudberry Database resource group workload
         management feature. </p>
       <simpletable id="kh1571613" frame="none">
         <strow>
@@ -1215,7 +1215,7 @@
   <topic id="topic45" xml:lang="en">
     <title id="kh155070">External Table Parameters</title>
     <body>
-      <p>The following parameters configure the external tables feature of Greenplum Database.</p>
+      <p>The following parameters configure the external tables feature of Cloudberry Database.</p>
       <simpletable id="kh164454" frame="none">
         <strow>
           <stentry>
@@ -1259,7 +1259,7 @@
   <topic id="topic46" xml:lang="en">
     <title id="kh155071">Database Table Parameters</title>
     <body>
-      <p>The following parameter configures default option settings for Greenplum Database
+      <p>The following parameter configures default option settings for Cloudberry Database
         tables.</p>
       <simpletable id="d1e1287" frame="none">
         <strow>
@@ -1288,7 +1288,7 @@
       <title>Append-Optimized Table Parameters</title>
       <body>
         <p>The following parameters configure the <ph>append-optimized</ph> tables feature of
-          Greenplum Database.</p>
+          Cloudberry Database.</p>
         <simpletable frame="none" id="simpletable_awg_1tl_zp">
           <strow>
             <stentry>
@@ -1313,8 +1313,8 @@
   <topic id="topic48" xml:lang="en">
     <title id="kh178569">Past Version Compatibility Parameters</title>
     <body>
-      <p>The following parameters provide compatibility with older PostgreSQL and Greenplum Database
-        versions. You do not need to change these parameters in Greenplum Database.</p>
+      <p>The following parameters provide compatibility with older PostgreSQL and Cloudberry Database
+        versions. You do not need to change these parameters in Cloudberry Database.</p>
     </body>
     <topic id="topic_ax3_r1v_bdb">
       <title>PostgreSQL</title>
@@ -1354,7 +1354,7 @@
       </body>
     </topic>
     <topic id="topic_jq1_n1v_bdb">
-      <title>Greenplum Database</title>
+      <title>Cloudberry Database</title>
       <body>
         <simpletable frame="none" id="simpletable_uy5_1bv_bdb">
           <strow>
@@ -1368,9 +1368,9 @@
     </topic>
   </topic>
   <topic id="topic49" xml:lang="en">
-    <title id="kh182770">Greenplum Database Array Configuration Parameters</title>
+    <title id="kh182770">Cloudberry Database Array Configuration Parameters</title>
     <body>
-      <p>The parameters in this topic control the configuration of the Greenplum Database array and
+      <p>The parameters in this topic control the configuration of the Cloudberry Database array and
         its components: segments, master, distributed transaction manager, master mirror, and
         interconnect.</p>
     </body>
@@ -1416,7 +1416,7 @@
             </stentry>
           </strow>
         </simpletable>
-        <note>Greenplum Database supports only the UDPIFC (default) and TCP interconnect
+        <note>Cloudberry Database supports only the UDPIFC (default) and TCP interconnect
           types.</note>
       </body>
     </topic>
@@ -1535,9 +1535,9 @@
     </topic>
   </topic>
   <topic id="topic55" xml:lang="en">
-    <title id="kh184289">Greenplum Mirroring Parameters for Master and Segments</title>
+    <title id="kh184289">Cloudberry Mirroring Parameters for Master and Segments</title>
     <body>
-      <p>These parameters control the configuration of the replication between Greenplum Database
+      <p>These parameters control the configuration of the replication between Cloudberry Database
         primary master and standby master.</p>
       <simpletable id="d1e1490" frame="none">
         <strow>
@@ -1565,9 +1565,9 @@
     </body>
   </topic>
   <topic id="topic56">
-    <title>Greenplum PL/Java Parameters</title>
+    <title>Cloudberry PL/Java Parameters</title>
     <body>
-      <p>The parameters in this topic control the configuration of the Greenplum Database PL/Java
+      <p>The parameters in this topic control the configuration of the Cloudberry Database PL/Java
         language. </p>
       <simpletable frame="none" id="simpletable_n1h_tzl_zp">
         <strow>
@@ -1593,7 +1593,7 @@
   <topic id="topic_t3n_qml_rz">
     <title>XML Data Parameters</title>
     <body>
-      <p>The parameters in this topic control the configuration of the Greenplum Database XML data
+      <p>The parameters in this topic control the configuration of the Cloudberry Database XML data
         type. </p>
       <simpletable frame="none" id="simpletable_yyd_tml_rz">
         <strow>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="topic_id4_pfb_3lb">
-  <title>About View Storage in Greenplum Database</title>
+  <title>About View Storage in Cloudberry Database</title>
   <body>
     <p>A view is similar to a table, both are relations - that is "something with columns". All such
       objects are stored in the catalog table <xref
@@ -28,12 +28,12 @@
       <li>Objects are referred to by their internal immutable object ID rather than by their name.
         Consequently, renaming an object or column referenced in a view definition can be performed
         without dropping the view.</li>
-      <li>Greenplum Database can determine exactly which objects are used in the view definition, so
+      <li>Cloudberry Database can determine exactly which objects are used in the view definition, so
         it can add dependencies on them.</li>
     </ul>
-    <p>Note that the way Greenplum Database handles views is quite different from the way Greenplum
+    <p>Note that the way Cloudberry Database handles views is quite different from the way Cloudberry
       Database handles functions: function bodies are stored as strings and are not parsed when they
-      are created. Consequently, Greenplum Database does not know on which objects a given function
+      are created. Consequently, Cloudberry Database does not know on which objects a given function
       depends.</p>
     <section>
       <title>Where View Dependency Information is Stored</title>

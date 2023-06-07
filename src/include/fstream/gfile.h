@@ -83,7 +83,7 @@ typedef struct gfile_t
 	compression_type compression;
 
 	struct gpfxdist_t* transform;
-}gfile_t;
+} gfile_t;
 
 /*
  * MPP-13817 (support opening files without O_SYNC)

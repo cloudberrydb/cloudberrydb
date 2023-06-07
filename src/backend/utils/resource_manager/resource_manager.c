@@ -3,7 +3,7 @@
  * resource_manager.c
  *	  GPDB resource manager code.
  *
- * Portions Copyright (c) 2006-2017, Greenplum inc.
+ * Portions Copyright (c) 2006-2017, Cloudberry inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

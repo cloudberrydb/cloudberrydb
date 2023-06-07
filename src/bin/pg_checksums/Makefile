@@ -2,7 +2,7 @@
 #
 # Makefile for src/bin/pg_checksums
 #
-# Copyright (c) 1998-2019, PostgreSQL Global Development Group
+# Copyright (c) 1998-2021, PostgreSQL Global Development Group
 #
 # src/bin/pg_checksums/Makefile
 #
@@ -15,7 +15,9 @@ subdir = src/bin/pg_checksums
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
-OBJS= pg_checksums.o $(WIN32RES)
+OBJS = \
+	$(WIN32RES) \
+	pg_checksums.o
 
 all: pg_checksums
 

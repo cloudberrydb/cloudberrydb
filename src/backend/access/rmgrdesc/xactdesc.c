@@ -3,7 +3,7 @@
  * xactdesc.c
  *	  rmgr descriptor routines for access/transam/xact.c
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -39,13 +39,11 @@ ParseCommitRecord(uint8 info, xl_xact_commit *xlrec, xl_xact_parsed_commit *pars
 
 	memset(parsed, 0, sizeof(*parsed));
 
-	parsed->xinfo = 0;			/* default, if no XLOG_XACT_HAS_INFO is
-								 * present */
+	parsed->xinfo = 0;			/* default is 0 */
 
 	parsed->xact_time = xlrec->xact_time;
 	parsed->tablespace_oid_to_delete_on_commit = xlrec->tablespace_oid_to_delete_on_commit;
 
-	if (info & XLOG_XACT_HAS_INFO)
 	{
 		xl_xact_xinfo *xl_xinfo = (xl_xact_xinfo *) data;
 
@@ -154,13 +152,11 @@ ParseAbortRecord(uint8 info, xl_xact_abort *xlrec, xl_xact_parsed_abort *parsed)
 
 	memset(parsed, 0, sizeof(*parsed));
 
-	parsed->xinfo = 0;			/* default, if no XLOG_XACT_HAS_INFO is
-								 * present */
+	parsed->xinfo = 0;			/* default is 0 */
 
 	parsed->xact_time = xlrec->xact_time;
 	parsed->tablespace_oid_to_delete_on_abort = xlrec->tablespace_oid_to_delete_on_abort;
 
-	if (info & XLOG_XACT_HAS_INFO)
 	{
 		xl_xact_xinfo *xl_xinfo = (xl_xact_xinfo *) data;
 
@@ -244,11 +240,84 @@ ParseAbortRecord(uint8 info, xl_xact_abort *xlrec, xl_xact_parsed_abort *parsed)
 
 }
 
+/*
+ * ParsePrepareRecord
+ */
+void
+ParsePrepareRecord(uint8 info, xl_xact_prepare *xlrec, xl_xact_parsed_prepare *parsed)
+{
+	char	   *bufptr;
+
+	bufptr = ((char *) xlrec) + MAXALIGN(sizeof(xl_xact_prepare));
+
+	memset(parsed, 0, sizeof(*parsed));
+
+	parsed->xact_time = xlrec->prepared_at;
+	parsed->origin_lsn = xlrec->origin_lsn;
+	parsed->origin_timestamp = xlrec->origin_timestamp;
+	parsed->twophase_xid = xlrec->xid;
+	parsed->dbId = xlrec->database;
+	parsed->nsubxacts = xlrec->nsubxacts;
+	parsed->nrels = xlrec->ncommitrels;
+	parsed->nabortrels = xlrec->nabortrels;
+	parsed->nmsgs = xlrec->ninvalmsgs;
+
+	strncpy(parsed->twophase_gid, bufptr, xlrec->gidlen);
+	bufptr += MAXALIGN(xlrec->gidlen);
+
+	parsed->subxacts = (TransactionId *) bufptr;
+	bufptr += MAXALIGN(xlrec->nsubxacts * sizeof(TransactionId));
+
+	parsed->xnodes = (RelFileNodePendingDelete *) bufptr;
+	bufptr += MAXALIGN(xlrec->ncommitrels * sizeof(RelFileNode));
+
+	parsed->abortnodes = (RelFileNodePendingDelete *) bufptr;
+	bufptr += MAXALIGN(xlrec->nabortrels * sizeof(RelFileNode));
+
+	parsed->msgs = (SharedInvalidationMessage *) bufptr;
+	bufptr += MAXALIGN(xlrec->ninvalmsgs * sizeof(SharedInvalidationMessage));
+}
+
+static void
+xact_desc_relations(StringInfo buf, char *label, int nrels,
+					RelFileNodePendingDelete *xnodes)
+{
+	int			i;
+
+	if (nrels > 0)
+	{
+		appendStringInfo(buf, "; %s:", label);
+		for (i = 0; i < nrels; i++)
+		{
+			BackendId  backendId = xnodes[i].isTempRelation ?
+								  TempRelBackendId : InvalidBackendId;
+			char	   *path = relpathbackend(xnodes[i].node,
+											  backendId,
+											  MAIN_FORKNUM);
+
+			appendStringInfo(buf, " %s", path);
+			pfree(path);
+		}
+	}
+}
+
+static void
+xact_desc_subxacts(StringInfo buf, int nsubxacts, TransactionId *subxacts)
+{
+	int			i;
+
+	if (nsubxacts > 0)
+	{
+		appendStringInfoString(buf, "; subxacts:");
+		for (i = 0; i < nsubxacts; i++)
+			appendStringInfo(buf, " %u", subxacts[i]);
+	}
+}
+
 static void
 xact_desc_commit(StringInfo buf, uint8 info, xl_xact_commit *xlrec, RepOriginId origin_id)
 {
 	xl_xact_parsed_commit parsed;
-	int			i;
 
 	ParseCommitRecord(info, xlrec, &parsed);
 
@@ -258,37 +327,17 @@ xact_desc_commit(StringInfo buf, uint8 info, xl_xact_commit *xlrec, RepOriginId 
 
 	appendStringInfoString(buf, timestamptz_to_str(xlrec->xact_time));
 
-	if (parsed.nrels > 0)
-	{
-		appendStringInfoString(buf, "; rels:");
-		for (i = 0; i < parsed.nrels; i++)
-		{
-			BackendId  backendId = parsed.xnodes[i].isTempRelation ?
-								  TempRelBackendId : InvalidBackendId;
-			char	   *path = relpathbackend(parsed.xnodes[i].node,
-											  backendId,
-											  MAIN_FORKNUM);
+	xact_desc_relations(buf, "rels", parsed.nrels, parsed.xnodes);
+	xact_desc_subxacts(buf, parsed.nsubxacts, parsed.subxacts);
 
-			appendStringInfo(buf, " %s", path);
-			pfree(path);
-		}
-	}
-	if (parsed.nsubxacts > 0)
-	{
-		appendStringInfoString(buf, "; subxacts:");
-		for (i = 0; i < parsed.nsubxacts; i++)
-			appendStringInfo(buf, " %u", parsed.subxacts[i]);
-	}
-	if (parsed.nmsgs > 0)
-	{
-		standby_desc_invalidations(
-								   buf, parsed.nmsgs, parsed.msgs, parsed.dbId, parsed.tsId,
-								   XactCompletionRelcacheInitFileInval(parsed.xinfo));
-	}
+	standby_desc_invalidations(buf, parsed.nmsgs, parsed.msgs, parsed.dbId,
+							   parsed.tsId,
+							   XactCompletionRelcacheInitFileInval(parsed.xinfo));
+
 	if (parsed.ndeldbs > 0)
 	{
 		appendStringInfoString(buf, "; deldbs:");
-		for (i = 0; i < parsed.ndeldbs; i++)
+		for (int i = 0; i < parsed.ndeldbs; i++)
 		{
 			char *path =
 					 GetDatabasePath(parsed.deldbs[i].database, parsed.deldbs[i].tablespace);
@@ -307,8 +356,7 @@ xact_desc_commit(StringInfo buf, uint8 info, xl_xact_commit *xlrec, RepOriginId 
 	{
 		appendStringInfo(buf, "; origin: node %u, lsn %X/%X, at %s",
 						 origin_id,
-						 (uint32) (parsed.origin_lsn >> 32),
-						 (uint32) parsed.origin_lsn,
+						 LSN_FORMAT_ARGS(parsed.origin_lsn),
 						 timestamptz_to_str(parsed.origin_timestamp));
 	}
 
@@ -339,7 +387,6 @@ static void
 xact_desc_abort(StringInfo buf, uint8 info, xl_xact_abort *xlrec)
 {
 	xl_xact_parsed_abort parsed;
-	int			i;
 
 	ParseAbortRecord(info, xlrec, &parsed);
 
@@ -348,32 +395,14 @@ xact_desc_abort(StringInfo buf, uint8 info, xl_xact_abort *xlrec)
 		appendStringInfo(buf, "%u: ", parsed.twophase_xid);
 
 	appendStringInfoString(buf, timestamptz_to_str(xlrec->xact_time));
-	if (parsed.nrels > 0)
-	{
-		appendStringInfoString(buf, "; rels:");
-		for (i = 0; i < parsed.nrels; i++)
-		{
-			BackendId  backendId = parsed.xnodes[i].isTempRelation ?
-								  TempRelBackendId : InvalidBackendId;
-			char	   *path = relpathbackend(parsed.xnodes[i].node,
-											  backendId,
-											  MAIN_FORKNUM);
 
-			appendStringInfo(buf, " %s", path);
-			pfree(path);
-		}
-	}
+	xact_desc_relations(buf, "rels", parsed.nrels, parsed.xnodes);
+	xact_desc_subxacts(buf, parsed.nsubxacts, parsed.subxacts);
 
-	if (parsed.nsubxacts > 0)
-	{
-		appendStringInfoString(buf, "; subxacts:");
-		for (i = 0; i < parsed.nsubxacts; i++)
-			appendStringInfo(buf, " %u", parsed.subxacts[i]);
-	}
 	if (parsed.ndeldbs > 0)
 	{
 		appendStringInfoString(buf, "; deldbs:");
-		for (i = 0; i < parsed.ndeldbs; i++)
+		for (int i = 0; i < parsed.ndeldbs; i++)
 		{
 			char *path =
 					 GetDatabasePath(parsed.deldbs[i].database, parsed.deldbs[i].tablespace);
@@ -470,6 +499,13 @@ xact_desc(StringInfo buf, XLogReaderState *record)
 		appendStringInfo(buf, "distributed forget ");
 		xact_desc_distributed_forget(buf, xlrec);
 	}
+	else if (info == XLOG_XACT_INVALIDATIONS)
+	{
+		xl_xact_invals *xlrec = (xl_xact_invals *) rec;
+
+		standby_desc_invalidations(buf, xlrec->nmsgs, xlrec->msgs, InvalidOid,
+								   InvalidOid, false);
+	}
 }
 
 const char *
@@ -502,6 +538,9 @@ xact_identify(uint8 info)
 			break;
 		case XLOG_XACT_DISTRIBUTED_FORGET:
 			id = "DISTRIBUTED_FORGET";
+			break;
+		case XLOG_XACT_INVALIDATIONS:
+			id = "INVALIDATION";
 			break;
 	}
 

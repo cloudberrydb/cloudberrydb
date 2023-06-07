@@ -7,7 +7,7 @@
                 <topicref href="gp_toolkit.xml#topic5" navtitle="Checking for Locks"/>
                 <topicref href="gp_toolkit.xml#topic8" navtitle="Checking Append-Optimized Tables"/>
                 <topicref href="gp_toolkit.xml#topic16"
-                        navtitle="Viewing Greenplum Database Server Log Files"/>
+                        navtitle="Viewing Cloudberry Database Server Log Files"/>
                 <topicref href="gp_toolkit.xml#topic21"
                         navtitle="Checking Server Configuration Files"/>
                 <topicref href="gp_toolkit.xml#topic24" navtitle="Checking for Failed Segments"/>

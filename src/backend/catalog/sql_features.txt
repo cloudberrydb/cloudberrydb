@@ -147,7 +147,7 @@ E152	Basic SET TRANSACTION statement	02	SET TRANSACTION statement: READ ONLY and
 E153	Updatable queries with subqueries			YES	
 E161	SQL comments using leading double minus			YES	
 E171	SQLSTATE support			YES	
-E182	Module language			NO	
+E182	Host language binding			YES	
 F021	Basic information schema			YES	
 F021	Basic information schema	01	COLUMNS view	YES	
 F021	Basic information schema	02	TABLES view	YES	
@@ -206,7 +206,7 @@ F131	Grouped operations	03	Set functions supported in queries with grouped views
 F131	Grouped operations	04	Subqueries with GROUP BY and HAVING clauses and grouped views	YES	
 F131	Grouped operations	05	Single row SELECT with GROUP BY and HAVING clauses and grouped views	YES	
 F171	Multiple schemas per user			YES	
-F181	Multiple module support			NO	
+F181	Multiple module support			YES	
 F191	Referential delete actions			NO	
 F200	TRUNCATE TABLE statement			YES	
 F201	CAST function			YES	
@@ -233,7 +233,7 @@ F302	INTERSECT table operator			YES
 F302	INTERSECT table operator	01	INTERSECT DISTINCT table operator	YES	
 F302	INTERSECT table operator	02	INTERSECT ALL table operator	YES	
 F304	EXCEPT ALL table operator			YES	
-F311	Schema definition statement			NO	
+F311	Schema definition statement			YES	
 F311	Schema definition statement	01	CREATE SCHEMA	YES	
 F311	Schema definition statement	02	CREATE TABLE for persistent base tables	YES	
 F311	Schema definition statement	03	CREATE VIEW	YES	
@@ -243,7 +243,7 @@ F312	MERGE statement			NO	consider INSERT ... ON CONFLICT DO UPDATE
 F313	Enhanced MERGE statement			NO	
 F314	MERGE statement with DELETE branch			NO	
 F321	User authorization			YES	
-F341	Usage tables			NO	no ROUTINE_*_USAGE tables
+F341	Usage tables			YES	
 F361	Subprogram support			YES	
 F381	Extended schema manipulation			YES	
 F381	Extended schema manipulation	01	ALTER TABLE statement: ALTER COLUMN clause	YES	
@@ -252,19 +252,19 @@ F381	Extended schema manipulation	03	ALTER TABLE statement: DROP CONSTRAINT clau
 F382	Alter column data type			YES	
 F383	Set column not null clause			YES	
 F384	Drop identity property clause			YES	
-F385	Drop column generation expression clause			NO	
+F385	Drop column generation expression clause			YES	
 F386	Set identity column generation clause			YES	
 F391	Long identifiers			YES	
 F392	Unicode escapes in identifiers			YES	
 F393	Unicode escapes in literals			YES	
-F394	Optional normal form specification			NO	
+F394	Optional normal form specification			YES	
 F401	Extended joined table			YES	
 F401	Extended joined table	01	NATURAL JOIN	YES	
 F401	Extended joined table	02	FULL OUTER JOIN	YES	
 F401	Extended joined table	04	CROSS JOIN	YES	
 F402	Named column joins for LOBs, arrays, and multisets			YES	
 F403	Partitioned joined tables			NO	
-F404	Range variable for common column names			NO	
+F404	Range variable for common column names			YES	
 F411	Time zone specification			YES	differences regarding literal interpretation
 F421	National character			YES	
 F431	Read-only scrollable cursors			YES	forward scroll only
@@ -285,11 +285,7 @@ F492	Optional table constraint enforcement			NO
 F501	Features and conformance views			YES	
 F501	Features and conformance views	01	SQL_FEATURES view	YES	
 F501	Features and conformance views	02	SQL_SIZING view	YES	
-F501	Features and conformance views	03	SQL_LANGUAGES view	YES	
 F502	Enhanced documentation tables			YES	
-F502	Enhanced documentation tables	01	SQL_SIZING_PROFILES view	YES	
-F502	Enhanced documentation tables	02	SQL_IMPLEMENTATION_INFO view	YES	
-F502	Enhanced documentation tables	03	SQL_PACKAGES view	YES	
 F521	Assertions			NO	
 F531	Temporary tables			YES	non-standard form
 F555	Enhanced seconds precision			YES	
@@ -349,7 +345,7 @@ F863	Nested <result offset clause> in <query expression>			YES
 F864	Top-level <result offset clause> in views			YES	
 F865	<offset row count> in <result offset clause>			YES	
 F866	FETCH FIRST clause: PERCENT option			NO	
-F867	FETCH FIRST clause: WITH TIES option			NO	
+F867	FETCH FIRST clause: WITH TIES option			YES	
 R010	Row pattern recognition: FROM clause			NO	
 R020	Row pattern recognition: WINDOW clause			NO	
 R030	Row pattern recognition: full aggregate support			NO	
@@ -377,7 +373,7 @@ S096	Optional array bounds			YES
 S097	Array element assignment			NO	
 S098	ARRAY_AGG			YES	
 S111	ONLY in query expressions			YES	
-S151	Type predicate			NO	
+S151	Type predicate			NO	see pg_typeof()
 S161	Subtype treatment			NO	
 S162	Subtype treatment for references			NO	
 S201	SQL-invoked routines on arrays			YES	
@@ -402,7 +398,7 @@ S301	Enhanced UNNEST			YES
 S401	Distinct types based on array types			NO	
 S402	Distinct types based on distinct types			NO	
 S403	ARRAY_MAX_CARDINALITY			NO	
-S404	TRIM_ARRAY			NO	
+S404	TRIM_ARRAY			YES	
 T011	Timestamp in Information Schema			NO	
 T021	BINARY and VARBINARY data types			NO	
 T022	Advanced support for BINARY and VARBINARY data types			NO	
@@ -429,6 +425,7 @@ T121	WITH (excluding RECURSIVE) in query expression			YES
 T122	WITH (excluding RECURSIVE) in subquery			YES	
 T131	Recursive query			YES	
 T132	Recursive query in subquery			YES	
+T133	Enhanced cycle mark values			YES	SQL:202x draft
 T141	SIMILAR predicate			YES	
 T151	DISTINCT predicate			YES	
 T152	DISTINCT predicate with negation			YES	
@@ -436,8 +433,8 @@ T171	LIKE clause in table definition			YES
 T172	AS subquery clause in table definition			YES	
 T173	Extended LIKE clause in table definition			YES	
 T174	Identity columns			YES	
-T175	Generated columns			NO	
-T176	Sequence generator support			NO	
+T175	Generated columns			NO	mostly supported
+T176	Sequence generator support			NO	supported except for NEXT VALUE FOR
 T177	Sequence generator support: simple restart option			YES	
 T178	Identity columns:  simple restart option			YES	
 T180	System-versioned tables			NO	
@@ -479,13 +476,13 @@ T324	Explicit security for SQL routines			NO
 T325	Qualified SQL parameter references			YES	
 T326	Table functions			NO	
 T331	Basic roles			YES	
-T332	Extended roles			NO	mostly supported
+T332	Extended roles			YES	
 T341	Overloading of SQL-invoked functions and procedures			YES	
 T351	Bracketed SQL comments (/*...*/ comments)			YES	
 T431	Extended grouping capabilities			YES	
 T432	Nested and concatenated GROUPING SETS			YES	
 T433	Multiargument GROUPING function			YES	
-T434	GROUP BY DISTINCT			NO	
+T434	GROUP BY DISTINCT			YES	
 T441	ABS and MOD functions			YES	
 T461	Symmetric BETWEEN predicate			YES	
 T471	Result sets return value			NO	
@@ -508,7 +505,7 @@ T581	Regular expression substring function			YES
 T591	UNIQUE constraints of possibly null columns			YES	
 T601	Local cursor references			NO	
 T611	Elementary OLAP operations			YES	
-T612	Advanced OLAP operations			NO	some forms supported
+T612	Advanced OLAP operations			YES	
 T613	Sampling			YES	
 T614	NTILE function			YES	
 T615	LEAD and LAG functions			YES	
@@ -526,7 +523,7 @@ T631	IN predicate with one list element			YES
 T641	Multiple column assignment			NO	only some syntax variants supported
 T651	SQL-schema statements in SQL routines			YES	
 T652	SQL-dynamic statements in SQL routines			NO	
-T653	SQL-schema statements in external routines			NO	
+T653	SQL-schema statements in external routines			YES	
 T654	SQL-dynamic statements in external routines			NO	
 T655	Cyclically dependent routines			YES	
 T811	Basic SQL/JSON constructor functions			NO	
@@ -544,7 +541,7 @@ T828	JSON_QUERY			NO
 T829	JSON_QUERY: array wrapper options			NO	
 T830	Enforcing unique keys in SQL/JSON constructor functions			NO	
 T831	SQL/JSON path language: strict mode			YES	
-T832	SQL/JSON path language: item method			NO	datetime() not yet implemented
+T832	SQL/JSON path language: item method			YES	
 T833	SQL/JSON path language: multiple subscripts			YES	
 T834	SQL/JSON path language: wildcard member accessor			YES	
 T835	SQL/JSON path language: filter expressions			YES	

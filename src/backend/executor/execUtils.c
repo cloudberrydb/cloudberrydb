@@ -3,9 +3,9 @@
  * execUtils.c
  *	  miscellaneous executor utility routines
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -59,6 +59,7 @@
 #include "executor/execdebug.h"
 #include "executor/execUtils.h"
 #include "executor/executor.h"
+#include "executor/execPartition.h"
 #include "jit/jit.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
@@ -147,7 +148,6 @@ CreateExecutorState(void)
 	estate->es_snapshot = InvalidSnapshot;	/* caller must initialize this */
 	estate->es_crosscheck_snapshot = InvalidSnapshot;	/* no crosscheck */
 	estate->es_range_table = NIL;
-	estate->es_range_table_array = NULL;
 	estate->es_range_table_size = 0;
 	estate->es_relations = NULL;
 	estate->es_rowmarks = NULL;
@@ -158,14 +158,8 @@ CreateExecutorState(void)
 	estate->es_output_cid = (CommandId) 0;
 
 	estate->es_result_relations = NULL;
-	estate->es_num_result_relations = 0;
-	estate->es_result_relation_info = NULL;
-
-	estate->es_root_result_relations = NULL;
-	estate->es_num_root_result_relations = 0;
-
+	estate->es_opened_result_relations = NIL;
 	estate->es_tuple_routing_result_relations = NIL;
-
 	estate->es_trig_target_relations = NIL;
 
 	estate->es_param_list_info = NULL;
@@ -233,7 +227,7 @@ CreateExecutorState(void)
  * This can be called in any memory context ... so long as it's not one
  * of the ones to be freed.
  *
- * In Greenplum, this also clears the PartitionState, even though that's a
+ * In Cloudberry, this also clears the PartitionState, even though that's a
  * non-memory resource, as that can be allocated for expression evaluation even
  * when there is no Plan.
  * ----------------
@@ -373,9 +367,9 @@ CreateExprContext(EState *estate)
 ExprContext *
 CreateWorkExprContext(EState *estate)
 {
-	Size minContextSize = ALLOCSET_DEFAULT_MINSIZE;
-	Size initBlockSize = ALLOCSET_DEFAULT_INITSIZE;
-	Size maxBlockSize = ALLOCSET_DEFAULT_MAXSIZE;
+	Size		minContextSize = ALLOCSET_DEFAULT_MINSIZE;
+	Size		initBlockSize = ALLOCSET_DEFAULT_INITSIZE;
+	Size		maxBlockSize = ALLOCSET_DEFAULT_MAXSIZE;
 
 	/* choose the maxBlockSize to be no larger than 1/16 of work_mem */
 	while (16 * maxBlockSize > work_mem * 1024L)
@@ -679,7 +673,7 @@ tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc
 			 var->vartypmod != -1))
 			return false;		/* type mismatch */
 
-		tlist_item = lnext(tlist_item);
+		tlist_item = lnext(tlist, tlist_item);
 	}
 
 	if (tlist_item)
@@ -764,16 +758,7 @@ ExecCreateScanSlotFromOuterPlan(EState *estate,
 bool
 ExecRelationIsTargetRelation(EState *estate, Index scanrelid)
 {
-	ResultRelInfo *resultRelInfos;
-	int			i;
-
-	resultRelInfos = estate->es_result_relations;
-	for (i = 0; i < estate->es_num_result_relations; i++)
-	{
-		if (resultRelInfos[i].ri_RangeTableIndex == scanrelid)
-			return true;
-	}
-	return false;
+	return list_member_int(estate->es_plannedstmt->resultRelations, scanrelid);
 }
 
 /* ----------------------------------------------------------------
@@ -811,29 +796,17 @@ ExecOpenScanRelation(EState *estate, Index scanrelid, int eflags)
  * ExecInitRangeTable
  *		Set up executor's range-table-related data
  *
- * We build an array from the range table list to allow faster lookup by RTI.
- * (The es_range_table field is now somewhat redundant, but we keep it to
- * avoid breaking external code unnecessarily.)
- * This is also a convenient place to set up the parallel es_relations array.
+ * In addition to the range table proper, initialize arrays that are
+ * indexed by rangetable index.
  */
 void
 ExecInitRangeTable(EState *estate, List *rangeTable)
 {
-	Index		rti;
-	ListCell   *lc;
-
 	/* Remember the range table List as-is */
 	estate->es_range_table = rangeTable;
 
-	/* Set up the equivalent array representation */
+	/* Set size of associated arrays */
 	estate->es_range_table_size = list_length(rangeTable);
-	estate->es_range_table_array = (RangeTblEntry **)
-		palloc(estate->es_range_table_size * sizeof(RangeTblEntry *));
-	rti = 0;
-	foreach(lc, rangeTable)
-	{
-		estate->es_range_table_array[rti++] = lfirst_node(RangeTblEntry, lc);
-	}
 
 	/*
 	 * Allocate an array to store an open Relation corresponding to each
@@ -844,9 +817,10 @@ ExecInitRangeTable(EState *estate, List *rangeTable)
 		palloc0(estate->es_range_table_size * sizeof(Relation));
 
 	/*
-	 * es_rowmarks is also parallel to the es_range_table_array, but it's
-	 * allocated only if needed.
+	 * es_result_relations and es_rowmarks are also parallel to
+	 * es_range_table, but are allocated only if needed.
 	 */
+	estate->es_result_relations = NULL;
 	estate->es_rowmarks = NULL;
 }
 
@@ -862,7 +836,6 @@ ExecGetRangeTableRelation(EState *estate, Index rti)
 	Relation	rel;
 
 	Assert(rti > 0 && rti <= estate->es_range_table_size);
-
 
 	rel = estate->es_relations[rti - 1];
 	if (rel == NULL)
@@ -882,14 +855,9 @@ ExecGetRangeTableRelation(EState *estate, Index rti)
 			 * seems sufficient to check this only when rellockmode is higher
 			 * than the minimum.
 			 */
-			/* GPDB_12_MERGE_FIXME: if GDD is not enabled, we acquire a stronger
-			 * lock earlier. What would be a good way to formulate this check?
-			 * For now, just pass orstronger=true.
-			 */
 			rel = table_open(rte->relid, NoLock);
 			Assert(rte->rellockmode == AccessShareLock ||
-				   CheckRelationLockedByMe(rel, rte->rellockmode,
-										   true /* orstronger */));
+				   CheckRelationLockedByMe(rel, rte->rellockmode, false));
 		}
 		else
 		{
@@ -905,6 +873,40 @@ ExecGetRangeTableRelation(EState *estate, Index rti)
 	}
 
 	return rel;
+}
+
+/*
+ * ExecInitResultRelation
+ *		Open relation given by the passed-in RT index and fill its
+ *		ResultRelInfo node
+ *
+ * Here, we also save the ResultRelInfo in estate->es_result_relations array
+ * such that it can be accessed later using the RT index.
+ */
+void
+ExecInitResultRelation(EState *estate, ResultRelInfo *resultRelInfo,
+					   Index rti)
+{
+	Relation	resultRelationDesc;
+
+	resultRelationDesc = ExecGetRangeTableRelation(estate, rti);
+	InitResultRelInfo(resultRelInfo,
+					  resultRelationDesc,
+					  rti,
+					  NULL,
+					  estate->es_instrument);
+
+	if (estate->es_result_relations == NULL)
+		estate->es_result_relations = (ResultRelInfo **)
+			palloc0(estate->es_range_table_size * sizeof(ResultRelInfo *));
+	estate->es_result_relations[rti - 1] = resultRelInfo;
+
+	/*
+	 * Saving in the list allows to avoid needlessly traversing the whole
+	 * array when only a few of its entries are possibly non-NULL.
+	 */
+	estate->es_opened_result_relations =
+		lappend(estate->es_opened_result_relations, resultRelInfo);
 }
 
 /*
@@ -945,21 +947,21 @@ UpdateChangedParamSet(PlanState *node, Bitmapset *newchg)
  * normal non-error case: computing character indexes would be much more
  * expensive than storing token offsets.)
  */
-void
+int
 executor_errposition(EState *estate, int location)
 {
 	int			pos;
 
 	/* No-op if location was not provided */
 	if (location < 0)
-		return;
+		return 0;
 	/* Can't do anything if source text is not available */
 	if (estate == NULL || estate->es_sourceText == NULL)
-		return;
+		return 0;
 	/* Convert offset to character number */
 	pos = pg_mbstrlen_with_len(estate->es_sourceText, location) + 1;
 	/* And pass it to the ereport mechanism */
-	errposition(pos);
+	return errposition(pos);
 }
 
 /*
@@ -1057,6 +1059,348 @@ ShutdownExprContext(ExprContext *econtext, bool isCommit)
 	}
 
 	MemoryContextSwitchTo(oldcontext);
+}
+
+/*
+ *		GetAttributeByName
+ *		GetAttributeByNum
+ *
+ *		These functions return the value of the requested attribute
+ *		out of the given tuple Datum.
+ *		C functions which take a tuple as an argument are expected
+ *		to use these.  Ex: overpaid(EMP) might call GetAttributeByNum().
+ *		Note: these are actually rather slow because they do a typcache
+ *		lookup on each call.
+ */
+Datum
+GetAttributeByName(HeapTupleHeader tuple, const char *attname, bool *isNull)
+{
+	AttrNumber	attrno;
+	Datum		result;
+	Oid			tupType;
+	int32		tupTypmod;
+	TupleDesc	tupDesc;
+	HeapTupleData tmptup;
+	int			i;
+
+	if (attname == NULL)
+		elog(ERROR, "invalid attribute name");
+
+	if (isNull == NULL)
+		elog(ERROR, "a NULL isNull pointer was passed");
+
+	if (tuple == NULL)
+	{
+		/* Kinda bogus but compatible with old behavior... */
+		*isNull = true;
+		return (Datum) 0;
+	}
+
+	tupType = HeapTupleHeaderGetTypeId(tuple);
+	tupTypmod = HeapTupleHeaderGetTypMod(tuple);
+	tupDesc = lookup_rowtype_tupdesc(tupType, tupTypmod);
+
+	attrno = InvalidAttrNumber;
+	for (i = 0; i < tupDesc->natts; i++)
+	{
+		Form_pg_attribute att = TupleDescAttr(tupDesc, i);
+
+		if (namestrcmp(&(att->attname), attname) == 0)
+		{
+			attrno = att->attnum;
+			break;
+		}
+	}
+
+	if (attrno == InvalidAttrNumber)
+		elog(ERROR, "attribute \"%s\" does not exist", attname);
+
+	/*
+	 * heap_getattr needs a HeapTuple not a bare HeapTupleHeader.  We set all
+	 * the fields in the struct just in case user tries to inspect system
+	 * columns.
+	 */
+	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
+	ItemPointerSetInvalid(&(tmptup.t_self));
+	tmptup.t_tableOid = InvalidOid;
+	tmptup.t_data = tuple;
+
+	result = heap_getattr(&tmptup,
+						  attrno,
+						  tupDesc,
+						  isNull);
+
+	ReleaseTupleDesc(tupDesc);
+
+	return result;
+}
+
+Datum
+GetAttributeByNum(HeapTupleHeader tuple,
+				  AttrNumber attrno,
+				  bool *isNull)
+{
+	Datum		result;
+	Oid			tupType;
+	int32		tupTypmod;
+	TupleDesc	tupDesc;
+	HeapTupleData tmptup;
+
+	if (!AttributeNumberIsValid(attrno))
+		elog(ERROR, "invalid attribute number %d", attrno);
+
+	if (isNull == NULL)
+		elog(ERROR, "a NULL isNull pointer was passed");
+
+	if (tuple == NULL)
+	{
+		/* Kinda bogus but compatible with old behavior... */
+		*isNull = true;
+		return (Datum) 0;
+	}
+
+	tupType = HeapTupleHeaderGetTypeId(tuple);
+	tupTypmod = HeapTupleHeaderGetTypMod(tuple);
+	tupDesc = lookup_rowtype_tupdesc(tupType, tupTypmod);
+
+	/*
+	 * heap_getattr needs a HeapTuple not a bare HeapTupleHeader.  We set all
+	 * the fields in the struct just in case user tries to inspect system
+	 * columns.
+	 */
+	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
+	ItemPointerSetInvalid(&(tmptup.t_self));
+	tmptup.t_tableOid = InvalidOid;
+	tmptup.t_data = tuple;
+
+	result = heap_getattr(&tmptup,
+						  attrno,
+						  tupDesc,
+						  isNull);
+
+	ReleaseTupleDesc(tupDesc);
+
+	return result;
+}
+
+/*
+ * Number of items in a tlist (including any resjunk items!)
+ */
+int
+ExecTargetListLength(List *targetlist)
+{
+	/* This used to be more complex, but fjoins are dead */
+	return list_length(targetlist);
+}
+
+/*
+ * Number of items in a tlist, not including any resjunk items
+ */
+int
+ExecCleanTargetListLength(List *targetlist)
+{
+	int			len = 0;
+	ListCell   *tl;
+
+	foreach(tl, targetlist)
+	{
+		TargetEntry *curTle = lfirst_node(TargetEntry, tl);
+
+		if (!curTle->resjunk)
+			len++;
+	}
+	return len;
+}
+
+/*
+ * Return a relInfo's tuple slot for a trigger's OLD tuples.
+ */
+TupleTableSlot *
+ExecGetTriggerOldSlot(EState *estate, ResultRelInfo *relInfo)
+{
+	if (relInfo->ri_TrigOldSlot == NULL)
+	{
+		Relation	rel = relInfo->ri_RelationDesc;
+		MemoryContext oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+
+		relInfo->ri_TrigOldSlot =
+			ExecInitExtraTupleSlot(estate,
+								   RelationGetDescr(rel),
+								   table_slot_callbacks(rel));
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	return relInfo->ri_TrigOldSlot;
+}
+
+/*
+ * Return a relInfo's tuple slot for a trigger's NEW tuples.
+ */
+TupleTableSlot *
+ExecGetTriggerNewSlot(EState *estate, ResultRelInfo *relInfo)
+{
+	if (relInfo->ri_TrigNewSlot == NULL)
+	{
+		Relation	rel = relInfo->ri_RelationDesc;
+		MemoryContext oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+
+		relInfo->ri_TrigNewSlot =
+			ExecInitExtraTupleSlot(estate,
+								   RelationGetDescr(rel),
+								   table_slot_callbacks(rel));
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	return relInfo->ri_TrigNewSlot;
+}
+
+/*
+ * Return a relInfo's tuple slot for processing returning tuples.
+ */
+TupleTableSlot *
+ExecGetReturningSlot(EState *estate, ResultRelInfo *relInfo)
+{
+	if (relInfo->ri_ReturningSlot == NULL)
+	{
+		Relation	rel = relInfo->ri_RelationDesc;
+		MemoryContext oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
+
+		relInfo->ri_ReturningSlot =
+			ExecInitExtraTupleSlot(estate,
+								   RelationGetDescr(rel),
+								   table_slot_callbacks(rel));
+
+		MemoryContextSwitchTo(oldcontext);
+	}
+
+	return relInfo->ri_ReturningSlot;
+}
+
+/*
+ * Return the map needed to convert given child result relation's tuples to
+ * the rowtype of the query's main target ("root") relation.  Note that a
+ * NULL result is valid and means that no conversion is needed.
+ */
+TupleConversionMap *
+ExecGetChildToRootMap(ResultRelInfo *resultRelInfo)
+{
+	/* If we didn't already do so, compute the map for this child. */
+	if (!resultRelInfo->ri_ChildToRootMapValid)
+	{
+		ResultRelInfo *rootRelInfo = resultRelInfo->ri_RootResultRelInfo;
+
+		if (rootRelInfo)
+			resultRelInfo->ri_ChildToRootMap =
+				convert_tuples_by_name(RelationGetDescr(resultRelInfo->ri_RelationDesc),
+									   RelationGetDescr(rootRelInfo->ri_RelationDesc));
+		else					/* this isn't a child result rel */
+			resultRelInfo->ri_ChildToRootMap = NULL;
+
+		resultRelInfo->ri_ChildToRootMapValid = true;
+	}
+
+	return resultRelInfo->ri_ChildToRootMap;
+}
+
+/* Return a bitmap representing columns being inserted */
+Bitmapset *
+ExecGetInsertedCols(ResultRelInfo *relinfo, EState *estate)
+{
+	/*
+	 * The columns are stored in the range table entry.  If this ResultRelInfo
+	 * represents a partition routing target, and doesn't have an entry of its
+	 * own in the range table, fetch the parent's RTE and map the columns to
+	 * the order they are in the partition.
+	 */
+	if (relinfo->ri_RangeTableIndex != 0)
+	{
+		RangeTblEntry *rte = exec_rt_fetch(relinfo->ri_RangeTableIndex, estate);
+
+		return rte->insertedCols;
+	}
+	else if (relinfo->ri_RootResultRelInfo)
+	{
+		ResultRelInfo *rootRelInfo = relinfo->ri_RootResultRelInfo;
+		RangeTblEntry *rte = exec_rt_fetch(rootRelInfo->ri_RangeTableIndex, estate);
+
+		if (relinfo->ri_RootToPartitionMap != NULL)
+			return execute_attr_map_cols(relinfo->ri_RootToPartitionMap->attrMap,
+										 rte->insertedCols);
+		else
+			return rte->insertedCols;
+	}
+	else
+	{
+		/*
+		 * The relation isn't in the range table and it isn't a partition
+		 * routing target.  This ResultRelInfo must've been created only for
+		 * firing triggers and the relation is not being inserted into.  (See
+		 * ExecGetTriggerResultRel.)
+		 */
+		return NULL;
+	}
+}
+
+/* Return a bitmap representing columns being updated */
+Bitmapset *
+ExecGetUpdatedCols(ResultRelInfo *relinfo, EState *estate)
+{
+	/* see ExecGetInsertedCols() */
+	if (relinfo->ri_RangeTableIndex != 0)
+	{
+		RangeTblEntry *rte = exec_rt_fetch(relinfo->ri_RangeTableIndex, estate);
+
+		return rte->updatedCols;
+	}
+	else if (relinfo->ri_RootResultRelInfo)
+	{
+		ResultRelInfo *rootRelInfo = relinfo->ri_RootResultRelInfo;
+		RangeTblEntry *rte = exec_rt_fetch(rootRelInfo->ri_RangeTableIndex, estate);
+
+		if (relinfo->ri_RootToPartitionMap != NULL)
+			return execute_attr_map_cols(relinfo->ri_RootToPartitionMap->attrMap,
+										 rte->updatedCols);
+		else
+			return rte->updatedCols;
+	}
+	else
+		return NULL;
+}
+
+/* Return a bitmap representing generated columns being updated */
+Bitmapset *
+ExecGetExtraUpdatedCols(ResultRelInfo *relinfo, EState *estate)
+{
+	/* see ExecGetInsertedCols() */
+	if (relinfo->ri_RangeTableIndex != 0)
+	{
+		RangeTblEntry *rte = exec_rt_fetch(relinfo->ri_RangeTableIndex, estate);
+
+		return rte->extraUpdatedCols;
+	}
+	else if (relinfo->ri_RootResultRelInfo)
+	{
+		ResultRelInfo *rootRelInfo = relinfo->ri_RootResultRelInfo;
+		RangeTblEntry *rte = exec_rt_fetch(rootRelInfo->ri_RangeTableIndex, estate);
+
+		if (relinfo->ri_RootToPartitionMap != NULL)
+			return execute_attr_map_cols(relinfo->ri_RootToPartitionMap->attrMap,
+										 rte->extraUpdatedCols);
+		else
+			return rte->extraUpdatedCols;
+	}
+	else
+		return NULL;
+}
+
+/* Return columns being updated, including generated columns */
+Bitmapset *
+ExecGetAllUpdatedCols(ResultRelInfo *relinfo, EState *estate)
+{
+	return bms_union(ExecGetUpdatedCols(relinfo, estate),
+					 ExecGetExtraUpdatedCols(relinfo, estate));
 }
 
 /*
@@ -1744,7 +2088,7 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 	/* GPDB hook for collecting query info */
 	if (query_info_collect_hook)
 		(*query_info_collect_hook)(QueryCancelCleanup ? METRICS_QUERY_CANCELED : METRICS_QUERY_ERROR, queryDesc);
-	
+
 	ReportOOMConsumption();
 
 	/**
@@ -1758,7 +2102,7 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 
 /**
  * This method is used to determine how much memory a specific operator
- * is supposed to use (in KB). 
+ * is supposed to use (in KB).
  */
 uint64 PlanStateOperatorMemKB(const PlanState *ps)
 {
@@ -1777,7 +2121,7 @@ uint64 PlanStateOperatorMemKB(const PlanState *ps)
 	{
 		result = ps->plan->operatorMemKB;
 	}
-	
+
 	return result;
 }
 
@@ -2103,220 +2447,3 @@ void AssertSliceTableIsValid(SliceTable *st)
 	}
 }
 #endif
-
-/*
- *		GetAttributeByName
- *		GetAttributeByNum
- *
- *		These functions return the value of the requested attribute
- *		out of the given tuple Datum.
- *		C functions which take a tuple as an argument are expected
- *		to use these.  Ex: overpaid(EMP) might call GetAttributeByNum().
- *		Note: these are actually rather slow because they do a typcache
- *		lookup on each call.
- */
-Datum
-GetAttributeByName(HeapTupleHeader tuple, const char *attname, bool *isNull)
-{
-	AttrNumber	attrno;
-	Datum		result;
-	Oid			tupType;
-	int32		tupTypmod;
-	TupleDesc	tupDesc;
-	HeapTupleData tmptup;
-	int			i;
-
-	if (attname == NULL)
-		elog(ERROR, "invalid attribute name");
-
-	if (isNull == NULL)
-		elog(ERROR, "a NULL isNull pointer was passed");
-
-	if (tuple == NULL)
-	{
-		/* Kinda bogus but compatible with old behavior... */
-		*isNull = true;
-		return (Datum) 0;
-	}
-
-	tupType = HeapTupleHeaderGetTypeId(tuple);
-	tupTypmod = HeapTupleHeaderGetTypMod(tuple);
-	tupDesc = lookup_rowtype_tupdesc(tupType, tupTypmod);
-
-	attrno = InvalidAttrNumber;
-	for (i = 0; i < tupDesc->natts; i++)
-	{
-		Form_pg_attribute att = TupleDescAttr(tupDesc, i);
-
-		if (namestrcmp(&(att->attname), attname) == 0)
-		{
-			attrno = att->attnum;
-			break;
-		}
-	}
-
-	if (attrno == InvalidAttrNumber)
-		elog(ERROR, "attribute \"%s\" does not exist", attname);
-
-	/*
-	 * heap_getattr needs a HeapTuple not a bare HeapTupleHeader.  We set all
-	 * the fields in the struct just in case user tries to inspect system
-	 * columns.
-	 */
-	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
-	ItemPointerSetInvalid(&(tmptup.t_self));
-	tmptup.t_tableOid = InvalidOid;
-	tmptup.t_data = tuple;
-
-	result = heap_getattr(&tmptup,
-						  attrno,
-						  tupDesc,
-						  isNull);
-
-	ReleaseTupleDesc(tupDesc);
-
-	return result;
-}
-
-Datum
-GetAttributeByNum(HeapTupleHeader tuple,
-				  AttrNumber attrno,
-				  bool *isNull)
-{
-	Datum		result;
-	Oid			tupType;
-	int32		tupTypmod;
-	TupleDesc	tupDesc;
-	HeapTupleData tmptup;
-
-	if (!AttributeNumberIsValid(attrno))
-		elog(ERROR, "invalid attribute number %d", attrno);
-
-	if (isNull == NULL)
-		elog(ERROR, "a NULL isNull pointer was passed");
-
-	if (tuple == NULL)
-	{
-		/* Kinda bogus but compatible with old behavior... */
-		*isNull = true;
-		return (Datum) 0;
-	}
-
-	tupType = HeapTupleHeaderGetTypeId(tuple);
-	tupTypmod = HeapTupleHeaderGetTypMod(tuple);
-	tupDesc = lookup_rowtype_tupdesc(tupType, tupTypmod);
-
-	/*
-	 * heap_getattr needs a HeapTuple not a bare HeapTupleHeader.  We set all
-	 * the fields in the struct just in case user tries to inspect system
-	 * columns.
-	 */
-	tmptup.t_len = HeapTupleHeaderGetDatumLength(tuple);
-	ItemPointerSetInvalid(&(tmptup.t_self));
-	tmptup.t_tableOid = InvalidOid;
-	tmptup.t_data = tuple;
-
-	result = heap_getattr(&tmptup,
-						  attrno,
-						  tupDesc,
-						  isNull);
-
-	ReleaseTupleDesc(tupDesc);
-
-	return result;
-}
-
-/*
- * Number of items in a tlist (including any resjunk items!)
- */
-int
-ExecTargetListLength(List *targetlist)
-{
-	/* This used to be more complex, but fjoins are dead */
-	return list_length(targetlist);
-}
-
-/*
- * Number of items in a tlist, not including any resjunk items
- */
-int
-ExecCleanTargetListLength(List *targetlist)
-{
-	int			len = 0;
-	ListCell   *tl;
-
-	foreach(tl, targetlist)
-	{
-		TargetEntry *curTle = lfirst_node(TargetEntry, tl);
-
-		if (!curTle->resjunk)
-			len++;
-	}
-	return len;
-}
-
-/*
- * Return a relInfo's tuple slot for a trigger's OLD tuples.
- */
-TupleTableSlot *
-ExecGetTriggerOldSlot(EState *estate, ResultRelInfo *relInfo)
-{
-	if (relInfo->ri_TrigOldSlot == NULL)
-	{
-		Relation	rel = relInfo->ri_RelationDesc;
-		MemoryContext oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
-
-		relInfo->ri_TrigOldSlot =
-			ExecInitExtraTupleSlot(estate,
-								   RelationGetDescr(rel),
-								   table_slot_callbacks(rel));
-
-		MemoryContextSwitchTo(oldcontext);
-	}
-
-	return relInfo->ri_TrigOldSlot;
-}
-
-/*
- * Return a relInfo's tuple slot for a trigger's NEW tuples.
- */
-TupleTableSlot *
-ExecGetTriggerNewSlot(EState *estate, ResultRelInfo *relInfo)
-{
-	if (relInfo->ri_TrigNewSlot == NULL)
-	{
-		Relation	rel = relInfo->ri_RelationDesc;
-		MemoryContext oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
-
-		relInfo->ri_TrigNewSlot =
-			ExecInitExtraTupleSlot(estate,
-								   RelationGetDescr(rel),
-								   table_slot_callbacks(rel));
-
-		MemoryContextSwitchTo(oldcontext);
-	}
-
-	return relInfo->ri_TrigNewSlot;
-}
-
-/*
- * Return a relInfo's tuple slot for processing returning tuples.
- */
-TupleTableSlot *
-ExecGetReturningSlot(EState *estate, ResultRelInfo *relInfo)
-{
-	if (relInfo->ri_ReturningSlot == NULL)
-	{
-		Relation	rel = relInfo->ri_RelationDesc;
-		MemoryContext oldcontext = MemoryContextSwitchTo(estate->es_query_cxt);
-
-		relInfo->ri_ReturningSlot =
-			ExecInitExtraTupleSlot(estate,
-								   RelationGetDescr(rel),
-								   table_slot_callbacks(rel));
-
-		MemoryContextSwitchTo(oldcontext);
-	}
-
-	return relInfo->ri_ReturningSlot;
-}

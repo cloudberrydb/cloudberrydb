@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved. 
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved. 
 #
 """
 Standard set of helper functions for gp utilities for parsing command line options.
@@ -85,7 +85,7 @@ class OptChecker(Option):
     def regexCheck(option, opt, value):
         # value is a string to be compiled as a regular expression pattern
         global _gCase
-        flags = re.LOCALE
+        flags = re.UNICODE
         if _gCase and _gCase.startswith('i'):
             flags |= re.IGNORECASE
         try:

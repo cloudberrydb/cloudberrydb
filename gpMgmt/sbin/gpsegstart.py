@@ -2,8 +2,8 @@
 # Line too long - pylint: disable=C0301
 # Invalid name  - pylint: disable=C0103
 #
-# Copyright (c) EMC/Greenplum Inc 2011. All Rights Reserved.
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
+# Copyright (c) EMC/Cloudberry Inc 2011. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
 #
 """
 Internal Use Function.

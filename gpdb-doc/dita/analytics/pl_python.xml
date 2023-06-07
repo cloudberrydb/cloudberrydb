@@ -4,7 +4,7 @@
 <topic id="topic1" xml:lang="en">
   <title id="pw216155">PL/Python Language</title>
   <body>
-    <p>This section contains an overview of the Greenplum Database PL/Python Language.</p>
+    <p>This section contains an overview of the Cloudberry Database PL/Python Language.</p>
     <ul>
       <li id="pw223311">
         <xref href="#topic2" type="topic" format="dita"/>
@@ -27,25 +27,25 @@
     </ul>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="pw216140">About Greenplum PL/Python</title>
+    <title id="pw216140">About Cloudberry PL/Python</title>
     <body>
-      <p>PL/Python is a loadable procedural language. With the Greenplum Database PL/Python
-        extension, you can write a Greenplum Database user-defined functions in Python that take
+      <p>PL/Python is a loadable procedural language. With the Cloudberry Database PL/Python
+        extension, you can write a Cloudberry Database user-defined functions in Python that take
         advantage of Python features and modules to quickly build robust database applications. </p>
       <p>You can run PL/Python code blocks as anonymous code blocks. See the <codeph><xref
             href="../ref_guide/sql_commands/DO.xml#topic1" scope="peer">DO</xref></codeph> command
-        in the <cite>Greenplum Database Reference Guide</cite>.</p>
-      <p>The Greenplum Database PL/Python extension is installed by default with Greenplum Database.
-        Greenplum Database installs a version of Python and PL/Python. This is location of the
-        Python installation that Greenplum Database uses:</p>
+        in the <cite>Cloudberry Database Reference Guide</cite>.</p>
+      <p>The Cloudberry Database PL/Python extension is installed by default with Cloudberry Database.
+        Cloudberry Database installs a version of Python and PL/Python. This is location of the
+        Python installation that Cloudberry Database uses:</p>
       <codeblock>$GPHOME/ext/python/</codeblock>
     </body>
     <topic id="topic3" xml:lang="en">
-      <title>Greenplum Database PL/Python Limitations</title>
+      <title>Cloudberry Database PL/Python Limitations</title>
       <body>
         <ul id="ul_qhg_33m_zt">
-          <li>Greenplum Database does not support PL/Python triggers.</li>
-          <li>PL/Python is available only as a Greenplum Database untrusted language.</li>
+          <li>Cloudberry Database does not support PL/Python triggers.</li>
+          <li>PL/Python is available only as a Cloudberry Database untrusted language.</li>
           <li>Updatable cursors (<codeph>UPDATE...WHERE CURRENT OF</codeph> and
               <codeph>DELETE...WHERE CURRENT OF</codeph>) are not supported.</li>
         </ul>
@@ -55,7 +55,7 @@
   <topic id="topic4" xml:lang="en">
     <title id="pw217326">Enabling and Removing PL/Python support</title>
     <body>
-      <p>The PL/Python language is installed with Greenplum Database. To create and run a PL/Python
+      <p>The PL/Python language is installed with Cloudberry Database. To create and run a PL/Python
         user-defined function (UDF) in a database, you must register the PL/Python language with the
         database. </p>
     </body>
@@ -100,14 +100,14 @@
     <topic id="topic_datatypemap" xml:lang="en">
       <title id="pw2137121113">Data Type Mapping</title>
       <body>
-        <p>The Greenplum to Python data type mapping follows.</p>
+        <p>The Cloudberry to Python data type mapping follows.</p>
         <table id="datatype_mapping">
           <tgroup cols="2">
             <colspec colnum="1" colname="col1" colwidth="240pt"/>
             <colspec colnum="2" colname="col2" colwidth="240pt"/>
             <thead>
               <row>
-                <entry colname="col2">Greenplum Primitive Type</entry>
+                <entry colname="col2">Cloudberry Primitive Type</entry>
                 <entry colname="col1">Python Data Type</entry>
               </row>
             </thead>
@@ -144,7 +144,7 @@
           </tgroup>
         </table>
         <p><sup>1</sup> When the UDF return type is <codeph>boolean</codeph>, the
-          Greenplum Database evaluates the return value for truth according to
+          Cloudberry Database evaluates the return value for truth according to
           Python rules. That is, <codeph>0</codeph> and empty string are
           <codeph>false</codeph>, but notably <codeph>'f'</codeph> is
           <codeph>true</codeph>.</p>
@@ -209,7 +209,7 @@ CONTEXT:  PL/Python function "return_multidim_py_type"
 (1 row) </codeblock>
 
         <p>PL/Python also accepts other Python sequences, such as tuples, as function arguments for
-          backwards compatibility with Greenplum versions where multi-dimensional arrays were not
+          backwards compatibility with Cloudberry versions where multi-dimensional arrays were not
           supported. In such cases, the Python sequences are always treated as one-dimensional
           arrays because they are ambiguous with composite types.</p>
       </body>
@@ -269,14 +269,14 @@ CREATE FUNCTION greet (how text)
 AS $$
   # return tuple containing lists as composite types
   # all other combinations work also
-  return ( {"how": how, "who": "World"}, {"how": how, "who": "Greenplum"} )
+  return ( {"how": how, "who": "World"}, {"how": how, "who": "Cloudberry"} )
 $$ LANGUAGE plpythonu;
 
 select greet('hello');
        greet
 -------------------
  (hello,World)
- (hello,Greenplum)
+ (hello,Cloudberry)
 (2 rows)</codeblock>
       </body>
     </topic>
@@ -382,9 +382,9 @@ $$ LANGUAGE plpythonu;</codeblock>
           calling <codeph>plpy.error</codeph> and <codeph>plpy.fatal</codeph>, respectively. The
           other message functions only generate messages of different priority levels. </p>
         <p>Whether messages of a particular priority are reported to the client, written to the
-          server log, or both is controlled by the Greenplum Database server configuration
+          server log, or both is controlled by the Cloudberry Database server configuration
           parameters <codeph>log_min_messages</codeph> and <codeph>client_min_messages</codeph>. For
-          information about the parameters see the <cite>Greenplum Database Reference
+          information about the parameters see the <cite>Cloudberry Database Reference
           Guide</cite>.</p>
       </body>
     </topic>
@@ -410,24 +410,24 @@ $$;</codeblock>
   <topic id="topic10" xml:lang="en">
     <title id="pw221333">Installing Python Modules</title>
     <body>
-      <p>When you install a Python module on Greenplum Database, the Greenplum Database Python
+      <p>When you install a Python module on Cloudberry Database, the Cloudberry Database Python
         environment must have the module added to it across all segment hosts and mirror hosts in
-        the cluster. When expanding Greenplum Database, you must add the Python modules to the new
-        segment hosts. You can use the Greenplum Database utilities <codeph>gpssh</codeph> and
-          <codeph>gpscp</codeph> run commands on Greenplum Database hosts and copy files to the
-        hosts. For information about the utilities, see the <cite>Greenplum Database Utility
+        the cluster. When expanding Cloudberry Database, you must add the Python modules to the new
+        segment hosts. You can use the Cloudberry Database utilities <codeph>gpssh</codeph> and
+          <codeph>gpscp</codeph> run commands on Cloudberry Database hosts and copy files to the
+        hosts. For information about the utilities, see the <cite>Cloudberry Database Utility
           Guide</cite>.</p>
-      <p>As part of the Greenplum Database installation, the <codeph>gpadmin</codeph> user
-        environment is configured to use Python that is installed with Greenplum Database.</p>
+      <p>As part of the Cloudberry Database installation, the <codeph>gpadmin</codeph> user
+        environment is configured to use Python that is installed with Cloudberry Database.</p>
       <p>To check the Python environment, you can use the <codeph>which</codeph> command:</p>
       <codeblock>which python</codeblock>
       <p>The command returns the location of the Python installation. The Python installed with
-        Greenplum Database is in the Greenplum Database <codeph>ext/python</codeph> directory.</p>
+        Cloudberry Database is in the Cloudberry Database <codeph>ext/python</codeph> directory.</p>
       <codeblock>/<varname>path_to_greenplum-db</varname>/ext/python/bin/python</codeblock>
       <p>When running shell commands on remote hosts with <codeph>gpssh</codeph>, you can specify
         the <codeph>-s</codeph> option. When the option is specified, <codeph>gpssh</codeph> sources
         the <codeph>greenplum_path.sh</codeph> file before running commands on the remote hosts. For
-        example, this command should display the Python installed with Greenplum Database on each
+        example, this command should display the Python installed with Cloudberry Database on each
         host.<codeblock>gpssh -f gpdb_hosts which python</codeblock></p>
       <p>If it does not, you can add the <codeph>-s</codeph> to source
           <codeph>greenplum_path.sh</codeph> on the remote hosts before running the command.
@@ -436,15 +436,15 @@ $$;</codeblock>
       <codeblock>python -c "help('modules')"</codeblock>
       <p>Run <codeph>gpssh</codeph> in interactive mode to display Python modules on remote hosts.
         This example starts <codeph>gpssh</codeph> in interactive mode and lists the Python modules
-        on the Greenplum Database host <codeph>sdw1</codeph>.
+        on the Cloudberry Database host <codeph>sdw1</codeph>.
         <codeblock>$ gpssh -s -h sdw1
 => python -c "help('modules')"
 . . . 
 => exit
 $</codeblock></p>
       <!--pivotal only-->
-      <p otherprops="pivotal">Greenplum Database provides a collection of data science-related
-        Python libraries that can be used with the Greenplum Database PL/Python language. You can
+      <p otherprops="pivotal">Cloudberry Database provides a collection of data science-related
+        Python libraries that can be used with the Cloudberry Database PL/Python language. You can
         download these libraries in <codeph>.gppkg</codeph> format from <xref
           href="https://network.pivotal.io/products/pivotal-gpdb" format="html" scope="external"
           >VMware Tanzu Network</xref>. For information about the libraries, see <xref scope="external"
@@ -471,7 +471,7 @@ $</codeblock></p>
           can install Python packages from source distributions or pre-built distributions
           (wheels).</p>
         <codeblock>python -m pip install --upgrade pip setuptools wheel</codeblock>
-        <p>You can use <codeph>gpssh</codeph> to run the commands on the Greenplum Database hosts.
+        <p>You can use <codeph>gpssh</codeph> to run the commands on the Cloudberry Database hosts.
           This example runs <codeph>gpssh</codeph> in interactive mode to install
             <codeph>pip</codeph> on the hosts listed in the file
           <codeph>gpdb_hosts</codeph>.<codeblock>$ gpssh -s -f gpdb_hosts
@@ -507,7 +507,7 @@ $</codeblock></p>
         <codeblock>python -m pip install --user numpy scipy</codeblock>
         <p>The <codeph>--user</codeph> option attempts to avoid conflicts when installing Python
           packages. </p>
-        <p>You can use <codeph>gpssh</codeph> to run the command on the Greenplum Database hosts. </p>
+        <p>You can use <codeph>gpssh</codeph> to run the command on the Cloudberry Database hosts. </p>
         <p>For information about these and other Python packages, see <xref href="#topic12"
             format="dita"/>.</p>
       </body>
@@ -521,8 +521,8 @@ $</codeblock></p>
         <p>Before building a Python module to be installed, ensure that the appropriate software to
           build the module is installed and properly configured. The build environment is required
           only on the host where you build the module. </p>
-        <p>You can use the Greenplum Database utilities <codeph>gpssh</codeph> and
-            <codeph>gpscp</codeph> to run commands on Greenplum Database hosts and to copy files to
+        <p>You can use the Cloudberry Database utilities <codeph>gpssh</codeph> and
+            <codeph>gpscp</codeph> to run commands on Cloudberry Database hosts and to copy files to
           the hosts.</p>
       </body>
     </topic>
@@ -530,7 +530,7 @@ $</codeblock></p>
       <title>Testing Installed Python Modules</title>
       <body>
         <p>You can create a simple PL/Python user-defined function (UDF) to validate that Python a
-          module is available in the Greenplum Database. This example tests the NumPy module.</p>
+          module is available in the Cloudberry Database. This example tests the NumPy module.</p>
         <p>This PL/Python UDF imports the NumPy module. The function returns
             <codeph>SUCCESS</codeph> if the module is imported, and <codeph>FAILURE</codeph> if an
           import error occurs.</p>
@@ -543,8 +543,8 @@ as $$
   except ImportError, e:
       return 'FAILURE'
 $$ language plpythonu;</codeblock>
-        <p>Create a table that contains data on each Greenplum Database segment instance. Depending
-          on the size of your Greenplum Database installation, you might need to generate more data
+        <p>Create a table that contains data on each Cloudberry Database segment instance. Depending
+          on the size of your Cloudberry Database installation, you might need to generate more data
           to ensure data is distributed to all segment instances.</p>
         <codeblock>CREATE TABLE DIST AS (SELECT x FROM generate_series(1,50) x ) DISTRIBUTED RANDOMLY ;</codeblock>
         <p>This <codeph>SELECT</codeph> command runs the UDF on the segment hosts where data is
@@ -554,24 +554,24 @@ $$ language plpythonu;</codeblock>
   GROUP BY gp_segment_id, status
   ORDER BY gp_segment_id, status;</codeblock>
         <p>The <codeph>SELECT</codeph> command returns <codeph>SUCCESS</codeph> if the UDF imported
-          the Python module on the Greenplum Database segment instance. If the
+          the Python module on the Cloudberry Database segment instance. If the
             <codeph>SELECT</codeph> command returns <codeph>FAILURE</codeph>, you can find the
-          segment host of the segment instance host. The Greenplum Database system table
+          segment host of the segment instance host. The Cloudberry Database system table
             <codeph>gp_segment_configuration</codeph> contains information about mirroring and
           segment configuration. This command returns the host name for a segment ID.</p>
         <codeblock>SELECT hostname, content AS seg_ID FROM gp_segment_configuration
   WHERE content = <varname>seg_id</varname> ;</codeblock>
         <p>If <codeph>FAILURE</codeph> is returned, these are some possible causes:</p>
         <ul id="ul_kx1_rwq_wt">
-          <li>A problem accessing required libraries. For the NumPy example, a Greenplum Database
+          <li>A problem accessing required libraries. For the NumPy example, a Cloudberry Database
             might have a problem accessing the OpenBLAS libraries or the Python libraries on a
             segment host.<p>Make sure you get no errors when running command on the segment host as
               the <codeph>gpadmin</codeph> user. This <codeph>gpssh</codeph> command tests importing
               the numpy module on the segment host
               <codeph>mdw1</codeph>.<codeblock>gpssh -s -h mdw1 python -c "import numpy"</codeblock></p></li>
           <li>If the Python <codeph>import</codeph> command does not return an error, environment
-            variables might not be configured in the Greenplum Database environment. For example,
-            the Greenplum Database might not have been restarted after installing the Python Package
+            variables might not be configured in the Cloudberry Database environment. For example,
+            the Cloudberry Database might not have been restarted after installing the Python Package
             on the host system.</li>
         </ul>
       </body>

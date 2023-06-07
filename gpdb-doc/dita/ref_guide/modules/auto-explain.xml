@@ -6,7 +6,7 @@
     <body>
       <p>The <codeph>auto_explain</codeph> module provides a means for logging execution plans of
         slow statements automatically, without having to run <codeph>EXPLAIN</codeph> by hand.</p>
-      <p>The Greenplum Database <codeph>auto_explain</codeph> module was runs only on the Greenplum
+      <p>The Cloudberry Database <codeph>auto_explain</codeph> module was runs only on the Cloudberry
         Database master segment host. It is otherwise equivalent in functionality to the PostgreSQL
           <codeph>auto_explain</codeph> module.</p>
     </body>

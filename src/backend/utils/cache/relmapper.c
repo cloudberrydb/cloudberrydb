@@ -28,7 +28,7 @@
  * all these files commit in a single map file update rather than being tied
  * to transaction commit.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -79,14 +79,14 @@
  * additional GPDB specific shared relations. Increased to 126 to occupy
  * exactly 1 kilobyte.
  *
- * New math: 126 * 8 + 16 = 1024
+ * New math: 126 * 16 + 16 = 2032
  */
 #define MAX_MAPPINGS			126		/* 62 * 8 + 16 = 512 */
 
 typedef struct RelMapping
 {
-	Oid			mapoid;			/* OID of a catalog */
-	Oid			mapfilenode;	/* its filenode number */
+	Oid			    mapoid;			/* OID of a catalog */
+	RelFileNodeId   mapfilenode;	/* its filenode number */
 } RelMapping;
 
 typedef struct RelMapFile
@@ -139,11 +139,11 @@ static RelMapFile pending_local_updates;
 
 
 /* non-export function prototypes */
-static void apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode,
+static void apply_map_update(RelMapFile *map, Oid relationId, RelFileNodeId fileNode,
 							 bool add_okay);
 static void merge_map_updates(RelMapFile *map, const RelMapFile *updates,
 							  bool add_okay);
-static void load_relmap_file(bool shared);
+static void load_relmap_file(bool shared, bool lock_held);
 static void write_relmap_file(bool shared, RelMapFile *newmap,
 							  bool write_wal, bool send_sinval, bool preserve_files,
 							  Oid dbid, Oid tsid, const char *dbpath);
@@ -162,7 +162,7 @@ static void perform_relmap_update(bool shared, const RelMapFile *updates);
  * Returns InvalidOid if the OID is not known (which should never happen,
  * but the caller is in a better position to report a meaningful error).
  */
-Oid
+RelFileNodeId
 RelationMapOidToFilenode(Oid relationId, bool shared)
 {
 	const RelMapFile *map;
@@ -216,7 +216,7 @@ RelationMapOidToFilenode(Oid relationId, bool shared)
  * relfilenode doesn't pertain to a mapped relation.
  */
 Oid
-RelationMapFilenodeToOid(Oid filenode, bool shared)
+RelationMapFilenodeToOid(RelFileNodeId filenode, bool shared)
 {
 	const RelMapFile *map;
 	int32		i;
@@ -265,7 +265,7 @@ RelationMapFilenodeToOid(Oid filenode, bool shared)
  * immediately.  Otherwise it is made pending until CommandCounterIncrement.
  */
 void
-RelationMapUpdateMap(Oid relationId, Oid fileNode, bool shared,
+RelationMapUpdateMap(Oid relationId, RelFileNodeId fileNode, bool shared,
 					 bool immediate)
 {
 	RelMapFile *map;
@@ -323,7 +323,7 @@ RelationMapUpdateMap(Oid relationId, Oid fileNode, bool shared,
  * add_okay = false to draw an error if not.
  */
 static void
-apply_map_update(RelMapFile *map, Oid relationId, Oid fileNode, bool add_okay)
+apply_map_update(RelMapFile *map, Oid relationId, RelFileNodeId fileNode, bool add_okay)
 {
 	int32		i;
 
@@ -412,12 +412,12 @@ RelationMapInvalidate(bool shared)
 	if (shared)
 	{
 		if (shared_map.magic == RELMAPPER_FILEMAGIC)
-			load_relmap_file(true);
+			load_relmap_file(true, false);
 	}
 	else
 	{
 		if (local_map.magic == RELMAPPER_FILEMAGIC)
-			load_relmap_file(false);
+			load_relmap_file(false, false);
 	}
 }
 
@@ -432,9 +432,9 @@ void
 RelationMapInvalidateAll(void)
 {
 	if (shared_map.magic == RELMAPPER_FILEMAGIC)
-		load_relmap_file(true);
+		load_relmap_file(true, false);
 	if (local_map.magic == RELMAPPER_FILEMAGIC)
-		load_relmap_file(false);
+		load_relmap_file(false, false);
 }
 
 /*
@@ -619,7 +619,7 @@ RelationMapInitializePhase2(void)
 	/*
 	 * Load the shared map file, die on error.
 	 */
-	load_relmap_file(true);
+	load_relmap_file(true, false);
 }
 
 /*
@@ -640,7 +640,7 @@ RelationMapInitializePhase3(void)
 	/*
 	 * Load the local map file, die on error.
 	 */
-	load_relmap_file(false);
+	load_relmap_file(false, false);
 }
 
 /*
@@ -702,7 +702,7 @@ RestoreRelationMap(char *startAddress)
  * Note that the local case requires DatabasePath to be set up.
  */
 static void
-load_relmap_file(bool shared)
+load_relmap_file(bool shared, bool lock_held)
 {
 	RelMapFile *map;
 	char		mapfilename[MAXPGPATH];
@@ -732,12 +732,15 @@ load_relmap_file(bool shared)
 						mapfilename)));
 
 	/*
-	 * Note: we could take RelationMappingLock in shared mode here, but it
-	 * seems unnecessary since our read() should be atomic against any
-	 * concurrent updater's write().  If the file is updated shortly after we
-	 * look, the sinval signaling mechanism will make us re-read it before we
-	 * are able to access any relation that's affected by the change.
+	 * Grab the lock to prevent the file from being updated while we read it,
+	 * unless the caller is already holding the lock.  If the file is updated
+	 * shortly after we look, the sinval signaling mechanism will make us
+	 * re-read it before we are able to access any relation that's affected by
+	 * the change.
 	 */
+	if (!lock_held)
+		LWLockAcquire(RelationMappingLock, LW_SHARED);
+
 	pgstat_report_wait_start(WAIT_EVENT_RELATION_MAP_READ);
 	r = read(fd, map, sizeof(RelMapFile));
 	if (r != sizeof(RelMapFile))
@@ -754,7 +757,10 @@ load_relmap_file(bool shared)
 	}
 	pgstat_report_wait_end();
 
-	if (CloseTransientFile(fd))
+	if (!lock_held)
+		LWLockRelease(RelationMappingLock);
+
+	if (CloseTransientFile(fd) != 0)
 		ereport(FATAL,
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m",
@@ -893,7 +899,7 @@ write_relmap_file(bool shared, RelMapFile *newmap,
 						mapfilename)));
 	pgstat_report_wait_end();
 
-	if (CloseTransientFile(fd))
+	if (CloseTransientFile(fd) != 0)
 		ereport(ERROR,
 				(errcode_for_file_access(),
 				 errmsg("could not close file \"%s\": %m",
@@ -935,8 +941,15 @@ write_relmap_file(bool shared, RelMapFile *newmap,
 		}
 	}
 
-	/* Success, update permanent copy */
-	memcpy(realmap, newmap, sizeof(RelMapFile));
+	/*
+	 * Success, update permanent copy.  During bootstrap, we might be working
+	 * on the permanent copy itself, in which case skip the memcpy() to avoid
+	 * invoking nominally-undefined behavior.
+	 */
+	if (realmap != newmap)
+		memcpy(realmap, newmap, sizeof(RelMapFile));
+	else
+		Assert(!send_sinval);	/* must be bootstrapping */
 
 	/* Critical section done */
 	if (write_wal)
@@ -969,7 +982,7 @@ perform_relmap_update(bool shared, const RelMapFile *updates)
 	LWLockAcquire(RelationMappingLock, LW_EXCLUSIVE);
 
 	/* Be certain we see any other updates just made */
-	load_relmap_file(shared);
+	load_relmap_file(shared, true);
 
 	/* Prepare updated data in a local variable */
 	if (shared)
@@ -1024,12 +1037,13 @@ relmap_redo(XLogReaderState *record)
 		 * preserve files, either.
 		 *
 		 * There shouldn't be anyone else updating relmaps during WAL replay,
-		 * so we don't bother to take the RelationMappingLock.  We would need
-		 * to do so if load_relmap_file needed to interlock against writers.
+		 * but grab the lock to interlock against load_relmap_file().
 		 */
+		LWLockAcquire(RelationMappingLock, LW_EXCLUSIVE);
 		write_relmap_file((xlrec->dbid == InvalidOid), &newmap,
 						  false, true, false,
 						  xlrec->dbid, xlrec->tsid, dbpath);
+		LWLockRelease(RelationMappingLock);
 
 		pfree(dbpath);
 	}

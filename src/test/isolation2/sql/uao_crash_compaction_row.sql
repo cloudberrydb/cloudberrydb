@@ -5,7 +5,7 @@
 -- m/ERROR:.*server closed the connection unexpectedly/
 -- s/ERROR:.*server closed the connection unexpectedly/ERROR: server closed the connection unexpectedly/gm
 -- end_matchsubs
-3:SELECT role, preferred_role, content, mode, status FROM gp_segment_configuration;
+3:SELECT role, preferred_role, content, status FROM gp_segment_configuration;
 --
 -- Test to validate crash at different points in AO/CO vacuum.
 --

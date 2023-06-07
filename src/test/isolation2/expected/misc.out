@@ -17,31 +17,38 @@ DROP
 BEGIN
 0U: set local enable_seqscan=off;
 SET
+-- start_ignore
 0U: explain analyze select * from gp_segment_configuration order by dbid;
- QUERY PLAN                                                                                                                                                  
--------------------------------------------------------------------------------------------------------------------------------------------------------------
- Index Scan using gp_segment_config_dbid_index on gp_segment_configuration  (cost=0.15..84.16 rows=2400 width=108) (actual time=0.010..0.012 rows=4 loops=1) 
- Planning Time: 2.267 ms                                                                                                                                     
-   (slice0)    Executor memory: 38K bytes (seg0).                                                                                                            
- Optimizer: Postgres query optimizer                                                                                                                         
- Execution Time: 0.110 ms                                                                                                                                    
-(5 rows)
+ QUERY PLAN
+-----------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=0.02..0.03 rows=1 width=116) (actual time=0.078..0.087 rows=1 loops=1)
+   Sort Key: gp_get_segment_configuration.dbid
+   Sort Method:  quicksort  Memory: 25kB
+   ->  Function Scan on gp_get_segment_configuration  (cost=0.00..0.01 rows=1 width=116) (actual time=0.006..0.008 rows=1 loops=1)
+ Planning Time: 0.470 ms
+   (slice0)    Executor memory: 134K bytes (seg0).  Work_mem: 17K bytes max.
+ Optimizer: Postgres query optimizer
+ Execution Time: 0.128 ms
+(8 rows)
+-- end_ignore
 0U: reset enable_seqscan;
 RESET
 0U: set local enable_indexscan=off;
 SET
+-- start_ignore
 0U: explain analyze select * from gp_segment_configuration order by dbid;
  QUERY PLAN                                                                                                                   
 ------------------------------------------------------------------------------------------------------------------------------
  Sort  (cost=168.75..174.75 rows=2400 width=108) (actual time=0.067..0.071 rows=4 loops=1)                                    
    Sort Key: dbid                                                                                                             
    Sort Method:  quicksort  Memory: 50kB                                                                                      
-   ->  Seq Scan on gp_segment_configuration  (cost=0.00..34.00 rows=2400 width=108) (actual time=0.010..0.012 rows=4 loops=1) 
+   ->  Function Scan on gp_get_segment_configuration  (cost=0.00..0.01 rows=1 width=116) (actual time=0.002..0.002 rows=1 loops=1)
  Planning Time: 0.331 ms                                                                                                      
    (slice0)    Executor memory: 59K bytes (seg0).                                                                             
  Optimizer: Postgres query optimizer                                                                                          
  Execution Time: 0.136 ms                                                                                                     
 (8 rows)
+-- end_ignore
 0U: rollback;
 ROLLBACK
 

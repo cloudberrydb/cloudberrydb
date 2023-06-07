@@ -3,7 +3,7 @@
 # Makefile--
 #    Makefile for utils/gp
 #
-# Portions Copyright (c) Greenplum 2010
+# Portions Copyright (c) Cloudberry 2010
 # Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
 #
 #

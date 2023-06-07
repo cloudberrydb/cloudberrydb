@@ -8,7 +8,7 @@
       segment is unavailable. By default, mirrors are configured on the same array of hosts as the
       primary segments. You may choose a completely different set of hosts for your mirror segments
       so they do not share machines with any of your primary segments.</p>
-    <note type="important">During the online data replication process, Greenplum Database should be
+    <note type="important">During the online data replication process, Cloudberry Database should be
       in a quiescent state, workloads and other queries should not be running.</note>
     <section id="ki169450">
       <title>To add segment mirrors to an existing system (same hosts as primaries)</title>
@@ -21,7 +21,7 @@
           other without a password prompt.</li>
         <li id="ki156993">Run the <xref
               href="../../../utility_guide/ref/gpaddmirrors.xml" type="topic"
-              format="dita"/> utility to enable mirroring in your Greenplum Database
+              format="dita"/> utility to enable mirroring in your Cloudberry Database
           system. For example, to add 10000 to your primary segment port numbers to calculate the
           mirror segment port numbers:<codeblock>$ gpaddmirrors -p 10000</codeblock> Where
             <codeph>-p</codeph> specifies the number to add to your primary segment port numbers.
@@ -31,8 +31,8 @@
     <section>
       <title>To add segment mirrors to an existing system (different hosts from primaries)</title>
       <ol>
-        <li id="ki155416">Ensure the Greenplum Database software is installed on all hosts. <ph>See
-            the <i>Greenplum Database Installation Guide</i> for detailed installation
+        <li id="ki155416">Ensure the Cloudberry Database software is installed on all hosts. <ph>See
+            the <i>Cloudberry Database Installation Guide</i> for detailed installation
             instructions.</ph></li>
         <li id="ki161799">Allocate the data storage area for mirror data, and tablespaces if needed,
           on all segment hosts.</li>
@@ -54,7 +54,7 @@
 2=0|sdw2-1|41000|/data/mirror1/gp0
 3=1|sdw2-2|41001|/data/mirror2/gp1</codeblock></li>
         <li id="ki155430">Run the <codeph>gpaddmirrors</codeph> utility to enable mirroring in your
-          Greenplum Database
+          Cloudberry Database
             system:<codeblock>$ gpaddmirrors -i &lt;mirror_config_file></codeblock><p>The
               <codeph>-i</codeph> option specifies the mirror configuration file you created.</p>
         </li>

@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 # Tests that unlogged tables are properly reinitialized after a crash.
 #
 # The behavior should be the same when restoring from a backup, but
@@ -30,9 +33,7 @@ ok(-f "$pgdata/$baseUnloggedPath",        'main fork in base exists');
 
 my $tablespaceDir = TestLib::tempdir;
 
-my $realTSDir = TestLib::perl2host($tablespaceDir);
-
-$node->safe_psql('postgres', "CREATE TABLESPACE ts1 LOCATION '$realTSDir'");
+$node->safe_psql('postgres', "CREATE TABLESPACE ts1 LOCATION '$tablespaceDir'");
 $node->safe_psql('postgres',
 	'CREATE UNLOGGED TABLE ts1_unlogged (id int) TABLESPACE ts1');
 

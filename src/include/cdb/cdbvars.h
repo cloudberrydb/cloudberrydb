@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * cdbvars.h
- *	  definitions for Greenplum-specific global variables
+ *	  definitions for Cloudberry-specific global variables
  *
- * Portions Copyright (c) 2003-2010, Greenplum inc
+ * Portions Copyright (c) 2003-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -20,10 +20,13 @@
 #define CDBVARS_H
 
 #include "access/xlogdefs.h"  /*XLogRecPtr*/
+#include "cdb/cdbutil.h" /* MASTER_CONTENT_ID */
+#ifdef USE_INTERNAL_FTS
 #include "catalog/gp_segment_configuration.h" /* MASTER_CONTENT_ID */
+#endif
 
 /*
- * ----- Declarations of Greenplum-specific global variables ------
+ * ----- Declarations of Cloudberry-specific global variables ------
  */
 
 #define WRITER_IS_MISSING_MSG "reader could not find writer proc entry"
@@ -88,7 +91,7 @@ extern bool Gp_is_writer;
 /* Parameter gp_session_id
  *
  * This run time parameter indicates a unique id to identify a particular user
- * session throughout the entire Greenplum array.
+ * session throughout the entire Cloudberry array.
  */
 extern int gp_session_id;
 #define InvalidGpSessionId	(-1)
@@ -245,9 +248,11 @@ extern const char *role_to_string(GpRoleValue role);
 extern int	gp_segment_connect_timeout; /* GUC var - timeout specifier for gang creation */
 extern int	gp_snapshotadd_timeout; /* GUC var - timeout specifier for snapshot-creation wait */
 
+#ifdef USE_INTERNAL_FTS
 extern int	gp_fts_probe_retries; /* GUC var - specifies probe number of retries for FTS */
 extern int	gp_fts_probe_timeout; /* GUC var - specifies probe timeout for FTS */
 extern int	gp_fts_probe_interval; /* GUC var - specifies polling interval for FTS */
+#endif
 extern int gp_fts_mark_mirror_down_grace_period;
 extern int	gp_fts_replication_attempt_count; /* GUC var - specifies replication max attempt count for FTS */
 extern int  gp_dtx_recovery_interval;
@@ -463,7 +468,7 @@ extern int gp_log_fts;
 extern int gp_log_interconnect;
 
 /* --------------------------------------------------------------------------------------------------
- * Greenplum Optimizer GUCs
+ * Cloudberry Optimizer GUCs
  */
 
 /*
@@ -530,6 +535,8 @@ extern bool gp_selectivity_damping_for_joins;
  */
 extern double gp_selectivity_damping_factor;
 
+extern bool gp_enable_runtime_filter;
+
 /*
  * Sort selectivities by significance before applying
  * damping (ON by default)
@@ -542,7 +549,7 @@ extern bool gp_selectivity_damping_sigsort;
 /*
  * "gp_enable_agg_distinct"
  *
- * May Greenplum redistribute on the argument of a lone aggregate distinct in
+ * May Cloudberry redistribute on the argument of a lone aggregate distinct in
  * order to use 2-phase aggregation?
  *
  * The code does uses planner estimates to decide whether to use this feature,
@@ -550,10 +557,18 @@ extern bool gp_selectivity_damping_sigsort;
  */
 extern bool gp_enable_agg_distinct;
 
+
+/*
+ * "gp_enable_ao_indexscan"
+ *
+ * May Cloudberry allow Append-Optimized table use IndexScan path.
+ */
+extern bool gp_enable_ao_indexscan;
+
 /*
  * "gp_enable_agg_distinct_pruning"
  *
- * May Greenplum use grouping in the first phases of 3-phase aggregation to
+ * May Cloudberry use grouping in the first phases of 3-phase aggregation to
  * prune values from DISTINCT-qualified aggregate function arguments?
  *
  * The code uses planner estimates to decide whether to use this feature,
@@ -561,7 +576,9 @@ extern bool gp_enable_agg_distinct;
  */
 extern bool gp_enable_dqa_pruning;
 
-/* May Greenplum apply Unique operator (and possibly a Sort) in parallel prior
+extern bool gp_enable_agg_pushdown;
+
+/* May Cloudberry apply Unique operator (and possibly a Sort) in parallel prior
  * to the collocation motion for a Unique operator?  The idea is to reduce
  * the number of rows moving over the interconnect.
  *
@@ -571,7 +588,7 @@ extern bool gp_enable_dqa_pruning;
  */
 extern bool gp_enable_preunique;
 
-/* May Greenplum dump statistics for all segments as a huge ugly string
+/* May Cloudberry dump statistics for all segments as a huge ugly string
  * during EXPLAIN ANALYZE?
  *
  */
@@ -582,7 +599,7 @@ extern bool gp_enable_explain_allstat;
  */
 extern int explain_memory_verbosity;
 
-/* May Greenplum restrict ORDER BY sorts to the first N rows if the ORDER BY
+/* May Cloudberry restrict ORDER BY sorts to the first N rows if the ORDER BY
  * is wrapped by a LIMIT clause (where N=OFFSET+LIMIT)?
  *
  * The code does not currently use planner estimates for this.  If enabled,
@@ -590,7 +607,7 @@ extern int explain_memory_verbosity;
  */
 extern bool gp_enable_sort_limit;
 
-/* May Greenplum discard duplicate rows in sort if it is is wrapped by a
+/* May Cloudberry discard duplicate rows in sort if it is is wrapped by a
  * DISTINCT clause (unique aggregation operator)?
  *
  * The code does not currently use planner estimates for this.  If enabled,

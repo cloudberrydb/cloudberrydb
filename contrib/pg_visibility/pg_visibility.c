@@ -3,7 +3,7 @@
  * pg_visibility.c
  *	  display visibility map information and page-level visibility bits
  *
- * Copyright (c) 2016-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2016-2021, PostgreSQL Global Development Group
  *
  *	  contrib/pg_visibility/pg_visibility.c
  *-------------------------------------------------------------------------
@@ -383,6 +383,8 @@ pg_truncate_visibility_map(PG_FUNCTION_ARGS)
 {
 	Oid			relid = PG_GETARG_OID(0);
 	Relation	rel;
+	ForkNumber	fork;
+	BlockNumber block;
 
 	rel = relation_open(relid, AccessExclusiveLock);
 
@@ -390,9 +392,14 @@ pg_truncate_visibility_map(PG_FUNCTION_ARGS)
 	check_relation_relkind(rel);
 
 	RelationOpenSmgr(rel);
-	rel->rd_smgr->smgr_vm_nblocks = InvalidBlockNumber;
+	rel->rd_smgr->smgr_cached_nblocks[VISIBILITYMAP_FORKNUM] = InvalidBlockNumber;
 
-	visibilitymap_truncate(rel, 0);
+	block = visibilitymap_prepare_truncate(rel, 0);
+	if (BlockNumberIsValid(block))
+	{
+		fork = VISIBILITYMAP_FORKNUM;
+		smgrtruncate(rel->rd_smgr, &fork, 1, &block);
+	}
 
 	if (RelationNeedsWAL(rel))
 	{
@@ -418,7 +425,7 @@ pg_truncate_visibility_map(PG_FUNCTION_ARGS)
 	 * here and when we sent the messages at our eventual commit.  However,
 	 * we're currently only sending a non-transactional smgr invalidation,
 	 * which will have been posted to shared memory immediately from within
-	 * visibilitymap_truncate.  Therefore, there should be no race here.
+	 * smgr_truncate.  Therefore, there should be no race here.
 	 *
 	 * The reason why it's desirable to release the lock early here is because
 	 * of the possibility that someone will need to use this to blow away many
@@ -556,16 +563,13 @@ collect_corrupt_items(Oid relid, bool all_visible, bool all_frozen)
 	BufferAccessStrategy bstrategy = GetAccessStrategy(BAS_BULKREAD);
 	TransactionId OldestXmin = InvalidTransactionId;
 
-	if (all_visible)
-	{
-		/* Don't pass rel; that will fail in recovery. */
-		OldestXmin = GetOldestXmin(NULL, PROCARRAY_FLAGS_VACUUM);
-	}
-
 	rel = relation_open(relid, AccessShareLock);
 
 	/* Only some relkinds have a visibility map */
 	check_relation_relkind(rel);
+
+	if (all_visible)
+		OldestXmin = GetOldestNonRemovableTransactionId(rel);
 
 	nblocks = RelationGetNumberOfBlocks(rel);
 
@@ -672,11 +676,12 @@ collect_corrupt_items(Oid relid, bool all_visible, bool all_frozen)
 				 * From a concurrency point of view, it sort of sucks to
 				 * retake ProcArrayLock here while we're holding the buffer
 				 * exclusively locked, but it should be safe against
-				 * deadlocks, because surely GetOldestXmin() should never take
-				 * a buffer lock. And this shouldn't happen often, so it's
-				 * worth being careful so as to avoid false positives.
+				 * deadlocks, because surely
+				 * GetOldestNonRemovableTransactionId() should never take a
+				 * buffer lock. And this shouldn't happen often, so it's worth
+				 * being careful so as to avoid false positives.
 				 */
-				RecomputedOldestXmin = GetOldestXmin(NULL, PROCARRAY_FLAGS_VACUUM);
+				RecomputedOldestXmin = GetOldestNonRemovableTransactionId(rel);
 
 				if (!TransactionIdPrecedes(OldestXmin, RecomputedOldestXmin))
 					record_corrupt_item(items, &tuple.t_self);

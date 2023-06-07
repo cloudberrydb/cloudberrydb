@@ -80,12 +80,15 @@ SELECT count(*) FROM enumtmp WHERE a >  'g'::rainbow;
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM enumtmp WHERE a >= 'g'::rainbow;
-                  QUERY PLAN                   
------------------------------------------------
- Aggregate
-   ->  Bitmap Heap Scan on enumtmp
-         Recheck Cond: (a >= 'g'::rainbow)
-         ->  Bitmap Index Scan on enumidx
-               Index Cond: (a >= 'g'::rainbow)
-(5 rows)
+                        QUERY PLAN                         
+-----------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         ->  Partial Aggregate
+               ->  Bitmap Heap Scan on enumtmp
+                     Recheck Cond: (a >= 'g'::rainbow)
+                     ->  Bitmap Index Scan on enumidx
+                           Index Cond: (a >= 'g'::rainbow)
+ Optimizer: Postgres query optimizer
+(8 rows)
 

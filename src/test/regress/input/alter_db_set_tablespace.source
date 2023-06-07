@@ -643,8 +643,6 @@ CREATE TABLE before_alter AS SELECT * FROM stat_db_objects('alter_db', 'adst_sou
 SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
 -- Force scan to trigger the fault.
 SELECT gp_request_fts_probe_scan();
--- Verify the failure should be triggered once.
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
 
 -- And we track the removal of the dboid dir by all mirrors including the standby master, except the mirror of the primary about to panic.
 SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM gp_segment_configuration c WHERE role='m' AND content!=0;
@@ -712,8 +710,6 @@ CREATE TABLE before_alter AS SELECT * FROM stat_db_objects('alter_db', 'adst_sou
 SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
 -- Force scan to trigger the fault.
 SELECT gp_request_fts_probe_scan();
--- Verify the failure should be triggered once.
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, 1);
 
 -- And we track the removal of the dboid dir by all mirrors including the standby master.
 SELECT gp_inject_fault('after_drop_database_directories', 'sleep', c.dbid) FROM gp_segment_configuration c WHERE role='m';

@@ -1060,9 +1060,9 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 = 5 ORDER BY col2,col3 LIMIT 5;
 ------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=2 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_1_prt_part1.col2, pt_lt_tab_1_prt_part1.col3
          ->  Sort  (cost=0.00..431.00 rows=1 width=12)
-               Sort Key: col2, col3
+               Sort Key: pt_lt_tab_1_prt_part1.col2, pt_lt_tab_1_prt_part1.col3
                ->  Append  (cost=0.00..431.00 rows=1 width=12)
                      ->  Seq Scan on pt_lt_tab_1_prt_part1  (cost=0.00..431.00 rows=1 width=12)
                            Filter: (col2 = '5'::numeric)
@@ -1249,10 +1249,10 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 > 50 ORDER BY col2,col3 LIMIT 5;
 -------------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=5 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_df_1_prt_def.col2, pt_lt_tab_df_1_prt_def.col3
          ->  Limit  (cost=0.00..431.00 rows=2 width=12)
                ->  Sort  (cost=0.00..431.00 rows=4 width=12)
-                     Sort Key: col2, col3
+                     Sort Key: pt_lt_tab_df_1_prt_def.col2, pt_lt_tab_df_1_prt_def.col3
                      ->  Append  (cost=0.00..431.00 rows=4 width=12)
                            ->  Seq Scan on pt_lt_tab_df_1_prt_def  (cost=0.00..431.00 rows=4 width=12)
                                  Filter: (col2 > '50'::numeric)
@@ -1270,9 +1270,9 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 = 50 ORDER BY col2,col3 LIMIT 5;
 -----------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=1 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_df_1_prt_part5.col2, pt_lt_tab_df_1_prt_part5.col3
          ->  Sort  (cost=0.00..431.00 rows=1 width=12)
-               Sort Key: col2, col3
+               Sort Key: pt_lt_tab_df_1_prt_part5.col2, pt_lt_tab_df_1_prt_part5.col3
                ->  Append  (cost=0.00..431.00 rows=1 width=12)
                      ->  Seq Scan on pt_lt_tab_df_1_prt_part5  (cost=0.00..431.00 rows=1 width=12)
                            Filter: (col2 = '50'::numeric)
@@ -1411,10 +1411,10 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 > 51 ORDER BY col2,col3 LIMIT 5;
 -------------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=5 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_df_1_prt_def.col2, pt_lt_tab_df_1_prt_def.col3
          ->  Limit  (cost=0.00..431.00 rows=2 width=12)
                ->  Sort  (cost=0.00..431.00 rows=4 width=12)
-                     Sort Key: col2, col3
+                     Sort Key: pt_lt_tab_df_1_prt_def.col2, pt_lt_tab_df_1_prt_def.col3
                      ->  Append  (cost=0.00..431.00 rows=4 width=12)
                            ->  Seq Scan on pt_lt_tab_df_1_prt_def  (cost=0.00..431.00 rows=4 width=12)
                                  Filter: (col2 > '51'::numeric)
@@ -1432,9 +1432,9 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 = 50 ORDER BY col2,col3 LIMIT 5;
 ---------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=1 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_df_1_prt_part5.col2, pt_lt_tab_df_1_prt_part5.col3
          ->  Sort  (cost=0.00..431.00 rows=1 width=12)
-               Sort Key: col2, col3
+               Sort Key: pt_lt_tab_df_1_prt_part5.col2, pt_lt_tab_df_1_prt_part5.col3
                ->  Append  (cost=0.00..431.00 rows=1 width=12)
                      ->  Seq Scan on pt_lt_tab_df_1_prt_part5  (cost=0.00..431.00 rows=1 width=12)
                            Filter: (col2 = '50'::numeric)
@@ -1477,9 +1477,9 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 = 50 ORDER BY col2,col3 LIMIT 5;
 ---------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=1 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_df_1_prt_part5.col2, pt_lt_tab_df_1_prt_part5.col3
          ->  Sort  (cost=0.00..431.00 rows=1 width=12)
-               Sort Key: col2, col3
+               Sort Key: pt_lt_tab_df_1_prt_part5.col2, pt_lt_tab_df_1_prt_part5.col3
                ->  Append  (cost=0.00..431.00 rows=1 width=12)
                      ->  Seq Scan on pt_lt_tab_df_1_prt_part5  (cost=0.00..431.00 rows=1 width=12)
                            Filter: (col2 = '50'::numeric)
@@ -1570,9 +1570,9 @@ EXPLAIN SELECT * FROM pt_lt_tab_df WHERE col2 = 35 ORDER BY col2,col3 LIMIT 5;
 ---------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=2 width=12)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=2 width=12)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_df_1_prt_part4.col2, pt_lt_tab_df_1_prt_part4.col3
          ->  Sort  (cost=0.00..431.00 rows=1 width=12)
-               Sort Key: col2, col3
+               Sort Key: pt_lt_tab_df_1_prt_part4.col2, pt_lt_tab_df_1_prt_part4.col3
                ->  Append  (cost=0.00..431.00 rows=1 width=12)
                      ->  Seq Scan on pt_lt_tab_df_1_prt_part4  (cost=0.00..431.00 rows=1 width=12)
                            Filter: (col2 = '35'::numeric)
@@ -1715,10 +1715,10 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
 -----------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=5 width=8)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=8)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_1_prt_part5.col2, pt_lt_tab_1_prt_part5.col3
          ->  Limit  (cost=0.00..431.00 rows=2 width=8)
                ->  Sort  (cost=0.00..431.00 rows=4 width=8)
-                     Sort Key: col2, col3
+                     Sort Key: pt_lt_tab_1_prt_part5.col2, pt_lt_tab_1_prt_part5.col3
                      ->  Append  (cost=0.00..431.00 rows=4 width=8)
                            ->  Seq Scan on pt_lt_tab_1_prt_part5  (cost=0.00..431.00 rows=4 width=8)
                                  Filter: (col2 > '41'::numeric)
@@ -1741,10 +1741,10 @@ EXPLAIN SELECT * FROM pt_lt_tab WHERE col2 > 41 ORDER BY col2,col3 LIMIT 5;
 -----------------------------------------------------------------------------------------------------
  Limit  (cost=0.00..431.00 rows=5 width=7)
    ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=5 width=7)
-         Merge Key: col2, col3
+         Merge Key: pt_lt_tab_1_prt_part5.col2, pt_lt_tab_1_prt_part5.col3
          ->  Limit  (cost=0.00..431.00 rows=2 width=7)
                ->  Sort  (cost=0.00..431.00 rows=4 width=7)
-                     Sort Key: col2, col3
+                     Sort Key: pt_lt_tab_1_prt_part5.col2, pt_lt_tab_1_prt_part5.col3
                      ->  Append  (cost=0.00..431.00 rows=4 width=7)
                            ->  Seq Scan on pt_lt_tab_1_prt_part5  (cost=0.00..431.00 rows=4 width=7)
                                  Filter: (col2 > '41'::numeric)
@@ -1768,29 +1768,29 @@ SELECT * FROM pt_complex WHERE i = 1 AND j = 1;
 (1 row)
 
 EXPLAIN SELECT * FROM pt_complex WHERE i = 1 AND j = 1;
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=100.65..6405.82 rows=9 width=20)
-   ->  Append  (cost=100.65..6405.82 rows=3 width=20)
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p11  (cost=100.65..1601.46 rows=1 width=20)
+                                                        QUERY PLAN                                                        
+--------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)  (cost=4.65..147.85 rows=12 width=20)
+   ->  Append  (cost=4.65..147.69 rows=4 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p11 pt_complex_1  (cost=4.65..36.92 rows=1 width=20)
                Recheck Cond: (i = 1)
                Filter: (j = 1)
-               ->  Bitmap Index Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p11_i_idx  (cost=0.00..100.65 rows=22 width=0)
+               ->  Bitmap Index Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p11_i_idx  (cost=0.00..4.65 rows=22 width=0)
                      Index Cond: (i = 1)
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p12  (cost=100.65..1601.46 rows=1 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p12 pt_complex_2  (cost=4.65..36.92 rows=1 width=20)
                Recheck Cond: (i = 1)
                Filter: (j = 1)
-               ->  Bitmap Index Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p12_i_idx  (cost=0.00..100.65 rows=22 width=0)
+               ->  Bitmap Index Scan on pt_complex_1_prt_p1_2_prt_p11_3_prt_p12_i_idx  (cost=0.00..4.65 rows=22 width=0)
                      Index Cond: (i = 1)
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p11  (cost=100.65..1601.46 rows=1 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p11 pt_complex_3  (cost=4.65..36.92 rows=1 width=20)
                Recheck Cond: (i = 1)
                Filter: (j = 1)
-               ->  Bitmap Index Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p11_i_idx  (cost=0.00..100.65 rows=22 width=0)
+               ->  Bitmap Index Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p11_i_idx  (cost=0.00..4.65 rows=22 width=0)
                      Index Cond: (i = 1)
-         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p12  (cost=100.65..1601.46 rows=1 width=20)
+         ->  Bitmap Heap Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p12 pt_complex_4  (cost=4.65..36.92 rows=1 width=20)
                Recheck Cond: (i = 1)
                Filter: (j = 1)
-               ->  Bitmap Index Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p12_i_idx  (cost=0.00..100.65 rows=22 width=0)
+               ->  Bitmap Index Scan on pt_complex_1_prt_p2_2_prt_p11_3_prt_p12_i_idx  (cost=0.00..4.65 rows=22 width=0)
                      Index Cond: (i = 1)
  Optimizer: Postgres query optimizer
 (23 rows)
@@ -1834,7 +1834,7 @@ explain select * from ds_4 where month_id = '200800';
          ->  Seq Scan on ds_4_1_prt_p200800  (cost=0.00..431.00 rows=1 width=71)
                Filter: ((month_id)::text = '200800'::text)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(5 rows)
 
 -- now we can evaluate this function at planning/prune time
 -- start_ignore
@@ -2181,7 +2181,7 @@ $BODY$ LANGUAGE plpgsql IMMUTABLE;
 drop table if exists mytable cascade;
 NOTICE:  table "mytable" does not exist, skipping
 create table mytable(i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mytable select x, x+1 from generate_series(1, 100000) as x;
 analyze mytable;
@@ -2238,7 +2238,7 @@ $$
 language plpython3u;
 drop table if exists partprune_foo;
 create table partprune_foo(a int, b int, c int) partition by range (b) (start (1) end (101) every (10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into partprune_foo select g % 5 + 1, g + 1, g % 10 + 1 from generate_series(0, 99) g;
 analyze partprune_foo;
@@ -2664,7 +2664,7 @@ select get_selected_parts('explain analyze select * from DATE_PARTS where month 
 create table foo(a int, b int)
 partition by list (b)
 (partition p1 values(1,3), partition p2 values(4,2), default partition other);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- General predicate
 -- Total 6 parts. b = 1: 1 part, b > 3: 2 parts, b in (0, 1): 2 parts. b is null: 1 part
@@ -2764,7 +2764,7 @@ drop table if exists sales_exchange_part;
 NOTICE:  table "sales_exchange_part" does not exist, skipping
 create table sales_exchange_part (trans_id int, date date, amount 
 decimal(9,2), region text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'trans_id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'trans_id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- Insert some data
 insert into sales_exchange_part values(1, '2011-01-01', 10.1, 'usa');
@@ -2792,7 +2792,7 @@ explain select * from sales where date = '2011-01-01' and region = 'usa';
                                                       QUERY PLAN                                                       
 -----------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.12..8.16 rows=1 width=19)
-   ->  Index Scan using sales_1_prt_2_2_prt_usa_date_idx on sales_1_prt_2_2_prt_usa  (cost=0.12..8.14 rows=1 width=19)
+   ->  Index Scan using sales_1_prt_2_2_prt_usa_date_idx on sales_1_prt_2_2_prt_usa sales  (cost=0.12..8.14 rows=1 width=19)
          Index Cond: (date = '01-01-2011'::date)
          Filter: (region = 'usa'::text)
  Optimizer: Postgres query optimizer
@@ -2842,7 +2842,7 @@ partition by list (j)
 subpartition by range (i) subpartition template (start(1) end(4) every(2))
 (partition p1 values(0.2,2.8, NULL), partition p2 values(1.7,3.1),
 partition p3 values(5.6), default partition other);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into bar values(1, 0.2); --p1
 insert into bar values(1, 1.7); --p2

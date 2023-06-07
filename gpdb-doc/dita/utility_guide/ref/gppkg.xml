@@ -4,7 +4,7 @@
 <topic id="topic1">
     <title id="jt142031">gppkg</title>
     <body>
-        <p>Installs Greenplum Database extensions in <codeph>.gppkg</codeph> format, such as
+        <p>Installs Cloudberry Database extensions in <codeph>.gppkg</codeph> format, such as
             PL/Java, PL/R<ph otherprops="pivotal">, PostGIS</ph>, and MADlib, along with their
             dependencies, across an entire cluster.</p>
         <section id="section2">
@@ -22,14 +22,14 @@
         </section>
         <section id="section3">
             <title>Description</title>
-            <p>The Greenplum Package Manager (<codeph>gppkg</codeph>) utility installs Greenplum
+            <p>The Cloudberry Package Manager (<codeph>gppkg</codeph>) utility installs Cloudberry
                 Database extensions, along with any dependencies, on all hosts across a cluster. It
                 will also automatically install extensions on new hosts in the case of system
                 expansion and segment recovery.</p>
-            <note type="note">After a major upgrade to Greenplum Database, you must download and
+            <note type="note">After a major upgrade to Cloudberry Database, you must download and
                 install all <codeph>gppkg</codeph> extensions again.</note>
             <p otherprops="pivotal">Examples of database extensions and packages software that are
-                delivered using the Greenplum Package Manager are:<ul id="ul_g35_g2j_f1b">
+                delivered using the Cloudberry Package Manager are:<ul id="ul_g35_g2j_f1b">
                     <li>PL/Java</li>
                     <li>PL/R</li>
                     <li id="jt141959" otherprops="pivotal">PostGIS</li>
@@ -64,7 +64,7 @@
                     <pt>--migrate <varname>GPHOME_old</varname>
                         <varname>GPHOME_new</varname></pt>
                     <pd>Migrates packages from a separate <codeph>$GPHOME</codeph>. Carries over
-                        packages from one version of Greenplum Database to another.</pd>
+                        packages from one version of Cloudberry Database to another.</pd>
                     <pd>For example: <codeph>gppkg --migrate
                             /usr/local/greenplum-db-&lt;old-version>
                             /usr/local/greenplum-db-&lt;new-version></codeph></pd>
@@ -76,10 +76,10 @@
                     </pd>
                     <pd>When migrating packages, these requirements must be met.<ul
                             id="ul_sx3_hwx_41b">
-                            <li>At least the coordinator instance of the destination Greenplum Database
+                            <li>At least the coordinator instance of the destination Cloudberry Database
                                 must be started (the instance installed in
                                     <varname>GPHOME_new</varname>). Before running the
-                                    <codeph>gppkg</codeph> command start the Greenplum Database
+                                    <codeph>gppkg</codeph> command start the Cloudberry Database
                                 coordinator with the command <codeph>gpstart -m</codeph>.</li>
                             <li>Run the <codeph>gppkg</codeph> utility from the
                                     <varname>GPHOME_new</varname> installation. The migration

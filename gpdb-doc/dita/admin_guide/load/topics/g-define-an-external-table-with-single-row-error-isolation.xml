@@ -4,7 +4,7 @@
 <topic id="topic56">
    <title>Define an External Table with Single Row Error Isolation</title>
    <body>
-      <p>The following example logs errors internally in Greenplum Database and sets an error
+      <p>The following example logs errors internally in Cloudberry Database and sets an error
          threshold of 10 errors.</p>
       <p>
          <codeblock>=# CREATE EXTERNAL TABLE ext_expenses ( name text, 

@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2012 EMC Greenplum
+//	Cloudberry Database
+//	Copyright (C) 2012 EMC Cloudberry
 //
 //	@filename:
 //		COptColInfo.h

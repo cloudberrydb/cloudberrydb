@@ -4,7 +4,7 @@
  *
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/executor/nodeBitmapHeapscan.h
@@ -14,8 +14,8 @@
 #ifndef NODEBITMAPHEAPSCAN_H
 #define NODEBITMAPHEAPSCAN_H
 
-#include "nodes/execnodes.h"
 #include "access/parallel.h"
+#include "nodes/execnodes.h"
 
 extern BitmapHeapScanState *ExecInitBitmapHeapScan(BitmapHeapScan *node, EState *estate, int eflags);
 extern BitmapHeapScanState *ExecInitBitmapHeapScanForPartition(BitmapHeapScan *node, EState *estate, int eflags, Relation currentRelation);

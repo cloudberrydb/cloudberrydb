@@ -3,7 +3,7 @@
  * partdesc.c
  *		Support routines for manipulating partition descriptors
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -17,7 +17,6 @@
 #include "access/genam.h"
 #include "access/htup_details.h"
 #include "access/table.h"
-#include "catalog/indexing.h"
 #include "catalog/partition.h"
 #include "catalog/pg_inherits.h"
 #include "partitioning/partbounds.h"
@@ -25,19 +24,20 @@
 #include "storage/bufmgr.h"
 #include "storage/sinval.h"
 #include "utils/builtins.h"
-#include "utils/inval.h"
 #include "utils/fmgroids.h"
 #include "utils/hsearch.h"
+#include "utils/inval.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
-#include "utils/rel.h"
 #include "utils/partcache.h"
+#include "utils/rel.h"
 #include "utils/syscache.h"
 
 typedef struct PartitionDirectoryData
 {
 	MemoryContext pdir_mcxt;
 	HTAB	   *pdir_hash;
+	bool		omit_detached;
 }			PartitionDirectoryData;
 
 typedef struct PartitionDirectoryEntry
@@ -47,29 +47,115 @@ typedef struct PartitionDirectoryEntry
 	PartitionDesc pd;
 } PartitionDirectoryEntry;
 
+static PartitionDesc RelationBuildPartitionDesc(Relation rel,
+												bool omit_detached);
+
+
+/*
+ * RelationGetPartitionDesc -- get partition descriptor, if relation is partitioned
+ *
+ * We keep two partdescs in relcache: rd_partdesc includes all partitions
+ * (even those being concurrently marked detached), while rd_partdesc_nodetach
+ * omits (some of) those.  We store the pg_inherits.xmin value for the latter,
+ * to determine whether it can be validly reused in each case, since that
+ * depends on the active snapshot.
+ *
+ * Note: we arrange for partition descriptors to not get freed until the
+ * relcache entry's refcount goes to zero (see hacks in RelationClose,
+ * RelationClearRelation, and RelationBuildPartitionDesc).  Therefore, even
+ * though we hand back a direct pointer into the relcache entry, it's safe
+ * for callers to continue to use that pointer as long as (a) they hold the
+ * relation open, and (b) they hold a relation lock strong enough to ensure
+ * that the data doesn't become stale.
+ */
+PartitionDesc
+RelationGetPartitionDesc(Relation rel, bool omit_detached)
+{
+	Assert(rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE);
+
+	/*
+	 * If relcache has a partition descriptor, use that.  However, we can only
+	 * do so when we are asked to include all partitions including detached;
+	 * and also when we know that there are no detached partitions.
+	 *
+	 * If there is no active snapshot, detached partitions aren't omitted
+	 * either, so we can use the cached descriptor too in that case.
+	 */
+	if (likely(rel->rd_partdesc &&
+			   (!rel->rd_partdesc->detached_exist || !omit_detached ||
+				!ActiveSnapshotSet())))
+		return rel->rd_partdesc;
+
+	/*
+	 * If we're asked to omit detached partitions, we may be able to use a
+	 * cached descriptor too.  We determine that based on the pg_inherits.xmin
+	 * that was saved alongside that descriptor: if the xmin that was not in
+	 * progress for that active snapshot is also not in progress for the
+	 * current active snapshot, then we can use use it.  Otherwise build one
+	 * from scratch.
+	 */
+	if (omit_detached &&
+		rel->rd_partdesc_nodetached &&
+		ActiveSnapshotSet())
+	{
+		Snapshot	activesnap;
+		bool setDistributedSnapshotIgnore = false;
+		XidInMVCCSnapshotCheckResult snapshotCheckResult;
+
+		Assert(TransactionIdIsValid(rel->rd_partdesc_nodetached_xmin));
+		activesnap = GetActiveSnapshot();
+
+		/* We only have a xmin. There is no tuple's infomask2 to be checked. */
+		snapshotCheckResult = XidInMVCCSnapshot(rel->rd_partdesc_nodetached_xmin, activesnap,
+												false, &setDistributedSnapshotIgnore);
+
+		if (snapshotCheckResult != XID_IN_SNAPSHOT)
+			return rel->rd_partdesc_nodetached;
+	}
+
+	return RelationBuildPartitionDesc(rel, omit_detached);
+}
+
 /*
  * RelationBuildPartitionDesc
  *		Form rel's partition descriptor, and store in relcache entry
  *
- * Note: the descriptor won't be flushed from the cache by
- * RelationClearRelation() unless it's changed because of
- * addition or removal of a partition.  Hence, code holding a lock
- * that's sufficient to prevent that can assume that rd_partdesc
- * won't change underneath it.
+ * Partition descriptor is a complex structure; to avoid complicated logic to
+ * free individual elements whenever the relcache entry is flushed, we give it
+ * its own memory context, a child of CacheMemoryContext, which can easily be
+ * deleted on its own.  To avoid leaking memory in that context in case of an
+ * error partway through this function, the context is initially created as a
+ * child of CurTransactionContext and only re-parented to CacheMemoryContext
+ * at the end, when no further errors are possible.  Also, we don't make this
+ * context the current context except in very brief code sections, out of fear
+ * that some of our callees allocate memory on their own which would be leaked
+ * permanently.
+ *
+ * As a special case, partition descriptors that are requested to omit
+ * partitions being detached (and which contain such partitions) are transient
+ * and are not associated with the relcache entry.  Such descriptors only last
+ * through the requesting Portal, so we use the corresponding memory context
+ * for them.
  */
-void
-RelationBuildPartitionDesc(Relation rel)
+static PartitionDesc
+RelationBuildPartitionDesc(Relation rel, bool omit_detached)
 {
 	PartitionDesc partdesc;
 	PartitionBoundInfo boundinfo = NULL;
 	List	   *inhoids;
 	PartitionBoundSpec **boundspecs = NULL;
 	Oid		   *oids = NULL;
+	bool	   *is_leaf = NULL;
+	bool		detached_exist;
+	bool		is_omit;
+	TransactionId detached_xmin;
 	ListCell   *cell;
 	int			i,
 				nparts;
 	PartitionKey key = RelationGetPartitionKey(rel);
+	MemoryContext new_pdcxt;
 	MemoryContext oldcxt;
+	MemoryContext saved_cxt;
 	MemoryContext rbcontext;
 	int		   *mapping;
 
@@ -92,7 +178,7 @@ RelationBuildPartitionDesc(Relation rel)
 	rbcontext = AllocSetContextCreate(CurrentMemoryContext,
 									  "RelationBuildPartitionDesc",
 									  ALLOCSET_DEFAULT_SIZES);
-	oldcxt = MemoryContextSwitchTo(rbcontext);
+	saved_cxt = MemoryContextSwitchTo(rbcontext);
 
 	/*
 	 * Get partition oids from pg_inherits.  This uses a single snapshot to
@@ -100,13 +186,20 @@ RelationBuildPartitionDesc(Relation rel)
 	 * concurrently, whatever this function returns will be accurate as of
 	 * some well-defined point in time.
 	 */
-	inhoids = find_inheritance_children(RelationGetRelid(rel), NoLock);
+	detached_exist = false;
+	detached_xmin = InvalidTransactionId;
+	inhoids = find_inheritance_children_extended(RelationGetRelid(rel),
+												 omit_detached, NoLock,
+												 &detached_exist,
+												 &detached_xmin);
+
 	nparts = list_length(inhoids);
 
-	/* Allocate arrays for OIDs and boundspecs. */
+	/* Allocate working arrays for OIDs, leaf flags, and boundspecs. */
 	if (nparts > 0)
 	{
-		oids = palloc(nparts * sizeof(Oid));
+		oids = (Oid *) palloc(nparts * sizeof(Oid));
+		is_leaf = (bool *) palloc(nparts * sizeof(bool));
 		boundspecs = palloc(nparts * sizeof(PartitionBoundSpec *));
 	}
 
@@ -138,9 +231,9 @@ RelationBuildPartitionDesc(Relation rel)
 		 * tuple or an old one where relpartbound is NULL.  In that case, try
 		 * the table directly.  We can't just AcceptInvalidationMessages() and
 		 * retry the system cache lookup because it's possible that a
-		 * concurrent ATTACH PARTITION operation has removed itself to the
-		 * ProcArray but yet added invalidation messages to the shared queue;
-		 * InvalidateSystemCaches() would work, but seems excessive.
+		 * concurrent ATTACH PARTITION operation has removed itself from the
+		 * ProcArray but not yet added invalidation messages to the shared
+		 * queue; InvalidateSystemCaches() would work, but seems excessive.
 		 *
 		 * Note that this algorithm assumes that PartitionBoundSpec we manage
 		 * to fetch is the right one -- so this is only good enough for
@@ -196,54 +289,47 @@ RelationBuildPartitionDesc(Relation rel)
 
 		/* Save results. */
 		oids[i] = inhrelid;
+		is_leaf[i] = (get_rel_relkind(inhrelid) != RELKIND_PARTITIONED_TABLE);
 		boundspecs[i] = boundspec;
 		++i;
 	}
 
-	/* Assert we aren't about to leak any old data structure */
-	Assert(rel->rd_pdcxt == NULL);
-	Assert(rel->rd_partdesc == NULL);
+	/*
+	 * Create PartitionBoundInfo and mapping, working in the caller's context.
+	 * This could fail, but we haven't done any damage if so.
+	 */
+	if (nparts > 0)
+		boundinfo = partition_bounds_create(boundspecs, nparts, key, &mapping);
 
 	/*
-	 * Now build the actual relcache partition descriptor.  Note that the
-	 * order of operations here is fairly critical.  If we fail partway
-	 * through this code, we won't have leaked memory because the rd_pdcxt is
-	 * attached to the relcache entry immediately, so it'll be freed whenever
-	 * the entry is rebuilt or destroyed.  However, we don't assign to
-	 * rd_partdesc until the cached data structure is fully complete and
-	 * valid, so that no other code might try to use it.
+	 * Now build the actual relcache partition descriptor, copying all the
+	 * data into a new, small context.  As per above comment, we don't make
+	 * this a long-lived context until it's finished.
 	 */
-	rel->rd_pdcxt = AllocSetContextCreate(CacheMemoryContext,
-										  "partition descriptor",
-										  ALLOCSET_SMALL_SIZES);
-	MemoryContextCopyAndSetIdentifier(rel->rd_pdcxt,
+	new_pdcxt = AllocSetContextCreate(CurTransactionContext,
+									  "partition descriptor",
+									  ALLOCSET_SMALL_SIZES);
+	MemoryContextCopyAndSetIdentifier(new_pdcxt,
 									  RelationGetRelationName(rel));
 
 	partdesc = (PartitionDescData *)
-		MemoryContextAllocZero(rel->rd_pdcxt, sizeof(PartitionDescData));
+		MemoryContextAllocZero(new_pdcxt, sizeof(PartitionDescData));
 	partdesc->nparts = nparts;
+	partdesc->detached_exist = detached_exist;
 	/* If there are no partitions, the rest of the partdesc can stay zero */
 	if (nparts > 0)
 	{
-		/* Create PartitionBoundInfo, using the temporary context. */
-		boundinfo = partition_bounds_create(boundspecs, nparts, key, &mapping);
-
-		/* Now copy all info into relcache's partdesc. */
-		MemoryContextSwitchTo(rel->rd_pdcxt);
+		oldcxt = MemoryContextSwitchTo(new_pdcxt);
 		partdesc->boundinfo = partition_bounds_copy(boundinfo, key);
 		partdesc->oids = (Oid *) palloc(nparts * sizeof(Oid));
 		partdesc->is_leaf = (bool *) palloc(nparts * sizeof(bool));
-		MemoryContextSwitchTo(oldcxt);
 
 		/*
 		 * Assign OIDs from the original array into mapped indexes of the
 		 * result array.  The order of OIDs in the former is defined by the
 		 * catalog scan that retrieved them, whereas that in the latter is
 		 * defined by canonicalized representation of the partition bounds.
-		 *
-		 * Also record leaf-ness of each partition.  For this we use
-		 * get_rel_relkind() which may leak memory, so be sure to run it in
-		 * the temporary context.
+		 * Also save leaf-ness of each partition.
 		 */
 		MemoryContextSwitchTo(rbcontext);
 		for (i = 0; i < nparts; i++)
@@ -251,15 +337,70 @@ RelationBuildPartitionDesc(Relation rel)
 			int			index = mapping[i];
 
 			partdesc->oids[index] = oids[i];
-			partdesc->is_leaf[index] =
-				(get_rel_relkind(oids[i]) != RELKIND_PARTITIONED_TABLE);
+			partdesc->is_leaf[index] = is_leaf[i];
 		}
+		MemoryContextSwitchTo(oldcxt);
 	}
 
-	rel->rd_partdesc = partdesc;
+	/*
+	 * Are we working with the partdesc that omits the detached partition, or
+	 * the one that includes it?
+	 *
+	 * Note that if a partition was found by the catalog's scan to have been
+	 * detached, but the pg_inherit tuple saying so was not visible to the
+	 * active snapshot (find_inheritance_children_extended will not have set
+	 * detached_xmin in that case), we consider there to be no "omittable"
+	 * detached partitions.
+	 */
+	is_omit = omit_detached && detached_exist && ActiveSnapshotSet() &&
+		TransactionIdIsValid(detached_xmin);
+
+	/*
+	 * We have a fully valid partdesc.  Reparent it so that it has the right
+	 * lifespan.
+	 */
+	MemoryContextSetParent(new_pdcxt, CacheMemoryContext);
+
+	/*
+	 * Store it into relcache.
+	 *
+	 * But first, a kluge: if there's an old context for this type of
+	 * descriptor, it contains an old partition descriptor that may still be
+	 * referenced somewhere.  Preserve it, while not leaking it, by
+	 * reattaching it as a child context of the new one.  Eventually it will
+	 * get dropped by either RelationClose or RelationClearRelation. (We keep
+	 * the regular partdesc in rd_pdcxt, and the partdesc-excluding-
+	 * detached-partitions in rd_pddcxt.)
+	 */
+	if (is_omit)
+	{
+		if (rel->rd_pddcxt != NULL)
+			MemoryContextSetParent(rel->rd_pddcxt, new_pdcxt);
+		rel->rd_pddcxt = new_pdcxt;
+		rel->rd_partdesc_nodetached = partdesc;
+
+		/*
+		 * For partdescs built excluding detached partitions, which we save
+		 * separately, we also record the pg_inherits.xmin of the detached
+		 * partition that was omitted; this informs a future potential user of
+		 * such a cached partdesc to only use it after cross-checking that the
+		 * xmin is indeed visible to the snapshot it is going to be working
+		 * with.
+		 */
+		Assert(TransactionIdIsValid(detached_xmin));
+		rel->rd_partdesc_nodetached_xmin = detached_xmin;
+	}
+	else
+	{
+		if (rel->rd_pdcxt != NULL)
+			MemoryContextSetParent(rel->rd_pdcxt, new_pdcxt);
+		rel->rd_pdcxt = new_pdcxt;
+		rel->rd_partdesc = partdesc;
+	}
 	/* Return to caller's context, and blow away the temporary context. */
-	MemoryContextSwitchTo(oldcxt);
+	MemoryContextSwitchTo(saved_cxt);
 	MemoryContextDelete(rbcontext);
+	return partdesc;
 }
 
 /*
@@ -267,21 +408,22 @@ RelationBuildPartitionDesc(Relation rel)
  *		Create a new partition directory object.
  */
 PartitionDirectory
-CreatePartitionDirectory(MemoryContext mcxt)
+CreatePartitionDirectory(MemoryContext mcxt, bool omit_detached)
 {
 	MemoryContext oldcontext = MemoryContextSwitchTo(mcxt);
 	PartitionDirectory pdir;
 	HASHCTL		ctl;
 
-	MemSet(&ctl, 0, sizeof(HASHCTL));
+	pdir = palloc(sizeof(PartitionDirectoryData));
+	pdir->pdir_mcxt = mcxt;
+
 	ctl.keysize = sizeof(Oid);
 	ctl.entrysize = sizeof(PartitionDirectoryEntry);
 	ctl.hcxt = mcxt;
 
-	pdir = palloc(sizeof(PartitionDirectoryData));
-	pdir->pdir_mcxt = mcxt;
 	pdir->pdir_hash = hash_create("partition directory", 256, &ctl,
 								  HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+	pdir->omit_detached = omit_detached;
 
 	MemoryContextSwitchTo(oldcontext);
 	return pdir;
@@ -293,7 +435,7 @@ CreatePartitionDirectory(MemoryContext mcxt)
  *
  * The purpose of this function is to ensure that we get the same
  * PartitionDesc for each relation every time we look it up.  In the
- * face of current DDL, different PartitionDescs may be constructed with
+ * face of concurrent DDL, different PartitionDescs may be constructed with
  * different views of the catalog state, but any single particular OID
  * will always get the same PartitionDesc for as long as the same
  * PartitionDirectory is used.
@@ -314,7 +456,7 @@ PartitionDirectoryLookup(PartitionDirectory pdir, Relation rel)
 		 */
 		RelationIncrementReferenceCount(rel);
 		pde->rel = rel;
-		pde->pd = RelationGetPartitionDesc(rel);
+		pde->pd = RelationGetPartitionDesc(rel, pdir->omit_detached);
 		Assert(pde->pd != NULL);
 	}
 	return pde->pd;
@@ -335,60 +477,6 @@ DestroyPartitionDirectory(PartitionDirectory pdir)
 	hash_seq_init(&status, pdir->pdir_hash);
 	while ((pde = hash_seq_search(&status)) != NULL)
 		RelationDecrementReferenceCount(pde->rel);
-}
-
-/*
- * equalPartitionDescs
- *		Compare two partition descriptors for logical equality
- */
-bool
-equalPartitionDescs(PartitionKey key, PartitionDesc partdesc1,
-					PartitionDesc partdesc2)
-{
-	int			i;
-
-	if (partdesc1 != NULL)
-	{
-		if (partdesc2 == NULL)
-			return false;
-		if (partdesc1->nparts != partdesc2->nparts)
-			return false;
-
-		Assert(key != NULL || partdesc1->nparts == 0);
-
-		/*
-		 * Same oids? If the partitioning structure did not change, that is,
-		 * no partitions were added or removed to the relation, the oids array
-		 * should still match element-by-element.
-		 */
-		for (i = 0; i < partdesc1->nparts; i++)
-		{
-			if (partdesc1->oids[i] != partdesc2->oids[i])
-				return false;
-		}
-
-		/*
-		 * Now compare partition bound collections.  The logic to iterate over
-		 * the collections is private to partition.c.
-		 */
-		if (partdesc1->boundinfo != NULL)
-		{
-			if (partdesc2->boundinfo == NULL)
-				return false;
-
-			if (!partition_bounds_equal(key->partnatts, key->parttyplen,
-										key->parttypbyval,
-										partdesc1->boundinfo,
-										partdesc2->boundinfo))
-				return false;
-		}
-		else if (partdesc2->boundinfo != NULL)
-			return false;
-	}
-	else if (partdesc2 != NULL)
-		return false;
-
-	return true;
 }
 
 /*

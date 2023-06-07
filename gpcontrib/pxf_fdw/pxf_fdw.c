@@ -18,6 +18,10 @@
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
+#if (PG_VERSION_NUM >= 140000)
+#include "commands/copyfrom_internal.h"
+#include "commands/copyto_internal.h"
+#endif
 #include "commands/defrem.h"
 #include "commands/explain.h"
 #include "foreign/fdwapi.h"
@@ -29,6 +33,9 @@
 #include "optimizer/planmain.h"
 #include "optimizer/restrictinfo.h"
 #include "parser/parsetree.h"
+#if (PG_VERSION_NUM >= 140000)
+#include "utils/backend_progress.h"
+#endif
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 
@@ -82,7 +89,17 @@ static int	pxfIsForeignRelUpdatable(Relation rel);
  */
 static void InitCopyState(PxfFdwScanState *pxfsstate);
 static void InitCopyStateForModify(PxfFdwModifyState *pxfmstate);
+
+#if (PG_VERSION_NUM < 140000)
 static CopyState BeginCopyTo(Relation forrel, List *options);
+#else
+static CopyToState BeginCopyToModify(Relation forrel, List *options);
+#endif
+
+#if (PG_VERSION_NUM >= 140000)
+static void EndCopyScan(CopyFromState cstate);
+static void EndCopyModify(CopyToState cstate);
+#endif
 
 /*
  * Foreign-data wrapper handler functions:
@@ -270,7 +287,7 @@ pxfGetForeignPaths(PlannerInfo *root,
 	/*
 	 * Create a ForeignPath node and add it as only possible path.
 	 */
-	add_path(baserel, (Path *) path);
+	add_path(baserel, (Path *) path, root);
 
 	elog(DEBUG5, "pxf_fdw: pxfGetForeignPaths ends on segment: %d", PXF_SEGMENT_ID);
 }
@@ -521,7 +538,11 @@ pxfReScanForeignScan(ForeignScanState *node)
 
 	PxfFdwScanState *pxfsstate = (PxfFdwScanState *) node->fdw_state;
 
+#if (PG_VERSION_NUM < 140000)
 	EndCopyFrom(pxfsstate->cstate);
+#else
+	EndCopyScan(pxfsstate->cstate);
+#endif
 	InitCopyState(pxfsstate);
 
 	elog(DEBUG5, "pxf_fdw: pxfReScanForeignScan ends on segment: %d", PXF_SEGMENT_ID);
@@ -548,7 +569,11 @@ pxfEndForeignScan(ForeignScanState *node)
 
 	/* if pxfsstate is NULL, we are in EXPLAIN; nothing to do */
 	if (pxfsstate)
+#if (PG_VERSION_NUM < 140000)
 		EndCopyFrom(pxfsstate->cstate);
+#else
+		EndCopyScan(pxfsstate->cstate);
+#endif
 
 	elog(DEBUG5, "pxf_fdw: pxfEndForeignScan ends on segment: %d", PXF_SEGMENT_ID);
 }
@@ -602,7 +627,11 @@ pxfExecForeignInsert(EState *estate,
 	elog(DEBUG5, "pxf_fdw: pxfExecForeignInsert starts on segment: %d", PXF_SEGMENT_ID);
 
 	PxfFdwModifyState *pxfmstate = (PxfFdwModifyState *) resultRelInfo->ri_FdwState;
+#if (PG_VERSION_NUM < 140000)
 	CopyState	cstate = pxfmstate->cstate;
+#else
+	CopyToState	cstate = pxfmstate->cstate;
+#endif
 
 	/* TEXT or CSV */
 	slot_getallattrs(slot);
@@ -646,7 +675,11 @@ pxfEndForeignModify(EState *estate,
 	if (pxfmstate == NULL)
 		return;
 
+#if (PG_VERSION_NUM < 140000)
 	EndCopyFrom(pxfmstate->cstate);
+#else
+	EndCopyModify(pxfmstate->cstate);
+#endif
 	PxfBridgeCleanup(pxfmstate);
 
 	elog(DEBUG5, "pxf_fdw: pxfEndForeignModify ends on segment: %d", PXF_SEGMENT_ID);
@@ -673,7 +706,11 @@ pxfIsForeignRelUpdatable(Relation rel)
 static void
 InitCopyState(PxfFdwScanState *pxfsstate)
 {
+#if (PG_VERSION_NUM < 140000)
 	CopyState	cstate;
+#else
+	CopyFromState	cstate;
+#endif
 
 	PxfBridgeImportStart(pxfsstate);
 
@@ -683,6 +720,9 @@ InitCopyState(PxfFdwScanState *pxfsstate)
 	 */
 	cstate = BeginCopyFrom(NULL,
 						   pxfsstate->relation,
+#if (PG_VERSION_NUM >= 140000)
+						   NULL,
+#endif
 						   NULL,
 						   false,	/* is_program */
 						   &PxfBridgeRead,	/* data_source_cb */
@@ -740,7 +780,11 @@ static void
 InitCopyStateForModify(PxfFdwModifyState *pxfmstate)
 {
 	List	   *copy_options;
+#if (PG_VERSION_NUM < 140000)
 	CopyState	cstate;
+#else
+	CopyToState	cstate;
+#endif
 
 	copy_options = pxfmstate->options->copy_options;
 
@@ -750,7 +794,11 @@ InitCopyStateForModify(PxfFdwModifyState *pxfmstate)
 	 * Create CopyState from FDW options.  We always acquire all columns, so
 	 * as to match the expected ScanTupleSlot signature.
 	 */
+#if (PG_VERSION_NUM < 140000)
 	cstate = BeginCopyTo(pxfmstate->relation, copy_options);
+#else
+	cstate = BeginCopyToModify(pxfmstate->relation, copy_options);
+#endif
 
 	/* Initialize 'out_functions', like CopyTo() would. */
 
@@ -794,17 +842,30 @@ InitCopyStateForModify(PxfFdwModifyState *pxfmstate)
 /*
  * Set up CopyState for writing to an foreign table.
  */
+#if (PG_VERSION_NUM < 140000)
 static CopyState
 BeginCopyTo(Relation forrel, List *options)
+#else
+static CopyToState
+BeginCopyToModify(Relation forrel, List *options)
+#endif
 {
+#if (PG_VERSION_NUM < 140000)
 	CopyState	cstate;
+#else
+	CopyToState	cstate;
+#endif
 
 	Assert(forrel->rd_rel->relkind == RELKIND_FOREIGN_TABLE);
 
 #if (PG_VERSION_NUM <= 90500)
 	cstate = BeginCopy(false, forrel, NULL, NULL, NIL, options, NULL);
-#else
+#elif (PG_VERSION_NUM < 120000)
 	cstate = BeginCopy(false, forrel, NULL, NULL, forrel->rd_id, NIL, options, NULL);
+#elif (PG_VERSION_NUM < 140000)
+	cstate = BeginCopy(NULL, false, forrel, NULL, forrel->rd_id, NIL, options, NULL);
+#else
+	cstate = BeginCopy(NULL, forrel, NULL, forrel->rd_id, NIL, options, NULL);
 #endif
 	cstate->dispatch_mode = COPY_DIRECT;
 
@@ -818,12 +879,57 @@ BeginCopyTo(Relation forrel, List *options)
 	 * Some more initialization, that in the normal COPY TO codepath, is done
 	 * in CopyTo() itself.
 	 */
+#if (PG_VERSION_NUM < 140000)
 	cstate->null_print_client = cstate->null_print; /* default */
 	if (cstate->need_transcoding)
 		cstate->null_print_client = pg_server_to_custom(cstate->null_print,
 														cstate->null_print_len,
 														cstate->file_encoding,
 														cstate->enc_conversion_proc);
-
+#else
+	cstate->opts.null_print_client = cstate->opts.null_print; /* default */
+	if (cstate->need_transcoding)
+		cstate->opts.null_print_client = pg_server_to_any(cstate->opts.null_print,
+														  cstate->opts.null_print_len,
+														  cstate->opts.file_encoding);
+#endif
 	return cstate;
 }
+
+#if (PG_VERSION_NUM >= 140000)
+/*
+ * Clean up storage and release resources for COPY FROM.
+ */
+static void
+EndCopyScan(CopyFromState cstate)
+{
+	/* No COPY FROM related resources except memory. */
+	Assert(!cstate->is_program);
+	Assert(cstate->filename == NULL);
+
+	/* Clean up single row error handling related memory */
+	if (cstate->cdbsreh)
+		destroyCdbSreh(cstate->cdbsreh);
+
+	pgstat_progress_end_command();
+
+	MemoryContextDelete(cstate->copycontext);
+	pfree(cstate);
+}
+
+/*
+ * Clean up storage and release resources for COPY TO.
+ */
+static void
+EndCopyModify(CopyToState cstate)
+{
+	/* No COPY FROM related resources except memory. */
+	Assert(!cstate->is_program);
+	Assert(cstate->filename == NULL);
+
+	pgstat_progress_end_command();
+
+	MemoryContextDelete(cstate->copycontext);
+	pfree(cstate);
+}
+#endif

@@ -22,16 +22,17 @@ test_KeepLogSeg(void **state)
 	SpinLockInit(&xlogctl.info_lck);
 	XLogCtl = &xlogctl;
 
-	/*
-	 * 64 segments per Xlog logical file.
-	 * Configuring (3, 2), 3 log files and 2 segments to keep (3*64 + 2).
-	 */
-	wal_keep_segments = 194;
 
 	/*
 	 * Set wal segment size to 64 mb
 	 */
 	wal_segment_size = 64 * 1024 * 1024;
+
+	/*
+	 * 64 segments per Xlog logical file.
+	 * Configuring (3, 2), 3 log files and 2 segments to keep (3*64 + 2).
+	 */
+	wal_keep_size_mb = 194 * 64;
 
 	/************************************************
 	 * Current Delete greater than what keep wants,
@@ -119,19 +120,19 @@ test_KeepLogSeg(void **state)
 	/************************************************/
 
 	/************************************************
-	 * Do nothing if wal_keep_segments is not positive
+	 * Do nothing if wal_keep_size_mb is not positive
 	 ***********************************************/
 	/* Current Delete pointer */
-	wal_keep_segments = 0;
-	_logSegNo = 9 * XLogSegmentsPerXLogId(wal_segment_size) + 45;
+	wal_keep_size_mb = 0;
+	_logSegNo = 4 * XLogSegmentsPerXLogId(wal_segment_size) + 45;
 
 	KeepLogSeg_wrapper(recptr, &_logSegNo);
-	assert_int_equal(_logSegNo, 9*XLogSegmentsPerXLogId(wal_segment_size) + 45);
+	assert_int_equal(_logSegNo, 4*XLogSegmentsPerXLogId(wal_segment_size) + 45);
 
-	wal_keep_segments = -1;
+	wal_keep_size_mb = -1;
 
 	KeepLogSeg_wrapper(recptr, &_logSegNo);
-	assert_int_equal(_logSegNo, 9*XLogSegmentsPerXLogId(wal_segment_size) + 45);
+	assert_int_equal(_logSegNo, 4*XLogSegmentsPerXLogId(wal_segment_size) + 45);
 	/************************************************/
 }
 

@@ -8,7 +8,7 @@
     <p>To use it, you run the <xref href="../../utility_guide/ref/gpfdist.xml"
           >gpfdist</xref> utility with the <codeph>--ssl</codeph> option. When specified in
       a URI, the <codeph>gpfdists://</codeph> protocol enables encrypted communication and secure
-      identification of the file server and the Greenplum Database to protect against attacks such
+      identification of the file server and the Cloudberry Database to protect against attacks such
       as eavesdropping and man-in-the-middle attacks. </p>
     <p><codeph>gpfdists</codeph> implements SSL security in a client/server scheme with the
       following attributes and limitations:<ul id="ul_z3p_mrh_kr">
@@ -21,7 +21,7 @@
         <li>SSL renegotiation is supported.</li>
         <li>The SSL ignore host mismatch parameter is set to <codeph>false</codeph>.</li>
         <li>Private keys containing a passphrase are not supported for the <codeph>gpfdist</codeph>
-          file server (server.key) and for the Greenplum Database (client.key).</li>
+          file server (server.key) and for the Cloudberry Database (client.key).</li>
         <li>Issuing certificates that are appropriate for the operating system in use is the user's
           responsibility. Generally, converting certificates as shown in <xref
             href="https://www.sslshopper.com/ssl-converter.html" scope="external" type=""
@@ -54,14 +54,14 @@
     <p>The server configuration parameter <xref
           href="../../ref_guide/config_params/guc-list.xml#verify_gpfdists_cert"
           >verify_gpfdists_cert</xref> controls whether SSL certificate authentication is
-      enabled when Greenplum Database communicates with the <codeph>gpfdist</codeph> utility to
+      enabled when Cloudberry Database communicates with the <codeph>gpfdist</codeph> utility to
       either read data from or write data to an external data source. You can set the parameter
       value to <codeph>false</codeph> to disable authentication when testing the communication
-      between the Greenplum Database external table and the <codeph>gpfdist</codeph> utility that is
+      between the Cloudberry Database external table and the <codeph>gpfdist</codeph> utility that is
       serving the external data. If the value is <codeph>false</codeph>, these SSL exceptions are
         ignored:<ul id="ul_vvb_5lj_mdb">
         <li>The self-signed SSL certificate that is used by <codeph>gpfdist</codeph> is not trusted
-          by Greenplum Database.</li>
+          by Cloudberry Database.</li>
         <li>The host name contained in the SSL certificate does not match the host name that is
           running <codeph>gpfdist</codeph>.</li>
       </ul><note type="warning">Disabling SSL certificate authentication exposes a security risk by

@@ -7,7 +7,9 @@ setup
 {
 	CREATE TABLE parted (a INT) PARTITION BY LIST (a);
 	CREATE TABLE part1 PARTITION OF parted FOR VALUES IN (1);
+	ALTER TABLE part1 SET (autovacuum_enabled = false);
 	CREATE TABLE part2 PARTITION OF parted FOR VALUES IN (2);
+	ALTER TABLE part2 SET (autovacuum_enabled = false);
 }
 
 teardown
@@ -15,50 +17,51 @@ teardown
 	DROP TABLE IF EXISTS parted;
 }
 
-session "s1"
-step "lock_share"
+session s1
+step lock_share
 {
 	BEGIN;
 	LOCK part1 IN SHARE MODE;
 }
-step "lock_access_exclusive"
+step lock_access_exclusive
 {
 	BEGIN;
 	LOCK part1 IN ACCESS EXCLUSIVE MODE;
 }
-step "commit"
+step commit
 {
 	COMMIT;
 }
 
-session "s2"
-step "vac_specified"		{ VACUUM (SKIP_LOCKED) part1, part2; }
-step "vac_all_parts"		{ VACUUM (SKIP_LOCKED) parted; }
-step "analyze_specified"	{ ANALYZE (SKIP_LOCKED) part1, part2; }
-step "analyze_all_parts"	{ ANALYZE (SKIP_LOCKED) parted; }
-step "vac_analyze_specified"	{ VACUUM (ANALYZE, SKIP_LOCKED) part1, part2; }
-step "vac_analyze_all_parts"	{ VACUUM (ANALYZE, SKIP_LOCKED) parted; }
-step "vac_full_specified"	{ VACUUM (SKIP_LOCKED, FULL) part1, part2; }
-step "vac_full_all_parts"	{ VACUUM (SKIP_LOCKED, FULL) parted; }
+session s2
+step vac_specified			{ VACUUM (SKIP_LOCKED) part1, part2; }
+step vac_all_parts			{ VACUUM (SKIP_LOCKED) parted; }
+step analyze_specified		{ ANALYZE (SKIP_LOCKED) part1, part2; }
+step analyze_all_parts		{ ANALYZE (SKIP_LOCKED) parted; }
+step vac_analyze_specified	{ VACUUM (ANALYZE, SKIP_LOCKED) part1, part2; }
+step vac_analyze_all_parts	{ VACUUM (ANALYZE, SKIP_LOCKED) parted; }
+step vac_full_specified		{ VACUUM (SKIP_LOCKED, FULL) part1, part2; }
+step vac_full_all_parts		{ VACUUM (SKIP_LOCKED, FULL) parted; }
 
-permutation "lock_share" "vac_specified" "commit"
-permutation "lock_share" "vac_all_parts" "commit"
-permutation "lock_share" "analyze_specified" "commit"
-permutation "lock_share" "analyze_all_parts" "commit"
-permutation "lock_share" "vac_analyze_specified" "commit"
-permutation "lock_share" "vac_analyze_all_parts" "commit"
-permutation "lock_share" "vac_full_specified" "commit"
-permutation "lock_share" "vac_full_all_parts" "commit"
-permutation "lock_access_exclusive" "vac_specified" "commit"
-permutation "lock_access_exclusive" "vac_all_parts" "commit"
-permutation "lock_access_exclusive" "analyze_specified" "commit"
+permutation lock_share vac_specified commit
+permutation lock_share vac_all_parts commit
+permutation lock_share analyze_specified commit
+permutation lock_share analyze_all_parts commit
+permutation lock_share vac_analyze_specified commit
+permutation lock_share vac_analyze_all_parts commit
+permutation lock_share vac_full_specified commit
+permutation lock_share vac_full_all_parts commit
+permutation lock_access_exclusive vac_specified commit
+permutation lock_access_exclusive vac_all_parts commit
+permutation lock_access_exclusive analyze_specified commit
 # GPDB: This blocks in GPDB, because the ANALYZE tries to acquire inherited
 # sample on segments, which blocks. We consider that OK, even though it's
 # different from upstream. Even in PostgreSQL, the documentation for
 # SKIP_LOCKED says that it may still block if it needs to acquire sample
 # rows from the partitions.
-#permutation "lock_access_exclusive" "analyze_all_parts" "commit"
-permutation "lock_access_exclusive" "vac_analyze_specified" "commit"
-#permutation "lock_access_exclusive" "vac_analyze_all_parts" "commit"
-permutation "lock_access_exclusive" "vac_full_specified" "commit"
-permutation "lock_access_exclusive" "vac_full_all_parts" "commit"
+#permutation lock_access_exclusive analyze_all_parts commit
+permutation lock_access_exclusive vac_analyze_specified commit
+#permutation lock_access_exclusive vac_analyze_all_parts commit
+permutation lock_access_exclusive vac_full_specified commit
+permutation lock_access_exclusive vac_full_all_parts commit
+

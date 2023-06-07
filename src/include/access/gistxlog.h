@@ -3,7 +3,7 @@
  * gistxlog.h
  *	  gist xlog routines
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/gistxlog.h
@@ -26,6 +26,7 @@
  /* #define XLOG_GIST_INSERT_COMPLETE	 0x40 */	/* not used anymore */
  /* #define XLOG_GIST_CREATE_INDEX		 0x50 */	/* not used anymore */
 #define XLOG_GIST_PAGE_DELETE		0x60
+#define XLOG_GIST_ASSIGN_LSN		0x70	/* nop, assign new LSN */
 
 /*
  * Backup Blk 0: updated page.
@@ -83,7 +84,7 @@ typedef struct gistxlogPageSplit
  */
 typedef struct gistxlogPageDelete
 {
-	TransactionId deleteXid;	/* last Xid which could see page in scan */
+	FullTransactionId deleteXid;	/* last Xid which could see page in scan */
 	OffsetNumber downlinkOffset;	/* Offset of downlink referencing this
 									 * page */
 } gistxlogPageDelete;
@@ -98,10 +99,10 @@ typedef struct gistxlogPageReuse
 {
 	RelFileNode node;
 	BlockNumber block;
-	TransactionId latestRemovedXid;
+	FullTransactionId latestRemovedFullXid;
 } gistxlogPageReuse;
 
-#define SizeOfGistxlogPageReuse	(offsetof(gistxlogPageReuse, latestRemovedXid) + sizeof(TransactionId))
+#define SizeOfGistxlogPageReuse	(offsetof(gistxlogPageReuse, latestRemovedFullXid) + sizeof(FullTransactionId))
 
 extern void gist_redo(XLogReaderState *record);
 extern void gist_desc(StringInfo buf, XLogReaderState *record);

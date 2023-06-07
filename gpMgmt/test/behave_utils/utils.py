@@ -338,9 +338,9 @@ def check_table_exists(context, dbname, table_name, table_type=None, host=None, 
         if table_type is None:
             return True
 
-    if table_row[2] == 3434:
+    if table_row[2] == 7024:
         original_table_type = 'ao'
-    elif table_row[2] == 3435:
+    elif table_row[2] == 7166:
         original_table_type = 'co'
     elif table_row[2] == 2:
         original_table_type = 'heap'

@@ -17,9 +17,20 @@ SUBDIRS     := fstream
 
 override CPPFLAGS := -I. -I$(srcdir) $(CPPFLAGS)
 
-OBJS = guc.o help_config.o pg_config.o pg_controldata.o pg_rusage.o \
-       ps_status.o queryenvironment.o rls.o sampling.o superuser.o \
-       timeout.o tzparser.o
+OBJS = \
+	guc.o \
+	help_config.o \
+	pg_config.o \
+	pg_controldata.o \
+	pg_rusage.o \
+	ps_status.o \
+	queryenvironment.o \
+	queryjumble.o \
+	rls.o \
+	sampling.o \
+	superuser.o \
+	timeout.o \
+	tzparser.o
 
 OBJS += gpexpand.o string_utils.o \
        faultinjector.o faultinjector_warnings.o uriparser.o \

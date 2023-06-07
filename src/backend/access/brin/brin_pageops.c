@@ -2,7 +2,7 @@
  * brin_pageops.c
  *		Page-handling routines for BRIN indexes
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -10,8 +10,8 @@
  */
 #include "postgres.h"
 
-#include "access/brin_pageops.h"
 #include "access/brin_page.h"
+#include "access/brin_pageops.h"
 #include "access/brin_revmap.h"
 #include "access/brin_xlog.h"
 #include "access/xloginsert.h"
@@ -21,7 +21,6 @@
 #include "storage/lmgr.h"
 #include "storage/smgr.h"
 #include "utils/rel.h"
-
 
 /*
  * Maximum size of an entry in a BRIN_PAGETYPE_REGULAR page.  We can tolerate

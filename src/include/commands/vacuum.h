@@ -4,7 +4,7 @@
  *	  header file for postgres vacuum cleaner and statistics analyzer
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/commands/vacuum.h
@@ -14,15 +14,55 @@
 #ifndef VACUUM_H
 #define VACUUM_H
 
+#include "fmgr.h"
 #include "access/htup.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_statistic.h"
 #include "catalog/pg_type.h"
-#include "nodes/parsenodes.h"
+#include "parser/parse_node.h"
 #include "storage/buf.h"
 #include "storage/lock.h"
 #include "utils/relcache.h"
 #include "utils/snapshot.h"
+
+/*
+ * Flags for amparallelvacuumoptions to control the participation of bulkdelete
+ * and vacuumcleanup in parallel vacuum.
+ */
+
+/*
+ * Both bulkdelete and vacuumcleanup are disabled by default.  This will be
+ * used by IndexAM's that don't want to or cannot participate in parallel
+ * vacuum.  For example, if an index AM doesn't have a way to communicate the
+ * index statistics allocated by the first ambulkdelete call to the subsequent
+ * ones until amvacuumcleanup, the index AM cannot participate in parallel
+ * vacuum.
+ */
+#define VACUUM_OPTION_NO_PARALLEL			0
+
+/*
+ * bulkdelete can be performed in parallel.  This option can be used by
+ * index AMs that need to scan indexes to delete tuples.
+ */
+#define VACUUM_OPTION_PARALLEL_BULKDEL		(1 << 0)
+
+/*
+ * vacuumcleanup can be performed in parallel if bulkdelete is not performed
+ * yet.  This will be used by IndexAM's that can scan the index if the
+ * bulkdelete is not performed.
+ */
+#define VACUUM_OPTION_PARALLEL_COND_CLEANUP	(1 << 1)
+
+/*
+ * vacuumcleanup can be performed in parallel even if bulkdelete has already
+ * processed the index.  This will be used by IndexAM's that scan the index
+ * during the cleanup phase of index irrespective of whether the index is
+ * already scanned or not during bulkdelete phase.
+ */
+#define VACUUM_OPTION_PARALLEL_CLEANUP		(1 << 2)
+
+/* value for checking vacuum flags */
+#define VACUUM_OPTION_MAX_VALID_VALUE		((1 << 3) - 1)
 
 /*----------
  * ANALYZE builds one of these structs for each attribute (column) that is
@@ -140,44 +180,45 @@ typedef struct VacAttrStats
 	bool		merge_stats;
 } VacAttrStats;
 
-typedef enum VacuumOption
-{
-	VACOPT_VACUUM = 1 << 0,		/* do VACUUM */
-	VACOPT_ANALYZE = 1 << 1,	/* do ANALYZE */
-	VACOPT_VERBOSE = 1 << 2,	/* print progress info */
-	VACOPT_FREEZE = 1 << 3,		/* FREEZE option */
-	VACOPT_FULL = 1 << 4,		/* FULL (non-concurrent) vacuum */
-	VACOPT_SKIP_LOCKED = 1 << 5,	/* skip if cannot get lock */
-	VACOPT_SKIPTOAST = 1 << 6,	/* don't process the TOAST table, if any */
-	VACOPT_DISABLE_PAGE_SKIPPING = 1 << 7	/* don't skip any pages */
 
-	/* Extra GPDB options */
-	,
-	VACOPT_ROOTONLY = 1 << 10,
-	VACOPT_FULLSCAN = 1 << 11,
-
-	/* AO vacuum phases. Mutually exclusive */
-	VACOPT_AO_PRE_CLEANUP_PHASE = 1 << 12,
-	VACOPT_AO_COMPACT_PHASE = 1 << 13,
-	VACOPT_AO_POST_CLEANUP_PHASE = 1 << 14
-} VacuumOption;
+/* flag bits for VacuumParams->options */
+#define VACOPT_VACUUM 0x01		/* do VACUUM */
+#define VACOPT_ANALYZE 0x02		/* do ANALYZE */
+#define VACOPT_VERBOSE 0x04		/* print progress info */
+#define VACOPT_FREEZE 0x08		/* FREEZE option */
+#define VACOPT_FULL 0x10		/* FULL (non-concurrent) vacuum */
+#define VACOPT_SKIP_LOCKED 0x20 /* skip if cannot get lock */
+#define VACOPT_PROCESS_TOAST 0x40	/* process the TOAST table, if any */
+#define VACOPT_DISABLE_PAGE_SKIPPING 0x80	/* don't skip any pages */
+/* GPDB_14_MERGE_FIXME: is flags bits suitable with upstream? */
+/* Extra GPDB options */
+#define VACOPT_ROOTONLY 0x400
+#define VACOPT_FULLSCAN 0x800
+/* AO vacuum phases. Mutually exclusive */
+#define VACOPT_AO_PRE_CLEANUP_PHASE 0x1000
+#define VACOPT_AO_COMPACT_PHASE 0x2000
+#define VACOPT_AO_POST_CLEANUP_PHASE 0x4000
+#define VACOPT_UPDATE_DATFROZENXID 0x8000
 
 #define VACUUM_AO_PHASE_MASK (VACOPT_AO_PRE_CLEANUP_PHASE | \
 							  VACOPT_AO_COMPACT_PHASE | \
 							  VACOPT_AO_POST_CLEANUP_PHASE)
 
 /*
- * A ternary value used by vacuum parameters.
+ * Values used by index_cleanup and truncate params.
  *
- * DEFAULT value is used to determine the value based on other
- * configurations, e.g. reloptions.
+ * VACOPTVALUE_UNSPECIFIED is used as an initial placeholder when VACUUM
+ * command has no explicit value.  When that happens the final usable value
+ * comes from the corresponding reloption (though the reloption default is
+ * usually used).
  */
-typedef enum VacOptTernaryValue
+typedef enum VacOptValue
 {
-	VACOPT_TERNARY_DEFAULT = 0,
-	VACOPT_TERNARY_DISABLED,
-	VACOPT_TERNARY_ENABLED,
-} VacOptTernaryValue;
+	VACOPTVALUE_UNSPECIFIED = 0,
+	VACOPTVALUE_AUTO,
+	VACOPTVALUE_DISABLED,
+	VACOPTVALUE_ENABLED,
+} VacOptValue;
 
 /*
  * To avoid consuming too much memory during analysis and/or too much space
@@ -214,7 +255,7 @@ typedef struct VPgClassStats
  */
 typedef struct VacuumParams
 {
-	int			options;		/* bitmask of VacuumOption */
+	bits32		options;		/* bitmask of VACOPT_* */
 	int			freeze_min_age; /* min freeze age, -1 to use default */
 	int			freeze_table_age;	/* age at which to scan whole table */
 	int			multixact_freeze_min_age;	/* min multixact freeze age, -1 to
@@ -225,10 +266,15 @@ typedef struct VacuumParams
 	int			log_min_duration;	/* minimum execution threshold in ms at
 									 * which  verbose logs are activated, -1
 									 * to use default */
-	VacOptTernaryValue index_cleanup;	/* Do index vacuum and cleanup,
-										 * default value depends on reloptions */
-	VacOptTernaryValue truncate;	/* Truncate empty pages at the end,
-									 * default value depends on reloptions */
+	VacOptValue index_cleanup;	/* Do index vacuum and cleanup */
+	VacOptValue truncate;		/* Truncate empty pages at the end */
+
+	/*
+	 * The number of parallel vacuum workers.  0 by default which means choose
+	 * based on the number of indexes.  -1 indicates parallel vacuum is
+	 * disabled.
+	 */
+	int			nworkers;
 	bool auto_stats;      /* invoked via automatic statistic collection */
 } VacuumParams;
 
@@ -266,6 +312,13 @@ extern int	vacuum_freeze_min_age;
 extern int	vacuum_freeze_table_age;
 extern int	vacuum_multixact_freeze_min_age;
 extern int	vacuum_multixact_freeze_table_age;
+extern int	vacuum_failsafe_age;
+extern int	vacuum_multixact_failsafe_age;
+
+/* Variables for cost-based parallel vacuum */
+extern pg_atomic_uint32 *VacuumSharedCostBalance;
+extern pg_atomic_uint32 *VacuumActiveNWorkers;
+extern int	VacuumCostBalanceLocal;
 
 
 /* in commands/vacuum.c */
@@ -301,12 +354,15 @@ extern void vacuum_set_xid_limits(Relation rel,
 								  TransactionId *xidFullScanLimit,
 								  MultiXactId *multiXactCutoff,
 								  MultiXactId *mxactFullScanLimit);
+extern bool vacuum_xid_failsafe_check(TransactionId relfrozenxid,
+									  MultiXactId relminmxid);
 extern void vac_update_datfrozenxid(void);
 extern void vacuum_delay_point(void);
 extern bool vacuum_is_relation_owner(Oid relid, Form_pg_class reltuple,
-									 int options);
+									 bits32 options);
 extern Relation vacuum_open_relation(Oid relid, RangeVar *relation,
-									 int options, bool verbose, LOCKMODE lmode);
+									 bits32 options, bool verbose,
+									 LOCKMODE lmode);
 
 extern bool vacuumStatement_IsTemporary(Relation onerel);
 
@@ -318,7 +374,6 @@ extern void analyze_rel(Oid relid, RangeVar *relation,
 /* in commands/vacuumlazy.c */
 extern void lazy_vacuum_rel_heap(Relation onerel,
 							VacuumParams *params, BufferAccessStrategy bstrategy);
-extern void scan_index(Relation indrel, double num_tuples, int elevel, BufferAccessStrategy bstrategy);
 
 /* in commands/vacuum_ao.c */
 
@@ -328,6 +383,8 @@ extern void ao_vacuum_rel_compact(Relation onerel, int options, VacuumParams *pa
 								  BufferAccessStrategy bstrategy);
 extern void ao_vacuum_rel_post_cleanup(Relation onerel, int options, VacuumParams *params,
 									   BufferAccessStrategy bstrategy);
+
+extern void ao_vacuum_rel(Relation rel, VacuumParams *params, BufferAccessStrategy bstrategy);
 
 extern bool std_typanalyze(VacAttrStats *stats);
 

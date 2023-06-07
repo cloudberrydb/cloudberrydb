@@ -1,13 +1,12 @@
-#!/usr/bin/perl -w
+#!/usr/bin/perl
 #----------------------------------------------------------------------
 #
 # genbki.pl
-#    Perl script that generates postgres.bki, postgres.description,
-#    postgres.shdescription, and symbol definition headers from specially
-#    formatted header files and data files.  The BKI files are used to
-#    initialize the postgres template database.
+#    Perl script that generates postgres.bki and symbol definition
+#    headers from specially formatted header files and data files.
+#    postgres.bki is used to initialize the postgres template database.
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/backend/catalog/genbki.pl
@@ -18,20 +17,21 @@ use strict;
 use warnings;
 use Getopt::Long;
 
-use File::Basename;
-use File::Spec;
-BEGIN { use lib File::Spec->rel2abs(dirname(__FILE__)); }
+use FindBin;
+use lib $FindBin::RealBin;
 
 use Catalog;
 
 my $output_path = '';
 my $major_version;
 my $include_path;
+my $extra_path;
 
 GetOptions(
 	'output:s'       => \$output_path,
 	'set-version:s'  => \$major_version,
-	'include-path:s' => \$include_path) || usage();
+	'include-path:s' => \$include_path,
+	'extra-path:s'   => \$extra_path) || usage();
 
 # Sanity check arguments.
 die "No input files.\n"                  unless @ARGV;
@@ -49,6 +49,10 @@ if (substr($include_path, -1) ne '/')
 {
 	$include_path .= '/';
 }
+if ($extra_path && substr($extra_path, -1) ne '/')
+{
+	$extra_path .= '/';
+}
 
 # Read all the files into internal data structures.
 my @catnames;
@@ -57,6 +61,7 @@ my %catalog_data;
 my @toast_decls;
 my @index_decls;
 my %oidcounts;
+my @system_constraints;
 
 foreach my $header (@ARGV)
 {
@@ -93,9 +98,37 @@ foreach my $header (@ARGV)
 		my $data = Catalog::ParseData($datfile, $schema, 0);
 		$catalog_data{$catname} = $data;
 
-		# Check for duplicated OIDs while we're at it.
+		# Check whether we need consider extra .dat files
+		my $extra_file = ($extra_path) ? $extra_path.$catname.".dat" : "";
+		if (-e $extra_file)
+		{
+			my $extra_data = Catalog::ParseData($extra_file, $schema, 0);
+			push @{ $catalog_data{$catname} }, @$extra_data;
+		}
+
 		foreach my $row (@$data)
 		{
+			# Generate entries for pg_description and pg_shdescription.
+			if (defined $row->{descr})
+			{
+				my %descr = (
+					objoid      => $row->{oid},
+					classoid    => $catalog->{relation_oid},
+					objsubid    => 0,
+					description => $row->{descr});
+
+				if ($catalog->{shared_relation})
+				{
+					delete $descr{objsubid};
+					push @{ $catalog_data{pg_shdescription} }, \%descr;
+				}
+				else
+				{
+					push @{ $catalog_data{pg_description} }, \%descr;
+				}
+			}
+
+			# Check for duplicated OIDs while we're at it.
 			$oidcounts{ $row->{oid} }++ if defined $row->{oid};
 		}
 	}
@@ -119,6 +152,17 @@ foreach my $header (@ARGV)
 		  $index->{index_name}, $index->{index_oid},
 		  $index->{index_decl};
 		$oidcounts{ $index->{index_oid} }++;
+
+		if ($index->{is_unique})
+		{
+			$index->{index_decl} =~ /on (\w+) using/;
+			my $tblname = $1;
+			push @system_constraints,
+			  sprintf "ALTER TABLE %s ADD %s USING INDEX %s;",
+			  $tblname,
+			  $index->{is_pkey} ? "PRIMARY KEY" : "UNIQUE",
+			  $index->{index_name};
+		}
 	}
 }
 
@@ -137,15 +181,17 @@ foreach my $oid (keys %oidcounts)
 die "found $found duplicate OID(s) in catalog data\n" if $found;
 
 
-# Oids not specified in the input files are automatically assigned,
+# OIDs not specified in the input files are automatically assigned,
 # starting at FirstGenbkiObjectId, extending up to FirstBootstrapObjectId.
+# We allow such OIDs to be assigned independently within each catalog.
 my $FirstGenbkiObjectId =
-  Catalog::FindDefinedSymbol('catalog/pg_magic_oid.h', $include_path,
+  Catalog::FindDefinedSymbol('access/transam.h', $include_path,
 	'FirstGenbkiObjectId');
 my $FirstBootstrapObjectId =
-  Catalog::FindDefinedSymbol('catalog/pg_magic_oid.h', $include_path,
+  Catalog::FindDefinedSymbol('access/transam.h', $include_path,
 	'FirstBootstrapObjectId');
-my $GenbkiNextOid = $FirstGenbkiObjectId;
+# Hash of next available OID, indexed by catalog name.
+my %GenbkiNextOids;
 
 
 # Fetch some special data that we will substitute into the output file.
@@ -154,15 +200,18 @@ my $GenbkiNextOid = $FirstGenbkiObjectId;
 # within a given Postgres release, such as fixed OIDs.  Do not substitute
 # anything that could depend on platform or configuration.  (The right place
 # to handle those sorts of things is in initdb.c's bootstrap_template1().)
-my $BOOTSTRAP_SUPERUSERID =
-  Catalog::FindDefinedSymbolFromData($catalog_data{pg_authid},
-	'BOOTSTRAP_SUPERUSERID');
 my $C_COLLATION_OID =
   Catalog::FindDefinedSymbolFromData($catalog_data{pg_collation},
 	'C_COLLATION_OID');
-my $PG_CATALOG_NAMESPACE =
-  Catalog::FindDefinedSymbolFromData($catalog_data{pg_namespace},
-	'PG_CATALOG_NAMESPACE');
+
+
+# Fill in pg_class.relnatts by looking at the referenced catalog's schema.
+# This is ugly but there's no better place; Catalog::AddDefaultValues
+# can't do it, for lack of easy access to the other catalog.
+foreach my $row (@{ $catalog_data{pg_class} })
+{
+	$row->{relnatts} = scalar(@{ $catalogs{ $row->{relname} }->{columns} });
+}
 
 
 # Build lookup tables.
@@ -172,6 +221,13 @@ my %amoids;
 foreach my $row (@{ $catalog_data{pg_am} })
 {
 	$amoids{ $row->{amname} } = $row->{oid};
+}
+
+# role OID lookup
+my %authidoids;
+foreach my $row (@{ $catalog_data{pg_authid} })
+{
+	$authidoids{ $row->{rolname} } = $row->{oid};
 }
 
 # class (relation) OID lookup (note this only covers bootstrap catalogs!)
@@ -193,6 +249,13 @@ my %langoids;
 foreach my $row (@{ $catalog_data{pg_language} })
 {
 	$langoids{ $row->{lanname} } = $row->{oid};
+}
+
+# namespace (schema) OID lookup
+my %namespaceoids;
+foreach my $row (@{ $catalog_data{pg_namespace} })
+{
+	$namespaceoids{ $row->{nspname} } = $row->{oid};
 }
 
 # opclass OID lookup
@@ -220,6 +283,10 @@ foreach my $row (@{ $catalog_data{pg_operator} })
 my %opfoids;
 foreach my $row (@{ $catalog_data{pg_opfamily} })
 {
+	# Initialize, if no previous request for this catalog.
+	$GenbkiNextOids{pg_opfamily} = $FirstGenbkiObjectId
+	  if !defined($GenbkiNextOids{pg_opfamily});
+
 	# There is no unique name, so we need to combine access method
 	# and opfamily name.
 	my $key = sprintf "%s/%s", $row->{opfmethod}, $row->{opfname};
@@ -230,8 +297,7 @@ foreach my $row (@{ $catalog_data{pg_opfamily} })
 	# other (auto-generated) entries in pg_class, pg_amop and pg_amproc.
 	if (!($row->{oid}))
 	{
-		$row->{oid} = $GenbkiNextOid;
-		$GenbkiNextOid++;
+		$row->{oid} = $GenbkiNextOids{pg_opfamily}++;
 	}
 
 	$opfoids{$key} = $row->{oid};
@@ -348,9 +414,11 @@ close $ef;
 # Map lookup name to the corresponding hash table.
 my %lookup_kind = (
 	pg_am          => \%amoids,
+	pg_authid      => \%authidoids,
 	pg_class       => \%classoids,
 	pg_collation   => \%collationoids,
 	pg_language    => \%langoids,
+	pg_namespace   => \%namespaceoids,
 	pg_opclass     => \%opcoids,
 	pg_operator    => \%operoids,
 	pg_opfamily    => \%opfoids,
@@ -372,15 +440,14 @@ open my $bki, '>', $bkifile . $tmpext
 my $schemafile = $output_path . 'schemapg.h';
 open my $schemapg, '>', $schemafile . $tmpext
   or die "can't open $schemafile$tmpext: $!";
-my $descrfile = $output_path . 'postgres.description';
-open my $descr, '>', $descrfile . $tmpext
-  or die "can't open $descrfile$tmpext: $!";
-my $shdescrfile = $output_path . 'postgres.shdescription';
-open my $shdescr, '>', $shdescrfile . $tmpext
-  or die "can't open $shdescrfile$tmpext: $!";
+my $fk_info_file = $output_path . 'system_fk_info.h';
+open my $fk_info, '>', $fk_info_file . $tmpext
+  or die "can't open $fk_info_file$tmpext: $!";
+my $constraints_file = $output_path . 'system_constraints.sql';
+open my $constraints, '>', $constraints_file . $tmpext
+  or die "can't open $constraints_file$tmpext: $!";
 
-# Generate postgres.bki, postgres.description, postgres.shdescription,
-# and pg_*_d.h headers.
+# Generate postgres.bki and pg_*_d.h headers.
 
 # version marker for .bki file
 print $bki "# PostgreSQL $major_version\n";
@@ -406,7 +473,7 @@ foreach my $catname (@catnames)
  * %s_d.h
  *    Macro definitions for %s
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * NOTES
@@ -526,14 +593,8 @@ EOM
 			# Assign oid if oid column exists and no explicit assignment in row
 			if ($attname eq "oid" and not defined $bki_values{$attname})
 			{
-				$bki_values{$attname} = $GenbkiNextOid;
-				$GenbkiNextOid++;
+				$bki_values{$attname} = assign_next_oid($catname);
 			}
-
-			# Substitute constant values we acquired above.
-			# (It's intentional that this can apply to parts of a field).
-			$bki_values{$attname} =~ s/\bPGUID\b/$BOOTSTRAP_SUPERUSERID/g;
-			$bki_values{$attname} =~ s/\bPGNSP\b/$PG_CATALOG_NAMESPACE/g;
 
 			# Replace OID synonyms with OIDs per the appropriate lookup rule.
 			#
@@ -541,7 +602,8 @@ EOM
 			# each element of the array as per the lookup rule.
 			if ($column->{lookup})
 			{
-				my $lookup = $lookup_kind{ $column->{lookup} };
+				my $lookup     = $lookup_kind{ $column->{lookup} };
+				my $lookup_opt = $column->{lookup_opt};
 				my @lookupnames;
 				my @lookupoids;
 
@@ -551,8 +613,9 @@ EOM
 				if ($atttype eq 'oidvector')
 				{
 					@lookupnames = split /\s+/, $bki_values{$attname};
-					@lookupoids = lookup_oids($lookup, $catname, \%bki_values,
-						@lookupnames);
+					@lookupoids =
+					  lookup_oids($lookup, $catname, $attname, $lookup_opt,
+						\%bki_values, @lookupnames);
 					$bki_values{$attname} = join(' ', @lookupoids);
 				}
 				elsif ($atttype eq '_oid')
@@ -562,8 +625,8 @@ EOM
 						$bki_values{$attname} =~ s/[{}]//g;
 						@lookupnames = split /,/, $bki_values{$attname};
 						@lookupoids =
-						  lookup_oids($lookup, $catname, \%bki_values,
-							@lookupnames);
+						  lookup_oids($lookup, $catname, $attname,
+							$lookup_opt, \%bki_values, @lookupnames);
 						$bki_values{$attname} = sprintf "{%s}",
 						  join(',', @lookupoids);
 					}
@@ -571,17 +634,22 @@ EOM
 				else
 				{
 					$lookupnames[0] = $bki_values{$attname};
-					@lookupoids = lookup_oids($lookup, $catname, \%bki_values,
-						@lookupnames);
+					@lookupoids =
+					  lookup_oids($lookup, $catname, $attname, $lookup_opt,
+						\%bki_values, @lookupnames);
 					$bki_values{$attname} = $lookupoids[0];
 				}
 			}
 		}
 
 		# Special hack to generate OID symbols for pg_type entries
-		# that lack one.
-		if ($catname eq 'pg_type' and !exists $bki_values{oid_symbol})
+		if ($catname eq 'pg_type')
 		{
+			die sprintf
+			  "custom OID symbols are not allowed for pg_type entries: '%s'",
+			  $bki_values{oid_symbol}
+			  if defined $bki_values{oid_symbol};
+
 			my $symbol = form_pg_type_symbol($bki_values{typname});
 			$bki_values{oid_symbol} = $symbol
 			  if defined $symbol;
@@ -590,25 +658,16 @@ EOM
 		# Write to postgres.bki
 		print_bki_insert(\%bki_values, $schema);
 
-		# Write comments to postgres.description and
-		# postgres.shdescription
-		if (defined $bki_values{descr})
-		{
-			if ($catalog->{shared_relation})
-			{
-				printf $shdescr "%s\t%s\t%s\n",
-				  $bki_values{oid}, $catname, $bki_values{descr};
-			}
-			else
-			{
-				printf $descr "%s\t%s\t0\t%s\n",
-				  $bki_values{oid}, $catname, $bki_values{descr};
-			}
-		}
-
 		# Emit OID symbol
 		if (defined $bki_values{oid_symbol})
 		{
+			# OID symbols for builtin functions are handled automatically
+			# by utils/Gen_fmgrtab.pl
+			die sprintf
+			  "custom OID symbols are not allowed for pg_proc entries: '%s'",
+			  $bki_values{oid_symbol}
+			  if $catname eq 'pg_proc';
+
 			printf $def "#define %s %s\n",
 			  $bki_values{oid_symbol}, $bki_values{oid};
 		}
@@ -639,11 +698,13 @@ foreach my $declaration (@index_decls)
 # last command in the BKI file: build the indexes declared above
 print $bki "build indices\n";
 
-# check that we didn't overrun available OIDs
-die
-  "genbki OID counter reached $GenbkiNextOid, overrunning FirstBootstrapObjectId\n"
-  if $GenbkiNextOid > $FirstBootstrapObjectId;
+# Now generate system_constraints.sql
 
+foreach my $c (@system_constraints)
+{
+	# leave blank lines to localize any bootstrap error messages better
+	print $constraints $c, "\n\n";
+}
 
 # Now generate schemapg.h
 
@@ -654,7 +715,7 @@ print $schemapg <<EOM;
  * schemapg.h
  *    Schema_pg_xxx macros for use by relcache.c
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * NOTES
@@ -681,17 +742,79 @@ foreach my $table_name (@tables_needing_macros)
 # Closing boilerplate for schemapg.h
 print $schemapg "\n#endif\t\t\t\t\t\t\t/* SCHEMAPG_H */\n";
 
+# Now generate system_fk_info.h
+
+# Opening boilerplate for system_fk_info.h
+print $fk_info <<EOM;
+/*-------------------------------------------------------------------------
+ *
+ * system_fk_info.h
+ *    Data about the foreign-key relationships in the system catalogs
+ *
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1994, Regents of the University of California
+ *
+ * NOTES
+ *  ******************************
+ *  *** DO NOT EDIT THIS FILE! ***
+ *  ******************************
+ *
+ *  It has been GENERATED by src/backend/catalog/genbki.pl
+ *
+ *-------------------------------------------------------------------------
+ */
+#ifndef SYSTEM_FK_INFO_H
+#define SYSTEM_FK_INFO_H
+
+typedef struct SysFKRelationship
+{
+	Oid			fk_table;		/* referencing catalog */
+	Oid			pk_table;		/* referenced catalog */
+	const char *fk_columns;		/* referencing column name(s) */
+	const char *pk_columns;		/* referenced column name(s) */
+	bool		is_array;		/* if true, last fk_column is an array */
+	bool		is_opt;			/* if true, fk_column can be zero */
+} SysFKRelationship;
+
+static const SysFKRelationship sys_fk_relationships[] = {
+EOM
+
+# Emit system_fk_info data
+foreach my $catname (@catnames)
+{
+	my $catalog = $catalogs{$catname};
+	foreach my $fkinfo (@{ $catalog->{foreign_keys} })
+	{
+		my $pktabname = $fkinfo->{pk_table};
+
+		# We use BKI_LOOKUP for encodings, but there's no real catalog there
+		next if $pktabname eq 'encoding';
+
+		printf $fk_info
+		  "\t{ /* %s */ %s, /* %s */ %s, \"{%s}\", \"{%s}\", %s, %s},\n",
+		  $catname,   $catalog->{relation_oid},
+		  $pktabname, $catalogs{$pktabname}->{relation_oid},
+		  $fkinfo->{fk_cols},
+		  $fkinfo->{pk_cols},
+		  ($fkinfo->{is_array} ? "true" : "false"),
+		  ($fkinfo->{is_opt}   ? "true" : "false");
+	}
+}
+
+# Closing boilerplate for system_fk_info.h
+print $fk_info "};\n\n#endif\t\t\t\t\t\t\t/* SYSTEM_FK_INFO_H */\n";
+
 # We're done emitting data
 close $bki;
 close $schemapg;
-close $descr;
-close $shdescr;
+close $fk_info;
+close $constraints;
 
 # Finally, rename the completed files into place.
-Catalog::RenameTempFile($bkifile,     $tmpext);
-Catalog::RenameTempFile($schemafile,  $tmpext);
-Catalog::RenameTempFile($descrfile,   $tmpext);
-Catalog::RenameTempFile($shdescrfile, $tmpext);
+Catalog::RenameTempFile($bkifile,          $tmpext);
+Catalog::RenameTempFile($schemafile,       $tmpext);
+Catalog::RenameTempFile($fk_info_file,     $tmpext);
+Catalog::RenameTempFile($constraints_file, $tmpext);
 
 exit 0;
 
@@ -724,8 +847,8 @@ sub gen_pg_attribute
 		push @tables_needing_macros, $table_name;
 
 		# Generate entries for user attributes.
-		my $attnum       = 0;
-		my $priornotnull = 1;
+		my $attnum          = 0;
+		my $priorfixedwidth = 1;
 		foreach my $attr (@{ $table->{columns} })
 		{
 			$attnum++;
@@ -733,8 +856,12 @@ sub gen_pg_attribute
 			$row{attnum}   = $attnum;
 			$row{attrelid} = $table->{relation_oid};
 
-			morph_row_for_pgattr(\%row, $schema, $attr, $priornotnull);
-			$priornotnull &= ($row{attnotnull} eq 't');
+			morph_row_for_pgattr(\%row, $schema, $attr, $priorfixedwidth);
+
+			# Update $priorfixedwidth --- must match morph_row_for_pgattr
+			$priorfixedwidth &=
+			  ($row{attnotnull} eq 't'
+				  && ($row{attlen} eq 'NAMEDATALEN' || $row{attlen} > 0));
 
 			# If it's bootstrapped, put an entry in postgres.bki.
 			print_bki_insert(\%row, $schema) if $table->{bootstrap};
@@ -777,13 +904,13 @@ sub gen_pg_attribute
 
 # Given $pgattr_schema (the pg_attribute schema for a catalog sufficient for
 # AddDefaultValues), $attr (the description of a catalog row), and
-# $priornotnull (whether all prior attributes in this catalog are not null),
+# $priorfixedwidth (all prior columns are fixed-width and not null),
 # modify the $row hashref for print_bki_insert.  This includes setting data
 # from the corresponding pg_type element and filling in any default values.
 # Any value not handled here must be supplied by caller.
 sub morph_row_for_pgattr
 {
-	my ($row, $pgattr_schema, $attr, $priornotnull) = @_;
+	my ($row, $pgattr_schema, $attr, $priorfixedwidth) = @_;
 	my $attname = $attr->{name};
 	my $atttype = $attr->{type};
 
@@ -792,11 +919,12 @@ sub morph_row_for_pgattr
 	# Copy the type data from pg_type, and add some type-dependent items
 	my $type = $types{$atttype};
 
-	$row->{atttypid}   = $type->{oid};
-	$row->{attlen}     = $type->{typlen};
-	$row->{attbyval}   = $type->{typbyval};
-	$row->{attstorage} = $type->{typstorage};
-	$row->{attalign}   = $type->{typalign};
+	$row->{atttypid}       = $type->{oid};
+	$row->{attlen}         = $type->{typlen};
+	$row->{attbyval}       = $type->{typbyval};
+	$row->{attalign}       = $type->{typalign};
+	$row->{attstorage}     = $type->{typstorage};
+	$row->{attcompression} = '\0';
 
 	# set attndims if it's an array type
 	$row->{attndims} = $type->{typcategory} eq 'A' ? '1' : '0';
@@ -813,19 +941,18 @@ sub morph_row_for_pgattr
 	{
 		$row->{attnotnull} = 'f';
 	}
-	elsif ($priornotnull)
+	elsif ($priorfixedwidth)
 	{
 
 		# attnotnull will automatically be set if the type is
-		# fixed-width and prior columns are all NOT NULL ---
-		# compare DefineAttr in bootstrap.c. oidvector and
-		# int2vector are also treated as not-nullable.
+		# fixed-width and prior columns are likewise fixed-width
+		# and NOT NULL --- compare DefineAttr in bootstrap.c.
+		# At this point the width of type name is still symbolic,
+		# so we need a special test.
 		$row->{attnotnull} =
-		    $type->{typname} eq 'oidvector'  ? 't'
-		  : $type->{typname} eq 'int2vector' ? 't'
-		  : $type->{typlen} eq 'NAMEDATALEN' ? 't'
-		  : $type->{typlen} > 0              ? 't'
-		  :                                    'f';
+		    $row->{attlen} eq 'NAMEDATALEN' ? 't'
+		  : $row->{attlen} > 0              ? 't'
+		  :                                   'f';
 	}
 	else
 	{
@@ -854,17 +981,15 @@ sub print_bki_insert
 		# since that represents a NUL char in C code.
 		$bki_value = '' if $bki_value eq '\0';
 
-		# Handle single quotes by doubling them, and double quotes by
-		# converting them to octal escapes, because that's what the
+		# Handle single quotes by doubling them, because that's what the
 		# bootstrap scanner requires.  We do not process backslashes
 		# specially; this allows escape-string-style backslash escapes
 		# to be used in catalog data.
 		$bki_value =~ s/'/''/g;
-		$bki_value =~ s/"/\\042/g;
 
 		# Quote value if needed.  We need not quote values that satisfy
 		# the "id" pattern in bootscanner.l, currently "[-A-Za-z0-9_]+".
-		$bki_value = sprintf(qq'"%s"', $bki_value)
+		$bki_value = sprintf("'%s'", $bki_value)
 		  if length($bki_value) == 0
 		  or $bki_value =~ /[^-A-Za-z0-9_]/;
 
@@ -902,7 +1027,7 @@ sub morph_row_for_schemapg
 		}
 
 		# Expand booleans from 'f'/'t' to 'false'/'true'.
-		# Some values might be other macros (eg FLOAT4PASSBYVAL),
+		# Some values might be other macros (eg FLOAT8PASSBYVAL),
 		# don't change.
 		elsif ($atttype eq 'bool')
 		{
@@ -925,7 +1050,8 @@ sub morph_row_for_schemapg
 # within this genbki.pl run.)
 sub lookup_oids
 {
-	my ($lookup, $catname, $bki_values, @lookupnames) = @_;
+	my ($lookup, $catname, $attname, $lookup_opt, $bki_values, @lookupnames)
+	  = @_;
 
 	my @lookupoids;
 	foreach my $lookupname (@lookupnames)
@@ -938,10 +1064,19 @@ sub lookup_oids
 		else
 		{
 			push @lookupoids, $lookupname;
-			warn sprintf
-			  "unresolved OID reference \"%s\" in %s.dat line %s\n",
-			  $lookupname, $catname, $bki_values->{line_number}
-			  if $lookupname ne '-' and $lookupname ne '0';
+			if ($lookupname eq '-' or $lookupname eq '0')
+			{
+				warn sprintf
+				  "invalid zero OID reference in %s.dat field %s line %s\n",
+				  $catname, $attname, $bki_values->{line_number}
+				  if !$lookup_opt;
+			}
+			else
+			{
+				warn sprintf
+				  "unresolved OID reference \"%s\" in %s.dat field %s line %s\n",
+				  $lookupname, $catname, $attname, $bki_values->{line_number};
+			}
 		}
 	}
 	return @lookupoids;
@@ -969,6 +1104,25 @@ sub form_pg_type_symbol
 	return $name . $arraystr . 'OID';
 }
 
+# Assign an unused OID within the specified catalog.
+sub assign_next_oid
+{
+	my $catname = shift;
+
+	# Initialize, if no previous request for this catalog.
+	$GenbkiNextOids{$catname} = $FirstGenbkiObjectId
+	  if !defined($GenbkiNextOids{$catname});
+
+	my $result = $GenbkiNextOids{$catname}++;
+
+	# Check that we didn't overrun available OIDs
+	die
+	  "genbki OID counter for $catname reached $result, overrunning FirstBootstrapObjectId\n"
+	  if $result >= $FirstBootstrapObjectId;
+
+	return $result;
+}
+
 sub usage
 {
 	die <<EOM;
@@ -978,10 +1132,11 @@ Options:
     --output         Output directory (default '.')
     --set-version    PostgreSQL version number for initdb cross-check
     --include-path   Include path in source tree
+    --extra-path     Extra path for catalog data files
 
-genbki.pl generates BKI files and symbol definition
+genbki.pl generates postgres.bki and symbol definition
 headers from specially formatted header files and .dat
-files.  The BKI files are used to initialize the
+files.  postgres.bki is used to initialize the
 postgres template database.
 
 Report bugs to <pgsql-bugs\@lists.postgresql.org>.

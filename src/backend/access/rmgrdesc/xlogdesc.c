@@ -3,7 +3,7 @@
  * xlogdesc.c
  *	  rmgr descriptor routines for access/transam/xlog.c
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -83,16 +83,16 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 		CheckpointExtendedRecord ckptExtended;
 
 		appendStringInfo(buf, "redo %X/%X; "
-						 "tli %u; prev tli %u; fpw %s; xid %u:%u; gxid "UINT64_FORMAT"; oid %u; relfilenode %u; multi %u; offset %u; "
+						 "tli %u; prev tli %u; fpw %s; xid %u:%u; gxid "UINT64_FORMAT"; oid %u; relfilenode %lu; multi %u; offset %u; "
 						 "oldest xid %u in DB %u; oldest multi %u in DB %u; "
 						 "oldest/newest commit timestamp xid: %u/%u; "
 						 "oldest running xid %u; %s",
-						 (uint32) (checkpoint->redo >> 32), (uint32) checkpoint->redo,
+						 LSN_FORMAT_ARGS(checkpoint->redo),
 						 checkpoint->ThisTimeLineID,
 						 checkpoint->PrevTimeLineID,
 						 checkpoint->fullPageWrites ? "true" : "false",
-						 EpochFromFullTransactionId(checkpoint->nextFullXid),
-						 XidFromFullTransactionId(checkpoint->nextFullXid),
+						 EpochFromFullTransactionId(checkpoint->nextXid),
+						 XidFromFullTransactionId(checkpoint->nextXid),
 						 checkpoint->nextGxid,
 						 checkpoint->nextOid,
 						 checkpoint->nextRelfilenode,
@@ -134,10 +134,10 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 	}
 	else if (info == XLOG_NEXTRELFILENODE)
 	{
-		Oid			nextRelfilenode;
+	    RelFileNodeId   nextRelfilenode;
 
-		memcpy(&nextRelfilenode, rec, sizeof(Oid));
-		appendStringInfo(buf, "%u", nextRelfilenode);
+	    memcpy(&nextRelfilenode, rec, sizeof(RelFileNodeId));
+		appendStringInfo(buf, "%lu", nextRelfilenode);
 	}
 	else if (info == XLOG_RESTORE_POINT)
 	{
@@ -154,8 +154,7 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 		XLogRecPtr	startpoint;
 
 		memcpy(&startpoint, rec, sizeof(XLogRecPtr));
-		appendStringInfo(buf, "%X/%X",
-						 (uint32) (startpoint >> 32), (uint32) startpoint);
+		appendStringInfo(buf, "%X/%X", LSN_FORMAT_ARGS(startpoint));
 	}
 	else if (info == XLOG_PARAMETER_CHANGE)
 	{
@@ -205,6 +204,15 @@ xlog_desc(StringInfo buf, XLogReaderState *record)
 						 xlrec.ThisTimeLineID, xlrec.PrevTimeLineID,
 						 timestamptz_to_str(xlrec.end_time));
 	}
+	else if (info == XLOG_OVERWRITE_CONTRECORD)
+	{
+		xl_overwrite_contrecord xlrec;
+
+		memcpy(&xlrec, rec, sizeof(xl_overwrite_contrecord));
+		appendStringInfo(buf, "lsn %X/%X; time %s",
+						 LSN_FORMAT_ARGS(xlrec.overwritten_lsn),
+						 timestamptz_to_str(xlrec.overwrite_time));
+	}
 }
 
 const char *
@@ -249,6 +257,9 @@ xlog_identify(uint8 info)
 			break;
 		case XLOG_END_OF_RECOVERY:
 			id = "END_OF_RECOVERY";
+			break;
+		case XLOG_OVERWRITE_CONTRECORD:
+			id = "OVERWRITE_CONTRECORD";
 			break;
 		case XLOG_FPI:
 			id = "FPI";

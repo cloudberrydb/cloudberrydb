@@ -5,6 +5,7 @@
 
 
 
+create extension if not exists plpython3u;
 --
 -- This table is our example database table
 --
@@ -36,14 +37,14 @@ LANGUAGE C IMMUTABLE;
 --
 DROP EXTERNAL TABLE IF EXISTS example_out;
 CREATE WRITABLE EXTERNAL WEB TABLE example_out(like example)
-EXECUTE '$GPHOME/bin/sassender localhost 2000' FORMAT 'CUSTOM' (FORMATTER ‘formatter_export’) DISTRIBUTED BY (id);
+EXECUTE '$GPHOME/bin/sassender localhost 2000' FORMAT 'CUSTOM' (FORMATTER='formatter_export') DISTRIBUTED BY (id);
 
 --
 -- Setup an external table to write into the table (e.g. have the database read in new rows)
 --
 DROP EXTERNAL TABLE IF EXISTS example_in;
 CREATE EXTERNAL WEB TABLE example_in(like example)
-EXECUTE '$GPHOME/bin/sasreceiver localhost 2000' ON ALL FORMAT 'CUSTOM' (FORMATTER ‘formatter_import’);
+EXECUTE '$GPHOME/bin/sasreceiver localhost 2000' ON ALL FORMAT 'CUSTOM' (FORMATTER='formatter_import');
 
 
 ---
@@ -61,7 +62,7 @@ for x in range(c):
   value3 = (value1 * value2) / (value1 + value2)**2
   value4 = math.log(value1) + random.random()*3
   yield {'id': id, 'name':  name, 'value1': value1, 'value2': value2, 'value3': value3, 'value4': value4}
-$$ language plpythonu;
+$$ language plpython3u;
 
 -- Add 1K records on each segment
 \echo 'loading data...'

@@ -85,7 +85,7 @@
     <section id="section4">
       <title>Description</title>
       <p>You specify the input, map and reduce tasks, and the output for the
-        Greenplum MapReduce <codeph>gpmapreduce</codeph> program in a
+        Cloudberry MapReduce <codeph>gpmapreduce</codeph> program in a
         YAML-formatted configuration file. (This reference page uses the name
         <codeph>gpmapreduce.yaml</codeph> when referring to this file; you may
         choose your own name for the file.)</p>
@@ -100,19 +100,19 @@
         <plentry>
           <pt id="VERSION">VERSION</pt>
           <pd>
-            <p>Required. The version of the Greenplum MapReduce YAML specification. Current supported
+            <p>Required. The version of the Cloudberry MapReduce YAML specification. Current supported
               versions are 1.0.0.1, 1.0.0.2, and 1.0.0.3.</p>
           </pd>
         </plentry>
         <plentry>
           <pt id="DATABASE">DATABASE</pt>
-          <pd>Optional. Specifies which database in Greenplum to connect to. If not specified,
+          <pd>Optional. Specifies which database in Cloudberry to connect to. If not specified,
             defaults to the default database or <codeph>$PGDATABASE</codeph> if set.</pd>
         </plentry>
         <plentry>
           <pt id="USER">USER</pt>
           <pd>Optional. Specifies which database role to use to connect. If not specified, defaults
-            to the current user or <codeph>$PGUSER</codeph> if set. You must be a Greenplum
+            to the current user or <codeph>$PGUSER</codeph> if set. You must be a Cloudberry
             superuser to run functions written in untrusted Python and Perl. Regular database users
             can run functions written in trusted Perl. You also must be a database superuser to run
             MapReduce jobs that contain <xref href="#topic1/FILE" format="dita">FILE</xref>, <xref
@@ -121,12 +121,12 @@
         </plentry>
         <plentry>
           <pt id="HOST">HOST</pt>
-          <pd>Optional. Specifies Greenplum coordinator host name. If not specified, defaults to
+          <pd>Optional. Specifies Cloudberry coordinator host name. If not specified, defaults to
             localhost or <codeph>$PGHOST</codeph> if set.</pd>
         </plentry>
         <plentry>
           <pt id="PORT">PORT</pt>
-          <pd>Optional. Specifies Greenplum coordinator port. If not specified, defaults to 5432 or
+          <pd>Optional. Specifies Cloudberry coordinator port. If not specified, defaults to 5432 or
               <codeph>$PGPORT</codeph> if set.</pd>
         </plentry>
         <plentry>
@@ -154,16 +154,16 @@
                     <plentry>
                       <pt id="FILE">FILE</pt>
                       <pd>A sequence of one or more input files in the format:
-                          <codeph>seghostname:/path/to/filename</codeph>. You must be a Greenplum
+                          <codeph>seghostname:/path/to/filename</codeph>. You must be a Cloudberry
                         Database superuser to run MapReduce jobs with <codeph>FILE</codeph> input.
-                        The file must reside on a Greenplum segment host.</pd>
+                        The file must reside on a Cloudberry segment host.</pd>
                     </plentry>
                   </parml><parml>
                     <plentry>
                       <pt id="GPFDIST">GPFDIST</pt>
                       <pd>A sequence identifying one or more running <codeph>gpfdist</codeph>
                         file servers in the format:
-                          <codeph>hostname[:port]/file_pattern</codeph>. You must be a Greenplum
+                          <codeph>hostname[:port]/file_pattern</codeph>. You must be a Cloudberry
                         Database superuser to run MapReduce jobs with <codeph>GPFDIST</codeph>
                         input.</pd>
                     </plentry>
@@ -177,10 +177,10 @@
                     </plentry>
                     <plentry>
                       <pt id="EXEC">EXEC</pt>
-                      <pd>An operating system command to run on the Greenplum segment hosts. The
+                      <pd>An operating system command to run on the Cloudberry segment hosts. The
                         command is run by all segment instances in the system by default. For
                         example, if you have four segment instances per segment host, the command
-                        will be run four times on each host. You must be a Greenplum Database
+                        will be run four times on each host. You must be a Cloudberry Database
                         superuser to run MapReduce jobs with <codeph>EXEC</codeph> input.</pd>
                     </plentry>
                     <plentry>
@@ -259,7 +259,7 @@
                     <plentry>
                       <pt id="ERROR_LIMIT">ERROR_LIMIT</pt>
                       <pd>If the input rows have format errors they will be discarded provided that
-                        the error limit count is not reached on any Greenplum segment instance
+                        the error limit count is not reached on any Cloudberry segment instance
                         during input processing. If the error limit is not reached, all good rows
                         will be processed and any error rows discarded.</pd>
                     </plentry>
@@ -303,7 +303,7 @@
                     <plentry>
                       <pt id="KEYS">KEYS</pt>
                       <pd>Optional for <xref href="#topic1/OUTPUTTABLE" format="dita">TABLE</xref>
-                        output. Specifies the column(s) to use as the Greenplum Database
+                        output. Specifies the column(s) to use as the Cloudberry Database
                         distribution key. If the <xref href="#topic1/EXECUTE" format="dita"
                           >EXECUTE</xref> task contains a <xref href="#topic1/REDUCE" type="topic"
                           format="dita">REDUCE</xref> definition, then the <codeph>REDUCE</codeph>
@@ -329,7 +329,7 @@
                 <pd>Required. Each <codeph>MAP</codeph> function takes data structured in
                     (<codeph>key</codeph>, <codeph>value</codeph>) pairs, processes each pair, and
                   generates zero or more output (<codeph>key</codeph>, <codeph>value</codeph>)
-                  pairs. The Greenplum MapReduce framework then collects all pairs with the same key
+                  pairs. The Cloudberry MapReduce framework then collects all pairs with the same key
                   from all output lists and groups them together. This output is then passed to the
                     <xref href="#topic1/TASKREDUCE" format="dita">REDUCE</xref> task, which is
                   comprised of <xref href="#topic1/TCF" format="dita">TRANSITION | CONSOLIDATE |
@@ -361,7 +361,7 @@
                 </pd>
                 <pd>If a <codeph>CONSOLIDATE</codeph> function is specified,
                     <codeph>TRANSITION</codeph> processing is performed at the segment-level before
-                  redistributing the keys across the Greenplum interconnect for final aggregation
+                  redistributing the keys across the Cloudberry interconnect for final aggregation
                   (two-phase aggregation). Only the resulting <codeph>state</codeph> value for a
                   given key is redistributed, resulting in lower interconnect traffic and greater
                   parallelism. <codeph>CONSOLIDATE</codeph> is handled like a
@@ -379,7 +379,7 @@
                       <pd>Required. A name for the function. Names must be unique with regards to
                         the names of other objects in this MapReduce job (such as function, task,
                         input and output names). You can also specify the name of a function
-                        built-in to Greenplum Database. If using a built-in function, do not supply
+                        built-in to Cloudberry Database. If using a built-in function, do not supply
                           <xref href="#topic1/LANGUAGE" format="dita">LANGUAGE</xref> or a <xref
                           href="#topic1/FUNCTION" format="dita">FUNCTION</xref> body.</pd>
                     </plentry>
@@ -405,7 +405,7 @@
                         is C (not allowed for other language functions). To use this attribute,
                           <xref href="#topic1/VERSION" format="dita">VERSION</xref> must be 1.0.0.2.
                         The specified library file must be installed prior to running the MapReduce
-                        job, and it must exist in the same file system location on all Greenplum
+                        job, and it must exist in the same file system location on all Cloudberry
                         hosts (coordinator and segments).</pd>
                     </plentry>
                     <plentry>
@@ -514,7 +514,7 @@
                 <pt id="TASK">TASK</pt>
                 <pd>Optional. A <codeph>TASK</codeph> defines a complete end-to-end
                     <codeph>INPUT</codeph>/<codeph>MAP</codeph>/<codeph>REDUCE</codeph> stage within
-                  a Greenplum MapReduce job pipeline. It is similar to <xref href="#topic1/EXECUTE"
+                  a Cloudberry MapReduce job pipeline. It is similar to <xref href="#topic1/EXECUTE"
                     format="dita">EXECUTE</xref> except it is not immediately run. A task
                   object can be called as <xref href="#topic1/INPUT" format="dita">INPUT</xref> to
                   further processing stages.<parml>
@@ -553,7 +553,7 @@
           <pt id="EXECUTE">EXECUTE</pt>
           <pd>Required. <codeph>EXECUTE</codeph> defines the final
               <codeph>INPUT</codeph>/<codeph>MAP</codeph>/<codeph>REDUCE</codeph> stage within a
-            Greenplum MapReduce job pipeline.<parml>
+            Cloudberry MapReduce job pipeline.<parml>
               <plentry>
                 <pt id="RUN">RUN</pt>
                 <pd>

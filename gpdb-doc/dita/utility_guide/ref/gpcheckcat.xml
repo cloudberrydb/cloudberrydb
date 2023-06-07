@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="jr20941">gpcheckcat</title>
   <body>
-    <p>The <codeph>gpcheckcat</codeph> utility tests Greenplum Database catalog tables for
+    <p>The <codeph>gpcheckcat</codeph> utility tests Cloudberry Database catalog tables for
       inconsistencies. </p>
     <p>The utility is in <codeph>$GPHOME/bin/lib</codeph>.</p>
     <section id="section2">
@@ -43,7 +43,7 @@
         schemas (temporary schemas without a session ID) in the specified databases. The utility
         displays the results of the orphaned, temporary schema check on the command line and also
         logs the results.</note>
-      <p>Catalog inconsistencies are inconsistencies that occur between Greenplum Database system
+      <p>Catalog inconsistencies are inconsistencies that occur between Cloudberry Database system
         tables. In general, there are three types of inconsistencies:<ul id="ul_jry_gmh_mp">
           <li>Inconsistencies in system tables at the segment level. For example, an inconsistency
             between a system table that contains table data and a system table that contains column
@@ -63,7 +63,7 @@
       <parml>
         <plentry>
           <pt>-A</pt>
-          <pd>Run <codeph>gpcheckcat</codeph> on all databases in the Greenplum Database
+          <pd>Run <codeph>gpcheckcat</codeph> on all databases in the Cloudberry Database
             installation.</pd>
         </plentry>
         <plentry>
@@ -73,7 +73,7 @@
             <p>The <codeph>gpcheckcat</codeph> utility attempts to determine the number of
               simultaneous processes (the batch size) to use. The utility assumes it can use a
               buffer with a minimum of 20MB for each process. The maximum number of parallel
-              processes is the number of Greenplum Database segment instances. The utility displays
+              processes is the number of Cloudberry Database segment instances. The utility displays
               the number of parallel processes that it uses when it starts checking the catalog.
               <note>The utility might run out of memory if the number of errors returned exceeds the
                 buffer size. If an out of memory error occurs, you can lower the batch size with the
@@ -103,18 +103,18 @@
         </plentry>
         <plentry>
           <pt>-p <varname>port</varname></pt>
-          <pd>This option specifies the port that is used by the Greenplum Database.</pd>
+          <pd>This option specifies the port that is used by the Cloudberry Database.</pd>
         </plentry>
         <plentry>
           <pt>-P <varname>password</varname></pt>
-          <pd>The password of the user connecting to Greenplum Database.</pd>
+          <pd>The password of the user connecting to Cloudberry Database.</pd>
         </plentry>
         <plentry>
           <pt>-R <varname>test_name | 'test_name1,test_name2 [, ...]'</varname>
           </pt>
           <pd>Specify one or more tests to run. Specify multiple tests as a comma-delimited list of
             test names enclosed in quotes. </pd>
-          <pd>Some tests can be run only when Greenplum Database is in restricted mode.</pd>
+          <pd>Some tests can be run only when Cloudberry Database is in restricted mode.</pd>
           <pd>These are the tests that can be performed: <p><codeph>acl</codeph> - Cross consistency
               check for access control privileges</p>
             <p><codeph>aoseg_table</codeph> - Check that the vertical partition
@@ -163,13 +163,13 @@
         <plentry>
           <pt>-S {none | only}</pt>
           <pd>Specify this option to control the testing of catalog tables that are shared across
-            all databases in the Greenplum Database installation, such as <i>pg_database</i>. </pd>
+            all databases in the Cloudberry Database installation, such as <i>pg_database</i>. </pd>
           <pd>The value <codeph>none</codeph> disables testing of shared catalog tables. The value
               <codeph>only</codeph> tests only the shared catalog tables. </pd>
         </plentry>
         <plentry>
           <pt>-U <varname>user_name</varname></pt>
-          <pd>The user connecting to Greenplum Database.</pd>
+          <pd>The user connecting to Cloudberry Database.</pd>
         </plentry>
         <plentry>
           <pt>-? | --help</pt>

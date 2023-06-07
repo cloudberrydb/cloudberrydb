@@ -1,7 +1,7 @@
 /*
  *	version_gp.c
  *
- *	Greenplum version-specific routines for upgrades
+ *	Cloudberry version-specific routines for upgrades
  *
  *	Copyright (c) 2016-Present VMware, Inc. or its affiliates
  *	contrib/pg_upgrade/version_gp.c

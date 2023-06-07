@@ -2,7 +2,7 @@
  *
  * streamutil.h
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  src/bin/pg_basebackup/streamutil.h
@@ -12,10 +12,9 @@
 #ifndef STREAMUTIL_H
 #define STREAMUTIL_H
 
-#include "libpq-fe.h"
-
 #include "access/xlogdefs.h"
 #include "datatype/timestamp.h"
+#include "libpq-fe.h"
 
 extern const char *progname;
 extern char *connection_string;

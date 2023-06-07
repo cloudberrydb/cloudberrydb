@@ -12,7 +12,7 @@ subdir = src/test
 top_builddir = ../..
 include $(top_builddir)/src/Makefile.global
 
-# GPDB_12_MERGE_FIXME Since logical replication doesn't work for GPDB,
+# GPDB_12_MERGE_FEATURE_NOT_SUPPORTED Since logical replication doesn't work for GPDB,
 # removed "subscription" test from below list.
 SUBDIRS = perl regress isolation modules authentication recovery
 
@@ -31,7 +31,7 @@ ifneq (,$(filter ldap,$(PG_TEST_EXTRA)))
 SUBDIRS += ldap
 endif
 endif
-ifeq ($(with_openssl),yes)
+ifeq ($(with_ssl),openssl)
 ifneq (,$(filter ssl,$(PG_TEST_EXTRA)))
 SUBDIRS += ssl
 endif
@@ -41,7 +41,7 @@ endif
 # clean" etc to recurse into them.  (We must filter out those that we
 # have conditionally included into SUBDIRS above, else there will be
 # make confusion.)
-ALWAYS_SUBDIRS = $(filter-out $(SUBDIRS),examples kerberos ldap locale thread ssl)
+ALWAYS_SUBDIRS = $(filter-out $(SUBDIRS),examples kerberos ldap ssl)
 
 # We want to recurse to all subdirs for all standard targets, except that
 # installcheck and install should not recurse into the subdirectory "modules".

@@ -5,7 +5,7 @@
     <!-- install guide has a link to this topic. -->
     <title id="jp20941">gpaddmirrors</title>
     <body>
-        <p>Adds mirror segments to a Greenplum Database system that was initially configured without
+        <p>Adds mirror segments to a Cloudberry Database system that was initially configured without
             mirroring.</p>
         <section id="section2">
             <title>Synopsis</title>
@@ -25,12 +25,12 @@
         <section id="section3">
             <title>Description</title>
             <p>The <codeph>gpaddmirrors</codeph> utility configures mirror segment instances for an
-                existing Greenplum Database system that was initially configured with primary
+                existing Cloudberry Database system that was initially configured with primary
                 segment instances only. The utility will create the mirror instances and begin the
                 online replication process between the primary and mirror segment instances. Once
-                all mirrors are synchronized with their primaries, your Greenplum Database system is
+                all mirrors are synchronized with their primaries, your Cloudberry Database system is
                 fully data redundant.</p>
-            <note type="important">During the online replication process, Greenplum Database should
+            <note type="important">During the online replication process, Cloudberry Database should
                 be in a quiescent state, workloads and other queries should not be running.</note>
             <p>By default, the utility will prompt you for the file system location(s) where it will
                 create the mirror segment data directories. If you do not want to be prompted, you
@@ -68,7 +68,7 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
    FROM gp_segment_configuration
    ORDER BY dbid;</codeblock>
             <p>If you are creating mirrors on alternate mirror hosts, the new mirror segment hosts
-                must be pre-installed with the Greenplum Database software and configured exactly
+                must be pre-installed with the Cloudberry Database software and configured exactly
                 the same as the existing primary segment hosts. </p>
             <p>You must make sure that the user who runs <codeph>gpaddmirrors</codeph> (the
                     <codeph>gpadmin</codeph> user) has permissions to write to the data directory
@@ -76,7 +76,7 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
                 and <codeph>chown</codeph> them to the appropriate user before running
                     <codeph>gpaddmirrors</codeph>.</p>
             <note>This utility uses secure shell (SSH) connections between systems to perform its
-                tasks. In large Greenplum Database deployments, cloud deployments, or deployments
+                tasks. In large Cloudberry Database deployments, cloud deployments, or deployments
                 with a large number of segments per host, this utility may exceed the host's maximum
                 threshold for unauthenticated connections. Consider updating the SSH
                     <codeph>MaxStartups</codeph> configuration parameter to increase this threshold.
@@ -114,12 +114,12 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
                     <pt>--hba-hostnames <varname>boolean</varname></pt>
                     <pd>Optional. Controls whether this utility uses IP addresses or host names in
                         the <codeph>pg_hba.conf</codeph> file when updating this file with addresses
-                        that can connect to Greenplum Database. When set to 0 -- the default value
+                        that can connect to Cloudberry Database. When set to 0 -- the default value
                         -- this utility uses IP addresses when updating this file. When set to 1,
                         this utility uses host names when updating this file. For consistency, use
                         the same value that was specified for <codeph>HBA_HOSTNAMES</codeph> when
-                        the Greenplum Database system was initialized. For information about how
-                        Greenplum Database resolves host names in the <codeph>pg_hba.conf</codeph>
+                        the Cloudberry Database system was initialized. For information about how
+                        Cloudberry Database resolves host names in the <codeph>pg_hba.conf</codeph>
                         file, see <xref href="../../admin_guide/client_auth.xml"/>.</pd>
                 </plentry>
                 <plentry>
@@ -185,7 +185,7 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
                     <pd>Spreads the mirror segments across the available hosts. The default is to
                         group a set of mirror segments together on an alternate host from their
                         primary segment set. Mirror spreading will place each mirror on a different
-                        host within the Greenplum Database array. Spreading is only allowed if there
+                        host within the Cloudberry Database array. Spreading is only allowed if there
                         is a sufficient number of hosts in the array (number of hosts is greater
                         than the number of segment instances per host).</pd>
                 </plentry>
@@ -213,7 +213,7 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
                         a local <codeph>/etc/hosts</codeph> file to map the hostname to an IP
                         address. The resolution of a hostname to an IP address should not be
                         performed by an external service such as a public DNS server. You must stop
-                        the Greenplum system before you change the mapping of a hostname to a
+                        the Cloudberry system before you change the mapping of a hostname to a
                         different IP address.</li>
                     <li>If you specify an IP address, the address should not be changed after the
                         initial configuration. When segment mirroring is enabled, replication from
@@ -222,28 +222,28 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
                         enabling mirroring using the <codeph>-i</codeph> option unless you have a
                         specific requirement to use IP addresses.</li>
                 </ul></p>
-            <p>When enabling a mirroring configuration that adds hosts to the Greenplum system,
+            <p>When enabling a mirroring configuration that adds hosts to the Cloudberry system,
                     <codeph>gpaddmirrors</codeph> populates the <codeph><xref
                         href="../../ref_guide/system_catalogs/gp_segment_configuration.xml"
                         >gp_segment_configuration</xref></codeph> catalog table with the mirror
-                segment instance information. Greenplum Database uses the <varname>address</varname>
+                segment instance information. Cloudberry Database uses the <varname>address</varname>
                 value of the <codeph>gp_segment_configuration</codeph> catalog table when looking up
-                host systems for Greenplum interconnect (internal) communication between the coordinator
+                host systems for Cloudberry interconnect (internal) communication between the coordinator
                 and segment instances and between segment instances, and for other internal
                 communication.</p>
         </section>
         <section id="multi_nic">
             <title>Using Host Systems with Multiple NICs</title>
-            <p>If hosts systems are configured with multiple NICs, you can initialize a Greenplum
-                Database system to use each NIC as a Greenplum host system. You must ensure that the
+            <p>If hosts systems are configured with multiple NICs, you can initialize a Cloudberry
+                Database system to use each NIC as a Cloudberry host system. You must ensure that the
                 host systems are configured with sufficient resources to support all the segment
                 instances being added to the host. Also, if you enable segment mirroring, you must
-                ensure that the Greenplum system configuration supports failover if a host system
-                fails. For information about Greenplum Database mirroring schemes, see <xref
+                ensure that the Cloudberry system configuration supports failover if a host system
+                fails. For information about Cloudberry Database mirroring schemes, see <xref
                     href="../../best_practices/ha.html#topic_ngz_qf4_tt" format="html" scope="external"/>.</p>
-            <p>For example, this is a segment instance configuration for a simple Greenplum system.
+            <p>For example, this is a segment instance configuration for a simple Cloudberry system.
                 The segment host <codeph>gp6m</codeph> is configured with two NICs,
-                    <codeph>gp6m-1</codeph> and <codeph>gp6m-2</codeph>, where the Greenplum
+                    <codeph>gp6m-1</codeph> and <codeph>gp6m-2</codeph>, where the Cloudberry
                 Database system uses <codeph>gp6m-1</codeph> for the coordinator segment and
                     <codeph>gp6m-2</codeph> for segment instances. </p>
             <codeblock>select content, role, port, hostname, address from gp_segment_configuration ;
@@ -259,14 +259,14 @@ Enter mirror segment data directory location 2 of 2 &gt; /gpdb/m2</codeblock>
         </section>
         <section id="section5">
             <title>Examples</title>
-            <p>Add mirroring to an existing Greenplum Database system using the same set of hosts as
+            <p>Add mirroring to an existing Cloudberry Database system using the same set of hosts as
                 your primary data. Calculate the mirror database ports by adding 100 to the current
                 primary segment port numbers:</p>
             <codeblock>$ gpaddmirrors -p 100</codeblock>
             <p>Generate a sample mirror configuration file with the <codeph>-o</codeph> option to
                 use with <codeph>gpaddmirrors -i</codeph>:</p>
             <codeblock>$ gpaddmirrors -o /home/gpadmin/sample_mirror_config</codeblock>
-            <p>Add mirroring to an existing Greenplum Database system using a different set of hosts
+            <p>Add mirroring to an existing Cloudberry Database system using a different set of hosts
                 from your primary data:</p>
             <codeblock>$ gpaddmirrors -i mirror_config_file</codeblock>
             <p>Where <codeph>mirror_config_file</codeph> looks something like this:</p>

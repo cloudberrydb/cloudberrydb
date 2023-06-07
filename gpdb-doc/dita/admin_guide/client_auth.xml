@@ -4,33 +4,33 @@
 <topic id="topic1" xml:lang="en">
   <title id="ip141161">Configuring Client Authentication</title>
   <shortdesc>This topic explains how to configure client connections and authentication for
-    Greenplum Database.</shortdesc>
+    Cloudberry Database.</shortdesc>
   <body>
-    <p>When a Greenplum Database system is first initialized, the system contains one predefined
+    <p>When a Cloudberry Database system is first initialized, the system contains one predefined
         <i>superuser</i> role. This role will have the same name as the operating system user who
-      initialized the Greenplum Database system. This role is referred to as
+      initialized the Cloudberry Database system. This role is referred to as
         <codeph>gpadmin</codeph>. By default, the system is configured to only allow local
       connections to the database from the <codeph>gpadmin</codeph> role. If you want to allow any
       other roles to connect, or if you want to allow connections from remote hosts, you have to
-      configure Greenplum Database to allow such connections. This section explains how to configure
-      client connections and authentication to Greenplum Database.</p>
+      configure Cloudberry Database to allow such connections. This section explains how to configure
+      client connections and authentication to Cloudberry Database.</p>
   </body>
   <topic id="topic2" xml:lang="en">
-    <title id="ip142171">Allowing Connections to Greenplum Database</title>
+    <title id="ip142171">Allowing Connections to Cloudberry Database</title>
     <body>
       <p>Client access and authentication is controlled by the standard PostgreSQL host-based
         authentication file, <filepath>pg_hba.conf</filepath>. For detailed information about this
         file, see <xref href="https://www.postgresql.org/docs/9.4/auth-pg-hba-conf.html"
           scope="external" format="html">The pg_hba.conf File</xref> in the PostgreSQL
         documentation. </p>
-      <p>In Greenplum Database, the <filepath>pg_hba.conf</filepath> file of the master instance
-        controls client access and authentication to your Greenplum Database system. The Greenplum
+      <p>In Cloudberry Database, the <filepath>pg_hba.conf</filepath> file of the master instance
+        controls client access and authentication to your Cloudberry Database system. The Cloudberry
         Database segments also have <filepath>pg_hba.conf</filepath> files, but these are already
         correctly configured to allow only client connections from the master host. The segments
         never accept outside client connections, so there is no need to alter the
           <codeph>pg_hba.conf</codeph> file on segments.</p>
       <p>The general format of the <filepath>pg_hba.conf</filepath> file is a set of records, one
-        per line. Greenplum Database ignores blank lines and any text after the <codeph>#</codeph>
+        per line. Cloudberry Database ignores blank lines and any text after the <codeph>#</codeph>
         comment character. A record consists of a number of fields that are separated by spaces or
         tabs. Fields can contain white space if the field value is quoted. Records cannot be
         continued across lines. Each remote client access record has the following format:</p>
@@ -142,7 +142,7 @@
             <row>
               <entry colname="col1">authentication-method</entry>
               <entry colname="col2">Specifies the authentication method to use when connecting.
-                Greenplum supports the <xref
+                Cloudberry supports the <xref
                   href="https://www.postgresql.org/docs/9.4/auth-methods.html" scope="external"
                   format="html">authentication methods</xref> supported by PostgreSQL 9.4.</entry>
             </row>
@@ -161,7 +161,7 @@
       <title id="ip141322">Editing the pg_hba.conf File</title>
       <body>
         <p>Initially, the <codeph>pg_hba.conf</codeph> file is set up with generous permissions for
-          the gpadmin user and no database access for other Greenplum Database roles. You will need
+          the gpadmin user and no database access for other Cloudberry Database roles. You will need
           to edit the <codeph>pg_hba.conf</codeph> file to enable users' access to databases and to
           secure the gpadmin user. Consider removing entries that have trust authentication, since
           they allow anyone with access to the server to connect with any role they choose. For
@@ -197,7 +197,7 @@ host    all   gpadmin   ::1/128       ident
 # password in the line below
 host    all   dba   192.168.0.0/32  md5
 # allow all roles access to any database from any
-# host and use ldap to authenticate the user. Greenplum role
+# host and use ldap to authenticate the user. Cloudberry role
 # names must match the LDAP common name.
 host    all   all   192.168.0.0/32  ldap ldapserver=usldap1 ldapport=1389 ldapprefix="cn=" ldapsuffix=",ou=People,dc=company,dc=com"</codeblock></li>
             <li id="ip141945">Save and close the file.</li>
@@ -216,10 +216,10 @@ host    all   all   192.168.0.0/32  ldap ldapserver=usldap1 ldapport=138
   </topic>
   <topic id="topic4" xml:lang="en">
     <title id="ip145021">Limiting Concurrent Connections</title>
-    <shortdesc>Greenplum Database allocates some resources on a per-connection basis, so setting the
+    <shortdesc>Cloudberry Database allocates some resources on a per-connection basis, so setting the
       maximum number of connections allowed is recommended.</shortdesc>
     <body>
-      <p>To limit the number of active concurrent sessions to your Greenplum Database system, you
+      <p>To limit the number of active concurrent sessions to your Cloudberry Database system, you
         can configure the <codeph>max_connections</codeph> server configuration parameter. This is a
           <i>local</i> parameter, meaning that you must set it in the
           <codeph>postgresql.conf</codeph> file of the master, the standby master, and each segment
@@ -250,14 +250,14 @@ max_prepared_transactions=100
           </p>
         </li>
       </ul>
-      <p>The following steps set the parameter values with the Greenplum Database utility
+      <p>The following steps set the parameter values with the Cloudberry Database utility
           <codeph>gpconfig</codeph>. </p>
-      <p>For information about <codeph>gpconfig</codeph>, see the <i>Greenplum Database Utility
+      <p>For information about <codeph>gpconfig</codeph>, see the <i>Cloudberry Database Utility
           Guide</i>.</p>
       <section id="ip142411">
         <title>To change the number of allowed connections</title>
         <ol id="ol_sty_r15_jp">
-          <li id="ip146498">Log into the Greenplum Database master host as the Greenplum Database
+          <li id="ip146498">Log into the Cloudberry Database master host as the Cloudberry Database
             administrator and source the file <codeph>$GPHOME/greenplum_path.sh</codeph>. </li>
           <li id="ip146499">Set the value of the <codeph>max_connections</codeph> parameter. This
               <codeph>gpconfig</codeph> command sets the value on the segments to 1000 and the value
@@ -274,7 +274,7 @@ max_prepared_transactions=100
 </codeblock>
             </p><p>The value of <codeph>max_prepared_transactions</codeph> must be greater than or
               equal to <codeph>max_connections</codeph> on the master.</p></li>
-          <li id="ip146508">Stop and restart your Greenplum Database system.<p>
+          <li id="ip146508">Stop and restart your Cloudberry Database system.<p>
               <codeblock>$ gpstop -r
 </codeblock>
             </p></li>
@@ -286,7 +286,7 @@ max_prepared_transactions=100
 </codeblock>
             </p></li>
         </ol>
-        <note type="note">Raising the values of these parameters may cause Greenplum Database to
+        <note type="note">Raising the values of these parameters may cause Cloudberry Database to
           request more shared memory. To mitigate this effect, consider decreasing other
           memory-related parameters such as <codeph>gp_cached_segworkers_threshold</codeph>. </note>
       </section>
@@ -294,14 +294,14 @@ max_prepared_transactions=100
   </topic>
   <topic id="topic5" xml:lang="en">
     <title id="ip142639">Encrypting Client/Server Connections</title>
-    <shortdesc>Enable SSL for client connections to Greenplum Database to encrypt the data passed
+    <shortdesc>Enable SSL for client connections to Cloudberry Database to encrypt the data passed
       over the network between the client and the database.</shortdesc>
     <body>
-      <p>Greenplum Database has native support for SSL connections between the client and the master
+      <p>Cloudberry Database has native support for SSL connections between the client and the master
         server. SSL connections prevent third parties from snooping on the packets, and also prevent
         man-in-the-middle attacks. SSL should be used whenever the client connection goes through an
         insecure link, and must be used whenever client certificate authentication is used.</p>
-      <p>Enabling Greenplum Database in SSL mode requires the following items.<ul
+      <p>Enabling Cloudberry Database in SSL mode requires the following items.<ul
           id="ul_ocx_df1_dlb">
           <li>OpenSSL installed on both the client and the master server hosts (master and standby
             master).</li>
@@ -309,7 +309,7 @@ max_prepared_transactions=100
               <filepath>server.crt</filepath> (server certificate) should be correctly generated for
             the master host and standby master host. <ul id="ul_pwr_dg1_dlb">
               <li>The private key should not be protected with a passphrase. The server does not
-                prompt for a passphrase for the private key, and Greenplum Database start up fails
+                prompt for a passphrase for the private key, and Cloudberry Database start up fails
                 with an error if one is required.</li>
               <li>On a production system, there should be a key and certificate pair for the master
                 host and a pair for the standby master host with a subject CN (Common Name) for the
@@ -318,15 +318,15 @@ max_prepared_transactions=100
               certificate authority (CA) should be used in production, so the client can verify the
               identity of the server. Either a global or local CA can be used. If all the clients
               are local to the organization, a local CA is recommended.</p></li>
-          <li>Ensure that Greenplum Database can access <filepath>server.key</filepath> and
+          <li>Ensure that Cloudberry Database can access <filepath>server.key</filepath> and
               <filepath>server.crt</filepath>, and any additional authentication files such as
               <codeph>root.crt</codeph> (for trusted certificate authorities). When starting in SSL
-            mode, the Greenplum Database master looks for <filepath>server.key</filepath> and
-              <filepath>server.crt</filepath>. As the default, Greenplum Database does not start if
+            mode, the Cloudberry Database master looks for <filepath>server.key</filepath> and
+              <filepath>server.crt</filepath>. As the default, Cloudberry Database does not start if
             the files are not in the master data directory
             (<codeph>$COORDINATOR_DATA_DIRECTORY</codeph>). Also, if you use other SSL authentication
             files such as <codeph>root.crt</codeph> (trusted certificate authorities), the files
-            must be on the master host.<p>If Greenplum Database master mirroring is enabled with SSL
+            must be on the master host.<p>If Cloudberry Database master mirroring is enabled with SSL
               client authentication, SSL authentication files must be on both the master host and
               standby master host and <i>should not be placed</i> in the default directory
                 <codeph>$COORDINATOR_DATA_DIRECTORY</codeph>. When master mirroring is enabled, an
@@ -340,7 +340,7 @@ max_prepared_transactions=100
               For more information about the parameters, see <xref
                 href="../security-guide/topics/Authenticate.xml#topic_fzv_wb2_jr"/> in the
                 <cite>Security Configuration Guide</cite>. </p></li>
-        </ul> Greenplum Database can be started with SSL enabled by setting the server configuration
+        </ul> Cloudberry Database can be started with SSL enabled by setting the server configuration
         parameter <codeph>ssl=on</codeph> in the <codeph>postgresql.conf</codeph> file on the master
         and standby master hosts. This <codeph>gpconfig</codeph> command sets the
         parameter:<codeblock>gpconfig -c ssl -m on -v off</codeblock></p>
@@ -360,7 +360,7 @@ max_prepared_transactions=100
             <i>Common Name</i>. The challenge password can be left blank.</p>
         <p>The program will generate a key that is passphrase protected, and does not accept a
           passphrase that is less than four characters long. </p>
-        <p>To use this certificate with Greenplum Database, remove the passphrase with the following
+        <p>To use this certificate with Cloudberry Database, remove the passphrase with the following
           commands:</p>
         <p>
           <codeblock># openssl rsa -in privkey.pem -out server.key

@@ -3,7 +3,7 @@
  * parsexlog.c
  *	  Functions for reading Write-Ahead-Log
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *-------------------------------------------------------------------------
@@ -13,15 +13,16 @@
 
 #include <unistd.h>
 
-#include "pg_rewind.h"
-#include "filemap.h"
-
 #include "access/rmgr.h"
+#include "access/xact.h"
 #include "access/xlog_internal.h"
 #include "access/xlogreader.h"
 #include "catalog/pg_control.h"
 #include "catalog/storage_xlog.h"
 #include "commands/dbcommands_xlog.h"
+#include "fe_utils/archive.h"
+#include "filemap.h"
+#include "pg_rewind.h"
 
 /* GPDB specific headers */
 #include "cdb/cdbappendonlyxlog.h"
@@ -45,60 +46,68 @@ static char xlogfpath[MAXPGPATH];
 
 typedef struct XLogPageReadPrivate
 {
-	const char *datadir;
+	const char *restoreCommand;
 	int			tliIndex;
 } XLogPageReadPrivate;
 
 static int	SimpleXLogPageRead(XLogReaderState *xlogreader,
 							   XLogRecPtr targetPagePtr,
-							   int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-							   TimeLineID *pageTLI);
+							   int reqLen, XLogRecPtr targetRecPtr, char *readBuf);
 
 /*
  * Read WAL from the datadir/pg_wal, starting from 'startpoint' on timeline
  * index 'tliIndex' in target timeline history, until 'endpoint'. Make note of
  * the data blocks touched by the WAL records, and return them in a page map.
+ *
+ * 'endpoint' is the end of the last record to read. The record starting at
+ * 'endpoint' is the first one that is not read.
  */
 void
 extractPageMap(const char *datadir, XLogRecPtr startpoint, int tliIndex,
-			   XLogRecPtr endpoint)
+			   XLogRecPtr endpoint, const char *restoreCommand)
 {
 	XLogRecord *record;
 	XLogReaderState *xlogreader;
 	char	   *errormsg;
 	XLogPageReadPrivate private;
 
-	private.datadir = datadir;
 	private.tliIndex = tliIndex;
-	xlogreader = XLogReaderAllocate(WalSegSz, &SimpleXLogPageRead,
+	private.restoreCommand = restoreCommand;
+	xlogreader = XLogReaderAllocate(WalSegSz, datadir,
+									XL_ROUTINE(.page_read = &SimpleXLogPageRead),
 									&private);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory");
 
+	XLogBeginRead(xlogreader, startpoint);
 	do
 	{
-		record = XLogReadRecord(xlogreader, startpoint, &errormsg);
+		record = XLogReadRecord(xlogreader, &errormsg);
 
 		if (record == NULL)
 		{
-			XLogRecPtr	errptr;
-
-			errptr = startpoint ? startpoint : xlogreader->EndRecPtr;
+			XLogRecPtr	errptr = xlogreader->EndRecPtr;
 
 			if (errormsg)
 				pg_fatal("could not read WAL record at %X/%X: %s",
-						 (uint32) (errptr >> 32), (uint32) (errptr),
+						 LSN_FORMAT_ARGS(errptr),
 						 errormsg);
 			else
 				pg_fatal("could not read WAL record at %X/%X",
-						 (uint32) (errptr >> 32), (uint32) (errptr));
+						 LSN_FORMAT_ARGS(errptr));
 		}
 
 		extractPageInfo(xlogreader);
 
-		startpoint = InvalidXLogRecPtr; /* continue reading at next record */
+	} while (xlogreader->EndRecPtr < endpoint);
 
-	} while (xlogreader->ReadRecPtr != endpoint);
+	/*
+	 * If 'endpoint' didn't point exactly at a record boundary, the caller
+	 * messed up.
+	 */
+	if (xlogreader->EndRecPtr != endpoint)
+		pg_fatal("end pointer %X/%X is not a valid end point; expected %X/%X",
+				 LSN_FORMAT_ARGS(endpoint), LSN_FORMAT_ARGS(xlogreader->EndRecPtr));
 
 	XLogReaderFree(xlogreader);
 	if (xlogreadfd != -1)
@@ -113,7 +122,8 @@ extractPageMap(const char *datadir, XLogRecPtr startpoint, int tliIndex,
  * doing anything with the record itself.
  */
 XLogRecPtr
-readOneRecord(const char *datadir, XLogRecPtr ptr, int tliIndex)
+readOneRecord(const char *datadir, XLogRecPtr ptr, int tliIndex,
+			  const char *restoreCommand)
 {
 	XLogRecord *record;
 	XLogReaderState *xlogreader;
@@ -121,22 +131,24 @@ readOneRecord(const char *datadir, XLogRecPtr ptr, int tliIndex)
 	XLogPageReadPrivate private;
 	XLogRecPtr	endptr;
 
-	private.datadir = datadir;
 	private.tliIndex = tliIndex;
-	xlogreader = XLogReaderAllocate(WalSegSz, &SimpleXLogPageRead,
+	private.restoreCommand = restoreCommand;
+	xlogreader = XLogReaderAllocate(WalSegSz, datadir,
+									XL_ROUTINE(.page_read = &SimpleXLogPageRead),
 									&private);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory");
 
-	record = XLogReadRecord(xlogreader, ptr, &errormsg);
+	XLogBeginRead(xlogreader, ptr);
+	record = XLogReadRecord(xlogreader, &errormsg);
 	if (record == NULL)
 	{
 		if (errormsg)
 			pg_fatal("could not read WAL record at %X/%X: %s",
-					 (uint32) (ptr >> 32), (uint32) (ptr), errormsg);
+					 LSN_FORMAT_ARGS(ptr), errormsg);
 		else
 			pg_fatal("could not read WAL record at %X/%X",
-					 (uint32) (ptr >> 32), (uint32) (ptr));
+					 LSN_FORMAT_ARGS(ptr));
 	}
 	endptr = xlogreader->EndRecPtr;
 
@@ -156,7 +168,7 @@ readOneRecord(const char *datadir, XLogRecPtr ptr, int tliIndex)
 void
 findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
 				   XLogRecPtr *lastchkptrec, TimeLineID *lastchkpttli,
-				   XLogRecPtr *lastchkptredo)
+				   XLogRecPtr *lastchkptredo, const char *restoreCommand)
 {
 	/* Walk backwards, starting from the given record */
 	XLogRecord *record;
@@ -179,9 +191,10 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
 			forkptr += SizeOfXLogShortPHD;
 	}
 
-	private.datadir = datadir;
 	private.tliIndex = tliIndex;
-	xlogreader = XLogReaderAllocate(WalSegSz, &SimpleXLogPageRead,
+	private.restoreCommand = restoreCommand;
+	xlogreader = XLogReaderAllocate(WalSegSz, datadir,
+									XL_ROUTINE(.page_read = &SimpleXLogPageRead),
 									&private);
 	if (xlogreader == NULL)
 		pg_fatal("out of memory");
@@ -191,23 +204,24 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
 	{
 		uint8		info;
 
-		record = XLogReadRecord(xlogreader, searchptr, &errormsg);
+		XLogBeginRead(xlogreader, searchptr);
+		record = XLogReadRecord(xlogreader, &errormsg);
 
 		if (record == NULL)
 		{
 			if (errormsg)
 				pg_fatal("could not find previous WAL record at %X/%X: %s",
-						 (uint32) (searchptr >> 32), (uint32) (searchptr),
+						 LSN_FORMAT_ARGS(searchptr),
 						 errormsg);
 			else
 				pg_fatal("could not find previous WAL record at %X/%X",
-						 (uint32) (searchptr >> 32), (uint32) (searchptr));
+						 LSN_FORMAT_ARGS(searchptr));
 		}
 
 		/*
 		 * Check if it is a checkpoint record. This checkpoint record needs to
 		 * be the latest checkpoint before WAL forked and not the checkpoint
-		 * where the master has been stopped to be rewinded.
+		 * where the primary has been stopped to be rewound.
 		 */
 		info = XLogRecGetInfo(xlogreader) & ~XLR_INFO_MASK;
 		if (searchptr < forkptr &&
@@ -236,11 +250,10 @@ findLastCheckpoint(const char *datadir, XLogRecPtr forkptr, int tliIndex,
 	}
 }
 
-/* XLogreader callback function, to read a WAL page */
+/* XLogReader callback function, to read a WAL page */
 static int
 SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
-				   int reqLen, XLogRecPtr targetRecPtr, char *readBuf,
-				   TimeLineID *pageTLI)
+				   int reqLen, XLogRecPtr targetRecPtr, char *readBuf)
 {
 	XLogPageReadPrivate *private = (XLogPageReadPrivate *) xlogreader->private_data;
 	uint32		targetPageOff;
@@ -285,14 +298,36 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 		XLogFileName(xlogfname, targetHistory[private->tliIndex].tli,
 					 xlogreadsegno, WalSegSz);
 
-		snprintf(xlogfpath, MAXPGPATH, "%s/" XLOGDIR "/%s", private->datadir, xlogfname);
+		snprintf(xlogfpath, MAXPGPATH, "%s/" XLOGDIR "/%s",
+				 xlogreader->segcxt.ws_dir, xlogfname);
 
 		xlogreadfd = open(xlogfpath, O_RDONLY | PG_BINARY, 0);
 
 		if (xlogreadfd < 0)
 		{
-			pg_log_error("could not open file \"%s\": %m", xlogfpath);
-			return -1;
+			/*
+			 * If we have no restore_command to execute, then exit.
+			 */
+			if (private->restoreCommand == NULL)
+			{
+				pg_log_error("could not open file \"%s\": %m", xlogfpath);
+				return -1;
+			}
+
+			/*
+			 * Since we have restore_command, then try to retrieve missing WAL
+			 * file from the archive.
+			 */
+			xlogreadfd = RestoreArchivedFile(xlogreader->segcxt.ws_dir,
+											 xlogfname,
+											 WalSegSz,
+											 private->restoreCommand);
+
+			if (xlogreadfd < 0)
+				return -1;
+			else
+				pg_log_debug("using file \"%s\" restored from archive",
+							 xlogfpath);
 		}
 	}
 
@@ -323,7 +358,7 @@ SimpleXLogPageRead(XLogReaderState *xlogreader, XLogRecPtr targetPagePtr,
 
 	Assert(targetSegNo == xlogreadsegno);
 
-	*pageTLI = targetHistory[private->tliIndex].tli;
+	xlogreader->seg.ws_tli = targetHistory[private->tliIndex].tli;
 	return XLOG_BLCKSZ;
 }
 
@@ -377,6 +412,18 @@ extractPageInfo(XLogReaderState *record)
 		 * source system.
 		 */
 	}
+	else if (rmid == RM_XACT_ID &&
+			 ((rminfo & XLOG_XACT_OPMASK) == XLOG_XACT_COMMIT ||
+			  (rminfo & XLOG_XACT_OPMASK) == XLOG_XACT_COMMIT_PREPARED ||
+			  (rminfo & XLOG_XACT_OPMASK) == XLOG_XACT_ABORT ||
+			  (rminfo & XLOG_XACT_OPMASK) == XLOG_XACT_ABORT_PREPARED))
+	{
+		/*
+		 * These records can include "dropped rels". We can safely ignore
+		 * them, we will see that they are missing and copy them from the
+		 * source.
+		 */
+	}
 	else if (info & XLR_SPECIAL_REL_UPDATE)
 	{
 		/*
@@ -386,7 +433,7 @@ extractPageInfo(XLogReaderState *record)
 		 */
 		pg_fatal("WAL record modifies a relation, but record type is not recognized: "
 				 "lsn: %X/%X, rmgr: %s, info: %02X",
-				 (uint32) (record->ReadRecPtr >> 32), (uint32) (record->ReadRecPtr),
+				 LSN_FORMAT_ARGS(record->ReadRecPtr),
 				 RmgrNames[rmid], info);
 	}
 	else if (rmid == RM_APPEND_ONLY_ID)

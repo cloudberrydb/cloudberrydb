@@ -3,7 +3,7 @@
  * enum.c
  *	  I/O functions, operators, aggregates etc for enum types
  *
- * Copyright (c) 2006-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2006-2021, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -16,7 +16,6 @@
 #include "access/genam.h"
 #include "access/htup_details.h"
 #include "access/table.h"
-#include "catalog/indexing.h"
 #include "catalog/pg_enum.h"
 #include "libpq/pqformat.h"
 #include "storage/procarray.h"
@@ -83,12 +82,12 @@ check_safe_enum_use(HeapTuple enumval_tup)
 		return;
 
 	/*
-	 * Check if the enum value is blacklisted.  If not, it's safe, because it
+	 * Check if the enum value is uncommitted.  If not, it's safe, because it
 	 * was made during CREATE TYPE AS ENUM and can't be shorter-lived than its
 	 * owning type.  (This'd also be false for values made by other
 	 * transactions; but the previous tests should have handled all of those.)
 	 */
-	if (!EnumBlacklisted(en->oid))
+	if (!EnumUncommitted(en->oid))
 		return;
 
 	/*
@@ -602,7 +601,8 @@ enum_range_internal(Oid enumtypoid, Oid lower, Oid upper)
 
 	/* and build the result array */
 	/* note this hardwires some details about the representation of Oid */
-	result = construct_array(elems, cnt, enumtypoid, sizeof(Oid), true, 'i');
+	result = construct_array(elems, cnt, enumtypoid,
+							 sizeof(Oid), true, TYPALIGN_INT);
 
 	pfree(elems);
 

@@ -6,7 +6,7 @@
  *
  * Transforms tokenized jsonpath into tree of JsonPathParseItem structs.
  *
- * Copyright (c) 2019, PostgreSQL Global Development Group
+ * Copyright (c) 2019-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *	src/backend/utils/adt/jsonpath_gram.y
@@ -94,12 +94,14 @@ static JsonPathParseItem *makeItemLikeRegex(JsonPathParseItem *expr,
 %token	<str>		LESS_P LESSEQUAL_P EQUAL_P NOTEQUAL_P GREATEREQUAL_P GREATER_P
 %token	<str>		ANY_P STRICT_P LAX_P LAST_P STARTS_P WITH_P LIKE_REGEX_P FLAG_P
 %token	<str>		ABS_P SIZE_P TYPE_P FLOOR_P DOUBLE_P CEILING_P KEYVALUE_P
+%token	<str>		DATETIME_P
 
 %type	<result>	result
 
 %type	<value>		scalar_value path_primary expr array_accessor
 					any_path accessor_op key predicate delimited_predicate
 					index_elem starts_with_initial expr_or_predicate
+					datetime_template opt_datetime_template
 
 %type	<elems>		accessor_expr
 
@@ -151,7 +153,7 @@ scalar_value:
 	| FALSE_P						{ $$ = makeItemBool(false); }
 	| NUMERIC_P						{ $$ = makeItemNumeric(&$1); }
 	| INT_P							{ $$ = makeItemNumeric(&$1); }
-	| VARIABLE_P 					{ $$ = makeItemVariable(&$1); }
+	| VARIABLE_P					{ $$ = makeItemVariable(&$1); }
 	;
 
 comp_op:
@@ -173,12 +175,12 @@ predicate:
 	| expr comp_op expr				{ $$ = makeItemBinary($2, $1, $3); }
 	| predicate AND_P predicate		{ $$ = makeItemBinary(jpiAnd, $1, $3); }
 	| predicate OR_P predicate		{ $$ = makeItemBinary(jpiOr, $1, $3); }
-	| NOT_P delimited_predicate 	{ $$ = makeItemUnary(jpiNot, $2); }
+	| NOT_P delimited_predicate		{ $$ = makeItemUnary(jpiNot, $2); }
 	| '(' predicate ')' IS_P UNKNOWN_P
 									{ $$ = makeItemUnary(jpiIsUnknown, $2); }
 	| expr STARTS_P WITH_P starts_with_initial
 									{ $$ = makeItemBinary(jpiStartsWith, $1, $4); }
-	| expr LIKE_REGEX_P STRING_P 	{ $$ = makeItemLikeRegex($1, &$3, NULL); }
+	| expr LIKE_REGEX_P STRING_P	{ $$ = makeItemLikeRegex($1, &$3, NULL); }
 	| expr LIKE_REGEX_P STRING_P FLAG_P STRING_P
 									{ $$ = makeItemLikeRegex($1, &$3, &$5); }
 	;
@@ -247,7 +249,18 @@ accessor_op:
 	| array_accessor				{ $$ = $1; }
 	| '.' any_path					{ $$ = $2; }
 	| '.' method '(' ')'			{ $$ = makeItemType($2); }
+	| '.' DATETIME_P '(' opt_datetime_template ')'
+									{ $$ = makeItemUnary(jpiDatetime, $4); }
 	| '?' '(' predicate ')'			{ $$ = makeItemUnary(jpiFilter, $3); }
+	;
+
+datetime_template:
+	STRING_P						{ $$ = makeItemString(&$1); }
+	;
+
+opt_datetime_template:
+	datetime_template				{ $$ = $1; }
+	| /* EMPTY */					{ $$ = NULL; }
 	;
 
 key:
@@ -272,6 +285,7 @@ key_name:
 	| FLOOR_P
 	| DOUBLE_P
 	| CEILING_P
+	| DATETIME_P
 	| KEYVALUE_P
 	| LAST_P
 	| STARTS_P
@@ -416,18 +430,18 @@ makeItemList(List *list)
 {
 	JsonPathParseItem  *head,
 					   *end;
-	ListCell		   *cell = list_head(list);
+	ListCell		   *cell;
 
-	head = end = (JsonPathParseItem *) lfirst(cell);
+	head = end = (JsonPathParseItem *) linitial(list);
 
-	if (!lnext(cell))
+	if (list_length(list) == 1)
 		return head;
 
 	/* append items to the end of already existing list */
 	while (end->next)
 		end = end->next;
 
-	for_each_cell(cell, lnext(cell))
+	for_each_from(cell, list, 1)
 	{
 		JsonPathParseItem *c = (JsonPathParseItem *) lfirst(cell);
 
@@ -481,42 +495,32 @@ makeItemLikeRegex(JsonPathParseItem *expr, JsonPathString *pattern,
 {
 	JsonPathParseItem  *v = makeItemType(jpiLikeRegex);
 	int					i;
-	int					cflags = REG_ADVANCED;
+	int					cflags;
 
 	v->value.like_regex.expr = expr;
 	v->value.like_regex.pattern = pattern->val;
 	v->value.like_regex.patternlen = pattern->len;
-	v->value.like_regex.flags = 0;
 
+	/* Parse the flags string, convert to bitmask.  Duplicate flags are OK. */
+	v->value.like_regex.flags = 0;
 	for (i = 0; flags && i < flags->len; i++)
 	{
 		switch (flags->val[i])
 		{
 			case 'i':
 				v->value.like_regex.flags |= JSP_REGEX_ICASE;
-				cflags |= REG_ICASE;
 				break;
 			case 's':
-				v->value.like_regex.flags &= ~JSP_REGEX_MLINE;
-				v->value.like_regex.flags |= JSP_REGEX_SLINE;
-				cflags |= REG_NEWLINE;
+				v->value.like_regex.flags |= JSP_REGEX_DOTALL;
 				break;
 			case 'm':
-				v->value.like_regex.flags &= ~JSP_REGEX_SLINE;
 				v->value.like_regex.flags |= JSP_REGEX_MLINE;
-				cflags &= ~REG_NEWLINE;
 				break;
 			case 'x':
 				v->value.like_regex.flags |= JSP_REGEX_WSPACE;
-				cflags |= REG_EXPANDED;
 				break;
 			case 'q':
 				v->value.like_regex.flags |= JSP_REGEX_QUOTE;
-				if (!(v->value.like_regex.flags & (JSP_REGEX_MLINE | JSP_REGEX_SLINE | JSP_REGEX_WSPACE)))
-				{
-					cflags &= ~REG_ADVANCED;
-					cflags |= REG_QUOTE;
-				}
 				break;
 			default:
 				ereport(ERROR,
@@ -528,12 +532,58 @@ makeItemLikeRegex(JsonPathParseItem *expr, JsonPathString *pattern,
 		}
 	}
 
+	/* Convert flags to what RE_compile_and_cache needs */
+	cflags = jspConvertRegexFlags(v->value.like_regex.flags);
+
 	/* check regex validity */
 	(void) RE_compile_and_cache(cstring_to_text_with_len(pattern->val,
 														 pattern->len),
 								cflags, DEFAULT_COLLATION_OID);
 
 	return v;
+}
+
+/*
+ * Convert from XQuery regex flags to those recognized by our regex library.
+ */
+int
+jspConvertRegexFlags(uint32 xflags)
+{
+	/* By default, XQuery is very nearly the same as Spencer's AREs */
+	int			cflags = REG_ADVANCED;
+
+	/* Ignore-case means the same thing, too, modulo locale issues */
+	if (xflags & JSP_REGEX_ICASE)
+		cflags |= REG_ICASE;
+
+	/* Per XQuery spec, if 'q' is specified then 'm', 's', 'x' are ignored */
+	if (xflags & JSP_REGEX_QUOTE)
+	{
+		cflags &= ~REG_ADVANCED;
+		cflags |= REG_QUOTE;
+	}
+	else
+	{
+		/* Note that dotall mode is the default in POSIX */
+		if (!(xflags & JSP_REGEX_DOTALL))
+			cflags |= REG_NLSTOP;
+		if (xflags & JSP_REGEX_MLINE)
+			cflags |= REG_NLANCH;
+
+		/*
+		 * XQuery's 'x' mode is related to Spencer's expanded mode, but it's
+		 * not really enough alike to justify treating JSP_REGEX_WSPACE as
+		 * REG_EXPANDED.  For now we treat 'x' as unimplemented; perhaps in
+		 * future we'll modify the regex library to have an option for
+		 * XQuery-style ignore-whitespace mode.
+		 */
+		if (xflags & JSP_REGEX_WSPACE)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("XQuery \"x\" flag (expanded regular expressions) is not implemented")));
+	}
+
+	return cflags;
 }
 
 /*

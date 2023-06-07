@@ -19,14 +19,14 @@ EXPLAIN [ANALYZE] [VERBOSE] <varname>statement</varname></codeblock>
     </section>
     <section id="section3">
       <title>Description</title>
-      <p><codeph>EXPLAIN</codeph> displays the query plan that the Greenplum or Postgres Planner
+      <p><codeph>EXPLAIN</codeph> displays the query plan that the Cloudberry or Postgres Planner
         generates for the supplied statement. Query plans are a tree plan of nodes. Each node in the
         plan represents a single operation, such as table scan, join, aggregation or a sort.</p>
       <p>Plans should be read from the bottom up as each node feeds rows into the node directly
         above it. The bottom nodes of a plan are usually table scan operations (sequential, index or
         bitmap index scans). If the query requires joins, aggregations, or sorts (or other
         operations on the raw rows) then there will be additional nodes above the scan nodes to
-        perform these operations. The topmost plan nodes are usually the Greenplum Database motion
+        perform these operations. The topmost plan nodes are usually the Cloudberry Database motion
         nodes (redistribute, explicit redistribute, broadcast, or gather motions). These are the
         operations responsible for moving rows between the segment instances during query
         processing.</p>
@@ -178,10 +178,10 @@ ROLLBACK;</codeblock></note>
         table has changed significantly since the last time <codeph>ANALYZE</codeph> was run), the
         estimated costs are unlikely to conform to the real properties of the query, and
         consequently an inferior query plan may be chosen.</p>An SQL statement that is run during
-      the execution of an <codeph>EXPLAIN ANALYZE</codeph> command is excluded from Greenplum
+      the execution of an <codeph>EXPLAIN ANALYZE</codeph> command is excluded from Cloudberry
       Database resource queues.<p>For more information about query profiling, see "Query Profiling"
-        in the <cite>Greenplum Database Administrator Guide</cite>. For more information about
-        resource queues, see "Resource Management with Resource Queues" in the <cite>Greenplum
+        in the <cite>Cloudberry Database Administrator Guide</cite>. For more information about
+        resource queues, see "Resource Management with Resource Queues" in the <cite>Cloudberry
           Database Administrator Guide</cite>.</p></section>
     <section id="section6">
       <title>Examples</title>
@@ -201,9 +201,9 @@ ROLLBACK;</codeblock></note>
         being applied as a <i>filter</i> condition. This means that the scan operation checks the
         condition for each row it scans, and outputs only the ones that pass the condition. </p>
       <p>The results of the scan operation are passed up to a <i>gather motion</i> operation. In
-        Greenplum Database, a gather motion is when segments send rows up to the master. In this
+        Cloudberry Database, a gather motion is when segments send rows up to the master. In this
         case we have 3 segment instances sending to 1 master instance (3:1). This operation is
-        working on <codeph>slice1</codeph> of the parallel query execution plan. In Greenplum
+        working on <codeph>slice1</codeph> of the parallel query execution plan. In Cloudberry
         Database a query plan is divided into <i>slices</i> so that portions of the query plan can
         be worked on in parallel by the segments.</p>
       <p>The estimated startup cost for this plan is <codeph>00.00</codeph> (no cost) and a total

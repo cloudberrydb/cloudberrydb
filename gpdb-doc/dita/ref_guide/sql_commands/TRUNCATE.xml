@@ -2,7 +2,7 @@
 <!DOCTYPE topic
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1"><title id="ep20941">TRUNCATE</title><body><p id="sql_command_desc">Empties a table of all rows.</p>
-    <note type="note">Greenplum Database does not enforce referential integrity syntax (foreign key
+    <note type="note">Cloudberry Database does not enforce referential integrity syntax (foreign key
       constraints). As of version 6.12 <codeph>TRUNCATE</codeph> truncates a table that is
       referenced in a foreign key constraint even if the <codeph>CASCADE</codeph> option is
       omitted.</note><section id="section2"><title>Synopsis</title><codeblock id="sql_command_synopsis">TRUNCATE [TABLE] [ONLY] <varname>name</varname> [ * ] [, ...] 
@@ -21,7 +21,7 @@
             specified before the table name, only that table is truncated. If <codeph>ONLY</codeph>
             is not specified, the table and all its descendant tables (if any) are truncated.
             Optionally, <codeph>*</codeph> can be specified after the table name to explicitly
-            indicate that descendant tables are included.</pd></plentry><plentry><pt>CASCADE</pt><pd>Because this key word applies to foreign key references (which are not supported in Greenplum
+            indicate that descendant tables are included.</pd></plentry><plentry><pt>CASCADE</pt><pd>Because this key word applies to foreign key references (which are not supported in Cloudberry
             Database) it has no effect.</pd></plentry>
         <plentry>
           <pt>RESTART IDENTITY</pt>
@@ -30,7 +30,7 @@
         <plentry>
           <pt>CONTINUE IDENTITY</pt>
           <pd>Do not change the values of sequences. This is the default.</pd>
-        </plentry><plentry><pt>RESTRICT</pt><pd>Because this key word applies to foreign key references (which are not supported in Greenplum
+        </plentry><plentry><pt>RESTRICT</pt><pd>Because this key word applies to foreign key references (which are not supported in Cloudberry
             Database) it has no effect.</pd></plentry></parml></section><section id="section5"><title>Notes</title><p><codeph>TRUNCATE</codeph> will not run any user-defined <codeph>ON
               DELETE</codeph> triggers that might exist for the tables.</p><p><codeph>TRUNCATE</codeph> will not truncate any tables that inherit
 from the named table. Only the named table is truncated, not its child

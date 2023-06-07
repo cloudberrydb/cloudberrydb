@@ -3738,7 +3738,7 @@ select typname from pg_type where typarray = '_xchg_tab1'::regtype;
 -- Test with an incomplete operator class. Create a custom operator class and
 -- only define equality on it. You can't do much with that.
 --
--- Before GPDB 7, Greenplum used to allow creating the table, but you got an
+-- Before GPDB 7, Cloudberry used to allow creating the table, but you got an
 -- error when inserting to it. Nowadays we rely on PostgreSQL partitioning
 -- code, which rejects it at CREATE TABLE already.
 create type employee_type as (empid int, empname text);

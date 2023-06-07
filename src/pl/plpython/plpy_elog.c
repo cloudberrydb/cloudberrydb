@@ -8,14 +8,10 @@
 
 #include "lib/stringinfo.h"
 #include "miscadmin.h"
-
-#include "plpython.h"
-
 #include "plpy_elog.h"
-
 #include "plpy_main.h"
 #include "plpy_procedure.h"
-
+#include "plpython.h"
 
 PyObject   *PLy_exc_error = NULL;
 PyObject   *PLy_exc_fatal = NULL;
@@ -151,7 +147,7 @@ PLy_elog_impl(int elevel, const char *fmt,...)
 				 (constraint_name) ? err_generic_string(PG_DIAG_CONSTRAINT_NAME,
 														constraint_name) : 0));
 	}
-	PG_CATCH();
+	PG_FINALLY();
 	{
 		if (fmt)
 			pfree(emsg.data);
@@ -161,19 +157,8 @@ PLy_elog_impl(int elevel, const char *fmt,...)
 			pfree(tbmsg);
 		Py_XDECREF(exc);
 		Py_XDECREF(val);
-
-		PG_RE_THROW();
 	}
 	PG_END_TRY();
-
-	if (fmt)
-		pfree(emsg.data);
-	if (xmsg)
-		pfree(xmsg);
-	if (tbmsg)
-		pfree(tbmsg);
-	Py_XDECREF(exc);
-	Py_XDECREF(val);
 }
 
 /*
@@ -241,7 +226,7 @@ PLy_traceback(PyObject *e, PyObject *v, PyObject *tb,
 	else if (strcmp(e_module_s, "builtins") == 0
 			 || strcmp(e_module_s, "__main__") == 0
 			 || strcmp(e_module_s, "exceptions") == 0)
-		appendStringInfo(&xstr, "%s", e_type_s);
+		appendStringInfoString(&xstr, e_type_s);
 	else
 		appendStringInfo(&xstr, "%s.%s", e_module_s, e_type_s);
 	appendStringInfo(&xstr, ": %s", vstr);
@@ -267,12 +252,6 @@ PLy_traceback(PyObject *e, PyObject *v, PyObject *tb,
 
 		PG_TRY();
 		{
-			/*
-			 * Ancient versions of Python (circa 2.3) contain a bug whereby
-			 * the fetches below can fail if the error indicator is set.
-			 */
-			PyErr_Clear();
-
 			lineno = PyObject_GetAttrString(tb, "tb_lineno");
 			if (lineno == NULL)
 				elog(ERROR, "could not get line number from Python traceback");
@@ -328,12 +307,10 @@ PLy_traceback(PyObject *e, PyObject *v, PyObject *tb,
 			plain_lineno = PyInt_AsLong(lineno);
 
 			if (proname == NULL)
-				appendStringInfo(
-								 &tbstr, "\n  PL/Python anonymous code block, line %ld, in %s",
+				appendStringInfo(&tbstr, "\n  PL/Python anonymous code block, line %ld, in %s",
 								 plain_lineno - 1, fname);
 			else
-				appendStringInfo(
-								 &tbstr, "\n  PL/Python function \"%s\", line %ld, in %s",
+				appendStringInfo(&tbstr, "\n  PL/Python function \"%s\", line %ld, in %s",
 								 proname, plain_lineno - 1, fname);
 
 			/*

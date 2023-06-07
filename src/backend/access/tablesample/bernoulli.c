@@ -13,7 +13,7 @@
  * cutoff value computed from the selection probability by BeginSampleScan.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -28,9 +28,9 @@
 
 #include "access/tsmapi.h"
 #include "catalog/pg_type.h"
+#include "common/hashfn.h"
 #include "optimizer/optimizer.h"
 #include "utils/builtins.h"
-#include "utils/hashutils.h"
 
 #include "optimizer/cost.h"
 

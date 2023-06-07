@@ -3,7 +3,7 @@
  * ftsprobe.c
  *	  Implementation of segment probing interface
  *
- * Portions Copyright (c) 2006-2011, Greenplum inc
+ * Portions Copyright (c) 2006-2011, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -13,6 +13,7 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
+#ifdef USE_INTERNAL_FTS
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
@@ -30,7 +31,6 @@
 #include "postmaster/ftsprobe.h"
 #include "postmaster/postmaster.h"
 #include "utils/snapmgr.h"
-
 
 static struct pollfd *PollFds;
 
@@ -1305,4 +1305,4 @@ FtsWalRepMessageSegments(CdbComponentDatabases *cdbs)
 	return is_updated;
 }
 
-/* EOF */
+#endif // #ifdef USE_INTERNAL_FTS

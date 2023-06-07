@@ -10,4 +10,9 @@ s/\(pid: \d+\)/\(pid: PID\)/
 m/\(cdbendpointretrieve\.c\:\d+\)/
 s/\(cdbendpointretrieve\.c:\d+\)/\(cdbendpointretrieve\.c:LINE_NUM\)/
 
+m/retrieve> connection to server at .* port \d+ failed: FATAL:  retrieve auth token is invalid/
+s/retrieve> connection to server at .* port \d+ failed: FATAL:  retrieve auth token is invalid/retrieve> connection to server at "host_id", port port_id failed: FATAL:  retrieve auth token is invalid/
+
+m/retrieve> connection to server at .*, port \d+ failed: FATAL:  Authentication failure \(Wrong password or no endpoint for the user\)/
+s/retrieve> connection to server at .*, port \d+ failed: FATAL:  Authentication failure \(Wrong password or no endpoint for the user\)/retrieve> connection to server at "host_id", port port_id failed: FATAL:  Authentication failure \(Wrong password or no endpoint for the user\)/
 -- end_matchsubs

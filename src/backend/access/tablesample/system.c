@@ -13,7 +13,7 @@
  * cutoff value computed from the selection probability by BeginSampleScan.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -29,9 +29,9 @@
 #include "access/relscan.h"
 #include "access/tsmapi.h"
 #include "catalog/pg_type.h"
+#include "common/hashfn.h"
 #include "optimizer/optimizer.h"
 #include "utils/builtins.h"
-#include "utils/hashutils.h"
 
 #include "optimizer/cost.h"
 
@@ -56,7 +56,7 @@ static void system_beginsamplescan(SampleScanState *node,
 								   Datum *params,
 								   int nparams,
 								   uint32 seed);
-static BlockNumber system_nextsampleblock(SampleScanState *node, BlockNumber nblocks);
+BlockNumber system_nextsampleblock(SampleScanState *node, BlockNumber nblocks);
 static OffsetNumber system_nextsampletuple(SampleScanState *node,
 										   BlockNumber blockno,
 										   OffsetNumber maxoffset);
@@ -176,7 +176,7 @@ system_beginsamplescan(SampleScanState *node,
 /*
  * Select next block to sample.
  */
-static BlockNumber
+BlockNumber
 system_nextsampleblock(SampleScanState *node, BlockNumber nblocks)
 {
 	SystemSamplerData *sampler = (SystemSamplerData *) node->tsm_state;

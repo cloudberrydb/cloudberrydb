@@ -4,7 +4,7 @@
 <topic id="topic1">
   <title id="ei20941">SET</title>
   <body>
-    <p id="sql_command_desc">Changes the value of a Greenplum Database configuration parameter.</p>
+    <p id="sql_command_desc">Changes the value of a Cloudberry Database configuration parameter.</p>
     <section id="section2">
       <title>Synopsis</title>
       <codeblock id="sql_command_synopsis">SET [SESSION | LOCAL] <varname>configuration_parameter</varname> {TO | =} <varname>value</varname> | 
@@ -62,7 +62,7 @@ SET [SESSION | LOCAL] TIME ZONE {<varname>timezone</varname> | LOCAL | DEFAULT}<
           <pt>
             <varname>configuration_parameter</varname>
           </pt>
-          <pd>The name of a Greenplum Database configuration parameter. Only parameters classified
+          <pd>The name of a Cloudberry Database configuration parameter. Only parameters classified
             as <i>session</i> can be changed with <codeph>SET</codeph>. See <xref
               href="../config_params/guc_config.xml" type="topic" format="dita"/> for details.</pd>
         </plentry>
@@ -96,7 +96,7 @@ SET [SESSION | LOCAL] TIME ZONE {<varname>timezone</varname> | LOCAL | DEFAULT}<
           <pd>Set the time zone to your local time zone (that is, server's default value of <varname>timezone</varname>). See the <xref
               href="https://www.postgresql.org/docs/9.4/datatype-datetime.html#DATATYPE-TIMEZONES"
               scope="external" format="html">Time zone section of the PostgreSQL
-              documentation</xref> for more information about time zones in Greenplum Database.</pd>
+              documentation</xref> for more information about time zones in Cloudberry Database.</pd>
         </plentry>
       </parml>
     </section>
@@ -116,8 +116,8 @@ SET [SESSION | LOCAL] TIME ZONE {<varname>timezone</varname> | LOCAL | DEFAULT}<
     <section id="section6">
       <title>Compatibility</title>
       <p><codeph>SET TIME ZONE</codeph> extends syntax defined in the SQL standard. The standard
-        allows only numeric time zone offsets while Greenplum Database allows more flexible
-        time-zone specifications. All other <codeph>SET</codeph> features are Greenplum Database
+        allows only numeric time zone offsets while Cloudberry Database allows more flexible
+        time-zone specifications. All other <codeph>SET</codeph> features are Cloudberry Database
         extensions. </p>
     </section>
     <section id="section7">

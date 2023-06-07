@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2013 VMware, Inc. or its affiliates.
 //
 //	@filename:
@@ -185,7 +185,7 @@ CXformSplitDQA::Transform(CXformContext *pxfctxt, CXformResult *pxfres,
 	pxfres->Add(pexprThreeStageDQA);
 
 	// GPDB_96_MERGE_FIXME: Postgres 9.6 merge commit 38d881555207 replaced
-	// Greenplum multi-stage aggregate executor code with upstream. In the
+	// Cloudberry multi-stage aggregate executor code with upstream. In the
 	// process, we lost the intermediate aggregate stage which is useful when
 	// we have a 'ride-along' aggregate. For example,
 	//

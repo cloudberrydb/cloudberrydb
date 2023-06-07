@@ -6,16 +6,18 @@
 #include "../runaway_cleaner.c"
 
 #define EXPECT_EREPORT(LOG_LEVEL)     \
-	expect_any(errstart, elevel); \
-	expect_any(errstart, domain); \
 	if (LOG_LEVEL < ERROR) \
 	{ \
+		expect_any(errstart, elevel); \
+		expect_any(errstart, domain); \
     	will_return(errstart, false); \
 	} \
-    else \
-    { \
-    	will_return_with_sideeffect(errstart, false, &_ExceptionalCondition, NULL); \
-    }
+	else \
+	{ \
+		expect_any(errstart_cold, elevel); \
+		expect_any(errstart_cold, domain); \
+		will_return_with_sideeffect(errstart_cold, false, &_ExceptionalCondition, NULL); \
+	}
 
 #define CHECK_FOR_RUNAWAY_CLEANUP_MEMORY_LOGGING() \
 	will_be_called(write_stderr); \

@@ -3,7 +3,7 @@
  * syslogger.h
  *	  Exports from postmaster/syslogger.c.
  *
- * Copyright (c) 2004-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2004-2021, PostgreSQL Global Development Group
  *
  * src/include/postmaster/syslogger.h
  *
@@ -59,6 +59,16 @@
  */
 #define FIXED_THREAD_ID  123456
 
+/*
+ * FIXME: After we follow the upstream way which is using dynamic lists
+ * to buffer the log chunks. We can remove some of these fields to reduce
+ * overhead.
+ * 
+ * Also, when we are accumulating the chunk messages, we need to call `appendBinaryStringInfo`.
+ * It will cause the reallocation of memory. Since the elog knows about the log messages' size,
+ * we can also use total logsize to indicate the last chunk so that we can allocate the log buffer
+ * memory at the very beginning. The reallocation cost might be reduced.
+ */
 typedef struct 
 {
 	int32		zero;			/* leading zero */
@@ -94,7 +104,7 @@ typedef struct CSVChunkStr
 } CSVChunkStr;
 
 extern void write_syslogger_file_binary(const char *buffer, int count, int dest);
-extern void syslogger_log_chunk_list(PipeProtoChunk *chunk);
+extern void syslogger_log_chunk_data(PipeProtoHeader* p, char *data, int len);
 
 typedef struct
 {
@@ -172,8 +182,6 @@ extern PGDLLIMPORT char *Log_filename;
 extern bool Log_truncate_on_rotation;
 extern int	Log_file_mode;
 extern int gp_log_format;
-
-extern bool am_syslogger;
 
 #ifndef WIN32
 extern int	syslogPipe[2];

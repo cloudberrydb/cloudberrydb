@@ -252,6 +252,7 @@ extern void bmbuildempty(Relation index);
 extern bool bminsert(Relation rel, Datum *values, bool *isnull,
 					 ItemPointer ht_ctid, Relation heapRel,
 					 IndexUniqueCheck checkUnique,
+					 bool indexUnchanged,
 					 struct IndexInfo *indexInfo);
 extern IndexScanDesc bmbeginscan(Relation rel, int nkeys, int norderbys);
 extern bool bmgettuple(IndexScanDesc scan, ScanDirection dir);

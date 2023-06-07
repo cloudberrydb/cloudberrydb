@@ -12,13 +12,19 @@
 #include "utils/guc.h"
 #include "cdb/cdbgang.h"
 
-#define FTS_MAX_DBS (128 * 1024)
+extern void FtsNotifyProber(void);
+extern bool FtsIsSegmentDown(CdbComponentDatabaseInfo *dBInfo);
+extern bool FtsTestSegmentDBIsDown(SegmentDatabaseDescriptor **, int);
 
 /*
  * There used to many more states here but currently dispatch is only checking
  * if segment is UP or not. So just have that, when needed for other states
  * this can be extended.
  */
+
+#ifdef USE_INTERNAL_FTS
+
+#define FTS_MAX_DBS (128 * 1024)
 #define FTS_STATUS_DOWN				(1<<0)
 
 #define FTS_STATUS_TEST(status, flag) (((status) & (flag)) ? true : false)
@@ -50,9 +56,8 @@ extern volatile FtsProbeInfo *ftsProbeInfo;
 extern int	FtsShmemSize(void);
 extern void FtsShmemInit(void);
 
-extern bool FtsIsSegmentDown(CdbComponentDatabaseInfo *dBInfo);
-extern bool FtsTestSegmentDBIsDown(SegmentDatabaseDescriptor **, int);
 
-extern void FtsNotifyProber(void);
 extern uint8 getFtsVersion(void);
+#endif
+
 #endif   /* CDBFTS_H */

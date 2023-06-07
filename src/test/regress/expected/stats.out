@@ -33,6 +33,7 @@ declare
   updated2 bool;
   updated3 bool;
   updated4 bool;
+  updated5 bool;
 begin
   -- we don't want to wait forever; loop will exit after 30 seconds
   for i in 1 .. 300 loop
@@ -62,7 +63,12 @@ begin
     SELECT (pr.snap_ts < pg_stat_get_snapshot_timestamp()) INTO updated4
       FROM prevstats AS pr;
 
-    exit when updated1 and updated2 and updated3 and updated4;
+    -- check to see if idx_tup_fetch has been sensed
+    SELECT (st.idx_tup_fetch >= pr.idx_tup_fetch + 1) INTO updated5
+      FROM pg_stat_user_tables AS st, pg_class AS cl, prevstats AS pr
+     WHERE st.relname='tenk2' AND cl.relname='tenk2';
+
+    exit when updated1 and updated2 and updated3 and updated4 and updated5;
 
     -- wait a little
     perform pg_sleep_for('100 milliseconds');
@@ -138,10 +144,20 @@ SELECT count(*) FROM tenk2;
 -- do an indexscan
 -- make sure it is not a bitmap scan, which might skip fetching heap tuples
 SET enable_bitmapscan TO off;
+-- for orca, we don't want index-only scans here,
+-- which might skip fetching heap tuples.
+SET optimizer_enable_indexonlyscan TO off;
 SELECT count(*) FROM tenk2 WHERE unique1 = 1;
  count 
 -------
      1
+(1 row)
+
+RESET optimizer_enable_indexonlyscan;
+SELECT * FROM tenk2 where unique1 = 10;
+ unique1 | unique2 | two | four | ten | twenty | hundred | thousand | twothousand | fivethous | tenthous | odd | even | stringu1 | stringu2 | string4 
+---------+---------+-----+------+-----+--------+---------+----------+-------------+-----------+----------+-----+------+----------+----------+---------
+      10 |    8788 |   0 |    2 |   0 |     10 |      10 |       10 |          10 |        10 |       10 |  20 |   21 | KAAAAA   | AANAAA   | AAAAxx
 (1 row)
 
 RESET enable_bitmapscan;
@@ -166,7 +182,7 @@ SELECT relname, n_tup_ins, n_tup_upd, n_tup_del, n_live_tup, n_dead_tup
       relname      | n_tup_ins | n_tup_upd | n_tup_del | n_live_tup | n_dead_tup 
 -------------------+-----------+-----------+-----------+------------+------------
  trunc_stats_test  |         3 |         0 |         0 |          0 |          0
- trunc_stats_test1 |         4 |         2 |         1 |          1 |          0
+ trunc_stats_test1 |         6 |         0 |         3 |          1 |          0
  trunc_stats_test2 |         1 |         0 |         0 |          1 |          0
  trunc_stats_test3 |         4 |         0 |         0 |          2 |          2
  trunc_stats_test4 |         2 |         0 |         0 |          0 |          2
@@ -183,13 +199,15 @@ SELECT st.seq_scan >= pr.seq_scan + 1,
  t        | t        | t        | t
 (1 row)
 
-SELECT st.heap_blks_read + st.heap_blks_hit >= pr.heap_blks + cl.relpages,
-       st.idx_blks_read + st.idx_blks_hit >= pr.idx_blks + 1
-  FROM pg_statio_user_tables AS st, pg_class AS cl, prevstats AS pr
- WHERE st.relname='tenk2' AND cl.relname='tenk2';
- ?column? | ?column? 
-----------+----------
- t        | t
+-- GPDB_13_MERGE_FIXME: Some statistics are handled by stat collector process on each segment but not sent to master.
+-- To keep this case, collect statistics from all segments.
+-- lack of the second column case, see https://github.com/my-ship-it/database-core-upgrade/issues/151
+SELECT (SELECT sum(st.heap_blks_read) + sum(st.heap_blks_hit) - sum(pr.heap_blks)
+  FROM gp_dist_random('pg_statio_user_tables') AS st, gp_dist_random('prevstats') AS pr WHERE st.relname='tenk2')
+  > (select relpages from pg_class where relname='tenk2');
+ ?column? 
+----------
+ t
 (1 row)
 
 SELECT pr.snap_ts < pg_stat_get_snapshot_timestamp() as snapshot_newer
@@ -199,33 +217,13 @@ FROM prevstats AS pr;
  t
 (1 row)
 
--- Temporary hack to investigate whether extra vacuum/analyze is happening
-select relname, relpages, reltuples
-from pg_class
-where relname like '__star' order by relname;
- relname | relpages | reltuples 
----------+----------+-----------
- a_star  |        1 |         3
- b_star  |        1 |         4
- c_star  |        1 |         4
- d_star  |        1 |        16
- e_star  |        1 |         7
- f_star  |        1 |        16
-(6 rows)
-
-select relname, vacuum_count, analyze_count, autovacuum_count, autoanalyze_count
-from pg_stat_all_tables
-where relname like '__star' order by relname;
- relname | vacuum_count | analyze_count | autovacuum_count | autoanalyze_count 
----------+--------------+---------------+------------------+-------------------
- a_star  |            1 |             0 |                0 |                 0
- b_star  |            1 |             0 |                0 |                 0
- c_star  |            1 |             0 |                0 |                 0
- d_star  |            1 |             0 |                0 |                 0
- e_star  |            1 |             0 |                0 |                 0
- f_star  |            1 |             0 |                0 |                 0
-(6 rows)
-
 DROP TABLE trunc_stats_test, trunc_stats_test1, trunc_stats_test2, trunc_stats_test3, trunc_stats_test4;
 DROP TABLE prevstats;
+-- ensure that stats accessors handle NULL input correctly
+SELECT pg_stat_get_replication_slot(NULL);
+ pg_stat_get_replication_slot 
+------------------------------
+ 
+(1 row)
+
 -- End of Stats Test

@@ -11,7 +11,7 @@
         using the data stored in the index's table, replacing the old copy of the index. There are
         several scenarios in which to use <codeph>REINDEX</codeph>: </p><ul>
         <li id="dz154728">An index has become bloated, that is, it contains many empty or
-          nearly-empty pages. This can occur with B-tree indexes in Greenplum Database under certain
+          nearly-empty pages. This can occur with B-tree indexes in Cloudberry Database under certain
           uncommon access patterns. <codeph>REINDEX</codeph> provides a way to reduce the space
           consumption of the index by writing a new version of the index without the dead
           pages.</li>
@@ -70,9 +70,9 @@
           <codeph>relpages</codeph> statistics for the index. To update those statistics, run
           <codeph>ANALYZE</codeph> on the table after reindexing. </p>
       <p>If you suspect that shared global system catalog indexes are corrupted, they can only be
-        reindexed in Greenplum utility mode. The typical symptom of a corrupt shared index is "index
+        reindexed in Cloudberry utility mode. The typical symptom of a corrupt shared index is "index
         is not a btree" errors, or else the server crashes immediately at startup due to reliance on
-        the corrupted indexes. Contact Greenplum Customer Support for assistance in this
+        the corrupted indexes. Contact Cloudberry Customer Support for assistance in this
         situation.</p></section>
     <section id="section6"><title>Examples</title><p>Rebuild a single index:
         </p><codeblock>REINDEX INDEX my_index;</codeblock><p>Rebuild all the indexes on the table

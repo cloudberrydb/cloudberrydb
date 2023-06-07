@@ -65,7 +65,7 @@ truncate truncate_with_create_ao;
 end; 
 
 -- the ao table segment file size after truncate should be zero
-select stat_table_segfile_size('regression', 'truncate_with_create_ao');
+select dbid,size from stat_table_segfile_size('regression', 'truncate_with_create_ao');
 
 -- test truncate table and create table are in the same transaction for aocs table
 begin;
@@ -75,7 +75,7 @@ truncate truncate_with_create_aocs;
 end; 
 
 -- the aocs table segment file size after truncate should be zero
-select stat_table_segfile_size('regression', 'truncate_with_create_aocs');
+select dbid,size from stat_table_segfile_size('regression', 'truncate_with_create_aocs');
 
 -- test truncate table and create table are in the same transaction for heap table
 begin;                                                                          
@@ -85,4 +85,4 @@ truncate truncate_with_create_heap;
 end;
 
 -- the heap table segment file size after truncate should be zero
-select stat_table_segfile_size('regression', 'truncate_with_create_heap');
+select dbid,size from stat_table_segfile_size('regression', 'truncate_with_create_heap');

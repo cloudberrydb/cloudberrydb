@@ -3,9 +3,9 @@
  * nodeHashjoin.c
  *	  Routines to handle hash join nodes
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -91,9 +91,9 @@
  * PHJ_BUILD_HASHING_INNER so we can skip loading.
  *
  * Initially we try to plan for a single-batch hash join using the combined
- * work_mem of all participants to create a large shared hash table.  If that
+ * hash_mem of all participants to create a large shared hash table.  If that
  * turns out either at planning or execution time to be impossible then we
- * fall back to regular work_mem sized hash tables.
+ * fall back to regular hash_mem sized hash tables.
  *
  * To avoid deadlocks, we never wait for any barrier unless it is known that
  * all other backends attached to it are actively executing the node or have
@@ -115,6 +115,7 @@
 #include "executor/instrument.h"	/* Instrumentation */
 #include "executor/nodeHash.h"
 #include "executor/nodeHashjoin.h"
+#include "executor/nodeRuntimeFilter.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "utils/memutils.h"
@@ -139,8 +140,6 @@
 /* Returns true if doing null-fill on inner relation */
 #define HJ_FILL_INNER(hjstate)	((hjstate)->hj_NullOuterTupleSlot != NULL)
 
-extern bool Test_print_prefetch_joinqual;
-
 static TupleTableSlot *ExecHashJoinOuterGetTuple(PlanState *outerNode,
 												 HashJoinState *hjstate,
 												 uint32 *hashvalue);
@@ -152,15 +151,18 @@ static TupleTableSlot *ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
 												 uint32 *hashvalue,
 												 TupleTableSlot *tupleSlot);
 static bool ExecHashJoinNewBatch(HashJoinState *hjstate);
-static bool isNotDistinctJoin(List *qualList);
 static bool ExecParallelHashJoinNewBatch(HashJoinState *hjstate);
 static void ExecParallelHashJoinPartitionOuter(HashJoinState *node);
 
+#ifdef USE_ASSERT_CHECKING
+static bool isNotDistinctJoin(List *qualList);
+#endif
 static void ReleaseHashTable(HashJoinState *node);
-
 static void SpillCurrentBatch(HashJoinState *node);
 static bool ExecHashJoinReloadHashTable(HashJoinState *hjstate);
 static void ExecEagerFreeHashJoin(HashJoinState *node);
+extern bool Test_print_prefetch_joinqual;
+
 
 /* ----------------------------------------------------------------
  *		ExecHashJoinImpl
@@ -209,6 +211,15 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 	 */
 	ResetExprContext(econtext);
 
+	/*
+	 * Executor try to squelch nodes in it‘s subtree after a node returning a NULL tuple.
+	 * If the chgParam is not null, squelching is not safe. 
+	 * If outer node gets empty tuple, squelching the outer node is too early.
+	 * To fix that, we should add delayEagerFree logic to Limit node, 
+	 * to not call ExecSquelchNode() when the node might get rescanned later.
+	 */
+	if (outerNode->chgParam != NULL)
+		node->delayEagerFree = true;
 	/*
 	 * run the hash join state machine
 	 */
@@ -304,11 +315,7 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 						node->hj_FirstOuterTupleSlot = NULL;
 				}
 				else
-				{
-					/* see MPP-989 comment above, for now we assume that we have
-					* at least one row on the outer. */
 					node->hj_FirstOuterTupleSlot = NULL;
-				}
 
 				/*
 				 * Create the hash table.  If using Parallel Hash, then
@@ -418,7 +425,7 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 						if (hashtable->nbatch > 1)
 							ExecParallelHashJoinPartitionOuter(node);
 						BarrierArriveAndWait(build_barrier,
-											 WAIT_EVENT_HASH_BUILD_HASHING_OUTER);
+											 WAIT_EVENT_HASH_BUILD_HASH_OUTER);
 					}
 					Assert(BarrierPhase(build_barrier) == PHJ_BUILD_DONE);
 
@@ -506,7 +513,7 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 										  hashtable->bfCxt);
 
 					if (shouldFree)
-						pfree(mintuple);
+						heap_free_minimal_tuple(mintuple);
 
 					/* Loop around, staying in HJ_NEED_NEW_OUTER state */
 					continue;
@@ -571,7 +578,26 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 				if (joinqual == NULL || ExecQual(joinqual, econtext))
 				{
 					node->hj_MatchedOuter = true;
-					HeapTupleHeaderSetMatch(HJTUPLE_MINTUPLE(node->hj_CurTuple));
+
+					if (parallel)
+					{
+						/*
+						 * Full/right outer joins are currently not supported
+						 * for parallel joins, so we don't need to set the
+						 * match bit.  Experiments show that it's worth
+						 * avoiding the shared memory traffic on large
+						 * systems.
+						 */
+						Assert(!HJ_FILL_INNER(node));
+					}
+					else
+					{
+						/*
+						 * This is really only needed if HJ_FILL_INNER(node),
+						 * but we'll avoid the branch and just set it always.
+						 */
+						HeapTupleHeaderSetMatch(HJTUPLE_MINTUPLE(node->hj_CurTuple));
+					}
 
 					/* In an antijoin, we never return a matched tuple */
 					if (node->js.jointype == JOIN_ANTI ||
@@ -691,7 +717,8 @@ ExecHashJoin(PlanState *pstate)
 	 */
 	result = ExecHashJoinImpl(pstate, false);
 
-	if (TupIsNull(result) && !((HashJoinState *) pstate)->reuse_hashtable)
+	if (TupIsNull(result) && !((HashJoinState *) pstate)->reuse_hashtable
+		&& !((HashJoinState *) pstate)->delayEagerFree)
 	{
 		/*
 		 * CDB: We'll read no more from inner subtree. To keep our
@@ -722,7 +749,8 @@ ExecParallelHashJoin(PlanState *pstate)
 	 */
 	result = ExecHashJoinImpl(pstate, true);
 
-	if (TupIsNull(result) && !((HashJoinState *) pstate)->reuse_hashtable)
+	if (TupIsNull(result) && !((HashJoinState *) pstate)->reuse_hashtable
+		&& !((HashJoinState *) pstate)->delayEagerFree)
 	{
 		/*
 		 * CDB: We'll read no more from inner subtree. To keep our
@@ -746,16 +774,12 @@ HashJoinState *
 ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 {
 	HashJoinState *hjstate;
+	PlanState  *outerState;
+	HashState  *hstate;
 	Plan	   *outerNode;
 	Hash	   *hashNode;
-	List	   *lclauses;
-	List	   *rclauses;
-	List	   *rhclauses;
-	List	   *hoperators;
-	List	   *hcollations;
 	TupleDesc	outerDesc,
 				innerDesc;
-	ListCell   *l;
 	const TupleTableSlotOps *ops;
 
 	/* check for unsupported flags */
@@ -769,6 +793,11 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	hjstate->js.ps.state = estate;
 	hjstate->reuse_hashtable = (eflags & EXEC_FLAG_REWIND) != 0;
 
+	/*
+	 * If eflag contains EXEC_FLAG_REWIND,
+	 * then this node is not eager free safe.
+	 */
+	hjstate->delayEagerFree = (eflags & EXEC_FLAG_REWIND) != 0;
 	/*
 	 * See ExecHashJoinInitializeDSM() and ExecHashJoinInitializeWorker()
 	 * where this function may be replaced with a parallel version, if we
@@ -822,8 +851,8 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	 * would amount to betting that the hash will be a single batch.  Not
 	 * clear if this would be a win or not.
 	 */
-	hashNode = (Hash *) innerPlan(node);
 	outerNode = outerPlan(node);
+	hashNode = (Hash *) innerPlan(node);
 
 	/*
 	 * XXX The following order are significant.  We init Hash first, then the outerNode
@@ -931,40 +960,25 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	hjstate->hj_CurSkewBucketNo = INVALID_SKEW_BUCKET_NO;
 	hjstate->hj_CurTuple = NULL;
 
-	/*
-	 * Deconstruct the hash clauses into outer and inner argument values, so
-	 * that we can evaluate those subexpressions separately.  Also make a list
-	 * of the hash operator OIDs, in preparation for looking up the hash
-	 * functions to use.
-	 */
-	lclauses = NIL;
-	rclauses = NIL;
-	rhclauses = NIL;
-	hoperators = NIL;
-	hcollations = NIL;
-	foreach(l, node->hashclauses)
-	{
-		OpExpr	   *hclause = lfirst_node(OpExpr, l);
-
-		lclauses = lappend(lclauses, ExecInitExpr(linitial(hclause->args),
-												  (PlanState *) hjstate));
-		rclauses = lappend(rclauses, ExecInitExpr(lsecond(hclause->args),
-												  (PlanState *) hjstate));
-		rhclauses = lappend(rhclauses, ExecInitExpr(lsecond(hclause->args),
-													innerPlanState(hjstate)));
-		hoperators = lappend_oid(hoperators, hclause->opno);
-		hcollations = lappend_oid(hcollations, hclause->inputcollid);
-	}
-	hjstate->hj_OuterHashKeys = lclauses;
-	hjstate->hj_InnerHashKeys = rclauses;
-	hjstate->hj_HashOperators = hoperators;
-	hjstate->hj_Collations = hcollations;
-	/* child Hash node needs to evaluate inner hash keys, too */
-	((HashState *) innerPlanState(hjstate))->hashkeys = rhclauses;
+	hjstate->hj_OuterHashKeys = ExecInitExprList(node->hashkeys,
+												 (PlanState *) hjstate);
+	hjstate->hj_HashOperators = node->hashoperators;
+	hjstate->hj_Collations = node->hashcollations;
 
 	hjstate->hj_JoinState = HJ_BUILD_HASHTABLE;
 	hjstate->hj_MatchedOuter = false;
 	hjstate->hj_OuterNotEmpty = false;
+
+	/* Setup the relationship of HashJoin, Hash and RuntimeFilter node. */
+	hstate = (HashState *) innerPlanState(hjstate);
+	outerState = outerPlanState(hjstate);
+	if (IsA(outerState, RuntimeFilterState))
+	{
+		RuntimeFilterState *rfstate = (RuntimeFilterState *) outerState;
+		rfstate->hjstate = hjstate;
+		hstate->rfstate = rfstate;
+		ExecInitRuntimeFilterFinish(rfstate, hstate->ps.plan->plan_rows);
+	}
 
 	return hjstate;
 }
@@ -1227,7 +1241,7 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 			BufFileClose(hashtable->outerBatchFile[curbatch]);
 		hashtable->outerBatchFile[curbatch] = NULL;
 	}
-	else	/* we just finished the first batch */
+	else						/* we just finished the first batch */
 	{
 		/*
 		 * Reset some of the skew optimization state variables, since we no
@@ -1282,7 +1296,6 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 	while (curbatch < nbatch &&
 		   (hashtable->outerBatchFile[curbatch] == NULL ||
 			hashtable->innerBatchFile[curbatch] == NULL))
-
 	{
 		/*
 		 * For rescannable we must complete respilling on first batch
@@ -1333,7 +1346,6 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 		if (hashtable->outerBatchFile[curbatch])
 			BufFileClose(hashtable->outerBatchFile[curbatch]);
 		hashtable->outerBatchFile[curbatch] = NULL;
-
 		curbatch++;
 	}
 
@@ -1355,10 +1367,10 @@ ExecHashJoinNewBatch(HashJoinState *hjstate)
 	 */
 	if (hashtable->outerBatchFile[curbatch] != NULL)
 	{
-		if (BufFileSeek(hashtable->outerBatchFile[curbatch], 0, 0, SEEK_SET) != 0)
+		if (BufFileSeek(hashtable->outerBatchFile[curbatch], 0, 0L, SEEK_SET))
 			ereport(ERROR,
 					(errcode_for_file_access(),
-					 errmsg("could not rewind hash-join temporary file: %m")));
+					 errmsg("could not rewind hash-join temporary file")));
 	}
 
 	return true;
@@ -1420,14 +1432,14 @@ ExecParallelHashJoinNewBatch(HashJoinState *hjstate)
 
 					/* One backend allocates the hash table. */
 					if (BarrierArriveAndWait(batch_barrier,
-											 WAIT_EVENT_HASH_BATCH_ELECTING))
+											 WAIT_EVENT_HASH_BATCH_ELECT))
 						ExecParallelHashTableAlloc(hashtable, batchno);
 					/* Fall through. */
 
 				case PHJ_BATCH_ALLOCATING:
 					/* Wait for allocation to complete. */
 					BarrierArriveAndWait(batch_barrier,
-										 WAIT_EVENT_HASH_BATCH_ALLOCATING);
+										 WAIT_EVENT_HASH_BATCH_ALLOCATE);
 					/* Fall through. */
 
 				case PHJ_BATCH_LOADING:
@@ -1447,7 +1459,7 @@ ExecParallelHashJoinNewBatch(HashJoinState *hjstate)
 					}
 					sts_end_parallel_scan(inner_tuples);
 					BarrierArriveAndWait(batch_barrier,
-										 WAIT_EVENT_HASH_BATCH_LOADING);
+										 WAIT_EVENT_HASH_BATCH_LOAD);
 					/* Fall through. */
 
 				case PHJ_BATCH_PROBING:
@@ -1504,8 +1516,7 @@ ExecHashJoinSaveTuple(PlanState *ps, MinimalTuple tuple, uint32 hashvalue,
 					  HashJoinTable hashtable, BufFile **fileptr,
 					  MemoryContext bfCxt)
 {
-	BufFile	   *file = *fileptr;
-	size_t		written;
+	BufFile    *file = *fileptr;
 
 	if (hashtable->work_set == NULL)
 	{
@@ -1543,21 +1554,8 @@ ExecHashJoinSaveTuple(PlanState *ps, MinimalTuple tuple, uint32 hashvalue,
 		MemoryContextSwitchTo(oldcxt);
 	}
 
-	written = BufFileWrite(file, (void *) &hashvalue, sizeof(uint32));
-	if (written != sizeof(uint32))
-	{
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not write to temporary file: %m")));
-	}
-
-	written = BufFileWrite(file, (void *) tuple, tuple->t_len);
-	if (written != tuple->t_len)
-	{
-		ereport(ERROR,
-				(errcode_for_file_access(),
-				 errmsg("could not write to temporary file: %m")));
-	}
+	BufFileWrite(file, (void *) &hashvalue, sizeof(uint32));
+	BufFileWrite(file, (void *) tuple, tuple->t_len);
 }
 
 /*
@@ -1590,12 +1588,16 @@ ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
 	 * cheating.
 	 */
 	nread = BufFileRead(file, (void *) header, sizeof(header));
-	if (nread != sizeof(header))				/* end of file */
+	if (nread == 0)				/* end of file */
 	{
 		ExecClearTuple(tupleSlot);
 		return NULL;
 	}
-
+	if (nread != sizeof(header))
+		ereport(ERROR,
+				(errcode_for_file_access(),
+				 errmsg("could not read from hash-join temporary file: read only %zu of %zu bytes",
+						nread, sizeof(header))));
 	*hashvalue = header[0];
 	tuple = (MinimalTuple) palloc(header[1]);
 	tuple->t_len = header[1];
@@ -1605,7 +1607,8 @@ ExecHashJoinGetSavedTuple(HashJoinState *hjstate,
 	if (nread != header[1] - sizeof(uint32))
 		ereport(ERROR,
 				(errcode_for_file_access(),
-				 errmsg("could not read from hash-join temporary file: %m")));
+				 errmsg("could not read from hash-join temporary file: read only %zu of %zu bytes",
+						nread, header[1] - sizeof(uint32))));
 	ExecForceStoreMinimalTuple(tuple, tupleSlot, true);
 	return tupleSlot;
 }
@@ -1667,9 +1670,21 @@ ExecReScanHashJoin(HashJoinState *node)
 			/* must destroy and rebuild hash table */
 			if (!node->hj_HashTable->eagerlyReleased)
 			{
-				HashState  *hashState = (HashState *) innerPlanState(node);
+				HashState  *hashNode = castNode(HashState, innerPlanState(node));
 
-				ExecHashTableDestroy(hashState, node->hj_HashTable);
+				Assert(hashNode->hashtable == node->hj_HashTable);
+				/* accumulate stats from old hash table, if wanted */
+				/* (this should match ExecShutdownHash) */
+				if (hashNode->ps.instrument && !hashNode->hinstrument)
+					hashNode->hinstrument = (HashInstrumentation *)
+						palloc0(sizeof(HashInstrumentation));
+				if (hashNode->hinstrument)
+					ExecHashAccumInstrumentation(hashNode->hinstrument,
+												 hashNode->hashtable);
+				/* for safety, be sure to clear child plan node's pointer too */
+				hashNode->hashtable = NULL;
+
+				ExecHashTableDestroy(hashNode, node->hj_HashTable);
 			}
 			pfree(node->hj_HashTable);
 			node->hj_HashTable = NULL;
@@ -1736,13 +1751,14 @@ ReleaseHashTable(HashJoinState *node)
 
 }
 
+#ifdef USE_ASSERT_CHECKING
 /* Is this an IS-NOT-DISTINCT-join qual list (as opposed the an equijoin)?
  *
  * XXX We perform an abbreviated test based on the assumptions that 
  *     these are the only possibilities and that all conjuncts are 
  *     alike in this regard.
  */
-bool
+static bool
 isNotDistinctJoin(List *qualList)
 {
 	ListCell   *lc;
@@ -1762,6 +1778,7 @@ isNotDistinctJoin(List *qualList)
 	}
 	return false;
 }
+#endif
 
 static void
 ExecEagerFreeHashJoin(HashJoinState *node)
@@ -1800,9 +1817,7 @@ SpillCurrentBatch(HashJoinState *node)
 
 	for (i = 0; i < hashtable->nbuckets; i++)
 	{
-		/* GPDB_12_MERGE_FIXME: this only looks at 'unshared'. I think this is
-		 * broken for parallel hashjoins
-		 */
+		/* don't need to consider parallel hashjoins which use shared tuplestores instead of raw files */
 		tuple = hashtable->buckets.unshared[i];
 
 		while (tuple != NULL)

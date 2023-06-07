@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2008 - 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2008 - 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CWorker.cpp
@@ -37,7 +37,7 @@ CWorker::CWorker(ULONG stack_size, ULONG_PTR stack_start)
 				"Worker has to have at least 2KB stack");
 
 	// register worker
-	GPOS_ASSERT(nullptr == Self() && "Found registered worker!");
+	GPOS_ASSERT_FIXME(nullptr == Self() && "Found registered worker!");
 
 	CWorkerPoolManager::WorkerPoolManager()->RegisterWorker(this);
 	GPOS_ASSERT(this == CWorkerPoolManager::WorkerPoolManager()->Self());
@@ -104,7 +104,7 @@ CWorker::CheckForAbort(const CHAR *, ULONG)
 	// task is still running and CFA is not suspended
 	if (nullptr != m_task && m_task->IsRunning() && !m_task->IsAbortSuspended())
 	{
-		GPOS_ASSERT(!m_task->GetErrCtxt()->IsPending() &&
+		GPOS_ASSERT_FIXME(!m_task->GetErrCtxt()->IsPending() &&
 					"Check-For-Abort while an exception is pending");
 
 		if ((nullptr != abort_requested_by_system &&

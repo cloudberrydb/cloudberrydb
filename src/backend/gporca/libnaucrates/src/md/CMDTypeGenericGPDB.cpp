@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -35,6 +35,19 @@ using namespace gpmd;
 
 #define GPDB_ANYENUM_OID OID(3500)	// oid of GPDB ANYENUM type
 
+#define GPDB_ANYRANGE_OID OID(3831)	// oid of GPDB ANYRANGE type
+
+#define GPDB_ANYCOMPATIBLE_OID OID(5077)	// oid of GPDB ANYCOMPATIBLE type
+
+#define GPDB_ANYCOMPATIBLEARRAY_OID OID(5078)	// oid of GPDB ANYCOMPATIBLEARRAY type
+
+#define GPDB_ANYCOMPATIBLENONARRAY_OID OID(5079)	// oid of GPDB ANYCOMPATIBLENONARRAY type
+
+#define GPDB_ANYCOMPATIBLERANGE_OID OID(5080)	// oid of GPDB ANYCOMPATIBLERANGE type
+
+#define GPDB_ANYMULTIRANGE_OID OID(4537)	// oid of GPDB ANYMULTIRANGE type
+
+#define GPDB_ANYCOMPATIBLEMULTIRANGE_OID OID(4538)	// oid of GPDB ANYCOMPATIBLEMULTIRANGE type
 //---------------------------------------------------------------------------
 //	@function:
 //		CMDTypeGenericGPDB::CMDTypeGenericGPDB
@@ -353,7 +366,11 @@ CMDTypeGenericGPDB::IsAmbiguous() const
 	OID oid = CMDIdGPDB::CastMdid(m_mdid)->Oid();
 	// This should match the IsPolymorphicType() macro in GPDB's pg_type.h
 	return (GPDB_ANYELEMENT_OID == oid || GPDB_ANYARRAY_OID == oid ||
-			GPDB_ANYNONARRAY_OID == oid || GPDB_ANYENUM_OID == oid);
+			GPDB_ANYNONARRAY_OID == oid || GPDB_ANYENUM_OID == oid ||
+			GPDB_ANYRANGE_OID == oid || GPDB_ANYMULTIRANGE_OID == oid ||
+			GPDB_ANYCOMPATIBLE_OID == oid || GPDB_ANYCOMPATIBLEARRAY_OID == oid ||
+			GPDB_ANYCOMPATIBLERANGE_OID == oid || GPDB_ANYCOMPATIBLENONARRAY_OID == oid ||
+			GPDB_ANYCOMPATIBLEMULTIRANGE_OID == oid);
 }
 
 //---------------------------------------------------------------------------

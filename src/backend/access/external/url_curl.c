@@ -3,7 +3,7 @@
  * url_curl.c
  *	  Core support for opening external relations via a URL with curl
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION
@@ -26,6 +26,7 @@
 #include "cdb/cdbsreh.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
+#include "commands/copyfrom_internal.h"
 #include "miscadmin.h"
 #include "utils/guc.h"
 #include "utils/resowner.h"
@@ -295,7 +296,7 @@ header_callback(void *ptr_, size_t size, size_t nmemb, void *userp)
 	 * gpfdist, and later use it to report the error string in
 	 * check_response() to the database user.
 	 */
-	if (url->http_response == 0)
+	if (nmemb > 8 && strncmp(ptr, "HTTP/1.0", 8) == 0)
 	{
 		int 	n = nmemb;
 		char* 	p;
@@ -1087,7 +1088,7 @@ is_file_exists(const char* filename)
 }
 
 URL_FILE *
-url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
+url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts)
 {
 	URL_CURL_FILE *file;
 	int         ip_mode;
@@ -1143,7 +1144,7 @@ url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
 		unsigned int tmp_len = strlen(file->curl_url) + 1;
 		memmove(file->curl_url, file->curl_url + 3, tmp_len - 3);
 		memcpy(file->curl_url, "http", 4);
-		pstate->header_line = 0;
+		opts->header_line = 0;
 	}
 
 	/* initialize a curl session and get a libcurl handle for it */
@@ -1488,7 +1489,7 @@ gp_proto0_read(char *buf, int bufsz, URL_CURL_FILE *file)
  * byte 5-X: the block itself.
  */
 static size_t
-gp_proto1_read(char *buf, int bufsz, URL_CURL_FILE *file, CopyState pstate, char *buf2)
+gp_proto1_read(char *buf, int bufsz, URL_CURL_FILE *file, CopyFromState pstate, char *buf2)
 {
 	char type;
 	int  n, len;
@@ -1676,7 +1677,7 @@ gp_proto1_read(char *buf, int bufsz, URL_CURL_FILE *file, CopyState pstate, char
  * a push model with a POST request.
  */
 static void
-gp_proto0_write(URL_CURL_FILE *file, CopyState pstate)
+gp_proto0_write(URL_CURL_FILE *file, CopyToState pstate)
 {
 	char*		buf = file->out.ptr;
 	int		nbytes = file->out.top;
@@ -1718,7 +1719,7 @@ gp_proto0_write_done(URL_CURL_FILE *file)
 }
 
 static size_t
-curl_fread(char *buf, int bufsz, URL_CURL_FILE *file, CopyState pstate)
+curl_fread(char *buf, int bufsz, URL_CURL_FILE *file, CopyFromState pstate)
 {
 	char*		p = buf;
 	char*		q = buf + bufsz;
@@ -1746,7 +1747,7 @@ curl_fread(char *buf, int bufsz, URL_CURL_FILE *file, CopyState pstate)
 }
 
 static size_t
-curl_fwrite(char *buf, int nbytes, URL_CURL_FILE *file, CopyState pstate)
+curl_fwrite(char *buf, int nbytes, URL_CURL_FILE *file, CopyToState pstate)
 {
 	if (!file->for_write)
 		elog(ERROR, "cannot write to a read-mode external table");
@@ -1795,7 +1796,7 @@ curl_fwrite(char *buf, int nbytes, URL_CURL_FILE *file, CopyState pstate)
 }
 
 size_t
-url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate)
 {
 	URL_CURL_FILE *cfile = (URL_CURL_FILE *) file;
 
@@ -1804,7 +1805,7 @@ url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
 }
 
 size_t
-url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate)
 {
 	URL_CURL_FILE *cfile = (URL_CURL_FILE *) file;
 
@@ -1816,7 +1817,7 @@ url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
  * flush all remaining buffered data waiting to be written out to external source
  */
 void
-url_curl_fflush(URL_FILE *file, CopyState pstate)
+url_curl_fflush(URL_FILE *file, CopyToState pstate)
 {
 	gp_proto0_write((URL_CURL_FILE *) file, pstate);
 }
@@ -1837,7 +1838,7 @@ curl_not_compiled_error(void)
 }
 
 URL_FILE *
-url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyState pstate)
+url_curl_fopen(char *url, bool forwrite, extvar_t *ev, CopyFormatOptions *opts)
 {
 	curl_not_compiled_error();
 	return NULL; /* keep compiler quiet */
@@ -1857,17 +1858,17 @@ bool url_curl_ferror(URL_FILE *file, int bytesread, char *ebuf, int ebuflen)
 	curl_not_compiled_error();
 	return false; /* keep compiler quiet */
 }
-size_t url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+size_t url_curl_fread(void *ptr, size_t size, URL_FILE *file, CopyFromState pstate)
 {
 	curl_not_compiled_error();
 	return 0; /* keep compiler quiet */
 }
-size_t url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyState pstate)
+size_t url_curl_fwrite(void *ptr, size_t size, URL_FILE *file, CopyToState pstate)
 {
 	curl_not_compiled_error();
 	return 0; /* keep compiler quiet */
 }
-void url_curl_fflush(URL_FILE *file, CopyState pstate)
+void url_curl_fflush(URL_FILE *file, CopyToState pstate)
 {
 	curl_not_compiled_error();
 }

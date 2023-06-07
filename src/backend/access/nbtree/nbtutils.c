@@ -3,7 +3,7 @@
  * nbtutils.c
  *	  Utility code for Postgres btree implementation.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -20,7 +20,9 @@
 #include "access/nbtree.h"
 #include "access/reloptions.h"
 #include "access/relscan.h"
+#include "catalog/catalog.h"
 #include "commands/progress.h"
+#include "lib/qunique.h"
 #include "miscadmin.h"
 #include "utils/array.h"
 #include "utils/datum.h"
@@ -79,7 +81,10 @@ static int	_bt_keep_natts(Relation rel, IndexTuple lastleft,
  *		determine whether or not the keys in the index are expected to be
  *		unique (i.e. if this is a "heapkeyspace" index).  We assume a
  *		heapkeyspace index when caller passes a NULL tuple, allowing index
- *		build callers to avoid accessing the non-existent metapage.
+ *		build callers to avoid accessing the non-existent metapage.  We
+ *		also assume that the index is _not_ allequalimage when a NULL tuple
+ *		is passed; CREATE INDEX callers call _bt_allequalimage() to set the
+ *		field themselves.
  */
 BTScanInsert
 _bt_mkscankey(Relation rel, IndexTuple itup)
@@ -106,7 +111,14 @@ _bt_mkscankey(Relation rel, IndexTuple itup)
 	 */
 	key = palloc(offsetof(BTScanInsertData, scankeys) +
 				 sizeof(ScanKeyData) * indnkeyatts);
-	key->heapkeyspace = itup == NULL || _bt_heapkeyspace(rel);
+	if (itup)
+		_bt_metaversion(rel, &key->heapkeyspace, &key->allequalimage);
+	else
+	{
+		/* Utility statement callers can set these fields themselves */
+		key->heapkeyspace = true;
+		key->allequalimage = false;
+	}
 	key->anynullkeys = false;	/* initial assumption */
 	key->nextkey = false;
 	key->pivotsearch = false;
@@ -435,8 +447,6 @@ _bt_sort_array_elements(IndexScanDesc scan, ScanKey skey,
 	Oid			elemtype;
 	RegProcedure cmp_proc;
 	BTSortArrayContext cxt;
-	int			last_non_dup;
-	int			i;
 
 	if (nelems <= 1)
 		return nelems;			/* no work to do */
@@ -475,20 +485,8 @@ _bt_sort_array_elements(IndexScanDesc scan, ScanKey skey,
 			  _bt_compare_array_elements, (void *) &cxt);
 
 	/* Now scan the sorted elements and remove duplicates */
-	last_non_dup = 0;
-	for (i = 1; i < nelems; i++)
-	{
-		int32		compare;
-
-		compare = DatumGetInt32(FunctionCall2Coll(&cxt.flinfo,
-												  cxt.collation,
-												  elems[last_non_dup],
-												  elems[i]));
-		if (compare != 0)
-			elems[++last_non_dup] = elems[i];
-	}
-
-	return last_non_dup + 1;
+	return qunique_arg(elems, nelems, sizeof(Datum),
+					   _bt_compare_array_elements, &cxt);
 }
 
 /*
@@ -664,7 +662,7 @@ _bt_restore_array_keys(IndexScanDesc scan)
  * scan->numberOfKeys is the number of input keys, so->numberOfKeys gets
  * the number of output keys (possibly less, never greater).
  *
- * The output keys are marked with additional sk_flag bits beyond the
+ * The output keys are marked with additional sk_flags bits beyond the
  * system-standard bits supplied by the caller.  The DESC and NULLS_FIRST
  * indoption bits for the relevant index attribute are copied into the flags.
  * Also, for a DESC column, we commute (flip) all the sk_strategy numbers
@@ -1386,6 +1384,7 @@ _bt_checkkeys(IndexScanDesc scan, IndexTuple tuple, int tupnatts,
 			 * attribute passes the qual.
 			 */
 			Assert(ScanDirectionIsForward(dir));
+			Assert(BTreeTupleIsPivot(tuple));
 			continue;
 		}
 
@@ -1547,6 +1546,7 @@ _bt_check_rowcompare(ScanKey skey, IndexTuple tuple, int tupnatts,
 			 * attribute passes the qual.
 			 */
 			Assert(ScanDirectionIsForward(dir));
+			Assert(BTreeTupleIsPivot(tuple));
 			cmpresult = 0;
 			if (subkey->sk_flags & SK_ROW_END)
 				break;
@@ -1725,6 +1725,7 @@ _bt_killitems(IndexScanDesc scan)
 	int			i;
 	int			numKilled = so->numKilled;
 	bool		killedsomething = false;
+	bool		droppedpin PG_USED_FOR_ASSERTS_ONLY;
 
 	Assert(BTScanPosIsValid(so->currPos));
 
@@ -1742,7 +1743,8 @@ _bt_killitems(IndexScanDesc scan)
 		 * re-use of any TID on the page, so there is no need to check the
 		 * LSN.
 		 */
-		LockBuffer(so->currPos.buf, BT_READ);
+		droppedpin = false;
+		_bt_lockbuf(scan->indexRelation, so->currPos.buf, BT_READ);
 
 		page = BufferGetPage(so->currPos.buf);
 	}
@@ -1750,12 +1752,9 @@ _bt_killitems(IndexScanDesc scan)
 	{
 		Buffer		buf;
 
+		droppedpin = true;
 		/* Attempt to re-read the buffer, getting pin and lock. */
 		buf = _bt_getbuf(scan->indexRelation, so->currPos.currPage, BT_READ);
-
-		/* It might not exist anymore; in which case we can't hint it. */
-		if (!BufferIsValid(buf))
-			return;
 
 		page = BufferGetPage(buf);
 		if (BufferGetLSNAtomic(buf) == so->currPos.lsn)
@@ -1786,10 +1785,86 @@ _bt_killitems(IndexScanDesc scan)
 		{
 			ItemId		iid = PageGetItemId(page, offnum);
 			IndexTuple	ituple = (IndexTuple) PageGetItem(page, iid);
+			bool		killtuple = false;
 
-			if (ItemPointerEquals(&ituple->t_tid, &kitem->heapTid))
+			if (BTreeTupleIsPosting(ituple))
 			{
-				/* found the item */
+				int			pi = i + 1;
+				int			nposting = BTreeTupleGetNPosting(ituple);
+				int			j;
+
+				/*
+				 * We rely on the convention that heap TIDs in the scanpos
+				 * items array are stored in ascending heap TID order for a
+				 * group of TIDs that originally came from a posting list
+				 * tuple.  This convention even applies during backwards
+				 * scans, where returning the TIDs in descending order might
+				 * seem more natural.  This is about effectiveness, not
+				 * correctness.
+				 *
+				 * Note that the page may have been modified in almost any way
+				 * since we first read it (in the !droppedpin case), so it's
+				 * possible that this posting list tuple wasn't a posting list
+				 * tuple when we first encountered its heap TIDs.
+				 */
+				for (j = 0; j < nposting; j++)
+				{
+					ItemPointer item = BTreeTupleGetPostingN(ituple, j);
+
+					if (!ItemPointerEquals(item, &kitem->heapTid))
+						break;	/* out of posting list loop */
+
+					/*
+					 * kitem must have matching offnum when heap TIDs match,
+					 * though only in the common case where the page can't
+					 * have been concurrently modified
+					 */
+					Assert(kitem->indexOffset == offnum || !droppedpin);
+
+					/*
+					 * Read-ahead to later kitems here.
+					 *
+					 * We rely on the assumption that not advancing kitem here
+					 * will prevent us from considering the posting list tuple
+					 * fully dead by not matching its next heap TID in next
+					 * loop iteration.
+					 *
+					 * If, on the other hand, this is the final heap TID in
+					 * the posting list tuple, then tuple gets killed
+					 * regardless (i.e. we handle the case where the last
+					 * kitem is also the last heap TID in the last index tuple
+					 * correctly -- posting tuple still gets killed).
+					 */
+					if (pi < numKilled)
+						kitem = &so->currPos.items[so->killedItems[pi++]];
+				}
+
+				/*
+				 * Don't bother advancing the outermost loop's int iterator to
+				 * avoid processing killed items that relate to the same
+				 * offnum/posting list tuple.  This micro-optimization hardly
+				 * seems worth it.  (Further iterations of the outermost loop
+				 * will fail to match on this same posting list's first heap
+				 * TID instead, so we'll advance to the next offnum/index
+				 * tuple pretty quickly.)
+				 */
+				if (j == nposting)
+					killtuple = true;
+			}
+			else if (ItemPointerEquals(&ituple->t_tid, &kitem->heapTid))
+				killtuple = true;
+
+			/*
+			 * Mark index item as dead, if it isn't already.  Since this
+			 * happens while holding a buffer lock possibly in shared mode,
+			 * it's possible that multiple processes attempt to do this
+			 * simultaneously, leading to multiple full-page images being sent
+			 * to WAL (if wal_log_hints or data checksums are enabled), which
+			 * is undesirable.
+			 */
+			if (killtuple && !ItemIdIsDead(iid))
+			{
+				/* found the item/all posting list items */
 				ItemIdMarkDead(iid);
 				killedsomething = true;
 				break;			/* out of inner search loop */
@@ -1802,7 +1877,8 @@ _bt_killitems(IndexScanDesc scan)
 	 * Since this can be redone later if needed, mark as dirty hint.
 	 *
 	 * Whenever we mark anything LP_DEAD, we also set the page's
-	 * BTP_HAS_GARBAGE flag, which is likewise just a hint.
+	 * BTP_HAS_GARBAGE flag, which is likewise just a hint.  (Note that we
+	 * only rely on the page-level flag in !heapkeyspace indexes.)
 	 */
 	if (killedsomething)
 	{
@@ -1810,7 +1886,7 @@ _bt_killitems(IndexScanDesc scan)
 		MarkBufferDirtyHint(so->currPos.buf, true);
 	}
 
-	LockBuffer(so->currPos.buf, BUFFER_LOCK_UNLOCK);
+	_bt_unlockbuf(scan->indexRelation, so->currPos.buf);
 }
 
 
@@ -2027,7 +2103,20 @@ BTreeShmemInit(void)
 bytea *
 btoptions(Datum reloptions, bool validate)
 {
-	return default_reloptions(reloptions, validate, RELOPT_KIND_BTREE);
+	static const relopt_parse_elt tab[] = {
+		{"fillfactor", RELOPT_TYPE_INT, offsetof(BTOptions, fillfactor)},
+		{"vacuum_cleanup_index_scale_factor", RELOPT_TYPE_REAL,
+		offsetof(BTOptions, vacuum_cleanup_index_scale_factor)},
+		{"deduplicate_items", RELOPT_TYPE_BOOL,
+		offsetof(BTOptions, deduplicate_items)}
+
+	};
+
+	return (bytea *) build_reloptions(reloptions, validate,
+									  RELOPT_KIND_BTREE,
+									  sizeof(BTOptions),
+									  tab, lengthof(tab));
+
 }
 
 /*
@@ -2092,44 +2181,38 @@ btbuildphasename(int64 phasenum)
  * Caller's insertion scankey is used to compare the tuples; the scankey's
  * argument values are not considered here.
  *
- * Sometimes this routine will return a new pivot tuple that takes up more
- * space than firstright, because a new heap TID attribute had to be added to
- * distinguish lastleft from firstright.  This should only happen when the
- * caller is in the process of splitting a leaf page that has many logical
- * duplicates, where it's unavoidable.
- *
  * Note that returned tuple's t_tid offset will hold the number of attributes
  * present, so the original item pointer offset is not represented.  Caller
  * should only change truncated tuple's downlink.  Note also that truncated
  * key attributes are treated as containing "minus infinity" values by
  * _bt_compare().
  *
- * In the worst case (when a heap TID is appended) the size of the returned
- * tuple is the size of the first right tuple plus an additional MAXALIGN()'d
- * item pointer.  This guarantee is important, since callers need to stay
- * under the 1/3 of a page restriction on tuple size.  If this routine is ever
- * taught to truncate within an attribute/datum, it will need to avoid
- * returning an enlarged tuple to caller when truncation + TOAST compression
- * ends up enlarging the final datum.
+ * In the worst case (when a heap TID must be appended to distinguish lastleft
+ * from firstright), the size of the returned tuple is the size of firstright
+ * plus the size of an additional MAXALIGN()'d item pointer.  This guarantee
+ * is important, since callers need to stay under the 1/3 of a page
+ * restriction on tuple size.  If this routine is ever taught to truncate
+ * within an attribute/datum, it will need to avoid returning an enlarged
+ * tuple to caller when truncation + TOAST compression ends up enlarging the
+ * final datum.
  */
 IndexTuple
 _bt_truncate(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 			 BTScanInsert itup_key)
 {
 	TupleDesc	itupdesc = RelationGetDescr(rel);
-	int16		natts = IndexRelationGetNumberOfAttributes(rel);
 	int16		nkeyatts = IndexRelationGetNumberOfKeyAttributes(rel);
 	int			keepnatts;
 	IndexTuple	pivot;
+	IndexTuple	tidpivot;
 	ItemPointer pivotheaptid;
 	Size		newsize;
 
 	/*
-	 * We should only ever truncate leaf index tuples.  It's never okay to
-	 * truncate a second time.
+	 * We should only ever truncate non-pivot tuples from leaf pages.  It's
+	 * never okay to truncate when splitting an internal page.
 	 */
-	Assert(BTreeTupleGetNAtts(lastleft, rel) == natts);
-	Assert(BTreeTupleGetNAtts(firstright, rel) == natts);
+	Assert(!BTreeTupleIsPivot(lastleft) && !BTreeTupleIsPivot(firstright));
 
 	/* Determine how many attributes must be kept in truncated tuple */
 	keepnatts = _bt_keep_natts(rel, lastleft, firstright, itup_key);
@@ -2139,62 +2222,59 @@ _bt_truncate(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 	keepnatts = nkeyatts + 1;
 #endif
 
-	if (keepnatts <= natts)
-	{
-		IndexTuple	tidpivot;
+	pivot = index_truncate_tuple(itupdesc, firstright,
+								 Min(keepnatts, nkeyatts));
 
-		pivot = index_truncate_tuple(itupdesc, firstright, keepnatts);
-
-		/*
-		 * If there is a distinguishing key attribute within new pivot tuple,
-		 * there is no need to add an explicit heap TID attribute
-		 */
-		if (keepnatts <= nkeyatts)
-		{
-			BTreeTupleSetNAtts(pivot, keepnatts);
-			return pivot;
-		}
-
-		/*
-		 * Only truncation of non-key attributes was possible, since key
-		 * attributes are all equal.  It's necessary to add a heap TID
-		 * attribute to the new pivot tuple.
-		 */
-		Assert(natts != nkeyatts);
-		newsize = IndexTupleSize(pivot) + MAXALIGN(sizeof(ItemPointerData));
-		tidpivot = palloc0(newsize);
-		memcpy(tidpivot, pivot, IndexTupleSize(pivot));
-		/* cannot leak memory here */
-		pfree(pivot);
-		pivot = tidpivot;
-	}
-	else
+	if (BTreeTupleIsPosting(pivot))
 	{
 		/*
-		 * No truncation was possible, since key attributes are all equal.
-		 * It's necessary to add a heap TID attribute to the new pivot tuple.
+		 * index_truncate_tuple() just returns a straight copy of firstright
+		 * when it has no attributes to truncate.  When that happens, we may
+		 * need to truncate away a posting list here instead.
 		 */
-		Assert(natts == nkeyatts);
-		newsize = IndexTupleSize(firstright) + MAXALIGN(sizeof(ItemPointerData));
-		pivot = palloc0(newsize);
-		memcpy(pivot, firstright, IndexTupleSize(firstright));
+		Assert(keepnatts == nkeyatts || keepnatts == nkeyatts + 1);
+		Assert(IndexRelationGetNumberOfAttributes(rel) == nkeyatts);
+		pivot->t_info &= ~INDEX_SIZE_MASK;
+		pivot->t_info |= MAXALIGN(BTreeTupleGetPostingOffset(firstright));
 	}
 
 	/*
-	 * We have to use heap TID as a unique-ifier in the new pivot tuple, since
-	 * no non-TID key attribute in the right item readily distinguishes the
-	 * right side of the split from the left side.  Use enlarged space that
-	 * holds a copy of first right tuple; place a heap TID value within the
-	 * extra space that remains at the end.
-	 *
-	 * nbtree conceptualizes this case as an inability to truncate away any
-	 * key attribute.  We must use an alternative representation of heap TID
-	 * within pivots because heap TID is only treated as an attribute within
-	 * nbtree (e.g., there is no pg_attribute entry).
+	 * If there is a distinguishing key attribute within pivot tuple, we're
+	 * done
 	 */
-	Assert(itup_key->heapkeyspace);
-	pivot->t_info &= ~INDEX_SIZE_MASK;
-	pivot->t_info |= newsize;
+	if (keepnatts <= nkeyatts)
+	{
+		BTreeTupleSetNAtts(pivot, keepnatts, false);
+		return pivot;
+	}
+
+	/*
+	 * We have to store a heap TID in the new pivot tuple, since no non-TID
+	 * key attribute value in firstright distinguishes the right side of the
+	 * split from the left side.  nbtree conceptualizes this case as an
+	 * inability to truncate away any key attributes, since heap TID is
+	 * treated as just another key attribute (despite lacking a pg_attribute
+	 * entry).
+	 *
+	 * Use enlarged space that holds a copy of pivot.  We need the extra space
+	 * to store a heap TID at the end (using the special pivot tuple
+	 * representation).  Note that the original pivot already has firstright's
+	 * possible posting list/non-key attribute values removed at this point.
+	 */
+	newsize = MAXALIGN(IndexTupleSize(pivot)) + MAXALIGN(sizeof(ItemPointerData));
+	tidpivot = palloc0(newsize);
+	memcpy(tidpivot, pivot, MAXALIGN(IndexTupleSize(pivot)));
+	/* Cannot leak memory here */
+	pfree(pivot);
+
+	/*
+	 * Store all of firstright's key attribute values plus a tiebreaker heap
+	 * TID value in enlarged pivot tuple
+	 */
+	tidpivot->t_info &= ~INDEX_SIZE_MASK;
+	tidpivot->t_info |= newsize;
+	BTreeTupleSetNAtts(tidpivot, nkeyatts, true);
+	pivotheaptid = BTreeTupleGetHeapTID(tidpivot);
 
 	/*
 	 * Lehman & Yao use lastleft as the leaf high key in all cases, but don't
@@ -2203,11 +2283,11 @@ _bt_truncate(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 	 * TID.  (This is also the closest value to negative infinity that's
 	 * legally usable.)
 	 */
-	pivotheaptid = (ItemPointer) ((char *) pivot + newsize -
-								  sizeof(ItemPointerData));
-	ItemPointerCopy(&lastleft->t_tid, pivotheaptid);
+	ItemPointerCopy(BTreeTupleGetMaxHeapTID(lastleft), pivotheaptid);
 
 	/*
+	 * We're done.  Assert() that heap TID invariants hold before returning.
+	 *
 	 * Lehman and Yao require that the downlink to the right page, which is to
 	 * be inserted into the parent page in the second phase of a page split be
 	 * a strict lower bound on items on the right page, and a non-strict upper
@@ -2216,9 +2296,12 @@ _bt_truncate(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 	 * tiebreaker.
 	 */
 #ifndef DEBUG_NO_TRUNCATE
-	Assert(ItemPointerCompare(&lastleft->t_tid, &firstright->t_tid) < 0);
-	Assert(ItemPointerCompare(pivotheaptid, &lastleft->t_tid) >= 0);
-	Assert(ItemPointerCompare(pivotheaptid, &firstright->t_tid) < 0);
+	Assert(ItemPointerCompare(BTreeTupleGetMaxHeapTID(lastleft),
+							  BTreeTupleGetHeapTID(firstright)) < 0);
+	Assert(ItemPointerCompare(pivotheaptid,
+							  BTreeTupleGetHeapTID(lastleft)) >= 0);
+	Assert(ItemPointerCompare(pivotheaptid,
+							  BTreeTupleGetHeapTID(firstright)) < 0);
 #else
 
 	/*
@@ -2231,7 +2314,7 @@ _bt_truncate(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 	 * attribute values along with lastleft's heap TID value when lastleft's
 	 * TID happens to be greater than firstright's TID.
 	 */
-	ItemPointerCopy(&firstright->t_tid, pivotheaptid);
+	ItemPointerCopy(BTreeTupleGetHeapTID(firstright), pivotheaptid);
 
 	/*
 	 * Pivot heap TID should never be fully equal to firstright.  Note that
@@ -2240,13 +2323,11 @@ _bt_truncate(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 	 */
 	ItemPointerSetOffsetNumber(pivotheaptid,
 							   OffsetNumberPrev(ItemPointerGetOffsetNumber(pivotheaptid)));
-	Assert(ItemPointerCompare(pivotheaptid, &firstright->t_tid) < 0);
+	Assert(ItemPointerCompare(pivotheaptid,
+							  BTreeTupleGetHeapTID(firstright)) < 0);
 #endif
 
-	BTreeTupleSetNAtts(pivot, nkeyatts);
-	BTreeTupleSetAltHeapTID(pivot);
-
-	return pivot;
+	return tidpivot;
 }
 
 /*
@@ -2270,17 +2351,12 @@ _bt_keep_natts(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 	ScanKey		scankey;
 
 	/*
-	 * Be consistent about the representation of BTREE_VERSION 2/3 tuples
-	 * across Postgres versions; don't allow new pivot tuples to have
-	 * truncated key attributes there.  _bt_compare() treats truncated key
-	 * attributes as having the value minus infinity, which would break
-	 * searches within !heapkeyspace indexes.
+	 * _bt_compare() treats truncated key attributes as having the value minus
+	 * infinity, which would break searches within !heapkeyspace indexes.  We
+	 * must still truncate away non-key attribute values, though.
 	 */
 	if (!itup_key->heapkeyspace)
-	{
-		Assert(nkeyatts != IndexRelationGetNumberOfAttributes(rel));
 		return nkeyatts;
-	}
 
 	scankey = itup_key->scankeys;
 	keepnatts = 1;
@@ -2307,6 +2383,13 @@ _bt_keep_natts(Relation rel, IndexTuple lastleft, IndexTuple firstright,
 		keepnatts++;
 	}
 
+	/*
+	 * Assert that _bt_keep_natts_fast() agrees with us in passing.  This is
+	 * expected in an allequalimage index.
+	 */
+	Assert(!itup_key->allequalimage ||
+		   keepnatts == _bt_keep_natts_fast(rel, lastleft, firstright));
+
 	return keepnatts;
 }
 
@@ -2321,15 +2404,16 @@ _bt_keep_natts(Relation rel, IndexTuple lastleft, IndexTuple firstright,
  * The approach taken here usually provides the same answer as _bt_keep_natts
  * will (for the same pair of tuples from a heapkeyspace index), since the
  * majority of btree opclasses can never indicate that two datums are equal
- * unless they're bitwise equal (once detoasted).  Similarly, result may
- * differ from the _bt_keep_natts result when either tuple has TOASTed datums,
- * though this is barely possible in practice.
+ * unless they're bitwise equal after detoasting.  When an index only has
+ * "equal image" columns, routine is guaranteed to give the same result as
+ * _bt_keep_natts would.
  *
- * These issues must be acceptable to callers, typically because they're only
- * concerned about making suffix truncation as effective as possible without
- * leaving excessive amounts of free space on either side of page split.
  * Callers can rely on the fact that attributes considered equal here are
- * definitely also equal according to _bt_keep_natts.
+ * definitely also equal according to _bt_keep_natts, even when the index uses
+ * an opclass or collation that is not "allequalimage"/deduplication-safe.
+ * This weaker guarantee is good enough for nbtsplitloc.c caller, since false
+ * negatives generally only have the effect of making leaf page splits use a
+ * more balanced split point.
  */
 int
 _bt_keep_natts_fast(Relation rel, IndexTuple lastleft, IndexTuple firstright)
@@ -2355,7 +2439,7 @@ _bt_keep_natts_fast(Relation rel, IndexTuple lastleft, IndexTuple firstright)
 			break;
 
 		if (!isNull1 &&
-			!datumIsEqual(datum1, datum2, att->attbyval, att->attlen))
+			!datum_image_eq(datum1, datum2, att->attbyval, att->attlen))
 			break;
 
 		keepnatts++;
@@ -2388,7 +2472,7 @@ _bt_check_natts(Relation rel, bool heapkeyspace, Page page, OffsetNumber offnum)
 	int			tupnatts;
 
 	/*
-	 * We cannot reliably test a deleted or half-deleted page, since they have
+	 * We cannot reliably test a deleted or half-dead page, since they have
 	 * dummy high keys
 	 */
 	if (P_IGNORE(opaque))
@@ -2401,28 +2485,42 @@ _bt_check_natts(Relation rel, bool heapkeyspace, Page page, OffsetNumber offnum)
 	 * Mask allocated for number of keys in index tuple must be able to fit
 	 * maximum possible number of index attributes
 	 */
-	StaticAssertStmt(BT_N_KEYS_OFFSET_MASK >= INDEX_MAX_KEYS,
-					 "BT_N_KEYS_OFFSET_MASK can't fit INDEX_MAX_KEYS");
+	StaticAssertStmt(BT_OFFSET_MASK >= INDEX_MAX_KEYS,
+					 "BT_OFFSET_MASK can't fit INDEX_MAX_KEYS");
 
 	itup = (IndexTuple) PageGetItem(page, PageGetItemId(page, offnum));
 	tupnatts = BTreeTupleGetNAtts(itup, rel);
+
+	/* !heapkeyspace indexes do not support deduplication */
+	if (!heapkeyspace && BTreeTupleIsPosting(itup))
+		return false;
+
+	/* Posting list tuples should never have "pivot heap TID" bit set */
+	if (BTreeTupleIsPosting(itup) &&
+		(ItemPointerGetOffsetNumberNoCheck(&itup->t_tid) &
+		 BT_PIVOT_HEAP_TID_ATTR) != 0)
+		return false;
+
+	/* INCLUDE indexes do not support deduplication */
+	if (natts != nkeyatts && BTreeTupleIsPosting(itup))
+		return false;
 
 	if (P_ISLEAF(opaque))
 	{
 		if (offnum >= P_FIRSTDATAKEY(opaque))
 		{
 			/*
-			 * Non-pivot tuples currently never use alternative heap TID
-			 * representation -- even those within heapkeyspace indexes
+			 * Non-pivot tuple should never be explicitly marked as a pivot
+			 * tuple
 			 */
-			if ((itup->t_info & INDEX_ALT_TID_MASK) != 0)
+			if (BTreeTupleIsPivot(itup))
 				return false;
 
 			/*
 			 * Leaf tuples that are not the page high key (non-pivot tuples)
 			 * should never be truncated.  (Note that tupnatts must have been
-			 * inferred, rather than coming from an explicit on-disk
-			 * representation.)
+			 * inferred, even with a posting list tuple, because only pivot
+			 * tuples store tupnatts directly.)
 			 */
 			return tupnatts == natts;
 		}
@@ -2466,12 +2564,12 @@ _bt_check_natts(Relation rel, bool heapkeyspace, Page page, OffsetNumber offnum)
 			 * non-zero, or when there is no explicit representation and the
 			 * tuple is evidently not a pre-pg_upgrade tuple.
 			 *
-			 * Prior to v11, downlinks always had P_HIKEY as their offset. Use
-			 * that to decide if the tuple is a pre-v11 tuple.
+			 * Prior to v11, downlinks always had P_HIKEY as their offset.
+			 * Accept that as an alternative indication of a valid
+			 * !heapkeyspace negative infinity tuple.
 			 */
 			return tupnatts == 0 ||
-				((itup->t_info & INDEX_ALT_TID_MASK) == 0 &&
-				 ItemPointerGetOffsetNumber(&(itup->t_tid)) == P_HIKEY);
+				ItemPointerGetOffsetNumber(&(itup->t_tid)) == P_HIKEY;
 		}
 		else
 		{
@@ -2497,7 +2595,11 @@ _bt_check_natts(Relation rel, bool heapkeyspace, Page page, OffsetNumber offnum)
 	 * heapkeyspace index pivot tuples, regardless of whether or not there are
 	 * non-key attributes.
 	 */
-	if ((itup->t_info & INDEX_ALT_TID_MASK) == 0)
+	if (!BTreeTupleIsPivot(itup))
+		return false;
+
+	/* Pivot tuple should not use posting list representation (redundant) */
+	if (BTreeTupleIsPosting(itup))
 		return false;
 
 	/*
@@ -2567,11 +2669,83 @@ _bt_check_third_page(Relation rel, Relation heap, bool needheaptidspace,
 					BTMaxItemSizeNoHeapTid(page),
 					RelationGetRelationName(rel)),
 			 errdetail("Index row references tuple (%u,%u) in relation \"%s\".",
-					   ItemPointerGetBlockNumber(&newtup->t_tid),
-					   ItemPointerGetOffsetNumber(&newtup->t_tid),
+					   ItemPointerGetBlockNumber(BTreeTupleGetHeapTID(newtup)),
+					   ItemPointerGetOffsetNumber(BTreeTupleGetHeapTID(newtup)),
 					   RelationGetRelationName(heap)),
 			 errhint("Values larger than 1/3 of a buffer page cannot be indexed.\n"
 					 "Consider a function index of an MD5 hash of the value, "
 					 "or use full text indexing."),
 			 errtableconstraint(heap, RelationGetRelationName(rel))));
+}
+
+/*
+ * Are all attributes in rel "equality is image equality" attributes?
+ *
+ * We use each attribute's BTEQUALIMAGE_PROC opclass procedure.  If any
+ * opclass either lacks a BTEQUALIMAGE_PROC procedure or returns false, we
+ * return false; otherwise we return true.
+ *
+ * Returned boolean value is stored in index metapage during index builds.
+ * Deduplication can only be used when we return true.
+ */
+bool
+_bt_allequalimage(Relation rel, bool debugmessage)
+{
+	bool		allequalimage = true;
+
+	/* INCLUDE indexes don't support deduplication */
+	if (IndexRelationGetNumberOfAttributes(rel) !=
+		IndexRelationGetNumberOfKeyAttributes(rel))
+		return false;
+
+	/*
+	 * There is no special reason why deduplication cannot work with system
+	 * relations (i.e. with system catalog indexes and TOAST indexes).  We
+	 * deem deduplication unsafe for these indexes all the same, since the
+	 * alternative is to force users to always use deduplication, without
+	 * being able to opt out.  (ALTER INDEX is not supported with system
+	 * indexes, so users would have no way to set the deduplicate_items
+	 * storage parameter to 'off'.)
+	 */
+	if (IsSystemRelation(rel))
+		return false;
+
+	for (int i = 0; i < IndexRelationGetNumberOfKeyAttributes(rel); i++)
+	{
+		Oid			opfamily = rel->rd_opfamily[i];
+		Oid			opcintype = rel->rd_opcintype[i];
+		Oid			collation = rel->rd_indcollation[i];
+		Oid			equalimageproc;
+
+		equalimageproc = get_opfamily_proc(opfamily, opcintype, opcintype,
+										   BTEQUALIMAGE_PROC);
+
+		/*
+		 * If there is no BTEQUALIMAGE_PROC then deduplication is assumed to
+		 * be unsafe.  Otherwise, actually call proc and see what it says.
+		 */
+		if (!OidIsValid(equalimageproc) ||
+			!DatumGetBool(OidFunctionCall1Coll(equalimageproc, collation,
+											   ObjectIdGetDatum(opcintype))))
+		{
+			allequalimage = false;
+			break;
+		}
+	}
+
+	/*
+	 * Don't elog() until here to avoid reporting on a system relation index
+	 * or an INCLUDE index
+	 */
+	if (debugmessage)
+	{
+		if (allequalimage)
+			elog(DEBUG1, "index \"%s\" can safely use deduplication",
+				 RelationGetRelationName(rel));
+		else
+			elog(DEBUG1, "index \"%s\" cannot use deduplication",
+				 RelationGetRelationName(rel));
+	}
+
+	return allequalimage;
 }

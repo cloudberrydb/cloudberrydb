@@ -1,12 +1,12 @@
 --- 
-title: "Greenplum Database Cloud Technical Recommendations"
+title: "Cloudberry Database Cloud Technical Recommendations"
 date: February 18, 2020
 author: Jon Roberts <pivotalguru@pivotal.io>
 ---
 
 ## <a id="cd-os"></a>Operating System
 
-The operating system parameters for cloud deployments are the same as on-premise with a few modifications.  Use the [Greenplum Database Installation Guide](../install_guide/install_guide.html) for reference. Additional changes are as follows:
+The operating system parameters for cloud deployments are the same as on-premise with a few modifications.  Use the [Cloudberry Database Installation Guide](../install_guide/install_guide.html) for reference. Additional changes are as follows:
 
 Add the following line to `sysctl.conf`:
 
@@ -18,7 +18,7 @@ AWS requires loading network drivers and also altering the Amazon Machine Image 
 
 ## <a id="cd-storage"></a>Storage
 
-The disk settings for cloud deployments are the same as on-premise with a few modifications.  Use the [Greenplum Database Installation Guide](../install_guide/install_guide.html) for reference. Additional changes are as follows:
+The disk settings for cloud deployments are the same as on-premise with a few modifications.  Use the [Cloudberry Database Installation Guide](../install_guide/install_guide.html) for reference. Additional changes are as follows:
 
 -  Mount options:
    ```
@@ -30,12 +30,12 @@ The disk settings for cloud deployments are the same as on-premise with a few mo
 
 ## <a id="cd-security"></a>Security
 
-It is highly encouraged to disable SSH password authentication to the virtual machines in the cloud and use SSH keys instead.  Using MD5-encrypted passwords for Greenplum Database is also a good practice.
+It is highly encouraged to disable SSH password authentication to the virtual machines in the cloud and use SSH keys instead.  Using MD5-encrypted passwords for Cloudberry Database is also a good practice.
 
 ## <a id="aws"></a>Amazon Web Services (AWS)
 
 ### <a id="aws-vm-type"></a>Virtual Machine Type
-AWS provides a wide variety of virtual machine types and sizes to address virtually every use case.  Testing in AWS has found that the optimal instance types for Greenplum are "Memory Optimized".  These provide the ideal balance of Price, Memory, Network, and Storage throughput, and Compute capabilities.
+AWS provides a wide variety of virtual machine types and sizes to address virtually every use case.  Testing in AWS has found that the optimal instance types for Cloudberry are "Memory Optimized".  These provide the ideal balance of Price, Memory, Network, and Storage throughput, and Compute capabilities.
 
 Price, Memory, and number of cores typically increase in a linear fashion, but the network speed and disk throughput limits do not.  You may be tempted to use the largest instance type to get the highest network and disk speed possible per VM, but better overall performance for the same spend on compute resources can be obtained by using more VMs that are smaller in size.
 
@@ -43,7 +43,7 @@ Price, Memory, and number of cores typically increase in a linear fashion, but t
 AWS uses Hyperthreading when reporting the number of vCPUs, therefore 2 vCPUs equates to 1 Core.  The processor types are frequently getting faster so using the latest instance type will be not only faster, but usually less expensive.  For example, the R5 series provides faster cores at a lower cost compared to R4.
 
 #### <a id="aws-memory"></a>Memory
-This variable is pretty simple.  Greenplum needs at least 8GB of RAM per segment process to work optimally.  More RAM per segment helps with concurrency and also helps hide disk performance deficiencies.  
+This variable is pretty simple.  Cloudberry needs at least 8GB of RAM per segment process to work optimally.  More RAM per segment helps with concurrency and also helps hide disk performance deficiencies.  
 
 #### <a id="aws-network"></a>Network
 AWS provides 25Gbit network performance on the largest instance types, but the network is typically not the bottleneck in AWS. The "up to 10Gbit" network is sufficient in AWS.
@@ -56,13 +56,13 @@ Installing network drivers in the VM is also required in AWS, and depends on the
 #### <a id="aws-ebs"></a>Elastic Block Storage (EBS)
 The AWS default disk type is General Performance (GP2) which is ideal for IOP dependent applications. GP2 uses SSD disks and relative to other disk types in AWS, is expensive.  The operating system and swap volumes are ideal for GP2 disks because of the size and higher random I/O needs.
 
-Throughput Optimized Disks (ST1) are a disk type designed for high throughput needs such as Greenplum.  These disks are based on HDD rather than SSD, and are less expensive than GP2.  Use this disk type for the optimal performance of loading and querying data in AWS.
+Throughput Optimized Disks (ST1) are a disk type designed for high throughput needs such as Cloudberry.  These disks are based on HDD rather than SSD, and are less expensive than GP2.  Use this disk type for the optimal performance of loading and querying data in AWS.
 
 Cold Storage (SC1) provides the best value for EBS storage in AWS.  Using multiple 2TB or larger disks provides enough disk throughput to reach the throughput limit of many different instance types. Therefore, it is possible to reach the throughput limit of a VM by using SC1 disks.
 
-EBS storage is durable so data is not lost when a virtual machine is stopped.  EBS also provides infrastructure snapshot capabilities that can be used to create volume backups.  These snapshots can be copied to different regions to provide a disaster recovery solution.  The Greenplum Cloud utility `gpsnap`, available in the AWS Cloud Marketplace, automates backup, restore, delete, and copy functions using EBS snapshots.
+EBS storage is durable so data is not lost when a virtual machine is stopped.  EBS also provides infrastructure snapshot capabilities that can be used to create volume backups.  These snapshots can be copied to different regions to provide a disaster recovery solution.  The Cloudberry Cloud utility `gpsnap`, available in the AWS Cloud Marketplace, automates backup, restore, delete, and copy functions using EBS snapshots.
 
-Storage can be grown in AWS with "gpgrow".  This tool is included with the Greenplum on AWS deployment and allows you to grow the storage independently of compute.  This is an online operation in AWS too.
+Storage can be grown in AWS with "gpgrow".  This tool is included with the Cloudberry on AWS deployment and allows you to grow the storage independently of compute.  This is an online operation in AWS too.
 
 #### <a id="aws-ephemeral"></a>Ephemeral
 
@@ -98,7 +98,7 @@ The two most common instance types in GCP are "Standard" or "HighMem" instance t
 #### <a id="gcp-compute"></a>Compute
 Like AWS, GCP uses Hyperthreading, so 2 vCPUs equates to 1 Core.  The CPU clock speed is determined by the region in which you deploy.  
 #### <a id="gcp-memory"></a>Memory
-Instance type n1-standard-8 has 8 vCPUs with 30GB of RAM while n1-highmem-8 also has 8 vCPUs with 52GB of RAM.  There is also a HighCPU instance type that generally isn't ideal for Greenplum.  Like AWS and Azure, the machines with more vCPUs will have more RAM.
+Instance type n1-standard-8 has 8 vCPUs with 30GB of RAM while n1-highmem-8 also has 8 vCPUs with 52GB of RAM.  There is also a HighCPU instance type that generally isn't ideal for Cloudberry.  Like AWS and Azure, the machines with more vCPUs will have more RAM.
 #### <a id="gcp-network"></a>Network
 GCP network speeds are dependent on the instance type but the maximum network performance is possible (10Gbit) with a virtual machine as small as only 8 vCPUs.
 ### <a id="gcp-storage"></a>Storage
@@ -126,7 +126,7 @@ The HighMem instance type is slightly faster for higher concurrency.  Furthermor
 **Note:** On the Azure platform, in addition to bandwidth, the number of network connections present on a VM at any given moment can affect the VM's network performance. The Azure networking stack maintains the state for each direction of a TCP/UDP connection in a data structures called a _flow_. A typical TCP/UDP connection will have 2 flows created: one for the inbound direction and another for the outbound direction. The number of network flows on Azure is limited to an upper bound.  See [Virtual machine network bandwidth](https://docs.microsoft.com/bs-latn-ba/azure/virtual-network/virtual-machine-network-throughput) in the Azure documentation for more details.  In practice this can present scalability challenges for workloads based on the number of concurrent queries, and on the complexity of those queries.  Always test your workload on Azure to validate that you are within the Azure limits, and be advised that if your workload increases you may hit Azure flow count boundaries at which point your workload may fail.  VMware recommends using the UDP interconnect, and not the TCP interconnect, when using Azure.  A connection pooler and resource group settings can also be used to help keep flow counts at a lower level.
 
 ### <a id="az-vm-type"></a>Virtual Machine Type
-Each VM type has limits on disk throughput so picking a VM that doesn't have a limit that is too low is essential.  Most of Azure is designed for OLTP or Application workloads, which limits the choices for databases like Greenplum where throughput is more important.  Disk type also plays a part in the throughput cap, so that needs to be considered too.
+Each VM type has limits on disk throughput so picking a VM that doesn't have a limit that is too low is essential.  Most of Azure is designed for OLTP or Application workloads, which limits the choices for databases like Cloudberry where throughput is more important.  Disk type also plays a part in the throughput cap, so that needs to be considered too.
 ### <a id="az-compute"></a>Compute
 Most instance types in Azure have hyperthreading enabled, which means 1 vCPU equates to 2 cores.  However, not all instance types have this feature, so for these others, 1 vCPU equates to 1 core.
 
@@ -136,9 +136,9 @@ The High Performance Compute (HPC) instance types have the fastest cores in Azur
 In general, the larger the virtual machine type, the more memory the VM will have.  
 
 ### <a id="az-network"></a>Network
-The Accelerated Networking option offloads CPU cycles for networking to "FPGA-based SmartNICs".  Virtual machine types either support this or do not, but most do support it.  Testing of Greenplum hasn't shown much difference and this is probably because of Azure's preference for TCP over UDP.  Despite this, UDPIFC interconnect is the ideal protocol to use in Azure.
+The Accelerated Networking option offloads CPU cycles for networking to "FPGA-based SmartNICs".  Virtual machine types either support this or do not, but most do support it.  Testing of Cloudberry hasn't shown much difference and this is probably because of Azure's preference for TCP over UDP.  Despite this, UDPIFC interconnect is the ideal protocol to use in Azure.
 
-There is an undocumented process in Azure that periodically runs on the host machines on UDP port 65330.  When a query runs using UDP port 65330 and this undocumented process runs, the query will fail after one hour with an interconnect timeout error.  This is fixed by reserving port 65330 so that Greenplum doesn't use it.
+There is an undocumented process in Azure that periodically runs on the host machines on UDP port 65330.  When a query runs using UDP port 65330 and this undocumented process runs, the query will fail after one hour with an interconnect timeout error.  This is fixed by reserving port 65330 so that Cloudberry doesn't use it.
 
 ### <a id="az-storage"></a>Storage
 Storage in Azure is either Premium (SSD) or Regular Storage (HDD).  The available sizes are the same and max out at 4TB.  Instance types either do or do not support Premium but, interestingly, the instance types that do support Premium storage, have a _lower_ throughput limit.  For example:

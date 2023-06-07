@@ -5,7 +5,7 @@
   <title id="fs142834">foreign_data_wrapper_options</title>
   <body>
     <p>The <codeph>foreign_data_wrapper_options</codeph> view contains all of the otpions defined for
-      foreign-data wrappers in the current database. Greenplum Database displays only those foreign-data
+      foreign-data wrappers in the current database. Cloudberry Database displays only those foreign-data
        wrappers to which the current user has access (by way of being the owner or having some privilege).</p>
     <table id="fs142842">
       <title>foreign_data_wrapper_options</title>

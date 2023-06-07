@@ -4,7 +4,7 @@
 <topic id="topic1">
     <title id="jo20941">gpactivatestandby</title>
     <body>
-        <p>Activates a standby coordinator host and makes it the active coordinator for the Greenplum Database
+        <p>Activates a standby coordinator host and makes it the active coordinator for the Cloudberry Database
             system.</p>
         <section id="section2">
             <title>Synopsis</title>
@@ -18,8 +18,8 @@
         <section id="section3">
             <title>Description</title>
             <p>The <codeph>gpactivatestandby</codeph> utility activates a backup, standby coordinator
-                host and brings it into operation as the active coordinator instance for a Greenplum
-                Database system. The activated standby coordinator effectively becomes the Greenplum
+                host and brings it into operation as the active coordinator instance for a Cloudberry
+                Database system. The activated standby coordinator effectively becomes the Cloudberry
                 Database coordinator, accepting client connections on the coordinator port. </p>
             <p>When you initialize a standby coordinator, the default is to use the same port as the
                 active coordinator. For information about the coordinator port for the standby coordinator, see
@@ -38,11 +38,11 @@
                     logs</li>
                 <li id="jo140409">Activates the standby coordinator to be the new active coordinator for the
                     system</li>
-                <li id="jo141105">Restarts the Greenplum Database system with the new coordinator
+                <li id="jo141105">Restarts the Cloudberry Database system with the new coordinator
                     host</li>
             </ul>
-            <p>A backup, standby Greenplum coordinator host serves as a 'warm standby' in the event of
-                the primary Greenplum coordinator host becoming non-operational. The standby coordinator is
+            <p>A backup, standby Cloudberry coordinator host serves as a 'warm standby' in the event of
+                the primary Cloudberry coordinator host becoming non-operational. The standby coordinator is
                 kept up to date by transaction log replication processes (the
                     <codeph>walsender</codeph> and <codeph>walreceiver</codeph>), which run on the
                 primary coordinator and standby coordinator hosts and keep the data between the primary and
@@ -50,7 +50,7 @@
             <p>If the primary coordinator fails, the log replication process is shutdown, and the standby
                 coordinator can be activated in its place by using the <codeph>gpactivatestandby</codeph>
                 utility. Upon activation of the standby coordinator, the replicated logs are used to
-                reconstruct the state of the Greenplum coordinator host at the time of the last
+                reconstruct the state of the Cloudberry coordinator host at the time of the last
                 successfully committed transaction. </p>
             <p>In order to use <codeph>gpactivatestandby</codeph> to activate a new primary coordinator
                 host, the coordinator host that was previously serving as the primary coordinator cannot be
@@ -63,7 +63,7 @@
             <p>After activating a standby coordinator, run <codeph>ANALYZE</codeph> to update the
                 database query statistics. For example:</p>
             <codeblock>psql <varname>dbname</varname> -c 'ANALYZE;'</codeblock>
-            <p>After you activate the standby coordinator as the primary coordinator, the Greenplum Database
+            <p>After you activate the standby coordinator as the primary coordinator, the Cloudberry Database
                 system no longer has a standby coordinator configured. You might want to specify another
                 host to be the new standby with the <codeph><xref href="./gpinitstandby.xml#topic1"
                         type="topic" format="dita"/></codeph> utility. </p>
@@ -115,7 +115,7 @@
         <section id="section5">
             <title>Example</title>
             <p>Activate the standby coordinator host and make it the active coordinator instance for a
-                Greenplum Database system (run from backup coordinator host you are activating):</p>
+                Cloudberry Database system (run from backup coordinator host you are activating):</p>
             <codeblock>gpactivatestandby -d /gpdata</codeblock>
         </section>
         <section id="section6">

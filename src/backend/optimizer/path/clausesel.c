@@ -3,9 +3,9 @@
  * clausesel.c
  *	  Routines to compute clause selectivities
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -25,10 +25,10 @@
 #include "optimizer/optimizer.h"
 #include "optimizer/pathnode.h"
 #include "optimizer/plancat.h"
+#include "statistics/statistics.h"
 #include "utils/fmgroids.h"
 #include "utils/lsyscache.h"
 #include "utils/selfuncs.h"
-#include "statistics/statistics.h"
 
 #include "cdb/cdbvars.h"        /* cdb GUCs */
 
@@ -50,6 +50,13 @@ static void addRangeClause(RangeQueryClause **rqlist, Node *clause,
 						   bool varonleft, bool isLTsel, Selectivity s2);
 static RelOptInfo *find_single_rel_for_clauses(PlannerInfo *root,
 											   List *clauses);
+static Selectivity clauselist_selectivity_or(PlannerInfo *root,
+											 List *clauses,
+											 int varRelid,
+											 JoinType jointype,
+											 SpecialJoinInfo *sjinfo,
+											 bool use_extended_stats,
+											 bool use_damping);
 
 /* cmpSelectivity
  * comparison function for using qsort on an array of Selectivity entries
@@ -88,66 +95,10 @@ cmpSelectivity
  *
  * The basic approach is to apply extended statistics first, on as many
  * clauses as possible, in order to capture cross-column dependencies etc.
- * The remaining clauses are then estimated using regular statistics tracked
- * for individual columns.  This is done by simply passing the clauses to
- * clauselist_selectivity_simple.
- */
-Selectivity
-clauselist_selectivity(PlannerInfo *root,
-					   List *clauses,
-					   int varRelid,
-					   JoinType jointype,
-					   SpecialJoinInfo *sjinfo,
-					   bool use_damping)
-{
-	Selectivity s1 = 1.0;
-	RelOptInfo *rel;
-	Bitmapset  *estimatedclauses = NULL;
-
-	/*
-	 * Determine if these clauses reference a single relation.  If so, and if
-	 * it has extended statistics, try to apply those.
-	 */
-	rel = find_single_rel_for_clauses(root, clauses);
-	if (rel && rel->rtekind == RTE_RELATION && rel->statlist != NIL)
-	{
-		/*
-		 * Estimate as many clauses as possible using extended statistics.
-		 *
-		 * 'estimatedclauses' tracks the 0-based list position index of
-		 * clauses that we've estimated using extended statistics, and that
-		 * should be ignored.
-		 */
-		s1 *= statext_clauselist_selectivity(root, clauses, varRelid,
-											 jointype, sjinfo, rel,
-											 &estimatedclauses);
-	}
-
-	/*
-	 * Apply normal selectivity estimates for the remaining clauses, passing
-	 * 'estimatedclauses' so that it skips already estimated ones.
-	 */
-	return s1 * clauselist_selectivity_simple(root, clauses, varRelid,
-											  jointype, sjinfo,
-											  estimatedclauses,
-											  use_damping);
-}
-
-/*
- * clauselist_selectivity_simple -
- *	  Compute the selectivity of an implicitly-ANDed list of boolean
- *	  expression clauses.  The list can be empty, in which case 1.0
- *	  must be returned.  List elements may be either RestrictInfos
- *	  or bare expression clauses --- the former is preferred since
- *	  it allows caching of results.  The estimatedclauses bitmap tracks
- *	  clauses that have already been estimated by other means.
- *
- * See clause_selectivity() for the meaning of the additional parameters.
- *
- * Our basic approach is to take the product of the selectivities of the
- * subclauses.  However, that's only right if the subclauses have independent
- * probabilities, and in reality they are often NOT independent.  So,
- * we want to be smarter where we can.
+ * The remaining clauses are then estimated by taking the product of their
+ * selectivities, but that's only right if they have independent
+ * probabilities, and in reality they are often NOT independent even if they
+ * only refer to a single column.  So, we want to be smarter where we can.
  *
  * We also recognize "range queries", such as "x > 34 AND x < 42".  Clauses
  * are recognized as possible range query components if they are restriction
@@ -176,16 +127,36 @@ clauselist_selectivity(PlannerInfo *root,
  * selectivity functions; perhaps some day we can generalize the approach.
  */
 Selectivity
-clauselist_selectivity_simple(PlannerInfo *root,
-							  List *clauses,
-							  int varRelid,
-							  JoinType jointype,
-							  SpecialJoinInfo *sjinfo,
-							  Bitmapset *estimatedclauses,
-							  bool use_damping)
+clauselist_selectivity(PlannerInfo *root,
+					   List *clauses,
+					   int varRelid,
+					   JoinType jointype,
+					   SpecialJoinInfo *sjinfo,
+					   bool use_damping)
+{
+	return clauselist_selectivity_ext(root, clauses, varRelid,
+									  jointype, sjinfo, true, use_damping);
+}
+
+/*
+ * clauselist_selectivity_ext -
+ *	  Extended version of clauselist_selectivity().  If "use_extended_stats"
+ *	  is false, all extended statistics will be ignored, and only per-column
+ *	  statistics will be used.
+ */
+Selectivity
+clauselist_selectivity_ext(PlannerInfo *root,
+						   List *clauses,
+						   int varRelid,
+						   JoinType jointype,
+						   SpecialJoinInfo *sjinfo,
+						   bool use_extended_stats,
+						   bool use_damping)
 {
 	Selectivity s1 = 1.0;
 	Selectivity *rgsel = NULL;
+	RelOptInfo *rel;
+	Bitmapset  *estimatedclauses = NULL;
 	RangeQueryClause *rqlist = NULL;
 	ListCell   *l;
 	int			listidx;
@@ -197,16 +168,36 @@ clauselist_selectivity_simple(PlannerInfo *root,
 	rgsel = (Selectivity *) palloc(sizeof(Selectivity) * list_length(clauses));
 
 	/*
-	 * If there's exactly one clause (and it was not estimated yet), just go
-	 * directly to clause_selectivity(). None of what we might do below is
-	 * relevant.
+	 * If there's exactly one clause, just go directly to
+	 * clause_selectivity_ext(). None of what we might do below is relevant.
 	 */
-	if ((list_length(clauses) == 1) &&
-		bms_num_members(estimatedclauses) == 0)
-		return clause_selectivity(root, (Node *) linitial(clauses),
-								  varRelid, jointype, sjinfo, use_damping);
+	if (list_length(clauses) == 1)
+		return clause_selectivity_ext(root, (Node *) linitial(clauses),
+									  varRelid, jointype, sjinfo,
+									  use_extended_stats, use_damping);
 
 	/*
+	 * Determine if these clauses reference a single relation.  If so, and if
+	 * it has extended statistics, try to apply those.
+	 */
+	rel = find_single_rel_for_clauses(root, clauses);
+	if (use_extended_stats && rel && rel->rtekind == RTE_RELATION && rel->statlist != NIL)
+	{
+		/*
+		 * Estimate as many clauses as possible using extended statistics.
+		 *
+		 * 'estimatedclauses' is populated with the 0-based list position
+		 * index of clauses estimated here, and that should be ignored below.
+		 */
+		s1 = statext_clauselist_selectivity(root, clauses, varRelid,
+											jointype, sjinfo, rel,
+											&estimatedclauses, false);
+	}
+
+	/*
+	 * Apply normal selectivity estimates for remaining clauses. We'll be
+	 * careful to skip any clauses which were already estimated above.
+	 *
 	 * Anything that doesn't look like a potential rangequery clause gets
 	 * multiplied into s1 and forgotten. Anything that does gets inserted into
 	 * an rqlist entry.
@@ -227,8 +218,9 @@ clauselist_selectivity_simple(PlannerInfo *root,
 		if (bms_is_member(listidx, estimatedclauses))
 			continue;
 
-		/* Always compute the selectivity using clause_selectivity */
-		s2 = clause_selectivity(root, clause, varRelid, jointype, sjinfo, use_damping);
+		/* Compute the selectivity of this clause in isolation */
+		s2 = clause_selectivity_ext(root, clause, varRelid, jointype, sjinfo,
+									use_extended_stats, use_damping);
 
 		/*
 		 * Check for being passed a RestrictInfo.
@@ -272,7 +264,7 @@ clauselist_selectivity_simple(PlannerInfo *root,
 			}
 			else
 			{
-				ok = (NumRelids(clause) == 1) &&
+				ok = (NumRelids(root, clause) == 1) &&
 					(is_pseudo_constant_clause(lsecond(expr->args)) ||
 					 (varonleft = false,
 					  is_pseudo_constant_clause(linitial(expr->args))));
@@ -400,9 +392,6 @@ clauselist_selectivity_simple(PlannerInfo *root,
 		}
 	}
 
-	/* make sure nobody touched s1 yet */
-	Assert(s1 == 1.0);
-
 	for (i = 0; i < pos; i++)
 	{
 		s1 *= rgsel[i];
@@ -417,6 +406,84 @@ clauselist_selectivity_simple(PlannerInfo *root,
 	{
 		s1 = (1 - s1);
 	}
+	return s1;
+}
+
+/*
+ * clauselist_selectivity_or -
+ *	  Compute the selectivity of an implicitly-ORed list of boolean
+ *	  expression clauses.  The list can be empty, in which case 0.0
+ *	  must be returned.  List elements may be either RestrictInfos
+ *	  or bare expression clauses --- the former is preferred since
+ *	  it allows caching of results.
+ *
+ * See clause_selectivity() for the meaning of the additional parameters.
+ *
+ * The basic approach is to apply extended statistics first, on as many
+ * clauses as possible, in order to capture cross-column dependencies etc.
+ * The remaining clauses are then estimated as if they were independent.
+ */
+static Selectivity
+clauselist_selectivity_or(PlannerInfo *root,
+						  List *clauses,
+						  int varRelid,
+						  JoinType jointype,
+						  SpecialJoinInfo *sjinfo,
+						  bool use_extended_stats,
+						  bool use_damping)
+{
+	Selectivity s1 = 0.0;
+	RelOptInfo *rel;
+	Bitmapset  *estimatedclauses = NULL;
+	ListCell   *lc;
+	int			listidx;
+
+	/*
+	 * Determine if these clauses reference a single relation.  If so, and if
+	 * it has extended statistics, try to apply those.
+	 */
+	rel = find_single_rel_for_clauses(root, clauses);
+	if (use_extended_stats && rel && rel->rtekind == RTE_RELATION && rel->statlist != NIL)
+	{
+		/*
+		 * Estimate as many clauses as possible using extended statistics.
+		 *
+		 * 'estimatedclauses' is populated with the 0-based list position
+		 * index of clauses estimated here, and that should be ignored below.
+		 */
+		s1 = statext_clauselist_selectivity(root, clauses, varRelid,
+											jointype, sjinfo, rel,
+											&estimatedclauses, true);
+	}
+
+	/*
+	 * Estimate the remaining clauses as if they were independent.
+	 *
+	 * Selectivities for an OR clause are computed as s1+s2 - s1*s2 to account
+	 * for the probable overlap of selected tuple sets.
+	 *
+	 * XXX is this too conservative?
+	 */
+	listidx = -1;
+	foreach(lc, clauses)
+	{
+		Selectivity s2;
+
+		listidx++;
+
+		/*
+		 * Skip this clause if it's already been estimated by some other
+		 * statistics above.
+		 */
+		if (bms_is_member(listidx, estimatedclauses))
+			continue;
+
+		s2 = clause_selectivity_ext(root, (Node *) lfirst(lc), varRelid,
+									jointype, sjinfo, use_extended_stats, use_damping);
+
+		s1 = s1 + s2 - s1 * s2;
+	}
+
 	return s1;
 }
 
@@ -538,7 +605,28 @@ find_single_rel_for_clauses(PlannerInfo *root, List *clauses)
 		 * However, currently the extended-stats machinery won't do anything
 		 * with non-RestrictInfo clauses anyway, so there's no point in
 		 * spending extra cycles; just fail if that's what we have.
+		 *
+		 * An exception to that rule is if we have a bare BoolExpr AND clause.
+		 * We treat this as a special case because the restrictinfo machinery
+		 * doesn't build RestrictInfos on top of AND clauses.
 		 */
+		if (is_andclause(rinfo))
+		{
+			RelOptInfo *rel;
+
+			rel = find_single_rel_for_clauses(root,
+											  ((BoolExpr *) rinfo)->args);
+
+			if (rel == NULL)
+				return NULL;
+			if (lastrelid == 0)
+				lastrelid = rel->relid;
+			else if (rel->relid != lastrelid)
+				return NULL;
+
+			continue;
+		}
+
 		if (!IsA(rinfo, RestrictInfo))
 			return NULL;
 
@@ -588,7 +676,7 @@ bms_is_subset_singleton(const Bitmapset *s, int x)
  *	  restriction or join estimator.  Subroutine for clause_selectivity().
  */
 static inline bool
-treat_as_join_clause(Node *clause, RestrictInfo *rinfo,
+treat_as_join_clause(PlannerInfo *root, Node *clause, RestrictInfo *rinfo,
 					 int varRelid, SpecialJoinInfo *sjinfo)
 {
 	if (varRelid != 0)
@@ -622,7 +710,7 @@ treat_as_join_clause(Node *clause, RestrictInfo *rinfo,
 		if (rinfo)
 			return (bms_membership(rinfo->clause_relids) == BMS_MULTIPLE);
 		else
-			return (NumRelids(clause) > 1);
+			return (NumRelids(root, clause) > 1);
 	}
 }
 
@@ -672,6 +760,25 @@ clause_selectivity(PlannerInfo *root,
 				   JoinType jointype,
 				   SpecialJoinInfo *sjinfo,
 				   bool use_damping)
+{
+	return clause_selectivity_ext(root, clause, varRelid,
+								  jointype, sjinfo, true, use_damping);
+}
+
+/*
+ * clause_selectivity_ext -
+ *	  Extended version of clause_selectivity().  If "use_extended_stats" is
+ *	  false, all extended statistics will be ignored, and only per-column
+ *	  statistics will be used.
+ */
+Selectivity
+clause_selectivity_ext(PlannerInfo *root,
+					   Node *clause,
+					   int varRelid,
+					   JoinType jointype,
+					   SpecialJoinInfo *sjinfo,
+					   bool use_extended_stats,
+					   bool use_damping)
 {
 	Selectivity s1 = 0.5;		/* default for any unhandled clause type */
 	RestrictInfo *rinfo = NULL;
@@ -787,52 +894,45 @@ clause_selectivity(PlannerInfo *root,
 	else if (is_notclause(clause))
 	{
 		/* inverse of the selectivity of the underlying clause */
-		s1 = 1.0 - clause_selectivity(root,
-									  (Node *) get_notclausearg((Expr *) clause),
-									  varRelid,
-									  jointype,
-									  sjinfo,
-									  use_damping);
+		s1 = 1.0 - clause_selectivity_ext(root,
+										  (Node *) get_notclausearg((Expr *) clause),
+										  varRelid,
+										  jointype,
+										  sjinfo,
+										  use_extended_stats,
+										  use_damping);
 	}
 	else if (is_andclause(clause))
 	{
 		/* share code with clauselist_selectivity() */
-		s1 = clauselist_selectivity(root,
-									((BoolExpr *) clause)->args,
-									varRelid,
-									jointype,
-									sjinfo,
-									use_damping);
+		s1 = clauselist_selectivity_ext(root,
+										((BoolExpr *) clause)->args,
+										varRelid,
+										jointype,
+										sjinfo,
+										use_extended_stats,
+										use_damping);
 	}
 	else if (is_orclause(clause))
 	{
 		/*
-		 * Selectivities for an OR clause are computed as s1+s2 - s1*s2 to
-		 * account for the probable overlap of selected tuple sets.
-		 *
-		 * XXX is this too conservative?
+		 * Almost the same thing as clauselist_selectivity, but with the
+		 * clauses connected by OR.
 		 */
-		ListCell   *arg;
-
-		s1 = 0.0;
-		foreach(arg, ((BoolExpr *) clause)->args)
-		{
-			Selectivity s2 = clause_selectivity(root,
-												(Node *) lfirst(arg),
-												varRelid,
-												jointype,
-												sjinfo,
-												use_damping);
-
-			s1 = s1 + s2 - s1 * s2;
-		}
+		s1 = clauselist_selectivity_or(root,
+									   ((BoolExpr *) clause)->args,
+									   varRelid,
+									   jointype,
+									   sjinfo,
+									   use_extended_stats,
+									   use_damping);
 	}
 	else if (is_opclause(clause) || IsA(clause, DistinctExpr))
 	{
 		OpExpr	   *opclause = (OpExpr *) clause;
 		Oid			opno = opclause->opno;
 
-		if (treat_as_join_clause(clause, rinfo, varRelid, sjinfo))
+		if (treat_as_join_clause(root, clause, rinfo, varRelid, sjinfo))
 		{
 			/* Estimate selectivity for a join clause. */
 			s1 = join_selectivity(root, opno,
@@ -868,7 +968,7 @@ clause_selectivity(PlannerInfo *root,
 								  funcclause->funcid,
 								  funcclause->args,
 								  funcclause->inputcollid,
-								  treat_as_join_clause(clause, rinfo,
+								  treat_as_join_clause(root, clause, rinfo,
 													   varRelid, sjinfo),
 								  varRelid,
 								  jointype,
@@ -879,7 +979,7 @@ clause_selectivity(PlannerInfo *root,
 		/* Use node specific selectivity calculation function */
 		s1 = scalararraysel(root,
 							(ScalarArrayOpExpr *) clause,
-							treat_as_join_clause(clause, rinfo,
+							treat_as_join_clause(root, clause, rinfo,
 												 varRelid, sjinfo),
 							varRelid,
 							jointype,
@@ -926,22 +1026,24 @@ clause_selectivity(PlannerInfo *root,
 	else if (IsA(clause, RelabelType))
 	{
 		/* Not sure this case is needed, but it can't hurt */
-		s1 = clause_selectivity(root,
-								(Node *) ((RelabelType *) clause)->arg,
-								varRelid,
-								jointype,
-								sjinfo,
-								use_damping);
+		s1 = clause_selectivity_ext(root,
+									(Node *) ((RelabelType *) clause)->arg,
+									varRelid,
+									jointype,
+									sjinfo,
+									use_extended_stats,
+									use_damping);
 	}
 	else if (IsA(clause, CoerceToDomain))
 	{
 		/* Not sure this case is needed, but it can't hurt */
-		s1 = clause_selectivity(root,
-								(Node *) ((CoerceToDomain *) clause)->arg,
-								varRelid,
-								jointype,
-								sjinfo,
-								use_damping);
+		s1 = clause_selectivity_ext(root,
+									(Node *) ((CoerceToDomain *) clause)->arg,
+									varRelid,
+									jointype,
+									sjinfo,
+									use_extended_stats,
+									use_damping);
 	}
 	else
 	{

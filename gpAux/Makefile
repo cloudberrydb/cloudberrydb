@@ -1,5 +1,5 @@
 #---------------------------------------------------------------------
-# Makefile for Greenplum Database
+# Makefile for Cloudberry Database
 #---------------------------------------------------------------------
 
 # keep the default target above any targets from included makefiles
@@ -65,9 +65,13 @@ GPMGMT=../gpMgmt
 BUILDDIR=$(GPPGDIR)
 
 RELEASE=devel
-GPDIR=greenplum-db-$(RELEASE)
-PLRDIR=greenplum-plr-$(RELEASE)
-CLIENTSDIR=greenplum-clients-$(RELEASE)
+ifeq "$(BUILD_TYPE)" "release"
+GPDIR=cloudberry-db
+CLIENTSDIR=cloudberry-clients
+else
+GPDIR=cloudberry-db-devel
+CLIENTSDIR=cloudberry-clients-devel
+endif
 
 DISTPATH=$(GPROOT)/$(GPDIR)
 CLIENTSDISTPATH=$(GPROOT)/$(CLIENTSDIR)
@@ -96,8 +100,8 @@ SERVER_PLATFORMS=rhel7_x86_64 rhel6_x86_64 rhel8_x86_64 linux_x86_64
 # Compiler options
 #---------------------------------------------------------------------
 
-OPTFLAGS="$(strip $(BLD_CFLAGS) -O3 -fargument-noalias-global -fno-omit-frame-pointer -g)"
-PROFFLAGS="$(strip $(BLD_CFLAGS) -O3 -fargument-noalias-global -fno-omit-frame-pointer -g)"
+OPTFLAGS="$(strip $(BLD_CFLAGS) -O3 -Wno-nonnull -fargument-noalias-global -fno-omit-frame-pointer -g)"
+PROFFLAGS="$(strip $(BLD_CFLAGS) -O3 -Wno-nonnull -fargument-noalias-global -fno-omit-frame-pointer -g)"
 
 ifeq (on, ${GPDBGOPT})
 CFLAGS_OPT=-O1 -fno-omit-frame-pointer
@@ -120,12 +124,15 @@ DEFPORT=5432
 
 ORCA_CONFIG=--enable-orca
 
-rhel6_x86_64_CONFIGFLAGS=--with-quicklz --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-openssl --with-pam --with-ldap
-rhel7_x86_64_CONFIGFLAGS=--with-quicklz --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-openssl --with-pam --with-ldap
-rhel8_x86_64_CONFIGFLAGS=--with-quicklz --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-openssl --with-pam --with-ldap
-ubuntu18.04_x86_64_CONFIGFLAGS=--with-quicklz --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-openssl --with-pam --with-ldap
-sles12_x86_64_CONFIGFLAGS=--with-quicklz --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-openssl --with-pam --with-ldap
-BLD_CONFIGFLAGS=$($(BLD_ARCH)_CONFIGFLAGS)
+rhel6_x86_64_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+rhel7_x86_64_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+rhel8_x86_64_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+ubuntu18.04_x86_64_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+sles12_x86_64_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+rhel7_aarch64_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+common_CONFIGFLAGS=--with-quicklz --with-lz4 --with-gssapi --enable-mapreduce --enable-orafce --enable-ic-proxy ${ORCA_CONFIG} --enable-gpcloud --with-libxml --with-ssl=openssl --with-pam --with-ldap --with-pythonsrc-ext
+#BLD_CONFIGFLAGS=$($(BLD_ARCH)_CONFIGFLAGS)
+BLD_CONFIGFLAGS=$(common_CONFIGFLAGS)
 
 CONFIGFLAGS=$(strip $(BLD_CONFIGFLAGS) --with-pgport=$(DEFPORT) $(BLD_DEPLOYMENT_SETTING))
 
@@ -148,7 +155,7 @@ CONFIGFLAGS+= --with-includes="$(CONFIG_INCLUDES)" --with-libraries="$(CONFIG_LI
 
 
 CONFIGFLAGS+= --disable-rpath
-CONFIGFLAGS+= LDFLAGS='-Wl,--enable-new-dtags -Wl,-rpath,\$$$$ORIGIN/../lib'
+CONFIGFLAGS+= LDFLAGS_EX='-Wl,--enable-new-dtags -Wl,-rpath,\$$$$ORIGIN/../lib' LDFLAGS_SL='-Wl,--enable-new-dtags -Wl,-rpath,\$$$$ORIGIN:\$$$$ORIGIN/..'
 
 RECONFIG :
 	rm -f Debug/GNUmakefile
@@ -211,8 +218,8 @@ perl_archlibexp:=$(shell perl -MConfig -e 'print $$Config{archlibexp}')
 # set default build steps
 define BUILD_STEPS
 	@$(MAKE) -C $(BUILDDIR)/src/backend generated-headers
-	cd $(BUILDDIR) && PYGRESQL_LDFLAGS='-Wl,-rpath,\$$$$ORIGIN/../../../lib -Wl,--enable-new-dtags' QUICKLZ_LDFLAGS='-Wl,-rpath,\$$$$ORIGIN/../../lib -Wl,--enable-new-dtags' $(MAKE) $(PARALLEL_MAKE_OPTS) install
-	cd $(BUILDDIR)/src/pl/plpython && $(MAKE) clean && echo 'LDFLAGS += -Wl,-rpath,\$$$$ORIGIN/../../ext/python/lib/ -Wl,--enable-new-dtags' >> Makefile && $(MAKE) $(PARALLEL_MAKE_OPTS) install && cd $(BUILDDIR)
+	cd $(BUILDDIR) && PYGRESQL_LDFLAGS=' -Wl,-rpath,\$$$$ORIGIN/.. -Wl,--enable-new-dtags ' $(MAKE) $(PARALLEL_MAKE_OPTS) install
+	cd $(BUILDDIR)/src/pl/plpython && $(MAKE) clean && $(MAKE) $(PARALLEL_MAKE_OPTS) install && cd $(BUILDDIR)
 	cd $(BUILDDIR)/src/pl/plperl && $(MAKE) clean && echo "LDFLAGS += -Wl,-rpath,$(perl_archlibexp)/CORE -Wl,--enable-new-dtags" >> GNUmakefile && echo "LDFLAGS_SL += -Wl,-rpath,$(perl_archlibexp)/CORE -Wl,--enable-new-dtags" >> GNUmakefile && $(MAKE) $(PARALLEL_MAKE_OPTS) install && cd $(BUILDDIR)
 	#@$(MAKE) greenplum_path INSTLOC=$(INSTLOC)
 	#@$(MAKE) mgmtcopy INSTLOC=$(INSTLOC)
@@ -339,7 +346,7 @@ CLIENTS_HOME_DIR=$(GPROOT)
 else
 CLIENTS_HOME_DIR=$(BLD_HOME)
 endif
-CLIENTSINSTLOC=$(CLIENTS_HOME_DIR)/greenplum-clients
+CLIENTSINSTLOC=$(CLIENTS_HOME_DIR)/cloudberry-clients
 CLIENTSINSTLOC_BIN=$(CLIENTSINSTLOC)/bin
 CLIENTSINSTLOC_BINEXT=$(CLIENTSINSTLOC)/bin/ext/
 CLIENTSINSTLOC_EXT=$(CLIENTSINSTLOC)/ext

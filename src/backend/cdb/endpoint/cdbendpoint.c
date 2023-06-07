@@ -63,6 +63,7 @@
 #include "access/session.h"
 #include "access/tupdesc.h"
 #include "access/xact.h"
+#include "common/hashfn.h"
 #include "libpq-fe.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
@@ -464,7 +465,7 @@ alloc_endpoint(const char *cursorName, dsm_handle dsmHandle)
 						errmsg("failed to allocate endpoint")));
 
 	generate_endpoint_name(sharedEndpoints[i].name, cursorName);
-	StrNCpy(sharedEndpoints[i].cursorName, cursorName, NAMEDATALEN);
+	strlcpy(sharedEndpoints[i].cursorName, cursorName, NAMEDATALEN);
 	sharedEndpoints[i].databaseID = MyDatabaseId;
 	sharedEndpoints[i].sessionID = gp_session_id;
 	sharedEndpoints[i].userID = GetSessionUserId();

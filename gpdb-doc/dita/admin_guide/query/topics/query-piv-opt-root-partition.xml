@@ -58,7 +58,7 @@
             or <codeph>ANALYZE ROOTPARTITION &lt;<varname>table_name</varname>></codeph> operations
             in parallel to speed the operation of statistics collection, if your I/O throughput can
             support the load.</li>
-          <li>You can also use the Greenplum Database utility <codeph>analyzedb</codeph> to update
+          <li>You can also use the Cloudberry Database utility <codeph>analyzedb</codeph> to update
             table statistics. Using <codeph>analyzedb</codeph> ensures that tables that were
             previously analzyed are not re-analyzed if no modifications were made to the leaf
             partition.</li>
@@ -99,14 +99,14 @@
         When the value is <codeph>off</codeph>, you must run <codeph>ANALZYE ROOTPARTITION</codeph>
         to collect root partition statistics.</p>
       <ol id="ol_n22_hv1_kr">
-        <li>Log into the Greenplum Database master host as <codeph>gpadmin</codeph>, the Greenplum
+        <li>Log into the Cloudberry Database master host as <codeph>gpadmin</codeph>, the Cloudberry
           Database administrator.</li>
-        <li>Set the values of the server configuration parameters. These Greenplum Database
+        <li>Set the values of the server configuration parameters. These Cloudberry Database
             <codeph>gpconfig</codeph> utility commands sets the value of the parameters to
             <codeph>off</codeph>:<codeblock>$ gpconfig -c optimizer_analyze_root_partition -v off --masteronly</codeblock></li>
-        <li>Restart Greenplum Database. This Greenplum Database <codeph>gpstop</codeph> utility
+        <li>Restart Cloudberry Database. This Cloudberry Database <codeph>gpstop</codeph> utility
           command reloads the <codeph>postgresql.conf</codeph> files of the master and segments
-          without shutting down Greenplum Database. <codeblock>gpstop -u</codeblock></li>
+          without shutting down Cloudberry Database. <codeblock>gpstop -u</codeblock></li>
       </ol>
     </body>
   </topic>

@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * cdbcat.h
- *	  routines for reading info from Greenplum Database schema tables
+ *	  routines for reading info from Cloudberry Database schema tables
  *
- * Portions Copyright (c) 2005-2008, Greenplum inc
+ * Portions Copyright (c) 2005-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

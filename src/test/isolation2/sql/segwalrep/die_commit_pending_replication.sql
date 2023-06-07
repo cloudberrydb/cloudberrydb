@@ -1,5 +1,8 @@
 -- Adding `2` as first column as the distribution column.
 -- `2` should be on the first segment. let's double check here.
+-- start_ignore
+drop table if exists store_session_id;
+-- end_ignore
 create table store_session_id(a int, sess_id int);
 1: insert into store_session_id select 2, sess_id from pg_stat_activity where pid = pg_backend_pid();
 1: select gp_segment_id, a from store_session_id;

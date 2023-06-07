@@ -2,6 +2,9 @@
 -- PARTITION_AGGREGATE
 -- Test partitionwise aggregation on partitioned tables
 --
+-- Note: to ensure plan stability, it's a good idea to make the partitions of
+-- any one partitioned table in this test all have different numbers of rows.
+--
 -- Disable ORCA since it does support partition-wise aggregates
 set optimizer to off;
 -- Enable partitionwise aggregate, which by default is disabled.
@@ -10,13 +13,15 @@ SET enable_partitionwise_aggregate TO true;
 SET enable_partitionwise_join TO true;
 -- Disable parallel plans.
 SET max_parallel_workers_per_gather TO 0;
+-- Disable incremental sort, which can influence selected plans due to fuzz factor.
+SET enable_incremental_sort TO off;
 --
 -- Tests for list partitioned tables.
 --
 CREATE TABLE pagg_tab (a int, b int, c text, d int) PARTITION BY LIST(c);
-CREATE TABLE pagg_tab_p1 PARTITION OF pagg_tab FOR VALUES IN ('0000', '0001', '0002', '0003');
-CREATE TABLE pagg_tab_p2 PARTITION OF pagg_tab FOR VALUES IN ('0004', '0005', '0006', '0007');
-CREATE TABLE pagg_tab_p3 PARTITION OF pagg_tab FOR VALUES IN ('0008', '0009', '0010', '0011');
+CREATE TABLE pagg_tab_p1 PARTITION OF pagg_tab FOR VALUES IN ('0000', '0001', '0002', '0003', '0004');
+CREATE TABLE pagg_tab_p2 PARTITION OF pagg_tab FOR VALUES IN ('0005', '0006', '0007', '0008');
+CREATE TABLE pagg_tab_p3 PARTITION OF pagg_tab FOR VALUES IN ('0009', '0010', '0011');
 INSERT INTO pagg_tab SELECT i % 20, i % 30, to_char(i % 12, 'FM0000'), i % 30 FROM generate_series(0, 2999) i;
 ANALYZE pagg_tab;
 -- When GROUP BY clause matches; full aggregation is performed for each partition.
@@ -25,34 +30,36 @@ SELECT c, sum(a), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY c HAVI
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.c, (sum(pagg_tab_p1.a)), (avg(pagg_tab_p1.b))
+   Merge Key: pagg_tab.c, (sum(pagg_tab.a)), (avg(pagg_tab.b))
    ->  Sort
-         Sort Key: pagg_tab_p1.c, (sum(pagg_tab_p1.a)), (avg(pagg_tab_p1.b))
+         Sort Key: pagg_tab.c, (sum(pagg_tab.a)), (avg(pagg_tab.b))
          ->  Append
                ->  Finalize HashAggregate
-                     Group Key: pagg_tab_p1.c
-                     Filter: (avg(pagg_tab_p1.d) < '15'::numeric)
+                     Group Key: pagg_tab.c
+                     Filter: (avg(pagg_tab.d) < '15'::numeric)
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: pagg_tab_p1.c
+                           Hash Key: pagg_tab.c
                            ->  Partial HashAggregate
-                                 Group Key: pagg_tab_p1.c
-                                 ->  Seq Scan on pagg_tab_p1
+                                 Group Key: pagg_tab.c
+                                 ->  Seq Scan on pagg_tab_p1 pagg_tab
                ->  Finalize HashAggregate
-                     Group Key: pagg_tab_p2.c
-                     Filter: (avg(pagg_tab_p2.d) < '15'::numeric)
+                     Group Key: pagg_tab_1.c
+                     Filter: (avg(pagg_tab_1.d) < '15'::numeric)
                      ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                           Hash Key: pagg_tab_p2.c
+                           Hash Key: pagg_tab_1.c
                            ->  Partial HashAggregate
-                                 Group Key: pagg_tab_p2.c
-                                 ->  Seq Scan on pagg_tab_p2
-               ->  Finalize HashAggregate
-                     Group Key: pagg_tab_p3.c
-                     Filter: (avg(pagg_tab_p3.d) < '15'::numeric)
-                     ->  Redistribute Motion 3:3  (slice4; segments: 3)
-                           Hash Key: pagg_tab_p3.c
-                           ->  Partial HashAggregate
-                                 Group Key: pagg_tab_p3.c
-                                 ->  Seq Scan on pagg_tab_p3
+                                 Group Key: pagg_tab_1.c
+                                 ->  Seq Scan on pagg_tab_p2 pagg_tab_1
+               ->  Finalize GroupAggregate
+                     Group Key: pagg_tab_2.c
+                     Filter: (avg(pagg_tab_2.d) < '15'::numeric)
+                     ->  Sort
+                           Sort Key: pagg_tab_2.c
+                           ->  Redistribute Motion 3:3  (slice4; segments: 3)
+                                 Hash Key: pagg_tab_2.c
+                                 ->  Partial HashAggregate
+                                       Group Key: pagg_tab_2.c
+                                       ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (30 rows)
 
@@ -73,22 +80,22 @@ SELECT a, sum(b), avg(b), count(*), min(a), max(b) FROM pagg_tab GROUP BY a HAVI
                                  QUERY PLAN                                  
 -----------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.a, (sum(pagg_tab_p1.b)), (avg(pagg_tab_p1.b))
+   Merge Key: pagg_tab.a, (sum(pagg_tab.b)), (avg(pagg_tab.b))
    ->  Sort
-         Sort Key: pagg_tab_p1.a, (sum(pagg_tab_p1.b)), (avg(pagg_tab_p1.b))
+         Sort Key: pagg_tab.a, (sum(pagg_tab.b)), (avg(pagg_tab.b))
          ->  Finalize HashAggregate
-               Group Key: pagg_tab_p1.a
-               Filter: (avg(pagg_tab_p1.d) < '15'::numeric)
+               Group Key: pagg_tab.a
+               Filter: (avg(pagg_tab.d) < '15'::numeric)
                ->  Append
                      ->  Partial HashAggregate
-                           Group Key: pagg_tab_p1.a
-                           ->  Seq Scan on pagg_tab_p1
+                           Group Key: pagg_tab.a
+                           ->  Seq Scan on pagg_tab_p1 pagg_tab
                      ->  Partial HashAggregate
-                           Group Key: pagg_tab_p2.a
-                           ->  Seq Scan on pagg_tab_p2
+                           Group Key: pagg_tab_1.a
+                           ->  Seq Scan on pagg_tab_p2 pagg_tab_1
                      ->  Partial HashAggregate
-                           Group Key: pagg_tab_p3.a
-                           ->  Seq Scan on pagg_tab_p3
+                           Group Key: pagg_tab_2.a
+                           ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
@@ -115,14 +122,14 @@ SELECT a, c, count(*) FROM pagg_tab GROUP BY a, c;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
          ->  HashAggregate
-               Group Key: pagg_tab_p1.a, pagg_tab_p1.c
-               ->  Seq Scan on pagg_tab_p1
+               Group Key: pagg_tab.a, pagg_tab.c
+               ->  Seq Scan on pagg_tab_p1 pagg_tab
          ->  HashAggregate
-               Group Key: pagg_tab_p2.a, pagg_tab_p2.c
-               ->  Seq Scan on pagg_tab_p2
+               Group Key: pagg_tab_1.a, pagg_tab_1.c
+               ->  Seq Scan on pagg_tab_p2 pagg_tab_1
          ->  HashAggregate
-               Group Key: pagg_tab_p3.a, pagg_tab_p3.c
-               ->  Seq Scan on pagg_tab_p3
+               Group Key: pagg_tab_2.a, pagg_tab_2.c
+               ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (12 rows)
 
@@ -134,14 +141,14 @@ SELECT a, c, count(*) FROM pagg_tab GROUP BY c, a;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
          ->  HashAggregate
-               Group Key: pagg_tab_p1.c, pagg_tab_p1.a
-               ->  Seq Scan on pagg_tab_p1
+               Group Key: pagg_tab.c, pagg_tab.a
+               ->  Seq Scan on pagg_tab_p1 pagg_tab
          ->  HashAggregate
-               Group Key: pagg_tab_p2.c, pagg_tab_p2.a
-               ->  Seq Scan on pagg_tab_p2
+               Group Key: pagg_tab_1.c, pagg_tab_1.a
+               ->  Seq Scan on pagg_tab_p2 pagg_tab_1
          ->  HashAggregate
-               Group Key: pagg_tab_p3.c, pagg_tab_p3.a
-               ->  Seq Scan on pagg_tab_p3
+               Group Key: pagg_tab_2.c, pagg_tab_2.a
+               ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (12 rows)
 
@@ -153,14 +160,14 @@ SELECT c, a, count(*) FROM pagg_tab GROUP BY a, c;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
          ->  HashAggregate
-               Group Key: pagg_tab_p1.a, pagg_tab_p1.c
-               ->  Seq Scan on pagg_tab_p1
+               Group Key: pagg_tab.a, pagg_tab.c
+               ->  Seq Scan on pagg_tab_p1 pagg_tab
          ->  HashAggregate
-               Group Key: pagg_tab_p2.a, pagg_tab_p2.c
-               ->  Seq Scan on pagg_tab_p2
+               Group Key: pagg_tab_1.a, pagg_tab_1.c
+               ->  Seq Scan on pagg_tab_p2 pagg_tab_1
          ->  HashAggregate
-               Group Key: pagg_tab_p3.a, pagg_tab_p3.c
-               ->  Seq Scan on pagg_tab_p3
+               Group Key: pagg_tab_2.a, pagg_tab_2.c
+               ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (12 rows)
 
@@ -200,41 +207,41 @@ SET enable_hashagg TO false;
 -- When GROUP BY clause matches full aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                          QUERY PLAN                          
+--------------------------------------------------------------
  Sort
-   Sort Key: pagg_tab_p1.c, (sum(pagg_tab_p1.a)), (avg(pagg_tab_p1.b))
+   Sort Key: pagg_tab.c, (sum(pagg_tab.a)), (avg(pagg_tab.b))
    ->  Append
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_p1.c
-               Filter: (avg(pagg_tab_p1.d) < '15'::numeric)
+               Group Key: pagg_tab.c
+               Filter: (avg(pagg_tab.d) < '15'::numeric)
                ->  Gather Motion 3:1  (slice1; segments: 3)
-                     Merge Key: pagg_tab_p1.c
+                     Merge Key: pagg_tab.c
                      ->  Partial GroupAggregate
-                           Group Key: pagg_tab_p1.c
+                           Group Key: pagg_tab.c
                            ->  Sort
-                                 Sort Key: pagg_tab_p1.c
-                                 ->  Seq Scan on pagg_tab_p1
+                                 Sort Key: pagg_tab.c
+                                 ->  Seq Scan on pagg_tab_p1 pagg_tab
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_p2.c
-               Filter: (avg(pagg_tab_p2.d) < '15'::numeric)
+               Group Key: pagg_tab_1.c
+               Filter: (avg(pagg_tab_1.d) < '15'::numeric)
                ->  Gather Motion 3:1  (slice2; segments: 3)
-                     Merge Key: pagg_tab_p2.c
+                     Merge Key: pagg_tab_1.c
                      ->  Partial GroupAggregate
-                           Group Key: pagg_tab_p2.c
+                           Group Key: pagg_tab_1.c
                            ->  Sort
-                                 Sort Key: pagg_tab_p2.c
-                                 ->  Seq Scan on pagg_tab_p2
+                                 Sort Key: pagg_tab_1.c
+                                 ->  Seq Scan on pagg_tab_p2 pagg_tab_1
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_p3.c
-               Filter: (avg(pagg_tab_p3.d) < '15'::numeric)
+               Group Key: pagg_tab_2.c
+               Filter: (avg(pagg_tab_2.d) < '15'::numeric)
                ->  Gather Motion 3:1  (slice3; segments: 3)
-                     Merge Key: pagg_tab_p3.c
+                     Merge Key: pagg_tab_2.c
                      ->  Partial GroupAggregate
-                           Group Key: pagg_tab_p3.c
+                           Group Key: pagg_tab_2.c
                            ->  Sort
-                                 Sort Key: pagg_tab_p3.c
-                                 ->  Seq Scan on pagg_tab_p3
+                                 Sort Key: pagg_tab_2.c
+                                 ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (34 rows)
 
@@ -252,35 +259,34 @@ SELECT c, sum(a), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 O
 -- When GROUP BY clause does not match; partial aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.a, (sum(pagg_tab_p1.b)), (avg(pagg_tab_p1.b))
+   Merge Key: pagg_tab.a, (sum(pagg_tab.b)), (avg(pagg_tab.b))
    ->  Sort
-         Sort Key: pagg_tab_p1.a, (sum(pagg_tab_p1.b)), (avg(pagg_tab_p1.b))
+         Sort Key: pagg_tab.a, (sum(pagg_tab.b)), (avg(pagg_tab.b))
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_p1.a
-               Filter: (avg(pagg_tab_p1.d) < '15'::numeric)
-               ->  Sort
-                     Sort Key: pagg_tab_p1.a
-                     ->  Append
-                           ->  Partial GroupAggregate
-                                 Group Key: pagg_tab_p1.a
-                                 ->  Sort
-                                       Sort Key: pagg_tab_p1.a
-                                       ->  Seq Scan on pagg_tab_p1
-                           ->  Partial GroupAggregate
-                                 Group Key: pagg_tab_p2.a
-                                 ->  Sort
-                                       Sort Key: pagg_tab_p2.a
-                                       ->  Seq Scan on pagg_tab_p2
-                           ->  Partial GroupAggregate
-                                 Group Key: pagg_tab_p3.a
-                                 ->  Sort
-                                       Sort Key: pagg_tab_p3.a
-                                       ->  Seq Scan on pagg_tab_p3
+               Group Key: pagg_tab.a
+               Filter: (avg(pagg_tab.d) < '15'::numeric)
+               ->  Merge Append
+                     Sort Key: pagg_tab.a
+                     ->  Partial GroupAggregate
+                           Group Key: pagg_tab.a
+                           ->  Sort
+                                 Sort Key: pagg_tab.a
+                                 ->  Seq Scan on pagg_tab_p1 pagg_tab
+                     ->  Partial GroupAggregate
+                           Group Key: pagg_tab_1.a
+                           ->  Sort
+                                 Sort Key: pagg_tab_1.a
+                                 ->  Seq Scan on pagg_tab_p2 pagg_tab_1
+                     ->  Partial GroupAggregate
+                           Group Key: pagg_tab_2.a
+                           ->  Sort
+                                 Sort Key: pagg_tab_2.a
+                                 ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
-(26 rows)
+(25 rows)
 
 SELECT a, sum(b), avg(b), count(*) FROM pagg_tab GROUP BY 1 HAVING avg(d) < 15 ORDER BY 1, 2, 3;
  a  | sum  |         avg         | count 
@@ -303,34 +309,34 @@ SELECT c FROM pagg_tab GROUP BY c ORDER BY 1;
                       QUERY PLAN                       
 -------------------------------------------------------
  Merge Append
-   Sort Key: pagg_tab_p1.c
+   Sort Key: pagg_tab.c
    ->  GroupAggregate
-         Group Key: pagg_tab_p1.c
+         Group Key: pagg_tab.c
          ->  Gather Motion 3:1  (slice1; segments: 3)
-               Merge Key: pagg_tab_p1.c
+               Merge Key: pagg_tab.c
                ->  GroupAggregate
-                     Group Key: pagg_tab_p1.c
+                     Group Key: pagg_tab.c
                      ->  Sort
-                           Sort Key: pagg_tab_p1.c
-                           ->  Seq Scan on pagg_tab_p1
+                           Sort Key: pagg_tab.c
+                           ->  Seq Scan on pagg_tab_p1 pagg_tab
    ->  GroupAggregate
-         Group Key: pagg_tab_p2.c
+         Group Key: pagg_tab_1.c
          ->  Gather Motion 3:1  (slice2; segments: 3)
-               Merge Key: pagg_tab_p2.c
+               Merge Key: pagg_tab_1.c
                ->  GroupAggregate
-                     Group Key: pagg_tab_p2.c
+                     Group Key: pagg_tab_1.c
                      ->  Sort
-                           Sort Key: pagg_tab_p2.c
-                           ->  Seq Scan on pagg_tab_p2
+                           Sort Key: pagg_tab_1.c
+                           ->  Seq Scan on pagg_tab_p2 pagg_tab_1
    ->  GroupAggregate
-         Group Key: pagg_tab_p3.c
+         Group Key: pagg_tab_2.c
          ->  Gather Motion 3:1  (slice3; segments: 3)
-               Merge Key: pagg_tab_p3.c
+               Merge Key: pagg_tab_2.c
                ->  GroupAggregate
-                     Group Key: pagg_tab_p3.c
+                     Group Key: pagg_tab_2.c
                      ->  Sort
-                           Sort Key: pagg_tab_p3.c
-                           ->  Seq Scan on pagg_tab_p3
+                           Sort Key: pagg_tab_2.c
+                           ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (30 rows)
 
@@ -353,23 +359,34 @@ SELECT c FROM pagg_tab GROUP BY c ORDER BY 1;
 
 EXPLAIN (COSTS OFF)
 SELECT a FROM pagg_tab WHERE a < 3 GROUP BY a ORDER BY 1;
-                   QUERY PLAN                    
--------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.a
-   ->  GroupAggregate
-         Group Key: pagg_tab_p1.a
-         ->  Sort
-               Sort Key: pagg_tab_p1.a
-               ->  Append
-                     ->  Seq Scan on pagg_tab_p1
-                           Filter: (a < 3)
-                     ->  Seq Scan on pagg_tab_p2
-                           Filter: (a < 3)
-                     ->  Seq Scan on pagg_tab_p3
-                           Filter: (a < 3)
+   Merge Key: pagg_tab.a
+   ->  Finalize GroupAggregate
+         Group Key: pagg_tab.a
+         ->  Merge Append
+               Sort Key: pagg_tab.a
+               ->  Partial GroupAggregate
+                     Group Key: pagg_tab.a
+                     ->  Sort
+                           Sort Key: pagg_tab.a
+                           ->  Seq Scan on pagg_tab_p1 pagg_tab
+                                 Filter: (a < 3)
+               ->  Partial GroupAggregate
+                     Group Key: pagg_tab_1.a
+                     ->  Sort
+                           Sort Key: pagg_tab_1.a
+                           ->  Seq Scan on pagg_tab_p2 pagg_tab_1
+                                 Filter: (a < 3)
+               ->  Partial GroupAggregate
+                     Group Key: pagg_tab_2.a
+                     ->  Sort
+                           Sort Key: pagg_tab_2.a
+                           ->  Seq Scan on pagg_tab_p3 pagg_tab_2
+                                 Filter: (a < 3)
  Optimizer: Postgres query optimizer
-(14 rows)
+(25 rows)
 
 SELECT a FROM pagg_tab WHERE a < 3 GROUP BY a ORDER BY 1;
  a 
@@ -386,20 +403,20 @@ SELECT c, sum(a) FROM pagg_tab GROUP BY rollup(c) ORDER BY 1, 2;
                             QUERY PLAN                            
 ------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.c, (sum(pagg_tab_p1.a))
+   Merge Key: pagg_tab.c, (sum(pagg_tab.a))
    ->  Sort
-         Sort Key: pagg_tab_p1.c, (sum(pagg_tab_p1.a))
+         Sort Key: pagg_tab.c, (sum(pagg_tab.a))
          ->  Finalize HashAggregate
-               Group Key: pagg_tab_p1.c, (GROUPINGSET_ID())
+               Group Key: pagg_tab.c, (GROUPINGSET_ID())
                ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                     Hash Key: pagg_tab_p1.c, (GROUPINGSET_ID())
+                     Hash Key: pagg_tab.c, (GROUPINGSET_ID())
                      ->  Partial MixedAggregate
-                           Hash Key: pagg_tab_p1.c
+                           Hash Key: pagg_tab.c
                            Group Key: ()
                            ->  Append
-                                 ->  Seq Scan on pagg_tab_p1
-                                 ->  Seq Scan on pagg_tab_p2
-                                 ->  Seq Scan on pagg_tab_p3
+                                 ->  Seq Scan on pagg_tab_p1 pagg_tab_1
+                                 ->  Seq Scan on pagg_tab_p2 pagg_tab_2
+                                 ->  Seq Scan on pagg_tab_p3 pagg_tab_3
  Optimizer: Postgres query optimizer
 (16 rows)
 
@@ -412,31 +429,31 @@ SELECT c, sum(b order by a) FROM pagg_tab GROUP BY c ORDER BY 1, 2;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.c, (sum(pagg_tab_p1.b ORDER BY pagg_tab_p1.a))
+   Merge Key: pagg_tab.c, (sum(pagg_tab.b ORDER BY pagg_tab.a))
    ->  Sort
-         Sort Key: pagg_tab_p1.c, (sum(pagg_tab_p1.b ORDER BY pagg_tab_p1.a))
+         Sort Key: pagg_tab.c, (sum(pagg_tab.b ORDER BY pagg_tab.a))
          ->  Append
                ->  GroupAggregate
-                     Group Key: pagg_tab_p1.c
+                     Group Key: pagg_tab.c
                      ->  Sort
-                           Sort Key: pagg_tab_p1.c
+                           Sort Key: pagg_tab.c
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                                 Hash Key: pagg_tab_p1.c
-                                 ->  Seq Scan on pagg_tab_p1
+                                 Hash Key: pagg_tab.c
+                                 ->  Seq Scan on pagg_tab_p1 pagg_tab
                ->  GroupAggregate
-                     Group Key: pagg_tab_p2.c
+                     Group Key: pagg_tab_1.c
                      ->  Sort
-                           Sort Key: pagg_tab_p2.c
+                           Sort Key: pagg_tab_1.c
                            ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                                 Hash Key: pagg_tab_p2.c
-                                 ->  Seq Scan on pagg_tab_p2
+                                 Hash Key: pagg_tab_1.c
+                                 ->  Seq Scan on pagg_tab_p2 pagg_tab_1
                ->  GroupAggregate
-                     Group Key: pagg_tab_p3.c
+                     Group Key: pagg_tab_2.c
                      ->  Sort
-                           Sort Key: pagg_tab_p3.c
+                           Sort Key: pagg_tab_2.c
                            ->  Redistribute Motion 3:3  (slice4; segments: 3)
-                                 Hash Key: pagg_tab_p3.c
-                                 ->  Seq Scan on pagg_tab_p3
+                                 Hash Key: pagg_tab_2.c
+                                 ->  Seq Scan on pagg_tab_p3 pagg_tab_2
  Optimizer: Postgres query optimizer
 (27 rows)
 
@@ -448,17 +465,17 @@ SELECT a, sum(b order by a) FROM pagg_tab GROUP BY a ORDER BY 1, 2;
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_p1.a, (sum(pagg_tab_p1.b ORDER BY pagg_tab_p1.a))
+   Merge Key: pagg_tab.a, (sum(pagg_tab.b ORDER BY pagg_tab.a))
    ->  Sort
-         Sort Key: pagg_tab_p1.a, (sum(pagg_tab_p1.b ORDER BY pagg_tab_p1.a))
+         Sort Key: pagg_tab.a, (sum(pagg_tab.b ORDER BY pagg_tab.a))
          ->  GroupAggregate
-               Group Key: pagg_tab_p1.a
+               Group Key: pagg_tab.a
                ->  Sort
-                     Sort Key: pagg_tab_p1.a
+                     Sort Key: pagg_tab.a
                      ->  Append
-                           ->  Seq Scan on pagg_tab_p1
-                           ->  Seq Scan on pagg_tab_p2
-                           ->  Seq Scan on pagg_tab_p3
+                           ->  Seq Scan on pagg_tab_p1 pagg_tab_1
+                           ->  Seq Scan on pagg_tab_p2 pagg_tab_2
+                           ->  Seq Scan on pagg_tab_p3 pagg_tab_3
  Optimizer: Postgres query optimizer
 (13 rows)
 
@@ -541,14 +558,14 @@ SELECT t1.x, sum(t1.y), count(t1) FROM pagg_tab1 t1, pagg_tab2 t2 WHERE t1.x = t
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)
                            Hash Key: t2.y
                            ->  Append
-                                 ->  Seq Scan on pagg_tab2_p1 t2
-                                 ->  Seq Scan on pagg_tab2_p2 t2_1
-                                 ->  Seq Scan on pagg_tab2_p3 t2_2
+                                 ->  Seq Scan on pagg_tab2_p1 t2_1
+                                 ->  Seq Scan on pagg_tab2_p2 t2_2
+                                 ->  Seq Scan on pagg_tab2_p3 t2_3
                      ->  Hash
                            ->  Append
-                                 ->  Seq Scan on pagg_tab1_p1 t1
-                                 ->  Seq Scan on pagg_tab1_p2 t1_1
-                                 ->  Seq Scan on pagg_tab1_p3 t1_2
+                                 ->  Seq Scan on pagg_tab1_p1 t1_1
+                                 ->  Seq Scan on pagg_tab1_p2 t1_2
+                                 ->  Seq Scan on pagg_tab1_p3 t1_3
  Optimizer: Postgres query optimizer
 (20 rows)
 
@@ -858,26 +875,26 @@ SELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20) a LEFT JOI
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+   Merge Key: pagg_tab1.x, pagg_tab2.y
    ->  Sort
-         Sort Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+         Sort Key: pagg_tab1.x, pagg_tab2.y
          ->  HashAggregate
-               Group Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+               Group Key: pagg_tab1.x, pagg_tab2.y
                ->  Hash Left Join
-                     Hash Cond: (pagg_tab1_p1.x = pagg_tab2_p2.y)
-                     Filter: ((pagg_tab1_p1.x > 5) OR (pagg_tab2_p2.y < 20))
+                     Hash Cond: (pagg_tab1.x = pagg_tab2.y)
+                     Filter: ((pagg_tab1.x > 5) OR (pagg_tab2.y < 20))
                      ->  Append
-                           ->  Seq Scan on pagg_tab1_p1
+                           ->  Seq Scan on pagg_tab1_p1 pagg_tab1_1
                                  Filter: (x < 20)
-                           ->  Seq Scan on pagg_tab1_p2
+                           ->  Seq Scan on pagg_tab1_p2 pagg_tab1_2
                                  Filter: (x < 20)
                      ->  Hash
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                                 Hash Key: pagg_tab2_p2.y
+                                 Hash Key: pagg_tab2.y
                                  ->  Append
-                                       ->  Seq Scan on pagg_tab2_p2
+                                       ->  Seq Scan on pagg_tab2_p2 pagg_tab2_1
                                              Filter: (y > 10)
-                                       ->  Seq Scan on pagg_tab2_p3
+                                       ->  Seq Scan on pagg_tab2_p3 pagg_tab2_2
                                              Filter: (y > 10)
  Optimizer: Postgres query optimizer
 (23 rows)
@@ -903,28 +920,28 @@ SELECT a.x, b.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x < 20) a FULL JOI
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+   Merge Key: pagg_tab1.x, pagg_tab2.y
    ->  Sort
-         Sort Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+         Sort Key: pagg_tab1.x, pagg_tab2.y
          ->  HashAggregate
-               Group Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+               Group Key: pagg_tab1.x, pagg_tab2.y
                ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                     Hash Key: pagg_tab1_p1.x, pagg_tab2_p2.y
+                     Hash Key: pagg_tab1.x, pagg_tab2.y
                      ->  Hash Full Join
-                           Hash Cond: (pagg_tab1_p1.x = pagg_tab2_p2.y)
-                           Filter: ((pagg_tab1_p1.x > 5) OR (pagg_tab2_p2.y < 20))
+                           Hash Cond: (pagg_tab1.x = pagg_tab2.y)
+                           Filter: ((pagg_tab1.x > 5) OR (pagg_tab2.y < 20))
                            ->  Append
-                                 ->  Seq Scan on pagg_tab1_p1
+                                 ->  Seq Scan on pagg_tab1_p1 pagg_tab1_1
                                        Filter: (x < 20)
-                                 ->  Seq Scan on pagg_tab1_p2
+                                 ->  Seq Scan on pagg_tab1_p2 pagg_tab1_2
                                        Filter: (x < 20)
                            ->  Hash
                                  ->  Redistribute Motion 3:3  (slice3; segments: 3)
-                                       Hash Key: pagg_tab2_p2.y
+                                       Hash Key: pagg_tab2.y
                                        ->  Append
-                                             ->  Seq Scan on pagg_tab2_p2
+                                             ->  Seq Scan on pagg_tab2_p2 pagg_tab2_1
                                                    Filter: (y > 10)
-                                             ->  Seq Scan on pagg_tab2_p3
+                                             ->  Seq Scan on pagg_tab2_p3 pagg_tab2_2
                                                    Filter: (y > 10)
  Optimizer: Postgres query optimizer
 (25 rows)
@@ -962,9 +979,9 @@ SELECT a.x, a.y, count(*) FROM (SELECT * FROM pagg_tab1 WHERE x = 1 AND x = 2) a
 
 -- Partition by multiple columns
 CREATE TABLE pagg_tab_m (a int, b int, c int) PARTITION BY RANGE(a, ((a+b)/2));
-CREATE TABLE pagg_tab_m_p1 PARTITION OF pagg_tab_m FOR VALUES FROM (0, 0) TO (10, 10);
-CREATE TABLE pagg_tab_m_p2 PARTITION OF pagg_tab_m FOR VALUES FROM (10, 10) TO (20, 20);
-CREATE TABLE pagg_tab_m_p3 PARTITION OF pagg_tab_m FOR VALUES FROM (20, 20) TO (30, 30);
+CREATE TABLE pagg_tab_m_p1 PARTITION OF pagg_tab_m FOR VALUES FROM (0, 0) TO (12, 12);
+CREATE TABLE pagg_tab_m_p2 PARTITION OF pagg_tab_m FOR VALUES FROM (12, 12) TO (22, 22);
+CREATE TABLE pagg_tab_m_p3 PARTITION OF pagg_tab_m FOR VALUES FROM (22, 22) TO (30, 30);
 INSERT INTO pagg_tab_m SELECT i % 30, i % 40, i % 50 FROM generate_series(0, 2999) i;
 ANALYZE pagg_tab_m;
 -- Partial aggregation as GROUP BY clause does not match with PARTITION KEY
@@ -973,22 +990,22 @@ SELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a HAVING avg(c) < 22
                                     QUERY PLAN                                     
 -----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_m_p1.a, (sum(pagg_tab_m_p1.b)), (avg(pagg_tab_m_p1.c))
+   Merge Key: pagg_tab_m.a, (sum(pagg_tab_m.b)), (avg(pagg_tab_m.c))
    ->  Sort
-         Sort Key: pagg_tab_m_p1.a, (sum(pagg_tab_m_p1.b)), (avg(pagg_tab_m_p1.c))
+         Sort Key: pagg_tab_m.a, (sum(pagg_tab_m.b)), (avg(pagg_tab_m.c))
          ->  Finalize HashAggregate
-               Group Key: pagg_tab_m_p1.a
-               Filter: (avg(pagg_tab_m_p1.c) < '22'::numeric)
+               Group Key: pagg_tab_m.a
+               Filter: (avg(pagg_tab_m.c) < '22'::numeric)
                ->  Append
                      ->  Partial HashAggregate
-                           Group Key: pagg_tab_m_p1.a
-                           ->  Seq Scan on pagg_tab_m_p1
+                           Group Key: pagg_tab_m.a
+                           ->  Seq Scan on pagg_tab_m_p1 pagg_tab_m
                      ->  Partial HashAggregate
-                           Group Key: pagg_tab_m_p2.a
-                           ->  Seq Scan on pagg_tab_m_p2
+                           Group Key: pagg_tab_m_1.a
+                           ->  Seq Scan on pagg_tab_m_p2 pagg_tab_m_1
                      ->  Partial HashAggregate
-                           Group Key: pagg_tab_m_p3.a
-                           ->  Seq Scan on pagg_tab_m_p3
+                           Group Key: pagg_tab_m_2.a
+                           ->  Seq Scan on pagg_tab_m_p3 pagg_tab_m_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
@@ -1009,22 +1026,22 @@ SELECT a, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY a, (a+b)/2 HAVING su
                                         QUERY PLAN                                         
 -------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_m_p1.a, (sum(pagg_tab_m_p1.b)), (avg(pagg_tab_m_p1.c))
+   Merge Key: pagg_tab_m.a, (sum(pagg_tab_m.b)), (avg(pagg_tab_m.c))
    ->  Sort
-         Sort Key: pagg_tab_m_p1.a, (sum(pagg_tab_m_p1.b)), (avg(pagg_tab_m_p1.c))
+         Sort Key: pagg_tab_m.a, (sum(pagg_tab_m.b)), (avg(pagg_tab_m.c))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_m_p1.a, ((pagg_tab_m_p1.a + pagg_tab_m_p1.b) / 2)
-                     Filter: (sum(pagg_tab_m_p1.b) < 50)
-                     ->  Seq Scan on pagg_tab_m_p1
+                     Group Key: pagg_tab_m.a, ((pagg_tab_m.a + pagg_tab_m.b) / 2)
+                     Filter: (sum(pagg_tab_m.b) < 50)
+                     ->  Seq Scan on pagg_tab_m_p1 pagg_tab_m
                ->  HashAggregate
-                     Group Key: pagg_tab_m_p2.a, ((pagg_tab_m_p2.a + pagg_tab_m_p2.b) / 2)
-                     Filter: (sum(pagg_tab_m_p2.b) < 50)
-                     ->  Seq Scan on pagg_tab_m_p2
+                     Group Key: pagg_tab_m_1.a, ((pagg_tab_m_1.a + pagg_tab_m_1.b) / 2)
+                     Filter: (sum(pagg_tab_m_1.b) < 50)
+                     ->  Seq Scan on pagg_tab_m_p2 pagg_tab_m_1
                ->  HashAggregate
-                     Group Key: pagg_tab_m_p3.a, ((pagg_tab_m_p3.a + pagg_tab_m_p3.b) / 2)
-                     Filter: (sum(pagg_tab_m_p3.b) < 50)
-                     ->  Seq Scan on pagg_tab_m_p3
+                     Group Key: pagg_tab_m_2.a, ((pagg_tab_m_2.a + pagg_tab_m_2.b) / 2)
+                     Filter: (sum(pagg_tab_m_2.b) < 50)
+                     ->  Seq Scan on pagg_tab_m_p3 pagg_tab_m_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
@@ -1045,22 +1062,22 @@ SELECT a, c, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY (a+b)/2, 2, 1 HAV
                                                  QUERY PLAN                                                 
 ------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_m_p1.a, pagg_tab_m_p1.c, (sum(pagg_tab_m_p1.b))
+   Merge Key: pagg_tab_m.a, pagg_tab_m.c, (sum(pagg_tab_m.b))
    ->  Sort
-         Sort Key: pagg_tab_m_p1.a, pagg_tab_m_p1.c, (sum(pagg_tab_m_p1.b))
+         Sort Key: pagg_tab_m.a, pagg_tab_m.c, (sum(pagg_tab_m.b))
          ->  Append
                ->  HashAggregate
-                     Group Key: ((pagg_tab_m_p1.a + pagg_tab_m_p1.b) / 2), pagg_tab_m_p1.c, pagg_tab_m_p1.a
-                     Filter: ((sum(pagg_tab_m_p1.b) = 50) AND (avg(pagg_tab_m_p1.c) > '25'::numeric))
-                     ->  Seq Scan on pagg_tab_m_p1
+                     Group Key: ((pagg_tab_m.a + pagg_tab_m.b) / 2), pagg_tab_m.c, pagg_tab_m.a
+                     Filter: ((sum(pagg_tab_m.b) = 50) AND (avg(pagg_tab_m.c) > '25'::numeric))
+                     ->  Seq Scan on pagg_tab_m_p1 pagg_tab_m
                ->  HashAggregate
-                     Group Key: ((pagg_tab_m_p2.a + pagg_tab_m_p2.b) / 2), pagg_tab_m_p2.c, pagg_tab_m_p2.a
-                     Filter: ((sum(pagg_tab_m_p2.b) = 50) AND (avg(pagg_tab_m_p2.c) > '25'::numeric))
-                     ->  Seq Scan on pagg_tab_m_p2
+                     Group Key: ((pagg_tab_m_1.a + pagg_tab_m_1.b) / 2), pagg_tab_m_1.c, pagg_tab_m_1.a
+                     Filter: ((sum(pagg_tab_m_1.b) = 50) AND (avg(pagg_tab_m_1.c) > '25'::numeric))
+                     ->  Seq Scan on pagg_tab_m_p2 pagg_tab_m_1
                ->  HashAggregate
-                     Group Key: ((pagg_tab_m_p3.a + pagg_tab_m_p3.b) / 2), pagg_tab_m_p3.c, pagg_tab_m_p3.a
-                     Filter: ((sum(pagg_tab_m_p3.b) = 50) AND (avg(pagg_tab_m_p3.c) > '25'::numeric))
-                     ->  Seq Scan on pagg_tab_m_p3
+                     Group Key: ((pagg_tab_m_2.a + pagg_tab_m_2.b) / 2), pagg_tab_m_2.c, pagg_tab_m_2.a
+                     Filter: ((sum(pagg_tab_m_2.b) = 50) AND (avg(pagg_tab_m_2.c) > '25'::numeric))
+                     ->  Seq Scan on pagg_tab_m_p3 pagg_tab_m_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
@@ -1077,17 +1094,17 @@ SELECT a, c, sum(b), avg(c), count(*) FROM pagg_tab_m GROUP BY (a+b)/2, 2, 1 HAV
 
 -- Test with multi-level partitioning scheme
 CREATE TABLE pagg_tab_ml (a int, b int, c text) PARTITION BY RANGE(a);
-CREATE TABLE pagg_tab_ml_p1 PARTITION OF pagg_tab_ml FOR VALUES FROM (0) TO (10);
-CREATE TABLE pagg_tab_ml_p2 PARTITION OF pagg_tab_ml FOR VALUES FROM (10) TO (20) PARTITION BY LIST (c);
-CREATE TABLE pagg_tab_ml_p2_s1 PARTITION OF pagg_tab_ml_p2 FOR VALUES IN ('0000', '0001');
-CREATE TABLE pagg_tab_ml_p2_s2 PARTITION OF pagg_tab_ml_p2 FOR VALUES IN ('0002', '0003');
+CREATE TABLE pagg_tab_ml_p1 PARTITION OF pagg_tab_ml FOR VALUES FROM (0) TO (12);
+CREATE TABLE pagg_tab_ml_p2 PARTITION OF pagg_tab_ml FOR VALUES FROM (12) TO (20) PARTITION BY LIST (c);
+CREATE TABLE pagg_tab_ml_p2_s1 PARTITION OF pagg_tab_ml_p2 FOR VALUES IN ('0000', '0001', '0002');
+CREATE TABLE pagg_tab_ml_p2_s2 PARTITION OF pagg_tab_ml_p2 FOR VALUES IN ('0003');
 -- This level of partitioning has different column positions than the parent
 CREATE TABLE pagg_tab_ml_p3(b int, c text, a int) PARTITION BY RANGE (b);
 ALTER TABLE pagg_tab_ml_p3 SET DISTRIBUTED BY (a);
 CREATE TABLE pagg_tab_ml_p3_s1(c text, a int, b int);
 ALTER TABLE pagg_tab_ml_p3_s1 SET DISTRIBUTED BY (a);
-CREATE TABLE pagg_tab_ml_p3_s2 PARTITION OF pagg_tab_ml_p3 FOR VALUES FROM (5) TO (10);
-ALTER TABLE pagg_tab_ml_p3 ATTACH PARTITION pagg_tab_ml_p3_s1 FOR VALUES FROM (0) TO (5);
+CREATE TABLE pagg_tab_ml_p3_s2 PARTITION OF pagg_tab_ml_p3 FOR VALUES FROM (7) TO (10);
+ALTER TABLE pagg_tab_ml_p3 ATTACH PARTITION pagg_tab_ml_p3_s1 FOR VALUES FROM (0) TO (7);
 ALTER TABLE pagg_tab_ml ATTACH PARTITION pagg_tab_ml_p3 FOR VALUES FROM (20) TO (30);
 INSERT INTO pagg_tab_ml SELECT i % 30, i % 10, to_char(i % 4, 'FM0000') FROM generate_series(0, 29999) i;
 ANALYZE pagg_tab_ml;
@@ -1099,35 +1116,35 @@ SET max_parallel_workers_per_gather TO 2;
 -- is not partial agg safe.
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
-                                             QUERY PLAN                                              
------------------------------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (array_agg(DISTINCT pagg_tab_ml_p1.c))
+   Merge Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (array_agg(DISTINCT pagg_tab_ml.c))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (array_agg(DISTINCT pagg_tab_ml_p1.c))
+         Sort Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (array_agg(DISTINCT pagg_tab_ml.c))
          ->  Append
                ->  GroupAggregate
-                     Group Key: pagg_tab_ml_p1.a
-                     Filter: (avg(pagg_tab_ml_p1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml.a
+                     Filter: (avg(pagg_tab_ml.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p1.a
-                           ->  Seq Scan on pagg_tab_ml_p1
+                           Sort Key: pagg_tab_ml.a
+                           ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                ->  GroupAggregate
-                     Group Key: pagg_tab_ml_p2_s1.a
-                     Filter: (avg(pagg_tab_ml_p2_s1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml_2.a
+                     Filter: (avg(pagg_tab_ml_2.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p2_s1.a
+                           Sort Key: pagg_tab_ml_2.a
                            ->  Append
-                                 ->  Seq Scan on pagg_tab_ml_p2_s1
-                                 ->  Seq Scan on pagg_tab_ml_p2_s2
+                                 ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_2
+                                 ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_3
                ->  GroupAggregate
-                     Group Key: pagg_tab_ml_p3_s1.a
-                     Filter: (avg(pagg_tab_ml_p3_s1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml_5.a
+                     Filter: (avg(pagg_tab_ml_5.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p3_s1.a
+                           Sort Key: pagg_tab_ml_5.a
                            ->  Append
-                                 ->  Seq Scan on pagg_tab_ml_p3_s1
-                                 ->  Seq Scan on pagg_tab_ml_p3_s2
+                                 ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_5
+                                 ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_6
  Optimizer: Postgres query optimizer
 (28 rows)
 
@@ -1148,32 +1165,32 @@ SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HA
 -- Without ORDER BY clause, to test Gather at top-most path
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3;
-                           QUERY PLAN                            
------------------------------------------------------------------
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Append
          ->  GroupAggregate
-               Group Key: pagg_tab_ml_p1.a
-               Filter: (avg(pagg_tab_ml_p1.b) < '3'::numeric)
+               Group Key: pagg_tab_ml.a
+               Filter: (avg(pagg_tab_ml.b) < '3'::numeric)
                ->  Sort
-                     Sort Key: pagg_tab_ml_p1.a
-                     ->  Seq Scan on pagg_tab_ml_p1
+                     Sort Key: pagg_tab_ml.a
+                     ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
          ->  GroupAggregate
-               Group Key: pagg_tab_ml_p2_s1.a
-               Filter: (avg(pagg_tab_ml_p2_s1.b) < '3'::numeric)
+               Group Key: pagg_tab_ml_2.a
+               Filter: (avg(pagg_tab_ml_2.b) < '3'::numeric)
                ->  Sort
-                     Sort Key: pagg_tab_ml_p2_s1.a
+                     Sort Key: pagg_tab_ml_2.a
                      ->  Append
-                           ->  Seq Scan on pagg_tab_ml_p2_s1
-                           ->  Seq Scan on pagg_tab_ml_p2_s2
+                           ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_2
+                           ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_3
          ->  GroupAggregate
-               Group Key: pagg_tab_ml_p3_s1.a
-               Filter: (avg(pagg_tab_ml_p3_s1.b) < '3'::numeric)
+               Group Key: pagg_tab_ml_5.a
+               Filter: (avg(pagg_tab_ml_5.b) < '3'::numeric)
                ->  Sort
-                     Sort Key: pagg_tab_ml_p3_s1.a
+                     Sort Key: pagg_tab_ml_5.a
                      ->  Append
-                           ->  Seq Scan on pagg_tab_ml_p3_s1
-                           ->  Seq Scan on pagg_tab_ml_p3_s2
+                           ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_5
+                           ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_6
  Optimizer: Postgres query optimizer
 (25 rows)
 
@@ -1182,41 +1199,41 @@ SELECT a, sum(b), array_agg(distinct c), count(*) FROM pagg_tab_ml GROUP BY a HA
 -- PARTITION KEY, thus we will have a partial aggregation for them.
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+   Merge Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+         Sort Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p1.a
-                     Filter: (avg(pagg_tab_ml_p1.b) < '3'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p1
+                     Group Key: pagg_tab_ml.a
+                     Filter: (avg(pagg_tab_ml.b) < '3'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                ->  Finalize GroupAggregate
-                     Group Key: pagg_tab_ml_p2_s1.a
-                     Filter: (avg(pagg_tab_ml_p2_s1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml_2.a
+                     Filter: (avg(pagg_tab_ml_2.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p2_s1.a
+                           Sort Key: pagg_tab_ml_2.a
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s1.a
-                                       ->  Seq Scan on pagg_tab_ml_p2_s1
+                                       Group Key: pagg_tab_ml_2.a
+                                       ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_2
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s2.a
-                                       ->  Seq Scan on pagg_tab_ml_p2_s2
+                                       Group Key: pagg_tab_ml_3.a
+                                       ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_3
                ->  Finalize GroupAggregate
-                     Group Key: pagg_tab_ml_p3_s1.a
-                     Filter: (avg(pagg_tab_ml_p3_s1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml_5.a
+                     Filter: (avg(pagg_tab_ml_5.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p3_s1.a
+                           Sort Key: pagg_tab_ml_5.a
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s1.a
-                                       ->  Seq Scan on pagg_tab_ml_p3_s1
+                                       Group Key: pagg_tab_ml_5.a
+                                       ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_5
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s2.a
-                                       ->  Seq Scan on pagg_tab_ml_p3_s2
+                                       Group Key: pagg_tab_ml_6.a
+                                       ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_6
  Optimizer: Postgres query optimizer
 (34 rows)
 
@@ -1238,34 +1255,34 @@ SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER B
 -- PARTITION KEY
 EXPLAIN (COSTS OFF)
 SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b ORDER BY 1, 2, 3;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.b, (sum(pagg_tab_ml_p1.a)), (count(*))
+   Merge Key: pagg_tab_ml.b, (sum(pagg_tab_ml.a)), (count(*))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.b, (sum(pagg_tab_ml_p1.a)), (count(*))
+         Sort Key: pagg_tab_ml.b, (sum(pagg_tab_ml.a)), (count(*))
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_ml_p1.b
+               Group Key: pagg_tab_ml.b
                ->  Sort
-                     Sort Key: pagg_tab_ml_p1.b
+                     Sort Key: pagg_tab_ml.b
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: pagg_tab_ml_p1.b
+                           Hash Key: pagg_tab_ml.b
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p1.b
-                                       ->  Seq Scan on pagg_tab_ml_p1
+                                       Group Key: pagg_tab_ml.b
+                                       ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s1.b
-                                       ->  Seq Scan on pagg_tab_ml_p2_s1
+                                       Group Key: pagg_tab_ml_1.b
+                                       ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_1
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s2.b
-                                       ->  Seq Scan on pagg_tab_ml_p2_s2
+                                       Group Key: pagg_tab_ml_2.b
+                                       ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_2
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s1.b
-                                       ->  Seq Scan on pagg_tab_ml_p3_s1
+                                       Group Key: pagg_tab_ml_3.b
+                                       ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_3
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s2.b
-                                       ->  Seq Scan on pagg_tab_ml_p3_s2
+                                       Group Key: pagg_tab_ml_4.b
+                                       ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_4
  Optimizer: Postgres query optimizer
 (27 rows)
 
@@ -1282,33 +1299,33 @@ SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b HAVING avg(a) < 15 ORDER 
 -- Full aggregation at all levels as GROUP BY clause matches with PARTITION KEY
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 ORDER BY 1, 2, 3;
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+   Merge Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+         Sort Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p1.a, pagg_tab_ml_p1.b, pagg_tab_ml_p1.c
-                     Filter: (avg(pagg_tab_ml_p1.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p1
+                     Group Key: pagg_tab_ml.a, pagg_tab_ml.b, pagg_tab_ml.c
+                     Filter: (avg(pagg_tab_ml.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p2_s1.a, pagg_tab_ml_p2_s1.b, pagg_tab_ml_p2_s1.c
-                     Filter: (avg(pagg_tab_ml_p2_s1.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p2_s1
+                     Group Key: pagg_tab_ml_1.a, pagg_tab_ml_1.b, pagg_tab_ml_1.c
+                     Filter: (avg(pagg_tab_ml_1.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_1
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p2_s2.a, pagg_tab_ml_p2_s2.b, pagg_tab_ml_p2_s2.c
-                     Filter: (avg(pagg_tab_ml_p2_s2.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p2_s2
+                     Group Key: pagg_tab_ml_2.a, pagg_tab_ml_2.b, pagg_tab_ml_2.c
+                     Filter: (avg(pagg_tab_ml_2.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_2
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p3_s1.a, pagg_tab_ml_p3_s1.b, pagg_tab_ml_p3_s1.c
-                     Filter: (avg(pagg_tab_ml_p3_s1.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p3_s1
+                     Group Key: pagg_tab_ml_3.a, pagg_tab_ml_3.b, pagg_tab_ml_3.c
+                     Filter: (avg(pagg_tab_ml_3.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_3
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p3_s2.a, pagg_tab_ml_p3_s2.b, pagg_tab_ml_p3_s2.c
-                     Filter: (avg(pagg_tab_ml_p3_s2.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p3_s2
+                     Group Key: pagg_tab_ml_4.a, pagg_tab_ml_4.b, pagg_tab_ml_4.c
+                     Filter: (avg(pagg_tab_ml_4.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_4
  Optimizer: Postgres query optimizer
 (26 rows)
 
@@ -1337,41 +1354,41 @@ SET parallel_setup_cost TO 0;
 -- PARTITION KEY, thus we will have a partial aggregation for them.
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER BY 1, 2, 3;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+   Merge Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+         Sort Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p1.a
-                     Filter: (avg(pagg_tab_ml_p1.b) < '3'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p1
+                     Group Key: pagg_tab_ml.a
+                     Filter: (avg(pagg_tab_ml.b) < '3'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                ->  Finalize GroupAggregate
-                     Group Key: pagg_tab_ml_p2_s1.a
-                     Filter: (avg(pagg_tab_ml_p2_s1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml_2.a
+                     Filter: (avg(pagg_tab_ml_2.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p2_s1.a
+                           Sort Key: pagg_tab_ml_2.a
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s1.a
-                                       ->  Seq Scan on pagg_tab_ml_p2_s1
+                                       Group Key: pagg_tab_ml_2.a
+                                       ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_2
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s2.a
-                                       ->  Seq Scan on pagg_tab_ml_p2_s2
+                                       Group Key: pagg_tab_ml_3.a
+                                       ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_3
                ->  Finalize GroupAggregate
-                     Group Key: pagg_tab_ml_p3_s1.a
-                     Filter: (avg(pagg_tab_ml_p3_s1.b) < '3'::numeric)
+                     Group Key: pagg_tab_ml_5.a
+                     Filter: (avg(pagg_tab_ml_5.b) < '3'::numeric)
                      ->  Sort
-                           Sort Key: pagg_tab_ml_p3_s1.a
+                           Sort Key: pagg_tab_ml_5.a
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s1.a
-                                       ->  Seq Scan on pagg_tab_ml_p3_s1
+                                       Group Key: pagg_tab_ml_5.a
+                                       ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_5
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s2.a
-                                       ->  Seq Scan on pagg_tab_ml_p3_s2
+                                       Group Key: pagg_tab_ml_6.a
+                                       ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_6
  Optimizer: Postgres query optimizer
 (34 rows)
 
@@ -1393,34 +1410,34 @@ SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a HAVING avg(b) < 3 ORDER B
 -- PARTITION KEY
 EXPLAIN (COSTS OFF)
 SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b ORDER BY 1, 2, 3;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.b, (sum(pagg_tab_ml_p1.a)), (count(*))
+   Merge Key: pagg_tab_ml.b, (sum(pagg_tab_ml.a)), (count(*))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.b, (sum(pagg_tab_ml_p1.a)), (count(*))
+         Sort Key: pagg_tab_ml.b, (sum(pagg_tab_ml.a)), (count(*))
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_ml_p1.b
+               Group Key: pagg_tab_ml.b
                ->  Sort
-                     Sort Key: pagg_tab_ml_p1.b
+                     Sort Key: pagg_tab_ml.b
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: pagg_tab_ml_p1.b
+                           Hash Key: pagg_tab_ml.b
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p1.b
-                                       ->  Seq Scan on pagg_tab_ml_p1
+                                       Group Key: pagg_tab_ml.b
+                                       ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s1.b
-                                       ->  Seq Scan on pagg_tab_ml_p2_s1
+                                       Group Key: pagg_tab_ml_1.b
+                                       ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_1
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p2_s2.b
-                                       ->  Seq Scan on pagg_tab_ml_p2_s2
+                                       Group Key: pagg_tab_ml_2.b
+                                       ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_2
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s1.b
-                                       ->  Seq Scan on pagg_tab_ml_p3_s1
+                                       Group Key: pagg_tab_ml_3.b
+                                       ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_3
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_ml_p3_s2.b
-                                       ->  Seq Scan on pagg_tab_ml_p3_s2
+                                       Group Key: pagg_tab_ml_4.b
+                                       ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_4
  Optimizer: Postgres query optimizer
 (27 rows)
 
@@ -1437,33 +1454,33 @@ SELECT b, sum(a), count(*) FROM pagg_tab_ml GROUP BY b HAVING avg(a) < 15 ORDER 
 -- Full aggregation at all levels as GROUP BY clause matches with PARTITION KEY
 EXPLAIN (COSTS OFF)
 SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 ORDER BY 1, 2, 3;
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+   Merge Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
    ->  Sort
-         Sort Key: pagg_tab_ml_p1.a, (sum(pagg_tab_ml_p1.b)), (count(*))
+         Sort Key: pagg_tab_ml.a, (sum(pagg_tab_ml.b)), (count(*))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p1.a, pagg_tab_ml_p1.b, pagg_tab_ml_p1.c
-                     Filter: (avg(pagg_tab_ml_p1.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p1
+                     Group Key: pagg_tab_ml.a, pagg_tab_ml.b, pagg_tab_ml.c
+                     Filter: (avg(pagg_tab_ml.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p1 pagg_tab_ml
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p2_s1.a, pagg_tab_ml_p2_s1.b, pagg_tab_ml_p2_s1.c
-                     Filter: (avg(pagg_tab_ml_p2_s1.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p2_s1
+                     Group Key: pagg_tab_ml_1.a, pagg_tab_ml_1.b, pagg_tab_ml_1.c
+                     Filter: (avg(pagg_tab_ml_1.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p2_s1 pagg_tab_ml_1
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p2_s2.a, pagg_tab_ml_p2_s2.b, pagg_tab_ml_p2_s2.c
-                     Filter: (avg(pagg_tab_ml_p2_s2.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p2_s2
+                     Group Key: pagg_tab_ml_2.a, pagg_tab_ml_2.b, pagg_tab_ml_2.c
+                     Filter: (avg(pagg_tab_ml_2.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p2_s2 pagg_tab_ml_2
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p3_s1.a, pagg_tab_ml_p3_s1.b, pagg_tab_ml_p3_s1.c
-                     Filter: (avg(pagg_tab_ml_p3_s1.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p3_s1
+                     Group Key: pagg_tab_ml_3.a, pagg_tab_ml_3.b, pagg_tab_ml_3.c
+                     Filter: (avg(pagg_tab_ml_3.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p3_s1 pagg_tab_ml_3
                ->  HashAggregate
-                     Group Key: pagg_tab_ml_p3_s2.a, pagg_tab_ml_p3_s2.b, pagg_tab_ml_p3_s2.c
-                     Filter: (avg(pagg_tab_ml_p3_s2.b) > '7'::numeric)
-                     ->  Seq Scan on pagg_tab_ml_p3_s2
+                     Group Key: pagg_tab_ml_4.a, pagg_tab_ml_4.b, pagg_tab_ml_4.c
+                     Filter: (avg(pagg_tab_ml_4.b) > '7'::numeric)
+                     ->  Seq Scan on pagg_tab_ml_p3_s2 pagg_tab_ml_4
  Optimizer: Postgres query optimizer
 (26 rows)
 
@@ -1494,33 +1511,33 @@ SELECT a, sum(b), count(*) FROM pagg_tab_ml GROUP BY a, b, c HAVING avg(b) > 7 O
 -- costing such plans.
 SET parallel_setup_cost TO 10;
 CREATE TABLE pagg_tab_para(x int, y int) PARTITION BY RANGE(x);
-CREATE TABLE pagg_tab_para_p1 PARTITION OF pagg_tab_para FOR VALUES FROM (0) TO (10);
-CREATE TABLE pagg_tab_para_p2 PARTITION OF pagg_tab_para FOR VALUES FROM (10) TO (20);
-CREATE TABLE pagg_tab_para_p3 PARTITION OF pagg_tab_para FOR VALUES FROM (20) TO (30);
+CREATE TABLE pagg_tab_para_p1 PARTITION OF pagg_tab_para FOR VALUES FROM (0) TO (12);
+CREATE TABLE pagg_tab_para_p2 PARTITION OF pagg_tab_para FOR VALUES FROM (12) TO (22);
+CREATE TABLE pagg_tab_para_p3 PARTITION OF pagg_tab_para FOR VALUES FROM (22) TO (30);
 INSERT INTO pagg_tab_para SELECT i % 30, i % 20 FROM generate_series(0, 29999) i;
 ANALYZE pagg_tab_para;
 -- When GROUP BY clause matches; full aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+   Merge Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
    ->  Sort
-         Sort Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+         Sort Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p1.x
-                     Filter: (avg(pagg_tab_para_p1.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p1
+                     Group Key: pagg_tab_para.x
+                     Filter: (avg(pagg_tab_para.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p1 pagg_tab_para
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p2.x
-                     Filter: (avg(pagg_tab_para_p2.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p2
+                     Group Key: pagg_tab_para_1.x
+                     Filter: (avg(pagg_tab_para_1.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p2 pagg_tab_para_1
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p3.x
-                     Filter: (avg(pagg_tab_para_p3.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p3
+                     Group Key: pagg_tab_para_2.x
+                     Filter: (avg(pagg_tab_para_2.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p3 pagg_tab_para_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
@@ -1538,29 +1555,29 @@ SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) <
 -- When GROUP BY clause does not match; partial aggregation is performed for each partition.
 EXPLAIN (COSTS OFF)
 SELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVING avg(x) < 12 ORDER BY 1, 2, 3;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                       QUERY PLAN                                       
+----------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_para_p1.y, (sum(pagg_tab_para_p1.x)), (avg(pagg_tab_para_p1.x))
+   Merge Key: pagg_tab_para.y, (sum(pagg_tab_para.x)), (avg(pagg_tab_para.x))
    ->  Sort
-         Sort Key: pagg_tab_para_p1.y, (sum(pagg_tab_para_p1.x)), (avg(pagg_tab_para_p1.x))
+         Sort Key: pagg_tab_para.y, (sum(pagg_tab_para.x)), (avg(pagg_tab_para.x))
          ->  Finalize GroupAggregate
-               Group Key: pagg_tab_para_p1.y
-               Filter: (avg(pagg_tab_para_p1.x) < '12'::numeric)
+               Group Key: pagg_tab_para.y
+               Filter: (avg(pagg_tab_para.x) < '12'::numeric)
                ->  Sort
-                     Sort Key: pagg_tab_para_p1.y
+                     Sort Key: pagg_tab_para.y
                      ->  Redistribute Motion 3:3  (slice2; segments: 3)
-                           Hash Key: pagg_tab_para_p1.y
+                           Hash Key: pagg_tab_para.y
                            ->  Append
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_para_p1.y
-                                       ->  Seq Scan on pagg_tab_para_p1
+                                       Group Key: pagg_tab_para.y
+                                       ->  Seq Scan on pagg_tab_para_p1 pagg_tab_para
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_para_p2.y
-                                       ->  Seq Scan on pagg_tab_para_p2
+                                       Group Key: pagg_tab_para_1.y
+                                       ->  Seq Scan on pagg_tab_para_p2 pagg_tab_para_1
                                  ->  Partial HashAggregate
-                                       Group Key: pagg_tab_para_p3.y
-                                       ->  Seq Scan on pagg_tab_para_p3
+                                       Group Key: pagg_tab_para_2.y
+                                       ->  Seq Scan on pagg_tab_para_p3 pagg_tab_para_2
  Optimizer: Postgres query optimizer
 (22 rows)
 
@@ -1574,79 +1591,80 @@ SELECT y, sum(x), avg(x), count(*) FROM pagg_tab_para GROUP BY y HAVING avg(x) <
 (4 rows)
 
 -- Test when parent can produce parallel paths but not any (or some) of its children
+-- (Use one more aggregate to tilt the cost estimates for the plan we want)
 ALTER TABLE pagg_tab_para_p1 SET (parallel_workers = 0);
 ALTER TABLE pagg_tab_para_p3 SET (parallel_workers = 0);
 ANALYZE pagg_tab_para;
 EXPLAIN (COSTS OFF)
-SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+   Merge Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
    ->  Sort
-         Sort Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+         Sort Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p1.x
-                     Filter: (avg(pagg_tab_para_p1.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p1
+                     Group Key: pagg_tab_para.x
+                     Filter: (avg(pagg_tab_para.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p1 pagg_tab_para
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p2.x
-                     Filter: (avg(pagg_tab_para_p2.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p2
+                     Group Key: pagg_tab_para_1.x
+                     Filter: (avg(pagg_tab_para_1.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p2 pagg_tab_para_1
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p3.x
-                     Filter: (avg(pagg_tab_para_p3.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p3
+                     Group Key: pagg_tab_para_2.x
+                     Filter: (avg(pagg_tab_para_2.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p3 pagg_tab_para_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
-SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
- x  | sum  |        avg         | count 
-----+------+--------------------+-------
-  0 | 5000 | 5.0000000000000000 |  1000
-  1 | 6000 | 6.0000000000000000 |  1000
- 10 | 5000 | 5.0000000000000000 |  1000
- 11 | 6000 | 6.0000000000000000 |  1000
- 20 | 5000 | 5.0000000000000000 |  1000
- 21 | 6000 | 6.0000000000000000 |  1000
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+ x  | sum  |        avg         |  sum  | count 
+----+------+--------------------+-------+-------
+  0 | 5000 | 5.0000000000000000 |  5000 |  1000
+  1 | 6000 | 6.0000000000000000 |  7000 |  1000
+ 10 | 5000 | 5.0000000000000000 | 15000 |  1000
+ 11 | 6000 | 6.0000000000000000 | 17000 |  1000
+ 20 | 5000 | 5.0000000000000000 | 25000 |  1000
+ 21 | 6000 | 6.0000000000000000 | 27000 |  1000
 (6 rows)
 
 ALTER TABLE pagg_tab_para_p2 SET (parallel_workers = 0);
 ANALYZE pagg_tab_para;
 EXPLAIN (COSTS OFF)
-SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+   Merge Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
    ->  Sort
-         Sort Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+         Sort Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p1.x
-                     Filter: (avg(pagg_tab_para_p1.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p1
+                     Group Key: pagg_tab_para.x
+                     Filter: (avg(pagg_tab_para.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p1 pagg_tab_para
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p2.x
-                     Filter: (avg(pagg_tab_para_p2.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p2
+                     Group Key: pagg_tab_para_1.x
+                     Filter: (avg(pagg_tab_para_1.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p2 pagg_tab_para_1
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p3.x
-                     Filter: (avg(pagg_tab_para_p3.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p3
+                     Group Key: pagg_tab_para_2.x
+                     Filter: (avg(pagg_tab_para_2.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p3 pagg_tab_para_2
  Optimizer: Postgres query optimizer
 (18 rows)
 
-SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
- x  | sum  |        avg         | count 
-----+------+--------------------+-------
-  0 | 5000 | 5.0000000000000000 |  1000
-  1 | 6000 | 6.0000000000000000 |  1000
- 10 | 5000 | 5.0000000000000000 |  1000
- 11 | 6000 | 6.0000000000000000 |  1000
- 20 | 5000 | 5.0000000000000000 |  1000
- 21 | 6000 | 6.0000000000000000 |  1000
+SELECT x, sum(y), avg(y), sum(x+y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
+ x  | sum  |        avg         |  sum  | count 
+----+------+--------------------+-------+-------
+  0 | 5000 | 5.0000000000000000 |  5000 |  1000
+  1 | 6000 | 6.0000000000000000 |  7000 |  1000
+ 10 | 5000 | 5.0000000000000000 | 15000 |  1000
+ 11 | 6000 | 6.0000000000000000 | 17000 |  1000
+ 20 | 5000 | 5.0000000000000000 | 25000 |  1000
+ 21 | 6000 | 6.0000000000000000 | 27000 |  1000
 (6 rows)
 
 -- Reset parallelism parameters to get partitionwise aggregation plan.
@@ -1654,25 +1672,25 @@ RESET min_parallel_table_scan_size;
 RESET parallel_setup_cost;
 EXPLAIN (COSTS OFF)
 SELECT x, sum(y), avg(y), count(*) FROM pagg_tab_para GROUP BY x HAVING avg(y) < 7 ORDER BY 1, 2, 3;
-                                         QUERY PLAN                                         
---------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+   Merge Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
    ->  Sort
-         Sort Key: pagg_tab_para_p1.x, (sum(pagg_tab_para_p1.y)), (avg(pagg_tab_para_p1.y))
+         Sort Key: pagg_tab_para.x, (sum(pagg_tab_para.y)), (avg(pagg_tab_para.y))
          ->  Append
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p1.x
-                     Filter: (avg(pagg_tab_para_p1.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p1
+                     Group Key: pagg_tab_para.x
+                     Filter: (avg(pagg_tab_para.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p1 pagg_tab_para
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p2.x
-                     Filter: (avg(pagg_tab_para_p2.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p2
+                     Group Key: pagg_tab_para_1.x
+                     Filter: (avg(pagg_tab_para_1.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p2 pagg_tab_para_1
                ->  HashAggregate
-                     Group Key: pagg_tab_para_p3.x
-                     Filter: (avg(pagg_tab_para_p3.y) < '7'::numeric)
-                     ->  Seq Scan on pagg_tab_para_p3
+                     Group Key: pagg_tab_para_2.x
+                     Filter: (avg(pagg_tab_para_2.y) < '7'::numeric)
+                     ->  Seq Scan on pagg_tab_para_p3 pagg_tab_para_2
  Optimizer: Postgres query optimizer
 (18 rows)
 

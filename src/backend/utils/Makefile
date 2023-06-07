@@ -2,7 +2,7 @@
 #
 # Makefile for backend/utils
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/backend/utils/Makefile
@@ -14,8 +14,9 @@ top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
 OBJS        = fmgrtab.o session_state.o
-SUBDIRS     = adt cache datumstream error fmgr gdd hash init mb misc mmgr resowner \
+SUBDIRS     = activity adt cache datumstream error etcd_lib fmgr gdd hash init mb misc mmgr resowner \
 			   resgroup resscheduler sort time gp workfile_manager resource_manager hyperloglog
+
 
 # location of Catalog.pm
 catalogdir  = $(top_srcdir)/src/backend/catalog
@@ -35,8 +36,14 @@ $(SUBDIRS:%=%-recursive): fmgr-stamp errcodes.h
 # fmgr-stamp records the last time we ran Gen_fmgrtab.pl.  We don't rely on
 # the timestamps of the individual output files, because the Perl script
 # won't update them if they didn't change (to avoid unnecessary recompiles).
-fmgr-stamp: Gen_fmgrtab.pl $(catalogdir)/Catalog.pm $(top_srcdir)/src/include/catalog/pg_proc.dat $(top_srcdir)/src/include/access/transam.h
-	$(PERL) -I $(catalogdir) $< --include-path=$(top_srcdir)/src/include/ $(top_srcdir)/src/include/catalog/pg_proc.dat
+catalog_data_extra_path =
+ifeq ($(enable_catalog_ext),yes)
+catalog_data_extra_path = $(top_srcdir)/src/backend/catalog-extension/
+endif
+
+fmgr-stamp: Gen_fmgrtab.pl $(catalogdir)/Catalog.pm $(top_srcdir)/src/include/catalog/pg_proc.dat $(top_srcdir)/src/include/access/transam.h $(top_builddir)/src/Makefile.global
+	$(PERL) -I $(catalogdir) $< --include-path=$(top_srcdir)/src/include/ \
+		--extra-path=$(catalog_data_extra_path) $(top_srcdir)/src/include/catalog/pg_proc.dat
 	touch $@
 
 errcodes.h: $(top_srcdir)/src/backend/utils/errcodes.txt generate-errcodes.pl
@@ -76,6 +83,16 @@ $(top_builddir)/src/include/utils/probes.h: probes.h
 	cd '$(dir $@)' && rm -f $(notdir $@) && \
 	    $(LN_S) "../../../$(subdir)/probes.h" .
 
+# Recipe for rebuilding the Perl version of Gen_dummy_probes
+# Nothing depends on it, so it will never be called unless explicitly requested
+# The last two lines of the recipe format the script according to  our
+# standard and put back some blank lines for improved readability.
+Gen_dummy_probes.pl: Gen_dummy_probes.sed Gen_dummy_probes.pl.prolog
+	cp $(srcdir)/Gen_dummy_probes.pl.prolog $@
+	s2p -f $<  | sed -e 1,3d -e '/# #/ d' -e '$$d' >> $@
+	perltidy --profile=$(srcdir)/../../tools/pgindent/perltidyrc $@
+	perl -pi -e '!$$lb && ( /^\t+#/  || /^# prototypes/ ) && print qq{\n};'\
+		-e '$$lb = m/^\n/; ' $@
 
 .PHONY: install-data
 install-data: errcodes.txt installdirs

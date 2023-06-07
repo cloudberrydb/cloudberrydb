@@ -3,6 +3,8 @@
 -- s/seg[0-9] [0-9.]+:\d+/segN IP:PORT/
 -- m/lock \[\d+,\d+\]/
 -- s/lock \[\d+,\d+\]//
+-- m/DETAIL: .* FATAL:  reader could not find writer proc entry/
+-- s/DETAIL: .* FATAL:  reader could not find writer proc entry/DETAIL: FATAL:  reader could not find writer proc entry/
 -- end_matchsubs
 
 -- skip dtx recovery check to avoid hitting the fault create_gang_in_progress.
@@ -117,12 +119,6 @@ SELECT gp_request_fts_probe_scan();
 ---------------------------
  t                         
 (1 row)
-SELECT gp_wait_until_triggered_fault('fts_probe', 1, dbid) FROM gp_segment_configuration WHERE role='p' AND content=-1;
- gp_wait_until_triggered_fault 
--------------------------------
- Success:                      
-(1 row)
-
 -- Prevent below pg_ctl restart timeout although the timeout should be enough.
 CHECKPOINT;
 CHECKPOINT

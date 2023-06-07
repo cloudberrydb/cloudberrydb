@@ -2,7 +2,7 @@
 # Line too long            - pylint: disable=C0301
 # Invalid name             - pylint: disable=C0103
 #
-# Copyright (c) Greenplum Inc 2010. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2010. All Rights Reserved.
 #
 # Note: the option to recover to a new host is not very good if we have a multi-home configuration
 #
@@ -11,7 +11,7 @@
 #       -S "Primary segment dbid to force recovery": I think this is done now by bringing the primary down, waiting for
 #           failover, and then doing recover full
 #       -z "Primary segment data dir and host to force recovery" see removed -S option for comment
-#       -f        : force Greenplum Database instance shutdown and restart
+#       -f        : force Cloudberry Database instance shutdown and restart
 #       -F (HAS BEEN CHANGED) -- used to mean "force recovery" and now means "full recovery)
 #
 # import mainUtils FIRST to get python version check
@@ -136,18 +136,18 @@ class GpRecoverSegmentProgram:
         # The design decision here is to squash any exceptions resulting from the
         # synchronization of packages. We should *not* disturb the user's attempts to recover.
         try:
-            self.logger.info('Syncing Greenplum Database extensions')
+            self.logger.info('Syncing Cloudberry Database extensions')
             operations = [SyncPackages(host) for host in new_hosts]
             ParallelOperation(operations, self.__options.parallelDegree).run()
             # introspect outcomes
             for operation in operations:
                 operation.get_ret()
         except:
-            self.logger.exception('Syncing of Greenplum Database extensions has failed.')
+            self.logger.exception('Syncing of Cloudberry Database extensions has failed.')
             self.logger.warning('Please run gppkg --clean after successful segment recovery.')
 
     def displayRecovery(self, mirrorBuilder, gpArray):
-        self.logger.info('Greenplum instance recovery parameters')
+        self.logger.info('Cloudberry instance recovery parameters')
         self.logger.info('---------------------------------------------------------')
 
         if self.__options.recoveryConfigFile:
@@ -269,7 +269,7 @@ class GpRecoverSegmentProgram:
 
         if not gpArray.hasMirrors:
             raise ExceptionNoStackTraceNeeded(
-                'GPDB Mirroring replication is not configured for this Greenplum Database instance.')
+                'GPDB Mirroring replication is not configured for this Cloudberry Database instance.')
 
         num_workers = min(len(gpArray.get_hostlist()), self.__options.parallelDegree)
         hosts = set(gpArray.get_hostlist(includeCoordinator=False))
@@ -374,12 +374,13 @@ class GpRecoverSegmentProgram:
 
     def validate_heap_checksum_consistency(self, gpArray, mirrorBuilder):
         live_segments = [target.getLiveSegment() for target in mirrorBuilder.getMirrorsToBuild()]
+        failed_segments = [target.getFailedSegment() for target in mirrorBuilder.getMirrorsToBuild()]
         if len(live_segments) == 0:
             self.logger.info("No checksum validation necessary when there are no segments to recover.")
             return
 
         heap_checksum = HeapChecksum(gpArray, num_workers=min(self.__options.parallelDegree, len(live_segments)), logger=self.logger)
-        successes, failures = heap_checksum.get_segments_checksum_settings(live_segments)
+        successes, failures = heap_checksum.get_segments_checksum_settings(live_segments + failed_segments)
         # go forward if we have at least one segment that has replied
         if len(successes) == 0:
             raise Exception("No segments responded to ssh query for heap checksum validation.")

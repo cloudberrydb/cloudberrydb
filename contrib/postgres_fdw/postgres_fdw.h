@@ -3,7 +3,7 @@
  * postgres_fdw.h
  *		  Foreign-data wrapper for remote PostgreSQL servers
  *
- * Portions Copyright (c) 2012-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2012-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
  *		  contrib/postgres_fdw/postgres_fdw.h
@@ -15,9 +15,11 @@
 
 #include "foreign/foreign.h"
 #include "lib/stringinfo.h"
+#include "nodes/execnodes.h"
 #include "nodes/pathnodes.h"
 #include "utils/relcache.h"
 
+/* GPDB_13_MERGE_FIXME: Do we still needs this patch? */
 /* postgres_fdw is compiled as a backend, it needs the server's
  * header files such as executor/tuptable.h. It also needs libpq
  * to connect to a remote postgres database, so it's statically
@@ -103,7 +105,8 @@ typedef struct PgFdwRelationInfo
 	bool		use_remote_estimate;
 	Cost		fdw_startup_cost;
 	Cost		fdw_tuple_cost;
-	List	   *shippable_extensions;	/* OIDs of whitelisted extensions */
+	List	   *shippable_extensions;	/* OIDs of shippable extensions */
+	bool		async_capable;
 
 	/* Cached catalog information. */
 	ForeignTable *table;
@@ -113,11 +116,14 @@ typedef struct PgFdwRelationInfo
 	int			fetch_size;		/* fetch size for this remote table */
 
 	/*
-	 * Name of the relation while EXPLAINing ForeignScan. It is used for join
-	 * relations but is set for all relations. For join relation, the name
-	 * indicates which foreign tables are being joined and the join type used.
+	 * Name of the relation, for use while EXPLAINing ForeignScan.  It is used
+	 * for join and upper relations but is set for all relations.  For a base
+	 * relation, this is really just the RT index as a string; we convert that
+	 * while producing EXPLAIN output.  For join and upper relations, the name
+	 * indicates which base foreign tables are included and the join type or
+	 * aggregation type used.
 	 */
-	StringInfo	relation_name;
+	char	   *relation_name;
 
 	/* Join information */
 	RelOptInfo *outerrel;
@@ -147,17 +153,29 @@ typedef struct PgFdwRelationInfo
 	int			relation_index;
 } PgFdwRelationInfo;
 
+/*
+ * Extra control information relating to a connection.
+ */
+typedef struct PgFdwConnState
+{
+	AsyncRequest *pendingAreq;	/* pending async request */
+} PgFdwConnState;
+
 /* in postgres_fdw.c */
 extern int	set_transmission_modes(void);
 extern void reset_transmission_modes(int nestlevel);
+extern void process_pending_request(AsyncRequest *areq);
 
 /* in connection.c */
-extern PGconn *GetConnection(UserMapping *user, bool will_prep_stmt);
+extern PGconn *GetConnection(UserMapping *user, bool will_prep_stmt,
+							 PgFdwConnState **state);
 extern void ReleaseConnection(PGconn *conn);
 extern unsigned int GetCursorNumber(PGconn *conn);
 extern unsigned int GetPrepStmtNumber(PGconn *conn);
+extern void do_sql_command(PGconn *conn, const char *sql);
 extern PGresult *pgfdw_get_result(PGconn *conn, const char *query);
-extern PGresult *pgfdw_exec_query(PGconn *conn, const char *query);
+extern PGresult *pgfdw_exec_query(PGconn *conn, const char *query,
+								  PgFdwConnState *state);
 extern void pgfdw_report_error(int elevel, PGresult *res, PGconn *conn,
 							   bool clear, const char *sql);
 
@@ -180,11 +198,18 @@ extern bool is_foreign_expr(PlannerInfo *root,
 extern bool is_foreign_param(PlannerInfo *root,
 							 RelOptInfo *baserel,
 							 Expr *expr);
+extern bool is_foreign_pathkey(PlannerInfo *root,
+							   RelOptInfo *baserel,
+							   PathKey *pathkey);
 extern void deparseInsertSql(StringInfo buf, RangeTblEntry *rte,
 							 Index rtindex, Relation rel,
 							 List *targetAttrs, bool doNothing,
 							 List *withCheckOptionList, List *returningList,
-							 List **retrieved_attrs);
+							 List **retrieved_attrs, int *values_end_len);
+extern void rebuildInsertSql(StringInfo buf, Relation rel,
+							 char *orig_query, List *target_attrs,
+							 int values_end_len, int num_params,
+							 int num_rows);
 extern void deparseUpdateSql(StringInfo buf, RangeTblEntry *rte,
 							 Index rtindex, Relation rel,
 							 List *targetAttrs,
@@ -213,11 +238,17 @@ extern void deparseDirectDeleteSql(StringInfo buf, PlannerInfo *root,
 extern void deparseAnalyzeSizeSql(StringInfo buf, Relation rel);
 extern void deparseAnalyzeSql(StringInfo buf, Relation rel,
 							  List **retrieved_attrs);
+extern void deparseTruncateSql(StringInfo buf,
+							   List *rels,
+							   DropBehavior behavior,
+							   bool restart_seqs);
 extern void deparseStringLiteral(StringInfo buf, const char *val);
-extern Expr *find_em_expr_for_rel(EquivalenceClass *ec, RelOptInfo *rel);
-extern Expr *find_em_expr_for_input_target(PlannerInfo *root,
-										   EquivalenceClass *ec,
-										   PathTarget *target);
+extern EquivalenceMember *find_em_for_rel(PlannerInfo *root,
+										  EquivalenceClass *ec,
+										  RelOptInfo *rel);
+extern EquivalenceMember *find_em_for_rel_target(PlannerInfo *root,
+												 EquivalenceClass *ec,
+												 RelOptInfo *rel);
 extern List *build_tlist_to_deparse(RelOptInfo *foreignrel);
 extern void deparseSelectStmtForRel(StringInfo buf, PlannerInfo *root,
 									RelOptInfo *foreignrel, List *tlist,

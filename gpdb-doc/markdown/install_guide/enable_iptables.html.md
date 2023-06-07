@@ -2,21 +2,21 @@
 title: Enabling iptables (Optional)
 ---
 
-On Linux systems, you can configure and enable the `iptables` firewall to work with Greenplum Database.
+On Linux systems, you can configure and enable the `iptables` firewall to work with Cloudberry Database.
 
-**Note:** Greenplum Database performance might be impacted when `iptables` is enabled. You should test the performance of your application with `iptables` enabled to ensure that performance is acceptable.
+**Note:** Cloudberry Database performance might be impacted when `iptables` is enabled. You should test the performance of your application with `iptables` enabled to ensure that performance is acceptable.
 
 For more information about `iptables` see the `iptables` and firewall documentation for your operating system. See also [Disabling SELinux and Firewall Software](prep_os.html).
 
 ## <a id="ji163124"></a>How to Enable iptables 
 
-1.  As `gpadmin`, run this command on the Greenplum Database coordinator host to stop Greenplum Database:
+1.  As `gpadmin`, run this command on the Cloudberry Database coordinator host to stop Cloudberry Database:
 
     ```
     $ gpstop -a
     ```
 
-2.  On the Greenplum Database hosts:
+2.  On the Cloudberry Database hosts:
     1.  Update the file `/etc/sysconfig/iptables` based on the [Example iptables Rules](#topic16).
     2.  As root user, run these commands to enable `iptables`:
 
@@ -25,7 +25,7 @@ For more information about `iptables` see the `iptables` and firewall documentat
         # service iptables start
         ```
 
-3.  As gpadmin, run this command on the Greenplum Database coordinator host to start Greenplum Database:
+3.  As gpadmin, run this command on the Cloudberry Database coordinator host to start Cloudberry Database:
 
     ```
     $ gpstart -a
@@ -44,31 +44,31 @@ As root, run this command to view the `iptables` table value:
 # sysctl net.ipv4.netfilter.ip_conntrack_max
 ```
 
-To ensure that the Greenplum Database workload does not overflow the `iptables` table, as root, set it to the following value:
+To ensure that the Cloudberry Database workload does not overflow the `iptables` table, as root, set it to the following value:
 
 ```
 # sysctl net.ipv4.netfilter.ip_conntrack_max=6553600
 ```
 
-The value might need to be adjusted for your hosts. To maintain the value after reboot, you can update the `/etc/sysctl.conf` file as discussed in [Setting the Greenplum Recommended OS Parameters](prep_os.html).
+The value might need to be adjusted for your hosts. To maintain the value after reboot, you can update the `/etc/sysctl.conf` file as discussed in [Setting the Cloudberry Recommended OS Parameters](prep_os.html).
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 
 ## <a id="topic16"></a>Example iptables Rules 
 
-When `iptables` is enabled, `iptables` manages the IP communication on the host system based on configuration settings \(rules\). The example rules are used to configure `iptables` for Greenplum Database coordinator host, standby coordinator host, and segment hosts.
+When `iptables` is enabled, `iptables` manages the IP communication on the host system based on configuration settings \(rules\). The example rules are used to configure `iptables` for Cloudberry Database coordinator host, standby coordinator host, and segment hosts.
 
 -   [Example Coordinator and Standby Coordinator iptables Rules](#topic17)
 -   [Example Segment Host iptables Rules](#topic18)
 
-The two sets of rules account for the different types of communication Greenplum Database expects on the coordinator \(primary and standby\) and segment hosts. The rules should be added to the `/etc/sysconfig/iptables` file of the Greenplum Database hosts. For Greenplum Database, `iptables` rules should allow the following communication:
+The two sets of rules account for the different types of communication Cloudberry Database expects on the coordinator \(primary and standby\) and segment hosts. The rules should be added to the `/etc/sysconfig/iptables` file of the Cloudberry Database hosts. For Cloudberry Database, `iptables` rules should allow the following communication:
 
--   For customer facing communication with the Greenplum Database coordinator, allow at least `postgres` and `28080` \(`eth1` interface in the example\).
--   For Greenplum Database system interconnect, allow communication using `tcp`, `udp`, and `icmp` protocols \(`eth4` and `eth5` interfaces in the example\).
+-   For customer facing communication with the Cloudberry Database coordinator, allow at least `postgres` and `28080` \(`eth1` interface in the example\).
+-   For Cloudberry Database system interconnect, allow communication using `tcp`, `udp`, and `icmp` protocols \(`eth4` and `eth5` interfaces in the example\).
 
-    The network interfaces that you specify in the `iptables` settings are the interfaces for the Greenplum Database hosts that you list in the hostfile\_gpinitsystem file. You specify the file when you run the `gpinitsystem` command to initialize a Greenplum Database system. See [Initializing a Greenplum Database System](init_gpdb.html) for information about the hostfile\_gpinitsystem file and the `gpinitsystem` command.
+    The network interfaces that you specify in the `iptables` settings are the interfaces for the Cloudberry Database hosts that you list in the hostfile\_gpinitsystem file. You specify the file when you run the `gpinitsystem` command to initialize a Cloudberry Database system. See [Initializing a Cloudberry Database System](init_gpdb.html) for information about the hostfile\_gpinitsystem file and the `gpinitsystem` command.
 
--   For the administration network on a Greenplum DCA, allow communication using `ssh`, `ntp`, and `icmp` protocols. \(`eth0` interface in the example\).
+-   For the administration network on a Cloudberry DCA, allow communication using `ssh`, `ntp`, and `icmp` protocols. \(`eth0` interface in the example\).
 
 In the `iptables` file, each append rule command \(lines starting with `-A`\) is a single line.
 
@@ -79,7 +79,7 @@ The example rules should be adjusted for your configuration. For example:
 
 ### <a id="topic17"></a>Example Coordinator and Standby Coordinator iptables Rules 
 
-Example `iptables` rules with comments for the `/etc/sysconfig/iptables` file on the Greenplum Database coordinator host and standby coordinator host.
+Example `iptables` rules with comments for the `/etc/sysconfig/iptables` file on the Cloudberry Database coordinator host and standby coordinator host.
 
 ```
 *filter
@@ -99,24 +99,24 @@ Example `iptables` rules with comments for the `/etc/sysconfig/iptables` file on
 # These rules let all tcp and udp through on the standard
 # interconnect IP addresses and on the interconnect interfaces.
 # NOTE: gpsyncmaster uses random tcp ports in the range 1025 to 65535
-# and Greenplum Database uses random udp ports in the range 1025 to 65535.
+# and Cloudberry Database uses random udp ports in the range 1025 to 65535.
 -A INPUT -i eth4 -p udp -s 192.0.2.0/22 -j ACCEPT
 -A INPUT -i eth5 -p udp -s 198.51.100.0/22 -j ACCEPT
 -A INPUT -i eth4 -p tcp -s 192.0.2.0/22 -j ACCEPT --syn -m state --state NEW
 -A INPUT -i eth5 -p tcp -s 198.51.100.0/22 -j ACCEPT --syn -m state --state NEW
-\# Allow udp/tcp ntp connections on the admin network on Greenplum DCA.
+\# Allow udp/tcp ntp connections on the admin network on Cloudberry DCA.
 -A INPUT -i eth0 -p udp --dport ntp -s 203.0.113.0/21 -j ACCEPT
 -A INPUT -i eth0 -p tcp --dport ntp -s 203.0.113.0/21 -j ACCEPT --syn -m state --state NEW
 # Allow ssh on all networks (This rule can be more strict).
 -A INPUT -p tcp --dport ssh -j ACCEPT --syn -m state --state NEW
-# Allow Greenplum Database on all networks.
+# Allow Cloudberry Database on all networks.
 -A INPUT -p tcp --dport postgres -j ACCEPT --syn -m state --state NEW
-# Allow Greenplum Command Center on the customer facing network.
+# Allow Cloudberry Command Center on the customer facing network.
 -A INPUT -i eth1 -p tcp --dport 28080 -j ACCEPT --syn -m state --state NEW
 # Allow ping and any other icmp traffic on the interconnect networks.
 -A INPUT -i eth4 -p icmp -s 192.0.2.0/22 -j ACCEPT
 -A INPUT -i eth5 -p icmp -s 198.51.100.0/22 -j ACCEPT
-\# Allow ping only on the admin network on Greenplum DCA.
+\# Allow ping only on the admin network on Cloudberry DCA.
 -A INPUT -i eth0 -p icmp --icmp-type echo-request -s 203.0.113.0/21 -j ACCEPT
 # Log an error if a packet passes through the rules to the default
 # INPUT rule (a DROP).
@@ -126,7 +126,7 @@ COMMIT
 
 ### <a id="topic18"></a>Example Segment Host iptables Rules 
 
-Example `iptables` rules for the `/etc/sysconfig/iptables` file on the Greenplum Database segment hosts. The rules for segment hosts are similar to the coordinator rules with fewer interfaces and fewer `udp` and `tcp` services.
+Example `iptables` rules for the `/etc/sysconfig/iptables` file on the Cloudberry Database segment hosts. The rules for segment hosts are similar to the coordinator rules with fewer interfaces and fewer `udp` and `tcp` services.
 
 ```
 *filter

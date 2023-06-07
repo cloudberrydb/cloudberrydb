@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="features">
   <title>Additional Text Search Features</title>
-  <shortdesc>Greenplum Database has additional functions and operators you can use to manipulate
+  <shortdesc>Cloudberry Database has additional functions and operators you can use to manipulate
     search and query vectors, and to rewrite search queries. </shortdesc>
   <body>
     <p>This section contains the following subtopics:</p>
@@ -16,7 +16,7 @@
       <title>Manipulating Documents</title>
       <p><xref href="controlling.xml#controlling/parsing-documents"/> showed how
         raw textual documents can be converted into <codeph>tsvector</codeph>
-        values. Greenplum Database also provides functions and operators that
+        values. Cloudberry Database also provides functions and operators that
         can be used to manipulate documents that are already in
           <codeph>tsvector</codeph> form.</p>
       <dl>
@@ -77,7 +77,7 @@
       <title>Manipulating Queries</title>
       <p><xref href="controlling.xml#controlling/parsing-queries"/> showed how
         raw textual queries can be converted into <codeph>tsquery</codeph>
-        values. Greenplum Database also provides functions and operators that
+        values. Cloudberry Database also provides functions and operators that
         can be used to manipulate queries that are already in
           <codeph>tsquery</codeph> form.</p>
       <dl>

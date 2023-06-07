@@ -10,6 +10,10 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 -- s/^DETAIL:  Internal error: No motion listener port \(seg\d.*:.*\)/DETAIL:  Internal error: No motion listener port/
 -- m/WARNING:.*Any temporary tables for this session have been dropped because the gang was disconnected/
 -- s/session id \=\s*\d+/session id \= DUMMY/gm
+-- m/^DETAIL:  connection to server at .*, port \d+ failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'/
+-- s/^DETAIL:  connection to server at .*, port \d+ failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'/^DETAIL:  connection to server at XX, port XX failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'/
+-- m/ERROR:  Query plan size limit exceeded, current size: 1[1-2]KB, max allowed size: 10KB/
+-- s/ERROR:  Query plan size limit exceeded, current size: 1[1-2]KB, max allowed size: 10KB/ERROR:  Query plan size limit exceeded, current size: /
 -- end_matchsubs
 -- skip FTS probes always
 select gp_inject_fault_infinite('fts_probe', 'skip', 1);
@@ -22,12 +26,6 @@ select gp_request_fts_probe_scan();
  gp_request_fts_probe_scan 
 ---------------------------
  t
-(1 row)
-
-select gp_wait_until_triggered_fault('fts_probe', 1, 1);
- gp_wait_until_triggered_fault 
--------------------------------
- Success:
 (1 row)
 
 -- Test cdbdisp_getDispatchResults() fail in CdbDispatchCopyStart()
@@ -123,11 +121,11 @@ CREATE SCHEMA "my schema";
 \c
 -- Create a table with the same name in both schemas, "my schema" and public.
 CREATE TABLE "my table" (t text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO "my table" VALUES ('myschema.mytable');
 CREATE TABLE public."my table" (t text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO public."my table" VALUES ('public.mytable');
 SELECT t as unquoted FROM "my table";
@@ -153,7 +151,7 @@ DROP TABLE public."my table";
 -- Create another table with the same name. To make sure the DROP worked
 -- and dropped the correct table.
 CREATE TABLE "my table" (id integer);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 DROP TABLE "my table";
 -- test ALTER DATABASE SET FROM CURRENT
@@ -204,7 +202,7 @@ DROP DATABASE "dispatch test db";
 -- Test gp_max_plan_size limit
 set gp_max_plan_size='10 kB';
 create table dispatchtesttab(t text);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select * from dispatchtesttab where t = repeat('x', 1024*11);
 ERROR:  Query plan size limit exceeded, current size: 11KB, max allowed size: 10KB
@@ -253,16 +251,16 @@ drop table if exists dispatch_test_t3;
 NOTICE:  table "dispatch_test_t3" does not exist, skipping
 --end_ignore
 create table dispatch_test as select i as c1 from generate_series(1, 10) i;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table dispatch_test_t1 (c1 int, c2 int, c3 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table dispatch_test_t2 (c1 int, c2 int, c3 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table dispatch_test_t3 (c1 int, c2 int, c3 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into dispatch_test_t1 values (1,1,2);
 insert into dispatch_test_t2 values (2,1,2);
@@ -426,7 +424,7 @@ select cleanupAllGangs();
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
 where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 ERROR:  failed to acquire resources on one or more segments
-DETAIL:  FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'
+DETAIL:  connection to server at "127.0.1.1", port 9002 failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'
  (seg0 127.0.0.1:40000)
 -- expect no resuable gang exist
 select * from hasGangsExist();
@@ -473,7 +471,7 @@ select cleanupAllGangs();
 select * from dispatch_test_t1, dispatch_test_t2, dispatch_test_t3
 where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 ERROR:  failed to acquire resources on one or more segments
-DETAIL:  FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'
+DETAIL:  connection to server at "127.0.1.1", port 9002 failed: FATAL:  fault triggered, fault name:'send_qe_details_init_backend' fault type:'error'
  (seg0 127.0.0.1:40000)
 -- expect resuable gang exist
 select * from hasGangsExist();
@@ -616,7 +614,7 @@ CONTEXT:  PL/C function defined in regress.c
 -- Error out when dispatching DTX command to busy primary writer gang
 --
 CREATE TABLE dtx_dispatch_t AS SELECT i AS c1 FROM generate_series(1,10) i;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column(s) named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE or REPLACE FUNCTION dtx_dispatch_f(integer)
 RETURNS INTEGER
@@ -653,7 +651,7 @@ SELECT numActiveMotionConns();
 BEGIN;
 DECLARE C1 CURSOR FOR SELECT * FROM foo_test;
 FETCH BACKWARD 1 FROM C1;
-ERROR:  backward scan is not supported in this version of Greenplum Database
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 END;
 SELECT numActiveMotionConns();
  numactivemotionconns 
@@ -741,12 +739,12 @@ end;
 -- transaction is lost
 begin;
 create temp table disp_temp_test (c1 int, c2 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into disp_temp_test values (1, 2);
 savepoint s1;
 create temp table disp_temp_test1 (c1 int, c2 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into disp_temp_test1 values (1, 2);
 -- Let cleanupSegdb() return false and writer gang be destroyed
@@ -796,10 +794,10 @@ select gp_inject_fault('fts_probe', 'reset', 1);
 -- the end of step2 will not affect the pre-allocated gangs of the main plan.
 --
 create table dispatch_foo (c1 int, c2 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table dispatch_bar (c1 int, c2 int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create or replace function dispatch_foo_func()
 returns int
@@ -874,3 +872,35 @@ select fault_exec_plan(true);
 ERROR:  'executor_pre_tuple_processed' fault triggered
 \c regression
 DROP DATABASE dispatch_test_db;
+-- issue: https://github.com/greenplum-db/gpdb/issues/13393
+-- We should avoid a double free and resultant PANIC if the
+-- process of recycling the gang is interrupted by a signal
+CREATE EXTENSION if not exists gp_inject_fault;
+create table t13393(tc1 int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'tc1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into t13393 select generate_series(1,10000);
+-- start_ignore
+analyze gp_segment_configuration;
+WARNING:  skipping "gp_segment_configuration" --- cannot analyze non-tables or special system tables
+-- end_ignore
+SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'interrupt', dbid, current_setting('gp_session_id')::int)
+ from gp_segment_configuration where content=-1 and role='p';
+ gp_inject_fault 
+-----------------
+ Success:
+(1 row)
+
+select * from gp_segment_configuration a, t13393 ,gp_segment_configuration b where a.dbid = t13393.tc1 limit 0;
+ dbid | content | role | preferred_role | mode | status | port | hostname | address | datadir | tc1 | dbid | content | role | preferred_role | mode | status | port | hostname | address | datadir 
+------+---------+------+----------------+------+--------+------+----------+---------+---------+-----+------+---------+------+----------------+------+--------+------+----------+---------+---------
+(0 rows)
+
+SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'reset', dbid, current_setting('gp_session_id')::int)
+ from gp_segment_configuration where content=-1 and role='p';
+ gp_inject_fault 
+-----------------
+ Success:
+(1 row)
+
+drop table t13393;

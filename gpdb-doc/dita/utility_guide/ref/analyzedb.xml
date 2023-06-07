@@ -31,7 +31,7 @@
     <section>
       <title>Description</title>
       <p>The <cmdname>analyzedb</cmdname> utility updates statistics on table data for the specified
-        tables in a Greenplum database incrementally and concurrently. </p>
+        tables in a Cloudberry database incrementally and concurrently. </p>
       <p>While performing <codeph><xref href="../../ref_guide/sql_commands/ANALYZE.xml"
             >ANALYZE</xref></codeph> operations, <cmdname>analyzedb</cmdname> creates a snapshot of
         the table metadata and stores it on disk on the coordinator host. An <codeph>ANALYZE</codeph>
@@ -69,7 +69,7 @@
         previous <cmdname>analyzedb</cmdname> operation. The snapshots of table metadata are stored
         as state files in the directory
             <codeph>db_analyze/&lt;<varname>db_name</varname>>/&lt;<varname>timestamp</varname>></codeph>
-        in the Greenplum Database master data directory. </p>The utility preserves old snapshot
+        in the Cloudberry Database master data directory. </p>The utility preserves old snapshot
       information from the past 8 days, and the 3 most recent state directories regardless of age,
       while all other directories are automatically removed. You can also specify the
         <codeph>--clean_last</codeph> or <codeph>--clean_all</codeph> option to remove state files
@@ -242,7 +242,7 @@ public.lineitem -i l_shipdate,l_receiptdate </codeblock></pd>
         and user-defined tables in the database <codeph>mytest</codeph>.</p>
       <codeblock>analyzedb -d mytest</codeblock>
       <p>You can create a PL/Python function to run the <codeph>analyzedb</codeph> utility as a
-        Greenplum Database function. This example <codeph>CREATE FUNCTION</codeph> command creates a
+        Cloudberry Database function. This example <codeph>CREATE FUNCTION</codeph> command creates a
         user defined PL/Python function that runs the <codeph>analyzedb</codeph> utility and
         displays output on the command line. Specify <codeph>analyzedb</codeph> options as the
         function parameter.
@@ -272,7 +272,7 @@ LANGUAGE plpythonu VOLATILE;</codeblock></p>
     <section>
       <title>See Also</title>
       <p>
-        <ph otherprops="op-print"><cmdname>ANALYZE</cmdname> in the <cite>Greenplum Database
+        <ph otherprops="op-print"><cmdname>ANALYZE</cmdname> in the <cite>Cloudberry Database
             Reference Guide</cite></ph>
         <ph>
           <codeph>

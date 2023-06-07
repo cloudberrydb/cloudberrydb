@@ -114,7 +114,7 @@ PxfBridgeRead(void *outbuf, int minlen, int maxlen, void *extra)
 		churl_read_check_connectivity(pxfsstate->churl_handle);
 
 		/* start processing next fragment */
-		pxfsstate->current_fragment = lnext(pxfsstate->current_fragment);
+		pxfsstate->current_fragment = lnext(pxfsstate->fragments, pxfsstate->current_fragment);
 		if (pxfsstate->current_fragment == NULL)
 			return 0;
 

@@ -6,7 +6,7 @@
     <body>
         <p>
             <cmdname>gpfdist</cmdname> serves external data files from a directory on the file host
-            to all Greenplum Database segments in parallel. <cmdname>gpfdist</cmdname>
+            to all Cloudberry Database segments in parallel. <cmdname>gpfdist</cmdname>
                 uncompresses<codeph> gzip (.gz)</codeph> and <codeph>bzip2 (.bz2)</codeph> files
             automatically. Run <cmdname>gpfdist</cmdname> on the host on which the external data
             files reside.</p>
@@ -21,7 +21,7 @@
             directory that you specified when you started <cmdname>gpfdist</cmdname>.</p>
         <p>
             <cmdname>gpfdist</cmdname> is located in the <codeph>$GPHOME/bin</codeph> directory on
-            your Greenplum Database master host and on each segment host. See the
+            your Cloudberry Database master host and on each segment host. See the
                 <cmdname>gpfdist</cmdname> reference documentation for more information about using
                 <cmdname>gpfdist</cmdname> with external tables.</p>
     </body>

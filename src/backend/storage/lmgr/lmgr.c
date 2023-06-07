@@ -3,9 +3,9 @@
  * lmgr.c
  *	  POSTGRES lock manager code
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -25,6 +25,7 @@
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/lmgr.h"
+#include "storage/proc.h"
 #include "storage/procarray.h"
 #include "storage/sinvaladt.h"
 #include "utils/inval.h"
@@ -35,8 +36,6 @@
 #include "cdb/cdbvars.h"
 #include "storage/proc.h"
 #include "utils/lsyscache.h"        /* CDB: get_rel_namespace() */
-#include "utils/guc.h"
-
 
 /*
  * Per-backend counter for generating speculative insertion tokens.
@@ -500,6 +499,21 @@ UnlockRelationForExtension(Relation relation, LOCKMODE lockmode)
 }
 
 /*
+ *		LockDatabaseFrozenIds
+ *
+ * This allows one backend per database to execute vac_update_datfrozenxid().
+ */
+void
+LockDatabaseFrozenIds(LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_DATABASE_FROZEN_IDS(tag, MyDatabaseId);
+
+	(void) LockAcquire(&tag, lockmode, false, false);
+}
+
+/*
  *		LockPage
  *
  * Obtain a page-level lock.  This is currently used by some index access
@@ -894,7 +908,7 @@ SpeculativeInsertionWait(TransactionId xid, uint32 token)
 }
 
 /*
- * XactLockTableWaitErrorContextCb
+ * XactLockTableWaitErrorCb
  *		Error context callback for transaction lock waits.
  */
 static void
@@ -957,9 +971,10 @@ XactLockTableWaitErrorCb(void *arg)
  * To do this, obtain the current list of lockers, and wait on their VXIDs
  * until they are finished.
  *
- * Note we don't try to acquire the locks on the given locktags, only the VXIDs
- * of its lock holders; if somebody grabs a conflicting lock on the objects
- * after we obtained our initial list of lockers, we will not wait for them.
+ * Note we don't try to acquire the locks on the given locktags, only the
+ * VXIDs and XIDs of their lock holders; if somebody grabs a conflicting lock
+ * on the objects after we obtained our initial list of lockers, we will not
+ * wait for them.
  */
 void
 WaitForLockersMultiple(List *locktags, LOCKMODE lockmode, bool progress)
@@ -991,8 +1006,7 @@ WaitForLockersMultiple(List *locktags, LOCKMODE lockmode, bool progress)
 
 	/*
 	 * Note: GetLockConflicts() never reports our own xid, hence we need not
-	 * check for that.  Also, prepared xacts are not reported, which is fine
-	 * since they certainly aren't going to do anything anymore.
+	 * check for that.  Also, prepared xacts are reported and awaited.
 	 */
 
 	/* Finally wait for each such transaction to complete */
@@ -1002,16 +1016,14 @@ WaitForLockersMultiple(List *locktags, LOCKMODE lockmode, bool progress)
 
 		while (VirtualTransactionIdIsValid(*lockholders))
 		{
-			/*
-			 * If requested, publish who we're going to wait for.  This is not
-			 * 100% accurate if they're already gone, but we don't care.
-			 */
+			/* If requested, publish who we're going to wait for. */
 			if (progress)
 			{
 				PGPROC	   *holder = BackendIdGetProc(lockholders->backendId);
 
-				pgstat_progress_update_param(PROGRESS_WAITFOR_CURRENT_PID,
-											 holder->pid);
+				if (holder)
+					pgstat_progress_update_param(PROGRESS_WAITFOR_CURRENT_PID,
+												 holder->pid);
 			}
 			VirtualXactLock(*lockholders, true);
 			lockholders++;
@@ -1202,6 +1214,11 @@ DescribeLockTag(StringInfo buf, const LOCKTAG *tag)
 							 tag->locktag_field2,
 							 tag->locktag_field1);
 			break;
+		case LOCKTAG_DATABASE_FROZEN_IDS:
+			appendStringInfo(buf,
+							 _("pg_database.datfrozenxid of database %u"),
+							 tag->locktag_field1);
+			break;
 		case LOCKTAG_PAGE:
 			appendStringInfo(buf,
 							 _("page %u of relation %u of database %u"),
@@ -1224,8 +1241,8 @@ DescribeLockTag(StringInfo buf, const LOCKTAG *tag)
 			break;
 		case LOCKTAG_DISTRIB_TRANSACTION:
 			appendStringInfo(buf,
-							 _("distributed transaction %u"),
-							 tag->locktag_field1);
+							 _("distributed transaction " UINT64_FORMAT),
+							 LOCKTAG_DISTRIB_TRANSACTION_ID(*tag));
 			break;
 		case LOCKTAG_VIRTUALTRANSACTION:
 			appendStringInfo(buf,
@@ -1317,77 +1334,6 @@ LockTagIsTemp(const LOCKTAG *tag)
 			break;
 	}
 	return false;				/* default case */
-}
-
-/*
- * If gp_enable_global_deadlock_detector is set off, we always
- * have to upgrade lock level to avoid global deadlock, and then
- * because of the current disign of AO table's visibility map,
- * we have to keep upgrading locks for AO table.
- */
-bool
-CondUpgradeRelLock(Oid relid)
-{
-	Relation rel;
-	bool upgrade = false;
-
-	if (!gp_enable_global_deadlock_detector)
-		return true;
-
-	/*
-	 * try_relation_open will throw error if
-	 * the relation is invaliad
-	 *
-	 * GPDB_12_MERGE_FIXME: This used to open the relation with NoLock.
-	 * But that's not cool, and there's an assertion in try_table_open()
-	 * that forbids using NoLock if you're not holding some lock
-	 * already. I (Heikki) changed this to take a RowExclusiveLock here,
-	 * as that's what all the callers will acquire at a minimum anyway.
-	 * If we take a RowExclusiveLock here, we should keep it; it's silly
-	 * to acquire the lock, release it, and then re-acquire it in the
-	 * caller. Upgrading the lock if this returns true is problematic,
-	 * of course, so it would be nice to avoid that altogether, but
-	 * that's a harder task.
-	 */
-	rel = try_table_open(relid, RowExclusiveLock, false);
-
-	if (!rel)
-		return false;
-	else if (RelationIsAppendOptimized(rel))
-		upgrade = true;
-	else
-		upgrade = false;
-
-	table_close(rel, RowExclusiveLock);
-
-	return upgrade;
-}
-
-int UpgradeRelLockIfNecessary(Oid relid, int lockmode, bool *lockUpgraded)
-{
-	/*
-	 * Since we have introduced GDD(global deadlock detector), for heap table
-	 * we do not need to upgrade the requested lock. For ao table, because of
-	 * the design of ao table's visibilitymap, we have to upgrade the lock
-	 * (More details please refer https://groups.google.com/a/greenplum.org/forum/#!topic/gpdb-dev/iDj8WkLus4g)
-	 *
-	 * And we select for update statement's lock is upgraded at addRangeTableEntry.
-	 *
-	 * Note: This code could be improved substantially after we redesign ao table
-	 * and select for update.
-	 */
-	if (lockmode == RowExclusiveLock)
-	{
-		if (Gp_role == GP_ROLE_DISPATCH &&
-			CondUpgradeRelLock(relid))
-		{
-			lockmode = ExclusiveLock;
-			if (lockUpgraded != NULL)
-			*lockUpgraded = true;
-		}
-	}
-
-	return lockmode;
 }
 
 /*

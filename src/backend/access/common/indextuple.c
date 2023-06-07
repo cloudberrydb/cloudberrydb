@@ -4,7 +4,7 @@
  *	   This file contains index tuple accessor and mutator routines,
  *	   as well as various tuple utilities.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -16,10 +16,17 @@
 
 #include "postgres.h"
 
+#include "access/detoast.h"
+#include "access/heaptoast.h"
 #include "access/htup_details.h"
 #include "access/itup.h"
-#include "access/tuptoaster.h"
+#include "access/toast_internals.h"
 
+/*
+ * This enables de-toasting of index entries.  Needed until VACUUM is
+ * smart enough to rebuild indexes from scratch.
+ */
+#define TOAST_INDEX_HACK
 
 /* ----------------------------------------------------------------
  *				  index_ tuple interface routines
@@ -82,7 +89,7 @@ index_form_tuple(TupleDesc tupleDescriptor,
 		if (VARATT_IS_EXTERNAL(DatumGetPointer(values[i])))
 		{
 			untoasted_values[i] =
-				PointerGetDatum(heap_tuple_fetch_attr((struct varlena *)
+				PointerGetDatum(detoast_external_attr((struct varlena *)
 													  DatumGetPointer(values[i])));
 			untoasted_free[i] = true;
 		}
@@ -93,9 +100,13 @@ index_form_tuple(TupleDesc tupleDescriptor,
 		 */
 		if (!VARATT_IS_EXTENDED(DatumGetPointer(untoasted_values[i])) &&
 			VARSIZE(DatumGetPointer(untoasted_values[i])) > TOAST_INDEX_TARGET &&
-			(att->attstorage == 'x' || att->attstorage == 'm'))
+			(att->attstorage == TYPSTORAGE_EXTENDED ||
+			 att->attstorage == TYPSTORAGE_MAIN))
 		{
-			Datum		cvalue = toast_compress_datum(untoasted_values[i]);
+			Datum		cvalue;
+
+			cvalue = toast_compress_datum(untoasted_values[i],
+										  att->attcompression);
 
 			if (DatumGetPointer(cvalue) != NULL)
 			{
@@ -426,22 +437,37 @@ void
 index_deform_tuple(IndexTuple tup, TupleDesc tupleDescriptor,
 				   Datum *values, bool *isnull)
 {
-	int			hasnulls = IndexTupleHasNulls(tup);
-	int			natts = tupleDescriptor->natts; /* number of atts to extract */
-	int			attnum;
 	char	   *tp;				/* ptr to tuple data */
-	int			off;			/* offset in tuple data */
 	bits8	   *bp;				/* ptr to null bitmap in tuple */
-	bool		slow = false;	/* can we use/set attcacheoff? */
-
-	/* Assert to protect callers who allocate fixed-size arrays */
-	Assert(natts <= INDEX_MAX_KEYS);
 
 	/* XXX "knows" t_bits are just after fixed tuple header! */
 	bp = (bits8 *) ((char *) tup + sizeof(IndexTupleData));
 
 	tp = (char *) tup + IndexInfoFindDataOffset(tup->t_info);
-	off = 0;
+
+	index_deform_tuple_internal(tupleDescriptor, values, isnull,
+								tp, bp, IndexTupleHasNulls(tup));
+}
+
+/*
+ * Convert an index tuple into Datum/isnull arrays,
+ * without assuming any specific layout of the index tuple header.
+ *
+ * Caller must supply pointer to data area, pointer to nulls bitmap
+ * (which can be NULL if !hasnulls), and hasnulls flag.
+ */
+void
+index_deform_tuple_internal(TupleDesc tupleDescriptor,
+							Datum *values, bool *isnull,
+							char *tp, bits8 *bp, int hasnulls)
+{
+	int			natts = tupleDescriptor->natts; /* number of atts to extract */
+	int			attnum;
+	int			off = 0;		/* offset in tuple data */
+	bool		slow = false;	/* can we use/set attcacheoff? */
+
+	/* Assert to protect callers who allocate fixed-size arrays */
+	Assert(natts <= INDEX_MAX_KEYS);
 
 	for (attnum = 0; attnum < natts; attnum++)
 	{

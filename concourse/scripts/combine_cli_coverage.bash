@@ -66,11 +66,11 @@ find . -name '*.tar' -exec tar -xf {} \;
 cat > .coveragerc <<EOF
 [paths]
 install =
-    /usr/local/greenplum-db-devel/bin
+    /usr/local/cloudberry-db-devel/bin
     /tmp/build/*/gpdb_src/gpMgmt/bin
 
 install_lib =
-    /usr/local/greenplum-db-devel/lib/python/gppylib
+    /usr/local/cloudberry-db-devel/lib/python/gppylib
     /tmp/build/*/gpdb_src/gpMgmt/bin/gppylib
 
 source =

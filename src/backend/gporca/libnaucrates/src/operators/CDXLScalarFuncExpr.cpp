@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2011 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2011 Cloudberry, Inc.
 //
 //	@filename:
 //		CDXLScalarFuncExpr.cpp
@@ -30,12 +30,13 @@ using namespace gpdxl;
 //---------------------------------------------------------------------------
 CDXLScalarFuncExpr::CDXLScalarFuncExpr(CMemoryPool *mp, IMDId *mdid_func,
 									   IMDId *mdid_return_type,
-									   INT return_type_modifier, BOOL fRetSet)
+									   INT return_type_modifier, BOOL fRetSet, INT func_format)
 	: CDXLScalar(mp),
 	  m_func_mdid(mdid_func),
 	  m_return_type_mdid(mdid_return_type),
 	  m_return_type_modifier(return_type_modifier),
-	  m_returns_set(fRetSet)
+	  m_returns_set(fRetSet),
+	  m_func_format(func_format)
 {
 	GPOS_ASSERT(m_func_mdid->IsValid());
 	GPOS_ASSERT(m_return_type_mdid->IsValid());
@@ -130,6 +131,20 @@ BOOL
 CDXLScalarFuncExpr::ReturnsSet() const
 {
 	return m_returns_set;
+}
+
+//---------------------------------------------------------------------------
+//	@function:
+//		CDXLScalarFuncExpr::FuncFormat
+//
+//	@doc:
+//		Returns how to display function expr
+//
+//---------------------------------------------------------------------------
+INT
+CDXLScalarFuncExpr::FuncFormat() const
+{
+	return m_func_format;
 }
 
 //---------------------------------------------------------------------------

@@ -164,6 +164,10 @@ static void vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int 
 										 bool *relhasindex);
 static int vacuum_appendonly_indexes(Relation aoRelation, int options,
 									 BufferAccessStrategy bstrategy);
+static void scan_index(Relation indrel,
+					   AppendOnlyIndexVacuumState *vacuumIndexState,
+					   double num_tuples,
+					   int elevel, BufferAccessStrategy vac_strategy);
 
 void
 ao_vacuum_rel_pre_cleanup(Relation onerel, int options, VacuumParams *params,
@@ -199,13 +203,13 @@ ao_vacuum_rel_pre_cleanup(Relation onerel, int options, VacuumParams *params,
 					get_namespace_name(RelationGetNamespace(onerel)),
 					relname)));
 
-	AppendOnlyRecycleDeadSegments(onerel);
+	AppendOptimizedRecycleDeadSegments(onerel);
 
 	/*
 	 * Also truncate all live segments to the EOF values stored in pg_aoseg.
 	 * This releases space left behind by aborted inserts.
 	 */
-	AppendOnlyTruncateToEOF(onerel);
+	AppendOptimizedTruncateToEOF(onerel);
 }
 
 
@@ -242,7 +246,7 @@ ao_vacuum_rel_post_cleanup(Relation onerel, int options, VacuumParams *params,
 	 */
 	Assert(RelationIsAoRows(onerel) || RelationIsAoCols(onerel));
 
-	AppendOnlyRecycleDeadSegments(onerel);
+	AppendOptimizedRecycleDeadSegments(onerel);
 
 	vacuum_appendonly_indexes(onerel, options, bstrategy);
 
@@ -364,6 +368,33 @@ ao_vacuum_rel_compact(Relation onerel, int options, VacuumParams *params,
 	UnregisterSnapshot(appendOnlyMetaDataSnapshot);
 }
 
+/*
+ * ao_vacuum_rel()
+ *
+ * Common interface for vacuuming Append-Optimized table.
+ */
+void
+ao_vacuum_rel(Relation rel, VacuumParams *params, BufferAccessStrategy bstrategy)
+{
+	Assert(RelationIsAppendOptimized(rel));
+	Assert(params != NULL);
+
+	int ao_vacuum_phase = (params->options & VACUUM_AO_PHASE_MASK);
+
+	/*
+	 * Do the actual work --- either FULL or "lazy" vacuum
+	 */
+	if (ao_vacuum_phase == VACOPT_AO_PRE_CLEANUP_PHASE)
+		ao_vacuum_rel_pre_cleanup(rel, params->options, params, bstrategy);
+	else if (ao_vacuum_phase == VACOPT_AO_COMPACT_PHASE)
+		ao_vacuum_rel_compact(rel, params->options, params, bstrategy);
+	else if (ao_vacuum_phase == VACOPT_AO_POST_CLEANUP_PHASE)
+		ao_vacuum_rel_post_cleanup(rel, params->options, params, bstrategy);
+	else
+		/* Do nothing here, we will launch the stages later */
+		Assert(ao_vacuum_phase == 0);
+}
+
 
 static bool
 vacuum_appendonly_index_should_vacuum(Relation aoRelation,
@@ -457,14 +488,16 @@ vacuum_appendonly_indexes(Relation aoRelation, int options,
 	{
 		segmentFileInfo = GetAllFileSegInfo(aoRelation,
 											appendOnlyMetaDataSnapshot,
-											&totalSegfiles);
+											&totalSegfiles,
+											NULL);
 	}
 	else
 	{
 		Assert(RelationIsAoCols(aoRelation));
 		segmentFileInfo = (FileSegInfo **) GetAllAOCSFileSegInfo(aoRelation,
 																appendOnlyMetaDataSnapshot,
-																&totalSegfiles);
+																&totalSegfiles,
+																NULL);
 	}
 
 	GetAppendOnlyEntryAuxOids(aoRelation->rd_id,
@@ -519,7 +552,7 @@ vacuum_appendonly_indexes(Relation aoRelation, int options,
 		else
 		{
 			for (i = 0; i < nindexes; i++)
-				scan_index(Irel[i], rel_tuple_count, elevel, bstrategy);
+				scan_index(Irel[i], &vacuumIndexState, rel_tuple_count, elevel, bstrategy);
 		}
 	}
 
@@ -748,20 +781,19 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
 }
 
 /*
- * GPDB_12_MERGE_FIXME: taken almost verbadim from appendonly_vacuum.c, verify
- *
  *	scan_index() -- scan one index relation to update pg_class statistics.
  *
  * We use this when we have no deletions to do.
  */
-void
-scan_index(Relation indrel, double num_tuples,
+static void
+scan_index(Relation indrel,
+		   AppendOnlyIndexVacuumState *vacuumIndexState,
+		   double num_tuples,
 		   int elevel, BufferAccessStrategy vac_strategy)
 {
 	IndexBulkDeleteResult *stats;
 	IndexVacuumInfo ivinfo;
 	PGRUsage	ru0;
-	BlockNumber relallvisible;
 
 	pg_rusage_init(&ru0);
 
@@ -772,15 +804,15 @@ scan_index(Relation indrel, double num_tuples,
 	ivinfo.num_heap_tuples = num_tuples;
 	ivinfo.strategy = vac_strategy;
 
-	stats = index_vacuum_cleanup(&ivinfo, NULL);
+	/* Do bulk deletion */
+	stats = index_bulk_delete(&ivinfo, NULL, appendonly_tid_reaped,
+							  (void *) vacuumIndexState);
+
+	/* Do post-VACUUM cleanup */
+	stats = index_vacuum_cleanup(&ivinfo, stats);
 
 	if (!stats)
 		return;
-
-	if (RelationIsAppendOptimized(indrel))
-		relallvisible = 0;
-	else
-		visibilitymap_count(indrel, &relallvisible, NULL);
 
 	/*
 	 * Now update statistics in pg_class, but only if the index says the count
@@ -789,7 +821,7 @@ scan_index(Relation indrel, double num_tuples,
 	if (!stats->estimated_count)
 		vac_update_relstats(indrel,
 							stats->num_pages, stats->num_index_tuples,
-							relallvisible,
+							0, /* relallvisible, don't bother for indexes */
 							false,
 							InvalidTransactionId,
 							InvalidMultiXactId,

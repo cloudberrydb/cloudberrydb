@@ -17,6 +17,9 @@
 -- m/DETAIL:  System memory limit reached, failed to allocate \d+ bytes from system/
 -- s/\d+/XXX/g
 --
+-- m/DETAIL:  connection to server at .* failed: FATAL:  Out of memory/
+-- s/DETAIL:  connection to server at .* failed: FATAL:  Out of memory/DETAIL:  FATAL:  Out of memory/
+--
 -- m/(seg\d+ \d+.\d+.\d+.\d+:\d+)/
 -- s/(.*)/(seg<ID> IP:PORT)/
 --

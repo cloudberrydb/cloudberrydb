@@ -3,7 +3,7 @@ ifeq "$(CC)" "icc"
 	USE_ICC = 1
 endif
 
-override CFLAGS+=-std=gnu99
+override CFLAGS+=-std=gnu99 -fsigned-char
 
 MODULE_big = gp_svec
 EXTENSION = gp_sparse_vector
@@ -23,5 +23,5 @@ else
 endif
 
 ifdef USE_ICC
-	override CFLAGS=-O3 -Werror -std=c99 -vec-report2 -vec-threshold0
+	override CFLAGS=-O3 -Werror -std=c99 -vec-report2 -vec-threshold0 -fsigned-char
 endif

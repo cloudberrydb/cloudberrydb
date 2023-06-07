@@ -4,6 +4,9 @@
 -- m/^LOG.*Feature not supported/
 -- s/^LOG.*Feature not supported/Feature not supported/
 -- end_matchsubs
+-- start_matchignore
+-- m/^LOG:  Missing statistics for column: .*/
+-- end_matchignore
 -- start_ignore
 DROP DATABASE IF EXISTS incrementalanalyze;
 CREATE DATABASE incrementalanalyze;

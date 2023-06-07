@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * faultinjector.c
- *	  GP Fault Injectors are used for Greenplum internal testing only.
+ *	  GP Fault Injectors are used for Cloudberry internal testing only.
  * 
  * Fault injectors are used for fine control during testing. They allow a
  * developer to create deterministic tests for scenarios that are hard to
@@ -9,7 +9,7 @@
  * suspend, skip, or even panic the process. Fault injectors are set in shared
  * memory so they are accessible to all segment processes.
  *
- * Portions Copyright (c) 2009-2010 Greenplum Inc
+ * Portions Copyright (c) 2009-2010 Cloudberry Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -27,16 +27,18 @@
 #include "catalog/pg_type.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
+#include "common/hashfn.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
+#include "miscadmin.h"
 #include "postmaster/autovacuum.h"
 #include "postmaster/bgwriter.h"
-#include "storage/spin.h"
+#include "postmaster/fts.h"
 #include "storage/shmem.h"
+#include "storage/spin.h"
 #include "tcop/dest.h"
 #include "utils/faultinjector.h"
 #include "utils/hsearch.h"
-#include "miscadmin.h"
 
 /*
  * internal include
@@ -168,7 +170,12 @@ FiLockRelease(void)
 
 void InjectFaultInit(void)
 {
+	const char *tagname;
 	warnings_init();
+
+	tagname = GetCommandTagName(CMDTAG_FAULT_INJECT);
+	if (tagname == NULL || strcmp(GPCONN_TYPE_FAULT, tagname) != 0)
+		ereport(ERROR, (errmsg("cmdtag and GPCONN_TYPE_FAULT are not equal")));
 }
 
 
@@ -527,6 +534,27 @@ FaultInjector_InjectFaultIfSet_out_of_line(
 	}
 		
 	return (entryLocal->faultInjectorType);
+}
+
+FaultInjectorType_e
+FaultInjector_LookupCheck(const char* faultName)
+{
+	FaultInjectorEntry_s	*entryShared = NULL;
+	FaultInjectorType_e		retvalue = FaultInjectorTypeNotSpecified;
+
+	if (faultInjectorShmem->numActiveFaults == 0)
+		return retvalue;
+
+	FiLockAcquire();
+
+	/* Returns the status of incomplete injection */
+	entryShared = FaultInjector_LookupHashEntry(faultName);
+	if (entryShared != NULL && entryShared->faultInjectorState != FaultInjectorStateCompleted)
+		retvalue = entryShared->faultInjectorType;
+
+	FiLockRelease();
+
+	return retvalue;
 }
 
 /*
@@ -929,17 +957,33 @@ HandleFaultMessage(const char* msg)
 	char ddl[NAMEDATALEN];
 	char db[NAMEDATALEN];
 	char table[NAMEDATALEN];
+	char faultInjectModuleName[NAMEDATALEN];
 	int start;
 	int end;
 	int extra;
 	int sid;
 	char *result;
 	int len;
+	QueryCompletion qc;
 
-	if (sscanf(msg, "faultname=%s type=%s ddl=%s db=%s table=%s "
-			   "start=%d end=%d extra=%d sid=%d",
-			   name, type, ddl, db, table, &start, &end, &extra, &sid) != 9)
+	qc.commandTag = CMDTAG_FAULT_INJECT;
+	qc.nprocessed = 0;
+
+#ifdef USE_INTERNAL_FTS
+	int skipFtsProbe;
+	if (sscanf(msg, "faultname=%s type=%s ddl=%s db=%s table=%s modulename=%s "
+			   "start=%d end=%d extra=%d sid=%d skipftsprobe=%d",
+			   name, type, ddl, db, table, faultInjectModuleName, &start, &end, &extra, &sid, &skipFtsProbe) != 11)
 		elog(ERROR, "invalid fault message: %s", msg);
+#else 
+	if (sscanf(msg, "faultname=%s type=%s ddl=%s db=%s table=%s modulename=%s "
+			   "start=%d end=%d extra=%d sid=%d",
+			   name, type, ddl, db, table, faultInjectModuleName, &start, &end, &extra, &sid) != 10)
+		elog(ERROR, "invalid fault message: %s", msg);
+#endif
+	Assert(strlen(faultInjectModuleName) > 0);
+	load_external_function(faultInjectModuleName, name, false, NULL);
+
 	/* The value '#' means not specified. */
 	if (ddl[0] == '#')
 		ddl[0] = '\0';
@@ -947,6 +991,8 @@ HandleFaultMessage(const char* msg)
 		db[0] = '\0';
 	if (table[0] == '#')
 		table[0] = '\0';
+
+	BeginCommand(qc.commandTag, DestRemote);
 
 	result = InjectFault(name, type, ddl, db, table, start, end, extra, sid);
 	len = strlen(result);
@@ -971,7 +1017,7 @@ HandleFaultMessage(const char* msg)
 	pq_sendint(&buf, len, 4);
 	pq_sendbytes(&buf, result, len);
 	pq_endmessage(&buf);
-	EndCommand(GPCONN_TYPE_FAULT, DestRemote);
+	EndCommand(&qc, DestRemote, false);
 	pq_flush();
 }
 

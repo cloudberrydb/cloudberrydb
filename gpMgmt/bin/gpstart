@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
 #
 #
 # THIS IMPORT MUST COME FIRST
@@ -53,6 +53,9 @@ class GpStart:
                  timeout=SEGMENT_TIMEOUT_DEFAULT,
                  logfileDirectory=False,
                  skip_heap_checksum_validation=False,
+                 fts_hosts=None,
+                 etcd_hosts=None,
+                 is_external_fts=False
                  ):
         assert (specialMode in [None, 'maintenance'])
         self.specialMode = specialMode
@@ -71,6 +74,9 @@ class GpStart:
         self.skip_standby_check = skip_standby_check
         self.logfileDirectory = logfileDirectory
         self.skip_heap_checksum_validation = skip_heap_checksum_validation
+        self.fts_hosts = fts_hosts
+        self.etcd_hosts = etcd_hosts
+        self.is_external_fts = is_external_fts
 
         #
         # Some variables that are set during execution
@@ -83,10 +89,65 @@ class GpStart:
         self.dburl = None
         self.max_connections = None
         logger.debug("Setting level of parallelism to: %d" % self.parallel)
+        ######
+    def _start_all_fts(self):
+        if not os.path.exists(self.fts_hosts):
+            raise gp.GpError("FTS host file %s does not exist." % self.fts_hosts)
+        fts_host_machine_list = read_hosts(self.fts_hosts)
+
+        etcd_config_tmp_file = "/tmp/cbdb_etcd.conf"
+        coordinator_data_directory = os.environ.get("COORDINATOR_DATA_DIRECTORY")
+        copy_etcd_config_file_cmd = f"gpscp -f {self.fts_hosts} {coordinator_data_directory + '/config' + '/cbdb_etcd.conf'} =:{etcd_config_tmp_file}"
+        subprocess.check_output(copy_etcd_config_file_cmd, shell=True)
+        logger.info("Begin to start all FTS process.")
+        isdemo = (len(fts_host_machine_list) == 1)
+        for fts in fts_host_machine_list:
+            start_fts(fts, isdemo)
+        time.sleep(30)
+        for fts in fts_host_machine_list:
+            if not check_fts(fts):
+                raise gp.GpError("FTS process on %s is not running." % fts)
+        logger.info("start all FTS process successfully")
+    
+    def _generte_etcd_url(self, etcd_port):
+        etcd_num = 0
+        etcd_host_machine_list = read_hosts(self.etcd_hosts)
+        etcd_cmd = ""
+        for etcd in etcd_host_machine_list:
+            etcd_ip = resolve_hostname(etcd)
+            if etcd_cmd == "":
+                etcd_cmd = f"etcd-{etcd_num}=http://{etcd_ip}:{etcd_port}"
+            else:
+                etcd_cmd += f",etcd-{etcd_num}=http://{etcd_ip}:{etcd_port}"
+            etcd_num += 1
+        return etcd_cmd
+
+    def _start_all_etcd(self):
+        if not os.path.exists(self.etcd_hosts):
+            raise gp.GpError("ETCD host file %s does not exist." % self.etcd_hosts)
+        etcd_host_machine_list = read_hosts(self.etcd_hosts)
+        
+        logger.info("Begin to start all ETCD process.")
+        if len(etcd_host_machine_list) == 1:
+            start_single_etcd(etcd_host_machine_list[0])
+        else:
+            etcd_home_num = 0
+            etcd_host_list = self._generte_etcd_url(2380)
+            for etcd in etcd_host_machine_list:
+                start_etcd(etcd, etcd_home_num, etcd_host_list)
+                etcd_home_num += 1
+        time.sleep(60)
+        for etcd in etcd_host_machine_list:
+            if not check_etcd(etcd):
+                raise gp.GpError("ETCD process on %s is not running." % etcd)
+        logger.info("start all ETCD process successfully")
 
     ######
     def run(self):
         self._prepare()
+
+        if self.etcd_hosts is not None:
+            self._start_all_etcd()
 
         if self.coordinatoronly:
             if os.getenv('GPSTART_INTERNAL_COORDINATOR_ONLY'):
@@ -95,7 +156,7 @@ class GpStart:
                 logger.warning("****************************************************************************")
                 logger.warning("Coordinator-only start requested. If a standby is configured, this command")
                 logger.warning("may lead to a split-brain condition and possible unrecoverable data loss.")
-                logger.warning("Maintenance mode should only be used with direction from Greenplum Support.")
+                logger.warning("Maintenance mode should only be used with direction from Cloudberry Support.")
                 logger.warning("****************************************************************************")
                 if self.interactive:
                     if not userinput.ask_yesno(None, "\nContinue with coordinator-only startup", 'N'):
@@ -109,6 +170,8 @@ class GpStart:
             logger.info("Coordinator Started...")
 
             if self.coordinatoronly:
+                if self.is_external_fts:
+                    self._start_all_fts()
                 return 0
 
             num_workers = min(len(self.gparray.get_hostlist()), self.parallel)
@@ -145,7 +208,7 @@ class GpStart:
 
         if self.interactive:
             self._summarize_actions(segmentsToStart)
-            if not userinput.ask_yesno(None, "\nContinue with Greenplum instance startup", 'N'):
+            if not userinput.ask_yesno(None, "\nContinue with Cloudberry instance startup", 'N'):
                 raise UserAbortedException()
 
         try:
@@ -161,19 +224,39 @@ class GpStart:
             logger.info("Initializing DCA settings")
             dca.DcaGpdbInitialized.local()
             logger.info("DCA settings initialized")
-
+        if self.is_external_fts:
+            self._start_all_fts()
         return 0 if success else 1
-
     ######
     def cleanup(self):
         if self.pool:
             self.pool.haltWork()
 
             # ------------------------------- Internal Helper --------------------------------
-
+    ######
+    def _cbdb_precheck(self):
+        logger.info("checking fts hosts...")
+        if not os.path.exists(self.fts_hosts):
+            raise gp.GpError("FTS host file %s does not exist." % self.fts_hosts)
+        
+        fts_host_machine_list = read_hosts(self.fts_hosts)
+        for fts in fts_host_machine_list:
+            if check_fts(fts):
+                raise gp.GpError("FTS host %s has alived fts process, please cleanup the environment first." % fts)
+            
+        if self.etcd_hosts is None:
+            logger.info("checking etcd hosts...")
+            coordinator_datadir = os.environ.get("COORDINATOR_DATA_DIRECTORY")
+            etcd_host_machine_list = read_hosts(coordinator_datadir + "/config/etcd_host")
+            for etcd in etcd_host_machine_list:
+                if not check_etcd(etcd):
+                    raise gp.GpError("ETCD host %s has no alived etcd process, please cleanup the environment first." % etcd)
+    
     ######
     def _prepare(self):
         logger.info("Gathering information and validating the environment...")
+        if self.is_external_fts:
+            self._cbdb_precheck()
         self._basic_setup()
 
         self._check_version()
@@ -200,13 +283,13 @@ class GpStart:
     ######
     def _check_version(self):
         self.gpversion = gp.GpVersion.local('local GP software version check', self.gphome)
-        logger.info("Greenplum Binary Version: '%s'" % self.gpversion)
+        logger.info("Cloudberry Binary Version: '%s'" % self.gpversion)
 
         # It would be nice to work out the catalog version => greenplum version
         # calculation so that we can print out nicer error messages when
         # version doesn't match.
         bin_catversion = gp.GpCatVersion.local('local GP software catalag version check', self.gphome)
-        logger.info("Greenplum Catalog Version: '%s'" % bin_catversion)
+        logger.info("Cloudberry Catalog Version: '%s'" % bin_catversion)
 
         dir_catversion = gp.GpCatVersionDirectory.local('local GP directory catalog version check', self.coordinator_datadir)
 
@@ -416,7 +499,7 @@ class GpStart:
                 logger.fatal("Failed to start Coordinator instance in admin mode")
             cmd.validate()
 
-        logger.info("Obtaining Greenplum Coordinator catalog information")
+        logger.info("Obtaining Cloudberry Coordinator catalog information")
 
         logger.info("Obtaining Segment details from coordinator...")
         self.dburl = dbconn.DbURL(port=self.port, dbname='template1')
@@ -779,6 +862,13 @@ class GpStart:
                          action='store_true', default=False, help='Skip the validation of data_checksums GUC. '
                                                                   'Note: Starting up the cluster without this '
                                                                   'validation could lead to data loss.')
+        addTo.add_option('-F', dest='fts_hosts', type='string',default=None ,
+                         help='specify the file that contains all fts hosts.If this argument is set, `gpstart` will attempt'
+                                'to start all fts in the specified hosts, if not, `gpstart` will start all fts spectified in the'
+                                '$COORDINATOR_DATA_DIRECTORY/config/fts_host')
+        addTo.add_option('-E', dest='etcd_hosts', type='string',default=None ,
+                         help='specify the file that contains all etcd hosts.If this argument is set, `gpstart` will attempt'
+                                'to start all etcd in the specified hosts')
 
         parser.set_defaults(verbose=False, filters=[], slice=(None, None))
 
@@ -788,8 +878,12 @@ class GpStart:
     def createProgram(options, args):
         logfileDirectory = options.ensure_value("logfileDirectory", False)
         proccount = os.environ.get('GP_MGMT_PROCESS_COUNT')
+        external_fts = is_external_fts()
         if options.parallel == 64 and proccount is not None:
             options.parallel = int(proccount)
+        
+        if external_fts and (options.fts_hosts or options.etcd_hosts):
+            ProgramArgumentValidationException("internal fts not suopport -F and -E")
 
         # -n sanity check
         if options.parallel > 128 or options.parallel < 1:
@@ -798,6 +892,13 @@ class GpStart:
         if args:
             raise ProgramArgumentValidationException(
                 "Argument %s is invalid.  Is an option missing a parameter?" % args[-1])
+        
+        if is_external_fts:
+            if options.fts_hosts is None:
+                coordinator_data_directory = os.getenv('COORDINATOR_DATA_DIRECTORY')
+                if coordinator_data_directory is None:
+                    coordinator_data_directory = options.coordinatorDataDirectory
+                options.fts_hosts = coordinator_data_directory + '/config' + '/fts_host'
 
         return GpStart(options.specialMode, options.restricted,
                        options.start_standby,
@@ -811,9 +912,13 @@ class GpStart:
                        wrapper_args=options.wrapper_args,
                        skip_standby_check=options.skip_standby_check,
                        logfileDirectory=logfileDirectory,
-                       skip_heap_checksum_validation=options.skip_heap_checksum_validation
+                       skip_heap_checksum_validation=options.skip_heap_checksum_validation,
+                       fts_hosts=options.fts_hosts,
+                       etcd_hosts=options.etcd_hosts,
+                       is_external_fts=external_fts
                        )
 
 
 if __name__ == '__main__':
+    check_deployment_mode('gpstart')
     simple_main(GpStart.createParser, GpStart.createProgram)

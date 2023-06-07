@@ -3,7 +3,7 @@
  * dbdirnode.h
  *	  Physical access information for database directories.
  *
- * Portions Copyright (c) 2009-2010, Greenplum inc
+ * Portions Copyright (c) 2009-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

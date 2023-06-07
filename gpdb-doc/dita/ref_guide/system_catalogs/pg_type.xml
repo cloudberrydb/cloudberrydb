@@ -237,7 +237,7 @@
             <entry colname="col3"/>
             <entry colname="col4">The alignment required when storing a value of this type. It
               applies to storage on disk as well as most representations of the value inside
-                Greenplum Database. When multiple values are stored consecutively,
+                Cloudberry Database. When multiple values are stored consecutively,
               such as in the representation of a complete row on disk, padding is inserted before a
               datum of this type so that it begins on the specified boundary. The alignment
               reference is the beginning of the first datum in the sequence. Possible values are:

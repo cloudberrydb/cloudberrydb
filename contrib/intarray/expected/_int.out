@@ -399,7 +399,7 @@ SELECT '1&(2&(4&(5|!6)))'::query_int;
 (1 row)
 
 CREATE TABLE test__int( a int[] );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \copy test__int from 'data/test__int.data'
 ANALYZE test__int;
@@ -433,6 +433,18 @@ SELECT count(*) from test__int WHERE a @> '{20,23}';
     12
 (1 row)
 
+SELECT count(*) from test__int WHERE a <@ '{73,23,20}';
+ count 
+-------
+    10
+(1 row)
+
+SELECT count(*) from test__int WHERE a = '{73,23,20}';
+ count 
+-------
+     1
+(1 row)
+
 SELECT count(*) from test__int WHERE a @@ '50&68';
  count 
 -------
@@ -451,6 +463,19 @@ SELECT count(*) from test__int WHERE a @@ '(20&23)|(50&68)';
     21
 (1 row)
 
+SELECT count(*) from test__int WHERE a @@ '20 | !21';
+ count 
+-------
+  6566
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '!20 & !21';
+ count 
+-------
+  6343
+(1 row)
+
+SET enable_seqscan = off;  -- not all of these would use index by default
 CREATE INDEX text_idx on test__int using gist ( a gist__int_ops );
 SELECT count(*) from test__int WHERE a && '{23,50}';
  count 
@@ -482,6 +507,18 @@ SELECT count(*) from test__int WHERE a @> '{20,23}';
     12
 (1 row)
 
+SELECT count(*) from test__int WHERE a <@ '{73,23,20}';
+ count 
+-------
+    10
+(1 row)
+
+SELECT count(*) from test__int WHERE a = '{73,23,20}';
+ count 
+-------
+     1
+(1 row)
+
 SELECT count(*) from test__int WHERE a @@ '50&68';
  count 
 -------
@@ -498,6 +535,178 @@ SELECT count(*) from test__int WHERE a @@ '(20&23)|(50&68)';
  count 
 -------
     21
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '20 | !21';
+ count 
+-------
+  6566
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '!20 & !21';
+ count 
+-------
+  6343
+(1 row)
+
+DROP INDEX text_idx;
+CREATE INDEX text_idx on test__int using gist (a gist__int_ops(numranges = 0));
+ERROR:  value 0 out of bounds for option "numranges"
+DETAIL:  Valid values are between "1" and "1020".
+CREATE INDEX text_idx on test__int using gist (a gist__int_ops(numranges = 1021));
+ERROR:  value 1021 out of bounds for option "numranges"
+DETAIL:  Valid values are between "1" and "1020".
+CREATE INDEX text_idx on test__int using gist (a gist__int_ops(numranges = 1020));
+SELECT count(*) from test__int WHERE a && '{23,50}';
+ count 
+-------
+   403
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '23|50';
+ count 
+-------
+   403
+(1 row)
+
+SELECT count(*) from test__int WHERE a @> '{23,50}';
+ count 
+-------
+    12
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '23&50';
+ count 
+-------
+    12
+(1 row)
+
+SELECT count(*) from test__int WHERE a @> '{20,23}';
+ count 
+-------
+    12
+(1 row)
+
+SELECT count(*) from test__int WHERE a <@ '{73,23,20}';
+ count 
+-------
+    10
+(1 row)
+
+SELECT count(*) from test__int WHERE a = '{73,23,20}';
+ count 
+-------
+     1
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '50&68';
+ count 
+-------
+     9
+(1 row)
+
+SELECT count(*) from test__int WHERE a @> '{20,23}' or a @> '{50,68}';
+ count 
+-------
+    21
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '(20&23)|(50&68)';
+ count 
+-------
+    21
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '20 | !21';
+ count 
+-------
+  6566
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '!20 & !21';
+ count 
+-------
+  6343
+(1 row)
+
+DROP INDEX text_idx;
+CREATE INDEX text_idx on test__int using gist (a gist__intbig_ops(siglen = 0));
+ERROR:  value 0 out of bounds for option "siglen"
+DETAIL:  Valid values are between "1" and "8168".
+CREATE INDEX text_idx on test__int using gist (a gist__intbig_ops(siglen = 8169));
+ERROR:  value 8169 out of bounds for option "siglen"
+DETAIL:  Valid values are between "1" and "8168".
+CREATE INDEX text_idx on test__int using gist (a gist__intbig_ops(siglen = 8168));
+SELECT count(*) from test__int WHERE a && '{23,50}';
+ count 
+-------
+   403
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '23|50';
+ count 
+-------
+   403
+(1 row)
+
+SELECT count(*) from test__int WHERE a @> '{23,50}';
+ count 
+-------
+    12
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '23&50';
+ count 
+-------
+    12
+(1 row)
+
+SELECT count(*) from test__int WHERE a @> '{20,23}';
+ count 
+-------
+    12
+(1 row)
+
+SELECT count(*) from test__int WHERE a <@ '{73,23,20}';
+ count 
+-------
+    10
+(1 row)
+
+SELECT count(*) from test__int WHERE a = '{73,23,20}';
+ count 
+-------
+     1
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '50&68';
+ count 
+-------
+     9
+(1 row)
+
+SELECT count(*) from test__int WHERE a @> '{20,23}' or a @> '{50,68}';
+ count 
+-------
+    21
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '(20&23)|(50&68)';
+ count 
+-------
+    21
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '20 | !21';
+ count 
+-------
+  6566
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '!20 & !21';
+ count 
+-------
+  6343
 (1 row)
 
 DROP INDEX text_idx;
@@ -532,6 +741,18 @@ SELECT count(*) from test__int WHERE a @> '{20,23}';
     12
 (1 row)
 
+SELECT count(*) from test__int WHERE a <@ '{73,23,20}';
+ count 
+-------
+    10
+(1 row)
+
+SELECT count(*) from test__int WHERE a = '{73,23,20}';
+ count 
+-------
+     1
+(1 row)
+
 SELECT count(*) from test__int WHERE a @@ '50&68';
  count 
 -------
@@ -548,6 +769,18 @@ SELECT count(*) from test__int WHERE a @@ '(20&23)|(50&68)';
  count 
 -------
     21
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '20 | !21';
+ count 
+-------
+  6566
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '!20 & !21';
+ count 
+-------
+  6343
 (1 row)
 
 DROP INDEX text_idx;
@@ -582,6 +815,18 @@ SELECT count(*) from test__int WHERE a @> '{20,23}';
     12
 (1 row)
 
+SELECT count(*) from test__int WHERE a <@ '{73,23,20}';
+ count 
+-------
+    10
+(1 row)
+
+SELECT count(*) from test__int WHERE a = '{73,23,20}';
+ count 
+-------
+     1
+(1 row)
+
 SELECT count(*) from test__int WHERE a @@ '50&68';
  count 
 -------
@@ -600,3 +845,16 @@ SELECT count(*) from test__int WHERE a @@ '(20&23)|(50&68)';
     21
 (1 row)
 
+SELECT count(*) from test__int WHERE a @@ '20 | !21';
+ count 
+-------
+  6566
+(1 row)
+
+SELECT count(*) from test__int WHERE a @@ '!20 & !21';
+ count 
+-------
+  6343
+(1 row)
+
+RESET enable_seqscan;

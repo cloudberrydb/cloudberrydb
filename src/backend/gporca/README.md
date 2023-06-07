@@ -5,13 +5,13 @@
                / / __/ /_/ / / / / /_/ / /   / /| |
               / /_/ / ____/ /_/ / _, _/ /___/ ___ |
               \____/_/    \____/_/ |_|\____/_/  |_|
-                  The Greenplum Query Optimizer
+                  The Cloudberry Query Optimizer
               Copyright (c) 2015, VMware, Inc. or its affiliates.
             Licensed under the Apache License, Version 2.0
 ======================================================================
 </pre>
 
-Welcome to GPORCA, the Greenplum Next Generation Query Optimizer!
+Welcome to GPORCA, the Cloudberry Next Generation Query Optimizer!
 
 To understand the objectives and architecture of GPORCA please refer to the following articles:
 * [Orca: A Modular Query Optimizer Architecture for Big Data](https://content.pivotal.io/white-papers/orca-a-modular-query-optimizer-architecture-for-big-data).

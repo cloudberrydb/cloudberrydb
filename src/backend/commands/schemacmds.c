@@ -3,9 +3,9 @@
  * schemacmds.c
  *	  schema creation/manipulation commands
  *
- * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 2005-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,9 +23,9 @@
 #include "catalog/heap.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
-#include "catalog/pg_authid.h"
 #include "catalog/objectaccess.h"
 #include "catalog/oid_dispatch.h"
+#include "catalog/pg_authid.h"
 #include "catalog/pg_namespace.h"
 #include "commands/dbcommands.h"
 #include "commands/event_trigger.h"
@@ -87,6 +87,16 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
 		Assert(stmt->schemaElts == NIL);
 
 		InitTempTableNamespace();
+		return InvalidOid;
+	}
+
+	if (stmt->pop_search_path)
+	{
+		Assert(Gp_role == GP_ROLE_EXECUTE);
+
+		/* Reset search path to normal state */
+		PopOverrideSearchPath();
+
 		return InvalidOid;
 	}
 
@@ -255,6 +265,7 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
 		/* do this step */
 		ProcessUtility(wrapper,
 					   queryString,
+					   false,
 					   PROCESS_UTILITY_SUBCOMMAND,
 					   NULL,
 					   NULL,
@@ -265,8 +276,29 @@ CreateSchemaCommand(CreateSchemaStmt *stmt, const char *queryString,
 		CommandCounterIncrement();
 	}
 
-	/* Reset search path to normal state */
-	PopOverrideSearchPath();
+	if (shouldDispatch)
+	{
+		elog(DEBUG5, "shouldDispatch = true, namespaceOid = %d, pop_search_path = true", namespaceId);
+
+		/*
+		 * Final dispatch to notify QE call PopOverrideSearchPath so that side effects
+		 * are not visible for later commands.
+		 */
+		stmt->pop_search_path = true;
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_CANCEL_ON_ERROR |
+									DF_WITH_SNAPSHOT |
+									DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
+									NULL);
+		stmt->pop_search_path = false;
+	}
+
+	if (Gp_role != GP_ROLE_EXECUTE)
+	{
+		/* Reset search path to normal state */
+		PopOverrideSearchPath();
+	}
 
 	/* Reset current user and security context */
 	SetUserIdAndSecContext(saved_uid, save_sec_context);

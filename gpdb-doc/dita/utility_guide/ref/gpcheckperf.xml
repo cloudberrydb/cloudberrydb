@@ -37,12 +37,12 @@
                     bandwidth (in MB/s). This tests that your system is not limited in performance
                     by the memory bandwidth of the system in relation to the computational
                     performance of the CPU. In applications where the data set is large (as in
-                    Greenplum Database), low memory bandwidth is a major performance issue. If
+                    Cloudberry Database), low memory bandwidth is a major performance issue. If
                     memory bandwidth is significantly lower than the theoretical bandwidth of the
                     CPU, then it can cause the CPU to spend significant amounts of time waiting for
                     data to arrive from system memory.</li>
                 <li id="jq141279"><b>Network Performance Test (gpnetbench*)</b> — To test network
-                    performance (and thereby the performance of the Greenplum Database
+                    performance (and thereby the performance of the Cloudberry Database
                     interconnect), the utility runs a network benchmark program that transfers a 5
                     second stream of data from the current host to each remote host included in the
                     test. The data is transferred in parallel to each remote host and the minimum,
@@ -71,7 +71,7 @@
                     <codeph>gpssh-exkeys</codeph> to update the known host files and exchange public
                 keys between hosts if you have not done so already. Note that
                     <codeph>gpcheckperf</codeph> calls to <codeph>gpssh</codeph> and
-                    <codeph>gpscp</codeph>, so these Greenplum utilities must also be in your
+                    <codeph>gpscp</codeph>, so these Cloudberry utilities must also be in your
                     <codeph>$PATH</codeph>.</p>
         </section>
         <section id="section4">
@@ -80,7 +80,7 @@
                 <plentry>
                     <pt>-B <varname>block_size</varname></pt>
                     <pd>Specifies the block size (in KB or MB) to use for disk I/O test. The default
-                        is 32KB, which is the same as the Greenplum Database page size. The maximum
+                        is 32KB, which is the same as the Cloudberry Database page size. The maximum
                         block size is 1 MB.</pd>
                 </plentry>
                 <plentry>
@@ -141,10 +141,10 @@ sdw3-1</codeblock>
                 <plentry>
                     <pt>--netperf</pt>
                     <pd>Specifies that the <codeph>netperf</codeph> binary should be used to perform
-                        the network test instead of the Greenplum network test. To use this option,
+                        the network test instead of the Cloudberry network test. To use this option,
                         you must download <codeph>netperf</codeph> from <xref
                             href="https://github.com/HewlettPackard/netperf" format="html" scope="external"/> and
-                        install it into <codeph>$GPHOME/bin/lib</codeph> on all Greenplum hosts
+                        install it into <codeph>$GPHOME/bin/lib</codeph> on all Cloudberry hosts
                         (coordinator and segments).</pd>
                 </plentry>
                 <plentry>
@@ -162,9 +162,9 @@ sdw3-1</codeblock>
                                     <varname>even</varname> number of hosts.<p>If you would rather
                                     use <codeph>netperf</codeph> (<xref
                                         href="https://github.com/HewlettPackard/netperf" format="html" scope="external"
-                                    />) instead of the Greenplum network test, you can download it
+                                    />) instead of the Cloudberry network test, you can download it
                                     and install it into <codeph>$GPHOME/bin/lib</codeph> on all
-                                    Greenplum hosts (coordinator and segments). You would then specify
+                                    Cloudberry hosts (coordinator and segments). You would then specify
                                     the optional <codeph>--netperf</codeph> option to use the
                                         <codeph>netperf</codeph> binary instead of the default
                                         <codeph>gpnetbench*</codeph> utilities.</p></li>
@@ -211,9 +211,9 @@ sdw3-1</codeblock>
                 address names within the same interconnect subnet:</p>
             <codeblock>$ gpcheckperf -f hostfile_gpchecknet_ic1 -r N -d /tmp
 $ gpcheckperf -f hostfile_gpchecknet_ic2 -r N -d /tmp</codeblock>
-            <p>Run the same test as above, but use <codeph>netperf</codeph> instead of the Greenplum
+            <p>Run the same test as above, but use <codeph>netperf</codeph> instead of the Cloudberry
                 network test (note that <codeph>netperf</codeph> must be installed in
-                    <codeph>$GPHOME/bin/lib</codeph> on all Greenplum hosts):</p>
+                    <codeph>$GPHOME/bin/lib</codeph> on all Cloudberry hosts):</p>
             <codeblock>$ gpcheckperf -f hostfile_gpchecknet_ic1 -r N --netperf -d /tmp
 $ gpcheckperf -f hostfile_gpchecknet_ic2 -r N --netperf -d /tmp</codeblock>
         </section>

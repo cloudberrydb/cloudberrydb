@@ -1,7 +1,7 @@
 /* src/interfaces/ecpg/preproc/ecpg.c */
 
 /* Main for ecpg, the PostgreSQL embedded SQL precompiler. */
-/* Copyright (c) 1996-2019, PostgreSQL Global Development Group */
+/* Copyright (c) 1996-2021, PostgreSQL Global Development Group */
 
 #include "postgres_fe.h"
 
@@ -28,7 +28,7 @@ struct _include_path *include_paths = NULL;
 struct cursor *cur = NULL;
 struct typedefs *types = NULL;
 struct _defines *defines = NULL;
-struct declared_name_st *g_declared_list = NULL;
+struct declared_list *g_declared_list = NULL;
 
 static void
 help(const char *progname)
@@ -59,7 +59,8 @@ help(const char *progname)
 	printf(_("  -?, --help     show this help, then exit\n"));
 	printf(_("\nIf no output file is specified, the name is formed by adding .c to the\n"
 			 "input file name, after stripping off .pgc if present.\n"));
-	printf(_("\nReport bugs to <bugs@greenplum.org>.\n"));
+	printf(_("\nReport bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }
 
 static void
@@ -110,48 +111,6 @@ add_preprocessor_define(char *define)
 	defines->pertinent = true;
 	defines->used = NULL;
 	defines->next = pd;
-}
-
-static void
-free_argument(struct arguments *arg)
-{
-	if (arg == NULL)
-		return;
-
-	free_argument(arg->next);
-
-	/*
-	 * Don't free variables in it because the original codes don't free it
-	 * either variables are static structures instead of allocating
-	 */
-	free(arg);
-}
-
-static void
-free_cursor(struct cursor *c)
-{
-	if (c == NULL)
-		return;
-
-	free_cursor(c->next);
-	free_argument(c->argsinsert);
-	free_argument(c->argsresult);
-
-	free(c->name);
-	free(c->function);
-	free(c->command);
-	free(c->prepared_name);
-	free(c);
-}
-
-static void
-free_declared_stmt(struct declared_name_st *st)
-{
-	if (st == NULL)
-		return;
-
-	free_declared_stmt(st->next);
-	free(st);
 }
 
 #define ECPG_GETOPT_LONG_REGRESSION		1
@@ -206,7 +165,7 @@ main(int argc, char *const argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			printf("ecpg (PostgreSQL %s) %s\n", PG_VERSION, GP_VERSION);
+			printf("ecpg (Cloudberry Database %s) %s\n", PG_VERSION, GP_VERSION);
 			exit(0);
 		}
 	}
@@ -265,7 +224,7 @@ main(int argc, char *const argv[])
 					snprintf(informix_path, MAXPGPATH, "%s/informix/esql", pkginclude_path);
 					add_include_path(informix_path);
 				}
-				else if (strncmp(optarg, "ORACLE", strlen("ORACLE")) == 0)
+				else if (pg_strcasecmp(optarg, "ORACLE") == 0)
 				{
 					compat = ECPG_COMPAT_ORACLE;
 				}
@@ -276,11 +235,11 @@ main(int argc, char *const argv[])
 				}
 				break;
 			case 'r':
-				if (strcmp(optarg, "no_indicator") == 0)
+				if (pg_strcasecmp(optarg, "no_indicator") == 0)
 					force_indicator = false;
-				else if (strcmp(optarg, "prepare") == 0)
+				else if (pg_strcasecmp(optarg, "prepare") == 0)
 					auto_prepare = true;
-				else if (strcmp(optarg, "questionmarks") == 0)
+				else if (pg_strcasecmp(optarg, "questionmarks") == 0)
 					questionmarks = true;
 				else
 				{
@@ -403,19 +362,40 @@ main(int argc, char *const argv[])
 				struct cursor *ptr;
 				struct _defines *defptr;
 				struct typedefs *typeptr;
+				struct declared_list *list;
 
 				/* remove old cursor definitions if any are still there */
-				if (cur)
+				for (ptr = cur; ptr != NULL;)
 				{
-					free_cursor(cur);
-					cur = NULL;
+					struct cursor *this = ptr;
+					struct arguments *l1,
+							   *l2;
+
+					free(ptr->command);
+					free(ptr->connection);
+					free(ptr->name);
+					for (l1 = ptr->argsinsert; l1; l1 = l2)
+					{
+						l2 = l1->next;
+						free(l1);
+					}
+					for (l1 = ptr->argsresult; l1; l1 = l2)
+					{
+						l2 = l1->next;
+						free(l1);
+					}
+					ptr = ptr->next;
+					free(this);
 				}
+				cur = NULL;
 
 				/* remove old declared statements if any are still there */
-				if (g_declared_list)
+				for (list = g_declared_list; list != NULL;)
 				{
-					free_declared_stmt(g_declared_list);
-					g_declared_list = NULL;
+					struct declared_list *this = list;
+
+					list = list->next;
+					free(this);
 				}
 
 				/* remove non-pertinent old defines as well */
@@ -532,18 +512,6 @@ main(int argc, char *const argv[])
 			}
 
 			free(input_filename);
-		}
-
-		if (g_declared_list)
-		{
-			free_declared_stmt(g_declared_list);
-			g_declared_list = NULL;
-		}
-
-		if (cur)
-		{
-			free_cursor(cur);
-			cur = NULL;
 		}
 	}
 	return ret_value;

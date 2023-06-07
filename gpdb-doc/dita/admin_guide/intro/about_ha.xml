@@ -2,30 +2,30 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Composite//EN"
 "ditabase.dtd">
 <topic id="about_ha" xml:lang="en">
-  <title id="iw157531">About Redundancy and Failover in Greenplum Database</title>
-  <shortdesc>This topic provides a high-level overview of Greenplum Database high availability
+  <title id="iw157531">About Redundancy and Failover in Cloudberry Database</title>
+  <shortdesc>This topic provides a high-level overview of Cloudberry Database high availability
     features.</shortdesc>
   <body>
-    <p>You can deploy Greenplum Database without a single point of failure by mirroring components.
+    <p>You can deploy Cloudberry Database without a single point of failure by mirroring components.
       The following sections describe the strategies for mirroring the main components of a
-      Greenplum system. For a more detailed overview of Greenplum high availability features, see
+      Cloudberry system. For a more detailed overview of Cloudberry high availability features, see
         <xref
         href="../highavail/topics/g-overview-of-high-availability-in-greenplum-database.xml#topic2"
       />.</p>
-    <note type="important">When data loss is not acceptable for a Greenplum Database cluster,
-      Greenplum master and segment mirroring is recommended. If mirroring is not enabled then
-      Greenplum stores only one copy of the data, so the underlying storage media provides the only
+    <note type="important">When data loss is not acceptable for a Cloudberry Database cluster,
+      Cloudberry master and segment mirroring is recommended. If mirroring is not enabled then
+      Cloudberry stores only one copy of the data, so the underlying storage media provides the only
       guarantee for data availability and correctness in the event of a hardware
         failure.<p>Kubernetes enables quick recovery from both pod and host failures, and Kubernetes
         storage services provide a high level of availability for the underlying data. Furthermore,
         virtualized environments make it difficult to ensure the anti-affinity guarantees required
-        for Greenplum mirroring solutions. For these reasons, mirrorless deployments are fully
-        supported with VMware Tanzu Greenplum for Kubernetes. Other deployment environments are
-        generally not supported for production use unless both Greenplum master and segment
+        for Cloudberry mirroring solutions. For these reasons, mirrorless deployments are fully
+        supported with VMware Tanzu Cloudberry for Kubernetes. Other deployment environments are
+        generally not supported for production use unless both Cloudberry master and segment
         mirroring are enabled.</p></note>
     <section id="segment_mirroring" xml:lang="en">
       <title id="iw157552">About Segment Mirroring</title>
-      <p>When you deploy your Greenplum Database system, you can configure <i>mirror</i> segment
+      <p>When you deploy your Cloudberry Database system, you can configure <i>mirror</i> segment
         instances. Mirror segments allow database queries to fail over to a backup segment if the
         primary segment becomes unavailable. The mirror segment is kept current by a transaction log
         replication process, which synchronizes the data between the primary and mirror instances.
@@ -37,7 +37,7 @@
         remaining hosts in the cluster in configurations designed to maximize availability, or
         minimize the performance degradation when hosts or multiple primary segments fail. </p>
       <p>Two standard mirroring configurations are available when you initialize or expand a
-        Greenplum system. The default configuration, called <i>group mirroring</i>, places all the
+        Cloudberry system. The default configuration, called <i>group mirroring</i>, places all the
         mirrors for a host's primary segments on one other host in the cluster. The other standard
         configuration, <i>spread mirroring</i>, can be selected with a command-line option. Spread
         mirroring spreads each host's mirrors over the remaining hosts and requires that there are
@@ -45,19 +45,19 @@
       <p><xref format="dita" href="#about_ha/iw157574" type="fig"/> shows how table data is
         distributed across segments when spread mirroring is configured.</p>
       <fig id="iw157574">
-        <title>Spread Mirroring in Greenplum Database</title>
+        <title>Spread Mirroring in Cloudberry Database</title>
         <image href="../graphics/spread-mirroring.png" placement="break" id="image_rvc_rfx_2fb"/>
       </fig>
     </section>
     <section id="segment_failover" xml:lang="en">
       <title>Segment Failover and Recovery</title>
-      <p>When segment mirroring is enabled in a Greenplum Database system, the system will
+      <p>When segment mirroring is enabled in a Cloudberry Database system, the system will
         automatically fail over to the <i>mirror segment</i> instance if a <i>primary segment</i>
-        instance becomes unavailable. A Greenplum Database system can remain operational if a
+        instance becomes unavailable. A Cloudberry Database system can remain operational if a
         segment instance or host goes down as long as all the data is available on the remaining
         active segment instances.</p>
       <p>If the master cannot connect to a segment instance, it marks that segment instance as down
-        in the Greenplum Database system catalog and brings up the mirror segment in its place. A
+        in the Cloudberry Database system catalog and brings up the mirror segment in its place. A
         failed segment instance will remain out of operation until an administrator takes steps to
         bring that segment back online. An administrator can recover a failed segment while the
         system is up and running. The recovery process copies over only the changes that were missed
@@ -77,7 +77,7 @@
         be activated in its place. The switchover does not happen automatically, but must be
         triggered externally. Upon activation of the standby master, the replicated logs are used to
         reconstruct the state of the master host at the time of the last successfully committed
-        transaction. The activated standby master effectively becomes the Greenplum Database master,
+        transaction. The activated standby master effectively becomes the Cloudberry Database master,
         accepting client connections on the master port (which must be set to the same port number
         on the master host and the backup master host).</p>
       <p>Since the master does not contain any user data, only the system catalog tables need to be
@@ -85,7 +85,7 @@
         are automatically copied over to the standby master to ensure synchronization with the
         primary master.</p>
       <fig id="iw157606">
-        <title>Master Mirroring in Greenplum Database</title>
+        <title>Master Mirroring in Cloudberry Database</title>
         <image height="165px" href="../graphics/standby_master.jpg" placement="break" width="271px"
         />
       </fig>
@@ -95,7 +95,7 @@
       <p>The <i>interconnect</i> refers to the inter-process communication between the segments and
         the network infrastructure on which this communication relies. You can achieve a highly
         available interconnect using by deploying dual Gigabit Ethernet switches on your network and
-        redundant Gigabit connections to the Greenplum Database host (master and segment) servers.
+        redundant Gigabit connections to the Cloudberry Database host (master and segment) servers.
         For performance reasons, 10-Gb Ethernet, or faster, is recommended. </p>
     </section>
   </body>

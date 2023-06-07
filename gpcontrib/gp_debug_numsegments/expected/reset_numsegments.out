@@ -29,13 +29,13 @@ select gp_debug_get_create_table_default_numsegments();
 (1 row)
 
 create table t_reset_random (c1 int, c2 int) distributed by (c1);
-select localoid::regclass, attrnums, policytype
+select localoid::regclass, policytype
   from gp_distribution_policy
  where localoid='t_reset_random'::regclass
    and numsegments between 1 and 3;
-    localoid    | attrnums | policytype 
-----------------+----------+------------
- t_reset_random | {1}      | p
+    localoid    | policytype 
+----------------+------------
+ t_reset_random | p
 (1 row)
 
 drop table t_reset_random;
@@ -128,22 +128,22 @@ select gp_debug_get_create_table_default_numsegments();
 (1 row)
 
 create table t_reset_3 (c1 int, c2 int) distributed by (c1);
-select c.relname, d.attrnums, d.policytype, d.numsegments
+select c.relname, d.policytype, d.numsegments
   from gp_distribution_policy d
   join pg_class c
     on d.localoid=c.oid
    and c.relname like 't_reset_%';
-     relname     | attrnums | policytype | numsegments 
------------------+----------+------------+-------------
- t_reset_first   | {1}      | p          |           3
- t_reset_full    | {1}      | p          |           3
- t_reset_minimal | {1}      | p          |           1
- t_reset_FULL    | {1}      | p          |           3
- t_reset_Full    | {1}      | p          |           3
- t_reset_fulL    | {1}      | p          |           3
- t_reset_1       | {1}      | p          |           1
- t_reset_2       | {1}      | p          |           2
- t_reset_3       | {1}      | p          |           3
+     relname     | policytype | numsegments 
+-----------------+------------+-------------
+ t_reset_first   | p          |           3
+ t_reset_full    | p          |           3
+ t_reset_minimal | p          |           1
+ t_reset_FULL    | p          |           3
+ t_reset_Full    | p          |           3
+ t_reset_fulL    | p          |           3
+ t_reset_1       | p          |           1
+ t_reset_2       | p          |           2
+ t_reset_3       | p          |           3
 (9 rows)
 
 --

@@ -151,7 +151,7 @@ pgstatindex(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);
@@ -193,7 +193,7 @@ pgstatindexbyid(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	rel = relation_open(relid, AccessShareLock);
 
@@ -283,8 +283,12 @@ pgstatindex_impl(Relation rel, FunctionCallInfo fcinfo)
 		page = BufferGetPage(buffer);
 		opaque = (BTPageOpaque) PageGetSpecialPointer(page);
 
-		/* Determine page type, and update totals */
-
+		/*
+		 * Determine page type, and update totals.
+		 *
+		 * Note that we arbitrarily bucket deleted pages together without
+		 * considering if they're leaf pages or internal pages.
+		 */
 		if (P_ISDELETED(opaque))
 			indexStat.deleted_pages++;
 		else if (P_IGNORE(opaque))
@@ -386,7 +390,7 @@ pg_relpages(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	relrv = makeRangeVarFromNameList(textToQualifiedNameList(relname));
 	rel = relation_openrv(relrv, AccessShareLock);
@@ -438,7 +442,7 @@ pg_relpagesbyid(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	rel = relation_open(relid, AccessShareLock);
 
@@ -492,7 +496,7 @@ pgstatginindex(PG_FUNCTION_ARGS)
 	if (!superuser())
 		ereport(ERROR,
 				(errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
-				 (errmsg("must be superuser to use pgstattuple functions"))));
+				 errmsg("must be superuser to use pgstattuple functions")));
 
 	PG_RETURN_DATUM(pgstatginindex_internal(relid, fcinfo));
 }
@@ -727,7 +731,7 @@ pgstathashindex(PG_FUNCTION_ARGS)
 }
 
 /* -------------------------------------------------
- * GetHashPageStatis()
+ * GetHashPageStats()
  *
  * Collect statistics of single hash page
  * -------------------------------------------------

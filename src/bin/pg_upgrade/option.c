@@ -1,9 +1,9 @@
 /*
- *	opt.c
+ *	option.c
  *
  *	options functions
  *
- *	Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ *	Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *	src/bin/pg_upgrade/option.c
  */
 
@@ -14,17 +14,17 @@
 #include <io.h>
 #endif
 
+#include "common/string.h"
 #include "getopt_long.h"
-#include "utils/pidfile.h"
-
 #include "pg_upgrade.h"
+#include "utils/pidfile.h"
 #include "greenplum/pg_upgrade_greenplum.h"
-
 
 static void usage(void);
 static void check_required_directory(char **dirpath,
 									 const char *envVarName, bool useCwd,
-									 const char *cmdLineOption, const char *description);
+									 const char *cmdLineOption, const char *description,
+									 bool missingOk);
 #define FIX_DEFAULT_READ_ONLY "-c default_transaction_read_only=false"
 
 
@@ -58,7 +58,7 @@ parseCommandLine(int argc, char *argv[])
 		{"verbose", no_argument, NULL, 'v'},
 		{"clone", no_argument, NULL, 1},
 
-		/* Greenplum specific parameters */
+		/* Cloudberry specific parameters */
 		GREENPLUM_OPTIONS
 
 		{NULL, 0, NULL, 0}
@@ -99,7 +99,7 @@ parseCommandLine(int argc, char *argv[])
 		}
 		if (strcmp(argv[1], "--version") == 0 || strcmp(argv[1], "-V") == 0)
 		{
-			puts("pg_upgrade (PostgreSQL) " PG_VERSION);
+			puts("pg_upgrade (Cloudberry Database) " PG_VERSION);
 			exit(0);
 		}
 	}
@@ -174,18 +174,12 @@ parseCommandLine(int argc, char *argv[])
 				 */
 			case 'p':
 				if ((old_cluster.port = atoi(optarg)) <= 0)
-				{
 					pg_fatal("invalid old port number\n");
-					exit(1);
-				}
 				break;
 
 			case 'P':
 				if ((new_cluster.port = atoi(optarg)) <= 0)
-				{
 					pg_fatal("invalid new port number\n");
-					exit(1);
-				}
 				break;
 
 			case 'r':
@@ -205,7 +199,7 @@ parseCommandLine(int argc, char *argv[])
 				 * Push the user name into the environment so pre-9.1
 				 * pg_ctl/libpq uses it.
 				 */
-				pg_putenv("PGUSER", os_info.user);
+				setenv("PGUSER", os_info.user, 1);
 				break;
 
 			case 'v':
@@ -226,6 +220,9 @@ parseCommandLine(int argc, char *argv[])
 				break;
 		}
 	}
+
+	if (optind < argc)
+		pg_fatal("too many command-line arguments (first is \"%s\")\n", argv[optind]);
 
 	if ((log_opts.internal = fopen_priv(INTERNAL_LOG_FILE, "a")) == NULL)
 		pg_fatal("could not open log file \"%s\": %m\n", INTERNAL_LOG_FILE);
@@ -254,23 +251,23 @@ parseCommandLine(int argc, char *argv[])
 		char	   *pgoptions = psprintf("%s %s", FIX_DEFAULT_READ_ONLY,
 										 getenv("PGOPTIONS"));
 
-		pg_putenv("PGOPTIONS", pgoptions);
+		setenv("PGOPTIONS", pgoptions, 1);
 		pfree(pgoptions);
 	}
 	else
-		pg_putenv("PGOPTIONS", FIX_DEFAULT_READ_ONLY);
+		setenv("PGOPTIONS", FIX_DEFAULT_READ_ONLY, 1);
 
 	/* Get values from env if not already set */
 	check_required_directory(&old_cluster.bindir, "PGBINOLD", false,
-							 "-b", _("old cluster binaries reside"));
+							 "-b", _("old cluster binaries reside"), false);
 	check_required_directory(&new_cluster.bindir, "PGBINNEW", false,
-							 "-B", _("new cluster binaries reside"));
+							 "-B", _("new cluster binaries reside"), true);
 	check_required_directory(&old_cluster.pgdata, "PGDATAOLD", false,
-							 "-d", _("old cluster data resides"));
+							 "-d", _("old cluster data resides"), false);
 	check_required_directory(&new_cluster.pgdata, "PGDATANEW", false,
-							 "-D", _("new cluster data resides"));
+							 "-D", _("new cluster data resides"), false);
 	check_required_directory(&user_opts.socketdir, "PGSOCKETDIR", true,
-							 "-s", _("sockets will be created"));
+							 "-s", _("sockets will be created"), false);
 
 	/* Ensure we are only adding checksums in copy mode */
 	if (user_opts.transfer_mode != TRANSFER_MODE_COPY &&
@@ -303,23 +300,24 @@ parseCommandLine(int argc, char *argv[])
 static void
 usage(void)
 {
-	printf(_("pg_upgrade upgrades a Greenplum cluster to a different major version.\n\n"));
+	printf(_("pg_upgrade upgrades a Cloudberry cluster to a different major version.\n\n"));
 	printf(_("Usage:\n"));
 	printf(_("  pg_upgrade [OPTION]...\n\n"));
 	printf(_("Options:\n"));
 	printf(_("  -b, --old-bindir=BINDIR       old cluster executable directory\n"));
-	printf(_("  -B, --new-bindir=BINDIR       new cluster executable directory\n"));
+	printf(_("  -B, --new-bindir=BINDIR       new cluster executable directory (default\n"
+			 "                                same directory as pg_upgrade)\n"));
 	printf(_("  -c, --check                   check clusters only, don't change any data\n"));
 	printf(_("  -d, --old-datadir=DATADIR     old cluster data directory\n"));
 	printf(_("  -D, --new-datadir=DATADIR     new cluster data directory\n"));
-	printf(_("  -j, --jobs                    number of simultaneous processes or threads to use\n"));
+	printf(_("  -j, --jobs=NUM                number of simultaneous processes or threads to use\n"));
 	printf(_("  -k, --link                    link instead of copying files to new cluster\n"));
 	printf(_("  -o, --old-options=OPTIONS     old cluster options to pass to the server\n"));
 	printf(_("  -O, --new-options=OPTIONS     new cluster options to pass to the server\n"));
 	printf(_("  -p, --old-port=PORT           old cluster port number (default %d)\n"), old_cluster.port);
 	printf(_("  -P, --new-port=PORT           new cluster port number (default %d)\n"), new_cluster.port);
 	printf(_("  -r, --retain                  retain SQL and log files after success\n"));
-	printf(_("  -s, --socketdir=DIR           socket directory to use (default CWD)\n"));
+	printf(_("  -s, --socketdir=DIR           socket directory to use (default current dir.)\n"));
 	printf(_("  -U, --username=NAME           cluster superuser (default \"%s\")\n"), os_info.user);
 	printf(_("  -v, --verbose                 enable verbose internal logging\n"));
 	printf(_("  -V, --version                 display version information, then exit\n"));
@@ -353,7 +351,8 @@ usage(void)
 			 "  C:\\> set PGBINNEW=newCluster/bin\n"
 			 "  C:\\> pg_upgrade\n"));
 #endif
-	printf(_("\nReport bugs to <bugs@greenplum.org>.\n"));
+	printf(_("\nReport bugs to <%s>.\n"), PACKAGE_BUGREPORT);
+	printf(_("%s home page: <%s>\n"), PACKAGE_NAME, PACKAGE_URL);
 }
 
 
@@ -366,13 +365,15 @@ usage(void)
  *	useCwd		  - true if OK to default to CWD
  *	cmdLineOption - the command line option for this directory
  *	description   - a description of this directory option
+ *	missingOk	  - true if OK that both dirpath and envVarName are not existing
  *
  * We use the last two arguments to construct a meaningful error message if the
  * user hasn't provided the required directory name.
  */
 static void
 check_required_directory(char **dirpath, const char *envVarName, bool useCwd,
-						 const char *cmdLineOption, const char *description)
+						 const char *cmdLineOption, const char *description,
+						 bool missingOk)
 {
 	if (*dirpath == NULL || strlen(*dirpath) == 0)
 	{
@@ -388,6 +389,8 @@ check_required_directory(char **dirpath, const char *envVarName, bool useCwd,
 				pg_fatal("could not determine current directory\n");
 			*dirpath = pg_strdup(cwd);
 		}
+		else if (missingOk)
+			return;
 		else
 			pg_fatal("You must identify the directory where the %s.\n"
 					 "Please use the %s command-line option or the %s environment variable.\n",
@@ -460,9 +463,8 @@ adjust_data_dir(ClusterInfo *cluster)
 
 	pclose(output);
 
-	/* Remove trailing newline */
-	if (strchr(cmd_output, '\n') != NULL)
-		*strchr(cmd_output, '\n') = '\0';
+	/* strip trailing newline and carriage return */
+	(void) pg_strip_crlf(cmd_output);
 
 	cluster->pgdata = pg_strdup(cmd_output);
 
@@ -481,7 +483,7 @@ adjust_data_dir(ClusterInfo *cluster)
 void
 get_sock_dir(ClusterInfo *cluster, bool live_check)
 {
-#ifdef HAVE_UNIX_SOCKETS
+#if defined(HAVE_UNIX_SOCKETS) && !defined(WIN32)
 
 	/*
 	 * sockdir and port were added to postmaster.pid in PG 9.1. Pre-9.1 cannot
@@ -523,10 +525,9 @@ get_sock_dir(ClusterInfo *cluster, bool live_check)
 					sscanf(line, "%hu", &old_cluster.port);
 				if (lineno == LOCK_FILE_LINE_SOCKET_DIR)
 				{
+					/* strip trailing newline and carriage return */
 					cluster->sockdir = pg_strdup(line);
-					/* strip off newline */
-					if (strchr(cluster->sockdir, '\n') != NULL)
-						*strchr(cluster->sockdir, '\n') = '\0';
+					(void) pg_strip_crlf(cluster->sockdir);
 				}
 			}
 			fclose(fp);
@@ -544,7 +545,7 @@ get_sock_dir(ClusterInfo *cluster, bool live_check)
 		 * default
 		 */
 		cluster->sockdir = NULL;
-#else							/* !HAVE_UNIX_SOCKETS */
+#else							/* !HAVE_UNIX_SOCKETS || WIN32 */
 	cluster->sockdir = NULL;
 #endif
 }

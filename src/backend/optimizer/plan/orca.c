@@ -8,7 +8,7 @@
  * some supporting routines for planning with ORCA are contained herein.
  *
  * Portions Copyright (c) 2010-Present, VMware, Inc. or its affiliates
- * Portions Copyright (c) 2005-2010, Greenplum inc
+ * Portions Copyright (c) 2005-2010, Cloudberry inc
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -794,8 +794,8 @@ var_for_grouped_window_expr(grouped_window_ctx * ctx, Node *expr, bool force)
 		var->vartypmod = exprTypmod((Node *) tle->expr);
 		var->varcollid = exprCollation((Node *) tle->expr);
 		var->varlevelsup = 0;
-		var->varnoold = 1;
-		var->varoattno = tle->resno;
+		var->varnosyn = 1;
+		var->varattnosyn = tle->resno;
 		var->location = 0;
 	}
 

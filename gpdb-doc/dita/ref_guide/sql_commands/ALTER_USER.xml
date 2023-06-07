@@ -46,7 +46,7 @@ ALTER USER <varname>name</varname> [ [WITH] <varname>option</varname> [ ... ] ]<
         </section>
         <section id="section4">
             <title>Compatibility</title>
-            <p>The <codeph>ALTER USER</codeph> statement is a Greenplum Database extension. The SQL
+            <p>The <codeph>ALTER USER</codeph> statement is a Cloudberry Database extension. The SQL
                 standard leaves the definition of users to the implementation.</p>
         </section>
         <section id="section5">

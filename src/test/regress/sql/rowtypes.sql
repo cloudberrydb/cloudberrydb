@@ -73,6 +73,10 @@ select * from people;
 
 insert into quadtable (f1, q.c1.r, q.c2.i) values(44,55,66);
 
+update quadtable set q.c1.r = 12 where f1 = 2;
+
+update quadtable set q.c1 = 12;  -- error, type mismatch
+
 select * from quadtable;
 
 -- The object here is to ensure that toasted references inside
@@ -184,6 +188,15 @@ where i8 in (row(123,456)::int8_tbl, '(4567890123456789,123)');
 
 select * from int8_tbl i8
 where i8 in (row(123,456)::int8_tbl, '(4567890123456789,123)');
+
+-- Check ability to select columns from an anonymous rowtype
+select (row(1, 2.0)).f1;
+select (row(1, 2.0)).f2;
+select (row(1, 2.0)).nosuch;  -- fail
+select (row(1, 2.0)).*;
+select (r).f1 from (select row(1, 2.0) as r) ss;
+select (r).f3 from (select row(1, 2.0) as r) ss;  -- fail
+select (r).* from (select row(1, 2.0) as r) ss;
 
 -- Check some corner cases involving empty rowtypes
 select ROW();
@@ -418,12 +431,10 @@ select longname(f) from fullname f;
 --
 
 select row_to_json(i) from int8_tbl i;
+-- since "i" is of type "int8_tbl", attaching aliases doesn't change anything:
 select row_to_json(i) from int8_tbl i(x,y);
 
-create temp view vv1 as select * from int8_tbl;
-select row_to_json(i) from vv1 i;
-select row_to_json(i) from vv1 i(x,y);
-
+-- in these examples, we'll report the exposed column names of the subselect:
 select row_to_json(ss) from
   (select q1, q2 from int8_tbl) as ss;
 select row_to_json(ss) from

@@ -4,9 +4,9 @@
  * External declarations pertaining to backend/utils/misc/guc.c and
  * backend/utils/misc/guc-file.l
  *
- * Portions Copyright (c) 2007-2010, Greenplum inc
+ * Portions Copyright (c) 2007-2010, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  * Written by Peter Eisentraut <peter_e@gmx.net>.
  *
  * src/include/utils/guc.h
@@ -108,13 +108,12 @@ typedef enum
  * dividing line between "interactive" and "non-interactive" sources for
  * error reporting purposes.
  *
- * PGC_S_TEST is used when testing values to be used later ("doit" will always
- * be false, so this never gets stored as the actual source of any value).
- * For example, ALTER DATABASE/ROLE tests proposed per-database or per-user
- * defaults this way, and CREATE FUNCTION tests proposed function SET clauses
- * this way.  This is an interactive case, but it needs its own source value
- * because some assign hooks need to make different validity checks in this
- * case.  In particular, references to nonexistent database objects generally
+ * PGC_S_TEST is used when testing values to be used later.  For example,
+ * ALTER DATABASE/ROLE tests proposed per-database or per-user defaults this
+ * way, and CREATE FUNCTION tests proposed function SET clauses this way.
+ * This is an interactive case, but it needs its own source value because
+ * some assign hooks need to make different validity checks in this case.
+ * In particular, references to nonexistent database objects generally
  * shouldn't throw hard errors in this case, at most NOTICEs, since the
  * objects might exist by the time the setting is used for real.
  *
@@ -174,6 +173,7 @@ extern bool ParseConfigDirectory(const char *includedir,
 								 ConfigVariable **head_p,
 								 ConfigVariable **tail_p);
 extern void FreeConfigVariables(ConfigVariable *list);
+extern char *DeescapeQuotedString(const char *s);
 
 /*
  * The possible values of an enum variable are specified by an array of
@@ -264,7 +264,6 @@ extern List *gp_guc_restore_list;
 extern bool gp_guc_need_restore;
 
 /* GUC vars that are actually declared in guc.c, rather than elsewhere */
-extern bool log_duration;
 extern bool Debug_print_plan;
 extern bool Debug_print_parse;
 extern bool Debug_print_rewritten;
@@ -333,7 +332,6 @@ extern int rep_lag_avoidance_threshold;
 extern bool gp_maintenance_mode;
 extern bool gp_maintenance_conn;
 extern bool allow_segment_DML;
-extern bool gp_allow_rename_relation_without_lock;
 
 extern bool gp_ignore_error_table;
 
@@ -350,13 +348,19 @@ extern bool log_btree_build_stats;
 extern PGDLLIMPORT bool check_function_bodies;
 extern bool session_auth_is_superuser;
 
+extern bool log_duration;
+extern int	log_parameter_max_length;
+extern int	log_parameter_max_length_on_error;
 extern int	log_min_error_statement;
 extern PGDLLIMPORT int log_min_messages;
 extern PGDLLIMPORT int client_min_messages;
+extern int	log_min_duration_sample;
 extern int	log_min_duration_statement;
 extern int	log_temp_files;
 extern double log_statement_sample_rate;
 extern double log_xact_sample_rate;
+extern char *backtrace_functions;
+extern char *backtrace_symbol_list;
 
 extern int	temp_file_limit;
 
@@ -606,6 +610,9 @@ extern bool gp_external_enable_filter_pushdown;
 /* Enable the Global Deadlock Detector */
 extern bool gp_enable_global_deadlock_detector;
 
+extern bool gp_enable_predicate_pushdown;
+extern int  gp_predicate_pushdown_sample_rows;
+
 typedef enum
 {
 	INDEX_CHECK_NONE,
@@ -629,8 +636,7 @@ extern IndexCheckType gp_indexcheck_insert;
 extern void SetConfigOption(const char *name, const char *value,
 							GucContext context, GucSource source);
 
-extern void DefineCustomBoolVariable(
-									 const char *name,
+extern void DefineCustomBoolVariable(const char *name,
 									 const char *short_desc,
 									 const char *long_desc,
 									 bool *valueAddr,
@@ -641,8 +647,7 @@ extern void DefineCustomBoolVariable(
 									 GucBoolAssignHook assign_hook,
 									 GucShowHook show_hook);
 
-extern void DefineCustomIntVariable(
-									const char *name,
+extern void DefineCustomIntVariable(const char *name,
 									const char *short_desc,
 									const char *long_desc,
 									int *valueAddr,
@@ -655,8 +660,7 @@ extern void DefineCustomIntVariable(
 									GucIntAssignHook assign_hook,
 									GucShowHook show_hook);
 
-extern void DefineCustomRealVariable(
-									 const char *name,
+extern void DefineCustomRealVariable(const char *name,
 									 const char *short_desc,
 									 const char *long_desc,
 									 double *valueAddr,
@@ -669,8 +673,7 @@ extern void DefineCustomRealVariable(
 									 GucRealAssignHook assign_hook,
 									 GucShowHook show_hook);
 
-extern void DefineCustomStringVariable(
-									   const char *name,
+extern void DefineCustomStringVariable(const char *name,
 									   const char *short_desc,
 									   const char *long_desc,
 									   char **valueAddr,
@@ -681,8 +684,7 @@ extern void DefineCustomStringVariable(
 									   GucStringAssignHook assign_hook,
 									   GucShowHook show_hook);
 
-extern void DefineCustomEnumVariable(
-									 const char *name,
+extern void DefineCustomEnumVariable(const char *name,
 									 const char *short_desc,
 									 const char *long_desc,
 									 int *valueAddr,
@@ -708,6 +710,7 @@ extern void AtStart_GUC(void);
 extern int	NewGUCNestLevel(void);
 extern void AtEOXact_GUC(bool isCommit, int nestLevel);
 extern void BeginReportingGUCOptions(void);
+extern void ReportChangedGUCOptions(void);
 extern void ParseLongOption(const char *string, char **name, char **value);
 extern bool parse_int(const char *value, int *result, int flags,
 					  const char **hintmsg);
@@ -717,7 +720,7 @@ extern int	set_config_option(const char *name, const char *value,
 							  GucContext context, GucSource source,
 							  GucAction action, bool changeVal, int elevel,
 							  bool is_reload);
-extern void AlterSystemSetConfigFile(AlterSystemStmt *setstmt);
+extern void AlterSystemSetConfigFile(AlterSystemStmt *altersysstmt);
 extern char *GetConfigOptionByName(const char *name, const char **varname,
 								   bool missing_ok);
 extern void GetConfigOptionByNum(int varnum, const char **values, bool *noshow);
@@ -742,7 +745,7 @@ extern void pg_timezone_abbrev_initialize(void);
 extern List *gp_guc_list_show(GucSource excluding, List *guclist);
 
 extern struct config_generic *find_option(const char *name,
-				bool create_placeholders, int elevel);
+				bool create_placeholders, bool skip_errors, int elevel);
 
 extern void set_gp_replication_config(const char *name, const char *value);
 

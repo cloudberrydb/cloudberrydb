@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * explain_gp.c
- *	  Functions supporting the Greenplum extensions to EXPLAIN ANALYZE
+ *	  Functions supporting the Cloudberry extensions to EXPLAIN ANALYZE
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -65,8 +65,11 @@ typedef struct CdbExplain_StatInst
 
 	TuplesortInstrumentation sortstats; /* Sort stats, if this is a Sort node */
 	HashInstrumentation hashstats; /* Hash stats, if this is a Hash node */
+	IncrementalSortGroupInfo fullsortGroupInfo; /* Full sort group info for Incremental Sort node */
+	IncrementalSortGroupInfo prefixsortGroupInfo; /* Prefix sort group info for Incremental Sort node */
 	int			bnotes;			/* Offset to beginning of node's extra text */
 	int			enotes;			/* Offset to end of node's extra text */
+	WalUsage	walusage;		/* add WAL usage */
 } CdbExplain_StatInst;
 
 
@@ -835,6 +838,7 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 	si->workfileCreated = instr->workfileCreated;
 	si->firststart = instr->firststart;
 	si->numPartScanned = instr->numPartScanned;
+        memcpy(&si->walusage, &instr->walusage, sizeof(WalUsage));
 
 	if (IsA(planstate, SortState))
 	{
@@ -847,7 +851,19 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 		HashState *hashstate = (HashState *) planstate;
 
 		if (hashstate->hashtable)
-			ExecHashGetInstrumentation(&si->hashstats, hashstate->hashtable);
+			ExecHashAccumInstrumentation(&si->hashstats, hashstate->hashtable);
+	}
+	if (IsA(planstate, IncrementalSortState))
+	{
+		IncrementalSortState *incrementalstate = (IncrementalSortState*) planstate;
+
+		memcpy(&si->fullsortGroupInfo,
+			   &incrementalstate->incsort_info.fullsortGroupInfo,
+			   sizeof(IncrementalSortGroupInfo));
+
+		memcpy(&si->prefixsortGroupInfo,
+			   &incrementalstate->incsort_info.prefixsortGroupInfo,
+			   sizeof(IncrementalSortGroupInfo));
 	}
 }								/* cdbexplain_collectStatsFromNode */
 
@@ -950,7 +966,7 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 {
 	Instrumentation *instr = planstate->instrument;
 	CdbExplain_StatHdr *rsh;	/* The header (which includes StatInst) */
-	CdbExplain_StatInst *rsi;	/* The current StatInst */
+	CdbExplain_StatInst *rsi = NULL;	/* The current StatInst */
 
 	/*
 	 * Points to the insts array of node summary (CdbExplain_NodeSummary).
@@ -1002,7 +1018,6 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 		for (int j = 0; j < NUM_SORT_SPACE_TYPE; j++)
 		{
 			cdbexplain_depStatAcc_init0(&sortSpaceUsed[j][i]);
-			cdbexplain_depStatAcc_init0(&sortSpaceUsed[j][i]);
 		}
 	}
 
@@ -1050,14 +1065,6 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 									  (double) rsi->sortstats.spaceUsed, rsh, rsi, nsi);
 		}
 
-		Assert(rsi->sortstats.sortMethod < NUM_SORT_METHOD);
-		Assert(rsi->sortstats.spaceType < NUM_SORT_SPACE_TYPE);
-		if (rsi->sortstats.sortMethod != SORT_TYPE_STILL_IN_PROGRESS)
-		{
-			cdbexplain_depStatAcc_upd(&sortSpaceUsed[rsi->sortstats.spaceType][rsi->sortstats.sortMethod],
-									  (double) rsi->sortstats.spaceUsed, rsh, rsi, nsi);
-		}
-
 		/* Update per-slice accumulators. */
 		cdbexplain_depStatAcc_upd(&peakmemused, rsh->worker.peakmemused, rsh, rsi, nsi);
 		cdbexplain_depStatAcc_upd(&vmem_reserved, rsh->worker.vmem_reserved, rsh, rsi, nsi);
@@ -1074,7 +1081,6 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 	{
 		for (int j = 0; j < NUM_SORT_SPACE_TYPE; j++)
 		{
-			ns->sortSpaceUsed[j][i] = sortSpaceUsed[j][i].agg;
 			ns->sortSpaceUsed[j][i] = sortSpaceUsed[j][i].agg;
 		}
 	}
@@ -1198,6 +1204,31 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 		}
 
 		hashstate->shared_info = shared_state;
+	}
+	if (IsA(planstate, IncrementalSortState))
+	{
+		IncrementalSortState *incrementalstate = (IncrementalSortState *) planstate;
+
+		memcpy(&incrementalstate->incsort_info.fullsortGroupInfo,
+			   &rsi->fullsortGroupInfo,
+			   sizeof(IncrementalSortGroupInfo));
+
+		memcpy(&incrementalstate->incsort_info.prefixsortGroupInfo,
+			   &rsi->prefixsortGroupInfo,
+			   sizeof(IncrementalSortGroupInfo));
+	}
+	if (planstate->instrument && planstate->instrument->need_walusage)
+	{
+		/* Gather the wal statistics from each qExec. */
+		for (imsgptr = 0; imsgptr < ctx->nmsgptr; imsgptr++)
+		{
+			rsh = ctx->msgptrs[imsgptr];
+			rsi = &rsh->inst[ctx->iStatInst];
+			WalUsage *walusage = &planstate->instrument->walusage;
+			walusage->wal_bytes += rsi->walusage.wal_bytes;
+			walusage->wal_fpi += rsi->walusage.wal_fpi;
+			walusage->wal_records += rsi->walusage.wal_records;
+		}
 	}
 }								/* cdbexplain_depositStatsToNode */
 
@@ -1670,7 +1701,7 @@ cdbexplain_showExecStats(struct PlanState *planstate, ExplainState *es)
  *			External API wrapper for cdbexplain_showExecStatsEnd
  *
  * This is an externally exposed wrapper for cdbexplain_showExecStatsEnd such
- * that extensions, such as auto_explain, can leverage the Greenplum specific
+ * that extensions, such as auto_explain, can leverage the Cloudberry specific
  * parts of the EXPLAIN machinery.
  */
 void
@@ -2058,9 +2089,9 @@ show_motion_keys(PlanState *planstate, List *hashExpr, int nkeys, AttrNumber *ke
 		return;
 
 	/* Set up deparse context */
-	context = set_deparse_context_planstate(es->deparse_cxt,
-											(Node *) planstate,
-											ancestors);
+	context = set_deparse_context_plan(es->deparse_cxt,
+									   plan,
+									   ancestors);
 
     /* Merge Receive ordering key */
     for (keyno = 0; keyno < nkeys; keyno++)

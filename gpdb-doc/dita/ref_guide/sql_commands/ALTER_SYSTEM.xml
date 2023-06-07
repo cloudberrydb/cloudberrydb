@@ -58,7 +58,7 @@ ALTER SYSTEM RESET ALL</codeblock>
     </section>
     <section id="section5"><title>Notes</title> This command can't be used to set
         <codeph>data_directory</codeph>, nor parameters that are not allowed in
-        <codeph>postgresql.conf</codeph> (e.g., preset options that are determined when Greenplum
+        <codeph>postgresql.conf</codeph> (e.g., preset options that are determined when Cloudberry
       Database is compiled or when it is installed). <p> See <xref
           href="../../admin_guide/topics/g-configuring-the-greenplum-system.xml#topic1"/> for other
         ways to set the parameters. </p></section>
@@ -72,7 +72,7 @@ ALTER SYSTEM RESET ALL</codeblock>
     </section>
     <section id="section7"><title>Compatibility</title>  <p>
       The <codeph>ALTER SYSTEM</codeph> statement is a
-      Greenplum Database extension.
+      Cloudberry Database extension.
     </p>
     </section>
     <section id="section8"><title>See Also</title>

@@ -4,7 +4,7 @@
   <topic id="topic_xmh_44c_qfb">
     <title>Text Search Data Types</title>
     <body>
-      <p>Greenplum Database provides two data types that are designed to support full text search,
+      <p>Cloudberry Database provides two data types that are designed to support full text search,
         which is the activity of searching through a collection of natural-language <i>documents</i>
         to locate those that best match a <i>query</i>. The <codeph>tsvector</codeph> type
         represents a document in a form optimized for text search; the <codeph>tsquery</codeph> type
@@ -13,7 +13,7 @@
         this facility, and <xref href="function-summary.xml#topic_vpj_ss1_lfb"/> summarizes the
         related functions and operators.</p>
       <p>The <codeph>tsvector</codeph> and <codeph>tsquery</codeph> types cannot be part of the
-        distribution key of a Greenplum Database table.</p>
+        distribution key of a Cloudberry Database table.</p>
     </body>
     <topic id="topic_mzv_44c_qfb">
       <title>tsvector</title>

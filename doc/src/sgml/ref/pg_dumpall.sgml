@@ -52,7 +52,8 @@ PostgreSQL documentation
 
   <para>
    The SQL script will be written to the standard output.  Use the
-   [-f|file] option or shell operators to redirect it into a file.
+   <option>-f</option>/<option>--file</option> option or shell operators to
+   redirect it into a file.
   </para>
 
   <para>
@@ -236,7 +237,9 @@ PostgreSQL documentation
         Specifies verbose mode.  This will cause
         <application>pg_dumpall</application> to output start/stop
         times to the dump file, and progress messages to standard error.
-        It will also enable verbose output in <application>pg_dump</application>.
+        Repeating the option causes additional debug-level messages
+        to appear on standard error.
+        The option is also passed down to <application>pg_dump</application>.
        </para>
       </listitem>
      </varlistentry>
@@ -322,18 +325,6 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
-      <term><option>--extra-float-digits=<replaceable class="parameter">ndigits</replaceable></option></term>
-      <listitem>
-       <para>
-        Use the specified value of extra_float_digits when dumping
-        floating-point data, instead of the maximum available precision.
-        Routine dumps made for backup purposes should not use this option.
-       </para>
-      </listitem>
-     </varlistentry>
-
-
-     <varlistentry>
       <term><option>--exclude-database=<replaceable class="parameter">pattern</replaceable></option></term>
       <listitem>
        <para>
@@ -344,8 +335,7 @@ PostgreSQL documentation
         <replaceable class="parameter">pattern</replaceable> parameter is
         interpreted as a pattern according to the same rules used by
         <application>psql</application>'s <literal>\d</literal>
-        commands (see <xref
-        linkend="app-psql-patterns" endterm="app-psql-patterns-title"/>),
+        commands (see <xref linkend="app-psql-patterns"/> below),
         so multiple databases can also be excluded by writing wildcard
         characters in the pattern.  When using wildcards, be careful to
         quote the pattern if needed to prevent shell wildcard expansion.
@@ -354,10 +344,21 @@ PostgreSQL documentation
      </varlistentry>
 
      <varlistentry>
+      <term><option>--extra-float-digits=<replaceable class="parameter">ndigits</replaceable></option></term>
+      <listitem>
+       <para>
+        Use the specified value of extra_float_digits when dumping
+        floating-point data, instead of the maximum available precision.
+        Routine dumps made for backup purposes should not use this option.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
       <term><option>--if-exists</option></term>
       <listitem>
        <para>
-        Use conditional commands (i.e. add an <literal>IF EXISTS</literal>
+        Use conditional commands (i.e., add an <literal>IF EXISTS</literal>
         clause) to drop databases and other objects.  This option is not valid
         unless <option>--clean</option> is also specified.
        </para>
@@ -409,10 +410,7 @@ PostgreSQL documentation
         the dump. Instead, fail if unable to lock a table within the specified
         <replaceable class="parameter">timeout</replaceable>. The timeout may be
         specified in any of the formats accepted by <command>SET
-        statement_timeout</command>.  Allowed values vary depending on the server
-        version you are dumping from, but an integer number of milliseconds
-        is accepted by all versions since 7.3.  This option is ignored when
-        dumping from a pre-7.3 server.
+        statement_timeout</command>.
        </para>
       </listitem>
      </varlistentry>
@@ -491,6 +489,18 @@ PostgreSQL documentation
         for objects.
         With this option, all objects will be created in whichever
         tablespace is the default during restore.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry>
+      <term><option>--no-toast-compression</option></term>
+      <listitem>
+       <para>
+        Do not output commands to set <acronym>TOAST</acronym> compression
+        methods.
+        With this option, all columns will be restored with the default
+        compression setting.
        </para>
       </listitem>
      </varlistentry>
@@ -586,8 +596,9 @@ PostgreSQL documentation
       <term><option>--dbname=<replaceable class="parameter">connstr</replaceable></option></term>
       <listitem>
        <para>
-        Specifies parameters used to connect to the server, as a connection
-        string. See <xref linkend="libpq-connstring"/> for more information.
+        Specifies parameters used to connect to the server, as a <link
+        linkend="libpq-connstring">connection string</link>;  these
+        will override any conflicting command line options.
        </para>
        <para>
         The option is called <literal>--dbname</literal> for consistency with other
@@ -735,8 +746,8 @@ PostgreSQL documentation
     <term><envar>PG_COLOR</envar></term>
     <listitem>
      <para>
-      Specifies whether to use color in diagnostics messages.  Possible values
-      are <literal>always</literal>, <literal>auto</literal>,
+      Specifies whether to use color in diagnostic messages. Possible values
+      are <literal>always</literal>, <literal>auto</literal> and
       <literal>never</literal>.
      </para>
     </listitem>

@@ -38,6 +38,13 @@ SELECT 3 as three, 4 as four \gx
 
 \unset FETCH_COUNT
 
+-- \g/\gx with pset options
+
+SELECT 1 as one, 2 as two \g (format=csv csv_fieldsep='\t')
+\g
+SELECT 1 as one, 2 as two \gx (title='foo bar')
+\g
+
 -- \gset
 
 select 10 as test01, 20 as test02, 'Hello' as test03 \gset pref01_
@@ -47,6 +54,9 @@ select 10 as test01, 20 as test02, 'Hello' as test03 \gset pref01_
 -- should fail: bad variable name
 select 10 as "bad name"
 \gset
+
+select 97 as "EOF", 'ok' as _foo \gset IGNORE
+\echo :IGNORE_foo :IGNOREEOF
 
 -- multiple backslash commands in one line
 select 1 as x, 2 as y \gset pref01_ \\ \echo :pref01_x
@@ -448,20 +458,38 @@ select 1 where false;
 \df exp
 \pset tuples_only false
 
--- check conditional tableam display
+-- check conditional am display
+\pset expanded off
 
--- Create a heap2 table am handler with heapam handler
+CREATE SCHEMA tableam_display;
+CREATE ROLE regress_display_role;
+ALTER SCHEMA tableam_display OWNER TO regress_display_role;
+SET search_path TO tableam_display;
 CREATE ACCESS METHOD heap_psql TYPE TABLE HANDLER heap_tableam_handler;
+SET ROLE TO regress_display_role;
+-- Use only relations with a physical size of zero.
 CREATE TABLE tbl_heap_psql(f1 int, f2 char(100)) using heap_psql;
 CREATE TABLE tbl_heap(f1 int, f2 char(100)) using heap;
+CREATE VIEW view_heap_psql AS SELECT f1 from tbl_heap_psql;
+CREATE MATERIALIZED VIEW mat_view_heap_psql USING heap_psql AS SELECT f1 from tbl_heap_psql;
 \d+ tbl_heap_psql
 \d+ tbl_heap
 \set HIDE_TABLEAM off
 \d+ tbl_heap_psql
 \d+ tbl_heap
+-- AM is displayed for tables, indexes and materialized views.
+\d+
+\dt+
+\dm+
+-- But not for views and sequences.
+\dv+
 \set HIDE_TABLEAM on
-DROP TABLE tbl_heap, tbl_heap_psql;
+\d+
+RESET ROLE;
+RESET search_path;
+DROP SCHEMA tableam_display CASCADE;
 DROP ACCESS METHOD heap_psql;
+DROP ROLE regress_display_role;
 
 -- test numericlocale (as best we can without control of psql's locale)
 
@@ -771,6 +799,22 @@ drop table psql_serial_tab;
 \pset expanded off
 \pset border 1
 
+-- \echo and allied features
+
+\echo this is a test
+\echo -n without newline
+\echo with -n newline
+\echo '-n' with newline
+
+\set foo bar
+\echo foo = :foo
+
+\qecho this is a test
+\qecho foo = :foo
+
+\warn this is a test
+\warn foo = :foo
+
 -- tests for \if ... \endif
 
 \if true
@@ -825,6 +869,17 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 	\echo 'should not print #2-4'
 \else
 	\echo 'all false'
+\endif
+
+-- test true-false elif after initial true branch
+\if true
+	\echo 'should print #2-5'
+\elif true
+	\echo 'should not print #2-6'
+\elif false
+	\echo 'should not print #2-7'
+\else
+	\echo 'should not print #2-8'
 \endif
 
 -- test simple true-then-else
@@ -895,22 +950,59 @@ select \if false \\ (bogus \else \\ 42 \endif \\ forty_two;
 	:try_to_quit
 	\echo `nosuchcommand` :foo :'foo' :"foo"
 	\pset fieldsep | `nosuchcommand` :foo :'foo' :"foo"
-	\a \C arg1 \c arg1 arg2 arg3 arg4 \cd arg1 \conninfo
+	\a
+	\C arg1
+	\c arg1 arg2 arg3 arg4
+	\cd arg1
+	\conninfo
 	\copy arg1 arg2 arg3 arg4 arg5 arg6
-	\copyright \dt arg1 \e arg1 arg2
+	\copyright
+	SELECT 1 as one, 2, 3 \crosstabview
+	\dt arg1
+	\e arg1 arg2
 	\ef whole_line
 	\ev whole_line
-	\echo arg1 arg2 arg3 arg4 arg5 \echo arg1 \encoding arg1 \errverbose
-	\g arg1 \gx arg1 \gexec \h \html \i arg1 \ir arg1 \l arg1 \lo arg1 arg2
-	\o arg1 \p \password arg1 \prompt arg1 arg2 \pset arg1 arg2 \q
-	\reset \s arg1 \set arg1 arg2 arg3 arg4 arg5 arg6 arg7 \setenv arg1 arg2
+	\echo arg1 arg2 arg3 arg4 arg5
+	\echo arg1
+	\encoding arg1
+	\errverbose
+	\f arg1
+	\g arg1
+	\gx arg1
+	\gexec
+	SELECT 1 AS one \gset
+	\h
+	\?
+	\html
+	\i arg1
+	\ir arg1
+	\l arg1
+	\lo arg1 arg2
+	\lo_list
+	\o arg1
+	\p
+	\password arg1
+	\prompt arg1 arg2
+	\pset arg1 arg2
+	\q
+	\reset
+	\s arg1
+	\set arg1 arg2 arg3 arg4 arg5 arg6 arg7
+	\setenv arg1 arg2
 	\sf whole_line
 	\sv whole_line
-	\t arg1 \T arg1 \timing arg1 \unset arg1 \w arg1 \watch arg1 \x arg1
+	\t arg1
+	\T arg1
+	\timing arg1
+	\unset arg1
+	\w arg1
+	\watch arg1
+	\x arg1
 	-- \else here is eaten as part of OT_FILEPIPE argument
 	\w |/no/such/file \else
 	-- \endif here is eaten as part of whole-line argument
 	\! whole_line \endif
+	\z
 \else
 	\echo 'should print #8-1'
 \endif
@@ -1119,3 +1211,279 @@ set search_path to default;
 
 set role to default;
 drop role regress_partitioning_role;
+
+-- \d on toast table (use pg_statistic's toast table, which has a known name)
+\d pg_toast.pg_toast_2619
+
+-- check printing info about access methods
+\dA
+\dA *
+\dA h*
+\dA foo
+\dA foo bar
+\dA+
+\dA+ *
+\dA+ h*
+\dA+ foo
+\dAc brin pg*.oid*
+\dAf spgist
+\dAf btree int4
+\dAo+ btree float_ops
+\dAo * pg_catalog.jsonb_path_ops
+\dAp+ btree float_ops
+\dAp * pg_catalog.uuid_ops
+
+-- check \df, \do with argument specifications
+\df *sqrt
+\df *sqrt num*
+\df int*pl
+\df int*pl int4
+\df int*pl * pg_catalog.int8
+\df acl* aclitem[]
+\df has_database_privilege oid text
+\df has_database_privilege oid text -
+\dfa bit* small*
+\do - pg_catalog.int4
+\do && anyarray *
+
+-- check describing invalid multipart names
+\dA regression.heap
+\dA nonesuch.heap
+\dt host.regression.pg_catalog.pg_class
+\dt |.pg_catalog.pg_class
+\dt nonesuch.pg_catalog.pg_class
+\da host.regression.pg_catalog.sum
+\da +.pg_catalog.sum
+\da nonesuch.pg_catalog.sum
+\dAc nonesuch.brin
+\dAc regression.brin
+\dAf nonesuch.brin
+\dAf regression.brin
+\dAo nonesuch.brin
+\dAo regression.brin
+\dAp nonesuch.brin
+\dAp regression.brin
+\db nonesuch.pg_default
+\db regression.pg_default
+\dc host.regression.public.conversion
+\dc (.public.conversion
+\dc nonesuch.public.conversion
+\dC host.regression.pg_catalog.int8
+\dC ).pg_catalog.int8
+\dC nonesuch.pg_catalog.int8
+\dd host.regression.pg_catalog.pg_class
+\dd [.pg_catalog.pg_class
+\dd nonesuch.pg_catalog.pg_class
+\dD host.regression.public.gtestdomain1
+\dD ].public.gtestdomain1
+\dD nonesuch.public.gtestdomain1
+\ddp host.regression.pg_catalog.pg_class
+\ddp {.pg_catalog.pg_class
+\ddp nonesuch.pg_catalog.pg_class
+\dE host.regression.public.ft
+\dE }.public.ft
+\dE nonesuch.public.ft
+\di host.regression.public.tenk1_hundred
+\di ..public.tenk1_hundred
+\di nonesuch.public.tenk1_hundred
+\dm host.regression.public.mvtest_bb
+\dm ^.public.mvtest_bb
+\dm nonesuch.public.mvtest_bb
+\ds host.regression.public.check_seq
+\ds regression|mydb.public.check_seq
+\ds nonesuch.public.check_seq
+\dt host.regression.public.b_star
+\dt regres+ion.public.b_star
+\dt nonesuch.public.b_star
+\dv host.regression.public.shoe
+\dv regress(ion).public.shoe
+\dv nonesuch.public.shoe
+\des nonesuch.server
+\des regression.server
+\des nonesuch.server
+\des regression.server
+\des nonesuch.username
+\des regression.username
+\dew nonesuch.fdw
+\dew regression.fdw
+\df host.regression.public.namelen
+\df regres[qrstuv]ion.public.namelen
+\df nonesuch.public.namelen
+\dF host.regression.pg_catalog.arabic
+\dF regres{1,2}ion.pg_catalog.arabic
+\dF nonesuch.pg_catalog.arabic
+\dFd host.regression.pg_catalog.arabic_stem
+\dFd regres?ion.pg_catalog.arabic_stem
+\dFd nonesuch.pg_catalog.arabic_stem
+\dFp host.regression.pg_catalog.default
+\dFp ^regression.pg_catalog.default
+\dFp nonesuch.pg_catalog.default
+\dFt host.regression.pg_catalog.ispell
+\dFt regression$.pg_catalog.ispell
+\dFt nonesuch.pg_catalog.ispell
+\dg nonesuch.pg_database_owner
+\dg regression.pg_database_owner
+\dL host.regression.plpgsql
+\dL *.plpgsql
+\dL nonesuch.plpgsql
+\dn host.regression.public
+\dn """".public
+\dn nonesuch.public
+\do host.regression.public.!=-
+\do "regression|mydb".public.!=-
+\do nonesuch.public.!=-
+\dO host.regression.pg_catalog.POSIX
+\dO .pg_catalog.POSIX
+\dO nonesuch.pg_catalog.POSIX
+\dp host.regression.public.a_star
+\dp "regres+ion".public.a_star
+\dp nonesuch.public.a_star
+\dP host.regression.public.mlparted
+\dP "regres(sion)".public.mlparted
+\dP nonesuch.public.mlparted
+\drds nonesuch.lc_messages
+\drds regression.lc_messages
+\dRp public.mypub
+\dRp regression.mypub
+\dRs public.mysub
+\dRs regression.mysub
+\dT host.regression.public.widget
+\dT "regression{1,2}".public.widget
+\dT nonesuch.public.widget
+\dx regression.plpgsql
+\dx nonesuch.plpgsql
+\dX host.regression.public.func_deps_stat
+\dX "^regression$".public.func_deps_stat
+\dX nonesuch.public.func_deps_stat
+\dy regression.myevt
+\dy nonesuch.myevt
+
+-- check that dots within quoted name segments are not counted
+\dA "no.such.access.method"
+\dt "no.such.table.relation"
+\da "no.such.aggregate.function"
+\dAc "no.such.operator.class"
+\dAf "no.such.operator.family"
+\dAo "no.such.operator.of.operator.family"
+\dAp "no.such.operator.support.function.of.operator.family"
+\db "no.such.tablespace"
+\dc "no.such.conversion"
+\dC "no.such.cast"
+\dd "no.such.object.description"
+\dD "no.such.domain"
+\ddp "no.such.default.access.privilege"
+\di "no.such.index.relation"
+\dm "no.such.materialized.view"
+\ds "no.such.relation"
+\dt "no.such.relation"
+\dv "no.such.relation"
+\des "no.such.foreign.server"
+\dew "no.such.foreign.data.wrapper"
+\df "no.such.function"
+\dF "no.such.text.search.configuration"
+\dFd "no.such.text.search.dictionary"
+\dFp "no.such.text.search.parser"
+\dFt "no.such.text.search.template"
+\dg "no.such.role"
+\dL "no.such.language"
+\dn "no.such.schema"
+\do "no.such.operator"
+\dO "no.such.collation"
+\dp "no.such.access.privilege"
+\dP "no.such.partitioned.relation"
+\drds "no.such.setting"
+\dRp "no.such.publication"
+\dRs "no.such.subscription"
+\dT "no.such.data.type"
+\dx "no.such.installed.extension"
+\dX "no.such.extended.statistics"
+\dy "no.such.event.trigger"
+
+-- again, but with dotted schema qualifications.
+\dA "no.such.schema"."no.such.access.method"
+\dt "no.such.schema"."no.such.table.relation"
+\da "no.such.schema"."no.such.aggregate.function"
+\dAc "no.such.schema"."no.such.operator.class"
+\dAf "no.such.schema"."no.such.operator.family"
+\dAo "no.such.schema"."no.such.operator.of.operator.family"
+\dAp "no.such.schema"."no.such.operator.support.function.of.operator.family"
+\db "no.such.schema"."no.such.tablespace"
+\dc "no.such.schema"."no.such.conversion"
+\dC "no.such.schema"."no.such.cast"
+\dd "no.such.schema"."no.such.object.description"
+\dD "no.such.schema"."no.such.domain"
+\ddp "no.such.schema"."no.such.default.access.privilege"
+\di "no.such.schema"."no.such.index.relation"
+\dm "no.such.schema"."no.such.materialized.view"
+\ds "no.such.schema"."no.such.relation"
+\dt "no.such.schema"."no.such.relation"
+\dv "no.such.schema"."no.such.relation"
+\des "no.such.schema"."no.such.foreign.server"
+\dew "no.such.schema"."no.such.foreign.data.wrapper"
+\df "no.such.schema"."no.such.function"
+\dF "no.such.schema"."no.such.text.search.configuration"
+\dFd "no.such.schema"."no.such.text.search.dictionary"
+\dFp "no.such.schema"."no.such.text.search.parser"
+\dFt "no.such.schema"."no.such.text.search.template"
+\dg "no.such.schema"."no.such.role"
+\dL "no.such.schema"."no.such.language"
+\do "no.such.schema"."no.such.operator"
+\dO "no.such.schema"."no.such.collation"
+\dp "no.such.schema"."no.such.access.privilege"
+\dP "no.such.schema"."no.such.partitioned.relation"
+\drds "no.such.schema"."no.such.setting"
+\dRp "no.such.schema"."no.such.publication"
+\dRs "no.such.schema"."no.such.subscription"
+\dT "no.such.schema"."no.such.data.type"
+\dx "no.such.schema"."no.such.installed.extension"
+\dX "no.such.schema"."no.such.extended.statistics"
+\dy "no.such.schema"."no.such.event.trigger"
+
+-- again, but with current database and dotted schema qualifications.
+\dt regression."no.such.schema"."no.such.table.relation"
+\da regression."no.such.schema"."no.such.aggregate.function"
+\dc regression."no.such.schema"."no.such.conversion"
+\dC regression."no.such.schema"."no.such.cast"
+\dd regression."no.such.schema"."no.such.object.description"
+\dD regression."no.such.schema"."no.such.domain"
+\di regression."no.such.schema"."no.such.index.relation"
+\dm regression."no.such.schema"."no.such.materialized.view"
+\ds regression."no.such.schema"."no.such.relation"
+\dt regression."no.such.schema"."no.such.relation"
+\dv regression."no.such.schema"."no.such.relation"
+\df regression."no.such.schema"."no.such.function"
+\dF regression."no.such.schema"."no.such.text.search.configuration"
+\dFd regression."no.such.schema"."no.such.text.search.dictionary"
+\dFp regression."no.such.schema"."no.such.text.search.parser"
+\dFt regression."no.such.schema"."no.such.text.search.template"
+\do regression."no.such.schema"."no.such.operator"
+\dO regression."no.such.schema"."no.such.collation"
+\dp regression."no.such.schema"."no.such.access.privilege"
+\dP regression."no.such.schema"."no.such.partitioned.relation"
+\dT regression."no.such.schema"."no.such.data.type"
+\dX regression."no.such.schema"."no.such.extended.statistics"
+
+-- again, but with dotted database and dotted schema qualifications.
+\dt "no.such.database"."no.such.schema"."no.such.table.relation"
+\da "no.such.database"."no.such.schema"."no.such.aggregate.function"
+\dc "no.such.database"."no.such.schema"."no.such.conversion"
+\dC "no.such.database"."no.such.schema"."no.such.cast"
+\dd "no.such.database"."no.such.schema"."no.such.object.description"
+\dD "no.such.database"."no.such.schema"."no.such.domain"
+\ddp "no.such.database"."no.such.schema"."no.such.default.access.privilege"
+\di "no.such.database"."no.such.schema"."no.such.index.relation"
+\dm "no.such.database"."no.such.schema"."no.such.materialized.view"
+\ds "no.such.database"."no.such.schema"."no.such.relation"
+\dt "no.such.database"."no.such.schema"."no.such.relation"
+\dv "no.such.database"."no.such.schema"."no.such.relation"
+\df "no.such.database"."no.such.schema"."no.such.function"
+\dF "no.such.database"."no.such.schema"."no.such.text.search.configuration"
+\dFd "no.such.database"."no.such.schema"."no.such.text.search.dictionary"
+\dFp "no.such.database"."no.such.schema"."no.such.text.search.parser"
+\dFt "no.such.database"."no.such.schema"."no.such.text.search.template"
+\do "no.such.database"."no.such.schema"."no.such.operator"
+\dO "no.such.database"."no.such.schema"."no.such.collation"
+\dp "no.such.database"."no.such.schema"."no.such.access.privilege"
+\dP "no.such.database"."no.such.schema"."no.such.partitioned.relation"
+\dT "no.such.database"."no.such.schema"."no.such.data.type"
+\dX "no.such.database"."no.such.schema"."no.such.extended.statistics"

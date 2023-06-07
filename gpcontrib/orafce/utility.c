@@ -1,4 +1,5 @@
 /*
+ *
   This code implements one part of functonality of
   free available library PL/Vision. Please look www.quest.com
 

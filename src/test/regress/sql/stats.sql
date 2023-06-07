@@ -32,6 +32,7 @@ declare
   updated2 bool;
   updated3 bool;
   updated4 bool;
+  updated5 bool;
 begin
   -- we don't want to wait forever; loop will exit after 30 seconds
   for i in 1 .. 300 loop
@@ -61,7 +62,12 @@ begin
     SELECT (pr.snap_ts < pg_stat_get_snapshot_timestamp()) INTO updated4
       FROM prevstats AS pr;
 
-    exit when updated1 and updated2 and updated3 and updated4;
+    -- check to see if idx_tup_fetch has been sensed
+    SELECT (st.idx_tup_fetch >= pr.idx_tup_fetch + 1) INTO updated5
+      FROM pg_stat_user_tables AS st, pg_class AS cl, prevstats AS pr
+     WHERE st.relname='tenk2' AND cl.relname='tenk2';
+
+    exit when updated1 and updated2 and updated3 and updated4 and updated5;
 
     -- wait a little
     perform pg_sleep_for('100 milliseconds');
@@ -140,7 +146,12 @@ SELECT count(*) FROM tenk2;
 -- do an indexscan
 -- make sure it is not a bitmap scan, which might skip fetching heap tuples
 SET enable_bitmapscan TO off;
+-- for orca, we don't want index-only scans here,
+-- which might skip fetching heap tuples.
+SET optimizer_enable_indexonlyscan TO off;
 SELECT count(*) FROM tenk2 WHERE unique1 = 1;
+RESET optimizer_enable_indexonlyscan;
+SELECT * FROM tenk2 where unique1 = 10;
 RESET enable_bitmapscan;
 
 -- We can't just call wait_for_stats() at this point, because we only
@@ -166,22 +177,22 @@ SELECT st.seq_scan >= pr.seq_scan + 1,
   FROM pg_stat_user_tables AS st, pg_class AS cl, prevstats AS pr
  WHERE st.relname='tenk2' AND cl.relname='tenk2';
 
-SELECT st.heap_blks_read + st.heap_blks_hit >= pr.heap_blks + cl.relpages,
-       st.idx_blks_read + st.idx_blks_hit >= pr.idx_blks + 1
-  FROM pg_statio_user_tables AS st, pg_class AS cl, prevstats AS pr
- WHERE st.relname='tenk2' AND cl.relname='tenk2';
+-- GPDB_13_MERGE_FIXME: Some statistics are handled by stat collector process on each segment but not sent to master.
+-- To keep this case, collect statistics from all segments.
+-- lack of the second column case, see https://github.com/my-ship-it/database-core-upgrade/issues/151
+SELECT (SELECT sum(st.heap_blks_read) + sum(st.heap_blks_hit) - sum(pr.heap_blks)
+  FROM gp_dist_random('pg_statio_user_tables') AS st, gp_dist_random('prevstats') AS pr WHERE st.relname='tenk2')
+  > (select relpages from pg_class where relname='tenk2');
 
 SELECT pr.snap_ts < pg_stat_get_snapshot_timestamp() as snapshot_newer
 FROM prevstats AS pr;
 
--- Temporary hack to investigate whether extra vacuum/analyze is happening
-select relname, relpages, reltuples
-from pg_class
-where relname like '__star' order by relname;
-select relname, vacuum_count, analyze_count, autovacuum_count, autoanalyze_count
-from pg_stat_all_tables
-where relname like '__star' order by relname;
-
 DROP TABLE trunc_stats_test, trunc_stats_test1, trunc_stats_test2, trunc_stats_test3, trunc_stats_test4;
 DROP TABLE prevstats;
+
+
+-- ensure that stats accessors handle NULL input correctly
+SELECT pg_stat_get_replication_slot(NULL);
+
+
 -- End of Stats Test

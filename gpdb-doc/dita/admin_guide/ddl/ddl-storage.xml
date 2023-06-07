@@ -3,7 +3,7 @@
 <topic id="topic_r2v_zvy_sp">
   <title id="im148475">Choosing the Table Storage Model</title>
   <body>
-    <p>Greenplum Database supports several storage models and a mix of storage models.
+    <p>Cloudberry Database supports several storage models and a mix of storage models.
       When you create a table, you choose how to store its data. This topic explains the options for
       table storage and how to choose the best storage model for your workload.</p>
     <ul id="ul_wjf_1wy_sp">
@@ -30,16 +30,16 @@
       </li>
     </ul>
     <note> To simplify the creation of database tables, you can specify the default values for some
-      table storage options with the Greenplum Database server configuration parameter
+      table storage options with the Cloudberry Database server configuration parameter
         <codeph>gp_default_storage_options</codeph>. <p>For information about the
-        parameter, see "Server Configuration Parameters" in the <cite>Greenplum Database Reference
+        parameter, see "Server Configuration Parameters" in the <cite>Cloudberry Database Reference
           Guide</cite>.</p>
     </note>
   </body>
   <topic id="topic37" xml:lang="en">
     <title id="im168000">Heap Storage</title>
     <body>
-      <p>By default, Greenplum Database uses the same heap storage model as PostgreSQL. Heap table
+      <p>By default, Cloudberry Database uses the same heap storage model as PostgreSQL. Heap table
         storage works best with OLTP-type workloads where the data is often modified after it is
         initially loaded. <codeph>UPDATE</codeph> and <codeph>DELETE</codeph> operations require
         storing row-level versioning information to ensure reliable database transaction processing.
@@ -76,7 +76,7 @@
         </p>
         <note>You use the <codeph>appendoptimized=<varname>value</varname></codeph> syntax to
           specify the append-optimized table storage type. <codeph>appendoptimized</codeph> is
-          a thin alias for the <codeph>appendonly</codeph> legacy storage option. Greenplum Database
+          a thin alias for the <codeph>appendonly</codeph> legacy storage option. Cloudberry Database
           stores <codeph>appendonly</codeph> in the catalog, and displays the same when 
           listing storage options for append-optimized tables.</note>
         <p><codeph>UPDATE</codeph> and <codeph>DELETE</codeph> are not allowed on append-optimized
@@ -90,7 +90,7 @@
   <topic id="topic39" xml:lang="en">
     <title id="im168256">Choosing Row or Column-Oriented Storage</title>
     <body>
-      <p>Greenplum provides a choice of storage orientation models:
+      <p>Cloudberry provides a choice of storage orientation models:
         row, column, or a combination of both. This topic provides general guidelines for choosing
         the optimum storage orientation for a table. Evaluate performance using your own data and
         query workloads.</p>
@@ -154,7 +154,7 @@
   <topic id="topic40" xml:lang="en">
     <title id="im168077">Using Compression (Append-Optimized Tables Only)</title>
     <body>
-      <p>There are two types of in-database compression available in the Greenplum Database for
+      <p>There are two types of in-database compression available in the Cloudberry Database for
         append-optimized tables:</p>
       <ul id="ul_n2g_1wy_sp">
         <li id="im201632">Table-level compression is applied to an entire table. </li>
@@ -193,7 +193,7 @@
       </table>
       <p>
         <note type="note"><sup>1</sup>QuickLZ compression is not available in the open source
-          version of Greenplum Database.</note>
+          version of Cloudberry Database.</note>
       </p>
       <p>When choosing a compression type and level for append-optimized tables, consider these
         factors:</p>
@@ -248,7 +248,7 @@
     <title id="im202441">Checking the Compression and Distribution of an Append-Optimized
       Table</title>
     <body>
-      <p>Greenplum provides built-in functions to check the compression ratio and the distribution
+      <p>Cloudberry provides built-in functions to check the compression ratio and the distribution
         of an append-optimized table. The functions take either the object ID or a table name. You
         can qualify the table name with a schema name.</p>
       <table id="im161827">
@@ -306,7 +306,7 @@
   <topic id="topic42" xml:lang="en">
     <title>Support for Run-length Encoding</title>
     <body>
-      <p>Greenplum Database supports Run-length Encoding (RLE) for column-level compression. RLE
+      <p>Cloudberry Database supports Run-length Encoding (RLE) for column-level compression. RLE
         data compression stores repeated data as a single data value and a count. For example, in a
         table with two columns, a date and a description, that contains 200,000 entries containing
         the value <codeph>date1</codeph> and 400,000 entries containing the value
@@ -315,12 +315,12 @@
         large sets of repeated data as it can greatly increase the file size.</p>
       <p>There are four levels of RLE compression available. The levels progressively increase the
         compression ratio, but decrease the compression speed.</p>
-      <p>Greenplum Database versions 4.2.1 and later support column-oriented RLE compression. To
+      <p>Cloudberry Database versions 4.2.1 and later support column-oriented RLE compression. To
         backup a table with RLE compression that you intend to restore to an earlier version of
-        Greenplum Database, alter the table to have no compression or a compression type supported
+        Cloudberry Database, alter the table to have no compression or a compression type supported
         in the earlier version (<codeph>ZLIB</codeph> or <codeph>QUICKLZ</codeph>) before you start
         the backup operation.</p>
-      <p>Greenplum Database combines delta compression with RLE compression for data in columns of
+      <p>Cloudberry Database combines delta compression with RLE compression for data in columns of
         type <codeph>BIGINT</codeph>, <codeph>INTEGER</codeph>, <codeph>DATE</codeph>,
           <codeph>TIME</codeph>, or <codeph>TIMESTAMP</codeph>. The delta compression algorithm is
         based on the change between consecutive column values and is designed to improve compression
@@ -655,7 +655,7 @@ CREATE FUNCTION int33_out(int33) RETURNS cstring
           <p>The blocksize is the size, in bytes, for each block in a table. Block sizes must be
             between 8192 and 2097152 bytes, and be a multiple of 8192. The default is 32768.</p>
           <p>Specifying large block sizes can consume large amounts of memory. Block size determines
-            buffering in the storage layer. Greenplum maintains a buffer per partition, and per
+            buffering in the storage layer. Cloudberry maintains a buffer per partition, and per
             column in column-oriented tables. Tables with many partitions or columns consume large
             amounts of memory.</p>
         </body>

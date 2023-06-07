@@ -2,9 +2,9 @@
  *
  * tidpath.c
  *	  Routines to determine which TID conditions are usable for scanning
- *	  a given relation, and create TidPaths accordingly.
+ *	  a given relation, and create TidPaths and TidRangePaths accordingly.
  *
- * What we are looking for here is WHERE conditions of the form
+ * For TidPaths, we look for WHERE conditions of the form
  * "CTID = pseudoconstant", which can be implemented by just fetching
  * the tuple directly via heap_fetch().  We can also handle OR'd conditions
  * such as (CTID = const1) OR (CTID = const2), as well as ScalarArrayOpExpr
@@ -23,10 +23,13 @@
  * a function, but in practice it works better to keep the special node
  * representation all the way through to execution.
  *
+ * Additionally, TidRangePaths may be created for conditions of the form
+ * "CTID relop pseudoconstant", where relop is one of >,>=,<,<=, and
+ * AND-clauses composed of such conditions.
  *
- * Portions Copyright (c) 2007-2008, Greenplum inc
+ * Portions Copyright (c) 2007-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -65,14 +68,14 @@ IsCTIDVar(Var *var, RelOptInfo *rel)
 
 /*
  * Check to see if a RestrictInfo is of the form
- *		CTID = pseudoconstant
+ *		CTID OP pseudoconstant
  * or
- *		pseudoconstant = CTID
- * where the CTID Var belongs to relation "rel", and nothing on the
- * other side of the clause does.
+ *		pseudoconstant OP CTID
+ * where OP is a binary operation, the CTID Var belongs to relation "rel",
+ * and nothing on the other side of the clause does.
  */
 static bool
-IsTidEqualClause(RestrictInfo *rinfo, RelOptInfo *rel)
+IsBinaryTidClause(RestrictInfo *rinfo, RelOptInfo *rel)
 {
 	OpExpr	   *node;
 	Node	   *arg1,
@@ -85,10 +88,9 @@ IsTidEqualClause(RestrictInfo *rinfo, RelOptInfo *rel)
 		return false;
 	node = (OpExpr *) rinfo->clause;
 
-	/* Operator must be tideq */
-	if (node->opno != TIDEqualOperator)
+	/* OpExpr must have two arguments */
+	if (list_length(node->args) != 2)
 		return false;
-	Assert(list_length(node->args) == 2);
 	arg1 = linitial(node->args);
 	arg2 = lsecond(node->args);
 
@@ -120,12 +122,56 @@ IsTidEqualClause(RestrictInfo *rinfo, RelOptInfo *rel)
 
 /*
  * Check to see if a RestrictInfo is of the form
+ *		CTID = pseudoconstant
+ * or
+ *		pseudoconstant = CTID
+ * where the CTID Var belongs to relation "rel", and nothing on the
+ * other side of the clause does.
+ */
+static bool
+IsTidEqualClause(RestrictInfo *rinfo, RelOptInfo *rel)
+{
+	if (!IsBinaryTidClause(rinfo, rel))
+		return false;
+
+	if (((OpExpr *) rinfo->clause)->opno == TIDEqualOperator)
+		return true;
+
+	return false;
+}
+
+/*
+ * Check to see if a RestrictInfo is of the form
+ *		CTID OP pseudoconstant
+ * or
+ *		pseudoconstant OP CTID
+ * where OP is a range operator such as <, <=, >, or >=, the CTID Var belongs
+ * to relation "rel", and nothing on the other side of the clause does.
+ */
+static bool
+IsTidRangeClause(RestrictInfo *rinfo, RelOptInfo *rel)
+{
+	Oid			opno;
+
+	if (!IsBinaryTidClause(rinfo, rel))
+		return false;
+	opno = ((OpExpr *) rinfo->clause)->opno;
+
+	if (opno == TIDLessOperator || opno == TIDLessEqOperator ||
+		opno == TIDGreaterOperator || opno == TIDGreaterEqOperator)
+		return true;
+
+	return false;
+}
+
+/*
+ * Check to see if a RestrictInfo is of the form
  *		CTID = ANY (pseudoconstant_array)
  * where the CTID Var belongs to relation "rel", and nothing on the
  * other side of the clause does.
  */
 static bool
-IsTidEqualAnyClause(RestrictInfo *rinfo, RelOptInfo *rel)
+IsTidEqualAnyClause(PlannerInfo *root, RestrictInfo *rinfo, RelOptInfo *rel)
 {
 	ScalarArrayOpExpr *node;
 	Node	   *arg1,
@@ -150,7 +196,7 @@ IsTidEqualAnyClause(RestrictInfo *rinfo, RelOptInfo *rel)
 		IsCTIDVar((Var *) arg1, rel))
 	{
 		/* The other argument must be a pseudoconstant */
-		if (bms_is_member(rel->relid, pull_varnos(arg2)) ||
+		if (bms_is_member(rel->relid, pull_varnos(root, arg2)) ||
 			contain_volatile_functions(arg2))
 			return false;
 
@@ -192,7 +238,7 @@ IsCurrentOfClause(RestrictInfo *rinfo, RelOptInfo *rel)
  * (Using a List may seem a bit weird, but it simplifies the caller.)
  */
 static List *
-TidQualFromRestrictInfo(RestrictInfo *rinfo, RelOptInfo *rel)
+TidQualFromRestrictInfo(PlannerInfo *root, RestrictInfo *rinfo, RelOptInfo *rel)
 {
 	/*
 	 * We may ignore pseudoconstant clauses (they can't contain Vars, so could
@@ -212,7 +258,7 @@ TidQualFromRestrictInfo(RestrictInfo *rinfo, RelOptInfo *rel)
 	 * Check all base cases.  If we get a match, return the clause.
 	 */
 	if (IsTidEqualClause(rinfo, rel) ||
-		IsTidEqualAnyClause(rinfo, rel) ||
+		IsTidEqualAnyClause(root, rinfo, rel) ||
 		IsCurrentOfClause(rinfo, rel))
 		return list_make1(rinfo);
 
@@ -224,12 +270,12 @@ TidQualFromRestrictInfo(RestrictInfo *rinfo, RelOptInfo *rel)
  *
  * Returns a List of CTID qual RestrictInfos for the specified rel (with
  * implicit OR semantics across the list), or NIL if there are no usable
- * conditions.
+ * equality conditions.
  *
  * This function is just concerned with handling AND/OR recursion.
  */
 static List *
-TidQualFromRestrictInfoList(List *rlist, RelOptInfo *rel)
+TidQualFromRestrictInfoList(PlannerInfo *root, List *rlist, RelOptInfo *rel)
 {
 	List	   *rlst = NIL;
 	ListCell   *l;
@@ -257,14 +303,14 @@ TidQualFromRestrictInfoList(List *rlist, RelOptInfo *rel)
 					List	   *andargs = ((BoolExpr *) orarg)->args;
 
 					/* Recurse in case there are sub-ORs */
-					sublist = TidQualFromRestrictInfoList(andargs, rel);
+					sublist = TidQualFromRestrictInfoList(root, andargs, rel);
 				}
 				else
 				{
 					RestrictInfo *rinfo = castNode(RestrictInfo, orarg);
 
 					Assert(!restriction_is_or_clause(rinfo));
-					sublist = TidQualFromRestrictInfo(rinfo, rel);
+					sublist = TidQualFromRestrictInfo(root, rinfo, rel);
 				}
 
 				/*
@@ -286,7 +332,7 @@ TidQualFromRestrictInfoList(List *rlist, RelOptInfo *rel)
 		else
 		{
 			/* Not an OR clause, so handle base cases */
-			rlst = TidQualFromRestrictInfo(rinfo, rel);
+			rlst = TidQualFromRestrictInfo(root, rinfo, rel);
 		}
 
 		/*
@@ -298,6 +344,34 @@ TidQualFromRestrictInfoList(List *rlist, RelOptInfo *rel)
 		 */
 		if (rlst)
 			break;
+	}
+
+	return rlst;
+}
+
+/*
+ * Extract a set of CTID range conditions from implicit-AND List of RestrictInfos
+ *
+ * Returns a List of CTID range qual RestrictInfos for the specified rel
+ * (with implicit AND semantics across the list), or NIL if there are no
+ * usable range conditions or if the rel's table AM does not support TID range
+ * scans.
+ */
+static List *
+TidRangeQualFromRestrictInfoList(List *rlist, RelOptInfo *rel)
+{
+	List	   *rlst = NIL;
+	ListCell   *l;
+
+	if ((rel->amflags & AMFLAG_HAS_TID_RANGE) == 0)
+		return NIL;
+
+	foreach(l, rlist)
+	{
+		RestrictInfo *rinfo = lfirst_node(RestrictInfo, l);
+
+		if (IsTidRangeClause(rinfo, rel))
+			rlst = lappend(rlst, rinfo);
 	}
 
 	return rlst;
@@ -357,7 +431,8 @@ BuildParameterizedTidPaths(PlannerInfo *root, RelOptInfo *rel, List *clauses)
 		required_outer = bms_del_member(required_outer, rel->relid);
 
 		add_path(rel, (Path *) create_tidscan_path(root, rel, tidquals,
-												   required_outer));
+												   required_outer),
+				root);
 	}
 }
 
@@ -387,14 +462,15 @@ void
 create_tidscan_paths(PlannerInfo *root, RelOptInfo *rel)
 {
 	List	   *tidquals;
+	List	   *tidrangequals;
 
 	/*
 	 * If any suitable quals exist in the rel's baserestrict list, generate a
 	 * plain (unparameterized) TidPath with them.
 	 */
-	tidquals = TidQualFromRestrictInfoList(rel->baserestrictinfo, rel);
+	tidquals = TidQualFromRestrictInfoList(root, rel->baserestrictinfo, rel);
 
-	if (tidquals)
+	if (tidquals != NIL)
 	{
 		/*
 		 * This path uses no join clauses, but it could still have required
@@ -403,7 +479,29 @@ create_tidscan_paths(PlannerInfo *root, RelOptInfo *rel)
 		Relids		required_outer = rel->lateral_relids;
 
 		add_path(rel, (Path *) create_tidscan_path(root, rel, tidquals,
-												   required_outer));
+												   required_outer),
+				root);
+	}
+
+	/*
+	 * If there are range quals in the baserestrict list, generate a
+	 * TidRangePath.
+	 */
+	tidrangequals = TidRangeQualFromRestrictInfoList(rel->baserestrictinfo,
+													 rel);
+
+	if (tidrangequals != NIL)
+	{
+		/*
+		 * This path uses no join clauses, but it could still have required
+		 * parameterization due to LATERAL refs in its tlist.
+		 */
+		Relids		required_outer = rel->lateral_relids;
+
+		add_path(rel, (Path *) create_tidrangescan_path(root, rel,
+														tidrangequals,
+														required_outer),
+				root);
 	}
 
 	/*

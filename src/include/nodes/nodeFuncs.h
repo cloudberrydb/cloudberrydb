@@ -3,7 +3,7 @@
  * nodeFuncs.h
  *		Various general-purpose manipulations of Node trees
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/nodes/nodeFuncs.h
@@ -27,6 +27,7 @@
 #define QTW_EXAMINE_RTES_AFTER		0x20	/* examine RTE nodes after their
 											 * contents */
 #define QTW_DONT_COPY_QUERY			0x40	/* do not copy top Query */
+#define QTW_EXAMINE_SORTGROUP		0x80	/* include SortGroupNode lists */
 
 /* callback function for check_functions_in_node */
 typedef bool (*check_function_callback) (Oid func_id, void *context);
@@ -35,6 +36,9 @@ typedef bool (*check_function_callback) (Oid func_id, void *context);
 extern Oid	exprType(const Node *expr);
 extern int32 exprTypmod(const Node *expr);
 extern bool exprIsLengthCoercion(const Node *expr, int32 *coercedTypmod);
+extern Node *applyRelabelType(Node *arg, Oid rtype, int32 rtypmod, Oid rcollid,
+							  CoercionForm rformat, int rlocation,
+							  bool overwrite_ok);
 extern Node *relabel_to_typmod(Node *expr, int32 typmod);
 extern Node *strip_implicit_coercions(Node *node);
 extern bool expression_returns_set(Node *clause);
@@ -143,6 +147,9 @@ extern bool range_table_walker(List *rtable, bool (*walker) (),
 extern List *range_table_mutator(List *rtable, Node *(*mutator) (),
 								 void *context, int flags);
 
+extern bool range_table_entry_walker(RangeTblEntry *rte, bool (*walker) (),
+									 void *context, int flags);
+
 extern bool query_or_expression_tree_walker(Node *node, bool (*walker) (),
 											void *context, int flags);
 extern Node *query_or_expression_tree_mutator(Node *node, Node *(*mutator) (),
@@ -154,5 +161,33 @@ extern bool raw_expression_tree_walker(Node *node, bool (*walker) (),
 struct PlanState;
 extern bool planstate_tree_walker(struct PlanState *planstate, bool (*walker) (),
 								  void *context);
+
+extern bool query_or_expression_tree_walker_wrapper(Node *node,
+													bool (*walker) (Node *, void *),
+													void *context,
+													int flags);
+
+extern Node * query_or_expression_tree_mutator_wrapper(Node *node,
+													   Node *(*mutator) (Node *, void *),
+													   void *context,
+													   int flags);
+
+extern Query * query_tree_mutator_wrapper(Query *query,
+										  Node *(*mutator) (Node *, void *),
+										  void *context,
+										  int flags);
+
+extern Node * expression_tree_mutator_wrapper(Node *node,
+											  Node *(*mutator) (Node *, void *),
+											  void *context);
+
+extern bool expression_tree_walker_wrapper(Node *node,
+										   bool (*walker) (Node *, void *),
+										   void *context);
+
+extern bool query_tree_walker_wrapper(Query *query,
+									  bool (*walker) (Node *, void *),
+									  void *context,
+									  int flags);
 
 #endif							/* NODEFUNCS_H */

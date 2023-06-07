@@ -2,15 +2,15 @@
 title: Tuning SQL Queries 
 ---
 
-The Greenplum Database cost-based optimizer evaluates many strategies for running a query and chooses the least costly method.
+The Cloudberry Database cost-based optimizer evaluates many strategies for running a query and chooses the least costly method.
 
-Like other RDBMS optimizers, the Greenplum optimizer takes into account factors such as the number of rows in tables to be joined, availability of indexes, and cardinality of column data when calculating the costs of alternative execution plans. The optimizer also accounts for the location of the data, preferring to perform as much of the work as possible on the segments and to minimize the amount of data that must be transmitted between segments to complete the query.
+Like other RDBMS optimizers, the Cloudberry optimizer takes into account factors such as the number of rows in tables to be joined, availability of indexes, and cardinality of column data when calculating the costs of alternative execution plans. The optimizer also accounts for the location of the data, preferring to perform as much of the work as possible on the segments and to minimize the amount of data that must be transmitted between segments to complete the query.
 
 When a query runs slower than you expect, you can view the plan the optimizer selected as well as the cost it calculated for each step of the plan. This will help you determine which steps are consuming the most resources and then modify the query or the schema to provide the optimizer with more efficient alternatives. You use the SQL `EXPLAIN` statement to view the plan for a query.
 
 The optimizer produces plans based on statistics generated for tables. It is important to have accurate statistics to produce the best plan. See [Updating Statistics with ANALYZE](analyze.html) in this guide for information about updating statistics.
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 
 ## <a id="topic_s1r_jfb_s4"></a>How to Generate Explain Plans 
 
@@ -26,7 +26,7 @@ The `EXPLAIN` and `EXPLAIN ANALYZE` statements are useful tools to identify oppo
 
 ## <a id="reading_explain_plan"></a>How to Read Explain Plans 
 
-An explain plan is a report detailing the steps the Greenplum Database optimizer has determined it will follow to run a query. The plan is a tree of nodes, read from bottom to top, with each node passing its result to the node directly above. Each node represents a step in the plan, and one line for each node identifies the operation performed in that step—for example, a scan, join, aggregation, or sort operation. The node also identifies the method used to perform the operation. The method for a scan operation, for example, may be a sequential scan or an index scan. A join operation may perform a hash join or nested loop join.
+An explain plan is a report detailing the steps the Cloudberry Database optimizer has determined it will follow to run a query. The plan is a tree of nodes, read from bottom to top, with each node passing its result to the node directly above. Each node represents a step in the plan, and one line for each node identifies the operation performed in that step—for example, a scan, join, aggregation, or sort operation. The node also identifies the method used to perform the operation. The method for a scan operation, for example, may be a sequential scan or an index scan. A join operation may perform a hash join or nested loop join.
 
 Following is an explain plan for a simple query. This query finds the number of rows in the contributions table stored at each segment.
 
@@ -72,7 +72,7 @@ Scan operators scan through rows in a table to find a set of rows. There are dif
 
 Join operators include the following:
 
--   Hash Join – builds a hash table from the smaller table with the join column\(s\) as hash key. Then scans the larger table, calculating the hash key for the join column\(s\) and probing the hash table to find the rows with the same hash key. Hash joins are typically the fastest joins in Greenplum Database. The Hash Cond in the explain plan identifies the columns that are joined.
+-   Hash Join – builds a hash table from the smaller table with the join column\(s\) as hash key. Then scans the larger table, calculating the hash key for the join column\(s\) and probing the hash table to find the rows with the same hash key. Hash joins are typically the fastest joins in Cloudberry Database. The Hash Cond in the explain plan identifies the columns that are joined.
 -   Nested Loop – iterates through rows in the larger dataset, scanning the rows in the smaller dataset on each iteration. The Nested Loop join requires the broadcast of one of the tables so that all rows in one table can be compared to all rows in the other table. It performs well for small tables or tables that are limited by using an index. It is also used for Cartesian joins and range joins. There are performance implications when using a Nested Loop join with large tables. For plan nodes that contain a Nested Loop join operator, validate the SQL and ensure that the results are what is intended. Set the `enable_nestloop` server configuration parameter to OFF \(default\) to favor Hash Join.
 -   Merge Join – sorts both datasets and merges them together. A merge join is fast for pre-ordered data, but is very rare in the real world. To favor Merge Joins over Hash Joins, set the `enable_mergejoin` system configuration parameter to ON.
 
@@ -93,9 +93,9 @@ Other operators that occur in query plans include the following:
 -   Filter – selects rows using criteria from a `WHERE` clause.
 -   Limit – limits the number of rows returned.
 
-## <a id="optimization_hints"></a>Optimizing Greenplum Queries 
+## <a id="optimization_hints"></a>Optimizing Cloudberry Queries 
 
-This topic describes Greenplum Database features and programming practices that can be used to enhance system performance in some situations.
+This topic describes Cloudberry Database features and programming practices that can be used to enhance system performance in some situations.
 
 To analyze query plans, first identify the plan nodes where the estimated cost to perform the operation is very high. Determine if the estimated number of rows and cost seems reasonable relative to the number of rows for the operation performed.
 
@@ -109,9 +109,9 @@ Identify plan nodes where a Sort or Aggregate operation is performed. Hidden ins
 
 When an explain plan shows a broadcast motion with a large number of rows, you should attempt to eliminate the broadcast motion. One way to do this is to use the `gp_segments_for_planner` server configuration parameter to increase the cost estimate of the motion so that alternatives are favored. The `gp_segments_for_planner` variable tells the query planner how many primary segments to use in its calculations. The default value is zero, which tells the planner to use the actual number of primary segments in estimates. Increasing the number of primary segments increases the cost of the motion, thereby favoring a redistribute motion over a broadcast motion. For example, setting `gp_segments_for_planner = 100000` tells the planner that there are 100,000 segments. Conversely, to influence the optimizer to broadcast a table and not redistribute it, set `gp_segments_for_planner` to a low number, for example 2.
 
-### <a id="grouping"></a>Greenplum Grouping Extensions 
+### <a id="grouping"></a>Cloudberry Grouping Extensions 
 
-Greenplum Database aggregation extensions to the `GROUP BY` clause can perform some common calculations in the database more efficiently than in application or procedure code:
+Cloudberry Database aggregation extensions to the `GROUP BY` clause can perform some common calculations in the database more efficiently than in application or procedure code:
 
 -   `GROUP BY ROLLUP(*col1*, *col2*, *col3*)`
 -   `GROUP BY CUBE(*col1*, *col2*, *col3*)`
@@ -123,7 +123,7 @@ A `CUBE` grouping creates subtotals for all of the possible combinations of the 
 
 You can selectively specify the set of groups that you want to create using a `GROUPING SETS` expression. This allows precise specification across multiple dimensions without computing a whole `ROLLUP` or `CUBE`.
 
-Refer to the *Greenplum Database Reference Guide* for details of these clauses.
+Refer to the *Cloudberry Database Reference Guide* for details of these clauses.
 
 ### <a id="windowfunc"></a>Window Functions 
 

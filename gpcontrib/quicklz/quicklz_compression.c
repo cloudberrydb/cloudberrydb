@@ -175,7 +175,7 @@ quicklz_compress(PG_FUNCTION_ARGS)
 	const void *src 		  = PG_GETARG_POINTER(0);
 	int32 src_sz				= PG_GETARG_INT32(1);
 	void *dst					  = PG_GETARG_POINTER(2);
-	int32 dst_sz				= PG_GETARG_INT32(3);
+	int32 dst_sz		PG_USED_FOR_ASSERTS_ONLY = PG_GETARG_INT32(3);
 	int32 *dst_used			  = (int32 *) PG_GETARG_POINTER(4);
 	CompressionState *cs 	= (CompressionState *)PG_GETARG_POINTER(5);
 	quicklz_state *state	= (quicklz_state *)cs->opaque;
@@ -192,9 +192,9 @@ Datum
 quicklz_decompress(PG_FUNCTION_ARGS)
 {
 	const char *src 	  	= PG_GETARG_POINTER(0);
-	int32 src_sz				= PG_GETARG_INT32(1);
+	int32 src_sz		PG_USED_FOR_ASSERTS_ONLY = PG_GETARG_INT32(1);
 	void *dst					= PG_GETARG_POINTER(2);
-	int32 dst_sz			 	= PG_GETARG_INT32(3);
+	int32 dst_sz		PG_USED_FOR_ASSERTS_ONLY = PG_GETARG_INT32(3);
 	int32 *dst_used			  = (int32 *) PG_GETARG_POINTER(4);
 	CompressionState *cs 	= (CompressionState *)PG_GETARG_POINTER(5);
 	quicklz_state *state	= (quicklz_state *)cs->opaque;

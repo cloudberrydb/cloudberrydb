@@ -9,8 +9,6 @@
 1:SELECT gp_inject_fault_infinite('fts_probe', 'skip', dbid)
     FROM gp_segment_configuration WHERE role='p' AND content=-1;
 1:SELECT gp_request_fts_probe_scan();
-1:SELECT gp_wait_until_triggered_fault('fts_probe', 1, dbid)
-    FROM gp_segment_configuration WHERE role='p' AND content=-1;
 
 -- test setup
 1:CREATE TABLE bm(a int);

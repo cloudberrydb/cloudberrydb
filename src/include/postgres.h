@@ -7,7 +7,7 @@
  * Client-side code should include postgres_fe.h instead.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1995, Regents of the University of California
  *
  * src/include/postgres.h
@@ -56,7 +56,9 @@
 /*
  * struct varatt_external is a traditional "TOAST pointer", that is, the
  * information needed to fetch a Datum stored out-of-line in a TOAST table.
- * The data is compressed if and only if va_extsize < va_rawsize - VARHDRSZ.
+ * The data is compressed if and only if the external size stored in
+ * va_extinfo is less than va_rawsize - VARHDRSZ.
+ *
  * This struct must not contain any padding, because we sometimes compare
  * these pointers using memcmp.
  *
@@ -68,10 +70,18 @@
 typedef struct varatt_external
 {
 	int32		va_rawsize;		/* Original data size (includes header) */
-	int32		va_extsize;		/* External saved size (doesn't) */
+	uint32		va_extinfo;		/* External saved size (without header) and
+								 * compression method */
 	Oid			va_valueid;		/* Unique ID of value within TOAST table */
 	Oid			va_toastrelid;	/* RelID of TOAST table containing it */
 }			varatt_external;
+
+/*
+ * These macros define the "saved size" portion of va_extinfo.  Its remaining
+ * two high-order bits identify the compression method.
+ */
+#define VARLENA_EXTSIZE_BITS	30
+#define VARLENA_EXTSIZE_MASK	((1U << VARLENA_EXTSIZE_BITS) - 1)
 
 /*
  * struct varatt_indirect is a "TOAST pointer" representing an out-of-line
@@ -111,7 +121,7 @@ typedef struct varatt_expanded
  *
  * GPDB: In PostgreSQL VARTAG_ONDISK is set to 18 in order to match the
  * historic (VARHDRSZ_EXTERNAL + sizeof(struct varatt_external)) value of the
- * pointer datum's length. In Greenplum VARHDRSZ_EXTERNAL is two bytes longer
+ * pointer datum's length. In Cloudberry VARHDRSZ_EXTERNAL is two bytes longer
  * than PostgreSQL due to extra padding in varattrib_1b_e, so VARTAG_ONDISK has
  * to be set to 20.
  */
@@ -152,7 +162,8 @@ typedef union
 	struct						/* Compressed-in-line format */
 	{
 		uint32		va_header;
-		uint32		va_rawsize; /* Original data size (excludes header) */
+		uint32		va_tcinfo;	/* Original data size (excludes header) and
+								 * compression method; see va_extinfo */
 		char		va_data[FLEXIBLE_ARRAY_MEMBER]; /* Compressed data */
 	}			va_compressed;
 } varattrib_4b;
@@ -181,11 +192,11 @@ typedef struct
  * 10000000 1-byte length word, unaligned, TOAST pointer
  * 1xxxxxxx 1-byte length word, unaligned, uncompressed data (up to 126b)
  *
- * Greenplum differs from PostgreSQL here... In Postgres, they use different
+ * Cloudberry differs from PostgreSQL here... In Postgres, they use different
  * macros for big-endian and little-endian machines, so the length is contiguous,
  * while the 4 byte lengths are stored in native endian format.
  *
- * Greenplum stored the 4 byte varlena header in network byte order, so it always
+ * Cloudberry stored the 4 byte varlena header in network byte order, so it always
  * look big-endian in the tuple.   This is a bit ugly, but changing it would require
  * all our customers to initdb.
  *
@@ -209,6 +220,8 @@ typedef struct
  * checking for IS_1B.
  */
 
+#ifdef WORDS_BIGENDIAN
+
 #define VARATT_IS_4B(PTR) \
 	((((varattrib_1b *) (PTR))->va_header & 0x80) == 0x00)
 #define VARATT_IS_4B_U(PTR) \
@@ -224,42 +237,79 @@ typedef struct
 
 /* VARSIZE_4B() should only be used on known-aligned data */
 #define VARSIZE_4B(PTR) \
-	(ntohl(((varattrib_4b *) (PTR))->va_4byte.va_header) & 0x3FFFFFFF)
+	(((varattrib_4b *) (PTR))->va_4byte.va_header & 0x3FFFFFFF)
 #define VARSIZE_1B(PTR) \
 	(((varattrib_1b *) (PTR))->va_header & 0x7F)
 #define VARTAG_1B_E(PTR) \
 	(((varattrib_1b_e *) (PTR))->va_tag)
 
 #define SET_VARSIZE_4B(PTR,len) \
-	(((varattrib_4b *) (PTR))->va_4byte.va_header = htonl( (len) & 0x3FFFFFFF ))
+	(((varattrib_4b *) (PTR))->va_4byte.va_header = (len) & 0x3FFFFFFF)
 #define SET_VARSIZE_4B_C(PTR,len) \
-	(((varattrib_4b *) (PTR))->va_4byte.va_header = htonl( ((len) & 0x3FFFFFFF) | 0x40000000 ))
+	(((varattrib_4b *) (PTR))->va_4byte.va_header = ((len) & 0x3FFFFFFF) | 0x40000000)
 #define SET_VARSIZE_1B(PTR,len) \
 	(((varattrib_1b *) (PTR))->va_header = (len) | 0x80)
 #define SET_VARTAG_1B_E(PTR,tag) \
 	(((varattrib_1b_e *) (PTR))->va_header = 0x80, \
 	 ((varattrib_1b_e *) (PTR))->va_tag = (tag))
+#define VARSIZE_TO_SHORT(PTR)   ((char)(VARSIZE(PTR)-VARHDRSZ+VARHDRSZ_SHORT) | 0x80)
 
-#define VARHDRSZ_SHORT			offsetof(varattrib_1b, va_data)
-#define VARATT_SHORT_MAX		0x7F
-#define VARATT_CAN_MAKE_SHORT(PTR) \
-	(VARATT_IS_4B_U(PTR) && \
-	 (VARSIZE(PTR) - VARHDRSZ + VARHDRSZ_SHORT) <= VARATT_SHORT_MAX)
-#define VARATT_CONVERTED_SHORT_SIZE(PTR) \
-	(VARSIZE(PTR) - VARHDRSZ + VARHDRSZ_SHORT)
+#else							/* !WORDS_BIGENDIAN */
 
-/* In Postgres, this is 2, but in GPDB, it's 4, due to padding */
-#define VARHDRSZ_EXTERNAL		offsetof(varattrib_1b_e, va_data)
+#define VARATT_IS_4B(PTR) \
+	((((varattrib_1b *) (PTR))->va_header & 0x01) == 0x00)
+#define VARATT_IS_4B_U(PTR) \
+	((((varattrib_1b *) (PTR))->va_header & 0x03) == 0x00)
+#define VARATT_IS_4B_C(PTR) \
+	((((varattrib_1b *) (PTR))->va_header & 0x03) == 0x02)
+#define VARATT_IS_1B(PTR) \
+	((((varattrib_1b *) (PTR))->va_header & 0x01) == 0x01)
+#define VARATT_IS_1B_E(PTR) \
+	((((varattrib_1b *) (PTR))->va_header) == 0x01)
+#define VARATT_NOT_PAD_BYTE(PTR) \
+	(*((uint8 *) (PTR)) != 0)
+
+/* VARSIZE_4B() should only be used on known-aligned data */
+#define VARSIZE_4B(PTR) \
+	((((varattrib_4b *) (PTR))->va_4byte.va_header >> 2) & 0x3FFFFFFF)
+#define VARSIZE_1B(PTR) \
+	((((varattrib_1b *) (PTR))->va_header >> 1) & 0x7F)
+#define VARTAG_1B_E(PTR) \
+	(((varattrib_1b_e *) (PTR))->va_tag)
+
+#define SET_VARSIZE_4B(PTR,len) \
+	(((varattrib_4b *) (PTR))->va_4byte.va_header = (((uint32) (len)) << 2))
+#define SET_VARSIZE_4B_C(PTR,len) \
+	(((varattrib_4b *) (PTR))->va_4byte.va_header = (((uint32) (len)) << 2) | 0x02)
+#define SET_VARSIZE_1B(PTR,len) \
+	(((varattrib_1b *) (PTR))->va_header = (((uint8) (len)) << 1) | 0x01)
+#define SET_VARTAG_1B_E(PTR,tag) \
+	(((varattrib_1b_e *) (PTR))->va_header = 0x01, \
+	 ((varattrib_1b_e *) (PTR))->va_tag = (tag))
+#define VARSIZE_TO_SHORT(PTR)	((char)((VARSIZE(PTR)-VARHDRSZ+VARHDRSZ_SHORT) << 1) | 0x01)
+
+#endif							/* WORDS_BIGENDIAN */
 
 #define VARDATA_4B(PTR)		(((varattrib_4b *) (PTR))->va_4byte.va_data)
 #define VARDATA_4B_C(PTR)	(((varattrib_4b *) (PTR))->va_compressed.va_data)
 #define VARDATA_1B(PTR)		(((varattrib_1b *) (PTR))->va_data)
 #define VARDATA_1B_E(PTR)	(((varattrib_1b_e *) (PTR))->va_data)
 
-#define VARRAWSIZE_4B_C(PTR) \
-	(((varattrib_4b *) (PTR))->va_compressed.va_rawsize)
+/*
+ * Externally visible TOAST macros begin here.
+ */
 
-/* Externally visible macros */
+/* In Postgres, this is 2, but in GPDB, it's 4, due to padding */
+#define VARHDRSZ_EXTERNAL		offsetof(varattrib_1b_e, va_data)
+#define VARHDRSZ_COMPRESSED		offsetof(varattrib_4b, va_compressed.va_data)
+#define VARHDRSZ_SHORT			offsetof(varattrib_1b, va_data)
+
+#define VARATT_SHORT_MAX		0x7F
+#define VARATT_CAN_MAKE_SHORT(PTR) \
+	(VARATT_IS_4B_U(PTR) && \
+	 (VARSIZE(PTR) - VARHDRSZ + VARHDRSZ_SHORT) <= VARATT_SHORT_MAX)
+#define VARATT_CONVERTED_SHORT_SIZE(PTR) \
+	(VARSIZE(PTR) - VARHDRSZ + VARHDRSZ_SHORT)
 
 /*
  * In consumers oblivious to data alignment, call PG_DETOAST_DATUM_PACKED(),
@@ -280,6 +330,8 @@ typedef struct
 
 #define VARSIZE_SHORT(PTR)					VARSIZE_1B(PTR)
 #define VARDATA_SHORT(PTR)					VARDATA_1B(PTR)
+/* Use short var-attrib */
+#define VARSIZE_TO_SHORT_D(D)   			VARSIZE_TO_SHORT(DatumGetPointer(D))
 
 #define VARTAG_EXTERNAL(PTR)				VARTAG_1B_E(PTR)
 #define VARSIZE_EXTERNAL(PTR)				(VARHDRSZ_EXTERNAL + VARTAG_SIZE(VARTAG_EXTERNAL(PTR)))
@@ -324,6 +376,37 @@ typedef struct
 #define VARDATA_ANY(PTR) \
 	 (VARATT_IS_1B(PTR) ? VARDATA_1B(PTR) : VARDATA_4B(PTR))
 
+/* Decompressed size and compression method of a compressed-in-line Datum */
+#define VARDATA_COMPRESSED_GET_EXTSIZE(PTR) \
+	(((varattrib_4b *) (PTR))->va_compressed.va_tcinfo & VARLENA_EXTSIZE_MASK)
+#define VARDATA_COMPRESSED_GET_COMPRESS_METHOD(PTR) \
+	(((varattrib_4b *) (PTR))->va_compressed.va_tcinfo >> VARLENA_EXTSIZE_BITS)
+
+/* Same for external Datums; but note argument is a struct varatt_external */
+#define VARATT_EXTERNAL_GET_EXTSIZE(toast_pointer) \
+	((toast_pointer).va_extinfo & VARLENA_EXTSIZE_MASK)
+#define VARATT_EXTERNAL_GET_COMPRESS_METHOD(toast_pointer) \
+	((toast_pointer).va_extinfo >> VARLENA_EXTSIZE_BITS)
+
+#define VARATT_EXTERNAL_SET_SIZE_AND_COMPRESS_METHOD(toast_pointer, len, cm) \
+	do { \
+		Assert((cm) == TOAST_PGLZ_COMPRESSION_ID || \
+			   (cm) == TOAST_LZ4_COMPRESSION_ID); \
+		((toast_pointer).va_extinfo = \
+			(len) | ((uint32) (cm) << VARLENA_EXTSIZE_BITS)); \
+	} while (0)
+
+/*
+ * Testing whether an externally-stored value is compressed now requires
+ * comparing size stored in va_extinfo (the actual length of the external data)
+ * to rawsize (the original uncompressed datum's size).  The latter includes
+ * VARHDRSZ overhead, the former doesn't.  We never use compression unless it
+ * actually saves space, so we expect either equality or less-than.
+ */
+#define VARATT_EXTERNAL_IS_COMPRESSED(toast_pointer) \
+	(VARATT_EXTERNAL_GET_EXTSIZE(toast_pointer) < \
+	 (toast_pointer).va_rawsize - VARHDRSZ)
+
 
 /* ----------------------------------------------------------------
  *				Section 2:	Datum type + support macros
@@ -336,7 +419,7 @@ typedef struct
  *
  * sizeof(Datum) == sizeof(void *) == 4 or 8
  *
- *  Greenplum CDB:
+ *  Cloudberry CDB:
  *     Datum is always 8 bytes, regardless if it is 32bit or 64bit machine.
  *  so may be > sizeof(void *). To align with postgres, which defines Datum as
  *  uintptr_t type, it is defined as a uintptr_t to make sure the raw Datum
@@ -359,22 +442,8 @@ typedef union Datum_U
 	void *ptr;
 } Datum_U;
 
-#define SIZEOF_DATUM 8
 
-typedef Datum *DatumPtr;
 
-#define GET_1_BYTE(datum)	(((Datum) (datum)) & 0x000000ff)
-#define GET_2_BYTES(datum)	(((Datum) (datum)) & 0x0000ffff)
-#define GET_4_BYTES(datum)	(((Datum) (datum)) & 0xffffffff)
-#if SIZEOF_DATUM == 8
-#define GET_8_BYTES(datum)	((Datum) (datum))
-#endif
-#define SET_1_BYTE(value)	(((Datum) (value)) & 0x000000ff)
-#define SET_2_BYTES(value)	(((Datum) (value)) & 0x0000ffff)
-#define SET_4_BYTES(value)	(((Datum) (value)) & 0xffffffff)
-#if SIZEOF_DATUM == 8
-#define SET_8_BYTES(value)	((Datum) (value))
-#endif
 /*
  * A NullableDatum is used in places where both a Datum and its nullness needs
  * to be stored. This can be more efficient than storing datums and nullness
@@ -390,7 +459,8 @@ typedef struct NullableDatum
 	/* due to alignment padding this could be used for flags for free */
 } NullableDatum;
 
-
+#define SIZEOF_DATUM SIZEOF_VOID_P
+StaticAssertDecl(SIZEOF_DATUM == 8, "sizeof datum is not 8");
 /* 
  * Conversion between Datum and type X.  Changed from Macro to static inline
  * functions to get proper type checking.
@@ -402,7 +472,7 @@ typedef struct NullableDatum
  *
  * Note: any nonzero value will be considered true.
  */
-static inline bool DatumGetBool(Datum d) { return ((bool)d) != 0; }
+static inline bool DatumGetBool(Datum d) { return (bool)(d != 0); }
 static inline Datum BoolGetDatum(bool b) { return (b ? 1 : 0); } 
 
 static inline char DatumGetChar(Datum d) { return (char) d; }
@@ -463,6 +533,8 @@ static inline Datum ObjectIdGetDatum(Oid oid) { return (Datum) oid; }
 static inline TransactionId DatumGetTransactionId(Datum d) { return (TransactionId) d; } 
 static inline Datum TransactionIdGetDatum(TransactionId tid) { return (Datum) tid; } 
 
+static inline Datum DistributedTransactionIdGetDatum(DistributedTransactionId tid) { return (Datum) tid; } 
+
 static inline TransactionId DatumGetMultiXactId(Datum d) { return (TransactionId) d; } 
 static inline Datum MultiXactIdGetDatum(TransactionId tid) { return (Datum) tid; } 
 
@@ -473,7 +545,6 @@ static inline Datum CommandIdGetDatum(CommandId cid) { return (Datum) cid; }
  * DatumGetPointer
  *		Returns pointer value of a datum.
  */
-
 #define DatumGetPointer(X) ((Pointer) (X))
 
 /*

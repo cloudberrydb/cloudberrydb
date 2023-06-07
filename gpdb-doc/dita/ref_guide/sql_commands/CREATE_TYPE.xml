@@ -107,7 +107,7 @@ existing table in the same schema.</p>
                         <varname>type_modifier_input_function</varname>,
                         <varname>type_modifier_output_function</varname>, and
                         <varname>analyze_function</varname> are optional. Generally these functions
-                    have to be coded in C or another low-level language. In Greenplum Database, any
+                    have to be coded in C or another low-level language. In Cloudberry Database, any
                     function used to implement a data type must be defined as
                         <codeph>IMMUTABLE</codeph>.</p><p>The <varname>input_function</varname>
                     converts the type's external textual representation to the internal
@@ -158,15 +158,15 @@ existing table in the same schema.</p>
                         <varname>type_modifier_output_function</varname> are required if the type
                     supports modifiers. Modifiers are optional constraints attached to a type
                     declaration, such as <codeph>char(5)</codeph> or <codeph>numeric(30,2)</codeph>.
-                    While Greenplum Database allows user-defined types to take one or more simple
+                    While Cloudberry Database allows user-defined types to take one or more simple
                     constants or identifiers as modifiers, this information must fit into a single
-                    non-negative integer value for storage in the system catalogs. Greenplum
+                    non-negative integer value for storage in the system catalogs. Cloudberry
                     Database passes the declared modifier(s) to the
                         <varname>type_modifier_input_function</varname> in the form of a
                         <codeph>cstring</codeph> array. The modifier input function must check the
                     values for validity, throwing an error if they are incorrect. If the values are
                     correct, the modifier input function returns a single non-negative integer value
-                    that Greenplum Database stores as the column <codeph>typmod</codeph>. Type
+                    that Cloudberry Database stores as the column <codeph>typmod</codeph>. Type
                     modifiers are rejected if the type was not defined with a
                         <varname>type_modifier_input_function</varname>. The
                         <varname>type_modifier_output_function</varname> converts the internal
@@ -197,7 +197,7 @@ existing table in the same schema.</p>
                     "piggybacks" on an existing type in some fashion.</p><p>While the details of the
                     new type's internal representation are only known to the I/O functions and other
                     functions you create to work with the type, there are several properties of the
-                    internal representation that must be declared to Greenplum Database. Foremost of
+                    internal representation that must be declared to Cloudberry Database. Foremost of
                     these is <varname>internallength</varname>. Base data types can be fixed-length,
                     in which case <varname>internallength</varname> is a positive integer, or
                     variable length, indicated by setting <varname>internallength</varname> to
@@ -234,7 +234,7 @@ existing table in the same schema.</p>
                     word. For example, to define an array of 4-byte integers (int4), specify
                         <codeph>ELEMENT = int4</codeph>. More details about array types appear
                     below. </p><p>The <i>category</i> and <i>preferred</i> parameters can be used to
-                    help control which implicit cast Greenplum Database applies in ambiguous
+                    help control which implicit cast Cloudberry Database applies in ambiguous
                     situations. Each data type belongs to a category named by a single ASCII
                     character, and each type is either "preferred" or not within its category. The
                     parser will prefer casting to preferred types (but only from other types within
@@ -257,7 +257,7 @@ existing table in the same schema.</p>
                         <codeph>COLLATE</codeph> clause. It is up to the implementations of the
                     functions operating on the type to actually make use of the collation
                     information; this does not happen automatically merely by marking the type
-                    collatable. </p></sectiondiv><sectiondiv id="section6"><b>Array Types</b><p>Whenever a user-defined type is created, Greenplum
+                    collatable. </p></sectiondiv><sectiondiv id="section6"><b>Array Types</b><p>Whenever a user-defined type is created, Cloudberry
                     Database automatically creates an associated array type, whose name consists of
                     the element type's name prepended with an underscore, and truncated if necessary
                     to keep it less than <codeph>NAMEDATALEN</codeph> bytes long. (If the name so
@@ -425,7 +425,7 @@ existing table in the same schema.</p>
                             <codeph>RLE_TYPE</codeph>, or <codeph>QUICKLZ</codeph><sup>1</sup> to
                         specify the type of compression used in columns of this type.<note
                             type="note"><sup>1</sup>QuickLZ compression is available only in the
-                            commercial release of Tanzu Greenplum.</note>
+                            commercial release of Tanzu Cloudberry.</note>
                     </pd>
                 </plentry>
                 <plentry>
@@ -448,7 +448,7 @@ and can only be 62 characters long (or in general <codeph>NAMEDATALEN
 - 2</codeph>, rather than the <codeph>NAMEDATALEN - 1</codeph> characters
 allowed for other names). Type names beginning with underscore are reserved
 for internally-created array type names.</p>
-<p>Greenplum Database does not support adding storage options for row or composite types.</p>
+<p>Cloudberry Database does not support adding storage options for row or composite types.</p>
 <p>Storage options defined at the table- and column- level override the default storage options defined for a scalar type.</p>
 <p>Because there are no restrictions on use of a data type once it's been created, creating a base
                 type or range type is tantamount to granting public execute permission on the
@@ -512,10 +512,10 @@ CREATE TABLE big_objs (
     );</codeblock></section><section id="section10">
             <title>Compatibility</title>
             <p> The first form of the <codeph>CREATE TYPE</codeph> command, which creates a
-                composite type, conforms to the SQL standard. The other forms are Greenplum Database
+                composite type, conforms to the SQL standard. The other forms are Cloudberry Database
                 extensions. The <codeph>CREATE TYPE</codeph> statement in the SQL standard also
-                defines other forms that are not implemented in Greenplum Database.</p>
-            <p> The ability to create a composite type with zero attributes is a Greenplum
+                defines other forms that are not implemented in Cloudberry Database.</p>
+            <p> The ability to create a composite type with zero attributes is a Cloudberry
                 Database-specific deviation from the standard (analogous to the same case in
                     <codeph>CREATE TABLE</codeph>). </p>
     </section><section id="section11"><title>See Also</title>

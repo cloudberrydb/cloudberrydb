@@ -6,18 +6,12 @@
  *	  message integrity and endpoint authentication.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * IDENTIFICATION
  *	  src/interfaces/libpq/fe-secure.c
- *
- * NOTES
- *
- *	  We don't provide informational callbacks here (like
- *	  info_cb() in be-secure.c), since there's no good mechanism to
- *	  display such information to the user.
  *
  *-------------------------------------------------------------------------
  */
@@ -26,7 +20,7 @@
  * This file is compiled with both frontend and backend codes, symlinked by
  * src/backend/Makefile, and use macro FRONTEND to switch.
  *
- * Include "c.h" to adopt Greenplum C types. Don't include "postgres_fe.h",
+ * Include "c.h" to adopt Cloudberry C types. Don't include "postgres_fe.h",
  * which only defines FRONTEND besides including "c.h"
  */
 #include "c.h"
@@ -34,10 +28,6 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <ctype.h>
-
-#include "libpq-fe.h"
-#include "fe-auth.h"
-#include "libpq-int.h"
 
 #ifdef WIN32
 #include "win32.h"
@@ -61,6 +51,10 @@
 #include <pthread.h>
 #endif
 #endif
+
+#include "fe-auth.h"
+#include "libpq-fe.h"
+#include "libpq-int.h"
 
 /*
  * Macros to handle disabling and then restoring the state of SIGPIPE handling.
@@ -172,12 +166,12 @@ PQinitOpenSSL(int do_ssl, int do_crypto)
  *	Initialize global SSL context
  */
 int
-pqsecure_initialize(PGconn *conn)
+pqsecure_initialize(PGconn *conn, bool do_ssl, bool do_crypto)
 {
 	int			r = 0;
 
 #ifdef USE_SSL
-	r = pgtls_init(conn);
+	r = pgtls_init(conn, do_ssl, do_crypto);
 #endif
 
 	return r;
@@ -204,16 +198,15 @@ void
 pqsecure_close(PGconn *conn)
 {
 #ifdef USE_SSL
-	if (conn->ssl_in_use)
-		pgtls_close(conn);
+	pgtls_close(conn);
 #endif
 }
 
 /*
  *	Read data from a secure connection.
  *
- * On failure, this function is responsible for putting a suitable message
- * into conn->errorMessage.  The caller must still inspect errno, but only
+ * On failure, this function is responsible for appending a suitable message
+ * to conn->errorMessage.  The caller must still inspect errno, but only
  * to determine whether to continue/retry after error.
  */
 ssize_t
@@ -268,18 +261,16 @@ pqsecure_raw_read(PGconn *conn, void *ptr, size_t len)
 				/* no error message, caller is expected to retry */
 				break;
 
-#ifdef ECONNRESET
+			case EPIPE:
 			case ECONNRESET:
-				printfPQExpBuffer(&conn->errorMessage,
-								  libpq_gettext(
-												"server closed the connection unexpectedly\n"
-												"\tThis probably means the server terminated abnormally\n"
-												"\tbefore or while processing the request.\n"));
+				appendPQExpBufferStr(&conn->errorMessage,
+									 libpq_gettext("server closed the connection unexpectedly\n"
+												   "\tThis probably means the server terminated abnormally\n"
+												   "\tbefore or while processing the request.\n"));
 				break;
-#endif
 
 			default:
-				printfPQExpBuffer(&conn->errorMessage,
+				appendPQExpBuffer(&conn->errorMessage,
 								  libpq_gettext("could not receive data from server: %s\n"),
 								  SOCK_STRERROR(result_errno,
 												sebuf, sizeof(sebuf)));
@@ -296,8 +287,8 @@ pqsecure_raw_read(PGconn *conn, void *ptr, size_t len)
 /*
  *	Write data to a secure connection.
  *
- * On failure, this function is responsible for putting a suitable message
- * into conn->errorMessage.  The caller must still inspect errno, but only
+ * On failure, this function is responsible for appending a suitable message
+ * to conn->errorMessage.  The caller must still inspect errno, but only
  * to determine whether to continue/retry after error.
  */
 ssize_t
@@ -382,20 +373,17 @@ retry_masked:
 				/* Set flag for EPIPE */
 				REMEMBER_EPIPE(spinfo, true);
 
-#ifdef ECONNRESET
 				/* FALL THRU */
 
 			case ECONNRESET:
-#endif
-				printfPQExpBuffer(&conn->errorMessage,
-								  libpq_gettext(
-												"server closed the connection unexpectedly\n"
-												"\tThis probably means the server terminated abnormally\n"
-												"\tbefore or while processing the request.\n"));
+				appendPQExpBufferStr(&conn->errorMessage,
+									 libpq_gettext("server closed the connection unexpectedly\n"
+												   "\tThis probably means the server terminated abnormally\n"
+												   "\tbefore or while processing the request.\n"));
 				break;
 
 			default:
-				printfPQExpBuffer(&conn->errorMessage,
+				appendPQExpBuffer(&conn->errorMessage,
 								  libpq_gettext("could not send data to server: %s\n"),
 								  SOCK_STRERROR(result_errno,
 												sebuf, sizeof(sebuf)));
@@ -440,6 +428,31 @@ PQsslAttributeNames(PGconn *conn)
 	return result;
 }
 #endif							/* USE_SSL */
+
+/*
+ * Dummy versions of OpenSSL key password hook functions, when built without
+ * OpenSSL.
+ */
+#ifndef USE_OPENSSL
+
+PQsslKeyPassHook_OpenSSL_type
+PQgetSSLKeyPassHook_OpenSSL(void)
+{
+	return NULL;
+}
+
+void
+PQsetSSLKeyPassHook_OpenSSL(PQsslKeyPassHook_OpenSSL_type hook)
+{
+	return;
+}
+
+int
+PQdefaultSSLKeyPassHook_OpenSSL(char *buf, int size, PGconn *conn)
+{
+	return 0;
+}
+#endif							/* USE_OPENSSL */
 
 /* Dummy version of GSSAPI information functions, when built without GSS support */
 #ifndef ENABLE_GSS

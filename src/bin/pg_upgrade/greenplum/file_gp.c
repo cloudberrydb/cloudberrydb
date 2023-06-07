@@ -1,7 +1,7 @@
 /*
  *	file_gp.c
  *
- *	Greenplum specific file system operations
+ *	Cloudberry specific file system operations
  *
  *	Portions Copyright (c) 2010, PostgreSQL Global Development Group
  *	Portions Copyright (c) 2016-Present, VMware, Inc. or its affiliates

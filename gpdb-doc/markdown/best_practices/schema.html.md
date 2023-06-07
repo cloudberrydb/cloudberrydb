@@ -2,17 +2,17 @@
 title: Schema Design 
 ---
 
-Best practices for designing Greenplum Database schemas.
+Best practices for designing Cloudberry Database schemas.
 
-Greenplum Database is an analytical, shared-nothing database, which is much different than a highly normalized, transactional SMP database. Greenplum Database performs best with a denormalized schema design suited for MPP analytical processing, a star or snowflake schema, with large centralized fact tables connected to multiple smaller dimension tables.
+Cloudberry Database is an analytical, shared-nothing database, which is much different than a highly normalized, transactional SMP database. Cloudberry Database performs best with a denormalized schema design suited for MPP analytical processing, a star or snowflake schema, with large centralized fact tables connected to multiple smaller dimension tables.
 
-**Parent topic:**[Greenplum Database Best Practices](intro.html)
+**Parent topic:**[Cloudberry Database Best Practices](intro.html)
 
 ## <a id="data_types"></a>Data Types 
 
 ### <a id="use_types"></a>Use Types Consistently 
 
-Use the same data types for columns used in joins between tables. If the data types differ, Greenplum Database must dynamically convert the data type of one of the columns so the data values can be compared correctly. With this in mind, you may need to increase the data type size to facilitate joins to other common objects.
+Use the same data types for columns used in joins between tables. If the data types differ, Cloudberry Database must dynamically convert the data type of one of the columns so the data values can be compared correctly. With this in mind, you may need to increase the data type size to facilitate joins to other common objects.
 
 ### <a id="choose_data"></a>Choose Data Types that Use the Least Space 
 
@@ -24,13 +24,13 @@ Use the smallest numeric data type that will accommodate your data. Using `BIGIN
 
 ## <a id="storage_model"></a>Storage Model 
 
-Greenplum Database provides an array of storage options when creating tables. It is very important to know when to use heap storage versus append-optimized \(AO\) storage, and when to use row-oriented storage versus column-oriented storage. The correct selection of heap versus AO and row versus column is extremely important for large fact tables, but less important for small dimension tables.
+Cloudberry Database provides an array of storage options when creating tables. It is very important to know when to use heap storage versus append-optimized \(AO\) storage, and when to use row-oriented storage versus column-oriented storage. The correct selection of heap versus AO and row versus column is extremely important for large fact tables, but less important for small dimension tables.
 
 The best practices for determining the storage model are:
 
 1.  Design and build an insert-only model, truncating a daily partition before load.
 2.  For large partitioned fact tables, evaluate and use optimal storage options for different partitions. One storage option is not always right for the entire partitioned table. For example, some partitions can be row-oriented while others are column-oriented.
-3.  When using column-oriented storage, every column is a separate file on *every* Greenplum Database segment. For tables with a large number of columns consider columnar storage for data often accessed \(hot\) and row-oriented storage for data not often accessed \(cold\).
+3.  When using column-oriented storage, every column is a separate file on *every* Cloudberry Database segment. For tables with a large number of columns consider columnar storage for data often accessed \(hot\) and row-oriented storage for data not often accessed \(cold\).
 4.  Storage options should be set at the partition level.
 5.  Compress large tables to improve I/O performance and to make space in the cluster.
 
@@ -54,11 +54,11 @@ Column-oriented storage is optimized for read operations but it is not optimized
 
 Another benefit of column orientation is that a collection of values of the same data type can be stored together in less space than a collection of mixed type values, so column-oriented tables use less disk space \(and consequently less disk I/O\) than row-oriented tables. Column-oriented tables also compress better than row-oriented tables.
 
-Use column-oriented storage for data warehouse analytic workloads where selects are narrow or aggregations of data are computed over a small number of columns. Use column-oriented storage for tables that have single columns that are regularly updated without modifying other columns in the row. Reading a complete row in a wide columnar table requires more time than reading the same row from a row-oriented table. It is important to understand that each column is a separate physical file on *every* segment in Greenplum Database.
+Use column-oriented storage for data warehouse analytic workloads where selects are narrow or aggregations of data are computed over a small number of columns. Use column-oriented storage for tables that have single columns that are regularly updated without modifying other columns in the row. Reading a complete row in a wide columnar table requires more time than reading the same row from a row-oriented table. It is important to understand that each column is a separate physical file on *every* segment in Cloudberry Database.
 
 ## <a id="topic_ebd_khx_z4"></a>Compression 
 
-Greenplum Database offers a variety of options to compress append-optimized tables and partitions. Use compression to improve I/O across the system by allowing more data to be read with each disk read operation. The best practice is to set the column compression settings at the partition level.
+Cloudberry Database offers a variety of options to compress append-optimized tables and partitions. Use compression to improve I/O across the system by allowing more data to be read with each disk read operation. The best practice is to set the column compression settings at the partition level.
 
 Note that new partitions added to a partitioned table do not automatically inherit compression defined at the table level; you must *specifically* define compression when you add new partitions.
 
@@ -70,7 +70,7 @@ Test different compression types and ordering methods to determine the best comp
 
 ## <a id="distribution"></a>Distributions 
 
-An optimal distribution that results in evenly distributed data is the most important factor in Greenplum Database. In an MPP shared nothing environment overall response time for a query is measured by the completion time for all segments. The system is only as fast as the slowest segment. If the data is skewed, segments with more data will take more time to complete, so every segment must have an approximately equal number of rows and perform approximately the same amount of processing. Poor performance and out of memory conditions may result if one segment has significantly more data to process than other segments.
+An optimal distribution that results in evenly distributed data is the most important factor in Cloudberry Database. In an MPP shared nothing environment overall response time for a query is measured by the completion time for all segments. The system is only as fast as the slowest segment. If the data is skewed, segments with more data will take more time to complete, so every segment must have an approximately equal number of rows and perform approximately the same amount of processing. Poor performance and out of memory conditions may result if one segment has significantly more data to process than other segments.
 
 Consider the following best practices when deciding on a distribution strategy:
 
@@ -82,7 +82,7 @@ Consider the following best practices when deciding on a distribution strategy:
 -   If a single column cannot achieve an even distribution, use a multi-column distribution key with a maximum of two columns. Additional column values do not typically yield a more even distribution and they require additional time in the hashing process.
 -   If a two-column distribution key cannot achieve an even distribution of data, use a random distribution. Multi-column distribution keys in most cases require motion operations to join tables, so they offer no advantages over a random distribution.
 
-Greenplum Database random distribution is not round-robin, so there is no guarantee of an equal number of records on each segment. Random distributions typically fall within a target range of less than ten percent variation.
+Cloudberry Database random distribution is not round-robin, so there is no guarantee of an equal number of records on each segment. Random distributions typically fall within a target range of less than ten percent variation.
 
 Optimal distributions are critical when joining large tables together. To perform a join, matching rows must be located together on the same segment. If data is not distributed on the same join column, the rows needed from one of the tables are dynamically redistributed to the other segments. In some cases a broadcast motion, in which each segment sends its individual rows to all other segments, is performed rather than a redistribution motion, where each segment rehashes the data and sends the rows to the appropriate segments according to the hash key.
 
@@ -114,7 +114,7 @@ The `gp_toolkit` schema has two views that you can use to check for skew.
 
 ### <a id="process_skew"></a>Processing Skew 
 
-Processing skew results when a disproportionate amount of data flows to, and is processed by, one or a few segments. It is often the culprit behind Greenplum Database performance and stability issues. It can happen with operations such join, sort, aggregation, and various OLAP operations. Processing skew happens in flight while a query is running and is not as easy to detect as data skew, which is caused by uneven data distribution due to the wrong choice of distribution keys. Data skew is present at the table level, so it can be easily detected and avoided by choosing optimal distribution keys.
+Processing skew results when a disproportionate amount of data flows to, and is processed by, one or a few segments. It is often the culprit behind Cloudberry Database performance and stability issues. It can happen with operations such join, sort, aggregation, and various OLAP operations. Processing skew happens in flight while a query is running and is not as easy to detect as data skew, which is caused by uneven data distribution due to the wrong choice of distribution keys. Data skew is present at the table level, so it can be easily detected and avoided by choosing optimal distribution keys.
 
 If single segments are failing, that is, not all segments on a host, it may be a processing skew issue. Identifying processing skew is currently a manual process. First look for spill files. If there is skew, but not enough to cause spill, it will not become a performance issue. If you determine skew exists, then find the query responsible for the skew.
 
@@ -153,7 +153,7 @@ Following are partitioning best practices:
 
 ### <a id="part_num"></a>Number of Partition and Columnar Storage Files 
 
-The only hard limit for the number of files Greenplum Database supports is the operating system's open file limit. It is important, however, to consider the total number of files in the cluster, the number of files on every segment, and the total number of files on a host. In an MPP shared nothing environment, every node operates independently of other nodes. Each node is constrained by its disk, CPU, and memory. CPU and I/O constraints are not common with Greenplum Database, but memory is often a limiting factor because the query execution model optimizes query performance in memory.
+The only hard limit for the number of files Cloudberry Database supports is the operating system's open file limit. It is important, however, to consider the total number of files in the cluster, the number of files on every segment, and the total number of files on a host. In an MPP shared nothing environment, every node operates independently of other nodes. Each node is constrained by its disk, CPU, and memory. CPU and I/O constraints are not common with Cloudberry Database, but memory is often a limiting factor because the query execution model optimizes query performance in memory.
 
 The optimal number of files per segment also varies based on the number of segments on the node, the size of the cluster, SQL access, concurrency, workload, and skew. There are generally six to eight segments per host, but large clusters should have fewer segments per host. When using partitioning and columnar storage it is important to balance the total number of files in the cluster, but it is *more* important to consider the number of files per segment and the total number of files on a node.
 
@@ -169,7 +169,7 @@ As a general best practice, limit the total number of files per node to under 10
 
 ## <a id="indexes"></a>Indexes 
 
-Indexes are not generally needed in Greenplum Database. Most analytical queries operate on large volumes of data, while indexes are intended for locating single rows or small numbers of rows of data. In Greenplum Database, a sequential scan is an efficient method to read data as each segment contains an equal portion of the data and all segments work in parallel to read the data.
+Indexes are not generally needed in Cloudberry Database. Most analytical queries operate on large volumes of data, while indexes are intended for locating single rows or small numbers of rows of data. In Cloudberry Database, a sequential scan is an efficient method to read data as each segment contains an equal portion of the data and all segments work in parallel to read the data.
 
 If adding an index does not produce performance gains, drop it. Verify that every index you create is used by the optimizer.
 

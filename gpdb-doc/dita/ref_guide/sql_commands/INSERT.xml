@@ -124,7 +124,7 @@ INSERT INTO <varname>table</varname> [( <varname>column</varname> [, ...] )]
       Deadlock Detector is not enabled (the default). Only some of the leaf child tables are locked
       when the Global Deadlock Detector is enabled. For information about the Global Deadlock
       Detector, see <xref href="../../admin_guide/dml.xml#topic_gdd"/>.<p>For append-optimized
-        tables, Greenplum Database supports a maximum of 127 concurrent <codeph>INSERT</codeph>
+        tables, Cloudberry Database supports a maximum of 127 concurrent <codeph>INSERT</codeph>
         transactions into a single append-optimized table. </p><p>For writable S3 external tables,
         the <codeph>INSERT</codeph> operation uploads to one or more files in the configured S3
         bucket, as described in <xref href="../../admin_guide/external/g-s3-protocol.xml#amazon-emr"

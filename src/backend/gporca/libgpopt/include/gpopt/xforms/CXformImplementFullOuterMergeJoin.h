@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2019 VMware, Inc. or its affiliates.
 //
 #ifndef GPOPT_CXformImplementFullOuterMergeJoin_H

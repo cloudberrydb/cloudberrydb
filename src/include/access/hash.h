@@ -4,7 +4,7 @@
  *	  header file for postgres hash access method implementation
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/hash.h
@@ -20,11 +20,11 @@
 #include "access/amapi.h"
 #include "access/itup.h"
 #include "access/sdir.h"
-#include "fmgr.h"
+#include "catalog/pg_am_d.h"
+#include "common/hashfn.h"
 #include "lib/stringinfo.h"
 #include "storage/bufmgr.h"
 #include "storage/lockdefs.h"
-#include "utils/hashutils.h"
 #include "utils/hsearch.h"
 #include "utils/relcache.h"
 
@@ -148,7 +148,7 @@ typedef struct HashScanPosData
 		(scanpos).firstItem = 0; \
 		(scanpos).lastItem = 0; \
 		(scanpos).itemIndex = 0; \
-	} while (0);
+	} while (0)
 
 /*
  *	HashScanOpaqueData is private state for a hash index scan.
@@ -252,7 +252,7 @@ typedef struct HashMetaPageData
 	uint32		hashm_maxbucket;	/* ID of maximum bucket in use */
 	uint32		hashm_highmask; /* mask to modulo into entire table */
 	uint32		hashm_lowmask;	/* mask to modulo into lower half of table */
-	uint32		hashm_ovflpoint;	/* splitpoint from which ovflpgs being
+	uint32		hashm_ovflpoint;	/* splitpoint from which ovflpage being
 									 * allocated */
 	uint32		hashm_firstfree;	/* lowest-number free ovflpage (bit#) */
 	uint32		hashm_nmaps;	/* number of bitmap pages */
@@ -263,6 +263,21 @@ typedef struct HashMetaPageData
 } HashMetaPageData;
 
 typedef HashMetaPageData *HashMetaPage;
+
+typedef struct HashOptions
+{
+	int32		varlena_header_;	/* varlena header (do not touch directly!) */
+	int			fillfactor;		/* page fill factor in percent (0..100) */
+} HashOptions;
+
+#define HashGetFillFactor(relation) \
+	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
+				 relation->rd_rel->relam == HASH_AM_OID), \
+	 (relation)->rd_options ? \
+	 ((HashOptions *) (relation)->rd_options)->fillfactor :	\
+	 HASH_DEFAULT_FILLFACTOR)
+#define HashGetTargetPageUsage(relation) \
+	(BLCKSZ * HashGetFillFactor(relation) / 100)
 
 /*
  * Maximum size of a hash index item (it's okay to have only one per page)
@@ -337,7 +352,8 @@ typedef HashMetaPageData *HashMetaPage;
  */
 #define HASHSTANDARD_PROC		1
 #define HASHEXTENDED_PROC		2
-#define HASHNProcs				2
+#define HASHOPTIONS_PROC		3
+#define HASHNProcs				3
 
 
 /* public routines */
@@ -348,6 +364,7 @@ extern void hashbuildempty(Relation index);
 extern bool hashinsert(Relation rel, Datum *values, bool *isnull,
 					   ItemPointer ht_ctid, Relation heapRel,
 					   IndexUniqueCheck checkUnique,
+					   bool indexUnchanged,
 					   struct IndexInfo *indexInfo);
 extern bool hashgettuple(IndexScanDesc scan, ScanDirection dir);
 extern int64 hashgetbitmap(IndexScanDesc scan, Node **bmNodeP);
@@ -363,6 +380,10 @@ extern IndexBulkDeleteResult *hashvacuumcleanup(IndexVacuumInfo *info,
 												IndexBulkDeleteResult *stats);
 extern bytea *hashoptions(Datum reloptions, bool validate);
 extern bool hashvalidate(Oid opclassoid);
+extern void hashadjustmembers(Oid opfamilyoid,
+							  Oid opclassoid,
+							  List *operators,
+							  List *functions);
 
 /* private routines */
 
@@ -435,7 +456,6 @@ extern uint32 _hash_datum2hashkey(Relation rel, Datum key);
 extern uint32 _hash_datum2hashkey_type(Relation rel, Datum key, Oid keytype);
 extern Bucket _hash_hashkey2bucket(uint32 hashkey, uint32 maxbucket,
 								   uint32 highmask, uint32 lowmask);
-extern uint32 _hash_log2(uint32 num);
 extern uint32 _hash_spareindex(uint32 num_bucket);
 extern uint32 _hash_get_totalbuckets(uint32 splitpoint_phase);
 extern void _hash_checkpage(Relation rel, Buffer buf, int flags);

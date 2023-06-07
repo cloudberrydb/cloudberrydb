@@ -44,8 +44,13 @@ REVOKE EXECUTE ON FUNCTION pg_catalog.pg_logdir_ls() FROM PUBLIC;
 
 /* These functions are now in the backend and callers should update to use those */
 
+/*
+ These functions are already implemented internally in GPDB,can't drop.
+*/
+/*
 DROP FUNCTION pg_file_read(text, bigint, bigint);
 
 DROP FUNCTION pg_file_length(text);
 
 DROP FUNCTION pg_logfile_rotate();
+*/

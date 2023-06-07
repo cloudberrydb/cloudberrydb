@@ -3,7 +3,7 @@
  * cdbrelsize.h
  *	  Get the max size of the relation across the segDBs
  *
- * Portions Copyright (c) 2006-2008, Greenplum inc
+ * Portions Copyright (c) 2006-2008, Cloudberry inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

@@ -6,9 +6,9 @@
   <body>
     <p>The <codeph>pg_db_role_setting</codeph> system catalog table records the default
       values of server configuration settings for each role and database combination.</p>
-    <p>There is a single copy of <codeph>pg_db_role_settings</codeph> per Greenplum
+    <p>There is a single copy of <codeph>pg_db_role_settings</codeph> per Cloudberry
       Database cluster. This system catalog table is shared across all databases.</p>
-    <p>You can view the server configuration settings for your Greenplum Database
+    <p>You can view the server configuration settings for your Cloudberry Database
       cluster with <codeph>psql</codeph>'s <codeph>\drds</codeph> meta-command.</p>
     <table id="gj143898">
       <title>pg_catalog.pg_db_role_setting</title>

@@ -6,7 +6,7 @@
  *
  * Maintains an array in shared memory containing the state of each segment.
  *
- * Portions Copyright (c) 2005-2010, Greenplum Inc.
+ * Portions Copyright (c) 2005-2010, Cloudberry Inc.
  * Portions Copyright (c) 2011, EMC Corp.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
@@ -17,6 +17,7 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
+#ifdef USE_INTERNAL_FTS
 
 #include <unistd.h>
 
@@ -49,8 +50,12 @@
 
 #include "catalog/gp_configuration_history.h"
 #include "catalog/gp_segment_configuration.h"
+#include "catalog/gp_indexing.h"
 
 #include "tcop/tcopprot.h" /* quickdie() */
+#ifdef USE_INTERNAL_FTS
+#include "catalog/gp_segment_configuration_indexing.h"
+#endif
 
 bool am_ftsprobe = false;
 bool am_ftshandler = false;
@@ -422,5 +427,25 @@ void FtsLoop()
 bool
 FtsIsActive(void)
 {
+#ifdef FAULT_INJECTOR
+	/*
+	 * The macro used here is only to check the unfinished faults existing in the shared memory,
+	 * and will not change the reference count and state attributes, pay attention to distinguish the use of SIMPLE_FAULT_INJECTOR.
+	 */
+	if (LOOKUP_FAULT_INJECTOR_CHECK("fts_probe") == FaultInjectorTypeSkip)
+		return false;
+#endif
 	return !skip_fts_probe;
 }
+
+/*
+ * The purpose of this interface is to control whether to skip the FTS probe, currently only for the QE process.
+ * At this stage, the QE node does not have an FTS process, and here is only the state on the QD under synchronization.
+ */
+void
+SetSkipFtsProbe(bool skipFtsProbe)
+{
+	skip_fts_probe = skipFtsProbe;
+}
+
+#endif /* USE_INTERNAL_FTS */

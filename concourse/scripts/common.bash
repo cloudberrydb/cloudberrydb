@@ -3,6 +3,8 @@
 ## ----------------------------------------------------------------------
 ## General purpose functions
 ## ----------------------------------------------------------------------
+INSTALL_DIR=${INSTALL_DIR:-/usr/local/cloudberry-db-devel}
+CLIENT_INSTALL_DIR=${CLIENT_INSTALL_DIR:-/usr/local/cloudberry-clients-devel}
 
 function set_env() {
     export TERM=xterm-256color
@@ -15,13 +17,74 @@ function build_arch() {
     fi
     local id="$(. /etc/os-release && echo "${ID}")"
     local version=$(. /etc/os-release && echo "${VERSION_ID}")
+    version=${version/V/} # remove prefix V from version in kylin
     # BLD_ARCH expects rhel{6,7,8}_x86_64 || photon3_x86_64 || sles12_x86_64 || ubuntu18.04_x86_64
     case ${id} in
     photon | sles | rhel) version=$(echo "${version}" | cut -d. -f1) ;;
     centos) id="rhel" ;;
     *) ;;
     esac
-    echo "${id}${version}_x86_64"
+    echo "${id}${version}_`arch`"
+
+}
+
+function download_etcd() {
+    target_path=$1
+    if [ "$target_path" == "" ];then
+        echo "invalid etcd target path!" && exit 1
+    fi
+    etcd_version=v3.3.25
+    if [[ `arch` = x86_64 ]];then
+        etcd_file_name=etcd-${etcd_version}-linux-amd64	
+    else
+        etcd_file_name=etcd-${etcd_version}-linux-arm64
+    fi
+
+    etcd_download_url=https://artifactory.hashdata.xyz/artifactory/utility/${etcd_file_name}.tar.gz
+
+    wget ${etcd_download_url} -O /tmp/${etcd_file_name}.tar.gz
+    tar -xvf /tmp/${etcd_file_name}.tar.gz -C /tmp
+    
+    mkdir -p ${target_path}
+    \cp  /tmp/${etcd_file_name}/etcd ${target_path}
+    \cp  /tmp/${etcd_file_name}/etcdctl ${target_path}
+    rm -rf /tmp/${etcd_file_name} /tmp/${etcd_file_name}.tar.gz
+} 
+
+function download_jansson() {
+    jansson_version="2.13.1"
+    target_path=$1
+    if [ "$target_path" == "" ];then
+        echo "invalid jansson target path!" && exit 1
+    fi
+    jansson_file_name=jansson-${jansson_version}
+
+    wget https://artifactory.hashdata.xyz/artifactory/utility/${jansson_file_name}.tar.gz -O /tmp/${jansson_file_name}.tar.gz
+    tar -xvf /tmp/${jansson_file_name}.tar.gz -C /tmp
+
+    pushd /tmp/${jansson_file_name}
+    ./configure --prefix=/tmp/jansson --disable-static
+    make && make install
+
+    mkdir -p ${target_path}
+    \cp -p /tmp/jansson/lib/libjansson.so* ${target_path}
+    rm -rf /tmp/jansson /tmp/${jansson_file_name}.tar.gz /tmp/${jansson_file_name}
+    popd
+}
+
+function download_java() {
+    java_version=8u291
+    target_path=$1
+    if [ "$target_path" == "" ];then
+        echo "invalid java target path!" && exit 1
+    fi
+    java_file_name=jdk-${java_version}-linux-`arch`
+    wget http://artifactory.hashdata.xyz/artifactory/development/centos/7/`arch`/${java_file_name}.tar.gz -O /tmp/${java_file_name}.tar.gz
+
+    mkdir -p ${target_path}
+    tar -xzf /tmp/${java_file_name}.tar.gz -C ${target_path}
+    mv ${target_path}/jdk*  ${target_path}/jdk
+    rm /tmp/${java_file_name}.tar.gz
 }
 
 ## ----------------------------------------------------------------------
@@ -29,14 +92,14 @@ function build_arch() {
 ## ----------------------------------------------------------------------
 
 function install_gpdb() {
-    mkdir -p /usr/local/greenplum-db-devel
-    tar -xzf bin_gpdb/bin_gpdb.tar.gz -C /usr/local/greenplum-db-devel
+    mkdir -p $INSTALL_DIR
+    tar -xzf bin_gpdb/bin_gpdb.tar.gz -C $INSTALL_DIR
 }
 
 function setup_configure_vars() {
     # We need to add GPHOME paths for configure to check for packaged
     # libraries (e.g. ZStandard).
-    source /usr/local/greenplum-db-devel/greenplum_path.sh
+    source $INSTALL_DIR/greenplum_path.sh
     export LDFLAGS="-L${GPHOME}/lib"
     export CPPFLAGS="-I${GPHOME}/include"
 }
@@ -46,28 +109,33 @@ function configure() {
     # The full set of configure options which were used for building the
     # tree must be used here as well since the toplevel Makefile depends
     # on these options for deciding what to test. Since we don't ship
-    ./configure --prefix=/usr/local/greenplum-db-devel --disable-orca --enable-gpcloud --enable-mapreduce --enable-orafce --enable-tap-tests --with-gssapi --with-libxml --with-openssl --with-perl --with-python PYTHON=python3 PKG_CONFIG_PATH="${GPHOME}/lib/pkgconfig" ${CONFIGURE_FLAGS}
+    echo "/usr/local/lib" >>/etc/ld.so.conf
+    /sbin/ldconfig
+    
+    ./configure --prefix=$INSTALL_DIR --disable-orca --enable-gpcloud --enable-mapreduce --enable-orafce --enable-tap-tests --with-gssapi --with-libxml --with-ssl=openssl --with-perl --with-python --with-quicklz --with-lz4 PYTHON=python3 PKG_CONFIG_PATH="${GPHOME}/lib/pkgconfig" ${CONFIGURE_FLAGS}
 
     popd
 }
 
 function install_and_configure_gpdb() {
-    install_gpdb
-    setup_configure_vars
-    configure
+	install_gpdb
+	download_etcd /usr/bin
+	setup_configure_vars
+	configure
 }
 
 function make_cluster() {
-    source /usr/local/greenplum-db-devel/greenplum_path.sh
+    source $INSTALL_DIR/greenplum_path.sh
     export BLDWRAP_POSTGRES_CONF_ADDONS=${BLDWRAP_POSTGRES_CONF_ADDONS}
     export STATEMENT_MEM=250MB
+
     pushd gpdb_src/gpAux/gpdemo
-    su gpadmin -c "source /usr/local/greenplum-db-devel/greenplum_path.sh; LANG=en_US.utf8 make create-demo-cluster"
+    su gpadmin -c "source $INSTALL_DIR/greenplum_path.sh; LANG=en_US.utf8 make create-demo-cluster"
 
     if [[ "$MAKE_TEST_COMMAND" =~ gp_interconnect_type=proxy ]]; then
         # generate the addresses for proxy mode
         su gpadmin -c bash -- -e <<EOF
-      source /usr/local/greenplum-db-devel/greenplum_path.sh
+      source $INSTALL_DIR/greenplum_path.sh
       source $PWD/gpdemo-env.sh
 
       delta=-3000
@@ -90,7 +158,7 @@ EOF
 }
 
 function run_test() {
-    su gpadmin -c "bash /opt/run_test.sh $(pwd)"
+    su -l gpadmin -c "bash /opt/run_test.sh $(pwd)"
 }
 
 function install_python_requirements_on_single_host() {
@@ -144,12 +212,12 @@ COVEOF
 
     # Now copy everything over to the hosts.
     while read -r host; do
-        scp /tmp/sitecustomize.py "$host":/usr/local/greenplum-db-devel/lib/python
-        scp /tmp/coveragerc "$host":/usr/local/greenplum-db-devel
+        scp /tmp/sitecustomize.py "$host":$INSTALL_DIR/lib/python
+        scp /tmp/coveragerc "$host":$INSTALL_DIR
         ssh "$host" "mkdir -p $coverage_path" </dev/null
 
         # Enable coverage instrumentation after sourcing greenplum_path.
-        ssh "$host" "echo 'export COVERAGE_PROCESS_START=/usr/local/greenplum-db-devel/coveragerc' >> /usr/local/greenplum-db-devel/greenplum_path.sh" </dev/null
+        ssh "$host" "echo 'export COVERAGE_PROCESS_START=$INSTALL_DIR/coveragerc' >> $INSTALL_DIR/greenplum_path.sh" </dev/null
     done </tmp/hostfile_all
 }
 

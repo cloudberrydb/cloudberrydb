@@ -7,8 +7,8 @@
       <p>If you use single row error isolation (see <xref
             href="g-define-an-external-table-with-single-row-error-isolation.xml#topic56"/> or <xref
             href="g-running-copy-in-single-row-error-isolation-mode.xml#topic65"/>), any rows with
-         formatting errors are logged internally by Greenplum Database. </p>
-      <p>Greenplum Database captures the following error information in a table format:</p>
+         formatting errors are logged internally by Cloudberry Database. </p>
+      <p>Cloudberry Database captures the following error information in a table format:</p>
       <table id="du166024">
          <title>Error Log Format</title>
          <tgroup cols="3">
@@ -79,13 +79,13 @@
             </tbody>
          </tgroup>
       </table>
-      <p>You can use the Greenplum Database built-in SQL function
+      <p>You can use the Cloudberry Database built-in SQL function
             <codeph>gp_read_error_log()</codeph> to display formatting errors that are logged
          internally. For example, this command displays the error log information for the table
             <i>ext_expenses</i>:</p>
       <codeblock>SELECT gp_read_error_log('ext_expenses');</codeblock>
       <p>For information about managing formatting errors that are logged internally, see the
          command <codeph>COPY</codeph> or <codeph>CREATE EXTERNAL TABLE</codeph> in the
-            <cite>Greenplum Database Reference Guide</cite>.</p>
+            <cite>Cloudberry Database Reference Guide</cite>.</p>
    </body>
 </topic>

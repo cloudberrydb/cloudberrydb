@@ -22,7 +22,7 @@
         <li id="ak136720"><b>ADD COLUMN</b> — Adds a new column to the external table definition. </li>
         <li id="ak136723"><b>DROP COLUMN</b> — Drops a column from the external table definition. If
           you drop readable external table columns, it only changes the table definition in
-          Greenplum Database. The <codeph>CASCADE</codeph> keyword is required if anything outside
+          Cloudberry Database. The <codeph>CASCADE</codeph> keyword is required if anything outside
           the table depends on the column, such as a view that references the column. </li>
         <li id="ak142648"><b>ALTER COLUMN TYPE</b> — Changes the data type of a table column. </li>
         <li id="ak137262"><b>OWNER</b> — Changes the owner of the external table to the specified
@@ -87,7 +87,7 @@
         data type of an external table:</p><codeblock>ALTER EXTERNAL TABLE ext_leads ALTER COLUMN acct_code TYPE integer</codeblock>
       </section>
     <section id="section6"><title>Compatibility</title><p><codeph>ALTER EXTERNAL TABLE</codeph> is a
-        Greenplum Database extension. There is no <codeph>ALTER EXTERNAL TABLE</codeph> statement in
+        Cloudberry Database extension. There is no <codeph>ALTER EXTERNAL TABLE</codeph> statement in
         the SQL standard or regular PostgreSQL. </p></section>
     <section id="section7"><title>See Also</title><p><codeph><xref href="./CREATE_EXTERNAL_TABLE.xml#topic1" type="topic" format="dita"/></codeph>,
             <codeph><xref href="./DROP_EXTERNAL_TABLE.xml#topic1" type="topic" format="dita"

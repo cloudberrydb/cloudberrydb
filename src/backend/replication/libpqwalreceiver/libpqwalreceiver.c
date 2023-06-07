@@ -6,7 +6,7 @@
  * loaded as a dynamic module to avoid linking the main server binary with
  * libpq.
  *
- * Portions Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *
  *
  * IDENTIFICATION
@@ -19,15 +19,16 @@
 #include <unistd.h>
 #include <sys/time.h>
 
-#include "libpq-fe.h"
-#include "libpq/pqcomm.h"
-#include "pqexpbuffer.h"
 #include "access/xlog.h"
 #include "catalog/pg_type.h"
+#include "common/connect.h"
 #include "funcapi.h"
+#include "libpq-fe.h"
+#include "libpq/pqcomm.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
 #include "pgstat.h"
+#include "pqexpbuffer.h"
 #include "replication/walreceiver.h"
 #include "storage/proc.h"
 #include "utils/builtins.h"
@@ -80,6 +81,7 @@ static char *libpqrcv_create_slot(WalReceiverConn *conn,
 								  bool temporary,
 								  CRSSnapshotAction snapshot_action,
 								  XLogRecPtr *lsn);
+static pid_t libpqrcv_get_backend_pid(WalReceiverConn *conn);
 static WalRcvExecResult *libpqrcv_exec(WalReceiverConn *conn,
 									   const char *query,
 									   const int nRetTypes,
@@ -99,6 +101,7 @@ static WalReceiverFunctionsType PQWalReceiverFunctions = {
 	libpqrcv_receive,
 	libpqrcv_send,
 	libpqrcv_create_slot,
+	libpqrcv_get_backend_pid,
 	libpqrcv_exec,
 	libpqrcv_disconnect
 };
@@ -219,6 +222,22 @@ libpqrcv_connect(const char *conninfo, bool logical, const char *appname,
 		return NULL;
 	}
 
+	if (logical)
+	{
+		PGresult   *res;
+
+		res = libpqrcv_PQexec(conn->streamConn,
+							  ALWAYS_SECURE_SEARCH_PATH_SQL);
+		if (PQresultStatus(res) != PGRES_TUPLES_OK)
+		{
+			PQclear(res);
+			ereport(ERROR,
+					(errmsg("could not clear search path: %s",
+							pchomp(PQerrorMessage(conn->streamConn)))));
+		}
+		PQclear(res);
+	}
+
 	conn->logical = logical;
 
 	return conn;
@@ -235,9 +254,15 @@ libpqrcv_check_conninfo(const char *conninfo)
 
 	opts = PQconninfoParse(conninfo, &err);
 	if (opts == NULL)
+	{
+		/* The error string is malloc'd, so we must free it explicitly */
+		char	   *errcopy = err ? pstrdup(err) : "out of memory";
+
+		PQfreemem(err);
 		ereport(ERROR,
 				(errcode(ERRCODE_SYNTAX_ERROR),
-				 errmsg("invalid connection string syntax: %s", err)));
+				 errmsg("invalid connection string syntax: %s", errcopy)));
+	}
 
 	PQconninfoFree(opts);
 }
@@ -261,7 +286,8 @@ libpqrcv_get_conninfo(WalReceiverConn *conn)
 
 	if (conn_opts == NULL)
 		ereport(ERROR,
-				(errmsg("could not parse connection string: %s",
+				(errcode(ERRCODE_OUT_OF_MEMORY),
+				 errmsg("could not parse connection string: %s",
 						_("out of memory"))));
 
 	/* build a clean connection string from pieces */
@@ -333,7 +359,8 @@ libpqrcv_identify_system(WalReceiverConn *conn, TimeLineID *primary_tli)
 	{
 		PQclear(res);
 		ereport(ERROR,
-				(errmsg("could not receive database system identifier and timeline ID from "
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not receive database system identifier and timeline ID from "
 						"the primary server: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 	}
@@ -344,7 +371,8 @@ libpqrcv_identify_system(WalReceiverConn *conn, TimeLineID *primary_tli)
 
 		PQclear(res);
 		ereport(ERROR,
-				(errmsg("invalid response from primary server"),
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("invalid response from primary server"),
 				 errdetail("Could not identify system: got %d rows and %d fields, expected %d rows and %d or more fields.",
 						   ntuples, nfields, 3, 1)));
 	}
@@ -395,9 +423,7 @@ libpqrcv_startstreaming(WalReceiverConn *conn,
 	if (options->logical)
 		appendStringInfoString(&cmd, " LOGICAL");
 
-	appendStringInfo(&cmd, " %X/%X",
-					 (uint32) (options->startpoint >> 32),
-					 (uint32) options->startpoint);
+	appendStringInfo(&cmd, " %X/%X", LSN_FORMAT_ARGS(options->startpoint));
 
 	/*
 	 * Additional options are different depending on if we are doing logical
@@ -414,21 +440,31 @@ libpqrcv_startstreaming(WalReceiverConn *conn,
 		appendStringInfo(&cmd, "proto_version '%u'",
 						 options->proto.logical.proto_version);
 
+		if (options->proto.logical.streaming &&
+			PQserverVersion(conn->streamConn) >= 140000)
+			appendStringInfoString(&cmd, ", streaming 'on'");
+
 		pubnames = options->proto.logical.publication_names;
 		pubnames_str = stringlist_to_identifierstr(conn->streamConn, pubnames);
 		if (!pubnames_str)
 			ereport(ERROR,
-					(errmsg("could not start WAL streaming: %s",
+					(errcode(ERRCODE_OUT_OF_MEMORY),	/* likely guess */
+					 errmsg("could not start WAL streaming: %s",
 							pchomp(PQerrorMessage(conn->streamConn)))));
 		pubnames_literal = PQescapeLiteral(conn->streamConn, pubnames_str,
 										   strlen(pubnames_str));
 		if (!pubnames_literal)
 			ereport(ERROR,
-					(errmsg("could not start WAL streaming: %s",
+					(errcode(ERRCODE_OUT_OF_MEMORY),	/* likely guess */
+					 errmsg("could not start WAL streaming: %s",
 							pchomp(PQerrorMessage(conn->streamConn)))));
 		appendStringInfo(&cmd, ", publication_names %s", pubnames_literal);
 		PQfreemem(pubnames_literal);
 		pfree(pubnames_str);
+
+		if (options->proto.logical.binary &&
+			PQserverVersion(conn->streamConn) >= 140000)
+			appendStringInfoString(&cmd, ", binary 'true'");
 
 		appendStringInfoChar(&cmd, ')');
 	}
@@ -449,7 +485,8 @@ libpqrcv_startstreaming(WalReceiverConn *conn,
 	{
 		PQclear(res);
 		ereport(ERROR,
-				(errmsg("could not start WAL streaming: %s",
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not start WAL streaming: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 	}
 	PQclear(res);
@@ -472,7 +509,8 @@ libpqrcv_endstreaming(WalReceiverConn *conn, TimeLineID *next_tli)
 	if (PQputCopyEnd(conn->streamConn, NULL) <= 0 ||
 		PQflush(conn->streamConn))
 		ereport(ERROR,
-				(errmsg("could not send end-of-streaming message to primary: %s",
+				(errcode(ERRCODE_CONNECTION_FAILURE),
+				 errmsg("could not send end-of-streaming message to primary: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 
 	*next_tli = 0;
@@ -494,7 +532,8 @@ libpqrcv_endstreaming(WalReceiverConn *conn, TimeLineID *next_tli)
 		 */
 		if (PQnfields(res) < 2 || PQntuples(res) != 1)
 			ereport(ERROR,
-					(errmsg("unexpected result set after end-of-streaming")));
+					(errcode(ERRCODE_PROTOCOL_VIOLATION),
+					 errmsg("unexpected result set after end-of-streaming")));
 		*next_tli = pg_strtoint32(PQgetvalue(res, 0, 0));
 		PQclear(res);
 
@@ -508,7 +547,8 @@ libpqrcv_endstreaming(WalReceiverConn *conn, TimeLineID *next_tli)
 		/* End the copy */
 		if (PQendcopy(conn->streamConn))
 			ereport(ERROR,
-					(errmsg("error while shutting down streaming COPY: %s",
+					(errcode(ERRCODE_CONNECTION_FAILURE),
+					 errmsg("error while shutting down streaming COPY: %s",
 							pchomp(PQerrorMessage(conn->streamConn)))));
 
 		/* CommandComplete should follow */
@@ -517,7 +557,8 @@ libpqrcv_endstreaming(WalReceiverConn *conn, TimeLineID *next_tli)
 
 	if (PQresultStatus(res) != PGRES_COMMAND_OK)
 		ereport(ERROR,
-				(errmsg("error reading result of streaming command: %s",
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("error reading result of streaming command: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 	PQclear(res);
 
@@ -525,7 +566,8 @@ libpqrcv_endstreaming(WalReceiverConn *conn, TimeLineID *next_tli)
 	res = libpqrcv_PQgetResult(conn->streamConn);
 	if (res != NULL)
 		ereport(ERROR,
-				(errmsg("unexpected result after CommandComplete: %s",
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("unexpected result after CommandComplete: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 }
 
@@ -551,7 +593,8 @@ libpqrcv_readtimelinehistoryfile(WalReceiverConn *conn,
 	{
 		PQclear(res);
 		ereport(ERROR,
-				(errmsg("could not receive timeline history file from "
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not receive timeline history file from "
 						"the primary server: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 	}
@@ -562,7 +605,8 @@ libpqrcv_readtimelinehistoryfile(WalReceiverConn *conn,
 
 		PQclear(res);
 		ereport(ERROR,
-				(errmsg("invalid response from primary server"),
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("invalid response from primary server"),
 				 errdetail("Expected 1 tuple with 2 fields, got %d tuples with %d fields.",
 						   ntuples, nfields)));
 	}
@@ -723,7 +767,8 @@ libpqrcv_receive(WalReceiverConn *conn, char **buffer,
 		/* Try consuming some data. */
 		if (PQconsumeInput(conn->streamConn) == 0)
 			ereport(ERROR,
-					(errmsg("could not receive data from WAL stream: %s",
+					(errcode(ERRCODE_CONNECTION_FAILURE),
+					 errmsg("could not receive data from WAL stream: %s",
 							pchomp(PQerrorMessage(conn->streamConn)))));
 
 		/* Now that we've consumed some input, try again */
@@ -759,7 +804,8 @@ libpqrcv_receive(WalReceiverConn *conn, char **buffer,
 					return -1;
 
 				ereport(ERROR,
-						(errmsg("unexpected result after CommandComplete: %s",
+						(errcode(ERRCODE_PROTOCOL_VIOLATION),
+						 errmsg("unexpected result after CommandComplete: %s",
 								PQerrorMessage(conn->streamConn))));
 			}
 
@@ -774,13 +820,15 @@ libpqrcv_receive(WalReceiverConn *conn, char **buffer,
 		{
 			PQclear(res);
 			ereport(ERROR,
-					(errmsg("could not receive data from WAL stream: %s",
+					(errcode(ERRCODE_PROTOCOL_VIOLATION),
+					 errmsg("could not receive data from WAL stream: %s",
 							pchomp(PQerrorMessage(conn->streamConn)))));
 		}
 	}
 	if (rawlen < -1)
 		ereport(ERROR,
-				(errmsg("could not receive data from WAL stream: %s",
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not receive data from WAL stream: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 
 	/* Return received messages to caller */
@@ -799,7 +847,8 @@ libpqrcv_send(WalReceiverConn *conn, const char *buffer, int nbytes)
 	if (PQputCopyData(conn->streamConn, buffer, nbytes) <= 0 ||
 		PQflush(conn->streamConn))
 		ereport(ERROR,
-				(errmsg("could not send data to WAL stream: %s",
+				(errcode(ERRCODE_CONNECTION_FAILURE),
+				 errmsg("could not send data to WAL stream: %s",
 						pchomp(PQerrorMessage(conn->streamConn)))));
 }
 
@@ -840,6 +889,10 @@ libpqrcv_create_slot(WalReceiverConn *conn, const char *slotname,
 				break;
 		}
 	}
+	else
+	{
+		appendStringInfoString(&cmd, " PHYSICAL RESERVE_WAL");
+	}
 
 	res = libpqrcv_PQexec(conn->streamConn, cmd.data);
 	pfree(cmd.data);
@@ -848,12 +901,15 @@ libpqrcv_create_slot(WalReceiverConn *conn, const char *slotname,
 	{
 		PQclear(res);
 		ereport(ERROR,
-				(errmsg("could not create replication slot \"%s\": %s",
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("could not create replication slot \"%s\": %s",
 						slotname, pchomp(PQerrorMessage(conn->streamConn)))));
 	}
 
-	*lsn = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid,
-											   CStringGetDatum(PQgetvalue(res, 0, 1))));
+	if (lsn)
+		*lsn = DatumGetLSN(DirectFunctionCall1Coll(pg_lsn_in, InvalidOid,
+												   CStringGetDatum(PQgetvalue(res, 0, 1))));
+
 	if (!PQgetisnull(res, 0, 2))
 		snapshot = pstrdup(PQgetvalue(res, 0, 2));
 	else
@@ -862,6 +918,15 @@ libpqrcv_create_slot(WalReceiverConn *conn, const char *slotname,
 	PQclear(res);
 
 	return snapshot;
+}
+
+/*
+ * Return PID of remote backend process.
+ */
+static pid_t
+libpqrcv_get_backend_pid(WalReceiverConn *conn)
+{
+	return PQbackendPID(conn->streamConn);
 }
 
 /*
@@ -882,7 +947,8 @@ libpqrcv_processTuples(PGresult *pgres, WalRcvExecResult *walres,
 	/* Make sure we got expected number of fields. */
 	if (nfields != nRetTypes)
 		ereport(ERROR,
-				(errmsg("invalid query response"),
+				(errcode(ERRCODE_PROTOCOL_VIOLATION),
+				 errmsg("invalid query response"),
 				 errdetail("Expected %d fields, got %d fields.",
 						   nRetTypes, nfields)));
 
@@ -948,6 +1014,7 @@ libpqrcv_exec(WalReceiverConn *conn, const char *query,
 {
 	PGresult   *pgres = NULL;
 	WalRcvExecResult *walres = palloc0(sizeof(WalRcvExecResult));
+	char	   *diag_sqlstate;
 
 	if (MyDatabaseId == InvalidOid)
 		ereport(ERROR,
@@ -986,11 +1053,24 @@ libpqrcv_exec(WalReceiverConn *conn, const char *query,
 			walres->err = _("empty query");
 			break;
 
+		case PGRES_PIPELINE_SYNC:
+		case PGRES_PIPELINE_ABORTED:
+			walres->status = WALRCV_ERROR;
+			walres->err = _("unexpected pipeline mode");
+			break;
+
 		case PGRES_NONFATAL_ERROR:
 		case PGRES_FATAL_ERROR:
 		case PGRES_BAD_RESPONSE:
 			walres->status = WALRCV_ERROR;
 			walres->err = pchomp(PQerrorMessage(conn->streamConn));
+			diag_sqlstate = PQresultErrorField(pgres, PG_DIAG_SQLSTATE);
+			if (diag_sqlstate)
+				walres->sqlstate = MAKE_SQLSTATE(diag_sqlstate[0],
+												 diag_sqlstate[1],
+												 diag_sqlstate[2],
+												 diag_sqlstate[3],
+												 diag_sqlstate[4]);
 			break;
 	}
 

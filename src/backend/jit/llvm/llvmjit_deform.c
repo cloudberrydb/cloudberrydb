@@ -7,7 +7,7 @@
  * knowledge of the tuple descriptor. Fixed column widths, NOT NULLness, etc
  * can be taken advantage of.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -331,7 +331,7 @@ slot_compile_deform(LLVMJitContext *context, TupleDesc desc,
 		v_params[0] = v_slot;
 		v_params[1] = LLVMBuildZExt(b, v_maxatt, LLVMInt32Type(), "");
 		v_params[2] = l_int32_const(natts);
-		LLVMBuildCall(b, llvm_get_decl(mod, FuncSlotGetmissingattrs),
+		LLVMBuildCall(b, llvm_pg_func(mod, "slot_getmissingattrs"),
 					  v_params, lengthof(v_params), "");
 		LLVMBuildBr(b, b_find_start);
 	}
@@ -476,13 +476,13 @@ slot_compile_deform(LLVMJitContext *context, TupleDesc desc,
 		LLVMPositionBuilderAtEnd(b, attcheckalignblocks[attnum]);
 
 		/* determine required alignment */
-		if (att->attalign == 'i')
+		if (att->attalign == TYPALIGN_INT)
 			alignto = ALIGNOF_INT;
-		else if (att->attalign == 'c')
+		else if (att->attalign == TYPALIGN_CHAR)
 			alignto = 1;
-		else if (att->attalign == 'd')
+		else if (att->attalign == TYPALIGN_DOUBLE)
 			alignto = ALIGNOF_DOUBLE;
-		else if (att->attalign == 's')
+		else if (att->attalign == TYPALIGN_SHORT)
 			alignto = ALIGNOF_SHORT;
 		else
 		{
@@ -682,7 +682,7 @@ slot_compile_deform(LLVMJitContext *context, TupleDesc desc,
 		else if (att->attlen == -1)
 		{
 			v_incby = LLVMBuildCall(b,
-									llvm_get_decl(mod, FuncVarsizeAny),
+									llvm_pg_func(mod, "varsize_any"),
 									&v_attdatap, 1,
 									"varsize_any");
 			l_callsite_ro(v_incby);
@@ -691,7 +691,7 @@ slot_compile_deform(LLVMJitContext *context, TupleDesc desc,
 		else if (att->attlen == -2)
 		{
 			v_incby = LLVMBuildCall(b,
-									llvm_get_decl(mod, FuncStrlen),
+									llvm_pg_func(mod, "strlen"),
 									&v_attdatap, 1, "strlen");
 
 			l_callsite_ro(v_incby);

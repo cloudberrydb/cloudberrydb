@@ -3,7 +3,7 @@
  * sampling.h
  *	  definitions for sampling functions
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/utils/sampling.h
@@ -37,8 +37,8 @@ typedef struct
 
 typedef BlockSamplerData *BlockSampler;
 
-extern void BlockSampler_Init(BlockSampler bs, BlockNumber nblocks,
-							  int samplesize, long randseed);
+extern BlockNumber BlockSampler_Init(BlockSampler bs, BlockNumber nblocks,
+									 int samplesize, long randseed);
 extern bool BlockSampler_HasMore(BlockSampler bs);
 extern BlockNumber BlockSampler_Next(BlockSampler bs);
 

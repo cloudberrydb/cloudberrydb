@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-// Greenplum Database
+// Cloudberry Database
 // Copyright (c) 2020 VMware, Inc. or its affiliates
 //---------------------------------------------------------------------------
 #ifndef COstreamStdString_H

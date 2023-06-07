@@ -37,7 +37,7 @@
     </section>
     <section id="section7">
       <title>Compatibility</title>
-      <p><codeph>ALTER RULE</codeph> is a Greenplum Database language extension, as is the entire
+      <p><codeph>ALTER RULE</codeph> is a Cloudberry Database language extension, as is the entire
         query rewrite system. </p>
     </section>
     <section>

@@ -12,9 +12,15 @@ subdir = src/backend/tcop
 top_builddir = ../../..
 include $(top_builddir)/src/Makefile.global
 
-OBJS= dest.o fastpath.o postgres.o pquery.o utility.o
+OBJS = \
+	cmdtag.o \
+	dest.o \
+	fastpath.o \
+	postgres.o \
+	pquery.o \
+	utility.o
 
-# Greenplum objects
+# Cloudberry objects
 OBJS+= idle_resource_cleaner.o
 
 ifneq (,$(filter $(PORTNAME),cygwin win32))

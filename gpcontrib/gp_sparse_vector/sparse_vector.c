@@ -7,7 +7,7 @@
  * able to compare the number of instances where the svec of one document
  * intersects another.
 
- * Copyright (c) 2010, Greenplum Software
+ * Copyright (c) 2010, Cloudberry Software
  * Portions Copyright (c) 2013-Present VMware, Inc. or its affiliates.
  *
  *

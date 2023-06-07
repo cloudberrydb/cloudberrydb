@@ -3,30 +3,30 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="iq110126">Managing Roles and Privileges</title>
-  <shortdesc>The Greenplum Database authorization mechanism stores roles and
+  <shortdesc>The Cloudberry Database authorization mechanism stores roles and
     permissions to access database objects in the database and is administered using SQL statements
     or command-line utilities.</shortdesc>
   <body>
-    <p>Greenplum Database manages database access permissions using <i>roles</i>. The
+    <p>Cloudberry Database manages database access permissions using <i>roles</i>. The
       concept of roles subsumes the concepts of <i>users</i> and <i>groups</i>. A role can be a
       database user, a group, or both. Roles can own database objects (for example, tables) and can
       assign privileges on those objects to other roles to control access to the objects. Roles can
       be members of other roles, thus a member role can inherit the object privileges of its parent
       role.</p>
-    <p>Every Greenplum Database system contains a set of database roles (users and
+    <p>Every Cloudberry Database system contains a set of database roles (users and
       groups). Those roles are separate from the users and groups managed by the operating system on
       which the server runs. However, for convenience you may want to maintain a relationship
-      between operating system user names and Greenplum Database role names, since
+      between operating system user names and Cloudberry Database role names, since
       many of the client applications use the current operating system user name as the default.</p>
-    <p>In Greenplum Database, users log in and connect through the master instance,
+    <p>In Cloudberry Database, users log in and connect through the master instance,
       which then verifies their role and access privileges. The master then issues commands to the
       segment instances behind the scenes as the currently logged in role. </p>
     <p>Roles are defined at the system level, meaning they are valid for all databases in the
       system.</p>
-    <p>In order to bootstrap the Greenplum Database system, a freshly initialized
+    <p>In order to bootstrap the Cloudberry Database system, a freshly initialized
       system always contains one predefined <i>superuser</i> role <ph>(also referred to as the
         system user)</ph>. This role will have the same name as the operating system user that
-      initialized the Greenplum Database system. Customarily, this role is named
+      initialized the Cloudberry Database system. Customarily, this role is named
         <codeph>gpadmin</codeph>. In order to create more roles you first have to connect as this
       initial role.</p>
   </body>
@@ -35,31 +35,31 @@
     <body>
       <ul>
         <li id="iq142445"><b>Secure the gpadmin system user.</b>
-          Greenplum requires a UNIX user id to install and initialize
-          the Greenplum Database system. This system user is referred to as
-            <codeph>gpadmin</codeph> in the Greenplum documentation.
-          This <codeph>gpadmin</codeph> user is the default database superuser in Greenplum Database, as well as the file system owner of the Greenplum installation and its underlying data files. This default
-          administrator account is fundamental to the design of Greenplum Database.
+          Cloudberry requires a UNIX user id to install and initialize
+          the Cloudberry Database system. This system user is referred to as
+            <codeph>gpadmin</codeph> in the Cloudberry documentation.
+          This <codeph>gpadmin</codeph> user is the default database superuser in Cloudberry Database, as well as the file system owner of the Cloudberry installation and its underlying data files. This default
+          administrator account is fundamental to the design of Cloudberry Database.
           The system cannot run without it, and there is no way to limit the access of this gpadmin
           user id. Use roles to manage who has access to the database for specific purposes. You
           should only use the <codeph>gpadmin</codeph> account for system maintenance tasks such as
-          expansion and upgrade. Anyone who logs on to a Greenplum host
+          expansion and upgrade. Anyone who logs on to a Cloudberry host
           as this user id can read, alter or delete any data; including system catalog data and
           database access rights. Therefore, it is very important to secure the gpadmin user id and
           only provide access to essential system administrators. Administrators should only log in
-          to Greenplum as <codeph>gpadmin</codeph> when performing
+          to Cloudberry as <codeph>gpadmin</codeph> when performing
           certain system maintenance tasks (such as upgrade or expansion). Database users should
           never log on as <codeph>gpadmin</codeph>, and ETL or production workloads should never run
           as <codeph>gpadmin</codeph>.</li>
         <li id="iq142438"><b>Assign a distinct role to each user that logs in.</b> For logging and
-          auditing purposes, each user that is allowed to log in to Greenplum Database
+          auditing purposes, each user that is allowed to log in to Cloudberry Database
           should be given their own database role. For applications or web services, consider
           creating a distinct role for each application or service. See <xref href="#topic3"
             type="topic" format="dita"/>.</li>
         <li id="iq142229"><b>Use groups to manage access privileges.</b> See <xref href="#topic5"
             type="topic" format="dita"/>.</li>
         <li id="iq142283"><b>Limit users who have the SUPERUSER role attribute.</b> Roles that are
-          superusers bypass all access privilege checks in Greenplum Database, as well
+          superusers bypass all access privilege checks in Cloudberry Database, as well
           as resource queuing. Only system administrators should be given superuser rights. See
             <xref href="#topic4" type="topic" format="dita"/>.</li>
       </ul>
@@ -237,7 +237,7 @@
     <body>
       <p>It is frequently convenient to group users together to ease management of object
         privileges: that way, privileges can be granted to, or revoked from, a group as a whole. In
-          Greenplum Database this is done by creating a role that represents the
+          Cloudberry Database this is done by creating a role that represents the
         group, and then granting membership in the group role to individual user roles. </p>
       <p>Use the <codeph>CREATE ROLE</codeph> SQL command to create a new group role. For
         example:</p>
@@ -282,7 +282,7 @@
         is created, it is assigned an owner. The owner is normally the role that ran the
         creation statement. For most kinds of objects, the initial state is that only the owner (or
         a superuser) can do anything with the object. To allow other roles to use it, privileges
-        must be granted. Greenplum Database supports the following privileges for each
+        must be granted. Cloudberry Database supports the following privileges for each
         object type:</p>
       <table id="iq139925">
         <title>Object Privileges</title>
@@ -521,7 +521,7 @@
     <topic id="topic7" xml:lang="en">
       <title>Simulating Row Level Access Control</title>
       <body>
-        <p>Greenplum Database does not support row-level access or row-level, labeled security. You can
+        <p>Cloudberry Database does not support row-level access or row-level, labeled security. You can
           simulate row-level access by using views to restrict the rows that
           are selected. You can simulate row-level labels by adding an extra column to the table to
           store sensitivity information, and then using views to control row-level access based on
@@ -533,16 +533,16 @@
   <topic id="topic8" xml:lang="en">
     <title>Encrypting Data</title>
     <body>
-      <p>Greenplum Database is installed with an optional module of encryption/decryption functions called
+      <p>Cloudberry Database is installed with an optional module of encryption/decryption functions called
           <codeph>pgcrypto</codeph>. The <codeph>pgcrypto</codeph> functions allow database
         administrators to store certain columns of data in encrypted form. This adds an extra layer
-        of protection for sensitive data, as data stored in Greenplum Database in encrypted form
+        of protection for sensitive data, as data stored in Cloudberry Database in encrypted form
         cannot be read by anyone who does not have the encryption key, nor can it be read directly
         from the disks. </p>
       <note>The <codeph>pgcrypto</codeph> functions run inside the database server, which means that
         all the data and passwords move between <codeph>pgcrypto</codeph> and the client application
         in clear-text. For optimal security, consider also using SSL connections between the client
-        and the Greenplum master server.</note>
+        and the Cloudberry master server.</note>
       <p>To use <codeph>pgcrypto</codeph> functions, register the <codeph>pgcrypto</codeph>
         extension in each database in which you want to use the functions. For example:
         <codeblock>$ psql -d testdb -c "CREATE EXTENSION pgcrypto"</codeblock></p>
@@ -553,9 +553,9 @@
     </body>
   </topic>
   <topic id="topic9" xml:lang="en">
-    <title>Protecting Passwords in Greenplum Database</title>
+    <title>Protecting Passwords in Cloudberry Database</title>
     <body>
-      <p>In its default configuration, Greenplum Database saves MD5 hashes of login
+      <p>In its default configuration, Cloudberry Database saves MD5 hashes of login
         users' passwords in the <codeph>pg_authid</codeph> system catalog rather than saving clear
         text passwords. Anyone who is able to view the <codeph>pg_authid</codeph> table can see hash
         strings, but no passwords. This also ensures that passwords are obscured when the database
@@ -600,10 +600,10 @@ $ gpstop -u</codeblock></p>
   <topic id="topic13" xml:lang="en">
     <title id="iq146691">Time-based Authentication</title>
     <body>
-      <p>Greenplum Database enables the administrator to restrict access to certain
+      <p>Cloudberry Database enables the administrator to restrict access to certain
         times by role. Use the <codeph>CREATE ROLE</codeph> or <codeph>ALTER ROLE</codeph> commands
         to specify time-based constraints. </p>
-      <p>For details, refer to the <i>Greenplum Database Security Configuration
+      <p>For details, refer to the <i>Cloudberry Database Security Configuration
           Guide</i>.</p>
     </body>
   </topic>

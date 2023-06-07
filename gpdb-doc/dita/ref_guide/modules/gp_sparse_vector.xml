@@ -4,16 +4,16 @@
   <topic id="topic_gpsv">
     <title>gp_sparse_vector</title>
     <body>
-      <p>The <codeph>gp_sparse_vector</codeph> module implements a Greenplum Database 
+      <p>The <codeph>gp_sparse_vector</codeph> module implements a Cloudberry Database 
         data type and associated functions that use compressed storage of zeros to
         make vector computations on floating point numbers faster.</p>
-      <p>The <codeph>gp_sparse_vector</codeph> module is a Greenplum Database extension.</p>
+      <p>The <codeph>gp_sparse_vector</codeph> module is a Cloudberry Database extension.</p>
     </body>
     <topic id="topic_reg">
       <title>Installing and Registering the Module</title>
       <body>
         <p>The <codeph>gp_sparse_vector</codeph> module is installed when you install
-          Greenplum Database. Before you can use any of the functions defined in the
+          Cloudberry Database. Before you can use any of the functions defined in the
           module, you must register the <codeph>gp_sparse_vector</codeph> extension in
           each database where you want to use the functions.
           <ph otherprops="pivotal">Refer to <xref href="../../install_guide/install_modules.html"
@@ -31,7 +31,7 @@
           those zeros is often impractical. There are also many computations
           that benefit from skipping over the zeros.</p>
         <p>For example, suppose the following array of <codeph>double</codeph>s is
-          stored as a <codeph>float8[]</codeph> in Greenplum Database:</p>
+          stored as a <codeph>float8[]</codeph> in Cloudberry Database:</p>
 
         <codeblock>'{0, 33, &lt;40,000 zeros>, 12, 22 }'::float8[]</codeblock>
         <p>This type of array arises often in text processing, where a dictionary may
@@ -39,14 +39,14 @@
           in a vector. This array would occupy slightly more than 320KB of memory/disk,
           most of it zeros. Any operation that you perform on this data
           works on 40,001 fields that are not important.</p>
-        <p>The Greenplum Database built-in <codeph>array</codeph> datatype utilizes a
+        <p>The Cloudberry Database built-in <codeph>array</codeph> datatype utilizes a
           bitmap for null values, but it is a poor choice for this use case because
           it is not optimized for <codeph>float8[]</codeph> or for long runs of
           zeros instead of nulls, and the bitmap is not run-length-encoding- (RLE)
           compressed. Even if each zero were stored as a <codeph>NULL</codeph> in the
           array, the bitmap for nulls would use 5KB to mark the
           nulls, which is not nearly as efficient as it could be.</p>
-        <p>The Greenplum Database <codeph>gp_sparse_vector</codeph> module defines a
+        <p>The Cloudberry Database <codeph>gp_sparse_vector</codeph> module defines a
           data type and a simple RLE-based scheme that is biased toward being efficient
           for zero value bitmaps. This scheme uses only 6 bytes for bitmap storage.</p>
         <note>The sparse vector data type defined by the <codeph>gp_sparse_vector</codeph>
@@ -103,7 +103,7 @@ SELECT vec_count_nonzero( a )::float8[] FROM listvecs;
       <body>
         <p>Refer to the <codeph>gp_sparse_vector</codeph> READMEs in the
           <xref href="https://github.com/greenplum-db/gpdb/tree/master/gpcontrib/gp_sparse_vector/README"
-            format="html" scope="external">Greenplum Database github repository</xref>
+            format="html" scope="external">Cloudberry Database github repository</xref>
           for additional information about this module.</p>
         <p>Apache MADlib includes an extended implementation of sparse vectors. See the
           <xref href="http://madlib.apache.org/docs/latest/group__grp__svec.html"
@@ -115,7 +115,7 @@ SELECT vec_count_nonzero( a )::float8[] FROM listvecs;
       <title>Example</title>
       <body>
         <p>A text classification example that describes a dictionary and some documents
-          follows. You will create Greenplum Database tables representing a dictionary
+          follows. You will create Cloudberry Database tables representing a dictionary
           and some documents. You then perform document classification using vector
           arithmetic on word counts and proportions of dictionary words in each
           document.</p>

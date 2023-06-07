@@ -1,7 +1,7 @@
 # FILE NAME: gpinitsystem_singlenode
 
 # A configuration file is needed by the gpinitsystem utility.
-# This sample file initializes a Greenplum Database Single Node
+# This sample file initializes a Cloudberry Database Single Node
 # Edition (SNE) system with one coordinator and  two segment instances 
 # on the local host. This file is referenced when you run gpinitsystem. 
 
@@ -10,7 +10,7 @@
 ################################################
 
 # This specifies the file that contains the list of segment host names 
-# that comprise the Greenplum system. For a single-node system, this
+# that comprise the Cloudberry system. For a single-node system, this
 # file contains the local OS-configured hostname (as output by the 
 # hostname command). If the file does not reside in the same 
 # directory where the gpinitsystem utility is executed, specify 
@@ -21,7 +21,7 @@ MACHINE_LIST_FILE=./hostlist_singlenode
 
 # This specifies a prefix that will be used to name the data directories 
 # of the coordinator and segment instances. The naming convention for data 
-# directories in a Greenplum Database system is SEG_PREFIX<number> 
+# directories in a Cloudberry Database system is SEG_PREFIX<number> 
 # where <number> starts with 0 for segment instances and the coordinator 
 # is always -1. So for example, if you choose the prefix gpsne, your 
 # coordinator instance data directory would be named gpsne-1, and the segment 
@@ -54,13 +54,13 @@ PORT_BASE=6000
 declare -a DATA_DIRECTORY=(/gpdata1 /gpdata2)
 
 
-# The OS-configured hostname of the Greenplum Database coordinator instance.
+# The OS-configured hostname of the Cloudberry Database coordinator instance.
 
 COORDINATOR_HOSTNAME=hostname_of_machine
 
 
 # The location where the data directory will be created on the  
-# Greenplum coordinator host. 
+# Cloudberry coordinator host. 
 # You must make sure that the user who runs gpinitsystem
 # has permissions to write to this directory. You may want to 
 # create this directory on the coordinator host before running 
@@ -71,7 +71,7 @@ COORDINATOR_DIRECTORY=/gpmaster
 
 # The port number for the coordinator instance. This is the port number 
 # that users and client connections will use when accessing the 
-# Greenplum Database system.
+# Cloudberry Database system.
 
 COORDINATOR_PORT=5432
 
@@ -84,7 +84,7 @@ COORDINATOR_PORT=5432
 TRUSTED_SHELL=ssh
 
 
-# The character set encoding to use. Greenplum supports the 
+# The character set encoding to use. Cloudberry supports the 
 # same character sets as PostgreSQL. See 'Character Set Support'
 # in the PostgreSQL documentation for allowed character sets.
 # Should correspond to the OS locale specified with the 

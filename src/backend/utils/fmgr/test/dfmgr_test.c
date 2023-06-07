@@ -68,17 +68,18 @@ errdetail_internal_impl(const char* fmt, ...)
 #include "../dfmgr.c"
 
 #define EXPECT_EREPORT(LOG_LEVEL)     \
-	expect_any(errstart, elevel); \
-	expect_any(errstart, domain); \
-	if (LOG_LEVEL < ERROR) \
-	{ \
-    	will_return(errstart, false); \
-	} \
+	if (LOG_LEVEL < ERROR )\
+    { \
+		expect_value(errstart, elevel, (LOG_LEVEL)); \
+		expect_any(errstart, domain); \
+		will_return(errstart, false); \
+    } \
     else \
     { \
-    	will_return(errstart, true);\
+		expect_value(errstart_cold, elevel, (LOG_LEVEL)); \
+		expect_any(errstart_cold, domain); \
+		will_return(errstart_cold, true); \
     } \
-
 
 /*
  * Tests if we error out if the loaded module's expected Pg_magic_struct

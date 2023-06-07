@@ -3,7 +3,7 @@
   PUBLIC "-//OASIS//DTD DITA Composite//EN" "ditabase.dtd">
 <topic id="topic1" xml:lang="en">
   <title id="nt173529">Managing Performance</title>
-  <shortdesc>The topics in this section cover Greenplum Database performance management, including
+  <shortdesc>The topics in this section cover Cloudberry Database performance management, including
     how to monitor performance and how to configure workloads to prioritize resource utilization. </shortdesc>
   <body/>
 </topic>

@@ -827,7 +827,7 @@ fixedwidth_in(PG_FUNCTION_ARGS)
 			extract_field(data_buf + data_cur, field_size, true, &(myData->one_val));
 
 			null_val_with_blanks = strVal(lfirst(cur_null_with_blanks));
-			cur_null_with_blanks = lnext(cur_null_with_blanks);
+			cur_null_with_blanks = lnext(format_in_config.fldNullsWithBlanks, cur_null_with_blanks);
 			
 			if (strcmp(myData->one_val.data, null_val_with_blanks) != 0)
 			{

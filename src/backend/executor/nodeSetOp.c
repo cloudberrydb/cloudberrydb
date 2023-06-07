@@ -32,7 +32,7 @@
  * input group.
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -381,7 +381,7 @@ setop_fill_hash_table(SetOpState *setopstate)
 
 			/* Find or build hashtable entry for this tuple's group */
 			entry = LookupTupleHashEntry(setopstate->hashtable, outerslot,
-										 &isnew);
+										 &isnew, NULL);
 
 			/* If new tuple group, initialize counts */
 			if (isnew)
@@ -402,7 +402,7 @@ setop_fill_hash_table(SetOpState *setopstate)
 
 			/* For tuples not seen previously, do not make hashtable entry */
 			entry = LookupTupleHashEntry(setopstate->hashtable, outerslot,
-										 NULL);
+										 NULL, NULL);
 
 			/* Advance the counts if entry is already present */
 			if (entry)

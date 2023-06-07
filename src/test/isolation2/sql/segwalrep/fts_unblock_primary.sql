@@ -1,12 +1,15 @@
 -- This test assumes 3 primaries and 3 mirrors from a gpdemo segwalrep cluster
 
 -- make sure we are in-sync for the primary we will be testing with
-select content, role, preferred_role, mode, status from gp_segment_configuration;
+select content, role, preferred_role, status from gp_segment_configuration;
 
 -- synchronous_standby_names should be set to '*' by default on primary 2, since
 -- we have a working/sync'd mirror
 2U: show synchronous_standby_names;
 2U: show gp_fts_mark_mirror_down_grace_period;
+
+!\retcode gpconfig -c gp_fts_mark_mirror_down_grace_period -v 300;
+!\retcode gpstop -u;
 
 -- create table and show commits are not blocked
 create table fts_unblock_primary (a int) distributed by (a);
@@ -20,8 +23,6 @@ select gp_inject_fault('fts_probe', 'reset', 1);
 select gp_inject_fault_infinite('fts_probe', 'skip', 1);
 -- force scan to trigger the fault
 select gp_request_fts_probe_scan();
--- verify the failure should be triggered once
-select gp_wait_until_triggered_fault('fts_probe', 1, 1);
 
 -- stop a mirror
 -1U: select pg_ctl((select get_data_directory_for(2, 'm')), 'stop');
@@ -50,6 +51,7 @@ select content, role, preferred_role, mode, status from gp_segment_configuration
 
 -- trigger fts probe and check to see primary marked n/u and mirror n/d
 select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 select content, role, preferred_role, mode, status from gp_segment_configuration where content=2;
 
 -- should unblock and commit after FTS sent primary a SyncRepOff libpq message
@@ -69,6 +71,7 @@ from gp_segment_configuration where role='p' and content=2;
 -- make sure the walsender on primary is in startup
 select state from gp_stat_replication where gp_segment_id=2;
 select gp_request_fts_probe_scan();
+!\retcode gpfts -A -D;
 -- mirror should continue to be reported as down since walsender is in startup
 select content, role, preferred_role, mode, status from gp_segment_configuration where content=2;
 

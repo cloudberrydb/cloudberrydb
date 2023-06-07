@@ -3,7 +3,7 @@
  *
  * Functions for generating WAL records
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/access/xloginsert.h
@@ -43,7 +43,7 @@ extern void XLogBeginInsert(void);
 extern void XLogSetRecordFlags(uint8 flags);
 extern XLogRecPtr XLogInsert(RmgrId rmid, uint8 info);
 extern XLogRecPtr XLogInsert_OverrideXid(RmgrId rmid, uint8 info, TransactionId overrideXid);
-extern void XLogEnsureRecordSpace(int nbuffers, int ndatas);
+extern void XLogEnsureRecordSpace(int max_block_id, int ndatas);
 extern void XLogRegisterData(char *data, int len);
 extern void XLogRegisterBuffer(uint8 block_id, Buffer buffer, uint8 flags);
 extern void XLogRegisterBlock(uint8 block_id, RelFileNode *rnode,
@@ -55,6 +55,8 @@ extern bool XLogCheckBufferNeedsBackup(Buffer buffer);
 
 extern XLogRecPtr log_newpage(RelFileNode *rnode, ForkNumber forkNum,
 							  BlockNumber blk, char *page, bool page_std);
+extern void log_newpages(RelFileNode *rnode, ForkNumber forkNum, int num_pages,
+						 BlockNumber *blknos, char **pages, bool page_std);
 extern XLogRecPtr log_newpage_buffer(Buffer buffer, bool page_std);
 extern void log_newpage_range(Relation rel, ForkNumber forkNum,
 							  BlockNumber startblk, BlockNumber endblk, bool page_std);

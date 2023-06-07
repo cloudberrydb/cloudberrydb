@@ -62,12 +62,12 @@ insert into truncate_with_create_ao select i, i from generate_series(1,10)i;
 truncate truncate_with_create_ao;
 end; 
 -- the ao table segment file size after truncate should be zero
-select stat_table_segfile_size('regression', 'truncate_with_create_ao');
-  stat_table_segfile_size  
----------------------------
- (2,segfile:16384/19161,0)
- (3,segfile:16384/19161,0)
- (4,segfile:16384/19160,0)
+select dbid,size from stat_table_segfile_size('regression', 'truncate_with_create_ao');
+ dbid | size 
+------+------
+    2 |    0
+    3 |    0
+    4 |    0
 (3 rows)
 
 -- test truncate table and create table are in the same transaction for aocs table
@@ -77,15 +77,15 @@ insert into truncate_with_create_aocs select i, i from generate_series(1,10)i;
 truncate truncate_with_create_aocs;
 end; 
 -- the aocs table segment file size after truncate should be zero
-select stat_table_segfile_size('regression', 'truncate_with_create_aocs');
-    stat_table_segfile_size    
--------------------------------
- (2,segfile:16384/19196,0)
- (2,segfile:16384/19196.128,0)
- (3,segfile:16384/19196,0)
- (3,segfile:16384/19196.128,0)
- (4,segfile:16384/19194,0)
- (4,segfile:16384/19194.128,0)
+select dbid,size from stat_table_segfile_size('regression', 'truncate_with_create_aocs');
+ dbid | size 
+------+------
+    2 |    0
+    2 |    0
+    3 |    0
+    3 |    0
+    4 |    0
+    4 |    0
 (6 rows)
 
 -- test truncate table and create table are in the same transaction for heap table
@@ -95,11 +95,11 @@ insert into truncate_with_create_heap select i, i from generate_series(1,10)i;
 truncate truncate_with_create_heap;
 end;
 -- the heap table segment file size after truncate should be zero
-select stat_table_segfile_size('regression', 'truncate_with_create_heap');
-  stat_table_segfile_size  
----------------------------
- (2,segfile:16384/19218,0)
- (3,segfile:16384/19217,0)
- (4,segfile:16384/19220,0)
+select dbid,size from stat_table_segfile_size('regression', 'truncate_with_create_heap');
+ dbid | size 
+------+------
+    2 |    0
+    3 |    0
+    4 |    0
 (3 rows)
 

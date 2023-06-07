@@ -2,43 +2,43 @@
 title: Configuring Timezone and Localization Settings 
 ---
 
-Describes the available timezone and localization features of Greenplum Database.
+Describes the available timezone and localization features of Cloudberry Database.
 
-**Parent topic:**[Installing and Upgrading Greenplum](install_guide.html)
+**Parent topic:**[Installing and Upgrading Cloudberry](install_guide.html)
 
 ## <a id="topic_fvc_zh1_b2b"></a>Configuring the Timezone 
 
-Greenplum Database selects a timezone to use from a set of internally stored PostgreSQL timezones. The available PostgreSQL timezones are taken from the Internet Assigned Numbers Authority \(IANA\) Time Zone Database, and Greenplum Database updates its list of available timezones as necessary when the IANA database changes for PostgreSQL.
+Cloudberry Database selects a timezone to use from a set of internally stored PostgreSQL timezones. The available PostgreSQL timezones are taken from the Internet Assigned Numbers Authority \(IANA\) Time Zone Database, and Cloudberry Database updates its list of available timezones as necessary when the IANA database changes for PostgreSQL.
 
-Greenplum Database selects the timezone by matching a PostgreSQL timezone with the value of the `TimeZone` server configuration parameter, or the host system time zone if `TimeZone` is not set. For example, when selecting a default timezone from the host system time zone, Greenplum Database uses an algorithm to select a PostgreSQL timezone based on the host system timezone files. If the system timezone includes leap second information, Greenplum Database cannot match the system timezone with a PostgreSQL timezone. In this case, Greenplum Database calculates a "best match" with a PostgreSQL timezone based on information from the host system.
+Cloudberry Database selects the timezone by matching a PostgreSQL timezone with the value of the `TimeZone` server configuration parameter, or the host system time zone if `TimeZone` is not set. For example, when selecting a default timezone from the host system time zone, Cloudberry Database uses an algorithm to select a PostgreSQL timezone based on the host system timezone files. If the system timezone includes leap second information, Cloudberry Database cannot match the system timezone with a PostgreSQL timezone. In this case, Cloudberry Database calculates a "best match" with a PostgreSQL timezone based on information from the host system.
 
-As a best practice, configure Greenplum Database and the host systems to use a known, supported timezone. This sets the timezone for the Greenplum Database coordinator and segment instances, and prevents Greenplum Database from selecting a best match timezone each time the cluster is restarted, using the current system timezone and Greenplum Database timezone files \(which may have been updated from the IANA database since the last restart\). Use the `gpconfig` utility to show and set the Greenplum Database timezone. For example, these commands show the Greenplum Database timezone and set the timezone to `US/Pacific`.
+As a best practice, configure Cloudberry Database and the host systems to use a known, supported timezone. This sets the timezone for the Cloudberry Database coordinator and segment instances, and prevents Cloudberry Database from selecting a best match timezone each time the cluster is restarted, using the current system timezone and Cloudberry Database timezone files \(which may have been updated from the IANA database since the last restart\). Use the `gpconfig` utility to show and set the Cloudberry Database timezone. For example, these commands show the Cloudberry Database timezone and set the timezone to `US/Pacific`.
 
 ```
 # gpconfig -s TimeZone
 # gpconfig -c TimeZone -v 'US/Pacific'
 ```
 
-You must restart Greenplum Database after changing the timezone. The command `gpstop -ra` restarts Greenplum Database. The catalog view `pg_timezone_names` provides Greenplum Database timezone information.
+You must restart Cloudberry Database after changing the timezone. The command `gpstop -ra` restarts Cloudberry Database. The catalog view `pg_timezone_names` provides Cloudberry Database timezone information.
 
-## <a id="topic2"></a>About Locale Support in Greenplum Database 
+## <a id="topic2"></a>About Locale Support in Cloudberry Database 
 
-Greenplum Database supports localization with two approaches:
+Cloudberry Database supports localization with two approaches:
 
 -   Using the locale features of the operating system to provide locale-specific collation order, number formatting, and so on.
--   Providing a number of different character sets defined in the Greenplum Database server, including multiple-byte character sets, to support storing text in all kinds of languages, and providing character set translation between client and server.
+-   Providing a number of different character sets defined in the Cloudberry Database server, including multiple-byte character sets, to support storing text in all kinds of languages, and providing character set translation between client and server.
 
-Locale support refers to an application respecting cultural preferences regarding alphabets, sorting, number formatting, etc. Greenplum Database uses the standard ISO C and POSIX locale facilities provided by the server operating system. For additional information refer to the documentation of your operating system.
+Locale support refers to an application respecting cultural preferences regarding alphabets, sorting, number formatting, etc. Cloudberry Database uses the standard ISO C and POSIX locale facilities provided by the server operating system. For additional information refer to the documentation of your operating system.
 
-Locale support is automatically initialized when a Greenplum Database system is initialized. The initialization utility, [gpinitsystem](../utility_guide/ref/gpinitsystem.html), will initialize the Greenplum array with the locale setting of its execution environment by default, so if your system is already set to use the locale that you want in your Greenplum Database system then there is nothing else you need to do.
+Locale support is automatically initialized when a Cloudberry Database system is initialized. The initialization utility, [gpinitsystem](../utility_guide/ref/gpinitsystem.html), will initialize the Cloudberry array with the locale setting of its execution environment by default, so if your system is already set to use the locale that you want in your Cloudberry Database system then there is nothing else you need to do.
 
-When you are ready to initiate Greenplum Database and you want to use a different locale \(or you are not sure which locale your system is set to\), you can instruct `gpinitsystem` exactly which locale to use by specifying the -n locale option. For example:
+When you are ready to initiate Cloudberry Database and you want to use a different locale \(or you are not sure which locale your system is set to\), you can instruct `gpinitsystem` exactly which locale to use by specifying the -n locale option. For example:
 
 ```
 $ gpinitsystem -c gp_init_config -n sv_SE
 ```
 
-See [Initializing a Greenplum Database System](init_gpdb.html) for information about the database initialization process.
+See [Initializing a Cloudberry Database System](init_gpdb.html) for information about the database initialization process.
 
 The example above sets the locale to Swedish \(sv\) as spoken in Sweden \(SE\). Other possibilities might be `en_US` \(U.S. English\) and `fr_CA` \(French Canadian\). If more than one character set can be useful for a locale then the specifications look like this: `cs_CZ.ISO8859-2`. What locales are available under what names on your system depends on what was provided by the operating system vendor and what was installed. On most systems, the command `locale -a` will provide a list of available locales.
 
@@ -53,17 +53,17 @@ Occasionally it is useful to mix rules from several locales, for example use Eng
 
 If you want the system to behave as if it had no locale support, use the special locale `C` or `POSIX`.
 
-The nature of some locale categories is that their value has to be fixed for the lifetime of a Greenplum Database system. That is, once `gpinitsystem` has run, you cannot change them anymore. `LC_COLLATE` and `LC_CTYPE` are those categories. They affect the sort order of indexes, so they must be kept fixed, or indexes on text columns will become corrupt. Greenplum Database enforces this by recording the values of `LC_COLLATE` and `LC_CTYPE` that are seen by gpinitsystem. The server automatically adopts those two values based on the locale that was chosen at initialization time.
+The nature of some locale categories is that their value has to be fixed for the lifetime of a Cloudberry Database system. That is, once `gpinitsystem` has run, you cannot change them anymore. `LC_COLLATE` and `LC_CTYPE` are those categories. They affect the sort order of indexes, so they must be kept fixed, or indexes on text columns will become corrupt. Cloudberry Database enforces this by recording the values of `LC_COLLATE` and `LC_CTYPE` that are seen by gpinitsystem. The server automatically adopts those two values based on the locale that was chosen at initialization time.
 
-The other locale categories can be changed as desired whenever the server is running by setting the server configuration parameters that have the same name as the locale categories \(see the *Greenplum Database Reference Guide* for more information on setting server configuration parameters\). The defaults that are chosen by gpinitsystem are written into the coordinator and segment `postgresql.conf` configuration files to serve as defaults when the Greenplum Database system is started. If you delete these assignments from the coordinator and each segment `postgresql.conf` files then the server will inherit the settings from its execution environment.
+The other locale categories can be changed as desired whenever the server is running by setting the server configuration parameters that have the same name as the locale categories \(see the *Cloudberry Database Reference Guide* for more information on setting server configuration parameters\). The defaults that are chosen by gpinitsystem are written into the coordinator and segment `postgresql.conf` configuration files to serve as defaults when the Cloudberry Database system is started. If you delete these assignments from the coordinator and each segment `postgresql.conf` files then the server will inherit the settings from its execution environment.
 
-Note that the locale behavior of the server is determined by the environment variables seen by the server, not by the environment of any client. Therefore, be careful to configure the correct locale settings on each Greenplum Database host \(coordinator and segments\) before starting the system. A consequence of this is that if client and server are set up in different locales, messages may appear in different languages depending on where they originated.
+Note that the locale behavior of the server is determined by the environment variables seen by the server, not by the environment of any client. Therefore, be careful to configure the correct locale settings on each Cloudberry Database host \(coordinator and segments\) before starting the system. A consequence of this is that if client and server are set up in different locales, messages may appear in different languages depending on where they originated.
 
 Inheriting the locale from the execution environment means the following on most operating systems: For a given locale category, say the collation, the following environment variables are consulted in this order until one is found to be set: `LC_ALL`, `LC_COLLATE` \(the variable corresponding to the respective category\), `LANG`. If none of these environment variables are set then the locale defaults to `C`.
 
 Some message localization libraries also look at the environment variable `LANGUAGE` which overrides all other locale settings for the purpose of setting the language of messages. If in doubt, please refer to the documentation for your operating system, in particular the documentation about `gettext`, for more information.
 
-Native language support \(NLS\), which enables messages to be translated to the user's preferred language, is not enabled in Greenplum Database for languages other than English. This is independent of the other locale support.
+Native language support \(NLS\), which enables messages to be translated to the user's preferred language, is not enabled in Cloudberry Database for languages other than English. This is independent of the other locale support.
 
 ### <a id="topic3"></a>Locale Behavior 
 
@@ -74,17 +74,17 @@ The locale settings influence the following SQL features:
 -   The `upper`, `lower`, and `initcap` functions
 -   The `to_char` family of functions
 
-The drawback of using locales other than `C` or `POSIX` in Greenplum Database is its performance impact. It slows character handling and prevents ordinary indexes from being used by `LIKE`. For this reason use locales only if you actually need them.
+The drawback of using locales other than `C` or `POSIX` in Cloudberry Database is its performance impact. It slows character handling and prevents ordinary indexes from being used by `LIKE`. For this reason use locales only if you actually need them.
 
 ### <a id="topic4"></a>Troubleshooting Locales 
 
 If locale support does not work as expected, check that the locale support in your operating system is correctly configured. To check what locales are installed on your system, you may use the command `locale -a` if your operating system provides it.
 
-Check that Greenplum Database is actually using the locale that you think it is. `LC_COLLATE` and `LC_CTYPE` settings are determined at initialization time and cannot be changed without redoing [gpinitsystem](../utility_guide/ref/gpinitsystem.html). Other locale settings including `LC_MESSAGES` and `LC_MONETARY` are initially determined by the operating system environment of the coordinator and/or segment host, but can be changed after initialization by editing the `postgresql.conf` file of each Greenplum coordinator and segment instance. You can check the active locale settings of the coordinator host using the `SHOW` command. Note that every host in your Greenplum Database array should be using identical locale settings.
+Check that Cloudberry Database is actually using the locale that you think it is. `LC_COLLATE` and `LC_CTYPE` settings are determined at initialization time and cannot be changed without redoing [gpinitsystem](../utility_guide/ref/gpinitsystem.html). Other locale settings including `LC_MESSAGES` and `LC_MONETARY` are initially determined by the operating system environment of the coordinator and/or segment host, but can be changed after initialization by editing the `postgresql.conf` file of each Cloudberry coordinator and segment instance. You can check the active locale settings of the coordinator host using the `SHOW` command. Note that every host in your Cloudberry Database array should be using identical locale settings.
 
 ## <a id="topic5"></a>Character Set Support 
 
-The character set support in Greenplum Database allows you to store text in a variety of character sets, including single-byte character sets such as the ISO 8859 series and multiple-byte character sets such as EUC \(Extended Unix Code\), UTF-8, and Mule internal code. All supported character sets can be used transparently by clients, but a few are not supported for use within the server \(that is, as a server-side encoding\). The default character set is selected while initializing your Greenplum Database array using `gpinitsystem`. It can be overridden when you create a database, so you can have multiple databases each with a different character set.
+The character set support in Cloudberry Database allows you to store text in a variety of character sets, including single-byte character sets such as the ISO 8859 series and multiple-byte character sets such as EUC \(Extended Unix Code\), UTF-8, and Mule internal code. All supported character sets can be used transparently by clients, but a few are not supported for use within the server \(that is, as a server-side encoding\). The default character set is selected while initializing your Cloudberry Database array using `gpinitsystem`. It can be overridden when you create a database, so you can have multiple databases each with a different character set.
 
 |Name|Description|Language|Server?|Bytes/Char|Aliases|
 |----|-----------|--------|-------|----------|-------|
@@ -130,7 +130,7 @@ The character set support in Greenplum Database allows you to store text in a va
 
 ## <a id="topic6"></a>Setting the Character Set 
 
-gpinitsystem defines the default character set for a Greenplum Database system by reading the setting of the `ENCODING` parameter in the `gp_init_config` file at initialization time. The default character set is `UNICODE` or `UTF8`.
+gpinitsystem defines the default character set for a Cloudberry Database system by reading the setting of the `ENCODING` parameter in the `gp_init_config` file at initialization time. The default character set is `UNICODE` or `UTF8`.
 
 You can create a database with a different character set besides what is used as the system-wide default. For example:
 
@@ -146,7 +146,7 @@ One way to use multiple encodings safely is to set the locale to `C` or `POSIX` 
 
 ## <a id="topic7"></a>Character Set Conversion Between Server and Client 
 
-Greenplum Database supports automatic character set conversion between server and client for certain character set combinations. The conversion information is stored in the coordinator `pg_conversion` system catalog table. Greenplum Database comes with some predefined conversions or you can create a new conversion using the SQL command `CREATE CONVERSION`.
+Cloudberry Database supports automatic character set conversion between server and client for certain character set combinations. The conversion information is stored in the coordinator `pg_conversion` system catalog table. Cloudberry Database comes with some predefined conversions or you can create a new conversion using the SQL command `CREATE CONVERSION`.
 
 |Server Character Set|Available Client Character Sets|
 |--------------------|-------------------------------|
@@ -191,7 +191,7 @@ Greenplum Database supports automatic character set conversion between server an
 |WIN1257|WIN1257, UTF8|
 |WIN1258|WIN1258, UTF8|
 
-To enable automatic character set conversion, you have to tell Greenplum Database the character set \(encoding\) you would like to use in the client. There are several ways to accomplish this:
+To enable automatic character set conversion, you have to tell Cloudberry Database the character set \(encoding\) you would like to use in the client. There are several ways to accomplish this:
 
 -   Using the `\encoding` command in `psql`, which allows you to change client encoding on the fly.
 -   Using `SET client_encoding TO`. Setting the client encoding can be done with this SQL command:
@@ -213,7 +213,7 @@ To enable automatic character set conversion, you have to tell Greenplum Databas
     ```
 
 -   Using the `PGCLIENTENCODING` environment variable. When `PGCLIENTENCODING` is defined in the client's environment, that client encoding is automatically selected when a connection to the server is made. \(This can subsequently be overridden using any of the other methods mentioned above.\)
--   Setting the configuration parameter `client_encoding`. If `client_encoding` is set in the coordinator `postgresql.conf` file, that client encoding is automatically selected when a connection to Greenplum Database is made. \(This can subsequently be overridden using any of the other methods mentioned above.\)
+-   Setting the configuration parameter `client_encoding`. If `client_encoding` is set in the coordinator `postgresql.conf` file, that client encoding is automatically selected when a connection to Cloudberry Database is made. \(This can subsequently be overridden using any of the other methods mentioned above.\)
 
 If the conversion of a particular character is not possible — suppose you chose `EUC_JP` for the server and `LATIN1` for the client, then some Japanese characters do not have a representation in `LATIN1` — then an error is reported.
 

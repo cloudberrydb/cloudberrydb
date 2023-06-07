@@ -25,11 +25,78 @@ begin
   end loop;
 end;
 $$ language plpgsql;
+-- Same, for EXPLAIN ANALYZE WAL
+create or replace function get_explain_analyze_wal_output(explain_query text) returns setof text as
+$$
+declare
+  explainrow text;
+begin
+  for explainrow in execute 'EXPLAIN (ANALYZE, WAL) ' || explain_query
+  loop
+    return next explainrow;
+  end loop;
+end;
+$$ language plpgsql;
+-- Test explain wal option
+CREATE TABLE explainwal (id int4);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+WITH query_plan (et) AS
+(
+  select get_explain_analyze_wal_output($$
+    INSERT INTO explainwal SELECT generate_series(1, 10);
+  $$)
+),
+count_result AS
+(
+  SELECT COUNT(*) FROM query_plan WHERE et LIKE '%WAL%'
+)
+select
+  (SELECT COUNT(*) FROM count_result WHERE count > 0) as wal_reserved_lines;
+ wal_reserved_lines 
+--------------------
+                  1
+(1 row)
+
+WITH query_plan (et) AS
+(
+  select get_explain_analyze_wal_output($$
+    UPDATE explainwal SET id=11 WHERE id=10;
+  $$)
+),
+count_result AS
+(
+  SELECT COUNT(*) FROM query_plan WHERE et LIKE '%WAL%'
+)
+select
+  (SELECT COUNT(*) FROM count_result WHERE count > 0) as wal_reserved_lines;
+ wal_reserved_lines 
+--------------------
+                  1
+(1 row)
+
+WITH query_plan (et) AS
+(
+  select get_explain_analyze_wal_output($$
+    DELETE FROM explainwal
+  $$)
+),
+count_result AS
+(
+  SELECT COUNT(*) FROM query_plan WHERE et LIKE '%WAL%'
+)
+select
+  (SELECT COUNT(*) FROM count_result WHERE count > 0) as wal_reserved_lines;
+ wal_reserved_lines 
+--------------------
+                  1
+(1 row)
+
 --
 -- Test explain_memory_verbosity option
 -- 
 CREATE TABLE explaintest (id int4);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO explaintest SELECT generate_series(1, 10);
 ANALYZE explaintest;
@@ -41,7 +108,7 @@ EXPLAIN ANALYZE SELECT * FROM explaintest;
    (slice0)    Executor memory: 290K bytes.
    (slice1)    Executor memory: 135K bytes avg x 3 workers, 135K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: Pivotal Optimizer (GPORCA) version 2.55.21
+ Optimizer: Pivotal Optimizer (GPORCA)
  Total runtime: 0.710 ms
 (7 rows)
 
@@ -115,7 +182,7 @@ LIMIT 1;
    (slice3)    Executor memory: 75K bytes avg x 3 workers, 75K bytes max (seg0).
  Memory used:  128000kB
  Memory wanted:  1000kB
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
  Execution time: 15.429 ms
 (24 rows)
 
@@ -138,12 +205,11 @@ CREATE TABLE mpp22263 (
         tenthous        int4,
         odd                     int4,
         even            int4,
-        stringu1        name,
-        stringu2        name,
-        string4         name
+        stringu1        name    COLLATE pg_catalog."default",
+        stringu2        name    COLLATE pg_catalog."default",
+        string4         name    COLLATE pg_catalog."default"
 ) distributed by (unique1);
 create index mpp22263_idx1 on mpp22263 using btree(unique1);
--- GPDB_12_MERGE_FIXME: Non default collation
 explain select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
 WHERE mpp22263.unique1 = v.i and mpp22263.stringu1 = v.j;
                                                     QUERY PLAN                                                     
@@ -160,7 +226,6 @@ WHERE mpp22263.unique1 = v.i and mpp22263.stringu1 = v.j;
 -- atmsort.pm masks out differences in the Filter line, so just memorizing
 -- the output of the above EXPLAIN isn't enough to catch a faulty Filter line.
 -- Extract the Filter explicitly.
--- GPDB_12_MERGE_FIXME: Non default collation
 SELECT * from
   get_explain_output($$
 select * from mpp22263, (values(147, 'RFAAAA'), (931, 'VJAAAA')) as v (i, j)
@@ -209,7 +274,7 @@ explain (costs off) select count(*) over (partition by g) from generate_series(1
    ->  Sort
          Sort Key: generate_series
          ->  Function Scan on generate_series
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
 --
@@ -235,6 +300,7 @@ explain (format json, costs off) SELECT * FROM dummy_ext_tab;
        "Segments": 3,                           +
        "Gang Type": "primary reader",           +
        "Parallel Aware": false,                 +
+       "Async Capable": false,                  +
        "Plans": [                               +
          {                                      +
            "Node Type": "Foreign Scan",         +
@@ -244,6 +310,7 @@ explain (format json, costs off) SELECT * FROM dummy_ext_tab;
            "Segments": 3,                       +
            "Gang Type": "primary reader",       +
            "Parallel Aware": false,             +
+           "Async Capable": false,              +
            "Relation Name": "dummy_ext_tab",    +
            "Alias": "dummy_ext_tab"             +
          }                                      +
@@ -258,7 +325,7 @@ explain (format json, costs off) SELECT * FROM dummy_ext_tab;
 
 -- Seq Scan on an append-only table
 CREATE TEMP TABLE dummy_aotab (x int4) WITH (appendonly=true);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 explain (format yaml, costs off) SELECT * FROM dummy_aotab;
                  QUERY PLAN                  
@@ -271,6 +338,7 @@ explain (format yaml, costs off) SELECT * FROM dummy_aotab;
      Segments: 3                            +
      Gang Type: "primary reader"            +
      Parallel Aware: false                  +
+     Async Capable: false                   +
      Plans:                                 +
        - Node Type: "Seq Scan"              +
          Parent Relationship: "Outer"       +
@@ -278,6 +346,7 @@ explain (format yaml, costs off) SELECT * FROM dummy_aotab;
          Segments: 3                        +
          Gang Type: "primary reader"        +
          Parallel Aware: false              +
+         Async Capable: false               +
          Relation Name: "dummy_aotab"       +
          Alias: "dummy_aotab"               +
    Settings:                                +
@@ -297,16 +366,18 @@ explain (format xml, costs off) insert into dummy_aotab values (1);
        <Segments>1</Segments>                                      +
        <Gang-Type>primary writer</Gang-Type>                       +
        <Parallel-Aware>false</Parallel-Aware>                      +
+       <Async-Capable>false</Async-Capable>                        +
        <Relation-Name>dummy_aotab</Relation-Name>                  +
        <Alias>dummy_aotab</Alias>                                  +
        <Plans>                                                     +
          <Plan>                                                    +
            <Node-Type>Result</Node-Type>                           +
-           <Parent-Relationship>Member</Parent-Relationship>       +
+           <Parent-Relationship>Outer</Parent-Relationship>        +
            <Slice>0</Slice>                                        +
            <Segments>1</Segments>                                  +
            <Gang-Type>primary writer</Gang-Type>                   +
            <Parallel-Aware>false</Parallel-Aware>                  +
+           <Async-Capable>false</Async-Capable>                    +
            <Plans>                                                 +
              <Plan>                                                +
                <Node-Type>Result</Node-Type>                       +
@@ -315,6 +386,7 @@ explain (format xml, costs off) insert into dummy_aotab values (1);
                <Segments>1</Segments>                              +
                <Gang-Type>primary writer</Gang-Type>               +
                <Parallel-Aware>false</Parallel-Aware>              +
+               <Async-Capable>false</Async-Capable>                +
                <Plans>                                             +
                  <Plan>                                            +
                    <Node-Type>Result</Node-Type>                   +
@@ -323,6 +395,7 @@ explain (format xml, costs off) insert into dummy_aotab values (1);
                    <Segments>1</Segments>                          +
                    <Gang-Type>primary writer</Gang-Type>           +
                    <Parallel-Aware>false</Parallel-Aware>          +
+                   <Async-Capable>false</Async-Capable>            +
                  </Plan>                                           +
                </Plans>                                            +
              </Plan>                                               +
@@ -380,7 +453,7 @@ explain analyze SELECT * FROM explaintest;
    (slice0)    Executor memory: 290K bytes.
    (slice1)    Executor memory: 50K bytes avg x 3 workers, 50K bytes max (seg0).
  Memory used:  128000kB
- Optimizer: Pivotal Optimizer (GPORCA) version 3.2.0
+ Optimizer: Pivotal Optimizer (GPORCA)
  Total runtime: 1.577 ms
 (8 rows)
 
@@ -395,7 +468,7 @@ explain (slicetable, costs off) SELECT * FROM explaintest;
    ->  Seq Scan on explaintest
  Slice 0: Dispatcher; root 0; parent -1; gang size 0
  Slice 1: Reader; root 0; parent 0; gang size 3
- Optimizer: Pivotal Optimizer (GPORCA) version 3.83.0
+ Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
 
 -- same in JSON format
@@ -412,6 +485,7 @@ explain (slicetable, costs off, format json) SELECT * FROM explaintest;
        "Segments": 3,                           +
        "Gang Type": "primary reader",           +
        "Parallel Aware": false,                 +
+       "Async Capable": false,                  +
        "Plans": [                               +
          {                                      +
            "Node Type": "Seq Scan",             +
@@ -420,10 +494,14 @@ explain (slicetable, costs off, format json) SELECT * FROM explaintest;
            "Segments": 3,                       +
            "Gang Type": "primary reader",       +
            "Parallel Aware": false,             +
+           "Async Capable": false,              +
            "Relation Name": "explaintest",      +
            "Alias": "explaintest"               +
          }                                      +
        ]                                        +
+     },                                         +
+     "Settings": {                              +
+       "Optimizer": "Pivotal Optimizer (GPORCA)"+
      },                                         +
      "Slice Table": [                           +
        {                                        +
@@ -440,10 +518,7 @@ explain (slicetable, costs off, format json) SELECT * FROM explaintest;
          "Parent": 0,                           +
          "Gang Size": 3                         +
        }                                        +
-     ],                                         +
-     "Settings": {                              +
-       "Optimizer": "Pivotal Optimizer (GPORCA)"+
-     }                                          +
+     ]                                          +
    }                                            +
  ]
 (1 row)

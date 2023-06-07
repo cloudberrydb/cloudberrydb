@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Greenplum Inc 2010. All Rights Reserved.
-# Copyright (c) EMC/Greenplum Inc 2011. All Rights Reserved.
+# Copyright (c) Cloudberry Inc 2010. All Rights Reserved.
+# Copyright (c) EMC/Cloudberry Inc 2011. All Rights Reserved.
 #
 """
 This file defines the interface that can be used to fetch and update system
@@ -300,12 +300,11 @@ class GpConfigurationProviderUsingGpdbCatalog(GpConfigurationProvider) :
 
 
     def __updateSegmentModeStatus(self, conn, seg):
-        # run an update
-        sql = "UPDATE pg_catalog.gp_segment_configuration\n" + \
-            "  SET\n" + \
-            "  mode = " + self.__toSqlCharValue(seg.getSegmentMode()) + ",\n" \
-            "  status = " + self.__toSqlCharValue(seg.getSegmentStatus()) + "\n" \
-            "WHERE dbid = " + self.__toSqlIntValue(seg.getSegmentDbId())
+        sql = "select gp_update_segment_configuration_mode_status(\n" \
+            + self.__toSqlIntValue(seg.getSegmentDbId()) + ",\n" \
+            + self.__toSqlCharValue(seg.getSegmentMode()) + ",\n" \
+            + self.__toSqlCharValue(seg.getSegmentStatus()) + "\n" \
+        + ");"
         logger.debug(sql)
         dbconn.executeUpdateOrInsert(conn, sql, 1)
 

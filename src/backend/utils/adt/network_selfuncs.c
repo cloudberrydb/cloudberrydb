@@ -7,7 +7,7 @@
  * operators.  Estimates are based on null fraction, most common values,
  * and histogram of inet/cidr columns.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -137,7 +137,8 @@ networksel(PG_FUNCTION_ARGS)
 	 * by MCV entries.
 	 */
 	fmgr_info(get_opcode(operator), &proc);
-	mcv_selec = mcv_selectivity(&vardata, &proc, constvalue, varonleft,
+	mcv_selec = mcv_selectivity(&vardata, &proc, InvalidOid,
+								constvalue, varonleft,
 								&sumcommon);
 
 	/*

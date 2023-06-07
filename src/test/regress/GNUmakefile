@@ -3,7 +3,7 @@
 # GNUmakefile--
 #    Makefile for src/test/regress (the regression tests)
 #
-# Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+# Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
 # src/test/regress/GNUmakefile
@@ -40,7 +40,7 @@ EXTRADEFS = '-DHOST_TUPLE="$(host_tuple)"' \
 
 # Build regression test driver
 
-all: pg_regress$(X)
+all: pg_regress$(X) twophase_pqexecparams
 
 pg_regress$(X): pg_regress.o pg_regress_main.o $(WIN32RES) | submake-libpgport
 	$(CC) $(CFLAGS) $^ $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
@@ -52,7 +52,7 @@ regress_gp.o: override CPPFLAGS += -I$(libpq_srcdir)
 regress_gp.o: override LDFLAGS += -L$(top_builddir)/src/interfaces/libpq
 
 twophase_pqexecparams: twophase_pqexecparams.c
-	$(CC) $(CPPFLAGS) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
+	$(CC) $(CPPFLAGS) $(rpath) -I$(top_builddir)/src/interfaces/libpq -L$(GPHOME)/lib -L$(top_builddir)/src/interfaces/libpq  -o $@ $< -lpq
 
 # note: because of the submake dependency, this rule's action is really a no-op
 $(top_builddir)/src/port/pg_config_paths.h: | submake-libpgport
@@ -69,6 +69,9 @@ install: all installdirs
 	$(INSTALL_PROGRAM) explain.pm '$(DESTDIR)$(pgxsdir)/$(subdir)/explain.pm'
 	$(INSTALL_PROGRAM) GPTest.pm '$(DESTDIR)$(pgxsdir)/$(subdir)/GPTest.pm'
 	$(INSTALL_PROGRAM) scan_flaky_fault_injectors.sh '$(DESTDIR)$(pgxsdir)/$(subdir)/scan_flaky_fault_injectors.sh'
+	$(INSTALL_PROGRAM) twophase_pqexecparams '$(DESTDIR)$(pgxsdir)/$(subdir)/twophase_pqexecparams'
+	$(INSTALL_PROGRAM) hooktest/test_hook.so '$(DESTDIR)$(pkglibdir)/test_hook.so'
+	$(INSTALL_PROGRAM) query_info_hook_test/query_info_hook_test.so '$(DESTDIR)$(pkglibdir)/query_info_hook_test.so'
 installdirs:
 	$(MKDIR_P) '$(DESTDIR)$(pgxsdir)/$(subdir)'
 
@@ -82,6 +85,9 @@ uninstall:
 	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/explain.pl'
 	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/explain.pm'
 	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/GPTest.pm'
+	rm -f '$(DESTDIR)$(pgxsdir)/$(subdir)/twophase_pqexecparams'
+	rm -f '$(DESTDIR)$(pkglibdir)/test_hook.so'
+	rm -f '$(DESTDIR)$(pkglibdir)/query_info_hook_test.so'
 
 
 # Build dynamically-loaded object file for CREATE FUNCTION ... LANGUAGE C.
@@ -113,12 +119,12 @@ regress_data_files = \
 	$(wildcard $(srcdir)/output/uao_ddl/*.source) \
 	$(filter-out $(addprefix $(srcdir)/,$(input_files)),$(wildcard $(srcdir)/sql/*.sql)) \
 	$(wildcard $(srcdir)/data/*.data) \
-	$(srcdir)/parallel_schedule $(srcdir)/serial_schedule $(srcdir)/resultmap
+	$(srcdir)/parallel_schedule $(srcdir)/resultmap
 
 install-tests: all install install-lib installdirs-tests
 	$(MAKE) -C $(top_builddir)/contrib/spi install
-	for file in $(regress_data_files); do \
-	  $(INSTALL_DATA) $$file '$(DESTDIR)$(pkglibdir)/regress/'$$file || exit; \
+	for file in $(subst $(srcdir)/,,$(regress_data_files)); do \
+		$(INSTALL_DATA) $(srcdir)/$$file '$(DESTDIR)$(pkglibdir)/regress/'$$file || exit; \
 	done
 
 installdirs-tests: installdirs
@@ -181,12 +187,13 @@ query_info_hook_test:
 ## Run tests
 ##
 
-REGRESS_OPTS = --dlpath=. --max-concurrent-tests=20 --init-file=$(srcdir)/init_file $(EXTRA_REGRESS_OPTS)
+REGRESS_OPTS = --dlpath=. --max-concurrent-tests=24 --init-file=$(srcdir)/init_file --make-testtablespace-dir \
+	$(EXTRA_REGRESS_OPTS)
 
-check: all tablespace-setup
+check: all
 	$(pg_regress_check) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)
 
-check-tests: all tablespace-setup | temp-install
+check-tests: all | temp-install
 	$(pg_regress_check) $(REGRESS_OPTS) $(MAXCONNOPT) $(TESTS) $(EXTRA_TESTS)
 
 #installcheck: all tablespace-setup
@@ -199,10 +206,10 @@ installcheck-small: all
 installcheck-good: all twophase_pqexecparams hooktest query_info_hook_test
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS)
 
-installcheck-parallel: all tablespace-setup
+installcheck-parallel: all
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)
 
-installcheck-tests: all tablespace-setup
+installcheck-tests: all
 	$(pg_regress_installcheck) $(REGRESS_OPTS) $(TESTS) $(EXTRA_TESTS)
 
 ifeq ($(BUILD_TYPE),prod)
@@ -223,10 +230,10 @@ runcheck: check
 runtest: installcheck
 runtest-parallel: installcheck-parallel
 
-bigtest: all tablespace-setup
-	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/serial_schedule numeric_big
+bigtest: all
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --max-connections=1 numeric_big
 
-bigcheck: all tablespace-setup | temp-install
+bigcheck: all | temp-install
 	$(pg_regress_check) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) numeric_big
 
 ##

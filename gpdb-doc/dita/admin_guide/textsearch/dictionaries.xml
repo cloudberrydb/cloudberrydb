@@ -2,7 +2,7 @@
 <!DOCTYPE topic PUBLIC "-//OASIS//DTD DITA Topic//EN" "topic.dtd">
 <topic id="dictionaries">
   <title>Text Search Dictionaries</title>
-  <shortdesc>Tokens produced by the Greenplum Database full text search parser
+  <shortdesc>Tokens produced by the Cloudberry Database full text search parser
     are passed through a chain of dictionaries to produce a normalized term or
     "lexeme". Different kinds of dictionaries are available to filter and
     transform tokens in different ways and for different languages.</shortdesc>
@@ -61,12 +61,12 @@
         <li><codeph>NULL</codeph> if the dictionary does not recognize the input
           token</li>
       </ul>
-      <p>Greenplum Database provides predefined dictionaries for many languages.
+      <p>Cloudberry Database provides predefined dictionaries for many languages.
         There are also several predefined templates that can be used to create
         new dictionaries with custom parameters. Each predefined dictionary
         template is described below. If no existing template is suitable, it is
         possible to create new ones; see the <codeph>contrib/</codeph> area of
-        the Greenplum Database distribution for examples.</p>
+        the Cloudberry Database distribution for examples.</p>
       <p>A text search configuration binds a parser together with a set of
         dictionaries to process the parser's output tokens. For each token type
         that the parser can return, a separate list of dictionaries is specified
@@ -142,7 +142,7 @@ SELECT ts_rank_cd (to_tsvector('english','list stop words'), to_tsquery('list &a
       <p>Here, <codeph>english</codeph> is the base name of a file of stop
         words. The file's full name will be
           <codeph>$SHAREDIR/tsearch_data/english.stop</codeph>, where
-          <codeph>$SHAREDIR</codeph> means the Greenplum Database installation's
+          <codeph>$SHAREDIR</codeph> means the Cloudberry Database installation's
         shared-data directory, often
           <codeph>/usr/local/greenplum-db-&lt;version>/share/postgresql</codeph>
         (use <codeph>pg_config --sharedir</codeph> to determine it if you're not
@@ -223,7 +223,7 @@ SELECT * FROM ts_debug('english', 'Paris');
         file — <codeph>my_synonyms</codeph> in the above example. The file's
         full name will be
           <codeph>$SHAREDIR/tsearch_data/my_synonyms.syn</codeph> (where
-          <codeph>$SHAREDIR</codeph> means the Greenplum Database installation's
+          <codeph>$SHAREDIR</codeph> means the Cloudberry Database installation's
         shared-data directory). The file format is just one line per word to be
         substituted, with the word followed by its synonym, separated by white
         space. Blank lines and trailing spaces are ignored.</p>
@@ -285,7 +285,7 @@ mydb=# SELECT 'indexes are very useful'::tsvector @@ to_tsquery('tst','indices')
         information about the relationships of words and phrases, i.e., broader terms (BT), narrower
         terms (NT), preferred terms, non-preferred terms, related terms, etc.</p>
       <p>Basically a thesaurus dictionary replaces all non-preferred terms by one preferred term
-        and, optionally, preserves the original terms for indexing as well. Greenplum Database's
+        and, optionally, preserves the original terms for indexing as well. Cloudberry Database's
         current implementation of the thesaurus dictionary is an extension of the synonym dictionary
         with added <i>phrase</i> support. A thesaurus dictionary requires a configuration file of
         the following format:</p>
@@ -404,7 +404,7 @@ SELECT plainto_tsquery('supernova star');
           <codeph>bank</codeph>, e.g., <codeph>banking</codeph>,
           <codeph>banked</codeph>, <codeph>banks</codeph>,
           <codeph>banks</codeph>', and <codeph>bank's</codeph>.</p>
-      <p>The standard Greenplum Database distribution does not include any
+      <p>The standard Cloudberry Database distribution does not include any
         Ispell configuration files. Dictionaries for a large number of languages
         are available from <xref
           href="https://www.cs.hmc.edu/~geoff/ispell.html" format="html"
@@ -446,7 +446,7 @@ SELECT ts_lexize('norwegian_ispell', 'sjokoladefabrikk');
    {sjokoladefabrikk,sjokolade,fabrikk}</codeblock>
       <note>
         <p> MySpell does not support compound words. Hunspell has sophisticated
-          support for compound words. At present, Greenplum Database implements
+          support for compound words. At present, Cloudberry Database implements
           only the basic compound word operations of Hunspell.</p>
       </note>
     </section>
@@ -461,7 +461,7 @@ SELECT ts_lexize('norwegian_ispell', 'sjokoladefabrikk');
         base, or stem, spelling within its language. A Snowball dictionary
         requires a language parameter to identify which stemmer to use, and
         optionally can specify a stopword file name that gives a list of words
-        to eliminate. (Greenplum Database's standard stopword lists are also
+        to eliminate. (Cloudberry Database's standard stopword lists are also
         provided by the Snowball project.) For example, there is a built-in
         definition equivalent to</p>
       <codeblock>CREATE TEXT SEARCH DICTIONARY english_stem (

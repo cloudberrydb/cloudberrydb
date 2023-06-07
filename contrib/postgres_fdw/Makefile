@@ -1,16 +1,27 @@
 # contrib/postgres_fdw/Makefile
 
 MODULE_big = postgres_fdw
-OBJS = postgres_fdw.o option.o deparse.o connection.o shippable.o $(WIN32RES)
+OBJS_FRONTEND = \
+	link-canary.o
+
+OBJS = \
+	$(WIN32RES) \
+	$(OBJS_FRONTEND) \
+	connection.o \
+	deparse.o \
+	option.o \
+	postgres_fdw.o \
+	shippable.o
+
 PGFILEDESC = "postgres_fdw - foreign data wrapper for PostgreSQL"
 
 PG_CPPFLAGS = -I$(libpq_srcdir)
-SHLIB_LINK_INTERNAL = -Wl,--exclude-libs=libpq.a -Wl,-Bstatic $(libpq) -Wl,-Bdynamic
+SHLIB_LINK_INTERNAL = -Wl,-Bsymbolic -Wl,-Bstatic -Wl,-Bstatic $(libpq) -Wl,-Bdynamic
 
 EXTENSION = postgres_fdw
-DATA = postgres_fdw--1.0.sql
+DATA = postgres_fdw--1.0.sql postgres_fdw--1.0--1.1.sql
 
-REGRESS = postgres_fdw gp_postgres_fdw
+REGRESS = gp_postgres_fdw #postgres_fdw
 
 ifdef USE_PGXS
 PG_CONFIG = pg_config
@@ -23,3 +34,14 @@ top_builddir = ../..
 include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/contrib/contrib-global.mk
 endif
+
+link-canary.c : % : $(top_srcdir)/src/common/%
+	rm -f $@ && $(LN_S) $< .
+
+link-canary.o: link-canary.c
+	$(CC) $(CFLAGS) -DFRONTEND $(CPPFLAGS) -c $< -o $@
+
+clean: clean-symlinks
+
+clean-symlinks:
+	rm -f link-canary.c

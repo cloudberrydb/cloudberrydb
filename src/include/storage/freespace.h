@@ -4,7 +4,7 @@
  *	  POSTGRES free space map for quickly finding free space in relations
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/freespace.h
@@ -30,7 +30,8 @@ extern void RecordPageWithFreeSpace(Relation rel, BlockNumber heapBlk,
 extern void XLogRecordPageWithFreeSpace(RelFileNode rnode, BlockNumber heapBlk,
 										Size spaceAvail);
 
-extern void FreeSpaceMapTruncateRel(Relation rel, BlockNumber nblocks);
+extern BlockNumber FreeSpaceMapPrepareTruncateRel(Relation rel,
+												  BlockNumber nblocks);
 extern void FreeSpaceMapVacuum(Relation rel);
 extern void FreeSpaceMapVacuumRange(Relation rel, BlockNumber start,
 									BlockNumber end);

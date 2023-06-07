@@ -297,6 +297,7 @@ formatter_import(PG_FUNCTION_ARGS)
 		int		attr_len 	= 0;
 		
 		remaining = data_len - data_cur;
+		Assert(remaining >= 0);
 		
 		switch (type)
 		{
@@ -330,7 +331,7 @@ formatter_import(PG_FUNCTION_ARGS)
 			case BPCHAROID:
 			{
 				text*	value;
-				int32	len;
+				int32	len = 0;
 				bool	nextlen = remaining >= sizeof(len);
 				
 				if (nextlen)

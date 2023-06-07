@@ -3,7 +3,7 @@
  * int8.c
  *	  Internal 64-bit integer operations
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * IDENTIFICATION
@@ -23,11 +23,9 @@
 #include "nodes/nodeFuncs.h"
 #include "nodes/supportnodes.h"
 #include "optimizer/optimizer.h"
-#include "utils/int8.h"
 #include "utils/builtins.h"
+#include "utils/int8.h"
 
-
-#define MAXINT8LEN		25
 
 typedef struct
 {
@@ -151,9 +149,16 @@ int8out(PG_FUNCTION_ARGS)
 	int64		val = PG_GETARG_INT64(0);
 	char		buf[MAXINT8LEN + 1];
 	char	   *result;
+	int			len;
 
-	pg_lltoa(val, buf);
-	result = pstrdup(buf);
+	len = pg_lltoa(val, buf) + 1;
+
+	/*
+	 * Since the length is already known, we do a manual palloc() and memcpy()
+	 * to avoid the strlen() call that would otherwise be done in pstrdup().
+	 */
+	result = palloc(len);
+	memcpy(result, buf, len);
 	PG_RETURN_CSTRING(result);
 }
 
@@ -668,6 +673,133 @@ int8mod(PG_FUNCTION_ARGS)
 	PG_RETURN_INT64(arg1 % arg2);
 }
 
+/*
+ * Greatest Common Divisor
+ *
+ * Returns the largest positive integer that exactly divides both inputs.
+ * Special cases:
+ *   - gcd(x, 0) = gcd(0, x) = abs(x)
+ *   		because 0 is divisible by anything
+ *   - gcd(0, 0) = 0
+ *   		complies with the previous definition and is a common convention
+ *
+ * Special care must be taken if either input is INT64_MIN ---
+ * gcd(0, INT64_MIN), gcd(INT64_MIN, 0) and gcd(INT64_MIN, INT64_MIN) are
+ * all equal to abs(INT64_MIN), which cannot be represented as a 64-bit signed
+ * integer.
+ */
+static int64
+int8gcd_internal(int64 arg1, int64 arg2)
+{
+	int64		swap;
+	int64		a1,
+				a2;
+
+	/*
+	 * Put the greater absolute value in arg1.
+	 *
+	 * This would happen automatically in the loop below, but avoids an
+	 * expensive modulo operation, and simplifies the special-case handling
+	 * for INT64_MIN below.
+	 *
+	 * We do this in negative space in order to handle INT64_MIN.
+	 */
+	a1 = (arg1 < 0) ? arg1 : -arg1;
+	a2 = (arg2 < 0) ? arg2 : -arg2;
+	if (a1 > a2)
+	{
+		swap = arg1;
+		arg1 = arg2;
+		arg2 = swap;
+	}
+
+	/* Special care needs to be taken with INT64_MIN.  See comments above. */
+	if (arg1 == PG_INT64_MIN)
+	{
+		if (arg2 == 0 || arg2 == PG_INT64_MIN)
+			ereport(ERROR,
+					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+					 errmsg("bigint out of range")));
+
+		/*
+		 * Some machines throw a floating-point exception for INT64_MIN % -1,
+		 * which is a bit silly since the correct answer is perfectly
+		 * well-defined, namely zero.  Guard against this and just return the
+		 * result, gcd(INT64_MIN, -1) = 1.
+		 */
+		if (arg2 == -1)
+			return 1;
+	}
+
+	/* Use the Euclidean algorithm to find the GCD */
+	while (arg2 != 0)
+	{
+		swap = arg2;
+		arg2 = arg1 % arg2;
+		arg1 = swap;
+	}
+
+	/*
+	 * Make sure the result is positive. (We know we don't have INT64_MIN
+	 * anymore).
+	 */
+	if (arg1 < 0)
+		arg1 = -arg1;
+
+	return arg1;
+}
+
+Datum
+int8gcd(PG_FUNCTION_ARGS)
+{
+	int64		arg1 = PG_GETARG_INT64(0);
+	int64		arg2 = PG_GETARG_INT64(1);
+	int64		result;
+
+	result = int8gcd_internal(arg1, arg2);
+
+	PG_RETURN_INT64(result);
+}
+
+/*
+ * Least Common Multiple
+ */
+Datum
+int8lcm(PG_FUNCTION_ARGS)
+{
+	int64		arg1 = PG_GETARG_INT64(0);
+	int64		arg2 = PG_GETARG_INT64(1);
+	int64		gcd;
+	int64		result;
+
+	/*
+	 * Handle lcm(x, 0) = lcm(0, x) = 0 as a special case.  This prevents a
+	 * division-by-zero error below when x is zero, and an overflow error from
+	 * the GCD computation when x = INT64_MIN.
+	 */
+	if (arg1 == 0 || arg2 == 0)
+		PG_RETURN_INT64(0);
+
+	/* lcm(x, y) = abs(x / gcd(x, y) * y) */
+	gcd = int8gcd_internal(arg1, arg2);
+	arg1 = arg1 / gcd;
+
+	if (unlikely(pg_mul_s64_overflow(arg1, arg2, &result)))
+		ereport(ERROR,
+				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+				 errmsg("bigint out of range")));
+
+	/* If the result is INT64_MIN, it cannot be represented. */
+	if (unlikely(result == PG_INT64_MIN))
+		ereport(ERROR,
+				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
+				 errmsg("bigint out of range")));
+
+	if (result < 0)
+		result = -result;
+
+	PG_RETURN_INT64(result);
+}
 
 Datum
 int8inc(PG_FUNCTION_ARGS)
@@ -1216,15 +1348,8 @@ dtoi8(PG_FUNCTION_ARGS)
 	 */
 	num = rint(num);
 
-	/*
-	 * Range check.  We must be careful here that the boundary values are
-	 * expressed exactly in the float domain.  We expect PG_INT64_MIN to be an
-	 * exact power of 2, so it will be represented exactly; but PG_INT64_MAX
-	 * isn't, and might get rounded off, so avoid using it.
-	 */
-	if (unlikely(num < (float8) PG_INT64_MIN ||
-				 num >= -((float8) PG_INT64_MIN) ||
-				 isnan(num)))
+	/* Range check */
+	if (unlikely(isnan(num) || !FLOAT8_FITS_IN_INT64(num)))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("bigint out of range")));
@@ -1258,15 +1383,8 @@ ftoi8(PG_FUNCTION_ARGS)
 	 */
 	num = rint(num);
 
-	/*
-	 * Range check.  We must be careful here that the boundary values are
-	 * expressed exactly in the float domain.  We expect PG_INT64_MIN to be an
-	 * exact power of 2, so it will be represented exactly; but PG_INT64_MAX
-	 * isn't, and might get rounded off, so avoid using it.
-	 */
-	if (unlikely(num < (float4) PG_INT64_MIN ||
-				 num >= -((float4) PG_INT64_MIN) ||
-				 isnan(num)))
+	/* Range check */
+	if (unlikely(isnan(num) || !FLOAT4_FITS_IN_INT64(num)))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("bigint out of range")));

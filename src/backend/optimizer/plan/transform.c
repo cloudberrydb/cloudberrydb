@@ -3,7 +3,7 @@
  * transform.c
  *	  This file contains methods to transform the query tree
  *
- * Portions Copyright (c) 2011, EMC Greenplum
+ * Portions Copyright (c) 2011, EMC Cloudberry
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -213,7 +213,7 @@ is_sirv_funcexpr(FuncExpr *fe)
 	if (fe->funcresulttype == RECORDOID)
 		return false;	/* Record types cannot be handled currently */
 
-	if (fe->funcid == F_NEXTVAL_OID || fe->funcid == F_CURRVAL_OID || fe-> funcid == F_SETVAL_OID)
+	if (fe->funcid == F_NEXTVAL || fe->funcid == F_CURRVAL || fe-> funcid == F_SETVAL_REGCLASS_INT8)
 		return false;	/* Function cannot be sequence related */
 
 	return true;
@@ -314,13 +314,18 @@ make_sirvf_subquery(FuncExpr *fe)
 		RangeTblRef *rtref;
 		int			attno;
 		Var		   *var;
+		ParseNamespaceItem	*pni;
+		ParseState			*pstate;
 
+		/* Create a dummy ParseState for addRangeTableEntryForSubquery */
+		pstate = make_parsestate(NULL);
 		// FIXME: does this need to be lateral?
-		rte = addRangeTableEntryForSubquery(NULL,
+		pni = addRangeTableEntryForSubquery(pstate,
 											sub_sq,
 											makeAlias("sirvf_sq", NIL),
 											false, /* isLateral? */
 											true);
+		rte = pni->p_rte;
 		rtref = makeNode(RangeTblRef);
 		rtref->rtindex = 1;
 

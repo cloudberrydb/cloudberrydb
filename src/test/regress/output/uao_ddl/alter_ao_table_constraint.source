@@ -157,7 +157,7 @@ set gp_select_invisible = false;
 -- Some negative testing.
 alter table sto_alt_uao2_constraint ADD COLUMN added_col10 character varying(35)
 default NULL constraint added_col10 NOT NULL;
-ERROR:  column "added_col10" contains null values  (seg0 127.0.0.1:25432 pid=30602)
+ERROR:  column "added_col10" of relation "sto_alt_uao2_constraint" contains null values  (seg0 127.0.1.1:7002 pid=2217563)
 alter table sto_alt_uao2_constraint ADD COLUMN added_col12 character varying(35)
 -- Mask out "by some row" printed by row-oriented AO tables
 -- start_matchsubs

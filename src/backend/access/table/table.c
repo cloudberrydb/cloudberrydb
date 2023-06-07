@@ -3,7 +3,7 @@
  * table.c
  *	  Generic routines for table related code.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -28,6 +28,7 @@
 #include "catalog/namespace.h"
 #include "cdb/cdbvars.h"
 #include "utils/faultinjector.h"
+#include "utils/guc.h"
 
 
 /* ----------------
@@ -45,6 +46,40 @@ table_open(Oid relationId, LOCKMODE lockmode)
 	Relation	r;
 
 	r = relation_open(relationId, lockmode);
+
+	if (r->rd_rel->relkind == RELKIND_INDEX ||
+		r->rd_rel->relkind == RELKIND_PARTITIONED_INDEX)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("\"%s\" is an index",
+						RelationGetRelationName(r))));
+	else if (r->rd_rel->relkind == RELKIND_COMPOSITE_TYPE)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("\"%s\" is a composite type",
+						RelationGetRelationName(r))));
+
+	return r;
+}
+
+
+/* ----------------
+ *		try_table_open - open a table relation by relation OID
+ *
+ *		Same as table_open, except return NULL instead of failing
+ *		if the relation does not exist.
+ * ----------------
+ */
+Relation
+try_table_open(Oid relationId, LOCKMODE lockmode, bool noWait)
+{
+	Relation	r;
+
+	r = try_relation_open(relationId, lockmode, noWait);
+
+	/* leave if table does not exist */
+	if (!r)
+		return NULL;
 
 	if (r->rd_rel->relkind == RELKIND_INDEX ||
 		r->rd_rel->relkind == RELKIND_PARTITIONED_INDEX)
@@ -125,36 +160,6 @@ table_openrv_extended(const RangeVar *relation, LOCKMODE lockmode,
 }
 
 /* ----------------
- *		try_table_open - open a heap relation by relation OID
- *
- *		As above, but relation return NULL for relation-not-found
- * ----------------
- */
-Relation
-try_table_open(Oid relationId, LOCKMODE lockmode, bool noWait)
-{
-	Relation	r;
-
-	r = try_relation_open(relationId, lockmode, noWait);
-
-	if (!RelationIsValid(r))
-		return NULL;
-
-	if (r->rd_rel->relkind == RELKIND_INDEX)
-		ereport(ERROR,
-				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is an index",
-						RelationGetRelationName(r))));
-	else if (r->rd_rel->relkind == RELKIND_COMPOSITE_TYPE)
-		ereport(ERROR,
-				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is a composite type",
-						RelationGetRelationName(r))));
-
-	return r;
-}
-
-/* ----------------
  *		table_close - close a table
  *
  *		If lockmode is not "NoLock", we then release the specified lock.
@@ -176,35 +181,76 @@ table_close(Relation relation, LOCKMODE lockmode)
  *
  * CDB: Like try_table_open, except that it will upgrade the lock when needed
  * for distributed tables.
+ *
+ * Note1: Postgres will always hold RowExclusiveLock for DMLs
+ * Note2: INSERT statement will not call this function.
+ * Note3: This function may return NULL (eg. when just before we open the table,
+ *        other transaction drop the table), caller should check it.
+ *
+ * CloudBerry only upgrade lock level for UPDATE and DELETE statement under some
+ * condition:
+ *   1. always upgrade when gp_enable_global_deadlock_detector is not set
+ *   2. when gp_enable_global_deadlock_detector is set:
+ *     a. if target table is AO|AOCO table, upgrade the lock level
+ *     b. if target table is heap table, just like Postgres, do not upgrade
  */
 Relation
 CdbTryOpenTable(Oid relid, LOCKMODE reqmode, bool *lockUpgraded)
 {
-    LOCKMODE    lockmode = reqmode;
+	LOCKMODE    lockmode;
 	Relation    rel;
 
-	if (lockUpgraded != NULL)
-		*lockUpgraded = false;
-
-	lockmode = UpgradeRelLockIfNecessary(relid, lockmode, lockUpgraded);
-
-	rel = try_table_open(relid, lockmode, false);
-	if (!RelationIsValid(rel))
-		return NULL;
-
 	/*
-	 * There is a slim chance that ALTER TABLE SET DISTRIBUTED BY may
-	 * have altered the distribution policy between the time that we
-	 * decided to upgrade the lock and the time we opened the table
-	 * with the lock.  Double check that our chosen lock mode is still
-	 * okay.
+	 * This if-else statement will try to open the relation and
+	 * save the lockmode it uses to open the relation.
+	 *
+	 * If we are doing expclicit UPDATE|DELETE on catalogs (this can
+	 * only be possible when GUC allow_system_table_mods is set), the
+	 * update or delete does not hold locks on catalog on segments, so
+	 * we do not need to consider lock-upgrade for DML on catalogs.
 	 */
-	if (lockmode == RowExclusiveLock &&
-		Gp_role == GP_ROLE_DISPATCH && RelationIsAppendOptimized(rel))
+	if (reqmode == RowExclusiveLock &&
+		Gp_role == GP_ROLE_DISPATCH &&
+		relid >= FirstNormalObjectId)
 	{
-		elog(ERROR, "table \"%s\" concurrently updated", 
-			 RelationGetRelationName(rel));
+		if (!gp_enable_global_deadlock_detector)
+		{
+			/*
+			 * Without GDD, to avoid global deadlock, always
+			 * upgrade locklevel to ExclusiveLock
+			 */
+			lockmode = ExclusiveLock;
+			rel = try_table_open(relid, lockmode, false);
+		}
+		else
+		{
+			lockmode = RowExclusiveLock;
+			rel = try_table_open(relid, lockmode, false);
+			if (RelationIsAppendOptimized(rel))
+			{
+				/*
+				 * AO|AOCO table does not support concurrently
+				 * update or delete on segments, so we first close
+				 * the relation and reopen it using upgraded lockmode.
+				 * NOTE: during this time window, there is a race that
+				 * the table with relid is dropped, and will lead to
+				 * returning NULL. This will not cause any problem
+				 * because it is caller's duty to check NULL pointer.
+				 */
+				table_close(rel, RowExclusiveLock);
+				lockmode = ExclusiveLock;
+				rel = try_table_open(relid, lockmode, false);
+			}
+		}
 	}
+	else
+	{
+		lockmode = reqmode;
+		rel = try_table_open(relid, lockmode, false);
+	}
+
+	if (lockUpgraded != NULL && lockmode > reqmode)
+		*lockUpgraded = true;
 
 	/* inject fault after holding the lock */
 	SIMPLE_FAULT_INJECTOR("upgrade_row_lock");

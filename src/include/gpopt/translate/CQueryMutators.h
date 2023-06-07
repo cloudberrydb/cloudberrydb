@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2012 EMC Corp.
 //
 //	@filename:
@@ -50,8 +50,8 @@ namespace gpdxl
 //---------------------------------------------------------------------------
 class CQueryMutators
 {
-	typedef Node *(*MutatorWalkerFn)();
-	typedef BOOL (*ExprWalkerFn)();
+	typedef Node *(*MutatorWalkerFn)(Node *, void *);
+	typedef BOOL (*ExprWalkerFn)(Node *, void *);
 
 	typedef struct SContextGrpbyPlMutator
 	{

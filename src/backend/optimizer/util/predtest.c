@@ -4,7 +4,7 @@
  *	  Routines to attempt to prove logical implications between predicate
  *	  expressions.
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -67,6 +67,7 @@ typedef struct PredIterInfoData
 {
 	/* node-type-specific iteration state */
 	void	   *state;
+	List	   *state_list;
 	/* initialize to do the iteration */
 	void		(*startup_fn) (Node *clause, PredIterInfo info);
 	/* next-component iteration function */
@@ -922,7 +923,8 @@ predicate_classify(Node *clause, PredIterInfo info)
 static void
 list_startup_fn(Node *clause, PredIterInfo info)
 {
-	info->state = (void *) list_head((List *) clause);
+	info->state_list = (List *) clause;
+	info->state = (void *) list_head(info->state_list);
 }
 
 static Node *
@@ -934,7 +936,7 @@ list_next_fn(PredIterInfo info)
 	if (l == NULL)
 		return NULL;
 	n = lfirst(l);
-	info->state = (void *) lnext(l);
+	info->state = (void *) lnext(info->state_list, l);
 	return n;
 }
 
@@ -951,7 +953,8 @@ list_cleanup_fn(PredIterInfo info)
 static void
 boolexpr_startup_fn(Node *clause, PredIterInfo info)
 {
-	info->state = (void *) list_head(((BoolExpr *) clause)->args);
+	info->state_list = ((BoolExpr *) clause)->args;
+	info->state = (void *) list_head(info->state_list);
 }
 
 /*
@@ -1074,6 +1077,7 @@ arrayexpr_startup_fn(Node *clause, PredIterInfo info)
 
 	/* Initialize iteration variable to first member of ArrayExpr */
 	arrayexpr = (ArrayExpr *) lsecond(saop->args);
+	info->state_list = arrayexpr->elements;
 	state->next = list_head(arrayexpr->elements);
 }
 
@@ -1085,7 +1089,7 @@ arrayexpr_next_fn(PredIterInfo info)
 	if (state->next == NULL)
 		return NULL;
 	lsecond(state->opexpr.args) = lfirst(state->next);
-	state->next = lnext(state->next);
+	state->next = lnext(info->state_list, state->next);
 	return (Node *) &(state->opexpr);
 }
 
@@ -2159,7 +2163,6 @@ lookup_proof_cache(Oid pred_op, Oid clause_op, bool refute_it)
 		/* First time through: initialize the hash table */
 		HASHCTL		ctl;
 
-		MemSet(&ctl, 0, sizeof(ctl));
 		ctl.keysize = sizeof(OprProofCacheKey);
 		ctl.entrysize = sizeof(OprProofCacheEntry);
 		OprProofCacheHash = hash_create("Btree proof lookup cache", 256,

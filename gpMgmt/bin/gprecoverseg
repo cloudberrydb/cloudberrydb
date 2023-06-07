@@ -2,7 +2,7 @@
 """
 gprecoverseg
 
-Recovers Greenplum segment instances that are marked as invalid, 
+Recovers Cloudberry segment instances that are marked as invalid, 
 if mirroring is configured and operational.
 """
 
@@ -10,10 +10,11 @@ if mirroring is configured and operational.
 # THIS IMPORT MUST COME FIRST
 #
 # import mainUtils FIRST to get python version check
-from gppylib.mainUtils import simple_main
+from gppylib.mainUtils import simple_main, check_deployment_mode 
 from gppylib.programs.clsRecoverSegment import GpRecoverSegmentProgram
 
 if __name__ == '__main__':
+    check_deployment_mode('gprecoverseg')
     simple_main(GpRecoverSegmentProgram.createParser,
                 GpRecoverSegmentProgram.createProgram,
                 GpRecoverSegmentProgram.mainOptions())

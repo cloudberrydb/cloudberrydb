@@ -119,13 +119,13 @@ pg_catalog;
           views that contain information about the objects in the database. These views get system
           information from the system catalog tables in a standardized way.</li>
         <li id="im141364"><codeph>pg_toast</codeph> stores large objects such as records that exceed
-          the page size. This schema is used internally by the Greenplum Database
+          the page size. This schema is used internally by the Cloudberry Database
           system. </li>
         <li id="im141879"><codeph>pg_bitmapindex</codeph> stores bitmap index objects such as lists
-          of values. This schema is used internally by the Greenplum Database
+          of values. This schema is used internally by the Cloudberry Database
           system.</li>
         <li id="im180766"><codeph>pg_aoseg</codeph> stores append-optimized table objects. This
-          schema is used internally by the Greenplum Database system.</li>
+          schema is used internally by the Cloudberry Database system.</li>
         <li id="im180819"><codeph>gp_toolkit</codeph> is an administrative schema that contains
           external tables, views, and functions that you can access with SQL commands. All database
           users can access <codeph>gp_toolkit</codeph> to view and query the system log files and

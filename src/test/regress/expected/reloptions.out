@@ -52,7 +52,7 @@ ERROR:  invalid value for integer option "fillfactor": true
 -- Simple ALTER TABLE
 ALTER TABLE reloptions_test SET (fillfactor=31,
 	autovacuum_analyze_scale_factor = 0.3);
-WARNING:  autovacuum is not supported in Greenplum
+WARNING:  autovacuum is not supported in Cloudberry
 SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass;
                                   reloptions                                  
 ------------------------------------------------------------------------------
@@ -61,7 +61,7 @@ SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass;
 
 -- Set boolean option to true without specifying value
 ALTER TABLE reloptions_test SET (autovacuum_enabled, fillfactor=32);
-WARNING:  autovacuum is not supported in Greenplum
+WARNING:  autovacuum is not supported in Cloudberry
 SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass;
                                  reloptions                                  
 -----------------------------------------------------------------------------
@@ -79,8 +79,8 @@ SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass;
 -- Resetting all values causes the column to become null
 ALTER TABLE reloptions_test RESET (autovacuum_enabled,
 	autovacuum_analyze_scale_factor);
-WARNING:  autovacuum is not supported in Greenplum
-WARNING:  autovacuum is not supported in Greenplum
+WARNING:  autovacuum is not supported in Cloudberry
+WARNING:  autovacuum is not supported in Cloudberry
 SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass AND
        reloptions IS NULL;
  reloptions 
@@ -93,7 +93,7 @@ ALTER TABLE reloptions_test RESET (fillfactor=12);
 ERROR:  RESET must not include values for parameters
 -- Test vacuum_truncate option
 DROP TABLE reloptions_test;
-CREATE TABLE reloptions_test(i INT NOT NULL, j text)
+CREATE TEMP TABLE reloptions_test(i INT NOT NULL, j text)
 	WITH (vacuum_truncate=false,
 	toast.vacuum_truncate=false,
 	autovacuum_enabled=false);
@@ -104,9 +104,10 @@ SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass;
 (1 row)
 
 INSERT INTO reloptions_test VALUES (1, NULL), (NULL, NULL);
-ERROR:  null value in column "i" violates not-null constraint
+ERROR:  null value in column "i" of relation "reloptions_test" violates not-null constraint
 DETAIL:  Failing row contains (null, null).
-VACUUM reloptions_test;
+-- Do an aggressive vacuum to prevent page-skipping.
+VACUUM (FREEZE, DISABLE_PAGE_SKIPPING) reloptions_test;
 SELECT pg_relation_size('reloptions_test') > 0;
  ?column? 
 ----------
@@ -129,9 +130,10 @@ SELECT reloptions FROM pg_class WHERE oid = 'reloptions_test'::regclass;
 (1 row)
 
 INSERT INTO reloptions_test VALUES (1, NULL), (NULL, NULL);
-ERROR:  null value in column "i" violates not-null constraint
+ERROR:  null value in column "i" of relation "reloptions_test" violates not-null constraint
 DETAIL:  Failing row contains (null, null).
-VACUUM reloptions_test;
+-- Do an aggressive vacuum to prevent page-skipping.
+VACUUM (FREEZE, DISABLE_PAGE_SKIPPING) reloptions_test;
 SELECT pg_relation_size('reloptions_test') = 0;
  ?column? 
 ----------
@@ -151,7 +153,7 @@ SELECT reloptions FROM pg_class WHERE oid = :toast_oid;
 (1 row)
 
 ALTER TABLE reloptions_test SET (toast.autovacuum_vacuum_cost_delay = 24);
-WARNING:  autovacuum is not supported in Greenplum
+WARNING:  autovacuum is not supported in Cloudberry
 SELECT reloptions FROM pg_class WHERE oid = :toast_oid;
             reloptions             
 -----------------------------------
@@ -159,7 +161,7 @@ SELECT reloptions FROM pg_class WHERE oid = :toast_oid;
 (1 row)
 
 ALTER TABLE reloptions_test RESET (toast.autovacuum_vacuum_cost_delay);
-WARNING:  autovacuum is not supported in Greenplum
+WARNING:  autovacuum is not supported in Cloudberry
 SELECT reloptions FROM pg_class WHERE oid = :toast_oid;
  reloptions 
 ------------

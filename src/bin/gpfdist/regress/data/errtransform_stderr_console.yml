@@ -1,0 +1,5 @@
+TRANSFORMATIONS:
+    write:
+        TYPE: output
+        COMMAND: /usr/bin/env bash /home/gpadmin/gpfdist/not_exist.sh %filename%
+        STDERR: console

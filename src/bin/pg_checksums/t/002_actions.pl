@@ -1,3 +1,6 @@
+
+# Copyright (c) 2021, PostgreSQL Global Development Group
+
 # Do basic sanity checks supported by pg_checksums using
 # an initialized cluster.
 
@@ -5,7 +8,8 @@ use strict;
 use warnings;
 use PostgresNode;
 use TestLib;
-use Test::More tests => 62;
+
+use Test::More tests => 63;
 
 
 # Utility routine to create and check a table with corrupted checksums
@@ -19,9 +23,10 @@ sub check_relation_corruption
 	my $tablespace = shift;
 	my $pgdata     = $node->data_dir;
 
+	# Create table and discover its filesystem location.
 	$node->safe_psql(
 		'postgres',
-		"SELECT a INTO $table FROM generate_series(1,10000) AS a;
+		"CREATE TABLE $table AS SELECT a FROM generate_series(1,10000) AS a;
 		ALTER TABLE $table SET (autovacuum_enabled=false);");
 
 	$node->safe_psql('postgres',
@@ -32,9 +37,6 @@ sub check_relation_corruption
 	my $relfilenode_corrupted = $node->safe_psql('postgres',
 		"SELECT relfilenode FROM pg_class WHERE relname = '$table';");
 
-	# Set page header and block size
-	my $pageheader_size = 24;
-	my $block_size = $node->safe_psql('postgres', 'SHOW block_size;');
 	$node->stop;
 
 	# Checksums are correct for single relfilenode as the table is not
@@ -49,10 +51,7 @@ sub check_relation_corruption
 	);
 
 	# Time to create some corruption
-	open my $file, '+<', "$pgdata/$file_corrupted";
-	seek($file, $pageheader_size, 0);
-	syswrite($file, "\0\0\0\0\0\0\0\0\0");
-	close $file;
+	$node->corrupt_page_checksum($file_corrupted, 0);
 
 	# Checksum checks on single relfilenode fail
 	$node->command_checks_all(
@@ -111,7 +110,9 @@ append_to_file "$pgdata/global/99999_vm.123",   "";
 # should be ignored by the scan.
 append_to_file "$pgdata/global/pgsql_tmp_123", "foo";
 mkdir "$pgdata/global/pgsql_tmp";
-append_to_file "$pgdata/global/pgsql_tmp/1.1", "foo";
+append_to_file "$pgdata/global/pgsql_tmp/1.1",        "foo";
+append_to_file "$pgdata/global/pg_internal.init",     "foo";
+append_to_file "$pgdata/global/pg_internal.init.123", "foo";
 
 # Enable checksums.
 command_ok([ 'pg_checksums', '--enable', '--no-sync', '-D', $pgdata ],
@@ -183,7 +184,6 @@ check_relation_corruption($node, 'corrupt1', 'pg_default');
 my $basedir        = $node->basedir;
 my $tablespace_dir = "$basedir/ts_corrupt_dir";
 mkdir($tablespace_dir);
-$tablespace_dir = TestLib::perl2host($tablespace_dir);
 $node->safe_psql('postgres',
 	"CREATE TABLESPACE ts_corrupt LOCATION '$tablespace_dir';");
 check_relation_corruption($node, 'corrupt2', 'ts_corrupt');
@@ -214,6 +214,13 @@ sub fail_corrupt
 
 # Stop instance for the follow-up checks.
 $node->stop;
+
+# Create a fake tablespace location that should not be scanned
+# when verifying checksums.
+mkdir "$tablespace_dir/PG_99_999999991/";
+append_to_file "$tablespace_dir/PG_99_999999991/foo", "123";
+command_ok([ 'pg_checksums', '--check', '-D', $pgdata ],
+	"succeeds with foreign tablespace");
 
 # Authorized relation files filled with corrupted data cause the
 # checksum checks to fail.  Make sure to use file names different

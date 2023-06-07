@@ -217,7 +217,7 @@ SELECT lanname, lanispl, lanpltrusted FROM pg_language WHERE lanname = 'plperlu'
 select execute( '@gpwhich_gpmapreduce@ --help' );
 execute
 ---------------------
-@gpwhich_gpmapreduce@ - Greenplum Map/Reduce Driver 1.00b2
+@gpwhich_gpmapreduce@ - Cloudberry Map/Reduce Driver 1.00b2
 
 Usage:
   @gpwhich_gpmapreduce@ [options] -f file.yml [dbname [username]]

@@ -1,19 +1,18 @@
 /*
  * psql - the PostgreSQL interactive terminal
  *
- * Copyright (c) 2000-2019, PostgreSQL Global Development Group
+ * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * src/bin/psql/crosstabview.c
  */
 #include "postgres_fe.h"
 
 #include "common.h"
+#include "common/logging.h"
 #include "crosstabview.h"
 #include "pqexpbuffer.h"
 #include "psqlscanslash.h"
 #include "settings.h"
-
-#include "common/logging.h"
 
 /*
  * Value/position from the resultset that goes into the horizontal or vertical

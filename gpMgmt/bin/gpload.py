@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# gpload - load file(s) into Greenplum Database
-# Copyright Greenplum 2008
+# gpload - load file(s) into Cloudberry Database
+# Copyright Cloudberry 2008
 
 '''gpload [options] -f configuration file
 
@@ -1666,7 +1666,7 @@ class gpload:
         if ssl and certificates_path:
             dir_exists = os.path.isdir(certificates_path)
             if dir_exists == False:
-                self.log(self.ERROR, "could not access CERTIFICATES_PATH directory: %s" % certificates_path)			
+                self.log(self.ERROR, "could not access CERTIFICATES_PATH directory: %s" % certificates_path)
 
             popenList.append('--ssl')
             popenList.append(certificates_path)
@@ -1891,7 +1891,7 @@ class gpload:
                 self.setup_connection(recurse)
             else:
                 self.log(self.ERROR, "could not connect to database: %s. Is " \
-                    "the Greenplum Database running on port %i?" % (errorMessage,
+                    "the Cloudberry Database running on port %i?" % (errorMessage,
                     self.options.p))
 
 
@@ -2006,7 +2006,7 @@ class gpload:
                 has_seq_bool = False
             if has_seq == str('t') or has_seq==True:
                 has_sql_bool = True
-            i = [name,ct,None, has_seq_bool]  
+            i = [name,ct,None, has_seq_bool]
             # i: [column name, column data type, mapping target, has_sequence]
             self.into_columns.append(i)
             self.into_columns_dict[name] = i
@@ -2118,22 +2118,12 @@ class gpload:
                          on(pg_class.relnamespace = pgns.oid)
                       """
             conditionStr = "pgns.nspname = '%s'" % schemaName
-        if noGpVersion or self.gpdb_version < "7.0.0":
-            relkind='r'
-        else:
-            relkind='f'
+        relkind = 'f'
         sql = sqlFormat % (joinStr, relkind, conditionStr)
-
-        if noGpVersion or self.gpdb_version < "6.0.0":
-            if log_errors:
-                sql += " WHERE pgext.fmterrtbl = pgext.reloid "
-            else:
-                sql += " WHERE pgext.fmterrtbl IS NULL "
+        if log_errors:
+            sql += " WHERE pgext.logerrors='t' "
         else:
-            if log_errors:
-                sql += " WHERE pgext.logerrors='t' "
-            else:
-                sql += " WHERE pgext.logerrors='f' "
+            sql += " WHERE pgext.logerrors='f' "
 
         for i, l in enumerate(self.locations):
             sql += " and pgext.urilocation[%s] = %s\n" % (i + 1, quote(l))
@@ -2187,7 +2177,7 @@ class gpload:
                     where
                     relkind = '%s' and
                     relname like 'ext_gpload_reusable_%%' and
-		    %s
+                    %s
                     """
 
         joinStr = ""
@@ -2205,22 +2195,12 @@ class gpload:
                     pg_namespace pgns
                     on(pg_class.relnamespace = pgns.oid)"""
             conditionStr = "pgns.nspname = '%s'" % schemaName
-        if noGpVersion or self.gpdb_version < "7.0.0":
-            relkind='r'
-        else:
-            relkind='f'
+        relkind = 'f'
         sql = sqlFormat % (joinStr, relkind, conditionStr)
-
-        if noGpVersion or self.gpdb_version < "6.0.0":
-            if log_errors:
-                sql += " and pgext.fmterrtbl = pgext.reloid "
-            else:
-                sql += " and pgext.fmterrtbl IS NULL "
+        if log_errors:
+            sql += " and pgext.logerrors='t' "
         else:
-            if log_errors:
-                sql += " and pgext.logerrors='t' "
-            else:
-                sql += " and pgext.logerrors='f' "
+            sql += " and pgext.logerrors='f' "
 
         for i, l in enumerate(self.locations):
             sql += " and pgext.urilocation[%s] = %s\n" % (i + 1, quote(l))
@@ -2260,10 +2240,10 @@ class gpload:
         staging_cols_str = '-'.join(['%s-%s' % (quote(quote_unident(col[0])), quote(col[1])) for col in staging_cols])
 
         distribution_cols_str = '-'.join([quote(quote_unident(col)) for col in distribution_cols])
-		
+
         return '%s:%s:%s:%s' % (target_table_name, columns_num, staging_cols_str, distribution_cols_str)
 
-		
+
 
     def get_reuse_staging_table_query(self, encoding_conditions):
         '''
@@ -2452,7 +2432,7 @@ class gpload:
             if self.staging_table:
                 if '.' in self.staging_table:
                     self.log(self.ERROR, "Character '.' is not allowed in staging_table parameter. Please use EXTERNAL->SCHEMA to set the schema of external table")
-                self.extTableName = quote_unident(self.staging_table) 
+                self.extTableName = quote_unident(self.staging_table)
                 sql = """SELECT n.nspname as Schema, c.relname as Name
                          FROM pg_catalog.pg_class c
                          INNER JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
@@ -2533,7 +2513,7 @@ class gpload:
         if self.reuse_tables == False:
             self.cleanupSql.append('drop external table if exists %s'%self.extSchemaTable)
 
-		
+
     def create_staging_table(self):
         '''
         Create a new staging table or find a reusable staging table to use for this operation
@@ -2547,8 +2527,8 @@ class gpload:
         resultList = self.db.query(sql).getresult()
         if len(resultList) > 0:
             self.log(self.WARN, """Old style, reusable tables named "temp_gpload_reusable_*" from a previous versions were found.
-                         Greenplum recommends running "DROP TABLE temp_gpload_reusable_..." on each table. This only needs to be done once.""")
-		
+                         Cloudberry recommends running "DROP TABLE temp_gpload_reusable_..." on each table. This only needs to be done once.""")
+
         # If the 'reuse tables' option was specified we now try to find an
         # already existing staging table in the catalog which will match
         # the one that we need to use. It must meet the reuse conditions
@@ -2565,7 +2545,7 @@ class gpload:
             # create a string from all reuse conditions for staging tables and ancode it
             conditions_str = self.get_staging_conditions_string(target_table_name, target_columns, distcols).encode()
             encoding_conditions = hashlib.md5(conditions_str).hexdigest()
-					
+
             sql = self.get_reuse_staging_table_query(encoding_conditions)
             resultList = self.db.query(sql).getresult()
 
@@ -2587,7 +2567,7 @@ class gpload:
             # tables with same encoding_conditions
             self.staging_table_name = "staging_gpload_reusable_%s" % (encoding_conditions)
             self.log(self.INFO, "did not find a staging table to reuse. creating %s" % self.staging_table_name)
-		
+
         # MPP-14667 - self.reuse_tables should change one, and only one, aspect of how we build the following table,
         # and that is, whether it's a temp table or not. In other words, is_temp_table = '' iff self.reuse_tables == True.
         sql = 'CREATE %sTABLE %s ' % (is_temp_table, self.staging_table_name)
@@ -2603,12 +2583,8 @@ class gpload:
 
 
     def count_errors(self):
-        if self.gpdb_version < "7.0.0":  # for gpdb6
-            notice_processor(self.db.notices())
-        else:
-            pass
-            # callback function is setted before insert
-            # notice processor will be called automaticly
+        # callback function is setted before insert
+        # notice processor will be called automaticly
 
         if self.log_errors and not self.options.D:
             # make sure we only get errors for our own instance
@@ -2773,7 +2749,7 @@ class gpload:
                 strE = str(str(e), errors = 'ignore')
                 strF = str(str(sql), errors = 'ignore')
                 self.log(self.ERROR, strE + ' encountered while running ' + strF)
-				
+
     def get_qualified_tablename(self):
         '''
         return a qualified table name from self.schema and self.table
@@ -2786,20 +2762,12 @@ class gpload:
         '''
         # NOTE: this query should be re-written better. the problem is that it is
         # not possible to perform a cast on a table name with spaces...
-        if noGpVersion or self.gpdb_version < "6.0.0":
-            sql = "select attname from pg_attribute a, gp_distribution_policy p , pg_class c, pg_namespace n "+\
-                "where a.attrelid = c.oid and " + \
-                "a.attrelid = p.localoid and " + \
-                "a.attnum = any (p.attrnums) and " + \
-                "c.relnamespace = n.oid and " + \
-                "n.nspname = '%s' and c.relname = '%s'; " % (quote_unident(self.schema), quote_unident(self.table))
-        else:
-            sql = "select attname from pg_attribute a, gp_distribution_policy p , pg_class c, pg_namespace n "+\
-                "where a.attrelid = c.oid and " + \
-                "a.attrelid = p.localoid and " + \
-                "a.attnum = any (p.distkey) and " + \
-                "c.relnamespace = n.oid and " + \
-                "n.nspname = '%s' and c.relname = '%s'; " % (quote_unident(self.schema), quote_unident(self.table))
+        sql = "select attname from pg_attribute a, gp_distribution_policy p , pg_class c, pg_namespace n "+\
+            "where a.attrelid = c.oid and " + \
+            "a.attrelid = p.localoid and " + \
+            "a.attnum = any (p.distkey) and " + \
+            "c.relnamespace = n.oid and " + \
+            "n.nspname = '%s' and c.relname = '%s'; " % (quote_unident(self.schema), quote_unident(self.table))
 
         resultList = self.db.query(sql).getresult()
         attrs = []
@@ -2850,7 +2818,7 @@ class gpload:
         self.do_insert(self.staging_table_name)
         self.rowsInserted = 0 # MPP-13024. No rows inserted yet (only to temp table).
         self.do_update(self.staging_table_name, 0)
-		
+
         # delete the updated rows in staging table for merge
         # so we can directly insert new rows left in staging table
         # and avoid left outer join when insert new rows which is poor in performance

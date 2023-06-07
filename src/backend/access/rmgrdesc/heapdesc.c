@@ -3,7 +3,7 @@
  * heapdesc.c
  *	  rmgr descriptor routines for access/heap/heapam.c
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
@@ -86,9 +86,9 @@ heap_desc(StringInfo buf, XLogReaderState *record)
 		int			i;
 
 		if (xlrec->flags & XLH_TRUNCATE_CASCADE)
-			appendStringInfo(buf, "cascade ");
+			appendStringInfoString(buf, "cascade ");
 		if (xlrec->flags & XLH_TRUNCATE_RESTART_SEQS)
-			appendStringInfo(buf, "restart_seqs ");
+			appendStringInfoString(buf, "restart_seqs ");
 		appendStringInfo(buf, "nrelids %u relids", xlrec->nrelids);
 		for (i = 0; i < xlrec->nrelids; i++)
 			appendStringInfo(buf, " %u", xlrec->relids[i]);
@@ -122,11 +122,20 @@ heap2_desc(StringInfo buf, XLogReaderState *record)
 	uint8		info = XLogRecGetInfo(record) & ~XLR_INFO_MASK;
 
 	info &= XLOG_HEAP_OPMASK;
-	if (info == XLOG_HEAP2_CLEAN)
+	if (info == XLOG_HEAP2_PRUNE)
 	{
-		xl_heap_clean *xlrec = (xl_heap_clean *) rec;
+		xl_heap_prune *xlrec = (xl_heap_prune *) rec;
 
-		appendStringInfo(buf, "remxid %u", xlrec->latestRemovedXid);
+		appendStringInfo(buf, "latestRemovedXid %u nredirected %u ndead %u",
+						 xlrec->latestRemovedXid,
+						 xlrec->nredirected,
+						 xlrec->ndead);
+	}
+	else if (info == XLOG_HEAP2_VACUUM)
+	{
+		xl_heap_vacuum *xlrec = (xl_heap_vacuum *) rec;
+
+		appendStringInfo(buf, "nunused %u", xlrec->nunused);
 	}
 	else if (info == XLOG_HEAP2_FREEZE_PAGE)
 	{
@@ -134,12 +143,6 @@ heap2_desc(StringInfo buf, XLogReaderState *record)
 
 		appendStringInfo(buf, "cutoff xid %u ntuples %u",
 						 xlrec->cutoff_xid, xlrec->ntuples);
-	}
-	else if (info == XLOG_HEAP2_CLEANUP_INFO)
-	{
-		xl_heap_cleanup_info *xlrec = (xl_heap_cleanup_info *) rec;
-
-		appendStringInfo(buf, "remxid %u", xlrec->latestRemovedXid);
 	}
 	else if (info == XLOG_HEAP2_VISIBLE)
 	{
@@ -167,7 +170,7 @@ heap2_desc(StringInfo buf, XLogReaderState *record)
 	{
 		xl_heap_new_cid *xlrec = (xl_heap_new_cid *) rec;
 
-		appendStringInfo(buf, "rel %u/%u/%u; tid %u/%u",
+		appendStringInfo(buf, "rel %u/%u/%lu; tid %u/%u",
 						 xlrec->target_node.spcNode,
 						 xlrec->target_node.dbNode,
 						 xlrec->target_node.relNode,
@@ -230,14 +233,14 @@ heap2_identify(uint8 info)
 
 	switch (info & ~XLR_INFO_MASK)
 	{
-		case XLOG_HEAP2_CLEAN:
-			id = "CLEAN";
+		case XLOG_HEAP2_PRUNE:
+			id = "PRUNE";
+			break;
+		case XLOG_HEAP2_VACUUM:
+			id = "VACUUM";
 			break;
 		case XLOG_HEAP2_FREEZE_PAGE:
 			id = "FREEZE_PAGE";
-			break;
-		case XLOG_HEAP2_CLEANUP_INFO:
-			id = "CLEANUP_INFO";
 			break;
 		case XLOG_HEAP2_VISIBLE:
 			id = "VISIBLE";

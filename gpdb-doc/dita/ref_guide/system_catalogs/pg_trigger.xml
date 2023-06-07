@@ -5,7 +5,7 @@
   <title id="hy156255">pg_trigger</title>
   <body>
     <p>The <codeph>pg_trigger</codeph> system catalog table stores triggers on tables.</p>
-    <note type="note">Greenplum Database does not support triggers. </note>
+    <note type="note">Cloudberry Database does not support triggers. </note>
     <table id="hy183441">
       <title>pg_catalog.pg_trigger</title>
       <tgroup cols="4">
@@ -25,7 +25,7 @@
           <row>
             <entry colname="col1"><codeph>tgrelid</codeph></entry>
             <entry colname="col2">oid </entry>
-            <entry colname="col3"><i>pg_class.oid</i><p>Note that Greenplum Database
+            <entry colname="col3"><i>pg_class.oid</i><p>Note that Cloudberry Database
                 does not enforce referential integrity.</p></entry>
             <entry colname="col4">The table this trigger is on.</entry>
           </row>
@@ -39,7 +39,7 @@
           <row>
             <entry colname="col1"><codeph>tgfoid</codeph></entry>
             <entry colname="col2">oid</entry>
-            <entry colname="col3"><i>pg_proc.oid</i><p>Note that Greenplum Database
+            <entry colname="col3"><i>pg_proc.oid</i><p>Note that Cloudberry Database
                 does not enforce referential integrity.</p></entry>
             <entry colname="col4">The function to be called.</entry>
           </row>
@@ -64,7 +64,7 @@
           <row>
             <entry colname="col1"><codeph>tgconstrrelid</codeph></entry>
             <entry colname="col2">oid</entry>
-            <entry colname="col3"><i>pg_class.oid</i><p>Note that Greenplum Database
+            <entry colname="col3"><i>pg_class.oid</i><p>Note that Cloudberry Database
                 does not enforce referential integrity.</p></entry>
             <entry colname="col4">The table referenced by an referential integrity
               constraint.</entry>

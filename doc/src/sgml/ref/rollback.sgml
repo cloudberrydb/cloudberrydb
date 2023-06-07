@@ -70,13 +70,14 @@ ROLLBACK [ WORK | TRANSACTION ] [ AND [ NO ] CHAIN ]
   <title>Notes</title>
 
   <para>
-   Use <xref linkend="sql-commit"/> to
+   Use <link linkend="sql-commit"><command>COMMIT</command></link> to
    successfully terminate a transaction.
   </para>
 
   <para>
    Issuing <command>ROLLBACK</command> outside of a transaction
-   block emits a warning and otherwise has no effect.
+   block emits a warning and otherwise has no effect.  <command>ROLLBACK AND
+   CHAIN</command> outside of a transaction block is an error.
   </para>
  </refsect1>
 

@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
-//	Copyright (C) 2010 Greenplum, Inc.
+//	Cloudberry Database
+//	Copyright (C) 2010 Cloudberry, Inc.
 //
 //	@filename:
 //		CTranslatorDXLToPlStmt.h
@@ -563,6 +563,9 @@ private:
 	static List *TranslateNestLoopParamList(
 		CDXLColRefArray *pdrgdxlcrOuterRefs, CDXLTranslateContext *dxltrctxLeft,
 		CDXLTranslateContext *dxltrctxRight);
+
+	// create final target list for update
+	static List *CreateDirectCopyTargetList(List *target_list);
 };
 }  // namespace gpdxl
 

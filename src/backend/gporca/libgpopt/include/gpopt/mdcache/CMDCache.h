@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Greenplum Database
+//	Cloudberry Database
 //	Copyright (C) 2011 EMC Corp.
 //
 //	@filename:
@@ -88,6 +88,8 @@ public:
 };	// class CMDCache
 
 }  // namespace gpopt
+
+extern "C" ULLONG GetCacheEvictionCounter();
 
 #endif	// !GPOPT_CMDCache_H
 

@@ -4,15 +4,15 @@
 <topic id="topic1">
   <title id="kb137116">psql</title>
   <body>
-    <p id="client_util_desc">Interactive command-line interface for Greenplum Database</p>
+    <p id="client_util_desc">Interactive command-line interface for Cloudberry Database</p>
     <section id="section2">
       <title>Synopsis</title>
       <codeblock id="client_util_synopsis"><b>psql</b> [<varname>option</varname> ...] [<varname>dbname</varname> [<varname>username</varname>]]</codeblock>
     </section>
     <section id="section3">
       <title>Description</title>
-      <p><codeph>psql</codeph> is a terminal-based front-end to Greenplum Database. It enables you
-        to type in queries interactively, issue them to Greenplum Database, and see the query
+      <p><codeph>psql</codeph> is a terminal-based front-end to Cloudberry Database. It enables you
+        to type in queries interactively, issue them to Cloudberry Database, and see the query
         results. Alternatively, input can be from a file. In addition, it provides a number of
         meta-commands and various shell-like features to facilitate writing scripts and automating a
         wide variety of tasks.</p>
@@ -204,7 +204,7 @@
         <parml>
           <plentry>
             <pt>-h <varname>host</varname> | --host=<varname>host</varname></pt>
-            <pd>The host name of the machine on which the Greenplum coordinator database server is
+            <pd>The host name of the machine on which the Cloudberry coordinator database server is
               running. If not specified, reads from the environment variable <codeph>PGHOST</codeph>
               or defaults to localhost.</pd>
             <pd>When starting <codeph>psql</codeph> on the coordinator host, if the
@@ -213,7 +213,7 @@
           </plentry>
           <plentry>
             <pt>-p <varname>port</varname> | --port=<varname>port</varname></pt>
-            <pd>The TCP port on which the Greenplum coordinator database server is listening for
+            <pd>The TCP port on which the Cloudberry coordinator database server is listening for
               connections. If not specified, reads from the environment variable
                 <codeph>PGPORT</codeph> or defaults to 5432.</pd>
           </plentry>
@@ -254,9 +254,9 @@
       <title>Usage</title>
       <sectiondiv id="section8">
         <b>Connecting to a Database</b>
-        <p><codeph>psql</codeph> is a client application for Greenplum Database. In order to connect
+        <p><codeph>psql</codeph> is a client application for Cloudberry Database. In order to connect
           to a database you need to know the name of your target database, the host name and port
-          number of the Greenplum coordinator server and what database user name you want to connect as.
+          number of the Cloudberry coordinator server and what database user name you want to connect as.
             <codeph>psql</codeph> can be told about those parameters via command line options,
           namely <codeph>-d</codeph>, <codeph>-h</codeph>, <codeph>-p</codeph>, and
             <codeph>-U</codeph> respectively. If an argument is found that does not belong to any
@@ -369,7 +369,7 @@ testdb=#</codeblock>
           <pt>\c | \connect [<varname>dbname</varname> [<varname>username</varname>]
               [<varname>host</varname>] [<varname>port</varname>]] |
             <varname>conninfo</varname></pt>
-          <pd>Establishes a new Greenplum Database connection. The connection parameters to use can
+          <pd>Establishes a new Cloudberry Database connection. The connection parameters to use can
             be specified either using a positional syntax, or using <codeph>conninfo</codeph>
             connection strings as detailed in <xref
               href="https://www.postgresql.org/docs/9.4/libpq-connect.html#LIBPQ-CONNSTRING"
@@ -444,7 +444,7 @@ testdb=#</codeblock>
         </plentry>
         <plentry>
           <pt>\copyright</pt>
-          <pd>Shows the copyright and distribution terms of PostgreSQL on which Greenplum Database
+          <pd>Shows the copyright and distribution terms of PostgreSQL on which Cloudberry Database
             is based. </pd>
         </plentry>
         <plentry>
@@ -633,7 +633,7 @@ testdb=#</codeblock>
           <pd>This is an alias for <codeph>\lo_list</codeph>, which shows a list of large
             objects.</pd>
           <pd>
-            <note>Greenplum Database does not support the PostgreSQL <xref
+            <note>Cloudberry Database does not support the PostgreSQL <xref
                 href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
                 scope="external">large object facility</xref> for streaming user data that is stored
               in large-object structures.</note>
@@ -726,7 +726,7 @@ testdb=#</codeblock>
           <pd>Lists event triggers. If a pattern is specified, only those triggers
             whose names match the pattern are listed. If <codeph>+</codeph> is appended
             to the command name, each object is listed with its associated description.
-            <note>Greenplum Database does not support user-defined triggers.</note></pd>
+            <note>Cloudberry Database does not support user-defined triggers.</note></pd>
         </plentry>
         <plentry>
           <pt>\e | \edit [<varname>filename</varname>] [<varname>line_number</varname>]</pt>
@@ -865,7 +865,7 @@ hello 10</codeblock></pd>
             it to <varname>filename</varname>. Note that this is subtly different from the server
             function <codeph>lo_export</codeph>, which acts with the permissions of the user that
             the database server runs as and on the server's file system. Use
-              <codeph>\lo_list</codeph> to find out the large object's OID. <note>Greenplum Database
+              <codeph>\lo_list</codeph> to find out the large object's OID. <note>Cloudberry Database
               does not support the PostgreSQL <xref
                 href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
                 scope="external">large object facility</xref> for streaming user data that is stored
@@ -886,7 +886,7 @@ lo_import 152801</codeblock>
             then be seen with the <codeph>\lo_list</codeph> command. Note that this command is
             subtly different from the server-side <codeph>lo_import</codeph> because it acts as the
             local user on the local file system, rather than the server's user and file system.
-              <note>Greenplum Database does not support the PostgreSQL <xref
+              <note>Cloudberry Database does not support the PostgreSQL <xref
                 href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
                 scope="external">large object facility</xref> for streaming user data that is stored
               in large-object structures.</note></pd>
@@ -894,7 +894,7 @@ lo_import 152801</codeblock>
         <plentry>
           <pt>\lo_list</pt>
           <pd>Shows a list of all large objects currently stored in the database, along with any
-            comments provided for them. <note>Greenplum Database does not support the PostgreSQL
+            comments provided for them. <note>Cloudberry Database does not support the PostgreSQL
                 <xref href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
                 scope="external">large object facility</xref> for streaming user data that is stored
               in large-object structures.</note></pd>
@@ -902,7 +902,7 @@ lo_import 152801</codeblock>
         <plentry>
           <pt>\lo_unlink <varname>largeobject_oid</varname></pt>
           <pd>Deletes the large object of the specified OID from the database. Use
-              <codeph>\lo_list</codeph> to find out the large object's OID. <note>Greenplum Database
+              <codeph>\lo_list</codeph> to find out the large object's OID. <note>Cloudberry Database
               does not support the PostgreSQL <xref
                 href="https://www.postgresql.org/docs/9.4/largeobjects.html" format="html"
                 scope="external">large object facility</xref> for streaming user data that is stored
@@ -1339,7 +1339,7 @@ bar</codeblock>
             <pd>When this variable is set to <codeph>on</codeph> and a backslash command
               queries the database, the query is first shown.
               This feature helps you to study
-              Greenplum Database internals and provide
+              Cloudberry Database internals and provide
               similar functionality in your own programs. (To select this behavior on program
               start-up, use the switch <codeph>-E</codeph>.) If you set the variable to the value
                 <codeph>noexec</codeph>, the queries are just shown but are not actually sent to the
@@ -1500,7 +1500,7 @@ testdb=> INSERT INTO my_table VALUES (:'content');</codeblock>
           variable is currently set. In any case, you can escape a colon with a backslash to protect
           it from substitution.</p><p>The colon syntax for variables is standard SQL for embedded
           query languages, such as ECPG. The colon syntaxes for array slices and type casts are
-          Greenplum Database extensions, which can sometimes conflict with the standard usage. The
+          Cloudberry Database extensions, which can sometimes conflict with the standard usage. The
           colon-quote syntax for escaping a variable's value as an SQL literal or identifier is a
             <codeph>psql</codeph> extension.</p>
       </sectiondiv>
@@ -1704,7 +1704,7 @@ PSQL_EDITOR_LINENUMBER_ARG='--line '</codeblock></pd>
           <pd>The system-wide startup file is named <codeph>psqlrc</codeph> and is sought in the
             installation's "system configuration" directory, which is most reliably identified by
             running <codeph>pg_config --sysconfdir</codeph>. By default this directory will
-              be<codeph> ../etc/</codeph> relative to the directory containing the Greenplum
+              be<codeph> ../etc/</codeph> relative to the directory containing the Cloudberry
             Database executables. The name of this directory can be set explicitly via the
               <codeph>PGSYSCONFDIR</codeph> environment variable. </pd>
           <pd>The user's personal startup file is named <codeph>.psqlrc</codeph> and is sought in

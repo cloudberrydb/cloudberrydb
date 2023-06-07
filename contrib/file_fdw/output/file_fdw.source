@@ -277,7 +277,7 @@ SELECT tableoid::regclass, * FROM ONLY agg;
 
 -- updates aren't supported
 UPDATE agg SET a = 1;
-ERROR:  ModifyTable mixes distributed and entry-only tables
+ERROR:  can't split update for inherit table: agg (preptlist.c:139)
 DELETE FROM agg WHERE a = 100;
 ERROR:  ModifyTable mixes distributed and entry-only tables
 -- but this should be allowed

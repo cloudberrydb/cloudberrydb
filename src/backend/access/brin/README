@@ -192,7 +192,7 @@ Future improvements
 BRIN on append only tables
 --------------------------
 
-Greenplum has a new kind of table - append only table. BRIN needs special
+Cloudberry has a new kind of table - append only table. BRIN needs special
 handling for append-optimized tables. The revmap relies on the assumption
 that block numbers are consecutive, there are no gaps in the sequence of block
 numbers for a given relation. This assumption does not hold for append-optimized

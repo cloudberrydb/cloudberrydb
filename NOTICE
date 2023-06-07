@@ -1,4 +1,4 @@
-Greenplum Database
+Cloudberry Database
 
 Copyright (c) 2004-2020 VMware, Inc. or its affiliates. All Rights Reserved.
 
@@ -202,7 +202,7 @@ OR OTHER DEALINGS IN THE SOFTWARE.
 ------------------ PXF ------------------------------------------
 =================================================================
 
-Greenplum Platform Extension Framework
+Cloudberry Platform Extension Framework
 Copyright 2018-Present VMware, Inc. or its affiliates. All Rights Reserved.
 
 This product is licensed to you under the Apache 2.0 license (the "License").

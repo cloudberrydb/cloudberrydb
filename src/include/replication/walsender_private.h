@@ -3,7 +3,7 @@
  * walsender_private.h
  *	  Private definitions from replication/walsender.c.
  *
- * Portions Copyright (c) 2010-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 2010-2021, PostgreSQL Global Development Group
  *
  * src/include/replication/walsender_private.h
  *
@@ -31,8 +31,7 @@ typedef enum WalSndState
 /*
  * Each walsender has a WalSnd struct in shared memory.
  *
- * This struct is protected by 'mutex', with two exceptions: one is
- * sync_standby_priority as noted below.  The other exception is that some
+ * This struct is protected by its 'mutex' spinlock field, except that some
  * members are only written by the walsender process itself, and thus that
  * process is free to read those members without holding spinlock.  pid and
  * needreload always require the spinlock to be held for all accesses.
@@ -43,19 +42,9 @@ typedef struct WalSnd
 
 	WalSndState state;			/* this walsender's state */
 	XLogRecPtr	sentPtr;		/* WAL has been sent up to this point */
-	bool		sendKeepalive;	/* do we send keepalives on this connection? */
 	bool		needreload;		/* does currently-open file need to be
 								 * reloaded? */
-
-	/*
-	 * The xlog locations that have been written, flushed, and applied by
-	 * standby-side. These may be invalid if the standby-side has not offered
-	 * values yet.
-	 */
-	XLogRecPtr	write;
-	XLogRecPtr	flush;
-	XLogRecPtr	apply;
-
+	bool		sendKeepalive;	/* do we send keepalives on this connection? */
 	/*
 	 * This boolean indicates if this WAL sender has caught up within the
 	 * range defined by user (guc). This helps the backends to decide if they
@@ -63,6 +52,11 @@ typedef struct WalSnd
 	 * but that is not yet in streaming state.
 	 */
 	bool		caughtup_within_range;
+	/*
+	 * Indicates whether the WalSnd represents a connection with a Cloudberry
+	 * mirror in streaming mode
+	 */
+	bool 		is_for_gp_walreceiver;
 
 	/*
 	 * xlog location up to which xlog seg file cleanup for this walsender
@@ -75,10 +69,26 @@ typedef struct WalSnd
 	 */
 	XLogRecPtr	xlogCleanUpTo;
 
+
+	/*
+	 * The xlog locations that have been written, flushed, and applied by
+	 * standby-side. These may be invalid if the standby-side has not offered
+	 * values yet.
+	 */
+	XLogRecPtr	write;
+	XLogRecPtr	flush;
+	XLogRecPtr	apply;
+
 	/* Measured lag times, or -1 for unknown/none. */
 	TimeOffset	writeLag;
 	TimeOffset	flushLag;
 	TimeOffset	applyLag;
+
+	/*
+	 * The priority order of the standby managed by this WALSender, as listed
+	 * in synchronous_standby_names, or 0 if not-listed.
+	 */
+	int			sync_standby_priority;
 
 	/* Protects shared variables shown above. */
 	slock_t		mutex;
@@ -90,22 +100,9 @@ typedef struct WalSnd
 	Latch	   *latch;
 
 	/*
-	 * The priority order of the standby managed by this WALSender, as listed
-	 * in synchronous_standby_names, or 0 if not-listed. Protected by
-	 * SyncRepLock.
-	 */
-	int			sync_standby_priority;
-
-	/*
 	 * Timestamp of the last message received from standby.
 	 */
 	TimestampTz replyTime;
-
-	/*
-	 * Indicates whether the WalSnd represents a connection with a Greenplum
-	 * mirror in streaming mode
-	 */
-	bool 		is_for_gp_walreceiver;
 } WalSnd;
 
 extern WalSnd *MyWalSnd;
@@ -139,6 +136,19 @@ typedef struct
 	bool		sync_standbys_defined;
 
 	/*
+	 * Indicate error state of WalSender, for example, missing XLOG for mirror
+	 * to stream.
+	 *
+	 * Note: If we want to support multiple mirrors, this data structure
+	 * need to be redesigned (e.g. using WalSndError[]). We cannot store this
+	 * field in the walsnds[] array below, because the walsnds[] only
+	 * tracks the live wal senders. Hence, if the wal sender goes away
+	 * with certain error, the error state will go away with it.
+	 *
+	 */
+	WalSndError error;
+
+	/*
 	 * xlog location up to which xlog seg file cleanup is allowed.
 	 * Checkpoint creation cleans old non-required xlog files. We have to
 	 * preserve old files in case where the backup dump is large and the
@@ -151,19 +161,6 @@ typedef struct
 	 * Note:- Valid only when atleast one walsender is alive
 	 */
 	XLogRecPtr	walsnd_xlogCleanUpTo;
-
-	/*
-	 * Indicate error state of WalSender, for example, missing XLOG for mirror
-	 * to stream.
-	 *
-	 * Note: If we want to support multiple mirrors, this data structure
-	 * need to be redesigned (e.g. using WalSndError[]). We cannot store this
-	 * field in the walsnds[] array below, because the walsnds[] only
-	 * tracks the live wal senders. Hence, if the wal sender goes away
-	 * with certain error, the error state will go away with it.
-	 *
-	 */
-	WalSndError error;
 
 	WalSnd		walsnds[FLEXIBLE_ARRAY_MEMBER];
 } WalSndCtlData;
@@ -182,6 +179,7 @@ extern int	replication_yylex(void);
 extern void replication_yyerror(const char *str) pg_attribute_noreturn();
 extern void replication_scanner_init(const char *query_string);
 extern void replication_scanner_finish(void);
+extern bool replication_scanner_is_replication_command(void);
 
 extern Node *replication_parse_result;
 

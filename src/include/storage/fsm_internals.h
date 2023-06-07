@@ -1,10 +1,10 @@
 /*-------------------------------------------------------------------------
  *
- * fsm_internal.h
+ * fsm_internals.h
  *	  internal functions for free space map
  *
  *
- * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  * src/include/storage/fsm_internals.h
