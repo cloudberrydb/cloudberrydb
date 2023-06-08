@@ -1,21 +1,18 @@
 ---
-name: "\U0001F41B Bug Report"
-about: As a user, I want to report a bug.
-labels: "type: bug"
+name: Bug Report
+about: Create a report to help us improve
+labels: type/bug
+
 ---
 
-## Bug Report
+### Steps to reproduce the behavior (Required)
+Please provide detailed steps, such as SQL commands or operations on the database.
 
-### Greenplum version or build
+### Expected behavior (Required)
+A clear and concise description of what you expected to happen.
 
-### OS version and uname -a
+### Real behavior (Required)
+A clear and concise description of what actually happened.
 
-### autoconf options used ( config.status --config )
-
-### Installation information ( pg_config )
-
-### Expected behavior
-
-### Actual behavior
-
-### Step to reproduce the behavior
+### CloudberryDB version (Required)
+Please provide the version of CloudberryDB you're using.
