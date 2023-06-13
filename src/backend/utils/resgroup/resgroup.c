@@ -374,43 +374,6 @@ error_out:
 			 errmsg("not enough shared memory for resource group control")));
 }
 
-
-/*
- * Initialize the global CGroupOpsRoutine struct of resource groups.
- */
-void
-CGroupOpsAndInfoInit(void)
-{
-	bool        found;
-	int			size;
-
-	size = sizeof(CGroupOpsRoutine);
-	cgroupOpsRoutine = (CGroupOpsRoutine *)
-		ShmemInitStruct("global cgroup operations routine",
-									   size, &found);
-	if (found)
-		return;
-	if (cgroupOpsRoutine == NULL)
-		goto error_out;
-
-	size = sizeof(CGroupSystemInfo);
-	cgroupSystemInfo = (CGroupSystemInfo *)
-		ShmemInitStruct("global cgroup system info",
-									   size, &found);
-
-	if (found)
-		return;
-	if (cgroupSystemInfo == NULL)
-		goto error_out;
-
-	return;
-
-error_out:
-	ereport(FATAL,
-			(errcode(ERRCODE_OUT_OF_MEMORY),
-					errmsg("not enough shared memory for cgroup operations routine")));
-}
-
 /*
  * Allocate a resource group entry from a hash table
  */
