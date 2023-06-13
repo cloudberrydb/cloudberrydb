@@ -72,15 +72,9 @@ setup_cbdb() {
 
 download_cbdb_tar_package() {
 	fts_mode=$1
-	source "${SRC_PATH}"/cbdb-artifacts.txt
+	source /opt/cbdb-artifacts.txt
 	mkdir -p "${ROOT_PATH}"/bin_gpdb
-	local download_url=${fts_mode:+$(if [ "${fts_mode}" == "external_fts" ]; then echo "${fts_mode}_"; fi)}TARGZ_cbdb_${OS_TYPE}_${OS_ARCH}_url
-	
-	
-	curl -sSfL \
-		-o "${ROOT_PATH}/bin_gpdb/bin_gpdb.tar.gz" \
-		-z "${ROOT_PATH}/bin_gpdb/bin_gpdb.tar.gz" \
-		"${!download_url}"
+	mv /opt/${internal_tar_download_url##*/} "/opt/bin_gpdb.tar.gz"
 }
 
 setup_env() {

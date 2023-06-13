@@ -40,15 +40,11 @@ function download_etcd() {
         etcd_file_name=etcd-${etcd_version}-linux-arm64
     fi
 
-    etcd_download_url=https://artifactory.hashdata.xyz/artifactory/utility/${etcd_file_name}.tar.gz
-
-    wget ${etcd_download_url} -O /tmp/${etcd_file_name}.tar.gz
-    tar -xvf /tmp/${etcd_file_name}.tar.gz -C /tmp
+    tar -xvf /opt/${etcd_file_name}.tar.gz -C /opt
     
     mkdir -p ${target_path}
-    \cp  /tmp/${etcd_file_name}/etcd ${target_path}
-    \cp  /tmp/${etcd_file_name}/etcdctl ${target_path}
-    rm -rf /tmp/${etcd_file_name} /tmp/${etcd_file_name}.tar.gz
+    \cp  /opt/${etcd_file_name}/etcd ${target_path}
+    \cp  /opt/${etcd_file_name}/etcdctl ${target_path}
 } 
 
 function download_jansson() {
@@ -59,16 +55,16 @@ function download_jansson() {
     fi
     jansson_file_name=jansson-${jansson_version}
 
-    wget https://artifactory.hashdata.xyz/artifactory/utility/${jansson_file_name}.tar.gz -O /tmp/${jansson_file_name}.tar.gz
-    tar -xvf /tmp/${jansson_file_name}.tar.gz -C /tmp
+    tar -xvf /opt/${jansson_file_name}.tar.gz -C /opt
 
-    pushd /tmp/${jansson_file_name}
-    ./configure --prefix=/tmp/jansson --disable-static
+    pushd /opt/${jansson_file_name}
+    ./configure --prefix=/opt/jansson --disable-static
     make && make install
 
     mkdir -p ${target_path}
-    \cp -p /tmp/jansson/lib/libjansson.so* ${target_path}
-    rm -rf /tmp/jansson /tmp/${jansson_file_name}.tar.gz /tmp/${jansson_file_name}
+    \cp -p /opt/jansson/lib/libjansson.so* ${target_path}
+    \cp -p /opt/jansson/include/jansson*.h /usr/include/
+    rm -rf /opt/jansson 
     popd
 }
 
@@ -79,12 +75,10 @@ function download_java() {
         echo "invalid java target path!" && exit 1
     fi
     java_file_name=jdk-${java_version}-linux-`arch`
-    wget http://artifactory.hashdata.xyz/artifactory/development/centos/7/`arch`/${java_file_name}.tar.gz -O /tmp/${java_file_name}.tar.gz
 
     mkdir -p ${target_path}
-    tar -xzf /tmp/${java_file_name}.tar.gz -C ${target_path}
+    tar -xzf /opt/${java_file_name}.tar.gz -C ${target_path}
     mv ${target_path}/jdk*  ${target_path}/jdk
-    rm /tmp/${java_file_name}.tar.gz
 }
 
 ## ----------------------------------------------------------------------
@@ -93,7 +87,7 @@ function download_java() {
 
 function install_gpdb() {
     mkdir -p $INSTALL_DIR
-    tar -xzf bin_gpdb/bin_gpdb.tar.gz -C $INSTALL_DIR
+    tar -xzf /opt/bin_gpdb.tar.gz -C $INSTALL_DIR
 }
 
 function setup_configure_vars() {

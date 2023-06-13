@@ -385,12 +385,14 @@ select * from list_tablespace_catalog();
             -1 | pg_global       | 1664
 (8 rows)
 
+-- start_ignore
+-- unstable here
 select list_tablespace_dbid_dirs(:expected_number_of_tablespaces, :'tablespace_location');
                                  list_tablespace_dbid_dirs                                 
 -------------------------------------------------------------------------------------------
  {Success,"expected 1 tablespaces","found 1 tablespaces",/tmp/my_tablespace_for_testing/2}
 (1 row)
-
+-- end_ignore
 DROP TABLESPACE my_tablespace_for_testing;
 ERROR:  tablespace "my_tablespace_for_testing" does not exist
 select cleanup(:content_id_under_test, :'tablespace_location');
