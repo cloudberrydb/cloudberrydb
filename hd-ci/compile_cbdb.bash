@@ -2,6 +2,7 @@
 set -exo pipefail
 
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+source /etc/profile
 source "${BASE_DIR}"/common.bash
 
 CBDB_VERSION=$(${SRC_PATH}/getversion --short)
@@ -31,32 +32,17 @@ function compile_cbdb() {
 function upload_cbdb_tar_and_rpm_package() {
 	fts_mode=$1
 	generate_docker_tag=$2
-	tar_package_path=$(ls "${ROOT_PATH}"/gpdb_artifacts/server-build*)
-	tar_upload_file_name=$(basename "${tar_package_path}" ".tar.gz")-"${BUILD_NUMBER}"-"${BUILD_TYPE}"${fts_mode:+$(if [ "${fts_mode}" = "external_fts" ]; then echo "-${fts_mode}"; fi)}.tar.gz
-	tar_download_url="$BUCKET_INTERMEDIATE/${OS_TYPE}/${OS_ARCH}/cbdb/${BUILD_TYPE}/${tar_upload_file_name}"
-	tar_download_url_latest="$BUCKET_INTERMEDIATE/${OS_TYPE}/${OS_ARCH}/cbdb/${BUILD_TYPE}/bin_cbdb_latest${fts_mode:+$(if [ "${fts_mode}" = "external_fts" ]; then echo "_${fts_mode}"; fi)}.tar.gz"
+	tar_package_path=$(ls "${ROOT_PATH}"/cloudberrydb/gpdb_artifacts/server-build*)
 
 	# upload tar.gz file
-	curl -s -S -f -u "${ARTIFACTORY_USERNAME}":"${ARTIFACTORY_PASSWORD}" \
-		-X PUT "${tar_download_url}" \
-		-T "${tar_package_path}"
-	curl -s -S -f -u "${ARTIFACTORY_USERNAME}":"${ARTIFACTORY_PASSWORD}" \
-		-X PUT "${tar_download_url_latest}" \
-		-T "${tar_package_path}"
+	# aws s3 cp $tar_package_path  s3://release-cbdb-package/${BUILD_NUMBER}/${tar_package_path##*/}
+	cp $tar_package_path /tmp
 
 	rpm_package_path=$(ls ~/rpmbuild/RPMS/"${OS_ARCH}"/cloudberry-db*.rpm)
-	rpm_upload_file_name=$(basename "${rpm_package_path}" ".rpm")-"${BUILD_NUMBER}"-"${BUILD_TYPE}"${fts_mode:+$(if [ "${fts_mode}" = "external_fts" ]; then echo "-${fts_mode}"; fi)}.rpm
-	rpm_download_url="$BUCKET_INTERMEDIATE/${OS_TYPE}/${OS_ARCH}/cbdb/${BUILD_TYPE}/${rpm_upload_file_name}"
-	rpm_download_url_latest="$BUCKET_INTERMEDIATE/${OS_TYPE}/${OS_ARCH}/cbdb/${BUILD_TYPE}/cbdb_latest${fts_mode:+$(if [ "${fts_mode}" = "external_fts" ]; then echo "_${fts_mode}"; fi)}.rpm"
 
 	# upload rpm file
-	curl -s -S -f -u "${ARTIFACTORY_USERNAME}":"${ARTIFACTORY_PASSWORD}" \
-		-X PUT "${rpm_download_url}" \
-		-T "${rpm_package_path}"
-	curl -s -S -f -u "${ARTIFACTORY_USERNAME}":"${ARTIFACTORY_PASSWORD}" \
-		-X PUT "${rpm_download_url_latest}" \
-		-T "${rpm_package_path}"
-	
+	# aws s3 cp $rpm_package_path  s3://release-cbdb-package/${BUILD_NUMBER}/${rpm_package_path##*/}
+	cp $rpm_package_path /tmp
 	if [[ ${fts_mode} == "internal_fts" ]]; then
 		cat <<EOF >>"${SRC_PATH}/cbdb-artifacts.txt"
 os_type=${OS_TYPE_EXT}
@@ -65,12 +51,8 @@ cbdb_major_version=1.x
 cbdb_version=${CBDB_VERSION}
 build_number=${BUILD_NUMBER}
 build_type=${BUILD_TYPE}
-internal_tar_download_url=${tar_download_url}
-internal_rpm_download_url=${rpm_download_url}
-public_rpm_download_url=${rpm_download_url}
-RELEASE_cbdb_${OS_TYPE}_${OS_ARCH}_name=${rpm_package_path##*/}
-RELEASE_cbdb_${OS_TYPE}_${OS_ARCH}_url=${rpm_download_url}
-TARGZ_cbdb_${OS_TYPE}_${OS_ARCH}_url=${tar_download_url}
+internal_tar_download_url=${tar_package_path}
+internal_rpm_download_url=${rpm_package_path}
 CBDB_VERSION=${CBDB_VERSION}
 EOF
 	else
@@ -82,6 +64,7 @@ EOF
 
 	if [ "${generate_docker_tag}" = "true" ]; then
 		release_image_k8s ${rpm_package_path} ${rpm_upload_file_name}
+		echo ${rpm_package_path} ${rpm_upload_file_name}
 	fi
 
 	cat "${SRC_PATH}/cbdb-artifacts.txt"
@@ -89,7 +72,7 @@ EOF
 
 function package_create_rpm() {
 	mkdir -p ~/rpmbuild/SOURCES/
-	cp -a "${ROOT_PATH}/gpdb_artifacts/bin_gpdb.tar.gz" ~/rpmbuild/SOURCES/bin_cbdb.tar.gz
+	cp -a "${ROOT_PATH}/cloudberrydb/gpdb_artifacts/bin_gpdb.tar.gz" ~/rpmbuild/SOURCES/bin_cbdb.tar.gz
 
 	version=$(echo "${CBDB_VERSION}" | tr '-' '_')
 	PATH=/usr/bin:$PATH rpmbuild \
@@ -136,7 +119,7 @@ main() {
 	popd
 
 	release_rpm_internal_fts
-
+	# release_rpm_external_fts $1
 	pushd ${ROOT_PATH}
 	cp ${gpdb_dir_name}/cbdb-artifacts.txt .
 	rm -rf ${gpdb_dir_name} ~/rpmbuild ${OUTPUT_ARTIFACT_DIR:=gpdb_artifacts} 
@@ -144,7 +127,7 @@ main() {
 	mv cbdb-artifacts.txt ${gpdb_dir_name}
 	popd
 
-	release_rpm_external_fts $1
+
 }
 
 main $1

@@ -40,9 +40,11 @@ function download_etcd() {
         etcd_file_name=etcd-${etcd_version}-linux-arm64
     fi
 
-    etcd_download_url=https://artifactory.hashdata.xyz/artifactory/utility/${etcd_file_name}.tar.gz
+    etcd_download_url=https://cbdb-rpm.s3.amazonaws.com/${etcd_file_name}.tar.gz
 
-    wget ${etcd_download_url} -O /tmp/${etcd_file_name}.tar.gz
+    # wget ${etcd_download_url} -O /tmp/${etcd_file_name}.tar.gz
+    /usr/local/bin/aws s3 cp s3://cbdb-deps/${etcd_file_name}.tar.gz /tmp/
+    
     tar -xvf /tmp/${etcd_file_name}.tar.gz -C /tmp
     
     mkdir -p ${target_path}
@@ -58,8 +60,8 @@ function download_jansson() {
         echo "invalid jansson target path!" && exit 1
     fi
     jansson_file_name=jansson-${jansson_version}
-
-    wget https://artifactory.hashdata.xyz/artifactory/utility/${jansson_file_name}.tar.gz -O /tmp/${jansson_file_name}.tar.gz
+    /usr/local/bin/aws s3 cp s3://cbdb-deps/${jansson_file_name}.tar.gz /tmp/
+    # wget https://cbdb-rpm.s3.amazonaws.com/${jansson_file_name}.tar.gz -O /tmp/${jansson_file_name}.tar.gz
     tar -xvf /tmp/${jansson_file_name}.tar.gz -C /tmp
 
     pushd /tmp/${jansson_file_name}
@@ -79,7 +81,9 @@ function download_java() {
         echo "invalid java target path!" && exit 1
     fi
     java_file_name=jdk-${java_version}-linux-`arch`
-    wget http://artifactory.hashdata.xyz/artifactory/development/centos/7/`arch`/${java_file_name}.tar.gz -O /tmp/${java_file_name}.tar.gz
+    aws s3 cp s3://cbdb-deps/${java_file_name}.tar.gz /tmp/
+
+    # wget https://cbdb-rpm.s3.amazonaws.com/${java_file_name}.tar.gz -O /tmp/${java_file_name}.tar.gz
 
     mkdir -p ${target_path}
     tar -xzf /tmp/${java_file_name}.tar.gz -C ${target_path}
@@ -93,7 +97,7 @@ function download_java() {
 
 function install_gpdb() {
     mkdir -p $INSTALL_DIR
-    tar -xzf bin_gpdb/bin_gpdb.tar.gz -C $INSTALL_DIR
+    tar -xzf /opt/bin_gpdb.tar.gz -C $INSTALL_DIR
 }
 
 function setup_configure_vars() {

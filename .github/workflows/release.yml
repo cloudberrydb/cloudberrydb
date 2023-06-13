@@ -1,0 +1,119 @@
+on:
+  push:
+    tags:
+    - 'v*'
+jobs:
+  build:
+    runs-on: [self-hosted, default]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+      - name: Run build script
+        run: |
+          echo $GITHUB_RUN_ID > BUILD_NUMBER
+          hd-ci/compile_cbdb.bash true
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cbdb-variables
+          path: /opt/actions-runner/_work/cloudberrydb/cloudberrydb/cbdb-artifacts.txt
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cbdb-package
+          path: /tmp/server-build*
+      - uses: actions/upload-artifact@v3
+        with:
+          name: cbdb-rpm
+          path: /tmp/cloudberry-db*.rpm
+  icw-test:
+    needs: build
+    runs-on: [self-hosted, example]
+    env:
+      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off' installcheck-world"
+      TEST_OS: "centos"
+      DUMP_DB: "true"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: "gpdb_src"
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-variables
+          path: /opt/
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-package
+          path: /opt/
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+      - name: Run icw-test script
+        run: |
+          mkdir /code
+          cp -a gpdb_src/ /code
+          cd /code
+          echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
+          gpdb_src/hd-ci/icw_cbdb.bash internal_fts
+  icw-orca-test:
+    needs: build
+    runs-on: [self-hosted, example]
+    env:
+      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=on' installcheck-world"
+      TEST_OS: "centos"
+      DUMP_DB: "true"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: "gpdb_src"
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-variables
+          path: /opt/
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-package
+          path: /opt/
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-region: us-east-1
+      - name: Run icw-orca-test script
+        run: |
+          mkdir /code
+          cp -a gpdb_src/ /code
+          cd /code
+          echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
+          gpdb_src/hd-ci/icw_cbdb.bash internal_fts
+  release:
+    name: Upload Release Asset
+    needs: ["icw-orca-test","icw-test"]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-package
+          path: /opt/
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-rpm
+          path: /opt/
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: alexellis/upload-assets@master
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        with:
+          asset_paths: '["/opt/server-build*","/opt/cloudberry-db-*"]'

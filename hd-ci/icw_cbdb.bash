@@ -7,7 +7,8 @@ source "${BASE_DIR}"/common.bash
 mkdir -p "${ROOT_PATH}/sqldump"
 
 compile_jansson() {
-        wget https://artifactory.hashdata.xyz/artifactory/utility/jansson-2.13.1.tar.gz && \
+        # wget https://artifactory.hashdata.xyz/artifactory/utility/jansson-2.13.1.tar.gz && \
+        /usr/local/bin/aws s3 cp s3://cbdb-deps/jansson-2.13.1.tar.gz . && \
         tar -xvf jansson-2.13.1.tar.gz && \
         rm -rf jansson-2.13.1.tar.gz && \
         pushd .
@@ -27,8 +28,9 @@ function download_etcd() {
 	else
 		ETCD_FILE_NAME=etcd-v3.3.25-linux-arm64
 	fi
-	ETCD_DOWNLOAD_URL=https://artifactory.hashdata.xyz/artifactory/utility/${ETCD_FILE_NAME}.tar.gz
-	wget ${ETCD_DOWNLOAD_URL} -O /tmp/${ETCD_FILE_NAME}.tar.gz
+	# ETCD_DOWNLOAD_URL=https://artifactory.hashdata.xyz/artifactory/utility/${ETCD_FILE_NAME}.tar.gz
+	# wget ${ETCD_DOWNLOAD_URL} -O /tmp/${ETCD_FILE_NAME}.tar.gz
+	/usr/local/bin/aws s3 cp s3://cbdb-deps/${ETCD_FILE_NAME}.tar.gz /tmp/
 	tar -xvf /tmp/${ETCD_FILE_NAME}.tar.gz -C /tmp
 	cp /tmp/${ETCD_FILE_NAME}/etcd ${GREENPLUM_INSTALL_DIR}/bin
 	cp /tmp/${ETCD_FILE_NAME}/etcdctl ${GREENPLUM_INSTALL_DIR}/bin
@@ -60,9 +62,8 @@ prepare_release() {
 
 	pushd "${ROOT_PATH}"
 	mkdir -p bin_gpdb_rpm && cd bin_gpdb_rpm
-	local rpm_download_url=${fts_mode:+$(if [ "${fts_mode}" == "external_fts" ]; then echo "${fts_mode}_"; fi)}RELEASE_cbdb_${OS_TYPE}_${OS_ARCH}_url
-	[ -z "$rpm_download_url" ] && echo "rpm download url is not set" >&2 && exit 1
-	curl -O "${!rpm_download_url}"
+	internal_rpm_download_url
+	aws s3 cp s3://release-cbdb-package/${build_number}/${internal_rpm_download_url##*/} .
 	yum install -y c*.rpm
 	cd "$INSTALL_DIR"
 	tar czf "${ROOT_PATH}/bin_gpdb_rpm/bin_gpdb.tar.gz" ./*

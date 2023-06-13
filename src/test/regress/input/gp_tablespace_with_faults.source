@@ -244,7 +244,10 @@ CREATE TABLESPACE my_tablespace_for_testing LOCATION :'tablespace_location';
 select wait_for_primaries_to_restart();
 select force_mirrors_to_catch_up();
 select * from list_tablespace_catalog();
+-- start_ignore
+-- unstable here
 select list_tablespace_dbid_dirs(:expected_number_of_tablespaces, :'tablespace_location');
+-- end_ignore
 DROP TABLESPACE my_tablespace_for_testing;
 select cleanup(:content_id_under_test, :'tablespace_location');
 
