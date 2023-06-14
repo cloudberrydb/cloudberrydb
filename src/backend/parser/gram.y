@@ -844,7 +844,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 %token <keyword>
 	ACCOUNT ACTIVE ALLOWED_VALUES
 
-	CONTAINS COORDINATOR CPUSET CPU_HARD_QUOTA_LIMIT CPU_SOFT_PRIORITY
+	CONTAINS COORDINATOR CPUSET CPU_MAX_PERCENT CPU_WEIGHT
 
 	CREATEEXTTABLE
 
@@ -1013,8 +1013,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc COPY
 			%nonassoc COST
 			%nonassoc CPUSET
-			%nonassoc CPU_HARD_QUOTA_LIMIT
-			%nonassoc CPU_SOFT_PRIORITY
+			%nonassoc CPU_MAX_PERCENT
+			%nonassoc CPU_WEIGHT
 			%nonassoc CREATEEXTTABLE
 			%nonassoc CSV
 			%nonassoc CURRENT_P
@@ -1738,13 +1738,13 @@ OptResourceGroupElem:
 					/* was "concurrency" */
 					$$ = makeDefElem("concurrency", (Node *) makeInteger($2), @1);
 				}
-			| CPU_HARD_QUOTA_LIMIT SignedIconst
+			| CPU_MAX_PERCENT SignedIconst
 				{
-					$$ = makeDefElem("cpu_hard_quota_limit", (Node *) makeInteger($2), @1);
+					$$ = makeDefElem("cpu_max_percent", (Node *) makeInteger($2), @1);
 				}
-			| CPU_SOFT_PRIORITY SignedIconst
+			| CPU_WEIGHT SignedIconst
 				{
-					$$ = makeDefElem("cpu_soft_priority", (Node *) makeInteger($2), @1);
+					$$ = makeDefElem("cpu_weight", (Node *) makeInteger($2), @1);
 				}
 			| CPUSET Sconst
 				{
@@ -19340,8 +19340,8 @@ unreserved_keyword:
 			| COPY
 			| COST
 			| CPUSET
-			| CPU_HARD_QUOTA_LIMIT
-			| CPU_SOFT_PRIORITY
+			| CPU_MAX_PERCENT
+			| CPU_WEIGHT
 			| CREATEEXTTABLE
 			| CSV
 			| CUBE
@@ -19717,8 +19717,8 @@ PartitionIdentKeyword: ABORT_P
 			| COPY
 			| COST
 			| CPUSET
-			| CPU_HARD_QUOTA_LIMIT
-			| CPU_SOFT_PRIORITY
+			| CPU_MAX_PERCENT
+			| CPU_WEIGHT
 			| CREATEEXTTABLE
 			| CSV
 			| CUBE
@@ -20254,8 +20254,8 @@ bare_label_keyword:
 			| COPY
 			| COST
 			| CPUSET
-			| CPU_HARD_QUOTA_LIMIT
-			| CPU_SOFT_PRIORITY
+			| CPU_MAX_PERCENT
+			| CPU_WEIGHT
 			| CREATEEXTTABLE
 			| CROSS
 			| CSV
