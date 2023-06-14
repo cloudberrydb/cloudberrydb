@@ -57,7 +57,6 @@
 #define RESGROUP_MAX_CPU_WEIGHT	(500)
 
 #define RESGROUP_MIN_MIN_COST		(0)
-#define RESGROUP_MAX_MIN_COST		(500)
 static int str2Int(const char *str, const char *prop);
 static ResGroupLimitType getResgroupOptionType(const char* defname);
 static ResGroupCap getResgroupOptionValue(DefElem *defel);
@@ -862,12 +861,11 @@ checkResgroupCapLimit(ResGroupLimitType type, int value)
 				break;
 
 			case RESGROUP_LIMIT_TYPE_MIN_COST:
-				if (value < RESGROUP_MIN_MIN_COST ||
-					value > RESGROUP_MAX_MIN_COST)
+				if (value < RESGROUP_MIN_MIN_COST)
 					ereport(ERROR,
 							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
-									errmsg("min_cost range is [%d, %d]",
-										RESGROUP_MIN_MIN_COST, RESGROUP_MAX_MIN_COST)));
+									errmsg("The min_cost value can't be less than %d.",
+										RESGROUP_MIN_MIN_COST)));
 				break;
 
 			default:
