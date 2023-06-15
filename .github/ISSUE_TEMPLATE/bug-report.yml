@@ -1,4 +1,4 @@
-name: "Bug Report"
+name: "\U0001F41B Bug Report"
 description: Problems and issues with code in Cloudberry Database core.
 title: "[Bug] "
 labels: ["bug"]
@@ -53,7 +53,7 @@ body:
         This is absolutely not required, but we are happy to guide you in the contribution process especially if you already have a good understanding of how to implement the fix.
       options:
         - label: Yes, I am willing to submit a PR!
- - type: checkboxes
+  - type: checkboxes
     attributes:
       label: Code of Conduct
       description: By submitting this issue, you agree to follow our [Code of Conduct](https://cloudberrydb.org/community/coc).
