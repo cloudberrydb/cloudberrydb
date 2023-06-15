@@ -1,21 +1,37 @@
-## Here are some reminders before you submit the pull request:
+<!--
+Thank you for contributing! 
+***If you're the first time contributor, please sign the Contributor License Agreement(CLA).***
+-->
 
-- [ ] Add tests for the change
-- [ ] Document changes
-- [ ] Communicate in the mailing list if needed
-- [ ] Pass make installcheck
-- [ ] Pass make -C src/test installcheck-cbdb-parallel
+<!--In case of an existing issue, please reference it-->
+closes: #ISSUE
+<!--Remove this section if no corresponding issue.-->
 
 ---
 
-**What changes were proposed in this pull request?**
-Please provide a clear and concise description of the changes, including what problem is being solved or what feature is being added.
+### Change logs
 
-**Why are the changes needed?**
-Please clarify why the changes are necessary.
+_Describe your change clearly, including what problem is being solved or what feature is being added._
 
-**Does this PR introduce any user-facing change?**
-If yes, please clarify the previous behavior and the change this PR proposes.
+### Why are the changes needed?
 
-**How was this patch tested?**
-Please detail how the changes were tested, including manual tests and any relevant unit or integration tests.
+_Describe why the changes are necessary._
+
+### Does this PR introduce any user-facing change?
+
+_If yes, please clarify the previous behavior and the change this PR proposes._
+
+### How was this patch tested?
+
+_Please detail how the changes were tested, including manual tests and any relevant unit or integration tests._
+
+### Contributor's Checklist
+Here are some reminders before you submit the pull request:
+* Document changes
+* Communicate in the [GitHub Issues](https://github.com/cloudberrydb/cloudberrydb/issues) or [Discussions](https://github.com/orgs/cloudberrydb/discussions) (list them if needed)
+* Add tests for the change
+* Pass `make installcheck`
+* Pass `make -C src/test installcheck-cbdb-parallel`
+
+<!--Who can review & approve your PR?
+Feel free to @dev team for the approve! -->
