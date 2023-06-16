@@ -3,7 +3,7 @@ Thank you for contributing!
 ***If you're the first time contributor, please sign the Contributor License Agreement(CLA).***
 -->
 
-<!--In case of an existing issue, please reference it-->
+<!--In case of an existing issue or discussions, please reference it-->
 closes: #ISSUE
 <!--Remove this section if no corresponding issue.-->
 
@@ -12,6 +12,8 @@ closes: #ISSUE
 ### Change logs
 
 _Describe your change clearly, including what problem is being solved or what feature is being added._
+
+_If it has some breaking backward or forward compatibility, please clary._
 
 ### Why are the changes needed?
 
