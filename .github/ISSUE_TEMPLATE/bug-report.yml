@@ -23,12 +23,12 @@ body:
       label: What you think should happen instead
       description: What do you think went wrong?
       placeholder: >
-        Please explain why you think the behaviour is erroneous. It is extremely helpful if you copy&paste the fragment of logs showing the exact error messages or wrong behaviour. If you can provide some screenshots or videos, you can include files by dragging and dropping them here.
+        Please explain why you think the behavior is erroneous. It is extremely helpful if you copy&paste the fragment of logs showing the exact error messages or wrong behavior. If you can provide some screenshots or videos, you can include files by dragging and dropping them here.
   - type: textarea
     attributes:
       label: How to reproduce
       description: >
-        What should we do to reproduce the problem? Any SQL commmands or operations? 
+        What should we do to reproduce the problem? Any SQL commands or operations? 
       placeholder: >
         Please make sure you provide a reproducible step-by-step case of how to reproduce the problem as minimally and precisely as possible. Remember that non-reproducible issues will be closed! Opening a discussion is recommended as a first step.
     validations:
@@ -50,7 +50,7 @@ body:
     attributes:
       label: Are you willing to submit PR?
       description: >
-        This is absolutely not required, but we are happy to guide you in the contribution process especially if you already have a good understanding of how to implement the fix.
+        This is absolutely not required, but we are happy to guide you in the contribution process, especially if you already understand how to implement the fix.
       options:
         - label: Yes, I am willing to submit a PR!
   - type: checkboxes
