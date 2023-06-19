@@ -1,7 +1,17 @@
+blank_issues_enabled: false
 contact_links:
-  - name: Join Greenplum users mailing list
-    url: https://groups.google.com/a/greenplum.org/g/gpdb-users
-    about: Please ask  general questions here.
-  - name: Join Greenplum developers mailing list
-    url: https://groups.google.com/a/greenplum.org/g/gpdb-dev
-    about: Please ask developing questions here.
+  - name: 🙏🏻 Q&A
+    url: https://github.com/orgs/cloudberrydb/discussions/categories/q-a
+    about: Ask for help when running/developing Cloudberry Database.
+  - name: 💡️ New Ideas / Feature Requests
+    url: https://github.com/orgs/cloudberrydb/discussions/categories/ideas-feature-requests
+    about: Share ideas for new features.
+  - name: 🎙️ Submit Your Proposal
+    url: https://github.com/orgs/cloudberrydb/discussions/categories/proposal
+    about: As a developer, proposing any major change or enhancement to Cloudberry Database.
+  - name: 💬️ Join Slack for Real-time Chat
+    url: https://communityinviter.com/apps/cloudberrydb/welcome
+    about: Real-time chat including QA, Dev, Events and more.
+  - name: 🪲 Issues for Website, Docs
+    url: https://github.com/cloudberrydb/cloudberrydb-site/issues
+    about: Hey, we have one dedicated repo for the website and docs.

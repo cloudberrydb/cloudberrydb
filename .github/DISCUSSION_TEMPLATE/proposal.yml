@@ -1,0 +1,65 @@
+title: "[Proposal] "
+body:
+  - type: markdown
+    attributes:
+      value: "
+      
+      Thanks for proposing major changes to Cloudberry Database! 
+      
+      When changes are just minor updates, general bug fixes, just Pull Request directly! 
+      
+      When you just have one idea or more `casual` feature request, consider choosing [Ideas / Feature Requests](https://github.com/orgs/cloudberrydb/discussions/new?category=ideas-feature-requests).
+      
+      But any of the following can be considered a major change that needs to have **Proposal**.
+      
+      * Any change that impacts the public interfaces of the project. 
+      
+      * Any new component, module or code that introduces a new concept into the project or alters the behavior of an existing one
+      
+      * Any large code refactor to address general code re-usability and structure.
+      "
+  - type: textarea
+    attributes:
+      label: Proposers
+      description: What can we call you or you guys, list you and your co-author if has.
+  - type: dropdown
+    attributes:
+      label: Proposal Status
+      multiple: false
+      options:
+        - "Under Discussion"
+        - "In Progress"
+        - "Completed"
+        - "Inactive"
+        - "Abandoned"
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Abstract
+      description: A clear and concise description of what the change is.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Motivation
+      description: Please outline the motivation and why it should be implemented.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Implementation
+      description: How to implement your proposal? Including the principle, design, plans, etc.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Rollout/Adoption Plan
+  - type: checkboxes
+    attributes:
+      label: Are you willing to submit a PR?
+      options:
+        - label: Yes I am willing to submit a PR!
+  - type: markdown
+    attributes:
+      value: "Thanks for your proposal! Now invite more people to have feedback!"
