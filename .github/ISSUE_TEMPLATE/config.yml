@@ -6,8 +6,8 @@ contact_links:
   - name: 💡️ New Ideas / Feature Requests
     url: https://github.com/orgs/cloudberrydb/discussions/categories/ideas-feature-requests
     about: Share ideas for new features.
-  - name: 🎙️ RFC(Request For Comments)
-    url: https://github.com/orgs/cloudberrydb/discussions/categories/rfc 
+  - name: 🎙️ Submit Your Proposal
+    url: https://github.com/orgs/cloudberrydb/discussions/categories/proposal
     about: As a developer, proposing any major change or enhancement to Cloudberry Database.
   - name: 💬️ Join Slack for Real-time Chat
     url: https://communityinviter.com/apps/cloudberrydb/welcome
