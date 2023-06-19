@@ -1,4 +1,4 @@
-title: "[RFC] "
+title: "[Proposal] "
 body:
   - type: markdown
     attributes:
@@ -10,7 +10,7 @@ body:
       
       When you just have one idea or more `casual` feature request, consider choosing [Ideas / Feature Requests](https://github.com/orgs/cloudberrydb/discussions/new?category=ideas-feature-requests).
       
-      But any of the following can be considered a major change that needs to have RFC.
+      But any of the following can be considered a major change that needs to have **Proposal**.
       
       * Any change that impacts the public interfaces of the project. 
       
@@ -24,7 +24,7 @@ body:
       description: What can we call you or you guys, list you and your co-author if has.
   - type: dropdown
     attributes:
-      label: RFC Status
+      label: Proposal Status
       multiple: false
       options:
         - "Under Discussion"
@@ -49,7 +49,7 @@ body:
   - type: textarea
     attributes:
       label: Implementation
-      description: How to implement your RFC? Including the principle, design, plans, etc.
+      description: How to implement your proposal? Including the principle, design, plans, etc.
     validations:
       required: true
   - type: textarea
@@ -62,4 +62,4 @@ body:
         - label: Yes I am willing to submit a PR!
   - type: markdown
     attributes:
-      value: "Thanks for your RFC! Now invite more people to have feedback!"
+      value: "Thanks for your proposal! Now invite more people to have feedback!"
