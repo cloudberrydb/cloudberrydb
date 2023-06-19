@@ -3,7 +3,7 @@
  * fts.h
  *	  Interface for fault tolerance service (FTS).
  *
- * Portions Copyright (c) 2005-2010, Cloudberry Inc.
+ * Portions Copyright (c) 2005-2010, Greenplum Inc.
  * Portions Copyright (c) 2011, EMC Corp.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *

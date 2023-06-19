@@ -18,7 +18,7 @@
  * below.
  *
  *
- * Copyright 2009-2010, Cloudberry Inc. All rights reserved.
+ * Copyright 2009-2010, Greenplum Inc. All rights reserved.
  * Copyright (c) 2017-Present VMware, Inc. or its affiliates.
  */
 

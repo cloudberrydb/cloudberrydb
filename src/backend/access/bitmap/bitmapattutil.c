@@ -4,7 +4,7 @@
  *	  Defines the routines to maintain all distinct attribute values
  *	  which are indexed in the on-disk bitmap index.
  *
- * Portions Copyright (c) 2007-2010 Cloudberry Inc
+ * Portions Copyright (c) 2007-2010 Greenplum Inc
  * Portions Copyright (c) 2010-2012 EMC Corporation
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 2006-2008, PostgreSQL Global Development Group

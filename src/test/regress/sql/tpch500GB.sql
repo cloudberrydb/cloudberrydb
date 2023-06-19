@@ -12,7 +12,7 @@ set allow_system_table_mods = true;
 
 -- 
 -- Cloudberry Database Statistics Dump
--- Copyright (C) 2007  Cloudberry Inc.
+-- Copyright (C) 2007  Greenplum Inc.
 -- 
 -- Database: tpch500
 -- Date:     2007-10-05

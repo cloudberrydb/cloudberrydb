@@ -2,7 +2,7 @@
  * memprot.c
  *		Memory allocation under greenplum memory allocation.
  * 
- * Copyright(c) 2008, Cloudberry Inc.
+ * Copyright(c) 2008, Greenplum Inc.
  * 
  * We wrap up calls to malloc/realloc/free with our own accounting
  * so that we will make sure a postgres process will not go beyond

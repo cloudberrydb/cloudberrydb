@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Cloudberry Inc 2010. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2010. All Rights Reserved.
 #
 from gppylib import gplog, pgconf
 from gppylib.commands import gp

@@ -4,7 +4,7 @@
  *	  routines to support manipulation of the pg_aoseg_<oid> relation
  *	  that accompanies each Append Only relation.
  *
- * Portions Copyright (c) 2008, Cloudberry Inc
+ * Portions Copyright (c) 2008, Greenplum Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2006, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California

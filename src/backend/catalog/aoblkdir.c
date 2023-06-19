@@ -5,7 +5,7 @@
  *   directory tables. This file is identical in functionality to aoseg.c
  *   that exists in the same directory.
  *
- * Portions Copyright (c) 2009, Cloudberry Inc.
+ * Portions Copyright (c) 2009, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

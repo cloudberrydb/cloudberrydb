@@ -2,7 +2,7 @@
 # Line too long            - pylint: disable=C0301
 # Invalid name             - pylint: disable=C0103
 #
-# Copyright (c) Cloudberry Inc 2010. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2010. All Rights Reserved.
 #
 # Note: the option to recover to a new host is not very good if we have a multi-home configuration
 #

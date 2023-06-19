@@ -3,7 +3,7 @@
  * appendonlyam_handler.c
  *	  appendonly table access method code
  *
- * Portions Copyright (c) 2008, Cloudberry Inc
+ * Portions Copyright (c) 2008, Greenplum Inc
  * Portions Copyright (c) 2020-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2019, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California

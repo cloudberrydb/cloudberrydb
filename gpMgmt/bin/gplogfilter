@@ -3,7 +3,7 @@
 #
 # gplogfilter [options] [inputfile]...
 #
-# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
 #
 
 # import Python standard library modules

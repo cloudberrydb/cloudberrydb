@@ -3,7 +3,7 @@
  * gppc_test.c
  *	  libgppc client program
  *
- * Portions Copyright (c) 2012, Cloudberry Inc.
+ * Portions Copyright (c) 2012, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

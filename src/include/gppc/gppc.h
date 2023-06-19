@@ -28,7 +28,7 @@
  * GPPC 1.1 is compatible with Cloudberry Database 4.2.2.0 and above.
  * GPPC 1.2 is compatible with Cloudberry Database 4.2.2.0 and above.
  *
- * Portions Copyright (c) 2012, Cloudberry Inc.
+ * Portions Copyright (c) 2012, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

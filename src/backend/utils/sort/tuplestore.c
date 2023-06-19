@@ -64,7 +64,7 @@
  * It is up to the calling code to do the freezing, opening for reading, and
  * destroying the tuplestore in the right order!
  *
- * Portions Copyright (c) 2007-2010, Cloudberry Inc.
+ * Portions Copyright (c) 2007-2010, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California

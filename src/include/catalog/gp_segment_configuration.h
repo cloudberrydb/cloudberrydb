@@ -3,7 +3,7 @@
  * gp_segment_configuration.h
  *    a segment configuration table
  *
- * Portions Copyright (c) 2006-2011, Cloudberry Inc.
+ * Portions Copyright (c) 2006-2011, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

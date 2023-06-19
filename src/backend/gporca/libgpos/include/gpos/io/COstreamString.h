@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
 //	Cloudberry Database
-//	Copyright (C) 2008 - 2010 Cloudberry Inc.
+//	Copyright (C) 2008 - 2010 Greenplum Inc.
 //
 //	@filename:
 //		COstreamString.h

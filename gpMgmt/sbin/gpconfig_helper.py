@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Cloudberry Inc 2009. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2009. All Rights Reserved.
 #
 #
 # NOTE: The file semantics here are subtle.  In this file, we are reading or writing to filename, which is
