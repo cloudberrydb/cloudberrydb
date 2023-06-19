@@ -4,7 +4,7 @@
  *	  A simple lib for etcd config file parsing
  *
  *
- * Portions Copyright (c) 2022-2023, Cloudberry Inc.
+ * Portions Copyright (c) 2022-2023, Greenplum Inc.
  *
  *-------------------------------------------------------------------------
  */

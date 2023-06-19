@@ -4,7 +4,7 @@
  *	  unit test for separated fts damone testing
  *
  *
- * Portions Copyright (c) 2022-2023, Cloudberry Inc.
+ * Portions Copyright (c) 2022-2023, Greenplum Inc.
  *
  *-------------------------------------------------------------------------
  */

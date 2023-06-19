@@ -1,5 +1,5 @@
 # Line too long - pylint: disable=C0301
-# Copyright (c) Cloudberry Inc 2011. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2011. All Rights Reserved.
 
 from contextlib import closing
 import os

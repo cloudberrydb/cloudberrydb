@@ -40,7 +40,7 @@ Datum gp_extract_feature_histogram(PG_FUNCTION_ARGS);
 
 /*
  * 	gp_extract_feature_histogram
- * 	By: Luke Lonergan, November 2009, Cloudberry Inc.
+ * 	By: Luke Lonergan, November 2009, Greenplum Inc.
  * 	Credits:
  * 		This was motivated by discussions with Brian Dolan at FIM / MySpace
  *

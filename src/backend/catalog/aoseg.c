@@ -7,7 +7,7 @@
  *    (pg_toast_<reloid>) and the other append only segment position tables
  *    (pg_aoseg_<reloid>).
  *
- * Portions Copyright (c) 2008-2010, Cloudberry Inc.
+ * Portions Copyright (c) 2008-2010, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California

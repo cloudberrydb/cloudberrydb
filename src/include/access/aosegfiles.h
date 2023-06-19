@@ -4,7 +4,7 @@
  *	  Internal specifications of the pg_aoseg_* Append Only file segment
  *	  list relation.
  *
- * Portions Copyright (c) 2008, Cloudberry Inc.
+ * Portions Copyright (c) 2008, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

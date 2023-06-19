@@ -4,7 +4,7 @@
 
 """
   ComputeCatalogUpdate.py
-  Copyright (c) EMC/Cloudberry Inc 2011. All Rights Reserved. 
+  Copyright (c) EMC/Greenplum Inc 2011. All Rights Reserved. 
 
   Used by updateSystemConfig() to compare the db state and 
   goal state of a gpArray containing the Cloudberry segment 

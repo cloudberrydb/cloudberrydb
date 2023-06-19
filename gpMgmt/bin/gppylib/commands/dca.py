@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Cloudberry Inc 2011. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2011. All Rights Reserved.
 #
 
 """

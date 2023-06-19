@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 #
-# Portions Copyright (c) 2009, 2010, 2011 Cloudberry Inc
+# Portions Copyright (c) 2009, 2010, 2011 Greenplum Inc
 # Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
 #
 # Author: Jeffrey I Cohen

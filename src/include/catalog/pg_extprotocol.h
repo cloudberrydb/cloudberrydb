@@ -3,7 +3,7 @@
  * pg_extprotocol.h
  *    an external table custom protocol table
  *
- * Portions Copyright (c) 2011, Cloudberry Inc.
+ * Portions Copyright (c) 2011, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

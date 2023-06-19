@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Copyright (c) Cloudberry Inc 2008. All Rights Reserved.
+# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
 #
 # Unit Testing of catalog module.
 #

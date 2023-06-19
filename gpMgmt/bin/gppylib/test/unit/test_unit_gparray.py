@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Line too long - pylint: disable=C0301
 #
-# Copyright (c) Cloudberry Inc 2008. All Rights Reserved. 
+# Copyright (c) Greenplum Inc 2008. All Rights Reserved. 
 #
 
 """ Unittesting for gplog module

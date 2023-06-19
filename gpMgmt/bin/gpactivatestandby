@@ -4,7 +4,7 @@
 # Invalid name  - pylint: disable=C0103
 #
 # Copyright (c) EMC 2011
-# Copyright (c) Cloudberry Inc 2010
+# Copyright (c) Greenplum Inc 2010
 # All Rights Reserved. 
 #
 """

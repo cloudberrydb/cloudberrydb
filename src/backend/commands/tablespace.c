@@ -41,7 +41,7 @@
  * and munge the system catalogs of the new database.
  *
  *
- * Portions Copyright (c) 2005-2010 Cloudberry Inc
+ * Portions Copyright (c) 2005-2010 Greenplum Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
