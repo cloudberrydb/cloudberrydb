@@ -495,8 +495,10 @@ InitProcess(void)
 	MyProc->waitProcLock = NULL;
 	pg_atomic_write_u64(&MyProc->waitStart, 0);
 	MyProc->resSlot = NULL;
+	SpinLockInit(&MyProc->movetoMutex);
 	MyProc->movetoResSlot = NULL;
 	MyProc->movetoGroupId = InvalidOid;
+	MyProc->movetoCallerPid = InvalidPid;
 
     /* 
      * mppLocalProcessSerial uniquely identifies this backend process among
