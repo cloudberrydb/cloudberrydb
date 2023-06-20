@@ -4014,6 +4014,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		NULL, NULL, NULL
 	},
 	{
+		{"gp_resource_group_move_timeout", PGC_USERSET, RESOURCES_MGM,
+			gettext_noop("Wait up to the specified time (in ms) while moving process to another resource group (after queuing on it) before give up."),
+			NULL,
+			GUC_UNIT_MS
+		},
+		&gp_resource_group_move_timeout,
+		30000, 10, INT_MAX,
+		NULL, NULL, NULL
+	},
+	{
 		{"gp_blockdirectory_entry_min_range", PGC_USERSET, GP_ARRAY_TUNING,
 			gettext_noop("Minimal range in bytes one block directory entry covers."),
 			gettext_noop("Used to reduce the size of a block directory."),
