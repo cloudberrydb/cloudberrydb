@@ -2,12 +2,12 @@
 
 Anaconda (https://www.continuum.io/) is an excellent Python distribution for
 machine learning and analytics which also provide its own package
-tracking/management tools. GPDB support plpython which can make use of all
-features provided by Anaconda.  Note that GPDB only supports Python 2.7 now.
-Although plpython might be built with Python 3.x, other Python tools in GPDB
+tracking/management tools. CBDB support plpython which can make use of all
+features provided by Anaconda.  Note that CBDB only supports Python 2.7 now.
+Although plpython might be built with Python 3.x, other Python tools in CBDB
 won't work with Python 3.x.
 
-You can try following steps to run Anaconda with GPDB from source code.
+You can try following steps to run Anaconda with CBDB from source code.
 
 ## Install Anaconda. 
 We use miniconda here.
@@ -31,9 +31,9 @@ Following instructions are for Centos/RHEL/Fedora as example.
 
 The python-devel is not required here because it is provided by Anaconda.
 
-## Download and build GPDB
-	git clone https://github.com/greenplum-db/gpdb.git
-	cd gpdb
+## Download and build CBDB
+	git clone https://github.com/cloudberrydb/cloudberrydb.git
+	cd cloudberrydb
 	./configure --prefix=`pwd`/greenplumdb  --with-gssapi --with-pgport=5432 --with-perl --with-python --with-ssl=openssl  --with-libxml --enable-cassert --enable-debug --enable-depend
 	make install
 
@@ -57,7 +57,7 @@ each segment:
 
 	gpssh -f hostlistfile /PATH/TO/CONDAHOME/bin/conda install numpy
 
-## Init GPDB cluster
+## Init CBDB cluster
 
 ## Run "hello world"
 You can run following example to ensure Anaconda working for you.
