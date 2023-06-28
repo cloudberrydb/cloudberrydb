@@ -11,9 +11,9 @@
 
 ---------
 
-Cloudberry Database (CBDB) is shipped with PostgreSQL 15 as its kernel
-and is forked from Greenplum Database 6, which serves as our code
-base.
+Cloudberry Database (CBDB) is shipped with PostgreSQL 14.4 as its
+kernel and is forked from Greenplum Database 6, which serves as our
+code base.
 
 ## Features
 
