@@ -37,4 +37,3 @@ pathlib2<=2.3.5
 cffi<=1.13.2
 scandir<=1.10.0
 pycparser<=2.19
-paramiko==3.1.0
