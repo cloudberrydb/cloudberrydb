@@ -75,6 +75,7 @@
 #include "libpq/pqformat.h"
 #include "utils/faultinjector.h"
 #include "utils/lsyscache.h"
+#include "utils/resgroup.h"
 
 
 typedef struct VacuumStatsContext
@@ -365,6 +366,12 @@ vacuum(List *relations, VacuumParams *params,
 	 * that VACOPT_VACUUM and VACOPT_ROOTONLY set at same time.
 	 */
 	Assert(!((params->options & VACOPT_VACUUM) && (params->options & VACOPT_ROOTONLY)));
+
+	/*
+	 * We force vacuum auxiliary process in system_group, so in vacuum transaction we should
+	 * not assign it to any resource group.
+	 */
+	AssertImply(IsAutoVacuumWorkerProcess(), GetMyResGroupId() == InvalidOid);
 
 	stmttype = (params->options & VACOPT_VACUUM) ? "VACUUM" : "ANALYZE";
 
