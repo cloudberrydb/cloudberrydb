@@ -1,156 +1,27 @@
-**Concourse Pipeline** [![Concourse Build Status](https://prod.ci.gpdb.pivotal.io/api/v1/teams/main/pipelines/gpdb_master/badge)](https://prod.ci.gpdb.pivotal.io/teams/main/pipelines/gpdb_master) |
-**Travis Build** [![Travis Build Status](https://travis-ci.org/greenplum-db/gpdb.svg?branch=master)](https://travis-ci.org/greenplum-db/gpdb) |
-**Zuul Regression Test On Arm** [![Zuul Regression Test Status](http://openlabtesting.org:15000/badge?project=greenplum-db%2Fgpdb)](https://status.openlabtesting.org/builds/builds?project=greenplum-db%2Fgpdb&job_name=gpdb-installcheck-world-tests-on-arm64)
+![Cloudberry Database](logo_cloudberry_database.png)
 
-----------------------------------------------------------------------
+[![Slack](https://img.shields.io/badge/Join_Slack-6a32c9)](https://communityinviter.com/apps/cloudberrydb/welcome)
+[![Twitter Follow](https://img.shields.io/twitter/follow/cloudberrydb)](https://twitter.com/cloudberrydb)
+[![Website](https://img.shields.io/badge/Visit%20Website-eebc46)](https://cloudberrydb.org)
+[![GitHub Discussions](https://img.shields.io/github/discussions/cloudberrydb/cloudberrydb)](https://github.com/orgs/cloudberrydb/discussions)
+![GitHub commit activity(branch)](https://img.shields.io/github/commit-activity/m/cloudberrydb/cloudberrydb)
+![GitHub contributors](https://img.shields.io/github/contributors/cloudberrydb/cloudberrydb)
+![GitHub License](https://img.shields.io/github/license/cloudberrydb/cloudberrydb)
+![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcloudberrydb%2Fcloudberrydb.svg?type=shield)
 
-![Cloudberry](logo-greenplum.png)
+---------
 
-Cloudberry Database (CBDB) is an advanced, fully featured, open
-source data warehouse, based on PostgreSQL. It provides powerful and rapid analytics on
-petabyte scale data volumes. Uniquely geared toward big data
-analytics, Cloudberry Database is powered by the world’s most advanced
-cost-based query optimizer delivering high analytical query
-performance on large data volumes.
+Cloudberry Database (CBDB) is shipped with PostgreSQL 14.4 as its
+kernel and is forked from Greenplum Database 6, which serves as our
+code base.
 
-The Cloudberry project is released under the [Apache 2
-license](http://www.apache.org/licenses/LICENSE-2.0). We want to thank
-all our past and present community contributors and are really interested in
-all new potential contributions. For the Cloudberry Database community
-no contribution is too small, we encourage all types of contributions.
+## Features
 
-## Overview
-
-A Cloudberry cluster consists of a __coordinator__ server, and multiple
-__segment__ servers. All user data resides in the segments, the coordinator
-contains only metadata. The coordinator server, and all the segments, share
-the same schema.
-
-Users always connect to the coordinator server, which divides up the query
-into fragments that are executed in the segments, and collects the results.
-
-More information can be found on the [project website](https://greenplum.org/).
-
-## Building Cloudberry Database with GPORCA
-GPORCA is a cost-based optimizer which is used by Cloudberry Database in
-conjunction with the PostgreSQL planner.  It is also known as just ORCA, and
-Pivotal Optimizer. The code for GPORCA resides src/backend/gporca. It is built
-automatically by default.
-
-### Installing dependencies (for macOS developers)
-Follow [these macOS steps](README.macOS.md) for getting your system ready for CBDB
-
-### Installing dependencies (for Linux developers)
-Follow [appropriate linux steps](README.Linux.md) for getting your system ready for CBDB
-
-### Build the database
-
-```
-# Configure build environment to install at /usr/local/cloudberry-db
-./configure --with-perl --with-python --with-libxml --with-gssapi --prefix=/usr/local/cloudberry-db
-
-# Compile and install
-make -j8
-make -j8 install
-
-# Bring in greenplum environment into your running shell
-source /usr/local/cloudberry-db/greenplum_path.sh
-
-# Start demo cluster
-make create-demo-cluster
-# (gpdemo-env.sh contains __PGPORT__ and __MASTER_DATA_DIRECTORY__ values)
-source gpAux/gpdemo/gpdemo-env.sh
-```
-
-The directory and the TCP ports for the demo cluster can be changed on the fly.
-Instead of `make cluster`, consider:
-
-```
-DATADIRS=/tmp/cbdb-cluster PORT_BASE=5555 make cluster
-```
-
-The TCP port for the regression test can be changed on the fly:
-
-```
-PGPORT=5555 make installcheck-world
-```
-
-To turn GPORCA off and use Postgres planner for query optimization:
-```
-set optimizer=off;
-```
-
-If you want to clean all generated files
-```
-make distclean
-```
-
-## Running tests
-
-* The default regression tests
-
-```
-make installcheck-world
-```
-
-* The top-level target __installcheck-world__ will run all regression
-  tests in CBDB against the running cluster. For testing individual
-  parts, the respective targets can be run separately.
-
-* The PostgreSQL __check__ target does not work. Setting up a
-  Cloudberry cluster is more complicated than a single-node PostgreSQL
-  installation, and no-one's done the work to have __make check__
-  create a cluster. Create a cluster manually or use gpAux/gpdemo/
-  (example below) and run the toplevel __make installcheck-world__
-  against that. Patches are welcome!
-
-* The PostgreSQL __installcheck__ target does not work either, because
-  some tests are known to fail with Cloudberry. The
-  __installcheck-good__ schedule in __src/test/regress__ excludes those
-  tests.
-
-* When adding a new test, please add it to one of the CBDB-specific tests,
-  in greenplum_schedule, rather than the PostgreSQL tests inherited from the
-  upstream. We try to keep the upstream tests identical to the upstream
-  versions, to make merging with newer PostgreSQL releases easier.
-
-## Alternative Configurations
-
-### Building CBDB without GPORCA
-
-Currently, CBDB is built with GPORCA by default. If you want to build CBDB
-without GPORCA, configure requires `--disable-orca` flag to be set.
-```
-# Clean environment
-make distclean
-
-# Configure build environment to install at /usr/local/cloudberry-db
-./configure --disable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/cloudberry-db
-```
-
-### Building CBDB with PXF
-
-PXF is an extension framework for CBDB to enable fast access to external hadoop datasets.
-Refer to [PXF extension](gpcontrib/pxf/README.md) for more information.
-
-Currently, CBDB is built with PXF by default (--enable-pxf is on).
-In order to build CBDB without pxf, simply invoke `./configure` with additional option `--disable-pxf`.
-PXF requires curl, so `--enable-pxf` is not compatible with the `--without-libcurl` option.
-
-### Building CBDB with Python3 enabled
-
-CBDB supports Python3 with plpython3u UDF
-
-See [how to enable Python3](src/pl/plpython/README.md) for details.
-
-
-### Building CBDB client tools on Windows
-
-See [Building CBDB client tools on Windows](README.Windows.md) for details.
-
-## Development with Vagrant
-
-There is a Vagrant-based [quickstart guide for developers](src/tools/vagrant/README.md).
+Cloudberry Database is 100% compatible with Greenplum, and provides
+all the Greenplum features you need. In addition, Cloudberry Database
+possesses some features that Greenplum currently lacks or does not
+support. Visit this [feature comparison
+doc](https://cloudberrydb.org/docs/cbdb-vs-gp-features) for details.
 
 ## Code layout
 
@@ -158,239 +29,127 @@ The directory layout of the repository follows the same general layout
 as upstream PostgreSQL. There are changes compared to PostgreSQL
 throughout the codebase, but a few larger additions worth noting:
 
-* __gpMgmt/__
+* __gpMgmt/__ : Contains Cloudberry-specific command-line tools for
+    managing the cluster. Scripts like gpinit, gpstart, and gpstop
+    live here. They are mostly written in Python.
 
-  Contains Cloudberry-specific command-line tools for managing the
-  cluster. Scripts like gpinit, gpstart, gpstop live here. They are
-  mostly written in Python.
+* __gpAux/__ : Contains Cloudberry-specific release management
+    scripts, and vendored dependencies. Some additional directories
+    are submodules and will be made available over time.
 
-* __gpAux/__
+* __gpcontrib/__ : Much like the PostgreSQL contrib/ directory, this
+    directory contains extensions such as gpfdist, PXF and gpmapreduce
+    which are Cloudberry-specific.
 
-  Contains Cloudberry-specific release management scripts, and vendored
-  dependencies. Some additional directories are submodules and will be
-  made available over time.
+* __doc/__ : In PostgreSQL, the user manual lives here. In Cloudberry
+    Database, the user manual is maintained separately at [Cloudberry
+    Database Website
+    Repo](https://github.com/cloudberrydb/cloudberrydb-site/tree/main).
 
-* __gpcontrib/__
+* __hd-ci/__ : Contains configuration files for the CBDB continuous
+    integration system.
 
-  Much like the PostgreSQL contrib/ directory, this directory contains
-  extensions such as gpfdist, PXF and gpmapreduce which are Cloudberry-specific.
+* __src/__
 
-* __doc/__
+  * __src/backend/cdb/__ : Contains larger Cloudberry-specific backend
+    modules. For example, communication between segments, turning
+    plans into parallelizable plans, mirroring, distributed
+    transaction and snapshot management, etc. __cdb__ stands for
+    __Cluster Database__ - it was a workname used in the early
+    days. That name is no longer used, but the __cdb__ prefix remains.
+  
+  * __src/backend/gpopt/__ : Contains the so-called __translator__
+    library, for using the GPORCA optimizer with Cloudberry. The
+    translator library is written in C++ code, and contains glue code
+    for translating plans and queries between the DXL format used by
+    GPORCA, and the PostgreSQL internal representation.
 
-  In PostgreSQL, the user manual lives here. In Cloudberry, the user
-  manual is maintained separately and only the reference pages used
-  to build man pages are here.
+  * __src/backend/gporca/__ : Contains the GPORCA optimizer code and
+    tests. This is written in C++. See
+    [README.md](src/backend/gporca/README.md) for more information and
+    how to unit-test GPORCA.
 
-* __gpdb-doc/__
-
-  Contains the Cloudberry documentation in DITA XML format. Refer to
-  `gpdb-doc/README.md` for information on how to build, and work with
-  the documentation.
-
-* __ci/__
-
-  Contains configuration files for the CBDB continuous integration system.
-
-* __src/backend/cdb/__
-
-  Contains larger Cloudberry-specific backend modules. For example,
-  communication between segments, turning plans into parallelizable
-  plans, mirroring, distributed transaction and snapshot management,
-  etc. __cdb__ stands for __Cluster Database__ - it was a workname used in
-  the early days. That name is no longer used, but the __cdb__ prefix
-  remains.
-
-* __src/backend/gpopt/__
-
-  Contains the so-called __translator__ library, for using the GPORCA
-  optimizer with Cloudberry. The translator library is written in C++
-  code, and contains glue code for translating plans and queries
-  between the DXL format used by GPORCA, and the PostgreSQL internal
-  representation.
-
-* __src/backend/gporca/__
-
-  Contains the GPORCA optimizer code and tests. This is written in C++. See
-  [README.md](src/backend/gporca/README.md) for more information and how to
-  unit-test GPORCA.
-* __src/backend/fts/__
-
-  FTS is a process that runs in the coordinator node, and periodically
-  polls the segments to maintain the status of each segment.
-
-## Contributing
-
-Cloudberry is maintained by a core team of developers with commit rights to the
-[main cbdb repository](https://github.com/cloudberry-db/cbdb) on GitHub. At the
-same time, we are very eager to receive contributions from anybody in the wider
-Cloudberry community. This section covers all you need to know if you want to see
-your code or documentation changes be added to Cloudberry and appear in the
-future releases.
-
-### Getting started
-
-Cloudberry is developed on GitHub, and anybody wishing to contribute to it will
-have to [have a GitHub account](https://github.com/signup/free) and be familiar
-with [Git tools and workflow](https://wiki.postgresql.org/wiki/Working_with_Git).
-It is also recommend that you follow the [developer's mailing list](https://greenplum.org/community/)
-since some of the contributions may generate more detailed discussions there.
-
-Once you have your GitHub account, [fork](https://github.com/cloudberry-db/cbdb/fork)
-this repository so that you can have your private copy to start hacking on and to
-use as source of pull requests.
-
-Anybody contributing to Cloudberry has to be covered by either the Corporate or
-the Individual Contributor License Agreement. If you have not previously done
-so, please fill out and submit the [Contributor License Agreement](https://cla.pivotal.io/sign/greenplum).
-Note that we do allow for really trivial changes to be contributed without a
-CLA if they fall under the rubric of [obvious fixes](https://cla.pivotal.io/about#obvious-fixes).
-However, since our GitHub workflow checks for CLA by default you may find it
-easier to submit one instead of claiming an "obvious fix" exception.
-
-### Licensing of Cloudberry contributions
-
-If the contribution you're submitting is original work, you can assume that Pivotal
-will release it as part of an overall Cloudberry release available to the downstream
-consumers under the Apache License, Version 2.0. However, in addition to that, Pivotal
-may also decide to release it under a different license (such as [PostgreSQL License](https://www.postgresql.org/about/licence/) to the upstream consumers that require it. A typical example here would be Pivotal
-upstreaming your contribution back to PostgreSQL community (which can be done either
-verbatim or your contribution being upstreamed as part of the larger changeset).
-
-If the contribution you're submitting is NOT original work you have to indicate the name
-of the license and also make sure that it is similar in terms to the Apache License 2.0.
-Apache Software Foundation maintains a list of these licenses under [Category A](https://www.apache.org/legal/resolved.html#category-a). In addition to that, you may be required to make proper attribution in the
-[NOTICE file](https://github.com/cloudberry-db/cbdb/blob/master/NOTICE) similar to [these examples](https://github.com/cloudberry-db/cbdb/blob/master/NOTICE#L278).
-
-Finally, keep in mind that it is NEVER a good idea to remove licensing headers from
-the work that is not your original one. Even if you are using parts of the file that
-originally had a licensing header at the top you should err on the side of preserving it.
-As always, if you are not quite sure about the licensing implications of your contributions,
-feel free to reach out to us on the developer mailing list.
-
-### Coding guidelines
-
-Your chances of getting feedback and seeing your code merged into the project
-greatly depend on how granular your changes are. If you happen to have a bigger
-change in mind, we highly recommend engaging on the developer's mailing list
-first and sharing your proposal with us before you spend a lot of time writing
-code. Even when your proposal gets validated by the community, we still recommend
-doing the actual work as a series of small, self-contained commits. This makes
-the reviewer's job much easier and increases the timeliness of feedback.
-
-When it comes to C and C++ parts of Cloudberry, we try to follow
-[PostgreSQL Coding Conventions](https://www.postgresql.org/docs/devel/source.html).
-In addition to that we require that:
-   * All Python code passes [Pylint](https://www.pylint.org/)
-   * All Go code is formatted according to [gofmt](https://golang.org/cmd/gofmt/)
-
-We recommend using ```git diff --color``` when reviewing your changes so that you
-don't have any spurious whitespace issues in the code that you submit.
-
-All new functionality that is contributed to Cloudberry should be covered by regression
-tests that are contributed alongside it. If you are uncertain on how to test or document
-your work, please raise the question on the cbdb-dev mailing list and the developer
-community will do its best to help you.
-
-At the very minimum you should always be running
-```make installcheck-world```
-to make sure that you're not breaking anything.
-
-### Changes applicable to upstream PostgreSQL
-
-If the change you're working on touches functionality that is common between PostgreSQL
-and Cloudberry, you may be asked to forward-port it to PostgreSQL. This is not only so
-that we keep reducing the delta between the two projects, but also so that any change
-that is relevant to PostgreSQL can benefit from a much broader review of the upstream
-PostgreSQL community. In general, it is a good idea to keep both code bases handy so
-you can be sure whether your changes may need to be forward-ported.
-
-### Submission timing
-
-To improve the odds of the right discussion of your patch or idea happening, pay attention
-to what the community work cycle is. For example, if you send in a brand new idea in the
-beta phase of a release, we may defer review or target its inclusion for a later version.
-Feel free to ask on the mailing list to learn more about the Cloudberry release policy and timing.
-
-### Patch submission
-
-Once you are ready to share your work with the Cloudberry core team and the rest of
-the Cloudberry community, you should push all the commits to a branch in your own
-repository forked from the official Cloudberry and
-[send us a pull request](https://help.github.com/articles/about-pull-requests/).
-
-We welcome submissions which are work in-progress in order to get feedback early
-in the development process.  When opening the pull request, select "Draft" in
-the dropdown menu when creating the PR to clearly mark the intent of the pull
-request. Prefixing the title with "WIP:" is also good practice.
-
-All new features should be submitted against the main master branch. Bugfixes
-should too be submitted against master unless they only exist in a supported
-back-branch. If the bug exists in both master and back-branches, explain this
-in the PR description.
-
-### Validation checks and CI
-
-Once you submit your pull request, you will immediately see a number of validation
-checks performed by our automated CI pipelines. There also will be a CLA check
-telling you whether your CLA was recognized. If any of these checks fails, you
-will need to update your pull request to take care of the issue. Pull requests
-with failed validation checks are very unlikely to receive any further peer
-review from the community members.
-
-Keep in mind that the most common reason for a failed CLA check is a mismatch
-between an email on file and an email recorded in the commits submitted as
-part of the pull request.
-
-If you cannot figure out why a certain validation check failed, feel free to
-ask on the developer's mailing list, but make sure to include a direct link
-to a pull request in your email.
-
-### Patch review
-
-A submitted pull request with passing validation checks is assumed to be available
-for peer review. Peer review is the process that ensures that contributions to Cloudberry
-are of high quality and align well with the road map and community expectations. Every
-member of the Cloudberry community is encouraged to review pull requests and provide
-feedback. Since you don't have to be a core team member to be able to do that, we
-recommend following a stream of pull reviews to anybody who's interested in becoming
-a long-term contributor to Cloudberry. As [Linus would say](https://en.wikipedia.org/wiki/Linus's_Law)
-"given enough eyeballs, all bugs are shallow".
-
-One outcome of the peer review could be a consensus that you need to modify your
-pull request in certain ways. GitHub allows you to push additional commits into
-a branch from which a pull request was sent. Those additional commits will be then
-visible to all of the reviewers.
-
-A peer review converges when it receives at least one +1 and no -1s votes from
-the participants. At that point you should expect one of the core team
-members to pull your changes into the project.
-
-Cloudberry prides itself on being a collaborative, consensus-driven environment.
-We do not believe in vetoes and any -1 vote casted as part of the peer review
-has to have a detailed technical explanation of what's wrong with the change.
-Should a strong disagreement arise it may be advisable to take the matter onto
-the mailing list since it allows for a more natural flow of the conversation.
-
-At any time during the patch review, you may experience delays based on the
-availability of reviewers and core team members. Please be patient. That being
-said, don't get discouraged either. If you're not getting expected feedback for
-a few days add a comment asking for updates on the pull request itself or send
-an email to the mailing list.
-
-### Direct commits to the repository
-
-On occasion you will see core team members committing directly to the repository
-without going through the pull request workflow. This is reserved for small changes
-only and the rule of thumb we use is this: if the change touches any functionality
-that may result in a test failure, then it has to go through a pull request workflow.
-If, on the other hand, the change is in the non-functional part of the code base
-(such as fixing a typo inside of a comment block) core team members can decide to
-just commit to the repository directly.
+  * __src/backend/fts/__ : FTS is a process that runs in the
+    coordinator node, and periodically polls the segments to maintain
+    the status of each segment.
 
 ## Documentation
 
-For Cloudberry Database documentation, please check the
-[online documentation](http://docs.cloudberry.org/).
+For Cloudberry Database documentation, please check the [documentation
+website](https://cloudberrydb.org/docs/cbdb-overview). Our documents
+are still in construction, welcome to help. If you're interested in
+[document
+contribution](https://cloudberrydb.org/community/docs-contributing-guide),
+you can submit the pull request
+[here](https://github.com/cloudberrydb/cloudberrydb-site/tree/main/docs).
 
-For further information beyond the scope of this README, please see
-[our wiki](https://github.com/cloudberry-db/cbdb/wiki)
+We also recommend you take [PostgreSQL
+Documentation](https://www.postgresql.org/docs/) and [Greenplum
+Documentation](https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/landing-index.html#differences-compared-to-open-source-greenplum-database)
+as quick references.
+
+## Contribution
+
+Cloudberry Database is maintained actively by a group of community
+database experts by individuals and companies. We believe in the
+Apache Way "Community Over Code" and we want to make Cloudberry
+Database a community-driven project.
+
+Contributions can be diverse, such as code enhancements, bug fixes,
+feature proposals, documents, marketing and so on. No contribution is
+too small, we encourage all types of contributions. We hope you can
+enjoy it here.
+
+Assume you have all the skills in collaboration, if not, please learn
+more about [Git and GitHub](https://docs.github.com). For coding
+guidelines, we try to follow [PostgreSQL Coding
+Conventions](postgresql.org/docs/devel/source.html).
+
+If the change you're working on touches functionality that is common
+between PostgreSQL and Cloudberry Database, you may be asked to
+forward-port it to PostgreSQL. This is not only so that we keep
+reducing the delta between the two projects, but also so that any
+change that is relevant to PostgreSQL can benefit from a much broader
+review of the upstream PostgreSQL community. In general, keep both
+code bases handy so you can be sure whether your changes need to be
+forward-ported.
+
+Before you commit your changes, please run the command to configure
+the [commit message
+template](https://github.com/cloudberrydb/cloudberrydb/blob/main/.gitmessage)
+for your own git: `git config --global commit.template .gitmessage`
+
+## Community
+
+We have many channels for community members to discuss, ask for help,
+feedback ,and chat:
+
+- [GitHub
+  Discussions](https://github.com/orgs/cloudberrydb/discussions): we
+  use GitHub Discussions to broadcast news, answer questions, share
+  ideas. You can start a new discussion under different categories,
+  such as "Announcements", "Ideas / Feature Requests", "Proposal" and
+  "Q&A".
+
+- [GitHub
+  Issues](https://github.com/cloudberrydb/cloudberrydb/issues): You
+  can report bugs and issues with code in Cloudberry Database core.
+
+- [Slack](https://communityinviter.com/apps/cloudberrydb/welcome):
+  Slack is used for real-time chat, including QA, Dev, Events and
+  more.
+
+When you involve, please follow our community [Code of
+Conduct](https://cloudberrydb.org/community/coc) to help create a safe
+space for everyone.
+
+## Acknowledgment
+
+Thanks to [PostgreSQL](https://www.postgresql.org/), [Greenplum
+Database](https://greenplum.org/) and other great open source projects
+to make Cloudberry Database has a sound foundation.
+
+## License
+
+Cloudberry Database is released under the [Apache License, Version
+2.0](https://github.com/cloudberrydb/cloudberrydb/blob/main/LICENSE).

@@ -82,8 +82,8 @@ then run command `ldconfig`.
    Either use:
 
    ```bash
-   # Requires gpdb clone to be named gpdb_src
-   gpdb_src/concourse/scripts/setup_gpadmin_user.bash
+   # Requires cbdb clone to be named cbdb_src
+   cbdb_src/concourse/scripts/setup_gpadmin_user.bash
    ```
    to create the gpadmin user and set up keys,
 
@@ -103,6 +103,6 @@ then run command `ldconfig`.
    ssh <hostname of your machine>  # e.g., ssh briarwood (You can use `hostname` to get the hostname of your machine.)
    ```
 
-1. Set up your system configuration by following the installation guide on [docs.greenplum.org](https://docs.greenplum.org)
+1. Set up your system configuration by following the installation guide on [docs.cloudberrydb.org](https://cloudberrydb.org/docs/cbdb-overview)
 
 
