@@ -549,7 +549,7 @@ insert into mcrparted5 values (30, 21, 20);
 insert into mcrparted4 values (30, 21, 20);	-- error
 
 -- check rows
-select tableoid::regclass::text, * from mcrparted order by 1;
+select tableoid::regclass::text, * from mcrparted order by 1, 2, 3;
 
 -- cleanup
 drop table mcrparted;

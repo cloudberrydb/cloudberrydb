@@ -2086,6 +2086,15 @@ SharedRecordTypmodRegistryEstimate(void)
 }
 
 /*
+ * Return the next typmod from shared registry.
+ */
+uint32
+GetSharedNextRecordTypmod(SharedRecordTypmodRegistry* registry)
+{
+	return pg_atomic_read_u32(&registry->next_typmod);
+}
+
+/*
  * Initialize 'registry' in a pre-existing shared memory region, which must be
  * maximally aligned and have space for SharedRecordTypmodRegistryEstimate()
  * bytes.
@@ -2455,7 +2464,7 @@ build_tuple_node_list(int start)
 	List *transientTypeList = NIL;
 	int i = start;
 
-	if (NextRecordTypmod == 0)
+	if (NextRecordTypmod == 0 && CurrentSession->shared_typmod_registry == NULL)
 		return transientTypeList;
 
 	for (; i < NextRecordTypmod; i++)
@@ -2467,6 +2476,20 @@ build_tuple_node_list(int start)
 		node->natts = tmp->natts;
 		node->tuple = CreateTupleDescCopy(tmp);
 		transientTypeList = lappend(transientTypeList, node);
+	}
+
+	if (CurrentSession->shared_typmod_registry != NULL)
+	{
+		for (; i < GetSharedNextRecordTypmod(CurrentSession->shared_typmod_registry); i++)
+		{
+			TupleDesc tmp = RecordCacheArray[i];
+
+			TupleDescNode *node = palloc0(sizeof(TupleDescNode));
+			node->type = T_TupleDescNode;
+			node->natts = tmp->natts;
+			node->tuple = CreateTupleDescCopy(tmp);
+			transientTypeList = lappend(transientTypeList, node);
+		}
 	}
 
 	return transientTypeList;

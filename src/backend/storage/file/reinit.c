@@ -16,6 +16,7 @@
 
 #include <unistd.h>
 
+#include "access/xlog.h"
 #include "catalog/catalog.h"
 #include "catalog/pg_tablespace.h"
 #include "cdb/cdbvars.h"
@@ -303,7 +304,7 @@ ResetUnloggedRelationsInDbspaceDir(const char *dbspacedirname, int op)
 
 			/* OK, we're ready to perform the actual copy. */
 			elog(DEBUG2, "copying %s to %s", srcpath, dstpath);
-			copy_file(srcpath, dstpath);
+			copy_file(srcpath, dstpath, FileEncryptionEnabled);
 		}
 
 		FreeDir(dbspace_dir);

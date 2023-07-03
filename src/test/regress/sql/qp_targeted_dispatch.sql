@@ -316,7 +316,9 @@ distributed by (key);
 insert into mpp7620 values (200, 'horse');
 -- enable printing of printing info
 set test_print_direct_dispatch_info=on;
+set enable_parallel = off;
 Create table zoompp7620 as select * from mpp7620 where key=200;
+reset enable_parallel;
 insert into mpp7620 values (200, 200);
 insert into zoompp7620 select * from mpp7620 where key=200;
 insert into zoompp7620(key) select key from mpp7620 where mpp7620.key=200;
@@ -341,6 +343,7 @@ set test_print_direct_dispatch_info=on;
 
 --Check to see distributed vs distributed randomly
 alter table table_a set distributed randomly;
+set enable_parallel = off;
 select max(a0) from table_a where a0=3;
 alter table table_a set distributed by (a0);
 explain select * from table_a where a0=3;
@@ -348,6 +351,7 @@ explain select a0 from table_a where a0 in (select max(a1) from table_a);
 select a0 from table_a where a0 in (select max(a1) from table_a);
 select max(a1) from table_a;
 select max(a0) from table_a where a0=1;
+reset enable_parallel;
 explain select a0 from table_a where a0 in (select max(a1) from table_a where a0=1);
 reset test_print_direct_dispatch_info;
 

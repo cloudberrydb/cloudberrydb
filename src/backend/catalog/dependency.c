@@ -54,6 +54,7 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_task.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_ts_config.h"
@@ -73,6 +74,7 @@
 #include "commands/schemacmds.h"
 #include "commands/seclabel.h"
 #include "commands/sequence.h"
+#include "commands/taskcmds.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
 #include "foreign/foreign.h"
@@ -195,7 +197,8 @@ static const Oid object_classes[] = {
 	TransformRelationId,		/* OCLASS_TRANSFORM */
 
 	/* GPDB additions */
-	ExtprotocolRelationId		/* OCLASS_EXTPROTOCOL */
+	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
+	TaskRelationId				/* OCLASS_TASK */
 };
 
 
@@ -1535,6 +1538,9 @@ doDeletion(const ObjectAddress *object, int flags)
 
 		case OCLASS_SCHEMA:
 			RemoveSchemaById(object->objectId);
+			break;
+		case OCLASS_TASK:
+			RemoveTaskById(object->objectId);
 			break;
 
 		case OCLASS_CAST:
@@ -2938,6 +2944,9 @@ getObjectClass(const ObjectAddress *object)
 
 		case TransformRelationId:
 			return OCLASS_TRANSFORM;
+
+		case TaskRelationId:
+			return OCLASS_TASK;
 	}
 
 	/* shouldn't get here */

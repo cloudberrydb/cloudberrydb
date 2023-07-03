@@ -1529,8 +1529,8 @@ def checkTableInconsistentEntry(cat):
     if coordinator:
         return
 
-    # Skip gp_segment_configuration 
-    if catname == "gp_segment_configuration":
+    # Skip gp_segment_configuration or pg_appendonly
+    if catname == "gp_segment_configuration" or catname == "pg_appendonly":
         return
 
     # skip shared/non-shared tables

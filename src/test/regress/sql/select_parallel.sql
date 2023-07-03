@@ -1,11 +1,10 @@
 --
 -- PARALLEL
+-- We have GP style parallel now, open this file in parallel mode.
 --
 
--- GPDB_96_MERGE_FIXME: We don't support parallel query. These tests won't actually
--- generate any parallel plans. Should we pay attention to the parallel restrictions
--- when creating MPP plans? For example, should we force parallel restricted functions
--- to run in the QD?
+set enable_parallel = on;
+set optimizer = off;
 
 create function sp_parallel_restricted(int) returns int as
   $$begin return $1; end$$ language plpgsql parallel restricted;
@@ -242,7 +241,10 @@ begin
     end loop;
 end;
 $$;
+-- test sort stats plan, disable parallel
+set max_parallel_workers_per_gather = 0;
 select * from explain_parallel_sort_stats();
+reset max_parallel_workers_per_gather;
 
 reset enable_indexscan;
 reset enable_hashjoin;
@@ -400,7 +402,8 @@ explain (costs off)
 -- to increase the parallel query test coverage
 SAVEPOINT settings;
 SET LOCAL force_parallel_mode = 1;
-EXPLAIN (analyze, timing off, summary off, costs off) SELECT * FROM tenk1;
+-- GPDB_PARALLEL_FIXME: analyze actual rows may be different by running multiple times.
+EXPLAIN (timing off, summary off, costs off) SELECT * FROM tenk1;
 ROLLBACK TO SAVEPOINT settings;
 
 -- provoke error in worker
@@ -463,3 +466,5 @@ SELECT 1 FROM tenk1_vw_sec
 
 rollback;
 
+reset enable_parallel;
+reset optimizer;

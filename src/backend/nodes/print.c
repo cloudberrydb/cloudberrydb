@@ -582,6 +582,10 @@ plannode_type(Plan *p)
 			return "FOREIGNSCAN";
 		case T_SplitUpdate:
 			return "SPLITUPDATE";
+		case T_Gather:
+			return "GATHER";
+		case T_GatherMerge:
+			return "GATHERMERGE";
 		default:
 			return "UNKNOWN";
 	}

@@ -53,6 +53,7 @@
 #include "common/controldata_utils.h"
 #include "common/fe_memutils.h"
 #include "common/file_perm.h"
+#include "common/kmgr_utils.h"
 #include "common/logging.h"
 #include "common/restricted_token.h"
 #include "common/string.h"
@@ -982,6 +983,8 @@ PrintControlValues(bool guessed)
 		   (ControlFile.float8ByVal ? _("by value") : _("by reference")));
 	printf(_("Data page checksum version:           %u\n"),
 		   ControlFile.data_checksum_version);
+	printf(_("File encryption method:               %s\n"),
+		   encryption_methods[ControlFile.file_encryption_method].name);
 }
 
 

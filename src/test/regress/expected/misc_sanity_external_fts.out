@@ -121,7 +121,18 @@ ORDER BY 1, 2;
  pg_resqueuecapability    | ressetting         | text
  pg_stat_last_operation   | stasubtype         | text
  pg_stat_last_shoperation | stasubtype         | text
-(19 rows)
+ pg_task                  | command            | text
+ pg_task                  | database           | text
+ pg_task                  | jobname            | text
+ pg_task                  | nodename           | text
+ pg_task                  | schedule           | text
+ pg_task                  | username           | text
+ pg_task_run_history      | command            | text
+ pg_task_run_history      | database           | text
+ pg_task_run_history      | return_message     | text
+ pg_task_run_history      | status             | text
+ pg_task_run_history      | username           | text
+(30 rows)
 
 -- system catalogs without primary keys
 --

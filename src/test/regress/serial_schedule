@@ -122,6 +122,7 @@ test: replica_identity
 test: rowsecurity
 test: object_address
 test: tablesample
+test: task
 test: appendonly_sample
 test: aocs_sample
 test: groupingsets

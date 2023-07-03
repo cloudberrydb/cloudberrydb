@@ -203,6 +203,8 @@ extern int	compare_values_of_enum(TypeCacheEntry *tcache, Oid arg1, Oid arg2);
 
 extern size_t SharedRecordTypmodRegistryEstimate(void);
 
+extern uint32 GetSharedNextRecordTypmod(SharedRecordTypmodRegistry* registry);
+
 extern void SharedRecordTypmodRegistryInit(SharedRecordTypmodRegistry *,
 										   dsm_segment *segment, dsa_area *area);
 

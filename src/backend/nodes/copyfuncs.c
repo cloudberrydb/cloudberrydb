@@ -138,6 +138,7 @@ _copyPlannedStmt(const PlannedStmt *from)
 		COPY_SCALAR_FIELD(slices[i].parentIndex);
 		COPY_SCALAR_FIELD(slices[i].gangType);
 		COPY_SCALAR_FIELD(slices[i].numsegments);
+		COPY_SCALAR_FIELD(slices[i].parallel_workers);
 		COPY_SCALAR_FIELD(slices[i].segindex);
 		COPY_SCALAR_FIELD(slices[i].directDispatch.isDirectDispatch);
 		COPY_NODE_FIELD(slices[i].directDispatch.contentIds);
@@ -1125,6 +1126,7 @@ _copyHashJoin(const HashJoin *from)
 	COPY_NODE_FIELD(hashcollations);
 	COPY_NODE_FIELD(hashkeys);
 	COPY_NODE_FIELD(hashqualclauses);
+	COPY_SCALAR_FIELD(batch0_barrier);
 
 	return newnode;
 }
@@ -1405,6 +1407,7 @@ _copyHash(const Hash *from)
 	COPY_SCALAR_FIELD(skewColumn);
 	COPY_SCALAR_FIELD(skewInherit);
 	COPY_SCALAR_FIELD(rows_total);
+	COPY_SCALAR_FIELD(sync_barrier);
 
 	return newnode;
 }
@@ -5421,6 +5424,8 @@ _copySliceTable(const SliceTable *from)
 		COPY_SCALAR_FIELD(slices[i].planNumSegments);
 		COPY_SCALAR_FIELD(slices[i].gangType);
 		COPY_NODE_FIELD(slices[i].segments);
+		COPY_SCALAR_FIELD(slices[i].useMppParallelMode);
+		COPY_SCALAR_FIELD(slices[i].parallel_workers);
 
 		newnode->slices[i].primaryGang = from->slices[i].primaryGang;
 		COPY_SCALAR_FIELD(slices[i].parentIndex);

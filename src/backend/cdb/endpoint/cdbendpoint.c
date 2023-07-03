@@ -227,6 +227,7 @@ GetParallelCursorEndpointPosition(PlannedStmt *plan)
 {
 	if (plan->planTree->flow->flotype == FLOW_SINGLETON)
 	{
+		/* GPDB_PARALLEL_FIXME: CdbLocusType_SegmentGeneralWorkers */
 		if (plan->planTree->flow->locustype == CdbLocusType_SegmentGeneral)
 			return ENDPOINT_ON_SINGLE_QE;
 		else

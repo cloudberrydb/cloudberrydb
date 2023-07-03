@@ -70,3 +70,10 @@ installcheck-resgroup: install
 
 installcheck-parallel-retrieve-cursor: install
 	$(pg_isolation2_regress_installcheck) $(EXTRA_REGRESS_OPTS) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_parallel_retrieve_cursor --bindir='$(bindir)' --inputdir=$(srcdir) --dbname=isolation2parallelretrcursor --load-extension=gp_inject_fault --schedule=$(srcdir)/parallel_retrieve_cursor_schedule
+
+# Add a new rule for running installcheck with parallel mode enabled.
+installcheck-cbdb-parallel: install
+	(\
+	export PGOPTIONS='-c optimizer=off -c enable_parallel=true  -c gp_appendonly_insert_files=0'; \
+	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule \
+	)

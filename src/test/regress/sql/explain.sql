@@ -16,6 +16,7 @@ $$
 declare
     ln text;
 begin
+    set local enable_parallel = off;
     for ln in execute $1
     loop
         -- Replace any numeric word with just 'N'
@@ -30,6 +31,7 @@ begin
         CONTINUE WHEN (ln = 'Planning:');
         return next ln;
     end loop;
+    reset enable_parallel;
 end;
 $$;
 
@@ -41,6 +43,7 @@ declare
     data text := '';
     ln text;
 begin
+    set local enable_parallel = off;
     for ln in execute $1
     loop
         -- Replace any numeric word with just '0'
@@ -48,6 +51,7 @@ begin
         data := data || ln;
     end loop;
     return data::jsonb;
+    reset enable_parallel;
 end;
 $$;
 

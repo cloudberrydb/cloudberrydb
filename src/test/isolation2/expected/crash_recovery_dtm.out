@@ -67,20 +67,17 @@ DETAIL:  gid=1630210, state=Retry Commit Prepared
 server closed the connection unexpectedly
 	This probably means the server terminated abnormally
 	before or while processing the request.
--- Reset the fault in utility mode because normal mode connection will
--- not be accepted until DTX recovery is finished.
--1U: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', dbid) from gp_segment_configuration where content=0 and role='p';
- gp_inject_fault 
------------------
- Success:        
-(1 row)
--1Uq: ... <quitting>
 -- Join back to know master has completed postmaster reset.
 3<:  <... completed>
 server closed the connection unexpectedly
 	This probably means the server terminated abnormally
 	before or while processing the request.
 -- Start a session on master which would complete the DTM recovery and hence COMMIT PREPARED
+4: SELECT gp_inject_fault('finish_prepared_start_of_function', 'reset', dbid) from gp_segment_configuration where content=0 and role='p';
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
 4: SELECT * from commit_phase1_panic;
  a | b 
 ---+---

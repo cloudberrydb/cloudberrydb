@@ -457,3 +457,49 @@ SELECT gp_inject_fault('restore_string_guc', 'reset', 1);
  Success:
 (1 row)
 
+-- enabling gp_force_random_redistribution makes sure random redistribution happens
+-- only relevant to postgres optimizer
+set optimizer = false;
+create table t1_dist_rand(a int) distributed randomly;
+create table t2_dist_rand(a int) distributed randomly;
+create table t_dist_hash(a int) distributed by (a);
+-- with the GUC turned off, redistribution won't happen (no redistribution motion)
+set gp_force_random_redistribution = false;
+explain (costs off) insert into t2_dist_rand select * from t1_dist_rand;
+             QUERY PLAN              
+-------------------------------------
+ Insert on t2_dist_rand
+   ->  Seq Scan on t1_dist_rand
+ Optimizer: Postgres query optimizer
+(3 rows)
+
+explain (costs off) insert into t2_dist_rand select * from t_dist_hash;
+             QUERY PLAN              
+-------------------------------------
+ Insert on t2_dist_rand
+   ->  Seq Scan on t_dist_hash
+ Optimizer: Postgres query optimizer
+(3 rows)
+
+-- with the GUC turned on, redistribution would happen
+set gp_force_random_redistribution = true;
+explain (costs off) insert into t2_dist_rand select * from t1_dist_rand;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Insert on t2_dist_rand
+   ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Seq Scan on t1_dist_rand
+ Optimizer: Postgres query optimizer
+(4 rows)
+
+explain (costs off) insert into t2_dist_rand select * from t_dist_hash;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Insert on t2_dist_rand
+   ->  Redistribute Motion 3:3  (slice1; segments: 3)
+         ->  Seq Scan on t_dist_hash
+ Optimizer: Postgres query optimizer
+(4 rows)
+
+reset gp_force_random_redistribution;
+reset optimizer;

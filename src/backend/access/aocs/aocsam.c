@@ -56,12 +56,14 @@ static AOCSScanDesc aocs_beginscan_internal(Relation relation,
 						int total_seg,
 						Snapshot snapshot,
 						Snapshot appendOnlyMetaDataSnapshot,
+						ParallelTableScanDesc parallel_scan,
 						bool *proj,
 						uint32 flags);
 
 static void reorder_qual_col(AOCSScanDesc scan);
 static bool aocs_col_predicate_test(AOCSScanDesc scan, TupleTableSlot *slot, int i, bool sample_phase);
 static bool aocs_getnext_sample(AOCSScanDesc scan, ScanDirection direction, TupleTableSlot *slot);
+static void aocs_insert_finish_guts(AOCSInsertDesc aoInsertDesc);
 
 /* Hook for plugins to get control in aocs_delete() */
 aocs_delete_hook_type aocs_delete_hook = NULL;
@@ -131,6 +133,10 @@ open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, 
 {
 	int			nvp = relationTupleDesc->natts;
 	StdRdOptions **opts = RelationGetAttributeOptions(rel);
+	RelFileNodeBackend rnode;
+
+	rnode.node = rel->rd_node;
+	rnode.backend = rel->rd_backend;
 
 	/* open datum streams.  It will open segment file underneath */
 	for (int i = 0; i < nvp; ++i)
@@ -171,7 +177,8 @@ open_ds_write(Relation rel, DatumStreamWrite **ds, TupleDesc relationTupleDesc, 
 										attr,
 										RelationGetRelationName(rel),
 										/* title */ titleBuf.data,
-										XLogIsNeeded() && RelationNeedsWAL(rel));
+										XLogIsNeeded() && RelationNeedsWAL(rel),
+										&rnode);
 
 	}
 }
@@ -261,7 +268,8 @@ open_ds_read(Relation rel, DatumStreamRead **ds, TupleDesc relationTupleDesc,
 										   blksz,
 										   attr,
 										   RelationGetRelationName(rel),
-										    /* title */ titleBuf.data);
+										    /* title */ titleBuf.data,
+										   &rel->rd_node);
 	}
 }
 
@@ -336,8 +344,30 @@ initscan_with_colinfo(AOCSScanDesc scan)
 static int
 open_next_scan_seg(AOCSScanDesc scan)
 {
-	while (++scan->cur_seg < scan->total_seg)
+	bool 		isParallel = false;
+	ParallelBlockTableScanDesc pbscan = NULL;
+
+	if (scan->rs_base.rs_parallel != NULL)
 	{
+		isParallel = true;
+		pbscan = (ParallelBlockTableScanDesc) scan->rs_base.rs_parallel;
+	}
+
+	while (scan->cur_seg < scan->total_seg)
+	{
+		if (isParallel)
+		{
+			scan->cur_seg = pg_atomic_fetch_add_u64(&pbscan->phs_nallocated, 1);
+			if (scan->cur_seg >= pbscan->phs_nblocks)
+				break;
+		}
+		else
+		{
+			scan->cur_seg = scan->cur_seg + 1;
+			if (scan->cur_seg >= scan->total_seg)
+				break;
+		}
+
 		AOCSFileSegInfo *curSegInfo = scan->seginfo[scan->cur_seg];
 
 		if (curSegInfo->total_tupcount > 0)
@@ -485,12 +515,14 @@ aocs_beginrangescan(Relation relation,
 								   snapshot,
 								   appendOnlyMetaDataSnapshot,
 								   NULL,
+								   NULL,
 								   0);
 }
 
 AOCSScanDesc
 aocs_beginscan(Relation relation,
 			   Snapshot snapshot,
+			   ParallelTableScanDesc pscan,
 			   bool *proj,
 			   uint32 flags)
 {
@@ -515,6 +547,7 @@ aocs_beginscan(Relation relation,
 								   total_seg,
 								   snapshot,
 								   aocsMetaDataSnapshot,
+								   pscan,
 								   proj,
 								   flags);
 }
@@ -528,6 +561,7 @@ aocs_beginscan_internal(Relation relation,
 						int total_seg,
 						Snapshot snapshot,
 						Snapshot appendOnlyMetaDataSnapshot,
+						ParallelTableScanDesc parallel_scan,
 						bool *proj,
 						uint32 flags)
 {
@@ -540,6 +574,7 @@ aocs_beginscan_internal(Relation relation,
 	scan->rs_base.rs_rd = relation;
 	scan->rs_base.rs_snapshot = snapshot;
 	scan->rs_base.rs_flags = flags;
+	scan->rs_base.rs_parallel = parallel_scan;
 	scan->appendOnlyMetaDataSnapshot = appendOnlyMetaDataSnapshot;
 	scan->seginfo = seginfo;
 	scan->total_seg = total_seg;
@@ -643,6 +678,10 @@ aocs_endscan(AOCSScanDesc scan)
 
 	if (scan->total_seg != 0)
 		AppendOnlyVisimap_Finish(&scan->visibilityMap, AccessShareLock);
+
+	/* GPDB should backport this to upstream */
+	if (scan->rs_base.rs_flags & SO_TEMP_SNAPSHOT)
+		UnregisterSnapshot(scan->rs_base.rs_snapshot);
 
 	RelationDecrementReferenceCount(scan->rs_base.rs_rd);
 
@@ -978,6 +1017,7 @@ aocs_insert_init(Relation rel, int segno)
 
 	Assert(segno >= 0);
 	desc->cur_segno = segno;
+	desc->range = 0;
 
     GetAppendOnlyEntryAttributes(rel->rd_id,
                                  &desc->blocksz,
@@ -1027,6 +1067,10 @@ aocs_insert_init(Relation rel, int segno)
 											(FileSegInfo *) desc->fsInfo, desc->lastSequence,
 											rel, segno, tupleDesc->natts, true);
 
+	/* should not enable insertMultiFiles if the table is created by own transaction */
+	desc->insertMultiFiles = enable_parallel &&
+							gp_appendonly_insert_files > 1 &&
+							!ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
 	return desc;
 }
 
@@ -1106,6 +1150,7 @@ aocs_insert_values(AOCSInsertDesc idesc, Datum *d, bool *null, AOTupleId *aoTupl
 
 	idesc->insertCount++;
 	idesc->lastSequence++;
+	idesc->range++;
 	if (idesc->numSequences > 0)
 		(idesc->numSequences)--;
 
@@ -1127,13 +1172,14 @@ aocs_insert_values(AOCSInsertDesc idesc, Datum *d, bool *null, AOTupleId *aoTupl
 							 idesc->lastSequence + 1,
 							 NUM_FAST_SEQUENCES);
 
-		Assert(firstSequence == idesc->lastSequence + 1);
+		/* fast sequence could be inconsecutive when insert multiple segfiles */
+		AssertImply(gp_appendonly_insert_files <= 1, firstSequence == idesc->lastSequence + 1);
 		idesc->numSequences = NUM_FAST_SEQUENCES;
 	}
 }
 
-void
-aocs_insert_finish(AOCSInsertDesc idesc)
+static void
+aocs_insert_finish_guts(AOCSInsertDesc idesc)
 {
 	Relation	rel = idesc->aoi_rel;
 	int			i;
@@ -1153,6 +1199,42 @@ aocs_insert_finish(AOCSInsertDesc idesc)
 	pfree(idesc->fsInfo);
 
 	close_ds_write(idesc->ds, rel->rd_att->natts);
+}
+
+/*
+ * aocs_insert_finish
+ *
+ * Use head to traverse multiple segment files of insertion, NULL if there is
+ * only one segment file.
+ * Keep param idesc for less changes.
+ */
+void
+aocs_insert_finish(AOCSInsertDesc idesc, dlist_head *head)
+{
+	AOCSInsertDesc next = NULL;
+	dlist_iter iter;
+
+	/* no mutiple segfiles insertion */
+	if(!head)
+	{
+		aocs_insert_finish_guts(idesc);
+		pfree(idesc);
+		return;
+	}
+
+	Assert(!dlist_is_empty(head));
+
+	dlist_foreach(iter, head)
+	{
+		if(next)
+			pfree(next);
+
+		next = (AOCSInsertDesc)dlist_container(AOCSInsertDescData, node, iter.cur);
+		aocs_insert_finish_guts(next);
+	}
+
+	if(next)
+		pfree(next);
 }
 
 static void
@@ -1464,7 +1546,8 @@ aocs_fetch_init(Relation relation,
 									   blksz,
 									   TupleDescAttr(tupleDesc, colno),
 									   relation->rd_rel->relname.data,
-									    /* title */ titleBuf.data);
+									    /* title */ titleBuf.data,
+									   &relation->rd_node);
 
 		}
 		if (opts[colno])
@@ -1775,7 +1858,7 @@ aocs_update_finish(AOCSUpdateDesc desc)
 
 	AppendOnlyVisimapDelete_Finish(&desc->visiMapDelete);
 
-	aocs_insert_finish(desc->insertDesc);
+	aocs_insert_finish(desc->insertDesc, NULL);
 	desc->insertDesc = NULL;
 
 	/* Keep lock until the end of transaction */
@@ -1958,7 +2041,8 @@ aocs_begin_headerscan(Relation rel, int colno)
 							   opts[colno]->blocksize,
 							   RelationGetRelationName(rel),
 							   "ALTER TABLE ADD COLUMN scan",
-							   &ao_attr);
+							   &ao_attr,
+							   &rel->rd_node);
 	hdesc->colno = colno;
 	return hdesc;
 }
@@ -2017,6 +2101,10 @@ aocs_addcol_init(Relation rel,
 	int			iattr;
 	StringInfoData titleBuf;
 	bool        checksum;
+	RelFileNodeBackend rnode;
+
+	rnode.node = rel->rd_node;
+	rnode.backend = rel->rd_backend;
 
 	desc = palloc(sizeof(AOCSAddColumnDescData));
 	desc->num_newcols = num_newcols;
@@ -2053,7 +2141,8 @@ aocs_addcol_init(Relation rel,
 		desc->dsw[i] = create_datumstreamwrite(ct, clvl, checksum, 0, blksz /* safeFSWriteSize */ ,
 											   attr, RelationGetRelationName(rel),
 											   titleBuf.data,
-											   XLogIsNeeded() && RelationNeedsWAL(rel));
+											   XLogIsNeeded() && RelationNeedsWAL(rel),
+											   &rnode);
 	}
 	return desc;
 }

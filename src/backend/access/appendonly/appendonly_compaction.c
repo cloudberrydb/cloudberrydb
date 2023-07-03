@@ -798,7 +798,7 @@ AppendOnlyCompact(Relation aorel,
 												appendOnlyMetaDataSnapshot);
 
 			insertDesc->skipModCountIncrement = true;
-			appendonly_insert_finish(insertDesc);
+			appendonly_insert_finish(insertDesc, NULL);
 		}
 		else
 		{

@@ -1072,6 +1072,15 @@ AppendOnlyStorageWrite_VerifyWriteBlock(AppendOnlyStorageWrite *storageWrite,
 		VarBlockReader varBlockReader;
 		int			readerItemCount;
 
+		/*
+		 * Now use the VarBlock module to extract the items out.
+		 */
+		VarBlockReaderInit(&varBlockReader,
+						   data,
+						   uncompressedLen,
+						   true,
+						   &storageWrite->relFileNode.node);
+
 		varBlockCheckError = VarBlockIsValid(data, uncompressedLen);
 		if (varBlockCheckError != VarBlockCheckOk)
 			ereport(ERROR,
@@ -1081,13 +1090,6 @@ AppendOnlyStorageWrite_VerifyWriteBlock(AppendOnlyStorageWrite *storageWrite,
 							VarBlockGetCheckErrorStr()),
 					 errdetail_appendonly_write_storage_block_header(storageWrite),
 					 errcontext_appendonly_write_storage_block(storageWrite)));
-
-		/*
-		 * Now use the VarBlock module to extract the items out.
-		 */
-		VarBlockReaderInit(&varBlockReader,
-						   data,
-						   uncompressedLen);
 
 		readerItemCount = VarBlockReaderItemCount(&varBlockReader);
 
@@ -1425,7 +1427,6 @@ AppendOnlyStorageWrite_FinishBuffer(AppendOnlyStorageWrite *storageWrite,
 													executorBlockKind,
 													rowCount,
 													compressedLen);
-
 		/*
 		 * Finish the current buffer by specifying the used length.
 		 */

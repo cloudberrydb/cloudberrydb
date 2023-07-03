@@ -52,13 +52,19 @@ typedef enum CdbLocusType
                                  * generally available in any qExec or qDisp) */
     CdbLocusType_SegmentGeneral,/* generally available in any qExec, but not
 								 * available in qDisp */
+    CdbLocusType_SegmentGeneralWorkers, /* generally available in any qExec, but not
+								 * available in qDisp, strewn on workers of the same segments */
 	CdbLocusType_OuterQuery,	/* generally available in any qExec or qDisp, but
 								 * contains correlated vars from outer query, so must
 								 * not be redistributed */
     CdbLocusType_Replicated,    /* replicated over all qExecs of an N-gang */
+    CdbLocusType_ReplicatedWorkers,	/* replicated over all qExecs of an N-gang in parallel execution mode */
     CdbLocusType_Hashed,        /* hash partitioned over all qExecs of N-gang */
     CdbLocusType_HashedOJ,      /* result of hash partitioned outer join, NULLs can be anywhere */
     CdbLocusType_Strewn,        /* partitioned on no known function */
+    CdbLocusType_HashedWorkers, /* strewn on all qExecs but partitioned on M-parallel qExecs of total N-gang.
+                                 * parallel mode(M workers) for partitioned locus.
+                                 */
     CdbLocusType_End            /* = last valid CdbLocusType + 1 */
 } CdbLocusType;
 
@@ -150,11 +156,21 @@ typedef struct CdbPathLocus
 	CdbLocusType locustype;
 	List	   *distkey;		/* List of DistributionKeys */
 	int			numsegments;
+	int			parallel_workers;
 } CdbPathLocus;
 
 #define CdbPathLocus_NumSegments(locus)         \
             ((locus).numsegments)
 
+#define CdbPathLocus_NumParallelWorkers(locus)         \
+			((locus).parallel_workers)
+
+/*
+ * GPDB: total num of processes in consideration of parallel mode.
+ * This is used to broadcast to parallel workers estimation.
+ */
+#define CdbPathLocus_NumSegmentsPlusParallelWorkers(locus)         \
+			(((locus).parallel_workers) ?  ((locus).numsegments) * ((locus).parallel_workers) : ((locus).numsegments))
 /*
  * CdbPathLocus_IsEqual
  *
@@ -164,7 +180,8 @@ typedef struct CdbPathLocus
 #define CdbPathLocus_IsEqual(a, b)              \
             ((a).locustype == (b).locustype &&  \
              (a).numsegments == (b).numsegments && \
-             (a).distkey == (b).distkey)
+             (a).distkey == (b).distkey && \
+			 (a).parallel_workers == (b).parallel_workers)
 
 #define CdbPathLocus_CommonSegments(a, b) \
             Min((a).numsegments, (b).numsegments)
@@ -189,6 +206,7 @@ typedef struct CdbPathLocus
  */
 #define CdbPathLocus_IsPartitioned(locus)       \
             (CdbPathLocus_IsHashed(locus) ||    \
+             CdbPathLocus_IsHashedWorkers(locus) ||    \
              CdbPathLocus_IsHashedOJ(locus) ||  \
              CdbPathLocus_IsStrewn(locus))
 
@@ -202,14 +220,20 @@ typedef struct CdbPathLocus
             ((locus).locustype == CdbLocusType_General)
 #define CdbPathLocus_IsReplicated(locus)    \
             ((locus).locustype == CdbLocusType_Replicated)
+#define CdbPathLocus_IsReplicatedWorkers(locus) \
+	    ((locus).locustype == CdbLocusType_ReplicatedWorkers)
 #define CdbPathLocus_IsHashed(locus)        \
             ((locus).locustype == CdbLocusType_Hashed)
+#define CdbPathLocus_IsHashedWorkers(locus)        \
+            ((locus).locustype == CdbLocusType_HashedWorkers)
 #define CdbPathLocus_IsHashedOJ(locus)      \
             ((locus).locustype == CdbLocusType_HashedOJ)
 #define CdbPathLocus_IsStrewn(locus)        \
             ((locus).locustype == CdbLocusType_Strewn)
 #define CdbPathLocus_IsSegmentGeneral(locus)        \
             ((locus).locustype == CdbLocusType_SegmentGeneral)
+#define CdbPathLocus_IsSegmentGeneralWorkers(locus)        \
+            ((locus).locustype == CdbLocusType_SegmentGeneralWorkers)
 #define CdbPathLocus_IsOuterQuery(locus)        \
             ((locus).locustype == CdbLocusType_OuterQuery)
 
@@ -217,8 +241,9 @@ typedef struct CdbPathLocus
     do {                                                \
         CdbPathLocus *_locus = (plocus);                \
         _locus->locustype = (_locustype);               \
-        _locus->numsegments = (numsegments_);                        \
-        _locus->distkey = NIL;                        \
+        _locus->numsegments = (numsegments_);           \
+		_locus->parallel_workers = 0;                   \
+        _locus->distkey = NIL;                                    \
     } while (0)
 
 #define CdbPathLocus_MakeNull(plocus)                   \
@@ -229,16 +254,42 @@ typedef struct CdbPathLocus
             CdbPathLocus_MakeSimple((plocus), CdbLocusType_SingleQE, (numsegments_))
 #define CdbPathLocus_MakeGeneral(plocus)                \
             CdbPathLocus_MakeSimple((plocus), CdbLocusType_General, -1)
-#define CdbPathLocus_MakeSegmentGeneral(plocus, numsegments_)                \
+#define CdbPathLocus_MakeSegmentGeneral(plocus, numsegments_)       \
             CdbPathLocus_MakeSimple((plocus), CdbLocusType_SegmentGeneral, (numsegments_))
-#define CdbPathLocus_MakeReplicated(plocus, numsegments_)             \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Replicated, (numsegments_))
-#define CdbPathLocus_MakeHashed(plocus, distkey_, numsegments_)       \
+#define CdbPathLocus_MakeSegmentGeneralWorkers(plocus, numsegments_, parallel_workers_)     \
+    do {                                                \
+        CdbPathLocus *_locus = (plocus);                \
+        _locus->locustype = CdbLocusType_SegmentGeneralWorkers;               \
+        _locus->numsegments = (numsegments_);           \
+        _locus->parallel_workers = (parallel_workers_);                   \
+        _locus->distkey = NIL;                                    \
+        Assert(cdbpathlocus_is_valid(*_locus));         \
+    } while (0)
+#define CdbPathLocus_MakeReplicated(plocus, numsegments_, parallel_workers_)             \
+    do {                                                \
+        CdbPathLocus *_locus = (plocus);                \
+        _locus->locustype = CdbLocusType_Replicated;	\
+        _locus->numsegments = (numsegments_);           \
+        _locus->distkey = NIL;					        \
+		_locus->parallel_workers = (parallel_workers_); \
+        Assert(cdbpathlocus_is_valid(*_locus));         \
+    } while (0)
+#define CdbPathLocus_MakeReplicatedWorkers(plocus, numsegments_, parallel_workers_)             \
+    do {                                                \
+        CdbPathLocus *_locus = (plocus);                \
+        _locus->locustype = CdbLocusType_ReplicatedWorkers;	\
+        _locus->numsegments = (numsegments_);           \
+        _locus->distkey = NIL;					        \
+		_locus->parallel_workers = (parallel_workers_); \
+        Assert(cdbpathlocus_is_valid(*_locus));         \
+    } while (0)
+#define CdbPathLocus_MakeHashed(plocus, distkey_, numsegments_, parallel_workers_)      \
     do {                                                \
         CdbPathLocus *_locus = (plocus);                \
         _locus->locustype = CdbLocusType_Hashed;		\
         _locus->numsegments = (numsegments_);           \
         _locus->distkey = (distkey_);					\
+		_locus->parallel_workers = (parallel_workers_); \
         Assert(cdbpathlocus_is_valid(*_locus));         \
     } while (0)
 #define CdbPathLocus_MakeHashedOJ(plocus, distkey_, numsegments_)     \
@@ -249,14 +300,34 @@ typedef struct CdbPathLocus
         _locus->distkey = (distkey_);					\
         Assert(cdbpathlocus_is_valid(*_locus));         \
     } while (0)
-#define CdbPathLocus_MakeStrewn(plocus, numsegments_)                 \
-            CdbPathLocus_MakeSimple((plocus), CdbLocusType_Strewn, (numsegments_))
+#define CdbPathLocus_MakeHashedWorkers(plocus, distkey_, numsegments_, parallel_workers_)      \
+    do {                                                \
+        CdbPathLocus *_locus = (plocus);                \
+        _locus->locustype = CdbLocusType_HashedWorkers;		\
+        _locus->numsegments = (numsegments_);           \
+        _locus->distkey = (distkey_);					\
+		_locus->parallel_workers = (parallel_workers_); \
+        Assert(cdbpathlocus_is_valid(*_locus));         \
+    } while (0)
+#define CdbPathLocus_MakeStrewn(plocus, numsegments_, parallel_workers_)                 \
+    do {                                                \
+        CdbPathLocus *_locus = (plocus);                \
+        _locus->locustype = CdbLocusType_Strewn;               \
+        _locus->numsegments = (numsegments_);           \
+		_locus->parallel_workers = (parallel_workers_); \
+        _locus->distkey = NIL;					        \
+        Assert(cdbpathlocus_is_valid(*_locus));         \
+    } while (0)
 
 #define CdbPathLocus_MakeOuterQuery(plocus)                 \
 	CdbPathLocus_MakeSimple((plocus), CdbLocusType_OuterQuery, -1)
 
+#define CdbPathLocus_HasMultipleWorkers(plocus)                 \
+    (((plocus).parallel_workers > 1) ? true : false)
+
 /************************************************************************/
 
+extern bool cdbpath_distkey_equal(List *a_distkey, List *b_distkey);
 extern bool cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b);
 
 /************************************************************************/
@@ -266,17 +337,19 @@ extern CdbPathLocus cdbpathlocus_for_insert(struct PlannerInfo *root,
 											struct PathTarget *pathtarget);
 
 CdbPathLocus
-cdbpathlocus_from_policy(struct PlannerInfo *root, Index rti, struct GpPolicy *policy);
+cdbpathlocus_from_policy(struct PlannerInfo *root, Index rti, struct GpPolicy *policy, int parallel_workers);
 CdbPathLocus
 cdbpathlocus_from_baserel(struct PlannerInfo   *root,
-                          struct RelOptInfo    *rel);
+						  struct RelOptInfo    *rel,
+						  int parallel_workers);
 CdbPathLocus
 cdbpathlocus_from_exprs(struct PlannerInfo     *root,
 						struct RelOptInfo *rel,
                         List                   *hash_on_exprs,
 						List *hash_opclasses,
 						List *hash_sortrefs,
-                        int                     numsegments);
+                        int                     numsegments,
+						int parallel_workers);
 CdbPathLocus
 cdbpathlocus_from_subquery(struct PlannerInfo  *root,
 						   struct RelOptInfo   *rel,
@@ -284,6 +357,9 @@ cdbpathlocus_from_subquery(struct PlannerInfo  *root,
 
 CdbPathLocus
 cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b);
+
+CdbPathLocus
+cdbpathlocus_parallel_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b, bool parallel_aware);
 
 /************************************************************************/
 
@@ -321,11 +397,12 @@ extern void cdbpathlocus_get_distkey_exprs(CdbPathLocus locus,
  */
 CdbPathLocus
 cdbpathlocus_pull_above_projection(struct PlannerInfo  *root,
-                                   CdbPathLocus         locus,
-                                   Bitmapset           *relids,
-                                   List                *targetlist,
-                                   List                *newvarlist,
-                                   Index                newrelid);
+								   CdbPathLocus         locus,
+								   Bitmapset           *relids,
+								   List                *targetlist,
+								   List                *newvarlist,
+								   Index                newrelid,
+								   bool                 parallel_aware);
 
 /************************************************************************/
 

@@ -407,6 +407,7 @@ plan_tree_walker(Node *node,
 			break;
 
 		case T_Gather:
+		case T_GatherMerge:
 			if (walk_plan_node_fields((Plan *) node, walker, context))
 				return true;
 			/* Other fields are simple items. */

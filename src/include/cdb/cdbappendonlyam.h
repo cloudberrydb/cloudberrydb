@@ -57,7 +57,7 @@
 /*
  * AppendOnlyInsertDescData is used for inserting data into append-only
  * relations. It serves an equivalent purpose as AppendOnlyScanDescData
- * (relscan.h) only that the later is used for scanning append-only 
+ * (relscan.h) only that the later is used for scanning append-only
  * relations. 
  */
 typedef struct AppendOnlyInsertDescData
@@ -108,6 +108,13 @@ typedef struct AppendOnlyInsertDescData
 
 	/* The block directory for the appendonly relation. */
 	AppendOnlyBlockDirectory blockDirectory;
+
+	/*
+	 * For multiple segment files insertion.
+	 */
+	bool			insertMultiFiles; /* insert into multi files */
+	dlist_node		node;	/* node of segfiles list */
+	int 			range;  /* inserted tuples of each range */
 } AppendOnlyInsertDescData;
 
 typedef AppendOnlyInsertDescData *AppendOnlyInsertDesc;
@@ -408,7 +415,7 @@ extern void appendonly_insert(
 		AppendOnlyInsertDesc aoInsertDesc, 
 		MemTuple instup, 
 		AOTupleId *aoTupleId);
-extern void appendonly_insert_finish(AppendOnlyInsertDesc aoInsertDesc);
+extern void appendonly_insert_finish(AppendOnlyInsertDesc aoInsertDesc, dlist_head *head);
 extern void appendonly_dml_finish(Relation relation, CmdType operation);
 
 extern AppendOnlyDeleteDesc appendonly_delete_init(Relation rel);

@@ -32,6 +32,8 @@ extern char *bonjour_name;
 extern bool restart_after_crash;
 extern bool remove_temp_files_after_crash;
 
+extern int	terminal_fd;
+
 #ifdef WIN32
 extern HANDLE PostmasterHandle;
 #else
@@ -99,6 +101,6 @@ extern bool amAuxiliaryBgWorker(void);
  */
 #define MAX_BACKENDS	0x3FFFF
 
-#define MaxPMAuxProc	(3 + IC_PROXY_NUM_BGWORKER + FTS_NUM_BGWORKER)
+#define MaxPMAuxProc	(4 + IC_PROXY_NUM_BGWORKER + FTS_NUM_BGWORKER)
 
 #endif							/* _POSTMASTER_H */

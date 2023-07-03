@@ -35,6 +35,7 @@
 #include "storage/proc.h"
 #include "storage/procsignal.h"
 #include "storage/shmem.h"
+#include "task/pg_cron.h"
 #include "tcop/tcopprot.h"
 #include "utils/ascii.h"
 #include "utils/ps_status.h"
@@ -155,6 +156,12 @@ static const struct
 	},
 	{
 		"BackoffSweeperMain", BackoffSweeperMain
+	},
+	{
+		"PgCronLauncherMain", PgCronLauncherMain
+	},
+	{
+		"CronBackgroundWorker", CronBackgroundWorker
 	},
 #ifdef ENABLE_IC_PROXY
 	{

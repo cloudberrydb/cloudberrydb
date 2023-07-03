@@ -89,6 +89,7 @@
  */
 #ifndef CDBVARBLOCK_H
 #define CDBVARBLOCK_H
+#include "cdb/cdbappendonlystoragewrite.h"
 
 typedef int32 VarBlockByteLen;
 typedef int32 VarBlockByteOffset;
@@ -282,7 +283,8 @@ extern void VarBlockMakerInit(
     uint8                *buffer,
     VarBlockByteLen      maxBufferLen,
     uint8                *tempScratchSpace,
-    int                  tempScratchSpaceLen);
+    int                  tempScratchSpaceLen,
+	AppendOnlyStorageWrite	*storageWrite);
 
 /*
  * Get a pointer to the next variable-length item so it can
@@ -306,7 +308,8 @@ extern int VarBlockMakerItemCount(
  * The item-offsets array will be added to the end.
  */
 extern VarBlockByteLen VarBlockMakerFinish(
-    VarBlockMaker *varBlockMaker);
+    VarBlockMaker *varBlockMaker,
+	AppendOnlyStorageWrite	*storageWrite);
 
 // -----------------------------------------------------------------------------
 
@@ -341,7 +344,9 @@ char *VarBlockGetCheckErrorStr(void);
 extern void VarBlockReaderInit(
     VarBlockReader      *varBlockReader,
     uint8               *buffer,
-    VarBlockByteLen     bufferLen);
+    VarBlockByteLen     bufferLen,
+	bool   				needDecrypt,
+	RelFileNode 		*file_nod);
 
 /*
  * Get a pointer to the next variable-length item.
@@ -367,6 +372,7 @@ extern uint8* VarBlockReaderGetItemPtr(
     VarBlockByteLen     *itemLen);
 
 extern VarBlockByteLen VarBlockCollapseToSingleItem(
+	AppendOnlyStorageWrite	*storageWrite,
 	uint8			*target,
 	uint8			*source,
 	int32			sourceLen);

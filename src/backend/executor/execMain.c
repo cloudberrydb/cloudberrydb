@@ -1740,6 +1740,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 			start_plan_node = (Plan *) m;
 			ExecSlice *sendSlice = &estate->es_sliceTable->slices[m->motionID];
 			estate->currentSliceId = sendSlice->parentIndex;
+			estate->useMppParallelMode = sendSlice->useMppParallelMode;
 		}
 		/* Compute SubPlans' root plan nodes for SubPlans reachable from this plan root */
 		estate->locallyExecutableSubplans = getLocallyExecutableSubplans(plannedstmt, start_plan_node);
@@ -1772,13 +1773,18 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 
 			/* set our global sliceid variable for elog. */
 			int			save_currentSliceId = estate->currentSliceId;
+			/* GPDB_PARALLEL_FIXME: Is it necessary to save and recover this? */
+			bool		save_useMppParallelMode = estate->useMppParallelMode;
 
 			estate->currentSliceId = estate->es_plannedstmt->subplan_sliceIds[subplan_id - 1];
+			/* FIXME: test whether mpp parallel style exists for subplan case */
+			estate->useMppParallelMode = false;
 
 			Plan	   *subplan = (Plan *) lfirst(l);
 			subplanstate = ExecInitNode(subplan, estate, sp_eflags);
 
 			estate->currentSliceId = save_currentSliceId;
+			estate->useMppParallelMode = save_useMppParallelMode;
 		}
 
 		estate->es_subplanstates = lappend(estate->es_subplanstates, subplanstate);
@@ -2484,12 +2490,20 @@ ExecutePlan(EState *estate,
 	 * If the plan might potentially be executed multiple times, we must force
 	 * it to run without parallelism, because we might exit early.
 	 */
-	if (!execute_once)
+	if (!execute_once || GP_ROLE_DISPATCH == Gp_role)
 		use_parallel_mode = false;
 
 	estate->es_use_parallel_mode = use_parallel_mode;
 	if (use_parallel_mode)
 		EnterParallelMode();
+
+	/*
+	 * GP style parallelism won't interfere PG style parallel mechanism.
+	 * So that we will pass if use_parallel_mode is true which means there exists
+	 * Gather/GatherMerge node.
+	 */
+	if (estate->useMppParallelMode)
+		GpInsertParallelDSMHash(planstate);
 
 #ifdef FAULT_INJECTOR
 	/* Inject a fault before tuple processing started */
@@ -2605,6 +2619,9 @@ ExecutePlan(EState *estate,
 	 */
 	if (!(estate->es_top_eflags & EXEC_FLAG_BACKWARD))
 		(void) ExecShutdownNode(planstate);
+
+	if (estate->useMppParallelMode)
+		GpDestroyParallelDSMEntry();
 
 	if (use_parallel_mode)
 		ExitParallelMode();

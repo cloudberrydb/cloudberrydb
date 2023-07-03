@@ -461,7 +461,6 @@ value. The page is not recycled, until that XID is no longer visible to
 anyone. That's much more conservative than necessary, but let's keep it
 simple.
 
-
 Authors:
 	Teodor Sigaev	<teodor@sigaev.ru>
 	Oleg Bartunov	<oleg@sai.msu.su>

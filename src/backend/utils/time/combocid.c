@@ -95,6 +95,7 @@ static int	sizeComboCids = 0;	/* allocated size of array */
 
 /* prototypes for internal functions */
 static CommandId GetComboCommandId(CommandId cmin, CommandId cmax);
+static CommandId PGGetComboCommandId(CommandId cmin, CommandId cmax);
 static CommandId GetRealCmin(CommandId combocid);
 static CommandId GetRealCmax(CommandId combocid);
 
@@ -317,6 +318,82 @@ GetComboCommandId(CommandId cmin, CommandId cmax)
 	return combocid;
 }
 
+/* this is for PG parallel workers. */
+static CommandId
+PGGetComboCommandId(CommandId cmin, CommandId cmax)
+{
+	CommandId	combocid;
+	ComboCidKeyData key;
+	ComboCidEntry entry;
+	bool		found;
+
+	/*
+	 * Create the hash table and array the first time we need to use combo
+	 * cids in the transaction.
+	 */
+	if (comboHash == NULL)
+	{
+		HASHCTL		hash_ctl;
+
+		/* Make array first; existence of hash table asserts array exists */
+		comboCids = (ComboCidKeyData *)
+			MemoryContextAlloc(TopTransactionContext,
+							   sizeof(ComboCidKeyData) * CCID_ARRAY_SIZE);
+		sizeComboCids = CCID_ARRAY_SIZE;
+		usedComboCids = 0;
+
+		hash_ctl.keysize = sizeof(ComboCidKeyData);
+		hash_ctl.entrysize = sizeof(ComboCidEntryData);
+		hash_ctl.hcxt = TopTransactionContext;
+
+		comboHash = hash_create("Combo CIDs",
+								CCID_HASH_SIZE,
+								&hash_ctl,
+								HASH_ELEM | HASH_BLOBS | HASH_CONTEXT);
+	}
+
+	/*
+	 * Grow the array if there's not at least one free slot.  We must do this
+	 * before possibly entering a new hashtable entry, else failure to
+	 * repalloc would leave a corrupt hashtable entry behind.
+	 */
+	if (usedComboCids >= sizeComboCids)
+	{
+		int			newsize = sizeComboCids * 2;
+
+		comboCids = (ComboCidKeyData *)
+			repalloc(comboCids, sizeof(ComboCidKeyData) * newsize);
+		sizeComboCids = newsize;
+	}
+
+	/* Lookup or create a hash entry with the desired cmin/cmax */
+
+	/* We assume there is no struct padding in ComboCidKeyData! */
+	key.cmin = cmin;
+	key.cmax = cmax;
+	entry = (ComboCidEntry) hash_search(comboHash,
+										(void *) &key,
+										HASH_ENTER,
+										&found);
+
+	if (found)
+	{
+		/* Reuse an existing combo CID */
+		return entry->combocid;
+	}
+
+	/* We have to create a new combo CID; we already made room in the array */
+	combocid = usedComboCids;
+
+	comboCids[combocid].cmin = cmin;
+	comboCids[combocid].cmax = cmax;
+	usedComboCids++;
+
+	entry->combocid = combocid;
+
+	return combocid;
+}
+
 static CommandId
 GetRealCmin(CommandId combocid)
 {
@@ -413,7 +490,7 @@ RestoreComboCIDState(char *comboCIDstate)
 	/* Use GetComboCommandId to restore each combo CID. */
 	for (i = 0; i < num_elements; i++)
 	{
-		cid = GetComboCommandId(keydata[i].cmin, keydata[i].cmax);
+		cid = PGGetComboCommandId(keydata[i].cmin, keydata[i].cmax);
 
 		/* Verify that we got the expected answer. */
 		if (cid != i)

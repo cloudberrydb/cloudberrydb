@@ -103,6 +103,7 @@ extern void InitGPOPT();
 extern void TerminateGPOPT();
 #endif
 
+NoticeSessionDB_hook_type NoticeSessionDB_hook = NULL;
 
 /*** InitPostgres support ***/
 
@@ -682,7 +683,8 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 												   ALLOCSET_DEFAULT_INITSIZE,
 												   ALLOCSET_DEFAULT_MAXSIZE);
 
-	InitGPOPT();
+	if (!bootstrap && Gp_role == GP_ROLE_DISPATCH)
+		InitGPOPT();
 #endif
 
 	/*
@@ -1099,6 +1101,13 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	 * the correct value on their next try.
 	 */
 	MyProc->databaseId = MyDatabaseId;
+
+	/*
+	 * Mark PGPROC entry with the database ID maybe not enough in a distributed
+	 * environment. Use this hook to record it.
+	 */
+	if (NoticeSessionDB_hook)
+		(*NoticeSessionDB_hook)(MyDatabaseId);
 
 	/*
 	 * We established a catalog snapshot while reading pg_authid and/or

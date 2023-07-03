@@ -295,6 +295,16 @@ extern bool gp_local_distributed_cache_stats;
 extern bool gp_appendonly_verify_block_checksums;
 extern bool gp_appendonly_verify_write_block;
 extern bool gp_appendonly_compaction;
+extern bool enable_parallel;
+extern int  gp_appendonly_insert_files;
+extern int  gp_appendonly_insert_files_tuples_range;
+/*
+ * gp_enable_multiphase_limit is not cost based.
+ * When set to false, the planner will not use multi-phase limit.
+ * Used to debug and create test cases.
+ */
+extern bool gp_enable_multiphase_limit;
+
 
 /*
  * Threshold of the ratio of dirty data in a segment file
@@ -485,6 +495,7 @@ extern bool optimizer_enable_indexjoin;
 extern bool optimizer_enable_motions_masteronly_queries;
 extern bool optimizer_enable_motions;
 extern bool optimizer_enable_motion_broadcast;
+extern bool parallel_hash_enable_motion_broadcast;
 extern bool optimizer_enable_motion_gather;
 extern bool optimizer_enable_motion_redistribute;
 extern bool optimizer_enable_sort;

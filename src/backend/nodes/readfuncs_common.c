@@ -1519,6 +1519,8 @@ _readSliceTable(void)
 		READ_NODE_FIELD(slices[i].children); /* List of int index */
 		READ_ENUM_FIELD(slices[i].gangType, GangType);
 		READ_NODE_FIELD(slices[i].segments); /* List of int index */
+		READ_BOOL_FIELD(slices[i].useMppParallelMode);
+		READ_INT_FIELD(slices[i].parallel_workers);
 		local_node->slices[i].primaryGang = NULL;
 		READ_NODE_FIELD(slices[i].primaryProcesses); /* List of (CDBProcess *) */
 		READ_BITMAPSET_FIELD(slices[i].processesMap);

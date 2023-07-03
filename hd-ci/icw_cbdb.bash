@@ -39,7 +39,7 @@ function download_etcd() {
 icw_cbdb() {
 	fts_mode=$1
 	# setup ENV before running this script: MAKE_TEST_COMMAND, TEST_OS, TEST_BINARY_SWAP, DUMP_DB
-	export CONFIGURE_FLAGS="--disable-cassert --enable-tap-tests --enable-debug-extensions"
+	export CONFIGURE_FLAGS="--disable-cassert --enable-tap-tests --enable-debug-extensions --with-openssl"
 	if [ "${fts_mode}" = "external_fts" ]; then
 		export CONFIGURE_FLAGS="${CONFIGURE_FLAGS} --enable-external-fts"
 	fi

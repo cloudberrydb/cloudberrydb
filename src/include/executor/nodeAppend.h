@@ -22,7 +22,9 @@ extern void ExecEndAppend(AppendState *node);
 extern void ExecReScanAppend(AppendState *node);
 extern void ExecSquelchAppend(AppendState *node);
 extern void ExecAppendEstimate(AppendState *node, ParallelContext *pcxt);
+extern void GpAppendEstimate(AppendState *node, shm_toc_estimator *estimator);
 extern void ExecAppendInitializeDSM(AppendState *node, ParallelContext *pcxt);
+extern void GpAppendInitializeLWLock(ParallelAppendState *pstate);
 extern void ExecAppendReInitializeDSM(AppendState *node, ParallelContext *pcxt);
 extern void ExecAppendInitializeWorker(AppendState *node, ParallelWorkerContext *pwcxt);
 

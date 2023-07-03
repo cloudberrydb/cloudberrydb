@@ -24,19 +24,31 @@
 #include "catalog/namespace.h"
 #include "catalog/pg_enum.h"
 #include "catalog/storage.h"
+#include "cdb/cdbgang.h"
+#include "cdb/cdbutil.h"
+#include "cdb/cdbvars.h"
 #include "commands/async.h"
 #include "executor/execParallel.h"
+#include "executor/executor.h"
+#include "executor/hashjoin.h"
+#include "executor/nodeAppend.h"
+#include "executor/nodeHashjoin.h"
 #include "libpq/libpq.h"
 #include "libpq/pqformat.h"
 #include "libpq/pqmq.h"
 #include "miscadmin.h"
+#include "nodes/execnodes.h"
+#include "nodes/nodeFuncs.h"
 #include "optimizer/optimizer.h"
+#include "optimizer/walkers.h"
 #include "pgstat.h"
+#include "postmaster/postmaster.h"
 #include "storage/ipc.h"
 #include "storage/predicate.h"
 #include "storage/sinval.h"
 #include "storage/spin.h"
 #include "tcop/tcopprot.h"
+#include "utils/builtins.h"
 #include "utils/combocid.h"
 #include "utils/guc.h"
 #include "utils/inval.h"
@@ -57,6 +69,9 @@
 /* Magic number for parallel context TOC. */
 #define PARALLEL_MAGIC						0x50477c7c
 
+/* Magic number for gp style parallel context TOC. */
+#define GP_PARALLEL_MAGIC					0x50477d7d
+
 /*
  * Magic numbers for per-context parallel state sharing.  Higher-level code
  * should use smaller values, leaving these very large ones for use by this
@@ -76,6 +91,20 @@
 #define PARALLEL_KEY_REINDEX_STATE			UINT64CONST(0xFFFFFFFFFFFF000C)
 #define PARALLEL_KEY_RELMAPPER_STATE		UINT64CONST(0xFFFFFFFFFFFF000D)
 #define PARALLEL_KEY_UNCOMMITTEDENUMS		UINT64CONST(0xFFFFFFFFFFFF000E)
+#define PARALLEL_KEY_GP_DSA					UINT64CONST(0xFFFFFFFFFFFF000F)
+
+
+/* Shared parallel dsm entry table size. estimated number = 100 connections * average 50 slices. */
+#define SHARED_PARALLEL_DSM_TABLE_SIZE 5000
+
+/* CDB auxiliary state need to be synced from leader to parallel workers */
+typedef struct CdbParallelAuxState
+{
+	int 		session_id;
+	int 		num_segments;
+	int 		ic_htab_size;
+	char		interconnect_address[NI_MAXHOST];
+} CdbParallelAuxState;
 
 /* Fixed-size parallel state. */
 typedef struct FixedParallelState
@@ -95,6 +124,9 @@ typedef struct FixedParallelState
 	TimestampTz xact_ts;
 	TimestampTz stmt_ts;
 	SerializableXactHandle serializable_xact_handle;
+
+	/* CDB auxiliary state that worker must restore. */
+	CdbParallelAuxState cdb_aux_state;
 
 	/* Mutex protects remaining fields. */
 	slock_t		mutex;
@@ -125,6 +157,9 @@ static dlist_head pcxt_list = DLIST_STATIC_INIT(pcxt_list);
 
 /* Backend-local copy of data from FixedParallelState. */
 static pid_t ParallelLeaderPid;
+
+/* Shared Hashmap to save Parallel Entries for each Query Slice */
+static HTAB *GpParallelDSMHash;
 
 /*
  * List of internal parallel worker entry points.  We need this for
@@ -218,6 +253,9 @@ InitializeParallelDSM(ParallelContext *pcxt)
 	dsm_handle	session_dsm_handle = DSM_HANDLE_INVALID;
 	Snapshot	transaction_snapshot = GetTransactionSnapshot();
 	Snapshot	active_snapshot = GetActiveSnapshot();
+
+	if (gp_select_invisible)
+		active_snapshot = transaction_snapshot;
 
 	/* We might be running in a very short-lived memory context. */
 	oldcontext = MemoryContextSwitchTo(TopTransactionContext);
@@ -335,6 +373,12 @@ InitializeParallelDSM(ParallelContext *pcxt)
 	SpinLockInit(&fps->mutex);
 	fps->last_xlog_end = 0;
 	shm_toc_insert(pcxt->toc, PARALLEL_KEY_FIXED, fps);
+
+	/* CDB: should sync some global states to workes */
+	fps->cdb_aux_state.session_id = gp_session_id;
+	fps->cdb_aux_state.num_segments = numsegmentsFromQD;
+	strcpy(fps->cdb_aux_state.interconnect_address, interconnect_address);
+	fps->cdb_aux_state.ic_htab_size = ic_htab_size;
 
 	/* We can skip the rest of this if we're not budgeting for any workers. */
 	if (pcxt->nworkers > 0)
@@ -1335,6 +1379,16 @@ ParallelWorkerMain(Datum main_arg)
 	pq_set_parallel_leader(fps->parallel_leader_pid,
 						   fps->parallel_leader_backend_id);
 
+	/* CDB: should sync some global states from leader */
+	Gp_role = GP_ROLE_EXECUTE;
+	Gp_is_writer = false;
+	gp_session_id = fps->cdb_aux_state.session_id;
+	interconnect_address = fps->cdb_aux_state.interconnect_address;
+	numsegmentsFromQD = fps->cdb_aux_state.num_segments;
+	ic_htab_size = fps->cdb_aux_state.ic_htab_size;
+	MyProc->mppSessionId = gp_session_id;
+	MyProc->mppIsWriter = Gp_is_writer;
+
 	/*
 	 * Send a BackendKeyData message to the process that initiated parallelism
 	 * so that it has access to our PID before it receives any other messages
@@ -1406,7 +1460,15 @@ ParallelWorkerMain(Datum main_arg)
 	/* Restore GUC values from launching backend. */
 	gucspace = shm_toc_lookup(toc, PARALLEL_KEY_GUC, false);
 	RestoreGUCState(gucspace);
+	/* make sure GUC functions doesn't set the sanpshot */
+	Assert(!FirstSnapshotSet);
 	CommitTransactionCommand();
+
+	/* CDB: we skip restore Gp_role and Gp_is_writer, please see can_skip_gucvar().
+	 * This keep consistent of gucs in this function.
+	 */
+	Assert(Gp_role == GP_ROLE_EXECUTE);
+	Assert(!Gp_is_writer);
 
 	/* Crank up a transaction state appropriate to a parallel worker. */
 	tstatespace = shm_toc_lookup(toc, PARALLEL_KEY_TRANSACTION_STATE, false);
@@ -1582,4 +1644,261 @@ LookupParallelWorkerFunction(const char *libraryname, const char *funcname)
 	/* Otherwise load from external library. */
 	return (parallel_worker_main_type)
 		load_external_function(libraryname, funcname, true, NULL);
+}
+
+void
+InitGpParallelDSMHash(void)
+{
+	HASHCTL	info;
+
+	info.keysize = sizeof(ParallelEntryTag);
+	info.entrysize = sizeof(GpParallelDSMEntry);
+	info.num_partitions = NUM_PARALLEL_DSM_PARTITIONS;
+
+	GpParallelDSMHash = ShmemInitHash("Gp Parallel DSM Hash",
+									SHARED_PARALLEL_DSM_TABLE_SIZE,
+									SHARED_PARALLEL_DSM_TABLE_SIZE,
+									&info,
+									HASH_ELEM | HASH_BLOBS | HASH_PARTITION);
+}
+
+Size
+GpParallelDSMHashSize(void)
+{
+	/* GPDB_PARALLEL_FIXME: limit for max slice */
+	return hash_estimate_size(SHARED_PARALLEL_DSM_TABLE_SIZE,
+							   sizeof(GpParallelDSMEntry));
+}
+
+
+void *
+GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id)
+{
+	GpParallelDSMEntry *entry;
+	shm_toc    *toc;
+	bool found = false;
+
+	entry = (GpParallelDSMEntry *)
+		hash_search(GpParallelDSMHash,
+				&tag,
+				HASH_FIND,
+				&found);
+	Assert(found);
+
+	if (entry->pid == MyProcPid)
+	{
+		toc = entry->toc;
+	}
+	else
+	{
+		Assert(ParallelSession->segment);
+		toc = shm_toc_attach(GP_PARALLEL_MAGIC, dsm_segment_address(ParallelSession->segment));
+	}
+
+	Assert(toc != NULL);
+
+	return shm_toc_lookup(toc, plan_node_id, true);
+}
+
+
+void GpDestroyParallelDSMEntry()
+{
+	GpParallelDSMEntry *entry;
+	bool found = false;
+
+	ParallelEntryTag tag;
+
+	INIT_PARALLELENTRYTAG(tag, gp_command_count, currentSliceId, gp_session_id);
+
+	LWLockAcquire(GpParallelDSMHashLock, LW_EXCLUSIVE);
+
+	entry = (GpParallelDSMEntry *)
+		hash_search(GpParallelDSMHash,
+					&tag,
+					HASH_FIND,
+					&found);
+
+	if (entry != NULL && ParallelSession->segment != NULL)
+	{
+		entry->reference--;
+
+		Assert(entry->tolaunch >= 0 && entry->reference >= 0);
+
+		/*
+		 * Since we pin the dsa and dsm when we first create it,
+		 * we need to unpin them when we detach in the last parallel worker.
+		 */
+		if (entry->reference == 0 && entry->tolaunch == 0)
+		{
+			dsa_unpin(ParallelSession->area);
+			dsm_unpin_segment(entry->handle);
+
+			hash_search(GpParallelDSMHash,
+					&tag,
+					HASH_REMOVE,
+					&found);
+		}
+
+		dsa_detach(ParallelSession->area);
+		dsm_detach(ParallelSession->segment);
+
+		ParallelSession->segment = NULL;
+		ParallelSession->area = NULL;
+	}
+	LWLockRelease(GpParallelDSMHashLock);
+}
+
+void
+AtEOXact_GP_Parallel()
+{
+	GpDestroyParallelDSMEntry();
+}
+
+void
+AtProcExit_GP_Parallel(int code, Datum arg)
+{
+	AtEOXact_GP_Parallel();
+}
+
+GpParallelDSMEntry *
+GpInsertParallelDSMHash(PlanState *planstate)
+{
+	GpParallelDSMEntry *entry;
+	bool found = false;
+	static bool init = false;
+
+	int localSliceId = LocallyExecutingSliceIndex(planstate->state);
+	int parallel_workers = 0;
+
+	if (planstate->state->es_plannedstmt && planstate->state->es_plannedstmt->slices)
+	{
+		parallel_workers = planstate->state->es_plannedstmt->slices[localSliceId].parallel_workers;
+	}
+
+	if (parallel_workers <= 1)
+		return NULL;
+
+	ParallelEntryTag tag;
+	INIT_PARALLELENTRYTAG(tag, gp_command_count, localSliceId, gp_session_id);
+
+	LWLockAcquire(GpParallelDSMHashLock, LW_EXCLUSIVE);
+
+	entry = (GpParallelDSMEntry *)
+		hash_search(GpParallelDSMHash,
+					&tag,
+					HASH_ENTER_NULL,
+					&found);
+
+	if (!entry)
+		ereport(ERROR,
+				(errcode(ERRCODE_OUT_OF_MEMORY),
+				 errmsg("out of shared memory"),
+				 errhint("out of cross-slice SHARED_PARALLEL_DSM_TABLE_SIZE slots.")));
+
+	if (!found)
+	{
+		shm_toc_estimator *estimator = NULL;
+		ParallelContext context = {
+			.nworkers = parallel_workers,
+		};
+
+		Size		dsa_minsize = dsa_minimum_size();
+		estimator = &context.estimator;
+		shm_toc_initialize_estimator(estimator);
+
+		/* Estimate space for parallel DSA area. */
+		shm_toc_estimate_chunk(estimator, dsa_minsize);
+		shm_toc_estimate_keys(estimator, 1);
+
+		EstimateGpParallelDSMEntrySize(planstate, &context);
+
+		Size segsize = shm_toc_estimate(estimator);
+
+		shm_toc    *toc;
+		dsm_segment* seg = dsm_create(segsize, DSM_CREATE_NULL_IF_MAXSEGMENTS);
+
+		if (seg != NULL)
+			toc = shm_toc_create(GP_PARALLEL_MAGIC,
+								dsm_segment_address(seg),
+								segsize);
+		else
+			ereport(ERROR,
+					(errcode(ERRCODE_OUT_OF_MEMORY),
+					 errmsg("out of shared memory"),
+					 errhint("create dsm for gp style parallel workers failed.")));
+
+		BarrierInit(&entry->build_barrier, parallel_workers);
+		entry->handle = dsm_segment_handle(seg);
+		entry->toc = toc;
+		entry->pid = MyProcPid;
+		entry->reference = 1;
+		entry->tolaunch = parallel_workers - 1;
+		entry->parallel_workers = parallel_workers;
+		entry->temp_worker_id = 0;
+
+		/* Create a DSA area that can be used by the leader and all workers. */
+		char	   *area_space = shm_toc_allocate(entry->toc, dsa_minsize);
+		shm_toc_insert(entry->toc, PARALLEL_KEY_GP_DSA, area_space);
+		dsa_area* area = dsa_create_in_place(area_space,
+										dsa_minsize,
+										LWTRANCHE_PARALLEL_QUERY_DSA,
+										seg);
+
+		planstate->state->es_query_dsa = area;
+
+		/*
+		 * We need to pin the segment we created.
+		 * Otherwise, if some of the parallel workers detach the segment soon enough,
+		 * the `dsm_control->item[i].refcnt` will be set to one and the segment will
+		 * be destroyed by dsm_detach.
+		 *
+		 * We need to pin dsa area too for the similar reason.
+		 */
+		dsm_pin_segment(seg);
+		dsa_pin(area);
+
+		ParallelSession->area = area;
+		ParallelSession->segment = seg;
+		context.seg = seg;
+		context.toc = toc;
+
+		InitializeGpParallelDSMEntry(planstate, &context);
+		if (!init)
+		{
+			/* should ensure that no shared memory is pinned before process exist. */
+			before_shmem_exit(AtProcExit_GP_Parallel, 0);
+			init = true;
+		}
+	}
+	else
+	{
+		dsm_segment *seg = dsm_attach(entry->handle);
+		if (seg == NULL)
+			elog(ERROR, "could not attach to Parallel DSM segment");
+		ParallelSession->segment = seg;
+
+		/* Attach to DSA area that can be used by the leader and all workers. */
+		shm_toc* toc = shm_toc_attach(GP_PARALLEL_MAGIC, dsm_segment_address(seg));
+		char* area_space = shm_toc_lookup(toc, PARALLEL_KEY_GP_DSA, false);
+		dsa_area* area = dsa_attach_in_place(area_space, seg);
+
+		ParallelSession->area = area;
+		planstate->state->es_query_dsa = area;
+
+		entry->temp_worker_id = parallel_workers - entry->tolaunch;
+		entry->tolaunch--;
+		entry->reference++;
+		ParallelWorkerContext ctx = {
+			.seg = seg,
+			.toc = toc,
+			.nworkers = parallel_workers,
+			.worker_id = entry->temp_worker_id,
+		};
+
+		InitializeGpParallelWorkers(planstate, &ctx);
+	}
+
+	LWLockRelease(GpParallelDSMHashLock);
+	BarrierArriveAndWait(&entry->build_barrier, 0);
+	return entry;
 }

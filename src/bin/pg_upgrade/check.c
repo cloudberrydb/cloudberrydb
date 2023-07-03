@@ -10,6 +10,8 @@
 #include "postgres_fe.h"
 
 #include "catalog/pg_authid_d.h"
+#include "catalog/pg_collation.h"
+#include "common/kmgr_utils.h"
 #include "fe_utils/string_utils.h"
 #include "mb/pg_wchar.h"
 #include "pg_upgrade.h"
@@ -29,6 +31,7 @@ static void check_for_composite_data_type_usage(ClusterInfo *cluster);
 static void check_for_reg_data_type_usage(ClusterInfo *cluster);
 static void check_for_jsonb_9_4_usage(ClusterInfo *cluster);
 static void check_for_pg_role_prefix(ClusterInfo *cluster);
+static void check_for_cluster_key_failure(ClusterInfo *cluster);
 static void check_for_new_tablespace_dir(ClusterInfo *new_cluster);
 static void check_for_user_defined_encoding_conversions(ClusterInfo *cluster);
 static char *get_canonical_locale_name(int category, const char *locale);
@@ -162,6 +165,9 @@ check_and_dump_old_cluster(bool live_check, char **sequence_script_file_name)
 	if (GET_MAJOR_VERSION(old_cluster.major_version) <= 905)
 		check_for_pg_role_prefix(&old_cluster);
 
+	if (GET_MAJOR_VERSION(old_cluster.major_version) >= 1400)
+		check_for_cluster_key_failure(&old_cluster);
+
 	if (GET_MAJOR_VERSION(old_cluster.major_version) == 904 &&
 		old_cluster.controldata.cat_ver < JSONB_FORMAT_CHANGE_CAT_VER)
 		check_for_jsonb_9_4_usage(&old_cluster);
@@ -245,6 +251,9 @@ check_new_cluster(void)
 	check_databases_are_compatible();
 
 	check_loadable_libraries();
+
+	if (GET_MAJOR_VERSION(old_cluster.major_version) >= 1400)
+		check_for_cluster_key_failure(&new_cluster);
 
 	switch (user_opts.transfer_mode)
 	{
@@ -1520,6 +1529,32 @@ check_for_user_defined_encoding_conversions(ClusterInfo *cluster)
 	}
 	else
 		check_ok();
+}
+
+
+/*
+ * check_for_cluster_key_failure()
+ *
+ *	Make sure there was no unrepaired pg_alterckey failure
+ */
+static void
+check_for_cluster_key_failure(ClusterInfo *cluster)
+{
+	struct stat buffer;
+
+	if (stat (KMGR_DIR_PID, &buffer) == 0)
+	{
+		if (cluster == &old_cluster)
+			pg_fatal("The source cluster had a pg_alterckey failure that needs repair or\n"
+					 "pg_alterckey is running.  Run pg_alterckey --repair or wait for it\n"
+					 "to complete.\n");
+		else
+			pg_fatal("The target cluster had a pg_alterckey failure that needs repair or\n"
+					 "pg_alterckey is running.  Run pg_alterckey --repair or wait for it\n"
+					 "to complete.\n");
+	}
+
+	check_ok();
 }
 
 

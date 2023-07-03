@@ -42,6 +42,7 @@
 #include "utils/faultinjector.h"
 #include "utils/lsyscache.h"
 #include "utils/pg_rusage.h"
+#include "utils/guc.h"
 
 #define IS_BTREE(r) ((r)->rd_rel->relam == BTREE_AM_OID)
 
@@ -87,6 +88,7 @@ typedef struct AOCODMLState
 {
 	Oid				relationOid;
 	AOCSInsertDesc	insertDesc;
+	dlist_head		head; // Head of multiple segment files insertion list.
 	AOCSDeleteDesc	deleteDesc;
 } AOCODMLState;
 
@@ -187,6 +189,7 @@ enter_dml_state(const Oid relationOid)
 
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
+	dlist_init(&state->head);
 
 	Assert(!found);
 
@@ -291,7 +294,7 @@ aoco_dml_finish(Relation relation, CmdType operation)
 	if (state->insertDesc)
 	{
 		Assert(state->insertDesc->aoi_rel == relation);
-		aocs_insert_finish(state->insertDesc);
+		aocs_insert_finish(state->insertDesc, &state->head);
 		state->insertDesc = NULL;
 	}
 
@@ -304,17 +307,47 @@ static AOCSInsertDesc
 get_insert_descriptor(const Relation relation)
 {
 	AOCODMLState *state;
+	AOCSInsertDesc next = NULL;
 
 	state = find_dml_state(RelationGetRelid(relation));
 
 	if (state->insertDesc == NULL)
 	{
+		List	*segments = NIL;
 		MemoryContext oldcxt;
 
 		oldcxt = MemoryContextSwitchTo(aocoLocal.stateCxt);
 		state->insertDesc = aocs_insert_init(relation,
 											 ChooseSegnoForWrite(relation));
+		dlist_init(&state->head);
+		dlist_head *head = &state->head;
+		dlist_push_tail(head, &state->insertDesc->node);
+
+		if (state->insertDesc->insertMultiFiles)
+		{
+			segments = lappend_int(segments, state->insertDesc->cur_segno);
+			for (int i = 0; i < gp_appendonly_insert_files - 1; i++)
+			{
+				next = aocs_insert_init(relation,
+												 ChooseSegnoForWriteMultiFile(relation, segments));
+				dlist_push_tail(head, &next->node);
+				segments = lappend_int(segments, next->cur_segno);
+			}
+			list_free(segments);
+		}
 		MemoryContextSwitchTo(oldcxt);
+	}
+
+	/* switch insertDesc */
+	if (state->insertDesc->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
+	{
+		state->insertDesc->range = 0;
+		if (!dlist_has_next(&state->head, &state->insertDesc->node))
+			next = (AOCSInsertDesc)dlist_container(AOCSInsertDescData, node, dlist_head_node(&state->head));
+		else
+			next = (AOCSInsertDesc)dlist_container(AOCSInsertDescData, node, dlist_next_node(&state->head, &state->insertDesc->node));
+
+		state->insertDesc = next;
 	}
 
 	return state->insertDesc;
@@ -427,7 +460,7 @@ extractcolumns_from_node(Node *expr, bool *cols, AttrNumber natts)
 }
 
 static TableScanDesc
-aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot,
+aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot, ParallelTableScanDesc parallel_scan,
 							  List *targetlist, List *qual,
 							  uint32 flags)
 {
@@ -451,6 +484,7 @@ aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot,
 
 	aoscan = aocs_beginscan(rel,
 							snapshot,
+							parallel_scan,
 							cols,
 							flags);
 
@@ -524,11 +558,9 @@ aoco_beginscan(Relation relation,
 {
 	AOCSScanDesc	aoscan;
 
-	/* Parallel scan not supported for AO_COLUMN tables */
-	Assert(pscan == NULL);
-
 	aoscan = aocs_beginscan(relation,
 							snapshot,
+							pscan,
 							NULL,
 							flags);
 
@@ -591,19 +623,32 @@ aoco_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSlot *sl
 static Size
 aoco_parallelscan_estimate(Relation rel)
 {
-	elog(ERROR, "parallel SeqScan not implemented for AO_COLUMN tables");
+	return sizeof(ParallelBlockTableScanDescData);
 }
 
+/*
+ * AOCO only uses part fields of ParallelBlockTableScanDesc.
+ */
 static Size
 aoco_parallelscan_initialize(Relation rel, ParallelTableScanDesc pscan)
 {
-	elog(ERROR, "parallel SeqScan not implemented for AO_COLUMN tables");
+	ParallelBlockTableScanDesc bpscan = (ParallelBlockTableScanDesc) pscan;
+
+	bpscan->base.phs_relid = RelationGetRelid(rel);
+	bpscan->phs_nblocks = 0; /* init, will be updated later by table_parallelscan_initialize */
+	pg_atomic_init_u64(&bpscan->phs_nallocated, 0);
+	/* we don't need phs_mutex and phs_startblock in ao, though, init them. */
+	SpinLockInit(&bpscan->phs_mutex);
+	bpscan->phs_startblock = InvalidBlockNumber;
+	return sizeof(ParallelBlockTableScanDescData);
 }
 
 static void
 aoco_parallelscan_reinitialize(Relation rel, ParallelTableScanDesc pscan)
 {
-	elog(ERROR, "parallel SeqScan not implemented for AO_COLUMN tables");
+	ParallelBlockTableScanDesc bpscan = (ParallelBlockTableScanDesc) pscan;
+
+	pg_atomic_write_u64(&bpscan->phs_nallocated, 0);
 }
 
 static IndexFetchTableData *
@@ -1180,6 +1225,7 @@ aoco_relation_copy_for_cluster(Relation OldHeap, Relation NewHeap,
 	slot = table_slot_create(OldHeap, NULL);
 
 	scan = aocs_beginscan(OldHeap, GetActiveSnapshot(),
+						  NULL /* parallel_scan */,
 						  NULL /* proj */,
 						  0 /* flags */);
 
@@ -1234,7 +1280,7 @@ aoco_relation_copy_for_cluster(Relation OldHeap, Relation NewHeap,
 	tuplesort_end(tuplesort);
 
 	/* Finish and deallocate insertion */
-	aocs_insert_finish(idesc);
+	aocs_insert_finish(idesc, NULL);
 }
 
 static bool

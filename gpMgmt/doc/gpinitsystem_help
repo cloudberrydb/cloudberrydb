@@ -22,6 +22,7 @@ gpinitsystem -c <gpinitsystem_config>
             [--mirror-mode={group|spread}] [-a] [-q] [-l <logfile_directory>] [-D]
             [-I input_configuration_file]
             [-O output_configuration_file]
+            [-T <encryption_method>]
 
 gpinitsystem -v
 
@@ -108,6 +109,9 @@ OPTIONS
  cluster_configuration_file option or the -I input_configuration_file
  option to gpinitsystem.
 
+-T <encryption_method>
+enable transparent data encryption, and set cluster file encryption method, 
+such as AES256, SM4.
 
 --locale=<locale> | -n <locale>  
 

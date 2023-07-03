@@ -146,6 +146,20 @@ make_broadcast_motion(Plan *lefttree)
 	return motion;
 }
 
+Motion *
+make_parallel_broadcast_motion(Plan *lefttree)
+{
+	Motion	    *motion;
+
+	motion = make_motion(NULL, lefttree,
+		      				0, NULL, NULL, NULL, NULL);
+	motion->motionType = MOTIONTYPE_PARALLEL_BROADCAST;
+	motion->hashExprs = NIL;
+	motion->hashFuncs = NULL;
+
+	return motion;
+}
+
 Plan *
 make_explicit_motion(PlannerInfo *root, Plan *lefttree, AttrNumber segidColIdx)
 {

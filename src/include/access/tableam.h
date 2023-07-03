@@ -23,6 +23,7 @@
 #include "utils/guc.h"
 #include "utils/rel.h"
 #include "utils/snapshot.h"
+#include "utils/snapmgr.h"
 
 
 #define DEFAULT_TABLE_ACCESS_METHOD	"heap"
@@ -313,6 +314,7 @@ typedef struct TableAmRoutine
 	 */
 	TableScanDesc	(*scan_begin_extractcolumns) (Relation rel,
 												  Snapshot snapshot,
+												  ParallelTableScanDesc parallel_scan,
 												  List *targetlist,
 												  List *qual,
 												  uint32 flags);
@@ -914,22 +916,42 @@ table_beginscan(Relation rel, Snapshot snapshot,
  * scan key array from the targetList and the quals if the corresponding method
  * is implemented. This is an optimization needed for AOCO relations.
  * Otherwise, it is equivalent as passing the last two arguments as, 0, NULL.
+ * Like table_beginscan_parallel, it will be parallel mode if parallel_scan is not NULL.
  */
 static inline TableScanDesc
-table_beginscan_es(Relation rel, Snapshot snapshot,
+table_beginscan_es(Relation relation, Snapshot snapshot, ParallelTableScanDesc parallel_scan,
 				   List *targetList, List *qual)
 {
+	bool isParallel = parallel_scan != NULL;
 	uint32		flags = SO_TYPE_SEQSCAN |
 	SO_ALLOW_STRAT | SO_ALLOW_SYNC | SO_ALLOW_PAGEMODE;
 
-	if (rel->rd_tableam->scan_begin_extractcolumns)
-		return rel->rd_tableam->scan_begin_extractcolumns(rel, snapshot,
+	/* reset snapshot if in parallel mode */
+	if (isParallel)
+	{
+		Assert(RelationGetRelid(relation) == parallel_scan->phs_relid);
+		if (!parallel_scan->phs_snapshot_any) {
+			/* Snapshot was serialized -- restore it */
+			snapshot = RestoreSnapshot((char *) parallel_scan +
+									   parallel_scan->phs_snapshot_off);
+			RegisterSnapshot(snapshot);
+			flags |= SO_TEMP_SNAPSHOT;
+		}
+		else
+		{
+			/* SnapshotAny passed by caller (not serialized) */
+			snapshot = SnapshotAny;
+		}
+	}
+
+	if (relation->rd_tableam->scan_begin_extractcolumns)
+		return relation->rd_tableam->scan_begin_extractcolumns(relation, snapshot, parallel_scan,
 														  targetList, qual,
 														  flags);
 
-	return rel->rd_tableam->scan_begin(rel, snapshot,
+	return relation->rd_tableam->scan_begin(relation, snapshot,
 									   0, NULL,
-									   NULL, flags);
+									   parallel_scan, flags);
 }
 
 /*

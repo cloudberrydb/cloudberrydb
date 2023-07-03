@@ -69,6 +69,7 @@ typedef struct CdbExplain_StatInst
 	IncrementalSortGroupInfo prefixsortGroupInfo; /* Prefix sort group info for Incremental Sort node */
 	int			bnotes;			/* Offset to beginning of node's extra text */
 	int			enotes;			/* Offset to end of node's extra text */
+	int 		nworkers_launched; /* Number of workers launched for this node */
 	WalUsage	walusage;		/* add WAL usage */
 } CdbExplain_StatInst;
 
@@ -78,6 +79,7 @@ typedef struct CdbExplain_SliceWorker
 {
 	double		peakmemused;	/* bytes alloc in per-query mem context tree */
 	double		vmem_reserved;	/* vmem reserved by a QE */
+	int 		nworkers_launched; /* Number of workers launched for this slice */
 } CdbExplain_SliceWorker;
 
 
@@ -771,7 +773,10 @@ cdbexplain_depositSliceStats(CdbExplain_StatHdr *hdr,
 	iworker = hdr->segindex - ss->segindex0;
 	ssw = &ss->workers[iworker];
 	Assert(iworker >= 0 && iworker < ss->nworker);
-	Assert(ssw->peakmemused == 0);	/* each worker should be seen just once */
+	/* GPDB_PARALLEL_FIXME: reuse worker to store the stats of same slice */
+#if 0
+	Assert(ssw->peakmemused == 0); /* each worker should be seen just once */
+#endif
 	*ssw = hdr->worker;
 
 	/* Rollup of per-worker stats into SliceSummary */
@@ -865,6 +870,20 @@ cdbexplain_collectStatsFromNode(PlanState *planstate, CdbExplain_SendStatCtx *ct
 			   &incrementalstate->incsort_info.prefixsortGroupInfo,
 			   sizeof(IncrementalSortGroupInfo));
 	}
+#if 0
+	if (IsA(planstate, GatherState))
+	{
+		GatherState *gatherstate = (GatherState *) planstate;
+
+		si->nworkers_launched = gatherstate->nworkers_launched;
+	}
+	if (IsA(planstate, GatherMergeState))
+	{
+		GatherMergeState *gathermergestate = (GatherMergeState *) planstate;
+
+		si->nworkers_launched = gathermergestate->nworkers_launched;
+	}
+#endif
 }								/* cdbexplain_collectStatsFromNode */
 
 
@@ -1068,6 +1087,12 @@ cdbexplain_depositStatsToNode(PlanState *planstate, CdbExplain_RecvStatCtx *ctx)
 		/* Update per-slice accumulators. */
 		cdbexplain_depStatAcc_upd(&peakmemused, rsh->worker.peakmemused, rsh, rsi, nsi);
 		cdbexplain_depStatAcc_upd(&vmem_reserved, rsh->worker.vmem_reserved, rsh, rsi, nsi);
+#if 0
+		if (IsA(planstate, GatherState) || IsA(planstate, GatherMergeState))
+		{
+			rsh->worker.nworkers_launched = nsi->nworkers_launched;
+		}
+#endif
 	}
 
 	/* Save per-node accumulated stats in NodeSummary. */
@@ -1954,9 +1979,10 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                 cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), cdbexplain_agg_avg(&ss->peakmemused));
                 cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->peakmemused.imax, ss->nworker);
                 appendStringInfo(es->str,
-                                 "Executor memory: %s avg x %d workers, %s max%s.",
+                                 "Executor memory: %s avg x %dx(%d) workers, %s max%s.",
                                  avgbuf,
                                  ss->peakmemused.vcnt,
+                                 ss->workers->nworkers_launched,
                                  maxbuf,
                                  segbuf);
             }
@@ -1965,6 +1991,7 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                 ExplainOpenGroup("Executor Memory", "Executor Memory", true, es);
                 ExplainPropertyInteger("Average", "kB", cdbexplain_agg_avg(&ss->peakmemused), es);
                 ExplainPropertyInteger("Workers", NULL, ss->peakmemused.vcnt, es);
+                ExplainPropertyInteger("Subworkers", NULL, ss->workers->nworkers_launched, es);
                 ExplainPropertyInteger("Maximum Memory Used", "kB", ss->peakmemused.vmax, es);
                 ExplainCloseGroup("Executor Memory", "Executor Memory", true, es);
             }
@@ -2010,9 +2037,10 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                     cdbexplain_formatMemory(avgbuf, sizeof(avgbuf), cdbexplain_agg_avg(&ss->vmem_reserved));
                     cdbexplain_formatSeg(segbuf, sizeof(segbuf), ss->vmem_reserved.imax, ss->nworker);
                     appendStringInfo(es->str,
-                                     "  Vmem reserved: %s avg x %d workers, %s max%s.",
+                                     "  Vmem reserved: %s avg x %dx(%d) workers, %s max%s.",
                                      avgbuf,
                                      ss->vmem_reserved.vcnt,
+                                     ss->workers->nworkers_launched,
                                      maxbuf,
                                      segbuf);
                 }
@@ -2021,6 +2049,7 @@ gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
                     ExplainOpenGroup("Virtual Memory", "Virtual Memory", true, es);
                     ExplainPropertyInteger("Average", "kB", cdbexplain_agg_avg(&ss->vmem_reserved), es);
                     ExplainPropertyInteger("Workers", NULL, ss->vmem_reserved.vcnt, es);
+                    ExplainPropertyInteger("Subworkers", NULL, ss->workers->nworkers_launched, es);
                     ExplainPropertyInteger("Maximum Memory Used", "kB", ss->vmem_reserved.vmax, es);
                     ExplainCloseGroup("Virtual Memory", "Virtual Memory", true, es);
                 }

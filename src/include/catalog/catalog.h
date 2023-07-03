@@ -33,6 +33,7 @@ extern bool IsCatalogRelation(Relation relation);
 
 extern bool IsSystemClass(Oid relid, Form_pg_class reltuple);
 extern bool IsToastClass(Form_pg_class reltuple);
+extern bool IsSystemClassByRelid(Oid relid);
 
 extern bool IsCatalogRelationOid(Oid relid);
 

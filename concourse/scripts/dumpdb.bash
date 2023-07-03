@@ -7,6 +7,8 @@ INSTALL_DIR=${INSTALL_DIR:-/usr/local/cloudberry-db-devel}
 source $INSTALL_DIR/greenplum_path.sh
 source ./gpdb_src/gpAux/gpdemo/gpdemo-env.sh
 
+# ignore ERR trap
+gpstop -qa || :
 gpstart -a
 sleep 60
 ./gpdb_src/concourse/scripts/ic_start_fts_once.bash

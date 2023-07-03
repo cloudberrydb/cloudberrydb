@@ -69,3 +69,5 @@ ParallelCursorEndpointLock			59
 SharedSnapshotLock				    60
 DistributedLogControlLock			61
 CdbConfigCacheLock				    62
+KmgrFileLock					    63
+GpParallelDSMHashLock               64

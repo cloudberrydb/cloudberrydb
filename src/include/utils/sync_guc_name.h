@@ -10,6 +10,7 @@
 		"default_tablespace",
 		"default_toast_compression",
 		"dml_ignore_target_partition_check",
+		"enable_parallel",
 		"execute_pruned_plan",
 		"explain_memory_verbosity",
 		"force_parallel_mode",
@@ -138,3 +139,5 @@
 		"wal_debug",
 		"work_mem",
 		"gp_resgroup_debug_wait_queue",
+		"gp_appendonly_insert_files",
+		"gp_appendonly_insert_files_tuples_range",

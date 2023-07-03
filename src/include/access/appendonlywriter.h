@@ -40,12 +40,36 @@
 #define RESERVED_SEGNO 0
 
 /*
+ * Modes of operation for the choose_segno_internal() function.
+ */
+typedef enum
+{
+	/*
+	 * Normal mode; select a segment to insert to, for INSERT or COPY.
+	 */
+	CHOOSE_MODE_WRITE,
+
+	/*
+	 * Select a segment to insert surviving rows to, when compacting
+	 * another segfile in VACUUM.
+	 */
+	CHOOSE_MODE_COMPACTION_WRITE,
+
+	/*
+	 * Select next segment to compact.
+	 */
+	CHOOSE_MODE_COMPACTION_TARGET
+} choose_segno_mode;
+
+/*
  * functions in appendonlywriter.c
  */
 extern void LockSegnoForWrite(Relation rel, int segno);
 extern int  ChooseSegnoForWrite(Relation rel);
+extern int  ChooseSegnoForWriteMultiFile(Relation rel, List *avoid_segnos);
 extern int  ChooseSegnoForCompactionWrite(Relation rel, List *avoid_segnos);
 extern int  ChooseSegnoForCompaction(Relation rel, List *avoidsegnos);
 extern void AORelIncrementModCount(Relation parentrel);
+extern bool ShouldUseReservedSegno(Relation rel, choose_segno_mode mode);
 
 #endif							/* APPENDONLYWRITER_H */

@@ -182,7 +182,9 @@ static void ExplainJSONLineEnding(ExplainState *es);
 static void ExplainYAMLLineStarting(ExplainState *es);
 static void escape_yaml(StringInfo buf, const char *str);
 
-/* Include the Cloudberry EXPLAIN extensions */
+static void Explainlocus(ExplainState *es, CdbLocusType locustype, int parallel);
+
+/* Include the Greenplum EXPLAIN extensions */
 #include "explain_gp.c"
 
 
@@ -212,6 +214,8 @@ ExplainQuery(ParseState *pstate, ExplainStmt *stmt,
 			es->analyze = defGetBoolean(opt);
 		else if (strcmp(opt->defname, "verbose") == 0)
 			es->verbose = defGetBoolean(opt);
+		else if (strcmp(opt->defname, "locus") == 0)
+			es->locus = defGetBoolean(opt);
 		else if (strcmp(opt->defname, "costs") == 0)
 			es->costs = defGetBoolean(opt);
 		else if (strcmp(opt->defname, "buffers") == 0)
@@ -1765,6 +1769,7 @@ ExplainNode(PlanState *planstate, List *ancestors,
 				Assert(plan->lefttree);
 
 				motion_snd = list_length(es->currentSlice->segments);
+
 				motion_recv = parentSlice == NULL ? 1 : list_length(parentSlice->segments);
 
 				switch (pMotion->motionType)
@@ -1782,6 +1787,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 						break;
 					case MOTIONTYPE_BROADCAST:
 						sname = "Broadcast Motion";
+						break;
+					case MOTIONTYPE_PARALLEL_BROADCAST:
+						sname = "Parallel Broadcast Motion";
 						break;
 					case MOTIONTYPE_EXPLICIT:
 						sname = "Explicit Redistribute Motion";
@@ -2198,6 +2206,12 @@ ExplainNode(PlanState *planstate, List *ancestors,
 	if (es->verbose)
 		show_plan_tlist(planstate, ancestors, es);
 
+	/* explain(locus) doesn't support Orca yet */
+	 if (es->locus && !optimizer)
+	 {
+		 Explainlocus(es, plan->locustype, plan->parallel);
+	 }
+
 	/* unique join */
 	switch (nodeTag(plan))
 	{
@@ -2559,11 +2573,10 @@ ExplainNode(PlanState *planstate, List *ancestors,
 				if (pMotion->motionType == MOTIONTYPE_HASH &&
 					pMotion->numHashSegments != motion_recv)
 				{
-					Assert(pMotion->numHashSegments < motion_recv);
-					appendStringInfoSpaces(es->str, es->indent * 2);
-					appendStringInfo(es->str,
-									 "Hash Module: %d\n",
-									 pMotion->numHashSegments);
+					AssertImply(pMotion->senderSliceInfo && pMotion->senderSliceInfo->parallel_workers <= 1,
+						    				pMotion->numHashSegments < motion_recv);
+					ExplainPropertyInteger("Hash Module", NULL,
+											pMotion->numHashSegments, es);
 				}
 			}
 			break;
@@ -5754,4 +5767,63 @@ static void
 escape_yaml(StringInfo buf, const char *str)
 {
 	escape_json(buf, str);
+}
+
+/*
+ * Explainlocus
+ * Show locus type and parallel workers(if it's > 1) of plan node.
+ */
+static void
+Explainlocus(ExplainState *es, CdbLocusType locustype, int parallel)
+{
+	char* locus = NULL;
+	switch (locustype)
+	{
+		case CdbLocusType_Null:
+			locus = "NULL";
+			break;
+		case CdbLocusType_Entry:
+			locus = "Entry";
+			break;
+		case CdbLocusType_SingleQE:
+			locus = "SingleQE";
+			break;
+		case CdbLocusType_General:
+			locus = "General";
+			break;
+		case CdbLocusType_SegmentGeneral:
+			locus = "SegmentGeneral";
+			break;
+		case CdbLocusType_SegmentGeneralWorkers:
+			locus = "SegmentGeneralWorkers";
+			break;
+		case CdbLocusType_OuterQuery:
+			locus = "OuteryQuery";
+			break;
+		case CdbLocusType_Replicated:
+			locus = "Replicated";
+			break;
+		case CdbLocusType_ReplicatedWorkers:
+			locus = "ReplicatedWorkers";
+			break;
+		case CdbLocusType_Hashed:
+			locus = "Hashed";
+			break;
+		case CdbLocusType_HashedOJ:
+			locus = "HashedOJ";
+			break;
+		case CdbLocusType_Strewn:
+			locus = "Strewn";
+			break;
+		case CdbLocusType_HashedWorkers:
+			locus = "HashedWorkers";
+			break;
+		default:
+			locus = "unknown";
+			break;
+	}
+
+	ExplainPropertyText("Locus", locus, es);
+	if (parallel > 1)
+		ExplainPropertyInteger("Parallel Workers", NULL, parallel, es);
 }

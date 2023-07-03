@@ -1007,14 +1007,18 @@ ExecBitmapHeapInitializeWorker(BitmapHeapScanState *node,
 {
 	ParallelBitmapHeapState *pstate;
 	Snapshot	snapshot;
+	EState	   *estate = node->ss.ps.state;
 
 	Assert(node->ss.ps.state->es_query_dsa != NULL);
 
 	pstate = shm_toc_lookup(pwcxt->toc, node->ss.ps.plan->plan_node_id, false);
 	node->pstate = pstate;
 
-	snapshot = RestoreSnapshot(pstate->phs_snapshot_data);
-	table_scan_update_snapshot(node->ss.ss_currentScanDesc, snapshot);
+	if (!estate->useMppParallelMode)
+	{
+		snapshot = RestoreSnapshot(pstate->phs_snapshot_data);
+		table_scan_update_snapshot(node->ss.ss_currentScanDesc, snapshot);
+	}
 }
 
 void

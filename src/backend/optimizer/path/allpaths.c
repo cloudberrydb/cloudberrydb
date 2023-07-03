@@ -22,6 +22,7 @@
 
 #include "access/sysattr.h"
 #include "access/tsmapi.h"
+#include "catalog/catalog.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_operator.h"
 #include "catalog/pg_proc.h"
@@ -52,6 +53,8 @@
 #include "rewrite/rewriteManip.h"
 #include "utils/guc.h"
 #include "utils/lsyscache.h"
+#include "utils/rel.h"
+#include "utils/syscache.h"
 
 #include "cdb/cdbmutate.h"		/* cdbmutate_warn_ctid_without_segid */
 #include "cdb/cdbpath.h"		/* cdbpath_rows() */
@@ -519,6 +522,8 @@ bring_to_outer_query(PlannerInfo *root, RelOptInfo *rel, List *outer_quals)
 	rel->cheapest_unique_path = NULL;
 	rel->cheapest_parameterized_paths = NIL;
 	rel->pathlist = NIL;
+	/* GPDB_PARALLEL_FIXME: Need to clear partial_pathlist before we enable OuterQuery locus in paralle mode */
+	rel->partial_pathlist = NIL;
 
 	foreach(lc, origpathlist)
 	{
@@ -646,6 +651,17 @@ bring_to_singleQE(PlannerInfo *root, RelOptInfo *rel)
 
 		add_path(rel, path, root);
 	}
+	/*
+	 * GP_PARALLEL_FIXME:
+	 * If we need to bring to single QE which commonly seen in lateral
+	 * join with group by or limit, we better to set partial pathlist
+	 * to NIL in order to make sure single QE locus is satisfied in
+	 * upper paths.
+	 *
+	 * It's not trivial to apply single QE locus constrain to parallel
+	 * in current code. We should think about that later.
+	 */
+	rel->partial_pathlist = NIL;
 	set_cheapest(rel);
 }
 
@@ -772,7 +788,10 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 		(*set_rel_pathlist_hook) (root, rel, rti, rte);
 
 	if (rel->upperrestrictinfo)
+	{
 		bring_to_outer_query(root, rel, rel->upperrestrictinfo);
+		/* GP_PARALLEL_FIXME: enable parallel outer query? */
+	}
 	else if (root->config->force_singleQE)
 	{
 		/*
@@ -800,9 +819,11 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	 * we postpone gathering until the final scan/join targetlist is available
 	 * (see grouping_planner).
 	 */
+#if 0
 	if (rel->reloptkind == RELOPT_BASEREL &&
 		bms_membership(root->all_baserels) != BMS_SINGLETON)
 		generate_useful_gather_paths(root, rel, false);
+#endif
 
 	/* Now find the cheapest of the paths for this rel */
 	set_cheapest(rel);
@@ -897,6 +918,12 @@ set_rel_consider_parallel(PlannerInfo *root, RelOptInfo *rel,
 				if (!rel->fdwroutine->IsForeignScanParallelSafe(root, rel, rte))
 					return;
 			}
+
+			/*
+			 * GP_PARALLEL_FIXME: GPDB don't allow parallelism for relations that are system catalogs.
+			*/
+			if (IsSystemClassByRelid(rte->relid))
+				return;
 
 			/*
 			 * There are additional considerations for appendrels, which we'll
@@ -1056,12 +1083,15 @@ create_plain_partial_paths(PlannerInfo *root, RelOptInfo *rel)
 {
 	int			parallel_workers;
 
-	parallel_workers = compute_parallel_worker(rel, rel->pages, -1,
+	parallel_workers = compute_parallel_worker(root, rel, rel->pages, -1,
 											   max_parallel_workers_per_gather);
 
 	/* If any limit was set to zero, the user doesn't want a parallel scan. */
-	if (parallel_workers <= 0)
+	/* GPDB parallel, parallel_workers <= 1 is bogus */
+	if (parallel_workers <= 1)
 		return;
+
+	/* GPDB_PARALLEL_FIXME: update locus.parallel_workers? */
 
 	/* Add an unordered partial path based on a parallel sequential scan. */
 	add_partial_path(rel, create_seqscan_path(root, rel, NULL, parallel_workers));
@@ -1638,6 +1668,12 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 				accumulate_append_subpath(nppath,
 										  &pa_nonpartial_subpaths,
 										  NULL);
+				/*
+				 * GPDB_PARALLEL_FIXME: can't use parallel append if subpath
+				 * is not parallel safe. 
+				 */
+				if (!nppath->parallel_safe)
+					pa_subpaths_valid = false;
 			}
 		}
 
@@ -1733,7 +1769,14 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 
 			parallel_workers = Max(parallel_workers, path->parallel_workers);
 		}
+		/*
+		 * GPDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
+		 * Because we currently allow path with non parallel_workers been added to
+		 * partial_path.
+		 */
+#if 0
 		Assert(parallel_workers > 0);
+#endif
 
 		/*
 		 * If the use of parallel append is permitted, always request at least
@@ -1751,22 +1794,33 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 			parallel_workers = Min(parallel_workers,
 								   max_parallel_workers_per_gather);
 		}
-		Assert(parallel_workers > 0);
-
-		/* Generate a partial append path. */
-		appendpath = create_append_path(root, rel, NIL, partial_subpaths,
-										NIL, NULL, parallel_workers,
-										enable_parallel_append,
-										-1);
-
 		/*
-		 * Make sure any subsequent partial paths use the same row count
-		 * estimate.
+		 * GPDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
+		 * Because we currently allow path with non parallel_workers been added to
+		 * partial_path.
 		 */
-		partial_rows = appendpath->path.rows;
+#if 0
+		Assert(parallel_workers > 0);
+#endif
 
-		/* Add the path. */
-		add_partial_path(rel, (Path *) appendpath);
+		/* GPDB parallel, parallel_workers <= 1 is bogus */
+		if (parallel_workers > 1)
+		{
+			/* Generate a partial append path. */
+			appendpath = create_append_path(root, rel, NIL, partial_subpaths,
+											NIL, NULL, parallel_workers,
+											enable_parallel_append,
+											-1);
+
+			/*
+			 * Make sure any subsequent partial paths use the same row count
+			 * estimate.
+			 */
+			partial_rows = appendpath->path.rows;
+			/* Add the path if subpath has not Motion.*/
+			if (appendpath->path.parallel_safe && appendpath->path.motionHazard == false)
+				add_partial_path(rel, (Path *)appendpath);
+		}
 	}
 
 	/*
@@ -1803,11 +1857,16 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 							   max_parallel_workers_per_gather);
 		Assert(parallel_workers > 0);
 
-		appendpath = create_append_path(root, rel, pa_nonpartial_subpaths,
-										pa_partial_subpaths,
-										NIL, NULL, parallel_workers, true,
-										partial_rows);
-		add_partial_path(rel, (Path *) appendpath);
+		/* GPDB parallel, parallel_workers <= 1 is bogus */
+		if (parallel_workers > 1)
+		{
+			appendpath = create_append_path(root, rel, pa_nonpartial_subpaths,
+											pa_partial_subpaths,
+											NIL, NULL, parallel_workers, true,
+											partial_rows);
+			if (appendpath->path.parallel_safe && appendpath->path.motionHazard == false)
+				add_partial_path(rel, (Path *) appendpath);
+		}
 	}
 
 	/*
@@ -1895,7 +1954,9 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 											NIL, NULL,
 											path->parallel_workers, true,
 											partial_rows);
-			add_partial_path(rel, (Path *) appendpath);
+
+			if (appendpath->path.parallel_safe && appendpath->path.motionHazard == false)
+				add_partial_path(rel, (Path *) appendpath);
 		}
 	}
 }
@@ -2518,7 +2579,7 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 		CdbPathLocus locus;
 
 		if (forceDistRand)
-			CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount());
+			CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount(), subpath->parallel_workers);
 		else
 			locus = cdbpathlocus_from_subquery(root, rel, subpath);
 
@@ -2557,11 +2618,13 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 		foreach(lc, sub_final_rel->partial_pathlist)
 		{
 			Path	   *subpath = (Path *) lfirst(lc);
+			Path       *path;
 			List	   *pathkeys;
+			List       *l;
 			CdbPathLocus locus;
 
 			if (forceDistRand)
-				CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount());
+				CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount(), subpath->parallel_workers);
 			else
 				locus = cdbpathlocus_from_subquery(root, rel, subpath);
 
@@ -2572,11 +2635,14 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 												 make_tlist_from_pathtarget(subpath->pathtarget));
 
 			/* Generate outer path using this subpath */
-			add_partial_path(rel, (Path *)
-							 create_subqueryscan_path(root, rel, subpath,
+			path = (Path *) create_subqueryscan_path(root, rel, subpath,
 													  pathkeys,
 													  locus,
-													  required_outer));
+													  required_outer);
+			/* turn into SingleQE if needed */
+			l = lappend(list_make1(subquery->havingQual), subpath->pathtarget->exprs);
+			path = turn_volatile_seggen_to_singleqe(root, path, (Node *) l);
+			add_partial_path(rel, path);
 		}
 	}
 }
@@ -3179,6 +3245,7 @@ set_worktable_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 void
 generate_gather_paths(PlannerInfo *root, RelOptInfo *rel, bool override_rows)
 {
+	Assert(false);
 	Path	   *cheapest_partial_path;
 	Path	   *simple_gather_path;
 	ListCell   *lc;
@@ -3199,6 +3266,10 @@ generate_gather_paths(PlannerInfo *root, RelOptInfo *rel, bool override_rows)
 	 * of partial_pathlist because of the way add_partial_path works.
 	 */
 	cheapest_partial_path = linitial(rel->partial_pathlist);
+
+	if (!cheapest_partial_path->parallel_safe)
+		return;
+
 	rows =
 		cheapest_partial_path->rows * cheapest_partial_path->parallel_workers;
 	simple_gather_path = (Path *)
@@ -3317,6 +3388,7 @@ get_useful_pathkeys_for_relation(PlannerInfo *root, RelOptInfo *rel,
 void
 generate_useful_gather_paths(PlannerInfo *root, RelOptInfo *rel, bool override_rows)
 {
+	Assert(false);
 	ListCell   *lc;
 	double		rows;
 	double	   *rowsp = NULL;
@@ -3622,6 +3694,7 @@ make_rel_from_joinlist(PlannerInfo *root, List *joinlist)
 			 * already.
 			 */
 			bring_to_outer_query(root, rel, NIL);
+		 	/* GP_PARALLEL_FIXME: enable parallel outer query? */
 		}
 
 		return rel;
@@ -3734,12 +3807,15 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
 			 * partial paths.  We'll do the same for the topmost scan/join rel
 			 * once we know the final targetlist (see grouping_planner).
 			 */
+#if 0
 			if (lev < levels_needed)
 				generate_useful_gather_paths(root, rel, false);
+#endif
 
 			if (bms_equal(rel->relids, root->all_baserels) && root->is_correlated_subplan)
 			{
 				bring_to_outer_query(root, rel, NIL);
+		 		/* GP_PARALLEL_FIXME: enable parallel outer query? */
 			}
 
 			/* Find and save the cheapest paths for this rel */
@@ -4517,10 +4593,17 @@ create_partial_bitmap_paths(PlannerInfo *root, RelOptInfo *rel,
 	pages_fetched = compute_bitmap_pages(root, rel, bitmapqual, 1.0,
 										 NULL, NULL);
 
-	parallel_workers = compute_parallel_worker(rel, pages_fetched, -1,
+
+	/*
+	 * Don't support parallel BitmapScan for AO/AOCS.
+	 */
+	if (rel->reloptkind == RELOPT_BASEREL && (AMHandlerIsAO(rel->amhandler)))
+		return;
+
+	parallel_workers = compute_parallel_worker(root, rel, pages_fetched, -1,
 											   max_parallel_workers_per_gather);
 
-	if (parallel_workers <= 0)
+	if (parallel_workers <= 1)
 		return;
 
 	add_partial_path(rel, (Path *) create_bitmap_heap_path(root, rel,
@@ -4543,7 +4626,7 @@ create_partial_bitmap_paths(PlannerInfo *root, RelOptInfo *rel,
  * comes from a GUC.
  */
 int
-compute_parallel_worker(RelOptInfo *rel, double heap_pages, double index_pages,
+compute_parallel_worker(PlannerInfo *root, RelOptInfo *rel, double heap_pages, double index_pages,
 						int max_workers)
 {
 	int			parallel_workers = 0;
@@ -4557,66 +4640,107 @@ compute_parallel_worker(RelOptInfo *rel, double heap_pages, double index_pages,
 	else
 	{
 		/*
-		 * If the number of pages being scanned is insufficient to justify a
-		 * parallel scan, just return zero ... unless it's an inheritance
-		 * child. In that case, we want to generate a parallel path here
-		 * anyway.  It might not be worthwhile just for this relation, but
-		 * when combined with all of its inheritance siblings it may well pay
-		 * off.
+		 * We need to reconsider parallel workers for AO/AOCO tables
+		 * because page number in ao is quite hard to estimate.
+		 * The parallel for AO/AOCO tables is based on segment file count in
+		 * pg_appendonly which will be updated by analyze/vacuum/truncate processes.
 		 */
-		if (rel->reloptkind == RELOPT_BASEREL &&
-			((heap_pages >= 0 && heap_pages < min_parallel_table_scan_size) ||
-			 (index_pages >= 0 && index_pages < min_parallel_index_scan_size)))
-			return 0;
-
-		if (heap_pages >= 0)
+		if (rel->reloptkind == RELOPT_BASEREL && (AMHandlerIsAO(rel->amhandler)))
 		{
-			int			heap_parallel_threshold;
-			int			heap_parallel_workers = 1;
+			Oid			aorelid = root->simple_rte_array[rel->relid]->relid;
+			HeapTuple	aotup;
+			Form_pg_appendonly aoform;
+			aotup = SearchSysCache1(AORELID, ObjectIdGetDatum(aorelid));
+			if (!HeapTupleIsValid(aotup))
+				ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					errmsg("appendonly table relid %u does not exist in pg_appendonly", aorelid)));
+
+			aoform = (Form_pg_appendonly) GETSTRUCT(aotup);
+			Assert(aoform->segfilecount >= 0);
+			parallel_workers = Min(aoform->segfilecount, max_workers);
+			ReleaseSysCache(aotup);
 
 			/*
-			 * Select the number of workers based on the log of the size of
-			 * the relation.  This probably needs to be a good deal more
-			 * sophisticated, but we need something here for now.  Note that
-			 * the upper limit of the min_parallel_table_scan_size GUC is
-			 * chosen to prevent overflow here.
+			 * Disable parallel for AO/AOCO for:
+			 * 1.We don't support parallel/non-parallel IndexScan/IndexOnlyScan.
+			 * 2.If parallel_workers is 1, it is pointless in gp parallel mode.
 			 */
-			heap_parallel_threshold = Max(min_parallel_table_scan_size, 1);
-			while (heap_pages >= (BlockNumber) (heap_parallel_threshold * 3))
-			{
-				heap_parallel_workers++;
-				heap_parallel_threshold *= 3;
-				if (heap_parallel_threshold > INT_MAX / 3)
-					break;		/* avoid overflow */
-			}
-
-			parallel_workers = heap_parallel_workers;
+			if (parallel_workers == 1 || index_pages >= 0)
+				parallel_workers = 0;
 		}
-
-		if (index_pages >= 0)
+		else
 		{
-			int			index_parallel_workers = 1;
-			int			index_parallel_threshold;
+			/*
+			 * If the number of pages being scanned is insufficient to justify a
+			 * parallel scan, just return zero ... unless it's an inheritance
+			 * child. In that case, we want to generate a parallel path here
+			 * anyway.  It might not be worthwhile just for this relation, but
+			 * when combined with all of its inheritance siblings it may well pay
+			 * off.
+			 */
+			if (rel->reloptkind == RELOPT_BASEREL &&
+				((heap_pages >= 0 && heap_pages < min_parallel_table_scan_size) ||
+				 (index_pages >= 0 && index_pages < min_parallel_index_scan_size)))
+				return 0;
 
-			/* same calculation as for heap_pages above */
-			index_parallel_threshold = Max(min_parallel_index_scan_size, 1);
-			while (index_pages >= (BlockNumber) (index_parallel_threshold * 3))
+			if (heap_pages >= 0)
 			{
-				index_parallel_workers++;
-				index_parallel_threshold *= 3;
-				if (index_parallel_threshold > INT_MAX / 3)
-					break;		/* avoid overflow */
+				int			heap_parallel_threshold;
+				int			heap_parallel_workers = 1;
+
+				/*
+				 * Select the number of workers based on the log of the size of
+				 * the relation.  This probably needs to be a good deal more
+				 * sophisticated, but we need something here for now.  Note that
+				 * the upper limit of the min_parallel_table_scan_size GUC is
+				 * chosen to prevent overflow here.
+				 */
+				heap_parallel_threshold = Max(min_parallel_table_scan_size, 1);
+				while (heap_pages >= (BlockNumber) (heap_parallel_threshold * 3))
+				{
+					heap_parallel_workers++;
+					heap_parallel_threshold *= 3;
+					if (heap_parallel_threshold > INT_MAX / 3)
+						break;		/* avoid overflow */
+				}
+
+				parallel_workers = heap_parallel_workers;
 			}
 
-			if (parallel_workers > 0)
-				parallel_workers = Min(parallel_workers, index_parallel_workers);
-			else
-				parallel_workers = index_parallel_workers;
+			if (index_pages >= 0)
+			{
+				int			index_parallel_workers = 1;
+				int			index_parallel_threshold;
+
+				/* same calculation as for heap_pages above */
+				index_parallel_threshold = Max(min_parallel_index_scan_size, 1);
+				while (index_pages >= (BlockNumber) (index_parallel_threshold * 3))
+				{
+					index_parallel_workers++;
+					index_parallel_threshold *= 3;
+					if (index_parallel_threshold > INT_MAX / 3)
+						break;		/* avoid overflow */
+				}
+
+				if (parallel_workers > 0)
+					parallel_workers = Min(parallel_workers, index_parallel_workers);
+				else
+					parallel_workers = index_parallel_workers;
+			}
 		}
 	}
 
 	/* In no case use more than caller supplied maximum number of workers */
 	parallel_workers = Min(parallel_workers, max_workers);
+
+	/*
+	 * GPDB parallel mode don't has a leader process. parallel_workers=1 may cause
+	 * CdbLocusType_HashedWorkers locus type. This affect the plan to generate motion node
+	 * which is not necessary. So we disable parallel_workers=1 in GPDB parallel mode.
+	 */
+	if (parallel_workers == 1)
+		parallel_workers = 0;
 
 	return parallel_workers;
 }
@@ -4964,11 +5088,17 @@ print_path(PlannerInfo *root, Path *path, int indent)
 		case CdbLocusType_SegmentGeneral:
 			ltype = "SegmentGeneral";
 			break;
+		case CdbLocusType_SegmentGeneralWorkers:
+			ltype = "SegmentGeneralWorkers";
+			break;
 		case CdbLocusType_Replicated:
 			ltype = "Replicated";
 			break;
 		case CdbLocusType_Hashed:
 			ltype = "Hashed";
+			break;
+		case CdbLocusType_HashedWorkers:
+			ltype = "HashedWorkers";
 			break;
 		case CdbLocusType_HashedOJ:
 			ltype = "HashedOJ";

@@ -203,6 +203,7 @@ CreateExecutorState(void)
 	estate->dispatcherState = NULL;
 
 	estate->currentSliceId = 0;
+	estate->useMppParallelMode = false;
 	estate->eliminateAliens = false;
 
 	/*
@@ -1586,9 +1587,13 @@ ExecPrefetchQual(JoinState *node, bool isJoinQual)
 static void
 FillSliceGangInfo(ExecSlice *slice, PlanSlice *ps)
 {
+	int factor = ps->parallel_workers ? ps->parallel_workers : 1;
 	int numsegments = ps->numsegments;
+
 	DirectDispatchInfo *dd = &ps->directDispatch;
 
+	slice->useMppParallelMode = (ps->parallel_workers != 0);
+	slice->parallel_workers = factor;
 	switch (slice->gangType)
 	{
 		case GANGTYPE_UNALLOCATED:
@@ -1596,30 +1601,47 @@ FillSliceGangInfo(ExecSlice *slice, PlanSlice *ps)
 			 * It's either the root slice or an InitPlan slice that runs in
 			 * the QD process, or really unused slice.
 			 */
+			/* GPDB_PARALLEL_FIXME: QD process should never be parallel, do we need to plus factor? */
 			slice->planNumSegments = 1;
 			break;
 		case GANGTYPE_PRIMARY_WRITER:
 		case GANGTYPE_PRIMARY_READER:
-			slice->planNumSegments = numsegments;
+			slice->planNumSegments = numsegments * factor;
 			if (dd->isDirectDispatch)
 			{
-				slice->segments = list_copy(dd->contentIds);
+				int i;
+				ListCell *lc;
+
+				foreach(lc, dd->contentIds)
+				{
+					int segment = lfirst_int(lc);
+					for (i = 0; i < factor; i++)
+						slice->segments = lappend_int(slice->segments, segment);
+				}
 			}
 			else
 			{
-				int i;
+				int i, j;
 				slice->segments = NIL;
 				for (i = 0; i < numsegments; i++)
-					slice->segments = lappend_int(slice->segments, i % getgpsegmentCount());
+					for (j = 0; j < factor; j++)
+						slice->segments = lappend_int(slice->segments, i % getgpsegmentCount());
 			}
 			break;
 		case GANGTYPE_ENTRYDB_READER:
+			/* GPDB_PARALLEL_FIXME: QD parallel is disabled */
 			slice->planNumSegments = 1;
 			slice->segments = list_make1_int(-1);
 			break;
 		case GANGTYPE_SINGLETON_READER:
-			slice->planNumSegments = 1;
-			slice->segments = list_make1_int(ps->segindex);
+			/*
+			 * GPDB_PARALLEL_FIXME:
+			 * Could be parallel, parallel scan on replica tables.
+			 */
+			slice->planNumSegments = 1 * factor;
+			int i;
+			for (i = 0; i < factor; i++)
+				slice->segments = lappend_int(slice->segments, ps->segindex);
 			break;
 		default:
 			elog(ERROR, "unexpected gang type");
@@ -2152,7 +2174,7 @@ MotionStateFinderWalker(PlanState *node,
 		{
 			Assert(ctx->motionState == NULL);
 			ctx->motionState = ms;
-			return CdbVisit_Skip;	/* don't visit subtree */
+			return CdbVisit_Success;	/* don't visit subtree */
 		}
 	}
 

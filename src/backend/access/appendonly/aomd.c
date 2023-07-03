@@ -34,6 +34,7 @@
 #include "catalog/pg_appendonly.h"
 #include "cdb/cdbappendonlystorage.h"
 #include "cdb/cdbappendonlyxlog.h"
+#include "crypto/bufenc.h"
 #include "common/relpath.h"
 #include "pgstat.h"
 #include "storage/sync.h"
@@ -417,7 +418,6 @@ copy_file(char *srcsegpath, char *dstsegpath,
 					(errcode_for_file_access(),
 					 errmsg("could not write %d bytes to file \"%s\": %m",
 							len, dstsegpath)));
-
 		if (use_wal)
 			xlog_ao_insert(dst, segfilenum, offset, buffer, len);
 
@@ -438,6 +438,7 @@ copy_file(char *srcsegpath, char *dstsegpath,
 struct copy_append_only_data_callback_ctx {
 	char *srcPath;
 	char *dstPath;
+	RelFileNode src;
 	RelFileNode dst;
 	bool useWal;
 };
@@ -467,6 +468,7 @@ copy_append_only_data(RelFileNode src, RelFileNode dst,
 
 	copyFiles.srcPath = srcPath;
 	copyFiles.dstPath = dstPath;
+	copyFiles.src = src;
 	copyFiles.dst = dst;
 	copyFiles.useWal = useWal;
 

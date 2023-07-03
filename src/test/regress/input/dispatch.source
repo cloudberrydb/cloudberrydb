@@ -204,6 +204,7 @@ set gp_gang_creation_retry_timer to 1000;
 
 select cleanupAllGangs();
 
+set max_parallel_workers_per_gather=0;
 -- trigger fault and report segment 0 in recovery for 5 times
 select gp_inject_fault('process_startup_packet', 'skip', '', 'dispatch_test_db', '', 1, 5, 0, 2::smallint);
 select cleanupAllGangs();
@@ -350,6 +351,7 @@ update dispatch_test_t1 set c2 = 3 from dispatch_test_t2, dispatch_test_t3
 where dispatch_test_t1.c2 = dispatch_test_t2.c2 and dispatch_test_t2.c3 = dispatch_test_t3.c3;
 
 select gp_inject_fault('before_one_slice_dispatched', 'reset', 1);
+reset max_parallel_workers_per_gather;
 
 -- test logging of gang management
 SET gp_log_gang = 'debug';

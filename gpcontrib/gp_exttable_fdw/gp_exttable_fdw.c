@@ -550,7 +550,7 @@ exttable_GetForeignPaths(PlannerInfo *root,
 									   NULL,		/* no outer rel either */
 									   NULL,		/* no extra plan */
 									   list_make1(externalscan_info));
-	pathnode->path.locus = cdbpathlocus_from_baserel(root, baserel);
+	pathnode->path.locus = cdbpathlocus_from_baserel(root, baserel, 0);
 	pathnode->path.motionHazard = false;
 
 	/*

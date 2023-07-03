@@ -89,7 +89,7 @@
 /* GUC parameters */
 double		cursor_tuple_fraction = DEFAULT_CURSOR_TUPLE_FRACTION;
 int			force_parallel_mode = FORCE_PARALLEL_OFF;
-bool		parallel_leader_participation = true;
+bool		parallel_leader_participation = false;
 
 /* Hook for plugins to get control in planner() */
 planner_hook_type planner_hook = NULL;
@@ -252,7 +252,9 @@ static RelOptInfo *create_partial_grouping_paths(PlannerInfo *root,
 												 grouping_sets_data *gd,
 												 GroupPathExtraData *extra,
 												 bool force_rel_creation);
+#if 0
 static void gather_grouping_paths(PlannerInfo *root, RelOptInfo *rel);
+#endif
 static bool can_partial_agg(PlannerInfo *root);
 static void apply_scanjoin_target_to_paths(PlannerInfo *root,
 										   RelOptInfo *rel,
@@ -450,9 +452,6 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	 * restriction, but for now it seems best not to have parallel workers
 	 * trying to create their own parallel workers.
 	 */
-	/* GPDB_96_MERGE_FIXME: disable parallel workers for now */
-	glob->parallelModeOK = false;
-#if 0
 	if ((cursorOptions & CURSOR_OPT_PARALLEL_OK) != 0 &&
 		IsUnderPostmaster &&
 		parse->commandType == CMD_SELECT &&
@@ -470,7 +469,12 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		glob->maxParallelHazard = PROPARALLEL_UNSAFE;
 		glob->parallelModeOK = false;
 	}
-#endif
+
+	/*
+	 * GPDB: allow to use parallel or not.
+	 */
+	if (!enable_parallel)
+		glob->parallelModeOK = false;
 
 	/*
 	 * glob->parallelModeNeeded is normally set to false here and changed to
@@ -539,6 +543,22 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 
 	/* Select best Path and turn it into a Plan */
 	final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
+
+	/*
+	 * GPDB parallel:
+	 * Unlike upstream, partial_path is valid in GP without Gather nodes.
+	 * Keep the two pathlist separated until the final. Now it's the time
+	 * to choose the best.
+	 * GPDB_PARALLEL_FIXME:
+	 * Take GP's special into partial_pathlist, ex: agg and etc.
+	 */
+	if (final_rel->partial_pathlist != NIL)
+	{
+		Path	   *cheapest_partial_path;
+		cheapest_partial_path = linitial(final_rel->partial_pathlist);
+		add_path(final_rel, cheapest_partial_path, root);
+		set_cheapest(final_rel);
+	}
 	best_path = get_cheapest_fractional_path(final_rel, tuple_fraction);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
@@ -565,6 +585,7 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	}
 #endif
 
+#if 0
 	/*
 	 * Optionally add a Gather node for testing purposes, provided this is
 	 * actually a safe thing to do.
@@ -613,7 +634,7 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 
 		top_plan = &gather->plan;
 	}
-
+#endif
 	/*
 	 * If any Params were generated, run through the plan tree and compute
 	 * each plan node's extParam/allParam sets.  Ideally we'd merge this into
@@ -2194,6 +2215,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 			 * Gather Motion, which will be added below.
 			 */
 			if (parse->limitCount && limit_needed(parse) &&
+				gp_enable_multiphase_limit &&
 				!contain_volatile_functions(parse->limitOffset) &&
 				!contain_volatile_functions(parse->limitCount))
 			{
@@ -2440,13 +2462,103 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	 * Generate partial paths for final_rel, too, if outer query levels might
 	 * be able to make use of them.
 	 */
-	if (final_rel->consider_parallel && root->query_level > 1 &&
-		!limit_needed(parse))
+	/*
+	 * GPDB_PARALLEL_FIXME: should keep query_level > 1 in GPDB?
+	 * It will lose parallel path, ex: plain parallel scan.
+	 * PG have Gather node but GP delay partial path until Gather Motion.
+	 *
+	 * Limit parallel:
+	 * PG doesn't have to handle limit here becuase all partial paths have been Gathered
+	 * into pathlist, and the subpath of Limit node could be parallel.
+	 * For our GP style, we don't have Gather node and keep the partial path in partial_pathlist
+	 * until the last step if possible.
+	 * When we generate two phase limit path or limit has sub partial path,
+	 * the Limit node on QEs could be parallel.
+	 * Ex: select * from t1 limit 1;
+	 * Two phase Limit, parallel Limit on QEs under Limit on QD
+	 *  Limit
+	 *    ->  Gather
+	 *        ->  Limit
+	 *            ->  Parallel Seq Scan on t1
+	 *
+	 * One phase Limit, parallel plan on QEs under Limit on QD
+	 *  Limit
+	 *    ->  Gather
+	 *	      ->  Parallel Seq Scan on t1
+	 *
+	 */
+	if (final_rel->consider_parallel/* && root->query_level > 1 && !limit_needed(parse)*/)
 	{
 		Assert(!parse->rowMarks && parse->commandType == CMD_SELECT);
+
+		/* GPDB_PARALLEL_FIXEME: support parallel SCATTER BY? */
+		if (parse->scatterClause)
+		{
+			current_rel->partial_pathlist = NIL;
+			final_rel->partial_pathlist = NIL;
+		}
+
 		foreach(lc, current_rel->partial_pathlist)
 		{
 			Path	   *partial_path = (Path *) lfirst(lc);
+
+			if (CdbPathLocus_IsPartitioned(partial_path->locus) &&
+				(limit_needed(parse) || must_gather))
+			{
+				CdbPathLocus locus;
+				List	   *pathkeys;
+
+				if (parse->limitCount && limit_needed(parse) &&
+					gp_enable_multiphase_limit &&
+					!contain_volatile_functions(parse->limitOffset) &&
+					!contain_volatile_functions(parse->limitCount))
+				{
+					partial_path = (Path *) create_preliminary_limit_path(root, final_rel, partial_path,
+																  parse->limitOffset,
+																  parse->limitCount,
+																  parse->limitOption,
+																  offset_est, count_est);
+				}
+
+				pathkeys =
+					cdbpullup_truncatePathKeysForTargetList(partial_path->pathkeys,
+															make_tlist_from_pathtarget(partial_path->pathtarget));
+
+				CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
+				partial_path = cdbpath_create_motion_path(root, partial_path, pathkeys, false, locus);
+			}
+			else if ((CdbPathLocus_IsHashed(root->final_locus) ||
+				CdbPathLocus_IsSingleQE(root->final_locus) ||
+				CdbPathLocus_IsEntry(root->final_locus) ||
+				CdbPathLocus_IsReplicated(root->final_locus)) &&
+				!root->glob->is_parallel_cursor)
+			{
+				/*
+				 * GPDB PARALLEL
+				 * This is a little different from inserting Limit node from pathlist.
+				 * We must gather partial results before Limit on QD. 
+				 */
+				Path *orig_path = partial_path;
+
+				partial_path  = cdbpath_create_motion_path(root, orig_path,
+														  root->sort_pathkeys,
+														  false,
+														  root->final_locus);
+				if (!partial_path)
+					partial_path = orig_path;
+			}
+
+			/*
+			 * If there is a LIMIT/OFFSET clause, add the LIMIT node.
+			 */
+			if (limit_needed(parse))
+			{
+				partial_path = (Path *) create_limit_path(root, final_rel, partial_path,
+												  parse->limitOffset,
+												  parse->limitCount,
+												  parse->limitOption,
+												  offset_est, count_est);
+			}
 
 			add_partial_path(final_rel, partial_path);
 		}
@@ -4209,16 +4321,15 @@ create_ordinary_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 		return;
 	}
 
+#if 0
 	/* Gather any partially grouped partial paths. */
 	if (partially_grouped_rel && partially_grouped_rel->partial_pathlist)
+	{
 		gather_grouping_paths(root, partially_grouped_rel);
-	
-	/*
-	 * The non-partial paths can come either from the Gather above or from
-	 * aggregate push-down.
-	 */
-	if (partially_grouped_rel && partially_grouped_rel->pathlist)
-		set_cheapest(partially_grouped_rel);
+		if (partially_grouped_rel->pathlist)
+			set_cheapest(partially_grouped_rel);
+	}
+#endif
 
 	/*
 	 * Estimate number of groups.
@@ -4226,7 +4337,11 @@ create_ordinary_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	double			num_total_input_rows;
 
 	if (CdbPathLocus_IsPartitioned(cheapest_path->locus))
+	{
 		num_total_input_rows = cheapest_path->rows * CdbPathLocus_NumSegments(cheapest_path->locus);
+		if (cheapest_path->locus.parallel_workers > 1)
+			num_total_input_rows *= cheapest_path->locus.parallel_workers;
+	}
 	else
 		num_total_input_rows = cheapest_path->rows;
 
@@ -4316,8 +4431,12 @@ consider_groupingsets_paths(PlannerInfo *root,
 		 * is only a fraction of the total.
 		 */
 		if (CdbPathLocus_IsPartitioned(path->locus))
+		{
 			dNumGroups = clamp_row_est(dNumGroupsTotal /
 									   CdbPathLocus_NumSegments(path->locus));
+			if (path->locus.parallel_workers > 1)
+				dNumGroups /= path->locus.parallel_workers;
+		}
 		else
 			dNumGroups = dNumGroupsTotal;
 
@@ -4353,6 +4472,23 @@ consider_groupingsets_paths(PlannerInfo *root,
 											   parse->groupClause,
 											   srd->new_rollups);
 
+		// GPDB_12_MERGE_FIXME: fix computation of dNumGroups
+#if 0
+		/*
+		 * dNumGroupsTotal is the total number of groups across all segments. If the
+		 * Aggregate is distributed, then the number of groups in one segment
+		 * is only a fraction of the total.
+		 */
+		if (CdbPathLocus_IsPartitioned(path->locus))
+		{
+			dNumGroups = clamp_row_est(dNumGroupsTotal /
+									   CdbPathLocus_NumSegments(path->locus));
+			if (path->locus.parallel_workers > 1)
+				dNumGroups /= path->locus.parallel_workers;
+		}
+		else
+			dNumGroups = dNumGroupsTotal;
+#endif
 
 		add_path(grouped_rel, (Path *)
 				 create_groupingsets_path(root,
@@ -4391,8 +4527,15 @@ consider_groupingsets_paths(PlannerInfo *root,
 	 * is only a fraction of the total.
 	 */
 	if (CdbPathLocus_IsPartitioned(path->locus))
-		dNumGroups = clamp_row_est(dNumGroupsTotal /
+	{
+		if (path->locus.parallel_workers > 1)
+			dNumGroups = clamp_row_est(dNumGroupsTotal /
+									   path->locus.parallel_workers /
+									   CdbPathLocus_NumSegments(path->locus));
+		else
+			dNumGroups = clamp_row_est(dNumGroupsTotal /
 								   CdbPathLocus_NumSegments(path->locus));
+	}
 	else
 		dNumGroups = dNumGroupsTotal;
 
@@ -4816,7 +4959,11 @@ create_distinct_paths(PlannerInfo *root,
 	distinct_rel->exec_location = input_rel->exec_location;
 
 	if (CdbPathLocus_IsPartitioned(cheapest_input_path->locus))
+	{
 		numInputRowsTotal = cheapest_input_path->rows * CdbPathLocus_NumSegments(cheapest_input_path->locus);
+		if (cheapest_input_path->locus.parallel_workers > 1)
+			numInputRowsTotal *= cheapest_input_path->locus.parallel_workers;
+	}
 	else
 		numInputRowsTotal = cheapest_input_path->rows;
 
@@ -4892,7 +5039,12 @@ create_distinct_paths(PlannerInfo *root,
 
 				/* On how many segments will the distinct result reside? */
 				if (CdbPathLocus_IsPartitioned(path->locus))
+				{
+					/* GPDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
 					numDistinctRows = numDistinctRowsTotal / CdbPathLocus_NumSegments(path->locus);
+					if (path->locus.parallel_workers > 1)
+						numDistinctRows /= path->locus.parallel_workers;
+				}
 				else
 					numDistinctRows = numDistinctRowsTotal;
 
@@ -4931,7 +5083,12 @@ create_distinct_paths(PlannerInfo *root,
 											   NIL);
 
 		if (CdbPathLocus_IsPartitioned(path->locus))
+		{
+			/* GPDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
 			numDistinctRows = numDistinctRowsTotal / CdbPathLocus_NumSegments(path->locus);
+			if (path->locus.parallel_workers > 1)
+				numDistinctRows /= path->locus.parallel_workers;
+		}
 		else
 			numDistinctRows = numDistinctRowsTotal;
 
@@ -4975,7 +5132,12 @@ create_distinct_paths(PlannerInfo *root,
 											   NIL);
 
 		if (CdbPathLocus_IsPartitioned(path->locus))
+		{
+			/* GPDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
 			numDistinctRows = clamp_row_est(numDistinctRowsTotal / CdbPathLocus_NumSegments(path->locus));
+			if (path->locus.parallel_workers > 1)
+				numDistinctRows /= path->locus.parallel_workers;
+		}
 		else
 			numDistinctRows = numDistinctRowsTotal;
 
@@ -5178,7 +5340,7 @@ create_ordered_paths(PlannerInfo *root,
 		Path	   *cheapest_partial_path;
 
 		cheapest_partial_path = linitial(input_rel->partial_pathlist);
-
+		Path	   *sorted_path = cheapest_partial_path;
 		/*
 		 * If cheapest partial path doesn't need a sort, this is redundant
 		 * with what's already been tried.
@@ -5187,14 +5349,16 @@ create_ordered_paths(PlannerInfo *root,
 								   cheapest_partial_path->pathkeys))
 		{
 			Path	   *path;
+#if 0
 			double		total_groups;
+#endif
 
 			path = (Path *) create_sort_path(root,
 											 ordered_rel,
 											 cheapest_partial_path,
 											 root->sort_pathkeys,
 											 limit_tuples);
-
+#if 0
 			total_groups = cheapest_partial_path->rows *
 				cheapest_partial_path->parallel_workers;
 			path = (Path *)
@@ -5204,12 +5368,22 @@ create_ordered_paths(PlannerInfo *root,
 										 root->sort_pathkeys, NULL,
 										 &total_groups);
 
+#endif
 			/* Add projection step if needed */
 			if (path->pathtarget != target)
 				path = apply_projection_to_path(root, ordered_rel,
 												path, target);
 
-			add_path(ordered_rel, path, root);
+			add_partial_path(ordered_rel, path);
+		}
+		else
+		{
+			/* Use the input path as is, but add a projection step if needed */
+			if (sorted_path->pathtarget != target)
+				sorted_path = apply_projection_to_path(root, ordered_rel,
+													   sorted_path, target);
+
+			add_partial_path(ordered_rel, sorted_path);
 		}
 
 		/*
@@ -5229,7 +5403,9 @@ create_ordered_paths(PlannerInfo *root,
 				Path	   *sorted_path;
 				bool		is_sorted;
 				int			presorted_keys;
+#if 0
 				double		total_groups;
+#endif
 
 				/*
 				 * We don't care if this is the cheapest partial path - we
@@ -5256,6 +5432,7 @@ create_ordered_paths(PlannerInfo *root,
 																	root->sort_pathkeys,
 																	presorted_keys,
 																	limit_tuples);
+#if 0
 				total_groups = input_path->rows *
 					input_path->parallel_workers;
 				sorted_path = (Path *)
@@ -5264,13 +5441,13 @@ create_ordered_paths(PlannerInfo *root,
 											 sorted_path->pathtarget,
 											 root->sort_pathkeys, NULL,
 											 &total_groups);
-
+#endif
 				/* Add projection step if needed */
 				if (sorted_path->pathtarget != target)
 					sorted_path = apply_projection_to_path(root, ordered_rel,
 														   sorted_path, target);
 
-				add_path(ordered_rel, sorted_path, root);
+				add_partial_path(ordered_rel, sorted_path);
 			}
 		}
 	}
@@ -5308,7 +5485,7 @@ create_scatter_path(PlannerInfo *root, List *scatterClause, Path *path)
 	/* Deal with the special case of SCATTER RANDOMLY */
 	if (list_length(scatterClause) == 1 && linitial(scatterClause) == NULL)
 	{
-		CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount());
+		CdbPathLocus_MakeStrewn(&locus, getgpsegmentCount(), path->parallel_workers);
 	}
 	else
 	{
@@ -5331,7 +5508,7 @@ create_scatter_path(PlannerInfo *root, List *scatterClause, Path *path)
 		locus = cdbpathlocus_from_exprs(root,
 										path->parent,
 										scatterClause,
-										opfamilies, sortrefs, getgpsegmentCount());
+										opfamilies, sortrefs, getgpsegmentCount(), path->locus.parallel_workers);
 	}
 
 	/*
@@ -6760,7 +6937,7 @@ plan_create_index_workers(Oid tableOid, Oid indexOid)
 	 * Determine number of workers to scan the heap relation using generic
 	 * model
 	 */
-	parallel_workers = compute_parallel_worker(rel, heap_blocks, -1,
+	parallel_workers = compute_parallel_worker(root, rel, heap_blocks, -1,
 											   max_parallel_maintenance_workers);
 
 	/*
@@ -6846,8 +7023,15 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 				 * is only a fraction of the total.
 				 */
 				if (CdbPathLocus_IsPartitioned(path->locus))
-					dNumGroups = clamp_row_est(dNumGroupsTotal /
-											   CdbPathLocus_NumSegments(path->locus));
+				{
+					if (path->locus.parallel_workers > 1)
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+												path->locus.parallel_workers /
+												CdbPathLocus_NumSegments(path->locus));
+					else
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+											CdbPathLocus_NumSegments(path->locus));
+				}
 				else
 					dNumGroups = dNumGroupsTotal;
 
@@ -6953,8 +7137,15 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 			 * is only a fraction of the total.
 			 */
 			if (CdbPathLocus_IsPartitioned(path->locus))
-				dNumGroups = clamp_row_est(dNumGroupsTotal /
-										   CdbPathLocus_NumSegments(path->locus));
+			{
+				if (path->locus.parallel_workers > 1)
+					dNumGroups = clamp_row_est(dNumGroupsTotal /
+											path->locus.parallel_workers /
+											CdbPathLocus_NumSegments(path->locus));
+				else
+					dNumGroups = clamp_row_est(dNumGroupsTotal /
+										CdbPathLocus_NumSegments(path->locus));
+			}
 			else
 				dNumGroups = dNumGroupsTotal;
 
@@ -7009,7 +7200,78 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 				Assert(false);
 			}
 		}
+		if (grouped_rel->consider_parallel)
+		{
+			foreach(lc, input_rel->partial_pathlist)
+			{
+				Path	   *path = (Path *) lfirst(lc);
+				bool		is_sorted;
+				int			presorted_keys;
+				double		dNumGroups;
 
+				if (!CdbPathLocus_IsPartitioned(path->locus))
+					continue;
+
+				is_sorted = pathkeys_count_contained_in(root->group_pathkeys,
+														path->pathkeys,
+														&presorted_keys);
+
+				path = cdb_prepare_path_for_sorted_agg(root,
+														is_sorted,
+														0,    /* presorted_keys */
+														grouped_rel,
+														path,
+														path->pathtarget,
+														root->group_pathkeys,
+														-1.0,
+														parse->groupClause,
+														gd ? gd->rollups : NIL);
+
+				/*
+				* dNumGroupsTotal is the total number of groups across all segments. If the
+				* Aggregate is distributed, then the number of groups in one segment
+				* is only a fraction of the total.
+				*/
+				if (CdbPathLocus_IsPartitioned(path->locus))
+				{
+					if (path->locus.parallel_workers > 1)
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+												path->locus.parallel_workers /
+												CdbPathLocus_NumSegments(path->locus));
+					else
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+											CdbPathLocus_NumSegments(path->locus));
+				}
+				else
+					dNumGroups = dNumGroupsTotal;
+
+
+				/* Now decide what to stick atop it */
+				if (parse->groupingSets)
+				{
+					/* do nothing, not support parallel now */
+				}
+				else if (parse->hasAggs || parse->groupClause)
+				{
+					/*
+					* We have aggregation, possibly with plain GROUP BY. Make an
+					* AggPath.
+					*/
+					add_partial_path(grouped_rel, (Path *)
+							create_agg_path(root,
+											grouped_rel,
+											path,
+											grouped_rel->reltarget,
+											parse->groupClause ? AGG_SORTED : AGG_PLAIN,
+											AGGSPLIT_SIMPLE,
+											false, /* streaming */
+											parse->groupClause,
+											havingQual,
+											agg_costs,
+											dNumGroups));
+				}
+			}
+		}
 		/*
 		 * Instead of operating directly on the input relation, we can
 		 * consider finalizing a partially aggregated path.
@@ -7054,8 +7316,15 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 				 * is only a fraction of the total.
 				 */
 				if (CdbPathLocus_IsPartitioned(path->locus))
-					dNumGroups = clamp_row_est(dNumGroupsTotal /
-											   CdbPathLocus_NumSegments(path->locus));
+				{
+					if (path->locus.parallel_workers > 1)
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+												path->locus.parallel_workers /
+												CdbPathLocus_NumSegments(path->locus));
+					else
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+											CdbPathLocus_NumSegments(path->locus));
+				}
 				else
 					dNumGroups = dNumGroupsTotal;
 
@@ -7194,8 +7463,15 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 			 * is only a fraction of the total.
 			 */
 			if (CdbPathLocus_IsPartitioned(path->locus))
-				dNumGroups = clamp_row_est(dNumGroupsTotal /
-										   CdbPathLocus_NumSegments(path->locus));
+			{
+				if (path->locus.parallel_workers > 1)
+					dNumGroups = clamp_row_est(dNumGroupsTotal /
+											path->locus.parallel_workers /
+											CdbPathLocus_NumSegments(path->locus));
+				else
+					dNumGroups = clamp_row_est(dNumGroupsTotal /
+										CdbPathLocus_NumSegments(path->locus));
+			}
 			else
 				dNumGroups = dNumGroupsTotal;
 
@@ -7228,6 +7504,55 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 										 dNumGroups),
 						 root);
 			}
+			if (input_rel->partial_pathlist && grouped_rel->consider_parallel)
+			{
+				Path	   *path = linitial(input_rel->partial_pathlist);
+				double		dNumGroups;
+
+				path = cdb_prepare_path_for_hashed_agg(root,
+														path,
+														path->pathtarget,
+														parse->groupClause,
+														NIL);
+
+				/*
+				* dNumGroupsTotal is the total number of groups across all segments. If the
+				* Aggregate is distributed, then the number of groups in one segment
+				* is only a fraction of the total.
+				*/
+				if (CdbPathLocus_IsPartitioned(path->locus))
+				{
+					if (path->locus.parallel_workers > 1)
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+												path->locus.parallel_workers /
+												CdbPathLocus_NumSegments(path->locus));
+					else
+						dNumGroups = clamp_row_est(dNumGroupsTotal /
+											CdbPathLocus_NumSegments(path->locus));
+
+
+					hashaggtablesize = estimate_hashagg_tablesize(root, path,
+																	agg_costs,
+																	dNumGroups);
+
+					if (enable_hashagg_disk ||
+						hashaggtablesize < work_mem * 1024L)
+					{
+						add_partial_path(grouped_rel, (Path *)
+									create_agg_path(root,
+													grouped_rel,
+													path,
+													grouped_rel->reltarget,
+													AGG_HASHED,
+													AGGSPLIT_SIMPLE,
+													false,
+													parse->groupClause,
+													havingQual,
+													agg_costs,
+													dNumGroups));
+					}
+				}
+			}
 		}
 
 		/*
@@ -7251,8 +7576,15 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 			 * is only a fraction of the total.
 			 */
 			if (CdbPathLocus_IsPartitioned(path->locus))
-				dNumGroups = clamp_row_est(dNumGroupsTotal /
-										   CdbPathLocus_NumSegments(path->locus));
+			{
+				if (path->locus.parallel_workers > 1)
+					dNumGroups = clamp_row_est(dNumGroupsTotal /
+											path->locus.parallel_workers /
+											CdbPathLocus_NumSegments(path->locus));
+				else
+					dNumGroups = clamp_row_est(dNumGroupsTotal /
+										CdbPathLocus_NumSegments(path->locus));
+			}
 			else
 				dNumGroups = dNumGroupsTotal;
 
@@ -7286,8 +7618,10 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 	 * consider a path for grouped_rel consisting of a Parallel Append of
 	 * non-partial paths from each child.
 	 */
+#if 0
 	if (grouped_rel->partial_pathlist != NIL)
 		gather_grouping_paths(root, grouped_rel);
+#endif
 
 	/*
 	 * Add GPDB two-and three-stage agg plans
@@ -7396,7 +7730,8 @@ add_paths_to_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 										   &extra->agg_final_costs,
 										   gd ? gd->rollups : NIL,
 										   new_rollups,
-										   strat);
+										   strat,
+										   partially_grouped_rel ? partially_grouped_rel->partial_pathlist : NIL);
 	}
 }
 
@@ -7863,6 +8198,7 @@ create_partial_grouping_paths(PlannerInfo *root,
 	return partially_grouped_rel;
 }
 
+#if 0
 /*
  * Generate Gather and Gather Merge paths for a grouping relation or partial
  * grouping relation.
@@ -7879,6 +8215,7 @@ create_partial_grouping_paths(PlannerInfo *root,
 static void
 gather_grouping_paths(PlannerInfo *root, RelOptInfo *rel)
 {
+	Assert(false);
 	ListCell   *lc;
 	Path	   *cheapest_partial_path;
 
@@ -7957,6 +8294,7 @@ gather_grouping_paths(PlannerInfo *root, RelOptInfo *rel)
 		add_path(rel, path, root);
 	}
 }
+#endif
 
 /*
  * can_partial_agg
@@ -8060,7 +8398,12 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 		 * paths by doing it after the final scan/join target has been
 		 * applied.
 		 */
-		generate_useful_gather_paths(root, rel, false);
+		if (rel->upperrestrictinfo)
+			rel->consider_parallel = is_parallel_safe(root, (Node *) rel->upperrestrictinfo);
+#if 0
+		if (rel->consider_parallel)
+			generate_useful_gather_paths(root, rel, false);
+#endif
 
 		/* Can't use parallel query above this level. */
 		rel->partial_pathlist = NIL;
@@ -8213,8 +8556,10 @@ apply_scanjoin_target_to_paths(PlannerInfo *root,
 	 * this after all paths have been generated and before set_cheapest, since
 	 * one of the generated paths may turn out to be the cheapest one.
 	 */
+#if 0
 	if (rel->consider_parallel && !IS_OTHER_REL(rel))
 		generate_useful_gather_paths(root, rel, false);
+#endif
 
 	/*
 	 * Reassess which paths are the cheapest, now that we've potentially added

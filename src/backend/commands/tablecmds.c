@@ -1822,6 +1822,27 @@ ao_aux_tables_safe_truncate(Relation rel)
 	 */
 	RemoveFastSequenceEntry(aoseg_relid);
 	InsertInitialFastSequenceEntries(aoseg_relid);
+
+	/* GPDB truncate should also update pg_appendonly.segfilecount */
+	Relation	aorel;
+	HeapTuple	aotup;
+	Form_pg_appendonly aoform;
+
+	aotup = SearchSysCache1(AORELID, ObjectIdGetDatum(relid));
+	if (!HeapTupleIsValid(aotup))
+		ereport(ERROR,
+			(errcode(ERRCODE_UNDEFINED_OBJECT),
+			errmsg("appendonly table relid %u does not exist in pg_appendonly", relid)));
+
+	aoform = (Form_pg_appendonly) GETSTRUCT(aotup);
+	if (aoform->segfilecount != 0)
+	{
+		aorel = table_open(AppendOnlyRelationId, RowExclusiveLock);
+		aoform->segfilecount = 0;
+		heap_inplace_update(aorel, aotup);
+		table_close(aorel, RowExclusiveLock);
+	}
+	ReleaseSysCache(aotup);
 }
 
 /*
@@ -13959,6 +13980,7 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 			case OCLASS_SUBSCRIPTION:
 			case OCLASS_TRANSFORM:
 			case OCLASS_EXTPROTOCOL:
+			case OCLASS_TASK:
 
 				/*
 				 * We don't expect any of these sorts of objects to depend on
@@ -15623,12 +15645,9 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 		case RELKIND_AOBLOCKDIR:
 		case RELKIND_AOVISIMAP:
 			if (RelationIsAppendOptimized(rel))
-				ereport(ERROR,
-						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-						 errmsg("altering reloptions for append only tables"
-								" is not permitted")));
-
-			(void) heap_reloptions(rel->rd_rel->relkind, newOptions, true);
+				(void) default_reloptions(newOptions, true, RELOPT_KIND_APPENDOPTIMIZED);
+			else
+				(void) heap_reloptions(rel->rd_rel->relkind, newOptions, true);
 			break;
 		case RELKIND_PARTITIONED_TABLE:
 			(void) partitioned_table_reloptions(newOptions, true);
@@ -18446,12 +18465,17 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 		if (need_reorg)
 		{
 			/*
+			 * Make sure the redistribution happens for a randomly distributed table.
+			 *
 			 * Force the use of Postgres query optimizer, since Pivotal Optimizer (GPORCA) will not
 			 * redistribute the tuples if the current and required distributions
 			 * are both RANDOM even when reorganize is set to "true"
+			 * Also set gp_force_random_redistribution to true.
 			 */
 			bool saveOptimizerGucValue = optimizer;
+			bool saveRedistributeGucValue = gp_force_random_redistribution;
 			optimizer = false;
+			gp_force_random_redistribution = true;
 
 			if (saveOptimizerGucValue)
 				ereport(LOG,
@@ -18539,6 +18563,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 			PopActiveSnapshot();
 			optimizer = saveOptimizerGucValue;
 			optimizer_replicated_table_insert = save_optimizer_replicated_table_insert;
+			gp_force_random_redistribution = saveRedistributeGucValue;
 
 			CommandCounterIncrement(); /* see the effects of the command */
 

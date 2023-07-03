@@ -69,7 +69,7 @@ typedef struct
 
 static int	matview_maintenance_depth = 0;
 
-static RefreshClause* MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation);
+static RefreshClause* MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation, bool intoAO);
 static void transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
 static bool transientrel_receive(TupleTableSlot *slot, DestReceiver *self);
 static void transientrel_shutdown(DestReceiver *self);
@@ -125,7 +125,7 @@ SetMatViewPopulatedState(Relation relation, bool newstate)
 }
 
 static RefreshClause*
-MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation)
+MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation, bool intoAO)
 {
 	RefreshClause *refreshClause;
 	refreshClause = makeNode(RefreshClause);
@@ -133,6 +133,7 @@ MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation)
 	refreshClause->concurrent = concurrent;
 	refreshClause->skipData = skipData;
 	refreshClause->relation = relation;
+	refreshClause->intoAO = intoAO;
 
 	return refreshClause;
 }
@@ -339,7 +340,8 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 	dest = CreateTransientRelDestReceiver(OIDNewHeap, matviewOid, concurrent, relpersistence,
 										  stmt->skipData);
 
-	refreshClause = MakeRefreshClause(concurrent, stmt->skipData, stmt->relation);
+	bool intoAO = RelationIsAppendOptimized(matviewRel);
+	refreshClause = MakeRefreshClause(concurrent, stmt->skipData, stmt->relation, intoAO);
 
 	/*
 	 * Only in dispather role, we should set intoPolicy, else it should remain NULL.
@@ -470,7 +472,12 @@ refresh_matview_datafill(DestReceiver *dest, Query *query,
 	CHECK_FOR_INTERRUPTS();
 
 	/* Plan the query which will generate data for the refresh. */
-	plan = pg_plan_query(query, queryString, CURSOR_OPT_PARALLEL_OK, NULL);
+
+	/* GPDB_PARALLEL_FIXME: hack here, use cursor_option to disable parallel */
+	if (!refreshClause->intoAO)
+		plan = pg_plan_query(query, queryString, CURSOR_OPT_PARALLEL_OK, NULL);
+	else
+		plan = pg_plan_query(query, queryString, CURSOR_OPT_PARALLEL_NOT_OK, NULL);
 
 	plan->refreshClause = refreshClause;
 

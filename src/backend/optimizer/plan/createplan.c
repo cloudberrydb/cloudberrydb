@@ -161,6 +161,7 @@ static BitmapHeapScan *create_bitmap_scan_plan(PlannerInfo *root,
 											   List *tlist, List *scan_clauses);
 static Plan *create_bitmap_subplan(PlannerInfo *root, Path *bitmapqual,
 								   List **qual, List **indexqual, List **indexECs);
+static void bitmap_subplan_mark_shared(Plan *plan);
 static TidScan *create_tidscan_plan(PlannerInfo *root, TidPath *best_path,
 									List *tlist, List *scan_clauses);
 static TidRangeScan *create_tidrangescan_plan(PlannerInfo *root,
@@ -275,7 +276,7 @@ static HashJoin *make_hashjoin(List *tlist,
 							   List *hashoperators, List *hashcollations,
 							   List *hashkeys,
 							   Plan *lefttree, Plan *righttree,
-							   JoinType jointype, bool inner_unique);
+							   JoinType jointype, bool inner_unique, bool batch0_barrier);
 static Hash *make_hash(Plan *lefttree,
 					   List *hashkeys,
 					   Oid skewTable,
@@ -616,6 +617,10 @@ create_plan_recurse(PlannerInfo *root, Path *best_path, int flags)
 			plan = NULL;		/* keep compiler quiet */
 			break;
 	}
+
+	Assert(best_path->parallel_workers == best_path->locus.parallel_workers);
+	plan->locustype = best_path->locus.locustype;
+	plan->parallel = best_path->locus.parallel_workers;
 
 	return plan;
 }
@@ -3352,12 +3357,14 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 			/* cannot motion from Entry DB */
 			sendSlice->gangType = GANGTYPE_ENTRYDB_READER;
 			sendSlice->numsegments = 1;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
 			sendSlice->segindex = -1;
 			break;
 
 		case CdbLocusType_SingleQE:
 			sendSlice->gangType = GANGTYPE_SINGLETON_READER;
 			sendSlice->numsegments = 1;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
 			sendSlice->segindex = gp_session_id % subpath->locus.numsegments;
 			break;
 
@@ -3365,12 +3372,15 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 			/*  */
 			sendSlice->gangType = GANGTYPE_SINGLETON_READER;
 			sendSlice->numsegments = 1;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
 			sendSlice->segindex = gp_session_id % getgpsegmentCount();
 			break;
 
 		case CdbLocusType_SegmentGeneral:
+		case CdbLocusType_SegmentGeneralWorkers:
 			sendSlice->gangType = GANGTYPE_SINGLETON_READER;
 			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
 			sendSlice->segindex = gp_session_id % subpath->locus.numsegments;
 			break;
 
@@ -3378,6 +3388,13 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 			// is probably writer, set already
 			//sendSlice->gangType == GANGTYPE_PRIMARY_READER;
 			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
+			sendSlice->segindex = 0;
+			break;
+
+		case CdbLocusType_ReplicatedWorkers:
+			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
 			sendSlice->segindex = 0;
 			break;
 
@@ -3386,11 +3403,13 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 			break;
 
 		case CdbLocusType_Hashed:
+		case CdbLocusType_HashedWorkers:
 		case CdbLocusType_HashedOJ:
 		case CdbLocusType_Strewn:
 			// might be writer, set already
 			//sendSlice->gangType == GANGTYPE_PRIMARY_READER;
 			sendSlice->numsegments = subpath->locus.numsegments;
+			sendSlice->parallel_workers = subpath->locus.parallel_workers;
 			sendSlice->segindex = 0;
 			break;
 
@@ -3888,9 +3907,12 @@ create_bitmap_scan_plan(PlannerInfo *root,
 										   &indexECs);
 	/* GPDB_12_MERGE_FEATURE_NOT_SUPPORTED: the parallel StreamBitmap scan is not implemented */
 	/*
-	 * if (best_path->path.parallel_aware)
-	 *     bitmap_subplan_mark_shared(bitmapqualplan);
+	 * FIXME:
+	 * It's still unclear that if the code will be break in some case. 
+	 * We uncomment out the code here to make parallel bitmap scan work.
 	 */
+	if (best_path->path.parallel_aware)
+		bitmap_subplan_mark_shared(bitmapqualplan);
 
 	/*
 	 * The qpqual list must contain all restrictions not automatically handled
@@ -5463,6 +5485,8 @@ create_mergejoin_plan(PlannerInfo *root,
 		label_sort_with_costsize(root, sort, -1.0);
 		outer_plan = (Plan *) sort;
 		outerpathkeys = best_path->outersortkeys;
+		outer_plan->locustype = outer_path->locus.locustype;
+		outer_plan->parallel = outer_path->locus.parallel_workers;
 	}
 	else
 		outerpathkeys = best_path->jpath.outerjoinpath->pathkeys;
@@ -5477,6 +5501,8 @@ create_mergejoin_plan(PlannerInfo *root,
 		label_sort_with_costsize(root, sort, -1.0);
 		inner_plan = (Plan *) sort;
 		innerpathkeys = best_path->innersortkeys;
+		inner_plan->locustype = inner_path->locus.locustype;
+		inner_plan->parallel = inner_path->locus.parallel_workers;
 	}
 	else
 		innerpathkeys = best_path->jpath.innerjoinpath->pathkeys;
@@ -5756,10 +5782,16 @@ create_hashjoin_plan(PlannerInfo *root,
 	Oid			skewTable = InvalidOid;
 	AttrNumber	skewColumn = InvalidAttrNumber;
 	bool		skewInherit = false;
-	bool		partition_selectors_created;
+	bool		partition_selectors_created = false;
 	ListCell   *lc;
 
-	push_partition_selector_candidate_for_join(root, &best_path->jpath);
+	/* GP_PARALLEL_FIXME:
+	 * PartitionSelector is not parallel-aware, so disable it temporarily.
+	 * In future, after enabling merging partition prune info in shared memory,
+	 * PartitionSelector could work in parallel mode.
+	 */
+	if (!best_path->jpath.path.parallel_aware)
+		push_partition_selector_candidate_for_join(root, &best_path->jpath);
 
 	/*
 	 * HashJoin can project, so we don't have to demand exact tlists from the
@@ -5775,8 +5807,9 @@ create_hashjoin_plan(PlannerInfo *root,
 	 * If the outer side contained Append nodes that can do partition pruning,
 	 * inject Partition Selectors to the inner side.
 	 */
-	partition_selectors_created =
-		pop_and_inject_partition_selectors(root, &best_path->jpath);
+	if (!best_path->jpath.path.parallel_aware)
+		partition_selectors_created =
+			pop_and_inject_partition_selectors(root, &best_path->jpath);
 
 	inner_plan = create_plan_recurse(root, best_path->jpath.innerjoinpath,
 									 CP_SMALL_TLIST);
@@ -5886,6 +5919,41 @@ create_hashjoin_plan(PlannerInfo *root,
 						  skewInherit);
 
 	/*
+	 * GPDB parallel explain(locus) shows Hash table locus.
+	 * Hash table locus could be different from inner table when parallel_aware.
+	 * ex: Gather xxxWorkers to xxx if possible.
+	 */
+	hash_plan->plan.locustype = inner_plan->locustype;
+	hash_plan->plan.parallel = inner_plan->parallel;
+	if (best_path->jpath.path.parallel_aware)
+	{
+		hash_plan->plan.parallel = 0;
+		switch (inner_plan->locustype)
+		{
+			case CdbLocusType_ReplicatedWorkers:
+				hash_plan->plan.locustype = CdbLocusType_Replicated;
+				break;
+			case CdbLocusType_SegmentGeneralWorkers:
+				hash_plan->plan.locustype = CdbLocusType_SegmentGeneral;
+				break;
+			case CdbLocusType_HashedWorkers:
+				hash_plan->plan.locustype = CdbLocusType_Hashed;
+				break;
+			case CdbLocusType_Hashed:
+			case CdbLocusType_Strewn:
+				/* case kept here to set parallel = 0 */
+				break;
+			default:
+				/* recover parallel if not matched */
+				hash_plan->plan.parallel = inner_plan->parallel;
+		}
+	}
+
+	if (best_path->jpath.path.parallel_aware &&
+		best_path->jpath.innerjoinpath->barrierHazard)
+		hash_plan->sync_barrier = true;
+
+	/*
 	 * Set Hash node's startup & total costs equal to total cost of input
 	 * plan; this only affects EXPLAIN display not decisions.
 	 */
@@ -5913,7 +5981,8 @@ create_hashjoin_plan(PlannerInfo *root,
 							  outer_plan,
 							  (Plan *) hash_plan,
 							  best_path->jpath.jointype,
-							  best_path->jpath.inner_unique);
+							  best_path->jpath.inner_unique,
+							  best_path->batch0_barrier);
 
 	/*
 	 * MPP-4635.  best_path->jpath.outerjoinpath may be NULL.
@@ -6544,7 +6613,6 @@ label_sort_with_costsize(PlannerInfo *root, Sort *plan, double limit_tuples)
 	plan->plan.parallel_safe = lefttree->parallel_safe;
 }
 
-#if 0
 /*
  * bitmap_subplan_mark_shared
  *	 Set isshared flag in bitmap subplan so that it will be created in
@@ -6565,7 +6633,6 @@ bitmap_subplan_mark_shared(Plan *plan)
 	else
 		elog(ERROR, "unrecognized node type: %d", nodeTag(plan));
 }
-#endif
 
 /*****************************************************************************
  *
@@ -7090,7 +7157,8 @@ make_hashjoin(List *tlist,
 			  Plan *lefttree,
 			  Plan *righttree,
 			  JoinType jointype,
-			  bool inner_unique)
+			  bool inner_unique,
+			  bool batch0_barrier)
 {
 	HashJoin   *node = makeNode(HashJoin);
 	Plan	   *plan = &node->join.plan;
@@ -7106,6 +7174,7 @@ make_hashjoin(List *tlist,
 	node->join.jointype = jointype;
 	node->join.inner_unique = inner_unique;
 	node->join.joinqual = joinclauses;
+	node->batch0_barrier = batch0_barrier;
 
 	return node;
 }
@@ -7131,6 +7200,7 @@ make_hash(Plan *lefttree,
 	node->skewInherit = skewInherit;
 
 	node->rescannable = false;	/* CDB (unused for now) */
+	node->sync_barrier = false;
 
 	return node;
 }
@@ -8592,6 +8662,11 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	int			numHashSegments;
 	numHashSegments = CdbPathLocus_NumSegments(path->path.locus);
 
+	if (path->path.locus.parallel_workers > 0)
+	{
+		root->glob->parallelModeNeeded = true;
+	}
+
 	if (path->is_explicit_motion)
 	{
 		TargetEntry *segmentid_tle;
@@ -8704,6 +8779,9 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 	else if (CdbPathLocus_IsReplicated(path->path.locus))
 		motion = make_broadcast_motion(subplan);
 
+	else if (CdbPathLocus_IsReplicatedWorkers(path->path.locus))
+		motion = make_parallel_broadcast_motion(subplan);
+
 	/* Hashed redistribution to all QEs in gang above... */
 	else if (CdbPathLocus_IsHashed(path->path.locus) ||
 			 CdbPathLocus_IsHashedOJ(path->path.locus))
@@ -8723,6 +8801,24 @@ cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 									hashOpfamilies,
 									numHashSegments);
     }
+	else if (CdbPathLocus_IsHashedWorkers(path->path.locus))
+	{
+		List	   *hashExprs;
+		List	   *hashOpfamilies;
+
+		cdbpathlocus_get_distkey_exprs(path->path.locus,
+				 					   path->path.parent->relids,
+					       				   subplan->targetlist,
+					       				   &hashExprs, &hashOpfamilies);
+		if (!hashExprs)
+			elog(ERROR, "could not find hash distribution key expressions in target list");
+
+		motion = make_hashed_motion(subplan,
+				  					hashExprs,
+				  					hashOpfamilies,
+				  					numHashSegments);
+	}
+
 	/* Hashed redistribution to all QEs in gang above... */
 	else if (CdbPathLocus_IsStrewn(path->path.locus))
 	{

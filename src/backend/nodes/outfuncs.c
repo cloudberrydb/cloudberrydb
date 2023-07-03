@@ -368,6 +368,7 @@ _outPlannedStmt(StringInfo str, const PlannedStmt *node)
 		WRITE_INT_FIELD(slices[i].parentIndex);
 		WRITE_INT_FIELD(slices[i].gangType);
 		WRITE_INT_FIELD(slices[i].numsegments);
+		WRITE_INT_FIELD(slices[i].parallel_workers);
 		WRITE_INT_FIELD(slices[i].segindex);
 		WRITE_BOOL_FIELD(slices[i].directDispatch.isDirectDispatch);
 		WRITE_NODE_FIELD(slices[i].directDispatch.contentIds);
@@ -861,6 +862,7 @@ _outHashJoin(StringInfo str, const HashJoin *node)
 	WRITE_NODE_FIELD(hashcollations);
 	WRITE_NODE_FIELD(hashkeys);
 	WRITE_NODE_FIELD(hashqualclauses);
+	WRITE_BOOL_FIELD(batch0_barrier);
 }
 
 static void
@@ -996,6 +998,7 @@ _outHash(StringInfo str, const Hash *node)
 	WRITE_BOOL_FIELD(skewInherit);
 	WRITE_FLOAT_FIELD(rows_total, "%.0f");
 	WRITE_BOOL_FIELD(rescannable);          /*CDB*/
+	WRITE_BOOL_FIELD(sync_barrier);
 }
 
 static void

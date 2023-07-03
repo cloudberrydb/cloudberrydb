@@ -222,7 +222,11 @@ analyze p3;
 analyze p;
 
 -- TEST
+-- If force parallel, we won't have partition selector since we will use parallel join.
+-- We need to disable parallel before doing this query.
+set enable_parallel to false;
 select count_operator('select * from (select * from p1 union all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
+reset enable_parallel;
 
 select count_operator('select * from (select * from p1 union select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
 

@@ -27,6 +27,7 @@
 #include "nodes/plannodes.h"
 #include "nodes/tidbitmap.h"
 #include "partitioning/partdefs.h"
+#include "storage/barrier.h"
 #include "storage/condition_variable.h"
 #include "utils/hsearch.h"
 #include "utils/queryenvironment.h"
@@ -701,6 +702,11 @@ typedef struct EState
 	 * local slice we're currently executing, never to an alien slice.
 	 */
 	int			currentSliceId;
+
+	/*
+	 * Flag for whether to execute local slice plan in mpp parallel mode.
+	 */
+	bool		useMppParallelMode;
 
 	/* Should the executor skip past the alien plan nodes */
 	bool eliminateAliens;
@@ -2228,6 +2234,7 @@ typedef struct HashJoinState
 	bool reuse_hashtable; /* Do we need to preserve hash table to support rescan */
 	bool delayEagerFree; /* is safe to free memory used by this node,
 								 * when this node has outputted its last row? */
+	int		worker_id;	/* worker id for this process */
 } HashJoinState;
 
 
@@ -2887,6 +2894,8 @@ typedef struct HashState
 
 	/* Parallel hash state. */
 	struct ParallelHashJoinState *parallel_state;
+
+	Barrier	*sync_barrier;
 } HashState;
 
 /* ----------------
@@ -3035,6 +3044,7 @@ typedef struct MotionState
 	bool		sentEndOfStream;	/* set when end-of-stream has successfully been sent */
 	List	   *hashExprs;		/* state struct used for evaluating the hash expressions */
 	struct CdbHash *cdbhash;	/* hash api object */
+	struct CdbHash *cdbhashworkers;	/* hash api object for parallel workers */
 	int			numHashSegments;	/* number of segments to use when calculating hash */
 
 	/* For Motion recv */
@@ -3069,6 +3079,8 @@ typedef struct MotionState
 	Oid		   *outputFunArray;	/* output functions for each column (debug only) */
 
 	int			numInputSegs;	/* the number of segments on the sending slice */
+
+	int 		parallel_workers; /* parallel workers of motion */
 } MotionState;
 
 /* ----------------

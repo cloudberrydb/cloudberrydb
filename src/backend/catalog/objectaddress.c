@@ -56,6 +56,7 @@
 #include "catalog/pg_statistic_ext.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_task.h"
 #include "catalog/pg_transform.h"
 #include "catalog/pg_trigger.h"
 #include "catalog/pg_ts_config.h"
@@ -4009,6 +4010,21 @@ getObjectDescription(const ObjectAddress *object, bool missing_ok)
 								 ExtProtocolGetNameByOid(object->objectId));
 				break;
 			}
+
+		case OCLASS_TASK:
+			{
+				char *taskname;
+				taskname = GetTaskNameById(object->objectId);
+				if (!taskname)
+				{
+					if (!missing_ok)
+						elog(ERROR, "cache lookup failed for task %u",
+							 object->objectId);
+					break;
+				}
+				appendStringInfo(&buffer, _("task %s"), taskname);
+				break;
+			}
 	}
 
 	/* an empty buffer is equivalent to no object found */
@@ -4566,6 +4582,10 @@ getObjectTypeDescription(const ObjectAddress *object, bool missing_ok)
 
 		case OCLASS_EXTPROTOCOL:
 			appendStringInfoString(&buffer, "external protocol");
+			break;
+
+		case OCLASS_TASK:
+			appendStringInfoString(&buffer, "task");
 			break;
 
 			/*
@@ -5861,6 +5881,19 @@ getObjectIdentityParts(const ObjectAddress *object,
 									   quote_identifier(extprotname));
 				if (objname)
 					*objname = list_make1(extprotname);
+			}
+			break;
+
+		case OCLASS_TASK:
+			{
+				char *taskname;
+				taskname = GetTaskNameById(object->objectId);
+				if (taskname)
+				{
+					appendStringInfoString(&buffer, quote_identifier(taskname));
+					if (objname)
+						*objname = list_make1(taskname);
+				}
 			}
 			break;
 

@@ -29,6 +29,7 @@
 #include "optimizer/tlist.h"
 #include "utils/lsyscache.h"
 #include "utils/typcache.h"
+#include "utils/guc.h"
 
 #include "executor/nodeHash.h"                  /* ExecHashRowSize() */
 #include "cdb/cdbpath.h"                        /* cdbpath_rows() */
@@ -780,6 +781,7 @@ try_partial_nestloop_path(PlannerInfo *root,
 						  JoinPathExtraData *extra)
 {
 	JoinCostWorkspace workspace;
+	Path	*nestloop_path;
 
 	/*
 	 * If the inner path is parameterized, the parameterization must be fully
@@ -834,19 +836,26 @@ try_partial_nestloop_path(PlannerInfo *root,
 	}
 
 	/* Might be good enough to be worth trying, so let's try it. */
-	add_partial_path(joinrel, (Path *)
-					 create_nestloop_path(root,
-										  joinrel,
-										  jointype,
-										  orig_jointype,
-										  &workspace,
-										  extra,
-										  outer_path,
-										  inner_path,
-										  extra->restrictlist,
-										  extra->redistribution_clauses,
-										  pathkeys,
-										  NULL));
+	nestloop_path = create_nestloop_path(root,
+					     joinrel,
+					     jointype,
+					     orig_jointype,
+					     &workspace,
+					     extra,
+					     outer_path,
+					     inner_path,
+					     extra->restrictlist,
+					     extra->redistribution_clauses,
+					     pathkeys,
+					     NULL);
+
+	 /*
+	  * The final path could be not parallel safe because of Motions added.
+	  */
+	if (nestloop_path && nestloop_path->parallel_safe)
+	{
+		add_partial_path(joinrel, nestloop_path);
+	}
 }
 
 /*
@@ -1003,23 +1012,24 @@ try_partial_mergejoin_path(PlannerInfo *root,
 	if (!add_partial_path_precheck(joinrel, workspace.total_cost, pathkeys))
 		return;
 
+	Path *path = create_mergejoin_path(root,
+										joinrel,
+										jointype,
+										orig_jointype,
+										&workspace,
+										extra,
+										outer_path,
+										inner_path,
+										extra->restrictlist,
+										pathkeys,
+										NULL,
+										mergeclauses,
+										extra->redistribution_clauses,
+										outersortkeys,
+										innersortkeys);
 	/* Might be good enough to be worth trying, so let's try it. */
-	add_partial_path(joinrel, (Path *)
-					 create_mergejoin_path(root,
-										   joinrel,
-										   jointype,
-										   orig_jointype,
-										   &workspace,
-										   extra,
-										   outer_path,
-										   inner_path,
-										   extra->restrictlist,
-										   pathkeys,
-										   NULL,
-										   mergeclauses,
-										   extra->redistribution_clauses,
-										   outersortkeys,
-										   innersortkeys));
+	if (path && path->parallel_safe)
+		add_partial_path(joinrel, (Path *)path);
 }
 
 /*
@@ -1078,7 +1088,8 @@ try_hashjoin_path(PlannerInfo *root,
 									  extra->restrictlist,
 									  required_outer,
 									  extra->redistribution_clauses,
-									  hashclauses),
+									  hashclauses, 
+									  false),
 				 root);
 	}
 	else
@@ -1109,6 +1120,7 @@ try_partial_hashjoin_path(PlannerInfo *root,
 						  bool parallel_hash)
 {
 	JoinCostWorkspace workspace;
+	Path *hashpath;
 
 	/*
 	 * If the inner path is parameterized, the parameterization must be fully
@@ -1134,21 +1146,57 @@ try_partial_hashjoin_path(PlannerInfo *root,
 	if (!add_partial_path_precheck(joinrel, workspace.total_cost, NIL))
 		return;
 
-	/* Might be good enough to be worth trying, so let's try it. */
-	add_partial_path(joinrel, (Path *)
-					 create_hashjoin_path(root,
-										  joinrel,
-										  jointype,
-										  orig_jointype,
-										  &workspace,
-										  extra,
-										  outer_path,
-										  inner_path,
-										  parallel_hash,
-										  extra->restrictlist,
-										  NULL,
-										  extra->redistribution_clauses,
-										  hashclauses));
+	/*
+	 * GPDB_PARALLEL_FIXME
+	 * Customers encounter an issue that when parallel hash, broadcast motion
+	 * a smaller table may be worser than redistribute a big table.
+	 * We add a path whic doesn't try broadcast if possible.
+	 * And let the path cost decide which is better. 
+	 */
+	if (parallel_hash)
+	{
+		hashpath = create_hashjoin_path(root,
+										joinrel,
+										jointype,
+										orig_jointype,
+										&workspace,
+										extra,
+										outer_path,
+										inner_path,
+										true,
+										extra->restrictlist,
+										NULL,
+										extra->redistribution_clauses,
+										hashclauses,
+										true); /* not use broadcast */
+		if (hashpath && hashpath->parallel_safe)
+			add_partial_path(joinrel, hashpath);
+	}
+
+	/* 
+	 * GPDB_PARALLEL_FIXME:
+	 * We only want non-broadcast in parallel hash if the guc is set.
+	 */
+	if (parallel_hash && !parallel_hash_enable_motion_broadcast)
+		return;
+
+	hashpath = create_hashjoin_path(root,
+									joinrel,
+									jointype,
+									orig_jointype,
+									&workspace,
+									extra,
+									outer_path,
+									inner_path,
+									parallel_hash,
+									extra->restrictlist,
+									NULL,
+									extra->redistribution_clauses,
+									hashclauses,
+									false);
+	/* Might be good enough to be worth trying and no motion, so let's try it. */
+	if (hashpath && hashpath->parallel_safe)
+		add_partial_path(joinrel, hashpath);
 }
 
 /*
@@ -1268,6 +1316,8 @@ sort_inner_and_outer(PlannerInfo *root,
 	if (joinrel->consider_parallel &&
 		save_jointype != JOIN_UNIQUE_OUTER &&
 		save_jointype != JOIN_FULL &&
+		save_jointype != JOIN_DEDUP_SEMI &&
+		save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 		save_jointype != JOIN_RIGHT &&
 		outerrel->partial_pathlist != NIL &&
 		bms_is_empty(joinrel->lateral_relids))
@@ -1875,6 +1925,8 @@ match_unsorted_outer(PlannerInfo *root,
 	if (joinrel->consider_parallel &&
 		save_jointype != JOIN_UNIQUE_OUTER &&
 		save_jointype != JOIN_FULL &&
+		save_jointype != JOIN_DEDUP_SEMI &&
+		save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 		save_jointype != JOIN_RIGHT &&
 		outerrel->partial_pathlist != NIL &&
 		bms_is_empty(joinrel->lateral_relids))
@@ -2246,6 +2298,9 @@ hash_inner_and_outer(PlannerInfo *root,
 			save_jointype != JOIN_UNIQUE_OUTER &&
 			save_jointype != JOIN_FULL &&
 			save_jointype != JOIN_RIGHT &&
+			save_jointype != JOIN_LASJ_NOTIN &&
+			save_jointype != JOIN_DEDUP_SEMI &&
+			save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 			outerrel->partial_pathlist != NIL &&
 			bms_is_empty(joinrel->lateral_relids))
 		{

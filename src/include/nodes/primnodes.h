@@ -142,6 +142,7 @@ typedef struct RefreshClause
 	bool		concurrent;		/* allow concurrent access? */
 	bool		skipData;
 	RangeVar   *relation;		/* relation to insert into */
+	bool 		intoAO;			/* is relation to insert into AO/AOCS */
 } RefreshClause;
 
 

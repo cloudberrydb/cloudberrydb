@@ -38,6 +38,7 @@ analyze testsiscm;
 set statement_mem="3MB";
 set gp_resqueue_print_operator_memory_limits=on;
 set gp_cte_sharing=on;
+set max_parallel_workers_per_gather = 0;
 -- The expected output is very sensitive to the kind of plan this produces.
 -- We're testing the executor, not the planner, so force ORCA off, to get
 -- the particular plan
@@ -79,4 +80,5 @@ select *
 from ctesisc as t1, ctesisc as t2 
 where t1.c1 = t2.c1 and t1.c3 = t2.c3 limit 50000;');
 
+reset max_parallel_workers_per_gather;
 drop schema sisc_mat_sort cascade;

@@ -1997,6 +1997,8 @@ expression_tree_walker(Node *node,
 		case T_AggExprId:
 		case T_RowIdExpr:
 		case T_CTESearchClause:
+		case T_Gather:
+		case T_GatherMerge:
 			/* primitive node types with no expression subnodes */
 			break;
 		case T_WithCheckOption:
@@ -3538,6 +3540,24 @@ expression_tree_mutator(Node *node,
 				MUTATE(newnode->colexprs, tf->colexprs, List *);
 				MUTATE(newnode->coldefexprs, tf->coldefexprs, List *);
 				return (Node *) newnode;
+			}
+			break;
+		case T_Gather:
+			{
+				Gather	   *gather = (Gather *) node;
+				Gather	   *newgather;
+
+				FLATCOPY(newgather, gather, Gather);
+				return (Node *) newgather;
+			}
+			break;
+		case T_GatherMerge:
+			{
+				GatherMerge *gathermerge = (GatherMerge *) node;
+				GatherMerge *newgathermerge;
+
+				FLATCOPY(newgathermerge, gathermerge, GatherMerge);
+				return (Node *) newgathermerge;
 			}
 			break;
 		default:

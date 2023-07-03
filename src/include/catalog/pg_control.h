@@ -90,6 +90,7 @@ typedef struct CheckPoint
 /* GPDB_14_MERGE_FIXME: Compatible, Figure out whether 0xC0 already used? */
 /* 0xC0 is used in Postgres 9.5-11 */
 #define XLOG_OVERWRITE_CONTRECORD		0xE0
+#define XLOG_ENCRYPTION_LSN				0xF0
 
 
 /*
@@ -238,6 +239,9 @@ typedef struct ControlFileData
 	 * failed at an early stage.
 	 */
 	char		mock_authentication_nonce[MOCK_AUTH_NONCE_LEN];
+
+	/* File encryption method;  index into encryption_methods[]. */
+	int		file_encryption_method;
 
 	/* CRC of all above ... MUST BE LAST! */
 	pg_crc32c	crc;

@@ -1,0 +1,149 @@
+<!-- doc/src/sgml/database-encryption.sgml -->
+
+<chapter id="cluster-file-encryption">
+ <title>Cluster File Encryption</title>
+
+ <indexterm zone="cluster-file-encryption">
+  <primary>Cluster File Encryption</primary>
+ </indexterm>
+
+ <para>
+  The purpose of cluster file encryption is to prevent users with read
+  access on the directories used to store database files and write-ahead
+  log files from being able to access the data stored in those files.
+  For example, when using cluster file encryption, users who have read
+  access to the cluster directories for backup purposes will not be able
+  to decrypt the data stored in these files.  Read-only access for a group
+  of users can be enabled using the <application>initdb</application>
+  <option>--allow-group-access</option> option.  Cluster file encryption
+  also provides data-at-rest security, protecting users from data loss
+  should the physical storage media be stolen or improperly erased before
+  disposal.
+ </para>
+
+ <para>
+  Cluster file encryption does not protect against unauthorized file
+  system writes.  Such writes can allow data decryption if used to weaken
+  the system's security and the weakened system is later supplied with
+  the externally-stored cluster encryption key.  This also does not always
+  detect if users with write access remove or modify database files.
+ </para>
+
+ <para>
+  This also does not protect against users who have read access to database
+  process memory because all in-memory data pages and data encryption keys
+  are stored unencrypted in memory.  Therefore, an attacker who is able
+  to read memory can read the data encryption keys and decrypt the entire
+  cluster.  The Postgres operating system user and the operating system
+  administrator, e.g., the <literal>root</literal> user, have such access.
+ </para>
+
+ <sect1 id="cluster-encryption-keys">
+  <title>Keys</title>
+
+  <para>
+   Cluster file encryption uses two levels of encryption &mdash; an upper
+   key which encrypts lower-level keys.  The upper-level key is often
+   referred to as a Key Encryption Key (<acronym>KEK</acronym>).  This key
+   is <emphasis>not</emphasis> stored in the file system, but provided at
+   <command>initdb</command> time and each time the server is started.  This
+   key can be easily changed via <command>pg_alterckey</command> without
+   requiring any changes to the the data files or <command>WAL</command>
+   files.
+  </para>
+
+  <para>
+   The lower level keys are data encryption keys, specifically for relations
+   and <acronym>WAL</acronym>.  The relation key is used to encrypt database
+   heap and index files.  The WAL key is used to encrypt write-ahead log
+   (WAL) files.  Two different keys are used so that primary and standby
+   servers can use different relation keys, but the same WAL key, so that
+   these keys can (in a future release) be rotated by switching the
+   primary to the standby and then changing the WAL key.  Eventually,
+   encryption will be able to added to non-encrypted clusters by creating
+   encrypted replicas and switching over to them.
+  </para>
+
+  <para>
+   Postgres stores the data encryption (lower-level) keys in the data
+   directory encrypted (wrapped) by key encryption (upper-level) key.
+   Though the data encryption keys technically exist in the file system,
+   the key encryption key does not, so the data encryption keys are
+   securely stored.  Data encryption keys are used to security encrypt
+   other database files.
+  </para>
+ </sect1>
+
+ <sect1 id="cluster-encryption-initialization">
+  <title>Initialization</title>
+
+  <para>
+   Cluster file encryption is enabled when
+   <productname>PostgreSQL</productname> is built
+   with <literal>--with-openssl</literal> and <xref
+   linkend="app-initdb-cluster-key-command"/> is specified
+   during <command>initdb</command>.  The cluster key
+   provided by the <option>--cluster-key-command</option>
+   option during <command>initdb</command> and the one generated
+   by <xref linkend="guc-cluster-key-command"/> in the
+   <filename>postgresql.conf</filename> must match for the database
+   cluster to start. Note that the cluster key command
+   passed to <command>initdb</command> must return a key of
+   64 hexadecimal characters. For example:
+<programlisting>
+initdb -D dbname --cluster-key-command='ckey_passphrase.sh'
+</programlisting>
+   Cluster file encryption does not support a <varname>wal_level</varname>
+   of <literal>minimal</literal>.
+  </para>
+ </sect1>
+
+ <sect1 id="cluster-encryption-operation">
+  <title>Operation</title>
+
+  <para>
+   During the <command>initdb</command> process, if
+   <option>--cluster-key-command</option> is specified, two data-level
+   encryption keys are created.   These two keys are then encrypted with
+   the key encryption key (KEK) supplied by the cluster key command before
+   being stored in the database directory.  The key or passphrase that
+   derives the key must be supplied from the terminal or stored in a
+   trusted key store, such as key vault software or a hardware security
+   module.
+  </para>
+
+  <para>
+   If the <productname>PostgreSQL</productname> server has
+   been initialized to require a cluster key, each time the
+   server starts the <filename>postgresql.conf</filename>
+   <varname>cluster_key_command</varname> command will be executed
+   and the cluster key retrieved.  The data encryption keys in the
+   <filename>pg_cryptokeys</filename> directory will then be decrypted
+   using the supplied key and integrity-checked to ensure it matches the
+   initdb-supplied key.  (If this check fails, the server will refuse
+   to start.)  The cluster encryption key will then be removed from
+   system memory.  The decrypted data encryption keys will remain in
+   shared memory until the server is stopped.
+  </para>
+
+  <para>
+   The data encryption keys are randomly generated and can be 128, 192,
+   or 256-bits in length, depending on whether <literal>AES128</literal>,
+   <literal>AES192</literal>, or <literal>AES256</literal> is specified.
+   They are encrypted by the key encryption key (KEK) using Advanced
+   Encryption Standard (<acronym>AES256</acronym>) encryption in Key
+   Wrap Padded Mode, which also provides KEK authentication;  see <ulink
+   url="https://tools.ietf.org/html/rfc5649">RFC 5649</ulink>. While
+   128-bit encryption is sufficient for most sites, 256-bit encryption
+   is thought to be more immune to future quantum cryptographic attacks.
+  </para>
+
+  <para>.
+   If you prefer to create the random keys on your own, you can create
+   a empty directory with a <filename>pg_cryptokeys/live</filename>
+   subdirectory, generate the keys there using your tools. and use the
+   <command>initdb</command> <option>--copy-encryption-keys</option>
+   to copy those keys into the newly-created  cluster.
+  </para>
+ </sect1>
+</chapter>

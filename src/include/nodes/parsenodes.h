@@ -2737,6 +2737,36 @@ typedef struct AlterTableMoveAllStmt
 } AlterTableMoveAllStmt;
 
 /* ----------------------
+ *		Create/Alter/Drop Task Statements
+ * ----------------------
+ */
+
+typedef struct CreateTaskStmt
+{
+	NodeTag		type;
+	char	   *taskname;
+	char	   *schedule;
+	char	   *sql;			/* the sql command */
+	List	   *options;
+	bool		if_not_exists;	/* just do nothing if it already exists? */
+} CreateTaskStmt;
+
+typedef struct AlterTaskStmt
+{
+	NodeTag		type;
+	char	   *taskname;
+	List	   *options;
+	bool		missing_ok;		/* skip error if missing? */
+} AlterTaskStmt;
+
+typedef struct DropTaskStmt
+{
+	NodeTag		type;
+	char	   *taskname;
+	bool		missing_ok;		/* skip error if missing? */
+} DropTaskStmt;
+
+/* ----------------------
  *		Create/Alter Extension Statements
  * ----------------------
  */
@@ -3287,6 +3317,8 @@ typedef struct SecLabelStmt
  * of the query are always postponed until execution.
  * ----------------------
  */
+#define CURSOR_OPT_PARALLEL_NOT_OK	0x0000	/* parallel mode is not OK */
+
 #define CURSOR_OPT_BINARY		0x0001	/* BINARY */
 #define CURSOR_OPT_SCROLL		0x0002	/* SCROLL explicitly given */
 #define CURSOR_OPT_NO_SCROLL	0x0004	/* NO SCROLL explicitly given */

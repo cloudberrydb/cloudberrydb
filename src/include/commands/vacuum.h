@@ -238,6 +238,16 @@ typedef enum VacOptValue
  * VPgClassStats is used to hold the stats information that are stored in
  * pg_class. It is sent from QE to QD in a special libpq message , when a
  * QE runs VACUUM on a table.
+ *
+ * relallvisible
+ * AO/AOCO does not currently have an equivalent to Heap's 'all visible pages',
+ * relallvisible is always set to 0 in pg_class for AO/AOCO tabes. But QE use
+ * this field in libpq to represent AO/AOCO's total file segment number when
+ * vacuum ao tables.
+ * Remember to reset relallvisible to 0 after qd get file segment number and
+ * before updating pg_class.
+ * See vac_update_relstats_from_list in vacuum.c and
+ * vac_update_relstats in vacuum_ao.c.
  */
 typedef struct VPgClassStats
 {

@@ -29,6 +29,7 @@
 #include "catalog/catalog.h"
 #include "catalog/pg_tablespace_d.h"
 #include "common/hashfn.h"
+#include "common/kmgr_utils.h"
 #include "common/string.h"
 #include "datapagemap.h"
 #include "filemap.h"
@@ -108,6 +109,13 @@ static const char *excludeDirContents[] =
 
 	/* Contents removed on startup, see AsyncShmemInit(). */
 	"pg_notify",
+
+	/*
+	 * Skip cryptographic keys. It's generally not a good idea to copy the
+	 * cryptographic keys from source database because these might use
+	 * different cluster key.
+	 */
+	//KMGR_DIR,
 
 	/*
 	 * Old contents are loaded for possible debugging but are not required for

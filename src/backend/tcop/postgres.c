@@ -46,6 +46,8 @@
 #include "commands/async.h"
 #include "commands/prepare.h"
 #include "commands/extension.h"
+#include "crypto/bufenc.h"
+#include "crypto/kmgr.h"
 #include "executor/spi.h"
 #include "jit/jit.h"
 #include "libpq/libpq.h"
@@ -1413,7 +1415,7 @@ exec_mpp_query(const char *query_string,
 		(void) PortalRun(portal,
 						 FETCH_ALL,
 						 true, /* Effectively always top level. */
-						 portal->run_once,
+						 true,
 						 receiver,
 						 receiver,
 						 &qc);
@@ -4598,7 +4600,7 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 	 * postmaster/postmaster.c (the option sets should not conflict) and with
 	 * the common help() function in main/main.c.
 	 */
-	while ((flag = getopt(argc, argv, "B:bc:C:D:d:EeFf:h:ijk:lMm:N:nOPp:r:S:sTt:v:W:-:")) != -1)
+	while ((flag = getopt(argc, argv, "B:bc:C:D:d:EeFf:h:ijk:lMm:N:nOPp:r:R:S:sTt:v:W:-:")) != -1)
 	{
 		switch (flag)
 		{
@@ -4711,6 +4713,19 @@ process_postgres_switches(int argc, char *argv[], GucContext ctx,
 				/* send output (stdout and stderr) to the given file */
 				if (secure)
 					strlcpy(OutputFileName, optarg, MAXPGPATH);
+				break;
+
+			case 'R':
+				terminal_fd = atoi(optarg);
+				if (terminal_fd == -1)
+				{
+					/*
+					 * Allow file descriptor closing to be bypassed via -1.
+					 * We just duplicate sterr.  This is useful for
+					 * single-user mode.
+					 */
+					terminal_fd = dup(2);
+				}
 				break;
 
 			case 'S':
@@ -5033,6 +5048,21 @@ PostgresMain(int argc, char *argv[],
 
 	/* Early initialization */
 	BaseInit();
+
+	if (!IsUnderPostmaster)
+	{
+		/*
+		* Initialize kmgr for cluster encryption. Since kmgr needs to attach to
+		* shared memory the initialization must be called after BaseInit().
+		* we need some information from the controlFile, 
+		* so must call the InitializeKmgr after LocalProcessControlFile.
+		*/
+		InitializeKmgr();
+		InitializeBufferEncryption();
+
+		if (terminal_fd != -1)
+			close(terminal_fd);
+	}
 
 	/*
 	 * Create a per-backend PGPROC struct in shared memory, except in the

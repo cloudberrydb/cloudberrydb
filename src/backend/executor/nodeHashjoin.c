@@ -204,6 +204,8 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 	hashtable = node->hj_HashTable;
 	econtext = node->js.ps.ps_ExprContext;
 	parallel_state = hashNode->parallel_state;
+	/* GPDB_PARALLEL_FIXME: When parallel is true and parallel_state is NULL */
+	parallel = parallel && (parallel_state != NULL);
 
 	/*
 	 * Reset per-tuple memory context to free any expression evaluation
@@ -803,7 +805,14 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	 * where this function may be replaced with a parallel version, if we
 	 * managed to launch a parallel query.
 	 */
-	hjstate->js.ps.ExecProcNode = ExecHashJoin;
+	if (node->join.plan.parallel_aware)
+	{
+		hjstate->js.ps.ExecProcNode = ExecParallelHashJoin;
+	}
+	else
+	{
+		hjstate->js.ps.ExecProcNode = ExecHashJoin;
+	}
 	hjstate->js.jointype = node->join.jointype;
 
 	/*
@@ -968,6 +977,7 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 	hjstate->hj_JoinState = HJ_BUILD_HASHTABLE;
 	hjstate->hj_MatchedOuter = false;
 	hjstate->hj_OuterNotEmpty = false;
+	hjstate->worker_id = -1;
 
 	/* Setup the relationship of HashJoin, Hash and RuntimeFilter node. */
 	hstate = (HashState *) innerPlanState(hjstate);
@@ -1386,6 +1396,8 @@ ExecParallelHashJoinNewBatch(HashJoinState *hjstate)
 	HashJoinTable hashtable = hjstate->hj_HashTable;
 	int			start_batchno;
 	int			batchno;
+	Barrier		*batch0_barrier = NULL;
+	ParallelHashJoinState *pstate = hashtable->parallel_state;
 
 	/*
 	 * If we started up so late that the batch tracking array has been freed
@@ -1425,9 +1437,19 @@ ExecParallelHashJoinNewBatch(HashJoinState *hjstate)
 			SharedTuplestoreAccessor *inner_tuples;
 			Barrier    *batch_barrier =
 			&hashtable->batches[batchno].shared->batch_barrier;
+			int			phase = BarrierAttach(batch_barrier);
 
-			switch (BarrierAttach(batch_barrier))
+			if (hashtable->nbatch == 1 && batchno == 0 && ((HashJoin *)hjstate->js.ps.plan)->batch0_barrier)
 			{
+				Assert(phase == PHJ_BATCH_PROBING);
+
+				batch0_barrier = &pstate->batch0_barrier;
+				BarrierArriveAndWait(batch0_barrier, WAIT_EVENT_PARALLEL_FINISH);
+			}
+
+			switch (phase)
+			{
+
 				case PHJ_BATCH_ELECTING:
 
 					/* One backend allocates the hash table. */
@@ -1783,7 +1805,7 @@ isNotDistinctJoin(List *qualList)
 static void
 ExecEagerFreeHashJoin(HashJoinState *node)
 {
-	if (node->hj_HashTable != NULL && !node->hj_HashTable->eagerlyReleased)
+	if (node->hj_HashTable != NULL && !node->hj_HashTable->eagerlyReleased && !node->hj_HashTable->parallel_state)
 	{
 		ReleaseHashTable(node);
 	}
@@ -1998,7 +2020,7 @@ ExecHashJoinInitializeDSM(HashJoinState *state, ParallelContext *pcxt)
 	int			plan_node_id = state->js.ps.plan->plan_node_id;
 	HashState  *hashNode;
 	ParallelHashJoinState *pstate;
-
+	EState     *estate = state->js.ps.state;
 	/*
 	 * Disable shared hash table mode if we failed to create a real DSM
 	 * segment, because that means that we don't have a DSA area to work with.
@@ -2028,7 +2050,11 @@ ExecHashJoinInitializeDSM(HashJoinState *state, ParallelContext *pcxt)
 	pstate->growth = PHJ_GROWTH_OK;
 	pstate->chunk_work_queue = InvalidDsaPointer;
 	pg_atomic_init_u32(&pstate->distributor, 0);
-	pstate->nparticipants = pcxt->nworkers + 1;
+	if (estate->useMppParallelMode)
+		pstate->nparticipants = pcxt->nworkers;
+	else
+		pstate->nparticipants = pcxt->nworkers + 1;
+
 	pstate->total_tuples = 0;
 	LWLockInitialize(&pstate->lock,
 					 LWTRANCHE_PARALLEL_HASH_JOIN);
@@ -2036,8 +2062,12 @@ ExecHashJoinInitializeDSM(HashJoinState *state, ParallelContext *pcxt)
 	BarrierInit(&pstate->grow_batches_barrier, 0);
 	BarrierInit(&pstate->grow_buckets_barrier, 0);
 
+	BarrierInit(&pstate->sync_barrier, pcxt->nworkers);
+	BarrierInit(&pstate->batch0_barrier, pcxt->nworkers);
+
 	/* Set up the space we'll use for shared temporary files. */
 	SharedFileSetInit(&pstate->fileset, pcxt->seg);
+	state->worker_id = 0; /* First worker process */
 
 	/* Initialize the shared state in the hash node. */
 	hashNode = (HashState *) innerPlanState(state);
@@ -2088,6 +2118,7 @@ ExecHashJoinInitializeWorker(HashJoinState *state,
 							 ParallelWorkerContext *pwcxt)
 {
 	HashState  *hashNode;
+	EState     *estate = state->js.ps.state;
 	int			plan_node_id = state->js.ps.plan->plan_node_id;
 	ParallelHashJoinState *pstate =
 	shm_toc_lookup(pwcxt->toc, plan_node_id, false);
@@ -2098,6 +2129,12 @@ ExecHashJoinInitializeWorker(HashJoinState *state,
 	/* Attach to the shared state in the hash node. */
 	hashNode = (HashState *) innerPlanState(state);
 	hashNode->parallel_state = pstate;
-
-	ExecSetExecProcNode(&state->js.ps, ExecParallelHashJoin);
+	if (estate->useMppParallelMode)
+		state->worker_id = pwcxt->worker_id;
+	else
+	{
+		Assert(ParallelWorkerNumber >= 0);
+		state->worker_id = ParallelWorkerNumber + 1;
+		ExecSetExecProcNode(&state->js.ps, ExecParallelHashJoin);
+	}
 }

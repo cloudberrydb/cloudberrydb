@@ -278,7 +278,7 @@ RETURN pg_sleep(extract(epoch from $1) -
 CREATE OR REPLACE FUNCTION pg_relation_size(regclass)
  RETURNS bigint
  LANGUAGE sql
- PARALLEL SAFE STRICT COST 1
+ PARALLEL UNSAFE STRICT COST 1
 RETURN pg_relation_size($1, 'main');
 
 CREATE OR REPLACE FUNCTION obj_description(oid, name)

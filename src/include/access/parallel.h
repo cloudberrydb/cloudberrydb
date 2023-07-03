@@ -16,7 +16,9 @@
 
 #include "access/xlogdefs.h"
 #include "lib/ilist.h"
+#include "nodes/execnodes.h"
 #include "postmaster/bgworker.h"
+#include "storage/barrier.h"
 #include "storage/shm_mq.h"
 #include "storage/shm_toc.h"
 
@@ -52,11 +54,40 @@ typedef struct ParallelWorkerContext
 {
 	dsm_segment *seg;
 	shm_toc    *toc;
+	int		nworkers;
+	int		worker_id;
 } ParallelWorkerContext;
 
 extern volatile bool ParallelMessagePending;
 extern PGDLLIMPORT int ParallelWorkerNumber;
 extern PGDLLIMPORT bool InitializingParallelWorker;
+
+typedef struct ParallelEntryTag
+{
+	int cid;
+	int sliceId;
+	int sessionId;
+} ParallelEntryTag;
+
+#define INIT_PARALLELENTRYTAG(a,xx_cid,xx_sliceId,xx_sessionId) \
+do {															\
+	(a).cid = (xx_cid);											\
+	(a).sliceId = (xx_sliceId);									\
+	(a).sessionId = (xx_sessionId);								\
+} while(0)
+
+typedef struct GpParallelDSMEntry
+{
+	ParallelEntryTag	tag;
+	int             	pid;
+	dsm_handle      	handle;
+	shm_toc         	*toc;
+	int             	reference;
+	int             	tolaunch;
+	int			parallel_workers;
+	int			temp_worker_id;  /* temproary usage */
+	Barrier		build_barrier;	/* synchronization for the build dsm phases */
+} GpParallelDSMEntry;
 
 #define		IsParallelWorker()		(ParallelWorkerNumber >= 0)
 
@@ -78,5 +109,23 @@ extern void AtEOSubXact_Parallel(bool isCommit, SubTransactionId mySubId);
 extern void ParallelWorkerReportLastRecEnd(XLogRecPtr last_xlog_end);
 
 extern void ParallelWorkerMain(Datum main_arg);
+
+extern void InitGpParallelDSMHash(void);
+
+extern GpParallelDSMEntry* GpInsertParallelDSMHash(PlanState *planstate);
+
+extern Size GpParallelDSMHashSize(void);
+
+extern bool EstimateGpParallelDSMEntrySize(PlanState *planstate, ParallelContext *pctx);
+
+extern bool InitializeGpParallelDSMEntry(PlanState *node, ParallelContext *pctx);
+extern bool InitializeGpParallelWorkers(PlanState *planstate, ParallelWorkerContext *pwcxt);
+extern void* GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id);
+
+extern void GpDestroyParallelDSMEntry(void);
+
+extern void AtEOXact_GP_Parallel(void);
+
+extern void AtProcExit_GP_Parallel(int code, Datum arg);
 
 #endif							/* PARALLEL_H */

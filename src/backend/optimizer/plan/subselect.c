@@ -332,15 +332,22 @@ make_subplan(PlannerInfo *root, Query *orig_subquery,
 	}
 
 	if (Gp_role == GP_ROLE_DISPATCH)
+	{
 		config->is_under_subplan = true;
 
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		config->gp_cte_sharing = IsSubqueryCorrelated(subquery) ||
-				!(subLinkType == ROWCOMPARE_SUBLINK ||
-				 subLinkType == ARRAY_SUBLINK ||
-				 subLinkType == EXPR_SUBLINK ||
-				 subLinkType == EXISTS_SUBLINK);
+		/*
+		 * Disable CTE sharing in subplan.
+		 *
+		 * fixup_subplans() copys duplicate subplan (subplan with same
+		 * plan_id), but doesn't copy the subroot.
+		 * If enable cte sharing here, it leads to mismatch of the length
+		 * of subplans and subroots. And apply_shareinput_xslice() cannot
+		 * make it correct when shared scan is in subplan, then an assert
+		 * (or panic) error will happen in init_tuplestore_state().
+		 *
+		 * See github issue: https://github.com/greenplum-db/gpdb/issues/12701
+		 */
+		config->gp_cte_sharing = false;
 	}
 	/*
 	 * Strictly speaking, the order of rows in a subquery doesn't matter.
@@ -377,6 +384,16 @@ make_subplan(PlannerInfo *root, Query *orig_subquery,
 	 * seems no reason to postpone doing that.
 	 */
 	final_rel = fetch_upper_rel(subroot, UPPERREL_FINAL, NULL);
+	/*
+	 * CBDB parallel: add the cheapest partial path to the final_rel.
+	 */
+	if (final_rel->partial_pathlist != NIL)
+	{
+		Path	   *cheapest_partial_path;
+		cheapest_partial_path = linitial(final_rel->partial_pathlist);
+		add_path(final_rel, cheapest_partial_path, root);
+		set_cheapest(final_rel);
+	}
 	best_path = get_cheapest_fractional_path(final_rel, tuple_fraction);
 
 	/*
@@ -2554,12 +2571,18 @@ SS_charge_for_initplans(PlannerInfo *root, RelOptInfo *final_rel)
 	}
 
 	/*
-	 * Forget about any partial paths and clear consider_parallel, too;
-	 * they're not usable if we attached an initPlan.
+	 * Now adjust the costs for partial paths.
 	 */
-	final_rel->partial_pathlist = NIL;
-	final_rel->consider_parallel = false;
+	if (final_rel->partial_pathlist)
+	{
+		foreach(lc, final_rel->partial_pathlist)
+		{
+			Path	   *path = (Path *) lfirst(lc);
 
+			path->startup_cost += initplan_cost;
+			path->total_cost += initplan_cost;
+		}
+	}
 	/* We needn't do set_cheapest() here, caller will do it */
 }
 
@@ -2701,10 +2724,10 @@ finalize_plan(PlannerInfo *root, Plan *plan,
 	 */
 	if (plan->parallel_aware)
 	{
-		if (gather_param < 0)
-			elog(ERROR, "parallel-aware plan node is not below a Gather");
-		context.paramids =
-			bms_add_member(context.paramids, gather_param);
+		/* make GPDB stype parallisim work. */
+		if (gather_param >= 0)
+			context.paramids =
+				bms_add_member(context.paramids, gather_param);
 	}
 
 	/* Check additional node-type-specific fields */

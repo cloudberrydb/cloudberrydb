@@ -46,19 +46,34 @@ extern Path *create_motion_path_for_upddel(PlannerInfo *root, Index rti, GpPolic
 extern Path *create_split_update_path(PlannerInfo *root, Index rti, GpPolicy *targetPolicy, Path *subpath);
 
 extern CdbPathLocus
-cdbpath_motion_for_join(PlannerInfo    *root,
-                        JoinType        jointype,           /* JOIN_INNER/FULL/LEFT/RIGHT/IN */
-                        Path          **p_outer_path,       /* INOUT */
-                        Path          **p_inner_path,       /* INOUT */
-						int			   *p_rowidexpr_id,
-                        List           *redistribution_clauses,   /* equijoin RestrictInfo list */
-                        List           *restrict_clauses, /* all RestrictInfos */
-                        List           *outer_pathkeys,
-                        List           *inner_pathkeys,
-                        bool            outer_require_existing_order,
-                        bool            inner_require_existing_order);
+cdbpath_motion_for_join(PlannerInfo *root,
+						JoinType jointype,	 /* JOIN_INNER/FULL/LEFT/RIGHT/IN */
+						Path **p_outer_path, /* INOUT */
+						Path **p_inner_path, /* INOUT */
+						int *p_rowidexpr_id,
+						List *redistribution_clauses, /* equijoin RestrictInfo list */
+						List *restrict_clauses,		  /* all RestrictInfos */
+						List *outer_pathkeys,
+						List *inner_pathkeys,
+						bool outer_require_existing_order,
+						bool inner_require_existing_order);
 
 extern bool cdbpath_contains_wts(Path *path);
 extern Path * turn_volatile_seggen_to_singleqe(PlannerInfo *root, Path *path, Node *node);
+
+extern CdbPathLocus
+cdbpath_motion_for_parallel_join(PlannerInfo    *root,
+						JoinType        jointype,           /* JOIN_INNER/FULL/LEFT/RIGHT/IN */
+						Path          **p_outer_path,       /* INOUT */
+						Path          **p_inner_path,       /* INOUT */
+						int			   *p_rowidexpr_id,
+						List           *redistribution_clauses,   /* equijoin RestrictInfo list */
+						List           *restrict_clauses, /* all RestrictInfos */
+						List           *outer_pathkeys,
+						List           *inner_pathkeys,
+						bool            outer_require_existing_order,
+						bool            inner_require_existing_order,
+						bool			parallel_aware,
+						bool			uninterested_broadcast); /* for parallel hash join, do not use Broadcast if possible */
 
 #endif   /* CDBPATH_H */

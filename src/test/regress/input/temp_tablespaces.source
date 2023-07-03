@@ -41,6 +41,9 @@ CREATE TABLE tts_foo (i int, j int) distributed by(i);
 insert into tts_foo select i, i from generate_series(1,80000)i;
 ANALYZE tts_foo;
 set gp_cte_sharing=on;
+-- GP_PARALLEL_FIXME: since we disabled shared input scan in parallel mode, sisc_xslice_temp_files
+-- will never be triggered. We need set max_parallel_workers_per_gather to 0 in this case.
+set max_parallel_workers_per_gather = 0;
 
 -- CASE 1: when temp_tablespaces is set, hashagg and share-input-scan
 -- should honor the GUC and creates temp files under the specified tablespaces.
@@ -131,6 +134,8 @@ select gp_wait_until_triggered_fault('hashagg_spill_temp_files', 1, dbid)
 select gp_inject_fault('hashagg_spill_temp_files', 'reset', dbid)
   from gp_segment_configuration where role='p' and content>=0;
 
+-- GP_PARALLEL_FIXME: we need to reset max_parallel_workers_per_gather since we changed it.
+reset max_parallel_workers_per_gather;
 
 drop table tts_foo, tts_bar, tts_hashagg;
 drop tablespace mytempsp0;

@@ -29,6 +29,7 @@ extern Motion *make_hashed_motion(Plan *lefttree,
 								  int numHashSegments);
 
 extern Motion *make_broadcast_motion(Plan *lefttree);
+extern Motion *make_parallel_broadcast_motion(Plan *lefttree);
 
 extern Plan *make_explicit_motion(PlannerInfo *root,
 								  Plan *lefttree,

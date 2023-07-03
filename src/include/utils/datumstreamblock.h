@@ -16,6 +16,7 @@
 #define DATUMSTREAMBLOCK_H
 
 #include "catalog/pg_attribute.h"
+#include "storage/relfilenode.h"
 #include "utils/guc.h"
 
 typedef enum DatumStreamVersion
@@ -75,7 +76,7 @@ typedef struct DatumStreamBlock_Orig
 	int16		version;		/* version number */
 	int16		flags;			/* some flags */
 	int16		ndatum;			/* number of datum, including null */
-	int16		unused;			/* unused */
+	int16		encrypted;		/* has been encrypted */
 	int32		nullsz;			/* size nullbitmaps */
 	int32		sz;				/* logical data size, not including header,
 								 * nullbitmap, and padding */
@@ -203,6 +204,7 @@ enum
 	DSB_HAS_NULLBITMAP = 0x1,
 	DSB_HAS_RLE_COMPRESSION = 0x2,
 	DSB_HAS_DELTA_COMPRESSION = 0x4,
+	DSB_HAS_ENCRYPTION = 0x8,
 };
 
 typedef struct DatumStreamBitMapWrite
@@ -2069,7 +2071,8 @@ extern void DatumStreamBlockRead_GetReadyOrig(
 								  int64 firstRowNum,
 								  int32 rowCount,
 								  bool *hadToAdjustRowCount,
-								  int32 * adjustedRowCount);
+								  int32 * adjustedRowCount,
+								  RelFileNode *node);
 extern void DatumStreamBlockRead_GetReadyDense(
 								   DatumStreamBlockRead * dsr,
 								   uint8 * buffer,
@@ -2077,7 +2080,8 @@ extern void DatumStreamBlockRead_GetReadyDense(
 								   int64 firstRowNum,
 								   int32 rowCount,
 								   bool *hadToAdjustRowCount,
-								   int32 * adjustedRowCount);
+								   int32 * adjustedRowCount,
+								   RelFileNode *node);
 
 inline static void
 DatumStreamBlockRead_GetReady(
@@ -2087,7 +2091,8 @@ DatumStreamBlockRead_GetReady(
 							  int64 firstRowNum,
 							  int32 rowCount,
 							  bool *hadToAdjustRowCount,
-							  int32 * adjustedRowCount)
+							  int32 * adjustedRowCount,
+							  RelFileNode *node)
 {
 	if (dsr->datumStreamVersion == DatumStreamVersion_Original)
 	{
@@ -2098,7 +2103,8 @@ DatumStreamBlockRead_GetReady(
 												 firstRowNum,
 												 rowCount,
 												 hadToAdjustRowCount,
-												 adjustedRowCount);
+												 adjustedRowCount,
+												 node);
 	}
 	else
 	{
@@ -2111,7 +2117,8 @@ DatumStreamBlockRead_GetReady(
 												  firstRowNum,
 												  rowCount,
 												  hadToAdjustRowCount,
-												  adjustedRowCount);
+												  adjustedRowCount,
+												  node);
 	}
 }
 
@@ -2158,7 +2165,8 @@ extern void DatumStreamBlockWrite_Init(
 						   int (*errdetailCallback) (void *errdetailArg),
 						   void *errdetailArg,
 						   int (*errcontextCallback) (void *errcontextArg),
-						   void *errcontextArg);
+						   void *errcontextArg,
+						   RelFileNode *relFileNode);
 extern void DatumStreamBlockWrite_Finish(
 							 DatumStreamBlockWrite * dsw);
 
@@ -2172,6 +2180,7 @@ extern void DatumStreamBlockWrite_GetReady(
 							   DatumStreamBlockWrite * dsw);
 extern int64 DatumStreamBlockWrite_Block(
 							DatumStreamBlockWrite * dsw,
-							uint8 * buffer);
+							uint8 * buffer,
+							RelFileNode *node);
 
 #endif   /* DATUMSTREAMBLOCK_H */

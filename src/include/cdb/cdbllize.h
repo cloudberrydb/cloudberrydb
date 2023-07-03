@@ -28,7 +28,6 @@ extern Plan *cdbllize_decorate_subplans_with_motions(PlannerInfo *root, Plan *pl
 extern void cdbllize_build_slice_table(PlannerInfo *root, Plan *top_plan, PlanSlice *top_slice);
 
 extern void motion_sanity_check(PlannerInfo *root, Plan *plan);
-
 extern bool is_plan_node(Node *node);
 
 extern Flow *makeFlow(FlowType flotype, int numsegments);

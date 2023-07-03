@@ -215,7 +215,8 @@ extern Path *create_hashjoin_path(PlannerInfo *root,
 									  List *restrict_clauses,
 									  Relids required_outer,
 									  List *redistribution_clauses,    /*CDB*/
-									  List *hashclauses);
+									  List *hashclauses,
+									  bool uninterested_broadcast); /* GPDB parallel */
 
 extern ProjectionPath *create_projection_path(PlannerInfo *root,
 											  RelOptInfo *rel,

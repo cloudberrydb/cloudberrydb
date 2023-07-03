@@ -58,6 +58,7 @@
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
+#include "access/appendonlywriter.h"
 #include "catalog/catalog.h"
 #include "catalog/heap.h"
 #include "catalog/pg_am.h"
@@ -65,6 +66,7 @@
 #include "catalog/oid_dispatch.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbdisp_query.h"
+#include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
 #include "commands/analyzeutils.h"
 #include "libpq-int.h"
@@ -3167,6 +3169,7 @@ vac_update_relstats_from_list(List *updated_stats)
 	{
 		VPgClassStats *stats = (VPgClassStats *) lfirst(lc);
 		Relation	rel;
+		int16		ao_segfile_count = 0;
 
 		rel = relation_open(stats->relid, AccessShareLock);
 
@@ -3175,6 +3178,41 @@ vac_update_relstats_from_list(List *updated_stats)
 			stats->rel_pages = stats->rel_pages / rel->rd_cdbpolicy->numsegments;
 			stats->rel_tuples = stats->rel_tuples / rel->rd_cdbpolicy->numsegments;
 			stats->relallvisible = stats->relallvisible / rel->rd_cdbpolicy->numsegments;
+		}
+
+		if (RelationIsAppendOptimized(rel))
+		{
+			/*
+			 * GPDB_PARALLEL_FIXME: This is very hacky!
+			 * relallvisible came from vacuum AO/AOCO processes means the segment file count
+			 * of AO/AOCO tables. We use it to update pg_appendonly.segfilecount.
+			 * See ao_vacuum_rel_post_cleanup in vacuum_ao.c.
+			 * relallvisible of AO/AOCO tables should always be 0 in pg_class, though, we need to reset
+			 * it after we got the value and before updating the stats in pg_class.
+			 */
+			ao_segfile_count = stats->relallvisible/getgpsegmentCount(); /* Use rel->rd_cdbpolicy->numsegments instead of getgpsegmentCount()?*/
+			stats->relallvisible = 0; /* Causion: relallvisible muset be set to 0 before updating pg_class */
+
+			Relation	aorel;
+			Oid			aorelid = RelationGetRelid(rel);
+			HeapTuple	aotup;
+			Form_pg_appendonly aoform;
+
+			aotup = SearchSysCache1(AORELID, ObjectIdGetDatum(aorelid));
+			if (!HeapTupleIsValid(aotup))
+				ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					errmsg("appendonly table relid %u does not exist in pg_appendonly", aorelid)));
+
+			aoform = (Form_pg_appendonly) GETSTRUCT(aotup);
+			if (aoform->segfilecount < MAX_AOREL_CONCURRENCY && (aoform->segfilecount != ao_segfile_count))
+			{
+				aorel = table_open(AppendOnlyRelationId, RowExclusiveLock);
+				aoform->segfilecount = ao_segfile_count;
+				heap_inplace_update(aorel, aotup);
+				table_close(aorel, RowExclusiveLock);
+			}
+			ReleaseSysCache(aotup);
 		}
 
 		/*

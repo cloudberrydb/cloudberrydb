@@ -261,7 +261,8 @@ extern DatumStreamWrite *create_datumstreamwrite(
 						Form_pg_attribute attr,
 						char *relname,
 						char *title,
-						bool needsWAL);
+						bool needsWAL,
+						RelFileNodeBackend *rnode);
 
 extern DatumStreamRead *create_datumstreamread(
 					   char *compName,
@@ -271,7 +272,8 @@ extern DatumStreamRead *create_datumstreamread(
 					   int32 maxsz,
 					   Form_pg_attribute attr,
 					   char *relname,
-					   char *title);
+					   char *title,
+					   RelFileNode *relFileNode);
 
 extern void datumstreamwrite_open_file(
 						   DatumStreamWrite * ds,

@@ -45,29 +45,6 @@
 
 #define SEGFILE_CAPACITY_THRESHOLD	0.9
 
-
-/*
- * Modes of operation for the choose_segno_internal() function.
- */
-typedef enum
-{
-	/*
-	 * Normal mode; select a segment to insert to, for INSERT or COPY.
-	 */
-	CHOOSE_MODE_WRITE,
-
-	/*
-	 * Select a segment to insert surviving rows to, when compacting
-	 * another segfile in VACUUM.
-	 */
-	CHOOSE_MODE_COMPACTION_WRITE,
-
-	/*
-	 * Select next segment to compact.
-	 */
-	CHOOSE_MODE_COMPACTION_TARGET
-} choose_segno_mode;
-
 /*
  * local functions
  */
@@ -294,6 +271,26 @@ ChooseSegnoForWrite(Relation rel)
 	return chosen_segno;
 }
 
+int
+ChooseSegnoForWriteMultiFile(Relation rel, List *avoid_segnos)
+{
+	int		chosen_segno;
+
+	if (Debug_appendonly_print_segfile_choice)
+		ereport(LOG,
+				(errmsg("ChooseSegnoForWrite: Choosing a segfile for relation \"%s\"",
+						RelationGetRelationName(rel))));
+
+	chosen_segno = choose_segno_internal(rel, avoid_segnos, CHOOSE_MODE_WRITE);
+
+	if (chosen_segno == -1)
+		ereport(ERROR,
+				(errcode(ERRCODE_INSUFFICIENT_RESOURCES),
+				 (errmsg("could not find segment file to use for inserting into relation \"%s\"",
+						 RelationGetRelationName(rel)))));
+	return chosen_segno;
+}
+
 /*
  * Select a segfile to write surviving tuples to, when doing VACUUM compaction.
  */
@@ -329,7 +326,7 @@ ChooseSegnoForCompaction(Relation rel, List *avoid_segnos)
  * same transaction that created the table.  See
  * InsertInitialFastSequenceEntries for more details.
  */
-static bool
+bool
 ShouldUseReservedSegno(Relation rel, choose_segno_mode mode)
 {
 	Relation pg_class;

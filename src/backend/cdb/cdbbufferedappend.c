@@ -19,8 +19,10 @@
 
 #include <unistd.h>				/* for write() */
 
+#include "access/xlog.h"
 #include "cdb/cdbappendonlyxlog.h"
 #include "cdb/cdbbufferedappend.h"
+#include "crypto/bufenc.h"
 #include "pgstat.h"
 #include "utils/guc.h"
 

@@ -21,6 +21,9 @@ SUBDIRS += fsync walrep heap_checksum isolation2 fdw
 # Test suites that are not safe by default but can be run if selected
 # by the user via the whitespace-separated list in variable
 # PG_TEST_EXTRA:
+ifeq ($(with_openssl),yes)
+SUBDIRS += crypto
+endif
 ifeq ($(with_gssapi),yes)
 ifneq (,$(filter kerberos,$(PG_TEST_EXTRA)))
 SUBDIRS += kerberos
@@ -52,5 +55,11 @@ installable_dirs := $(filter-out modules, $(SUBDIRS))
 $(call recurse,$(recurse_alldirs_targets))
 $(call recurse,installcheck, $(installable_dirs))
 $(call recurse,install, $(installable_dirs))
+
+# New target installcheck-cbdb-parallel
+check_dirs := regress isolation2
+
+installcheck-cbdb-parallel: install
+    $(call recurse,installcheck-cbdb-parallel,$(check_dirs))
 
 $(recurse_always)

@@ -2305,7 +2305,7 @@ INSERT INTO onetimefilter1 SELECT i, i FROM generate_series(1,10)i;
 INSERT INTO onetimefilter2 SELECT i, i FROM generate_series(1,10)i;
 ANALYZE onetimefilter1;
 ANALYZE onetimefilter2;
-EXPLAIN WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onetimefilter2 WHERE onetimefilter1.a=onetimefilter2.a) SELECT (SELECT 1 FROM abc WHERE f1.b = f2.b LIMIT 1), COALESCE((SELECT 2 FROM abc WHERE f1.a=random() AND f1.a=2), 0), (SELECT b FROM abc WHERE b=f1.b) FROM onetimefilter1 f1, onetimefilter2 f2 WHERE f1.b = f2.b;
+EXPLAIN (COSTS OFF) WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onetimefilter2 WHERE onetimefilter1.a=onetimefilter2.a) SELECT (SELECT 1 FROM abc WHERE f1.b = f2.b LIMIT 1), COALESCE((SELECT 2 FROM abc WHERE f1.a=random() AND f1.a=2), 0), (SELECT b FROM abc WHERE b=f1.b) FROM onetimefilter1 f1, onetimefilter2 f2 WHERE f1.b = f2.b;
 WITH abc AS (SELECT onetimefilter1.a, onetimefilter1.b FROM onetimefilter1, onetimefilter2 WHERE onetimefilter1.a=onetimefilter2.a) SELECT (SELECT 1 FROM abc WHERE f1.b = f2.b LIMIT 1), COALESCE((SELECT 2 FROM abc WHERE f1.a=random() AND f1.a=2), 0), (SELECT b FROM abc WHERE b=f1.b) FROM onetimefilter1 f1, onetimefilter2 f2 WHERE f1.b = f2.b;
 
 
@@ -3426,7 +3426,7 @@ CREATE TABLE dist_tab_a (a varchar(15)) DISTRIBUTED BY(a);
 INSERT INTO dist_tab_a VALUES('1 '), ('2  '), ('3    ');
 CREATE TABLE dist_tab_b (a char(15), b bigint) DISTRIBUTED BY(a);
 INSERT INTO dist_tab_b VALUES('1 ', 1), ('2  ', 2), ('3    ', 3);
-EXPLAIN CREATE TABLE result_tab AS
+EXPLAIN(COSTS OFF) CREATE TABLE result_tab AS
 	(SELECT a.a, b.b FROM dist_tab_a a LEFT JOIN dist_tab_b b ON a.a=b.a) DISTRIBUTED BY(a);
 CREATE TABLE result_tab AS
 	(SELECT a.a, b.b FROM dist_tab_a a LEFT JOIN dist_tab_b b ON a.a=b.a) DISTRIBUTED BY(a);

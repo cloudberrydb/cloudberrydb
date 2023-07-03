@@ -469,7 +469,7 @@ bringetbitmap(IndexScanDesc scan, Node **bmNodeP)
 	if (*bmNodeP == NULL)
 	{
 		/* XXX should we use less than work_mem for this? */
-		tbm = tbm_create(work_mem * 1024L, NULL);
+		tbm = tbm_create(work_mem * 1024L, scan->dsa);
 		*bmNodeP = (Node *) tbm;
 	}
 	else if (!IsA(*bmNodeP, TIDBitmap))

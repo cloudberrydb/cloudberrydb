@@ -16,6 +16,10 @@
 #include "postgres.h"
 #include "libpq-fe.h"
 #include "pqexpbuffer.h"
+#include "common/kmgr_utils.h"
+
+/* For now, pg_upgrade does not use common/logging.c; use our own pg_fatal */
+#undef pg_fatal
 
 /* Use port in the private/dynamic port number range */
 #define DEF_PGUPORT			50432
@@ -328,6 +332,7 @@ typedef struct
 	bool		date_is_int;
 	bool		float8_pass_by_value;
 	bool		data_checksum_version;
+	int			file_encryption_method;
 } ControlData;
 
 /*
@@ -400,6 +405,8 @@ typedef struct
 	transferMode transfer_mode; /* copy files or link them? */
 	int			jobs;			/* number of processes/threads to use */
 	char	   *socketdir;		/* directory to use for Unix sockets */
+	bool		ind_coll_unknown;	/* mark unknown index collation versions */
+	bool		pass_terminal_fd; /* pass -R to pg_ctl? */
 } UserOpts;
 
 typedef struct

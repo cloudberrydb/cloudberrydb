@@ -288,6 +288,7 @@ select cleanupAllGangs();
  t
 (1 row)
 
+set max_parallel_workers_per_gather=0;
 -- trigger fault and report segment 0 in recovery for 5 times
 select gp_inject_fault('process_startup_packet', 'skip', '', 'dispatch_test_db', '', 1, 5, 0, 2::smallint);
  gp_inject_fault 
@@ -595,6 +596,7 @@ select gp_inject_fault('before_one_slice_dispatched', 'reset', 1);
  Success:
 (1 row)
 
+reset max_parallel_workers_per_gather;
 -- test logging of gang management
 SET gp_log_gang = 'debug';
 -- test INFO raised from segments with various kinds of fields

@@ -82,6 +82,9 @@ extern PGDLLIMPORT int NamedLWLockTrancheRequests;
 /* Number of partitions of the shared buffer mapping hashtable */
 #define NUM_BUFFER_PARTITIONS  128
 
+/* Number of partitions of the shared parallel dsm entry hashtable */
+#define NUM_PARALLEL_DSM_PARTITIONS  128
+
 /* Number of partitions the shared lock tables are divided into */
 #define LOG2_NUM_LOCK_PARTITIONS  4
 #define NUM_LOCK_PARTITIONS  (1 << LOG2_NUM_LOCK_PARTITIONS)

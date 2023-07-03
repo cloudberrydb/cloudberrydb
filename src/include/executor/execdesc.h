@@ -136,6 +136,12 @@ typedef struct ExecSlice
 	List		*primaryProcesses;
 	/* A bitmap to identify which QE should execute this slice */
 	Bitmapset	*processesMap;
+
+	/*
+	 * Flag for whether to execute local slice plan in mpp parallel mode.
+	 */
+	bool		useMppParallelMode;
+	int 		parallel_workers;
 } ExecSlice;
 
 /*

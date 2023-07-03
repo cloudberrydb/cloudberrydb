@@ -1,0 +1,33 @@
+src/test/crypto/README
+
+Regression tests for cluster file encryption
+============================================
+
+This directory contains scripts for testing cluster file encryption.
+The first two tests test the encryption/decryption using AES128 and
+AES256 in GCM mode and the Key Wrap with Padding (KWP) method.
+
+The third test tests that the data encryption keys can be encrypted and
+decrypted, and tests cluster key rotation via pg_alterckey.  The fourth
+test checks that the database files are encrypted.
+
+Running the tests
+=================
+
+Run
+    make check
+or
+    make installcheck
+You can use "make installcheck" if you previously did "make install".
+In that case, the code in the installation tree is tested.  With
+"make check", a temporary installation tree is built from the current
+sources and then tested.
+
+Either way, this test initializes, starts, and stops a test Postgres
+cluster.
+
+Requirements
+============
+
+OpenSSL must be compiled into the server for these test to run;  if not
+the tests are skipped.

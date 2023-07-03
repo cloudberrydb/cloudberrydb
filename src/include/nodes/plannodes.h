@@ -240,6 +240,7 @@ typedef struct PlanSlice
 
 	/* # of segments in the gang, for PRIMARY_READER/WRITER slices */
 	int			numsegments;
+	int			parallel_workers;
 	/* segment to execute on, for SINGLETON_READER slices */
 	int			segindex;
 
@@ -318,6 +319,16 @@ typedef struct Plan
 	Flow		*flow;			/* Flow description.  Initially NULL.
 	 * Set during parallelization.
 	 */
+
+	/*
+	 * GPDB parallel
+	 * Additional fields here are used to show locus type and
+	 * parallel workers of plan node.
+	 * Field flow has the locus info only in the top Plan nodes,
+	 * other nodes couldn't be set that.
+	 */
+	CdbLocusType	locustype;
+	int 			parallel; /* parallel workers of this plan if there was */
 
 	/**
 	 * How much memory (in KB) should be used to execute this plan node?
@@ -1048,6 +1059,7 @@ typedef struct HashJoin
 	 */
 	List	   *hashkeys;
 	List	   *hashqualclauses;
+	bool	    batch0_barrier;
 } HashJoin;
 
 #define SHARE_ID_NOT_SHARED (-1)
@@ -1363,6 +1375,7 @@ typedef struct Hash
 	/* all other info is in the parent HashJoin node */
 	double		rows_total;		/* estimate total rows if parallel_aware */
 	bool		rescannable;            /* CDB: true => save rows for rescan */
+	bool		sync_barrier;
 } Hash;
 
 /* ----------------
@@ -1438,6 +1451,7 @@ typedef enum MotionType
 	MOTIONTYPE_GATHER_SINGLE, /* Execute subplan on N nodes, but only send the tuples from one */
 	MOTIONTYPE_HASH,		/* Use hashing to select a segindex destination */
 	MOTIONTYPE_BROADCAST,	/* Send tuples from one sender to a fixed set of segindexes */
+	MOTIONTYPE_PARALLEL_BROADCAST, /*  */
 	MOTIONTYPE_EXPLICIT,	/* Send tuples to the segment explicitly specified in their segid column */
 	MOTIONTYPE_OUTER_QUERY	/* Gather or Broadcast to outer query's slice, don't know which one yet */
 } MotionType;

@@ -55,7 +55,7 @@ function cbdb_build() {
 
     #do compile configuration
     echo "[CBDB build] start to init configuraiton for code compile..."
-    CFLAGS=-O0 CXXFLAGS='-O0 -std=c++14' ./configure --prefix=${install_dir}/cbdb --enable-debug --enable-cassert --enable-tap-tests --with-gssapi --with-libxml --with-quicklz --with-pythonsrc-ext
+    CFLAGS=-O0 CXXFLAGS='-O0 -std=c++14' ./configure --prefix=${install_dir}/cbdb --enable-debug --enable-cassert --enable-tap-tests --with-gssapi --with-libxml --with-quicklz --with-pythonsrc-ext --with-openssl
 
     #do compile
     echo "[CBDB build] start to compile binary file..."

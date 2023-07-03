@@ -825,7 +825,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		 * sequential as for parallel scans the pages are accessed in random
 		 * order.
 		 */
-		path->path.parallel_workers = compute_parallel_worker(baserel_orig,
+		path->path.parallel_workers = compute_parallel_worker(root, baserel_orig,
 															  rand_heap_pages,
 															  index_pages,
 															  max_parallel_workers_per_gather);
@@ -835,7 +835,7 @@ cost_index(IndexPath *path, PlannerInfo *root, double loop_count,
 		 * such a case this path will be rejected.  So there is no benefit in
 		 * doing extra computation.
 		 */
-		if (path->path.parallel_workers <= 0)
+		if (path->path.parallel_workers <= 1)
 			return;
 
 		path->path.parallel_aware = true;
@@ -1540,9 +1540,11 @@ cost_subqueryscan(SubqueryScanPath *path, PlannerInfo *root,
 	Assert(baserel->relid > 0);
 	Assert(baserel->rtekind == RTE_SUBQUERY);
 
-	/* Adjust row count if this runs in multiple segments */
+	/* Adjust row count if this runs in multiple segments and parallel model */
 	if (CdbPathLocus_IsPartitioned(path->path.locus))
+	{
 		numsegments = CdbPathLocus_NumSegments(path->path.locus);
+	}
 	else
 		numsegments = 1;
 
@@ -4072,7 +4074,30 @@ initial_cost_hashjoin(PlannerInfo *root, JoinCostWorkspace *workspace,
 	 * number, so we need to undo the division.
 	 */
 	if (parallel_hash)
-		inner_path_rows_total *= get_parallel_divisor(inner_path);
+	{
+		/*
+		 * GPDB
+		 * For GP style parallel, inner path's locus could be ReplicatedWorkers.
+		 *
+		 *       Join
+		 *      /    \
+		 *  Outer   ParallelHash
+		 *              \
+		 *          ParallelBroadcastMotion
+		 *                \
+		 *             origin_inner
+		 *
+		 * In this case, inner_path.rows has already taken parallel into account.
+		 * We shouldn't plus parallel_divisor again, else the estimation of Hash
+		 * Table will be much more than the size it really is.
+		 * The side-effect will lead to:
+		 * 1. Estimate or allocate much more memory for shared Hash Table.
+		 * 2. Use MergeJoin instead of HashJoin if planner recognize inner table
+		 * is too big.
+		 */
+		if(!CdbPathLocus_IsReplicatedWorkers(inner_path->locus))
+			inner_path_rows_total *= get_parallel_divisor(inner_path);
+	}
 
 	/*
 	 * Get hash table size that executor would use for inner relation.
@@ -6780,6 +6805,17 @@ get_parallel_divisor(Path *path)
 	 * its time servicing each worker, and the remainder executing the
 	 * parallel plan.
 	 */
+	/*
+	 * GPDB parallel: We don't have a leader like upstream.
+	 * parallel_divisor is usually used to estimate rows.
+	 * Since we don't have a leader in GP parallel style, set it the same
+	 * as path's parallel_workers which may be 0 sometimes.
+	 * Return 1 in case that caller got INF number.
+	 * It has no impact on the parallel_workers of path nodes.
+	 */
+	if (parallel_divisor == 0)
+		parallel_divisor = 1;
+#if 0
 	if (parallel_leader_participation)
 	{
 		double		leader_contribution;
@@ -6788,6 +6824,7 @@ get_parallel_divisor(Path *path)
 		if (leader_contribution > 0)
 			parallel_divisor += leader_contribution;
 	}
+#endif
 
 	return parallel_divisor;
 }

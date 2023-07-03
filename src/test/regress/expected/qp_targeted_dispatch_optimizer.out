@@ -727,6 +727,7 @@ set test_print_direct_dispatch_info=on;
 alter table table_a set distributed randomly;
 INFO:  Distributed transaction command 'Distributed Prepare' to ALL contents: 0 1 2
 INFO:  Distributed transaction command 'Distributed Commit Prepared' to ALL contents: 0 1 2
+set enable_parallel = off;
 select max(a0) from table_a where a0=3;
 INFO:  (slice 1) Dispatch command to ALL contents: 0 1 2
  max 
@@ -787,6 +788,7 @@ INFO:  (slice 1) Dispatch command to SINGLE content
    1
 (1 row)
 
+reset enable_parallel;
 explain select a0 from table_a where a0 in (select max(a1) from table_a where a0=1);
                                               QUERY PLAN                                              
 ------------------------------------------------------------------------------------------------------

@@ -1319,6 +1319,19 @@ postgres   27093  0.0  0.0  30096  2752 ?        Ss   11:34   0:00 postgres: ser
       <entry>Waiting for a write to a relation data file.</entry>
      </row>
      <row>
+      <entry><literal>KeyFileRead</literal></entry>
+      <entry>Waiting for a read of the wrapped data encryption keys.</entry>
+     </row>
+     <row>
+      <entry><literal>KeyFileWrite</literal></entry>
+      <entry>Waiting for a write of the wrapped data encryption keys.</entry>
+     </row>
+     <row>
+      <entry><literal>KeyFileSync</literal></entry>
+      <entry>Waiting for changes to the wrapped data encryption keys to reach
+       durable storage.</entry>
+     </row>
+     <row>
       <entry><literal>LockFileAddToDataDirRead</literal></entry>
       <entry>Waiting for a read while adding a line to the data directory lock
        file.</entry>

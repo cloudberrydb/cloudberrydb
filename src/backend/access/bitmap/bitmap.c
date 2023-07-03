@@ -83,6 +83,7 @@ bmhandler(PG_FUNCTION_ARGS)
 	amroutine->amcanbackward = false;
 	amroutine->amcanunique = true;
 	amroutine->amcanmulticol = true;
+	amroutine->amcanparallel = false;
 	amroutine->amoptionalkey = true;
 	amroutine->amsearcharray = false;
 	amroutine->amsearchnulls = false;
@@ -796,6 +797,7 @@ copy_scan_desc(IndexScanDesc scan)
 	s->opaque = palloc(sizeof(BMScanOpaqueData));
 
 	s->indexRelation = scan->indexRelation;
+	s->dsa = scan->dsa;
 	so = (BMScanOpaque)scan->opaque;
 	sp = so->bm_currPos;
 

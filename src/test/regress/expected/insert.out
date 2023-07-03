@@ -814,7 +814,7 @@ insert into mcrparted4 values (30, 21, 20);	-- error
 ERROR:  new row for relation "mcrparted4" violates partition constraint
 DETAIL:  Failing row contains (30, 21, 20).
 -- check rows
-select tableoid::regclass::text, * from mcrparted order by 1;
+select tableoid::regclass::text, * from mcrparted order by 1, 2, 3;
   tableoid  | a  |  b   |  c   
 ------------+----+------+------
  mcrparted0 |  0 |    1 |    1

@@ -269,3 +269,24 @@ drop table public.restore_guc_test;
 reset search_path;
 SELECT gp_inject_fault('change_string_guc', 'reset', 1);
 SELECT gp_inject_fault('restore_string_guc', 'reset', 1);
+
+-- enabling gp_force_random_redistribution makes sure random redistribution happens
+-- only relevant to postgres optimizer
+set optimizer = false;
+
+create table t1_dist_rand(a int) distributed randomly;
+create table t2_dist_rand(a int) distributed randomly;
+create table t_dist_hash(a int) distributed by (a);
+
+-- with the GUC turned off, redistribution won't happen (no redistribution motion)
+set gp_force_random_redistribution = false;
+explain (costs off) insert into t2_dist_rand select * from t1_dist_rand;
+explain (costs off) insert into t2_dist_rand select * from t_dist_hash;
+
+-- with the GUC turned on, redistribution would happen
+set gp_force_random_redistribution = true;
+explain (costs off) insert into t2_dist_rand select * from t1_dist_rand;
+explain (costs off) insert into t2_dist_rand select * from t_dist_hash;
+
+reset gp_force_random_redistribution;
+reset optimizer;

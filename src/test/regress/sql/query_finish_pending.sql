@@ -31,8 +31,10 @@ select gp_inject_fault('execsort_sort_bounded_heap', 'reset', 2);
 -- set QueryFinishPending=true in sort_bounded_heap. This will stop sort.
 select gp_inject_fault('execsort_sort_bounded_heap', 'finish_pending', 2);
 
+set enable_parallel = off;
 -- return results although sort will be interrupted in one of the segments 
 select i1 from _tmp_table order by i2 limit 3;
+reset enable_parallel;
 
 select gp_inject_fault('execsort_sort_bounded_heap', 'status', 2);
 
@@ -55,6 +57,8 @@ select gp_inject_fault('execshare_input_next', 'reset', 2);
 -- This will eagerly free the memory context of shared input scan's child node.  
 select gp_inject_fault('execshare_input_next', 'finish_pending', 2);
 
+set enable_parallel = off;
+
 with cte as (select i2 from testsisc order by i2)
 select * from cte c1, cte c2 limit 2;
 
@@ -73,6 +77,8 @@ with cte as (select i2 from testsisc order by i2)
 select * from cte c1, cte c2 limit 2;
 
 select gp_inject_fault('execshare_input_next', 'status', 2);
+
+reset enable_parallel;
 
 -- Disable faultinjectors
 select gp_inject_fault('execsort_sort_mergeruns', 'reset', 2);

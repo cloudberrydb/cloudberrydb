@@ -620,9 +620,36 @@ segmentsListToString(const char *prefix, List *segments)
 	return string.data;
 }
 
+/* Filter duplicated segments due to paralle plan. */
+static List*
+filterParallelSegments(List *segments)
+{
+	int tmp = -2;
+	ListCell   *l;
+	foreach(l, segments)
+	{
+		int segID = lfirst_int(l);
+		if (tmp == segID)
+			segments = foreach_delete_current(segments, l);
+		tmp = segID;
+	}
+	return segments;
+}
+
 char*
 segmentsToContentStr(List *segments)
 {
+	/*
+	 * GPDB parallel:
+	 * We may direct dispatch to same segment with parallel workers.
+	 * That would be like:
+	 * 	INFO:  (slice 1) Dispatch command to PARTIAL contents: 2 1
+	 * 	INFO:  (slice 1) Dispatch command to ALL contents: 2 2 1 1
+	 * There are confused as we are not PARTITAL or ALL contents.
+	 * Filter dumplicated parallel workers info for regression tests.
+	 */
+
+	segments = filterParallelSegments(segments);
 	int size = list_length(segments);
 
 	if (size == 0)

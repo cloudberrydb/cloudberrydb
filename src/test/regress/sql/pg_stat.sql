@@ -1,4 +1,5 @@
 set optimizer to off;
+set max_parallel_workers_per_gather=0;
 drop table  if exists pg_stat_test;
 create table pg_stat_test(a int);
 
@@ -54,3 +55,4 @@ select
 from pg_stat_user_indexes where relname = 'pg_stat_test';
 
 reset optimizer;
+reset max_parallel_workers_per_gather;

@@ -108,6 +108,8 @@
 #include "common/file_perm.h"
 #include "common/ip.h"
 #include "common/string.h"
+#include "crypto/bufenc.h"
+#include "crypto/kmgr.h"
 #include "lib/ilist.h"
 #include "libpq/auth.h"
 #include "libpq/libpq.h"
@@ -135,6 +137,7 @@
 #include "storage/pmsignal.h"
 #include "storage/proc.h"
 #include "storage/procsignal.h"
+#include "task/pg_cron.h"
 #include "tcop/tcopprot.h"
 #include "utils/builtins.h"
 #include "utils/datetime.h"
@@ -261,6 +264,7 @@ static int	SendStop = false;
 
 /* still more option variables */
 bool		EnableSSL = false;
+int			terminal_fd = -1;
 
 int			PreAuthDelay = 0;
 int			AuthenticationTimeout = 60;
@@ -426,6 +430,13 @@ static BackgroundWorker PMAuxProcList[MaxPMAuxProc] =
 	 0, /* restart immediately if sweeper process exits with non-zero code */
 	 "postgres", "BackoffSweeperMain", 0, {0}, 0,
 	 BackoffSweeperStartRule},
+
+	{"pg_cron launcher", "pg_cron launcher",
+	 BGWORKER_SHMEM_ACCESS | BGWORKER_BACKEND_DATABASE_CONNECTION,
+	 BgWorkerStart_RecoveryFinished,
+	 1,
+	 "postgres", "PgCronLauncherMain", 0, {0}, 0,
+	 PgCronStartRule},
 
 #ifdef ENABLE_IC_PROXY
 	{"ic proxy process", "ic proxy process",
@@ -813,7 +824,7 @@ PostmasterMain(int argc, char *argv[])
 	 * tcop/postgres.c (the option sets should not conflict) and with the
 	 * common help() function in main/main.c.
 	 */
-	while ((opt = getopt(argc, argv, "B:bc:C:D:d:EeFf:h:ijk:lMmN:nOo:Pp:r:S:sTt:W:-:")) != -1)
+	while ((opt = getopt(argc, argv, "B:bc:C:D:d:EeFf:h:ijk:lMmN:nOo:Pp:r:R:S:sTt:W:-:")) != -1)
 	{
 		switch (opt)
 		{
@@ -924,6 +935,10 @@ PostmasterMain(int argc, char *argv[])
 
 			case 'r':
 				/* only used by single-user backend */
+				break;
+
+			case 'R':
+				terminal_fd = atoi(optarg);
 				break;
 
 			case 'S':
@@ -1498,6 +1513,12 @@ PostmasterMain(int argc, char *argv[])
 		pfree(rawstring);
 	}
 #endif
+
+	InitializeKmgr();
+	InitializeBufferEncryption();
+
+	if (terminal_fd != -1)
+		close(terminal_fd);
 
 	/*
 	 * check that we have some socket to listen on

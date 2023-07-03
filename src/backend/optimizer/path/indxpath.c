@@ -355,7 +355,7 @@ create_index_paths(PlannerInfo *root, RelOptInfo *rel)
 		add_path(rel, (Path *) bpath, root);
 
 		/* create a partial bitmap heap path */
-		if (rel->consider_parallel && rel->lateral_relids == NULL)
+		if (rel->consider_parallel && bitmapqual->parallel_safe && rel->lateral_relids == NULL)
 			create_partial_bitmap_paths(root, rel, bitmapqual);
 	}
 
