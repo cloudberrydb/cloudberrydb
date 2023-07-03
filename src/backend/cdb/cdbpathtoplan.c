@@ -53,11 +53,18 @@ cdbpathtoplan_create_flow(PlannerInfo *root,
 		flow = makeFlow(FLOW_SINGLETON, locus.numsegments);
 		flow->segindex = 0;
 	}
+	else if (CdbPathLocus_IsSegmentGeneralWorkers(locus))
+	{
+		flow = makeFlow(FLOW_SINGLETON, locus.numsegments);
+		flow->segindex = 0;
+	}
 	else if (CdbPathLocus_IsReplicated(locus))
 	{
+		/* GPDB_PARALLEL_FIXME: What if ReplicatedWorkers? */
 		flow = makeFlow(FLOW_REPLICATED, locus.numsegments);
 	}
 	else if (CdbPathLocus_IsHashed(locus) ||
+			 CdbPathLocus_IsHashedWorkers(locus) ||
 			 CdbPathLocus_IsHashedOJ(locus))
 	{
 		flow = makeFlow(FLOW_PARTITIONED, locus.numsegments);

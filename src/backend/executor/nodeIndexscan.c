@@ -30,10 +30,10 @@
 #include "postgres.h"
 
 #include "access/nbtree.h"
-#include "cdb/cdbvars.h"
 #include "access/relscan.h"
 #include "access/tableam.h"
 #include "catalog/pg_am.h"
+#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/nodeIndexscan.h"
 #include "lib/pairingheap.h"
@@ -106,17 +106,35 @@ IndexNext(IndexScanState *node)
 
 	if (scandesc == NULL)
 	{
-		/*
-		 * We reach here if the index scan is not parallel, or if we're
-		 * serially executing an index scan that was planned to be parallel.
-		 */
-		scandesc = index_beginscan(node->ss.ss_currentRelation,
-								   node->iss_RelationDesc,
-								   estate->es_snapshot,
-								   node->iss_NumScanKeys,
-								   node->iss_NumOrderByKeys);
+		if (node->ss.ps.plan->parallel_aware && estate->useMppParallelMode)
+		{
+			ParallelIndexScanDesc piscan;
+			ParallelEntryTag tag;
+			int localSliceId = LocallyExecutingSliceIndex(estate);
+			INIT_PARALLELENTRYTAG(tag, gp_command_count, localSliceId, gp_session_id);
+			piscan = GpFetchParallelDSMEntry(tag, node->ss.ps.plan->plan_node_id);
+			Assert(piscan);
+			scandesc = index_beginscan_parallel(node->ss.ss_currentRelation,
+								 node->iss_RelationDesc,
+								 node->iss_NumScanKeys,
+								 node->iss_NumOrderByKeys,
+								 piscan);
+			node->iss_ScanDesc = scandesc;
+		}
+		else
+		{
+			/*
+			* We reach here if the index scan is not parallel, or if we're
+			* serially executing an index scan that was planned to be parallel.
+			*/
+			scandesc = index_beginscan(node->ss.ss_currentRelation,
+									node->iss_RelationDesc,
+									estate->es_snapshot,
+									node->iss_NumScanKeys,
+									node->iss_NumOrderByKeys);
 
-		node->iss_ScanDesc = scandesc;
+			node->iss_ScanDesc = scandesc;
+		}
 
 		/*
 		 * If no run-time keys to calculate or they are ready, go ahead and
@@ -124,8 +142,8 @@ IndexNext(IndexScanState *node)
 		 */
 		if (node->iss_NumRuntimeKeys == 0 || node->iss_RuntimeKeysReady)
 			index_rescan(scandesc,
-						 node->iss_ScanKeys, node->iss_NumScanKeys,
-						 node->iss_OrderByKeys, node->iss_NumOrderByKeys);
+						node->iss_ScanKeys, node->iss_NumScanKeys,
+						node->iss_OrderByKeys, node->iss_NumOrderByKeys);
 	}
 
 	/*

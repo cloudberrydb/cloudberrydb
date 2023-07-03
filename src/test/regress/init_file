@@ -59,6 +59,7 @@ m/^NOTICE:.*building index for child partition ".*"/
 # In case of split partitions we end up creating temp tables to exchange the partitions
 # E.g exchanged partition "p1" of relation "parttest_t" with relation "pg_temp_4062621"
 m/^NOTICE:.*exchanged partition ".*" with relation ".*"/
+m/^NOTICE:.*plan parallel aware node count: .*/
 
 m/^WARNING:  could not close temporary file .*: No such file or directory/
 
@@ -118,6 +119,9 @@ s/ERROR:  infinite recursion detected.*/ERROR:  infinite recursion detected/
 m/ERROR:  could not find hash function for hash operator.*/
 s/ERROR:  could not find hash function for hash operator.*/ERROR:  could not find hash function for hash operator/
 
+m/ERROR:  could not devise a plan.*/
+s/ERROR:  could not devise a plan.*/ERROR:  could not devise a plan (cdbpath.c:XXX)/
+
 m/nodename nor servname provided, or not known/
 s/nodename nor servname provided, or not known/Name or service not known/
 
@@ -140,5 +144,10 @@ s/.//gs
 
 m/ERROR:  can't split update for inherit table: .*/
 s/ERROR:  can't split update for inherit table: .*/ERROR:  can't split update for inherit table:/
+
+m/set enable_parallel = off;/
+s/.//gs
+m/reset enable_parallel;/
+s/.//gs
 
 -- end_matchsubs

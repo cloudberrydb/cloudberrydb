@@ -140,7 +140,9 @@ analyze t;
 explain (costs off) select * from (select * from t order by a) s order by a, b limit 55;
 select * from (select * from t order by a) s order by a, b limit 55;
 -- Test EXPLAIN ANALYZE with only a fullsort group.
+set max_parallel_workers_per_gather = 0;
 select explain_analyze_without_memory('select * from (select * from t order by a) s order by a, b limit 55');
+reset max_parallel_workers_per_gather;
 select jsonb_pretty(explain_analyze_inc_sort_nodes_without_memory('select * from (select * from t order by a) s order by a, b limit 55'));
 select explain_analyze_inc_sort_nodes_verify_invariants('select * from (select * from t order by a) s order by a, b limit 55');
 delete from t;
@@ -172,7 +174,9 @@ explain (costs off) select * from t left join (select * from (select * from t or
 select * from t left join (select * from (select * from t order by a) v order by a, b) s on s.a = t.a where t.a in (1, 2);
 rollback;
 -- Test EXPLAIN ANALYZE with both fullsort and presorted groups.
+set max_parallel_workers_per_gather = 0;
 select explain_analyze_without_memory('select * from (select * from t order by a) s order by a, b limit 70');
+reset max_parallel_workers_per_gather;
 select jsonb_pretty(explain_analyze_inc_sort_nodes_without_memory('select * from (select * from t order by a) s order by a, b limit 70'));
 select explain_analyze_inc_sort_nodes_verify_invariants('select * from (select * from t order by a) s order by a, b limit 70');
 delete from t;

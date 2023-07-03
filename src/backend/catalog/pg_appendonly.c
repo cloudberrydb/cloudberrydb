@@ -16,11 +16,13 @@
  */
 
 #include "postgres.h"
+#include "c.h"
 
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_proc.h"
 #include "catalog/gp_fastsequence.h"
+#include "access/appendonlywriter.h"
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/table.h"
@@ -89,6 +91,7 @@ InsertAppendOnlyEntry(Oid relid,
 	values[Anum_pg_appendonly_compresstype - 1] = NameGetDatum(&compresstype_name);
 	values[Anum_pg_appendonly_columnstore - 1] = BoolGetDatum(columnstore);
 	values[Anum_pg_appendonly_segrelid - 1] = ObjectIdGetDatum(segrelid);
+	values[Anum_pg_appendonly_segfilecount- 1] = Int16GetDatum(0);
 	values[Anum_pg_appendonly_blkdirrelid - 1] = ObjectIdGetDatum(blkdirrelid);
 	values[Anum_pg_appendonly_blkdiridxid - 1] = ObjectIdGetDatum(blkdiridxid);
 	values[Anum_pg_appendonly_visimaprelid - 1] = ObjectIdGetDatum(visimaprelid);
@@ -639,3 +642,30 @@ SwapAppendonlyEntries(Oid entryRelId1, Oid entryRelId2)
 	}
 }
 
+int16
+GetAppendOnlySegmentFilesCount(Relation rel)
+{
+	Relation	pg_aoseg_rel;
+	HeapTuple	tuple;
+	SysScanDesc aoscan;
+	int16		result = 0;
+	Oid segrelid = InvalidOid;
+
+	GetAppendOnlyEntryAuxOids(rel->rd_id, NULL, &segrelid, NULL,
+			NULL, NULL, NULL);
+	if (segrelid == InvalidOid)
+		elog(ERROR, "could not find pg_aoseg aux table for AO table \"%s\"",
+			 RelationGetRelationName(rel));
+
+	pg_aoseg_rel = table_open(segrelid, AccessShareLock);
+	aoscan = systable_beginscan(pg_aoseg_rel, InvalidOid, false, NULL, 0, NULL);
+	while ((tuple = systable_getnext(aoscan)) != NULL)
+	{
+		result++;
+		CHECK_FOR_INTERRUPTS();
+	}
+	Assert(result <= MAX_AOREL_CONCURRENCY);
+	systable_endscan(aoscan);
+	table_close(pg_aoseg_rel, AccessShareLock);
+	return result;
+}

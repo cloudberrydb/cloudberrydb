@@ -1305,7 +1305,15 @@ index_create(Relation heapRelation,
 	}
 	else
 	{
-		index_build(heapRelation, indexRelation, indexInfo, false, true);
+		/*
+		 * GP_PARALLEL_FIXME: temporarily set ii_ParallelWorkers to -1 to disable parallel in bitmap index
+		 * building. That's because that we still hold InterruptHoldoffCount after launch parallel workers.
+		 * And when parallel workers detach the message 'X' is not interrupt the leader. However, the leader
+		 * must wait for workers detaching. Thus there will be a hang issue.
+		 *
+		 * We should bring it back in the future.
+		 */
+		index_build(heapRelation, indexRelation, indexInfo, false, indexInfo->ii_ParallelWorkers != -1);
 	}
 
 	/*
@@ -3052,14 +3060,9 @@ index_build(Relation heapRelation,
 			plan_create_index_workers(RelationGetRelid(heapRelation),
 									  RelationGetRelid(indexRelation));
 
-	/*
-	 * GPDB_12_MERGE_FIXME: Parallel CREATE INDEX temporarily disabled.
-	 * In the 'partition_prune' regression test, the parallel worker
-	 * blocked waiting for the main process. I believe there's something
-	 * broken in the lock manager in GPDB with parallel workers. Need
-	 * figure that out first.
-	 */
-	indexInfo->ii_ParallelWorkers = 0;
+	/*  If we are QD or dealing with AO table, we disable parallelism. */
+	if (GP_ROLE_DISPATCH == Gp_role || AMHandlerIsAO(heapRelation->rd_amhandler))
+		indexInfo->ii_ParallelWorkers = 0;
 
 	if (indexInfo->ii_ParallelWorkers == 0)
 		ereport(DEBUG1,

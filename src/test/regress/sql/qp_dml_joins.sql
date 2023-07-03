@@ -225,10 +225,12 @@ INSERT INTO dml_heap_check_p SELECT i, 'p','p', i FROM generate_series(1,100)i;
 INSERT INTO dml_heap_check_p VALUES(1,'pn','pn',NULL),(2,'pn','pn',NULL),(3,'pn','pn',NULL),(4,'pn','pn',NULL),(5,'pn','pn',NULL);
 
 
+set enable_parallel = off;
 CREATE TABLE dml_heap_r (a int , b int default -1, c text) DISTRIBUTED BY (a);
 CREATE TABLE dml_heap_p (a numeric, b decimal , c boolean , d text , e int) DISTRIBUTED BY (a,b);
 CREATE TABLE dml_heap_s as select dml_heap_r.b, dml_heap_r.a, dml_heap_r.c from dml_heap_r, dml_heap_p WHERE dml_heap_r.a = dml_heap_p.a;
 ALTER TABLE dml_heap_s SET DISTRIBUTED BY (b);
+reset enable_parallel;
 
 INSERT INTO dml_heap_p SELECT id * 1.012, id * 1.1, true, 'new', id as d FROM (SELECT * FROM generate_series(1,100) as id) AS x;
 INSERT INTO dml_heap_p VALUES(generate_series(1,10),NULL,false,'pn',NULL);

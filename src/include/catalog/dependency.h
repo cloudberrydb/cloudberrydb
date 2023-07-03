@@ -135,10 +135,11 @@ typedef enum ObjectClass
 	OCLASS_TRANSFORM,			/* pg_transform */
 
 	/* GPDB additions */
-	OCLASS_EXTPROTOCOL			/* pg_extprotocol */
+	OCLASS_EXTPROTOCOL,			/* pg_extprotocol */
+	OCLASS_TASK					/* pg_task */
 } ObjectClass;
 
-#define LAST_OCLASS		OCLASS_EXTPROTOCOL
+#define LAST_OCLASS		OCLASS_TASK
 
 /* flag bits for performDeletion/performMultipleDeletions: */
 #define PERFORM_DELETION_INTERNAL			0x0001	/* internal action */

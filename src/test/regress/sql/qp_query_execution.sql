@@ -7,6 +7,7 @@ set search_path to qp_query_execution;
 create language plpython3u;
 create or replace function qx_count_operator(query text, planner_operator text, optimizer_operator text) returns int as
 $$
+plpy.execute('set max_parallel_workers_per_gather=0')
 rv = plpy.execute('EXPLAIN '+ query)
 plan = '\n'.join([row['QUERY PLAN'] for row in rv])
 optimizer = plan.find('Pivotal Optimizer (GPORCA)')

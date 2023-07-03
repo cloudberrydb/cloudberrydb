@@ -498,7 +498,7 @@ generate_recursion_path(SetOperationStmt *setOp, PlannerInfo *root,
 	 * merge, and things seem to be working with this much simpler thing, but
 	 * I'm not sure if the logic is 100% correct now.
 	 */
-	if (CdbPathLocus_IsSegmentGeneral(lpath->locus))
+	if (CdbPathLocus_IsSegmentGeneral(lpath->locus) || CdbPathLocus_IsSegmentGeneralWorkers(lpath->locus))
 	{
 		CdbPathLocus gather_locus;
 
@@ -590,7 +590,7 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 	ListCell   *lc;
 	List	   *pathlist = NIL;
 	List	   *partial_pathlist = NIL;
-	bool		partial_paths_valid = true;
+	bool		partial_paths_valid = false; /* GPDB_PARALLEL_FIXME: temproary disable partial path */
 	bool		consider_parallel = true;
 	List	   *rellist;
 	List	   *tlist_list;
@@ -749,9 +749,12 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 							   NIL, NULL,
 							   parallel_workers, enable_parallel_append,
 							   -1);
+		/* GPDB_PARALLEL_FIXME: we disable pg styple Gather/GatherMerge node */
+#if 0
 		ppath = (Path *)
 			create_gather_path(root, result_rel, ppath,
 							   result_rel->reltarget, NULL, NULL);
+#endif
 		if (!op->all)
 			ppath = make_union_unique(op, ppath, tlist, root);
 		add_path(result_rel, ppath, root);

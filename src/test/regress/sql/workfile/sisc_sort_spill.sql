@@ -36,6 +36,7 @@ insert into testsisc select i, i % 1000, i % 100000, i % 75 from
 set statement_mem="2MB";
 set gp_resqueue_print_operator_memory_limits=on;
 set gp_cte_sharing=on;
+set max_parallel_workers_per_gather = 0;
 -- ORCA optimizes away the ORDER BY in our test query, and therefore doesn't exercise
 -- a Sort that spills.
 set optimizer=off;
@@ -82,4 +83,5 @@ select * from sisc_sort_spill.is_workfile_created('explain (analyze, verbose)
   where t1.i1 = t2.i2
 limit 50000;');
 
+reset max_parallel_workers_per_gather;
 drop schema sisc_sort_spill cascade;

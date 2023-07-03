@@ -515,6 +515,9 @@ typedef enum NodeTag
 	T_AlterCollationStmt,
 	T_CallStmt,
 	T_AlterStatsStmt,
+	T_CreateTaskStmt,
+	T_AlterTaskStmt,
+	T_DropTaskStmt,
 
 	/* GPDB additions */
 	T_PartitionBy,

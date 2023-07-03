@@ -1,0 +1,24 @@
+pg_alterckey
+============
+
+This directory contains the code to generate the pg_alterckey binary.
+
+Architecture
+------------
+
+pg_alterckey allows altering of the cluster encryption key (key
+encryption key or KEK) which is stored outside of the file system;  see
+src/backend/crypto/README for more details.  This must be done in a
+crash-safe manner since the keys are critical to reading an encrypted
+cluster.  The active data encryption keys (DEK) are encrypted/wrapped by
+the KEK and stored in PGDATA/pg_cryptokeys/live as separate files,
+currently files 0 and 1.
+
+This process can be interrupted at anytime;  the new execution of
+pg_alterckey will repair any previously interrupted execution of
+pg_alterckey.
+
+pg_alterckey should never be run concurrently.  A lock file prevents
+almost all concurrent execution.  pg_alterckey can be run if the
+database server is running or stopped, so it can't use database locking
+that is only available when the server is running.

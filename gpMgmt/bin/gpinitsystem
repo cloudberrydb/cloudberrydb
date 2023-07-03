@@ -177,6 +177,9 @@ USAGE () {
 		$ECHO "      0 - No problems encountered with requested operation"
 		$ECHO "      1 - Fatal error, instance not created/started, or in an inconsistent state,"
 		$ECHO "          see log file for failure reason."
+		$ECHO "      -T, cluster file encryption method, such as AES256, SM4"
+		$ECHO "      -C, enable cluster file encryption and set command"
+		$ECHO "          to obtain the cluster key"
 		$ECHO
 		exit $EXIT_STATUS
 	fi
@@ -1276,11 +1279,17 @@ CREATE_QD_DB () {
 		# Since we explicitly set each LC_* setting, we do not need to pass a --locale option to initdb
 		LC_ALL_SETTINGS=" $LC_COLLATE_SETTING $LC_CTYPE_SETTING $LC_MESSAGES_SETTING $LC_MONETARY_SETTING $LC_NUMERIC_SETTING $LC_TIME_SETTING"
 
-
 		# build initdb command
 		cmd="$INITDB"
 		cmd="$cmd -E $ENCODING"
 		cmd="$cmd -D $GP_DIR"
+		if [ x"" != x"$ENCRYPT_METHOD" ]; then
+			cmd="$cmd -K $ENCRYPT_METHOD"
+		fi
+		if [ x"" != x"$CLUSTER_KEY_CMD" ]; then
+			cmd="$cmd -c $CLUSTER_KEY_CMD -R"
+		fi
+		
 		cmd="$cmd $LC_ALL_SETTINGS"
 		cmd="$cmd --max_connections=$COORDINATOR_MAX_CONNECT"
 		cmd="$cmd --shared_buffers=$COORDINATOR_SHARED_BUFFERS"
@@ -1449,6 +1458,8 @@ CREATE_SEGMENT () {
 			export QE_MAX_CONNECT
 			export QE_SHARED_BUFFERS
 			export SEG_PREFIX
+			export ENCRYPT_METHOD
+			export CLUSTER_KEY_CMD
 			if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $NOLINE_ECHO ".\c";fi
 				FLAG=""
 			if [ x"" != x"$PG_CONF_ADD_FILE" ] ; then
@@ -2087,7 +2098,7 @@ CHECK_DEPLOYMENT_MODE() {
 #******************************************************************************
 CHECK_DEPLOYMENT_MODE
 trap 'ERROR_EXIT "[FATAL]:-Received INT or TERM signal"' INT TERM
-while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:" opt
+while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:T:C" opt
 		do
 		case $opt in
 				v ) print_version ;;
@@ -2111,6 +2122,8 @@ while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:" opt
 				U ) USE_EXTERNAL_FTS=$OPTARG ;;
 				E ) ETCD_HOST_CONFIG=$OPTARG ;;
 				F ) FTS_HOST_CONFIG=$OPTARG ;;
+				T ) ENCRYPT_METHOD=$OPTARG ;;
+				C ) CLUSTER_KEY_CMD=$OPTARG ;;
 				- ) # Long options ...
 					NAME=${OPTARG%%=*}
 					VAL=${OPTARG#*=}
@@ -2127,6 +2140,8 @@ while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:" opt
 						"lc-time"         ) LCTIME=$VAL ;;
 						"mirror-mode"     ) SET_MIRROR_MODE $VAL ;;
 						"standby-datadir" ) STANDBY_DATADIR=$VAL ;;
+						"encrypt-method"  ) ENCRYPT_METHOD=$VAL ;;
+						"cluster-key-cmd" ) CLUSTER_KEY_CMD=$VAL ;;
 						"help"            ) USAGE "print_doc" ;;
 						"version"         ) print_version ;;
 						* ) LOG_MSG "[ERROR]:-Unknown option --$NAME" 1; USAGE ;;

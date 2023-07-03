@@ -362,6 +362,10 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 		save_nestlevel = NewGUCNestLevel();
 	}
 
+	/* into AO/AOCS ?*/
+	char* am = (into && into->accessMethod) ? into->accessMethod : default_table_access_method;
+	bool intoAO = ((strcmp(am, "ao_row") == 0) || (strcmp(am, "ao_column") == 0));
+
 	{
 		/*
 		 * Parse analysis was done already, but we still have to run the rule
@@ -380,8 +384,12 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 		Assert(query->commandType == CMD_SELECT);
 
 		/* plan the query */
-		plan = pg_plan_query(query, pstate->p_sourcetext,
-							 CURSOR_OPT_PARALLEL_OK, params);
+		if (!intoAO)
+			plan = pg_plan_query(query, pstate->p_sourcetext,
+								CURSOR_OPT_PARALLEL_OK, params);
+		else
+			plan = pg_plan_query(query, pstate->p_sourcetext,
+								CURSOR_OPT_PARALLEL_NOT_OK, params);
 
 		/*GPDB: Save the target information in PlannedStmt */
 		/*

@@ -96,6 +96,8 @@ test__aocs_addcol_init(void **state)
 	expect_value(create_datumstreamwrite, maxsz, 8192 * 2);
 	expect_value(create_datumstreamwrite, needsWAL, true);
 	expect_value(create_datumstreamwrite, needsWAL, true);
+	expect_any(create_datumstreamwrite, rnode);
+	expect_any(create_datumstreamwrite, rnode);
 	expect_any_count(create_datumstreamwrite, attr, 2);
 	expect_any_count(create_datumstreamwrite, relname, 2);
 	expect_any_count(create_datumstreamwrite, title, 2);

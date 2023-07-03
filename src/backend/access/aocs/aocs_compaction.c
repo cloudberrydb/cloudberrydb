@@ -402,7 +402,7 @@ AOCSCompact(Relation aorel,
 										  appendOnlyMetaDataSnapshot);
 
 			insertDesc->skipModCountIncrement = true;
-			aocs_insert_finish(insertDesc);
+			aocs_insert_finish(insertDesc, NULL);
 		}
 		else
 		{

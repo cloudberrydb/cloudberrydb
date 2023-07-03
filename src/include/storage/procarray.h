@@ -124,4 +124,7 @@ extern DistributedTransactionId LocalXidGetDistributedXid(TransactionId xid);
 extern int GetSessionIdByPid(int pid);
 extern void ResGroupSignalMoveQuery(int sessionId, void *slot, Oid groupId);
 
+typedef void (*BackendProcCallbackFunction) (volatile PGPROC *proc, void *args);
+extern void LoopBackendProc(BackendProcCallbackFunction func, void *args);
+
 #endif							/* PROCARRAY_H */

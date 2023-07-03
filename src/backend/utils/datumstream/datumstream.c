@@ -23,13 +23,14 @@
 #include "access/detoast.h"
 #include "access/heaptoast.h"
 #include "access/tupmacs.h"
-
+#include "access/xlog.h"
 #include "catalog/pg_attribute_encoding.h"
 #include "cdb/cdbappendonlyam.h"
 #include "cdb/cdbappendonlyblockdirectory.h"
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "cdb/cdbappendonlystorageread.h"
 #include "cdb/cdbappendonlystoragewrite.h"
+#include "crypto/bufenc.h"
 #include "utils/datumstream.h"
 #include "utils/guc.h"
 #include "catalog/pg_compression.h"
@@ -497,7 +498,8 @@ create_datumstreamwrite(
 						Form_pg_attribute attr,
 						char *relname,
 						char *title,
-						bool needsWAL)
+						bool needsWAL,
+						RelFileNodeBackend *rnode)
 {
 	DatumStreamWrite *acc = palloc0(sizeof(DatumStreamWrite));
 
@@ -572,6 +574,7 @@ create_datumstreamwrite(
 	acc->ao_write.compressionState = compressionState;
 	acc->ao_write.verifyWriteCompressionState = verifyBlockCompressionState;
 	acc->title = title;
+	acc->ao_write.relFileNode = *rnode;
 
 	/*
 	 * Temporarily set the firstRowNum for the block so that we can
@@ -625,7 +628,8 @@ create_datumstreamwrite(
 					/* errdetailCallback */ datumstreamwrite_detail_callback,
 								/* errdetailArg */ (void *) acc,
 				  /* errcontextCallback */ datumstreamwrite_context_callback,
-								/* errcontextArg */ (void *) acc);
+								/* errcontextArg */ (void *) acc,
+								&acc->ao_write.relFileNode.node);
 
 	return acc;
 }
@@ -639,7 +643,8 @@ create_datumstreamread(
 					   int32 maxsz,
 					   Form_pg_attribute attr,
 					   char *relname,
-					   char *title)
+					   char *title,
+					   RelFileNode *relFileNode)
 {
 	DatumStreamRead *acc = palloc0(sizeof(DatumStreamRead));
 
@@ -695,7 +700,8 @@ create_datumstreamread(
 							   acc->maxAoBlockSize,
 							   relname,
 							   title,
-							   &acc->ao_attr);
+							   &acc->ao_attr,
+							   relFileNode);
 
 	acc->ao_read.compression_functions = compressionFunctions;
 	acc->ao_read.compressionState = compressionState;
@@ -889,7 +895,8 @@ datumstreamwrite_block_orig(DatumStreamWrite * acc)
 
 	writesz = DatumStreamBlockWrite_Block(
 										  &acc->blockWrite,
-										  buffer);
+										  buffer,
+										  &acc->ao_write.relFileNode.node);
 
 	acc->ao_write.logicalBlockStartOffset =
 		BufferedAppendNextBufferPosition(&(acc->ao_write.bufferedAppend));
@@ -943,7 +950,8 @@ datumstreamwrite_block_dense(DatumStreamWrite * acc)
 
 	writesz = DatumStreamBlockWrite_Block(
 										  &acc->blockWrite,
-										  buffer);
+										  buffer,
+										  &acc->ao_write.relFileNode.node);
 
 	acc->ao_write.logicalBlockStartOffset =
 		BufferedAppendNextBufferPosition(&(acc->ao_write.bufferedAppend));
@@ -1024,6 +1032,8 @@ datumstreamwrite_lob(DatumStreamWrite * acc,
 {
 	uint8	   *p;
 	int32		varLen;
+	uint8 		*content;
+	int32		contentLen;
 
 	Assert(acc);
 	Assert(acc->datumStreamVersion == DatumStreamVersion_Original ||
@@ -1061,14 +1071,38 @@ datumstreamwrite_lob(DatumStreamWrite * acc,
 												  p);
 	}
 
+	content = p;
+	contentLen = varLen;
+
+	if (FileEncryptionEnabled)
+	{
+		int32			alignedHeaderSize;
+		int32			encryptLen;
+		char*			encryptData;
+
+		alignedHeaderSize = MAXALIGN(sizeof(uint16));
+		contentLen += alignedHeaderSize;
+		content = palloc(contentLen);
+
+		encryptData = VARDATA_ANY(p);
+		encryptLen 	= VARSIZE_ANY_EXHDR(p);
+
+		EncryptAOBLock((unsigned char *)encryptData, 
+						encryptLen, 
+						&acc->ao_write.relFileNode.node);
+
+		*(uint16 *)content = 1;
+		memcpy(content + alignedHeaderSize, p, varLen);
+	}
+
 	/* Set the BlockFirstRowNum */
 	AppendOnlyStorageWrite_SetFirstRowNum(&acc->ao_write,
 										  acc->blockFirstRowNum);
 
 	AppendOnlyStorageWrite_Content(
 								   &acc->ao_write,
-								   p,
-								   varLen,
+								   content,
+								   contentLen,
 								   AOCSBK_BLOB,
 									/* rowCount */ 1);
 
@@ -1080,6 +1114,10 @@ datumstreamwrite_lob(DatumStreamWrite * acc,
 		AppendOnlyStorageWrite_LogicalBlockStartOffset(&acc->ao_write),
 		1, /*itemCount -- always just the lob just inserted */
 		addColAction);
+
+
+	if (FileEncryptionEnabled)
+		pfree(content);
 
 	return varLen;
 }
@@ -1145,7 +1183,8 @@ datumstreamread_block_get_ready(DatumStreamRead * acc)
 									  acc->getBlockInfo.firstRow,
 									  acc->getBlockInfo.rowCnt,
 									  &hadToAdjustRowCount,
-									  &adjustedRowCount);
+									  &adjustedRowCount,
+									  &acc->ao_read.relFileNode);
 		if (hadToAdjustRowCount)
 		{
 			acc->blockRowCount = adjustedRowCount;
@@ -1154,6 +1193,32 @@ datumstreamread_block_get_ready(DatumStreamRead * acc)
 	else if (acc->getBlockInfo.execBlockKind == AOCSBK_BLOB)
 	{
 		Assert(acc->buffer_beginp == acc->large_object_buffer);
+		if (FileEncryptionEnabled)
+		{
+			int32		alignedHeaderSize;
+			struct 		varlena *va;
+			char*		decryptData;
+			int32		decryptLen;
+			uint16 		encrypted;
+
+			Assert(acc->buffer_beginp == acc->large_object_buffer);
+			encrypted = *(uint16 *)acc->buffer_beginp;
+			if (encrypted)
+			{
+				/* set the flag to 0, mark the block has been decrypted */
+				*(uint16 *)acc->buffer_beginp = 0;
+
+				alignedHeaderSize = MAXALIGN(sizeof(uint16));
+				acc->buffer_beginp += alignedHeaderSize;
+				
+				va = (struct varlena *) acc->buffer_beginp;
+				decryptData = VARDATA_ANY(va);
+				decryptLen = VARSIZE_ANY_EXHDR(va);
+				DecryptAOBlock((unsigned char*)decryptData,
+					decryptLen, 
+					&acc->ao_read.relFileNode);
+			}
+		}
 	}
 	else
 	{

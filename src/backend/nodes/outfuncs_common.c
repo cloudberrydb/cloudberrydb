@@ -1394,6 +1394,8 @@ _outSliceTable(StringInfo str, const SliceTable *node)
 		WRITE_NODE_FIELD(slices[i].children); /* List of int index */
 		WRITE_ENUM_FIELD(slices[i].gangType, GangType);
 		WRITE_NODE_FIELD(slices[i].segments); /* List of int */
+		WRITE_BOOL_FIELD(slices[i].useMppParallelMode);
+		WRITE_INT_FIELD(slices[i].parallel_workers);
 		WRITE_DUMMY_FIELD(slices[i].primaryGang);
 		WRITE_NODE_FIELD(slices[i].primaryProcesses); /* List of (CDBProcess *) */
 		WRITE_BITMAPSET_FIELD(slices[i].processesMap);

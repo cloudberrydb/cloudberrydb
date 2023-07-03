@@ -68,6 +68,7 @@
 
 #include "access/detoast.h"
 #include "access/genam.h"
+#include "access/heapam.h"
 #include "access/multixact.h"
 #include "access/relation.h"
 #include "access/sysattr.h"
@@ -111,12 +112,14 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/pg_rusage.h"
+#include "utils/rel.h"
 #include "utils/sampling.h"
 #include "utils/sortsupport.h"
 #include "utils/spccache.h"
 #include "utils/syscache.h"
 #include "utils/timestamp.h"
 
+#include "access/appendonlywriter.h"
 #include "catalog/heap.h"
 #include "catalog/pg_am.h"
 #include "cdb/cdbappendonlyam.h"
@@ -194,6 +197,8 @@ static void analyze_rel_internal(Oid relid, RangeVar *relation,
 								 bool in_outer_xact, BufferAccessStrategy bstrategy,
 								 gp_acquire_sample_rows_context *ctx);
 static void acquire_hll_by_query(Relation onerel, int nattrs, VacAttrStats **attrstats, int elevel);
+
+static int16 AcquireCountOfSegmentFile(Relation onerel);
 
 /*
  *	analyze_rel() -- analyze one relation
@@ -1019,6 +1024,36 @@ do_analyze_rel(Relation onerel, VacuumParams *params,
 							InvalidMultiXactId,
 							in_outer_xact,
 							false /* isVacuum */);
+
+		/* Update pg_appendonly for ao tables */
+		if (RelationIsAppendOptimized(onerel))
+		{
+			Relation	aorel;
+			Oid			aorelid = RelationGetRelid(onerel);
+			HeapTuple	aotup;
+			Form_pg_appendonly aoform;
+			int16		ao_segfile_count = 0;
+
+			aotup = SearchSysCache1(AORELID, ObjectIdGetDatum(aorelid));
+			if (!HeapTupleIsValid(aotup))
+				ereport(ERROR,
+					(errcode(ERRCODE_UNDEFINED_OBJECT),
+					errmsg("appendonly table relid %u does not exist in pg_appendonly", aorelid)));
+
+			aoform = (Form_pg_appendonly) GETSTRUCT(aotup);
+			if (aoform->segfilecount < MAX_AOREL_CONCURRENCY)
+			{
+				ao_segfile_count = AcquireCountOfSegmentFile(onerel);
+				if (aoform->segfilecount != ao_segfile_count)
+				{
+					aorel = table_open(AppendOnlyRelationId, RowExclusiveLock);
+					aoform->segfilecount = ao_segfile_count;
+					heap_inplace_update(aorel, aotup);
+					table_close(aorel, RowExclusiveLock);
+				}
+			}
+			ReleaseSysCache(aotup);
+		}
 
 		/* Same for indexes */
 		for (ind = 0; ind < nindexes; ind++)
@@ -2179,6 +2214,32 @@ acquire_hll_by_query(Relation onerel, int nattrs, VacAttrStats **attrstats, int 
 	}
 
 	SPI_finish();
+}
+
+/*
+ * Count AO/AOCO tables segment file number.
+ */
+static int16
+AcquireCountOfSegmentFile(Relation onerel)
+{
+	int16 count = 0;
+
+	if (!RelationIsAppendOptimized(onerel))
+		return 0;
+
+	if (Gp_role == GP_ROLE_DISPATCH &&
+		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy))
+	{
+		/* Query the segments using gp_ao_segment_file_count(<rel>). */
+		char	   *sql;
+		sql = psprintf("select pg_catalog.gp_ao_segment_file_count(%u)", RelationGetRelid(onerel));
+		count = get_size_from_segDBs(sql)/getgpsegmentCount();
+	}
+	else
+	{
+		count = GetAppendOnlySegmentFilesCount(onerel);
+	}
+	return count;
 }
 
 /*

@@ -166,9 +166,12 @@ get_partitioned_policy_from_path(PlannerInfo *root, Path *path)
 	 * Is it a Hashed distribution?
 	 *
 	 * NOTE: HashedOJ is not OK, because we cannot let the NULLs be stored
-	 * multiple segments.
+	 * multiple segments. HashedWorkers is OK.
+	 * GPDB_PARALLEL_FIXME: Is HashedWorkers OK?
+	 * There is no parallel insertion now, query->intoPolicy couldn't be CdbLocusType_HashedWorkers.
 	 */
-	if (path->locus.locustype != CdbLocusType_Hashed)
+	if (!(path->locus.locustype == CdbLocusType_Hashed ||
+		path->locus.locustype == CdbLocusType_HashedWorkers))
 	{
 		return NULL;
 	}
@@ -338,7 +341,7 @@ cdbllize_get_final_locus(PlannerInfo *root, PathTarget *target)
 			{
 				CdbPathLocus locus;
 
-				CdbPathLocus_MakeReplicated(&locus, intoPolicy->numsegments);
+				CdbPathLocus_MakeReplicated(&locus, intoPolicy->numsegments, 0);
 				return locus;
 			}
 		}
@@ -509,7 +512,8 @@ cdbllize_adjust_top_path(PlannerInfo *root, Path *best_path,
 			CdbPathLocus replicatedLocus;
 
 			CdbPathLocus_MakeReplicated(&replicatedLocus,
-										targetPolicy->numsegments);
+										targetPolicy->numsegments,
+										0);
 
 			best_path = cdbpath_create_motion_path(root,
 												   best_path,
@@ -969,7 +973,6 @@ fix_outer_query_motions_mutator(Node *node, decorate_subplans_with_motions_conte
 	return newnode;
 }
 
-
 /*
  * Add a Motion node on top of a Plan if needed, to make the result available
  * in 'outer_query_flow'. Subroutine of cdbllize_fix_outer_query_motions().
@@ -1383,6 +1386,13 @@ typedef struct sanity_result_t
 	int			flags;
 } sanity_result_t;
 
+typedef struct aware_result_t
+{
+	plan_tree_base_prefix base; /* Required prefix for
+								 * plan_tree_walker/mutator */
+	int			nnodes;
+} aware_result_t;
+
 static bool
 motion_sanity_walker(Node *node, sanity_result_t *result)
 {
@@ -1569,6 +1579,9 @@ motion_sanity_check(PlannerInfo *root, Plan *plan)
 static void
 adjust_top_path_for_parallel_retrieve_cursor(Path *path, PlanSlice *slice)
 {
+	/* GPDB_PARALLEL_FIXME: should consider parallel_workers for parallel cursor? */
+	Assert(path->locus.parallel_workers == 0);
+
 	if (CdbPathLocus_IsSingleQE(path->locus)
 		|| CdbPathLocus_IsGeneral(path->locus)
 		|| CdbPathLocus_IsEntry(path->locus))

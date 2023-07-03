@@ -1542,19 +1542,31 @@ include_dir 'conf.d'
         mechanism is used.
        </para>
        <para>
-        The command must print the passphrase to the standard output and exit
-        with code 0.  In the parameter value, <literal>%p</literal> is
-        replaced by a prompt string.  (Write <literal>%%</literal> for a
-        literal <literal>%</literal>.)  Note that the prompt string will
-        probably contain whitespace, so be sure to quote adequately.  A single
-        newline is stripped from the end of the output if present.
+        The command must print the passphrase to the standard output
+        and exit with code 0.  It can prompt from the terminal if
+        <option>--authprompt</option> is used.  In the parameter
+        value, <literal>%R</literal> is replaced by a file descriptor
+        number opened to the terminal that started the server.  A file
+        descriptor is only available if enabled at server start via
+        <option>-R</option>.  If <literal>%R</literal> is specified and
+        no file descriptor is available, the server will not start.  Value
+        <literal>%p</literal> is replaced by a pre-defined prompt string.
+        (Write <literal>%%</literal> for a literal <literal>%</literal>.)
+        Note that the prompt string will probably contain whitespace,
+        so be sure to quote its use adequately.  Newlines are stripped
+        from the end of the output if present.
        </para>
+
        <para>
-        The command does not actually have to prompt the user for a
-        passphrase.  It can read it from a file, obtain it from a keychain
-        facility, or similar.  It is up to the user to make sure the chosen
-        mechanism is adequately secure.
+        Sample scripts can be found in
+        <filename>$SHAREDIR/auth_commands</filename>,
+        where <literal>$SHAREDIR</literal> means the
+        <productname>PostgreSQL</productname> installation's shared-data
+        directory, often <filename>/usr/local/share/postgresql</filename>
+        (use <command>pg_config --sharedir</command> to determine it if
+        you're not sure).
        </para>
+
        <para>
         This parameter can only be set in the <filename>postgresql.conf</filename>
         file or on the server command line.
@@ -1576,10 +1588,12 @@ include_dir 'conf.d'
         parameter is off (the default), then
         <varname>ssl_passphrase_command</varname> will be ignored during a
         reload and the SSL configuration will not be reloaded if a passphrase
-        is needed.  That setting is appropriate for a command that requires a
-        TTY for prompting, which might not be available when the server is
-        running.  Setting this parameter to on might be appropriate if the
-        passphrase is obtained from a file, for example.
+        is needed.  This setting is appropriate for a command that requires a
+        terminal for prompting, which will likely not be available when the server is
+        running.  (<option>--authprompt</option> closes the terminal file
+        descriptor soon after server start.)   Setting this parameter on
+        might be appropriate, for example, if the passphrase is obtained
+        from a file.
        </para>
        <para>
         This parameter can only be set in the <filename>postgresql.conf</filename>
@@ -2775,7 +2789,7 @@ include_dir 'conf.d'
         Note that changing <varname>wal_level</varname> to
         <literal>minimal</literal> makes any base backups taken before
         unavailable for archive recovery and standby server, which may
-        lead to data loss.
+        lead to data loss. Cluster file encryption also does not support.
        </para>
        <para>
         In <literal>logical</literal> level, the same information is logged as
@@ -3129,9 +3143,10 @@ include_dir 'conf.d'
        </para>
 
        <para>
-        If data checksums are enabled, hint bit updates are always WAL-logged
-        and this setting is ignored. You can use this setting to test how much
-        extra WAL-logging would occur if your database had data checksums
+        If data checksums or cluster file encryption is enabled,
+        hint bit updates are always WAL-logged and this setting is
+        ignored. You can use this setting to test how much extra
+        WAL-logging would occur if your database had data checksums
         enabled.
        </para>
 
@@ -8048,6 +8063,64 @@ COPY postgres_log FROM '/full/path/to/logfile.csv' WITH csv;
     </variablelist>
    </sect1>
 
+   <sect1 id="runtime-config-encryption">
+    <title>Cluster File Encryption</title>
+
+    <variablelist>
+     <varlistentry id="guc-cluster-key-command" xreflabel="cluster_key_command">
+      <term><varname>cluster_key_command</varname> (<type>string</type>)
+      <indexterm>
+       <primary><varname>cluster_key_command</varname> configuration parameter</primary>
+      </indexterm>
+      </term>
+      <listitem>
+       <para>
+        This option specifies an external command to obtain the cluster-level
+        key for cluster file encryption during server initialization and
+        server start.
+       </para>
+       <para>
+        The command must print the cluster key to the standard
+        output as 64 hexadecimal characters, and exit with code 0.
+        The command can prompt for the passphrase or PIN from the
+        terminal if <option>--authprompt</option> is used.  In the
+        parameter value, <literal>%R</literal> is replaced by a file
+        descriptor number opened to the terminal that started the server.
+        A file descriptor is only available if enabled at server start
+        via <option>-R</option>.  If <literal>%R</literal> is specified
+        and no file descriptor is available, the server will not start.
+        Value <literal>%p</literal> is replaced by a pre-defined
+        prompt string.  Value <literal>%d</literal> is replaced by the
+        directory containing the keys;  this is useful if the command
+        must create files with the keys, e.g., to store a cluster-level
+        key encrypted by a key stored in a hardware security module.
+        (Write <literal>%%</literal> for a literal <literal>%</literal>.)
+        Note that the prompt string will probably contain whitespace,
+        so be sure to quote its use adequately.  Newlines are stripped
+        from the end of the output if present.
+       </para>
+
+       <para>
+        Sample script can be found in
+        <filename>$SHAREDIR/auth_commands</filename>,
+        where <literal>$SHAREDIR</literal> means the
+        <productname>PostgreSQL</productname> installation's shared-data
+        directory, often <filename>/usr/local/share/postgresql</filename>
+        (use <command>pg_config --sharedir</command> to determine it if
+        you're not sure).
+       </para>
+
+       <para>
+        This parameter can only be set by
+        <application>initdb</application>, in the
+        <filename>postgresql.conf</filename> file, or on the server
+        command line.
+       </para>
+      </listitem>
+     </varlistentry>
+    </variablelist>
+   </sect1>
+
    <sect1 id="runtime-config-client">
     <title>Client Connection Defaults</title>
 
@@ -10064,6 +10137,22 @@ dynamic_library_path = 'C:\tools\postgresql;H:\my_project\lib;$libdir'
        <para>
         Reports whether data checksums are enabled for this cluster.
         See <xref linkend="app-initdb-data-checksums"/> for more information.
+       </para>
+      </listitem>
+     </varlistentry>
+
+     <varlistentry id="guc-file-encryption-method" xreflabel="file_encryption_method">
+      <term><varname>file_encryption_method</varname> (<type>boolean</type>)
+      <indexterm>
+       <primary>Cluster file encryption method</primary>
+      </indexterm>
+      </term>
+      <listitem>
+       <para>
+        Reports the cluster file
+        encryption method.  See <xref
+        linkend="app-initdb-cluster-key-command"/> for more
+        information.
        </para>
       </listitem>
      </varlistentry>

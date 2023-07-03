@@ -1498,6 +1498,8 @@ typedef struct Path
 	bool        motionHazard;   /* true => path contains a CdbMotion operator
 					without a slackening operator above it */
 
+	bool		barrierHazard;	/* true => path contains sync barrier in Parallel Hash
+								   which should be executed in non or all workers. */
 	bool		rescannable;    /* CDB: true => path can accept ExecRescan call
                                  */
 	List	   *pathkeys;		/* sort ordering of path's output */
@@ -2092,6 +2094,7 @@ typedef struct HashPath
 	List	   *path_hashclauses;	/* join clauses used for hashing */
 	int			num_batches;	/* number of batches expected */
 	double		inner_rows_total;	/* total inner rows expected */
+	bool		batch0_barrier;
 } HashPath;
 
 /*

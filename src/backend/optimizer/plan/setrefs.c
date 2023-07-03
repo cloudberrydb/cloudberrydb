@@ -3483,13 +3483,21 @@ fix_upper_expr_mutator(Node *node, fix_upper_expr_context *context)
 	if (IsA(node, Var))
 	{
 		Var		   *var = (Var *) node;
-
-		newvar = search_indexed_tlist_for_var(var,
-											  context->subplan_itlist,
-											  context->newvarno,
-											  context->rtoffset);
-		if (!newvar)
-			elog(ERROR, "variable not found in subplan target list");
+		if (context->subplan_itlist->has_non_vars)
+		{
+			newvar = search_indexed_tlist_for_non_var((Expr *) node,
+													context->subplan_itlist,
+													context->newvarno);
+		}
+		else
+		{
+			newvar = search_indexed_tlist_for_var(var,
+												context->subplan_itlist,
+												context->newvarno,
+												context->rtoffset);
+			if (!newvar)
+				elog(ERROR, "variable not found in subplan target list");
+		}
 		return (Node *) newvar;
 	}
 	if (IsA(node, PlaceHolderVar))

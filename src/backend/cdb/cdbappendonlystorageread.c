@@ -62,7 +62,8 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 						   int32 maxBufferLen,
 						   char *relationName,
 						   char *title,
-						   AppendOnlyStorageAttributes *storageAttributes)
+						   AppendOnlyStorageAttributes *storageAttributes,
+						   RelFileNode *relFileNode)
 {
 	uint8	   *memory;
 	int32		memoryLen;
@@ -115,7 +116,8 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 					 memoryLen,
 					 storageRead->maxBufferLen,
 					 storageRead->largeReadLen,
-					 relationName);
+					 relationName,
+					 relFileNode);
 
 	elogif(Debug_appendonly_print_scan || Debug_appendonly_print_read_block, LOG,
 		   "Append-Only Storage Read initialize for table '%s' "
@@ -128,7 +130,8 @@ AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 
 	storageRead->file = -1;
 	storageRead->formatVersion = -1;
-
+	storageRead->relFileNode = *relFileNode;
+	
 	MemoryContextSwitchTo(oldMemoryContext);
 
 	storageRead->isActive = true;

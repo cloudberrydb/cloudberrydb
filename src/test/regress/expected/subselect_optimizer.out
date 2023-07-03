@@ -1676,6 +1676,7 @@ create function explain_sq_limit() returns setof text language plpgsql as
 $$
 declare ln text;
 begin
+    set local enable_parallel=off;
     for ln in
         explain (analyze, summary off, timing off, costs off)
         select * from (select pk,c2 from sq_limit order by c1,pk) as x limit 3
@@ -1683,6 +1684,7 @@ begin
         ln := regexp_replace(ln, 'Memory: \S*',  'Memory: xxx');
         return next ln;
     end loop;
+    reset enable_parallel;
 end;
 $$;
 select * from explain_sq_limit();
@@ -1853,8 +1855,8 @@ select * from x, x x2 where x.n = x2.n;
                            Output: share0_ref1.f1, share0_ref1.n
                            ->  Seq Scan on public.subselect_tbl
                                  Output: subselect_tbl.f1, 'regression'::name
- Optimizer: Postgres query optimizer
  Settings: gp_cte_sharing=on, optimizer=on
+ Optimizer: Postgres query optimizer
 (21 rows)
 
 explain (verbose, costs off)

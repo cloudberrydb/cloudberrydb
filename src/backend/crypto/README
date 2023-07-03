@@ -1,0 +1,231 @@
+Cluster File Encryption
+=======================
+
+This directory contains support functions and sample scripts to be used
+for cluster file encryption.
+
+Architecture
+------------
+
+Fundamentally, cluster file encryption must store data in a file system
+in such a way that the keys required to decrypt the file system data can
+only be accessed using somewhere outside of the file system itself.  The
+external requirement can be someone typing in a passphrase, getting a
+key from a key management server (KMS), or decrypting a key stored in
+the file system using a hardware security module (HSM).  The current
+architecture supports all of these methods, and includes sample scripts
+for them.
+
+The simplest method for accessing data keys using some external
+requirement would be to retrieve all data encryption keys from a KMS.
+However, retrieved keys would still need to be verified as valid.  This
+method also introduces unacceptable complexity for simpler use-cases,
+like user-supplied passphrases or HSM usage.  External key rotation
+would also be very hard since it would require re-encrypting all the
+file system data with the new externally-stored keys.
+
+For these reason, a two-tiered architecture is used, which uses two
+types of encryption keys: a key encryption key (KEK) and data encryption
+keys (DEK). The KEK should not be present unencrypted in the file system
+--- it should be supplied the user, stored externally (e.g., in a KMS)
+or stored in the file system encrypted with a HSM (e.g., PIV device).
+The DEK is used to encrypt database files and is stored in the same file
+system as the database but is encrypted using the KEK.  Because the DEK
+is encrypted, its storage in the file system is no more of a security
+weakness and the storage of the encrypted database files in the same
+file system.
+
+Implementation
+--------------
+
+To enable cluster file encryption, the initdb option
+--cluster-key-command must be used, which specifies a command to
+retrieve the KEK.  initdb records the cluster_key_command in
+postgresql.conf.  Every time the KEK is needed, the command is run and
+must return 64 hex characters which are decoded into the KEK.  The
+command is called twice during initdb, and every time the server starts.
+initdb also sets the encryption method in controldata during server
+bootstrap.
+
+initdb runs "postgres --boot", which calls function
+kmgr.c::BootStrapKmgr(), which calls the cluster key command.  The
+cluster key command returns a KEK which is used to encrypt random bytes
+for each DEK and writes them to the file system by
+kmgr.c::KmgrWriteCryptoKeys() (unless --copy-encryption-keys is used).
+Currently the DEK files are 0 and 1 and are stored in
+$PGDATA/pg_cryptokeys/live.  The wrapped DEK files use Key Wrapping with
+Padding which verifies the validity of the KEK.
+
+initdb also does a non-boot backend start which calls
+kmgr.c::InitializeKmgr(), which calls the cluster key command a second
+time.  This decrypts/unwraps the DEK keys and stores them in the shared
+memory structure KmgrShmem. This step also happens every time the server
+starts. Later patches will use the keys stored in KmgrShmem to
+encrypt/decrypt database files.  KmgrShmem is erased via
+explicit_bzero() on server shutdown.
+
+Limitations
+-----------
+
+There doesn't seem to be a reasonable way to detect all malicious data
+modification or key extraction if a user has write permission on the
+files in PGDATA. It might be possible to limit the key extraction risk
+if postgresql.auto.conf were able to be moved to a directory outside of
+PGDATA, and if postmaster.opts could be moved or ignored when cluster
+file encryption is used. (This file is used by pg_ctl restart.)
+
+It doesn't appear possible to detect all malicious writes --- even if
+you add message authentication code (MAC) checks to encrypted files,
+modifying non-encrypted files could still affect encrypted ones, e.g.,
+modifying files in pg_xact could affect how heap rows are interpreted.
+Basically you would need to encrypt all files, and at that point you
+might as well just use an encrypted file system. There also doesn't seem
+to be a way to prevent key extraction if someone has read permission on
+postgres process memory.
+
+Initialization Vector
+---------------------
+
+Nonce means "number used once". An Initialization Vector (IV) is a
+specific type of nonce. That is, unique but not necessarily random or
+secret, as specified by the NIST
+(https://nvlpubs.nist.gov/nistpubs/Legacy/SP/nistspecialpublication800-38a.pdf).
+To generate unique IVs, the NIST recommends two methods:
+
+	The first method is to apply the forward cipher function, under
+	the same key that is used for the encryption of the plaintext,
+	to a nonce. The nonce must be a data block that is unique to
+	each execution of the encryption operation. For example, the
+	nonce may be a counter, as described in Appendix B, or a message
+	number. The second method is to generate a random data block
+	using a FIPS-approved random number generator.
+
+We will use the first method to generate IVs. That is, select nonce
+carefully and use a cipher with the key to make it unique enough to use
+as an IV. The nonce selection for buffer encryption and WAL encryption
+are described below.
+
+If the IV was used more than once with the same key (and we only use one
+data encryption key), changes in the unencrypted data would be visible
+in the encrypted data.
+
+IV for Heap/Index Encryption
+- - - - - - - - - - - - - -
+
+To create the 16-byte IV needed by AES for each page version, we will
+use the page LSN (8 bytes) and page number (4 bytes).  In the remaining
+four bytes, one bit will be used to indicate if the LSN is WAL (real) or
+fake (see below). The LSN is ideal for use in the IV because it is
+always increasing, and is changed every time a page is updated.  The
+same LSN is never used for two relations with different page contents.
+
+However, the same LSN can be used in multiple pages in the same relation
+--- this can happen when a heap update expires an old tuple and adds a
+new tuple to another page.  By adding the page number to the IV, we keep
+the IV unique.
+
+By not using the database id in the IV, CREATE DATABASE can copy the
+heap/index files from the old database to a new one without
+decryption/encryption.  Both page copies are valid.  Once a database
+changes its pages, it gets new LSNs, and hence new IV.  Using only the
+LSN and page number also avoids requiring pg_upgrade to preserve
+database oids, tablespace oids, and relfilenodes.
+
+As part of WAL logging, every change of a WAL-logged page gets a new
+LSN, and therefore a new IV automatically.
+
+However, the LSN must then be visible on encrypted pages, so we will not
+encrypt the LSN on the page. We will also not encrypt the CRC so
+pg_checksums can still check pages offline without access to the keys.
+
+Non-Permanent Relations
+- - - - - - - - - - - -
+
+To avoid the overhead of generating WAL for non-permanent (unlogged and
+temporary) relations, we assign fake LSNs that are derived from a
+counter via xlog.c::GetFakeLSNForUnloggedRel().  (GiST also uses this
+counter for LSNs.)  We also set a bit in the IV so the use of the same
+value for WAL (real) and fake LSNs will still generate unique IVs.  Only
+main forks are encrypted, not init, vm, or fsm files.
+
+In the code, we need to identify if a page uses WAL or fake LSNs in
+four places, when:
+
+1.  Reading a page from the file system and decrypting
+2.  Setting the WAL or fake LSN on a page
+3.  Hint bits changes requiring new LSNs for the encryption IV
+4.  Encrypting and writing a page to the file system
+
+For all these case, we have access to the fork number and either the
+relation's persistence state or the buffer state.  If it is a "main"
+fork and the relation persistence state is RELPERSISTENCE_PERMANENT, or
+if it is an "init" fork, we use a real LSN.  If it is a main fork and
+RELPERSISTENCE_PERMANENT is false, we use a fake LSN.  The buffer state
+BM_PERMANENT is true if the relation is PERMANENT or is an init fork.
+
+Init Forks
+- - - - - 
+
+Init forks for unlogged relations get permanent LSNs because unlogged
+relation creation is WAL logged/crash safe, even though the relation's
+contents are not.  When the init fork is copied to represent an empty
+relation during crash recovery, it becomes a non-permanent page and must
+be successfully decrypted as such.  Therefore, when it is copied, its
+LSN is changed to e fake LSN and then encrypted.  This prevents a real
+LSN from being encrypted with the fake nonce bit.
+
+LSN Assignment, GiST, & Non-Permanent Relations
+- - - - - - - - - - - - - - - - - - - - - - - -
+
+LSN assignment has to be slightly modified for encryption.  In normal,
+non-encryption mode, LSNs are assigned to pages following these rules:
+
+1.  During GiST builds, some pages are assigned fixed LSNs (GistBuildLSN)
+
+2.  During GiST builds, non-permanent pages not assigned fixed LSNs in
+#1 are assigned fake LSNs, via gistutil.c::gistGetFakeLSN().
+
+3.  All other permanent pages are assigned WAL-based LSNs based on the
+WAL position of their WAL records.
+
+4.  All other non-permanent pages have LSNs of zero.
+
+When encryption is enabled:
+
+1.  During GiST builds, permanent pages are assigned WAL-based LSNs
+generated by xloginsert.c::LSNForEncryption().
+
+2.  During GiST builds, non-permanent pages are assigned fake LSNs. 
+(No constant LSNs are used in #1 or #2.)
+
+3.  same as #3 above
+
+4.  All other non-permanent pages are assigned fake LSNs before page
+encryption.
+
+When switching to an encrypted replica from a non-encrypted primary,
+GiST indexes will be using fixed LSNs for permanent tables, so it is
+recommended to rebuild GiST indexes.  Non-permanent relations are not
+replicated, so they are not an issue.
+
+Hint Bits
+- - - - -
+
+For hint bit changes, the LSN normally doesn't change, which is a
+problem.  By enabling wal_log_hints, you get full page writes to the WAL
+after the first hint bit change of the checkpoint.  This is useful for
+two reasons.  First, it generates a new LSN, which is needed for the IV
+to be secure.  Second, full page images protect against torn pages,
+which is an even bigger requirement for encryption because the new LSN
+is re-encrypting the entire page, not just the hint bit changes.  You
+can safely lose the hint bit changes, but you need to use the same LSN
+to decrypt the entire page, so a torn page with an LSN change cannot be
+decrypted.  To prevent this, wal_log_hints guarantees that the
+pre-hint-bit version (and previous LSN version) of the page is restored.
+
+However, if a hint-bit-modified page is written to the file system
+during a checkpoint, and there is a later hint bit change switching the
+same page from clean to dirty during the same checkpoint, we need a new
+LSN, and wal_log_hints doesn't give us a new LSN here.  The fix for this
+is to update the page LSN by writing a dummy WAL record via
+xloginsert.c::LSNForEncryption() in such cases.

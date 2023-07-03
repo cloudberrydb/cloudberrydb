@@ -31,12 +31,14 @@
 #include "catalog/storage_tablespace.h"
 #include "commands/tablespace.h"
 #include "common/link-canary.h"
+#include "crypto/bufenc.h"
 #include "libpq/pqsignal.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "pg_getopt.h"
 #include "pgstat.h"
 #include "postmaster/bgwriter.h"
+#include "postmaster/postmaster.h" /* TODO: verify we need this still */
 #include "postmaster/startup.h"
 #include "postmaster/walwriter.h"
 #include "replication/walreceiver.h"
@@ -53,7 +55,9 @@
 #include "utils/rel.h"
 #include "utils/relmapper.h"
 
-uint32		bootstrap_data_checksum_version = 0;	/* No checksum */
+uint32      bootstrap_data_checksum_version = 0;	/* No checksum */
+int         bootstrap_file_encryption_method = DISABLED_ENCRYPTION_METHOD;
+char        *bootstrap_old_key_datadir = NULL;	/* disabled */
 
 
 static void CheckerModeMain(void);
@@ -227,7 +231,7 @@ AuxiliaryProcessMain(int argc, char *argv[])
 	/* If no -x argument, we are a CheckerProcess */
 	MyAuxProcType = CheckerProcess;
 
-	while ((flag = getopt(argc, argv, "B:c:d:D:Fkr:x:X:-:")) != -1)
+ 	while ((flag = getopt(argc, argv, "B:c:d:D:FkK:r:x:R:u:X:-:")) != -1)
 	{
 		switch (flag)
 		{
@@ -256,12 +260,36 @@ AuxiliaryProcessMain(int argc, char *argv[])
 			case 'k':
 				bootstrap_data_checksum_version = PG_DATA_CHECKSUM_VERSION;
 				break;
+ 			case 'K':
+ 				{
+ 					int i;
+ 
+ 					/* method 0/disabled cannot be specified */
+ 					for (i = DISABLED_ENCRYPTION_METHOD + 1;
+ 						 i < NUM_ENCRYPTION_METHODS; i++)
+ 						if (pg_strcasecmp(optarg, encryption_methods[i].name) == 0)
+ 						{
+ 							bootstrap_file_encryption_method = i;
+ 							break;
+ 						}
+ 					if (i == NUM_ENCRYPTION_METHODS)
+ 						ereport(ERROR,
+ 								(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+ 								 errmsg("invalid encryption method specified, optarg:%s, index:%d", optarg, i)));
+ 				}
+ 				break;
 			case 'r':
 				strlcpy(OutputFileName, optarg, MAXPGPATH);
 				break;
 			case 'x':
 				MyAuxProcType = atoi(optarg);
 				break;
+ 			case 'R':
+ 				terminal_fd = atoi(optarg);
+ 				break;
+ 			case 'u':
+ 				bootstrap_old_key_datadir = pstrdup(optarg);
+ 				break;
 			case 'X':
 				{
 					int			WalSegSz = strtoul(optarg, NULL, 0);

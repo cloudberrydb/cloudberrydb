@@ -14,6 +14,7 @@ $$
 declare
     ln text;
 begin
+    set local enable_parallel = off;
     for ln in execute $1
     loop
         -- Replace any numeric word with just 'N'
@@ -28,6 +29,7 @@ begin
         CONTINUE WHEN (ln = 'Planning:');
         return next ln;
     end loop;
+    reset enable_parallel;
 end;
 $$;
 -- To produce valid JSON output, replace numbers with "0" or "0.0" not "N"
@@ -38,6 +40,7 @@ declare
     data text := '';
     ln text;
 begin
+    set local enable_parallel = off;
     for ln in execute $1
     loop
         -- Replace any numeric word with just '0'
@@ -45,6 +48,7 @@ begin
         data := data || ln;
     end loop;
     return data::jsonb;
+    reset enable_parallel;
 end;
 $$;
 -- Simple cases
@@ -691,6 +695,7 @@ select jsonb_pretty(
          "Settings": {                                      +
              "Optimizer": "Postgres query optimizer",       +
              "optimizer": "off",                            +
+             "enable_parallel": "off",                      +
              "parallel_setup_cost": "0",                    +
              "parallel_tuple_cost": "0",                    +
              "min_parallel_table_scan_size": "0"            +
@@ -709,6 +714,7 @@ select jsonb_pretty(
                  "Executor Memory": {                       +
                      "Average": 0,                          +
                      "Workers": 0,                          +
+                     "Subworkers": 0,                       +
                      "Maximum Memory Used": 0               +
                  },                                         +
                  "Work Maximum Memory": 0                   +

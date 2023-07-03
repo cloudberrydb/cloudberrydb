@@ -18,8 +18,10 @@ insert into dd_singlecol_1 values(null, null);
 analyze dd_singlecol_1;
 
 -- ctas tests
+set enable_parallel = off;
 create table dd_ctas_1 as select * from dd_singlecol_1 where a=1 distributed by (a);
 create table dd_ctas_2  as select * from dd_singlecol_1 where a is NULL distributed by (a);
+reset enable_parallel;
 
 select * from dd_ctas_1;
 select * from dd_ctas_2;
@@ -104,7 +106,10 @@ select 'one' from dd_part_singlecol where a=1;
 select a, 'one' from dd_part_singlecol where a=1;
 
 -- group by and sort
+-- disable parallel for regress tests
+set enable_parallel = off;
 select a, count(*) from dd_part_singlecol where a=1 group by a;
+reset enable_parallel;
 
 select a, count(*) from dd_part_singlecol where a=1 group by a order by a;
 
@@ -131,7 +136,9 @@ select * from dd_singlecol_idx where (a=1 or a=2) and b<2;
 
 select 'one' from dd_singlecol_idx where (a=1 or a=2) and b=1;
 
+set enable_parallel = off;
 select a, count(*) from dd_singlecol_idx where (a=1 or a=2) and b=1  group by a;
+reset enable_parallel;
 
 select count(*) from dd_singlecol_idx;
 
@@ -215,8 +222,10 @@ select 'one' from dd_singlecol_idx where a=1 and b=1;
 
 select a+b from dd_singlecol_idx where a=1 and b=1;
 
+set enable_parallel = off;
 -- group by
 select a, count(*) from dd_singlecol_idx where a=1 and b=1  group by a;
+reset enable_parallel;
 
 -- multicol
 select * from dd_multicol_idx where a=1 and b=1 and c<5;
@@ -292,21 +301,27 @@ select 'one' from dd_singlecol_1 where a=1;
 select a, 'one' from dd_singlecol_1 where a=1;
 
 -- group by and sort
+set enable_parallel = off;
 select a, count(*) from dd_singlecol_1 where a=1 group by a;
+reset enable_parallel;
 
 select a, count(*) from dd_singlecol_1 where a=1 group by a order by a;
 
 -- inner joins
 select * from dd_singlecol_1 t1, dd_singlecol_2 t2 where t1.a=t2.a and t1.a=1;
 
+set enable_parallel = off;
 select * from dd_singlecol_1 t1, dd_singlecol_2 t2 where t1.a=t2.b and t1.a=1;
+reset enable_parallel;
 
 select * from dd_singlecol_1 t1, dd_singlecol_2 t2 where t1.b>t2.a and t1.a=1;
 
 -- outer joins
 select * from dd_singlecol_1 t1 left outer join dd_singlecol_2 t2 on (t1.a=t2.a) where t1.a=1;
 
+set enable_parallel = off;
 select * from dd_singlecol_1 t1 left outer join dd_singlecol_2 t2 on (t1.a=t2.b) where t1.a=1 and t2.b=1;
+reset enable_parallel;
 
 select * from dd_singlecol_1 t1 left outer join dd_singlecol_2 t2 on (t1.b=t2.b) where t1.a=1;
 
@@ -314,7 +329,9 @@ select * from dd_singlecol_2 t2 left outer join dd_singlecol_1 t1 on (t1.b=t2.b)
 
 -- subqueries
 
+set enable_parallel = off;
 select * from dd_singlecol_1 t1 where a=1 and b < (select count(*) from dd_singlecol_2 t2 where t2.a=t1.a);
+reset enable_parallel;
 
 select * from dd_singlecol_1 t1 where a=1 and b in (select count(*) from dd_singlecol_2 t2 where t2.a<=t1.a);
 
@@ -331,10 +348,12 @@ select * from dd_singlecol_1 where a>1 and a<5;
 
 select * from dd_singlecol_1 where a=1 or b=5;
 
+set enable_parallel = off;
 -- group by and sort
 select b, count(*) from dd_singlecol_1 where a=1 group by b;
 
 select b, count(*) from dd_singlecol_1 where a=1 group by b order by b;
+reset enable_parallel;
 
 -- randomly distributed tables
 create table dd_random(a int, b int) distributed randomly;

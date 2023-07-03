@@ -13135,6 +13135,7 @@ select rnum, lower(c1) from tlth where rnum=47
 group by
 f1,f2
 ) Q ) P;
+set max_parallel_workers_per_gather=0;
 -- SelectThaiColumnOrderByLocal_p1
 select 'SelectThaiColumnOrderByLocal_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
@@ -13218,6 +13219,7 @@ select rnum, c1 from tlth where rnum <> 38
 group by
 f1,f2
 ) Q ) P;
+reset max_parallel_workers_per_gather;
 -- SelectThaiColumnWhere_p1
 select 'SelectThaiColumnWhere_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (

@@ -16,6 +16,8 @@
 #include "access/detoast.h"
 #include "access/heaptoast.h"
 #include "access/tupmacs.h"
+#include "access/xlog.h"
+#include "crypto/bufenc.h"
 #include "utils/datumstreamblock.h"
 #include "utils/guc.h"
 
@@ -155,7 +157,8 @@ DatumStreamBlockRead_GetReadyOrig(
 								  int64 firstRowNum,
 								  int32 rowCount,
 								  bool *hadToAdjustRowCount,
-								  int32 * adjustedRowCount)
+								  int32 * adjustedRowCount,
+								  RelFileNode *node)
 {
 	uint8	   *p;
 
@@ -219,20 +222,6 @@ DatumStreamBlockRead_GetReadyOrig(
 									DatumStreamVersion_Original),
 				 errdetail_datumstreamblockread(dsr),
 				 errcontext_datumstreamblockread(dsr)));
-	}
-
-	if (!minimalIntegrityChecks)
-	{
-		DatumStreamBlock_IntegrityCheckOrig(
-											buffer,
-											bufferSize,
-											minimalIntegrityChecks,
-											rowCount,
-											&dsr->typeInfo,
-			 /* errdetailCallback */ errdetail_datumstreamblockread_callback,
-											 /* errdetailArg */ (void *) dsr,
-		   /* errcontextCallback */ errcontext_datumstreamblockread_callback,
-										   /* errcontextArg */ (void *) dsr);
 	}
 
 	dsr->logical_row_count = blockOrig->ndatum;
@@ -340,6 +329,28 @@ DatumStreamBlockRead_GetReadyOrig(
 #endif
 
 	dsr->datump = dsr->datum_beginp;
+
+	if (FileEncryptionEnabled && blockOrig->encrypted)
+	{
+		DecryptAOBlock(dsr->datump,
+				dsr->physical_data_size, 
+				node);
+		blockOrig->encrypted = 0;
+	}
+
+	if (!minimalIntegrityChecks)
+	{
+		DatumStreamBlock_IntegrityCheckOrig(
+											buffer,
+											bufferSize,
+											minimalIntegrityChecks,
+											rowCount,
+											&dsr->typeInfo,
+			 /* errdetailCallback */ errdetail_datumstreamblockread_callback,
+											 /* errdetailArg */ (void *) dsr,
+		   /* errcontextCallback */ errcontext_datumstreamblockread_callback,
+										   /* errcontextArg */ (void *) dsr);
+	}
 }
 
 void
@@ -620,7 +631,8 @@ DatumStreamBlockRead_GetReadyDense(
 								   int64 firstRowNum,
 								   int32 rowCount,
 								   bool *hadToAdjustRowCount,
-								   int32 * adjustedRowCount)
+								   int32 * adjustedRowCount,
+								   RelFileNode *node)
 {
 	uint8	   *p;
 
@@ -666,16 +678,6 @@ DatumStreamBlockRead_GetReadyDense(
 	p = dsr->buffer_beginp;
 
 	Assert(p == buffer);
-	DatumStreamBlock_IntegrityCheckDense(
-										 buffer,
-										 bufferSize,
-										 minimalIntegrityChecks,
-										 rowCount,
-										 &dsr->typeInfo,
-			 /* errdetailCallback */ errdetail_datumstreamblockread_callback,
-										  /* errdetailArg */ (void *) dsr,
-		   /* errcontextCallback */ errcontext_datumstreamblockread_callback,
-										  /* errcontextArg */ (void *) dsr);
 
 	blockDense = (DatumStreamBlock_Dense *) p;
 
@@ -944,6 +946,26 @@ DatumStreamBlockRead_GetReadyDense(
 		}
 	}
 	dsr->datump = dsr->datum_beginp;
+	if (FileEncryptionEnabled && (blockDense->orig_4_bytes.flags & DSB_HAS_ENCRYPTION) != 0)
+	{
+		DecryptAOBlock(dsr->datump,
+				dsr->physical_data_size, 
+				node);
+
+		/* reset the flag, mark the block has been decrypted */
+		blockDense->orig_4_bytes.flags = blockDense->orig_4_bytes.flags & ~ DSB_HAS_ENCRYPTION;
+	}
+	
+	DatumStreamBlock_IntegrityCheckDense(
+										buffer,
+										bufferSize,
+										minimalIntegrityChecks,
+										rowCount,
+										&dsr->typeInfo,
+			/* errdetailCallback */ errdetail_datumstreamblockread_callback,
+										/* errdetailArg */ (void *) dsr,
+		/* errcontextCallback */ errcontext_datumstreamblockread_callback,
+										/* errcontextArg */ (void *) dsr);
 }
 
 static int
@@ -3644,7 +3666,8 @@ DatumStreamBlockWrite_GetReady(
 static int64
 DatumStreamBlockWrite_BlockOrig(
 								DatumStreamBlockWrite * dsw,
-								uint8 * buffer)
+								uint8 * buffer,
+								RelFileNode *node)
 {
 	uint8	   *p;
 	DatumStreamBlock_Orig block;
@@ -3659,7 +3682,10 @@ DatumStreamBlockWrite_BlockOrig(
 	block.version = DatumStreamVersion_Original;
 	block.flags = dsw->has_null ? DSB_HAS_NULLBITMAP : 0;
 	block.ndatum = dsw->nth;
-	block.unused = 0;
+	block.encrypted = 0;
+
+	if (FileEncryptionEnabled)
+		block.encrypted = 1;
 /* NOTE:Unfortunately, this was not zeroed in the earlier releases of the code. */
 
 	/* compress null bitmaps */
@@ -3761,13 +3787,21 @@ DatumStreamBlockWrite_BlockOrig(
 		  /* errcontextCallback */ errcontext_datumstreamblockwrite_callback,
 										 /* errcontextArg */ (void *) dsw);
 
+	if (FileEncryptionEnabled)
+	{
+		EncryptAOBLock(p - block.sz, 
+			block.sz, 
+			node);
+	}
+
 	return writesz;
 }
 
 static int64
 DatumStreamBlockWrite_BlockDense(
 								 DatumStreamBlockWrite * dsw,
-								 uint8 * buffer)
+								 uint8 * buffer,
+								 RelFileNode *node)
 {
 	int64		writesz = 0;
 	uint8	   *p = NULL;
@@ -3813,6 +3847,11 @@ DatumStreamBlockWrite_BlockDense(
 	if (dsw->delta_has_compression)
 	{
 		dense.orig_4_bytes.flags |= DSB_HAS_DELTA_COMPRESSION;
+	}
+
+	if (FileEncryptionEnabled)
+	{
+		dense.orig_4_bytes.flags |= DSB_HAS_ENCRYPTION;
 	}
 
 	dense.logical_row_count = dsw->nth;
@@ -4197,13 +4236,18 @@ DatumStreamBlockWrite_BlockDense(
 		  /* errcontextCallback */ errcontext_datumstreamblockwrite_callback,
 										  /* errcontextArg */ (void *) dsw);
 
+	if (FileEncryptionEnabled)
+		EncryptAOBLock(buffer + metadataMaxAlignSize, 
+			dense.physical_data_size, 
+			node);
 	return writesz;
 }
 
 int64
 DatumStreamBlockWrite_Block(
 							DatumStreamBlockWrite * dsw,
-							uint8 * buffer)
+							uint8 * buffer,
+							RelFileNode *node)
 {
 	if (strncmp(dsw->eyecatcher, DatumStreamBlockWrite_Eyecatcher, DatumStreamBlockWrite_EyecatcherLen) != 0)
 		elog(FATAL, "DatumStreamBlockWrite data structure not valid (eyecatcher)");
@@ -4211,11 +4255,11 @@ DatumStreamBlockWrite_Block(
 	switch (dsw->datumStreamVersion)
 	{
 		case DatumStreamVersion_Original:
-			return DatumStreamBlockWrite_BlockOrig(dsw, buffer);
+			return DatumStreamBlockWrite_BlockOrig(dsw, buffer, node);
 
 		case DatumStreamVersion_Dense:
 		case DatumStreamVersion_Dense_Enhanced:
-			return DatumStreamBlockWrite_BlockDense(dsw, buffer);
+			return DatumStreamBlockWrite_BlockDense(dsw, buffer, node);
 
 		default:
 			ereport(FATAL,
@@ -4241,7 +4285,8 @@ DatumStreamBlockWrite_Init(
 						   int (*errdetailCallback) (void *errdetailArg),
 						   void *errdetailArg,
 						   int (*errcontextCallback) (void *errcontextArg),
-						   void *errcontextArg)
+						   void *errcontextArg,
+						   RelFileNode *relFileNode)
 {
 	memcpy(dsw->eyecatcher, DatumStreamBlockWrite_Eyecatcher, DatumStreamBlockWrite_EyecatcherLen);
 

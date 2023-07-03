@@ -119,6 +119,12 @@ CREATE_QES_PRIMARY () {
     cmd="$EXPORT_LIB_PATH;$INITDB"
     cmd="$cmd -E $ENCODING"
     cmd="$cmd -D $GP_DIR"
+    if [ x"" != x"$ENCRYPT_METHOD" ]; then
+        cmd="$cmd -K $ENCRYPT_METHOD"
+    fi
+    if [ x"" != x"$CLUSTER_KEY_CMD" ]; then
+        cmd="$cmd -c $CLUSTER_KEY_CMD"
+    fi
     cmd="$cmd --locale=$LOCALE_SETTING"
     cmd="$cmd $LC_ALL_SETTINGS"
     cmd="$cmd --max_connections=$QE_MAX_CONNECT"

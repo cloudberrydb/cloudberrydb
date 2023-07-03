@@ -66,6 +66,6 @@ OBJS = \
 	view.o
 
 OBJS += analyzefuncs.o analyzeutils.o extprotocolcmds.o exttablecmds.o queue.o
-OBJS += resgroupcmds.o tablecmds_gp.o vacuum_ao.o
+OBJS += resgroupcmds.o tablecmds_gp.o vacuum_ao.o taskcmds.o
 
 include $(top_srcdir)/src/backend/common.mk

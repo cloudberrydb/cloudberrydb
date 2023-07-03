@@ -57,6 +57,7 @@
 #include <limits.h>
 
 #include "access/transam.h"
+#include "access/tableam.h"
 #include "catalog/namespace.h"
 #include "executor/executor.h"
 #include "miscadmin.h"
@@ -963,10 +964,22 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	}
 
 	/*
+	 * GP_PARALLEL_FIXME:
+	 * GPDB hack here for IntoClause, see GetCachedPlan().
+	 * Disable parallel if into a AO/AOCS table.
+	 */
+	char* am = (intoClause && intoClause->accessMethod) ? intoClause->accessMethod : default_table_access_method;
+	bool intoAO = ((strcmp(am, "ao_row") == 0) || (strcmp(am, "ao_column") == 0));
+
+	/*
 	 * Generate the plan.
 	 */
-	plist = pg_plan_queries(qlist, plansource->query_string,
-							plansource->cursor_options, boundParams);
+	if (!intoAO)
+		plist = pg_plan_queries(qlist, plansource->query_string,
+								plansource->cursor_options, boundParams);
+	else
+		plist = pg_plan_queries(qlist, plansource->query_string,
+								plansource->cursor_options & ~CURSOR_OPT_PARALLEL_OK, boundParams);
 
 	/* Release snapshot if we got one */
 	if (snapshot_set)

@@ -172,7 +172,8 @@ query_planner(PlannerInfo *root,
 						CdbPathLocus_MakeEntry(&result_path->locus);
 					else if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
 						CdbPathLocus_MakeStrewn(&result_path->locus,
-												getgpsegmentCount());
+												getgpsegmentCount(),
+												0);
 				}
 				else
 					CdbPathLocus_MakeEntry(&result_path->locus);

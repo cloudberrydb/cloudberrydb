@@ -55,10 +55,11 @@ typedef struct
 	bool		ok_to_replicate;
 	bool		require_existing_order;
 	bool		has_wts;		/* Does the rel have WorkTableScan? */
+	bool		isouter;		/* Is at outer table side? */
 } CdbpathMfjRel;
 
 static bool try_redistribute(PlannerInfo *root, CdbpathMfjRel *g,
-							 CdbpathMfjRel *o, List *redistribution_clauses);
+							 CdbpathMfjRel *o, List *redistribution_clauses, bool parallel_aware);
 
 static SplitUpdatePath *make_splitupdate_path(PlannerInfo *root, Path *subpath, Index rti);
 
@@ -75,23 +76,36 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	Cost		motioncost;
 	double		recvrows;
 	double		sendrows;
-	double		send_segments;
-	double		recv_segments;
+	double		send_segments = 1;
+	double		recv_segments = 1;
 	double		total_rows;
 
-	if (CdbPathLocus_IsPartitioned(motionpath->path.locus))
-		recv_segments = CdbPathLocus_NumSegments(motionpath->path.locus);
-	else
-		recv_segments = 1;
+	CdbPathLocus sublocus = subpath->locus;
+	CdbPathLocus motionlocus = motionpath->path.locus;
 
-	if (CdbPathLocus_IsPartitioned(subpath->locus))
-		send_segments = CdbPathLocus_NumSegments(subpath->locus);
-	else
-		send_segments = 1;
+	int mot_parallel = motionlocus.parallel_workers;
+	int sub_parallel = sublocus.parallel_workers;
+
+	if (CdbPathLocus_IsPartitioned(motionlocus))
+	{
+		recv_segments = CdbPathLocus_NumSegments(motionlocus);
+		if (mot_parallel > 0)
+			recv_segments *= mot_parallel;
+	}
+	else if (mot_parallel > 0 && CdbPathLocus_IsReplicatedWorkers(motionlocus))
+		recv_segments *= mot_parallel;
+
+	if (CdbPathLocus_IsPartitioned(sublocus))
+	{
+		send_segments = CdbPathLocus_NumSegments(sublocus);
+		if (sub_parallel > 0)
+			send_segments *= sub_parallel;
+	}
+	else if (sub_parallel > 0 && CdbPathLocus_IsReplicatedWorkers(sublocus))
+		send_segments *= sub_parallel;
 
 	/*
 	 * Estimate the total number of rows being sent.
-	 *
 	 * The base estimate is computed by multiplying the subpath's rows with
 	 * the number of sending segments. But in some cases, that leads to too
 	 * large estimates, if the subpath's estimate was "clamped" to 1 row. The
@@ -125,9 +139,19 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	cost_per_row = (gp_motion_cost_per_row > 0.0)
 		? gp_motion_cost_per_row
 		: 2.0 * cpu_tuple_cost;
+
 	sendrows = subpath->rows;
 	recvrows = motionpath->path.rows;
 	motioncost = cost_per_row * 0.5 * (sendrows + recvrows);
+	/*
+	 * GPDB_PARALLEL_FIXME:
+	 * Motioncost may be higher than sendrows + recvrows.
+	 * ex: Broadcast Motion 3:6 
+	 * Broadcast to prallel workers, each worker's has a rel's all rows(recvrows),
+	 * but the transfered cost will double as we will broadcast to 6 workers.
+	 */
+	if(CdbPathLocus_IsReplicated(motionlocus) && mot_parallel > 0)
+		motioncost *= mot_parallel;
 
 	motionpath->path.total_cost = motioncost + subpath->total_cost;
 	motionpath->path.startup_cost = subpath->startup_cost;
@@ -164,6 +188,15 @@ cdbpath_create_motion_path(PlannerInfo *root,
 
 	Assert(cdbpathlocus_is_valid(locus) &&
 		   cdbpathlocus_is_valid(subpath->locus));
+
+	/*
+	 * ISTM, subpath of ReplicatedWorkers only happened if general join with broadcast.
+	 * And that only happened if we're doing some updating. Such as:
+	 * `explain update rt3 set b = rt2.b from rt2 where rt3.b = rt2.b;`
+	 * where rt3 and rt2 should have different numsegments.
+	 * However, we don't support parallel update yet, so it will never happen.
+	 */
+	Assert(!CdbPathLocus_IsReplicatedWorkers(subpath->locus));
 
 	/*
 	 * Motion is to change path's locus, if target locus is the
@@ -262,7 +295,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			 */
 			pathnode->path.parallel_aware = false;
 			pathnode->path.parallel_safe = subpath->parallel_safe;
-			pathnode->path.parallel_workers = subpath->parallel_workers;
+			pathnode->path.parallel_workers = locus.parallel_workers;
 			pathnode->path.pathkeys = pathkeys;
 
 			pathnode->subpath = subpath;
@@ -272,6 +305,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			pathnode->path.total_cost = subpath->total_cost;
 			pathnode->path.memory = subpath->memory;
 			pathnode->path.motionHazard = subpath->motionHazard;
+			pathnode->path.barrierHazard = subpath->barrierHazard;
 
 			/* Motion nodes are never rescannable. */
 			pathnode->path.rescannable = false;
@@ -279,6 +313,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		}
 
 		if (CdbPathLocus_IsSegmentGeneral(subpath->locus) ||
+			CdbPathLocus_IsSegmentGeneralWorkers(subpath->locus) ||
 			CdbPathLocus_IsReplicated(subpath->locus))
 		{
 			/*
@@ -312,7 +347,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			 */
 			pathnode->path.parallel_aware = false;
 			pathnode->path.parallel_safe = subpath->parallel_safe;
-			pathnode->path.parallel_workers = subpath->parallel_workers;
+			pathnode->path.parallel_workers = locus.parallel_workers;
 
 			pathnode->subpath = subpath;
 
@@ -321,6 +356,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 			pathnode->path.total_cost = subpath->total_cost;
 			pathnode->path.memory = subpath->memory;
 			pathnode->path.motionHazard = subpath->motionHazard;
+			pathnode->path.barrierHazard = subpath->barrierHazard;
 
 			/* Motion nodes are never rescannable. */
 			pathnode->path.rescannable = false;
@@ -381,7 +417,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		}
 
 		/* Must be partitioned-->replicated */
-		else if (!CdbPathLocus_IsReplicated(locus))
+		else if (!CdbPathLocus_IsReplicated(locus) && !CdbPathLocus_IsHashedWorkers(locus) && !CdbPathLocus_IsReplicatedWorkers(locus))
 			goto invalid_motion_request;
 
 		/* Fail if caller insists on ordered result or no motion. */
@@ -399,6 +435,10 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	else if (CdbPathLocus_IsGeneral(subpath->locus))
 	{
 		/*
+		 * Parallel replicating is now only happening if both sides are not general.
+		 */
+		Assert(!CdbPathLocus_IsReplicatedWorkers(locus));
+		/*
 		 * No motion needed if general-->general or general-->replicated or
 		 * general-->segmentGeneral
 		 */
@@ -408,6 +448,9 @@ cdbpath_create_motion_path(PlannerInfo *root,
 		{
 			return subpath;
 		}
+
+		if (CdbPathLocus_IsSegmentGeneralWorkers(subpath->locus))
+			goto invalid_motion_request;
 
 		/* Must be general-->partitioned. */
 		if (!CdbPathLocus_IsPartitioned(locus))
@@ -439,7 +482,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	}
 
 	/* Most motions from SegmentGeneral (replicated table) are disallowed */
-	else if (CdbPathLocus_IsSegmentGeneral(subpath->locus))
+	else if (CdbPathLocus_IsSegmentGeneral(subpath->locus) || CdbPathLocus_IsSegmentGeneralWorkers(subpath->locus))
 	{
 		/*
 		 * The only allowed case is a SegmentGeneral to Hashed motion,
@@ -505,7 +548,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
          *
          * SELECT va FROM v_sourcetable;
          *
-         * So, push down the Gather Motion if the SubqueryScan dose not 
+         * So, push down the Gather Motion if the SubqueryScan dose not
          * have pathkey but the SubqueryScan's subpath does.
          *
          */
@@ -559,8 +602,23 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	 * assertion failures.
 	 */
 	pathnode->path.parallel_aware = false;
-	pathnode->path.parallel_safe = subpath->parallel_safe;
-	pathnode->path.parallel_workers = subpath->parallel_workers;
+	/*
+	 * GPDB_PARALLEL_FIXME:
+	 * We once set parallel_safe by locus type, but almost all locus are
+	 * parallel safe nowadays.
+	 * In principle, we should set parallel_safe = true if we are in a parallel join.
+	 * TODO: Set parallel_safe to true for all locus.
+	 */
+	pathnode->path.parallel_safe = (locus.parallel_workers > 0 ||
+									CdbPathLocus_IsHashedWorkers(locus) ||
+									CdbPathLocus_IsSingleQE(locus) ||
+									CdbPathLocus_IsEntry(locus) ||
+									CdbPathLocus_IsReplicatedWorkers(locus) ||
+									CdbPathLocus_IsReplicated(locus) || /* CTAS replicated table */
+									CdbPathLocus_IsHashed(locus));
+	if (!subpath->parallel_safe)
+		pathnode->path.parallel_safe = false;
+	pathnode->path.parallel_workers = locus.parallel_workers;
 
 	pathnode->subpath = subpath;
 	pathnode->is_explicit_motion = false;
@@ -570,6 +628,11 @@ cdbpath_create_motion_path(PlannerInfo *root,
 
 	/* Tell operators above us that slack may be needed for deadlock safety. */
 	pathnode->path.motionHazard = true;
+	/*
+	 * If parallel workers > 0, which means barrier hazard exits for parallel
+	 * hash join.
+	 */
+	pathnode->path.barrierHazard = (locus.parallel_workers > 0);
 	pathnode->path.rescannable = false;
 
 	/*
@@ -613,7 +676,7 @@ cdbpath_create_explicit_motion_path(PlannerInfo *root,
 	 * assertion failures.
 	 */
 	pathnode->path.parallel_aware = false;
-	pathnode->path.parallel_safe = subpath->parallel_safe;
+	pathnode->path.parallel_safe = false;
 	pathnode->path.parallel_workers = subpath->parallel_workers;
 
 	pathnode->subpath = subpath;
@@ -624,6 +687,7 @@ cdbpath_create_explicit_motion_path(PlannerInfo *root,
 
 	/* Tell operators above us that slack may be needed for deadlock safety. */
 	pathnode->path.motionHazard = true;
+	pathnode->path.barrierHazard = false;
 	pathnode->path.rescannable = false;
 
 	return (Path *) pathnode;
@@ -642,7 +706,7 @@ cdbpath_create_broadcast_motion_path(PlannerInfo *root,
 	pathnode->path.parent = subpath->parent;
 	/* Motion doesn't project, so use source path's pathtarget */
 	pathnode->path.pathtarget = subpath->pathtarget;
-	CdbPathLocus_MakeReplicated(&pathnode->path.locus, numsegments);
+	CdbPathLocus_MakeReplicated(&pathnode->path.locus, numsegments, subpath->parallel_workers);
 	pathnode->path.rows = subpath->rows;
 	pathnode->path.pathkeys = NIL;
 
@@ -652,7 +716,7 @@ cdbpath_create_broadcast_motion_path(PlannerInfo *root,
 	 * assertion failures.
 	 */
 	pathnode->path.parallel_aware = false;
-	pathnode->path.parallel_safe = subpath->parallel_safe;
+	pathnode->path.parallel_safe = false;
 	pathnode->path.parallel_workers = subpath->parallel_workers;
 
 	pathnode->subpath = subpath;
@@ -663,6 +727,7 @@ cdbpath_create_broadcast_motion_path(PlannerInfo *root,
 
 	/* Tell operators above us that slack may be needed for deadlock safety. */
 	pathnode->path.motionHazard = true;
+	pathnode->path.barrierHazard = false;
 	pathnode->path.rescannable = false;
 
 	return (Path *) pathnode;
@@ -694,7 +759,7 @@ make_motion_path(PlannerInfo *root, Path *subpath,
 	 * assertion failures.
 	 */
 	pathnode->path.parallel_aware = false;
-	pathnode->path.parallel_safe = subpath->parallel_safe;
+	pathnode->path.parallel_safe = false;
 	pathnode->path.parallel_workers = subpath->parallel_workers;
 
 	pathnode->subpath = subpath;
@@ -707,6 +772,7 @@ make_motion_path(PlannerInfo *root, Path *subpath,
 
 	/* Tell operators above us that slack may be needed for deadlock safety. */
 	pathnode->path.motionHazard = true;
+	pathnode->path.barrierHazard = false;
 	pathnode->path.rescannable = false;
 
 	return pathnode;
@@ -729,6 +795,7 @@ typedef struct
 	List	   *mergeclause_list;
 	Path       *path;
 	CdbPathLocus locus;
+    CdbPathLocus otherlocus;
 	CdbPathLocus *colocus;
 	bool		colocus_eq_locus;
 } CdbpathMatchPredsContext;
@@ -781,7 +848,7 @@ cdbpath_eclass_constant_is_hashable(EquivalenceClass *ec, Oid hashOpFamily)
 
 static bool
 cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
-									List *list, ListCell *distkeycell)
+									List *list, ListCell *distkeycell, bool parallel_aware)
 {
 	DistributionKey *distkey = (DistributionKey *) lfirst(distkeycell);
 	DistributionKey *codistkey;
@@ -789,7 +856,16 @@ cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
 	ListCell   *rcell;
 
 	Assert(CdbPathLocus_IsHashed(ctx->locus) ||
+		   CdbPathLocus_IsHashedWorkers(ctx->locus) ||
 		   CdbPathLocus_IsHashedOJ(ctx->locus));
+
+	/*
+	 * Try ro redistributed one to match another.
+	 * non-parallel_aware
+	 * HashedWorkers can only work with replica, can't redistributed one to match
+	 */
+	if (!parallel_aware && CdbPathLocus_IsHashedWorkers(ctx->locus))
+		return false;
 
 	/*----------------
 	 * Is there a "<distkey item> = <constant expr>" predicate?
@@ -866,7 +942,7 @@ cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
 	distkeycell = lnext(list, distkeycell);
 	if (distkeycell)
 	{
-		if (!cdbpath_match_preds_to_distkey_tail(ctx, list, distkeycell))
+		if (!cdbpath_match_preds_to_distkey_tail(ctx, list, distkeycell, parallel_aware))
 			return false;
 	}
 
@@ -877,7 +953,8 @@ cdbpath_match_preds_to_distkey_tail(CdbpathMatchPredsContext *ctx,
 			*ctx->colocus = ctx->locus;
 		else if (!distkeycell)
 			CdbPathLocus_MakeHashed(ctx->colocus, list_make1(codistkey),
-									CdbPathLocus_NumSegments(ctx->locus));
+									CdbPathLocus_NumSegments(ctx->locus),
+									ctx->locus.parallel_workers);
 		else
 		{
 			ctx->colocus->distkey = lcons(codistkey, ctx->colocus->distkey);
@@ -906,12 +983,25 @@ cdbpath_match_preds_to_distkey(PlannerInfo *root,
 							   List *mergeclause_list,
 							   Path *path,
 							   CdbPathLocus locus,
+							   CdbPathLocus otherlocus,
+							   bool parallel_aware,
 							   CdbPathLocus *colocus)	/* OUT */
 {
 	CdbpathMatchPredsContext ctx;
 
 	if (!CdbPathLocus_IsHashed(locus) &&
-		!CdbPathLocus_IsHashedOJ(locus))
+		!CdbPathLocus_IsHashedOJ(locus) &&
+		!CdbPathLocus_IsHashedWorkers(locus))
+		return false;
+
+	/*
+	 * Don't bother to redistribute to non-parallel locus if parallel_aware is true.
+	 * We should already consider non-parallel join of the same two path before.
+	 */
+	if (locus.parallel_workers == 0 && parallel_aware)
+		return false;
+
+	if (!parallel_aware && CdbPathLocus_IsHashedWorkers(locus))
 		return false;
 
 	Assert(cdbpathlocus_is_valid(locus));
@@ -920,10 +1010,11 @@ cdbpath_match_preds_to_distkey(PlannerInfo *root,
 	ctx.mergeclause_list = mergeclause_list;
 	ctx.path = path;
 	ctx.locus = locus;
+	ctx.otherlocus = otherlocus;
 	ctx.colocus = colocus;
 	ctx.colocus_eq_locus = true;
 
-	return cdbpath_match_preds_to_distkey_tail(&ctx, locus.distkey, list_head(locus.distkey));
+	return cdbpath_match_preds_to_distkey_tail(&ctx, locus.distkey, list_head(locus.distkey), parallel_aware);
 }
 
 
@@ -942,7 +1033,8 @@ static bool
 cdbpath_match_preds_to_both_distkeys(PlannerInfo *root,
 									 List *mergeclause_list,
 									 CdbPathLocus outer_locus,
-									 CdbPathLocus inner_locus)
+									 CdbPathLocus inner_locus,
+									 bool parallel_aware)
 {
 	ListCell   *outercell;
 	ListCell   *innercell;
@@ -952,13 +1044,19 @@ cdbpath_match_preds_to_both_distkeys(PlannerInfo *root,
 	if (!mergeclause_list ||
 		CdbPathLocus_NumSegments(outer_locus) != CdbPathLocus_NumSegments(inner_locus) ||
 		outer_locus.distkey == NIL || inner_locus.distkey == NIL ||
+		CdbPathLocus_NumParallelWorkers(outer_locus) != CdbPathLocus_NumParallelWorkers(inner_locus) ||
 		list_length(outer_locus.distkey) != list_length(inner_locus.distkey))
 		return false;
 
 	Assert(CdbPathLocus_IsHashed(outer_locus) ||
+		   CdbPathLocus_IsHashedWorkers(outer_locus) ||
 		   CdbPathLocus_IsHashedOJ(outer_locus));
 	Assert(CdbPathLocus_IsHashed(inner_locus) ||
+		   CdbPathLocus_IsHashedWorkers(inner_locus) ||
 		   CdbPathLocus_IsHashedOJ(inner_locus));
+
+	if (!parallel_aware && (CdbPathLocus_IsHashedWorkers(outer_locus) || CdbPathLocus_IsHashedWorkers(inner_locus)))
+		return false;
 
 	outer_distkey = outer_locus.distkey;
 	inner_distkey = inner_locus.distkey;
@@ -1040,6 +1138,8 @@ cdbpath_distkeys_from_preds(PlannerInfo *root,
 							List *mergeclause_list,
 							Path *a_path,
 							int numsegments,
+							int parallel_workers,
+							bool parallel_aware,
 							CdbPathLocus *a_locus,	/* OUT */
 							CdbPathLocus *b_locus)	/* OUT */
 {
@@ -1186,9 +1286,9 @@ cdbpath_distkeys_from_preds(PlannerInfo *root,
 	if (!a_distkeys)
 		return false;
 
-	CdbPathLocus_MakeHashed(a_locus, a_distkeys, numsegments);
+	CdbPathLocus_MakeHashed(a_locus, a_distkeys, numsegments, parallel_workers);
 	if (b_distkeys)
-		CdbPathLocus_MakeHashed(b_locus, b_distkeys, numsegments);
+		CdbPathLocus_MakeHashed(b_locus, b_distkeys, numsegments, parallel_workers);
 	else
 		*b_locus = *a_locus;
 	return true;
@@ -1259,11 +1359,11 @@ cdbpath_motion_for_join(PlannerInfo *root,
 						bool outer_require_existing_order,
 						bool inner_require_existing_order)
 {
-	CdbpathMfjRel outer;
-	CdbpathMfjRel inner;
-	int			numsegments;
-	bool		join_quals_contain_outer_references;
-	ListCell   *lc;
+	CdbpathMfjRel 	outer;
+	CdbpathMfjRel 	inner;
+	int 			numsegments;
+	bool 			join_quals_contain_outer_references;
+	ListCell 		*lc;
 
 	*p_rowidexpr_id = 0;
 
@@ -1278,6 +1378,10 @@ cdbpath_motion_for_join(PlannerInfo *root,
 
 	Assert(cdbpathlocus_is_valid(outer.locus));
 	Assert(cdbpathlocus_is_valid(inner.locus));
+
+	/* No parallel paths should get here. */
+	Assert(outer.locus.parallel_workers == 0);
+	Assert(inner.locus.parallel_workers == 0);
 
 	/*
 	 * Does the join quals contain references to outer query? If so, we must
@@ -1331,7 +1435,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	 */
 	if (outer.has_wts && inner.locus.distkey != NIL)
 		CdbPathLocus_MakeStrewn(&inner.locus,
-								CdbPathLocus_NumSegments(inner.locus));
+								CdbPathLocus_NumSegments(inner.locus), 0);
 
 	/*
 	 * Caller can specify an ordering for each source path that is the same as
@@ -1405,7 +1509,6 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				CdbPathLocus_MakeSingleQE(&outer.locus,
 										  CdbPathLocus_NumSegments(inner.locus));
 				outer.path->locus = outer.locus;
-
 			}
 			else if (CdbPathLocus_IsSegmentGeneral(outer.locus))
 			{
@@ -1562,7 +1665,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 		 * add redistribute motion, if fails, we gather other
 		 * to singleQE.
 		 */
-		else if (!try_redistribute(root, general, other, redistribution_clauses))
+		else if (!try_redistribute(root, general, other, redistribution_clauses, false))
 		{
 			/*
 			 * FIXME: do we need test other's movable?
@@ -1647,7 +1750,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 					 * FIXME: do we need to test inner's movable?
 					 */
 					CdbPathLocus_MakeReplicated(&inner.move_to,
-												CdbPathLocus_NumSegments(outer.locus));
+												CdbPathLocus_NumSegments(outer.locus), 0);
 					use_common = false;
 				}
 				else if ((CdbPathLocus_NumSegments(outer.locus) <
@@ -1667,11 +1770,11 @@ cdbpath_motion_for_join(PlannerInfo *root,
 					 * FIXME: do we need to test outer's movable?
 					 */
 					CdbPathLocus_MakeReplicated(&outer.move_to,
-												CdbPathLocus_NumSegments(inner.locus));
+												CdbPathLocus_NumSegments(inner.locus), 0);
 					use_common = false;
 				}
 			}
-			
+
 			if (use_common)
 			{
 				/*
@@ -1701,7 +1804,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 
 			Assert(CdbPathLocus_IsBottleneck(other->locus) ||
 				   CdbPathLocus_IsPartitioned(other->locus));
-			
+
 			/*
 			 * For UPDATE/DELETE, replicated table can't guarantee a logic row has
 			 * same ctid or item pointer on each copy. If we broadcast matched tuples
@@ -1721,12 +1824,12 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 * everywhere so that for each segment, we have to collect
 				 * all the information of other that is we should broadcast it
 				 */
-				
+
 				/*
 				 * FIXME: do we need to test other's movable?
 				 */
 				CdbPathLocus_MakeReplicated(&other->move_to,
-											CdbPathLocus_NumSegments(segGeneral->locus));
+											CdbPathLocus_NumSegments(segGeneral->locus), 0);
 			}
 			else if (CdbPathLocus_IsBottleneck(other->locus))
 			{
@@ -1746,11 +1849,11 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 * hashed, hashoj, strewn
 				 */
 				Assert(CdbPathLocus_IsPartitioned(other->locus));
-				
+
 				if (!segGeneral->ok_to_replicate)
 				{
 					if (!try_redistribute(root, segGeneral,
-										  other, redistribution_clauses))
+										  other, redistribution_clauses, false))
 					{
 						/*
 						 * FIXME: do we need to test movable?
@@ -1778,7 +1881,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 					else
 					{
 						if (!try_redistribute(root, segGeneral,
-											  other, redistribution_clauses))
+											  other, redistribution_clauses, false))
 						{
 							numsegments = CdbPathLocus_CommonSegments(segGeneral->locus,
 																	  other->locus);
@@ -1800,13 +1903,14 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	 */
 	else if (CdbPathLocus_IsBottleneck(outer.locus) ||
 			 CdbPathLocus_IsBottleneck(inner.locus))
-	{							/* singleQE or entry db */
+	{ /* singleQE or entry db */
 		CdbpathMfjRel *single = &outer;
 		CdbpathMfjRel *other = &inner;
-		bool		single_immovable = (outer.require_existing_order &&
-										!outer_pathkeys) || outer.has_wts;
-		bool		other_immovable = inner.require_existing_order &&
-		!inner_pathkeys;
+		bool single_immovable = (outer.require_existing_order &&
+								 !outer_pathkeys) ||
+								outer.has_wts;
+		bool other_immovable = inner.require_existing_order &&
+							   !inner_pathkeys;
 
 		/*
 		 * If each of the sources has a single-process locus, then assign both
@@ -1857,7 +1961,9 @@ cdbpath_motion_for_join(PlannerInfo *root,
 												redistribution_clauses,
 												other->path,
 												other->locus,
-												&single->move_to))	/* OUT */
+												single->locus,
+												false,			   /* parallel_aware */
+												&single->move_to)) /* OUT */
 		{
 			AssertEquivalent(CdbPathLocus_NumSegments(other->locus),
 							 CdbPathLocus_NumSegments(single->move_to));
@@ -1868,7 +1974,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 (single->bytes * CdbPathLocus_NumSegments(other->locus) <
 				  single->bytes + other->bytes))
 			CdbPathLocus_MakeReplicated(&single->move_to,
-										CdbPathLocus_NumSegments(other->locus));
+										CdbPathLocus_NumSegments(other->locus), 0);
 
 		/*
 		 * Redistribute both rels on equijoin cols.
@@ -1881,8 +1987,10 @@ cdbpath_motion_for_join(PlannerInfo *root,
 											 redistribution_clauses,
 											 single->path,
 											 CdbPathLocus_NumSegments(other->locus),
-											 &single->move_to,	/* OUT */
-											 &other->move_to))	/* OUT */
+											 0,				   /* parallel_workers */
+											 false,			   /* parallel_aware */
+											 &single->move_to, /* OUT */
+											 &other->move_to)) /* OUT */
 		{
 			/* ok */
 		}
@@ -1893,27 +2001,27 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				  single->bytes < other->bytes ||
 				  other->has_wts))
 			CdbPathLocus_MakeReplicated(&single->move_to,
-										CdbPathLocus_NumSegments(other->locus));
+										CdbPathLocus_NumSegments(other->locus), 0);
 
 		/* Last resort: If possible, move all partitions of other rel to single QE. */
 		else if (!other_immovable)
 			other->move_to = single->locus;
 		else
 			goto fail;
-	}							/* singleQE or entry */
+	} /* singleQE or entry */
 
 	/*
 	 * No motion if partitioned alike and joining on the partitioning keys.
 	 */
 	else if (cdbpath_match_preds_to_both_distkeys(root, redistribution_clauses,
-												  outer.locus, inner.locus))
+												  outer.locus, inner.locus, false))
 		return cdbpathlocus_join(jointype, outer.locus, inner.locus);
 
 	/*
 	 * Both sources are partitioned.  Redistribute or replicate one or both.
 	 */
 	else
-	{							/* partitioned */
+	{ /* partitioned */
 		CdbpathMfjRel *large_rel = &outer;
 		CdbpathMfjRel *small_rel = &inner;
 
@@ -1932,7 +2040,9 @@ cdbpath_motion_for_join(PlannerInfo *root,
 										   redistribution_clauses,
 										   large_rel->path,
 										   large_rel->locus,
-										   &small_rel->move_to))	/* OUT */
+										   small_rel->locus,
+										   false,				 /* parallel_aware */
+										   &small_rel->move_to)) /* OUT */
 		{
 			AssertEquivalent(CdbPathLocus_NumSegments(large_rel->locus),
 							 CdbPathLocus_NumSegments(small_rel->move_to));
@@ -1947,7 +2057,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 (small_rel->bytes * CdbPathLocus_NumSegments(large_rel->locus) <
 				  large_rel->bytes))
 			CdbPathLocus_MakeReplicated(&small_rel->move_to,
-										CdbPathLocus_NumSegments(large_rel->locus));
+										CdbPathLocus_NumSegments(large_rel->locus), 0);
 
 		/*
 		 * Replicate larger rel if cheaper than redistributing smaller rel.
@@ -1958,7 +2068,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 (large_rel->bytes * CdbPathLocus_NumSegments(small_rel->locus) <
 				  small_rel->bytes))
 			CdbPathLocus_MakeReplicated(&large_rel->move_to,
-										CdbPathLocus_NumSegments(small_rel->locus));
+										CdbPathLocus_NumSegments(small_rel->locus), 0);
 
 		/* If joining on smaller rel's partitioning key, redistribute larger. */
 		else if (!large_rel->require_existing_order &&
@@ -1966,7 +2076,9 @@ cdbpath_motion_for_join(PlannerInfo *root,
 												redistribution_clauses,
 												small_rel->path,
 												small_rel->locus,
-												&large_rel->move_to))	/* OUT */
+												large_rel->locus,
+												false,				  /* parallel_aware */
+												&large_rel->move_to)) /* OUT */
 		{
 			AssertEquivalent(CdbPathLocus_NumSegments(small_rel->locus),
 							 CdbPathLocus_NumSegments(large_rel->move_to));
@@ -1978,7 +2090,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 (small_rel->bytes * CdbPathLocus_NumSegments(large_rel->locus) <
 				  small_rel->bytes + large_rel->bytes))
 			CdbPathLocus_MakeReplicated(&small_rel->move_to,
-										CdbPathLocus_NumSegments(large_rel->locus));
+										CdbPathLocus_NumSegments(large_rel->locus), 0);
 
 		/* Replicate largeer rel if cheaper than redistributing both rels. */
 		else if (!large_rel->require_existing_order &&
@@ -1986,7 +2098,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 				 (large_rel->bytes * CdbPathLocus_NumSegments(small_rel->locus) <
 				  large_rel->bytes + small_rel->bytes))
 			CdbPathLocus_MakeReplicated(&large_rel->move_to,
-										CdbPathLocus_NumSegments(small_rel->locus));
+										CdbPathLocus_NumSegments(small_rel->locus), 0);
 
 		/*
 		 * Redistribute both rels on equijoin cols.
@@ -2004,6 +2116,8 @@ cdbpath_motion_for_join(PlannerInfo *root,
 											 large_rel->path,
 											 CdbPathLocus_CommonSegments(large_rel->locus,
 																		 small_rel->locus),
+											 0,		/* parallel_workers */
+											 false, /* parallel_aware */
 											 &large_rel->move_to,
 											 &small_rel->move_to))
 		{
@@ -2018,11 +2132,11 @@ cdbpath_motion_for_join(PlannerInfo *root,
 		else if (!small_rel->require_existing_order &&
 				 small_rel->ok_to_replicate)
 			CdbPathLocus_MakeReplicated(&small_rel->move_to,
-										CdbPathLocus_NumSegments(large_rel->locus));
+										CdbPathLocus_NumSegments(large_rel->locus), 0);
 		else if (!large_rel->require_existing_order &&
 				 large_rel->ok_to_replicate)
 			CdbPathLocus_MakeReplicated(&large_rel->move_to,
-										CdbPathLocus_NumSegments(small_rel->locus));
+										CdbPathLocus_NumSegments(small_rel->locus), 0);
 
 		/* Last resort: Move both rels to a single qExec. */
 		else
@@ -2032,7 +2146,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			CdbPathLocus_MakeSingleQE(&outer.move_to, numsegments);
 			CdbPathLocus_MakeSingleQE(&inner.move_to, numsegments);
 		}
-	}							/* partitioned */
+	} /* partitioned */
 
 	/*
 	 * Move outer.
@@ -2044,7 +2158,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 												outer_pathkeys,
 												outer.require_existing_order,
 												outer.move_to);
-		if (!outer.path)		/* fail if outer motion not feasible */
+		if (!outer.path) /* fail if outer motion not feasible */
 			goto fail;
 
 		if (IsA(outer.path, MaterialPath) && !root->config->may_rescan)
@@ -2053,7 +2167,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 			 * If we are the outer path and can never be rescanned,
 			 * we could remove the materialize path.
 			 */
-			MaterialPath *mpath = (MaterialPath *) outer.path;
+			MaterialPath *mpath = (MaterialPath *)outer.path;
 			outer.path = mpath->subpath;
 		}
 	}
@@ -2068,7 +2182,7 @@ cdbpath_motion_for_join(PlannerInfo *root,
 												inner_pathkeys,
 												inner.require_existing_order,
 												inner.move_to);
-		if (!inner.path)		/* fail if inner motion not feasible */
+		if (!inner.path) /* fail if inner motion not feasible */
 			goto fail;
 	}
 
@@ -2081,10 +2195,10 @@ cdbpath_motion_for_join(PlannerInfo *root,
 	/* Tell caller where the join will be done. */
 	return cdbpathlocus_join(jointype, outer.path->locus, inner.path->locus);
 
-fail:							/* can't do this join */
+fail: /* can't do this join */
 	CdbPathLocus_MakeNull(&outer.move_to);
 	return outer.move_to;
-}								/* cdbpath_motion_for_join */
+} /* cdbpath_motion_for_join */
 
 /*
  * Does the path contain WorkTableScan?
@@ -2146,14 +2260,18 @@ has_redistributable_clause(RestrictInfo *restrictinfo)
  */
 static bool
 try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
-				 List *redistribution_clauses)
+				 List *redistribution_clauses, bool parallel_aware)
 {
 	bool g_immovable;
 	bool o_immovable;
 
 	Assert(CdbPathLocus_IsGeneral(g->locus) ||
-		   CdbPathLocus_IsSegmentGeneral(g->locus));
+		   CdbPathLocus_IsSegmentGeneral(g->locus) ||
+		   CdbPathLocus_IsSegmentGeneralWorkers(g->locus));
 	Assert(CdbPathLocus_IsPartitioned(o->locus));
+
+	if (CdbPathLocus_IsHashedWorkers(o->locus))
+		return false;
 
 	/*
 	 * we cannot add motion if requiring order.
@@ -2185,6 +2303,8 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 										   redistribution_clauses,
 										   o->path,
 										   o->locus,
+										   g->locus,
+										   parallel_aware,
 										   &g->move_to))
 			return true;
 		else
@@ -2204,6 +2324,8 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 										   redistribution_clauses,
 										   o->path,
 										   numsegments,
+										   Max(o->path->parallel_workers, g->path->parallel_workers),
+										   parallel_aware,
 										   &o->move_to,
 										   &g->move_to))
 			{
@@ -2230,6 +2352,8 @@ try_redistribute(PlannerInfo *root, CdbpathMfjRel *g, CdbpathMfjRel *o,
 										redistribution_clauses,
 										o->path,
 										numsegments,
+										Max(o->path->parallel_workers, g->path->parallel_workers),
+										parallel_aware,
 										&o->move_to,
 										&g->move_to))
 		{
@@ -2263,7 +2387,7 @@ create_motion_path_for_ctas(PlannerInfo *root, GpPolicy *policy, Path *subpath)
 		 */
 		CdbPathLocus targetLocus;
 
-		CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+		CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments, 0);
 		return cdbpath_create_motion_path(root, subpath, NIL, false, targetLocus);
 	}
 	else
@@ -2302,7 +2426,8 @@ create_motion_path_for_insert(PlannerInfo *root, GpPolicy *policy,
 			/*
 			 * If the target table is DISTRIBUTED RANDOMLY, we can insert the
 			 * rows anywhere. So if the input path is already partitioned, let
-			 * the insertions happen where they are.
+			 * the insertions happen where they are. Unless the GUC gp_force_random_redistribution
+			 * tells us to force the redistribution.
 			 *
 			 * If you `explain` the query insert into tab_random select * from tab_partition
 			 * there is not Motion node in plan. However, it is not means that the query only
@@ -2311,16 +2436,16 @@ create_motion_path_for_insert(PlannerInfo *root, GpPolicy *policy,
 			 * But, we need to grant a Motion node if target locus' segnumber is different with
 			 * subpath.
 			 */
-			if(targetLocus.numsegments != subpath->locus.numsegments)
+			if (gp_force_random_redistribution || targetLocus.numsegments != subpath->locus.numsegments)
 			{
-				CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+				CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments, 0);
 				subpath = cdbpath_create_motion_path(root, subpath, NIL, false, targetLocus);
 			}
 		}
 		else if (CdbPathLocus_IsNull(targetLocus))
 		{
 			/* could not create DistributionKeys to represent the distribution keys. */
-			CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+			CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments, 0);
 
 			subpath = (Path *) make_motion_path(root, subpath, targetLocus, false, policy);
 		}
@@ -2344,6 +2469,9 @@ create_motion_path_for_insert(PlannerInfo *root, GpPolicy *policy,
 			!contain_volatile_functions((Node *)subpath->pathtarget->exprs) &&
 			!contain_volatile_functions((Node *)root->parse->havingQual))
 		{
+			/* doesn't support insert parallel yet. */
+			Assert(!CdbPathLocus_IsSegmentGeneralWorkers(subpath->locus));
+
 			/*
 			 * CdbLocusType_SegmentGeneral is only used by replicated table
 			 * right now, so if both input and target are replicated table,
@@ -2417,7 +2545,7 @@ create_motion_path_for_upddel(PlannerInfo *root, Index rti, GpPolicy *policy,
 			 *
 			 * Is "strewn" correct here? Can we do better?
 			 */
-			CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+			CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments, 0);
 			subpath = cdbpath_create_explicit_motion_path(root,
 														  subpath,
 														  targetLocus);
@@ -2564,7 +2692,9 @@ create_split_update_path(PlannerInfo *root, Index rti, GpPolicy *policy, Path *s
 Path *
 turn_volatile_seggen_to_singleqe(PlannerInfo *root, Path *path, Node *node)
 {
-	if ((CdbPathLocus_IsSegmentGeneral(path->locus) || CdbPathLocus_IsGeneral(path->locus)) &&
+	if ((CdbPathLocus_IsSegmentGeneral(path->locus) ||
+		 CdbPathLocus_IsGeneral(path->locus) ||
+		 CdbPathLocus_IsSegmentGeneralWorkers(path->locus)) &&
 		(contain_volatile_functions(node) || IsA(path, LimitPath)))
 	{
 		CdbPathLocus     singleQE;
@@ -2667,9 +2797,1102 @@ can_elide_explicit_motion(PlannerInfo *root, Index rti, Path *subpath,
 
 	if (!CdbPathLocus_IsStrewn(subpath->locus))
 	{
-		CdbPathLocus    resultrelation_locus = cdbpathlocus_from_policy(root, rti, policy);
+		CdbPathLocus    resultrelation_locus = cdbpathlocus_from_policy(root, rti, policy, 0);
 		return cdbpathlocus_equal(subpath->locus, resultrelation_locus);
 	}
 
 	return false;
 }
+
+/*
+ * cdbpath_motion_for_parallel_join
+ * Sibling of cdbpath_motion_for_join in parallel mode.
+ * Separate with non-parallel functions as the logic of parallel join is quite different:
+ *  1. Trating path locus by outer/inner. The position side in prallel join is sensitive.
+ *  2. Still try Redistribute Motion even if Broadcast one side. In parallel mode, the cost based on rel size
+ *     might not be better than redistribute one or both. Let the planner decide which is better.
+ *  3. Never duplicated outer_path(parallel_workers=0). That will lead to wrong results, ex: parallel left join.
+ *     Follow upstream until we have a clear answer.
+ *
+ * The locus of path whose workers > 1 could be:
+ *  HashedWorkers: parallel scan on a Hashed locus table.
+ *  ReplicatedWorkers: like Broadcast, replica data to segments but strewn on workers of the same segment.
+ *  SegmentGeneralWorkers: parallel scan on a replica table.
+ *  Strewn(parallel_workers > 1), parallel scan on a randomly distributed table.
+ *  Hashed(parallel_workers > 1), a special one generated by HashedWorkers with a Redistribute Motion.
+ *
+ * When we add a new xxxWorkers locus?
+ * 	ISTM: xxxWorkers means strewn on workers of the same segment, but together as a xxx locus on segments that
+ *  could be used to join with other locus as non-parallel plan.
+ *  ex: ReplicatedWorkers, all data are replicated on segments, but strewn on workers of a segment.
+ *  For Hashed(parallel_workers > 1), it's a little different because data is firstly hashed on segments,
+ *  and hashed on parallel_workers of a segment, so the Hashed(parallel_workers) could join with the same
+ *  locus without any motions. And it's not strewn on workers.
+ *  Another special locus is: Strewn(parallel_workers > 1). Shall we add a StrewnWorkers too?
+ *  Since it's already strewn on segments, no matter with more processes.
+ *  Another reason is adding a new locus is complex and expensive, we have to handle all the possible locus
+ *  joined with that.
+ *
+ * parallel_aware means parallel hashjoin with a shared hash table.
+ *
+ * Incompatible locus could be compatible when parallel_aware, ex:
+ *               JOIN
+ *             /      \
+ *  HashedWorkers 	ParallelHash
+ *                     \
+ *                ReplicatedWorkers
+ *  Both sides are strewn on workers of the same segments, but ParallelHash collect all data from workers' processes.
+ *  So, outer side could find every matched data. And in this example, the join locus is HashedWorkers.
+ *
+ * We don't reset path's parallel_workers now.
+ *  There was once an idea reseting path's parallel_works to avoid
+ * 	Motion if inner and outer's parallel_workers doesn't match.
+ * 	But there are a lot of issues we don't have a clear answer.
+ *  See https://code.hashdata.xyz/cloudberry/cbdb-postgres-merge/-/issues/43.
+ *
+ * We couldn't expect the parallel_workers of outer or inner path.
+ * Partial path may generate locus(parallel_workers=0) if needed, ex:
+ * GP's parallel two stage Group Gather Agg path which will generate a
+ * SingleQE locus in the middle plan. And that path could participate in
+ * parallel plan with Motion(1:6), but it still can't be processed by multiple
+ * workers or be duplicated in every worker as the inner path.
+ *
+ * All locus test cases are in gp_parallel, see final join locus examples there.
+ */
+CdbPathLocus
+cdbpath_motion_for_parallel_join(PlannerInfo *root,
+						JoinType jointype,	/* JOIN_INNER/FULL/LEFT/RIGHT/IN */
+						Path **p_outer_path,	/* INOUT */
+						Path **p_inner_path,	/* INOUT */
+						int *p_rowidexpr_id,	/* OUT */
+						List *redistribution_clauses, /* equijoin RestrictInfo list */
+						List *restrict_clauses,
+						List *outer_pathkeys,
+						List *inner_pathkeys,
+						bool outer_require_existing_order,
+						bool inner_require_existing_order,
+						bool parallel_aware,
+						bool uninterested_broadcast)
+{
+	CdbpathMfjRel outer;
+	CdbpathMfjRel inner;
+	int			numsegments;
+	bool		join_quals_contain_outer_references;
+	ListCell   *lc;
+
+	*p_rowidexpr_id = 0;
+
+	outer.pathkeys = outer_pathkeys;
+	inner.pathkeys = inner_pathkeys;
+	outer.path = *p_outer_path;
+	inner.path = *p_inner_path;
+	outer.locus = outer.path->locus;
+	inner.locus = inner.path->locus;
+	CdbPathLocus_MakeNull(&outer.move_to);
+	CdbPathLocus_MakeNull(&inner.move_to);
+	outer.isouter = true;
+	inner.isouter = false;
+
+	Assert(cdbpathlocus_is_valid(outer.locus));
+	Assert(cdbpathlocus_is_valid(inner.locus));
+	/*  GPDB_PARALLEL_FIXME: reconsider the meaning of parallel_safe in GP parallel? */
+	if (!outer.path->parallel_safe || !inner.path->parallel_safe)
+		goto fail;
+
+	/*
+	 * Does the join quals contain references to outer query? If so, we must
+	 * evaluate them in the outer query's locus. That means pulling both
+	 * inputs to outer locus, and performing the join there.
+	 *
+	 * XXX: If there are pseudoconstant quals, they will be executed by a
+	 * gating Result with a One-Time Filter. In that case, the join's inputs
+	 * wouldn't need to be brought to the outer locus. We could execute the
+	 * join normally, and bring the result to the outer locus and put the
+	 * gating Result above the Motion, instead. But for now, we're not smart
+	 * like that.
+	 */
+	join_quals_contain_outer_references = false;
+	foreach(lc, restrict_clauses)
+	{
+		RestrictInfo *rinfo = (RestrictInfo *) lfirst(lc);
+
+		if (rinfo->contain_outer_query_references)
+		{
+			join_quals_contain_outer_references = true;
+			break;
+		}
+	}
+
+	/*
+	 * Locus type Replicated/ReplicatedWorkers can only be generated
+	 * by join operation.
+	 * And in the function cdbpathlocus_join there is a rule:
+	 * <any locus type> join <Replicated> => any locus type
+	 * Proof by contradiction, it shows that when code arrives here,
+	 * is is impossible that any of the two input paths' locus
+	 * is Replicated. So we add asserts here.
+	 */
+	Assert(!CdbPathLocus_IsReplicated(outer.locus));
+	Assert(!CdbPathLocus_IsReplicated(inner.locus));
+	Assert(!CdbPathLocus_IsReplicatedWorkers(outer.locus));
+	Assert(!CdbPathLocus_IsReplicatedWorkers(inner.locus));
+
+	if (CdbPathLocus_IsReplicated(outer.locus) ||
+		CdbPathLocus_IsReplicated(inner.locus) ||
+		CdbPathLocus_IsReplicatedWorkers(outer.locus) ||
+		CdbPathLocus_IsReplicatedWorkers(inner.locus))
+		goto fail;
+
+	outer.has_wts = cdbpath_contains_wts(outer.path);
+	inner.has_wts = cdbpath_contains_wts(inner.path);
+
+	/* For now, inner path should not contain WorkTableScan */
+	Assert(!inner.has_wts);
+
+	/*
+	 * If outer rel contains WorkTableScan and inner rel is hash distributed,
+	 * unfortunately we have to pretend that inner is randomly distributed,
+	 * otherwise we may end up with redistributing outer rel.
+	 */
+	/* GPDB_PARALLEL_FIXME: this may cause parallel CTE, not sure if it's right */
+	if (outer.has_wts && inner.locus.distkey != NIL)
+		CdbPathLocus_MakeStrewn(&inner.locus,
+								CdbPathLocus_NumSegments(inner.locus),
+								inner.path->parallel_workers);
+
+	/*
+	 * Caller can specify an ordering for each source path that is the same as
+	 * or weaker than the path's existing ordering. Caller may insist that we
+	 * do not add motion that would lose the specified ordering property;
+	 * otherwise the given ordering is preferred but not required. A required
+	 * NIL ordering means no motion is allowed for that path.
+	 */
+	outer.require_existing_order = outer_require_existing_order;
+	inner.require_existing_order = inner_require_existing_order;
+
+	/*
+	 * Don't consider replicating the preserved rel of an outer join, or the
+	 * current-query rel of a join between current query and subquery.
+	 *
+	 * Path that contains WorkTableScan cannot be replicated.
+	 */
+	/* ok_to_replicate means broadcast */
+	outer.ok_to_replicate = !outer.has_wts;
+	inner.ok_to_replicate = true;
+
+	/*
+	 * For parallel mode, join is executed by each batches.
+	 * It is hard to tell whether null exists in the whole table.
+	 */
+	if (parallel_aware && jointype == JOIN_LASJ_NOTIN)
+		goto fail;
+
+	switch (jointype)
+	{
+		case JOIN_INNER:
+			break;
+		case JOIN_SEMI:
+		case JOIN_ANTI:
+		case JOIN_LEFT:
+		case JOIN_LASJ_NOTIN:
+			outer.ok_to_replicate = false;
+			break;
+		case JOIN_UNIQUE_OUTER:
+		case JOIN_UNIQUE_INNER:
+		case JOIN_RIGHT:
+		case JOIN_FULL:
+		case JOIN_DEDUP_SEMI:
+		case JOIN_DEDUP_SEMI_REVERSE:
+			/* Join types are not supported in parallel yet. */
+			goto fail;
+		default:
+			elog(ERROR, "unexpected join type %d", jointype);
+	}
+
+	/* Get rel sizes. */
+	outer.bytes = outer.path->rows * outer.path->pathtarget->width;
+	inner.bytes = inner.path->rows * inner.path->pathtarget->width;
+
+	if (join_quals_contain_outer_references ||
+		CdbPathLocus_IsOuterQuery(outer.locus) ||
+		CdbPathLocus_IsOuterQuery(inner.locus) ||
+		CdbPathLocus_IsGeneral(outer.locus) ||
+		CdbPathLocus_IsGeneral(inner.locus))
+	{
+		/*
+		 * Not supported to participate in parallel yet.
+		 */
+		goto fail;
+	}
+	/* SegmentGeneralWorkers join others */
+	else if (CdbPathLocus_IsSegmentGeneralWorkers(outer.locus))
+	{
+		CdbpathMfjRel *segGeneral = &outer;
+		CdbpathMfjRel *other = &inner;
+
+		int outerParallel = outer.locus.parallel_workers;
+		int innerParallel = inner.locus.parallel_workers;
+		Assert(outerParallel > 1);
+
+		if (CdbPathLocus_IsSegmentGeneralWorkers(inner.locus))
+		{
+			Assert(innerParallel > 1);
+			/* We don't handle parallel when expanding segments */
+			if (CdbPathLocus_NumSegments(outer.locus) != CdbPathLocus_NumSegments(inner.locus))
+				goto fail;
+			/*
+			 * Couldn't join without shared hash table if both are SegmentGeneralWorkers.
+			 * We don't expect a motion for that.
+			 */
+			if (!parallel_aware)
+				goto fail;
+			if ((outerParallel != innerParallel))
+				goto fail;
+			/*
+			 * SegmentGeneralWorkers parallel join SegmentGeneralWorkers when parallel_aware
+			 * generate SegmentGeneralWorerks locus.
+			 * see ex 5_P_5_5 in gp_parallel.sql
+			 */
+			if (outer.ok_to_replicate && inner.ok_to_replicate)
+				return outer.locus;
+			goto fail;
+		}
+
+		if (CdbPathLocus_IsSegmentGeneral(inner.locus))
+		{
+			Assert(innerParallel <= 1);
+			if (parallel_aware)
+				goto fail;
+
+			if (CdbPathLocus_NumSegments(outer.locus) != CdbPathLocus_NumSegments(inner.locus))
+				goto fail;
+			/*
+			 * SegmentGeneralWorkers JOIN SegmentGeneral without shared hash table.
+			 * And the join locus is SegmentGeneralWorkers.
+			 * Then we can return the outer locus as join will set workers as outer locus.
+			 * See ex 5_4_5 in gp_parallel.sql
+			 */
+			if (outer.ok_to_replicate && inner.ok_to_replicate)
+				return outer.locus;
+			goto fail;
+		}
+
+		if (CdbPathLocus_IsBottleneck(inner.locus))
+		{
+			/*
+			 * Bottleneck locus can't participate in parallel with SegmentGeneralWorkers at present, may be enabled later.
+			 * We don't support parallel on QD yet. If bottleneck is on QE, ex:
+			 * A SingleQE join with SegmentGeneralWorkers(workers:2), we have two ways:
+			 * 	1.Motion(1:2) SingleQE to 2 process in local segments.
+			 * 	There is no such motion now, and we have no clear answer that if SingleQE is parallel_safe(I think most
+			 *  are not, because SingleQE is always the last resort which means things must be done on a single process of
+			 *  a segments with all data).
+			 * 	And what's join locus of that, SingleQE with workers = 2? It breaks the rule.
+			 *
+			 *  2.Motion(2:1) SegmentGeneralWorkers to a single process:
+			 * 	In GPDB, we usually do not motion a SegmentGeneralxxx locus except for: 1) bring to singleQE; 2) Redistributed
+			 *  to Partitioned if XXXGeneral can't be general as it has volatile fuctions and so on.
+			 * 	We follow it as GPDB.
+			 */
+			goto fail;
+		}
+		
+		if (CdbPathLocus_IsPartitioned(inner.locus))
+		{
+			if (CdbPathLocus_NumSegments(outer.locus) != CdbPathLocus_NumSegments(inner.locus))
+				goto fail;
+
+			if (!segGeneral->ok_to_replicate)
+			{
+				if (!try_redistribute(root, segGeneral,
+									  other, redistribution_clauses, parallel_aware))
+				{
+					if (parallel_aware)
+						goto fail;
+
+					CdbPathLocus_MakeSingleQE(&segGeneral->move_to,
+											  CdbPathLocus_NumSegments(segGeneral->locus));
+					CdbPathLocus_MakeSingleQE(&other->move_to,
+											  CdbPathLocus_NumSegments(other->locus));
+				}
+			}
+			else
+			{
+				/* Parallel HashedOJ is not supported yet */
+				if (CdbPathLocus_IsHashedOJ(other->locus))
+					goto fail;
+
+				if (parallel_aware)
+				{
+					if (innerParallel != outerParallel)
+						goto fail;
+					/*
+					 * SegmentGeneralWorkers join HashedWorkers, Hashed, Strewn when parallel_aware.
+					 * Let cdbpathlocus_parallel_join decide the join locus.
+					 * That will generate:
+					 *  SegmentGeneralWorkers join HashedWorkers generate HashedWorkers(ex 5_P_12_12).
+					 *  SegmentGeneralWorkers join Hashed generate HashedWorkers(Need to create a case).
+					 *  SegmentGeneralWorkers join Strewn generate Strewn(ex 5_P_11_11).
+					 */
+					return cdbpathlocus_parallel_join(jointype, segGeneral->locus, other->locus, true);
+				}
+				else if (innerParallel == 0 && other->path->pathtype == T_SeqScan)
+				{
+					/*
+					 * GPDB_PARALLEL_FIXME: The inner path will be duplicately processed.
+					 * That require inner path should not have descendant Motion paths.
+					 * Use Seqscan here is more strit, but for now.
+					 *
+					 * SegmentGeneralWokrers(w=N) join inner_locus(w=0).
+					 * That will generate:
+					 *  SegmentGeneralWorkers(w=N) join Hashed(w=0) generate HashedWorkers(w=N)(ex 5_9_12). 
+					 *  SegmentGeneralWorkers(w=N) join Strewn(w=0) generate Strewn(w=N)(ex 5_11_11).
+					 */
+					return cdbpathlocus_parallel_join(jointype, segGeneral->locus, other->locus, false);
+				}
+				else
+				{
+					goto fail;
+				}
+			}
+		}
+	}
+	else if (CdbPathLocus_IsSegmentGeneralWorkers(inner.locus))
+	{
+		/*
+		 * The whole branch handles the case that at least
+		 * one of the two locus is SegmentGeneralWorkers.
+		 * Put this before SegmentGeneral, we will handle
+		 * SegmentGeneral with SegmentGeneralWorkers in this branch.
+		 */
+
+		CdbpathMfjRel *segGeneral;
+		CdbpathMfjRel *other;
+		int outerParallel = outer.locus.parallel_workers;
+		int innerParallel = inner.locus.parallel_workers;
+		/* Didn't support insert with parallel yet */
+		Assert(root->upd_del_replicated_table == 0);
+
+		/* We don't handle parallel when expanding segments */
+		if (CdbPathLocus_NumSegments(outer.locus) != CdbPathLocus_NumSegments(inner.locus))
+			goto fail;
+
+		if (CdbPathLocus_IsSegmentGeneral(outer.locus) &&
+			CdbPathLocus_IsSegmentGeneralWorkers(inner.locus))
+		{
+			/*
+			 * GPDB_PARALLEL_FIXME:
+			 * We shouln't get here as Path(parallel_worker=1) won't be added to partial_pathlist.
+			 * If outer locus is SegmentGeneral and its parallel_workers must be 0.
+			 * We neighter want a Motion nor change the parallel_workers of a path(May be enabled
+			 * later in some very restricted scenarios or use path(parallel_workers=1) as a partial_path).
+			 */
+			goto fail;
+		}
+		else
+		{
+			/* SegmentGeneralWorkers with Partitioned or Bottleneck */
+			segGeneral = &inner;
+			segGeneral->isouter = false;
+			other = &outer;
+			other->isouter = true;
+			Assert(innerParallel > 1);
+
+			Assert(CdbPathLocus_IsBottleneck(other->locus) ||
+				   CdbPathLocus_IsPartitioned(other->locus));
+
+			if (CdbPathLocus_IsBottleneck(other->locus))
+			{
+				/*
+				 * Bottleneck locus can't participate in parallel at present,  may be enabled later if we have a clear answer.
+				 * We don't support parallel on QD yet. If bottleneck is on QE, ex:
+				 * A SingleQE join with SegmentGeneralWorkers(workers:2), we have two ways:
+				 * 	1.Motion(1:2) SingleQE to 2 process in local segments.
+				 * 	There is no such motion now, and we have no clear answer that if SingleQE is parallel_safe(I think most
+				 *  are not, because SingleQE is always the last resort which means things must be done on a single process of
+				 *  a segments with all data).
+				 * 	And what's join locus of that, SingleQE with workers = 2? It breaks the rule.
+				 *
+				 *  2.Motion(2:1) SegmentGeneralWorkers to a single process:
+				 * 	In GPDB, we usually do not motion a SegmentGeneralxxx locus except for: 1) bring to singleQE; 2) Redistributed
+				 *  to Partitioned if XXXGeneral can't be general as it has volatile fuctions and so on.
+				 * 	We follow it as GPDB.
+				 * 	Another reason is: not sure if we could benefit from a Parallel Scan on replicated tables and Gather data to a single process plan: Parallel scan with Motion all rows cost vs scan without motion. And we have no test cases for that.
+				 */
+				goto fail;
+			}
+			else
+			{
+				/*
+				 * This branch handles for partitioned other locus
+				 * hashed, hashoj, strewn and hashedworkers.
+				 */
+				Assert(CdbPathLocus_IsPartitioned(other->locus));
+
+				if (!segGeneral->ok_to_replicate)
+				{
+					if (!try_redistribute(root, segGeneral,
+										  other, redistribution_clauses, parallel_aware))
+					{
+						/*
+						 * FIXME: do we need to test movable?
+						 */
+						if (parallel_aware)
+							goto fail;
+
+						CdbPathLocus_MakeSingleQE(&segGeneral->move_to,
+												  CdbPathLocus_NumSegments(segGeneral->locus));
+						CdbPathLocus_MakeSingleQE(&other->move_to,
+												  CdbPathLocus_NumSegments(other->locus));
+					}
+				}
+				else
+				{
+					if (parallel_aware)
+					{
+						if (innerParallel != outerParallel)
+							goto fail;
+
+						if (segGeneral->isouter)
+							return cdbpathlocus_parallel_join(jointype, segGeneral->locus, other->locus, true);
+
+						/* HashedWorkers, Hashed, Strewn JOIN SegmentGeneralWorkers with shared hash table, return the other locus anyway */
+						return other->locus;
+					}
+
+					/* No shared hash table join */
+					/* Couldn't join if other is at outer side without shared hash table */
+					Assert(other->isouter);
+					goto fail;
+				}
+			}
+		}
+	}
+	else if (CdbPathLocus_IsSegmentGeneral(outer.locus) ||
+			 CdbPathLocus_IsSegmentGeneral(inner.locus))
+	{
+		/*
+		 * the whole branch handles the case that at least
+		 * one of the two locus is SegmentGeneral. The logic
+		 * is:
+		 *   - if both are SegmentGeneral:
+		 *       1. if both locus are equal, no motion needed, simply return
+		 *       2. For update cases. If resultrelation
+		 *          is SegmentGeneral, the update must execute
+		 *          on each segment of the resultrelation, if resultrelation's
+		 *          numsegments is larger, the only solution is to broadcast
+		 *          other
+		 *       3. no motion is needed, change both numsegments to common
+		 *   - if only one of them is SegmentGeneral :
+		 *       1. consider update case, if resultrelation is SegmentGeneral,
+		 *          the only solution is to broadcast the other
+		 *       2. if other's locus is singleQE or entry, make SegmentGeneral
+		 *          to other's locus
+		 *       3. the remaining possibility of other's locus is partitioned
+		 *          3.1 if SegmentGeneral is not ok_to_replicate, try to
+		 *              add redistribute motion, if fails gather each to
+		 *              singleQE
+		 *          3.2 if SegmentGeneral's numsegments is larger, just return
+		 *              other's locus
+		 *          3.3 try to add redistribute motion, if fails, gather each
+		 *              to singleQE
+		 */
+		CdbpathMfjRel *segGeneral;
+		CdbpathMfjRel *other;
+
+		if (CdbPathLocus_IsSegmentGeneral(outer.locus) &&
+			CdbPathLocus_IsSegmentGeneral(inner.locus))
+		{
+			int outerParallel = outer.locus.parallel_workers;
+			int innerParallel = inner.locus.parallel_workers;
+			Assert(outerParallel == 0);
+			Assert(innerParallel == 0);
+			if (innerParallel > 0 || outerParallel > 0)
+				goto fail;
+
+			/*
+			 * use_common to indicate whether we should
+			 * return a segmentgeneral locus with common
+			 * numsegments.
+			 */
+			bool use_common = true;
+
+			/*
+			 * Handle the case two same locus
+			 */
+			if (CdbPathLocus_NumSegments(outer.locus) == CdbPathLocus_NumSegments(inner.locus))
+				return inner.locus;
+
+			/*
+			 * Now, two locus' numsegments not equal
+			 * We should consider update resultrelation
+			 * if update,
+			 *   - resultrelation's numsegments larger, then
+			 *     we should broadcast the other
+			 *   - otherwise, results is common
+			 * else:
+			 *   common
+			 */
+			if (root->upd_del_replicated_table > 0)
+			{
+				if ((CdbPathLocus_NumSegments(outer.locus) >
+					 CdbPathLocus_NumSegments(inner.locus)) &&
+					bms_is_member(root->upd_del_replicated_table,
+								  outer.path->parent->relids))
+				{
+					/*
+					 * the updated resultrelation is replicated table
+					 * and its numsegments is larger, we should broadcast
+					 * the other path
+					 */
+					if (!inner.ok_to_replicate)
+						goto fail;
+
+					CdbPathLocus_MakeReplicated(&inner.move_to,
+												CdbPathLocus_NumSegments(outer.locus),
+												inner.path->parallel_workers);
+					use_common = false;
+				}
+				else if ((CdbPathLocus_NumSegments(outer.locus) <
+						  CdbPathLocus_NumSegments(inner.locus)) &&
+						 bms_is_member(root->upd_del_replicated_table,
+									   inner.path->parent->relids))
+				{
+					/*
+					 * the updated resultrelation is replicated table
+					 * and its numsegments is larger, we should broadcast
+					 * the other path
+					 */
+					if (!outer.ok_to_replicate)
+						goto fail;
+
+					CdbPathLocus_MakeReplicated(&outer.move_to,
+												CdbPathLocus_NumSegments(inner.locus),
+												outer.path->parallel_workers);
+					use_common = false;
+				}
+			}
+
+			if (use_common)
+			{
+				/*
+				 * The statement is not update a replicated table.
+				 * Just return the segmentgeneral with a smaller numsegments.
+				 */
+				numsegments = CdbPathLocus_CommonSegments(inner.locus,
+														  outer.locus);
+				outer.locus.numsegments = numsegments;
+				inner.locus.numsegments = numsegments;
+
+				return inner.locus;
+			}
+		}
+		else
+		{
+			if (CdbPathLocus_IsSegmentGeneral(outer.locus))
+			{
+				Assert(!CdbPathLocus_HasMultipleWorkers(outer.locus));
+				segGeneral = &outer;
+				segGeneral->isouter = true;
+				other = &inner;
+				other->isouter = false;
+			}
+			else
+			{
+				Assert(!CdbPathLocus_HasMultipleWorkers(inner.locus));
+				segGeneral = &inner;
+				segGeneral->isouter = false;
+				other = &outer;
+				other->isouter = true;
+			}
+
+			Assert(CdbPathLocus_IsBottleneck(other->locus) ||
+				   CdbPathLocus_IsPartitioned(other->locus));
+
+			/*
+			 * For UPDATE/DELETE, replicated table can't guarantee a logic row has
+			 * same ctid or item pointer on each copy. If we broadcast matched tuples
+			 * to all segments, the segments may update the wrong tuples or can't
+			 * find a valid tuple according to ctid or item pointer.
+			 *
+			 * So For UPDATE/DELETE on replicated table, we broadcast other path so
+			 * all target tuples can be selected on all copys and then be updated
+			 * locally.
+			 */
+			if (root->upd_del_replicated_table > 0 &&
+				bms_is_member(root->upd_del_replicated_table,
+							  segGeneral->path->parent->relids))
+			{
+				/*
+				 * For UPDATE on a replicated table, we have to do it
+				 * everywhere so that for each segment, we have to collect
+				 * all the information of other that is we should broadcast it
+				 */
+				/* doesn't support insert parallel yet */
+				Assert(other->path->parallel_workers == 0);
+
+				CdbPathLocus_MakeReplicated(&other->move_to,
+											CdbPathLocus_NumSegments(segGeneral->locus),
+											0);
+			}
+			else if (CdbPathLocus_IsBottleneck(other->locus))
+			{
+				if (parallel_aware)
+					goto fail;
+				Assert(other->locus.parallel_workers == 0);
+
+				/*
+				 * if the locus type is equal and segment count is unequal,
+				 * we will dispatch the one on more segments to the other
+				 */
+				numsegments = CdbPathLocus_CommonSegments(segGeneral->locus,
+														  other->locus);
+				segGeneral->move_to = other->locus;
+				segGeneral->move_to.numsegments = numsegments;
+			}
+			else
+			{
+				/*
+				 * This branch handles for partitioned other locus
+				 * hashed, hashoj, strewn and hashedworkers.
+				 */
+				Assert(CdbPathLocus_IsPartitioned(other->locus));
+
+				if (!segGeneral->ok_to_replicate)
+				{
+					if (!try_redistribute(root, segGeneral,
+										  other, redistribution_clauses, parallel_aware))
+					{
+						/*
+						 * FIXME: do we need to test movable?
+						 */
+						if (parallel_aware)
+							goto fail;
+
+						CdbPathLocus_MakeSingleQE(&segGeneral->move_to,
+												  CdbPathLocus_NumSegments(segGeneral->locus));
+						CdbPathLocus_MakeSingleQE(&other->move_to,
+												  CdbPathLocus_NumSegments(other->locus));
+					}
+				}
+				else
+				{
+					/* SegmentGeneral join with Partitioned */ 
+
+					/* Couldn't join with SegmentGeneral with a shared hash table */
+					if (parallel_aware)
+						goto fail;
+
+					if (other->locus.parallel_workers > 1)
+					{
+						if (CdbPathLocus_NumSegments(segGeneral->locus) != CdbPathLocus_NumSegments(other->locus))
+							goto fail;
+						if (!other->isouter)
+							goto fail; /* partial path must be outer side when parallel_aware is false */
+						if (segGeneral->ok_to_replicate)
+							return other->locus; /* Partitioned JOIN SegmentGeneral */
+						goto fail;
+					}
+
+					/*
+					 * If all other's segments have segGeneral stored, then no motion
+					 * is needed.
+					 *
+					 * A sql to reach here:
+					 *     select * from d2 a join r1 b using (c1);
+					 * where d2 is a replicated table on 2 segment,
+					 *       r1 is a random table on 1 segments.
+					 */
+					if (CdbPathLocus_NumSegments(segGeneral->locus) >=
+						CdbPathLocus_NumSegments(other->locus))
+							return other->locus;
+					else
+					{
+						if (!try_redistribute(root, segGeneral,
+											  other, redistribution_clauses, parallel_aware))
+						{
+							if (parallel_aware)
+								goto fail;
+
+							numsegments = CdbPathLocus_CommonSegments(segGeneral->locus,
+																	  other->locus);
+							/*
+							 * FIXME: do we need to test movable?
+							 */
+							CdbPathLocus_MakeSingleQE(&segGeneral->move_to, numsegments);
+							CdbPathLocus_MakeSingleQE(&other->move_to, numsegments);
+						}
+					}
+				}
+			}
+		}
+	}
+	/*
+	 * Is either source confined to a single process? NB: Motion to a single
+	 * process (qDisp or qExec) is the only motion in which we may use Merge
+	 * Receive to preserve an existing ordering.
+	 */
+	else if (CdbPathLocus_IsBottleneck(outer.locus) ||
+			 CdbPathLocus_IsBottleneck(inner.locus))
+	{							/* singleQE or entry db */
+		CdbpathMfjRel *single = &outer;
+		CdbpathMfjRel *other = &inner;
+		bool		single_immovable = (outer.require_existing_order &&
+										!outer_pathkeys) || outer.has_wts;
+		bool		other_immovable = inner.require_existing_order &&
+		!inner_pathkeys;
+
+		/*
+		 * If each of the sources has a single-process locus, then assign both
+		 * sources and the join to run in the same process, without motion.
+		 * The slice will be run on the entry db if either source requires it.
+		 */
+		if (CdbPathLocus_IsEntry(single->locus))
+		{
+			if (CdbPathLocus_IsBottleneck(other->locus))
+				return single->locus;
+		}
+		else if (CdbPathLocus_IsSingleQE(single->locus))
+		{
+			if (CdbPathLocus_IsBottleneck(other->locus))
+			{
+				/*
+				 * Can join directly on one of the common segments.
+				 */
+				numsegments = CdbPathLocus_CommonSegments(outer.locus,
+														  inner.locus);
+
+				other->locus.numsegments = numsegments;
+				return other->locus;
+			}
+		}
+
+		/* Let 'single' be the source whose locus is singleQE or entry. */
+		else
+		{
+			CdbSwap(CdbpathMfjRel *, single, other);
+			CdbSwap(bool, single_immovable, other_immovable);
+		}
+
+		Assert(CdbPathLocus_IsBottleneck(single->locus));
+		Assert(CdbPathLocus_IsPartitioned(other->locus));
+
+		/* If the bottlenecked rel can't be moved, bring the other rel to it. */
+		if (single_immovable)
+		{
+			if (other_immovable)
+				goto fail;
+			else
+				other->move_to = single->locus;
+		}
+
+		/* Redistribute single rel if joining on other rel's partitioning key */
+		else if (cdbpath_match_preds_to_distkey(root,
+												redistribution_clauses,
+												other->path,
+												other->locus,
+												single->locus,
+												parallel_aware,
+												&single->move_to))	/* OUT */
+		{
+			AssertEquivalent(CdbPathLocus_NumSegments(other->locus),
+							 CdbPathLocus_NumSegments(single->move_to));
+		}
+
+		/* Replicate single rel if cheaper than redistributing both rels. */
+		else if (single->ok_to_replicate &&
+				 (single->bytes * CdbPathLocus_NumSegments(other->locus) <
+				  single->bytes + other->bytes))
+			CdbPathLocus_MakeReplicated(&single->move_to,
+										CdbPathLocus_NumSegments(other->locus),
+										single->path->parallel_workers);
+
+		/*
+		 * Redistribute both rels on equijoin cols.
+		 *
+		 * Redistribute both to the same segments, here we choose the
+		 * same segments with other.
+		 */
+		else if (!other_immovable &&
+				 cdbpath_distkeys_from_preds(root,
+											 redistribution_clauses,
+											 single->path,
+											 CdbPathLocus_NumSegments(other->locus),
+											 Max(single->path->parallel_workers, other->path->parallel_workers),
+											 parallel_aware,
+											 &single->move_to,	/* OUT */
+											 &other->move_to))	/* OUT */
+		{
+			/* ok */
+		}
+
+		/* Broadcast single rel for below cases. */
+		else if (single->ok_to_replicate &&
+				 (other_immovable ||
+				  single->bytes < other->bytes ||
+				  other->has_wts))
+			CdbPathLocus_MakeReplicated(&single->move_to,
+										CdbPathLocus_NumSegments(other->locus),
+										single->path->parallel_workers);
+
+		/* Last resort: If possible, move all partitions of other rel to single QE. */
+		else if (!other_immovable)
+			other->move_to = single->locus;
+		else
+			goto fail;
+	}							/* singleQE or entry */
+
+	/*
+	 * No motion if partitioned alike and joining on the partitioning keys.
+	 */
+	else if (cdbpath_match_preds_to_both_distkeys(root, redistribution_clauses,
+												  outer.locus, inner.locus, parallel_aware))
+		return cdbpathlocus_parallel_join(jointype, outer.locus, inner.locus, parallel_aware);
+
+	/*
+	 * Both sources are partitioned.  Redistribute or replicate one or both.
+	 */
+	else
+	{							/* partitioned */
+		CdbpathMfjRel *large_rel = &outer;
+		CdbpathMfjRel *small_rel = &inner;
+		
+		/* Consider locus when parallel_ware. */
+		if(parallel_aware)
+		{
+			/* can't parallel join if both are Hashed, it should be in non-parallel path */
+			if (CdbPathLocus_IsHashed(outer.locus) &&
+				CdbPathLocus_IsHashed(inner.locus))
+				goto fail;
+		}
+
+		/* Which rel is bigger? */
+		/* GPDB_PARALLEL_FIXME: should we swap if parallel_aware? */
+		if (large_rel->bytes < small_rel->bytes)
+			CdbSwap(CdbpathMfjRel *, large_rel, small_rel);
+
+		/* Both side are distribued in 1 segment and no parallel, it can join without motion. */
+		if (CdbPathLocus_NumSegments(large_rel->locus) == 1 &&
+			CdbPathLocus_NumSegments(small_rel->locus) == 1 &&
+			CdbPathLocus_NumParallelWorkers(large_rel->locus) == 0 &&
+			CdbPathLocus_NumParallelWorkers(small_rel->locus) == 0)
+				return large_rel->locus;
+
+		/* If joining on larger rel's partitioning key, redistribute smaller. */
+		if (!small_rel->require_existing_order &&
+			cdbpath_match_preds_to_distkey(root,
+										   redistribution_clauses,
+										   large_rel->path,
+										   large_rel->locus,
+										   small_rel->locus,
+										   parallel_aware,
+										   &small_rel->move_to))	/* OUT */
+		{
+			AssertEquivalent(CdbPathLocus_NumSegments(large_rel->locus),
+							 CdbPathLocus_NumSegments(small_rel->move_to));
+		}
+
+		/*
+		 * Replicate smaller rel if cheaper than redistributing larger rel.
+		 * But don't replicate a rel that is to be preserved in outer join.
+		 */
+		else if (!small_rel->require_existing_order &&
+				 small_rel->ok_to_replicate &&
+				 ((!parallel_aware && (small_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(large_rel->locus) < large_rel->bytes)) ||
+				  (parallel_aware && !uninterested_broadcast && (small_rel->bytes * CdbPathLocus_NumSegments(large_rel->locus) < large_rel->bytes))))
+				{
+					if (!parallel_aware)
+						CdbPathLocus_MakeReplicated(&small_rel->move_to,
+													CdbPathLocus_NumSegments(large_rel->locus),
+													large_rel->path->parallel_workers);
+					else
+						CdbPathLocus_MakeReplicatedWorkers(&small_rel->move_to,
+														   CdbPathLocus_NumSegments(large_rel->locus),
+														   large_rel->path->parallel_workers);
+				}
+
+		/*
+		 * Replicate larger rel if cheaper than redistributing smaller rel.
+		 * But don't replicate a rel that is to be preserved in outer join.
+		 */
+		else if (!large_rel->require_existing_order &&
+				 large_rel->ok_to_replicate &&
+				 ((!parallel_aware && (large_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(small_rel->locus) < small_rel->bytes)) ||
+				  (parallel_aware && !uninterested_broadcast && (large_rel->bytes * CdbPathLocus_NumSegments(small_rel->locus) < small_rel->bytes))))
+				{
+					if (!parallel_aware)
+						CdbPathLocus_MakeReplicated(&large_rel->move_to,
+									    			CdbPathLocus_NumSegments(small_rel->locus),
+									    			small_rel->path->parallel_workers);
+					else
+						CdbPathLocus_MakeReplicatedWorkers(&large_rel->move_to,
+									    			CdbPathLocus_NumSegments(small_rel->locus),
+									    			small_rel->path->parallel_workers);
+				}
+
+		/* If joining on smaller rel's partitioning key, redistribute larger. */
+		else if (!large_rel->require_existing_order &&
+				(!(large_rel->path->parallel_workers > 0) || parallel_aware) &&
+				 cdbpath_match_preds_to_distkey(root,
+												redistribution_clauses,
+												small_rel->path,
+												small_rel->locus,
+												large_rel->locus,
+												parallel_aware,
+												&large_rel->move_to))	/* OUT */
+		{
+			AssertEquivalent(CdbPathLocus_NumSegments(small_rel->locus),
+							 CdbPathLocus_NumSegments(large_rel->move_to));
+		}
+
+		/* Replicate smaller rel if cheaper than redistributing both rels. */
+		else if (!small_rel->require_existing_order &&
+				 small_rel->ok_to_replicate &&
+				 ((!parallel_aware && (small_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(large_rel->locus) < small_rel->bytes + large_rel->bytes)) ||
+					(parallel_aware && !uninterested_broadcast && (small_rel->bytes * CdbPathLocus_NumSegments(large_rel->locus) < small_rel->bytes + large_rel->bytes))))
+				{
+					if (!parallel_aware)
+						CdbPathLocus_MakeReplicated(&small_rel->move_to,
+													CdbPathLocus_NumSegments(large_rel->locus),
+													large_rel->path->parallel_workers);
+					else
+						CdbPathLocus_MakeReplicatedWorkers(&small_rel->move_to,
+														   CdbPathLocus_NumSegments(large_rel->locus),
+														   large_rel->path->parallel_workers);
+				}
+
+		/* Replicate larger rel if cheaper than redistributing both rels. */
+				else if (!large_rel->require_existing_order &&
+						 large_rel->ok_to_replicate &&
+						 ((!parallel_aware && (large_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(small_rel->locus) < small_rel->bytes + large_rel->bytes)) ||
+						  (parallel_aware && !uninterested_broadcast && (large_rel->bytes * CdbPathLocus_NumSegments(small_rel->locus) < small_rel->bytes + large_rel->bytes))))
+				{
+					if (!parallel_aware)
+						CdbPathLocus_MakeReplicated(&large_rel->move_to,
+									    			CdbPathLocus_NumSegments(small_rel->locus),
+									    			small_rel->path->parallel_workers);
+					else
+						CdbPathLocus_MakeReplicatedWorkers(&large_rel->move_to,
+									    			CdbPathLocus_NumSegments(small_rel->locus),
+									    			small_rel->path->parallel_workers);
+				}
+
+		/*
+		 * Redistribute both rels on equijoin cols.
+		 *
+		 * the two results should all be distributed on the same segments,
+		 * here we make them the same with common segments for safe
+		 * TODO: how about distribute them both to ALL segments?
+		 */
+		else if (!small_rel->require_existing_order &&
+				 !small_rel->has_wts &&
+				 !large_rel->require_existing_order &&
+				 !large_rel->has_wts &&
+				 cdbpath_distkeys_from_preds(root,
+											 redistribution_clauses,
+											 large_rel->path,
+											 CdbPathLocus_CommonSegments(large_rel->locus,
+																		 small_rel->locus),
+											 Max(large_rel->path->parallel_workers, small_rel->path->parallel_workers),
+											 parallel_aware,
+											 &large_rel->move_to,
+											 &small_rel->move_to))
+		{
+			/* ok */
+		}
+
+		/*
+		 * No usable equijoin preds, or couldn't consider the preferred
+		 * motion. Replicate one rel if possible. MPP TODO: Consider number of
+		 * seg dbs per host.
+		 */
+		else if (!small_rel->require_existing_order &&
+				 small_rel->ok_to_replicate)
+				 {
+					if (!parallel_aware)
+						CdbPathLocus_MakeReplicated(&small_rel->move_to,
+												CdbPathLocus_NumSegments(large_rel->locus),
+									    			large_rel->path->parallel_workers);
+					else
+						CdbPathLocus_MakeReplicatedWorkers(&small_rel->move_to,
+									    			CdbPathLocus_NumSegments(large_rel->locus),
+									    			large_rel->path->parallel_workers);
+				 }
+
+		else if (!large_rel->require_existing_order &&
+				 large_rel->ok_to_replicate)
+				 {
+					if (!parallel_aware)
+						CdbPathLocus_MakeReplicated(&large_rel->move_to,
+									    			CdbPathLocus_NumSegments(small_rel->locus),
+									    			small_rel->path->parallel_workers);
+					else
+						CdbPathLocus_MakeReplicatedWorkers(&large_rel->move_to,
+									    			CdbPathLocus_NumSegments(small_rel->locus),
+									    			small_rel->path->parallel_workers);
+				 }
+
+		/* Last resort: Move both rels to a single qExec. */
+		else
+		{
+			int numsegments = CdbPathLocus_CommonSegments(outer.locus,
+														  inner.locus);
+			CdbPathLocus_MakeSingleQE(&outer.move_to, numsegments);
+			CdbPathLocus_MakeSingleQE(&inner.move_to, numsegments);
+		}
+	}							/* partitioned */
+
+	/*
+	 * Move outer.
+	 */
+	if (!CdbPathLocus_IsNull(outer.move_to))
+	{
+		outer.path = cdbpath_create_motion_path(root,
+												outer.path,
+												outer_pathkeys,
+												outer.require_existing_order,
+												outer.move_to);
+		if (!outer.path)		/* fail if outer motion not feasible */
+			goto fail;
+
+		if (IsA(outer.path, MaterialPath) && !root->config->may_rescan)
+		{
+			/*
+			 * If we are the outer path and can never be rescanned,
+			 * we could remove the materialize path.
+			 */
+			MaterialPath *mpath = (MaterialPath *) outer.path;
+			outer.path = mpath->subpath;
+		}
+	}
+
+	/*
+	 * Move inner.
+	 */
+	if (!CdbPathLocus_IsNull(inner.move_to))
+	{
+		inner.path = cdbpath_create_motion_path(root,
+												inner.path,
+												inner_pathkeys,
+												inner.require_existing_order,
+												inner.move_to);
+		if (!inner.path)		/* fail if inner motion not feasible */
+			goto fail;
+
+		if (parallel_aware)
+			inner.path->motionHazard = true;
+	}
+
+	/*
+	 * Ok to join.  Give modified subpaths to caller.
+	 */
+	*p_outer_path = outer.path;
+	*p_inner_path = inner.path;
+
+	/* Tell caller where the join will be done. */
+	return cdbpathlocus_parallel_join(jointype, outer.path->locus, inner.path->locus, parallel_aware);
+
+fail:							/* can't do this join */
+	CdbPathLocus_MakeNull(&outer.move_to);
+	return outer.move_to;
+}								/* cdbpath_motion_for_parallel_join */

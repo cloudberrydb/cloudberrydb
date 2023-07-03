@@ -161,7 +161,7 @@ static bool appendonly_tid_reaped(ItemPointer itemptr, void *state);
 
 static void vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
 										 BlockNumber *rel_pages, double *rel_tuples,
-										 bool *relhasindex);
+										 bool *relhasindex, BlockNumber *total_file_segs);
 static int vacuum_appendonly_indexes(Relation aoRelation, int options,
 									 BufferAccessStrategy bstrategy);
 static void scan_index(Relation indrel,
@@ -220,6 +220,10 @@ ao_vacuum_rel_post_cleanup(Relation onerel, int options, VacuumParams *params,
 	BlockNumber	relpages;
 	double		reltuples;
 	bool		relhasindex;
+	/* AO/AOCO total file segment number, use type BlockNumber to
+	 * represent same type with num_all_visible_pages in libpq.
+	 */
+	BlockNumber	total_file_segs;
 	int			elevel;
 	TransactionId OldestXmin;
 	TransactionId FreezeLimit;
@@ -255,7 +259,8 @@ ao_vacuum_rel_post_cleanup(Relation onerel, int options, VacuumParams *params,
 								 elevel,
 								 &relpages,
 								 &reltuples,
-								 &relhasindex);
+								 &relhasindex,
+								 &total_file_segs);
 
 	vacuum_set_xid_limits(onerel,
 						  params->freeze_min_age,
@@ -265,11 +270,13 @@ ao_vacuum_rel_post_cleanup(Relation onerel, int options, VacuumParams *params,
 						  &OldestXmin, &FreezeLimit, &xidFullScanLimit,
 						  &MultiXactCutoff, &mxactFullScanLimit);
 
+	/* Causion: AO/AOCO use relallvisible to represent total segment file count */
 	vac_update_relstats(onerel,
 						relpages,
 						reltuples,
-						0, /* AO does not currently have an equivalent to
-							  Heap's 'all visible pages' */
+						total_file_segs, /* AO/AOCO does not currently have an equivalent to
+							  Heap's 'all visible pages', use this field to represent
+							  AO/AOCO's total segment file count */
 						relhasindex,
 						FreezeLimit,
 						MultiXactCutoff,
@@ -714,11 +721,12 @@ appendonly_tid_reaped(ItemPointer itemptr, void *state)
  *	in pg_class. reltuples is the same as "pg_aoseg_<oid>:tupcount"
  *	column and we simulate relpages by subdividing the eof value
  *	("pg_aoseg_<oid>:eof") over the defined page size.
+ *  total_field_segs will be set only for AO/AOCO relation.
  */
 static void
 vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
 							 BlockNumber *rel_pages, double *rel_tuples,
-							 bool *relhasindex)
+							 bool *relhasindex, BlockNumber *total_file_segs)
 {
 	FileSegTotals *fstotal;
 	BlockNumber nblocks;
@@ -773,6 +781,7 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
 	*rel_pages = nblocks;
 	*rel_tuples = num_tuples;
 	*relhasindex = aorel->rd_rel->relhasindex;
+	*total_file_segs = fstotal->totalfilesegs;
 
 	ereport(elevel,
 			(errmsg("\"%s\": found %.0f rows in %u pages.",

@@ -267,6 +267,8 @@ INFO:  (slice 1) Dispatch command to SINGLE content
 (1 row)
 
 -- group by and sort
+-- disable parallel for regress tests
+set enable_parallel = off;
 select a, count(*) from dd_part_singlecol where a=1 group by a;
 INFO:  (slice 1) Dispatch command to SINGLE content
  a | count 
@@ -274,6 +276,7 @@ INFO:  (slice 1) Dispatch command to SINGLE content
  1 |     1
 (1 row)
 
+reset enable_parallel;
 select a, count(*) from dd_part_singlecol where a=1 group by a order by a;
 INFO:  (slice 1) Dispatch command to SINGLE content
  a | count 

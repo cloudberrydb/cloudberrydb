@@ -1,6 +1,8 @@
 --
 -- Tests the spill files disk space accounting mechanism
 --
+-- GPDP_PARALLEL_FIXME: it's hard to make fault_injection work with prallel processes.
+set enable_parallel = false;
 -- check segspace before test
 reset statement_mem;
 select max(bytes) as max, min(bytes) as min from gp_toolkit.gp_workfile_mgr_used_diskspace;
@@ -45,6 +47,39 @@ set gp_autostats_mode = none;
 begin;
 SELECT t1.* FROM segspace_test_hj_skew AS t1, segspace_test_hj_skew AS t2 WHERE t1.i1=t2.i2;
 ERROR:  canceling MPP operation  (seg0 slice2 127.0.0.1:25432 pid=26876)
+rollback;
+-- 
+-- GPDB parallel once got errors like: 
+-- could not read from shared tuplestore temporary file: read only 0 of 8 bytes from file.
+-- Enable parallel here to test it.
+-- 
+begin;
+set local enable_parallel = true;
+set local optimizer=off;
+set local min_parallel_table_scan_size=0;
+set local min_parallel_index_scan_size = 0;
+set local force_parallel_mode=1;
+EXPLAIN(COSTS OFF) SELECT t1.* FROM segspace_test_hj_skew AS t1, segspace_test_hj_skew AS t2 WHERE t1.i1=t2.i2;
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Gather Motion 6:1  (slice1; segments: 6)
+   ->  Parallel Hash Join
+         Hash Cond: (t1.i1 = t2.i2)
+         ->  Parallel Seq Scan on segspace_test_hj_skew t1
+         ->  Parallel Hash
+               ->  Redistribute Motion 6:6  (slice2; segments: 6)
+                     Hash Key: t2.i2
+                     Hash Module: 3
+                     ->  Parallel Seq Scan on segspace_test_hj_skew t2
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+SELECT count(t1.*) FROM segspace_test_hj_skew AS t1, segspace_test_hj_skew AS t2 WHERE t1.i1=t2.i2;
+ count  
+--------
+ 750000
+(1 row)
+
 rollback;
 select gp_inject_fault('exec_hashjoin_new_batch', 'status', 2);
                                                                                                          gp_inject_fault                                                                                                          
@@ -469,3 +504,11 @@ NOTICE:  caught exception: invalid input syntax for type integer: "bogus"
 (1 row)
 
 drop table segspace_test_hj_skew;
+reset enable_parallel;
+-- don't disturb other processes.
+select cleanupAllGangs();
+ cleanupallgangs 
+-----------------
+ t
+(1 row)
+

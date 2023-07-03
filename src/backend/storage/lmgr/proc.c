@@ -75,6 +75,8 @@
 #include "utils/resscheduler.h"
 #include "utils/session_state.h"
 
+AllocSessionId_hook_type AllocSessionId_hook = NULL;
+
 /* GUC variables */
 int			DeadlockTimeout = 1000;
 int			StatementTimeout = 0;
@@ -602,6 +604,18 @@ InitProcess(void)
 	 */
 	InitLWLockAccess();
 	InitDeadLockChecking();
+
+	/*
+	 * we only do overwrite if gp_session_id is set above.
+	 */
+	if (gp_session_id == mppLocalProcessSerial &&
+		IS_QUERY_DISPATCHER() &&
+		Gp_role == GP_ROLE_DISPATCH &&
+		AllocSessionId_hook)
+	{
+		gp_session_id = (*AllocSessionId_hook)(false);
+		MyProc->mppSessionId = gp_session_id;
+	}
 }
 
 /*
@@ -2561,6 +2575,12 @@ void ProcNewMppSessionId(int *newSessionId)
     *newSessionId = MyProc->mppSessionId =
 		pg_atomic_add_fetch_u32((pg_atomic_uint32 *)&ProcGlobal->mppLocalProcessCounter, 1);
 
+	/* overwrite it, minimize conflicts */
+	if (AllocSessionId_hook)
+	{
+		*newSessionId = (*AllocSessionId_hook)(true);
+		MyProc->mppSessionId = *newSessionId;
+	}
     /*
      * Make sure that our SessionState entry correctly records our
      * new session id.
@@ -2653,4 +2673,18 @@ BecomeLockGroupMember(PGPROC *leader, int pid)
 	LWLockRelease(leader_lwlock);
 
 	return ok;
+}
+
+void
+LoopAuxProc(AuxProcCallbackFunction func, void *args)
+{
+	uint8 index;
+
+	SpinLockAcquire(ProcStructLock);
+	for (index = 0; index < NUM_AUXILIARY_PROCS; index++)
+	{
+		volatile PGPROC *proc = &AuxiliaryProcs[index];
+		(*func)(proc, args);
+	}
+	SpinLockRelease(ProcStructLock);
 }

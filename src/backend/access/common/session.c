@@ -46,7 +46,8 @@
 
 /* This backend's current session. */
 Session    *CurrentSession = NULL;
-
+/* gp style parallelism session. */
+Session    *ParallelSession = NULL;
 /*
  * Set up CurrentSession to point to an empty Session object.
  */
@@ -54,6 +55,7 @@ void
 InitializeSession(void)
 {
 	CurrentSession = MemoryContextAllocZero(TopMemoryContext, sizeof(Session));
+	ParallelSession = MemoryContextAllocZero(TopMemoryContext, sizeof(Session));
 }
 
 /*

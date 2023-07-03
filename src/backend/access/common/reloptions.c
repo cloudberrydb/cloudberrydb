@@ -375,7 +375,7 @@ static relopt_int intRelOpts[] =
 		{
 			"parallel_workers",
 			"Number of parallel processes that can be used per executor node for this relation.",
-			RELOPT_KIND_HEAP,
+			RELOPT_KIND_HEAP | RELOPT_KIND_APPENDOPTIMIZED,
 			ShareUpdateExclusiveLock
 		},
 		-1, 0, 1024

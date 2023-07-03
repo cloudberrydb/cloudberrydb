@@ -40,5 +40,5 @@ extern void DetachSession(void);
 
 /* The current session, or NULL for none. */
 extern Session *CurrentSession;
-
+extern Session *ParallelSession;
 #endif							/* SESSION_H */

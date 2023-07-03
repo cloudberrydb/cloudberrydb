@@ -94,6 +94,7 @@ bool        print_failure_diffs_is_enabled = false;
 bool 		optimizer_enabled = false;
 bool 		resgroup_enabled = false;
 bool 		external_fts = false;
+bool 		force_parallel_enabled = false;
 static _stringlist *loadextension = NULL;
 static int	max_connections = 0;
 static int	max_concurrent_tests = 0;
@@ -1888,7 +1889,8 @@ results_differ(const char *testname, const char *resultsfile, const char *defaul
 	{
 		strlcpy(expectfile, default_expectfile, sizeof(expectfile));
 	}
-	if (ignore_plans)
+
+	if (ignore_plans || force_parallel_enabled)
 		ignore_plans_opts = " -gpd_ignore_plans";
 	else
 		ignore_plans_opts = "";
@@ -3393,6 +3395,9 @@ regression_main(int argc, char *argv[],
 			"Resource group enabled. Using resource group answer files whenever possible",
 			"Resource group disabled. Using default answer files");
 
+	force_parallel_enabled = check_feature_status("force_parallel_mode", "on",
+			"Force parallel mode enabled. Result diffs will ignore plans.",
+			"Force parallel mode disabled. Using default answer files");
 	/*
 	 * Ready to run the tests
 	 */

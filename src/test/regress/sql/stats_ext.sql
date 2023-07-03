@@ -25,6 +25,7 @@ declare
     tmp text[];
     first_row bool := true;
 begin
+    set local enable_parallel = off;
     for ln in
         execute format('explain analyze %s', $1)
     loop
@@ -34,6 +35,7 @@ begin
             return query select tmp[1]::int, tmp[2]::int;
         end if;
     end loop;
+    reset enable_parallel;
 end;
 $$;
 

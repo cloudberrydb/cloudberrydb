@@ -54,6 +54,17 @@
 
 #include "cdb/cdbvars.h"
 
+/*
+ * ActivateLock_hook will be called after locallock granted. this hook
+ * can be used to activate the acquired lock, and return whether
+ * activation was successful, if not we release the acquired lock, and
+ * treat this situation as the lock is unavailable.
+ * DeactivateLock_hook will be called before decreasing the owner's lock
+ * count. the releaseAll indicates whether we will decrease the owner's
+ * lock count to 0.
+ */
+ActivateLock_hook_type ActivateLock_hook = NULL;
+DeactivateLock_hook_type DeactivateLock_hook = NULL;
 
 /* This configuration variable is used to set the lock table size */
 int			max_locks_per_xact; /* set by guc.c */
@@ -895,6 +906,14 @@ LockAcquireExtended(const LOCKTAG *locktag,
 	if (locallock->nLocks > 0)
 	{
 		GrantLockLocal(locallock, owner);
+
+		if (ActivateLock_hook &&
+			!(*ActivateLock_hook)(locktag, lockmode, sessionLock, dontWait))
+		{
+			LockRelease(locktag, lockmode, sessionLock);
+			return LOCKACQUIRE_NOT_AVAIL;
+		}
+
 		if (locallock->lockCleared)
 			return LOCKACQUIRE_ALREADY_CLEAR;
 		else
@@ -1018,6 +1037,14 @@ LockAcquireExtended(const LOCKTAG *locktag,
 			locallock->lock = NULL;
 			locallock->proclock = NULL;
 			GrantLockLocal(locallock, owner);
+
+			if (ActivateLock_hook &&
+				!(*ActivateLock_hook)(locktag, lockmode, sessionLock, dontWait))
+			{
+				LockRelease(locktag, lockmode, sessionLock);
+				return LOCKACQUIRE_NOT_AVAIL;
+			}
+
 			return LOCKACQUIRE_OK;
 		}
 	}
@@ -1278,6 +1305,13 @@ LockAcquireExtended(const LOCKTAG *locktag,
 	FinishStrongLockAcquire();
 
 	LWLockRelease(partitionLock);
+
+	if (ActivateLock_hook &&
+		!(*ActivateLock_hook)(locktag, lockmode, sessionLock, dontWait))
+	{
+		LockRelease(locktag, lockmode, sessionLock);
+		return LOCKACQUIRE_NOT_AVAIL;
+	}
 
 	/*
 	 * Emit a WAL record if acquisition of this lock needs to be replayed in a
@@ -2296,6 +2330,9 @@ LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 	 */
 	locallock->nLocks--;
 
+	if (DeactivateLock_hook)
+		(*DeactivateLock_hook)(locktag, lockmode, sessionLock, false);
+
 	if (locallock->nLocks > 0)
 		return true;
 
@@ -2539,6 +2576,14 @@ LockReleaseAll(LOCKMETHODID lockmethodid, bool allLocks)
 		if (LOCALLOCK_LOCKMETHOD(*locallock) != lockmethodid)
 			continue;
 
+		if (DeactivateLock_hook)
+		{
+			/* Deactivate all transaction locks */
+			(*DeactivateLock_hook)(&(locallock->tag.lock), locallock->tag.mode, false, true);
+			/* Deactivate all session locks */
+			if (allLocks)
+				(*DeactivateLock_hook)(&(locallock->tag.lock), locallock->tag.mode, true, true);
+		}
 		/*
 		 * If we are asked to release all locks, we can just zap the entry.
 		 * Otherwise, must scan to see if there are session locks. We assume

@@ -17,6 +17,7 @@
 #include "postgres.h"
 
 #include "access/htup.h"
+#include "access/session.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"
 #include "cdb/cdbconn.h"
@@ -1249,9 +1250,14 @@ statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry)
 static bool
 ShouldSendRecordCache(MotionConn *conn, SerTupInfo *pSerInfo)
 {
+	int32 typmod;
+
+	typmod = CurrentSession->shared_typmod_registry == NULL
+				? NextRecordTypmod : GetSharedNextRecordTypmod(CurrentSession->shared_typmod_registry);
+
 	return pSerInfo->has_record_types &&
-		NextRecordTypmod > 0 &&
-		NextRecordTypmod > conn->sent_record_typmod;
+		typmod > 0 &&
+		typmod > conn->sent_record_typmod;
 }
 
 /*
@@ -1260,5 +1266,12 @@ ShouldSendRecordCache(MotionConn *conn, SerTupInfo *pSerInfo)
 static void
 UpdateSentRecordCache(MotionConn *conn)
 {
-	conn->sent_record_typmod = NextRecordTypmod;
+	if (CurrentSession->shared_typmod_registry != NULL)
+	{
+		conn->sent_record_typmod = GetSharedNextRecordTypmod(CurrentSession->shared_typmod_registry);
+	}
+	else
+	{
+		conn->sent_record_typmod = NextRecordTypmod;
+	}
 }

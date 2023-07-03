@@ -563,7 +563,7 @@ TRRemapRecord(TupleRemapper *remapper, RecordRemapInfo *remapinfo,
 		remapinfo->rectypmod = typmod;
 
 		/* Release reference count acquired by lookup_rowtype_tupdesc. */
-		DecrTupleDescRefCount(tupledesc);
+		ReleaseTupleDesc(tupledesc);
 	}
 
 	/* If transient record, replace remote typmod with local typmod. */

@@ -16,12 +16,13 @@ test__BufferedReadInit__IsConsistent(void **state)
 	char *relname = "test";
 	int32 maxBufferLen = 128;
 	int32 maxLargeReadLen = 128;
+	RelFileNode file_node = {0};
 
 	memset(bufferedRead, 0 , sizeof(BufferedRead));
 	/*
 	 * Call the function so as to set the above values.
 	 */
-	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname);
+	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname, &file_node);
 	/*
 	 * Check for consistency
 	 */
@@ -45,12 +46,13 @@ test__BufferedReadUseBeforeBuffer__IsNextReadLenZero(void **state)
 	int32 maxLargeReadLen = 128;
 	int32 nextBufferLen;
 	int32 maxReadAheadLen = 64;
-        
+	RelFileNode file_node = {0};
+
 	memset(bufferedRead, 0 , sizeof(BufferedRead));
 	/*
 	 * Initialize the buffer
 	 */
-	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname);
+	BufferedReadInit(bufferedRead, memory, memoryLen, maxBufferLen, maxLargeReadLen, relname, &file_node);
 	/*
 	 * filling up the bufferedRead struct
 	 */

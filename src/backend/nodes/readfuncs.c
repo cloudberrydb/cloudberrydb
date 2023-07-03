@@ -1642,6 +1642,7 @@ _readPlannedStmt(void)
 		READ_INT_FIELD(slices[i].parentIndex);
 		READ_INT_FIELD(slices[i].gangType);
 		READ_INT_FIELD(slices[i].numsegments);
+		READ_INT_FIELD(slices[i].parallel_workers);
 		READ_INT_FIELD(slices[i].segindex);
 		READ_BOOL_FIELD(slices[i].directDispatch.isDirectDispatch);
 		READ_NODE_FIELD(slices[i].directDispatch.contentIds);
@@ -2267,6 +2268,7 @@ _readHashJoin(void)
 	READ_NODE_FIELD(hashcollations);
 	READ_NODE_FIELD(hashkeys);
 	READ_NODE_FIELD(hashqualclauses);
+	READ_BOOL_FIELD(batch0_barrier);
 
 	READ_DONE();
 }
@@ -2500,6 +2502,7 @@ _readHash(void)
 	READ_BOOL_FIELD(skewInherit);
 	READ_FLOAT_FIELD(rows_total);
     READ_BOOL_FIELD(rescannable);           /*CDB*/
+    READ_BOOL_FIELD(sync_barrier); 
 
 	READ_DONE();
 }

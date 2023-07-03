@@ -66,6 +66,8 @@ typedef struct ParallelTableScanDescData
 	bool		phs_syncscan;	/* report location to syncscan logic? */
 	bool		phs_snapshot_any;	/* SnapshotAny, not phs_snapshot_data? */
 	Size		phs_snapshot_off;	/* data for snapshot */
+	CommandId	command_id;
+	int 		plan_node_id;
 } ParallelTableScanDescData;
 typedef struct ParallelTableScanDescData *ParallelTableScanDesc;
 
@@ -81,6 +83,12 @@ typedef struct ParallelBlockTableScanDescData
 	BlockNumber phs_startblock; /* starting block number */
 	pg_atomic_uint64 phs_nallocated;	/* number of blocks allocated to
 										 * workers so far. */
+	/*
+	 * The Set of fields has different meaning for AO/AOCO tables:
+	 * phs_nblocks: total # of segment files
+	 * phs_nallocated: # of processed segment file
+	 * phs_startblock: not used
+	 */
 }			ParallelBlockTableScanDescData;
 typedef struct ParallelBlockTableScanDescData *ParallelBlockTableScanDesc;
 
@@ -162,6 +170,7 @@ typedef struct IndexScanDescData
 	bool	   *xs_orderbynulls;
 	bool		xs_recheckorderby;
 
+	struct dsa_area *dsa; /* dsa area for parallel bitmap scan */
 	/* parallel index scan information, in shared memory */
 	struct ParallelIndexScanDescData *parallel_scan;
 }			IndexScanDescData;

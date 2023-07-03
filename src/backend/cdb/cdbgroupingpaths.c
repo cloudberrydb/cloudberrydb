@@ -161,7 +161,7 @@ typedef struct
 } cdb_multi_dqas_info;
 
 static void create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
-								   RelOptInfo *input_rel, RelOptInfo *output_rel);
+								   RelOptInfo *input_rel, RelOptInfo *output_rel, List *partial_pathlist);
 
 static List *get_all_rollup_groupclauses(List *rollups);
 
@@ -181,11 +181,13 @@ static void add_second_stage_group_agg_path(PlannerInfo *root,
 											Path *path,
 											bool is_sorted,
 											cdb_agg_planning_context *ctx,
-											RelOptInfo *output_rel);
+											RelOptInfo *output_rel,
+											bool is_partial);
 static void add_second_stage_hash_agg_path(PlannerInfo *root,
 										   Path *path,
 										   cdb_agg_planning_context *ctx,
-										   RelOptInfo *output_rel);
+										   RelOptInfo *output_rel,
+										   bool is_partial);
 static void add_single_dqa_hash_agg_path(PlannerInfo *root,
 										 Path *path,
 										 cdb_agg_planning_context *ctx,
@@ -247,7 +249,8 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 								   const AggClauseCosts *agg_final_costs,
 								   List *rollups,
 								   List *new_rollups,
-								   AggStrategy strat)
+								   AggStrategy strat,
+								   List *partial_pathlist)
 {
 	Query	   *parse = root->parse;
 	Path	   *cheapest_path = input_rel->cheapest_total_path;
@@ -331,6 +334,11 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 	}
 	ctx.partial_needed_pathkeys = root->group_pathkeys;
 	ctx.partial_sort_pathkeys = root->group_pathkeys;
+	/*
+	 * CBDB parallel: Set consider_parallel for costs comparison.
+	 * Else 2-stage agg with lower costs may lose to 1-stage agg.
+	 */
+	ctx.partial_rel->consider_parallel = output_rel->consider_parallel;
 
 	ctx.group_tles = get_common_group_tles(target,
 										   parse->groupClause,
@@ -449,7 +457,7 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 	/*
 	 * All set, generate the two-stage paths.
 	 */
-	create_two_stage_paths(root, &ctx, input_rel, output_rel);
+	create_two_stage_paths(root, &ctx, input_rel, output_rel, partial_pathlist);
 
 	/*
 	 * Aggregates with DISTINCT arguments are more complicated, and are not
@@ -594,6 +602,11 @@ cdb_create_twostage_distinct_paths(PlannerInfo *root,
 	ctx.agg_final_costs = &zero_agg_costs;
 	ctx.rollups = NIL;
 	ctx.partial_rel = fetch_upper_rel(root, UPPERREL_CDB_FIRST_STAGE_DISTINCT, NULL);
+	/*
+	 * CBDB parallel: Set consider_parallel for costs comparison.
+	 * Else 2-stage agg with lower costs may lose to 1-stage agg.
+	 */
+	ctx.partial_rel->consider_parallel = output_rel->consider_parallel;
 
 	/*
 	 * Set up these fields to look like a query with a GROUP BY on all the
@@ -649,7 +662,7 @@ cdb_create_twostage_distinct_paths(PlannerInfo *root,
 	/*
 	 * All set, generate the two-stage paths.
 	 */
-	create_two_stage_paths(root, &ctx, input_rel, output_rel);
+	create_two_stage_paths(root, &ctx, input_rel, output_rel, NIL);
 }
 
 /*
@@ -657,7 +670,7 @@ cdb_create_twostage_distinct_paths(PlannerInfo *root,
  */
 static void
 create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
-					   RelOptInfo *input_rel, RelOptInfo *output_rel)
+					   RelOptInfo *input_rel, RelOptInfo *output_rel, List *partial_pathlist)
 {
 	Path	   *cheapest_path = input_rel->cheapest_total_path;
 
@@ -665,9 +678,9 @@ create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 	 * Consider ways to do the first Aggregate stage.
 	 *
 	 * The first stage's output is Partially Aggregated. The paths are
-	 * collected to the ctx->partial_rel, by calling add_path(). We do *not*
-	 * use add_partial_path(), these partially aggregated paths are considered
-	 * more like MPP paths in Cloudberry in general.
+	 * collected to the ctx->partial_rel, by calling add_path().
+	 * These partially aggregated paths are considered
+	 * more like MPP paths in Greenplum in general.
 	 *
 	 * First consider sorted Aggregate paths.
 	 */
@@ -716,6 +729,20 @@ create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 			add_first_stage_hash_agg_path(root, cheapest_path, ctx);
 	}
 
+	if (partial_pathlist)
+	{
+		ListCell   *lc;
+
+		foreach(lc, partial_pathlist)
+		{
+			Path       *path = (Path *) lfirst(lc);
+
+			if (cdbpathlocus_collocates_tlist(root, path->locus, ctx->group_tles))
+				continue;
+			add_partial_path(ctx->partial_rel, path);
+		}
+	}
+
 	/*
 	 * We now have partially aggregated paths in ctx->partial_rel. Consider
 	 * different ways of performing the Finalize Aggregate stage.
@@ -747,14 +774,63 @@ create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 				else
 					is_sorted = false;
 				if (path == cheapest_first_stage_path || is_sorted)
+				{
 					add_second_stage_group_agg_path(root, path, is_sorted,
-													ctx, output_rel);
+													ctx, output_rel, false);
+				}
 			}
 		}
 
 		if (ctx->can_hash && list_length(ctx->agg_costs->distinctAggrefs) == 0)
+		{
 			add_second_stage_hash_agg_path(root, cheapest_first_stage_path,
-										   ctx, output_rel);
+										   ctx, output_rel, false);
+		}
+	}
+
+	/*
+	 * Same like above, but for partial paths in partital_rel,
+	 * that's parallel agg with multiple workers.
+	 */
+	if (ctx->partial_rel->partial_pathlist)
+	{
+		Path	   *cheapest_first_stage_path;
+
+		cheapest_first_stage_path = linitial(ctx->partial_rel->partial_pathlist);
+
+		if (ctx->can_sort)
+		{
+			ListCell   *lc;
+
+			foreach(lc, ctx->partial_rel->partial_pathlist)
+			{
+				Path	   *path = (Path *) lfirst(lc);
+				bool		is_sorted;
+
+				/*
+				 * In two-stage GROUPING SETS paths, the second stage's grouping
+				 * will include GROUPINGSET_ID(), which is not included in
+				 * root->pathkeys. The first stage's sort order does not include
+				 * that, so we know it's not sorted.
+				 */
+				if (!root->parse->groupingSets)
+					is_sorted = pathkeys_contained_in(ctx->final_needed_pathkeys,
+													  path->pathkeys);
+				else
+					is_sorted = false;
+				if (path == cheapest_first_stage_path || is_sorted)
+				{
+					add_second_stage_group_agg_path(root, path, is_sorted,
+													ctx, output_rel, true);
+				}
+			}
+		}
+
+		if (ctx->can_hash && list_length(ctx->agg_costs->distinctAggrefs) == 0)
+		{
+			add_second_stage_hash_agg_path(root, cheapest_first_stage_path,
+										   ctx, output_rel, true);
+		}
 	}
 }
 
@@ -951,13 +1027,15 @@ static void
 
 /*
  * Create Finalize Aggregate path, from a partially aggregated input.
+ * If is_partial is true, add path to partital_pathlist.
  */
 static void
 add_second_stage_group_agg_path(PlannerInfo *root,
 								Path *initial_agg_path,
 								bool is_sorted,
 								cdb_agg_planning_context *ctx,
-								RelOptInfo *output_rel)
+								RelOptInfo *output_rel,
+								bool is_partial)
 {
 	Path	   *path;
 	CdbPathLocus singleQE_locus;
@@ -995,7 +1073,9 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 	/* Alternative 1: Redistribute -> Sort -> Agg */
 	if (CdbPathLocus_IsHashed(group_locus))
 	{
-		path = cdbpath_create_motion_path(root, initial_agg_path, NIL,
+		path = initial_agg_path;
+
+		path = cdbpath_create_motion_path(root, path, NIL,
 											 false, group_locus);
 
 		if (ctx->final_sort_pathkeys)
@@ -1018,7 +1098,10 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 										ctx->dNumGroupsTotal);
 		path->pathkeys = strip_gsetid_from_pathkeys(ctx->gsetid_sortref, path->pathkeys);
 
-		add_path(output_rel, path, root);
+		if (!is_partial)
+			add_path(output_rel, path, root);
+		else
+			add_partial_path(output_rel, path);
 	}
 
 	/*
@@ -1052,7 +1135,10 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 									ctx->agg_final_costs,
 									ctx->dNumGroupsTotal);
 	path->pathkeys = strip_gsetid_from_pathkeys(ctx->gsetid_sortref, path->pathkeys);
-	add_path(output_rel, path, root);
+	if (!is_partial)
+		add_path(output_rel, path, root);
+	else
+		add_partial_path(output_rel, path);
 }
 
 /*
@@ -1083,7 +1169,8 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 											  ctx->new_rollups,
 											  ctx->agg_partial_costs);
 		CdbPathLocus_MakeStrewn(&(first_stage_agg_path->locus),
-								CdbPathLocus_NumSegments(first_stage_agg_path->locus));
+								CdbPathLocus_NumSegments(first_stage_agg_path->locus),
+								path->parallel_workers);
 		add_path(ctx->partial_rel, first_stage_agg_path, root);
 	}
 	else
@@ -1106,12 +1193,14 @@ add_first_stage_hash_agg_path(PlannerInfo *root,
 
 /*
  * Create Finalize Aggregate path from a partially aggregated input by hashing.
+ * If is_partial is true, add path to partital_pathlist.
  */
 static void
 add_second_stage_hash_agg_path(PlannerInfo *root,
 							   Path *initial_agg_path,
 							   cdb_agg_planning_context *ctx,
-							   RelOptInfo *output_rel)
+							   RelOptInfo *output_rel,
+							   bool is_partial)
 {
 	CdbPathLocus group_locus;
 	bool		needs_redistribute;
@@ -1140,10 +1229,11 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 	if (enable_hashagg_disk ||
 		hashentrysize * dNumGroups < work_mem * 1024L)
 	{
-		Path	   *path;
+		Path	   *path = initial_agg_path;
 
-		path = cdbpath_create_motion_path(root, initial_agg_path, NIL, false,
-										  group_locus);
+		if (needs_redistribute)
+			path = cdbpath_create_motion_path(root, path, NIL, false,
+											  group_locus);
 
 		path = (Path *) create_agg_path(root,
 										output_rel,
@@ -1156,7 +1246,10 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 										ctx->havingQual,
 										ctx->agg_final_costs,
 										dNumGroups);
-		add_path(output_rel, path, root);
+		if (!is_partial)
+			add_path(output_rel, path, root);
+		else
+			add_partial_path(output_rel, path);
 	}
 
 	/*
@@ -1176,9 +1269,9 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 		hashentrysize = MAXALIGN(initial_agg_path->pathtarget->width) + MAXALIGN(SizeofMinimalTupleHeader);
 		if (hashentrysize * ctx->dNumGroupsTotal <= work_mem * 1024L)
 		{
-			Path	   *path;
+			Path	   *path = initial_agg_path;
 
-			path = cdbpath_create_motion_path(root, initial_agg_path,
+			path = cdbpath_create_motion_path(root, path,
 											  NIL, false,
 											  singleQE_locus);
 
@@ -1193,7 +1286,10 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 											ctx->havingQual,
 											ctx->agg_final_costs,
 											ctx->dNumGroupsTotal);
-			add_path(output_rel, path, root);
+			if (!is_partial)
+				add_path(output_rel, path, root);
+			else
+				add_partial_path(output_rel, path);
 		}
 	}
 }
@@ -1907,7 +2003,8 @@ choose_grouping_locus(PlannerInfo *root, Path *path,
 											hash_exprs,
 											hash_opfamilies,
 											hash_sortrefs,
-											getgpsegmentCount());
+											getgpsegmentCount(),
+											path->parallel_workers);
 		else
 			CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
 		need_redistribute = true;

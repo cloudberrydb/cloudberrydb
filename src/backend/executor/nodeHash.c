@@ -643,6 +643,7 @@ ExecHashTableCreate(HashState *state, HashJoinState *hjstate,
 	{
 		ParallelHashJoinState *pstate = hashtable->parallel_state;
 		Barrier    *build_barrier;
+		Barrier	   *sync_barrier;
 
 		/*
 		 * Attach to the build barrier.  The corresponding detach operation is
@@ -653,7 +654,12 @@ ExecHashTableCreate(HashState *state, HashJoinState *hjstate,
 		 * algorithm), and we'll coordinate that using build_barrier.
 		 */
 		build_barrier = &pstate->build_barrier;
+		sync_barrier = &pstate->sync_barrier;
+
 		BarrierAttach(build_barrier);
+
+		if (((Hash *) state->ps.plan)->sync_barrier)
+			BarrierArriveAndWait(sync_barrier, WAIT_EVENT_PARALLEL_FINISH);
 
 		/*
 		 * So far we have no idea whether there are any other participants,
@@ -767,12 +773,13 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 	 * avoid the need to batch.  If that won't work, it falls back to hash_mem
 	 * per worker and tries to process batches in parallel.
 	 */
-	if (try_combined_hash_mem)
+	if (try_combined_hash_mem && parallel_workers > 0)
 	{
 		/* Careful, this could overflow size_t */
 		double		newlimit;
 
-		newlimit = (double) hash_table_bytes * (double) (parallel_workers + 1);
+		/* GP_PARALLEL_FIXME: if we enable pg style parallel some day, we should reconsider it. */
+		newlimit = (double) hash_table_bytes * (double) parallel_workers;
 		newlimit = Min(newlimit, (double) SIZE_MAX);
 		hash_table_bytes = (size_t) newlimit;
 	}
@@ -1566,7 +1573,7 @@ ExecParallelHashRepartitionRest(HashJoinTable hashtable)
 		NthParallelHashJoinBatch(old_batches, i);
 
 		old_inner_tuples[i] = sts_attach(ParallelHashJoinBatchInner(shared),
-										 ParallelWorkerNumber + 1,
+										 hashtable->hjstate->worker_id,
 										 &pstate->fileset);
 	}
 
@@ -2556,7 +2563,8 @@ ExecHashTableExplainEnd(PlanState *planstate, struct StringInfoData *buf)
     }
 
     /* Report workfile I/O statistics. */
-    if (hashtable->nbatch > 1)
+    /* GPDB_PARALLEL_FIXME: ExecHashTableExplainBatches if parallel_aware? */
+    if (hashtable->nbatch > 1 && !planstate->plan->parallel_aware)
     {
     	ExecHashTableExplainBatches(hashtable, buf, 0, 1, "Initial");
     	ExecHashTableExplainBatches(hashtable,
@@ -3247,9 +3255,9 @@ void
 ExecHashInitializeWorker(HashState *node, ParallelWorkerContext *pwcxt)
 {
 	SharedHashInfo *shared_info;
-
+	HashJoinState *hjstate = node->hashtable->hjstate;
 	/* don't need this if not instrumenting */
-	if (!node->ps.instrument)
+	if (!node->ps.instrument || !hjstate)
 		return;
 
 	/*
@@ -3259,7 +3267,8 @@ ExecHashInitializeWorker(HashState *node, ParallelWorkerContext *pwcxt)
 	 */
 	shared_info = (SharedHashInfo *)
 		shm_toc_lookup(pwcxt->toc, node->ps.plan->plan_node_id, false);
-	node->hinstrument = &shared_info->hinstrument[ParallelWorkerNumber];
+	Assert(hjstate->worker_id >= 1);
+	node->hinstrument = &shared_info->hinstrument[hjstate->worker_id - 1];
 }
 
 /*
@@ -3290,6 +3299,7 @@ ExecHashRetrieveInstrumentation(HashState *node)
 {
 	SharedHashInfo *shared_info = node->shared_info;
 	size_t		size;
+
 
 	if (shared_info == NULL)
 		return;
@@ -3617,7 +3627,7 @@ ExecParallelHashJoinSetUpBatches(HashJoinTable hashtable, int nbatch)
 		accessor->inner_tuples =
 			sts_initialize(ParallelHashJoinBatchInner(shared),
 						   pstate->nparticipants,
-						   ParallelWorkerNumber + 1,
+						   hashtable->hjstate->worker_id,
 						   sizeof(uint32),
 						   SHARED_TUPLESTORE_SINGLE_PASS,
 						   &pstate->fileset,
@@ -3627,7 +3637,7 @@ ExecParallelHashJoinSetUpBatches(HashJoinTable hashtable, int nbatch)
 			sts_initialize(ParallelHashJoinBatchOuter(shared,
 													  pstate->nparticipants),
 						   pstate->nparticipants,
-						   ParallelWorkerNumber + 1,
+						   hashtable->hjstate->worker_id,
 						   sizeof(uint32),
 						   SHARED_TUPLESTORE_SINGLE_PASS,
 						   &pstate->fileset,
@@ -3709,12 +3719,12 @@ ExecParallelHashEnsureBatchAccessors(HashJoinTable hashtable)
 		accessor->done = false;
 		accessor->inner_tuples =
 			sts_attach(ParallelHashJoinBatchInner(shared),
-					   ParallelWorkerNumber + 1,
+					   hashtable->hjstate->worker_id,
 					   &pstate->fileset);
 		accessor->outer_tuples =
 			sts_attach(ParallelHashJoinBatchOuter(shared,
 												  pstate->nparticipants),
-					   ParallelWorkerNumber + 1,
+					   hashtable->hjstate->worker_id,
 					   &pstate->fileset);
 	}
 

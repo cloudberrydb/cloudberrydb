@@ -16,10 +16,10 @@ function download_dependencies() {
 function compile_cbdb() {
 	fts_mode=$1
 	export GPDB_SRC_PATH="${SRC_PATH}"
-	export CONFIGURE_FLAGS="--enable-cassert --enable-tap-tests --enable-debug-extensions"
+	export CONFIGURE_FLAGS="--enable-cassert --enable-tap-tests --enable-debug-extensions --with-openssl"
 	if [[ ${BUILD_TYPE} == "release" ]]; then
 		export CPPFLAGS="${CXXFLAGS} -Wno-unused-function -Wno-unused-variable"
-		export CONFIGURE_FLAGS="--disable-cassert --disable-tap-tests --disable-debug-extensions "
+		export CONFIGURE_FLAGS="--disable-cassert --disable-tap-tests --disable-debug-extensions --with-openssl"
 	fi
 
 	if [ "${fts_mode}" = "external_fts" ]; then

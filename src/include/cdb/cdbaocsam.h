@@ -69,6 +69,13 @@ typedef struct AOCSInsertDescData
 	struct DatumStreamWrite **ds;
 
 	AppendOnlyBlockDirectory blockDirectory;
+
+	/*
+	 * For multiple segment files insertion.
+	 */
+	bool			insertMultiFiles; /* insert into multi files */
+	dlist_node		node;	/* node of segfiles list */
+	int 			range;  /* inserted tuples of each range */
 } AOCSInsertDescData;
 
 typedef AOCSInsertDescData *AOCSInsertDesc;
@@ -307,7 +314,7 @@ typedef AOCSAddColumnDescData *AOCSAddColumnDesc;
  * ----------------
  */
 
-extern AOCSScanDesc aocs_beginscan(Relation relation, Snapshot snapshot,
+extern AOCSScanDesc aocs_beginscan(Relation relation, Snapshot snapshot, ParallelTableScanDesc parallel_scan,
 								   bool *proj, uint32 flags);
 extern AOCSScanDesc aocs_beginrangescan(Relation relation, Snapshot snapshot,
 										Snapshot appendOnlyMetaDataSnapshot,
@@ -324,7 +331,7 @@ static inline void aocs_insert(AOCSInsertDesc idesc, TupleTableSlot *slot)
 	slot_getallattrs(slot);
 	aocs_insert_values(idesc, slot->tts_values, slot->tts_isnull, (AOTupleId *) &slot->tts_tid);
 }
-extern void aocs_insert_finish(AOCSInsertDesc idesc);
+extern void aocs_insert_finish(AOCSInsertDesc idesc, dlist_head *head);
 extern AOCSFetchDesc aocs_fetch_init(Relation relation,
 									 Snapshot snapshot,
 									 Snapshot appendOnlyMetaDataSnapshot,

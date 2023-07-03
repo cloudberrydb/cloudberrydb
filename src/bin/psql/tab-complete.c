@@ -883,6 +883,10 @@ static const SchemaQuery Query_for_list_of_collations = {
 "       (SELECT tgrelid FROM pg_catalog.pg_trigger "\
 "         WHERE pg_catalog.quote_ident(tgname)='%s')"
 
+#define Query_for_list_of_tasks \
+"SELECT pg_catalog.quote_ident(jobname) FROM pg_catalog.pg_task "\
+" WHERE username = current_user"
+
 #define Query_for_list_of_ts_configurations \
 "SELECT pg_catalog.quote_ident(cfgname) FROM pg_catalog.pg_ts_config "\
 " WHERE substring(pg_catalog.quote_ident(cfgname),1,%d)='%s'"
@@ -1121,6 +1125,7 @@ static const pgsql_thing_t words_after_create[] = {
 	{"SYSTEM", NULL, NULL, NULL, THING_NO_CREATE | THING_NO_DROP},
 	{"TABLE", NULL, NULL, &Query_for_list_of_tables},
 	{"TABLESPACE", Query_for_list_of_tablespaces},
+	{"TASK", Query_for_list_of_tasks},
 	{"TEMP", NULL, NULL, NULL, THING_NO_DROP | THING_NO_ALTER}, /* for CREATE TEMP TABLE
 																 * ... */
 	{"TEMPLATE", Query_for_list_of_ts_templates, NULL, NULL, THING_NO_SHOW},
@@ -2290,6 +2295,11 @@ psql_completion(const char *text, int start, int end)
 	/* complete ALTER GROUP <foo> ADD|DROP USER with a user name */
 	else if (Matches("ALTER", "GROUP", MatchAny, "ADD|DROP", "USER"))
 		COMPLETE_WITH_QUERY(Query_for_list_of_roles);
+	/* ALTER TASK */
+	else if (Matches("ALTER", "TASK"))
+		COMPLETE_WITH_QUERY(Query_for_list_of_tasks);
+	else if (Matches("ALTER", "TASK", MatchAny))
+		COMPLETE_WITH("SCHEDULE", "DATABASE", "USER", "ACTIVE", "NOT ACTIVE", "AS");
 
 	/*
 	 * If we have ALTER TYPE <sth> RENAME VALUE, provide list of enum values
@@ -2715,6 +2725,15 @@ psql_completion(const char *text, int start, int end)
 	else if (TailMatches("CREATE", "SEQUENCE", MatchAny, "NO") ||
 			 TailMatches("CREATE", "TEMP|TEMPORARY", "SEQUENCE", MatchAny, "NO"))
 		COMPLETE_WITH("MINVALUE", "MAXVALUE", "CYCLE");
+
+/* CREATE TASK */
+	else if (Matches("CREATE", "TASK", MatchAny))
+		COMPLETE_WITH("SCHEDULE");
+	else if (Matches("CREATE", "TASK", MatchAny, "SCHEDULE", MatchAny))
+		COMPLETE_WITH("DATABASE", "USER", "AS");
+	else if (Matches("CREATE", "TASK", MatchAny, "SCHEDULE", MatchAny, "DATABASE", MatchAny) ||
+			 Matches("CREATE", "TASK", MatchAny, "SCHEDULE", MatchAny, "USER", MatchAny))
+		COMPLETE_WITH("AS");
 
 /* CREATE SERVER <name> */
 	else if (Matches("CREATE", "SERVER", MatchAny))
@@ -3218,6 +3237,10 @@ psql_completion(const char *text, int start, int end)
 	/* DROP TEXT SEARCH */
 	else if (Matches("DROP", "TEXT", "SEARCH"))
 		COMPLETE_WITH("CONFIGURATION", "DICTIONARY", "PARSER", "TEMPLATE");
+
+	/* DROP TASK */
+	else if (Matches("DROP", "TASK"))
+		COMPLETE_WITH_QUERY(Query_for_list_of_tasks);
 
 	/* DROP TRIGGER */
 	else if (Matches("DROP", "TRIGGER", MatchAny))

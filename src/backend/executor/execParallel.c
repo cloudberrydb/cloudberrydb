@@ -23,6 +23,7 @@
 
 #include "postgres.h"
 
+#include "access/tableam.h"
 #include "executor/execParallel.h"
 #include "executor/executor.h"
 #include "executor/nodeAgg.h"
@@ -204,6 +205,7 @@ ExecSerializePlan(Plan *plan, EState *estate)
 		pstmt->subplans = lappend(pstmt->subplans, subplan);
 	}
 
+	pstmt->subplan_sliceIds = estate->es_plannedstmt->subplan_sliceIds;
 	pstmt->rewindPlanIDs = NULL;
 	pstmt->rowMarks = NIL;
 	pstmt->relationOids = NIL;
@@ -493,12 +495,9 @@ ExecParallelInitializeDSM(PlanState *planstate,
 											d->pcxt);
 			break;
 		case T_BitmapHeapScanState:
-			/* GPDB_12_MERGE_FEATURE_NOT_SUPPORTED: the parallel StreamBitmap scan is not implemented */
-			/*
-			 * if (planstate->plan->parallel_aware)
-			 *     ExecBitmapHeapInitializeDSM((BitmapHeapScanState *) planstate,
-			 *                                 d->pcxt);
-			 */
+			if (planstate->plan->parallel_aware)
+			    ExecBitmapHeapInitializeDSM((BitmapHeapScanState *) planstate,
+			                                d->pcxt);
 			break;
 		case T_HashJoinState:
 			if (planstate->plan->parallel_aware)
@@ -1499,4 +1498,208 @@ ParallelQueryMain(dsm_segment *seg, shm_toc *toc)
 	dsa_detach(area);
 	FreeQueryDesc(queryDesc);
 	receiver->rDestroy(receiver);
+}
+
+bool
+EstimateGpParallelDSMEntrySize(PlanState *planstate, ParallelContext *pctx)
+{
+	if (planstate == NULL)
+		return false;
+
+	switch (nodeTag(planstate))
+	{
+		case T_MotionState:
+			/*
+			 * If we walk to MotionStateNode with Recv Motion Type, we should return directly.
+			 * So that we can only Initialize Parallel Entry for current Slice.
+			 */
+			if (((MotionState *) planstate)->mstype == MOTIONSTATE_RECV)
+				return false;
+			break;
+		case T_SeqScanState:
+			if (planstate->plan->parallel_aware)
+				ExecSeqScanEstimate((SeqScanState *) planstate,
+									pctx);
+			break;
+		case T_IndexScanState:
+			if (planstate->plan->parallel_aware)
+				ExecIndexScanEstimate((IndexScanState *) planstate,
+									  pctx);
+			break;
+		case T_IndexOnlyScanState:
+			if (planstate->plan->parallel_aware)
+				ExecIndexOnlyScanEstimate((IndexOnlyScanState *) planstate,
+										  pctx);
+			break;
+		case T_BitmapHeapScanState:
+			if (planstate->plan->parallel_aware)
+				ExecBitmapHeapEstimate((BitmapHeapScanState *) planstate,
+									   pctx);
+			break;
+		case T_AppendState:
+			if (planstate->plan->parallel_aware)
+				ExecAppendEstimate((AppendState*) planstate, pctx);
+			break;
+		case T_HashJoinState:
+			if (planstate->plan->parallel_aware)
+				ExecHashJoinEstimate((HashJoinState *) planstate,
+									 pctx);
+			break;
+		case T_HashState:
+			ExecHashEstimate((HashState *) planstate, pctx);
+			break;
+		case T_SortState:
+			ExecSortEstimate((SortState *) planstate, pctx);
+			break;
+		default:
+			break;
+
+	}
+
+	return planstate_tree_walker(planstate, EstimateGpParallelDSMEntrySize, pctx);
+}
+
+bool
+InitializeGpParallelWorkers(PlanState *planstate, ParallelWorkerContext *pwcxt)
+{
+	if (planstate == NULL)
+		return false;
+	/*
+	 * GPDB_PARALLEL_FIXME:
+	 * Why we call PG's xxxInitializeWorker functions for some nodes, but not for others?
+	 */
+	switch (nodeTag(planstate))
+	{
+		case T_MotionState:
+			/*
+			 * If we walk to MotionStateNode with Recv Motion Type, we should return directly.
+			 * So that we can only Initialize Parallel Entry for current Slice.
+			 */
+			if (((MotionState *) planstate)->mstype == MOTIONSTATE_RECV)
+				return false;
+			break;
+		case T_SeqScanState:
+			break;
+		case T_IndexScanState:
+			break;
+		case T_IndexOnlyScanState:
+			break;
+		case T_BitmapHeapScanState:
+			if (planstate->plan->parallel_aware)
+				ExecBitmapHeapInitializeWorker((BitmapHeapScanState *) planstate, pwcxt);
+			break;
+		case T_AppendState:
+			if (planstate->plan->parallel_aware)
+				ExecAppendInitializeWorker((AppendState *) planstate, pwcxt);
+			break;
+		case T_HashState:
+			break;
+		case T_SortState:
+			break;
+		case T_HashJoinState:
+			if (planstate->plan->parallel_aware)
+				ExecHashJoinInitializeWorker((HashJoinState *) planstate, pwcxt);
+			break;
+		default:
+			break;
+	}
+
+	return planstate_tree_walker(planstate, InitializeGpParallelWorkers, pwcxt);
+}
+
+bool
+InitializeGpParallelDSMEntry(PlanState *planstate, ParallelContext *pctx)
+{
+	if (planstate == NULL)
+		return false;
+
+	switch (nodeTag(planstate))
+	{
+		case T_MotionState:
+			/*
+			 * If we walk to MotionStateNode with Recv Motion Type, we should return directly.
+			 * So that we can only Initialize Parallel Entry for current Slice.
+			 */
+			if (((MotionState *) planstate)->mstype == MOTIONSTATE_RECV)
+				return false;
+			break;
+		case T_SeqScanState:
+			if (planstate->plan->parallel_aware)
+			{
+				SeqScanState* node = (SeqScanState*) planstate;
+
+				ParallelTableScanDesc pscan;
+
+				pscan = shm_toc_allocate(pctx->toc, node->pscan_len);
+
+				table_parallelscan_initialize(node->ss.ss_currentRelation, pscan,
+									  node->ss.ps.state->es_snapshot);
+
+				Assert(pscan);
+
+				shm_toc_insert(pctx->toc, node->ss.ps.plan->plan_node_id, pscan);
+			}
+			break;
+		case T_IndexScanState:
+			if (planstate->plan->parallel_aware)
+			{
+				IndexScanState* node = (IndexScanState*) planstate;
+
+				ParallelIndexScanDesc piscan;
+
+				piscan = shm_toc_allocate(pctx->toc, node->iss_PscanLen);
+
+				index_parallelscan_initialize(node->ss.ss_currentRelation,
+											  node->iss_RelationDesc,
+											  node->ss.ps.state->es_snapshot,
+											  piscan);
+
+				Assert(piscan);
+
+				shm_toc_insert(pctx->toc, node->ss.ps.plan->plan_node_id, piscan);
+			}
+			break;
+		case T_IndexOnlyScanState:
+			if (planstate->plan->parallel_aware)
+			{
+				IndexOnlyScanState* node = (IndexOnlyScanState*) planstate;
+
+				ParallelIndexScanDesc piscan;
+				piscan = shm_toc_allocate(pctx->toc, node->ioss_PscanLen);
+
+				index_parallelscan_initialize(node->ss.ss_currentRelation,
+											  node->ioss_RelationDesc,
+											  node->ss.ps.state->es_snapshot,
+											  piscan);
+
+				Assert(piscan);
+
+				shm_toc_insert(pctx->toc, node->ss.ps.plan->plan_node_id, piscan);
+			}
+			break;
+		case T_BitmapHeapScanState:
+			if (planstate->plan->parallel_aware)
+				ExecBitmapHeapInitializeDSM((BitmapHeapScanState *) planstate,
+											pctx);
+			break;
+		case T_AppendState:
+			if (planstate->plan->parallel_aware)
+				ExecAppendInitializeDSM((AppendState *) planstate,
+										pctx);
+			break;
+		case T_HashJoinState:
+			if (planstate->plan->parallel_aware)
+				ExecHashJoinInitializeDSM((HashJoinState *) planstate, pctx);
+			break;
+		case T_HashState:
+			ExecHashInitializeDSM((HashState *) planstate, pctx);
+			break;
+		case T_SortState:
+			ExecSortInitializeDSM((SortState *) planstate, pctx);
+			break;
+		default:
+			break;
+	}
+
+	return planstate_tree_walker(planstate, InitializeGpParallelDSMEntry, pctx);
 }

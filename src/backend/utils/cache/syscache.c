@@ -516,6 +516,17 @@ static const struct cachedesc cacheinfo[] = {
 		},
 		1024
 	},
+	{AppendOnlyRelationId,	/* AORELID */
+		AppendOnlyRelidIndexId,
+		1,
+		{
+			Anum_pg_appendonly_relid,
+			0,
+			0,
+			0
+		},
+		1024
+	},
 	{IndexRelationId,			/* INDEXRELID */
 		IndexRelidIndexId,
 		1,

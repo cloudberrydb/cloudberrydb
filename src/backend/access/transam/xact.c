@@ -21,6 +21,7 @@
 #include <unistd.h>
 
 #include "access/commit_ts.h"
+#include "access/heapam.h"
 #include "access/multixact.h"
 #include "access/parallel.h"
 #include "access/subtrans.h"
@@ -2814,6 +2815,9 @@ CommitTransaction(void)
 	if (IsInParallelMode())
 		AtEOXact_Parallel(true);
 
+	/* Clean up GP style parallel workers which we might have. */
+	AtEOXact_GP_Parallel();
+
 	/* Shut down the deferred-trigger manager */
 	AfterTriggerEndXact(true);
 
@@ -3537,6 +3541,9 @@ AbortTransaction(void)
 		AtEOXact_Parallel(false);
 		s->parallelModeLevel = 0;
 	}
+
+	/* Clean up GP style parallel workers which we might have. */
+	AtEOXact_GP_Parallel();
 
 	/*
 	 * do abort processing

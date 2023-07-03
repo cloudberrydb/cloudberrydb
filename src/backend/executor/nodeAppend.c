@@ -57,6 +57,7 @@
 
 #include "postgres.h"
 
+#include "cdb/cdbvars.h"
 #include "executor/execAsync.h"
 #include "executor/execdebug.h"
 #include "executor/execPartition.h"
@@ -531,6 +532,7 @@ ExecAppendInitializeDSM(AppendState *node,
 	node->choose_next_subplan = choose_next_subplan_for_leader;
 }
 
+
 /* ----------------------------------------------------------------
  *		ExecAppendReInitializeDSM
  *
@@ -859,8 +861,19 @@ mark_invalid_subplans_as_finished(AppendState *node)
 	/* Only valid to call this while in parallel Append mode */
 	Assert(node->as_pstate);
 
+	/*
+	 * NB: In upstream, we assert node->as_prune_state to be not empty.
+	 * However, after pg12 merge, we'll allow the case that
+	 * as_valid_subplans and as_prune_state both be emty while
+	 * node->join_prune_paramids is true.
+	 *
+	 * If as_valid_subplans is empty we'll call this function. And the
+	 * assertion must be removed.
+	 */
+#if 0
 	/* Shouldn't have been called when run-time pruning is not enabled */
 	Assert(node->as_prune_state);
+#endif
 
 	/* Nothing to do if all plans are valid */
 	if (bms_num_members(node->as_valid_subplans) == node->as_nplans)

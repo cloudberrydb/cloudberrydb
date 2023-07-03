@@ -1,6 +1,8 @@
 --
 -- Tests the spill files disk space accounting mechanism
 --
+-- GPDP_PARALLEL_FIXME: it's hard to make fault_injection work with prallel processes.
+set enable_parallel = false;
 
 -- check segspace before test
 reset statement_mem;
@@ -39,6 +41,21 @@ set gp_autostats_mode = none;
 
 begin;
 SELECT t1.* FROM segspace_test_hj_skew AS t1, segspace_test_hj_skew AS t2 WHERE t1.i1=t2.i2;
+rollback;
+
+-- 
+-- GPDB parallel once got errors like: 
+-- could not read from shared tuplestore temporary file: read only 0 of 8 bytes from file.
+-- Enable parallel here to test it.
+-- 
+begin;
+set local enable_parallel = true;
+set local optimizer=off;
+set local min_parallel_table_scan_size=0;
+set local min_parallel_index_scan_size = 0;
+set local force_parallel_mode=1;
+EXPLAIN(COSTS OFF) SELECT t1.* FROM segspace_test_hj_skew AS t1, segspace_test_hj_skew AS t2 WHERE t1.i1=t2.i2;
+SELECT count(t1.*) FROM segspace_test_hj_skew AS t1, segspace_test_hj_skew AS t2 WHERE t1.i1=t2.i2;
 rollback;
 
 select gp_inject_fault('exec_hashjoin_new_batch', 'status', 2);
@@ -327,3 +344,8 @@ $func$ language plpgsql;
 select workset_cleanup_test();
 
 drop table segspace_test_hj_skew;
+
+reset enable_parallel;
+
+-- don't disturb other processes.
+select cleanupAllGangs();

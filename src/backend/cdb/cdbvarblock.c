@@ -18,7 +18,9 @@
 
 #include "postgres.h"
 
+#include "access/xlog.h"
 #include "cdb/cdbvarblock.h"
+#include "crypto/bufenc.h"
 
 static VarBlockByteLen VarBlockGetItemLen(
 				   VarBlockReader *varBlockReader,
@@ -49,11 +51,12 @@ static VarBlockByteOffset VarBlockGetOffset(
  */
 void
 VarBlockMakerInit(
-				  VarBlockMaker *varBlockMaker,
+				  VarBlockMaker *varBlockMaker, 
 				  uint8 *buffer,
 				  VarBlockByteLen maxBufferLen,
 				  uint8 *tempScratchSpace,
-				  int tempScratchSpaceLen)
+				  int tempScratchSpaceLen,
+				  AppendOnlyStorageWrite	*storageWrite)
 {
 	Assert(varBlockMaker != NULL);
 	Assert(buffer != NULL);
@@ -263,7 +266,8 @@ VarBlockMakerItemCount(
  */
 VarBlockByteLen
 VarBlockMakerFinish(
-					VarBlockMaker *varBlockMaker)
+					VarBlockMaker *varBlockMaker,
+					AppendOnlyStorageWrite	*storageWrite)
 {
 	uint8	   *buffer;
 	int			itemCount;
@@ -347,6 +351,15 @@ VarBlockMakerFinish(
 /* 		exit(1); */
 /* 	} */
 /* #endif */
+
+	/* for singerow, we don't encrypt in the var block. */
+	if (VarBlockMakerItemCount(varBlockMaker) != 1 && FileEncryptionEnabled) 
+	{
+		int encryptDataOffset = VARBLOCK_HEADER_LEN;
+		EncryptAOBLock(buffer + encryptDataOffset,
+						bufferLen - encryptDataOffset,
+						&storageWrite->relFileNode.node);
+	}
 
 	return bufferLen;
 }
@@ -632,7 +645,9 @@ void
 VarBlockReaderInit(
 				   VarBlockReader *varBlockReader,
 				   uint8 *buffer,
-				   VarBlockByteLen bufferLen)
+				   VarBlockByteLen bufferLen,
+				   bool   needDecrypt,
+				   RelFileNode *file_node)
 {
 	VarBlockHeader *header;
 	VarBlockByteLen itemLenSum;
@@ -658,6 +673,15 @@ VarBlockReaderInit(
 	 */
 	offsetToOffsetArray = VARBLOCK_HEADER_LEN +
 		((itemLenSum + 1) / 2) * 2;
+	
+	if (FileEncryptionEnabled && needDecrypt)
+	{		
+		int 	encryptDataOffset = VARBLOCK_HEADER_LEN;
+		DecryptAOBlock(buffer + encryptDataOffset,
+						bufferLen - encryptDataOffset, 
+						file_node);
+	}
+
 	if (VarBlockGet_offsetsAreSmall(header))
 	{
 		divisor = 2;
@@ -829,6 +853,7 @@ VarBlockReaderGetItemPtr(
 
 VarBlockByteLen
 VarBlockCollapseToSingleItem(
+							 AppendOnlyStorageWrite	*storageWrite,
 							 uint8 *target,
 							 uint8 *source,
 							 int32 sourceLen)
@@ -840,7 +865,9 @@ VarBlockCollapseToSingleItem(
 	VarBlockReaderInit(
 					   &varBlockReader,
 					   source,
-					   sourceLen);
+					   sourceLen,
+					   	false,
+					   &storageWrite->relFileNode.node);
 
 	Assert(VarBlockReaderItemCount(&varBlockReader) == 1);
 
@@ -860,6 +887,11 @@ VarBlockCollapseToSingleItem(
 	memmove(target,
 			itemPtr,
 			itemLen);
+
+	if (FileEncryptionEnabled)
+		EncryptAOBLock(target, 
+						itemLen, 
+						&storageWrite->relFileNode.node);
 
 	return itemLen;
 }

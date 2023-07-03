@@ -284,6 +284,8 @@ typedef struct ParallelHashJoinState
 	Barrier		build_barrier;	/* synchronization for the build phases */
 	Barrier		grow_batches_barrier;
 	Barrier		grow_buckets_barrier;
+	Barrier		sync_barrier;
+	Barrier		batch0_barrier;
 	pg_atomic_uint32 distributor;	/* counter for load balancing */
 
 	SharedFileSet fileset;		/* space for shared temporary files */

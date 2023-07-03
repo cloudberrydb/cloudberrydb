@@ -53,6 +53,7 @@
 #include "commands/vacuum.h"
 #include "commands/variable.h"
 #include "common/string.h"
+#include "crypto/kmgr.h"
 #include "funcapi.h"
 #include "jit/jit.h"
 #include "libpq/auth.h"
@@ -671,7 +672,7 @@ static char *recovery_target_string;
 static char *recovery_target_xid_string;
 static char *recovery_target_name_string;
 static char *recovery_target_lsn_string;
-
+static char *file_encryption_method_str;
 
 /* should be static, but commands/variable.c needs to get at this */
 char	   *role_string;
@@ -799,6 +800,8 @@ const char *const config_group_names[] =
 	gettext_noop("Statistics / Monitoring"),
 	/* STATS_COLLECTOR */
 	gettext_noop("Statistics / Query and Index Statistics Collector"),
+	/* ENCRYPTION */
+	gettext_noop("Encryption"),
 	/* AUTOVACUUM */
 	gettext_noop("Autovacuum"),
 	/* CLIENT_CONN_STATEMENT */
@@ -835,6 +838,8 @@ const char *const config_group_names[] =
 	gettext_noop("Customized Options"),
 	/* DEVELOPER_OPTIONS */
 	gettext_noop("Developer Options"),
+	/* TASK_SCHEDULE_OPTIONS */
+	gettext_noop("Task Schedule Options"),
 
 	/* DEPRECATED_OPTIONS */
 	gettext_noop("Deprecated Options"),
@@ -845,7 +850,7 @@ const char *const config_group_names[] =
 	NULL
 };
 
-StaticAssertDecl(lengthof(config_group_names) == (DEVELOPER_OPTIONS + 4),
+StaticAssertDecl(lengthof(config_group_names) == (TASK_SCHEDULE_OPTIONS + 4),
 				 "array length mismatch");
 
 /*
@@ -1268,6 +1273,7 @@ static struct config_bool ConfigureNamesBool[] =
 		true,
 		NULL, NULL, NULL
 	},
+
 	{
 		{"fsync", PGC_SIGHUP, WAL_SETTINGS,
 			gettext_noop("Forces synchronization of updates to disk."),
@@ -2058,7 +2064,7 @@ static struct config_bool ConfigureNamesBool[] =
 			GUC_EXPLAIN
 		},
 		&parallel_leader_participation,
-		true,
+		false,
 		NULL, NULL, NULL
 	},
 
@@ -2155,6 +2161,15 @@ static struct config_bool ConfigureNamesBool[] =
 		},
 		&wal_receiver_create_temp_slot,
 		false,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"tde_force_switch", PGC_POSTMASTER, ENCRYPTION,
+			gettext_noop("Whether to enable tde featue."),
+		},
+		&tde_force_switch,
+		true,
 		NULL, NULL, NULL
 	},
 
@@ -4652,6 +4667,27 @@ static struct config_string ConfigureNamesString[] =
 		check_backtrace_functions, assign_backtrace_functions, NULL
 	},
 
+	{
+		{"cluster_key_command", PGC_SIGHUP, ENCRYPTION,
+			gettext_noop("Command to obtain cluster key for cluster file encryption."),
+			NULL
+		},
+		&cluster_key_command,
+		"",
+		NULL, NULL, NULL
+	},
+
+	{
+		{"file_encryption_method", PGC_INTERNAL, PRESET_OPTIONS,
+		 gettext_noop("Shows the cluster file encryption method."),
+		 NULL,
+		 GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE
+ 		},
+		&file_encryption_method_str,
+		"",
+		NULL, NULL, NULL
+	},
+	
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, NULL, NULL, NULL, NULL
@@ -10894,7 +10930,8 @@ can_skip_gucvar(struct config_generic *gconf)
 	 */
 	return gconf->context == PGC_POSTMASTER ||
 		gconf->context == PGC_INTERNAL || gconf->source == PGC_S_DEFAULT ||
-		strcmp(gconf->name, "role") == 0;
+		strcmp(gconf->name, "role") == 0 || strcmp(gconf->name, "gp_role") == 0 ||
+		strcmp(gconf->name, "gp_is_writer") == 0;
 }
 
 /*
@@ -11375,6 +11412,22 @@ RestoreGUCState(void *gucstate)
 		error_context_name_and_value[0] = varname;
 		error_context_name_and_value[1] = varvalue;
 		error_context_callback.arg = &error_context_name_and_value[0];
+		/*
+		 * GPDB
+		 * Skip all GUCs that will change FirstSnapshotSet.
+		 * Current is only gp_write_shared_snapshot.
+		 * Restore those will call some functions like assign_gp_write_shared_snapshot
+		 * which will set FirstSnapshotSet before some GUCs like transaction_deferrable.
+		 * That is not allowed.
+		 *
+		 * We must EnterParallelMode() after RestoreGUCState(), and can't know
+		 * if we are parallel workers now.
+		 * But, in principle, we are parallel workers launched by PG style nodes.
+		 * So, just skip the GUC is reasonable.
+		 *
+		 */
+		if (strcmp(varname, "gp_write_shared_snapshot") == 0)
+			continue;
 		result = set_config_option(varname, varvalue, varscontext, varsource,
 								   GUC_ACTION_SET, true, ERROR, true);
 		if (result <= 0)

@@ -9,10 +9,16 @@
 
 #include "postgres_fe.h"
 
+#include <dirent.h>
 #include <ctype.h>
 
 #include "pg_upgrade.h"
 #include "greenplum/pg_upgrade_greenplum.h"
+
+#include "access/xlog_internal.h"
+#include "common/controldata_utils.h"
+#include "common/file_utils.h"
+#include "common/kmgr_utils.h"
 
 /*
  * get_control_data()
@@ -62,6 +68,7 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 	bool		got_date_is_int = false;
 	bool		got_data_checksum_version = false;
 	bool		got_cluster_state = false;
+	int			got_file_encryption_method = false;
 	char	   *lc_collate = NULL;
 	char	   *lc_ctype = NULL;
 	char	   *lc_monetary = NULL;
@@ -215,6 +222,13 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 	{
 		cluster->controldata.data_checksum_version = 0;
 		got_data_checksum_version = true;
+	}
+
+	/* Only in <= 14 */
+	if (GET_MAJOR_VERSION(cluster->major_version) <= 1400)
+	{
+		cluster->controldata.file_encryption_method = DISABLED_ENCRYPTION_METHOD;
+		got_file_encryption_method = true;
 	}
 
 	/* we have the result of cmd in "output". so parse it line by line now */
@@ -574,6 +588,18 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 			cluster->controldata.data_checksum_version = str2uint(p);
 			got_data_checksum_version = true;
 		}
+		else if ((p = strstr(bufin, "Cluster file encryption method:")) != NULL)
+		{
+			p = strchr(p, ':');
+
+			if (p == NULL || strlen(p) <= 1)
+				pg_fatal("%d: controldata retrieval problem\n", __LINE__);
+
+			p++;				/* remove ':' char */
+			/* used later for contrib check */
+			cluster->controldata.file_encryption_method = atoi(p);
+			got_file_encryption_method = true;
+		}
 	}
 
 	pclose(output);
@@ -652,7 +678,8 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 		!got_index || /* !got_toast || */
 		(!got_large_object &&
 		 cluster->controldata.ctrl_ver >= LARGE_OBJECT_SIZE_PG_CONTROL_VER) ||
-		!got_date_is_int || !got_data_checksum_version)
+		!got_date_is_int || !got_data_checksum_version ||
+		!got_file_encryption_method)
 	{
 		if (cluster == &old_cluster)
 			pg_log(PG_REPORT,
@@ -730,7 +757,11 @@ get_control_data(ClusterInfo *cluster, bool live_check)
 		if (!got_data_checksum_version)
 			pg_log(PG_REPORT, "  data checksum version\n");
 
-		pg_fatal("Cannot continue without required control information, terminating\n");
+		/* value added in Postgres 14 */
+		if (!got_file_encryption_method)
+			pg_log(PG_REPORT, "  file encryption method\n");
+
+		pg_fatal("Cannot continue without required control information, terminating");
 	}
 }
 
@@ -828,6 +859,13 @@ check_control_data(ControlData *oldctrl,
 	else if (oldctrl->data_checksum_version != newctrl->data_checksum_version
 			 && is_checksum_mode(CHECKSUM_NONE))
 		pg_fatal("old and new cluster pg_controldata checksum versions do not match\n");
+	/*
+	 * We cannot upgrade if the old cluster file encryption method
+	 * doesn't match the new one.
+	 */
+	if (oldctrl->file_encryption_method != newctrl->file_encryption_method)
+		pg_fatal("old and new clusters use different file encryption methods or\n"
+				 "one cluster uses encryption and the other does not");
 }
 
 

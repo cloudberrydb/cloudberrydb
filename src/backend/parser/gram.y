@@ -314,7 +314,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 		CreateMatViewStmt RefreshMatViewStmt CreateAmStmt
 		CreatePublicationStmt AlterPublicationStmt
 		CreateSubscriptionStmt AlterSubscriptionStmt DropSubscriptionStmt
-		RetrieveStmt
+		RetrieveStmt CreateTaskStmt AlterTaskStmt DropTaskStmt
 
 /* GPDB-specific commands */
 %type <node>	AlterQueueStmt AlterResourceGroupStmt
@@ -536,6 +536,10 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 %type <list>	OptSeqOptList SeqOptList OptParenthesizedSeqOptList
 %type <defelt>	SeqOptElem
+
+%type <list>	OptTaskOptList TaskOptList AlterTaskOptList
+%type <defelt>	TaskOptElem AlterTaskElem
+%type <str>		task_schedule task_command
 
 %type <istmt>	insert_rest
 %type <infer>	opt_conf_expr
@@ -770,7 +774,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 	LABEL LANGUAGE LARGE_P LAST_P LATERAL_P
 	LEADING LEAKPROOF LEAST LEFT LEVEL LIKE LIMIT LISTEN LOAD LOCAL
-	LOCALTIME LOCALTIMESTAMP LOCATION LOCK_P LOCKED LOGGED
+	LOCALTIME LOCALTIMESTAMP LOCATION LOCK_P LOCKED LOCUS LOGGED
 
 	MAPPING MATCH MATERIALIZED MAXVALUE MEMORY_LIMIT MEMORY_SHARED_QUOTA MEMORY_SPILL_RATIO
 	METHOD MINUTE_P MINVALUE MODE MONTH_P MOVE
@@ -860,6 +864,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	ROOTPARTITION
 
 	SCATTER SEGMENT SEGMENTS SPLIT SUBPARTITION
+
+	TASK SCHEDULE
 
 	THRESHOLD
 
@@ -1137,6 +1143,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc ROLLBACK
 			%nonassoc RULE
 			%nonassoc SAVEPOINT
+			%nonassoc SCHEDULE
 			%nonassoc SCHEMA
 			%nonassoc SCROLL
 			%nonassoc SEARCH
@@ -1163,6 +1170,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 			%nonassoc SYSTEM_P
 			%nonassoc STRICT_P
 			%nonassoc TABLESPACE
+			%nonassoc TASK
 			%nonassoc TEMP
 			%nonassoc TEMPLATE
 			%nonassoc TEMPORARY
@@ -1368,6 +1376,7 @@ stmt:
 			| AlterObjectSchemaStmt
 			| AlterOwnerStmt
 			| AlterOperatorStmt
+			| AlterTaskStmt
 			| AlterTypeStmt
 			| AlterPolicyStmt
 			| AlterQueueStmt
@@ -1421,6 +1430,7 @@ stmt:
 			| CreateSubscriptionStmt
 			| CreateStatsStmt
 			| CreateTableSpaceStmt
+			| CreateTaskStmt
 			| CreateTransformStmt
 			| CreateTrigStmt
 			| CreateEventTrigStmt
@@ -1443,6 +1453,7 @@ stmt:
 			| DropStmt
 			| DropSubscriptionStmt
 			| DropTableSpaceStmt
+			| DropTaskStmt
 			| DropTransformStmt
 			| DropRoleStmt
 			| DropUserMappingStmt
@@ -6986,6 +6997,148 @@ CreateTableSpaceStmt: CREATE TABLESPACE name OptTableSpaceOwner LOCATION Sconst 
 
 OptTableSpaceOwner: OWNER RoleSpec		{ $$ = $2; }
 			| /*EMPTY */				{ $$ = NULL; }
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *			CREATE TASK [IF NOT EXISTS] <name> SCHEDULE = '{ <num> SECONDS | <cron_expr> }'
+ *				[ DATABASE <dbname>]
+ *				[ USER <username>]
+ *			AS
+ *				<sql>
+ *
+ *****************************************************************************/
+
+CreateTaskStmt:
+		CREATE TASK name SCHEDULE task_schedule OptTaskOptList AS task_command
+				{
+					CreateTaskStmt *n = makeNode(CreateTaskStmt);
+					n->taskname = $3;
+					n->schedule = $5;
+					n->options = $6;
+					n->sql = $8;
+					n->if_not_exists = false;
+					$$ = (Node *) n;
+				}
+		| CREATE TASK IF_P NOT EXISTS name SCHEDULE task_schedule OptTaskOptList AS task_command
+				{
+					CreateTaskStmt *n = makeNode(CreateTaskStmt);
+					n->taskname = $6;
+					n->schedule = $8;
+					n->options = $9;
+					n->sql = $11;
+					n->if_not_exists = true;
+					$$ = (Node *) n;
+				}
+		;
+
+OptTaskOptList: TaskOptList							{ $$ = $1; }
+				| /*EMPTY*/							{ $$ = NIL; }
+		;
+
+TaskOptList: TaskOptElem								{ $$ = list_make1($1); }
+			| TaskOptList TaskOptElem					{ $$ = lappend($1, $2); }
+		;
+
+TaskOptElem: DATABASE name
+				{
+					$$ = makeDefElem("dbname", (Node *)makeString($2), @1);
+				}
+			| USER name
+				{
+					$$ = makeDefElem("username", (Node *)makeString($2), @1);
+				}
+		;
+
+task_schedule:
+		Sconst								{ $$ = $1; }
+		| NULL_P							{ $$ = NULL; }
+		;
+
+task_command:
+		Sconst								{ $$ = $1; }
+		| NULL_P							{ $$ = NULL; }
+		;		
+
+/*****************************************************************************
+ *
+ *		ALTER TASK
+ *
+ *****************************************************************************/
+
+AlterTaskStmt:
+		ALTER TASK name AlterTaskOptList
+				{
+					AlterTaskStmt *n = makeNode(AlterTaskStmt);
+					n->taskname = $3;
+					n->options = $4;
+					n->missing_ok = false;
+					$$ = (Node *) n;
+				}
+		| ALTER TASK IF_P EXISTS name AlterTaskOptList
+				{
+					AlterTaskStmt *n = makeNode(AlterTaskStmt);
+					n->taskname = $5;
+					n->options = $6;
+					n->missing_ok = true;
+					$$ = (Node *) n;
+				}
+		;
+
+AlterTaskOptList: AlterTaskElem								{ $$ = list_make1($1); }
+			| AlterTaskOptList AlterTaskElem				{ $$ = lappend($1, $2); }
+		;
+
+AlterTaskElem: 
+			SCHEDULE task_schedule
+				{
+					$$ = makeDefElem("schedule", (Node *)makeString($2), @1);
+				}
+			| DATABASE name
+				{
+					$$ = makeDefElem("dbname", (Node *)makeString($2), @1);
+				}
+			| USER name
+				{
+					$$ = makeDefElem("username", (Node *)makeString($2), @1);
+				}
+			| ACTIVE
+				{
+					$$ = makeDefElem("active", (Node *)makeInteger(true), @1);
+				}
+			| NOT ACTIVE
+				{
+					$$ = makeDefElem("active", (Node *)makeInteger(false), @1);
+				}
+			| AS task_command
+				{
+					$$ = makeDefElem("sql", (Node *)makeString($2), @1);
+				}				
+		;
+
+/*****************************************************************************
+ *
+ *		QUERY:
+ *			DROP TASK [ IF EXISTS ] <name>
+ *
+ *****************************************************************************/
+
+DropTaskStmt:
+		DROP TASK name
+				{
+					DropTaskStmt *n = makeNode(DropTaskStmt);
+					n->taskname = $3;
+					n->missing_ok = false;
+					$$ = (Node *) n;
+				}
+		| DROP TASK IF_P EXISTS name
+				{
+					DropTaskStmt *n = makeNode(DropTaskStmt);
+					n->taskname = $5;
+					n->missing_ok = true;
+					$$ = (Node *) n;
+				}
 		;
 
 /*****************************************************************************
@@ -18456,6 +18609,7 @@ unreserved_keyword:
 			| LOCATION
 			| LOCK_P
 			| LOCKED
+			| LOCUS
 			| LOGGED
 			| MAPPING
 			| MASTER
@@ -18566,6 +18720,7 @@ unreserved_keyword:
 			| ROWS
 			| RULE
 			| SAVEPOINT
+			| SCHEDULE
 			| SCHEMA
 			| SCHEMAS
 			| SCROLL
@@ -18606,6 +18761,7 @@ unreserved_keyword:
 			| SYSTEM_P
 			| TABLES
 			| TABLESPACE
+			| TASK
 			| TEMP
 			| TEMPLATE
 			| TEMPORARY
@@ -19396,6 +19552,7 @@ bare_label_keyword:
 			| LOCATION
 			| LOCK_P
 			| LOCKED
+			| LOCUS
 			| LOG_P
 			| LOGGED
 			| MAPPING
@@ -19528,6 +19685,7 @@ bare_label_keyword:
 			| ROWS
 			| RULE
 			| SAVEPOINT
+			| SCHEDULE
 			| SCHEMA
 			| SCHEMAS
 			| SCROLL
@@ -19577,6 +19735,7 @@ bare_label_keyword:
 			| TABLES
 			| TABLESAMPLE
 			| TABLESPACE
+			| TASK
 			| TEMP
 			| TEMPLATE
 			| TEMPORARY

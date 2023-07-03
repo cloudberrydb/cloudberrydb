@@ -2296,7 +2296,7 @@ UNION ALL
                      ->  Subquery Scan on y
                            ->  Shared Scan (share slice:id 1:0)
          ->  Result
-               One-Time Filter: (gp_execution_segment() = 0)
+               One-Time Filter: (gp_execution_segment() = 2)
                ->  Result
                      One-Time Filter: (pg_sleep('1'::double precision) IS NOT NULL)
          ->  Subquery Scan on cte_1

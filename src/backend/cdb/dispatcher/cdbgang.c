@@ -612,7 +612,7 @@ setupCdbProcessList(ExecSlice *slice)
 	Assert(gang->type == GANGTYPE_PRIMARY_WRITER ||
 		   gang->type == GANGTYPE_PRIMARY_READER ||
 		   (gang->type == GANGTYPE_ENTRYDB_READER && gang->size == 1) ||
-		   (gang->type == GANGTYPE_SINGLETON_READER && gang->size == 1));
+		   (/* parallel scan replica table */gang->type == GANGTYPE_SINGLETON_READER));
 
 
 	for (i = 0; i < gang->size; i++)

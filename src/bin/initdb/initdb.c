@@ -65,6 +65,7 @@
 #include "catalog/pg_collation_d.h"
 #include "common/file_perm.h"
 #include "common/file_utils.h"
+#include "common/kmgr_utils.h"
 #include "common/logging.h"
 #include "common/restricted_token.h"
 #include "common/string.h"
@@ -144,11 +145,16 @@ static bool noclean = false;
 static bool noinstructions = false;
 static bool do_sync = true;
 static bool sync_only = false;
+static bool pass_terminal_fd = false;
+static char *term_fd_opt = NULL;
+static int file_encryption_method = DISABLED_ENCRYPTION_METHOD;
 static bool show_setting = false;
 static bool data_checksums = false;
 static char *xlog_dir = NULL;
 static char *str_wal_segment_size_mb = NULL;
 static int	wal_segment_size_mb;
+static char *cluster_key_cmd = NULL;
+static char *old_key_datadir = NULL;
 
 
 /* internal vars */
@@ -215,6 +221,7 @@ static const char *const subdirs[] = {
 	"global",
 	"pg_wal/archive_status",
 	"pg_commit_ts",
+	"pg_cryptokeys",
 	"pg_dynshmem",
 	"pg_notify",
 	"pg_serial",
@@ -982,12 +989,13 @@ test_config_settings(void)
 			test_buffs = n_buffers;
 
 		snprintf(cmd, sizeof(cmd),
-				 "\"%s\" --boot -x0 %s %s "
+				 "\"%s\" --boot -x0 %s %s %s "
 				 "-c max_connections=%d "
 				 "-c shared_buffers=%d "
 				 "-c dynamic_shared_memory_type=%s "
 				 "< \"%s\" > \"%s\" 2>&1",
 				 backend_exec, boot_options, extra_options,
+				 term_fd_opt ? term_fd_opt : "",
 				 test_conns, test_buffs,
 				 dynamic_shared_memory_type,
 				 DEVNULL, DEVNULL);
@@ -1021,12 +1029,13 @@ test_config_settings(void)
 		}
 
 		snprintf(cmd, sizeof(cmd),
-				 "\"%s\" --boot -x0 %s %s "
+				 "\"%s\" --boot -x0 %s %s %s "
 				 "-c max_connections=%d "
 				 "-c shared_buffers=%d "
 				 "-c dynamic_shared_memory_type=%s "
 				 "< \"%s\" > \"%s\" 2>&1",
 				 backend_exec, boot_options, extra_options,
+				 term_fd_opt ? term_fd_opt : "",
 				 n_connections, test_buffs,
 				 dynamic_shared_memory_type,
 				 DEVNULL, DEVNULL);
@@ -1229,6 +1238,13 @@ setup_config(void)
 		conflines = replace_token(conflines,
 								  "#password_encryption = scram-sha-256",
 								  "password_encryption = md5");
+	}
+
+	if (cluster_key_cmd)
+	{
+		snprintf(repltok, sizeof(repltok), "cluster_key_command = '%s'",
+				 escape_quotes(cluster_key_cmd));
+		conflines = replace_token(conflines, "#cluster_key_command = ''", repltok);
 	}
 
 	/*
@@ -1453,11 +1469,17 @@ bootstrap_template1(void)
 	unsetenv("PGCLIENTENCODING");
 
 	snprintf(cmd, sizeof(cmd),
-			 "\"%s\" --boot -x1 -X %u %s %s %s %s",
+			 "\"%s\" --boot -x1 -X %u %s %s %s %s %s %s %s %s %s",
 			 backend_exec,
 			 wal_segment_size_mb * (1024 * 1024),
 			 data_checksums ? "-k" : "",
-			 boot_options, extra_options,
+			 cluster_key_cmd ? "-K" : "",
+			 cluster_key_cmd ? encryption_methods[file_encryption_method].name : "",
+			 old_key_datadir ? "-u" : "",
+			 old_key_datadir ? old_key_datadir : "",
+			 boot_options,
+			 extra_options,
+			 term_fd_opt ? term_fd_opt : "",
 			 debug ? "-d 5" : "");
 
 
@@ -2509,7 +2531,7 @@ usage(const char *progname)
 	printf(_("  -T, --text-search-config=CFG\n"
 			 "                            default text search configuration\n"));
 	printf(_("  -U, --username=NAME       database superuser name\n"));
-	printf(_("  -W, --pwprompt            prompt for a password for the new superuser\n"));
+	printf(_("  -W, --pwprompt            prompt for the new superuser password\n"));
 	printf(_("  -X, --waldir=WALDIR       location for the write-ahead log directory\n"));
 	printf(_("      --wal-segsize=SIZE    size of WAL segments, in megabytes\n"));
 	printf(_("\nShared memory allocation:\n"));
@@ -2517,14 +2539,22 @@ usage(const char *progname)
 	printf(_("  --shared_buffers=NBUFFERS number of shared buffers; or, amount of memory for\n"
 			 "                            shared buffers if kB/MB/GB suffix is appended\n"));
 	printf(_("\nLess commonly used options:\n"));
+	printf(_("  -c, --cluster-key-command=COMMAND\n"
+			 "                            enable cluster file encryption and set command\n"
+			 "                            to obtain the cluster key\n"));
 	printf(_("  -d, --debug               generate lots of debugging output\n"));
 	printf(_("      --discard-caches      set debug_discard_caches=1\n"));
+	printf(_("  -K, --file-encryption-method=METHOD\n"
+			 "                            cluster file encryption method\n"));
 	printf(_("  -L DIRECTORY              where to find the input files\n"));
 	printf(_("  -n, --no-clean            do not clean up after errors\n"));
 	printf(_("  -N, --no-sync             do not wait for changes to be written safely to disk\n"));
+	printf(_("  -R, --authprompt          prompt for a passphrase or PIN\n"));
 	printf(_("      --no-instructions     do not print instructions for next steps\n"));
 	printf(_("  -s, --show                show internal settings\n"));
 	printf(_("  -S, --sync-only           only sync data directory\n"));
+	printf(_("  -u, --copy-encryption-keys=DATADIR\n"
+			 "                            copy the file encryption key from another cluster\n"));
 	printf(_("\nOther options:\n"));
 	printf(_("  -V, --version             output version information, then exit\n"));
 	printf(_("      --gp-version          output Cloudberry version information, then exit\n"));
@@ -3104,6 +3134,23 @@ initialize_data_directory(void)
 	/* Top level PG_VERSION is checked by bootstrapper, so make it first */
 	write_version_file(NULL);
 
+	if (pass_terminal_fd)
+	{
+#ifndef WIN32
+		int terminal_fd = open("/dev/tty", O_RDWR, 0);
+#else
+		int terminal_fd = open("CONOUT$", O_RDWR, 0);
+#endif
+
+		if (terminal_fd < 0)
+		{
+			pg_log_error(_("%s: could not open terminal: %s"),
+						 progname, strerror(errno));
+			exit(1);
+		}
+		term_fd_opt = psprintf("-R %d", terminal_fd);
+	}
+
 	/* Select suitable configuration settings */
 	set_null_conf("postgresql.conf");
 	set_null_conf(GP_INTERNAL_AUTO_CONF_FILE_NAME);
@@ -3128,8 +3175,9 @@ initialize_data_directory(void)
 	fflush(stdout);
 
 	snprintf(cmd, sizeof(cmd),
-			 "\"%s\" %s %s template1 >%s",
+			 "\"%s\" %s %s %s template1 >%s",
 			 backend_exec, backend_options, extra_options,
+			 term_fd_opt ? term_fd_opt : "",
 			 DEVNULL);
 
 	PG_CMD_OPEN;
@@ -3216,8 +3264,11 @@ main(int argc, char *argv[])
 		{"data-checksums", no_argument, NULL, 'k'},
 		{"max_connections", required_argument, NULL, 1001},     /*CDB*/
 		{"shared_buffers", required_argument, NULL, 1003},      /*CDB*/
+		{"file-encryption-method", required_argument, NULL, 'K'},
 		{"allow-group-access", no_argument, NULL, 'g'},
 		{"discard-caches", no_argument, NULL, 14},
+		{"cluster-key-command", required_argument, NULL, 'c'},
+		{"copy-encryption-keys", required_argument, NULL, 'u'},
 		{NULL, 0, NULL, 0}
 	};
 
@@ -3264,7 +3315,7 @@ main(int argc, char *argv[])
 
 	/* process command-line options */
 
-	while ((c = getopt_long(argc, argv, "A:dD:E:gkL:nNsST:U:WX:", long_options, &option_index)) != -1)
+	while ((c = getopt_long(argc, argv, "A:c:dD:E:gkK:L:nNRsST:u:U:WX:", long_options, &option_index)) != -1)
 	{
 		switch (c)
 		{
@@ -3310,6 +3361,28 @@ main(int argc, char *argv[])
 			case 'N':
 				do_sync = false;
 				break;
+			case 'R':
+				pass_terminal_fd = true;
+				break;
+			case 'K':
+				{
+					int i;
+
+					/* method 0/disabled cannot be specified */
+					for (i = DISABLED_ENCRYPTION_METHOD + 1;
+						 i < NUM_ENCRYPTION_METHODS; i++)
+						if (pg_strcasecmp(optarg, encryption_methods[i].name) == 0)
+						{
+							file_encryption_method = i;
+							break;
+						}
+					if (i == NUM_ENCRYPTION_METHODS)
+					{
+						fprintf(stderr, _("invalid cluster encryption method, method_name:%s, index:%d \n"), optarg, i);
+						exit(1);
+					}
+				}
+				break;
 			case 'S':
 				sync_only = true;
 				break;
@@ -3345,6 +3418,12 @@ main(int argc, char *argv[])
 				break;
 			case 9:
 				pwfilename = pg_strdup(optarg);
+				break;
+			case 'c':
+				cluster_key_cmd = pg_strdup(optarg);
+				break;
+			case 'u':
+				old_key_datadir = pg_strdup(optarg);
 				break;
 			case 's':
 				show_setting = true;
@@ -3430,6 +3509,35 @@ main(int argc, char *argv[])
 		exit(1);
 	}
 
+#ifndef USE_OPENSSL
+	if (cluster_key_cmd)
+	{
+		pg_log_error("cluster file encryption is not supported because OpenSSL is not supported by this build");
+		exit(1);
+	}
+#endif
+
+	if (old_key_datadir != NULL && cluster_key_cmd == NULL)
+	{
+		pg_log_error("copying encryption keys requires the cluster key command to be specified");
+		exit(1);
+	}
+
+	if (file_encryption_method != DISABLED_ENCRYPTION_METHOD &&
+		cluster_key_cmd == NULL)
+	{
+		/*
+		 * If we have set the file_encryption_method, but cluster_key_cmd is null,
+		 * we use default cluster key command.
+		 */
+		cluster_key_cmd = DEFAULT_CLUSTER_KEY_COMMAND;
+	}
+
+	/* set the default */
+	if (file_encryption_method == DISABLED_ENCRYPTION_METHOD &&
+		cluster_key_cmd != NULL)
+		file_encryption_method = DEFAULT_ENABLED_ENCRYPTION_METHOD;
+
 	check_authmethod_unspecified(&authmethodlocal);
 	check_authmethod_unspecified(&authmethodhost);
 
@@ -3496,6 +3604,11 @@ main(int argc, char *argv[])
 		printf(_("Data page checksums are enabled.\n"));
 	else
 		printf(_("Data page checksums are disabled.\n"));
+
+	if (cluster_key_cmd)
+		printf(_("Cluster file encryption is enabled.\n"));
+	else
+		printf(_("Cluster file encryption is disabled.\n"));
 
 	if (pwprompt || pwfilename)
 		get_su_pwd();

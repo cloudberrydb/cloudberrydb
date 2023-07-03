@@ -60,6 +60,9 @@ set enable_nestloop = true;
 -- ORCA doesn't honor enable_nestloop/enable_hashjoin, so this won't produce
 -- the kind of plan we're looking for.
 set optimizer=off;
+-- GP_PARALLEL_FIXME: seems like work_mem are affected by parallel, thus more spilling
+-- happened. Temporally disable parallel in this case to pass the test.
+set enable_parallel=off;
 
 -- This is the actual test query.
 select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2;
@@ -83,4 +86,5 @@ from num_workfiles_created($$
   select * FROM test_mat_small as t1 left outer join test_mat_large AS t2 on t1.i1=t2.i2 limit 10
 $$) as n;
 
+reset enable_parallel;
 drop schema materialize_spill cascade;

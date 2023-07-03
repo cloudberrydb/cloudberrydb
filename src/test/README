@@ -11,6 +11,9 @@ which tests get run automatically.
 authentication/
   Tests for authentication (but see also below)
 
+crypto/
+  Tests for cluster file encryption
+
 examples/
   Demonstration programs for libpq that double as regression tests via
   "make check"

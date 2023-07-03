@@ -1019,6 +1019,30 @@ XLogSaveBufferForHint(Buffer buffer, bool buffer_std)
 }
 
 /*
+ * This function returns either a WAL or fake LSN, for use by encryption.
+ */
+XLogRecPtr
+LSNForEncryption(bool use_wal_lsn)
+{
+	if (use_wal_lsn)
+	{
+		int			dummy = 0;
+
+		Assert(FileEncryptionEnabled);
+		/*
+		 * Records other than SWITCH_WAL must have content. We use an integer 0 to
+		 * follow the restriction.
+		 */
+		XLogBeginInsert();
+		XLogSetRecordFlags(XLOG_MARK_UNIMPORTANT);
+		XLogRegisterData((char *) &dummy, sizeof(dummy));
+		return XLogInsert(RM_XLOG_ID, XLOG_ENCRYPTION_LSN);
+	}
+	else
+		return GetFakeLSNForUnloggedRel();
+}
+
+/*
  * Write a WAL record containing a full image of a page. Caller is responsible
  * for writing the page to disk after calling this routine.
  *

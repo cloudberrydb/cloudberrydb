@@ -41,7 +41,7 @@
 #define GISTNProcs					11
 
 /*
- * Page opaque data in a GiST index page.
+ * Page opaque data flags in a GiST index page.
  */
 #define F_LEAF				(1 << 0)	/* leaf page */
 #define F_DELETED			(1 << 1)	/* the page has been deleted */
@@ -50,6 +50,9 @@
 #define F_FOLLOW_RIGHT		(1 << 3)	/* page to the right has no downlink */
 #define F_HAS_GARBAGE		(1 << 4)	/* some tuples on the page are dead,
 										 * but not deleted yet */
+
+/* Specifies the bits that can be set in the GiST flags field */
+#define GIST_FLAG_BITMASK   0x1F
 
 /*
  * NSN (node sequence number) is a special-purpose LSN which is stored on each

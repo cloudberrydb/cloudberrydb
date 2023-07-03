@@ -43,13 +43,17 @@
 #include "commands/progress.h"
 #include "commands/tablespace.h"
 #include "common/controldata_utils.h"
+#include "common/file_utils.h"
+#include "crypto/kmgr.h"
 #include "executor/instrument.h"
+#include "crypto/bufenc.h"
 #include "miscadmin.h"
 #include "pg_trace.h"
 #include "pgstat.h"
 #include "port/atomics.h"
 #include "port/pg_iovec.h"
 #include "postmaster/bgwriter.h"
+#include "postmaster/postmaster.h"
 #include "postmaster/startup.h"
 #include "postmaster/walwriter.h"
 #include "replication/basebackup.h"
@@ -95,6 +99,7 @@
 #include "utils/syscache.h"
 
 extern uint32 bootstrap_data_checksum_version;
+extern int bootstrap_file_encryption_method;
 
 /* Unsupported old recovery command file names (relative to $PGDATA) */
 #define RECOVERY_COMMAND_FILE	"recovery.conf"
@@ -124,6 +129,8 @@ int			CommitSiblings = 5; /* # concurrent xacts needed to sleep */
 int			wal_retrieve_retry_interval = 5000;
 int			max_slot_wal_keep_size_mb = -1;
 bool		track_wal_io_timing = false;
+/* tde feature enable or not */
+int         FileEncryptionEnabled = false;
 
 /* GPDB specific */
 bool gp_pause_on_restore_point_replay = false;
@@ -4715,6 +4722,7 @@ InitControlFile(uint64 sysidentifier)
 	ControlFile->wal_log_hints = wal_log_hints;
 	ControlFile->track_commit_timestamp = track_commit_timestamp;
 	ControlFile->data_checksum_version = bootstrap_data_checksum_version;
+	ControlFile->file_encryption_method = bootstrap_file_encryption_method;
 }
 
 static void
@@ -5002,6 +5010,22 @@ ReadControlFile(void)
 	/* Make the initdb settings visible as GUC variables, too */
 	SetConfigOption("data_checksums", DataChecksumsEnabled() ? "yes" : "no",
 					PGC_INTERNAL, PGC_S_OVERRIDE);
+ 
+ 	StaticAssertStmt(lengthof(encryption_methods) == NUM_ENCRYPTION_METHODS,
+ 							 "encryption_methods[] must match NUM_ENCRYPTION_METHODS");
+	
+	if (ControlFile->file_encryption_method < 0 ||
+		 ControlFile->file_encryption_method > NUM_ENCRYPTION_METHODS - 1)
+		ereport(FATAL,
+				(errmsg("database files are incompatible with server"),
+				 errdetail("The database cluster was initialized with file_encryption_method %d,"
+						   "The max value of file_encryption_method is: %d.",
+						   ControlFile->file_encryption_method, NUM_ENCRYPTION_METHODS),
+				 errhint("It looks like you need to recompile or initdb.")));
+
+ 	SetConfigOption("file_encryption_method",
+ 					encryption_methods[ControlFile->file_encryption_method].name,
+ 					PGC_INTERNAL, PGC_S_OVERRIDE);
 }
 
 /*
@@ -5042,6 +5066,21 @@ DataChecksumsEnabled(void)
 {
 	Assert(ControlFile != NULL);
 	return (ControlFile->data_checksum_version > 0);
+}
+
+/*
+ * Is cluster file encryption enabled?
+ */
+int
+GetFileEncryptionMethod(void)
+{
+	if (IsBootstrapProcessingMode())
+		return bootstrap_file_encryption_method;
+	else
+	{
+		Assert(ControlFile != NULL);
+		return ControlFile->file_encryption_method;
+	}
 }
 
 /*
@@ -5457,6 +5496,15 @@ BootStrapXLOG(void)
 
 	/* some additional ControlFile fields are set in WriteControlFile() */
 	WriteControlFile();
+
+	BootStrapKmgr();
+	InitializeBufferEncryption();
+
+	if (terminal_fd != -1)
+	{
+		close(terminal_fd);
+		terminal_fd = -1;
+	}
 
 	/* Bootstrap the commit log, too */
 	BootStrapCLOG();
@@ -11063,6 +11111,10 @@ xlog_redo(XLogReaderState *record)
 				elog(ERROR, "unexpected XLogReadBufferForRedo result when restoring backup block");
 			UnlockReleaseBuffer(buffer);
 		}
+	}
+	else if (info == XLOG_ENCRYPTION_LSN)
+	{
+		/* nothing to do here */
 	}
 	else if (info == XLOG_BACKUP_END)
 	{

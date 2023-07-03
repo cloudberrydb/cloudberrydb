@@ -172,6 +172,8 @@ typedef struct AppendOnlyStorageRead
 	 */
 	char	   *segmentFileName;
 
+	RelFileNode relFileNode;
+
 	/*
 	 * The number of blocks read since the beginning of the segment file.
 	 */
@@ -195,7 +197,8 @@ extern void AppendOnlyStorageRead_Init(AppendOnlyStorageRead *storageRead,
 						   MemoryContext memoryContext,
 						   int32 maxBufferLen,
 						   char *relationName, char *title,
-						   AppendOnlyStorageAttributes *storageAttributes);
+						   AppendOnlyStorageAttributes *storageAttributes,
+						   RelFileNode *relFileNode);
 
 extern char *AppendOnlyStorageRead_RelationName(AppendOnlyStorageRead *storageRead);
 extern char *AppendOnlyStorageRead_SegmentFileName(AppendOnlyStorageRead *storageRead);

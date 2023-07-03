@@ -96,6 +96,7 @@ enum config_group
 	STATS_ANALYZE,                      /*CDB*/
 	STATS_MONITORING,
 	STATS_COLLECTOR,
+	ENCRYPTION,
 	AUTOVACUUM,
 
 	CLIENT_CONN_STATEMENT,
@@ -118,6 +119,8 @@ enum config_group
 	PRESET_OPTIONS,
 	CUSTOM_OPTIONS,
 	DEVELOPER_OPTIONS,
+
+	TASK_SCHEDULE_OPTIONS,
 
 	/*
 	 * GPDB: deprecated GUCs. In this group, the GUCs are still functioning,

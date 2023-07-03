@@ -166,6 +166,8 @@ btbuildempty(Relation index)
 	 * XLOG_DBASE_CREATE or XLOG_TBLSPC_CREATE record.  Therefore, we need
 	 * this even when wal_level=minimal.
 	 */
+	PageEncryptInplace(metapage, INIT_FORKNUM,
+					   BTREE_METAPAGE);
 	PageSetChecksumInplace(metapage, BTREE_METAPAGE);
 	smgrwrite(index->rd_smgr, INIT_FORKNUM, BTREE_METAPAGE,
 			  (char *) metapage, true);
@@ -381,7 +383,7 @@ btgetbitmap(IndexScanDesc scan, Node **bmNodeP)
 	if (*bmNodeP == NULL)
 	{
 		/* XXX should we use less than work_mem for this? */
-		tbm = tbm_create(work_mem * 1024L, NULL);
+		tbm = tbm_create(work_mem * 1024L, scan->dsa);
 		*bmNodeP = (Node *) tbm;
 	}
 	else if (!IsA(*bmNodeP, TIDBitmap))

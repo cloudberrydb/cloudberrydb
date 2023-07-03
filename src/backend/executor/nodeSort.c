@@ -484,8 +484,8 @@ ExecSquelchSort(SortState *node)
 	if (!node->delayEagerFree)
 	{
 		ExecEagerFreeSort(node);
-		ExecSquelchNode(outerPlanState(node));
 	}
+	ExecSquelchNode(outerPlanState(node));
 }
 
 /* ----------------------------------------------------------------

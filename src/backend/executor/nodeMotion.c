@@ -16,6 +16,7 @@
 #include "postgres.h"
 
 #include "access/heapam.h"
+#include "access/parallel.h"
 #include "nodes/execnodes.h"	/* Slice, SliceTable */
 #include "cdb/cdbmotion.h"
 #include "cdb/cdbutil.h"
@@ -27,6 +28,7 @@
 #include "executor/nodeMotion.h"
 #include "lib/binaryheap.h"
 #include "utils/tuplesort.h"
+#include "utils/wait_event.h"
 #include "miscadmin.h"
 #include "utils/memutils.h"
 
@@ -217,6 +219,7 @@ execMotionSender(MotionState *node)
 				motion->motionType == MOTIONTYPE_GATHER_SINGLE ||
 				motion->motionType == MOTIONTYPE_HASH ||
 				motion->motionType == MOTIONTYPE_BROADCAST ||
+				motion->motionType == MOTIONTYPE_PARALLEL_BROADCAST ||
 				(motion->motionType == MOTIONTYPE_EXPLICIT && motion->segidColIdx > 0));
 	Assert(node->ps.state->interconnect_context);
 
@@ -312,6 +315,7 @@ execMotionUnsortedReceiver(MotionState *node)
 				motion->motionType == MOTIONTYPE_GATHER_SINGLE ||
 				motion->motionType == MOTIONTYPE_HASH ||
 				motion->motionType == MOTIONTYPE_BROADCAST ||
+				motion->motionType == MOTIONTYPE_PARALLEL_BROADCAST ||
 				(motion->motionType == MOTIONTYPE_EXPLICIT && motion->segidColIdx > 0));
 
 	Assert(node->ps.state->motionlayer_context);
@@ -681,7 +685,8 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 				 errmsg("EvalPlanQual can not handle subPlan with Motion node")));
 
 	Assert(node->motionID > 0);
-	Assert(node->motionID < sliceTable->numSlices);
+	AssertImply(node->senderSliceInfo && node->senderSliceInfo->parallel_workers <= 1,
+		    					node->motionID < sliceTable->numSlices);
 	AssertImply(node->motionType == MOTIONTYPE_HASH, node->numHashSegments > 0);
 
 	parentIndex = estate->currentSliceId;
@@ -698,6 +703,7 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	motionstate->stopRequested = false;
 	motionstate->hashExprs = NIL;
 	motionstate->cdbhash = NULL;
+	motionstate->cdbhashworkers = NULL;
 
 	/* Look up the sending and receiving gang's slice table entries. */
 	sendSlice = &sliceTable->slices[node->motionID];
@@ -770,6 +776,11 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	motionstate->stopRequested = false;
 	motionstate->numInputSegs = list_length(sendSlice->segments);
 
+	/* It should have been set to 1 in FillSliceGangInfo if parallel_workers == 0 */
+	Assert(recvSlice->parallel_workers);
+
+	motionstate->parallel_workers = recvSlice->parallel_workers;
+
 	/*
 	 * Miscellaneous initialization
 	 *
@@ -799,6 +810,7 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 	tupDesc = ExecGetResultType(&motionstate->ps);
 
 	motionstate->ps.ps_ProjInfo = NULL;
+	/* numHashSegments is target locus.numsegments without parallel_workes */
 	motionstate->numHashSegments = node->numHashSegments;
 
 	/* Set up motion send data structures */
@@ -807,7 +819,8 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 		int			nkeys;
 
 		Assert(node->numHashSegments > 0);
-		Assert(node->numHashSegments <= recvSlice->planNumSegments);
+		AssertImply(node->senderSliceInfo && node->senderSliceInfo->parallel_workers <= 1,
+					node->numHashSegments <= recvSlice->planNumSegments);
 		nkeys = list_length(node->hashExprs);
 
 		if (nkeys > 0)
@@ -817,9 +830,23 @@ ExecInitMotion(Motion *node, EState *estate, int eflags)
 		/*
 		 * Create hash API reference
 		 */
-		motionstate->cdbhash = makeCdbHash(motionstate->numHashSegments,
-										   nkeys,
-										   node->hashFuncs);
+		motionstate->cdbhash = makeCdbHash(
+				motionstate->numHashSegments,
+				nkeys,
+				node->hashFuncs);
+
+		/*
+		 * Create hash API reference for workers.
+		 * During redistribute motion; we'll mod segments to decide to send to which
+		 * segment and then mod workers to decide send to which segments.
+		 */
+		if (motionstate->parallel_workers >= 2)
+		{
+			motionstate->cdbhashworkers = makeCdbHash(
+					motionstate->numHashSegments * motionstate->parallel_workers,
+					nkeys,
+					node->hashFuncs);
+		}
 	}
 
 	/*
@@ -976,6 +1003,11 @@ ExecEndMotion(MotionState *node)
 	{
 		pfree(node->cdbhash);
 		node->cdbhash = NULL;
+	}
+	if (node->cdbhashworkers != NULL)
+	{
+		pfree(node->cdbhashworkers);
+		node->cdbhashworkers = NULL;
 	}
 
 	/*
@@ -1147,9 +1179,16 @@ doSendEndOfStream(Motion *motion, MotionState *node)
 void
 doSendTuple(Motion *motion, MotionState *node, TupleTableSlot *outerTupleSlot)
 {
-	int16		targetRoute;
-	SendReturnCode sendRC;
+	int16		targetRoute = 0;
+	SendReturnCode sendRC = STOP_SENDING;
 	ExprContext *econtext = node->ps.ps_ExprContext;
+	int parallel_workers;
+	int	i;
+
+	int 		parentIndex = node->ps.state->currentSliceId;
+	ExecSlice	*recvSlice = &node->ps.state->es_sliceTable->slices[parentIndex];
+	parallel_workers = recvSlice->parallel_workers;
+	Assert(parallel_workers != 0);
 
 	/* We got a tuple from the child-plan. */
 	node->numTuplesFromChild++;
@@ -1170,24 +1209,80 @@ doSendTuple(Motion *motion, MotionState *node, TupleTableSlot *outerTupleSlot)
 	{
 		targetRoute = BROADCAST_SEGIDX;
 	}
+	else if (motion->motionType == MOTIONTYPE_PARALLEL_BROADCAST)
+	{
+		int			numSegments = recvSlice->planNumSegments;
+
+		Assert(numSegments != 0);
+		Assert(numSegments % parallel_workers == 0);
+
+		for (i = 0; i < numSegments / parallel_workers; i++)
+		{
+			targetRoute = i * parallel_workers + random() % parallel_workers;
+
+			CheckAndSendRecordCache(node->ps.state->motionlayer_context,
+									node->ps.state->interconnect_context,
+									motion->motionID,
+									targetRoute);
+			sendRC = SendTuple(node->ps.state->motionlayer_context,
+							   node->ps.state->interconnect_context,
+							   motion->motionID,
+							   outerTupleSlot,
+							   targetRoute);
+
+			Assert(sendRC == SEND_COMPLETE || sendRC == STOP_SENDING);
+
+			if (sendRC == STOP_SENDING)
+				break;
+
+#ifdef CDB_MOTION_DEBUG
+			if (sendRC == SEND_COMPLETE && node->numTuplesToAMS <= 20)
+			{
+				StringInfoData buf;
+
+				initStringInfo(&buf);
+				appendStringInfo(&buf, "   motion%-3d snd->%-3d, %5d.",
+								 motion->motionID,
+								 targetRoute,
+								 node->numTuplesToAMS);
+				formatTuple(&buf, outerTupleSlot, node->outputFunArray);
+				elog(DEBUG3, "%s", buf.data);
+				pfree(buf.data);
+			}
+#endif
+		}
+
+		Assert(sendRC == SEND_COMPLETE || sendRC == STOP_SENDING);
+
+		if (sendRC == SEND_COMPLETE)
+			node->numTuplesToAMS++;
+		else
+			node->stopRequested = true;
+
+		return;
+	}
 	else if (motion->motionType == MOTIONTYPE_HASH) /* Redistribute */
 	{
-		uint32		hval = 0;
+		uint32		segIdx = 0;
+		uint32		workerIdx = 0;
 
 		econtext->ecxt_outertuple = outerTupleSlot;
+		segIdx = evalHashKey(econtext, node->hashExprs, node->cdbhash);
 
-		hval = evalHashKey(econtext, node->hashExprs, node->cdbhash);
+		if (parallel_workers >= 2)
+		{
+			workerIdx = evalHashKey(econtext, node->hashExprs, node->cdbhashworkers) / node->numHashSegments;
+		}
 
 #ifdef USE_ASSERT_CHECKING
-		Assert(hval < node->numHashSegments &&
+		Assert(segIdx < node->numHashSegments &&
 			   "redistribute destination outside segment array");
 #endif							/* USE_ASSERT_CHECKING */
 
-		/*
-		 * hashSegIdx takes our uint32 and maps it to an int, and here we
-		 * assign it to an int16. See below.
-		 */
-		targetRoute = hval;
+		if (parallel_workers >= 2)
+			targetRoute = segIdx * parallel_workers + workerIdx;
+		else
+			targetRoute = segIdx;
 
 		/*
 		 * see MPP-2099, let's not run into this one again! NOTE: the

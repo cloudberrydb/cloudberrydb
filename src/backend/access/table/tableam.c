@@ -30,6 +30,9 @@
 #include "storage/shmem.h"
 #include "storage/smgr.h"
 
+#include "access/aosegfiles.h"
+#include "access/aocssegfiles.h"
+
 /*
  * Constants to control the behavior of block allocation to parallel workers
  * during a parallel seqscan.  Technically these values do not need to be
@@ -168,6 +171,60 @@ table_parallelscan_initialize(Relation rel, ParallelTableScanDesc pscan,
 	{
 		Assert(snapshot == SnapshotAny);
 		pscan->phs_snapshot_any = true;
+	}
+
+	/*
+	 * GPDB: for AO/AOCO tables,
+	 * we need to fill parallel info which need a snapshot to scan systables.
+	 * We couldn't do it in parallelscan_initialize AM which doesn't have a
+	 * snapshot param. And we should keep same with Upstream.
+	 * But parallelscan_initialize tells us the snapshot offset and we have set
+	 * it in ParallelTableScanDesc, so we could use it directly.
+	 */
+	if (RelationIsAoRows(rel))
+	{
+		Snapshot appendOnlyMetaDataSnapshot = snapshot;
+		ParallelBlockTableScanDesc bpscan = (ParallelBlockTableScanDesc) pscan;
+		int			segfile_count;
+		FileSegInfo **seginfo;
+		if (snapshot == SnapshotAny)
+		{
+			/*
+			* the append-only meta data should never be fetched with
+			* SnapshotAny as bogus results are returned.
+			*/
+			appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+		}
+		seginfo = GetAllFileSegInfo(rel, appendOnlyMetaDataSnapshot, &segfile_count, NULL);
+		bpscan->phs_nblocks = segfile_count;
+		if (seginfo)
+		{
+			FreeAllSegFileInfo(seginfo, segfile_count);
+			pfree(seginfo);
+		}
+	}
+	else if (RelationIsAoCols(rel))
+	{
+		Snapshot appendOnlyMetaDataSnapshot = snapshot;
+		ParallelBlockTableScanDesc bpscan = (ParallelBlockTableScanDesc) pscan;
+		int			segfile_count;
+		AOCSFileSegInfo **seginfo;
+		if (snapshot == SnapshotAny)
+		{
+			/*
+			* the append-only meta data should never be fetched with
+			* SnapshotAny as bogus results are returned.
+			*/
+			appendOnlyMetaDataSnapshot = GetTransactionSnapshot();
+		}
+		seginfo = GetAllAOCSFileSegInfo(rel, appendOnlyMetaDataSnapshot, &segfile_count, NULL);
+		bpscan->phs_nblocks = segfile_count;
+		if (seginfo)
+		{
+			FreeAllAOCSSegFileInfo(seginfo, segfile_count);
+			pfree(seginfo);
+		}
+		
 	}
 }
 

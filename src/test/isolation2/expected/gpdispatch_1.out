@@ -49,6 +49,8 @@ INSERT 1000
 SET
 1: set gp_cte_sharing to on;
 SET
+1: set max_parallel_workers_per_gather = 0;
+SET
 1: select gp_inject_fault_infinite('shareinput_writer_notifyready', 'suspend', 2);
  gp_inject_fault_infinite 
 --------------------------

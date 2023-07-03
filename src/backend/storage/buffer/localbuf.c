@@ -166,7 +166,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 		}
 		return bufHdr;
 	}
-
+	
 #ifdef LBDEBUG
 	fprintf(stderr, "LB ALLOC (%lu,%d,%d) %d\n",
 			smgr->smgr_rnode.node.relNode, forkNum, blockNum,
@@ -226,6 +226,12 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 
 		// GPDB_93_MERGE_FIXME: is this TODO comment still relevant?
 		// UNDONE: Unfortunately, I think we write temp relations to the mirror...
+		/*
+		 * Technically BM_PERMANENT could indicate an init fork, but that's
+		 * okay since forkNum would also tell us not to encrypt init forks.
+		 */
+		PageEncryptInplace(localpage, bufHdr->tag.forkNum,
+					        bufHdr->tag.blockNum);
 		PageSetChecksumInplace(localpage, bufHdr->tag.blockNum);
 
 		/* And write... */

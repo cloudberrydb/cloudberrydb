@@ -80,6 +80,8 @@
 
 #define UINT32_ACCESS_ONCE(var)		 ((uint32)(*((volatile uint32 *)&(var))))
 
+CountDBSession_hook_type CountDBSession_hook = NULL;
+
 /* Our shared memory area */
 typedef struct ProcArrayStruct
 {
@@ -2334,10 +2336,10 @@ copyLocalSnapshot(Snapshot snapshot)
 	memcpy(snapshot->xip, SharedLocalSnapshotSlot->snapshot.xip, snapshot->xcnt * sizeof(TransactionId));
 
 	snapshot->curcid = SharedLocalSnapshotSlot->snapshot.curcid;
-	snapshot->subxcnt = -1;
+	snapshot->subxcnt = 0;
 
 	if (TransactionIdPrecedes(snapshot->xmin, TransactionXmin))
-		TransactionXmin = snapshot->xmin;
+		MyProc->xmin = TransactionXmin = snapshot->xmin;
 
 	ereport((Debug_print_snapshot_dtm ? LOG : DEBUG5),
 			(errmsg("Reader qExec setting shared local snapshot to: xmin: %d xmax: %d curcid: %d",
@@ -4748,6 +4750,13 @@ CountOtherDBBackends(Oid databaseId, int *nbackends, int *nprepared)
 
 		LWLockRelease(ProcArrayLock);
 
+		/*
+		 * Only check local procArray maybe not enough in a distributed
+		 * environment use this hook to check it.
+		 */
+		if (CountDBSession_hook)
+			found = found || (*CountDBSession_hook)(databaseId);
+
 		if (!found)
 			return false;		/* no conflicting backends, so done */
 
@@ -6378,6 +6387,22 @@ ResGroupSignalMoveQuery(int sessionId, void *slot, Oid groupId)
 			SendProcSignal(pid, PROCSIG_RESOURCE_GROUP_MOVE_QUERY, backendId);
 			/* don't break, need to signal all the procs of this session */
 		}
+	}
+	LWLockRelease(ProcArrayLock);
+}
+
+void
+LoopBackendProc(BackendProcCallbackFunction func, void *args)
+{
+	uint32 i;
+
+	ProcArrayStruct *arrayP = procArray;
+
+	LWLockAcquire(ProcArrayLock, LW_SHARED);
+	for (i = 0; i < arrayP->numProcs; i++)
+	{
+		volatile PGPROC *proc = &allProcs[arrayP->pgprocnos[i]];
+		(*func)(proc, args);
 	}
 	LWLockRelease(ProcArrayLock);
 }

@@ -56,6 +56,7 @@
 #include "commands/subscriptioncmds.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/taskcmds.h"
 #include "commands/trigger.h"
 #include "commands/typecmds.h"
 #include "commands/user.h"
@@ -234,6 +235,9 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_AlterResourceGroupStmt:
 		case T_CreateQueueStmt:
 		case T_CreateResourceGroupStmt:
+		case T_CreateTaskStmt:
+		case T_AlterTaskStmt:
+		case T_DropTaskStmt:
 		case T_DropQueueStmt:
 		case T_DropResourceGroupStmt:
 		case T_CreateExternalStmt:
@@ -1770,6 +1774,18 @@ ProcessUtilitySlow(ParseState *pstate,
 					}
 				}
 				break;
+			
+			case T_CreateTaskStmt:
+				address = DefineTask(pstate, (CreateTaskStmt *) parsetree);
+				break;
+
+			case T_AlterTaskStmt:
+				address = AlterTask(pstate, (AlterTaskStmt *) parsetree);
+				break;
+
+			case T_DropTaskStmt:
+				address = DropTask(pstate, (DropTaskStmt *) parsetree);
+				break;				
 
 			case T_CreateExternalStmt:
 				{
@@ -3234,6 +3250,18 @@ CreateCommandTag(Node *parsetree)
 
 		case T_CreateEnumStmt:
 			tag = CMDTAG_CREATE_TYPE;
+			break;
+		
+		case T_CreateTaskStmt:
+			tag = CMDTAG_CREATE_TASK;
+			break;
+
+		case T_AlterTaskStmt:
+			tag = CMDTAG_ALTER_TASK;
+			break;
+
+		case T_DropTaskStmt:
+			tag = CMDTAG_DROP_TASK;
 			break;
 
 		case T_CreateRangeStmt:

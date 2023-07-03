@@ -17066,6 +17066,7 @@ f1,f2
  SelectThaiColumnLower_p1 |        1
 (1 row)
 
+set max_parallel_workers_per_gather=0;
 -- SelectThaiColumnOrderByLocal_p1
 select 'SelectThaiColumnOrderByLocal_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (
@@ -17154,6 +17155,7 @@ f1,f2
  SelectThaiColumnOrderByLocal_p1 |        1
 (1 row)
 
+reset max_parallel_workers_per_gather;
 -- SelectThaiColumnWhere_p1
 select 'SelectThaiColumnWhere_p1' test_name_part, case when c = 1 then 1 else 0 end pass_ind from (
 select count(distinct c) c from (

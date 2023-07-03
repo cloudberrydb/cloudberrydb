@@ -195,6 +195,19 @@ typedef struct SerializedSnapshotData
 	CommandId	curcid;
 	TimestampTz whenTaken;
 	XLogRecPtr	lsn;
+
+	bool		haveDistribSnapshot;
+
+	/* for cdb distribute snapshot */
+	TransactionId minCachedLocalXid;
+	TransactionId maxCachedLocalXid;
+	int32 currentLocalXidsCount;
+
+	DistributedTransactionId ds_xminAllDistributedSnapshots;
+	DistributedSnapshotId ds_distribSnapshotId;
+	DistributedTransactionId ds_xmin;
+	DistributedTransactionId ds_xmax;
+	int32		ds_count;
 } SerializedSnapshotData;
 
 Size
@@ -2190,7 +2203,7 @@ EstimateSnapshotSpace(Snapshot snap)
 	Size		size;
 
 	Assert(snap != InvalidSnapshot);
-	Assert(snap->snapshot_type == SNAPSHOT_MVCC);
+	Assert(snap->snapshot_type == SNAPSHOT_MVCC || gp_select_invisible);
 
 	/* We allocate any XID arrays needed in the same palloc block. */
 	size = add_size(sizeof(SerializedSnapshotData),
@@ -2200,7 +2213,24 @@ EstimateSnapshotSpace(Snapshot snap)
 		size = add_size(size,
 						mul_size(snap->subxcnt, sizeof(TransactionId)));
 
+	if (snap->haveDistribSnapshot && snap->distribSnapshotWithLocalMapping.ds.count > 0)
+	{
+		size = add_size(size,
+						mul_size(snap->distribSnapshotWithLocalMapping.ds.count, sizeof(DistributedTransactionId)));
+		if (snap->distribSnapshotWithLocalMapping.currentLocalXidsCount > 0)
+		{
+			size = add_size(size,
+							mul_size(snap->distribSnapshotWithLocalMapping.currentLocalXidsCount, sizeof(TransactionId)));
+		}
+	}
+
 	return size;
+}
+
+Size
+EstimateSnapshotDataSpace(void)
+{
+	return sizeof(SerializedSnapshotData);
 }
 
 /*
@@ -2212,6 +2242,9 @@ void
 SerializeSnapshot(Snapshot snapshot, char *start_address)
 {
 	SerializedSnapshotData serialized_snapshot;
+	Size subxipoff = sizeof(SerializedSnapshotData) + snapshot->xcnt * sizeof(TransactionId);
+	Size dsoff = subxipoff + snapshot->subxcnt * sizeof(TransactionId);
+	Size dslmoff = dsoff + snapshot->distribSnapshotWithLocalMapping.ds.count * sizeof(DistributedTransactionId);
 
 	Assert(snapshot->subxcnt >= 0);
 
@@ -2225,6 +2258,19 @@ SerializeSnapshot(Snapshot snapshot, char *start_address)
 	serialized_snapshot.curcid = snapshot->curcid;
 	serialized_snapshot.whenTaken = snapshot->whenTaken;
 	serialized_snapshot.lsn = snapshot->lsn;
+
+	serialized_snapshot.haveDistribSnapshot = snapshot->haveDistribSnapshot;
+
+	/* Copy fields for cdb distribute snapshot */
+	serialized_snapshot.minCachedLocalXid = snapshot->distribSnapshotWithLocalMapping.minCachedLocalXid;
+	serialized_snapshot.maxCachedLocalXid = snapshot->distribSnapshotWithLocalMapping.maxCachedLocalXid;
+	serialized_snapshot.currentLocalXidsCount = snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount;
+
+	serialized_snapshot.ds_xminAllDistributedSnapshots = snapshot->distribSnapshotWithLocalMapping.ds.xminAllDistributedSnapshots;
+	serialized_snapshot.ds_distribSnapshotId = snapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId;
+	serialized_snapshot.ds_xmin = snapshot->distribSnapshotWithLocalMapping.ds.xmin;
+	serialized_snapshot.ds_xmax = snapshot->distribSnapshotWithLocalMapping.ds.xmax;
+	serialized_snapshot.ds_count = snapshot->distribSnapshotWithLocalMapping.ds.count;
 
 	/*
 	 * Ignore the SubXID array if it has overflowed, unless the snapshot was
@@ -2252,11 +2298,25 @@ SerializeSnapshot(Snapshot snapshot, char *start_address)
 	 */
 	if (serialized_snapshot.subxcnt > 0)
 	{
-		Size		subxipoff = sizeof(SerializedSnapshotData) +
-		snapshot->xcnt * sizeof(TransactionId);
-
 		memcpy((TransactionId *) (start_address + subxipoff),
 			   snapshot->subxip, snapshot->subxcnt * sizeof(TransactionId));
+	}
+
+	if (snapshot->haveDistribSnapshot &&
+		snapshot->distribSnapshotWithLocalMapping.ds.count > 0)
+	{
+		memcpy((DistributedTransactionId*) (start_address + dsoff),
+				snapshot->distribSnapshotWithLocalMapping.ds.inProgressXidArray,
+				snapshot->distribSnapshotWithLocalMapping.ds.count *
+				sizeof(DistributedTransactionId));
+
+		if (snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount > 0)
+		{
+			memcpy((TransactionId*) (start_address + dslmoff),
+					snapshot->distribSnapshotWithLocalMapping.inProgressMappedLocalXids,
+					snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount *
+					sizeof(TransactionId));
+		}
 	}
 }
 
@@ -2271,6 +2331,8 @@ Snapshot
 RestoreSnapshot(char *start_address)
 {
 	SerializedSnapshotData serialized_snapshot;
+	Size		dsoff = 0;
+	Size		dslmoff = 0;
 	Size		size;
 	Snapshot	snapshot;
 	TransactionId *serialized_xids;
@@ -2284,6 +2346,17 @@ RestoreSnapshot(char *start_address)
 	size = sizeof(SnapshotData)
 		+ serialized_snapshot.xcnt * sizeof(TransactionId)
 		+ serialized_snapshot.subxcnt * sizeof(TransactionId);
+	dslmoff = dsoff = size;
+
+	if (serialized_snapshot.haveDistribSnapshot &&
+		serialized_snapshot.ds_count > 0)
+	{
+		size += serialized_snapshot.ds_count *
+			sizeof(DistributedTransactionId);
+		dslmoff = size;
+		size += serialized_snapshot.ds_count *
+			sizeof(TransactionId);
+	}
 
 	/* Copy all required fields */
 	snapshot = (Snapshot) MemoryContextAlloc(TopTransactionContext, size);
@@ -2300,6 +2373,18 @@ RestoreSnapshot(char *start_address)
 	snapshot->whenTaken = serialized_snapshot.whenTaken;
 	snapshot->lsn = serialized_snapshot.lsn;
 	snapshot->snapXactCompletionCount = 0;
+	snapshot->haveDistribSnapshot = serialized_snapshot.haveDistribSnapshot;
+
+	/* Copy all fields for cdb distributed snapshot */
+	snapshot->distribSnapshotWithLocalMapping.minCachedLocalXid = serialized_snapshot.minCachedLocalXid;
+	snapshot->distribSnapshotWithLocalMapping.maxCachedLocalXid = serialized_snapshot.maxCachedLocalXid;
+	snapshot->distribSnapshotWithLocalMapping.currentLocalXidsCount = serialized_snapshot.currentLocalXidsCount;
+
+	snapshot->distribSnapshotWithLocalMapping.ds.xminAllDistributedSnapshots = serialized_snapshot.ds_xminAllDistributedSnapshots;
+	snapshot->distribSnapshotWithLocalMapping.ds.distribSnapshotId = serialized_snapshot.ds_distribSnapshotId;
+	snapshot->distribSnapshotWithLocalMapping.ds.xmin = serialized_snapshot.ds_xmin;
+	snapshot->distribSnapshotWithLocalMapping.ds.xmax = serialized_snapshot.ds_xmax;
+	snapshot->distribSnapshotWithLocalMapping.ds.count = serialized_snapshot.ds_count;
 
 	/* Copy XIDs, if present. */
 	if (serialized_snapshot.xcnt > 0)
@@ -2322,6 +2407,34 @@ RestoreSnapshot(char *start_address)
 	snapshot->regd_count = 0;
 	snapshot->active_count = 0;
 	snapshot->copied = true;
+
+	snapshot->distribSnapshotWithLocalMapping.ds.inProgressXidArray = NULL;
+	snapshot->distribSnapshotWithLocalMapping.inProgressMappedLocalXids = NULL;
+	/* Copy distribSnapshotWithLocalMapping. */
+	if (serialized_snapshot.haveDistribSnapshot &&
+		serialized_snapshot.ds_count > 0)
+	{
+		snapshot->distribSnapshotWithLocalMapping.ds.inProgressXidArray =
+			(DistributedTransactionId*) ((char *) snapshot + dsoff);
+		snapshot->distribSnapshotWithLocalMapping.inProgressMappedLocalXids =
+			(TransactionId*) ((char *) snapshot + dslmoff);
+
+		memcpy(snapshot->distribSnapshotWithLocalMapping.ds.inProgressXidArray,
+				(DistributedTransactionId*) (start_address + dsoff),
+				serialized_snapshot.ds_count *
+				sizeof(DistributedTransactionId));
+
+		if (serialized_snapshot.currentLocalXidsCount > 0)
+		{
+			memset(snapshot->distribSnapshotWithLocalMapping.inProgressMappedLocalXids,
+					0,
+					serialized_snapshot.ds_count * sizeof(TransactionId));
+			memcpy(snapshot->distribSnapshotWithLocalMapping.inProgressMappedLocalXids,
+					(TransactionId*) (start_address + dslmoff),
+					serialized_snapshot.currentLocalXidsCount *
+					sizeof(TransactionId));
+		}
+	}
 
 	return snapshot;
 }

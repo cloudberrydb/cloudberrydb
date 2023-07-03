@@ -79,8 +79,10 @@ select 'one' from dd_multicol_1 where a=1 and b=1;
 
 select a, 'one' from dd_multicol_1 where a=1 and b=1;
 
+set enable_parallel = off;
 -- group by and sort
 select a, count(*) from dd_multicol_1 where a=1 and b=1 group by a,b;
+reset enable_parallel;
 
 select a, count(*) from dd_multicol_1 where a=1 and b=1 group by a,b  order by a,b;
 

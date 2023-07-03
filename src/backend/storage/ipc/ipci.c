@@ -21,6 +21,7 @@
 #include "access/heapam.h"
 #include "access/multixact.h"
 #include "access/nbtree.h"
+#include "access/parallel.h"
 #include "access/subtrans.h"
 #include "access/syncscan.h"
 #include "access/twophase.h"
@@ -28,6 +29,7 @@
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbvars.h"
 #include "commands/async.h"
+#include "crypto/kmgr.h"
 #include "executor/nodeShareInputScan.h"
 #include "miscadmin.h"
 #include "pgstat.h"
@@ -52,6 +54,7 @@
 #include "storage/procsignal.h"
 #include "storage/sinvaladt.h"
 #include "storage/spin.h"
+#include "task/pg_cron.h"
 #include "utils/backend_cancel.h"
 #include "utils/resource_manager.h"
 #include "utils/faultinjector.h"
@@ -148,6 +151,7 @@ CreateSharedMemoryAndSemaphores(void)
 												 sizeof(ShmemIndexEnt)));
 		size = add_size(size, dsm_estimate_size());
 		size = add_size(size, BufferShmemSize());
+		size = add_size(size, GpParallelDSMHashSize());
 		size = add_size(size, LockShmemSize());
 		size = add_size(size, PredicateLockShmemSize());
 
@@ -187,10 +191,12 @@ CreateSharedMemoryAndSemaphores(void)
 		size = add_size(size, PgArchShmemSize());
 		size = add_size(size, ApplyLauncherShmemSize());
 		size = add_size(size, FTSReplicationStatusShmemSize());
+		size = add_size(size, PgCronLauncherShmemSize());
 		size = add_size(size, SnapMgrShmemSize());
 		size = add_size(size, BTreeShmemSize());
 		size = add_size(size, SyncScanShmemSize());
 		size = add_size(size, AsyncShmemSize());
+		size = add_size(size, KmgrShmemSize());
 #ifdef EXEC_BACKEND
 		size = add_size(size, ShmemBackendArraySize());
 #endif
@@ -303,6 +309,8 @@ CreateSharedMemoryAndSemaphores(void)
 	tmShmemInit();
 	InitBufferPool();
 
+	InitGpParallelDSMHash();
+
 	/*
 	 * Set up lock manager
 	 */
@@ -363,6 +371,7 @@ CreateSharedMemoryAndSemaphores(void)
 	PgArchShmemInit();
 	ApplyLauncherShmemInit();
 	FTSReplicationStatusShmemInit();
+	PgCronLauncherShmemInit();
 
 #ifdef FAULT_INJECTOR
 	FaultInjector_ShmemInit();
@@ -386,6 +395,7 @@ CreateSharedMemoryAndSemaphores(void)
 		InstrShmemInit();
 
 	GpExpandVersionShmemInit();
+	KmgrShmemInit();
 
 #ifdef EXEC_BACKEND
 

@@ -199,6 +199,7 @@ Complete list of usable sgml source files in this directory.
 <!ENTITY dropuser           SYSTEM "dropuser.sgml">
 <!ENTITY ecpgRef            SYSTEM "ecpg-ref.sgml">
 <!ENTITY initdb             SYSTEM "initdb.sgml">
+<!ENTITY pgalterckey        SYSTEM "pg_alterckey.sgml">
 <!ENTITY pgamcheck          SYSTEM "pg_amcheck.sgml">
 <!ENTITY pgarchivecleanup   SYSTEM "pgarchivecleanup.sgml">
 <!ENTITY pgBasebackup       SYSTEM "pg_basebackup.sgml">

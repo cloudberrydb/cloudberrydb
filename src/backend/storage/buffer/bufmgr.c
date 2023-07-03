@@ -42,6 +42,8 @@
 #include "access/xlog.h"
 #include "catalog/catalog.h"
 #include "catalog/storage.h"
+#include "catalog/storage_xlog.h"
+#include "crypto/bufenc.h"
 #include "executor/instrument.h"
 #include "lib/binaryheap.h"
 #include "miscadmin.h"
@@ -1111,7 +1113,8 @@ ReadBuffer_common(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 			}
 
 			/* check for garbage data */
-			if (!PageIsVerifiedExtended((Page) bufBlock, blockNum,
+			if (!PageIsVerifiedExtended((Page) bufBlock, forkNum,
+										blockNum,
 										PIV_LOG_WARNING | PIV_REPORT_STAT))
 			{
 				if (mode == RBM_ZERO_ON_ERROR || zero_damaged_pages)
@@ -3041,12 +3044,24 @@ FlushBuffer(BufferDesc *buf, SMgrRelation reln)
 	 */
 	bufBlock = BufHdrGetBlock(buf);
 
+	if (FileEncryptionEnabled)
+	{
+		/*
+		 * Technically BM_PERMANENT could indicate an init fork, but that's
+		 * okay since forkNum would also tell us not to encrypt init forks.
+		 */
+		bufToWrite = PageEncryptCopy((Page) bufBlock, buf->tag.forkNum,
+									  buf->tag.blockNum);
+		PageSetChecksumInplace((Page) bufToWrite, buf->tag.blockNum);
+	}
+	else
+		bufToWrite = PageSetChecksumCopy((Page) bufBlock, buf->tag.blockNum);
+
 	/*
 	 * Update page checksum if desired.  Since we have only shared lock on the
 	 * buffer, other processes might be updating hint bits in it, so we must
 	 * copy the page to private storage if we do checksumming.
 	 */
-	bufToWrite = PageSetChecksumCopy((Page) bufBlock, buf->tag.blockNum);
 
 	/*
 	 * bufToWrite is either the shared buffer or a copy, as appropriate.
@@ -3733,6 +3748,9 @@ FlushRelationBuffers(Relation rel)
 				errcallback.previous = error_context_stack;
 				error_context_stack = &errcallback;
 
+				/* XXX should we be writing a copy of the page here? */
+				PageEncryptInplace(localpage, bufHdr->tag.forkNum,
+								   bufHdr->tag.blockNum);
 				PageSetChecksumInplace(localpage, bufHdr->tag.blockNum);
 
 				smgrwrite(rel->rd_smgr,
@@ -4025,11 +4043,12 @@ IncrBufferRefCount(Buffer buffer)
  * This is essentially the same as MarkBufferDirty, except:
  *
  * 1. The caller does not write WAL; so if checksums are enabled, we may need
- *	  to write an XLOG_FPI_FOR_HINT WAL record to protect against torn pages.
+ *    to write an XLOG_FPI_FOR_HINT record to protect against torn pages, or
+ *    XLOG_ENCRYPTION_LSN to generate a new LSN for the page.
  * 2. The caller might have only share-lock instead of exclusive-lock on the
- *	  buffer's content lock.
+ *    buffer's content lock.
  * 3. This function does not guarantee that the buffer is always marked dirty
- *	  (due to a race condition), so it cannot be used for important changes.
+ *    (due to a race condition), so it cannot be used for important changes.
  */
 void
 MarkBufferDirtyHint(Buffer buffer, bool buffer_std)
@@ -4075,54 +4094,112 @@ MarkBufferDirtyHint(Buffer buffer, bool buffer_std)
 		 * If we need to protect hint bit updates from torn writes, WAL-log a
 		 * full page image of the page. This full page image is only necessary
 		 * if the hint bit update is the first change to the page since the
-		 * last checkpoint.
+		 * last checkpoint.  If cluster file encryption is enabled, we also
+		 * need to generate new page LSNs for all other cases of page writes.
 		 *
 		 * We don't check full_page_writes here because that logic is included
 		 * when we call XLogInsert() since the value changes dynamically.
 		 */
-		if (XLogHintBitIsNeeded() &&
-			(pg_atomic_read_u32(&bufHdr->state) & BM_PERMANENT))
+		if (XLogHintBitIsNeeded())
 		{
 			/*
-			 * If we must not write WAL, due to a relfilenode-specific
-			 * condition or being in recovery, don't dirty the page.  We can
-			 * set the hint, just not dirty the page as a result so the hint
-			 * is lost when we evict the page or shutdown.
+ 			 * If we must not write WAL during recovery so don't dirty the page.
+ 			 * We can set the hint, just not dirty the page as a result so the
+ 			 * hint is lost when we evict the page or shutdown.
 			 *
 			 * See src/backend/storage/page/README for longer discussion.
 			 */
 			if (RecoveryInProgress() ||
 				IsInitProcessingMode() ||
-				RelFileNodeSkippingWAL(bufHdr->tag.rnode))
+				(RelFileNodeSkippingWAL(bufHdr->tag.rnode) &&
+				 !FileEncryptionEnabled))
 				return;
 
-			/*
-			 * If the block is already dirty because we either made a change
-			 * or set a hint already, then we don't need to write a full page
-			 * image.  Note that aggressive cleaning of blocks dirtied by hint
-			 * bit setting would increase the call rate. Bulk setting of hint
-			 * bits would reduce the call rate...
-			 *
-			 * We must issue the WAL record before we mark the buffer dirty.
-			 * Otherwise we might write the page before we write the WAL. That
-			 * causes a race condition, since a checkpoint might occur between
-			 * writing the WAL record and marking the buffer dirty. We solve
-			 * that with a kluge, but one that is already in use during
-			 * transaction commit to prevent race conditions. Basically, we
-			 * simply prevent the checkpoint WAL record from being written
-			 * until we have marked the buffer dirty. We don't start the
-			 * checkpoint flush until we have marked dirty, so our checkpoint
-			 * must flush the change to disk successfully or the checkpoint
-			 * never gets written, so crash recovery will fix.
-			 *
-			 * It's possible we may enter here without an xid, so it is
-			 * essential that CreateCheckpoint waits for virtual transactions
-			 * rather than full transactionids.
+			 /*
+			 * Non-BM_PERMANENT objects don't need full page images because
+			 * they are not restored.  WAL-skipped relfilenodes should never
+			 * have full page images generated.
 			 */
-			Assert(!MyProc->delayChkpt);
-			MyProc->delayChkpt = true;
-			delayChkpt = true;
-			lsn = XLogSaveBufferForHint(buffer, buffer_std);
+			if (pg_atomic_read_u32(&bufHdr->state) & BM_PERMANENT &&
+				!RelFileNodeSkippingWAL(bufHdr->tag.rnode))
+			{
+				/*
+				* If the block is already dirty because we either made a change
+				* or set a hint already, then we don't need to write a full page
+				* image.  Note that aggressive cleaning of blocks dirtied by hint
+				* bit setting would increase the call rate. Bulk setting of hint
+				* bits would reduce the call rate...
+				*
+				* We must issue the WAL record before we mark the buffer dirty.
+				* Otherwise we might write the page before we write the WAL. That
+				* causes a race condition, since a checkpoint might occur between
+				* writing the WAL record and marking the buffer dirty. We solve
+				* that with a kluge, but one that is already in use during
+				* transaction commit to prevent race conditions. Basically, we
+				* simply prevent the checkpoint WAL record from being written
+				* until we have marked the buffer dirty. We don't start the
+				* checkpoint flush until we have marked dirty, so our checkpoint
+				* must flush the change to disk successfully or the checkpoint
+				* never gets written, so crash recovery will fix.
+				*
+				* It's possible we may enter here without an xid, so it is
+				* essential that CreateCheckpoint waits for virtual transactions
+				* rather than full transactionids.
+				*/
+				Assert(!MyProc->delayChkpt);
+				MyProc->delayChkpt = true;
+				delayChkpt = true;
+				lsn = XLogSaveBufferForHint(buffer, buffer_std);
+			}
+
+			/*
+			 * Above, for hint bit changes, we might have generated a new page
+			 * LSN and a full-page WAL record for a page's first-clean-to-dirty
+			 * during a checkpoint for permanent, non-WAL-skipped relfilenodes.
+			 * If we didn't (the lsn variable is invalid), and we are
+			 * doing cluster file encryption, we must generate a new
+			 * page LSN here for either non-permanent relations or page
+			 * non-first-clean-to-dirty during a checkpoint.  (Cluster file
+			 * encryption does not support WAL-skip relfilenodes.)  We must
+			 * update the page LSN even if the page with the hint bit change is
+			 * later overwritten in the file system with an earlier version of
+			 * the page during crash recovery.
+  			 *
+			 * XXX Can we rely on the full page write above with no lock being
+			 * held to avoid torn pages?  Above, the LSN and page image are
+			 * tied together, but here is just the page LSN update.
+  			 */
+			if (XLogRecPtrIsInvalid(lsn) && FileEncryptionEnabled)
+			{
+				/*
+				 * For cluster file encryption we need a new page LSN because
+				 * the LSN is used, with the page number and permanent flag, as
+				 * part of the nonce, and the nonce must be unique for every
+				 * page write.  If we reencrypt a page with hint bit changes
+				 * using the same nonce as previous writes, it would expose the
+				 * hint bit change locations.  To avoid this, we write a simple
+				 * WAL record to advance the lsn, which can then be assigned to
+				 * the page below.
+				 *
+				 * Above we are relying on the full page writes to revert
+				 * any partial pages writes caused by this LSN change for
+				 * permanent, non-WAL-skip relfilenodes.  For non-permanent
+				 * relations, they crash recover as empty.  For WAL-skip
+				 * relfilenodes, they recover with their original contents, so
+				 * that works too.
+				 */
+				/* XXX Do we need the checkpoint delay here? */
+				MyProc->delayChkpt |= DELAY_CHKPT_START;
+				delayChkpt = true;
+				/*
+				 * XXX We probably don't need to replay this WAL on the primary
+				 * since the full page image is restored, but do we have
+				 * to replay this on the repicas (for relations that are
+				 * replicated)?
+				 */
+				lsn = LSNForEncryption(
+						pg_atomic_read_u32(&bufHdr->state) & BM_PERMANENT);
+			}
 		}
 
 		buf_state = LockBufHdr(bufHdr);

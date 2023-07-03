@@ -27,15 +27,19 @@
  */
 #include "postgres.h"
 
+#include "access/heapam.h"
 #include "access/relscan.h"
+#include "access/session.h"
 #include "access/tableam.h"
 #include "executor/execdebug.h"
 #include "executor/nodeSeqscan.h"
 #include "utils/rel.h"
+#include "utils/builtins.h"
 #include "nodes/nodeFuncs.h"
 
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbappendonlyam.h"
+#include "cdb/cdbvars.h"
 
 static TupleTableSlot *SeqNext(SeqScanState *node);
 
@@ -68,19 +72,58 @@ SeqNext(SeqScanState *node)
 	if (scandesc == NULL)
 	{
 		/*
-		 * We reach here if the scan is not parallel, or if we're serially
-		 * executing a scan that was planned to be parallel.
+		 * parallel scan could be:
+		 *  normal mode(Heap, AO, AOCO) and AOCO extract columns mode.
 		 */
-		/*
-		 * GPDB: we are using table_beginscan_es in order to also initialize the
-		 * scan state with the column info needed for AOCO relations. Check the
-		 * comment in table_beginscan_es() for more info.
-		 */
-		scandesc = table_beginscan_es(node->ss.ss_currentRelation,
-									  estate->es_snapshot,
-									  node->ss.ps.plan->targetlist,
-									  node->ss.ps.plan->qual);
-		node->ss.ss_currentScanDesc = scandesc;
+		if (node->ss.ps.plan->parallel_aware && estate->useMppParallelMode)
+		{
+			ParallelTableScanDesc pscan;
+			ParallelEntryTag tag;
+			int localSliceId = LocallyExecutingSliceIndex(estate);
+			INIT_PARALLELENTRYTAG(tag, gp_command_count, localSliceId, gp_session_id);
+			pscan = GpFetchParallelDSMEntry(tag, node->ss.ps.plan->plan_node_id);
+			Assert(pscan);
+
+			/*
+			 * GPDB: we are using table_beginscan_es in order to also initialize the
+			 * scan state with the column info needed for AOCO relations. Check the
+			 * comment in table_beginscan_es() for more info.
+			 * table_beginscan_es could also be parallel.
+			 * We need target_list and qual for AOCO extract columns.
+			 * This is a little awful becuase of some duplicated checks both in
+			 * scan_begin_extractcolumns am and table_beginscan_parallel am.
+			 * But we shouldn't change upstream's API.
+			 */
+			if (node->ss.ss_currentRelation->rd_tableam->scan_begin_extractcolumns)
+			{
+				/* try parallel mode for AOCO extract columns */
+				scandesc = table_beginscan_es(node->ss.ss_currentRelation,
+											  estate->es_snapshot,
+											  pscan,
+											  node->ss.ps.plan->targetlist,
+											  node->ss.ps.plan->qual);
+			}
+			else
+			{
+				/* normal parallel mode */
+				scandesc = table_beginscan_parallel(node->ss.ss_currentRelation, pscan);
+			}
+
+			node->ss.ss_currentScanDesc = scandesc;
+		}
+		else
+		{
+			/*
+			 * We reach here if the scan is not parallel, or if we're serially
+			 * executing a scan that was planned to be parallel.
+			 */
+			scandesc = table_beginscan_es(node->ss.ss_currentRelation,
+										  estate->es_snapshot,
+										  NULL,
+										  node->ss.ps.plan->targetlist,
+										  node->ss.ps.plan->qual);
+			node->ss.ss_currentScanDesc = scandesc;
+		}
 		if (gp_enable_predicate_pushdown)
 		{
 			if (RelationIsAoRows(node->ss.ss_currentRelation))
@@ -312,6 +355,9 @@ ExecSeqScanInitializeDSM(SeqScanState *node,
 	ParallelTableScanDesc pscan;
 
 	pscan = shm_toc_allocate(pcxt->toc, node->pscan_len);
+
+	Assert(pscan);
+
 	table_parallelscan_initialize(node->ss.ss_currentRelation,
 								  pscan,
 								  estate->es_snapshot);

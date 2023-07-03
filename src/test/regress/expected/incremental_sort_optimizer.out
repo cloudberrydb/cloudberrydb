@@ -541,6 +541,7 @@ select * from (select * from t order by a) s order by a, b limit 55;
 (55 rows)
 
 -- Test EXPLAIN ANALYZE with only a fullsort group.
+set max_parallel_workers_per_gather = 0;
 select explain_analyze_without_memory('select * from (select * from t order by a) s order by a, b limit 55');
                      explain_analyze_without_memory                      
 -------------------------------------------------------------------------
@@ -555,6 +556,7 @@ select explain_analyze_without_memory('select * from (select * from t order by a
  Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
+reset max_parallel_workers_per_gather;
 select jsonb_pretty(explain_analyze_inc_sort_nodes_without_memory('select * from (select * from t order by a) s order by a, b limit 55'));
  jsonb_pretty 
 --------------
@@ -721,6 +723,7 @@ select * from t left join (select * from (select * from t order by a) v order by
 
 rollback;
 -- Test EXPLAIN ANALYZE with both fullsort and presorted groups.
+set max_parallel_workers_per_gather = 0;
 select explain_analyze_without_memory('select * from (select * from t order by a) s order by a, b limit 70');
                      explain_analyze_without_memory                      
 -------------------------------------------------------------------------
@@ -736,6 +739,7 @@ select explain_analyze_without_memory('select * from (select * from t order by a
  Optimizer: Pivotal Optimizer (GPORCA)
 (10 rows)
 
+reset max_parallel_workers_per_gather;
 select jsonb_pretty(explain_analyze_inc_sort_nodes_without_memory('select * from (select * from t order by a) s order by a, b limit 70'));
  jsonb_pretty 
 --------------
@@ -1496,7 +1500,7 @@ from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
 explain (costs off) select sub.unique1, stringu1
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
-                        QUERY PLAN
+                        QUERY PLAN                         
 -----------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.unique1, tenk1.stringu1
@@ -1528,7 +1532,7 @@ from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub;
 explain (costs off) select sub.unique1, md5(stringu1)
 from tenk1, lateral (select tenk1.unique1 from generate_series(1, 1000)) as sub
 order by 1, 2;
-                                 QUERY PLAN
+                                 QUERY PLAN                                 
 ----------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: tenk1.unique1, (md5((tenk1.stringu1)::text))

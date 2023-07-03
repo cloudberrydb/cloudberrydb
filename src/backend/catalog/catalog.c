@@ -43,11 +43,14 @@
 #include "catalog/pg_shseclabel.h"
 #include "catalog/pg_subscription.h"
 #include "catalog/pg_tablespace.h"
+#include "catalog/pg_task.h"
+#include "catalog/pg_task_run_history.h"
 #include "catalog/pg_type.h"
 #include "miscadmin.h"
 #include "storage/fd.h"
 #include "utils/fmgroids.h"
 #include "utils/fmgrprotos.h"
+#include "utils/lsyscache.h"
 #include "utils/rel.h"
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
@@ -173,6 +176,14 @@ IsSystemClass(Oid relid, Form_pg_class reltuple)
 	/* IsCatalogRelationOid is a bit faster, so test that first */
 	return (IsCatalogRelationOid(relid) || IsToastClass(reltuple) ||
 			IsAoSegmentClass(reltuple));
+}
+
+bool
+IsSystemClassByRelid(Oid relid)
+{
+	Oid relnamespace = get_rel_namespace(relid);
+	return (IsCatalogRelationOid(relid) || IsToastNamespace(relnamespace) ||
+			IsAoSegmentNamespace(relnamespace));
 }
 
 /*
@@ -481,6 +492,18 @@ IsSharedRelation(Oid relationId)
 		return true;
 	}
 #endif
+
+	/* GPDB added task tables and their indexes */
+	if (relationId == TaskRelationId ||
+		relationId == TaskJobNameUserNameIndexId ||
+		relationId == TaskJobIdIndexId ||
+		relationId == TaskRunHistoryRelationId ||
+		relationId == TaskRunHistoryJobIdIndexId ||
+		relationId == TaskRunHistoryRunIdIndexId)
+	{
+		return true;
+	}
+
 	return false;
 }
 

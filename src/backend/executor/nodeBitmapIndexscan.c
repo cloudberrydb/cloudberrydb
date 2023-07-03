@@ -24,6 +24,8 @@
 #include "postgres.h"
 
 #include "access/genam.h"
+#include "access/nbtree.h"
+#include "access/relscan.h"
 #include "executor/execdebug.h"
 #include "executor/nodeBitmapIndexscan.h"
 #include "executor/nodeIndexscan.h"
@@ -84,6 +86,23 @@ MultiExecBitmapIndexScan(BitmapIndexScanState *node)
 	 * extract necessary information from index scan node
 	 */
 	scandesc = node->biss_ScanDesc;
+
+	/*
+	 * Actually the bitmap building logic is different to upstream.
+	 * We build the bitmap inside function `index_getbitmap`, however,
+	 * the upsteam will build the bitmap before calling `index_getbitmap`.
+	 *
+	 * Thus, if we want to build bitmap in cbdb, we have to pass the dsa_area
+	 * into the `index_getbitmap`.
+	 *
+	 * I work around it by adding a field for dsa in struct IndexScanDesc,
+	 * but we might need a code refaction here to align the code to upstream.
+	 *
+	 */
+	if (node->ss.ps.state->es_query_dsa != NULL && ((BitmapIndexScan *)node->ss.ps.plan)->isshared)
+	{
+		scandesc->dsa = node->ss.ps.state->es_query_dsa;
+	}
 
 	/*
 	 * If we have runtime keys and they've not already been set up, do it now.

@@ -16,7 +16,9 @@
  */
 #include "postgres.h"
 
+#include "access/xlog.h"
 #include "cdb/cdbbufferedread.h"
+#include "crypto/bufenc.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "utils/guc.h"
@@ -59,7 +61,8 @@ BufferedReadInit(
 				 int32 memoryLen,
 				 int32 maxBufferLen,
 				 int32 maxLargeReadLen,
-				 char *relationName)
+				 char *relationName,
+				 RelFileNode *file_node)
 {
 	Assert(bufferedRead != NULL);
 	Assert(memory != NULL);
@@ -104,6 +107,7 @@ BufferedReadInit(
 	/* start reading from beginning of file */
 	bufferedRead->fileOff = 0;
 
+	bufferedRead->relFileNode = *file_node;
 	/*
 	 * Temporary limit support for random reading.
 	 */

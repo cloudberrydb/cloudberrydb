@@ -37,6 +37,41 @@ static List *cdb_build_distribution_keys(PlannerInfo *root,
 										 Index rti,
 										 GpPolicy *policy);
 
+bool
+cdbpath_distkey_equal(List *a_distkey, List *b_distkey)
+{
+	ListCell   *acell;
+	ListCell   *bcell;
+	ListCell   *a_ec_cell;
+	ListCell   *b_ec_cell;
+
+	forboth(acell, a_distkey, bcell, b_distkey)
+	{
+		DistributionKey *adistkey = (DistributionKey *) lfirst(acell);
+		DistributionKey *bdistkey = (DistributionKey *) lfirst(bcell);
+	
+		if (adistkey->dk_opfamily != bdistkey->dk_opfamily)
+			return false;
+	
+		foreach(b_ec_cell, bdistkey->dk_eclasses)
+		{
+			EquivalenceClass *b_ec = (EquivalenceClass *) lfirst(b_ec_cell);
+	
+			if (!list_member_ptr(adistkey->dk_eclasses, b_ec))
+				return false;
+		}
+		foreach(a_ec_cell, adistkey->dk_eclasses)
+		{
+			EquivalenceClass *a_ec = (EquivalenceClass *) lfirst(a_ec_cell);
+	
+			if (!list_member_ptr(bdistkey->dk_eclasses, a_ec))
+				return false;
+		}
+	}
+
+	return true;
+}
+
 /*
  * cdbpathlocus_equal
  *
@@ -52,14 +87,24 @@ static List *cdb_build_distribution_keys(PlannerInfo *root,
 bool
 cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b)
 {
-	ListCell   *acell;
-	ListCell   *bcell;
-	ListCell   *a_ec_cell;
-	ListCell   *b_ec_cell;
-
 	/* Unless a and b have the same numsegments the result is always false */
 	if (CdbPathLocus_NumSegments(a) !=
 		CdbPathLocus_NumSegments(b))
+		return false;
+
+	/* Unless a and b have the same parallel_workers the result is always false */
+	if (CdbPathLocus_NumParallelWorkers(a) !=
+		CdbPathLocus_NumParallelWorkers(b))
+		return false;
+
+	/* HashedWorkers will never be equal */
+	if (CdbPathLocus_IsHashedWorkers(a) ||
+		CdbPathLocus_IsHashedWorkers(b))
+		return false;
+
+	/* SegmentGeneralWorkers will never be equal */
+	if (CdbPathLocus_IsSegmentGeneralWorkers(a) ||
+		CdbPathLocus_IsSegmentGeneralWorkers(b))
 		return false;
 
 	if (CdbPathLocus_IsStrewn(a) ||
@@ -76,34 +121,8 @@ cdbpathlocus_equal(CdbPathLocus a, CdbPathLocus b)
 
 	if ((CdbPathLocus_IsHashed(a) || CdbPathLocus_IsHashedOJ(a)) &&
 		(CdbPathLocus_IsHashed(b) || CdbPathLocus_IsHashedOJ(b)))
-	{
-		forboth(acell, a.distkey, bcell, b.distkey)
-		{
-			DistributionKey *adistkey = (DistributionKey *) lfirst(acell);
-			DistributionKey *bdistkey = (DistributionKey *) lfirst(bcell);
+		return cdbpath_distkey_equal(a.distkey, b.distkey);
 
-			if (adistkey->dk_opfamily != bdistkey->dk_opfamily)
-				return false;
-
-			foreach(b_ec_cell, bdistkey->dk_eclasses)
-			{
-				EquivalenceClass *b_ec = (EquivalenceClass *) lfirst(b_ec_cell);
-
-				if (!list_member_ptr(adistkey->dk_eclasses, b_ec))
-					return false;
-			}
-			foreach(a_ec_cell, adistkey->dk_eclasses)
-			{
-				EquivalenceClass *a_ec = (EquivalenceClass *) lfirst(a_ec_cell);
-
-				if (!list_member_ptr(bdistkey->dk_eclasses, a_ec))
-					return false;
-			}
-		}
-		return true;
-	}
-
-	Assert(false);
 	return false;
 }								/* cdbpathlocus_equal */
 
@@ -286,11 +305,11 @@ cdbpathlocus_for_insert(PlannerInfo *root, GpPolicy *policy,
 		CdbPathLocus_MakeNull(&targetLocus);
 	}
 	else if (distkeys)
-		CdbPathLocus_MakeHashed(&targetLocus, distkeys, policy->numsegments);
+		CdbPathLocus_MakeHashed(&targetLocus, distkeys, policy->numsegments, 0 /* parallel_workers */);
 	else
 	{
 			/* DISTRIBUTED RANDOMLY */
-		CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments);
+		CdbPathLocus_MakeStrewn(&targetLocus, policy->numsegments, 0);
 	}
 
 	return targetLocus;
@@ -302,7 +321,7 @@ cdbpathlocus_for_insert(PlannerInfo *root, GpPolicy *policy,
  * Returns a locus describing the distribution of a policy
  */
 CdbPathLocus
-cdbpathlocus_from_policy(struct PlannerInfo *root, Index rti, GpPolicy *policy)
+cdbpathlocus_from_policy(struct PlannerInfo *root, Index rti, GpPolicy *policy, int parallel_workers)
 {
 	CdbPathLocus result;
 
@@ -322,24 +341,32 @@ cdbpathlocus_from_policy(struct PlannerInfo *root, Index rti, GpPolicy *policy)
 															   policy);
 
 			if (distkeys)
-				CdbPathLocus_MakeHashed(&result, distkeys, policy->numsegments);
+			{
+				if (parallel_workers > 1)
+					CdbPathLocus_MakeHashedWorkers(&result, distkeys, policy->numsegments, parallel_workers);
+				else
+					CdbPathLocus_MakeHashed(&result, distkeys, policy->numsegments, 0 /* parallel_workers */);
+			}
 			else
 			{
 				/*
 				 * It's possible that we fail to build a DistributionKey
 				 * representation for the distribution policy.
 				 */
-				CdbPathLocus_MakeStrewn(&result, policy->numsegments);
+				CdbPathLocus_MakeStrewn(&result, policy->numsegments, parallel_workers);
 			}
 		}
 
 		/* Rows are distributed on an unknown criterion (uniformly, we hope!) */
 		else
-			CdbPathLocus_MakeStrewn(&result, policy->numsegments);
+			CdbPathLocus_MakeStrewn(&result, policy->numsegments, parallel_workers);
 	}
 	else if (GpPolicyIsReplicated(policy))
 	{
-		CdbPathLocus_MakeSegmentGeneral(&result, policy->numsegments);
+		if (parallel_workers <= 1)
+			CdbPathLocus_MakeSegmentGeneral(&result, policy->numsegments);
+		else
+			CdbPathLocus_MakeSegmentGeneralWorkers(&result, policy->numsegments, parallel_workers);
 	}
 	/* Normal catalog access */
 	else
@@ -355,9 +382,10 @@ cdbpathlocus_from_policy(struct PlannerInfo *root, Index rti, GpPolicy *policy)
  */
 CdbPathLocus
 cdbpathlocus_from_baserel(struct PlannerInfo *root,
-						  struct RelOptInfo *rel)
+						  struct RelOptInfo *rel,
+						  int parallel_workers)
 {
-	return cdbpathlocus_from_policy(root, rel->relid, rel->cdbpolicy);
+	return cdbpathlocus_from_policy(root, rel->relid, rel->cdbpolicy, parallel_workers);
 }								/* cdbpathlocus_from_baserel */
 
 
@@ -372,7 +400,8 @@ cdbpathlocus_from_exprs(struct PlannerInfo *root,
 						List *hash_on_exprs,
 						List *hash_opfamilies,
 						List *hash_sortrefs,
-						int numsegments)
+						int numsegments,
+						int parallel_workers)
 {
 	CdbPathLocus locus;
 	List	   *distkeys = NIL;
@@ -389,7 +418,7 @@ cdbpathlocus_from_exprs(struct PlannerInfo *root,
 		distkeys = lappend(distkeys, distkey);
 	}
 
-	CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
+	CdbPathLocus_MakeHashed(&locus, distkeys, numsegments, parallel_workers);
 	return locus;
 }								/* cdbpathlocus_from_exprs */
 
@@ -450,7 +479,7 @@ cdbpathlocus_from_subquery(struct PlannerInfo *root,
 			{
 				/* shouldn't happen, but let's try to do something sane */
 				Assert(false);
-				CdbPathLocus_MakeStrewn(&locus, numsegments);
+				CdbPathLocus_MakeStrewn(&locus, numsegments, subpath->locus.parallel_workers);
 				return locus;
 			}
 			parentrel = root->simple_rel_array[parent_relid];
@@ -524,9 +553,9 @@ cdbpathlocus_from_subquery(struct PlannerInfo *root,
 		}
 
 		if (failed)
-			CdbPathLocus_MakeStrewn(&locus, numsegments);
+			CdbPathLocus_MakeStrewn(&locus, numsegments, subpath->locus.parallel_workers);
 		else if (CdbPathLocus_IsHashed(subpath->locus))
-			CdbPathLocus_MakeHashed(&locus, distkeys, numsegments);
+			CdbPathLocus_MakeHashed(&locus, distkeys, numsegments, subpath->locus.parallel_workers);
 		else
 		{
 			Assert(CdbPathLocus_IsHashedOJ(subpath->locus));
@@ -563,7 +592,7 @@ cdbpathlocus_get_distkey_exprs(CdbPathLocus locus,
 	*exprs_p = NIL;
 	*opfamilies_p = NIL;
 
-	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
+	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus) || CdbPathLocus_IsHashedWorkers(locus))
 	{
 		foreach(distkeycell, locus.distkey)
 		{
@@ -617,13 +646,15 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
 								   Bitmapset *relids,
 								   List *targetlist,
 								   List *newvarlist,
-								   Index newrelid)
+								   Index newrelid,
+								   bool	parallel_aware)
 {
 	CdbPathLocus newlocus;
 
 	Assert(cdbpathlocus_is_valid(locus));
 
-	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
+	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus) ||
+		(CdbPathLocus_IsHashedWorkers(locus) && parallel_aware))
 	{
 		ListCell   *distkeycell;
 		List	   *newdistkeys = NIL;
@@ -673,7 +704,7 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
 			 */
 			if (!new_ec)
 			{
-				CdbPathLocus_MakeStrewn(&newlocus, numsegments);
+				CdbPathLocus_MakeStrewn(&newlocus, numsegments, locus.parallel_workers);
 				return newlocus;
 			}
 
@@ -687,7 +718,12 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
 
 		/* Build new locus. */
 		if (CdbPathLocus_IsHashed(locus))
-			CdbPathLocus_MakeHashed(&newlocus, newdistkeys, numsegments);
+			CdbPathLocus_MakeHashed(&newlocus, newdistkeys, numsegments, locus.parallel_workers);
+		else if (CdbPathLocus_IsHashedWorkers(locus))
+		{
+			Assert(parallel_aware);
+			CdbPathLocus_MakeHashedWorkers(&newlocus, newdistkeys, numsegments, locus.parallel_workers);
+		}
 		else
 			CdbPathLocus_MakeHashedOJ(&newlocus, newdistkeys, numsegments);
 		return newlocus;
@@ -695,7 +731,6 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
 	else
 		return locus;
 }								/* cdbpathlocus_pull_above_projection */
-
 
 /*
  * cdbpathlocus_join
@@ -706,13 +741,22 @@ cdbpathlocus_pull_above_projection(struct PlannerInfo *root,
 CdbPathLocus
 cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 {
-	ListCell   *acell;
-	ListCell   *bcell;
+	ListCell *acell;
+	ListCell *bcell;
 	CdbPathLocus resultlocus = {0};
-	int			numsegments;
+	int numsegments;
 
 	Assert(cdbpathlocus_is_valid(a));
 	Assert(cdbpathlocus_is_valid(b));
+
+	/*
+	 * Parallel locus never get here.
+	 * There shouldn't be xxxWorkers locus or parallel_workers > 1
+	 * (Hashed locus could have parallel_worker > 0).
+	 */
+	Assert(!CdbPathLocus_IsHashedWorkers(a) && !CdbPathLocus_IsSegmentGeneralWorkers(a) && !CdbPathLocus_IsReplicatedWorkers(a));
+	Assert(!CdbPathLocus_IsHashedWorkers(b) && !CdbPathLocus_IsSegmentGeneralWorkers(b) && !CdbPathLocus_IsReplicatedWorkers(b));
+	Assert(a.parallel_workers == 0 && b.parallel_workers == 0);
 
 	/* Do both input rels have same locus? */
 	if (cdbpathlocus_equal(a, b))
@@ -823,12 +867,12 @@ cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 		 */
 
 		/* Zip the two distkey lists together to make a HashedOJ locus. */
-		List	   *newdistkeys = NIL;
+		List *newdistkeys = NIL;
 
 		forboth(acell, a.distkey, bcell, b.distkey)
 		{
-			DistributionKey *adistkey = (DistributionKey *) lfirst(acell);
-			DistributionKey *bdistkey = (DistributionKey *) lfirst(bcell);
+			DistributionKey *adistkey = (DistributionKey *)lfirst(acell);
+			DistributionKey *bdistkey = (DistributionKey *)lfirst(bcell);
 			DistributionKey *newdistkey;
 
 			Assert(adistkey->dk_opfamily == bdistkey->dk_opfamily);
@@ -844,7 +888,7 @@ cdbpathlocus_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b)
 	}
 	Assert(cdbpathlocus_is_valid(resultlocus));
 	return resultlocus;
-}								/* cdbpathlocus_join */
+} /* cdbpathlocus_join */
 
 /*
  * cdbpathlocus_is_hashed_on_exprs
@@ -864,6 +908,9 @@ cdbpathlocus_is_hashed_on_exprs(CdbPathLocus locus, List *exprlist,
 	ListCell   *distkeycell;
 
 	Assert(cdbpathlocus_is_valid(locus));
+
+	if (CdbPathLocus_IsHashedWorkers(locus))
+		return false;
 
 	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
 	{
@@ -926,6 +973,9 @@ cdbpathlocus_is_hashed_on_eclasses(CdbPathLocus locus, List *eclasses,
 	ListCell   *distkeycell;
 
 	Assert(cdbpathlocus_is_valid(locus));
+
+	if (CdbPathLocus_IsHashedWorkers(locus))
+		return false;
 
 	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
 	{
@@ -994,6 +1044,9 @@ cdbpathlocus_is_hashed_on_tlist(CdbPathLocus locus, List *tlist,
 	ListCell   *distkeycell;
 
 	Assert(cdbpathlocus_is_valid(locus));
+
+	if (CdbPathLocus_IsHashedWorkers(locus))
+		return false;
 
 	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
 	{
@@ -1135,10 +1188,10 @@ cdbpathlocus_is_valid(CdbPathLocus locus)
 	if (!CdbLocusType_IsValid(locus.locustype))
 		goto bad;
 
-	if (!CdbPathLocus_IsHashed(locus) && !CdbPathLocus_IsHashedOJ(locus) && locus.distkey != NIL)
+	if (!CdbPathLocus_IsHashedWorkers(locus)&& !CdbPathLocus_IsHashed(locus) && !CdbPathLocus_IsHashedOJ(locus) && locus.distkey != NIL)
 		goto bad;
 
-	if (CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
+	if (CdbPathLocus_IsHashedWorkers(locus) || CdbPathLocus_IsHashed(locus) || CdbPathLocus_IsHashedOJ(locus))
 	{
 		if (locus.distkey == NIL)
 			goto bad;
@@ -1168,3 +1221,260 @@ cdbpathlocus_is_valid(CdbPathLocus locus)
 bad:
 	return false;
 }								/* cdbpathlocus_is_valid */
+
+/*
+ * cdbpathlocus_parallel_join
+ * This is parallel version of cdbpathlocus_join.
+ * We only handle parallel join here(either path's parallel_works > 1, or both).
+ */
+CdbPathLocus
+cdbpathlocus_parallel_join(JoinType jointype, CdbPathLocus a, CdbPathLocus b, bool parallel_aware)
+{
+	ListCell   *acell;
+	ListCell   *bcell;
+	CdbPathLocus resultlocus = {0};
+	int			numsegments;
+	int outerParallel PG_USED_FOR_ASSERTS_ONLY = CdbPathLocus_NumParallelWorkers(a);
+	int innerParallel PG_USED_FOR_ASSERTS_ONLY = CdbPathLocus_NumParallelWorkers(b);
+
+	Assert(cdbpathlocus_is_valid(a));
+	Assert(cdbpathlocus_is_valid(b));
+
+	/* Do both input rels have same locus? */
+	if (cdbpathlocus_equal(a, b))
+		return a;
+
+	/*
+	 * SingleQE may have different segment counts.
+	 */
+	if (CdbPathLocus_IsSingleQE(a) &&
+		CdbPathLocus_IsSingleQE(b))
+	{
+		CdbPathLocus_MakeSingleQE(&resultlocus,
+								  CdbPathLocus_CommonSegments(a, b));
+		return resultlocus;
+	}
+
+	if (CdbPathLocus_IsGeneral(a))
+		return b;
+
+	if (CdbPathLocus_IsGeneral(b))
+		return a;
+
+	/*
+	 * If one rel is replicated, result stays with the other rel,
+	 * but need to ensure the result is on the common segments.
+	 */
+	if (CdbPathLocus_IsReplicated(a))
+	{
+		b.numsegments = CdbPathLocus_CommonSegments(a, b);
+		return b;
+	}
+	if (CdbPathLocus_IsReplicatedWorkers(a))
+	{
+		b.numsegments = CdbPathLocus_CommonSegments(a, b);
+		if (CdbPathLocus_IsHashed(b))
+		{
+			b.locustype = CdbLocusType_HashedWorkers;
+		}
+		return b;
+	}
+	if (CdbPathLocus_IsReplicated(b) || CdbPathLocus_IsReplicatedWorkers(b))
+	{
+		a.numsegments = CdbPathLocus_CommonSegments(a, b);
+		return a;
+	}
+
+	/*
+	 * If one rel is segmentgeneral, result stays with the other rel,
+	 * but need to ensure the result is on the common segments.
+	 *
+	 * NB: the code check SegmentGeneral and replicated is quite similar,
+	 * but we have to put check-segmentgeneral below. Consider one
+	 * is segmentgeneral and the other is replicated, only by this order
+	 * we can be sure that this function never return a locus of
+	 * Replicated.
+	 * update a replicated table join with a partitioned locus table will
+	 * reach here.
+	 */
+	if (CdbPathLocus_IsSegmentGeneral(a))
+	{
+		Assert(outerParallel == 0);
+		Assert(innerParallel == 0);
+		b.numsegments = CdbPathLocus_CommonSegments(a, b);
+		return b;
+	}
+
+	/*
+	 * If inner side is SegmentGeneral, return the other locus anyway. 
+	 * parallel join
+	 * 		joinlocus = a JOIN b, joinlocus could be:
+	 * 		Hashed = Hashed JOIN SegmentGeneral
+	 * 		HashedWorkers = HashedWorkers JOIN SegmentGeneral
+	 * 		SegmentGeneralWorkers = SegmentGeneralWorkers JOIN SegmentGeneral
+	 * 
+	 * non-parallel join
+	 * 		OuterLocus = OuterLocus JOIN SegmentGeneral
+	 */
+	if (CdbPathLocus_IsSegmentGeneral(b))
+	{
+		Assert(innerParallel == 0);
+		AssertImply(outerParallel > 1, b.numsegments == a.numsegments);
+		a.numsegments = CdbPathLocus_CommonSegments(a, b);
+		return a;
+	}
+
+	if (CdbPathLocus_IsSegmentGeneralWorkers(a) || CdbPathLocus_IsSegmentGeneralWorkers(b))
+	{
+		/* GPDB parallel join */
+		Assert(a.numsegments == b.numsegments);
+		if (parallel_aware)
+		{
+
+			Assert(outerParallel == innerParallel);
+			Assert(outerParallel > 1);
+			if (CdbPathLocus_IsSegmentGeneralWorkers(a))
+			{
+				/*
+				 * NB: GPDB parallel could generate HashedWorkers locus besides base rel.
+				 * SegmentGeneralWorkers Parallel JOIN Hashed(parallel_workers>1) -> joinlocus: HashedWorkers.
+				 * Let final join's parallel_workers be with outer, this is not a parallel_workers change of a path!
+				 */
+				if (CdbPathLocus_IsHashed(b))
+				{
+					b.parallel_workers = a.parallel_workers;
+					b.locustype = CdbLocusType_HashedWorkers;
+				}
+				return b;
+			}
+
+			/* If SegmentGeneralWorkers is inner side, return the outer side locus */
+			if (CdbPathLocus_IsSegmentGeneralWorkers(b))
+				return a;
+		}
+		else
+		{
+			/*
+			 * SegmentGeneralWorkers Parallel Join without shared hash table.
+			 * The valid join form should be like:
+			 * 		SegmentGeneralWorkers Join Hashed(parallel_workers=0).
+			 * 		SegmentGeneralWorkers Join Strewn(parallel_workers=0).
+			 * 
+			 * Couldn't get here if the join is :
+			 * 		SegmentGeneralWorkers Join Bottleneck.
+			 * 		SegmentGeneralWorkers Join SegmentGeneral.
+			 * Necessary checks should be done in cbdpath_motion_for_join.
+			 * and they are rejected or returned.See more details there.
+			 */
+			Assert(outerParallel > 1);
+			Assert(innerParallel == 0);
+			if(!CdbPathLocus_IsSegmentGeneralWorkers(a))
+				elog(ERROR, "could not construct join locus if SegmentGeneralWorkers is at inner side without shared hash table");
+
+			if (CdbPathLocus_IsHashed(b))
+			{
+				/*
+				 * NB: GPDB parallel could generate HashedWorkers locus besides base rel.
+				 * SegmentGeneralWorkers JOIN Hashed(parallel_workers=0) -> joinlocus: HashedWorkers.  
+				 * This is a hack way to make HashedWorkersand!
+				 */ 
+				b.parallel_workers = a.parallel_workers;
+				b.locustype = CdbLocusType_HashedWorkers;
+				return b;
+			}
+
+			if (CdbPathLocus_IsStrewn(b))
+			{
+				/* SegmentGeneralWorkers JOIN Strewn(parallel_workers=0) -> joinlocus: Strewn(parallel_workers > 1). */
+				b.parallel_workers = a.parallel_workers;
+				return b;
+			}
+			return a;
+		}
+	}
+
+	/*
+	 * Both sides must be Hashed (or HashedOJ), then. And the distribution
+	 * keys should be compatible; otherwise the caller should not be building
+	 * a join directly between these two rels (a Motion would be needed).
+	 */
+	if (!(CdbPathLocus_IsHashed(a) || CdbPathLocus_IsHashedOJ(a) || CdbPathLocus_IsHashedWorkers(a)))
+		elog(ERROR, "could not be construct join with non-hashed path");
+	if (!(CdbPathLocus_IsHashed(b) || CdbPathLocus_IsHashedOJ(b) || CdbPathLocus_IsHashedWorkers(b)))
+		elog(ERROR, "could not be construct join with non-hashed path");
+	if ((!CdbPathLocus_IsReplicatedWorkers(a) && !CdbPathLocus_IsReplicatedWorkers(b)) &&
+			(a.distkey == NIL || list_length(a.distkey) != list_length(b.distkey)))
+		elog(ERROR, "could not construct hashed join locus with incompatible distribution keys");
+	if (CdbPathLocus_NumSegments(a) != CdbPathLocus_NumSegments(b))
+		elog(ERROR, "could not construct hashed join locus with different number of segments");
+
+	if (CdbPathLocus_NumParallelWorkers(a) != CdbPathLocus_NumParallelWorkers(b))
+		elog(ERROR, "could not construct hashed join locus with different number of segments");
+
+	/*
+	 * After refactor the redistribution motion, we will allow CdbLocusType_HashedWorkers and CdbLocusType_Hashed parallel join.
+	 * If inner is hashed workers, and outer is hashed. Join locus will be hashed.
+	 * If outer is hashed workers, and inner is hashed. Join locus will be hashed workers.
+	 * Seems we should just return outer locus anyway.
+	 */
+	if (parallel_aware)
+		return a;
+
+	numsegments = CdbPathLocus_NumSegments(a);
+
+	/*
+	 * For a LEFT/RIGHT OUTER JOIN, we can use key of the outer, non-nullable
+	 * side as is. There should not be any more joins with the nullable side
+	 * above this join rel, so the inner side's keys are not interesting above
+	 * this.
+	 */
+	if (jointype == JOIN_LEFT ||
+		jointype == JOIN_LASJ_NOTIN ||
+		jointype == JOIN_ANTI)
+	{
+		resultlocus = a;
+	}
+	else if (jointype == JOIN_RIGHT)
+	{
+		resultlocus = b;
+	}
+	else
+	{
+		/*
+		 * Not a LEFT/RIGHT JOIN. We don't usually get here with INNER JOINs
+		 * either, because if you have an INNER JOIN on a equality predicate,
+		 * they should form an EquivalenceClass, so that the distribution keys
+		 * on both sides of the join refer to the same EquivalenceClass, and
+		 * we exit already at the top of this function, at the
+		 * "if(cdbpathlocus_equal(a, b)" test. The usual case that we get here
+		 * is a FULL JOIN.
+		 *
+		 * I'm not sure what non-FULL corner cases there are that lead here.
+		 * But it's safe to create a HashedOJ locus for them, anyway, because
+		 * the promise of a HashedOJ is weaker than Hashed.
+		 */
+
+		/* Zip the two distkey lists together to make a HashedOJ locus. */
+		List	   *newdistkeys = NIL;
+
+		forboth(acell, a.distkey, bcell, b.distkey)
+		{
+			DistributionKey *adistkey = (DistributionKey *) lfirst(acell);
+			DistributionKey *bdistkey = (DistributionKey *) lfirst(bcell);
+			DistributionKey *newdistkey;
+
+			Assert(adistkey->dk_opfamily == bdistkey->dk_opfamily);
+
+			newdistkey = makeNode(DistributionKey);
+			newdistkey->dk_eclasses = list_union_ptr(adistkey->dk_eclasses,
+													 bdistkey->dk_eclasses);
+			newdistkey->dk_opfamily = adistkey->dk_opfamily;
+
+			newdistkeys = lappend(newdistkeys, newdistkey);
+		}
+
+		CdbPathLocus_MakeHashedOJ(&resultlocus, newdistkeys, numsegments);
+	}
+	Assert(cdbpathlocus_is_valid(resultlocus));
+	return resultlocus;
+}								/* cdbpathlocus_parallel_join */

@@ -35,6 +35,7 @@
 #include "access/tableam.h"
 #include "access/tupdesc.h"
 #include "access/visibilitymap.h"
+#include "cdb/cdbvars.h"
 #include "executor/execdebug.h"
 #include "executor/nodeIndexonlyscan.h"
 #include "executor/nodeIndexscan.h"
@@ -85,16 +86,33 @@ IndexOnlyNext(IndexOnlyScanState *node)
 
 	if (scandesc == NULL)
 	{
-		/*
-		 * We reach here if the index only scan is not parallel, or if we're
-		 * serially executing an index only scan that was planned to be
-		 * parallel.
-		 */
-		scandesc = index_beginscan(node->ss.ss_currentRelation,
-								   node->ioss_RelationDesc,
-								   estate->es_snapshot,
-								   node->ioss_NumScanKeys,
-								   node->ioss_NumOrderByKeys);
+		if (node->ss.ps.plan->parallel_aware && estate->useMppParallelMode)
+		{
+			ParallelIndexScanDesc piscan;
+			ParallelEntryTag tag;
+			int localSliceId = LocallyExecutingSliceIndex(estate);
+			INIT_PARALLELENTRYTAG(tag, gp_command_count, localSliceId, gp_session_id);
+			piscan = GpFetchParallelDSMEntry(tag, node->ss.ps.plan->plan_node_id);
+			Assert(piscan);
+			scandesc = index_beginscan_parallel(node->ss.ss_currentRelation,
+								 node->ioss_RelationDesc,
+								 node->ioss_NumScanKeys,
+								 node->ioss_NumOrderByKeys,
+								 piscan);
+		}
+		else
+		{
+			/*
+			* We reach here if the index only scan is not parallel, or if we're
+			* serially executing an index only scan that was planned to be
+			* parallel.
+			*/
+			scandesc = index_beginscan(node->ss.ss_currentRelation,
+									node->ioss_RelationDesc,
+									estate->es_snapshot,
+									node->ioss_NumScanKeys,
+									node->ioss_NumOrderByKeys);
+		}
 
 		node->ioss_ScanDesc = scandesc;
 

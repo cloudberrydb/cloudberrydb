@@ -38,6 +38,7 @@
 #include "utils/relmapper.h"
 #include "utils/syscache.h"
 
+#include "access/appendonlywriter.h"
 #include "access/tableam.h"
 #include "catalog/pg_appendonly.h"
 #include "libpq-fe.h"
@@ -45,6 +46,7 @@
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbvars.h"
+#include "cdb/cdbutil.h"
 #include "utils/snapmgr.h"
 
 /* Divide by two and round away from zero */
@@ -259,6 +261,42 @@ pg_database_size_name(PG_FUNCTION_ARGS)
 	PG_RETURN_INT64(size);
 }
 
+/*
+ * GPDB: get segment file count of AO/AOCO tables.
+ * Could the segment file count be different between segments?
+ * Take the average of counts, there is no difference if they are same.
+ */
+Datum
+gp_ao_segment_file_count(PG_FUNCTION_ARGS)
+{
+	Oid			relOid = PG_GETARG_OID(0);
+	Relation	rel;
+	int16		count = 0;
+
+	ERROR_ON_ENTRY_DB();
+
+	rel = try_relation_open(relOid, AccessShareLock, false);
+	if (rel == NULL)
+		PG_RETURN_NULL();
+
+	if (!RelationIsAppendOptimized(rel))
+	{
+		relation_close(rel, AccessShareLock);
+		PG_RETURN_NULL();
+	}
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		char	   *sql;
+		sql = psprintf("select pg_catalog.gp_ao_segment_file_count(%u)", relOid);
+		count = get_size_from_segDBs(sql)/getgpsegmentCount();
+	} else {
+		count = GetAppendOnlySegmentFilesCount(rel);
+	}
+	Assert(count <= MAX_AOREL_CONCURRENCY);
+	relation_close(rel, AccessShareLock);
+	PG_RETURN_INT16(count);
+}
 
 /*
  * Calculate total size of tablespace. Returns -1 if the tablespace directory

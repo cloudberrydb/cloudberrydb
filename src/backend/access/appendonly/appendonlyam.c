@@ -45,6 +45,7 @@
 #include "access/heaptoast.h"
 #include "access/valid.h"
 #include "access/xact.h"
+#include "access/relscan.h"
 #include "catalog/catalog.h"
 #include "catalog/gp_fastsequence.h"
 #include "catalog/namespace.h"
@@ -55,6 +56,7 @@
 #include "cdb/cdbappendonlystorageformat.h"
 #include "cdb/cdbappendonlystoragelayer.h"
 #include "cdb/cdbvars.h"
+#include "crypto/bufenc.h"
 #include "executor/executor.h"
 #include "fmgr.h"
 #include "miscadmin.h"
@@ -69,7 +71,7 @@
 /*
  * AppendOnlyDeleteDescData is used for delete data from append-only
  * relations. It serves an equivalent purpose as AppendOnlyScanDescData
- * (relscan.h) only that the later is used for scanning append-only
+ * (cdbappendonlyam.h) only that the later is used for scanning append-only
  * relations.
  */
 typedef struct AppendOnlyDeleteDescData
@@ -99,7 +101,7 @@ typedef struct AppendOnlyDeleteDescData
 /*
  * AppendOnlyUpdateDescData is used to update data from append-only
  * relations. It serves an equivalent purpose as AppendOnlyScanDescData
- * (relscan.h) only that the later is used for scanning append-only
+ * (cdbappendonlyam.h) only that the later is used for scanning append-only
  * relations.
  */
 typedef struct AppendOnlyUpdateDescData
@@ -146,6 +148,7 @@ static void AppendOnlyExecutorReadBlock_ResetCounts(
 
 extern void finishWriteBlock(AppendOnlyInsertDesc aoInsertDesc);
 extern void setupNextWriteBlock(AppendOnlyInsertDesc aoInsertDesc);
+static void appendonly_insert_finish_guts(AppendOnlyInsertDesc aoInsertDesc);
 
 /* Hook for plugins to get control in appendonly_delete() */
 appendonly_delete_hook_type appendonly_delete_hook = NULL;
@@ -190,6 +193,15 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 	int			formatversion = -2; /* some invalid value */
 	bool		finished_all_files = true;	/* assume */
 	int32		fileSegNo;
+	bool 		isParallel = false;
+	ParallelBlockTableScanDesc pbscan = NULL;
+
+	if (scan->rs_base.rs_parallel != NULL)
+	{
+		isParallel = true;
+		pbscan = (ParallelBlockTableScanDesc) scan->rs_base.rs_parallel;
+	}
+
 
 	Assert(scan->aos_need_new_segfile); /* only call me when last segfile
 										 * completed */
@@ -207,7 +219,8 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 								   scan->usableBlockSize,
 								   NameStr(scan->aos_rd->rd_rel->relname),
 								   scan->title,
-								   &scan->storageAttributes);
+								   &scan->storageAttributes,
+								   &scan->aos_rd->rd_node);
 
 		/*
 		 * There is no guarantee that the current memory context will be
@@ -261,16 +274,27 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 	/*
 	 * Do we have more segment files to read or are we done?
 	 */
+	int idx; /* fetch segfile idx */
 	while (scan->aos_segfiles_processed < scan->aos_total_segfiles)
 	{
-		/* still have more segment files to read. get info of the next one */
-		FileSegInfo *fsinfo = scan->aos_segfile_arr[scan->aos_segfiles_processed];
+		if (isParallel)
+		{
+			idx = pg_atomic_fetch_add_u64(&pbscan->phs_nallocated, 1);
+			if (idx >= pbscan->phs_nblocks)
+				break;
+		}
+		else
+		{
+			idx = scan->aos_segfiles_processed;
+		}
+
+		FileSegInfo *fsinfo = scan->aos_segfile_arr[idx];
 
 		segno = fsinfo->segno;
 		formatversion = fsinfo->formatversion;
 		eof = (int64) fsinfo->eof;
 
-		scan->aos_segfiles_processed++;
+		scan->aos_segfiles_processed = idx + 1;
 
 		/*
 		 * If the 'eof' is zero or it's just a lingering dropped segment
@@ -641,6 +665,16 @@ AppendOnlyExecutorReadBlock_GetContents(AppendOnlyExecutorReadBlock *executorRea
 	switch (executorReadBlock->executorBlockKind)
 	{
 		case AoExecutorBlockKind_VarBlock:
+
+			/*
+			 * Now use the VarBlock module to extract the items out.
+			 */
+			VarBlockReaderInit(&executorReadBlock->varBlockReader,
+							   executorReadBlock->dataBuffer,
+							   executorReadBlock->dataLen,
+							   true /* need decrypt */,
+							   &executorReadBlock->storageRead->relFileNode);
+			
 			varBlockCheckError = VarBlockIsValid(executorReadBlock->dataBuffer, executorReadBlock->dataLen);
 			if (varBlockCheckError != VarBlockCheckOk)
 				ereport(ERROR,
@@ -650,13 +684,6 @@ AppendOnlyExecutorReadBlock_GetContents(AppendOnlyExecutorReadBlock *executorRea
 								VarBlockGetCheckErrorStr()),
 						 errdetail_appendonly_read_storage_content_header(executorReadBlock->storageRead),
 						 errcontext_appendonly_read_storage_block(executorReadBlock->storageRead)));
-
-			/*
-			 * Now use the VarBlock module to extract the items out.
-			 */
-			VarBlockReaderInit(&executorReadBlock->varBlockReader,
-							   executorReadBlock->dataBuffer,
-							   executorReadBlock->dataLen);
 
 			executorReadBlock->readerItemCount = VarBlockReaderItemCount(&executorReadBlock->varBlockReader);
 
@@ -693,6 +720,11 @@ AppendOnlyExecutorReadBlock_GetContents(AppendOnlyExecutorReadBlock *executorRea
 			executorReadBlock->singleRow = executorReadBlock->dataBuffer;
 			executorReadBlock->singleRowLen = executorReadBlock->dataLen;
 
+			if (FileEncryptionEnabled)
+				DecryptAOBlock(executorReadBlock->singleRow,
+					executorReadBlock->singleRowLen, 
+					&executorReadBlock->storageRead->relFileNode);
+		
 			elogif(Debug_appendonly_print_scan, LOG, "Append-only scan read single row for table '%s' with length %d (block offset in file = " INT64_FORMAT ")",
 				   AppendOnlyStorageRead_RelationName(executorReadBlock->storageRead),
 				   executorReadBlock->singleRowLen,
@@ -1409,7 +1441,8 @@ setupNextWriteBlock(AppendOnlyInsertDesc aoInsertDesc)
 						aoInsertDesc->nonCompressedData,
 						aoInsertDesc->maxDataLen,
 						aoInsertDesc->tempSpace,
-						aoInsertDesc->tempSpaceLen);
+						aoInsertDesc->tempSpaceLen,
+						&aoInsertDesc->storageWrite);
 
 	aoInsertDesc->bufferCount++;
 }
@@ -1434,13 +1467,15 @@ finishWriteBlock(AppendOnlyInsertDesc aoInsertDesc)
 		return;
 	}
 
-	dataLen = VarBlockMakerFinish(&aoInsertDesc->varBlockMaker);
+	dataLen = VarBlockMakerFinish(&aoInsertDesc->varBlockMaker,
+									&aoInsertDesc->storageWrite);
 
 	aoInsertDesc->varblockCount++;
 
 	if (itemCount == 1)
 	{
 		dataLen = VarBlockCollapseToSingleItem(
+												/* storageWrite */ &aoInsertDesc->storageWrite,
 												/* target */ aoInsertDesc->nonCompressedData,
 												/* source */ aoInsertDesc->nonCompressedData,
 												/* sourceLen */ dataLen);
@@ -1775,6 +1810,10 @@ appendonly_endscan(TableScanDesc scan)
 		pfree(aoscan->aofetch);
 		aoscan->aofetch = NULL;
 	}
+
+	/* GPDB should backport this to upstream */
+	if (aoscan->rs_base.rs_flags & SO_TEMP_SNAPSHOT)
+		UnregisterSnapshot(aoscan->rs_base.rs_snapshot);
 
 	pfree(aoscan->aos_filenamepath);
 
@@ -2197,7 +2236,8 @@ appendonly_fetch_init(Relation relation,
 							   aoFetchDesc->usableBlockSize,
 							   NameStr(aoFetchDesc->relation->rd_rel->relname),
 							   aoFetchDesc->title,
-							   &aoFetchDesc->storageAttributes);
+							   &aoFetchDesc->storageAttributes,
+							   &relation->rd_node);
 
 
 	fns = get_funcs_for_compression(NameStr(aoFormData.compresstype));
@@ -2623,6 +2663,7 @@ appendonly_insert_init(Relation rel, int segno)
 	aoInsertDesc = (AppendOnlyInsertDesc) palloc0(sizeof(AppendOnlyInsertDescData));
 
 	aoInsertDesc->aoi_rel = rel;
+	aoInsertDesc->range = 0;
 
 	/*
 	 * We want to see an up-to-date view of the metadata. The target segment's
@@ -2810,6 +2851,10 @@ aoInsertDesc->appendOnlyMetaDataSnapshot, //CONCERN:Safe to assume all block dir
 											aoInsertDesc->fsInfo, aoInsertDesc->lastSequence,
 											rel, segno, 1, false);
 
+	/* should not enable insertMultiFiles if the table is created by own transaction */
+	aoInsertDesc->insertMultiFiles = enable_parallel &&
+									gp_appendonly_insert_files > 1 &&
+									!ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
 	return aoInsertDesc;
 }
 
@@ -3008,6 +3053,7 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 
 	aoInsertDesc->insertCount++;
 	aoInsertDesc->lastSequence++;
+	aoInsertDesc->range++;
 	if (aoInsertDesc->numSequences > 0)
 		(aoInsertDesc->numSequences)--;
 
@@ -3033,7 +3079,8 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
 							 aoInsertDesc->lastSequence + 1,
 							 NUM_FAST_SEQUENCES);
 
-		Assert(firstSequence == aoInsertDesc->lastSequence + 1);
+		/* fast sequence could be inconsecutive when insert multiple segfiles */
+		AssertImply(gp_appendonly_insert_files <= 1, firstSequence == aoInsertDesc->lastSequence + 1);
 		aoInsertDesc->numSequences = NUM_FAST_SEQUENCES;
 	}
 
@@ -3055,9 +3102,42 @@ appendonly_insert(AppendOnlyInsertDesc aoInsertDesc,
  *
  * when done inserting all the data via appendonly_insert() we need to call
  * this function to flush all remaining data in the buffer into the file.
+ *
+ * Use head to traverse multiple segment files of insertion, NULL if there is
+ * only one segment file.
+ * Keep param aoInsertDesc for less changes.
  */
 void
-appendonly_insert_finish(AppendOnlyInsertDesc aoInsertDesc)
+appendonly_insert_finish(AppendOnlyInsertDesc aoInsertDesc, dlist_head *head)
+{
+	AppendOnlyInsertDesc next = NULL;
+	dlist_iter iter;
+
+	/* no mutiple segfiles insertion */
+	if(!head)
+	{
+		appendonly_insert_finish_guts(aoInsertDesc);
+		pfree(aoInsertDesc);
+		return;
+	}
+
+	Assert(!dlist_is_empty(head));
+
+	dlist_foreach(iter, head)
+	{
+		if(next)
+			pfree(next);
+
+		next = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, iter.cur);
+		appendonly_insert_finish_guts(next);
+	}
+
+	if(next)
+		pfree(next);
+}
+
+static void
+appendonly_insert_finish_guts(AppendOnlyInsertDesc aoInsertDesc)
 {
 	/*
 	 * Finish up that last varblock.
@@ -3075,7 +3155,6 @@ appendonly_insert_finish(AppendOnlyInsertDesc aoInsertDesc)
 	destroy_memtuple_binding(aoInsertDesc->mt_bind);
 
 	pfree(aoInsertDesc->title);
-	pfree(aoInsertDesc);
 }
 
 ExprState *

@@ -502,4 +502,20 @@ extern void ResLockWaitCancel(void);
 extern bool ProcCanSetMppSessionId(void);
 extern void ProcNewMppSessionId(int *newSessionId);
 
+/*
+ * session related hook types
+ */
+typedef int (*AllocSessionId_hook_type) (bool reset);
+extern PGDLLIMPORT AllocSessionId_hook_type AllocSessionId_hook;
+
+typedef void (*NoticeSessionDB_hook_type) (Oid databaseid);
+extern PGDLLIMPORT NoticeSessionDB_hook_type NoticeSessionDB_hook;
+
+typedef bool (*CountDBSession_hook_type) (Oid databaseid);
+extern PGDLLIMPORT CountDBSession_hook_type CountDBSession_hook;
+
+
+typedef void (*AuxProcCallbackFunction) (volatile PGPROC *proc, void *args);
+extern void LoopAuxProc(AuxProcCallbackFunction func, void *args);
+
 #endif							/* _PROC_H_ */

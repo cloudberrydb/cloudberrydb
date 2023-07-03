@@ -33,6 +33,7 @@ CATALOG(pg_appendonly,6105,AppendOnlyRelationId)
 	NameData		compresstype;		/* the compressor used (e.g. zlib) */
     bool            columnstore;        /* true if orientation is column */ 
     Oid             segrelid;           /* OID of aoseg table; 0 if none */
+    int16           segfilecount;		/* the (per seg) average total number of segment file */
     Oid             blkdirrelid;        /* OID of aoblkdir table; 0 if none */
     Oid             blkdiridxid;        /* if aoblkdir table, OID of aoblkdir index */
 	Oid             visimaprelid;		/* OID of the aovisimap table */
@@ -166,5 +167,8 @@ RemoveAppendonlyEntry(Oid relid);
 
 extern void
 SwapAppendonlyEntries(Oid entryRelId1, Oid entryRelId2);
+
+extern int16
+GetAppendOnlySegmentFilesCount(Relation rel);
 
 #endif   /* PG_APPENDONLY_H */

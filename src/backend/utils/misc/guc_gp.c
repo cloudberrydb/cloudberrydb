@@ -35,6 +35,7 @@
 #include "cdb/memquota.h"
 #include "commands/defrem.h"
 #include "commands/vacuum.h"
+#include "commands/variable.h"
 #include "miscadmin.h"
 #include "optimizer/cost.h"
 #include "optimizer/planmain.h"
@@ -42,8 +43,10 @@
 #include "parser/scansup.h"
 #include "postmaster/syslogger.h"
 #include "postmaster/fts.h"
+#include "postmaster/postmaster.h"
 #include "replication/walsender.h"
 #include "storage/proc.h"
+#include "task/pg_cron.h"
 #include "tcop/idle_resource_cleaner.h"
 #include "utils/builtins.h"
 #include "utils/gdd.h"
@@ -96,6 +99,7 @@ static bool check_pljava_classpath_insecure(bool *newval, void **extra, GucSourc
 static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 static int guc_array_compare(const void *a, const void *b);
+static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
 
 extern int listenerBacklog;
 
@@ -137,6 +141,9 @@ bool		gp_appendonly_verify_block_checksums = true;
 bool		gp_appendonly_verify_write_block = false;
 bool		gp_appendonly_compaction = true;
 int			gp_appendonly_compaction_threshold = 0;
+bool		enable_parallel = false;
+int			gp_appendonly_insert_files = 0;
+int			gp_appendonly_insert_files_tuples_range = 0;
 bool		gp_heap_require_relhasoids_match = true;
 bool		gp_local_distributed_cache_stats = false;
 bool		debug_xlog_record_read = false;
@@ -246,6 +253,7 @@ bool		gp_enable_hashjoin_size_heuristic = false;
 bool		gp_enable_predicate_propagation = false;
 bool		gp_enable_minmax_optimization = true;
 bool		gp_enable_multiphase_agg = true;
+bool		gp_enable_multiphase_limit = true;
 bool		gp_enable_preunique = true;
 bool		gp_enable_agg_distinct = true;
 bool		gp_enable_dqa_pruning = true;
@@ -256,6 +264,7 @@ bool		gp_cte_sharing = false;
 bool		gp_enable_relsize_collection = false;
 bool		gp_recursive_cte = true;
 bool		gp_eager_two_phase_agg = false;
+bool		gp_force_random_redistribution = false;
 
 /* Optimizer related gucs */
 bool		optimizer;
@@ -293,6 +302,7 @@ bool		optimizer_enable_indexjoin;
 bool		optimizer_enable_motions_masteronly_queries;
 bool		optimizer_enable_motions;
 bool		optimizer_enable_motion_broadcast;
+bool		parallel_hash_enable_motion_broadcast;
 bool		optimizer_enable_motion_gather;
 bool		optimizer_enable_motion_redistribute;
 bool		optimizer_enable_sort;
@@ -676,6 +686,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 			gettext_noop("Allows partial aggregation before motion.")
 		},
 		&gp_enable_multiphase_agg,
+		true,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_enable_multiphase_limit", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("Enables the planner's use of two phase limit plans."),
+			gettext_noop("Allows partial limit on QEs.")
+		},
+		&gp_enable_multiphase_limit,
 		true,
 		NULL, NULL, NULL
 	},
@@ -1790,6 +1810,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 	},
 
 	{
+		{"gp_force_random_redistribution", PGC_USERSET, CUSTOM_OPTIONS,
+			gettext_noop("Force redistribution of insert for randomly-distributed."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&gp_force_random_redistribution,
+		false, NULL, NULL
+	},
+
+	{
 		{"optimizer", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("Enable GPORCA."),
 			NULL
@@ -2056,6 +2086,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_enable_motion_broadcast,
+		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"parallel_hash_enable_motion_broadcast", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Enable plans with Motion Broadcast operators in parallel hash join."),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&parallel_hash_enable_motion_broadcast,
 		true,
 		NULL, NULL, NULL
 	},
@@ -2878,6 +2918,47 @@ struct config_bool ConfigureNamesBool_gp[] =
 		 false,
 		 NULL, NULL, NULL
 	},
+	/* for tasks schedule */
+	{
+		{"task_use_background_worker", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+		 gettext_noop("Use background workers instead of client sessions."),
+		 NULL,
+		 GUC_SUPERUSER_ONLY
+		 },
+		 &task_use_background_worker,
+		 false,
+		 NULL, NULL, NULL
+	},
+	{
+		{"task_log_run", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+		 gettext_noop("Log all tasks runs into the pg_task_run_history table."),
+		 NULL,
+		 GUC_SUPERUSER_ONLY
+		 },
+		 &task_log_run,
+		 true,
+		 NULL, NULL, NULL
+	},
+	{
+		{"task_enable_superuser_jobs", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+		 gettext_noop("Allow tasks to be scheduled as superuser."),
+		 NULL,
+		 GUC_SUPERUSER_ONLY
+		 },
+		 &task_enable_superuser_jobs,
+		 true,
+		 NULL, NULL, NULL
+	},
+	{
+		{"task_log_statement", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+		 gettext_noop("Log all cron task statements prior to execution."),
+		 NULL,
+		 GUC_SUPERUSER_ONLY
+		 },
+		 &task_log_statement,
+		 true,
+		 NULL, NULL, NULL
+	},
 #ifndef USE_INTERNAL_FTS
 	{
 		{"gp_etcd_enable_cache", PGC_SUSET, CUSTOM_OPTIONS,
@@ -2890,6 +2971,17 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 #endif
+	{
+		{"enable_parallel", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("allow to use of parallel query facilities or not."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&enable_parallel,
+		false,
+		NULL, NULL, NULL
+	},
+
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, false, NULL, NULL
@@ -3074,6 +3166,28 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_appendonly_compaction_threshold,
 		10, 0, 100,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_appendonly_insert_files", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Number of segment files to insert for appendonly table within a transaction."
+						 " will be useful for appendonly table parallel scan."),
+			NULL
+		},
+		&gp_appendonly_insert_files,
+		4, 0, 127,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_appendonly_insert_files_tuples_range", PGC_USERSET, DEVELOPER_OPTIONS,
+			gettext_noop("Range number of tuples files to switch between segment files for appendonly"
+						"table insertion with multiple segment files within a transaction."),
+			NULL
+		},
+		&gp_appendonly_insert_files_tuples_range,
+		100000, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 
@@ -4124,6 +4238,18 @@ struct config_int ConfigureNamesInt_gp[] =
 		0, 0, MAX_GP_DISPATCH_KEEPALIVES_COUNT,
 		NULL, NULL, NULL
 	},
+
+	{
+		{"max_running_tasks", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+			gettext_noop("Maximum number of tasks that can be running at the same time."),
+			NULL,
+			GUC_SUPERUSER_ONLY,
+		},
+		&max_running_tasks,
+		5, 1, MAX_BACKENDS,
+		check_max_running_tasks, NULL, NULL
+	},
+	
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, 0, 0, 0, NULL, NULL
@@ -4410,6 +4536,28 @@ struct config_string ConfigureNamesString_gp[] =
 		},
 		&gp_default_storage_options, "",
 		check_gp_default_storage_options, assign_gp_default_storage_options, NULL
+	},
+
+	{
+		{"task_timezone", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+			gettext_noop("Specify timezone used for cron task schedule."),
+			NULL,
+			GUC_SUPERUSER_ONLY
+		},
+		&task_timezone,
+		"GMT",
+		check_timezone, assign_timezone, show_timezone
+	},
+
+	{
+		{"task_host_addr", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
+			gettext_noop("Host address to connect to CloudBerry database."),
+			NULL,
+			GUC_SUPERUSER_ONLY
+		},
+		&task_host_addr,
+		"127.0.0.1",
+		NULL, NULL, NULL
 	},
 
 	{
@@ -4913,6 +5061,21 @@ check_gp_hashagg_default_nbatches(int *newval, void **extra, GucSource source)
 		GUC_check_errmsg("gp_hashagg_default_nbatches must be a power of two");
 		return false;
 	}
+}
+
+bool
+check_max_running_tasks(int *newval, void **extra, GucSource source)
+{
+	if (*newval < 0)
+	{
+		GUC_check_errmsg("max_running_tasks must be greater than or equal to 0");
+		return false;
+	}
+	if (task_use_background_worker && *newval >= max_worker_processes)
+		return false;
+	if (*newval >= MaxConnections)
+		return false;
+	return true;
 }
 
 /*

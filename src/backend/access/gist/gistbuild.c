@@ -48,6 +48,8 @@
 #include "utils/rel.h"
 #include "utils/tuplesort.h"
 
+extern XLogRecPtr LSNForEncryption(bool use_wal_lsn);
+
 /* Step of index tuples for check whether to switch to buffering build mode */
 #define BUFFERING_MODE_SWITCH_CHECK_STEP 256
 
@@ -452,6 +454,8 @@ gist_indexsortbuild(GISTBuildState *state)
 	/* Write out the root */
 	RelationOpenSmgr(state->indexrel);
 	PageSetLSN(pagestate->page, GistBuildLSN);
+	PageEncryptInplace(pagestate->page, MAIN_FORKNUM,
+					   GIST_ROOT_BLKNO);
 	PageSetChecksumInplace(pagestate->page, GIST_ROOT_BLKNO);
 	smgrwrite(state->indexrel->rd_smgr, MAIN_FORKNUM, GIST_ROOT_BLKNO,
 			  pagestate->page, true);
@@ -588,7 +592,14 @@ gist_indexsortbuild_flush_ready_pages(GISTBuildState *state)
 		if (blkno != state->pages_written)
 			elog(ERROR, "unexpected block number to flush GiST sorting build");
 
-		PageSetLSN(page, GistBuildLSN);
+		PageSetLSN(page, !FileEncryptionEnabled ? GistBuildLSN :
+				   LSNForEncryption(RelationIsPermanent(state->indexrel)));
+		/* Make sure LSNs are vaild, and if encryption, are not constant. */
+		Assert(!XLogRecPtrIsInvalid(PageGetLSN(page)) &&
+			   (!FileEncryptionEnabled ||
+				PageGetLSN(page) != GistBuildLSN));
+		PageEncryptInplace(page, MAIN_FORKNUM,
+				   blkno);
 		PageSetChecksumInplace(page, blkno);
 		smgrextend(state->indexrel->rd_smgr, MAIN_FORKNUM, blkno, page, true);
 

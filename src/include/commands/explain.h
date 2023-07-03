@@ -41,6 +41,7 @@ typedef struct ExplainState
 	bool		verbose;		/* be verbose */
 	bool		analyze;		/* print actual times */
 	bool		costs;			/* print estimated costs */
+	bool		locus;			/* print path locus */
 	bool		buffers;		/* print buffer usage */
 	bool		dxl;			/* CDB: print DXL */
 	bool		slicetable;		/* CDB: print slice table */

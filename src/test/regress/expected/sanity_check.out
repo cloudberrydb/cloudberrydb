@@ -171,6 +171,8 @@ pg_statistic_ext_data|t
 pg_subscription|t
 pg_subscription_rel|t
 pg_tablespace|t
+pg_task|t
+pg_task_run_history|t
 pg_transform|t
 pg_trigger|t
 pg_ts_config|t

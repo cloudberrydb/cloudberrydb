@@ -56,6 +56,7 @@ choose_setop_type(List *pathlist)
 		switch (subpath->locus.locustype)
 		{
 			case CdbLocusType_Hashed:
+			case CdbLocusType_HashedWorkers:
 			case CdbLocusType_HashedOJ:
 			case CdbLocusType_Strewn:
 				ok_general = false;
@@ -77,10 +78,17 @@ choose_setop_type(List *pathlist)
 				ok_general = false;
 				break;
 
+			case CdbLocusType_SegmentGeneralWorkers:
+				ok_general = false;
+				break;
+
 			case CdbLocusType_General:
 				break;
 
 			case CdbLocusType_Replicated:
+				break;
+
+			case CdbLocusType_ReplicatedWorkers:
 				break;
 
 			case CdbLocusType_Null:
@@ -133,6 +141,8 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 					case CdbLocusType_SingleQE:
 					case CdbLocusType_General:
 					case CdbLocusType_SegmentGeneral:
+					case CdbLocusType_SegmentGeneralWorkers:
+					case CdbLocusType_HashedWorkers:
 						/*
 						 * The setop itself will run on an N-gang, so we need
 						 * to arrange for the singleton input to be separately
@@ -144,6 +154,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 					case CdbLocusType_Null:
 					case CdbLocusType_Entry:
 					case CdbLocusType_Replicated:
+					case CdbLocusType_ReplicatedWorkers:
 					case CdbLocusType_OuterQuery:
 					case CdbLocusType_End:
 						ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
@@ -156,6 +167,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 				switch (subpath->locus.locustype)
 				{
 					case CdbLocusType_Hashed:
+					case CdbLocusType_HashedWorkers:
 					case CdbLocusType_HashedOJ:
 					case CdbLocusType_Strewn:
 						CdbPathLocus_MakeEntry(&locus);
@@ -165,6 +177,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 
 					case CdbLocusType_SingleQE:
 					case CdbLocusType_SegmentGeneral:
+					case CdbLocusType_SegmentGeneralWorkers:
 						/*
 						 * The input was focused on a single QE, but we need it in the QD.
 						 * It's bit silly to add a Motion to just move the whole result from
@@ -184,6 +197,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 
 					case CdbLocusType_Null:
 					case CdbLocusType_Replicated:
+					case CdbLocusType_ReplicatedWorkers:
 					case CdbLocusType_End:
 						ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
 										errmsg("unexpected argument locus to set operation")));
@@ -196,6 +210,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 				switch (subpath->locus.locustype)
 				{
 					case CdbLocusType_Hashed:
+					case CdbLocusType_HashedWorkers:
 					case CdbLocusType_HashedOJ:
 					case CdbLocusType_Strewn:
 						/* Gather to QE.  No need to keep ordering. */
@@ -212,6 +227,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 						break;
 
 					case CdbLocusType_SegmentGeneral:
+					case CdbLocusType_SegmentGeneralWorkers:
 						/* Gather to QE.  No need to keep ordering. */
 						CdbPathLocus_MakeSingleQE(&locus, getgpsegmentCount());
 						adjusted_path = cdbpath_create_motion_path(root, subpath, NULL, false,
@@ -221,6 +237,7 @@ adjust_setop_arguments(PlannerInfo *root, List *pathlist, List *tlist_list, GpSe
 					case CdbLocusType_Entry:
 					case CdbLocusType_Null:
 					case CdbLocusType_Replicated:
+					case CdbLocusType_ReplicatedWorkers:
 					case CdbLocusType_End:
 						ereport(ERROR, (errcode(ERRCODE_INTERNAL_ERROR),
 										errmsg("unexpected argument locus to set operation")));
@@ -291,7 +308,8 @@ make_motion_hash_all_targets(PlannerInfo *root, Path *subpath, List *tlist)
 										hashexprs,
 										hashopfamilies,
 										hashsortrefs,
-										getgpsegmentCount());
+										getgpsegmentCount(),
+										subpath->parallel_workers);
 	}
 	else
 	{
@@ -322,7 +340,7 @@ mark_append_locus(Path *path, GpSetOpType optype)
 			CdbPathLocus_MakeGeneral(&path->locus);
 			break;
 		case PSETOP_PARALLEL_PARTITIONED:
-			CdbPathLocus_MakeStrewn(&path->locus, getgpsegmentCount());
+			CdbPathLocus_MakeStrewn(&path->locus, getgpsegmentCount(), path->parallel_workers);
 			break;
 		case PSETOP_SEQUENTIAL_QD:
 			CdbPathLocus_MakeEntry(&path->locus);

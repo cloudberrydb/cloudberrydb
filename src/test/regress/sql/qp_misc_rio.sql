@@ -54,6 +54,7 @@ group by 1,b.revenue;
 -- ----------------------------------------------------------------------
 
 
+set enable_parallel = off;
 
 CREATE TABLE testtable0000 AS SELECT spend, row_number() OVER (PARTITION BY 0) AS i, (spend % 2) AS r
 FROM (select generate_series(1,10) as spend) x DISTRIBUTED RANDOMLY;
@@ -179,7 +180,6 @@ SELECT s4,
        COUNT(*)
 FROM testtable0005 GROUP BY s4 order by s4;
 
-
 CREATE VIEW testtable0006
 AS SELECT testtable0005.*,
           miro_foo.s5_xform
@@ -192,6 +192,7 @@ JOIN (SELECT s5,
 ON testtable0005.s5 = miro_foo.s5;
 
 SELECT MIN(s5_xform), MIN(s5_xform) FROM testtable0006;
+reset enable_parallel;
 
 
 

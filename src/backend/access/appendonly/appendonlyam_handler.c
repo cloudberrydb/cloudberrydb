@@ -43,6 +43,7 @@
 #include "utils/faultinjector.h"
 #include "utils/lsyscache.h"
 #include "utils/pg_rusage.h"
+#include "utils/guc.h"
 
 #define IS_BTREE(r) ((r)->rd_rel->relam == BTREE_AM_OID)
 
@@ -58,6 +59,7 @@ typedef struct AppendOnlyDMLState
 {
 	Oid relationOid;
 	AppendOnlyInsertDesc	insertDesc;
+	dlist_head				head; // Head of multiple segment files insertion list.
 	AppendOnlyDeleteDesc	deleteDesc;
 } AppendOnlyDMLState;
 
@@ -158,6 +160,7 @@ enter_dml_state(const Oid relationOid)
 
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
+	dlist_init(&state->head);
 
 	Assert(!found);
 
@@ -262,7 +265,7 @@ appendonly_dml_finish(Relation relation, CmdType operation)
 	if (state->insertDesc)
 	{
 		Assert(state->insertDesc->aoi_rel == relation);
-		appendonly_insert_finish(state->insertDesc);
+		appendonly_insert_finish(state->insertDesc, &state->head);
 		state->insertDesc = NULL;
 	}
 }
@@ -289,17 +292,47 @@ static AppendOnlyInsertDesc
 get_insert_descriptor(const Relation relation)
 {
 	AppendOnlyDMLState *state;
+	AppendOnlyInsertDesc next = NULL;
 
 	state = find_dml_state(RelationGetRelid(relation));
 
 	if (state->insertDesc == NULL)
 	{
+		List	*segments = NIL;
 		MemoryContext oldcxt;
 
 		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
 		state->insertDesc = appendonly_insert_init(relation,
 												   ChooseSegnoForWrite(relation));
+
+		dlist_init(&state->head);
+		dlist_head *head = &state->head;
+		dlist_push_tail(head, &state->insertDesc->node);
+		if (state->insertDesc->insertMultiFiles)
+		{
+			segments = lappend_int(segments, state->insertDesc->cur_segno);
+			for (int i = 0; i < gp_appendonly_insert_files - 1; i++)
+			{
+				next = appendonly_insert_init(relation,
+												ChooseSegnoForWriteMultiFile(relation, segments));
+				dlist_push_tail(head, &next->node);
+				segments = lappend_int(segments, next->cur_segno);
+			}
+			list_free(segments);
+		}
 		MemoryContextSwitchTo(oldcxt);
+	}
+
+	/* switch insertDesc */
+	if (state->insertDesc->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
+	{
+		state->insertDesc->range = 0;
+		if (!dlist_has_next(&state->head, &state->insertDesc->node))
+			next = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, dlist_head_node(&state->head));
+		else
+			next = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, dlist_next_node(&state->head, &state->insertDesc->node));
+
+		state->insertDesc = next;
 	}
 
 	return state->insertDesc;
@@ -397,19 +430,31 @@ appendonly_free_memtuple(MemTuple tuple)
 static Size
 appendonly_parallelscan_estimate(Relation rel)
 {
-	elog(ERROR, "parallel SeqScan not implemented for AO_ROW tables");
+	return sizeof(ParallelBlockTableScanDescData);
 }
 
+/*
+ * AO only uses part fields of ParallelBlockTableScanDesc.
+ */
 static Size
 appendonly_parallelscan_initialize(Relation rel, ParallelTableScanDesc pscan)
 {
-	elog(ERROR, "parallel SeqScan not implemented for AO_ROW tables");
+	ParallelBlockTableScanDesc bpscan = (ParallelBlockTableScanDesc) pscan;
+	bpscan->base.phs_relid = RelationGetRelid(rel);
+	bpscan->phs_nblocks = 0; /* init, will be updated later by table_parallelscan_initialize */
+	pg_atomic_init_u64(&bpscan->phs_nallocated, 0);
+	/* we don't need phs_mutex and phs_startblock in ao, though, init them. */
+	SpinLockInit(&bpscan->phs_mutex);
+	bpscan->phs_startblock = InvalidBlockNumber;
+	return sizeof(ParallelBlockTableScanDescData);
 }
 
 static void
 appendonly_parallelscan_reinitialize(Relation rel, ParallelTableScanDesc pscan)
 {
-	elog(ERROR, "parallel SeqScan not implemented for AO_ROW tables");
+	ParallelBlockTableScanDesc bpscan = (ParallelBlockTableScanDesc) pscan;
+
+	pg_atomic_write_u64(&bpscan->phs_nallocated, 0);
 }
 
 /* ------------------------------------------------------------------------
@@ -763,6 +808,7 @@ appendonly_tuple_update(Relation relation, ItemPointer otid, TupleTableSlot *slo
 	MemTuple				mtuple;
 	TM_Result				result;
 
+	/* should disable insert multilfiles for update? */
 	insertDesc = get_insert_descriptor(relation);
 	deleteDesc = get_delete_descriptor(relation, true);
 
@@ -1143,7 +1189,7 @@ appendonly_relation_copy_for_cluster(Relation OldHeap, Relation NewHeap,
 	tuplesort_end(tuplesort);
 
 	/* Finish and deallocate insertion */
-	appendonly_insert_finish(aoInsertDesc);
+	appendonly_insert_finish(aoInsertDesc, NULL);
 }
 
 static bool
