@@ -121,7 +121,6 @@ extern bool EstimateGpParallelDSMEntrySize(PlanState *planstate, ParallelContext
 
 extern bool InitializeGpParallelDSMEntry(PlanState *node, ParallelContext *pctx);
 extern bool InitializeGpParallelWorkers(PlanState *planstate, ParallelWorkerContext *pwcxt);
-extern void* GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id);
 
 extern void GpDestroyParallelDSMEntry(void);
 

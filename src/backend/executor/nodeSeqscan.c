@@ -73,58 +73,15 @@ SeqNext(SeqScanState *node)
 	if (scandesc == NULL)
 	{
 		/*
-		 * parallel scan could be:
-		 *  normal mode(Heap, AO, AOCO) and AOCO extract columns mode.
-		 */
-		if (node->ss.ps.plan->parallel_aware && estate->useMppParallelMode)
-		{
-			ParallelTableScanDesc pscan;
-			ParallelEntryTag tag;
-			int localSliceId = LocallyExecutingSliceIndex(estate);
-			INIT_PARALLELENTRYTAG(tag, gp_command_count, localSliceId, gp_session_id);
-			pscan = GpFetchParallelDSMEntry(tag, node->ss.ps.plan->plan_node_id);
-			Assert(pscan);
-
-			/*
-			 * GPDB: we are using table_beginscan_es in order to also initialize the
-			 * scan state with the column info needed for AOCO relations. Check the
-			 * comment in table_beginscan_es() for more info.
-			 * table_beginscan_es could also be parallel.
-			 * We need target_list and qual for AOCO extract columns.
-			 * This is a little awful becuase of some duplicated checks both in
-			 * scan_begin_extractcolumns am and table_beginscan_parallel am.
-			 * But we shouldn't change upstream's API.
-			 */
-			if (node->ss.ss_currentRelation->rd_tableam->scan_begin_extractcolumns)
-			{
-				/* try parallel mode for AOCO extract columns */
-				scandesc = table_beginscan_es(node->ss.ss_currentRelation,
-											  estate->es_snapshot,
-											  0, NULL,
-											  pscan,
-											  &node->ss.ps);
-			}
-			else
-			{
-				/* normal parallel mode */
-				scandesc = table_beginscan_parallel(node->ss.ss_currentRelation, pscan);
-			}
-
-			node->ss.ss_currentScanDesc = scandesc;
-		}
-		else
-		{
-			/*
-			 * We reach here if the scan is not parallel, or if we're serially
-			 * executing a scan that was planned to be parallel.
-			 */
-			scandesc = table_beginscan_es(node->ss.ss_currentRelation,
-										  estate->es_snapshot,
-										  0, NULL,
-										  NULL,
-										  &node->ss.ps);
-			node->ss.ss_currentScanDesc = scandesc;
-		}
+		* We reach here if the scan is not parallel, or if we're serially
+		* executing a scan that was planned to be parallel.
+		*/
+		scandesc = table_beginscan_es(node->ss.ss_currentRelation,
+									  estate->es_snapshot,
+									  0, NULL,
+									  NULL,
+									  &node->ss.ps);
+		node->ss.ss_currentScanDesc = scandesc;
 	}
 
 	/*
@@ -334,6 +291,7 @@ ExecSeqScanInitializeDSM(SeqScanState *node,
 {
 	EState	   *estate = node->ss.ps.state;
 	ParallelTableScanDesc pscan;
+	TableScanDesc scandesc;
 
 	pscan = shm_toc_allocate(pcxt->toc, node->pscan_len);
 
@@ -343,8 +301,21 @@ ExecSeqScanInitializeDSM(SeqScanState *node,
 								  pscan,
 								  estate->es_snapshot);
 	shm_toc_insert(pcxt->toc, node->ss.ps.plan->plan_node_id, pscan);
-	node->ss.ss_currentScanDesc =
-		table_beginscan_parallel(node->ss.ss_currentRelation, pscan);
+	if (node->ss.ss_currentRelation->rd_tableam->scan_begin_extractcolumns)
+	{
+		/* try parallel mode for AOCO extract columns */
+		scandesc = table_beginscan_es(node->ss.ss_currentRelation,
+									  estate->es_snapshot,
+									  0, NULL,
+									  pscan,
+									  &node->ss.ps);
+	}
+	else
+	{
+		/* normal parallel mode */
+		scandesc = table_beginscan_parallel(node->ss.ss_currentRelation, pscan);
+	}
+	node->ss.ss_currentScanDesc = scandesc;
 }
 
 /* ----------------------------------------------------------------
@@ -374,8 +345,23 @@ ExecSeqScanInitializeWorker(SeqScanState *node,
 							ParallelWorkerContext *pwcxt)
 {
 	ParallelTableScanDesc pscan;
+	TableScanDesc scandesc;
+	EState	   *estate = node->ss.ps.state;
 
 	pscan = shm_toc_lookup(pwcxt->toc, node->ss.ps.plan->plan_node_id, false);
-	node->ss.ss_currentScanDesc =
-		table_beginscan_parallel(node->ss.ss_currentRelation, pscan);
+	if (node->ss.ss_currentRelation->rd_tableam->scan_begin_extractcolumns)
+	{
+		/* try parallel mode for AOCO extract columns */
+		scandesc = table_beginscan_es(node->ss.ss_currentRelation,
+									  estate->es_snapshot,
+									  0, NULL,
+									  pscan,
+									  &node->ss.ps);
+	}
+	else
+	{
+		/* normal parallel mode */
+		scandesc = table_beginscan_parallel(node->ss.ss_currentRelation, pscan);
+	}
+	node->ss.ss_currentScanDesc = scandesc;
 }
