@@ -1,7 +1,7 @@
 name: "\U0001F41B Bug Report"
 description: Problems and issues with code in Cloudberry Database core.
 title: "[Bug] "
-labels: ["bug"]
+labels: ["type: Bug"]
 body:
   - type: markdown
     attributes:
