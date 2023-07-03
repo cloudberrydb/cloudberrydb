@@ -41,3 +41,7 @@ Add your commit body here
 # Note: Usage - use this config for your own git
 # Run the configure cmd in the terminal
 # `git config --global commit.template .gitmessage`
+#
+#
+#
+#

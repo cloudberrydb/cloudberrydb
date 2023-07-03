@@ -1,4 +1,5 @@
 title: "[Proposal] "
+labels: ["type: Proposal"]
 body:
   - type: markdown
     attributes:
