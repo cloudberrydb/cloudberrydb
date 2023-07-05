@@ -119,5 +119,4 @@ extern int	syncrep_yylex(void);
 extern void syncrep_yyerror(const char *str);
 extern void syncrep_scanner_init(const char *query_string);
 extern void syncrep_scanner_finish(void);
-
 #endif							/* _SYNCREP_H */

@@ -65,6 +65,9 @@ typedef struct
 	char		compressed_page[BLCKSZ];
 } registered_buffer;
 
+/* hook for new XLogInsert method */
+XLogInsert_hook_type XLogInsert_hook = NULL;
+
 static registered_buffer *registered_buffers;
 static int	max_registered_buffers; /* allocated size */
 static int	max_registered_block_id = 0;	/* highest block_id + 1 currently
@@ -468,6 +471,9 @@ XLogInsert_Internal(RmgrId rmid, uint8 info, TransactionId headerXid)
 		EndPos = SizeOfXLogLongPHD; /* start of 1st chkpt record */
 		return EndPos;
 	}
+
+	if (XLogInsert_hook)
+	    return (*XLogInsert_hook) (rmid, info, headerXid, curinsert_flags, (void *)XLogRecordAssemble);
 
 	do
 	{
@@ -1287,3 +1293,59 @@ InitXLogInsert(void)
 		hdr_scratch = MemoryContextAllocZero(xloginsert_cxt,
 											 HEADER_SCRATCH_SIZE);
 }
+
+/*
+ * Get RelFileNode/ForkNumber/BlockNumber of XLog register block if any.
+ */
+bool
+GetXLogRegisterBufferTagIfAny(RelFileNode *rnode, ForkNumber *forknum, BlockNumber *blkno)
+{
+    for (int i = 0; i < max_registered_block_id; i++)
+    {
+        if (GetXLogRegisterBuffer(i, rnode, forknum, blkno, NULL))
+            return true;
+    }
+
+    return false;
+}
+
+int
+GetNumXLogRegisterBuffers(void)
+{
+    return max_registered_block_id;
+}
+
+/*
+ * Caller should make sure the block_id is valid(block_id < max_registered_block_id).
+ */
+bool
+GetXLogRegisterBuffer(int block_id, RelFileNode *rnode, ForkNumber *forknum, BlockNumber *blkno, Page *page)
+{
+    if (registered_buffers[block_id].in_use)
+    {
+        if (rnode)
+            *rnode = registered_buffers[block_id].rnode;
+        if (forknum)
+            *forknum = registered_buffers[block_id].forkno;
+        if (blkno)
+            *blkno = registered_buffers[block_id].block;
+        if (page)
+            *page = registered_buffers[block_id].page;
+        return true;
+    }
+
+    return false;
+}
+
+/*
+ * Get register rdata.
+ */
+char *
+GetXLogRegisterRdata(int rdata_index)
+{
+    if (rdata_index >= num_rdatas)
+        elog(ERROR, "invalid rdata index");
+
+    return rdatas[rdata_index].data;
+}
+

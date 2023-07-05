@@ -116,7 +116,7 @@ AddPendingSync(const RelFileNode *rnode)
  * transaction aborts later on, the storage will be destroyed.
  */
 SMgrRelation
-RelationCreateStorage(RelFileNode rnode, char relpersistence, SMgrImpl smgr_which)
+RelationCreateStorage(RelFileNode rnode, char relpersistence, SMgrImpl smgr_which, Relation rel)
 {
 	PendingRelDelete *pending;
 	SMgrRelation srel;
@@ -144,7 +144,7 @@ RelationCreateStorage(RelFileNode rnode, char relpersistence, SMgrImpl smgr_whic
 			return NULL;		/* placate compiler */
 	}
 
-	srel = smgropen(rnode, backend, smgr_which);
+	srel = smgropen(rnode, backend, smgr_which, rel);
 	smgrcreate(srel, MAIN_FORKNUM, false);
 
 	if (needs_wal)
@@ -662,7 +662,7 @@ smgrDoPendingDeletes(bool isCommit)
 				srel = smgropen(pending->relnode.node,
 								pending->relnode.isTempRelation ?
 								TempRelBackendId : InvalidBackendId,
-								pending->relnode.smgr_which);
+								pending->relnode.smgr_which, NULL);
 
 				/* allocate the initial array, or extend it, if needed */
 				if (maxrels == 0)
@@ -743,7 +743,7 @@ smgrDoPendingSyncs(bool isCommit, bool isParallelWorker)
 		BlockNumber total_blocks = 0;
 		SMgrRelation srel;
 
-		srel = smgropen(pendingsync->rnode, InvalidBackendId, SMGR_MD);
+		srel = smgropen(pendingsync->rnode, InvalidBackendId, SMGR_MD, NULL);
 
 		/*
 		 * We emit newpage WAL records for smaller relations.
@@ -966,7 +966,7 @@ smgr_redo(XLogReaderState *record)
 		xl_smgr_create *xlrec = (xl_smgr_create *) XLogRecGetData(record);
 		SMgrRelation reln;
 
-		reln = smgropen(xlrec->rnode, InvalidBackendId, xlrec->impl);
+		reln = smgropen(xlrec->rnode, InvalidBackendId, xlrec->impl, NULL);
 		smgrcreate(reln, xlrec->forkNum, true);
 	}
 	else if (info == XLOG_SMGR_TRUNCATE)
@@ -984,7 +984,7 @@ smgr_redo(XLogReaderState *record)
 		 * for AO takes a different code path, it does not involve emitting
 		 * SMGR_TRUNCATE WAL record.
 		 */
-		reln = smgropen(xlrec->rnode, InvalidBackendId, SMGR_MD);
+		reln = smgropen(xlrec->rnode, InvalidBackendId, SMGR_MD, NULL);
 
 		/*
 		 * Forcibly create relation if it doesn't exist (which suggests that

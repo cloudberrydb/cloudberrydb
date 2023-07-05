@@ -152,7 +152,11 @@ static const MemoryContextMethods SlabMethods = {
 	SlabDelete,
 	SlabGetChunkSpace,
 	SlabIsEmpty,
-	SlabStats
+	SlabStats,
+	NULL,
+	NULL,
+	NULL,
+	NULL
 #ifdef MEMORY_CONTEXT_CHECKING
 	,SlabCheck
 #endif

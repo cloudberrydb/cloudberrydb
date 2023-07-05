@@ -57,7 +57,7 @@ extern Datum gp_replica_check(PG_FUNCTION_ARGS);
 
 typedef struct RelfilenodeEntry
 {
-	Oid relfilenode;
+    RelFileNodeId relfilenode;
 	Oid relam;
 	int relkind;
 	char relname[NAMEDATALEN];
@@ -514,9 +514,9 @@ get_relfilenode_map()
 	HASHCTL relfilenodectl;
 	int hash_flags;
 	MemSet(&relfilenodectl, 0, sizeof(relfilenodectl));
-	relfilenodectl.keysize = sizeof(Oid);
+	relfilenodectl.keysize = sizeof(RelFileNodeId);
 	relfilenodectl.entrysize = sizeof(RelfilenodeEntry);
-	relfilenodectl.hash = oid_hash;
+	relfilenodectl.hash = tag_hash;
 	hash_flags = (HASH_ELEM | HASH_FUNCTION);
 
 	relfilenodemap = hash_create("relfilenode map", 50000, &relfilenodectl, hash_flags);
@@ -539,7 +539,7 @@ get_relfilenode_map()
 			continue;
 
 		RelfilenodeEntry *rentry;
-		Oid rnode;
+		RelFileNodeId rnode;
 		/* Its relmapped relation, need to fetch the mapping from relmap file */
 		if (classtuple->relfilenode == InvalidOid)
 			rnode = RelationMapOidToFilenode(classtuple->oid,
@@ -564,7 +564,7 @@ get_relfilenode_entry(char *relfilenode, HTAB *relfilenode_map)
 {
 	bool found;
 
-	Oid rnode = DatumGetObjectId(DirectFunctionCall1(oidin, CStringGetDatum(relfilenode)));
+	RelFileNodeId rnode = DatumGetObjectId(DirectFunctionCall1(int8in, CStringGetDatum(relfilenode)));
 	RelfilenodeEntry *rentry = hash_search(relfilenode_map, (void *)&rnode, HASH_FIND, &found);
 
 	if (found)

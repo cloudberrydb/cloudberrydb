@@ -16169,7 +16169,7 @@ index_copy_data(Relation rel, RelFileNode newrnode)
 
 	SMgrImpl smgr_which = RelationIsAppendOptimized(rel) ? SMGR_AO : SMGR_MD;
 
-	dstrel = smgropen(newrnode, rel->rd_backend, smgr_which);
+	dstrel = smgropen(newrnode, rel->rd_backend, smgr_which, rel);
 					  
 	RelationOpenSmgr(rel);
 
@@ -16188,7 +16188,7 @@ index_copy_data(Relation rel, RelFileNode newrnode)
 	 * NOTE: any conflict in relfilenode value will be caught in
 	 * RelationCreateStorage().
 	 */
-	RelationCreateStorage(newrnode, rel->rd_rel->relpersistence, smgr_which);
+	RelationCreateStorage(newrnode, rel->rd_rel->relpersistence, smgr_which, rel);
 
 	/* copy main fork */
 	RelationCopyStorage(rel->rd_smgr, dstrel, MAIN_FORKNUM,

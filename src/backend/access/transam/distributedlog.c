@@ -1083,3 +1083,12 @@ DistributedLog_syncfiletag(const FileTag *ftag, char *path)
 {
 	return SlruSyncFileTag(DistributedLogCtl, ftag, path);
 }
+
+/*
+ * Get distributed log control data
+ */
+SlruCtl
+DistributedLog_Ctl(void)
+{
+    return DistributedLogCtl;
+}

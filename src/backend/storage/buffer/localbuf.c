@@ -107,7 +107,7 @@ PrefetchLocalBuffer(SMgrRelation smgr, ForkNumber forkNum,
  */
 BufferDesc *
 LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
-				 bool *foundPtr)
+				 bool *foundPtr, Buffer non_evited_buffer)
 {
 	BufferTag	newTag;			/* identity of requested block */
 	LocalBufferLookupEnt *hresult;
@@ -189,6 +189,12 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 
 		if (LocalRefCount[b] == 0)
 		{
+		    if (-b - 1 == non_evited_buffer)
+		    {
+		        /* Prevent eviction of the buffer with needed page */
+		        continue;
+		    }
+
 			buf_state = pg_atomic_read_u32(&bufHdr->state);
 
 			if (BUF_STATE_GET_USAGECOUNT(buf_state) > 0)
@@ -222,7 +228,7 @@ LocalBufferAlloc(SMgrRelation smgr, ForkNumber forkNum, BlockNumber blockNum,
 		Page		localpage = (char *) LocalBufHdrGetBlock(bufHdr);
 
 		/* Find smgr relation for buffer */
-		oreln = smgropen(bufHdr->tag.rnode, MyBackendId, 0);
+		oreln = smgropen(bufHdr->tag.rnode, MyBackendId, 0, NULL);
 
 		// GPDB_93_MERGE_FIXME: is this TODO comment still relevant?
 		// UNDONE: Unfortunately, I think we write temp relations to the mirror...

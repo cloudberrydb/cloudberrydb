@@ -278,6 +278,9 @@ char	   *bonjour_name;
 bool		restart_after_crash = true;
 bool		remove_temp_files_after_crash = true;
 
+/* Hook for plugins to start background workers */
+start_bgworkers_hook_type start_bgworkers_hook = NULL;
+
 /*
  * PIDs of special child processes; 0 when not running. When adding a new PID
  * to the list, remember to add the process title to GetServerProcessTitle()
@@ -534,6 +537,7 @@ static int	CountChildren(int target);
 static bool assign_backendlist_entry(RegisteredBgWorker *rw);
 static void maybe_start_bgworkers(void);
 static bool CreateOptsFile(int argc, char *argv[], char *fullprogname);
+static bool do_start_bgworker(RegisteredBgWorker *rw);
 static pid_t StartChildProcess(AuxProcType type);
 static void StartAutovacuumWorker(void);
 static void MaybeStartWalReceiver(void);
@@ -4534,6 +4538,11 @@ PostmasterStateMachine(void)
 		pmState = PM_STARTUP;
 		/* crash recovery started, reset SIGKILL flag */
 		AbortStartTime = 0;
+
+		if (start_bgworkers_hook)
+		{
+			(*start_bgworkers_hook) (FatalError, pmState, do_start_bgworker);
+		}
 	}
 }
 
@@ -6575,6 +6584,11 @@ maybe_start_bgworkers(void)
 	int			num_launched = 0;
 	TimestampTz now = 0;
 	slist_mutable_iter iter;
+
+	if (start_bgworkers_hook)
+	{
+		(*start_bgworkers_hook) (FatalError, pmState, do_start_bgworker);
+	}
 
 	/*
 	 * During crash recovery, we have no need to be called until the state

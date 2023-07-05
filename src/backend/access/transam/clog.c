@@ -1138,3 +1138,12 @@ clogsyncfiletag(const FileTag *ftag, char *path)
 {
 	return SlruSyncFileTag(XactCtl, ftag, path);
 }
+
+/*
+ * Get clog control data
+ */
+SlruCtl
+CLOG_Ctl(void)
+{
+    return XactCtl;
+}

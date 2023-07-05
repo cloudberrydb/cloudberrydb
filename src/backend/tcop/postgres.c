@@ -1250,22 +1250,20 @@ exec_mpp_query(const char *query_string,
 		}
 	}
 
-
 	if (log_statement != LOGSTMT_NONE)
 	{
-		/*
-		 * TODO need to log SELECT INTO as DDL
-		 */
-		if (log_statement == LOGSTMT_ALL ||
-			(plan->utilityStmt && log_statement == LOGSTMT_DDL) ||
-			(plan && log_statement >= LOGSTMT_MOD))
+	    /*
+	    * TODO need to log SELECT INTO as DDL
+	    */
+	    if (log_statement == LOGSTMT_ALL ||
+	            (plan->utilityStmt && log_statement == LOGSTMT_DDL) ||
+	            (plan && log_statement >= LOGSTMT_MOD))
 
-		{
-			ereport(LOG, (errmsg("statement: %s", query_string)
-						   ));
-			was_logged = true;
-		}
-
+        {
+            ereport(LOG, (errmsg("statement: %s", query_string)
+                                          ));
+            was_logged = true;
+        }
 	}
 
 	/*

@@ -98,7 +98,7 @@ $$
 DECLARE
 tablespace Oid;
 database Oid;
-relfile Oid;
+relfile int8;
 result bool;
 BEGIN
     SELECT dattablespace, oid INTO tablespace, database FROM pg_database WHERE datname = current_database();

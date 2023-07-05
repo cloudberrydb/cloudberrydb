@@ -42,6 +42,11 @@ typedef struct RegisteredBgWorker
 	slist_node	rw_lnode;		/* list link */
 } RegisteredBgWorker;
 
+/* Hook for plugins to start background workers */
+typedef bool (*start_bgworker_func) (RegisteredBgWorker *rw);
+typedef void (*start_bgworkers_hook_type) (bool FatalError, int pmState, start_bgworker_func startBgworkerFunc);
+extern PGDLLIMPORT start_bgworkers_hook_type start_bgworkers_hook;
+
 extern slist_head BackgroundWorkerList;
 
 extern Size BackgroundWorkerShmemSize(void);

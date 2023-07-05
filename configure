@@ -738,6 +738,7 @@ with_libxml
 with_uuid
 with_readline
 with_systemd
+with_libseccomp
 with_selinux
 with_ldap
 with_krb_srvnam
@@ -910,6 +911,7 @@ with_bsd_auth
 with_ldap
 with_bonjour
 with_selinux
+with_libseccomp
 with_systemd
 with_readline
 with_libedit_preferred
@@ -1642,6 +1644,7 @@ Optional Packages:
   --with-ldap             build with LDAP support
   --with-bonjour          build with Bonjour support
   --with-selinux          build with SELinux support
+  --with-libseccomp       build with libseccomp support
   --with-systemd          build with systemd support
   --without-readline      do not use GNU Readline nor BSD Libedit for editing
   --with-libedit-preferred
@@ -9559,6 +9562,37 @@ fi
 $as_echo "$with_selinux" >&6; }
 
 #
+# libseccomp
+#
+{ $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to build with libseccomp support" >&5
+$as_echo_n "checking whether to build with libseccomp support... " >&6; }
+
+
+
+# Check whether --with-libseccomp was given.
+if test "${with_libseccomp+set}" = set; then :
+  withval=$with_libseccomp;
+  case $withval in
+    yes)
+      :
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --with-libseccomp option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  with_libseccomp=no
+
+fi
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $with_libseccomp" >&5
+$as_echo "$with_libseccomp" >&6; }
+
+#
 # Systemd
 #
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking whether to build with systemd support" >&5
@@ -15529,6 +15563,56 @@ _ACEOF
 
 else
   as_fn_error $? "library 'libselinux', version 2.1.10 or newer, is required for SELinux support" "$LINENO" 5
+fi
+
+fi
+
+if test "$with_libseccomp" = yes ; then
+  { $as_echo "$as_me:${as_lineno-$LINENO}: checking for seccomp_init in -lseccomp" >&5
+$as_echo_n "checking for seccomp_init in -lseccomp... " >&6; }
+if ${ac_cv_lib_seccomp_seccomp_init+:} false; then :
+  $as_echo_n "(cached) " >&6
+else
+  ac_check_lib_save_LIBS=$LIBS
+LIBS="-lseccomp  $LIBS"
+cat confdefs.h - <<_ACEOF >conftest.$ac_ext
+/* end confdefs.h.  */
+
+/* Override any GCC internal prototype to avoid an error.
+   Use char because int might match the return type of a GCC
+   builtin and then its argument prototype would still apply.  */
+#ifdef __cplusplus
+extern "C"
+#endif
+char seccomp_init ();
+int
+main ()
+{
+return seccomp_init ();
+  ;
+  return 0;
+}
+_ACEOF
+if ac_fn_c_try_link "$LINENO"; then :
+  ac_cv_lib_seccomp_seccomp_init=yes
+else
+  ac_cv_lib_seccomp_seccomp_init=no
+fi
+rm -f core conftest.err conftest.$ac_objext \
+    conftest$ac_exeext conftest.$ac_ext
+LIBS=$ac_check_lib_save_LIBS
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: $ac_cv_lib_seccomp_seccomp_init" >&5
+$as_echo "$ac_cv_lib_seccomp_seccomp_init" >&6; }
+if test "x$ac_cv_lib_seccomp_seccomp_init" = xyes; then :
+  cat >>confdefs.h <<_ACEOF
+#define HAVE_LIBSECCOMP 1
+_ACEOF
+
+  LIBS="-lseccomp $LIBS"
+
+else
+  as_fn_error $? "library 'libseccomp' is required for Seccomp BPF support" "$LINENO" 5
 fi
 
 fi

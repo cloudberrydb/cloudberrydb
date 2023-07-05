@@ -101,6 +101,10 @@
 /* Potentially set by pg_upgrade_support functions */
 Oid			binary_upgrade_next_index_pg_class_oid = InvalidOid;
 
+index_create_hook_type index_create_hook = NULL;
+
+ambuild_function index_build_hook = NULL;
+
 /*
  * Pointer-free representation of variables used when reindexing system
  * catalogs; we use this to propagate those values to parallel workers.
@@ -765,6 +769,69 @@ index_create(Relation heapRelation,
 			 bool is_internal,
 			 Oid *constraintId)
 {
+    if (index_create_hook)
+        return (*index_create_hook) (heapRelation,
+                                      indexRelationName,
+                                      indexRelationId,
+                                      parentIndexRelid,
+                                      parentConstraintId,
+                                      relFileNode,
+                                      indexInfo,
+                                      indexColNames,
+                                      accessMethodObjectId,
+                                      tableSpaceId,
+                                      collationObjectId,
+                                      classObjectId,
+                                      coloptions,
+                                      reloptions,
+                                      flags,
+                                      constr_flags,
+                                      allow_system_table_mods,
+                                      is_internal,
+                                      constraintId);
+    else
+        return index_create_internal(heapRelation,
+                                      indexRelationName,
+                                      indexRelationId,
+                                      parentIndexRelid,
+                                      parentConstraintId,
+                                      relFileNode,
+                                      indexInfo,
+                                      indexColNames,
+                                      accessMethodObjectId,
+                                      tableSpaceId,
+                                      collationObjectId,
+                                      classObjectId,
+                                      coloptions,
+                                      reloptions,
+                                      flags,
+                                      constr_flags,
+                                      allow_system_table_mods,
+                                      is_internal,
+                                      constraintId);
+}
+
+Oid
+index_create_internal(Relation heapRelation,
+                      const char *indexRelationName,
+                      Oid indexRelationId,
+                      Oid parentIndexRelid,
+                      Oid parentConstraintId,
+                      Oid relFileNode,
+                      IndexInfo *indexInfo,
+                      List *indexColNames,
+                      Oid accessMethodObjectId,
+                      Oid tableSpaceId,
+                      Oid *collationObjectId,
+                      Oid *classObjectId,
+                      int16 *coloptions,
+                      Datum reloptions,
+                      bits16 flags,
+                      bits16 constr_flags,
+                      bool allow_system_table_mods,
+                      bool is_internal,
+                      Oid *constraintId)
+{
 	Oid			heapRelationId = RelationGetRelid(heapRelation);
 	Relation	pg_class;
 	Relation	indexRelation;
@@ -985,6 +1052,7 @@ index_create(Relation heapRelation,
 	Assert(relfrozenxid == InvalidTransactionId);
 	Assert(relminmxid == InvalidMultiXactId);
 	Assert(indexRelationId == RelationGetRelid(indexRelation));
+
 
 	/*
 	 * Obtain exclusive lock on it.  Although no other transactions can see it
@@ -3108,8 +3176,11 @@ index_build(Relation heapRelation,
 	/*
 	 * Call the access method's build procedure
 	 */
-	stats = indexRelation->rd_indam->ambuild(heapRelation, indexRelation,
-											 indexInfo);
+	if (index_build_hook)
+	    stats = index_build_hook(heapRelation, indexRelation, indexInfo);
+    else
+        stats = indexRelation->rd_indam->ambuild(heapRelation, indexRelation,
+                                                 indexInfo);
 	Assert(PointerIsValid(stats));
 
 	/*

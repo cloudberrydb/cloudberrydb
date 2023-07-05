@@ -24,6 +24,7 @@
 #include "postmaster/autovacuum.h"
 #include "storage/pmsignal.h"
 #include "storage/proc.h"
+#include "cdb/cdbutil.h"
 #include "utils/guc.h"
 #include "utils/syscache.h"
 
@@ -39,6 +40,8 @@ VariableCache ShmemVariableCache = NULL;
 
 int xid_stop_limit;
 int xid_warn_limit;
+
+NewSegRelfilenode_assign_hook_type NewSegRelfilenode_assign_hook = NULL;
 
 /*
  * Allocate the next FullTransactionId for a new transaction or
@@ -714,6 +717,9 @@ GetNewSegRelfilenodeUnderLock(void)
 		XLogPutNextRelfilenode(ShmemVariableCache->nextRelfilenode + VAR_OID_PREFETCH);
 		ShmemVariableCache->relfilenodeCount = VAR_OID_PREFETCH;
 	}
+
+	if (NewSegRelfilenode_assign_hook)
+	    return (*NewSegRelfilenode_assign_hook) ();
 
 	result = ShmemVariableCache->nextRelfilenode;
 

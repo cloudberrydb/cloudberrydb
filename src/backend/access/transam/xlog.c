@@ -343,6 +343,8 @@ bool		wal_receiver_create_temp_slot = false;
 /* are we currently in standby mode? */
 bool		StandbyMode = false;
 
+Startup_hook_type Startup_hook = NULL;
+
 /*
  * if recoveryStopsBefore/After returns true, it saves information of the stop
  * point here
@@ -8414,6 +8416,18 @@ StartupXLOG(void)
 	InRecovery = false;
 
 	/*
+	 * Hook for plugins to do additional startup works.
+	 *
+	 * Allow to write any WALs in hook.
+	 */
+	if (Startup_hook)
+	{
+	    LocalSetXLogInsertAllowed();
+	    (*Startup_hook) ();
+	    LocalXLogInsertAllowed = -1;
+	}
+
+	/*
 	 * If we are a standby with contentid -1 and undergoing promotion,
 	 * update ourselves as the new master in catalog.  This does not
 	 * apply to a mirror (standby of a GPDB segment) because it is
@@ -11106,9 +11120,19 @@ xlog_redo(XLogReaderState *record)
 		for (uint8 block_id = 0; block_id <= record->max_block_id; block_id++)
 		{
 			Buffer		buffer;
+			XLogRedoAction result;
 
-			if (XLogReadBufferForRedo(record, block_id, &buffer) != BLK_RESTORED)
-				elog(ERROR, "unexpected XLogReadBufferForRedo result when restoring backup block");
+			result = XLogReadBufferForRedo(record, block_id, &buffer);
+			if (result == BLK_DONE && !IsUnderPostmaster)
+			{
+			    /*
+				 * In the special WAL process, blocks that are being ignored
+				 * return BLK_DONE. Accept that.
+				 */
+			}
+			else if (result != BLK_RESTORED)
+			    elog(ERROR, "unexpected XLogReadBufferForRedo result when restoring backup block");
+
 			UnlockReleaseBuffer(buffer);
 		}
 	}

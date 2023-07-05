@@ -303,6 +303,10 @@ extern int xid_warn_limit;
 /* GPDB-specific */
 extern bool gp_pause_on_restore_point_replay;
 
+/* hook for plugins to assign new relfilenode */
+typedef RelFileNodeId (*NewSegRelfilenode_assign_hook_type)(void);
+extern PGDLLIMPORT NewSegRelfilenode_assign_hook_type NewSegRelfilenode_assign_hook;
+
 /*
  * prototypes for functions in transam/transam.c
  */
