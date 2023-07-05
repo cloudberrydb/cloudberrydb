@@ -478,7 +478,7 @@ heap_create(const char *relname,
 
 			case RELKIND_INDEX:
 			case RELKIND_SEQUENCE:
-				RelationCreateStorage(rel->rd_node, relpersistence, SMGR_MD);
+				RelationCreateStorage(rel->rd_node, relpersistence, SMGR_MD, rel);
 				break;
 
 			case RELKIND_RELATION:
@@ -1611,6 +1611,7 @@ heap_create_with_catalog(const char *relname,
 	}
 	else
 		relacl = NULL;
+
 
 	/*
 	 * Create the relcache entry (mostly dummy at this point) and the physical

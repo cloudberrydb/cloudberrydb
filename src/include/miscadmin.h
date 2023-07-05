@@ -613,4 +613,5 @@ extern void GpRecoveryFromError(void);
 	dispatch_nest_level = 0; \
 } while(0)
 
+
 #endif							/* MISCADMIN_H */

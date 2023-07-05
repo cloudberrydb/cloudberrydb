@@ -18,6 +18,7 @@
 #include "storage/buf.h"
 #include "storage/bufpage.h"
 #include "storage/relfilenode.h"
+#include "storage/smgr.h"
 #include "utils/relcache.h"
 #include "utils/snapmgr.h"
 
@@ -167,6 +168,11 @@ extern PGDLLIMPORT int32 *LocalRefCount;
  * call to TestForOldSnapshot().  See the definition of that for details.
  */
 #define BufferGetPage(buffer) ((Page)BufferGetBlock(buffer))
+
+typedef Buffer (*ReadBuffer_hook_type)(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
+                                          BlockNumber blockNum, ReadBufferMode mode,
+                                          BufferAccessStrategy strategy, bool *hit);
+extern PGDLLIMPORT ReadBuffer_hook_type ReadBuffer_hook;
 
 /*
  * prototypes for functions in bufmgr.c

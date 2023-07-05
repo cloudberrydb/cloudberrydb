@@ -129,6 +129,8 @@ typedef struct CkptTsStatus
 	int			index;
 } CkptTsStatus;
 
+ReadBuffer_hook_type ReadBuffer_hook = NULL;
+
 /*
  * Type for array used to sort SMgrRelations
  *
@@ -875,7 +877,7 @@ ReadBufferWithoutRelcache(RelFileNode rnode, ForkNumber forkNum,
 	 * Use default SMGR implementation when opening a relation backed by
 	 * shared buffers
 	 */
-	SMgrRelation smgr = smgropen(rnode, InvalidBackendId, 0);
+	SMgrRelation smgr = smgropen(rnode, InvalidBackendId, 0, NULL);
 
 	Assert(InRecovery);
 
@@ -898,6 +900,12 @@ ReadBuffer_common(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 	Block		bufBlock;
 	bool		found;
 	bool		isExtend;
+
+	if (ReadBuffer_hook)
+	{
+	    return ReadBuffer_hook(smgr, relpersistence, forkNum, blockNum, mode, strategy, hit);
+	}
+
 	/*
 	 * Temp tables in Cloudberry use shared buffers so that backends executing
 	 * multiple slices of the same query can share them.
@@ -935,7 +943,7 @@ ReadBuffer_common(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 
 	if (isLocalBuf)
 	{
-		bufHdr = LocalBufferAlloc(smgr, forkNum, blockNum, &found);
+		bufHdr = LocalBufferAlloc(smgr, forkNum, blockNum, &found, InvalidBuffer);
 		if (found)
 			pgBufferUsage.local_blks_hit++;
 		else if (isExtend)
@@ -2996,7 +3004,7 @@ FlushBuffer(BufferDesc *buf, SMgrRelation reln)
 		bool		istemp = (buf_state_unlocked & BM_TEMP) != 0;
 
 		reln = smgropen(buf->tag.rnode,
-						istemp ? TempRelBackendId : InvalidBackendId, 0);
+						istemp ? TempRelBackendId : InvalidBackendId, 0, NULL);
 	}
 
 	TRACE_POSTGRESQL_BUFFER_FLUSH_START(buf->tag.forkNum,
@@ -3034,8 +3042,10 @@ FlushBuffer(BufferDesc *buf, SMgrRelation reln)
 	 * disastrous system-wide consequences.  To make sure that can't happen,
 	 * skip the flush if the buffer isn't permanent.
 	 */
-	if (buf_state & BM_PERMANENT)
-		XLogFlush(recptr);
+	if ((buf_state & BM_PERMANENT) && smgr_is_heap_relation(reln))
+	{
+	    XLogFlush(recptr);
+	}
 
 	/*
 	 * Now it's safe to write buffer to disk. Note that no one else should
@@ -5122,7 +5132,7 @@ IssuePendingWritebacks(WritebackContext *context)
 		i += ahead;
 
 		/* and finally tell the kernel to write the data to storage */
-		reln = smgropen(tag.rnode, InvalidBackendId, 0);
+		reln = smgropen(tag.rnode, InvalidBackendId, 0, NULL);
 		smgrwriteback(reln, tag.forkNum, tag.blockNum, nblocks);
 	}
 

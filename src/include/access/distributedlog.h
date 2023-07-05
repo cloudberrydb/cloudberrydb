@@ -42,6 +42,9 @@ typedef struct DistributedLogEntry
 
 } DistributedLogEntry;
 
+struct SlruCtlData;
+typedef struct SlruCtlData *SlruCtl;
+
 extern void DistributedLog_SetCommittedTree(TransactionId xid, int nxids, TransactionId *xids,
 								DistributedTransactionId distribXid,
 								bool isRedo);
@@ -80,5 +83,5 @@ extern void DistributedLog_GetDistributedXid(
 				DistributedTransactionId 			*distribXid);
 
 extern int DistributedLog_syncfiletag(const FileTag *ftag, char *path);
-
+extern SlruCtl DistributedLog_Ctl(void);
 #endif							/* DISTRIBUTEDLOG_H */

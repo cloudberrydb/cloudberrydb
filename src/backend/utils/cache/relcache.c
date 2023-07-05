@@ -3861,6 +3861,7 @@ RelationSetNewRelfilenode(Relation relation, char persistence)
 	 */
 	RelationDropStorage(relation);
 
+
 	/*
 	 * Create storage for the main fork of the new relfilenode.  If it's a
 	 * table-like object, call into the table AM to do so, which'll also
@@ -3881,7 +3882,8 @@ RelationSetNewRelfilenode(Relation relation, char persistence)
 				SMgrRelation srel;
 
 				srel = RelationCreateStorage(newrnode, persistence,
-											 0 /* default storage implementation */);
+											 0 /* default storage implementation */,
+											 relation);
 				smgrclose(srel);
 			}
 			break;

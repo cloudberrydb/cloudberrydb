@@ -4997,7 +4997,6 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", AO_ROW_TABLE_AM_OID, gettext_noop("append only"));
 			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", AO_COLUMN_TABLE_AM_OID, gettext_noop("append only columnar"));
 			appendPQExpBuffer(&buf, " WHEN %d THEN '%s'", BTREE_AM_OID, gettext_noop("btree"));
-
 			appendPQExpBuffer(&buf, " END as \"%s\"\n", gettext_noop("Storage"));
 		}
 		else

@@ -54,6 +54,9 @@
 
 static int64 calculate_total_relation_size(Relation rel);
 
+/* Hook for plugins to calculate relation size */
+relation_size_hook_type relation_size_hook = NULL;
+
 /**
  * Some functions are peculiar in that they do their own dispatching.
  * They do not work on entry db since we do not support dispatching
@@ -443,6 +446,12 @@ calculate_relation_size(Relation rel, ForkNumber forknum)
 	char	   *relationpath;
 	char		pathname[MAXPGPATH];
 	unsigned int segcount = 0;
+
+	/*
+	 * TODO: For non-heap relations, use table_relation_size instead.
+	 */
+	if (relation_size_hook)
+		return (*relation_size_hook) (rel, forknum);
 
 	/* Call into the tableam api for AO/AOCO relations */
 	if (RelationIsAppendOptimized(rel))

@@ -52,6 +52,52 @@ static void init_locale(const char *categoryname, int category, const char *loca
 static void help(const char *progname);
 static void check_root(const char *progname);
 
+typedef int (*MainFunc) (int argc, char *argv[]);
+
+static int
+CallExtMain(int argc, char *argv[], bool load_config)
+{
+	MainFunc main_func;
+	char *library_name;
+	char *main_func_name;
+
+	if (argc <= 3)
+	{
+	    elog(LOG, "library_name and main_func_name are both needed.");
+	    exit(1);
+	}
+
+	library_name = argv[2];
+	main_func_name = argv[3];
+
+	/*
+	 * Perform just enough initialization that we can load external libraries
+	 */
+	InitStandaloneProcess(argv[0]);
+
+	SetProcessingMode(InitProcessing);
+
+	/*
+	 * Set default values for command-line options.
+	 */
+	InitializeGUCOptions();
+
+	/* Acquire configuration parameters */
+	if (load_config && !SelectConfigFiles(NULL, progname))
+		exit(1);
+
+	/*
+	 * Imitate we are early in bootstrap loading shared_preload_libraries;
+	 * neon extension sets PGC_POSTMASTER gucs requiring this.
+	 */
+	process_shared_preload_libraries_in_progress = true;
+
+	main_func = load_external_function(library_name, main_func_name, true, NULL);
+
+	process_shared_preload_libraries_in_progress = false;
+
+	return main_func(argc, argv);
+}
 
 /*
  * Any Postgres server process begins execution here.
@@ -217,6 +263,8 @@ main(int argc, char *argv[])
 		PostgresMain(argc, argv,
 					 NULL,		/* no dbname */
 					 strdup(get_user_name_or_exit(progname)));	/* does not return */
+	else if (argc > 1 && strcmp(argv[1], "--ext-main") == 0)
+	    CallExtMain(argc, argv, false);
 	else
 		PostmasterMain(argc, argv); /* does not return */
 	abort();					/* should not get here */

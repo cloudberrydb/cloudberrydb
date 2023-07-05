@@ -38,6 +38,17 @@
 #define REGBUF_KEEP_DATA	0x10	/* include data even if a full-page image
 									 * is taken */
 
+typedef void * (*RecordAssembleFunc)(RmgrId rmid, uint8 info,
+                                XLogRecPtr RedoRecPtr, bool doPageWrites,
+                                XLogRecPtr *fpw_lsn, TransactionId headerXid, int *num_fpi);
+typedef XLogRecPtr (*XLogInsert_hook_type)(RmgrId rmid, uint8 info, TransactionId headerXid, uint8 curinsert_flags, RecordAssembleFunc recordAssembleFunc);
+extern PGDLLIMPORT XLogInsert_hook_type XLogInsert_hook;
+
+extern bool GetXLogRegisterBufferTagIfAny(RelFileNode *rnode, ForkNumber *forknum, BlockNumber *blkno);
+extern int GetNumXLogRegisterBuffers(void);
+extern bool GetXLogRegisterBuffer(int block_id, RelFileNode *rnode, ForkNumber *forknum, BlockNumber *blkno, char **page);
+extern char *GetXLogRegisterRdata(int rdata_index);
+
 /* prototypes for public functions in xloginsert.c: */
 extern void XLogBeginInsert(void);
 extern void XLogSetRecordFlags(uint8 flags);

@@ -34,7 +34,6 @@
 
 #include "catalog/pg_proc.h"
 
-
 /*
  * LockRelId and LockInfo really belong to lmgr.h, but it's more convenient
  * to declare them here so we can have a LockInfoData field in a Relation.
@@ -258,6 +257,9 @@ typedef struct RelationData
 	struct PgStat_TableStatus *pgstat_info; /* statistics collection area */
 } RelationData;
 
+/* Hook for plugins to calculate relation size */
+typedef int64 (*relation_size_hook_type) (Relation rel, ForkNumber forknum);
+extern PGDLLIMPORT relation_size_hook_type relation_size_hook;
 
 /*
  * ForeignKeyCacheInfo
@@ -606,7 +608,7 @@ typedef struct ViewOptions
 			smgrsetowner(&((relation)->rd_smgr), \
 						 smgropen((relation)->rd_node, \
 								  (relation)->rd_backend, \
-								  RelationIsAppendOptimized(relation)?SMGR_AO:SMGR_MD)); \
+								  RelationIsAppendOptimized(relation)?SMGR_AO:SMGR_MD, relation)); \
 	} while (0)
 
 /*

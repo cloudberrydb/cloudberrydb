@@ -36,6 +36,9 @@ typedef struct xl_clog_truncate
 	Oid			oldestXactDb;
 } xl_clog_truncate;
 
+struct SlruCtlData;
+typedef struct SlruCtlData *SlruCtl;
+
 extern void TransactionIdSetTreeStatus(TransactionId xid, int nsubxids,
 									   TransactionId *subxids, XidStatus status, XLogRecPtr lsn);
 extern XidStatus TransactionIdGetStatus(TransactionId xid, XLogRecPtr *lsn);
@@ -63,5 +66,5 @@ extern int	clogsyncfiletag(const FileTag *ftag, char *path);
 extern void clog_redo(XLogReaderState *record);
 extern void clog_desc(StringInfo buf, XLogReaderState *record);
 extern const char *clog_identify(uint8 info);
-
+extern SlruCtl CLOG_Ctl(void);
 #endif							/* CLOG_H */

@@ -32,9 +32,10 @@
 #include "utils/hsearch.h"
 #include "utils/rel.h"
 
-
 /* GUC variable */
 bool		ignore_invalid_pages = false;
+
+bool	(*redo_read_buffer_filter) (XLogReaderState *record, uint8 block_id);
 
 /*
  * During XLOG replay, we may see XLOG records for incremental updates of
@@ -348,6 +349,27 @@ XLogReadBufferForRedoExtended(XLogReaderState *record,
 	}
 
 	/*
+	 * If a WAL redo function calls XLogReadBufferForRedoExtended() for a page that has a full-page
+	 * image, it always succeeds. However, if redo process is only concerned about replaying changes
+	 * to a singe page, so replaying any changes for other pages is a waste of cycles. We have modified
+     * XLogReadBufferForRedoExtended() to return BLK_DONE for all other pages, to avoid the overhead.
+	 */
+	if (redo_read_buffer_filter && redo_read_buffer_filter(record, block_id))
+	{
+	    if (mode == RBM_ZERO_AND_LOCK || mode == RBM_ZERO_AND_CLEANUP_LOCK)
+	    {
+	        *buf = ReadBufferWithoutRelcache(rnode, forknum,
+                                             blkno, mode, NULL);
+	        return BLK_DONE;
+	    }
+	    else
+	    {
+	        *buf = InvalidBuffer;
+	        return BLK_DONE;
+	    }
+	}
+
+	/*
 	 * Make sure that if the block is marked with WILL_INIT, the caller is
 	 * going to initialize it. And vice versa.
 	 */
@@ -451,7 +473,7 @@ XLogReadBufferExtended(RelFileNode rnode, ForkNumber forknum,
 	 * Open the relation at smgr level.  Relations using shared buffers need
 	 * the default SMGR implementation.
 	 */
-	smgr = smgropen(rnode, InvalidBackendId, SMGR_MD);
+	smgr = smgropen(rnode, InvalidBackendId, SMGR_MD, NULL);
 
 	/*
 	 * Create the target file if it doesn't already exist.  This lets us cope

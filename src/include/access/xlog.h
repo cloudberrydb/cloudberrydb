@@ -160,6 +160,11 @@ extern bool StandbyMode;
 
 /* tde feature enable or not */
 extern int  FileEncryptionEnabled;
+
+/* Hook for plugins to do some startup job */
+typedef void (*Startup_hook_type) (void);
+extern PGDLLIMPORT Startup_hook_type Startup_hook;
+
 /* Archive modes */
 typedef enum ArchiveMode
 {
