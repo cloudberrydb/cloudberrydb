@@ -1073,9 +1073,7 @@ aocs_insert_init(Relation rel, int segno)
 											rel, segno, tupleDesc->natts, true);
 
 	/* should not enable insertMultiFiles if the table is created by own transaction */
-	desc->insertMultiFiles = enable_parallel &&
-							gp_appendonly_insert_files > 1 &&
-							!ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
+	desc->insertMultiFiles = gp_appendonly_insert_files > 1 && !ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
 	return desc;
 }
 
