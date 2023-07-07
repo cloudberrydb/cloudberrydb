@@ -3177,10 +3177,14 @@ index_build(Relation heapRelation,
 	 * Call the access method's build procedure
 	 */
 	if (index_build_hook)
-	    stats = index_build_hook(heapRelation, indexRelation, indexInfo);
+	{
+		stats = index_build_hook(heapRelation, indexRelation, indexInfo);
+	}
     else
-        stats = indexRelation->rd_indam->ambuild(heapRelation, indexRelation,
-                                                 indexInfo);
+    {
+    	stats = indexRelation->rd_indam->ambuild(heapRelation, indexRelation,
+												 indexInfo);
+    }
 	Assert(PointerIsValid(stats));
 
 	/*
