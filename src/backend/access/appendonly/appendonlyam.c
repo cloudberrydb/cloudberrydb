@@ -2852,9 +2852,7 @@ aoInsertDesc->appendOnlyMetaDataSnapshot, //CONCERN:Safe to assume all block dir
 											rel, segno, 1, false);
 
 	/* should not enable insertMultiFiles if the table is created by own transaction */
-	aoInsertDesc->insertMultiFiles = enable_parallel &&
-									gp_appendonly_insert_files > 1 &&
-									!ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
+	aoInsertDesc->insertMultiFiles = gp_appendonly_insert_files > 1 && !ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
 	return aoInsertDesc;
 }
 

@@ -46,7 +46,8 @@ begin;
 -- encourage use of parallel plans
 set local min_parallel_table_scan_size = 0;
 set local max_parallel_workers_per_gather = 4;
-set local enable_parallel = true;
+-- test insert into multiple files even enable_parallel is off.
+set local enable_parallel = off;
 
 -- insert multiple segfiles for parallel
 set local gp_appendonly_insert_files = 4;
@@ -57,13 +58,16 @@ analyze ao1;
 insert into ao2 select i%10, i from generate_series(1, 1200000) g(i);
 analyze ao2;
 select segfilecount from pg_appendonly where relid = 'ao1'::regclass;
+set local enable_parallel = on;
 explain(costs off) select count(*) from ao1;
 select count(*) from ao1;
 
 -- test aocs table parallel 
+set local enable_parallel = off;
 insert into aocs1 select i, i from generate_series(1, 1200000) g(i);
 analyze aocs1;
 select segfilecount from pg_appendonly where relid = 'aocs1'::regclass;
+set local enable_parallel = on;
 explain(costs off) select count(*) from aocs1;
 select count(*) from aocs1;
 
