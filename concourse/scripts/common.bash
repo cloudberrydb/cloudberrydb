@@ -79,7 +79,6 @@ function download_java() {
     mkdir -p ${target_path}
     tar -xzf /opt/${java_file_name}.tar.gz -C ${target_path}
     mv ${target_path}/jdk*  ${target_path}/jdk
-    rm /tmp/${java_file_name}.tar.gz
 }
 
 ## ----------------------------------------------------------------------
