@@ -60,9 +60,7 @@ prepare_release() {
 
 	pushd "${ROOT_PATH}"
 	mkdir -p bin_gpdb_rpm && cd bin_gpdb_rpm
-	internal_rpm_download_url
-	aws s3 cp s3://release-cbdb-package/${build_number}/${internal_rpm_download_url##*/} .
-	yum install -y c*.rpm
+	yum install -y /opt/c*.rpm
 	cd "$INSTALL_DIR"
 	tar czf "${ROOT_PATH}/bin_gpdb_rpm/bin_gpdb.tar.gz" ./*
 	popd

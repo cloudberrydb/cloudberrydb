@@ -40,16 +40,12 @@ function download_etcd() {
         etcd_file_name=etcd-${etcd_version}-linux-arm64
     fi
 
-    etcd_download_url=https://cbdb-rpm.s3.amazonaws.com/${etcd_file_name}.tar.gz
-
-
-    
     tar -xvf /opt/${etcd_file_name}.tar.gz -C /opt
     
     mkdir -p ${target_path}
     \cp  /opt/${etcd_file_name}/etcd ${target_path}
     \cp  /opt/${etcd_file_name}/etcdctl ${target_path}
-    rm -rf /opt/${etcd_file_name} /opt/${etcd_file_name}.tar.gz
+    rm -rf /opt/${etcd_file_name}
 } 
 
 function download_jansson() {
@@ -68,7 +64,7 @@ function download_jansson() {
 
     mkdir -p ${target_path}
     \cp -p /opt/jansson/lib/libjansson.so* ${target_path}
-    rm -rf /opt/jansson /opt/${jansson_file_name}.tar.gz /opt/${jansson_file_name}
+    rm -rf /opt/jansson  /opt/${jansson_file_name}
     popd
 }
 
@@ -79,12 +75,9 @@ function download_java() {
         echo "invalid java target path!" && exit 1
     fi
     java_file_name=jdk-${java_version}-linux-`arch`
-    aws s3 cp s3://cbdb-deps/${java_file_name}.tar.gz /tmp/
-
-    # wget https://cbdb-rpm.s3.amazonaws.com/${java_file_name}.tar.gz -O /tmp/${java_file_name}.tar.gz
 
     mkdir -p ${target_path}
-    tar -xzf /tmp/${java_file_name}.tar.gz -C ${target_path}
+    tar -xzf /opt/${java_file_name}.tar.gz -C ${target_path}
     mv ${target_path}/jdk*  ${target_path}/jdk
     rm /tmp/${java_file_name}.tar.gz
 }
