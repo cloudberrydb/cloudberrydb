@@ -74,8 +74,6 @@ download_cbdb_tar_package() {
 	fts_mode=$1
 	source /opt/cbdb-artifacts.txt
 	mkdir -p "${ROOT_PATH}"/bin_gpdb
-	
-	# /usr/local/bin/aws s3 cp s3://release-cbdb-package/${build_number}/${internal_tar_download_url##*/} "/opt/bin_gpdb.tar.gz"
 	mv /opt/${internal_tar_download_url##*/} "/opt/bin_gpdb.tar.gz"
 }
 

@@ -34,14 +34,10 @@ function upload_cbdb_tar_and_rpm_package() {
 	generate_docker_tag=$2
 	tar_package_path=$(ls "${ROOT_PATH}"/cloudberrydb/gpdb_artifacts/server-build*)
 
-	# upload tar.gz file
-	# aws s3 cp $tar_package_path  s3://release-cbdb-package/${BUILD_NUMBER}/${tar_package_path##*/}
 	cp $tar_package_path /tmp
 
 	rpm_package_path=$(ls ~/rpmbuild/RPMS/"${OS_ARCH}"/cloudberry-db*.rpm)
 
-	# upload rpm file
-	# aws s3 cp $rpm_package_path  s3://release-cbdb-package/${BUILD_NUMBER}/${rpm_package_path##*/}
 	cp $rpm_package_path /tmp
 	if [[ ${fts_mode} == "internal_fts" ]]; then
 		cat <<EOF >>"${SRC_PATH}/cbdb-artifacts.txt"

@@ -8,7 +8,7 @@ mkdir -p "${ROOT_PATH}/sqldump"
 
 compile_jansson() {
         # wget https://artifactory.hashdata.xyz/artifactory/utility/jansson-2.13.1.tar.gz && \
-        /usr/local/bin/aws s3 cp s3://cbdb-deps/jansson-2.13.1.tar.gz . && \
+        mv /opt/jansson-2.13.1.tar.gz . && \
         tar -xvf jansson-2.13.1.tar.gz && \
         rm -rf jansson-2.13.1.tar.gz && \
         pushd .
@@ -28,13 +28,11 @@ function download_etcd() {
 	else
 		ETCD_FILE_NAME=etcd-v3.3.25-linux-arm64
 	fi
-	# ETCD_DOWNLOAD_URL=https://artifactory.hashdata.xyz/artifactory/utility/${ETCD_FILE_NAME}.tar.gz
-	# wget ${ETCD_DOWNLOAD_URL} -O /tmp/${ETCD_FILE_NAME}.tar.gz
-	/usr/local/bin/aws s3 cp s3://cbdb-deps/${ETCD_FILE_NAME}.tar.gz /tmp/
-	tar -xvf /tmp/${ETCD_FILE_NAME}.tar.gz -C /tmp
-	cp /tmp/${ETCD_FILE_NAME}/etcd ${GREENPLUM_INSTALL_DIR}/bin
-	cp /tmp/${ETCD_FILE_NAME}/etcdctl ${GREENPLUM_INSTALL_DIR}/bin
-	rm -rf /tmp/${ETCD_FILE_NAME} /tmp/${ETCD_FILE_NAME}.tar.gz
+
+	tar -xvf /opt/${ETCD_FILE_NAME}.tar.gz -C /opt
+	cp /opt/${ETCD_FILE_NAME}/etcd ${GREENPLUM_INSTALL_DIR}/bin
+	cp /opt/${ETCD_FILE_NAME}/etcdctl ${GREENPLUM_INSTALL_DIR}/bin
+	rm -rf /opt/${ETCD_FILE_NAME} /opt/${ETCD_FILE_NAME}.tar.gz
 	export ETCD_UNSUPPORTED_ARCH=arm64
 }
 

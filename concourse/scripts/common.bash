@@ -42,15 +42,14 @@ function download_etcd() {
 
     etcd_download_url=https://cbdb-rpm.s3.amazonaws.com/${etcd_file_name}.tar.gz
 
-    # wget ${etcd_download_url} -O /tmp/${etcd_file_name}.tar.gz
-    /usr/local/bin/aws s3 cp s3://cbdb-deps/${etcd_file_name}.tar.gz /tmp/
+
     
-    tar -xvf /tmp/${etcd_file_name}.tar.gz -C /tmp
+    tar -xvf /opt/${etcd_file_name}.tar.gz -C /opt
     
     mkdir -p ${target_path}
-    \cp  /tmp/${etcd_file_name}/etcd ${target_path}
-    \cp  /tmp/${etcd_file_name}/etcdctl ${target_path}
-    rm -rf /tmp/${etcd_file_name} /tmp/${etcd_file_name}.tar.gz
+    \cp  /opt/${etcd_file_name}/etcd ${target_path}
+    \cp  /opt/${etcd_file_name}/etcdctl ${target_path}
+    rm -rf /opt/${etcd_file_name} /opt/${etcd_file_name}.tar.gz
 } 
 
 function download_jansson() {
@@ -60,17 +59,16 @@ function download_jansson() {
         echo "invalid jansson target path!" && exit 1
     fi
     jansson_file_name=jansson-${jansson_version}
-    /usr/local/bin/aws s3 cp s3://cbdb-deps/${jansson_file_name}.tar.gz /tmp/
-    # wget https://cbdb-rpm.s3.amazonaws.com/${jansson_file_name}.tar.gz -O /tmp/${jansson_file_name}.tar.gz
-    tar -xvf /tmp/${jansson_file_name}.tar.gz -C /tmp
 
-    pushd /tmp/${jansson_file_name}
-    ./configure --prefix=/tmp/jansson --disable-static
+    tar -xvf /opt/${jansson_file_name}.tar.gz -C /opt
+
+    pushd /opt/${jansson_file_name}
+    ./configure --prefix=/opt/jansson --disable-static
     make && make install
 
     mkdir -p ${target_path}
-    \cp -p /tmp/jansson/lib/libjansson.so* ${target_path}
-    rm -rf /tmp/jansson /tmp/${jansson_file_name}.tar.gz /tmp/${jansson_file_name}
+    \cp -p /opt/jansson/lib/libjansson.so* ${target_path}
+    rm -rf /opt/jansson /opt/${jansson_file_name}.tar.gz /opt/${jansson_file_name}
     popd
 }
 

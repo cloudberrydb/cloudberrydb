@@ -11,10 +11,6 @@ jobs:
     runs-on: [self-hosted, example]
     steps:
       - uses: actions/checkout@v3
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: us-east-1
       - name: Run build script
         run: |
           echo $GITHUB_RUN_ID > BUILD_NUMBER
@@ -27,10 +23,6 @@ jobs:
         with:
           name: cbdb-package
           path: /tmp/server-build*
-      - uses: actions/upload-artifact@v3
-        with:
-          name: cbdb-package
-          path: /tmp/cloudberry-db*.rpm
   icw-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -50,10 +42,6 @@ jobs:
         with:
           name: cbdb-package
           path: /opt/
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: us-east-1
       - name: Run icw-test script
         run: |
           mkdir /code
@@ -80,10 +68,6 @@ jobs:
         with:
           name: cbdb-package
           path: /opt/
-      - name: Configure AWS Credentials
-        uses: aws-actions/configure-aws-credentials@v2
-        with:
-          aws-region: us-east-1
       - name: Run icw-orca-test script
         run: |
           mkdir /code
