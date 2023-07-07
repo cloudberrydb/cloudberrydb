@@ -469,7 +469,7 @@ aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot, ParallelTableScan
 	bool		   *cols;
 	bool			found = false;
 
-	cols = palloc0(natts * sizeof(*cols));
+	cols = palloc0((natts + 1) * sizeof(*cols));
 
 	found |= extractcolumns_from_node((Node *)targetlist, cols, natts);
 	found |= extractcolumns_from_node((Node *)qual, cols, natts);
