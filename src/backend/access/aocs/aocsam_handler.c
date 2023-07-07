@@ -2181,6 +2181,14 @@ aoco_scan_sample_next_tuple(TableScanDesc scan, SampleScanState *scanstate,
 	return ret;
 }
 
+static void
+aoco_swap_relation_files(Oid relid1, Oid relid2,
+						 TransactionId  frozenXid pg_attribute_unused(),
+						 MultiXactId cutoffMulti pg_attribute_unused())
+{
+	SwapAppendonlyEntries(relid1, relid2);
+}
+
 /* ------------------------------------------------------------------------
  * Definition of the AO_COLUMN table access method.
  *
@@ -2258,6 +2266,7 @@ static TableAmRoutine ao_column_methods = {
 	.scan_sample_next_tuple = aoco_scan_sample_next_tuple,
 
 	.amoptions = ao_amoptions,
+	.swap_relation_files = aoco_swap_relation_files,
 };
 
 Datum
