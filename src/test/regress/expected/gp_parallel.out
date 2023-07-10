@@ -35,6 +35,8 @@ set force_parallel_mode = 0;
 set optimizer = off;
 create schema test_parallel;
 set search_path to test_parallel;
+-- set this to default in case regress change it by gpstop.
+set gp_appendonly_insert_files = 4;
 create table ao1(x int, y int) with(appendonly=true);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -1702,5 +1704,6 @@ abort;
 -- start_ignore
 drop schema test_parallel cascade;
 -- end_ignore
+reset gp_appendonly_insert_files;
 reset force_parallel_mode;
 reset optimizer;

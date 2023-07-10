@@ -36,6 +36,8 @@ set optimizer = off;
 
 create schema test_parallel;
 set search_path to test_parallel;
+-- set this to default in case regress change it by gpstop.
+set gp_appendonly_insert_files = 4;
 
 create table ao1(x int, y int) with(appendonly=true);
 create table ao2(x int, y int) with(appendonly=true);
@@ -512,5 +514,6 @@ abort;
 drop schema test_parallel cascade;
 -- end_ignore
 
+reset gp_appendonly_insert_files;
 reset force_parallel_mode;
 reset optimizer;
