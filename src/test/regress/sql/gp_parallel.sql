@@ -416,11 +416,11 @@ insert into t1 select i, i+1 from generate_series(1, 100000) i;
 analyze t1;
 set local optimizer = off;
 set local enable_parallel = on;
-explain(costs off) select * from t1 order by c2 asc limit 3 offset 5;
+explain(costs off, locus) select * from t1 order by c2 asc limit 3 offset 5;
 select * from t1 order by c2 asc limit 3 offset 5;
 -- non-parallel results
 set local enable_parallel = off;
-explain(costs off) select * from t1 order by c2 asc limit 3 offset 5;
+explain(costs off, locus) select * from t1 order by c2 asc limit 3 offset 5;
 select * from t1 order by c2 asc limit 3 offset 5;
 abort;
 
@@ -434,11 +434,11 @@ analyze t1;
 set local optimizer = off;
 set local gp_enable_multiphase_limit = off;
 set local enable_parallel = on;
-explain(costs off) select * from t1 order by c2 asc limit 3 offset 5;
+explain(costs off, locus) select * from t1 order by c2 asc limit 3 offset 5;
 select * from t1 order by c2 asc limit 3 offset 5;
 -- non-parallel results
 set local enable_parallel = off;
-explain(costs off) select * from t1 order by c2 asc limit 3 offset 5;
+explain(costs off, locus) select * from t1 order by c2 asc limit 3 offset 5;
 select * from t1 order by c2 asc limit 3 offset 5;
 abort;
 --
@@ -462,6 +462,47 @@ explain(costs off) select count(*) from aocs;
 select count(*) from aocs;
 alter table aocs reset (parallel_workers);
 abort;
+
+--
+-- Test locus after eliding mtion node.
+--
+begin;
+create table t1(c1 int) distributed by (c1);
+insert into t1 values(11), (12);
+analyze t1;
+explain(costs off, locus) select distinct min(c1), max(c1) from t1;
+abort;
+
+begin;
+create table t1(id int) distributed by (id);
+create index on t1(id);
+insert into t1 values(generate_series(1, 100));
+analyze t1;
+set enable_seqscan =off;
+explain (locus, costs off)
+select * from
+  (select count(id) from t1 where id > 10) ss
+  right join (values (1),(2),(3)) v(x) on true;
+abort;
+
+begin;
+create table pagg_tab (a int, b int, c text, d int) partition by list(c);
+create table pagg_tab_p1 partition of pagg_tab for values in ('0000', '0001', '0002', '0003', '0004');
+create table pagg_tab_p2 partition of pagg_tab for values in ('0005', '0006', '0007', '0008');
+create table pagg_tab_p3 partition of pagg_tab for values in ('0009', '0010', '0011');
+insert into pagg_tab select i % 20, i % 30, to_char(i % 12, 'FM0000'), i % 30 from generate_series(0, 2999) i;
+analyze pagg_tab;
+set local enable_partitionwise_aggregate to true;
+set local enable_partitionwise_join to true;
+set local enable_incremental_sort to off;
+set local enable_hashagg to false;
+set local enable_parallel = off;
+explain (costs off, locus)
+select c, sum(a), avg(b), count(*) from pagg_tab group by 1 having avg(d) < 15 order by 1, 2, 3;
+abort;
+--
+-- End of Test locus after eliding mtion node.
+--
 
 -- start_ignore
 drop schema test_parallel cascade;

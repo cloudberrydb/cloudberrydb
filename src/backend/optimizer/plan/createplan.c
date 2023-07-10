@@ -356,6 +356,7 @@ static Motion *cdbpathtoplan_create_motion_plan(PlannerInfo *root,
 static void append_initplan_for_function_scan(PlannerInfo *root, Path *best_path, Plan *plan);
 static bool contain_motion(PlannerInfo *root, Node *node);
 static bool contain_motion_walk(Node *node, contain_motion_walk_context *ctx);
+static void push_locus_down_after_elide_motion(Plan* pplan);
 
 /*
  * create_plan
@@ -3284,10 +3285,9 @@ create_motion_plan(PlannerInfo *root, CdbMotionPath *path)
 	if (CdbPathLocus_IsEntry(path->path.locus) &&
 		CdbPathLocus_IsSingleQE(subpath->locus))
 	{
-		/* Push the MotionPath's locus down onto subpath. */
-		subpath->locus = path->path.locus;
-
 		subplan = create_plan_recurse(root, subpath, CP_EXACT_TLIST);
+
+		push_locus_down_after_elide_motion(subplan);
 
 		return subplan;
 	}
@@ -9008,4 +9008,46 @@ contain_motion_walk(Node *node, contain_motion_walk_context *ctx)
 	}
 
 	return plan_tree_walker((Node *) node, contain_motion_walk, ctx, true);
+}
+
+/*
+ * Push locus down onto descendant subpaths of the same slice
+ * after eliding Motion.
+ * The plan's parent must be Entry locus at the first call.
+ */
+static void
+push_locus_down_after_elide_motion(Plan* plan)
+{
+	while(plan && (CdbLocusType_SingleQE == plan->locustype))
+	{
+		plan->locustype = CdbLocusType_Entry;
+		switch (nodeTag(plan))
+		{
+			case T_Motion:
+				/* Push down within the same slice. */
+				return;
+			case T_Append:
+			{
+				List*		subplans = NIL;
+				ListCell*	cell;
+				subplans = ((Append*)(plan))->appendplans;
+				foreach(cell, subplans)
+				{
+					push_locus_down_after_elide_motion(lfirst(cell));
+				}
+				break;
+			}
+			case T_SubqueryScan:
+				/* We haven't elided Subquery yet. */
+				plan = ((SubqueryScan *)(plan))->subplan;
+				break;
+			case T_NestLoop:
+			case T_MergeJoin:
+			case T_HashJoin:
+				push_locus_down_after_elide_motion(plan->righttree);
+				/* FALLTHROUGH */
+			default:
+				plan = plan->lefttree;
+		}
+	}
 }
