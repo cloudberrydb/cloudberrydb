@@ -1,0 +1,49 @@
+#
+# Makefile for singlenode regress tests
+#
+
+PGFILEDESC = "singlenode_pg_regress - test driver"
+PGAPPICON = win32
+
+subdir = src/test/singlenode_regress
+top_builddir = ../../..
+include $(top_builddir)/src/Makefile.global
+
+override CPPFLAGS := -I. -I$(srcdir) -I$(libpq_srcdir) \
+	-I$(srcdir)/../regress $(CPPFLAGS)
+
+OBJS = \
+	$(WIN32RES)
+
+submake-regress:
+	$(MAKE) -C $(top_builddir)/src/test/regress all
+
+regress.so: | submake-regress
+	rm -f $@ && $(LN_S) $(top_builddir)/src/test/regress/regress.so .
+
+refint$(DLSUFFIX): $(top_builddir)/contrib/spi/refint$(DLSUFFIX)
+	cp $< $@
+
+all: refint$(DLSUFFIX) regress.so
+
+clean distclean:
+	rm -f refint$(DLSUFFIX)
+	rm -f regress.so
+
+##
+## Run tests
+##
+
+REGRESS_OPTS = --dlpath=. --max-concurrent-tests=24 --init-file=$(srcdir)/init_file --make-testtablespace-dir --ignore-plans \
+	$(EXTRA_REGRESS_OPTS)
+
+check: all
+	$(pg_regress_check) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)
+
+installcheck-singlenode: installcheck-good-singlenode
+
+installcheck-small-singlenode: all
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(EXTRA_TESTS)
+
+installcheck-good-singlenode: all
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS)
