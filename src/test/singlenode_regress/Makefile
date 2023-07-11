@@ -24,7 +24,10 @@ regress.so: | submake-regress
 refint$(DLSUFFIX): $(top_builddir)/contrib/spi/refint$(DLSUFFIX)
 	cp $< $@
 
-all: refint$(DLSUFFIX) regress.so
+autoinc$(DLSUFFIX): $(top_builddir)/contrib/spi/autoinc$(DLSUFFIX)
+	cp $< $@
+
+all: refint$(DLSUFFIX) autoinc$(DLSUFFIX) regress.so
 
 clean distclean:
 	rm -f refint$(DLSUFFIX)
