@@ -1759,6 +1759,12 @@ process_shared_preload_libraries(void)
 				   "shared_preload_libraries",
 				   false);
 
+#ifdef ENABLE_PRELOAD_IC_MODULE
+	load_libraries("interconnect",
+				   "preload interconnect module",
+				   false);
+#endif
+
 	process_shared_preload_libraries_in_progress = false;
 }
 

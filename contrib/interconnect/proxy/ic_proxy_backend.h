@@ -14,7 +14,7 @@
 
 #include "postgres.h"
 
-#include "cdb/cdbinterconnect.h"
+#include "ic_internal.h"
 
 #include <uv.h>
 

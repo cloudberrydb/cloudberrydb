@@ -74,6 +74,7 @@ distclean maintainer-clean:
 	$(MAKE) -C tutorial NO_PGXS=1 $@
 	$(MAKE) -C test/isolation $@
 	rm -f Makefile.port Makefile.global
+	rm -f contrib/interconnect/Makefile.interconnect
 
 
 .PHONY: install-local installdirs-local uninstall-local

@@ -1056,9 +1056,15 @@ cdb_setup(void)
 
 	if (Gp_role != GP_ROLE_UTILITY)
 	{
+		if (!CurrentMotionIPCLayer) {
+			ereport(ERROR,
+				(errmsg("Interconnect moudle have not been preloaded"),
+				 errdetail("Please make sure interconnect is included in option shared_preload_libraries")));
+		}
+
 		ensureInterconnectAddress();
 		/* Initialize the Motion Layer IPC subsystem. */
-		InitMotionLayerIPC();
+		CurrentMotionIPCLayer->InitMotionLayerIPC();
 	}
 
 	/*
@@ -1111,7 +1117,7 @@ cdb_cleanup(int code pg_attribute_unused(), Datum arg
 	if (Gp_role != GP_ROLE_UTILITY)
 	{
 		/* shutdown our listener socket */
-		CleanUpMotionLayerIPC();
+		CurrentMotionIPCLayer->CleanUpMotionLayerIPC();
 	}
 }
 
@@ -3375,9 +3381,14 @@ cdb_setup(void)
 
 	if (Gp_role != GP_ROLE_UTILITY)
 	{
+		if (!CurrentMotionIPCLayer) {
+			ereport(ERROR,
+				(errmsg("Interconnect moudle have not been preloaded"),
+				 errdetail("Please make sure interconnect is included in option shared_preload_libraries")));
+		}
 		ensureInterconnectAddress();
 		/* Initialize the Motion Layer IPC subsystem. */
-		InitMotionLayerIPC();
+		CurrentMotionIPCLayer->InitMotionLayerIPC();
 	}
 
 	/*
@@ -3430,7 +3441,7 @@ cdb_cleanup(int code pg_attribute_unused(), Datum arg
 	if (Gp_role != GP_ROLE_UTILITY)
 	{
 		/* shutdown our listener socket */
-		CleanUpMotionLayerIPC();
+		CurrentMotionIPCLayer->CleanUpMotionLayerIPC();
 	}
 }
 

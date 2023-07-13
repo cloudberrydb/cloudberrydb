@@ -27,6 +27,7 @@ SUBDIRS = \
 		hstore		\
 		intagg		\
 		intarray	\
+		interconnect \
 		isn		\
 		ltree		\
 		oid2name	\

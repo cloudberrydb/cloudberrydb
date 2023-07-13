@@ -42,6 +42,7 @@
 #include "utils/portal.h"
 
 #include "cdb/cdbvars.h"
+#include "cdb/ml_ipc.h"
 #include "utils/vmem_tracker.h"
 
 /* ----------------
@@ -325,7 +326,11 @@ sendQEDetails(void)
 	StringInfoData msgbuf;
 	char		port_str[11];
 
-	snprintf(port_str, sizeof(port_str), "%u", Gp_listener_port);
+	if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_TCP || CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_PROXY) {
+		snprintf(port_str, sizeof(port_str), "%u", (0 << 16) | CurrentMotionIPCLayer->GetListenPort());
+	} else if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC) {
+		snprintf(port_str, sizeof(port_str), "%u", (CurrentMotionIPCLayer->GetListenPort() << 16) | 0);
+	}
 
 	pq_beginmessage(&msgbuf, 'S');
 	pq_sendstring(&msgbuf, "qe_listener_port");

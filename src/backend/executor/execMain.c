@@ -452,7 +452,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 					 * Initialize the motion layer for this query.
 					 */
 					Assert(!estate->interconnect_context);
-					SetupInterconnect(estate);
+					CurrentMotionIPCLayer->SetupInterconnect(estate);
 					Assert(estate->interconnect_context);
 					UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);
 
@@ -666,7 +666,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 				!estate->es_interconnect_is_setup)
 			{
 				Assert(!estate->interconnect_context);
-				SetupInterconnect(estate);
+				CurrentMotionIPCLayer->SetupInterconnect(estate);
 				Assert(estate->interconnect_context);
 				UpdateMotionExpectedReceivers(estate->motionlayer_context, estate->es_sliceTable);
 			}

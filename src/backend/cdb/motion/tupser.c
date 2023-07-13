@@ -270,7 +270,7 @@ addByteStringToChunkList(TupleChunkList tcList, char *data, int datalen, TupleCh
 void
 SerializeRecordCacheIntoChunks(SerTupInfo *pSerInfo,
 							   TupleChunkList tcList,
-							   MotionConn *conn)
+							   int32 sent_record_typmod)
 {
 	TupleChunkListItem tcItem = NULL;
 	MemoryContext oldCtxt;
@@ -305,7 +305,7 @@ SerializeRecordCacheIntoChunks(SerTupInfo *pSerInfo,
 	 * sent by sender.
 	 */
 	oldCtxt = MemoryContextSwitchTo(s_tupSerMemCtxt);
-	typelist = build_tuple_node_list(conn->sent_record_typmod);
+	typelist = build_tuple_node_list(sent_record_typmod);
 	buf = serializeNode((Node *) typelist, &size, NULL);
 	MemoryContextSwitchTo(oldCtxt);
 

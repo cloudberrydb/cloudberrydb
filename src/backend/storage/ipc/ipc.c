@@ -212,8 +212,12 @@ proc_exit_prepare(int code)
 	*
 	* It's ok to shutdown Interconnect background thread here, process is dying, no
 	* necessary to receive more motion data.
+	*
+	* Current motion ipc layer can be NULL in UTILITY mode, in this case,
+	* it is not necessary to wait for the interconnect to exit.
 	*/
-	WaitInterconnectQuit();
+	if (CurrentMotionIPCLayer)
+		CurrentMotionIPCLayer->WaitInterconnectQuit();
 
 	elog(DEBUG3, "proc_exit(%d)", code);
 

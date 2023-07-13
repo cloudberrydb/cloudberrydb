@@ -22,7 +22,6 @@
 /* Define this if you want tons of logs! */
 #undef AMS_VERBOSE_LOGGING
 
-
 typedef enum SendReturnCode
 {
 	SEND_COMPLETE,
@@ -31,7 +30,7 @@ typedef enum SendReturnCode
 
 /*
  * Struct describing the direct transmit buffer.  see:
- * getTransportDirectBuffer() (in ic_common.c) and
+ * GetTransportDirectBuffer() (in ic_common.c) and
  * SerializeTupleDirect() (in cdbmotion.c).
  *
  * Simplified somewhat in 4.0 to remove mirror-data.

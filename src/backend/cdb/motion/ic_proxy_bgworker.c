@@ -16,9 +16,8 @@
 #include "postgres.h"
 
 #include "storage/ipc.h"
-
 #include "cdb/ic_proxy_bgworker.h"
-#include "ic_proxy_server.h"
+#include "cdb/ml_ipc.h"
 
 bool
 ICProxyStartRule(Datum main_arg)
@@ -32,6 +31,12 @@ ICProxyStartRule(Datum main_arg)
 void
 ICProxyMain(Datum main_arg)
 {
-	/* main loop */
-	proc_exit(ic_proxy_server_main());
+	/* in utility mode, won't preload interconnect module. 
+	 * also won't call cdb_setup().
+	 */ 
+	if (CurrentMotionIPCLayer) {
+		proc_exit(CurrentMotionIPCLayer->IcProxyServiceMain());
+	} else {
+		proc_exit(0);
+	}
 }

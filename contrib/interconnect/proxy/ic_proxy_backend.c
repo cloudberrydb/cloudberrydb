@@ -35,6 +35,7 @@
 #include "cdb/ml_ipc.h"
 #include "executor/execdesc.h"
 
+#include "ic_common.h"
 #include "ic_proxy.h"
 #include "ic_proxy_backend.h"
 #include "ic_proxy_packet.h"
@@ -190,11 +191,14 @@ ic_proxy_backend_on_read_hello_ack(uv_stream_t *stream, ssize_t nread, const uv_
 	/* ic_tcp compatitble code to modify ChunkTransportStateEntry for receiver */
 	if (!backend->isSender)
 	{
-		ChunkTransportStateEntry *pEntry;
+		ChunkTransportStateEntry *pChunkEntry;
+		ChunkTransportStateEntryTCP *pEntry;
 
-		pEntry = ic_proxy_backend_get_pentry(backend);
+		pChunkEntry = ic_proxy_backend_get_pentry(backend);
+		pEntry = CONTAINER_OF(pChunkEntry, ChunkTransportStateEntryTCP, entry);
+		Assert(pEntry);
 
-		MPP_FD_SET(backend->conn->sockfd, &pEntry->readSet);
+		MPP_FD_SET(backend->conn->sockfd, (&pEntry->entry.readSet));
 		if (backend->conn->sockfd > pEntry->highReadSock)
 			pEntry->highReadSock = backend->conn->sockfd;
 	}

@@ -19,9 +19,6 @@
 #include "lib/stringinfo.h"
 #include "cdb/tupleremap.h"
 
-
-typedef struct MotionConn MotionConn;
-
 /*
  * The next two structures are for cached tuple serialization and
  * deserialization information.  This information is cached since there will
@@ -79,7 +76,7 @@ extern void CleanupSerTupInfo(SerTupInfo *pSerInfo);
 /* Convert RecordCache into chunks ready to send out, in one pass */
 extern void SerializeRecordCacheIntoChunks(SerTupInfo *pSerInfo,
 										   TupleChunkList tcList,
-										   MotionConn *conn);
+										   int32 sent_record_typmod);
 
 /* Convert a tuple into chunks directly in a set of transport buffers */
 extern int SerializeTuple(TupleTableSlot *tuple, SerTupInfo *pSerInfo, struct directTransportBuffer *b, TupleChunkList tcList, int16 targetRoute);
