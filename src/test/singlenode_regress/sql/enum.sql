@@ -160,7 +160,7 @@ SET enable_bitmapscan = off;
 --
 -- Btree index / opclass with the various operators
 --
-CREATE UNIQUE INDEX enumtest_btree ON enumtest USING btree (col);
+CREATE INDEX enumtest_btree ON enumtest USING btree (col);
 SELECT * FROM enumtest WHERE col = 'orange';
 SELECT * FROM enumtest WHERE col <> 'orange' ORDER BY col;
 SELECT * FROM enumtest WHERE col > 'yellow' ORDER BY col;

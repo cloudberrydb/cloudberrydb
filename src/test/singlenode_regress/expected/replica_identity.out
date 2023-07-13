@@ -194,11 +194,13 @@ Indexes:
     "test_replica_identity2_id_key" UNIQUE CONSTRAINT, btree (id) REPLICA IDENTITY
 
 ALTER TABLE test_replica_identity2 ALTER COLUMN id TYPE bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 \d test_replica_identity2
-      Table "public.test_replica_identity2"
- Column |  Type  | Collation | Nullable | Default 
---------+--------+-----------+----------+---------
- id     | bigint |           | not null | 
+       Table "public.test_replica_identity2"
+ Column |  Type   | Collation | Nullable | Default 
+--------+---------+-----------+----------+---------
+ id     | integer |           | not null | 
 Indexes:
     "test_replica_identity2_id_key" UNIQUE CONSTRAINT, btree (id) REPLICA IDENTITY
 

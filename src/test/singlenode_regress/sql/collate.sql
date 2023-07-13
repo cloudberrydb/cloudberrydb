@@ -223,9 +223,11 @@ INSERT INTO collate_test20 VALUES ('foo'), ('bar');
 CREATE TABLE collate_test21 (f2 text COLLATE "POSIX" REFERENCES collate_test20);
 INSERT INTO collate_test21 VALUES ('foo'), ('bar');
 INSERT INTO collate_test21 VALUES ('baz'); -- fail
+-- Passes in GPDB, because we don't check foreign keys
 CREATE TABLE collate_test22 (f2 text COLLATE "POSIX");
 INSERT INTO collate_test22 VALUES ('foo'), ('bar'), ('baz');
 ALTER TABLE collate_test22 ADD FOREIGN KEY (f2) REFERENCES collate_test20; -- fail
+-- Passes in GPDB, because we don't check foreign keys
 DELETE FROM collate_test22 WHERE f2 = 'baz';
 ALTER TABLE collate_test22 ADD FOREIGN KEY (f2) REFERENCES collate_test20;
 

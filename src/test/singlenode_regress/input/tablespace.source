@@ -1,3 +1,7 @@
+-- start_matchignore
+-- m/WARNING:  tablespace symlink path is too long for TAR/
+-- m/DETAIL:  The symlinked path \".*\" will be truncated to 100 characters when sending a TAR to the utilities \(e.g. pg_basebackup\)/
+-- end_matchignore
 -- create a tablespace using WITH clause
 CREATE TABLESPACE regress_tblspacewith LOCATION '@testtablespace@' WITH (some_nonexistent_parameter = true); -- fail
 CREATE TABLESPACE regress_tblspacewith LOCATION '@testtablespace@' WITH (random_page_cost = 3.0); -- ok
@@ -79,7 +83,7 @@ ALTER INDEX regress_tblspace_test_tbl_idx SET TABLESPACE pg_default;
 SELECT c.relname FROM pg_class c, pg_tablespace s
   WHERE c.reltablespace = s.oid AND s.spcname = 'regress_tblspace'
   ORDER BY c.relname;
-REINDEX (TABLESPACE regress_tblspace, CONCURRENTLY) TABLE regress_tblspace_test_tbl;
+REINDEX (TABLESPACE regress_tblspace) TABLE regress_tblspace_test_tbl;
 SELECT c.relname FROM pg_class c, pg_tablespace s
   WHERE c.reltablespace = s.oid AND s.spcname = 'regress_tblspace'
   ORDER BY c.relname;
@@ -126,7 +130,7 @@ CREATE TEMP TABLE reindex_temp_before AS
   SELECT oid, relname, relfilenode, reltablespace
   FROM pg_class
     WHERE relname ~ 'tbspace_reindex_part_index';
-REINDEX (TABLESPACE regress_tblspace, CONCURRENTLY) TABLE tbspace_reindex_part;
+REINDEX (TABLESPACE regress_tblspace) TABLE tbspace_reindex_part;
 -- REINDEX CONCURRENTLY changes the OID of the old relation, hence a check
 -- based on the relation name below.
 SELECT b.relname,
@@ -181,13 +185,17 @@ SET default_tablespace TO regress_tblspace;
 CREATE TABLE testschema.part_2 PARTITION OF testschema.part FOR VALUES IN (2);
 SET default_tablespace TO pg_global;
 CREATE TABLE testschema.part_3 PARTITION OF testschema.part FOR VALUES IN (3);
-ALTER TABLE testschema.part SET TABLESPACE regress_tblspace;
+-- GPDB: Cloudberry's ALTER TABLE .. SET TABLESPACE command recurses by
+-- default, hence add ONLY to achieve the same results for SELECT.
+ALTER TABLE ONLY testschema.part SET TABLESPACE regress_tblspace;
 CREATE TABLE testschema.part_3 PARTITION OF testschema.part FOR VALUES IN (3);
 CREATE TABLE testschema.part_4 PARTITION OF testschema.part FOR VALUES IN (4)
   TABLESPACE pg_default;
 CREATE TABLE testschema.part_56 PARTITION OF testschema.part FOR VALUES IN (5, 6)
   PARTITION BY LIST (a);
-ALTER TABLE testschema.part SET TABLESPACE pg_default;
+-- GPDB: Cloudberry's ALTER TABLE .. SET TABLESPACE command recurses by
+-- default, hence add ONLY to achieve the same results for SELECT.
+ALTER TABLE ONLY testschema.part SET TABLESPACE pg_default;
 CREATE TABLE testschema.part_78 PARTITION OF testschema.part FOR VALUES IN (7, 8)
   PARTITION BY LIST (a);
 CREATE TABLE testschema.part_910 PARTITION OF testschema.part FOR VALUES IN (9, 10)
@@ -245,6 +253,9 @@ ALTER TABLE testschema.test_default_tab ADD CONSTRAINT test_index4 UNIQUE (id) U
 SET default_tablespace TO regress_tblspace;
 -- tablespace should not change if no rewrite
 ALTER TABLE testschema.test_default_tab ALTER id TYPE bigint;
+-- start_ignore
+ANALYZE testschema.test_default_tab;
+-- end_ignore
 \d testschema.test_index1
 \d testschema.test_index2
 \d testschema.test_index3
@@ -252,6 +263,9 @@ ALTER TABLE testschema.test_default_tab ALTER id TYPE bigint;
 SELECT * FROM testschema.test_default_tab;
 -- tablespace should not change even if there is an index rewrite
 ALTER TABLE testschema.test_default_tab ALTER id TYPE int;
+-- start_ignore
+ANALYZE testschema.test_default_tab;
+-- end_ignore
 \d testschema.test_index1
 \d testschema.test_index2
 \d testschema.test_index3

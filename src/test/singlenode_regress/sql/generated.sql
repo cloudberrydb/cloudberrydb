@@ -331,6 +331,7 @@ CREATE TABLE gtest23b (a int PRIMARY KEY, b int GENERATED ALWAYS AS (a * 2) STOR
 \d gtest23b
 
 INSERT INTO gtest23b VALUES (1);  -- ok
+-- GPDB doesn't enforce foreign key constraints, so this doesn't error out.
 INSERT INTO gtest23b VALUES (5);  -- error
 
 DROP TABLE gtest23b;
@@ -341,6 +342,7 @@ INSERT INTO gtest23p VALUES (1), (2), (3);
 
 CREATE TABLE gtest23q (a int PRIMARY KEY, b int REFERENCES gtest23p (y));
 INSERT INTO gtest23q VALUES (1, 2);  -- ok
+-- GPDB doesn't enforce foreign key constraints, so this doesn't error out.
 INSERT INTO gtest23q VALUES (2, 5);  -- error
 
 -- domains
@@ -509,7 +511,25 @@ CREATE TRIGGER gtest4 AFTER INSERT OR UPDATE ON gtest26
 
 INSERT INTO gtest26 (a) VALUES (-2), (0), (3);
 SELECT * FROM gtest26 ORDER BY a;
+
+-- GPDB: There are a few issues with the UPDATE and DELETE test. Firstly,
+-- the UPDATE of 'a' fails, because you can't update distribution key column
+-- when there's an update trigger on it. Secondly, the INFO messages from the
+-- triggers that run on different segments arrive in random order. To fix
+-- these issues, drop the primary key, and force all the rows to reside on
+-- the same segment. Only confirm data in a single segment is not enough for
+-- the case to be soild, we have to make sure the tuple's order is the same.
+-- However, "set distributed by" cannot gurantee this because the tuple order
+-- from interconnect is not always the same. To achieve the goal, we truncate
+-- the table and then re-insert it after set the distkey.
+alter table gtest26 drop constraint gtest26_pkey;
+alter table gtest26 add column distkey integer;
+truncate gtest26;
+INSERT INTO gtest26 (a) VALUES (-2), (0), (3);
+alter table gtest26 drop column distkey;
+
 UPDATE gtest26 SET a = a * -2;
+
 SELECT * FROM gtest26 ORDER BY a;
 DELETE FROM gtest26 WHERE a = -6;
 SELECT * FROM gtest26 ORDER BY a;

@@ -1,4 +1,11 @@
 --
+-- Exercise outfuncs
+--
+
+set Debug_print_parse=on;
+set Debug_print_plan=on;
+
+--
 -- CREATE_VIEW
 -- Virtual class definitions
 --	(this also tests the query rewrite system)

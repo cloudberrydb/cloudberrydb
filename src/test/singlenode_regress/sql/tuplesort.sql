@@ -162,21 +162,26 @@ DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids OR
 FETCH NEXT FROM c;
 FETCH NEXT FROM c;
 
--- scroll beyond beginning
-FETCH BACKWARD FROM c;
-FETCH BACKWARD FROM c;
-FETCH BACKWARD FROM c;
-FETCH BACKWARD FROM c;
-FETCH NEXT FROM c;
-
--- scroll beyond end end
-FETCH LAST FROM c;
-FETCH BACKWARD FROM c;
-FETCH NEXT FROM c;
-FETCH NEXT FROM c;
-FETCH NEXT FROM c;
-FETCH BACKWARD FROM c;
-FETCH NEXT FROM c;
+--start_ignore
+--GDPB doesn't support backward fetch.
+/*
+ * scroll beyond beginning
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * 
+ * -- scroll beyond end end
+ * FETCH LAST FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ */
+--end_ignore
 
 COMMIT;
 
@@ -192,22 +197,25 @@ DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids OR
 -- first and second
 FETCH NEXT FROM c;
 FETCH NEXT FROM c;
-
+--start_ignore
 -- scroll beyond beginning
-FETCH BACKWARD FROM c;
-FETCH BACKWARD FROM c;
-FETCH BACKWARD FROM c;
-FETCH BACKWARD FROM c;
-FETCH NEXT FROM c;
-
--- scroll beyond end end
-FETCH LAST FROM c;
-FETCH BACKWARD FROM c;
-FETCH NEXT FROM c;
-FETCH NEXT FROM c;
-FETCH NEXT FROM c;
-FETCH BACKWARD FROM c;
-FETCH NEXT FROM c;
+/*
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * 
+ * -- scroll beyond end end
+ * FETCH LAST FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ */
+--end_ignore
 
 COMMIT;
 

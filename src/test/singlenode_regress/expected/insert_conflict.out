@@ -218,6 +218,9 @@ explain (costs off, format json) insert into insertconflicttest values (0, 'Bilb
            "Async Capable": false                                      +
          }                                                             +
        ]                                                               +
+     },                                                                +
+     "Settings": {                                                     +
+       "Optimizer": "Postgres query optimizer"                         +
      }                                                                 +
    }                                                                   +
  ]
@@ -857,10 +860,10 @@ create trigger parted_conflict_update
     referencing new table as inserted
     for each statement
     execute procedure parted_conflict_update_func();
+ERROR:  Triggers for statements are not yet supported
 truncate parted_conflict;
 insert into parted_conflict values (0, 'cero', 1);
 insert into parted_conflict values(0, 'cero', 1)
   on conflict (a,b) do update set c = parted_conflict.c + 1;
-NOTICE:  a = 0, b = cero, c = 2
 drop table parted_conflict;
 drop function parted_conflict_update_func();

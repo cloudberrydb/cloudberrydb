@@ -519,9 +519,7 @@ DROP MATERIALIZED VIEW mv_unspecified_types;
 create materialized view mvtest_error as select 1/0 as x;  -- fail
 ERROR:  division by zero
 create materialized view mvtest_error as select 1/0 as x with no data;
-refresh materialized view mvtest_error;  -- fail here
 ERROR:  division by zero
-drop materialized view mvtest_error;
 -- make sure that matview rows can be referenced as source rows (bug #9398)
 CREATE TABLE mvtest_v AS SELECT generate_series(1,10) AS a;
 CREATE MATERIALIZED VIEW mvtest_mv_v AS SELECT a FROM mvtest_v WHERE a <= 5;

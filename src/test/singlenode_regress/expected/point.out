@@ -5,6 +5,7 @@
 SET extra_float_digits = 0;
 CREATE TABLE POINT_TBL(f1 point);
 INSERT INTO POINT_TBL(f1) VALUES ('(0.0,0.0)');
+ANALYZE POINT_TBL;
 INSERT INTO POINT_TBL(f1) VALUES ('(-10.0,0.0)');
 INSERT INTO POINT_TBL(f1) VALUES ('(-3.0,4.0)');
 INSERT INTO POINT_TBL(f1) VALUES ('(5.1, 34.5)');
@@ -32,7 +33,7 @@ ERROR:  invalid input syntax for type point: "(10.0,10.0"
 LINE 1: INSERT INTO POINT_TBL(f1) VALUES ('(10.0,10.0');
                                           ^
 INSERT INTO POINT_TBL(f1) VALUES ('(10.0, 1e+500)');	-- Out of range
-ERROR:  "1e+500" is out of range for type double precision
+ERROR:  value out of range: overflow
 LINE 1: INSERT INTO POINT_TBL(f1) VALUES ('(10.0, 1e+500)');
                                           ^
 SELECT * FROM POINT_TBL;

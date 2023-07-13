@@ -1,3 +1,4 @@
+set optimizer_print_missing_stats = off;
 --
 -- Sanity checks for text search catalogs
 --
@@ -210,7 +211,8 @@ explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  Aggregate
    ->  Index Scan using wowidx on test_tsvector
          Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -366,7 +368,8 @@ explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
          Recheck Cond: (a @@ '''wr'' | ''qh'''::tsquery)
          ->  Bitmap Index Scan on wowidx
                Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -517,10 +520,10 @@ CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(foo=1));
 ERROR:  unrecognized parameter "foo"
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=0));
 ERROR:  value 0 out of bounds for option "siglen"
-DETAIL:  Valid values are between "1" and "2024".
-CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=2048));
-ERROR:  value 2048 out of bounds for option "siglen"
-DETAIL:  Valid values are between "1" and "2024".
+DETAIL:  Valid values are between "1" and "8168".
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=8192));
+ERROR:  value 8192 out of bounds for option "siglen"
+DETAIL:  Valid values are between "1" and "8168".
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100,foo='bar'));
 ERROR:  unrecognized parameter "foo"
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100, siglen = 200));
@@ -545,7 +548,8 @@ EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
          Recheck Cond: (a @@ '''wr'' | ''qh'''::tsquery)
          ->  Bitmap Index Scan on wowidx2
                Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -710,7 +714,8 @@ EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
          Recheck Cond: (a @@ '''wr'' | ''qh'''::tsquery)
          ->  Bitmap Index Scan on wowidx
                Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -871,7 +876,8 @@ explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
          Recheck Cond: (a @@ '''wr'' | ''qh'''::tsquery)
          ->  Bitmap Index Scan on wowidx
                Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -1027,7 +1033,8 @@ SELECT count(*) FROM test_tsvector WHERE a @@ '!qh';
          Recheck Cond: (a @@ '!''qh'''::tsquery)
          ->  Bitmap Index Scan on wowidx
                Index Cond: (a @@ '!''qh'''::tsquery)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ '!qh';
  count 
@@ -1044,7 +1051,8 @@ SELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh';
          Recheck Cond: ((a @@ '''wr'''::tsquery) AND (a @@ '!''qh'''::tsquery))
          ->  Bitmap Index Scan on wowidx
                Index Cond: ((a @@ '''wr'''::tsquery) AND (a @@ '!''qh'''::tsquery))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr' AND a @@ '!qh';
  count 
@@ -2027,7 +2035,7 @@ SELECT COUNT(*) FROM test_tsquery WHERE keyword >  'new <-> york';
      3
 (1 row)
 
-CREATE UNIQUE INDEX bt_tsq ON test_tsquery (keyword);
+CREATE INDEX bt_tsq ON test_tsquery (keyword);
 SET enable_seqscan=OFF;
 SELECT COUNT(*) FROM test_tsquery WHERE keyword <  'new <-> york';
  count 
@@ -2363,13 +2371,12 @@ SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
 -- to_tsquery(text) is not immutable, so it won't be inlined
 explain (costs off)
 select * from test_tsquery, to_tsquery('new') q where txtsample @@ q;
-                   QUERY PLAN                   
-------------------------------------------------
- Nested Loop
-   Join Filter: (test_tsquery.txtsample @@ q.q)
-   ->  Function Scan on to_tsquery q
-   ->  Seq Scan on test_tsquery
-(4 rows)
+                 QUERY PLAN                  
+---------------------------------------------
+ Seq Scan on test_tsquery
+   Filter: (txtsample @@ '''new'''::tsquery)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- to_tsquery(regconfig, text) is an immutable function.
 -- That allows us to get rid of using function scan and join at all.
@@ -2379,7 +2386,8 @@ select * from test_tsquery, to_tsquery('english', 'new') q where txtsample @@ q;
 ---------------------------------------------
  Seq Scan on test_tsquery
    Filter: (txtsample @@ '''new'''::tsquery)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- test finding items in GIN's pending list
 create temp table pendtest (ts tsvector);
@@ -2851,3 +2859,5 @@ NOTICE:  text-search query contains only stop words or doesn't contain lexemes, 
  
 (1 row)
 
+COPY test_tsvector TO '/tmp/test_tsvector.txt';
+COPY test_tsvector FROM '/tmp/test_tsvector.txt';

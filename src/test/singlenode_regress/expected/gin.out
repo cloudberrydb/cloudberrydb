@@ -249,14 +249,15 @@ select count(*) from t_gin_test_tbl where j @> array[2];
 
 explain (costs off)
 select count(*) from t_gin_test_tbl where j @> '{}'::int[];
-                       QUERY PLAN                        
----------------------------------------------------------
+                              QUERY PLAN                              
+----------------------------------------------------------------------
  Aggregate
    ->  Bitmap Heap Scan on t_gin_test_tbl
-         Recheck Cond: (j @> '{}'::integer[])
+         Recheck Cond: (j OPERATOR(pg_catalog.@>) '{}'::anyarray)
          ->  Bitmap Index Scan on t_gin_test_tbl_i_j_idx
-               Index Cond: (j @> '{}'::integer[])
-(5 rows)
+               Index Cond: (j OPERATOR(pg_catalog.@>) '{}'::anyarray)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select count(*) from t_gin_test_tbl where j @> '{}'::int[];
  count 

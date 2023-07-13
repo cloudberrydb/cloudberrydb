@@ -1,5 +1,9 @@
 -- Perform tests on the Memoize node.
 
+-- GPDB_14_MERGE_FIXME:
+-- 1.test memoize in CBDB as enable_nestloop is false by default
+-- 2.enable memoize in orca
+
 -- The cache hits/misses/evictions from the Memoize node can vary between
 -- machines.  Let's just replace the number with an 'N'.  In order to allow us
 -- to perform validation when the measure was zero, we replace a zero value
@@ -23,6 +27,7 @@ begin
         ln := regexp_replace(ln, 'Evictions: 0', 'Evictions: Zero');
         ln := regexp_replace(ln, 'Evictions: \d+', 'Evictions: N');
         ln := regexp_replace(ln, 'Memory Usage: \d+', 'Memory Usage: N');
+        ln := regexp_replace(ln, 'Memory: \d+', 'Memory: N');
 	ln := regexp_replace(ln, 'Heap Fetches: \d+', 'Heap Fetches: N');
 	ln := regexp_replace(ln, 'loops=\d+', 'loops=N');
         return next ln;

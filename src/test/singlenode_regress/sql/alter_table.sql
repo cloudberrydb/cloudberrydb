@@ -1,3 +1,4 @@
+set optimizer_print_missing_stats = off;
 --
 -- ALTER_TABLE
 --
@@ -189,12 +190,12 @@ CREATE TABLE part_attmp1 PARTITION OF part_attmp FOR VALUES FROM (0) TO (100);
 ALTER INDEX part_attmp_pkey RENAME TO part_attmp_index;
 ALTER INDEX part_attmp1_pkey RENAME TO part_attmp1_index;
 ALTER TABLE part_attmp RENAME TO part_at2tmp;
-ALTER TABLE part_attmp1 RENAME TO part_at2tmp1;
+-- ALTER TABLE part_attmp1 RENAME TO part_at2tmp1; -- GPDB cascades parent rename to child partition
 SET ROLE regress_alter_table_user1;
 ALTER INDEX part_attmp_index RENAME TO fail;
 ALTER INDEX part_attmp1_index RENAME TO fail;
 ALTER TABLE part_at2tmp RENAME TO fail;
-ALTER TABLE part_at2tmp1 RENAME TO fail;
+-- ALTER TABLE part_at2tmp1 RENAME TO fail; -- GPDB cascades parent rename to child partiti
 RESET ROLE;
 DROP TABLE part_at2tmp;
 
@@ -274,7 +275,7 @@ RESET ROLE;
 set enable_seqscan to off;
 set enable_bitmapscan to off;
 -- 5 values, sorted
-SELECT unique1 FROM tenk1 WHERE unique1 < 5;
+SELECT unique1 FROM tenk1 WHERE unique1 < 5 ORDER BY 1;
 reset enable_seqscan;
 reset enable_bitmapscan;
 
@@ -366,6 +367,7 @@ ALTER TABLE attmp3 add constraint attmpconstr foreign key(c) references attmp2 m
 ALTER TABLE attmp3 add constraint attmpconstr foreign key(a) references attmp2(b) match full;
 
 -- Try (and fail) to add constraint due to invalid data
+-- (passes on GPDB, because GPDB doesn't enforce foreign keys)
 ALTER TABLE attmp3 add constraint attmpconstr foreign key (a) references attmp2 match full;
 
 -- Delete failing row
@@ -379,14 +381,19 @@ INSERT INTO attmp3 values (5,50);
 
 -- Try NOT VALID and then VALIDATE CONSTRAINT, but fails. Delete failure then re-validate
 ALTER TABLE attmp3 add constraint attmpconstr foreign key (a) references attmp2 match full NOT VALID;
+-- FK constraints are not supported in GPDB
+--start_ignore
 ALTER TABLE attmp3 validate constraint attmpconstr;
+--end_ignore
 
 -- Delete failing row
 DELETE FROM attmp3 where a=5;
 
 -- Try (and succeed) and repeat to show it works on already valid constraint
+--start_ignore
 ALTER TABLE attmp3 validate constraint attmpconstr;
 ALTER TABLE attmp3 validate constraint attmpconstr;
+--end_ignore
 
 -- Try a non-verified CHECK constraint
 ALTER TABLE attmp3 ADD CONSTRAINT b_greater_than_ten CHECK (b > 10); -- fail
@@ -570,6 +577,9 @@ ORDER BY 1,2,3;
 create table atacc1 ( test int );
 -- add a check constraint
 alter table atacc1 add constraint atacc_test1 check (test>3);
+-- start_ignore
+-- Known_opt_diff: MPP-21330
+-- end_ignore
 -- should fail
 insert into atacc1 (test) values (2);
 -- should succeed
@@ -675,7 +685,7 @@ drop table atacc1;
 
 -- test unique constraint adding
 
-create table atacc1 ( test int ) ;
+create table atacc1 ( test int );
 -- add a unique constraint
 alter table atacc1 add constraint atacc_test1 unique (test);
 -- insert first value
@@ -729,7 +739,7 @@ drop table atacc1;
 
 -- test primary key constraint adding
 
-create table atacc1 ( id serial, test int) ;
+create table atacc1 ( id serial, test int);
 -- add a primary key constraint
 alter table atacc1 add constraint atacc_test1 primary key (test);
 -- insert first value
@@ -1389,12 +1399,26 @@ create index on anothertab(f2,f3);
 create unique index on anothertab(f4);
 
 \d anothertab
+
+-- In GPDB, you cannot change the type of a column that's part of a unique key
+alter table anothertab drop constraint anothertab_pkey;
+alter table anothertab drop constraint anothertab_f1_f4_key ;
+alter table anothertab drop constraint anothertab_f2_key;
+drop index anothertab_f4_idx;
+
 alter table anothertab alter column f1 type bigint;
 alter table anothertab
   alter column f2 type bigint,
   alter column f3 type bigint,
   alter column f4 type bigint;
 alter table anothertab alter column f5 type bigint;
+
+-- restore primary and unique keys
+alter table anothertab add constraint anothertab_pkey primary key (f1);
+alter table anothertab add constraint anothertab_f1_f4_key unique (f1, f4);
+create unique index on anothertab(f4);
+alter table anothertab add constraint anothertab_f2_key unique (f2);
+
 \d anothertab
 
 drop table anothertab;
@@ -1478,6 +1502,9 @@ create temp table old_oids as
   select relname, oid as oldoid, relfilenode as oldfilenode
   from pg_class where relname like 'at_partitioned%';
 
+-- GPDB: the output for these queries differ from upstream, because GPDB
+-- assigns a new relfilenode for every table, it never uses the table's
+-- OID as the relfilenode like Postgres does.
 select relname,
   c.oid = oldoid as orig_oid,
   case relfilenode
@@ -1495,7 +1522,9 @@ select conname, obj_description(oid, 'pg_constraint') as desc
   from pg_constraint where conname like 'at_partitioned%'
   order by conname;
 
+-- this doesn't work in GPDB, which makes the rest of the test quite pointless.
 alter table at_partitioned alter column name type varchar(127);
+
 
 -- Note: these tests currently show the wrong behavior for comments :-(
 
@@ -1844,14 +1873,14 @@ drop type lockmodes;
 --
 create function test_strict(text) returns text as
     'select coalesce($1, ''got passed a null'');'
-    language sql returns null on null input;
+    language sql CONTAINS SQL returns null on null input;
 select test_strict(NULL);
 alter function test_strict(text) called on null input;
 select test_strict(NULL);
 
 create function non_strict(text) returns text as
     'select coalesce($1, ''got passed a null'');'
-    language sql called on null input;
+    language sql CONTAINS SQL called on null input;
 select non_strict(NULL);
 alter function non_strict(text) returns null on null input;
 select non_strict(NULL);
@@ -1867,7 +1896,7 @@ create table alter1.t1(f1 serial primary key, f2 int check (f2 > 0));
 
 create view alter1.v1 as select * from alter1.t1;
 
-create function alter1.plus1(int) returns int as 'select $1+1' language sql;
+create function alter1.plus1(int) returns int as 'select $1+1' language sql CONTAINS SQL;
 
 create domain alter1.posint integer check (value > 0);
 
@@ -2116,8 +2145,14 @@ SELECT conname as constraint, obj_description(oid, 'pg_constraint') as comment F
 -- first, to test that no-op codepath, and another one that does.
 ALTER TABLE comment_test ALTER COLUMN indexed_col SET DATA TYPE int;
 ALTER TABLE comment_test ALTER COLUMN indexed_col SET DATA TYPE text;
+
+-- Changing the data type of an indexed column is not supported in GPDB as of fecd245
 ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE int;
 ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE text;
+ALTER TABLE comment_test DROP CONSTRAINT comment_test_pk;
+ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE text;
+ALTER TABLE comment_test ADD CONSTRAINT comment_test_pk PRIMARY KEY (id);
+
 ALTER TABLE comment_test ALTER COLUMN positive_col SET DATA TYPE int;
 ALTER TABLE comment_test ALTER COLUMN positive_col SET DATA TYPE bigint;
 

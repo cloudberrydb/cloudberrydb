@@ -4,7 +4,7 @@ CREATE TEMP TABLE x (
 	c text not null default 'stuff',
 	d text,
 	e text
-) ;
+);
 
 CREATE FUNCTION fn_x_before () RETURNS TRIGGER AS '
   BEGIN
@@ -345,8 +345,10 @@ begin
 end $$ language plpgsql immutable;
 alter table check_con_tbl add check (check_con_function(check_con_tbl.*));
 \d+ check_con_tbl
+-- GPDB: Change from 1 (value in PG) to 2 for copy to make test deterministic.
+-- 2 and null are on seg0 in a 3-seg test environment.
 copy check_con_tbl from stdin;
-1
+2
 \N
 \.
 copy check_con_tbl from stdin;
@@ -359,8 +361,10 @@ CREATE ROLE regress_rls_copy_user;
 CREATE ROLE regress_rls_copy_user_colperms;
 CREATE TABLE rls_t1 (a int, b int, c int);
 
+-- GPDB: Change from 1 (value in PG) to 3 for copy to make test deterministic.
+-- 2, 3 and 4 are on seg0 in a 3-seg test environment.
 COPY rls_t1 (a, b, c) from stdin;
-1	4	1
+3	4	1
 2	3	2
 3	2	3
 4	1	4
@@ -415,44 +419,50 @@ COPY rls_t1 (a, b) TO stdout;
 RESET SESSION AUTHORIZATION;
 
 -- test with INSTEAD OF INSERT trigger on a view
-CREATE TABLE instead_of_insert_tbl(id serial, name text);
-CREATE VIEW instead_of_insert_tbl_view AS SELECT ''::text AS str;
-
-COPY instead_of_insert_tbl_view FROM stdin; -- fail
-test1
-\.
-
-CREATE FUNCTION fun_instead_of_insert_tbl() RETURNS trigger AS $$
-BEGIN
-  INSERT INTO instead_of_insert_tbl (name) VALUES (NEW.str);
-  RETURN NULL;
-END;
-$$ LANGUAGE plpgsql;
-CREATE TRIGGER trig_instead_of_insert_tbl_view
-  INSTEAD OF INSERT ON instead_of_insert_tbl_view
-  FOR EACH ROW EXECUTE PROCEDURE fun_instead_of_insert_tbl();
-
-COPY instead_of_insert_tbl_view FROM stdin;
-test1
-\.
-
-SELECT * FROM instead_of_insert_tbl;
+-- INSTEAD OF triggers are not supported in Cloudberry
+/*
+ * CREATE TABLE instead_of_insert_tbl(id serial, name text);
+ * CREATE VIEW instead_of_insert_tbl_view AS SELECT ''::text AS str;
+ * 
+ * COPY instead_of_insert_tbl_view FROM stdin; -- fail
+ * test1
+ * \.
+ * 
+ * CREATE FUNCTION fun_instead_of_insert_tbl() RETURNS trigger AS $$
+ * BEGIN
+ *   INSERT INTO instead_of_insert_tbl (name) VALUES (NEW.str);
+ *   RETURN NULL;
+ * END;
+ * $$ LANGUAGE plpgsql;
+ * CREATE TRIGGER trig_instead_of_insert_tbl_view
+ *   INSTEAD OF INSERT ON instead_of_insert_tbl_view
+ *   FOR EACH ROW EXECUTE PROCEDURE fun_instead_of_insert_tbl();
+ * 
+ * COPY instead_of_insert_tbl_view FROM stdin;
+ * test1
+ * \.
+ * 
+ * SELECT * FROM instead_of_insert_tbl;
+ */
 
 -- Test of COPY optimization with view using INSTEAD OF INSERT
 -- trigger when relation is created in the same transaction as
 -- when COPY is executed.
-BEGIN;
-CREATE VIEW instead_of_insert_tbl_view_2 as select ''::text as str;
-CREATE TRIGGER trig_instead_of_insert_tbl_view_2
-  INSTEAD OF INSERT ON instead_of_insert_tbl_view_2
-  FOR EACH ROW EXECUTE PROCEDURE fun_instead_of_insert_tbl();
-
-COPY instead_of_insert_tbl_view_2 FROM stdin;
-test1
-\.
-
-SELECT * FROM instead_of_insert_tbl;
-COMMIT;
+-- INSTEAD OF triggers are not supported in Cloudberry
+/*
+ * BEGIN;
+ * CREATE VIEW instead_of_insert_tbl_view_2 as select ''::text as str;
+ * CREATE TRIGGER trig_instead_of_insert_tbl_view_2
+ *   INSTEAD OF INSERT ON instead_of_insert_tbl_view_2
+ *   FOR EACH ROW EXECUTE PROCEDURE fun_instead_of_insert_tbl();
+ * 
+ * COPY instead_of_insert_tbl_view_2 FROM stdin;
+ * test1
+ * \.
+ * 
+ * SELECT * FROM instead_of_insert_tbl;
+ * COMMIT;
+ */
 
 -- clean up
 DROP TABLE forcetest;
@@ -464,7 +474,12 @@ DROP ROLE regress_rls_copy_user;
 DROP ROLE regress_rls_copy_user_colperms;
 DROP FUNCTION fn_x_before();
 DROP FUNCTION fn_x_after();
-DROP TABLE instead_of_insert_tbl;
-DROP VIEW instead_of_insert_tbl_view;
-DROP VIEW instead_of_insert_tbl_view_2;
-DROP FUNCTION fun_instead_of_insert_tbl();
+
+-- When error reject limit is set, copy should be able to continue after hit a corrupted end-of-copy marker 
+CREATE TABLE copy_eoc_marker(a int, b int);
+COPY copy_eoc_marker FROM stdin LOG ERRORS SEGMENT REJECT LIMIT 5;
+123\.	10
+123	20
+\.
+SELECT * FROM copy_eoc_marker;
+DROP TABLE copy_eoc_marker;

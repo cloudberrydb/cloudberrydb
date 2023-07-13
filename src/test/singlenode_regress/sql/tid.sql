@@ -8,6 +8,7 @@ SELECT min(ctid) FROM tid_tab;
 SELECT max(ctid) FROM tid_tab;
 TRUNCATE tid_tab;
 
+-- currtid2 is not supported in GPDB
 -- Tests for currtid2() with various relation kinds
 
 -- Materialized view

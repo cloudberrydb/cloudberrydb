@@ -1,6 +1,9 @@
 --
 -- Tests for common table expressions (WITH query, ... SELECT ...)
 --
+--start_ignore
+set gp_cte_sharing to on;
+--end_ignore
 -- Basic WITH
 WITH q1(x,y) AS (SELECT 1,2)
 SELECT * FROM q1, q1 AS q2;
@@ -249,6 +252,7 @@ CREATE TEMP TABLE department (
 	parent_department INTEGER REFERENCES department, -- upper department ID
 	name TEXT -- department name
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO department VALUES (0, NULL, 'ROOT');
 INSERT INTO department VALUES (1, 0, 'A');
 INSERT INTO department VALUES (2, 1, 'B');
@@ -257,6 +261,10 @@ INSERT INTO department VALUES (4, 2, 'D');
 INSERT INTO department VALUES (5, 0, 'E');
 INSERT INTO department VALUES (6, 4, 'F');
 INSERT INTO department VALUES (7, 5, 'G');
+-- GPDB: Some of the queries below will return non-deterministic results
+-- because of moving rows across segments. This table is the same, except that
+-- all the rows reside on a single segment, so that you get consistent results.
+CREATE TEMP TABLE department_oneseg AS SELECT 1 AS distkey, * FROM department;
 -- extract all departments under 'A'. Result should be A, B, C, D and F
 WITH RECURSIVE subdepartment AS
 (
@@ -451,12 +459,12 @@ View definition:
 
 -- corner case in which sub-WITH gets initialized first
 with recursive q as (
-      select * from department
+      select * from department_oneseg
     union all
       (with x as (select * from q)
        select * from x)
     )
-select * from q limit 24;
+select id, parent_department, name from q limit 24;
  id | parent_department | name 
 ----+-------------------+------
   0 |                   | ROOT
@@ -486,16 +494,16 @@ select * from q limit 24;
 (24 rows)
 
 with recursive q as (
-      select * from department
+      select * from department_oneseg
     union all
       (with recursive x as (
-           select * from department
+           select * from department_oneseg
          union all
            (select * from q union all select * from x)
         )
        select * from x)
     )
-select * from q limit 32;
+select id, parent_department, name from q limit 32;
  id | parent_department | name 
 ----+-------------------+------
   0 |                   | ROOT
@@ -554,6 +562,7 @@ CREATE TEMPORARY TABLE tree(
     id INTEGER PRIMARY KEY,
     parent_id INTEGER REFERENCES tree(id)
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO tree
 VALUES (1, NULL), (2, 1), (3,1), (4,2), (5,2), (6,2), (7,3), (8,3),
        (9,4), (10,4), (11,7), (12,7), (13,7), (14, 9), (15,11), (16,11);
@@ -653,31 +662,25 @@ with recursive search_graph(f, t, label) as (
 	where g.f = sg.t
 ) search depth first by f, t set seq
 select * from search_graph order by seq;
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
  Sort
-   Output: search_graph.f, search_graph.t, search_graph.label, search_graph.seq
-   Sort Key: search_graph.seq
-   CTE search_graph
-     ->  Recursive Union
-           ->  Seq Scan on public.graph0 g
-                 Output: g.f, g.t, g.label, ARRAY[ROW(g.f, g.t)]
-           ->  Merge Join
-                 Output: g_1.f, g_1.t, g_1.label, array_cat(sg.seq, ARRAY[ROW(g_1.f, g_1.t)])
-                 Merge Cond: (g_1.f = sg.t)
-                 ->  Sort
-                       Output: g_1.f, g_1.t, g_1.label
-                       Sort Key: g_1.f
-                       ->  Seq Scan on public.graph0 g_1
-                             Output: g_1.f, g_1.t, g_1.label
-                 ->  Sort
-                       Output: sg.seq, sg.t
-                       Sort Key: sg.t
-                       ->  WorkTable Scan on search_graph sg
-                             Output: sg.seq, sg.t
-   ->  CTE Scan on search_graph
-         Output: search_graph.f, search_graph.t, search_graph.label, search_graph.seq
-(22 rows)
+   Output: g.f, g.t, g.label, (ARRAY[ROW(g.f, g.t)])
+   Sort Key: (ARRAY[ROW(g.f, g.t)])
+   ->  Recursive Union
+         ->  Seq Scan on public.graph0 g
+               Output: g.f, g.t, g.label, ARRAY[ROW(g.f, g.t)]
+         ->  Hash Join
+               Output: g_1.f, g_1.t, g_1.label, array_cat(sg.seq, ARRAY[ROW(g_1.f, g_1.t)])
+               Hash Cond: (sg.t = g_1.f)
+               ->  WorkTable Scan on search_graph sg
+                     Output: sg.f, sg.t, sg.label, sg.seq
+               ->  Hash
+                     Output: g_1.f, g_1.t, g_1.label
+                     ->  Seq Scan on public.graph0 g_1
+                           Output: g_1.f, g_1.t, g_1.label
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 with recursive search_graph(f, t, label) as (
 	select * from graph0 g
@@ -726,31 +729,25 @@ with recursive search_graph(f, t, label) as (
 	where g.f = sg.t
 ) search breadth first by f, t set seq
 select * from search_graph order by seq;
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
+                                          QUERY PLAN                                           
+-----------------------------------------------------------------------------------------------
  Sort
-   Output: search_graph.f, search_graph.t, search_graph.label, search_graph.seq
-   Sort Key: search_graph.seq
-   CTE search_graph
-     ->  Recursive Union
-           ->  Seq Scan on public.graph0 g
-                 Output: g.f, g.t, g.label, ROW('0'::bigint, g.f, g.t)
-           ->  Merge Join
-                 Output: g_1.f, g_1.t, g_1.label, ROW(int8inc((sg.seq)."*DEPTH*"), g_1.f, g_1.t)
-                 Merge Cond: (g_1.f = sg.t)
-                 ->  Sort
-                       Output: g_1.f, g_1.t, g_1.label
-                       Sort Key: g_1.f
-                       ->  Seq Scan on public.graph0 g_1
-                             Output: g_1.f, g_1.t, g_1.label
-                 ->  Sort
-                       Output: sg.seq, sg.t
-                       Sort Key: sg.t
-                       ->  WorkTable Scan on search_graph sg
-                             Output: sg.seq, sg.t
-   ->  CTE Scan on search_graph
-         Output: search_graph.f, search_graph.t, search_graph.label, search_graph.seq
-(22 rows)
+   Output: g.f, g.t, g.label, (ROW('0'::bigint, g.f, g.t))
+   Sort Key: (ROW('0'::bigint, g.f, g.t))
+   ->  Recursive Union
+         ->  Seq Scan on public.graph0 g
+               Output: g.f, g.t, g.label, ROW('0'::bigint, g.f, g.t)
+         ->  Hash Join
+               Output: g_1.f, g_1.t, g_1.label, ROW(int8inc((sg.seq)."*DEPTH*"), g_1.f, g_1.t)
+               Hash Cond: (sg.t = g_1.f)
+               ->  WorkTable Scan on search_graph sg
+                     Output: sg.f, sg.t, sg.label, sg.seq
+               ->  Hash
+                     Output: g_1.f, g_1.t, g_1.label
+                     ->  Seq Scan on public.graph0 g_1
+                           Output: g_1.f, g_1.t, g_1.label
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 with recursive search_graph(f, t, label) as (
 	select * from graph0 g
@@ -1790,6 +1787,29 @@ WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM x)
 ERROR:  recursive query "x" does not have the form non-recursive-term UNION [ALL] recursive-term
 LINE 1: WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM ...
                        ^
+-- GPDB Specific Error Cases
+-- Set operations within the recursive term with a self-reference.
+-- Currently set operations in the recursive term involving the cte itself must
+-- be prevented. The reason for this is that such a query may lead to a plan
+-- where there is a motion between the RecursiveUnion node and the
+-- WorkTableScan node.
+CREATE TEMPORARY TABLE z(x int primary key);
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * FROM x UNION SELECT * FROM z)foo)
+	SELECT * FROM x;
+ERROR:  recursive reference to query "x" must not appear within a subquery
+LINE 1: ...SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * FROM x UNION SE...
+                                                             ^
+-- Set operation in recursive term that does not have a self-reference
+-- This is supported
+CREATE TEMPORARY TABLE u(x int primary key);
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * from z UNION SELECT * FROM u)foo, x where foo.x = x.n)
+	SELECT * FROM x;
+ n 
+---
+ 1
+(1 row)
+
+DROP TABLE z;
 -- no non-recursive term
 WITH RECURSIVE x(n) AS (SELECT n FROM x)
 	SELECT * FROM x;
@@ -1802,6 +1822,37 @@ WITH RECURSIVE x(n) AS (SELECT n FROM x UNION ALL SELECT 1)
 ERROR:  recursive reference to query "x" must not appear within its non-recursive term
 LINE 1: WITH RECURSIVE x(n) AS (SELECT n FROM x UNION ALL SELECT 1)
                                               ^
+-- recursive term with a self-reference within a subquery is not allowed
+WITH RECURSIVE cte(level, id) as (
+	SELECT 1, 2
+	UNION ALL
+	SELECT level+1, c FROM (SELECT * FROM cte OFFSET 0) foo, bar)
+SELECT * FROM cte LIMIT 10;
+ERROR:  recursive reference to query "cte" must not appear within a subquery
+LINE 4:  SELECT level+1, c FROM (SELECT * FROM cte OFFSET 0) foo, ba...
+                                               ^
+-- recursive term with a distinct operation is not allowed
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT distinct(n+1) FROM x)
+  SELECT * FROM x;
+ERROR:  DISTINCT in a recursive query is not implemented
+-- recursive term with a group by operation is not allowed
+CREATE TEMPORARY TABLE bar(c int);
+WITH RECURSIVE x(n) AS (
+	SELECT 1,2
+	UNION ALL
+	SELECT level+1, c FROM x, bar GROUP BY 1,2)
+  SELECT * FROM x LIMIT 10;
+ERROR:  GROUP BY in a recursive query is not implemented
+LINE 4:  SELECT level+1, c FROM x, bar GROUP BY 1,2)
+                                                ^
+WITH RECURSIVE x(n) AS (
+	SELECT 1,2
+	UNION ALL
+	SELECT level+1, row_number() over() FROM x, bar)
+  SELECT * FROM x LIMIT 10;
+ERROR:  window functions in a recursive query is not implemented
+LINE 4:  SELECT level+1, row_number() over() FROM x, bar)
+                         ^
 CREATE TEMPORARY TABLE y (a INTEGER);
 INSERT INTO y SELECT generate_series(1, 10);
 -- LEFT JOIN
@@ -1897,9 +1948,9 @@ WITH RECURSIVE foo(i) AS
           UNION ALL
        SELECT i+1 FROM foo WHERE i < 5) AS t
 ) SELECT * FROM foo;
-ERROR:  recursive reference to query "foo" must not appear more than once
-LINE 7:        SELECT i+1 FROM foo WHERE i < 5) AS t
-                               ^
+ERROR:  recursive reference to query "foo" must not appear within a subquery
+LINE 5:        (SELECT i+1 FROM foo WHERE i < 10
+                                ^
 WITH RECURSIVE foo(i) AS
     (values (1)
     UNION ALL
@@ -1985,6 +2036,23 @@ from int4_tbl;
   2147483647
  -2147483647
 (5 rows)
+
+--
+-- test Nested CTE
+--
+WITH outermost(x) AS (
+  SELECT 1
+  UNION (WITH innermost as (SELECT 2)
+         SELECT * FROM innermost
+         UNION SELECT 3)
+)
+SELECT * FROM outermost;
+ x 
+---
+ 1
+ 2
+ 3
+(3 rows)
 
 --
 -- test for nested-recursive-WITH bug
@@ -2133,6 +2201,10 @@ select * from C;
 
 --
 -- Test CTEs read in non-initialization orders
+-- gpdb
+-- Remove window funtions from Recursive CTE's test case.
+-- Currently Recursive CTE's do not support the Window Functions,
+-- So we remove it from the test cases.
 --
 WITH RECURSIVE
   tab(id_key,link) AS (VALUES (1,17), (2,17), (3,17), (4,17), (6,17), (5,17)),
@@ -2140,7 +2212,7 @@ WITH RECURSIVE
       SELECT 0, 'base', 17
     UNION ALL (
       WITH remaining(id_key, row_type, link, min) AS (
-        SELECT tab.id_key, 'true'::text, iter.link, MIN(tab.id_key) OVER ()
+        SELECT tab.id_key, 'true'::text, iter.link, tab.id_key
         FROM tab INNER JOIN iter USING (link)
         WHERE tab.id_key > iter.id_key
       ),
@@ -2162,13 +2234,70 @@ SELECT * FROM iter;
  id_key | row_type | link 
 --------+----------+------
       0 | base     |   17
-      1 | true     |   17
-      2 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      4 | true     |   17
       3 | true     |   17
+      2 | true     |   17
+      1 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
       4 | true     |   17
       5 | true     |   17
       6 | true     |   17
-(7 rows)
+      4 | true     |   17
+      3 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      4 | true     |   17
+      3 | true     |   17
+      2 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      4 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      4 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      4 | true     |   17
+      3 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      4 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+      5 | true     |   17
+      6 | true     |   17
+      6 | true     |   17
+(64 rows)
 
 WITH RECURSIVE
   tab(id_key,link) AS (VALUES (1,17), (2,17), (3,17), (4,17), (6,17), (5,17)),
@@ -2176,7 +2305,7 @@ WITH RECURSIVE
       SELECT 0, 'base', 17
     UNION (
       WITH remaining(id_key, row_type, link, min) AS (
-        SELECT tab.id_key, 'true'::text, iter.link, MIN(tab.id_key) OVER ()
+        SELECT tab.id_key, 'true'::text, iter.link, tab.id_key
         FROM tab INNER JOIN iter USING (link)
         WHERE tab.id_key > iter.id_key
       ),
@@ -2368,46 +2497,24 @@ WITH RECURSIVE t AS (
 SELECT * FROM t
 UNION ALL
 SELECT * FROM t2;
- a  
-----
- 11
- 12
- 13
- 14
- 15
-  0
-  1
-  2
-  3
-  4
-  5
-  6
-  7
-  8
-  9
- 10
-(16 rows)
-
+ERROR:  only one modifying WITH clause allowed per query
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause.
+HINT:  Rewrite the query to only include one writable CTE clause.
 SELECT * FROM y;
  a  
 ----
-  0
-  1
-  2
-  3
-  4
-  5
-  6
  11
-  7
  12
-  8
  13
-  9
  14
- 10
  15
-(16 rows)
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+(11 rows)
 
 -- unconditional DO INSTEAD rule
 CREATE RULE y_rule AS ON DELETE TO y DO INSTEAD
@@ -2424,24 +2531,19 @@ SELECT * FROM t;
 SELECT * FROM y;
  a  
 ----
-  0
-  1
-  2
-  3
-  4
-  5
-  6
  11
-  7
  12
-  8
  13
-  9
  14
- 10
  15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
  42
-(17 rows)
+(12 rows)
 
 DROP RULE y_rule ON y;
 -- check merging of outer CTE with CTE in a rule action
@@ -2457,6 +2559,9 @@ SELECT * FROM bug6051;
 
 WITH t1 AS ( DELETE FROM bug6051 RETURNING * )
 INSERT INTO bug6051 SELECT * FROM t1;
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM bug6051;
  i 
 ---
@@ -2471,18 +2576,21 @@ CREATE RULE bug6051_ins AS ON INSERT TO bug6051 DO INSTEAD
  VALUES(NEW.i);
 WITH t1 AS ( DELETE FROM bug6051 RETURNING * )
 INSERT INTO bug6051 SELECT * FROM t1;
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM bug6051;
- i 
----
-(0 rows)
-
-SELECT * FROM bug6051_2;
  i 
 ---
  1
  2
  3
 (3 rows)
+
+SELECT * FROM bug6051_2;
+ i 
+---
+(0 rows)
 
 -- check INSERT...SELECT rule actions are disallowed on commands
 -- that have modifyingCTEs
@@ -2491,7 +2599,9 @@ CREATE OR REPLACE RULE bug6051_ins AS ON INSERT TO bug6051 DO INSTEAD
  SELECT NEW.i;
 WITH t1 AS ( DELETE FROM bug6051 RETURNING * )
 INSERT INTO bug6051 SELECT * FROM t1;
-ERROR:  INSERT...SELECT rule actions are not supported for queries having data-modifying statements in WITH
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 -- silly example to verify that hasModifyingCTE flag is propagated
 CREATE TEMP TABLE bug6051_3 AS
   SELECT a FROM generate_series(11,13) AS a;
@@ -2500,24 +2610,17 @@ CREATE RULE bug6051_3_ins AS ON INSERT TO bug6051_3 DO INSTEAD
 BEGIN; SET LOCAL force_parallel_mode = on;
 WITH t1 AS ( DELETE FROM bug6051_3 RETURNING * )
   INSERT INTO bug6051_3 SELECT * FROM t1;
- i 
----
- 1
- 2
- 3
- 1
- 2
- 3
- 1
- 2
- 3
-(9 rows)
-
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 COMMIT;
 SELECT * FROM bug6051_3;
- a 
----
-(0 rows)
+ a  
+----
+ 11
+ 12
+ 13
+(3 rows)
 
 -- check case where CTE reference is removed due to optimization
 EXPLAIN (VERBOSE, COSTS OFF)
@@ -2533,7 +2636,8 @@ SELECT q1 FROM
    Output: ss.q1
    ->  Seq Scan on public.int8_tbl i8
          Output: i8.q1, NULL::bigint
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 SELECT q1 FROM
 (
@@ -2557,16 +2661,14 @@ SELECT q1 FROM
   SELECT q1, (SELECT q2 FROM t_cte WHERE t_cte.q1 = i8.q1) AS t_sub
   FROM int8_tbl i8
 ) ss;
-                 QUERY PLAN                  
----------------------------------------------
+              QUERY PLAN              
+--------------------------------------
  Subquery Scan on ss
    Output: ss.q1
    ->  Seq Scan on public.int8_tbl i8
          Output: i8.q1, NULL::bigint
-         CTE t_cte
-           ->  Seq Scan on public.int8_tbl t
-                 Output: t.q1, t.q2
-(7 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 SELECT q1 FROM
 (
@@ -2584,6 +2686,7 @@ SELECT q1 FROM
 (5 rows)
 
 -- a truly recursive CTE in the same list
+ANALYZE y; -- There is a bug, the below case will fail for generating plan which execute ModifyTable on reader gang.
 WITH RECURSIVE t(a) AS (
 	SELECT 0
 		UNION ALL
@@ -2595,39 +2698,29 @@ WITH RECURSIVE t(a) AS (
 SELECT * FROM t2 JOIN y USING (a) ORDER BY a;
  a 
 ---
- 0
- 1
- 2
- 3
- 4
-(5 rows)
+(0 rows)
 
 SELECT * FROM y;
  a  
 ----
-  0
-  1
-  2
-  3
-  4
-  5
-  6
  11
-  7
  12
-  8
  13
-  9
  14
- 10
  15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
  42
   0
   1
   2
   3
   4
-(22 rows)
+(17 rows)
 
 -- data-modifying WITH in a modifying statement
 WITH t AS (
@@ -2636,58 +2729,51 @@ WITH t AS (
     RETURNING *
 )
 INSERT INTO y SELECT -a FROM t RETURNING *;
-  a  
------
-   0
-  -1
-  -2
-  -3
-  -4
-  -5
-  -6
-  -7
-  -8
-  -9
- -10
-   0
-  -1
-  -2
-  -3
-  -4
-(16 rows)
-
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM y;
-  a  
------
-  11
-  12
-  13
-  14
-  15
-  42
-   0
-  -1
-  -2
-  -3
-  -4
-  -5
-  -6
-  -7
-  -8
-  -9
- -10
-   0
-  -1
-  -2
-  -3
-  -4
-(22 rows)
+ a  
+----
+ 11
+ 12
+ 13
+ 14
+ 15
+ 16
+ 17
+ 18
+ 19
+ 20
+ 21
+ 42
+  0
+  1
+  2
+  3
+  4
+(17 rows)
 
 -- check that WITH query is run to completion even if outer query isn't
 WITH t AS (
     UPDATE y SET a = a * 100 RETURNING *
 )
-SELECT * FROM t LIMIT 10;
+SELECT a BETWEEN 0 AND 4200 FROM t LIMIT 10;
+ ?column? 
+----------
+ t
+ t
+ t
+ t
+ t
+ t
+ t
+ t
+ t
+ t
+(10 rows)
+
+SELECT * FROM y;
   a   
 ------
  1100
@@ -2695,39 +2781,19 @@ SELECT * FROM t LIMIT 10;
  1300
  1400
  1500
+ 1600
+ 1700
+ 1800
+ 1900
+ 2000
+ 2100
  4200
     0
- -100
- -200
- -300
-(10 rows)
-
-SELECT * FROM y;
-   a   
--------
-  1100
-  1200
-  1300
-  1400
-  1500
-  4200
-     0
-  -100
-  -200
-  -300
-  -400
-  -500
-  -600
-  -700
-  -800
-  -900
- -1000
-     0
-  -100
-  -200
-  -300
-  -400
-(22 rows)
+  100
+  200
+  300
+  400
+(17 rows)
 
 -- data-modifying WITH containing INSERT...ON CONFLICT DO UPDATE
 CREATE TABLE withz AS SELECT i AS k, (i || ' v')::text v FROM generate_series(1, 16, 3) i;
@@ -2742,8 +2808,7 @@ SELECT * FROM t JOIN y ON t.k = y.a ORDER BY a, k;
  k |   v    | a 
 ---+--------+---
  0 | insert | 0
- 0 | insert | 0
-(2 rows)
+(1 row)
 
 -- Test EXCLUDED.* reference within CTE
 WITH aa AS (
@@ -2810,10 +2875,9 @@ upsert_cte AS (
 INSERT INTO withz VALUES(2, 'Red') ON CONFLICT (k) DO
 UPDATE SET (k, v) = (SELECT k, v FROM upsert_cte WHERE upsert_cte.k = withz.k)
 RETURNING k, v;
- k | v 
----+---
-(0 rows)
-
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 DROP TABLE withz;
 -- check that run to completion happens in proper ordering
 TRUNCATE TABLE y;
@@ -2825,23 +2889,10 @@ WITH RECURSIVE t1 AS (
   INSERT INTO yy SELECT * FROM t1 RETURNING *
 )
 SELECT 1;
- ?column? 
-----------
-        1
-(1 row)
-
+ERROR:  only one modifying WITH clause allowed per query
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause.
+HINT:  Rewrite the query to only include one writable CTE clause.
 SELECT * FROM y;
- a 
----
- 1
- 2
- 3
- 1
- 2
- 3
-(6 rows)
-
-SELECT * FROM yy;
  a 
 ---
  1
@@ -2849,48 +2900,36 @@ SELECT * FROM yy;
  3
 (3 rows)
 
+SELECT * FROM yy;
+ a 
+---
+(0 rows)
+
 WITH RECURSIVE t1 AS (
   INSERT INTO yy SELECT * FROM t2 RETURNING *
 ), t2 AS (
   INSERT INTO y SELECT * FROM y RETURNING *
 )
 SELECT 1;
- ?column? 
-----------
-        1
-(1 row)
-
+ERROR:  only one modifying WITH clause allowed per query
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause.
+HINT:  Rewrite the query to only include one writable CTE clause.
 SELECT * FROM y;
  a 
 ---
  1
  2
  3
- 1
- 2
- 3
- 1
- 2
- 3
- 1
- 2
- 3
-(12 rows)
+(3 rows)
 
 SELECT * FROM yy;
  a 
 ---
- 1
- 2
- 3
- 1
- 2
- 3
- 1
- 2
- 3
-(9 rows)
+(0 rows)
 
+-- start_ignore
+-- These tests actually seem to work, but they have unstable return order
+-- in an MPP environment so they are ignored until atmsort can handle this 
 -- triggers
 TRUNCATE TABLE y;
 INSERT INTO y SELECT generate_series(1, 10);
@@ -2989,6 +3028,7 @@ end;
 $$ LANGUAGE plpgsql;
 CREATE TRIGGER y_trig AFTER INSERT ON y FOR EACH STATEMENT
     EXECUTE PROCEDURE y_trigger();
+ERROR:  Triggers for statements are not yet supported
 WITH t AS (
     INSERT INTO y
     VALUES
@@ -2998,7 +3038,6 @@ WITH t AS (
     RETURNING *
 )
 SELECT * FROM t;
-NOTICE:  y_trigger
  a  
 ----
  41
@@ -3031,7 +3070,9 @@ SELECT * FROM y;
 (19 rows)
 
 DROP TRIGGER y_trig ON y;
+ERROR:  trigger "y_trig" for table "y" does not exist
 DROP FUNCTION y_trigger();
+-- end_ignore
 -- WITH attached to inherited UPDATE or DELETE
 CREATE TEMP TABLE parent ( id int, val text );
 CREATE TEMP TABLE child1 ( ) INHERITS ( parent );
@@ -3053,75 +3094,51 @@ SELECT * FROM parent;
 
 WITH wcte AS ( INSERT INTO child1 VALUES ( 42, 'new' ) RETURNING id AS newid )
 UPDATE parent SET id = id + newid FROM wcte;
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM parent;
- id  | val 
------+-----
- 114 | p1
-  42 | new
- 124 | c11
- 125 | c12
- 136 | c21
- 137 | c22
-(6 rows)
+ id | val 
+----+-----
+ 72 | p1
+ 82 | c11
+ 83 | c12
+ 94 | c21
+ 95 | c22
+(5 rows)
 
 WITH rcte AS ( SELECT max(id) AS maxid FROM parent )
 DELETE FROM parent USING rcte WHERE id = maxid;
 SELECT * FROM parent;
- id  | val 
------+-----
- 114 | p1
-  42 | new
- 124 | c11
- 125 | c12
- 136 | c21
-(5 rows)
+ id | val 
+----+-----
+ 72 | p1
+ 82 | c11
+ 83 | c12
+ 94 | c21
+(4 rows)
 
 WITH wcte AS ( INSERT INTO child2 VALUES ( 42, 'new2' ) RETURNING id AS newid )
 DELETE FROM parent USING wcte WHERE id = newid;
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 SELECT * FROM parent;
- id  | val  
------+------
- 114 | p1
- 124 | c11
- 125 | c12
- 136 | c21
-  42 | new2
-(5 rows)
+ id | val 
+----+-----
+ 72 | p1
+ 82 | c11
+ 83 | c12
+ 94 | c21
+(4 rows)
 
 -- check EXPLAIN VERBOSE for a wCTE with RETURNING
 EXPLAIN (VERBOSE, COSTS OFF)
 WITH wcte AS ( INSERT INTO int8_tbl VALUES ( 42, 47 ) RETURNING q2 )
 DELETE FROM a USING wcte WHERE aa = q2;
-                         QUERY PLAN                         
-------------------------------------------------------------
- Delete on public.a
-   Delete on public.a a_1
-   Delete on public.b a_2
-   Delete on public.c a_3
-   Delete on public.d a_4
-   CTE wcte
-     ->  Insert on public.int8_tbl
-           Output: int8_tbl.q2
-           ->  Result
-                 Output: '42'::bigint, '47'::bigint
-   ->  Hash Join
-         Output: wcte.*, a.tableoid, a.ctid
-         Hash Cond: (a.aa = wcte.q2)
-         ->  Append
-               ->  Seq Scan on public.a a_1
-                     Output: a_1.aa, a_1.tableoid, a_1.ctid
-               ->  Seq Scan on public.b a_2
-                     Output: a_2.aa, a_2.tableoid, a_2.ctid
-               ->  Seq Scan on public.c a_3
-                     Output: a_3.aa, a_3.tableoid, a_3.ctid
-               ->  Seq Scan on public.d a_4
-                     Output: a_4.aa, a_4.tableoid, a_4.ctid
-         ->  Hash
-               Output: wcte.*, wcte.q2
-               ->  CTE Scan on wcte
-                     Output: wcte.*, wcte.q2
-(26 rows)
-
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 -- error cases
 -- data-modifying WITH tries to use its own output
 WITH RECURSIVE t AS (

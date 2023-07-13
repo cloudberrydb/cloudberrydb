@@ -4,11 +4,12 @@ CREATE TABLE tidrangescan(id integer, data text);
 -- empty table
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)';
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid < '(1,0)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)';
  ctid 
@@ -17,11 +18,12 @@ SELECT ctid FROM tidrangescan WHERE ctid < '(1, 0)';
 
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid > '(9,0)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
  ctid 
@@ -29,7 +31,7 @@ SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
 (0 rows)
 
 -- insert enough tuples to fill at least two pages
-INSERT INTO tidrangescan SELECT i,repeat('x', 100) FROM generate_series(1,200) AS s(i);
+INSERT INTO tidrangescan SELECT i,repeat('x', 100) FROM generate_series(1,2400) AS s(i);
 -- remove all tuples after the 10th tuple on each page.  Trying to ensure
 -- we get the same layout with all CPU architectures and smaller than standard
 -- page sizes.
@@ -39,11 +41,12 @@ VACUUM tidrangescan;
 -- range scans with upper bound
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid < '(1,0)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
   ctid  
@@ -62,11 +65,12 @@ SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
 
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)';
-             QUERY PLAN             
-------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid <= '(1,5)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)';
   ctid  
@@ -90,11 +94,12 @@ SELECT ctid FROM tidrangescan WHERE ctid <= '(1,5)';
 
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)';
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid < '(0,0)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)';
  ctid 
@@ -104,11 +109,12 @@ SELECT ctid FROM tidrangescan WHERE ctid < '(0,0)';
 -- range scans with lower bound
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)';
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid > '(2,8)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)';
   ctid  
@@ -119,11 +125,12 @@ SELECT ctid FROM tidrangescan WHERE ctid > '(2,8)';
 
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: ('(2,8)'::tid < ctid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid;
   ctid  
@@ -134,11 +141,12 @@ SELECT ctid FROM tidrangescan WHERE '(2,8)' < ctid;
 
 EXPLAIN (COSTS OFF)
 SELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)';
-             QUERY PLAN             
-------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid >= '(2,8)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid >= '(2,8)';
   ctid  
@@ -154,7 +162,8 @@ SELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)';
 --------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid >= '(100,0)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid >= '(100,0)';
  ctid 
@@ -168,7 +177,8 @@ SELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= ctid;
 ----------------------------------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: ((ctid > '(1,4)'::tid) AND ('(1,7)'::tid >= ctid))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE ctid > '(1,4)' AND '(1,7)' >= ctid;
  ctid  
@@ -184,7 +194,8 @@ SELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)';
 ----------------------------------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (('(1,7)'::tid >= ctid) AND (ctid > '(1,4)'::tid))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT ctid FROM tidrangescan WHERE '(1,7)' >= ctid AND ctid > '(1,4)';
  ctid  
@@ -226,15 +237,17 @@ EXPLAIN (COSTS OFF)
 SELECT t.ctid,t2.c FROM tidrangescan t,
 LATERAL (SELECT count(*) c FROM tidrangescan t2 WHERE t2.ctid <= t.ctid) t2
 WHERE t.ctid < '(1,0)';
-                  QUERY PLAN                   
------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Nested Loop
    ->  Tid Range Scan on tidrangescan t
          TID Cond: (ctid < '(1,0)'::tid)
-   ->  Aggregate
-         ->  Tid Range Scan on tidrangescan t2
-               TID Cond: (ctid <= t.ctid)
-(6 rows)
+   ->  Materialize
+         ->  Aggregate
+               ->  Tid Range Scan on tidrangescan t2
+                     TID Cond: (ctid <= t.ctid)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 SELECT t.ctid,t2.c FROM tidrangescan t,
 LATERAL (SELECT count(*) c FROM tidrangescan t2 WHERE t2.ctid <= t.ctid) t2
@@ -257,11 +270,12 @@ WHERE t.ctid < '(1,0)';
 -- Ensure we get a TID Range scan without a Materialize node.
 EXPLAIN (COSTS OFF)
 DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Tid Range Scan on tidrangescan
    TID Cond: (ctid < '(1,0)'::tid)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 BEGIN;
 DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
@@ -277,6 +291,7 @@ FETCH NEXT c;
  (0,2)
 (1 row)
 
+--start_ignore
 FETCH PRIOR c;
  ctid  
 -------
@@ -294,7 +309,7 @@ FETCH LAST c;
 --------
  (0,10)
 (1 row)
-
+--end_ignore
 COMMIT;
 DROP TABLE tidrangescan;
 RESET enable_seqscan;

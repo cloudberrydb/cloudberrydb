@@ -1265,11 +1265,13 @@ CREATE TABLE credit_card (
        cnum     text,
        climit   int
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 CREATE TABLE credit_usage (
        cid      int references customer(cid),
        ymd      date,
        usage    int
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO customer
        VALUES (101, 'regress_alice', '+81-12-3456-7890', 'passwd123'),
               (102, 'regress_bob',   '+01-234-567-8901', 'beafsteak'),
@@ -1326,11 +1328,12 @@ NOTICE:  f_leak => hamburger
 (1 row)
 
 EXPLAIN (COSTS OFF) SELECT * FROM my_property_normal WHERE f_leak(passwd);
-                      QUERY PLAN                      
-------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Seq Scan on customer
-   Filter: (f_leak(passwd) AND (name = CURRENT_USER))
-(2 rows)
+   Filter: (f_leak(passwd) AND (name = 'regress_alice'::name))
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM my_property_secure WHERE f_leak(passwd);
 NOTICE:  f_leak => passwd123
@@ -1340,13 +1343,14 @@ NOTICE:  f_leak => passwd123
 (1 row)
 
 EXPLAIN (COSTS OFF) SELECT * FROM my_property_secure WHERE f_leak(passwd);
-                 QUERY PLAN                  
----------------------------------------------
+                   QUERY PLAN                   
+------------------------------------------------
  Subquery Scan on my_property_secure
    Filter: f_leak(my_property_secure.passwd)
    ->  Seq Scan on customer
-         Filter: (name = CURRENT_USER)
-(4 rows)
+         Filter: (name = 'regress_alice'::name)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 --
 -- scenario: qualifiers can be pushed down if they contain leaky functions,
@@ -1367,11 +1371,12 @@ NOTICE:  f_leak => hamburger
 
 EXPLAIN (COSTS OFF) SELECT * FROM my_property_normal v
 		WHERE f_leak('passwd') AND f_leak(passwd);
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
  Seq Scan on customer
-   Filter: (f_leak('passwd'::text) AND f_leak(passwd) AND (name = CURRENT_USER))
-(2 rows)
+   Filter: (f_leak('passwd'::text) AND f_leak(passwd) AND (name = 'regress_alice'::name))
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM my_property_secure v
 		WHERE f_leak('passwd') AND f_leak(passwd);
@@ -1386,13 +1391,14 @@ NOTICE:  f_leak => passwd
 
 EXPLAIN (COSTS OFF) SELECT * FROM my_property_secure v
 		WHERE f_leak('passwd') AND f_leak(passwd);
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
  Subquery Scan on v
    Filter: f_leak(v.passwd)
    ->  Seq Scan on customer
-         Filter: (f_leak('passwd'::text) AND (name = CURRENT_USER))
-(4 rows)
+         Filter: (f_leak('passwd'::text) AND (name = 'regress_alice'::name))
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 --
 -- scenario: if a qualifier references only one-side of a particular join-
@@ -1409,16 +1415,17 @@ NOTICE:  f_leak => 9801-2345-6789-0123
 (1 row)
 
 EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_normal WHERE f_leak(cnum);
-                 QUERY PLAN                  
----------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Hash Join
    Hash Cond: (r.cid = l.cid)
    ->  Seq Scan on credit_card r
          Filter: f_leak(cnum)
    ->  Hash
          ->  Seq Scan on customer l
-               Filter: (name = CURRENT_USER)
-(7 rows)
+               Filter: (name = 'regress_alice'::name)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 SELECT * FROM my_credit_card_secure WHERE f_leak(cnum);
 NOTICE:  f_leak => 1111-2222-3333-4444
@@ -1428,8 +1435,8 @@ NOTICE:  f_leak => 1111-2222-3333-4444
 (1 row)
 
 EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_secure WHERE f_leak(cnum);
-                    QUERY PLAN                     
----------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Subquery Scan on my_credit_card_secure
    Filter: f_leak(my_credit_card_secure.cnum)
    ->  Hash Join
@@ -1437,8 +1444,9 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_secure WHERE f_leak(cnum);
          ->  Seq Scan on credit_card r
          ->  Hash
                ->  Seq Scan on customer l
-                     Filter: (name = CURRENT_USER)
-(8 rows)
+                     Filter: (name = 'regress_alice'::name)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 --
 -- scenario: an external qualifier can be pushed-down by in-front-of the
@@ -1459,11 +1467,11 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_usage_normal
        WHERE f_leak(cnum) AND ymd >= '2011-10-01' AND ymd < '2011-11-01';
                                   QUERY PLAN                                  
 ------------------------------------------------------------------------------
- Nested Loop
-   Join Filter: (l.cid = r.cid)
+ Hash Join
+   Hash Cond: (r.cid = l.cid)
    ->  Seq Scan on credit_usage r
          Filter: ((ymd >= '10-01-2011'::date) AND (ymd < '11-01-2011'::date))
-   ->  Materialize
+   ->  Hash
          ->  Subquery Scan on l
                Filter: f_leak(l.cnum)
                ->  Hash Join
@@ -1471,8 +1479,9 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_usage_normal
                      ->  Seq Scan on credit_card r_1
                      ->  Hash
                            ->  Seq Scan on customer l_1
-                                 Filter: (name = CURRENT_USER)
-(13 rows)
+                                 Filter: (name = 'regress_alice'::name)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 SELECT * FROM my_credit_card_usage_secure
        WHERE f_leak(cnum) AND ymd >= '2011-10-01' AND ymd < '2011-11-01';
@@ -1492,18 +1501,19 @@ EXPLAIN (COSTS OFF) SELECT * FROM my_credit_card_usage_secure
 ------------------------------------------------------------------------------------
  Subquery Scan on my_credit_card_usage_secure
    Filter: f_leak(my_credit_card_usage_secure.cnum)
-   ->  Nested Loop
-         Join Filter: (l.cid = r.cid)
+   ->  Hash Join
+         Hash Cond: (r.cid = l.cid)
          ->  Seq Scan on credit_usage r
                Filter: ((ymd >= '10-01-2011'::date) AND (ymd < '11-01-2011'::date))
-         ->  Materialize
+         ->  Hash
                ->  Hash Join
                      Hash Cond: (r_1.cid = l.cid)
                      ->  Seq Scan on credit_card r_1
                      ->  Hash
                            ->  Seq Scan on customer l
-                                 Filter: (name = CURRENT_USER)
-(13 rows)
+                                 Filter: (name = 'regress_alice'::name)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 --
 -- Test for the case when security_barrier gets changed between rewriter

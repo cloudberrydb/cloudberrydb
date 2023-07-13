@@ -326,7 +326,7 @@ UPDATE brintest_bloom SET textcol = '' WHERE textcol IS NOT NULL;
 -- Tests for brin_summarize_new_values
 SELECT brin_summarize_new_values('brintest_bloom'); -- error, not an index
 SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
-SELECT brin_summarize_new_values('brinidx_bloom'); -- ok, no change expected
+SELECT brin_summarize_new_values('brinidx_bloom'); -- ok, no change expected (except for ORCA, which uses split updates)
 
 -- Tests for brin_desummarize_range
 SELECT brin_desummarize_range('brinidx_bloom', -1); -- error, invalid range

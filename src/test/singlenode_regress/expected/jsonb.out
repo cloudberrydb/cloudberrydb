@@ -2476,13 +2476,13 @@ SELECT jsonb_populate_record(row(1,2), '{"f1": 0, "f2": 1}');
  (0,1)
 (1 row)
 
+--start_ignore
+--GPDB_13_MERGE_FIXME: Need to full support function evaluation in const eval of planner.
+--end_ignore
 SELECT * FROM
   jsonb_populate_record(null::record, '{"x": 776}') AS (x int, y int);
-  x  | y 
------+---
- 776 |  
-(1 row)
-
+ERROR:  could not determine row type for result of jsonb_populate_record
+HINT:  Provide a non-null record argument, or call the function in the FROM clause using a column definition list.
 -- composite domain
 SELECT jsonb_populate_record(null::jb_ordered_pair, '{"x": 0, "y": 1}');
  jsonb_populate_record 

@@ -2,19 +2,29 @@
 -- ROWTYPES
 --
 
+-- start_ignore
+-- GPDB: With the default settings, the planner chooses different plans some
+-- of the queries than in upstream. That is beause low vis fraction
+-- estimation (pg_class.relallvisible) on GP causes higher index only scan
+-- cost so bitmap index scan outperforms index only scan.
+--
+-- Some tests do 'enable_sort=off' or 'enable_bitmapscan=off' to get the same
+-- plans as in upstream.
+-- end_ignore
+
 -- Make both a standalone composite type and a table rowtype
 
-create type complex as (r float8, i float8);
+create type complex_t as (r float8, i float8);
 
 create temp table fullname (first text, last text);
 
 -- Nested composite
 
-create type quad as (c1 complex, c2 complex);
+create type quad as (c1 complex_t, c2 complex_t);
 
 -- Some simple tests of I/O conversions and row construction
 
-select (1.1,2.2)::complex, row((3.3,4.4),(5.5,null))::quad;
+select (1.1,2.2)::complex_t, row((3.3,4.4),(5.5,null))::quad;
 
 select row('Joe', 'Blow')::fullname, '(Joe,Blow)'::fullname;
 
@@ -114,6 +124,7 @@ where (unique1, unique2) < any (select ten, ten from tenk1 where hundred < 3)
 order by 1;
 
 -- Also check row comparison with an indexable condition
+set enable_sort=off;
 explain (costs off)
 select thousand, tenthous from tenk1
 where (thousand, tenthous) >= (997, 5000)
@@ -122,6 +133,7 @@ order by thousand, tenthous;
 select thousand, tenthous from tenk1
 where (thousand, tenthous) >= (997, 5000)
 order by thousand, tenthous;
+reset enable_sort;
 
 explain (costs off)
 select thousand, tenthous, four from tenk1
@@ -132,6 +144,7 @@ select thousand, tenthous, four from tenk1
 where (thousand, tenthous, four) > (998, 5000, 3)
 order by thousand, tenthous;
 
+set enable_sort=off;
 explain (costs off)
 select thousand, tenthous from tenk1
 where (998, 5000) < (thousand, tenthous)
@@ -140,6 +153,7 @@ order by thousand, tenthous;
 select thousand, tenthous from tenk1
 where (998, 5000) < (thousand, tenthous)
 order by thousand, tenthous;
+reset enable_sort;
 
 explain (costs off)
 select thousand, hundred from tenk1
@@ -448,7 +462,7 @@ select row_to_json(q) from
   (select thousand as x, tenthous as y from tenk1
    where thousand = 42 and tenthous < 2000 offset 0) q(a,b);
 
-create temp table tt1 as select * from int8_tbl limit 2;
+create temp table tt1 as select * from int8_tbl order by 1 limit 2;
 create temp table tt2 () inherits(tt1);
 insert into tt2 values(0,0);
 select row_to_json(r) from (select q2,q1 from tt1 offset 0) r;

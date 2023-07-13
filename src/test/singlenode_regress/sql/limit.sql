@@ -37,51 +37,56 @@ select * from int8_tbl limit (case when random() < 0.5 then null::bigint end);
 select * from int8_tbl offset (case when random() < 0.5 then null::bigint end);
 
 -- Test assorted cases involving backwards fetch from a LIMIT plan node
-begin;
-
-declare c1 cursor for select * from int8_tbl limit 10;
-fetch all in c1;
-fetch 1 in c1;
-fetch backward 1 in c1;
-fetch backward all in c1;
-fetch backward 1 in c1;
-fetch all in c1;
-
-declare c2 cursor for select * from int8_tbl limit 3;
-fetch all in c2;
-fetch 1 in c2;
-fetch backward 1 in c2;
-fetch backward all in c2;
-fetch backward 1 in c2;
-fetch all in c2;
-
-declare c3 cursor for select * from int8_tbl offset 3;
-fetch all in c3;
-fetch 1 in c3;
-fetch backward 1 in c3;
-fetch backward all in c3;
-fetch backward 1 in c3;
-fetch all in c3;
-
-declare c4 cursor for select * from int8_tbl offset 10;
-fetch all in c4;
-fetch 1 in c4;
-fetch backward 1 in c4;
-fetch backward all in c4;
-fetch backward 1 in c4;
-fetch all in c4;
-
-declare c5 cursor for select * from int8_tbl order by q1 fetch first 2 rows with ties;
-fetch all in c5;
-fetch 1 in c5;
-fetch backward 1 in c5;
-fetch backward 1 in c5;
-fetch all in c5;
-fetch backward all in c5;
-fetch all in c5;
-fetch backward all in c5;
-
-rollback;
+-- Disable backward scan test which is not supported in this version of Cloudberry Database
+--start_ignore
+/*
+ * begin;
+ * 
+ * declare c1 cursor for select * from int8_tbl limit 10;
+ * fetch all in c1;
+ * fetch 1 in c1;
+ * fetch backward 1 in c1;
+ * fetch backward all in c1;
+ * fetch backward 1 in c1;
+ * fetch all in c1;
+ * 
+ * declare c2 cursor for select * from int8_tbl limit 3;
+ * fetch all in c2;
+ * fetch 1 in c2;
+ * fetch backward 1 in c2;
+ * fetch backward all in c2;
+ * fetch backward 1 in c2;
+ * fetch all in c2;
+ * 
+ * declare c3 cursor for select * from int8_tbl offset 3;
+ * fetch all in c3;
+ * fetch 1 in c3;
+ * fetch backward 1 in c3;
+ * fetch backward all in c3;
+ * fetch backward 1 in c3;
+ * fetch all in c3;
+ * 
+ * declare c4 cursor for select * from int8_tbl offset 10;
+ * fetch all in c4;
+ * fetch 1 in c4;
+ * fetch backward 1 in c4;
+ * fetch backward all in c4;
+ * fetch backward 1 in c4;
+ * fetch all in c4;
+ * 
+ * declare c5 cursor for select * from int8_tbl order by q1 fetch first 2 rows with ties;
+ * fetch all in c5;
+ * fetch 1 in c5;
+ * fetch backward 1 in c5;
+ * fetch backward 1 in c5;
+ * fetch all in c5;
+ * fetch backward all in c5;
+ * fetch all in c5;
+ * fetch backward all in c5;
+ *
+ * rollback;
+ */
+--end_ignore
 
 -- Stress test for variable LIMIT in conjunction with bounded-heap sorting
 
@@ -102,20 +107,23 @@ create temp sequence testseq;
 explain (verbose, costs off)
 select unique1, unique2, nextval('testseq')
   from tenk1 order by unique2 limit 10;
-
-select unique1, unique2, nextval('testseq')
-  from tenk1 order by unique2 limit 10;
-
-select currval('testseq');
-
-explain (verbose, costs off)
-select unique1, unique2, nextval('testseq')
-  from tenk1 order by tenthous limit 10;
-
-select unique1, unique2, nextval('testseq')
-  from tenk1 order by tenthous limit 10;
-
-select currval('testseq');
+-- In gpdb, our sequence can only promise monotonicity due to MPP structure
+-- The follow case does not make sence for us.
+--
+--select unique1, unique2, nextval('testseq')
+--  from tenk1 order by unique2 limit 10;
+--
+--select currval('testseq');
+--
+--explain (verbose, costs off)
+--select unique1, unique2, nextval('testseq')
+--  from tenk1 order by tenthous limit 10;
+--
+--select unique1, unique2, nextval('testseq')
+--  from tenk1 order by tenthous limit 10;
+--
+--select currval('testseq');
+--
 
 explain (verbose, costs off)
 select unique1, unique2, generate_series(1,10)

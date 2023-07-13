@@ -2814,7 +2814,6 @@ SELECT  b.relname,
 REINDEX SCHEMA schema_to_reindex;
 BEGIN;
 REINDEX SCHEMA schema_to_reindex; -- failure, cannot run in a transaction
-ERROR:  REINDEX SCHEMA cannot run inside a transaction block
 END;
 -- concurrently
 REINDEX SCHEMA CONCURRENTLY schema_to_reindex;

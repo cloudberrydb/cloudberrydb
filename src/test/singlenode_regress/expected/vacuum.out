@@ -104,9 +104,11 @@ CREATE INDEX spgist_pvactst ON pvactst USING spgist (p);
 -- VACUUM invokes parallel index cleanup
 SET min_parallel_index_scan_size to 0;
 VACUUM (PARALLEL 2) pvactst;
+WARNING:  disabling parallel option of vacuum on "pvactst" --- cannot vacuum tables in parallel
 -- VACUUM invokes parallel bulk-deletion
 UPDATE pvactst SET i = i WHERE i < 1000;
 VACUUM (PARALLEL 2) pvactst;
+WARNING:  disabling parallel option of vacuum on "pvactst" --- cannot vacuum tables in parallel
 UPDATE pvactst SET i = i WHERE i < 1000;
 VACUUM (PARALLEL 0) pvactst; -- disable parallel vacuum
 VACUUM (PARALLEL -1) pvactst; -- error
@@ -124,7 +126,7 @@ LINE 1: VACUUM (PARALLEL) pvactst;
 CREATE TEMPORARY TABLE tmp (a int PRIMARY KEY);
 CREATE INDEX tmp_idx1 ON tmp (a);
 VACUUM (PARALLEL 1, FULL FALSE) tmp; -- parallel vacuum disabled for temp tables
-WARNING:  disabling parallel option of vacuum on "tmp" --- cannot vacuum temporary tables in parallel
+WARNING:  disabling parallel option of vacuum on "tmp" --- cannot vacuum tables in parallel
 VACUUM (PARALLEL 0, FULL TRUE) tmp; -- can specify parallel disabled (even though that's implied by FULL)
 RESET min_parallel_index_scan_size;
 DROP TABLE pvactst;
@@ -196,9 +198,9 @@ VACUUM (FULL) vacparted;
 VACUUM (FREEZE) vacparted;
 -- check behavior with duplicate column mentions
 VACUUM ANALYZE vacparted(a,b,a);
-ERROR:  column "a" of relation "vacparted" appears more than once
+ERROR:  column "a" of relation "vacparted1" appears more than once
 ANALYZE vacparted(a,b,b);
-ERROR:  column "b" of relation "vacparted" appears more than once
+ERROR:  column "b" of relation "vacparted1" appears more than once
 -- partitioned table with index
 CREATE TABLE vacparted_i (a int primary key, b varchar(100))
   PARTITION BY HASH (a);
@@ -239,7 +241,7 @@ ANALYZE vacparted (b), vactst;
 ANALYZE vactst, does_not_exist, vacparted;
 ERROR:  relation "does_not_exist" does not exist
 ANALYZE vactst (i), vacparted (does_not_exist);
-ERROR:  column "does_not_exist" of relation "vacparted" does not exist
+ERROR:  column "does_not_exist" of relation "vacparted1" does not exist
 ANALYZE vactst, vactst;
 BEGIN;  -- ANALYZE behaves differently inside a transaction block
 ANALYZE vactst, vactst;

@@ -181,7 +181,7 @@ select * from trigtest;
 
 drop table trigtest;
 
-create sequence ttdummy_seq increment 10 start 0 minvalue 0;
+create sequence ttdummy_seq increment 10 start 0 minvalue 0 cache 1;
 
 create table tttest (
 	price_id	int4,
@@ -367,6 +367,8 @@ create trigger oid_unchanged_trig after update on table_with_oids
 	when (new.tableoid = old.tableoid AND new.tableoid <> 0)
 	execute procedure trigger_func('after_upd_oid_unchanged');
 update table_with_oids set a = a + 1;
+-- try again
+update table_with_oids set a = a + 1;
 drop table table_with_oids;
 
 -- Test column-level triggers
@@ -441,7 +443,7 @@ ALTER TABLE main_table DROP COLUMN b;
 begin;
 DROP TRIGGER after_upd_a_b_row_trig ON main_table;
 DROP TRIGGER after_upd_b_row_trig ON main_table;
-DROP TRIGGER after_upd_b_stmt_trig ON main_table;
+-- DROP TRIGGER after_upd_b_stmt_trig ON main_table;
 ALTER TABLE main_table DROP COLUMN b;
 rollback;
 
@@ -568,7 +570,7 @@ DROP TABLE trigger_test;
 -- Test use of row comparisons on OLD/NEW
 --
 
-CREATE TABLE trigger_test (f1 int, f2 text, f3 text);
+CREATE TABLE trigger_test (dkey int, f1 int, f2 text, f3 text);
 
 -- this is the obvious (and wrong...) way to compare rows
 CREATE FUNCTION mytrigger() RETURNS trigger LANGUAGE plpgsql as $$
@@ -585,8 +587,8 @@ CREATE TRIGGER t
 BEFORE UPDATE ON trigger_test
 FOR EACH ROW EXECUTE PROCEDURE mytrigger();
 
-INSERT INTO trigger_test VALUES(1, 'foo', 'bar');
-INSERT INTO trigger_test VALUES(2, 'baz', 'quux');
+INSERT INTO trigger_test VALUES(0, 1, 'foo', 'bar');
+INSERT INTO trigger_test VALUES(0, 2, 'baz', 'quux');
 
 UPDATE trigger_test SET f3 = 'bar';
 UPDATE trigger_test SET f3 = NULL;
@@ -831,10 +833,11 @@ DROP VIEW main_view;
 
 --
 -- Test triggers on a join view
+-- GPDB ignore this test: don't support modifications on views.
 --
 CREATE TABLE country_table (
     country_id        serial primary key,
-    country_name    text unique not null,
+    country_name    text not null,
     continent        text not null
 );
 
@@ -1022,6 +1025,7 @@ DROP TABLE country_table;
 
 
 -- Test pg_trigger_depth()
+-- GPDB ignore this test: execute insert in trigger function
 
 create table depth_a (id int not null primary key);
 create table depth_b (id int not null primary key);

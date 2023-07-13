@@ -2,6 +2,10 @@
 -- Tests for common table expressions (WITH query, ... SELECT ...)
 --
 
+--start_ignore
+set gp_cte_sharing to on;
+--end_ignore
+
 -- Basic WITH
 WITH q1(x,y) AS (SELECT 1,2)
 SELECT * FROM q1, q1 AS q2;
@@ -164,6 +168,10 @@ INSERT INTO department VALUES (5, 0, 'E');
 INSERT INTO department VALUES (6, 4, 'F');
 INSERT INTO department VALUES (7, 5, 'G');
 
+-- GPDB: Some of the queries below will return non-deterministic results
+-- because of moving rows across segments. This table is the same, except that
+-- all the rows reside on a single segment, so that you get consistent results.
+CREATE TEMP TABLE department_oneseg AS SELECT 1 AS distkey, * FROM department;
 
 -- extract all departments under 'A'. Result should be A, B, C, D and F
 WITH RECURSIVE subdepartment AS
@@ -267,24 +275,24 @@ SELECT sum(n) FROM t;
 
 -- corner case in which sub-WITH gets initialized first
 with recursive q as (
-      select * from department
+      select * from department_oneseg
     union all
       (with x as (select * from q)
        select * from x)
     )
-select * from q limit 24;
+select id, parent_department, name from q limit 24;
 
 with recursive q as (
-      select * from department
+      select * from department_oneseg
     union all
       (with recursive x as (
-           select * from department
+           select * from department_oneseg
          union all
            (select * from q union all select * from x)
         )
        select * from x)
     )
-select * from q limit 32;
+select id, parent_department, name from q limit 32;
 
 -- recursive term has sub-UNION
 WITH RECURSIVE t(i,j) AS (
@@ -812,6 +820,23 @@ WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT SELECT n+1 FROM x)
 WITH RECURSIVE x(n) AS (SELECT 1 EXCEPT ALL SELECT n+1 FROM x)
 	SELECT * FROM x;
 
+-- GPDB Specific Error Cases
+-- Set operations within the recursive term with a self-reference.
+-- Currently set operations in the recursive term involving the cte itself must
+-- be prevented. The reason for this is that such a query may lead to a plan
+-- where there is a motion between the RecursiveUnion node and the
+-- WorkTableScan node.
+CREATE TEMPORARY TABLE z(x int primary key);
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * FROM x UNION SELECT * FROM z)foo)
+	SELECT * FROM x;
+
+-- Set operation in recursive term that does not have a self-reference
+-- This is supported
+CREATE TEMPORARY TABLE u(x int primary key);
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT n+1 FROM (SELECT * from z UNION SELECT * FROM u)foo, x where foo.x = x.n)
+	SELECT * FROM x;
+DROP TABLE z;
+
 -- no non-recursive term
 WITH RECURSIVE x(n) AS (SELECT n FROM x)
 	SELECT * FROM x;
@@ -819,6 +844,31 @@ WITH RECURSIVE x(n) AS (SELECT n FROM x)
 -- recursive term in the left hand side (strictly speaking, should allow this)
 WITH RECURSIVE x(n) AS (SELECT n FROM x UNION ALL SELECT 1)
 	SELECT * FROM x;
+
+-- recursive term with a self-reference within a subquery is not allowed
+WITH RECURSIVE cte(level, id) as (
+	SELECT 1, 2
+	UNION ALL
+	SELECT level+1, c FROM (SELECT * FROM cte OFFSET 0) foo, bar)
+SELECT * FROM cte LIMIT 10;
+
+-- recursive term with a distinct operation is not allowed
+WITH RECURSIVE x(n) AS (SELECT 1 UNION ALL SELECT distinct(n+1) FROM x)
+  SELECT * FROM x;
+
+-- recursive term with a group by operation is not allowed
+CREATE TEMPORARY TABLE bar(c int);
+WITH RECURSIVE x(n) AS (
+	SELECT 1,2
+	UNION ALL
+	SELECT level+1, c FROM x, bar GROUP BY 1,2)
+  SELECT * FROM x LIMIT 10;
+
+WITH RECURSIVE x(n) AS (
+	SELECT 1,2
+	UNION ALL
+	SELECT level+1, row_number() over() FROM x, bar)
+  SELECT * FROM x LIMIT 10;
 
 CREATE TEMPORARY TABLE y (a INTEGER);
 INSERT INTO y SELECT generate_series(1, 10);
@@ -948,6 +998,17 @@ select ( with cte(foo) as ( values(f1) )
 from int4_tbl;
 
 --
+-- test Nested CTE
+--
+WITH outermost(x) AS (
+  SELECT 1
+  UNION (WITH innermost as (SELECT 2)
+         SELECT * FROM innermost
+         UNION SELECT 3)
+)
+SELECT * FROM outermost;
+
+--
 -- test for nested-recursive-WITH bug
 --
 WITH RECURSIVE t(j) AS (
@@ -1013,6 +1074,10 @@ select * from C;
 
 --
 -- Test CTEs read in non-initialization orders
+-- gpdb
+-- Remove window funtions from Recursive CTE's test case.
+-- Currently Recursive CTE's do not support the Window Functions,
+-- So we remove it from the test cases.
 --
 
 WITH RECURSIVE
@@ -1021,7 +1086,7 @@ WITH RECURSIVE
       SELECT 0, 'base', 17
     UNION ALL (
       WITH remaining(id_key, row_type, link, min) AS (
-        SELECT tab.id_key, 'true'::text, iter.link, MIN(tab.id_key) OVER ()
+        SELECT tab.id_key, 'true'::text, iter.link, tab.id_key
         FROM tab INNER JOIN iter USING (link)
         WHERE tab.id_key > iter.id_key
       ),
@@ -1047,7 +1112,7 @@ WITH RECURSIVE
       SELECT 0, 'base', 17
     UNION (
       WITH remaining(id_key, row_type, link, min) AS (
-        SELECT tab.id_key, 'true'::text, iter.link, MIN(tab.id_key) OVER ()
+        SELECT tab.id_key, 'true'::text, iter.link, tab.id_key
         FROM tab INNER JOIN iter USING (link)
         WHERE tab.id_key > iter.id_key
       ),
@@ -1218,6 +1283,8 @@ SELECT q1 FROM
 ) ss;
 
 -- a truly recursive CTE in the same list
+ANALYZE y; -- There is a bug, the below case will fail for generating plan which execute ModifyTable on reader gang.
+
 WITH RECURSIVE t(a) AS (
 	SELECT 0
 		UNION ALL
@@ -1244,7 +1311,7 @@ SELECT * FROM y;
 WITH t AS (
     UPDATE y SET a = a * 100 RETURNING *
 )
-SELECT * FROM t LIMIT 10;
+SELECT a BETWEEN 0 AND 4200 FROM t LIMIT 10;
 
 SELECT * FROM y;
 
@@ -1332,6 +1399,9 @@ SELECT 1;
 SELECT * FROM y;
 SELECT * FROM yy;
 
+-- start_ignore
+-- These tests actually seem to work, but they have unstable return order
+-- in an MPP environment so they are ignored until atmsort can handle this 
 -- triggers
 
 TRUNCATE TABLE y;
@@ -1402,6 +1472,7 @@ SELECT * FROM y;
 
 DROP TRIGGER y_trig ON y;
 DROP FUNCTION y_trigger();
+-- end_ignore
 
 -- WITH attached to inherited UPDATE or DELETE
 

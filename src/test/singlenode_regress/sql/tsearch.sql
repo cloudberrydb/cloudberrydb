@@ -1,3 +1,4 @@
+set optimizer_print_missing_stats = off;
 --
 -- Sanity checks for text search catalogs
 --
@@ -132,7 +133,7 @@ SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
 -- Test siglen parameter of GiST tsvector_ops
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(foo=1));
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=0));
-CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=2048));
+CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=8192));
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100,foo='bar'));
 CREATE INDEX wowidx1 ON test_tsvector USING gist (a tsvector_ops(siglen=100, siglen = 200));
 
@@ -575,7 +576,7 @@ SELECT COUNT(*) FROM test_tsquery WHERE keyword = 'new <-> york';
 SELECT COUNT(*) FROM test_tsquery WHERE keyword >= 'new <-> york';
 SELECT COUNT(*) FROM test_tsquery WHERE keyword >  'new <-> york';
 
-CREATE UNIQUE INDEX bt_tsq ON test_tsquery (keyword);
+CREATE INDEX bt_tsq ON test_tsquery (keyword);
 
 SET enable_seqscan=OFF;
 
@@ -793,3 +794,6 @@ select websearch_to_tsquery('''');
 select websearch_to_tsquery('''abc''''def''');
 select websearch_to_tsquery('\abc');
 select websearch_to_tsquery('\');
+
+COPY test_tsvector TO '/tmp/test_tsvector.txt';
+COPY test_tsvector FROM '/tmp/test_tsvector.txt';

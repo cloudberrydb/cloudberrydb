@@ -89,10 +89,9 @@ ERROR:  unsupported XML feature
 DETAIL:  This functionality requires the server to be built with libxml support.
 HINT:  You need to rebuild PostgreSQL using --with-libxml.
 MOVE BACKWARD ALL IN xc;
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 SELECT cursor_to_xml('xc'::refcursor, 5, true, false, '');
-ERROR:  unsupported XML feature
-DETAIL:  This functionality requires the server to be built with libxml support.
-HINT:  You need to rebuild PostgreSQL using --with-libxml.
+ERROR:  portal "xc" cannot be run
 SELECT cursor_to_xmlschema('xc'::refcursor, true, false, '');
 ERROR:  unsupported XML feature
 DETAIL:  This functionality requires the server to be built with libxml support.

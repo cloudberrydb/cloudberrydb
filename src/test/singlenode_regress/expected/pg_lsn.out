@@ -129,20 +129,20 @@ SELECT DISTINCT (i || '/' || j)::pg_lsn f
        generate_series(1, 5) k
   WHERE i <= 10 AND j > 0 AND j <= 10
   ORDER BY f;
-                                QUERY PLAN                                
---------------------------------------------------------------------------
- Sort
-   Sort Key: (((((i.i)::text || '/'::text) || (j.j)::text))::pg_lsn)
-   ->  HashAggregate
-         Group Key: ((((i.i)::text || '/'::text) || (j.j)::text))::pg_lsn
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Unique
+   Group Key: (((((i.i)::text || '/'::text) || (j.j)::text))::pg_lsn)
+   ->  Sort
+         Sort Key: (((((i.i)::text || '/'::text) || (j.j)::text))::pg_lsn)
          ->  Nested Loop
+               ->  Nested Loop
+                     ->  Function Scan on generate_series i
+                           Filter: (i <= 10)
+                     ->  Function Scan on generate_series j
+                           Filter: ((j > 0) AND (j <= 10))
                ->  Function Scan on generate_series k
-               ->  Materialize
-                     ->  Nested Loop
-                           ->  Function Scan on generate_series j
-                                 Filter: ((j > 0) AND (j <= 10))
-                           ->  Function Scan on generate_series i
-                                 Filter: (i <= 10)
+ Optimizer: Postgres query optimizer
 (12 rows)
 
 SELECT DISTINCT (i || '/' || j)::pg_lsn f

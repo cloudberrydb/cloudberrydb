@@ -172,19 +172,17 @@ EXPLAIN (VERBOSE, COSTS OFF)
 UPDATE update_test t
   SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
   WHERE CURRENT_USER = SESSION_USER;
-                         QUERY PLAN                          
--------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Update on public.update_test t
-   ->  Result
-         Output: $1, $2, (SubPlan 1 (returns $1,$2)), t.ctid
-         One-Time Filter: (CURRENT_USER = SESSION_USER)
-         ->  Seq Scan on public.update_test t
-               Output: t.a, t.ctid
+   ->  Seq Scan on public.update_test t
+         Output: $1, $2, (SubPlan 1 (returns $1,$2)), t.ctid, t.gp_segment_id
          SubPlan 1 (returns $1,$2)
            ->  Seq Scan on public.update_test s
                  Output: s.b, s.a
                  Filter: (s.a = t.a)
-(10 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 UPDATE update_test t
   SET (a, b) = (SELECT b, a FROM update_test s WHERE s.a = t.a)
@@ -492,8 +490,8 @@ $$;
 CREATE TRIGGER trans_updatetrig
   AFTER UPDATE ON range_parted REFERENCING OLD TABLE AS old_table NEW TABLE AS new_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
+ERROR:  Triggers for statements are not yet supported
 UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end ) WHERE a = 'b' and b > 10 and c >= 96;
-NOTICE:  trigger = trans_updatetrig, old table = (b,12,96,1,), (b,13,97,2,), (b,15,105,16,), (b,17,105,19,), new table = (b,12,110,1,), (b,13,98,2,), (b,15,106,16,), (b,17,106,19,)
 :show_data;
     partname    | a | b  |  c  | d  | e 
 ----------------+---+----+-----+----+---
@@ -512,11 +510,12 @@ NOTICE:  trigger = trans_updatetrig, old table = (b,12,96,1,), (b,13,97,2,), (b,
 CREATE TRIGGER trans_deletetrig
   AFTER DELETE ON range_parted REFERENCING OLD TABLE AS old_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER trans_inserttrig
   AFTER INSERT ON range_parted REFERENCING NEW TABLE AS new_table
   FOR EACH STATEMENT EXECUTE PROCEDURE trans_updatetrigfunc();
+ERROR:  Triggers for statements are not yet supported
 UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
-NOTICE:  trigger = trans_updatetrig, old table = (b,12,96,1,), (b,13,97,2,), (b,15,105,16,), (b,17,105,19,), new table = (b,12,146,1,), (b,13,147,2,), (b,15,155,16,), (b,17,155,19,)
 :show_data;
     partname    | a | b  |  c  | d  | e 
 ----------------+---+----+-----+----+---
@@ -529,7 +528,9 @@ NOTICE:  trigger = trans_updatetrig, old table = (b,12,96,1,), (b,13,97,2,), (b,
 (6 rows)
 
 DROP TRIGGER trans_deletetrig ON range_parted;
+ERROR:  trigger "trans_deletetrig" for table "range_parted" does not exist
 DROP TRIGGER trans_inserttrig ON range_parted;
+ERROR:  trigger "trans_inserttrig" for table "range_parted" does not exist
 -- Don't drop trans_updatetrig yet. It is required below.
 -- Test with transition tuple conversion happening for rows moved into the
 -- new partition. This requires a trigger that references transition table
@@ -551,7 +552,6 @@ CREATE TRIGGER trig_d15_20 BEFORE UPDATE OR INSERT ON part_d_15_20
    FOR EACH ROW EXECUTE PROCEDURE func_parted_mod_b();
 :init_range_parted;
 UPDATE range_parted set c = (case when c = 96 then 110 else c + 1 end) WHERE a = 'b' and b > 10 and c >= 96;
-NOTICE:  trigger = trans_updatetrig, old table = (b,13,96,1,), (b,14,97,2,), (b,16,105,16,), (b,18,105,19,), new table = (b,15,110,1,), (b,15,98,2,), (b,17,106,16,), (b,19,106,19,)
 :show_data;
     partname    | a | b  |  c  | d  | e 
 ----------------+---+----+-----+----+---
@@ -565,7 +565,6 @@ NOTICE:  trigger = trans_updatetrig, old table = (b,13,96,1,), (b,14,97,2,), (b,
 
 :init_range_parted;
 UPDATE range_parted set c = c + 50 WHERE a = 'b' and b > 10 and c >= 96;
-NOTICE:  trigger = trans_updatetrig, old table = (b,13,96,1,), (b,14,97,2,), (b,16,105,16,), (b,18,105,19,), new table = (b,15,146,1,), (b,16,147,2,), (b,17,155,16,), (b,19,155,19,)
 :show_data;
     partname    | a | b  |  c  | d  | e 
 ----------------+---+----+-----+----+---
@@ -582,7 +581,6 @@ NOTICE:  trigger = trans_updatetrig, old table = (b,13,96,1,), (b,14,97,2,), (b,
 -- matching table attributes of the partition and the target table.
 :init_range_parted;
 UPDATE range_parted set b = 15 WHERE b = 1;
-NOTICE:  trigger = trans_updatetrig, old table = (a,1,1,1,), new table = (a,15,1,1,)
 :show_data;
     partname    | a | b  |  c  | d  | e 
 ----------------+---+----+-----+----+---
@@ -595,6 +593,7 @@ NOTICE:  trigger = trans_updatetrig, old table = (a,1,1,1,), new table = (a,15,1
 (6 rows)
 
 DROP TRIGGER trans_updatetrig ON range_parted;
+ERROR:  trigger "trans_updatetrig" for table "range_parted" does not exist
 DROP TRIGGER trig_c1_100 ON part_c_1_100;
 DROP TRIGGER trig_d1_15 ON part_d_1_15;
 DROP TRIGGER trig_d15_20 ON part_d_15_20;
@@ -603,6 +602,7 @@ DROP FUNCTION func_parted_mod_b();
 -----------------------------------------
 ALTER TABLE range_parted ENABLE ROW LEVEL SECURITY;
 CREATE USER regress_range_parted_user;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
 GRANT ALL ON range_parted, mintab TO regress_range_parted_user;
 CREATE POLICY seeall ON range_parted AS PERMISSIVE FOR SELECT USING (true);
 CREATE POLICY policy_range_parted ON range_parted for UPDATE USING (true) WITH CHECK (c % 2 = 0);
@@ -687,35 +687,46 @@ $$;
 -- Triggers on root partition
 CREATE TRIGGER parent_delete_trig
   AFTER DELETE ON range_parted for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER parent_update_trig
   AFTER UPDATE ON range_parted for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER parent_insert_trig
   AFTER INSERT ON range_parted for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 -- Triggers on leaf partition part_c_1_100
 CREATE TRIGGER c1_delete_trig
   AFTER DELETE ON part_c_1_100 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER c1_update_trig
   AFTER UPDATE ON part_c_1_100 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER c1_insert_trig
   AFTER INSERT ON part_c_1_100 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 -- Triggers on leaf partition part_d_1_15
 CREATE TRIGGER d1_delete_trig
   AFTER DELETE ON part_d_1_15 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER d1_update_trig
   AFTER UPDATE ON part_d_1_15 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER d1_insert_trig
   AFTER INSERT ON part_d_1_15 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 -- Triggers on leaf partition part_d_15_20
 CREATE TRIGGER d15_delete_trig
   AFTER DELETE ON part_d_15_20 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER d15_update_trig
   AFTER UPDATE ON part_d_15_20 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 CREATE TRIGGER d15_insert_trig
   AFTER INSERT ON part_d_15_20 for each statement execute procedure trigfunc();
+ERROR:  Triggers for statements are not yet supported
 -- Move all rows from part_c_100_200 to part_c_1_100. None of the delete or
 -- insert statement triggers should be fired.
 UPDATE range_parted set c = c - 50 WHERE c > 97;
-NOTICE:  trigger = parent_update_trig fired on table range_parted during UPDATE
 :show_data;
     partname    | a | b  |  c  | d  | e 
 ----------------+---+----+-----+----+---
@@ -728,17 +739,29 @@ NOTICE:  trigger = parent_update_trig fired on table range_parted during UPDATE
 (6 rows)
 
 DROP TRIGGER parent_delete_trig ON range_parted;
+ERROR:  trigger "parent_delete_trig" for table "range_parted" does not exist
 DROP TRIGGER parent_update_trig ON range_parted;
+ERROR:  trigger "parent_update_trig" for table "range_parted" does not exist
 DROP TRIGGER parent_insert_trig ON range_parted;
+ERROR:  trigger "parent_insert_trig" for table "range_parted" does not exist
 DROP TRIGGER c1_delete_trig ON part_c_1_100;
+ERROR:  trigger "c1_delete_trig" for table "part_c_1_100" does not exist
 DROP TRIGGER c1_update_trig ON part_c_1_100;
+ERROR:  trigger "c1_update_trig" for table "part_c_1_100" does not exist
 DROP TRIGGER c1_insert_trig ON part_c_1_100;
+ERROR:  trigger "c1_insert_trig" for table "part_c_1_100" does not exist
 DROP TRIGGER d1_delete_trig ON part_d_1_15;
+ERROR:  trigger "d1_delete_trig" for table "part_d_1_15" does not exist
 DROP TRIGGER d1_update_trig ON part_d_1_15;
+ERROR:  trigger "d1_update_trig" for table "part_d_1_15" does not exist
 DROP TRIGGER d1_insert_trig ON part_d_1_15;
+ERROR:  trigger "d1_insert_trig" for table "part_d_1_15" does not exist
 DROP TRIGGER d15_delete_trig ON part_d_15_20;
+ERROR:  trigger "d15_delete_trig" for table "part_d_15_20" does not exist
 DROP TRIGGER d15_update_trig ON part_d_15_20;
+ERROR:  trigger "d15_update_trig" for table "part_d_15_20" does not exist
 DROP TRIGGER d15_insert_trig ON part_d_15_20;
+ERROR:  trigger "d15_insert_trig" for table "part_d_15_20" does not exist
 -- Creating default partition for range
 :init_range_parted;
 create table part_def partition of range_parted default;
@@ -843,7 +866,7 @@ insert into utrtest values (1, 'foo')
 
 insert into utrtest values (2, 'bar')
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;  -- fails
-ERROR:  cannot retrieve a system column in this context
+ERROR:  virtual tuple table slot does not have system attributes (execTuples.c:156)
 insert into utrtest values (2, 'bar')
   returning *, tableoid::regclass;
  a |  b  | tableoid 
@@ -861,7 +884,7 @@ update utrtest set b = b || b from (values (1), (2)) s(x) where a = s.x
 
 update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;  -- fails
-ERROR:  cannot retrieve a system column in this context
+ERROR:  virtual tuple table slot does not have system attributes (execTuples.c:156)
 update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass;
  a |   b    | x | tableoid 

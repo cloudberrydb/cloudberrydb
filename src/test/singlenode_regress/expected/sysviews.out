@@ -99,12 +99,13 @@ select count(*) = 0 as ok from pg_stat_wal_receiver;
 
 -- This is to record the prevailing planner enable_foo settings during
 -- a regression test run.
-select name, setting from pg_settings where name like 'enable%';
+select name, setting from pg_settings where name like 'enable%' and name != 'enable_parallel';
               name              | setting 
 --------------------------------+---------
  enable_async_append            | on
  enable_bitmapscan              | on
  enable_gathermerge             | on
+ enable_groupagg                | on
  enable_hashagg                 | on
  enable_hashjoin                | on
  enable_incremental_sort        | on
@@ -112,8 +113,8 @@ select name, setting from pg_settings where name like 'enable%';
  enable_indexscan               | on
  enable_material                | on
  enable_memoize                 | on
- enable_mergejoin               | on
- enable_nestloop                | on
+ enable_mergejoin               | off
+ enable_nestloop                | off
  enable_parallel_append         | on
  enable_parallel_hash           | on
  enable_partition_pruning       | on
@@ -122,7 +123,7 @@ select name, setting from pg_settings where name like 'enable%';
  enable_seqscan                 | on
  enable_sort                    | on
  enable_tidscan                 | on
-(20 rows)
+(21 rows)
 
 -- Test that the pg_timezone_names and pg_timezone_abbrevs views are
 -- more-or-less working.  We can't test their contents in any great detail

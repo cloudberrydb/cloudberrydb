@@ -2,6 +2,11 @@
 -- PARALLEL
 --
 
+-- GPDB_96_MERGE_FIXME: We don't support parallel query. These tests won't actually
+-- generate any parallel plans. Should we pay attention to the parallel restrictions
+-- when creating MPP plans? For example, should we force parallel restricted functions
+-- to run in the QD?
+
 create function sp_parallel_restricted(int) returns int as
   $$begin return $1; end$$ language plpgsql parallel restricted;
 
@@ -248,6 +253,7 @@ drop table bmscantest;
 drop function explain_parallel_sort_stats();
 
 -- test parallel merge join path.
+analyze tenk2;
 set enable_hashjoin to off;
 set enable_nestloop to off;
 
@@ -456,3 +462,4 @@ SELECT 1 FROM tenk1_vw_sec
   WHERE (SELECT sum(f1) FROM int4_tbl WHERE f1 < unique1) < 100;
 
 rollback;
+

@@ -749,30 +749,9 @@ SELECT cursor_to_xmlschema('xc'::refcursor, false, true, '');
 (1 row)
 
 MOVE BACKWARD ALL IN xc;
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 SELECT cursor_to_xml('xc'::refcursor, 5, true, false, '');
-                         cursor_to_xml                         
----------------------------------------------------------------
- <table xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">+
-                                                              +
- <row>                                                        +
-   <a>-1</a>                                                  +
-   <b xsi:nil="true"/>                                        +
- </row>                                                       +
-                                                              +
- <row>                                                        +
-   <a>1</a>                                                   +
-   <b>one</b>                                                 +
- </row>                                                       +
-                                                              +
- <row>                                                        +
-   <a>2</a>                                                   +
-   <b>two</b>                                                 +
- </row>                                                       +
-                                                              +
- </table>                                                     +
- 
-(1 row)
-
+ERROR:  portal "xc" cannot be run
 SELECT cursor_to_xmlschema('xc'::refcursor, true, false, '');
                                       cursor_to_xmlschema                                       
 ------------------------------------------------------------------------------------------------

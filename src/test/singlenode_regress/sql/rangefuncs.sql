@@ -47,21 +47,23 @@ select definition from pg_views where viewname='vw_ord';
 drop view vw_ord;
 
 -- ordinality and multiple functions vs. rewind and reverse scan
+-- Backward scan not supported in GPDB, which makes this a lot less
+-- interesting than in PostgreSQL.
 begin;
 declare rf_cur scroll cursor for select * from rows from(generate_series(1,5),generate_series(1,2)) with ordinality as g(i,j,o);
 fetch all from rf_cur;
-fetch backward all from rf_cur;
+--fetch backward all from rf_cur;
 fetch all from rf_cur;
 fetch next from rf_cur;
 fetch next from rf_cur;
-fetch prior from rf_cur;
-fetch absolute 1 from rf_cur;
+--fetch prior from rf_cur;
+--fetch absolute 1 from rf_cur;
 fetch next from rf_cur;
 fetch next from rf_cur;
 fetch next from rf_cur;
-fetch prior from rf_cur;
-fetch prior from rf_cur;
-fetch prior from rf_cur;
+--fetch prior from rf_cur;
+--fetch prior from rf_cur;
+--fetch prior from rf_cur;
 commit;
 
 -- function with implicit LATERAL
@@ -110,7 +112,7 @@ SELECT * FROM vw_getrngfunc;
 DROP VIEW vw_getrngfunc;
 
 -- sql, proretset = t, prorettype = b
-CREATE FUNCTION getrngfunc3(int) RETURNS setof text AS 'SELECT rngfuncname FROM rngfunc WHERE rngfuncid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getrngfunc3(int) RETURNS setof text AS 'SELECT rngfuncname FROM rngfunc WHERE rngfuncid = $1 ORDER BY rngfuncname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getrngfunc3(1) AS t1;
 SELECT * FROM getrngfunc3(1) WITH ORDINALITY AS t1(v,o);
 CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc3(1);
@@ -121,7 +123,7 @@ SELECT * FROM vw_getrngfunc;
 DROP VIEW vw_getrngfunc;
 
 -- sql, proretset = f, prorettype = c
-CREATE FUNCTION getrngfunc4(int) RETURNS rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getrngfunc4(int) RETURNS rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1 ORDER BY rngfuncname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getrngfunc4(1) AS t1;
 SELECT * FROM getrngfunc4(1) WITH ORDINALITY AS t1(a,b,c,o);
 CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc4(1);
@@ -132,7 +134,7 @@ SELECT * FROM vw_getrngfunc;
 DROP VIEW vw_getrngfunc;
 
 -- sql, proretset = t, prorettype = c
-CREATE FUNCTION getrngfunc5(int) RETURNS setof rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getrngfunc5(int) RETURNS setof rngfunc AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1 ORDER BY rngfuncname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getrngfunc5(1) AS t1;
 SELECT * FROM getrngfunc5(1) WITH ORDINALITY AS t1(a,b,c,o);
 CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc5(1);
@@ -143,7 +145,7 @@ SELECT * FROM vw_getrngfunc;
 DROP VIEW vw_getrngfunc;
 
 -- sql, proretset = f, prorettype = record
-CREATE FUNCTION getrngfunc6(int) RETURNS RECORD AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getrngfunc6(int) RETURNS RECORD AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1 ORDER BY rngfuncname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getrngfunc6(1) AS t1(rngfuncid int, rngfuncsubid int, rngfuncname text);
 SELECT * FROM ROWS FROM( getrngfunc6(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text) ) WITH ORDINALITY;
 CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc6(1) AS
@@ -157,7 +159,7 @@ SELECT * FROM vw_getrngfunc;
 DROP VIEW vw_getrngfunc;
 
 -- sql, proretset = t, prorettype = record
-CREATE FUNCTION getrngfunc7(int) RETURNS setof record AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1;' LANGUAGE SQL;
+CREATE FUNCTION getrngfunc7(int) RETURNS setof record AS 'SELECT * FROM rngfunc WHERE rngfuncid = $1 ORDER BY rngfuncname DESC /* ORDER BY to force the Joe row to be returned */ ;' LANGUAGE SQL;
 SELECT * FROM getrngfunc7(1) AS t1(rngfuncid int, rngfuncsubid int, rngfuncname text);
 SELECT * FROM ROWS FROM( getrngfunc7(1) AS (rngfuncid int, rngfuncsubid int, rngfuncname text) ) WITH ORDINALITY;
 CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc7(1) AS
@@ -182,7 +184,7 @@ SELECT * FROM vw_getrngfunc;
 DROP VIEW vw_getrngfunc;
 
 -- plpgsql, proretset = f, prorettype = c
-CREATE FUNCTION getrngfunc9(int) RETURNS rngfunc AS 'DECLARE rngfunctup rngfunc%ROWTYPE; BEGIN SELECT * into rngfunctup FROM rngfunc WHERE rngfuncid = $1; RETURN rngfunctup; END;' LANGUAGE plpgsql;
+CREATE FUNCTION getrngfunc9(int) RETURNS rngfunc AS 'DECLARE rngfunctup rngfunc%ROWTYPE; BEGIN SELECT * into rngfunctup FROM rngfunc WHERE rngfuncid = $1 ORDER BY rngfuncname DESC /* ORDER BY to force the Joe row to be returned */ ; RETURN rngfunctup; END;' LANGUAGE plpgsql;
 SELECT * FROM getrngfunc9(1) AS t1;
 SELECT * FROM getrngfunc9(1) WITH ORDINALITY AS t1(a,b,c,o);
 CREATE VIEW vw_getrngfunc AS SELECT * FROM getrngfunc9(1);
@@ -459,6 +461,22 @@ DROP FUNCTION rngfunc();
 
 create temp table tt(f1 serial, data text);
 
+-- GPDB: The tests below which throw NOTICEs, throw them in indeterminate
+-- order, if the rows are hashed to different segments. Force the rows
+-- that have problem to be hashed to the same segment, using a custom hash
+-- function.
+CREATE OPERATOR FAMILY dummy_int_hash_ops USING hash;
+
+CREATE FUNCTION dummy_hashfunc(int) RETURNS int AS $$
+begin
+  return CASE WHEN $1 BETWEEN 7 AND 15 THEN 0 ELSE $1 END;
+end; $$ LANGUAGE plpgsql STRICT IMMUTABLE;
+
+CREATE OPERATOR CLASS dummy_int_hash_ops FOR TYPE int4
+  USING hash FAMILY dummy_int_hash_ops AS
+  OPERATOR 1 =,
+  FUNCTION 1 dummy_hashfunc(int);
+
 create function insert_tt(text) returns int as
 $$ insert into tt(data) values($1) returning f1 $$
 language sql;
@@ -469,7 +487,7 @@ select * from tt;
 
 -- insert will execute to completion even if function needs just 1 row
 create or replace function insert_tt(text) returns int as
-$$ insert into tt(data) values($1),($1||$1) returning f1 $$
+$$ insert into tt(data) values($1),($1||$1) returning (f1>0)::int $$
 language sql;
 
 select insert_tt('fool');
@@ -756,6 +774,25 @@ explain (verbose, costs off)
 select x from int8_tbl, extractq2_2_opt(int8_tbl) f(x);
 
 select x from int8_tbl, extractq2_2_opt(int8_tbl) f(x);
+
+-- gpdb: test append node in subquery_motionHazard_walker(). Without that
+-- change the select query below will panic.
+create function extractq2_append(t int8_tbl) returns table(ret1 int8) as $$
+  select extractq2(t) union all select extractq2(t)
+$$ language sql immutable;
+
+explain (verbose, costs off)
+select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
+
+select x from (select * from int8_tbl order by 1 limit 100) as int8_tbl, extractq2_append(int8_tbl) f(x);
+
+create function extractq2_wapper(t int8_tbl) returns table(ret1 int8) as $$      
+  select (select extractq2(t))                                                  
+$$ language sql immutable;                                                      
+
+explain (verbose, costs off) select x from int8_tbl, extractq2_wapper(int8_tbl) f(x);
+
+select x from int8_tbl, extractq2_wapper(int8_tbl) f(x);
 
 -- check handling of nulls in SRF results (bug #7808)
 

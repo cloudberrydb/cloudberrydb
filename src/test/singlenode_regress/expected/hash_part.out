@@ -11,6 +11,7 @@ CREATE TABLE mchash1
 -- invalid OID, no such table
 SELECT satisfies_hash_partition(0, 4, 0, NULL);
 ERROR:  could not open relation with OID 0
+DETAIL:  This can be validly caused by a concurrent delete operation on this object.
 -- not partitioned
 SELECT satisfies_hash_partition('tenk1'::regclass, 4, 0, NULL);
 ERROR:  "tenk1" is not a hash partitioned table

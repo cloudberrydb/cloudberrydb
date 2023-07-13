@@ -1,6 +1,67 @@
 --
 -- grouping sets
 --
+-- GPDB: Some of the tests in this file test the case that some columns are
+-- unsortable, and some are unhashable. For the unhashable column, the upstream
+-- tests use 'bit' datatype. However, we have added a hash opclass for 'bit'
+-- in GPDB, which makes the tests ineffective in testing that.
+--
+-- To work around that, create a new datatype that is just like the built-in
+-- 'bit' type, but doesn't have the hash opclass.
+create type unhashable_bit;
+create function unhashable_bit_out (unhashable_bit) returns cstring immutable
+language internal as 'bit_out';
+NOTICE:  argument type unhashable_bit is only a shell
+create function unhashable_bit_in (cstring) returns unhashable_bit immutable
+language internal as 'bit_in';
+NOTICE:  return type unhashable_bit is only a shell
+create type unhashable_bit (
+  input = unhashable_bit_in,
+  output = unhashable_bit_out,
+  typmod_in = bittypmodin,
+  typmod_out = bittypmodout,
+  like = bit);
+create function unhashable_biteq(unhashable_bit, unhashable_bit) returns bool
+immutable language internal as 'biteq';
+create function unhashable_bitne(unhashable_bit, unhashable_bit) returns bool
+immutable language internal as 'bitne';
+create function unhashable_bitge(unhashable_bit, unhashable_bit) returns bool
+immutable language internal as 'bitge';
+create function unhashable_bitgt(unhashable_bit, unhashable_bit) returns bool
+immutable language internal as 'bitgt';
+create function unhashable_bitle(unhashable_bit, unhashable_bit) returns bool
+immutable language internal as 'bitle';
+create function unhashable_bitlt(unhashable_bit, unhashable_bit) returns bool
+immutable language internal as 'bitlt';
+create function unhashable_bitcmp(unhashable_bit, unhashable_bit) returns int4
+immutable language internal as 'bitcmp';
+create operator = (function=unhashable_biteq, leftarg=unhashable_bit, rightarg=unhashable_bit,
+                   merges, commutator = "=", negator = "<>",
+		   restrict = 'eqsel', join = 'eqjoinsel');
+create operator <> (function=unhashable_bitne, leftarg=unhashable_bit, rightarg=unhashable_bit,
+                   commutator = "<>", negator = "=",
+		   restrict = 'neqsel', join = 'neqjoinsel');
+create operator >= (function=unhashable_bitge, leftarg=unhashable_bit, rightarg=unhashable_bit,
+                   commutator = "<=", negator = "<",
+		   restrict = 'scalargesel', join = 'scalargejoinsel');
+create operator > (function=unhashable_bitgt, leftarg=unhashable_bit, rightarg=unhashable_bit,
+                   commutator = "<", negator = "<=",
+		   restrict = 'scalargtsel', join = 'scalargtjoinsel');
+create operator <= (function=unhashable_bitle, leftarg=unhashable_bit, rightarg=unhashable_bit,
+                   commutator = ">=", negator = ">",
+		   restrict = 'scalarlesel', join = 'scalarlejoinsel');
+create operator < (function=unhashable_bitlt, leftarg=unhashable_bit, rightarg=unhashable_bit,
+                   commutator = ">", negator = ">=",
+		   restrict = 'scalarltsel', join = 'scalarltjoinsel');
+create operator class unhashable_bit_ops
+  default for type unhashable_bit using btree as
+    operator 1 <  ,
+    operator 2 <= ,
+    operator 3 =  ,
+    operator 4 >= ,
+    operator 5 >  ,
+    function 1 unhashable_bitcmp(unhashable_bit, unhashable_bit);
+create cast (bit as unhashable_bit) without function as assignment;
 -- test data sources
 create temp view gstest1(a,b,v)
   as values (1,1,10),(1,1,11),(1,2,12),(1,2,13),(1,3,14),
@@ -10,11 +71,12 @@ create temp view gstest1(a,b,v)
 create temp table gstest2 (a integer, b integer, c integer, d integer,
                            e integer, f integer, g integer, h integer);
 copy gstest2 from stdin;
+ANALYZE gstest2;
 create temp table gstest3 (a integer, b integer, c integer, d integer);
 copy gstest3 from stdin;
 alter table gstest3 add primary key (a);
 create temp table gstest4(id integer, v integer,
-                          unhashable_col bit(4), unsortable_col xid);
+                          unhashable_col unhashable_bit(4), unsortable_col xid);
 insert into gstest4
 values (1,1,b'0000','1'), (2,2,b'0001','1'),
        (3,4,b'0010','2'), (4,8,b'0011','2'),
@@ -374,7 +436,8 @@ select g as alias1, g as alias2
    ->  Sort
          Sort Key: g
          ->  Function Scan on generate_series g
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select g as alias1, g as alias2
   from generate_series(1,3) g
@@ -454,7 +517,9 @@ where x = 1 and q1 = 123;
            Group Key: i1.q1
          ->  Seq Scan on public.int8_tbl i1
                Output: 1, i1.q1, i1.q2
-(10 rows)
+ Settings: enable_hashagg = 'off'
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 select * from (
   select 1 as x, q1, sum(q2)
@@ -485,7 +550,9 @@ group by ss.x;
                SubPlan 2
                  ->  Result
                        Output: i1.q1
-(11 rows)
+ Settings: enable_hashagg = 'off'
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 select grouping(ss.x)
 from int8_tbl i1
@@ -518,7 +585,9 @@ group by ss.x;
    SubPlan 2
      ->  Result
            Output: GROUPING((SubPlan 1))
-(14 rows)
+ Settings: enable_hashagg = 'off'
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 select (select grouping(ss.x))
 from int8_tbl i1
@@ -563,7 +632,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan using tenk1_unique1 on tenk1
                  Index Cond: (unique1 IS NOT NULL)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- Views with GROUPING SET queries
 CREATE VIEW gstest_view AS select a, b, grouping(a,b), sum(c), count(*), max(c)
@@ -744,7 +814,8 @@ select * from gstest1 group by grouping sets((a,b,v),(v)) order by v,b,a;
    ->  Sort
          Sort Key: "*VALUES*".column3, "*VALUES*".column2, "*VALUES*".column1
          ->  Values Scan on "*VALUES*"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 -- Agg level check. This query should error out.
 select (select grouping(a,b) from gstest2) from gstest2 group by a,b;
@@ -816,8 +887,8 @@ select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 or
 
 explain (costs off)
   select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
-            QUERY PLAN            
-----------------------------------
+             QUERY PLAN              
+-------------------------------------
  GroupAggregate
    Group Key: a
    Group Key: ()
@@ -825,7 +896,8 @@ explain (costs off)
    ->  Sort
          Sort Key: a
          ->  Seq Scan on gstest2
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select v.c, (select count(*) from gstest2 group by () having v.c)
   from (values (false),(true)) v(c) order by v.c;
@@ -850,7 +922,8 @@ explain (costs off)
                  ->  Result
                        One-Time Filter: "*VALUES*".column1
                        ->  Seq Scan on gstest2
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- HAVING with GROUPING queries
 select ten, grouping(ten) from onek
@@ -933,6 +1006,8 @@ group by rollup(ten);
 (11 rows)
 
 -- More rescan tests
+-- start_ignore
+-- GPDB_95_MERGE_FIXME: the lateral query with grouping sets do not make right plans
 select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group by cube(four,ten)) s on true order by v.a,four,ten;
  a | a | four | ten | count 
 ---+---+------+-----+-------
@@ -1008,6 +1083,7 @@ select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, co
  2 | 2 |      |     |  1000
 (70 rows)
 
+-- end_ignore
 select array(select row(v.a,s1.*) from (select two,four, count(*) from onek group by cube(two,four) order by two,four) s1) from (values (1),(2)) v(a);
                                                                         array                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1072,7 +1148,8 @@ explain (costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)
          Hash Key: "*VALUES*".column1
          Hash Key: "*VALUES*".column2
          ->  Values Scan on "*VALUES*"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select a, b, grouping(a,b), sum(v), count(*), max(v)
   from gstest1 group by cube(a,b) order by 3,1,2;
@@ -1108,7 +1185,8 @@ explain (costs off) select a, b, grouping(a,b), sum(v), count(*), max(v)
          Hash Key: "*VALUES*".column2
          Group Key: ()
          ->  Values Scan on "*VALUES*"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 -- shouldn't try and hash
 explain (costs off)
@@ -1125,7 +1203,8 @@ explain (costs off)
    ->  Sort
          Sort Key: "*VALUES*".column1, "*VALUES*".column2
          ->  Values Scan on "*VALUES*"
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- unsortable cases
 select unsortable_col, count(*)
@@ -1171,7 +1250,8 @@ explain (costs off)
          ->  Sort
                Sort Key: unhashable_col
                ->  Seq Scan on gstest4
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select unhashable_col, unsortable_col,
        grouping(unhashable_col, unsortable_col),
@@ -1214,7 +1294,8 @@ explain (costs off)
          ->  Sort
                Sort Key: v, unhashable_col
                ->  Seq Scan on gstest4
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 -- empty input: first is 0 rows, second 1, third 3 etc.
 select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
@@ -1224,13 +1305,14 @@ select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a)
 
 explain (costs off)
   select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),a);
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Hash Key: a, b
    Hash Key: a
    ->  Seq Scan on gstest_empty
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),());
  a | b | sum | count 
@@ -1248,15 +1330,16 @@ select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),()
 
 explain (costs off)
   select a, b, sum(v), count(*) from gstest_empty group by grouping sets ((a,b),(),(),());
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  MixedAggregate
    Hash Key: a, b
    Group Key: ()
    Group Key: ()
    Group Key: ()
    ->  Seq Scan on gstest_empty
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select sum(v), count(*) from gstest_empty group by grouping sets ((),(),());
  sum | count 
@@ -1268,14 +1351,15 @@ select sum(v), count(*) from gstest_empty group by grouping sets ((),(),());
 
 explain (costs off)
   select sum(v), count(*) from gstest_empty group by grouping sets ((),(),());
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  Aggregate
    Group Key: ()
    Group Key: ()
    Group Key: ()
    ->  Seq Scan on gstest_empty
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- check that functionally dependent cols are not nulled
 select a, d, grouping(a,b,c)
@@ -1293,13 +1377,14 @@ explain (costs off)
   select a, d, grouping(a,b,c)
     from gstest3
    group by grouping sets ((a,b), (a,c));
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Hash Key: a, b
    Hash Key: a, c
    ->  Seq Scan on gstest3
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- simple rescan tests
 select a, b, sum(v.x)
@@ -1330,7 +1415,8 @@ explain (costs off)
          ->  Nested Loop
                ->  Values Scan on "*VALUES*"
                ->  Function Scan on gstest_data
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select *
   from (values (1),(2)) v(x),
@@ -1385,30 +1471,32 @@ explain (costs off)
          Hash Key: ("*VALUES*".column1 + 1), ("*VALUES*".column2 + 1)
          Hash Key: ("*VALUES*".column1 + 2), ("*VALUES*".column2 + 2)
          ->  Values Scan on "*VALUES*"
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
-select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+select a, b, sum(c), sum(d), sum(e), sum(sum(c)) over (order by a,b) as rsum
   from gstest2 group by cube (a,b) order by rsum, a, b;
- a | b | sum | rsum 
----+---+-----+------
- 1 | 1 |   8 |    8
- 1 | 2 |   2 |   10
- 1 |   |  10 |   20
- 2 | 2 |   2 |   22
- 2 |   |   2 |   24
-   | 1 |   8 |   32
-   | 2 |   4 |   36
-   |   |  12 |   48
+ a | b | sum | sum | sum | rsum 
+---+---+-----+-----+-----+------
+ 1 | 1 |   8 |   9 |  10 |    8
+ 1 | 2 |   2 |   2 |   2 |   10
+ 1 |   |  10 |  11 |  12 |   20
+ 2 | 2 |   2 |   2 |   2 |   22
+ 2 |   |   2 |   2 |   2 |   24
+   | 1 |   8 |   9 |  10 |   32
+   | 2 |   4 |   4 |   4 |   36
+   |   |  12 |  13 |  14 |   48
 (8 rows)
 
 explain (costs off)
-  select a, b, sum(c), sum(sum(c)) over (order by a,b) as rsum
+  select a, b, sum(c), sum(d), sum(e), sum(sum(c)) over (order by a,b) as rsum
     from gstest2 group by cube (a,b) order by rsum, a, b;
                  QUERY PLAN                  
 ---------------------------------------------
  Sort
    Sort Key: (sum((sum(c))) OVER (?)), a, b
    ->  WindowAgg
+         Order By: a, b
          ->  Sort
                Sort Key: a, b
                ->  MixedAggregate
@@ -1417,7 +1505,8 @@ explain (costs off)
                      Hash Key: b
                      Group Key: ()
                      ->  Seq Scan on gstest2
-(11 rows)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 select a, b, sum(v.x)
   from (values (1),(2)) v(x), gstest_data(v.x)
@@ -1454,7 +1543,8 @@ explain (costs off)
          ->  Nested Loop
                ->  Values Scan on "*VALUES*"
                ->  Function Scan on gstest_data
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- Verify that we correctly handle the child node returning a
 -- non-minimal slot, which happens if the input is pre-sorted,
@@ -1474,7 +1564,8 @@ EXPLAIN (COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY 
          ->  Sort
                Sort Key: a
                ->  Seq Scan on gstest3
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
  a | b | count | max | max 
@@ -1498,7 +1589,8 @@ EXPLAIN (COSTS OFF) SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY 
          Sort Key: b
            Group Key: b
          ->  Index Scan using gstest3_pkey on gstest3
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,()) ORDER BY a, b;
  a | b | count | max | max 
@@ -1512,6 +1604,8 @@ SELECT a, b, count(*), max(a), max(b) FROM gstest3 GROUP BY GROUPING SETS(a, b,(
 
 COMMIT;
 -- More rescan tests
+-- start_ignore
+-- GPDB_95_MERGE_FIXME: the lateral query with grouping sets do not make right plans
 select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, count(*) from onek group by cube(four,ten)) s on true order by v.a,four,ten;
  a | a | four | ten | count 
 ---+---+------+-----+-------
@@ -1587,6 +1681,7 @@ select * from (values (1),(2)) v(a) left join lateral (select v.a, four, ten, co
  2 | 2 |      |     |  1000
 (70 rows)
 
+-- end_ignore
 select array(select row(v.a,s1.*) from (select two,four, count(*) from onek group by cube(two,four) order by two,four) s1) from (values (1),(2)) v(a);
                                                                         array                                                                         
 ------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1639,14 +1734,15 @@ select array(select row(v.a,s1.*) from (select two,four, count(*) from onek grou
 -- test the knapsack
 set enable_indexscan = false;
 set work_mem = '64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 explain (costs off)
   select unique1,
          count(two), count(four), count(ten),
          count(hundred), count(thousand), count(twothousand),
          count(*)
     from tenk1 group by grouping sets (unique1,twothousand,thousand,hundred,ten,four,two);
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  MixedAggregate
    Hash Key: two
    Hash Key: four
@@ -1660,7 +1756,8 @@ explain (costs off)
    ->  Sort
          Sort Key: unique1
          ->  Seq Scan on tenk1
-(13 rows)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 explain (costs off)
   select unique1,
@@ -1668,8 +1765,8 @@ explain (costs off)
          count(hundred), count(thousand), count(twothousand),
          count(*)
     from tenk1 group by grouping sets (unique1,hundred,ten,four,two);
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  MixedAggregate
    Hash Key: two
    Hash Key: four
@@ -1679,17 +1776,19 @@ explain (costs off)
    ->  Sort
          Sort Key: unique1
          ->  Seq Scan on tenk1
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 set work_mem = '384kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 explain (costs off)
   select unique1,
          count(two), count(four), count(ten),
          count(hundred), count(thousand), count(twothousand),
          count(*)
     from tenk1 group by grouping sets (unique1,twothousand,thousand,hundred,ten,four,two);
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  MixedAggregate
    Hash Key: two
    Hash Key: four
@@ -1702,7 +1801,8 @@ explain (costs off)
    ->  Sort
          Sort Key: unique1
          ->  Seq Scan on tenk1
-(12 rows)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 -- check collation-sensitive matching between grouping expressions
 -- (similar to a check for aggregates, but there are additional code
@@ -1733,9 +1833,12 @@ select v||'a', case when grouping(v||'a') = 1 then 1 else 0 end, count(*)
 create table bug_16784(i int, j int);
 analyze bug_16784;
 alter table bug_16784 set (autovacuum_enabled = 'false');
+WARNING:  autovacuum is not supported in Cloudberry
 update pg_class set reltuples = 10 where relname='bug_16784';
+ERROR:  permission denied: "pg_class" is a system catalog
 insert into bug_16784 select g/10, g from generate_series(1,40) g;
 set work_mem='64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 set enable_sort = false;
 select * from
   (values (1),(2)) v(a),
@@ -1928,8 +2031,11 @@ select g%1000 as g1000, g%100 as g100, g%10 as g10, g
    from generate_series(0,1999) g;
 analyze gs_data_1;
 alter table gs_data_1 set (autovacuum_enabled = 'false');
+WARNING:  autovacuum is not supported in Cloudberry
 update pg_class set reltuples = 10 where relname='gs_data_1';
+ERROR:  permission denied: "pg_class" is a system catalog
 set work_mem='64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 -- Produce results with sorting.
 set enable_sort = true;
 set enable_hashagg = false;
@@ -1937,8 +2043,8 @@ set jit_above_cost = 0;
 explain (costs off)
 select g100, g10, sum(g::numeric), count(*), max(g::text)
 from gs_data_1 group by cube (g1000, g100,g10);
-             QUERY PLAN             
-------------------------------------
+             QUERY PLAN              
+-------------------------------------
  GroupAggregate
    Group Key: g1000, g100, g10
    Group Key: g1000, g100
@@ -1953,7 +2059,8 @@ from gs_data_1 group by cube (g1000, g100,g10);
    ->  Sort
          Sort Key: g1000, g100, g10
          ->  Seq Scan on gs_data_1
-(14 rows)
+ Optimizer: Postgres query optimizer
+(15 rows)
 
 create table gs_group_1 as
 select g100, g10, sum(g::numeric), count(*), max(g::text)
@@ -1964,25 +2071,35 @@ set enable_sort = false;
 explain (costs off)
 select g100, g10, sum(g::numeric), count(*), max(g::text)
 from gs_data_1 group by cube (g1000, g100,g10);
-          QUERY PLAN          
-------------------------------
- MixedAggregate
-   Hash Key: g1000, g100, g10
-   Hash Key: g1000, g100
-   Hash Key: g1000
-   Hash Key: g100, g10
-   Hash Key: g100
-   Hash Key: g10, g1000
-   Hash Key: g10
+             QUERY PLAN              
+-------------------------------------
+ GroupAggregate
+   Group Key: g1000, g100, g10
+   Group Key: g1000, g100
+   Group Key: g1000
    Group Key: ()
-   ->  Seq Scan on gs_data_1
-(10 rows)
+   Sort Key: g100, g10
+     Group Key: g100, g10
+     Group Key: g100
+   Sort Key: g10, g1000
+     Group Key: g10, g1000
+     Group Key: g10
+   ->  Sort
+         Sort Key: g1000, g100, g10
+         ->  Seq Scan on gs_data_1
+ Optimizer: Postgres query optimizer
+(15 rows)
 
 create table gs_hash_1 as
 select g100, g10, sum(g::numeric), count(*), max(g::text)
 from gs_data_1 group by cube (g1000, g100,g10);
 set enable_sort = true;
 set work_mem to default;
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
+-- GPDB_12_MERGE_FIXME: the following comparison query has an ORCA plan that
+-- relies on "IS NOT DISTINCT FROM" Hash Join, a variant that we likely have
+-- lost during the merge with upstream Postgres 12. Disable ORCA for this query
+SET optimizer TO off;
 -- Compare results
 (select * from gs_hash_1 except select * from gs_group_1)
   union all
@@ -1991,6 +2108,7 @@ set work_mem to default;
 ------+-----+-----+-------+-----
 (0 rows)
 
+RESET optimizer;
 drop table gs_group_1;
 drop table gs_hash_1;
 -- GROUP BY DISTINCT
@@ -2107,8 +2225,8 @@ order by a, b, c;
 -- test handling of outer GroupingFunc within subqueries
 explain (costs off)
 select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  MixedAggregate
    Hash Key: $2
    Group Key: ()
@@ -2119,7 +2237,8 @@ select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
    ->  Result
    SubPlan 2
      ->  Result
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
  grouping 
@@ -2130,8 +2249,8 @@ select (select grouping(v1)) from (values ((select 1))) v(v1) group by cube(v1);
 
 explain (costs off)
 select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  GroupAggregate
    Group Key: $2
    InitPlan 1 (returns $1)
@@ -2141,12 +2260,58 @@ select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
    ->  Result
    SubPlan 2
      ->  Result
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 select (select grouping(v1)) from (values ((select 1))) v(v1) group by v1;
  grouping 
 ----------
         0
 (1 row)
+
+select a, rank(a+3) within group (order by b nulls last)
+from (values (1,1),(1,4),(1,5),(3,1),(3,2)) v(a,b)
+group by rollup (a) order by a;
+ a | rank 
+---+------
+ 1 |    2
+ 3 |    3
+   |    6
+(3 rows)
+
+select a, rank((select a+3)) within group (order by b nulls last)
+from (values (1,1),(1,4),(1,5),(3,1),(3,2)) v(a,b)
+group by rollup (a) order by a;
+ a | rank 
+---+------
+ 1 |    2
+ 3 |    3
+   |    6
+(3 rows)
+
+select a, rank((select 1+2)) within group (order by b nulls last)
+from (values (1,1),(1,4),(1,5),(3,1),(3,2)) v(a,b)
+group by rollup (a) order by a;
+ a | rank 
+---+------
+ 1 |    2
+ 3 |    3
+   |    4
+(3 rows)
+
+select a, b, rank(b) within group (order by b nulls last)
+from (values (1,1),(1,4),(1,5),(3,1),(3,2)) v(a,b)
+group by rollup (a,b) order by a;
+ a | b | rank 
+---+---+------
+ 1 | 1 |    1
+ 1 | 4 |    1
+ 1 | 5 |    1
+ 1 |   |    4
+ 3 | 1 |    1
+ 3 | 2 |    1
+ 3 |   |    3
+   |   |    6
+(8 rows)
 
 -- end

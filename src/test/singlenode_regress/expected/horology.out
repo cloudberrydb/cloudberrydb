@@ -3230,8 +3230,13 @@ SELECT to_timestamp('2016-06-13 15:50:55', 'YYYY-MM-DD HH24:MI:SS');  -- ok
 (1 row)
 
 SELECT to_timestamp('2016-06-13 15:50:55', 'YYYY-MM-DD HH:MI:SS');
-ERROR:  hour "15" is invalid for the 12-hour clock
+WARNING:  hour "15" is invalid for the 12-hour clock
 HINT:  Use the 24-hour clock, or give an hour between 1 and 12.
+         to_timestamp         
+------------------------------
+ Mon Jun 13 15:50:55 2016 PDT
+(1 row)
+
 SELECT to_timestamp('2016-13-01 15:50:55', 'YYYY-MM-DD HH24:MI:SS');
 ERROR:  date/time field value out of range: "2016-13-01 15:50:55"
 SELECT to_timestamp('2016-02-30 15:50:55', 'YYYY-MM-DD HH24:MI:SS');

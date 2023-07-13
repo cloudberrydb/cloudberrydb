@@ -13,48 +13,39 @@ set max_parallel_workers_per_gather=4;
 --
 explain (costs off) create table parallel_write as
     select length(stringu1) from tenk1 group by length(stringu1);
-                    QUERY PLAN                     
----------------------------------------------------
- Finalize HashAggregate
-   Group Key: (length((stringu1)::text))
-   ->  Gather
-         Workers Planned: 4
-         ->  Partial HashAggregate
-               Group Key: length((stringu1)::text)
-               ->  Parallel Seq Scan on tenk1
-(7 rows)
+              QUERY PLAN               
+---------------------------------------
+ HashAggregate
+   Group Key: length((stringu1)::text)
+   ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 create table parallel_write as
     select length(stringu1) from tenk1 group by length(stringu1);
 drop table parallel_write;
 explain (costs off) select length(stringu1) into parallel_write
     from tenk1 group by length(stringu1);
-                    QUERY PLAN                     
----------------------------------------------------
- Finalize HashAggregate
-   Group Key: (length((stringu1)::text))
-   ->  Gather
-         Workers Planned: 4
-         ->  Partial HashAggregate
-               Group Key: length((stringu1)::text)
-               ->  Parallel Seq Scan on tenk1
-(7 rows)
+              QUERY PLAN               
+---------------------------------------
+ HashAggregate
+   Group Key: length((stringu1)::text)
+   ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 select length(stringu1) into parallel_write
     from tenk1 group by length(stringu1);
 drop table parallel_write;
 explain (costs off) create materialized view parallel_mat_view as
     select length(stringu1) from tenk1 group by length(stringu1);
-                    QUERY PLAN                     
----------------------------------------------------
- Finalize HashAggregate
-   Group Key: (length((stringu1)::text))
-   ->  Gather
-         Workers Planned: 4
-         ->  Partial HashAggregate
-               Group Key: length((stringu1)::text)
-               ->  Parallel Seq Scan on tenk1
-(7 rows)
+              QUERY PLAN               
+---------------------------------------
+ HashAggregate
+   Group Key: length((stringu1)::text)
+   ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 create materialized view parallel_mat_view as
     select length(stringu1) from tenk1 group by length(stringu1);
@@ -64,16 +55,13 @@ refresh materialized view concurrently parallel_mat_view;
 drop materialized view parallel_mat_view;
 prepare prep_stmt as select length(stringu1) from tenk1 group by length(stringu1);
 explain (costs off) create table parallel_write as execute prep_stmt;
-                    QUERY PLAN                     
----------------------------------------------------
- Finalize HashAggregate
-   Group Key: (length((stringu1)::text))
-   ->  Gather
-         Workers Planned: 4
-         ->  Partial HashAggregate
-               Group Key: length((stringu1)::text)
-               ->  Parallel Seq Scan on tenk1
-(7 rows)
+              QUERY PLAN               
+---------------------------------------
+ HashAggregate
+   Group Key: length((stringu1)::text)
+   ->  Seq Scan on tenk1
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 create table parallel_write as execute prep_stmt;
 drop table parallel_write;

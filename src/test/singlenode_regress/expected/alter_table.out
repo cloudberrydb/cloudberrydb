@@ -1,3 +1,4 @@
+set optimizer_print_missing_stats = off;
 --
 -- ALTER_TABLE
 --
@@ -164,7 +165,7 @@ CREATE TABLE part_attmp1 PARTITION OF part_attmp FOR VALUES FROM (0) TO (100);
 ALTER INDEX part_attmp_pkey RENAME TO part_attmp_index;
 ALTER INDEX part_attmp1_pkey RENAME TO part_attmp1_index;
 ALTER TABLE part_attmp RENAME TO part_at2tmp;
-ALTER TABLE part_attmp1 RENAME TO part_at2tmp1;
+-- ALTER TABLE part_attmp1 RENAME TO part_at2tmp1; -- GPDB cascades parent rename to child partition
 SET ROLE regress_alter_table_user1;
 ALTER INDEX part_attmp_index RENAME TO fail;
 ERROR:  must be owner of index part_attmp_index
@@ -172,8 +173,7 @@ ALTER INDEX part_attmp1_index RENAME TO fail;
 ERROR:  must be owner of index part_attmp1_index
 ALTER TABLE part_at2tmp RENAME TO fail;
 ERROR:  must be owner of table part_at2tmp
-ALTER TABLE part_at2tmp1 RENAME TO fail;
-ERROR:  must be owner of table part_at2tmp1
+-- ALTER TABLE part_at2tmp1 RENAME TO fail; -- GPDB cascades parent rename to child partiti
 RESET ROLE;
 DROP TABLE part_at2tmp;
 --
@@ -296,7 +296,7 @@ RESET ROLE;
 set enable_seqscan to off;
 set enable_bitmapscan to off;
 -- 5 values, sorted
-SELECT unique1 FROM tenk1 WHERE unique1 < 5;
+SELECT unique1 FROM tenk1 WHERE unique1 < 5 ORDER BY 1;
  unique1 
 ---------
        0
@@ -489,25 +489,30 @@ ERROR:  column "c" referenced in foreign key constraint does not exist
 ALTER TABLE attmp3 add constraint attmpconstr foreign key(a) references attmp2(b) match full;
 ERROR:  column "b" referenced in foreign key constraint does not exist
 -- Try (and fail) to add constraint due to invalid data
+-- (passes on GPDB, because GPDB doesn't enforce foreign keys)
 ALTER TABLE attmp3 add constraint attmpconstr foreign key (a) references attmp2 match full;
-ERROR:  insert or update on table "attmp3" violates foreign key constraint "attmpconstr"
-DETAIL:  Key (a)=(5) is not present in table "attmp2".
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 -- Delete failing row
 DELETE FROM attmp3 where a=5;
 -- Try (and succeed)
 ALTER TABLE attmp3 add constraint attmpconstr foreign key (a) references attmp2 match full;
+ERROR:  constraint "attmpconstr" for relation "attmp3" already exists
 ALTER TABLE attmp3 drop constraint attmpconstr;
 INSERT INTO attmp3 values (5,50);
 -- Try NOT VALID and then VALIDATE CONSTRAINT, but fails. Delete failure then re-validate
 ALTER TABLE attmp3 add constraint attmpconstr foreign key (a) references attmp2 match full NOT VALID;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
+-- FK constraints are not supported in GPDB
+--start_ignore
 ALTER TABLE attmp3 validate constraint attmpconstr;
-ERROR:  insert or update on table "attmp3" violates foreign key constraint "attmpconstr"
-DETAIL:  Key (a)=(5) is not present in table "attmp2".
+--end_ignore
 -- Delete failing row
 DELETE FROM attmp3 where a=5;
 -- Try (and succeed) and repeat to show it works on already valid constraint
+--start_ignore
 ALTER TABLE attmp3 validate constraint attmpconstr;
 ALTER TABLE attmp3 validate constraint attmpconstr;
+--end_ignore
 -- Try a non-verified CHECK constraint
 ALTER TABLE attmp3 ADD CONSTRAINT b_greater_than_ten CHECK (b > 10); -- fail
 ERROR:  check constraint "b_greater_than_ten" of relation "attmp3" is violated by some row
@@ -599,7 +604,8 @@ explain (costs off) select * from nv_parent where d between '2011-08-01' and '20
          Filter: ((d >= '08-01-2011'::date) AND (d <= '08-31-2011'::date))
    ->  Seq Scan on nv_child_2011 nv_parent_3
          Filter: ((d >= '08-01-2011'::date) AND (d <= '08-31-2011'::date))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 create table nv_child_2009 (check (d between '2009-01-01'::date and '2009-12-31'::date)) inherits (nv_parent);
 explain (costs off) select * from nv_parent where d between '2011-08-01'::date and '2011-08-31'::date;
@@ -612,7 +618,8 @@ explain (costs off) select * from nv_parent where d between '2011-08-01'::date a
          Filter: ((d >= '08-01-2011'::date) AND (d <= '08-31-2011'::date))
    ->  Seq Scan on nv_child_2011 nv_parent_3
          Filter: ((d >= '08-01-2011'::date) AND (d <= '08-31-2011'::date))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 explain (costs off) select * from nv_parent where d between '2009-08-01'::date and '2009-08-31'::date;
                                 QUERY PLAN                                 
@@ -626,7 +633,8 @@ explain (costs off) select * from nv_parent where d between '2009-08-01'::date a
          Filter: ((d >= '08-01-2009'::date) AND (d <= '08-31-2009'::date))
    ->  Seq Scan on nv_child_2009 nv_parent_4
          Filter: ((d >= '08-01-2009'::date) AND (d <= '08-31-2009'::date))
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- after validation, the constraint should be used
 alter table nv_child_2011 VALIDATE CONSTRAINT nv_child_2011_d_check;
@@ -640,7 +648,8 @@ explain (costs off) select * from nv_parent where d between '2009-08-01'::date a
          Filter: ((d >= '08-01-2009'::date) AND (d <= '08-31-2009'::date))
    ->  Seq Scan on nv_child_2009 nv_parent_3
          Filter: ((d >= '08-01-2009'::date) AND (d <= '08-31-2009'::date))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- add an inherited NOT VALID constraint
 alter table nv_parent add check (d between '2001-01-01'::date and '2099-12-31'::date) not valid;
@@ -675,11 +684,10 @@ DROP TABLE FKTABLE;
 -- because int=int8 exists and is a member of the integer opfamily
 CREATE TEMP TABLE FKTABLE (ftest1 int8);
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 -- Check it actually works
 INSERT INTO FKTABLE VALUES(42);		-- should succeed
 INSERT INTO FKTABLE VALUES(43);		-- should fail
-ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_ftest1_fkey"
-DETAIL:  Key (ftest1)=(43) is not present in table "pktable".
 DROP TABLE FKTABLE;
 -- This should fail, because we'd have to cast numeric to int which is
 -- not an implicit coercion (or use numeric=numeric, but that's not part
@@ -696,11 +704,10 @@ CREATE TEMP TABLE PKTABLE (ptest1 numeric PRIMARY KEY);
 INSERT INTO PKTABLE VALUES(42);
 CREATE TEMP TABLE FKTABLE (ftest1 int);
 ALTER TABLE FKTABLE ADD FOREIGN KEY(ftest1) references pktable;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 -- Check it actually works
 INSERT INTO FKTABLE VALUES(42);		-- should succeed
 INSERT INTO FKTABLE VALUES(43);		-- should fail
-ERROR:  insert or update on table "fktable" violates foreign key constraint "fktable_ftest1_fkey"
-DETAIL:  Key (ftest1)=(43) is not present in table "pktable".
 DROP TABLE FKTABLE;
 DROP TABLE PKTABLE;
 CREATE TEMP TABLE PKTABLE (ptest1 int, ptest2 inet,
@@ -736,18 +743,24 @@ CREATE TEMP TABLE PKTABLE (ptest1 int primary key);
 CREATE TEMP TABLE FKTABLE (ftest1 int);
 ALTER TABLE FKTABLE ADD CONSTRAINT fknd FOREIGN KEY(ftest1) REFERENCES pktable
   ON DELETE CASCADE ON UPDATE NO ACTION NOT DEFERRABLE;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE FKTABLE ADD CONSTRAINT fkdd FOREIGN KEY(ftest1) REFERENCES pktable
   ON DELETE CASCADE ON UPDATE NO ACTION DEFERRABLE INITIALLY DEFERRED;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE FKTABLE ADD CONSTRAINT fkdi FOREIGN KEY(ftest1) REFERENCES pktable
   ON DELETE CASCADE ON UPDATE NO ACTION DEFERRABLE INITIALLY IMMEDIATE;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE FKTABLE ADD CONSTRAINT fknd2 FOREIGN KEY(ftest1) REFERENCES pktable
   ON DELETE CASCADE ON UPDATE NO ACTION DEFERRABLE INITIALLY DEFERRED;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE FKTABLE ALTER CONSTRAINT fknd2 NOT DEFERRABLE;
 ALTER TABLE FKTABLE ADD CONSTRAINT fkdd2 FOREIGN KEY(ftest1) REFERENCES pktable
   ON DELETE CASCADE ON UPDATE NO ACTION NOT DEFERRABLE;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE FKTABLE ALTER CONSTRAINT fkdd2 DEFERRABLE INITIALLY DEFERRED;
 ALTER TABLE FKTABLE ADD CONSTRAINT fkdi2 FOREIGN KEY(ftest1) REFERENCES pktable
   ON DELETE CASCADE ON UPDATE NO ACTION NOT DEFERRABLE;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE FKTABLE ALTER CONSTRAINT fkdi2 DEFERRABLE INITIALLY IMMEDIATE;
 SELECT conname, tgfoid::regproc, tgtype, tgdeferrable, tginitdeferred
 FROM pg_trigger JOIN pg_constraint con ON con.oid = tgconstraint
@@ -794,6 +807,9 @@ ORDER BY 1,2,3;
 create table atacc1 ( test int );
 -- add a check constraint
 alter table atacc1 add constraint atacc_test1 check (test>3);
+-- start_ignore
+-- Known_opt_diff: MPP-21330
+-- end_ignore
 -- should fail
 insert into atacc1 (test) values (2);
 ERROR:  new row for relation "atacc1" violates check constraint "atacc_test1"
@@ -924,7 +940,7 @@ ERROR:  check constraint "foo" of relation "atacc2" is violated by some row
 drop table atacc2;
 drop table atacc1;
 -- test unique constraint adding
-create table atacc1 ( test int ) ;
+create table atacc1 ( test int );
 -- add a unique constraint
 alter table atacc1 add constraint atacc_test1 unique (test);
 -- insert first value
@@ -937,8 +953,8 @@ DETAIL:  Key (test)=(2) already exists.
 insert into atacc1 (test) values (4);
 -- try to create duplicates via alter table using - should fail
 alter table atacc1 alter column test type integer using 0;
-ERROR:  could not create unique index "atacc_test1"
-DETAIL:  Key (test)=(0) is duplicated.
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 drop table atacc1;
 -- let's do one where the unique constraint fails when added
 create table atacc1 ( test int );
@@ -983,7 +999,7 @@ ERROR:  duplicate key value violates unique constraint "atacc1_test_key"
 DETAIL:  Key (test)=(3) already exists.
 drop table atacc1;
 -- test primary key constraint adding
-create table atacc1 ( id serial, test int) ;
+create table atacc1 ( id serial, test int);
 -- add a primary key constraint
 alter table atacc1 add constraint atacc_test1 primary key (test);
 -- insert first value
@@ -1054,7 +1070,10 @@ drop table atacc1;
 -- properly delayed until after a table rewrite.  Check that works ok.
 create table atacc1 (a int primary key);
 alter table atacc1 add constraint atacc1_fkey foreign key (a) references atacc1 (a) not valid;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 alter table atacc1 validate constraint atacc1_fkey, alter a type bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 drop table atacc1;
 -- we've also seen issues with check constraints being validated at the wrong
 -- time when there's a pending table rewrite.
@@ -1426,9 +1445,9 @@ ERROR:  column "bar" of relation "atacc1" does not exist
 alter table atacc1 SET WITHOUT OIDS;
 -- try adding an oid column, should fail (not supported)
 alter table atacc1 SET WITH OIDS;
-ERROR:  syntax error at or near "WITH"
+ERROR:  syntax error at or near "OIDS"
 LINE 1: alter table atacc1 SET WITH OIDS;
-                               ^
+                                    ^
 -- try dropping the xmin column, should fail
 alter table atacc1 drop xmin;
 ERROR:  cannot drop system column "xmin"
@@ -2005,12 +2024,22 @@ Indexes:
     "anothertab_f4_excl1" EXCLUDE USING btree (f4 WITH =) WHERE (f5 > 0)
     "anothertab_f4_idx" UNIQUE, btree (f4)
 
+-- In GPDB, you cannot change the type of a column that's part of a unique key
+alter table anothertab drop constraint anothertab_pkey;
+alter table anothertab drop constraint anothertab_f1_f4_key ;
+alter table anothertab drop constraint anothertab_f2_key;
+drop index anothertab_f4_idx;
 alter table anothertab alter column f1 type bigint;
 alter table anothertab
   alter column f2 type bigint,
   alter column f3 type bigint,
   alter column f4 type bigint;
 alter table anothertab alter column f5 type bigint;
+-- restore primary and unique keys
+alter table anothertab add constraint anothertab_pkey primary key (f1);
+alter table anothertab add constraint anothertab_f1_f4_key unique (f1, f4);
+create unique index on anothertab(f4);
+alter table anothertab add constraint anothertab_f2_key unique (f2);
 \d anothertab
             Table "public.anothertab"
  Column |  Type  | Collation | Nullable | Default 
@@ -2062,6 +2091,8 @@ drop table another;
 begin;
 create table skip_wal_skip_rewrite_index (c varchar(10) primary key);
 alter table skip_wal_skip_rewrite_index alter c type varchar(20);
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 commit;
 -- We disallow changing table's row type if it's used for storage
 create table at_tab1 (a int, b text);
@@ -2162,6 +2193,9 @@ insert into at_partitioned values(3, 'bar');
 create temp table old_oids as
   select relname, oid as oldoid, relfilenode as oldfilenode
   from pg_class where relname like 'at_partitioned%';
+-- GPDB: the output for these queries differ from upstream, because GPDB
+-- assigns a new relfilenode for every table, it never uses the table's
+-- OID as the relfilenode like Postgres does.
 select relname,
   c.oid = oldoid as orig_oid,
   case relfilenode
@@ -2177,10 +2211,10 @@ select relname,
            relname            | orig_oid | storage |     desc      
 ------------------------------+----------+---------+---------------
  at_partitioned               | t        | none    | 
- at_partitioned_0             | t        | own     | 
- at_partitioned_0_id_name_key | t        | own     | child 0 index
- at_partitioned_1             | t        | own     | 
- at_partitioned_1_id_name_key | t        | own     | child 1 index
+ at_partitioned_0             | t        | orig    | 
+ at_partitioned_0_id_name_key | t        | orig    | child 0 index
+ at_partitioned_1             | t        | orig    | 
+ at_partitioned_1_id_name_key | t        | orig    | child 1 index
  at_partitioned_id_name_key   | t        | none    | parent index
 (6 rows)
 
@@ -2194,7 +2228,10 @@ select conname, obj_description(oid, 'pg_constraint') as desc
  at_partitioned_id_name_key   | parent constraint
 (3 rows)
 
+-- this doesn't work in GPDB, which makes the rest of the test quite pointless.
 alter table at_partitioned alter column name type varchar(127);
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 -- Note: these tests currently show the wrong behavior for comments :-(
 select relname,
   c.oid = oldoid as orig_oid,
@@ -2208,23 +2245,23 @@ select relname,
   from pg_class c left join old_oids using (relname)
   where relname like 'at_partitioned%'
   order by relname;
-           relname            | orig_oid | storage |     desc     
-------------------------------+----------+---------+--------------
+           relname            | orig_oid | storage |     desc      
+------------------------------+----------+---------+---------------
  at_partitioned               | t        | none    | 
- at_partitioned_0             | t        | own     | 
- at_partitioned_0_id_name_key | f        | own     | parent index
- at_partitioned_1             | t        | own     | 
- at_partitioned_1_id_name_key | f        | own     | parent index
- at_partitioned_id_name_key   | f        | none    | parent index
+ at_partitioned_0             | t        | orig    | 
+ at_partitioned_0_id_name_key | t        | orig    | child 0 index
+ at_partitioned_1             | t        | orig    | 
+ at_partitioned_1_id_name_key | t        | orig    | child 1 index
+ at_partitioned_id_name_key   | t        | none    | parent index
 (6 rows)
 
 select conname, obj_description(oid, 'pg_constraint') as desc
   from pg_constraint where conname like 'at_partitioned%'
   order by conname;
-           conname            |       desc        
-------------------------------+-------------------
- at_partitioned_0_id_name_key | 
- at_partitioned_1_id_name_key | 
+           conname            |        desc        
+------------------------------+--------------------
+ at_partitioned_0_id_name_key | child 0 constraint
+ at_partitioned_1_id_name_key | child 1 constraint
  at_partitioned_id_name_key   | parent constraint
 (3 rows)
 
@@ -2451,6 +2488,7 @@ DETAIL:  USING expression contains a whole-row table reference.
 -- check for rollback of ANALYZE corrupting table property flags (bug #11638)
 CREATE TABLE check_fk_presence_1 (id int PRIMARY KEY, t text);
 CREATE TABLE check_fk_presence_2 (id int REFERENCES check_fk_presence_1, t text);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 BEGIN;
 ALTER TABLE check_fk_presence_2 DROP CONSTRAINT check_fk_presence_2_id_fkey;
 ANALYZE check_fk_presence_2;
@@ -2499,7 +2537,9 @@ explain (verbose, costs off) select * from at_view_2;
 ----------------------------------------------------------
  Seq Scan on public.at_base_table bt
    Output: bt.id, bt.stuff, to_json(ROW(bt.id, bt.stuff))
-(2 rows)
+ Settings: constraint_exclusion = 'partition'
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 select * from at_view_2;
  id | stuff  |             j              
@@ -2539,7 +2579,9 @@ explain (verbose, costs off) select * from at_view_2;
 ----------------------------------------------------------------
  Seq Scan on public.at_base_table bt
    Output: bt.id, bt.stuff, to_json(ROW(bt.id, bt.stuff, NULL))
-(2 rows)
+ Settings: constraint_exclusion = 'partition'
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 select * from at_view_2;
  id | stuff  |                   j                    
@@ -2715,6 +2757,7 @@ select * from my_locks order by 1;
 
 commit;
 begin; alter table alterlock set (toast.autovacuum_enabled = off);
+WARNING:  autovacuum is not supported in Cloudberry
 select * from my_locks order by 1;
   relname  |       max_lockmode       
 -----------+--------------------------
@@ -2724,6 +2767,7 @@ select * from my_locks order by 1;
 
 commit;
 begin; alter table alterlock set (autovacuum_enabled = off);
+WARNING:  autovacuum is not supported in Cloudberry
 select * from my_locks order by 1;
   relname  |       max_lockmode       
 -----------+--------------------------
@@ -2742,6 +2786,7 @@ select * from my_locks order by 1;
 rollback;
 -- test that mixing options with different lock levels works as expected
 begin; alter table alterlock set (autovacuum_enabled = off, fillfactor = 80);
+WARNING:  autovacuum is not supported in Cloudberry
 select * from my_locks order by 1;
   relname  |       max_lockmode       
 -----------+--------------------------
@@ -2786,19 +2831,19 @@ select * from my_locks order by 1;
 (0 rows)
 
 alter table alterlock2 add foreign key (f1) references alterlock (f1);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 select * from my_locks order by 1;
-     relname     |     max_lockmode      
------------------+-----------------------
- alterlock       | ShareRowExclusiveLock
- alterlock2      | ShareRowExclusiveLock
- alterlock2_pkey | AccessShareLock
- alterlock_pkey  | AccessShareLock
-(4 rows)
+  relname   |     max_lockmode      
+------------+-----------------------
+ alterlock  | ShareRowExclusiveLock
+ alterlock2 | ShareRowExclusiveLock
+(2 rows)
 
 rollback;
 begin;
 alter table alterlock2
 add constraint alterlock2nv foreign key (f1) references alterlock (f1) NOT VALID;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 select * from my_locks order by 1;
   relname   |     max_lockmode      
 ------------+-----------------------
@@ -2810,13 +2855,10 @@ commit;
 begin;
 alter table alterlock2 validate constraint alterlock2nv;
 select * from my_locks order by 1;
-     relname     |       max_lockmode       
------------------+--------------------------
- alterlock       | RowShareLock
- alterlock2      | ShareUpdateExclusiveLock
- alterlock2_pkey | AccessShareLock
- alterlock_pkey  | AccessShareLock
-(4 rows)
+  relname   |       max_lockmode       
+------------+--------------------------
+ alterlock2 | ShareUpdateExclusiveLock
+(1 row)
 
 rollback;
 create or replace view my_locks as
@@ -2832,11 +2874,15 @@ and c.relname = 'my_locks'
 group by c.relname;
 -- raise exception
 alter table my_locks set (autovacuum_enabled = false);
+WARNING:  autovacuum is not supported in Cloudberry
 ERROR:  unrecognized parameter "autovacuum_enabled"
 alter view my_locks set (autovacuum_enabled = false);
+WARNING:  autovacuum is not supported in Cloudberry
 ERROR:  unrecognized parameter "autovacuum_enabled"
 alter table my_locks reset (autovacuum_enabled);
+WARNING:  autovacuum is not supported in Cloudberry
 alter view my_locks reset (autovacuum_enabled);
+WARNING:  autovacuum is not supported in Cloudberry
 begin;
 alter view my_locks set (security_barrier=off);
 select * from my_locks order by 1;
@@ -2870,7 +2916,7 @@ drop type lockmodes;
 --
 create function test_strict(text) returns text as
     'select coalesce($1, ''got passed a null'');'
-    language sql returns null on null input;
+    language sql CONTAINS SQL returns null on null input;
 select test_strict(NULL);
  test_strict 
 -------------
@@ -2886,7 +2932,7 @@ select test_strict(NULL);
 
 create function non_strict(text) returns text as
     'select coalesce($1, ''got passed a null'');'
-    language sql called on null input;
+    language sql CONTAINS SQL called on null input;
 select non_strict(NULL);
     non_strict     
 -------------------
@@ -2907,7 +2953,7 @@ create schema alter1;
 create schema alter2;
 create table alter1.t1(f1 serial primary key, f2 int check (f2 > 0));
 create view alter1.v1 as select * from alter1.t1;
-create function alter1.plus1(int) returns int as 'select $1+1' language sql;
+create function alter1.plus1(int) returns int as 'select $1+1' language sql CONTAINS SQL;
 create domain alter1.posint integer check (value > 0);
 create type alter1.ctype as (f1 int, f2 text);
 create function alter1.same(alter1.ctype, alter1.ctype) returns boolean language sql
@@ -3346,8 +3392,16 @@ SELECT conname as constraint, obj_description(oid, 'pg_constraint') as comment F
 -- first, to test that no-op codepath, and another one that does.
 ALTER TABLE comment_test ALTER COLUMN indexed_col SET DATA TYPE int;
 ALTER TABLE comment_test ALTER COLUMN indexed_col SET DATA TYPE text;
+-- Changing the data type of an indexed column is not supported in GPDB as of fecd245
 ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE int;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE text;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
+ALTER TABLE comment_test DROP CONSTRAINT comment_test_pk;
+ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE text;
+ALTER TABLE comment_test ADD CONSTRAINT comment_test_pk PRIMARY KEY (id);
 ALTER TABLE comment_test ALTER COLUMN positive_col SET DATA TYPE int;
 ALTER TABLE comment_test ALTER COLUMN positive_col SET DATA TYPE bigint;
 -- Check that the comments are intact.
@@ -3358,16 +3412,16 @@ SELECT col_description('comment_test'::regclass, 1) as comment;
 (1 row)
 
 SELECT indexrelid::regclass::text as index, obj_description(indexrelid, 'pg_class') as comment FROM pg_index where indrelid = 'comment_test'::regclass ORDER BY 1, 2;
-       index        |                    comment                    
---------------------+-----------------------------------------------
+       index        |           comment            
+--------------------+------------------------------
  comment_test_index | Simple index on comment_test
- comment_test_pk    | Index backing the PRIMARY KEY of comment_test
+ comment_test_pk    | 
 (2 rows)
 
 SELECT conname as constraint, obj_description(oid, 'pg_constraint') as comment FROM pg_constraint where conrelid = 'comment_test'::regclass ORDER BY 1, 2;
            constraint            |                    comment                    
 ---------------------------------+-----------------------------------------------
- comment_test_pk                 | PRIMARY KEY constraint of comment_test
+ comment_test_pk                 | 
  comment_test_positive_col_check | CHECK constraint on comment_test.positive_col
 (2 rows)
 
@@ -3376,15 +3430,18 @@ SELECT conname as constraint, obj_description(oid, 'pg_constraint') as comment F
 -- to an error and would reduce the test scope.
 CREATE TABLE comment_test_child (
   id text CONSTRAINT comment_test_child_fk REFERENCES comment_test);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 CREATE INDEX comment_test_child_fk ON comment_test_child(id);
 COMMENT ON COLUMN comment_test_child.id IS 'Column ''id'' on comment_test_child';
 COMMENT ON INDEX comment_test_child_fk IS 'Index backing the FOREIGN KEY of comment_test_child';
 COMMENT ON CONSTRAINT comment_test_child_fk ON comment_test_child IS 'FOREIGN KEY constraint of comment_test_child';
 -- Change column type of parent
 ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE text;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 ALTER TABLE comment_test ALTER COLUMN id SET DATA TYPE int USING id::integer;
-ERROR:  foreign key constraint "comment_test_child_fk" cannot be implemented
-DETAIL:  Key columns "id" and "id" are of incompatible types: text and integer.
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 -- Comments should be intact
 SELECT col_description('comment_test_child'::regclass, 1) as comment;
               comment              
@@ -3468,7 +3525,9 @@ ORDER BY relname;
 (5 rows)
 
 CREATE UNLOGGED TABLE unlogged2(f1 SERIAL PRIMARY KEY, f2 INTEGER REFERENCES unlogged1); -- foreign key
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 CREATE UNLOGGED TABLE unlogged3(f1 SERIAL PRIMARY KEY, f2 INTEGER REFERENCES unlogged3); -- self-referencing foreign key
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE unlogged3 SET LOGGED; -- skip self-referencing foreign key
 ALTER TABLE unlogged2 SET LOGGED; -- fails because a foreign key to an unlogged table exists
 ERROR:  could not change table "unlogged2" to logged because it references unlogged table "unlogged1"
@@ -3512,7 +3571,9 @@ ORDER BY relname;
 (5 rows)
 
 CREATE TABLE logged2(f1 SERIAL PRIMARY KEY, f2 INTEGER REFERENCES logged1); -- foreign key
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 CREATE TABLE logged3(f1 SERIAL PRIMARY KEY, f2 INTEGER REFERENCES logged3); -- self-referencing foreign key
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 ALTER TABLE logged1 SET UNLOGGED; -- fails because a foreign key from a permanent table exists
 ERROR:  could not change table "logged1" to unlogged because it references logged table "logged2"
 ALTER TABLE logged3 SET UNLOGGED; -- skip self-referencing foreign key
@@ -3627,6 +3688,7 @@ ALTER TABLE test_add_column
 	ADD COLUMN c4 integer REFERENCES test_add_column;
 NOTICE:  column "c2" of relation "test_add_column" already exists, skipping
 NOTICE:  column "c3" of relation "test_add_column" already exists, skipping
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 \d test_add_column
           Table "public.test_add_column"
  Column |  Type   | Collation | Nullable | Default 
@@ -3749,6 +3811,7 @@ CREATE TABLE ataddindex(id int, ref_id int);
 ALTER TABLE ataddindex
   ADD PRIMARY KEY (id),
   ADD FOREIGN KEY (ref_id) REFERENCES ataddindex;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 \d ataddindex
              Table "public.ataddindex"
  Column |  Type   | Collation | Nullable | Default 
@@ -3767,6 +3830,7 @@ CREATE TABLE ataddindex(id int, ref_id int);
 ALTER TABLE ataddindex
   ADD UNIQUE (id),
   ADD FOREIGN KEY (ref_id) REFERENCES ataddindex (id);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 \d ataddindex
              Table "public.ataddindex"
  Column |  Type   | Collation | Nullable | Default 
@@ -4247,20 +4311,21 @@ COMMIT;
 CREATE TABLE part_rpd PARTITION OF range_parted2 DEFAULT;
 -- doesn't work if there's a default partition
 ALTER TABLE range_parted2 DETACH PARTITION part_rp CONCURRENTLY;
-ERROR:  cannot detach partitions concurrently when a default partition exists
+ERROR:  cannot support detach partitions concurrently now
 -- doesn't work for the default partition
 ALTER TABLE range_parted2 DETACH PARTITION part_rpd CONCURRENTLY;
-ERROR:  cannot detach partitions concurrently when a default partition exists
+ERROR:  cannot support detach partitions concurrently now
 DROP TABLE part_rpd;
 -- works fine
 ALTER TABLE range_parted2 DETACH PARTITION part_rp CONCURRENTLY;
+ERROR:  cannot support detach partitions concurrently now
 \d+ range_parted2
                          Partitioned table "public.range_parted2"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
 --------+---------+-----------+----------+---------+---------+--------------+-------------
  a      | integer |           |          |         | plain   |              | 
 Partition key: RANGE (a)
-Number of partitions: 0
+Partitions: part_rp FOR VALUES FROM (0) TO (100)
 
 -- constraint should be created
 \d part_rp
@@ -4268,17 +4333,18 @@ Number of partitions: 0
  Column |  Type   | Collation | Nullable | Default 
 --------+---------+-----------+----------+---------
  a      | integer |           |          | 
-Check constraints:
-    "part_rp_a_check" CHECK (a IS NOT NULL AND a >= 0 AND a < 100)
+Partition of: range_parted2 FOR VALUES FROM (0) TO (100)
 
 CREATE TABLE part_rp100 PARTITION OF range_parted2 (CHECK (a>=123 AND a<133 AND a IS NOT NULL)) FOR VALUES FROM (100) to (200);
 ALTER TABLE range_parted2 DETACH PARTITION part_rp100 CONCURRENTLY;
+ERROR:  cannot support detach partitions concurrently now
 -- redundant constraint should not be created
 \d part_rp100
              Table "public.part_rp100"
  Column |  Type   | Collation | Nullable | Default 
 --------+---------+-----------+----------+---------
  a      | integer |           |          | 
+Partition of: range_parted2 FOR VALUES FROM (100) TO (200)
 Check constraints:
     "part_rp100_a_check" CHECK (a >= 123 AND a < 133 AND a IS NOT NULL)
 
@@ -4450,10 +4516,10 @@ create or replace function func_part_attach() returns trigger
   end $$;
 create trigger trig_part_attach before insert on tab_part_attach
   for each statement execute procedure func_part_attach();
+ERROR:  Triggers for statements are not yet supported
 insert into tab_part_attach values (1);
-ERROR:  cannot ALTER TABLE "tab_part_attach" because it is being used by active queries in this session
-CONTEXT:  SQL statement "alter table tab_part_attach attach partition tab_part_attach_1 for values in (1)"
-PL/pgSQL function func_part_attach() line 4 at EXECUTE
+ERROR:  no partition of relation "tab_part_attach" found for row
+DETAIL:  Partition key of the failing row contains (a) = (1).
 drop table tab_part_attach;
 drop function func_part_attach();
 -- test case where the partitioning operator is a SQL function whose
@@ -4506,21 +4572,29 @@ create trigger xtrig
   after update on bar1
   referencing old table as old
   for each statement execute procedure xtrig();
+ERROR:  Triggers for statements are not yet supported
 update bar1 set a = a + 1;
-INFO:  a=1, b=1
 /* End test case for bug #16242 */
 /* Test case for bug #17409 */
 create table attbl (p1 int constraint pk_attbl primary key);
 create table atref (c1 int references attbl(p1));
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 cluster attbl using pk_attbl;
 alter table attbl alter column p1 set data type bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 alter table atref alter column c1 set data type bigint;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 drop table attbl, atref;
 create table attbl (p1 int constraint pk_attbl primary key);
 alter table attbl replica identity using index pk_attbl;
 create table atref (c1 int references attbl(p1));
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 alter table attbl alter column p1 set data type bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 alter table atref alter column c1 set data type bigint;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 drop table attbl, atref;
 /* End test case for bug #17409 */
 -- Test that ALTER TABLE rewrite preserves a clustered index
@@ -4540,6 +4614,8 @@ select indexrelid::regclass, indisclustered from pg_index
 (2 rows)
 
 alter table alttype_cluster alter a type bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 select indexrelid::regclass, indisclustered from pg_index
   where indrelid = 'alttype_cluster'::regclass
   order by indexrelid::regclass::text;
@@ -4561,6 +4637,8 @@ select indexrelid::regclass, indisclustered from pg_index
 (2 rows)
 
 alter table alttype_cluster alter a type int;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 select indexrelid::regclass, indisclustered from pg_index
   where indrelid = 'alttype_cluster'::regclass
   order by indexrelid::regclass::text;

@@ -90,6 +90,10 @@ end$$;
 -- and toast tables are mutually exclusive and large object data is handled
 -- as user data by pg_upgrade, which would cause failures.
 
+-- GPDB: A few GPDB catalog tables are also missing toast tables. Not
+-- for any particular reason, but the fields are only used to store short
+-- system-generated values, so they don't need toasting.
+
 SELECT relname, attname, atttypid::regtype
 FROM pg_class c JOIN pg_attribute a ON c.oid = attrelid
 WHERE c.oid < 16384 AND
@@ -107,6 +111,7 @@ SELECT relname
 FROM pg_class
 WHERE relnamespace = 'pg_catalog'::regnamespace AND relkind = 'r'
       AND pg_class.oid NOT IN (SELECT indrelid FROM pg_index WHERE indisprimary)
+      AND relname NOT like 'gp_segment_configuration'
 ORDER BY 1;
 
 

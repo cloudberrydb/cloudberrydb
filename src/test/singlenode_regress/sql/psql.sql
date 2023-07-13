@@ -1129,8 +1129,12 @@ select unique2 from tenk1 order by unique2 limit 19;
 \echo 'error code:' :SQLSTATE
 \echo 'number of rows:' :ROW_COUNT
 
--- cursor-fetched query with an error after the first group
-select 1/(15-unique2) from tenk1 order by unique2 limit 19;
+-- cursor-fetched query with an error after the first group. In GPDB, the
+-- query used in PostgreSQL errors out too early in the segments. Use a
+-- different query that behaves the way this is intended.
+--select 1/(15-unique2) from tenk1 order by unique2 limit 19;
+select 1/(15-g) from generate_series(1, 1000000) g;
+
 \echo 'error:' :ERROR
 \echo 'error code:' :SQLSTATE
 \echo 'number of rows:' :ROW_COUNT

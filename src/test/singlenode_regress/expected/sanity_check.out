@@ -7,9 +7,14 @@ VACUUM;
 --
 -- temporarily disable fancy output, so catalog changes create less diff noise
 \a\t
+-- filter tables with same name under schema singleseg created by GPDB 
 SELECT relname, relhasindex
    FROM pg_class c LEFT JOIN pg_namespace n ON n.oid = relnamespace
    WHERE relkind IN ('r', 'p') AND (nspname ~ '^pg_temp_') IS NOT TRUE
+   AND relname NOT LIKE 'gp_%'
+   AND relname NOT LIKE '__gp_%'
+   AND relname <> 'pg_resqueue'
+   AND n.nspname <> 'singleseg'
    ORDER BY relname;
 a|f
 a_star|f
@@ -105,13 +110,17 @@ pg_aggregate|t
 pg_am|t
 pg_amop|t
 pg_amproc|t
+pg_appendonly|t
 pg_attrdef|t
 pg_attribute|t
+pg_attribute_encoding|t
 pg_auth_members|t
+pg_auth_time_constraint|t
 pg_authid|t
 pg_cast|t
 pg_class|t
 pg_collation|t
+pg_compression|t
 pg_constraint|t
 pg_conversion|t
 pg_database|t
@@ -122,6 +131,7 @@ pg_description|t
 pg_enum|t
 pg_event_trigger|t
 pg_extension|t
+pg_extprotocol|t
 pg_foreign_data_wrapper|t
 pg_foreign_server|t
 pg_foreign_table|t
@@ -138,22 +148,31 @@ pg_opfamily|t
 pg_partitioned_table|t
 pg_policy|t
 pg_proc|t
+pg_proc_callback|t
 pg_publication|t
 pg_publication_rel|t
 pg_range|t
 pg_replication_origin|t
+pg_resgroup|t
+pg_resgroupcapability|t
+pg_resourcetype|t
+pg_resqueuecapability|t
 pg_rewrite|t
 pg_seclabel|t
 pg_sequence|t
 pg_shdepend|t
 pg_shdescription|t
 pg_shseclabel|t
+pg_stat_last_operation|t
+pg_stat_last_shoperation|t
 pg_statistic|t
 pg_statistic_ext|t
 pg_statistic_ext_data|t
 pg_subscription|t
 pg_subscription_rel|t
 pg_tablespace|t
+pg_task|t
+pg_task_run_history|t
 pg_transform|t
 pg_trigger|t
 pg_ts_config|t
@@ -162,6 +181,7 @@ pg_ts_dict|t
 pg_ts_parser|t
 pg_ts_template|t
 pg_type|t
+pg_type_encoding|t
 pg_user_mapping|t
 point_tbl|t
 polygon_tbl|t
@@ -216,6 +236,7 @@ trigger_parted_p1|t
 trigger_parted_p1_1|t
 trigger_parted_p2|t
 trigger_parted_p2_2|t
+unlogged_toast|f
 varchar_tbl|f
 view_base_table|t
 -- restore normal output mode

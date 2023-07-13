@@ -51,7 +51,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt2 t2 WHERE t1.a = t2.b AND t1.b =
                ->  Hash
                      ->  Seq Scan on prt1_p3 t1_3
                            Filter: (b = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt2 t2 WHERE t1.a = t2.b AND t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -83,7 +84,8 @@ SELECT t1, t2 FROM prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b WHERE t1.b = 0 ORDER
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_p3 t1_3
                            Filter: (b = 0)
-(16 rows)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 SELECT t1, t2 FROM prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b WHERE t1.b = 0 ORDER BY t1.a, t2.b;
       t1      |      t2      
@@ -105,8 +107,8 @@ SELECT t1, t2 FROM prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b WHERE t1.b = 0 ORDER
 -- right outer join
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1 RIGHT JOIN prt2 t2 ON t1.a = t2.b WHERE t2.a = 0 ORDER BY t1.a, t2.b;
-                          QUERY PLAN                           
----------------------------------------------------------------
+                    QUERY PLAN                    
+--------------------------------------------------
  Sort
    Sort Key: t1.a, t2.b
    ->  Append
@@ -122,12 +124,14 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1 RIGHT JOIN prt2 t2 ON t1.a = t2.b WHE
                ->  Hash
                      ->  Seq Scan on prt2_p2 t2_2
                            Filter: (a = 0)
-         ->  Nested Loop Left Join
-               ->  Seq Scan on prt2_p3 t2_3
-                     Filter: (a = 0)
-               ->  Index Scan using iprt1_p3_a on prt1_p3 t1_3
-                     Index Cond: (a = t2_3.b)
-(20 rows)
+         ->  Hash Right Join
+               Hash Cond: (t1_3.a = t2_3.b)
+               ->  Seq Scan on prt1_p3 t1_3
+               ->  Hash
+                     ->  Seq Scan on prt2_p3 t2_3
+                           Filter: (a = 0)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1 RIGHT JOIN prt2 t2 ON t1.a = t2.b WHERE t2.a = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -174,7 +178,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 50 phv, * FROM prt1 WHERE prt1.b = 0)
                ->  Hash
                      ->  Seq Scan on prt2_p3 prt2_3
                            Filter: (a = 0)
-(27 rows)
+ Optimizer: Postgres query optimizer
+(28 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 50 phv, * FROM prt1 WHERE prt1.b = 0) t1 FULL JOIN (SELECT 75 phv, * FROM prt2 WHERE prt2.a = 0) t2 ON (t1.a = t2.b) WHERE t1.phv = t1.a OR t2.phv = t2.b ORDER BY t1.a, t2.b;
  a  |  c   | b  |  c   
@@ -186,18 +191,19 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 50 phv, * FROM prt1 WHERE prt1.b = 0)
 -- Join with pruned partitions from joining relations
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt2 t2 WHERE t1.a = t2.b AND t1.a < 450 AND t2.b > 250 AND t1.b = 0 ORDER BY t1.a, t2.b;
-                     QUERY PLAN                      
------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Hash Join
          Hash Cond: (t2.b = t1.a)
          ->  Seq Scan on prt2_p2 t2
-               Filter: (b > 250)
+               Filter: ((b > 250) AND (b < 450))
          ->  Hash
                ->  Seq Scan on prt1_p2 t1
-                     Filter: ((a < 450) AND (b = 0))
-(9 rows)
+                     Filter: ((a < 450) AND (a > 250) AND (b = 0))
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt2 t2 WHERE t1.a = t2.b AND t1.a < 450 AND t2.b > 250 AND t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -225,7 +231,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a < 450) t1 LEFT JO
                            Filter: ((a < 450) AND (b = 0))
                      ->  Seq Scan on prt1_p2 prt1_2
                            Filter: ((a < 450) AND (b = 0))
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a < 450) t1 LEFT JOIN (SELECT * FROM prt2 WHERE b > 250) t2 ON t1.a = t2.b WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -262,7 +269,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a < 450) t1 FULL JO
                            Filter: (b > 250)
                      ->  Seq Scan on prt2_p3 prt2_2
                            Filter: (b > 250)
-(16 rows)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a < 450) t1 FULL JOIN (SELECT * FROM prt2 WHERE b > 250) t2 ON t1.a = t2.b WHERE t1.b = 0 OR t2.a = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -303,14 +311,15 @@ SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t2.b FROM prt2 t2 WHERE t2.a = 0)
                ->  Hash
                      ->  Seq Scan on prt2_p2 t2_2
                            Filter: (a = 0)
-         ->  Nested Loop Semi Join
-               Join Filter: (t1_3.a = t2_3.b)
+         ->  Hash Semi Join
+               Hash Cond: (t1_3.a = t2_3.b)
                ->  Seq Scan on prt1_p3 t1_3
                      Filter: (b = 0)
-               ->  Materialize
+               ->  Hash
                      ->  Seq Scan on prt2_p3 t2_3
                            Filter: (a = 0)
-(24 rows)
+ Optimizer: Postgres query optimizer
+(25 rows)
 
 SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t2.b FROM prt2 t2 WHERE t2.a = 0) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -343,7 +352,8 @@ SELECT sum(t1.a), avg(t1.a), sum(t1.b), avg(t1.b) FROM prt1 t1 WHERE NOT EXISTS 
                ->  Seq Scan on prt1_p3 t1_3
                ->  Hash
                      ->  Seq Scan on prt2_p3 t2_3
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 SELECT sum(t1.a), avg(t1.a), sum(t1.b), avg(t1.b) FROM prt1 t1 WHERE NOT EXISTS (SELECT 1 FROM prt2 t2 WHERE t1.a = t2.b);
   sum  |         avg          | sum  |         avg         
@@ -358,34 +368,37 @@ SELECT * FROM prt1 t1 LEFT JOIN LATERAL
 			  ON t1.a = ss.t2a WHERE t1.b = 0 ORDER BY t1.a;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Sort
+ Merge Append
    Sort Key: t1.a
-   ->  Append
-         ->  Nested Loop Left Join
-               ->  Seq Scan on prt1_p1 t1_1
-                     Filter: (b = 0)
-               ->  Nested Loop
+   ->  Nested Loop Left Join
+         ->  Index Scan using iprt1_p1_a on prt1_p1 t1_1
+               Filter: (b = 0)
+         ->  Hash Join
+               Hash Cond: (t3_1.b = t2_1.a)
+               ->  Seq Scan on prt2_p1 t3_1
+               ->  Hash
                      ->  Index Only Scan using iprt1_p1_a on prt1_p1 t2_1
                            Index Cond: (a = t1_1.a)
-                     ->  Index Scan using iprt2_p1_b on prt2_p1 t3_1
-                           Index Cond: (b = t2_1.a)
-         ->  Nested Loop Left Join
-               ->  Seq Scan on prt1_p2 t1_2
-                     Filter: (b = 0)
-               ->  Nested Loop
+   ->  Nested Loop Left Join
+         ->  Index Scan using iprt1_p2_a on prt1_p2 t1_2
+               Filter: (b = 0)
+         ->  Hash Join
+               Hash Cond: (t3_2.b = t2_2.a)
+               ->  Seq Scan on prt2_p2 t3_2
+               ->  Hash
                      ->  Index Only Scan using iprt1_p2_a on prt1_p2 t2_2
                            Index Cond: (a = t1_2.a)
-                     ->  Index Scan using iprt2_p2_b on prt2_p2 t3_2
-                           Index Cond: (b = t2_2.a)
-         ->  Nested Loop Left Join
-               ->  Seq Scan on prt1_p3 t1_3
-                     Filter: (b = 0)
-               ->  Nested Loop
+   ->  Nested Loop Left Join
+         ->  Index Scan using iprt1_p3_a on prt1_p3 t1_3
+               Filter: (b = 0)
+         ->  Hash Join
+               Hash Cond: (t3_3.b = t2_3.a)
+               ->  Seq Scan on prt2_p3 t3_3
+               ->  Hash
                      ->  Index Only Scan using iprt1_p3_a on prt1_p3 t2_3
                            Index Cond: (a = t1_3.a)
-                     ->  Index Scan using iprt2_p3_b on prt2_p3 t3_3
-                           Index Cond: (b = t2_3.a)
-(27 rows)
+ Optimizer: Postgres query optimizer
+(30 rows)
 
 SELECT * FROM prt1 t1 LEFT JOIN LATERAL
 			  (SELECT t2.a AS t2a, t3.a AS t3a, least(t1.a,t2.a,t3.b) FROM prt1 t2 JOIN prt2 t3 ON (t2.a = t3.b)) ss
@@ -438,7 +451,8 @@ SELECT t1.a, ss.t2a, ss.t2c FROM prt1 t1 LEFT JOIN LATERAL
                            ->  Seq Scan on prt1_p3 t2_3
                            ->  Hash
                                  ->  Seq Scan on prt2_p3 t3_3
-(26 rows)
+ Optimizer: Postgres query optimizer
+(27 rows)
 
 SELECT t1.a, ss.t2a, ss.t2c FROM prt1 t1 LEFT JOIN LATERAL
 			  (SELECT t2.a AS t2a, t3.a AS t3a, t2.b t2b, t2.c t2c, least(t1.a,t2.a,t3.a) FROM prt1 t2 JOIN prt2 t3 ON (t2.a = t3.b)) ss
@@ -466,52 +480,33 @@ EXPLAIN (COSTS OFF)
 SELECT a, b FROM prt1 FULL JOIN prt2 p2(b,a,c) USING(a,b)
   WHERE a BETWEEN 490 AND 510
   GROUP BY 1, 2 ORDER BY 1, 2;
-                                                   QUERY PLAN                                                    
------------------------------------------------------------------------------------------------------------------
- Group
+                                                QUERY PLAN                                                 
+-----------------------------------------------------------------------------------------------------------
+ GroupAggregate
    Group Key: (COALESCE(prt1.a, p2.a)), (COALESCE(prt1.b, p2.b))
-   ->  Merge Append
+   ->  Sort
          Sort Key: (COALESCE(prt1.a, p2.a)), (COALESCE(prt1.b, p2.b))
-         ->  Group
-               Group Key: (COALESCE(prt1.a, p2.a)), (COALESCE(prt1.b, p2.b))
-               ->  Sort
-                     Sort Key: (COALESCE(prt1.a, p2.a)), (COALESCE(prt1.b, p2.b))
-                     ->  Merge Full Join
-                           Merge Cond: ((prt1.a = p2.a) AND (prt1.b = p2.b))
-                           Filter: ((COALESCE(prt1.a, p2.a) >= 490) AND (COALESCE(prt1.a, p2.a) <= 510))
-                           ->  Sort
-                                 Sort Key: prt1.a, prt1.b
-                                 ->  Seq Scan on prt1_p1 prt1
-                           ->  Sort
-                                 Sort Key: p2.a, p2.b
-                                 ->  Seq Scan on prt2_p1 p2
-         ->  Group
-               Group Key: (COALESCE(prt1_1.a, p2_1.a)), (COALESCE(prt1_1.b, p2_1.b))
-               ->  Sort
-                     Sort Key: (COALESCE(prt1_1.a, p2_1.a)), (COALESCE(prt1_1.b, p2_1.b))
-                     ->  Merge Full Join
-                           Merge Cond: ((prt1_1.a = p2_1.a) AND (prt1_1.b = p2_1.b))
-                           Filter: ((COALESCE(prt1_1.a, p2_1.a) >= 490) AND (COALESCE(prt1_1.a, p2_1.a) <= 510))
-                           ->  Sort
-                                 Sort Key: prt1_1.a, prt1_1.b
-                                 ->  Seq Scan on prt1_p2 prt1_1
-                           ->  Sort
-                                 Sort Key: p2_1.a, p2_1.b
-                                 ->  Seq Scan on prt2_p2 p2_1
-         ->  Group
-               Group Key: (COALESCE(prt1_2.a, p2_2.a)), (COALESCE(prt1_2.b, p2_2.b))
-               ->  Sort
-                     Sort Key: (COALESCE(prt1_2.a, p2_2.a)), (COALESCE(prt1_2.b, p2_2.b))
-                     ->  Merge Full Join
-                           Merge Cond: ((prt1_2.a = p2_2.a) AND (prt1_2.b = p2_2.b))
-                           Filter: ((COALESCE(prt1_2.a, p2_2.a) >= 490) AND (COALESCE(prt1_2.a, p2_2.a) <= 510))
-                           ->  Sort
-                                 Sort Key: prt1_2.a, prt1_2.b
-                                 ->  Seq Scan on prt1_p3 prt1_2
-                           ->  Sort
-                                 Sort Key: p2_2.a, p2_2.b
-                                 ->  Seq Scan on prt2_p3 p2_2
-(43 rows)
+         ->  Append
+               ->  Hash Full Join
+                     Hash Cond: ((prt1_1.a = p2_1.a) AND (prt1_1.b = p2_1.b))
+                     Filter: ((COALESCE(prt1_1.a, p2_1.a) >= 490) AND (COALESCE(prt1_1.a, p2_1.a) <= 510))
+                     ->  Seq Scan on prt1_p1 prt1_1
+                     ->  Hash
+                           ->  Seq Scan on prt2_p1 p2_1
+               ->  Hash Full Join
+                     Hash Cond: ((prt1_2.a = p2_2.a) AND (prt1_2.b = p2_2.b))
+                     Filter: ((COALESCE(prt1_2.a, p2_2.a) >= 490) AND (COALESCE(prt1_2.a, p2_2.a) <= 510))
+                     ->  Seq Scan on prt1_p2 prt1_2
+                     ->  Hash
+                           ->  Seq Scan on prt2_p2 p2_2
+               ->  Hash Full Join
+                     Hash Cond: ((prt1_3.a = p2_3.a) AND (prt1_3.b = p2_3.b))
+                     Filter: ((COALESCE(prt1_3.a, p2_3.a) >= 490) AND (COALESCE(prt1_3.a, p2_3.a) <= 510))
+                     ->  Seq Scan on prt1_p3 prt1_3
+                     ->  Hash
+                           ->  Seq Scan on prt2_p3 p2_3
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 SELECT a, b FROM prt1 FULL JOIN prt2 p2(b,a,c) USING(a,b)
   WHERE a BETWEEN 490 AND 510
@@ -579,7 +574,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_e t1, prt2_e t2 WHERE (t1.a + t1.b)/2 = 
                ->  Hash
                      ->  Seq Scan on prt1_e_p3 t1_3
                            Filter: (c = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_e t1, prt2_e t2 WHERE (t1.a + t1.b)/2 = (t2.b + t2.a)/2 AND t1.c = 0 ORDER BY t1.a, t2.b;
   a  | c |  b  | c 
@@ -595,42 +591,43 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_e t1, prt2_e t2 WHERE (t1.a + t1.b)/2 = 
 --
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM prt1 t1, prt2 t2, prt1_e t3 WHERE t1.a = t2.b AND t1.a = (t3.a + t3.b)/2 AND t1.b = 0 ORDER BY t1.a, t2.b;
-                             QUERY PLAN                              
----------------------------------------------------------------------
+                          QUERY PLAN                          
+--------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop
-               Join Filter: (t1_1.a = ((t3_1.a + t3_1.b) / 2))
-               ->  Hash Join
-                     Hash Cond: (t2_1.b = t1_1.a)
-                     ->  Seq Scan on prt2_p1 t2_1
-                     ->  Hash
-                           ->  Seq Scan on prt1_p1 t1_1
-                                 Filter: (b = 0)
-               ->  Index Scan using iprt1_e_p1_ab2 on prt1_e_p1 t3_1
-                     Index Cond: (((a + b) / 2) = t2_1.b)
-         ->  Nested Loop
-               Join Filter: (t1_2.a = ((t3_2.a + t3_2.b) / 2))
-               ->  Hash Join
-                     Hash Cond: (t2_2.b = t1_2.a)
-                     ->  Seq Scan on prt2_p2 t2_2
-                     ->  Hash
-                           ->  Seq Scan on prt1_p2 t1_2
-                                 Filter: (b = 0)
-               ->  Index Scan using iprt1_e_p2_ab2 on prt1_e_p2 t3_2
-                     Index Cond: (((a + b) / 2) = t2_2.b)
-         ->  Nested Loop
-               Join Filter: (t1_3.a = ((t3_3.a + t3_3.b) / 2))
-               ->  Hash Join
-                     Hash Cond: (t2_3.b = t1_3.a)
-                     ->  Seq Scan on prt2_p3 t2_3
-                     ->  Hash
-                           ->  Seq Scan on prt1_p3 t1_3
-                                 Filter: (b = 0)
-               ->  Index Scan using iprt1_e_p3_ab2 on prt1_e_p3 t3_3
-                     Index Cond: (((a + b) / 2) = t2_3.b)
-(33 rows)
+         ->  Hash Join
+               Hash Cond: (((t3_1.a + t3_1.b) / 2) = t1_1.a)
+               ->  Seq Scan on prt1_e_p1 t3_1
+               ->  Hash
+                     ->  Hash Join
+                           Hash Cond: (t2_1.b = t1_1.a)
+                           ->  Seq Scan on prt2_p1 t2_1
+                           ->  Hash
+                                 ->  Seq Scan on prt1_p1 t1_1
+                                       Filter: (b = 0)
+         ->  Hash Join
+               Hash Cond: (((t3_2.a + t3_2.b) / 2) = t1_2.a)
+               ->  Seq Scan on prt1_e_p2 t3_2
+               ->  Hash
+                     ->  Hash Join
+                           Hash Cond: (t2_2.b = t1_2.a)
+                           ->  Seq Scan on prt2_p2 t2_2
+                           ->  Hash
+                                 ->  Seq Scan on prt1_p2 t1_2
+                                       Filter: (b = 0)
+         ->  Hash Join
+               Hash Cond: (((t3_3.a + t3_3.b) / 2) = t1_3.a)
+               ->  Seq Scan on prt1_e_p3 t3_3
+               ->  Hash
+                     ->  Hash Join
+                           Hash Cond: (t2_3.b = t1_3.a)
+                           ->  Seq Scan on prt2_p3 t2_3
+                           ->  Hash
+                                 ->  Seq Scan on prt1_p3 t1_3
+                                       Filter: (b = 0)
+ Optimizer: Postgres query optimizer
+(34 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM prt1 t1, prt2 t2, prt1_e t3 WHERE t1.a = t2.b AND t1.a = (t3.a + t3.b)/2 AND t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   | ?column? | c 
@@ -678,7 +675,8 @@ SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2
                            ->  Hash
                                  ->  Seq Scan on prt1_p3 t1_3
                                        Filter: (b = 0)
-(33 rows)
+ Optimizer: Postgres query optimizer
+(34 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b) LEFT JOIN prt1_e t3 ON (t1.a = (t3.a + t3.b)/2) WHERE t1.b = 0 ORDER BY t1.a, t2.b, t3.a + t3.b;
   a  |  c   |  b  |  c   | ?column? | c 
@@ -699,39 +697,43 @@ SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2
 
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b) RIGHT JOIN prt1_e t3 ON (t1.a = (t3.a + t3.b)/2) WHERE t3.c = 0 ORDER BY t1.a, t2.b, t3.a + t3.b;
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Sort
    Sort Key: t1.a, t2.b, ((t3.a + t3.b))
    ->  Append
-         ->  Nested Loop Left Join
-               ->  Hash Right Join
-                     Hash Cond: (t1_1.a = ((t3_1.a + t3_1.b) / 2))
-                     ->  Seq Scan on prt1_p1 t1_1
-                     ->  Hash
-                           ->  Seq Scan on prt1_e_p1 t3_1
-                                 Filter: (c = 0)
-               ->  Index Scan using iprt2_p1_b on prt2_p1 t2_1
-                     Index Cond: (b = t1_1.a)
-         ->  Nested Loop Left Join
-               ->  Hash Right Join
-                     Hash Cond: (t1_2.a = ((t3_2.a + t3_2.b) / 2))
-                     ->  Seq Scan on prt1_p2 t1_2
-                     ->  Hash
-                           ->  Seq Scan on prt1_e_p2 t3_2
-                                 Filter: (c = 0)
-               ->  Index Scan using iprt2_p2_b on prt2_p2 t2_2
-                     Index Cond: (b = t1_2.a)
-         ->  Nested Loop Left Join
-               ->  Hash Right Join
-                     Hash Cond: (t1_3.a = ((t3_3.a + t3_3.b) / 2))
-                     ->  Seq Scan on prt1_p3 t1_3
-                     ->  Hash
-                           ->  Seq Scan on prt1_e_p3 t3_3
-                                 Filter: (c = 0)
-               ->  Index Scan using iprt2_p3_b on prt2_p3 t2_3
-                     Index Cond: (b = t1_3.a)
-(30 rows)
+         ->  Hash Right Join
+               Hash Cond: (t2_1.b = t1_1.a)
+               ->  Seq Scan on prt2_p1 t2_1
+               ->  Hash
+                     ->  Hash Right Join
+                           Hash Cond: (t1_1.a = ((t3_1.a + t3_1.b) / 2))
+                           ->  Seq Scan on prt1_p1 t1_1
+                           ->  Hash
+                                 ->  Seq Scan on prt1_e_p1 t3_1
+                                       Filter: (c = 0)
+         ->  Hash Right Join
+               Hash Cond: (t2_2.b = t1_2.a)
+               ->  Seq Scan on prt2_p2 t2_2
+               ->  Hash
+                     ->  Hash Right Join
+                           Hash Cond: (t1_2.a = ((t3_2.a + t3_2.b) / 2))
+                           ->  Seq Scan on prt1_p2 t1_2
+                           ->  Hash
+                                 ->  Seq Scan on prt1_e_p2 t3_2
+                                       Filter: (c = 0)
+         ->  Hash Right Join
+               Hash Cond: (t2_3.b = t1_3.a)
+               ->  Seq Scan on prt2_p3 t2_3
+               ->  Hash
+                     ->  Hash Right Join
+                           Hash Cond: (t1_3.a = ((t3_3.a + t3_3.b) / 2))
+                           ->  Seq Scan on prt1_p3 t1_3
+                           ->  Hash
+                                 ->  Seq Scan on prt1_e_p3 t3_3
+                                       Filter: (c = 0)
+ Optimizer: Postgres query optimizer
+(34 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b) RIGHT JOIN prt1_e t3 ON (t1.a = (t3.a + t3.b)/2) WHERE t3.c = 0 ORDER BY t1.a, t2.b, t3.a + t3.b;
   a  |  c   |  b  |  c   | ?column? | c 
@@ -790,7 +792,8 @@ SELECT COUNT(*) FROM prt1 FULL JOIN prt2 p2(b,a,c) USING(a,b) FULL JOIN prt2 p3(
                            ->  Seq Scan on prt2_p3 p2_3
                ->  Hash
                      ->  Seq Scan on prt2_p3 p3_3
-(32 rows)
+ Optimizer: Postgres query optimizer
+(33 rows)
 
 SELECT COUNT(*) FROM prt1 FULL JOIN prt2 p2(b,a,c) USING(a,b) FULL JOIN prt2 p3(b,a,c) USING (a, b)
   WHERE a BETWEEN 490 AND 510;
@@ -851,7 +854,8 @@ SELECT COUNT(*) FROM prt1 FULL JOIN prt2 p2(b,a,c) USING(a,b) FULL JOIN prt2 p3(
                            ->  Seq Scan on prt2_p3 p3_3
                ->  Hash
                      ->  Seq Scan on prt1_p3 p4_3
-(44 rows)
+ Optimizer: Postgres query optimizer
+(45 rows)
 
 SELECT COUNT(*) FROM prt1 FULL JOIN prt2 p2(b,a,c) USING(a,b) FULL JOIN prt2 p3(b,a,c) USING (a, b) FULL JOIN prt1 p4 (a,b,c) USING (a, b)
   WHERE a BETWEEN 490 AND 510;
@@ -908,7 +912,8 @@ SELECT t1.a, t1.phv, t2.b, t2.phv, t3.a + t3.b, t3.phv FROM ((SELECT 50 phv, * F
                ->  Hash
                      ->  Seq Scan on prt1_e_p3 prt1_e_3
                            Filter: (c = 0)
-(42 rows)
+ Optimizer: Postgres query optimizer
+(43 rows)
 
 SELECT t1.a, t1.phv, t2.b, t2.phv, t3.a + t3.b, t3.phv FROM ((SELECT 50 phv, * FROM prt1 WHERE prt1.b = 0) t1 FULL JOIN (SELECT 75 phv, * FROM prt2 WHERE prt2.a = 0) t2 ON (t1.a = t2.b)) FULL JOIN (SELECT 50 phv, * FROM prt1_e WHERE prt1_e.c = 0) t3 ON (t1.a = (t3.a + t3.b)/2) WHERE t1.a = t1.phv OR t2.b = t2.phv OR (t3.a + t3.b)/2 = t3.phv ORDER BY t1.a, t2.b, t3.a + t3.b;
  a  | phv | b  | phv | ?column? | phv 
@@ -920,49 +925,49 @@ SELECT t1.a, t1.phv, t2.b, t2.phv, t3.a + t3.b, t3.phv FROM ((SELECT 50 phv, * F
 -- Semi-join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1, prt1_e t2 WHERE t1.a = 0 AND t1.b = (t2.a + t2.b)/2) AND t1.b = 0 ORDER BY t1.a;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop
-               Join Filter: (t1_2.a = t1_5.b)
-               ->  HashAggregate
-                     Group Key: t1_5.b
+         ->  Hash Semi Join
+               Hash Cond: (t1_2.a = t1_5.b)
+               ->  Seq Scan on prt1_p1 t1_2
+                     Filter: (b = 0)
+               ->  Hash
                      ->  Hash Join
                            Hash Cond: (((t2_1.a + t2_1.b) / 2) = t1_5.b)
                            ->  Seq Scan on prt1_e_p1 t2_1
                            ->  Hash
                                  ->  Seq Scan on prt2_p1 t1_5
                                        Filter: (a = 0)
-               ->  Index Scan using iprt1_p1_a on prt1_p1 t1_2
-                     Index Cond: (a = ((t2_1.a + t2_1.b) / 2))
+         ->  Hash Join
+               Hash Cond: (t1_3.a = t1_6.b)
+               ->  Seq Scan on prt1_p2 t1_3
                      Filter: (b = 0)
-         ->  Nested Loop
-               Join Filter: (t1_3.a = t1_6.b)
-               ->  HashAggregate
-                     Group Key: t1_6.b
-                     ->  Hash Join
-                           Hash Cond: (((t2_2.a + t2_2.b) / 2) = t1_6.b)
-                           ->  Seq Scan on prt1_e_p2 t2_2
-                           ->  Hash
-                                 ->  Seq Scan on prt2_p2 t1_6
-                                       Filter: (a = 0)
-               ->  Index Scan using iprt1_p2_a on prt1_p2 t1_3
-                     Index Cond: (a = ((t2_2.a + t2_2.b) / 2))
+               ->  Hash
+                     ->  HashAggregate
+                           Group Key: t1_6.b
+                           ->  Hash Join
+                                 Hash Cond: (((t2_2.a + t2_2.b) / 2) = t1_6.b)
+                                 ->  Seq Scan on prt1_e_p2 t2_2
+                                 ->  Hash
+                                       ->  Seq Scan on prt2_p2 t1_6
+                                             Filter: (a = 0)
+         ->  Hash Join
+               Hash Cond: (t1_4.a = t1_7.b)
+               ->  Seq Scan on prt1_p3 t1_4
                      Filter: (b = 0)
-         ->  Nested Loop
-               Join Filter: (t1_4.a = t1_7.b)
-               ->  HashAggregate
-                     Group Key: t1_7.b
-                     ->  Nested Loop
-                           ->  Seq Scan on prt2_p3 t1_7
-                                 Filter: (a = 0)
-                           ->  Index Scan using iprt1_e_p3_ab2 on prt1_e_p3 t2_3
-                                 Index Cond: (((a + b) / 2) = t1_7.b)
-               ->  Index Scan using iprt1_p3_a on prt1_p3 t1_4
-                     Index Cond: (a = ((t2_3.a + t2_3.b) / 2))
-                     Filter: (b = 0)
+               ->  Hash
+                     ->  HashAggregate
+                           Group Key: t1_7.b
+                           ->  Hash Join
+                                 Hash Cond: (((t2_3.a + t2_3.b) / 2) = t1_7.b)
+                                 ->  Seq Scan on prt1_e_p3 t2_3
+                                 ->  Hash
+                                       ->  Seq Scan on prt2_p3 t1_7
+                                             Filter: (a = 0)
+ Optimizer: Postgres query optimizer
 (41 rows)
 
 SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1, prt1_e t2 WHERE t1.a = 0 AND t1.b = (t2.a + t2.b)/2) AND t1.b = 0 ORDER BY t1.a;
@@ -981,43 +986,41 @@ SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1 WHERE t1.b IN (
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop
-               ->  HashAggregate
-                     Group Key: t1_6.b
+         ->  Hash Semi Join
+               Hash Cond: (t1_3.a = t1_6.b)
+               ->  Seq Scan on prt1_p1 t1_3
+                     Filter: (b = 0)
+               ->  Hash
                      ->  Hash Semi Join
                            Hash Cond: (t1_6.b = ((t1_9.a + t1_9.b) / 2))
                            ->  Seq Scan on prt2_p1 t1_6
                            ->  Hash
                                  ->  Seq Scan on prt1_e_p1 t1_9
                                        Filter: (c = 0)
-               ->  Index Scan using iprt1_p1_a on prt1_p1 t1_3
-                     Index Cond: (a = t1_6.b)
+         ->  Hash Semi Join
+               Hash Cond: (t1_4.a = t1_7.b)
+               ->  Seq Scan on prt1_p2 t1_4
                      Filter: (b = 0)
-         ->  Nested Loop
-               ->  HashAggregate
-                     Group Key: t1_7.b
+               ->  Hash
                      ->  Hash Semi Join
                            Hash Cond: (t1_7.b = ((t1_10.a + t1_10.b) / 2))
                            ->  Seq Scan on prt2_p2 t1_7
                            ->  Hash
                                  ->  Seq Scan on prt1_e_p2 t1_10
                                        Filter: (c = 0)
-               ->  Index Scan using iprt1_p2_a on prt1_p2 t1_4
-                     Index Cond: (a = t1_7.b)
+         ->  Hash Semi Join
+               Hash Cond: (t1_5.a = t1_8.b)
+               ->  Seq Scan on prt1_p3 t1_5
                      Filter: (b = 0)
-         ->  Nested Loop
-               ->  HashAggregate
-                     Group Key: t1_8.b
+               ->  Hash
                      ->  Hash Semi Join
                            Hash Cond: (t1_8.b = ((t1_11.a + t1_11.b) / 2))
                            ->  Seq Scan on prt2_p3 t1_8
                            ->  Hash
                                  ->  Seq Scan on prt1_e_p3 t1_11
                                        Filter: (c = 0)
-               ->  Index Scan using iprt1_p3_a on prt1_p3 t1_5
-                     Index Cond: (a = t1_8.b)
-                     Filter: (b = 0)
-(39 rows)
+ Optimizer: Postgres query optimizer
+(37 rows)
 
 SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1 WHERE t1.b IN (SELECT (t1.a + t1.b)/2 FROM prt1_e t1 WHERE t1.c = 0)) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -1033,56 +1036,58 @@ SET enable_hashjoin TO off;
 SET enable_nestloop TO off;
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1 WHERE t1.b IN (SELECT (t1.a + t1.b)/2 FROM prt1_e t1 WHERE t1.c = 0)) AND t1.b = 0 ORDER BY t1.a;
-                            QUERY PLAN                            
-------------------------------------------------------------------
- Merge Append
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Sort
    Sort Key: t1.a
-   ->  Merge Semi Join
-         Merge Cond: (t1_3.a = t1_6.b)
-         ->  Sort
-               Sort Key: t1_3.a
-               ->  Seq Scan on prt1_p1 t1_3
-                     Filter: (b = 0)
+   ->  Append
          ->  Merge Semi Join
-               Merge Cond: (t1_6.b = (((t1_9.a + t1_9.b) / 2)))
+               Merge Cond: (t1_3.a = t1_6.b)
                ->  Sort
-                     Sort Key: t1_6.b
-                     ->  Seq Scan on prt2_p1 t1_6
-               ->  Sort
-                     Sort Key: (((t1_9.a + t1_9.b) / 2))
-                     ->  Seq Scan on prt1_e_p1 t1_9
-                           Filter: (c = 0)
-   ->  Merge Semi Join
-         Merge Cond: (t1_4.a = t1_7.b)
-         ->  Sort
-               Sort Key: t1_4.a
-               ->  Seq Scan on prt1_p2 t1_4
-                     Filter: (b = 0)
+                     Sort Key: t1_3.a
+                     ->  Seq Scan on prt1_p1 t1_3
+                           Filter: (b = 0)
+               ->  Merge Semi Join
+                     Merge Cond: (t1_6.b = (((t1_9.a + t1_9.b) / 2)))
+                     ->  Sort
+                           Sort Key: t1_6.b
+                           ->  Seq Scan on prt2_p1 t1_6
+                     ->  Sort
+                           Sort Key: (((t1_9.a + t1_9.b) / 2))
+                           ->  Seq Scan on prt1_e_p1 t1_9
+                                 Filter: (c = 0)
          ->  Merge Semi Join
-               Merge Cond: (t1_7.b = (((t1_10.a + t1_10.b) / 2)))
+               Merge Cond: (t1_4.a = t1_7.b)
                ->  Sort
-                     Sort Key: t1_7.b
-                     ->  Seq Scan on prt2_p2 t1_7
-               ->  Sort
-                     Sort Key: (((t1_10.a + t1_10.b) / 2))
-                     ->  Seq Scan on prt1_e_p2 t1_10
-                           Filter: (c = 0)
-   ->  Merge Semi Join
-         Merge Cond: (t1_5.a = t1_8.b)
-         ->  Sort
-               Sort Key: t1_5.a
-               ->  Seq Scan on prt1_p3 t1_5
-                     Filter: (b = 0)
+                     Sort Key: t1_4.a
+                     ->  Seq Scan on prt1_p2 t1_4
+                           Filter: (b = 0)
+               ->  Merge Semi Join
+                     Merge Cond: (t1_7.b = (((t1_10.a + t1_10.b) / 2)))
+                     ->  Sort
+                           Sort Key: t1_7.b
+                           ->  Seq Scan on prt2_p2 t1_7
+                     ->  Sort
+                           Sort Key: (((t1_10.a + t1_10.b) / 2))
+                           ->  Seq Scan on prt1_e_p2 t1_10
+                                 Filter: (c = 0)
          ->  Merge Semi Join
-               Merge Cond: (t1_8.b = (((t1_11.a + t1_11.b) / 2)))
+               Merge Cond: (t1_5.a = t1_8.b)
                ->  Sort
-                     Sort Key: t1_8.b
-                     ->  Seq Scan on prt2_p3 t1_8
-               ->  Sort
-                     Sort Key: (((t1_11.a + t1_11.b) / 2))
-                     ->  Seq Scan on prt1_e_p3 t1_11
-                           Filter: (c = 0)
-(47 rows)
+                     Sort Key: t1_5.a
+                     ->  Seq Scan on prt1_p3 t1_5
+                           Filter: (b = 0)
+               ->  Merge Semi Join
+                     Merge Cond: (t1_8.b = (((t1_11.a + t1_11.b) / 2)))
+                     ->  Sort
+                           Sort Key: t1_8.b
+                           ->  Seq Scan on prt2_p3 t1_8
+                     ->  Sort
+                           Sort Key: (((t1_11.a + t1_11.b) / 2))
+                           ->  Seq Scan on prt1_e_p3 t1_11
+                                 Filter: (c = 0)
+ Optimizer: Postgres query optimizer
+(49 rows)
 
 SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1 WHERE t1.b IN (SELECT (t1.a + t1.b)/2 FROM prt1_e t1 WHERE t1.c = 0)) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -1095,8 +1100,8 @@ SELECT t1.* FROM prt1 t1 WHERE t1.a IN (SELECT t1.b FROM prt2 t1 WHERE t1.b IN (
 
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b) RIGHT JOIN prt1_e t3 ON (t1.a = (t3.a + t3.b)/2) WHERE t3.c = 0 ORDER BY t1.a, t2.b, t3.a + t3.b;
-                                 QUERY PLAN                                 
-----------------------------------------------------------------------------
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
  Sort
    Sort Key: t1.a, t2.b, ((t3.a + t3.b))
    ->  Append
@@ -1104,15 +1109,11 @@ SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2
                Merge Cond: (t1_1.a = t2_1.b)
                ->  Sort
                      Sort Key: t1_1.a
-                     ->  Merge Left Join
-                           Merge Cond: ((((t3_1.a + t3_1.b) / 2)) = t1_1.a)
-                           ->  Sort
-                                 Sort Key: (((t3_1.a + t3_1.b) / 2))
-                                 ->  Seq Scan on prt1_e_p1 t3_1
-                                       Filter: (c = 0)
-                           ->  Sort
-                                 Sort Key: t1_1.a
-                                 ->  Seq Scan on prt1_p1 t1_1
+                     ->  Nested Loop Left Join
+                           ->  Seq Scan on prt1_e_p1 t3_1
+                                 Filter: (c = 0)
+                           ->  Index Scan using iprt1_p1_a on prt1_p1 t1_1
+                                 Index Cond: (a = ((t3_1.a + t3_1.b) / 2))
                ->  Sort
                      Sort Key: t2_1.b
                      ->  Seq Scan on prt2_p1 t2_1
@@ -1120,15 +1121,11 @@ SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2
                Merge Cond: (t1_2.a = t2_2.b)
                ->  Sort
                      Sort Key: t1_2.a
-                     ->  Merge Left Join
-                           Merge Cond: ((((t3_2.a + t3_2.b) / 2)) = t1_2.a)
-                           ->  Sort
-                                 Sort Key: (((t3_2.a + t3_2.b) / 2))
-                                 ->  Seq Scan on prt1_e_p2 t3_2
-                                       Filter: (c = 0)
-                           ->  Sort
-                                 Sort Key: t1_2.a
-                                 ->  Seq Scan on prt1_p2 t1_2
+                     ->  Nested Loop Left Join
+                           ->  Seq Scan on prt1_e_p2 t3_2
+                                 Filter: (c = 0)
+                           ->  Index Scan using iprt1_p2_a on prt1_p2 t1_2
+                                 Index Cond: (a = ((t3_2.a + t3_2.b) / 2))
                ->  Sort
                      Sort Key: t2_2.b
                      ->  Seq Scan on prt2_p2 t2_2
@@ -1136,19 +1133,16 @@ SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2
                Merge Cond: (t1_3.a = t2_3.b)
                ->  Sort
                      Sort Key: t1_3.a
-                     ->  Merge Left Join
-                           Merge Cond: ((((t3_3.a + t3_3.b) / 2)) = t1_3.a)
-                           ->  Sort
-                                 Sort Key: (((t3_3.a + t3_3.b) / 2))
-                                 ->  Seq Scan on prt1_e_p3 t3_3
-                                       Filter: (c = 0)
-                           ->  Sort
-                                 Sort Key: t1_3.a
-                                 ->  Seq Scan on prt1_p3 t1_3
+                     ->  Nested Loop Left Join
+                           ->  Seq Scan on prt1_e_p3 t3_3
+                                 Filter: (c = 0)
+                           ->  Index Scan using iprt1_p3_a on prt1_p3 t1_3
+                                 Index Cond: (a = ((t3_3.a + t3_3.b) / 2))
                ->  Sort
                      Sort Key: t2_3.b
                      ->  Seq Scan on prt2_p3 t2_3
-(51 rows)
+ Optimizer: Postgres query optimizer
+(40 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a + t3.b, t3.c FROM (prt1 t1 LEFT JOIN prt2 t2 ON t1.a = t2.b) RIGHT JOIN prt1_e t3 ON (t1.a = (t3.a + t3.b)/2) WHERE t3.c = 0 ORDER BY t1.a, t2.b, t3.a + t3.b;
   a  |  c   |  b  |  c   | ?column? | c 
@@ -1191,7 +1185,8 @@ SELECT t1.a, t2.b FROM (SELECT * FROM prt1 WHERE a < 450) t1 LEFT JOIN (SELECT *
                            Filter: (b > 250)
                      ->  Seq Scan on prt2_p3 prt2_2
                            Filter: (b > 250)
-(18 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 SELECT t1.a, t2.b FROM (SELECT * FROM prt1 WHERE a < 450) t1 LEFT JOIN (SELECT * FROM prt2 WHERE b > 250) t2 ON t1.a = t2.b WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  b  
@@ -1229,7 +1224,8 @@ SELECT t1.a, t2.b FROM prt1 t1, prt2 t2 WHERE t1::text = t2::text AND t1.a = t2.
                      ->  Seq Scan on prt2_p1 t2_1
                      ->  Seq Scan on prt2_p2 t2_2
                      ->  Seq Scan on prt2_p3 t2_3
-(16 rows)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 SELECT t1.a, t2.b FROM prt1 t1, prt2 t2 WHERE t1::text = t2::text AND t1.a = t2.b ORDER BY t1.a;
  a  | b  
@@ -1286,7 +1282,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1_m WHERE prt1_m.c = 0) t1 
                ->  Hash
                      ->  Seq Scan on prt2_m_p3 prt2_m_3
                            Filter: (c = 0)
-(24 rows)
+ Optimizer: Postgres query optimizer
+(25 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1_m WHERE prt1_m.c = 0) t1 FULL JOIN (SELECT * FROM prt2_m WHERE prt2_m.c = 0) t2 ON (t1.a = (t2.b + t2.a)/2 AND t2.b = (t1.a + t1.b)/2) ORDER BY t1.a, t2.b;
   a  | c |  b  | c 
@@ -1336,41 +1333,42 @@ ANALYZE plt1_e;
 -- test partition matching with N-way join
 EXPLAIN (COSTS OFF)
 SELECT avg(t1.a), avg(t2.b), avg(t3.a + t3.b), t1.c, t2.c, t3.c FROM plt1 t1, plt2 t2, plt1_e t3 WHERE t1.b = t2.b AND t1.c = t2.c AND ltrim(t3.c, 'A') = t1.c GROUP BY t1.c, t2.c, t3.c ORDER BY t1.c, t2.c, t3.c;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
  GroupAggregate
    Group Key: t1.c, t2.c, t3.c
    ->  Sort
          Sort Key: t1.c, t3.c
          ->  Append
                ->  Hash Join
-                     Hash Cond: (t1_1.c = ltrim(t3_1.c, 'A'::text))
-                     ->  Hash Join
-                           Hash Cond: ((t1_1.b = t2_1.b) AND (t1_1.c = t2_1.c))
-                           ->  Seq Scan on plt1_p1 t1_1
-                           ->  Hash
-                                 ->  Seq Scan on plt2_p1 t2_1
+                     Hash Cond: (ltrim(t3_1.c, 'A'::text) = t1_1.c)
+                     ->  Seq Scan on plt1_e_p1 t3_1
                      ->  Hash
-                           ->  Seq Scan on plt1_e_p1 t3_1
+                           ->  Hash Join
+                                 Hash Cond: ((t1_1.b = t2_1.b) AND (t1_1.c = t2_1.c))
+                                 ->  Seq Scan on plt1_p1 t1_1
+                                 ->  Hash
+                                       ->  Seq Scan on plt2_p1 t2_1
                ->  Hash Join
-                     Hash Cond: (t1_2.c = ltrim(t3_2.c, 'A'::text))
-                     ->  Hash Join
-                           Hash Cond: ((t1_2.b = t2_2.b) AND (t1_2.c = t2_2.c))
-                           ->  Seq Scan on plt1_p2 t1_2
-                           ->  Hash
-                                 ->  Seq Scan on plt2_p2 t2_2
+                     Hash Cond: (ltrim(t3_2.c, 'A'::text) = t1_2.c)
+                     ->  Seq Scan on plt1_e_p2 t3_2
                      ->  Hash
-                           ->  Seq Scan on plt1_e_p2 t3_2
+                           ->  Hash Join
+                                 Hash Cond: ((t1_2.b = t2_2.b) AND (t1_2.c = t2_2.c))
+                                 ->  Seq Scan on plt1_p2 t1_2
+                                 ->  Hash
+                                       ->  Seq Scan on plt2_p2 t2_2
                ->  Hash Join
-                     Hash Cond: (t1_3.c = ltrim(t3_3.c, 'A'::text))
-                     ->  Hash Join
-                           Hash Cond: ((t1_3.b = t2_3.b) AND (t1_3.c = t2_3.c))
-                           ->  Seq Scan on plt1_p3 t1_3
-                           ->  Hash
-                                 ->  Seq Scan on plt2_p3 t2_3
+                     Hash Cond: (ltrim(t3_3.c, 'A'::text) = t1_3.c)
+                     ->  Seq Scan on plt1_e_p3 t3_3
                      ->  Hash
-                           ->  Seq Scan on plt1_e_p3 t3_3
-(32 rows)
+                           ->  Hash Join
+                                 Hash Cond: ((t1_3.b = t2_3.b) AND (t1_3.c = t2_3.c))
+                                 ->  Seq Scan on plt1_p3 t1_3
+                                 ->  Hash
+                                       ->  Seq Scan on plt2_p3 t2_3
+ Optimizer: Postgres query optimizer
+(33 rows)
 
 SELECT avg(t1.a), avg(t2.b), avg(t3.a + t3.b), t1.c, t2.c, t3.c FROM plt1 t1, plt2 t2, plt1_e t3 WHERE t1.b = t2.b AND t1.c = t2.c AND ltrim(t3.c, 'A') = t1.c GROUP BY t1.c, t2.c, t3.c ORDER BY t1.c, t2.c, t3.c;
          avg          |         avg          |          avg          |  c   |  c   |   c   
@@ -1392,19 +1390,21 @@ SELECT avg(t1.a), avg(t2.b), avg(t3.a + t3.b), t1.c, t2.c, t3.c FROM plt1 t1, pl
 -- joins where one of the relations is proven empty
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt2 t2 WHERE t1.a = t2.b AND t1.a = 1 AND t1.a = 2;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a = 1 AND a = 2) t1 LEFT JOIN prt2 t2 ON t1.a = t2.b;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a = 1 AND a = 2) t1 RIGHT JOIN prt2 t2 ON t1.a = t2.b, prt1 t3 WHERE t2.b = t3.a;
@@ -1431,7 +1431,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a = 1 AND a = 2) t1
    ->  Hash
          ->  Result
                One-Time Filter: false
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a = 1 AND a = 2) t1 FULL JOIN prt2 t2 ON t1.a = t2.b WHERE t2.a = 0 ORDER BY t1.a, t2.b;
@@ -1451,7 +1452,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1 WHERE a = 1 AND a = 2) t1
          ->  Hash
                ->  Result
                      One-Time Filter: false
-(14 rows)
+ Optimizer: Postgres query optimizer
+(15 rows)
 
 --
 -- tests for hash partitioned tables.
@@ -1480,41 +1482,42 @@ ANALYZE pht1_e;
 -- test partition matching with N-way join
 EXPLAIN (COSTS OFF)
 SELECT avg(t1.a), avg(t2.b), avg(t3.a + t3.b), t1.c, t2.c, t3.c FROM pht1 t1, pht2 t2, pht1_e t3 WHERE t1.b = t2.b AND t1.c = t2.c AND ltrim(t3.c, 'A') = t1.c GROUP BY t1.c, t2.c, t3.c ORDER BY t1.c, t2.c, t3.c;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                                      QUERY PLAN                                      
+--------------------------------------------------------------------------------------
  GroupAggregate
    Group Key: t1.c, t2.c, t3.c
    ->  Sort
          Sort Key: t1.c, t3.c
          ->  Append
                ->  Hash Join
-                     Hash Cond: (t1_1.c = ltrim(t3_1.c, 'A'::text))
-                     ->  Hash Join
-                           Hash Cond: ((t1_1.b = t2_1.b) AND (t1_1.c = t2_1.c))
-                           ->  Seq Scan on pht1_p1 t1_1
-                           ->  Hash
-                                 ->  Seq Scan on pht2_p1 t2_1
+                     Hash Cond: (ltrim(t3_1.c, 'A'::text) = t1_1.c)
+                     ->  Seq Scan on pht1_e_p1 t3_1
                      ->  Hash
-                           ->  Seq Scan on pht1_e_p1 t3_1
+                           ->  Hash Join
+                                 Hash Cond: ((t1_1.b = t2_1.b) AND (t1_1.c = t2_1.c))
+                                 ->  Seq Scan on pht1_p1 t1_1
+                                 ->  Hash
+                                       ->  Seq Scan on pht2_p1 t2_1
                ->  Hash Join
-                     Hash Cond: (t1_2.c = ltrim(t3_2.c, 'A'::text))
-                     ->  Hash Join
-                           Hash Cond: ((t1_2.b = t2_2.b) AND (t1_2.c = t2_2.c))
-                           ->  Seq Scan on pht1_p2 t1_2
-                           ->  Hash
-                                 ->  Seq Scan on pht2_p2 t2_2
+                     Hash Cond: (ltrim(t3_2.c, 'A'::text) = t1_2.c)
+                     ->  Seq Scan on pht1_e_p2 t3_2
                      ->  Hash
-                           ->  Seq Scan on pht1_e_p2 t3_2
+                           ->  Hash Join
+                                 Hash Cond: ((t1_2.b = t2_2.b) AND (t1_2.c = t2_2.c))
+                                 ->  Seq Scan on pht1_p2 t1_2
+                                 ->  Hash
+                                       ->  Seq Scan on pht2_p2 t2_2
                ->  Hash Join
-                     Hash Cond: (t1_3.c = ltrim(t3_3.c, 'A'::text))
-                     ->  Hash Join
-                           Hash Cond: ((t1_3.b = t2_3.b) AND (t1_3.c = t2_3.c))
-                           ->  Seq Scan on pht1_p3 t1_3
-                           ->  Hash
-                                 ->  Seq Scan on pht2_p3 t2_3
+                     Hash Cond: (ltrim(t3_3.c, 'A'::text) = t1_3.c)
+                     ->  Seq Scan on pht1_e_p3 t3_3
                      ->  Hash
-                           ->  Seq Scan on pht1_e_p3 t3_3
-(32 rows)
+                           ->  Hash Join
+                                 Hash Cond: ((t1_3.b = t2_3.b) AND (t1_3.c = t2_3.c))
+                                 ->  Seq Scan on pht1_p3 t1_3
+                                 ->  Hash
+                                       ->  Seq Scan on pht2_p3 t2_3
+ Optimizer: Postgres query optimizer
+(33 rows)
 
 SELECT avg(t1.a), avg(t2.b), avg(t3.a + t3.b), t1.c, t2.c, t3.c FROM pht1 t1, pht2 t2, pht1_e t3 WHERE t1.b = t2.b AND t1.c = t2.c AND ltrim(t3.c, 'A') = t1.c GROUP BY t1.c, t2.c, t3.c ORDER BY t1.c, t2.c, t3.c;
          avg          |         avg          |         avg          |  c   |  c   |   c   
@@ -1559,7 +1562,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt2 t2 WHERE t1.a = t2.b AND t1.b =
                ->  Hash
                      ->  Seq Scan on prt1_p3 t1_3
                            Filter: (b = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 -- test default partition behavior for list
 ALTER TABLE plt1 DETACH PARTITION plt1_p3;
@@ -1595,7 +1599,8 @@ SELECT avg(t1.a), avg(t2.b), t1.c, t2.c FROM plt1 t1 RIGHT JOIN plt2 t2 ON t1.c 
                      ->  Hash
                            ->  Seq Scan on plt1_p3 t1_3
                                  Filter: ((a % 25) = 0)
-(23 rows)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 --
 -- multiple levels of partitioning
@@ -1653,7 +1658,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_l t1, prt2_l t2 WHERE t1.a = t2.b AND t1
                ->  Hash
                      ->  Seq Scan on prt1_l_p3_p1 t1_5
                            Filter: (b = 0)
-(28 rows)
+ Optimizer: Postgres query optimizer
+(29 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_l t1, prt2_l t2 WHERE t1.a = t2.b AND t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -1698,7 +1704,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_l t1 LEFT JOIN prt2_l t2 ON t1.a = t2.b 
                ->  Hash
                      ->  Seq Scan on prt1_l_p3_p1 t1_4
                            Filter: (b = 0)
-(29 rows)
+ Optimizer: Postgres query optimizer
+(30 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_l t1 LEFT JOIN prt2_l t2 ON t1.a = t2.b AND t1.c = t2.c WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -1751,7 +1758,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_l t1 RIGHT JOIN prt2_l t2 ON t1.a = t2.b
                ->  Hash
                      ->  Seq Scan on prt2_l_p3_p1 t2_4
                            Filter: (a = 0)
-(29 rows)
+ Optimizer: Postgres query optimizer
+(30 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_l t1 RIGHT JOIN prt2_l t2 ON t1.a = t2.b AND t1.c = t2.c WHERE t2.a = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -1802,7 +1810,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1_l WHERE prt1_l.b = 0) t1 
                ->  Hash
                      ->  Seq Scan on prt2_l_p3_p1 prt2_l_4
                            Filter: (a = 0)
-(31 rows)
+ Optimizer: Postgres query optimizer
+(32 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1_l WHERE prt1_l.b = 0) t1 FULL JOIN (SELECT * FROM prt2_l WHERE prt2_l.a = 0) t2 ON (t1.a = t2.b AND t1.c = t2.c) ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -1876,7 +1885,8 @@ SELECT * FROM prt1_l t1 LEFT JOIN LATERAL
                                        Filter: ((t1_4.a = a) AND ((t1_4.c)::text = (c)::text))
                                  ->  Seq Scan on prt1_l_p3_p2 t2_6
                                        Filter: ((t1_4.a = a) AND ((t1_4.c)::text = (c)::text))
-(44 rows)
+ Optimizer: Postgres query optimizer
+(45 rows)
 
 SELECT * FROM prt1_l t1 LEFT JOIN LATERAL
 			  (SELECT t2.a AS t2a, t2.c AS t2c, t2.b AS t2b, t3.b AS t3b, least(t1.a,t2.a,t3.b) FROM prt1_l t2 JOIN prt2_l t3 ON (t2.a = t3.b AND t2.c = t3.c)) ss
@@ -1913,7 +1923,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT * FROM prt1_l WHERE a = 1 AND a = 2) 
    ->  Hash
          ->  Result
                One-Time Filter: false
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 -- Test case to verify proper handling of subqueries in a partitioned delete.
 -- The weird-looking lateral join is just there to force creation of a
@@ -1926,8 +1937,8 @@ WHERE EXISTS (
     FROM int4_tbl,
          LATERAL (SELECT int4_tbl.f1 FROM int8_tbl LIMIT 2) ss
     WHERE prt1_l.c IS NULL);
-                        QUERY PLAN                        
-----------------------------------------------------------
+                           QUERY PLAN                           
+----------------------------------------------------------------
  Delete on prt1_l
    Delete on prt1_l_p1 prt1_l_1
    Delete on prt1_l_p3_p1 prt1_l_2
@@ -1943,10 +1954,12 @@ WHERE EXISTS (
          ->  Materialize
                ->  Nested Loop
                      ->  Seq Scan on int4_tbl
-                     ->  Subquery Scan on ss
-                           ->  Limit
-                                 ->  Seq Scan on int8_tbl
-(18 rows)
+                     ->  Materialize
+                           ->  Subquery Scan on ss
+                                 ->  Limit
+                                       ->  Seq Scan on int8_tbl
+ Optimizer: Postgres query optimizer
+(20 rows)
 
 --
 -- negative testcases
@@ -1989,7 +2002,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt4_n t2 WHERE t1.a = t2.a;
                ->  Seq Scan on prt4_n_p1 t2_1
                ->  Seq Scan on prt4_n_p2 t2_2
                ->  Seq Scan on prt4_n_p3 t2_3
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt4_n t2, prt2 t3 WHERE t1.a = t2.a and t1.a = t3.b;
@@ -2018,7 +2032,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1, prt4_n t2, prt2 t3 WHERE t1.a = t2.a
                      ->  Seq Scan on prt1_p3 t1_3
                      ->  Hash
                            ->  Seq Scan on prt2_p3 t3_3
-(23 rows)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 -- partitionwise join can not be applied if there are no equi-join conditions
 -- between partition keys
@@ -2038,7 +2053,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1 t1 LEFT JOIN prt2 t2 ON (t1.a < t2.b);
                Index Cond: (b > t1.a)
          ->  Index Scan using iprt2_p3_b on prt2_p3 t2_3
                Index Cond: (b > t1.a)
-(12 rows)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 -- equi-join with join condition on partial keys does not qualify for
 -- partitionwise join
@@ -2047,17 +2063,18 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_m t1, prt2_m t2 WHERE t1.a = (t2.b + t2.
                   QUERY PLAN                  
 ----------------------------------------------
  Hash Join
-   Hash Cond: (((t2.b + t2.a) / 2) = t1.a)
+   Hash Cond: (t1.a = ((t2.b + t2.a) / 2))
    ->  Append
-         ->  Seq Scan on prt2_m_p1 t2_1
-         ->  Seq Scan on prt2_m_p2 t2_2
-         ->  Seq Scan on prt2_m_p3 t2_3
+         ->  Seq Scan on prt1_m_p1 t1_1
+         ->  Seq Scan on prt1_m_p2 t1_2
+         ->  Seq Scan on prt1_m_p3 t1_3
    ->  Hash
          ->  Append
-               ->  Seq Scan on prt1_m_p1 t1_1
-               ->  Seq Scan on prt1_m_p2 t1_2
-               ->  Seq Scan on prt1_m_p3 t1_3
-(11 rows)
+               ->  Seq Scan on prt2_m_p1 t2_1
+               ->  Seq Scan on prt2_m_p2 t2_2
+               ->  Seq Scan on prt2_m_p3 t2_3
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 -- equi-join between out-of-order partition key columns does not qualify for
 -- partitionwise join
@@ -2076,7 +2093,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_m t1 LEFT JOIN prt2_m t2 ON t1.a = t2.b;
                ->  Seq Scan on prt2_m_p1 t2_1
                ->  Seq Scan on prt2_m_p2 t2_2
                ->  Seq Scan on prt2_m_p3 t2_3
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 -- equi-join between non-key columns does not qualify for partitionwise join
 EXPLAIN (COSTS OFF)
@@ -2094,7 +2112,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_m t1 LEFT JOIN prt2_m t2 ON t1.c = t2.c;
                ->  Seq Scan on prt2_m_p1 t2_1
                ->  Seq Scan on prt2_m_p2 t2_2
                ->  Seq Scan on prt2_m_p3 t2_3
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 -- partitionwise join can not be applied for a join between list and range
 -- partitioned tables
@@ -2111,31 +2130,33 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_n t1 LEFT JOIN prt2_n t2 ON (t1.c = t2.c
          ->  Append
                ->  Seq Scan on prt1_n_p1 t1_1
                ->  Seq Scan on prt1_n_p2 t1_2
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- partitionwise join can not be applied between tables with different
 -- partition lists
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_n t1 JOIN prt2_n t2 ON (t1.c = t2.c) JOIN plt1 t3 ON (t1.c = t3.c);
-                        QUERY PLAN                        
-----------------------------------------------------------
+                     QUERY PLAN                     
+----------------------------------------------------
  Hash Join
-   Hash Cond: (t2.c = (t1.c)::text)
-   ->  Append
-         ->  Seq Scan on prt2_n_p1 t2_1
-         ->  Seq Scan on prt2_n_p2 t2_2
-   ->  Hash
-         ->  Hash Join
-               Hash Cond: (t3.c = (t1.c)::text)
+   Hash Cond: ((t1.c)::text = t2.c)
+   ->  Hash Join
+         Hash Cond: (t3.c = (t1.c)::text)
+         ->  Append
+               ->  Seq Scan on plt1_p1 t3_1
+               ->  Seq Scan on plt1_p2 t3_2
+               ->  Seq Scan on plt1_p3 t3_3
+         ->  Hash
                ->  Append
-                     ->  Seq Scan on plt1_p1 t3_1
-                     ->  Seq Scan on plt1_p2 t3_2
-                     ->  Seq Scan on plt1_p3 t3_3
-               ->  Hash
-                     ->  Append
-                           ->  Seq Scan on prt1_n_p1 t1_1
-                           ->  Seq Scan on prt1_n_p2 t1_2
-(16 rows)
+                     ->  Seq Scan on prt1_n_p1 t1_1
+                     ->  Seq Scan on prt1_n_p2 t1_2
+   ->  Hash
+         ->  Append
+               ->  Seq Scan on prt2_n_p1 t2_1
+               ->  Seq Scan on prt2_n_p2 t2_2
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 -- partitionwise join can not be applied for a join between key column and
 -- non-key column
@@ -2153,7 +2174,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_n t1 FULL JOIN prt1 t2 ON (t1.c = t2.c);
          ->  Append
                ->  Seq Scan on prt1_n_p1 t1_1
                ->  Seq Scan on prt1_n_p2 t1_2
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 --
 -- Test some other plan types in a partitionwise join (unfortunately,
@@ -2182,32 +2204,29 @@ select * from prtx1
 where not exists (select 1 from prtx2
                   where prtx2.a=prtx1.a and prtx2.b=prtx1.b and prtx2.c=123)
   and a<20 and c=120;
-                         QUERY PLAN                          
--------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Append
-   ->  Nested Loop Anti Join
+   ->  Hash Anti Join
+         Hash Cond: ((prtx1_1.a = prtx2_1.a) AND (prtx1_1.b = prtx2_1.b))
          ->  Seq Scan on prtx1_1
                Filter: ((a < 20) AND (c = 120))
-         ->  Bitmap Heap Scan on prtx2_1
-               Recheck Cond: ((b = prtx1_1.b) AND (c = 123))
-               Filter: (a = prtx1_1.a)
-               ->  BitmapAnd
-                     ->  Bitmap Index Scan on prtx2_1_b_idx
-                           Index Cond: (b = prtx1_1.b)
+         ->  Hash
+               ->  Bitmap Heap Scan on prtx2_1
+                     Recheck Cond: (c = 123)
                      ->  Bitmap Index Scan on prtx2_1_c_idx
                            Index Cond: (c = 123)
-   ->  Nested Loop Anti Join
+   ->  Hash Anti Join
+         Hash Cond: ((prtx1_2.a = prtx2_2.a) AND (prtx1_2.b = prtx2_2.b))
          ->  Seq Scan on prtx1_2
                Filter: ((a < 20) AND (c = 120))
-         ->  Bitmap Heap Scan on prtx2_2
-               Recheck Cond: ((b = prtx1_2.b) AND (c = 123))
-               Filter: (a = prtx1_2.a)
-               ->  BitmapAnd
-                     ->  Bitmap Index Scan on prtx2_2_b_idx
-                           Index Cond: (b = prtx1_2.b)
+         ->  Hash
+               ->  Bitmap Heap Scan on prtx2_2
+                     Recheck Cond: (c = 123)
                      ->  Bitmap Index Scan on prtx2_2_c_idx
                            Index Cond: (c = 123)
-(23 rows)
+ Optimizer: Postgres query optimizer
+(20 rows)
 
 select * from prtx1
 where not exists (select 1 from prtx2
@@ -2223,32 +2242,25 @@ select * from prtx1
 where not exists (select 1 from prtx2
                   where prtx2.a=prtx1.a and (prtx2.b=prtx1.b+1 or prtx2.c=99))
   and a<20 and c=91;
-                           QUERY PLAN                            
------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Append
-   ->  Nested Loop Anti Join
+   ->  Hash Anti Join
+         Hash Cond: (prtx1_1.a = prtx2_1.a)
+         Join Filter: ((prtx2_1.b = (prtx1_1.b + 1)) OR (prtx2_1.c = 99))
          ->  Seq Scan on prtx1_1
                Filter: ((a < 20) AND (c = 91))
-         ->  Bitmap Heap Scan on prtx2_1
-               Recheck Cond: ((b = (prtx1_1.b + 1)) OR (c = 99))
-               Filter: (a = prtx1_1.a)
-               ->  BitmapOr
-                     ->  Bitmap Index Scan on prtx2_1_b_idx
-                           Index Cond: (b = (prtx1_1.b + 1))
-                     ->  Bitmap Index Scan on prtx2_1_c_idx
-                           Index Cond: (c = 99)
-   ->  Nested Loop Anti Join
+         ->  Hash
+               ->  Seq Scan on prtx2_1
+   ->  Hash Anti Join
+         Hash Cond: (prtx1_2.a = prtx2_2.a)
+         Join Filter: ((prtx2_2.b = (prtx1_2.b + 1)) OR (prtx2_2.c = 99))
          ->  Seq Scan on prtx1_2
                Filter: ((a < 20) AND (c = 91))
-         ->  Bitmap Heap Scan on prtx2_2
-               Recheck Cond: ((b = (prtx1_2.b + 1)) OR (c = 99))
-               Filter: (a = prtx1_2.a)
-               ->  BitmapOr
-                     ->  Bitmap Index Scan on prtx2_2_b_idx
-                           Index Cond: (b = (prtx1_2.b + 1))
-                     ->  Bitmap Index Scan on prtx2_2_c_idx
-                           Index Cond: (c = 99)
-(23 rows)
+         ->  Hash
+               ->  Seq Scan on prtx2_2
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 select * from prtx1
 where not exists (select 1 from prtx2
@@ -2305,7 +2317,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on prt1_adv_p3 t1_3
                            Filter: (b = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -2346,7 +2359,8 @@ SELECT t1.* FROM prt1_adv t1 WHERE EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a 
                      Filter: (b = 0)
                ->  Hash
                      ->  Seq Scan on prt2_adv_p3 t2_3
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM prt1_adv t1 WHERE EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a = t2.b) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -2387,7 +2401,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2 ON (t1.a = 
                ->  Hash
                      ->  Seq Scan on prt1_adv_p3 t1_3
                            Filter: (b = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -2432,7 +2447,8 @@ SELECT t1.* FROM prt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t
                      Filter: (b = 0)
                ->  Hash
                      ->  Seq Scan on prt2_adv_p3 t2_3
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM prt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a = t2.b) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -2475,7 +2491,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 175 phv, * FROM prt1_adv WHERE prt1_a
                ->  Hash
                      ->  Seq Scan on prt1_adv_p3 prt1_adv_3
                            Filter: (b = 0)
-(27 rows)
+ Optimizer: Postgres query optimizer
+(28 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 175 phv, * FROM prt1_adv WHERE prt1_adv.b = 0) t1 FULL JOIN (SELECT 425 phv, * FROM prt2_adv WHERE prt2_adv.a = 0) t2 ON (t1.a = t2.b) WHERE t1.phv = t1.a OR t2.phv = t2.b ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -2514,7 +2531,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on prt1_adv_p3 t1_3
                            Filter: (b = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -2555,7 +2573,8 @@ SELECT t1.* FROM prt1_adv t1 WHERE EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a 
                      Filter: (b = 0)
                ->  Hash
                      ->  Seq Scan on prt2_adv_p3 t2_3
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM prt1_adv t1 WHERE EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a = t2.b) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -2596,7 +2615,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2 ON (t1.a = 
                ->  Hash
                      ->  Seq Scan on prt1_adv_p3 t1_3
                            Filter: (b = 0)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -2639,7 +2659,8 @@ SELECT t1.b, t1.c, t2.a, t2.c FROM prt2_adv t1 LEFT JOIN prt1_adv t2 ON (t1.b = 
                            Filter: (a = 0)
                      ->  Seq Scan on prt2_adv_extra t1_4
                            Filter: (a = 0)
-(18 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 -- anti join
 EXPLAIN (COSTS OFF)
@@ -2667,7 +2688,8 @@ SELECT t1.* FROM prt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t
                      Filter: (b = 0)
                ->  Hash
                      ->  Seq Scan on prt2_adv_p3 t2_3
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM prt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a = t2.b) AND t1.b = 0 ORDER BY t1.a;
   a  | b |  c   
@@ -2702,7 +2724,8 @@ SELECT t1.* FROM prt2_adv t1 WHERE NOT EXISTS (SELECT 1 FROM prt1_adv t2 WHERE t
                      ->  Seq Scan on prt1_adv_p1 t2_1
                      ->  Seq Scan on prt1_adv_p2 t2_2
                      ->  Seq Scan on prt1_adv_p3 t2_3
-(18 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 -- full join; currently we can't do partitioned join if there are no matched
 -- partitions on the nullable side
@@ -2732,24 +2755,27 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 175 phv, * FROM prt1_adv WHERE prt1_a
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_adv_p3 prt1_adv_3
                            Filter: (b = 0)
-(22 rows)
+ Optimizer: Postgres query optimizer
+(23 rows)
 
 -- 3-way join where not every pair of relations can do partitioned join
 EXPLAIN (COSTS OFF)
 SELECT t1.b, t1.c, t2.a, t2.c, t3.a, t3.c FROM prt2_adv t1 LEFT JOIN prt1_adv t2 ON (t1.b = t2.a) INNER JOIN prt1_adv t3 ON (t1.b = t3.a) WHERE t1.a = 0 ORDER BY t1.b, t2.a, t3.a;
-                                   QUERY PLAN                                   
---------------------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Sort
    Sort Key: t1.b, t2.a
    ->  Append
-         ->  Nested Loop Left Join
-               ->  Nested Loop
-                     ->  Seq Scan on prt2_adv_p1 t1_1
-                           Filter: (a = 0)
-                     ->  Index Scan using prt1_adv_p1_a_idx on prt1_adv_p1 t3_1
-                           Index Cond: (a = t1_1.b)
-               ->  Index Scan using prt1_adv_p1_a_idx on prt1_adv_p1 t2_1
-                     Index Cond: (a = t1_1.b)
+         ->  Hash Right Join
+               Hash Cond: (t2_1.a = t1_1.b)
+               ->  Seq Scan on prt1_adv_p1 t2_1
+               ->  Hash
+                     ->  Hash Join
+                           Hash Cond: (t3_1.a = t1_1.b)
+                           ->  Seq Scan on prt1_adv_p1 t3_1
+                           ->  Hash
+                                 ->  Seq Scan on prt2_adv_p1 t1_1
+                                       Filter: (a = 0)
          ->  Hash Right Join
                Hash Cond: (t2_2.a = t1_2.b)
                ->  Seq Scan on prt1_adv_p2 t2_2
@@ -2770,7 +2796,8 @@ SELECT t1.b, t1.c, t2.a, t2.c, t3.a, t3.c FROM prt2_adv t1 LEFT JOIN prt1_adv t2
                            ->  Hash
                                  ->  Seq Scan on prt2_adv_p3 t1_3
                                        Filter: (a = 0)
-(31 rows)
+ Optimizer: Postgres query optimizer
+(34 rows)
 
 SELECT t1.b, t1.c, t2.a, t2.c, t3.a, t3.c FROM prt2_adv t1 LEFT JOIN prt1_adv t2 ON (t1.b = t2.a) INNER JOIN prt1_adv t3 ON (t1.b = t3.a) WHERE t1.a = 0 ORDER BY t1.b, t2.a, t3.a;
   b  |  c   |  a  |  c   |  a  |  c   
@@ -2816,7 +2843,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_adv_p3 t1_3
                            Filter: (b = 0)
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- semi join
 EXPLAIN (COSTS OFF)
@@ -2840,7 +2868,8 @@ SELECT t1.* FROM prt1_adv t1 WHERE EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t1.a 
                      ->  Seq Scan on prt2_adv_p2 t2_2
                      ->  Seq Scan on prt2_adv_p3_1 t2_3
                      ->  Seq Scan on prt2_adv_p3_2 t2_4
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- left join
 EXPLAIN (COSTS OFF)
@@ -2864,7 +2893,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2 ON (t1.a = 
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_adv_p3 t1_3
                            Filter: (b = 0)
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- anti join
 EXPLAIN (COSTS OFF)
@@ -2888,7 +2918,8 @@ SELECT t1.* FROM prt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM prt2_adv t2 WHERE t
                      ->  Seq Scan on prt2_adv_p2 t2_2
                      ->  Seq Scan on prt2_adv_p3_1 t2_3
                      ->  Seq Scan on prt2_adv_p3_2 t2_4
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- full join
 EXPLAIN (COSTS OFF)
@@ -2917,7 +2948,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM (SELECT 175 phv, * FROM prt1_adv WHERE prt1_a
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_adv_p3 prt1_adv_3
                            Filter: (b = 0)
-(22 rows)
+ Optimizer: Postgres query optimizer
+(23 rows)
 
 DROP TABLE prt2_adv_p3_1;
 DROP TABLE prt2_adv_p3_2;
@@ -2949,7 +2981,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on prt1_adv_p2 t1_1
                            Filter: (b = 0)
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -2990,7 +3023,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_adv_p1 t1_3
                            Filter: (b = 0)
-(16 rows)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 ALTER TABLE prt2_adv DETACH PARTITION prt2_adv_p3;
 -- Change prt2_adv_p3 to the default partition
@@ -3018,7 +3052,8 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
                            Filter: (b = 0)
                      ->  Seq Scan on prt1_adv_p1 t1_3
                            Filter: (b = 0)
-(16 rows)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 DROP TABLE prt1_adv_p3;
 ANALYZE prt1_adv;
@@ -3058,7 +3093,8 @@ SELECT t1.a, t1.c, t2.b, t2.c, t3.a, t3.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2
                            ->  Hash
                                  ->  Seq Scan on prt1_adv_p1 t1_2
                                        Filter: (b = 0)
-(23 rows)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c, t3.a, t3.c FROM prt1_adv t1 LEFT JOIN prt2_adv t2 ON (t1.a = t2.b) LEFT JOIN prt3_adv t3 ON (t1.a = t3.a) WHERE t1.b = 0 ORDER BY t1.a, t2.b, t3.a;
   a  |  c   |  b  |  c   |  a  |  c   
@@ -3100,16 +3136,19 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
          ->  Hash Join
                Hash Cond: (t2_1.b = t1_1.a)
                ->  Seq Scan on prt2_adv_p1 t2_1
+                     Filter: (b < 300)
                ->  Hash
                      ->  Seq Scan on prt1_adv_p1 t1_1
                            Filter: ((a < 300) AND (b = 0))
          ->  Hash Join
                Hash Cond: (t2_2.b = t1_2.a)
                ->  Seq Scan on prt2_adv_p2 t2_2
+                     Filter: (b < 300)
                ->  Hash
                      ->  Seq Scan on prt1_adv_p2 t1_2
                            Filter: ((a < 300) AND (b = 0))
-(15 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.a < 300 AND t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -3139,16 +3178,19 @@ SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a =
          ->  Hash Join
                Hash Cond: (t2_1.b = t1_1.a)
                ->  Seq Scan on prt2_adv_p1 t2_1
+                     Filter: ((b >= 100) AND (b < 300))
                ->  Hash
                      ->  Seq Scan on prt1_adv_p1 t1_1
                            Filter: ((a >= 100) AND (a < 300) AND (b = 0))
          ->  Hash Join
                Hash Cond: (t2_2.b = t1_2.a)
                ->  Seq Scan on prt2_adv_p2 t2_2
+                     Filter: ((b >= 100) AND (b < 300))
                ->  Hash
                      ->  Seq Scan on prt1_adv_p2 t1_2
                            Filter: ((a >= 100) AND (a < 300) AND (b = 0))
-(15 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 SELECT t1.a, t1.c, t2.b, t2.c FROM prt1_adv t1 INNER JOIN prt2_adv t2 ON (t1.a = t2.b) WHERE t1.a >= 100 AND t1.a < 300 AND t1.b = 0 ORDER BY t1.a, t2.b;
   a  |  c   |  b  |  c   
@@ -3204,7 +3246,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -3218,27 +3261,31 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
 -- semi join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
+         ->  Hash Semi Join
+               Hash Cond: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
                ->  Seq Scan on plt1_adv_p1 t1_1
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p1 t2_1
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p1 t2_1
+         ->  Hash Semi Join
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on plt1_adv_p2 t1_2
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p2 t2_2
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p2 t2_2
+         ->  Hash Semi Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on plt1_adv_p3 t1_3
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p3 t2_3
-(18 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p3 t2_3
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
  a | b |  c   
@@ -3275,7 +3322,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -3291,27 +3339,31 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
 -- anti join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
+         ->  Hash Anti Join
+               Hash Cond: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
                ->  Seq Scan on plt1_adv_p1 t1_1
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p1 t2_1
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p1 t2_1
+         ->  Hash Anti Join
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on plt1_adv_p2 t1_2
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p2 t2_2
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p2 t2_2
+         ->  Hash Anti Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on plt1_adv_p3 t1_3
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p3 t2_3
-(18 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p3 t2_3
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
  a | b |  c   
@@ -3346,7 +3398,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = 
                ->  Seq Scan on plt1_adv_p3 t1_3
                ->  Hash
                      ->  Seq Scan on plt2_adv_p3 t2_3
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE coalesce(t1.b, 0) < 10 AND coalesce(t2.b, 0) < 10 ORDER BY t1.a, t2.a;
  a |  c   | a |  c   
@@ -3391,7 +3444,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -3405,27 +3459,31 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
 -- semi join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
+         ->  Hash Semi Join
+               Hash Cond: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
                ->  Seq Scan on plt1_adv_p1 t1_1
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p1 t2_1
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p1 t2_1
+         ->  Hash Semi Join
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on plt1_adv_p2 t1_2
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p2 t2_2
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p2 t2_2
+         ->  Hash Semi Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on plt1_adv_p3 t1_3
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p3 t2_3
-(18 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p3 t2_3
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
  a | b |  c   
@@ -3462,7 +3520,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -3499,32 +3558,37 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt2_adv t1 LEFT JOIN plt1_adv t2 ON (t1.a = 
                            Filter: (b < 10)
                      ->  Seq Scan on plt2_adv_p3 t1_4
                            Filter: (b < 10)
-(18 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 -- anti join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
+         ->  Hash Anti Join
+               Hash Cond: ((t1_1.a = t2_1.a) AND (t1_1.c = t2_1.c))
                ->  Seq Scan on plt1_adv_p1 t1_1
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p1 t2_1
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p1 t2_1
+         ->  Hash Anti Join
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on plt1_adv_p2 t1_2
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p2 t2_2
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p2 t2_2
+         ->  Hash Anti Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on plt1_adv_p3 t1_3
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p3 t2_3
-(18 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p3 t2_3
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
  a | b |  c   
@@ -3557,7 +3621,8 @@ SELECT t1.* FROM plt2_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt1_adv t2 WHERE t
                      ->  Seq Scan on plt1_adv_p1 t2_1
                      ->  Seq Scan on plt1_adv_p2 t2_2
                      ->  Seq Scan on plt1_adv_p3 t2_3
-(18 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 -- full join; currently we can't do partitioned join if there are no matched
 -- partitions on the nullable side
@@ -3580,7 +3645,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = 
                      ->  Seq Scan on plt1_adv_p1 t1_1
                      ->  Seq Scan on plt1_adv_p2 t1_2
                      ->  Seq Scan on plt1_adv_p3 t1_3
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 DROP TABLE plt2_adv_extra;
 -- Test cases where a partition on one side matches multiple partitions on
@@ -3613,7 +3679,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                            Filter: (b < 10)
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- semi join
 EXPLAIN (COSTS OFF)
@@ -3637,7 +3704,8 @@ SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a 
                      ->  Seq Scan on plt2_adv_p2_1 t2_2
                      ->  Seq Scan on plt2_adv_p2_2 t2_3
                      ->  Seq Scan on plt2_adv_p3 t2_4
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- left join
 EXPLAIN (COSTS OFF)
@@ -3661,7 +3729,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
                            Filter: (b < 10)
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- anti join
 EXPLAIN (COSTS OFF)
@@ -3685,7 +3754,8 @@ SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t
                      ->  Seq Scan on plt2_adv_p2_1 t2_2
                      ->  Seq Scan on plt2_adv_p2_2 t2_3
                      ->  Seq Scan on plt2_adv_p3 t2_4
-(17 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 -- full join
 EXPLAIN (COSTS OFF)
@@ -3707,7 +3777,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = 
                      ->  Seq Scan on plt1_adv_p1 t1_1
                      ->  Seq Scan on plt1_adv_p2 t1_2
                      ->  Seq Scan on plt1_adv_p3 t1_3
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 DROP TABLE plt2_adv_p2_1;
 DROP TABLE plt2_adv_p2_2;
@@ -3752,7 +3823,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -3766,8 +3838,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
 -- semi join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
@@ -3777,17 +3849,20 @@ SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a 
                      Filter: (b < 10)
                ->  Hash
                      ->  Seq Scan on plt2_adv_p1 t2_1
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
+         ->  Hash Semi Join
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on plt1_adv_p2 t1_2
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p2 t2_2
-         ->  Nested Loop Semi Join
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p2 t2_2
+         ->  Hash Semi Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on plt1_adv_p3 t1_3
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p3_null t2_3
-(19 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p3_null t2_3
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM plt1_adv t1 WHERE EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
  a | b |  c   
@@ -3824,7 +3899,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a  |  c   | a |  c   
@@ -3841,8 +3917,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
 -- anti join
 EXPLAIN (COSTS OFF)
 SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
@@ -3852,17 +3928,20 @@ SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t
                      Filter: (b < 10)
                ->  Hash
                      ->  Seq Scan on plt2_adv_p1 t2_1
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
+         ->  Hash Anti Join
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on plt1_adv_p2 t1_2
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p2 t2_2
-         ->  Nested Loop Anti Join
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p2 t2_2
+         ->  Hash Anti Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on plt1_adv_p3 t1_3
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_p3_null t2_3
-(19 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_p3_null t2_3
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.* FROM plt1_adv t1 WHERE NOT EXISTS (SELECT 1 FROM plt2_adv t2 WHERE t1.a = t2.a AND t1.c = t2.c) AND t1.b < 10 ORDER BY t1.a;
  a  | b  |  c   
@@ -3898,7 +3977,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = 
                ->  Seq Scan on plt2_adv_p3_null t2_3
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE coalesce(t1.b, 0) < 10 AND coalesce(t2.b, 0) < 10 ORDER BY t1.a, t2.a;
  a  |  c   | a  |  c   
@@ -3953,7 +4033,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -3988,7 +4069,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
                            Filter: (b < 10)
                      ->  Seq Scan on plt1_adv_extra t1_4
                            Filter: (b < 10)
-(18 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 -- full join; currently we can't do partitioned join if there are no matched
 -- partitions on the nullable side
@@ -4011,7 +4093,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = 
                      ->  Seq Scan on plt2_adv_p1 t2_1
                      ->  Seq Scan on plt2_adv_p2 t2_2
                      ->  Seq Scan on plt2_adv_p3 t2_3
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 -- Add to plt2_adv the extra NULL partition containing only NULL values as the
 -- key values
@@ -4044,7 +4127,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -4058,8 +4142,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
 -- left join
 EXPLAIN (COSTS OFF)
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Sort
    Sort Key: t1.a
    ->  Append
@@ -4081,12 +4165,14 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_3
                            Filter: (b < 10)
-         ->  Nested Loop Left Join
-               Join Filter: ((t1_4.a = t2_4.a) AND (t1_4.c = t2_4.c))
+         ->  Hash Left Join
+               Hash Cond: ((t1_4.a = t2_4.a) AND (t1_4.c = t2_4.c))
                ->  Seq Scan on plt1_adv_extra t1_4
                      Filter: (b < 10)
-               ->  Seq Scan on plt2_adv_extra t2_4
-(26 rows)
+               ->  Hash
+                     ->  Seq Scan on plt2_adv_extra t2_4
+ Optimizer: Postgres query optimizer
+(28 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a  |  c   | a |  c   
@@ -4132,7 +4218,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = 
                ->  Seq Scan on plt1_adv_extra t1_4
                ->  Hash
                      ->  Seq Scan on plt2_adv_extra t2_4
-(27 rows)
+ Optimizer: Postgres query optimizer
+(28 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 FULL JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE coalesce(t1.b, 0) < 10 AND coalesce(t2.b, 0) < 10 ORDER BY t1.a, t2.a;
  a  |  c   | a  |  c   
@@ -4187,15 +4274,18 @@ SELECT t1.a, t1.c, t2.a, t2.c, t3.a, t3.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2
                            ->  Hash
                                  ->  Seq Scan on plt1_adv_p3 t1_3
                                        Filter: (b < 10)
-         ->  Nested Loop Left Join
-               Join Filter: ((t1_4.a = t3_4.a) AND (t1_4.c = t3_4.c))
-               ->  Nested Loop Left Join
-                     Join Filter: ((t1_4.a = t2_4.a) AND (t1_4.c = t2_4.c))
+         ->  Hash Left Join
+               Hash Cond: ((t1_4.a = t3_4.a) AND (t1_4.c = t3_4.c))
+               ->  Hash Left Join
+                     Hash Cond: ((t1_4.a = t2_4.a) AND (t1_4.c = t2_4.c))
                      ->  Seq Scan on plt1_adv_extra t1_4
                            Filter: (b < 10)
-                     ->  Seq Scan on plt2_adv_extra t2_4
-               ->  Seq Scan on plt1_adv_extra t3_4
-(41 rows)
+                     ->  Hash
+                           ->  Seq Scan on plt2_adv_extra t2_4
+               ->  Hash
+                     ->  Seq Scan on plt1_adv_extra t3_4
+ Optimizer: Postgres query optimizer
+(44 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c, t3.a, t3.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) LEFT JOIN plt1_adv t3 ON (t1.a = t3.a AND t1.c = t3.c) WHERE t1.b < 10 ORDER BY t1.a;
  a  |  c   | a |  c   | a |  c   
@@ -4240,7 +4330,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p2 t1_1
                            Filter: (b < 10)
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -4275,7 +4366,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                            Filter: (b < 10)
                      ->  Seq Scan on plt1_adv_p1 t1_2
                            Filter: (b < 10)
-(13 rows)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 ALTER TABLE plt2_adv DETACH PARTITION plt2_adv_p2_ext;
 -- Change plt2_adv_p2_ext to the default partition
@@ -4300,7 +4392,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                            Filter: (b < 10)
                      ->  Seq Scan on plt1_adv_p1 t1_2
                            Filter: (b < 10)
-(13 rows)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 DROP TABLE plt2_adv_p2_ext;
 -- Restore plt2_adv_p2
@@ -4339,7 +4432,8 @@ SELECT t1.a, t1.c, t2.a, t2.c, t3.a, t3.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2
                            ->  Hash
                                  ->  Seq Scan on plt1_adv_p1 t1_2
                                        Filter: (b < 10)
-(23 rows)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c, t3.a, t3.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) LEFT JOIN plt3_adv t3 ON (t1.a = t3.a AND t1.c = t3.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   | a |  c   
@@ -4377,7 +4471,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
                ->  Hash
                      ->  Seq Scan on plt1_adv_p2 t1_1
                            Filter: (b < 10)
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -4405,7 +4500,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
          ->  Hash
                ->  Seq Scan on plt1_adv_p2 t1
                      Filter: (b < 10)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -4444,16 +4540,19 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
          ->  Hash Join
                Hash Cond: ((t2_1.a = t1_1.a) AND (t2_1.c = t1_1.c))
                ->  Seq Scan on plt2_adv_p3 t2_1
+                     Filter: (c = ANY ('{0003,0004,0005}'::text[]))
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_1
                            Filter: ((b < 10) AND (c = ANY ('{0003,0004,0005}'::text[])))
          ->  Hash Join
                Hash Cond: ((t2_2.a = t1_2.a) AND (t2_2.c = t1_2.c))
                ->  Seq Scan on plt2_adv_p4 t2_2
+                     Filter: (c = ANY ('{0003,0004,0005}'::text[]))
                ->  Hash
                      ->  Seq Scan on plt1_adv_p4 t1_2
                            Filter: ((b < 10) AND (c = ANY ('{0003,0004,0005}'::text[])))
-(15 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.c IN ('0003', '0004', '0005') AND t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -4475,7 +4574,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
          ->  Hash
                ->  Seq Scan on plt1_adv_p4 t1
                      Filter: ((c IS NULL) AND (b < 10))
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.c IS NULL AND t1.b < 10 ORDER BY t1.a;
  a  | c | a | c 
@@ -4497,16 +4597,19 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a =
          ->  Hash Join
                Hash Cond: ((t2_1.a = t1_1.a) AND (t2_1.c = t1_1.c))
                ->  Seq Scan on plt2_adv_p3 t2_1
+                     Filter: (c = ANY ('{0003,0004,0005}'::text[]))
                ->  Hash
                      ->  Seq Scan on plt1_adv_p3 t1_1
                            Filter: ((b < 10) AND (c = ANY ('{0003,0004,0005}'::text[])))
          ->  Hash Join
                Hash Cond: ((t2_2.a = t1_2.a) AND (t2_2.c = t1_2.c))
                ->  Seq Scan on plt2_adv_p4 t2_2
+                     Filter: (c = ANY ('{0003,0004,0005}'::text[]))
                ->  Hash
                      ->  Seq Scan on plt1_adv_p4 t1_2
                            Filter: ((b < 10) AND (c = ANY ('{0003,0004,0005}'::text[])))
-(15 rows)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 INNER JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.c IN ('0003', '0004', '0005') AND t1.b < 10 ORDER BY t1.a;
  a |  c   | a |  c   
@@ -4528,7 +4631,8 @@ SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = 
          ->  Hash
                ->  Seq Scan on plt1_adv_p4 t1
                      Filter: ((c IS NULL) AND (b < 10))
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c FROM plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE t1.c IS NULL AND t1.b < 10 ORDER BY t1.a;
  a  | c | a | c 
@@ -4585,7 +4689,8 @@ SELECT t1.a, t1.c, t2.a, t2.c, t3.a, t3.c FROM (plt1_adv t1 LEFT JOIN plt2_adv t
                            ->  Seq Scan on plt2_adv_p2 t2_2
                ->  Hash
                      ->  Seq Scan on plt3_adv_p2 t3_2
-(23 rows)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 SELECT t1.a, t1.c, t2.a, t2.c, t3.a, t3.c FROM (plt1_adv t1 LEFT JOIN plt2_adv t2 ON (t1.c = t2.c)) FULL JOIN plt3_adv t3 ON (t1.c = t3.c) WHERE coalesce(t1.a, 0) % 5 != 3 AND coalesce(t1.a, 0) % 5 != 4 ORDER BY t1.c, t1.a, t2.a, t3.a;
  a  |  c   | a  |  c   | a  |  c   
@@ -4692,27 +4797,33 @@ SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.b = t2
                      Filter: ((b >= 125) AND (b < 225))
                ->  Hash
                      ->  Seq Scan on beta_neg_p1 t2_1
-         ->  Hash Join
-               Hash Cond: ((t2_2.a = t1_2.a) AND (t2_2.b = t1_2.b))
-               ->  Seq Scan on beta_neg_p2 t2_2
-               ->  Hash
-                     ->  Seq Scan on alpha_neg_p2 t1_2
                            Filter: ((b >= 125) AND (b < 225))
          ->  Hash Join
-               Hash Cond: ((t2_4.a = t1_4.a) AND (t2_4.b = t1_4.b))
+               Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.b = t2_2.b))
+               ->  Seq Scan on alpha_neg_p2 t1_2
+                     Filter: ((b >= 125) AND (b < 225))
+               ->  Hash
+                     ->  Seq Scan on beta_neg_p2 t2_2
+                           Filter: ((b >= 125) AND (b < 225))
+         ->  Hash Join
+               Hash Cond: ((t1_4.a = t2_4.a) AND (t1_4.b = t2_4.b))
                ->  Append
-                     ->  Seq Scan on beta_pos_p1 t2_4
-                     ->  Seq Scan on beta_pos_p2 t2_5
-                     ->  Seq Scan on beta_pos_p3 t2_6
+                     ->  Seq Scan on alpha_pos_p1 t1_4
+                           Filter: ((b >= 125) AND (b < 225))
+                     ->  Seq Scan on alpha_pos_p2 t1_5
+                           Filter: ((b >= 125) AND (b < 225))
+                     ->  Seq Scan on alpha_pos_p3 t1_6
+                           Filter: ((b >= 125) AND (b < 225))
                ->  Hash
                      ->  Append
-                           ->  Seq Scan on alpha_pos_p1 t1_4
+                           ->  Seq Scan on beta_pos_p1 t2_4
                                  Filter: ((b >= 125) AND (b < 225))
-                           ->  Seq Scan on alpha_pos_p2 t1_5
+                           ->  Seq Scan on beta_pos_p2 t2_5
                                  Filter: ((b >= 125) AND (b < 225))
-                           ->  Seq Scan on alpha_pos_p3 t1_6
+                           ->  Seq Scan on beta_pos_p3 t2_6
                                  Filter: ((b >= 125) AND (b < 225))
-(29 rows)
+ Optimizer: Postgres query optimizer
+(35 rows)
 
 SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.b = t2.b) WHERE t1.b >= 125 AND t1.b < 225 ORDER BY t1.a, t1.b;
  a  |  b  |  c   | a  |  b  |  c   
@@ -4761,8 +4872,8 @@ SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.b = t2
 
 EXPLAIN (COSTS OFF)
 SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE ((t1.b >= 100 AND t1.b < 110) OR (t1.b >= 200 AND t1.b < 210)) AND ((t2.b >= 100 AND t2.b < 110) OR (t2.b >= 200 AND t2.b < 210)) AND t1.c IN ('0004', '0009') ORDER BY t1.a, t1.b, t2.b;
-                                                              QUERY PLAN                                                              
---------------------------------------------------------------------------------------------------------------------------------------
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Sort Key: t1.a, t1.b, t2.b
    ->  Append
@@ -4776,22 +4887,25 @@ SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.c = t2
                ->  Hash
                      ->  Append
                            ->  Seq Scan on beta_neg_p1 t2_2
-                                 Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
+                                 Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
                            ->  Seq Scan on beta_neg_p2 t2_3
-                                 Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
-         ->  Nested Loop
-               Join Filter: ((t1_4.a = t2_4.a) AND (t1_4.c = t2_4.c))
+                                 Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
+         ->  Hash Join
+               Hash Cond: ((t1_4.a = t2_4.a) AND (t1_4.c = t2_4.c))
                ->  Seq Scan on alpha_pos_p2 t1_4
                      Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
-               ->  Seq Scan on beta_pos_p2 t2_4
-                     Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
-         ->  Nested Loop
-               Join Filter: ((t1_5.a = t2_5.a) AND (t1_5.c = t2_5.c))
+               ->  Hash
+                     ->  Seq Scan on beta_pos_p2 t2_4
+                           Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
+         ->  Hash Join
+               Hash Cond: ((t1_5.a = t2_5.a) AND (t1_5.c = t2_5.c))
                ->  Seq Scan on alpha_pos_p3 t1_5
                      Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
-               ->  Seq Scan on beta_pos_p3 t2_5
-                     Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
-(28 rows)
+               ->  Hash
+                     ->  Seq Scan on beta_pos_p3 t2_5
+                           Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
+ Optimizer: Postgres query optimizer
+(31 rows)
 
 SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.c = t2.c) WHERE ((t1.b >= 100 AND t1.b < 110) OR (t1.b >= 200 AND t1.b < 210)) AND ((t2.b >= 100 AND t2.b < 110) OR (t2.b >= 200 AND t2.b < 210)) AND t1.c IN ('0004', '0009') ORDER BY t1.a, t1.b, t2.b;
  a  |  b  |  c   | a  |  b  |  c   
@@ -4816,8 +4930,8 @@ SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.c = t2
 
 EXPLAIN (COSTS OFF)
 SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.b = t2.b AND t1.c = t2.c) WHERE ((t1.b >= 100 AND t1.b < 110) OR (t1.b >= 200 AND t1.b < 210)) AND ((t2.b >= 100 AND t2.b < 110) OR (t2.b >= 200 AND t2.b < 210)) AND t1.c IN ('0004', '0009') ORDER BY t1.a, t1.b;
-                                                           QUERY PLAN                                                           
---------------------------------------------------------------------------------------------------------------------------------
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
  Sort
    Sort Key: t1.a, t1.b
    ->  Append
@@ -4827,27 +4941,30 @@ SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.b = t2
                      Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
                ->  Hash
                      ->  Seq Scan on beta_neg_p1 t2_1
-                           Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
+                           Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
          ->  Hash Join
                Hash Cond: ((t1_2.a = t2_2.a) AND (t1_2.b = t2_2.b) AND (t1_2.c = t2_2.c))
                ->  Seq Scan on alpha_neg_p2 t1_2
                      Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
                ->  Hash
                      ->  Seq Scan on beta_neg_p2 t2_2
-                           Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
-         ->  Nested Loop
-               Join Filter: ((t1_3.a = t2_3.a) AND (t1_3.b = t2_3.b) AND (t1_3.c = t2_3.c))
+                           Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
+         ->  Hash Join
+               Hash Cond: ((t1_3.a = t2_3.a) AND (t1_3.b = t2_3.b) AND (t1_3.c = t2_3.c))
                ->  Seq Scan on alpha_pos_p2 t1_3
                      Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
-               ->  Seq Scan on beta_pos_p2 t2_3
-                     Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
-         ->  Nested Loop
-               Join Filter: ((t1_4.a = t2_4.a) AND (t1_4.b = t2_4.b) AND (t1_4.c = t2_4.c))
+               ->  Hash
+                     ->  Seq Scan on beta_pos_p2 t2_3
+                           Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
+         ->  Hash Join
+               Hash Cond: ((t1_4.a = t2_4.a) AND (t1_4.b = t2_4.b) AND (t1_4.c = t2_4.c))
                ->  Seq Scan on alpha_pos_p3 t1_4
                      Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
-               ->  Seq Scan on beta_pos_p3 t2_4
-                     Filter: (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210)))
-(29 rows)
+               ->  Hash
+                     ->  Seq Scan on beta_pos_p3 t2_4
+                           Filter: ((c = ANY ('{0004,0009}'::text[])) AND (((b >= 100) AND (b < 110)) OR ((b >= 200) AND (b < 210))))
+ Optimizer: Postgres query optimizer
+(32 rows)
 
 SELECT t1.*, t2.* FROM alpha t1 INNER JOIN beta t2 ON (t1.a = t2.a AND t1.b = t2.b AND t1.c = t2.c) WHERE ((t1.b >= 100 AND t1.b < 110) OR (t1.b >= 200 AND t1.b < 210)) AND ((t2.b >= 100 AND t2.b < 110) OR (t2.b >= 200 AND t2.b < 210)) AND t1.c IN ('0004', '0009') ORDER BY t1.a, t1.b;
  a  |  b  |  c   | a  |  b  |  c   

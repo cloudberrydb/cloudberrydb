@@ -6,6 +6,7 @@
 
 -- Suppress NOTICE messages when users/groups don't exist
 SET client_min_messages TO 'warning';
+SET gp_enable_relsize_collection to on;
 
 DROP USER IF EXISTS regress_rls_alice;
 DROP USER IF EXISTS regress_rls_bob;
@@ -17,7 +18,9 @@ DROP ROLE IF EXISTS regress_rls_group2;
 
 DROP SCHEMA IF EXISTS regress_rls_schema CASCADE;
 
-RESET client_min_messages;
+-- RESET client_min_messages; RESET doesn't work well in GPDB, it doesn't reset
+-- GUCs in QEs.
+SET client_min_messages TO 'notice';
 
 -- initial setup
 CREATE USER regress_rls_alice NOLOGIN;
@@ -54,6 +57,7 @@ INSERT INTO uaccount VALUES
     ('regress_rls_bob', 1),
     ('regress_rls_carol', 2),
     ('regress_rls_dave', 3);
+ANALYZE uaccount;
 
 CREATE TABLE category (
     cid        int primary key,
@@ -65,6 +69,7 @@ INSERT INTO category VALUES
     (22, 'science fiction'),
     (33, 'technology'),
     (44, 'manga');
+ANALYZE category;
 
 CREATE TABLE document (
     did         int primary key,
@@ -85,6 +90,7 @@ INSERT INTO document VALUES
     ( 8, 44, 1, 'regress_rls_carol', 'great manga'),
     ( 9, 22, 1, 'regress_rls_dave', 'awesome science fiction'),
     (10, 33, 2, 'regress_rls_dave', 'awesome technology book');
+ANALYZE document;
 
 ALTER TABLE document ENABLE ROW LEVEL SECURITY;
 
@@ -179,7 +185,10 @@ ALTER TABLE category ENABLE ROW LEVEL SECURITY;
 -- cannot delete PK referenced by invisible FK
 SET SESSION AUTHORIZATION regress_rls_bob;
 SELECT * FROM document d FULL OUTER JOIN category c on d.cid = c.cid ORDER BY d.did, c.cid;
-DELETE FROM category WHERE cid = 33;    -- fails with FK violation
+-- GPDB: referential integrity checks are not enforced
+-- start_ignore
+-- DELETE FROM category WHERE cid = 33;    -- fails with FK violation
+-- end_ignore
 
 -- can insert FK referencing invisible PK
 SET SESSION AUTHORIZATION regress_rls_carol;
@@ -193,7 +202,10 @@ SELECT * FROM document WHERE did = 8; -- and confirm we can't see it
 
 -- RLS policies are checked before constraints
 INSERT INTO document VALUES (8, 44, 1, 'regress_rls_carol', 'my third manga'); -- Should fail with RLS check violation, not duplicate key violation
+-- GPDB: UPDATE on distributed key column not allowed on relation with update triggers
+-- start_ignore
 UPDATE document SET did = 8, dauthor = 'regress_rls_carol' WHERE did = 5; -- Should fail with RLS check violation, not duplicate key violation
+-- end_ignore
 
 -- database superuser does bypass RLS policy when enabled
 RESET SESSION AUTHORIZATION;
@@ -242,6 +254,7 @@ COPY t1 FROM stdin WITH ;
 103	3	ccc
 104	4	dad
 \.
+ANALYZE t1;
 
 CREATE TABLE t2 (c float) INHERITS (t1);
 GRANT ALL ON t2 TO public;
@@ -252,6 +265,7 @@ COPY t2 FROM stdin;
 203	3	cde	3.3
 204	4	def	4.4
 \.
+ANALYZE t2;
 
 CREATE TABLE t3 (id int not null primary key, c text, b text, a int);
 ALTER TABLE t3 INHERIT t1;
@@ -262,6 +276,7 @@ COPY t3(id, a,b,c) FROM stdin;
 302	2	yyy	Y
 303	3	zzz	Z
 \.
+ANALYZE t3;
 
 CREATE POLICY p1 ON t1 FOR ALL TO PUBLIC USING (a % 2 = 0); -- be even number
 CREATE POLICY p2 ON t2 FOR ALL TO PUBLIC USING (a % 2 = 1); -- be odd number
@@ -992,6 +1007,7 @@ DROP VIEW rls_sbv;
 --
 SET SESSION AUTHORIZATION regress_rls_alice;
 INSERT INTO y2 (SELECT x, md5(x::text) FROM generate_series(0,20) x);
+ANALYZE y2;
 CREATE POLICY p2 ON y2 USING (a % 3 = 0);
 CREATE POLICY p3 ON y2 USING (a % 4 = 0);
 
@@ -1010,6 +1026,7 @@ CREATE TABLE test_qual_pushdown (
 );
 
 INSERT INTO test_qual_pushdown VALUES ('abc'),('def');
+ANALYZE test_qual_pushdown;
 
 SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(abc);
 EXPLAIN (COSTS OFF) SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(abc);
@@ -1350,6 +1367,12 @@ UPDATE current_check SET payload = payload || '_new' WHERE CURRENT OF current_ch
 SELECT * FROM current_check;
 -- Plan should be a subquery TID scan
 EXPLAIN (COSTS OFF) UPDATE current_check SET payload = payload WHERE CURRENT OF current_check_cursor;
+-- start_ignore
+-- GPDB: does not support backwards scans, commit and restart
+COMMIT;
+BEGIN;
+DECLARE current_check_cursor SCROLL CURSOR FOR SELECT * FROM current_check;
+-- end_ignore
 -- Similarly can only delete row 4
 FETCH ABSOLUTE 1 FROM current_check_cursor;
 DELETE FROM current_check WHERE CURRENT OF current_check_cursor RETURNING *;
@@ -1559,6 +1582,7 @@ ALTER TABLE r2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE r2 FORCE ROW LEVEL SECURITY;
 
 -- Errors due to rows in r2
+-- GPDB: Foreign key constraints are not enforced in GPDB, so no error.
 DELETE FROM r1;
 
 -- Reset r2 to no-RLS
@@ -1604,6 +1628,7 @@ ALTER TABLE r2 NO FORCE ROW LEVEL SECURITY;
 
 -- As owner, we now bypass RLS
 -- verify no rows in r2 now
+-- GPDB: Foreign key constraints are not enforced in GPDB, hence the rows are still there.
 TABLE r2;
 
 DROP TABLE r2;
@@ -1623,6 +1648,7 @@ ALTER TABLE r2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE r2 FORCE ROW LEVEL SECURITY;
 
 -- Updates records in both
+-- not supported in GPDB
 UPDATE r1 SET a = a+5;
 
 -- Remove FORCE from r2

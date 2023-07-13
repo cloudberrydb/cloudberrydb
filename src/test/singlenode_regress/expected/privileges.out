@@ -1,6 +1,12 @@
 --
 -- Test access privileges
 --
+-- start_matchsubs
+-- m/DETAIL:  Failing row contains \(.*\) = \(.*\)/
+-- s/DETAIL:  Failing row contains \(.*\) = \(.*\)/DETAIL:  Failing row contains (#####)/
+-- end_matchsubs
+set optimizer=off;
+set enable_nestloop=on;
 -- Clean up in case a prior regression run failed
 -- Suppress NOTICE messages when users/groups don't exist
 SET client_min_messages TO 'warning';
@@ -13,11 +19,13 @@ DROP ROLE IF EXISTS regress_priv_user4;
 DROP ROLE IF EXISTS regress_priv_user5;
 DROP ROLE IF EXISTS regress_priv_user6;
 DROP ROLE IF EXISTS regress_priv_user7;
+-- start_ignore
 SELECT lo_unlink(oid) FROM pg_largeobject_metadata WHERE oid >= 1000 AND oid < 3000 ORDER BY oid;
  lo_unlink 
 -----------
 (0 rows)
 
+-- end_ignore
 RESET client_min_messages;
 -- test proper begins here
 CREATE USER regress_priv_user1;
@@ -72,6 +80,7 @@ BEGIN;
 LOCK atest1 IN ACCESS EXCLUSIVE MODE;
 COMMIT;
 REVOKE ALL ON atest1 FROM PUBLIC;
+NOTICE:  no privileges could be revoked
 SELECT * FROM atest1;
  a | b 
 ---+---
@@ -173,11 +182,11 @@ UPDATE atest2 SET col2 = true; -- ok
 DELETE FROM atest2; -- ok
 -- Make sure we are not able to modify system catalogs
 UPDATE pg_catalog.pg_class SET relname = '123'; -- fail
-ERROR:  permission denied for table pg_class
+ERROR:  permission denied: "pg_class" is a system catalog
 DELETE FROM pg_catalog.pg_class; -- fail
-ERROR:  permission denied for table pg_class
+ERROR:  permission denied: "pg_class" is a system catalog
 UPDATE pg_toast.pg_toast_1213 SET chunk_id = 1; -- fail
-ERROR:  permission denied for table pg_toast_1213
+ERROR:  permission denied: "pg_toast_1213" is a system catalog
 SET SESSION AUTHORIZATION regress_priv_user3;
 SELECT session_user, current_user;
     session_user    |    current_user    
@@ -242,6 +251,7 @@ CREATE INDEX ON atest12 (a);
 CREATE INDEX ON atest12 (abs(a));
 -- results below depend on having quite accurate stats for atest12, so...
 ALTER TABLE atest12 SET (autovacuum_enabled = off);
+WARNING:  autovacuum is not supported in Cloudberry
 SET default_statistics_target = 10000;
 VACUUM ANALYZE atest12;
 RESET default_statistics_target;
@@ -264,7 +274,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12v x, atest12v y WHERE x.a = y.b;
    ->  Index Scan using atest12_a_idx on atest12
          Index Cond: (a = atest12_1.b)
          Filter: (b <<< 5)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 -- And this one.
 EXPLAIN (COSTS OFF) SELECT * FROM atest12 x, atest12 y
@@ -276,7 +287,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12 x, atest12 y
          Filter: (abs(a) <<< 5)
    ->  Index Scan using atest12_a_idx on atest12 x
          Index Cond: (a = y.b)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- This should also be a nestloop, but the security barrier forces the inner
 -- scan to be materialized
@@ -290,7 +302,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12sbv x, atest12sbv y WHERE x.a = y.b;
    ->  Materialize
          ->  Seq Scan on atest12 atest12_1
                Filter: (b <<< 5)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- Check if regress_priv_user2 can break security.
 SET SESSION AUTHORIZATION regress_priv_user2;
@@ -313,7 +326,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12v x, atest12v y WHERE x.a = y.b;
    ->  Index Scan using atest12_a_idx on atest12
          Index Cond: (a = atest12_1.b)
          Filter: (b <<< 5)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM atest12sbv x, atest12sbv y WHERE x.a = y.b;
                 QUERY PLAN                 
@@ -325,7 +339,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12sbv x, atest12sbv y WHERE x.a = y.b;
    ->  Materialize
          ->  Seq Scan on atest12 atest12_1
                Filter: (b <<< 5)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- A non-security barrier view does not guard against information leakage.
 EXPLAIN (COSTS OFF) SELECT * FROM atest12v x, atest12v y
@@ -338,22 +353,25 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12v x, atest12v y
    ->  Index Scan using atest12_a_idx on atest12
          Index Cond: (a = atest12_1.b)
          Filter: (b <<< 5)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 -- But a security barrier view isolates the leaky operator.
 EXPLAIN (COSTS OFF) SELECT * FROM atest12sbv x, atest12sbv y
   WHERE x.a = y.b and abs(y.a) <<< 5;
-             QUERY PLAN              
--------------------------------------
+                   QUERY PLAN                    
+-------------------------------------------------
  Nested Loop
-   Join Filter: (atest12_1.a = y.b)
-   ->  Subquery Scan on y
-         Filter: (abs(y.a) <<< 5)
-         ->  Seq Scan on atest12
-               Filter: (b <<< 5)
-   ->  Seq Scan on atest12 atest12_1
+   Join Filter: (atest12.a = y.b)
+   ->  Seq Scan on atest12
          Filter: (b <<< 5)
-(8 rows)
+   ->  Materialize
+         ->  Subquery Scan on y
+               Filter: (abs(y.a) <<< 5)
+               ->  Seq Scan on atest12 atest12_1
+                     Filter: (b <<< 5)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- Now regress_priv_user1 grants sufficient access to regress_priv_user2.
 SET SESSION AUTHORIZATION regress_priv_user1;
@@ -369,7 +387,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12v x, atest12v y WHERE x.a = y.b;
    ->  Index Scan using atest12_a_idx on atest12
          Index Cond: (a = atest12_1.b)
          Filter: (b <<< 5)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 -- But not for this, due to lack of table-wide permissions needed
 -- to make use of the expression index's statistics.
@@ -383,7 +402,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM atest12 x, atest12 y
    ->  Hash
          ->  Seq Scan on atest12 y
                Filter: (abs(a) <<< 5)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 -- clean up (regress_priv_user1's objects are all dropped later)
 DROP FUNCTION leak2(integer, integer) CASCADE;
@@ -1054,6 +1074,7 @@ ALTER TYPE test8b ALTER ATTRIBUTE b TYPE priv_testdomain1;
 CREATE TABLE test11b AS (SELECT 1::priv_testdomain1 AS a);
 REVOKE ALL ON TYPE priv_testtype1 FROM PUBLIC;
 WARNING:  no privileges could be revoked for "priv_testtype1"
+NOTICE:  no privileges could be revoked
 \c -
 DROP AGGREGATE priv_testagg1b(priv_testdomain1);
 DROP DOMAIN priv_testdomain2b;
@@ -1441,6 +1462,7 @@ GRANT UPDATE ON atest4 TO regress_priv_user3; -- fail
 WARNING:  no privileges were granted for "atest4"
 SET SESSION AUTHORIZATION regress_priv_user1;
 REVOKE SELECT ON atest4 FROM regress_priv_user3; -- does nothing
+NOTICE:  no privileges could be revoked
 SELECT has_table_privilege('regress_priv_user3', 'atest4', 'SELECT'); -- true
  has_table_privilege 
 ---------------------
@@ -1491,12 +1513,12 @@ CREATE INDEX sro_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)))
 	WHERE sro_ifun(a + 10) > sro_ifun(10);
 DROP INDEX sro_idx;
 -- Do the same concurrently
-CREATE INDEX CONCURRENTLY sro_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)))
+CREATE INDEX sro_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)))
 	WHERE sro_ifun(a + 10) > sro_ifun(10);
 -- REINDEX
 REINDEX TABLE sro_tab;
 REINDEX INDEX sro_idx;
-REINDEX TABLE CONCURRENTLY sro_tab;
+REINDEX TABLE sro_tab;
 DROP INDEX sro_idx;
 -- CLUSTER
 CREATE INDEX sro_cluster_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)));
@@ -1511,11 +1533,8 @@ SELECT brin_desummarize_range('sro_brin', 0);
 (1 row)
 
 SELECT brin_summarize_range('sro_brin', 0);
- brin_summarize_range 
-----------------------
-                    1
-(1 row)
-
+ERROR:  Cloudberry could not summarize indicated page range
+CONTEXT:  SQL function "brin_summarize_range" statement 1
 DROP TABLE sro_tab;
 -- Check with a partitioned table
 CREATE TABLE sro_ptab (a int) PARTITION BY RANGE (a);
@@ -1526,7 +1545,7 @@ INSERT INTO sro_ptab VALUES (1), (2), (3);
 CREATE INDEX sro_pidx ON sro_ptab ((sro_ifun(a) + sro_ifun(0)))
 	WHERE sro_ifun(a + 10) > sro_ifun(10);
 REINDEX TABLE sro_ptab;
-REINDEX INDEX CONCURRENTLY sro_pidx;
+REINDEX INDEX sro_pidx;
 SET SESSION AUTHORIZATION regress_sro_user;
 CREATE FUNCTION unwanted_grant() RETURNS void LANGUAGE sql AS
 	'GRANT regress_priv_group2 TO regress_sro_user';
@@ -1558,7 +1577,7 @@ CONTEXT:  SQL function "mv_action" statement 1
 REFRESH MATERIALIZED VIEW sro_mv;
 ERROR:  cannot fire deferred trigger within security-restricted operation
 CONTEXT:  SQL function "mv_action" statement 1
-BEGIN; SET CONSTRAINTS ALL IMMEDIATE; REFRESH MATERIALIZED VIEW sro_mv; COMMIT;
+BEGIN; SET allow_segment_DML = ON; SET CONSTRAINTS ALL IMMEDIATE; REFRESH MATERIALIZED VIEW sro_mv; COMMIT;
 ERROR:  must have admin option on role "regress_priv_group2"
 CONTEXT:  SQL function "unwanted_grant" statement 1
 SQL statement "SELECT unwanted_grant()"
@@ -1576,9 +1595,15 @@ EXCEPTION WHEN OTHERS THEN
 	RETURN 2;
 END$$;
 CREATE MATERIALIZED VIEW sro_index_mv AS SELECT 1 AS c;
+-- start_ignore
+-- GPDB_14_MERGE_FIXME: the following command will abort the sub-transaction
+-- in a DDL. The problem is that aborting the sub-transaction will also erase
+-- the `dispatch_oids` needed by the QEs. It's a rare case.
+-- We don't support this case now
 CREATE UNIQUE INDEX ON sro_index_mv (c) WHERE unwanted_grant_nofail(1) > 0;
+-- end_ignore
 \c -
-REFRESH MATERIALIZED VIEW CONCURRENTLY sro_index_mv;
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY sro_index_mv;
 REFRESH MATERIALIZED VIEW sro_index_mv;
 DROP OWNED BY regress_sro_user;
 DROP ROLE regress_sro_user;
@@ -1639,203 +1664,133 @@ SELECT has_sequence_privilege('x_seq', 'USAGE');
 -- largeobject privilege tests
 \c -
 SET SESSION AUTHORIZATION regress_priv_user1;
+-- start_ignore
 SELECT lo_create(1001);
- lo_create 
------------
-      1001
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_create(1002);
- lo_create 
------------
-      1002
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_create(1003);
- lo_create 
------------
-      1003
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_create(1004);
- lo_create 
------------
-      1004
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_create(1005);
- lo_create 
------------
-      1005
-(1 row)
-
+ERROR:  large objects are not supported
 GRANT ALL ON LARGE OBJECT 1001 TO PUBLIC;
+ERROR:  large objects are not supported
 GRANT SELECT ON LARGE OBJECT 1003 TO regress_priv_user2;
+ERROR:  large objects are not supported
 GRANT SELECT,UPDATE ON LARGE OBJECT 1004 TO regress_priv_user2;
+ERROR:  large objects are not supported
 GRANT ALL ON LARGE OBJECT 1005 TO regress_priv_user2;
+ERROR:  large objects are not supported
 GRANT SELECT ON LARGE OBJECT 1005 TO regress_priv_user2 WITH GRANT OPTION;
+ERROR:  large objects are not supported
 GRANT SELECT, INSERT ON LARGE OBJECT 1001 TO PUBLIC;	-- to be failed
-ERROR:  invalid privilege type INSERT for large object
+ERROR:  large objects are not supported
 GRANT SELECT, UPDATE ON LARGE OBJECT 1001 TO nosuchuser;	-- to be failed
-ERROR:  role "nosuchuser" does not exist
+ERROR:  large objects are not supported
 GRANT SELECT, UPDATE ON LARGE OBJECT  999 TO PUBLIC;	-- to be failed
-ERROR:  large object 999 does not exist
+ERROR:  large objects are not supported
+-- end_ignore
 \c -
 SET SESSION AUTHORIZATION regress_priv_user2;
+-- start_ignore
 SELECT lo_create(2001);
- lo_create 
------------
-      2001
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_create(2002);
- lo_create 
------------
-      2002
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1001, x'20000'::int), 32);	-- allowed, for now
- loread 
---------
- \x
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1001, x'40000'::int), 'abcd');	-- fail, wrong mode
-ERROR:  large object descriptor 0 was not opened for writing
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1001, x'40000'::int), 32);
- loread 
---------
- \x
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1002, x'40000'::int), 32);	-- to be denied
-ERROR:  permission denied for large object 1002
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1003, x'40000'::int), 32);
- loread 
---------
- \x
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1004, x'40000'::int), 32);
- loread 
---------
- \x
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1001, x'20000'::int), 'abcd');
- lowrite 
----------
-       4
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1002, x'20000'::int), 'abcd');	-- to be denied
-ERROR:  permission denied for large object 1002
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1003, x'20000'::int), 'abcd');	-- to be denied
-ERROR:  permission denied for large object 1003
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1004, x'20000'::int), 'abcd');
- lowrite 
----------
-       4
-(1 row)
-
+ERROR:  large objects are not supported
 GRANT SELECT ON LARGE OBJECT 1005 TO regress_priv_user3;
+ERROR:  large objects are not supported
 GRANT UPDATE ON LARGE OBJECT 1006 TO regress_priv_user3;	-- to be denied
-ERROR:  large object 1006 does not exist
+ERROR:  large objects are not supported
 REVOKE ALL ON LARGE OBJECT 2001, 2002 FROM PUBLIC;
+ERROR:  large objects are not supported
 GRANT ALL ON LARGE OBJECT 2001 TO regress_priv_user3;
+ERROR:  large objects are not supported
 SELECT lo_unlink(1001);		-- to be denied
-ERROR:  must be owner of large object 1001
+ERROR:  large objects are not supported
 SELECT lo_unlink(2002);
- lo_unlink 
------------
-         1
-(1 row)
-
+ERROR:  large objects are not supported
+-- end_ignore
 \c -
+-- start_ignore
 -- confirm ACL setting
 SELECT oid, pg_get_userbyid(lomowner) ownername, lomacl FROM pg_largeobject_metadata WHERE oid >= 1000 AND oid < 3000 ORDER BY oid;
- oid  |     ownername      |                                                            lomacl                                                            
-------+--------------------+------------------------------------------------------------------------------------------------------------------------------
- 1001 | regress_priv_user1 | {regress_priv_user1=rw/regress_priv_user1,=rw/regress_priv_user1}
- 1002 | regress_priv_user1 | 
- 1003 | regress_priv_user1 | {regress_priv_user1=rw/regress_priv_user1,regress_priv_user2=r/regress_priv_user1}
- 1004 | regress_priv_user1 | {regress_priv_user1=rw/regress_priv_user1,regress_priv_user2=rw/regress_priv_user1}
- 1005 | regress_priv_user1 | {regress_priv_user1=rw/regress_priv_user1,regress_priv_user2=r*w/regress_priv_user1,regress_priv_user3=r/regress_priv_user2}
- 2001 | regress_priv_user2 | {regress_priv_user2=rw/regress_priv_user2,regress_priv_user3=rw/regress_priv_user2}
-(6 rows)
+ oid | ownername | lomacl 
+-----+-----------+--------
+(0 rows)
 
+-- end_ignore
 SET SESSION AUTHORIZATION regress_priv_user3;
+-- start_ignore
 SELECT loread(lo_open(1001, x'40000'::int), 32);
-   loread   
-------------
- \x61626364
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1003, x'40000'::int), 32);	-- to be denied
-ERROR:  permission denied for large object 1003
+ERROR:  large objects are not supported
 SELECT loread(lo_open(1005, x'40000'::int), 32);
- loread 
---------
- \x
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_truncate(lo_open(1005, x'20000'::int), 10);	-- to be denied
-ERROR:  permission denied for large object 1005
+ERROR:  large objects are not supported
 SELECT lo_truncate(lo_open(2001, x'20000'::int), 10);
- lo_truncate 
--------------
-           0
-(1 row)
-
+ERROR:  large objects are not supported
+-- end_ignore
 -- compatibility mode in largeobject permission
 \c -
 SET lo_compat_privileges = false;	-- default setting
 SET SESSION AUTHORIZATION regress_priv_user4;
+-- start_ignore
 SELECT loread(lo_open(1002, x'40000'::int), 32);	-- to be denied
-ERROR:  permission denied for large object 1002
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1002, x'20000'::int), 'abcd');	-- to be denied
-ERROR:  permission denied for large object 1002
+ERROR:  large objects are not supported
 SELECT lo_truncate(lo_open(1002, x'20000'::int), 10);	-- to be denied
-ERROR:  permission denied for large object 1002
+ERROR:  large objects are not supported
 SELECT lo_put(1002, 1, 'abcd');				-- to be denied
-ERROR:  permission denied for large object 1002
+ERROR:  large object 1002 does not exist
 SELECT lo_unlink(1002);					-- to be denied
-ERROR:  must be owner of large object 1002
+ERROR:  large objects are not supported
 SELECT lo_export(1001, '/dev/null');			-- to be denied
 ERROR:  permission denied for function lo_export
 SELECT lo_import('/dev/null');				-- to be denied
 ERROR:  permission denied for function lo_import
 SELECT lo_import('/dev/null', 2003);			-- to be denied
 ERROR:  permission denied for function lo_import
+-- end_ignore
 \c -
 SET lo_compat_privileges = true;	-- compatibility mode
 SET SESSION AUTHORIZATION regress_priv_user4;
+-- start_ignore
 SELECT loread(lo_open(1002, x'40000'::int), 32);
- loread 
---------
- \x
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lowrite(lo_open(1002, x'20000'::int), 'abcd');
- lowrite 
----------
-       4
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_truncate(lo_open(1002, x'20000'::int), 10);
- lo_truncate 
--------------
-           0
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_unlink(1002);
- lo_unlink 
------------
-         1
-(1 row)
-
+ERROR:  large objects are not supported
 SELECT lo_export(1001, '/dev/null');			-- to be denied
 ERROR:  permission denied for function lo_export
+-- end_ignore
 -- don't allow unpriv users to access pg_largeobject contents
 \c -
 SELECT * FROM pg_largeobject LIMIT 0;
@@ -2175,6 +2130,21 @@ SELECT d.*     -- check that entries went away
 
 -- Grant on all objects of given type in a schema
 \c -
+-- GPDB: Create a helper function to inspect the segment information also
+DROP FUNCTION IF EXISTS has_table_privilege_seg(u text, r text, p text);
+NOTICE:  function has_table_privilege_seg(text,text,text) does not exist, skipping
+CREATE FUNCTION has_table_privilege_seg(us text, rel text, priv text)
+RETURNS TABLE (
+	segid int,
+	has_table_privilege bool
+) AS $$
+	SELECT
+		gp_execution_segment() AS gegid,
+		p.*
+	FROM
+		has_table_privilege($1, $2, $3) p
+$$ LANGUAGE SQL VOLATILE
+CONTAINS SQL EXECUTE ON ALL SEGMENTS;
 CREATE SCHEMA testns;
 CREATE TABLE testns.t1 (f1 int);
 CREATE TABLE testns.t2 (f1 int);
@@ -2384,16 +2354,13 @@ DROP TABLE atest6;
 DROP TABLE atestc;
 DROP TABLE atestp1;
 DROP TABLE atestp2;
+-- start_ignore
 SELECT lo_unlink(oid) FROM pg_largeobject_metadata WHERE oid >= 1000 AND oid < 3000 ORDER BY oid;
  lo_unlink 
 -----------
-         1
-         1
-         1
-         1
-         1
-(5 rows)
+(0 rows)
 
+-- end_ignore
 DROP GROUP regress_priv_group1;
 DROP GROUP regress_priv_group2;
 -- these are needed to clean up permissions

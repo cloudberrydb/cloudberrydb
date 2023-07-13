@@ -255,13 +255,14 @@ select * from dcomptable;
 
 explain (verbose, costs off)
   update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
-                                          QUERY PLAN                                           
------------------------------------------------------------------------------------------------
+                                                  QUERY PLAN                                                  
+--------------------------------------------------------------------------------------------------------------
  Update on public.dcomptable
    ->  Seq Scan on public.dcomptable
-         Output: ROW(((d1).r - '1'::double precision), ((d1).i + '1'::double precision)), ctid
+         Output: ROW(((d1).r - '1'::double precision), ((d1).i + '1'::double precision)), ctid, gp_segment_id
          Filter: ((dcomptable.d1).i > '0'::double precision)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 create rule silly as on delete to dcomptable do instead
   update dcomptable set d1.r = (d1).r - 1, d1.i = (d1).i + 1 where (d1).i > 0;
@@ -414,13 +415,14 @@ select * from dcomptable;
 explain (verbose, costs off)
   update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
     where d1[1].i > 0;
-                                                   QUERY PLAN                                                   
-----------------------------------------------------------------------------------------------------------------
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
  Update on public.dcomptable
    ->  Seq Scan on public.dcomptable
-         Output: (d1[1].r := (d1[1].r - '1'::double precision))[1].i := (d1[1].i + '1'::double precision), ctid
+         Output: (d1[1].r := (d1[1].r - '1'::double precision))[1].i := (d1[1].i + '1'::double precision), ctid, gp_segment_id
          Filter: (dcomptable.d1[1].i > '0'::double precision)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 create rule silly as on delete to dcomptable do instead
   update dcomptable set d1[1].r = d1[1].r - 1, d1[1].i = d1[1].i + 1
@@ -554,6 +556,15 @@ table dcomptable;
     f1     
 -----------
  {"(1,5)"}
+(1 row)
+
+-- if there's no constraints, a different code path is taken:
+alter domain dcomptype drop constraint dcomptype_check;
+update dcomptable set f1[1].cf1 = -1;  -- now ok
+table dcomptable;
+     f1     
+------------
+ {"(-1,5)"}
 (1 row)
 
 drop table dcomptable;

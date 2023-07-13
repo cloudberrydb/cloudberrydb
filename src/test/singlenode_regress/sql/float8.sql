@@ -2,7 +2,7 @@
 -- FLOAT8
 --
 
-CREATE TABLE FLOAT8_TBL(f1 float8);
+CREATE TABLE FLOAT8_TBL(i INT DEFAULT 1, f1 float8);
 
 INSERT INTO FLOAT8_TBL(f1) VALUES ('    0.0   ');
 INSERT INTO FLOAT8_TBL(f1) VALUES ('1004.30  ');
@@ -13,8 +13,13 @@ INSERT INTO FLOAT8_TBL(f1) VALUES ('1.2345678901234e-200');
 -- test for underflow and overflow handling
 SELECT '10e400'::float8;
 SELECT '-10e400'::float8;
+SELECT '1e309'::float8;
 SELECT '10e-400'::float8;
 SELECT '-10e-400'::float8;
+SELECT '1e-324'::float8;
+SELECT '1e308'::float8;
+SELECT '1e-323'::float8;
+SELECT '0.0'::float8;
 
 -- test smallest normalized input
 SELECT float8send('2.2250738585072014E-308'::float8);
@@ -34,7 +39,13 @@ SELECT 'NaN'::float8;
 SELECT 'nan'::float8;
 SELECT '   NAN  '::float8;
 SELECT 'infinity'::float8;
+SELECT 'inf'::float8;
 SELECT '          -INFINiTY   '::float8;
+SELECT '+Infinity'::float8;
+SELECT '+INF'::float8;
+SELECT '+inf'::float8;
+SELECT '+INFINITY'::float8;
+
 -- bad special inputs
 SELECT 'N A N'::float8;
 SELECT 'NaN x'::float8;
@@ -47,19 +58,19 @@ SELECT 'nan'::float8 / 'nan'::float8;
 SELECT 'nan'::float8 / '0'::float8;
 SELECT 'nan'::numeric::float8;
 
-SELECT * FROM FLOAT8_TBL;
+SELECT f1 FROM FLOAT8_TBL;
 
-SELECT f.* FROM FLOAT8_TBL f WHERE f.f1 <> '1004.3';
+SELECT f.f1 FROM FLOAT8_TBL f WHERE f.f1 <> '1004.3';
 
-SELECT f.* FROM FLOAT8_TBL f WHERE f.f1 = '1004.3';
+SELECT f.f1 FROM FLOAT8_TBL f WHERE f.f1 = '1004.3';
 
-SELECT f.* FROM FLOAT8_TBL f WHERE '1004.3' > f.f1;
+SELECT f.f1 FROM FLOAT8_TBL f WHERE '1004.3' > f.f1;
 
-SELECT f.* FROM FLOAT8_TBL f WHERE  f.f1 < '1004.3';
+SELECT f.f1 FROM FLOAT8_TBL f WHERE  f.f1 < '1004.3';
 
-SELECT f.* FROM FLOAT8_TBL f WHERE '1004.3' >= f.f1;
+SELECT f.f1 FROM FLOAT8_TBL f WHERE '1004.3' >= f.f1;
 
-SELECT f.* FROM FLOAT8_TBL f WHERE  f.f1 <= '1004.3';
+SELECT f.f1 FROM FLOAT8_TBL f WHERE  f.f1 <= '1004.3';
 
 SELECT f.f1, f.f1 * '-10' AS x
    FROM FLOAT8_TBL f
@@ -166,7 +177,7 @@ SELECT ||/ float8 '27' AS three;
 SELECT f.f1, ||/f.f1 AS cbrt_f1 FROM FLOAT8_TBL f;
 
 
-SELECT * FROM FLOAT8_TBL;
+SELECT f1 FROM FLOAT8_TBL;
 
 UPDATE FLOAT8_TBL
    SET f1 = FLOAT8_TBL.f1 * '-1'
@@ -186,7 +197,7 @@ SELECT exp(f.f1) from FLOAT8_TBL f;
 
 SELECT f.f1 / '0.0' from FLOAT8_TBL f;
 
-SELECT * FROM FLOAT8_TBL;
+SELECT f1 FROM FLOAT8_TBL;
 
 -- hyperbolic functions
 -- we run these with extra_float_digits = 0 too, since different platforms
@@ -225,9 +236,89 @@ INSERT INTO FLOAT8_TBL(f1) VALUES ('10e400');
 
 INSERT INTO FLOAT8_TBL(f1) VALUES ('-10e400');
 
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1e309');
+
 INSERT INTO FLOAT8_TBL(f1) VALUES ('10e-400');
 
 INSERT INTO FLOAT8_TBL(f1) VALUES ('-10e-400');
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1e-324');
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1e308');
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('1e-323');
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('+INFINITY'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('+InFiNiTY'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('+Inf'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('-INFINITY'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('-InFiNiTY'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('-Inf'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('NaN'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('+naN'::float8);
+
+INSERT INTO FLOAT8_TBL(f1) VALUES ('-naN'::float8);
+
+-- test for over- and underflow with update statement
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='1e-324'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='1e309'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='1e-400'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='1e400'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='0.0'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='+INFINITY'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='+InFiNiTY'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='+Inf'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='-INFINITY'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='-Inf'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='NaN'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='+naN'::float8;
+
+UPDATE FLOAT8_TBL SET f1='0.0'::float8 WHERE f1='-naN'::float8;
+
+-- test for over- and underflow with delete statement
+DELETE FROM FLOAT8_TBL WHERE f1='1e-324'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='1e309'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='1e400'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='1e-400'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='0.0'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='+INFINITY'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='+InFiNiTY'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='+Inf'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='-INFINITY'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='-Inf'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='-naN'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='+naN'::float8;
+
+DELETE FROM FLOAT8_TBL WHERE f1='NaN'::float8;
 
 -- maintain external table consistency across platforms
 -- delete all values and reinsert well-behaved ones
@@ -244,7 +335,7 @@ INSERT INTO FLOAT8_TBL(f1) VALUES ('-1.2345678901234e+200');
 
 INSERT INTO FLOAT8_TBL(f1) VALUES ('-1.2345678901234e-200');
 
-SELECT * FROM FLOAT8_TBL;
+SELECT f1 FROM FLOAT8_TBL;
 
 -- test edge-case coercions to integer
 SELECT '32767.4'::float8::int2;

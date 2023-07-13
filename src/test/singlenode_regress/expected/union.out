@@ -350,15 +350,16 @@ set enable_hashagg to on;
 explain (costs off)
 select count(*) from
   ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                 QUERY PLAN                  
+---------------------------------------------
  Aggregate
    ->  HashAggregate
          Group Key: tenk1.unique1
          ->  Append
-               ->  Index Only Scan using tenk1_unique1 on tenk1
+               ->  Seq Scan on tenk1
                ->  Seq Scan on tenk1 tenk1_1
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select count(*) from
   ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
@@ -370,8 +371,8 @@ select count(*) from
 explain (costs off)
 select count(*) from
   ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
+                       QUERY PLAN                        
+---------------------------------------------------------
  Aggregate
    ->  Subquery Scan on ss
          ->  HashSetOp Intersect
@@ -379,8 +380,9 @@ select count(*) from
                      ->  Subquery Scan on "*SELECT* 2"
                            ->  Seq Scan on tenk1
                      ->  Subquery Scan on "*SELECT* 1"
-                           ->  Index Only Scan using tenk1_unique1 on tenk1 tenk1_1
-(8 rows)
+                           ->  Seq Scan on tenk1 tenk1_1
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select count(*) from
   ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
@@ -391,16 +393,17 @@ select count(*) from
 
 explain (costs off)
 select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                 QUERY PLAN                  
+---------------------------------------------
  HashSetOp Except
    ->  Append
          ->  Subquery Scan on "*SELECT* 1"
-               ->  Index Only Scan using tenk1_unique1 on tenk1
+               ->  Seq Scan on tenk1
          ->  Subquery Scan on "*SELECT* 2"
-               ->  Index Only Scan using tenk1_unique2 on tenk1 tenk1_1
+               ->  Seq Scan on tenk1 tenk1_1
                      Filter: (unique2 <> 10)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
  unique1 
@@ -412,16 +415,18 @@ set enable_hashagg to off;
 explain (costs off)
 select count(*) from
   ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Aggregate
    ->  Unique
+         Group Key: tenk1.unique1
          ->  Sort
                Sort Key: tenk1.unique1
                ->  Append
-                     ->  Index Only Scan using tenk1_unique1 on tenk1
+                     ->  Seq Scan on tenk1
                      ->  Seq Scan on tenk1 tenk1_1
-(7 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select count(*) from
   ( select unique1 from tenk1 union select fivethous from tenk1 ) ss;
@@ -433,8 +438,8 @@ select count(*) from
 explain (costs off)
 select count(*) from
   ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Aggregate
    ->  Subquery Scan on ss
          ->  SetOp Intersect
@@ -444,8 +449,9 @@ select count(*) from
                            ->  Subquery Scan on "*SELECT* 2"
                                  ->  Seq Scan on tenk1
                            ->  Subquery Scan on "*SELECT* 1"
-                                 ->  Index Only Scan using tenk1_unique1 on tenk1 tenk1_1
-(10 rows)
+                                 ->  Seq Scan on tenk1 tenk1_1
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select count(*) from
   ( select unique1 from tenk1 intersect select fivethous from tenk1 ) ss;
@@ -456,18 +462,19 @@ select count(*) from
 
 explain (costs off)
 select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  SetOp Except
    ->  Sort
          Sort Key: "*SELECT* 1".unique1
          ->  Append
                ->  Subquery Scan on "*SELECT* 1"
-                     ->  Index Only Scan using tenk1_unique1 on tenk1
+                     ->  Seq Scan on tenk1
                ->  Subquery Scan on "*SELECT* 2"
-                     ->  Index Only Scan using tenk1_unique2 on tenk1 tenk1_1
+                     ->  Seq Scan on tenk1 tenk1_1
                            Filter: (unique2 <> 10)
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 select unique1 from tenk1 except select unique2 from tenk1 where unique2 != 10;
  unique1 
@@ -483,12 +490,14 @@ select x from (values (100::money), (200::money)) _(x) union select x from (valu
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 set enable_hashagg to off;
 explain (costs off)
@@ -496,12 +505,14 @@ select x from (values (100::money), (200::money)) _(x) union select x from (valu
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 reset enable_hashagg;
 -- arrays
@@ -515,7 +526,8 @@ select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (va
    ->  Append
          ->  Values Scan on "*VALUES*"
          ->  Values Scan on "*VALUES*_1"
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
    x   
@@ -535,7 +547,8 @@ select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from
                ->  Values Scan on "*VALUES*"
          ->  Subquery Scan on "*SELECT* 2"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
    x   
@@ -553,7 +566,8 @@ select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (v
                ->  Values Scan on "*VALUES*"
          ->  Subquery Scan on "*SELECT* 2"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
    x   
@@ -567,12 +581,14 @@ select x from (values (array[100::money]), (array[200::money])) _(x) union selec
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select x from (values (array[100::money]), (array[200::money])) _(x) union select x from (values (array[100::money]), (array[300::money])) _(x);
      x     
@@ -588,12 +604,14 @@ select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (va
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select x from (values (array[1, 2]), (array[1, 3])) _(x) union select x from (values (array[1, 2]), (array[1, 4])) _(x);
    x   
@@ -615,7 +633,8 @@ select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from
                      ->  Values Scan on "*VALUES*"
                ->  Subquery Scan on "*SELECT* 2"
                      ->  Values Scan on "*VALUES*_1"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select x from (values (array[1, 2]), (array[1, 3])) _(x) intersect select x from (values (array[1, 2]), (array[1, 4])) _(x);
    x   
@@ -635,7 +654,8 @@ select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (v
                      ->  Values Scan on "*VALUES*"
                ->  Subquery Scan on "*SELECT* 2"
                      ->  Values Scan on "*VALUES*_1"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select x from (values (array[1, 2]), (array[1, 3])) _(x) except select x from (values (array[1, 2]), (array[1, 4])) _(x);
    x   
@@ -651,12 +671,14 @@ select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
    x   
@@ -678,7 +700,8 @@ select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (va
                      ->  Values Scan on "*VALUES*"
                ->  Subquery Scan on "*SELECT* 2"
                      ->  Values Scan on "*VALUES*_1"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
    x   
@@ -698,7 +721,8 @@ select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (value
                      ->  Values Scan on "*VALUES*"
                ->  Subquery Scan on "*SELECT* 2"
                      ->  Values Scan on "*VALUES*_1"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
    x   
@@ -714,12 +738,14 @@ select x from (values (row(100::money)), (row(200::money))) _(x) union select x 
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select x from (values (row(100::money)), (row(200::money))) _(x) union select x from (values (row(100::money)), (row(300::money))) _(x);
      x     
@@ -737,12 +763,14 @@ select x from (values (row(100::money)::ct1), (row(200::money)::ct1)) _(x) union
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select x from (values (row(100::money)::ct1), (row(200::money)::ct1)) _(x) union select x from (values (row(100::money)::ct1), (row(300::money)::ct1)) _(x);
      x     
@@ -759,12 +787,14 @@ select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values
                   QUERY PLAN                   
 -----------------------------------------------
  Unique
+   Group Key: "*VALUES*".column1
    ->  Sort
          Sort Key: "*VALUES*".column1
          ->  Append
                ->  Values Scan on "*VALUES*"
                ->  Values Scan on "*VALUES*_1"
-(6 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select x from (values (row(1, 2)), (row(1, 3))) _(x) union select x from (values (row(1, 2)), (row(1, 4))) _(x);
    x   
@@ -786,7 +816,8 @@ select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (va
                      ->  Values Scan on "*VALUES*"
                ->  Subquery Scan on "*SELECT* 2"
                      ->  Values Scan on "*VALUES*_1"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select x from (values (row(1, 2)), (row(1, 3))) _(x) intersect select x from (values (row(1, 2)), (row(1, 4))) _(x);
    x   
@@ -806,7 +837,8 @@ select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (value
                      ->  Values Scan on "*VALUES*"
                ->  Subquery Scan on "*SELECT* 2"
                      ->  Values Scan on "*VALUES*_1"
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select x from (values (row(1, 2)), (row(1, 3))) _(x) except select x from (values (row(1, 2)), (row(1, 4))) _(x);
    x   
@@ -958,7 +990,8 @@ select from generate_series(1,5) union select from generate_series(1,3);
    ->  Append
          ->  Function Scan on generate_series
          ->  Function Scan on generate_series generate_series_1
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off)
 select from generate_series(1,5) intersect select from generate_series(1,3);
@@ -970,7 +1003,8 @@ select from generate_series(1,5) intersect select from generate_series(1,3);
                ->  Function Scan on generate_series
          ->  Subquery Scan on "*SELECT* 2"
                ->  Function Scan on generate_series generate_series_1
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select from generate_series(1,5) union select from generate_series(1,3);
 --
@@ -1007,7 +1041,8 @@ select from generate_series(1,5) union select from generate_series(1,3);
    ->  Append
          ->  Function Scan on generate_series
          ->  Function Scan on generate_series generate_series_1
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off)
 select from generate_series(1,5) intersect select from generate_series(1,3);
@@ -1019,7 +1054,8 @@ select from generate_series(1,5) intersect select from generate_series(1,3);
                ->  Function Scan on generate_series
          ->  Subquery Scan on "*SELECT* 2"
                ->  Function Scan on generate_series generate_series_1
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select from generate_series(1,5) union select from generate_series(1,3);
 --
@@ -1094,7 +1130,8 @@ explain (costs off)
          Index Cond: ((a || b) = 'ab'::text)
    ->  Index Only Scan using t2_pkey on t2
          Index Cond: (ab = 'ab'::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (costs off)
  SELECT * FROM
@@ -1111,7 +1148,8 @@ explain (costs off)
                Index Cond: ((a || b) = 'ab'::text)
          ->  Index Only Scan using t2_pkey on t2
                Index Cond: (ab = 'ab'::text)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 --
 -- Test that ORDER BY for UNION ALL can be pushed down to inheritance
@@ -1140,7 +1178,8 @@ explain (costs off)
          ->  Index Scan using t1c_ab_idx on t1c t1_1
          ->  Index Scan using t2_pkey on t2
          ->  Index Scan using t2c_pkey on t2c t2_1
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
   SELECT * FROM
   (SELECT a || b AS ab FROM t1
@@ -1181,7 +1220,8 @@ select event_id
          Sort Key: events_1.event_id
          ->  Seq Scan on events_child events_1
    ->  Index Scan using other_events_pkey on other_events
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 drop table events_child, events, other_events;
 reset enable_indexonlyscan;
@@ -1192,10 +1232,11 @@ explain (costs off)
    UNION ALL
    SELECT 2 AS t, * FROM tenk1 b) c
  WHERE t = 2;
-     QUERY PLAN      
----------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on tenk1 b
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- Test that we push quals into UNION sub-selects only when it's safe
 explain (costs off)
@@ -1210,13 +1251,15 @@ ORDER BY x;
  Sort
    Sort Key: (2)
    ->  Unique
+         Group Key: (1), (2)
          ->  Sort
                Sort Key: (1), (2)
                ->  Append
                      ->  Result
                      ->  Result
                            One-Time Filter: false
-(9 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, 2 AS x
@@ -1248,7 +1291,8 @@ ORDER BY x;
                      ->  ProjectSet
                            ->  Result
                      ->  Result
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, generate_series(1,10) AS x
@@ -1270,19 +1314,23 @@ SELECT * FROM
    SELECT 2 AS t, 4 AS x) ss
 WHERE x > 3
 ORDER BY x;
-                                     QUERY PLAN                                     
-------------------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Sort
    Sort Key: ss.x
    ->  Subquery Scan on ss
          Filter: (ss.x > 3)
          ->  Unique
+               Group Key: (1), ((($0 * '3'::double precision))::integer)
                ->  Sort
-                     Sort Key: (1), (((random() * '3'::double precision))::integer)
+                     Sort Key: (1), ((($0 * '3'::double precision))::integer)
                      ->  Append
                            ->  Result
+                                 InitPlan 1 (returns $0)
+                                   ->  Result
                            ->  Result
-(10 rows)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 SELECT * FROM
   (SELECT 1 AS t, (random()*3)::int AS x
@@ -1306,21 +1354,25 @@ where q2 = q2;
                         QUERY PLAN                        
 ----------------------------------------------------------
  Unique
+   Group Key: "*SELECT* 1".q1
    ->  Merge Append
          Sort Key: "*SELECT* 1".q1
          ->  Subquery Scan on "*SELECT* 1"
                ->  Unique
+                     Group Key: i81.q1, i81.q2
                      ->  Sort
                            Sort Key: i81.q1, i81.q2
                            ->  Seq Scan on int8_tbl i81
                                  Filter: (q2 IS NOT NULL)
          ->  Subquery Scan on "*SELECT* 2"
                ->  Unique
+                     Group Key: i82.q1, i82.q2
                      ->  Sort
                            Sort Key: i82.q1, i82.q2
                            ->  Seq Scan on int8_tbl i82
                                  Filter: (q2 IS NOT NULL)
-(15 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 select distinct q1 from
   (select distinct * from int8_tbl i81
@@ -1342,21 +1394,25 @@ where -q1 = q2;
                        QUERY PLAN                       
 --------------------------------------------------------
  Unique
+   Group Key: "*SELECT* 1".q1
    ->  Merge Append
          Sort Key: "*SELECT* 1".q1
          ->  Subquery Scan on "*SELECT* 1"
                ->  Unique
+                     Group Key: i81.q1, i81.q2
                      ->  Sort
                            Sort Key: i81.q1, i81.q2
                            ->  Seq Scan on int8_tbl i81
                                  Filter: ((- q1) = q2)
          ->  Subquery Scan on "*SELECT* 2"
                ->  Unique
+                     Group Key: i82.q1, i82.q2
                      ->  Sort
                            Sort Key: i82.q1, i82.q2
                            ->  Seq Scan on int8_tbl i82
                                  Filter: ((- q1) = q2)
-(15 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 select distinct q1 from
   (select distinct * from int8_tbl i81
@@ -1380,16 +1436,17 @@ explain (costs off)
 select * from
   (select * from t3 a union all select * from t3 b) ss
   join int4_tbl on f1 = expensivefunc(x);
-                         QUERY PLAN                         
-------------------------------------------------------------
- Nested Loop
-   ->  Seq Scan on int4_tbl
+                   QUERY PLAN                    
+-------------------------------------------------
+ Hash Join
+   Hash Cond: (expensivefunc(a.x) = int4_tbl.f1)
    ->  Append
-         ->  Index Scan using t3i on t3 a
-               Index Cond: (expensivefunc(x) = int4_tbl.f1)
-         ->  Index Scan using t3i on t3 b
-               Index Cond: (expensivefunc(x) = int4_tbl.f1)
-(7 rows)
+         ->  Seq Scan on t3 a
+         ->  Seq Scan on t3 b
+   ->  Hash
+         ->  Seq Scan on int4_tbl
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select * from
   (select * from t3 a union all select * from t3 b) ss
@@ -1415,7 +1472,8 @@ where (x = 0) or (q1 >= q2 and q1 <= q2);
    ->  Seq Scan on int8_tbl a
    ->  Seq Scan on int8_tbl b
          Filter: ((q1 >= q2) AND (q1 <= q2))
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 select * from
   (select *, 0 as x from int8_tbl a

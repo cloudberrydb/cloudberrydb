@@ -233,30 +233,32 @@ SELECT *, pg_typeof(f1) FROM
 
 -- ... unless there's context to suggest differently
 explain (verbose, costs off) select '42' union all select '43';
-         QUERY PLAN         
-----------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Result
          Output: '42'::text
    ->  Result
          Output: '43'::text
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (verbose, costs off) select '42' union all select 43;
-     QUERY PLAN     
---------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Result
          Output: 42
    ->  Result
          Output: 43
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- check materialization of an initplan reference (bug #14524)
 explain (verbose, costs off)
 select 1 = all (select (select 1));
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    Output: (SubPlan 2)
    SubPlan 2
@@ -267,7 +269,8 @@ select 1 = all (select (select 1));
                    Output: 1
            ->  Result
                  Output: $0
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select 1 = all (select (select 1));
  ?column? 
@@ -281,39 +284,38 @@ select 1 = all (select (select 1));
 explain (costs off)
 select * from int4_tbl o where exists
   (select 1 from int4_tbl i where i.f1=o.f1 limit null);
-             QUERY PLAN             
-------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Semi Join
    Hash Cond: (o.f1 = i.f1)
    ->  Seq Scan on int4_tbl o
    ->  Hash
          ->  Seq Scan on int4_tbl i
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (costs off)
 select * from int4_tbl o where not exists
   (select 1 from int4_tbl i where i.f1=o.f1 limit 1);
-             QUERY PLAN             
-------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Anti Join
    Hash Cond: (o.f1 = i.f1)
    ->  Seq Scan on int4_tbl o
    ->  Hash
          ->  Seq Scan on int4_tbl i
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (costs off)
 select * from int4_tbl o where exists
   (select 1 from int4_tbl i where i.f1=o.f1 limit 0);
-              QUERY PLAN              
---------------------------------------
- Seq Scan on int4_tbl o
-   Filter: (SubPlan 1)
-   SubPlan 1
-     ->  Limit
-           ->  Seq Scan on int4_tbl i
-                 Filter: (f1 = o.f1)
-(6 rows)
+             QUERY PLAN              
+-------------------------------------
+ Result
+   One-Time Filter: false
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 --
 -- Test cases to catch unpleasant interactions between IN-join processing
@@ -657,7 +659,10 @@ select (select (a.*)::text) from view_a a;
 -- Check that whole-row Vars reading the result of a subselect don't include
 -- any junk columns therein
 --
-select q from (select max(f1) from int4_tbl group by f1 order by f1) q;
+-- In GPDB, the ORDER BY in the subquery or CTE doesn't force an ordering
+-- for the whole query. Mark these with the "order none" gpdiff directive,
+-- so that differences in result order are ignored.
+select q from (select max(f1) from int4_tbl group by f1 order by f1) q;  -- order none
        q       
 ---------------
  (-2147483647)
@@ -668,7 +673,7 @@ select q from (select max(f1) from int4_tbl group by f1 order by f1) q;
 (5 rows)
 
 with q as (select max(f1) from int4_tbl group by f1 order by f1)
-  select q from q;
+  select q from q;  -- order none
        q       
 ---------------
  (-2147483647)
@@ -695,6 +700,10 @@ rollback;
 --
 -- Test case for sublinks pushed down into subselects via join alias expansion
 --
+-- Cloudberry note: This query will only work with ORCA. This type of query
+-- was not supported in postgres versions prior to 8.4, and thus was never
+-- supported in the planner. After 8.4 versions, the planner works, but
+-- the plan it creates is not currently parallel safe.
 select
   (select sq1) as qq1
 from
@@ -711,11 +720,11 @@ from
 --
 create temp table upsert(key int4 primary key, val text);
 insert into upsert values(1, 'val') on conflict (key) do update set val = 'not seen';
-insert into upsert values(1, 'val') on conflict (key) do update set val = 'seen with subselect ' || (select f1 from int4_tbl where f1 != 0 limit 1)::text;
+insert into upsert values(1, 'val') on conflict (key) do update set val = 'seen with subselect ' || (select f1 from int4_tbl where f1 != 0 order by f1 limit 1)::text;
 select * from upsert;
- key |            val             
------+----------------------------
-   1 | seen with subselect 123456
+ key |               val               
+-----+---------------------------------
+   1 | seen with subselect -2147483647
 (1 row)
 
 with aa as (select 'int4_tbl' u from int4_tbl limit 1)
@@ -781,7 +790,8 @@ select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
                  Output: 'bar'::name
            ->  Result
                  Output: 'bar'::name
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
  ?column? 
@@ -795,16 +805,17 @@ select 'foo'::text in (select 'bar'::name union all select 'bar'::name);
 --
 explain (verbose, costs off)
 select row(row(row(1))) = any (select row(row(1)));
-                QUERY PLAN                 
--------------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    Output: (SubPlan 1)
    SubPlan 1
      ->  Materialize
-           Output: '("(1)")'::record
+           Output: (ROW(ROW(1)))
            ->  Result
-                 Output: '("(1)")'::record
-(7 rows)
+                 Output: ROW(ROW(1))
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select row(row(row(1))) = any (select row(row(1)));
  ?column? 
@@ -838,13 +849,14 @@ language sql as 'select $1::text = $2';
 create operator = (procedure=bogus_int8_text_eq, leftarg=int8, rightarg=text);
 explain (costs off)
 select * from int8_tbl where q1 in (select c1 from inner_text);
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on int8_tbl
    Filter: (hashed SubPlan 1)
    SubPlan 1
      ->  Seq Scan on inner_text
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 select * from int8_tbl where q1 in (select c1 from inner_text);
  q1  |        q2        
@@ -859,13 +871,14 @@ create or replace function bogus_int8_text_eq(int8, text) returns boolean
 language sql as 'select $1::text = $2 and $1::text = $2';
 explain (costs off)
 select * from int8_tbl where q1 in (select c1 from inner_text);
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on int8_tbl
    Filter: (hashed SubPlan 1)
    SubPlan 1
      ->  Seq Scan on inner_text
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 select * from int8_tbl where q1 in (select c1 from inner_text);
  q1  |        q2        
@@ -887,7 +900,8 @@ select * from int8_tbl where q1 in (select c1 from inner_text);
    SubPlan 1
      ->  Materialize
            ->  Seq Scan on inner_text
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select * from int8_tbl where q1 in (select c1 from inner_text);
  q1  |        q2        
@@ -903,14 +917,15 @@ rollback;  -- to get rid of the bogus operator
 explain (costs off)
 select count(*) from tenk1 t
 where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0);
-                          QUERY PLAN                          
---------------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Aggregate
    ->  Seq Scan on tenk1 t
          Filter: ((hashed SubPlan 2) OR (ten < 0))
          SubPlan 2
-           ->  Index Only Scan using tenk1_unique1 on tenk1 k
-(5 rows)
+           ->  Seq Scan on tenk1 k
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select count(*) from tenk1 t
 where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0);
@@ -934,7 +949,8 @@ where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0)
          SubPlan 1
            ->  Index Only Scan using tenk1_unique1 on tenk1 k
                  Index Cond: (unique1 = t.unique2)
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 select count(*) from tenk1 t
 where (exists(select 1 from tenk1 k where k.unique1 = t.unique2) or ten < 0)
@@ -953,24 +969,25 @@ analyze exists_tbl;
 explain (costs off)
 select * from exists_tbl t1
   where (exists(select 1 from exists_tbl t2 where t1.c1 = t2.c2) or c3 < 0);
-                      QUERY PLAN                      
-------------------------------------------------------
+                        QUERY PLAN                         
+-----------------------------------------------------------
  Append
    ->  Seq Scan on exists_tbl_null t1_1
-         Filter: ((SubPlan 1) OR (c3 < 0))
-         SubPlan 1
+         Filter: ((SubPlan 1 (copy 3)) OR (c3 < 0))
+         SubPlan 1 (copy 3)
            ->  Append
                  ->  Seq Scan on exists_tbl_null t2_1
                        Filter: (t1_1.c1 = c2)
                  ->  Seq Scan on exists_tbl_def t2_2
                        Filter: (t1_1.c1 = c2)
    ->  Seq Scan on exists_tbl_def t1_2
-         Filter: ((hashed SubPlan 2) OR (c3 < 0))
-         SubPlan 2
+         Filter: ((hashed SubPlan 2 (copy 6)) OR (c3 < 0))
+         SubPlan 2 (copy 6)
            ->  Append
                  ->  Seq Scan on exists_tbl_null t2_4
                  ->  Seq Scan on exists_tbl_def t2_5
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 select * from exists_tbl t1
   where (exists(select 1 from exists_tbl t2 where t1.c1 = t2.c2) or c3 < 0);
@@ -987,6 +1004,10 @@ select * from exists_tbl t1
 --
 -- Test case for planner bug with nested EXISTS handling
 --
+-- GPDB_92_MERGE_FIXME: ORCA cannot decorrelate this query, and generates
+-- correct-but-slow plan that takes 45 minutes. Revisit this when ORCA can
+-- reorder anti-joins
+set optimizer to off;
 select a.thousand from tenk1 a, tenk1 b
 where a.thousand = b.thousand
   and exists ( select 1 from tenk1 c where b.hundred = c.hundred
@@ -996,29 +1017,31 @@ where a.thousand = b.thousand
 ----------
 (0 rows)
 
+reset optimizer;
 --
 -- Check that nested sub-selects are not pulled up if they contain volatiles
 --
 explain (verbose, costs off)
   select x, x from
-    (select (select now()) as x from (values(1),(2)) v(y)) ss;
-        QUERY PLAN         
----------------------------
+    (select (select current_database()) as x from (values(1),(2)) v(y)) ss;
+              QUERY PLAN              
+--------------------------------------
  Values Scan on "*VALUES*"
    Output: $0, $1
    InitPlan 1 (returns $0)
      ->  Result
-           Output: now()
+           Output: 'regression'::name
    InitPlan 2 (returns $1)
      ->  Result
-           Output: now()
-(8 rows)
+           Output: 'regression'::name
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 explain (verbose, costs off)
   select x, x from
     (select (select random()) as x from (values(1),(2)) v(y)) ss;
-            QUERY PLAN            
-----------------------------------
+             QUERY PLAN              
+-------------------------------------
  Subquery Scan on ss
    Output: ss.x, ss.x
    ->  Values Scan on "*VALUES*"
@@ -1026,24 +1049,26 @@ explain (verbose, costs off)
          InitPlan 1 (returns $0)
            ->  Result
                  Output: random()
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 explain (verbose, costs off)
   select x, x from
-    (select (select now() where y=y) as x from (values(1),(2)) v(y)) ss;
+    (select (select current_database() where y=y) as x from (values(1),(2)) v(y)) ss;
                               QUERY PLAN                              
 ----------------------------------------------------------------------
  Values Scan on "*VALUES*"
    Output: (SubPlan 1), (SubPlan 2)
    SubPlan 1
      ->  Result
-           Output: now()
+           Output: 'regression'::name
            One-Time Filter: ("*VALUES*".column1 = "*VALUES*".column1)
    SubPlan 2
      ->  Result
-           Output: now()
+           Output: 'regression'::name
            One-Time Filter: ("*VALUES*".column1 = "*VALUES*".column1)
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 explain (verbose, costs off)
   select x, x from
@@ -1058,7 +1083,8 @@ explain (verbose, costs off)
            ->  Result
                  Output: random()
                  One-Time Filter: ("*VALUES*".column1 = "*VALUES*".column1)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 --
 -- Test rescan of a hashed subplan (the use of random() is to prevent the
@@ -1080,14 +1106,17 @@ where o.ten = 0;
          ->  Seq Scan on public.onek o
                Output: o.unique1, o.unique2, o.two, o.four, o.ten, o.twenty, o.hundred, o.thousand, o.twothousand, o.fivethous, o.tenthous, o.odd, o.even, o.stringu1, o.stringu2, o.string4
                Filter: (o.ten = 0)
-         ->  Index Scan using onek_unique1 on public.onek i
-               Output: (hashed SubPlan 1), random()
-               Index Cond: (i.unique1 = o.unique1)
-               SubPlan 1
-                 ->  Seq Scan on public.int4_tbl
-                       Output: int4_tbl.f1
-                       Filter: (int4_tbl.f1 <= $0)
-(14 rows)
+         ->  Materialize
+               Output: ((hashed SubPlan 1)), (random())
+               ->  Index Scan using onek_unique1 on public.onek i
+                     Output: (hashed SubPlan 1), random()
+                     Index Cond: (i.unique1 = o.unique1)
+                     SubPlan 1
+                       ->  Seq Scan on public.int4_tbl
+                             Output: int4_tbl.f1
+                             Filter: (int4_tbl.f1 <= $0)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 select sum(ss.tst::int) from
   onek o cross join lateral (
@@ -1111,22 +1140,24 @@ select count(*) from
     select * from onek i2 where i2.unique1 = o.unique2
   ) ss
 where o.ten = 1;
-                                  QUERY PLAN                                  
-------------------------------------------------------------------------------
+                                     QUERY PLAN                                     
+------------------------------------------------------------------------------------
  Aggregate
    ->  Nested Loop
          ->  Seq Scan on onek o
                Filter: (ten = 1)
-         ->  Subquery Scan on ss
-               ->  HashSetOp Except
-                     ->  Append
-                           ->  Subquery Scan on "*SELECT* 1"
-                                 ->  Index Scan using onek_unique1 on onek i1
-                                       Index Cond: (unique1 = o.unique1)
-                           ->  Subquery Scan on "*SELECT* 2"
-                                 ->  Index Scan using onek_unique1 on onek i2
-                                       Index Cond: (unique1 = o.unique2)
-(13 rows)
+         ->  Materialize
+               ->  Subquery Scan on ss
+                     ->  HashSetOp Except
+                           ->  Append
+                                 ->  Subquery Scan on "*SELECT* 1"
+                                       ->  Index Scan using onek_unique1 on onek i1
+                                             Index Cond: (unique1 = o.unique1)
+                                 ->  Subquery Scan on "*SELECT* 2"
+                                       ->  Index Scan using onek_unique1 on onek i2
+                                             Index Cond: (unique1 = o.unique2)
+ Optimizer: Postgres query optimizer
+(15 rows)
 
 select count(*) from
   onek o cross join lateral (
@@ -1154,21 +1185,21 @@ select sum(o.four), sum(ss.a) from
     select * from x
   ) ss
 where o.ten = 1;
-                       QUERY PLAN                        
----------------------------------------------------------
+                    QUERY PLAN                     
+---------------------------------------------------
  Aggregate
    ->  Nested Loop
          ->  Seq Scan on onek o
                Filter: (ten = 1)
-         ->  Memoize
-               Cache Key: o.four
-               Cache Mode: binary
-               ->  CTE Scan on x
-                     CTE x
-                       ->  Recursive Union
-                             ->  Result
-                             ->  WorkTable Scan on x x_1
-                                   Filter: (a < 10)
+         ->  Materialize
+               ->  Memoize
+                     Cache Key: o.four
+                     Cache Mode: binary
+                     ->  Recursive Union
+                           ->  Result
+                           ->  WorkTable Scan on x
+                                 Filter: (a < 10)
+ Optimizer: Postgres query optimizer
 (13 rows)
 
 select sum(o.four), sum(ss.a) from
@@ -1253,7 +1284,8 @@ select * from
    SubPlan 1
      ->  Values Scan on "*VALUES*_1"
            Output: "*VALUES*_1".column1
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select * from
 (values
@@ -1268,24 +1300,31 @@ select * from
 
 --
 -- Check sane behavior with nested IN SubLinks
+-- GPDB_94_MERGE_FIXME: ORCA plan is correct but very pricy. Should we fallback to planner?
 --
 explain (verbose, costs off)
 select * from int4_tbl where
   (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in
   (select ten from tenk1 b);
-                                                                                      QUERY PLAN                                                                                       
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Nested Loop Semi Join
+                                                                                         QUERY PLAN                                                                                          
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join
    Output: int4_tbl.f1
-   Join Filter: (CASE WHEN (hashed SubPlan 1) THEN int4_tbl.f1 ELSE NULL::integer END = b.ten)
-   ->  Seq Scan on public.int4_tbl
-         Output: int4_tbl.f1
-   ->  Seq Scan on public.tenk1 b
-         Output: b.unique1, b.unique2, b.two, b.four, b.ten, b.twenty, b.hundred, b.thousand, b.twothousand, b.fivethous, b.tenthous, b.odd, b.even, b.stringu1, b.stringu2, b.string4
-   SubPlan 1
-     ->  Index Only Scan using tenk1_unique1 on public.tenk1 a
-           Output: a.unique1
-(10 rows)
+   Hash Cond: (b.ten = CASE WHEN ((hashed SubPlan 1)) THEN int4_tbl.f1 ELSE NULL::integer END)
+   ->  HashAggregate
+         Output: b.ten
+         Group Key: b.ten
+         ->  Seq Scan on public.tenk1 b
+               Output: b.unique1, b.unique2, b.two, b.four, b.ten, b.twenty, b.hundred, b.thousand, b.twothousand, b.fivethous, b.tenthous, b.odd, b.even, b.stringu1, b.stringu2, b.string4
+   ->  Hash
+         Output: int4_tbl.f1, ((hashed SubPlan 1))
+         ->  Seq Scan on public.int4_tbl
+               Output: int4_tbl.f1, (hashed SubPlan 1)
+               SubPlan 1
+                 ->  Seq Scan on public.tenk1 a
+                       Output: a.unique1
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 select * from int4_tbl where
   (case when f1 in (select unique1 from tenk1 a) then f1 else null end) in
@@ -1303,12 +1342,12 @@ select * from int4_tbl o where (f1, f1) in
   (select f1, generate_series(1,50) / 10 g from int4_tbl i group by f1);
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Nested Loop Semi Join
+ Hash Semi Join
    Output: o.f1
-   Join Filter: (o.f1 = "ANY_subquery".f1)
+   Hash Cond: (o.f1 = "ANY_subquery".f1)
    ->  Seq Scan on public.int4_tbl o
          Output: o.f1
-   ->  Materialize
+   ->  Hash
          Output: "ANY_subquery".f1, "ANY_subquery".g
          ->  Subquery Scan on "ANY_subquery"
                Output: "ANY_subquery".f1, "ANY_subquery".g
@@ -1322,7 +1361,8 @@ select * from int4_tbl o where (f1, f1) in
                                  Group Key: i.f1
                                  ->  Seq Scan on public.int4_tbl i
                                        Output: i.f1
-(19 rows)
+ Optimizer: Postgres query optimizer
+(20 rows)
 
 select * from int4_tbl o where (f1, f1) in
   (select f1, generate_series(1,50) / 10 g from int4_tbl i group by f1);
@@ -1364,25 +1404,28 @@ select * from
         select true as b, 2 as id
     ) as t2
 where b and f1 >= 0;
-                 QUERY PLAN                 
---------------------------------------------
+                     QUERY PLAN                     
+----------------------------------------------------
  Nested Loop
    Output: i4.f1, ((i4.f1 > 1)), (1)
    ->  Seq Scan on public.int4_tbl i4
          Output: i4.f1
          Filter: (i4.f1 >= 0)
-   ->  Append
-         ->  Subquery Scan on t1
-               Output: (i4.f1 > 1), 1
-               Filter: (i4.f1 > 1)
-               ->  Sort
-                     Output: (random())
-                     Sort Key: (random())
+   ->  Materialize
+         Output: ((i4.f1 > 1)), (1)
+         ->  Append
+               ->  Subquery Scan on t1
+                     Output: (i4.f1 > 1), 1
+                     Filter: (i4.f1 > 1)
                      ->  Result
-                           Output: random()
-         ->  Result
-               Output: true, 2
-(16 rows)
+                           Output: $0
+                           InitPlan 1 (returns $0)
+                             ->  Result
+                                   Output: random()
+               ->  Result
+                     Output: true, 2
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 select * from
     int4_tbl i4,
@@ -1406,7 +1449,7 @@ where b and f1 >= 0;
 -- Check that volatile quals aren't pushed down past a DISTINCT:
 -- nextval() should not be called more than the nominal number of times
 --
-create temp sequence ts1;
+create temp sequence ts1 cache 1;
 select * from
   (select distinct ten from tenk1) ss
   where ten < 10 + nextval('ts1')
@@ -1453,7 +1496,8 @@ select * from
    ->  ProjectSet
          Output: 9, unnest('{1,2,3,11,12,13}'::integer[])
          ->  Result
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from
   (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
@@ -1480,12 +1524,13 @@ explain (verbose, costs off)
 select * from
   (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
   where tattle(x, 8);
+NOTICE:  x = 9, y = 8
                      QUERY PLAN                     
 ----------------------------------------------------
  ProjectSet
    Output: 9, unnest('{1,2,3,11,12,13}'::integer[])
    ->  Result
-         One-Time Filter: tattle(9, 8)
+ Optimizer: Postgres query optimizer
 (4 rows)
 
 select * from
@@ -1515,7 +1560,8 @@ select * from
    ->  ProjectSet
          Output: 9, unnest('{1,2,3,11,12,13}'::integer[])
          ->  Result
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from
   (select 9 as x, unnest(array[1,2,3,11,12,13]) as u) ss
@@ -1534,11 +1580,19 @@ NOTICE:  x = 9, y = 13
 (3 rows)
 
 drop function tattle(x int, y int);
+set optimizer to off;
 --
 -- Test that LIMIT can be pushed to SORT through a subquery that just projects
 -- columns.  We check for that having happened by looking to see if EXPLAIN
 -- ANALYZE shows that a top-N sort was used.  We must suppress or filter away
 -- all the non-invariant parts of the EXPLAIN ANALYZE output.
+--
+-- GPDB_12_MERGE_FIXME: we need to revisit the following test because it is not
+-- testing what it advertized in the above comment. Specificly, we don't
+-- execute top-N sort for the planner plan. Orca on the other hand never honors
+-- ORDER BY in a subquery, as permitted by the SQL spec.  Consider rewriting
+-- the test using a replicated table so that we get the plan stucture like
+-- this: Limit -> Subquery -> Sort
 --
 create table sq_limit (pk int primary key, c1 int, c2 int);
 insert into sq_limit values
@@ -1570,10 +1624,16 @@ select * from explain_sq_limit();
    ->  Subquery Scan on x (actual rows=3 loops=1)
          ->  Sort (actual rows=3 loops=1)
                Sort Key: sq_limit.c1, sq_limit.pk
-               Sort Method: top-N heapsort  Memory: xxx
+               Sort Method:  top-N heapsort  Memory: xxx
                ->  Seq Scan on sq_limit (actual rows=8 loops=1)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
+-- a subpath is sorted under a subqueryscan. however, the subqueryscan is not.
+-- whether the order of subpath can applied to the subqueryscan is up-to-implement.
+-- now we do not guarantee the order of subpath can apply to the subqueryscan.
+-- so the results of bellow is not stable, so we ignore the results
+--start_ignore
 select * from (select pk,c2 from sq_limit order by c1,pk) as x limit 3;
  pk | c2 
 ----+----
@@ -1582,139 +1642,145 @@ select * from (select pk,c2 from sq_limit order by c1,pk) as x limit 3;
   2 |  2
 (3 rows)
 
+--end_ignore
+reset optimizer;
 drop function explain_sq_limit();
 drop table sq_limit;
 --
 -- Ensure that backward scan direction isn't propagated into
 -- expression subqueries (bug #15336)
 --
+--start_ignore
 begin;
 declare c1 scroll cursor for
  select * from generate_series(1,4) i
   where i <> all (values (2),(3));
 move forward all in c1;
 fetch backward all in c1;
- i 
----
- 4
- 1
-(2 rows)
-
+ERROR:  backward scan is not supported in this version of Cloudberry Database
 commit;
+--end_ignore
 --
 -- Tests for CTE inlining behavior
 --
+set gp_cte_sharing to on;
 -- Basic subquery that can be inlined
 explain (verbose, costs off)
 with x as (select * from (select f1 from subselect_tbl) ss)
 select * from x where f1 = 1;
-            QUERY PLAN            
-----------------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on public.subselect_tbl
    Output: subselect_tbl.f1
    Filter: (subselect_tbl.f1 = 1)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 -- Explicitly request materialization
 explain (verbose, costs off)
 with x as materialized (select * from (select f1 from subselect_tbl) ss)
 select * from x where f1 = 1;
-                QUERY PLAN                
-------------------------------------------
- CTE Scan on x
+                  QUERY PLAN                  
+----------------------------------------------
+ Subquery Scan on x
    Output: x.f1
    Filter: (x.f1 = 1)
-   CTE x
-     ->  Seq Scan on public.subselect_tbl
-           Output: subselect_tbl.f1
-(6 rows)
+   ->  Shared Scan (share slice:id -1:0)
+         Output: share0_ref1.f1
+         ->  Seq Scan on public.subselect_tbl
+               Output: subselect_tbl.f1
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- Stable functions are safe to inline
 explain (verbose, costs off)
-with x as (select * from (select f1, now() from subselect_tbl) ss)
+with x as (select * from (select f1, current_database() from subselect_tbl) ss)
 select * from x where f1 = 1;
-            QUERY PLAN             
------------------------------------
+                   QUERY PLAN                   
+------------------------------------------------
  Seq Scan on public.subselect_tbl
-   Output: subselect_tbl.f1, now()
+   Output: subselect_tbl.f1, 'regression'::name
    Filter: (subselect_tbl.f1 = 1)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 -- Volatile functions prevent inlining
+-- GPDB_12_MERGE_FIXME: inlining happens on GPDB: But the plan seems OK
+-- nevertheless. Is the GPDB planner smart, and notices that this is
+-- ok to inline, or is it doing something that would be unsafe in more
+-- complicated queries? Investigte
 explain (verbose, costs off)
 with x as (select * from (select f1, random() from subselect_tbl) ss)
 select * from x where f1 = 1;
-                  QUERY PLAN                  
-----------------------------------------------
- CTE Scan on x
-   Output: x.f1, x.random
-   Filter: (x.f1 = 1)
-   CTE x
-     ->  Seq Scan on public.subselect_tbl
-           Output: subselect_tbl.f1, random()
-(6 rows)
+              QUERY PLAN              
+--------------------------------------
+ Seq Scan on public.subselect_tbl
+   Output: subselect_tbl.f1, random()
+   Filter: (subselect_tbl.f1 = 1)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 -- SELECT FOR UPDATE cannot be inlined
+-- GPDB: select statement with locking clause is not easy to fully supported
+-- in greenplum. The following case even with GDD enabled greenplum will still
+-- lock the table in Exclusive Lock and not generate LockRows plan node.
+-- For detail, please refer to checkCanOptSelectLockingClause.
 explain (verbose, costs off)
 with x as (select * from (select f1 from subselect_tbl for update) ss)
 select * from x where f1 = 1;
-                             QUERY PLAN                             
---------------------------------------------------------------------
- CTE Scan on x
-   Output: x.f1
-   Filter: (x.f1 = 1)
-   CTE x
-     ->  Subquery Scan on ss
-           Output: ss.f1
-           ->  LockRows
-                 Output: subselect_tbl.f1, subselect_tbl.ctid
-                 ->  Seq Scan on public.subselect_tbl
-                       Output: subselect_tbl.f1, subselect_tbl.ctid
-(10 rows)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Subquery Scan on ss
+   Output: ss.f1
+   ->  Seq Scan on public.subselect_tbl
+         Output: subselect_tbl.f1, subselect_tbl.ctid
+         Filter: (subselect_tbl.f1 = 1)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- Multiply-referenced CTEs are inlined only when requested
 explain (verbose, costs off)
-with x as (select * from (select f1, now() as n from subselect_tbl) ss)
+with x as (select * from (select f1, current_database() as n from subselect_tbl) ss)
 select * from x, x x2 where x.n = x2.n;
-                QUERY PLAN                 
--------------------------------------------
- Merge Join
-   Output: x.f1, x.n, x2.f1, x2.n
-   Merge Cond: (x.n = x2.n)
-   CTE x
-     ->  Seq Scan on public.subselect_tbl
-           Output: subselect_tbl.f1, now()
-   ->  Sort
-         Output: x.f1, x.n
-         Sort Key: x.n
-         ->  CTE Scan on x
-               Output: x.f1, x.n
-   ->  Sort
-         Output: x2.f1, x2.n
-         Sort Key: x2.n
-         ->  CTE Scan on x x2
-               Output: x2.f1, x2.n
-(16 rows)
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Hash Join
+   Output: share0_ref2.f1, share0_ref2.n, share0_ref1.f1, share0_ref1.n
+   Hash Cond: (share0_ref2.n = share0_ref1.n)
+   ->  Shared Scan (share slice:id -1:0)
+         Output: share0_ref2.f1, share0_ref2.n
+   ->  Hash
+         Output: share0_ref1.f1, share0_ref1.n
+         ->  Shared Scan (share slice:id -1:0)
+               Output: share0_ref1.f1, share0_ref1.n
+               ->  Seq Scan on public.subselect_tbl
+                     Output: subselect_tbl.f1, 'regression'::name
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 explain (verbose, costs off)
-with x as not materialized (select * from (select f1, now() as n from subselect_tbl) ss)
+with x as not materialized (select * from (select f1, current_database() as n from subselect_tbl) ss)
 select * from x, x x2 where x.n = x2.n;
-                                 QUERY PLAN                                 
-----------------------------------------------------------------------------
- Result
-   Output: subselect_tbl.f1, now(), subselect_tbl_1.f1, now()
-   One-Time Filter: (now() = now())
-   ->  Nested Loop
-         Output: subselect_tbl.f1, subselect_tbl_1.f1
-         ->  Seq Scan on public.subselect_tbl
-               Output: subselect_tbl.f1, subselect_tbl.f2, subselect_tbl.f3
-         ->  Materialize
-               Output: subselect_tbl_1.f1
-               ->  Seq Scan on public.subselect_tbl subselect_tbl_1
-                     Output: subselect_tbl_1.f1
-(11 rows)
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Hash Join
+   Output: subselect_tbl.f1, ('regression'::name), subselect_tbl_1.f1, ('regression'::name)
+   Hash Cond: (('regression'::name) = ('regression'::name))
+   ->  Seq Scan on public.subselect_tbl
+         Output: subselect_tbl.f1, 'regression'::name
+   ->  Hash
+         Output: subselect_tbl_1.f1, ('regression'::name)
+         ->  Seq Scan on public.subselect_tbl subselect_tbl_1
+               Output: subselect_tbl_1.f1, 'regression'::name
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- Multiply-referenced CTEs can't be inlined if they contain outer self-refs
+-- start_ignore
+-- GPDB_12_MERGE_FIXME: This currenty produces incorrect results on GPDB.
+-- It's not a new issue, but it was exposed by this new upstream test case
+-- with the PostgreSQL v12 merge.
+-- See https://github.com/greenplum-db/gpdb/issues/10014
 explain (verbose, costs off)
 with recursive x(a) as
   ((values ('a'), ('b'))
@@ -1723,25 +1789,22 @@ with recursive x(a) as
     select z.a || z1.a as a from z cross join z as z1
     where length(z.a || z1.a) < 5))
 select * from x;
-                        QUERY PLAN                        
-----------------------------------------------------------
- CTE Scan on x
-   Output: x.a
-   CTE x
-     ->  Recursive Union
-           ->  Values Scan on "*VALUES*"
-                 Output: "*VALUES*".column1
-           ->  Nested Loop
-                 Output: (z.a || z1.a)
-                 Join Filter: (length((z.a || z1.a)) < 5)
-                 CTE z
-                   ->  WorkTable Scan on x x_1
-                         Output: x_1.a
-                 ->  CTE Scan on z
-                       Output: z.a
-                 ->  CTE Scan on z z1
-                       Output: z1.a
-(16 rows)
+                    QUERY PLAN                     
+---------------------------------------------------
+ Recursive Union
+   ->  Values Scan on "*VALUES*"
+         Output: "*VALUES*".column1
+   ->  Nested Loop
+         Output: (x.a || x_1.a)
+         Join Filter: (length((x.a || x_1.a)) < 5)
+         ->  WorkTable Scan on x
+               Output: x.a
+         ->  Materialize
+               Output: x_1.a
+               ->  WorkTable Scan on x x_1
+                     Output: x_1.a
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 with recursive x(a) as
   ((values ('a'), ('b'))
@@ -1750,32 +1813,13 @@ with recursive x(a) as
     select z.a || z1.a as a from z cross join z as z1
     where length(z.a || z1.a) < 5))
 select * from x;
-  a   
-------
+ a 
+---
  a
  b
- aa
- ab
- ba
- bb
- aaaa
- aaab
- aaba
- aabb
- abaa
- abab
- abba
- abbb
- baaa
- baab
- baba
- babb
- bbaa
- bbab
- bbba
- bbbb
-(22 rows)
+(2 rows)
 
+-- end_ignore
 explain (verbose, costs off)
 with recursive x(a) as
   ((values ('a'), ('b'))
@@ -1784,17 +1828,17 @@ with recursive x(a) as
     select z.a || z.a as a from z
     where length(z.a || z.a) < 5))
 select * from x;
-                       QUERY PLAN                       
---------------------------------------------------------
- CTE Scan on x
-   Output: x.a
-   CTE x
-     ->  Recursive Union
-           ->  Values Scan on "*VALUES*"
-                 Output: "*VALUES*".column1
-           ->  WorkTable Scan on x x_1
-                 Output: (x_1.a || x_1.a)
-                 Filter: (length((x_1.a || x_1.a)) < 5)
+                    QUERY PLAN                    
+--------------------------------------------------
+ Recursive Union
+   ->  Values Scan on "*VALUES*"
+         Output: "*VALUES*".column1
+   ->  Subquery Scan on z
+         Output: (z.a || z.a)
+         ->  WorkTable Scan on x
+               Output: x.a
+               Filter: (length((x.a || x.a)) < 5)
+ Optimizer: Postgres query optimizer
 (9 rows)
 
 with recursive x(a) as
@@ -1818,22 +1862,23 @@ select * from x;
 explain (verbose, costs off)
 with x as (select * from int4_tbl)
 select * from (with y as (select * from x) select * from y) ss;
-         QUERY PLAN          
------------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on public.int4_tbl
    Output: int4_tbl.f1
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 explain (verbose, costs off)
 with x as materialized (select * from int4_tbl)
 select * from (with y as (select * from x) select * from y) ss;
              QUERY PLAN              
 -------------------------------------
- CTE Scan on x
-   Output: x.f1
-   CTE x
-     ->  Seq Scan on public.int4_tbl
-           Output: int4_tbl.f1
+ Shared Scan (share slice:id -1:0)
+   Output: share0_ref1.f1
+   ->  Seq Scan on public.int4_tbl
+         Output: int4_tbl.f1
+ Optimizer: Postgres query optimizer
 (5 rows)
 
 -- Ensure that we inline the currect CTE when there are
@@ -1841,11 +1886,12 @@ select * from (with y as (select * from x) select * from y) ss;
 explain (verbose, costs off)
 with x as (select 1 as y)
 select * from (with x as (select 2 as y) select * from x) ss;
- QUERY PLAN  
--------------
+             QUERY PLAN              
+-------------------------------------
  Result
    Output: 2
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- Row marks are not pushed into CTEs
 explain (verbose, costs off)
@@ -1855,5 +1901,7 @@ select * from x for update;
 ----------------------------------------------------------------
  Seq Scan on public.subselect_tbl
    Output: subselect_tbl.f1, subselect_tbl.f2, subselect_tbl.f3
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
+set gp_cte_sharing to off;

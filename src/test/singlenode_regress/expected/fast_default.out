@@ -302,7 +302,8 @@ SELECT c_bigint, c_text FROM T WHERE c_bigint = -1 LIMIT 1;
    ->  Seq Scan on fast_default.t
          Output: c_bigint, c_text
          Filter: (t.c_bigint = '-1'::integer)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT c_bigint, c_text FROM T WHERE c_text = 'hello' LIMIT 1;
  c_bigint | c_text 
@@ -318,7 +319,8 @@ EXPLAIN (VERBOSE TRUE, COSTS FALSE) SELECT c_bigint, c_text FROM T WHERE c_text 
    ->  Seq Scan on fast_default.t
          Output: c_bigint, c_text
          Filter: (t.c_text = 'hello'::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- COALESCE
 SELECT COALESCE(c_bigint, pk), COALESCE(c_text, pk::text)
@@ -372,7 +374,8 @@ SELECT * FROM T ORDER BY c_bigint, c_text, pk LIMIT 10;
          Sort Key: t.c_bigint, t.c_text, t.pk
          ->  Seq Scan on fast_default.t
                Output: pk, c_bigint, c_text
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- LIMIT
 SELECT * FROM T WHERE c_bigint > -1 ORDER BY c_bigint, c_text, pk LIMIT 10;
@@ -402,7 +405,8 @@ SELECT * FROM T WHERE c_bigint > -1 ORDER BY c_bigint, c_text, pk LIMIT 10;
          ->  Seq Scan on fast_default.t
                Output: pk, c_bigint, c_text
                Filter: (t.c_bigint > '-1'::integer)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 --  DELETE with RETURNING
 DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
@@ -428,11 +432,12 @@ DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
  Delete on fast_default.t
    Output: pk, c_bigint, c_text
    ->  Bitmap Heap Scan on fast_default.t
-         Output: ctid
+         Output: ctid, gp_segment_id
          Recheck Cond: ((t.pk >= 10) AND (t.pk <= 20))
          ->  Bitmap Index Scan on t_pkey
                Index Cond: ((t.pk >= 10) AND (t.pk <= 20))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- UPDATE
 UPDATE T SET c_text = '"' || c_text || '"'  WHERE pk < 10;
@@ -731,6 +736,7 @@ DROP TABLE t;
 -- it will be required by the RI trigger doing the cascading delete
 CREATE TABLE leader (a int PRIMARY KEY, b int);
 CREATE TABLE follower (a int REFERENCES leader ON DELETE CASCADE, b int);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO leader VALUES (1, 1), (2, 2);
 ALTER TABLE leader ADD c int;
 ALTER TABLE leader DROP c;

@@ -208,14 +208,14 @@ create trigger check_after_tab_progress_reporting
 	after insert on tab_progress_reporting
 	for each statement
 	execute function notice_after_tab_progress_reporting();
+ERROR:  Triggers for statements are not yet supported
 -- Generate COPY FROM report with PIPE.
 copy tab_progress_reporting from stdin;
-INFO:  progress: {"type": "PIPE", "command": "COPY FROM", "relname": "tab_progress_reporting", "has_bytes_total": false, "tuples_excluded": 0, "tuples_processed": 3, "has_bytes_processed": true}
 -- Generate COPY FROM report with FILE, with some excluded tuples.
 truncate tab_progress_reporting;
 copy tab_progress_reporting from '@abs_srcdir@/data/emp.data'
 	where (salary < 2000);
-INFO:  progress: {"type": "FILE", "command": "COPY FROM", "relname": "tab_progress_reporting", "has_bytes_total": true, "tuples_excluded": 1, "tuples_processed": 2, "has_bytes_processed": true}
 drop trigger check_after_tab_progress_reporting on tab_progress_reporting;
+ERROR:  trigger "check_after_tab_progress_reporting" for table "tab_progress_reporting" does not exist
 drop function notice_after_tab_progress_reporting();
 drop table tab_progress_reporting;

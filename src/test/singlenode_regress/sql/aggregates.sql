@@ -2,6 +2,10 @@
 -- AGGREGATES
 --
 
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
+
 -- avoid bit-exact output here because operations may not be bit-exact.
 SET extra_float_digits = 0;
 
@@ -348,6 +352,9 @@ select max(unique1) from tenk1 where unique1 > 42;
 -- the optimized plan, so temporarily disable parallel query.
 begin;
 set local max_parallel_workers_per_gather = 0;
+-- In GPDB, we also need to disable seqscans and bitmap scans.
+set local enable_seqscan=off;
+set local enable_bitmapscan=off;
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42000;
 select max(unique1) from tenk1 where unique1 > 42000;
@@ -362,6 +369,8 @@ explain (costs off)
 select min(tenthous) from tenk1 where thousand = 33;
 
 -- check parameter propagation into an indexscan subquery
+-- In GPDB, this cannot use the MIN/MAX optimization, because the subplan
+-- parameter cannot be pushed through a Motion node.
 explain (costs off)
   select f1, (select min(unique1) from tenk1 where unique1 > f1) AS gt
     from int4_tbl;
@@ -404,10 +413,16 @@ insert into minmaxtest values(11), (12);
 insert into minmaxtest1 values(13), (14);
 insert into minmaxtest2 values(15), (16);
 insert into minmaxtest3 values(17), (18);
+analyze minmaxtest;
+analyze minmaxtest1;
+analyze minmaxtest2;
+analyze minmaxtest3;
 
+set enable_seqscan=off;
 explain (costs off)
   select min(f1), max(f1) from minmaxtest;
 select min(f1), max(f1) from minmaxtest;
+reset enable_seqscan;
 
 -- DISTINCT doesn't do anything useful here, but it shouldn't fail
 explain (costs off)
@@ -419,6 +434,9 @@ drop table minmaxtest cascade;
 -- check for correct detection of nested-aggregate errors
 select max(min(unique1)) from tenk1;
 select (select max(min(unique1)) from int8_tbl) from tenk1;
+select avg((select avg(a1.col1 order by (select avg(a2.col2) from tenk1 a3))
+            from tenk1 a1(col1)))
+from tenk1 a2(col2);
 
 --
 -- Test removal of redundant GROUP BY columns
@@ -548,6 +566,12 @@ select aggfns(distinct a,b,c order by a,c using ~<~,b)
 
 -- check node I/O via view creation and usage, also deparsing logic
 
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
+
 create view agg_view1 as
   select aggfns(a,b,c)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
@@ -602,6 +626,10 @@ select pg_get_viewdef('agg_view1'::regclass);
 
 drop view agg_view1;
 
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
+
 -- incorrect DISTINCT usage errors
 
 select aggfns(distinct a,b,c order by i)
@@ -625,16 +653,163 @@ select string_agg(distinct f1::text, ',' order by f1) from varchar_tbl;  -- not 
 select string_agg(distinct f1, ',' order by f1::text) from varchar_tbl;  -- not ok
 select string_agg(distinct f1::text, ',' order by f1::text) from varchar_tbl;  -- ok
 
+-- FILTER tests
+
+select min(unique1) filter (where unique1 > 100) from tenk1;
+
+select ten, sum(distinct four) filter (where four::text ~ '123') from onek a
+group by ten;
+
+select ten, sum(distinct four) filter (where four > 10) from onek a
+group by ten
+having exists (select 1 from onek b where sum(distinct a.four) = b.four);
+
+select max(foo COLLATE "C") filter (where (bar collate "POSIX") > '0')
+from (values ('a', 'b')) AS v(foo,bar);
+
+-- outer reference in FILTER (PostgreSQL extension)
+select (select count(*)
+        from (values (1)) t0(inner_c))
+from (values (2),(3)) t1(outer_c); -- inner query is aggregation query
+select (select count(*) filter (where outer_c <> 0)
+        from (values (1)) t0(inner_c))
+from (values (2),(3)) t1(outer_c); -- outer query is aggregation query
+select (select count(inner_c) filter (where outer_c <> 0)
+        from (values (1)) t0(inner_c))
+from (values (2),(3)) t1(outer_c); -- inner query is aggregation query
+select
+  (select max((select i.unique2 from tenk1 i where i.unique1 = o.unique1))
+     filter (where o.unique1 < 10))
+from tenk1 o;					-- outer query is aggregation query
+
+-- subquery in FILTER clause (PostgreSQL extension)
+select sum(unique1) FILTER (WHERE
+  unique1 IN (SELECT unique1 FROM onek where unique1 < 100)) FROM tenk1;
+
+-- exercise lots of aggregate parts with FILTER
+select aggfns(distinct a,b,c order by a,c using ~<~,b) filter (where a > 1)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+    generate_series(1,2) i;
+
+-- ordered-set aggregates
+
+select p, percentile_cont(p) within group (order by x::float8)
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+
+select p, percentile_cont(p order by p) within group (order by x)  -- error
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+
+select p, sum() within group (order by x::float8)  -- error
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+
+select p, percentile_cont(p,p)  -- error
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+
+select percentile_cont(0.5) within group (order by b) from aggtest;
+select percentile_cont(0.5) within group (order by b), sum(b) from aggtest;
+select percentile_cont(0.5) within group (order by thousand) from tenk1;
+select percentile_disc(0.5) within group (order by thousand) from tenk1;
+select rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+select cume_dist(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+select percent_rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4),(5)) v(x);
+select dense_rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+
+select percentile_disc(array[0,0.1,0.25,0.5,0.75,0.9,1]) within group (order by thousand)
+from tenk1;
+select percentile_cont(array[0,0.25,0.5,0.75,1]) within group (order by thousand)
+from tenk1;
+select percentile_disc(array[[null,1,0.5],[0.75,0.25,null]]) within group (order by thousand)
+from tenk1;
+select percentile_cont(array[0,1,0.25,0.75,0.5,1]) within group (order by x)
+from generate_series(1,6) x;
+
+select ten, mode() within group (order by string4) from tenk1 group by ten order by ten;
+
+select percentile_disc(array[0.25,0.5,0.75]) within group (order by x)
+from unnest('{fred,jim,fred,jack,jill,fred,jill,jim,jim,sheila,jim,sheila}'::text[]) u(x);
+
+-- check collation propagates up in suitable cases:
+select pg_collation_for(percentile_disc(1) within group (order by x collate "POSIX"))
+  from (values ('fred'),('jim')) v(x);
+
+-- ordered-set aggs created with CREATE AGGREGATE
+select test_rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+select test_percentile_disc(0.5) within group (order by thousand) from tenk1;
+
+-- ordered-set aggs can't use ungrouped vars in direct args:
+select rank(x) within group (order by x) from generate_series(1,5) x;
+
+-- outer-level agg can't use a grouped arg of a lower level, either:
+select array(select percentile_disc(a) within group (order by x)
+               from (values (0.3),(0.7)) v(a) group by a)
+  from generate_series(1,5) g(x);
+
+-- agg in the direct args is a grouping violation, too:
+select rank(sum(x)) within group (order by x) from generate_series(1,5) x;
+
+-- hypothetical-set type unification and argument-count failures:
+select rank(3) within group (order by x) from (values ('fred'),('jim')) v(x);
+select rank(3) within group (order by stringu1,stringu2) from tenk1;
+select rank('fred') within group (order by x) from generate_series(1,5) x;
+select rank('adam'::text collate "C") within group (order by x collate "POSIX")
+  from (values ('fred'),('jim')) v(x);
+-- hypothetical-set type unification successes:
+select rank('adam'::varchar) within group (order by x) from (values ('fred'),('jim')) v(x);
+select rank('3') within group (order by x) from generate_series(1,5) x;
+
+-- divide by zero check
+select percent_rank(0) within group (order by x) from generate_series(1,0) x;
+
+-- deparse and multiple features:
+create view aggordview1 as
+select ten,
+       percentile_disc(0.5) within group (order by thousand) as p50,
+       percentile_disc(0.5) within group (order by thousand) filter (where hundred=1) as px,
+       rank(5,'AZZZZ',50) within group (order by hundred, string4 desc, hundred)
+  from tenk1
+ group by ten order by ten;
+
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
+
+select pg_get_viewdef('aggordview1');
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
+select * from aggordview1 order by ten;
+drop view aggordview1;
+
+
+-- variadic aggregates
+select least_agg(q1,q2) from int8_tbl;
+select least_agg(variadic array[q1,q2]) from int8_tbl;
+
 -- string_agg bytea tests
-create table bytea_test_table(v bytea);
+create table bytea_test_table(gpDistKey int, v bytea);
 
 select string_agg(v, '') from bytea_test_table;
 
-insert into bytea_test_table values(decode('ff','hex'));
+insert into bytea_test_table(v) values(decode('ff','hex'));
 
 select string_agg(v, '') from bytea_test_table;
 
-insert into bytea_test_table values(decode('aa','hex'));
+insert into bytea_test_table(v) values(decode('aa','hex'));
 
 select string_agg(v, '') from bytea_test_table;
 select string_agg(v, NULL) from bytea_test_table;
@@ -784,7 +959,15 @@ select ten,
   from tenk1
  group by ten order by ten;
 
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
 select pg_get_viewdef('aggordview1');
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
 select * from aggordview1 order by ten;
 drop view aggordview1;
 
@@ -1036,6 +1219,8 @@ CREATE AGGREGATE balk(int4)
 );
 
 -- force use of parallelism
+-- In single-node, we don't have mutliple-stage aggregation.
+-- Thus we don't call combine function, and the result it not empty.
 ALTER TABLE tenk1 set (parallel_workers = 4);
 SET LOCAL parallel_setup_cost=0;
 SET LOCAL max_parallel_workers_per_gather=4;
@@ -1159,16 +1344,18 @@ create table agg_group_1 as
 select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
   from agg_data_20k group by g%10000;
 
-create table agg_group_2 as
-select * from
-  (values (100), (300), (500)) as r(a),
-  lateral (
-    select (g/2)::numeric as c1,
-           array_agg(g::numeric) as c2,
-	   count(*) as c3
-    from agg_data_2k
-    where g < r.a
-    group by g/2) as s;
+/*
+ * create table agg_group_2 as
+ * select * from
+ *   (values (100), (300), (500)) as r(a),
+ *   lateral (
+ *     select (g/2)::numeric as c1,
+ *            array_agg(g::numeric) as c2,
+ *        count(*) as c3
+ *     from generate_series(0, 1999) g
+ *     where g < r.a
+ *     group by g/2) as s;
+ */
 
 set jit_above_cost to default;
 
@@ -1195,16 +1382,18 @@ create table agg_hash_1 as
 select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
   from agg_data_20k group by g%10000;
 
-create table agg_hash_2 as
-select * from
-  (values (100), (300), (500)) as r(a),
-  lateral (
-    select (g/2)::numeric as c1,
-           array_agg(g::numeric) as c2,
-	   count(*) as c3
-    from agg_data_2k
-    where g < r.a
-    group by g/2) as s;
+/*
+ * create table agg_hash_2 as
+ * select * from
+ *   (values (100), (300), (500)) as r(a),
+ *   lateral (
+ *     select (g/2)::numeric as c1,
+ *            array_agg(g::numeric) as c2,
+ *        count(*) as c3
+ *     from generate_series(0, 1999) g
+ *     where g < r.a
+ *     group by g/2) as s;
+ */
 
 set jit_above_cost to default;
 
@@ -1225,23 +1414,31 @@ set work_mem to default;
   union all
 (select * from agg_group_1 except select * from agg_hash_1);
 
-(select * from agg_hash_2 except select * from agg_group_2)
-  union all
-(select * from agg_group_2 except select * from agg_hash_2);
+--(select * from agg_hash_2 except select * from agg_group_2)
+--  union all
+--(select * from agg_group_2 except select * from agg_hash_2);
 
 (select * from agg_hash_3 except select * from agg_group_3)
   union all
 (select * from agg_group_3 except select * from agg_hash_3);
 
-(select * from agg_hash_4 except select * from agg_group_4)
-  union all
-(select * from agg_group_4 except select * from agg_hash_4);
+-- CBDB: array_agg() makes the result unstable, so ignore this check
+--(select * from agg_hash_4 except select * from agg_group_4)
+--  union all
+--(select * from agg_group_4 except select * from agg_hash_4);
 
 drop table agg_group_1;
-drop table agg_group_2;
+--  drop table agg_group_2;
 drop table agg_group_3;
 drop table agg_group_4;
 drop table agg_hash_1;
-drop table agg_hash_2;
+--  drop table agg_hash_2;
 drop table agg_hash_3;
 drop table agg_hash_4;
+
+-- fix github issue #12061 numsegments of general locus is not -1 on create_minmaxagg_path
+/*
+ * On the arm platform, `Seq Scan` is executed frequently, resulting in unstable output.
+ */
+set enable_indexonlyscan = off;
+explain analyze select count(*) from pg_class,  (select count(*) >0 from  (select count(*) from pg_class where relname like 't%')x)y;

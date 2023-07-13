@@ -500,7 +500,7 @@ SELECT a, b, a < b as lt FROM
 
 -- collation mismatch in subselects
 SELECT * FROM collate_test10 WHERE (x, y) NOT IN (SELECT y, x FROM collate_test10);
-ERROR:  could not determine which collation to use for string hashing
+ERROR:  could not determine which collation to use for string comparison
 HINT:  Use the COLLATE clause to set the collation explicitly.
 -- now it works with overrides
 SELECT * FROM collate_test10 WHERE (x COLLATE "POSIX", y COLLATE "C") NOT IN (SELECT y, x FROM collate_test10);
@@ -618,13 +618,11 @@ INSERT INTO collate_test20 VALUES ('foo'), ('bar');
 CREATE TABLE collate_test21 (f2 text COLLATE "POSIX" REFERENCES collate_test20);
 INSERT INTO collate_test21 VALUES ('foo'), ('bar');
 INSERT INTO collate_test21 VALUES ('baz'); -- fail
-ERROR:  insert or update on table "collate_test21" violates foreign key constraint "collate_test21_f2_fkey"
-DETAIL:  Key (f2)=(baz) is not present in table "collate_test20".
+-- Passes in GPDB, because we don't check foreign keys
 CREATE TABLE collate_test22 (f2 text COLLATE "POSIX");
 INSERT INTO collate_test22 VALUES ('foo'), ('bar'), ('baz');
 ALTER TABLE collate_test22 ADD FOREIGN KEY (f2) REFERENCES collate_test20; -- fail
-ERROR:  insert or update on table "collate_test22" violates foreign key constraint "collate_test22_f2_fkey"
-DETAIL:  Key (f2)=(baz) is not present in table "collate_test20".
+-- Passes in GPDB, because we don't check foreign keys
 DELETE FROM collate_test22 WHERE f2 = 'baz';
 ALTER TABLE collate_test22 ADD FOREIGN KEY (f2) REFERENCES collate_test20;
 RESET enable_seqscan;

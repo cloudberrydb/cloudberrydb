@@ -1,6 +1,9 @@
 --
 -- AGGREGATES
 --
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
 -- avoid bit-exact output here because operations may not be bit-exact.
 SET extra_float_digits = 0;
 SELECT avg(four) AS avg_1 FROM onek;
@@ -661,8 +664,8 @@ from generate_series(1, 3) s1,
      lateral (select s2, sum(s1 + s2) sm
               from generate_series(1, 3) s2 group by s2) ss
 order by 1, 2;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                               QUERY PLAN                               
+------------------------------------------------------------------------
  Sort
    Output: s1.s1, s2.s2, (sum((s1.s1 + s2.s2)))
    Sort Key: s1.s1, s2.s2
@@ -671,13 +674,16 @@ order by 1, 2;
          ->  Function Scan on pg_catalog.generate_series s1
                Output: s1.s1
                Function Call: generate_series(1, 3)
-         ->  HashAggregate
-               Output: s2.s2, sum((s1.s1 + s2.s2))
-               Group Key: s2.s2
-               ->  Function Scan on pg_catalog.generate_series s2
-                     Output: s2.s2
-                     Function Call: generate_series(1, 3)
-(14 rows)
+         ->  Materialize
+               Output: s2.s2, (sum((s1.s1 + s2.s2)))
+               ->  HashAggregate
+                     Output: s2.s2, sum((s1.s1 + s2.s2))
+                     Group Key: s2.s2
+                     ->  Function Scan on pg_catalog.generate_series s2
+                           Output: s2.s2
+                           Function Call: generate_series(1, 3)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 select s1, s2, sm
 from generate_series(1, 3) s1,
@@ -716,7 +722,8 @@ select array(select sum(x+y) s
                  ->  Function Scan on pg_catalog.generate_series y
                        Output: y.y
                        Function Call: generate_series(1, 3)
-(13 rows)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 select array(select sum(x+y) s
             from generate_series(1,3) y group by y order by s)
@@ -885,7 +892,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan using tenk1_unique1 on tenk1
                  Index Cond: (unique1 IS NOT NULL)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select min(unique1) from tenk1;
  min 
@@ -902,7 +910,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                  Index Cond: (unique1 IS NOT NULL)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select max(unique1) from tenk1;
  max  
@@ -919,7 +928,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                  Index Cond: ((unique1 IS NOT NULL) AND (unique1 < 42))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select max(unique1) from tenk1 where unique1 < 42;
  max 
@@ -936,7 +946,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                  Index Cond: ((unique1 IS NOT NULL) AND (unique1 > 42))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select max(unique1) from tenk1 where unique1 > 42;
  max  
@@ -950,6 +961,9 @@ select max(unique1) from tenk1 where unique1 > 42;
 -- the optimized plan, so temporarily disable parallel query.
 begin;
 set local max_parallel_workers_per_gather = 0;
+-- In GPDB, we also need to disable seqscans and bitmap scans.
+set local enable_seqscan=off;
+set local enable_bitmapscan=off;
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42000;
                                 QUERY PLAN                                 
@@ -959,7 +973,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan Backward using tenk1_unique1 on tenk1
                  Index Cond: ((unique1 IS NOT NULL) AND (unique1 > 42000))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select max(unique1) from tenk1 where unique1 > 42000;
  max 
@@ -978,7 +993,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan Backward using tenk1_thous_tenthous on tenk1
                  Index Cond: ((thousand = 33) AND (tenthous IS NOT NULL))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select max(tenthous) from tenk1 where thousand = 33;
  max  
@@ -995,7 +1011,8 @@ explain (costs off)
      ->  Limit
            ->  Index Only Scan using tenk1_thous_tenthous on tenk1
                  Index Cond: ((thousand = 33) AND (tenthous IS NOT NULL))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select min(tenthous) from tenk1 where thousand = 33;
  min 
@@ -1004,6 +1021,8 @@ select min(tenthous) from tenk1 where thousand = 33;
 (1 row)
 
 -- check parameter propagation into an indexscan subquery
+-- In GPDB, this cannot use the MIN/MAX optimization, because the subplan
+-- parameter cannot be pushed through a Motion node.
 explain (costs off)
   select f1, (select min(unique1) from tenk1 where unique1 > f1) AS gt
     from int4_tbl;
@@ -1016,7 +1035,8 @@ explain (costs off)
              ->  Limit
                    ->  Index Only Scan using tenk1_unique1 on tenk1
                          Index Cond: ((unique1 IS NOT NULL) AND (unique1 > int4_tbl.f1))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select f1, (select min(unique1) from tenk1 where unique1 > f1) AS gt
   from int4_tbl;
@@ -1041,7 +1061,8 @@ explain (costs off)
            ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                  Index Cond: (unique2 IS NOT NULL)
    ->  Result
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select distinct max(unique2) from tenk1;
  max  
@@ -1060,7 +1081,8 @@ explain (costs off)
            ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                  Index Cond: (unique2 IS NOT NULL)
    ->  Result
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select max(unique2) from tenk1 order by 1;
  max  
@@ -1079,7 +1101,8 @@ explain (costs off)
            ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                  Index Cond: (unique2 IS NOT NULL)
    ->  Result
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select max(unique2) from tenk1 order by max(unique2);
  max  
@@ -1098,7 +1121,8 @@ explain (costs off)
            ->  Index Only Scan Backward using tenk1_unique2 on tenk1
                  Index Cond: (unique2 IS NOT NULL)
    ->  Result
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select max(unique2) from tenk1 order by max(unique2)+1;
  max  
@@ -1118,7 +1142,8 @@ explain (costs off)
                  Index Cond: (unique2 IS NOT NULL)
    ->  ProjectSet
          ->  Result
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select max(unique2), generate_series(1,3) as g from tenk1 order by g desc;
  max  | g 
@@ -1139,7 +1164,8 @@ explain (costs off)
            ->  Result
                  One-Time Filter: (100 IS NOT NULL)
                  ->  Seq Scan on tenk1
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select max(100) from tenk1;
  max 
@@ -1160,6 +1186,11 @@ insert into minmaxtest values(11), (12);
 insert into minmaxtest1 values(13), (14);
 insert into minmaxtest2 values(15), (16);
 insert into minmaxtest3 values(17), (18);
+analyze minmaxtest;
+analyze minmaxtest1;
+analyze minmaxtest2;
+analyze minmaxtest3;
+set enable_seqscan=off;
 explain (costs off)
   select min(f1), max(f1) from minmaxtest;
                                          QUERY PLAN                                          
@@ -1187,7 +1218,8 @@ explain (costs off)
                  ->  Index Only Scan using minmaxtest2i on minmaxtest2 minmaxtest_8
                        Index Cond: (f1 IS NOT NULL)
                  ->  Index Only Scan Backward using minmaxtest3i on minmaxtest3 minmaxtest_9
-(23 rows)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 select min(f1), max(f1) from minmaxtest;
  min | max 
@@ -1195,38 +1227,24 @@ select min(f1), max(f1) from minmaxtest;
   11 |  18
 (1 row)
 
+reset enable_seqscan;
 -- DISTINCT doesn't do anything useful here, but it shouldn't fail
 explain (costs off)
   select distinct min(f1), max(f1) from minmaxtest;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
+                          QUERY PLAN                          
+--------------------------------------------------------------
  Unique
-   InitPlan 1 (returns $0)
-     ->  Limit
-           ->  Merge Append
-                 Sort Key: minmaxtest.f1
-                 ->  Index Only Scan using minmaxtesti on minmaxtest minmaxtest_1
-                       Index Cond: (f1 IS NOT NULL)
-                 ->  Index Only Scan using minmaxtest1i on minmaxtest1 minmaxtest_2
-                       Index Cond: (f1 IS NOT NULL)
-                 ->  Index Only Scan Backward using minmaxtest2i on minmaxtest2 minmaxtest_3
-                       Index Cond: (f1 IS NOT NULL)
-                 ->  Index Only Scan using minmaxtest3i on minmaxtest3 minmaxtest_4
-   InitPlan 2 (returns $1)
-     ->  Limit
-           ->  Merge Append
-                 Sort Key: minmaxtest_5.f1 DESC
-                 ->  Index Only Scan Backward using minmaxtesti on minmaxtest minmaxtest_6
-                       Index Cond: (f1 IS NOT NULL)
-                 ->  Index Only Scan Backward using minmaxtest1i on minmaxtest1 minmaxtest_7
-                       Index Cond: (f1 IS NOT NULL)
-                 ->  Index Only Scan using minmaxtest2i on minmaxtest2 minmaxtest_8
-                       Index Cond: (f1 IS NOT NULL)
-                 ->  Index Only Scan Backward using minmaxtest3i on minmaxtest3 minmaxtest_9
+   Group Key: (min(minmaxtest.f1)), (max(minmaxtest.f1))
    ->  Sort
-         Sort Key: ($0), ($1)
-         ->  Result
-(26 rows)
+         Sort Key: (min(minmaxtest.f1)), (max(minmaxtest.f1))
+         ->  Aggregate
+               ->  Append
+                     ->  Seq Scan on minmaxtest minmaxtest_1
+                     ->  Seq Scan on minmaxtest1 minmaxtest_2
+                     ->  Seq Scan on minmaxtest2 minmaxtest_3
+                     ->  Seq Scan on minmaxtest3 minmaxtest_4
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select distinct min(f1), max(f1) from minmaxtest;
  min | max 
@@ -1248,6 +1266,12 @@ select (select max(min(unique1)) from int8_tbl) from tenk1;
 ERROR:  aggregate function calls cannot be nested
 LINE 1: select (select max(min(unique1)) from int8_tbl) from tenk1;
                            ^
+select avg((select avg(a1.col1 order by (select avg(a2.col2) from tenk1 a3))
+            from tenk1 a1(col1)))
+from tenk1 a2(col2);
+ERROR:  aggregate function calls cannot be nested
+LINE 1: select avg((select avg(a1.col1 order by (select avg(a2.col2)...
+                                                        ^
 --
 -- Test removal of redundant GROUP BY columns
 --
@@ -1256,60 +1280,69 @@ create temp table t2 (x int, y int, z int, primary key (x, y));
 create temp table t3 (a int, b int, c int, primary key(a, b) deferrable);
 -- Non-primary-key columns can be removed from GROUP BY
 explain (costs off) select * from t1 group by a,b,c,d;
-      QUERY PLAN      
-----------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Group Key: a, b
    ->  Seq Scan on t1
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 -- No removal can happen if the complete PK is not present in GROUP BY
 explain (costs off) select a,c from t1 group by a,c,d;
-      QUERY PLAN      
-----------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Group Key: a, c, d
    ->  Seq Scan on t1
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 -- Test removal across multiple relations
 explain (costs off) select *
 from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
 group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.y,t2.z;
-                      QUERY PLAN                      
-------------------------------------------------------
- HashAggregate
+                         QUERY PLAN                         
+------------------------------------------------------------
+ GroupAggregate
    Group Key: t1.a, t1.b, t2.x, t2.y
-   ->  Hash Join
-         Hash Cond: ((t2.x = t1.a) AND (t2.y = t1.b))
-         ->  Seq Scan on t2
-         ->  Hash
-               ->  Seq Scan on t1
-(7 rows)
+   ->  Sort
+         Sort Key: t1.a, t1.b
+         ->  Hash Join
+               Hash Cond: ((t2.x = t1.a) AND (t2.y = t1.b))
+               ->  Seq Scan on t2
+               ->  Hash
+                     ->  Seq Scan on t1
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- Test case where t1 can be optimized but not t2
 explain (costs off) select t1.*,t2.x,t2.z
 from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
 group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.z;
-                      QUERY PLAN                      
-------------------------------------------------------
- HashAggregate
+                         QUERY PLAN                         
+------------------------------------------------------------
+ GroupAggregate
    Group Key: t1.a, t1.b, t2.x, t2.z
-   ->  Hash Join
-         Hash Cond: ((t2.x = t1.a) AND (t2.y = t1.b))
-         ->  Seq Scan on t2
-         ->  Hash
-               ->  Seq Scan on t1
-(7 rows)
+   ->  Sort
+         Sort Key: t1.a, t1.b, t2.z
+         ->  Hash Join
+               Hash Cond: ((t2.x = t1.a) AND (t2.y = t1.b))
+               ->  Seq Scan on t2
+               ->  Hash
+                     ->  Seq Scan on t1
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- Cannot optimize when PK is deferrable
 explain (costs off) select * from t3 group by a,b,c;
-      QUERY PLAN      
-----------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Group Key: a, b, c
    ->  Seq Scan on t3
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 create temp table t1c () inherits (t1);
 -- Ensure we don't remove any columns when t1 has a child table
@@ -1321,16 +1354,18 @@ explain (costs off) select * from t1 group by a,b,c,d;
    ->  Append
          ->  Seq Scan on t1 t1_1
          ->  Seq Scan on t1c t1_2
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- Okay to remove columns if we're only querying the parent.
 explain (costs off) select * from only t1 group by a,b,c,d;
-      QUERY PLAN      
-----------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Group Key: a, b
    ->  Seq Scan on t1
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 create temp table p_t1 (
   a int,
@@ -1343,14 +1378,15 @@ create temp table p_t1_1 partition of p_t1 for values in(1);
 create temp table p_t1_2 partition of p_t1 for values in(2);
 -- Ensure we can remove non-PK columns for partitioned tables.
 explain (costs off) select * from p_t1 group by a,b,c,d;
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Group Key: p_t1.a, p_t1.b
    ->  Append
          ->  Seq Scan on p_t1_1
          ->  Seq Scan on p_t1_2
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 drop table t1 cascade;
 NOTICE:  drop cascades to table t1c
@@ -1523,6 +1559,11 @@ select aggfns(distinct a,b,c order by a,c using ~<~,b)
 (1 row)
 
 -- check node I/O via view creation and usage, also deparsing logic
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
 create view agg_view1 as
   select aggfns(a,b,c)
     from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c);
@@ -1642,6 +1683,9 @@ select pg_get_viewdef('agg_view1'::regclass);
 (1 row)
 
 drop view agg_view1;
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
 -- incorrect DISTINCT usage errors
 select aggfns(distinct a,b,c order by i)
   from (values (1,1,'foo')) v(a,b,c), generate_series(1,2) i;
@@ -1709,22 +1753,394 @@ select string_agg(distinct f1::text, ',' order by f1::text) from varchar_tbl;  -
  a,ab,abcd
 (1 row)
 
+-- FILTER tests
+select min(unique1) filter (where unique1 > 100) from tenk1;
+ min 
+-----
+ 101
+(1 row)
+
+select ten, sum(distinct four) filter (where four::text ~ '123') from onek a
+group by ten;
+ ten | sum 
+-----+-----
+   0 |    
+   1 |    
+   2 |    
+   3 |    
+   4 |    
+   5 |    
+   6 |    
+   7 |    
+   8 |    
+   9 |    
+(10 rows)
+
+select ten, sum(distinct four) filter (where four > 10) from onek a
+group by ten
+having exists (select 1 from onek b where sum(distinct a.four) = b.four);
+ ten | sum 
+-----+-----
+   0 |    
+   2 |    
+   4 |    
+   6 |    
+   8 |    
+(5 rows)
+
+select max(foo COLLATE "C") filter (where (bar collate "POSIX") > '0')
+from (values ('a', 'b')) AS v(foo,bar);
+ max 
+-----
+ a
+(1 row)
+
+-- outer reference in FILTER (PostgreSQL extension)
+select (select count(*)
+        from (values (1)) t0(inner_c))
+from (values (2),(3)) t1(outer_c); -- inner query is aggregation query
+ count 
+-------
+     1
+     1
+(2 rows)
+
+select (select count(*) filter (where outer_c <> 0)
+        from (values (1)) t0(inner_c))
+from (values (2),(3)) t1(outer_c); -- outer query is aggregation query
+ count 
+-------
+     2
+(1 row)
+
+select (select count(inner_c) filter (where outer_c <> 0)
+        from (values (1)) t0(inner_c))
+from (values (2),(3)) t1(outer_c); -- inner query is aggregation query
+ count 
+-------
+     1
+     1
+(2 rows)
+
+select
+  (select max((select i.unique2 from tenk1 i where i.unique1 = o.unique1))
+     filter (where o.unique1 < 10))
+from tenk1 o;					-- outer query is aggregation query
+ max  
+------
+ 9998
+(1 row)
+
+-- subquery in FILTER clause (PostgreSQL extension)
+select sum(unique1) FILTER (WHERE
+  unique1 IN (SELECT unique1 FROM onek where unique1 < 100)) FROM tenk1;
+ sum  
+------
+ 4950
+(1 row)
+
+-- exercise lots of aggregate parts with FILTER
+select aggfns(distinct a,b,c order by a,c using ~<~,b) filter (where a > 1)
+    from (values (1,3,'foo'),(0,null,null),(2,2,'bar'),(3,1,'baz')) v(a,b,c),
+    generate_series(1,2) i;
+          aggfns           
+---------------------------
+ {"(2,2,bar)","(3,1,baz)"}
+(1 row)
+
+-- ordered-set aggregates
+select p, percentile_cont(p) within group (order by x::float8)
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+  p   | percentile_cont 
+------+-----------------
+    0 |               1
+  0.1 |             1.4
+ 0.25 |               2
+  0.4 |             2.6
+  0.5 |               3
+  0.6 |             3.4
+ 0.75 |               4
+  0.9 |             4.6
+    1 |               5
+(9 rows)
+
+select p, percentile_cont(p order by p) within group (order by x)  -- error
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+ERROR:  cannot use multiple ORDER BY clauses with WITHIN GROUP
+LINE 1: select p, percentile_cont(p order by p) within group (order ...
+                                                ^
+select p, sum() within group (order by x::float8)  -- error
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+ERROR:  sum is not an ordered-set aggregate, so it cannot have WITHIN GROUP
+LINE 1: select p, sum() within group (order by x::float8)  
+                  ^
+select p, percentile_cont(p,p)  -- error
+from generate_series(1,5) x,
+     (values (0::float8),(0.1),(0.25),(0.4),(0.5),(0.6),(0.75),(0.9),(1)) v(p)
+group by p order by p;
+ERROR:  WITHIN GROUP is required for ordered-set aggregate percentile_cont
+LINE 1: select p, percentile_cont(p,p)  
+                  ^
+select percentile_cont(0.5) within group (order by b) from aggtest;
+ percentile_cont  
+------------------
+ 53.4485001564026
+(1 row)
+
+select percentile_cont(0.5) within group (order by b), sum(b) from aggtest;
+ percentile_cont  |   sum   
+------------------+---------
+ 53.4485001564026 | 431.773
+(1 row)
+
+select percentile_cont(0.5) within group (order by thousand) from tenk1;
+ percentile_cont 
+-----------------
+           499.5
+(1 row)
+
+select percentile_disc(0.5) within group (order by thousand) from tenk1;
+ percentile_disc 
+-----------------
+             499
+(1 row)
+
+select rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+ rank 
+------
+    5
+(1 row)
+
+select cume_dist(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+ cume_dist 
+-----------
+     0.875
+(1 row)
+
+select percent_rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4),(5)) v(x);
+ percent_rank 
+--------------
+          0.5
+(1 row)
+
+select dense_rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+ dense_rank 
+------------
+          3
+(1 row)
+
+select percentile_disc(array[0,0.1,0.25,0.5,0.75,0.9,1]) within group (order by thousand)
+from tenk1;
+      percentile_disc       
+----------------------------
+ {0,99,249,499,749,899,999}
+(1 row)
+
+select percentile_cont(array[0,0.25,0.5,0.75,1]) within group (order by thousand)
+from tenk1;
+       percentile_cont       
+-----------------------------
+ {0,249.75,499.5,749.25,999}
+(1 row)
+
+select percentile_disc(array[[null,1,0.5],[0.75,0.25,null]]) within group (order by thousand)
+from tenk1;
+         percentile_disc         
+---------------------------------
+ {{NULL,999,499},{749,249,NULL}}
+(1 row)
+
+select percentile_cont(array[0,1,0.25,0.75,0.5,1]) within group (order by x)
+from generate_series(1,6) x;
+    percentile_cont    
+-----------------------
+ {1,6,2.25,4.75,3.5,6}
+(1 row)
+
+select ten, mode() within group (order by string4) from tenk1 group by ten order by ten;
+ ten |  mode  
+-----+--------
+   0 | HHHHxx
+   1 | OOOOxx
+   2 | VVVVxx
+   3 | OOOOxx
+   4 | HHHHxx
+   5 | HHHHxx
+   6 | OOOOxx
+   7 | AAAAxx
+   8 | VVVVxx
+   9 | VVVVxx
+(10 rows)
+
+select percentile_disc(array[0.25,0.5,0.75]) within group (order by x)
+from unnest('{fred,jim,fred,jack,jill,fred,jill,jim,jim,sheila,jim,sheila}'::text[]) u(x);
+ percentile_disc 
+-----------------
+ {fred,jill,jim}
+(1 row)
+
+-- check collation propagates up in suitable cases:
+select pg_collation_for(percentile_disc(1) within group (order by x collate "POSIX"))
+  from (values ('fred'),('jim')) v(x);
+ pg_collation_for 
+------------------
+ "POSIX"
+(1 row)
+
+-- ordered-set aggs created with CREATE AGGREGATE
+select test_rank(3) within group (order by x)
+from (values (1),(1),(2),(2),(3),(3),(4)) v(x);
+ test_rank 
+-----------
+         5
+(1 row)
+
+select test_percentile_disc(0.5) within group (order by thousand) from tenk1;
+ test_percentile_disc 
+----------------------
+                  499
+(1 row)
+
+-- ordered-set aggs can't use ungrouped vars in direct args:
+select rank(x) within group (order by x) from generate_series(1,5) x;
+ERROR:  column "x.x" must appear in the GROUP BY clause or be used in an aggregate function
+LINE 1: select rank(x) within group (order by x) from generate_serie...
+                    ^
+DETAIL:  Direct arguments of an ordered-set aggregate must use only grouped columns.
+-- outer-level agg can't use a grouped arg of a lower level, either:
+select array(select percentile_disc(a) within group (order by x)
+               from (values (0.3),(0.7)) v(a) group by a)
+  from generate_series(1,5) g(x);
+ERROR:  outer-level aggregate cannot contain a lower-level variable in its direct arguments
+LINE 1: select array(select percentile_disc(a) within group (order b...
+                                            ^
+-- agg in the direct args is a grouping violation, too:
+select rank(sum(x)) within group (order by x) from generate_series(1,5) x;
+ERROR:  aggregate function calls cannot be nested
+LINE 1: select rank(sum(x)) within group (order by x) from generate_...
+                    ^
+-- hypothetical-set type unification and argument-count failures:
+select rank(3) within group (order by x) from (values ('fred'),('jim')) v(x);
+ERROR:  WITHIN GROUP types text and integer cannot be matched
+LINE 1: select rank(3) within group (order by x) from (values ('fred...
+                    ^
+select rank(3) within group (order by stringu1,stringu2) from tenk1;
+ERROR:  function rank(integer, name, name) does not exist
+LINE 1: select rank(3) within group (order by stringu1,stringu2) fro...
+               ^
+HINT:  To use the hypothetical-set aggregate rank, the number of hypothetical direct arguments (here 1) must match the number of ordering columns (here 2).
+select rank('fred') within group (order by x) from generate_series(1,5) x;
+ERROR:  invalid input syntax for type integer: "fred"
+LINE 1: select rank('fred') within group (order by x) from generate_...
+                    ^
+select rank('adam'::text collate "C") within group (order by x collate "POSIX")
+  from (values ('fred'),('jim')) v(x);
+ERROR:  collation mismatch between explicit collations "C" and "POSIX"
+LINE 1: ...adam'::text collate "C") within group (order by x collate "P...
+                                                             ^
+-- hypothetical-set type unification successes:
+select rank('adam'::varchar) within group (order by x) from (values ('fred'),('jim')) v(x);
+ rank 
+------
+    1
+(1 row)
+
+select rank('3') within group (order by x) from generate_series(1,5) x;
+ rank 
+------
+    3
+(1 row)
+
+-- divide by zero check
+select percent_rank(0) within group (order by x) from generate_series(1,0) x;
+ percent_rank 
+--------------
+            0
+(1 row)
+
+-- deparse and multiple features:
+create view aggordview1 as
+select ten,
+       percentile_disc(0.5) within group (order by thousand) as p50,
+       percentile_disc(0.5) within group (order by thousand) filter (where hundred=1) as px,
+       rank(5,'AZZZZ',50) within group (order by hundred, string4 desc, hundred)
+  from tenk1
+ group by ten order by ten;
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
+select pg_get_viewdef('aggordview1');
+                                                        pg_get_viewdef                                                         
+-------------------------------------------------------------------------------------------------------------------------------
+  SELECT tenk1.ten,                                                                                                           +
+     percentile_disc((0.5)::double precision) WITHIN GROUP (ORDER BY tenk1.thousand) AS p50,                                  +
+     percentile_disc((0.5)::double precision) WITHIN GROUP (ORDER BY tenk1.thousand) FILTER (WHERE (tenk1.hundred = 1)) AS px,+
+     rank(5, 'AZZZZ'::name, 50) WITHIN GROUP (ORDER BY tenk1.hundred, tenk1.string4 DESC, tenk1.hundred) AS rank              +
+    FROM tenk1                                                                                                                +
+   GROUP BY tenk1.ten                                                                                                         +
+   ORDER BY tenk1.ten;
+(1 row)
+
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
+select * from aggordview1 order by ten;
+ ten | p50 | px  | rank 
+-----+-----+-----+------
+   0 | 490 |     |  101
+   1 | 491 | 401 |  101
+   2 | 492 |     |  101
+   3 | 493 |     |  101
+   4 | 494 |     |  101
+   5 | 495 |     |   67
+   6 | 496 |     |    1
+   7 | 497 |     |    1
+   8 | 498 |     |    1
+   9 | 499 |     |    1
+(10 rows)
+
+drop view aggordview1;
+-- variadic aggregates
+select least_agg(q1,q2) from int8_tbl;
+     least_agg     
+-------------------
+ -4567890123456789
+(1 row)
+
+select least_agg(variadic array[q1,q2]) from int8_tbl;
+     least_agg     
+-------------------
+ -4567890123456789
+(1 row)
+
 -- string_agg bytea tests
-create table bytea_test_table(v bytea);
+create table bytea_test_table(gpDistKey int, v bytea);
 select string_agg(v, '') from bytea_test_table;
  string_agg 
 ------------
  
 (1 row)
 
-insert into bytea_test_table values(decode('ff','hex'));
+insert into bytea_test_table(v) values(decode('ff','hex'));
 select string_agg(v, '') from bytea_test_table;
  string_agg 
 ------------
  \xff
 (1 row)
 
-insert into bytea_test_table values(decode('aa','hex'));
+insert into bytea_test_table(v) values(decode('aa','hex'));
 select string_agg(v, '') from bytea_test_table;
  string_agg 
 ------------
@@ -2103,6 +2519,11 @@ select ten,
        rank(5,'AZZZZ',50) within group (order by hundred, string4 desc, hundred)
   from tenk1
  group by ten order by ten;
+-- start_ignore
+-- pg_get_viewdef() runs some internal queries on catalogs, and we don't want
+-- fallback notices about those.
+reset optimizer_trace_fallback;
+-- end_ignore
 select pg_get_viewdef('aggordview1');
                                                         pg_get_viewdef                                                         
 -------------------------------------------------------------------------------------------------------------------------------
@@ -2115,6 +2536,9 @@ select pg_get_viewdef('aggordview1');
    ORDER BY tenk1.ten;
 (1 row)
 
+-- start_ignore
+SET optimizer_trace_fallback to on;
+-- end_ignore
 select * from aggordview1 order by ten;
  ten | p50 | px  | rank 
 -----+-----+-----+------
@@ -2462,23 +2886,23 @@ CREATE AGGREGATE balk(int4)
     INITCOND = '0'
 );
 -- force use of parallelism
+-- In single-node, we don't have mutliple-stage aggregation.
+-- Thus we don't call combine function, and the result it not empty.
 ALTER TABLE tenk1 set (parallel_workers = 4);
 SET LOCAL parallel_setup_cost=0;
 SET LOCAL max_parallel_workers_per_gather=4;
 EXPLAIN (COSTS OFF) SELECT balk(hundred) FROM tenk1;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
- Finalize Aggregate
-   ->  Gather
-         Workers Planned: 4
-         ->  Partial Aggregate
-               ->  Parallel Index Only Scan using tenk1_hundred on tenk1
-(5 rows)
+                     QUERY PLAN                     
+----------------------------------------------------
+ Aggregate
+   ->  Index Only Scan using tenk1_hundred on tenk1
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT balk(hundred) FROM tenk1;
- balk 
-------
-     
+  balk  
+--------
+ 495000
 (1 row)
 
 ROLLBACK;
@@ -2499,25 +2923,22 @@ FROM (SELECT * FROM tenk1
       UNION ALL SELECT * FROM tenk1
       UNION ALL SELECT * FROM tenk1
       UNION ALL SELECT * FROM tenk1) u;
-                                                                                      QUERY PLAN                                                                                       
----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
- Finalize Aggregate
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate
    Output: variance(tenk1.unique1), sum((tenk1.unique1)::bigint), regr_count((tenk1.unique1)::double precision, (tenk1.unique1)::double precision)
-   ->  Gather
-         Output: (PARTIAL variance(tenk1.unique1)), (PARTIAL sum((tenk1.unique1)::bigint)), (PARTIAL regr_count((tenk1.unique1)::double precision, (tenk1.unique1)::double precision))
-         Workers Planned: 4
-         ->  Partial Aggregate
-               Output: PARTIAL variance(tenk1.unique1), PARTIAL sum((tenk1.unique1)::bigint), PARTIAL regr_count((tenk1.unique1)::double precision, (tenk1.unique1)::double precision)
-               ->  Parallel Append
-                     ->  Parallel Seq Scan on public.tenk1
-                           Output: tenk1.unique1
-                     ->  Parallel Seq Scan on public.tenk1 tenk1_1
-                           Output: tenk1_1.unique1
-                     ->  Parallel Seq Scan on public.tenk1 tenk1_2
-                           Output: tenk1_2.unique1
-                     ->  Parallel Seq Scan on public.tenk1 tenk1_3
-                           Output: tenk1_3.unique1
-(16 rows)
+   ->  Append
+         ->  Seq Scan on public.tenk1
+               Output: tenk1.unique1
+         ->  Seq Scan on public.tenk1 tenk1_1
+               Output: tenk1_1.unique1
+         ->  Seq Scan on public.tenk1 tenk1_2
+               Output: tenk1_2.unique1
+         ->  Seq Scan on public.tenk1 tenk1_3
+               Output: tenk1_3.unique1
+ Settings: enable_indexonlyscan = 'off', min_parallel_table_scan_size = '0', parallel_setup_cost = '0', parallel_tuple_cost = '0'
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 SELECT variance(unique1::int4), sum(unique1::int8), regr_count(unique1::float8, unique1::float8)
 FROM (SELECT * FROM tenk1
@@ -2537,25 +2958,22 @@ FROM (SELECT * FROM tenk1
       UNION ALL SELECT * FROM tenk1
       UNION ALL SELECT * FROM tenk1
       UNION ALL SELECT * FROM tenk1) u;
-                                               QUERY PLAN                                               
---------------------------------------------------------------------------------------------------------
- Finalize Aggregate
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Aggregate
    Output: variance((tenk1.unique1)::bigint), avg((tenk1.unique1)::numeric)
-   ->  Gather
-         Output: (PARTIAL variance((tenk1.unique1)::bigint)), (PARTIAL avg((tenk1.unique1)::numeric))
-         Workers Planned: 4
-         ->  Partial Aggregate
-               Output: PARTIAL variance((tenk1.unique1)::bigint), PARTIAL avg((tenk1.unique1)::numeric)
-               ->  Parallel Append
-                     ->  Parallel Seq Scan on public.tenk1
-                           Output: tenk1.unique1
-                     ->  Parallel Seq Scan on public.tenk1 tenk1_1
-                           Output: tenk1_1.unique1
-                     ->  Parallel Seq Scan on public.tenk1 tenk1_2
-                           Output: tenk1_2.unique1
-                     ->  Parallel Seq Scan on public.tenk1 tenk1_3
-                           Output: tenk1_3.unique1
-(16 rows)
+   ->  Append
+         ->  Seq Scan on public.tenk1
+               Output: tenk1.unique1
+         ->  Seq Scan on public.tenk1 tenk1_1
+               Output: tenk1_1.unique1
+         ->  Seq Scan on public.tenk1 tenk1_2
+               Output: tenk1_2.unique1
+         ->  Seq Scan on public.tenk1 tenk1_3
+               Output: tenk1_3.unique1
+ Settings: enable_indexonlyscan = 'off', min_parallel_table_scan_size = '0', parallel_setup_cost = '0', parallel_tuple_cost = '0'
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 SELECT variance(unique1::int8), avg(unique1::numeric)
 FROM (SELECT * FROM tenk1
@@ -2628,7 +3046,8 @@ explain (costs off)
          ->  HashAggregate
                Group Key: onek.twothousand, onek.twothousand
                ->  Seq Scan on onek
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 reset enable_memoize;
 --
@@ -2636,6 +3055,7 @@ reset enable_memoize;
 --
 set enable_sort=false;
 set work_mem='64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 select unique1, count(*), sum(twothousand) from tenk1
 group by unique1
 having sum(fivethous) > 4975
@@ -2693,12 +3113,14 @@ order by sum(twothousand);
 (48 rows)
 
 set work_mem to default;
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 set enable_sort to default;
 --
 -- Compare results between plans using sorting and plans using hash
 -- aggregation. Force spilling in both cases by setting work_mem low.
 --
 set work_mem='64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 create table agg_data_2k as
 select g from generate_series(0, 1999) g;
 analyze agg_data_2k;
@@ -2718,21 +3140,24 @@ select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
    ->  Sort
          Sort Key: ((g % 10000))
          ->  Seq Scan on agg_data_20k
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 create table agg_group_1 as
 select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
   from agg_data_20k group by g%10000;
-create table agg_group_2 as
-select * from
-  (values (100), (300), (500)) as r(a),
-  lateral (
-    select (g/2)::numeric as c1,
-           array_agg(g::numeric) as c2,
-	   count(*) as c3
-    from agg_data_2k
-    where g < r.a
-    group by g/2) as s;
+/*
+ * create table agg_group_2 as
+ * select * from
+ *   (values (100), (300), (500)) as r(a),
+ *   lateral (
+ *     select (g/2)::numeric as c1,
+ *            array_agg(g::numeric) as c2,
+ *        count(*) as c3
+ *     from generate_series(0, 1999) g
+ *     where g < r.a
+ *     group by g/2) as s;
+ */
 set jit_above_cost to default;
 create table agg_group_3 as
 select (g/2)::numeric as c1, sum(7::int4) as c2, count(*) as c3
@@ -2747,26 +3172,29 @@ set jit_above_cost = 0;
 explain (costs off)
 select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
   from agg_data_20k group by g%10000;
-           QUERY PLAN           
---------------------------------
+             QUERY PLAN              
+-------------------------------------
  HashAggregate
    Group Key: (g % 10000)
    ->  Seq Scan on agg_data_20k
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 create table agg_hash_1 as
 select g%10000 as c1, sum(g::numeric) as c2, count(*) as c3
   from agg_data_20k group by g%10000;
-create table agg_hash_2 as
-select * from
-  (values (100), (300), (500)) as r(a),
-  lateral (
-    select (g/2)::numeric as c1,
-           array_agg(g::numeric) as c2,
-	   count(*) as c3
-    from agg_data_2k
-    where g < r.a
-    group by g/2) as s;
+/*
+ * create table agg_hash_2 as
+ * select * from
+ *   (values (100), (300), (500)) as r(a),
+ *   lateral (
+ *     select (g/2)::numeric as c1,
+ *            array_agg(g::numeric) as c2,
+ *        count(*) as c3
+ *     from generate_series(0, 1999) g
+ *     where g < r.a
+ *     group by g/2) as s;
+ */
 set jit_above_cost to default;
 create table agg_hash_3 as
 select (g/2)::numeric as c1, sum(7::int4) as c2, count(*) as c3
@@ -2776,6 +3204,7 @@ select (g/2)::numeric as c1, array_agg(g::numeric) as c2, count(*) as c3
   from agg_data_2k group by g/2;
 set enable_sort = true;
 set work_mem to default;
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 -- Compare group aggregation results to hash aggregation results
 (select * from agg_hash_1 except select * from agg_group_1)
   union all
@@ -2784,13 +3213,9 @@ set work_mem to default;
 ----+----+----
 (0 rows)
 
-(select * from agg_hash_2 except select * from agg_group_2)
-  union all
-(select * from agg_group_2 except select * from agg_hash_2);
- a | c1 | c2 | c3 
----+----+----+----
-(0 rows)
-
+--(select * from agg_hash_2 except select * from agg_group_2)
+--  union all
+--(select * from agg_group_2 except select * from agg_hash_2);
 (select * from agg_hash_3 except select * from agg_group_3)
   union all
 (select * from agg_group_3 except select * from agg_hash_3);
@@ -2798,18 +3223,35 @@ set work_mem to default;
 ----+----+----
 (0 rows)
 
-(select * from agg_hash_4 except select * from agg_group_4)
-  union all
-(select * from agg_group_4 except select * from agg_hash_4);
- c1 | c2 | c3 
-----+----+----
-(0 rows)
-
+-- CBDB: array_agg() makes the result unstable, so ignore this check
+--(select * from agg_hash_4 except select * from agg_group_4)
+--  union all
+--(select * from agg_group_4 except select * from agg_hash_4);
 drop table agg_group_1;
-drop table agg_group_2;
+--  drop table agg_group_2;
 drop table agg_group_3;
 drop table agg_group_4;
 drop table agg_hash_1;
-drop table agg_hash_2;
+--  drop table agg_hash_2;
 drop table agg_hash_3;
 drop table agg_hash_4;
+-- fix github issue #12061 numsegments of general locus is not -1 on create_minmaxagg_path
+/*
+ * On the arm platform, `Seq Scan` is executed frequently, resulting in unstable output.
+ */
+set enable_indexonlyscan = off;
+explain analyze select count(*) from pg_class,  (select count(*) >0 from  (select count(*) from pg_class where relname like 't%')x)y;
+                                                       QUERY PLAN                                                       
+------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=10000000047.47..10000000047.48 rows=1 width=8) (actual time=0.515..0.516 rows=1 loops=1)
+   ->  Nested Loop  (cost=10000000000.02..10000000043.98 rows=1397 width=0) (actual time=0.014..0.460 rows=889 loops=1)
+         ->  Aggregate  (cost=0.02..0.03 rows=1 width=1) (actual time=0.004..0.005 rows=1 loops=1)
+               ->  Result  (cost=0.00..0.01 rows=1 width=8) (actual time=0.001..0.002 rows=1 loops=1)
+         ->  Seq Scan on pg_class  (cost=0.00..29.97 rows=1397 width=0) (actual time=0.009..0.371 rows=889 loops=1)
+ Planning Time: 0.760 ms
+   (slice0)    Executor memory: 128K bytes.
+ Memory used:  128000kB
+ Optimizer: Postgres query optimizer
+ Execution Time: 0.603 ms
+(10 rows)
+

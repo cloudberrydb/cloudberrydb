@@ -377,6 +377,7 @@ BEGIN TRANSACTION;
 CREATE ROLE regress_alter_generic_user6;
 CREATE SCHEMA alt_nsp6;
 REVOKE ALL ON SCHEMA alt_nsp6 FROM regress_alter_generic_user6;
+NOTICE:  no privileges could be revoked
 CREATE OPERATOR FAMILY alt_nsp6.alt_opf6 USING btree;
 SET ROLE regress_alter_generic_user6;
 ALTER OPERATOR FAMILY alt_nsp6.alt_opf6 USING btree ADD OPERATOR 1 < (int4, int2);

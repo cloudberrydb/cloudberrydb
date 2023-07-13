@@ -655,7 +655,8 @@ select first_value(max(x)) over (), y
    ->  HashAggregate
          Group Key: (tenk1.ten + tenk1.four)
          ->  Seq Scan on tenk1
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- test non-default frame specifications
 SELECT four, ten,
@@ -3003,14 +3004,17 @@ explain (costs off)
 select f1, sum(f1) over (partition by f1 order by f2
                          range between 1 preceding and 1 following)
 from t1 where f1 = f2;
-           QUERY PLAN            
----------------------------------
+             QUERY PLAN              
+-------------------------------------
  WindowAgg
+   Partition By: f1
+   Order By: f2
    ->  Sort
          Sort Key: f1
          ->  Seq Scan on t1
                Filter: (f1 = f2)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select f1, sum(f1) over (partition by f1 order by f2
                          range between 1 preceding and 1 following)
@@ -3049,14 +3053,17 @@ explain (costs off)
 select f1, sum(f1) over (partition by f1 order by f2
                          groups between 1 preceding and 1 following)
 from t1 where f1 = f2;
-           QUERY PLAN            
----------------------------------
+             QUERY PLAN              
+-------------------------------------
  WindowAgg
+   Partition By: f1
+   Order By: f2
    ->  Sort
          Sort Key: f1
          ->  Seq Scan on t1
                Filter: (f1 = f2)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select f1, sum(f1) over (partition by f1 order by f2
                          groups between 1 preceding and 1 following)
@@ -3130,10 +3137,18 @@ SELECT rank() OVER (PARTITION BY four, ORDER BY ten) FROM tenk1;
 ERROR:  syntax error at or near "ORDER"
 LINE 1: SELECT rank() OVER (PARTITION BY four, ORDER BY ten) FROM te...
                                                ^
-SELECT count() OVER () FROM tenk1;
-ERROR:  count(*) must be used to call a parameterless aggregate function
-LINE 1: SELECT count() OVER () FROM tenk1;
-               ^
+-- Not allowed in PostgreSQL, but is allowed in GPDB for backwards-compatibility.
+-- Added LIMIT to reduce the size of the output.
+SELECT count() OVER () FROM tenk1 limit 5;
+ count 
+-------
+ 10000
+ 10000
+ 10000
+ 10000
+ 10000
+(5 rows)
+
 SELECT generate_series(1, 100) OVER () FROM empsalary;
 ERROR:  OVER specified, but generate_series is not a window function nor an aggregate function
 LINE 1: SELECT generate_series(1, 100) OVER () FROM empsalary;
@@ -3164,16 +3179,19 @@ SELECT * FROM
           min(salary) OVER (PARTITION BY depname || 'A', depname) depminsalary
    FROM empsalary) emp
 WHERE depname = 'sales';
-                                QUERY PLAN                                
---------------------------------------------------------------------------
+                                        QUERY PLAN                                         
+-------------------------------------------------------------------------------------------
  Subquery Scan on emp
    ->  WindowAgg
+         Partition By: empsalary.depname
          ->  WindowAgg
+               Partition By: (((empsalary.depname)::text || 'A'::text)), empsalary.depname
                ->  Sort
                      Sort Key: (((empsalary.depname)::text || 'A'::text))
                      ->  Seq Scan on empsalary
                            Filter: ((depname)::text = 'sales'::text)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- pushdown is unsafe because there's a PARTITION BY clause without depname:
 EXPLAIN (COSTS OFF)
@@ -3188,13 +3206,16 @@ WHERE depname = 'sales';
  Subquery Scan on emp
    Filter: ((emp.depname)::text = 'sales'::text)
    ->  WindowAgg
+         Partition By: empsalary.enroll_date
          ->  Sort
                Sort Key: empsalary.enroll_date
                ->  WindowAgg
+                     Partition By: empsalary.depname
                      ->  Sort
                            Sort Key: empsalary.depname
                            ->  Seq Scan on empsalary
-(9 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 -- Test Sort node collapsing
 EXPLAIN (COSTS OFF)
@@ -3208,12 +3229,17 @@ WHERE depname = 'sales';
 ----------------------------------------------------------------------
  Subquery Scan on emp
    ->  WindowAgg
+         Partition By: empsalary.depname
+         Order By: empsalary.empno
          ->  WindowAgg
+               Partition By: empsalary.depname, empsalary.empno
+               Order By: empsalary.enroll_date
                ->  Sort
                      Sort Key: empsalary.empno, empsalary.enroll_date
                      ->  Seq Scan on empsalary
                            Filter: ((depname)::text = 'sales'::text)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 -- Test Sort node reordering
 EXPLAIN (COSTS OFF)
@@ -3224,11 +3250,16 @@ FROM empsalary;
                          QUERY PLAN                          
 -------------------------------------------------------------
  WindowAgg
+   Partition By: depname
+   Order By: salary, enroll_date
    ->  WindowAgg
+         Partition By: depname
+         Order By: salary, enroll_date, empno
          ->  Sort
                Sort Key: depname, salary, enroll_date, empno
                ->  Seq Scan on empsalary
-(5 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- Test incremental sorting
 EXPLAIN (COSTS OFF)
@@ -3246,14 +3277,19 @@ WHERE first_emp = 1 OR last_emp = 1;
  Subquery Scan on emp
    Filter: ((emp.first_emp = 1) OR (emp.last_emp = 1))
    ->  WindowAgg
+         Partition By: empsalary.depname
+         Order By: empsalary.enroll_date
          ->  Incremental Sort
                Sort Key: empsalary.depname, empsalary.enroll_date
                Presorted Key: empsalary.depname
                ->  WindowAgg
+                     Partition By: empsalary.depname
+                     Order By: empsalary.enroll_date
                      ->  Sort
                            Sort Key: empsalary.depname, empsalary.enroll_date DESC
                            ->  Seq Scan on empsalary
-(10 rows)
+ Optimizer: Postgres query optimizer
+(15 rows)
 
 SELECT * FROM
   (SELECT depname,
@@ -3510,10 +3546,117 @@ CREATE AGGREGATE sum_int_randomrestart (int4)
 	msfunc = int4pl,
 	minvfunc = sum_int_randrestart_minvfunc
 );
+-- In PostgreSQL, the 'vs' CTE is constructed using random() and
+-- generate_series(), but GPDB inlines CTEs even when they contain volatile
+-- expressions, causing incorrect results. That's a bug in GPDB, of course,
+-- but for the purposes of this test, we work around that by using a
+-- non-volatile WITH clause. The list of values below was created by running
+-- the original subquery using random() once, and copying the result here.
+--
+-- See https://github.com/greenplum-db/gpdb/issues/1349
 WITH
-vs AS (
-	SELECT i, (random() * 100)::int4 AS v
-	FROM generate_series(1, 100) AS i
+vs (i, v) AS (
+VALUES
+ ( 1, 18),
+ ( 2, 91),
+ ( 3, 62),
+ ( 4, 34),
+ ( 5, 12),
+ ( 6, 99),
+ ( 7,  4),
+ ( 8, 32),
+ ( 9, 75),
+ (10, 38),
+ (11,  0),
+ (12, 43),
+ (13, 95),
+ (14, 83),
+ (15, 99),
+ (16, 44),
+ (17, 27),
+ (18, 11),
+ (19, 27),
+ (20, 19),
+ (21, 71),
+ (22, 52),
+ (23, 49),
+ (24, 58),
+ (25, 35),
+ (26, 66),
+ (27, 12),
+ (28, 49),
+ (29,  9),
+ (30, 89),
+ (31,  7),
+ (32, 27),
+ (33, 80),
+ (34, 69),
+ (35, 61),
+ (36, 92),
+ (37, 68),
+ (38, 65),
+ (39, 23),
+ (40, 43),
+ (41,  3),
+ (42, 24),
+ (43, 86),
+ (44, 98),
+ (45,  6),
+ (46, 85),
+ (47, 42),
+ (48, 33),
+ (49, 96),
+ (50, 68),
+ (51, 52),
+ (52, 67),
+ (53, 20),
+ (54,  1),
+ (55, 25),
+ (56, 55),
+ (57, 67),
+ (58, 37),
+ (59,  4),
+ (60, 76),
+ (61, 26),
+ (62, 11),
+ (63,  3),
+ (64,  6),
+ (65, 80),
+ (66, 64),
+ (67, 98),
+ (68, 48),
+ (69, 29),
+ (70, 21),
+ (71, 91),
+ (72, 31),
+ (73, 45),
+ (74, 77),
+ (75, 29),
+ (76, 51),
+ (77, 63),
+ (78, 71),
+ (79, 84),
+ (80, 59),
+ (81, 39),
+ (82, 36),
+ (83, 26),
+ (84, 60),
+ (85, 37),
+ (86, 51),
+ (87, 15),
+ (88,  4),
+ (89, 88),
+ (90, 19),
+ (91, 80),
+ (92, 14),
+ (93, 30),
+ (94, 83),
+ (95, 20),
+ (96, 10),
+ (97, 47),
+ (98, 18),
+ (99, 58),
+(100, 75)
 ),
 sum_following AS (
 	SELECT i, SUM(v) OVER
@@ -4048,10 +4191,12 @@ EXPLAIN (costs off) SELECT * FROM pg_temp.f(2);
 ------------------------------------------------------
  Subquery Scan on f
    ->  WindowAgg
+         Order By: s.s
          ->  Sort
                Sort Key: s.s
                ->  Function Scan on generate_series s
-(5 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 SELECT * FROM pg_temp.f(2);
     f    

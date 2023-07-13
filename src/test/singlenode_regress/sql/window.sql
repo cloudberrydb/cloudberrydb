@@ -886,7 +886,9 @@ SELECT count(*) OVER w FROM tenk1 WINDOW w AS (ORDER BY unique1), w AS (ORDER BY
 
 SELECT rank() OVER (PARTITION BY four, ORDER BY ten) FROM tenk1;
 
-SELECT count() OVER () FROM tenk1;
+-- Not allowed in PostgreSQL, but is allowed in GPDB for backwards-compatibility.
+-- Added LIMIT to reduce the size of the output.
+SELECT count() OVER () FROM tenk1 limit 5;
 
 SELECT generate_series(1, 100) OVER () FROM empsalary;
 
@@ -1145,10 +1147,117 @@ CREATE AGGREGATE sum_int_randomrestart (int4)
 	minvfunc = sum_int_randrestart_minvfunc
 );
 
+-- In PostgreSQL, the 'vs' CTE is constructed using random() and
+-- generate_series(), but GPDB inlines CTEs even when they contain volatile
+-- expressions, causing incorrect results. That's a bug in GPDB, of course,
+-- but for the purposes of this test, we work around that by using a
+-- non-volatile WITH clause. The list of values below was created by running
+-- the original subquery using random() once, and copying the result here.
+--
+-- See https://github.com/greenplum-db/gpdb/issues/1349
 WITH
-vs AS (
-	SELECT i, (random() * 100)::int4 AS v
-	FROM generate_series(1, 100) AS i
+vs (i, v) AS (
+VALUES
+ ( 1, 18),
+ ( 2, 91),
+ ( 3, 62),
+ ( 4, 34),
+ ( 5, 12),
+ ( 6, 99),
+ ( 7,  4),
+ ( 8, 32),
+ ( 9, 75),
+ (10, 38),
+ (11,  0),
+ (12, 43),
+ (13, 95),
+ (14, 83),
+ (15, 99),
+ (16, 44),
+ (17, 27),
+ (18, 11),
+ (19, 27),
+ (20, 19),
+ (21, 71),
+ (22, 52),
+ (23, 49),
+ (24, 58),
+ (25, 35),
+ (26, 66),
+ (27, 12),
+ (28, 49),
+ (29,  9),
+ (30, 89),
+ (31,  7),
+ (32, 27),
+ (33, 80),
+ (34, 69),
+ (35, 61),
+ (36, 92),
+ (37, 68),
+ (38, 65),
+ (39, 23),
+ (40, 43),
+ (41,  3),
+ (42, 24),
+ (43, 86),
+ (44, 98),
+ (45,  6),
+ (46, 85),
+ (47, 42),
+ (48, 33),
+ (49, 96),
+ (50, 68),
+ (51, 52),
+ (52, 67),
+ (53, 20),
+ (54,  1),
+ (55, 25),
+ (56, 55),
+ (57, 67),
+ (58, 37),
+ (59,  4),
+ (60, 76),
+ (61, 26),
+ (62, 11),
+ (63,  3),
+ (64,  6),
+ (65, 80),
+ (66, 64),
+ (67, 98),
+ (68, 48),
+ (69, 29),
+ (70, 21),
+ (71, 91),
+ (72, 31),
+ (73, 45),
+ (74, 77),
+ (75, 29),
+ (76, 51),
+ (77, 63),
+ (78, 71),
+ (79, 84),
+ (80, 59),
+ (81, 39),
+ (82, 36),
+ (83, 26),
+ (84, 60),
+ (85, 37),
+ (86, 51),
+ (87, 15),
+ (88,  4),
+ (89, 88),
+ (90, 19),
+ (91, 80),
+ (92, 14),
+ (93, 30),
+ (94, 83),
+ (95, 20),
+ (96, 10),
+ (97, 47),
+ (98, 18),
+ (99, 58),
+(100, 75)
 ),
 sum_following AS (
 	SELECT i, SUM(v) OVER

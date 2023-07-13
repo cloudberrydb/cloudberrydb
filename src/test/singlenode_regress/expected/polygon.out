@@ -82,7 +82,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p << polygon '((300,300),(400,600),(600
          Recheck Cond: (p << '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p << '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p << polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -99,7 +100,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p &< polygon '((300,300),(400,600),(600
          Recheck Cond: (p &< '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p &< '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p &< polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -116,7 +118,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p && polygon '((300,300),(400,600),(600
          Recheck Cond: (p && '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p && '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p && polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -133,7 +136,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p &> polygon '((300,300),(400,600),(600
          Recheck Cond: (p &> '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p &> '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p &> polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -150,7 +154,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p >> polygon '((300,300),(400,600),(600
          Recheck Cond: (p >> '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p >> '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p >> polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -167,7 +172,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p <<| polygon '((300,300),(400,600),(60
          Recheck Cond: (p <<| '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p <<| '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p <<| polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -184,7 +190,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p &<| polygon '((300,300),(400,600),(60
          Recheck Cond: (p &<| '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p &<| '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p &<| polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -201,7 +208,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p |&> polygon '((300,300),(400,600),(60
          Recheck Cond: (p |&> '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p |&> '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p |&> polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -218,7 +226,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p |>> polygon '((300,300),(400,600),(60
          Recheck Cond: (p |>> '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p |>> '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p |>> polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -235,7 +244,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600
          Recheck Cond: (p <@ '((300,300),(400,600),(600,500),(700,200))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p <@ '((300,300),(400,600),(600,500),(700,200))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))';
  count 
@@ -252,7 +262,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p @> polygon '((340,550),(343,552),(341
          Recheck Cond: (p @> '((340,550),(343,552),(341,553))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p @> '((340,550),(343,552),(341,553))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p @> polygon '((340,550),(343,552),(341,553))';
  count 
@@ -269,7 +280,8 @@ SELECT count(*) FROM quad_poly_tbl WHERE p ~= polygon '((200, 300),(210, 310),(2
          Recheck Cond: (p ~= '((200,300),(210,310),(230,290))'::polygon)
          ->  Bitmap Index Scan on quad_poly_tbl_idx
                Index Cond: (p ~= '((200,300),(210,310),(230,290))'::polygon)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_poly_tbl WHERE p ~= polygon '((200, 300),(210, 310),(230, 290))';
  count 
@@ -286,10 +298,12 @@ FROM quad_poly_tbl WHERE p <@ polygon '((300,300),(400,600),(600,500),(700,200))
                                    QUERY PLAN                                    
 ---------------------------------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(123,456)'::point)
    ->  Index Scan using quad_poly_tbl_idx on quad_poly_tbl
          Index Cond: (p <@ '((300,300),(400,600),(600,500),(700,200))'::polygon)
          Order By: (p <-> '(123,456)'::point)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 CREATE TEMP TABLE quad_poly_tbl_ord_idx2 AS
 SELECT rank() OVER (ORDER BY p <-> point '123,456') n, p <-> point '123,456' dist, id

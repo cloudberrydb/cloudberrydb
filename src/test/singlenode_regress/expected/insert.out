@@ -93,7 +93,7 @@ INSERT INTO large_tuple_test (select 2, repeat('a', 1000));
 SELECT pg_size_pretty(pg_relation_size('large_tuple_test'::regclass, 'main'));
  pg_size_pretty 
 ----------------
- 8192 bytes
+ 32 kB
 (1 row)
 
 -- add small record to the second page
@@ -730,6 +730,7 @@ ERROR:  no partition of relation "key_desc" found for row
 reset role;
 revoke all on key_desc from regress_insert_other_user;
 revoke all on key_desc_1 from regress_insert_other_user;
+NOTICE:  no privileges could be revoked
 drop role regress_insert_other_user;
 drop table key_desc, key_desc_1;
 -- test minvalue/maxvalue restrictions
@@ -829,8 +830,9 @@ revoke select on brtrigpartcon from regress_coldesc_role;
 set role regress_coldesc_role;
 with result as (insert into brtrigpartcon values (1, 'hi there') returning 1)
   insert into inserttest3 (f3) select * from result;
-ERROR:  new row for relation "brtrigpartcon1" violates partition constraint
-DETAIL:  Failing row contains (a, b) = (2, hi there).
+ERROR:  writable CTE queries cannot be themselves writable
+DETAIL:  Cloudberry Database currently only support CTEs with one writable clause, called in a non-writable context.
+HINT:  Rewrite the query to only include one writable clause.
 reset role;
 -- cleanup
 revoke all on inserttest3 from regress_coldesc_role;

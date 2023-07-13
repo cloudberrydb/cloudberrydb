@@ -1,5 +1,4 @@
 -- tests for tidrangescans
-
 SET enable_seqscan TO off;
 CREATE TABLE tidrangescan(id integer, data text);
 
@@ -13,7 +12,7 @@ SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
 SELECT ctid FROM tidrangescan WHERE ctid > '(9, 0)';
 
 -- insert enough tuples to fill at least two pages
-INSERT INTO tidrangescan SELECT i,repeat('x', 100) FROM generate_series(1,200) AS s(i);
+INSERT INTO tidrangescan SELECT i,repeat('x', 100) FROM generate_series(1,2400) AS s(i);
 
 -- remove all tuples after the 10th tuple on each page.  Trying to ensure
 -- we get the same layout with all CPU architectures and smaller than standard
@@ -91,9 +90,14 @@ BEGIN;
 DECLARE c SCROLL CURSOR FOR SELECT ctid FROM tidrangescan WHERE ctid < '(1,0)';
 FETCH NEXT c;
 FETCH NEXT c;
+--start_ignore
+/* backward scan is not supported in this version of Cloudberry Database */
+/*
 FETCH PRIOR c;
 FETCH FIRST c;
 FETCH LAST c;
+*/
+--end_ignore
 COMMIT;
 
 DROP TABLE tidrangescan;

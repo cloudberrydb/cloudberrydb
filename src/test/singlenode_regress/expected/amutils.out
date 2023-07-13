@@ -137,6 +137,12 @@ select amname, prop, pg_indexam_has_property(a.oid, prop) as p
  order by amname, ord;
  amname |     prop      | p 
 --------+---------------+---
+ bitmap | can_order     | f
+ bitmap | can_unique    | t
+ bitmap | can_multi_col | t
+ bitmap | can_exclude   | t
+ bitmap | can_include   | f
+ bitmap | bogus         | 
  brin   | can_order     | f
  brin   | can_unique    | f
  brin   | can_multi_col | t
@@ -173,7 +179,7 @@ select amname, prop, pg_indexam_has_property(a.oid, prop) as p
  spgist | can_exclude   | t
  spgist | can_include   | t
  spgist | bogus         | 
-(36 rows)
+(42 rows)
 
 --
 -- additional checks for pg_index_column_has_property

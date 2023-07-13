@@ -52,80 +52,97 @@ select explain_filter('explain select * from int8_tbl i8');
                      explain_filter                      
 ---------------------------------------------------------
  Seq Scan on int8_tbl i8  (cost=N.N..N.N rows=N width=N)
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 select explain_filter('explain (analyze) select * from int8_tbl i8');
                                         explain_filter                                         
 -----------------------------------------------------------------------------------------------
  Seq Scan on int8_tbl i8  (cost=N.N..N.N rows=N width=N) (actual time=N.N..N.N rows=N loops=N)
  Planning Time: N.N ms
+   (slice0)    Executor memory: 109K bytes.
+ Optimizer: Postgres query optimizer
  Execution Time: N.N ms
-(3 rows)
+(5 rows)
 
 select explain_filter('explain (analyze, verbose) select * from int8_tbl i8');
                                             explain_filter                                            
 ------------------------------------------------------------------------------------------------------
  Seq Scan on public.int8_tbl i8  (cost=N.N..N.N rows=N width=N) (actual time=N.N..N.N rows=N loops=N)
    Output: q1, q2
+ Settings: optimizer = 'off'
  Planning Time: N.N ms
+   (slice0)    Executor memory: 109K bytes.
+ Optimizer: Postgres query optimizer
  Execution Time: N.N ms
-(4 rows)
+(7 rows)
 
 select explain_filter('explain (analyze, buffers, format text) select * from int8_tbl i8');
                                         explain_filter                                         
 -----------------------------------------------------------------------------------------------
  Seq Scan on int8_tbl i8  (cost=N.N..N.N rows=N width=N) (actual time=N.N..N.N rows=N loops=N)
  Planning Time: N.N ms
+   (slice0)    Executor memory: 109K bytes.
+ Optimizer: Postgres query optimizer
  Execution Time: N.N ms
-(3 rows)
+(5 rows)
 
 select explain_filter('explain (analyze, buffers, format json) select * from int8_tbl i8');
-           explain_filter           
-------------------------------------
- [                                 +
-   {                               +
-     "Plan": {                     +
-       "Node Type": "Seq Scan",    +
-       "Parallel Aware": false,    +
-       "Async Capable": false,     +
-       "Relation Name": "int8_tbl",+
-       "Alias": "i8",              +
-       "Startup Cost": N.N,        +
-       "Total Cost": N.N,          +
-       "Plan Rows": N,             +
-       "Plan Width": N,            +
-       "Actual Startup Time": N.N, +
-       "Actual Total Time": N.N,   +
-       "Actual Rows": N,           +
-       "Actual Loops": N,          +
-       "Shared Hit Blocks": N,     +
-       "Shared Read Blocks": N,    +
-       "Shared Dirtied Blocks": N, +
-       "Shared Written Blocks": N, +
-       "Local Hit Blocks": N,      +
-       "Local Read Blocks": N,     +
-       "Local Dirtied Blocks": N,  +
-       "Local Written Blocks": N,  +
-       "Temp Read Blocks": N,      +
-       "Temp Written Blocks": N    +
-     },                            +
-     "Planning": {                 +
-       "Shared Hit Blocks": N,     +
-       "Shared Read Blocks": N,    +
-       "Shared Dirtied Blocks": N, +
-       "Shared Written Blocks": N, +
-       "Local Hit Blocks": N,      +
-       "Local Read Blocks": N,     +
-       "Local Dirtied Blocks": N,  +
-       "Local Written Blocks": N,  +
-       "Temp Read Blocks": N,      +
-       "Temp Written Blocks": N    +
-     },                            +
-     "Planning Time": N.N,         +
-     "Triggers": [                 +
-     ],                            +
-     "Execution Time": N.N         +
-   }                               +
+                explain_filter                 
+-----------------------------------------------
+ [                                            +
+   {                                          +
+     "Plan": {                                +
+       "Node Type": "Seq Scan",               +
+       "Parallel Aware": false,               +
+       "Async Capable": false,                +
+       "Relation Name": "int8_tbl",           +
+       "Alias": "i8",                         +
+       "Startup Cost": N.N,                   +
+       "Total Cost": N.N,                     +
+       "Plan Rows": N,                        +
+       "Plan Width": N,                       +
+       "Actual Startup Time": N.N,            +
+       "Actual Total Time": N.N,              +
+       "Actual Rows": N,                      +
+       "Actual Loops": N,                     +
+       "Shared Hit Blocks": N,                +
+       "Shared Read Blocks": N,               +
+       "Shared Dirtied Blocks": N,            +
+       "Shared Written Blocks": N,            +
+       "Local Hit Blocks": N,                 +
+       "Local Read Blocks": N,                +
+       "Local Dirtied Blocks": N,             +
+       "Local Written Blocks": N,             +
+       "Temp Read Blocks": N,                 +
+       "Temp Written Blocks": N               +
+     },                                       +
+     "Settings": {                            +
+       "Optimizer": "Postgres query optimizer"+
+     },                                       +
+     "Planning": {                            +
+       "Shared Hit Blocks": N,                +
+       "Shared Read Blocks": N,               +
+       "Shared Dirtied Blocks": N,            +
+       "Shared Written Blocks": N,            +
+       "Local Hit Blocks": N,                 +
+       "Local Read Blocks": N,                +
+       "Local Dirtied Blocks": N,             +
+       "Local Written Blocks": N,             +
+       "Temp Read Blocks": N,                 +
+       "Temp Written Blocks": N               +
+     },                                       +
+     "Planning Time": N.N,                    +
+     "Triggers": [                            +
+     ],                                       +
+     "Slice statistics": [                    +
+       {                                      +
+         "Slice": N,                          +
+         "Executor Memory": N                 +
+       }                                      +
+     ],                                       +
+     "Execution Time": N.N                    +
+   }                                          +
  ]
 (1 row)
 
@@ -159,6 +176,9 @@ select explain_filter('explain (analyze, buffers, format xml) select * from int8
        <Temp-Read-Blocks>N</Temp-Read-Blocks>          +
        <Temp-Written-Blocks>N</Temp-Written-Blocks>    +
      </Plan>                                           +
+     <Settings>                                        +
+       <Optimizer>Postgres query optimizer</Optimizer> +
+     </Settings>                                       +
      <Planning>                                        +
        <Shared-Hit-Blocks>N</Shared-Hit-Blocks>        +
        <Shared-Read-Blocks>N</Shared-Read-Blocks>      +
@@ -174,51 +194,62 @@ select explain_filter('explain (analyze, buffers, format xml) select * from int8
      <Planning-Time>N.N</Planning-Time>                +
      <Triggers>                                        +
      </Triggers>                                       +
+     <Slice-statistics>                                +
+       <Slice>                                         +
+         <Slice>N</Slice>                              +
+         <Executor-Memory>N</Executor-Memory>          +
+       </Slice>                                        +
+     </Slice-statistics>                               +
      <Execution-Time>N.N</Execution-Time>              +
    </Query>                                            +
  </explain>
 (1 row)
 
 select explain_filter('explain (analyze, buffers, format yaml) select * from int8_tbl i8');
-        explain_filter         
--------------------------------
- - Plan:                      +
-     Node Type: "Seq Scan"    +
-     Parallel Aware: false    +
-     Async Capable: false     +
-     Relation Name: "int8_tbl"+
-     Alias: "i8"              +
-     Startup Cost: N.N        +
-     Total Cost: N.N          +
-     Plan Rows: N             +
-     Plan Width: N            +
-     Actual Startup Time: N.N +
-     Actual Total Time: N.N   +
-     Actual Rows: N           +
-     Actual Loops: N          +
-     Shared Hit Blocks: N     +
-     Shared Read Blocks: N    +
-     Shared Dirtied Blocks: N +
-     Shared Written Blocks: N +
-     Local Hit Blocks: N      +
-     Local Read Blocks: N     +
-     Local Dirtied Blocks: N  +
-     Local Written Blocks: N  +
-     Temp Read Blocks: N      +
-     Temp Written Blocks: N   +
-   Planning:                  +
-     Shared Hit Blocks: N     +
-     Shared Read Blocks: N    +
-     Shared Dirtied Blocks: N +
-     Shared Written Blocks: N +
-     Local Hit Blocks: N      +
-     Local Read Blocks: N     +
-     Local Dirtied Blocks: N  +
-     Local Written Blocks: N  +
-     Temp Read Blocks: N      +
-     Temp Written Blocks: N   +
-   Planning Time: N.N         +
-   Triggers:                  +
+              explain_filter               
+-------------------------------------------
+ - Plan:                                  +
+     Node Type: "Seq Scan"                +
+     Parallel Aware: false                +
+     Async Capable: false                 +
+     Relation Name: "int8_tbl"            +
+     Alias: "i8"                          +
+     Startup Cost: N.N                    +
+     Total Cost: N.N                      +
+     Plan Rows: N                         +
+     Plan Width: N                        +
+     Actual Startup Time: N.N             +
+     Actual Total Time: N.N               +
+     Actual Rows: N                       +
+     Actual Loops: N                      +
+     Shared Hit Blocks: N                 +
+     Shared Read Blocks: N                +
+     Shared Dirtied Blocks: N             +
+     Shared Written Blocks: N             +
+     Local Hit Blocks: N                  +
+     Local Read Blocks: N                 +
+     Local Dirtied Blocks: N              +
+     Local Written Blocks: N              +
+     Temp Read Blocks: N                  +
+     Temp Written Blocks: N               +
+   Settings:                              +
+     Optimizer: "Postgres query optimizer"+
+   Planning:                              +
+     Shared Hit Blocks: N                 +
+     Shared Read Blocks: N                +
+     Shared Dirtied Blocks: N             +
+     Shared Written Blocks: N             +
+     Local Hit Blocks: N                  +
+     Local Read Blocks: N                 +
+     Local Dirtied Blocks: N              +
+     Local Written Blocks: N              +
+     Temp Read Blocks: N                  +
+     Temp Written Blocks: N               +
+   Planning Time: N.N                     +
+   Triggers:                              +
+   Slice statistics:                      +
+     - Slice: N                           +
+       Executor Memory: N                 +
    Execution Time: N.N
 (1 row)
 
@@ -226,47 +257,51 @@ select explain_filter('explain (buffers, format text) select * from int8_tbl i8'
                      explain_filter                      
 ---------------------------------------------------------
  Seq Scan on int8_tbl i8  (cost=N.N..N.N rows=N width=N)
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 select explain_filter('explain (buffers, format json) select * from int8_tbl i8');
-           explain_filter           
-------------------------------------
- [                                 +
-   {                               +
-     "Plan": {                     +
-       "Node Type": "Seq Scan",    +
-       "Parallel Aware": false,    +
-       "Async Capable": false,     +
-       "Relation Name": "int8_tbl",+
-       "Alias": "i8",              +
-       "Startup Cost": N.N,        +
-       "Total Cost": N.N,          +
-       "Plan Rows": N,             +
-       "Plan Width": N,            +
-       "Shared Hit Blocks": N,     +
-       "Shared Read Blocks": N,    +
-       "Shared Dirtied Blocks": N, +
-       "Shared Written Blocks": N, +
-       "Local Hit Blocks": N,      +
-       "Local Read Blocks": N,     +
-       "Local Dirtied Blocks": N,  +
-       "Local Written Blocks": N,  +
-       "Temp Read Blocks": N,      +
-       "Temp Written Blocks": N    +
-     },                            +
-     "Planning": {                 +
-       "Shared Hit Blocks": N,     +
-       "Shared Read Blocks": N,    +
-       "Shared Dirtied Blocks": N, +
-       "Shared Written Blocks": N, +
-       "Local Hit Blocks": N,      +
-       "Local Read Blocks": N,     +
-       "Local Dirtied Blocks": N,  +
-       "Local Written Blocks": N,  +
-       "Temp Read Blocks": N,      +
-       "Temp Written Blocks": N    +
-     }                             +
-   }                               +
+                explain_filter                 
+-----------------------------------------------
+ [                                            +
+   {                                          +
+     "Plan": {                                +
+       "Node Type": "Seq Scan",               +
+       "Parallel Aware": false,               +
+       "Async Capable": false,                +
+       "Relation Name": "int8_tbl",           +
+       "Alias": "i8",                         +
+       "Startup Cost": N.N,                   +
+       "Total Cost": N.N,                     +
+       "Plan Rows": N,                        +
+       "Plan Width": N,                       +
+       "Shared Hit Blocks": N,                +
+       "Shared Read Blocks": N,               +
+       "Shared Dirtied Blocks": N,            +
+       "Shared Written Blocks": N,            +
+       "Local Hit Blocks": N,                 +
+       "Local Read Blocks": N,                +
+       "Local Dirtied Blocks": N,             +
+       "Local Written Blocks": N,             +
+       "Temp Read Blocks": N,                 +
+       "Temp Written Blocks": N               +
+     },                                       +
+     "Settings": {                            +
+       "Optimizer": "Postgres query optimizer"+
+     },                                       +
+     "Planning": {                            +
+       "Shared Hit Blocks": N,                +
+       "Shared Read Blocks": N,               +
+       "Shared Dirtied Blocks": N,            +
+       "Shared Written Blocks": N,            +
+       "Local Hit Blocks": N,                 +
+       "Local Read Blocks": N,                +
+       "Local Dirtied Blocks": N,             +
+       "Local Written Blocks": N,             +
+       "Temp Read Blocks": N,                 +
+       "Temp Written Blocks": N               +
+     }                                        +
+   }                                          +
  ]
 (1 row)
 
@@ -314,165 +349,147 @@ select jsonb_pretty(
   #- '{0,Plan,Plans,0,Sort Method}'
   #- '{0,Plan,Plans,0,Sort Space Type}'
 );
-                        jsonb_pretty                         
--------------------------------------------------------------
- [                                                          +
-     {                                                      +
-         "Plan": {                                          +
-             "Plans": [                                     +
-                 {                                          +
-                     "Plans": [                             +
-                         {                                  +
-                             "Alias": "tenk1",              +
-                             "Output": [                    +
-                                 "unique1",                 +
-                                 "unique2",                 +
-                                 "two",                     +
-                                 "four",                    +
-                                 "ten",                     +
-                                 "twenty",                  +
-                                 "hundred",                 +
-                                 "thousand",                +
-                                 "twothousand",             +
-                                 "fivethous",               +
-                                 "tenthous",                +
-                                 "odd",                     +
-                                 "even",                    +
-                                 "stringu1",                +
-                                 "stringu2",                +
-                                 "string4"                  +
-                             ],                             +
-                             "Schema": "public",            +
-                             "Node Type": "Seq Scan",       +
-                             "Plan Rows": 0,                +
-                             "Plan Width": 0,               +
-                             "Total Cost": 0.0,             +
-                             "Actual Rows": 0,              +
-                             "Actual Loops": 0,             +
-                             "Startup Cost": 0.0,           +
-                             "Async Capable": false,        +
-                             "Relation Name": "tenk1",      +
-                             "Parallel Aware": true,        +
-                             "Local Hit Blocks": 0,         +
-                             "Temp Read Blocks": 0,         +
-                             "Actual Total Time": 0.0,      +
-                             "Local Read Blocks": 0,        +
-                             "Shared Hit Blocks": 0,        +
-                             "Shared Read Blocks": 0,       +
-                             "Actual Startup Time": 0.0,    +
-                             "Parent Relationship": "Outer",+
-                             "Temp Written Blocks": 0,      +
-                             "Local Dirtied Blocks": 0,     +
-                             "Local Written Blocks": 0,     +
-                             "Shared Dirtied Blocks": 0,    +
-                             "Shared Written Blocks": 0     +
-                         }                                  +
-                     ],                                     +
-                     "Output": [                            +
-                         "unique1",                         +
-                         "unique2",                         +
-                         "two",                             +
-                         "four",                            +
-                         "ten",                             +
-                         "twenty",                          +
-                         "hundred",                         +
-                         "thousand",                        +
-                         "twothousand",                     +
-                         "fivethous",                       +
-                         "tenthous",                        +
-                         "odd",                             +
-                         "even",                            +
-                         "stringu1",                        +
-                         "stringu2",                        +
-                         "string4"                          +
-                     ],                                     +
-                     "Sort Key": [                          +
-                         "tenk1.tenthous"                   +
-                     ],                                     +
-                     "Node Type": "Sort",                   +
-                     "Plan Rows": 0,                        +
-                     "Plan Width": 0,                       +
-                     "Total Cost": 0.0,                     +
-                     "Actual Rows": 0,                      +
-                     "Actual Loops": 0,                     +
-                     "Startup Cost": 0.0,                   +
-                     "Async Capable": false,                +
-                     "Parallel Aware": false,               +
-                     "Sort Space Used": 0,                  +
-                     "Local Hit Blocks": 0,                 +
-                     "Temp Read Blocks": 0,                 +
-                     "Actual Total Time": 0.0,              +
-                     "Local Read Blocks": 0,                +
-                     "Shared Hit Blocks": 0,                +
-                     "Shared Read Blocks": 0,               +
-                     "Actual Startup Time": 0.0,            +
-                     "Parent Relationship": "Outer",        +
-                     "Temp Written Blocks": 0,              +
-                     "Local Dirtied Blocks": 0,             +
-                     "Local Written Blocks": 0,             +
-                     "Shared Dirtied Blocks": 0,            +
-                     "Shared Written Blocks": 0             +
-                 }                                          +
-             ],                                             +
-             "Output": [                                    +
-                 "unique1",                                 +
-                 "unique2",                                 +
-                 "two",                                     +
-                 "four",                                    +
-                 "ten",                                     +
-                 "twenty",                                  +
-                 "hundred",                                 +
-                 "thousand",                                +
-                 "twothousand",                             +
-                 "fivethous",                               +
-                 "tenthous",                                +
-                 "odd",                                     +
-                 "even",                                    +
-                 "stringu1",                                +
-                 "stringu2",                                +
-                 "string4"                                  +
-             ],                                             +
-             "Node Type": "Gather Merge",                   +
-             "Plan Rows": 0,                                +
-             "Plan Width": 0,                               +
-             "Total Cost": 0.0,                             +
-             "Actual Rows": 0,                              +
-             "Actual Loops": 0,                             +
-             "Startup Cost": 0.0,                           +
-             "Async Capable": false,                        +
-             "Parallel Aware": false,                       +
-             "Workers Planned": 0,                          +
-             "Local Hit Blocks": 0,                         +
-             "Temp Read Blocks": 0,                         +
-             "Workers Launched": 0,                         +
-             "Actual Total Time": 0.0,                      +
-             "Local Read Blocks": 0,                        +
-             "Shared Hit Blocks": 0,                        +
-             "Shared Read Blocks": 0,                       +
-             "Actual Startup Time": 0.0,                    +
-             "Temp Written Blocks": 0,                      +
-             "Local Dirtied Blocks": 0,                     +
-             "Local Written Blocks": 0,                     +
-             "Shared Dirtied Blocks": 0,                    +
-             "Shared Written Blocks": 0                     +
-         },                                                 +
-         "Planning": {                                      +
-             "Local Hit Blocks": 0,                         +
-             "Temp Read Blocks": 0,                         +
-             "Local Read Blocks": 0,                        +
-             "Shared Hit Blocks": 0,                        +
-             "Shared Read Blocks": 0,                       +
-             "Temp Written Blocks": 0,                      +
-             "Local Dirtied Blocks": 0,                     +
-             "Local Written Blocks": 0,                     +
-             "Shared Dirtied Blocks": 0,                    +
-             "Shared Written Blocks": 0                     +
-         },                                                 +
-         "Triggers": [                                      +
-         ],                                                 +
-         "Planning Time": 0.0,                              +
-         "Execution Time": 0.0                              +
-     }                                                      +
+                     jsonb_pretty                     
+------------------------------------------------------
+ [                                                   +
+     {                                               +
+         "Plan": {                                   +
+             "Plans": [                              +
+                 {                                   +
+                     "Alias": "tenk1",               +
+                     "Output": [                     +
+                         "unique1",                  +
+                         "unique2",                  +
+                         "two",                      +
+                         "four",                     +
+                         "ten",                      +
+                         "twenty",                   +
+                         "hundred",                  +
+                         "thousand",                 +
+                         "twothousand",              +
+                         "fivethous",                +
+                         "tenthous",                 +
+                         "odd",                      +
+                         "even",                     +
+                         "stringu1",                 +
+                         "stringu2",                 +
+                         "string4"                   +
+                     ],                              +
+                     "Schema": "public",             +
+                     "Node Type": "Seq Scan",        +
+                     "Plan Rows": 0,                 +
+                     "Plan Width": 0,                +
+                     "Total Cost": 0.0,              +
+                     "Actual Rows": 0,               +
+                     "Actual Loops": 0,              +
+                     "Startup Cost": 0.0,            +
+                     "Async Capable": false,         +
+                     "Relation Name": "tenk1",       +
+                     "Parallel Aware": false,        +
+                     "Local Hit Blocks": 0,          +
+                     "Temp Read Blocks": 0,          +
+                     "Actual Total Time": 0.0,       +
+                     "Local Read Blocks": 0,         +
+                     "Shared Hit Blocks": 0,         +
+                     "Shared Read Blocks": 0,        +
+                     "Actual Startup Time": 0.0,     +
+                     "Parent Relationship": "Outer", +
+                     "Temp Written Blocks": 0,       +
+                     "Local Dirtied Blocks": 0,      +
+                     "Local Written Blocks": 0,      +
+                     "Shared Dirtied Blocks": 0,     +
+                     "Shared Written Blocks": 0      +
+                 }                                   +
+             ],                                      +
+             "Output": [                             +
+                 "unique1",                          +
+                 "unique2",                          +
+                 "two",                              +
+                 "four",                             +
+                 "ten",                              +
+                 "twenty",                           +
+                 "hundred",                          +
+                 "thousand",                         +
+                 "twothousand",                      +
+                 "fivethous",                        +
+                 "tenthous",                         +
+                 "odd",                              +
+                 "even",                             +
+                 "stringu1",                         +
+                 "stringu2",                         +
+                 "string4"                           +
+             ],                                      +
+             "Sort Key": [                           +
+                 "tenk1.tenthous"                    +
+             ],                                      +
+             "work_mem": {                           +
+                 "Used": 0,                          +
+                 "Segments": 0,                      +
+                 "Max Memory": 0,                    +
+                 "Workfile Spilling": 0,             +
+                 "Max Memory Segment": 0             +
+             },                                      +
+             "Node Type": "Sort",                    +
+             "Plan Rows": 0,                         +
+             "Plan Width": 0,                        +
+             "Total Cost": 0.0,                      +
+             "Actual Rows": 0,                       +
+             "Sort Method": "quicksort",             +
+             "Actual Loops": 0,                      +
+             "Startup Cost": 0.0,                    +
+             "Async Capable": false,                 +
+             "Sort Segments": 0,                     +
+             "Parallel Aware": false,                +
+             "Sort Space Type": "Memory",            +
+             "Sort Space Used": 0,                   +
+             "Local Hit Blocks": 0,                  +
+             "Temp Read Blocks": 0,                  +
+             "Actual Total Time": 0.0,               +
+             "Local Read Blocks": 0,                 +
+             "Shared Hit Blocks": 0,                 +
+             "Shared Read Blocks": 0,                +
+             "Actual Startup Time": 0.0,             +
+             "Temp Written Blocks": 0,               +
+             "Local Dirtied Blocks": 0,              +
+             "Local Written Blocks": 0,              +
+             "Shared Dirtied Blocks": 0,             +
+             "Shared Written Blocks": 0,             +
+             "Sort Avg Segment Memory": 0,           +
+             "Sort Max Segment Memory": 0            +
+         },                                          +
+         "Planning": {                               +
+             "Local Hit Blocks": 0,                  +
+             "Temp Read Blocks": 0,                  +
+             "Local Read Blocks": 0,                 +
+             "Shared Hit Blocks": 0,                 +
+             "Shared Read Blocks": 0,                +
+             "Temp Written Blocks": 0,               +
+             "Local Dirtied Blocks": 0,              +
+             "Local Written Blocks": 0,              +
+             "Shared Dirtied Blocks": 0,             +
+             "Shared Written Blocks": 0              +
+         },                                          +
+         "Settings": {                               +
+             "Optimizer": "Postgres query optimizer",+
+             "parallel_setup_cost": "0",             +
+             "parallel_tuple_cost": "0",             +
+             "min_parallel_table_scan_size": "0"     +
+         },                                          +
+         "Triggers": [                               +
+         ],                                          +
+         "Planning Time": 0.0,                       +
+         "Execution Time": 0.0,                      +
+         "Slice statistics": [                       +
+             {                                       +
+                 "Slice": 0,                         +
+                 "Executor Memory": 0,               +
+                 "Work Maximum Memory": 0            +
+             }                                       +
+         ],                                          +
+         "Statement statistics": {                   +
+             "Memory used": 0                        +
+         }                                           +
+     }                                               +
  ]
 (1 row)
 
@@ -483,6 +500,8 @@ select explain_filter('explain (verbose) select * from int8_tbl i8');
 ----------------------------------------------------------------
  Seq Scan on public.int8_tbl i8  (cost=N.N..N.N rows=N width=N)
    Output: q1, q2
+ Settings: optimizer = 'off'
  Query Identifier: N
-(3 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 

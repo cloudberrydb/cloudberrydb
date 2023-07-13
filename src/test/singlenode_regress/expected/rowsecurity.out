@@ -4,6 +4,7 @@
 -- Clean up in case a prior regression run failed
 -- Suppress NOTICE messages when users/groups don't exist
 SET client_min_messages TO 'warning';
+SET gp_enable_relsize_collection to on;
 DROP USER IF EXISTS regress_rls_alice;
 DROP USER IF EXISTS regress_rls_bob;
 DROP USER IF EXISTS regress_rls_carol;
@@ -12,7 +13,9 @@ DROP USER IF EXISTS regress_rls_exempt_user;
 DROP ROLE IF EXISTS regress_rls_group1;
 DROP ROLE IF EXISTS regress_rls_group2;
 DROP SCHEMA IF EXISTS regress_rls_schema CASCADE;
-RESET client_min_messages;
+-- RESET client_min_messages; RESET doesn't work well in GPDB, it doesn't reset
+-- GUCs in QEs.
+SET client_min_messages TO 'notice';
 -- initial setup
 CREATE USER regress_rls_alice NOLOGIN;
 CREATE USER regress_rls_bob NOLOGIN;
@@ -43,6 +46,7 @@ INSERT INTO uaccount VALUES
     ('regress_rls_bob', 1),
     ('regress_rls_carol', 2),
     ('regress_rls_dave', 3);
+ANALYZE uaccount;
 CREATE TABLE category (
     cid        int primary key,
     cname      text
@@ -53,6 +57,7 @@ INSERT INTO category VALUES
     (22, 'science fiction'),
     (33, 'technology'),
     (44, 'manga');
+ANALYZE category;
 CREATE TABLE document (
     did         int primary key,
     cid         int references category(cid),
@@ -60,6 +65,7 @@ CREATE TABLE document (
     dauthor     name,
     dtitle      text
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 GRANT ALL ON document TO public;
 INSERT INTO document VALUES
     ( 1, 11, 1, 'regress_rls_bob', 'my first novel'),
@@ -72,6 +78,7 @@ INSERT INTO document VALUES
     ( 8, 44, 1, 'regress_rls_carol', 'great manga'),
     ( 9, 22, 1, 'regress_rls_dave', 'awesome science fiction'),
     (10, 33, 2, 'regress_rls_dave', 'awesome technology book');
+ANALYZE document;
 ALTER TABLE document ENABLE ROW LEVEL SECURITY;
 -- user's security level must be higher than or equal to document's
 CREATE POLICY p1 ON document AS PERMISSIVE
@@ -265,28 +272,30 @@ NOTICE:  f_leak => awesome science fiction
 (5 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM document WHERE f_leak(dtitle);
-                     QUERY PLAN                     
-----------------------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Seq Scan on document
    Filter: ((dlevel <= $0) AND f_leak(dtitle))
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
-(5 rows)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_carol'::name)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM document NATURAL JOIN category WHERE f_leak(dtitle);
-                        QUERY PLAN                         
------------------------------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Hash Join
-   Hash Cond: (category.cid = document.cid)
+   Hash Cond: (document.cid = category.cid)
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
-   ->  Seq Scan on category
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_carol'::name)
+   ->  Seq Scan on document
+         Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Hash
-         ->  Seq Scan on document
-               Filter: ((dlevel <= $0) AND f_leak(dtitle))
-(9 rows)
+         ->  Seq Scan on category
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- viewpoint from regress_rls_dave
 SET SESSION AUTHORIZATION regress_rls_dave;
@@ -334,23 +343,26 @@ EXPLAIN (COSTS OFF) SELECT * FROM document WHERE f_leak(dtitle);
  Seq Scan on document
    Filter: ((cid <> 44) AND (cid <> 44) AND (cid < 50) AND (dlevel <= $0) AND f_leak(dtitle))
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
-(5 rows)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_dave'::name)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM document NATURAL JOIN category WHERE f_leak(dtitle);
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
  Hash Join
-   Hash Cond: (category.cid = document.cid)
+   Hash Cond: (document.cid = category.cid)
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
-   ->  Seq Scan on category
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_dave'::name)
+   ->  Seq Scan on document
+         Filter: ((cid <> 44) AND (cid <> 44) AND (cid < 50) AND (dlevel <= $0) AND f_leak(dtitle))
    ->  Hash
-         ->  Seq Scan on document
-               Filter: ((cid <> 44) AND (cid <> 44) AND (cid < 50) AND (dlevel <= $0) AND f_leak(dtitle))
-(9 rows)
+         ->  Seq Scan on category
+               Filter: (cid < 50)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- 44 would technically fail for both p2r and p1r, but we should get an error
 -- back from p1r for this because it sorts first
@@ -423,21 +435,24 @@ NOTICE:  f_leak => great manga
 (3 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM document WHERE f_leak(dtitle);
-                       QUERY PLAN                        
----------------------------------------------------------
+                              QUERY PLAN                              
+----------------------------------------------------------------------
  Seq Scan on document
-   Filter: ((dauthor = CURRENT_USER) AND f_leak(dtitle))
-(2 rows)
+   Filter: ((dauthor = 'regress_rls_carol'::name) AND f_leak(dtitle))
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM document NATURAL JOIN category WHERE f_leak(dtitle);
-                          QUERY PLAN                           
----------------------------------------------------------------
- Nested Loop
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Hash Join
+   Hash Cond: (document.cid = category.cid)
    ->  Seq Scan on document
-         Filter: ((dauthor = CURRENT_USER) AND f_leak(dtitle))
-   ->  Index Scan using category_pkey on category
-         Index Cond: (cid = document.cid)
-(5 rows)
+         Filter: ((dauthor = 'regress_rls_carol'::name) AND f_leak(dtitle))
+   ->  Hash
+         ->  Seq Scan on category
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 -- interaction of FK/PK constraints
 SET SESSION AUTHORIZATION regress_rls_alice;
@@ -459,9 +474,10 @@ SELECT * FROM document d FULL OUTER JOIN category c on d.cid = c.cid ORDER BY d.
      |     |        |                 |                    |  33 | technology
 (6 rows)
 
-DELETE FROM category WHERE cid = 33;    -- fails with FK violation
-ERROR:  update or delete on table "category" violates foreign key constraint "document_cid_fkey" on table "document"
-DETAIL:  Key is still referenced from table "document".
+-- GPDB: referential integrity checks are not enforced
+-- start_ignore
+-- DELETE FROM category WHERE cid = 33;    -- fails with FK violation
+-- end_ignore
 -- can insert FK referencing invisible PK
 SET SESSION AUTHORIZATION regress_rls_carol;
 SELECT * FROM document d FULL OUTER JOIN category c on d.cid = c.cid ORDER BY d.did, c.cid;
@@ -485,8 +501,11 @@ SELECT * FROM document WHERE did = 8; -- and confirm we can't see it
 -- RLS policies are checked before constraints
 INSERT INTO document VALUES (8, 44, 1, 'regress_rls_carol', 'my third manga'); -- Should fail with RLS check violation, not duplicate key violation
 ERROR:  new row violates row-level security policy for table "document"
+-- GPDB: UPDATE on distributed key column not allowed on relation with update triggers
+-- start_ignore
 UPDATE document SET did = 8, dauthor = 'regress_rls_carol' WHERE did = 5; -- Should fail with RLS check violation, not duplicate key violation
 ERROR:  new row violates row-level security policy for table "document"
+-- end_ignore
 -- database superuser does bypass RLS policy when enabled
 RESET SESSION AUTHORIZATION;
 SET row_security TO ON;
@@ -636,13 +655,16 @@ CREATE TABLE t1 (id int not null primary key, a int, junk1 text, b text);
 ALTER TABLE t1 DROP COLUMN junk1;    -- just a disturbing factor
 GRANT ALL ON t1 TO public;
 COPY t1 FROM stdin WITH ;
+ANALYZE t1;
 CREATE TABLE t2 (c float) INHERITS (t1);
 GRANT ALL ON t2 TO public;
 COPY t2 FROM stdin;
+ANALYZE t2;
 CREATE TABLE t3 (id int not null primary key, c text, b text, a int);
 ALTER TABLE t3 INHERIT t1;
 GRANT ALL ON t3 TO public;
 COPY t3(id, a,b,c) FROM stdin;
+ANALYZE t3;
 CREATE POLICY p1 ON t1 FOR ALL TO PUBLIC USING (a % 2 = 0); -- be even number
 CREATE POLICY p2 ON t2 FOR ALL TO PUBLIC USING (a % 2 = 1); -- be odd number
 ALTER TABLE t1 ENABLE ROW LEVEL SECURITY;
@@ -659,8 +681,8 @@ SELECT * FROM t1;
 (5 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1;
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: ((a % 2) = 0)
@@ -668,7 +690,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM t1;
          Filter: ((a % 2) = 0)
    ->  Seq Scan on t3 t1_3
          Filter: ((a % 2) = 0)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 SELECT * FROM t1 WHERE f_leak(b);
 NOTICE:  f_leak => bbb
@@ -695,7 +718,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
          Filter: (((a % 2) = 0) AND f_leak(b))
    ->  Seq Scan on t3 t1_3
          Filter: (((a % 2) = 0) AND f_leak(b))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- reference to system column
 SELECT tableoid::regclass, * FROM t1;
@@ -709,8 +733,8 @@ SELECT tableoid::regclass, * FROM t1;
 (5 rows)
 
 EXPLAIN (COSTS OFF) SELECT *, t1 FROM t1;
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: ((a % 2) = 0)
@@ -718,7 +742,8 @@ EXPLAIN (COSTS OFF) SELECT *, t1 FROM t1;
          Filter: ((a % 2) = 0)
    ->  Seq Scan on t3 t1_3
          Filter: ((a % 2) = 0)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- reference to whole-row reference
 SELECT *, t1 FROM t1;
@@ -732,8 +757,8 @@ SELECT *, t1 FROM t1;
 (5 rows)
 
 EXPLAIN (COSTS OFF) SELECT *, t1 FROM t1;
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: ((a % 2) = 0)
@@ -741,7 +766,8 @@ EXPLAIN (COSTS OFF) SELECT *, t1 FROM t1;
          Filter: ((a % 2) = 0)
    ->  Seq Scan on t3 t1_3
          Filter: ((a % 2) = 0)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- for share/update lock
 SELECT * FROM t1 FOR SHARE;
@@ -757,14 +783,14 @@ SELECT * FROM t1 FOR SHARE;
 EXPLAIN (COSTS OFF) SELECT * FROM t1 FOR SHARE;
              QUERY PLAN              
 -------------------------------------
- LockRows
-   ->  Append
-         ->  Seq Scan on t1 t1_1
-               Filter: ((a % 2) = 0)
-         ->  Seq Scan on t2 t1_2
-               Filter: ((a % 2) = 0)
-         ->  Seq Scan on t3 t1_3
-               Filter: ((a % 2) = 0)
+ Append
+   ->  Seq Scan on t1 t1_1
+         Filter: ((a % 2) = 0)
+   ->  Seq Scan on t2 t1_2
+         Filter: ((a % 2) = 0)
+   ->  Seq Scan on t3 t1_3
+         Filter: ((a % 2) = 0)
+ Optimizer: Postgres query optimizer
 (8 rows)
 
 SELECT * FROM t1 WHERE f_leak(b) FOR SHARE;
@@ -783,16 +809,16 @@ NOTICE:  f_leak => yyy
 (5 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b) FOR SHARE;
-                     QUERY PLAN                      
------------------------------------------------------
- LockRows
-   ->  Append
-         ->  Seq Scan on t1 t1_1
-               Filter: (((a % 2) = 0) AND f_leak(b))
-         ->  Seq Scan on t2 t1_2
-               Filter: (((a % 2) = 0) AND f_leak(b))
-         ->  Seq Scan on t3 t1_3
-               Filter: (((a % 2) = 0) AND f_leak(b))
+                  QUERY PLAN                   
+-----------------------------------------------
+ Append
+   ->  Seq Scan on t1 t1_1
+         Filter: (((a % 2) = 0) AND f_leak(b))
+   ->  Seq Scan on t2 t1_2
+         Filter: (((a % 2) = 0) AND f_leak(b))
+   ->  Seq Scan on t3 t1_3
+         Filter: (((a % 2) = 0) AND f_leak(b))
+ Optimizer: Postgres query optimizer
 (8 rows)
 
 -- union all query
@@ -807,13 +833,14 @@ SELECT a, b, tableoid::regclass FROM t2 UNION ALL SELECT a, b, tableoid::regclas
 (5 rows)
 
 EXPLAIN (COSTS OFF) SELECT a, b, tableoid::regclass FROM t2 UNION ALL SELECT a, b, tableoid::regclass FROM t3;
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t2
          Filter: ((a % 2) = 1)
    ->  Seq Scan on t3
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- superuser is allowed to bypass RLS checks
 RESET SESSION AUTHORIZATION;
@@ -846,8 +873,8 @@ NOTICE:  f_leak => zzz
 (11 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: f_leak(b)
@@ -855,7 +882,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
          Filter: f_leak(b)
    ->  Seq Scan on t3 t1_3
          Filter: f_leak(b)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- non-superuser with bypass privilege can bypass RLS policy when disabled
 SET SESSION AUTHORIZATION regress_rls_exempt_user;
@@ -888,8 +916,8 @@ NOTICE:  f_leak => zzz
 (11 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: f_leak(b)
@@ -897,7 +925,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
          Filter: f_leak(b)
    ->  Seq Scan on t3 t1_3
          Filter: f_leak(b)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 --
 -- Partitioned Tables
@@ -989,15 +1018,16 @@ EXPLAIN (COSTS OFF) SELECT * FROM part_document WHERE f_leak(dtitle);
 ------------------------------------------------------------
  Append
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_bob'::name)
    ->  Seq Scan on part_document_fiction part_document_1
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Seq Scan on part_document_satire part_document_2
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Seq Scan on part_document_nonfiction part_document_3
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- viewpoint from regress_rls_carol
 SET SESSION AUTHORIZATION regress_rls_carol;
@@ -1031,15 +1061,16 @@ EXPLAIN (COSTS OFF) SELECT * FROM part_document WHERE f_leak(dtitle);
 ------------------------------------------------------------
  Append
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_carol'::name)
    ->  Seq Scan on part_document_fiction part_document_1
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Seq Scan on part_document_satire part_document_2
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Seq Scan on part_document_nonfiction part_document_3
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- viewpoint from regress_rls_dave
 SET SESSION AUTHORIZATION regress_rls_dave;
@@ -1062,9 +1093,10 @@ EXPLAIN (COSTS OFF) SELECT * FROM part_document WHERE f_leak(dtitle);
  Seq Scan on part_document_fiction part_document
    Filter: ((cid < 55) AND (dlevel <= $0) AND f_leak(dtitle))
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
-(5 rows)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_dave'::name)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- pp1 ERROR
 INSERT INTO part_document VALUES (100, 11, 5, 'regress_rls_dave', 'testing pp1'); -- fail
@@ -1140,9 +1172,10 @@ EXPLAIN (COSTS OFF) SELECT * FROM part_document WHERE f_leak(dtitle);
  Seq Scan on part_document_fiction part_document
    Filter: ((cid < 55) AND (dlevel <= $0) AND f_leak(dtitle))
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
-(5 rows)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_dave'::name)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- viewpoint from regress_rls_carol
 SET SESSION AUTHORIZATION regress_rls_carol;
@@ -1178,15 +1211,16 @@ EXPLAIN (COSTS OFF) SELECT * FROM part_document WHERE f_leak(dtitle);
 ------------------------------------------------------------
  Append
    InitPlan 1 (returns $0)
-     ->  Index Scan using uaccount_pkey on uaccount
-           Index Cond: (pguser = CURRENT_USER)
+     ->  Seq Scan on uaccount
+           Filter: (pguser = 'regress_rls_carol'::name)
    ->  Seq Scan on part_document_fiction part_document_1
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Seq Scan on part_document_satire part_document_2
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
    ->  Seq Scan on part_document_nonfiction part_document_3
          Filter: ((dlevel <= $0) AND f_leak(dtitle))
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- only owner can change policies
 ALTER POLICY pp1 ON part_document USING (true);    --fail
@@ -1226,16 +1260,17 @@ NOTICE:  f_leak => great technology book
 (3 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM part_document WHERE f_leak(dtitle);
-                          QUERY PLAN                           
----------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Append
    ->  Seq Scan on part_document_fiction part_document_1
-         Filter: ((dauthor = CURRENT_USER) AND f_leak(dtitle))
+         Filter: ((dauthor = 'regress_rls_carol'::name) AND f_leak(dtitle))
    ->  Seq Scan on part_document_satire part_document_2
-         Filter: ((dauthor = CURRENT_USER) AND f_leak(dtitle))
+         Filter: ((dauthor = 'regress_rls_carol'::name) AND f_leak(dtitle))
    ->  Seq Scan on part_document_nonfiction part_document_3
-         Filter: ((dauthor = CURRENT_USER) AND f_leak(dtitle))
-(7 rows)
+         Filter: ((dauthor = 'regress_rls_carol'::name) AND f_leak(dtitle))
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- database superuser does bypass RLS policy when enabled
 RESET SESSION AUTHORIZATION;
@@ -1348,10 +1383,11 @@ HINT:  Use DROP ... CASCADE to drop the dependent objects too.
 DROP TABLE dependee CASCADE;
 NOTICE:  drop cascades to policy d1 on table dependent
 EXPLAIN (COSTS OFF) SELECT * FROM dependent; -- After drop, should be unqualified
-      QUERY PLAN       
------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on dependent
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -----   RECURSION    ----
 --
@@ -1444,7 +1480,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM only s1 WHERE f_leak(b);
    SubPlan 1
      ->  Seq Scan on s2
            Filter: (((x % 2) = 0) AND (y ~~ '%2f%'::text))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SET SESSION AUTHORIZATION regress_rls_alice;
 ALTER POLICY p1 ON s1 USING (a in (select x from v2)); -- using VIEW in RLS policy
@@ -1466,7 +1503,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM s1 WHERE f_leak(b);
    SubPlan 1
      ->  Seq Scan on s2
            Filter: (((x % 2) = 0) AND (y ~~ '%af%'::text))
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT (SELECT x FROM s1 LIMIT 1) xx, * FROM s2 WHERE y like '%28%';
  xx | x  |                y                 
@@ -1488,7 +1526,8 @@ EXPLAIN (COSTS OFF) SELECT (SELECT x FROM s1 LIMIT 1) xx, * FROM s2 WHERE y like
                  SubPlan 1
                    ->  Seq Scan on s2 s2_1
                          Filter: (((x % 2) = 0) AND (y ~~ '%af%'::text))
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 SET SESSION AUTHORIZATION regress_rls_alice;
 ALTER POLICY p2 ON s2 USING (x in (select a from s1 where b like '%d2%'));
@@ -1515,7 +1554,8 @@ EXPLAIN (COSTS OFF) EXECUTE p1(2);
          Filter: ((a <= 2) AND ((a % 2) = 0))
    ->  Seq Scan on t3 t1_3
          Filter: ((a <= 2) AND ((a % 2) = 0))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- superuser is allowed to bypass RLS checks
 RESET SESSION AUTHORIZATION;
@@ -1548,8 +1588,8 @@ NOTICE:  f_leak => zzz
 (11 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: f_leak(b)
@@ -1557,7 +1597,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM t1 WHERE f_leak(b);
          Filter: f_leak(b)
    ->  Seq Scan on t3 t1_3
          Filter: f_leak(b)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- plan cache should be invalidated
 EXECUTE p1(2);
@@ -1572,8 +1613,8 @@ EXECUTE p1(2);
 (6 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE p1(2);
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: (a <= 2)
@@ -1581,7 +1622,8 @@ EXPLAIN (COSTS OFF) EXECUTE p1(2);
          Filter: (a <= 2)
    ->  Seq Scan on t3 t1_3
          Filter: (a <= 2)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 PREPARE p2(int) AS SELECT * FROM t1 WHERE a = $1;
 EXECUTE p2(2);
@@ -1593,8 +1635,8 @@ EXECUTE p2(2);
 (3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE p2(2);
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  Append
    ->  Seq Scan on t1 t1_1
          Filter: (a = 2)
@@ -1602,7 +1644,8 @@ EXPLAIN (COSTS OFF) EXECUTE p2(2);
          Filter: (a = 2)
    ->  Seq Scan on t3 t1_3
          Filter: (a = 2)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- also, case when privilege switch from superuser
 SET SESSION AUTHORIZATION regress_rls_bob;
@@ -1625,7 +1668,8 @@ EXPLAIN (COSTS OFF) EXECUTE p2(2);
          Filter: ((a = 2) AND ((a % 2) = 0))
    ->  Seq Scan on t3 t1_3
          Filter: ((a = 2) AND ((a % 2) = 0))
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 --
 -- UPDATE / DELETE and Row-level security
@@ -1646,7 +1690,8 @@ EXPLAIN (COSTS OFF) UPDATE t1 SET b = b || b WHERE f_leak(b);
                      Filter: (((a % 2) = 0) AND f_leak(b))
                ->  Seq Scan on t3 t1_3
                      Filter: (((a % 2) = 0) AND f_leak(b))
-(12 rows)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 UPDATE t1 SET b = b || b WHERE f_leak(b);
 NOTICE:  f_leak => bbb
@@ -1660,7 +1705,8 @@ EXPLAIN (COSTS OFF) UPDATE only t1 SET b = b || '_updt' WHERE f_leak(b);
  Update on t1
    ->  Seq Scan on t1
          Filter: (((a % 2) = 0) AND f_leak(b))
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 UPDATE only t1 SET b = b || '_updt' WHERE f_leak(b);
 NOTICE:  f_leak => bbbbbb
@@ -1716,7 +1762,8 @@ WHERE t2.a = 3 and t3.a = 2 AND f_leak(t2.b) AND f_leak(t3.b);
                Filter: ((a = 3) AND ((a % 2) = 1) AND f_leak(b))
          ->  Seq Scan on t3
                Filter: ((a = 2) AND f_leak(b))
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 UPDATE t2 SET b=t2.b FROM t3
 WHERE t2.a = 3 and t3.a = 2 AND f_leak(t2.b) AND f_leak(t3.b);
@@ -1731,8 +1778,6 @@ WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
    Update on t2 t1_2
    Update on t3 t1_3
    ->  Nested Loop
-         ->  Seq Scan on t2
-               Filter: ((a = 3) AND ((a % 2) = 1) AND f_leak(b))
          ->  Append
                ->  Seq Scan on t1 t1_1
                      Filter: ((a = 3) AND ((a % 2) = 0) AND f_leak(b))
@@ -1740,11 +1785,14 @@ WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
                      Filter: ((a = 3) AND ((a % 2) = 0) AND f_leak(b))
                ->  Seq Scan on t3 t1_3
                      Filter: ((a = 3) AND ((a % 2) = 0) AND f_leak(b))
-(14 rows)
+         ->  Materialize
+               ->  Seq Scan on t2
+                     Filter: ((a = 3) AND ((a % 2) = 1) AND f_leak(b))
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 UPDATE t1 SET b=t1.b FROM t2
 WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
-NOTICE:  f_leak => cde
 EXPLAIN (COSTS OFF) UPDATE t2 SET b=t2.b FROM t1
 WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
                               QUERY PLAN                               
@@ -1760,7 +1808,8 @@ WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
                      Filter: ((a = 3) AND ((a % 2) = 0) AND f_leak(b))
                ->  Seq Scan on t3 t1_3
                      Filter: ((a = 3) AND ((a % 2) = 0) AND f_leak(b))
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 UPDATE t2 SET b=t2.b FROM t1
 WHERE t1.a = 3 and t2.a = 3 AND f_leak(t1.b) AND f_leak(t2.b);
@@ -1769,16 +1818,18 @@ NOTICE:  f_leak => cde
 EXPLAIN (COSTS OFF) UPDATE t2 t2_1 SET b = t2_2.b FROM t2 t2_2
 WHERE t2_1.a = 3 AND t2_2.a = t2_1.a AND t2_2.b = t2_1.b
 AND f_leak(t2_1.b) AND f_leak(t2_2.b) RETURNING *, t2_1, t2_2;
-                           QUERY PLAN                            
------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Update on t2 t2_1
-   ->  Nested Loop
-         Join Filter: (t2_1.b = t2_2.b)
-         ->  Seq Scan on t2 t2_1
-               Filter: ((a = 3) AND ((a % 2) = 1) AND f_leak(b))
+   ->  Hash Join
+         Hash Cond: (t2_2.b = t2_1.b)
          ->  Seq Scan on t2 t2_2
                Filter: ((a = 3) AND ((a % 2) = 1) AND f_leak(b))
-(7 rows)
+         ->  Hash
+               ->  Seq Scan on t2 t2_1
+                     Filter: ((a = 3) AND ((a % 2) = 1) AND f_leak(b))
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 UPDATE t2 t2_1 SET b = t2_2.b FROM t2 t2_2
 WHERE t2_1.a = 3 AND t2_2.a = t2_1.a AND t2_2.b = t2_1.b
@@ -1799,8 +1850,8 @@ AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
    Update on t1 t1_1_1
    Update on t2 t1_1_2
    Update on t3 t1_1_3
-   ->  Nested Loop
-         Join Filter: (t1_1.b = t1_2.b)
+   ->  Hash Join
+         Hash Cond: (t1_1.b = t1_2.b)
          ->  Append
                ->  Seq Scan on t1 t1_1_1
                      Filter: ((a = 4) AND ((a % 2) = 0) AND f_leak(b))
@@ -1808,7 +1859,7 @@ AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
                      Filter: ((a = 4) AND ((a % 2) = 0) AND f_leak(b))
                ->  Seq Scan on t3 t1_1_3
                      Filter: ((a = 4) AND ((a % 2) = 0) AND f_leak(b))
-         ->  Materialize
+         ->  Hash
                ->  Append
                      ->  Seq Scan on t1 t1_2_1
                            Filter: ((a = 4) AND ((a % 2) = 0) AND f_leak(b))
@@ -1816,7 +1867,8 @@ AND f_leak(t1_1.b) AND f_leak(t1_2.b) RETURNING *, t1_1, t1_2;
                            Filter: ((a = 4) AND ((a % 2) = 0) AND f_leak(b))
                      ->  Seq Scan on t3 t1_2_3
                            Filter: ((a = 4) AND ((a % 2) = 0) AND f_leak(b))
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 UPDATE t1 t1_1 SET b = t1_2.b FROM t1 t1_2
 WHERE t1_1.a = 4 AND t1_2.a = t1_1.a AND t1_2.b = t1_1.b
@@ -1857,7 +1909,8 @@ EXPLAIN (COSTS OFF) DELETE FROM only t1 WHERE f_leak(b);
  Delete on t1
    ->  Seq Scan on t1
          Filter: (((a % 2) = 0) AND f_leak(b))
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 EXPLAIN (COSTS OFF) DELETE FROM t1 WHERE f_leak(b);
                      QUERY PLAN                      
@@ -1873,7 +1926,8 @@ EXPLAIN (COSTS OFF) DELETE FROM t1 WHERE f_leak(b);
                Filter: (((a % 2) = 0) AND f_leak(b))
          ->  Seq Scan on t3 t1_3
                Filter: (((a % 2) = 0) AND f_leak(b))
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 DELETE FROM only t1 WHERE f_leak(b) RETURNING tableoid::regclass, *, t1;
 NOTICE:  f_leak => bbbbbb_updt
@@ -1915,7 +1969,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM bv1 WHERE f_leak(b);
    Filter: f_leak(bv1.b)
    ->  Seq Scan on b1
          Filter: ((a > 0) AND ((a % 2) = 0))
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 SELECT * FROM bv1 WHERE f_leak(b);
 NOTICE:  f_leak => c81e728d9d4c2f636f067f89cc14862c
@@ -1943,7 +1998,8 @@ EXPLAIN (COSTS OFF) UPDATE bv1 SET b = 'yyy' WHERE a = 4 AND f_leak(b);
  Update on b1
    ->  Seq Scan on b1
          Filter: ((a > 0) AND (a = 4) AND ((a % 2) = 0) AND f_leak(b))
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 UPDATE bv1 SET b = 'yyy' WHERE a = 4 AND f_leak(b);
 NOTICE:  f_leak => a87ff679a2f3e71d9181a67b7542122c
@@ -1953,7 +2009,8 @@ EXPLAIN (COSTS OFF) DELETE FROM bv1 WHERE a = 6 AND f_leak(b);
  Delete on b1
    ->  Seq Scan on b1
          Filter: ((a > 0) AND (a = 6) AND ((a % 2) = 0) AND f_leak(b))
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 DELETE FROM bv1 WHERE a = 6 AND f_leak(b);
 NOTICE:  f_leak => 1679091c5a880faf6fb5e6087eb1b2dc
@@ -2148,7 +2205,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM z1 WHERE f_leak(b);
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 PREPARE plancache_test AS SELECT * FROM z1 WHERE f_leak(b);
 EXPLAIN (COSTS OFF) EXECUTE plancache_test;
@@ -2156,19 +2214,20 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test;
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 PREPARE plancache_test2 AS WITH q AS MATERIALIZED (SELECT * FROM z1 WHERE f_leak(b)) SELECT * FROM q,z2;
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
-                   QUERY PLAN                    
--------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z1
-           Filter: (((a % 2) = 0) AND f_leak(b))
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z1
+               Filter: (((a % 2) = 0) AND f_leak(b))
    ->  Materialize
          ->  Seq Scan on z2
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 PREPARE plancache_test3 AS WITH q AS MATERIALIZED (SELECT * FROM z2) SELECT * FROM q,z1 WHERE f_leak(z1.b);
@@ -2176,12 +2235,12 @@ EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                      QUERY PLAN                      
 -----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z2
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z2
    ->  Materialize
          ->  Seq Scan on z1
                Filter: (((a % 2) = 0) AND f_leak(b))
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 SET ROLE regress_rls_group1;
@@ -2199,37 +2258,39 @@ EXPLAIN (COSTS OFF) SELECT * FROM z1 WHERE f_leak(b);
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test;
                QUERY PLAN                
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
-                   QUERY PLAN                    
--------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z1
-           Filter: (((a % 2) = 0) AND f_leak(b))
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z1
+               Filter: (((a % 2) = 0) AND f_leak(b))
    ->  Materialize
          ->  Seq Scan on z2
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                      QUERY PLAN                      
 -----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z2
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z2
    ->  Materialize
          ->  Seq Scan on z1
                Filter: (((a % 2) = 0) AND f_leak(b))
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 SET SESSION AUTHORIZATION regress_rls_carol;
@@ -2247,37 +2308,39 @@ EXPLAIN (COSTS OFF) SELECT * FROM z1 WHERE f_leak(b);
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 1) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test;
                QUERY PLAN                
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 1) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
-                   QUERY PLAN                    
--------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z1
-           Filter: (((a % 2) = 1) AND f_leak(b))
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z1
+               Filter: (((a % 2) = 1) AND f_leak(b))
    ->  Materialize
          ->  Seq Scan on z2
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                      QUERY PLAN                      
 -----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z2
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z2
    ->  Materialize
          ->  Seq Scan on z1
                Filter: (((a % 2) = 1) AND f_leak(b))
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 SET ROLE regress_rls_group2;
@@ -2295,37 +2358,39 @@ EXPLAIN (COSTS OFF) SELECT * FROM z1 WHERE f_leak(b);
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 1) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test;
                QUERY PLAN                
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 1) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test2;
-                   QUERY PLAN                    
--------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z1
-           Filter: (((a % 2) = 1) AND f_leak(b))
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z1
+               Filter: (((a % 2) = 1) AND f_leak(b))
    ->  Materialize
          ->  Seq Scan on z2
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 EXPLAIN (COSTS OFF) EXECUTE plancache_test3;
                      QUERY PLAN                      
 -----------------------------------------------------
  Nested Loop
-   CTE q
-     ->  Seq Scan on z2
-   ->  CTE Scan on q
+   ->  Shared Scan (share slice:id -1:0)
+         ->  Seq Scan on z2
    ->  Materialize
          ->  Seq Scan on z1
                Filter: (((a % 2) = 1) AND f_leak(b))
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 --
@@ -2351,11 +2416,12 @@ NOTICE:  f_leak => dad
 (4 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
-     QUERY PLAN      
----------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on z1
    Filter: f_leak(b)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- Query as view/table owner.  Should return all records.
 SET SESSION AUTHORIZATION regress_rls_alice;
@@ -2373,11 +2439,12 @@ NOTICE:  f_leak => dad
 (4 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
-     QUERY PLAN      
----------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on z1
    Filter: f_leak(b)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 DROP VIEW rls_view;
 -- View and Table owners are different.
@@ -2401,7 +2468,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- Query as role that is not owner of table but is owner of view.
 -- Should return records based on view owner policies.
@@ -2420,7 +2488,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- Query as role that is not the owner of the table or view without permissions.
 SET SESSION AUTHORIZATION regress_rls_carol;
@@ -2445,7 +2514,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM rls_view;
 -----------------------------------------
  Seq Scan on z1
    Filter: (((a % 2) = 0) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SET SESSION AUTHORIZATION regress_rls_bob;
 DROP VIEW rls_view;
@@ -2579,11 +2649,12 @@ SET SESSION AUTHORIZATION regress_rls_alice;
 CREATE VIEW rls_sbv WITH (security_barrier) AS
     SELECT * FROM y1 WHERE f_leak(b);
 EXPLAIN (COSTS OFF) SELECT * FROM rls_sbv WHERE (a = 1);
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on y1
    Filter: (f_leak(b) AND (a = 1))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 DROP VIEW rls_sbv;
 -- Create view as role that does not own table.  RLS should be applied.
@@ -2595,7 +2666,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM rls_sbv WHERE (a = 1);
 ------------------------------------------------------------------
  Seq Scan on y1
    Filter: ((a = 1) AND ((a > 2) OR ((a % 2) = 0)) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 DROP VIEW rls_sbv;
 --
@@ -2603,6 +2675,7 @@ DROP VIEW rls_sbv;
 --
 SET SESSION AUTHORIZATION regress_rls_alice;
 INSERT INTO y2 (SELECT x, md5(x::text) FROM generate_series(0,20) x);
+ANALYZE y2;
 CREATE POLICY p2 ON y2 USING (a % 3 = 0);
 CREATE POLICY p3 ON y2 USING (a % 4 = 0);
 SET SESSION AUTHORIZATION regress_rls_bob;
@@ -2644,7 +2717,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM y2 WHERE f_leak(b);
 -----------------------------------------------------------------------------
  Seq Scan on y2
    Filter: ((((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0)) AND f_leak(b))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 --
 -- Qual push-down of leaky functions, when not referring to table
@@ -2694,12 +2768,14 @@ EXPLAIN (COSTS OFF) SELECT * FROM y2 WHERE f_leak('abc');
 ---------------------------------------------------------------------------------------
  Seq Scan on y2
    Filter: (f_leak('abc'::text) AND (((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0)))
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 CREATE TABLE test_qual_pushdown (
     abc text
 );
 INSERT INTO test_qual_pushdown VALUES ('abc'),('def');
+ANALYZE test_qual_pushdown;
 SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(abc);
 NOTICE:  f_leak => abc
 NOTICE:  f_leak => def
@@ -2708,16 +2784,17 @@ NOTICE:  f_leak => def
 (0 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(abc);
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Hash Join
-   Hash Cond: (test_qual_pushdown.abc = y2.b)
-   ->  Seq Scan on test_qual_pushdown
-         Filter: f_leak(abc)
+   Hash Cond: (y2.b = test_qual_pushdown.abc)
+   ->  Seq Scan on y2
+         Filter: (((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0))
    ->  Hash
-         ->  Seq Scan on y2
-               Filter: (((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0))
-(7 rows)
+         ->  Seq Scan on test_qual_pushdown
+               Filter: f_leak(abc)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(b);
 NOTICE:  f_leak => cfcd208495d565ef66e7dff9f98764da
@@ -2739,15 +2816,16 @@ NOTICE:  f_leak => 98f13708210194c475687be6106a3b84
 (0 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM y2 JOIN test_qual_pushdown ON (b = abc) WHERE f_leak(b);
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Hash Join
-   Hash Cond: (test_qual_pushdown.abc = y2.b)
-   ->  Seq Scan on test_qual_pushdown
+   Hash Cond: (y2.b = test_qual_pushdown.abc)
+   ->  Seq Scan on y2
+         Filter: ((((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0)) AND f_leak(b))
    ->  Hash
-         ->  Seq Scan on y2
-               Filter: ((((a % 4) = 0) OR ((a % 3) = 0) OR ((a % 2) = 0)) AND f_leak(b))
-(6 rows)
+         ->  Seq Scan on test_qual_pushdown
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 DROP TABLE test_qual_pushdown;
 --
@@ -2768,31 +2846,34 @@ SET ROLE regress_rls_bob;
 PREPARE role_inval AS SELECT * FROM t1;
 -- Check plan
 EXPLAIN (COSTS OFF) EXECUTE role_inval;
-       QUERY PLAN        
--------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on t1
    Filter: ((a % 2) = 0)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- Change to regress_rls_carol
 SET ROLE regress_rls_carol;
 -- Check plan- should be different
 EXPLAIN (COSTS OFF) EXECUTE role_inval;
-       QUERY PLAN        
--------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on t1
    Filter: ((a % 4) = 0)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- Change back to regress_rls_bob
 SET ROLE regress_rls_bob;
 -- Check plan- should be back to original
 EXPLAIN (COSTS OFF) EXECUTE role_inval;
-       QUERY PLAN        
--------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on t1
    Filter: ((a % 2) = 0)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 --
 -- CTE and RLS
@@ -2834,12 +2915,12 @@ NOTICE:  f_leak => 98f13708210194c475687be6106a3b84
 
 EXPLAIN (COSTS OFF)
 WITH cte1 AS MATERIALIZED (SELECT * FROM t1 WHERE f_leak(b)) SELECT * FROM cte1;
-                   QUERY PLAN                    
--------------------------------------------------
- CTE Scan on cte1
-   CTE cte1
-     ->  Seq Scan on t1
-           Filter: (((a % 2) = 0) AND f_leak(b))
+                  QUERY PLAN                   
+-----------------------------------------------
+ Shared Scan (share slice:id -1:0)
+   ->  Seq Scan on t1
+         Filter: (((a % 2) = 0) AND f_leak(b))
+ Optimizer: Postgres query optimizer
 (4 rows)
 
 WITH cte1 AS (UPDATE t1 SET a = a + 1 RETURNING *) SELECT * FROM cte1; --fail
@@ -2900,12 +2981,13 @@ SET SESSION AUTHORIZATION regress_rls_bob;
 CREATE TABLE t2 (a integer, b text);
 INSERT INTO t2 (SELECT * FROM t1);
 EXPLAIN (COSTS OFF) INSERT INTO t2 (SELECT * FROM t1);
-          QUERY PLAN           
--------------------------------
+             QUERY PLAN              
+-------------------------------------
  Insert on t2
    ->  Seq Scan on t1
          Filter: ((a % 2) = 0)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT * FROM t2;
  a  |                b                 
@@ -2925,10 +3007,11 @@ SELECT * FROM t2;
 (12 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t2;
-   QUERY PLAN   
-----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on t2
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 CREATE TABLE t3 AS SELECT * FROM t1;
 SELECT * FROM t3;
@@ -3060,10 +3143,11 @@ SELECT * FROM t1;
 (22 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1;
-   QUERY PLAN   
-----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on t1
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- Check that default deny does not apply to table owner.
 SET SESSION AUTHORIZATION regress_rls_alice;
@@ -3095,10 +3179,11 @@ SELECT * FROM t1;
 (22 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1;
-   QUERY PLAN   
-----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on t1
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- Check that default deny applies to non-owner/non-superuser when RLS on.
 SET SESSION AUTHORIZATION regress_rls_bob;
@@ -3109,11 +3194,12 @@ SELECT * FROM t1;
 (0 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SET SESSION AUTHORIZATION regress_rls_bob;
 SELECT * FROM t1;
@@ -3122,11 +3208,12 @@ SELECT * FROM t1;
 (0 rows)
 
 EXPLAIN (COSTS OFF) SELECT * FROM t1;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 --
 -- COPY TO/FROM
@@ -3357,8 +3444,15 @@ EXPLAIN (COSTS OFF) UPDATE current_check SET payload = payload WHERE CURRENT OF 
    ->  Tid Scan on current_check
          TID Cond: CURRENT OF current_check_cursor
          Filter: ((currentid = 4) AND ((currentid % 2) = 0))
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
+-- start_ignore
+-- GPDB: does not support backwards scans, commit and restart
+COMMIT;
+BEGIN;
+DECLARE current_check_cursor SCROLL CURSOR FOR SELECT * FROM current_check;
+-- end_ignore
 -- Similarly can only delete row 4
 FETCH ABSOLUTE 1 FROM current_check_cursor;
  currentid | payload |     rlsuser     
@@ -3374,7 +3468,7 @@ DELETE FROM current_check WHERE CURRENT OF current_check_cursor RETURNING *;
 FETCH RELATIVE 1 FROM current_check_cursor;
  currentid | payload |     rlsuser     
 -----------+---------+-----------------
-         4 | def     | regress_rls_bob
+         4 | def_new | regress_rls_bob
 (1 row)
 
 DELETE FROM current_check WHERE CURRENT OF current_check_cursor RETURNING *;
@@ -3670,6 +3764,7 @@ SET SESSION AUTHORIZATION regress_rls_alice;
 SET row_security = on;
 CREATE TABLE r1 (a int PRIMARY KEY);
 CREATE TABLE r2 (a int REFERENCES r1);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO r1 VALUES (10), (20);
 INSERT INTO r2 VALUES (10), (20);
 -- Create policies on r2 which prevent the
@@ -3679,9 +3774,8 @@ CREATE POLICY p1 ON r2 USING (false);
 ALTER TABLE r2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE r2 FORCE ROW LEVEL SECURITY;
 -- Errors due to rows in r2
+-- GPDB: Foreign key constraints are not enforced in GPDB, so no error.
 DELETE FROM r1;
-ERROR:  update or delete on table "r1" violates foreign key constraint "r2_a_fkey" on table "r2"
-DETAIL:  Key (a)=(10) is still referenced from table "r2".
 -- Reset r2 to no-RLS
 DROP POLICY p1 ON r2;
 ALTER TABLE r2 NO FORCE ROW LEVEL SECURITY;
@@ -3705,6 +3799,7 @@ DROP TABLE r1;
 -- Ensure cascaded DELETE works
 CREATE TABLE r1 (a int PRIMARY KEY);
 CREATE TABLE r2 (a int REFERENCES r1 ON DELETE CASCADE);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO r1 VALUES (10), (20);
 INSERT INTO r2 VALUES (10), (20);
 -- Create policies on r2 which prevent the
@@ -3719,16 +3814,20 @@ DELETE FROM r1;
 ALTER TABLE r2 NO FORCE ROW LEVEL SECURITY;
 -- As owner, we now bypass RLS
 -- verify no rows in r2 now
+-- GPDB: Foreign key constraints are not enforced in GPDB, hence the rows are still there.
 TABLE r2;
- a 
----
-(0 rows)
+ a  
+----
+ 10
+ 20
+(2 rows)
 
 DROP TABLE r2;
 DROP TABLE r1;
 -- Ensure cascaded UPDATE works
 CREATE TABLE r1 (a int PRIMARY KEY);
 CREATE TABLE r2 (a int REFERENCES r1 ON UPDATE CASCADE);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO r1 VALUES (10), (20);
 INSERT INTO r2 VALUES (10), (20);
 -- Create policies on r2 which prevent the
@@ -3738,6 +3837,7 @@ CREATE POLICY p1 ON r2 USING (false);
 ALTER TABLE r2 ENABLE ROW LEVEL SECURITY;
 ALTER TABLE r2 FORCE ROW LEVEL SECURITY;
 -- Updates records in both
+-- not supported in GPDB
 UPDATE r1 SET a = a+5;
 -- Remove FORCE from r2
 ALTER TABLE r2 NO FORCE ROW LEVEL SECURITY;
@@ -3746,8 +3846,8 @@ ALTER TABLE r2 NO FORCE ROW LEVEL SECURITY;
 TABLE r2;
  a  
 ----
- 15
- 25
+ 10
+ 20
 (2 rows)
 
 DROP TABLE r2;
@@ -3968,8 +4068,10 @@ INSERT INTO rls_tbl
                Sort Key: rls_tbl_1.a
                ->  Seq Scan on regress_rls_schema.rls_tbl rls_tbl_1
                      Output: rls_tbl_1.b, rls_tbl_1.c, rls_tbl_1.a
-                     Filter: (rls_tbl_1.* >= '(1,1,1)'::record)
-(9 rows)
+                     Filter: (rls_tbl_1.* >= ROW(1, 1, 1))
+ Settings: gp_enable_relsize_collection = 'on'
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 INSERT INTO rls_tbl
   SELECT * FROM (SELECT b, c FROM rls_tbl ORDER BY a) ss;

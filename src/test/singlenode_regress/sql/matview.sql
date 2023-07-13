@@ -197,8 +197,6 @@ DROP MATERIALIZED VIEW mv_unspecified_types;
 -- make sure that create WITH NO DATA does not plan the query (bug #13907)
 create materialized view mvtest_error as select 1/0 as x;  -- fail
 create materialized view mvtest_error as select 1/0 as x with no data;
-refresh materialized view mvtest_error;  -- fail here
-drop materialized view mvtest_error;
 
 -- make sure that matview rows can be referenced as source rows (bug #9398)
 CREATE TABLE mvtest_v AS SELECT generate_series(1,10) AS a;

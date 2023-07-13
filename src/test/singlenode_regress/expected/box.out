@@ -270,7 +270,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 << '(10,20),(30,40)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 << '(30,40),(10,20)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 &< '(10,4.333334),(5,100)';
              f1             
@@ -290,7 +291,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 &< '(10,4.333334),(5,100)';
 ----------------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 &< '(10,100),(5,4.333334)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 && '(15,20),(25,30)';
                     f1                     
@@ -319,7 +321,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 && '(15,20),(25,30)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 && '(25,30),(15,20)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 &> '(40,30),(45,50)';
         f1         
@@ -342,7 +345,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 &> '(40,30),(45,50)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 &> '(45,50),(40,30)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 >> '(30,40),(40,30)';
         f1         
@@ -364,7 +368,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 >> '(30,40),(40,30)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 >> '(40,40),(30,30)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 <<| '(10,4.33334),(5,100)';
             f1            
@@ -379,7 +384,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 <<| '(10,4.33334),(5,100)';
 ----------------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 <<| '(10,100),(5,4.33334)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 &<| '(10,4.3333334),(5,1)';
             f1            
@@ -394,7 +400,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 &<| '(10,4.3333334),(5,1)';
 ----------------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 &<| '(10,4.3333334),(5,1)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 |&> '(49.99,49.99),(49.99,49.99)';
           f1          
@@ -408,7 +415,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 |&> '(49.99,49.99),(49.99,49
 -----------------------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 |&> '(49.99,49.99),(49.99,49.99)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 |>> '(37,38),(39,40)';
           f1          
@@ -431,7 +439,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 |>> '(37,38),(39,40)';
 -----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 |>> '(39,40),(37,38)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 @> '(10,11),(15,16)';
                     f1                     
@@ -447,7 +456,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 @> '(10,11),(15,15)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 @> '(15,15),(10,11)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 <@ '(10,15),(30,35)';
        f1        
@@ -460,7 +470,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 <@ '(10,15),(30,35)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 <@ '(30,35),(10,15)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM box_temp WHERE f1 ~= '(20,20),(40,40)';
        f1        
@@ -473,7 +484,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM box_temp WHERE f1 ~= '(20,20),(40,40)';
 ----------------------------------------------
  Index Only Scan using box_spgist on box_temp
    Index Cond: (f1 ~= '(40,40),(20,20)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 RESET enable_seqscan;
 DROP INDEX box_spgist;
@@ -597,9 +609,11 @@ FROM quad_box_tbl;
                        QUERY PLAN                        
 ---------------------------------------------------------
  WindowAgg
+   Order By: (b <-> '(123,456)'::point)
    ->  Index Scan using quad_box_tbl_idx on quad_box_tbl
          Order By: (b <-> '(123,456)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 CREATE TEMP TABLE quad_box_tbl_ord_idx1 AS
 SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id
@@ -619,10 +633,12 @@ FROM quad_box_tbl WHERE b <@ box '((200,300),(500,600))';
                        QUERY PLAN                        
 ---------------------------------------------------------
  WindowAgg
+   Order By: (b <-> '(123,456)'::point)
    ->  Index Scan using quad_box_tbl_idx on quad_box_tbl
          Index Cond: (b <@ '(500,600),(200,300)'::box)
          Order By: (b <-> '(123,456)'::point)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 CREATE TEMP TABLE quad_box_tbl_ord_idx2 AS
 SELECT rank() OVER (ORDER BY b <-> point '123,456') n, b <-> point '123,456' dist, id

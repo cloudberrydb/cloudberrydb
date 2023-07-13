@@ -4,10 +4,12 @@
 /* If objects exist, return oids */
 CREATE ROLE regress_regrole_test;
 -- without schemaname
-SELECT regoper('||/');
+-- GPDB: Use !! instead of ||/ in the test, because ||/ is not unique in GPDB
+-- (there's an extra ||/ operator for complex datatype)
+SELECT regoper('!!');
  regoper 
 ---------
- ||/
+ !!
 (1 row)
 
 SELECT regoperator('+(int4,int4)');
@@ -46,10 +48,10 @@ SELECT regcollation('"POSIX"');
  "POSIX"
 (1 row)
 
-SELECT to_regoper('||/');
+SELECT to_regoper('!!');
  to_regoper 
 ------------
- ||/
+ !!
 (1 row)
 
 SELECT to_regoperator('+(int4,int4)');
@@ -89,10 +91,10 @@ SELECT to_regcollation('"POSIX"');
 (1 row)
 
 -- with schemaname
-SELECT regoper('pg_catalog.||/');
+SELECT regoper('pg_catalog.!!');
  regoper 
 ---------
- ||/
+ !!
 (1 row)
 
 SELECT regoperator('pg_catalog.+(int4,int4)');
@@ -131,10 +133,10 @@ SELECT regcollation('pg_catalog."POSIX"');
  "POSIX"
 (1 row)
 
-SELECT to_regoper('pg_catalog.||/');
+SELECT to_regoper('pg_catalog.!!');
  to_regoper 
 ------------
- ||/
+ !!
 (1 row)
 
 SELECT to_regproc('pg_catalog.now');

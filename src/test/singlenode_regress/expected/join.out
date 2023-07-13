@@ -1921,7 +1921,8 @@ where exists(select * from tenk1 b
                ->  Seq Scan on int4_tbl i4
    ->  Hash
          ->  Seq Scan on tenk1 b
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 --
 -- More complicated constructs
@@ -2245,7 +2246,9 @@ select count(*) from tenk1 x where
 -- try that with GEQO too
 begin;
 set geqo = on;
+WARNING:  "geqo": setting is ignored because it is defunct
 set geqo_threshold = 2;
+WARNING:  "geqo_threshold": setting is ignored because it is defunct
 select count(*) from tenk1 x where
   x.unique1 in (select a.f1 from int4_tbl a,float8_tbl b where a.f1=b.f1) and
   x.unique1 = 0 and
@@ -2263,11 +2266,12 @@ explain (costs off)
 select aa, bb, unique1, unique1
   from tenk1 right join b on aa = unique1
   where bb < bb and bb is null;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 select aa, bb, unique1, unique1
   from tenk1 right join b on aa = unique1
@@ -2293,7 +2297,8 @@ order by 1, 2;
          ->  Hash
                ->  Seq Scan on int8_tbl i2
                      Filter: (q1 = 123)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select * from int8_tbl i1 left join (int8_tbl i2 join
   (select 123 as x) ss on i2.q1 = x) on i1.q2 = i2.q2
@@ -2335,18 +2340,22 @@ select a.f1, b.f1, t.thousand, t.tenthous from
   (select sum(f1)+1 as f1 from int4_tbl i4a) a,
   (select sum(f1) as f1 from int4_tbl i4b) b
 where b.f1 = t.thousand and a.f1 = b.f1 and (a.f1+b.f1+999) = t.tenthous;
-                                                      QUERY PLAN                                                       
------------------------------------------------------------------------------------------------------------------------
- Nested Loop
-   ->  Aggregate
-         ->  Seq Scan on int4_tbl i4b
-   ->  Nested Loop
-         Join Filter: ((sum(i4b.f1)) = ((sum(i4a.f1) + 1)))
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
+ Hash Join
+   Hash Cond: (t.thousand = (sum(i4b.f1)))
+   Join Filter: (((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999) = t.tenthous)
+   ->  Hash Join
+         Hash Cond: (t.thousand = ((sum(i4a.f1) + 1)))
+         ->  Seq Scan on tenk1 t
+         ->  Hash
+               ->  Aggregate
+                     ->  Seq Scan on int4_tbl i4a
+   ->  Hash
          ->  Aggregate
-               ->  Seq Scan on int4_tbl i4a
-         ->  Index Only Scan using tenk1_thous_tenthous on tenk1 t
-               Index Cond: ((thousand = (sum(i4b.f1))) AND (tenthous = ((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999)))
-(9 rows)
+               ->  Seq Scan on int4_tbl i4b
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 select a.f1, b.f1, t.thousand, t.tenthous from
   tenk1 t,
@@ -2366,22 +2375,22 @@ select * from
   j1_tbl full join
   (select * from j2_tbl order by j2_tbl.i desc, j2_tbl.k asc) j2_tbl
   on j1_tbl.i = j2_tbl.i and j1_tbl.i = j2_tbl.k;
-                           QUERY PLAN                            
------------------------------------------------------------------
- Merge Full Join
-   Merge Cond: ((j2_tbl.i = j1_tbl.i) AND (j2_tbl.k = j1_tbl.i))
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Hash Full Join
+   Hash Cond: ((j2_tbl.i = j1_tbl.i) AND (j2_tbl.k = j1_tbl.i))
    ->  Sort
          Sort Key: j2_tbl.i DESC, j2_tbl.k
          ->  Seq Scan on j2_tbl
-   ->  Sort
-         Sort Key: j1_tbl.i DESC
+   ->  Hash
          ->  Seq Scan on j1_tbl
+ Optimizer: Postgres query optimizer
 (8 rows)
 
 select * from
   j1_tbl full join
   (select * from j2_tbl order by j2_tbl.i desc, j2_tbl.k asc) j2_tbl
-  on j1_tbl.i = j2_tbl.i and j1_tbl.i = j2_tbl.k;
+  on j1_tbl.i = j2_tbl.i and j1_tbl.i = j2_tbl.k; --order none
  i | j |   t   | i | k  
 ---+---+-------+---+----
    |   |       |   |  0
@@ -2405,6 +2414,8 @@ select * from
  0 |   | zero  |   |   
 (19 rows)
 
+reset enable_mergejoin;
+reset enable_hashjoin;
 --
 -- a different check for handling of redundant sort keys in merge joins
 --
@@ -2414,18 +2425,19 @@ select count(*) from
   left join
   (select * from tenk1 y order by y.unique2) y
   on x.thousand = y.unique2 and x.twothousand = y.hundred and x.fivethous = y.unique2;
-                                    QUERY PLAN                                    
-----------------------------------------------------------------------------------
+                                                 QUERY PLAN                                                  
+-------------------------------------------------------------------------------------------------------------
  Aggregate
-   ->  Merge Left Join
-         Merge Cond: (x.thousand = y.unique2)
-         Join Filter: ((x.twothousand = y.hundred) AND (x.fivethous = y.unique2))
+   ->  Hash Left Join
+         Hash Cond: ((x.thousand = y.unique2) AND (x.twothousand = y.hundred) AND (x.fivethous = y.unique2))
          ->  Sort
                Sort Key: x.thousand, x.twothousand, x.fivethous
                ->  Seq Scan on tenk1 x
-         ->  Materialize
-               ->  Index Scan using tenk1_unique2 on tenk1 y
-(9 rows)
+         ->  Hash
+               ->  Subquery Scan on y
+                     ->  Index Scan using tenk1_unique2 on tenk1 y_1
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 select count(*) from
   (select * from tenk1 x order by x.thousand, x.twothousand, x.fivethous) x
@@ -2488,11 +2500,11 @@ insert into t2a values (200, 2001);
 select * from t1 left join t2 on (t1.a = t2.a);
   a  |  b   |  a  |  b   
 -----+------+-----+------
-   5 |   10 |     |     
-  15 |   20 |     |     
- 100 |  100 |     |     
  200 | 1000 | 200 | 2000
  200 | 1000 | 200 | 2001
+ 100 |  100 |     |     
+  15 |   20 |     |     
+   5 |   10 |     |     
 (5 rows)
 
 -- Test matching of column name with wrong alias
@@ -2535,21 +2547,23 @@ reset enable_nestloop;
 -- regression test for bug #13908 (hash join with skew tuples & nbatch increase)
 --
 set work_mem to '64kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 set enable_mergejoin to off;
 set enable_memoize to off;
 explain (costs off)
 select count(*) from tenk1 a, tenk1 b
   where a.hundred = b.thousand and (b.fivethous % 10) < 10;
-                         QUERY PLAN                         
-------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Aggregate
    ->  Hash Join
-         Hash Cond: (a.hundred = b.thousand)
-         ->  Index Only Scan using tenk1_hundred on tenk1 a
+         Hash Cond: (b.thousand = a.hundred)
+         ->  Seq Scan on tenk1 b
+               Filter: ((fivethous % 10) < 10)
          ->  Hash
-               ->  Seq Scan on tenk1 b
-                     Filter: ((fivethous % 10) < 10)
-(7 rows)
+               ->  Index Only Scan using tenk1_hundred on tenk1 a
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select count(*) from tenk1 a, tenk1 b
   where a.hundred = b.thousand and (b.fivethous % 10) < 10;
@@ -2559,6 +2573,7 @@ select count(*) from tenk1 a, tenk1 b
 (1 row)
 
 reset work_mem;
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 reset enable_mergejoin;
 reset enable_memoize;
 --
@@ -2606,27 +2621,21 @@ where not exists (
    Hash Cond: (t1.c1 = t2.c2)
    ->  Seq Scan on tt4x t1
    ->  Hash
-         ->  Merge Right Join
-               Merge Cond: (t5.c1 = t3.c2)
-               ->  Merge Join
-                     Merge Cond: (t4.c2 = t5.c1)
-                     ->  Sort
-                           Sort Key: t4.c2
+         ->  Hash Left Join
+               Hash Cond: (t3.c2 = t5.c1)
+               ->  Hash Left Join
+                     Hash Cond: (t2.c3 = t3.c1)
+                     ->  Seq Scan on tt4x t2
+                     ->  Hash
+                           ->  Seq Scan on tt4x t3
+               ->  Hash
+                     ->  Hash Join
+                           Hash Cond: (t4.c2 = t5.c1)
                            ->  Seq Scan on tt4x t4
-                     ->  Sort
-                           Sort Key: t5.c1
-                           ->  Seq Scan on tt4x t5
-               ->  Sort
-                     Sort Key: t3.c2
-                     ->  Merge Left Join
-                           Merge Cond: (t2.c3 = t3.c1)
-                           ->  Sort
-                                 Sort Key: t2.c3
-                                 ->  Seq Scan on tt4x t2
-                           ->  Sort
-                                 Sort Key: t3.c1
-                                 ->  Seq Scan on tt4x t3
-(24 rows)
+                           ->  Hash
+                                 ->  Seq Scan on tt4x t5
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 --
 -- regression test for problems of the sort depicted in bug #3494
@@ -2751,6 +2760,20 @@ create temp table tidv (idv mycomptype);
 create index on tidv (idv);
 explain (costs off)
 select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
+             QUERY PLAN              
+-------------------------------------
+ Hash Join
+   Hash Cond: (a.idv = b.idv)
+   ->  Seq Scan on tidv a
+   ->  Hash
+         ->  Seq Scan on tidv b
+ Optimizer: Postgres query optimizer
+(6 rows)
+
+set enable_mergejoin = 0;
+set enable_hashjoin = 0;
+explain (costs off)
+select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
                         QUERY PLAN                        
 ----------------------------------------------------------
  Merge Join
@@ -2758,19 +2781,8 @@ select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
    ->  Index Only Scan using tidv_idv_idx on tidv a
    ->  Materialize
          ->  Index Only Scan using tidv_idv_idx on tidv b
-(5 rows)
-
-set enable_mergejoin = 0;
-set enable_hashjoin = 0;
-explain (costs off)
-select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
-                     QUERY PLAN                     
-----------------------------------------------------
- Nested Loop
-   ->  Seq Scan on tidv a
-   ->  Index Only Scan using tidv_idv_idx on tidv b
-         Index Cond: (idv = a.idv)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 rollback;
 --
@@ -2920,17 +2932,19 @@ SELECT qq, unique1
   ( SELECT COALESCE(q2, -1) AS qq FROM int8_tbl b ) AS ss2
   USING (qq)
   INNER JOIN tenk1 c ON qq = unique2;
-                                               QUERY PLAN                                                
----------------------------------------------------------------------------------------------------------
- Nested Loop
-   ->  Hash Full Join
-         Hash Cond: ((COALESCE(a.q1, '0'::bigint)) = (COALESCE(b.q2, '-1'::bigint)))
-         ->  Seq Scan on int8_tbl a
-         ->  Hash
-               ->  Seq Scan on int8_tbl b
-   ->  Index Scan using tenk1_unique2 on tenk1 c
-         Index Cond: (unique2 = COALESCE((COALESCE(a.q1, '0'::bigint)), (COALESCE(b.q2, '-1'::bigint))))
-(8 rows)
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
+ Hash Join
+   Hash Cond: (c.unique2 = COALESCE((COALESCE(a.q1, '0'::bigint)), (COALESCE(b.q2, '-1'::bigint))))
+   ->  Seq Scan on tenk1 c
+   ->  Hash
+         ->  Hash Full Join
+               Hash Cond: ((COALESCE(a.q1, '0'::bigint)) = (COALESCE(b.q2, '-1'::bigint)))
+               ->  Seq Scan on int8_tbl a
+               ->  Hash
+                     ->  Seq Scan on int8_tbl b
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 SELECT qq, unique1
   FROM
@@ -2961,12 +2975,14 @@ create temp table nt2 (
   b2 boolean,
   foreign key (nt1_id) references nt1(id)
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 create temp table nt3 (
   id int primary key,
   nt2_id int,
   c1 boolean,
   foreign key (nt2_id) references nt2(id)
 );
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 insert into nt1 values (1,true,true);
 insert into nt1 values (2,true,false);
 insert into nt1 values (3,false,false);
@@ -2988,18 +3004,21 @@ from nt3 as nt3
     ) as ss2
     on ss2.id = nt3.nt2_id
 where nt3.id = 1 and ss2.b3;
-                  QUERY PLAN                   
------------------------------------------------
- Nested Loop
-   ->  Nested Loop
-         ->  Index Scan using nt3_pkey on nt3
-               Index Cond: (id = 1)
-         ->  Index Scan using nt2_pkey on nt2
-               Index Cond: (id = nt3.nt2_id)
-   ->  Index Only Scan using nt1_pkey on nt1
-         Index Cond: (id = nt2.nt1_id)
-         Filter: (nt2.b1 AND (id IS NOT NULL))
-(9 rows)
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Hash Join
+   Hash Cond: (nt1.id = nt2.nt1_id)
+   Join Filter: (nt2.b1 AND ((nt1.id IS NOT NULL)))
+   ->  Seq Scan on nt1
+   ->  Hash
+         ->  Hash Join
+               Hash Cond: (nt2.id = nt3.nt2_id)
+               ->  Seq Scan on nt2
+               ->  Hash
+                     ->  Index Scan using nt3_pkey on nt3
+                           Index Cond: (id = 1)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 select nt3.id
 from nt3 as nt3
@@ -3034,7 +3053,7 @@ order by 1,2;
    Sort Key: t1.q1, t1.q2
    ->  Hash Left Join
          Hash Cond: (t1.q2 = t2.q1)
-         Filter: (1 = (SubPlan 1))
+         Filter: ((SubPlan 1) = 1)
          ->  Seq Scan on int8_tbl t1
          ->  Hash
                ->  Seq Scan on int8_tbl t2
@@ -3043,7 +3062,8 @@ order by 1,2;
                  ->  Result
                        One-Time Filter: ((42) IS NOT NULL)
                        ->  Seq Scan on int8_tbl t3
-(13 rows)
+ Optimizer: Postgres query optimizer
+(14 rows)
 
 select * from
   int8_tbl t1 left join
@@ -3092,7 +3112,8 @@ where i41.f1 > 0;
    ->  Materialize
          ->  Seq Scan on int4_tbl i43
                Filter: (f1 > 1)
-(12 rows)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 select * from
   int4_tbl as i41,
@@ -3188,44 +3209,45 @@ select * from
   tenk1 join int4_tbl on f1 = twothousand,
   q1, q2
 where q1 = thousand or q2 = thousand;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Hash Join
    Hash Cond: (tenk1.twothousand = int4_tbl.f1)
    ->  Nested Loop
+         ->  Seq Scan on q2
          ->  Nested Loop
                ->  Seq Scan on q1
-               ->  Seq Scan on q2
-         ->  Bitmap Heap Scan on tenk1
-               Recheck Cond: ((q1.q1 = thousand) OR (q2.q2 = thousand))
-               ->  BitmapOr
-                     ->  Bitmap Index Scan on tenk1_thous_tenthous
-                           Index Cond: (thousand = q1.q1)
-                     ->  Bitmap Index Scan on tenk1_thous_tenthous
-                           Index Cond: (thousand = q2.q2)
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: ((q1.q1 = thousand) OR (q2.q2 = thousand))
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_thous_tenthous
+                                 Index Cond: (thousand = q1.q1)
+                           ->  Bitmap Index Scan on tenk1_thous_tenthous
+                                 Index Cond: (thousand = q2.q2)
    ->  Hash
          ->  Seq Scan on int4_tbl
-(15 rows)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 explain (costs off)
 select * from
   tenk1 join int4_tbl on f1 = twothousand,
   q1, q2
 where thousand = (q1 + q2);
-                          QUERY PLAN                          
---------------------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Hash Join
-   Hash Cond: (tenk1.twothousand = int4_tbl.f1)
-   ->  Nested Loop
+   Hash Cond: (tenk1.thousand = (q1.q1 + q2.q2))
+   ->  Hash Join
+         Hash Cond: (tenk1.twothousand = int4_tbl.f1)
+         ->  Seq Scan on tenk1
+         ->  Hash
+               ->  Seq Scan on int4_tbl
+   ->  Hash
          ->  Nested Loop
                ->  Seq Scan on q1
                ->  Seq Scan on q2
-         ->  Bitmap Heap Scan on tenk1
-               Recheck Cond: (thousand = (q1.q1 + q2.q2))
-               ->  Bitmap Index Scan on tenk1_thous_tenthous
-                     Index Cond: (thousand = (q1.q1 + q2.q2))
-   ->  Hash
-         ->  Seq Scan on int4_tbl
+ Optimizer: Postgres query optimizer
 (12 rows)
 
 --
@@ -3235,17 +3257,21 @@ explain (costs off)
 select * from
   tenk1, int8_tbl a, int8_tbl b
 where thousand = a.q1 and tenthous = b.q1 and a.q2 = 1 and b.q2 = 2;
-                             QUERY PLAN                              
----------------------------------------------------------------------
- Nested Loop
-   ->  Seq Scan on int8_tbl b
-         Filter: (q2 = 2)
-   ->  Nested Loop
+                 QUERY PLAN                 
+--------------------------------------------
+ Hash Join
+   Hash Cond: (tenk1.thousand = a.q1)
+   ->  Hash Join
+         Hash Cond: (tenk1.tenthous = b.q1)
+         ->  Seq Scan on tenk1
+         ->  Hash
+               ->  Seq Scan on int8_tbl b
+                     Filter: (q2 = 2)
+   ->  Hash
          ->  Seq Scan on int8_tbl a
                Filter: (q2 = 1)
-         ->  Index Scan using tenk1_thous_tenthous on tenk1
-               Index Cond: ((thousand = a.q1) AND (tenthous = b.q1))
-(8 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 --
 -- test a corner case in which we shouldn't apply the star-schema optimization
@@ -3263,22 +3289,28 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   left join tenk1 t2
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                             QUERY PLAN                             
+--------------------------------------------------------------------
  Nested Loop
-   ->  Nested Loop
+   ->  Hash Join
+         Hash Cond: (t2.unique1 = (3))
          Join Filter: (t1.stringu1 > t2.stringu2)
-         ->  Nested Loop
-               ->  Nested Loop
-                     ->  Seq Scan on onerow
-                     ->  Seq Scan on onerow onerow_1
-               ->  Index Scan using tenk1_unique2 on tenk1 t1
-                     Index Cond: ((unique2 = (11)) AND (unique2 < 42))
-         ->  Index Scan using tenk1_unique1 on tenk1 t2
-               Index Cond: (unique1 = (3))
-   ->  Seq Scan on int4_tbl i1
-         Filter: (f1 = 0)
-(13 rows)
+         ->  Seq Scan on tenk1 t2
+         ->  Hash
+               ->  Hash Join
+                     Hash Cond: (t1.unique2 = (11))
+                     ->  Index Scan using tenk1_unique2 on tenk1 t1
+                           Index Cond: (unique2 < 42)
+                     ->  Hash
+                           ->  Nested Loop
+                                 Join Filter: (11 < 42)
+                                 ->  Seq Scan on onerow
+                                 ->  Seq Scan on onerow onerow_1
+   ->  Materialize
+         ->  Seq Scan on int4_tbl i1
+               Filter: (f1 = 0)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   tenk1 t1
@@ -3331,18 +3363,22 @@ select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   left join tenk1 t2
   on (subq1.y1 = t2.unique1)
 where t1.unique2 < 42 and t1.stringu1 > t2.stringu2;
-                           QUERY PLAN                            
------------------------------------------------------------------
- Nested Loop
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Hash Join
+   Hash Cond: (t2.unique1 = (3))
    Join Filter: (t1.stringu1 > t2.stringu2)
-   ->  Nested Loop
-         ->  Seq Scan on int4_tbl i1
-               Filter: (f1 = 0)
-         ->  Index Scan using tenk1_unique2 on tenk1 t1
-               Index Cond: ((unique2 = (11)) AND (unique2 < 42))
-   ->  Index Scan using tenk1_unique1 on tenk1 t2
-         Index Cond: (unique1 = (3))
-(9 rows)
+   ->  Seq Scan on tenk1 t2
+   ->  Hash
+         ->  Hash Join
+               Hash Cond: (t1.unique2 = (11))
+               ->  Index Scan using tenk1_unique2 on tenk1 t1
+                     Index Cond: (unique2 < 42)
+               ->  Hash
+                     ->  Seq Scan on int4_tbl i1
+                           Filter: ((11 < 42) AND (f1 = 0))
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 select t1.unique2, t1.stringu1, t2.unique1, t2.stringu2 from
   tenk1 t1
@@ -3367,17 +3403,20 @@ explain (verbose, costs off)
 select * from
   (select 1 as x) ss1 left join (select 2 as y) ss2 on (true),
   lateral (select ss2.y as z limit 1) ss3;
-        QUERY PLAN         
----------------------------
+             QUERY PLAN              
+-------------------------------------
  Nested Loop
    Output: 1, (2), ((2))
    ->  Result
          Output: 2
-   ->  Limit
+   ->  Materialize
          Output: ((2))
-         ->  Result
-               Output: (2)
-(8 rows)
+         ->  Limit
+               Output: ((2))
+               ->  Result
+                     Output: (2)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from
   (select 1 as x) ss1 left join (select 2 as y) ss2 on (true),
@@ -3406,7 +3445,8 @@ where b;
          ->  Result
          ->  Result
                One-Time Filter: (true)
-(6 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from
   (select 0 as z) as t1
@@ -3436,22 +3476,26 @@ where x = unique1;
 ----------------------------------------------
  Index Only Scan using tenk1_unique1 on tenk1
    Index Cond: (unique1 = 1)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 explain (verbose, costs off)
 select unique1, x.*
 from tenk1, (select *, random() from f_immutable_int4(1) x) x
 where x = unique1;
-                        QUERY PLAN                         
------------------------------------------------------------
- Nested Loop
+                                                                                                                      QUERY PLAN                                                                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Join
    Output: tenk1.unique1, (1), (random())
-   ->  Result
-         Output: 1, random()
-   ->  Index Only Scan using tenk1_unique1 on public.tenk1
-         Output: tenk1.unique1
-         Index Cond: (tenk1.unique1 = (1))
-(7 rows)
+   Hash Cond: (tenk1.unique1 = (1))
+   ->  Seq Scan on public.tenk1
+         Output: tenk1.unique1, tenk1.unique2, tenk1.two, tenk1.four, tenk1.ten, tenk1.twenty, tenk1.hundred, tenk1.thousand, tenk1.twothousand, tenk1.fivethous, tenk1.tenthous, tenk1.odd, tenk1.even, tenk1.stringu1, tenk1.stringu2, tenk1.string4
+   ->  Hash
+         Output: (1), (random())
+         ->  Result
+               Output: 1, random()
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 explain (costs off)
 select unique1 from tenk1, f_immutable_int4(1) x where x = unique1;
@@ -3459,7 +3503,8 @@ select unique1 from tenk1, f_immutable_int4(1) x where x = unique1;
 ----------------------------------------------
  Index Only Scan using tenk1_unique1 on tenk1
    Index Cond: (unique1 = 1)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 explain (costs off)
 select unique1 from tenk1, lateral f_immutable_int4(1) x where x = unique1;
@@ -3467,15 +3512,17 @@ select unique1 from tenk1, lateral f_immutable_int4(1) x where x = unique1;
 ----------------------------------------------
  Index Only Scan using tenk1_unique1 on tenk1
    Index Cond: (unique1 = 1)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 explain (costs off)
 select unique1 from tenk1, lateral f_immutable_int4(1) x where x in (select 17);
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 explain (costs off)
 select unique1, x from tenk1 join f_immutable_int4(1) x on unique1 = x;
@@ -3483,18 +3530,20 @@ select unique1, x from tenk1 join f_immutable_int4(1) x on unique1 = x;
 ----------------------------------------------
  Index Only Scan using tenk1_unique1 on tenk1
    Index Cond: (unique1 = 1)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 explain (costs off)
 select unique1, x from tenk1 left join f_immutable_int4(1) x on unique1 = x;
-                     QUERY PLAN                     
-----------------------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Nested Loop Left Join
    Join Filter: (tenk1.unique1 = 1)
-   ->  Index Only Scan using tenk1_unique1 on tenk1
+   ->  Seq Scan on tenk1
    ->  Materialize
          ->  Result
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (costs off)
 select unique1, x from tenk1 right join f_immutable_int4(1) x on unique1 = x;
@@ -3504,28 +3553,30 @@ select unique1, x from tenk1 right join f_immutable_int4(1) x on unique1 = x;
    ->  Result
    ->  Index Only Scan using tenk1_unique1 on tenk1
          Index Cond: (unique1 = 1)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 explain (costs off)
 select unique1, x from tenk1 full join f_immutable_int4(1) x on unique1 = x;
-                     QUERY PLAN                     
-----------------------------------------------------
- Merge Full Join
-   Merge Cond: (tenk1.unique1 = (1))
-   ->  Index Only Scan using tenk1_unique1 on tenk1
-   ->  Sort
-         Sort Key: (1)
+             QUERY PLAN              
+-------------------------------------
+ Hash Full Join
+   Hash Cond: (tenk1.unique1 = (1))
+   ->  Seq Scan on tenk1
+   ->  Hash
          ->  Result
+ Optimizer: Postgres query optimizer
 (6 rows)
 
 -- check that pullup of a const function allows further const-folding
 explain (costs off)
 select unique1 from tenk1, f_immutable_int4(1) x where x = 42;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- test inlining of immutable functions with PlaceHolderVars
 explain (costs off)
@@ -3542,16 +3593,19 @@ from nt3 as nt3
 where nt3.id = 1 and ss2.b3;
                   QUERY PLAN                  
 ----------------------------------------------
- Nested Loop Left Join
+ Hash Right Join
+   Hash Cond: (nt2.id = nt3.nt2_id)
    Filter: ((nt2.b1 OR ((0) = 42)))
-   ->  Index Scan using nt3_pkey on nt3
-         Index Cond: (id = 1)
    ->  Nested Loop Left Join
          Join Filter: (0 = nt2.nt1_id)
          ->  Index Scan using nt2_pkey on nt2
-               Index Cond: (id = nt3.nt2_id)
-         ->  Result
-(9 rows)
+         ->  Materialize
+               ->  Result
+   ->  Hash
+         ->  Index Scan using nt3_pkey on nt3
+               Index Cond: (id = 1)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 drop function f_immutable_int4(int);
 -- test inlining when function returns composite
@@ -3561,12 +3615,17 @@ create function mki4(int) returns int4_tbl as
 $$select row($1)::int4_tbl$$ language sql;
 explain (verbose, costs off)
 select * from mki8(1,2);
-             QUERY PLAN             
-------------------------------------
- Function Scan on mki8
-   Output: q1, q2
-   Function Call: '(1,2)'::int8_tbl
-(3 rows)
+                    QUERY PLAN                    
+--------------------------------------------------
+ Subquery Scan on sirvf_sq
+   Output: (sirvf_sq.mki8).q1, (sirvf_sq.mki8).q2
+   ->  Result
+         Output: $0
+         InitPlan 1 (returns $0)
+           ->  Result
+                 Output: '(1,2)'::int8_tbl
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select * from mki8(1,2);
  q1 | q2 
@@ -3576,12 +3635,17 @@ select * from mki8(1,2);
 
 explain (verbose, costs off)
 select * from mki4(42);
-            QUERY PLAN             
------------------------------------
- Function Scan on mki4
-   Output: f1
-   Function Call: '(42)'::int4_tbl
-(3 rows)
+                QUERY PLAN                
+------------------------------------------
+ Subquery Scan on sirvf_sq
+   Output: (sirvf_sq.mki4).f1
+   ->  Result
+         Output: $0
+         InitPlan 1 (returns $0)
+           ->  Result
+                 Output: '(42)'::int4_tbl
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select * from mki4(42);
  f1 
@@ -3602,22 +3666,23 @@ select * from tenk1 a join tenk1 b on
 -------------------------------------------------------------------------------------------------
  Nested Loop
    Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR ((a.unique2 = 3) AND (b.hundred = 4)))
-   ->  Bitmap Heap Scan on tenk1 b
-         Recheck Cond: ((unique1 = 2) OR (hundred = 4))
+   ->  Bitmap Heap Scan on tenk1 a
+         Recheck Cond: ((unique1 = 1) OR (unique2 = 3))
          ->  BitmapOr
                ->  Bitmap Index Scan on tenk1_unique1
-                     Index Cond: (unique1 = 2)
-               ->  Bitmap Index Scan on tenk1_hundred
-                     Index Cond: (hundred = 4)
+                     Index Cond: (unique1 = 1)
+               ->  Bitmap Index Scan on tenk1_unique2
+                     Index Cond: (unique2 = 3)
    ->  Materialize
-         ->  Bitmap Heap Scan on tenk1 a
-               Recheck Cond: ((unique1 = 1) OR (unique2 = 3))
+         ->  Bitmap Heap Scan on tenk1 b
+               Recheck Cond: ((unique1 = 2) OR (hundred = 4))
                ->  BitmapOr
                      ->  Bitmap Index Scan on tenk1_unique1
-                           Index Cond: (unique1 = 1)
-                     ->  Bitmap Index Scan on tenk1_unique2
-                           Index Cond: (unique2 = 3)
-(17 rows)
+                           Index Cond: (unique1 = 2)
+                     ->  Bitmap Index Scan on tenk1_hundred
+                           Index Cond: (hundred = 4)
+ Optimizer: Postgres query optimizer
+(18 rows)
 
 explain (costs off)
 select * from tenk1 a join tenk1 b on
@@ -3636,7 +3701,8 @@ select * from tenk1 a join tenk1 b on
                            Index Cond: (unique1 = 1)
                      ->  Bitmap Index Scan on tenk1_unique2
                            Index Cond: (unique2 = 3)
-(12 rows)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 explain (costs off)
 select * from tenk1 a join tenk1 b on
@@ -3646,24 +3712,25 @@ select * from tenk1 a join tenk1 b on
 ----------------------------------------------------------------------------------------------------------------------
  Nested Loop
    Join Filter: (((a.unique1 = 1) AND (b.unique1 = 2)) OR (((a.unique2 = 3) OR (a.unique2 = 7)) AND (b.hundred = 4)))
-   ->  Bitmap Heap Scan on tenk1 b
-         Recheck Cond: ((unique1 = 2) OR (hundred = 4))
+   ->  Bitmap Heap Scan on tenk1 a
+         Recheck Cond: ((unique1 = 1) OR (unique2 = 3) OR (unique2 = 7))
          ->  BitmapOr
                ->  Bitmap Index Scan on tenk1_unique1
-                     Index Cond: (unique1 = 2)
-               ->  Bitmap Index Scan on tenk1_hundred
-                     Index Cond: (hundred = 4)
+                     Index Cond: (unique1 = 1)
+               ->  Bitmap Index Scan on tenk1_unique2
+                     Index Cond: (unique2 = 3)
+               ->  Bitmap Index Scan on tenk1_unique2
+                     Index Cond: (unique2 = 7)
    ->  Materialize
-         ->  Bitmap Heap Scan on tenk1 a
-               Recheck Cond: ((unique1 = 1) OR (unique2 = 3) OR (unique2 = 7))
+         ->  Bitmap Heap Scan on tenk1 b
+               Recheck Cond: ((unique1 = 2) OR (hundred = 4))
                ->  BitmapOr
                      ->  Bitmap Index Scan on tenk1_unique1
-                           Index Cond: (unique1 = 1)
-                     ->  Bitmap Index Scan on tenk1_unique2
-                           Index Cond: (unique2 = 3)
-                     ->  Bitmap Index Scan on tenk1_unique2
-                           Index Cond: (unique2 = 7)
-(19 rows)
+                           Index Cond: (unique1 = 2)
+                     ->  Bitmap Index Scan on tenk1_hundred
+                           Index Cond: (hundred = 4)
+ Optimizer: Postgres query optimizer
+(20 rows)
 
 --
 -- test placement of movable quals in a parameterized join tree
@@ -3673,19 +3740,19 @@ select * from tenk1 t1 left join
   (tenk1 t2 join tenk1 t3 on t2.thousand = t3.unique2)
   on t1.hundred = t2.hundred and t1.ten = t3.ten
 where t1.unique1 = 1;
-                       QUERY PLAN                       
---------------------------------------------------------
- Nested Loop Left Join
-   ->  Index Scan using tenk1_unique1 on tenk1 t1
-         Index Cond: (unique1 = 1)
-   ->  Nested Loop
-         Join Filter: (t1.ten = t3.ten)
-         ->  Bitmap Heap Scan on tenk1 t2
-               Recheck Cond: (t1.hundred = hundred)
-               ->  Bitmap Index Scan on tenk1_hundred
-                     Index Cond: (hundred = t1.hundred)
-         ->  Index Scan using tenk1_unique2 on tenk1 t3
-               Index Cond: (unique2 = t2.thousand)
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Hash Right Join
+   Hash Cond: ((t2.hundred = t1.hundred) AND (t3.ten = t1.ten))
+   ->  Hash Join
+         Hash Cond: (t2.thousand = t3.unique2)
+         ->  Seq Scan on tenk1 t2
+         ->  Hash
+               ->  Seq Scan on tenk1 t3
+   ->  Hash
+         ->  Index Scan using tenk1_unique1 on tenk1 t1
+               Index Cond: (unique1 = 1)
+ Optimizer: Postgres query optimizer
 (11 rows)
 
 explain (costs off)
@@ -3695,41 +3762,44 @@ select * from tenk1 t1 left join
 where t1.unique1 = 1;
                        QUERY PLAN                       
 --------------------------------------------------------
- Nested Loop Left Join
-   ->  Index Scan using tenk1_unique1 on tenk1 t1
-         Index Cond: (unique1 = 1)
-   ->  Nested Loop
-         Join Filter: ((t1.ten + t2.ten) = t3.ten)
-         ->  Bitmap Heap Scan on tenk1 t2
-               Recheck Cond: (t1.hundred = hundred)
-               ->  Bitmap Index Scan on tenk1_hundred
-                     Index Cond: (hundred = t1.hundred)
-         ->  Index Scan using tenk1_unique2 on tenk1 t3
-               Index Cond: (unique2 = t2.thousand)
-(11 rows)
+ Hash Right Join
+   Hash Cond: (t2.hundred = t1.hundred)
+   Join Filter: ((t1.ten + t2.ten) = t3.ten)
+   ->  Hash Join
+         Hash Cond: (t2.thousand = t3.unique2)
+         ->  Seq Scan on tenk1 t2
+         ->  Hash
+               ->  Seq Scan on tenk1 t3
+   ->  Hash
+         ->  Index Scan using tenk1_unique1 on tenk1 t1
+               Index Cond: (unique1 = 1)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 explain (costs off)
 select count(*) from
   tenk1 a join tenk1 b on a.unique1 = b.unique2
   left join tenk1 c on a.unique2 = b.unique1 and c.thousand = a.thousand
   join int4_tbl on b.thousand = f1;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Aggregate
-   ->  Nested Loop Left Join
+   ->  Hash Right Join
+         Hash Cond: (c.thousand = a.thousand)
          Join Filter: (a.unique2 = b.unique1)
-         ->  Nested Loop
-               ->  Nested Loop
-                     ->  Seq Scan on int4_tbl
-                     ->  Bitmap Heap Scan on tenk1 b
-                           Recheck Cond: (thousand = int4_tbl.f1)
-                           ->  Bitmap Index Scan on tenk1_thous_tenthous
-                                 Index Cond: (thousand = int4_tbl.f1)
-               ->  Index Scan using tenk1_unique1 on tenk1 a
-                     Index Cond: (unique1 = b.unique2)
-         ->  Index Only Scan using tenk1_thous_tenthous on tenk1 c
-               Index Cond: (thousand = a.thousand)
-(14 rows)
+         ->  Seq Scan on tenk1 c
+         ->  Hash
+               ->  Hash Join
+                     Hash Cond: (a.unique1 = b.unique2)
+                     ->  Seq Scan on tenk1 a
+                     ->  Hash
+                           ->  Hash Join
+                                 Hash Cond: (b.thousand = int4_tbl.f1)
+                                 ->  Seq Scan on tenk1 b
+                                 ->  Hash
+                                       ->  Seq Scan on int4_tbl
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 select count(*) from
   tenk1 a join tenk1 b on a.unique1 = b.unique2
@@ -3747,24 +3817,30 @@ select b.unique1 from
   join int4_tbl i1 on b.thousand = f1
   right join int4_tbl i2 on i2.f1 = b.tenthous
   order by 1;
-                                       QUERY PLAN                                        
------------------------------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Sort
    Sort Key: b.unique1
-   ->  Nested Loop Left Join
-         ->  Seq Scan on int4_tbl i2
-         ->  Nested Loop Left Join
+   ->  Hash Right Join
+         Hash Cond: (b.tenthous = i2.f1)
+         ->  Hash Right Join
+               Hash Cond: (c.thousand = a.thousand)
                Join Filter: (b.unique1 = 42)
-               ->  Nested Loop
-                     ->  Nested Loop
-                           ->  Seq Scan on int4_tbl i1
-                           ->  Index Scan using tenk1_thous_tenthous on tenk1 b
-                                 Index Cond: ((thousand = i1.f1) AND (tenthous = i2.f1))
-                     ->  Index Scan using tenk1_unique1 on tenk1 a
-                           Index Cond: (unique1 = b.unique2)
-               ->  Index Only Scan using tenk1_thous_tenthous on tenk1 c
-                     Index Cond: (thousand = a.thousand)
-(15 rows)
+               ->  Seq Scan on tenk1 c
+               ->  Hash
+                     ->  Hash Join
+                           Hash Cond: (a.unique1 = b.unique2)
+                           ->  Seq Scan on tenk1 a
+                           ->  Hash
+                                 ->  Hash Join
+                                       Hash Cond: (b.thousand = i1.f1)
+                                       ->  Seq Scan on tenk1 b
+                                       ->  Hash
+                                             ->  Seq Scan on int4_tbl i1
+         ->  Hash
+               ->  Seq Scan on int4_tbl i2
+ Optimizer: Postgres query optimizer
+(21 rows)
 
 select b.unique1 from
   tenk1 a join tenk1 b on a.unique1 = b.unique2
@@ -3791,12 +3867,14 @@ where fault = 122
 order by fault;
                                 QUERY PLAN                                
 --------------------------------------------------------------------------
- Nested Loop Left Join
+ Hash Right Join
+   Hash Cond: (tenk1.unique2 = int8_tbl.q2)
    Filter: ((COALESCE(tenk1.unique1, '-1'::integer) + int8_tbl.q1) = 122)
-   ->  Seq Scan on int8_tbl
-   ->  Index Scan using tenk1_unique2 on tenk1
-         Index Cond: (unique2 = int8_tbl.q2)
-(5 rows)
+   ->  Seq Scan on tenk1
+   ->  Hash
+         ->  Seq Scan on int8_tbl
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from
 (
@@ -3815,17 +3893,18 @@ select * from
 (values (1, array[10,20]), (2, array[20,30])) as v1(v1x,v1ys)
 left join (values (1, 10), (2, 20)) as v2(v2x,v2y) on v2x = v1x
 left join unnest(v1ys) as u1(u1y) on u1y = v2y;
-                         QUERY PLAN                          
--------------------------------------------------------------
+                           QUERY PLAN                           
+----------------------------------------------------------------
  Nested Loop Left Join
-   ->  Values Scan on "*VALUES*"
-   ->  Hash Right Join
-         Hash Cond: (u1.u1y = "*VALUES*_1".column2)
-         Filter: ("*VALUES*_1".column1 = "*VALUES*".column1)
-         ->  Function Scan on unnest u1
+   Join Filter: (u1.u1y = "*VALUES*_1".column2)
+   ->  Hash Left Join
+         Hash Cond: ("*VALUES*".column1 = "*VALUES*_1".column1)
+         ->  Values Scan on "*VALUES*"
          ->  Hash
                ->  Values Scan on "*VALUES*_1"
-(8 rows)
+   ->  Function Scan on unnest u1
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select * from
 (values (1, array[10,20]), (2, array[20,30])) as v1(v1x,v1ys)
@@ -3846,12 +3925,14 @@ select q1, unique2, thousand, hundred
   where coalesce(thousand,123) = q1 and q1 = coalesce(hundred,123);
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
- Nested Loop Left Join
+ Hash Right Join
+   Hash Cond: (b.unique2 = a.q1)
    Filter: ((COALESCE(b.thousand, 123) = a.q1) AND (a.q1 = COALESCE(b.hundred, 123)))
-   ->  Seq Scan on int8_tbl a
-   ->  Index Scan using tenk1_unique2 on tenk1 b
-         Index Cond: (unique2 = a.q1)
-(5 rows)
+   ->  Seq Scan on tenk1 b
+   ->  Hash
+         ->  Seq Scan on int8_tbl a
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select q1, unique2, thousand, hundred
   from int8_tbl a left join tenk1 b on q1 = unique2
@@ -3866,12 +3947,14 @@ select f1, unique2, case when unique2 is null then f1 else 0 end
   where (case when unique2 is null then f1 else 0 end) = 0;
                              QUERY PLAN                             
 --------------------------------------------------------------------
- Nested Loop Left Join
+ Hash Right Join
+   Hash Cond: (b.unique2 = a.f1)
    Filter: (CASE WHEN (b.unique2 IS NULL) THEN a.f1 ELSE 0 END = 0)
-   ->  Seq Scan on int4_tbl a
-   ->  Index Only Scan using tenk1_unique2 on tenk1 b
-         Index Cond: (unique2 = a.f1)
-(5 rows)
+   ->  Seq Scan on tenk1 b
+   ->  Hash
+         ->  Seq Scan on int4_tbl a
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select f1, unique2, case when unique2 is null then f1 else 0 end
   from int4_tbl a left join tenk1 b on f1 = unique2
@@ -3888,20 +3971,22 @@ explain (costs off)
 select a.unique1, b.unique1, c.unique1, coalesce(b.twothousand, a.twothousand)
   from tenk1 a left join tenk1 b on b.thousand = a.unique1                        left join tenk1 c on c.unique2 = coalesce(b.twothousand, a.twothousand)
   where a.unique2 < 10 and coalesce(b.twothousand, a.twothousand) = 44;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
- Nested Loop Left Join
-   ->  Nested Loop Left Join
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Hash Left Join
+   Hash Cond: (COALESCE(b.twothousand, a.twothousand) = c.unique2)
+   ->  Hash Right Join
+         Hash Cond: (b.thousand = a.unique1)
          Filter: (COALESCE(b.twothousand, a.twothousand) = 44)
-         ->  Index Scan using tenk1_unique2 on tenk1 a
-               Index Cond: (unique2 < 10)
-         ->  Bitmap Heap Scan on tenk1 b
-               Recheck Cond: (thousand = a.unique1)
-               ->  Bitmap Index Scan on tenk1_thous_tenthous
-                     Index Cond: (thousand = a.unique1)
-   ->  Index Scan using tenk1_unique2 on tenk1 c
-         Index Cond: ((unique2 = COALESCE(b.twothousand, a.twothousand)) AND (unique2 = 44))
-(11 rows)
+         ->  Seq Scan on tenk1 b
+         ->  Hash
+               ->  Index Scan using tenk1_unique2 on tenk1 a
+                     Index Cond: (unique2 < 10)
+   ->  Hash
+         ->  Index Scan using tenk1_unique2 on tenk1 c
+               Index Cond: (unique2 = 44)
+ Optimizer: Postgres query optimizer
+(13 rows)
 
 select a.unique1, b.unique1, c.unique1, coalesce(b.twothousand, a.twothousand)
   from tenk1 a left join tenk1 b on b.thousand = a.unique1                        left join tenk1 c on c.unique2 = coalesce(b.twothousand, a.twothousand)
@@ -3926,23 +4011,26 @@ left join
    using (join_key)
   ) foo3
 using (join_key);
-                                QUERY PLAN                                
---------------------------------------------------------------------------
- Nested Loop Left Join
+                                                                                                 QUERY PLAN                                                                                                  
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Right Join
    Output: "*VALUES*".column1, i1.f1, (666)
-   Join Filter: ("*VALUES*".column1 = i1.f1)
-   ->  Values Scan on "*VALUES*"
-         Output: "*VALUES*".column1
-   ->  Materialize
-         Output: i1.f1, (666)
-         ->  Nested Loop Left Join
-               Output: i1.f1, 666
+   Hash Cond: (i1.f1 = "*VALUES*".column1)
+   ->  Hash Right Join
+         Output: i1.f1, 666
+         Hash Cond: (i2.unique2 = i1.f1)
+         ->  Seq Scan on public.tenk1 i2
+               Output: i2.unique1, i2.unique2, i2.two, i2.four, i2.ten, i2.twenty, i2.hundred, i2.thousand, i2.twothousand, i2.fivethous, i2.tenthous, i2.odd, i2.even, i2.stringu1, i2.stringu2, i2.string4
+         ->  Hash
+               Output: i1.f1
                ->  Seq Scan on public.int4_tbl i1
                      Output: i1.f1
-               ->  Index Only Scan using tenk1_unique2 on public.tenk1 i2
-                     Output: i2.unique2
-                     Index Cond: (i2.unique2 = i1.f1)
-(14 rows)
+   ->  Hash
+         Output: "*VALUES*".column1
+         ->  Values Scan on "*VALUES*"
+               Output: "*VALUES*".column1
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 select foo1.join_key as foo1_id, foo3.join_key AS foo3_id, bug_field from
   (values (0),(1)) foo1(join_key)
@@ -4008,7 +4096,8 @@ select t1.* from
          Output: i4.f1
          ->  Seq Scan on public.int4_tbl i4
                Output: i4.f1
-(30 rows)
+ Optimizer: Postgres query optimizer
+(31 rows)
 
 select t1.* from
   text_tbl t1
@@ -4073,7 +4162,8 @@ select t1.* from
          Output: i4.f1
          ->  Seq Scan on public.int4_tbl i4
                Output: i4.f1
-(34 rows)
+ Optimizer: Postgres query optimizer
+(35 rows)
 
 select t1.* from
   text_tbl t1
@@ -4142,7 +4232,8 @@ select t1.* from
          Output: i4.f1
          ->  Seq Scan on public.int4_tbl i4
                Output: i4.f1
-(37 rows)
+ Optimizer: Postgres query optimizer
+(38 rows)
 
 select t1.* from
   text_tbl t1
@@ -4170,8 +4261,8 @@ select * from
   on t1.f1 = 'doh!'
   left join int4_tbl i4
   on i8.q1 = i4.f1;
-                       QUERY PLAN                       
---------------------------------------------------------
+                          QUERY PLAN                          
+--------------------------------------------------------------
  Nested Loop Left Join
    Output: t1.f1, i8.q1, i8.q2, t2.f1, i4.f1
    ->  Seq Scan on public.text_tbl t2
@@ -4180,18 +4271,23 @@ select * from
          Output: i8.q1, i8.q2, i4.f1, t1.f1
          ->  Nested Loop
                Output: i8.q1, i8.q2, i4.f1, t1.f1
-               ->  Nested Loop Left Join
+               ->  Hash Right Join
                      Output: i8.q1, i8.q2, i4.f1
-                     Join Filter: (i8.q1 = i4.f1)
-                     ->  Seq Scan on public.int8_tbl i8
-                           Output: i8.q1, i8.q2
-                           Filter: (i8.q2 = 456)
+                     Hash Cond: (i4.f1 = i8.q1)
                      ->  Seq Scan on public.int4_tbl i4
                            Output: i4.f1
-               ->  Seq Scan on public.text_tbl t1
+                     ->  Hash
+                           Output: i8.q1, i8.q2
+                           ->  Seq Scan on public.int8_tbl i8
+                                 Output: i8.q1, i8.q2
+                                 Filter: (i8.q2 = 456)
+               ->  Materialize
                      Output: t1.f1
-                     Filter: (t1.f1 = 'doh!'::text)
-(19 rows)
+                     ->  Seq Scan on public.text_tbl t1
+                           Output: t1.f1
+                           Filter: (t1.f1 = 'doh!'::text)
+ Optimizer: Postgres query optimizer
+(24 rows)
 
 select * from
   text_tbl t1
@@ -4231,15 +4327,14 @@ where t1.f1 = ss.f1;
                ->  Seq Scan on public.int8_tbl i8
                      Output: i8.q1, i8.q2
                      Filter: (i8.q2 = 123)
-   ->  Memoize
+   ->  Materialize
          Output: (i8.q1), t2.f1
-         Cache Key: i8.q1
-         Cache Mode: binary
          ->  Limit
                Output: (i8.q1), t2.f1
                ->  Seq Scan on public.text_tbl t2
                      Output: i8.q1, t2.f1
-(20 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 select * from
   text_tbl t1
@@ -4276,23 +4371,20 @@ where t1.f1 = ss2.f1;
                      ->  Seq Scan on public.int8_tbl i8
                            Output: i8.q1, i8.q2
                            Filter: (i8.q2 = 123)
-         ->  Memoize
+         ->  Materialize
                Output: (i8.q1), t2.f1
-               Cache Key: i8.q1
-               Cache Mode: binary
                ->  Limit
                      Output: (i8.q1), t2.f1
                      ->  Seq Scan on public.text_tbl t2
                            Output: i8.q1, t2.f1
-   ->  Memoize
+   ->  Materialize
          Output: ((i8.q1)), (t2.f1)
-         Cache Key: (i8.q1), t2.f1
-         Cache Mode: binary
          ->  Limit
                Output: ((i8.q1)), (t2.f1)
                ->  Seq Scan on public.text_tbl t3
                      Output: (i8.q1), t2.f1
-(30 rows)
+ Optimizer: Postgres query optimizer
+(27 rows)
 
 select * from
   text_tbl t1
@@ -4318,30 +4410,30 @@ where tt1.f1 = ss1.c0;
 ----------------------------------------------------------
  Nested Loop
    Output: 1
-   ->  Nested Loop Left Join
+   ->  Hash Left Join
          Output: tt1.f1, tt4.f1
-         ->  Nested Loop
-               Output: tt1.f1
-               ->  Seq Scan on public.text_tbl tt1
+         Hash Cond: (tt3.f1 = tt4.f1)
+         ->  Nested Loop Left Join
+               Output: tt1.f1, tt3.f1
+               ->  Nested Loop
                      Output: tt1.f1
-                     Filter: (tt1.f1 = 'foo'::text)
-               ->  Seq Scan on public.text_tbl tt2
-                     Output: tt2.f1
-         ->  Materialize
-               Output: tt4.f1
-               ->  Nested Loop Left Join
-                     Output: tt4.f1
-                     Join Filter: (tt3.f1 = tt4.f1)
+                     ->  Seq Scan on public.text_tbl tt1
+                           Output: tt1.f1
+                           Filter: (tt1.f1 = 'foo'::text)
+                     ->  Seq Scan on public.text_tbl tt2
+                           Output: tt2.f1
+               ->  Materialize
+                     Output: tt3.f1
                      ->  Seq Scan on public.text_tbl tt3
                            Output: tt3.f1
                            Filter: (tt3.f1 = 'foo'::text)
-                     ->  Seq Scan on public.text_tbl tt4
-                           Output: tt4.f1
-                           Filter: (tt4.f1 = 'foo'::text)
-   ->  Memoize
+         ->  Hash
+               Output: tt4.f1
+               ->  Seq Scan on public.text_tbl tt4
+                     Output: tt4.f1
+                     Filter: (tt4.f1 = 'foo'::text)
+   ->  Materialize
          Output: ss1.c0
-         Cache Key: tt4.f1
-         Cache Mode: binary
          ->  Subquery Scan on ss1
                Output: ss1.c0
                Filter: (ss1.c0 = 'foo'::text)
@@ -4349,7 +4441,8 @@ where tt1.f1 = ss1.c0;
                      Output: (tt4.f1)
                      ->  Seq Scan on public.text_tbl tt5
                            Output: tt4.f1
-(33 rows)
+ Optimizer: Postgres query optimizer
+(34 rows)
 
 select 1 from
   text_tbl as tt1
@@ -4375,34 +4468,41 @@ select ss2.* from
   on i41.f1 = ss1.c1,
   lateral (select i41.*, i8.*, ss1.* from text_tbl limit 1) ss2
 where ss1.c2 = 0;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Nested Loop
    Output: (i41.f1), (i8.q1), (i8.q2), (i42.f1), (i43.f1), ((42))
-   ->  Hash Join
+   ->  Nested Loop
          Output: i41.f1, i42.f1, i8.q1, i8.q2, i43.f1, 42
-         Hash Cond: (i41.f1 = i42.f1)
          ->  Nested Loop
-               Output: i8.q1, i8.q2, i43.f1, i41.f1
-               ->  Nested Loop
-                     Output: i8.q1, i8.q2, i43.f1
+               Output: i41.f1, i42.f1, i8.q1, i8.q2
+               ->  Hash Join
+                     Output: i41.f1, i42.f1
+                     Hash Cond: (i41.f1 = i42.f1)
+                     ->  Seq Scan on public.int4_tbl i41
+                           Output: i41.f1
+                     ->  Hash
+                           Output: i42.f1
+                           ->  Seq Scan on public.int4_tbl i42
+                                 Output: i42.f1
+               ->  Materialize
+                     Output: i8.q1, i8.q2
                      ->  Seq Scan on public.int8_tbl i8
                            Output: i8.q1, i8.q2
                            Filter: (i8.q1 = 0)
-                     ->  Seq Scan on public.int4_tbl i43
-                           Output: i43.f1
-                           Filter: (i43.f1 = 0)
-               ->  Seq Scan on public.int4_tbl i41
-                     Output: i41.f1
-         ->  Hash
-               Output: i42.f1
-               ->  Seq Scan on public.int4_tbl i42
-                     Output: i42.f1
-   ->  Limit
+         ->  Materialize
+               Output: i43.f1
+               ->  Seq Scan on public.int4_tbl i43
+                     Output: i43.f1
+                     Filter: (i43.f1 = 0)
+   ->  Materialize
          Output: (i41.f1), (i8.q1), (i8.q2), (i42.f1), (i43.f1), ((42))
-         ->  Seq Scan on public.text_tbl
-               Output: i41.f1, i8.q1, i8.q2, i42.f1, i43.f1, (42)
-(25 rows)
+         ->  Limit
+               Output: (i41.f1), (i8.q1), (i8.q2), (i42.f1), (i43.f1), ((42))
+               ->  Seq Scan on public.text_tbl
+                     Output: i41.f1, i8.q1, i8.q2, i42.f1, i43.f1, (42)
+ Optimizer: Postgres query optimizer
+(32 rows)
 
 select ss2.* from
   int4_tbl i41
@@ -4436,7 +4536,8 @@ select * from
          ->  Seq Scan on tenk1 a1
          ->  Hash
                ->  Result
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select * from
   (select 1 as id) as xx
@@ -4455,25 +4556,29 @@ explain (costs off)
   select * from int4_tbl a left join tenk1 b on f1 = unique2 where f1 = 0;
                    QUERY PLAN                    
 -------------------------------------------------
- Nested Loop Left Join
-   Join Filter: (a.f1 = b.unique2)
-   ->  Seq Scan on int4_tbl a
-         Filter: (f1 = 0)
+ Hash Right Join
+   Hash Cond: (b.unique2 = a.f1)
    ->  Index Scan using tenk1_unique2 on tenk1 b
          Index Cond: (unique2 = 0)
-(6 rows)
+   ->  Hash
+         ->  Seq Scan on int4_tbl a
+               Filter: (f1 = 0)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 explain (costs off)
   select * from tenk1 a full join tenk1 b using(unique2) where unique2 = 42;
-                   QUERY PLAN                    
--------------------------------------------------
- Merge Full Join
-   Merge Cond: (a.unique2 = b.unique2)
+                      QUERY PLAN                       
+-------------------------------------------------------
+ Hash Full Join
+   Hash Cond: (a.unique2 = b.unique2)
    ->  Index Scan using tenk1_unique2 on tenk1 a
          Index Cond: (unique2 = 42)
-   ->  Index Scan using tenk1_unique2 on tenk1 b
-         Index Cond: (unique2 = 42)
-(6 rows)
+   ->  Hash
+         ->  Index Scan using tenk1_unique2 on tenk1 b
+               Index Cond: (unique2 = 42)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 --
 -- test that quals attached to an outer join have correct semantics,
@@ -4486,23 +4591,21 @@ explain (verbose, costs off)
   select a.q2, b.q1
     from int8_tbl a left join int8_tbl b on a.q2 = coalesce(b.q1, 1)
     where coalesce(b.q1, 1) > 0;
-                       QUERY PLAN                        
----------------------------------------------------------
- Merge Left Join
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Nested Loop Left Join
    Output: a.q2, b.q1
-   Merge Cond: (a.q2 = (COALESCE(b.q1, '1'::bigint)))
+   Join Filter: (a.q2 = COALESCE(b.q1, '1'::bigint))
    Filter: (COALESCE(b.q1, '1'::bigint) > 0)
-   ->  Sort
-         Output: a.q2
-         Sort Key: a.q2
-         ->  Seq Scan on public.int8_tbl a
-               Output: a.q2
-   ->  Sort
-         Output: b.q1, (COALESCE(b.q1, '1'::bigint))
-         Sort Key: (COALESCE(b.q1, '1'::bigint))
+   ->  Seq Scan on public.int8_tbl a
+         Output: a.q1, a.q2
+   ->  Materialize
+         Output: b.q1
          ->  Seq Scan on public.int8_tbl b
-               Output: b.q1, COALESCE(b.q1, '1'::bigint)
-(14 rows)
+               Output: b.q1
+ Settings: enable_hashjoin = 'off', enable_nestloop = 'off'
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 select a.q2, b.q1
   from int8_tbl a left join int8_tbl b on a.q2 = coalesce(b.q1, 1)
@@ -4537,57 +4640,63 @@ INSERT INTO c VALUES (0), (1);
 INSERT INTO d VALUES (1,3), (2,2), (3,1);
 -- all three cases should be optimizable into a simple seqscan
 explain (costs off) SELECT a.* FROM a LEFT JOIN b ON a.b_id = b.id;
-  QUERY PLAN   
----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on a
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 explain (costs off) SELECT b.* FROM b LEFT JOIN c ON b.c_id = c.id;
-  QUERY PLAN   
----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on b
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 explain (costs off)
   SELECT a.* FROM a LEFT JOIN (b left join c on b.c_id = c.id)
   ON (a.b_id = b.id);
-  QUERY PLAN   
----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on a
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- check optimization of outer join within another special join
 explain (costs off)
 select id from a where id in (
 	select b.id from b left join c on b.id = c.id
 );
-         QUERY PLAN         
-----------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Join
    Hash Cond: (a.id = b.id)
    ->  Seq Scan on a
    ->  Hash
          ->  Seq Scan on b
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- check that join removal works for a left join when joining a subquery
 -- that is guaranteed to be unique by its GROUP BY clause
 explain (costs off)
 select d.* from d left join (select * from b group by b.id, b.c_id) s
   on d.a = s.id and d.b = s.c_id;
-  QUERY PLAN   
----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on d
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- similarly, but keying off a DISTINCT clause
 explain (costs off)
 select d.* from d left join (select distinct * from b) s
   on d.a = s.id and d.b = s.c_id;
-  QUERY PLAN   
----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on d
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- join removal is not possible when the GROUP BY contains a column that is
 -- not in the join condition.  (Note: as of 9.6, we notice that b.id is a
@@ -4598,51 +4707,52 @@ select d.* from d left join (select * from b group by b.id, b.c_id) s
   on d.a = s.id;
                 QUERY PLAN                
 ------------------------------------------
- Merge Right Join
-   Merge Cond: (b.id = d.a)
-   ->  Group
+ Hash Right Join
+   Hash Cond: (b.id = d.a)
+   ->  GroupAggregate
          Group Key: b.id
          ->  Index Scan using b_pkey on b
-   ->  Sort
-         Sort Key: d.a
+   ->  Hash
          ->  Seq Scan on d
+ Optimizer: Postgres query optimizer
 (8 rows)
 
 -- similarly, but keying off a DISTINCT clause
 explain (costs off)
 select d.* from d left join (select distinct * from b) s
   on d.a = s.id;
-              QUERY PLAN              
---------------------------------------
- Merge Right Join
-   Merge Cond: (b.id = d.a)
-   ->  Unique
-         ->  Sort
-               Sort Key: b.id, b.c_id
-               ->  Seq Scan on b
-   ->  Sort
-         Sort Key: d.a
+             QUERY PLAN              
+-------------------------------------
+ Hash Right Join
+   Hash Cond: (b.id = d.a)
+   ->  HashAggregate
+         Group Key: b.id, b.c_id
+         ->  Seq Scan on b
+   ->  Hash
          ->  Seq Scan on d
-(9 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- check join removal works when uniqueness of the join condition is enforced
 -- by a UNION
 explain (costs off)
 select d.* from d left join (select id from a union select id from b) s
   on d.a = s.id;
-  QUERY PLAN   
----------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on d
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- check join removal with a cross-type comparison operator
 explain (costs off)
 select i8.* from int8_tbl i8 left join (select f1 from int4_tbl group by f1) i4
   on i8.q1 = i4.f1;
-       QUERY PLAN        
--------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on int8_tbl i8
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- check join removal with lateral references
 explain (costs off)
@@ -4654,7 +4764,8 @@ select 1 from (select a.id FROM a left join b on a.b_id = b.id) q,
    ->  Seq Scan on a
    ->  Function Scan on generate_series gs
          Filter: (a.id = i)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 rollback;
 create temp table parent (k int primary key, pd int);
@@ -4672,10 +4783,11 @@ select p.* from parent p left join child c on (p.k = c.k);
 
 explain (costs off)
   select p.* from parent p left join child c on (p.k = c.k);
-      QUERY PLAN      
-----------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on parent p
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 -- this case is not
 select p.*, linked from parent p
@@ -4692,14 +4804,15 @@ explain (costs off)
   select p.*, linked from parent p
     left join (select c.*, true as linked from child c) as ss
     on (p.k = ss.k);
-           QUERY PLAN            
----------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Left Join
    Hash Cond: (p.k = c.k)
    ->  Seq Scan on parent p
    ->  Hash
          ->  Seq Scan on child c
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- check for a 9.0rc1 bug: join removal breaks pseudoconstant qual handling
 select p.* from
@@ -4713,13 +4826,12 @@ explain (costs off)
 select p.* from
   parent p left join child c on (p.k = c.k)
   where p.k = 1 and p.k = 2;
-                   QUERY PLAN                   
-------------------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-   ->  Index Scan using parent_pkey on parent p
-         Index Cond: (k = 1)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 select p.* from
   (parent p left join child c on (p.k = c.k)) join parent x on p.k = x.k
@@ -4732,11 +4844,12 @@ explain (costs off)
 select p.* from
   (parent p left join child c on (p.k = c.k)) join parent x on p.k = x.k
   where p.k = 1 and p.k = 2;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Result
    One-Time Filter: false
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 -- bug 5255: this is not optimizable by join removal
 begin;
@@ -4787,10 +4900,11 @@ select t1.* from
   on t1.f1 = t2.f1
   left join uniquetbl t3
   on t2.d1 = t3.f1;
-        QUERY PLAN        
---------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on uniquetbl t1
-(1 row)
+ Optimizer: Postgres query optimizer
+(2 rows)
 
 explain (costs off)
 select t0.*
@@ -4806,16 +4920,18 @@ from
 where ss.stringu2 !~* ss.case1;
                                          QUERY PLAN                                         
 --------------------------------------------------------------------------------------------
- Nested Loop
-   Join Filter: (CASE t1.ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END = t0.f1)
-   ->  Nested Loop
-         ->  Seq Scan on int4_tbl i4
-         ->  Index Scan using tenk1_unique2 on tenk1 t1
-               Index Cond: (unique2 = i4.f1)
+ Hash Join
+   Hash Cond: (CASE t1.ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END = t0.f1)
+   ->  Hash Join
+         Hash Cond: (t1.unique2 = i4.f1)
+         ->  Seq Scan on tenk1 t1
                Filter: (stringu2 !~* CASE ten WHEN 0 THEN 'doh!'::text ELSE NULL::text END)
-   ->  Materialize
+         ->  Hash
+               ->  Seq Scan on int4_tbl i4
+   ->  Hash
          ->  Seq Scan on text_tbl t0
-(9 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select t0.*
 from
@@ -4842,22 +4958,25 @@ select i8.*, ss.v, t.unique2
     left join lateral (select i4.f1 + 1 as v) as ss on true
     left join tenk1 t on t.unique2 = ss.v
 where q2 = 456;
-                         QUERY PLAN                          
--------------------------------------------------------------
- Nested Loop Left Join
+                                                                                      QUERY PLAN                                                                                       
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Hash Right Join
    Output: i8.q1, i8.q2, ((i4.f1 + 1)), t.unique2
-   ->  Nested Loop Left Join
-         Output: i8.q1, i8.q2, (i4.f1 + 1)
-         ->  Seq Scan on public.int8_tbl i8
-               Output: i8.q1, i8.q2
-               Filter: (i8.q2 = 456)
-         ->  Seq Scan on public.int4_tbl i4
-               Output: i4.f1
-               Filter: (i4.f1 = 1)
-   ->  Index Only Scan using tenk1_unique2 on public.tenk1 t
-         Output: t.unique2
-         Index Cond: (t.unique2 = ((i4.f1 + 1)))
-(13 rows)
+   Hash Cond: (t.unique2 = ((i4.f1 + 1)))
+   ->  Seq Scan on public.tenk1 t
+         Output: t.unique1, t.unique2, t.two, t.four, t.ten, t.twenty, t.hundred, t.thousand, t.twothousand, t.fivethous, t.tenthous, t.odd, t.even, t.stringu1, t.stringu2, t.string4
+   ->  Hash
+         Output: i8.q1, i8.q2, ((i4.f1 + 1))
+         ->  Nested Loop Left Join
+               Output: i8.q1, i8.q2, (i4.f1 + 1)
+               ->  Seq Scan on public.int8_tbl i8
+                     Output: i8.q1, i8.q2
+                     Filter: (i8.q2 = 456)
+               ->  Seq Scan on public.int4_tbl i4
+                     Output: i4.f1
+                     Filter: (i4.f1 = 1)
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 select i8.*, ss.v, t.unique2
   from int8_tbl i8
@@ -4880,14 +4999,16 @@ select * from
   (select *, 12 as phv from parttbl) as ss
   right join int4_tbl on true
 where ss.a = ss.phv and f1 = 0;
-             QUERY PLAN             
-------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Nested Loop
-   ->  Seq Scan on int4_tbl
-         Filter: (f1 = 0)
    ->  Seq Scan on parttbl1 parttbl
          Filter: (a = 12)
-(5 rows)
+   ->  Materialize
+         ->  Seq Scan on int4_tbl
+               Filter: (f1 = 0)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from
   (select *, 12 as phv from parttbl) as ss
@@ -4961,13 +5082,15 @@ from tenk1 a, lateral (select * from int4_tbl b where f1 = a.unique1) x;
 explain (costs off)
   select unique2, x.*
   from tenk1 a, lateral (select * from int4_tbl b where f1 = a.unique1) x;
-                   QUERY PLAN                    
--------------------------------------------------
- Nested Loop
-   ->  Seq Scan on int4_tbl b
-   ->  Index Scan using tenk1_unique1 on tenk1 a
-         Index Cond: (unique1 = b.f1)
-(4 rows)
+             QUERY PLAN              
+-------------------------------------
+ Hash Join
+   Hash Cond: (a.unique1 = b.f1)
+   ->  Seq Scan on tenk1 a
+   ->  Hash
+         ->  Seq Scan on int4_tbl b
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select unique2, x.*
 from int4_tbl x, lateral (select unique2 from tenk1 where f1 = unique1) ss;
@@ -4979,32 +5102,36 @@ from int4_tbl x, lateral (select unique2 from tenk1 where f1 = unique1) ss;
 explain (costs off)
   select unique2, x.*
   from int4_tbl x, lateral (select unique2 from tenk1 where f1 = unique1) ss;
-                  QUERY PLAN                   
------------------------------------------------
- Nested Loop
-   ->  Seq Scan on int4_tbl x
-   ->  Index Scan using tenk1_unique1 on tenk1
-         Index Cond: (unique1 = x.f1)
-(4 rows)
+             QUERY PLAN              
+-------------------------------------
+ Hash Join
+   Hash Cond: (tenk1.unique1 = x.f1)
+   ->  Seq Scan on tenk1
+   ->  Hash
+         ->  Seq Scan on int4_tbl x
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 explain (costs off)
   select unique2, x.*
   from int4_tbl x cross join lateral (select unique2 from tenk1 where f1 = unique1) ss;
-                  QUERY PLAN                   
------------------------------------------------
- Nested Loop
-   ->  Seq Scan on int4_tbl x
-   ->  Index Scan using tenk1_unique1 on tenk1
-         Index Cond: (unique1 = x.f1)
-(4 rows)
+             QUERY PLAN              
+-------------------------------------
+ Hash Join
+   Hash Cond: (tenk1.unique1 = x.f1)
+   ->  Seq Scan on tenk1
+   ->  Hash
+         ->  Seq Scan on int4_tbl x
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 select unique2, x.*
 from int4_tbl x left join lateral (select unique1, unique2 from tenk1 where f1 = unique1) ss on true;
  unique2 |     f1      
 ---------+-------------
     9998 |           0
-         |      123456
          |     -123456
+         |      123456
          |  2147483647
          | -2147483647
 (5 rows)
@@ -5012,13 +5139,15 @@ from int4_tbl x left join lateral (select unique1, unique2 from tenk1 where f1 =
 explain (costs off)
   select unique2, x.*
   from int4_tbl x left join lateral (select unique1, unique2 from tenk1 where f1 = unique1) ss on true;
-                  QUERY PLAN                   
------------------------------------------------
- Nested Loop Left Join
-   ->  Seq Scan on int4_tbl x
-   ->  Index Scan using tenk1_unique1 on tenk1
-         Index Cond: (unique1 = x.f1)
-(4 rows)
+             QUERY PLAN              
+-------------------------------------
+ Hash Right Join
+   Hash Cond: (tenk1.unique1 = x.f1)
+   ->  Seq Scan on tenk1
+   ->  Hash
+         ->  Seq Scan on int4_tbl x
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 -- check scoping of lateral versus parent references
 -- the first of these should return int8_tbl.q2, the second int8_tbl.q1
@@ -5060,7 +5189,8 @@ explain (costs off)
                Cache Key: a.two
                Cache Mode: binary
                ->  Function Scan on generate_series g
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 explain (costs off)
   select count(*) from tenk1 a cross join lateral generate_series(1,two) g;
@@ -5073,7 +5203,8 @@ explain (costs off)
                Cache Key: a.two
                Cache Mode: binary
                ->  Function Scan on generate_series g
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- don't need the explicit LATERAL keyword for functions
 explain (costs off)
@@ -5087,7 +5218,8 @@ explain (costs off)
                Cache Key: a.two
                Cache Mode: binary
                ->  Function Scan on generate_series g
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- lateral with UNION ALL subselect
 explain (costs off)
@@ -5098,12 +5230,14 @@ explain (costs off)
 ------------------------------------------
  Nested Loop
    ->  Function Scan on generate_series g
-   ->  Append
-         ->  Seq Scan on int8_tbl a
-               Filter: (g.g = q1)
-         ->  Seq Scan on int8_tbl b
-               Filter: (g.g = q2)
-(7 rows)
+   ->  Materialize
+         ->  Append
+               ->  Seq Scan on int8_tbl a
+                     Filter: (g.g = q1)
+               ->  Seq Scan on int8_tbl b
+                     Filter: (g.g = q2)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select * from generate_series(100,200) g,
   lateral (select * from int8_tbl a where g = q1 union all
@@ -5119,14 +5253,16 @@ select * from generate_series(100,200) g,
 explain (costs off)
   select count(*) from tenk1 a,
     tenk1 b join lateral (values(a.unique1)) ss(x) on b.unique2 = ss.x;
-                         QUERY PLAN                         
-------------------------------------------------------------
+                 QUERY PLAN                 
+--------------------------------------------
  Aggregate
-   ->  Merge Join
-         Merge Cond: (a.unique1 = b.unique2)
-         ->  Index Only Scan using tenk1_unique1 on tenk1 a
-         ->  Index Only Scan using tenk1_unique2 on tenk1 b
-(5 rows)
+   ->  Hash Join
+         Hash Cond: (a.unique1 = b.unique2)
+         ->  Seq Scan on tenk1 a
+         ->  Hash
+               ->  Seq Scan on tenk1 b
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select count(*) from tenk1 a,
   tenk1 b join lateral (values(a.unique1)) ss(x) on b.unique2 = ss.x;
@@ -5139,19 +5275,18 @@ select count(*) from tenk1 a,
 explain (costs off)
   select count(*) from tenk1 a,
     tenk1 b join lateral (values(a.unique1),(-1)) ss(x) on b.unique2 = ss.x;
-                            QUERY PLAN                            
-------------------------------------------------------------------
+                     QUERY PLAN                      
+-----------------------------------------------------
  Aggregate
-   ->  Nested Loop
+   ->  Hash Join
+         Hash Cond: ("*VALUES*".column1 = b.unique2)
          ->  Nested Loop
-               ->  Index Only Scan using tenk1_unique1 on tenk1 a
+               ->  Seq Scan on tenk1 a
                ->  Values Scan on "*VALUES*"
-         ->  Memoize
-               Cache Key: "*VALUES*".column1
-               Cache Mode: logical
-               ->  Index Only Scan using tenk1_unique2 on tenk1 b
-                     Index Cond: (unique2 = "*VALUES*".column1)
-(10 rows)
+         ->  Hash
+               ->  Seq Scan on tenk1 b
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 select count(*) from tenk1 a,
   tenk1 b join lateral (values(a.unique1),(-1)) ss(x) on b.unique2 = ss.x;
@@ -5166,18 +5301,20 @@ explain (costs off)
     int8_tbl x left join lateral (select a.q1 from int4_tbl y) ss(z)
       on x.q2 = ss.z
   order by a.q1, a.q2, x.q1, x.q2, ss.z;
-                   QUERY PLAN                   
-------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Sort
    Sort Key: a.q1, a.q2, x.q1, x.q2, (a.q1)
    ->  Nested Loop
          ->  Seq Scan on int8_tbl a
-         ->  Hash Right Join
-               Hash Cond: ((a.q1) = x.q2)
-               ->  Seq Scan on int4_tbl y
-               ->  Hash
-                     ->  Seq Scan on int8_tbl x
-(9 rows)
+         ->  Materialize
+               ->  Hash Right Join
+                     Hash Cond: ((a.q1) = x.q2)
+                     ->  Seq Scan on int4_tbl y
+                     ->  Hash
+                           ->  Seq Scan on int8_tbl x
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 select * from int8_tbl a,
   int8_tbl x left join lateral (select a.q1 from int4_tbl y) ss(z)
@@ -5478,7 +5615,8 @@ select * from
    ->  Seq Scan on public.int8_tbl b
          Output: b.q1, b.q2, a.q2
          Filter: (a.q2 = b.q1)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select * from
   int8_tbl a left join
@@ -5510,7 +5648,8 @@ select * from
    ->  Seq Scan on public.int8_tbl b
          Output: b.q1, b.q2, COALESCE(a.q2, '42'::bigint)
          Filter: (a.q2 = b.q1)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select * from
   int8_tbl a left join
@@ -5545,7 +5684,8 @@ select * from int4_tbl i left join
          Output: j.f1
          ->  Seq Scan on public.int2_tbl j
                Output: j.f1
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 select * from int4_tbl i left join
   lateral (select * from int2_tbl j where i.f1 = j.f1) k on true;
@@ -5570,7 +5710,8 @@ select * from int4_tbl i left join
    ->  Seq Scan on public.int2_tbl j
          Output: j.f1, COALESCE(i.*)
          Filter: (i.f1 = j.f1)
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 select * from int4_tbl i left join
   lateral (select coalesce(i) from int2_tbl j where i.f1 = j.f1) k on true;
@@ -5588,23 +5729,26 @@ select * from int4_tbl a,
   lateral (
     select * from int4_tbl b left join int8_tbl c on (b.f1 = q1 and a.f1 = q2)
   ) ss;
-                   QUERY PLAN                    
--------------------------------------------------
+                      QUERY PLAN                       
+-------------------------------------------------------
  Nested Loop
    Output: a.f1, b.f1, c.q1, c.q2
    ->  Seq Scan on public.int4_tbl a
          Output: a.f1
-   ->  Hash Left Join
+   ->  Materialize
          Output: b.f1, c.q1, c.q2
-         Hash Cond: (b.f1 = c.q1)
-         ->  Seq Scan on public.int4_tbl b
-               Output: b.f1
-         ->  Hash
-               Output: c.q1, c.q2
-               ->  Seq Scan on public.int8_tbl c
+         ->  Hash Left Join
+               Output: b.f1, c.q1, c.q2
+               Hash Cond: (b.f1 = c.q1)
+               ->  Seq Scan on public.int4_tbl b
+                     Output: b.f1
+               ->  Hash
                      Output: c.q1, c.q2
-                     Filter: (a.f1 = c.q2)
-(14 rows)
+                     ->  Seq Scan on public.int8_tbl c
+                           Output: c.q1, c.q2
+                           Filter: (a.f1 = c.q2)
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 select * from int4_tbl a,
   lateral (
@@ -5659,7 +5803,8 @@ select * from
                Filter: (a.q2 = b.q1)
          ->  Seq Scan on public.int8_tbl c
                Output: c.q1, c.q2
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 select * from
   int8_tbl a left join lateral
@@ -5746,9 +5891,12 @@ select * from
                Output: c.q1, c.q2
                ->  Seq Scan on public.int8_tbl c
                      Output: c.q1, c.q2
-   ->  Result
-         Output: (COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2))
-(24 rows)
+   ->  Materialize
+         Output: ((COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2)))
+         ->  Result
+               Output: (COALESCE((COALESCE(b.q2, '42'::bigint)), d.q2))
+ Optimizer: Postgres query optimizer
+(27 rows)
 
 -- case that breaks the old ph_may_need optimization
 explain (verbose, costs off)
@@ -5798,7 +5946,8 @@ select c.*,a.*,ss1.q1,ss2.q1,ss3.* from
          Output: i.f1
          ->  Seq Scan on public.int4_tbl i
                Output: i.f1
-(34 rows)
+ Optimizer: Postgres query optimizer
+(35 rows)
 
 -- check processing of postponed quals (bug #9041)
 explain (verbose, costs off)
@@ -5807,20 +5956,25 @@ select * from
   left join lateral (
     select * from (select 3 as z offset 0) z where z.z = x.x
   ) zz on zz.z = y.y;
-                  QUERY PLAN                  
-----------------------------------------------
- Nested Loop Left Join
+                 QUERY PLAN                 
+--------------------------------------------
+ Hash Left Join
    Output: (1), (2), (3)
-   Join Filter: (((3) = (1)) AND ((3) = (2)))
+   Hash Cond: (((1) = (3)) AND ((2) = (3)))
    ->  Nested Loop
          Output: (1), (2)
          ->  Result
                Output: 1
+         ->  Materialize
+               Output: (2)
+               ->  Result
+                     Output: 2
+   ->  Hash
+         Output: (3)
          ->  Result
-               Output: 2
-   ->  Result
-         Output: 3
-(11 rows)
+               Output: 3
+ Optimizer: Postgres query optimizer
+(16 rows)
 
 -- check dummy rels with lateral references (bug #15694)
 explain (verbose, costs off)
@@ -5835,7 +5989,8 @@ select * from int8_tbl i8 left join lateral
    ->  Result
          Output: f1, i8.q2
          One-Time Filter: false
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 explain (verbose, costs off)
 select * from int8_tbl i8 left join lateral
@@ -5849,7 +6004,8 @@ select * from int8_tbl i8 left join lateral
    ->  Result
          Output: f1, f1, i8.q2
          One-Time Filter: false
-(7 rows)
+ Optimizer: Postgres query optimizer
+(8 rows)
 
 -- check handling of nested appendrels inside LATERAL
 select * from
@@ -5880,23 +6036,21 @@ select * from
   lateral (select f1 from int4_tbl
            where f1 = any (select unique1 from tenk1
                            where unique2 = v.x offset 0)) ss;
-                              QUERY PLAN                              
-----------------------------------------------------------------------
+                            QUERY PLAN                            
+------------------------------------------------------------------
  Nested Loop
    Output: "*VALUES*".column1, "*VALUES*".column2, int4_tbl.f1
    ->  Values Scan on "*VALUES*"
          Output: "*VALUES*".column1, "*VALUES*".column2
-   ->  Nested Loop Semi Join
+   ->  Seq Scan on public.int4_tbl
          Output: int4_tbl.f1
-         Join Filter: (int4_tbl.f1 = tenk1.unique1)
-         ->  Seq Scan on public.int4_tbl
-               Output: int4_tbl.f1
-         ->  Materialize
-               Output: tenk1.unique1
-               ->  Index Scan using tenk1_unique2 on public.tenk1
-                     Output: tenk1.unique1
-                     Index Cond: (tenk1.unique2 = "*VALUES*".column2)
-(14 rows)
+         Filter: (SubPlan 1)
+         SubPlan 1
+           ->  Index Scan using tenk1_unique2 on public.tenk1
+                 Output: tenk1.unique1
+                 Index Cond: (tenk1.unique2 = "*VALUES*".column2)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 select * from
   (values (0,9998), (1,1000)) v(id,x),
@@ -5919,36 +6073,39 @@ lateral (select * from int8_tbl t1,
                                      where q2 = (select greatest(t1.q1,t2.q2))
                                        and (select v.id=0)) offset 0) ss2) ss
          where t1.q1 = ss.q2) ss0;
-                           QUERY PLAN                            
------------------------------------------------------------------
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
  Nested Loop
    Output: "*VALUES*".column1, t1.q1, t1.q2, ss2.q1, ss2.q2
-   ->  Seq Scan on public.int8_tbl t1
-         Output: t1.q1, t1.q2
+   ->  Values Scan on "*VALUES*"
+         Output: "*VALUES*".column1
    ->  Nested Loop
-         Output: "*VALUES*".column1, ss2.q1, ss2.q2
-         ->  Values Scan on "*VALUES*"
-               Output: "*VALUES*".column1
-         ->  Subquery Scan on ss2
+         Output: t1.q1, t1.q2, ss2.q1, ss2.q2
+         ->  Seq Scan on public.int8_tbl t1
+               Output: t1.q1, t1.q2
+         ->  Materialize
                Output: ss2.q1, ss2.q2
-               Filter: (t1.q1 = ss2.q2)
-               ->  Seq Scan on public.int8_tbl t2
-                     Output: t2.q1, t2.q2
-                     Filter: (SubPlan 3)
-                     SubPlan 3
-                       ->  Result
-                             Output: t3.q2
-                             One-Time Filter: $4
-                             InitPlan 1 (returns $2)
-                               ->  Result
-                                     Output: GREATEST($0, t2.q2)
-                             InitPlan 2 (returns $4)
-                               ->  Result
-                                     Output: ($3 = 0)
-                             ->  Seq Scan on public.int8_tbl t3
-                                   Output: t3.q1, t3.q2
-                                   Filter: (t3.q2 = $2)
-(27 rows)
+               ->  Subquery Scan on ss2
+                     Output: ss2.q1, ss2.q2
+                     Filter: (t1.q1 = ss2.q2)
+                     ->  Seq Scan on public.int8_tbl t2
+                           Output: t2.q1, t2.q2
+                           Filter: (SubPlan 3)
+                           SubPlan 3
+                             ->  Result
+                                   Output: t3.q2
+                                   One-Time Filter: $4
+                                   InitPlan 1 (returns $2)
+                                     ->  Result
+                                           Output: GREATEST($0, t2.q2)
+                                   InitPlan 2 (returns $4)
+                                     ->  Result
+                                           Output: ($3 = 0)
+                                   ->  Seq Scan on public.int8_tbl t3
+                                         Output: t3.q1, t3.q2
+                                         Filter: (t3.q2 = $2)
+ Optimizer: Postgres query optimizer
+(30 rows)
 
 select * from (values (0), (1)) v(id),
 lateral (select * from int8_tbl t1,
@@ -6085,7 +6242,8 @@ select t1.b, ss.phv from join_ut1 t1 left join lateral
                            ->  Seq Scan on public.join_pt1p2 t2_2
                                  Output: t2_2.a
                                  Filter: (t1.a = t2_2.a)
-(21 rows)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 select t1.b, ss.phv from join_ut1 t1 left join lateral
               (select t2.a as t2a, t3.a t3a, least(t1.a, t2.a, t3.a) phv
@@ -6112,22 +6270,25 @@ select * from fkest f1
   join fkest f2 on (f1.x = f2.x and f1.x10 = f2.x10b and f1.x100 = f2.x100)
   join fkest f3 on f1.x = f3.x
   where f1.x100 = 2;
-                        QUERY PLAN                         
------------------------------------------------------------
- Nested Loop
-   ->  Hash Join
-         Hash Cond: ((f2.x = f1.x) AND (f2.x10b = f1.x10))
-         ->  Seq Scan on fkest f2
-               Filter: (x100 = 2)
-         ->  Hash
+                           QUERY PLAN                            
+-----------------------------------------------------------------
+ Hash Join
+   Hash Cond: (f3.x = f1.x)
+   ->  Seq Scan on fkest f3
+   ->  Hash
+         ->  Hash Join
+               Hash Cond: ((f1.x = f2.x) AND (f1.x10 = f2.x10b))
                ->  Seq Scan on fkest f1
                      Filter: (x100 = 2)
-   ->  Index Scan using fkest_x_x10_x100_idx on fkest f3
-         Index Cond: (x = f1.x)
-(10 rows)
+               ->  Hash
+                     ->  Seq Scan on fkest f2
+                           Filter: (x100 = 2)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 alter table fkest add constraint fk
   foreign key (x, x10b, x100) references fkest (x, x10, x100);
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 explain (costs off)
 select * from fkest f1
   join fkest f2 on (f1.x = f2.x and f1.x10 = f2.x10b and f1.x100 = f2.x100)
@@ -6136,17 +6297,18 @@ select * from fkest f1
                      QUERY PLAN                      
 -----------------------------------------------------
  Hash Join
-   Hash Cond: ((f2.x = f1.x) AND (f2.x10b = f1.x10))
+   Hash Cond: ((f1.x = f2.x) AND (f1.x10 = f2.x10b))
    ->  Hash Join
-         Hash Cond: (f3.x = f2.x)
+         Hash Cond: (f3.x = f1.x)
          ->  Seq Scan on fkest f3
          ->  Hash
-               ->  Seq Scan on fkest f2
+               ->  Seq Scan on fkest f1
                      Filter: (x100 = 2)
    ->  Hash
-         ->  Seq Scan on fkest f1
+         ->  Seq Scan on fkest f2
                Filter: (x100 = 2)
-(11 rows)
+ Optimizer: Postgres query optimizer
+(12 rows)
 
 rollback;
 --
@@ -6159,6 +6321,7 @@ insert into fkest select x/10, x%10, x from generate_series(1,1000) x;
 insert into fkest1 select x/10, x%10 from generate_series(1,1000) x;
 alter table fkest1
   add constraint fkest1_a_b_fkey foreign key (a,b) references fkest;
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 analyze fkest;
 analyze fkest1;
 explain (costs off)
@@ -6168,20 +6331,24 @@ from fkest f
   left join fkest1 f2 on f.a = f2.a and f.b = f2.b
   left join fkest1 f3 on f.a = f3.a and f.b = f3.b
 where f.c = 1;
-                            QUERY PLAN                            
-------------------------------------------------------------------
- Nested Loop Left Join
-   ->  Nested Loop Left Join
-         ->  Nested Loop Left Join
-               ->  Index Scan using fkest_c_key on fkest f
-                     Index Cond: (c = 1)
-               ->  Index Only Scan using fkest1_pkey on fkest1 f1
-                     Index Cond: ((a = f.a) AND (b = f.b))
-         ->  Index Only Scan using fkest1_pkey on fkest1 f2
-               Index Cond: ((a = f.a) AND (b = f.b))
-   ->  Index Only Scan using fkest1_pkey on fkest1 f3
-         Index Cond: ((a = f.a) AND (b = f.b))
-(11 rows)
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
+ Hash Right Join
+   Hash Cond: ((f3.a = f.a) AND (f3.b = f.b))
+   ->  Seq Scan on fkest1 f3
+   ->  Hash
+         ->  Hash Right Join
+               Hash Cond: ((f2.a = f.a) AND (f2.b = f.b))
+               ->  Seq Scan on fkest1 f2
+               ->  Hash
+                     ->  Hash Right Join
+                           Hash Cond: ((f1.a = f.a) AND (f1.b = f.b))
+                           ->  Seq Scan on fkest1 f1
+                           ->  Hash
+                                 ->  Index Scan using fkest_c_key on fkest f
+                                       Index Cond: (c = 1)
+ Optimizer: Postgres query optimizer
+(15 rows)
 
 rollback;
 --
@@ -6199,8 +6366,8 @@ analyze j3;
 -- ensure join is properly marked as unique
 explain (verbose, costs off)
 select * from j1 inner join j2 on j1.id = j2.id;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Join
    Output: j1.id, j2.id
    Inner Unique: true
@@ -6211,13 +6378,14 @@ select * from j1 inner join j2 on j1.id = j2.id;
          Output: j2.id
          ->  Seq Scan on public.j2
                Output: j2.id
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- ensure join is not unique when not an equi-join
 explain (verbose, costs off)
 select * from j1 inner join j2 on j1.id > j2.id;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Nested Loop
    Output: j1.id, j2.id
    Join Filter: (j1.id > j2.id)
@@ -6227,30 +6395,31 @@ select * from j1 inner join j2 on j1.id > j2.id;
          Output: j2.id
          ->  Seq Scan on public.j2
                Output: j2.id
-(9 rows)
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- ensure non-unique rel is not chosen as inner
 explain (verbose, costs off)
 select * from j1 inner join j3 on j1.id = j3.id;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Join
    Output: j1.id, j3.id
-   Inner Unique: true
-   Hash Cond: (j3.id = j1.id)
-   ->  Seq Scan on public.j3
-         Output: j3.id
-   ->  Hash
+   Hash Cond: (j1.id = j3.id)
+   ->  Seq Scan on public.j1
          Output: j1.id
-         ->  Seq Scan on public.j1
-               Output: j1.id
+   ->  Hash
+         Output: j3.id
+         ->  Seq Scan on public.j3
+               Output: j3.id
+ Optimizer: Postgres query optimizer
 (10 rows)
 
 -- ensure left join is marked as unique
 explain (verbose, costs off)
 select * from j1 left join j2 on j1.id = j2.id;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Left Join
    Output: j1.id, j2.id
    Inner Unique: true
@@ -6261,13 +6430,14 @@ select * from j1 left join j2 on j1.id = j2.id;
          Output: j2.id
          ->  Seq Scan on public.j2
                Output: j2.id
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- ensure right join is marked as unique
 explain (verbose, costs off)
 select * from j1 right join j2 on j1.id = j2.id;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Left Join
    Output: j1.id, j2.id
    Inner Unique: true
@@ -6278,13 +6448,14 @@ select * from j1 right join j2 on j1.id = j2.id;
          Output: j1.id
          ->  Seq Scan on public.j1
                Output: j1.id
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- ensure full join is marked as unique
 explain (verbose, costs off)
 select * from j1 full join j2 on j1.id = j2.id;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Full Join
    Output: j1.id, j2.id
    Inner Unique: true
@@ -6295,13 +6466,14 @@ select * from j1 full join j2 on j1.id = j2.id;
          Output: j2.id
          ->  Seq Scan on public.j2
                Output: j2.id
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- a clauseless (cross) join can't be unique
 explain (verbose, costs off)
 select * from j1 cross join j2;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Nested Loop
    Output: j1.id, j2.id
    ->  Seq Scan on public.j1
@@ -6310,13 +6482,14 @@ select * from j1 cross join j2;
          Output: j2.id
          ->  Seq Scan on public.j2
                Output: j2.id
-(8 rows)
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 -- ensure a natural join is marked as unique
 explain (verbose, costs off)
 select * from j1 natural join j2;
-            QUERY PLAN             
------------------------------------
+             QUERY PLAN              
+-------------------------------------
  Hash Join
    Output: j1.id
    Inner Unique: true
@@ -6327,28 +6500,33 @@ select * from j1 natural join j2;
          Output: j2.id
          ->  Seq Scan on public.j2
                Output: j2.id
-(10 rows)
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- ensure a distinct clause allows the inner to become unique
 explain (verbose, costs off)
 select * from j1
 inner join (select distinct id from j3) j3 on j1.id = j3.id;
-               QUERY PLAN                
------------------------------------------
- Nested Loop
+                  QUERY PLAN                   
+-----------------------------------------------
+ Hash Join
    Output: j1.id, j3.id
    Inner Unique: true
-   Join Filter: (j1.id = j3.id)
-   ->  Unique
-         Output: j3.id
-         ->  Sort
-               Output: j3.id
-               Sort Key: j3.id
-               ->  Seq Scan on public.j3
-                     Output: j3.id
+   Hash Cond: (j1.id = j3.id)
    ->  Seq Scan on public.j1
          Output: j1.id
-(13 rows)
+   ->  Hash
+         Output: j3.id
+         ->  Unique
+               Output: j3.id
+               Group Key: j3.id
+               ->  Sort
+                     Output: j3.id
+                     Sort Key: j3.id
+                     ->  Seq Scan on public.j3
+                           Output: j3.id
+ Optimizer: Postgres query optimizer
+(17 rows)
 
 -- ensure group by clause allows the inner to become unique
 explain (verbose, costs off)
@@ -6356,20 +6534,20 @@ select * from j1
 inner join (select id from j3 group by id) j3 on j1.id = j3.id;
                QUERY PLAN                
 -----------------------------------------
- Nested Loop
+ Hash Join
    Output: j1.id, j3.id
    Inner Unique: true
-   Join Filter: (j1.id = j3.id)
-   ->  Group
-         Output: j3.id
-         Group Key: j3.id
-         ->  Sort
-               Output: j3.id
-               Sort Key: j3.id
-               ->  Seq Scan on public.j3
-                     Output: j3.id
+   Hash Cond: (j1.id = j3.id)
    ->  Seq Scan on public.j1
          Output: j1.id
+   ->  Hash
+         Output: j3.id
+         ->  HashAggregate
+               Output: j3.id
+               Group Key: j3.id
+               ->  Seq Scan on public.j3
+                     Output: j3.id
+ Optimizer: Postgres query optimizer
 (14 rows)
 
 drop table j1;
@@ -6392,30 +6570,36 @@ select * from j1
 inner join j2 on j1.id1 = j2.id1;
                 QUERY PLAN                
 ------------------------------------------
- Nested Loop
+ Hash Join
    Output: j1.id1, j1.id2, j2.id1, j2.id2
-   Join Filter: (j1.id1 = j2.id1)
-   ->  Seq Scan on public.j2
-         Output: j2.id1, j2.id2
+   Hash Cond: (j1.id1 = j2.id1)
    ->  Seq Scan on public.j1
          Output: j1.id1, j1.id2
-(7 rows)
+   ->  Hash
+         Output: j2.id1, j2.id2
+         ->  Seq Scan on public.j2
+               Output: j2.id1, j2.id2
+ Optimizer: Postgres query optimizer
+(10 rows)
 
 -- ensure proper unique detection with multiple join quals
 explain (verbose, costs off)
 select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2;
-                        QUERY PLAN                        
-----------------------------------------------------------
- Nested Loop
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Hash Join
    Output: j1.id1, j1.id2, j2.id1, j2.id2
    Inner Unique: true
-   Join Filter: ((j1.id1 = j2.id1) AND (j1.id2 = j2.id2))
-   ->  Seq Scan on public.j2
-         Output: j2.id1, j2.id2
+   Hash Cond: ((j1.id1 = j2.id1) AND (j1.id2 = j2.id2))
    ->  Seq Scan on public.j1
          Output: j1.id1, j1.id2
-(8 rows)
+   ->  Hash
+         Output: j2.id1, j2.id2
+         ->  Seq Scan on public.j2
+               Output: j2.id1, j2.id2
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- ensure we don't detect the join to be unique when quals are not part of the
 -- join condition
@@ -6424,15 +6608,18 @@ select * from j1
 inner join j2 on j1.id1 = j2.id1 where j1.id2 = 1;
                 QUERY PLAN                
 ------------------------------------------
- Nested Loop
+ Hash Join
    Output: j1.id1, j1.id2, j2.id1, j2.id2
-   Join Filter: (j1.id1 = j2.id1)
+   Hash Cond: (j1.id1 = j2.id1)
    ->  Seq Scan on public.j1
          Output: j1.id1, j1.id2
          Filter: (j1.id2 = 1)
-   ->  Seq Scan on public.j2
+   ->  Hash
          Output: j2.id1, j2.id2
-(8 rows)
+         ->  Seq Scan on public.j2
+               Output: j2.id1, j2.id2
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- as above, but for left joins.
 explain (verbose, costs off)
@@ -6440,15 +6627,18 @@ select * from j1
 left join j2 on j1.id1 = j2.id1 where j1.id2 = 1;
                 QUERY PLAN                
 ------------------------------------------
- Nested Loop Left Join
+ Hash Left Join
    Output: j1.id1, j1.id2, j2.id1, j2.id2
-   Join Filter: (j1.id1 = j2.id1)
+   Hash Cond: (j1.id1 = j2.id1)
    ->  Seq Scan on public.j1
          Output: j1.id1, j1.id2
          Filter: (j1.id2 = 1)
-   ->  Seq Scan on public.j2
+   ->  Hash
          Output: j2.id1, j2.id2
-(8 rows)
+         ->  Seq Scan on public.j2
+               Output: j2.id1, j2.id2
+ Optimizer: Postgres query optimizer
+(11 rows)
 
 -- validate logic in merge joins which skips mark and restore.
 -- it should only do this if all quals which were used to detect the unique
@@ -6465,14 +6655,16 @@ analyze j2;
 explain (costs off) select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
 where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1;
-               QUERY PLAN                
------------------------------------------
- Merge Join
-   Merge Cond: (j1.id1 = j2.id1)
-   Join Filter: (j1.id2 = j2.id2)
-   ->  Index Scan using j1_id1_idx on j1
-   ->  Index Scan using j2_id1_idx on j2
-(5 rows)
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Nested Loop
+   Join Filter: ((j1.id1 = j2.id1) AND (j1.id2 = j2.id2))
+   ->  Seq Scan on j1
+         Filter: ((id1 % 1000) = 1)
+   ->  Seq Scan on j2
+         Filter: ((id1 % 1000) = 1)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
@@ -6487,15 +6679,16 @@ where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1;
 explain (costs off) select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
 where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1 and j2.id1 = any (array[1]);
-                     QUERY PLAN                     
-----------------------------------------------------
- Merge Join
-   Merge Cond: (j1.id1 = j2.id1)
-   Join Filter: (j1.id2 = j2.id2)
-   ->  Index Scan using j1_id1_idx on j1
-   ->  Index Scan using j2_id1_idx on j2
-         Index Cond: (id1 = ANY ('{1}'::integer[]))
-(6 rows)
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
+ Nested Loop
+   Join Filter: ((j1.id1 = j2.id1) AND (j1.id2 = j2.id2))
+   ->  Seq Scan on j1
+         Filter: ((id1 = ANY ('{1}'::integer[])) AND ((id1 % 1000) = 1))
+   ->  Seq Scan on j2
+         Filter: ((id1 = ANY ('{1}'::integer[])) AND ((id1 % 1000) = 1))
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
@@ -6510,15 +6703,15 @@ where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1 and j2.id1 = any (array[1]);
 explain (costs off) select * from j1
 inner join j2 on j1.id1 = j2.id1 and j1.id2 = j2.id2
 where j1.id1 % 1000 = 1 and j2.id1 % 1000 = 1 and j2.id1 >= any (array[1,5]);
-                      QUERY PLAN                       
--------------------------------------------------------
- Merge Join
-   Merge Cond: (j1.id1 = j2.id1)
-   Join Filter: (j1.id2 = j2.id2)
-   ->  Index Scan using j1_id1_idx on j1
-   ->  Index Only Scan using j2_pkey on j2
-         Index Cond: (id1 >= ANY ('{1,5}'::integer[]))
-         Filter: ((id1 % 1000) = 1)
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
+ Nested Loop
+   Join Filter: ((j1.id1 = j2.id1) AND (j1.id2 = j2.id2))
+   ->  Seq Scan on j1
+         Filter: ((id1 >= ANY ('{1,5}'::integer[])) AND ((id1 % 1000) = 1))
+   ->  Seq Scan on j2
+         Filter: ((id1 >= ANY ('{1,5}'::integer[])) AND ((id1 % 1000) = 1))
+ Optimizer: Postgres query optimizer
 (7 rows)
 
 select * from j1
@@ -6543,27 +6736,31 @@ from onek t1, tenk1 t2
 where exists (select 1 from tenk1 t3
               where t3.thousand = t1.unique1 and t3.tenthous = t2.hundred)
       and t1.unique1 < 1;
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
- Nested Loop
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
+ Hash Join
    Output: t1.unique1, t2.hundred
-   ->  Hash Join
-         Output: t1.unique1, t3.tenthous
-         Hash Cond: (t3.thousand = t1.unique1)
-         ->  HashAggregate
-               Output: t3.thousand, t3.tenthous
-               Group Key: t3.thousand, t3.tenthous
-               ->  Index Only Scan using tenk1_thous_tenthous on public.tenk1 t3
-                     Output: t3.thousand, t3.tenthous
-         ->  Hash
-               Output: t1.unique1
-               ->  Index Only Scan using onek_unique1 on public.onek t1
-                     Output: t1.unique1
-                     Index Cond: (t1.unique1 < 1)
+   Hash Cond: (t2.hundred = t3.tenthous)
    ->  Index Only Scan using tenk1_hundred on public.tenk1 t2
          Output: t2.hundred
-         Index Cond: (t2.hundred = t3.tenthous)
-(18 rows)
+   ->  Hash
+         Output: t1.unique1, t3.tenthous
+         ->  Hash Join
+               Output: t1.unique1, t3.tenthous
+               Hash Cond: (t3.thousand = t1.unique1)
+               ->  HashAggregate
+                     Output: t3.thousand, t3.tenthous
+                     Group Key: t3.thousand, t3.tenthous
+                     ->  Index Only Scan using tenk1_thous_tenthous on public.tenk1 t3
+                           Output: t3.thousand, t3.tenthous
+                           Index Cond: (t3.thousand < 1)
+               ->  Hash
+                     Output: t1.unique1
+                     ->  Index Only Scan using onek_unique1 on public.onek t1
+                           Output: t1.unique1
+                           Index Cond: (t1.unique1 < 1)
+ Optimizer: Postgres query optimizer
+(22 rows)
 
 -- ... unless it actually is unique
 create table j3 as select unique1, tenthous from onek;
@@ -6575,21 +6772,27 @@ from onek t1, tenk1 t2
 where exists (select 1 from j3
               where j3.unique1 = t1.unique1 and j3.tenthous = t2.hundred)
       and t1.unique1 < 1;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
- Nested Loop
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Hash Join
    Output: t1.unique1, t2.hundred
-   ->  Nested Loop
-         Output: t1.unique1, j3.tenthous
+   Hash Cond: (j3.unique1 = t1.unique1)
+   ->  Hash Join
+         Output: t2.hundred, j3.unique1
+         Hash Cond: (t2.hundred = j3.tenthous)
+         ->  Index Only Scan using tenk1_hundred on public.tenk1 t2
+               Output: t2.hundred
+         ->  Hash
+               Output: j3.unique1, j3.tenthous
+               ->  Index Only Scan using j3_unique1_tenthous_idx on public.j3
+                     Output: j3.unique1, j3.tenthous
+                     Index Cond: (j3.unique1 < 1)
+   ->  Hash
+         Output: t1.unique1
          ->  Index Only Scan using onek_unique1 on public.onek t1
                Output: t1.unique1
                Index Cond: (t1.unique1 < 1)
-         ->  Index Only Scan using j3_unique1_tenthous_idx on public.j3
-               Output: j3.unique1, j3.tenthous
-               Index Cond: (j3.unique1 = t1.unique1)
-   ->  Index Only Scan using tenk1_hundred on public.tenk1 t2
-         Output: t2.hundred
-         Index Cond: (t2.hundred = j3.tenthous)
-(13 rows)
+ Optimizer: Postgres query optimizer
+(19 rows)
 
 drop table j3;

@@ -241,6 +241,8 @@ INSERT INTO brinopers_multi VALUES
 	 '{0/1200, 0/1200, 44/455222, 198/1999799, 198/1999799, NULL, NULL}',
 	 '{100, 100, 1, 100, 100, 25, 100}');
 
+ANALYZE brintest_multi;
+
 DO $x$
 DECLARE
 	r record;

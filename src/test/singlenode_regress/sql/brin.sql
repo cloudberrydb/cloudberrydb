@@ -442,6 +442,8 @@ SELECT brin_summarize_range('brin_summarize_idx', 0);
 SELECT brin_summarize_range('brin_summarize_idx', 1);
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_idx', 2);
+-- summarize all pages
+SELECT brin_summarize_range('brin_summarize_idx', 4294967295);
 -- nothing: page doesn't exist in table
 SELECT brin_summarize_range('brin_summarize_idx', 4294967295);
 -- invalid block number values

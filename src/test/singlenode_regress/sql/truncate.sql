@@ -181,7 +181,7 @@ DROP TABLE trunc_trigger_log;
 DROP FUNCTION trunctrigger();
 
 -- test TRUNCATE ... RESTART IDENTITY
-CREATE SEQUENCE truncate_a_id1 START WITH 33;
+CREATE SEQUENCE truncate_a_id1 START WITH 33 CACHE 1;
 CREATE TABLE truncate_a (id serial,
                          id1 integer default nextval('truncate_a_id1'));
 ALTER SEQUENCE truncate_a_id1 OWNED BY truncate_a.id1;
@@ -229,7 +229,6 @@ ROLLBACK;
 INSERT INTO truncate_a DEFAULT VALUES;
 INSERT INTO truncate_a DEFAULT VALUES;
 SELECT * FROM truncate_a;
-
 DROP TABLE truncate_a;
 
 SELECT nextval('truncate_a_id1'); -- fail, seq should have been dropped
@@ -271,6 +270,7 @@ CREATE TABLE truncpart_2 PARTITION OF truncpart FOR VALUES FROM (100) TO (200)
 CREATE TABLE truncpart_2_1 PARTITION OF truncpart_2 FOR VALUES FROM (100) TO (150);
 CREATE TABLE truncpart_2_d PARTITION OF truncpart_2 DEFAULT;
 
+-- GPDB: this doesn't fail in GPDB, because GPDB doesn't enforce primary keys.
 TRUNCATE TABLE truncprim;	-- should fail
 
 select tp_ins_data();

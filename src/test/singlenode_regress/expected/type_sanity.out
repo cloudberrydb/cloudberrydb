@@ -61,7 +61,7 @@ WHERE (p1.typtype = 'c' AND p1.typrelid = 0) OR
 -- However, we do have a small number of exceptions.
 SELECT p1.oid, p1.typname
 FROM pg_type as p1
-WHERE p1.typtype not in ('p') AND p1.typname NOT LIKE E'\\_%'
+WHERE p1.typtype not in ('c','d','p') AND p1.typname NOT LIKE E'\\_%'
     AND NOT EXISTS
     (SELECT 1 FROM pg_type as p2
      WHERE p2.typname = ('_' || p1.typname)::name AND
@@ -190,6 +190,16 @@ ORDER BY 1;
   30 | oidvector  |  54 | oidvectorin
 (2 rows)
 
+-- Make sure typarray points to a varlena array type of our own base
+SELECT p1.oid, p1.typname as basetype, p2.typname as arraytype,
+       p2.typelem, p2.typlen
+FROM   pg_type p1 LEFT JOIN pg_type p2 ON (p1.typarray = p2.oid)
+WHERE  p1.typarray <> 0 AND
+       (p2.oid IS NULL OR p2.typelem <> p1.oid OR p2.typlen <> -1);
+ oid | basetype | arraytype | typelem | typlen 
+-----+----------+-----------+---------+--------
+(0 rows)
+
 -- typinput routines should not be volatile
 SELECT p1.oid, p1.typname, p2.oid, p2.proname
 FROM pg_type AS p1, pg_proc AS p2
@@ -305,6 +315,15 @@ ORDER BY 1;
   22 | int2vector | 2410 | int2vectorrecv
   30 | oidvector  | 2420 | oidvectorrecv
 (2 rows)
+
+-- Array types should have same typdelim as their element types
+SELECT p1.oid, p1.typname, p2.oid, p2.typname
+FROM pg_type p1, pg_type p2
+WHERE p1.typelem = p2.oid and p1.typdelim != p2.typdelim
+  AND p1.typname like E'\\_%';
+ oid | typname | oid | typname 
+-----+---------+-----+---------
+(0 rows)
 
 -- Suspicious if typreceive doesn't take same number of args as typinput
 SELECT p1.oid, p1.typname, p2.oid, p2.proname, p3.oid, p3.proname
@@ -606,6 +625,14 @@ WHERE p1.relnatts != (SELECT count(*) FROM pg_attribute AS p2
 -- Cross-check against pg_type entry
 -- NOTE: we allow attstorage to be 'plain' even when typstorage is not;
 -- this is mainly for toast tables.
+-- UNDONE: Turn this off until we can figure out why the new system columns cause a bunch of rows to be generated here???
+-- SELECT p1.attrelid, p1.attname, p2.oid, p2.typname
+-- FROM pg_attribute AS p1, pg_type AS p2
+-- WHERE p1.atttypid = p2.oid AND
+--    (p1.attlen != p2.typlen OR
+--     p1.attalign != p2.typalign OR
+--     p1.attbyval != p2.typbyval OR
+--     (p1.attstorage != p2.typstorage AND p1.attstorage != 'p'));
 SELECT p1.attrelid, p1.attname, p2.oid, p2.typname
 FROM pg_attribute AS p1, pg_type AS p2
 WHERE p1.atttypid = p2.oid AND
@@ -677,6 +704,7 @@ WHERE p1.rngmultitypid IS NULL OR p1.rngmultitypid = 0;
 -- Create a table that holds all the known in-core data types and leave it
 -- around so as pg_upgrade is able to test their binary compatibility.
 CREATE TABLE tab_core_types AS SELECT
+  '1 + 2i'::complex,
   '(11,12)'::point,
   '(1,1),(2,2)'::line,
   '((11,11),(12,12))'::lseg,
@@ -763,6 +791,8 @@ SELECT oid, typname, typtype, typelem, typarray, typarray
                      'pg_ndistinct', 'pg_dependencies', 'pg_mcv_list',
                      'pg_brin_bloom_summary',
                      'pg_brin_minmax_multi_summary', 'xml']::regtype[]) AND
+    -- GPDB_14_MERGE_FIXME: Discard the GP-specific type gp_hyperloglog_estimator?
+    oid != 'gp_hyperloglog_estimator'::regtype AND
     -- Discard arrays.
     NOT EXISTS (SELECT 1 FROM pg_type u WHERE u.typarray = t.oid)
     -- Exclude everything from the table created above.  This checks

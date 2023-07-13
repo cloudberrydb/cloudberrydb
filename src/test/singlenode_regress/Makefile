@@ -37,7 +37,7 @@ clean distclean:
 ## Run tests
 ##
 
-REGRESS_OPTS = --dlpath=. --max-concurrent-tests=24 --init-file=$(srcdir)/init_file --make-testtablespace-dir --ignore-plans \
+REGRESS_OPTS = --dlpath=. --max-concurrent-tests=24 --init-file=$(srcdir)/init_file --make-testtablespace-dir \
 	$(EXTRA_REGRESS_OPTS)
 
 check: all

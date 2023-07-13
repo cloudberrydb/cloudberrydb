@@ -589,7 +589,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM gtest22c WHERE b = 4;
 ---------------------------------------------
  Index Scan using gtest22c_b_idx on gtest22c
    Index Cond: (b = 4)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM gtest22c WHERE b = 4;
  a | b 
@@ -602,7 +603,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM gtest22c WHERE b * 3 = 6;
 ------------------------------------------------
  Index Scan using gtest22c_expr_idx on gtest22c
    Index Cond: ((b * 3) = 6)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM gtest22c WHERE b * 3 = 6;
  a | b 
@@ -615,7 +617,8 @@ EXPLAIN (COSTS OFF) SELECT * FROM gtest22c WHERE a = 1 AND b > 0;
 ------------------------------------------------
  Index Scan using gtest22c_pred_idx on gtest22c
    Index Cond: (a = 1)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT * FROM gtest22c WHERE a = 1 AND b > 0;
  a | b 
@@ -633,6 +636,7 @@ ERROR:  invalid ON UPDATE action for foreign key constraint containing generated
 CREATE TABLE gtest23x (a int PRIMARY KEY, b int GENERATED ALWAYS AS (a * 2) STORED REFERENCES gtest23a (x) ON DELETE SET NULL);  -- error
 ERROR:  invalid ON DELETE action for foreign key constraint containing generated column
 CREATE TABLE gtest23b (a int PRIMARY KEY, b int GENERATED ALWAYS AS (a * 2) STORED REFERENCES gtest23a (x));
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 \d gtest23b
                            Table "public.gtest23b"
  Column |  Type   | Collation | Nullable |              Default               
@@ -645,18 +649,17 @@ Foreign-key constraints:
     "gtest23b_b_fkey" FOREIGN KEY (b) REFERENCES gtest23a(x)
 
 INSERT INTO gtest23b VALUES (1);  -- ok
+-- GPDB doesn't enforce foreign key constraints, so this doesn't error out.
 INSERT INTO gtest23b VALUES (5);  -- error
-ERROR:  insert or update on table "gtest23b" violates foreign key constraint "gtest23b_b_fkey"
-DETAIL:  Key (b)=(10) is not present in table "gtest23a".
 DROP TABLE gtest23b;
 DROP TABLE gtest23a;
 CREATE TABLE gtest23p (x int, y int GENERATED ALWAYS AS (x * 2) STORED, PRIMARY KEY (y));
 INSERT INTO gtest23p VALUES (1), (2), (3);
 CREATE TABLE gtest23q (a int PRIMARY KEY, b int REFERENCES gtest23p (y));
+WARNING:  referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced
 INSERT INTO gtest23q VALUES (1, 2);  -- ok
+-- GPDB doesn't enforce foreign key constraints, so this doesn't error out.
 INSERT INTO gtest23q VALUES (2, 5);  -- error
-ERROR:  insert or update on table "gtest23q" violates foreign key constraint "gtest23q_b_fkey"
-DETAIL:  Key (b)=(5) is not present in table "gtest23p".
 -- domains
 CREATE DOMAIN gtestdomain1 AS int CHECK (VALUE < 10);
 CREATE TABLE gtest24 (a int PRIMARY KEY, b gtestdomain1 GENERATED ALWAYS AS (a * 2) STORED);
@@ -962,6 +965,23 @@ SELECT * FROM gtest26 ORDER BY a;
   3 |  6
 (3 rows)
 
+-- GPDB: There are a few issues with the UPDATE and DELETE test. Firstly,
+-- the UPDATE of 'a' fails, because you can't update distribution key column
+-- when there's an update trigger on it. Secondly, the INFO messages from the
+-- triggers that run on different segments arrive in random order. To fix
+-- these issues, drop the primary key, and force all the rows to reside on
+-- the same segment. Only confirm data in a single segment is not enough for
+-- the case to be soild, we have to make sure the tuple's order is the same.
+-- However, "set distributed by" cannot gurantee this because the tuple order
+-- from interconnect is not always the same. To achieve the goal, we truncate
+-- the table and then re-insert it after set the distkey.
+alter table gtest26 drop constraint gtest26_pkey;
+alter table gtest26 add column distkey integer;
+truncate gtest26;
+INSERT INTO gtest26 (a) VALUES (-2), (0), (3);
+INFO:  gtest2: BEFORE: new = (-2,,)
+INFO:  gtest4: AFTER: new = (-2,-4,)
+alter table gtest26 drop column distkey;
 UPDATE gtest26 SET a = a * -2;
 INFO:  gtest1: BEFORE: old = (-2,-4)
 INFO:  gtest1: BEFORE: new = (4,)

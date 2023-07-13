@@ -54,8 +54,10 @@ EXECUTE prepstmt2(123);
 ALTER TABLE pcachetest ADD COLUMN q3 bigint;
 EXECUTE prepstmt;
 ERROR:  cached plan must not change result type
+DETAIL:  resultDesc is not NULL. plansource->resulDesc is not NULL.
 EXECUTE prepstmt2(123);
 ERROR:  cached plan must not change result type
+DETAIL:  resultDesc is not NULL. plansource->resulDesc is not NULL.
 -- but we're nice guys and will let you undo your mistake
 ALTER TABLE pcachetest DROP COLUMN q3;
 EXECUTE prepstmt;
@@ -299,7 +301,8 @@ explain (costs off) execute test_mode_pp(2);
  Aggregate
    ->  Index Only Scan using test_mode_a_idx on test_mode
          Index Cond: (a = 2)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 select name, generic_plans, custom_plans from pg_prepared_statements
   where  name = 'test_mode_pp';
@@ -311,12 +314,13 @@ select name, generic_plans, custom_plans from pg_prepared_statements
 -- force generic plan
 set plan_cache_mode to force_generic_plan;
 explain (costs off) execute test_mode_pp(2);
-         QUERY PLAN          
------------------------------
+             QUERY PLAN              
+-------------------------------------
  Aggregate
    ->  Seq Scan on test_mode
          Filter: (a = $1)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 select name, generic_plans, custom_plans from pg_prepared_statements
   where  name = 'test_mode_pp';
@@ -368,17 +372,18 @@ select name, generic_plans, custom_plans from pg_prepared_statements
   where  name = 'test_mode_pp';
      name     | generic_plans | custom_plans 
 --------------+---------------+--------------
- test_mode_pp |             2 |            5
+ test_mode_pp |             1 |            6
 (1 row)
 
 -- we should now get a really bad plan
 explain (costs off) execute test_mode_pp(2);
-         QUERY PLAN          
------------------------------
+                        QUERY PLAN                        
+----------------------------------------------------------
  Aggregate
-   ->  Seq Scan on test_mode
-         Filter: (a = $1)
-(3 rows)
+   ->  Index Only Scan using test_mode_a_idx on test_mode
+         Index Cond: (a = 2)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 -- but we can force a custom plan
 set plan_cache_mode to force_custom_plan;
@@ -388,13 +393,14 @@ explain (costs off) execute test_mode_pp(2);
  Aggregate
    ->  Index Only Scan using test_mode_a_idx on test_mode
          Index Cond: (a = 2)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 select name, generic_plans, custom_plans from pg_prepared_statements
   where  name = 'test_mode_pp';
      name     | generic_plans | custom_plans 
 --------------+---------------+--------------
- test_mode_pp |             3 |            6
+ test_mode_pp |             1 |            8
 (1 row)
 
 drop table test_mode;

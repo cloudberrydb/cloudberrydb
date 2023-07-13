@@ -1,4 +1,9 @@
 --
+-- Exercise outfuncs
+--
+set Debug_print_parse=on;
+set Debug_print_plan=on;
+--
 -- CREATE_VIEW
 -- Virtual class definitions
 --	(this also tests the query rewrite system)
@@ -1918,22 +1923,22 @@ select pg_get_viewdef('tt25v', true);
 -- also check cases seen only in EXPLAIN
 explain (verbose, costs off)
 select * from tt24v;
-                                        QUERY PLAN                                        
-------------------------------------------------------------------------------------------
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
  Hash Join
-   Output: (cte.r).column2, ((ROW("*VALUES*".column1, "*VALUES*".column2))).column2
-   Hash Cond: (((ROW("*VALUES*".column1, "*VALUES*".column2))).column1 = (cte.r).column1)
-   CTE cte
-     ->  Values Scan on "*VALUES*_1"
-           Output: ROW("*VALUES*_1".column1, "*VALUES*_1".column2)
+   Output: (share0_ref1.r).column2, ((ROW("*VALUES*".column1, "*VALUES*".column2))).column2
+   Hash Cond: (((ROW("*VALUES*".column1, "*VALUES*".column2))).column1 = (share0_ref1.r).column1)
    ->  Limit
          Output: (ROW("*VALUES*".column1, "*VALUES*".column2))
          ->  Values Scan on "*VALUES*"
                Output: ROW("*VALUES*".column1, "*VALUES*".column2)
    ->  Hash
-         Output: cte.r
-         ->  CTE Scan on cte
-               Output: cte.r
+         Output: share0_ref1.r
+         ->  Shared Scan (share slice:id -1:0)
+               Output: share0_ref1.r
+               ->  Values Scan on "*VALUES*_1"
+                     Output: ROW("*VALUES*_1".column1, "*VALUES*_1".column2)
+ Optimizer: Postgres query optimizer
 (14 rows)
 
 explain (verbose, costs off)
@@ -1973,7 +1978,7 @@ select pg_get_viewdef('tt26v', true);
      v.x + (v.y + v.z) AS c6,                          +
      v.x + (v.y # v.z) AS c7,                          +
      v.x > v.y AND (v.y > v.z OR v.x > v.z) AS c8,     +
-     v.x > v.y OR v.y > v.z AND NOT v.x > v.z AS c9,   +
+     v.x > v.y OR (v.y > v.z AND NOT v.x > v.z) AS c9, +
      ((v.x, v.y) <> ALL ( VALUES (1,2), (3,4))) AS c10,+
      ((v.x, v.y) <= ANY ( VALUES (1,2), (3,4))) AS c11 +
     FROM ( VALUES (1,2,3)) v(x, y, z);

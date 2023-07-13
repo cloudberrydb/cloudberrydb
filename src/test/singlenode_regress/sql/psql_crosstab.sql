@@ -2,6 +2,13 @@
 -- \crosstabview
 --
 
+-- ORCA plans produce slightly different plans, with different row order.
+-- The row order differences are not masked out by gpdiff in the cross-tab
+-- views. The point of this test is to test psql functionality, the queries
+-- are not that interesting in the server side, so disable ORCA to make the
+-- output consistent.
+set optimizer=off;
+
 CREATE TABLE ctv_data (v, h, c, i, d) AS
 VALUES
    ('v1','h2','foo', 3, '2015-04-01'::date),
@@ -62,6 +69,9 @@ SELECT null,null \crosstabview
 -- only null, no column name, 3 columns: works
 SELECT null,null,null \crosstabview
 
+-- Make the test results closer to upstream.
+-- If we use groupagg the order of agg result will be different.
+set enable_groupagg to 0;
 -- null display
 \pset null '#null#'
 SELECT v,h, string_agg(i::text, E'\n') AS i FROM ctv_data
@@ -78,6 +88,9 @@ FROM ctv_data GROUP BY v, h ORDER BY h,v
 SELECT v,h, string_agg(i::text, E'\n') AS i, string_agg(c, E'\n') AS c
 FROM ctv_data GROUP BY v, h ORDER BY h,v
  \crosstabview 1 "h" 4
+
+-- reset the flag.
+reset enable_groupagg;
 
 -- refer to columns by quoted names, check downcasing of unquoted name
 SELECT 1 as "22", 2 as b, 3 as "Foo"

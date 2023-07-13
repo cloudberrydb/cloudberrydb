@@ -3,7 +3,7 @@
 --
 
 CREATE SCHEMA test_ns_schema_1
-       CREATE UNIQUE INDEX abc_a_idx ON abc (a)
+       CREATE INDEX abc_a_idx ON abc (a)
 
        CREATE VIEW abc_view AS
               SELECT a+1 AS a, b+1 AS b FROM abc

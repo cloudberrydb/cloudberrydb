@@ -184,7 +184,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p IS NULL)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
  count 
@@ -199,7 +200,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p IS NOT NULL)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
  count 
@@ -213,7 +215,8 @@ SELECT count(*) FROM quad_point_tbl;
 -----------------------------------------------------------
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SELECT count(*) FROM quad_point_tbl;
  count 
@@ -228,7 +231,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
  count 
@@ -243,7 +247,8 @@ SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
  count 
@@ -258,7 +263,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p << '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
  count 
@@ -273,7 +279,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p >> '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
  count 
@@ -288,7 +295,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p <<| '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
  count 
@@ -303,7 +311,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p |>> '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
  count 
@@ -318,7 +327,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
  Aggregate
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p ~= '(4585,365)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
  count 
@@ -332,9 +342,11 @@ FROM quad_point_tbl;
                         QUERY PLAN                         
 -----------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(0,0)'::point)
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Order By: (p <-> '(0,0)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 CREATE TEMP TABLE quad_point_tbl_ord_idx1 AS
 SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
@@ -352,10 +364,12 @@ FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
                         QUERY PLAN                         
 -----------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(0,0)'::point)
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p <@ '(1000,1000),(200,200)'::box)
          Order By: (p <-> '(0,0)'::point)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 CREATE TEMP TABLE quad_point_tbl_ord_idx2 AS
 SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
@@ -373,10 +387,12 @@ FROM quad_point_tbl WHERE p IS NOT NULL;
                         QUERY PLAN                         
 -----------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(333,400)'::point)
    ->  Index Only Scan using sp_quad_ind on quad_point_tbl
          Index Cond: (p IS NOT NULL)
          Order By: (p <-> '(333,400)'::point)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 CREATE TEMP TABLE quad_point_tbl_ord_idx3 AS
 SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
@@ -395,7 +411,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
  count 
@@ -410,7 +427,8 @@ SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
  count 
@@ -425,7 +443,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p << '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
  count 
@@ -440,7 +459,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p >> '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
  count 
@@ -455,7 +475,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p <<| '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
  count 
@@ -470,7 +491,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p |>> '(5000,4000)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
  count 
@@ -485,7 +507,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
  Aggregate
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p ~= '(4585,365)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
  count 
@@ -499,9 +522,11 @@ FROM kd_point_tbl;
                       QUERY PLAN                       
 -------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(0,0)'::point)
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Order By: (p <-> '(0,0)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 CREATE TEMP TABLE kd_point_tbl_ord_idx1 AS
 SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
@@ -519,10 +544,12 @@ FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
                        QUERY PLAN                        
 ---------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(0,0)'::point)
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p <@ '(1000,1000),(200,200)'::box)
          Order By: (p <-> '(0,0)'::point)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 CREATE TEMP TABLE kd_point_tbl_ord_idx2 AS
 SELECT row_number() OVER (ORDER BY p <-> '0,0') n, p <-> '0,0' dist, p
@@ -540,10 +567,12 @@ FROM kd_point_tbl WHERE p IS NOT NULL;
                       QUERY PLAN                       
 -------------------------------------------------------
  WindowAgg
+   Order By: (p <-> '(333,400)'::point)
    ->  Index Only Scan using sp_kd_ind on kd_point_tbl
          Index Cond: (p IS NOT NULL)
          Order By: (p <-> '(333,400)'::point)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 CREATE TEMP TABLE kd_point_tbl_ord_idx3 AS
 SELECT row_number() OVER (ORDER BY p <-> '333,400') n, p <-> '333,400' dist, p
@@ -566,7 +595,8 @@ SELECT p, dist FROM quad_point_tbl_ord_seq1 ORDER BY p <-> '0,0' LIMIT 10;
  Limit
    ->  Index Only Scan using quad_point_tbl_ord_seq1_p_dist_idx on quad_point_tbl_ord_seq1
          Order By: (p <-> '(0,0)'::point)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT p, dist FROM quad_point_tbl_ord_seq1 ORDER BY p <-> '0,0' LIMIT 10;
      p     |       dist       
@@ -601,7 +631,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t = 'P0123456789abcdef'::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
  count 
@@ -616,7 +647,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t = 'P0123456789abcde'::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
  count 
@@ -631,7 +663,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t = 'P0123456789abcdefF'::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
  count 
@@ -646,7 +679,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t < 'Aztec                         Ct  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
  count 
@@ -661,7 +695,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t ~<~ 'Aztec                         Ct  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
  count 
@@ -676,7 +711,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t <= 'Aztec                         Ct  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
  count 
@@ -691,7 +727,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t ~<=~ 'Aztec                         Ct  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
  count 
@@ -706,7 +743,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t = 'Aztec                         Ct  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
  count 
@@ -721,7 +759,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t = 'Worth                         St  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
  count 
@@ -736,7 +775,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t >= 'Worth                         St  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
  count 
@@ -751,7 +791,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t ~>=~ 'Worth                         St  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
  count 
@@ -766,7 +807,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t > 'Worth                         St  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
  count 
@@ -781,7 +823,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t ~>~ 'Worth                         St  '::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
  count 
@@ -796,7 +839,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
  Aggregate
    ->  Index Only Scan using sp_radix_ind on radix_text_tbl
          Index Cond: (t ^@ 'Worth'::text)
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
  count 
@@ -817,7 +861,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
          Recheck Cond: (p IS NULL)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p IS NULL)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p IS NULL;
  count 
@@ -834,7 +879,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
          Recheck Cond: (p IS NOT NULL)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p IS NOT NULL)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p IS NOT NULL;
  count 
@@ -849,7 +895,8 @@ SELECT count(*) FROM quad_point_tbl;
  Aggregate
    ->  Bitmap Heap Scan on quad_point_tbl
          ->  Bitmap Index Scan on sp_quad_ind
-(3 rows)
+ Optimizer: Postgres query optimizer
+(4 rows)
 
 SELECT count(*) FROM quad_point_tbl;
  count 
@@ -866,7 +913,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
          Recheck Cond: (p <@ '(1000,1000),(200,200)'::box)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p <@ box '(200,200,1000,1000)';
  count 
@@ -883,7 +931,8 @@ SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
          Recheck Cond: ('(1000,1000),(200,200)'::box @> p)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE box '(200,200,1000,1000)' @> p;
  count 
@@ -900,7 +949,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
          Recheck Cond: (p << '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p << '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p << '(5000, 4000)';
  count 
@@ -917,7 +967,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
          Recheck Cond: (p >> '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p >> '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p >> '(5000, 4000)';
  count 
@@ -934,7 +985,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
          Recheck Cond: (p <<| '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p <<| '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p <<| '(5000, 4000)';
  count 
@@ -951,7 +1003,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
          Recheck Cond: (p |>> '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p |>> '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p |>> '(5000, 4000)';
  count 
@@ -968,7 +1021,8 @@ SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
          Recheck Cond: (p ~= '(4585,365)'::point)
          ->  Bitmap Index Scan on sp_quad_ind
                Index Cond: (p ~= '(4585,365)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM quad_point_tbl WHERE p ~= '(4585, 365)';
  count 
@@ -985,7 +1039,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
          Recheck Cond: (p <@ '(1000,1000),(200,200)'::box)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p <@ box '(200,200,1000,1000)';
  count 
@@ -1002,7 +1057,8 @@ SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
          Recheck Cond: ('(1000,1000),(200,200)'::box @> p)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p <@ '(1000,1000),(200,200)'::box)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE box '(200,200,1000,1000)' @> p;
  count 
@@ -1019,7 +1075,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
          Recheck Cond: (p << '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p << '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p << '(5000, 4000)';
  count 
@@ -1036,7 +1093,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
          Recheck Cond: (p >> '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p >> '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p >> '(5000, 4000)';
  count 
@@ -1053,7 +1111,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
          Recheck Cond: (p <<| '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p <<| '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p <<| '(5000, 4000)';
  count 
@@ -1070,7 +1129,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
          Recheck Cond: (p |>> '(5000,4000)'::point)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p |>> '(5000,4000)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p |>> '(5000, 4000)';
  count 
@@ -1087,7 +1147,8 @@ SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
          Recheck Cond: (p ~= '(4585,365)'::point)
          ->  Bitmap Index Scan on sp_kd_ind
                Index Cond: (p ~= '(4585,365)'::point)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM kd_point_tbl WHERE p ~= '(4585, 365)';
  count 
@@ -1104,7 +1165,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
          Recheck Cond: (t = 'P0123456789abcdef'::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t = 'P0123456789abcdef'::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdef';
  count 
@@ -1121,7 +1183,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
          Recheck Cond: (t = 'P0123456789abcde'::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t = 'P0123456789abcde'::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcde';
  count 
@@ -1138,7 +1201,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
          Recheck Cond: (t = 'P0123456789abcdefF'::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t = 'P0123456789abcdefF'::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t = 'P0123456789abcdefF';
  count 
@@ -1155,7 +1219,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         
          Recheck Cond: (t < 'Aztec                         Ct  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t < 'Aztec                         Ct  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t <    'Aztec                         Ct  ';
  count 
@@ -1172,7 +1237,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         
          Recheck Cond: (t ~<~ 'Aztec                         Ct  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t ~<~ 'Aztec                         Ct  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~<~  'Aztec                         Ct  ';
  count 
@@ -1189,7 +1255,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         
          Recheck Cond: (t <= 'Aztec                         Ct  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t <= 'Aztec                         Ct  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t <=   'Aztec                         Ct  ';
  count 
@@ -1206,7 +1273,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         
          Recheck Cond: (t ~<=~ 'Aztec                         Ct  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t ~<=~ 'Aztec                         Ct  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~<=~ 'Aztec                         Ct  ';
  count 
@@ -1223,7 +1291,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         
          Recheck Cond: (t = 'Aztec                         Ct  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t = 'Aztec                         Ct  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t =    'Aztec                         Ct  ';
  count 
@@ -1240,7 +1309,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         
          Recheck Cond: (t = 'Worth                         St  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t = 'Worth                         St  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t =    'Worth                         St  ';
  count 
@@ -1257,7 +1327,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         
          Recheck Cond: (t >= 'Worth                         St  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t >= 'Worth                         St  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t >=   'Worth                         St  ';
  count 
@@ -1274,7 +1345,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         
          Recheck Cond: (t ~>=~ 'Worth                         St  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t ~>=~ 'Worth                         St  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~>=~ 'Worth                         St  ';
  count 
@@ -1291,7 +1363,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         
          Recheck Cond: (t > 'Worth                         St  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t > 'Worth                         St  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t >    'Worth                         St  ';
  count 
@@ -1308,7 +1381,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         
          Recheck Cond: (t ~>~ 'Worth                         St  '::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t ~>~ 'Worth                         St  '::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ~>~  'Worth                         St  ';
  count 
@@ -1325,7 +1399,8 @@ SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
          Recheck Cond: (t ^@ 'Worth'::text)
          ->  Bitmap Index Scan on sp_radix_ind
                Index Cond: (t ^@ 'Worth'::text)
-(5 rows)
+ Optimizer: Postgres query optimizer
+(6 rows)
 
 SELECT count(*) FROM radix_text_tbl WHERE t ^@	 'Worth';
  count 

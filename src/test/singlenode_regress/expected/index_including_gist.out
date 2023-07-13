@@ -29,7 +29,8 @@ EXPLAIN  (costs off) SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,
 ------------------------------------------------
  Index Only Scan using tbl_gist_idx on tbl_gist
    Index Cond: (c4 <@ '(10,10),(1,1)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SET enable_bitmapscan TO default;
 DROP TABLE tbl_gist;
@@ -64,7 +65,8 @@ EXPLAIN  (costs off) SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,
 ------------------------------------------------
  Index Only Scan using tbl_gist_idx on tbl_gist
    Index Cond: (c4 <@ '(10,10),(1,1)'::box)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 
 SET enable_bitmapscan TO default;
 DROP TABLE tbl_gist;
@@ -146,11 +148,14 @@ ERROR:  conflicting key value violates exclusion constraint "tbl_gist_c4_c1_c2_c
 DETAIL:  Key (c4)=((4,5),(2,3)) conflicts with existing key (c4)=((2,3),(1,2)).
 INSERT INTO tbl_gist SELECT x, 2*x, 3*x, box(point(3*x,2*x),point(3*x+1,2*x+1)) FROM generate_series(1,10) AS x;
 EXPLAIN  (costs off) SELECT * FROM tbl_gist where c4 <@ box(point(1,1),point(10,10));
-                         QUERY PLAN                          
--------------------------------------------------------------
- Index Only Scan using tbl_gist_c4_c1_c2_c3_excl on tbl_gist
-   Index Cond: (c4 <@ '(10,10),(1,1)'::box)
-(2 rows)
+                      QUERY PLAN                      
+------------------------------------------------------
+ Bitmap Heap Scan on tbl_gist
+   Recheck Cond: (c4 <@ '(10,10),(1,1)'::box)
+   ->  Bitmap Index Scan on tbl_gist_c4_c1_c2_c3_excl
+         Index Cond: (c4 <@ '(10,10),(1,1)'::box)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 \d tbl_gist
               Table "public.tbl_gist"

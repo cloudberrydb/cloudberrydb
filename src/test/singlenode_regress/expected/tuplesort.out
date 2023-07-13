@@ -373,79 +373,32 @@ FETCH NEXT FROM c;
  00000000-0000-0000-0000-000000000000
 (1 row)
 
--- scroll beyond beginning
-FETCH BACKWARD FROM c;
-          noabort_decreasing          
---------------------------------------
- 00000000-0000-0000-0000-000000000000
-(1 row)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH NEXT FROM c;
-          noabort_decreasing          
---------------------------------------
- 00000000-0000-0000-0000-000000000000
-(1 row)
-
--- scroll beyond end end
-FETCH LAST FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
+--start_ignore
+--GDPB doesn't support backward fetch.
+/*
+ * scroll beyond beginning
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * 
+ * -- scroll beyond end end
+ * FETCH LAST FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ */
+--end_ignore
 COMMIT;
 -- disk based
 BEGIN;
 SET LOCAL enable_indexscan = false;
 SET LOCAL work_mem = '100kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 -- unfortunately can't show analyze output confirming sort method,
 -- the memory used output wouldn't be stable
 EXPLAIN (COSTS OFF) DECLARE c SCROLL CURSOR FOR SELECT noabort_decreasing FROM abbrev_abort_uuids ORDER BY noabort_decreasing;
@@ -470,74 +423,25 @@ FETCH NEXT FROM c;
  00000000-0000-0000-0000-000000000000
 (1 row)
 
+--start_ignore
 -- scroll beyond beginning
-FETCH BACKWARD FROM c;
-          noabort_decreasing          
---------------------------------------
- 00000000-0000-0000-0000-000000000000
-(1 row)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH NEXT FROM c;
-          noabort_decreasing          
---------------------------------------
- 00000000-0000-0000-0000-000000000000
-(1 row)
-
--- scroll beyond end end
-FETCH LAST FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
-FETCH BACKWARD FROM c;
- noabort_decreasing 
---------------------
- 
-(1 row)
-
-FETCH NEXT FROM c;
- noabort_decreasing 
---------------------
-(0 rows)
-
+/*
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * 
+ * -- scroll beyond end end
+ * FETCH LAST FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH NEXT FROM c;
+ * FETCH BACKWARD FROM c;
+ * FETCH NEXT FROM c;
+ */
+--end_ignore
 COMMIT;
 ----
 -- test tuplesort using both in-memory and disk sort
@@ -572,6 +476,7 @@ FROM (
 -- disk based (see also above)
 BEGIN;
 SET LOCAL work_mem = '100kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 SELECT
     (array_agg(id ORDER BY id DESC NULLS FIRST))[0:5],
     (array_agg(abort_increasing ORDER BY abort_increasing DESC NULLS LAST))[0:5],
@@ -649,6 +554,7 @@ EXPLAIN (COSTS OFF) :qry;
 
 -- test mark/restore with on-disk sorts
 SET LOCAL work_mem = '100kB';
+WARNING:  "work_mem": setting is deprecated, and may be removed in a future release.
 EXPLAIN (COSTS OFF) :qry;
                                                                                  QUERY PLAN                                                                                  
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------

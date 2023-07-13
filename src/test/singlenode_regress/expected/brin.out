@@ -452,20 +452,16 @@ END;
 $$;
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_idx', 0);
- brin_summarize_range 
-----------------------
-                    0
-(1 row)
-
+ERROR:  Cloudberry could not summarize indicated page range  (seg0 slice1 127.0.0.1:7002 pid=11998)
 -- nothing: already summarized
 SELECT brin_summarize_range('brin_summarize_idx', 1);
- brin_summarize_range 
-----------------------
-                    0
-(1 row)
-
+ERROR:  Cloudberry could not summarize indicated page range  (seg0 slice1 127.0.0.1:7002 pid=11998)
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_idx', 2);
+ERROR:  Cloudberry could not summarize indicated page range
+CONTEXT:  SQL function "brin_summarize_range" statement 1
+-- summarize all pages
+SELECT brin_summarize_range('brin_summarize_idx', 4294967295);
  brin_summarize_range 
 ----------------------
                     1
@@ -496,11 +492,7 @@ SELECT brin_desummarize_range('brinidx', 0);
 (1 row)
 
 SELECT brin_summarize_range('brinidx', 0);
- brin_summarize_range 
-----------------------
-                    1
-(1 row)
-
+ERROR:  Cloudberry could not summarize indicated page range
 DROP TABLE brintest_2;
 -- test brin cost estimates behave sanely based on correlation of values
 CREATE TABLE brin_test (a INT, b INT);

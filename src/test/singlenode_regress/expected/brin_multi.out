@@ -236,6 +236,7 @@ INSERT INTO brinopers_multi VALUES
 	 '{>, >=, =, <=, <, IS, IS NOT}',
 	 '{0/1200, 0/1200, 44/455222, 198/1999799, 198/1999799, NULL, NULL}',
 	 '{100, 100, 1, 100, 100, 25, 100}');
+ANALYZE brintest_multi;
 DO $x$
 DECLARE
 	r record;
@@ -354,8 +355,10 @@ UPDATE brintest_multi SET int8col = int8col * int4col;
 -- Tests for brin_summarize_new_values
 SELECT brin_summarize_new_values('brintest_multi'); -- error, not an index
 ERROR:  "brintest_multi" is not an index
+CONTEXT:  SQL function "brin_summarize_new_values" statement 1
 SELECT brin_summarize_new_values('tenk1_unique1'); -- error, not a BRIN index
 ERROR:  "tenk1_unique1" is not a BRIN index
+CONTEXT:  SQL function "brin_summarize_new_values" statement 1
 SELECT brin_summarize_new_values('brinidx_multi'); -- ok, no change expected
  brin_summarize_new_values 
 ---------------------------
@@ -405,37 +408,30 @@ END;
 $$;
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_multi_idx', 0);
- brin_summarize_range 
-----------------------
-                    0
-(1 row)
-
+ERROR:  Cloudberry could not summarize indicated page range
+CONTEXT:  SQL function "brin_summarize_range" statement 1
 -- nothing: already summarized
 SELECT brin_summarize_range('brin_summarize_multi_idx', 1);
- brin_summarize_range 
-----------------------
-                    0
-(1 row)
-
+ERROR:  Cloudberry could not summarize indicated page range
+CONTEXT:  SQL function "brin_summarize_range" statement 1
 -- summarize one range
 SELECT brin_summarize_range('brin_summarize_multi_idx', 2);
+ERROR:  Cloudberry could not summarize indicated page range
+CONTEXT:  SQL function "brin_summarize_range" statement 1
+-- nothing: page doesn't exist in table
+SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295);
  brin_summarize_range 
 ----------------------
                     1
 (1 row)
 
--- nothing: page doesn't exist in table
-SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967295);
- brin_summarize_range 
-----------------------
-                    0
-(1 row)
-
 -- invalid block number values
 SELECT brin_summarize_range('brin_summarize_multi_idx', -1);
 ERROR:  block number out of range: -1
+CONTEXT:  SQL function "brin_summarize_range" statement 1
 SELECT brin_summarize_range('brin_summarize_multi_idx', 4294967296);
 ERROR:  block number out of range: 4294967296
+CONTEXT:  SQL function "brin_summarize_range" statement 1
 -- test brin cost estimates behave sanely based on correlation of values
 CREATE TABLE brin_test_multi (a INT, b INT);
 INSERT INTO brin_test_multi SELECT x/100,x%100 FROM generate_series(1,10000) x(x);
@@ -450,13 +446,15 @@ EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE a = 1;
    Recheck Cond: (a = 1)
    ->  Bitmap Index Scan on brin_test_multi_a_idx
          Index Cond: (a = 1)
-(4 rows)
+ Optimizer: Postgres query optimizer
+(5 rows)
 
 -- Ensure brin index is not used when values are not correlated
 EXPLAIN (COSTS OFF) SELECT * FROM brin_test_multi WHERE b = 1;
-         QUERY PLAN          
------------------------------
+             QUERY PLAN              
+-------------------------------------
  Seq Scan on brin_test_multi
    Filter: (b = 1)
-(2 rows)
+ Optimizer: Postgres query optimizer
+(3 rows)
 

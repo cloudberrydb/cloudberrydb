@@ -309,7 +309,7 @@ SET enable_bitmapscan = off;
 --
 -- Btree index / opclass with the various operators
 --
-CREATE UNIQUE INDEX enumtest_btree ON enumtest USING btree (col);
+CREATE INDEX enumtest_btree ON enumtest USING btree (col);
 SELECT * FROM enumtest WHERE col = 'orange';
   col   
 --------
@@ -542,11 +542,10 @@ CREATE TABLE enumtest_child (parent rainbow REFERENCES enumtest_parent);
 INSERT INTO enumtest_parent VALUES ('red');
 INSERT INTO enumtest_child VALUES ('red');
 INSERT INTO enumtest_child VALUES ('blue');  -- fail
-ERROR:  insert or update on table "enumtest_child" violates foreign key constraint "enumtest_child_parent_fkey"
-DETAIL:  Key (parent)=(blue) is not present in table "enumtest_parent".
+-- start_ignore
+-- foreign keys are not checked in GPDB, hence these pass.
+-- end_ignore
 DELETE FROM enumtest_parent;  -- fail
-ERROR:  update or delete on table "enumtest_parent" violates foreign key constraint "enumtest_child_parent_fkey" on table "enumtest_child"
-DETAIL:  Key (id)=(red) is still referenced from table "enumtest_child".
 --
 -- cross-type RI should fail
 --

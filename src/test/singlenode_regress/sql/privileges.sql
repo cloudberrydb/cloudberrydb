@@ -1,7 +1,13 @@
 --
 -- Test access privileges
 --
+-- start_matchsubs
+-- m/DETAIL:  Failing row contains \(.*\) = \(.*\)/
+-- s/DETAIL:  Failing row contains \(.*\) = \(.*\)/DETAIL:  Failing row contains (#####)/
+-- end_matchsubs
 
+set optimizer=off;
+set enable_nestloop=on;
 -- Clean up in case a prior regression run failed
 
 -- Suppress NOTICE messages when users/groups don't exist
@@ -18,7 +24,9 @@ DROP ROLE IF EXISTS regress_priv_user5;
 DROP ROLE IF EXISTS regress_priv_user6;
 DROP ROLE IF EXISTS regress_priv_user7;
 
+-- start_ignore
 SELECT lo_unlink(oid) FROM pg_largeobject_metadata WHERE oid >= 1000 AND oid < 3000 ORDER BY oid;
+-- end_ignore
 
 RESET client_min_messages;
 
@@ -926,12 +934,12 @@ CREATE INDEX sro_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)))
 	WHERE sro_ifun(a + 10) > sro_ifun(10);
 DROP INDEX sro_idx;
 -- Do the same concurrently
-CREATE INDEX CONCURRENTLY sro_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)))
+CREATE INDEX sro_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)))
 	WHERE sro_ifun(a + 10) > sro_ifun(10);
 -- REINDEX
 REINDEX TABLE sro_tab;
 REINDEX INDEX sro_idx;
-REINDEX TABLE CONCURRENTLY sro_tab;
+REINDEX TABLE sro_tab;
 DROP INDEX sro_idx;
 -- CLUSTER
 CREATE INDEX sro_cluster_idx ON sro_tab ((sro_ifun(a) + sro_ifun(0)));
@@ -951,7 +959,7 @@ INSERT INTO sro_ptab VALUES (1), (2), (3);
 CREATE INDEX sro_pidx ON sro_ptab ((sro_ifun(a) + sro_ifun(0)))
 	WHERE sro_ifun(a + 10) > sro_ifun(10);
 REINDEX TABLE sro_ptab;
-REINDEX INDEX CONCURRENTLY sro_pidx;
+REINDEX INDEX sro_pidx;
 
 SET SESSION AUTHORIZATION regress_sro_user;
 CREATE FUNCTION unwanted_grant() RETURNS void LANGUAGE sql AS
@@ -977,7 +985,7 @@ CREATE OR REPLACE FUNCTION mv_action() RETURNS bool LANGUAGE sql AS
 REFRESH MATERIALIZED VIEW sro_mv;
 \c -
 REFRESH MATERIALIZED VIEW sro_mv;
-BEGIN; SET CONSTRAINTS ALL IMMEDIATE; REFRESH MATERIALIZED VIEW sro_mv; COMMIT;
+BEGIN; SET allow_segment_DML = ON; SET CONSTRAINTS ALL IMMEDIATE; REFRESH MATERIALIZED VIEW sro_mv; COMMIT;
 
 -- REFRESH MATERIALIZED VIEW CONCURRENTLY use of eval_const_expressions()
 SET SESSION AUTHORIZATION regress_sro_user;
@@ -991,9 +999,15 @@ EXCEPTION WHEN OTHERS THEN
 	RETURN 2;
 END$$;
 CREATE MATERIALIZED VIEW sro_index_mv AS SELECT 1 AS c;
+-- start_ignore
+-- GPDB_14_MERGE_FIXME: the following command will abort the sub-transaction
+-- in a DDL. The problem is that aborting the sub-transaction will also erase
+-- the `dispatch_oids` needed by the QEs. It's a rare case.
+-- We don't support this case now
 CREATE UNIQUE INDEX ON sro_index_mv (c) WHERE unwanted_grant_nofail(1) > 0;
+-- end_ignore
 \c -
-REFRESH MATERIALIZED VIEW CONCURRENTLY sro_index_mv;
+-- REFRESH MATERIALIZED VIEW CONCURRENTLY sro_index_mv;
 REFRESH MATERIALIZED VIEW sro_index_mv;
 
 DROP OWNED BY regress_sro_user;
@@ -1046,6 +1060,7 @@ SELECT has_sequence_privilege('x_seq', 'USAGE');
 \c -
 SET SESSION AUTHORIZATION regress_priv_user1;
 
+-- start_ignore
 SELECT lo_create(1001);
 SELECT lo_create(1002);
 SELECT lo_create(1003);
@@ -1061,10 +1076,12 @@ GRANT SELECT ON LARGE OBJECT 1005 TO regress_priv_user2 WITH GRANT OPTION;
 GRANT SELECT, INSERT ON LARGE OBJECT 1001 TO PUBLIC;	-- to be failed
 GRANT SELECT, UPDATE ON LARGE OBJECT 1001 TO nosuchuser;	-- to be failed
 GRANT SELECT, UPDATE ON LARGE OBJECT  999 TO PUBLIC;	-- to be failed
+-- end_ignore
 
 \c -
 SET SESSION AUTHORIZATION regress_priv_user2;
 
+-- start_ignore
 SELECT lo_create(2001);
 SELECT lo_create(2002);
 
@@ -1088,25 +1105,31 @@ GRANT ALL ON LARGE OBJECT 2001 TO regress_priv_user3;
 
 SELECT lo_unlink(1001);		-- to be denied
 SELECT lo_unlink(2002);
+-- end_ignore
 
 \c -
+-- start_ignore
 -- confirm ACL setting
 SELECT oid, pg_get_userbyid(lomowner) ownername, lomacl FROM pg_largeobject_metadata WHERE oid >= 1000 AND oid < 3000 ORDER BY oid;
+-- end_ignore
 
 SET SESSION AUTHORIZATION regress_priv_user3;
 
+-- start_ignore
 SELECT loread(lo_open(1001, x'40000'::int), 32);
 SELECT loread(lo_open(1003, x'40000'::int), 32);	-- to be denied
 SELECT loread(lo_open(1005, x'40000'::int), 32);
 
 SELECT lo_truncate(lo_open(1005, x'20000'::int), 10);	-- to be denied
 SELECT lo_truncate(lo_open(2001, x'20000'::int), 10);
+-- end_ignore
 
 -- compatibility mode in largeobject permission
 \c -
 SET lo_compat_privileges = false;	-- default setting
 SET SESSION AUTHORIZATION regress_priv_user4;
 
+-- start_ignore
 SELECT loread(lo_open(1002, x'40000'::int), 32);	-- to be denied
 SELECT lowrite(lo_open(1002, x'20000'::int), 'abcd');	-- to be denied
 SELECT lo_truncate(lo_open(1002, x'20000'::int), 10);	-- to be denied
@@ -1115,16 +1138,19 @@ SELECT lo_unlink(1002);					-- to be denied
 SELECT lo_export(1001, '/dev/null');			-- to be denied
 SELECT lo_import('/dev/null');				-- to be denied
 SELECT lo_import('/dev/null', 2003);			-- to be denied
+-- end_ignore
 
 \c -
 SET lo_compat_privileges = true;	-- compatibility mode
 SET SESSION AUTHORIZATION regress_priv_user4;
 
+-- start_ignore
 SELECT loread(lo_open(1002, x'40000'::int), 32);
 SELECT lowrite(lo_open(1002, x'20000'::int), 'abcd');
 SELECT lo_truncate(lo_open(1002, x'20000'::int), 10);
 SELECT lo_unlink(1002);
 SELECT lo_export(1001, '/dev/null');			-- to be denied
+-- end_ignore
 
 -- don't allow unpriv users to access pg_largeobject contents
 \c -
@@ -1326,6 +1352,21 @@ SELECT d.*     -- check that entries went away
 -- Grant on all objects of given type in a schema
 \c -
 
+-- GPDB: Create a helper function to inspect the segment information also
+DROP FUNCTION IF EXISTS has_table_privilege_seg(u text, r text, p text);
+CREATE FUNCTION has_table_privilege_seg(us text, rel text, priv text)
+RETURNS TABLE (
+	segid int,
+	has_table_privilege bool
+) AS $$
+	SELECT
+		gp_execution_segment() AS gegid,
+		p.*
+	FROM
+		has_table_privilege($1, $2, $3) p
+$$ LANGUAGE SQL VOLATILE
+CONTAINS SQL EXECUTE ON ALL SEGMENTS;
+
 CREATE SCHEMA testns;
 CREATE TABLE testns.t1 (f1 int);
 CREATE TABLE testns.t2 (f1 int);
@@ -1447,7 +1488,9 @@ DROP TABLE atestc;
 DROP TABLE atestp1;
 DROP TABLE atestp2;
 
+-- start_ignore
 SELECT lo_unlink(oid) FROM pg_largeobject_metadata WHERE oid >= 1000 AND oid < 3000 ORDER BY oid;
+-- end_ignore
 
 DROP GROUP regress_priv_group1;
 DROP GROUP regress_priv_group2;

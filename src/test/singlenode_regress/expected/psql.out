@@ -2679,6 +2679,7 @@ Owned by: public.psql_serial_tab.id
 
 \pset tuples_only true
 \df exp
+ pg_catalog | exp  | complex          | complex             | func
  pg_catalog | exp  | double precision | double precision    | func
  pg_catalog | exp  | numeric          | numeric             | func
 
@@ -2699,6 +2700,12 @@ Owned by: public.psql_serial_tab.id
 
 \pset tuples_only true
 \df exp
+Schema              | pg_catalog
+Name                | exp
+Result data type    | complex
+Argument data types | complex
+Type                | func
+--------------------+-----------------
 Schema              | pg_catalog
 Name                | exp
 Result data type    | double precision
@@ -2725,6 +2732,7 @@ integer|1|1|2147483647|1|no|1
 Owned by: public.psql_serial_tab.id
 \pset tuples_only true
 \df exp
+pg_catalog|exp|complex|complex|func
 pg_catalog|exp|double precision|double precision|func
 pg_catalog|exp|numeric|numeric|func
 \pset tuples_only false
@@ -2743,6 +2751,12 @@ Cache|1
 Owned by: public.psql_serial_tab.id
 \pset tuples_only true
 \df exp
+Schema|pg_catalog
+Name|exp
+Result data type|complex
+Argument data types|complex
+Type|func
+
 Schema|pg_catalog
 Name|exp
 Result data type|double precision
@@ -2766,6 +2780,7 @@ Owned by: public.psql_serial_tab.id
 
 \pset tuples_only true
 \df exp
+ pg_catalog | exp  | complex          | complex             | func
  pg_catalog | exp  | double precision | double precision    | func
  pg_catalog | exp  | numeric          | numeric             | func
 
@@ -2786,6 +2801,12 @@ Owned by: public.psql_serial_tab.id
 
 \pset tuples_only true
 \df exp
+Schema              | pg_catalog
+Name                | exp
+Result data type    | complex
+Argument data types | complex
+Type                | func
+--------------------+-----------------
 Schema              | pg_catalog
 Name                | exp
 Result data type    | double precision
@@ -2845,21 +2866,21 @@ Access method: heap
 
 -- AM is displayed for tables, indexes and materialized views.
 \d+
-                                                           List of relations
-     Schema      |        Name        |       Type        |        Owner         | Persistence | Access method |  Size   | Description 
------------------+--------------------+-------------------+----------------------+-------------+---------------+---------+-------------
- tableam_display | mat_view_heap_psql | materialized view | regress_display_role | permanent   | heap_psql     | 0 bytes | 
- tableam_display | tbl_heap           | table             | regress_display_role | permanent   | heap          | 0 bytes | 
- tableam_display | tbl_heap_psql      | table             | regress_display_role | permanent   | heap_psql     | 0 bytes | 
- tableam_display | view_heap_psql     | view              | regress_display_role | permanent   |               | 0 bytes | 
+                                                                List of relations
+     Schema      |        Name        |       Type        |        Owner         | Storage | Persistence | Access method |  Size   | Description 
+-----------------+--------------------+-------------------+----------------------+---------+-------------+---------------+---------+-------------
+ tableam_display | mat_view_heap_psql | materialized view | regress_display_role |         | permanent   | heap_psql     | 0 bytes | 
+ tableam_display | tbl_heap           | table             | regress_display_role | heap    | permanent   | heap          | 0 bytes | 
+ tableam_display | tbl_heap_psql      | table             | regress_display_role |         | permanent   | heap_psql     | 0 bytes | 
+ tableam_display | view_heap_psql     | view              | regress_display_role |         | permanent   |               | 0 bytes | 
 (4 rows)
 
 \dt+
-                                                  List of relations
-     Schema      |     Name      | Type  |        Owner         | Persistence | Access method |  Size   | Description 
------------------+---------------+-------+----------------------+-------------+---------------+---------+-------------
- tableam_display | tbl_heap      | table | regress_display_role | permanent   | heap          | 0 bytes | 
- tableam_display | tbl_heap_psql | table | regress_display_role | permanent   | heap_psql     | 0 bytes | 
+                                                       List of relations
+     Schema      |     Name      | Type  |        Owner         | Storage | Persistence | Access method |  Size   | Description 
+-----------------+---------------+-------+----------------------+---------+-------------+---------------+---------+-------------
+ tableam_display | tbl_heap      | table | regress_display_role | heap    | permanent   | heap          | 0 bytes | 
+ tableam_display | tbl_heap_psql | table | regress_display_role |         | permanent   | heap_psql     | 0 bytes | 
 (2 rows)
 
 \dm+
@@ -2879,13 +2900,13 @@ Access method: heap
 
 \set HIDE_TABLEAM on
 \d+
-                                                   List of relations
-     Schema      |        Name        |       Type        |        Owner         | Persistence |  Size   | Description 
------------------+--------------------+-------------------+----------------------+-------------+---------+-------------
- tableam_display | mat_view_heap_psql | materialized view | regress_display_role | permanent   | 0 bytes | 
- tableam_display | tbl_heap           | table             | regress_display_role | permanent   | 0 bytes | 
- tableam_display | tbl_heap_psql      | table             | regress_display_role | permanent   | 0 bytes | 
- tableam_display | view_heap_psql     | view              | regress_display_role | permanent   | 0 bytes | 
+                                                        List of relations
+     Schema      |        Name        |       Type        |        Owner         | Storage | Persistence |  Size   | Description 
+-----------------+--------------------+-------------------+----------------------+---------+-------------+---------+-------------
+ tableam_display | mat_view_heap_psql | materialized view | regress_display_role |         | permanent   | 0 bytes | 
+ tableam_display | tbl_heap           | table             | regress_display_role | heap    | permanent   | 0 bytes | 
+ tableam_display | tbl_heap_psql      | table             | regress_display_role |         | permanent   | 0 bytes | 
+ tableam_display | view_heap_psql     | view              | regress_display_role |         | permanent   | 0 bytes | 
 (4 rows)
 
 RESET ROLE;
@@ -2934,6 +2955,7 @@ Owned by: public.psql_serial_tab.id
 
 [cols="<l,<l,<l,<l,<l",frame="none"]
 |====
+|pg_catalog |exp |complex |complex |func
 |pg_catalog |exp |double precision |double precision |func
 |pg_catalog |exp |numeric |numeric |func
 |====
@@ -2962,6 +2984,12 @@ Owned by: public.psql_serial_tab.id
 
 [cols="h,l",frame="none"]
 |====
+2+|
+<l|Schema <l|pg_catalog
+<l|Name <l|exp
+<l|Result data type <l|complex
+<l|Argument data types <l|complex
+<l|Type <l|func
 2+|
 <l|Schema <l|pg_catalog
 <l|Name <l|exp
@@ -3072,6 +3100,7 @@ Type,Start,Minimum,Maximum,Increment,Cycles?,Cache
 integer,1,1,2147483647,1,no,1
 \pset tuples_only true
 \df exp
+pg_catalog,exp,complex,complex,func
 pg_catalog,exp,double precision,double precision,func
 pg_catalog,exp,numeric,numeric,func
 \pset tuples_only false
@@ -3086,6 +3115,11 @@ Cycles?,no
 Cache,1
 \pset tuples_only true
 \df exp
+Schema,pg_catalog
+Name,exp
+Result data type,complex
+Argument data types,complex
+Type,func
 Schema,pg_catalog
 Name,exp
 Result data type,double precision
@@ -3185,6 +3219,13 @@ select '\' as d1, '' as d2;
   <tr valign="top">
     <td align="left">pg_catalog</td>
     <td align="left">exp</td>
+    <td align="left">complex</td>
+    <td align="left">complex</td>
+    <td align="left">func</td>
+  </tr>
+  <tr valign="top">
+    <td align="left">pg_catalog</td>
+    <td align="left">exp</td>
     <td align="left">double precision</td>
     <td align="left">double precision</td>
     <td align="left">func</td>
@@ -3239,6 +3280,28 @@ select '\' as d1, '' as d2;
 \pset tuples_only true
 \df exp
 <table border="1">
+
+  <tr><td colspan="2">&nbsp;</td></tr>
+  <tr valign="top">
+    <th>Schema</th>
+    <td align="left">pg_catalog</td>
+  </tr>
+  <tr valign="top">
+    <th>Name</th>
+    <td align="left">exp</td>
+  </tr>
+  <tr valign="top">
+    <th>Result data type</th>
+    <td align="left">complex</td>
+  </tr>
+  <tr valign="top">
+    <th>Argument data types</th>
+    <td align="left">complex</td>
+  </tr>
+  <tr valign="top">
+    <th>Type</th>
+    <td align="left">func</td>
+  </tr>
 
   <tr><td colspan="2">&nbsp;</td></tr>
   <tr valign="top">
@@ -3522,6 +3585,7 @@ integer & 1 & 1 & 2147483647 & 1 & no & 1 \\
 \pset tuples_only true
 \df exp
 \begin{tabular}{l | l | l | l | l}
+pg\_catalog & exp & complex & complex & func \\
 pg\_catalog & exp & double precision & double precision & func \\
 pg\_catalog & exp & numeric & numeric & func \\
 \end{tabular}
@@ -3551,6 +3615,12 @@ Cache & 1 \\
 \pset tuples_only true
 \df exp
 \begin{tabular}{c|l}
+\hline
+Schema & pg\_catalog \\
+Name & exp \\
+Result data type & complex \\
+Argument data types & complex \\
+Type & func \\
 \hline
 Schema & pg\_catalog \\
 Name & exp \\
@@ -3736,6 +3806,15 @@ deallocate q;
 &
 \raggedright{exp}
 &
+\raggedright{complex}
+&
+\raggedright{complex}
+&
+\raggedright{func} \tabularnewline
+\raggedright{pg\_catalog}
+&
+\raggedright{exp}
+&
 \raggedright{double precision}
 &
 \raggedright{double precision}
@@ -3775,6 +3854,12 @@ Cache & 1 \\
 \pset tuples_only true
 \df exp
 \begin{tabular}{c|l}
+\hline
+Schema & pg\_catalog \\
+Name & exp \\
+Result data type & complex \\
+Argument data types & complex \\
+Type & func \\
 \hline
 Schema & pg\_catalog \\
 Name & exp \\
@@ -4063,6 +4148,7 @@ Owned by: public.psql_serial_tab.id
 .TS
 center;
 l | l | l | l | l.
+pg_catalog	exp	complex	complex	func
 pg_catalog	exp	double precision	double precision	func
 pg_catalog	exp	numeric	numeric	func
 .TE
@@ -4100,6 +4186,12 @@ Owned by: public.psql_serial_tab.id
 .TS
 center;
 c l;
+_
+Schema	pg_catalog
+Name	exp
+Result data type	complex
+Argument data types	complex
+Type	func
 _
 Schema	pg_catalog
 Name	exp
@@ -4726,8 +4818,11 @@ error: false
 error code: 00000
 \echo 'number of rows:' :ROW_COUNT
 number of rows: 19
--- cursor-fetched query with an error after the first group
-select 1/(15-unique2) from tenk1 order by unique2 limit 19;
+-- cursor-fetched query with an error after the first group. In GPDB, the
+-- query used in PostgreSQL errors out too early in the segments. Use a
+-- different query that behaves the way this is intended.
+--select 1/(15-unique2) from tenk1 order by unique2 limit 19;
+select 1/(15-g) from generate_series(1, 1000000) g;
  ?column? 
 ----------
         0
@@ -4898,31 +4993,37 @@ Indexes:
 -- check printing info about access methods
 \dA
 List of access methods
-  Name  | Type  
---------+-------
- brin   | Index
- btree  | Index
- gin    | Index
- gist   | Index
- hash   | Index
- heap   | Table
- heap2  | Table
- spgist | Index
-(8 rows)
+   Name    | Type  
+-----------+-------
+ ao_column | Table
+ ao_row    | Table
+ bitmap    | Index
+ brin      | Index
+ btree     | Index
+ gin       | Index
+ gist      | Index
+ hash      | Index
+ heap      | Table
+ heap2     | Table
+ spgist    | Index
+(11 rows)
 
 \dA *
 List of access methods
-  Name  | Type  
---------+-------
- brin   | Index
- btree  | Index
- gin    | Index
- gist   | Index
- hash   | Index
- heap   | Table
- heap2  | Table
- spgist | Index
-(8 rows)
+   Name    | Type  
+-----------+-------
+ ao_column | Table
+ ao_row    | Table
+ bitmap    | Index
+ brin      | Index
+ btree     | Index
+ gin       | Index
+ gist      | Index
+ hash      | Index
+ heap      | Table
+ heap2     | Table
+ spgist    | Index
+(11 rows)
 
 \dA h*
 List of access methods
@@ -4947,32 +5048,38 @@ List of access methods
 
 \dA: extra argument "bar" ignored
 \dA+
-                             List of access methods
-  Name  | Type  |       Handler        |              Description               
---------+-------+----------------------+----------------------------------------
- brin   | Index | brinhandler          | block range index (BRIN) access method
- btree  | Index | bthandler            | b-tree index access method
- gin    | Index | ginhandler           | GIN index access method
- gist   | Index | gisthandler          | GiST index access method
- hash   | Index | hashhandler          | hash index access method
- heap   | Table | heap_tableam_handler | heap table access method
- heap2  | Table | heap_tableam_handler | 
- spgist | Index | spghandler           | SP-GiST index access method
-(8 rows)
+                                        List of access methods
+   Name    | Type  |          Handler          |                     Description                      
+-----------+-------+---------------------------+------------------------------------------------------
+ ao_column | Table | ao_column_tableam_handler | column-oriented append-optimized table access method
+ ao_row    | Table | ao_row_tableam_handler    | row-oriented append-optimized table access method
+ bitmap    | Index | bmhandler                 | bitmap index access method
+ brin      | Index | brinhandler               | block range index (BRIN) access method
+ btree     | Index | bthandler                 | b-tree index access method
+ gin       | Index | ginhandler                | GIN index access method
+ gist      | Index | gisthandler               | GiST index access method
+ hash      | Index | hashhandler               | hash index access method
+ heap      | Table | heap_tableam_handler      | heap table access method
+ heap2     | Table | heap_tableam_handler      | 
+ spgist    | Index | spghandler                | SP-GiST index access method
+(11 rows)
 
 \dA+ *
-                             List of access methods
-  Name  | Type  |       Handler        |              Description               
---------+-------+----------------------+----------------------------------------
- brin   | Index | brinhandler          | block range index (BRIN) access method
- btree  | Index | bthandler            | b-tree index access method
- gin    | Index | ginhandler           | GIN index access method
- gist   | Index | gisthandler          | GiST index access method
- hash   | Index | hashhandler          | hash index access method
- heap   | Table | heap_tableam_handler | heap table access method
- heap2  | Table | heap_tableam_handler | 
- spgist | Index | spghandler           | SP-GiST index access method
-(8 rows)
+                                        List of access methods
+   Name    | Type  |          Handler          |                     Description                      
+-----------+-------+---------------------------+------------------------------------------------------
+ ao_column | Table | ao_column_tableam_handler | column-oriented append-optimized table access method
+ ao_row    | Table | ao_row_tableam_handler    | row-oriented append-optimized table access method
+ bitmap    | Index | bmhandler                 | bitmap index access method
+ brin      | Index | brinhandler               | block range index (BRIN) access method
+ btree     | Index | bthandler                 | b-tree index access method
+ gin       | Index | ginhandler                | GIN index access method
+ gist      | Index | gisthandler               | GiST index access method
+ hash      | Index | hashhandler               | hash index access method
+ heap      | Table | heap_tableam_handler      | heap table access method
+ heap2     | Table | heap_tableam_handler      | 
+ spgist    | Index | spghandler                | SP-GiST index access method
+(11 rows)
 
 \dA+ h*
                      List of access methods
@@ -5069,25 +5176,30 @@ List of access methods
 
 \dAp * pg_catalog.uuid_ops
                             List of support functions of operator families
-  AM   | Operator family | Registered left type | Registered right type | Number |      Function      
--------+-----------------+----------------------+-----------------------+--------+--------------------
- btree | uuid_ops        | uuid                 | uuid                  |      1 | uuid_cmp
- btree | uuid_ops        | uuid                 | uuid                  |      2 | uuid_sortsupport
- btree | uuid_ops        | uuid                 | uuid                  |      4 | btequalimage
- hash  | uuid_ops        | uuid                 | uuid                  |      1 | uuid_hash
- hash  | uuid_ops        | uuid                 | uuid                  |      2 | uuid_hash_extended
-(5 rows)
+   AM   | Operator family | Registered left type | Registered right type | Number |      Function      
+--------+-----------------+----------------------+-----------------------+--------+--------------------
+ bitmap | uuid_ops        | uuid                 | uuid                  |      1 | uuid_cmp
+ bitmap | uuid_ops        | uuid                 | uuid                  |      2 | uuid_sortsupport
+ bitmap | uuid_ops        | uuid                 | uuid                  |      4 | btequalimage
+ btree  | uuid_ops        | uuid                 | uuid                  |      1 | uuid_cmp
+ btree  | uuid_ops        | uuid                 | uuid                  |      2 | uuid_sortsupport
+ btree  | uuid_ops        | uuid                 | uuid                  |      4 | btequalimage
+ hash   | uuid_ops        | uuid                 | uuid                  |      1 | uuid_hash
+ hash   | uuid_ops        | uuid                 | uuid                  |      2 | uuid_hash_extended
+(8 rows)
 
 -- check \df, \do with argument specifications
 \df *sqrt
                              List of functions
    Schema   |     Name     | Result data type | Argument data types | Type 
 ------------+--------------+------------------+---------------------+------
+ pg_catalog | complex_sqrt | complex          | complex             | func
  pg_catalog | dsqrt        | double precision | double precision    | func
  pg_catalog | numeric_sqrt | numeric          | numeric             | func
+ pg_catalog | sqrt         | complex          | complex             | func
  pg_catalog | sqrt         | double precision | double precision    | func
  pg_catalog | sqrt         | numeric          | numeric             | func
-(4 rows)
+(6 rows)
 
 \df *sqrt num*
                              List of functions
@@ -5408,9 +5520,9 @@ List of access methods
 (0 rows)
 
 \dt "no.such.table.relation"
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
+           List of relations
+ Schema | Name | Type | Owner | Storage 
+--------+------+------+-------+---------
 (0 rows)
 
 \da "no.such.aggregate.function"
@@ -5498,9 +5610,9 @@ List of access methods
 (0 rows)
 
 \dt "no.such.relation"
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
+           List of relations
+ Schema | Name | Type | Owner | Storage 
+--------+------+------+-------+---------
 (0 rows)
 
 \dv "no.such.relation"
@@ -5638,9 +5750,9 @@ List of schemas
 \dA "no.such.schema"."no.such.access.method"
 improper qualified name (too many dotted names): "no.such.schema"."no.such.access.method"
 \dt "no.such.schema"."no.such.table.relation"
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
+           List of relations
+ Schema | Name | Type | Owner | Storage 
+--------+------+------+-------+---------
 (0 rows)
 
 \da "no.such.schema"."no.such.aggregate.function"
@@ -5708,9 +5820,9 @@ improper qualified name (too many dotted names): "no.such.schema"."no.such.table
 (0 rows)
 
 \dt "no.such.schema"."no.such.relation"
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
+           List of relations
+ Schema | Name | Type | Owner | Storage 
+--------+------+------+-------+---------
 (0 rows)
 
 \dv "no.such.schema"."no.such.relation"
@@ -5805,9 +5917,9 @@ improper qualified name (too many dotted names): "no.such.schema"."no.such.insta
 improper qualified name (too many dotted names): "no.such.schema"."no.such.event.trigger"
 -- again, but with current database and dotted schema qualifications.
 \dt regression."no.such.schema"."no.such.table.relation"
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
+           List of relations
+ Schema | Name | Type | Owner | Storage 
+--------+------+------+-------+---------
 (0 rows)
 
 \da regression."no.such.schema"."no.such.aggregate.function"
@@ -5859,9 +5971,9 @@ improper qualified name (too many dotted names): "no.such.schema"."no.such.event
 (0 rows)
 
 \dt regression."no.such.schema"."no.such.relation"
-      List of relations
- Schema | Name | Type | Owner 
---------+------+------+-------
+           List of relations
+ Schema | Name | Type | Owner | Storage 
+--------+------+------+-------+---------
 (0 rows)
 
 \dv regression."no.such.schema"."no.such.relation"

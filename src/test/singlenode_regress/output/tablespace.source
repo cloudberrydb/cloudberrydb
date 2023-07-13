@@ -1,3 +1,7 @@
+-- start_matchignore
+-- m/WARNING:  tablespace symlink path is too long for TAR/
+-- m/DETAIL:  The symlinked path \".*\" will be truncated to 100 characters when sending a TAR to the utilities \(e.g. pg_basebackup\)/
+-- end_matchignore
 -- create a tablespace using WITH clause
 CREATE TABLESPACE regress_tblspacewith LOCATION '@testtablespace@' WITH (some_nonexistent_parameter = true); -- fail
 ERROR:  unrecognized parameter "some_nonexistent_parameter"
@@ -109,7 +113,7 @@ SELECT c.relname FROM pg_class c, pg_tablespace s
 ---------
 (0 rows)
 
-REINDEX (TABLESPACE regress_tblspace, CONCURRENTLY) TABLE regress_tblspace_test_tbl;
+REINDEX (TABLESPACE regress_tblspace) TABLE regress_tblspace_test_tbl;
 SELECT c.relname FROM pg_class c, pg_tablespace s
   WHERE c.reltablespace = s.oid AND s.spcname = 'regress_tblspace'
   ORDER BY c.relname;
@@ -179,7 +183,7 @@ CREATE TEMP TABLE reindex_temp_before AS
   SELECT oid, relname, relfilenode, reltablespace
   FROM pg_class
     WHERE relname ~ 'tbspace_reindex_part_index';
-REINDEX (TABLESPACE regress_tblspace, CONCURRENTLY) TABLE tbspace_reindex_part;
+REINDEX (TABLESPACE regress_tblspace) TABLE tbspace_reindex_part;
 -- REINDEX CONCURRENTLY changes the OID of the old relation, hence a check
 -- based on the relation name below.
 SELECT b.relname,
@@ -272,13 +276,17 @@ CREATE TABLE testschema.part_2 PARTITION OF testschema.part FOR VALUES IN (2);
 SET default_tablespace TO pg_global;
 CREATE TABLE testschema.part_3 PARTITION OF testschema.part FOR VALUES IN (3);
 ERROR:  only shared relations can be placed in pg_global tablespace
-ALTER TABLE testschema.part SET TABLESPACE regress_tblspace;
+-- GPDB: Cloudberry's ALTER TABLE .. SET TABLESPACE command recurses by
+-- default, hence add ONLY to achieve the same results for SELECT.
+ALTER TABLE ONLY testschema.part SET TABLESPACE regress_tblspace;
 CREATE TABLE testschema.part_3 PARTITION OF testschema.part FOR VALUES IN (3);
 CREATE TABLE testschema.part_4 PARTITION OF testschema.part FOR VALUES IN (4)
   TABLESPACE pg_default;
 CREATE TABLE testschema.part_56 PARTITION OF testschema.part FOR VALUES IN (5, 6)
   PARTITION BY LIST (a);
-ALTER TABLE testschema.part SET TABLESPACE pg_default;
+-- GPDB: Cloudberry's ALTER TABLE .. SET TABLESPACE command recurses by
+-- default, hence add ONLY to achieve the same results for SELECT.
+ALTER TABLE ONLY testschema.part SET TABLESPACE pg_default;
 CREATE TABLE testschema.part_78 PARTITION OF testschema.part FOR VALUES IN (7, 8)
   PARTITION BY LIST (a);
 ERROR:  only shared relations can be placed in pg_global tablespace
@@ -434,6 +442,8 @@ Tablespace: "regress_tblspace"
 SET default_tablespace TO regress_tblspace;
 -- tablespace should not change if no rewrite
 ALTER TABLE testschema.test_default_tab ALTER id TYPE bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 \d testschema.test_index1
    Index "testschema.test_index1"
  Column |  Type  | Key? | Definition 
@@ -472,33 +482,35 @@ SELECT * FROM testschema.test_default_tab;
 
 -- tablespace should not change even if there is an index rewrite
 ALTER TABLE testschema.test_default_tab ALTER id TYPE int;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 \d testschema.test_index1
-    Index "testschema.test_index1"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index1"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 btree, for table "testschema.test_default_tab"
 
 \d testschema.test_index2
-    Index "testschema.test_index2"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index2"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 btree, for table "testschema.test_default_tab"
 Tablespace: "regress_tblspace"
 
 \d testschema.test_index3
-    Index "testschema.test_index3"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index3"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 primary key, btree, for table "testschema.test_default_tab"
 
 \d testschema.test_index4
-    Index "testschema.test_index4"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index4"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 unique, btree, for table "testschema.test_default_tab"
 Tablespace: "regress_tblspace"
 
@@ -512,38 +524,42 @@ SELECT * FROM testschema.test_default_tab;
 SET default_tablespace TO '';
 -- tablespace should not change if no rewrite
 ALTER TABLE testschema.test_default_tab ALTER id TYPE int;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 \d testschema.test_index1
-    Index "testschema.test_index1"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index1"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 btree, for table "testschema.test_default_tab"
 
 \d testschema.test_index2
-    Index "testschema.test_index2"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index2"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 btree, for table "testschema.test_default_tab"
 Tablespace: "regress_tblspace"
 
 \d testschema.test_index3
-    Index "testschema.test_index3"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index3"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 primary key, btree, for table "testschema.test_default_tab"
 
 \d testschema.test_index4
-    Index "testschema.test_index4"
- Column |  Type   | Key? | Definition 
---------+---------+------+------------
- id     | integer | yes  | id
+   Index "testschema.test_index4"
+ Column |  Type  | Key? | Definition 
+--------+--------+------+------------
+ id     | bigint | yes  | id
 unique, btree, for table "testschema.test_default_tab"
 Tablespace: "regress_tblspace"
 
 -- tablespace should not change even if there is an index rewrite
 ALTER TABLE testschema.test_default_tab ALTER id TYPE bigint;
+ERROR:  cannot alter column with primary key or unique constraint
+HINT:  DROP the constraint first, and recreate it after the ALTER
 \d testschema.test_index1
    Index "testschema.test_index1"
  Column |  Type  | Key? | Definition 
