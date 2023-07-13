@@ -340,3 +340,4 @@ from pg_statistic where starelid='pg_tablespace'::regclass;
          5 | f          |           1 |        0 |           0 |        0 |        0 |        0 |        0 |        0 |      0 |      0 |      0 |      0 |      0 |        0 |        0 |        0 |        0 |        0 |             |             |             |             |             |                        |            |            |            | 
 (5 rows)
 
+\! rm data/minirepro_q.sql

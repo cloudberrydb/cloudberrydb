@@ -197,4 +197,4 @@ select
     stavalues5
 from pg_statistic where starelid='pg_tablespace'::regclass;
 
-
+\! rm data/minirepro_q.sql
