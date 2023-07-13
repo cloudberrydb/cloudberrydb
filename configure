@@ -753,6 +753,7 @@ ICU_CFLAGS
 with_icu
 enable_thread_safety
 INCLUDES
+enable_preload_ic_module
 enable_ic_proxy
 enable_external_fts
 HAVE_CXX14
@@ -897,6 +898,7 @@ enable_mapreduce
 enable_gpcloud
 enable_external_fts
 enable_ic_proxy
+enable_preload_ic_module
 enable_thread_safety
 with_icu
 with_tcl
@@ -1607,6 +1609,8 @@ Optional Features:
   --enable-external-fts   enable external fts support
   --enable-ic-proxy       enable interconnect proxy mode (requires libuv
                           library)
+  --disable-preload-ic-module
+                          disable preload interconnect module
   --disable-thread-safety disable thread-safety in client libraries
   --enable-openssl-redirect
                           enable redirect openssl interface to internal
@@ -8954,6 +8958,40 @@ fi
 
 
 #
+# ic-module preload
+#
+
+
+# Check whether --enable-preload-ic-module was given.
+if test "${enable_preload_ic_module+set}" = set; then :
+  enableval=$enable_preload_ic_module;
+  case $enableval in
+    yes)
+
+$as_echo "#define ENABLE_PRELOAD_IC_MODULE 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-preload-ic-module option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_preload_ic_module=yes
+
+$as_echo "#define ENABLE_PRELOAD_IC_MODULE 1" >>confdefs.h
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload ic module ... $enable_preload_ic_module" >&5
+$as_echo "checking whether to build with preload ic module ... $enable_preload_ic_module" >&6; }
+
+
+#
 # Include directories
 #
 ac_save_IFS=$IFS
@@ -14149,6 +14187,8 @@ else
 fi
 
 fi
+ac_config_files="$ac_config_files contrib/interconnect/Makefile.interconnect"
+
 
 if test "$enable_spinlocks" = yes; then
 
@@ -23593,6 +23633,7 @@ for ac_config_target in $ac_config_targets
 do
   case $ac_config_target in
     "src/backend/port/tas.s") CONFIG_LINKS="$CONFIG_LINKS src/backend/port/tas.s:src/backend/port/tas/${tas_file}" ;;
+    "contrib/interconnect/Makefile.interconnect") CONFIG_FILES="$CONFIG_FILES contrib/interconnect/Makefile.interconnect" ;;
     "GNUmakefile") CONFIG_FILES="$CONFIG_FILES GNUmakefile" ;;
     "src/Makefile.global") CONFIG_FILES="$CONFIG_FILES src/Makefile.global" ;;
     "src/include/catalog/gp_version_at_initdb.dat") CONFIG_FILES="$CONFIG_FILES src/include/catalog/gp_version_at_initdb.dat" ;;

@@ -1,6 +1,6 @@
 /*-------------------------------------------------------------------------
  *
- * cdbicudpfaultinjection.h
+ * ic_faultinjection.h
  *	   Fault injection code for UDP interconnect.
  *
  * Portions Copyright (c) 2005-2011, Greenplum Inc.
@@ -9,13 +9,13 @@
  *
  *
  * IDENTIFICATION
- *	    src/include/cdb/cdbicudpfaultinjection.h
+ *	    contrib/interconnect/udp/ic_faultinjection.h
  *
  *-------------------------------------------------------------------------
  */
 
-#ifndef CDBICUDPFAULTINJECTION_H
-#define CDBICUDPFAULTINJECTION_H
+#ifndef IC_FAULTINJECTION_H
+#define IC_FAULTINJECTION_H
 
 #ifdef HAVE_POLL_H
 #include <poll.h>
@@ -619,8 +619,9 @@ testmode_pthread_create(const char *caller_name, pthread_t *thread,
 	return pthread_create(thread, attr, start_routine, arg);
 }
 
-
+#ifdef ML_CHECK_FOR_INTERRUPTS
 #undef ML_CHECK_FOR_INTERRUPTS
+#endif
 #undef sendto
 #undef recvfrom
 #undef poll

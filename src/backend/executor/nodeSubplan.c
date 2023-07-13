@@ -1160,7 +1160,7 @@ PG_TRY();
 		 * Set up the interconnect for execution of the initplan root slice.
 		 */
 		Assert(!(queryDesc->estate->interconnect_context));
-		SetupInterconnect(queryDesc->estate);
+		CurrentMotionIPCLayer->SetupInterconnect(queryDesc->estate);
 		Assert((queryDesc->estate->interconnect_context));
 
 		UpdateMotionExpectedReceivers(queryDesc->estate->motionlayer_context, queryDesc->estate->es_sliceTable);
@@ -1381,7 +1381,8 @@ PG_TRY();
 	/* Clean up the interconnect. */
 	if (queryDesc && queryDesc->estate && queryDesc->estate->es_interconnect_is_setup)
 	{
-		TeardownInterconnect(queryDesc->estate->interconnect_context, false); /* following success on QD */
+		Assert(CurrentMotionIPCLayer);
+		CurrentMotionIPCLayer->TeardownInterconnect(queryDesc->estate->interconnect_context, false); /* following success on QD */
 		queryDesc->estate->interconnect_context = NULL;
 		queryDesc->estate->es_interconnect_is_setup = false;
 	}
@@ -1444,7 +1445,8 @@ PG_CATCH();
 	 */
 	if (queryDesc && queryDesc->estate && queryDesc->estate->es_interconnect_is_setup)
 	{
-		TeardownInterconnect(queryDesc->estate->interconnect_context, true);
+		Assert(CurrentMotionIPCLayer);
+		CurrentMotionIPCLayer->TeardownInterconnect(queryDesc->estate->interconnect_context, true);
 		queryDesc->estate->interconnect_context = NULL;
 		queryDesc->estate->es_interconnect_is_setup = false;
 	}

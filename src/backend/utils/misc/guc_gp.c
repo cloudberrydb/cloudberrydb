@@ -101,7 +101,7 @@ static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource
 static int guc_array_compare(const void *a, const void *b);
 static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
 
-extern int listenerBacklog;
+int listenerBacklog  = 128;
 
 /* For synchornized GUC value is cache in HashTable,
  * dispatch value along with query when some guc changed

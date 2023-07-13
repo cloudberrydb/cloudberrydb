@@ -1,0 +1,5 @@
+# -*-makefile-*-
+# contrib/interconnect/Makefile.interconnect.in
+# @configure_input@
+
+enable_ic_proxy     = @enable_ic_proxy@

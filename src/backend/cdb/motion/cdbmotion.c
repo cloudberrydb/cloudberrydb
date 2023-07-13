@@ -30,6 +30,7 @@
 #include "utils/memutils.h"
 #include "utils/typcache.h"
 
+MotionIPCLayer *CurrentMotionIPCLayer = NULL;
 
 /*
  * MOTION NODE INFO DATA STRUCTURES
@@ -55,13 +56,12 @@ static ChunkSorterEntry *getChunkSorterEntry(MotionLayerState *mlStates,
 					MotionNodeEntry *motNodeEntry,
 					int16 srcRoute);
 static void addChunkToSorter(ChunkTransportState *transportStates,
-							 MotionNodeEntry *pMNEntry,
-							 TupleChunkListItem tcItem,
-							 int16 motNodeID,
-							 ChunkSorterEntry *chunkSorterEntry,
-							 ChunkTransportStateEntry *pEntry,
-							 MotionConn *conn,
-							 int16 srcRoute);
+				 MotionNodeEntry *pMNEntry,
+				 TupleChunkListItem tcItem,
+				 int16 motNodeID,
+				 int16 srcRoute,
+				 ChunkSorterEntry *chunkSorterEntry,
+				 TupleRemapper *tuple_remapper);
 
 static void processIncomingChunks(MotionLayerState *mlStates,
 					  ChunkTransportState *transportStates,
@@ -77,10 +77,8 @@ static void statSendEOS(MotionLayerState *mlStates, MotionNodeEntry *pMNEntry);
 static void statChunksProcessed(MotionLayerState *mlStates, MotionNodeEntry *pMNEntry, int chunksProcessed, int chunkBytes, int tupleBytes);
 static void statNewTupleArrived(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry);
 static void statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry);
-static bool ShouldSendRecordCache(MotionConn *conn, SerTupInfo *pSerInfo);
-static void UpdateSentRecordCache(MotionConn *conn);
-
-
+static bool ShouldSendRecordCache(const int32 conn, SerTupInfo *pSerInfo);
+static void UpdateSentRecordCache(int32 *conn);
 
 /* Helper function to perform the operations necessary to reconstruct a
  * HeapTuple from a list of tuple-chunks, and then update the Motion Layer
@@ -165,11 +163,7 @@ createMotionLayerState(int maxMotNodeID)
 	if (Gp_role == GP_ROLE_UTILITY)
 		return NULL;
 
-	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
-		Gp_max_tuple_chunk_size = Gp_max_packet_size - sizeof(struct icpkthdr) - TUPLE_CHUNK_HEADER_SIZE;
-	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP ||
-			 Gp_interconnect_type == INTERCONNECT_TYPE_PROXY)
-		Gp_max_tuple_chunk_size = Gp_max_packet_size - PACKET_HEADER_SIZE - TUPLE_CHUNK_HEADER_SIZE;
+	Gp_max_tuple_chunk_size = CurrentMotionIPCLayer->GetMaxTupleChunkSize();
 
 	/*
 	 * Use the statically allocated chunk that is intended for sending end-of-
@@ -350,8 +344,8 @@ SendStopMessage(MotionLayerState *mlStates,
 	MotionNodeEntry *pEntry = getMotionNodeEntry(mlStates, motNodeID);
 
 	pEntry->stopped = true;
-	if (transportStates != NULL && transportStates->doSendStopMessage != NULL)
-		transportStates->doSendStopMessage(transportStates, motNodeID);
+	if (transportStates != NULL && CurrentMotionIPCLayer->SendStopMessage != NULL)
+		CurrentMotionIPCLayer->SendStopMessage(transportStates, motNodeID);
 }
 
 void
@@ -363,19 +357,27 @@ CheckAndSendRecordCache(MotionLayerState *mlStates,
 	MotionNodeEntry *pMNEntry;
 	TupleChunkListData tcList;
 	MemoryContext oldCtxt;
-	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
-
-	getChunkTransportState(transportStates, motNodeID, &pEntry);
+	bool sent_record_typmod_found = false;
+	MotionConnKey motion_conn_key;
+	MotionConnSentRecordTypmodEnt *motion_conn_ent;
 
 	/*
 	 * for broadcast we only mark sent_record_typmod for connection 0 for
 	 * efficiency and convenience
 	 */
-	if (targetRoute == BROADCAST_SEGIDX)
-		conn = &pEntry->conns[0];
-	else
-		conn = &pEntry->conns[targetRoute];
+	motion_conn_key.mot_node_id = motNodeID;
+	motion_conn_key.conn_index = targetRoute == BROADCAST_SEGIDX ? 0 : targetRoute;
+
+	motion_conn_ent = (MotionConnSentRecordTypmodEnt *)hash_search(transportStates->conn_sent_record_typmod, 
+			&motion_conn_key, HASH_FIND, &sent_record_typmod_found);
+
+	if (!sent_record_typmod_found) {
+		ereport(ERROR,
+				(errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
+				 errmsg("interconnect error: Unexpected Motion Node Id: %d, targetRoute: %d",
+						motNodeID, targetRoute),
+				 errdetail("Fail to get sent_record_typmod from motion conntion")));
+	}
 
 	/*
 	 * Analyze tools.  Do not send any thing if this slice is in the bit mask
@@ -390,7 +392,7 @@ CheckAndSendRecordCache(MotionLayerState *mlStates,
 	 */
 	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
-	if (!ShouldSendRecordCache(conn, &pMNEntry->ser_tup_info))
+	if (!ShouldSendRecordCache(motion_conn_ent->sent_record_typmod, &pMNEntry->ser_tup_info))
 		return;
 
 #ifdef AMS_VERBOSE_LOGGING
@@ -400,7 +402,7 @@ CheckAndSendRecordCache(MotionLayerState *mlStates,
 	/* Create and store the serialized form, and some stats about it. */
 	oldCtxt = MemoryContextSwitchTo(mlStates->motion_layer_mctx);
 
-	SerializeRecordCacheIntoChunks(&pMNEntry->ser_tup_info, &tcList, conn);
+	SerializeRecordCacheIntoChunks(&pMNEntry->ser_tup_info, &tcList, motion_conn_ent->sent_record_typmod);
 
 	MemoryContextSwitchTo(oldCtxt);
 
@@ -415,7 +417,7 @@ CheckAndSendRecordCache(MotionLayerState *mlStates,
 #endif
 
 	/* do the send. */
-	if (!SendTupleChunkToAMS(mlStates, transportStates, motNodeID, targetRoute, tcList.p_first))
+	if (!CurrentMotionIPCLayer->SendTupleChunkToAMS(transportStates, motNodeID, targetRoute, tcList.p_first))
 	{
 		pMNEntry->stopped = true;
 	}
@@ -428,7 +430,7 @@ CheckAndSendRecordCache(MotionLayerState *mlStates,
 	/* cleanup */
 	clearTCList(&pMNEntry->ser_tup_info.chunkCache, &tcList);
 
-	UpdateSentRecordCache(conn);
+	UpdateSentRecordCache(&motion_conn_ent->sent_record_typmod);
 }
 
 /*
@@ -467,7 +469,7 @@ SendTuple(MotionLayerState *mlStates,
 
 	struct directTransportBuffer b;
 	if (targetRoute != BROADCAST_SEGIDX)
-		getTransportDirectBuffer(transportStates, motNodeID, targetRoute, &b);
+		CurrentMotionIPCLayer->GetTransportDirectBuffer(transportStates, motNodeID, targetRoute, &b);
 
 	int			sent = 0;
 
@@ -479,7 +481,7 @@ SendTuple(MotionLayerState *mlStates,
 	MemoryContextSwitchTo(oldCtxt);
 	if (sent > 0)
 	{
-		putTransportDirectBuffer(transportStates, motNodeID, targetRoute, sent);
+		CurrentMotionIPCLayer->PutTransportDirectBuffer(transportStates, motNodeID, targetRoute, sent);
 
 		/* fill-in tcList fields to update stats */
 		tcList.num_chunks = 1;
@@ -503,7 +505,7 @@ SendTuple(MotionLayerState *mlStates,
 #endif
 
 	/* do the send. */
-	if (!SendTupleChunkToAMS(mlStates, transportStates, motNodeID, targetRoute, tcList.p_first))
+	if (!CurrentMotionIPCLayer->SendTupleChunkToAMS(transportStates, motNodeID, targetRoute, tcList.p_first))
 	{
 		pMNEntry->stopped = true;
 		rc = STOP_SENDING;
@@ -546,7 +548,7 @@ SendEndOfStream(MotionLayerState *mlStates,
 	 */
 	pMNEntry = getMotionNodeEntry(mlStates, motNodeID);
 
-	transportStates->SendEos(transportStates, motNodeID, s_eos_chunk_data);
+	CurrentMotionIPCLayer->SendEOS(transportStates, motNodeID, s_eos_chunk_data);
 
 	/*
 	 * We increment our own "stream-ends received" count when we send our own,
@@ -654,8 +656,7 @@ processIncomingChunks(MotionLayerState *mlStates,
 				tcNext;
 	MemoryContext oldCtxt;
 	ChunkSorterEntry *chunkSorterEntry;
-	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	TupleRemapper * tuple_remapper;
 
 	/* Keep track of processed chunk stats. */
 	int			numChunks,
@@ -669,14 +670,14 @@ processIncomingChunks(MotionLayerState *mlStates,
 	 * the chunk-sorter.
 	 */
 	if (srcRoute == ANY_ROUTE)
-		tcItem = transportStates->RecvTupleChunkFromAny(transportStates, motNodeID, &srcRoute);
+		tcItem = CurrentMotionIPCLayer->RecvTupleChunkFromAny(transportStates, motNodeID, &srcRoute);
 	else
-		tcItem = transportStates->RecvTupleChunkFrom(transportStates, motNodeID, srcRoute);
+		tcItem = CurrentMotionIPCLayer->RecvTupleChunkFrom(transportStates, motNodeID, srcRoute);
 
 	/* Look up various things related to the sender that we received chunks from. */
 	chunkSorterEntry = getChunkSorterEntry(mlStates, pMNEntry, srcRoute);
-	getChunkTransportState(transportStates, motNodeID, &pEntry);
-	conn = pEntry->conns + srcRoute;
+
+	tuple_remapper = CurrentMotionIPCLayer->GetMotionConnTupleRemapper(transportStates, motNodeID, srcRoute);
 
 	numChunks = 0;
 	chunkBytes = 0;
@@ -708,17 +709,16 @@ processIncomingChunks(MotionLayerState *mlStates,
 						 pMNEntry,
 						 tcItem,
 						 motNodeID,
+						 srcRoute,
 						 chunkSorterEntry,
-						 pEntry,
-						 conn,
-						 srcRoute);
+						 tuple_remapper);
 
 		tcItem = tcNext;
 	}
 
 	/* The chunk list we just processed freed-up our rx-buffer space. */
-	if (numChunks > 0 && Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
-		MlPutRxBufferIFC(transportStates, motNodeID, srcRoute);
+	if (numChunks > 0 && CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC)
+		CurrentMotionIPCLayer->DirectPutRxBuffer(transportStates, motNodeID, srcRoute);
 
 	/* Stats */
 	statChunksProcessed(mlStates, pMNEntry, numChunks, chunkBytes, tupleBytes);
@@ -1003,10 +1003,9 @@ addChunkToSorter(ChunkTransportState *transportStates,
 				 MotionNodeEntry *pMNEntry,
 				 TupleChunkListItem tcItem,
 				 int16 motNodeID,
+				 int16 srcRoute,
 				 ChunkSorterEntry *chunkSorterEntry,
-				 ChunkTransportStateEntry *pEntry,
-				 MotionConn *conn,
-				 int16 srcRoute)
+				 TupleRemapper *tuple_remapper)
 {
 	TupleChunkType tcType;
 
@@ -1030,7 +1029,7 @@ addChunkToSorter(ChunkTransportState *transportStates,
 
 			/* Put this chunk into the list, then turn it into a HeapTuple! */
 			appendChunkToTCList(&chunkSorterEntry->chunk_list, tcItem);
-			reconstructTuple(pMNEntry, chunkSorterEntry, conn->remapper);
+			reconstructTuple(pMNEntry, chunkSorterEntry, tuple_remapper);
 
 			break;
 
@@ -1091,7 +1090,7 @@ addChunkToSorter(ChunkTransportState *transportStates,
 
 			/* Put this chunk into the list, then turn it into a HeapTuple! */
 			appendChunkToTCList(&chunkSorterEntry->chunk_list, tcItem);
-			reconstructTuple(pMNEntry, chunkSorterEntry, conn->remapper);
+			reconstructTuple(pMNEntry, chunkSorterEntry, tuple_remapper);
 
 			break;
 
@@ -1129,7 +1128,7 @@ addChunkToSorter(ChunkTransportState *transportStates,
 			 * Since we received an end-of-stream.	Then we no longer need
 			 * read interest in the interconnect.
 			 */
-			DeregisterReadInterest(transportStates, motNodeID, srcRoute,
+			CurrentMotionIPCLayer->DeregisterReadInterest(transportStates, motNodeID, srcRoute,
 								   "end of stream");
 			break;
 
@@ -1248,7 +1247,7 @@ statRecvTuple(MotionNodeEntry *pMNEntry, ChunkSorterEntry *pCSEntry)
  * Return true if the record cache should be sent to master
  */
 static bool
-ShouldSendRecordCache(MotionConn *conn, SerTupInfo *pSerInfo)
+ShouldSendRecordCache(const int32 sent_record_typmod, SerTupInfo *pSerInfo)
 {
 	int32 typmod;
 
@@ -1257,21 +1256,21 @@ ShouldSendRecordCache(MotionConn *conn, SerTupInfo *pSerInfo)
 
 	return pSerInfo->has_record_types &&
 		typmod > 0 &&
-		typmod > conn->sent_record_typmod;
+		typmod > sent_record_typmod;
 }
 
 /*
  * Update the number of sent record types.
  */
 static void
-UpdateSentRecordCache(MotionConn *conn)
+UpdateSentRecordCache(int32 *sent_record_typmod)
 {
 	if (CurrentSession->shared_typmod_registry != NULL)
 	{
-		conn->sent_record_typmod = GetSharedNextRecordTypmod(CurrentSession->shared_typmod_registry);
+		*sent_record_typmod = GetSharedNextRecordTypmod(CurrentSession->shared_typmod_registry);
 	}
 	else
 	{
-		conn->sent_record_typmod = NextRecordTypmod;
+		*sent_record_typmod = NextRecordTypmod;
 	}
 }

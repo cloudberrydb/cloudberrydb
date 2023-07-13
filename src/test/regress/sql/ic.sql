@@ -185,7 +185,7 @@ RESET search_path;
 DROP SCHEMA ic_udp_test CASCADE;
 
 /*
- * If ack packet is lost in doSendStopMessageUDPIFC(), transaction with cursor
+ * If ack packet is lost in SendStopMessageUDPIFC(), transaction with cursor
  * should still be able to commit.
 */
 --start_ignore

@@ -2007,7 +2007,8 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 	/* Teardown the Interconnect */
 	if (estate->es_interconnect_is_setup)
 	{
-		TeardownInterconnect(estate->interconnect_context, false);
+		Assert(CurrentMotionIPCLayer);
+		CurrentMotionIPCLayer->TeardownInterconnect(estate->interconnect_context, false);
 		estate->interconnect_context = NULL;
 		estate->es_interconnect_is_setup = false;
 	}
@@ -2092,7 +2093,8 @@ void mppExecutorCleanup(QueryDesc *queryDesc)
 	/* Clean up the interconnect. */
 	if (estate->es_interconnect_is_setup)
 	{
-		TeardownInterconnect(estate->interconnect_context, true);
+		Assert(CurrentMotionIPCLayer);
+		CurrentMotionIPCLayer->TeardownInterconnect(estate->interconnect_context, true);
 		estate->es_interconnect_is_setup = false;
 	}
 

@@ -27,337 +27,6 @@
 #include "cdb/tupchunklist.h"
 #include "cdb/tupleremap.h"
 
-struct CdbProcess;                          /* #include "nodes/execnodes.h" */
-struct ExecSlice;                           /* #include "nodes/execnodes.h" */
-struct SliceTable;                          /* #include "nodes/execnodes.h" */
-struct EState;                              /* #include "nodes/execnodes.h" */
-/* TODO: move "src/backend/cdb/motion/ic_proxy_backend.h" into public include folder*/
-struct ICProxyBackendContext;
-
-typedef struct icpkthdr
-{
-	int32		motNodeId;
-
-	/*
-	 * three pairs which seem useful for identifying packets.
-	 *
-	 * MPP-4194:
-	 * It turns out that these can cause collisions; but the
-	 * high bit (1<<31) of the dstListener port is now used
-	 * for disambiguation with mirrors.
-	 */
-	int32		srcPid;
-	int32		srcListenerPort;
-
-	int32		dstPid;
-	int32		dstListenerPort;
-
-    int32       sessionId;
-    uint32      icId;
-
-    int32       recvSliceIndex;
-    int32       sendSliceIndex;
-	int32       srcContentId;
-	int32		dstContentId;
-
-	/* MPP-6042: add CRC field */
-	uint32		crc;
-
-	/* packet specific info */
-	int32		flags;
-	int32		len;
-
-    /*
-     * The usage of seq and extraSeq field
-     * a) In a normal DATA packet
-     *    seq      -> the data packet sequence number
-     *    extraSeq -> not used
-     * b) In a normal ACK message (UDPIC_FLAGS_ACK | UDPIC_FLAGS_CAPACITY)
-     *    seq      -> the largest seq of the continuously cached packets
-     *                sometimes, it is special, for exampke, conn req ack, mismatch ack.
-     *    extraSeq -> the largest seq of the consumed packets
-     * c) In a start race NAK message (UPDIC_FLAGS_NAK)
-     *    seq      -> the seq from the pkt
-     *    extraSeq -> the extraSeq from the pkt
-     * d) In a DISORDER message (UDPIC_FLAGS_DISORDER)
-     *    seq      -> packet sequence number that triggers the disorder message
-     *    extraSeq -> the largest seq of the received packets
-     * e) In a DUPLICATE message (UDPIC_FLAGS_DUPLICATE)
-     *    seq      -> packet sequence number that triggers the duplicate message
-     *    extraSeq -> the largest seq of the continuously cached packets
-     * f) In a stop messege (UDPIC_FLAGS_STOP | UDPIC_FLAGS_ACK | UDPIC_FLAGS_CAPACITY)
-     *    seq      -> the largest seq of the continuously cached packets
-     *    extraSeq -> the largest seq of the continuously cached packets
-     *
-     *
-     * NOTE that: EOS/STOP flags are often saved in conn_info structure of a connection.
-     *			  It is possible for them to be sent together with other flags.
-     *
-     */
-    uint32      seq;
-    uint32      extraSeq;
-} icpkthdr;
-
-typedef enum MotionConnState
-{
-    mcsNull,
-	mcsAccepted,
-    mcsSetupOutgoingConnection,
-	mcsConnecting,
-	mcsRecvRegMsg,
-	mcsSendRegMsg,
-    mcsStarted,
-	mcsEosSent
-} MotionConnState;
-
-typedef struct ICBuffer ICBuffer;
-typedef struct ICBufferLink ICBufferLink;
-
-typedef enum ICBufferListType
-{
-	ICBufferListType_Primary,
-	ICBufferListType_Secondary,
-	ICBufferListType_UNDEFINED
-}	ICBufferListType;
-
-struct ICBufferLink
-{
-	ICBufferLink *next;
-	ICBufferLink *prev;
-};
-
-/*
- * ICBufferList
- * 		ic buffer list data structure.
- *
- * There are two kinds of lists. The first kind of list uses the primary next/prev pointers.
- * And the second kind uses the secondary next/prev pointers.
- */
-typedef struct ICBufferList
-{
-	int		length;
-	ICBufferListType type; /* primary or secondary */
-
-	ICBufferLink head;
-}	ICBufferList;
-
-#define CONTAINER_OF(ptr, type, member) \
-	({ \
-		const typeof( ((type *)0)->member ) *__member_ptr = (ptr); \
-		(type *)( (char *)__member_ptr - offsetof(type,member) ); \
-	})
-
-#define GET_ICBUFFER_FROM_PRIMARY(ptr) CONTAINER_OF(ptr, ICBuffer, primary)
-#define GET_ICBUFFER_FROM_SECONDARY(ptr) CONTAINER_OF(ptr, ICBuffer, secondary)
-
-/*
- * ICBuffer
- * 		interconnect buffer data structure.
- *
- * In some cases, an ICBuffer may exists in two lists/queues,
- * thus it has two sets of pointers. For example, an ICBuffer
- * can exist in an unack queue and an expiration queue at the same time.
- *
- * It is important to get the ICBuffer address when we iterate a list of
- * ICBuffers through primary/secondary links. The Macro GET_ICBUFFER_FROM_PRIMARY
- * and GET_ICBUFFER_FROM_SECONDARY are for this purpose.
- *
- */
-struct ICBuffer
-{
-	/* primary next and prev pointers */
-	ICBufferLink primary;
-
-	/* secondary next and prev pointers */
-	ICBufferLink secondary;
-
-	/* connection that this buffer belongs to */
-	MotionConn *conn;
-
-	/*
-	 * Three fields for expiration processing
-	 *
-	 * sentTime - the time this buffer was sent
-	 * nRetry   - the number of send retries
-	 * unackQueueRingSlot - unack queue ring slot index
-	 */
-	uint64 sentTime;
-	uint32 nRetry;
-	int32 unackQueueRingSlot;
-
-	/* real data */
-	icpkthdr pkt[0];
-};
-
-
-/*
- * Structure used for keeping track of a pt-to-pt connection between two
- * Cdb Entities (either QE or QD).
- */
-struct MotionConn
-{
-	/* socket file descriptor. */
-	int			sockfd;
-
-	/* send side queue for packets to be sent */
-	ICBufferList sndQueue;
-	int capacity;
-
-	/* seq already sent */
-	uint32 sentSeq;
-
-	/* ack of this seq and packets with smaller seqs have been received */
-	uint32 receivedAckSeq;
-
-	/* packets with this seq or smaller seqs have been consumed */
-	uint32 consumedSeq;
-
-	uint64 rtt;
-	uint64 dev;
-	uint64 deadlockCheckBeginTime;
-
-
-	ICBuffer *curBuff;
-
-	/* send side unacked packet queue. Since it is often
-	 * accessed at the same time with unack queue ring,
-	 * it is protected with unqck queue ring lock.
-	 */
-	ICBufferList unackQueue;
-
-	/* pointer to the data buffer. */
-	uint8	   *pBuff;
-
-	uint16		route;
-
-	/* size of the message in the buffer, if any. */
-	int32		msgSize;
-
-	/* position of message inside of buffer, "cursor" pointer */
-	uint8	   *msgPos;
-
-	/*
-	 * recv bytes: we can have more than one message/message fragment in recv
-	 * queue at once
-	 */
-	int32		recvBytes;
-
-	int			tupleCount;
-
-	/*
-	 * false means 1) received a stop message and has handled it. 2) received
-	 * EOS message or sent out EOS message 3) received a QueryFinishPending
-	 * notify and has handled it.
-	 */
-	bool		stillActive;
-	/*
-	 * used both by motion sender and motion receiver
-	 *
-	 * sender: true means receiver don't need to consume tuples any more, sender
-	 * is also responsible to send stop message to its senders.
-	 *
-	 * receiver: true means have sent out a stop message to its senders. The stop
-	 * message might be lost, stopRequested can also tell sender that no more
-	 * data needed in the ack message.
-	 */
-	bool		stopRequested;
-
-    MotionConnState state;
-
-	uint64		wakeup_ms;
-
-	struct icpkthdr		conn_info;
-
-    struct CdbProcess  *cdbProc;
-    int			remoteContentId;
-    char        remoteHostAndPort[128];	/* Numeric IP addresses should never be longer than about 50 chars, but play it safe */
-    char        localHostAndPort[128];
-
-	struct sockaddr_storage peer;		/* Allow for IPv4 or IPv6 */
-	socklen_t peer_len;					/* And remember the actual length */
-
-	/* a queue of maximum length Gp_interconnect_queue_depth */
-	int			pkt_q_capacity;			/*max capacity of the queue*/
-	int			pkt_q_size;				/*number of packets in the queue*/
-	int			pkt_q_head;
-	int			pkt_q_tail;
-	uint8		**pkt_q;
-
-	uint64 stat_total_ack_time;
-	uint64 stat_count_acks;
-	uint64 stat_max_ack_time;
-	uint64 stat_min_ack_time;
-	uint64 stat_count_resent;
-	uint64 stat_max_resent;
-	uint64 stat_count_dropped;
-
-	/*
-	 * used by the sender.
-	 *
-	 * the typmod of last sent record type in current connection,
-	 * if the connection is for broadcasting then we only check
-	 * and update this attribute on connection 0.
-	 */
-	int32		 sent_record_typmod;
-
-	/*
-	 * used by the receiver.
-	 *
-	 * all the remap information.
-	 */
-	TupleRemapper	*remapper;
-};
-
-/*
- * Used to organize all of the information for a given motion node.
- */
-typedef struct ChunkTransportStateEntry
-{
-	int         motNodeId;
-	bool		valid;
-
-	/* Connection array */
-    MotionConn *conns;
-	int			numConns;
-
-	/*
-	 * used for receiving. to select() from a set of interesting MotionConns
-	 * to see when data is ready to be read.  When the incoming connections
-	 * are established, read interest is turned on.  It is turned off when an
-	 * EOS (End of Stream) message is read.
-	 */
-	mpp_fd_set  readSet;
-
-	/* highest file descriptor in the readSet. */
-	int			highReadSock;
-
-    int         scanStart;
-
-	/* slice table entries */
-	struct ExecSlice *sendSlice;
-	struct ExecSlice *recvSlice;
-
-	/* setup info */
-	int			txfd;
-	int			txfd_family;
-	unsigned short txport;
-
-	bool		sendingEos;
-
-	/* Statistics info for this motion on the interconnect level */
-	uint64 stat_total_ack_time;
-	uint64 stat_count_acks;
-	uint64 stat_max_ack_time;
-	uint64 stat_min_ack_time;
-	uint64 stat_count_resent;
-	uint64 stat_max_resent;
-	uint64 stat_count_dropped;
-
-}	ChunkTransportStateEntry;
-
-/* ChunkTransportState array initial size */
-#define CTS_INITIAL_SIZE (10)
-
 /*
  * This structure is used to keep track of partially completed tuples,
  * and tuples that have been completed but have not been consumed by
@@ -497,11 +166,35 @@ typedef struct MotionLayerState
 
 }	MotionLayerState;
 
+
+/* ChunkTransportState array initial size */
+#define CTS_INITIAL_SIZE (10)
+
+struct SliceTable;                          /* #include "nodes/execnodes.h" */
+struct EState;                              /* #include "nodes/execnodes.h" */
+struct ICProxyBackendContext;
+struct MotionConn;
+struct ChunkTransportStateEntry;
+typedef struct MotionConn MotionConn;
+typedef struct ChunkTransportStateEntry ChunkTransportStateEntry;
+
+typedef struct MotionConnKey 
+{
+	int mot_node_id;
+	int conn_index;
+} MotionConnKey;
+
+typedef struct MotionConnSentRecordTypmodEnt
+{
+	MotionConnKey key;
+	int32 sent_record_typmod;
+} MotionConnSentRecordTypmodEnt;
+
 typedef struct ChunkTransportState
 {
 	/* array of per-motion-node chunk transport state */
 	int size;
-	ChunkTransportStateEntry *states;
+	struct ChunkTransportStateEntry *states;
 
 	/* keeps track of if we've "activated" connections via SetupInterconnect(). */
 	bool		activated;
@@ -521,19 +214,19 @@ typedef struct ChunkTransportState
 	/* Estate pointer for this statement */
 	struct EState *estate;
 
-	/* Function pointers to our send/receive functions */
-	bool (*SendChunk)(struct ChunkTransportState *transportStates, ChunkTransportStateEntry *pEntry, MotionConn *conn, TupleChunkListItem tcItem, int16 motionId);
-	TupleChunkListItem (*RecvTupleChunkFrom)(struct ChunkTransportState *transportStates, int16 motNodeID, int16 srcRoute);
-	TupleChunkListItem (*RecvTupleChunkFromAny)(struct ChunkTransportState *transportStates, int16 motNodeID, int16 *srcRoute);
-	void (*doSendStopMessage)(struct ChunkTransportState *transportStates, int16 motNodeID);
-	void (*SendEos)(struct ChunkTransportState *transportStates, int motNodeID, TupleChunkListItem tcItem);
+	/*
+	 * used by the sender.
+	 *
+	 * the typmod of last sent record type in current connection,
+	 * if the connection is for broadcasting then we only check
+	 * and update this attribute on connection 0.
+	 * 
+	 * mapping the MotionConn -> int32
+	 */
+	HTAB* conn_sent_record_typmod;
 
 	/* ic_proxy backend context */
 	struct ICProxyBackendContext *proxyContext;
 } ChunkTransportState;
-
-extern void dumpICBufferList(ICBufferList *list, const char *fname);
-extern void dumpUnackQueueRing(const char *fname);
-extern void dumpConnections(ChunkTransportStateEntry *pEntry, const char *fname);
 
 #endif   /* CDBINTERCONNECT_H */

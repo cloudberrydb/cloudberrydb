@@ -14,7 +14,7 @@
 
 #include "postgres.h"
 
-#include "cdb/cdbinterconnect.h"
+#include "ic_internal.h"
 #include "cdb/cdbvars.h"
 #include "nodes/pg_list.h"
 #include "postmaster/postmaster.h"

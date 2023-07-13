@@ -892,7 +892,7 @@ ifndef PGXS
 # write `include $(top_builddir)/src/Makefile.global', not some
 # shortcut thereof.
 $(top_builddir)/src/Makefile.global: $(top_srcdir)/src/Makefile.global.in $(top_builddir)/config.status
-	cd $(top_builddir) && ./config.status src/Makefile.global
+	cd $(top_builddir) && ./config.status src/Makefile.global && ./config.status contrib/interconnect/Makefile.interconnect
 
 # Remake pg_config.h from pg_config.h.in if the latter changed.
 # config.status will not change the timestamp on pg_config.h if it

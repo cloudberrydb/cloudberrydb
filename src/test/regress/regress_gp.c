@@ -517,7 +517,7 @@ Datum numActiveMotionConns(PG_FUNCTION_ARGS)
 {
 	uint32 num = 0;
 	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
-		num = getActiveMotionConns();
+		num = CurrentMotionIPCLayer->GetActiveMotionConns();
 	PG_RETURN_UINT32(num);
 }
 

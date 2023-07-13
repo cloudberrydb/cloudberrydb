@@ -40,6 +40,7 @@
 #include "cdb/cdbutil.h"		/* CdbComponentDatabaseInfo */
 #include "cdb/cdbvars.h"		/* Gp_role, etc. */
 #include "cdb/cdbconn.h"		/* cdbconn_* */
+#include "cdb/ml_ipc.h"
 #include "libpq/libpq-be.h"
 
 #include "utils/guc_tables.h"
@@ -578,10 +579,10 @@ makeCdbProcess(SegmentDatabaseDescriptor *segdbDesc)
 
 	process->listenerAddr = pstrdup(qeinfo->config->hostip);
 
-	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
+	if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_UDPIFC)
 		process->listenerPort = (segdbDesc->motionListener >> 16) & 0x0ffff;
-	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP ||
-			 Gp_interconnect_type == INTERCONNECT_TYPE_PROXY)
+	else if (CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_TCP ||
+			 CurrentMotionIPCLayer->ic_type == INTERCONNECT_TYPE_PROXY)
 		process->listenerPort = (segdbDesc->motionListener & 0x0ffff);
 
 	process->pid = segdbDesc->backendPid;
@@ -672,12 +673,7 @@ getCdbProcessesForQD(int isPrimary)
 	 * 2. When the segments have their own ADDRESS, the connection address could be confusing.
 	 */
 	proc->listenerAddr = pstrdup(qdinfo->config->hostip);
-
-	if (Gp_interconnect_type == INTERCONNECT_TYPE_UDPIFC)
-		proc->listenerPort = (Gp_listener_port >> 16) & 0x0ffff;
-	else if (Gp_interconnect_type == INTERCONNECT_TYPE_TCP ||
-			 Gp_interconnect_type == INTERCONNECT_TYPE_PROXY)
-		proc->listenerPort = (Gp_listener_port & 0x0ffff);
+	proc->listenerPort = CurrentMotionIPCLayer->GetListenPort();
 
 	proc->pid = MyProcPid;
 	proc->contentid = -1;

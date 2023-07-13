@@ -99,6 +99,10 @@ intarray -
 	Index support for arrays of int4, using GiST
 	by Teodor Sigaev <teodor@sigaev.ru> and Oleg Bartunov <oleg@sai.msu.su>
 
+interconnect -
+	Module for interconnect
+	Split from src/backend/cdb/motion/ as a independency module
+
 isn -
 	PostgreSQL type extensions for ISBN, ISSN, ISMN, EAN13 product numbers
 	by Germán Méndez Bravo (Kronuz) <kronuz@hotmail.com>

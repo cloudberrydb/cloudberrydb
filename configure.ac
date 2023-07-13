@@ -891,6 +891,16 @@ PGAC_ARG_BOOL(enable, ic-proxy, no,
 AC_SUBST(enable_ic_proxy)
 
 #
+# ic-module preload
+#
+PGAC_ARG_BOOL(enable, preload-ic-module, yes,
+              [disable preload interconnect module],
+              [AC_DEFINE(ENABLE_PRELOAD_IC_MODULE, 1,
+                         [Define to 1 to preload with ic module])])
+AC_MSG_RESULT([checking whether to build with preload ic module ... $enable_preload_ic_module])
+AC_SUBST(enable_preload_ic_module)
+
+#
 # Include directories
 #
 ac_save_IFS=$IFS
@@ -1505,6 +1515,7 @@ if test "$enable_ic_proxy" = yes; then
   AC_CHECK_LIB(uv, uv_default_loop, [],
                [AC_MSG_ERROR([libuv library not found, it is required by --enable-ic-proxy.])])
 fi
+AC_CONFIG_FILES([contrib/interconnect/Makefile.interconnect])
 
 if test "$enable_spinlocks" = yes; then
   AC_DEFINE(HAVE_SPINLOCKS, 1, [Define to 1 if you have spinlocks.])
