@@ -635,6 +635,11 @@ void
 aocs_rescan(AOCSScanDesc scan)
 {
 	close_cur_scan_seg(scan);
+	if (scan->columnScanInfo.relationTupleDesc == NULL)
+	{
+		scan->columnScanInfo.relationTupleDesc = RelationGetDescr(scan->rs_base.rs_rd);
+		PinTupleDesc(scan->columnScanInfo.relationTupleDesc);
+	}
 	if (scan->columnScanInfo.ds)
 		close_ds_read(scan->columnScanInfo.ds, scan->columnScanInfo.relationTupleDesc->natts);
 	initscan_with_colinfo(scan);
