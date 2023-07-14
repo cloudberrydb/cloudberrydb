@@ -1,0 +1,87 @@
+-- @Description Run vacuum, while a serializable transaction is holding a lock
+-- on the table.
+--
+DROP TABLE IF EXISTS ao;
+DROP
+CREATE TABLE ao (a INT) USING @amname@;
+CREATE
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+insert into ao select generate_series(1,1000);
+INSERT 1000
+
+DELETE FROM ao WHERE a < 128;
+DELETE 2667
+1: BEGIN TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+BEGIN
+1: SELECT COUNT(*) FROM ao;
+ count 
+-------
+ 18333 
+(1 row)
+2: SELECT segment_id, segno, tupcount, state FROM gp_ao_or_aocs_seg('ao');
+ segment_id | segno | tupcount | state 
+------------+-------+----------+-------
+ 0          | 1     | 7098     | 1     
+ 1          | 1     | 6762     | 1     
+ 2          | 1     | 7140     | 1     
+(3 rows)
+2: VACUUM ao;
+VACUUM
+1: SELECT COUNT(*) FROM ao;
+ count 
+-------
+ 18333 
+(1 row)
+1: COMMIT;
+COMMIT
+3: INSERT INTO ao VALUES (0);
+INSERT 1
+2: SELECT segment_id, segno, tupcount, state FROM gp_ao_or_aocs_seg('ao');
+ segment_id | segno | tupcount | state 
+------------+-------+----------+-------
+ 0          | 1     | 7098     | 2     
+ 0          | 2     | 6069     | 1     
+ 1          | 1     | 6762     | 2     
+ 1          | 2     | 5923     | 1     
+ 2          | 1     | 7140     | 2     
+ 2          | 2     | 6342     | 1     
+(6 rows)
