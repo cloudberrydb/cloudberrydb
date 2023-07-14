@@ -6,7 +6,7 @@
 
 1:drop table if exists t1;
 1:drop table if exists newt1;
-1:create table t1 (a int, b text) distributed by (a);
+1:create table t1 (a int, b text);
 1:insert into t1 select i, 'abc '||i from generate_series(1,10)i;
 1:begin;
 1:alter table t1 rename to newt1;
@@ -20,7 +20,7 @@
 -- DROP is executed concurrently with ALTER RENAME but not ANALYZE.
 1:drop table if exists t2;
 1:drop table if exists newt2;
-1:create table t2 (a int, b text) distributed by (a);
+1:create table t2 (a int, b text);
 1:insert into t2 select i, 'pqr '||i from generate_series(1,10)i;
 1:begin;
 1:alter table t2 rename to newt2;
@@ -32,7 +32,7 @@
 -- The same, but with DROP IF EXISTS. (We used to have a bug, where the DROP
 -- command found and drop the relation in the segments, but not in master.)
 1:drop table if exists t3;
-1:create table t3 (a int, b text) distributed by (a);
+1:create table t3 (a int, b text);
 1:insert into t3 select i, '123 '||i from generate_series(1,10)i;
 1:begin;
 1:alter table t3 rename to t3_new;
@@ -44,7 +44,7 @@
 2:select relname from gp_dist_random('pg_class') where relname like 't3%';
 
 1:drop table if exists t3;
-1:create table t3 (a int, b text) distributed by (a);
+1:create table t3 (a int, b text);
 1:insert into t3 select i, '123 '||i from generate_series(1,10)i;
 1:begin;
 1:drop table t3;

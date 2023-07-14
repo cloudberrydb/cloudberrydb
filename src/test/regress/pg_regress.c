@@ -940,7 +940,7 @@ convert_sourcefiles_in(const char *source_subdir, const char *dest_dir, const ch
 static void
 convert_sourcefiles(void)
 {
-	content_zero_hostname = get_host_name(0, 'p');
+	content_zero_hostname = get_host_name(-1, 'p');
 
 	convert_sourcefiles_in("input", outputdir, "sql", "sql");
 	convert_sourcefiles_in("output", outputdir, "expected", "out");

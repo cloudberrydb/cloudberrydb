@@ -1,7 +1,7 @@
 CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
 CREATE OR REPLACE LANGUAGE plpgsql;
 
-CREATE TABLE runaway_query_test_table(a bigint NOT NULL) DISTRIBUTED BY (a);
+CREATE TABLE runaway_query_test_table(a bigint NOT NULL);
 
 -- Use error fault to simulate vmem protect error and force cancel query.
 SELECT gp_inject_fault_infinite('gpdbwrappers_get_comparison_operator', 'error', 1);

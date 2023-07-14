@@ -66,10 +66,8 @@ BEGIN
 0: SELECT segno, case when tupcount = 0 then 'zero' when tupcount = 1 then 'one' when tupcount <= 5 then 'few' else 'many' end FROM gp_ao_or_aocs_seg('ao');
  segno | case 
 -------+------
- 1     | many 
- 1     | many 
- 1     | many 
-(3 rows)
+ 0     | many 
+(1 row)
 2: VACUUM ao;
 VACUUM
 1: SELECT COUNT(*) FROM ao;
@@ -83,10 +81,9 @@ VACUUM
  ao       | AccessShareLock | relation | master 
 (1 row)
 1: SELECT * FROM locktest_segments WHERE coalesce = 'ao';
- coalesce | mode            | locktype | node       
-----------+-----------------+----------+------------
- ao       | AccessShareLock | relation | n segments 
-(1 row)
+ coalesce | mode | locktype | node 
+----------+------+----------+------
+(0 rows)
 1: COMMIT;
 COMMIT
 1: SELECT COUNT(*) FROM ao;
@@ -99,20 +96,12 @@ INSERT 1
 0: SELECT segno, case when tupcount = 0 then 'zero' when tupcount = 1 then 'one' when tupcount <= 5 then 'few' else 'many' end FROM gp_ao_or_aocs_seg('ao');
  segno | case 
 -------+------
+ 0     | one  
  1     | many 
- 2     | many 
- 1     | many 
- 2     | many 
- 1     | many 
- 2     | many 
-(6 rows)
+(2 rows)
 0: SELECT * FROM gp_ao_or_aocs_seg('ao');
  segment_id | segno | tupcount | modcount | formatversion | state 
 ------------+-------+----------+----------+---------------+-------
- 0          | 1     | 7098     | 22       | 3             | 2     
- 0          | 2     | 6069     | 0        | 3             | 1     
- 1          | 1     | 6762     | 22       | 3             | 2     
- 1          | 2     | 5923     | 1        | 3             | 1     
- 2          | 1     | 7140     | 22       | 3             | 2     
- 2          | 2     | 6342     | 0        | 3             | 1     
-(6 rows)
+ -1         | 0     | 1        | 23       | 3             | 1     
+ -1         | 1     | 18333    | 0        | 3             | 1     
+(2 rows)

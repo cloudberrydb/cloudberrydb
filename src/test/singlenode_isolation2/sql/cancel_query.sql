@@ -6,7 +6,6 @@ CREATE EXTENSION IF NOT EXISTS gp_inject_fault;
     b_bigint bigint NOT NULL
 )
 WITH (appendonly='true',  orientation='column')
-DISTRIBUTED BY (a_bigint, b_bigint)
 PARTITION BY RANGE(a_date)
     (
     PARTITION p1 START ('2018-01-01'::date) END ('2018-12-31'::date) WITH (appendonly='true', orientation='column')
@@ -26,8 +25,8 @@ PARTITION BY RANGE(a_date)
 0:INSERT INTO a_partition_table_for_analyze_cancellation VALUES(timestamp '2019-01-01 12:00:00', 2, 4);
 0:INSERT INTO a_partition_table_for_analyze_cancellation VALUES(timestamp '2020-01-01 13:00:00', 3, 5);
 
-0: SELECT gp_inject_fault('zlib_decompress_after_decompress_fn', 'sleep', '', '', '', 1, -1, 3600, dbid) FROM gp_segment_configuration WHERE content=1 AND role='p';
-0&: SELECT gp_wait_until_triggered_fault('zlib_decompress_after_decompress_fn', 1, dbid) FROM gp_segment_configuration WHERE content=1 AND role='p';
+0: SELECT gp_inject_fault('zlib_decompress_after_decompress_fn', 'sleep', '', '', '', 1, -1, 3600, dbid) FROM gp_segment_configuration WHERE content=-1 AND role='p';
+0&: SELECT gp_wait_until_triggered_fault('zlib_decompress_after_decompress_fn', 1, dbid) FROM gp_segment_configuration WHERE content=-1 AND role='p';
 
 -- ANALYZE on AO/CO table with zlib compression will hit and fault injection
 -- 'zlib_decompress_after_decompress_fn'

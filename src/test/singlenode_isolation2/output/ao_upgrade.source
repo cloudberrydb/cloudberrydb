@@ -150,38 +150,26 @@ SET
 -- the only thing that this test needs to verify is that a fetch-based scan is
 -- in use. Other diffs are fine.
 EXPLAIN SELECT n FROM ao_upgrade_test WHERE n = factorial(9);
- QUERY PLAN                                                                                            
--------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                      
-   ->  Bitmap Heap Scan on ao_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9) 
-         Recheck Cond: n = 362880::numeric                                                             
-         ->  Bitmap Index Scan on ao_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                 
-               Index Cond: n = 362880::numeric                                                         
- Settings:  enable_seqscan=off                                                                         
- Optimizer status: Postgres query optimizer                                                              
-(7 rows)
+ QUERY PLAN                                                                             
+----------------------------------------------------------------------------------------
+ Index Scan using ao_bitmap_index on ao_upgrade_test  (cost=0.00..8.02 rows=1 width=32) 
+   Index Cond: (n = '362880'::numeric)                                                  
+ Optimizer: Postgres query optimizer                                                    
+(3 rows)
 EXPLAIN SELECT n FROM aocs_upgrade_test WHERE n = factorial(9);
- QUERY PLAN                                                                                                 
-------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                           
-   ->  Bitmap Heap Scan on aocs_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9) 
-         Recheck Cond: n = 362880::numeric                                                                  
-         ->  Bitmap Index Scan on aocs_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                    
-               Index Cond: n = 362880::numeric                                                              
- Settings:  enable_seqscan=off                                                                              
- Optimizer status: Postgres query optimizer                                                                   
-(7 rows)
+ QUERY PLAN                                                                                 
+--------------------------------------------------------------------------------------------
+ Index Scan using aocs_bitmap_index on aocs_upgrade_test  (cost=0.00..8.02 rows=1 width=32) 
+   Index Cond: (n = '362880'::numeric)                                                      
+ Optimizer: Postgres query optimizer                                                        
+(3 rows)
 EXPLAIN SELECT n FROM aocs_rle_upgrade_test WHERE n = factorial(9);
- QUERY PLAN                                                                                                     
-----------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=1000.36..1100.37 rows=1 width=9)                               
-   ->  Bitmap Heap Scan on aocs_rle_upgrade_test  (cost=1000.36..1100.37 rows=1 width=9) 
-         Recheck Cond: n = 362880::numeric                                                                      
-         ->  Bitmap Index Scan on aocs_rle_bitmap_index  (cost=0.00..1000.36 rows=1 width=0)                    
-               Index Cond: n = 362880::numeric                                                                  
- Settings:  enable_seqscan=off                                                                                  
- Optimizer status: Postgres query optimizer                                                                       
-(7 rows)
+ QUERY PLAN                                                                                         
+----------------------------------------------------------------------------------------------------
+ Index Scan using aocs_rle_bitmap_index on aocs_rle_upgrade_test  (cost=0.00..8.02 rows=1 width=32) 
+   Index Cond: (n = '362880'::numeric)                                                              
+ Optimizer: Postgres query optimizer                                                                
+(3 rows)
 
 SELECT n FROM ao_upgrade_test WHERE n = factorial(9);
  n      

@@ -10,8 +10,8 @@
 
 setup
 {
-	CREATE TABLE udf_dl_one (a int, b int) DISTRIBUTED BY (a);
-	CREATE TABLE udf_dl_two (a int, b int) DISTRIBUTED BY (a);
+	CREATE TABLE udf_dl_one (a int, b int);
+	CREATE TABLE udf_dl_two (a int, b int);
 
 	CREATE FUNCTION i_one (val int, dyn bool) RETURNS void AS $$
 	BEGIN

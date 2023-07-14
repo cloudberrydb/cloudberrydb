@@ -20,7 +20,7 @@ SELECT application_name, state FROM pg_stat_replication;
 -- Switch to a new WAL segment file.  Two pg_switch_wal() invocations
 -- with a command that generates WAL in between the invocations are
 -- suffice to generate new WAL file.
-CREATE TEMP TABLE walfile(fname text) DISTRIBUTED BY (fname);
+CREATE TEMP TABLE walfile(fname text);
 INSERT INTO walfile SELECT pg_walfile_name(pg_switch_wal());
 CREATE TABLE master_wal_dummy();
 -- This should return false, indicating current WAL segment is

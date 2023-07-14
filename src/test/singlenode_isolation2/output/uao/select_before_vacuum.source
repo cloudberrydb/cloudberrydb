@@ -62,10 +62,9 @@ BEGIN
  ao       | AccessShareLock | relation | master 
 (1 row)
 1: SELECT * FROM locktest_segments WHERE coalesce = 'ao';
- coalesce | mode            | locktype | node       
-----------+-----------------+----------+------------
- ao       | AccessShareLock | relation | n segments 
-(1 row)
+ coalesce | mode | locktype | node 
+----------+------+----------+------
+(0 rows)
 2&: VACUUM FULL ao;  <waiting ...>
 1: COMMIT;
 COMMIT

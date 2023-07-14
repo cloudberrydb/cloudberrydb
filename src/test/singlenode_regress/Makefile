@@ -40,9 +40,6 @@ clean distclean:
 REGRESS_OPTS = --dlpath=. --max-concurrent-tests=24 --init-file=$(srcdir)/init_file --make-testtablespace-dir \
 	$(EXTRA_REGRESS_OPTS)
 
-check: all
-	$(pg_regress_check) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)
-
 installcheck-singlenode: installcheck-good-singlenode
 
 installcheck-small-singlenode: all

@@ -45,7 +45,7 @@ from gp_segment_configuration where content=-1 and role='m';
 
 -- Should block in commit (SyncrepWaitForLSN()), waiting for commit
 -- LSN to be flushed on standby.
-1&: create table commit_blocking_on_standby_t1 (a int) distributed by (a);
+1&: create table commit_blocking_on_standby_t1 (a int);
 
 -- The create table command should be seen as blocked.  Wait until
 -- that happens.
@@ -128,7 +128,7 @@ select gp_wait_until_triggered_fault(
 
 -- Should block because standby is considered to have caughtup within
 -- range.
-1&: create table commit_blocking_on_standby_t2 (a int) distributed by (a);
+1&: create table commit_blocking_on_standby_t2 (a int);
 
 -- The create table command should be seen as blocked.
 select wait_for_pg_stat_activity(60);

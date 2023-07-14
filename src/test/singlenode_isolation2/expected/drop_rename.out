@@ -8,7 +8,7 @@
 DROP
 1:drop table if exists newt1;
 DROP
-1:create table t1 (a int, b text) distributed by (a);
+1:create table t1 (a int, b text);
 CREATE
 1:insert into t1 select i, 'abc '||i from generate_series(1,10)i;
 INSERT 10
@@ -35,7 +35,7 @@ ERROR:  table "t1" does not exist
 DROP
 1:drop table if exists newt2;
 DROP
-1:create table t2 (a int, b text) distributed by (a);
+1:create table t2 (a int, b text);
 CREATE
 1:insert into t2 select i, 'pqr '||i from generate_series(1,10)i;
 INSERT 10
@@ -58,7 +58,7 @@ ERROR:  table "t2" does not exist
 -- command found and drop the relation in the segments, but not in master.)
 1:drop table if exists t3;
 DROP
-1:create table t3 (a int, b text) distributed by (a);
+1:create table t3 (a int, b text);
 CREATE
 1:insert into t3 select i, '123 '||i from generate_series(1,10)i;
 INSERT 10
@@ -84,13 +84,11 @@ LINE 1: select count(*) from t3;
  relname 
 ---------
  t3_new  
- t3_new  
- t3_new  
-(3 rows)
+(1 row)
 
 1:drop table if exists t3;
 DROP
-1:create table t3 (a int, b text) distributed by (a);
+1:create table t3 (a int, b text);
 CREATE
 1:insert into t3 select i, '123 '||i from generate_series(1,10)i;
 INSERT 10

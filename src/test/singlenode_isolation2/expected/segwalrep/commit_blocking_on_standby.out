@@ -39,7 +39,7 @@ select gp_wait_until_triggered_fault('walrecv_skip_flush', 1, dbid) from gp_segm
 
 -- Should block in commit (SyncrepWaitForLSN()), waiting for commit
 -- LSN to be flushed on standby.
-1&: create table commit_blocking_on_standby_t1 (a int) distributed by (a);  <waiting ...>
+1&: create table commit_blocking_on_standby_t1 (a int);  <waiting ...>
 
 -- The create table command should be seen as blocked.  Wait until
 -- that happens.
@@ -49,9 +49,9 @@ select wait_for_pg_stat_activity(60);
                            
 (1 row)
 select datname, wait_event, query from pg_stat_activity where wait_event = 'SyncRep';
- datname        | wait_event | query                                                                  
-----------------+------------+------------------------------------------------------------------------
- isolation2test | SyncRep    | create table commit_blocking_on_standby_t1 (a int) distributed by (a); 
+ datname        | wait_event | query                                               
+----------------+------------+-----------------------------------------------------
+ isolation2test | SyncRep    | create table commit_blocking_on_standby_t1 (a int); 
 (1 row)
 
 select gp_inject_fault('walrecv_skip_flush', 'reset', dbid) from gp_segment_configuration where content=-1 and role='m';
@@ -170,7 +170,7 @@ select gp_wait_until_triggered_fault( 'wal_sender_after_caughtup_within_range', 
 
 -- Should block because standby is considered to have caughtup within
 -- range.
-1&: create table commit_blocking_on_standby_t2 (a int) distributed by (a);  <waiting ...>
+1&: create table commit_blocking_on_standby_t2 (a int);  <waiting ...>
 
 -- The create table command should be seen as blocked.
 select wait_for_pg_stat_activity(60);
@@ -179,9 +179,9 @@ select wait_for_pg_stat_activity(60);
                            
 (1 row)
 select datname, wait_event, query from pg_stat_activity where wait_event = 'SyncRep';
- datname        | wait_event | query                                                                  
-----------------+------------+------------------------------------------------------------------------
- isolation2test | SyncRep    | create table commit_blocking_on_standby_t2 (a int) distributed by (a); 
+ datname        | wait_event | query                                               
+----------------+------------+-----------------------------------------------------
+ isolation2test | SyncRep    | create table commit_blocking_on_standby_t2 (a int); 
 (1 row)
 
 -- Reset faults on primary as well as mirror.

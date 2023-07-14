@@ -3,7 +3,7 @@
 DROP TABLE IF EXISTS foo;
 DROP
 
-CREATE TABLE foo (a INT, b INT, c CHAR(128)) USING @amname@ DISTRIBUTED BY (a);
+CREATE TABLE foo (a INT, b INT, c CHAR(128)) USING @amname@;
 CREATE
 CREATE INDEX foo_index ON foo(b);
 CREATE
@@ -45,7 +45,5 @@ SELECT relname, reltuples FROM pg_class WHERE relname = 'foo_index';
 SELECT segno, tupcount,state FROM gp_ao_or_aocs_seg('foo') where state = 1 and tupcount > 0;
  segno | tupcount | state 
 -------+----------+-------
- 2     | 33       | 1     
- 2     | 34       | 1     
- 2     | 18       | 1     
-(3 rows)
+ 1     | 85       | 1     
+(1 row)

@@ -2,10 +2,10 @@
 drop table if exists bir;
 drop table if exists yolo cascade;
 -- end_ignore
-create table bir (a int, b int) distributed by (a);
+create table bir (a int, b int);
 insert into bir select i, i from generate_series(1, 5) i;
 
-create table yolo (a int, b int) USING @amname@ distributed by (a);
+create table yolo (a int, b int) USING @amname@;
 create index yolo_idx on yolo using btree (a);
 
 1: begin;

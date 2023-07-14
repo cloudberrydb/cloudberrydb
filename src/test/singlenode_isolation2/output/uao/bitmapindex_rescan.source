@@ -2,12 +2,12 @@
 drop table if exists bir;
 drop table if exists yolo cascade;
 -- end_ignore
-create table bir (a int, b int) distributed by (a);
+create table bir (a int, b int);
 CREATE
 insert into bir select i, i from generate_series(1, 5) i;
 INSERT 5
 
-create table yolo (a int, b int) USING @amname@ distributed by (a);
+create table yolo (a int, b int) USING @amname@;
 CREATE
 create index yolo_idx on yolo using btree (a);
 CREATE
@@ -41,10 +41,10 @@ SET
 select * from bir left join yolo on (bir.a = yolo.a);
  a | b | a | b 
 ---+---+---+---
- 5 | 5 | 5 | 5 
  1 | 1 | 1 | 1 
  2 | 2 | 2 | 2 
  3 | 3 | 3 | 3 
  4 | 4 | 4 | 4 
+ 5 | 5 | 5 | 5 
 (5 rows)
 

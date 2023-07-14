@@ -7,7 +7,6 @@
 create table test_ao_partition_lock
 ( field_dk integer ,field_part integer)
 with (appendonly=true)
-DISTRIBUTED BY (field_dk)
 PARTITION BY LIST(field_part)
 (
   partition val1 values(1),

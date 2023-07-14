@@ -8,7 +8,7 @@
 --
 
 -- Test AO table.
-CREATE TABLE ao_sparse (id int) with(appendonly = true) DISTRIBUTED BY (id);
+CREATE TABLE ao_sparse (id int) with(appendonly = true);
 
 1: begin;
 2: begin;
@@ -20,14 +20,14 @@ CREATE TABLE ao_sparse (id int) with(appendonly = true) DISTRIBUTED BY (id);
 2: commit;
 
 -- Let's check the total tuple count with id=97,99 without bitmap index.
-SELECT count(*) FROM ao_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = 0;
+SELECT count(*) FROM ao_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = -1;
 
 CREATE INDEX idx_ao_sparse_id ON ao_sparse USING bitmap (id);
 
 
 -- Should generate Bitmap Heap Scan on the bitmap index.
 1: set optimizer = off;
-1: EXPLAIN (COSTS OFF) SELECT * FROM ao_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = 0;
+1: EXPLAIN (COSTS OFF) SELECT * FROM ao_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = -1;
 
 -- We used to hit assertion failure since it generates a empty bitmap for a block's PagetableEntry.
 -- In BitmapHeapNext, if table_scan_bitmap_next_block returns false(which means the block should be
@@ -35,14 +35,14 @@ CREATE INDEX idx_ao_sparse_id ON ao_sparse USING bitmap (id);
 -- the PagetableEntry is empty.
 -- This error happens only when we fetch multiple LOVs when doing bitmap heap scan on bitmap index for
 -- AO tables. AOCS table and "SELECT count(*) FROM ao_sparse WHERE id = 97" works fine.
-1: SELECT count(*) FROM ao_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = 0;
+1: SELECT count(*) FROM ao_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = -1;
 
 -- This query doesn't have any issue.
 1: SELECT count(*) FROM ao_sparse WHERE id = 97;
 
 
 -- Test AOCS table.
-CREATE TABLE aocs_sparse (id int) with(appendonly = true, orientation = COLUMN) DISTRIBUTED BY (id);
+CREATE TABLE aocs_sparse (id int) with(appendonly = true, orientation = COLUMN);
 
 1: begin;
 2: begin;
@@ -54,16 +54,16 @@ CREATE TABLE aocs_sparse (id int) with(appendonly = true, orientation = COLUMN) 
 2: commit;
 
 -- Let's check the total tuple count with id=97 without bitmap index.
-SELECT count(*) FROM aocs_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = 0;
+SELECT count(*) FROM aocs_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = -1;
 
 CREATE INDEX idx_ao_sparse_id ON aocs_sparse USING bitmap (id);
 
 
 -- Should generate Bitmap Heap Scan on the bitmap index.
-1: EXPLAIN (COSTS OFF) SELECT * FROM aocs_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = 0;
+1: EXPLAIN (COSTS OFF) SELECT * FROM aocs_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = -1;
 
 -- This doesn't have any issue, but let's make sure it will not make any error in future.
-1: SELECT count(*) FROM aocs_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = 0;
+1: SELECT count(*) FROM aocs_sparse WHERE id >= 97 and id <= 99 and gp_segment_id = -1;
 
 -- This query doesn't have any issue.
 1: SELECT count(*) FROM ao_sparse WHERE id = 97;
