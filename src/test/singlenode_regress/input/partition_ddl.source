@@ -9,9 +9,7 @@ CREATE TABLE rank (
                 rank int,
                 year smallint,
                 gender char(1),
-                count int )
-
-        DISTRIBUTED BY (id, gender, year);
+                count int );
 
 
 create table rank2 (LIKE rank)
@@ -23,7 +21,7 @@ SUBPARTITION TEMPLATE (start ('2000') end ('2006') every (interval '1'))
 drop table rank;
 
 create table ggg (a char(1), b char(2), d char(3))
-distributed by (a)
+
 partition by LIST (b)
 ( partition aa values ('a', 'b', 'c', 'd'),
 partition bb values ('e', 'f', NULL) );
@@ -42,7 +40,7 @@ drop table ggg;
 -- Johnny Soedomo
 -- Updated test case to use default tablespace. We now support partition and tablespace
 create table ggg (a char(1), b char(2), d char(3))
-distributed by (a)
+
 partition by LIST (b)
 ( partition aa values ('a', 'b', 'c', 'd') tablespace pg_default);
 drop table ggg;
@@ -193,7 +191,6 @@ partition p1 start('1') end('150001') every(50000)
 Alter table mpp3304_customer alter partition for (6) rename partition for ('-999.99') to newname;
 select * from pg_partition_tree('mpp3304_customer');
 create table mpp3045_hhh (a char(1), b date, d char(3)) with (appendonly=true)
-distributed by (a) 
 partition by range (b) 
  (partition aa start (date '2007-01-01') end (date '2008-01-01'),
  partition bb start (date '2008-01-01') end (date '2009-01-01'));
@@ -342,7 +339,7 @@ drop table mpp3265;
 
 -- Test very deeply nested subpartitioning
 CREATE TABLE MULTI_PART2(a int, b int, c int, d int, e int, f int, g int, h int, i int, j int, k int, l int, m int, n int, o int, p int, q int, r int, s int, t int, u int, v int, w int, x int, y int, z int)
-distributed by (a)
+
 partition by range (a)
 subpartition by range (b) subpartition template ( start (1) end (2) every (1))
 subpartition by range (c) subpartition template ( start (1) end (2) every (1))
@@ -384,7 +381,6 @@ CREATE TABLE INT_P1A ( num1    INTEGER NOT NULL,
                       date1    DATE NOT NULL,
                       date2  DATE NOT NULL,
                       message      VARCHAR(44) NOT NULL )
-DISTRIBUTED BY   (num1)
 PARTITION BY RANGE(date1)
 (
      PARTITION y1992  END('1992-12-31'),
@@ -404,7 +400,6 @@ CREATE TABLE INT_P1B ( num1    INTEGER NOT NULL,
                       date1    DATE NOT NULL,
                       date2  DATE NOT NULL,
                       message      VARCHAR(44) NOT NULL )
-DISTRIBUTED BY   (num1)
 PARTITION BY RANGE(date1)
 (
      PARTITION y1992  END('1992-12-31'),
@@ -417,7 +412,7 @@ PARTITION BY RANGE(date1)
 
 DROP TABLE INT_P1A;
 DROP TABLE INT_P1B;
-CREATE TABLE mpp2564_transactions (obligation_trans_date date, cust_no integer, company_no character(3), obligation_trans_no character varying(25), item_no integer, orig_oblig_trans_no character varying(25), split_ind character(1), qty_sold integer, net_wgt_lbs numeric(10,5), unit_price numeric(10,2), ext_price numeric(10,2), catch_wgt_ind character(1), qty_sold_case_equivalent numeric(10,5), marketing_assoc_id character varying(10), cost_of_goods_sold numeric(10,2), adj_cost_good_sold numeric(10,2), trade_sales_ind character(1), create_date timestamp without time zone) DISTRIBUTED RANDOMLY 
+CREATE TABLE mpp2564_transactions (obligation_trans_date date, cust_no integer, company_no character(3), obligation_trans_no character varying(25), item_no integer, orig_oblig_trans_no character varying(25), split_ind character(1), qty_sold integer, net_wgt_lbs numeric(10,5), unit_price numeric(10,2), ext_price numeric(10,2), catch_wgt_ind character(1), qty_sold_case_equivalent numeric(10,5), marketing_assoc_id character varying(10), cost_of_goods_sold numeric(10,2), adj_cost_good_sold numeric(10,2), trade_sales_ind character(1), create_date timestamp without time zone)
 PARTITION BY RANGE (obligation_trans_date)
 SUBPARTITION BY LIST (company_no) subpartition template
 ( subpartition p1 values ('047'),
@@ -478,7 +473,7 @@ subpartition by range (unique2) subpartition template ( start (0) end (500) ever
 alter table mpp3059a rename to mpp3059a_rename; 
 select t.*, pg_get_expr(relpartbound, oid) from pg_partition_tree('mpp3059a_rename') as t, pg_class as c where relid = oid;
 
-create table mpp3216a (id int, rank int, year int, gender char(1), count int) distributed by (id); 
+create table mpp3216a (id int, rank int, year int, gender char(1), count int); 
 create table mpp3216 (like mpp3216a) partition by range (year) ( start (2001) end (2006) every (1));
 alter table mpp3216 rename to mpp3216_rename;
 select t.*, pg_get_expr(relpartbound, oid) from pg_partition_tree('mpp3216_rename') as t, pg_class as c where relid = oid;
@@ -581,7 +576,6 @@ alter table mpp3256 drop partition default_part;
 
 -- Examples from Documentation
 CREATE TABLE mpp3377_sales (trans_id int, date date, amount decimal(9,2), region text)
-DISTRIBUTED BY (trans_id)
 PARTITION BY RANGE (date)
 SUBPARTITION BY LIST (region)
 SUBPARTITION TEMPLATE
@@ -940,7 +934,7 @@ partition by range (f1)
 -- negative test for when SUBPARTITION TEMPLATE shows up before any SUBPARTITION BY
 CREATE TABLE MPP_26829
 (a integer, b integer NOT NULL, c integer)
-DISTRIBUTED BY (a)
+
 PARTITION BY RANGE (b)
 SUBPARTITION TEMPLATE (START (1) END (12) EVERY (1), DEFAULT SUBPARTITION other_months )
 SUBPARTITION BY LIST (c)
@@ -951,13 +945,13 @@ SUBPARTITION p037 VALUES ('037'));
 -- MPP-26829
 
 -- Add check test on partition exchange
-create table parttab (a int4, b int4) distributed by (a) partition by range (a) (start (1) end (5) every (2));
-create table parttab_x (a int4, b int4) distributed by (b);
+create table parttab (a int4, b int4) partition by range (a) (start (1) end (5) every (2));
+create table parttab_x (a int4, b int4);
 alter table parttab exchange partition for (1) with table parttab_x;
 
 -- This used to work on GPDB 6 and below, but it is now rejected. ALTER
 -- PARTITION is used to address subpartitions, it is not needed otherwise.
-create table parttab_y (a int4, b int4) distributed by (a);
+create table parttab_y (a int4, b int4);
 alter table parttab alter partition for (1) exchange partition for (1) with table parttab_y;
 
 -- add constraint using index is forbidden on root and interior partitioned tables

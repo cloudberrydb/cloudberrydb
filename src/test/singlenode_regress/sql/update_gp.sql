@@ -3,9 +3,9 @@
 -- a different distribution key. 'p' table's distribution key matches
 -- that of 'r', but 'p2's doesn't. Test that the planner adds a Motion
 -- node correctly for p2.
-create table todelete (a int) distributed by (a);
-create table parent (a int, b int, c int) distributed by (a);
-create table child (a int, b int, c int) inherits (parent) distributed by (b);
+create table todelete (a int);
+create table parent (a int, b int, c int);
+create table child (a int, b int, c int) inherits (parent);
 
 insert into parent select g, g, g from generate_series(1,5) g;
 insert into child select g, g, g from generate_series(6,10) g;
@@ -28,9 +28,8 @@ drop table parent;
 -- implemented by inheritance) rather than an explicitly inherited table.
 -- The scans on some of the partitions degenerate into Result nodes with
 -- False one-time filter, which don't need a Motion node.
-create table todelete (a int, b int) distributed by (a);
+create table todelete (a int, b int);
 create table target (a int, b int, c int)
-        distributed by (a)
         partition by range (c) (start(1) end(5) every(1), default partition extra);
 
 insert into todelete select g, g % 4 from generate_series(1, 10) g;
@@ -57,9 +56,9 @@ drop table target;
 -- Test updated on inheritance parent table, where some child tables need a
 -- Split Update, but not all.
 --
-create table base_tbl (a int4, b int4) distributed by (a);
-create table child_a (a int4, b int4) inherits (base_tbl) distributed by (a);
-create table child_b (a int4, b int4) inherits (base_tbl) distributed by (b);
+create table base_tbl (a int4, b int4);
+create table child_a (a int4, b int4) inherits (base_tbl);
+create table child_b (a int4, b int4) inherits (base_tbl);
 insert into base_tbl select g, g from generate_series(1, 5) g;
 
 explain (costs off) update base_tbl set a=a+1;
@@ -71,16 +70,16 @@ update base_tbl set a = 5;
 -- These test cases and expectation are applicable for GPDB planner not for ORCA.
 --
 SET gp_autostats_mode = NONE;
-CREATE TABLE keo1 ( user_vie_project_code_pk character varying(24), user_vie_fiscal_year_period_sk character varying(24), user_vie_act_cntr_marg_cum character varying(24)) DISTRIBUTED RANDOMLY;
+CREATE TABLE keo1 ( user_vie_project_code_pk character varying(24), user_vie_fiscal_year_period_sk character varying(24), user_vie_act_cntr_marg_cum character varying(24));
 INSERT INTO keo1 VALUES ('1', '1', '1');
 
-CREATE TABLE keo2 ( projects_pk character varying(24)) DISTRIBUTED RANDOMLY;
+CREATE TABLE keo2 ( projects_pk character varying(24));
 INSERT INTO keo2 VALUES ('1');
 
-CREATE TABLE keo3 ( sky_per character varying(24), bky_per character varying(24)) DISTRIBUTED BY (sky_per);
+CREATE TABLE keo3 ( sky_per character varying(24), bky_per character varying(24));
 INSERT INTO keo3 VALUES ('1', '1');
 
-CREATE TABLE keo4 ( keo_para_required_period character varying(6), keo_para_budget_date character varying(24)) DISTRIBUTED RANDOMLY;
+CREATE TABLE keo4 ( keo_para_required_period character varying(6), keo_para_budget_date character varying(24));
 INSERT INTO keo4 VALUES ('1', '1');
 ANALYZE keo1, keo2, keo3, keo4;
 -- Explicit Redistribution motion should be added in case of GPDB Planner (test case not applicable for ORCA)
@@ -105,7 +104,7 @@ WHERE t1.user_vie_project_code_pk = keo1.user_vie_project_code_pk;
 SELECT user_vie_act_cntr_marg_cum FROM keo1;
 
 -- Explicit Redistribution motion should not be added in case of GPDB Planner (test case not applicable to ORCA)
-CREATE TABLE keo5 (x int, y int) DISTRIBUTED BY (x);
+CREATE TABLE keo5 (x int, y int);
 INSERT INTO keo5 VALUES (1,1);
 EXPLAIN (COSTS OFF) DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS (SELECT x FROM keo5 WHERE x < 2));
 DELETE FROM keo5 WHERE x IN (SELECT x FROM keo5 WHERE EXISTS (SELECT x FROM keo5 WHERE x < 2));
@@ -122,8 +121,8 @@ DROP TABLE keo5;
 -- text types. We should support the following updates.
 --
 
-CREATE TEMP TABLE ttab1 (a varchar(15), b integer) DISTRIBUTED BY (a);
-CREATE TEMP TABLE ttab2 (a varchar(15), b integer) DISTRIBUTED BY (a);
+CREATE TEMP TABLE ttab1 (a varchar(15), b integer);
+CREATE TEMP TABLE ttab2 (a varchar(15), b integer);
 
 UPDATE ttab1 SET b = ttab2.b FROM ttab2 WHERE ttab1.a = ttab2.a;
 
@@ -131,8 +130,8 @@ DROP TABLE ttab1;
 DROP TABLE ttab2;
 
 
-CREATE TEMP TABLE ttab1 (a text, b integer) DISTRIBUTED BY (a);
-CREATE TEMP TABLE ttab2 (a text, b integer) DISTRIBUTED BY (a);
+CREATE TEMP TABLE ttab1 (a text, b integer);
+CREATE TEMP TABLE ttab2 (a text, b integer);
 
 UPDATE ttab1 SET b = ttab2.b FROM ttab2 WHERE ttab1.a = ttab2.a;
 
@@ -140,8 +139,8 @@ UPDATE ttab1 SET b = ttab2.b FROM ttab2 WHERE ttab1.a = ttab2.a;
 DROP TABLE ttab1;
 DROP TABLE ttab2;
 
-CREATE TEMP TABLE ttab1 (a varchar, b integer) DISTRIBUTED BY (a);
-CREATE TEMP TABLE ttab2 (a varchar, b integer) DISTRIBUTED BY (a);
+CREATE TEMP TABLE ttab1 (a varchar, b integer);
+CREATE TEMP TABLE ttab2 (a varchar, b integer);
 
 UPDATE ttab1 SET b = ttab2.b FROM ttab2 WHERE ttab1.a = ttab2.a;
 
@@ -149,14 +148,14 @@ UPDATE ttab1 SET b = ttab2.b FROM ttab2 WHERE ttab1.a = ttab2.a;
 DROP TABLE ttab1;
 DROP TABLE ttab2;
 
-CREATE TEMP TABLE ttab1 (a char(15), b integer) DISTRIBUTED BY (a);
-CREATE TEMP TABLE ttab2 (a char(15), b integer) DISTRIBUTED BY (a);
+CREATE TEMP TABLE ttab1 (a char(15), b integer);
+CREATE TEMP TABLE ttab2 (a char(15), b integer);
 
 UPDATE ttab1 SET b = ttab2.b FROM ttab2 WHERE ttab1.a = ttab2.a;
 
 DROP TABLE IF EXISTS update_distr_key;
 
-CREATE TEMP TABLE update_distr_key (a int, b int) DISTRIBUTED BY (a);
+CREATE TEMP TABLE update_distr_key (a int, b int);
 INSERT INTO update_distr_key select i, i* 10 from generate_series(0, 9) i;
 
 UPDATE update_distr_key SET a = 5 WHERE b = 10;
@@ -166,8 +165,8 @@ SELECT * from update_distr_key;
 DROP TABLE update_distr_key;
 
 -- below cases is to test multi-hash-cols
-CREATE TABLE tab3(c1 int, c2 int, c3 int, c4 int, c5 int) DISTRIBUTED BY (c1, c2, c3);
-CREATE TABLE tab5(c1 int, c2 int, c3 int, c4 int, c5 int) DISTRIBUTED BY (c1, c2, c3, c4, c5);
+CREATE TABLE tab3(c1 int, c2 int, c3 int, c4 int, c5 int);
+CREATE TABLE tab5(c1 int, c2 int, c3 int, c4 int, c5 int);
 
 INSERT INTO tab3 SELECT i, i, i, i, i FROM generate_series(1, 10)i;
 INSERT INTO tab5 SELECT i, i, i, i, i FROM generate_series(1, 10)i;
@@ -213,15 +212,15 @@ drop table if exists update_aoco_table;
 -- end_ignore
 
 -- Update normal table distribution key
-create table update_dist(a int) distributed by (a);
+create table update_dist(a int);
 insert into update_dist values(1);
 update update_dist set a=0 where a=1;
 select * from update_dist;
 
 -- Update distribution key with join
 
-create table r (a int, b int) distributed by (a);
-create table s (a int, b int) distributed by (a);
+create table r (a int, b int);
+create table s (a int, b int);
 insert into r select generate_series(1, 5), generate_series(1, 5) * 2;
 insert into s select generate_series(1, 5), generate_series(1, 5) * 2;
 select * from r;
@@ -254,14 +253,14 @@ update s set a = s.a + 1 where exists (select 1 from r where s.a = r.b);
 select * from s;
 
 -- Update ao table distribution key
-create table update_ao_table (a int, b int) WITH (appendonly=true) distributed by (a);
+create table update_ao_table (a int, b int) WITH (appendonly=true);
 insert into update_ao_table select g, g from generate_series(1, 5) g;
 select * from update_ao_table;
 update update_ao_table set a = a + 1 where b = 3;
 select * from update_ao_table;
 
 -- Update aoco table distribution key
-create table update_aoco_table (a int, b int) WITH (appendonly=true, orientation=column) distributed by (a);
+create table update_aoco_table (a int, b int) WITH (appendonly=true, orientation=column);
 insert into update_aoco_table select g,g from generate_series(1, 5) g;
 select * from update_aoco_table;
 update update_aoco_table set a = a + 1 where b = 3;
@@ -278,7 +277,7 @@ select * from s;
 
 -- Confirm that a split update is not created for a table excluded by
 -- constraints in the planner.
-create table nosplitupdate (a int) distributed by (a);
+create table nosplitupdate (a int);
 explain update nosplitupdate set a=0 where a=1 and a<1;
 
 -- test split-update when split-node's flow is entry
@@ -298,7 +297,7 @@ CREATE TABLE update_gp_foo (
     c_part int,
     d int
 )
-WITH (appendonly=false) DISTRIBUTED BY (a_dist) PARTITION BY RANGE(c_part)
+WITH (appendonly=false) PARTITION BY RANGE(c_part)
           (
           PARTITION p20190305 START (1) END (2) WITH (tablename='update_gp_foo_1_prt_p20190305', appendonly=false)
           );
@@ -309,7 +308,7 @@ CREATE TABLE update_gp_foo1 (
         c_part int,
         d int
 )
-WITH (appendonly=false) DISTRIBUTED BY (a_dist) PARTITION BY RANGE(c_part)
+WITH (appendonly=false) PARTITION BY RANGE(c_part)
           (
           PARTITION p20190305 START (1) END (2) WITH (tablename='update_gp_foo1_1_prt_p20190305', appendonly=false)
           );
@@ -331,7 +330,7 @@ SELECT * from update_gp_foo;
 -- planning, if a `insert on conflict do update` statement set the
 -- dist keys of the table, it will raise an error.
 -- See github issue: https://github.com/greenplum-db/gpdb/issues/9444
-create table t_insert_on_conflict_update_distkey(a int, b int) distributed by (a);
+create table t_insert_on_conflict_update_distkey(a int, b int);
 create unique index uidx_t_insert_on_conflict_update_distkey on t_insert_on_conflict_update_distkey(a, b);
 
 -- the following statement should error out because the on conflict update want to
@@ -342,13 +341,13 @@ drop index uidx_t_insert_on_conflict_update_distkey;
 drop table t_insert_on_conflict_update_distkey;
 -- randomly distributed table cannot add unique constrain, so next we test replicated table
 
-create table t_insert_on_conflict_update_distkey(a int, b int) distributed replicated;
+create table t_insert_on_conflict_update_distkey(a int, b int);
 create unique index uidx_t_insert_on_conflict_update_distkey on t_insert_on_conflict_update_distkey(a, b);
 -- the following statement should succeed because replicated table does not contain distkey
 insert into t_insert_on_conflict_update_distkey values (1, 1) on conflict(a, b) do update set a = 1;
 
 -- Some tests on a partitioned table.
-CREATE TABLE update_gp_rangep (a int, b int, orig_a int) DISTRIBUTED BY (b) PARTITION BY RANGE (a);
+CREATE TABLE update_gp_rangep (a int, b int, orig_a int) PARTITION BY RANGE (a);
 
 CREATE TABLE update_gp_rangep_1_to_10  PARTITION OF update_gp_rangep FOR VALUES FROM  (1) TO (10);
 CREATE TABLE update_gp_rangep_10_to_20 PARTITION OF update_gp_rangep FOR VALUES FROM (10) TO (20);

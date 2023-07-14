@@ -5,18 +5,18 @@ drop table if exists b;
 drop table if exists a;
 
 --ERROR: Missing boundary specification in partition 'aa' of type LIST
-create table fff (a char(1), b char(2), d char(3)) distributed by
-(a) partition by list (b) (partition aa );
+create table fff (a char(1), b char(2), d char(3))
+partition by list (b) (partition aa );
 
 
 -- ERROR: Invalid use of RANGE boundary specification in partition
 --   number 1 of type LIST
-create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+create table fff (a char(1), b char(2), d char(3))
 partition by list (b) (start ('a') );
 
 
 -- should work
-create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+create table fff (a char(1), b char(2), d char(3))
 partition by list (b) (partition aa values ('2'));
 
 drop table fff cascade;
@@ -27,7 +27,7 @@ drop table fff cascade;
 -- This is an error:
 -- ERROR:  invalid use of mixed named and unnamed RANGE boundary specifications
 create table ggg (a char(1), b int, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start ('2007'), end ('2008'),
@@ -35,7 +35,7 @@ partition bb start ('2008'), end ('2009')
 );
 
 create table ggg (a char(1), b int)
-distributed by (a)
+
 partition by range(b)
 (
 partition aa start ('2007'), end ('2008')
@@ -44,7 +44,7 @@ partition aa start ('2007'), end ('2008')
 drop table ggg cascade;
 
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01'),
@@ -56,7 +56,7 @@ drop table ggg cascade;
 
 -- Expressions are allowed
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (2007) end (2007+1),
@@ -67,7 +67,7 @@ drop table ggg cascade;
 
 -- Even volatile expressions are OK. They are evaluted immediately.
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (2007) end (2008+(random()*9)::integer),
@@ -78,7 +78,7 @@ drop table ggg cascade;
 
 -- too many columns for RANGE partition
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
+
 partition by range (b,d)
 (
 partition aa start (2007,1) end (2008,2),
@@ -89,7 +89,7 @@ drop table ggg cascade;
 
 -- Mismatch between number of columns in PARTITION BY and in the START/END clauses
 create table pby_mismatch (a char(1), b numeric, d numeric)
-distributed by (a)
+
 partition by range (b)
 (
   partition aa start (2007,1) end (2008),
@@ -97,7 +97,7 @@ partition by range (b)
 );
 
 create table pby_mismatch (a char(1), b numeric, d numeric)
-distributed by (a)
+
 partition by range (b)
 (
   partition aa start (2007) end (2008,1),
@@ -106,7 +106,7 @@ partition by range (b)
 
 -- basic list partition
 create table ggg (a char(1), b char(2), d char(3))
-distributed by (a)
+
 partition by LIST (b)
 (
 partition aa values ('a', 'b', 'c', 'd'),
@@ -138,7 +138,7 @@ drop table ggg cascade;
 
 -- documentation example - partition by list and range
 CREATE TABLE rank (id int, rank int, year date, gender
-char(1)) DISTRIBUTED BY (id, gender, year)
+char(1)) 
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -177,7 +177,7 @@ drop table rank cascade;
 
 -- range list combo
 create table ggg (a char(1), b date, d char(3), e numeric)
-distributed by (a)
+
 partition by range (b)
 subpartition by list(d)
 (
@@ -203,7 +203,7 @@ drop table ggg cascade;
 
 -- duplicate partition name
 CREATE TABLE rank (id int, rank int, year date, gender
-char(1)) DISTRIBUTED BY (id, gender, year)
+char(1)) 
 partition by list (gender)
 (
   partition boys values ('M'),
@@ -218,7 +218,7 @@ partition by list (gender)
 -- duplicate values
 CREATE TYPE rank_partkey AS (rank int, gender char(1));
 CREATE TABLE rank (id int, rankgender rank_partkey, year date)
-DISTRIBUTED BY (id, year)
+
 partition by list (rankgender)
 (
  values (CAST ('(1,M)' AS rank_partkey)),
@@ -234,7 +234,7 @@ partition by list (rankgender)
 
 -- legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (date '2007-08-01') end (date '2008-01-01'),
@@ -246,7 +246,7 @@ drop table ggg cascade;
 
 -- bad - legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01') inclusive,
@@ -257,7 +257,7 @@ drop table ggg cascade;
 
 -- legal because start of bb not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (date '2007-08-01') end (date '2008-01-01') inclusive,
@@ -268,7 +268,7 @@ drop table ggg cascade;
 
 -- legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -279,7 +279,7 @@ drop table ggg cascade;
 
 -- bad - legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -290,7 +290,7 @@ drop table ggg cascade;
 
 -- legal because start of bb not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition bb start (date '2008-01-01') exclusive end (date '2009-01-01'),
@@ -301,7 +301,7 @@ drop table ggg cascade;
 
 -- validate aa - start greater than end
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -313,7 +313,7 @@ drop table ggg cascade;
 -- formerly we could not set end of first partition because next is before
 -- but we can sort them now so this is legal.
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition bb start (date '2008-01-01') ,
@@ -325,7 +325,7 @@ drop table ggg cascade;
 -- test cross type coercion
 -- int -> char(N)
 create table ggg (i int, a char(1))
-distributed by (i)
+
 partition by list(a)
 (partition aa values(1, 2));
 
@@ -333,7 +333,7 @@ drop table ggg cascade;
 
 -- int -> numeric
 create table ggg (i int, n numeric(20, 2))
-distributed by (i)
+
 partition by list(n)
 (partition aa values(1.22, 4.1));
 drop table ggg cascade;
@@ -343,7 +343,7 @@ drop table ggg cascade;
 --  the documentation example, rewritten with EVERY in a template
 CREATE TABLE rank (id int,
 rank int, year date, gender char(1))
-DISTRIBUTED BY (id, gender, year)
+
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -376,7 +376,7 @@ drop table rank cascade;
 
 -- integer ranges work too
 create table ggg (id integer, a integer)
-distributed by (id)
+
 partition by range (a)
 (start (1) end (10) every (1));
 
@@ -409,7 +409,7 @@ as $$ select (chr(ascii($1) + $2))::funnytext $$ language sql;
 create operator pg_catalog.+ (function=funnytext_plus, leftarg=funnytext, rightarg=integer);
 
 create table ggg (a char(1), t funnytext)
-distributed by (a)
+
 partition by range (t)
 (
   start ('aaa') end ('foobar') every (1)
@@ -422,19 +422,19 @@ drop table ggg cascade;
 create or replace function funnytext_plus (funnytext, integer) returns funnytext
 as $$ select NULL::funnytext $$ language sql;
 create table ggg (a char(1), t funnytext)
-distributed by (a)
+
 partition by range (t)
 (
   start ('aaa') end ('foobar') every (1)
 );
 
-create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+create table fff (a char(1), b char(2), d char(3))
 partition by list (b) (partition aa values ('2'));
 
 drop table fff cascade;
 
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
+
 partition by range (b,d)
 (
 partition aa start (2007,1) end (2008,2),
@@ -444,7 +444,7 @@ partition bb start (2008,2) end (2009,3)
 drop table ggg cascade;
 
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -454,7 +454,7 @@ partition aa start (date '2007-01-01') end (date '2006-01-01')
 drop table ggg cascade;
 
 -- append only tests
-create table foz (i int, d date) with (appendonly = true) distributed by (i)
+create table foz (i int, d date) with (appendonly = true)
 partition by range (d) (start (date '2001-01-01') end (date '2005-01-01')
 every(interval '1 year'));
 insert into foz select i, '2001-01-01'::date + ('1 day'::interval * i) from
@@ -472,7 +472,7 @@ select min(d), max(d) from foz_1_prt_4;
 drop table foz cascade;
 
 -- copy test
-create table foz (i int, d date) distributed by (i)
+create table foz (i int, d date)
 partition by range (d) (start (date '2001-01-01') end (date '2005-01-01')
 every(interval '1 year'));
 COPY foz FROM stdin DELIMITER '|';
@@ -493,7 +493,7 @@ COPY foz FROM stdin DELIMITER '|';
 \.
 drop table foz cascade;
 -- Same test with append only
-create table foz (i int, d date) with (appendonly = true) distributed by (i)
+create table foz (i int, d date) with (appendonly = true)
 partition by range (d) (start (date '2001-01-01') end (date '2005-01-01')
 every(interval '1 year'));
 COPY foz FROM stdin DELIMITER '|';
@@ -521,7 +521,7 @@ CREATE TABLE rank1 (id int,
 rank int, year date, gender char(1));
 
 create table rank2 as select * from rank1
-DISTRIBUTED BY (id, gender, year)
+
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -534,7 +534,7 @@ partition girls values ('F')
 -- like is ok
 
 create table rank2 (like rank1)
-DISTRIBUTED BY (id, gender, year)
+
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -551,7 +551,7 @@ drop table rank2 cascade;
 -- alter table testing
 
 create table hhh (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01')
@@ -661,7 +661,7 @@ alter table hhh drop partition for ('2001-01-01');
 
 
 create table hhh_r1 (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01')
@@ -669,7 +669,7 @@ partition aa start (date '2007-01-01') end (date '2008-01-01')
 );
 
 create table hhh_l1 (a char(1), b date, d char(3))
-distributed by (a)
+
 partition by list (b)
 (
 partition aa values ('2007-01-01'),
@@ -730,7 +730,7 @@ drop table hhh_l1 cascade;
 --  and also with a default partition
 CREATE TABLE rank (id int,
 rank int, year date, gender char(1))
-DISTRIBUTED BY (id, gender, year)
+
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -890,7 +890,7 @@ default partition j4);
 
 
 -- check default
-create table foz (i int, d date) distributed by (i)
+create table foz (i int, d date)
 partition by range (d)
 (
  default partition dsf,
@@ -905,7 +905,7 @@ drop table foz cascade;
 
 -- check for out of order partition definitions. We should order these correctly
 -- and determine the appropriate boundaries.
-create table d (i int, j int) distributed by (i) partition by range(j)
+create table d (i int, j int) partition by range(j)
 ( start (10), start(5), start(50) end(60));
 insert into d values(1, 5);
 insert into d values(1, 10);
@@ -955,7 +955,7 @@ drop table  d cascade;
 
 -- multicolumn list support
 create type d_partkey as (b int, c int);
-create table d (a int, k d_partkey) distributed by (a)
+create table d (a int, k d_partkey)
 partition by list(k)
 (partition a values(CAST('(1,2)' as d_partkey), CAST('(3,4)' as d_partkey)),
  partition b values(CAST('(100,20)' as d_partkey)),
@@ -973,7 +973,7 @@ select * from d_1_prt_c;
 drop table d cascade;
 
 -- test multi value range partitioning
-create table b (i int, j date) distributed by (i)
+create table b (i int, j date)
 partition by range (i, j)
 (start(1, '2008-01-01') end (10, '2009-01-01'),
  start(1, '2009-01-01') end(15, '2010-01-01'),
@@ -997,7 +997,7 @@ drop table b;
 
 -- try some different combinations
 create table b (i int, n numeric(20, 2), t timestamp, s text)
-distributed by (i)
+
 partition by range(n, t, s)
 (
 start(2000.99, '2007-01-01 00:00:00', 'AAA')
@@ -1048,14 +1048,14 @@ drop table if exists s2;
 
 -- setup two partitioned tables s1 and s2
 create table s1 (d1 int, p1 int)
-distributed by (d1)
+
 partition by list (p1)
 (
   values (0),
   values (1));
 
 create table s2 (d2 int, p2 int)
-distributed by (d2)
+
 partition by list (p2)
 (
   values (0),
@@ -1076,7 +1076,7 @@ drop table if exists s2;
 -- the following case is to test when we have a template
 -- we can correct add new subpartition with relation options.
 create table test_part_relops_tmpl (id int,  p1 text, p2 text, count int)
-distributed by (id)
+
 partition by list (p1)
 subpartition by list (p2)
 (
@@ -1105,7 +1105,7 @@ alter table test_part_relops_tmpl alter partition for ('m1') add partition l3 va
 with (oids=false);
 
 create table mpp_2914A(id int,  buyDate date, kind char(1))
-DISTRIBUTED BY (id)
+
 partition by list (kind)
 subpartition by range(buyDate)
 subpartition template
@@ -1126,7 +1126,7 @@ select count(*) from mpp_2914A;
 \d mpp_2914a*
 
 create table mpp_2914B(id int,  buyDate date, kind char(1))
-DISTRIBUTED BY (id)
+
 partition by list (kind)
 subpartition by range(buyDate)
 (
@@ -1168,7 +1168,7 @@ create table mpp10847_pkeyconstraints(
   option2 int,
   option3 int,
   primary key(pkid, option3))
-distributed by (pkid) partition by range (option3)
+ partition by range (option3)
 (
 partition aa start(1) end(100) inclusive,
 partition bb start(101) end(200) inclusive,
@@ -1204,7 +1204,7 @@ create table dcl_messaging_test
         variable_19             varchar(1024) null,
         variable_20             varchar(1024) null
 )
-distributed by (message_create_date)
+
 partition by range (message_create_date)
 (
     START (timestamp '2011-09-01') END (timestamp '2011-09-10') EVERY (interval '1 day'),
@@ -1231,7 +1231,7 @@ alter table dcl_messaging_test split partition for (timestamp '2011-09-06') at (
 --
 -- Create table with 4 partitions
 CREATE TABLE mpp13806 (id int, date date, amt decimal(10,2))
-DISTRIBUTED BY (id)
+
 PARTITION BY RANGE (date)
 ( START (date '2008-01-01') INCLUSIVE
  END (date '2008-01-05') EXCLUSIVE
@@ -1341,7 +1341,7 @@ select count(*) from pg_index where indrelid='pt_indx_tab_1_prt_a_1'::regclass;
 -- (Not supported, throws an error).
 --
 create table mpp18179 (a int, b int, i int)
-distributed by (a)
+
 partition by list (b)
    ( PARTITION ab1 VALUES (1),
      PARTITION ab2 values (2),
@@ -1377,7 +1377,7 @@ select * from pg_indexes where tablename like 'mpp7635%';
 -- Test handling of NULL values in SPLIT PARTITION.
 --
 CREATE TABLE mpp7863 (id int, dat char(8))
-DISTRIBUTED BY (id)
+
 PARTITION BY RANGE (dat)
 ( PARTITION Oct09 START (200910) INCLUSIVE END (200911) EXCLUSIVE ,
 PARTITION Nov09 START (200911) INCLUSIVE END (200912) EXCLUSIVE ,
@@ -1418,7 +1418,7 @@ CREATE TABLE users_test
   born_time   TIMESTAMP,
   create_time TIMESTAMP
 )
-DISTRIBUTED BY (id)
+
 PARTITION BY RANGE (create_time)
 (
   PARTITION p2019 START ('2019-01-01'::TIMESTAMP) END ('2020-01-01'::TIMESTAMP),
@@ -1447,7 +1447,7 @@ SELECT user_name FROM users_test_1_prt_extra;
 -- Github issue: https://github.com/greenplum-db/gpdb/issues/9460
 -- When creating unique or primary key index on Partition table,
 -- the cols in index must contain all partition keys.
-CREATE TABLE t_idx_col_contain_partkey(a int, b int) DISTRIBUTED BY (a)
+CREATE TABLE t_idx_col_contain_partkey(a int, b int)
 PARTITION BY list (b)
 (PARTITION t1 values (1),
  PARTITION t2 values (2));
@@ -1466,7 +1466,7 @@ CREATE TABLE t_idx_col_contain_partkey
         r_name char(25),
         r_comment varchar(152)
 )
-DISTRIBUTED BY (r_regionkey)
+
 PARTITION BY RANGE (r_regionkey)
 SUBPARTITION BY LIST (r_name) SUBPARTITION TEMPLATE
 (
@@ -1499,7 +1499,7 @@ CREATE TABLE constraint_mismatch_tbl (
     date date,
     amt decimal(10,2)
     CONSTRAINT amt_check CHECK (amt > 0)
-) DISTRIBUTED BY (id)
+)
 PARTITION BY RANGE (date)
    (PARTITION Jan08 START (date '2008-01-01'),
     PARTITION Feb08 START (date '2008-02-01'),
@@ -1510,7 +1510,7 @@ CREATE TABLE mismatch_exchange_tbl (
     id int,
     date date,
     amt decimal(10,2)
-) DISTRIBUTED BY (id);
+);
 INSERT INTO mismatch_exchange_tbl SELECT i, '2008-03-02', i FROM generate_series(11,15)i;
 
 ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch_exchange_tbl;
@@ -1522,7 +1522,7 @@ CREATE TABLE mismatch_exchange_tbl (
     date date,
     amt decimal(10,2)
     CONSTRAINT amt_check CHECK (amt <> 0)
-) DISTRIBUTED BY (id);
+);
 INSERT INTO mismatch_exchange_tbl SELECT i, '2008-03-02', i FROM generate_series(11,15)i;
 
 ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch_exchange_tbl;
@@ -1534,7 +1534,7 @@ CREATE TABLE mismatch_exchange_tbl (
     date date,
     amt decimal(10,2)
     CONSTRAINT amt_check CHECK (amt > 0)
-) DISTRIBUTED BY (id);
+);
 INSERT INTO mismatch_exchange_tbl SELECT i, '2008-03-02', i FROM generate_series(11,15)i;
 
 ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch_exchange_tbl;
@@ -1550,7 +1550,7 @@ ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch
 --
 -- END INCLUSIVE should work for bigint
 CREATE TABLE end_inclusive_bigint (a int, b bigint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION pmax_create START (9223372036854775805) END (9223372036854775807) INCLUSIVE EVERY (1),
@@ -1572,7 +1572,7 @@ ALTER TABLE end_inclusive_bigint SPLIT DEFAULT PARTITION START (9223372036854775
 
 -- END INCLUSIVE should work for int
 CREATE TABLE end_inclusive_int (a int, b int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 END (3) INCLUSIVE,
@@ -1582,7 +1582,7 @@ CREATE TABLE end_inclusive_int (a int, b int)
 
 -- END INCLUSIVE should work for smallint
 CREATE TABLE end_inclusive_smallint (a int, b smallint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (1) END (3) INCLUSIVE,
@@ -1592,7 +1592,7 @@ CREATE TABLE end_inclusive_smallint (a int, b smallint)
 
 -- END INCLUSIVE should work for date
 CREATE TABLE end_inclusive_date (a int, b date)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('2020-06-16') END ('2020-06-17') INCLUSIVE,
@@ -1602,7 +1602,7 @@ CREATE TABLE end_inclusive_date (a int, b date)
 
 -- END INCLUSIVE should work for time without time zone
 CREATE TABLE end_inclusive_time (a int, b time)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('00:00:00.000001') END ('01:00:00') INCLUSIVE,
@@ -1612,7 +1612,7 @@ CREATE TABLE end_inclusive_time (a int, b time)
 
 -- END INCLUSIVE should work for time with time zone
 CREATE TABLE end_inclusive_timetz (a int, b time with time zone)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('00:00:00 EST') END ('01:00:00 PST') INCLUSIVE,
@@ -1622,7 +1622,7 @@ CREATE TABLE end_inclusive_timetz (a int, b time with time zone)
 
 -- END INCLUSIVE should work for timestamp without time zone
 CREATE TABLE end_inclusive_timestamp (a int, b timestamp)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('2020-06-16 00:00:00') END ('2020-06-16 01:00:00') INCLUSIVE,
@@ -1632,7 +1632,7 @@ CREATE TABLE end_inclusive_timestamp (a int, b timestamp)
 
 -- END INCLUSIVE should work for timestamp with time zone
 CREATE TABLE end_inclusive_timestamptz (a int, b timestamp with time zone)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('2020-06-16 00:00:00 PST') END ('2020-06-16 01:00:00 PST') INCLUSIVE,
@@ -1642,7 +1642,7 @@ CREATE TABLE end_inclusive_timestamptz (a int, b timestamp with time zone)
 
 -- END INCLUSIVE should work for interval
 CREATE TABLE end_inclusive_interval (a int, b interval)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('1 year') END ('2 years') INCLUSIVE
@@ -1652,7 +1652,7 @@ CREATE TABLE end_inclusive_interval (a int, b interval)
 -- END INCLUSIVE with MAXVALUE should work with implicit START/END
 DROP TABLE end_inclusive_int;
 CREATE TABLE end_inclusive_int (a int, b int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (1),
@@ -1663,7 +1663,7 @@ CREATE TABLE end_inclusive_int (a int, b int)
 
 DROP TABLE end_inclusive_int;
 CREATE TABLE end_inclusive_int (a int, b int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION pmax END (2147483647) INCLUSIVE,
@@ -1674,7 +1674,7 @@ CREATE TABLE end_inclusive_int (a int, b int)
 
 -- END INCLUSIVE should fail when precision is specified
 CREATE TABLE end_inclusive_time_with_precision (a int, b time(5))
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('00:00:00') END ('01:00:00') INCLUSIVE
@@ -1682,7 +1682,7 @@ CREATE TABLE end_inclusive_time_with_precision (a int, b time(5))
 
 -- END INCLUSIVE should fail for unsupported data types
 CREATE TABLE end_inclusive_numeric (a int, b numeric)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (1) END (3) INCLUSIVE
@@ -1690,7 +1690,7 @@ CREATE TABLE end_inclusive_numeric (a int, b numeric)
 
 -- Also check START EXCLUSIVE
 CREATE TABLE start_exclusive_smallint (a int, b smallint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (0) EXCLUSIVE END (3) INCLUSIVE,
@@ -1700,7 +1700,7 @@ CREATE TABLE start_exclusive_smallint (a int, b smallint)
 
 -- If the START EXCLUSIVE value + 1 would overflow, you get an error
 CREATE TABLE start_exclusive_smallint_overflow (a int, b smallint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (0) EXCLUSIVE END (3) INCLUSIVE,
@@ -1710,7 +1710,7 @@ CREATE TABLE start_exclusive_smallint_overflow (a int, b smallint)
 -- Test for ALTER TABLE WITH/WITHOUT VALIDATION.
 -- It doesn't do anything anymore, but check that the syntax is accepted.
 CREATE TABLE validation_syntax_tbl (a int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (a)
         (
         PARTITION p1 START (1) END (3)
@@ -1738,7 +1738,7 @@ CREATE TABLE partitioned_table_with_very_long_name_123456789x
     col1 int4,
     col2 int4
 )
-DISTRIBUTED by (col1)
+
 PARTITION BY RANGE(col2)
   (partition partone start(1) end(100000001),
    partition parttwo start(100000001) end(200000001),
@@ -1749,7 +1749,7 @@ CREATE TABLE partitioned_table_with_very_long_name_123456789y
     col1 int4,
     col2 int4
 )
-DISTRIBUTED by (col1)
+
 PARTITION BY RANGE(col2)
   (partition partone start(1) end(100000001),
    partition parttwo start(100000001) end(200000001),

@@ -12,7 +12,7 @@ before_rename_col int4,
 change_datatype_col numeric,
 a_ts_without timestamp without time zone,
 b_ts_with timestamp with time zone,
-date_column date) with (appendonly=true, orientation=column) distributed randomly;
+date_column date) with (appendonly=true, orientation=column);
 
 INSERT INTO ck_ct_co_analyze1 values ('0_zero', 0, '0_zero', 0, 0, 0, '{0}', 0, 0, 0, '2004-10-19 10:23:54', '2004-10-19 10:23:54+02', '1-1-2000');
 INSERT INTO ck_ct_co_analyze1 values ('1_zero', 1, '1_zero', 1, 1, 1, '{1}', 1, 1, 1, '2005-10-19 10:23:54', '2005-10-19 10:23:54+02', '1-1-2001');
@@ -36,4 +36,6 @@ ALTER TABLE ck_ct_co_analyze1 ADD COLUMN added_col character varying(30) default
 ALTER TABLE ck_ct_co_analyze1 DROP COLUMN drop_col ;
 ALTER TABLE ck_ct_co_analyze1 RENAME COLUMN before_rename_col TO after_rename_col;
 ALTER TABLE ck_ct_co_analyze1 ALTER COLUMN change_datatype_col TYPE int4;
+-- start_ignore
 ALTER TABLE ck_ct_co_analyze1 set with ( reorganize='true') distributed by (int_col);
+-- end_ignore

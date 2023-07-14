@@ -3,20 +3,20 @@ drop table if exists c;
 drop table if exists b;
 drop table if exists a;
 --ERROR: Missing boundary specification in partition 'aa' of type LIST
-create table fff (a char(1), b char(2), d char(3)) distributed by
-(a) partition by list (b) (partition aa );
+create table fff (a char(1), b char(2), d char(3))
+partition by list (b) (partition aa );
 ERROR:  missing boundary specification in partition "aa" of type LIST
-LINE 2: (a) partition by list (b) (partition aa );
-                                   ^
+LINE 2: partition by list (b) (partition aa );
+                               ^
 -- ERROR: Invalid use of RANGE boundary specification in partition
 --   number 1 of type LIST
-create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+create table fff (a char(1), b char(2), d char(3))
 partition by list (b) (start ('a') );
 ERROR:  invalid boundary specification for LIST partition
 LINE 2: partition by list (b) (start ('a') );
                                ^
 -- should work
-create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+create table fff (a char(1), b char(2), d char(3))
 partition by list (b) (partition aa values ('2'));
 drop table fff cascade;
 -- this is subtly wrong -- it defines 4 partitions
@@ -25,28 +25,25 @@ drop table fff cascade;
 -- This is an error:
 -- ERROR:  invalid use of mixed named and unnamed RANGE boundary specifications
 create table ggg (a char(1), b int, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start ('2007'), end ('2008'),
 partition bb start ('2008'), end ('2009')
 );
 ERROR:  cannot derive ending value of partition based upon starting of next partition
-LINE 5: partition aa start ('2007'), end ('2008'),
+LINE 4: partition aa start ('2007'), end ('2008'),
         ^
 create table ggg (a char(1), b int)
-distributed by (a)
 partition by range(b)
 (
 partition aa start ('2007'), end ('2008')
 );
 ERROR:  cannot derive ending value of partition based upon starting of next partition
-LINE 5: partition aa start ('2007'), end ('2008')
+LINE 4: partition aa start ('2007'), end ('2008')
         ^
 drop table ggg cascade;
 ERROR:  table "ggg" does not exist
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01'),
@@ -55,7 +52,6 @@ partition bb start (date '2008-01-01') end (date '2009-01-01')
 drop table ggg cascade;
 -- Expressions are allowed
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
 partition by range (b)
 (
 partition aa start (2007) end (2007+1),
@@ -64,7 +60,6 @@ partition bb start (2008) end (2009)
 drop table ggg cascade;
 -- Even volatile expressions are OK. They are evaluted immediately.
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
 partition by range (b)
 (
 partition aa start (2007) end (2008+(random()*9)::integer),
@@ -73,7 +68,6 @@ partition bb start (2018) end (2019)
 drop table ggg cascade;
 -- too many columns for RANGE partition
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
 partition by range (b,d)
 (
 partition aa start (2007,1) end (2008,2),
@@ -84,28 +78,25 @@ drop table ggg cascade;
 ERROR:  table "ggg" does not exist
 -- Mismatch between number of columns in PARTITION BY and in the START/END clauses
 create table pby_mismatch (a char(1), b numeric, d numeric)
-distributed by (a)
 partition by range (b)
 (
   partition aa start (2007,1) end (2008),
   partition bb start (2008,2) end (2009)
 );
 ERROR:  number of START values should cover all partition key columns
-LINE 5:   partition aa start (2007,1) end (2008),
+LINE 4:   partition aa start (2007,1) end (2008),
                        ^
 create table pby_mismatch (a char(1), b numeric, d numeric)
-distributed by (a)
 partition by range (b)
 (
   partition aa start (2007) end (2008,1),
   partition bb start (2008) end (2009,1)
 );
 ERROR:  number of END values should cover all partition key columns
-LINE 5:   partition aa start (2007) end (2008,1),
+LINE 4:   partition aa start (2007) end (2008,1),
                                     ^
 -- basic list partition
 create table ggg (a char(1), b char(2), d char(3))
-distributed by (a)
 partition by LIST (b)
 (
 partition aa values ('a', 'b', 'c', 'd'),
@@ -172,7 +163,7 @@ select * from ggg_1_prt_bb order by 1, 2;
 drop table ggg cascade;
 -- documentation example - partition by list and range
 CREATE TABLE rank (id int, rank int, year date, gender
-char(1)) DISTRIBUTED BY (id, gender, year)
+char(1)) 
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -246,7 +237,6 @@ select * from rank_1_prt_girls_2_prt_2 order by 1, 2, 3, 4;
 drop table rank cascade;
 -- range list combo
 create table ggg (a char(1), b date, d char(3), e numeric)
-distributed by (a)
 partition by range (b)
 subpartition by list(d)
 (
@@ -266,7 +256,7 @@ drop table ggg cascade;
 -- LIST validation
 -- duplicate partition name
 CREATE TABLE rank (id int, rank int, year date, gender
-char(1)) DISTRIBUTED BY (id, gender, year)
+char(1)) 
 partition by list (gender)
 (
   partition boys values ('M'),
@@ -281,7 +271,6 @@ ERROR:  relation "rank_1_prt_girls" already exists
 -- duplicate values
 CREATE TYPE rank_partkey AS (rank int, gender char(1));
 CREATE TABLE rank (id int, rankgender rank_partkey, year date)
-DISTRIBUTED BY (id, year)
 partition by list (rankgender)
 (
  values (CAST ('(1,M)' AS rank_partkey)),
@@ -292,12 +281,11 @@ partition by list (rankgender)
  partition bb values (CAST ('(1,M)' AS rank_partkey))
 );
 ERROR:  partition "rank_1_prt_bb" would overlap partition "rank_1_prt_1"
-LINE 10:  partition bb values (CAST ('(1,M)' AS rank_partkey))
-                                     ^
+LINE 9:  partition bb values (CAST ('(1,M)' AS rank_partkey))
+                                    ^
 -- RANGE validation
 -- legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start (date '2007-08-01') end (date '2008-01-01'),
@@ -306,7 +294,6 @@ every (interval '10 days'));
 drop table ggg cascade;
 -- bad - legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01') inclusive,
@@ -317,7 +304,6 @@ drop table ggg cascade;
 ERROR:  table "ggg" does not exist
 -- legal because start of bb not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start (date '2007-08-01') end (date '2008-01-01') inclusive,
@@ -326,7 +312,6 @@ every (interval '10 days'));
 drop table ggg cascade;
 -- legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -335,7 +320,6 @@ partition aa start (date '2007-01-01') end (date '2008-01-01')
 drop table ggg cascade;
 -- bad - legal if end of aa not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -346,7 +330,6 @@ drop table ggg cascade;
 ERROR:  table "ggg" does not exist
 -- legal because start of bb not inclusive
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition bb start (date '2008-01-01') exclusive end (date '2009-01-01'),
@@ -355,7 +338,6 @@ partition aa start (date '2007-01-01') end (date '2008-01-01') inclusive
 drop table ggg cascade;
 -- validate aa - start greater than end
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -368,7 +350,6 @@ ERROR:  table "ggg" does not exist
 -- formerly we could not set end of first partition because next is before
 -- but we can sort them now so this is legal.
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition bb start (date '2008-01-01') ,
@@ -378,13 +359,11 @@ drop table ggg cascade;
 -- test cross type coercion
 -- int -> char(N)
 create table ggg (i int, a char(1))
-distributed by (i)
 partition by list(a)
 (partition aa values(1, 2));
 drop table ggg cascade;
 -- int -> numeric
 create table ggg (i int, n numeric(20, 2))
-distributed by (i)
 partition by list(n)
 (partition aa values(1.22, 4.1));
 drop table ggg cascade;
@@ -392,7 +371,6 @@ drop table ggg cascade;
 --  the documentation example, rewritten with EVERY in a template
 CREATE TABLE rank (id int,
 rank int, year date, gender char(1))
-DISTRIBUTED BY (id, gender, year)
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -461,7 +439,6 @@ select * from rank_1_prt_girls_2_prt_2 order by 1, 2, 3, 4;
 drop table rank cascade;
 -- integer ranges work too
 create table ggg (id integer, a integer)
-distributed by (id)
 partition by range (a)
 (start (1) end (10) every (1));
 insert into ggg values (1, 1);
@@ -474,7 +451,7 @@ insert into ggg values (7, 7);
 insert into ggg values (8, 8);
 insert into ggg values (9, 9);
 insert into ggg values (10, 10);
-ERROR:  no partition of relation "ggg" found for row  (seg2 127.0.1.1:7004 pid=6503)
+ERROR:  no partition of relation "ggg" found for row
 DETAIL:  Partition key of the failing row contains (a) = (10).
 select * from ggg order by 1, 2;
  id | a 
@@ -522,7 +499,6 @@ create function funnytext_plus (funnytext, integer) returns funnytext
 as $$ select (chr(ascii($1) + $2))::funnytext $$ language sql;
 create operator pg_catalog.+ (function=funnytext_plus, leftarg=funnytext, rightarg=integer);
 create table ggg (a char(1), t funnytext)
-distributed by (a)
 partition by range (t)
 (
   start ('aaa') end ('foobar') every (1)
@@ -540,26 +516,23 @@ Partitions: ggg_1_prt_1 FOR VALUES FROM ('aaa') TO ('b'),
             ggg_1_prt_4 FOR VALUES FROM ('d') TO ('e'),
             ggg_1_prt_5 FOR VALUES FROM ('e') TO ('f'),
             ggg_1_prt_6 FOR VALUES FROM ('f') TO ('foobar')
-Distributed by: (a)
 
 drop table ggg cascade;
 -- What if the + operator returns NULL?
 create or replace function funnytext_plus (funnytext, integer) returns funnytext
 as $$ select NULL::funnytext $$ language sql;
 create table ggg (a char(1), t funnytext)
-distributed by (a)
 partition by range (t)
 (
   start ('aaa') end ('foobar') every (1)
 );
 ERROR:  could not compute next partition boundary with EVERY, plus-operator returned NULL
-LINE 5:   start ('aaa') end ('foobar') every (1)
+LINE 4:   start ('aaa') end ('foobar') every (1)
                                               ^
-create table fff (a char(1), b char(2), d char(3)) distributed by (a)
+create table fff (a char(1), b char(2), d char(3))
 partition by list (b) (partition aa values ('2'));
 drop table fff cascade;
 create table ggg (a char(1), b numeric, d numeric)
-distributed by (a)
 partition by range (b,d)
 (
 partition aa start (2007,1) end (2008,2),
@@ -569,7 +542,6 @@ ERROR:  too many columns for RANGE partition -- only one column is allowed
 drop table ggg cascade;
 ERROR:  table "ggg" does not exist
 create table ggg (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition bb start (date '2008-01-01') end (date '2009-01-01'),
@@ -580,7 +552,7 @@ DETAIL:  Specified lower bound ('01-01-2007') is greater than or equal to upper 
 drop table ggg cascade;
 ERROR:  table "ggg" does not exist
 -- append only tests
-create table foz (i int, d date) with (appendonly = true) distributed by (i)
+create table foz (i int, d date) with (appendonly = true)
 partition by range (d) (start (date '2001-01-01') end (date '2005-01-01')
 every(interval '1 year'));
 insert into foz select i, '2001-01-01'::date + ('1 day'::interval * i) from
@@ -629,7 +601,7 @@ select min(d), max(d) from foz_1_prt_4;
 
 drop table foz cascade;
 -- copy test
-create table foz (i int, d date) distributed by (i)
+create table foz (i int, d date)
 partition by range (d) (start (date '2001-01-01') end (date '2005-01-01')
 every(interval '1 year'));
 COPY foz FROM stdin DELIMITER '|';
@@ -665,7 +637,7 @@ DETAIL:  Partition key of the failing row contains (d) = (01-01-2010).
 CONTEXT:  COPY foz, line 1: "6|2010-01-01"
 drop table foz cascade;
 -- Same test with append only
-create table foz (i int, d date) with (appendonly = true) distributed by (i)
+create table foz (i int, d date) with (appendonly = true)
 partition by range (d) (start (date '2001-01-01') end (date '2005-01-01')
 every(interval '1 year'));
 COPY foz FROM stdin DELIMITER '|';
@@ -703,10 +675,7 @@ drop table foz cascade;
 -- complain if create table as select (CTAS)
 CREATE TABLE rank1 (id int,
 rank int, year date, gender char(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table rank2 as select * from rank1
-DISTRIBUTED BY (id, gender, year)
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -719,7 +688,6 @@ ERROR:  cannot create a partitioned table using CREATE TABLE AS SELECT
 HINT:  Use CREATE TABLE...LIKE (followed by INSERT...SELECT) instead.
 -- like is ok
 create table rank2 (like rank1)
-DISTRIBUTED BY (id, gender, year)
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -732,7 +700,6 @@ drop table rank1 cascade;
 drop table rank2 cascade;
 -- alter table testing
 create table hhh (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01')
@@ -763,8 +730,6 @@ alter table hhh add partition end ('2010-02-01');
 -- MPP-3607 - ADD PARTITION with open intervals
 create table no_end1 (aa int, bb int) partition by range (bb)
 (partition foo start(3));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'aa' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- fail overlap
 alter table no_end1 add partition baz end (4);
 ERROR:  partition "no_end1_1_prt_baz" would overlap partition "no_end1_1_prt_foo"
@@ -777,8 +742,6 @@ alter table no_end1 add partition baz start (2);
 alter table no_end1 add partition baz2 end (1);
 create table no_start1 (aa int, bb int) partition by range (bb)
 (partition foo end(3));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'aa' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- fail overlap (because next partition has no start)
 alter table no_start1 add partition baz start (2);
 ERROR:  partition "no_start1_1_prt_baz" would overlap partition "no_start1_1_prt_foo"
@@ -809,8 +772,6 @@ create table jjj (aa int, bb date)
 partition by range(bb)
 (partition j1 end (date '2008-01-01'),
 partition j2 end (date '2009-01-01'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'aa' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- must have a name
 alter table jjj add default partition;
 ERROR:  syntax error at or near ";"
@@ -830,8 +791,6 @@ partition by range(bb)
 (partition j1 end (date '2008-01-01'),
 partition j2 end (date '2009-01-01'),
 default partition j3);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'aa' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table jjj add default partition j3 ;
 ERROR:  relation "jjj_1_prt_j3" already exists
 alter table jjj add default partition j4 ;
@@ -852,14 +811,12 @@ alter table hhh drop partition if exists cc;
 alter table hhh drop partition for ('2001-01-01');
 ERROR:  partition for specified value of hhh does not exist
 create table hhh_r1 (a char(1), b date, d char(3))
-distributed by (a)
 partition by range (b)
 (
 partition aa start (date '2007-01-01') end (date '2008-01-01')
              every (interval '1 month')
 );
 create table hhh_l1 (a char(1), b date, d char(3))
-distributed by (a)
 partition by list (b)
 (
 partition aa values ('2007-01-01'),
@@ -927,7 +884,6 @@ drop table hhh_l1 cascade;
 --  and also with a default partition
 CREATE TABLE rank (id int,
 rank int, year date, gender char(1))
-DISTRIBUTED BY (id, gender, year)
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -1179,13 +1135,11 @@ partition by range(bb)
 partition j2 end (date '2009-01-01'),
 default partition j3,
 default partition j4);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'aa' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  multiple default partitions are not allowed
 LINE 6: default partition j4);
         ^
 -- check default
-create table foz (i int, d date) distributed by (i)
+create table foz (i int, d date)
 partition by range (d)
 (
  default partition dsf,
@@ -1210,14 +1164,14 @@ select * from foz_1_prt_dsf;
 drop table foz cascade;
 -- check for out of order partition definitions. We should order these correctly
 -- and determine the appropriate boundaries.
-create table d (i int, j int) distributed by (i) partition by range(j)
+create table d (i int, j int) partition by range(j)
 ( start (10), start(5), start(50) end(60));
 insert into d values(1, 5);
 insert into d values(1, 10);
 insert into d values(1, 11);
 insert into d values(1, 55);
 insert into d values(1, 70);
-ERROR:  no partition of relation "d" found for row  (seg1 127.0.1.1:7003 pid=6502)
+ERROR:  no partition of relation "d" found for row
 DETAIL:  Partition key of the failing row contains (j) = (70).
 \d+ d
                                Partitioned table "public.d"
@@ -1229,7 +1183,6 @@ Partition key: RANGE (j)
 Partitions: d_1_prt_1 FOR VALUES FROM (10) TO (50),
             d_1_prt_2 FOR VALUES FROM (5) TO (10),
             d_1_prt_3 FOR VALUES FROM (50) TO (60)
-Distributed by: (i)
 
 select * from d;
  i | j  
@@ -1266,8 +1219,6 @@ create table d (i int, j int) partition by list(j)
 (partition a values(1, 2, NULL),
  partition b values(3, 4)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into d values(1, 1);
 insert into d values(1, 2);
 insert into d values(1, NULL);
@@ -1293,20 +1244,16 @@ drop table d cascade;
 -- Reject NULL values
 create table d (i int,  j int) partition by range(j)
 (partition a start (1) end(10), partition b start(11) end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into d values (1, 1);
 insert into d values (1, 2);
 insert into d values (1, NULL);
-ERROR:  no partition of relation "d" found for row  (seg1 127.0.1.1:7003 pid=6502)
+ERROR:  no partition of relation "d" found for row
 DETAIL:  Partition key of the failing row contains (j) = (null).
 drop table  d cascade;
 -- allow NULLs into the default partition
 create table d (i int,  j int) partition by range(j)
 (partition a start (1) end(10), partition b start(11) end(20),
 default partition abc);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into d values (1, 1);
 insert into d values (1, 2);
 insert into d values (1, NULL);
@@ -1327,7 +1274,7 @@ LINE 1: alter table d split default partition start (21) end (30,1) ...
 drop table  d cascade;
 -- multicolumn list support
 create type d_partkey as (b int, c int);
-create table d (a int, k d_partkey) distributed by (a)
+create table d (a int, k d_partkey)
 partition by list(k)
 (partition a values(CAST('(1,2)' as d_partkey), CAST('(3,4)' as d_partkey)),
  partition b values(CAST('(100,20)' as d_partkey)),
@@ -1342,17 +1289,16 @@ Partition key: LIST (k)
 Partitions: d_1_prt_a FOR VALUES IN ('(1,2)', '(3,4)'),
             d_1_prt_b FOR VALUES IN ('(100,20)'),
             d_1_prt_c FOR VALUES IN ('(1000,1001)', '(1001,1002)', '(1003,1004)')
-Distributed by: (a)
 
 insert into d values(1, (1, 2));
 insert into d values(1, (3, 4));
 insert into d values(1, (100, 20));
 insert into d values(1, (100, 2000));
-ERROR:  no partition of relation "d" found for row  (seg1 127.0.1.1:7003 pid=10417)
+ERROR:  no partition of relation "d" found for row
 DETAIL:  Partition key of the failing row contains (k) = ((100,2000)).
 insert into d values(1, ('1000', '1001')), (1, ('1001', '1002')), (1, ('1003', '1004'));
 insert into d values(1, (100, NULL));
-ERROR:  no partition of relation "d" found for row  (seg1 127.0.1.1:7003 pid=10417)
+ERROR:  no partition of relation "d" found for row
 DETAIL:  Partition key of the failing row contains (k) = ((100,)).
 select * from d_1_prt_a;
  a |   k   
@@ -1377,7 +1323,7 @@ select * from d_1_prt_c;
 
 drop table d cascade;
 -- test multi value range partitioning
-create table b (i int, j date) distributed by (i)
+create table b (i int, j date)
 partition by range (i, j)
 (start(1, '2008-01-01') end (10, '2009-01-01'),
  start(1, '2009-01-01') end(15, '2010-01-01'),
@@ -1431,7 +1377,6 @@ drop table b;
 ERROR:  table "b" does not exist
 -- try some different combinations
 create table b (i int, n numeric(20, 2), t timestamp, s text)
-distributed by (i)
 partition by range(n, t, s)
 (
 start(2000.99, '2007-01-01 00:00:00', 'AAA')
@@ -1522,13 +1467,11 @@ drop table if exists s2;
 NOTICE:  table "s2" does not exist, skipping
 -- setup two partitioned tables s1 and s2
 create table s1 (d1 int, p1 int)
-distributed by (d1)
 partition by list (p1)
 (
   values (0),
   values (1));
 create table s2 (d2 int, p2 int)
-distributed by (d2)
 partition by list (p2)
 (
   values (0),
@@ -1550,7 +1493,6 @@ drop table if exists s2;
 -- the following case is to test when we have a template
 -- we can correct add new subpartition with relation options.
 create table test_part_relops_tmpl (id int,  p1 text, p2 text, count int)
-distributed by (id)
 partition by list (p1)
 subpartition by list (p2)
 (
@@ -1576,7 +1518,6 @@ set subpartition template
 alter table test_part_relops_tmpl alter partition for ('m1') add partition l3 values ('l3')
 with (oids=false);
 create table mpp_2914A(id int,  buyDate date, kind char(1))
-DISTRIBUTED BY (id)
 partition by list (kind)
 subpartition by range(buyDate)
 subpartition template
@@ -1607,7 +1548,6 @@ select count(*) from mpp_2914A;
  kind    | character(1) |           |          | 
 Partition key: LIST (kind)
 Number of partitions: 3 (Use \d+ to list them.)
-Distributed by: (id)
 
    Partitioned table "public.mpp_2914a_1_prt_auction"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1618,7 +1558,6 @@ Distributed by: (id)
 Partition of: mpp_2914a FOR VALUES IN ('a', 'A')
 Partition key: RANGE (buydate)
 Number of partitions: 5 (Use \d+ to list them.)
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_auction_2_prt_1"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1627,7 +1566,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_auction FOR VALUES FROM ('01-01-2001') TO ('01-01-2002')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_auction_2_prt_2"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1636,7 +1574,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_auction FOR VALUES FROM ('01-01-2002') TO ('01-01-2003')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_auction_2_prt_3"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1645,7 +1582,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_auction FOR VALUES FROM ('01-01-2003') TO ('01-01-2004')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_auction_2_prt_4"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1654,7 +1590,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_auction FOR VALUES FROM ('01-01-2004') TO ('01-01-2005')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_auction_2_prt_5"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1663,7 +1598,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_auction FOR VALUES FROM ('01-01-2005') TO (MAXVALUE)
-Distributed by: (id)
 
    Partitioned table "public.mpp_2914a_1_prt_buyitnow"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1674,7 +1608,6 @@ Distributed by: (id)
 Partition of: mpp_2914a FOR VALUES IN ('b', 'B')
 Partition key: RANGE (buydate)
 Number of partitions: 5 (Use \d+ to list them.)
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_buyitnow_2_prt_1"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1683,7 +1616,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_buyitnow FOR VALUES FROM ('01-01-2001') TO ('01-01-2002')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_buyitnow_2_prt_2"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1692,7 +1624,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_buyitnow FOR VALUES FROM ('01-01-2002') TO ('01-01-2003')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_buyitnow_2_prt_3"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1701,7 +1632,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_buyitnow FOR VALUES FROM ('01-01-2003') TO ('01-01-2004')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_buyitnow_2_prt_4"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1710,7 +1640,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_buyitnow FOR VALUES FROM ('01-01-2004') TO ('01-01-2005')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_buyitnow_2_prt_5"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1719,7 +1648,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_buyitnow FOR VALUES FROM ('01-01-2005') TO (MAXVALUE)
-Distributed by: (id)
 
    Partitioned table "public.mpp_2914a_1_prt_catchall"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1730,7 +1658,6 @@ Distributed by: (id)
 Partition of: mpp_2914a DEFAULT
 Partition key: RANGE (buydate)
 Number of partitions: 5 (Use \d+ to list them.)
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_catchall_2_prt_1"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1739,7 +1666,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_catchall FOR VALUES FROM ('01-01-2001') TO ('01-01-2002')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_catchall_2_prt_2"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1748,7 +1674,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_catchall FOR VALUES FROM ('01-01-2002') TO ('01-01-2003')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_catchall_2_prt_3"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1757,7 +1682,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_catchall FOR VALUES FROM ('01-01-2003') TO ('01-01-2004')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_catchall_2_prt_4"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1766,7 +1690,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_catchall FOR VALUES FROM ('01-01-2004') TO ('01-01-2005')
-Distributed by: (id)
 
      Table "public.mpp_2914a_1_prt_catchall_2_prt_5"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1775,10 +1698,8 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914a_1_prt_catchall FOR VALUES FROM ('01-01-2005') TO (MAXVALUE)
-Distributed by: (id)
 
 create table mpp_2914B(id int,  buyDate date, kind char(1))
-DISTRIBUTED BY (id)
 partition by list (kind)
 subpartition by range(buyDate)
 (
@@ -1822,7 +1743,6 @@ select count(*) from mpp_2914B;
  kind    | character(1) |           |          | 
 Partition key: LIST (kind)
 Number of partitions: 3 (Use \d+ to list them.)
-Distributed by: (id)
 
    Partitioned table "public.mpp_2914b_1_prt_auction"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1833,7 +1753,6 @@ Distributed by: (id)
 Partition of: mpp_2914b FOR VALUES IN ('a', 'A')
 Partition key: RANGE (buydate)
 Number of partitions: 5 (Use \d+ to list them.)
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_auction_2_prt_y2001"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1842,7 +1761,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_auction FOR VALUES FROM ('01-01-2001') TO ('01-01-2002')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_auction_2_prt_y2002"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1851,7 +1769,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_auction FOR VALUES FROM ('01-01-2002') TO ('01-01-2003')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_auction_2_prt_y2003"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1860,7 +1777,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_auction FOR VALUES FROM ('01-01-2003') TO ('01-01-2004')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_auction_2_prt_y2004"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1869,7 +1785,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_auction FOR VALUES FROM ('01-01-2004') TO ('01-01-2005')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_auction_2_prt_y2005"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1878,7 +1793,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_auction FOR VALUES FROM ('01-01-2005') TO (MAXVALUE)
-Distributed by: (id)
 
    Partitioned table "public.mpp_2914b_1_prt_buyitnow"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1889,7 +1803,6 @@ Distributed by: (id)
 Partition of: mpp_2914b FOR VALUES IN ('b', 'B')
 Partition key: RANGE (buydate)
 Number of partitions: 5 (Use \d+ to list them.)
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_buyitnow_2_prt_y2001"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1898,7 +1811,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_buyitnow FOR VALUES FROM ('01-01-2001') TO ('01-01-2002')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_buyitnow_2_prt_y2002"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1907,7 +1819,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_buyitnow FOR VALUES FROM ('01-01-2002') TO ('01-01-2003')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_buyitnow_2_prt_y2003"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1916,7 +1827,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_buyitnow FOR VALUES FROM ('01-01-2003') TO ('01-01-2004')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_buyitnow_2_prt_y2004"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1925,7 +1835,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_buyitnow FOR VALUES FROM ('01-01-2004') TO ('01-01-2005')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_buyitnow_2_prt_y2005"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1934,7 +1843,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_buyitnow FOR VALUES FROM ('01-01-2005') TO (MAXVALUE)
-Distributed by: (id)
 
    Partitioned table "public.mpp_2914b_1_prt_catchall"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1945,7 +1853,6 @@ Distributed by: (id)
 Partition of: mpp_2914b DEFAULT
 Partition key: RANGE (buydate)
 Number of partitions: 5 (Use \d+ to list them.)
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_catchall_2_prt_y2001"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1954,7 +1861,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_catchall FOR VALUES FROM ('01-01-2001') TO ('01-01-2002')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_catchall_2_prt_y2002"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1963,7 +1869,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_catchall FOR VALUES FROM ('01-01-2002') TO ('01-01-2003')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_catchall_2_prt_y2003"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1972,7 +1877,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_catchall FOR VALUES FROM ('01-01-2003') TO ('01-01-2004')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_catchall_2_prt_y2004"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1981,7 +1885,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_catchall FOR VALUES FROM ('01-01-2004') TO ('01-01-2005')
-Distributed by: (id)
 
    Table "public.mpp_2914b_1_prt_catchall_2_prt_y2005"
  Column  |     Type     | Collation | Nullable | Default 
@@ -1990,7 +1893,6 @@ Distributed by: (id)
  buydate | date         |           |          | 
  kind    | character(1) |           |          | 
 Partition of: mpp_2914b_1_prt_catchall FOR VALUES FROM ('01-01-2005') TO (MAXVALUE)
-Distributed by: (id)
 
 drop table mpp_2914a cascade;
 drop table mpp_2914b cascade;
@@ -2000,7 +1902,7 @@ create table mpp10847_pkeyconstraints(
   option2 int,
   option3 int,
   primary key(pkid, option3))
-distributed by (pkid) partition by range (option3)
+ partition by range (option3)
 (
 partition aa start(1) end(100) inclusive,
 partition bb start(101) end(200) inclusive,
@@ -2037,7 +1939,6 @@ create table dcl_messaging_test
         variable_19             varchar(1024) null,
         variable_20             varchar(1024) null
 )
-distributed by (message_create_date)
 partition by range (message_create_date)
 (
     START (timestamp '2011-09-01') END (timestamp '2011-09-10') EVERY (interval '1 day'),
@@ -2052,7 +1953,6 @@ alter table dcl_messaging_test drop default partition;
 alter table dcl_messaging_test add partition start (timestamp '2011-09-10') inclusive end (timestamp '2011-09-11') exclusive;
 -- EXCHANGE case
 create table dcl_candidate(like dcl_messaging_test including indexes) with (appendonly=true);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 insert into dcl_candidate(message_create_date) values (timestamp '2011-09-06');
 alter table dcl_messaging_test exchange partition for ('2011-09-06') with table dcl_candidate;
 -- SPLIT case
@@ -2060,7 +1960,6 @@ alter table dcl_messaging_test split partition for (timestamp '2011-09-06') at (
 --
 -- Create table with 4 partitions
 CREATE TABLE mpp13806 (id int, date date, amt decimal(10,2))
-DISTRIBUTED BY (id)
 PARTITION BY RANGE (date)
 ( START (date '2008-01-01') INCLUSIVE
  END (date '2008-01-05') EXCLUSIVE
@@ -2128,8 +2027,6 @@ create table mpp14613_list(
     default partition others,
     start(1) end(5) every(1)
  );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table mpp14613_range(
   a int,
   b int,
@@ -2147,8 +2044,6 @@ create table mpp14613_range(
      default partition others,
      start(1) end(5) every(1)
  );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- SPLIT partition
 alter table mpp14613_list alter partition others split partition subothers at (10) into (partition b1, partition subothers);
 ERROR:  SPLIT PARTITION is not currently supported when leaf partition is list partitioned in multi level partition table
@@ -2172,8 +2067,6 @@ create table foo(
     default partition others,
     start(1) end(5) every(1)
  );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table foo alter partition others split partition subothers at (10) into (partition b1, partition subothers);
 ERROR:  SPLIT PARTITION is not currently supported when leaf partition is list partitioned in multi level partition table
 alter table foo alter partition others split partition subothers at (10) into (partition b1, default partition);
@@ -2187,8 +2080,6 @@ drop table foo;
 -- Drop index on a partitioned table. The indexes on the partitions are removed.
 --
 create table pt_indx_tab (c1 integer, c2 int, c3 text) partition by range (c1) (partition A start (integer '0') end (integer '5') every (integer '1'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create unique index pt_indx_drop on pt_indx_tab(c1);
 select count(*) from pg_index where indrelid='pt_indx_tab'::regclass;
  count 
@@ -2220,7 +2111,6 @@ select count(*) from pg_index where indrelid='pt_indx_tab_1_prt_a_1'::regclass;
 -- (Not supported, throws an error).
 --
 create table mpp18179 (a int, b int, i int)
-distributed by (a)
 partition by list (b)
    ( PARTITION ab1 VALUES (1),
      PARTITION ab2 values (2),
@@ -2235,8 +2125,6 @@ CREATE TABLE mpp7635_aoi_table2 (id INTEGER)
  PARTITION BY RANGE (id)
   (START (0) END (200000) EVERY (100000))
 ;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mpp7635_aoi_table2(id) VALUES (0);
 -- Create index
 CREATE INDEX mpp7635_ix3 ON mpp7635_aoi_table2 USING BITMAP (id);
@@ -2269,7 +2157,6 @@ select * from pg_indexes where tablename like 'mpp7635%';
 -- Test handling of NULL values in SPLIT PARTITION.
 --
 CREATE TABLE mpp7863 (id int, dat char(8))
-DISTRIBUTED BY (id)
 PARTITION BY RANGE (dat)
 ( PARTITION Oct09 START (200910) INCLUSIVE END (200911) EXCLUSIVE ,
 PARTITION Nov09 START (200911) INCLUSIVE END (200912) EXCLUSIVE ,
@@ -2349,7 +2236,6 @@ CREATE TABLE users_test
   born_time   TIMESTAMP,
   create_time TIMESTAMP
 )
-DISTRIBUTED BY (id)
 PARTITION BY RANGE (create_time)
 (
   PARTITION p2019 START ('2019-01-01'::TIMESTAMP) END ('2020-01-01'::TIMESTAMP),
@@ -2388,7 +2274,7 @@ SELECT user_name FROM users_test_1_prt_extra;
 -- Github issue: https://github.com/greenplum-db/gpdb/issues/9460
 -- When creating unique or primary key index on Partition table,
 -- the cols in index must contain all partition keys.
-CREATE TABLE t_idx_col_contain_partkey(a int, b int) DISTRIBUTED BY (a)
+CREATE TABLE t_idx_col_contain_partkey(a int, b int)
 PARTITION BY list (b)
 (PARTITION t1 values (1),
  PARTITION t2 values (2));
@@ -2407,7 +2293,6 @@ CREATE TABLE t_idx_col_contain_partkey
         r_name char(25),
         r_comment varchar(152)
 )
-DISTRIBUTED BY (r_regionkey)
 PARTITION BY RANGE (r_regionkey)
 SUBPARTITION BY LIST (r_name) SUBPARTITION TEMPLATE
 (
@@ -2440,7 +2325,7 @@ CREATE TABLE constraint_mismatch_tbl (
     date date,
     amt decimal(10,2)
     CONSTRAINT amt_check CHECK (amt > 0)
-) DISTRIBUTED BY (id)
+)
 PARTITION BY RANGE (date)
    (PARTITION Jan08 START (date '2008-01-01'),
     PARTITION Feb08 START (date '2008-02-01'),
@@ -2450,7 +2335,7 @@ CREATE TABLE mismatch_exchange_tbl (
     id int,
     date date,
     amt decimal(10,2)
-) DISTRIBUTED BY (id);
+);
 INSERT INTO mismatch_exchange_tbl SELECT i, '2008-03-02', i FROM generate_series(11,15)i;
 ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch_exchange_tbl;
 ERROR:  child table is missing constraint "amt_check"
@@ -2461,7 +2346,7 @@ CREATE TABLE mismatch_exchange_tbl (
     date date,
     amt decimal(10,2)
     CONSTRAINT amt_check CHECK (amt <> 0)
-) DISTRIBUTED BY (id);
+);
 INSERT INTO mismatch_exchange_tbl SELECT i, '2008-03-02', i FROM generate_series(11,15)i;
 ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch_exchange_tbl;
 ERROR:  child table "mismatch_exchange_tbl" has different definition for check constraint "amt_check"
@@ -2472,7 +2357,7 @@ CREATE TABLE mismatch_exchange_tbl (
     date date,
     amt decimal(10,2)
     CONSTRAINT amt_check CHECK (amt > 0)
-) DISTRIBUTED BY (id);
+);
 INSERT INTO mismatch_exchange_tbl SELECT i, '2008-03-02', i FROM generate_series(11,15)i;
 ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch_exchange_tbl;
 --
@@ -2485,7 +2370,7 @@ ALTER TABLE constraint_mismatch_tbl EXCHANGE PARTITION mar08 WITH TABLE mismatch
 --
 -- END INCLUSIVE should work for bigint
 CREATE TABLE end_inclusive_bigint (a int, b bigint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION pmax_create START (9223372036854775805) END (9223372036854775807) INCLUSIVE EVERY (1),
@@ -2507,7 +2392,6 @@ Partitions: end_inclusive_bigint_1_prt_p1 FOR VALUES FROM ('1') TO ('4'),
             end_inclusive_bigint_1_prt_pmax_create_1 FOR VALUES FROM ('9223372036854775805') TO ('9223372036854775806'),
             end_inclusive_bigint_1_prt_pmax_create_2 FOR VALUES FROM ('9223372036854775806') TO (MAXVALUE),
             end_inclusive_bigint_1_prt_other DEFAULT
-Distributed by: (a)
 
 ALTER TABLE end_inclusive_bigint DROP PARTITION pmax_create_1;
 ALTER TABLE end_inclusive_bigint DROP PARTITION pmax_create_2;
@@ -2524,7 +2408,6 @@ Partitions: end_inclusive_bigint_1_prt_p1 FOR VALUES FROM ('1') TO ('4'),
             end_inclusive_bigint_1_prt_p7 FOR VALUES FROM ('7') TO ('11'),
             end_inclusive_bigint_1_prt_pmax_add FOR VALUES FROM ('9223372036854775805') TO (MAXVALUE),
             end_inclusive_bigint_1_prt_other DEFAULT
-Distributed by: (a)
 
 ALTER TABLE end_inclusive_bigint DROP PARTITION pmax_add;
 ALTER TABLE end_inclusive_bigint SPLIT DEFAULT PARTITION START (9223372036854775805) END (9223372036854775807) INCLUSIVE INTO (PARTITION pmax_split, DEFAULT PARTITION);
@@ -2540,11 +2423,10 @@ Partitions: end_inclusive_bigint_1_prt_p1 FOR VALUES FROM ('1') TO ('4'),
             end_inclusive_bigint_1_prt_p7 FOR VALUES FROM ('7') TO ('11'),
             end_inclusive_bigint_1_prt_pmax_split FOR VALUES FROM ('9223372036854775805') TO (MAXVALUE),
             end_inclusive_bigint_1_prt_other DEFAULT
-Distributed by: (a)
 
 -- END INCLUSIVE should work for int
 CREATE TABLE end_inclusive_int (a int, b int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 END (3) INCLUSIVE,
@@ -2559,11 +2441,10 @@ CREATE TABLE end_inclusive_int (a int, b int)
 Partition key: RANGE (b)
 Partitions: end_inclusive_int_1_prt_p1 FOR VALUES FROM (MINVALUE) TO (4),
             end_inclusive_int_1_prt_pmax FOR VALUES FROM (4) TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for smallint
 CREATE TABLE end_inclusive_smallint (a int, b smallint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (1) END (3) INCLUSIVE,
@@ -2578,11 +2459,10 @@ CREATE TABLE end_inclusive_smallint (a int, b smallint)
 Partition key: RANGE (b)
 Partitions: end_inclusive_smallint_1_prt_p1 FOR VALUES FROM ('1') TO ('4'),
             end_inclusive_smallint_1_prt_pmax FOR VALUES FROM ('4') TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for date
 CREATE TABLE end_inclusive_date (a int, b date)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('2020-06-16') END ('2020-06-17') INCLUSIVE,
@@ -2597,11 +2477,10 @@ CREATE TABLE end_inclusive_date (a int, b date)
 Partition key: RANGE (b)
 Partitions: end_inclusive_date_1_prt_p1 FOR VALUES FROM ('06-16-2020') TO ('06-18-2020'),
             end_inclusive_date_1_prt_pmax FOR VALUES FROM ('06-18-2020') TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for time without time zone
 CREATE TABLE end_inclusive_time (a int, b time)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('00:00:00.000001') END ('01:00:00') INCLUSIVE,
@@ -2616,11 +2495,10 @@ CREATE TABLE end_inclusive_time (a int, b time)
 Partition key: RANGE (b)
 Partitions: end_inclusive_time_1_prt_p1 FOR VALUES FROM ('00:00:00.000001') TO ('01:00:00.000001'),
             end_inclusive_time_1_prt_pmax FOR VALUES FROM ('23:00:00') TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for time with time zone
 CREATE TABLE end_inclusive_timetz (a int, b time with time zone)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('00:00:00 EST') END ('01:00:00 PST') INCLUSIVE,
@@ -2635,11 +2513,10 @@ CREATE TABLE end_inclusive_timetz (a int, b time with time zone)
 Partition key: RANGE (b)
 Partitions: end_inclusive_timetz_1_prt_p1 FOR VALUES FROM ('00:00:00-05') TO ('01:00:00.000001-08'),
             end_inclusive_timetz_1_prt_pmax FOR VALUES FROM ('23:00:00-05') TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for timestamp without time zone
 CREATE TABLE end_inclusive_timestamp (a int, b timestamp)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('2020-06-16 00:00:00') END ('2020-06-16 01:00:00') INCLUSIVE,
@@ -2654,11 +2531,10 @@ CREATE TABLE end_inclusive_timestamp (a int, b timestamp)
 Partition key: RANGE (b)
 Partitions: end_inclusive_timestamp_1_prt_p1 FOR VALUES FROM ('Tue Jun 16 00:00:00 2020') TO ('Tue Jun 16 01:00:00.000001 2020'),
             end_inclusive_timestamp_1_prt_pmax FOR VALUES FROM ('Tue Jun 16 23:00:00 2020') TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for timestamp with time zone
 CREATE TABLE end_inclusive_timestamptz (a int, b timestamp with time zone)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('2020-06-16 00:00:00 PST') END ('2020-06-16 01:00:00 PST') INCLUSIVE,
@@ -2673,11 +2549,10 @@ CREATE TABLE end_inclusive_timestamptz (a int, b timestamp with time zone)
 Partition key: RANGE (b)
 Partitions: end_inclusive_timestamptz_1_prt_p1 FOR VALUES FROM ('Tue Jun 16 01:00:00 2020 PDT') TO ('Tue Jun 16 02:00:00.000001 2020 PDT'),
             end_inclusive_timestamptz_1_prt_pmax FOR VALUES FROM ('Tue Jun 16 21:00:00 2020 PDT') TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should work for interval
 CREATE TABLE end_inclusive_interval (a int, b interval)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('1 year') END ('2 years') INCLUSIVE
@@ -2690,12 +2565,11 @@ CREATE TABLE end_inclusive_interval (a int, b interval)
  b      | interval |           |          |         | plain   |              | 
 Partition key: RANGE (b)
 Partitions: end_inclusive_interval_1_prt_p1 FOR VALUES FROM ('@ 1 year') TO ('@ 2 years 0.000001 secs')
-Distributed by: (a)
 
 -- END INCLUSIVE with MAXVALUE should work with implicit START/END
 DROP TABLE end_inclusive_int;
 CREATE TABLE end_inclusive_int (a int, b int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (1),
@@ -2712,11 +2586,10 @@ Partition key: RANGE (b)
 Partitions: end_inclusive_int_1_prt_p1 FOR VALUES FROM (1) TO (2),
             end_inclusive_int_1_prt_p2 FOR VALUES FROM (2) TO (6),
             end_inclusive_int_1_prt_pmax FOR VALUES FROM (6) TO (MAXVALUE)
-Distributed by: (a)
 
 DROP TABLE end_inclusive_int;
 CREATE TABLE end_inclusive_int (a int, b int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION pmax END (2147483647) INCLUSIVE,
@@ -2733,11 +2606,10 @@ Partition key: RANGE (b)
 Partitions: end_inclusive_int_1_prt_p1 FOR VALUES FROM (1) TO (2),
             end_inclusive_int_1_prt_p2 FOR VALUES FROM (2) TO (6),
             end_inclusive_int_1_prt_pmax FOR VALUES FROM (6) TO (MAXVALUE)
-Distributed by: (a)
 
 -- END INCLUSIVE should fail when precision is specified
 CREATE TABLE end_inclusive_time_with_precision (a int, b time(5))
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START ('00:00:00') END ('01:00:00') INCLUSIVE
@@ -2746,7 +2618,7 @@ ERROR:  END INCLUSIVE not supported when partition key has precision specificati
 HINT:  Specify an exclusive END value and remove the INCLUSIVE keyword
 -- END INCLUSIVE should fail for unsupported data types
 CREATE TABLE end_inclusive_numeric (a int, b numeric)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (1) END (3) INCLUSIVE
@@ -2755,7 +2627,7 @@ ERROR:  END INCLUSIVE not supported for partition key data type: numeric
 HINT:  Specify an exclusive END value and remove the INCLUSIVE keyword
 -- Also check START EXCLUSIVE
 CREATE TABLE start_exclusive_smallint (a int, b smallint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (0) EXCLUSIVE END (3) INCLUSIVE,
@@ -2770,11 +2642,10 @@ CREATE TABLE start_exclusive_smallint (a int, b smallint)
 Partition key: RANGE (b)
 Partitions: start_exclusive_smallint_1_prt_p1 FOR VALUES FROM ('1') TO ('4'),
             start_exclusive_smallint_1_prt_pmax FOR VALUES FROM ('5') TO (MAXVALUE)
-Distributed by: (a)
 
 -- If the START EXCLUSIVE value + 1 would overflow, you get an error
 CREATE TABLE start_exclusive_smallint_overflow (a int, b smallint)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (b)
         (
         PARTITION p1 START (0) EXCLUSIVE END (3) INCLUSIVE,
@@ -2786,21 +2657,19 @@ LINE 6:         PARTITION pmax START (32767) EXCLUSIVE
 -- Test for ALTER TABLE WITH/WITHOUT VALIDATION.
 -- It doesn't do anything anymore, but check that the syntax is accepted.
 CREATE TABLE validation_syntax_tbl (a int)
-    DISTRIBUTED BY (a)
+   
     PARTITION BY RANGE (a)
         (
         PARTITION p1 START (1) END (3)
         );
 CREATE TABLE exchange_tbl (a int4);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO exchange_tbl VALUES (100);
 ALTER TABLE validation_syntax_tbl EXCHANGE PARTITION p1 WITH TABLE exchange_tbl WITH VALIDATION;
 NOTICE:  specifying "WITH VALIDATION" acts as no operation. If the new partition is a regular table, validation is performed to make sure all the rows obey partition constraint. If the new partition is external or foreign table, no validation is performed.
-ERROR:  partition constraint of relation "exchange_tbl" is violated by some row  (seg2 127.0.1.1:7004 pid=1927274)
+ERROR:  partition constraint of relation "exchange_tbl" is violated by some row
 ALTER TABLE validation_syntax_tbl EXCHANGE PARTITION p1 WITH TABLE exchange_tbl WITHOUT VALIDATION;
 NOTICE:  specifying "WITHOUT VALIDATION" acts as no operation. If the new partition is a regular table, validation is performed to make sure all the rows obey partition constraint. If the new partition is external or foreign table, no validation is performed.
-ERROR:  partition constraint of relation "exchange_tbl" is violated by some row  (seg2 127.0.1.1:7004 pid=1927274)
+ERROR:  partition constraint of relation "exchange_tbl" is violated by some row
 DROP TABLE exchange_tbl;
 DROP TABLE validation_syntax_tbl;
 --
@@ -2818,7 +2687,6 @@ CREATE TABLE partitioned_table_with_very_long_name_123456789x
     col1 int4,
     col2 int4
 )
-DISTRIBUTED by (col1)
 PARTITION BY RANGE(col2)
   (partition partone start(1) end(100000001),
    partition parttwo start(100000001) end(200000001),
@@ -2828,7 +2696,6 @@ CREATE TABLE partitioned_table_with_very_long_name_123456789y
     col1 int4,
     col2 int4
 )
-DISTRIBUTED by (col1)
 PARTITION BY RANGE(col2)
   (partition partone start(1) end(100000001),
    partition parttwo start(100000001) end(200000001),

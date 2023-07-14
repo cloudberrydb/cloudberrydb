@@ -5,7 +5,7 @@ CREATE ROLE user_with_privileges_from_second_owner;
 CREATE ROLE user_with_no_privileges;
 
 -- Create the table. --
-CREATE TABLE aoco_privileges_table (a int) WITH (appendonly=true, orientation=column) DISTRIBUTED randomly;
+CREATE TABLE aoco_privileges_table (a int) WITH (appendonly=true, orientation=column);
 
 -- Grant privileges to only one user
 GRANT ALL ON aoco_privileges_table TO user_with_privileges_from_first_owner;

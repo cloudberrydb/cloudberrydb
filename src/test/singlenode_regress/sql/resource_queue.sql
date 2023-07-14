@@ -105,8 +105,10 @@ alter role test_rp_user resource queue test_rq_cpu;
 SET ROLE test_rp_user;
 -- query priority and weight on master
 select rqppriority, rqpweight from gp_toolkit.gp_resq_priority_backend where rqpsession in (select sess_id from pg_stat_activity where pid  = pg_backend_pid());
+-- start_ignore
 -- query priority and weight on segments
 select rqppriority, rqpweight from gp_dist_random('gp_toolkit.gp_resq_priority_backend') where rqpsession in (select sess_id from pg_stat_activity where pid  = pg_backend_pid());
+-- end_ignore
 RESET ROLE;
 drop user test_rp_user;
 drop resource queue test_rq_cpu;
@@ -253,7 +255,7 @@ create table rq_product (
 	pname text not null,
 	pcolor text,
 	primary key (pn)
-) distributed by (pn);
+);
 
 -- Products
 insert into rq_product values 

@@ -5,8 +5,6 @@
 DROP TABLE IF EXISTS mytable CASCADE;
 NOTICE:  table "mytable" does not exist, skipping
 CREATE TABLE mytable (a int, b int, c varchar(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mytable values (1,2,'t'),
   (2,3,'e'),
   (3,4,'o'),
@@ -58,7 +56,7 @@ select pg_get_viewdef('notdisview2',true);
 CREATE TABLE mytable2 (
     key character varying(20) NOT NULL,
     key_value character varying(50)
-) DISTRIBUTED BY (key);
+);
 DROP VIEW IF EXISTS notdisview3;
 NOTICE:  view "notdisview3" does not exist, skipping
 CREATE OR REPLACE VIEW notdisview3 AS
@@ -129,8 +127,6 @@ select pg_get_viewdef('myview',true);
 DROP TABLE IF EXISTS products CASCADE;
 NOTICE:  table "products" does not exist, skipping
 CREATE TABLE products (id serial, name text, price numeric);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO products (name, price) values
   ('keyboard', 124.99),
   ('monitor', 299.99),
@@ -154,7 +150,7 @@ DROP FUNCTION IF EXISTS blip(int);
 NOTICE:  function blip(pg_catalog.int4) does not exist, skipping
 DROP TABLE IF EXISTS calls_to_blip;
 NOTICE:  table "calls_to_blip" does not exist, skipping
-CREATE TABLE calls_to_blip (n serial, v int) DISTRIBUTED RANDOMLY;
+CREATE TABLE calls_to_blip (n serial, v int);
 CREATE OR REPLACE FUNCTION blip(int) RETURNS int
 LANGUAGE plpgsql MODIFIES SQL DATA
 VOLATILE
@@ -453,7 +449,7 @@ select CASE null
  Not Specified
 (1 row)
 
-create table case_genders (gid integer, gender char(1)) distributed by (gid);
+create table case_genders (gid integer, gender char(1));
 insert into case_genders(gid, gender) values
   (1, 'F'),
   (2, 'M'),
@@ -561,17 +557,13 @@ select '2011-05-27'::date as lsh,  CASE '2011-05-27'::date
  05-27-2011 | WHEN NEW: 2011-05-27
 (1 row)
 
--- start_ignore 
-drop table if exists nomatch_case;
-NOTICE:  table "nomatch_case" does not exist, skipping
--- end_ignore
 create table nomatch_case
 (
    sid integer, 
    gender char(1) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 insert into nomatch_case(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
   (2000, 'M', 'Ryan Goesling', '2011-02-01'::date),
@@ -646,7 +638,7 @@ create table combined_when
    gender varchar(10) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 insert into combined_when(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
   (2000, 'M', 'Ryan Goesling', '2011-02-01'::date),
@@ -690,7 +682,7 @@ create table case_expr
    gender char(1) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 insert into case_expr(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
   (2000, 'M', 'Ryan Goesling', '2011-02-01'::date),
@@ -779,7 +771,7 @@ create table combined_when
    gender varchar(10) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 insert into combined_when(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
   (2000, 'M', 'Ryan Goesling', '2011-02-01'::date),

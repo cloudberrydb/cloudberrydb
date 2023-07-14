@@ -3,7 +3,6 @@
 --
 
 CREATE TABLE returning_parttab (distkey int4, partkey int4, i int, t text)
-DISTRIBUTED BY (distkey)
 PARTITION BY RANGE (partkey) (START (1) END (10));
 
 --
@@ -53,7 +52,7 @@ DELETE FROM returning_aotab RETURNING *;
 -- Test UPDATE RETURNING with a split update, i.e. an update of the distribution
 -- key.
 --
-CREATE TEMP TABLE returning_disttest (id int4) DISTRIBUTED BY (id);
+CREATE TEMP TABLE returning_disttest (id int4);
 INSERT INTO returning_disttest VALUES (1), (2);
 
 -- Disable QUIET mode, so that we get some testing of the command tag as well.

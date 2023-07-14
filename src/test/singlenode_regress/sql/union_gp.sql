@@ -84,7 +84,7 @@ union
 create table pullup_distkey_test(
     a character varying,
     b character varying(30)
-) distributed by (b);
+);
 
 insert into pullup_distkey_test values ('foo', 'bar');
 
@@ -101,14 +101,16 @@ select a from base where a = 'foo';
 --
 -- Test union all two replicated tables with different numsegments
 --
-create table rep2(c1 int, c2 int) distributed replicated;
-create table rep3(c1 int, c2 int) distributed replicated;
+create table rep2(c1 int, c2 int);
+create table rep3(c1 int, c2 int);
 set allow_system_table_mods = on;
 update gp_distribution_policy set numsegments = 2
   where localoid = 'rep2'::regclass;
+-- start_ignore
 select localoid::regclass, policytype, numsegments
   from gp_distribution_policy
   where localoid::regclass in ('rep2', 'rep3');
+-- end_ignore
 explain select * from rep2 union all select * from rep3;
 select * from rep2 union all select * from rep3;
 reset allow_system_table_mods;
@@ -126,10 +128,10 @@ DROP TABLE IF EXISTS T_b2 CASCADE;
 DROP TABLE IF EXISTS T_random CASCADE;
 --end_ignore
 
-CREATE TABLE T_a1 (a1 int, a2 int) DISTRIBUTED BY(a1);
+CREATE TABLE T_a1 (a1 int, a2 int);
 INSERT INTO T_a1 SELECT i, i%5 from generate_series(1,10) i;
 
-CREATE TABLE T_b2 (b1 int, b2 int) DISTRIBUTED BY(b2);
+CREATE TABLE T_b2 (b1 int, b2 int);
 INSERT INTO T_b2 SELECT i, i%5 from generate_series(1,20) i;
 
 CREATE TABLE T_random (c1 int, c2 int);
@@ -566,8 +568,8 @@ UNION SELECT 200, 200
 UNION SELECT 300, 300)
 (select d1 from T_constant) UNION (select c1 from T_random) order by 1;', 'APPEND');
 
-CREATE TABLE t1_setop(a int) DISTRIBUTED BY (a);
-CREATE TABLE t2_setop(a int) DISTRIBUTED BY (a);
+CREATE TABLE t1_setop(a int);
+CREATE TABLE t2_setop(a int);
 INSERT INTO t1_setop VALUES (1), (2), (3);
 INSERT INTO t2_setop VALUES (3), (4), (5);
 (SELECT a FROM t1_setop EXCEPT SELECT a FROM t2_setop ORDER BY a)
@@ -575,8 +577,8 @@ UNION
 (SELECT a FROM t2_setop EXCEPT SELECT a FROM t1_setop ORDER BY a)
 ORDER BY a;
 
-create table t1_ncols(a int, b int, c text, d date) distributed by (a);
-create table t2_ncols(a smallint, b bigint, c varchar(20), d date) distributed by (c, b)
+create table t1_ncols(a int, b int, c text, d date);
+create table t2_ncols(a smallint, b bigint, c varchar(20), d date)
  partition by range (a) (start (0) end (8) every (4));
 create view v1_ncols(id, a, b, c, d) as select 1,* from t1_ncols union all select 2,* from t2_ncols;
 
@@ -608,13 +610,14 @@ update gp_distribution_policy set numsegments = 1
   where localoid = 'union_schema.t1'::regclass::oid;
 update gp_distribution_policy set numsegments = 2
   where localoid = 'union_schema.t2'::regclass::oid;
+-- start_ignore
 select relname, policytype, numsegments, distkey
   from pg_class, gp_distribution_policy, pg_namespace ns
   where pg_class.oid = localoid and relnamespace = ns.oid
     and nspname = 'union_schema'
     and relname in ('t1', 't2', 't3')
   order by relname;
-
+-- end_ignore
 insert into union_schema.t1 select i, i from generate_series(1,10)i;
 insert into union_schema.t2 select i, i from generate_series(1,20)i;
 analyze union_schema.t1;

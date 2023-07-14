@@ -19,7 +19,7 @@ create or replace function hashagg_spill.is_workfile_created(explain_query text)
 returns setof int as
 $$
 import re
-query = "select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0;"
+query = "select count(*) as nsegments from gp_segment_configuration where role='p' and content = -1;"
 rv = plpy.execute(query)
 nsegments = int(rv[0]['nsegments'])
 rv = plpy.execute(explain_query)
@@ -28,7 +28,7 @@ result = []
 for i in range(len(rv)):
     cur_line = rv[i]['QUERY PLAN']
     if search_text.lower() in cur_line.lower():
-        p = re.compile('.+\((segment \d+).+ Workfile: \((\d+) spilling\)')
+        p = re.compile('.+\((segment -*\d+).+ Workfile: \((\d+) spilling\)')
         m = p.match(cur_line)
         workfile_created = int(m.group(2))
         cur_row = int(workfile_created == nsegments)
@@ -40,10 +40,11 @@ language plpython3u;
 create table testhagg (i1 int, i2 int, i3 int, i4 int);
 insert into testhagg select i,i,i,i from
 	(select generate_series(1, nsegments * 30000) as i from
-	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
+	(select count(*) as nsegments from gp_segment_configuration where role='p' and content = -1) foo) bar;
 analyze testhagg;
 
 set statement_mem="1800";
+set work_mem='1800';
 set gp_resqueue_print_operator_memory_limits=on;
 
 -- the number of rows returned by the query varies depending on the number of segments, so
@@ -56,7 +57,7 @@ reset all;
 set search_path to hashagg_spill;
 
 -- Test agg spilling scenarios
-create table aggspill (i int, j int, t text) distributed by (i);
+create table aggspill (i int, j int, t text);
 insert into aggspill select i, i*2, i::text from generate_series(1, 10000) i;
 analyze aggspill;
 insert into aggspill select i, i*2, i::text from generate_series(1, 100000) i;
@@ -64,10 +65,12 @@ insert into aggspill select i, i*2, i::text from generate_series(1, 1000000) i;
 
 -- No spill with large statement memory 
 set statement_mem = '125MB';
+set work_mem='125MB';
 select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 1) g;
 
 -- Reduce the statement memory to induce spilling
 set statement_mem = '10MB';
+set work_mem='10MB';
 select * from hashagg_spill.is_workfile_created('explain (analyze, verbose)
 select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 2) g');
 select count(*) from (select i, count(*) from aggspill group by i,j having count(*) = 2) g;
@@ -79,7 +82,7 @@ reset optimizer_force_multistage_agg;
 --     with and without workfile compression
 -- The transition type of numeric is internal, and hence it uses the serial/deserial functions when spilling
 -- The transition type value of integer is by Ref, and it does not have any serial/deserial function when spilling
-CREATE TABLE hashagg_spill(col1 numeric, col2 int) DISTRIBUTED BY (col1);
+CREATE TABLE hashagg_spill(col1 numeric, col2 int);
 INSERT INTO hashagg_spill SELECT id, 1 FROM generate_series(1,20000) id;
 ANALYZE hashagg_spill;
 SET statement_mem='1000kB';
@@ -89,7 +92,7 @@ SET gp_workfile_compression = ON;
 select * from hashagg_spill.is_workfile_created('explain (analyze, verbose) SELECT avg(col2) col2 FROM hashagg_spill GROUP BY col1 HAVING(sum(col1)) < 0;');
 
 -- check spilling to a temp tablespace
-CREATE TABLE spill_temptblspace (a numeric) DISTRIBUTED BY (a);
+CREATE TABLE spill_temptblspace (a numeric);
 SET temp_tablespaces=pg_default;
 INSERT INTO spill_temptblspace SELECT avg(col2) col2 FROM hashagg_spill GROUP BY col1 HAVING(sum(col1)) < 0;
 RESET temp_tablespaces;

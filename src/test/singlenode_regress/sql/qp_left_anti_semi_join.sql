@@ -2,8 +2,8 @@
 create schema lasj;
 set search_path='lasj';
 
-create table foo (a int, b int) distributed by (a);
-create table bar (x int, y int) distributed by (x);
+create table foo (a int, b int);
+create table bar (x int, y int);
 
 insert into foo values (1, 2);
 insert into foo values (12, 20);

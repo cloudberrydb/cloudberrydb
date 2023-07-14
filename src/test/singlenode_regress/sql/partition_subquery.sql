@@ -2,7 +2,7 @@ CREATE SCHEMA partition_subquery;
 SET SEARCH_PATH=partition_subquery;
 
 -- Given a partition table
-CREATE TABLE pt1(id int) DISTRIBUTED BY (id) PARTITION BY RANGE (id) (DEFAULT PARTITION p1);
+CREATE TABLE pt1(id int) PARTITION BY RANGE (id) (DEFAULT PARTITION p1);
 
 -- When I run a query, outermost query, and it is selecting FROM a subquery
 -- And that subquery, subquery 1, contains another subquery, subquery 2

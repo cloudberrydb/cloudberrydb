@@ -9,7 +9,7 @@ create table customer
   cname text not null,
   cloc text,
   primary key (cn)
-) distributed by (cn);
+);
 insert into customer values
   ( 1, 'Macbeth', 'Inverness'),
   ( 2, 'Duncan', 'Forres'),
@@ -21,7 +21,7 @@ create table vendor
   vname text not null,
   vloc text,
   primary key (vn)
-) distributed by (vn);
+);
 insert into vendor values
   ( 10, 'Witches, Inc', 'Lonely Heath'),
   ( 20, 'Lady Macbeth', 'Inverness'),
@@ -37,7 +37,7 @@ create table sale
   qty int not null,
   prc float not null,
   primary key (cn, vn, pn)
-) distributed by (cn,vn,pn);
+);
 insert into sale values
   ( 2, 40, 100, '1401-1-1', 1100, 2400),
   ( 1, 10, 200, '1401-3-1', 1, 0),
@@ -131,7 +131,7 @@ create aggregate ema(float, float) (
     stype = ema_type,
     finalfunc = ema_fin,
     initcond = '(,)');
-create table ema_test (k int, v float ) distributed by (k);
+create table ema_test (k int, v float );
 insert into ema_test select i, 4*(i::float/20) + 10.0*(1+cos(radians(i*5))) from generate_series(0,19) i(i);
 -- TEST
 select k, v, ema(v, 0.9) over (order by k) from ema_test order by k;
@@ -207,8 +207,8 @@ CREATE TABLE r
     c CHARACTER VARYING(200),  
     d NUMERIC(10,0), 
     e DATE
-) DISTRIBUTED BY (a,b);
-ALTER TABLE r SET DISTRIBUTED BY (b);
+);
+-- ALTER TABLE r SET DISTRIBUTED BY (b);
 ALTER TABLE r ADD CONSTRAINT PKEY PRIMARY KEY (b);
 --TEST
 SELECT MAX(a) AS m FROM r GROUP BY b ORDER BY m;
@@ -313,7 +313,7 @@ CREATE TABLE dm_calendar (
     holidays_flag character varying(100),
     workday_flag character varying(100),
     month_number numeric(10,0)
-) DISTRIBUTED BY (calendar_id);
+);
 ALTER TABLE ONLY dm_calendar ADD CONSTRAINT dm_calendar_pkey PRIMARY KEY (calendar_id);
 --TEST
 SELECT "year_id" as id , min("year_name") as a  from (select "year_id" as "year_id" , min("year_name") as "year_name" from  "dm_calendar" group by "year_id") "dm_calendar3" group by "year_id" order by a ASC ;
@@ -340,7 +340,7 @@ create table t
     c character varying(200),
     d numeric(10,0),
     e date
-) distributed by (b);
+);
 alter table t ADD CONSTRAINT pkey primary key (b);
 -- TEST
 SELECT MAX(a) AS m FROM t GROUP BY b ORDER BY m;
@@ -616,27 +616,20 @@ explain select (select name from t1_github_issue_10143 where code = a.code limit
 ,sum(sum(a.salary)) over()
 from t2_github_issue_10143 a
 group by a.code;
-                                                QUERY PLAN                                                
-----------------------------------------------------------------------------------------------------------
- WindowAgg  (cost=1.02..3157.82 rows=2 width=176)
-   ->  Finalize GroupAggregate  (cost=1.02..1823.76 rows=2 width=38)
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ WindowAgg  (cost=1.03..3.12 rows=2 width=176)
+   ->  GroupAggregate  (cost=1.03..1.07 rows=2 width=38)
          Group Key: a.code
-         ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=1.02..1823.72 rows=3 width=38)
-               Merge Key: a.code
-               ->  Partial GroupAggregate  (cost=1.02..1.04 rows=1 width=38)
-                     Group Key: a.code
-                     ->  Sort  (cost=1.02..1.02 rows=1 width=11)
-                           Sort Key: a.code
-                           ->  Seq Scan on t2_github_issue_10143 a  (cost=0.00..1.01 rows=1 width=11)
+         ->  Sort  (cost=1.03..1.03 rows=2 width=11)
+               Sort Key: a.code
+               ->  Seq Scan on t2_github_issue_10143 a  (cost=0.00..1.02 rows=2 width=11)
    SubPlan 1
-     ->  Limit  (cost=0.00..667.02 rows=1 width=6)
-           ->  Result  (cost=0.00..2001.06 rows=3 width=6)
-                 Filter: ((t1_github_issue_10143.code)::text = (a.code)::text)
-                 ->  Materialize  (cost=0.00..2001.03 rows=3 width=12)
-                       ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2001.01 rows=3 width=12)
-                             ->  Seq Scan on t1_github_issue_10143  (cost=0.00..1.01 rows=1 width=12)
+     ->  Limit  (cost=0.00..1.01 rows=1 width=6)
+           ->  Seq Scan on t1_github_issue_10143  (cost=0.00..1.01 rows=1 width=6)
+                 Filter: ((code)::text = (a.code)::text)
  Optimizer: Postgres query optimizer
-(18 rows)
+(11 rows)
 
 select (select name from t1_github_issue_10143 where code = a.code limit 1) as dongnm
 ,sum(sum(a.salary)) over()

@@ -8,7 +8,7 @@ NOTICE:  resource queue required -- using default resource queue "pg_default"
 CREATE ROLE user_with_no_privileges;
 NOTICE:  resource queue required -- using default resource queue "pg_default"
 -- Create the table. --
-CREATE TABLE aoco_privileges_table (a int) WITH (appendonly=true, orientation=column) DISTRIBUTED randomly;
+CREATE TABLE aoco_privileges_table (a int) WITH (appendonly=true, orientation=column);
 -- Grant privileges to only one user
 GRANT ALL ON aoco_privileges_table TO user_with_privileges_from_first_owner;
 SELECT has_table_privilege('user_with_privileges_from_first_owner', 'aoco_privileges_table', 'SELECT');

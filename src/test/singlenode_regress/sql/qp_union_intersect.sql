@@ -17,14 +17,14 @@ CREATE TABLE dml_union_r (
         b int,
         c text,
         d numeric)
-DISTRIBUTED BY (a);
+;
 
 CREATE TABLE dml_union_s (
         a int ,
         b int not NULL,
         c text ,
         d numeric default 10.00)
-DISTRIBUTED BY (b)
+
 PARTITION BY range(d);
 
 CREATE TABLE dml_union_s_1_prt_2 PARTITION OF dml_union_s FOR VALUES FROM (1) TO (1001);
@@ -548,12 +548,15 @@ UPDATE dml_union_r SET d = 20000 WHERE a in (SELECT a FROM dml_union_r EXCEPT AL
 SELECT COUNT(*) FROM dml_union_r WHERE d = 20000; 
 rollback;
 
+-- we don't have the same issue greenplum has in single node mode, behave like pg.
+-- start_ignore
 -- @description union_update_test20:  UNION/INTERSECT/EXCEPT within dml_union_sub-query
 begin;
 SELECT COUNT(DISTINCT(a)) FROM dml_union_r;
 UPDATE dml_union_r SET a = dml_union_s.a FROM dml_union_s WHERE dml_union_r.b in (SELECT b FROM dml_union_r UNION SELECT b FROM dml_union_s);
 SELECT COUNT(DISTINCT(a)) FROM dml_union_r;
 rollback;
+-- end_ignore
 
 -- @description union_update_test21:  UNION/INTERSECT/EXCEPT within dml_union_sub-query
 begin;
@@ -685,7 +688,7 @@ select sum(a) from (
 -- This time, the General is a dummy path, produced by pushing down condition.
 -- (Only for planner, orca does not create dummy path here)
 --
-create table t_test_append_hash(a int, b int, c int) distributed by (a);
+create table t_test_append_hash(a int, b int, c int);
 insert into t_test_append_hash select i, i+1, i+2 from generate_series(1, 5)i;
 
 explain (costs off)
@@ -702,7 +705,7 @@ with t(a, b, s) as (
 ) select * from t where t.a < t.b;
 
 -- Test mixing a SegmentGeneral with distributed table.
-create table t_test_append_rep(a int, b int, c int) distributed replicated;
+create table t_test_append_rep(a int, b int, c int);
 insert into t_test_append_rep select i, i+1, i+2 from generate_series(5, 10)i;
 
 explain (costs off)
@@ -726,7 +729,7 @@ select * from t_test_append_hash;
 -- and ignore it for better debugging info if error happens.
 -- See github issue https://github.com/greenplum-db/gpdb/issues/9874 for details.
 
-create table t_github_issue_9874 (a int) distributed by (a);
+create table t_github_issue_9874 (a int);
 -- start_ignore
 explain (costs off)
 select 1
@@ -742,7 +745,7 @@ select * from t_github_issue_9874 where a = 1;
 -- when gp_enable_direct_dispatch is off.
 --
 begin;
-create table rt1(a int, b int) distributed replicated;
+create table rt1(a int, b int);
 create table t1(a int, b int);
 insert into t1 select i, i+1 from generate_series(6, 9) i;
 insert into rt1 select i, i+1 from generate_series(1, 5) i;
@@ -771,7 +774,7 @@ select * from generate_series(100, 105);
 -- with "could not find pathkey item to sort" error.  See
 -- https://github.com/greenplum-db/gpdb/issues/5695
 --
-create table mergeappend_test ( a int, b int, x int ) distributed by (a,b);
+create table mergeappend_test ( a int, b int, x int );
 insert into mergeappend_test select g/100, g/100, g from generate_series(1, 500) g;
 analyze mergeappend_test;
 

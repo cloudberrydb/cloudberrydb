@@ -27,7 +27,7 @@ CREATE TABLE mpp3033a (
         stringu1        name,
         stringu2        name,
         string4         name
-) distributed by (unique1) partition by list (unique1) (
+) partition by list (unique1) (
 partition aa values (1,2,3,4,5,6,7,8,9,10),
 partition bb values (11,12,13,14,15,16,17,18,19,20),
 default partition default_part
@@ -50,7 +50,7 @@ CREATE TABLE mpp3033b (
         stringu1        name,
         stringu2        name,
         string4         name
-) distributed by (unique1) partition by list (unique1)
+) partition by list (unique1)
 subpartition by list (unique2)
 (
 partition aa values (1,2,3,4,5,6,7,8,9,10) (subpartition cc values (1,2,3), subpartition dd values (4,5,6) ),
@@ -222,7 +222,7 @@ CREATE TABLE mpp3033a (
         stringu1        name,
         stringu2        name,
         string4         name
-) distributed by (unique1) partition by range (unique1)
+) partition by range (unique1)
 ( partition aa start (0) end (1000) every (100), default partition default_part );
 
 CREATE TABLE mpp3033b (
@@ -242,7 +242,7 @@ CREATE TABLE mpp3033b (
         stringu1        name,
         stringu2        name,
         string4         name
-) distributed by (unique1) partition by range (unique1)
+) partition by range (unique1)
 subpartition by range (unique2) subpartition template ( start (0) end (1000) every (500) )
 ( start (0) end (1000) every (200));
 alter table mpp3033b add default partition default_part;
@@ -403,7 +403,7 @@ reindex index mpp3033b_stringu1;
 select count(*) from mpp3033a;
 select count(*) from mpp3033b;
 
-create table mpp6379(a int, b date, primary key (a,b)) distributed by (a) partition by range (b) (partition p1 end ('2009-01-02'::date));
+create table mpp6379(a int, b date, primary key (a,b)) partition by range (b) (partition p1 end ('2009-01-02'::date));
 insert into mpp6379( a, b ) values( 1, '20090101' );
 insert into mpp6379( a, b ) values( 1, '20090101' );
 alter table mpp6379 add partition p2 end(date '2009-01-03');

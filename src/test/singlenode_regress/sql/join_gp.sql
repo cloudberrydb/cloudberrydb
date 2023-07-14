@@ -14,7 +14,7 @@
 set enable_hashjoin to on;
 set enable_mergejoin to off;
 set enable_nestloop to off;
-create table nhtest (i numeric(10, 2)) distributed by (i);
+create table nhtest (i numeric(10, 2));
 insert into nhtest values(100000.22);
 insert into nhtest values(300000.19);
 explain select * from nhtest a join nhtest b using (i);
@@ -28,7 +28,7 @@ select * from l l1 join l l2 on l1.a = l2.a left join l l3 on l1.a = l3.a and l1
 -- test hash join
 --
 
-create table hjtest (i int, j int) distributed by (i,j);
+create table hjtest (i int, j int);
 insert into hjtest values(3, 4);
 
 select count(*) from hjtest a1, hjtest a2 where a2.i = least (a1.i,4) and a2.j = 4;
@@ -48,8 +48,8 @@ set enable_nestloop to off;
 DROP TABLE IF EXISTS alpha;
 DROP TABLE IF EXISTS theta;
 
-CREATE TABLE alpha (i int, j int) distributed by (i);
-CREATE TABLE theta (i int, j char(10000000)) distributed by (i);
+CREATE TABLE alpha (i int, j int);
+CREATE TABLE theta (i int, j char(10000000));
 
 INSERT INTO alpha values (1, 1), (2, 2);
 INSERT INTO theta values (1, 'f'), (2, 'g');
@@ -71,8 +71,8 @@ drop schema if exists pred;
 create schema pred;
 set search_path=pred;
 
-create table t1 (x int, y int, z int) distributed by (y);
-create table t2 (x int, y int, z int) distributed by (x);
+create table t1 (x int, y int, z int);
+create table t2 (x int, y int, z int);
 insert into t1 select i, i, i from generate_series(1,100) i;
 insert into t2 select * from t1;
 
@@ -104,9 +104,9 @@ select * from t1,t2 where t1.x = 100 and t1.x = t2.y and t1.x <= t2.x;
 -- MPP-18537: hash clause references a constant in outer child target list
 --
 
-create table hjn_test (i int, j int) distributed by (i,j);
+create table hjn_test (i int, j int);
 insert into hjn_test values(3, 4);
-create table int4_tbl (f1 int) distributed by (f1);
+create table int4_tbl (f1 int);
 insert into int4_tbl values(123456), (-2147483647), (0), (-123456), (2147483647);
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,4) and hjn_test.j = 4;
 select count(*) from hjn_test, (select 3 as bar) foo where hjn_test.i = least (foo.bar,(array[4])[1]) and hjn_test.j = (array[4])[1];
@@ -131,9 +131,9 @@ select * from part4_tbl a join part4_tbl b on (a.f1 = (select f1 from int4_tbl c
 -- to the sub-plans target list, causing a "variable not found in subplan
 -- target list" error.
 --
-create table tjoin1(dk integer, id integer) distributed by (dk);
-create table tjoin2(dk integer, id integer, t text) distributed by (dk);
-create table tjoin3(dk integer, id integer, t text) distributed by (dk);
+create table tjoin1(dk integer, id integer);
+create table tjoin2(dk integer, id integer, t text);
+create table tjoin3(dk integer, id integer, t text);
 
 insert into tjoin1 values (1, 1), (1, 2), (1, 3), (2, 1), (2, 2), (2, 3);
 insert into tjoin2 values (1, 1, '1-1'), (1, 2, '1-2'), (2, 1, '2-1'), (2, 2, '2-2');
@@ -160,8 +160,8 @@ reset optimizer_enable_hashjoin;
 -- should be created
 drop table if exists foo;
 drop table if exists bar;
-create table foo (a int, b int) distributed randomly;
-create table bar (c int, d int) distributed randomly;
+create table foo (a int, b int);
+create table bar (c int, d int);
 insert into foo select generate_series(1,10);
 insert into bar select generate_series(1,10);
 
@@ -246,8 +246,8 @@ SELECT count(*) FROM subdept;
 -- When we join on a clause with two different types. If one table distribute by one type, the query plan
 -- will redistribute data on another type. But the has values of two types would not be equal. The data will
 -- redistribute to wrong segments.
-create table test_timestamp_t1 (id  numeric(10,0) ,field_dt date) distributed by (id);
-create table test_timestamp_t2 (id numeric(10,0),field_tms timestamp without time zone) distributed by (id,field_tms);
+create table test_timestamp_t1 (id  numeric(10,0) ,field_dt date);
+create table test_timestamp_t2 (id numeric(10,0),field_tms timestamp without time zone);
 
 insert into test_timestamp_t1 values(10 ,'2018-1-10');
 insert into test_timestamp_t1 values(11 ,'2018-1-11');
@@ -270,9 +270,9 @@ drop table test_timestamp_t1;
 drop table test_timestamp_t2;
 
 -- Test merge join redistribute keys
-create table test_timestamp_t1 (id  numeric(10,0) ,field_dt date) distributed randomly;
+create table test_timestamp_t1 (id  numeric(10,0) ,field_dt date);
 
-create table test_timestamp_t2 (id numeric(10,0),field_tms timestamp without time zone) distributed by (field_tms);
+create table test_timestamp_t2 (id numeric(10,0),field_tms timestamp without time zone);
 
 insert into test_timestamp_t1 values(10 ,'2018-1-10');
 insert into test_timestamp_t1 values(11 ,'2018-1-11');
@@ -285,21 +285,21 @@ select * from test_timestamp_t1 t1 full outer join test_timestamp_t2 t2 on T1.id
 set enable_nestloop to off;
 set enable_hashjoin to on;
 set enable_mergejoin to on;
-create table test_float1(id int, data float4)  DISTRIBUTED BY (data);
-create table test_float2(id int, data float8)  DISTRIBUTED BY (data);
+create table test_float1(id int, data float4);
+create table test_float2(id int, data float8);
 insert into test_float1 values(1, 10), (2, 20);
 insert into test_float2 values(3, 10), (4, 20);
 select t1.id, t1.data, t2.id, t2.data from test_float1 t1, test_float2 t2 where t1.data = t2.data;
 
 -- test int type
-create table test_int1(id int, data int4)  DISTRIBUTED BY (data);
-create table test_int2(id int, data int8)  DISTRIBUTED BY (data);
+create table test_int1(id int, data int4);
+create table test_int2(id int, data int8);
 insert into test_int1 values(1, 10), (2, 20);
 insert into test_int2 values(3, 10), (4, 20);
 select t1.id, t1.data, t2.id, t2.data from test_int1 t1, test_int2 t2 where t1.data = t2.data;
 
 -- Test to ensure that for full outer join on varchar columns, planner is successful in finding a sort operator in the catalog
-create table input_table(a varchar(30), b varchar(30)) distributed by (a);
+create table input_table(a varchar(30), b varchar(30));
 set enable_hashjoin = off;
 explain (costs off) select X.a from input_table X full join (select a from input_table) Y ON X.a = Y.a;
 
@@ -312,9 +312,9 @@ reset search_path;
 -- github issue 5370 cases
 drop table if exists t5370;
 drop table if exists t5370_2;
-create table t5370(id int,name text) distributed by(id);
+create table t5370(id int,name text);
 insert into t5370 select i,i from  generate_series(1,1000) i;
-create table t5370_2 as select * from t5370 distributed by (id);
+create table t5370_2 as select * from t5370;
 analyze t5370_2;
 analyze t5370;
 explain select * from t5370 a , t5370_2 b where a.name=b.name;
@@ -334,7 +334,7 @@ drop table t5370_2;
 -- We force adding a material node for
 -- merge full join on true.
 drop table if exists t6215;
-create table t6215(f1 int4) distributed replicated;
+create table t6215(f1 int4);
 insert into t6215(f1) values (1), (2), (3);
 
 set enable_material = off;
@@ -440,17 +440,17 @@ reset enable_bitmapscan;
 set optimizer = off;
 -- test outer join for general locus
 -- replicated table's locus is SegmentGeneral
-create table trep_join_gp (c1 int, c2 int) distributed replicated;
+create table trep_join_gp (c1 int, c2 int);
 -- hash distributed table's locus is Hash
-create table thash_join_gp (c1 int, c2 int) distributed by (c1);
+create table thash_join_gp (c1 int, c2 int);
 -- randomly distributed table's locus is Strewn
-create table trand_join_gp (c1 int, c2 int) distributed randomly;
+create table trand_join_gp (c1 int, c2 int);
 -- start_ignore
 create extension if not exists gp_debug_numsegments;
 select gp_debug_set_create_table_default_numsegments(1);
 -- end_ignore
 -- the following replicated table's numsegments is 1
-create table trep1_join_gp (c1 int, c2 int) distributed replicated;
+create table trep1_join_gp (c1 int, c2 int);
 
 insert into trep_join_gp values (1, 1), (2, 2);
 insert into thash_join_gp values (1, 1), (2, 2);
@@ -499,7 +499,7 @@ drop table thash_join_gp;
 drop table trand_join_gp;
 drop table trep1_join_gp;
 
-select gp_debug_set_create_table_default_numsegments(3);
+-- select gp_debug_set_create_table_default_numsegments(3);
 
 reset optimizer;
 
@@ -513,15 +513,13 @@ reset enable_mergejoin;
 reset enable_nestloop;
 
 create table t_joinsize_1 (c1 int, c2 int)
-distributed by (c1)
 partition by range (c2)
 ( start (0) end (5) every (1),
   default partition extra );
 
-create table t_joinsize_2 (c1 int, c2 int)
-distributed by (c1);
+create table t_joinsize_2 (c1 int, c2 int);
 
-create table t_joinsize_3 (c int) distributed randomly;
+create table t_joinsize_3 (c int);
 
 insert into t_joinsize_1 select i, i%5 from generate_series(1, 200)i;
 insert into t_joinsize_1 select 1, null from generate_series(1, 1000);
@@ -542,7 +540,7 @@ drop table t_joinsize_3;
 
 -- test if subquery locus is general, then
 -- we should keep it general
-create table t_randomly_dist_table(c int) distributed randomly;
+create table t_randomly_dist_table(c int);
 
 -- force_explain
 -- the following plan should not contain redistributed motion (for planner)
@@ -698,8 +696,8 @@ reset enable_bitmapscan;
 drop table if exists foo;
 drop table if exists bar;
 
-create table foo(a int) distributed by (a);
-create table bar(b int) distributed by (b);
+create table foo(a int);
+create table bar(b int);
 
 insert into foo select i from generate_series(1,10)i;
 insert into bar select i from generate_series(1,1000)i;

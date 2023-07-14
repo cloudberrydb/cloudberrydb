@@ -19,7 +19,7 @@ language plpython3u;
 --
 -- Testing queries with subqueries with nested scalar functions
 -- 
-create table q68t792_temp(u_vtgnr varchar(6), u_zj varchar(2), u_folio varchar(2)) distributed by (u_vtgnr, u_zj, u_folio);
+create table q68t792_temp(u_vtgnr varchar(6), u_zj varchar(2), u_folio varchar(2));
 insert into q68t792_temp select x ||'1' , x || '', x || '' from generate_series(30,99) x;
 SELECT  u_vtgnr, u_zj, u_folio                                                                                                                                 
 FROM  q68t792_temp a  
@@ -117,11 +117,14 @@ order by u_vtgnr, u_zj, u_folio;
 (1 row)
 
 -- Fix bug in Expression to DXL translation for correlated queries when optimizer is turned on.
-CREATE TABLE t1 (a int, b int) DISTRIBUTED BY (a);
-CREATE TABLE t2 (a int, b int) DISTRIBUTED BY (a);
-CREATE TABLE x (a int) DISTRIBUTED BY (a);
+CREATE TABLE t1 (a int, b int);
+CREATE TABLE t2 (a int, b int);
+CREATE TABLE x (a int);
 select * from x where a=  (select sum(t1.a)  from t1 inner join (select x.a as outer_ref, * from t2) as foo on (foo.a=t1.a+ outer_ref)  group by foo.a);
-ERROR:  correlated subquery with skip-level correlations is not supported
+ a 
+---
+(0 rows)
+
 SET statement_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = off;
@@ -137,7 +140,7 @@ CREATE TABLE test_r_rvv_stada_dim_konst (
     dim_elem_bezei character varying(50) NOT NULL,
     dim_parent_nr smallint,
     dim_bed character varying(150)
-) DISTRIBUTED RANDOMLY;
+);
 CREATE TABLE test_sf_dd_land_vm (
     land_elem_nr smallint NOT NULL,
     land_elem_bezei character varying(50) NOT NULL,
@@ -157,7 +160,7 @@ CREATE TABLE test_sf_dd_land_vm (
     sm_region_bezei character varying(50),
     land_ges_nr smallint NOT NULL,
     land_ges_bezei character varying(50) NOT NULL
-) DISTRIBUTED RANDOMLY;
+);
 COPY test_r_rvv_stada_dim_konst (dim_bezei, dim_elem_lvl, dim_elem_nr, dim_elem_id, dim_elem_bezei, dim_parent_nr, dim_bed) FROM stdin;
 COPY test_sf_dd_land_vm (land_elem_nr, land_elem_bezei, land_typ, land_id, land_nr, land_bezei, land_bezei_krz, land_abc_kz, land_seg_qis_nr, land_seg_qis_bezei, land_seg_geo_nr, land_seg_geo_bezei, region_nr, region_bezei, sm_region_nr, sm_region_bezei, land_ges_nr, land_ges_bezei) FROM stdin;
 select konst.dim_elem_bezei  as natcat_zone_elem_bezei,
@@ -210,7 +213,7 @@ where
 (38 rows)
 
 -- test queries that should run on the master
-create table mpp_bfv_1(col1 int, col2 text, col3 numeric) distributed by (col1);
+create table mpp_bfv_1(col1 int, col2 text, col3 numeric);
 -- this cannot go to the _setup file, because it is not propagated here
 set optimizer_enable_indexscan = off;
 set optimizer_enable_master_only_queries = on;
@@ -242,16 +245,17 @@ select count_operator('select * from generate_series(1,10)', 'Motion');
               0
 (1 row)
 
+-- start_ignore
 -- queries over distributed tables should have motions
 select count_operator('select col2 from mpp_bfv_1;', 'Motion');
  count_operator 
 ----------------
               1
 (1 row)
-
+-- end_ignore
 -- this cannot go to the _teardown file, because it is not propagated here
 reset optimizer_enable_indexscan;
-create table mpp_bfv_2(a int, b text, primary key (a)) distributed by (a);
+create table mpp_bfv_2(a int, b text, primary key (a));
 -- stop falling back to planner when catalog functions are encountered
 explain select pg_column_size('mpp_bfv_2');
                 QUERY PLAN                

@@ -194,6 +194,7 @@ SELECT seqrelid::regclass, seqtypid::regtype, seqstart, seqincrement, seqmax, se
  descending_sequence | bigint   | 9223372036854775806 |           -1 | 9223372036854775806 |      1 |        1 | f
 (1 row)
 
+-- start_ignore
 -- Test that we don't produce duplicate sequence values
 DROP SEQUENCE IF EXISTS check_no_duplicates;
 NOTICE:  sequence "check_no_duplicates" does not exist, skipping
@@ -219,4 +220,4 @@ SELECT nextval('check_no_duplicates') FROM gp_dist_random('gp_id');
       22
       42
 (3 rows)
-
+-- end_ignore

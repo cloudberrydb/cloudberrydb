@@ -1,6 +1,6 @@
 --Create a heap table with partitions ( having diff storage parameters)
  Create table  pt_heap_tab(a int, b text, c int , d int, e numeric,success bool) with ( appendonly=false )
- distributed by (a)
+
  partition by list(b)
  (
           partition abc values ('abc','abc1','abc2') with (appendonly=false), -- HEAP
@@ -79,7 +79,7 @@
  alter table pt_heap_tab split default partition at ('uvw') into (partition dft, partition uvw);
 --Create an AO table with partitions ( having diff storage parameters)
  Create table  pt_ao_tab(a int, b text, c int , d int, e numeric,success bool) with ( appendonly=true )
- distributed by (a)
+
  partition by list(b)
  (
           partition abc values ('abc','abc1','abc2') with (appendonly=false), -- HEAP
@@ -168,7 +168,7 @@ drop table if exists co_can cascade;
  drop table if exists pt_co_tab cascade;
 --end_ignore
 Create table  pt_co_tab(a int, b text, c int , d int, e numeric,success bool) with ( appendonly = true, orientation = column)
- distributed by (a)
+
  partition by list(b)
  (
           partition abc values ('abc','abc1','abc2') with (appendonly=false), -- HEAP
@@ -261,7 +261,7 @@ drop table if exists co_can cascade;
  drop table if exists pt_heap_tab_rng cascade;
 --end_ignore
  CREATE TABLE pt_heap_tab_rng (a int, b text, c int , d int, e numeric,success bool) with (appendonly=false)
- distributed by (a)
+
  partition by range(a)
  (
      start(1) end(20) every(5),
@@ -333,7 +333,7 @@ drop table if exists co_can cascade;
 --end_ignore
 
  CREATE TABLE pt_ao_tab_rng (a int, b text, c int , d int, e numeric,success bool) with (appendonly=true,compresstype=zlib, compresslevel=1)
- distributed by (a)
+
  partition by range(a)
  (
      start(1) end(20) every(5),
@@ -405,7 +405,7 @@ drop table if exists co_can cascade;
  drop table if exists pt_co_tab_rng cascade;
 --end_ignore
  CREATE TABLE pt_co_tab_rng (a int, b text, c int , d int, e numeric,success bool) with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
- distributed by (a)
+
  partition by range(a)
  (
      start(1) end(20) every(5),

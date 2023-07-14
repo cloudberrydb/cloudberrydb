@@ -28,34 +28,6 @@ select count(*)=0 as result from
 
 drop database dowell;
 
-
-
---
---CASE 1: error in segment after db file physically created
---
---reset status
-select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
--- inject fault on content0 primary to error out after copying
--- template db directory
-select gp_inject_fault('create_db_after_file_copy', 'error', dbid)
-from gp_segment_configuration where content=0 and role='p';
-
--- should fail
-create database db_with_leftover_files;
-
--- Wait until replay_lsn = flush_lsn.
-select force_mirrors_to_catch_up();
-
--- since this is a failed case, db oid is invisible, however we need it to search 
--- our tablespace to check if has db files left over.
-set gp_select_invisible=on;
-select db_dirs(oid) from pg_database where datname = 'db_with_leftover_files';
-
--- cleanup
-set gp_select_invisible=off;
-
-
-
 --
 --CASE 2: error after XLOG_DBASE_CREATE on master
 --
@@ -74,47 +46,6 @@ select db_dirs(oid) from pg_database where datname = 'db2';
 
 set gp_select_invisible=off;
 
-
-
---
---CASE 3: error after XLOG_DBASE_CREATE on segment
---
-select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
-select gp_inject_fault('after_xlog_create_database', 'error', dbid)
-from gp_segment_configuration where content=0 and role='p';
--- should fail
-create database db3;
-
-select force_mirrors_to_catch_up();
-
--- since this is a failed case, db oid is invisible, however we need it to search 
--- our tablespace to check if has db files left over.
-set gp_select_invisible=on;
-select db_dirs(oid) from pg_database where datname = 'db3';
-
-set gp_select_invisible=off;
-
-
-
---
---CASE 4: panic after XLOG_XACT_PREPARE on segment
---
-select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
-select gp_inject_fault_infinite('fts_probe', 'skip', dbid)
-from gp_segment_configuration where content=-1 and role='p';
-select gp_inject_fault('end_prepare_two_phase', 'panic', dbid)
-from gp_segment_configuration where content=0 and role='p';
--- should fail
-create database db4;
-
-select force_mirrors_to_catch_up();
-
--- since this is a failed case, db oid is invisible, however we need it to search 
--- our tablespace to check if has db files left over.
-set gp_select_invisible=on;
-select db_dirs(oid) from pg_database where datname = 'db4';
-
-set gp_select_invisible=off;
 -- start_ignore
 select gp_inject_fault('all', 'reset', dbid) from gp_segment_configuration;
 select force_mirrors_to_catch_up();

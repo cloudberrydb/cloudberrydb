@@ -314,7 +314,7 @@ BEGIN
 		END IF;
 
 		-- run the query using the brin index
-		CREATE TEMP TABLE brin_result (cid tid) distributed by (cid);
+		CREATE TEMP TABLE brin_result (cid tid);
 		SET enable_seqscan = 0;
 		SET enable_bitmapscan = 1;
 		SET optimizer_enable_tablescan = 0;
@@ -333,14 +333,15 @@ BEGIN
 		IF NOT plan_ok THEN
 			RAISE WARNING 'did not get bitmap indexscan plan for %', r;
 		END IF;
-		IF is_orca AND is_planner_plan THEN
-			RAISE WARNING 'ORCA did not produce a bitmap indexscan plan for %', r;
-		END IF;
+		-- in single node, orca is not enabled yet
+		-- IF is_orca AND is_planner_plan THEN
+		-- 	RAISE WARNING 'ORCA did not produce a bitmap indexscan plan for %', r;
+		-- END IF;
 
 		EXECUTE format($y$INSERT INTO brin_result SELECT ctid FROM brintest_aocs WHERE %s $y$, cond);
 
 		-- run the query using a seqscan
-		CREATE TEMP TABLE brin_result_ss (cid tid) distributed by (cid);
+		CREATE TEMP TABLE brin_result_ss (cid tid);
 		SET enable_seqscan = 1;
 		SET enable_bitmapscan = 0;
 		SET optimizer_enable_tablescan = 1;

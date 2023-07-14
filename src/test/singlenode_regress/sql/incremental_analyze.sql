@@ -612,6 +612,7 @@ DROP TABLE IF EXISTS foo;
 CREATE TABLE foo (a int, b int, c text) PARTITION BY RANGE (b) (START (0) END (6) EVERY (3));
 INSERT INTO foo select i, i%6, repeat('aaaa', 100000) FROM generate_series(1, 100)i;
 ANALYZE foo;
+-- In single node, we don't 'toolarge' bitmap created in acquire_sample_rows_dispatcher. The result is more similar to postgres.
 SELECT * FROM pg_stats WHERE tablename like 'foo%' and attname = 'c' ORDER BY attname,tablename;
 -- Test ANALYZE full scan HLL
 DROP TABLE IF EXISTS foo;
@@ -696,7 +697,6 @@ ANALYZE VERBOSE rootpartition foo;
 -- and split partitions.
 DROP TABLE IF EXISTS foo;
 CREATE TABLE foo (a int, b int, c text, d int)
-	DISTRIBUTED BY (d) 
 	PARTITION BY RANGE (a) 
 		(START (0) END (8) EVERY (4), 
 		DEFAULT PARTITION def_part);
@@ -715,7 +715,6 @@ SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_
 -- and split partitions.
 DROP TABLE IF EXISTS foo;
 CREATE TABLE foo (a int, b int, c text, d int)
-	DISTRIBUTED BY (d) 
 	PARTITION BY RANGE (a) 
 		(START (0) END (8) EVERY (4), 
 		DEFAULT PARTITION def_part);
@@ -734,7 +733,6 @@ SELECT tablename, attname, null_frac, n_distinct, most_common_vals, most_common_
 -- and split partitions.
 DROP TABLE IF EXISTS foo;
 CREATE TABLE foo (a int, b int, c text, d int)
-	DISTRIBUTED BY (d) 
 	PARTITION BY RANGE (a) 
 		(START (0) END (8) EVERY (4), 
 		DEFAULT PARTITION def_part);
@@ -789,7 +787,7 @@ CREATE TABLE incr_analyze_test (
     b character varying,
     c date
 )
-WITH (appendonly=true, orientation=row) DISTRIBUTED BY (a) PARTITION BY RANGE(c)
+WITH (appendonly=true, orientation=row) PARTITION BY RANGE(c)
           (
           START ('2018-01-01'::date) END ('2018-01-02'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_1', appendonly=true, compresslevel=3, orientation=column, compresstype=ZLIB ),
           START ('2018-01-02'::date) END ('2018-01-03'::date) EVERY ('1 day'::interval) WITH (tablename='incr_analyze_test_1_prt_2', appendonly=true, compresslevel=1, orientation=column, compresstype=RLE_TYPE ),
@@ -873,7 +871,7 @@ RESET gp_autostats_mode;
 
 -- analyze in transaction should merge leaves instead of resampling
 drop table if exists foo;
-create table foo (a int, b date) distributed by (a) partition by range(b) (partition "20210101" start ('20210101'::date) end ('20210201'::date), partition "20210201" start ('20210201'::date) end ('20210301'::date), partition "20210301" start ('20210301'::date) end ('20210401'::date));
+create table foo (a int, b date) partition by range(b) (partition "20210101" start ('20210101'::date) end ('20210201'::date), partition "20210201" start ('20210201'::date) end ('20210301'::date), partition "20210301" start ('20210301'::date) end ('20210401'::date));
 insert into foo select a, '20210101'::date+a from (select generate_series(1,80) a) t1;
 analyze verbose foo;
 

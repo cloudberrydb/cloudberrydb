@@ -23,7 +23,7 @@ language plpython3u;
 -- Testing queries with subqueries with nested scalar functions
 -- 
 
-create table q68t792_temp(u_vtgnr varchar(6), u_zj varchar(2), u_folio varchar(2)) distributed by (u_vtgnr, u_zj, u_folio);
+create table q68t792_temp(u_vtgnr varchar(6), u_zj varchar(2), u_folio varchar(2));
 insert into q68t792_temp select x ||'1' , x || '', x || '' from generate_series(30,99) x;
 
 SELECT  u_vtgnr, u_zj, u_folio                                                                                                                                 
@@ -45,9 +45,9 @@ AND u_folio = (SELECT max(u_folio)  FROM q68t792_temp c WHERE a.u_vtgnr <= c.u_v
 order by u_vtgnr, u_zj, u_folio;
 
 -- Fix bug in Expression to DXL translation for correlated queries when optimizer is turned on.
-CREATE TABLE t1 (a int, b int) DISTRIBUTED BY (a);
-CREATE TABLE t2 (a int, b int) DISTRIBUTED BY (a);
-CREATE TABLE x (a int) DISTRIBUTED BY (a);
+CREATE TABLE t1 (a int, b int);
+CREATE TABLE t2 (a int, b int);
+CREATE TABLE x (a int);
 select * from x where a=  (select sum(t1.a)  from t1 inner join (select x.a as outer_ref, * from t2) as foo on (foo.a=t1.a+ outer_ref)  group by foo.a);
 
 SET statement_timeout = 0;
@@ -67,7 +67,7 @@ CREATE TABLE test_r_rvv_stada_dim_konst (
     dim_elem_bezei character varying(50) NOT NULL,
     dim_parent_nr smallint,
     dim_bed character varying(150)
-) DISTRIBUTED RANDOMLY;
+);
 
 
 CREATE TABLE test_sf_dd_land_vm (
@@ -89,7 +89,7 @@ CREATE TABLE test_sf_dd_land_vm (
     sm_region_bezei character varying(50),
     land_ges_nr smallint NOT NULL,
     land_ges_bezei character varying(50) NOT NULL
-) DISTRIBUTED RANDOMLY;
+);
 
 
 COPY test_r_rvv_stada_dim_konst (dim_bezei, dim_elem_lvl, dim_elem_nr, dim_elem_id, dim_elem_bezei, dim_parent_nr, dim_bed) FROM stdin;
@@ -513,7 +513,7 @@ where
     konst.dim_bezei     = 'NatCat-Zone'   and gesamt.dim_bezei    = 'NatCat-Zone'   and gesamt.dim_elem_lvl = 0;
 
 -- test queries that should run on the master
-create table mpp_bfv_1(col1 int, col2 text, col3 numeric) distributed by (col1);
+create table mpp_bfv_1(col1 int, col2 text, col3 numeric);
 
 -- this cannot go to the _setup file, because it is not propagated here
 set optimizer_enable_indexscan = off;
@@ -531,13 +531,15 @@ select count_operator('select attname from pg_attribute where attname = ''attsto
 -- queries with master-only TVFs and no distributed trabes have no motions
 select count_operator('select * from generate_series(1,10)', 'Motion');
 
+-- start_ignore
 -- queries over distributed tables should have motions
 select count_operator('select col2 from mpp_bfv_1;', 'Motion');
+-- end_ignore
 
 -- this cannot go to the _teardown file, because it is not propagated here
 reset optimizer_enable_indexscan;
 
-create table mpp_bfv_2(a int, b text, primary key (a)) distributed by (a);
+create table mpp_bfv_2(a int, b text, primary key (a));
 
 -- stop falling back to planner when catalog functions are encountered
 

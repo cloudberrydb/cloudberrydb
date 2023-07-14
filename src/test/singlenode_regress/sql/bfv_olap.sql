@@ -13,7 +13,7 @@ create table customer
 
   primary key (cn)
 
-) distributed by (cn);
+);
 
 insert into customer values
   ( 1, 'Macbeth', 'Inverness'),
@@ -29,7 +29,7 @@ create table vendor
 
   primary key (vn)
 
-) distributed by (vn);
+);
 
 insert into vendor values
   ( 10, 'Witches, Inc', 'Lonely Heath'),
@@ -49,7 +49,7 @@ create table sale
 
   primary key (cn, vn, pn)
 
-) distributed by (cn,vn,pn);
+);
 
 insert into sale values
   ( 2, 40, 100, '1401-1-1', 1100, 2400),
@@ -136,7 +136,7 @@ create aggregate ema(float, float) (
     finalfunc = ema_fin,
     initcond = '(,)');
 
-create table ema_test (k int, v float ) distributed by (k);
+create table ema_test (k int, v float );
 insert into ema_test select i, 4*(i::float/20) + 10.0*(1+cos(radians(i*5))) from generate_series(0,19) i(i);
 
 -- TEST
@@ -168,8 +168,8 @@ CREATE TABLE r
     c CHARACTER VARYING(200),  
     d NUMERIC(10,0), 
     e DATE
-) DISTRIBUTED BY (a,b);
-ALTER TABLE r SET DISTRIBUTED BY (b);
+);
+-- ALTER TABLE r SET DISTRIBUTED BY (b);
 ALTER TABLE r ADD CONSTRAINT PKEY PRIMARY KEY (b);
 
 --TEST
@@ -235,7 +235,7 @@ CREATE TABLE dm_calendar (
     holidays_flag character varying(100),
     workday_flag character varying(100),
     month_number numeric(10,0)
-) DISTRIBUTED BY (calendar_id);
+);
 ALTER TABLE ONLY dm_calendar ADD CONSTRAINT dm_calendar_pkey PRIMARY KEY (calendar_id);
 
 --TEST
@@ -262,7 +262,7 @@ create table t
     c character varying(200),
     d numeric(10,0),
     e date
-) distributed by (b);
+);
 alter table t ADD CONSTRAINT pkey primary key (b);
 
 -- TEST

@@ -9,7 +9,6 @@ create table region
 	r_name char(25),
 	r_comment varchar(152)
 )
-distributed by (r_regionkey)
 partition by range (r_regionkey)
 subpartition by list (r_name) subpartition template
 (
@@ -39,19 +38,11 @@ select relname, relkind from pg_class where relkind in ('r', 'p') and relname li
 select gp_segment_id, relname, relkind from gp_dist_random('pg_class') where relkind in ('r', 'p') and relname like 'region%' and relfrozenxid=0;
  gp_segment_id |       relname        | relkind 
 ---------------+----------------------+---------
-             1 | region               | p
-             1 | region_1_prt_region1 | p
-             1 | region_1_prt_region2 | p
-             1 | region_1_prt_region3 | p
-             2 | region               | p
-             2 | region_1_prt_region1 | p
-             2 | region_1_prt_region2 | p
-             2 | region_1_prt_region3 | p
-             0 | region               | p
-             0 | region_1_prt_region1 | p
-             0 | region_1_prt_region2 | p
-             0 | region_1_prt_region3 | p
-(12 rows)
+            -1 | region               | p
+            -1 | region_1_prt_region1 | p
+            -1 | region_1_prt_region2 | p
+            -1 | region_1_prt_region3 | p
+(4 rows)
 
 create unique index region_pkey on region(r_regionkey, r_name);
 copy region from stdin with delimiter '|';
@@ -105,60 +96,56 @@ select * from region where r_regionkey = '7';
 -- tables since we cannot enforce them. But since this insert maps to a
 -- single definitive partition, we can detect it.
 insert into region values(7, 'AUSTRALIA', 'def');
-ERROR:  duplicate key value violates unique constraint "region_1_prt_region3_2_prt_australia_r_regionkey_r_name_idx"  (seg0 127.0.1.1:7002 pid=122856)
+ERROR:  duplicate key value violates unique constraint "region_1_prt_region3_2_prt_australia_r_regionkey_r_name_idx"
 DETAIL:  Key (r_regionkey, r_name)=(7, AUSTRALIA                ) already exists.
 drop table region;
 -- exchange
 -- 1) test all sanity checking
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
+-- start_ignore
 -- policies are different
-create table bar_p_diff_pol (i int, j int) distributed by (j);
+create table bar_p_diff_pol (i int, j int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_pol;
-ERROR:  distribution policy for "bar_p_diff_pol" must be the same as that for "foo_p"
 -- random policy vs. hash policy
-create table bar_p_rand_pol (i int, j int) distributed randomly;
+create table bar_p_rand_pol (i int, j int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_rand_pol;
-ERROR:  distribution policy for "bar_p_rand_pol" must be the same as that for "foo_p"
+-- end_ignore
 -- different number of columns
-create table bar_p_diff_col (i int, j int, k int) distributed by (i);
+create table bar_p_diff_col (i int, j int, k int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_col;
 ERROR:  table "bar_p_diff_col" contains column "k" not found in parent "foo_p"
 DETAIL:  The new partition may contain only the columns present in parent.
 -- different types
-create table bar_p_diff_typ (i int, j int8) distributed by (i);
+create table bar_p_diff_typ (i int, j int8);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_typ;
 ERROR:  child table "bar_p_diff_typ" has different type for column "j"
 -- different column names
-create table bar_p_diff_colnam (i int, m int) distributed by (i);
+create table bar_p_diff_colnam (i int, m int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_colnam;
 ERROR:  table "bar_p_diff_colnam" contains column "m" not found in parent "foo_p"
 DETAIL:  The new partition may contain only the columns present in parent.
 -- still different schema, but more than one level partitioning
 CREATE TABLE two_level_pt(a int, b int, c int)
-DISTRIBUTED BY (a)
 PARTITION BY RANGE (b)
       SUBPARTITION BY RANGE (c)
       SUBPARTITION TEMPLATE (
       START (11) END (12) EVERY (1))
       ( START (1) END (2) EVERY (1));
 CREATE TABLE candidate_for_leaf(a int, c int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- should fail
 ALTER TABLE two_level_pt ALTER PARTITION FOR (1)
       EXCHANGE PARTITION FOR (11) WITH TABLE candidate_for_leaf;
 ERROR:  child table is missing column "b"
 -- different owner 
 create role part_role;
-NOTICE:  resource queue required -- using default resource queue "pg_default"
-create table bar_p (i int, j int) distributed by (i);
+create table bar_p (i int, j int);
 set session authorization part_role;
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -177,7 +164,7 @@ drop table foo_p;
 drop table bar_p;
 -- should work, and new partition should inherit ownership (mpp-6538)
 set role part_role;
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(6) every(3));
 reset role;
@@ -196,46 +183,44 @@ drop table foo_p;
 drop role part_role;
 -- WITH OIDS is no longer supported. Check that it't rejected with the GPDB
 -- partitioning syntax, too.
-create table foo_p (i int, j int) with (oids = true) distributed by (i)
+create table foo_p (i int, j int) with (oids = true)
 partition by range(j)
 (start(1) end(10) every(1));
 ERROR:  tables declared WITH OIDS are not supported
 -- non-partition table involved in inheritance
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table barparent(i int, j int) distributed by (i);
+create table barparent(i int, j int);
 create table bar_p () inherits(barparent);
-NOTICE:  table has parent, setting distribution columns to match parent table
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
 ERROR:  cannot attach inheritance child as partition
 drop table bar_p;
 drop table barparent;
 -- non-partition table involved in inheritance
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 create table barchild () inherits(bar_p);
-NOTICE:  table has parent, setting distribution columns to match parent table
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
 ERROR:  cannot attach inheritance parent as partition
 drop table barchild;
 drop table bar_p;
 -- rules on non-partition table
-create table bar_p(i int, j int) distributed by (i);
-create table baz_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
+create table baz_p(i int, j int);
 create rule bar_baz as on insert to bar_p do instead insert into baz_p
   values(NEW.i, NEW.j);
 alter table foo_p exchange partition for(2) with table bar_p;
 drop table foo_p, bar_p, baz_p;
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(5) every(1));
 -- Shouldn't fail: check constraint matches partition rule.
 -- Note this test is slightly different from prior versions to get
 -- in line with constraint consistency requirement.
 create table bar_d(i int, j int check (j >= 2 and j < 3 ))
-distributed by (i);
+;
 insert into bar_d values(100000, 2);
 alter table foo_p exchange partition for(2) with table bar_d;
 insert into bar_d values(200000, 2);
@@ -248,13 +233,8 @@ select * from bar_d;
 drop table foo_p, bar_d;
 -- permissions
 create role part_role;
-NOTICE:  resource queue required -- using default resource queue "pg_default"
 create table foo_p (i int) partition by range(i) (start(1) end(10) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table bar_p (i int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 grant select on foo_p to part_role;
 revoke all on bar_p from part_role;
 NOTICE:  no privileges could be revoked
@@ -289,20 +269,16 @@ drop role part_role;
 -- validation
 create table foo_p (i int) partition by range(i)
 (start(1) end(10) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table bar_p (i int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into bar_p values(6);
 insert into bar_p values(100);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
-ERROR:  partition constraint of relation "bar_p" is violated by some row  (seg2 127.0.1.1:7004 pid=1927394)
+ERROR:  partition constraint of relation "bar_p" is violated by some row
 alter table foo_p exchange partition for(6) with table bar_p without
 validation;
 NOTICE:  specifying "WITHOUT VALIDATION" acts as no operation. If the new partition is a regular table, validation is performed to make sure all the rows obey partition constraint. If the new partition is external or foreign table, no validation is performed.
-ERROR:  partition constraint of relation "bar_p" is violated by some row  (seg2 127.0.1.1:7004 pid=1927394)
+ERROR:  partition constraint of relation "bar_p" is violated by some row
 analyze foo_p;
 select * from foo_p;
  i 
@@ -311,10 +287,10 @@ select * from foo_p;
 
 drop table foo_p, bar_p;
 -- basic test
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 insert into bar_p values(0,6);
 alter table foo_p exchange partition for(6) with table bar_p;
 analyze foo_p;
@@ -338,10 +314,10 @@ select * from foo_p;
 (1 row)
 
 drop table foo_p;
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
 insert into bar_p values(10, 10);
@@ -362,10 +338,10 @@ select * from bar_p;
 
 drop table bar_p;
 -- AO exchange with heap
-create table foo_p (i int, j int) with(appendonly = true) distributed by (i)
+create table foo_p (i int, j int) with(appendonly = true)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 insert into foo_p values(1, 1), (2, 1), (3, 1);
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -373,19 +349,19 @@ analyze foo_p;
 select * from foo_p;
  i | j 
 ---+---
- 2 | 1
- 6 | 6
  1 | 1
+ 2 | 1
  3 | 1
+ 6 | 6
 (4 rows)
 
 drop table bar_p;
 drop table foo_p;
 -- other way around
-create table foo_p (i int, j int) with(appendonly = false) distributed by (i)
+create table foo_p (i int, j int) with(appendonly = false)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) with(appendonly = true) distributed by (i);
+create table bar_p(i int, j int) with(appendonly = true);
 insert into foo_p values(1, 1), (2, 1), (3, 2);
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -394,18 +370,18 @@ select * from foo_p;
  i | j 
 ---+---
  1 | 1
- 3 | 2
  2 | 1
+ 3 | 2
  6 | 6
 (4 rows)
 
 drop table bar_p;
 drop table foo_p;
 -- exchange AO with AO
-create table foo_p (i int, j int) with(appendonly = true) distributed by (i)
+create table foo_p (i int, j int) with(appendonly = true)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) with(appendonly = true) distributed by (i);
+create table bar_p(i int, j int) with(appendonly = true);
 insert into foo_p values(1, 2), (2, 3), (3, 4);
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -413,19 +389,19 @@ analyze foo_p;
 select * from foo_p;
  i | j 
 ---+---
- 2 | 3
- 6 | 6
  1 | 2
+ 2 | 3
  3 | 4
+ 6 | 6
 (4 rows)
 
 drop table bar_p;
 drop table foo_p;
 -- exchange same table more than once
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
 analyze foo_p;
@@ -474,10 +450,7 @@ NOTICE:  table "exh_abc" does not exist, skipping
 create table dex (i int,  j int) partition by range(j)
 (partition a start (1) end(10), partition b start(11) end(20),
 default partition abc);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table exh_abc (like dex);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 alter table dex exchange default partition with table exh_abc;
 drop table dex;
 drop table exh_abc;
@@ -489,12 +462,11 @@ NOTICE:  table "exh_ao_ao" does not exist, skipping
 Create table sto_ao_ao
  (
  col1 bigint, col2 date, col3 text, col4 int) with(appendonly=true)
- distributed randomly  partition by range(col2)
+   partition by range(col2)
  subpartition by list (col3)
  subpartition template ( default subpartition subothers, subpartition sub1 values ('one'), subpartition sub2 values ('two'))
  (default partition others, start(date '2008-01-01') end(date '2008-04-30') every(interval '1 month'));
 create table exh_ao_ao (like sto_ao_ao) with (appendonly=true);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 alter table sto_ao_ao alter partition for ('2008-03-01') exchange default partition with table exh_ao_ao;
 -- Exchange a non-default sub-partition of a default partition, should fail
 alter table sto_ao_ao alter default partition exchange partition for ('one') with table exh_ao_ao;
@@ -504,7 +476,7 @@ alter table sto_ao_ao exchange partition for ('2008-01-01') with table exh_ao_ao
 ERROR:  cannot EXCHANGE PARTITION for relation "sto_ao_ao" -- partition has children
 -- XXX: not yet: VALIDATE parameter
 -- Exchange a partition with an external table;
-create table foo_p (i int, j int) distributed by (i) partition by range(j) (start(1) end(10) every(2));
+create table foo_p (i int, j int) partition by range(j) (start(1) end(10) every(2));
 create readable external table bar_p(i int, j int) location ('gpfdist://host.invalid:8000/file') format 'text';
 alter table foo_p exchange partition for(3) with table bar_p;
 truncate foo_p;
@@ -513,7 +485,7 @@ drop table foo_p;
 drop table bar_p;
 -- Check for overflow of circular data types like time
 -- Should fail
-CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
+CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2))
 partition by range (f1)
 (
   start (time '00:00') end (time '24:00') EVERY (INTERVAL '1 hour')
@@ -522,7 +494,7 @@ ERROR:  END parameter not reached before type overflows
 LINE 4:   start (time '00:00') end (time '24:00') EVERY (INTERVAL '1...
                                     ^
 -- Should fail
-CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
+CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2))
 partition by range (f1)
 (
   start (time '00:00') end (time '23:59') EVERY (INTERVAL '1 hour')
@@ -531,7 +503,7 @@ ERROR:  END parameter not reached before type overflows
 LINE 4:   start (time '00:00') end (time '23:59') EVERY (INTERVAL '1...
                                     ^
 -- Should work
-CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
+CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2))
 partition by range (f1)
 (
   start (time '00:00') end (time '23:00') EVERY (INTERVAL '1 hour')
@@ -539,7 +511,7 @@ partition by range (f1)
 drop table TIME_TBL_HOUR_2;
 -- Check for every parameters that just don't make sense
 create table hhh_r2 (a char(1), b date, d char(3))
-distributed by (a) partition by range (b)
+ partition by range (b)
 (                                                              
 partition aa start (date '2007-01-01') end (date '2008-01-01') 
       every (interval '0 days')
@@ -547,14 +519,14 @@ partition aa start (date '2007-01-01') end (date '2008-01-01')
 ERROR:  EVERY parameter too small
 LINE 5:       every (interval '0 days')
                      ^
-create table foo_p (i int) distributed by(i)
+create table foo_p (i int) 
 partition by range(i)
 (start (1) end (20) every(0));
 ERROR:  EVERY parameter too small
 LINE 3: (start (1) end (20) every(0));
                                   ^
 -- Check for ambiguous EVERY parameters
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (3) every (0.6));
 \d+ foo_p
@@ -565,17 +537,16 @@ partition by range(i)
 Partition key: RANGE (i)
 Partitions: foo_p_1_prt_1 FOR VALUES FROM (1) TO (2),
             foo_p_1_prt_2 FOR VALUES FROM (2) TO (3)
-Distributed by: (i)
 
 drop table foo_p;
 -- should fail
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (3) every (0.3));
 ERROR:  EVERY parameter too small
 LINE 3: (start (1) end (3) every (0.3));
                                   ^
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (3) every (1.3));
 \d+ foo_p
@@ -586,10 +557,9 @@ partition by range(i)
 Partition key: RANGE (i)
 Partitions: foo_p_1_prt_1 FOR VALUES FROM (1) TO (2),
             foo_p_1_prt_2 FOR VALUES FROM (2) TO (3)
-Distributed by: (i)
 
 drop table foo_p;
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (20) every (10.9));
 \d+ foo_p
@@ -600,24 +570,23 @@ partition by range(i)
 Partition key: RANGE (i)
 Partitions: foo_p_1_prt_1 FOR VALUES FROM (1) TO (12),
             foo_p_1_prt_2 FOR VALUES FROM (12) TO (20)
-Distributed by: (i)
 
 drop table foo_p;
 -- should fail
-create table foo_p (i int, j date) distributed by (i)
+create table foo_p (i int, j date)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '0.5 days'));
 ERROR:  EVERY parameter too small
 LINE 3: (start ('2007-01-01') end ('2008-01-01') every (interval '0....
                                                         ^
 -- should fail
-create table foo_p (i int, j date) distributed by (i)
+create table foo_p (i int, j date)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '12 hours'));
 ERROR:  EVERY parameter too small
 LINE 3: (start ('2007-01-01') end ('2008-01-01') every (interval '12...
                                                         ^
-create table foo_p (i int, j date) distributed by (i)
+create table foo_p (i int, j date)
 partition by range(j)
 (start ('2007-01-01') end ('2007-01-05') every (interval '1.2 days'));
 \d+ foo_p
@@ -631,11 +600,10 @@ Partitions: foo_p_1_prt_1 FOR VALUES FROM ('01-01-2007') TO ('01-02-2007'),
             foo_p_1_prt_2 FOR VALUES FROM ('01-02-2007') TO ('01-03-2007'),
             foo_p_1_prt_3 FOR VALUES FROM ('01-03-2007') TO ('01-04-2007'),
             foo_p_1_prt_4 FOR VALUES FROM ('01-04-2007') TO ('01-05-2007')
-Distributed by: (i)
 
 drop table foo_p;
 -- should work
-create table foo_p (i int, j timestamp) distributed by (i)
+create table foo_p (i int, j timestamp)
 partition by range(j)
 (start ('2007-01-01') end ('2007-01-05') every (interval '1.2 days'));
 \d+ foo_p
@@ -649,7 +617,6 @@ Partitions: foo_p_1_prt_1 FOR VALUES FROM ('Mon Jan 01 00:00:00 2007') TO ('Tue 
             foo_p_1_prt_2 FOR VALUES FROM ('Tue Jan 02 04:48:00 2007') TO ('Wed Jan 03 09:36:00 2007'),
             foo_p_1_prt_3 FOR VALUES FROM ('Wed Jan 03 09:36:00 2007') TO ('Thu Jan 04 14:24:00 2007'),
             foo_p_1_prt_4 FOR VALUES FROM ('Thu Jan 04 14:24:00 2007') TO ('Fri Jan 05 00:00:00 2007')
-Distributed by: (i)
 
 drop table foo_p;
 -- test inclusive/exclusive
@@ -670,8 +637,6 @@ partition p3 end(20) inclusive,
 partition p4 start(20) exclusive , 
 partition p5 start(22) end(25)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 's_suppkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ supplier2
                                      Partitioned table "public.supplier2"
    Column    |          Type          | Collation | Nullable | Default | Storage  | Stats target | Description 
@@ -689,7 +654,6 @@ Partitions: supplier2_1_prt_p1 FOR VALUES FROM (0) TO (12),
             supplier2_1_prt_p3 FOR VALUES FROM (13) TO (21),
             supplier2_1_prt_p4 FOR VALUES FROM (21) TO (22),
             supplier2_1_prt_p5 FOR VALUES FROM (22) TO (25)
-Distributed by: (s_suppkey)
 
 insert into supplier2 (s_suppkey, s_nationkey) select i, i 
 from generate_series(1, 24) i;
@@ -752,8 +716,6 @@ create table foo_p (i int) partition by range (i)
  partition p4 start('5981976') end('5994376') inclusive,
  partition p5 end('6000001')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ foo_p
                              Partitioned table "public.foo_p"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -765,12 +727,11 @@ Partitions: foo_p_1_prt_p1 FOR VALUES FROM (1) TO (2639161),
             foo_p_1_prt_p3 FOR VALUES FROM (5957166) TO (5981976),
             foo_p_1_prt_p4 FOR VALUES FROM (5981976) TO (5994377),
             foo_p_1_prt_p5 FOR VALUES FROM (5994377) TO (6000001)
-Distributed by: (i)
 
 insert into foo_p values(5994400);
 insert into foo_p values(1);
 insert into foo_p values(6000002);
-ERROR:  no partition of relation "foo_p" found for row  (seg2 127.0.0.1:40002 pid=27367)
+ERROR:  no partition of relation "foo_p" found for row
 DETAIL:  Partition key of the failing row contains (i) = (6000002).
 insert into foo_p values(5994376);
 drop table foo_p;
@@ -779,8 +740,6 @@ partition by range(i)
 (partition p1 start(1) end(5),
  partition p2 start(10),
  partition p3 end(10) exclusive);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ foo_p
                              Partitioned table "public.foo_p"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -790,7 +749,6 @@ Partition key: RANGE (i)
 Partitions: foo_p_1_prt_p1 FOR VALUES FROM (1) TO (5),
             foo_p_1_prt_p2 FOR VALUES FROM (10) TO (MAXVALUE),
             foo_p_1_prt_p3 FOR VALUES FROM (5) TO (10)
-Distributed by: (i)
 
 drop table foo_p;
 create table foo_p (i int) 
@@ -798,8 +756,6 @@ partition by range(i)
 (partition p1 start(1) end(5),
  partition p2 start(10) exclusive,
  partition p3 end(10) inclusive);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ foo_p
                              Partitioned table "public.foo_p"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -809,7 +765,6 @@ Partition key: RANGE (i)
 Partitions: foo_p_1_prt_p1 FOR VALUES FROM (1) TO (5),
             foo_p_1_prt_p2 FOR VALUES FROM (11) TO (MAXVALUE),
             foo_p_1_prt_p3 FOR VALUES FROM (5) TO (11)
-Distributed by: (i)
 
 insert into foo_p values(1), (5), (10);
 drop table foo_p;
@@ -820,15 +775,13 @@ partition by list(i)
 (partition p1 values(1, 2, 3) with (appendonly = true),
  partition p2 values(4)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 copy foo_p from stdin;
 select * from foo_p;
  i 
 ---
  1
- 3
  2
+ 3
  4
 (4 rows)
 
@@ -836,8 +789,8 @@ select * from foo_p_1_prt_p1;
  i 
 ---
  1
- 3
  2
+ 3
 (3 rows)
 
 select * from foo_p_1_prt_p2;
@@ -853,23 +806,21 @@ partition by list(i)
 (partition p1 values(1, 2, 3) with (appendonly = false),
  partition p2 values(4)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 copy foo_p from stdin;
 select * from foo_p;
  i 
 ---
  1
- 3
  2
+ 3
  4
 (4 rows)
 
 select * from foo_p_1_prt_p1;
  i 
 ---
- 2
  1
+ 2
  3
 (3 rows)
 
@@ -885,7 +836,7 @@ drop table foo_p;
 -- buffers in that scenario at one point.
 -- (https://github.com/greenplum-db/gpdb/issues/6678
 create table mixed_ao_part(distkey int, partkey int)
-with (appendonly=true) distributed by(distkey)
+with (appendonly=true) 
 partition by range(partkey) (
   partition p1 start(0) end(100) with (appendonly = false),
    partition p2 start(100) end(199)
@@ -895,14 +846,14 @@ select * from mixed_ao_part;
  distkey | partkey 
 ---------+---------
        1 |      95
-       1 |     100
        2 |      96
-       2 |     101
        3 |      97
-       3 |     102
        4 |      98
-       4 |     103
        5 |      99
+       1 |     100
+       2 |     101
+       3 |     102
+       4 |     103
        5 |     104
 (10 rows)
 
@@ -925,8 +876,6 @@ partition p1 start('1') end('10001') every(5000)
 (subpartition sp1 start('1') end('200001') every(66666)
 )
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into partsupp values(1,2,3325,771.64,', even theodolites. regular, final
 theodolites eat after the carefully pending foxes. furiously regular deposits
 sleep slyly. carefully bold realms above the ironic dependencies haggle
@@ -956,8 +905,6 @@ partition by range (l_commitdate)
 (
 partition p1 start('1992-01-31') end('1998-11-01') every(interval '20 months')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'l_orderkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 copy partlineitem from stdin with delimiter '|';
 \d+ partlineitem
                                      Partitioned table "public.partlineitem"
@@ -985,18 +932,13 @@ Partitions: partlineitem_1_prt_p1_1 FOR VALUES FROM ('01-31-1992') TO ('09-30-19
             partlineitem_1_prt_p1_3 FOR VALUES FROM ('05-30-1995') TO ('01-30-1997'),
             partlineitem_1_prt_p1_4 FOR VALUES FROM ('01-30-1997') TO ('09-30-1998'),
             partlineitem_1_prt_p1_5 FOR VALUES FROM ('09-30-1998') TO ('11-01-1998')
-Distributed by: (l_orderkey)
 
 drop table partlineitem;
 -- Make sure ADD creates dependencies
 create table i (i int) partition by range(i) (start (1) end(3) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table i add partition foo2 start(40) end (50);
 drop table i;
 create table i (i int) partition by range(i) (start (1) end(3) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table i add partition foo2 start(40) end (50);
 alter table i drop partition foo2;
 -- when using the partition name to find target partition table,
@@ -1050,8 +992,6 @@ partition p1 start('1') end('10001') every(5000)
 (subpartition sp1 start('1') end('200001') every(66666)
 )
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select relname, pg_get_expr(relpartbound, oid, false) from pg_class where relname like 'partsupp%';
                  relname                 |             pg_get_expr              
 -----------------------------------------+--------------------------------------
@@ -1089,7 +1029,6 @@ drop table partsupp;
 CREATE TABLE ataprank (id int, rank int,
 year date, gender char(1),
 usstate char(2))
-DISTRIBUTED BY (id, gender, year, usstate)
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -1113,7 +1052,6 @@ subpartition ohio values ('OH')
 CREATE TABLE ataprank2 (id int, rank int,
 year date, gender char(1),
 usstate char(2))
-DISTRIBUTED BY (id, gender, year, usstate)
 partition by list (gender)
 subpartition by range (year)
 subpartition by list (usstate)
@@ -1211,13 +1149,13 @@ for ('2001-01-01') drop partition "funky";
 ERROR:  relation "public.ataprank_1_prt_girls_2_prt_jan01_3_prt_funky" does not exist
 -- fail - missing name
 alter table ataprank alter partition girls alter partition 
-for ('2001-01-01') drop partition ;
+for ('2001-01-01') drop partition;
 ERROR:  syntax error at or near ";"
-LINE 2: for ('2001-01-01') drop partition ;
-                                          ^
+LINE 2: for ('2001-01-01') drop partition;
+                                         ^
 -- ok
 alter table ataprank alter partition girls drop partition 
-for ('2001-01-01') ;
+for ('2001-01-01');
 -- ok , skipping
 alter table ataprank alter partition girls drop partition if exists jan01;
 -- ok
@@ -1286,9 +1224,9 @@ ERROR:  relation "public.ataprank_1_prt_neuter" does not exist
 alter table ataprank2 drop partition neuter;
 -- fail , no subpartition spec for ataprank2, work for ataprank
 alter table ataprank
-add default partition neuter ;
+add default partition neuter;
 alter table ataprank2
-add default partition neuter ;
+add default partition neuter;
 ERROR:  no partitions specified at depth 2
 alter table ataprank
 add default partition neuter 
@@ -1327,61 +1265,48 @@ alter default partition add default partition def1
 alter table ataprank2
 alter default partition alter default partition 
 add default partition def2;
-drop table ataprank ;
-drop table ataprank2 ;
+drop table ataprank;
+drop table ataprank2;
 -- **END** ALTER TABLE ALTER PARTITION tests
 -- Test casting
 create table f (i int) partition by range (i) (start(1::int) end(10::int));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table f;
 create table f (i bigint) partition by range (i) (start(1::int8)
 end(1152921504606846976::int8) every(576460752303423488));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table f;
 create table f (n numeric(20, 2)) partition by range(n) (start(1::bigint)
 end(10000::bigint));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'n' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table f;
 --should fail, there's no assignment cast from text to numeric
 create table f (n numeric(20, 2)) partition by range(n) (start(1::bigint)
 end(10000::text));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'n' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  specified value cannot be cast to type numeric for column "n"
 LINE 2: end(10000::text));
             ^
 --should fail. there's no assignment cast from bool to numeric
 create table f (n numeric(20, 2)) partition by range(n) (start(1::bigint)
 end('f'::bool));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'n' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  specified value cannot be cast to type numeric for column "n"
 LINE 2: end('f'::bool));
             ^
 -- see that grant and revoke cascade to children
 create role part_role;
-NOTICE:  resource queue required -- using default resource queue "pg_default"
 create table granttest (i int, j int) partition by range(i) 
 subpartition by list(j) subpartition template (values(1, 2, 3))
 (start(1) end(4) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select relname, has_table_privilege('part_role', oid,'select') as tabpriv,
        has_column_privilege('part_role', oid, 'i', 'select') as i_priv,
        has_column_privilege('part_role', oid, 'j', 'select') as j_priv
 from pg_class where relname like 'granttest%';
           relname          | tabpriv | i_priv | j_priv 
 ---------------------------+---------+--------+--------
+ granttest                 | f       | f      | f
+ granttest_1_prt_1         | f       | f      | f
+ granttest_1_prt_1_2_prt_1 | f       | f      | f
  granttest_1_prt_2         | f       | f      | f
  granttest_1_prt_2_2_prt_1 | f       | f      | f
  granttest_1_prt_3         | f       | f      | f
  granttest_1_prt_3_2_prt_1 | f       | f      | f
- granttest                 | f       | f      | f
- granttest_1_prt_1         | f       | f      | f
- granttest_1_prt_1_2_prt_1 | f       | f      | f
 (7 rows)
 
 grant select (i) on granttest to part_role;
@@ -1391,13 +1316,13 @@ select relname, has_table_privilege('part_role', oid,'select') as tabpriv,
 from pg_class where relname like 'granttest%';
           relname          | tabpriv | i_priv | j_priv 
 ---------------------------+---------+--------+--------
+ granttest                 | f       | t      | f
+ granttest_1_prt_1         | f       | t      | f
+ granttest_1_prt_1_2_prt_1 | f       | t      | f
  granttest_1_prt_2         | f       | t      | f
  granttest_1_prt_2_2_prt_1 | f       | t      | f
  granttest_1_prt_3         | f       | t      | f
  granttest_1_prt_3_2_prt_1 | f       | t      | f
- granttest                 | f       | t      | f
- granttest_1_prt_1         | f       | t      | f
- granttest_1_prt_1_2_prt_1 | f       | t      | f
 (7 rows)
 
 grant select on granttest to part_role;
@@ -1407,13 +1332,13 @@ select relname, has_table_privilege('part_role', oid,'select') as tabpriv,
 from pg_class where relname like 'granttest%';
           relname          | tabpriv | i_priv | j_priv 
 ---------------------------+---------+--------+--------
+ granttest                 | t       | t      | t
  granttest_1_prt_1         | t       | t      | t
  granttest_1_prt_1_2_prt_1 | t       | t      | t
  granttest_1_prt_2         | t       | t      | t
  granttest_1_prt_2_2_prt_1 | t       | t      | t
  granttest_1_prt_3         | t       | t      | t
  granttest_1_prt_3_2_prt_1 | t       | t      | t
- granttest                 | t       | t      | t
 (7 rows)
 
 grant insert on granttest to part_role;
@@ -1423,13 +1348,13 @@ select relname, has_table_privilege('part_role', oid, 'insert') as tabpriv,
 from pg_class where relname like 'granttest%';
           relname          | tabpriv | i_priv | j_priv 
 ---------------------------+---------+--------+--------
+ granttest                 | t       | t      | t
  granttest_1_prt_1         | t       | t      | t
  granttest_1_prt_1_2_prt_1 | t       | t      | t
  granttest_1_prt_2         | t       | t      | t
  granttest_1_prt_2_2_prt_1 | t       | t      | t
  granttest_1_prt_3         | t       | t      | t
  granttest_1_prt_3_2_prt_1 | t       | t      | t
- granttest                 | t       | t      | t
 (7 rows)
 
 revoke insert on granttest from part_role;
@@ -1440,13 +1365,13 @@ select relname, has_table_privilege('part_role', oid, 'insert') as tabpriv,
 from pg_class where relname like 'granttest%';
           relname          | tabpriv | i_priv | j_priv 
 ---------------------------+---------+--------+--------
+ granttest                 | f       | f      | t
  granttest_1_prt_1         | f       | f      | t
  granttest_1_prt_1_2_prt_1 | f       | f      | t
  granttest_1_prt_2         | f       | f      | t
  granttest_1_prt_2_2_prt_1 | f       | f      | t
  granttest_1_prt_3         | f       | f      | t
  granttest_1_prt_3_2_prt_1 | f       | f      | t
- granttest                 | f       | f      | t
 (7 rows)
 
 -- Check that when a new partition is created, it inherits the permissions
@@ -1518,7 +1443,7 @@ CREATE TABLE partsupp_1 (
     ps_availqty integer,
     ps_supplycost numeric,
     ps_comment character varying(199)
-) distributed by (ps_partkey) PARTITION BY RANGE(ps_suppkey)
+) PARTITION BY RANGE(ps_suppkey)
           SUBPARTITION BY RANGE(ps_partkey)
                   SUBPARTITION BY RANGE(ps_supplycost) 
           (
@@ -1577,12 +1502,8 @@ CREATE TABLE partsupp_1 (
           );
 -- Accept negative values trivially:
 create table partition_g (i int) partition by range(i) (start((-1)) end(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table partition_g;
 create table partition_g (i int) partition by range(i) (start(-1) end(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table partition_g;
 CREATE TABLE orders (
     o_orderkey bigint,
@@ -1685,21 +1606,13 @@ WITH (appendonly=true, checksum=true, blocksize=368640, compresslevel=9) PARTITI
                           )
                   )
           );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'o_orderkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- grammar bug: MPP-3361
 create table i2 (i int) partition by range(i) (start(-2::int) end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table i2;
 create table i2 (i int) partition by range(i) (start((-2)::int) end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table i2;
 create table i2 (i int) partition by range(i) (start(cast ((-2)::bigint as int))
 end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 drop table i2;
 CREATE TABLE partsupp (
     ps_partkey integer,
@@ -1713,8 +1626,6 @@ CREATE TABLE partsupp (
 ,
           PARTITION p1 START (1::numeric) END (1001::numeric)
           );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  START EXCLUSIVE not supported for partition key data type: numeric
 HINT:  Specify an inclusive START value and remove the EXCLUSIVE keyword
 drop table partsupp;
@@ -1731,16 +1642,12 @@ partition p2 start('11') end('15') inclusive WITH (checksum=false,appendonly=tru
 partition p3 start('15') exclusive end('19'), partition p4 start('19')  WITH (compresslevel=8,appendonly=true,checksum=false,blocksize=884736), 
 partition p5 start('20')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'n_nationkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 delete from tmp_nation where n_regionkey in (select n_regionkey from tmp_nation_region) and n_nationkey between 1 and 5;
 drop table tmp_nation;
 -- SPLIT tests
 -- basic sanity tests. All should pass.
 create table k (i int) partition by range(i) (start(1) end(10) every(2), 
 default partition mydef);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into k select i from generate_series(1, 100) i;
 alter table k split partition mydef at (20) into (partition mydef, 
 partition foo);
@@ -1748,8 +1655,6 @@ ERROR:  AT clause cannot be used when splitting a default RANGE partition
 drop table k;
 create table j (i int) partition by list(i) (partition a values(1, 2, 3, 4),
 partition b values(5, 6, 7, 8));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into j select i from generate_series(1, 8) i;
 alter table j split partition for(1) at (2, 3) into (partition fa, partition
 fb);
@@ -1763,8 +1668,8 @@ select * from j_1_prt_fa;
 select * from j_1_prt_fb;
  i 
 ---
- 3
  2
+ 3
 (2 rows)
 
 alter table j split partition for(5) at (6);
@@ -1772,11 +1677,11 @@ select * from j;
  i 
 ---
  1
+ 4
+ 2
  3
  5
  7
- 4
- 2
  8
  6
 (8 rows)
@@ -1787,8 +1692,6 @@ ERROR:  AT clause parameter is not a member of the target partition specificatio
 drop table j;
 create table k (i int) partition by range(i) (start(1) end(10) every(2), 
 default partition mydef);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- should fail
 alter table k split default partition start(30) end (300) into (partition mydef, partition mydef);
 ERROR:  both INTO partitions already exist
@@ -1798,18 +1701,16 @@ drop table k;
 -- should work
 create table k (i int) partition by range(i) (start(1) end(10) every(2), 
 default partition mydef);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into k select i from generate_series(1, 30) i;
 alter table k split default partition start(15) end(20) into
 (partition mydef, partition foo);
 select * from k_1_prt_foo;
  i  
 ----
- 16
- 18
  15
+ 16
  17
+ 18
  19
 (5 rows)
 
@@ -1819,8 +1720,8 @@ select * from k_1_prt_bar;
  i  
 ----
  23
- 25
  24
+ 25
 (3 rows)
 
 -- This fails, because it would create a partition with an empty range. Before
@@ -1843,15 +1744,14 @@ Partitions: k_1_prt_2 FOR VALUES FROM (1) TO (3),
             k_1_prt_bar FOR VALUES FROM (23) TO (26),
             k_1_prt_foo FOR VALUES FROM (15) TO (20),
             k_1_prt_mydef DEFAULT
-Distributed by: (i)
 
 drop table k;
 -- Add CO partition and split, reported in MPP-17761
-create table k (i int) with (appendonly = true, orientation = column) distributed by (i) partition by range(i) (start(1) end(10) every(5));
+create table k (i int) with (appendonly = true, orientation = column) partition by range(i) (start(1) end(10) every(5));
 alter table k add partition co start(11) end (17) with (appendonly = true, orientation = column);
 alter table k split partition co at (14) into (partition co1, partition co2);
 drop table k;
-create table k (a int, b int) with (appendonly = true) distributed by (a) partition by list(b)
+create table k (a int, b int) with (appendonly = true) partition by list(b)
 (
 	partition a values (1, 2, 3, 4) with (appendonly = true, orientation = column),
 	partition b values (5, 6, 7 ,8) with (appendonly = true, orientation = column)
@@ -1861,16 +1761,12 @@ drop table k;
 -- Test errors for default handling
 create table k (i int) partition by range(i) (start(1) end(2), 
 default partition mydef);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table k split partition mydef at (25) into (partition foo, partition
 mydef);
 ERROR:  AT clause cannot be used when splitting a default RANGE partition
 drop table k;
 create table k (i int) partition by list(i) (values(1), values(2),
 default partition mydef);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table k split default partition start(10) end(20);
 ERROR:  cannot SPLIT LIST PARTITION with START
 HINT:  Use SPLIT with the AT clause instead.
@@ -1879,16 +1775,12 @@ drop table k;
 CREATE TABLE myINT2_TBL(q1 int2)
  partition by range (q1)
  (start (1) end (3) every (1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'q1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into myint2_tbl values(1), (2);
 drop table myint2_tbl;
 -- try SREH on a partitioned table.
 create table ao_p (i int) with (appendonly = true)
  partition by range(i)
  (start(1) end(5) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 copy ao_p from stdin log errors segment reject limit 100;
 NOTICE:  found 2 data formatting errors (2 or more input rows), rejected related input data
 select * from ao_p;
@@ -1902,8 +1794,6 @@ drop table ao_p;
 -- MPP-3591: make sure we get inclusive/exclusive right with every().
 create table k (i int) partition by range(i)
 (start(0) exclusive end(100) inclusive every(25));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ k
                                Partitioned table "public.k"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -1914,21 +1804,17 @@ Partitions: k_1_prt_1 FOR VALUES FROM (1) TO (26),
             k_1_prt_2 FOR VALUES FROM (26) TO (51),
             k_1_prt_3 FOR VALUES FROM (51) TO (76),
             k_1_prt_4 FOR VALUES FROM (76) TO (101)
-Distributed by: (i)
 
 insert into k select i from generate_series(1, 100) i;
 drop table k;
 -- ADD and SPLIT must get inherit permissions of the partition they're
 -- modifying
 create role part_role;
-NOTICE:  resource queue required -- using default resource queue "pg_default"
 create table a (a int, b int, c int) partition by range(a) subpartition by
 range(b) subpartition template (subpartition h start(1) end(10)) 
 subpartition by range(c)
 subpartition template(subpartition i start(1) end(10)) 
 (partition g start(1) end(2));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 revoke all on a from public;
 NOTICE:  no privileges could be revoked
 grant insert on a to part_role;
@@ -1987,8 +1873,6 @@ drop table a;
 create table a (i date) partition by range(i) 
 (partition f start(date '2005-01-01') end (date '2009-01-01')
 	every(interval '2 years'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 revoke all on a from public;
 NOTICE:  no privileges could be revoked
 grant insert on a to part_role;
@@ -2031,8 +1915,6 @@ drop role part_role;
 -- Check that when we split a default, the INTO clause must named the default
 create table k (i date) partition by range(i) (start('2008-01-01')
 end('2009-01-01') every(interval '1 month'), default partition default_part);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table k split default partition start ('2009-01-01') end ('2009-02-01')
 into (partition aa, partition nodate);
 ERROR:  default partition name missing from INTO clause
@@ -2044,8 +1926,6 @@ drop table k;
 -- List too
 create table k (i int) partition by list(i) (partition a values(1, 2),
 partition b values(3, 4), default partition mydef);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table k split partition mydef at (5) into (partition foo, partition bar);
 ERROR:  default partition name missing from INTO clause
 alter table k split partition mydef at (5) into (partition foo, partition mydef);
@@ -2054,8 +1934,6 @@ drop table k;
 -- For LIST, make sure that we reject AT() clauses which match all parameters
 create table j (i int) partition by list(i) (partition a values(1, 2, 3, 4),
  partition b values(5, 6, 7, 8));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table j split partition for(1) at (1,2) into (partition fa, partition fb);
 alter table j split partition for(1) at (1,2) 
 into (partition f1a, partition f1b); -- This has partition rules that overlaps
@@ -2064,23 +1942,17 @@ drop table j;
 -- Check that we can split LIST partitions that have a default partition
 create table j (i int) partition by list(i) (partition a values(1, 2, 3, 4),
 partition b values(5, 6, 7, 8), default partition default_part);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table j split partition for(1) at (1,2) into (partition f1a, partition
 f1b);
 drop table j;
 -- Make sure range can too
 create table j (i int) partition by range(i) (partition a start(1) end(10),
 default partition default_part);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table j split partition for(1) at (5) into (partition f1a, partition f1b);
 drop table j;
 -- MPP-3667 ADD PARTITION overlaps
 create table mpp3621 (aa date, bb date) partition by range (bb)
 (partition foo start('2008-01-01'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'aa' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- these are ok
 alter table mpp3621 add partition a1 start ('2007-01-01') end ('2007-02-01');
 alter table mpp3621 add partition a2 start ('2007-02-01') end ('2007-03-01');
@@ -2099,8 +1971,6 @@ create table list_test (a text, b text) partition by list (a) (
   partition foo values ('foo'),
   partition bar values ('bar'),
   default partition baz);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into list_test values ('foo', 'blah');
 insert into list_test values ('bar', 'blah');
 insert into list_test values ('baz', 'blah');
@@ -2108,7 +1978,7 @@ alter table list_test split default partition at ('baz')
   into (partition bing, default partition);
 drop table list_test;
 -- MPP-3816: cannot drop column  which is the subject of partition config
-create table list_test(a int, b int, c int) distributed by (a)
+create table list_test(a int, b int, c int)
   partition by list(b) 
   subpartition by list(c) subpartition template(subpartition c values(2))
   (partition b values(1));
@@ -2125,7 +1995,6 @@ rank int,
 year int,
 gender char(1),
 count int ) 
-DISTRIBUTED BY (id)
 PARTITION BY LIST (gender)
 SUBPARTITION BY RANGE (year)
 SUBPARTITION TEMPLATE (
@@ -2166,13 +2035,12 @@ select * from rank_exc_1_prt_boys_2_prt_year7;
 select * from rank_exc;
  id | rank | year | gender | count 
 ----+------+------+--------+-------
-  2 |    2 | 2008 | M      |     3
   1 |    1 | 2007 | M      |     1
+  2 |    2 | 2008 | M      |     3
 (2 rows)
 
 --exchange test
 create table r (like rank_exc);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 insert into rank_exc values(3, 3, 2004, 'F', 100);
 insert into r values(3, 3, 2004, 'F', 100000);
 alter table rank_exc alter partition girls exchange partition year4 with table r;
@@ -2212,13 +2080,11 @@ drop table r;
 create table bar_p (i int, j int) partition by range(i) subpartition by range(j)
 subpartition template(start(1) end(10) every(1)) subpartition by range(i)
 subpartition template(start(1) end(10) every(5)) (start(1) end(10));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table bar_p alter partition for ('5') alter partition for ('5')
   drop partition for ('5');
 insert into bar_p values(1, 1);
 insert into bar_p values(5, 5);
-ERROR:  no partition of relation "bar_p_1_prt_1_2_prt_5" found for row  (seg2 127.0.1.1:7004 pid=6172)
+ERROR:  no partition of relation "bar_p_1_prt_1_2_prt_5" found for row
 DETAIL:  Partition key of the failing row contains (i) = (5).
 drop table bar_p;
 -- Drop should not leave anything lingering for bar_p or its
@@ -2231,7 +2097,6 @@ select relid, level, template from gp_partition_template where not exists (selec
 -- MPP-4172
 -- should fail
 create table ggg (a char(1), b int)
-distributed by (b)
 partition by range(a)
 (
 partition aa start ('2006') end ('2009'), partition bb start ('2007') end ('2008')
@@ -2247,8 +2112,6 @@ subpartition template (
 (
 start (1) end (10) every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- works
 alter table mpp4892 add partition p1 end (11);
 -- complain about existing template
@@ -2276,8 +2139,6 @@ partition a start (1) end(10) inclusive,
 partition c start(11) end(14),
 partition b start(5) end(15)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  partition "ttt_1_prt_b" would overlap partition "ttt_1_prt_a"
 -- should fail, this time it's ordered
 create table ttt (t int) partition by range(t) (
@@ -2285,8 +2146,6 @@ partition a start (1) end(10) inclusive,
 partition b start(5) end(15),
 partition c start(11) end(14)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  partition "ttt_1_prt_b" would overlap partition "ttt_1_prt_a"
 -- should fail
 create table ttt (t date) partition by range(t) (
@@ -2294,23 +2153,18 @@ partition a start ('2005-01-01') end('2006-01-01') inclusive,
 partition b start('2005-05-01') end('2005-06-11'),
 partition c start('2006-01-01') exclusive end('2006-01-10')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  partition "ttt_1_prt_b" would overlap partition "ttt_1_prt_a"
 -- should fail
 create table ttt (t char) partition by range(t) (
 partition a start('a') end('f'),
 partition b start('e') end('g')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 't' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  partition "ttt_1_prt_b" would overlap partition "ttt_1_prt_a"
 -- MPP-5159 MPP-26829
 -- Should fail -- missing partition spec and subpartition template follows the
 -- partition declaration.
 CREATE TABLE list_sales (trans_id int, date date, amount
 decimal(9,2), region text)
-DISTRIBUTED BY (trans_id)
 PARTITION BY LIST (region)
 SUBPARTITION TEMPLATE
 ( SUBPARTITION usa VALUES ('usa'),
@@ -2318,12 +2172,12 @@ SUBPARTITION TEMPLATE
   SUBPARTITION europe VALUES ('europe')
 );
 ERROR:  syntax error at or near "TEMPLATE"
-LINE 5: SUBPARTITION TEMPLATE
+LINE 4: SUBPARTITION TEMPLATE
                      ^
 -- MPP-5185 MPP-26829
 -- Should work
 CREATE TABLE rank_settemp (id int, rank int, year date, gender
-char(1)) DISTRIBUTED BY (id, gender, year)
+char(1))
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -2374,7 +2228,7 @@ drop table rank_settemp;
 -- MPP-5397 and MPP-7002
 -- should be able to add/split/exchange partition after dropped a col
 create table mpp_5397 (a int, b int, c int, d int)
-  distributed by (a) 
+  
   partition by range (b)  
   (partition a1 start (0) end (5), 
    partition a2 end (10),  
@@ -2391,13 +2245,10 @@ drop table mpp_5397;
 -- this works
 create table rank_damage (i int, j int)
 partition by range(j) (start(1) end(5) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- should all fail
 alter table rank_damage_1_prt_1 no inherit rank_damage;
 ERROR:  cannot change inheritance of a partition
 create table rank2_damage(like rank_damage);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 alter table rank_damage_1_prt_1 inherit rank2_damage;
 ERROR:  cannot change inheritance of a partition
 alter table rank_damage_1_prt_1 alter column i type bigint;
@@ -2415,7 +2266,7 @@ transactionid character varying(32),
 transactiontime timestamp(2) without time zone
 )
 WITH (appendonly=true, compresslevel=5)
-distributed by (ip) PARTITION BY RANGE(transactiontime)
+ PARTITION BY RANGE(transactiontime)
 (
 PARTITION "P2009041607"
 START ('2009-04-16 07:00:00'::timestamp without time zone)
@@ -2443,7 +2294,6 @@ Partitions: "sg_cal_event_silvertail_hour_1_prt_P2009041607" FOR VALUES FROM ('T
             "sg_cal_event_silvertail_hour_1_prt_P2009041608" FOR VALUES FROM ('Thu Apr 16 08:00:00 2009') TO ('Thu Apr 16 09:00:00 2009'),
             sg_cal_event_silvertail_hour_1_prt_p2009042907 FOR VALUES FROM ('Wed Apr 29 07:00:00 2009') TO ('Wed Apr 29 08:00:00 2009'),
             sg_cal_event_silvertail_hour_1_prt_st_default DEFAULT
-Distributed by: (ip)
 
 \d+ sg_cal_event_silvertail_hour_1_prt_P2009042907
                                Table "public.sg_cal_event_silvertail_hour_1_prt_p2009042907"
@@ -2460,7 +2310,6 @@ Compression Type: zlib
 Compression Level: 5
 Block Size: 32768
 Checksum: t
-Distributed by: (ip)
 Options: compresslevel=5
 
 drop table sg_cal_event_silvertail_hour;
@@ -2468,8 +2317,6 @@ drop table sg_cal_event_silvertail_hour;
 create table foo_p (i int, j int, k text)
 with (appendonly = true, compresslevel = 5)
 partition by range(j) (start(1) end(10) every(1), default partition def);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into foo_p select i, i+1, repeat('fooo', 9000) from generate_series(1, 100) i;
 alter table foo_p split default partition start (10) end(20) 
 into (partition p10_20, default partition);
@@ -2489,8 +2336,6 @@ drop table foo_p;
 create table foo_p (i int, j int, k text)
 partition by range(j) (start(1) end(10) every(1), default partition def
 with(appendonly = true));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into foo_p select i, i+1, repeat('fooo', 9000) from generate_series(1, 100) i;
 alter table foo_p split default partition start (10) end(20) 
 into (partition p10_20, default partition);
@@ -2528,8 +2373,6 @@ subpartition lll2 values ('F') )
   start (date '2007-01-01')
   end (date '2010-01-01') every (interval '1 year')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- just truncate for fun to see that everything is there
 alter table mpp5941 alter partition for ('2008-01-01') 
 alter partition for (1) alter partition for ('QA')
@@ -2538,7 +2381,7 @@ alter table mpp5941 alter partition for ('2008-01-01')
 alter partition for (1) truncate partition for ('QA');
 alter table mpp5941 alter partition for ('2008-01-01') 
 truncate partition for (1);
-alter table mpp5941 truncate partition for ('2008-01-01') ;
+alter table mpp5941 truncate partition for ('2008-01-01');
 truncate table mpp5941;
 -- now look at the templates that we have
 select relid::regclass, level from gp_partition_template where relid = 'mpp5941'::regclass;
@@ -2662,8 +2505,6 @@ PARTITION BY RANGE(ps_partkey)
 (
 partition nnull start (300) end (NULL)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  cannot use NULL with range partition specification
 LINE 6: partition nnull start (300) end (NULL)
                                          ^
@@ -2674,8 +2515,6 @@ PARTITION BY RANGE(ps_partkey)
 (
 partition nnull start (300) end (NULL::int)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 ERROR:  cannot use NULL with range partition specification
 LINE 6: partition nnull start (300) end (NULL::int)
                                          ^
@@ -2688,8 +2527,6 @@ partition p1 start(1) end(10),
 partition p2 start(10) end(20),
 default partition def
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table partsupp split partition p2 at (NULL);
 ERROR:  cannot use NULL with range partition specification
 LINE 1: alter table partsupp split partition p2 at (NULL);
@@ -2706,8 +2543,6 @@ PARTITION BY RANGE(ps_partkey)
 (
 partition nnull start (300) end (400)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table partsupp add partition foo start(500) end(NULL);
 ERROR:  cannot use NULL with range partition specification
 LINE 1: alter table partsupp add partition foo start(500) end(NULL);
@@ -2723,14 +2558,13 @@ create table partnulltest (
   col1 int,
   col2 numeric
 )
-distributed by (col1)
 partition by range(col2)
 (
   partition part2 start(1) end(10) ,
   partition part1 start (NULL)
 );
 ERROR:  cannot use NULL with range partition specification
-LINE 9:   partition part1 start (NULL)
+LINE 8:   partition part1 start (NULL)
                                  ^
 -- Test pg_dump on a somewhat complicated partitioned table. (MPP-6240)
 -- We actually just create the table here, and leave it behind, so that
@@ -2754,8 +2588,6 @@ subpartition by list (s_nationkey) subpartition template (
 (               
 partition p1 start('1') end('10001') every(10000)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 's_suppkey' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- MPP-3544
 -- Domain
 create domain domainvarchar varchar(5);
@@ -2776,8 +2608,6 @@ partition aa values ('aaaaa'),
 partition bb values ('bbbbb'),
 partition cc values ('ccccc')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'testint4' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table basictest1 add partition dd values('ddddd');
 insert into basictest1 values(1, 1, 'ddddd', 1);
 insert into basictest1 values(1, 1, 'ccccc', 1);
@@ -2788,8 +2618,6 @@ drop table basictest1;
 create table basictest1 (testnumeric domainint4)
 partition by range(testnumeric)
  (start(1) end(10) every(5));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'testnumeric' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into basictest1 values(1);
 insert into basictest1 values(2);
 alter table basictest1 add partition ff start(10) end(20);
@@ -2798,7 +2626,6 @@ drop table basictest1;
 drop domain domainvarchar, domainnumeric, domainint4, domaintext;
 -- Test index inheritance with partitions
 create table ti (i int not null, j int)
-distributed by (i)
 partition by range (j) 
 (start(1) end(3) every(1));
 create unique index ti_pkey on ti(i,j);
@@ -2826,14 +2653,14 @@ alter table ti add partition p3 start(3) end(10);
 select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
  schemaname |  tablename  |      indexname      | tablespace |                                     indexdef                                     
 ------------+-------------+---------------------+------------+----------------------------------------------------------------------------------
+ public     | ti_1_prt_p3 | ti_1_prt_p3_i_j_idx |            | CREATE UNIQUE INDEX ti_1_prt_p3_i_j_idx ON public.ti_1_prt_p3 USING btree (i, j)
+ public     | ti_1_prt_p3 | ti_1_prt_p3_j_idx   |            | CREATE INDEX ti_1_prt_p3_j_idx ON public.ti_1_prt_p3 USING bitmap (j)
  public     | ti_1_prt_1  | ti_1_prt_1_i_j_idx  |            | CREATE UNIQUE INDEX ti_1_prt_1_i_j_idx ON public.ti_1_prt_1 USING btree (i, j)
  public     | ti          | ti_pkey             |            | CREATE UNIQUE INDEX ti_pkey ON ONLY public.ti USING btree (i, j)
  public     | ti_1_prt_2  | ti_1_prt_2_i_j_idx  |            | CREATE UNIQUE INDEX ti_1_prt_2_i_j_idx ON public.ti_1_prt_2 USING btree (i, j)
  public     | ti_1_prt_1  | ti_1_prt_1_j_idx    |            | CREATE INDEX ti_1_prt_1_j_idx ON public.ti_1_prt_1 USING bitmap (j)
  public     | ti          | ti_j_idx            |            | CREATE INDEX ti_j_idx ON ONLY public.ti USING bitmap (j)
  public     | ti_1_prt_2  | ti_1_prt_2_j_idx    |            | CREATE INDEX ti_1_prt_2_j_idx ON public.ti_1_prt_2 USING bitmap (j)
- public     | ti_1_prt_p3 | ti_1_prt_p3_i_j_idx |            | CREATE UNIQUE INDEX ti_1_prt_p3_i_j_idx ON public.ti_1_prt_p3 USING btree (i, j)
- public     | ti_1_prt_p3 | ti_1_prt_p3_j_idx   |            | CREATE INDEX ti_1_prt_p3_j_idx ON public.ti_1_prt_p3 USING bitmap (j)
 (8 rows)
 
 -- Should not be able to drop child indexes added implicitly via ADD PARTITION
@@ -2847,16 +2674,16 @@ alter table ti split partition p3 at (7) into (partition pnew1, partition pnew2)
 select * from pg_indexes where schemaname = 'public' and tablename like 'ti%';
  schemaname |   tablename    |       indexname        | tablespace |                                        indexdef                                        
 ------------+----------------+------------------------+------------+----------------------------------------------------------------------------------------
+ public     | ti_1_prt_pnew1 | ti_1_prt_pnew1_i_j_idx |            | CREATE UNIQUE INDEX ti_1_prt_pnew1_i_j_idx ON public.ti_1_prt_pnew1 USING btree (i, j)
+ public     | ti_1_prt_pnew1 | ti_1_prt_pnew1_j_idx   |            | CREATE INDEX ti_1_prt_pnew1_j_idx ON public.ti_1_prt_pnew1 USING bitmap (j)
+ public     | ti_1_prt_pnew2 | ti_1_prt_pnew2_i_j_idx |            | CREATE UNIQUE INDEX ti_1_prt_pnew2_i_j_idx ON public.ti_1_prt_pnew2 USING btree (i, j)
+ public     | ti_1_prt_pnew2 | ti_1_prt_pnew2_j_idx   |            | CREATE INDEX ti_1_prt_pnew2_j_idx ON public.ti_1_prt_pnew2 USING bitmap (j)
  public     | ti_1_prt_1     | ti_1_prt_1_i_j_idx     |            | CREATE UNIQUE INDEX ti_1_prt_1_i_j_idx ON public.ti_1_prt_1 USING btree (i, j)
  public     | ti             | ti_pkey                |            | CREATE UNIQUE INDEX ti_pkey ON ONLY public.ti USING btree (i, j)
  public     | ti_1_prt_2     | ti_1_prt_2_i_j_idx     |            | CREATE UNIQUE INDEX ti_1_prt_2_i_j_idx ON public.ti_1_prt_2 USING btree (i, j)
  public     | ti_1_prt_1     | ti_1_prt_1_j_idx       |            | CREATE INDEX ti_1_prt_1_j_idx ON public.ti_1_prt_1 USING bitmap (j)
  public     | ti             | ti_j_idx               |            | CREATE INDEX ti_j_idx ON ONLY public.ti USING bitmap (j)
  public     | ti_1_prt_2     | ti_1_prt_2_j_idx       |            | CREATE INDEX ti_1_prt_2_j_idx ON public.ti_1_prt_2 USING bitmap (j)
- public     | ti_1_prt_pnew1 | ti_1_prt_pnew1_i_j_idx |            | CREATE UNIQUE INDEX ti_1_prt_pnew1_i_j_idx ON public.ti_1_prt_pnew1 USING btree (i, j)
- public     | ti_1_prt_pnew1 | ti_1_prt_pnew1_j_idx   |            | CREATE INDEX ti_1_prt_pnew1_j_idx ON public.ti_1_prt_pnew1 USING bitmap (j)
- public     | ti_1_prt_pnew2 | ti_1_prt_pnew2_i_j_idx |            | CREATE UNIQUE INDEX ti_1_prt_pnew2_i_j_idx ON public.ti_1_prt_pnew2 USING btree (i, j)
- public     | ti_1_prt_pnew2 | ti_1_prt_pnew2_j_idx   |            | CREATE INDEX ti_1_prt_pnew2_j_idx ON public.ti_1_prt_pnew2 USING bitmap (j)
 (10 rows)
 
 -- Should not be able to drop child indexes added implicitly via SPLIT PARTITION
@@ -2887,16 +2714,12 @@ drop table ti;
 drop table if exists dis_tupdesc;
 NOTICE:  table "dis_tupdesc" does not exist, skipping
 create table dis_tupdesc (a int, b int, c int)
-distributed by (a)
 partition by list (b)
 (
     partition p1 values (1),
     partition p2 values (2),
     default partition junk_data
 );
-NOTICE:  CREATE TABLE will create partition "dis_tupdesc_1_prt_p1" for table "dis_tupdesc"
-NOTICE:  CREATE TABLE will create partition "dis_tupdesc_1_prt_p2" for table "dis_tupdesc"
-NOTICE:  CREATE TABLE will create partition "dis_tupdesc_1_prt_junk_data" for table "dis_tupdesc"
 create index dis_tupdesc_idx on dis_tupdesc using btree (c);
 insert into dis_tupdesc select i, i % 3, i % 4 from generate_series (1, 240) as i;
 analyze dis_tupdesc;
@@ -2916,8 +2739,6 @@ reset optimizer_segments;
 create table it (i int, j int) partition by range(i) 
 subpartition by range(j) subpartition template(start(1) end(10) every(5))
 (start(1) end(3) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table it rename to newit;
 select schemaname, tablename from pg_tables where schemaname = 'public' and tablename like 'newit%';
  schemaname |       tablename       
@@ -2942,9 +2763,9 @@ select schemaname, tablename from pg_tables where schemaname = 'public' and tabl
  public     | newit_1_prt_2
  public     | newit_1_prt_2_2_prt_1
  public     | newit_1_prt_2_2_prt_2
+ public     | newit_1_prt_def
  public     | newit_1_prt_def_2_prt_1
  public     | newit_1_prt_def_2_prt_2
- public     | newit_1_prt_def
 (10 rows)
 
 alter table newit rename to anotherit;
@@ -2969,7 +2790,7 @@ drop table anotherit;
 -- Test table constraint inheritance
 --
 -- with a named UNIQUE constraint
-create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+create table it (i int) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename | indexname 
 ------------+-----------+-----------
@@ -2979,8 +2800,8 @@ alter table it add constraint it_unique_i unique (i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename  |    indexname     
 ------------+------------+------------------
- public     | it         | it_unique_i
  public     | it_1_prt_1 | it_1_prt_1_i_key
+ public     | it         | it_unique_i
  public     | it_1_prt_2 | it_1_prt_2_i_key
 (3 rows)
 
@@ -2992,7 +2813,7 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 
 drop table it;
 -- with a PRIMARY KEY constraint, without giving it a name explicitly.
-create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+create table it (i int) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename | indexname 
 ------------+-----------+-----------
@@ -3002,8 +2823,8 @@ alter table it add primary key(i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename  |    indexname    
 ------------+------------+-----------------
- public     | it         | it_pkey
  public     | it_1_prt_1 | it_1_prt_1_pkey
+ public     | it         | it_pkey
  public     | it_1_prt_2 | it_1_prt_2_pkey
 (3 rows)
 
@@ -3014,7 +2835,7 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 -- alter table it add primary key(i);
 -- select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
 drop table it;
-create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+create table it (i int) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename | indexname 
 ------------+-----------+-----------
@@ -3024,8 +2845,8 @@ alter table it add primary key(i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
  schemaname | tablename  |    indexname    
 ------------+------------+-----------------
- public     | it         | it_pkey
  public     | it_1_prt_1 | it_1_prt_1_pkey
+ public     | it         | it_pkey
  public     | it_1_prt_2 | it_1_prt_2_pkey
 (3 rows)
 
@@ -3037,7 +2858,7 @@ create table parttab_with_excl_constraint (
   i int,
   j int,
   CONSTRAINT part_excl EXCLUDE (i WITH =) )
-distributed by (i) partition by list (i) (
+ partition by list (i) (
   partition a values (1),
   partition b values (2),
   partition c values (3)
@@ -3048,7 +2869,7 @@ LINE 4:   CONSTRAINT part_excl EXCLUDE (i WITH =) )
 create table parttab_with_excl_constraint (
   i int,
   j int)
-distributed by (i) partition by list (i) (
+ partition by list (i) (
   partition a values (1),
   partition b values (2),
   partition c values (3)
@@ -3072,7 +2893,7 @@ drop table parttab_with_excl_constraint;
 CREATE TABLE mpp6297 ( l_orderkey bigint,
 l_commitdate date
 )
-distributed BY (l_orderkey) PARTITION BY RANGE(l_commitdate)
+ PARTITION BY RANGE(l_commitdate)
 (
 PARTITION p1_1 START ('1992-01-31'::date) END ('1993-02-28'::date)
 EVERY ('1 year 1 mon'::interval)
@@ -3094,7 +2915,6 @@ Partitions: mpp6297_1_prt_p1_1_1 FOR VALUES FROM ('01-31-1992') TO ('02-28-1993'
             mpp6297_1_prt_p1_2_1 FOR VALUES FROM ('02-28-1993') TO ('03-28-1994'),
             mpp6297_1_prt_p1_2_2 FOR VALUES FROM ('03-28-1994') TO ('03-31-1994'),
             mpp6297_1_prt_p1_3_1 FOR VALUES FROM ('03-31-1994') TO ('04-30-1995')
-Distributed by: (l_orderkey)
 
 drop table mpp6297;
 -- when WITH(tablename=...) is specified, the EVERY is stored as an
@@ -3102,7 +2922,7 @@ drop table mpp6297;
 CREATE TABLE mpp6297 ( l_orderkey bigint,
 l_commitdate date
 )
-distributed BY (l_orderkey) PARTITION BY RANGE(l_commitdate)
+ PARTITION BY RANGE(l_commitdate)
 (
 PARTITION p1_1 START ('1992-01-31'::date) END ('1993-02-28'::date)
 EVERY ('1 year 1 mon'::interval)
@@ -3124,7 +2944,6 @@ Partition key: RANGE (l_commitdate)
 Partitions: mpp6297_1_prt_p1_1 FOR VALUES FROM ('01-31-1992') TO ('02-28-1993'),
             mpp6297_1_prt_p1_2 FOR VALUES FROM ('02-28-1993') TO ('03-31-1994'),
             mpp6297_1_prt_p1_3 FOR VALUES FROM ('03-31-1994') TO ('04-30-1995')
-Distributed by: (l_orderkey)
 
 drop table mpp6297;
 -- more with basic cases
@@ -3136,8 +2955,6 @@ partition by range (b)
 start (1) end (10) every (1),
 end (11)		
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3155,7 +2972,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_7 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_8 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_9 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 alter table mpp6297 drop partition for (3);
 \d+ mpp6297
@@ -3174,7 +2990,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_7 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_8 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_9 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 -- this isn't legal (but it would be nice)
 alter table mpp6297 add partition start (3) end (4) every (1);
@@ -3182,7 +2997,7 @@ ERROR:  syntax error at or near "every"
 LINE 1: ...ter table mpp6297 add partition start (3) end (4) every (1);
                                                              ^
 -- this is legal but it doesn't fix the EVERY clause
-alter table mpp6297 add partition start (3) end (4) ;
+alter table mpp6297 add partition start (3) end (4);
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3200,7 +3015,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_7 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_8 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_9 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 drop table mpp6297;
 -- similarly, we can merge adjacent EVERY clauses if they match
@@ -3212,8 +3026,6 @@ partition by range (b)
 start (1) end (5) every (1),
 start (5) end (10) every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3230,7 +3042,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_7 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_8 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_9 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 drop table mpp6297;
 -- we cannot merge adjacent EVERY clauses if inclusivity/exclusivity is wrong
@@ -3242,8 +3053,6 @@ partition by range (b)
 start (1) end (5) every (1),
 start (5) exclusive end (10) every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3259,7 +3068,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_6 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_7 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_8 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 drop table mpp6297;
 -- more fun with inclusivity/exclusivity (normal case)
@@ -3270,8 +3078,6 @@ partition by range (b)
 (
 start (1) inclusive end (10) exclusive every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3288,7 +3094,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_7 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_8 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_9 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 drop table mpp6297;
 -- more fun with inclusivity/exclusivity (abnormal case)
@@ -3299,8 +3104,6 @@ partition by range (b)
 (
 start (1) exclusive end (10) inclusive every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3317,7 +3120,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (2) TO (3),
             mpp6297_1_prt_7 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_8 FOR VALUES FROM (9) TO (10),
             mpp6297_1_prt_9 FOR VALUES FROM (10) TO (11)
-Distributed by: (a)
 
 alter table mpp6297 drop partition for (3);
 \d+ mpp6297
@@ -3335,7 +3137,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (2) TO (3),
             mpp6297_1_prt_7 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_8 FOR VALUES FROM (9) TO (10),
             mpp6297_1_prt_9 FOR VALUES FROM (10) TO (11)
-Distributed by: (a)
 
 drop table mpp6297;
 -- we cannot merge adjacent EVERY clauses, even though the
@@ -3349,8 +3150,6 @@ partition by range (b)
 start (1) end (5) inclusive every (1),
 start (5) exclusive end (10) every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 \d+ mpp6297
                             Partitioned table "public.mpp6297"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -3367,7 +3166,6 @@ Partitions: mpp6297_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp6297_1_prt_7 FOR VALUES FROM (7) TO (8),
             mpp6297_1_prt_8 FOR VALUES FROM (8) TO (9),
             mpp6297_1_prt_9 FOR VALUES FROM (9) TO (10)
-Distributed by: (a)
 
 drop table mpp6297;
 -- MPP-6589: SPLITting an "open" ended partition (ie, no start or end)
@@ -3376,7 +3174,6 @@ CREATE TABLE mpp6589a
   id bigint,
   day_dt date
 )
-DISTRIBUTED BY (id)
 PARTITION BY RANGE(day_dt)
           (
           PARTITION p20090312  END ('2009-03-12'::date)
@@ -3402,8 +3199,6 @@ select relname, pg_get_expr(relpartbound, oid, false) from pg_class where relnam
 
 CREATE TABLE mpp6589i(a int, b int) 
 partition by range (b) (start (1) end (3));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select relname, pg_get_expr(relpartbound, oid, false) from pg_class where relname like 'mpp6589i%';
      relname      |        pg_get_expr         
 ------------------+----------------------------
@@ -3430,7 +3225,6 @@ CREATE TABLE mpp6589b
   id bigint,
   day_dt date
 )
-DISTRIBUTED BY (id)
 PARTITION BY RANGE(day_dt)
           (
           PARTITION p20090312  START ('2008-03-12'::date)
@@ -3476,8 +3270,6 @@ subpartition lll2 values ('F') )
   start (date '2007-01-01')
   end (date '2010-01-01') every (interval '1 year')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- Delete subpartition template
 alter table mpp5992 alter partition for ('2008-01-01')
 set subpartition template ();
@@ -3782,7 +3574,6 @@ totcellsingress double precision,
 PRIMARY KEY (rnc,wbts,axc,vptt,vcct,agg_level,period_start_time)
 )
  
-DISTRIBUTED BY (rnc,wbts,axc,vptt,vcct)
  
 PARTITION BY LIST (AGG_LEVEL)
   SUBPARTITION BY RANGE (PERIOD_START_TIME)
@@ -3839,7 +3630,6 @@ totcellsegress double precision,
 totcellsingress double precision
 )
  
-DISTRIBUTED BY (rnc,wbts,axc,vptt,vcct)
  
 PARTITION BY LIST (AGG_LEVEL)
   SUBPARTITION BY RANGE (PERIOD_START_TIME)
@@ -3936,8 +3726,6 @@ partition by range (b)
 subpartition by range (d)
 (partition p1 start (1) end (10)
 (subpartition sp2 start (20) end (30)));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- MPP-10421: allow re-use sp2 for non-DEFAULT partition
 alter table mpp10223b alter partition p1 
 split partition for (20) at (25)
@@ -3957,8 +3745,6 @@ partition by range (b)
 subpartition by range(d)
 subpartition template (start (1) end (10) every (1))
 (start (20) end (30) every (1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 select relid::regclass, level, template from gp_partition_template where relid = 'MPP10480'::regclass;
   relid   | level |                                                                                                                                                                                                                  template                                                                                                                                                                                                                  
 ----------+-------+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -3982,7 +3768,6 @@ CREATE TABLE mpp10321a
   CONSTRAINT "mpp10321a_pk"
 PRIMARY KEY (rnc,wbts,axc,vptt,vcct,agg_level,period_start_time)
 )
-DISTRIBUTED BY (rnc,wbts,axc,vptt,vcct)
 PARTITION BY LIST (AGG_LEVEL)
   SUBPARTITION BY RANGE (PERIOD_START_TIME)
 (
@@ -4006,7 +3791,7 @@ INTO (PARTITION P20010101, PARTITION P_FUTURE);
 DROP TABLE mpp10321a;
 -- test for default partition with boundary spec
 create table bhagp_range (a int, b int) 
-distributed by (a) 
+ 
 partition by range (b) 
 ( 
   default partition x 
@@ -4018,7 +3803,7 @@ ERROR:  syntax error at or near "start"
 LINE 6:   start (0) inclusive 
           ^
 create table bhagp_list (a int, b int) 
-distributed by (a) 
+ 
 partition by list (b) 
 ( 
   default partition x 
@@ -4030,17 +3815,15 @@ LINE 6:   values (1,2)
 -- more coverage tests
 -- bad partition by type
 create table cov1 (a int, b int)
-distributed by (a)
 partition by (b)
 (
 start (1) end (10) every (1)
 );
 ERROR:  syntax error at or near "("
-LINE 3: partition by (b)
+LINE 2: partition by (b)
                      ^
 -- bad partition by type
 create table cov1 (a int, b int)
-distributed by (a)
 partition by funky (b)
 (
 start (1) end (10) every (1)
@@ -4049,7 +3832,6 @@ ERROR:  unrecognized partitioning strategy "funky"
 drop table cov1;
 ERROR:  table "cov1" does not exist
 create table cov1 (a int, b int)
-distributed by (a)
 partition by range (b)
 (
 start (1) end (10) every (1)
@@ -4078,18 +3860,16 @@ alter table cov1 add default partition def1, drop default partition;
 drop table cov1;
 -- every 5 (1) now disallowed...
 create table cov1 (a int, b int)
-distributed by (a)
 partition by range (b)
 (
 start (1) end(20) every 5 (1)
 );
 ERROR:  syntax error at or near "5"
-LINE 5: start (1) end(20) every 5 (1)
+LINE 4: start (1) end(20) every 5 (1)
                                 ^
 drop table if exists cov1;
 NOTICE:  table "cov1" does not exist, skipping
 create table cov1 (a int, b int)
-distributed by (a)
 partition by list (b)
 (
 partition p1 values (1,2,3,4,5,6,7,8)
@@ -4121,7 +3901,6 @@ create table tbl11120 (
 	c	int,
 	primary key (a,b,c)
 )
-distributed by (a)
 partition by range (b)
 (
 	default partition default_partition,
@@ -4145,12 +3924,9 @@ insert into tbl11120 values(1,2,3); -- reinsert data
 select relname, distkey as distribution_attributes from
 gp_distribution_policy p, pg_class c
 where p.localoid = c.oid and relname like 'tbl11120%' order by p.localoid;
-             relname              | distribution_attributes 
-----------------------------------+-------------------------
- tbl11120                         | 1
- tbl11120_1_prt_default_partition | 1
- tbl11120_1_prt_p1                | 1
-(3 rows)
+ relname | distribution_attributes 
+---------+-------------------------
+(0 rows)
 
 alter table tbl11120 split default partition
         start (3)
@@ -4159,13 +3935,9 @@ alter table tbl11120 split default partition
 select relname, distkey as distribution_attributes from
 gp_distribution_policy p, pg_class c where p.localoid = c.oid and 
 relname like 'tbl11120%' order by p.localoid;
-             relname              | distribution_attributes 
-----------------------------------+-------------------------
- tbl11120                         | 1
- tbl11120_1_prt_p1                | 1
- tbl11120_1_prt_p2                | 1
- tbl11120_1_prt_default_partition | 1
-(4 rows)
+ relname | distribution_attributes 
+---------+-------------------------
+(0 rows)
 
 delete from tbl11120 where a=1 and b=2 and c=3; -- this should delete the row in tbl11120
 select * from tbl11120; -- expected, no rows! But we see the row. Wrong results!
@@ -4178,13 +3950,9 @@ alter table tbl11120 add partition foo start(10) end(20);
 select relname, distkey as distribution_attributes from
 gp_distribution_policy p, pg_class c where p.localoid = c.oid and
 relname like 'tbl11120%' order by p.localoid;
-      relname       | distribution_attributes 
---------------------+-------------------------
- tbl11120           | 1
- tbl11120_1_prt_p1  | 1
- tbl11120_1_prt_p2  | 1
- tbl11120_1_prt_foo | 1
-(4 rows)
+ relname | distribution_attributes 
+---------+-------------------------
+(0 rows)
 
 drop table tbl11120;
 -- MPP-6979: EXCHANGE partitions - fix namespaces if they differ
@@ -4195,11 +3963,8 @@ partition by range(b)
 (
 start (1) end (10) every (1)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- append-only table in new schema 
 create table mpp6979dummy.mpp6979tab(like mpp6979part) with (appendonly=true);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 -- check that table and all parts in public schema
 select relname, nspname, relispartition from pg_class c, pg_namespace n
 where c.relnamespace = n.oid and relname like ('mpp6979%');
@@ -4288,7 +4053,7 @@ drop schema mpp6979dummy;
 -- MPP-7898:
 create table parent_s
     (a int, b text) 
-    distributed by (a);
+  ;
     
 insert into parent_s values
     (1, 'one');
@@ -4317,7 +4082,7 @@ drop table if exists child_r cascade; --ignore
 NOTICE:  table "child_r" does not exist, skipping
 create table parent_r
     ( a int, b text, c int, d int ) 
-    distributed by (a)
+   
     partition by range(d) 
     (
         start (0) 
@@ -4329,14 +4094,14 @@ insert into parent_r values
     (0, 'from r', 0, 0);
 create table parent_s
     ( a int, b text, c int, d int ) 
-    distributed by (a);
+  ;
     
 insert into parent_s values
     (1, 'from s', 555, 555);
 create table child_t
     ( )
     inherits (parent_s)
-    distributed by (a);
+  ;
 insert into child_t values
     (0, 'from t', 666, 666);
 -- Try to exchange in the child and parent.  
@@ -4351,7 +4116,7 @@ drop table parent_r cascade; --ignore
 -- MPP-7898 end.
 -- ( MPP-13750 
 CREATE TABLE s (id int, date date, amt decimal(10,2), units int) 
-DISTRIBUTED BY (id) 
+ 
 PARTITION BY RANGE (date) 
 ( START (date '2008-01-01') INCLUSIVE 
    END (date '2008-01-02') EXCLUSIVE 
@@ -4367,6 +4132,7 @@ alter table s add partition s_test
     start(date '2008-01-03') end (date '2008-01-05');
 alter table s split partition for (date '2008-01-03') at (date '2008-01-04')
   into (partition s_test, partition s_test2);
+-- start_ignore
 select 
     relname, 
     (select count(distinct content) - 1 
@@ -4380,30 +4146,29 @@ where relname ~ '^s_'
 group by relname; 
           relname          | missing | oid_count 
 ---------------------------+---------+-----------
- s_1_prt_1_amt_idx         |       0 |         1
- s_1_prt_1_units_idx       |       0 |         1
- s_1_prt_s_test2_log_idx   |       0 |         1
- s_1_prt_s_test_log_idx1   |       0 |         1
- s_i_expr                  |       0 |         1
- s_j                       |       0 |         1
- s_1_prt_s_test2_amt_idx   |       0 |         1
- s_1_prt_s_test2_units_idx |       0 |         1
- s_1_prt_s_test_amt_idx1   |       0 |         1
- s_1_prt_s_test_units_idx1 |       0 |         1
- s_1_prt_1                 |       0 |         1
- s_1_prt_1_log_idx         |       0 |         1
- s_1_prt_s_test            |       0 |         1
- s_1_prt_s_test2           |       0 |         1
- s_i                       |       0 |         1
+ s_1_prt_1                 |      -1 |         1
+ s_1_prt_1_amt_idx         |      -1 |         1
+ s_1_prt_1_log_idx         |      -1 |         1
+ s_1_prt_1_units_idx       |      -1 |         1
+ s_1_prt_s_test            |      -1 |         1
+ s_1_prt_s_test2           |      -1 |         1
+ s_1_prt_s_test2_amt_idx   |      -1 |         1
+ s_1_prt_s_test2_log_idx   |      -1 |         1
+ s_1_prt_s_test2_units_idx |      -1 |         1
+ s_1_prt_s_test_amt_idx1   |      -1 |         1
+ s_1_prt_s_test_log_idx1   |      -1 |         1
+ s_1_prt_s_test_units_idx1 |      -1 |         1
+ s_i                       |      -1 |         1
+ s_i_expr                  |      -1 |         1
+ s_j                       |      -1 |         1
 (15 rows)
-
+-- end_ignore
 drop table s cascade;
 --   MPP-13750 )
 -- MPP-13806 start
 drop table if exists mpp13806;
 NOTICE:  table "mpp13806" does not exist, skipping
  CREATE TABLE mpp13806 (id int, date date, amt decimal(10,2))
- DISTRIBUTED BY (id)
  PARTITION BY RANGE (date)
  ( START (date '2008-01-01') INCLUSIVE
 	END (date '2008-01-05') EXCLUSIVE
@@ -4414,7 +4179,6 @@ alter table mpp13806 add partition test end (date '2008-01-01') exclusive;
  
 drop table if exists mpp13806;
  CREATE TABLE mpp13806 (id int, date date, amt decimal(10,2))
- DISTRIBUTED BY (id)
  PARTITION BY RANGE (date)
  ( START (date '2008-01-01') EXCLUSIVE
 	END (date '2008-01-05') EXCLUSIVE
@@ -4433,7 +4197,6 @@ drop table if exists at cascade;
 NOTICE:  table "at" does not exist, skipping
 create table tc
     (a int, b int, c int, primary key(a) )
-    distributed by (a)
     partition by range (b)
     ( 
         default partition d,
@@ -4443,17 +4206,15 @@ DETAIL:  PRIMARY KEY constraint on table "tc" lacks column "b" which is part of 
 ERROR:  unique constraint on partitioned table must include all partitioning columns
 create table cc
     (a int primary key, b int, c int)
-    distributed by (a)
     partition by range (b)
     ( 
         default partition d,
         start (0) inclusive end(100) inclusive every (50)
     );
-DETAIL:  PRIMARY KEY constraint on table "cc" lacks column "b" which is part of the partition key.
 ERROR:  unique constraint on partitioned table must include all partitioning columns
+DETAIL:  PRIMARY KEY constraint on table "cc" lacks column "b" which is part of the partition key.
 create table at
     (a int, b int, c int)
-    distributed by (a)
     partition by range (b)
     ( 
         default partition d,
@@ -4461,8 +4222,8 @@ create table at
     );
 alter table at
     add primary key (a);
-DETAIL:  PRIMARY KEY constraint on table "at" lacks column "b" which is part of the partition key.
 ERROR:  unique constraint on partitioned table must include all partitioning columns
+DETAIL:  PRIMARY KEY constraint on table "at" lacks column "b" which is part of the partition key.
 -- MPP-14471 end
 -- MPP-17606 (using table "at" from above)
 alter table at
@@ -4475,7 +4236,6 @@ ERROR:  cannot alter column "b" because it is part of the partition key of relat
 create table mpp17707
 ( d int, p int ,x text)
 with (appendonly = true)
-distributed by (d)
 partition by range (p)
 (start (0) end (3) every (2));
 -- Create a expression index on the partitioned table
@@ -4494,7 +4254,6 @@ create table plst2
         b integer not null,
 	d plst2_partkey
     )                                                                                                                   
-    distributed by (b) 
     partition by list (d)
     (
         partition p1 values ( CAST('(1,2)' as plst2_partkey), CAST('(3,4)' as plst2_partkey) ),
@@ -4511,7 +4270,6 @@ Partition key: LIST (d)
 Partitions: plst2_1_prt_p1 FOR VALUES IN ('(1,2)', '(3,4)'),
             plst2_1_prt_p2 FOR VALUES IN ('(5,6)'),
             plst2_1_prt_p3 FOR VALUES IN ('(2,1)')
-Distributed by: (b)
 
 drop table if exists plst2 cascade;
 --negative; test legitimate failure
@@ -4520,7 +4278,6 @@ create table plst2
         b integer not null,
 	d plst2_partkey
     )                                                                                                                   
-    distributed by (b) 
     partition by list (d)
     (
         partition p1 values ( CAST('(1,2)' as plst2_partkey), CAST('(3,4)' as plst2_partkey) ),
@@ -4528,7 +4285,7 @@ create table plst2
         partition p3 values ( CAST('(1,2)' as plst2_partkey) )
     );
 ERROR:  partition "plst2_1_prt_p3" would overlap partition "plst2_1_prt_p1"
-LINE 11:         partition p3 values ( CAST('(1,2)' as plst2_partkey)...
+LINE 10:         partition p3 values ( CAST('(1,2)' as plst2_partkey)...
                                             ^
 -- postive; make sure inner part duplicates are accepted and quietly removed.
 drop table if exists plst2;
@@ -4537,7 +4294,6 @@ drop type plst2_partkey;
 create type plst2_partkey as (a int, b int);
 create table plst2
     ( d int, c plst2_partkey)
-    distributed by (d)
     partition by list (c) 
         (
         partition p0 values ( CAST('(1,2)' as plst2_partkey), CAST('(3,4)' as plst2_partkey) ),
@@ -4561,7 +4317,6 @@ Partitions: plst2_1_prt_p0 FOR VALUES IN ('(1,2)', '(3,4)'),
             plst2_1_prt_p3 FOR VALUES IN ('(4,5)', '(5,6)'),
             plst2_1_prt_p4 FOR VALUES IN ('(5,4)', '(6,5)'),
             plst2_1_prt_p5 FOR VALUES IN ('(7,8)')
-Distributed by: (d)
 
 -- negative; make sure conflicting alters fail.
 alter table plst2 add partition p6 values (CAST('(7,8)' as plst2_partkey), CAST('(2,1)' as plst2_partkey));
@@ -4574,8 +4329,6 @@ drop table if exists plst2;
 create table s_heap (i1 int, t1 text, t2 text, i2 int, i3 int, n1 numeric, b1 bool)
 partition by list (t1)
      (partition abc values('abc0', 'abc1', 'abc2'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into s_heap (t1, i1, i2, i3, n1, b1) select 'abc0', 1, 1, 1, 2.3, true
     from generate_series(1, 5);
 alter table s_heap drop column t2;
@@ -4583,8 +4336,6 @@ alter table s_heap drop column i3;
 -- create co table for exchange
 create table s_heap_ex_abc (i1 int, t1 text, f1 float, i2 int, n1 numeric, b1 bool)
     WITH (appendonly=true, orientation=column, compresstype=zlib);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table s_heap_ex_abc drop column f1;
 insert into s_heap_ex_abc select 1, 'abc1', 2, 2, true from generate_series(1, 5);
 -- exchange partition
@@ -4596,8 +4347,6 @@ drop table s_heap, s_heap_ex_abc;
 create table s_heap (i1 int, t1 text, i2 int , i3 int, n1 numeric,b1 bool)
 partition by list (t1)
     (partition def values('def0', 'def1', 'def2', 'def3', 'def4', 'def5', 'def6', 'def7', 'def8', 'def9'));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into s_heap(t1, i1, i2, i3, n1, b1)
     select 'def0', 1, 1, 1, 2.3 , true from generate_series(1, 5);
 alter table s_heap drop column i3;
@@ -4621,8 +4370,6 @@ create table s_heap_ao ( i1 int, t1 text, i2 int , i3 int, n1 numeric,b1 bool)
 partition by list (t1)
     (partition def values('def0', 'def1', 'def2', 'def3', 'def4', 'def5', 'def6', 'def7', 'def8', 'def9')
         with (appendonly=true, orientation=row));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into s_heap_ao(t1, i1, i2, i3, n1, b1)
     select 'def4', 1, 1, 1, 2.3, true from generate_series(1, 2);
 insert into s_heap_ao(t1, i1, i2, i3, n1, b1)
@@ -4645,8 +4392,6 @@ create table s_heap_co (i1 int, t1 text, i2 int, i3 int, n1 numeric, b1 bool)
 partition by list (t1)
     (partition def values('def0', 'def1', 'def2', 'def3', 'def4', 'def5', 'def6', 'def7', 'def8', 'def9')
         with (appendonly=true, orientation=column));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into s_heap_co(t1, i1, i2, i3, n1, b1)
     select 'def4', 1,1, 1, 2.3, true from generate_series(1, 2);
 insert into s_heap_co(t1, i1, i2, i3, n1, b1)
@@ -4681,7 +4426,7 @@ CREATE TABLE non_ws_phone_leads (
     dim_phone_provider_key smallint NOT NULL ENCODING (compresstype=zlib,compresslevel=1,blocksize=32768),
     dim_phone_ad_set_key smallint NOT NULL ENCODING (compresstype=zlib,compresslevel=1,blocksize=32768)
 )
-WITH (appendonly=true, compresstype=zlib, orientation=column) DISTRIBUTED BY (dim_site_key ,dim_date_key) PARTITION BY RANGE(dim_date_key) 
+WITH (appendonly=true, compresstype=zlib, orientation=column) PARTITION BY RANGE(dim_date_key) 
           (
           PARTITION p_max START (2451545) END (9999999) WITH (tablename='non_ws_phone_leads_1_prt_p_max', orientation=column, appendonly=true ) 
                     COLUMN lead_key ENCODING (compresstype=zlib, compresslevel=1, blocksize=32768) 
@@ -4706,7 +4451,7 @@ CREATE TABLE dim_phone_numbers (
     formatted_phone_number character varying(20) NOT NULL,
     source_system_phone_number_id character varying(100) NOT NULL,
     last_modified_date timestamp without time zone NOT NULL
-) DISTRIBUTED BY (dim_phone_number_key);
+);
 ALTER TABLE ONLY dim_phone_numbers
     ADD CONSTRAINT dim_phone_numbers_pk1 PRIMARY KEY (dim_phone_number_key);
 INSERT INTO dim_phone_numbers VALUES (999902, 'test', '800-123-4568', '8001234568', '2012-09-25 13:34:35.037637');
@@ -4793,8 +4538,8 @@ drop table if exists foo_p;
 NOTICE:  table "foo_p" does not exist, skipping
 drop table if exists bar;
 NOTICE:  table "bar" does not exist, skipping
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table bar( a int, b int, k int, t text, p int) distributed by (a);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table bar( a int, b int, k int, t text, p int);
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 insert into bar select i % 7, i % 6, i % 9, i || 'SOME NUMBER', i % 4 from generate_series(1, 100) i;
 insert into bar select i % 7, i % 6, i % 9, i || 'SOME NUMBER', i % 4 from generate_series(1, 10000) i;
@@ -4804,30 +4549,28 @@ analyze bar;
 set optimizer_segments = 3;
 set optimizer_nestloop_factor = 1.0;
 explain select foo_p.b, foo_p.t from foo_p left outer join bar on foo_p.a = bar.k  where foo_p.t is not null and foo_p.a = (array[1])[1];
-                                            QUERY PLAN                                            
---------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=10.28..366.35 rows=13416 width=31)
-   ->  Hash Right Join  (cost=10.28..187.47 rows=4472 width=31)
-         Hash Cond: (bar.k = foo_p.a)
-         ->  Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..126.56 rows=2236 width=4)
-               ->  Seq Scan on bar  (cost=0.00..96.75 rows=745 width=4)
-                     Filter: (k = 1)
-         ->  Hash  (cost=10.21..10.21 rows=6 width=35)
-               ->  Append  (cost=0.00..10.21 rows=6 width=35)
-                     ->  Seq Scan on foo_p_1_prt_2 foo_p_1  (cost=0.00..1.83 rows=1 width=34)
-                           Filter: ((t IS NOT NULL) AND (a = 1))
-                     ->  Seq Scan on foo_p_1_prt_3 foo_p_2  (cost=0.00..1.83 rows=1 width=34)
-                           Filter: ((t IS NOT NULL) AND (a = 1))
-                     ->  Seq Scan on foo_p_1_prt_4 foo_p_3  (cost=0.00..1.83 rows=1 width=34)
-                           Filter: ((t IS NOT NULL) AND (a = 1))
-                     ->  Seq Scan on foo_p_1_prt_5 foo_p_4  (cost=0.00..1.83 rows=1 width=34)
-                           Filter: ((t IS NOT NULL) AND (a = 1))
-                     ->  Seq Scan on foo_p_1_prt_6 foo_p_5  (cost=0.00..1.83 rows=1 width=34)
-                           Filter: ((t IS NOT NULL) AND (a = 1))
-                     ->  Seq Scan on foo_p_1_prt_other foo_p_6  (cost=0.00..1.01 rows=1 width=40)
-                           Filter: ((t IS NOT NULL) AND (a = 1))
+                                         QUERY PLAN                                         
+--------------------------------------------------------------------------------------------
+ Hash Right Join  (cost=17.62..445.93 rows=13416 width=31)
+   Hash Cond: (bar.k = foo_p.a)
+   ->  Seq Scan on bar  (cost=0.00..288.25 rows=2236 width=4)
+         Filter: (k = 1)
+   ->  Hash  (cost=17.54..17.54 rows=6 width=35)
+         ->  Append  (cost=0.00..17.54 rows=6 width=35)
+               ->  Seq Scan on foo_p_1_prt_2 foo_p_1  (cost=0.00..3.50 rows=1 width=34)
+                     Filter: ((t IS NOT NULL) AND (a = 1))
+               ->  Seq Scan on foo_p_1_prt_3 foo_p_2  (cost=0.00..3.50 rows=1 width=34)
+                     Filter: ((t IS NOT NULL) AND (a = 1))
+               ->  Seq Scan on foo_p_1_prt_4 foo_p_3  (cost=0.00..3.50 rows=1 width=34)
+                     Filter: ((t IS NOT NULL) AND (a = 1))
+               ->  Seq Scan on foo_p_1_prt_5 foo_p_4  (cost=0.00..3.50 rows=1 width=34)
+                     Filter: ((t IS NOT NULL) AND (a = 1))
+               ->  Seq Scan on foo_p_1_prt_6 foo_p_5  (cost=0.00..3.50 rows=1 width=34)
+                     Filter: ((t IS NOT NULL) AND (a = 1))
+               ->  Seq Scan on foo_p_1_prt_other foo_p_6  (cost=0.00..0.01 rows=1 width=40)
+                     Filter: ((t IS NOT NULL) AND (a = 1))
  Optimizer: Postgres query optimizer
-(21 rows)
+(19 rows)
 
 reset optimizer_segments;
 drop table if exists foo_p;
@@ -4837,7 +4580,7 @@ drop table if exists pnx;
 NOTICE:  table "pnx" does not exist, skipping
 create table pnx 
     (x int , y text)
-    distributed randomly
+    
     partition by list (y)
         ( 
             partition a values ('x1', 'x2'),
@@ -4853,8 +4596,8 @@ from pnx;
   tableoid   | x | y  
 -------------+---+----
  pnx_1_prt_a | 1 | x1
- pnx_1_prt_c | 3 | x3
  pnx_1_prt_a | 2 | x2
+ pnx_1_prt_c | 3 | x3
  pnx_1_prt_c | 4 | x4
 (4 rows)
 
@@ -4867,8 +4610,8 @@ from pnx;
   tableoid   | x | y  
 -------------+---+----
  pnx_1_prt_a | 1 | x1
- pnx_1_prt_c | 3 | x3
  pnx_1_prt_a | 2 | x2
+ pnx_1_prt_c | 3 | x3
  pnx_1_prt_c | 4 | x4
 (4 rows)
 
@@ -4892,7 +4635,7 @@ drop table if exists pxn;
 NOTICE:  table "pxn" does not exist, skipping
 create table pxn 
     (x int , y text)
-    distributed randomly
+    
     partition by list (y)
         ( 
             partition a values ('x1', 'x2'),
@@ -4908,8 +4651,8 @@ from pxn;
   tableoid   | x | y  
 -------------+---+----
  pxn_1_prt_a | 1 | x1
- pxn_1_prt_c | 3 | x3
  pxn_1_prt_a | 2 | x2
+ pxn_1_prt_c | 3 | x3
  pxn_1_prt_c | 4 | x4
 (4 rows)
 
@@ -4921,10 +4664,10 @@ select tableoid::regclass, *
 from pxn;
   tableoid   | x | y  
 -------------+---+----
- pxn_1_prt_a | 2 | x2
- pxn_1_prt_c | 4 | x4
  pxn_1_prt_a | 1 | x1
+ pxn_1_prt_a | 2 | x2
  pxn_1_prt_c | 3 | x3
+ pxn_1_prt_c | 4 | x4
 (4 rows)
 
 select tableoid::regclass, *
@@ -4946,7 +4689,7 @@ where x = 2;
 drop table if exists pxn;
 create table pxn 
     (x int , y int)
-    distributed randomly
+    
     partition by range (y)
         ( 
             partition a start (0) end (10),
@@ -4962,8 +4705,8 @@ from pxn;
   tableoid   | x  | y  
 -------------+----+----
  pxn_1_prt_a |  4 |  4
- pxn_1_prt_c | 14 | 14
  pxn_1_prt_a |  9 |  9
+ pxn_1_prt_c | 14 | 14
  pxn_1_prt_c | 19 | 19
 (4 rows)
 
@@ -4975,10 +4718,10 @@ select tableoid::regclass, *
 from pxn;
   tableoid   | x  | y  
 -------------+----+----
- pxn_1_prt_a |  9 |  9
- pxn_1_prt_c | 19 | 19
  pxn_1_prt_a |  4 |  4
+ pxn_1_prt_a |  9 |  9
  pxn_1_prt_c | 14 | 14
+ pxn_1_prt_c | 19 | 19
 (4 rows)
 
 select tableoid::regclass, *
@@ -5000,7 +4743,7 @@ where x = 4;
 drop table if exists pxn;
 create table pxn 
     (x int , y int)
-    distributed randomly
+    
     partition by range (y)
         ( 
             partition a start (0) end (10),
@@ -5016,8 +4759,8 @@ from pxn;
   tableoid   | x  | y  
 -------------+----+----
  pxn_1_prt_a |  4 |  4
- pxn_1_prt_c | 14 | 14
  pxn_1_prt_a |  9 |  9
+ pxn_1_prt_c | 14 | 14
  pxn_1_prt_c | 19 | 19
 (4 rows)
 
@@ -5029,10 +4772,10 @@ select tableoid::regclass, *
 from pxn;
   tableoid   | x  | y  
 -------------+----+----
- pxn_1_prt_a |  9 |  9
- pxn_1_prt_c | 19 | 19
  pxn_1_prt_a |  4 |  4
+ pxn_1_prt_a |  9 |  9
  pxn_1_prt_c | 14 | 14
+ pxn_1_prt_c | 19 | 19
 (4 rows)
 
 select tableoid::regclass, *
@@ -5059,7 +4802,7 @@ create table parttest_t (
 	b int,
 	c char,
 	d varchar(50)
-) distributed by (c) 
+) 
 partition by range (a) 
 ( 
 	partition p1 start(1) end(5),
@@ -5079,10 +4822,10 @@ select * from parttest_t;
 -- END MPP-19105
 reset optimizer_nestloop_factor;
 -- Sub-partition insertion with checking if the user provided correct leaf part
-create table part_tab ( i int, j int) distributed by (i) partition by range(j) (start(0) end(10) every(2));
+create table part_tab ( i int, j int) partition by range(j) (start(0) end(10) every(2));
 -- Wrong part
 insert into part_tab_1_prt_1 values(5,5);
-ERROR:  new row for relation "part_tab_1_prt_1" violates partition constraint  (seg2 127.0.0.1:40002 pid=18534)
+ERROR:  new row for relation "part_tab_1_prt_1" violates partition constraint
 DETAIL:  Failing row contains (5, 5).
 select * from part_tab;
  i | j 
@@ -5095,7 +4838,7 @@ select * from part_tab_1_prt_1;
 (0 rows)
 
 insert into part_tab_1_prt_2 values(5,5);
-ERROR:  new row for relation "part_tab_1_prt_2" violates partition constraint  (seg2 127.0.0.1:40002 pid=18534)
+ERROR:  new row for relation "part_tab_1_prt_2" violates partition constraint
 DETAIL:  Failing row contains (5, 5).
 select * from part_tab;
  i | j 
@@ -5134,18 +4877,14 @@ select * from part_tab;
 drop table if exists input1;
 NOTICE:  table "input1" does not exist, skipping
 create table input1 (x int, y int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into input1 select i, i from (select generate_series(1,10) as i) as t;
 drop table if exists input2;
 NOTICE:  table "input2" does not exist, skipping
 create table input2 (x int, y int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into input2 select i, i from (select generate_series(1,10) as i) as t;
 -- Multiple range table entries in the plan
 insert into part_tab_1_prt_1 select i1.x, i2.y from input1 as i1 join input2 as i2 on i1.x = i2.x where i2.y = 5;
-ERROR:  new row for relation "part_tab_1_prt_1" violates partition constraint  (seg2 127.0.0.1:40002 pid=18534)
+ERROR:  new row for relation "part_tab_1_prt_1" violates partition constraint
 DETAIL:  Failing row contains (5, 5).
 analyze part_tab;
 select * from part_tab;
@@ -5161,7 +4900,7 @@ select * from part_tab_1_prt_1;
 (0 rows)
 
 insert into part_tab_1_prt_2 select i1.x, i2.y from input1 as i1 join input2 as i2 on i1.x = i2.x where i2.y = 5;
-ERROR:  new row for relation "part_tab_1_prt_2" violates partition constraint  (seg2 127.0.0.1:40002 pid=18534)
+ERROR:  new row for relation "part_tab_1_prt_2" violates partition constraint
 DETAIL:  Failing row contains (5, 5).
 select * from part_tab;
  i | j 
@@ -5180,32 +4919,32 @@ insert into part_tab_1_prt_3 select i1.x, i2.y from input1 as i1 join input2 as 
 select * from part_tab;
  i | j 
 ---+---
+ 5 | 5
+ 5 | 5
  4 | 4
- 5 | 5
- 5 | 5
  5 | 5
 (4 rows)
 
 select * from part_tab_1_prt_3;
  i | j 
 ---+---
+ 5 | 5
+ 5 | 5
  4 | 4
- 5 | 5
- 5 | 5
  5 | 5
 (4 rows)
 
 -- Root part but no matching part for i2.y == 10
 insert into part_tab select i1.x, i2.y from input1 as i1 join input2 as i2 on i1.x = i2.x;
-ERROR:  no partition of relation "part_tab" found for row  (seg2 127.0.1.1:7004 pid=17912)
+ERROR:  no partition of relation "part_tab" found for row
 DETAIL:  Partition key of the failing row contains (j) = (10).
 select * from part_tab;
  i | j 
 ---+---
  5 | 5
  5 | 5
- 5 | 5
  4 | 4
+ 5 | 5
 (4 rows)
 
 -- Root part
@@ -5230,7 +4969,6 @@ select * from part_tab;
 
 -- Multi-level partitioning
 create table deep_part ( i int, j int, k int, s char(5)) 
-distributed by (i) 
 partition by list(s)
 subpartition by range (j) subpartition template (start(1)  end(10) every(2))
 subpartition by range (k) subpartition template (start(1)  end(10) every(2))
@@ -5240,11 +4978,11 @@ subpartition by range (k) subpartition template (start(1)  end(10) every(2))
 insert into deep_part_1_prt_male_2_prt_2 values(1,3,1,'M');
 -- but only if it's the right partition.
 insert into deep_part_1_prt_male_2_prt_2 values(1,1,1,'M');
-ERROR:  new row for relation "deep_part_1_prt_male_2_prt_2" violates partition constraint  (seg1 127.0.1.1:7003 pid=6171)
+ERROR:  new row for relation "deep_part_1_prt_male_2_prt_2" violates partition constraint
 DETAIL:  Failing row contains (1, 1, 1, M    ).
 -- Wrong sub-partition (inserting a female value in male partition)
 insert into deep_part_1_prt_male_2_prt_2_3_prt_2 values (1, 1, 1, 'F');
-ERROR:  new row for relation "deep_part_1_prt_male_2_prt_2_3_prt_2" violates partition constraint  (seg1 127.0.1.1:7003 pid=6171)
+ERROR:  new row for relation "deep_part_1_prt_male_2_prt_2_3_prt_2" violates partition constraint
 DETAIL:  Failing row contains (1, 1, 1, F    ).
 select * from deep_part;
  i | j | k |   s   
@@ -5338,7 +5076,7 @@ select * from deep_part_1_prt_female_2_prt_5_3_prt_5;
 
 -- Out of range partition
 insert into deep_part values (9, 9, 10, 'F');
-ERROR:  no partition of relation "deep_part_1_prt_female_2_prt_5" found for row  (seg2 127.0.1.1:7004 pid=17912)
+ERROR:  no partition of relation "deep_part_1_prt_female_2_prt_5" found for row
 DETAIL:  Partition key of the failing row contains (k) = (10).
 select * from deep_part;
  i | j | k |   s   
@@ -5364,7 +5102,6 @@ col1 int,
 col2 int,
 col3 int
 )
-distributed by (col1)
 partition by range(col2)
 (
     partition part1 start(1) end(5),
@@ -5376,7 +5113,7 @@ alter table pt_td_leak drop column col3;
 alter table pt_td_leak add column col3 int default 7;
 drop table if exists pt_td_leak_exchange;
 NOTICE:  table "pt_td_leak_exchange" does not exist, skipping
-CREATE TABLE pt_td_leak_exchange ( col1 int, col2 int, col3 int) distributed by (col1);
+CREATE TABLE pt_td_leak_exchange ( col1 int, col2 int, col3 int);
 alter table pt_td_leak exchange partition part2 with table pt_td_leak_exchange;
 insert into pt_td_leak values(1,8,1);
 copy pt_td_leak from '/tmp/pt_td_leak.out' with delimiter ',';
@@ -5401,7 +5138,7 @@ drop table pt_td_leak_exchange;
 -- because of dropped columns
 --
 CREATE TABLE pt_dropped_col_distkey (i int, to_be_dropped text, t text)
-DISTRIBUTED BY (t) PARTITION BY RANGE (i) (START (1) END(10) EVERY (5));
+ PARTITION BY RANGE (i) (START (1) END(10) EVERY (5));
 INSERT INTO pt_dropped_col_distkey SELECT g, 'dropped' || g, 'before drop ' || g FROM generate_series(1, 7) g;
 ALTER TABLE pt_dropped_col_distkey DROP COLUMN to_be_dropped;
 -- This new partition won't have the dropped column. Because the distribution
@@ -5460,7 +5197,6 @@ SELECT * FROM pt_dropped_col_distkey ORDER BY i;
 drop table if exists test_split_part cascade;
 NOTICE:  table "test_split_part" does not exist, skipping
 CREATE TABLE test_split_part ( log_id int NOT NULL, f_array int[] NOT NULL)
-DISTRIBUTED BY (log_id)
 PARTITION BY RANGE(log_id)
 (
     START (1::int) END (100::int) EVERY (5) WITH (appendonly=false),
@@ -5514,7 +5250,7 @@ select array_agg(test_split_part_1_prt_other_log_ids) from test_split_part_1_prt
 (1 row)
 
 -- Originally reported in MPP-7232
-create table mpp7232a (a int, b int) distributed by (a) partition by range (b) (start (1) end (3) every (1));
+create table mpp7232a (a int, b int) partition by range (b) (start (1) end (3) every (1));
 \d+ mpp7232a
                            Partitioned table "public.mpp7232a"
  Column |  Type   | Collation | Nullable | Default | Storage | Stats target | Description 
@@ -5524,7 +5260,6 @@ create table mpp7232a (a int, b int) distributed by (a) partition by range (b) (
 Partition key: RANGE (b)
 Partitions: mpp7232a_1_prt_1 FOR VALUES FROM (1) TO (2),
             mpp7232a_1_prt_2 FOR VALUES FROM (2) TO (3)
-Distributed by: (a)
 
 alter table mpp7232a rename partition for (1) to alpha;
 alter table mpp7232a rename partition for (2) to bravo;
@@ -5537,9 +5272,8 @@ alter table mpp7232a rename partition for (2) to bravo;
 Partition key: RANGE (b)
 Partitions: mpp7232a_1_prt_alpha FOR VALUES FROM (1) TO (2),
             mpp7232a_1_prt_bravo FOR VALUES FROM (2) TO (3)
-Distributed by: (a)
 
-create table mpp7232b (a int, b int) distributed by (a) partition by range (b) (partition alpha start (1) end (3) every (1));
+create table mpp7232b (a int, b int) partition by range (b) (partition alpha start (1) end (3) every (1));
 alter table mpp7232b rename partition for (1) to foo;
 \d+ mpp7232b
                            Partitioned table "public.mpp7232b"
@@ -5550,11 +5284,9 @@ alter table mpp7232b rename partition for (1) to foo;
 Partition key: RANGE (b)
 Partitions: mpp7232b_1_prt_alpha_2 FOR VALUES FROM (2) TO (3),
             mpp7232b_1_prt_foo FOR VALUES FROM (1) TO (2)
-Distributed by: (a)
 
 -- Test .. WITH (tablename = <foo> ..) syntax.
 create table mpp17740 (a integer, b integer, e date) with (appendonly = true, orientation = column)
-distributed by (a)
 partition by range(e)
 (
     partition mpp17740_20120523 start ('2012-05-23'::date) inclusive end ('2012-05-24'::date) exclusive with (tablename = 'mpp17740_20120523', appendonly = true),
@@ -5580,7 +5312,7 @@ select relname, pg_get_expr(relpartbound, oid) from pg_class where relname like 
 
 -- Test mix of add and drop various column before split, and exchange partition at the end
 create table sales (pkid serial, option1 int, option2 int, option3 int, constraint partable_pkey primary key(pkid, option3))
-distributed by (pkid) partition by range (option3)
+ partition by range (option3)
 (
 	partition aa start(1) end(100),
 	partition bb start(101) end(200),
@@ -5600,14 +5332,13 @@ select relname, relkind from pg_class where relkind in ('r', 'p') and relname li
  sales   | p
 (1 row)
 
+-- start_ignore
 select gp_segment_id, relname, relkind from gp_dist_random('pg_class') where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
  gp_segment_id | relname | relkind 
 ---------------+---------+---------
-             0 | sales   | p
-             2 | sales   | p
-             1 | sales   | p
-(3 rows)
-
+            -1 | sales   | p
+(1 row)
+-- end_ignore
 alter table sales add column tax float;
 -- root partition (and only root) continues to have relfrozenxid as 0
 select relname, relkind from pg_class where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
@@ -5616,17 +5347,15 @@ select relname, relkind from pg_class where relkind in ('r', 'p') and relname li
  sales   | p
 (1 row)
 
+-- start_ignore
 select gp_segment_id, relname, relkind from gp_dist_random('pg_class') where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
  gp_segment_id | relname | relkind 
 ---------------+---------+---------
-             0 | sales   | p
-             1 | sales   | p
-             2 | sales   | p
-(3 rows)
-
+            -1 | sales   | p
+(1 row)
+-- end_ignore
 alter table sales drop column tax;
 create table newpart(like sales);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 alter table newpart add constraint newpart_pkey primary key(pkid, option3);
 alter table sales split partition for(1) at (50) into (partition aa1, partition aa2);
 select table_schema, table_name, constraint_name, constraint_type
@@ -5668,32 +5397,32 @@ copy exchange_part from STDIN DELIMITER as '|';
 select * from exchange_part;
   a   | b 
 ------+---
+ 9794 | 1
+ 9795 | 2
  9797 | 3
  9799 | 4
- 9801 | 5
- 9836 | 5
- 9802 | 6
- 9840 | 6
- 9803 | 7
- 9822 | 7
- 9806 | 8
- 9824 | 8
- 9807 | 9
- 9794 | 1
  9808 | 1
  9810 | 2
- 9828 | 2
- 9831 | 3
- 9817 | 5
- 9818 | 6
- 9843 | 7
- 9844 | 8
- 9825 | 9
- 9827 | 1
- 9795 | 2
  9814 | 3
  9815 | 4
+ 9827 | 1
+ 9828 | 2
+ 9831 | 3
  9832 | 4
+ 9801 | 5
+ 9802 | 6
+ 9803 | 7
+ 9806 | 8
+ 9807 | 9
+ 9817 | 5
+ 9818 | 6
+ 9822 | 7
+ 9824 | 8
+ 9825 | 9
+ 9836 | 5
+ 9840 | 6
+ 9843 | 7
+ 9844 | 8
 (26 rows)
 
 drop table exchange_part;
@@ -5701,7 +5430,6 @@ drop table exchange1;
 -- Ensure that new partitions get the correct attributes (MPP17110)
 CREATE TABLE pt_tab_encode (a int, b text)
 with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
-distributed by (a)
 partition by list(b) (partition s_abc values ('abc') with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1));
 alter table pt_tab_encode add partition "s_xyz" values ('xyz') WITH (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1);
 select relname, pg_get_expr(relpartbound, oid) from pg_class where relname like 'pt_tab_encode%';
@@ -5719,16 +5447,14 @@ select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_e
             -1 | pt_tab_encode_1_prt_s_abc |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
 (2 rows)
 
+-- start_ignore
 select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random('pg_attribute_encoding') where attrelid = 'pt_tab_encode_1_prt_s_abc'::regclass order by 1,3 limit 5;
  gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
-             0 | pt_tab_encode_1_prt_s_abc |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             0 | pt_tab_encode_1_prt_s_abc |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             1 | pt_tab_encode_1_prt_s_abc |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             1 | pt_tab_encode_1_prt_s_abc |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             2 | pt_tab_encode_1_prt_s_abc |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-(5 rows)
-
+            -1 | pt_tab_encode_1_prt_s_abc |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
+            -1 | pt_tab_encode_1_prt_s_abc |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
+(2 rows)
+-- end_ignore
 select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_encoding where attrelid = 'pt_tab_encode_1_prt_s_xyz'::regclass;
  gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
@@ -5736,16 +5462,14 @@ select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_e
             -1 | pt_tab_encode_1_prt_s_xyz |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
 (2 rows)
 
+-- start_ignore
 select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random('pg_attribute_encoding') where attrelid = 'pt_tab_encode_1_prt_s_xyz'::regclass order by 1,3 limit 5;
  gp_segment_id |         attrelid          | attnum |                     attoptions                      
 ---------------+---------------------------+--------+-----------------------------------------------------
-             0 | pt_tab_encode_1_prt_s_xyz |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             0 | pt_tab_encode_1_prt_s_xyz |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             1 | pt_tab_encode_1_prt_s_xyz |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             1 | pt_tab_encode_1_prt_s_xyz |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-             2 | pt_tab_encode_1_prt_s_xyz |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
-(5 rows)
-
+            -1 | pt_tab_encode_1_prt_s_xyz |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
+            -1 | pt_tab_encode_1_prt_s_xyz |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
+(2 rows)
+-- end_ignore
 select c.oid::regclass, relkind, amname, reloptions from pg_class c left join pg_am am on am.oid = relam where c.oid = 'pt_tab_encode_1_prt_s_abc'::regclass;
             oid            | relkind |  amname   |             reloptions              
 ---------------------------+---------+-----------+-------------------------------------
@@ -5771,15 +5495,9 @@ LINE 1: alter table at_range add partition test values(5);
                                                 ^
 -- Ensure array type for the non-partition table is there after partition exchange.
 CREATE TABLE pt_xchg(a int) PARTITION BY RANGE(a) (START(1) END(4) EVERY (2));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table xchg_tab1(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE SCHEMA xchg_schema;
 create table xchg_schema.xchg_tab2(a int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 alter table pt_xchg exchange partition for (1) with table xchg_tab1;
 alter table pt_xchg exchange partition for (3) with table xchg_schema.xchg_tab2;
 select a.typowner=b.typowner from pg_type a join pg_type b on true where a.typname = 'xchg_tab1' and b.typname = '_xchg_tab1';
@@ -5873,7 +5591,6 @@ create operator class employee_incomplete_op_class default for type employee_typ
   using btree as
   operator 3 =;
 create table employee_table(timest date, user_id numeric(16,0) not null, tag1 char(5), emp employee_type)
-  distributed by (user_id)
   partition by list(emp)
   (partition part1 values('(1, ''foo'')'::employee_type), partition part2 values('(2, ''foo'')'::employee_type));
 ERROR:  operator class "employee_incomplete_op_class" of access method btree is missing support function 1 for type employee_type
@@ -5885,7 +5602,6 @@ DROP TABLE IF EXISTS public.t_part_acl;
 NOTICE:  table "t_part_acl" does not exist, skipping
 DROP ROLE IF EXISTS user_prt_acl;
 CREATE ROLE user_prt_acl;
-NOTICE:  resource queue required -- using default resource queue "pg_default"
 ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO user_prt_acl;
 CREATE TABLE public.t_part_acl (dt date)
 PARTITION BY RANGE (dt)
@@ -5894,8 +5610,6 @@ PARTITION BY RANGE (dt)
     END (date '2020-02-01') EXCLUSIVE
     EVERY (INTERVAL '1 month')
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'dt' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO public.t_part_acl VALUES (date '2019-12-01'), (date '2020-01-31');
 -- check if parent and child table have same relacl
 SELECT relname FROM pg_class

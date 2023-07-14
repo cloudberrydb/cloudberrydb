@@ -11,14 +11,14 @@ set optimizer_nestloop_factor = 1.0;
 --
 
 drop table if exists csq_t1_base;
-create table csq_t1_base(x int, y int) distributed by (x);
+create table csq_t1_base(x int, y int);
 
 insert into csq_t1_base values(1,2);
 insert into csq_t1_base values(2,1);
 insert into csq_t1_base values(4,2);
 
 drop table if exists csq_t2_base;
-create table csq_t2_base(x int, y int) distributed by (x);
+create table csq_t2_base(x int, y int);
 
 insert into csq_t2_base values(3,2);
 insert into csq_t2_base values(3,2);
@@ -34,8 +34,8 @@ insert into csq_t2_base values(3,1);
 drop table if exists csq_t1;
 drop table if exists csq_t2;
 
-create table csq_t1(x int, y int) distributed by (x);
-create table csq_t2(x int, y int) distributed by (x);
+create table csq_t1(x int, y int);
+create table csq_t2(x int, y int);
 
 insert into csq_t1 select * from csq_t1_base;
 insert into csq_t2 select * from csq_t2_base;
@@ -60,12 +60,12 @@ drop table if exists csq_t1;
 drop table if exists csq_t2;
 
 create table csq_t1(x int, y int) 
-distributed by (x)
+
 partition by range (y) ( start (0) end (4) every (1))
 ;
 
 create table csq_t2(x int, y int) 
-distributed by (x)
+
 partition by range (y) ( start (0) end (4) every (1))
 ;
 
@@ -86,7 +86,7 @@ drop table if exists csq_t2_base;
 --
 
 drop table if exists mrs_t1;
-create table mrs_t1(x int) distributed by (x);
+create table mrs_t1(x int);
 
 insert into mrs_t1 select generate_series(1,20);
 analyze mrs_t1;
@@ -133,7 +133,7 @@ insert into csq_m1 values(1);
 analyze csq_m1;
 
 drop table if exists csq_d1;
-create table csq_d1(x int) distributed by (x);
+create table csq_d1(x int);
 insert into csq_d1 select * from csq_m1;
 analyze csq_d1;
 
@@ -149,11 +149,11 @@ select array(select x from csq_d1); -- {1}
 
 drop table if exists t3cozlib;
 
-create table t3cozlib (c1 int , c2 varchar) with (appendonly=true, compresstype=zlib, orientation=column) distributed by (c1);
+create table t3cozlib (c1 int , c2 varchar) with (appendonly=true, compresstype=zlib, orientation=column);
 
 drop table if exists pg_attribute_storage;
 
-create table pg_attribute_storage (attrelid int, attnum int, attoptions text[]) distributed by (attrelid);
+create table pg_attribute_storage (attrelid int, attnum int, attoptions text[]);
 
 insert into pg_attribute_storage values ('t3cozlib'::regclass, 1, E'{\'something\'}');
 insert into pg_attribute_storage values ('t3cozlib'::regclass, 2, E'{\'something2\'}');
@@ -193,7 +193,7 @@ insert into csq_m1 values(1),(2),(3);
 analyze csq_m1;
 
 drop table if exists csq_d1;
-create table csq_d1(x int) distributed by (x);
+create table csq_d1(x int);
 insert into csq_d1 select * from csq_m1 where x < 3;
 insert into csq_d1 values(4);
 analyze csq_d1;
@@ -222,7 +222,7 @@ drop table csq_m1;
 -- MPP-14441 Don't lose track of initplans
 --
 drop table if exists csq_t1;
-CREATE TABLE csq_t1 (a int, b int, c int, d int, e text) DISTRIBUTED BY (a);
+CREATE TABLE csq_t1 (a int, b int, c int, d int, e text);
 INSERT INTO csq_t1 SELECT i, i/3, i%2, 100-i, 'text'||i  FROM generate_series(1,100) i;
 
 select count(*) from csq_t1 t1 where a > (SELECT x.b FROM ( select avg(a)::int as b,'haha'::text from csq_t1 t2 where t2.a=t1.d) x ) ;
@@ -234,7 +234,7 @@ select count(*) from csq_t1 t1 where a > ( select avg(a)::int from csq_t1 t2 whe
 --
 CREATE OR REPLACE FUNCTION csq_f(a int) RETURNS int AS $$ select $1 $$ LANGUAGE SQL CONTAINS SQL;
 DROP TABLE IF EXISTS csq_r;
-CREATE TABLE csq_r(a int) distributed by (a);
+CREATE TABLE csq_r(a int);
 INSERT INTO csq_r VALUES (1);
 
 -- subqueries shouldn't be pulled into a join if the from clause has a function call
@@ -289,7 +289,7 @@ SELECT * FROM csq_r WHERE a IN (SELECT csq_f FROM csq_f(csq_r.a),csq_r);
 --
 
 drop table if exists csq_pullup;
-create table csq_pullup(t text, n numeric, i int, v varchar(10)) distributed by (t);
+create table csq_pullup(t text, n numeric, i int, v varchar(10));
 insert into csq_pullup values ('abc',1, 2, 'xyz');
 analyze csq_pullup;
 insert into csq_pullup values ('xyz',2, 3, 'def');  
@@ -386,10 +386,10 @@ select * from csq_pullup t0 where not exists (select 1 from csq_pullup t1 where 
 drop table if exists subselect_t1;
 drop table if exists subselect_t2;
 
-create table subselect_t1(x int) distributed by (x);
+create table subselect_t1(x int);
 insert into subselect_t1 values(1),(2);
 
-create table subselect_t2(y int) distributed by (y);
+create table subselect_t2(y int);
 insert into subselect_t2 values(1),(2),(2);
 
 analyze subselect_t1;
@@ -536,10 +536,10 @@ drop table initplan_test;
 --
 -- apply parallelization for subplan MPP-24563
 --
-create table t1_mpp_24563 (id int, value int) distributed by (id);
+create table t1_mpp_24563 (id int, value int);
 insert into t1_mpp_24563 values (1, 3);
 
-create table t2_mpp_24563 (id int, value int, seq int) distributed by (id);
+create table t2_mpp_24563 (id int, value int, seq int);
 insert into t2_mpp_24563 values (1, 7, 5);
 
 explain select row_number() over (order by seq asc) as id, foo.cnt
@@ -557,7 +557,7 @@ CREATE TABLE t_mpp_20470 (
     col_date timestamp without time zone,
     col_name character varying(6),
     col_expiry date
-) DISTRIBUTED BY (col_date) PARTITION BY RANGE(col_date)
+) PARTITION BY RANGE(col_date)
 (
 START ('2013-05-10 00:00:00'::timestamp without time zone) END ('2013-05-11
 	00:00:00'::timestamp without time zone) WITH (tablename='t_mpp_20470_ptr1', appendonly=false ),
@@ -586,7 +586,7 @@ explain SELECT  cc, sum(nn) over() FROM v1_mpp_20470;
 drop view v1_mpp_20470;
 drop table t_mpp_20470;
 
-create table tbl_25484(id int, num int) distributed by (id);
+create table tbl_25484(id int, num int);
 insert into tbl_25484 values(1, 1), (2, 2), (3, 3);
 select id from tbl_25484 where 3 = (select 3 where 3 = (select num));
 drop table tbl_25484;
@@ -608,12 +608,12 @@ SELECT p.id
 -- rows from xsupplier twice, because of a bug in detecting whether a
 -- Redistribute node was needed.
 --
-CREATE TABLE xlineitem (l_orderkey int4, l_suppkey int4) distributed by (l_orderkey);
+CREATE TABLE xlineitem (l_orderkey int4, l_suppkey int4);
 insert into xlineitem select g+3, g from generate_series(10,100) g;
 insert into xlineitem select g+1, g from generate_series(10,100) g;
 insert into xlineitem select g, g from generate_series(10,100) g;
 
-CREATE TABLE xsupplier (s_suppkey int4, s_name text) distributed by (s_suppkey);
+CREATE TABLE xsupplier (s_suppkey int4, s_name text);
 insert into xsupplier select g, 'foo' || g from generate_series(1,10) g;
 
 select s_name from xsupplier
@@ -625,7 +625,7 @@ where s_suppkey in (
 -- Another case that failed at one point. (A planner bug in pulling up a
 -- subquery with constant distribution key, 1, in the outer queries.)
 --
-create table nested_in_tbl(tc1 int, tc2 int) distributed by (tc1);
+create table nested_in_tbl(tc1 int, tc2 int);
 select * from nested_in_tbl t1  where tc1 in
   (select 1 from nested_in_tbl t2 where tc1 in
     (select 1 from nested_in_tbl t3 where t3.tc2 = t2.tc2));
@@ -639,8 +639,8 @@ SELECT rank() over (partition by min(c) order by min(c)) AS p_rank FROM (SELECT 
 --
 -- Remove unused subplans
 --
-create table foo(a int, b int) distributed by (a) partition by range(b) (start(1) end(3) every(1));
-create table bar(a int, b int) distributed by (a);
+create table foo(a int, b int) partition by range(b) (start(1) end(3) every(1));
+create table bar(a int, b int);
 
 with CT as (select a from foo except select a from bar)
 select * from foo
@@ -786,9 +786,9 @@ DROP TABLE IF EXISTS dedup_test1;
 DROP TABLE IF EXISTS dedup_test2;
 DROP TABLE IF EXISTS dedup_test3;
 -- end_ignore
-CREATE TABLE dedup_test1 ( a int, b int ) DISTRIBUTED BY (a);
-CREATE TABLE dedup_test2 ( e int, f int ) DISTRIBUTED BY (e);
-CREATE TABLE dedup_test3 ( a int, b int, c int) DISTRIBUTED BY (a) PARTITION BY RANGE(c) (START(1) END(2) EVERY(1)); 
+CREATE TABLE dedup_test1 ( a int, b int );
+CREATE TABLE dedup_test2 ( e int, f int );
+CREATE TABLE dedup_test3 ( a int, b int, c int) PARTITION BY RANGE(c) (START(1) END(2) EVERY(1)); 
 
 INSERT INTO dedup_test1 select i, i from generate_series(1,4)i;
 INSERT INTO dedup_test2 select i, i from generate_series(1,4)i;
@@ -807,11 +807,11 @@ EXPLAIN SELECT * FROM dedup_test3, dedup_test1 WHERE c = 7 AND EXISTS (SELECT b 
 
 
 -- More dedup semi-join tests.
-create table dedup_tab (a int4) distributed by(a) ;
+create table dedup_tab (a int4)  ;
 insert into dedup_tab select g from  generate_series(1,100) g;
 analyze dedup_tab;
 
-create table dedup_reptab (a int4) distributed replicated;
+create table dedup_reptab (a int4) ;
 insert into dedup_reptab select generate_series(1,1);
 analyze dedup_reptab;
 
@@ -908,7 +908,7 @@ DROP TABLE IF EXISTS TEST_IN;
 CREATE TABLE TEST_IN(
     C01  FLOAT,
     C02  NUMERIC(10,0)
-) DISTRIBUTED RANDOMLY;
+);
 
 --insert repeatable records:
 INSERT INTO TEST_IN
@@ -940,7 +940,7 @@ where s.i < 10 and val.x < 110;
 
 drop table if exists simplify_sub;
 
-create table simplify_sub (i int) distributed by (i);
+create table simplify_sub (i int);
 insert into simplify_sub values (1);
 insert into simplify_sub values (2);
 analyze simplify_sub;
@@ -1016,9 +1016,9 @@ drop table if exists simplify_sub;
 --
 -- Test a couple of cases where a SubPlan is used in a Motion's hash key.
 --
-create table foo (i int4, j int4) distributed by (i);
-create table bar (i int4, j int4) distributed by (i);
-create table baz (i int4, j int4) distributed by (i);
+create table foo (i int4, j int4);
+create table bar (i int4, j int4);
+create table baz (i int4, j int4);
 insert into foo select g, g from generate_series(1, 10) g;
 insert into bar values (1, 1);
 insert into baz select g, g from generate_series(5, 100) g;
@@ -1078,7 +1078,7 @@ with run_dt as (
 select * from run_dt, extra_flow_dist1
 where dt < '2010-01-01'::date;
 
-create table extra_flow_rand(a int) distributed replicated;
+create table extra_flow_rand(a int) ;
 insert into extra_flow_rand values (1);
 
 -- case 2 for subplan with outer segment general locus (CTE and subquery)
@@ -1170,7 +1170,7 @@ where dt < '2010-01-01'::date;
 create table issue_12656 (
     i int,
     j int
-) distributed by (i);
+);
 
 insert into issue_12656 values (1, 10001), (1, 10002);
 

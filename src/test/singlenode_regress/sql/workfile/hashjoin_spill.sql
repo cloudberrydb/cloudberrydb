@@ -18,7 +18,7 @@ create or replace function hashjoin_spill.is_workfile_created(explain_query text
 returns setof int as
 $$
 import re
-query = "select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0;"
+query = "select count(*) as nsegments from gp_segment_configuration where role='p' and content = -1;"
 rv = plpy.execute(query)
 nsegments = int(rv[0]['nsegments'])
 rv = plpy.execute(explain_query)
@@ -27,7 +27,7 @@ result = []
 for i in range(len(rv)):
     cur_line = rv[i]['QUERY PLAN']
     if search_text.lower() in cur_line.lower():
-        p = re.compile('.+\((segment \d+).+ Workfile: \((\d+) spilling\)')
+        p = re.compile('.+\((segment -*\d+).+ Workfile: \((\d+) spilling\)')
         m = p.match(cur_line)
         workfile_created = int(m.group(2))
         cur_row = int(workfile_created == nsegments)
@@ -38,20 +38,21 @@ language plpython3u;
 
 CREATE TABLE test_hj_spill (i1 int, i2 int, i3 int, i4 int, i5 int, i6 int, i7 int, i8 int);
 insert into test_hj_spill SELECT i,i,i%1000,i,i,i,i,i from
-	(select generate_series(1, nsegments * 15000) as i from
-	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
+	(select generate_series(1, nsegments * 45000) as i from
+	(select count(*) as nsegments from gp_segment_configuration where role='p' and content = -1) foo) bar;
 SET statement_mem=1024;
+set work_mem=1024;
 set gp_resqueue_print_operator_memory_limits=on;
 
 set gp_workfile_compression = on;
 select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
 select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
-select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
+select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 45000;');
 
 set gp_workfile_compression = off;
 select avg(i3) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
 select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2');
-select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 15000;');
+select * from hashjoin_spill.is_workfile_created('explain (analyze, verbose) SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2 LIMIT 45000;');
 
 -- Test with a larger data set, so that all the operations don't fit in a
 -- single compression buffer.

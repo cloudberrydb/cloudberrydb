@@ -16,17 +16,18 @@ insert into test_ext_foo select g, g from generate_series(1, 20) g;
 -- This should return 2 and 5, as the two rows are duplicated in
 -- every segment (assuming you have at least two segments in your
 -- cluster).
-select c2 from echotable group by c2 having count(*) >= 2;
+-- We need to change the count since we only have it executed on master.
+select c2 from echotable group by c2 having count(*) >= 1;
 
 select * from test_ext_foo as o
-where (select count(*) from echotable as i where i.c2 = o.c2) >= 2;
+where (select count(*) from echotable as i where i.c2 = o.c2) >= 1;
 
 -- Planner test to make sure the initplan is not removed for function scan
 explain select * from generate_series(1,2) s1 join pg_class on true where s1=(select pg_backend_pid());
 
 -- Planner test: constant folding in subplan testexpr  produces no error
-create table subselect_t1 (a int, b int, c int) distributed by (a);
-create table subselect_t2 (a int, b int, c int) distributed by (a);
+create table subselect_t1 (a int, b int, c int);
+create table subselect_t2 (a int, b int, c int);
 
 insert into subselect_t1 values (1,1,1);
 insert into subselect_t2 values (1,1,1);

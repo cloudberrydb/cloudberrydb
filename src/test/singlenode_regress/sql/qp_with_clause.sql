@@ -32,7 +32,7 @@ CREATE TABLE city (
     countrycode character(3) NOT NULL,
     district text NOT NULL,
     population integer NOT NULL
-) distributed by(id);
+) ;
 
 
 
@@ -52,7 +52,7 @@ CREATE TABLE country (
     headofstate text,
     capital integer,
     code2 character(2) NOT NULL
-) distributed by (code);
+);
 
 
 
@@ -61,7 +61,7 @@ CREATE TABLE countrylanguage (
     "language" text NOT NULL,
     isofficial boolean NOT NULL,
     percentage real NOT NULL
-)distributed by (countrycode,language);
+);
 
 COPY city (id, name, countrycode, district, population) FROM stdin;
 1	Kabul	AFG	Kabol	1780000
@@ -8101,7 +8101,7 @@ CREATE TABLE CITY_AO (
     countrycode character(3) NOT NULL,
     district text NOT NULL,
     population integer NOT NULL
-) with (appendonly=true) distributed by(id);
+) with (appendonly=true) ;
 
 
 DROP TABLE IF EXISTS country_ao;
@@ -8122,7 +8122,7 @@ CREATE TABLE country_ao (
     headofstate text,
     capital integer,
     code2 character(2) NOT NULL
-) with (appendonly=true) distributed by (code);
+) with (appendonly=true);
 
 DROP TABLE IF EXISTS countrylanguage_ao;
 
@@ -8131,7 +8131,7 @@ CREATE TABLE countrylanguage_ao (
     "language" text NOT NULL,
     isofficial boolean NOT NULL,
     percentage real NOT NULL
-) with (appendonly=true) distributed by (countrycode,language);
+) with (appendonly=true);
 
 ALTER TABLE ONLY city_ao
     ADD CONSTRAINT city_ao_pkey PRIMARY KEY (id);
@@ -8588,7 +8588,7 @@ CREATE TABLE CITY_CO (
     countrycode character(3) NOT NULL,
     district text NOT NULL,
     population integer NOT NULL
-) with (appendonly=true,orientation=column) distributed by(id);
+) with (appendonly=true,orientation=column) ;
 
 
 DROP TABLE IF EXISTS country_co;
@@ -8609,7 +8609,7 @@ CREATE TABLE country_co (
     headofstate text,
     capital integer,
     code2 character(2) NOT NULL
-) with (appendonly=true,orientation=column) distributed by (code);
+) with (appendonly=true,orientation=column);
 
 DROP TABLE IF EXISTS countrylanguage_co;
 
@@ -8618,7 +8618,7 @@ CREATE TABLE countrylanguage_co (
     "language" text NOT NULL,
     isofficial boolean NOT NULL,
     percentage real NOT NULL
-) with (appendonly=true,orientation=column) distributed by (countrycode,language);
+) with (appendonly=true,orientation=column);
 
 ALTER TABLE ONLY city_co
     ADD CONSTRAINT city_co_pkey PRIMARY KEY (id);

@@ -410,8 +410,8 @@ union
 (select * from z limit 10);
 
 -- WTIH RECURSIVE and replicated table
-create table t_rep_test_rcte(c int) distributed replicated;
-create table t_rand_test_rcte(c int) distributed by (c);
+create table t_rep_test_rcte(c int) ;
+create table t_rand_test_rcte(c int);
 insert into t_rep_test_rcte values (1);
 insert into t_rand_test_rcte values (1), (2), (3);
 
@@ -434,7 +434,7 @@ with recursive the_cte_here(n) as (
 select * from the_cte_here;
 
 -- WITH RECURSIVE non-recursive shouldn't have hash locus
-create table recursive_locus_t1(id int, pid int, name text) distributed by(id);
+create table recursive_locus_t1(id int, pid int, name text) ;
 insert into recursive_locus_t1 values(0, -1, 'AAA');
 insert into recursive_locus_t1 values(1,  0, 'B1');
 insert into recursive_locus_t1 values(2,  0, 'B2');
@@ -458,7 +458,7 @@ with RECURSIVE cte as (
 )
 select id,name from cte;
 
-create table recursive_locus_t2(id int, pid int, name text) distributed replicated;
+create table recursive_locus_t2(id int, pid int, name text) ;
 insert into recursive_locus_t2 values(0, -1, 'AAA');
 insert into recursive_locus_t2 values(1,  0, 'B1');
 insert into recursive_locus_t2 values(2,  0, 'B2');
@@ -482,7 +482,7 @@ with RECURSIVE cte as (
 )
 select id,name from cte;
 
-create table recursive_locus_t3(id int, pid int, name text) distributed randomly;
+create table recursive_locus_t3(id int, pid int, name text);
 insert into recursive_locus_t3 values(0, -1, 'AAA');
 insert into recursive_locus_t3 values(1,  0, 'B1');
 insert into recursive_locus_t3 values(2,  0, 'B2');

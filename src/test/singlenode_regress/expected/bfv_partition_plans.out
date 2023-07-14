@@ -9,7 +9,6 @@ set search_path=bfv_partition_plans;
 --
 -- start_ignore
 create language plpython3u;
-ERROR:  language "plpython3u" already exists
 -- end_ignore
 create or replace function count_operator(query text, operator text) returns int as
 $$
@@ -39,8 +38,6 @@ language plpython3u;
 -- Test UPDATE that moves row from one partition to another. The partitioning
 -- key is also the distribution key in this case.
 create table mpp3061 (i int) partition by range(i) (start(1) end(5) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mpp3061 values(1);
 update mpp3061 set i = 2 where i = 1;
 select tableoid::regclass, * from mpp3061 where i = 2;
@@ -64,7 +61,6 @@ create table mpp7980
  minute_per_call          numeric(15,2),
  subscription_id          character varying(15)
 )
-distributed by (subscription_id, bill_stmt_id)
   PARTITION BY RANGE(month_id)
     (
     start ('2009-02-01'::date) end ('2009-08-01'::date)  exclusive EVERY (INTERVAL '1 month')
@@ -105,12 +101,8 @@ drop table if exists mpp23195_t2;
 NOTICE:  table "mpp23195_t2" does not exist, skipping
 -- end_ignore
 create table mpp23195_t1 (i int) partition by range(i) (partition pt1 start(1) end(10), partition pt2 start(10) end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create index index_mpp23195_t1_i on mpp23195_t1(i);
 create table mpp23195_t2(i int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mpp23195_t1 values (generate_series(1,19));
 insert into mpp23195_t2 values (1);
 -- TEST
@@ -143,13 +135,9 @@ drop table if exists mpp21834_t2;
 NOTICE:  table "mpp21834_t2" does not exist, skipping
 -- end_ignore
 create table mpp21834_t1 (i int, j int) partition by range(i) (partition pp1 start(1) end(10), partition pp2 start(10) end(20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create index index_1 on mpp21834_t1(i);
 create index index_2 on mpp21834_t1(j);
 create table mpp21834_t2(i int, j int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- TEST
 set optimizer_enable_hashjoin = off;
 select find_operator('analyze select * from mpp21834_t2,mpp21834_t1 where mpp21834_t2.i < mpp21834_t1.i;','Dynamic Index Scan');
@@ -186,8 +174,6 @@ create table mpp23288(a int, b int)
       PARTITION pinter  START(6) END (10) INCLUSIVE,
       PARTITION plast   START (11)
   );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into mpp23288(a) select generate_series(1,20);
 analyze mpp23288;
 -- TEST
@@ -459,20 +445,10 @@ drop table if exists p;
 NOTICE:  table "p" does not exist, skipping
 -- end_ignore
 create table p1 (a int, b int) partition by range(b) (start (1) end(100) every (20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table p2 (a int, b int) partition by range(b) (start (1) end(100) every (20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table p3 (a int, b int) partition by range(b) (start (1) end(100) every (20));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table p (a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table t(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into t select g, g*10 from generate_series(1,100) g;
 insert into p1 select g, g%99 +1 from generate_series(1,10000) g;
 insert into p2 select g, g%99 +1 from generate_series(1,10000) g;
@@ -484,12 +460,15 @@ analyze p2;
 analyze p3;
 analyze p;
 -- TEST
+-- SINGLE_NODE_FIXME: disable partition selector temporarily.
+-- start_ignore
 select count_operator('select * from (select * from p1 union all select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
               2
 (1 row)
 
+-- end_ignore
 select count_operator('select * from (select * from p1 union select * from p2) as p_all, t where p_all.b=t.b;','Partition Selector');
  count_operator 
 ----------------
@@ -565,15 +544,9 @@ drop table if exists dbs;
 NOTICE:  table "dbs" does not exist, skipping
 -- end_ignore
 create table dts(c1 int, c2 int) partition by range(c2) (start(1) end(11) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table dis(c1 int, c2 int, c3 int) partition by range(c2) (start(1) end(11) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create index dis_index on dis(c3);
 CREATE TABLE dbs(c1 int, c2 int, c3 int) partition by range(c2) (start(1) end(11) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create index dbs_index on dbs using bitmap(c3);
 -- TEST
 select find_operator('(select * from dts where c2 = 1) union (select * from dts where c2 = 2) union (select * from dts where c2 = 3) union (select * from dts where c2 = 4) union (select * from dts where c2 = 5) union (select * from dts where c2 = 6) union (select * from dts where c2 = 7) union (select * from dts where c2 = 8) union (select * from dts where c2 = 9) union (select * from dts where c2 = 10);', 'Dynamic Seq Scan');
@@ -652,8 +625,6 @@ set optimizer_segments=2;
 set optimizer_partition_selection_log=on;
 -- end_ignore
 create table pp(a int, b int, c int) partition by range(b) (start(1) end(15) every(5));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into pp values (1,1,2),(2,6,2), (3,11,2);
 -- Heterogeneous Index on the partition table
 create index pp_1_prt_1_idx on pp_1_prt_1(c);
@@ -699,7 +670,6 @@ CREATE TABLE ds_4
   cust_group_acc numeric(10),
   mobile_no character varying(10)
 )
-DISTRIBUTED BY (cust_group_acc, mobile_no)
 PARTITION BY LIST(month_id)
           (
           PARTITION p200800 VALUES('200800'),
@@ -746,12 +716,15 @@ select * from ds_4 a1,ds_4 a2 where a1.month_id = a2.month_id and a1.month_id > 
 ----------+----------------+-----------+----------+----------------+-----------
 (0 rows)
 
+-- SINGLE_NODE_FIXME: disable partition selector temporarily.
+-- start_ignore
 select count_operator('select * from ds_4 a1,ds_4 a2 where a1.month_id = a2.month_id and a1.month_id > E''200800'';','Partition Selector');
  count_operator 
 ----------------
               0
 (1 row)
 
+-- end_ignore
 -- CLEANUP
 -- start_ignore
 DROP TABLE IF EXISTS ds_4;
@@ -771,8 +744,6 @@ PARTITION BY RANGE (b)
   START (0) END (10),
   START (10) END (20)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'b' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO bar SELECT g % 20, g % 20 from generate_series(1, 1000) g;
 ANALYZE bar;
 SELECT b FROM bar GROUP BY b;
@@ -801,16 +772,15 @@ SELECT b FROM bar GROUP BY b;
 (20 rows)
 
 EXPLAIN SELECT b FROM bar GROUP BY b;
-                                     QUERY PLAN                                      
--------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=7.83..8.17 rows=20 width=4)
-   ->  HashAggregate  (cost=7.83..7.90 rows=7 width=4)
-         Group Key: bar.b
-         ->  Append  (cost=0.00..7.00 rows=333 width=4)
-               ->  Seq Scan on bar_1_prt_1 bar_1  (cost=0.00..2.67 rows=167 width=4)
-               ->  Seq Scan on bar_1_prt_2 bar_2  (cost=0.00..2.67 rows=167 width=4)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ HashAggregate  (cost=19.50..19.70 rows=20 width=4)
+   Group Key: bar.b
+   ->  Append  (cost=0.00..17.00 rows=1000 width=4)
+         ->  Seq Scan on bar_1_prt_1 bar_1  (cost=0.00..6.00 rows=500 width=4)
+         ->  Seq Scan on bar_1_prt_2 bar_2  (cost=0.00..6.00 rows=500 width=4)
  Optimizer: Postgres query optimizer
-(7 rows)
+(6 rows)
 
 -- CLEANUP
 DROP TABLE IF EXISTS foo;
@@ -831,32 +801,28 @@ START ('2005-07-01 00:00:00'::timestamp without time zone)
 END ('2006-01-01 00:00:00'::timestamp without time zone)
 EVERY ('2 mons'::interval)
 );
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'oid' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 explain analyze select a.* from mpp8031 a, mpp8031 b where a.oid = b.oid;
-                                                              QUERY PLAN                                                               
----------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=2743.00..2475974.00 rows=80883360 width=16) (actual time=0.807..0.807 rows=0 loops=1)
-   ->  Hash Join  (cost=2743.00..1397529.20 rows=26961120 width=16) (never executed)
-         Hash Cond: (a.oid = b.oid)
-         ->  Append  (cost=0.00..1558.00 rows=94800 width=16) (never executed)
-               ->  Seq Scan on mpp8031_1_prt_foo_1 a_1  (cost=0.00..271.00 rows=23700 width=16) (never executed)
-               ->  Seq Scan on mpp8031_1_prt_2 a_2  (cost=0.00..271.00 rows=23700 width=16) (never executed)
-               ->  Seq Scan on mpp8031_1_prt_3 a_3  (cost=0.00..271.00 rows=23700 width=16) (never executed)
-               ->  Seq Scan on mpp8031_1_prt_4 a_4  (cost=0.00..271.00 rows=23700 width=16) (never executed)
-         ->  Hash  (cost=1558.00..1558.00 rows=94800 width=4) (never executed)
-               ->  Append  (cost=0.00..1558.00 rows=94800 width=4) (never executed)
-                     ->  Seq Scan on mpp8031_1_prt_foo_1 b_1  (cost=0.00..271.00 rows=23700 width=4) (never executed)
-                     ->  Seq Scan on mpp8031_1_prt_2 b_2  (cost=0.00..271.00 rows=23700 width=4) (never executed)
-                     ->  Seq Scan on mpp8031_1_prt_3 b_3  (cost=0.00..271.00 rows=23700 width=4) (never executed)
-                     ->  Seq Scan on mpp8031_1_prt_4 b_4  (cost=0.00..271.00 rows=23700 width=4) (never executed)
- Planning Time: 2.439 ms
-   (slice0)    Executor memory: 51K bytes.
-   (slice1)    Executor memory: 57K bytes avg x 3 workers, 57K bytes max (seg0).
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Hash Join  (cost=858.40..120982.98 rows=885658 width=16) (actual time=0.019..0.022 rows=0 loops=1)
+   Hash Cond: (a.oid = b.oid)
+   ->  Append  (cost=0.00..486.40 rows=29760 width=16) (actual time=0.018..0.018 rows=0 loops=1)
+         ->  Seq Scan on mpp8031_1_prt_foo_1 a_1  (cost=0.00..84.40 rows=7440 width=16) (actual time=0.008..0.008 rows=0 loops=1)
+         ->  Seq Scan on mpp8031_1_prt_2 a_2  (cost=0.00..84.40 rows=7440 width=16) (actual time=0.003..0.003 rows=0 loops=1)
+         ->  Seq Scan on mpp8031_1_prt_3 a_3  (cost=0.00..84.40 rows=7440 width=16) (actual time=0.003..0.003 rows=0 loops=1)
+         ->  Seq Scan on mpp8031_1_prt_4 a_4  (cost=0.00..84.40 rows=7440 width=16) (actual time=0.002..0.002 rows=0 loops=1)
+   ->  Hash  (cost=486.40..486.40 rows=29760 width=4) (never executed)
+         ->  Append  (cost=0.00..486.40 rows=29760 width=4) (never executed)
+               ->  Seq Scan on mpp8031_1_prt_foo_1 b_1  (cost=0.00..84.40 rows=7440 width=4) (never executed)
+               ->  Seq Scan on mpp8031_1_prt_2 b_2  (cost=0.00..84.40 rows=7440 width=4) (never executed)
+               ->  Seq Scan on mpp8031_1_prt_3 b_3  (cost=0.00..84.40 rows=7440 width=4) (never executed)
+               ->  Seq Scan on mpp8031_1_prt_4 b_4  (cost=0.00..84.40 rows=7440 width=4) (never executed)
+ Planning Time: 1.433 ms
+   (slice0)    Executor memory: 124K bytes.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution Time: 1.481 ms
-(20 rows)
+ Execution Time: 0.128 ms
+(18 rows)
 
 drop table mpp8031;
 -- Partitioned tables with default partitions and indexes on all parts,
@@ -868,7 +834,6 @@ CREATE TABLE part_tbl
 	ngin_service_key numeric NOT NULL,
 	profile_key numeric NOT NULL
 )
-DISTRIBUTED BY (time_client_key)
 PARTITION BY RANGE(time_client_key)
 SUBPARTITION BY LIST (ngin_service_key)
 SUBPARTITION TEMPLATE
@@ -884,17 +849,19 @@ INSERT INTO part_tbl VALUES (2015111000, 479534741, 99999999);
 INSERT INTO part_tbl VALUES (2015111000, 479534742, 99999999);
 CREATE INDEX part_tbl_idx 
 ON part_tbl(profile_key);
+-- start_ignore
+analyze part_tbl;
+-- end_ignore
 EXPLAIN SELECT * FROM part_tbl WHERE profile_key = 99999999;
-                                                     QUERY PLAN                                                      
----------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..2.11 rows=6 width=25)
-   ->  Append  (cost=0.00..2.03 rows=2 width=25)
-         ->  Seq Scan on part_tbl_1_prt_p20151110_2_prt_package5 part_tbl_1  (cost=0.00..1.01 rows=1 width=25)
-               Filter: (profile_key = '99999999'::numeric)
-         ->  Seq Scan on part_tbl_1_prt_p20151110_2_prt_other_services part_tbl_2  (cost=0.00..1.01 rows=1 width=25)
-               Filter: (profile_key = '99999999'::numeric)
+                                                  QUERY PLAN                                                   
+---------------------------------------------------------------------------------------------------------------
+ Append  (cost=0.00..2.03 rows=2 width=25)
+   ->  Seq Scan on part_tbl_1_prt_p20151110_2_prt_package5 part_tbl_1  (cost=0.00..1.01 rows=1 width=25)
+         Filter: (profile_key = '99999999'::numeric)
+   ->  Seq Scan on part_tbl_1_prt_p20151110_2_prt_other_services part_tbl_2  (cost=0.00..1.01 rows=1 width=25)
+         Filter: (profile_key = '99999999'::numeric)
  Optimizer: Postgres query optimizer
-(7 rows)
+(6 rows)
 
 SELECT * FROM part_tbl WHERE profile_key = 99999999;
  time_client_key | ngin_service_key | profile_key 
@@ -921,60 +888,53 @@ deallocate f3;
 ERROR:  prepared statement "f3" does not exist
 -- end_ignore
 create table r_part(a int, b int) partition by range(a) (start (1) end(10) every(1));
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 create table r_co(a int, b int) with (orientation=column, appendonly=true) partition by range(a) (start (1) end(10) every(1)) ;
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into r_part values (1,1), (2,2), (3,3), (4,4), (5,5), (6,6), (7,7), (8,8);
 -- following tests rely on the data distribution, verify them
 select gp_segment_id, * from r_part order by a,b;
  gp_segment_id | a | b 
 ---------------+---+---
-             1 | 1 | 1
-             0 | 2 | 2
-             0 | 3 | 3
-             0 | 4 | 4
-             2 | 5 | 5
-             2 | 6 | 6
-             0 | 7 | 7
-             0 | 8 | 8
+            -1 | 1 | 1
+            -1 | 2 | 2
+            -1 | 3 | 3
+            -1 | 4 | 4
+            -1 | 5 | 5
+            -1 | 6 | 6
+            -1 | 7 | 7
+            -1 | 8 | 8
 (8 rows)
 
 analyze r_part;
 explain select * from r_part r1, r_part r2 where r1.a=1; -- should eliminate partitions in the r1 copy of r_part
-                                           QUERY PLAN                                            
--------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=10000000000.00..10000000010.38 rows=9 width=16)
-   ->  Nested Loop  (cost=10000000000.00..10000000010.26 rows=3 width=16)
-         ->  Broadcast Motion 1:3  (slice2; segments: 1)  (cost=0.00..1.03 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_1 r1  (cost=0.00..1.01 rows=1 width=8)
-                     Filter: (a = 1)
-         ->  Append  (cost=0.00..9.13 rows=9 width=8)
-               ->  Seq Scan on r_part_1_prt_1 r2_1  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_2 r2_2  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_3 r2_3  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_4 r2_4  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_5 r2_5  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_6 r2_6  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_7 r2_7  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_8 r2_8  (cost=0.00..1.01 rows=1 width=8)
-               ->  Seq Scan on r_part_1_prt_9 r2_9  (cost=0.00..1.01 rows=1 width=8)
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Nested Loop  (cost=10000000000.00..10000000009.24 rows=9 width=16)
+   ->  Seq Scan on r_part_1_prt_1 r1  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = 1)
+   ->  Append  (cost=0.00..8.13 rows=9 width=8)
+         ->  Seq Scan on r_part_1_prt_1 r2_1  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_2 r2_2  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_3 r2_3  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_4 r2_4  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_5 r2_5  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_6 r2_6  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_7 r2_7  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_8 r2_8  (cost=0.00..1.01 rows=1 width=8)
+         ->  Seq Scan on r_part_1_prt_9 r2_9  (cost=0.00..0.01 rows=1 width=8)
  Optimizer: Postgres query optimizer
-(16 rows)
+(14 rows)
 
 -- the numbers in the filter should be both on segment 0
 explain select * from r_part where a in (7,8); -- should eliminate partitions
-                                    QUERY PLAN                                     
------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..2.11 rows=6 width=8)
-   ->  Append  (cost=0.00..2.03 rows=2 width=8)
-         ->  Seq Scan on r_part_1_prt_7 r_part_1  (cost=0.00..1.01 rows=1 width=8)
-               Filter: (a = ANY ('{7,8}'::integer[]))
-         ->  Seq Scan on r_part_1_prt_8 r_part_2  (cost=0.00..1.01 rows=1 width=8)
-               Filter: (a = ANY ('{7,8}'::integer[]))
+                                 QUERY PLAN                                  
+-----------------------------------------------------------------------------
+ Append  (cost=0.00..2.03 rows=2 width=8)
+   ->  Seq Scan on r_part_1_prt_7 r_part_1  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = ANY ('{7,8}'::integer[]))
+   ->  Seq Scan on r_part_1_prt_8 r_part_2  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = ANY ('{7,8}'::integer[]))
  Optimizer: Postgres query optimizer
-(7 rows)
+(6 rows)
 
 -- Test partition elimination in prepared statements
 prepare f1(int) as select * from r_part where a = 1 order by a,b; 
@@ -998,69 +958,60 @@ execute f2(2);
 (1 row)
 
 explain select * from r_part where a = 1 order by a,b; -- should eliminate partitions
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=1.02..1.07 rows=3 width=8)
-   Merge Key: r_part.b
-   ->  Sort  (cost=1.02..1.03 rows=1 width=8)
-         Sort Key: r_part.b
-         ->  Seq Scan on r_part_1_prt_1 r_part  (cost=0.00..1.01 rows=1 width=8)
-               Filter: (a = 1)
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=1.02..1.03 rows=1 width=8)
+   Sort Key: r_part.b
+   ->  Seq Scan on r_part_1_prt_1 r_part  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = 1)
  Optimizer: Postgres query optimizer
-(7 rows)
+(5 rows)
 
 --force_explain
 explain execute f1(1); -- should eliminate partitions 
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=1.02..1.07 rows=3 width=8)
-   Merge Key: r_part.b
-   ->  Sort  (cost=1.02..1.03 rows=1 width=8)
-         Sort Key: r_part.b
-         ->  Seq Scan on r_part_1_prt_1 r_part  (cost=0.00..1.01 rows=1 width=8)
-               Filter: (a = 1)
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=1.02..1.03 rows=1 width=8)
+   Sort Key: r_part.b
+   ->  Seq Scan on r_part_1_prt_1 r_part  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = 1)
  Optimizer: Postgres query optimizer
-(7 rows)
+(5 rows)
 
 --force_explain
 explain execute f2(2); -- should eliminate partitions
-                                   QUERY PLAN                                    
----------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=1.02..1.07 rows=3 width=8)
-   Merge Key: r_part.b
-   ->  Sort  (cost=1.02..1.03 rows=1 width=8)
-         Sort Key: r_part.b
-         ->  Seq Scan on r_part_1_prt_2 r_part  (cost=0.00..1.01 rows=1 width=8)
-               Filter: (a = 2)
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Sort  (cost=1.02..1.03 rows=1 width=8)
+   Sort Key: r_part.b
+   ->  Seq Scan on r_part_1_prt_2 r_part  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = 2)
  Optimizer: Postgres query optimizer
-(7 rows)
+(5 rows)
 
 -- Test partition elimination on CO tables
 insert into r_co values (1,1), (2,2), (3,3);
 analyze r_co; 
 explain select * from r_co where a=2; -- should eliminate partitions
-                                 QUERY PLAN                                 
-----------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..1.03 rows=1 width=8)
-   ->  Seq Scan on r_co_1_prt_2 r_co  (cost=0.00..1.01 rows=1 width=8)
-         Filter: (a = 2)
+                           QUERY PLAN                            
+-----------------------------------------------------------------
+ Seq Scan on r_co_1_prt_2 r_co  (cost=0.00..1.01 rows=1 width=8)
+   Filter: (a = 2)
  Optimizer: Postgres query optimizer
-(4 rows)
+(3 rows)
 
 -- test partition elimination in prepared statements on CO tables
 prepare f3(int) as select * from r_co where a = $1 order by a,b; 
 --force_explain
 explain execute f3(2); -- should eliminate partitions
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)  (cost=1.02..1.07 rows=3 width=8)
-   Merge Key: r_co.b
-   ->  Sort  (cost=1.02..1.03 rows=1 width=8)
-         Sort Key: r_co.b
-         ->  Seq Scan on r_co_1_prt_2 r_co  (cost=0.00..1.01 rows=1 width=8)
-               Filter: (a = 2)
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Sort  (cost=1.02..1.03 rows=1 width=8)
+   Sort Key: r_co.b
+   ->  Seq Scan on r_co_1_prt_2 r_co  (cost=0.00..1.01 rows=1 width=8)
+         Filter: (a = 2)
  Optimizer: Postgres query optimizer
-(7 rows)
+(5 rows)
 
 -- start_ignore
 drop table r_part;
@@ -1077,7 +1028,7 @@ drop table if exists fact;
 NOTICE:  table "fact" does not exist, skipping
 deallocate f1;
 ERROR:  prepared statement "f1" does not exist
-create table fact(x int, dd date, dt text) distributed by (x) partition by range (dd) ( start('2008-01-01') end ('2320-01-01') every(interval '100 years'));
+create table fact(x int, dd date, dt text) partition by range (dd) ( start('2008-01-01') end ('2320-01-01') every(interval '100 years'));
 -- end_ignore
 analyze fact;
 select '2009-01-02'::date = to_date('2009-01-02','YYYY-MM-DD'); -- ensure that both are in fact equal
@@ -1087,53 +1038,48 @@ select '2009-01-02'::date = to_date('2009-01-02','YYYY-MM-DD'); -- ensure that b
 (1 row)
 
 explain select * from fact where dd < '2009-01-02'::date; -- partitions eliminated
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=40)
-   ->  Seq Scan on fact_1_prt_1 fact  (cost=0.00..1.01 rows=1 width=40)
-         Filter: (dd < '01-02-2009'::date)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Seq Scan on fact_1_prt_1 fact  (cost=0.00..0.01 rows=1 width=40)
+   Filter: (dd < '01-02-2009'::date)
  Optimizer: Postgres query optimizer
-(4 rows)
+(3 rows)
 
 explain select * from fact where dd < to_date('2009-01-02','YYYY-MM-DD'); -- partitions eliminated
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=40)
-   ->  Seq Scan on fact_1_prt_1 fact  (cost=0.00..1.01 rows=1 width=40)
-         Filter: (dd < '01-02-2009'::date)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Seq Scan on fact_1_prt_1 fact  (cost=0.00..0.01 rows=1 width=40)
+   Filter: (dd < '01-02-2009'::date)
  Optimizer: Postgres query optimizer
-(4 rows)
+(3 rows)
 
 explain select * from fact where dd < current_date; --partitions eliminated
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=40)
-   ->  Seq Scan on fact_1_prt_1 fact  (cost=0.00..1.01 rows=1 width=40)
-         Filter: (dd < '04-28-2022'::date)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Seq Scan on fact_1_prt_1 fact  (cost=0.00..0.01 rows=1 width=40)
+   Filter: (dd < '07-13-2023'::date)
  Optimizer: Postgres query optimizer
-(6 rows)
+(3 rows)
 
 -- Test partition elimination in prepared statements
 prepare f1(date) as select * from fact where dd < $1;
 -- force_explain
 explain execute f1('2009-01-02'::date); -- should eliminate partitions
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=40)
-   ->  Seq Scan on fact_1_prt_1 fact  (cost=0.00..1.01 rows=1 width=40)
-         Filter: (dd < '01-02-2009'::date)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Seq Scan on fact_1_prt_1 fact  (cost=0.00..0.01 rows=1 width=40)
+   Filter: (dd < '01-02-2009'::date)
  Optimizer: Postgres query optimizer
-(4 rows)
+(3 rows)
 
 -- force_explain
 explain execute f1(to_date('2009-01-02', 'YYYY-MM-DD')); -- should eliminate partitions
-                                 QUERY PLAN                                  
------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..1.03 rows=1 width=40)
-   ->  Seq Scan on fact_1_prt_1 fact  (cost=0.00..1.01 rows=1 width=40)
-         Filter: (dd < '01-02-2009'::date)
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Seq Scan on fact_1_prt_1 fact  (cost=0.00..0.01 rows=1 width=40)
+   Filter: (dd < '01-02-2009'::date)
  Optimizer: Postgres query optimizer
-(4 rows)
+(3 rows)
 
 -- start_ignore
 drop table fact;
@@ -1141,9 +1087,8 @@ deallocate f1;
 -- end_ignore
 -- MPP-6247
 -- Delete Using on partitioned table causes repetitive scans on using table	
-create table mpp6247_foo ( c1 int, dt date ) distributed by ( c1 ) partition by range (dt) ( start ( date '2009-05-01' ) end ( date '2009-05-11' ) every ( interval '1 day' ) );
+create table mpp6247_foo ( c1 int, dt date ) partition by range (dt) ( start ( date '2009-05-01' ) end ( date '2009-05-11' ) every ( interval '1 day' ) );
 create table mpp6247_bar (like mpp6247_foo);
-NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution columns from LIKE table
 -- EXPECT: Single HJ after partition elimination instead of sequence of HJ under Append
 select count_operator('delete from mpp6247_foo using mpp6247_bar where mpp6247_foo.c1 = mpp6247_bar.c1 and mpp6247_foo.dt = ''2009-05-03''', 'Hash Join');
  count_operator 

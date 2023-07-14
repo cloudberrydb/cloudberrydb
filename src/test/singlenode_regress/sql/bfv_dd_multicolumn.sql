@@ -11,8 +11,8 @@ set test_print_direct_dispatch_info=on;
 set gp_autostats_mode = 'None';
 
 -- composite keys
-create table dd_multicol_1(a int, b int) distributed by (a,b);
-create table dd_multicol_2(a int, b int) distributed by (b,a);
+create table dd_multicol_1(a int, b int);
+create table dd_multicol_2(a int, b int);
 
 insert into dd_multicol_1 select g, g%2 from generate_series(1, 100) g;
 insert into dd_multicol_1 values(null, null);

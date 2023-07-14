@@ -18,7 +18,7 @@ CREATE TABLE bfv_tab1 (
 	stringu1	name,
 	stringu2	name,
 	string4		name
-) distributed by (unique1);
+);
 
 create index bfv_tab1_idx1 on bfv_tab1 using btree(unique1);
 -- GPDB_12_MERGE_FIXME: Non default collation
@@ -238,8 +238,8 @@ select enable_xform('CXformGet2TableScan');
 -- where expr is a scalar expression free of index keys and may have outer
 -- references.
 --
-create table nestloop_x (i int, j int) distributed by (i);
-create table nestloop_y (i int, j int) distributed by (i);
+create table nestloop_x (i int, j int);
+create table nestloop_y (i int, j int);
 insert into nestloop_x select g, g from generate_series(1, 20) g;
 insert into nestloop_y select g, g from generate_series(1, 7) g;
 create index nestloop_y_idx on nestloop_y (j);
@@ -267,7 +267,7 @@ SET enable_seqscan = OFF;
 SET enable_indexscan = ON;
 
 DROP TABLE IF EXISTS bpchar_ops;
-CREATE TABLE bpchar_ops(id INT8, v char(10)) DISTRIBUTED BY(id);
+CREATE TABLE bpchar_ops(id INT8, v char(10));
 CREATE INDEX bpchar_ops_btree_idx ON bpchar_ops USING btree(v bpchar_pattern_ops);
 INSERT INTO bpchar_ops VALUES (0, 'row');
 SELECT * FROM bpchar_ops WHERE v = 'row '::char(20);

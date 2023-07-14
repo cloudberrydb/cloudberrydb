@@ -16,36 +16,24 @@ CREATE TABLE dml_union_r (
         b int,
         c text,
         d numeric)
-DISTRIBUTED BY (a);
+;
 CREATE TABLE dml_union_s (
         a int ,
         b int not NULL,
         c text ,
         d numeric default 10.00)
-DISTRIBUTED BY (b)
 PARTITION BY range(d);
 CREATE TABLE dml_union_s_1_prt_2 PARTITION OF dml_union_s FOR VALUES FROM (1) TO (1001);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_3 PARTITION OF dml_union_s FOR VALUES FROM (1001) TO (1101);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_4 PARTITION OF dml_union_s FOR VALUES FROM (1101) TO (1201);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_5 PARTITION OF dml_union_s FOR VALUES FROM (1201) TO (1301);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_6 PARTITION OF dml_union_s FOR VALUES FROM (1301) TO (1401);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_7 PARTITION OF dml_union_s FOR VALUES FROM (1401) TO (1501);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_8 PARTITION OF dml_union_s FOR VALUES FROM (1501) TO (1601);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_9 PARTITION OF dml_union_s FOR VALUES FROM (1601) TO (1701);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_10 PARTITION OF dml_union_s FOR VALUES FROM (1701) TO (1801);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_11 PARTITION OF dml_union_s FOR VALUES FROM (1801) TO (1901);
-NOTICE:  table has parent, setting distribution columns to match parent table
 CREATE TABLE dml_union_s_1_prt_def PARTITION OF dml_union_s DEFAULT;
-NOTICE:  table has parent, setting distribution columns to match parent table
 INSERT INTO dml_union_r SELECT generate_series(1,100), generate_series(1,100) * 3,'r', generate_series(1,100) % 6;
 INSERT INTO dml_union_r VALUES(NULL,NULL,'text',NULL),(NULL,NULL,'text',NULL),(NULL,NULL,'text',NULL),(NULL,NULL,'text',NULL),(NULL,NULL,'text',NULL);
 INSERT INTO dml_union_r VALUES(1,1,'text',1),(2,2,'text',2),(3,3,'text',3),(4,4,'text',4),(5,5,'text',5);
@@ -626,7 +614,7 @@ SELECT COUNT(*) FROM ( SELECT * FROM (SELECT * FROM dml_union_r EXCEPT SELECT * 
 (1 row)
 
 INSERT INTO dml_union_s SELECT * FROM (SELECT * FROM dml_union_r EXCEPT SELECT * FROM dml_union_s) foo WHERE c='text';
-ERROR:  null value in column "b" of relation "dml_union_s_1_prt_def" violates not-null constraint  (seg0 127.0.1.1:7002 pid=772104)
+ERROR:  null value in column "b" of relation "dml_union_s_1_prt_def" violates not-null constraint
 DETAIL:  Failing row contains (null, null, text, null).
 --SELECT COUNT(*) FROM dml_union_r;
 -- @description union_test28: Negative tests MORE THAN ONE ROW RETURNED
@@ -1313,6 +1301,8 @@ SELECT COUNT(*) FROM dml_union_r WHERE d = 20000;
 (1 row)
 
 rollback;
+-- we don't have the same issue greenplum has in single node mode, behave like pg.
+-- start_ignore
 -- @description union_update_test20:  UNION/INTERSECT/EXCEPT within dml_union_sub-query
 begin;
 SELECT COUNT(DISTINCT(a)) FROM dml_union_r;
@@ -1322,10 +1312,14 @@ SELECT COUNT(DISTINCT(a)) FROM dml_union_r;
 (1 row)
 
 UPDATE dml_union_r SET a = dml_union_s.a FROM dml_union_s WHERE dml_union_r.b in (SELECT b FROM dml_union_r UNION SELECT b FROM dml_union_s);
-ERROR:  multiple updates to a row by the same query is not allowed  (seg2 10.152.10.75:25434 pid=18097)
 SELECT COUNT(DISTINCT(a)) FROM dml_union_r;
-ERROR:  current transaction is aborted, commands ignored until end of transaction block
+ count 
+-------
+     1
+(1 row)
+
 rollback;
+-- end_ignore
 -- @description union_update_test21:  UNION/INTERSECT/EXCEPT within dml_union_sub-query
 begin;
 SELECT COUNT(DISTINCT(a)) FROM dml_union_r;
@@ -1664,7 +1658,7 @@ SELECT COUNT(DISTINCT(d)) FROM dml_union_s;
 (1 row)
 
 UPDATE dml_union_s SET d = (SELECT NULL UNION SELECT NULL)::numeric;
-ERROR:  no partition of relation "dml_union_s" found for row  (seg0 127.0.0.1:40000 pid=9624)
+ERROR:  no partition of relation "dml_union_s" found for row
 DETAIL:  Partition key of the failing row contains (d) = (null).
 --SELECT DISTINCT(d) FROM dml_union_s;
 --SELECT COUNT(DISTINCT(d)) FROM dml_union_s;
@@ -1679,7 +1673,7 @@ SELECT COUNT(DISTINCT(d)) FROM dml_union_s;
 (1 row)
 
 UPDATE dml_union_s SET d = (SELECT NULL INTERSECT SELECT NULL)::numeric; 
-ERROR:  no partition of relation "dml_union_s" found for row  (seg0 127.0.0.1:40000 pid=9081)
+ERROR:  no partition of relation "dml_union_s" found for row
 DETAIL:  Partition key of the failing row contains (d) = (null).
 --SELECT DISTINCT(d) FROM dml_union_s;
 --SELECT COUNT(DISTINCT(d)) FROM dml_union_s;
@@ -1694,7 +1688,7 @@ SELECT COUNT(DISTINCT(d)) FROM dml_union_s;
 (1 row)
 
 UPDATE dml_union_s SET d = (SELECT NULL EXCEPT SELECT NULL)::numeric; 
-ERROR:  no partition of relation "dml_union_s" found for row  (seg0 127.0.0.1:40000 pid=9624)
+ERROR:  no partition of relation "dml_union_s" found for row
 DETAIL:  Partition key of the failing row contains (d) = (null).
 --SELECT DISTINCT(d) FROM dml_union_s;
 --SELECT COUNT(DISTINCT(d)) FROM dml_union_s;
@@ -1747,17 +1741,14 @@ explain (costs off)
 select a from dml_union_r where a > 95
 union all
 select g from generate_series(1,2) g;
-                         QUERY PLAN                          
--------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on dml_union_r
-               Filter: (a > 95)
-         ->  Result
-               One-Time Filter: (gp_execution_segment() = 0)
-               ->  Function Scan on generate_series g
+                QUERY PLAN                
+------------------------------------------
+ Append
+   ->  Seq Scan on dml_union_r
+         Filter: (a > 95)
+   ->  Function Scan on generate_series g
  Optimizer: Postgres query optimizer
-(8 rows)
+(5 rows)
 
 select a from dml_union_r where a > 95
 union all
@@ -1779,19 +1770,15 @@ select sum(a) from (
     union all
     select g from generate_series(1,2) g
 ) t;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
- Finalize Aggregate
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Partial Aggregate
-               ->  Append
-                     ->  Seq Scan on dml_union_r
-                           Filter: (a > 95)
-                     ->  Result
-                           One-Time Filter: (gp_execution_segment() = 0)
-                           ->  Function Scan on generate_series g
+                   QUERY PLAN                   
+------------------------------------------------
+ Aggregate
+   ->  Append
+         ->  Seq Scan on dml_union_r
+               Filter: (a > 95)
+         ->  Function Scan on generate_series g
  Optimizer: Postgres query optimizer
-(10 rows)
+(6 rows)
 
 select sum(a) from (
    select a from dml_union_r where a > 95
@@ -1808,7 +1795,7 @@ select sum(a) from (
 -- This time, the General is a dummy path, produced by pushing down condition.
 -- (Only for planner, orca does not create dummy path here)
 --
-create table t_test_append_hash(a int, b int, c int) distributed by (a);
+create table t_test_append_hash(a int, b int, c int);
 insert into t_test_append_hash select i, i+1, i+2 from generate_series(1, 5)i;
 explain (costs off)
 with t(a, b, s) as (
@@ -1816,22 +1803,19 @@ with t(a, b, s) as (
     union all
     select a, b, sum(c) from t_test_append_hash where a < b group by a, b
 ) select * from t where t.a < t.b;
-                             QUERY PLAN                              
----------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
+                          QUERY PLAN                           
+---------------------------------------------------------------
+ Append
+   ->  HashAggregate
+         Group Key: a, b
          ->  Result
-               One-Time Filter: (gp_execution_segment() = 2)
-               ->  HashAggregate
-                     Group Key: a, b
-                     ->  Result
-                           One-Time Filter: false
-         ->  HashAggregate
-               Group Key: t_test_append_hash.a, t_test_append_hash.b
-               ->  Seq Scan on t_test_append_hash
-                     Filter: ((a < b) AND (a < b))
+               One-Time Filter: false
+   ->  HashAggregate
+         Group Key: t_test_append_hash.a, t_test_append_hash.b
+         ->  Seq Scan on t_test_append_hash
+               Filter: ((a < b) AND (a < b))
  Optimizer: Postgres query optimizer
-(13 rows)
+(10 rows)
 
 with t(a, b, s) as (
     select a, b, sum(c) from t_test_append_hash where a > b group by a, b
@@ -1848,22 +1832,19 @@ with t(a, b, s) as (
 (5 rows)
 
 -- Test mixing a SegmentGeneral with distributed table.
-create table t_test_append_rep(a int, b int, c int) distributed replicated;
+create table t_test_append_rep(a int, b int, c int);
 insert into t_test_append_rep select i, i+1, i+2 from generate_series(5, 10)i;
 explain (costs off)
 select * from t_test_append_rep
 union all
 select * from t_test_append_hash;
-                         QUERY PLAN                          
--------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Result
-               One-Time Filter: (gp_execution_segment() = 0)
-               ->  Seq Scan on t_test_append_rep
-         ->  Seq Scan on t_test_append_hash
+              QUERY PLAN              
+--------------------------------------
+ Append
+   ->  Seq Scan on t_test_append_rep
+   ->  Seq Scan on t_test_append_hash
  Optimizer: Postgres query optimizer
-(7 rows)
+(4 rows)
 
 select * from t_test_append_rep
 union all
@@ -1894,23 +1875,20 @@ select * from t_test_append_hash;
 -- So the result plan's direct dispatch info is also random. We print the plan
 -- and ignore it for better debugging info if error happens.
 -- See github issue https://github.com/greenplum-db/gpdb/issues/9874 for details.
-create table t_github_issue_9874 (a int) distributed by (a);
+create table t_github_issue_9874 (a int);
 -- start_ignore
 explain (costs off)
 select 1
 union all
 select * from t_github_issue_9874 where a = 1;
-                         QUERY PLAN                          
--------------------------------------------------------------
- Gather Motion 2:1  (slice1; segments: 2)
-   ->  Append
-         ->  Result
-               One-Time Filter: (gp_execution_segment() = 0)
-               ->  Result
-         ->  Seq Scan on t_github_issue_9874
-               Filter: (a = 1)
+              QUERY PLAN               
+---------------------------------------
+ Append
+   ->  Result
+   ->  Seq Scan on t_github_issue_9874
+         Filter: (a = 1)
  Optimizer: Postgres query optimizer
-(8 rows)
+(5 rows)
 
 -- end_ignore
 select 1
@@ -1926,24 +1904,19 @@ select * from t_github_issue_9874 where a = 1;
 -- when gp_enable_direct_dispatch is off.
 --
 begin;
-create table rt1(a int, b int) distributed replicated;
+create table rt1(a int, b int);
 create table t1(a int, b int);
-NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Greenplum Database data distribution key for this table.
-HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 insert into t1 select i, i+1 from generate_series(6, 9) i;
 insert into rt1 select i, i+1 from generate_series(1, 5) i;
 set local gp_enable_direct_dispatch = on;
 explain(costs off) select * from rt1 union all select * from t1;
-                         QUERY PLAN                          
--------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Result
-               One-Time Filter: (gp_execution_segment() = 2)
-               ->  Seq Scan on rt1
-         ->  Seq Scan on t1
+             QUERY PLAN              
+-------------------------------------
+ Append
+   ->  Seq Scan on rt1
+   ->  Seq Scan on t1
  Optimizer: Postgres query optimizer
-(7 rows)
+(4 rows)
 
 select * from rt1 union all select * from t1;
  a | b  
@@ -1981,14 +1954,13 @@ explain (costs off)
 select a from t_test_append_rep
 union all
 select * from generate_series(100, 105);
-                  QUERY PLAN                  
-----------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on t_test_append_rep
-         ->  Function Scan on generate_series
+               QUERY PLAN               
+----------------------------------------
+ Append
+   ->  Seq Scan on t_test_append_rep
+   ->  Function Scan on generate_series
  Optimizer: Postgres query optimizer
-(5 rows)
+(4 rows)
 
 select a from t_test_append_rep
 union all
@@ -2016,7 +1988,7 @@ select * from generate_series(100, 105);
 -- with "could not find pathkey item to sort" error.  See
 -- https://github.com/greenplum-db/gpdb/issues/5695
 --
-create table mergeappend_test ( a int, b int, x int ) distributed by (a,b);
+create table mergeappend_test ( a int, b int, x int );
 insert into mergeappend_test select g/100, g/100, g from generate_series(1, 500) g;
 analyze mergeappend_test;
 select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
@@ -2041,24 +2013,21 @@ select a, b, array_dims(array_agg(x)) from mergeappend_test r group by a, b
 union all
 select null, null, array_dims(array_agg(x)) from mergeappend_test r
 order by 1,2;
-                         QUERY PLAN                         
-------------------------------------------------------------
+                     QUERY PLAN                     
+----------------------------------------------------
  Merge Append
    Sort Key: r.a, r.b
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: r.a, r.b
-         ->  GroupAggregate
-               Group Key: r.a, r.b
-               ->  Sort
-                     Sort Key: r.a, r.b
-                     ->  Seq Scan on mergeappend_test r
+   ->  GroupAggregate
+         Group Key: r.a, r.b
+         ->  Sort
+               Sort Key: r.a, r.b
+               ->  Seq Scan on mergeappend_test r
    ->  Sort
          Sort Key: (NULL::integer), (NULL::integer)
          ->  Aggregate
-               ->  Gather Motion 3:1  (slice2; segments: 3)
-                     ->  Seq Scan on mergeappend_test r_1
+               ->  Seq Scan on mergeappend_test r_1
  Optimizer: Postgres query optimizer
-(15 rows)
+(12 rows)
 
 -- This used to trip an assertion in MotionStateFinderWalker(), when we were
 -- missing support for MergeAppend in planstate_walk_kids().
@@ -2083,32 +2052,27 @@ explain analyze select a, b, array_dims(array_agg(x)) from mergeappend_test r gr
 union all
 select null, null, array_dims(array_agg(x)) FROM mergeappend_test r
 order by 1,2;
-                                                                 QUERY PLAN                                                                  
----------------------------------------------------------------------------------------------------------------------------------------------
- Merge Append  (cost=59.71..66.08 rows=37 width=40) (actual time=0.958..0.965 rows=4 loops=2)
+                                                             QUERY PLAN                                                             
+------------------------------------------------------------------------------------------------------------------------------------
+ Merge Append  (cost=35.71..41.98 rows=37 width=40) (actual time=0.247..0.353 rows=7 loops=1)
    Sort Key: r.a, r.b
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=30.41..37.03 rows=36 width=40) (actual time=0.550..0.554 rows=3 loops=2)
-         Merge Key: r.a, r.b
-         ->  GroupAggregate  (cost=30.41..35.95 rows=12 width=40) (actual time=0.234..0.317 rows=2 loops=2)
-               Group Key: r.a, r.b
-               ->  Sort  (cost=30.41..31.66 rows=167 width=12) (actual time=0.181..0.205 rows=150 loops=2)
-                     Sort Key: r.a, r.b
-                     Sort Method:  quicksort  Memory: 115kB
-                     ->  Seq Scan on mergeappend_test r  (cost=0.00..8.00 rows=167 width=12) (actual time=0.005..0.032 rows=150 loops=2)
-   ->  Sort  (cost=29.29..29.29 rows=1 width=40) (actual time=0.407..0.409 rows=0 loops=2)
+   ->  GroupAggregate  (cost=28.41..33.95 rows=36 width=40) (actual time=0.148..0.250 rows=6 loops=1)
+         Group Key: r.a, r.b
+         ->  Sort  (cost=28.41..29.66 rows=500 width=12) (actual time=0.116..0.152 rows=500 loops=1)
+               Sort Key: r.a, r.b
+               Sort Method:  quicksort  Memory: 52kB
+               ->  Seq Scan on mergeappend_test r  (cost=0.00..6.00 rows=500 width=12) (actual time=0.011..0.047 rows=500 loops=1)
+   ->  Sort  (cost=7.29..7.29 rows=1 width=40) (actual time=0.099..0.100 rows=1 loops=1)
          Sort Key: (NULL::integer), (NULL::integer)
-         Sort Method:  quicksort  Memory: 33kB
-         ->  Aggregate  (cost=29.25..29.27 rows=1 width=40) (actual time=0.395..0.395 rows=0 loops=2)
-               ->  Gather Motion 3:1  (slice2; segments: 3)  (cost=0.00..28.00 rows=500 width=4) (actual time=0.034..0.319 rows=250 loops=2)
-                     ->  Seq Scan on mergeappend_test r_1  (cost=0.00..8.00 rows=167 width=4) (actual time=0.008..0.041 rows=150 loops=2)
- Planning time: 0.793 ms
-   (slice0)    Executor memory: 380K bytes.  Work_mem: 33K bytes max.
-   (slice1)    Executor memory: 121K bytes avg x 3 workers, 140K bytes max (seg0).  Work_mem: 49K bytes max.
-   (slice2)    Executor memory: 42K bytes avg x 3 workers, 42K bytes max (seg0).
+         Sort Method:  quicksort  Memory: 25kB
+         ->  Aggregate  (cost=7.25..7.27 rows=1 width=40) (actual time=0.097..0.097 rows=1 loops=1)
+               ->  Seq Scan on mergeappend_test r_1  (cost=0.00..6.00 rows=500 width=4) (actual time=0.005..0.040 rows=500 loops=1)
+ Planning Time: 0.340 ms
+   (slice0)    Executor memory: 114K bytes.  Work_mem: 16K bytes max.
  Memory used:  128000kB
  Optimizer: Postgres query optimizer
- Execution time: 2.496 ms
-(23 rows)
+ Execution Time: 0.422 ms
+(18 rows)
 
 CREATE TABLE t1(c1 int, c2 int, c3 int);
 CREATE TABLE t2(c1 int, c2 int, c3 int);

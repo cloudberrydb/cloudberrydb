@@ -138,7 +138,7 @@ reset optimizer_force_multistage_agg;
 
 -- SETUP
 set optimizer_print_missing_stats = off;
-CREATE TABLE attribute_table (product_id integer, attribute_id integer,attribute text, attribute2 text,attribute_ref_lists text,short_name text,attribute6 text,attribute5 text,measure double precision,unit character varying(60)) DISTRIBUTED BY (product_id ,attribute_id);
+CREATE TABLE attribute_table (product_id integer, attribute_id integer,attribute text, attribute2 text,attribute_ref_lists text,short_name text,attribute6 text,attribute5 text,measure double precision,unit character varying(60));
 -- create the transition function
 CREATE OR REPLACE FUNCTION do_concat(text,text)
 RETURNS text
@@ -171,7 +171,7 @@ select count_operator('select product_id,concat(E''#attribute_''||attribute_id::
 --
 
 -- SETUP
-create table foo(a int, b text) distributed by (a);
+create table foo(a int, b text);
 
 -- TEST
 insert into foo values (1,'aaa'), (2,'bbb'), (3,'ccc');
@@ -203,7 +203,7 @@ c3 int,
 c4 int
 )
 with (appendonly = true, compresstype=zlib)
-distributed by (c0, c3);
+;
 
 insert into mtup1 values
   ('foo', '2015-09-1.1', 1),
@@ -1372,7 +1372,7 @@ reset gp_enable_multiphase_agg;
 -- MPP-29042 Multistage aggregation plans should have consistent targetlists in
 -- case of same column aliases and grouping on them.
 DROP TABLE IF EXISTS t1;
-CREATE TABLE t1 (a varchar, b character varying) DISTRIBUTED RANDOMLY;
+CREATE TABLE t1 (a varchar, b character varying);
 INSERT INTO t1 VALUES ('aaaaaaa', 'cccccccccc');
 INSERT INTO t1 VALUES ('aaaaaaa', 'ddddd');
 INSERT INTO t1 VALUES ('bbbbbbb', 'eeee');
@@ -1384,7 +1384,7 @@ SELECT array_agg(f ORDER BY f)  FROM (SELECT b::text as f FROM t1 GROUP BY b ORD
 
 -- Check that ORDER BY NULLS FIRST/LAST in an aggregate is respected (these are
 -- variants of similar query in PostgreSQL's aggregates test)
-create temporary table aggordertest (a int4, b int4) distributed by (a);
+create temporary table aggordertest (a int4, b int4);
 insert into aggordertest values (1,1), (2,2), (1,3), (3,4), (null,5), (2,null);
 
 select array_agg(a order by a nulls first) from aggordertest;
@@ -1413,7 +1413,7 @@ select avg('1000000000000000000'::int8) from generate_series(1, 100000);
 -- grouping or distinct, but can't because the datatype isn't GPDB-hashable.
 -- These are all variants of the same issue; all of these used to miss the
 -- check on whether the column is GPDB_hashble, producing an assertion failure.
-create table int2vectortab (distkey int, t int2vector,t2 int2vector) distributed by (distkey);
+create table int2vectortab (distkey int, t int2vector,t2 int2vector);
 insert into int2vectortab values
   (1, '1', '1'),
   (2, '1 2', '1 2'),
@@ -1432,8 +1432,8 @@ select count(distinct t), count(distinct t2) from int2vectortab;
 --
 
 -- SETUP
-CREATE TABLE pagg_tab1(x int, y int) DISTRIBUTED BY (x);
-CREATE TABLE pagg_tab2(x int, y int) DISTRIBUTED BY (x);
+CREATE TABLE pagg_tab1(x int, y int);
+CREATE TABLE pagg_tab2(x int, y int);
 
 INSERT INTO pagg_tab1 SELECT i % 30, i % 20 FROM generate_series(0, 299, 2) i;
 INSERT INTO pagg_tab2 SELECT i % 20, i % 30 FROM generate_series(0, 299, 3) i;

@@ -1,6 +1,5 @@
 --Create a heap table with partitions ( having diff storage parameters)
  Create table  pt_heap_tab(a int, b text, c int , d int, e numeric,success bool) with ( appendonly=false )
- distributed by (a)
  partition by list(b)
  (
           partition abc values ('abc','abc1','abc2') with (appendonly=false), -- HEAP
@@ -131,7 +130,6 @@ Distributed by: (a)
  alter table pt_heap_tab split default partition at ('uvw') into (partition dft, partition uvw);
 --Create an AO table with partitions ( having diff storage parameters)
  Create table  pt_ao_tab(a int, b text, c int , d int, e numeric,success bool) with ( appendonly=true )
- distributed by (a)
  partition by list(b)
  (
           partition abc values ('abc','abc1','abc2') with (appendonly=false), -- HEAP
@@ -272,7 +270,6 @@ Distributed by: (a)
 NOTICE:  table "pt_co_tab" does not exist, skipping
 --end_ignore
 Create table  pt_co_tab(a int, b text, c int , d int, e numeric,success bool) with ( appendonly = true, orientation = column)
- distributed by (a)
  partition by list(b)
  (
           partition abc values ('abc','abc1','abc2') with (appendonly=false), -- HEAP
@@ -419,7 +416,6 @@ Distributed by: (a)
 NOTICE:  table "pt_heap_tab_rng" does not exist, skipping
 --end_ignore
  CREATE TABLE pt_heap_tab_rng (a int, b text, c int , d int, e numeric,success bool) with (appendonly=false)
- distributed by (a)
  partition by range(a)
  (
      start(1) end(20) every(5),
@@ -543,7 +539,6 @@ Distributed by: (a)
 NOTICE:  table "pt_ao_tab_rng" does not exist, skipping
 --end_ignore
  CREATE TABLE pt_ao_tab_rng (a int, b text, c int , d int, e numeric,success bool) with (appendonly=true,compresstype=zlib, compresslevel=1)
- distributed by (a)
  partition by range(a)
  (
      start(1) end(20) every(5),
@@ -667,7 +662,6 @@ Distributed by: (a)
 NOTICE:  table "pt_co_tab_rng" does not exist, skipping
 --end_ignore
  CREATE TABLE pt_co_tab_rng (a int, b text, c int , d int, e numeric,success bool) with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
- distributed by (a)
  partition by range(a)
  (
      start(1) end(20) every(5),

@@ -8,8 +8,7 @@ CREATE TABLE cluster_ao_table(
 	city text,
 	state text,
 	zip text)
-WITH (appendonly=true)
-DISTRIBUTED BY (id);
+WITH (appendonly=true);
 
 INSERT INTO cluster_ao_table (id, fname, lname, address1, address2, city, state, zip)
 SELECT i, 'Jon_' || i, 'Roberts_' || i, i || ' Main Street', 'Apartment ' || i, 'New York', 'NY', i::text
@@ -36,8 +35,7 @@ CREATE TABLE cluster_ao_table(
 	city text,
 	state text,
 	zip text)
-WITH (appendonly=true, orientation=column)
-DISTRIBUTED BY (id);
+WITH (appendonly=true, orientation=column);
 
 INSERT INTO cluster_ao_table (id, fname, lname, address1, address2, city, state, zip)
 SELECT i, 'Jon_' || i, 'Roberts_' || i, i || ' Main Street', 'Apartment ' || i, 'New York', 'NY', i::text
@@ -55,7 +53,7 @@ SELECT * FROM cluster_ao_table WHERE id = 10;
 DROP TABLE cluster_ao_table;
 
 -- Test transactional safety of CLUSTER against heap
-CREATE TABLE cluster_foo (a int, b varchar, c int) DISTRIBUTED BY (a);
+CREATE TABLE cluster_foo (a int, b varchar, c int);
 INSERT INTO cluster_foo SELECT i, 'initial insert' || i, i FROM generate_series(1,10000)i;
 CREATE index cluster_ifoo on cluster_foo using btree (b);
 -- execute cluster in a transaction but don't commit the transaction

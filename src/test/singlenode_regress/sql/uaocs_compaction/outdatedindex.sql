@@ -1,7 +1,7 @@
 -- @Description Tests the behavior when the index of an ao table
 -- has not been cleaned.
 
-CREATE TABLE uaocs_outdatedindex (a INT, b INT, c CHAR(128)) WITH (appendonly=true, orientation=column) DISTRIBUTED BY (a);
+CREATE TABLE uaocs_outdatedindex (a INT, b INT, c CHAR(128)) WITH (appendonly=true, orientation=column);
 CREATE INDEX uaocs_outdatedindex_index ON uaocs_outdatedindex(b);
 INSERT INTO uaocs_outdatedindex SELECT i as a, i as b, 'hello world' as c FROM generate_series(1, 50) AS i;
 INSERT INTO uaocs_outdatedindex SELECT i as a, i as b, 'hello world' as c FROM generate_series(51, 100) AS i;

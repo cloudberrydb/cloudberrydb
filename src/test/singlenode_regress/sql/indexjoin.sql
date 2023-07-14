@@ -3,7 +3,7 @@ CREATE TABLE my_tt_agg_small (
     event_ts bigint,
     trade_price numeric,
     trade_volume bigint
-) DISTRIBUTED BY (symbol);
+);
 
 
 CREATE TABLE my_tq_agg_small (
@@ -12,7 +12,7 @@ CREATE TABLE my_tq_agg_small (
     bid_price numeric,
     ask_price numeric,
     end_ts bigint
-) DISTRIBUTED BY (ets);
+);
 
 COPY my_tt_agg_small (symbol, event_ts, trade_price, trade_volume) FROM stdin;
 SFD             	20101126141540067	165350	200
@@ -2529,7 +2529,7 @@ GROUP BY 1
 ORDER BY 1 asc ;
 
 -- Test Index Scan on CO table as the right tree of a NestLoop join.
-create table no_index_table(fake_col1 int, fake_col2 int, fake_col3 int, a int, b int) distributed by (a, b);
+create table no_index_table(fake_col1 int, fake_col2 int, fake_col3 int, a int, b int);
 insert into no_index_table values (1,1,1,1,1);
 analyze no_index_table;
 

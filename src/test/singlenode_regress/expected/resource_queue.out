@@ -196,6 +196,7 @@ select rqppriority, rqpweight from gp_toolkit.gp_resq_priority_backend where rqp
  HIGH        |      1000
 (1 row)
 
+-- start_ignore
 -- query priority and weight on segments
 select rqppriority, rqpweight from gp_dist_random('gp_toolkit.gp_resq_priority_backend') where rqpsession in (select sess_id from pg_stat_activity where pid  = pg_backend_pid());
  rqppriority | rqpweight 
@@ -204,7 +205,7 @@ select rqppriority, rqpweight from gp_dist_random('gp_toolkit.gp_resq_priority_b
  HIGH        |      1000
  HIGH        |      1000
 (3 rows)
-
+-- end_ignore
 RESET ROLE;
 drop user test_rp_user;
 drop resource queue test_rq_cpu;
@@ -402,7 +403,7 @@ create table rq_product (
 	pname text not null,
 	pcolor text,
 	primary key (pn)
-) distributed by (pn);
+);
 -- Products
 insert into rq_product values 
   ( 100, 'Sword', 'Black'),

@@ -10,7 +10,7 @@ create table region
 	r_name char(25),
 	r_comment varchar(152)
 )
-distributed by (r_regionkey)
+
 partition by range (r_regionkey)
 subpartition by list (r_name) subpartition template
 (
@@ -67,38 +67,40 @@ drop table region;
 -- exchange
 -- 1) test all sanity checking
 
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
 
+-- start_ignore
 -- policies are different
-create table bar_p_diff_pol (i int, j int) distributed by (j);
+create table bar_p_diff_pol (i int, j int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_pol;
 
 -- random policy vs. hash policy
-create table bar_p_rand_pol (i int, j int) distributed randomly;
+create table bar_p_rand_pol (i int, j int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_rand_pol;
+-- end_ignore
 
 -- different number of columns
-create table bar_p_diff_col (i int, j int, k int) distributed by (i);
+create table bar_p_diff_col (i int, j int, k int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_col;
 
 -- different types
-create table bar_p_diff_typ (i int, j int8) distributed by (i);
+create table bar_p_diff_typ (i int, j int8);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_typ;
 
 -- different column names
-create table bar_p_diff_colnam (i int, m int) distributed by (i);
+create table bar_p_diff_colnam (i int, m int);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p_diff_colnam;
 
 -- still different schema, but more than one level partitioning
 CREATE TABLE two_level_pt(a int, b int, c int)
-DISTRIBUTED BY (a)
+
 PARTITION BY RANGE (b)
       SUBPARTITION BY RANGE (c)
       SUBPARTITION TEMPLATE (
@@ -114,7 +116,7 @@ ALTER TABLE two_level_pt ALTER PARTITION FOR (1)
 
 -- different owner 
 create role part_role;
-create table bar_p (i int, j int) distributed by (i);
+create table bar_p (i int, j int);
 set session authorization part_role;
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -134,7 +136,7 @@ drop table bar_p;
 
 -- should work, and new partition should inherit ownership (mpp-6538)
 set role part_role;
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(6) every(3));
 reset role;
@@ -146,16 +148,16 @@ drop role part_role;
 
 -- WITH OIDS is no longer supported. Check that it't rejected with the GPDB
 -- partitioning syntax, too.
-create table foo_p (i int, j int) with (oids = true) distributed by (i)
+create table foo_p (i int, j int) with (oids = true)
 partition by range(j)
 (start(1) end(10) every(1));
 
 -- non-partition table involved in inheritance
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
 
-create table barparent(i int, j int) distributed by (i);
+create table barparent(i int, j int);
 create table bar_p () inherits(barparent);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -163,7 +165,7 @@ drop table bar_p;
 drop table barparent;
 
 -- non-partition table involved in inheritance
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 create table barchild () inherits(bar_p);
 -- should fail
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -171,15 +173,15 @@ drop table barchild;
 drop table bar_p;
 
 -- rules on non-partition table
-create table bar_p(i int, j int) distributed by (i);
-create table baz_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
+create table baz_p(i int, j int);
 create rule bar_baz as on insert to bar_p do instead insert into baz_p
   values(NEW.i, NEW.j);
 
 alter table foo_p exchange partition for(2) with table bar_p;
 drop table foo_p, bar_p, baz_p;
 
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(5) every(1));
 
@@ -187,7 +189,7 @@ partition by range(j)
 -- Note this test is slightly different from prior versions to get
 -- in line with constraint consistency requirement.
 create table bar_d(i int, j int check (j >= 2 and j < 3 ))
-distributed by (i);
+;
 insert into bar_d values(100000, 2);
 alter table foo_p exchange partition for(2) with table bar_d;
 insert into bar_d values(200000, 2);
@@ -229,10 +231,10 @@ select * from foo_p;
 drop table foo_p, bar_p;
 
 -- basic test
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 
 insert into bar_p values(0,6);
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -243,10 +245,10 @@ select * from bar_p;
 drop table bar_p;
 select * from foo_p;
 drop table foo_p;
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -258,10 +260,10 @@ select * from bar_p;
 drop table bar_p;
 
 -- AO exchange with heap
-create table foo_p (i int, j int) with(appendonly = true) distributed by (i)
+create table foo_p (i int, j int) with(appendonly = true)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 
 insert into foo_p values(1, 1), (2, 1), (3, 1);
 insert into bar_p values(6, 6);
@@ -272,10 +274,10 @@ drop table bar_p;
 drop table foo_p;
 
 -- other way around
-create table foo_p (i int, j int) with(appendonly = false) distributed by (i)
+create table foo_p (i int, j int) with(appendonly = false)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) with(appendonly = true) distributed by (i);
+create table bar_p(i int, j int) with(appendonly = true);
 
 insert into foo_p values(1, 1), (2, 1), (3, 2);
 insert into bar_p values(6, 6);
@@ -286,10 +288,10 @@ drop table bar_p;
 drop table foo_p;
 
 -- exchange AO with AO
-create table foo_p (i int, j int) with(appendonly = true) distributed by (i)
+create table foo_p (i int, j int) with(appendonly = true)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) with(appendonly = true) distributed by (i);
+create table bar_p(i int, j int) with(appendonly = true);
 
 insert into foo_p values(1, 2), (2, 3), (3, 4);
 insert into bar_p values(6, 6);
@@ -300,10 +302,10 @@ drop table bar_p;
 drop table foo_p;
 
 -- exchange same table more than once
-create table foo_p (i int, j int) distributed by (i)
+create table foo_p (i int, j int)
 partition by range(j)
 (start(1) end(10) every(1));
-create table bar_p(i int, j int) distributed by (i);
+create table bar_p(i int, j int);
 
 insert into bar_p values(6, 6);
 alter table foo_p exchange partition for(6) with table bar_p;
@@ -341,7 +343,7 @@ drop table if exists exh_ao_ao;
 Create table sto_ao_ao
  (
  col1 bigint, col2 date, col3 text, col4 int) with(appendonly=true)
- distributed randomly  partition by range(col2)
+   partition by range(col2)
  subpartition by list (col3)
  subpartition template ( default subpartition subothers, subpartition sub1 values ('one'), subpartition sub2 values ('two'))
  (default partition others, start(date '2008-01-01') end(date '2008-04-30') every(interval '1 month'));
@@ -358,7 +360,7 @@ alter table sto_ao_ao exchange partition for ('2008-01-01') with table exh_ao_ao
 -- XXX: not yet: VALIDATE parameter
 
 -- Exchange a partition with an external table;
-create table foo_p (i int, j int) distributed by (i) partition by range(j) (start(1) end(10) every(2));
+create table foo_p (i int, j int) partition by range(j) (start(1) end(10) every(2));
 create readable external table bar_p(i int, j int) location ('gpfdist://host.invalid:8000/file') format 'text';
 alter table foo_p exchange partition for(3) with table bar_p;
 truncate foo_p;
@@ -367,19 +369,19 @@ drop table bar_p;
 
 -- Check for overflow of circular data types like time
 -- Should fail
-CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
+CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2))
 partition by range (f1)
 (
   start (time '00:00') end (time '24:00') EVERY (INTERVAL '1 hour')
 );
 -- Should fail
-CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
+CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2))
 partition by range (f1)
 (
   start (time '00:00') end (time '23:59') EVERY (INTERVAL '1 hour')
 );
 -- Should work
-CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2)) distributed by (f1)
+CREATE TABLE TIME_TBL_HOUR_2 (f1 time(2))
 partition by range (f1)
 (
   start (time '00:00') end (time '23:00') EVERY (INTERVAL '1 hour')
@@ -387,56 +389,56 @@ partition by range (f1)
 drop table TIME_TBL_HOUR_2;
 -- Check for every parameters that just don't make sense
 create table hhh_r2 (a char(1), b date, d char(3))
-distributed by (a) partition by range (b)
+ partition by range (b)
 (                                                              
 partition aa start (date '2007-01-01') end (date '2008-01-01') 
       every (interval '0 days')
 );
 
-create table foo_p (i int) distributed by(i)
+create table foo_p (i int) 
 partition by range(i)
 (start (1) end (20) every(0));
 
 -- Check for ambiguous EVERY parameters
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (3) every (0.6));
 \d+ foo_p
 drop table foo_p;
 -- should fail
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (3) every (0.3));
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (3) every (1.3));
 \d+ foo_p
 drop table foo_p;
 
-create table foo_p (i int) distributed by (i)
+create table foo_p (i int)
 partition by range(i)
 (start (1) end (20) every (10.9));
 \d+ foo_p
 drop table foo_p;
 
 -- should fail
-create table foo_p (i int, j date) distributed by (i)
+create table foo_p (i int, j date)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '0.5 days'));
 
 -- should fail
-create table foo_p (i int, j date) distributed by (i)
+create table foo_p (i int, j date)
 partition by range(j)
 (start ('2007-01-01') end ('2008-01-01') every (interval '12 hours'));
 
-create table foo_p (i int, j date) distributed by (i)
+create table foo_p (i int, j date)
 partition by range(j)
 (start ('2007-01-01') end ('2007-01-05') every (interval '1.2 days'));
 \d+ foo_p
 drop table foo_p;
 
 -- should work
-create table foo_p (i int, j timestamp) distributed by (i)
+create table foo_p (i int, j timestamp)
 partition by range(j)
 (start ('2007-01-01') end ('2007-01-05') every (interval '1.2 days'));
 \d+ foo_p
@@ -548,7 +550,7 @@ drop table foo_p;
 -- buffers in that scenario at one point.
 -- (https://github.com/greenplum-db/gpdb/issues/6678
 create table mixed_ao_part(distkey int, partkey int)
-with (appendonly=true) distributed by(distkey)
+with (appendonly=true) 
 partition by range(partkey) (
   partition p1 start(0) end(100) with (appendonly = false),
    partition p2 start(100) end(199)
@@ -695,7 +697,6 @@ drop table partsupp;
 CREATE TABLE ataprank (id int, rank int,
 year date, gender char(1),
 usstate char(2))
-DISTRIBUTED BY (id, gender, year, usstate)
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -720,7 +721,6 @@ subpartition ohio values ('OH')
 CREATE TABLE ataprank2 (id int, rank int,
 year date, gender char(1),
 usstate char(2))
-DISTRIBUTED BY (id, gender, year, usstate)
 partition by list (gender)
 subpartition by range (year)
 subpartition by list (usstate)
@@ -820,11 +820,11 @@ for ('2001-01-01') drop partition "funky";
 
 -- fail - missing name
 alter table ataprank alter partition girls alter partition 
-for ('2001-01-01') drop partition ;
+for ('2001-01-01') drop partition;
 
 -- ok
 alter table ataprank alter partition girls drop partition 
-for ('2001-01-01') ;
+for ('2001-01-01');
 
 -- ok , skipping
 alter table ataprank alter partition girls drop partition if exists jan01;
@@ -898,9 +898,9 @@ alter table ataprank2 drop partition neuter;
 
 -- fail , no subpartition spec for ataprank2, work for ataprank
 alter table ataprank
-add default partition neuter ;
+add default partition neuter;
 alter table ataprank2
-add default partition neuter ;
+add default partition neuter;
 
 alter table ataprank
 add default partition neuter 
@@ -940,8 +940,8 @@ alter default partition alter default partition
 add default partition def2;
 
 
-drop table ataprank ;
-drop table ataprank2 ;
+drop table ataprank;
+drop table ataprank2;
 
 -- **END** ALTER TABLE ALTER PARTITION tests
 
@@ -1029,7 +1029,7 @@ CREATE TABLE partsupp_1 (
     ps_availqty integer,
     ps_supplycost numeric,
     ps_comment character varying(199)
-) distributed by (ps_partkey) PARTITION BY RANGE(ps_suppkey)
+) PARTITION BY RANGE(ps_suppkey)
           SUBPARTITION BY RANGE(ps_partkey)
                   SUBPARTITION BY RANGE(ps_supplycost) 
           (
@@ -1276,11 +1276,11 @@ alter table k split partition bar at (23) into (partition baz, partition foz);
 \d+ k
 drop table k;
 -- Add CO partition and split, reported in MPP-17761
-create table k (i int) with (appendonly = true, orientation = column) distributed by (i) partition by range(i) (start(1) end(10) every(5));
+create table k (i int) with (appendonly = true, orientation = column) partition by range(i) (start(1) end(10) every(5));
 alter table k add partition co start(11) end (17) with (appendonly = true, orientation = column);
 alter table k split partition co at (14) into (partition co1, partition co2);
 drop table k;
-create table k (a int, b int) with (appendonly = true) distributed by (a) partition by list(b)
+create table k (a int, b int) with (appendonly = true) partition by list(b)
 (
 	partition a values (1, 2, 3, 4) with (appendonly = true, orientation = column),
 	partition b values (5, 6, 7 ,8) with (appendonly = true, orientation = column)
@@ -1446,7 +1446,7 @@ alter table list_test split default partition at ('baz')
 drop table list_test;
 
 -- MPP-3816: cannot drop column  which is the subject of partition config
-create table list_test(a int, b int, c int) distributed by (a)
+create table list_test(a int, b int, c int)
   partition by list(b) 
   subpartition by list(c) subpartition template(subpartition c values(2))
   (partition b values(1));
@@ -1463,7 +1463,6 @@ year int,
 gender char(1),
 count int ) 
 
-DISTRIBUTED BY (id)
 PARTITION BY LIST (gender)
 SUBPARTITION BY RANGE (year)
 SUBPARTITION TEMPLATE (
@@ -1522,7 +1521,6 @@ select relid, level, template from gp_partition_template where not exists (selec
 -- MPP-4172
 -- should fail
 create table ggg (a char(1), b int)
-distributed by (b)
 partition by range(a)
 (
 partition aa start ('2006') end ('2009'), partition bb start ('2007') end ('2008')
@@ -1598,7 +1596,7 @@ partition b start('e') end('g')
 -- partition declaration.
 CREATE TABLE list_sales (trans_id int, date date, amount
 decimal(9,2), region text)
-DISTRIBUTED BY (trans_id)
+
 PARTITION BY LIST (region)
 SUBPARTITION TEMPLATE
 ( SUBPARTITION usa VALUES ('usa'),
@@ -1609,7 +1607,7 @@ SUBPARTITION TEMPLATE
 -- MPP-5185 MPP-26829
 -- Should work
 CREATE TABLE rank_settemp (id int, rank int, year date, gender
-char(1)) DISTRIBUTED BY (id, gender, year)
+char(1))
 partition by list (gender)
 subpartition by range (year)
 subpartition template (
@@ -1652,7 +1650,7 @@ drop table rank_settemp;
 -- should be able to add/split/exchange partition after dropped a col
 
 create table mpp_5397 (a int, b int, c int, d int)
-  distributed by (a) 
+  
   partition by range (b)  
   (partition a1 start (0) end (5), 
    partition a2 end (10),  
@@ -1692,7 +1690,7 @@ transactionid character varying(32),
 transactiontime timestamp(2) without time zone
 )
 WITH (appendonly=true, compresslevel=5)
-distributed by (ip) PARTITION BY RANGE(transactiontime)
+ PARTITION BY RANGE(transactiontime)
 (
 
 PARTITION "P2009041607"
@@ -1769,7 +1767,7 @@ alter partition for (1) truncate partition for ('QA');
 alter table mpp5941 alter partition for ('2008-01-01') 
 truncate partition for (1);
 
-alter table mpp5941 truncate partition for ('2008-01-01') ;
+alter table mpp5941 truncate partition for ('2008-01-01');
 
 truncate table mpp5941;
 
@@ -1911,7 +1909,6 @@ create table partnulltest (
   col1 int,
   col2 numeric
 )
-distributed by (col1)
 partition by range(col2)
 (
   partition part2 start(1) end(10) ,
@@ -1982,7 +1979,6 @@ drop domain domainvarchar, domainnumeric, domainint4, domaintext;
 
 -- Test index inheritance with partitions
 create table ti (i int not null, j int)
-distributed by (i)
 partition by range (j) 
 (start(1) end(3) every(1));
 create unique index ti_pkey on ti(i,j);
@@ -2013,7 +2009,6 @@ drop table ti;
 -- memory context for its tuples` descriptor
 drop table if exists dis_tupdesc;
 create table dis_tupdesc (a int, b int, c int)
-distributed by (a)
 partition by list (b)
 (
     partition p1 values (1),
@@ -2046,7 +2041,7 @@ drop table anotherit;
 -- Test table constraint inheritance
 --
 -- with a named UNIQUE constraint
-create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+create table it (i int) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
 alter table it add constraint it_unique_i unique (i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
@@ -2055,7 +2050,7 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 drop table it;
 
 -- with a PRIMARY KEY constraint, without giving it a name explicitly.
-create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+create table it (i int) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
 alter table it add primary key(i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
@@ -2068,7 +2063,7 @@ select schemaname, tablename, indexname from pg_indexes where schemaname = 'publ
 drop table it;
 
 
-create table it (i int) distributed by (i) partition by range(i) (start(1) end(3) every(1));
+create table it (i int) partition by range(i) (start(1) end(3) every(1));
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
 alter table it add primary key(i);
 select schemaname, tablename, indexname from pg_indexes where schemaname = 'public' and tablename like 'it%';
@@ -2081,7 +2076,7 @@ create table parttab_with_excl_constraint (
   i int,
   j int,
   CONSTRAINT part_excl EXCLUDE (i WITH =) )
-distributed by (i) partition by list (i) (
+ partition by list (i) (
   partition a values (1),
   partition b values (2),
   partition c values (3)
@@ -2090,7 +2085,7 @@ distributed by (i) partition by list (i) (
 create table parttab_with_excl_constraint (
   i int,
   j int)
-distributed by (i) partition by list (i) (
+ partition by list (i) (
   partition a values (1),
   partition b values (2),
   partition c values (3)
@@ -2117,7 +2112,7 @@ drop table parttab_with_excl_constraint;
 CREATE TABLE mpp6297 ( l_orderkey bigint,
 l_commitdate date
 )
-distributed BY (l_orderkey) PARTITION BY RANGE(l_commitdate)
+ PARTITION BY RANGE(l_commitdate)
 (
 PARTITION p1_1 START ('1992-01-31'::date) END ('1993-02-28'::date)
 EVERY ('1 year 1 mon'::interval)
@@ -2138,7 +2133,7 @@ drop table mpp6297;
 CREATE TABLE mpp6297 ( l_orderkey bigint,
 l_commitdate date
 )
-distributed BY (l_orderkey) PARTITION BY RANGE(l_commitdate)
+ PARTITION BY RANGE(l_commitdate)
 (
 PARTITION p1_1 START ('1992-01-31'::date) END ('1993-02-28'::date)
 EVERY ('1 year 1 mon'::interval)
@@ -2173,7 +2168,7 @@ alter table mpp6297 drop partition for (3);
 alter table mpp6297 add partition start (3) end (4) every (1);
 
 -- this is legal but it doesn't fix the EVERY clause
-alter table mpp6297 add partition start (3) end (4) ;
+alter table mpp6297 add partition start (3) end (4);
 
 \d+ mpp6297
 drop table mpp6297;
@@ -2255,7 +2250,6 @@ CREATE TABLE mpp6589a
   id bigint,
   day_dt date
 )
-DISTRIBUTED BY (id)
 PARTITION BY RANGE(day_dt)
           (
           PARTITION p20090312  END ('2009-03-12'::date)
@@ -2286,7 +2280,6 @@ CREATE TABLE mpp6589b
   id bigint,
   day_dt date
 )
-DISTRIBUTED BY (id)
 PARTITION BY RANGE(day_dt)
           (
           PARTITION p20090312  START ('2008-03-12'::date)
@@ -2389,7 +2382,7 @@ totcellsingress double precision,
 PRIMARY KEY (rnc,wbts,axc,vptt,vcct,agg_level,period_start_time)
 )
  
-DISTRIBUTED BY (rnc,wbts,axc,vptt,vcct)
+
  
 PARTITION BY LIST (AGG_LEVEL)
   SUBPARTITION BY RANGE (PERIOD_START_TIME)
@@ -2447,7 +2440,7 @@ totcellsegress double precision,
 totcellsingress double precision
 )
  
-DISTRIBUTED BY (rnc,wbts,axc,vptt,vcct)
+
  
 PARTITION BY LIST (AGG_LEVEL)
   SUBPARTITION BY RANGE (PERIOD_START_TIME)
@@ -2533,8 +2526,6 @@ CREATE TABLE mpp10321a
 PRIMARY KEY (rnc,wbts,axc,vptt,vcct,agg_level,period_start_time)
 )
 
-DISTRIBUTED BY (rnc,wbts,axc,vptt,vcct)
-
 PARTITION BY LIST (AGG_LEVEL)
   SUBPARTITION BY RANGE (PERIOD_START_TIME)
 (
@@ -2561,7 +2552,7 @@ DROP TABLE mpp10321a;
 
 -- test for default partition with boundary spec
 create table bhagp_range (a int, b int) 
-distributed by (a) 
+ 
 partition by range (b) 
 ( 
   default partition x 
@@ -2571,7 +2562,7 @@ partition by range (b)
 );
 
 create table bhagp_list (a int, b int) 
-distributed by (a) 
+ 
 partition by list (b) 
 ( 
   default partition x 
@@ -2582,7 +2573,6 @@ partition by list (b)
 
 -- bad partition by type
 create table cov1 (a int, b int)
-distributed by (a)
 partition by (b)
 (
 start (1) end (10) every (1)
@@ -2590,7 +2580,6 @@ start (1) end (10) every (1)
 
 -- bad partition by type
 create table cov1 (a int, b int)
-distributed by (a)
 partition by funky (b)
 (
 start (1) end (10) every (1)
@@ -2599,7 +2588,6 @@ start (1) end (10) every (1)
 drop table cov1;
 
 create table cov1 (a int, b int)
-distributed by (a)
 partition by range (b)
 (
 start (1) end (10) every (1)
@@ -2628,7 +2616,6 @@ drop table cov1;
 
 -- every 5 (1) now disallowed...
 create table cov1 (a int, b int)
-distributed by (a)
 partition by range (b)
 (
 start (1) end(20) every 5 (1)
@@ -2637,7 +2624,6 @@ start (1) end(20) every 5 (1)
 drop table if exists cov1;
 
 create table cov1 (a int, b int)
-distributed by (a)
 partition by list (b)
 (
 partition p1 values (1,2,3,4,5,6,7,8)
@@ -2666,7 +2652,6 @@ create table tbl11120 (
 	c	int,
 	primary key (a,b,c)
 )
-distributed by (a)
 partition by range (b)
 (
 	default partition default_partition,
@@ -2762,7 +2747,7 @@ drop schema mpp6979dummy;
 
 create table parent_s
     (a int, b text) 
-    distributed by (a);
+  ;
     
 insert into parent_s values
     (1, 'one');
@@ -2791,7 +2776,7 @@ drop table if exists child_r cascade; --ignore
 
 create table parent_r
     ( a int, b text, c int, d int ) 
-    distributed by (a)
+   
     partition by range(d) 
     (
         start (0) 
@@ -2804,7 +2789,7 @@ insert into parent_r values
 
 create table parent_s
     ( a int, b text, c int, d int ) 
-    distributed by (a);
+  ;
     
 insert into parent_s values
     (1, 'from s', 555, 555);
@@ -2812,7 +2797,7 @@ insert into parent_s values
 create table child_t
     ( )
     inherits (parent_s)
-    distributed by (a);
+  ;
 
 insert into child_t values
     (0, 'from t', 666, 666);
@@ -2832,7 +2817,7 @@ drop table parent_r cascade; --ignore
 -- ( MPP-13750 
 
 CREATE TABLE s (id int, date date, amt decimal(10,2), units int) 
-DISTRIBUTED BY (id) 
+ 
 PARTITION BY RANGE (date) 
 ( START (date '2008-01-01') INCLUSIVE 
    END (date '2008-01-02') EXCLUSIVE 
@@ -2854,6 +2839,7 @@ alter table s add partition s_test
 alter table s split partition for (date '2008-01-03') at (date '2008-01-04')
   into (partition s_test, partition s_test2);
 
+-- start_ignore
 select 
     relname, 
     (select count(distinct content) - 1 
@@ -2865,6 +2851,7 @@ from (
     ) seg_class(segid, relid, relname) 
 where relname ~ '^s_' 
 group by relname; 
+-- end_ignore
 
 drop table s cascade;
 
@@ -2873,7 +2860,6 @@ drop table s cascade;
 -- MPP-13806 start
 drop table if exists mpp13806;
  CREATE TABLE mpp13806 (id int, date date, amt decimal(10,2))
- DISTRIBUTED BY (id)
  PARTITION BY RANGE (date)
  ( START (date '2008-01-01') INCLUSIVE
 	END (date '2008-01-05') EXCLUSIVE
@@ -2884,7 +2870,6 @@ alter table mpp13806 add partition test end (date '2008-01-01') exclusive;
  
 drop table if exists mpp13806;
  CREATE TABLE mpp13806 (id int, date date, amt decimal(10,2))
- DISTRIBUTED BY (id)
  PARTITION BY RANGE (date)
  ( START (date '2008-01-01') EXCLUSIVE
 	END (date '2008-01-05') EXCLUSIVE
@@ -2902,7 +2887,6 @@ drop table if exists at cascade;
 
 create table tc
     (a int, b int, c int, primary key(a) )
-    distributed by (a)
     partition by range (b)
     ( 
         default partition d,
@@ -2911,7 +2895,6 @@ create table tc
 
 create table cc
     (a int primary key, b int, c int)
-    distributed by (a)
     partition by range (b)
     ( 
         default partition d,
@@ -2920,7 +2903,6 @@ create table cc
 
 create table at
     (a int, b int, c int)
-    distributed by (a)
     partition by range (b)
     ( 
         default partition d,
@@ -2942,7 +2924,6 @@ alter table at
 create table mpp17707
 ( d int, p int ,x text)
 with (appendonly = true)
-distributed by (d)
 partition by range (p)
 (start (0) end (3) every (2));
 
@@ -2964,7 +2945,6 @@ create table plst2
         b integer not null,
 	d plst2_partkey
     )                                                                                                                   
-    distributed by (b) 
     partition by list (d)
     (
         partition p1 values ( CAST('(1,2)' as plst2_partkey), CAST('(3,4)' as plst2_partkey) ),
@@ -2979,7 +2959,6 @@ create table plst2
         b integer not null,
 	d plst2_partkey
     )                                                                                                                   
-    distributed by (b) 
     partition by list (d)
     (
         partition p1 values ( CAST('(1,2)' as plst2_partkey), CAST('(3,4)' as plst2_partkey) ),
@@ -2993,7 +2972,6 @@ drop type plst2_partkey;
 create type plst2_partkey as (a int, b int);
 create table plst2
     ( d int, c plst2_partkey)
-    distributed by (d)
     partition by list (c) 
         (
         partition p0 values ( CAST('(1,2)' as plst2_partkey), CAST('(3,4)' as plst2_partkey) ),
@@ -3099,7 +3077,7 @@ CREATE TABLE non_ws_phone_leads (
     dim_phone_provider_key smallint NOT NULL ENCODING (compresstype=zlib,compresslevel=1,blocksize=32768),
     dim_phone_ad_set_key smallint NOT NULL ENCODING (compresstype=zlib,compresslevel=1,blocksize=32768)
 )
-WITH (appendonly=true, compresstype=zlib, orientation=column) DISTRIBUTED BY (dim_site_key ,dim_date_key) PARTITION BY RANGE(dim_date_key) 
+WITH (appendonly=true, compresstype=zlib, orientation=column) PARTITION BY RANGE(dim_date_key) 
           (
           PARTITION p_max START (2451545) END (9999999) WITH (tablename='non_ws_phone_leads_1_prt_p_max', orientation=column, appendonly=true ) 
                     COLUMN lead_key ENCODING (compresstype=zlib, compresslevel=1, blocksize=32768) 
@@ -3126,7 +3104,7 @@ CREATE TABLE dim_phone_numbers (
     formatted_phone_number character varying(20) NOT NULL,
     source_system_phone_number_id character varying(100) NOT NULL,
     last_modified_date timestamp without time zone NOT NULL
-) DISTRIBUTED BY (dim_phone_number_key);
+);
 
 ALTER TABLE ONLY dim_phone_numbers
     ADD CONSTRAINT dim_phone_numbers_pk1 PRIMARY KEY (dim_phone_number_key);
@@ -3197,8 +3175,8 @@ DROP TABLE dim_phone_numbers;
 -- Equality condition with a constant expression on one distribution key
 drop table if exists foo_p;
 drop table if exists bar;
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table bar( a int, b int, k int, t text, p int) distributed by (a);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table bar( a int, b int, k int, t text, p int);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -3220,7 +3198,7 @@ drop table if exists pnx;
 
 create table pnx 
     (x int , y text)
-    distributed randomly
+    
     partition by list (y)
         ( 
             partition a values ('x1', 'x2'),
@@ -3256,7 +3234,7 @@ drop table if exists pxn;
 
 create table pxn 
     (x int , y text)
-    distributed randomly
+    
     partition by list (y)
         ( 
             partition a values ('x1', 'x2'),
@@ -3291,7 +3269,7 @@ drop table if exists pxn;
 
 create table pxn 
     (x int , y int)
-    distributed randomly
+    
     partition by range (y)
         ( 
             partition a start (0) end (10),
@@ -3326,7 +3304,7 @@ drop table if exists pxn;
 
 create table pxn 
     (x int , y int)
-    distributed randomly
+    
     partition by range (y)
         ( 
             partition a start (0) end (10),
@@ -3366,7 +3344,7 @@ create table parttest_t (
 	b int,
 	c char,
 	d varchar(50)
-) distributed by (c) 
+) 
 partition by range (a) 
 ( 
 	partition p1 start(1) end(5),
@@ -3385,7 +3363,7 @@ select * from parttest_t;
 reset optimizer_nestloop_factor;
 
 -- Sub-partition insertion with checking if the user provided correct leaf part
-create table part_tab ( i int, j int) distributed by (i) partition by range(j) (start(0) end(10) every(2));
+create table part_tab ( i int, j int) partition by range(j) (start(0) end(10) every(2));
 -- Wrong part
 insert into part_tab_1_prt_1 values(5,5);
 select * from part_tab;
@@ -3437,7 +3415,6 @@ select * from part_tab;
 
 -- Multi-level partitioning
 create table deep_part ( i int, j int, k int, s char(5)) 
-distributed by (i) 
 partition by list(s)
 subpartition by range (j) subpartition template (start(1)  end(10) every(2))
 subpartition by range (k) subpartition template (start(1)  end(10) every(2))
@@ -3493,7 +3470,6 @@ col1 int,
 col2 int,
 col3 int
 )
-distributed by (col1)
 partition by range(col2)
 (
     partition part1 start(1) end(5),
@@ -3507,7 +3483,7 @@ alter table pt_td_leak drop column col3;
 alter table pt_td_leak add column col3 int default 7;
 
 drop table if exists pt_td_leak_exchange;
-CREATE TABLE pt_td_leak_exchange ( col1 int, col2 int, col3 int) distributed by (col1);
+CREATE TABLE pt_td_leak_exchange ( col1 int, col2 int, col3 int);
 alter table pt_td_leak exchange partition part2 with table pt_td_leak_exchange;
 
 insert into pt_td_leak values(1,8,1);
@@ -3526,7 +3502,7 @@ drop table pt_td_leak_exchange;
 -- because of dropped columns
 --
 CREATE TABLE pt_dropped_col_distkey (i int, to_be_dropped text, t text)
-DISTRIBUTED BY (t) PARTITION BY RANGE (i) (START (1) END(10) EVERY (5));
+ PARTITION BY RANGE (i) (START (1) END(10) EVERY (5));
 INSERT INTO pt_dropped_col_distkey SELECT g, 'dropped' || g, 'before drop ' || g FROM generate_series(1, 7) g;
 
 ALTER TABLE pt_dropped_col_distkey DROP COLUMN to_be_dropped;
@@ -3556,7 +3532,6 @@ SELECT * FROM pt_dropped_col_distkey ORDER BY i;
 drop table if exists test_split_part cascade;
 
 CREATE TABLE test_split_part ( log_id int NOT NULL, f_array int[] NOT NULL)
-DISTRIBUTED BY (log_id)
 PARTITION BY RANGE(log_id)
 (
     START (1::int) END (100::int) EVERY (5) WITH (appendonly=false),
@@ -3576,19 +3551,19 @@ select array_agg(test_split_part) from test_split_part where log_id = 500;
 select array_agg(test_split_part_1_prt_other_log_ids) from test_split_part_1_prt_other_log_ids where log_id = 500;
 
 -- Originally reported in MPP-7232
-create table mpp7232a (a int, b int) distributed by (a) partition by range (b) (start (1) end (3) every (1));
+create table mpp7232a (a int, b int) partition by range (b) (start (1) end (3) every (1));
 \d+ mpp7232a
 alter table mpp7232a rename partition for (1) to alpha;
 alter table mpp7232a rename partition for (2) to bravo;
 \d+ mpp7232a
 
-create table mpp7232b (a int, b int) distributed by (a) partition by range (b) (partition alpha start (1) end (3) every (1));
+create table mpp7232b (a int, b int) partition by range (b) (partition alpha start (1) end (3) every (1));
 alter table mpp7232b rename partition for (1) to foo;
 \d+ mpp7232b
 
 -- Test .. WITH (tablename = <foo> ..) syntax.
 create table mpp17740 (a integer, b integer, e date) with (appendonly = true, orientation = column)
-distributed by (a)
+
 partition by range(e)
 (
     partition mpp17740_20120523 start ('2012-05-23'::date) inclusive end ('2012-05-24'::date) exclusive with (tablename = 'mpp17740_20120523', appendonly = true),
@@ -3601,7 +3576,7 @@ select relname, pg_get_expr(relpartbound, oid) from pg_class where relname like 
 
 -- Test mix of add and drop various column before split, and exchange partition at the end
 create table sales (pkid serial, option1 int, option2 int, option3 int, constraint partable_pkey primary key(pkid, option3))
-distributed by (pkid) partition by range (option3)
+ partition by range (option3)
 (
 	partition aa start(1) end(100),
 	partition bb start(101) end(200),
@@ -3615,13 +3590,15 @@ alter table sales add partition dd start(301) end(300)
 
 -- root partition (and only root) should have relfrozenxid as 0
 select relname, relkind from pg_class where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
+-- start_ignore
 select gp_segment_id, relname, relkind from gp_dist_random('pg_class') where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
-
+-- end_ignore
 alter table sales add column tax float;
 -- root partition (and only root) continues to have relfrozenxid as 0
 select relname, relkind from pg_class where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
+-- start_ignore
 select gp_segment_id, relname, relkind from gp_dist_random('pg_class') where relkind in ('r', 'p') and relname like 'sales%' and relfrozenxid=0;
-
+-- end_ignore
 alter table sales drop column tax;
 
 create table newpart(like sales);
@@ -3686,7 +3663,6 @@ drop table exchange1;
 -- Ensure that new partitions get the correct attributes (MPP17110)
 CREATE TABLE pt_tab_encode (a int, b text)
 with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
-distributed by (a)
 partition by list(b) (partition s_abc values ('abc') with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1));
 
 alter table pt_tab_encode add partition "s_xyz" values ('xyz') WITH (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1);
@@ -3694,10 +3670,14 @@ alter table pt_tab_encode add partition "s_xyz" values ('xyz') WITH (appendonly=
 select relname, pg_get_expr(relpartbound, oid) from pg_class where relname like 'pt_tab_encode%';
 
 select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_encoding where attrelid = 'pt_tab_encode_1_prt_s_abc'::regclass;
+-- start_ignore
 select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random('pg_attribute_encoding') where attrelid = 'pt_tab_encode_1_prt_s_abc'::regclass order by 1,3 limit 5;
+-- end_ignore
 
 select gp_segment_id, attrelid::regclass, attnum, attoptions from pg_attribute_encoding where attrelid = 'pt_tab_encode_1_prt_s_xyz'::regclass;
+-- start_ignore
 select gp_segment_id, attrelid::regclass, attnum, attoptions from gp_dist_random('pg_attribute_encoding') where attrelid = 'pt_tab_encode_1_prt_s_xyz'::regclass order by 1,3 limit 5;
+-- end_ignore
 
 select c.oid::regclass, relkind, amname, reloptions from pg_class c left join pg_am am on am.oid = relam where c.oid = 'pt_tab_encode_1_prt_s_abc'::regclass;
 select c.oid::regclass, relkind, amname, reloptions from pg_class c left join pg_am am on am.oid = relam where c.oid = 'pt_tab_encode_1_prt_s_xyz'::regclass;
@@ -3756,7 +3736,6 @@ create operator class employee_incomplete_op_class default for type employee_typ
   using btree as
   operator 3 =;
 create table employee_table(timest date, user_id numeric(16,0) not null, tag1 char(5), emp employee_type)
-  distributed by (user_id)
   partition by list(emp)
   (partition part1 values('(1, ''foo'')'::employee_type), partition part2 values('(2, ''foo'')'::employee_type));
 

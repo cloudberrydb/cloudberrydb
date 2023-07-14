@@ -39,7 +39,7 @@ select pg_get_viewdef('notdisview2',true);
 CREATE TABLE mytable2 (
     key character varying(20) NOT NULL,
     key_value character varying(50)
-) DISTRIBUTED BY (key);
+);
 
 DROP VIEW IF EXISTS notdisview3;
 CREATE OR REPLACE VIEW notdisview3 AS
@@ -89,7 +89,7 @@ SELECT id,name,price as old_price,
 DROP FUNCTION IF EXISTS blip(int);
 DROP TABLE IF EXISTS calls_to_blip;
 
-CREATE TABLE calls_to_blip (n serial, v int) DISTRIBUTED RANDOMLY;
+CREATE TABLE calls_to_blip (n serial, v int);
 CREATE OR REPLACE FUNCTION blip(int) RETURNS int
 LANGUAGE plpgsql MODIFIES SQL DATA
 VOLATILE
@@ -217,7 +217,7 @@ select CASE null
     WHEN IS NOT DISTINCT FROM null THEN 'Not Specified'
     END;
 
-create table case_genders (gid integer, gender char(1)) distributed by (gid);
+create table case_genders (gid integer, gender char(1));
 
 insert into case_genders(gid, gender) values
   (1, 'F'),
@@ -296,7 +296,7 @@ create table nomatch_case
    gender char(1) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 
 insert into nomatch_case(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
@@ -354,7 +354,7 @@ create table combined_when
    gender varchar(10) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 
 insert into combined_when(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
@@ -393,7 +393,7 @@ create table case_expr
    gender char(1) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 
 insert into case_expr(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),
@@ -461,7 +461,7 @@ create table combined_when
    gender varchar(10) default 'F',
    name text,
    start_dt date
-) distributed by (sid);
+);
 
 insert into combined_when(sid, gender, name, start_dt) values
   (1000, 'F', 'Jane Doe', '2011-01-15'::date),

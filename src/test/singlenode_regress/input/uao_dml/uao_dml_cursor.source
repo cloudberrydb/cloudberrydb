@@ -13,7 +13,7 @@ CREATE TABLE sto_uao_emp_forcursor (
    hiredate DATE,
    sal      NUMERIC(7,2),
    comm     NUMERIC(7,2) NULL,
-   dept     INT) distributed by (empno);
+   dept     INT);
 
 insert into sto_uao_emp_forcursor values
  (1,'JOHNSON','ADMIN',6,'12-17-1990',18000,10,4)
@@ -37,7 +37,7 @@ DROP TABLE IF EXISTS sto_uao_dept_forcursor cascade;
 CREATE TABLE sto_uao_dept_forcursor (
    deptno INT NOT NULL,
    dname  VARCHAR(14),
-   loc    VARCHAR(15)) distributed by (deptno);
+   loc    VARCHAR(15));
 
 insert into sto_uao_dept_forcursor values
  (1,'ACCOUNTING','ST LOUIS')
@@ -139,7 +139,7 @@ CREATE TABLE sto_uao_emp_forcursor (
    sal      NUMERIC(7,2),
    comm     NUMERIC(7,2) NULL,
    dept     INT) 
-distributed by (empno);
+;
 
 insert into sto_uao_emp_forcursor values
  (1,'JOHNSON','ADMIN',6,'12-17-1990',18000,10,4)
@@ -194,7 +194,7 @@ CREATE TABLE sto_uao_emp_forcursor (
    hiredate DATE,
    sal      NUMERIC(7,2),
    comm     NUMERIC(7,2) NULL,
-   dept     INT) distributed by (empno);
+   dept     INT);
 
 insert into sto_uao_emp_forcursor values
  (1,'JOHNSON','ADMIN',6,'12-17-1990',18000,10,4)
@@ -218,7 +218,7 @@ DROP TABLE IF EXISTS sto_uao_dept_forcursor cascade;
 CREATE TABLE sto_uao_dept_forcursor (
    deptno INT NOT NULL,
    dname  VARCHAR(14),
-   loc    VARCHAR(15)) distributed by (deptno);
+   loc    VARCHAR(15));
 
 insert into sto_uao_dept_forcursor values
  (1,'ACCOUNTING','ST LOUIS')

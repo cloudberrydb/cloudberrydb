@@ -17,7 +17,7 @@ SELECT pg_size_pretty(pg_relation_size('a_aoro_table_with_zlib_compression')),
        get_ao_compression_ratio('a_aoro_table_with_zlib_compression');
  pg_size_pretty | get_ao_compression_ratio 
 ----------------+--------------------------
- 544 bytes      |                     2.04
+ 392 bytes      |                     2.63
 (1 row)
 
 -- Test basic create table for AO/RO table fails for rle compression. rle is only supported for columnar tables.

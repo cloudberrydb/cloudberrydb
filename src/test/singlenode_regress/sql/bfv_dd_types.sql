@@ -12,23 +12,23 @@ set gp_autostats_mode = 'None';
 
 -- test direct dispatch for different data types
 
-CREATE TABLE direct_test_type_int2 (id int2) DISTRIBUTED BY (id);
-CREATE TABLE direct_test_type_int4 (id int4) DISTRIBUTED BY (id);
-CREATE TABLE direct_test_type_int8 (id int8) DISTRIBUTED BY (id);
+CREATE TABLE direct_test_type_int2 (id int2);
+CREATE TABLE direct_test_type_int4 (id int4);
+CREATE TABLE direct_test_type_int8 (id int8);
 
-create table direct_test_type_real (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric) distributed by (real1);
-create table direct_test_type_smallint (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric) distributed by (smallint1);
-create table direct_test_type_boolean2 (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric) distributed by (boolean1);
-create table direct_test_type_double (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric) distributed by (double1);
-create table direct_test_type_date (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric) distributed by (date1);
-create table direct_test_type_numeric (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric) distributed by (numeric1);
-create table direct_test_type_bit (x bit) distributed by (x);
-create table direct_test_type_bpchar (x bpchar) distributed by (x);
-create table direct_test_type_bytea (x bytea) distributed by (x);
-create table direct_test_type_cidr (x cidr) distributed by (x);
-create table direct_test_type_inet (x inet) distributed by (x);
-create table direct_test_type_macaddr (x macaddr) distributed by (x);
-create table direct_test_type_varbit (x varbit) distributed by (x);
+create table direct_test_type_real (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric);
+create table direct_test_type_smallint (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric);
+create table direct_test_type_boolean2 (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric);
+create table direct_test_type_double (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric);
+create table direct_test_type_date (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric);
+create table direct_test_type_numeric (real1 real, smallint1 smallint, boolean1 boolean, int1 int, double1 double precision, date1 date, numeric1 numeric);
+create table direct_test_type_bit (x bit);
+create table direct_test_type_bpchar (x bpchar);
+create table direct_test_type_bytea (x bytea);
+create table direct_test_type_cidr (x cidr);
+create table direct_test_type_inet (x inet);
+create table direct_test_type_macaddr (x macaddr);
+create table direct_test_type_varbit (x varbit);
 
 INSERT INTO direct_test_type_int2 VALUES (1);
 INSERT INTO direct_test_type_int4 VALUES (1);

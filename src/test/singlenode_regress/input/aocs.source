@@ -33,34 +33,34 @@ CREATE TABLE tenk_heap_for_aocs (
 	stringu1	name,
 	stringu2	name,
 	string4		name
-) with (appendonly=false) distributed by(unique1);
+) with (appendonly=false);
 
 --
 -- create few AO tables. test various reloptions combinations. use a sample
 -- of them (the first 4) for later testing.
 --
 -- valid combinations
-CREATE TABLE tenk_aocs1 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, checksum=true) distributed by(unique1);
-CREATE TABLE tenk_aocs2 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=0, blocksize=262144) distributed by(unique1);
-CREATE TABLE tenk_aocs3 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=6, blocksize=1048576, checksum=true) distributed by(unique1);
-CREATE TABLE tenk_aocs4 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=1, compresstype=zlib) distributed by(unique1);
-CREATE TABLE tenk_aocs5 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=6, compresstype=zlib) distributed by(unique1);
-CREATE TABLE tenk_aocs6 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=6, compresstype=zlib, blocksize=1048576, checksum=true) distributed by(unique1);
+CREATE TABLE tenk_aocs1 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, checksum=true);
+CREATE TABLE tenk_aocs2 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=0, blocksize=262144);
+CREATE TABLE tenk_aocs3 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=6, blocksize=1048576, checksum=true);
+CREATE TABLE tenk_aocs4 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=1, compresstype=zlib);
+CREATE TABLE tenk_aocs5 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=6, compresstype=zlib);
+CREATE TABLE tenk_aocs6 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=6, compresstype=zlib, blocksize=1048576, checksum=true);
 -- invalid combinations
 -- col instead of column
-CREATE TABLE tenk_aocs7 (like tenk_heap_for_aocs) with (appendonly=true, orientation=col) distributed by(unique1);
+CREATE TABLE tenk_aocs7 (like tenk_heap_for_aocs) with (appendonly=true, orientation=col);
 -- no parentheses surrounding storage options
-CREATE TABLE tenk_aocs8 (like tenk_heap_for_aocs) with appendonly=true, orientation=column distributed by(unique1);
+CREATE TABLE tenk_aocs8 (like tenk_heap_for_aocs) with appendonly=true, orientation=column;
 -- no comma separating storage options
-CREATE TABLE tenk_aocs9 (like tenk_heap_for_aocs) with (appendonly=true orientation=column) distributed by(unique1);
+CREATE TABLE tenk_aocs9 (like tenk_heap_for_aocs) with (appendonly=true orientation=column);
 -- appendonly=false with orientation=column should not work
-CREATE TABLE tenk_aocs10 (like tenk_heap_for_aocs) with (appendonly=false, orientation=column, compresslevel=6, checksum=true) distributed by(unique1);
+CREATE TABLE tenk_aocs10 (like tenk_heap_for_aocs) with (appendonly=false, orientation=column, compresslevel=6, checksum=true);
 -- block size must be between 8KB and 2MB w/ 8KB multiple
-CREATE TABLE tenk_aocs11 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, blocksize=100) distributed by(unique1);
+CREATE TABLE tenk_aocs11 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, blocksize=100);
 -- cannot have compresslevel 0
-CREATE TABLE tenk_aocs12 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=0, compresstype=zlib) distributed by(unique1);
+CREATE TABLE tenk_aocs12 (like tenk_heap_for_aocs) with (appendonly=true, orientation=column, compresslevel=0, compresstype=zlib);
 -- orientation=column must be combined with appendonly=true
-CREATE TABLE tenk_aocs13 (like tenk_heap_for_aocs) with (orientation=column) distributed by(unique1);
+CREATE TABLE tenk_aocs13 (like tenk_heap_for_aocs) with (orientation=column);
 
 
 --------------------
@@ -305,7 +305,7 @@ CREATE DOMAIN aocs_domain_constraint AS VARCHAR
     NOT NULL
     CHECK (length(VALUE) > 16 AND length(VALUE) < 50);
 CREATE TABLE aocs_with_domain_constraint (id integer, vc1 aocs_domain_constraint)
-    WITH (appendonly=true, orientation=column) DISTRIBUTED BY (id);
+    WITH (appendonly=true, orientation=column);
 -- The following should succeed
 INSERT INTO aocs_with_domain_constraint (id, vc1) VALUES (1, 'Long enough, but not too long.;');
 INSERT INTO aocs_with_domain_constraint (id, vc1) VALUES (2, 'This is purrfect.');
@@ -325,7 +325,7 @@ SELECT count(*) FROM tenk_aocs1 t1 LEFT OUTER JOIN tenk_aocs2 t2 ON (t1.unique1 
 SELECT count(*) FROM tenk_aocs1 t1 RIGHT OUTER JOIN tenk_aocs2 t2 ON (t1.unique1 = t2.unique2) where t1.unique1 = 8095;
 SELECT count(*) FROM tenk_aocs1 t1 FULL OUTER JOIN tenk_aocs2 t2 ON (t1.unique1 = t2.unique2) where t1.unique1 = 8095;
 
-CREATE TABLE empty_aocs_table_for_join (like tenk_heap_for_aocs) with (appendonly=true, orientation=column) distributed by (unique1);
+CREATE TABLE empty_aocs_table_for_join (like tenk_heap_for_aocs) with (appendonly=true, orientation=column);
 SELECT count(*) FROM tenk_aocs1 t1 INNER JOIN empty_aocs_table_for_join t2 ON (t1.unique1 = t2.unique2);
 SELECT count(*) FROM tenk_aocs1 t1 LEFT OUTER JOIN empty_aocs_table_for_join t2 ON (t1.unique1 = t2.unique2);
 
@@ -410,7 +410,7 @@ select distinct j from co where j > -1 and j < 3 order by j;
 
 -- TEMP TABLES w/ INDEXES
 create temp table temp_tenk_aocs5 with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
-    as select * from tenk_aocs5 distributed by (unique1);
+    as select * from tenk_aocs5;
 create index temp_even_index on temp_tenk_aocs5 (even);
 select count(*) from temp_tenk_aocs5;
 select i.tablename, i.indexname, pg_get_indexdef(c.oid, 0, TRUE) from pg_indexes i join pg_class c on i.indexname=c.relname and i.tablename='temp_tenk_aocs5';
@@ -436,7 +436,7 @@ select count(*) from tenk_aocs5_temp_drop;
 -- TEMP TABLES w/ COMMIT DELETE ROWS
 begin;
 create temp table tenk_aocs5_temp_delete_rows with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
-    on commit delete rows as select * from tenk_aocs5 where unique1 > 8000 distributed by (unique1);
+    on commit delete rows as select * from tenk_aocs5 where unique1 > 8000;
 select count(*) from tenk_aocs5_temp_delete_rows;
 commit;
 select count(*) from tenk_aocs5_temp_delete_rows;
@@ -444,7 +444,7 @@ select count(*) from tenk_aocs5_temp_delete_rows;
 -- TEMP TABLES w/ COMMIT PRESERVE ROWS
 begin;
 create temp table tenk_aocs5_temp_pres_rows with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1)
-    on commit preserve rows as select * from tenk_aocs5 where unique1 > 8000 distributed by (unique1);
+    on commit preserve rows as select * from tenk_aocs5 where unique1 > 8000;
 select count(*) from tenk_aocs5_temp_pres_rows;
 commit;
 select count(*) from tenk_aocs5_temp_pres_rows;
@@ -466,7 +466,7 @@ select * from tenk_aocs5 where unique1=1;
 -- functions for snapshotting the current mod counts, and checking the diff
 -- vs last snapshot
 -- ------------------
-create temp table modcounts_aocs_snapshot (segment_id int, aosegno int, column_num int2, modcount bigint) distributed randomly;
+create temp table modcounts_aocs_snapshot (segment_id int, aosegno int, column_num int2, modcount bigint);
 
 create or replace function snapshot_aocs_modcounts(relname regclass) returns void as $$
 begin
@@ -529,7 +529,7 @@ CREATE TABLE aocs_new (
     e character varying(100) NOT NULL,
     f character(1)
 )
-WITH (appendonly=true, orientation=column) distributed randomly;
+WITH (appendonly=true, orientation=column);
 
 COPY aocs_new (a,b,c,d,e,f) FROM stdin;
 27	13	1350	something to be replaced	DOB	M
@@ -541,8 +541,8 @@ select distinct (case when b='13' then 'replacement' else d end) as d from aocs_
 
 -- Check compression and distribution
 create table aocs_compress_table (id int, v varchar)
-    with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1) distributed by (id);
-create table aocs_compress_results(table_size int, aocs_compress_id_index_size int, aocs_compress_v_index_size int) distributed randomly;
+    with (appendonly=true, orientation=column, compresstype=zlib, compresslevel=1);
+create table aocs_compress_results(table_size int, aocs_compress_id_index_size int, aocs_compress_v_index_size int);
 create index aocs_compress_id_index on aocs_compress_table (id);
 create index aocs_compress_v_index on aocs_compress_table (v);
 insert into aocs_compress_results values (pg_relation_size('aocs_compress_table'), pg_relation_size('aocs_compress_id_index'), pg_relation_size('aocs_compress_v_index'));
@@ -551,8 +551,9 @@ insert into aocs_compress_table (id, v) values (1, 'ifyouwantto99knowwhatist8329
 insert into aocs_compress_results values (pg_relation_size('aocs_compress_table'), pg_relation_size('aocs_compress_id_index'), pg_relation_size('aocs_compress_v_index'));
 
 select get_ao_compression_ratio('aocs_compress_table');
+-- start_ignore
 select get_ao_distribution('aocs_compress_table');
-
+-- end_ignore
 truncate table aocs_compress_table; -- after truncate, reclaim space from the table and index
 insert into aocs_compress_results values (pg_relation_size('aocs_compress_table'), pg_relation_size('aocs_compress_id_index'), pg_relation_size('aocs_compress_v_index'));
 
@@ -584,7 +585,7 @@ create table bms_ao_bug
 c2 int not null,
 c3 char(100) not null)
 with (appendonly=true, orientation=column, compresstype=zlib)
-distributed by (c1)
+
 ;
 
 insert into bms_ao_bug select 1, 1, a.c1::char(100) from generate_series(1, 2000000) a(c1);
@@ -641,26 +642,32 @@ create table aocs_small_and_dense_content (a int, b int) with
 insert into aocs_small_and_dense_content select i,i from
 generate_series(1,800000)i;
 
+-- start_ignore
 -- Inject fault on one primary segment that will cause compression to
 -- be considered not useful.
 select gp_inject_fault('appendonly_skip_compression', 'skip', '', '',
 'aocs_small_and_dense_content', 1, -1, 0, dbid)
 from gp_segment_configuration where role = 'p' and content = 0;
+-- end_ignore
 
 insert into aocs_small_and_dense_content select i,i from
 generate_series(1,800000)i;
 
+-- start_ignore
 select gp_wait_until_triggered_fault('appendonly_skip_compression', 1, dbid)
 from gp_segment_configuration where
 role = 'p' and content = 0;
+-- end_ignore
 
 -- This should not fail if small content or bulk dense content headers
 -- are used correctly in spite of compression not possible.
 select count(*) from aocs_small_and_dense_content;
 
+-- start_ignore
 select gp_inject_fault('appendonly_skip_compression', 'reset', dbid)
 from gp_segment_configuration where role = 'p' and content = 0;
 
+-- end_ignore
 
 -- test truncate ao table in current transaction and sub-transaction
 -- more details can look at https://github.com/greenplum-db/gpdb/issues/13699

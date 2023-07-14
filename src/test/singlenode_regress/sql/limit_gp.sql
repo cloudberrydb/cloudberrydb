@@ -3,7 +3,7 @@
 -- on OPT build, and fails assertion on debug build if a "LIMIT" query
 -- spills to disk.
 
-CREATE TABLE mksort_limit_test_table(dkey INT, jkey INT, rval REAL, tval TEXT default repeat('abcdefghijklmnopqrstuvwxyz', 300)) DISTRIBUTED BY (dkey);
+CREATE TABLE mksort_limit_test_table(dkey INT, jkey INT, rval REAL, tval TEXT default repeat('abcdefghijklmnopqrstuvwxyz', 300));
 INSERT INTO mksort_limit_test_table VALUES(generate_series(1, 10000), generate_series(10001, 20000), sqrt(generate_series(10001, 20000)));
 
 --Should fit LESS (because of overhead) than (20 * 1024 * 1024) / (26 * 300 + 12) => 2684 tuples in memory, after that spills to disk
@@ -34,7 +34,7 @@ select * from generate_series(1,10) g limit count(*);
 
 -- Check volatile limit should not pushdown.
 create table t_volatile_limit (i int4);
-create table t_volatile_limit_1 (a int, b int) distributed randomly;
+create table t_volatile_limit_1 (a int, b int);
 
 -- Cloudberry may generate two-stage limit plan to improve performance.
 -- But for limit clause contains volatile functions, if we push them down
@@ -57,7 +57,7 @@ drop table t_volatile_limit;
 drop table t_volatile_limit_1;
 
 -- Check LIMIT ALL should not be considered when gathering data to a single node
-create table t_limit_all(a int, b int) distributed by (a);
+create table t_limit_all(a int, b int);
 insert into t_limit_all select i, i from generate_series(1,10)i;
 
 explain (costs off)

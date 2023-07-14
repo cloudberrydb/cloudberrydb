@@ -11,15 +11,15 @@ set gp_autostats_mode = 'None';
 
 -- create table with distribution on a single table
 
-create table dd_singlecol_1(a int, b int) distributed by (a);
+create table dd_singlecol_1(a int, b int);
 insert into dd_singlecol_1 select g, g%15 from generate_series(1,100) g;
 insert into dd_singlecol_1 values(null, null);
 
 analyze dd_singlecol_1;
 
 -- ctas tests
-create table dd_ctas_1 as select * from dd_singlecol_1 where a=1 distributed by (a);
-create table dd_ctas_2  as select * from dd_singlecol_1 where a is NULL distributed by (a);
+create table dd_ctas_1 as select * from dd_singlecol_1 where a=1;
+create table dd_ctas_2  as select * from dd_singlecol_1 where a is NULL;
 
 select * from dd_ctas_1;
 select * from dd_ctas_2;
@@ -68,7 +68,7 @@ select * from dd_singlecol_1 where a between 10 and 11;
 
 -- partitioned tables
 
-create table dd_part_singlecol(a int, b int, c int) distributed by (a) partition by range (b) 
+create table dd_part_singlecol(a int, b int, c int) partition by range (b) 
 (start(1) end(100) every (20), default partition extra);
 
 insert into dd_part_singlecol select g, g*2, g*3 from generate_series(1,49) g;
@@ -109,14 +109,14 @@ select a, count(*) from dd_part_singlecol where a=1 group by a;
 select a, count(*) from dd_part_singlecol where a=1 group by a order by a;
 
 -- indexes
-create table dd_singlecol_idx(a int, b int, c int) distributed by (a);
+create table dd_singlecol_idx(a int, b int, c int);
 create index sc_idx_b on dd_singlecol_idx(b);
 create index sc_idx_bc on dd_singlecol_idx(b,c);
 
 insert into dd_singlecol_idx select g, g%5,g%5 from generate_series(1,100) g;
 insert into dd_singlecol_idx values(null, null);
 
-create table dd_singlecol_idx2(a int, b int, c int) distributed by (a);
+create table dd_singlecol_idx2(a int, b int, c int);
 create index sc_idx_a on dd_singlecol_idx2(a);
 
 insert into dd_singlecol_idx2 select g, g%5,g%5 from generate_series(1,100) g;
@@ -136,7 +136,7 @@ select a, count(*) from dd_singlecol_idx where (a=1 or a=2) and b=1  group by a;
 select count(*) from dd_singlecol_idx;
 
 -- create table with bitmap indexes
-create table dd_singlecol_bitmap_idx(a int, b int, c int) distributed by (a);
+create table dd_singlecol_bitmap_idx(a int, b int, c int);
 create index sc_bitmap_idx_b on dd_singlecol_bitmap_idx using bitmap (b);
 create index sc_bitmap_idx_c on dd_singlecol_bitmap_idx using bitmap (c);
 
@@ -165,7 +165,7 @@ select * from dd_singlecol_bitmap_idx where a=1 and b=3 and c=3;
 
 -- bitmap indexes on part tables
 create table dd_singlecol_part_bitmap_idx(a int, b int, c int) 
-distributed by (a)
+
 partition by range (b) 
 (start(1) end(100) every (20), default partition extra);;
 create index sc_part_bitmap_idx_b on dd_singlecol_part_bitmap_idx using bitmap(b);
@@ -187,7 +187,7 @@ select * from dd_singlecol_bitmap_idx
 where a=1 and b=3 and c=3;
 
 -- multi column index
-create table dd_multicol_idx(a int, b int, c int) distributed by (a,b);
+create table dd_multicol_idx(a int, b int, c int);
 create index mc_idx_b on dd_multicol_idx(c);
 insert into dd_multicol_idx
 select g, g%5, g%5 from generate_series(1,100) g;
@@ -225,7 +225,7 @@ select * from dd_multicol_idx where (a=10 or a=11) and (b=1 or b=5) and c=1;
 
 -- indexes on partitioned tables 
 create table dd_singlecol_part_idx(a int, b int, c int) 
-distributed by (a)
+
 partition by range (b) 
 (start(1) end(100) every (20), default partition extra);;
 create index sc_part_idx_b on dd_singlecol_part_idx(b);
@@ -234,7 +234,7 @@ insert into dd_singlecol_part_idx select g, g%5,g%5 from generate_series(1,100) 
 insert into dd_singlecol_part_idx values(null, null);
 
 create table dd_singlecol_part_idx2(a int, b int, c int) 
-distributed by (a)
+
 partition by range (b) 
 (start(1) end(100) every (20), default partition extra);;
 create index sc_part_idx_a on dd_singlecol_part_idx2(a);
@@ -252,8 +252,8 @@ select * from dd_singlecol_part_idx2 where a=1;
 
 select * from dd_singlecol_part_idx2 where a=1 and b>=1;
 
-create table dd_singlecol_2(a int, b int) distributed by (b);
-create table dd_singlecol_dropped(a int, b int, c int) distributed by (b);
+create table dd_singlecol_2(a int, b int);
+create table dd_singlecol_dropped(a int, b int, c int);
 alter table dd_singlecol_dropped drop column a;
 
 insert into dd_singlecol_2
@@ -337,7 +337,7 @@ select b, count(*) from dd_singlecol_1 where a=1 group by b;
 select b, count(*) from dd_singlecol_1 where a=1 group by b order by b;
 
 -- randomly distributed tables
-create table dd_random(a int, b int) distributed randomly;
+create table dd_random(a int, b int);
 insert into dd_random select g, g%15 from generate_series(1, 100) g;
 
 -- non hash distributed tables

@@ -79,7 +79,7 @@ CREATE TABLE bugtest
   a55 double precision,
   a56 double precision
 )
-DISTRIBUTED BY (a1);
+;
 
 insert into bugtest
 select a.* 
@@ -119,7 +119,7 @@ create table address_he_unique (
        loannumber character varying(40), 
        var2 integer,
        rand_no smallint)
-       distributed by (loannumber);
+      ;
 
 insert into lossmithe_colstor
        select i::text, i, i, i % 100, true, i % 23 from generate_series(0,99) i; 
@@ -141,9 +141,9 @@ drop table if exists foo_p;
 drop table if exists bar;
 -- end_ignore
 
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
 
-create table bar( a int, b int, k int, t text, p int) distributed by (a);
+create table bar( a int, b int, k int, t text, p int);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -196,8 +196,8 @@ select foo_p.b, foo_p.t from foo_p left outer join bar on foo_p.a = bar.a  where
 drop table if exists abbp;
 drop table if exists b;
 -- end_ignore
-create table abbp ( a character varying(60), b character varying(60), k character varying(60), t int, p int) distributed by (a,b) partition by range(p)  ( start(0) end(10) every (2), default partition other);
-create table b ( a character varying(60), b character varying(60), k character varying(60), t int, p int) distributed by(a);
+create table abbp ( a character varying(60), b character varying(60), k character varying(60), t int, p int) partition by range(p)  ( start(0) end(10) every (2), default partition other);
+create table b ( a character varying(60), b character varying(60), k character varying(60), t int, p int) ;
 
 insert into abbp select i || 'SOME NUMBER', i || 'SN', i || 'SN SN', i, i%10 from generate_series(1, 1000)i;
 
@@ -237,8 +237,8 @@ drop table if exists abbp;
 drop table if exists b;
 -- end_ignore
 
-create table abbp( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table b (a int, b int, k int, t text, p int) distributed by (a);
+create table abbp( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table b (a int, b int, k int, t text, p int);
 
 insert into abbp select i, i, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -261,8 +261,8 @@ drop table if exists foo_p;
 drop table if exists bar;
 -- end_ignore
 
-create table foo_p ( a decimal(10,2) , b int, k decimal(10,2), t text, p int) distributed by (a,b) partition by range(p)  ( start(0) end(10) every (2), default partition other);
-create table bar ( a decimal(10, 2), b int, k decimal(10,2), t text, p int) distributed by(a);
+create table foo_p ( a decimal(10,2) , b int, k decimal(10,2), t text, p int) partition by range(p)  ( start(0) end(10) every (2), default partition other);
+create table bar ( a decimal(10, 2), b int, k decimal(10,2), t text, p int) ;
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -285,8 +285,8 @@ drop table if exists abbp;
 drop table if exists b;
 -- end_ignore
 
-create table abbp ( a character varying(60), b int, k character varying(60), t int, p int) distributed by (a,b) partition by range(p)  ( start(0) end(10) every (2), default partition other);
-create table b ( a character varying(60), b int, k character varying(60), t int, p int) distributed by(a);
+create table abbp ( a character varying(60), b int, k character varying(60), t int, p int) partition by range(p)  ( start(0) end(10) every (2), default partition other);
+create table b ( a character varying(60), b int, k character varying(60), t int, p int) ;
 
 insert into abbp select i || 'SOME NUMBER', i, i || 'SN SN', i, i%10 from generate_series(1, 1000)i;
 
@@ -309,8 +309,8 @@ drop table if exists foo_p;
 drop table if exists bar_p;
 -- end_ignore
 
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table bar_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table bar_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -351,8 +351,8 @@ drop table if exists foo_p;
 drop table if exists bar;
 -- end_ignore
 
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table bar( a int, b int, k int, t text, p int) distributed by (a);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table bar( a int, b int, k int, t text, p int);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 insert into bar select i % 7, i % 6, i % 9, i || 'SOME NUMBER', i % 4 from generate_series(1, 100) i;
@@ -378,9 +378,9 @@ drop table if exists foo_p;
 drop table if exists bar;
 -- end_ignore
 
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
 
-create table bar( a int, b int, k int, t text, p int) distributed by (a);
+create table bar( a int, b int, k int, t text, p int);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -403,8 +403,8 @@ select foo_p.k, foo_p.t from foo_p inner join bar on foo_p.k = bar.k  where foo_
 drop table if exists a_p;
 drop table if exists bar;
 -- end_ignore
-create table a_p ( a character varying(60), b character varying(60), k character varying(60), t int, p int) distributed by (a,b) partition by range(p)  ( start(0) end(10) every (2), default partition other);
-create table b ( a character varying(60), b character varying(60), k character varying(60), t int, p int) distributed by(a);
+create table a_p ( a character varying(60), b character varying(60), k character varying(60), t int, p int) partition by range(p)  ( start(0) end(10) every (2), default partition other);
+create table b ( a character varying(60), b character varying(60), k character varying(60), t int, p int) ;
 
 insert into a_p select i || 'SOME NUMBER', i || 'SN', i || 'SN SN', i, i%10 from generate_series(1, 1000)i;
 
@@ -427,8 +427,8 @@ drop table if exists a_p;
 drop table if exists b;
 -- end_ignore
 
-create table a_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table b (a int, b int, k int, t text, p int) distributed by (a);
+create table a_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table b (a int, b int, k int, t text, p int);
 
 insert into a_p select i, i, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -451,8 +451,8 @@ drop table if exists foo_p;
 drop table if exists bar;
 -- end_ignore
 
-create table foo_p ( a decimal(10,2) , b int, k decimal(10,2), t text, p int) distributed by (a,b) partition by range(p)  ( start(0) end(10) every (2), default partition other);
-create table bar ( a decimal(10, 2), b int, k decimal(10,2), t text, p int) distributed by(a);
+create table foo_p ( a decimal(10,2) , b int, k decimal(10,2), t text, p int) partition by range(p)  ( start(0) end(10) every (2), default partition other);
+create table bar ( a decimal(10, 2), b int, k decimal(10,2), t text, p int) ;
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -475,8 +475,8 @@ drop table if exists a_p;
 drop table if exists b;
 -- end_ignore
 
-create table a_p ( a character varying(60), b int, k character varying(60), t int, p int) distributed by (a,b) partition by range(p)  ( start(0) end(10) every (2), default partition other);
-create table b ( a character varying(60), b int, k character varying(60), t int, p int) distributed by(a);
+create table a_p ( a character varying(60), b int, k character varying(60), t int, p int) partition by range(p)  ( start(0) end(10) every (2), default partition other);
+create table b ( a character varying(60), b int, k character varying(60), t int, p int) ;
 
 insert into a_p select i || 'SOME NUMBER', i, i || 'SN SN', i, i%10 from generate_series(1, 1000)i;
 
@@ -499,8 +499,8 @@ drop table if exists foo_p;
 drop table if exists bar_p;
 -- end_ignore
 
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table bar_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table bar_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 
@@ -544,8 +544,8 @@ drop table if exists foo_p;
 drop table if exists bar;
 -- end_ignore
 
-create table foo_p( a int, b int, k int, t text, p int) distributed by (a,b) partition by range(p) ( start(0) end(10) every (2), default partition other);
-create table bar( a int, b int, k int, t text, p int) distributed by (a);
+create table foo_p( a int, b int, k int, t text, p int) partition by range(p) ( start(0) end(10) every (2), default partition other);
+create table bar( a int, b int, k int, t text, p int);
 
 insert into foo_p select i, i % 10, i , i || 'SOME NUMBER SOME NUMBER', i % 10 from generate_series(1, 1000) i;
 insert into bar select i % 7, i % 6, i % 9, i || 'SOME NUMBER', i % 4 from generate_series(1, 100) i;
