@@ -275,6 +275,7 @@ static void cpusetOperation(char *cpuset1,
 							int len,
 							bool sub);
 
+
 #ifdef USE_ASSERT_CHECKING
 static bool selfHasGroup(void);
 static bool selfHasSlot(void);
@@ -494,6 +495,9 @@ InitResGroups(void)
 		Assert(group != NULL);
 
 		cgroupOpsRoutine->createcgroup(groupId);
+
+		if (caps.io_limit != NULL)
+			cgroupOpsRoutine->setio(groupId, cgroupOpsRoutine->parseio(caps.io_limit));
 
 		if (CpusetIsEmpty(caps.cpuset))
 		{
@@ -797,6 +801,11 @@ ResGroupAlterOnCommit(const ResourceGroupCallbackContext *callbackCtx)
 		{
 			wakeupSlots(group, true);
 		}
+		else if (callbackCtx->limittype == RESGROUP_LIMIT_TYPE_IO_LIMIT)
+		{
+			cgroupOpsRoutine->setio(callbackCtx->groupid, callbackCtx->ioLimit);
+		}
+
 		/* reset default group if cpuset has changed */
 		if (strcmp(callbackCtx->oldCaps.cpuset, callbackCtx->caps.cpuset) &&
 			gp_resource_group_enable_cgroup_cpuset)
@@ -964,6 +973,10 @@ createGroup(Oid groupId, const ResGroupCaps *caps)
 
 	group->groupId = groupId;
 	group->caps = *caps;
+
+	/* remove local pointers */
+	group->caps.io_limit = NULL;
+
 	group->nRunning = 0;
 	group->nRunningBypassed = 0;
 	ProcQueueInit(&group->waitProcs);
