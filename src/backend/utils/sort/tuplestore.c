@@ -153,6 +153,7 @@ struct Tuplestorestate
 	SharedFileSet *fileset;
 	char	   *shared_filename;
 	workfile_set *work_set; /* workfile set to use when using workfile manager */
+	int64		remaining_tuples; /* number of tuples remaining */
 
 	/*
 	 * These function pointers decouple the routines that must know what kind
@@ -328,6 +329,7 @@ tuplestore_begin_common(int eflags, bool interXact, int maxKBytes)
 	state->memtupdeleted = 0;
 	state->memtupcount = 0;
 	state->tuples = 0;
+	state->remaining_tuples = 0;
 
 	/*
 	 * Initial size of array must be more than ALLOCSET_SEPARATE_THRESHOLD;
@@ -495,6 +497,7 @@ tuplestore_clear(Tuplestorestate *state)
 	state->memtupdeleted = 0;
 	state->memtupcount = 0;
 	state->tuples = 0;
+	state->remaining_tuples = 0;
 	readptr = state->readptrs;
 	for (i = 0; i < state->readptrcount; readptr++, i++)
 	{
@@ -862,6 +865,7 @@ tuplestore_puttuple_common(Tuplestorestate *state, void *tuple)
 		elog(ERROR, "cannot write new tuples to frozen tuplestore");
 
 	state->tuples++;
+	state->remaining_tuples++;
 
 	switch (state->status)
 	{
@@ -1786,3 +1790,19 @@ tuplestore_open_shared(SharedFileSet *fileset, const char *filename)
 
 	return state;
 }
+/*
+ * When the remaining quantity  is greater than zero, it needs to return true.
+ */
+extern bool tuplestore_has_remaining_tuples(Tuplestorestate *state)
+{
+	return state->remaining_tuples > 0;
+}
+
+/*
+ * Each time a tuple is processed, the counter of the number of remaining tuples is decremented.
+ */
+extern void tuplestore_consume_tuple(Tuplestorestate *state)
+{
+	--state->remaining_tuples;
+}
+

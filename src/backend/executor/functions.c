@@ -1321,8 +1321,8 @@ PG_TRY();
 			PushActiveSnapshot(es->qd->snapshot);
 			pushed_snapshot = true;
 		}
-
-		completed = postquel_getnext(es, fcache);
+		if (!tuplestore_has_remaining_tuples(fcache->tstore) || completed || !fcache->returnsSet)
+			completed = postquel_getnext(es, fcache);
 
 		/*
 		 * If we ran the command to completion, we can shut it down now. Any
@@ -1395,6 +1395,7 @@ PG_END_TRY();
 			Assert(es->lazyEval);
 			/* Re-use the junkfilter's output slot to fetch back the tuple */
 			Assert(fcache->junkFilter);
+			tuplestore_consume_tuple(fcache->tstore);
 			slot = fcache->junkFilter->jf_resultSlot;
 			if (!tuplestore_gettupleslot(fcache->tstore, true, false, slot))
 				elog(ERROR, "failed to fetch lazy-eval tuple");
@@ -1403,7 +1404,8 @@ PG_END_TRY();
 												fcache, oldcontext);
 			/* Clear the tuplestore, but keep it for next time */
 			/* NB: this might delete the slot's content, but we don't care */
-			tuplestore_clear(fcache->tstore);
+			if (!tuplestore_has_remaining_tuples(fcache->tstore))
+				tuplestore_clear(fcache->tstore);
 
 			/*
 			 * Let caller know we're not finished.
@@ -1427,7 +1429,8 @@ PG_END_TRY();
 			/*
 			 * We are done with a lazy evaluation.  Clean up.
 			 */
-			tuplestore_clear(fcache->tstore);
+			if (!tuplestore_has_remaining_tuples(fcache->tstore))
+				tuplestore_clear(fcache->tstore);
 
 			/*
 			 * Let caller know we're finished.
@@ -1482,6 +1485,7 @@ PG_END_TRY();
 		{
 			/* Re-use the junkfilter's output slot to fetch back the tuple */
 			slot = fcache->junkFilter->jf_resultSlot;
+			tuplestore_consume_tuple(fcache->tstore);
 			if (tuplestore_gettupleslot(fcache->tstore, true, false, slot))
 				result = postquel_get_single_result(slot, fcinfo,
 													fcache, oldcontext);
@@ -1500,7 +1504,8 @@ PG_END_TRY();
 		}
 
 		/* Clear the tuplestore, but keep it for next time */
-		tuplestore_clear(fcache->tstore);
+		if (!tuplestore_has_remaining_tuples(fcache->tstore))
+			tuplestore_clear(fcache->tstore);
 	}
 
 	/* Pop snapshot if we have pushed one */

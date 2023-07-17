@@ -101,4 +101,8 @@ extern void tuplestore_make_shared(Tuplestorestate *state, SharedFileSet *filese
 extern void tuplestore_freeze(Tuplestorestate *state);
 extern Tuplestorestate *tuplestore_open_shared(SharedFileSet *fileset, const char *filename);
 
+extern bool tuplestore_has_remaining_tuples(Tuplestorestate *state);
+
+extern void tuplestore_consume_tuple(Tuplestorestate *state);
+
 #endif							/* TUPLESTORE_H */
