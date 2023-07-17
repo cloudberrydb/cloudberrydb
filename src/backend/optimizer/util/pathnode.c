@@ -5868,7 +5868,7 @@ create_modifytable_path(PlannerInfo *root, RelOptInfo *rel,
 	else
 	{
 		/* don't allow split updates in utility mode. */
-		if (Gp_role == GP_ROLE_UTILITY && operation == CMD_UPDATE && splitUpdate)
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role) && operation == CMD_UPDATE && splitUpdate)
 		{
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),

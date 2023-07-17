@@ -140,7 +140,7 @@ mirroring_sanity_check(int flags, const char *func)
 
 	if ((flags & UTILITY_MODE) == UTILITY_MODE)
 	{
-		if (Gp_role != GP_ROLE_UTILITY)
+		if (Gp_role != GP_ROLE_UTILITY && Gp_role != GP_ROLE_SINGLENODE)
 			elog(ERROR, "%s must be run in utility mode", func);
 	}
 

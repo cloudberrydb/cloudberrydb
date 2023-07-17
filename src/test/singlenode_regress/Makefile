@@ -31,6 +31,7 @@ all: refint$(DLSUFFIX) autoinc$(DLSUFFIX) regress.so
 
 clean distclean:
 	rm -f refint$(DLSUFFIX)
+	rm -f autoinc$(DLSUFFIX)
 	rm -f regress.so
 
 ##
@@ -43,7 +44,15 @@ REGRESS_OPTS = --dlpath=. --max-concurrent-tests=24 --init-file=$(srcdir)/init_f
 installcheck-singlenode: installcheck-good-singlenode
 
 installcheck-small-singlenode: all
-	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(EXTRA_TESTS)
+	(\
+	gpconfig -c gp_appendonly_insert_files -v 0; \
+	gpstop -u; \
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(EXTRA_TESTS) \
+	)
 
 installcheck-good-singlenode: all
-	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS)
+	(\
+	gpconfig -c gp_appendonly_insert_files -v 0; \
+	gpstop -u; \
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS) \
+	)

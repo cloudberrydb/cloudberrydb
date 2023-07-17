@@ -207,6 +207,10 @@ class PgCtlBackendOptions(CmdArgs):
         if opt: self.append(opt)
         return self
 
+    def set_singlenode(self):
+        self.append("-c gp_role=singlenode")
+        return self
+
     def set_utility(self):
         self.append("-c gp_role=utility")
         return self
@@ -295,18 +299,21 @@ class PgCtlStopArgs(CmdArgs):
 class CoordinatorStart(Command):
     def __init__(self, name, dataDir, port, era,
                  wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
-                 max_connections=1, utilityMode=False, ctxt=LOCAL, remoteHost=None,
+                 max_connections=1, utilityMode=False, singlenodeMode=False, ctxt=LOCAL, remoteHost=None,
                  wait=True
                  ):
         self.dataDir=dataDir
         self.port=port
         self.utilityMode=utilityMode
+        self.singlenodeMode=singlenodeMode
         self.wrapper=wrapper
         self.wrapper_args=wrapper_args
 
         # build backend options
         b = PgCtlBackendOptions(port)
-        if utilityMode:
+        if singlenodeMode:
+            b.set_singlenode()
+        elif utilityMode:
             b.set_utility()
         else:
             b.set_coordinator()
@@ -323,10 +330,10 @@ class CoordinatorStart(Command):
     @staticmethod
     def local(name, dataDir, port, era,
               wrapper, wrapper_args, specialMode=None, restrictedMode=False, timeout=SEGMENT_TIMEOUT_DEFAULT,
-              max_connections=1, utilityMode=False):
+              max_connections=1, utilityMode=False, singlenodeMode=False):
         cmd=CoordinatorStart(name, dataDir, port, era,
                         wrapper, wrapper_args, specialMode, restrictedMode, timeout,
-                        max_connections, utilityMode)
+                        max_connections, utilityMode, singlenodeMode)
         cmd.run(validateAfter=True)
 
 #-----------------------------------------------
@@ -729,7 +736,7 @@ class GpStart(Command):
 
 #-----------------------------------------------
 class NewGpStart(Command):
-    def __init__(self, name, coordinatorOnly=False, restricted=False, verbose=False,nostandby=False,ctxt=LOCAL, remoteHost=None, coordinatorDirectory=None):
+    def __init__(self, name, coordinatorOnly=False, singlenodeMode=False, restricted=False, verbose=False,nostandby=False,ctxt=LOCAL, remoteHost=None, coordinatorDirectory=None):
         self.cmdStr="$GPHOME/bin/gpstart -a"
         if coordinatorOnly:
             self.cmdStr += " -c"
@@ -742,13 +749,15 @@ class NewGpStart(Command):
             self.cmdStr += " -y"
         if coordinatorDirectory:
             self.cmdStr += " -d " + coordinatorDirectory
+        if singlenodeMode:
+            self.cmdStr += " --singlenodeMode "
 
         Command.__init__(self,name,self.cmdStr,ctxt,remoteHost)
 
     @staticmethod
-    def local(name,coordinatorOnly=False,restricted=False,verbose=False,nostandby=False,
+    def local(name,coordinatorOnly=False,singlenodeMode=False,restricted=False,verbose=False,nostandby=False,
               coordinatorDirectory=None):
-        cmd=NewGpStart(name,coordinatorOnly,restricted,verbose,nostandby,
+        cmd=NewGpStart(name,coordinatorOnly,singlenodeMode,restricted,verbose,nostandby,
                        coordinatorDirectory=coordinatorDirectory)
         cmd.run(validateAfter=True)
 

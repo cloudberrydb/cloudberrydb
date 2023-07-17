@@ -55,7 +55,8 @@ class GpStart:
                  skip_heap_checksum_validation=False,
                  fts_hosts=None,
                  etcd_hosts=None,
-                 is_external_fts=False
+                 is_external_fts=False,
+                 singlenodeMode=False
                  ):
         assert (specialMode in [None, 'maintenance'])
         self.specialMode = specialMode
@@ -77,6 +78,7 @@ class GpStart:
         self.fts_hosts = fts_hosts
         self.etcd_hosts = etcd_hosts
         self.is_external_fts = is_external_fts
+        self.singlenodeMode = singlenodeMode
 
         #
         # Some variables that are set during execution
@@ -168,6 +170,10 @@ class GpStart:
 
             self._startCoordinator()
             logger.info("Coordinator Started...")
+
+            if self.singlenodeMode:
+                standby_was_started = self._start_standby()
+                return 0
 
             if self.coordinatoronly:
                 if self.is_external_fts:
@@ -489,7 +495,7 @@ class GpStart:
                             self.coordinator_datadir, self.port, self.era, wrapper=self.wrapper,
                             wrapper_args=self.wrapper_args, specialMode=self.specialMode,
                             restrictedMode=self.restricted, timeout=self.timeout, utilityMode=True,
-                            max_connections=self.max_connections)
+                            max_connections=self.max_connections, singlenodeMode=self.singlenodeMode)
         cmd.run()
 
         if cmd.get_results().rc != 0:
@@ -857,6 +863,7 @@ class GpStart:
                          help='time to wait for segment startup (in seconds)')
         addTo.add_option('', '--wrapper', dest="wrapper", default=None, type='string')
         addTo.add_option('', '--wrapper-args', dest="wrapper_args", default=None, type='string')
+        addTo.add_option('', '--singlenodeMode', dest="singlenodeMode", action='store_true', default=False)
         addTo.add_option('-S', '--skip_standby_check', dest="skip_standby_check", action='store_true', default=False)
         addTo.add_option('--skip-heap-checksum-validation', dest='skip_heap_checksum_validation',
                          action='store_true', default=False, help='Skip the validation of data_checksums GUC. '
@@ -905,7 +912,7 @@ class GpStart:
                        coordinator_datadir=options.coordinatorDataDirectory,
                        parallel=options.parallel,
                        quiet=options.quiet,
-                       coordinatoronly=options.coordinator_only,
+                       coordinatoronly=(options.coordinator_only or options.singlenodeMode),
                        interactive=options.interactive,
                        timeout=options.timeout,
                        wrapper=options.wrapper,
@@ -915,7 +922,8 @@ class GpStart:
                        skip_heap_checksum_validation=options.skip_heap_checksum_validation,
                        fts_hosts=options.fts_hosts,
                        etcd_hosts=options.etcd_hosts,
-                       is_external_fts=external_fts
+                       is_external_fts=external_fts,
+                       singlenodeMode=options.singlenodeMode
                        )
 
 

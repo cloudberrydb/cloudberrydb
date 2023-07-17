@@ -479,7 +479,7 @@ PersistHoldablePortal(Portal portal)
 			 * We don't allow scanning backwards in MPP! skip this call and
 			 * skip the reset position call few lines down.
 			 */
-			if (Gp_role == GP_ROLE_UTILITY)
+			if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 				ExecutorRewind(queryDesc);
 		}
 		else
@@ -534,7 +534,7 @@ PersistHoldablePortal(Portal portal)
 		 * don't want to reset the position because we are already in
 		 * the position we need to be. Allow this only in utility mode.
 		 */
-		if(Gp_role == GP_ROLE_UTILITY)
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		{
 			if (portal->atEnd)
 			{

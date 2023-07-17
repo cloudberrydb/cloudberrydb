@@ -1612,7 +1612,7 @@ vac_update_relstats(Relation relation,
 		 */
 		if (num_tuples >= 1.0 && RelationIsAppendOptimized(relation))
 		{
-			Assert(Gp_role == GP_ROLE_UTILITY);
+			Assert(IS_UTILITY_OR_SINGLENODE(Gp_role));
 			Assert(!IsSystemRelation(relation));
 			num_tuples = 0;
 		}
@@ -2687,7 +2687,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	 * Don't dispatch auto-vacuum. Each segment performs auto-vacuum as per
 	 * its own need.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && !recursing &&
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) && !recursing &&
 		!IsAutoVacuumWorkerProcess() &&
 		(!is_appendoptimized || ao_vacuum_phase))
 	{
@@ -2695,15 +2695,25 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		char	   *vsubtype;
 
 		/*
+		 * SINGLENODE_FIXME:
+		 * From my understanding, we don't need to open a transaction here since
+		 * we don't need to dispatch.
+		 * However, there is some assert below to make sure we are in a transaction.
+		 * Make it more reasonable in the future.
+		 */
+		/*
 		 * Dispatching needs a transaction. At least in some error scenarios,
 		 * it uses TopTransactionContext to store stuff.
 		 */
 		StartTransactionCommand();
 		PushActiveSnapshot(GetTransactionSnapshot());
 
-		stats_context.updated_stats = NIL;
-		dispatchVacuum(params, relid, &stats_context);
-		vac_update_relstats_from_list(stats_context.updated_stats);
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			stats_context.updated_stats = NIL;
+			dispatchVacuum(params, relid, &stats_context);
+			vac_update_relstats_from_list(stats_context.updated_stats);
+		}
 
 		/* Also update pg_stat_last_operation */
 		if (IsAutoVacuumWorkerProcess())

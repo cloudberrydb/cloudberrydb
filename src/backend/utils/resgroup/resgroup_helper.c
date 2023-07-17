@@ -302,7 +302,7 @@ pg_resgroup_get_status(PG_FUNCTION_ARGS)
 		values[0] = row->groupId;
 		groupId = DatumGetObjectId(values[0]);
 
-		if (Gp_role == GP_ROLE_UTILITY)
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		{
 			nulls[1] = true;
 			nulls[2] = true;

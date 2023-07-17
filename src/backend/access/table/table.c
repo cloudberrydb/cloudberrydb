@@ -209,8 +209,19 @@ CdbTryOpenTable(Oid relid, LOCKMODE reqmode, bool *lockUpgraded)
 	 * update or delete does not hold locks on catalog on segments, so
 	 * we do not need to consider lock-upgrade for DML on catalogs.
 	 */
+	/*
+	 * SINGLENODE_FIXME:
+	 * Since we don't need to dispatch in singlenode, we don't need to keep
+	 * the ExclusiveLock in singlenode mode.
+	 * However, it will cause behavior difference in `parallel_update_readcommitted`.
+	 * The second process in that case want to update the table is blocked but there is
+	 * `duplicate key value violates unique constraint "pg_aovisimap_95435_index"`
+	 * error after the first process commit.
+	 * Need to figure it out later. Currently, let's just use the stronger
+	 * lock as cbdb does.
+	 */
 	if (reqmode == RowExclusiveLock &&
-		Gp_role == GP_ROLE_DISPATCH &&
+		(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) &&
 		relid >= FirstNormalObjectId)
 	{
 		if (!gp_enable_global_deadlock_detector)

@@ -157,7 +157,7 @@ binary_upgrade_set_next_pg_authid_oid(PG_FUNCTION_ARGS)
 	char	   *rolename = GET_STR(PG_GETARG_TEXT_P(1));
 
 	CHECK_IS_BINARY_UPGRADE;
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		AddPreassignedOidFromBinaryUpgrade(authoid, AuthIdRelationId, rolename,
 										   InvalidOid, InvalidOid, InvalidOid);
@@ -252,7 +252,7 @@ binary_upgrade_set_next_pg_namespace_oid(PG_FUNCTION_ARGS)
 
 	CHECK_IS_BINARY_UPGRADE;
 
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		AddPreassignedOidFromBinaryUpgrade(nspid, NamespaceRelationId, nspname,
 										   InvalidOid, InvalidOid, InvalidOid);

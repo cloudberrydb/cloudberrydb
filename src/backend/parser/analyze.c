@@ -4001,7 +4001,7 @@ setQryDistributionPolicy(ParseState *pstate, IntoClause *into, Query *qry)
 	 * In binary upgrade mode, we need to create materialize view in utility mode. So we
 	 * should enable the setQryDistributionPolicy function in binary upgrade mode.
 	 */
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role));
 	Assert(into != NULL);
 	Assert(into->distributedBy != NULL);
 

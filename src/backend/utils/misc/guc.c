@@ -7561,7 +7561,7 @@ set_config_option(const char *name, const char *value,
  	{
 		/* Only print a warning in the dispatch or utility mode */
 		if (changeVal)
-			if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+			if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 				elog(WARNING, "\"%s\": can not be set by the user and will be ignored.", name);
 		return true;
 	}  /* end if (record->flags & GUC_DISALLOW_USER_SET) */
@@ -7689,7 +7689,7 @@ set_config_option(const char *name, const char *value,
 	if (record->group == DEPRECATED_OPTIONS)
 	{
 		/* Only print a warning in the dispatch or utility mode */
-		if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+		if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 			elog(WARNING, "\"%s\": setting is deprecated, and may be removed"
 				 " in a future release.", name);
 	}
@@ -7698,7 +7698,7 @@ set_config_option(const char *name, const char *value,
 	if (record->group == DEFUNCT_OPTIONS)
 	{
 		/* Only print a warning in the dispatch or utility mode */
-		if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+		if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 			elog(WARNING, "\"%s\": setting is ignored because it is defunct",
 				 name);
 		return true;

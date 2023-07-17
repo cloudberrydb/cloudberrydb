@@ -960,7 +960,7 @@ PolicyEagerFreeAssignOperatorMemoryKB(PlannedStmt *stmt, uint64 memAvailableByte
 int64
 ResourceManagerGetQueryMemoryLimit(PlannedStmt* stmt)
 {
-	if (Gp_role != GP_ROLE_DISPATCH)
+	if (Gp_role != GP_ROLE_DISPATCH && Gp_role != GP_ROLE_SINGLENODE)
 		return 0;
 
 	/* no limits in single user mode. */

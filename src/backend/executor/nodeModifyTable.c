@@ -3470,7 +3470,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 	 * before earlier ones.  This ensures that we don't throw away RETURNING
 	 * rows that need to be seen by a later CTE subplan.
 	 */
-	if (Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY)
+	if (Gp_role == GP_ROLE_EXECUTE || IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		/*
 		 * We do not need this unless in executor or with utility role. Note

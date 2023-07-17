@@ -2483,7 +2483,7 @@ StartTransaction(void)
 		case DTX_CONTEXT_QE_FINISH_PREPARED:
 		{
 			if (DistributedTransactionContext == DTX_CONTEXT_LOCAL_ONLY &&
-				Gp_role == GP_ROLE_UTILITY)
+				IS_UTILITY_OR_SINGLENODE(Gp_role))
 			{
 				LocalDistribXactData *ele = &MyProc->localDistribXactData;
 				ele->state = LOCALDISTRIBXACT_STATE_ACTIVE;
@@ -2824,7 +2824,7 @@ CommitTransaction(void)
 	AtEOXact_SharedSnapshot();
 
 	/* Perform any Resource Scheduler commit procesing. */
-	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled())
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) && IsResQueueEnabled())
 		AtCommit_ResScheduler();
 
 	/*
@@ -3026,7 +3026,7 @@ CommitTransaction(void)
 	 * worry about aborts as we release session level locks automatically during
 	 * an abort as opposed to a commit.
 	 */
-	if(Gp_role == GP_ROLE_DISPATCH)
+	if(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE)
 		MoveDbSessionLockRelease();
 
 	AtCommit_TablespaceStorage();
@@ -3555,7 +3555,7 @@ AbortTransaction(void)
 	AtEOXact_SharedSnapshot();
 
 	/* Perform any Resource Scheduler abort procesing. */
-	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled())
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) && IsResQueueEnabled())
 		AtAbort_ResScheduler();
 
 	AtEOXact_DispatchOids(false);
@@ -6728,7 +6728,7 @@ EndLocalDistribXact(bool isCommit)
 		case DTX_CONTEXT_QD_RETRY_PHASE_2:
 		case DTX_CONTEXT_LOCAL_ONLY:
 			AssertImply(DistributedTransactionContext == DTX_CONTEXT_LOCAL_ONLY,
-						Gp_role == GP_ROLE_UTILITY || IsAutoVacuumWorkerProcess());
+						IS_UTILITY_OR_SINGLENODE(Gp_role) || IsAutoVacuumWorkerProcess());
 			LocalDistribXact_ChangeState(MyProc->pgprocno,
 										 isCommit ?
 										 LOCALDISTRIBXACT_STATE_COMMITTED :

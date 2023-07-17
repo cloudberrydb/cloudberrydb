@@ -691,7 +691,7 @@ getCdbProcessesForQD(int isPrimary)
 void
 DisconnectAndDestroyAllGangs(bool resetSession)
 {
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		return;
 
 	ELOG_DISPATCHER_DEBUG("DisconnectAndDestroyAllGangs");

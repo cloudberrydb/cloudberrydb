@@ -3121,8 +3121,15 @@ index_build(Relation heapRelation,
 	 * only btree has support for parallel builds.
 	 *
 	 * Note that planner considers parallel safety for us.
+	 *
+	 * SINGLENODE_FIXME: Disable parallel index building for now.
+	 * Parallel is not supported for singlenode currently, but it can still use
+	 * parallel index while creating table.
+	 *
+	 * In the future, it should be considered to introduce parallelism to singlenode
+	 * mode, even including utility mode.
 	 */
-	if (parallel && IsNormalProcessingMode() &&
+	if (parallel && !IS_UTILITY_OR_SINGLENODE(Gp_role) && IsNormalProcessingMode() &&
 		indexRelation->rd_rel->relam == BTREE_AM_OID)
 		indexInfo->ii_ParallelWorkers =
 			plan_create_index_workers(RelationGetRelid(heapRelation),

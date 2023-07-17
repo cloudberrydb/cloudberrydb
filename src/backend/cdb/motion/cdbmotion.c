@@ -124,7 +124,7 @@ RemoveMotionLayer(MotionLayerState *mlStates)
 	if (!mlStates)
 		return;
 
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		return;
 
 #ifdef AMS_VERBOSE_LOGGING
@@ -160,7 +160,7 @@ createMotionLayerState(int maxMotNodeID)
 	uint8	   *pData;
 	MotionLayerState *mlState;
 
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		return NULL;
 
 	Gp_max_tuple_chunk_size = CurrentMotionIPCLayer->GetMaxTupleChunkSize();

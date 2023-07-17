@@ -238,7 +238,7 @@ AOCSSegmentFileFullCompaction(Relation aorel,
 	int64		tupleCount = 0;
 	int64		tuplePerPage = INT_MAX;
 
-	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_EXECUTE || IS_UTILITY_OR_SINGLENODE(Gp_role));
 	Assert(RelationIsAoCols(aorel));
 	Assert(insertDesc);
 
@@ -373,7 +373,7 @@ AOCSCompact(Relation aorel,
 	Snapshot	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
 
 	Assert(RelationIsAoCols(aorel));
-	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_EXECUTE || IS_UTILITY_OR_SINGLENODE(Gp_role));
 
 	relname = RelationGetRelationName(aorel);
 	elogif(Debug_appendonly_print_compaction, LOG,

@@ -848,7 +848,7 @@ scanRTEForColumn(ParseState *pstate, RangeTblEntry *rte,
 		 * unless it's GP_ROLE_UTILITY for debug purpose.
 		 */
 		if (GpPolicyIsReplicated(GpPolicyFetch(rte->relid)) &&
-			Gp_role != GP_ROLE_UTILITY)
+			Gp_role != GP_ROLE_UTILITY && Gp_role != GP_ROLE_SINGLENODE)
 			return result;
 
 		/* quick check to see if name could be a system column */

@@ -1347,6 +1347,12 @@ get_ao_distribution(PG_FUNCTION_ARGS)
 	Relation	aosegrel;
 	int			ret;
 
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+	{
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("get_ao_distribution not supported in utility mode.")));
+	}
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 
 	/*
@@ -1560,7 +1566,7 @@ aorow_compression_ratio_internal(Relation parentrel)
 										 * available" */
 	Oid			segrelid = InvalidOid;
 
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role));
 
 	GetAppendOnlyEntryAuxOids(RelationGetRelid(parentrel), NULL,
 							  &segrelid,

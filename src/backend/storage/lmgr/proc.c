@@ -512,7 +512,7 @@ InitProcess(void)
 	 * connection on master.
      */
 	if (IS_QUERY_DISPATCHER() &&
-		Gp_role == GP_ROLE_DISPATCH &&
+		(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) &&
 		gp_session_id == InvalidGpSessionId)
         gp_session_id = mppLocalProcessSerial;
 
@@ -889,7 +889,7 @@ LockErrorCleanup(void)
 	}
 
 	/* Don't try to cancel resource locks.*/
-	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled() &&
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) && IsResQueueEnabled() &&
 		LOCALLOCK_LOCKMETHOD(*lockAwaited) == RESOURCE_LOCKMETHOD)
 		return;
 
@@ -1015,7 +1015,7 @@ ProcKill(int code, Datum arg)
 	 * Cleanup for any resource locks on portals - from holdable cursors or
 	 * unclean process abort (assertion failures).
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled())
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) && IsResQueueEnabled())
 		AtExitCleanup_ResPortals();
 
 	/*
@@ -2081,7 +2081,7 @@ CheckDeadLock(void)
 		 * return from the signal handler.
 		 */
 		Assert(MyProc->waitLock != NULL);
-		if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled() &&
+		if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE) && IsResQueueEnabled() &&
 			LOCK_LOCKMETHOD(*(MyProc->waitLock)) == RESOURCE_LOCKMETHOD)
 		{
 			/*

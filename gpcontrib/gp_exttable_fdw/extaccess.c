@@ -193,7 +193,13 @@ external_beginscan(Relation relation, uint32 scancounter,
 				uri = (char *) strVal(v);
 		}
 	}
-	else if (Gp_role == GP_ROLE_DISPATCH && isMasterOnly)
+	/*
+	 * SINGLENODE_FIXME:
+	 * In utility mode, it cannot pass "at least one entry and one segment database" check.
+	 * In singlenode mode, we have one entry database. We might support it in utility mode
+	 * in the future too.
+	 */
+	else if ((Gp_role == GP_ROLE_DISPATCH && isMasterOnly) || Gp_role == GP_ROLE_SINGLENODE)
 	{
 		/* this is a ON COORDINATOR table. Only get uri if we are the master */
 		if (segindex == -1)

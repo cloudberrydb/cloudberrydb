@@ -285,7 +285,7 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	 * above. If we're a QE DefineRelation() was already dispatched to us and
 	 * therefore we have a local entry in pg_class. get the OID from cache.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+	if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 		Assert(reloid != InvalidOid);
 	else
 		reloid = RangeVarGetRelid(createExtStmt->relation, NoLock, true);
@@ -488,7 +488,14 @@ transformExecOnClause(List *on_clause)
 	ListCell   *exec_location_opt;
 	char	   *exec_location_str = NULL;
 
-	if (on_clause == NIL)
+	/*
+	 * In single node, we only have one node which behave like QD in many aspects.
+	 * And set exec_location_str as "COORDINATOR_ONLY" will force the execution be
+	 * execute on the only node in singlenode mode, which is what we want.
+	 */
+	if (Gp_role == GP_ROLE_SINGLENODE)
+		exec_location_str = "COORDINATOR_ONLY";
+	else if (on_clause == NIL)
 		exec_location_str = "ALL_SEGMENTS";
 	else
 	{

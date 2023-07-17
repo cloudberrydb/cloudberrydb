@@ -151,7 +151,7 @@ static bool detectCgroupMountPoint(char *cgdir, int len);
 static bool should_exclude_test(char *test);
 static int run_diff(const char *cmd, const char *filename);
 
-static char *content_zero_hostname = NULL;
+static char *content_master_hostname = NULL;
 static char *get_host_name(int16 contentid, char role);
 static bool cluster_healthy(void);
 
@@ -541,7 +541,7 @@ typedef struct replacements
 	char *bindir;
 	char *amname;
 	char *cgroup_mnt_point;
-	char *content_zero_hostname;
+	char *content_master_hostname;
 	const char *username;
 } replacements;
 
@@ -593,7 +593,7 @@ convert_line(StringInfo line, replacements *repls)
 	replace_string(line, "@libdir@", repls->dlpath);
 	replace_string(line, "@DLSUFFIX@", repls->dlsuffix);
 	replace_string(line, "@bindir@", repls->bindir);
-	replace_string(line, "@hostname@", repls->content_zero_hostname);
+	replace_string(line, "@hostname@", repls->content_master_hostname);
 	replace_string(line, "@curusername@", (char *) repls->username);
 	if (repls->amname)
 	{
@@ -812,7 +812,7 @@ convert_sourcefiles_in(const char *source_subdir, const char *dest_dir, const ch
 	repls.dlsuffix = DLSUFFIX;
 	repls.bindir = bindir;
 	repls.cgroup_mnt_point = cgroup_mnt_point;
-	repls.content_zero_hostname = content_zero_hostname;
+	repls.content_master_hostname = content_master_hostname;
 	repls.username = get_user_name(&errstr);
 
 	if (repls.username == NULL)
@@ -940,7 +940,7 @@ convert_sourcefiles_in(const char *source_subdir, const char *dest_dir, const ch
 static void
 convert_sourcefiles(void)
 {
-	content_zero_hostname = get_host_name(-1, 'p');
+	content_master_hostname = get_host_name(-1, 'p');
 
 	convert_sourcefiles_in("input", outputdir, "sql", "sql");
 	convert_sourcefiles_in("output", outputdir, "expected", "out");

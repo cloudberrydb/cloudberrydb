@@ -48,7 +48,7 @@ choose_setop_type(List *pathlist)
 	bool		ok_single_qe = true;
 	bool		has_partitioned = false;
 
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role));
 
 	foreach(cell, pathlist)
 	{

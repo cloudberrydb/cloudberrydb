@@ -894,7 +894,7 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	 * inherited attributes.  (Note that stmt->tableElts is destructively
 	 * modified by MergeAttributes.)
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+	if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		schema =
 			MergeAttributes(schema, inheritOids,
@@ -2845,7 +2845,12 @@ MergeAttributes(List *schema, List *supers, char relpersistence,
 		 * current transaction, such as being used in some manner by an
 		 * enclosing command.
 		 */
-		if (is_partition && (Gp_role != GP_ROLE_DISPATCH))
+		/*
+		 * SINGLENODE_FIXME: We should reconsider the check for singlenode mode,
+		 * I didn't have time to go through all of these details. Currently, let's
+		 * keep the same behavior as CBDB.
+		 */
+		if (is_partition && (Gp_role != GP_ROLE_DISPATCH && Gp_role != GP_ROLE_SINGLENODE))
 			CheckTableNotInUse(relation, "CREATE TABLE .. PARTITION OF or ALTER TABLE ADD PARTITION"); 
 
 		/*
@@ -5314,6 +5319,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			pass = AT_PASS_MISC;
 			break;
 		case AT_SetDistributedBy:	/* SET DISTRIBUTED BY */
+			/* Setting distributed by is meaningless in utility mode. */
+			if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+			{
+				pass = AT_PASS_MISC;
+				break;
+			}
 			ATSimplePermissions(rel, ATT_TABLE);
 
 			if (!recursing) /* MPP-5772, MPP-5784 */
@@ -10447,7 +10458,7 @@ ATAddCheckConstraint(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	 * constraint creation only if there are no children currently.  Error out
 	 * otherwise.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && children && !recurse)
+	if ((Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role)) && children && !recurse)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 				 errmsg("constraint must be added to child tables too")));
@@ -12706,7 +12717,7 @@ validateForeignKeyConstraint(char *conname,
 			(errmsg_internal("validating foreign key constraint \"%s\"", conname)));
 
 	/* Cloudberry Database: Ignore foreign keys for now, with a warning. */
-	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+	if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 		ereport(WARNING,
 				(errcode(ERRCODE_GP_FEATURE_NOT_YET),
 				 errmsg("referential integrity (FOREIGN KEY) constraints are not supported in Cloudberry Database, will not be enforced")));
@@ -12849,7 +12860,7 @@ createForeignKeyActionTriggers(Relation rel, Oid refRelOid, Constraint *fkconstr
 	/*
 	 * Special for Cloudberry Database: Ignore foreign keys for now, with warning
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY)
+	if (Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		ereport(WARNING,
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
@@ -15622,7 +15633,7 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 			 * with a warning.  The decision to not error out is in favor of
 			 * DDL compatibility with external BI tools.
 			 */
-			if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY) &&
+			if ((Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role)) &&
 				pg_strncasecmp(def->defname, "autovacuum",
 							   strlen("autovaccum")) == 0)
 				ereport(WARNING,
@@ -17789,7 +17800,7 @@ ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd)
 	GpPolicy			*newPolicy;
 	GpPolicy			*policy = rel->rd_cdbpolicy;
 
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		ereport(ERROR,
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			 errmsg("EXPAND not supported in utility mode")));
@@ -18145,7 +18156,7 @@ ATExecSetDistributedBy(Relation rel, Node *node, AlterTableCmd *cmd)
 	lwith   = (List *)linitial(lprime);
 	ldistro = (DistributedBy *)lsecond(lprime);
 
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 		ereport(ERROR,
 			(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 			 errmsg("SET DISTRIBUTED BY not supported in utility mode")));
@@ -18755,6 +18766,12 @@ make_distributedby_for_rel(Relation rel)
 	DistributedBy *dist;
 
 	dist = makeNode(DistributedBy);
+
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+	{
+		Assert(policy->ptype == POLICYTYPE_ENTRY);
+		return NULL;
+	}
 
 	Assert(policy->ptype != POLICYTYPE_ENTRY);
 

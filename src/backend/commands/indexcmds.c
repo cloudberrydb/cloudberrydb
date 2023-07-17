@@ -4240,7 +4240,7 @@ ReindexRelationConcurrently(ReindexStmt *stmt, Oid relationOid, ReindexParams *p
 										&lockTags,
 										progress_index,
 										progress_vals);
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		PopActiveSnapshot();
 		CommitTransactionCommand();

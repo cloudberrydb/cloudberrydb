@@ -1773,7 +1773,7 @@ exec_simple_query(const char *query_string)
 		 * statements.
 		 */
 		TransactionStmt *transStmt = (TransactionStmt *) parsetree;
-		if (Gp_role == GP_ROLE_UTILITY && IsA(parsetree, TransactionStmt) &&
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role) && IsA(parsetree, TransactionStmt) &&
 			transStmt->kind == TRANS_STMT_PREPARE)
 		{
 			ereport(ERROR,

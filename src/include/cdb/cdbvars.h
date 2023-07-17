@@ -68,7 +68,10 @@ typedef enum
 	GP_ROLE_UTILITY,			/* Operating as a simple database engine */
 	GP_ROLE_DISPATCH,			/* Operating as the parallel query dispatcher */
 	GP_ROLE_EXECUTE,			/* Operating as a parallel query executor */
+	GP_ROLE_SINGLENODE,			/* Operating as a singlenode CBDB */
 } GpRoleValue;
+
+#define IS_UTILITY_OR_SINGLENODE(gp_role) (gp_role == GP_ROLE_UTILITY || gp_role == GP_ROLE_SINGLENODE)
 
 extern GpRoleValue Gp_role;	/* GUC var - server operating mode.  */
 extern char *gp_role_string;	/* Use by guc.c as staging area for value. */

@@ -45,7 +45,7 @@ dtxDeformGid(
 		 * cannot be processed in utility mode.  Therefore, we can safely
 		 * allow non-Cloudberry GIDs only in utility mode.
 		 */
-		if (Gp_role == GP_ROLE_UTILITY)
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 			*distribXid = 0;
 		else
 			elog(ERROR, "Bad distributed transaction identifier \"%s\"", gid);

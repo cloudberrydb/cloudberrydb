@@ -673,7 +673,7 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 		optype = choose_setop_type(pathlist);
 		adjust_setop_arguments(root, pathlist, tlist_list, optype);
 	}
-	else if (Gp_role == GP_ROLE_UTILITY ||
+	else if (IS_UTILITY_OR_SINGLENODE(Gp_role) ||
 		Gp_role == GP_ROLE_EXECUTE) /* MPP-2928 */
 	{
 		optype = PSETOP_SEQUENTIAL_QD;
@@ -852,7 +852,7 @@ generate_nonunion_paths(SetOperationStmt *op, PlannerInfo *root,
 		optype = choose_setop_type(pathlist);
 		adjust_setop_arguments(root, pathlist, tlist_list, optype);
 	}
-	else if ( Gp_role == GP_ROLE_UTILITY 
+	else if ( IS_UTILITY_OR_SINGLENODE(Gp_role)
 			|| Gp_role == GP_ROLE_EXECUTE ) /* MPP-2928 */
 	{
 		optype = PSETOP_SEQUENTIAL_QD;

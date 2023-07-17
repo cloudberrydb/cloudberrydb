@@ -21,6 +21,8 @@ gpstop --host <segment_host_name> [-d <coordinator_data_directory>]
        [-l <logfile_directory>] [-t <timeout_seconds>] [-a]
        [-v | -q]
 
+gpstop --singlenodeMode [-r] [-a]
+
 gpstop --version
 
 gpstop -? | -h | --help
@@ -97,6 +99,12 @@ OPTIONS
 
  Optional. Shuts down a Cloudberry coordinator instance that was 
  started in maintenance mode.
+
+
+--singlenodeMode
+
+ Optional. Shuts down a Cloudberry instance that was
+ started in singlenode mode.
 
 
 -M fast
@@ -200,6 +208,11 @@ Stop all segment instances and then restart the system:
 Stop a coordinator instance that was started in maintenance mode:
 
   gpstop -m
+
+
+Stop a Cloudberry Database system in singlenode mode:
+
+  gpstop --singlenodeMode
 
 
 Stop all segments on a particular host, while keeping

@@ -492,7 +492,7 @@ choose_segno_internal(Relation rel, List *avoid_segnos, choose_segno_mode mode)
 			 * Nowadays, segment 0 is also used for CTAS and alter table
 			 * rewrite commands.
 			 */
-			if (Gp_role != GP_ROLE_UTILITY && segno == RESERVED_SEGNO)
+			if (Gp_role != GP_ROLE_UTILITY && Gp_role != GP_ROLE_SINGLENODE && segno == RESERVED_SEGNO)
 				continue;
 
 			/*
@@ -620,7 +620,7 @@ choose_new_segfile(Relation rel, bool *used, List *avoid_segnos)
 	for (int segno = 0; segno < MAX_AOREL_CONCURRENCY; segno++)
 	{
 		/* Only choose seg 0 in utility mode. See above. */
-		if (Gp_role != GP_ROLE_UTILITY && segno == 0)
+		if (Gp_role != GP_ROLE_UTILITY && Gp_role != GP_ROLE_SINGLENODE && segno == 0)
 			continue;
 
 		if (!used[segno] && !list_member_int(avoid_segnos, segno))

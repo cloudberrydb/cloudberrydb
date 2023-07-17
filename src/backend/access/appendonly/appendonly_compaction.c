@@ -401,7 +401,7 @@ AppendOnlySegmentFileFullCompaction(Relation aorel,
     Oid         visimapidxid;
     Oid         blkdirrelid;
 
-	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_EXECUTE || IS_UTILITY_OR_SINGLENODE(Gp_role));
 	Assert(RelationIsAoRows(aorel));
 	Assert(insertDesc);
 
@@ -773,7 +773,7 @@ AppendOnlyCompact(Relation aorel,
 	Snapshot	appendOnlyMetaDataSnapshot = RegisterSnapshot(GetCatalogSnapshot(InvalidOid));
 
 	Assert(RelationIsAoRows(aorel));
-	Assert(Gp_role == GP_ROLE_EXECUTE || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_EXECUTE || IS_UTILITY_OR_SINGLENODE(Gp_role));
 
 	relname = RelationGetRelationName(aorel);
 

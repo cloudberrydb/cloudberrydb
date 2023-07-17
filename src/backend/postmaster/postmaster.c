@@ -1119,7 +1119,7 @@ PostmasterMain(int argc, char *argv[])
 		ereport(ERROR,
 				(errmsg("WAL streaming (max_wal_senders > 0) requires wal_level \"replica\" or \"logical\"")));
 
-    if ( GpIdentity.dbid == -1 && Gp_role == GP_ROLE_UTILITY)
+	if ( GpIdentity.dbid == -1 && IS_UTILITY_OR_SINGLENODE(Gp_role))
     {
         /**
          * okay in utility mode! -- when starting the master in utility mode to fetch the configuration contents,

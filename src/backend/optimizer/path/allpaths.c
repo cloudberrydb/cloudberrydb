@@ -60,6 +60,7 @@
 #include "cdb/cdbmutate.h"		/* cdbmutate_warn_ctid_without_segid */
 #include "cdb/cdbpath.h"		/* cdbpath_rows() */
 #include "cdb/cdbutil.h"
+#include "cdb/cdbvars.h"
 
 // TODO: these planner gucs need to be refactored into PlannerConfig.
 bool		gp_enable_sort_limit = false;
@@ -2474,7 +2475,15 @@ set_subquery_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	 */
 	safetyInfo.unsafeLeaky = rte->security_barrier;
 
-	forceDistRand = rte->forceDistRandom;
+	/*
+	 * SINGLENODE_FIXME: Some system view may introduce motions in the plan
+	 * which will lead to failures in singlenode mode.
+	 * My guess is that the system view is built with GP_ROLE_DISPATCH thus
+	 * the rte's forceDistRandom is set to true if gp_dist_random clause exists.
+	 * Plan to solve this in the future. For now, let's just do another role
+	 * check again to avoid the motion.
+	 */
+	forceDistRand = rte->forceDistRandom && GP_ROLE_SINGLENODE != Gp_role;
 	/* CDB: Could be a preplanned subquery from window_planner. */
 	if (rte->subquery_root == NULL)
 	{

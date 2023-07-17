@@ -1364,8 +1364,8 @@ aoco_index_build_range_scan(Relation heapRelation,
 
 	/* Appendoptimized catalog tables are not supported. */
 	Assert(!is_system_catalog);
-	/* Appendoptimized tables have no data on master. */
-	if (IS_QUERY_DISPATCHER())
+	/* Appendoptimized tables have no data on master unless we are in singlenode mode. */
+	if (IS_QUERY_DISPATCHER() && !IS_UTILITY_OR_SINGLENODE(Gp_role))
 		return 0;
 
 	/* See whether we're verifying uniqueness/exclusion properties */

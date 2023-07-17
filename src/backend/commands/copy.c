@@ -778,6 +778,11 @@ ProcessCopyOptions(ParseState *pstate,
 		}
 		else if (strcmp(defel->defname, "on_segment") == 0)
 		{
+			/* copy on segment is meaningless in utility mode or singlenode mode. */
+			if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							errmsg("copy on segment is not supported in utility mode or singlenode mode")));
 			if (opts_out->on_segment)
 				ereport(ERROR,
 						(errcode(ERRCODE_SYNTAX_ERROR),

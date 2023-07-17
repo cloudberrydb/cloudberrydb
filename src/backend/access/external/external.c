@@ -509,6 +509,9 @@ create_external_scan_uri_list(ExtTableEntry *ext, bool *ismasteronly)
 		if (SEGMENT_IS_ACTIVE_PRIMARY(p))
 			total_primaries++;
 	}
+	/* In single node mode, we only have one primary which is coordinator. */
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+		total_primaries = 1;
 
 	/*
 	 * initialize a file-to-segdb mapping. segdb_file_map string array indexes
@@ -617,6 +620,13 @@ create_external_scan_uri_list(ExtTableEntry *ext, bool *ismasteronly)
 				}
 			}
 
+			/* If we're in SingleNode mode, we can only handle one external location. */
+			if (IS_UTILITY_OR_SINGLENODE(Gp_role) && segdb_file_map[0] == NULL)
+			{
+				segdb_file_map[0] = pstrdup(uri_str);
+				found_match = true;
+			}
+
 			/*
 			 * We failed to find a segdb for this URI.
 			 */
@@ -661,7 +671,7 @@ create_external_scan_uri_list(ExtTableEntry *ext, bool *ismasteronly)
 							   uri->protocol == URI_GPFDISTS ||
 							   uri->protocol == URI_CUSTOM))
 	{
-		if ((strcmp(on_clause, "COORDINATOR_ONLY") == 0) && (uri->protocol == URI_CUSTOM))
+		if ((strcmp(on_clause, "COORDINATOR_ONLY") == 0 || IS_UTILITY_OR_SINGLENODE(Gp_role)) && (uri->protocol == URI_CUSTOM))
 		{
 			const char *uri_str = strVal(linitial(ext->urilocations));
 			segdb_file_map[0] = pstrdup(uri_str);
@@ -669,6 +679,12 @@ create_external_scan_uri_list(ExtTableEntry *ext, bool *ismasteronly)
 		}
 		else
 		{
+			/* We currently don't support gpfdist in SINGLE NODE mode. */
+			if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+			{
+				ereport(ERROR, (errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						errmsg("gpfdist is not supported in single node mode")));
+			}
 			/*
 			 * Re-write the location list for GPFDIST or GPFDISTS before mapping to segments.
 			 *

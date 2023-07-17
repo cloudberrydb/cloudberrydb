@@ -390,6 +390,8 @@ string_to_role(const char *string)
 		role = GP_ROLE_EXECUTE;
 	else if (pg_strcasecmp(string, "utility") == 0)
 		role = GP_ROLE_UTILITY;
+	else if (pg_strcasecmp(string, "singlenode") == 0)
+		role = GP_ROLE_SINGLENODE;
 
 	return role;
 }
@@ -409,6 +411,8 @@ role_to_string(GpRoleValue role)
 			return "execute";
 		case GP_ROLE_UTILITY:
 			return "utility";
+		case GP_ROLE_SINGLENODE:
+			return "singlenode";
 		case GP_ROLE_UNDEFINED:
 		default:
 			return "undefined";
@@ -421,7 +425,7 @@ check_gp_role(char **newval, void **extra, GucSource source)
 	GpRoleValue newrole = string_to_role(*newval);
 
 	/* Force utility mode in a stand-alone backend. */
-	if (!IsPostmasterEnvironment && newrole != GP_ROLE_UTILITY)
+	if (!IsPostmasterEnvironment && newrole != GP_ROLE_UTILITY && newrole != GP_ROLE_SINGLENODE)
 	{
 		elog(LOG, "gp_role forced to 'utility' in single-user mode");
 		*newval = strdup("utility");
@@ -433,7 +437,7 @@ check_gp_role(char **newval, void **extra, GucSource source)
 	else if (Gp_role == GP_ROLE_UNDEFINED)
 		return (newrole != GP_ROLE_UNDEFINED);
 	else /* can only downgrade to utility. */
-		return (newrole == GP_ROLE_UTILITY);
+		return (newrole == GP_ROLE_UTILITY || newrole == GP_ROLE_SINGLENODE);
 }
 
 void
@@ -441,7 +445,7 @@ assign_gp_role(const char *newval, void *extra)
 {
 	Gp_role = string_to_role(newval);
 
-	if (Gp_role == GP_ROLE_UTILITY && MyProc != NULL)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role) && MyProc != NULL)
 		MyProc->mppIsWriter = false;
 }
 

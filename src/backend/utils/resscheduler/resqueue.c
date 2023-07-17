@@ -2166,7 +2166,7 @@ int64 ResourceQueueGetMemoryLimit(Oid queueId)
  */
 uint64 ResourceQueueGetQueryMemoryLimit(PlannedStmt *stmt, Oid queueId)
 {
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY);
+	Assert(Gp_role == GP_ROLE_DISPATCH || IS_UTILITY_OR_SINGLENODE(Gp_role));
 	Assert(queueId != InvalidOid);
 
 

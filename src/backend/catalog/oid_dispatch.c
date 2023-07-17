@@ -353,10 +353,10 @@ GetNewOrPreassignedOid(Relation relation, Oid indexId, AttrNumber oidcolumn,
 		 */
 		if (oid == InvalidOid)
 		{
-			if (IS_QUERY_DISPATCHER() && IsBinaryUpgrade && Gp_role == GP_ROLE_UTILITY)
+			if (IS_QUERY_DISPATCHER() && IsBinaryUpgrade && IS_UTILITY_OR_SINGLENODE(Gp_role))
 				/*
 				 * If it hits here on the QD, it must be (IsBinaryUpgrade &&
-				 * Gp_role == GP_ROLE_UTILITY) already, however, check those
+				 * IS_UTILITY_OR_SINGLENODE(Gp_role)) already, however, check those
 				 * too in case we have new GP roles in the future, and for
 				 * better code readability.
 				 */
@@ -1333,7 +1333,7 @@ AddPreassignedOidFromBinaryUpgrade(Oid oid, Oid catalog, char *objname,
 	if (catalog == InvalidOid)
 		elog(ERROR, "AddPreassignedOidFromBinaryUpgrade called with Invalid catalog relation Oid");
 
-	if (Gp_role != GP_ROLE_UTILITY)
+	if (Gp_role != GP_ROLE_UTILITY && Gp_role != GP_ROLE_SINGLENODE)
 	{
 		/* Perhaps we should error out and shut down here? */
 		return;

@@ -202,7 +202,7 @@ ProcessQuery(Portal portal,
 
 	queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE)
 	{
 		/*
 		 * If resource scheduling is enabled and we are locking non SELECT
@@ -646,7 +646,7 @@ PortalStart(Portal portal, ParamListInfo params,
 
 				queryDesc->plannedstmt->query_mem = ResourceManagerGetQueryMemoryLimit(queryDesc->plannedstmt);
 
-				if (Gp_role == GP_ROLE_DISPATCH)
+				if (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE)
 				{
 					/*
 					 * If resource scheduling is enabled, lock the portal here.
@@ -1965,7 +1965,7 @@ static void
 PortalBackoffEntryInit(Portal portal)
 {
 	if (gp_enable_resqueue_priority &&
-		(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) &&
+		(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE || Gp_role == GP_ROLE_EXECUTE) &&
 		gp_session_id > -1)
 	{
 		/* Initialize the SHM backend entry */

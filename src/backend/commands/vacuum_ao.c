@@ -303,7 +303,7 @@ ao_vacuum_rel_compact(Relation onerel, int options, VacuumParams *params,
 	 * all data resides on QEs nodes.
 	 */
 	Assert(Gp_role == GP_ROLE_DISPATCH ||
-		   Gp_role == GP_ROLE_UTILITY ||
+		   IS_UTILITY_OR_SINGLENODE(Gp_role) ||
 		   DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_IMPLICIT_WRITER ||
 		   DistributedTransactionContext == DTX_CONTEXT_QE_TWO_PHASE_EXPLICIT_WRITER);
 	Assert(RelationIsAoRows(onerel) || RelationIsAoCols(onerel));

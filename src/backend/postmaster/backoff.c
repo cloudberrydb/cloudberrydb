@@ -405,7 +405,7 @@ getBackoffEntryRO(int index)
 static inline BackoffBackendSharedEntry *
 getBackoffEntryRW(int index)
 {
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE || isSweeperProcess);
+	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE || Gp_role == GP_ROLE_EXECUTE || isSweeperProcess);
 	Assert(index >= 0 && index < backoffSingleton->numEntries);
 	return &backoffSingleton->backendEntries[index];
 }
@@ -425,7 +425,7 @@ BackoffBackendEntryInit(int sessionid, int commandcount, Oid queueId)
 
 	Assert(sessionid > -1);
 	Assert(commandcount > -1);
-	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE);
+	Assert(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE || Gp_role == GP_ROLE_EXECUTE);
 	Assert(!isSweeperProcess);
 
 	/* Shared information */
@@ -618,7 +618,7 @@ BackoffBackendTickExpired(void)
 
 	backoffTickCounter = 0;
 
-	if (!(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE)
+	if (!(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE || Gp_role == GP_ROLE_EXECUTE)
 		|| !IsResQueueEnabled()
 		|| !gp_enable_resqueue_priority
 		|| !IsUnderPostmaster
@@ -1005,7 +1005,7 @@ void
 BackoffBackendEntryExit()
 {
 	if (MyBackendId >= 0
-		&& (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE))
+		&& (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE || Gp_role == GP_ROLE_EXECUTE))
 	{
 		BackoffBackendSharedEntry *se = myBackoffSharedEntry();
 

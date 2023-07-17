@@ -1114,7 +1114,7 @@ cdbllize_build_slice_table(PlannerInfo *root, Plan *top_plan,
 	 * In utility mode, we still need a slice, at least some of the
 	 * EXPLAIN code expects it.
 	 */
-	if (Gp_role == GP_ROLE_UTILITY)
+	if (IS_UTILITY_OR_SINGLENODE(Gp_role))
 	{
 		PlanSlice *dummySlice;
 

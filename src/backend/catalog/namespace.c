@@ -4102,6 +4102,7 @@ InitTempTableNamespace(void)
 			session_infix = "";
 			break;
 
+		case GP_ROLE_SINGLENODE:
 		case GP_ROLE_UTILITY:
 			session_suffix = MyBackendId;
 

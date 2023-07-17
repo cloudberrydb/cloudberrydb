@@ -1064,7 +1064,7 @@ ResHandleUtilityStmt(Portal portal, Node *stmt)
 		return;
 	}
 
-	if (Gp_role == GP_ROLE_DISPATCH
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE)
 		&& IsResQueueEnabled()
 		&& (!ResourceSelectOnly)
 		&& !superuser())

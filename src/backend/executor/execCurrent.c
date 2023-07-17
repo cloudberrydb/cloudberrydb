@@ -93,8 +93,14 @@ execCurrentOf(CurrentOfExpr *cexpr,
 	}
 	else
 	{
-		getCurrentOf(cexpr, econtext, table_oid, current_tid,
+		bool res = getCurrentOf(cexpr, econtext, table_oid, current_tid,
 					 &current_gp_segment_id, &current_table_oid, NULL);
+		/*
+		 * In utility mode, we don't bother to check segment match.
+		 * And if we have partitioned table, we will do the table oid check inside getCurrentOf.
+		 */
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role))
+			return res;
 	}
 
 	/*
@@ -121,7 +127,7 @@ execCurrentOf(CurrentOfExpr *cexpr,
  * GPDB calls it before dispatching to make QEs get the same current position
  * of the cursor.
  */
-void
+bool
 getCurrentOf(CurrentOfExpr *cexpr,
 			 ExprContext *econtext,
 			 Oid table_oid,
@@ -217,14 +223,34 @@ getCurrentOf(CurrentOfExpr *cexpr,
 		relispartition ||
 		get_rel_persistence(table_oid) == RELPERSISTENCE_TEMP)
 	{
+		bool matchInhertitanceTable;
+		Index i;
+
+		matchInhertitanceTable = false;
+		if (IS_UTILITY_OR_SINGLENODE(Gp_role) && queryDesc->estate->es_rowmarks != NULL)
+		{
+			for (i = 0; i < queryDesc->estate->es_range_table_size; i++)
+			{
+				ExecRowMark *thiserm = queryDesc->estate->es_rowmarks[i];
+				if (thiserm == NULL ||
+					!RowMarkRequiresRowShareLock(thiserm->markType))
+					continue;		/* ignore non-FOR UPDATE/SHARE items */
+
+				if (thiserm->relid == table_oid)
+				{
+					matchInhertitanceTable = true;
+				}
+			}
+		}
+
 		/*
 		 * The target relation must directly match the cursor's relation. This throws out
 		 * the simple case in which a cursor is declared against table X and the update is
-		 * issued against Y. Moreover, this disallows some subtler inheritance cases where
-		 * Y inherits from X. While such cases could be implemented, it seems wiser to
-		 * simply error out cleanly.
+		 * issued against Y.
+		 * However, this disallows some subtler inheritance cases where Y inherits from X.
+		 * So we also need to check all range tables match before this check.
 		 */
-		if (table_oid != queryDesc->plannedstmt->simplyUpdatableRel)
+		if (!matchInhertitanceTable && table_oid != queryDesc->plannedstmt->simplyUpdatableRel)
 			ereport(ERROR,
 			        (errcode(ERRCODE_INVALID_CURSOR_STATE),
 					        errmsg("cursor \"%s\" is not a simply updatable scan of table \"%s\"",
@@ -486,11 +512,14 @@ getCurrentOf(CurrentOfExpr *cexpr,
 			 * by tableoid is, indeed, simply updatable.
 			 */
 			(void) isSimplyUpdatableRelation(*current_table_oid, false /* noerror */);
+			if (IS_UTILITY_OR_SINGLENODE(Gp_role) && *current_table_oid != table_oid)
+				return false;
 		}
 
 		if (p_cursor_name)
 			*p_cursor_name = pstrdup(cursor_name);
 	}
+	return true;
 }
 
 /*

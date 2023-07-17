@@ -1586,6 +1586,11 @@ CopyFrom(CopyFromState cstate)
 			ReportSrehResults(cstate->cdbsreh, total_rejected);
 		}
 	}
+	/* In dispatcher, we have the report for rejected count. We should have it in singlenode too. */
+	else if (Gp_role == GP_ROLE_SINGLENODE && cstate->cdbsreh)
+	{
+		ReportSrehResults(cstate->cdbsreh, cstate->cdbsreh->rejectcount);
+	}
 
 	/* Execute AFTER STATEMENT insertion triggers */
 	ExecASInsertTriggers(estate, target_resultRelInfo, cstate->transition_capture);

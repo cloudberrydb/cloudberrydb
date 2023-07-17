@@ -90,8 +90,8 @@ def print_progress(pool, interval=10):
 class GpStop:
     ######
     def __init__(self, mode, coordinator_datadir=None,
-                 parallel=DEFAULT_NUM_WORKERS, quiet=False, coordinatoronly=False, sighup=False,
-                 interactive=False, stopstandby=False, restart=False,
+                 parallel=DEFAULT_NUM_WORKERS, quiet=False, coordinatoronly=False, singlenodeMode=False,
+                 sighup=False, interactive=False, stopstandby=False, restart=False,
                  timeout=SEGMENT_STOP_TIMEOUT_DEFAULT, logfileDirectory=False, onlyThisHost=None,
                  fts_hosts=None, etcd_hosts=None, is_external_fts=False):
         self.mode = mode
@@ -101,6 +101,7 @@ class GpStop:
         self.quiet = quiet
         self.pid = 0
         self.coordinatoronly = coordinatoronly
+        self.singlenodeMode = singlenodeMode
         self.sighup = sighup
         self.interactive = interactive
         self.stopstandby = stopstandby
@@ -163,8 +164,14 @@ class GpStop:
         """
         self._prepare()
 
+        if self.gparray.get_segment_count() == 0:
+            self.coordinatoronly = True
+            self.singlenodeMode = True
+
         if self.coordinatoronly:
-            if self.interactive:
+            if self.sighup:
+                return self._sighup_cluster()
+            if self.interactive and not self.singlenodeMode:
                 if not userinput.ask_yesno(None, "\nContinue with coordinator-only shutdown", 'N'):
                     raise UserAbortedException()
             try:
@@ -172,6 +179,9 @@ class GpStop:
                 signal.signal(signal.SIGINT, signal.SIG_IGN)
 
                 self._stop_coordinator()
+                # In singlenode mode, when we want to stop, we always stop both master and standby.
+                if self.singlenodeMode:
+                    self._stop_standby()
             finally:
                 # Reenable Ctrl-C
                 self.cleanup()
@@ -180,6 +190,10 @@ class GpStop:
                 self._clean_fts()
                 if self.etcd_hosts is not None:
                     self._clean_etcd()
+            if self.restart:
+                    logger.info("Restarting System...")
+                    gp.NewGpStart.local('restarting system', verbose=logging_is_verbose(), coordinatorOnly=self.coordinatoronly,
+                                        singlenodeMode=self.singlenodeMode, nostandby=not self.stopstandby, coordinatorDirectory=self.coordinator_datadir)
         else:
             if self.sighup:
                 return self._sighup_cluster()
@@ -858,6 +872,7 @@ class GpStop:
                          help='Restart Cloudberry Database instance after successful gpstop.')
         addTo.add_option('-m', '--master_only', '-c', '--coordinator_only', dest='coordinator_only', action='store_true',
                          help='stop coordinator instance started in maintenance mode')
+        addTo.add_option('', '--singlenodeMode', dest="singlenodeMode", action='store_true', default=False)
         addTo.add_option('-y', dest="stop_standby", action='store_false', default=True,
                          help='Do not stop the standby coordinator process.')
         addTo.add_option('-u', dest="request_sighup", action='store_true',
@@ -951,7 +966,8 @@ class GpStop:
                       coordinator_datadir=options.coordinatorDataDirectory,
                       parallel=options.parallel,
                       quiet=options.quiet,
-                      coordinatoronly=options.coordinator_only,
+                      coordinatoronly=(options.coordinator_only or options.singlenodeMode),
+                      singlenodeMode=options.singlenodeMode,
                       sighup=options.request_sighup,
                       interactive=options.interactive,
                       stopstandby=options.stop_standby,

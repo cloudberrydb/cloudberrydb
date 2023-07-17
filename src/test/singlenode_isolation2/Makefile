@@ -49,11 +49,16 @@ pg_isolation2_regress$(X): submake-isolation2 pg_regress.o submake-libpq submake
 
 clean distclean:
 	rm -f pg_regress.o
+	rm -f isolation2_regress.so
 	rm -f gpstringsubs.pl gpdiff.pl atmsort.pm explain.pm
 	rm -f data
 	rm -rf $(pg_regress_clean_files)
 
 install: all gpdiff.pl gpstringsubs.pl
 
-installcheck-singlenode: 
-	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule
+installcheck-singlenode: all
+	(\
+	gpconfig -c gp_appendonly_insert_files -v 0; \
+	gpstop -u; \
+	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule \
+	)

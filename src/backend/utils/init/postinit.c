@@ -684,7 +684,14 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 												   ALLOCSET_DEFAULT_INITSIZE,
 												   ALLOCSET_DEFAULT_MAXSIZE);
 
-	if (!bootstrap && Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * SINGLENODE_FIXME: we should enable orca in the future.
+	 * It's necessary to init orca optimizer even we don't allow orca to optimizer
+	 * any query yet. That's because there is some case need to set some orca related
+	 * parameter but I can't recall the detail.
+	 * We will bring it back anyway, let's just keep the change here.
+	 */
+	if (!bootstrap && (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_SINGLENODE))
 		InitGPOPT();
 #endif
 

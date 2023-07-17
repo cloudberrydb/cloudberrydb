@@ -313,7 +313,7 @@ GetComboCommandId(CommandId cmin, CommandId cmax)
 	 * If we're the QE writer or the dispatcher, share the new combo CID with
 	 * readers. (In utility mode, no need to share.)
 	 */
-	if (Gp_role != GP_ROLE_UTILITY)
+	if (Gp_role != GP_ROLE_UTILITY && Gp_role != GP_ROLE_SINGLENODE)
 		dumpSharedComboCommandIds();
 
 	return combocid;

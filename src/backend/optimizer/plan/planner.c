@@ -473,8 +473,9 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 
 	/*
 	 * GPDB: allow to use parallel or not.
+	 * SINGLENODE_FIXME: We'll enable parallel in singlenode mode later.
 	 */
-	if (!enable_parallel)
+	if (!enable_parallel || GP_ROLE_SINGLENODE == Gp_role)
 		glob->parallelModeOK = false;
 
 	/*

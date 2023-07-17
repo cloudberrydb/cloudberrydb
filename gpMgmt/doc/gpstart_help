@@ -10,7 +10,7 @@ SYNOPSIS
 gpstart [-d <coordinator_data_directory>] [-B <parallel_processes>]
         [-R] [-m | -c] [-y] [-a] [-t <timeout_seconds>]
         [-l logfile_directory] [--skip-heap-checksum-validation]
-        [-v | -q]
+        [-v | -q] [--singlenodeMode]
 
 gpstart -? | -h | --help
 
@@ -70,6 +70,17 @@ OPTIONS
   Note that starting the system in coordinator-only mode is only advisable
   under supervision of Cloudberry support.  Improper use of this option
   may lead to a split-brain condition and possible data loss.
+
+
+--singlenodeMode
+
+ Optional. Starts a Cloudberry instance in singlenode mode. This mode is
+ different from the master_only mode, as it is intended for production usage
+ rather than maintenance tasks.
+
+ By default, connections to Cloudberry are established in singlenode mode. For example:
+
+ PGOPTIONS='-c gp_role=singlenode' psql
 
 
 -q
@@ -143,6 +154,11 @@ Start the Cloudberry coordinator instance only and connect in utility mode:
 gpstart -m
 
 PGOPTIONS='-c gp_role=utility' psql
+
+
+Start the Cloudberry coordinator in singlenode mode:
+
+gpstart --singlenodeMode
 
 
 Display the online help for the gpstart utility:
