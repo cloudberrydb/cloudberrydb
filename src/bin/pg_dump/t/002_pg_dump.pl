@@ -2171,6 +2171,21 @@ my %tests = (
 		  { exclude_dump_test_schema => 1, no_toast_compression => 1, },
 	},
 
+	'CREATE MATERIALIZED VIEW matview_ivm' => {
+		create_order => 21,
+		create_sql   => 'CREATE INCREMENTAL MATERIALIZED VIEW dump_test.matview_ivm (col1) AS
+					   SELECT col1 FROM dump_test.test_table;',
+		regexp => qr/^
+			\QCREATE INCREMENTAL MATERIALIZED VIEW dump_test.matview_ivm AS\E
+			\n\s+\QSELECT test_table.col1\E
+			\n\s+\QFROM dump_test.test_table\E
+			\n\s+\QWITH NO DATA;\E
+			/xm,
+		like =>
+		  { %full_runs, %dump_test_schema_runs, section_pre_data => 1, },
+		unlike => { exclude_dump_test_schema => 1, },
+	},
+
 	'CREATE POLICY p1 ON test_table' => {
 		create_order => 22,
 		create_sql   => 'CREATE POLICY p1 ON dump_test.test_table

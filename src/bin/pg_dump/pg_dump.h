@@ -396,6 +396,7 @@ typedef struct _tableInfo
 	struct _tableDataInfo *dataObj; /* TableDataInfo, if dumping its data */
 	int			numTriggers;	/* number of triggers for table */
 	struct _triggerInfo *triggers;	/* array of TriggerInfo structs */
+	bool		isivm;		 	/* is incrementally maintainable materialized view? */
 } TableInfo;
 
 typedef struct _tableAttachInfo
