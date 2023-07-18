@@ -2046,6 +2046,30 @@ is_agg_partial_capable(Oid aggid)
 }
 
 /*
+ * get_rel_relisivm
+ *
+ *		Returns the relisivm flag associated with a given relation.
+ */
+bool
+get_rel_relisivm(Oid relid)
+{
+	HeapTuple	tp;
+
+	tp = SearchSysCache1(RELOID, ObjectIdGetDatum(relid));
+	if (HeapTupleIsValid(tp))
+	{
+		Form_pg_class reltup = (Form_pg_class) GETSTRUCT(tp);
+		bool		result;
+
+		result = reltup->relisivm;
+		ReleaseSysCache(tp);
+		return result;
+	}
+	else
+		return false;
+}
+
+/*
  * get_rel_tablespace
  *
  *		Returns the pg_tablespace OID associated with a given relation.

@@ -731,6 +731,8 @@ typedef struct ViewOptions
  */
 #define RelationIsPopulated(relation) ((relation)->rd_rel->relispopulated)
 
+#define RelationIsIVM(relation) ((relation)->rd_rel->relisivm)
+
 /*
  * RelationIsAccessibleInLogicalDecoding
  *		True if we need to log enough information to have access via
