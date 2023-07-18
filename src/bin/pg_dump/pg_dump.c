@@ -7387,6 +7387,7 @@ getTables(Archive *fout, int *numTables)
 	int			i_ispartition;
 	int			i_partbound;
 	int			i_amname;
+	int			i_isivm;
 
 	/*
 	 * Find all the tables and table-like objects.
@@ -7505,7 +7506,8 @@ getTables(Archive *fout, int *numTables)
 						  "AS changed_acl, "
 						  "%s AS partkeydef, "
 						  "%s AS ispartition, "
-						  "%s AS partbound "
+						  "%s AS partbound, "
+						  "c.relisivm AS isivm "
 						  "FROM pg_class c "
 						  "LEFT JOIN pg_depend d ON "
 						  "(c.relkind = '%c' AND "
@@ -8074,6 +8076,7 @@ getTables(Archive *fout, int *numTables)
 	i_ispartition = PQfnumber(res, "ispartition");
 	i_partbound = PQfnumber(res, "partbound");
 	i_amname = PQfnumber(res, "amname");
+	i_isivm = PQfnumber(res, "isivm");
 
 	if (dopt->lockWaitTimeout)
 	{
@@ -8200,6 +8203,7 @@ getTables(Archive *fout, int *numTables)
 		tblinfo[i].partkeydef = pg_strdup(PQgetvalue(res, i, i_partkeydef));
 		tblinfo[i].ispartition = (strcmp(PQgetvalue(res, i, i_ispartition), "t") == 0);
 		tblinfo[i].partbound = pg_strdup(PQgetvalue(res, i, i_partbound));
+		tblinfo[i].isivm = (strcmp(PQgetvalue(res, i, i_isivm), "t") == 0);
 
 		/* foreign server */
 		tblinfo[i].foreign_server = atooid(PQgetvalue(res, i, i_foreignserver));
@@ -18116,9 +18120,11 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 			}
 		}
 
-		appendPQExpBuffer(q, "CREATE %s%s %s",
+		appendPQExpBuffer(q, "CREATE %s%s%s %s",
 						  tbinfo->relpersistence == RELPERSISTENCE_UNLOGGED ?
 						  "UNLOGGED " : "",
+						  tbinfo->relkind == RELKIND_MATVIEW && tbinfo->isivm ?
+						  "INCREMENTAL " : "",
 						  reltypename,
 						  qualrelname);
 
