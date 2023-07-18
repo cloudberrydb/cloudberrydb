@@ -254,6 +254,8 @@ extern void AfterTriggerEndSubXact(bool isCommit);
 extern void AfterTriggerSetState(ConstraintsSetStmt *stmt);
 extern bool AfterTriggerPendingOnRel(Oid relid);
 
+extern void SetTransitionTablePreserved(Oid relid, CmdType cmdType);
+
 
 /*
  * in utils/adt/ri_triggers.c
