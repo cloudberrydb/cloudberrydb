@@ -18,7 +18,10 @@
 #include "ic_common.h"
 #include "tcp/ic_tcp.h"
 #include "udp/ic_udpifc.h"
+
+#ifdef ENABLE_IC_PROXY
 #include "proxy/ic_proxy_server.h"
+#endif
 
 PG_MODULE_MAGIC;
 
