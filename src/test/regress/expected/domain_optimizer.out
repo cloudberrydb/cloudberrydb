@@ -576,6 +576,15 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
  {"(1,5)"}
 (1 row)
 
+-- if there's no constraints, a different code path is taken:
+alter domain dcomptype drop constraint dcomptype_check;
+update dcomptable set f1[1].cf1 = -1;  -- now ok
+table dcomptable;
+     f1     
+------------
+ {"(-1,5)"}
+(1 row)
+
 drop table dcomptable;
 drop type comptype cascade;
 NOTICE:  drop cascades to type dcomptype

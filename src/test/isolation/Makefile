@@ -89,6 +89,10 @@ installcheck: all gpdiff.pl gpstringsubs.pl install-tests
 	$(pg_isolation_regress_installcheck) --init-file=$(srcdir)/init_file --load-extension=pageinspect --schedule=$(srcdir)/isolation_schedule
 	$(bindir)/dropdb --if-exists isolation_regression
 
+installcheck-singlenode: all gpdiff.pl gpstringsubs.pl install-tests
+	$(pg_isolation_regress_installcheck) --init-file=$(srcdir)/init_file --load-extension=pageinspect --schedule=$(srcdir)/isolation_schedule
+	$(bindir)/dropdb --if-exists isolation_regression
+
 check: all
 	$(pg_isolation_regress_check) --schedule=$(srcdir)/isolation_schedule
 

@@ -1,0 +1,126 @@
+-- @Description Test that when AO vacuum skips drop phase, the age of
+-- the AO/AOCS table gets reduced correctly.
+
+-- The age of the table is 1 after the following statement
+2: create table ao_@amname@_vacuum_cleanup2(a int, b int) using @amname@;
+CREATE
+-- The age of the table is 2 after the following statement
+2: insert into ao_@amname@_vacuum_cleanup2 select i, i from generate_series(1, 100) i;
+INSERT 100
+-- The age of the table is 7 after the following 5 statements
+2: update ao_@amname@_vacuum_cleanup2 set b = b + 1;
+UPDATE 100
+2: update ao_@amname@_vacuum_cleanup2 set b = b + 1;
+UPDATE 100
+2: update ao_@amname@_vacuum_cleanup2 set b = b + 1;
+UPDATE 100
+2: update ao_@amname@_vacuum_cleanup2 set b = b + 1;
+UPDATE 100
+2: update ao_@amname@_vacuum_cleanup2 set b = b + 1;
+UPDATE 100
+
+1: set vacuum_freeze_min_age = 0;
+SET
+-- Check the age of the table just before vacuum
+1: select age(relfrozenxid), regexp_replace(replace(relname, 'ao_@amname@_vacuum_cleanup2'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and (relname like '%' || 'ao_@amname@_vacuum_cleanup2'::regclass::oid || '%') and gp_segment_id = 0;
+ age | regexp_replace     
+-----+--------------------
+ 7   | pg_<seg>_<oid>     
+ 7   | pg_aovisimap_<oid> 
+(2 rows)
+
+-- Hold AccessShareLock to make AO VACUUM skip drop phase
+2: begin;
+BEGIN
+2: select count(*) from ao_@amname@_vacuum_cleanup2;
+ count 
+-------
+ 100   
+(1 row)
+1: vacuum ao_@amname@_vacuum_cleanup2;
+VACUUM
+
+-- The age should be smaller now. All the xids before the first
+-- vacuum were frozen. The relfrozenxid will be the xid of the last
+-- transaction before the vacuum (in this case it is the update statement)
+1: select age(relfrozenxid), regexp_replace(replace(relname, 'ao_@amname@_vacuum_cleanup2'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and (relname like '%' || 'ao_@amname@_vacuum_cleanup2'::regclass::oid || '%') and gp_segment_id = 0;
+ age | regexp_replace     
+-----+--------------------
+ 2   | pg_<seg>_<oid>     
+ 2   | pg_aovisimap_<oid> 
+(2 rows)
+2: end;
+END
+
+-- Check that drop phase is skipped, but still the cleanup phase is performed
+-- when there are concurrent serializable transactions
+1: create table ao_@amname@_vacuum_cleanup3(a int, b int) using @amname@;
+CREATE
+1: insert into ao_@amname@_vacuum_cleanup3 select i, i from generate_series(1, 100) i;
+INSERT 100
+1: delete from ao_@amname@_vacuum_cleanup3;
+DELETE 100
+
+-- Check the age of the table before vacuum to make sure that clean phase gets
+-- performed
+1: select age(relfrozenxid), regexp_replace(replace(relname, 'ao_@amname@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and (relname like '%' || 'ao_@amname@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
+ age | regexp_replace     
+-----+--------------------
+ 3   | pg_<seg>_<oid>     
+ 3   | pg_aovisimap_<oid> 
+(2 rows)
+1: select gp_inject_fault_infinite('vacuum_relation_open_relation_during_drop_phase', 'suspend', 1);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:                 
+(1 row)
+1&: vacuum ao_@amname@_vacuum_cleanup3;  <waiting ...>
+
+-- Wait till compaction phase is completed and only then start the serializable
+-- transaction to ensure that only drop phase runs after the serializable
+-- transaction started. Because the transaction is holding a lock on the table,
+-- the drop phase cannot upgrade to AccessExclusiveLock and so recycling the
+-- segfiles is skipped.
+2: select gp_wait_until_triggered_fault('vacuum_relation_open_relation_during_drop_phase', 1, 1);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:                      
+(1 row)
+2: begin isolation level serializable;
+BEGIN
+2: select * from ao_@amname@_vacuum_cleanup3;
+ a | b 
+---+---
+(0 rows)
+2: select gp_inject_fault('vacuum_relation_open_relation_during_drop_phase', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:        
+(1 row)
+
+1<:  <... completed>
+VACUUM
+1: select age(relfrozenxid), regexp_replace(replace(relname, 'ao_@amname@_vacuum_cleanup3'::regclass::oid::text, '<oid>'), 'ao.*seg', '<seg>') from gp_dist_random('pg_class') where relkind in ('r','t','o','b','M') and (relname like '%' || 'ao_@amname@_vacuum_cleanup3'::regclass::oid || '%') and gp_segment_id = 0;
+ age | regexp_replace     
+-----+--------------------
+ 2   | pg_<seg>_<oid>     
+ 2   | pg_aovisimap_<oid> 
+(2 rows)
+
+-- Validate that the drop phase was skipped. segfile 1 should be in state 2
+-- (AWAITING_DROP)
+-- This result is related to data distribution.
+-- Current hash algorithm is jump-consistent-hash.
+1: SELECT * FROM gp_ao_or_aocs_seg('ao_@amname@_vacuum_cleanup3');
+ segment_id | segno | tupcount | modcount | formatversion | state 
+------------+-------+----------+----------+---------------+-------
+ 2          | 1     | 25       | 2        | 3             | 2     
+ 2          | 2     | 0        | 0        | 3             | 1     
+ 1          | 1     | 37       | 2        | 3             | 2     
+ 1          | 2     | 0        | 0        | 3             | 1     
+ 0          | 1     | 38       | 2        | 3             | 2     
+ 0          | 2     | 0        | 0        | 3             | 1     
+(6 rows)
+
+2: commit;
+COMMIT

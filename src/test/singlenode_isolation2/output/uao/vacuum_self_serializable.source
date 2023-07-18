@@ -1,0 +1,36 @@
+-- @Description Ensures that a vacuum with serializable works ok
+--
+DROP TABLE IF EXISTS ao;
+DROP
+CREATE TABLE ao (a INT, b INT) USING @amname@;
+CREATE
+INSERT INTO ao SELECT i as a, i as b FROM generate_series(1, 100) AS i;
+INSERT 100
+
+DELETE FROM ao WHERE a <= 30;
+DELETE 30
+SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;
+SET
+SELECT COUNT(*) FROM ao;
+ count 
+-------
+ 70    
+(1 row)
+SELECT *, segno, tupcount FROM gp_ao_or_aocs_seg('ao');
+ segment_id | segno | tupcount | modcount | formatversion | state | segno | tupcount 
+------------+-------+----------+----------+---------------+-------+-------+----------
+ -1         | 0     | 100      | 2        | 3             | 1     | 0     | 100      
+(1 row)
+VACUUM ao;
+VACUUM
+-- in case there's autovacuum worker running in the backend, the aoseg will not be dropped which has state = 2
+SELECT *, segno, tupcount FROM gp_ao_or_aocs_seg('ao') where state = 1 and tupcount > 0;
+ segment_id | segno | tupcount | modcount | formatversion | state | segno | tupcount 
+------------+-------+----------+----------+---------------+-------+-------+----------
+ -1         | 1     | 70       | 0        | 3             | 1     | 1     | 70       
+(1 row)
+SELECT COUNT(*) FROM ao;
+ count 
+-------
+ 70    
+(1 row)

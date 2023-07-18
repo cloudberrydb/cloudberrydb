@@ -1,0 +1,18 @@
+-- start_matchignore
+m/^CONTEXT:  SQL function ".+" statement \d+$/
+m/^ERROR:  Canceling query because of high VMEM .+/
+-- end_matchignore
+
+-- start_matchsubs
+m/^[0-9:]+\sgpconfig:[^:]+:/
+s/^[0-9:]+\sgpconfig:[^:]+:[^-]*-\[/TIMESTAMP gpconfig:SEGMENT:USER-[/
+
+m/\[\S+:cgroup is not properly configured:/
+s/\[\S+:cgroup is not properly configured:/\[SEGMENT:cgroup is not properly configured:/
+
+m/^ERROR:  Out of memory  (seg\d slice\d \d+.\d+.\d+.\d+:\d+ pid=\d+)$/
+s/(seg\d+ slice\d+ \d+.\d+.\d+.\d+:\d+ pid=\d+)/(SEG SLICE ADDR:PORT pid=PID)/
+
+m/^ERROR:  role with Oid \d+ was dropped$/
+s/Oid \d+ was/Oid OID was/
+-- end_matchsubs
