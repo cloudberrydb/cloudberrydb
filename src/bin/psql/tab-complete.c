@@ -1106,6 +1106,7 @@ static const pgsql_thing_t words_after_create[] = {
 	{"FOREIGN TABLE", NULL, NULL, NULL},
 	{"FUNCTION", NULL, NULL, Query_for_list_of_functions},
 	{"GROUP", Query_for_list_of_roles},
+	{"INCREMENTAL MATERIALIZED VIEW", NULL, NULL, &Query_for_list_of_matviews, THING_NO_DROP | THING_NO_ALTER},
 	{"INDEX", NULL, NULL, &Query_for_list_of_indexes},
 	{"LANGUAGE", Query_for_list_of_languages},
 	{"LARGE OBJECT", NULL, NULL, NULL, THING_NO_CREATE | THING_NO_DROP},
@@ -2777,7 +2778,7 @@ psql_completion(const char *text, int start, int end)
 		COMPLETE_WITH("SEQUENCE", "TABLE", "VIEW");
 	/* Complete "CREATE UNLOGGED" with TABLE or MATVIEW */
 	else if (TailMatches("CREATE", "UNLOGGED"))
-		COMPLETE_WITH("TABLE", "MATERIALIZED VIEW");
+		COMPLETE_WITH("TABLE", "MATERIALIZED VIEW", "INCREMENTAL MATERIALIZED VIEW");
 	/* Complete PARTITION BY with RANGE ( or LIST ( or ... */
 	else if (TailMatches("PARTITION", "BY"))
 		COMPLETE_WITH("RANGE (", "LIST (", "HASH (");
@@ -3107,13 +3108,16 @@ psql_completion(const char *text, int start, int end)
 		COMPLETE_WITH("SELECT");
 
 /* CREATE MATERIALIZED VIEW */
-	else if (Matches("CREATE", "MATERIALIZED"))
+	else if (Matches("CREATE", "MATERIALIZED") ||
+			 Matches("CREATE", "INCREMENTAL", "MATERIALIZED"))
 		COMPLETE_WITH("VIEW");
-	/* Complete CREATE MATERIALIZED VIEW <name> with AS */
-	else if (Matches("CREATE", "MATERIALIZED", "VIEW", MatchAny))
+	/* Complete CREATE MATERIALIZED VIEW <name> with AS  */
+	else if (Matches("CREATE", "MATERIALIZED", "VIEW", MatchAny) ||
+			 Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny))
 		COMPLETE_WITH("AS");
 	/* Complete "CREATE MATERIALIZED VIEW <sth> AS with "SELECT" */
-	else if (Matches("CREATE", "MATERIALIZED", "VIEW", MatchAny, "AS"))
+	else if (Matches("CREATE", "MATERIALIZED", "VIEW", MatchAny, "AS") ||
+			 Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny, "AS"))
 		COMPLETE_WITH("SELECT");
 
 /* CREATE EVENT TRIGGER */
