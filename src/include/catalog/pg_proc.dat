@@ -12485,5 +12485,15 @@
 
 { oid => 7060, descr => 'get user account status',
    proname => 'get_role_status', prorettype => 'cstring', proargtypes => 'cstring', prosrc => 'get_role_status' },
+# IVM
+{ oid => '786', descr => 'ivm trigger (before)',
+  proname => 'IVM_immediate_before', provolatile => 'v', prorettype => 'trigger',
+  proargtypes => '', prosrc => 'IVM_immediate_before' },
+{ oid => '787', descr => 'ivm trigger (after)',
+  proname => 'IVM_immediate_maintenance', provolatile => 'v', prorettype => 'trigger',
+  proargtypes => '', prosrc => 'IVM_immediate_maintenance' },
+{ oid => '788', descr => 'ivm filetring ',
+  proname => 'ivm_visible_in_prestate', provolatile => 's', prorettype => 'bool',
+  proargtypes => 'oid tid oid', prosrc => 'ivm_visible_in_prestate' },
 ]
 

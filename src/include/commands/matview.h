@@ -24,6 +24,8 @@
 
 extern void SetMatViewPopulatedState(Relation relation, bool newstate);
 
+extern void SetMatViewIVMState(Relation relation, bool newstate);
+
 extern ObjectAddress ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 										ParamListInfo params, QueryCompletion *qc);
 
@@ -33,5 +35,11 @@ extern DestReceiver *CreateTransientRelDestReceiver(Oid oid, Oid oldreloid, bool
 extern bool MatViewIncrementalMaintenanceIsEnabled(void);
 
 extern void transientrel_init(QueryDesc *queryDesc);
+
+extern Datum IVM_immediate_before(PG_FUNCTION_ARGS);
+extern Datum IVM_immediate_maintenance(PG_FUNCTION_ARGS);
+extern Datum IVM_visible_in_prestate(PG_FUNCTION_ARGS);
+extern void AtAbort_IVM(void);
+extern bool isIvmName(const char *s);
 
 #endif							/* MATVIEW_H */
