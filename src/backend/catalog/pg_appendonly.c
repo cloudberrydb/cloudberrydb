@@ -94,11 +94,12 @@ InsertAppendOnlyEntry(Oid relid,
 	values[Anum_pg_appendonly_columnstore - 1] = BoolGetDatum(columnstore);
 	values[Anum_pg_appendonly_segrelid - 1] = ObjectIdGetDatum(segrelid);
 	values[Anum_pg_appendonly_segfilecount- 1] = Int16GetDatum(0);
+	values[Anum_pg_appendonly_version - 1] = Int16GetDatum(version);
 	values[Anum_pg_appendonly_blkdirrelid - 1] = ObjectIdGetDatum(blkdirrelid);
 	values[Anum_pg_appendonly_blkdiridxid - 1] = ObjectIdGetDatum(blkdiridxid);
 	values[Anum_pg_appendonly_visimaprelid - 1] = ObjectIdGetDatum(visimaprelid);
 	values[Anum_pg_appendonly_visimapidxid - 1] = ObjectIdGetDatum(visimapidxid);
-	values[Anum_pg_appendonly_version - 1] = Int16GetDatum(version);
+	
 
 	/*
 	 * form the tuple and insert it
@@ -671,4 +672,20 @@ GetAppendOnlySegmentFilesCount(Relation rel)
 	systable_endscan(aoscan);
 	table_close(pg_aoseg_rel, AccessShareLock);
 	return result;
+}
+
+int16
+AORelationVersion_Get(Relation rel)
+{
+	FormData_pg_appendonly			aoFormData;
+	
+	GetAppendOnlyEntry(rel->rd_id, &aoFormData);
+
+	return aoFormData.version;
+}
+
+bool
+AORelationVersion_Validate(Relation rel, int16 version)
+{
+	return AORelationVersion_Get(rel) >= version;
 }

@@ -520,3 +520,52 @@ ABORT
 
 DROP TABLE unique_index_ao_row;
 DROP
+
+
+--------------------------------------------------------------------------------
+----------------------- Smoke tests for ADD CONSTRAINT  ------------------------
+--------------------------------------------------------------------------------
+CREATE TABLE unique_index_ao_row (a INT) USING ao_row DISTRIBUTED REPLICATED;
+CREATE
+INSERT INTO unique_index_ao_row SELECT * FROM generate_series(1, 5);
+INSERT 5
+
+ALTER table unique_index_ao_row ADD CONSTRAINT a_unique UNIQUE(a);
+ALTER
+-- should conflict
+INSERT INTO unique_index_ao_row VALUES (1);
+DETAIL:  Key (a)=(1) already exists.
+ERROR:  duplicate key value violates unique constraint "a_unique"
+ALTER table unique_index_ao_row DROP CONSTRAINT a_unique;
+ALTER
+
+INSERT INTO unique_index_ao_row VALUES (1);
+INSERT 1
+-- should failed
+ALTER table unique_index_ao_row ADD CONSTRAINT a_unique UNIQUE(a);
+DETAIL:  Key (a)=(1) is duplicated.
+ERROR:  could not create unique index "a_unique"
+
+DROP TABLE unique_index_ao_row;
+DROP
+
+
+--------------------------------------------------------------------------------
+----------------------- Smoke tests for Multiple Key ---------------------------
+--------------------------------------------------------------------------------
+CREATE TABLE unique_index_ao_row (a INT, b INT) USING ao_row DISTRIBUTED REPLICATED;
+CREATE
+INSERT INTO unique_index_ao_row SELECT i,i FROM generate_series(1, 5) i;
+INSERT 5
+
+CREATE UNIQUE INDEX a_b_unique ON unique_index_ao_row(a,b);
+CREATE
+-- should not conflict
+INSERT INTO unique_index_ao_row VALUES (1,2);
+INSERT 1
+-- should conflict
+INSERT INTO unique_index_ao_row VALUES (1,1);
+DETAIL:  Key (a, b)=(1, 1) already exists.
+ERROR:  duplicate key value violates unique constraint "a_b_unique"
+DROP TABLE unique_index_ao_row;
+DROP

@@ -1072,19 +1072,13 @@ DefineIndex(Oid relationId,
 
 	if (stmt->unique && RelationIsAppendOptimized(rel))
 	{
-		/* XXX: Remove when unique indexes are fully supported on AO/CO tables. */
-		if (!gp_appendonly_enable_unique_index)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						errmsg("append-only tables do not support unique indexes")));
-
 		if (stmt->concurrent)
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						errmsg("append-only tables do not support unique indexes built concurrently")));
 
 		/* Additional version checks needed if block directory already exists */
-		if (OidIsValid(blkdirrelid) && !AORelationVersion_Validate(rel, AORelationVersion_GP7))
+		if (OidIsValid(blkdirrelid) && !AORelationVersion_Validate(rel, AORelationVersion_CB2))
 		{
 			/*
 			 * We currently raise an error in this scenario. We could alternatively
@@ -1098,8 +1092,8 @@ DefineIndex(Oid relationId,
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						errmsg("append-only tables with older relation versions do not support unique indexes"),
-						errdetail("version found = %d, minimum version required = %d", rel->rd_appendonly->version,
-								  AORelationVersion_GP7),
+						errdetail("version found = %d, minimum version required = %d", AORelationVersion_Get(rel),
+								  AORelationVersion_CB2),
 						errhint("ALTER TABLE <table-name> SET WITH (REORGANIZE = true) before creating the unique index")));
 		}
 	}

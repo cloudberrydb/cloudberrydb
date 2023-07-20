@@ -328,35 +328,15 @@ get_insert_descriptor(const Relation relation)
 	{
 		List	*segments = NIL;
 		MemoryContext oldcxt;
-		AppendOnlyInsertDesc insertDesc;
 
 		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
-		insertDesc = appendonly_insert_init(relation,
-											ChooseSegnoForWrite(relation),
-											num_rows);
-		/*
-		 * If we have a unique index, insert a placeholder block directory row
-		 * to entertain uniqueness checks from concurrent inserts. See
-		 * AppendOnlyBlockDirectory_InsertPlaceholder() for details.
-		 */
-		if (relationHasUniqueIndex(relation))
-		{
-			int64 firstRowNum = insertDesc->lastSequence + 1;
-			BufferedAppend *bufferedAppend = &insertDesc->storageWrite.bufferedAppend;
-			int64 fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
-
-			AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
-													   firstRowNum,
-													   fileOffset,
-													   0);
-		}
-		state->insertDesc = insertDesc;
-		state->insertDesc = appendonly_insert_init(relation,
-												   ChooseSegnoForWrite(relation));
+		state->insertDesc= appendonly_insert_init(relation,
+											ChooseSegnoForWrite(relation));
 
 		dlist_init(&state->head);
 		dlist_head *head = &state->head;
 		dlist_push_tail(head, &state->insertDesc->node);
+		
 		if (state->insertDesc->insertMultiFiles)
 		{
 			segments = lappend_int(segments, state->insertDesc->cur_segno);
@@ -369,6 +349,18 @@ get_insert_descriptor(const Relation relation)
 			}
 			list_free(segments);
 		}
+		
+		//* mark all insertDesc  placeholderInserted with false */
+        if (relationHasUniqueIndex(relation))
+        {
+            dlist_iter          iter;
+            dlist_foreach(iter, head)
+            {
+                AppendOnlyInsertDesc insertDesc = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, iter.cur);
+                insertDesc->placeholderInserted = false;
+            }
+        }
+	
 		MemoryContextSwitchTo(oldcxt);
 	}
 
@@ -383,6 +375,26 @@ get_insert_descriptor(const Relation relation)
 
 		state->insertDesc = next;
 	}
+	/*
+    * If we have a unique index, insert a placeholder block directory row
+    * to entertain uniqueness checks from concurrent inserts. See
+    * AppendOnlyBlockDirectory_InsertPlaceholder() for details.
+    */
+    if (relationHasUniqueIndex(relation) && !state->insertDesc->placeholderInserted)
+    {
+
+        AppendOnlyInsertDesc insertDesc = state->insertDesc;
+        int64 firstRowNum = insertDesc->lastSequence + 1;
+        BufferedAppend *bufferedAppend = &insertDesc->storageWrite.bufferedAppend;
+        int64 fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
+
+        AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
+                                                        firstRowNum,
+                                                        fileOffset,
+                                                        0);
+        insertDesc->placeholderInserted = true;                                         
+    }
+
 
 	return state->insertDesc;
 }

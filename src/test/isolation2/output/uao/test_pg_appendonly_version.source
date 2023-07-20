@@ -1,10 +1,10 @@
 -- Validate pg_appendonly.version functioning by unique index creation
--- as it requires pg_appendonly.version >= AORelationVersion_GP7.
+-- as it requires pg_appendonly.version >= AORelationVersion_CB2.
 
 create table @amname@_version_tbl (a int) using @amname@;
 CREATE
 
--- unique index on AO is supported starting from version 2 (AORelationVersion_GP7)
+-- unique index on AO is supported starting from version 2 (AORelationVersion_CB2)
 select version from pg_appendonly where relid = '@amname@_version_tbl'::regclass;
  version 
 ---------
@@ -30,7 +30,7 @@ SET
 update pg_appendonly set version = 1 where relid = '@amname@_version_tbl'::regclass;
 UPDATE 1
 
--- unique index on AO isn't supported on version < AORelationVersion_GP7
+-- unique index on AO isn't supported on version < AORelationVersion_CB2
 select version from pg_appendonly where relid = '@amname@_version_tbl'::regclass;
  version 
 ---------

@@ -77,6 +77,8 @@ typedef struct AOCSInsertDescData
 	bool			insertMultiFiles; /* insert into multi files */
 	dlist_node		node;	/* node of segfiles list */
 	int 			range;  /* inserted tuples of each range */
+	/* flag for insert placeholder in unique index   */
+    bool			placeholderInserted;
 } AOCSInsertDescData;
 
 typedef AOCSInsertDescData *AOCSInsertDesc;
@@ -372,12 +374,6 @@ extern bool aocs_fetch(AOCSFetchDesc aocsFetchDesc,
 					   AOTupleId *aoTupleId,
 					   TupleTableSlot *slot);
 extern void aocs_fetch_finish(AOCSFetchDesc aocsFetchDesc);
-
-extern AOCSUpdateDesc aocs_update_init(Relation rel, int segno);
-extern void aocs_update_finish(AOCSUpdateDesc desc);
-extern TM_Result aocs_update(AOCSUpdateDesc desc, TupleTableSlot *slot,
-			AOTupleId *oldTupleId, AOTupleId *newTupleId);
-
 extern AOCSDeleteDesc aocs_delete_init(Relation rel);
 extern TM_Result aocs_delete(AOCSDeleteDesc desc, 
 		AOTupleId *aoTupleId);

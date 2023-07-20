@@ -34,11 +34,11 @@ CATALOG(pg_appendonly,6105,AppendOnlyRelationId)
     bool            columnstore;        /* true if orientation is column */ 
     Oid             segrelid;           /* OID of aoseg table; 0 if none */
     int16           segfilecount;		/* the (per seg) average total number of segment file */
+    int16			version;			/* AO relation version see AORelationVersion for detail */
     Oid             blkdirrelid;        /* OID of aoblkdir table; 0 if none */
     Oid             blkdiridxid;        /* if aoblkdir table, OID of aoblkdir index */
 	Oid             visimaprelid;		/* OID of the aovisimap table */
 	Oid             visimapidxid;		/* OID of aovisimap index */
-	int16			version;			/* AO relation version */
 } FormData_pg_appendonly;
 
 /* GPDB added foreign key definitions for gpcheckcat. */
@@ -49,7 +49,7 @@ FOREIGN_KEY(relid REFERENCES pg_class(oid));
  * (there are no var-length fields currentl.)
 */
 #define APPENDONLY_TUPLE_SIZE \
-	 (offsetof(FormData_pg_appendonly,version) + sizeof(Oid))
+	 (offsetof(FormData_pg_appendonly,visimapidxid) + sizeof(Oid))
 
 /* ----------------
 *		Form_pg_appendonly corresponds to a pointer to a tuple with
@@ -65,15 +65,13 @@ typedef FormData_pg_appendonly *Form_pg_appendonly;
 typedef enum AORelationVersion
 {
 	AORelationVersion_None = 0,
-	AORelationVersion_GP6 = 1,
-	AORelationVersion_GP7 = 2,
+	AORelationVersion_CB1 = 1,
+	AORelationVersion_CB2 = 2,		/* version after aoblkdir remove hole filling  
+									 * mechanims used for unique index */
 	MaxAORelationVersion
 } AORelationVersion;
 
-#define AORelationVersion_GetLatest() AORelationVersion_GP7
-#define AORelationVersion_Get(relation) (relation)->rd_appendonly->version
-#define AORelationVersion_Validate(relation, version) \
-	(AORelationVersion_Get((relation)) >= (version))
+#define AORelationVersion_GetLatest() AORelationVersion_CB2
 #define AORelationVersion_IsValid(version) \
 	((version) > AORelationVersion_None && (version) < MaxAORelationVersion)
 
@@ -125,17 +123,8 @@ static inline void AOSegfileFormatVersion_CheckValid(int version)
  */
 #define PG82NumericConversionNeeded(version) \
 ( \
-	AORelationVersion_CheckValid(version), \
-	(version > AORelationVersion_Original) \
-)
-
-/*
- * Are numerics stored in old, pre-PostgreSQL 8.3 format, and need converting?
- */
-#define PG82NumericConversionNeeded(version) \
-( \
-	AORelationVersion_CheckValid(version), \
-	(version < AORelationVersion_PG83) \
+	AOSegfileFormatVersion_CheckValid(version), \
+	(version > AOSegfileFormatVersion_Original) \
 )
 
 extern void
@@ -199,5 +188,11 @@ SwapAppendonlyEntries(Oid entryRelId1, Oid entryRelId2);
 
 extern int16
 GetAppendOnlySegmentFilesCount(Relation rel);
+
+extern int16
+AORelationVersion_Get(Relation rel);
+
+extern bool
+AORelationVersion_Validate(Relation rel, int16 version);
 
 #endif   /* PG_APPENDONLY_H */

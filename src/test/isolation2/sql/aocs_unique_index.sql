@@ -342,3 +342,37 @@ INSERT INTO unique_index_ao_column VALUES(2);
 2: ABORT;
 
 DROP TABLE unique_index_ao_column;
+
+
+--------------------------------------------------------------------------------
+----------------------- Smoke tests for ADD CONSTRAINT  ------------------------
+--------------------------------------------------------------------------------
+CREATE TABLE unique_index_ao_column (a INT) USING ao_column
+    DISTRIBUTED REPLICATED;
+INSERT INTO unique_index_ao_column SELECT * FROM generate_series(1, 5);
+
+ALTER table unique_index_ao_column ADD CONSTRAINT a_unique UNIQUE(a);
+-- should conflict
+INSERT INTO unique_index_ao_column VALUES (1);
+ALTER table unique_index_ao_column DROP CONSTRAINT a_unique;
+
+INSERT INTO unique_index_ao_column VALUES (1);
+-- should failed
+ALTER table unique_index_ao_column ADD CONSTRAINT a_unique UNIQUE(a);
+
+DROP TABLE unique_index_ao_column;
+
+
+--------------------------------------------------------------------------------
+----------------------- Smoke tests for Multiple Key ---------------------------
+--------------------------------------------------------------------------------
+CREATE TABLE unique_index_ao_column (a INT, b INT) USING ao_column
+    DISTRIBUTED REPLICATED;
+INSERT INTO unique_index_ao_column SELECT i,i FROM generate_series(1, 5) i;
+
+CREATE UNIQUE INDEX a_b_unique ON unique_index_ao_column(a,b);
+-- should not conflict
+INSERT INTO unique_index_ao_column VALUES (1,2);
+-- should conflict
+INSERT INTO unique_index_ao_column VALUES (1,1);
+DROP TABLE unique_index_ao_column;
