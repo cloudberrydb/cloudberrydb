@@ -868,7 +868,7 @@ ReadNext:
 			/*
 			 * Perform any required upgrades on the Datum we just fetched.
 			 */
-			if (curseginfo->formatversion < AORelationVersion_GetLatest())
+			if (curseginfo->formatversion < AOSegfileFormatVersion_GetLatest ())
 			{
 				upgrade_datum_scan(scan, attno, d, null,
 								   curseginfo->formatversion);
@@ -1317,7 +1317,7 @@ fetchFromCurrentBlock(AOCSFetchDesc aocsFetchDesc,
 		/*
 		 * Perform any required upgrades on the Datum we just fetched.
 		 */
-		if (formatversion < AORelationVersion_GetLatest())
+		if (formatversion < AOSegfileFormatVersion_GetLatest ())
 		{
 			upgrade_datum_fetch(aocsFetchDesc, colno, values, nulls,
 								formatversion);
@@ -1337,7 +1337,7 @@ scanToFetchValue(AOCSFetchDesc aocsFetchDesc,
 {
 	DatumStreamFetchDesc 			datumStreamFetchDesc = aocsFetchDesc->datumStreamFetchDesc[colno];
 	DatumStreamRead 				*datumStream = datumStreamFetchDesc->datumStream;
-	AOFetchBlockMetadata 			*currentBlock = &datumStreamFetchDesc->currentBlock;
+	CurrentBlock 			*currentBlock = &datumStreamFetchDesc->currentBlock;
 	AppendOnlyBlockDirectoryEntry 	*entry = &currentBlock->blockDirectoryEntry;
 	bool							found;
 
@@ -1351,10 +1351,10 @@ scanToFetchValue(AOCSFetchDesc aocsFetchDesc,
 			/*
 			 * We fell into a hole inside the resolved block directory entry
 			 * we obtained from AppendOnlyBlockDirectory_GetEntry().
-			 * This should not be happening for versions >= GP7. Scream
+			 * This should not be happening for versions >= CB2. Scream
 			 * appropriately. See AppendOnlyBlockDirectoryEntry for details.
 			 */
-			ereportif(aocsFetchDesc->relation->rd_appendonly->version >= AORelationVersion_GP7,
+			ereportif(AORelationVersion_Get(aocsFetchDesc->relation) >= AORelationVersion_CB2,
 					  ERROR,
 					  (errcode(ERRCODE_INTERNAL_ERROR),
 					   errmsg("datum with row number %ld and col no %d not found in block directory entry range", rowNum, colno),
@@ -2605,7 +2605,7 @@ ReadNext:
 			/*
 			 * Perform any required upgrades on the Datum we just fetched.
 			 */
-			if (curseginfo->formatversion < AORelationVersion_GetLatest())
+			if (curseginfo->formatversion < AOSegfileFormatVersion_GetLatest ())
 			{
 				upgrade_datum_scan(scan, attno, d, null,
 								   curseginfo->formatversion);

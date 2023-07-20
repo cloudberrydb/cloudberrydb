@@ -829,7 +829,7 @@ upgrade_tuple(AppendOnlyExecutorReadBlock *executorReadBlock,
 	 * stored memtuple is problematic and then create a clone of the tuple
 	 * with properly aligned bindings to be used by the executor.
 	 */
-	if (formatversion < AORelationVersion_Aligned64bit &&
+	if (formatversion < AOSegfileFormatVersion_Aligned64bit &&
 		memtuple_has_misaligned_attribute(mtup, pbind))
 		convert_alignment = true;
 
@@ -992,7 +992,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(AppendOnlyExecutorReadBlock *executorRe
 
 		/* If the tuple is not in the latest format, convert it */
 		// GPDB_12_MERGE_FIXME: Is pg_upgrade from old versions still a thing? Can we drop this?
-		if (formatVersion < AORelationVersion_GetLatest())
+		if (formatVersion < AOSegfileFormatVersion_GetLatest ())
 			tuple = upgrade_tuple(executorReadBlock, tuple, executorReadBlock->mt_bind, formatVersion, &shouldFree);
 
 		ExecClearTuple(slot);
@@ -1940,7 +1940,7 @@ fetchFromCurrentBlock(AppendOnlyFetchDesc aoFetchDesc,
 					  TupleTableSlot *slot)
 {
 	bool							fetched;
-	AOFetchBlockMetadata 			*currentBlock = &aoFetchDesc->currentBlock;
+	CurrentBlock 					*currentBlock = &aoFetchDesc->currentBlock;
 	AppendOnlyExecutorReadBlock 	*executorReadBlock = &aoFetchDesc->executorReadBlock;
 	AppendOnlyBlockDirectoryEntry 	*entry = &currentBlock->blockDirectoryEntry;
 
@@ -1966,10 +1966,10 @@ fetchFromCurrentBlock(AppendOnlyFetchDesc aoFetchDesc,
 			/*
 			 * We fell into a hole inside the resolved block directory entry
 			 * we obtained from AppendOnlyBlockDirectory_GetEntry().
-			 * This should not be happening for versions >= GP7. Scream
+			 * This should not be happening for versions >= CB2. Scream
 			 * appropriately. See AppendOnlyBlockDirectoryEntry for details.
 			 */
-			ereportif(aoFetchDesc->relation->rd_appendonly->version >= AORelationVersion_GP7,
+			ereportif(AORelationVersion_Get(aoFetchDesc->relation) >= AORelationVersion_CB2,
 					  ERROR,
 					  (errcode(ERRCODE_INTERNAL_ERROR),
 						  errmsg("tuple with row number %ld not found in block directory entry range", rowNum),

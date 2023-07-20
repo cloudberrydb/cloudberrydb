@@ -154,7 +154,7 @@ static bool appendonly_tid_reaped(ItemPointer itemptr, void *state);
 
 static void vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
 										 BlockNumber *rel_pages, double *rel_tuples,
-										 bool *relhasindex);
+										 bool *relhasindex, BlockNumber *total_file_segs);
 static int vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs,
 									 BufferAccessStrategy bstrategy);
 static void ao_vacuum_rel_recycle_dead_segments(Relation onerel, VacuumParams *params,
@@ -491,7 +491,7 @@ vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs
 		{
 			for (i = 0; i < nindexes; i++)
 			{
-				scan_index(Irel[i], Irel[i]->rd_rel->reltuples, elevel, bstrategy);
+				scan_index(Irel[i], aoRelation , elevel, bstrategy);
 			}
 		}
 		else
@@ -499,7 +499,7 @@ vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs
 			for (i = 0; i < nindexes; i++)
 			{
 				vacuum_appendonly_index(Irel[i],
-										Irel[i]->rd_rel->reltuples,
+										aoRelation->rd_rel->reltuples,
 										dead_segs,
 										elevel,
 										bstrategy);
@@ -540,7 +540,7 @@ vacuum_appendonly_index(Relation indexRelation,
 
 	/* Do bulk deletion */
 	stats = index_bulk_delete(&ivinfo, NULL, appendonly_tid_reaped,
-			(void *) vacuumIndexState);
+			(void *) dead_segs);
 
 	SIMPLE_FAULT_INJECTOR("vacuum_ao_after_index_delete");
 
@@ -679,10 +679,9 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
  *
  * We use this when we have no deletions to do.
  */
-static void
+void
 scan_index(Relation indrel,
-		   AppendOnlyIndexVacuumState *vacuumIndexState,
-		   double num_tuples,
+		   Relation aorel,
 		   int elevel, BufferAccessStrategy vac_strategy)
 {
 	IndexBulkDeleteResult *stats;
@@ -695,15 +694,12 @@ scan_index(Relation indrel,
 	ivinfo.analyze_only = false;
 	ivinfo.estimated_count = false;
 	ivinfo.message_level = elevel;
-	ivinfo.num_heap_tuples = num_tuples;
+	ivinfo.num_heap_tuples = aorel->rd_rel->reltuples;
 	ivinfo.strategy = vac_strategy;
 
-	/* Do bulk deletion */
-	stats = index_bulk_delete(&ivinfo, NULL, appendonly_tid_reaped,
-							  (void *) vacuumIndexState);
 
 	/* Do post-VACUUM cleanup */
-	stats = index_vacuum_cleanup(&ivinfo, stats);
+	stats = index_vacuum_cleanup(&ivinfo, NULL);
 
 	if (!stats)
 		return;

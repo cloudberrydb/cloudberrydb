@@ -2573,7 +2573,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		cluster_rel(relid, InvalidOid, &cluster_params);
 	}
 	else /* Heap vacuum or AO/CO vacuum in specific phase */
-		table_relation_vacuum(onerel, params, vac_strategy);
+		table_relation_vacuum(rel, params, vac_strategy);
 
 	/* Roll back any GUC changes executed by index functions */
 	AtEOXact_GUC(false, save_nestlevel);

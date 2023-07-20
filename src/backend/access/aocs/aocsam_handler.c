@@ -343,52 +343,11 @@ get_insert_descriptor(const Relation relation)
 	{
 		List	*segments = NIL;
 		MemoryContext oldcxt;
-		AOCSInsertDesc insertDesc;
 
 		oldcxt = MemoryContextSwitchTo(aocoLocal.stateCxt);
-		insertDesc = aocs_insert_init(relation,
-									  ChooseSegnoForWrite(relation),
-									  num_rows);
-		/*
-		 * If we have a unique index, insert a placeholder block directory row to
-		 * entertain uniqueness checks from concurrent inserts. See
-		 * AppendOnlyBlockDirectory_InsertPlaceholder() for details.
-		 *
-		 * Note: For AOCO tables, we need to only insert a placeholder block
-		 * directory row for the 1st non-dropped column. This is because
-		 * during a uniqueness check, only the first non-dropped column's block
-		 * directory entry is consulted. (See AppendOnlyBlockDirectory_CoversTuple())
-		 */
-		if (relationHasUniqueIndex(relation))
-		{
-			int 				firstNonDroppedColumn = -1;
-			int64 				firstRowNum;
-			DatumStreamWrite 	*dsw;
-			BufferedAppend 		*bufferedAppend;
-			int64 				fileOffset;
-
-			for(int i = 0; i < relation->rd_att->natts; i++)
-			{
-				if (!relation->rd_att->attrs[i].attisdropped) {
-					firstNonDroppedColumn = i;
-					break;
-				}
-			}
-			Assert(firstNonDroppedColumn != -1);
-
-			dsw = insertDesc->ds[firstNonDroppedColumn];
-			firstRowNum = dsw->blockFirstRowNum;
-			bufferedAppend = &dsw->ao_write.bufferedAppend;
-			fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
-
-			AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
-													   firstRowNum,
-													   fileOffset,
-													   firstNonDroppedColumn);
-		}
-		state->insertDesc = insertDesc;
 		state->insertDesc = aocs_insert_init(relation,
-											 ChooseSegnoForWrite(relation));
+									  ChooseSegnoForWrite(relation));
+		
 		dlist_init(&state->head);
 		dlist_head *head = &state->head;
 		dlist_push_tail(head, &state->insertDesc->node);
@@ -405,6 +364,18 @@ get_insert_descriptor(const Relation relation)
 			}
 			list_free(segments);
 		}
+
+		//* mark all insertDesc  placeholderInserted with false */
+        if (relationHasUniqueIndex(relation))
+        {
+            dlist_iter          iter;
+            dlist_foreach(iter, head)
+            {
+                AOCSInsertDesc insertDesc = (AOCSInsertDesc)dlist_container(AOCSInsertDescData, node, iter.cur);
+                insertDesc->placeholderInserted = false;
+            }
+        }
+
 		MemoryContextSwitchTo(oldcxt);
 	}
 
@@ -419,7 +390,47 @@ get_insert_descriptor(const Relation relation)
 
 		state->insertDesc = next;
 	}
+	/*
+	* If we have a unique index, insert a placeholder block directory row to
+	* entertain uniqueness checks from concurrent inserts. See
+	* AppendOnlyBlockDirectory_InsertPlaceholder() for details.
+	*
+	* Note: For AOCO tables, we need to only insert a placeholder block
+	* directory row for the 1st non-dropped column. This is because
+	* during a uniqueness check, only the first non-dropped column's block
+	* directory entry is consulted. (See AppendOnlyBlockDirectory_CoversTuple())
+	*/
+	if (relationHasUniqueIndex(relation) && !state->insertDesc->placeholderInserted)
+	{
+		int 				firstNonDroppedColumn = -1;
+		int64 				firstRowNum;
+		DatumStreamWrite 	*dsw;
+		BufferedAppend 		*bufferedAppend;
+		int64 				fileOffset;
+		AOCSInsertDesc 		insertDesc;
 
+
+		for(int i = 0; i < relation->rd_att->natts; i++)
+		{
+			if (!relation->rd_att->attrs[i].attisdropped) {
+				firstNonDroppedColumn = i;
+				break;
+			}
+		}
+		Assert(firstNonDroppedColumn != -1);
+
+		insertDesc = state->insertDesc;
+		dsw = insertDesc->ds[firstNonDroppedColumn];
+		firstRowNum = dsw->blockFirstRowNum;
+		bufferedAppend = &dsw->ao_write.bufferedAppend;
+		fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
+
+		AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
+												firstRowNum,
+												fileOffset,
+												firstNonDroppedColumn);
+		insertDesc->placeholderInserted = true;
+	}
 	return state->insertDesc;
 }
 
@@ -819,6 +830,7 @@ aoco_index_fetch_tuple(struct IndexFetchTableData *scan,
                              bool *call_again, bool *all_dead)
 {
 	IndexFetchAOCOData *aocoscan = (IndexFetchAOCOData *) scan;
+	bool found = false;
 
 	if (!aocoscan->aocofetch)
 	{

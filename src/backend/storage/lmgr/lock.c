@@ -964,19 +964,6 @@ LockAcquireExtended(const LOCKTAG *locktag,
 		}
 	}
 
-	/*
-	 * We don't acquire any other heavyweight lock while holding the relation
-	 * extension lock.  We do allow to acquire the same relation extension
-	 * lock more than once but that case won't reach here.
-	 */
-	Assert(!IsRelationExtensionLockHeld);
-
-	/*
-	 * We don't acquire any other heavyweight lock while holding the page lock
-	 * except for relation extension.
-	 */
-	Assert(!IsPageLockHeld ||
-		   (locktag->locktag_type == LOCKTAG_RELATION_EXTEND));
 
 	/*
 	 * Prepare to emit a WAL record if acquisition of this lock needs to be
