@@ -3413,10 +3413,13 @@ static bool
 chunkTransportStateEntryInitialized(ChunkTransportState *transportStates,
 									int16 motNodeID)
 {
-	if (motNodeID > transportStates->size || !transportStates->states[motNodeID - 1].valid)
+	ChunkTransportStateEntry *pEntry = NULL;
+	if (motNodeID > transportStates->size) {
 		return false;
+	}
 
-	return true;
+	getChunkTransportStateNoValid(transportStates, motNodeID, &pEntry);
+	return pEntry->valid;
 }
 
 /*
