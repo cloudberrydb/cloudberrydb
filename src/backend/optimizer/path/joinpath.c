@@ -2299,7 +2299,6 @@ hash_inner_and_outer(PlannerInfo *root,
 			save_jointype != JOIN_UNIQUE_OUTER &&
 			save_jointype != JOIN_FULL &&
 			save_jointype != JOIN_RIGHT &&
-			save_jointype != JOIN_LASJ_NOTIN &&
 			save_jointype != JOIN_DEDUP_SEMI &&
 			save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 			outerrel->partial_pathlist != NIL &&
@@ -2319,6 +2318,7 @@ hash_inner_and_outer(PlannerInfo *root,
 			 */
 			if (innerrel->partial_pathlist != NIL &&
 				save_jointype != JOIN_UNIQUE_INNER &&
+				save_jointype != JOIN_LASJ_NOTIN &&
 				enable_parallel_hash)
 			{
 				cheapest_partial_inner =
