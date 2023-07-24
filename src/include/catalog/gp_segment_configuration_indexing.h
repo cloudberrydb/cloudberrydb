@@ -4,7 +4,7 @@
  *	  This file provides some definitions to support gp_segment_configuration indexing
  *	  on GPDB catalogs
  *
- * Portions Copyright (c) 2007-2010, Cloudberry inc
+ * Portions Copyright (c) 2007-2010, Greenplum inc
  *
  *
  *-------------------------------------------------------------------------

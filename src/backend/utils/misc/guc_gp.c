@@ -5,7 +5,8 @@
  * avoid adding so much stuff to guc.c. This makes it easier to diff
  * and merge with upstream.
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Copyright (c) 2000-2009, PostgreSQL Global Development Group
  *
@@ -4551,7 +4552,7 @@ struct config_string ConfigureNamesString_gp[] =
 
 	{
 		{"task_host_addr", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
-			gettext_noop("Host address to connect to CloudBerry database."),
+			gettext_noop("Host address to connect to Cloudberry database."),
 			NULL,
 			GUC_SUPERUSER_ONLY
 		},

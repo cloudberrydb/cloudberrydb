@@ -1,89 +1,94 @@
-The Cloudberry pg_upgrade code has been extended to work with Cloudberry. This
-README is intended to document the changes that have been done.
+The Greenplum pg_upgrade code has been extended to work with
+Cloudberry Database. This README is intended to document the changes
+that have been done.
 
-Operation of pg_upgrade remains unchanged as are the available command line
-parameters. Upgrading a Cloudberry cluster with pg_upgrade is done by first
-upgrading the QD and then the QEs.
+Operation of pg_upgrade remains unchanged as are the available command
+line parameters. Upgrading a Cloudberry Database cluster with
+pg_upgrade is done by first upgrading the QD and then the QEs.
 
 
-Distributed Cloudberry upgrades
+Distributed Cloudberry Database upgrades
 ------------------------------
 
-Cloudberry requires that all Oids are synchronized between the QD and the QEs,
-so the upgrade must maintain this invariant.  Further, the upgrade must do as
-much as it can in parallel to ensure the cluster is upgraded with as little
-downtime as possible.  To satisfy both requirements, the upgrade process is
-split between QD and QE.  The QD is first upgraded, and the schema dumped and
-restored.  The new data directory created as part of the upgrade is transferred
-to all QEs, with the local QE configuration retained.  The QE upgrade can then
-skip the schema dump/reload part and only transfer the files.
+Cloudberry Database requires that all Oids are synchronized between
+the QD and the QEs, so the upgrade must maintain this invariant.
+Further, the upgrade must do as much as it can in parallel to ensure
+the cluster is upgraded with as little downtime as possible.  To
+satisfy both requirements, the upgrade process is split between QD and
+QE.  The QD is first upgraded, and the schema dumped and restored.
+The new data directory created as part of the upgrade is transferred
+to all QEs, with the local QE configuration retained.  The QE upgrade
+can then skip the schema dump/reload part and only transfer the files.
 
 
 Extensions to upstream pg_upgrade
 ---------------------------------
 
 Functionality for restoring the append-only catalog relations is in
-aotable.c, Cloudberry specific checks for upgrading from GPDB 4 are added to
-version_old_gpdb4.c.
+aotable.c, Cloudberry Database specific checks for upgrading from GPDB
+4 are added to version_old_gpdb4.c.
 
 
 Upgrading from 4.3 to 5.0
 -------------------------
 
-When upgrading from 4.3 to 5.0 the QD must be upgraded before any QEs are
-upgraded. This is because new Oids are allocated during the QD upgrade and
-these needs to be distributed to the QEs in order to preserve the QD/QE Oid
-synchronization.
+When upgrading from 4.3 to 5.0 the QD must be upgraded before any QEs
+are upgraded. This is because new Oids are allocated during the QD
+upgrade and these needs to be distributed to the QEs in order to
+preserve the QD/QE Oid synchronization.
 
-* Each base relation type is in 5.0 defined as an array type, something which
-  is not supported in 4.3. The arraytypes for base relations will be created
-  during upgrade and their Oids recorded. To be able to distribute the Oids to
-  the QEs, the upgrade will leave a dump file in the working directory named
-  pg_upgrade_dump_arraytypes.sql. If this file is placed in the working
-  directory of upgrading a QE, pg_upgrade will use it to ensure that the Oids
-  are synchronized.
+* Each base relation type is in 5.0 defined as an array type,
+  something which is not supported in 4.3. The arraytypes for base
+  relations will be created during upgrade and their Oids recorded. To
+  be able to distribute the Oids to the QEs, the upgrade will leave a
+  dump file in the working directory named
+  pg_upgrade_dump_arraytypes.sql. If this file is placed in the
+  working directory of upgrading a QE, pg_upgrade will use it to
+  ensure that the Oids are synchronized.
 
-* The on-disk format of the NUMERIC data type was changed in 5.0 due to the
-  merge of PostgreSQL 8.3, both heap and AO tables are affected by this. There
-  were also changes to the flags in the heap page header. PostgreSQL doesn't
-  support upgrading with pg_upgrade from 8.2 to 8.3, thus handling this format
-  change was added to pg_upgrade for Cloudberry:
+* The on-disk format of the NUMERIC data type was changed in 5.0 due
+  to the merge of PostgreSQL 8.3, both heap and AO tables are affected
+  by this. There were also changes to the flags in the heap page
+  header. PostgreSQL doesn't support upgrading with pg_upgrade from
+  8.2 to 8.3, thus handling this format change was added to pg_upgrade
+  for Cloudberry Database:
 
-  - Heap tables are rewritten as part of the upgrade, any pages containing
-    numeric attributes will be converted when the segment files are copied
-	to the new data directory.
+  - Heap tables are rewritten as part of the upgrade, any pages
+    containing numeric attributes will be converted when the segment
+    files are copied to the new data directory.
 
-  - AO table segment files will be rewritten when a segment containing numeric
-    attributes are written to from database operations.
+  - AO table segment files will be rewritten when a segment containing
+    numeric attributes are written to from database operations.
 
-* External partitions are not supported since management of external partitions
-  is not allowed in utility mode. All external partitions must be either moved
-  out of the partition hierarchy with ALTER TABLE EXCHANGE, or dropped, prior
-  to the upgrade.
+* External partitions are not supported since management of external
+  partitions is not allowed in utility mode. All external partitions
+  must be either moved out of the partition hierarchy with ALTER TABLE
+  EXCHANGE, or dropped, prior to the upgrade.
 
 
 Upgrading from 5.0 to 6.0
 -------------------------
 
-The name_pattern_ops and pattern equality operators were removed in 6.0 and
-text equality is treated like bitwise equality. This will cause internal sort
-order in bpchar_pattern_ops which is now trailing-blank-insensitive. This means
-that indexes must be dropped and recreated as part of the upgrade to ensure
-correct results.
+The name_pattern_ops and pattern equality operators were removed in
+6.0 and text equality is treated like bitwise equality. This will
+cause internal sort order in bpchar_pattern_ops which is now
+trailing-blank-insensitive. This means that indexes must be dropped
+and recreated as part of the upgrade to ensure correct results.
 
 
-Testing Cloudberry pg_upgrade
+Testing Cloudberry Database pg_upgrade
 ----------------------------
 
-There is a testrunner script in contrib/pg_upgrade which runs a full upgrade of
-the gpdemo cluster and it's current contents. The idea is that it can be used
-to test upgrades by running as the final step of ICW. The test can be invoked
-by "make installcheck" in the contrib/pg_upgrade directory.
-
-The testscript also has a "smoketest" option which only tests upgrading a
-single node.  This is *not* a test of an actual Cloudberry cluster upgrade,
-but a test of the Oid synchronization required to handle a node upgrade. The
-intention is for this to be a quick test that all objects are handled by
-pg_upgrade; upgrade testing still requires the full run across all
-segments/mirrors. The smoketest can be invoked by "make check" in the
+There is a testrunner script in contrib/pg_upgrade which runs a full
+upgrade of the gpdemo cluster and it's current contents. The idea is
+that it can be used to test upgrades by running as the final step of
+ICW. The test can be invoked by "make installcheck" in the
 contrib/pg_upgrade directory.
+
+The testscript also has a "smoketest" option which only tests
+upgrading a single node.  This is *not* a test of an actual Cloudberry
+Database cluster upgrade, but a test of the Oid synchronization
+required to handle a node upgrade. The intention is for this to be a
+quick test that all objects are handled by pg_upgrade; upgrade testing
+still requires the full run across all segments/mirrors. The smoketest
+can be invoked by "make check" in the contrib/pg_upgrade directory.

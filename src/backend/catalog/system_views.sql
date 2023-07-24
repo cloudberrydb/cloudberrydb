@@ -1,7 +1,7 @@
 /*
  * PostgreSQL System Views
  *
- * Portions Copyright (c) 2006-2010, Cloudberry inc.
+ * Portions Copyright (c) 2006-2010, Greenplum inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Copyright (c) 1996-2021, PostgreSQL Global Development Group
  *

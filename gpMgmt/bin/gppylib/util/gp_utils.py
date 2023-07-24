@@ -2,7 +2,7 @@
 #
 # Copyright (c) Greenplum Inc 2008. All Rights Reserved.
 #
-# Cloudberry DB related utility functions
+# Greenplum DB related utility functions
 
 import os
 

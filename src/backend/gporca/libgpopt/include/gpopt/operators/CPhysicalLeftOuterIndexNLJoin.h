@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
+//	Greenplum Database
 //	Copyright (C) 2017 VMware, Inc. or its affiliates.
 //
 //	Left outer index nested-loops join operator

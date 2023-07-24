@@ -1,8 +1,8 @@
 **************************************************************************
-ABOUT THE GREENPLUM GPFDIST TRANSFORM DEMOS
+ABOUT THE GREENPLUM GPFDIST TRANSFORM DEMOS FOR CLOUDBERRY DATABASE
 **************************************************************************
 
-This package contains example programs of Cloudberry gpfdist transformations:
+This package contains example programs of gpfdist transformations:
 
 1. dblp - This example demonstrates loading and extracting 
           database research data.
@@ -36,7 +36,7 @@ BEFORE YOU BEGIN
     $ cd data
     $ make
 
-2. Create a database to use for the Cloudberry gpfdist transform demos:
+2. Create a database to use for the gpfdist transform demos:
 
     $ createdb gptransform
 

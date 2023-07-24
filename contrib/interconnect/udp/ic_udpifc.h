@@ -2,7 +2,7 @@
  * ic_udp.h
  *	  Motion IPC UDP implements.
  *
- * Portions Copyright (c) 2023-, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION

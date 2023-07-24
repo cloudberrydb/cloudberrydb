@@ -2,7 +2,7 @@
  * tupchunklist.c
  *	  The data-structures and functions for dealing with tuple chunk lists.
  *
- * Portions Copyright (c) 2005-2008, Cloudberry
+ * Portions Copyright (c) 2005-2008, Greenplum
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

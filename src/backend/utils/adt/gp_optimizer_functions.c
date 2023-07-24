@@ -8,7 +8,7 @@
  *
  * gp_opt_version: This function wraps LibraryVersion. 
  *
- * Copyright(c) 2012 - present, EMC/Cloudberry
+ * Copyright(c) 2012 - present, EMC/Greenplum
  */
 
 #include "postgres.h"

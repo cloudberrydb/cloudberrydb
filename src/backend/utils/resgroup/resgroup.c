@@ -24,7 +24,8 @@
  *   A resource group must acquire a free slot in this pool for a new
  *   transaction to run in it.
  *
- * Portions Copyright (c) 2006-2010, Cloudberry inc.
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2006-2010, Greenplum inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

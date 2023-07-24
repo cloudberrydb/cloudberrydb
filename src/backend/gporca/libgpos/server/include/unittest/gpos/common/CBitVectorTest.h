@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2008 Cloudberry, Inc.
+//	Greenplum Database
+//	Copyright (C) 2008 Greenplum, Inc.
 //
 //	@filename:
 //		CBitVectorTest.h

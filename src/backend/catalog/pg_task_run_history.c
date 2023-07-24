@@ -3,7 +3,7 @@
  * pg_task_run_history.c
  *	  save all tasks run histories of pg cron scheduler.
  *
- * Portions Copyright (c) 2023-Present Hashdata Inc.
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION

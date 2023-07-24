@@ -3,7 +3,7 @@
  * url_execute.c
  *	  Core support for opening external relations via a URL execute
  *
- * Portions Copyright (c) 2007-2008, Cloudberry inc
+ * Portions Copyright (c) 2007-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  * IDENTIFICATION

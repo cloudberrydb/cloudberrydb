@@ -4,7 +4,7 @@
  *	  Provides storage areas and processing routines for Cloudberry Database variables
  *	  managed by GUC.
  *
- * Portions Copyright (c) 2003-2010, Cloudberry inc
+ * Portions Copyright (c) 2003-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

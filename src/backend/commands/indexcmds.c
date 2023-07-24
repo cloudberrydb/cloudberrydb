@@ -3,7 +3,8 @@
  * indexcmds.c
  *	  POSTGRES define and remove index code.
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -1879,7 +1880,7 @@ DefineIndex(Oid relationId,
 	{
 		/* 
 		* In postgres, each phase of concurrent index build will run inside a transaction,
-		* so each phase will run in its own distributed transaction in CloudBerry.
+		* so each phase will run in its own distributed transaction in Cloudberry.
 		* Dispatch each phase to QEs, then the QE can distinguish the steps
 		* within a concurrent index build.
 		*/

@@ -37,7 +37,7 @@ reset_system_identifier(void)
 }
 
 /*
- * Cloudberry upgrade involves copying the MASTER_DATA_DIRECTORY to
+ * Greenplum upgrade involves copying the MASTER_DATA_DIRECTORY to
  * each primary segment. We need to freeze the master data *after* the master
  * schema has been restored to allow the data to be visible on the segments.
  * All databases need to be frozen including those where datallowconn is false.

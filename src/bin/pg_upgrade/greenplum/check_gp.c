@@ -1,10 +1,10 @@
 /*
  *	check_gp.c
  *
- *	Cloudberry specific server checks and output routines
+ *	Greenplum specific server checks and output routines
  *
  *	Any compatibility checks which are version dependent (testing for issues in
- *	specific versions of Cloudberry) should be placed in their respective
+ *	specific versions of Greenplum) should be placed in their respective
  *	version_old_gpdb{MAJORVERSION}.c file.  The checks in this file supplement
  *	the checks present in check.c, which is the upstream file for performing
  *	checks against a PostgreSQL cluster.
@@ -32,7 +32,7 @@ static void check_for_array_of_partition_table_types(ClusterInfo *cluster);
  *	check_greenplum
  *
  *	Rather than exporting all checks, we export a single API function which in
- *	turn is responsible for running Cloudberry checks. This function should be
+ *	turn is responsible for running Greenplum checks. This function should be
  *	executed after all PostgreSQL checks. The order of the checks should not
  *	matter.
  */

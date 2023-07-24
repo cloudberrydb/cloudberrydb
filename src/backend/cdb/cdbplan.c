@@ -3,9 +3,10 @@
  * cdbplan.c
  *	  Provides routines supporting plan tree manipulation.
  *
- * Portions Copyright (c) 2004-2008, Cloudberry inc
+ * Portions Copyright (c) 2004-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
  *
  * IDENTIFICATION
  *	    src/backend/cdb/cdbplan.c

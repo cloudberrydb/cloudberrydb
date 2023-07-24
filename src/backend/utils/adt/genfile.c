@@ -4,6 +4,7 @@
  *		Functions for direct access to files
  *
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Copyright (c) 2004-2021, PostgreSQL Global Development Group
  *
  * Author: Andreas Pflug <pgadmin@pse-consulting.de>

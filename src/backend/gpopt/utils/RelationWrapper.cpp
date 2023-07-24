@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
+//	Greenplum Database
 //	Copyright (C) 2020 VMware, Inc.
 //---------------------------------------------------------------------------
 #include "gpopt/utils/RelationWrapper.h"

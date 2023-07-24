@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2010 Cloudberry, Inc.
+//	Greenplum Database
+//	Copyright (C) 2010 Greenplum, Inc.
 //
 //	@filename:
 //		CXMLSerializerTest.h

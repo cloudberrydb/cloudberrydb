@@ -1,40 +1,67 @@
 src/backend/optimizer/README.cbdb.parallel
 
-Cloudberry parallel query is based on Postgres parallel.
-Most mechanisms are the same, refer to Parallel Query and Partial Paths in src/backend/optimizer/README.
-The main difference is Postgres has a Gather/GatherMerge node which launches any number of workers
-to execute a plan as a leader process(PG style), but Cloudberry doesn't have that.
+---
 
-Cloudberry treats all workers equally. They work together to execute a plan node with some sync mechanism
-to keep the right thing, ex: create a shared hash table etc.
-That's called GP style.
-GP style launches workers as non-parallel plan except that expand Gang size by factor if a top path node has
+Cloudberry Database parallel query is based on Postgres parallel.
+
+Most mechanisms are the same, refer to Parallel Query and Partial
+Paths in src/backend/optimizer/README.  The main difference is
+Postgres has a Gather/GatherMerge node which launches any number of
+workers to execute a plan as a leader process(PG style), but
+Cloudberry Database doesn't have that.
+
+Cloudberry Database treats all workers equally. They work together to
+execute a plan node with some sync mechanism to keep the right thing,
+ex: create a shared hash table etc.
+
+That's called GP style.  GP style launches workers as non-parallel
+plan except that expand Gang size by factor if a top path node has
 parallel_workers > 1.
 
 The reasons we choose GP style but not PG style or mix them is complex.
-We encounter lots of problems when mixing them together and we don't have enough time to enable both
-and don't know how much the benefit we could have.
-1. PG style Gather/GatherMerge node will launch processes workers that lack GP's QE info like:
-distributed transaction, distributed snapshot, GP roles and much more. If we mixed them, there would be
-normal QE processes and worker processes launched by Gather node. They don't know each other.
+
+We encounter lots of problems when mixing them together and we don't
+have enough time to enable both and don't know how much the benefit we
+could have.
+
+1. PG style Gather/GatherMerge node will launch processes workers that
+lack GP's QE info like: distributed transaction, distributed snapshot,
+GP roles and much more. If we mixed them, there would be normal QE
+processes and worker processes launched by Gather node. They don't
+know each other.
+
 2. PG style Gather/GatherMerge locus issue.
-The locus of Gather node may be different from its child. Ex: a parallel scan on a hashed distributed table
-will have all data that should be hashed on same segments as a whole(Hashed locus),
-but each process has partial data(HashedWorkers locus).
-The Gather node should be Hashed locus in that situation. But things become complex when joining with other locus
-and if there is a Motion node below that.
-3. GP style could parallelize plan as late as possible until the final Gather(to QD or to QE in the middle),
-But PG style will Gather workers in apply_scanjoin_target_to_path. PG style can't generate the final scan/join
-target in parallel workers. This is PG's last opportunity to use any partial paths that exist.
-It will empty partial_pathlist, all paths are moved to pathlist that it couldn't participate in later parallel
-join as the outer path, ex: parallel_aware hash join with a shared table.
-But GP style could keep partial path in partial_pathlist because we have a Gather Motion on the top.
+
+The locus of Gather node may be different from its child. Ex: a
+parallel scan on a hashed distributed table will have all data that
+should be hashed on same segments as a whole(Hashed locus), but each
+process has partial data(HashedWorkers locus).
+
+The Gather node should be Hashed locus in that situation. But things
+become complex when joining with other locus and if there is a Motion
+node below that.
+
+3. GP style could parallelize plan as late as possible until the final
+Gather(to QD or to QE in the middle), But PG style will Gather workers
+in apply_scanjoin_target_to_path. PG style can't generate the final
+scan/join target in parallel workers. This is PG's last opportunity to
+use any partial paths that exist.
+
+It will empty partial_pathlist, all paths are moved to pathlist that
+it couldn't participate in later parallel join as the outer path, ex:
+parallel_aware hash join with a shared table.  But GP style could keep
+partial path in partial_pathlist because we have a Gather Motion on
+the top.
 
 
 Parallel locus.
-Making locus compatible in parallel mode is more complex than a non-parallel plan.
-We have to add Motions even though the distributions are the same, but paths have different parallel_workers.
+
+Making locus compatible in parallel mode is more complex than a
+non-parallel plan.  We have to add Motions even though the
+distributions are the same, but paths have different parallel_workers.
 ex:
+
+```
 create table t1(b int) with(parallel_workers=3) distributed by (b);
 create table t2(a int) with(parallel_workers=2) distributed by (a);
 gpadmin=# explain(costs off) select * from t1 right join t2 on t1.b = t2.a;
@@ -49,5 +76,6 @@ gpadmin=# explain(costs off) select * from t1 right join t2 on t1.b = t2.a;
                      Hash Key: t1.b
                      Hash Module: 3
                      ->  Parallel Seq Scan on t1
+```
 
 See function cdb_motion_for_parallel_join() for details.

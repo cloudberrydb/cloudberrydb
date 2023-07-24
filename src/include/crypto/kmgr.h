@@ -2,6 +2,7 @@
  *
  * kmgr.h
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2021, PostgreSQL Global Development Group
  *
  * src/include/crypto/kmgr.h

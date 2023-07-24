@@ -7,6 +7,8 @@
  * IDENTIFICATION
  *	  src/bin/pg_dump/pg_backup_db.c
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
  *-------------------------------------------------------------------------
  */
 #include "postgres_fe.h"
