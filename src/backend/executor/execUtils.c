@@ -1601,7 +1601,7 @@ FillSliceGangInfo(ExecSlice *slice, PlanSlice *ps)
 			 * It's either the root slice or an InitPlan slice that runs in
 			 * the QD process, or really unused slice.
 			 */
-			/* GPDB_PARALLEL_FIXME: QD process should never be parallel, do we need to plus factor? */
+			/* CBDB_PARALLEL_FIXME: QD process should never be parallel, do we need to plus factor? */
 			slice->planNumSegments = 1;
 			break;
 		case GANGTYPE_PRIMARY_WRITER:
@@ -1629,13 +1629,13 @@ FillSliceGangInfo(ExecSlice *slice, PlanSlice *ps)
 			}
 			break;
 		case GANGTYPE_ENTRYDB_READER:
-			/* GPDB_PARALLEL_FIXME: QD parallel is disabled */
+			/* CBDB_PARALLEL_FIXME: QD parallel is disabled */
 			slice->planNumSegments = 1;
 			slice->segments = list_make1_int(-1);
 			break;
 		case GANGTYPE_SINGLETON_READER:
 			/*
-			 * GPDB_PARALLEL_FIXME:
+			 * CBDB_PARALLEL_FIXME:
 			 * Could be parallel, parallel scan on replica tables.
 			 */
 			slice->planNumSegments = 1 * factor;

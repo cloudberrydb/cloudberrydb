@@ -204,7 +204,7 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 	hashtable = node->hj_HashTable;
 	econtext = node->js.ps.ps_ExprContext;
 	parallel_state = hashNode->parallel_state;
-	/* GPDB_PARALLEL_FIXME: When parallel is true and parallel_state is NULL */
+	/* CBDB_PARALLEL_FIXME: When parallel is true and parallel_state is NULL */
 	parallel = parallel && (parallel_state != NULL);
 
 	/*

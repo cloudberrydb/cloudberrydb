@@ -60,7 +60,7 @@ cdbpathtoplan_create_flow(PlannerInfo *root,
 	}
 	else if (CdbPathLocus_IsReplicated(locus))
 	{
-		/* GPDB_PARALLEL_FIXME: What if ReplicatedWorkers? */
+		/* CBDB_PARALLEL_FIXME: What if ReplicatedWorkers? */
 		flow = makeFlow(FLOW_REPLICATED, locus.numsegments);
 	}
 	else if (CdbPathLocus_IsHashed(locus) ||

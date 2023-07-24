@@ -473,7 +473,7 @@ refresh_matview_datafill(DestReceiver *dest, Query *query,
 
 	/* Plan the query which will generate data for the refresh. */
 
-	/* GPDB_PARALLEL_FIXME: hack here, use cursor_option to disable parallel */
+	/* CBDB_PARALLEL_FIXME: hack here, use cursor_option to disable parallel */
 	if (!refreshClause->intoAO)
 		plan = pg_plan_query(query, queryString, CURSOR_OPT_PARALLEL_OK, NULL);
 	else

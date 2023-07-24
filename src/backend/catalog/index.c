@@ -1374,7 +1374,7 @@ index_create_internal(Relation heapRelation,
 	else
 	{
 		/*
-		 * GP_PARALLEL_FIXME: temporarily set ii_ParallelWorkers to -1 to disable parallel in bitmap index
+		 * CBDB_PARALLEL_FIXME: temporarily set ii_ParallelWorkers to -1 to disable parallel in bitmap index
 		 * building. That's because that we still hold InterruptHoldoffCount after launch parallel workers.
 		 * And when parallel workers detach the message 'X' is not interrupt the leader. However, the leader
 		 * must wait for workers detaching. Thus there will be a hang issue.

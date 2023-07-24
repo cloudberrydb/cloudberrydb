@@ -964,7 +964,7 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	}
 
 	/*
-	 * GP_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * GPDB hack here for IntoClause, see GetCachedPlan().
 	 * Disable parallel if into a AO/AOCS table.
 	 */

@@ -773,7 +773,7 @@ cdbexplain_depositSliceStats(CdbExplain_StatHdr *hdr,
 	iworker = hdr->segindex - ss->segindex0;
 	ssw = &ss->workers[iworker];
 	Assert(iworker >= 0 && iworker < ss->nworker);
-	/* GPDB_PARALLEL_FIXME: reuse worker to store the stats of same slice */
+	/* CBDB_PARALLEL_FIXME: reuse worker to store the stats of same slice */
 #if 0
 	Assert(ssw->peakmemused == 0); /* each worker should be seen just once */
 #endif

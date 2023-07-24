@@ -167,7 +167,7 @@ get_partitioned_policy_from_path(PlannerInfo *root, Path *path)
 	 *
 	 * NOTE: HashedOJ is not OK, because we cannot let the NULLs be stored
 	 * multiple segments. HashedWorkers is OK.
-	 * GPDB_PARALLEL_FIXME: Is HashedWorkers OK?
+	 * CBDB_PARALLEL_FIXME: Is HashedWorkers OK?
 	 * There is no parallel insertion now, query->intoPolicy couldn't be CdbLocusType_HashedWorkers.
 	 */
 	if (!(path->locus.locustype == CdbLocusType_Hashed ||
@@ -1579,7 +1579,7 @@ motion_sanity_check(PlannerInfo *root, Plan *plan)
 static void
 adjust_top_path_for_parallel_retrieve_cursor(Path *path, PlanSlice *slice)
 {
-	/* GPDB_PARALLEL_FIXME: should consider parallel_workers for parallel cursor? */
+	/* CBDB_PARALLEL_FIXME: should consider parallel_workers for parallel cursor? */
 	Assert(path->locus.parallel_workers == 0);
 
 	if (CdbPathLocus_IsSingleQE(path->locus)

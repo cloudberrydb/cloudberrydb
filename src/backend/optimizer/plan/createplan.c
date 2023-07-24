@@ -5785,7 +5785,7 @@ create_hashjoin_plan(PlannerInfo *root,
 	bool		partition_selectors_created = false;
 	ListCell   *lc;
 
-	/* GP_PARALLEL_FIXME:
+	/* CBDB_PARALLEL_FIXME:
 	 * PartitionSelector is not parallel-aware, so disable it temporarily.
 	 * In future, after enabling merging partition prune info in shared memory,
 	 * PartitionSelector could work in parallel mode.
