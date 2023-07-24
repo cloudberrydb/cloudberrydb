@@ -1147,7 +1147,7 @@ try_partial_hashjoin_path(PlannerInfo *root,
 		return;
 
 	/*
-	 * GPDB_PARALLEL_FIXME
+	 * CBDB_PARALLEL_FIXME
 	 * Customers encounter an issue that when parallel hash, broadcast motion
 	 * a smaller table may be worser than redistribute a big table.
 	 * We add a path whic doesn't try broadcast if possible.
@@ -1174,7 +1174,7 @@ try_partial_hashjoin_path(PlannerInfo *root,
 	}
 
 	/* 
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * We only want non-broadcast in parallel hash if the guc is set.
 	 */
 	if (parallel_hash && !parallel_hash_enable_motion_broadcast)

@@ -3183,7 +3183,7 @@ vac_update_relstats_from_list(List *updated_stats)
 		if (RelationIsAppendOptimized(rel))
 		{
 			/*
-			 * GPDB_PARALLEL_FIXME: This is very hacky!
+			 * CBDB_PARALLEL_FIXME: This is very hacky!
 			 * relallvisible came from vacuum AO/AOCO processes means the segment file count
 			 * of AO/AOCO tables. We use it to update pg_appendonly.segfilecount.
 			 * See ao_vacuum_rel_post_cleanup in vacuum_ao.c.

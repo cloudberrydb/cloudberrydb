@@ -590,7 +590,7 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 	ListCell   *lc;
 	List	   *pathlist = NIL;
 	List	   *partial_pathlist = NIL;
-	bool		partial_paths_valid = false; /* GPDB_PARALLEL_FIXME: temproary disable partial path */
+	bool		partial_paths_valid = false; /* CBDB_PARALLEL_FIXME: temproary disable partial path */
 	bool		consider_parallel = true;
 	List	   *rellist;
 	List	   *tlist_list;
@@ -749,7 +749,7 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 							   NIL, NULL,
 							   parallel_workers, enable_parallel_append,
 							   -1);
-		/* GPDB_PARALLEL_FIXME: we disable pg styple Gather/GatherMerge node */
+		/* CBDB_PARALLEL_FIXME: we disable pg styple Gather/GatherMerge node */
 #if 0
 		ppath = (Path *)
 			create_gather_path(root, result_rel, ppath,

@@ -522,7 +522,7 @@ bring_to_outer_query(PlannerInfo *root, RelOptInfo *rel, List *outer_quals)
 	rel->cheapest_unique_path = NULL;
 	rel->cheapest_parameterized_paths = NIL;
 	rel->pathlist = NIL;
-	/* GPDB_PARALLEL_FIXME: Need to clear partial_pathlist before we enable OuterQuery locus in paralle mode */
+	/* CBDB_PARALLEL_FIXME: Need to clear partial_pathlist before we enable OuterQuery locus in paralle mode */
 	rel->partial_pathlist = NIL;
 
 	foreach(lc, origpathlist)
@@ -652,7 +652,7 @@ bring_to_singleQE(PlannerInfo *root, RelOptInfo *rel)
 		add_path(rel, path, root);
 	}
 	/*
-	 * GP_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * If we need to bring to single QE which commonly seen in lateral
 	 * join with group by or limit, we better to set partial pathlist
 	 * to NIL in order to make sure single QE locus is satisfied in
@@ -790,7 +790,7 @@ set_rel_pathlist(PlannerInfo *root, RelOptInfo *rel,
 	if (rel->upperrestrictinfo)
 	{
 		bring_to_outer_query(root, rel, rel->upperrestrictinfo);
-		/* GP_PARALLEL_FIXME: enable parallel outer query? */
+		/* CBDB_PARALLEL_FIXME: enable parallel outer query? */
 	}
 	else if (root->config->force_singleQE)
 	{
@@ -920,7 +920,7 @@ set_rel_consider_parallel(PlannerInfo *root, RelOptInfo *rel,
 			}
 
 			/*
-			 * GP_PARALLEL_FIXME: GPDB don't allow parallelism for relations that are system catalogs.
+			 * CBDB_PARALLEL_FIXME: GPDB don't allow parallelism for relations that are system catalogs.
 			*/
 			if (IsSystemClassByRelid(rte->relid))
 				return;
@@ -1091,7 +1091,7 @@ create_plain_partial_paths(PlannerInfo *root, RelOptInfo *rel)
 	if (parallel_workers <= 1)
 		return;
 
-	/* GPDB_PARALLEL_FIXME: update locus.parallel_workers? */
+	/* CBDB_PARALLEL_FIXME: update locus.parallel_workers? */
 
 	/* Add an unordered partial path based on a parallel sequential scan. */
 	add_partial_path(rel, create_seqscan_path(root, rel, NULL, parallel_workers));
@@ -1669,7 +1669,7 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 										  &pa_nonpartial_subpaths,
 										  NULL);
 				/*
-				 * GPDB_PARALLEL_FIXME: can't use parallel append if subpath
+				 * CBDB_PARALLEL_FIXME: can't use parallel append if subpath
 				 * is not parallel safe. 
 				 */
 				if (!nppath->parallel_safe)
@@ -1770,7 +1770,7 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 			parallel_workers = Max(parallel_workers, path->parallel_workers);
 		}
 		/*
-		 * GPDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
+		 * CBDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
 		 * Because we currently allow path with non parallel_workers been added to
 		 * partial_path.
 		 */
@@ -1795,7 +1795,7 @@ add_paths_to_append_rel(PlannerInfo *root, RelOptInfo *rel,
 								   max_parallel_workers_per_gather);
 		}
 		/*
-		 * GPDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
+		 * CBDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
 		 * Because we currently allow path with non parallel_workers been added to
 		 * partial_path.
 		 */
@@ -3694,7 +3694,7 @@ make_rel_from_joinlist(PlannerInfo *root, List *joinlist)
 			 * already.
 			 */
 			bring_to_outer_query(root, rel, NIL);
-		 	/* GP_PARALLEL_FIXME: enable parallel outer query? */
+		 	/* CBDB_PARALLEL_FIXME: enable parallel outer query? */
 		}
 
 		return rel;
@@ -3815,7 +3815,7 @@ standard_join_search(PlannerInfo *root, int levels_needed, List *initial_rels)
 			if (bms_equal(rel->relids, root->all_baserels) && root->is_correlated_subplan)
 			{
 				bring_to_outer_query(root, rel, NIL);
-		 		/* GP_PARALLEL_FIXME: enable parallel outer query? */
+		 		/* CBDB_PARALLEL_FIXME: enable parallel outer query? */
 			}
 
 			/* Find and save the cheapest paths for this rel */

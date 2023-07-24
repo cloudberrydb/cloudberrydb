@@ -144,7 +144,7 @@ cdbpath_cost_motion(PlannerInfo *root, CdbMotionPath *motionpath)
 	recvrows = motionpath->path.rows;
 	motioncost = cost_per_row * 0.5 * (sendrows + recvrows);
 	/*
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * Motioncost may be higher than sendrows + recvrows.
 	 * ex: Broadcast Motion 3:6 
 	 * Broadcast to prallel workers, each worker's has a rel's all rows(recvrows),
@@ -603,7 +603,7 @@ cdbpath_create_motion_path(PlannerInfo *root,
 	 */
 	pathnode->path.parallel_aware = false;
 	/*
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * We once set parallel_safe by locus type, but almost all locus are
 	 * parallel safe nowadays.
 	 * In principle, we should set parallel_safe = true if we are in a parallel join.
@@ -2895,7 +2895,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 
 	Assert(cdbpathlocus_is_valid(outer.locus));
 	Assert(cdbpathlocus_is_valid(inner.locus));
-	/*  GPDB_PARALLEL_FIXME: reconsider the meaning of parallel_safe in GP parallel? */
+	/*  CBDB_PARALLEL_FIXME: reconsider the meaning of parallel_safe in GP parallel? */
 	if (!outer.path->parallel_safe || !inner.path->parallel_safe)
 		goto fail;
 
@@ -2954,7 +2954,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 	 * unfortunately we have to pretend that inner is randomly distributed,
 	 * otherwise we may end up with redistributing outer rel.
 	 */
-	/* GPDB_PARALLEL_FIXME: this may cause parallel CTE, not sure if it's right */
+	/* CBDB_PARALLEL_FIXME: this may cause parallel CTE, not sure if it's right */
 	if (outer.has_wts && inner.locus.distkey != NIL)
 		CdbPathLocus_MakeStrewn(&inner.locus,
 								CdbPathLocus_NumSegments(inner.locus),
@@ -3139,7 +3139,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 				else if (innerParallel == 0 && other->path->pathtype == T_SeqScan)
 				{
 					/*
-					 * GPDB_PARALLEL_FIXME: The inner path will be duplicately processed.
+					 * CBDB_PARALLEL_FIXME: The inner path will be duplicately processed.
 					 * That require inner path should not have descendant Motion paths.
 					 * Use Seqscan here is more strit, but for now.
 					 *
@@ -3181,7 +3181,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 			CdbPathLocus_IsSegmentGeneralWorkers(inner.locus))
 		{
 			/*
-			 * GPDB_PARALLEL_FIXME:
+			 * CBDB_PARALLEL_FIXME:
 			 * We shouln't get here as Path(parallel_worker=1) won't be added to partial_pathlist.
 			 * If outer locus is SegmentGeneral and its parallel_workers must be 0.
 			 * We neighter want a Motion nor change the parallel_workers of a path(May be enabled
@@ -3667,7 +3667,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 		}
 
 		/* Which rel is bigger? */
-		/* GPDB_PARALLEL_FIXME: should we swap if parallel_aware? */
+		/* CBDB_PARALLEL_FIXME: should we swap if parallel_aware? */
 		if (large_rel->bytes < small_rel->bytes)
 			CdbSwap(CdbpathMfjRel *, large_rel, small_rel);
 

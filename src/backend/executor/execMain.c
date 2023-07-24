@@ -1773,7 +1773,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 
 			/* set our global sliceid variable for elog. */
 			int			save_currentSliceId = estate->currentSliceId;
-			/* GPDB_PARALLEL_FIXME: Is it necessary to save and recover this? */
+			/* CBDB_PARALLEL_FIXME: Is it necessary to save and recover this? */
 			bool		save_useMppParallelMode = estate->useMppParallelMode;
 
 			estate->currentSliceId = estate->es_plannedstmt->subplan_sliceIds[subplan_id - 1];

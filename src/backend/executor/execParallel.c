@@ -1565,7 +1565,7 @@ InitializeGpParallelWorkers(PlanState *planstate, ParallelWorkerContext *pwcxt)
 	if (planstate == NULL)
 		return false;
 	/*
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * Why we call PG's xxxInitializeWorker functions for some nodes, but not for others?
 	 */
 	switch (nodeTag(planstate))
