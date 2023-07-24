@@ -1,6 +1,7 @@
 name: cbdb pipeline
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
     branches:    
       - main
   
@@ -15,6 +16,7 @@ permissions:
   contents: read
 jobs:
   build:
+    if: github.event.pull_request.draft == false
     runs-on: [self-hosted, example]
     steps:
       - uses: actions/checkout@v3
@@ -34,7 +36,7 @@ jobs:
     needs: build
     runs-on: [self-hosted, example]
     env:
-      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off' installcheck-world"
+      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off -c gp_appendonly_insert_files=0' installcheck-world"
       TEST_OS: "centos"
       DUMP_DB: "true"
     steps:
@@ -60,7 +62,7 @@ jobs:
     needs: build
     runs-on: [self-hosted, example]
     env:
-      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=on' installcheck-world"
+      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=on -c gp_appendonly_insert_files=0' installcheck-world"
       TEST_OS: "centos"
       DUMP_DB: "true"
     steps:
@@ -82,6 +84,33 @@ jobs:
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
           gpdb_src/hd-ci/icw_cbdb.bash $FTS_MODE
+  icw-parallel-test:
+    needs: build
+    runs-on: [self-hosted, example]
+    env:
+      MAKE_TEST_COMMAND: "-C src/test/regress -k PGOPTIONS='-c gp_appendonly_insert_files=0' installcheck-cbdb-parallel"
+      TEST_OS: "centos"
+      DUMP_DB: "true"
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          path: "gpdb_src"
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-variables
+          path: /opt/
+      - uses: actions/download-artifact@v3
+        with:
+          name: cbdb-package
+          path: /opt/
+      - name: Run icw-parallel-test script
+        run: |
+          mkdir /code
+          cp -a gpdb_src/ /code
+          cd /code
+          echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
+          gpdb_src/hd-ci/icw_cbdb.bash $FTS_MODE
+
 
 
 
