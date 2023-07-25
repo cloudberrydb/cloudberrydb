@@ -107,6 +107,24 @@ drop table ao1;
 drop table ao2;
 drop table aocs1;
 
+-- test Parallel Bitmap Heap Scan
+begin;
+create table t1(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+set local enable_parallel = on;
+create index on t1(c2);
+insert into t1 select i, i from generate_series(1, 10000000) i;
+analyze t1;
+set local force_parallel_mode = 1;
+set local enable_seqscan = off;
+explain(locus, costs off) select c2 from t1;
+-- results check
+explain(locus, costs off) select count(c2) from t1;
+select count(c2) from t1;
+set local enable_parallel = off;
+explain(locus, costs off) select count(c2) from t1;
+select count(c2) from t1;
+abort;
+
 
 -- test gp_appendonly_insert_files doesn't take effect
 begin;
