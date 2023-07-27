@@ -39,7 +39,7 @@ jobs:
     needs: build
     runs-on: [self-hosted, example]
     env:
-      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off -c gp_appendonly_insert_files=0'' installcheck-world"
+      MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off -c gp_appendonly_insert_files=0' installcheck-world"
       TEST_OS: "centos"
       DUMP_DB: "true"
       BUILD_TYPE: release
@@ -70,6 +70,28 @@ jobs:
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
           gpdb_src/hd-ci/icw_cbdb.bash internal_fts
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: cbdb-test-log
+          path: | 
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/cbdb-artifacts.txt
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/regression.out
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/regression.diffs
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/results/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/expected/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/regression.out
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/regression.diffs
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/results/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/expected/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/standby/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
   icw-orca-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -105,6 +127,28 @@ jobs:
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
           gpdb_src/hd-ci/icw_cbdb.bash internal_fts
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: cbdb-test-log
+          path: | 
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/cbdb-artifacts.txt
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/regression.out
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/regression.diffs
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/results/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/expected/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/regression.out
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/regression.diffs
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/results/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/expected/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/standby/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
   icw-parallel-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -131,6 +175,28 @@ jobs:
           cd /code
           echo $GITHUB_RUN_ID > gpdb_src/BUILD_NUMBER
           gpdb_src/hd-ci/icw_cbdb.bash internal_fts
+      - uses: actions/upload-artifact@v3
+        if: failure()
+        with:
+          name: cbdb-test-log
+          path: | 
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/cbdb-artifacts.txt
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/regression.out
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/regression.diffs
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/results/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/regress/expected/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/regression.out
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/regression.diffs
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/results/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/src/test/isolation2/expected/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/standby/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
+            /opt/actions-runner/_work/cloudberrydb/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
   release:
     name: Upload Release Asset
     needs: ["icw-orca-test","icw-test","icw-parallel-test"]
