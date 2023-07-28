@@ -304,6 +304,7 @@ select * from t_replica_workers_2 join t_random_workers_0 using(a);
 abort;
 
 --
+-- ex 11_P_5_11
 -- Strewn(worker=N) join SegmentGeneralWorkers(workers=N) with shared hash table.
 -- Join locus: Strewn(worker=N).
 --
