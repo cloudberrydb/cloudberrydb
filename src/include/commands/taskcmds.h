@@ -3,7 +3,7 @@
  * taskcmds.h
  *      prototypes for taskcmds.c.
  *
- * Portions Copyright (c) 2023-Present Hashdata Inc.
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  * IDENTIFICATION
  *		src/include/commands/taskcmds.h

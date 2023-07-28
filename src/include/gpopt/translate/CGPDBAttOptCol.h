@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2012 EMC Cloudberry
+//	Greenplum Database
+//	Copyright (C) 2012 EMC Greenplum
 //
 //	@filename:
 //		CGPDBAttOptCol.h

@@ -2,13 +2,13 @@
  *
  * cdbpublic.h
  *
- *		Cloudberry specific structures and typedefs exposed to the
+ *		Greenplum specific structures and typedefs exposed to the
  *      outside world.
  *
  *      This is a non-ideal solution, consider alternatives before
  *      adding to this file.
  *
- * Portions Copyright (c) 2008-2008, Cloudberry inc.
+ * Portions Copyright (c) 2008-2008, Greenplum inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

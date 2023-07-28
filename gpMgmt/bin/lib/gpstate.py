@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Recovers Cloudberry segment instances that are marked as invalid, if
+# Recovers Greenplum segment instances that are marked as invalid, if
 # mirroring is configured and operational
 #
 

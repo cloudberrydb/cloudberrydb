@@ -2,6 +2,11 @@
  *
  * log.h
  *	  Interface for a logging tools.
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
+ * DENTIFICATION
+ *  src/include/fe_utils/log.h
  *-------------------------------------------------------------------------
  */
 #ifndef LOG_H

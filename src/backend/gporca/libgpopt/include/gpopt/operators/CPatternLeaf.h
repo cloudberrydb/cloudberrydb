@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2009 Cloudberry, Inc.
+//	Greenplum Database
+//	Copyright (C) 2009 Greenplum, Inc.
 //
 //	@filename:
 //		CPatternLeaf.h

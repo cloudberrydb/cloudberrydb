@@ -1,7 +1,9 @@
 /*-------------------------------------------------------------------------
  *
+ * gplibpq.c
  * Small tests for gp_libpqwalreceiver
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *-----------------------------------------------------------------------*/
 #include "postgres.h"
 

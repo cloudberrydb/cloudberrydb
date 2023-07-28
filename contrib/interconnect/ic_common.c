@@ -2,7 +2,7 @@
  * ic_common.c
  *	   Interconnect code shared between UDP, and TCP IPC Layers.
  *
- * Portions Copyright (c) 2023-, Cloudberry
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION

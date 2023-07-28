@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * cdbpq.h
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * IDENTIFICATION
+ *		src/include/cdb/cdbpq.h
+ *-------------------------------------------------------------------------
+ */
+
 #ifndef _CDBPQ_H_
 #define _CDBPQ_H_
 

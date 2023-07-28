@@ -1,3 +1,13 @@
+/*-------------------------------------------------------------------------
+ *
+ * sm4.h
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * src/include/crypto/sm4.h
+ *
+ *-------------------------------------------------------------------------
+ */
 #ifndef _SM4_H_
 #define _SM4_H_
 #include "c.h"

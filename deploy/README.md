@@ -1,4 +1,4 @@
-### CloudBerry Automation Build and Deployment
+### Cloudberry Automation Build and Deployment
 
 #### Download the Cloudberry project source code into your working directory
 git clone git@code.hashdata.xyz:cloudberry/cbdb.git
@@ -85,7 +85,7 @@ The build & test environment of cbdb project relies on many systemconfigurations
 <br>
 
 
-### CloudBerry自动编译部署流程
+### Cloudberry自动编译部署流程
 
 #### 在工作目录下载cloudberry的代码
 

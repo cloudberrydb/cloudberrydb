@@ -5,6 +5,8 @@
  *    Also used in src/bin/gpfts
  *    Don't define any method in current header
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
  * IDENTIFICATION
  *		src/include/postmaster/fts_comm.h
  *

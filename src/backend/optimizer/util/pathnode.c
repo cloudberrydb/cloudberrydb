@@ -3,7 +3,8 @@
  * pathnode.c
  *	  Routines to manipulate pathlists and create path nodes
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -649,9 +650,10 @@ add_path(RelOptInfo *parent_rel, Path *new_path, PlannerInfo *root)
 				}
 			}
 
-			/* GPDB_13_MERGE_FIXME: With enable_seqscan as OFF, enable_bitmapscan as OFF,
-			 * bring_to_outer_query won't choose IndexScan due to external param between motion.
-			 * So we need to keep original seqscan path here, otherwise no path available.
+			/* GPDB_13_MERGE_FIXME: With enable_seqscan as OFF,
+			 * enable_bitmapscan as OFF, bring_to_outer_query won't choose
+			 * IndexScan due to external param between motion.  So we need to
+			 * keep original seqscan path here, otherwise no path available.
 			 * The failure query is in create_index_spgist.sql:
 			 *
 			 * SELECT (SELECT p FROM kd_point_tbl ORDER BY p <-> pt, p <-> '0,0' LIMIT 1)

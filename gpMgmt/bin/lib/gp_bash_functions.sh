@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #	Filename:-		gp_bash_functions.sh
 #	Status:-		Released
-#	Author:-		G L Coombe (Cloudberry)
+#	Author:-		G L Coombe (Greenplum)
 #	Contact:-		gcoombe@greenplum.com
 #	Release date:-		March 2006
-#	Release stat:-		Cloudberry Internal
-#                               Copyright (c) Metapa 2005. All Rights Reserved.
-#                               Copyright (c) Cloudberry 2005. All Rights Reserved
+#	Release stat:-		Greenplum Internal
+#                       Copyright (c) Metapa 2005. All Rights Reserved.
+#                       Copyright (c) Greenplum 2005. All Rights Reserved
 #	Brief descn:-		Common functions used by various scripts
 #***************************************************************
 # Location Functions

@@ -3,8 +3,9 @@
  * cdbutil.c
  *	  Internal utility support functions for Cloudberry Database/PostgreSQL.
  *
- * Portions Copyright (c) 2005-2011, Cloudberry inc
+ * Portions Copyright (c) 2005-2011, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION

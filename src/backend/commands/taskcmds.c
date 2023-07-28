@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * taskcmds.c
- *      CloudBerry TASK SCHEDULE support code.
+ *      Cloudberry Database TASK SCHEDULE support code.
  *
- * Portions Copyright (c) 2023-Present Hashdata Inc.
+ * Copyright (c) 2023, HashData Technology Limited.
  *
  * IDENTIFICATION
  *		src/backend/commands/taskcmds.c

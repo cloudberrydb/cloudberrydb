@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # gpload - load file(s) into Cloudberry Database
-# Copyright Cloudberry 2008
+# Copyright Greenplum 2008
 
 '''gpload [options] -f configuration file
 

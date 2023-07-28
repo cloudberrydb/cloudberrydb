@@ -1,12 +1,8 @@
-
-
-
 #include "postgres.h"
 #include "sm4.h"
 #include "px.h"
 
 #include <sys/param.h>
-
 
 /* fixed SM4 param */
 static const u1byte sbx_tab[256] = 
@@ -154,7 +150,6 @@ void sm4_setkey_dec(sm4_ctx *ctx, u1byte* key)
         ctx->d_key[31-i] = t;
     }
 }
-
 
 void 
 sm4_cbc_encrypt(sm4_ctx *ctx, u1byte *iv, u1byte *data, long len)

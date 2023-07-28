@@ -1,7 +1,10 @@
 /*-------------------------------------------------------------------------
  * cdbtm.h
  *
- *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
+ * DENTIFICATION
+ * 	src/include/cdb/cdbtm.h
  *-------------------------------------------------------------------------
  */
 #ifndef CDBTM_H

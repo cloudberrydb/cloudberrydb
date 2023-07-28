@@ -2,7 +2,7 @@
  * tupser.h
  *	   Functions for serializing and deserializing heap tuples.
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

@@ -20,7 +20,7 @@ m4_pattern_forbid(^PGAC_)dnl to catch undefined macros
 dnl The PACKAGE_VERSION from upstream PostgreSQL is maintained in the
 dnl PG_PACKAGE_VERSION variable, when merging make sure to update this
 dnl variable with the merge conflict from the AC_INIT() statement.
-AC_INIT([Cloudberry Database], [1.0.0], [support@greenplum.org], [], [https://www.greenplum.org/])
+AC_INIT([Cloudberry Database], [1.0.0], [info@cloudberrydb.org], [], [https://www.cloudberrydb.org/])
 [PG_PACKAGE_VERSION=14.4]
 AC_SUBST(PG_PACKAGE_VERSION)
 

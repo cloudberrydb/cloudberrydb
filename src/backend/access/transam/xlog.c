@@ -9766,7 +9766,7 @@ CreateCheckPoint(int flags)
 	XLogBeginInsert();
 	XLogRegisterData((char *) (&checkPoint), sizeof(checkPoint));
 
-	/* Cloudberry checkpoints have extra info */
+	/* CloudberryDB checkpoints have extra info */
 	XLogRegisterData((char *) dtxCheckPointInfo, dtxCheckPointInfoSize);
 
 	recptr = XLogInsert(RM_XLOG_ID,

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 
 #***********************************************************
-# Look for Cloudberry executables to find path
+# Look for Cloudberry Database executables to find path
 #***********************************************************
 if [ x"$GPHOME" = x ]; then
   if [ x"$BIZHOME" = x ]; then
     echo "Neither GPHOME or BIZHOME are set.  Set one of these variables to point to the location"
-	echo "of the Cloudberry installation directory."
+	echo "of the Cloudberry Database installation directory."
     echo ""
 	exit 1
   else
@@ -20,12 +20,12 @@ GPPATH=`find $GPSEARCH -name gpstart | tail -1`
 RETVAL=$?
 
 if [ "$RETVAL" -ne 0 ]; then
-  echo "Error attempting to find Cloudberry executables in $GPSEARCH"
+  echo "Error attempting to find Cloudberry Database executables in $GPSEARCH"
   exit 1
 fi
 
 if [ ! -x "$GPPATH" ]; then
-  echo "No executables found for Cloudberry installation in $GPSEARCH"
+  echo "No executables found for Cloudberry Database installation in $GPSEARCH"
   exit 1
 fi
 GPPATH=`dirname $GPPATH`

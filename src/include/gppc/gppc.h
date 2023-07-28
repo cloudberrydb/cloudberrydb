@@ -2,13 +2,13 @@
  *
  * @file gppc.h
  *
- * @brief Cloudberry Partner Connector main header
+ * @brief Greenplum Partner Connector main header
  *
- * This header contains prototypes for libgppc -- the Cloudberry Database Partner
+ * This header contains prototypes for libgppc -- the Greenplum Database Partner
  * Connector.
  *
  * The most common use of the GPPC is to write user defined functions which do
- * not need to be recompiled from one Cloudberry Database release to the next.
+ * not need to be recompiled from one Greenplum Database release to the next.
  *
  * Those user defined functions usually have the following form:
  *
@@ -24,9 +24,9 @@
  *   }
  * \endcode
  *
- * GPPC 1.0 is compatible with Cloudberry Database 4.2.0.0 and above.
- * GPPC 1.1 is compatible with Cloudberry Database 4.2.2.0 and above.
- * GPPC 1.2 is compatible with Cloudberry Database 4.2.2.0 and above.
+ * GPPC 1.0 is compatible with Greenplum Database 4.2.0.0 and above.
+ * GPPC 1.1 is compatible with Greenplum Database 4.2.2.0 and above.
+ * GPPC 1.2 is compatible with Greenplum Database 4.2.2.0 and above.
  *
  * Portions Copyright (c) 2012, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
@@ -1891,7 +1891,7 @@ GppcTupleDesc GppcTFInputDesc(GppcFcinfo info, int argno, bool *iserror);
  */
 /**
  * \brief Report level used in GppcReport().
- * \sa Cloudberry Administrator Guide
+ * \sa Greenplum Administrator Guide
  */
 typedef enum GppcReportLevel
 {

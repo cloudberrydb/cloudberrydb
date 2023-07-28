@@ -4,7 +4,7 @@
  *	  definitions for run-time statistics collection
  *
  *
- * Portions Copyright (c) 2006-2009, Cloudberry inc
+ * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Copyright (c) 2001-2021, PostgreSQL Global Development Group
  *

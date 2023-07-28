@@ -3,7 +3,8 @@
  * readfast.c
  *	  Binary Reader functions for Postgres tree nodes.
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -13,7 +14,7 @@
  *
  * For most node types, these routines are identical to the text reader
  * functions, in readfuncs.c. To avoid code duplication and merge hazards
- * (readfast.c is a Cloudberry addon), most read routines borrow the source
+ * (readfast.c is a CloudberryDB addon), most read routines borrow the source
  * definition from readfuncs.c, we just compile it with different READ_*
  * macros.
  *

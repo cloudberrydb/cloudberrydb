@@ -2,7 +2,7 @@
  *
  * nodeRuntimeFilter.h
  *
- * Portions Copyright (c) 2023-Present, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  * src/include/executor/nodeRuntimeFilter.h
  *

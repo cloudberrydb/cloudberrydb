@@ -6,7 +6,7 @@
  *  1024 file descriptors (as far as I can tell all of our platforms
  *  support 65536).
  *
- * Portions Copyright (c) 2006-2008, Cloudberry inc
+ * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

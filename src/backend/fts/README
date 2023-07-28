@@ -3,12 +3,12 @@ Fault Tolerance Service (FTS)
 =============================
 
 This document illustrates the mechanism of a GPDB component called
-Fault Tolerance Service (FTS):
+Fault Tolerance Service (FTS), which also works for Cloudberry Database:
 
  - This sections explains how FTS probe process is started. The FTS
    probe process is running on the coordinator node only. It starts as a
    background worker process managed by the BackgroundWorker structure
-   (see src/include/postmaster/bgworker.h).  Cloudberry sets up a group of
+   (see src/include/postmaster/bgworker.h). Greenplum sets up a group of
    GP background processes through an array structure PMAuxProcList. A
    entry in that struct represents a GP background process.
 
@@ -44,7 +44,7 @@ Fault Tolerance Service (FTS):
    iteration, it checks the status of these processes and acts
    accordingly.
 
-2. This sections explains how FTS probes are or can be
+1. This sections explains how FTS probes are or can be
    initiated. Either the probes are triggered at regular defined
    interval (which can be tuned via GUC) or triggered on the fly when
    required by certain internal components or tests or user via FTS
@@ -63,7 +63,7 @@ Fault Tolerance Service (FTS):
    can notify FTS if it encounters an error while creating a gang. The
    reader may check FtsNotifyProber() to find more cases.
 
-3. On the coordinator node, the FTS probe process gets the configuration
+2. On the coordinator node, the FTS probe process gets the configuration
    from catalog table gp_segment_configuration, which describes the
    status of each segment and also reflects if any of them has a
    mirror. For each unique content(or segindex) value, will see a
@@ -84,7 +84,7 @@ Fault Tolerance Service (FTS):
 
    So FTS both read and write the catalog table.
 
-4. On the coordinator node: each round of the polling is done in a chain of
+3. On the coordinator node: each round of the polling is done in a chain of
    calls :
 
 	ftsConnect()
@@ -101,7 +101,7 @@ Fault Tolerance Service (FTS):
    gp_configuration_history, and also relevant memory structures
    accordingly.
 
-5. On the segment node: in the main loop of PostgresMain(), the
+4. On the segment node: in the main loop of PostgresMain(), the
    requests from the coordinator FTS probe process
    received. ProcessStartupPacket() is called first to make sure this
    dialog is for FTS requests and thus the Postgres process spawn for
@@ -114,7 +114,7 @@ Fault Tolerance Service (FTS):
         - Sync
         - Promote
 
-6. SIGUSR2 is ignored by FTS now, like other background, postmaster
+5. SIGUSR2 is ignored by FTS now, like other background, postmaster
    use SIGTERM to stop the FTS.
 
 FTS Probe Request

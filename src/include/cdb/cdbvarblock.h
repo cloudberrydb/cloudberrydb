@@ -77,7 +77,8 @@
  *		        records[i].data = item;
  *		    }
  *       }
- *        
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.        
  * Portions Copyright (c) 2007, greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *

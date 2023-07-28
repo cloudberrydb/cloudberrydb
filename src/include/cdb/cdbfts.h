@@ -1,7 +1,10 @@
 /*-------------------------------------------------------------------------
  * cdbfts.h
  *
- *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
+ * DENTIFICATION
+ * 	src/include/cdb/cdbfts.h
  *-------------------------------------------------------------------------
  */
 #ifndef CDBFTS_H

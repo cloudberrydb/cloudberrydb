@@ -14,7 +14,8 @@
  * contain optimizable statements, which we should transform.
  *
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -292,7 +293,7 @@ transformOptionalSelectInto(ParseState *pstate, Node *parseTree)
 		SelectStmt *stmt = (SelectStmt *) parseTree;
 
 		/*
-		 * Cloudberry specific behavior:
+		 * CloudberryDB specific behavior:
 		 * The implementation of select statement with locking clause
 		 * (for update | no key update | share | key share) in postgres
 		 * is to hold RowShareLock on tables during parsing stage, and
@@ -678,7 +679,7 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 	}
 
 	/*
-	 * Cloudberry specific behavior.
+	 * CloudberryDB specific behavior.
 	 * conflict update may lock tuples on segments and behaves like
 	 * update. So we might consider if to upgrade lockmode for this
 	 * case.
@@ -1002,7 +1003,7 @@ transformInsertStmt(ParseState *pstate, InsertStmt *stmt)
 		qry->onConflict = transformOnConflictClause(pstate,
 													stmt->onConflictClause);
 	/*
-	 * Cloudberry specific behavior.
+	 * CloudberryDB specific behavior.
 	 * OnConflictUpdate may modify the distkey of the table,
 	 * this can lead to wrong data distribution. Add a check
 	 * here and raise error for such case.

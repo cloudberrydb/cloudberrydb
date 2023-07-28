@@ -4,7 +4,7 @@
  *	  Routines for preprocessing initPlan subplans	and executing queries
  *	  with initPlans
  *
- * Portions Copyright (c) 2003-2008, Cloudberry inc
+ * Portions Copyright (c) 2003-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

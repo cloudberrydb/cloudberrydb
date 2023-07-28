@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2008-2011 Cloudberry, Inc.
+//	Greenplum Database
+//	Copyright (C) 2008-2011 Greenplum, Inc.
 //
 //	@filename:
 //		CSchedulerContext.cpp

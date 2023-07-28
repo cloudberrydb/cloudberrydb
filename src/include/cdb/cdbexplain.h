@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
  *
  * cdbexplain.h
- *    Functions supporting the Cloudberry EXPLAIN ANALYZE command
+ *    Functions supporting the Greenplum EXPLAIN ANALYZE command
  *
- * Portions Copyright (c) 2006-2008, Cloudberry inc
+ * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

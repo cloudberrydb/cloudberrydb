@@ -5,7 +5,8 @@
  *	  Planning is complete, we just need to convert the selected
  *	  Path into a Plan.
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -2287,7 +2288,7 @@ create_projection_plan(PlannerInfo *root, ProjectionPath *best_path, int flags)
 	}
 
 	/*
-	 * Cloudberry specific behavior:
+	 * CloudberryDB specific behavior:
 	 * We may use the Result plan with resconstantqual to be
 	 * One-Time Filter: (gp_execution_segment() = <some segid>).
 	 * We should re-consider direct dispatch info in this case.

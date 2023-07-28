@@ -7,7 +7,7 @@
  * Unlike cdbtm.c, this file deals mainly with packing and unpacking
  * structures, converting values to strings, etc.
  *
- * Portions Copyright (c) 2005-2009, Cloudberry inc
+ * Portions Copyright (c) 2005-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

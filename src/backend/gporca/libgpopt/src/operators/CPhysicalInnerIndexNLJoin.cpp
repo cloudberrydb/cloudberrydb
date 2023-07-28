@@ -1,6 +1,6 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2013 Cloudberry, Inc.
+//	Greenplum Database
+//	Copyright (C) 2013 Greenplum, Inc.
 //
 //	@filename:
 //		CPhysicalInnerIndexNLJoin.cpp

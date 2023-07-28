@@ -2,7 +2,7 @@
  * interconnect.h
  *	  Motion IPC Layer.
  *
- * Portions Copyright (c) 2023-, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION

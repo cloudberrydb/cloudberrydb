@@ -1,3 +1,13 @@
+/*-------------------------------------------------------------------------
+*
+* unsync_guc_name.h
+*
+* Portions Copyright (c) 2023, HashData Technology Limited.
+*
+* DENTIFICATION
+*	src/include/utils/unsync_guc_name.h
+*--------------------------------------------------------------------------
+*/
 		"allow_segment_DML",
 		"allow_system_table_mods",
 		"application_name",
