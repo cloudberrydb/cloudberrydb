@@ -294,7 +294,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 		CreateFdwStmt CreateForeignServerStmt CreateForeignTableStmt
 		CreateAssertionStmt CreateTransformStmt CreateTrigStmt CreateEventTrigStmt
 		CreateUserStmt CreateUserMappingStmt CreateRoleStmt CreatePolicyStmt
-		CreatedbStmt DeclareCursorStmt DefineStmt DeleteStmt DiscardStmt DoStmt
+		CreatedbStmt CreateWarehouseStmt DeclareCursorStmt DefineStmt DeleteStmt DiscardStmt DoStmt
 		DropOpClassStmt DropOpFamilyStmt DropStmt
 		DropCastStmt DropRoleStmt
 		DropdbStmt DropTableSpaceStmt
@@ -705,6 +705,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 %type <list>		hash_partbound
 %type <defelt>		hash_partbound_elem
 
+%type <list>	OptWarehouseOptList WarehouseOptList
+%type <defelt>	WarehouseOptElem
 
 /*
  * Non-keyword token types.  These are hard-wired into the "flex" lexer.
@@ -871,6 +873,10 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	THRESHOLD
 
 	VALIDATION
+
+	WAREHOUSE
+
+	WAREHOUSE_SIZE
 
 	WEB WRITABLE
 
@@ -1420,6 +1426,7 @@ stmt:
 			| CreateOpClassStmt
 			| CreateOpFamilyStmt
 			| CreatePublicationStmt
+			| CreateWarehouseStmt
 			| AlterOpFamilyStmt
 			| CreatePolicyStmt
 			| CreatePLangStmt
@@ -12335,6 +12342,39 @@ publication_for_tables:
 
 /*****************************************************************************
  *
+ *	QUERY:
+ *		CREATE WAREHOUSE name
+ *			[WAREHOUSE_SIZE <warehouse_size>]
+ *
+ *****************************************************************************/
+
+CreateWarehouseStmt: CREATE WAREHOUSE name OptWarehouseOptList
+						{
+							CreateWarehouseStmt *n = makeNode(CreateWarehouseStmt);
+							n->whname = $3;
+							n->options = $4;
+							$$ = (Node *) n;
+						}
+				;
+
+OptWarehouseOptList: WarehouseOptList							{ $$ = $1; }
+					| /*EMPTY*/									{ $$ = NIL; }
+			;
+
+WarehouseOptList: WarehouseOptElem								{ $$ = list_make1($1); }
+				| WarehouseOptList WarehouseOptElem				{ $$ = lappend($1, $2); }
+		;
+
+WarehouseOptElem:
+			WAREHOUSE_SIZE NumericOnly
+				{
+					$$ = makeDefElem("warehouse_size", (Node *)$2, @1);
+				}
+		;
+
+
+/*****************************************************************************
+ *
  * ALTER PUBLICATION name SET ( options )
  *
  * ALTER PUBLICATION name ADD TABLE table [, table2]
@@ -18795,6 +18835,8 @@ unreserved_keyword:
 			| VIEW
 			| VIEWS
 			| VOLATILE
+			| WAREHOUSE
+			| WAREHOUSE_SIZE
 			| WEB /* gp */
 			| WHITESPACE_P
 			| WITHIN
@@ -19783,6 +19825,8 @@ bare_label_keyword:
 			| VIEW
 			| VIEWS
 			| VOLATILE
+			| WAREHOUSE
+			| WAREHOUSE_SIZE
 			| WEB
 			| WHEN
 			| WHITESPACE_P

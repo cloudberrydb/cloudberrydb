@@ -3729,6 +3729,10 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_RETRIEVE;
 			break;
 
+		case T_CreateWarehouseStmt:
+			tag = CMDTAG_CREATE_WAREHOUSE;
+			break;
+
 		default:
 			elog(WARNING, "unrecognized node type: %d",
 				 (int) nodeTag(parsetree));

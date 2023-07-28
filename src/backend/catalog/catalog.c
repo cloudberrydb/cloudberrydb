@@ -459,8 +459,8 @@ IsSharedRelation(Oid relationId)
 		relationId == AuthIdRolResQueueIndexId ||
 		relationId == AuthIdRolResGroupIndexId ||
 #ifdef USE_INTERNAL_FTS
-		relationId == GpSegmentConfigContentPreferred_roleIndexId ||
-		relationId == GpSegmentConfigDbidIndexId ||
+		relationId == GpSegmentConfigContentPreferred_roleWarehouseIndexId ||
+		relationId == GpSegmentConfigDbidWarehouseIndexId ||
 #endif
 		relationId == AuthTimeConstraintAuthIdIndexId)
 	{

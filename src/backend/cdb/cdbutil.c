@@ -256,6 +256,11 @@ readGpSegConfigFromCatalog(int *total_dbs)
 
 	while (HeapTupleIsValid(gp_seg_config_tuple = systable_getnext(gp_seg_config_scan)))
 	{
+		/* warehouse */
+		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_warehouse_name, RelationGetDescr(gp_seg_config_rel), &isNull);
+		if (!isNull && strcmp(TextDatumGetCString(attr), current_warehouse) != 0)
+			continue;
+
 		config = &configs[idx];
 
 		/* dbid */
@@ -1492,7 +1497,8 @@ dbid_get_dbinfo(int16 dbid)
 {
 	HeapTuple	tuple;
 	Relation	rel;
-	ScanKeyData scankey;
+	ScanKeyData scankey[2];
+	int			nkeys = 1;
 	SysScanDesc scan;
 	GpSegConfigEntry *i = NULL;
 
@@ -1507,12 +1513,20 @@ dbid_get_dbinfo(int16 dbid)
 	rel = heap_open(GpSegmentConfigRelationId, AccessShareLock);
 
 	/* SELECT * FROM gp_segment_configuration WHERE dbid = :1 */
-	ScanKeyInit(&scankey,
+	ScanKeyInit(&scankey[0],
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	scan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
-							  NULL, 1, &scankey);
+	if (dbid != 1)
+	{
+		nkeys++;
+		ScanKeyInit(&scankey[1],
+					Anum_gp_segment_configuration_warehouse_name,
+					BTEqualStrategyNumber, F_TEXTEQ,
+					CStringGetTextDatum(current_warehouse));
+	}
+	scan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
+							  NULL, nkeys, scankey);
 
 	tuple = systable_getnext(scan);
 	if (HeapTupleIsValid(tuple))
@@ -1619,7 +1633,8 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 {
 	int16		dbid = 0;
 	Relation	rel;
-	ScanKeyData scankey[2];
+	ScanKeyData scankey[3];
+	int			nkeys = 2;
 	SysScanDesc scan;
 	HeapTuple	tup;
 
@@ -1648,8 +1663,17 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 					Anum_gp_segment_configuration_preferred_role,
 					BTEqualStrategyNumber, F_CHAREQ,
 					CharGetDatum(role));
-		scan = systable_beginscan(rel, GpSegmentConfigContentPreferred_roleIndexId, true,
-								  NULL, 2, scankey);
+		if (contentid != MASTER_CONTENT_ID)
+		{
+			nkeys++;
+			ScanKeyInit(&scankey[2],
+						Anum_gp_segment_configuration_warehouse_name,
+						BTEqualStrategyNumber, F_TEXTEQ,
+						CStringGetTextDatum(current_warehouse));
+		}
+
+		scan = systable_beginscan(rel, GpSegmentConfigContentPreferred_roleWarehouseIndexId, true,
+								  NULL, nkeys, scankey);
 	}
 	else
 	{
@@ -1665,9 +1689,17 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 					Anum_gp_segment_configuration_role,
 					BTEqualStrategyNumber, F_CHAREQ,
 					CharGetDatum(role));
+		if (contentid != MASTER_CONTENT_ID)
+		{
+			nkeys++;
+			ScanKeyInit(&scankey[2],
+						Anum_gp_segment_configuration_warehouse_name,
+						BTEqualStrategyNumber, F_TEXTEQ,
+						CStringGetTextDatum(current_warehouse));
+		}
 		/* no index */
 		scan = systable_beginscan(rel, InvalidOid, false,
-								  NULL, 2, scankey);
+								  NULL, nkeys, scankey);
 	}
 
 	tup = systable_getnext(scan);

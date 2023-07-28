@@ -609,6 +609,7 @@
 		"vacuum_freeze_table_age",
 		"vacuum_multixact_freeze_min_age",
 		"vacuum_multixact_freeze_table_age",
+		"warehouse",
 		"wait_for_replication_threshold",
 		"wal_block_size",
 		"wal_buffers",

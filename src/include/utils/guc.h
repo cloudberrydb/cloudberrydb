@@ -625,6 +625,8 @@ extern bool gp_enable_global_deadlock_detector;
 extern bool gp_enable_predicate_pushdown;
 extern int  gp_predicate_pushdown_sample_rows;
 
+extern char	*current_warehouse;
+
 typedef enum
 {
 	INDEX_CHECK_NONE,

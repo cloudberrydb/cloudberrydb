@@ -115,7 +115,7 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 #else
 	HeapTuple	tuple;
 	Relation    configrel;
-	ScanKeyData scankey[1];
+	ScanKeyData scankey[2];
 	SysScanDesc scan;
 	Datum       attr;
 	bool        isNull;
@@ -125,8 +125,12 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	scan = systable_beginscan(configrel, GpSegmentConfigDbidIndexId, true,
-							  NULL, 1, scankey);
+	ScanKeyInit(&scankey[1],
+				Anum_gp_segment_configuration_warehouse_name,
+				BTEqualStrategyNumber, F_TEXTEQ,
+				CStringGetTextDatum(current_warehouse));
+	scan = systable_beginscan(configrel, GpSegmentConfigDbidWarehouseIndexId, true,
+							  NULL, 2, scankey);
 
 	tuple = systable_getnext(scan);
 
