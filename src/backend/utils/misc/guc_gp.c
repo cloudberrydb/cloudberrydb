@@ -303,7 +303,6 @@ bool		optimizer_enable_indexjoin;
 bool		optimizer_enable_motions_masteronly_queries;
 bool		optimizer_enable_motions;
 bool		optimizer_enable_motion_broadcast;
-bool		parallel_hash_enable_motion_broadcast;
 bool		optimizer_enable_motion_gather;
 bool		optimizer_enable_motion_redistribute;
 bool		optimizer_enable_sort;
@@ -2087,16 +2086,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_enable_motion_broadcast,
-		true,
-		NULL, NULL, NULL
-	},
-	{
-		{"parallel_hash_enable_motion_broadcast", PGC_USERSET, DEVELOPER_OPTIONS,
-			gettext_noop("Enable plans with Motion Broadcast operators in parallel hash join."),
-			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
-		},
-		&parallel_hash_enable_motion_broadcast,
 		true,
 		NULL, NULL, NULL
 	},
