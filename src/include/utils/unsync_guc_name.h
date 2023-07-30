@@ -424,7 +424,6 @@
 		"optimizer_enable_materialize",
 		"optimizer_enable_mergejoin",
 		"optimizer_enable_motion_broadcast",
-		"parallel_hash_enable_motion_broadcast",
 		"optimizer_enable_motion_gather",
 		"optimizer_enable_motion_redistribute",
 		"optimizer_enable_motions",

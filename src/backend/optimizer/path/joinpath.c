@@ -1089,8 +1089,7 @@ try_hashjoin_path(PlannerInfo *root,
 									  extra->restrictlist,
 									  required_outer,
 									  extra->redistribution_clauses,
-									  hashclauses, 
-									  false),
+									  hashclauses),
 				 root);
 	}
 	else
@@ -1147,40 +1146,6 @@ try_partial_hashjoin_path(PlannerInfo *root,
 	if (!add_partial_path_precheck(joinrel, workspace.total_cost, NIL))
 		return;
 
-	/*
-	 * CBDB_PARALLEL_FIXME
-	 * Customers encounter an issue that when parallel hash, broadcast motion
-	 * a smaller table may be worser than redistribute a big table.
-	 * We add a path whic doesn't try broadcast if possible.
-	 * And let the path cost decide which is better. 
-	 */
-	if (parallel_hash)
-	{
-		hashpath = create_hashjoin_path(root,
-										joinrel,
-										jointype,
-										orig_jointype,
-										&workspace,
-										extra,
-										outer_path,
-										inner_path,
-										true,
-										extra->restrictlist,
-										NULL,
-										extra->redistribution_clauses,
-										hashclauses,
-										true); /* not use broadcast */
-		if (hashpath && hashpath->parallel_safe)
-			add_partial_path(joinrel, hashpath);
-	}
-
-	/* 
-	 * CBDB_PARALLEL_FIXME:
-	 * We only want non-broadcast in parallel hash if the guc is set.
-	 */
-	if (parallel_hash && !parallel_hash_enable_motion_broadcast)
-		return;
-
 	hashpath = create_hashjoin_path(root,
 									joinrel,
 									jointype,
@@ -1193,8 +1158,8 @@ try_partial_hashjoin_path(PlannerInfo *root,
 									extra->restrictlist,
 									NULL,
 									extra->redistribution_clauses,
-									hashclauses,
-									false);
+									hashclauses);
+
 	/* Might be good enough to be worth trying and no motion, so let's try it. */
 	if (hashpath && hashpath->parallel_safe)
 		add_partial_path(joinrel, hashpath);

@@ -74,7 +74,6 @@ cdbpath_motion_for_parallel_join(PlannerInfo    *root,
 						List           *inner_pathkeys,
 						bool            outer_require_existing_order,
 						bool            inner_require_existing_order,
-						bool			parallel_aware,
-						bool			uninterested_broadcast); /* for parallel hash join, do not use Broadcast if possible */
+						bool			parallel_aware);
 
 #endif   /* CDBPATH_H */

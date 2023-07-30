@@ -3911,7 +3911,6 @@ create_nestloop_path(PlannerInfo *root,
 											 NIL,
 											 outer_must_be_local,
 											 inner_must_be_local,
-											 false,
 											 false);
 	}
 
@@ -4191,7 +4190,6 @@ create_mergejoin_path(PlannerInfo *root,
 											 innermotionkeys,
 											 preserve_outer_ordering,
 											 preserve_inner_ordering,
-											 false,
 											 false);
 	}
 
@@ -4332,8 +4330,7 @@ create_hashjoin_path(PlannerInfo *root,
 					 List *restrict_clauses,
 					 Relids required_outer,
 					 List *redistribution_clauses, /* CDB */
-					 List *hashclauses,
-					 bool uninterested_broadcast) /* GPDB parallel */
+					 List *hashclauses)
 {
 	HashPath   *pathnode;
 	CdbPathLocus join_locus;
@@ -4378,8 +4375,7 @@ create_hashjoin_path(PlannerInfo *root,
 											 NIL,
 											 outer_must_be_local,
 											 inner_must_be_local,
-											 parallel_hash,
-											 uninterested_broadcast);
+											 parallel_hash);
 	}
 
 	if (CdbPathLocus_IsNull(join_locus))
