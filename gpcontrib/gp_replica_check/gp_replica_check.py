@@ -37,6 +37,28 @@ except:
     import subprocess
 import threading
 import pipes  # for shell-quoting, pipes.quote()
+import os
+from collections import defaultdict
+import psycopg2
+
+def run_sql(sql, host=None, port=None,
+            dbname="postgres", is_query=True,
+            is_utility=False):
+    if host is None:
+        host = os.getenv("PGHOST")
+    if port is None:
+        port = int(os.getenv("PGPORT"))
+    opt = "-c gp_role=utility" if is_utility else None
+    try:
+        with psycopg2.connect(dbname=dbname, host=host, port=port, options=opt) as conn:
+            with conn.cursor() as cur:
+                cur.execute(sql)
+                if is_query:
+                    resultList = cur.fetchall()
+                    return resultList
+    except Exception as e:
+        print('Exception: %s while running query %s dbname = %s' % (e, sql, dbname))
+
 
 class ReplicaCheck(threading.Thread):
     def __init__(self, segrow, datname, relation_types):

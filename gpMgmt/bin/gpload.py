@@ -35,22 +35,8 @@ except ImportError:
     sys.exit(2)
 
 import platform
-
-try:
-    import pg
-except ImportError:
-    try:
-        from pygresql import pg
-    except Exception as e:
-        pass
-except Exception as e:
-    print(repr(e))
-    errorMsg = "gpload was unable to import The PyGreSQL Python module (pg.py) - %s\n" % str(e)
-    sys.stderr.write(str(errorMsg))
-    errorMsg = "Please check if you have the correct Visual Studio redistributable package installed.\n"
-    sys.stderr.write(str(errorMsg))
-    sys.exit(2)
-
+import psycopg2
+from psycopg2 import extras
 import hashlib
 import datetime,getpass,os,signal,socket,threading,time,traceback,re
 import subprocess
@@ -562,6 +548,8 @@ def is_keyword(tab):
     else:
         return False
 
+def escape_string(string):
+    return psycopg2.extensions.QuotedString(string).getquoted()[1:-1].decode()
 
 def caseInsensitiveDictLookup(key, dictionary):
     """
