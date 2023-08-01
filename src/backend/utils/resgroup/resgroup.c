@@ -1693,6 +1693,10 @@ SwitchResGroupOnSegment(const char *buf, int len)
 
 		Assert(bypassedGroup != NULL);
 
+		/* Add into cgroup */
+		cgroupOpsRoutine->attachcgroup(bypassedGroup->groupId, MyProcPid,
+									   caps.cpuMaxPercent == CPU_MAX_PERCENT_DISABLED);
+
 		return;
 	}
 
