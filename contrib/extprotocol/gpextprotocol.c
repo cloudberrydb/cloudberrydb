@@ -104,8 +104,10 @@ demoprot_import(PG_FUNCTION_ARGS)
 		myData->filename = pstrdup(parsed_url->path);
 	
 		if(strcasecmp(parsed_url->protocol, p_name) != 0)
-			elog(ERROR, "internal error: demoprot called with a different protocol (%s)",
-						parsed_url->protocol);
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						errmsg("internal error: demoprot called with a different protocol (%s)",
+						parsed_url->protocol)));
 
 		/* An example of checking options */
 		check_ext_options(fcinfo);

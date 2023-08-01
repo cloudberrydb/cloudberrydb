@@ -1627,7 +1627,7 @@ ERROR:  protocol "demoprot" does not exist  (seg0 slice1 rh55-qavm55:7532 pid=18
     -- However demoprot implementation prevents using any other protocol name than "demoprot"
     -- therefore the error is expected.
     select count(*) from exttabtest_r_new;
-ERROR:  internal error: demoprot called with a different protocol (demoprot_new) (gpextprotocol.c:107)  (seg0 slice1 rh55-qavm55:7532 pid=18394) (cdbdisp.c:1453)
+ERROR:  internal error: demoprot called with a different protocol (demoprot_new) (seg0 slice1 rh55-qavm55:7532 pid=18394) (cdbdisp.c:1453)
 CONTEXT:  External table exttabtest_r_new, line 1 of file demoprot_new://exttabtest.txt
     -- Rename protocol name back to demoprot
     ALTER PROTOCOL demoprot_new RENAME to demoprot;
