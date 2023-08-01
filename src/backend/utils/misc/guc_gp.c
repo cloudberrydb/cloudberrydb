@@ -101,7 +101,8 @@ static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 static int guc_array_compare(const void *a, const void *b);
 static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
-static void assign_current_warehouse(const char *newval, void *extra);
+bool check_current_warehouse(char **newval, void **extra, GucSource source);
+void assign_current_warehouse(const char *newval, void *extra);
 
 int listenerBacklog  = 128;
 
@@ -4550,7 +4551,7 @@ struct config_string ConfigureNamesString_gp[] =
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&current_warehouse, "default",
-		NULL, assign_current_warehouse, NULL
+		check_current_warehouse, assign_current_warehouse, NULL
 	},
 
 	{
@@ -5238,12 +5239,6 @@ check_gp_workfile_compression(bool *newval, void **extra, GucSource source)
 	}
 #endif
 	return true;
-}
-
-static void
-assign_current_warehouse(const char *newval, void *extra)
-{
-	cdbcomponent_destroyCdbComponents();
 }
 
 void

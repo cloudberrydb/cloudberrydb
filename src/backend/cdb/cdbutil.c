@@ -103,6 +103,12 @@ static HTAB *segment_ip_cache_htab = NULL;
 
 int numsegmentsFromQD = -1;
 
+/*
+ * Helper method that verifies setting of default priority guc.
+ */
+bool check_current_warehouse(char **newval, void **extra, GucSource source);
+void assign_current_warehouse(const char *newval, void *extra);
+
 typedef struct SegIpEntry
 {
 	char		key[NAMEDATALEN];
@@ -955,6 +961,52 @@ bool
 cdbcomponent_activeQEsExist(void)
 {
 	return !cdb_component_dbs ? false : cdb_component_dbs->numActiveQEs > 0;
+}
+
+bool
+check_current_warehouse(char **newval, void **extra, GucSource source)
+{
+	if (Gp_role == GP_ROLE_EXECUTE)
+		return true;
+	if (*newval == NULL || strcmp(*newval, "default") == 0)
+		return true;
+
+	Relation	rel = table_open(GpSegmentConfigRelationId, AccessShareLock);
+	HeapTuple	tuple;
+	SysScanDesc sscan;
+	bool		warehouse_exist = false;
+	bool		isNull;
+	Datum		attr;
+
+	sscan = systable_beginscan(rel, InvalidOid, false, NULL, 0, NULL);
+	while ((tuple = systable_getnext(sscan)) != NULL)
+	{
+		char *warehouse_name = NULL;
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
+							RelationGetDescr(rel), &isNull);
+		if (!isNull)
+			warehouse_name = TextDatumGetCString(attr);
+
+		if (warehouse_name && strcmp(warehouse_name, *newval) == 0)
+		{
+			warehouse_exist = true;
+			break;
+		}
+	}
+	systable_endscan(sscan);
+	table_close(rel, AccessShareLock);
+
+	if (!warehouse_exist)
+		GUC_check_errmsg("warehouse %s does not exist", *newval);
+
+	return warehouse_exist;
+}
+
+void
+assign_current_warehouse(const char *newval, void *extra)
+{
+	/* clear current cdb components cache */
+	cdbcomponent_destroyCdbComponents();
 }
 
 /*

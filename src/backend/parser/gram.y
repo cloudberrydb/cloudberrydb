@@ -12366,9 +12366,9 @@ WarehouseOptList: WarehouseOptElem								{ $$ = list_make1($1); }
 		;
 
 WarehouseOptElem:
-			WAREHOUSE_SIZE NumericOnly
+			WAREHOUSE_SIZE SignedIconst
 				{
-					$$ = makeDefElem("warehouse_size", (Node *)$2, @1);
+					$$ = makeDefElem("warehouse_size", (Node *)makeInteger($2), @1);
 				}
 		;
 
