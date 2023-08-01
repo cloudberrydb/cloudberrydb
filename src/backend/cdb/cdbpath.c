@@ -3655,6 +3655,8 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 	{							/* partitioned */
 		CdbpathMfjRel *large_rel = &outer;
 		CdbpathMfjRel *small_rel = &inner;
+		int lp; /* larger rel parallel workers */
+		int sp; /* small rel parallel workers */
 		
 		/* Consider locus when parallel_ware. */
 		if(parallel_aware)
@@ -3669,6 +3671,9 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 		/* CBDB_PARALLEL_FIXME: should we swap if parallel_aware? */
 		if (large_rel->bytes < small_rel->bytes)
 			CdbSwap(CdbpathMfjRel *, large_rel, small_rel);
+
+		lp = CdbPathLocus_NumParallelWorkers(large_rel->locus);
+		sp = CdbPathLocus_NumParallelWorkers(small_rel->locus);
 
 		/* Both side are distribued in 1 segment and no parallel, it can join without motion. */
 		if (CdbPathLocus_NumSegments(large_rel->locus) == 1 &&
@@ -3700,7 +3705,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 				 ((!parallel_aware && (small_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(large_rel->locus) < large_rel->bytes)) ||
 				  (parallel_aware && (small_rel->bytes * CdbPathLocus_NumSegments(large_rel->locus) < large_rel->bytes))))
 				{
-					if (!parallel_aware)
+					if (!parallel_aware || lp <= 1)
 						CdbPathLocus_MakeReplicated(&small_rel->move_to,
 													CdbPathLocus_NumSegments(large_rel->locus),
 													large_rel->path->parallel_workers);
@@ -3719,7 +3724,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 				 ((!parallel_aware && (large_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(small_rel->locus) < small_rel->bytes)) ||
 				  (parallel_aware && (large_rel->bytes * CdbPathLocus_NumSegments(small_rel->locus) < small_rel->bytes))))
 				{
-					if (!parallel_aware)
+					if (!parallel_aware || sp <= 1)
 						CdbPathLocus_MakeReplicated(&large_rel->move_to,
 									    			CdbPathLocus_NumSegments(small_rel->locus),
 									    			small_rel->path->parallel_workers);
@@ -3750,7 +3755,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 				 ((!parallel_aware && (small_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(large_rel->locus) < small_rel->bytes + large_rel->bytes)) ||
 					(parallel_aware && (small_rel->bytes * CdbPathLocus_NumSegments(large_rel->locus) < small_rel->bytes + large_rel->bytes))))
 				{
-					if (!parallel_aware)
+					if (!parallel_aware || lp <= 1)
 						CdbPathLocus_MakeReplicated(&small_rel->move_to,
 													CdbPathLocus_NumSegments(large_rel->locus),
 													large_rel->path->parallel_workers);
@@ -3766,7 +3771,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 						 ((!parallel_aware && (large_rel->bytes * CdbPathLocus_NumSegmentsPlusParallelWorkers(small_rel->locus) < small_rel->bytes + large_rel->bytes)) ||
 						  (parallel_aware && (large_rel->bytes * CdbPathLocus_NumSegments(small_rel->locus) < small_rel->bytes + large_rel->bytes))))
 				{
-					if (!parallel_aware)
+					if (!parallel_aware || sp <= 1)
 						CdbPathLocus_MakeReplicated(&large_rel->move_to,
 									    			CdbPathLocus_NumSegments(small_rel->locus),
 									    			small_rel->path->parallel_workers);
@@ -3808,7 +3813,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 		else if (!small_rel->require_existing_order &&
 				 small_rel->ok_to_replicate)
 				 {
-					if (!parallel_aware)
+					if (!parallel_aware || lp <= 1)
 						CdbPathLocus_MakeReplicated(&small_rel->move_to,
 												CdbPathLocus_NumSegments(large_rel->locus),
 									    			large_rel->path->parallel_workers);
@@ -3821,7 +3826,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 		else if (!large_rel->require_existing_order &&
 				 large_rel->ok_to_replicate)
 				 {
-					if (!parallel_aware)
+					if (!parallel_aware || sp <= 1)
 						CdbPathLocus_MakeReplicated(&large_rel->move_to,
 									    			CdbPathLocus_NumSegments(small_rel->locus),
 									    			small_rel->path->parallel_workers);
