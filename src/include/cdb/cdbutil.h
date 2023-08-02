@@ -172,6 +172,7 @@ extern int16 contentid_get_dbid(int16 contentid, char role, bool getPreferredRol
 extern int16 cdbcomponent_get_maxdbid(void);
 extern int16 cdbcomponent_get_availableDbId(void);
 extern int16 cdbcomponent_get_maxcontentid(void);
+extern bool cdb_checkWarehouseName(char *new_name);
 
 extern int numsegmentsFromQD;
 /*

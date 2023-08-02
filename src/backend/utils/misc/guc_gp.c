@@ -101,8 +101,8 @@ static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 static int guc_array_compare(const void *a, const void *b);
 static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
-bool check_current_warehouse(char **newval, void **extra, GucSource source);
-void assign_current_warehouse(const char *newval, void *extra);
+static bool check_current_warehouse(char **newval, void **extra, GucSource source);
+static void assign_current_warehouse(const char *newval, void *extra);
 
 int listenerBacklog  = 128;
 
@@ -5092,6 +5092,17 @@ check_max_running_tasks(int *newval, void **extra, GucSource source)
 	if (*newval >= MaxConnections)
 		return false;
 	return true;
+}
+
+bool
+check_current_warehouse(char **newval, void **extra, GucSource source)
+{
+	return cdb_checkWarehouseName(*newval);
+}
+
+void assign_current_warehouse(const char *newval, void *extra)
+{
+	cdbcomponent_destroyCdbComponents();
 }
 
 /*

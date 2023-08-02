@@ -103,12 +103,6 @@ static HTAB *segment_ip_cache_htab = NULL;
 
 int numsegmentsFromQD = -1;
 
-/*
- * Helper method that verifies setting of default priority guc.
- */
-bool check_current_warehouse(char **newval, void **extra, GucSource source);
-void assign_current_warehouse(const char *newval, void *extra);
-
 typedef struct SegIpEntry
 {
 	char		key[NAMEDATALEN];
@@ -964,11 +958,11 @@ cdbcomponent_activeQEsExist(void)
 }
 
 bool
-check_current_warehouse(char **newval, void **extra, GucSource source)
+cdb_checkWarehouseName(char *new_name)
 {
 	if (Gp_role == GP_ROLE_EXECUTE)
 		return true;
-	if (*newval == NULL || strcmp(*newval, "default") == 0)
+	if (new_name == NULL || strcmp(new_name, "default") == 0)
 		return true;
 
 	Relation	rel = table_open(GpSegmentConfigRelationId, AccessShareLock);
@@ -987,7 +981,7 @@ check_current_warehouse(char **newval, void **extra, GucSource source)
 		if (!isNull)
 			warehouse_name = TextDatumGetCString(attr);
 
-		if (warehouse_name && strcmp(warehouse_name, *newval) == 0)
+		if (warehouse_name && strcmp(warehouse_name, new_name) == 0)
 		{
 			warehouse_exist = true;
 			break;
@@ -997,16 +991,9 @@ check_current_warehouse(char **newval, void **extra, GucSource source)
 	table_close(rel, AccessShareLock);
 
 	if (!warehouse_exist)
-		GUC_check_errmsg("warehouse %s does not exist", *newval);
+		GUC_check_errmsg("warehouse %s does not exist", new_name);
 
 	return warehouse_exist;
-}
-
-void
-assign_current_warehouse(const char *newval, void *extra)
-{
-	/* clear current cdb components cache */
-	cdbcomponent_destroyCdbComponents();
 }
 
 /*
