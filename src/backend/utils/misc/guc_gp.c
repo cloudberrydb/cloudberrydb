@@ -5097,7 +5097,11 @@ check_max_running_tasks(int *newval, void **extra, GucSource source)
 bool
 check_current_warehouse(char **newval, void **extra, GucSource source)
 {
+#ifdef USE_INTERNAL_FTS
 	return cdb_checkWarehouseName(*newval);
+#else
+	return true;
+#endif
 }
 
 void assign_current_warehouse(const char *newval, void *extra)
