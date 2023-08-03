@@ -1536,8 +1536,7 @@ dbid_get_dbinfo(int16 dbid)
 {
 	HeapTuple	tuple;
 	Relation	rel;
-	ScanKeyData scankey[2];
-	int			nkeys = 1;
+	ScanKeyData scankey;
 	SysScanDesc scan;
 	GpSegConfigEntry *i = NULL;
 
@@ -1552,105 +1551,108 @@ dbid_get_dbinfo(int16 dbid)
 	rel = heap_open(GpSegmentConfigRelationId, AccessShareLock);
 
 	/* SELECT * FROM gp_segment_configuration WHERE dbid = :1 */
-	ScanKeyInit(&scankey[0],
+	ScanKeyInit(&scankey,
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	if (dbid != 1)
-	{
-		nkeys++;
-		ScanKeyInit(&scankey[1],
-					Anum_gp_segment_configuration_warehouse_name,
-					BTEqualStrategyNumber, F_TEXTEQ,
-					CStringGetTextDatum(current_warehouse));
-	}
 	scan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
-							  NULL, nkeys, scankey);
+							  NULL, 1, &scankey);
 
-	tuple = systable_getnext(scan);
-	if (HeapTupleIsValid(tuple))
+	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
 	{
 		Datum		attr;
 		bool		isNull;
+		char	   *warehouse_name = NULL;
 
-		i = palloc(sizeof(GpSegConfigEntry));
-
-		/*
-		 * dbid
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_dbid,
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
 							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->dbid = DatumGetInt16(attr);
+		if (!isNull)
+			warehouse_name = TextDatumGetCString(attr);
 
-		/*
-		 * content
-		 */
 		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
 							RelationGetDescr(rel), &isNull);
 		Assert(!isNull);
-		i->segindex = DatumGetInt16(attr);
+		if (DatumGetInt16(attr) == MASTER_CONTENT_ID || strcmp(warehouse_name, current_warehouse) == 0)
+		{
+			i = palloc(sizeof(GpSegConfigEntry));
 
-		/*
-		 * role
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_role,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->role = DatumGetChar(attr);
+			/*
+			* dbid
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_dbid,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->dbid = DatumGetInt16(attr);
 
-		/*
-		 * preferred-role
-		 */
-		attr = heap_getattr(tuple,
-							Anum_gp_segment_configuration_preferred_role,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->preferred_role = DatumGetChar(attr);
+			/*
+			* content
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->segindex = DatumGetInt16(attr);
 
-		/*
-		 * mode
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_mode,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->mode = DatumGetChar(attr);
+			/*
+			* role
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_role,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->role = DatumGetChar(attr);
 
-		/*
-		 * status
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_status,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->status = DatumGetChar(attr);
+			/*
+			* preferred-role
+			*/
+			attr = heap_getattr(tuple,
+								Anum_gp_segment_configuration_preferred_role,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->preferred_role = DatumGetChar(attr);
 
-		/*
-		 * hostname
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->hostname = TextDatumGetCString(attr);
+			/*
+			* mode
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_mode,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->mode = DatumGetChar(attr);
 
-		/*
-		 * address
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_address,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->address = TextDatumGetCString(attr);
+			/*
+			* status
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_status,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->status = DatumGetChar(attr);
 
-		/*
-		 * port
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->port = DatumGetInt32(attr);
+			/*
+			* hostname
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->hostname = TextDatumGetCString(attr);
 
-		Assert(systable_getnext(scan) == NULL); /* should be only 1 */
+			/*
+			* address
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_address,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->address = TextDatumGetCString(attr);
+
+			/*
+			* port
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->port = DatumGetInt32(attr);
+
+			break;
+		}
 	}
-	else
+	if (i == NULL)
 	{
 		elog(ERROR, "could not find configuration entry for dbid %i", dbid);
 	}

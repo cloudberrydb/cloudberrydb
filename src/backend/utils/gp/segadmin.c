@@ -183,32 +183,38 @@ remove_segment_config(int16 dbid)
 {
 #ifdef USE_INTERNAL_FTS
 	int			numDel = 0;
-	ScanKeyData scankey[2];
-	int			nkeys = 1;
+	ScanKeyData scankey;
 	SysScanDesc sscan;
 	HeapTuple	tuple;
 	Relation	rel;
 
 	rel = table_open(GpSegmentConfigRelationId, RowExclusiveLock);
 
-	ScanKeyInit(&scankey[0],
+	ScanKeyInit(&scankey,
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	if (dbid != 1)
-	{
-		nkeys++;
-		ScanKeyInit(&scankey[1],
-					Anum_gp_segment_configuration_warehouse_name,
-					BTEqualStrategyNumber, F_TEXTEQ,
-					CStringGetTextDatum(current_warehouse));
-	}
 	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
-							   NULL, nkeys, scankey);
+							   NULL, 1, &scankey);
 	while ((tuple = systable_getnext(sscan)) != NULL)
 	{
-		CatalogTupleDelete(rel, &tuple->t_self);
-		numDel++;
+		Datum		attr;
+		bool		isNull;
+		char	   *warehouse_name = NULL;
+
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
+							RelationGetDescr(rel), &isNull);
+		if (!isNull)
+			warehouse_name = TextDatumGetCString(attr);
+
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+							RelationGetDescr(rel), &isNull);
+		Assert(!isNull);
+		if (DatumGetInt16(attr) == MASTER_CONTENT_ID || strcmp(warehouse_name, current_warehouse) == 0)
+		{
+			CatalogTupleDelete(rel, &tuple->t_self);
+			numDel++;
+		}
 	}
 	systable_endscan(sscan);
 

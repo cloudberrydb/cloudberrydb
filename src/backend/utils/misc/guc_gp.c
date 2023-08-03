@@ -4548,7 +4548,6 @@ struct config_string ConfigureNamesString_gp[] =
 		{"warehouse", PGC_USERSET, CUSTOM_OPTIONS,
 			gettext_noop("Sets the current warehouse."),
 			NULL,
-			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&current_warehouse, "default",
 		check_current_warehouse, assign_current_warehouse, NULL
