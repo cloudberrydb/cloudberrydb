@@ -2281,7 +2281,7 @@ appendonly_fetch_init(Relation relation,
 						   aoFormData.visimaprelid,
 						   aoFormData.visimapidxid,
 						   AccessShareLock,
-						   appendOnlyMetaDataSnapshot);
+						   InvalidSnapshot);
 
 	return aoFetchDesc;
 

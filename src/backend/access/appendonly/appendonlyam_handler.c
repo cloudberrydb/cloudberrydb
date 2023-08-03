@@ -545,7 +545,11 @@ appendonly_index_fetch_tuple(struct IndexFetchTableData *scan,
 	 */
 	Assert(aoscan->aofetch->snapshot == snapshot);
 
+	aoscan->aofetch->visibilityMap.visimapStore.snapshot = snapshot;
+
 	appendonly_fetch(aoscan->aofetch, (AOTupleId *) tid, slot);
+
+	aoscan->aofetch->visibilityMap.visimapStore.snapshot = InvalidSnapshot;
 
 	return !TupIsNull(slot);
 }

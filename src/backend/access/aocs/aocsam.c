@@ -1564,8 +1564,8 @@ aocs_fetch_init(Relation relation,
 						   visimaprelid,
 						   visimapidxid,
 						   AccessShareLock,
-						   appendOnlyMetaDataSnapshot);
-
+						   InvalidSnapshot);
+	
 	return aocsFetchDesc;
 }
 

@@ -705,6 +705,7 @@ aoco_index_fetch_tuple(struct IndexFetchTableData *scan,
                              bool *call_again, bool *all_dead)
 {
 	IndexFetchAOCOData *aocoscan = (IndexFetchAOCOData *) scan;
+	bool				found = false;
 
 	if (!aocoscan->aocofetch)
 	{
@@ -740,15 +741,19 @@ aoco_index_fetch_tuple(struct IndexFetchTableData *scan,
 	 */
 	Assert(aocoscan->aocofetch->snapshot == snapshot);
 
+	aocoscan->aocofetch->visibilityMap.visimapStore.snapshot = snapshot;
+
 	ExecClearTuple(slot);
 
 	if (aocs_fetch(aocoscan->aocofetch, (AOTupleId *) tid, slot))
 	{
 		ExecStoreVirtualTuple(slot);
-		return true;
+		found = true;
 	}
 
-	return false;
+	aocoscan->aocofetch->visibilityMap.visimapStore.snapshot = InvalidSnapshot;
+
+	return found;
 }
 
 static void

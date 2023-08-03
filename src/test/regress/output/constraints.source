@@ -779,3 +779,33 @@ DROP TABLE constraint_comments_tbl;
 DROP DOMAIN constraint_comments_dom;
 DROP ROLE regress_constraint_comments;
 DROP ROLE regress_constraint_comments_noaccess;
+--
+-- EXCLUDE constraints for AO
+--
+CREATE TABLE test_exclude_ao(
+  id int4,
+  room int4range,
+  EXCLUDE USING gist (room WITH =)
+) USING AO_ROW  DISTRIBUTED REPLICATED;
+INSERT INTO test_exclude_ao VALUES(1, int4range(123, 123, '[]'));
+-- conflicting key value violates exclusion constraint
+-- expected conflicting key error without other exception happen
+INSERT INTO test_exclude_ao VALUES(1, int4range(123, 123, '[]'));
+DETAIL:  Key (room)=([123,124)) conflicts with existing key (room)=([123,124)).
+ERROR:  conflicting key value violates exclusion constraint "test_exclude_ao_room_excl"
+DROP TABLE test_exclude_ao;
+--
+-- EXCLUDE constraints for AOCS
+--
+CREATE TABLE test_exclude_aocs(
+  id int4,
+  room int4range,
+  EXCLUDE USING gist (room WITH =)
+) USING AO_COLUMN  DISTRIBUTED REPLICATED;
+INSERT INTO test_exclude_aocs VALUES(1, int4range(123, 123, '[]'));
+-- conflicting key value violates exclusion constraint
+-- expected conflicting key error without other exception happen
+INSERT INTO test_exclude_aocs VALUES(1, int4range(123, 123, '[]'));
+DETAIL:  Key (room)=([123,124)) conflicts with existing key (room)=([123,124)).
+ERROR:  conflicting key value violates exclusion constraint "test_exclude_aocs_room_excl"
+DROP TABLE test_exclude_aocs;
