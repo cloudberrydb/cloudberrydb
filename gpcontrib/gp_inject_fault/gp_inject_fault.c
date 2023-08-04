@@ -115,43 +115,52 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 #else
 	HeapTuple	tuple;
 	Relation    configrel;
-	ScanKeyData scankey[2];
+	ScanKeyData scankey[1];
 	SysScanDesc scan;
 	Datum       attr;
 	bool        isNull;
+	char		*warehouse_name = NULL;
+	bool		foundconfig = false;
 
 	configrel = table_open(GpSegmentConfigRelationId, AccessShareLock);
 	ScanKeyInit(&scankey[0],
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	ScanKeyInit(&scankey[1],
-				Anum_gp_segment_configuration_warehouse_name,
-				BTEqualStrategyNumber, F_TEXTEQ,
-				CStringGetTextDatum(current_warehouse));
 	scan = systable_beginscan(configrel, GpSegmentConfigDbidWarehouseIndexId, true,
-							  NULL, 2, scankey);
+							  NULL, 1, scankey);
 
-	tuple = systable_getnext(scan);
-
-	if (HeapTupleIsValid(tuple))
+	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
 	{
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
 							RelationGetDescr(configrel), &isNull);
-		Assert(!isNull);
-		*hostname = TextDatumGetCString(attr);
-
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
-							RelationGetDescr(configrel), &isNull);
-		Assert(!isNull);
-		*port = DatumGetInt32(attr);
-
+		if (!isNull)
+			warehouse_name = TextDatumGetCString(attr);
 		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
 							RelationGetDescr(configrel), &isNull);
 		Assert(!isNull);
-		*content = DatumGetInt32(attr);
+		if (DatumGetInt16(attr) == MASTER_CONTENT_ID || strcmp(warehouse_name, current_warehouse) == 0)
+		{
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+								RelationGetDescr(configrel), &isNull);
+			Assert(!isNull);
+			*hostname = TextDatumGetCString(attr);
+
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
+								RelationGetDescr(configrel), &isNull);
+			Assert(!isNull);
+			*port = DatumGetInt32(attr);
+
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+								RelationGetDescr(configrel), &isNull);
+			Assert(!isNull);
+			*content = DatumGetInt32(attr);
+
+			foundconfig = true;
+			break;
+		}
 	}
-	else
+	if (!foundconfig)
 		elog(ERROR, "dbid %d not found", dbid);
 
 	systable_endscan(scan);
