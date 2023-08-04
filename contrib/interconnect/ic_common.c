@@ -48,7 +48,7 @@ SendTupleChunkToAMS(ChunkTransportState * transportStates,
 	int			i,
 				recount = 0;
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 	TupleChunkListItem currItem;
 
 	if (!transportStates)
@@ -131,7 +131,7 @@ GetTransportDirectBuffer(ChunkTransportState * transportStates,
 						 struct directTransportBuffer *b)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	if (!transportStates)
 	{
@@ -190,7 +190,7 @@ PutTransportDirectBuffer(ChunkTransportState * transportStates,
 						 int16 targetRoute, int length)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	if (!transportStates)
 	{
@@ -248,7 +248,7 @@ createChunkTransportState(ChunkTransportState * transportStates,
 						  int numConns,
 						  size_t chunk_trans_state_entry_size)
 {
-	ChunkTransportStateEntry *pEntry;
+	ChunkTransportStateEntry *pEntry = NULL;
 	int			motNodeID;
 	int			i;
 

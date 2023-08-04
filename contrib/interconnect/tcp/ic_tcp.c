@@ -502,8 +502,8 @@ startOutgoingConnections(ChunkTransportState * transportStates,
 						 ExecSlice * sendSlice,
 						 int *pOutgoingCount)
 {
-	ChunkTransportStateEntry *pEntry;
-	MotionConn *conn;
+	ChunkTransportStateEntry *pEntry = NULL;
+	MotionConn *conn = NULL;
 	ListCell   *cell;
 	ExecSlice  *recvSlice;
 	CdbProcess *cdbProc;
@@ -905,7 +905,7 @@ readRegisterMessage(ChunkTransportState * transportStates,
 	int			iconn;
 	RegisterMessage *regMsg;
 	RegisterMessage msg;
-	MotionConn *newConn;
+	MotionConn *newConn = NULL;
 	ChunkTransportStateEntry *pChunkEntry = NULL;
 	ChunkTransportStateEntryTCP *pEntry = NULL;
 	CdbProcess *cdbproc = NULL;
@@ -1144,7 +1144,7 @@ acceptIncomingConnection(void)
 {
 	int			newsockfd;
 	socklen_t	addrsize;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 	struct sockaddr_storage remoteAddr;
 	struct sockaddr_storage localAddr;
 	MotionConnTCP *tcp_conn = NULL;
@@ -1264,8 +1264,8 @@ SetupTCPInterconnect(EState *estate)
 	ListCell   *cell;
 	ExecSlice  *mySlice;
 	ExecSlice  *aSlice;
-	MotionConn *conn;
-	MotionConnTCP *tcp_conn;
+	MotionConn *conn = NULL;
+	MotionConnTCP *tcp_conn = NULL;
 	SliceTable *sliceTable = estate->es_sliceTable;
 	int			incoming_count = 0;
 	int			outgoing_count = 0;
@@ -1944,7 +1944,7 @@ TeardownTCPInterconnect(ChunkTransportState * transportStates, bool hasErrors)
 	ChunkTransportStateEntry *pEntry = NULL;
 	int			i;
 	ExecSlice  *mySlice;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	if (transportStates == NULL || transportStates->sliceTable == NULL)
 	{
@@ -2207,8 +2207,8 @@ void
 dumpEntryConnections(int elevel, ChunkTransportStateEntry * pEntry)
 {
 	int			i;
-	MotionConn *mConn;
-	MotionConnTCP *conn;
+	MotionConn *mConn = NULL;
+	MotionConnTCP *conn = NULL;
 
 	for (i = 0; i < pEntry->numConns; i++)
 	{
@@ -2401,7 +2401,7 @@ flushInterconnectListenerBacklog(void)
 static void
 waitOnOutbound(ChunkTransportStateEntry * pEntry)
 {
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	struct timeval timeout;
 	mpp_fd_set	waitset,
@@ -2513,7 +2513,7 @@ DeregisterReadInterestTCP(ChunkTransportState * transportStates,
 						  const char *reason)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	if (!transportStates)
 	{
@@ -2556,7 +2556,7 @@ void
 SendStopMessageTCP(ChunkTransportState * transportStates, int16 motNodeID)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 	int			i;
 	char		m = 'S';
 	ssize_t		written;
@@ -2740,7 +2740,7 @@ RecvTupleChunkFromTCP(ChunkTransportState * transportStates,
 					  int16 srcRoute)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	/* check em' */
 	ML_CHECK_FOR_INTERRUPTS(transportStates->teardownActive);
@@ -2763,7 +2763,7 @@ RecvTupleChunkFromAnyTCP(ChunkTransportState * transportStates,
 	ChunkTransportStateEntry *pChunkEntry = NULL;
 	ChunkTransportStateEntryTCP *pEntry = NULL;
 	TupleChunkListItem tcItem;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 	mpp_fd_set	rset;
 	int			n,
 				i,
@@ -2944,7 +2944,7 @@ SendEOSTCP(ChunkTransportState * transportStates,
 		   TupleChunkListItem tcItem)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 	int			i;
 
 	if (!transportStates)
