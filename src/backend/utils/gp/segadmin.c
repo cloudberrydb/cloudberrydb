@@ -687,21 +687,17 @@ catalog_activate_standby(int16 standby_dbid, int16 master_dbid)
 	/* we use AccessExclusiveLock to prevent races */
 	Relation	rel = table_open(GpSegmentConfigRelationId, AccessExclusiveLock);
 	HeapTuple	tuple;
-	ScanKeyData scankey[2];
+	ScanKeyData scankey;
 	SysScanDesc sscan;
 	int			numDel = 0;
 
 	/* first, delete the old master */
-	ScanKeyInit(&scankey[0],
+	ScanKeyInit(&scankey,
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(master_dbid));
-	ScanKeyInit(&scankey[1],
-				Anum_gp_segment_configuration_warehouse_name,
-				BTEqualStrategyNumber, F_TEXTEQ,
-				CStringGetTextDatum(current_warehouse));
 	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
-							   NULL, 2, scankey);
+							   NULL, 1, &scankey);
 	while ((tuple = systable_getnext(sscan)) != NULL)
 	{
 		CatalogTupleDelete(rel, &tuple->t_self);
@@ -713,16 +709,12 @@ catalog_activate_standby(int16 standby_dbid, int16 master_dbid)
 		elog(ERROR, "cannot find old master, dbid %i", master_dbid);
 
 	/* now, set out rows for old standby. */
-	ScanKeyInit(&scankey[0],
+	ScanKeyInit(&scankey,
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(standby_dbid));
-	ScanKeyInit(&scankey[1],
-				Anum_gp_segment_configuration_warehouse_name,
-				BTEqualStrategyNumber, F_TEXTEQ,
-				CStringGetTextDatum(current_warehouse));
 	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
-							   NULL, 2, scankey);
+							   NULL, 1, &scankey);
 
 	tuple = systable_getnext(sscan);
 
