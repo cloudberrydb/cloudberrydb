@@ -894,8 +894,8 @@ SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'interrupt', dbid, 
 (1 row)
 
 select * from gp_segment_configuration a, t13393 ,gp_segment_configuration b where a.dbid = t13393.tc1 limit 0;
- dbid | content | role | preferred_role | mode | status | port | hostname | address | datadir | tc1 | dbid | content | role | preferred_role | mode | status | port | hostname | address | datadir 
-------+---------+------+----------------+------+--------+------+----------+---------+---------+-----+------+---------+------+----------------+------+--------+------+----------+---------+---------
+ dbid | content | role | preferred_role | mode | status | port | hostname | address | datadir | tc1 | dbid | content | role | preferred_role | mode | status | port | hostname | address | datadir | warehouse_name 
+------+---------+------+----------------+------+--------+------+----------+---------+---------+-----+------+---------+------+----------------+------+--------+------+----------+---------+---------+----------------
 (0 rows)
 
 SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'reset', dbid, current_setting('gp_session_id')::int)
