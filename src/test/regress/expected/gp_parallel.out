@@ -206,6 +206,77 @@ commit;
 drop table ao1;
 drop table ao2;
 drop table aocs1;
+-- test Parallel Bitmap Heap Scan
+begin;
+create table t1(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+set local enable_parallel = on;
+create index on t1(c2);
+insert into t1 select i, i from generate_series(1, 10000000) i;
+analyze t1;
+set local force_parallel_mode = 1;
+set local enable_seqscan = off;
+explain(locus, costs off) select c2 from t1;
+                 QUERY PLAN                 
+--------------------------------------------
+ Gather Motion 6:1  (slice1; segments: 6)
+   Locus: Entry
+   ->  Parallel Bitmap Heap Scan on t1
+         Locus: HashedWorkers
+         Parallel Workers: 2
+         ->  Bitmap Index Scan on t1_c2_idx
+               Locus: NULL
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+-- results check
+explain(locus, costs off) select count(c2) from t1;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Finalize Aggregate
+   Locus: Entry
+   ->  Gather Motion 6:1  (slice1; segments: 6)
+         Locus: Entry
+         ->  Partial Aggregate
+               Locus: HashedWorkers
+               Parallel Workers: 2
+               ->  Parallel Bitmap Heap Scan on t1
+                     Locus: HashedWorkers
+                     Parallel Workers: 2
+                     ->  Bitmap Index Scan on t1_c2_idx
+                           Locus: NULL
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+select count(c2) from t1;
+  count   
+----------
+ 10000000
+(1 row)
+
+set local enable_parallel = off;
+explain(locus, costs off) select count(c2) from t1;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Finalize Aggregate
+   Locus: Entry
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Locus: Entry
+         ->  Partial Aggregate
+               Locus: Hashed
+               ->  Bitmap Heap Scan on t1
+                     Locus: Hashed
+                     ->  Bitmap Index Scan on t1_c2_idx
+                           Locus: NULL
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(c2) from t1;
+  count   
+----------
+ 10000000
+(1 row)
+
+abort;
 -- test gp_appendonly_insert_files doesn't take effect
 begin;
 create table t (x int);
