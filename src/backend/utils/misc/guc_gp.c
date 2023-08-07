@@ -5105,6 +5105,7 @@ check_current_warehouse(char **newval, void **extra, GucSource source)
 
 void assign_current_warehouse(const char *newval, void *extra)
 {
+	/* clear cache after warehouse changed */
 	cdbcomponent_destroyCdbComponents();
 }
 

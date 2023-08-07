@@ -120,7 +120,7 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 	Datum       attr;
 	bool        isNull;
 	char		*warehouse_name = NULL;
-	bool		foundconfig = false;
+	bool		find_config = false;
 
 	configrel = table_open(GpSegmentConfigRelationId, AccessShareLock);
 	ScanKeyInit(&scankey[0],
@@ -156,11 +156,11 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 			Assert(!isNull);
 			*content = DatumGetInt32(attr);
 
-			foundconfig = true;
+			find_config = true;
 			break;
 		}
 	}
-	if (!foundconfig)
+	if (!find_config)
 		elog(ERROR, "dbid %d not found", dbid);
 
 	systable_endscan(scan);
