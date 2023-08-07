@@ -1142,6 +1142,7 @@ static const pgsql_thing_t words_after_create[] = {
 	{"USER", Query_for_list_of_roles " UNION SELECT 'MAPPING FOR'"},
 	{"USER MAPPING FOR", NULL, NULL, NULL},
 	{"VIEW", NULL, NULL, &Query_for_list_of_views},
+	{"WAREHOUSE", NULL},
 	{NULL}						/* end of list */
 };
 
@@ -2734,6 +2735,10 @@ psql_completion(const char *text, int start, int end)
 	else if (Matches("CREATE", "TASK", MatchAny, "SCHEDULE", MatchAny, "DATABASE", MatchAny) ||
 			 Matches("CREATE", "TASK", MatchAny, "SCHEDULE", MatchAny, "USER", MatchAny))
 		COMPLETE_WITH("AS");
+
+/* CREATE WAREHOUSE <name> */
+	else if (Matches("CREATE", "WAREHOUSE", MatchAny))
+		COMPLETE_WITH("WAREHOUSE_SIZE");
 
 /* CREATE SERVER <name> */
 	else if (Matches("CREATE", "SERVER", MatchAny))
