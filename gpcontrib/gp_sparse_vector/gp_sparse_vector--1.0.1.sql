@@ -1,10 +1,6 @@
 -- complain if script is sourced in psql, rather than via CREATE EXTENSION
 \echo Use "CREATE EXTENSION gp_sparse_vector" to load this file. \quit
 
-CREATE SCHEMA sparse_vector;
-
-SET search_path TO sparse_vector;
-
 DROP TYPE IF EXISTS svec CASCADE;
 CREATE TYPE svec;
 
@@ -373,5 +369,3 @@ OPERATOR        3       == ,
 OPERATOR        4       >= ,
 OPERATOR        5       > ,
 FUNCTION        1       svec_l2_cmp(svec, svec);
-
-SET search_path TO DEFAULT;
