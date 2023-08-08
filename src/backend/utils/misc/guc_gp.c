@@ -4548,6 +4548,7 @@ struct config_string ConfigureNamesString_gp[] =
 		{"warehouse", PGC_USERSET, CUSTOM_OPTIONS,
 			gettext_noop("Sets the current warehouse."),
 			NULL,
+			GUC_NO_RESET_ALL
 		},
 		&current_warehouse, "default",
 		check_current_warehouse, assign_current_warehouse, NULL
@@ -5105,8 +5106,10 @@ check_current_warehouse(char **newval, void **extra, GucSource source)
 
 void assign_current_warehouse(const char *newval, void *extra)
 {
-	/* clear cache after warehouse changed */
-	cdbcomponent_destroyCdbComponents();
+#ifdef USE_INTERNAL_FTS
+	char *new_name = pstrdup(newval);
+	cdb_assignCurrentWarehouse(current_warehouse, new_name);
+#endif
 }
 
 /*

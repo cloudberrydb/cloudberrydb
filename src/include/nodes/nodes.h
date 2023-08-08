@@ -543,6 +543,7 @@ typedef enum NodeTag
 	T_GpSplitPartitionCmd,
 	T_GpAlterPartitionCmd,
 	T_CreateWarehouseStmt,
+	T_DropWarehouseStmt,
 
 	/*
 	 * TAGS FOR PARSE TREE NODES (parsenodes.h)

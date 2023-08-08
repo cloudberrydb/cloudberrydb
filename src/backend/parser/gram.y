@@ -295,7 +295,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 		CreateAssertionStmt CreateTransformStmt CreateTrigStmt CreateEventTrigStmt
 		CreateUserStmt CreateUserMappingStmt CreateRoleStmt CreatePolicyStmt
 		CreatedbStmt CreateWarehouseStmt DeclareCursorStmt DefineStmt DeleteStmt DiscardStmt DoStmt
-		DropOpClassStmt DropOpFamilyStmt DropStmt
+		DropOpClassStmt DropOpFamilyStmt DropStmt DropWarehouseStmt
 		DropCastStmt DropRoleStmt
 		DropdbStmt DropTableSpaceStmt
 		DropTransformStmt
@@ -1466,6 +1466,7 @@ stmt:
 			| DropRoleStmt
 			| DropUserMappingStmt
 			| DropdbStmt
+			| DropWarehouseStmt
 			| ExecuteStmt
 			| ExplainStmt
 			| FetchStmt
@@ -12371,6 +12372,15 @@ WarehouseOptElem:
 					$$ = makeDefElem("warehouse_size", (Node *)makeInteger($2), @1);
 				}
 		;
+
+
+DropWarehouseStmt: DROP WAREHOUSE name
+						{
+							DropWarehouseStmt *n = makeNode(DropWarehouseStmt);
+							n->whname = $3;
+							$$ = (Node *) n;
+						}
+				;
 
 
 /*****************************************************************************

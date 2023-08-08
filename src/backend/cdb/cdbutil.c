@@ -51,6 +51,7 @@
 #include "cdb/cdbconn.h"
 #include "cdb/cdbfts.h"
 #include "storage/ipc.h"
+#include "storage/lmgr.h"
 #include "storage/proc.h"
 #include "postmaster/fts.h"
 #include "postmaster/postmaster.h"
@@ -63,6 +64,7 @@
 #include "common/etcdutils.h"
 
 #include "catalog/gp_indexing.h"
+#include "catalog/gp_warehouse.h"
 
 #define MAX_CACHED_1_GANGS 1
 #define INCR_COUNT(cdbinfo, arg) \
@@ -98,6 +100,11 @@ static void getAddressesForDBid(GpSegConfigEntry *c, int elevel);
 static HTAB *hostSegsHashTableInit(void);
 
 static int nextQEIdentifer(CdbComponentDatabases *cdbs);
+
+static void unlock_warehouse_exit_callback(int code, Datum arg);
+static void register_unlock_warehouse_handler(void);
+
+static Oid current_warehouse_oid = InvalidOid;
 
 static HTAB *segment_ip_cache_htab = NULL;
 
@@ -965,35 +972,65 @@ cdb_checkWarehouseName(char *new_name)
 	if (new_name == NULL || strcmp(new_name, "default") == 0)
 		return true;
 
-	Relation	rel = table_open(GpSegmentConfigRelationId, AccessShareLock);
-	HeapTuple	tuple;
-	SysScanDesc sscan;
-	bool		warehouse_exist = false;
-	bool		isNull;
-	Datum		attr;
+	Oid warehouseid = GetGpWarehouseOid(new_name, true);
 
-	sscan = systable_beginscan(rel, InvalidOid, false, NULL, 0, NULL);
-	while ((tuple = systable_getnext(sscan)) != NULL)
-	{
-		char *warehouse_name = NULL;
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
-							RelationGetDescr(rel), &isNull);
-		if (!isNull)
-			warehouse_name = TextDatumGetCString(attr);
-
-		if (warehouse_name && strcmp(warehouse_name, new_name) == 0)
-		{
-			warehouse_exist = true;
-			break;
-		}
-	}
-	systable_endscan(sscan);
-	table_close(rel, AccessShareLock);
-
-	if (!warehouse_exist)
+	if (!OidIsValid(warehouseid))
 		GUC_check_errmsg("warehouse %s does not exist", new_name);
 
-	return warehouse_exist;
+	return true;
+}
+
+void
+cdb_assignCurrentWarehouse(char *old_name, char *new_name)
+{
+	Oid newwarehouse;
+	Oid oldwarehouse;
+
+	if (Gp_role == GP_ROLE_EXECUTE)
+		return;
+	if (new_name == NULL || strcmp(new_name, "default") == 0)
+		return;
+
+	register_unlock_warehouse_handler();
+
+	/* lock warehouse */
+	if (strcmp(new_name, "default") != 0){
+		newwarehouse = GetGpWarehouseOid(new_name, false);
+		LockWarehouse(newwarehouse, ShareLock);
+		current_warehouse_oid = newwarehouse;
+	}
+
+	/* unlock old warehouse */
+	if (strcmp(old_name, "default") != 0)
+	{
+		oldwarehouse = GetGpWarehouseOid(old_name, false);
+		UnlockWarehouse(oldwarehouse, ShareLock);
+	}
+
+	/* clear cache after warehouse name changed */
+	cdbcomponent_destroyCdbComponents();
+}
+
+static void
+unlock_warehouse_exit_callback(int code, Datum arg)
+{
+	if (Gp_role == GP_ROLE_EXECUTE)
+		return;
+
+	/* unlock current warehouse */
+	if (strcmp(current_warehouse, "default") != 0)
+		UnlockWarehouse(current_warehouse_oid, ShareLock);
+}
+
+static void
+register_unlock_warehouse_handler(void)
+{
+	static bool already_done = false;
+
+	if (already_done)
+		return;
+	before_shmem_exit(unlock_warehouse_exit_callback, (Datum) 0);
+	already_done = true;
 }
 
 /*

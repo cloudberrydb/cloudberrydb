@@ -4271,4 +4271,10 @@ typedef struct CreateWarehouseStmt
 	List		*options;		/* List of DefElem nodes */
 } CreateWarehouseStmt;
 
+typedef struct DropWarehouseStmt
+{
+	NodeTag		type;
+	char		*whname;
+} DropWarehouseStmt;
+
 #endif							/* PARSENODES_H */

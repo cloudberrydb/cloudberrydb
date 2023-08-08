@@ -241,8 +241,10 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_DropTaskStmt:
 		case T_DropQueueStmt:
 		case T_DropResourceGroupStmt:
+		case T_DropWarehouseStmt:
 		case T_CreateExternalStmt:
 		case T_RetrieveStmt:
+		case T_CreateWarehouseStmt:
 			{
 				/* DDL is not read-only, and neither is TRUNCATE. */
 				return COMMAND_IS_NOT_READ_ONLY;
@@ -3732,6 +3734,9 @@ CreateCommandTag(Node *parsetree)
 		case T_CreateWarehouseStmt:
 			tag = CMDTAG_CREATE_WAREHOUSE;
 			break;
+		case T_DropWarehouseStmt:
+			tag = CMDTAG_DROP_WAREHOUSE;
+			break;
 
 		default:
 			elog(WARNING, "unrecognized node type: %d",
@@ -4208,6 +4213,14 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_AlterCollationStmt:
+			lev = LOGSTMT_DDL;
+			break;
+			
+		case T_CreateWarehouseStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_DropWarehouseStmt:
 			lev = LOGSTMT_DDL;
 			break;
 

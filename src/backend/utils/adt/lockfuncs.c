@@ -44,10 +44,11 @@ const char *const LockTagTypeNames[] = {
 	"resource queue",
 	"distributed xid",
 	"userlock",
-	"advisory"
+	"advisory",
+	"warehouse"
 };
 
-StaticAssertDecl(lengthof(LockTagTypeNames) == (LOCKTAG_ADVISORY + 1),
+StaticAssertDecl(lengthof(LockTagTypeNames) == (LOCKTAG_WAREHOUSE + 1),
 				 "array length mismatch");
 
 /* This must match enum PredicateLockTargetType (predicate_internals.h) */
@@ -459,6 +460,7 @@ pg_lock_status(PG_FUNCTION_ARGS)
 				nulls[9] = true;
 				break;
 			case LOCKTAG_RESOURCE_QUEUE:
+			case LOCKTAG_WAREHOUSE:
 #if 0
 				values[1] = ObjectIdGetDatum(proc->databaseId);
 #endif

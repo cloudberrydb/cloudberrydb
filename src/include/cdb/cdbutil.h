@@ -173,6 +173,7 @@ extern int16 cdbcomponent_get_maxdbid(void);
 extern int16 cdbcomponent_get_availableDbId(void);
 extern int16 cdbcomponent_get_maxcontentid(void);
 extern bool cdb_checkWarehouseName(char *new_name);
+extern void cdb_assignCurrentWarehouse(char *old_name, char *new_name);
 
 extern int numsegmentsFromQD;
 /*
