@@ -224,7 +224,7 @@ explain(locus, costs off) select c2 from t1;
          Locus: HashedWorkers
          Parallel Workers: 2
          ->  Bitmap Index Scan on t1_c2_idx
-               Locus: NULL
+               Locus: Hashed
  Optimizer: Postgres query optimizer
 (8 rows)
 
@@ -243,7 +243,7 @@ explain(locus, costs off) select count(c2) from t1;
                      Locus: HashedWorkers
                      Parallel Workers: 2
                      ->  Bitmap Index Scan on t1_c2_idx
-                           Locus: NULL
+                           Locus: Hashed
  Optimizer: Postgres query optimizer
 (13 rows)
 
@@ -266,7 +266,7 @@ explain(locus, costs off) select count(c2) from t1;
                ->  Bitmap Heap Scan on t1
                      Locus: Hashed
                      ->  Bitmap Index Scan on t1_c2_idx
-                           Locus: NULL
+                           Locus: Hashed
  Optimizer: Postgres query optimizer
 (11 rows)
 
