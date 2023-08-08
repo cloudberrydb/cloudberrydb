@@ -1978,6 +1978,8 @@ appendonly_scan_bitmap_next_tuple(TableScanDesc scan,
 
 	}
 
+	aoscan->aofetch->visibilityMap.visimapStore.snapshot = aoscan->appendOnlyMetaDataSnapshot;
+
 	ExecClearTuple(slot);
 
 	/* ntuples == -1 indicates a lossy page */
@@ -2011,11 +2013,12 @@ appendonly_scan_bitmap_next_tuple(TableScanDesc scan,
 		{
 			/* OK to return this tuple */
 			pgstat_count_heap_fetch(aoscan->aos_rd);
+			aoscan->aofetch->visibilityMap.visimapStore.snapshot = InvalidSnapshot;
 
 			return true;
 		}
 	}
-
+	aoscan->aofetch->visibilityMap.visimapStore.snapshot = InvalidSnapshot;
 	/* Done with this block */
 	return false;
 }

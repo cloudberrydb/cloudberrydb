@@ -1813,6 +1813,8 @@ aoco_scan_bitmap_next_tuple(TableScanDesc scan,
 		aocsBitmapScan->bitmapScanDesc[aocsBitmapScan->whichDesc].bitmapFetch = aocoFetchDesc;
 	}
 
+	aocoFetchDesc->visibilityMap.visimapStore.snapshot = aocsBitmapScan->appendOnlyMetaDataSnapshot;
+
 	ExecClearTuple(slot);
 
 	/* ntuples == -1 indicates a lossy page */
@@ -1847,11 +1849,12 @@ aoco_scan_bitmap_next_tuple(TableScanDesc scan,
 			/* OK to return this tuple */
 			ExecStoreVirtualTuple(slot);
 			pgstat_count_heap_fetch(aocsBitmapScan->rs_base.rs_rd);
+			aocoFetchDesc->visibilityMap.visimapStore.snapshot = InvalidSnapshot;
 
 			return true;
 		}
 	}
-
+	aocoFetchDesc->visibilityMap.visimapStore.snapshot = InvalidSnapshot;
 	/* Done with this block */
 	return false;
 }
