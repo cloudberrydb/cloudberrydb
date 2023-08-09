@@ -967,12 +967,14 @@ cdbcomponent_activeQEsExist(void)
 bool
 cdb_checkWarehouseName(char *new_name)
 {
+	Oid warehouseid;
+
 	if (Gp_role == GP_ROLE_EXECUTE)
 		return true;
 	if (new_name == NULL || strcmp(new_name, "default") == 0)
 		return true;
 
-	Oid warehouseid = GetGpWarehouseOid(new_name, true);
+	warehouseid = GetGpWarehouseOid(new_name, true);
 
 	if (!OidIsValid(warehouseid))
 		GUC_check_errmsg("warehouse %s does not exist", new_name);
@@ -993,8 +995,9 @@ cdb_assignCurrentWarehouse(char *old_name, char *new_name)
 
 	register_unlock_warehouse_handler();
 
-	/* lock warehouse */
-	if (strcmp(new_name, "default") != 0){
+	/* lock new warehouse */
+	if (strcmp(new_name, "default") != 0)
+	{
 		newwarehouse = GetGpWarehouseOid(new_name, false);
 		LockWarehouse(newwarehouse, ShareLock);
 		current_warehouse_oid = newwarehouse;
