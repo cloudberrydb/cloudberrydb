@@ -32,6 +32,9 @@ ifeq ($(enable_catalog_ext),yes)
 SUBDIRS += catalog-extension
 LDFLAGS += -lprotobuf -lstdc++
 endif
+ifeq ($(enable_serverless),yes)
+LDFLAGS += -lprotobuf -lstdc++ -ljansson
+endif
 
 include $(srcdir)/common.mk
 

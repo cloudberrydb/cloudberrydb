@@ -83,6 +83,11 @@
 
 CountDBSession_hook_type CountDBSession_hook = NULL;
 
+/*
+ * Hook for plugins to get control in GetSnapshotData
+ */
+GetSnapshotData_hook_type GetSnapshotData_hook = NULL;
+
 /* Our shared memory area */
 typedef struct ProcArrayStruct
 {
@@ -297,10 +302,10 @@ static TransactionId standbySnapshotPendingXmin;
  * GlobalVisState for details. As shared, catalog, normal and temporary
  * relations can have different horizons, one such state exists for each.
  */
-static GlobalVisState GlobalVisSharedRels;
-static GlobalVisState GlobalVisCatalogRels;
-static GlobalVisState GlobalVisDataRels;
-static GlobalVisState GlobalVisTempRels;
+GlobalVisState GlobalVisSharedRels;
+GlobalVisState GlobalVisCatalogRels;
+GlobalVisState GlobalVisDataRels;
+GlobalVisState GlobalVisTempRels;
 
 /*
  * This backend's RecentXmin at the last time the accurate xmin horizon was
@@ -2941,6 +2946,9 @@ GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext)
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 					 errmsg("out of memory")));
 	}
+
+	if (GetSnapshotData_hook)
+		return (*GetSnapshotData_hook) (snapshot, distributedTransactionContext);
 
 	/*
 	 * GP: Distributed snapshot.

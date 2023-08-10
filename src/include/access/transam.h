@@ -308,6 +308,10 @@ extern bool gp_pause_on_restore_point_replay;
 typedef RelFileNodeId (*NewSegRelfilenode_assign_hook_type)(void);
 extern PGDLLIMPORT NewSegRelfilenode_assign_hook_type NewSegRelfilenode_assign_hook;
 
+/* Hook for plugins to get control in GetNewTransactionId */
+typedef FullTransactionId (*GetNewTransactionId_hook_type)(bool isSubXact);
+extern PGDLLIMPORT GetNewTransactionId_hook_type GetNewTransactionId_hook;
+
 /*
  * prototypes for functions in transam/transam.c
  */

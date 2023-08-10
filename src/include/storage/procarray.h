@@ -48,6 +48,10 @@ extern void ExpireOldKnownAssignedTransactionIds(TransactionId xid);
 extern int	GetMaxSnapshotXidCount(void);
 extern int	GetMaxSnapshotSubxidCount(void);
 
+/* Hook for plugins to get control in GetSnapshotData */
+typedef Snapshot (*GetSnapshotData_hook_type)(Snapshot snapshot, DtxContext distributedTransactionContext);
+extern PGDLLIMPORT GetSnapshotData_hook_type GetSnapshotData_hook;
+
 extern Snapshot GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext);
 
 extern bool ProcArrayInstallImportedXmin(TransactionId xmin,

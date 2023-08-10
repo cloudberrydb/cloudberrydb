@@ -299,6 +299,14 @@ static TransactionId unreportedXids[PGPROC_MAX_CACHED_SUBXIDS];
 static TransactionState CurrentTransactionState = &TopTransactionStateData;
 
 /*
+ * Hooks for plugins to get control in Transaction Management.
+ */
+TransactionParticipateEnd_hook_type TransactionParticipateEnd_hook = NULL;
+NotifySubTransaction_hook_type NotifySubTransaction_hook = NULL;
+XactLogCommitRecord_hook_type XactLogCommitRecord_hook = NULL;
+XactLogAbortRecord_hook_type XactLogAbortRecord_hook = NULL;
+
+/*
  * The subtransaction ID and command ID assignment counters are global
  * to a whole transaction, so we do not keep them in the state stack.
  */
@@ -900,6 +908,12 @@ GetCurrentCommandId(bool used)
 		currentCommandIdUsed = true;
 	}
 	return currentCommandId;
+}
+
+void
+SetCurrentCommandId(CommandId cid)
+{
+	currentCommandId = cid;
 }
 
 /*
@@ -2945,6 +2959,9 @@ CommitTransaction(void)
 	if (notifyCommittedDtxTransactionIsNeeded())
 		notifyCommittedDtxTransaction();
 
+	if (TransactionParticipateEnd_hook)
+		TransactionParticipateEnd_hook(true);
+
 	/*
 	 * Let others know about no transaction in progress by me. Note that this
 	 * must be done _before_ releasing locks we hold and _after_
@@ -3593,6 +3610,9 @@ AbortTransaction(void)
 	 * signals to prevent recursion until we've notified the QEs.
 	 */
 	rollbackDtxTransaction();
+
+	if (TransactionParticipateEnd_hook)
+		TransactionParticipateEnd_hook(false);
 
 	/*
 	 * Let others know about no transaction in progress by me. Note that this
@@ -5183,6 +5203,9 @@ DefineSavepoint(const char *name)
 {
 	TransactionState s = CurrentTransactionState;
 
+	if (NotifySubTransaction_hook)
+		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_BEGIN);
+
 	/*
 	 * Workers synchronize transaction state at the beginning of each parallel
 	 * operation, so we can't account for new subtransactions after that
@@ -5550,6 +5573,9 @@ BeginInternalSubTransaction(const char *name)
 				"Could not BeginInternalSubTransaction dispatch failed");
 		}
 	}
+
+	if (NotifySubTransaction_hook)
+		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_BEGIN);
 
 	/*
 	 * Workers synchronize transaction state at the beginning of each parallel
@@ -6044,6 +6070,9 @@ CommitSubTransaction(void)
 	/* Must CCI to ensure commands of subtransaction are seen as done */
 	CommandCounterIncrement();
 
+	if (NotifySubTransaction_hook)
+		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_RELEASE);
+
 	/*
 	 * Prior to 8.4 we marked subcommit in clog at this point.  We now only
 	 * perform that step, if required, as part of the atomic update of the
@@ -6214,6 +6243,9 @@ AbortSubTransaction(void)
 		AtEOSubXact_Parallel(false, s->subTransactionId);
 		s->parallelModeLevel = 0;
 	}
+
+	if (NotifySubTransaction_hook)
+		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_ROLLBACK);
 
 	/*
 	 * We can skip all this stuff if the subxact failed before creating a
@@ -6834,6 +6866,12 @@ XactLogCommitRecord(TimestampTz commit_time,
 
 	Assert(CritSectionCount > 0);
 
+	if (XactLogCommitRecord_hook)
+		return (* XactLogCommitRecord_hook) (commit_time, tablespace_oid_to_delete_on_commit, 
+											nsubxacts, subxacts, nrels, rels, nmsgs, msgs,
+											ndeldbs, deldbs, relcacheInval, xactflags,
+											twophase_xid, twophase_gid);
+
 	xl_xinfo.xinfo = 0;
 
 	/* decide between a plain and 2pc commit */
@@ -7023,6 +7061,11 @@ XactLogAbortRecord(TimestampTz abort_time,
 	uint8		info;
 
 	Assert(CritSectionCount > 0);
+
+	if (XactLogAbortRecord_hook)
+		(*XactLogAbortRecord_hook) (abort_time, tablespace_oid_to_delete_on_abort,
+									nsubxacts, subxacts, nrels, rels, ndeldbs, deldbs,
+									xactflags, twophase_xid, twophase_gid);
 
 	xl_xinfo.xinfo = 0;
 

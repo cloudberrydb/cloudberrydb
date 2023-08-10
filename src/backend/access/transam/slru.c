@@ -54,6 +54,7 @@
 #include "access/slru.h"
 #include "access/transam.h"
 #include "access/xlog.h"
+#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/fd.h"
@@ -133,6 +134,11 @@ typedef enum
 static SlruErrorCause slru_errcause;
 static int	slru_errno;
 
+/*
+ * Hooks for plugins to get control in SlruPhysicalReadPage/SlruPhysicalWritePage
+ */
+SlruPhysicalReadPage_hook_type SlruPhysicalReadPage_hook = NULL;
+SlruPhysicalWritePage_hook_type SlruPhysicalWritePage_hook = NULL;
 
 static void SimpleLruZeroLSNs(SlruCtl ctl, int slotno);
 static void SimpleLruWaitIO(SlruCtl ctl, int slotno);
@@ -421,6 +427,17 @@ SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 				/* Now we must recheck state from the top */
 				continue;
 			}
+#ifdef SERVERLESS
+			/*
+			 * TODO: add hook/GUC instead?
+			 * The page in buffer may be out of date, we need to check the buffer
+			 * and refresh the buffer if the page has been modified.
+			 */
+			if (Gp_role == GP_ROLE_EXECUTE)
+			{
+				goto PageRead;
+			}
+#endif
 			/* Otherwise, it's ready to use */
 			SlruRecentlyUsed(shared, slotno);
 
@@ -434,6 +451,10 @@ SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 		Assert(shared->page_status[slotno] == SLRU_PAGE_EMPTY ||
 			   (shared->page_status[slotno] == SLRU_PAGE_VALID &&
 				!shared->page_dirty[slotno]));
+
+#ifdef SERVERLESS
+PageRead:
+#endif
 
 		/* Mark the slot read-busy */
 		shared->page_number[slotno] = pageno;
@@ -506,6 +527,18 @@ SimpleLruReadPage_ReadOnly(SlruCtl ctl, int pageno, TransactionId xid)
 			shared->page_status[slotno] != SLRU_PAGE_EMPTY &&
 			shared->page_status[slotno] != SLRU_PAGE_READ_IN_PROGRESS)
 		{
+#ifdef SERVERLESS
+			/*
+			* TODO: add hook/GUC instead?
+			* The page in buffer may be out of date, we need to check the buffer
+			* and refresh the buffer if the page has been modified.
+			*/
+			if (Gp_role == GP_ROLE_EXECUTE)
+			{
+				break;
+			}
+#endif
+
 			/* See comments for SlruRecentlyUsed macro */
 			SlruRecentlyUsed(shared, slotno);
 
@@ -688,6 +721,13 @@ SlruPhysicalReadPage(SlruCtl ctl, int pageno, int slotno)
 	off_t		offset = rpageno * BLCKSZ;
 	char		path[MAXPGPATH];
 	int			fd;
+	bool		result;
+
+	if (SlruPhysicalReadPage_hook &&
+		SlruPhysicalReadPage_hook(ctl, pageno, slotno, &result))
+	{
+		return result;
+	}
 
 	SlruFileName(ctl, path, segno);
 
@@ -760,6 +800,7 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruWriteAll fdata)
 	off_t		offset = rpageno * BLCKSZ;
 	char		path[MAXPGPATH];
 	int			fd = -1;
+	bool		result;
 
 	/* update the stats counter of written pages */
 	pgstat_count_slru_page_written(shared->slru_stats_idx);
@@ -804,6 +845,12 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruWriteAll fdata)
 			XLogFlush(max_lsn);
 			END_CRIT_SECTION();
 		}
+	}
+
+	if (SlruPhysicalWritePage_hook && 
+		SlruPhysicalWritePage_hook(ctl, pageno, slotno, &result))
+	{
+		return result;
 	}
 
 	/*

@@ -55,6 +55,10 @@ extern bool IsAutoVacuumWorkerProcess(void);
 #define IsAnyAutoVacuumProcess() \
 	(IsAutoVacuumLauncherProcess() || IsAutoVacuumWorkerProcess())
 
+/* Hook for plugins to get control in AutoVacLauncher */
+typedef void (*AutoVacLauncherMain_hook_type)(int argc, char *argv[]);
+extern PGDLLIMPORT AutoVacLauncherMain_hook_type AutoVacLauncherMain_hook;
+
 /* Functions to start autovacuum process, called from postmaster */
 extern void autovac_init(void);
 extern int	StartAutoVacLauncher(void);

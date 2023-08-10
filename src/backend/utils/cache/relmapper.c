@@ -138,6 +138,10 @@ static RelMapFile active_local_updates;
 static RelMapFile pending_shared_updates;
 static RelMapFile pending_local_updates;
 
+/*
+ * Hook for plugins to get control in load_relmap_file
+ */
+LoadRelMap_hook_type LoadRelMap_hook = NULL;
 
 /* non-export function prototypes */
 static void apply_map_update(RelMapFile *map, Oid relationId, RelFileNodeId fileNode,
@@ -723,6 +727,9 @@ load_relmap_file(bool shared, bool lock_held)
 				 DatabasePath, RELMAPPER_FILENAME);
 		map = &local_map;
 	}
+
+	if (LoadRelMap_hook)
+		return (*LoadRelMap_hook) (shared, lock_held, map);
 
 	/* Read data ... */
 	fd = OpenTransientFile(mapfilename, O_RDONLY | PG_BINARY);

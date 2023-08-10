@@ -101,6 +101,21 @@
 extern uint32 bootstrap_data_checksum_version;
 extern int bootstrap_file_encryption_method;
 
+/*
+ * Hook for plugins to get control in StartupXLOG.
+ */
+StartupXLOG_hook_type StartupXLOG_hook = NULL;
+
+/*
+ * Hook for plugins to get control in XLogFlush.
+ */
+XLogFlush_hook_type XLogFlush_hook = NULL;
+
+/*
+ * Hook for plugins to get control in CreateCheckPoint.
+ */
+CreateCheckPoint_hook_type CreateCheckPoint_hook = NULL;
+
 /* Unsupported old recovery command file names (relative to $PGDATA) */
 #define RECOVERY_COMMAND_FILE	"recovery.conf"
 #define RECOVERY_COMMAND_DONE	"recovery.done"
@@ -2938,6 +2953,9 @@ XLogFlush(XLogRecPtr record)
 	XLogRecPtr	WriteRqstPtr;
 	XLogwrtRqst WriteRqst;
 
+	if (XLogFlush_hook)
+		return (*XLogFlush_hook) (record);
+
 	/*
 	 * During REDO, we are reading not writing WAL.  Therefore, instead of
 	 * trying to flush the WAL, we should update minRecoveryPoint instead. We
@@ -3129,6 +3147,15 @@ XLogBackgroundFlush(void)
 	static TimestampTz lastflush;
 	TimestampTz now;
 	int			flushbytes;
+
+#ifdef SERVERLESS
+	/*
+	 * TODO: use GUC/hook instead of macro.
+	 *
+	 * Indeed, walwriter is not needed in serverless, we have no WAL in buffer.
+	 */
+	return true;
+#endif
 
 	/* XLOG doesn't need flushing during recovery */
 	if (RecoveryInProgress())
@@ -6755,6 +6782,9 @@ StartupXLOG(void)
 	bool		promoted = false;
 	struct stat st;
 
+	if (StartupXLOG_hook)
+		return (*StartupXLOG_hook) ();
+
 	/*
 	 * We should have an aux process resource owner to use, and we should not
 	 * be in a transaction that's installed some other resowner.
@@ -9408,6 +9438,12 @@ CreateCheckPoint(int flags)
 	XLogRecPtr	last_important_lsn;
 	VirtualTransactionId *vxids;
 	int			nvxids;
+
+	if (CreateCheckPoint_hook)
+	{
+		(*CreateCheckPoint_hook) (flags);
+		return;
+	}
 
 	/*
 	 * An end-of-recovery checkpoint is really a shutdown checkpoint, just
@@ -13956,4 +13992,22 @@ void
 XLogRequestWalReceiverReply(void)
 {
 	doRequestWalReceiverReply = true;
+}
+
+/*
+ * Return pointer to pg_control in shared memory;
+ */
+ControlFileData *
+GetControlFile(void)
+{
+	return ControlFile;
+}
+
+/*
+ * Return pointer to XLogCtlData in shared memory;
+ */
+XLogCtlData *
+GetXLogCtl(void)
+{
+	return XLogCtl;
 }

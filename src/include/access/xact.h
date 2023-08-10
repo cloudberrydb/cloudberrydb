@@ -189,6 +189,48 @@ typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
 #define XACT_XINFO_HAS_DISTRIB			(1U << 8)
 #define XACT_XINFO_HAS_DELDBS			(1U << 9)
 
+typedef enum
+{
+	TXN_PROTOCOL_COMMAND_BEGIN = 0,
+	TXN_PROTOCOL_COMMAND_ABORT,
+	TXN_PROTOCOL_COMMAND_COMMIT,
+	TXN_PROTOCOL_COMMAND_POST_COMMIT,
+	TXN_PROTOCOL_COMMAND_SUB_BEGIN,
+	TXN_PROTOCOL_COMMAND_SUB_RELEASE,
+	TXN_PROTOCOL_COMMAND_SUB_ROLLBACK,
+} TxnProtocolCommand;
+
+/*
+ * Hooks for plugins to get control in Transaction Management
+ */
+typedef void(*TransactionParticipateEnd_hook_type)(bool commit);
+extern PGDLLIMPORT TransactionParticipateEnd_hook_type TransactionParticipateEnd_hook;
+
+typedef bool(*NotifySubTransaction_hook_type)(TxnProtocolCommand command);
+extern PGDLLIMPORT NotifySubTransaction_hook_type NotifySubTransaction_hook;
+
+typedef XLogRecPtr
+(*XactLogCommitRecord_hook_type) (TimestampTz commit_time,
+					Oid tablespace_oid_to_delete_on_commit,
+					int nsubxacts, TransactionId *subxacts,
+					int nrels, RelFileNodePendingDelete *rels,
+					int nmsgs, SharedInvalidationMessage *msgs,
+					int ndeldbs, DbDirNode *deldbs,
+					bool relcacheInval,
+					int xactflags, TransactionId twophase_xid,
+					const char *twophase_gid);
+extern PGDLLIMPORT XactLogCommitRecord_hook_type XactLogCommitRecord_hook;	
+
+typedef XLogRecPtr
+(*XactLogAbortRecord_hook_type) (TimestampTz abort_time,
+				   Oid tablespace_oid_to_delete_on_abort,
+				   int nsubxacts, TransactionId *subxacts,
+				   int nrels, RelFileNodePendingDelete *rels,
+				   int ndeldbs, DbDirNode *deldbs,
+				   int xactflags, TransactionId twophase_xid,
+				   const char *twophase_gid);
+extern PGDLLIMPORT XactLogAbortRecord_hook_type XactLogAbortRecord_hook;
+
 /*
  * Also stored in xinfo, these indicating a variety of additional actions that
  * need to occur when emulating transaction effects during recovery.
@@ -452,6 +494,7 @@ extern void MarkCurrentTransactionIdLoggedIfAny(void);
 extern void MarkTopTransactionWriteXLogOnExecutor(void);
 extern bool SubTransactionIsActive(SubTransactionId subxid);
 extern CommandId GetCurrentCommandId(bool used);
+extern void SetCurrentCommandId(CommandId cid);
 extern void SetParallelStartTimestamps(TimestampTz xact_ts, TimestampTz stmt_ts);
 extern TimestampTz GetCurrentTransactionStartTimestamp(void);
 extern TimestampTz GetCurrentStatementStartTimestamp(void);
