@@ -91,10 +91,12 @@ create or replace function FuncA()
 returns void as
 $body$
 begin
+	set enable_parallel=off;
  	insert into test_zlib values(2387283, 'a');
  	insert into test_zlib_t1 values(1, 2);
     CREATE TEMP table TMP_Q_QR_INSTM_ANL_01 WITH(APPENDONLY=true,COMPRESSLEVEL=5,ORIENTATION=row,COMPRESSTYPE=zlib) on commit drop as
     SELECT t1.i from test_zlib as t1 join test_zlib as t2 on t1.i = t2.i;
+	reset enable_parallel;
 EXCEPTION WHEN others THEN
  -- do nothing
 end
