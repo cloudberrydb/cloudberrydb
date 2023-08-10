@@ -200,17 +200,14 @@ remove_segment_config(int16 dbid)
 	{
 		Datum		attr;
 		bool		isNull;
-		char	   *warehouse_name = NULL;
+		Oid			warehouseid = InvalidOid;
 
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
-							RelationGetDescr(rel), &isNull);
-		if (!isNull)
-			warehouse_name = TextDatumGetCString(attr);
-
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouseid,
 							RelationGetDescr(rel), &isNull);
 		Assert(!isNull);
-		if (DatumGetInt16(attr) == MASTER_CONTENT_ID || strcmp(warehouse_name, current_warehouse) == 0)
+		warehouseid = DatumGetObjectId(attr);
+
+		if (!OidIsValid(warehouseid) || warehouseid == GetCurrentWarehouseId())
 		{
 			CatalogTupleDelete(rel, &tuple->t_self);
 			numDel++;
@@ -254,11 +251,8 @@ add_segment_config_entry(GpSegConfigEntry *i)
 		CStringGetTextDatum(i->address);
 	values[Anum_gp_segment_configuration_datadir - 1] =
 		CStringGetTextDatum(i->datadir);
-	if (i->warehousename != NULL)
-		values[Anum_gp_segment_configuration_warehouse_name - 1] =
-			CStringGetTextDatum(i->warehousename);
-	else
-		nulls[Anum_gp_segment_configuration_warehouse_name - 1] = true;
+	values[Anum_gp_segment_configuration_warehouseid - 1] =
+		ObjectIdGetDatum(i->warehouseid);
 
 	tuple = heap_form_tuple(RelationGetDescr(rel), values, nulls);
 
@@ -413,9 +407,9 @@ gp_add_segment(PG_FUNCTION_ARGS)
 	new.datadir = TextDatumGetCString(PG_GETARG_DATUM(9));
 
 	if (new.segindex == MASTER_CONTENT_ID)
-		new.warehousename = NULL;
+		new.warehouseid = InvalidOid;
 	else
-		new.warehousename = current_warehouse;
+		new.warehouseid = GetCurrentWarehouseId();
 
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment");
 
@@ -498,9 +492,9 @@ gp_add_segment_mirror(PG_FUNCTION_ARGS)
 	new.datadir = TextDatumGetCString(PG_GETARG_DATUM(4));
 
 	if (new.segindex == MASTER_CONTENT_ID)
-		new.warehousename = NULL;
+		new.warehouseid = InvalidOid;
 	else
-		new.warehousename = current_warehouse;
+		new.warehouseid = GetCurrentWarehouseId();
 
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment_mirror");
 
@@ -639,7 +633,7 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 
 	config->datadir = TextDatumGetCString(PG_GETARG_TEXT_P(2));
 
-	config->warehousename = NULL;
+	config->warehouseid = InvalidOid;
 
 	/* Use the new port number if specified */
 	if (PG_NARGS() > 3 && !PG_ARGISNULL(3))
@@ -870,9 +864,9 @@ gp_update_segment_configuration_mode_status(PG_FUNCTION_ARGS)
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
 	ScanKeyInit(&scankey[1],
-				Anum_gp_segment_configuration_warehouse_name,
-				BTEqualStrategyNumber, F_TEXTEQ,
-				CStringGetTextDatum(current_warehouse));
+				Anum_gp_segment_configuration_warehouseid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(GetCurrentWarehouseId()));
 	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
 							   NULL, 2, scankey);
 

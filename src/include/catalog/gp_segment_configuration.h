@@ -58,7 +58,7 @@ CATALOG(gp_segment_configuration,7026,GpSegmentConfigRelationId) BKI_SHARED_RELA
 	text		address;
 
 	text		datadir;
-	text		warehouse_name BKI_DEFAULT(_null_);
+	Oid			warehouseid BKI_DEFAULT(0);
 #endif
 } FormData_gp_segment_configuration;
 

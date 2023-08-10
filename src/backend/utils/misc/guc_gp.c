@@ -101,8 +101,6 @@ static void assign_pljava_classpath_insecure(bool newval, void *extra);
 static bool check_gp_resource_group_bypass(bool *newval, void **extra, GucSource source);
 static int guc_array_compare(const void *a, const void *b);
 static bool check_max_running_tasks(int *newval, void **extra, GucSource source);
-static bool check_current_warehouse(char **newval, void **extra, GucSource source);
-static void assign_current_warehouse(const char *newval, void *extra);
 
 int listenerBacklog  = 128;
 
@@ -431,9 +429,6 @@ bool		gp_enable_global_deadlock_detector = false;
 
 bool gp_enable_predicate_pushdown;
 int  gp_predicate_pushdown_sample_rows;
-
-/* Current warehouse */
-char		*current_warehouse = "default";
 
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
@@ -4545,16 +4540,6 @@ struct config_string ConfigureNamesString_gp[] =
 	},
 
 	{
-		{"warehouse", PGC_USERSET, CUSTOM_OPTIONS,
-			gettext_noop("Sets the current warehouse."),
-			NULL,
-			GUC_NO_RESET_ALL
-		},
-		&current_warehouse, "default",
-		check_current_warehouse, assign_current_warehouse, NULL
-	},
-
-	{
 		{"task_timezone", PGC_POSTMASTER, TASK_SCHEDULE_OPTIONS,
 			gettext_noop("Specify timezone used for cron task schedule."),
 			NULL,
@@ -5092,24 +5077,6 @@ check_max_running_tasks(int *newval, void **extra, GucSource source)
 	if (*newval >= MaxConnections)
 		return false;
 	return true;
-}
-
-bool
-check_current_warehouse(char **newval, void **extra, GucSource source)
-{
-#ifdef USE_INTERNAL_FTS
-	return cdb_checkWarehouseName(*newval);
-#else
-	return true;
-#endif
-}
-
-void assign_current_warehouse(const char *newval, void *extra)
-{
-#ifdef USE_INTERNAL_FTS
-	char *new_name = pstrdup(newval);
-	cdb_assignCurrentWarehouse(current_warehouse, new_name);
-#endif
 }
 
 /*

@@ -148,7 +148,7 @@ typedef struct GpSegConfigEntry
 	char		*hostname;		/* name or ip address of host machine */
 	char		*address;		/* ip address of host machine */
 	char		*datadir;		/* absolute path to data directory on the host. */
-	char		*warehousename;
+	Oid			warehouseid;
 
 	/* additional cached info */
 	char		*hostip;	/* cached lookup of name */

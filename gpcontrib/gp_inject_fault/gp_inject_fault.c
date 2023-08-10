@@ -119,7 +119,7 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 	SysScanDesc scan;
 	Datum       attr;
 	bool        isNull;
-	char		*warehouse_name = NULL;
+	Oid			warehouseid = InvalidOid;
 	bool		find_config = false;
 
 	configrel = table_open(GpSegmentConfigRelationId, AccessShareLock);
@@ -132,14 +132,12 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 
 	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
 	{
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouse_name,
-							RelationGetDescr(configrel), &isNull);
-		if (!isNull)
-			warehouse_name = TextDatumGetCString(attr);
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouseid,
 							RelationGetDescr(configrel), &isNull);
 		Assert(!isNull);
-		if (DatumGetInt16(attr) == MASTER_CONTENT_ID || strcmp(warehouse_name, current_warehouse) == 0)
+		warehouseid = DatumGetObjectId(attr);
+
+		if (!OidIsValid(warehouseid) || warehouseid == GetCurrentWarehouseId())
 		{
 			attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
 								RelationGetDescr(configrel), &isNull);

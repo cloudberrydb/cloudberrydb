@@ -20,6 +20,4 @@ DECLARE_UNIQUE_INDEX(gp_warehouse_oid_index, 8086, on gp_warehouse using btree(o
 DECLARE_UNIQUE_INDEX(gp_warehouse_name_index, 8059, on gp_warehouse using btree(warehouse_name text_ops));
 #define GpWarehouseNameIndexId	8059
 
-extern Oid GetGpWarehouseOid(char *warehouse_name, bool missing_ok);
-
 #endif   /* GP_WAREHOUSE_H */

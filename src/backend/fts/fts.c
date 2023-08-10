@@ -239,9 +239,9 @@ probeWalRepUpdateConfig(int16 dbid, int16 segindex, char role,
 					BTEqualStrategyNumber, F_INT2EQ,
 					Int16GetDatum(dbid));
 		ScanKeyInit(&scankey[1],
-					Anum_gp_segment_configuration_warehouse_name,
-					BTEqualStrategyNumber, F_TEXTEQ,
-					CStringGetTextDatum(current_warehouse));
+					Anum_gp_segment_configuration_warehouseid,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(GetCurrentWarehouseId()));
 		sscan = systable_beginscan(configrel, GpSegmentConfigDbidWarehouseIndexId,
 								   true, NULL, 2, scankey);
 
