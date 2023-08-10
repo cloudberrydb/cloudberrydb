@@ -241,6 +241,7 @@ readGpSegConfigFromCatalog(int *total_dbs)
 	int					array_size;
 	bool				isNull;
 	Datum				attr;
+	Oid					warehouseid = InvalidOid;
 	Relation			gp_seg_config_rel;
 	HeapTuple			gp_seg_config_tuple = NULL;
 	SysScanDesc			gp_seg_config_scan;
@@ -256,6 +257,13 @@ readGpSegConfigFromCatalog(int *total_dbs)
 
 	while (HeapTupleIsValid(gp_seg_config_tuple = systable_getnext(gp_seg_config_scan)))
 	{
+		/* warehouseid */
+		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_warehouseid, RelationGetDescr(gp_seg_config_rel), &isNull);
+		Assert(!isNull);
+		warehouseid = DatumGetObjectId(attr);
+		if (OidIsValid(warehouseid) && warehouseid != GetCurrentWarehouseId())
+			continue;
+
 		config = &configs[idx];
 
 		/* dbid */
@@ -1511,93 +1519,101 @@ dbid_get_dbinfo(int16 dbid)
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	scan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+	scan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
 							  NULL, 1, &scankey);
 
-	tuple = systable_getnext(scan);
-	if (HeapTupleIsValid(tuple))
+	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
 	{
 		Datum		attr;
 		bool		isNull;
+		Oid			warehouseid = InvalidOid;
 
-		i = palloc(sizeof(GpSegConfigEntry));
-
-		/*
-		 * dbid
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_dbid,
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouseid,
 							RelationGetDescr(rel), &isNull);
 		Assert(!isNull);
-		i->dbid = DatumGetInt16(attr);
+		warehouseid = DatumGetObjectId(attr);
 
-		/*
-		 * content
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->segindex = DatumGetInt16(attr);
+		if (!OidIsValid(warehouseid) || warehouseid == GetCurrentWarehouseId())
+		{
+			i = palloc(sizeof(GpSegConfigEntry));
 
-		/*
-		 * role
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_role,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->role = DatumGetChar(attr);
+			/*
+			* dbid
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_dbid,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->dbid = DatumGetInt16(attr);
 
-		/*
-		 * preferred-role
-		 */
-		attr = heap_getattr(tuple,
-							Anum_gp_segment_configuration_preferred_role,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->preferred_role = DatumGetChar(attr);
+			/*
+			* content
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->segindex = DatumGetInt16(attr);
 
-		/*
-		 * mode
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_mode,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->mode = DatumGetChar(attr);
+			/*
+			* role
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_role,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->role = DatumGetChar(attr);
 
-		/*
-		 * status
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_status,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->status = DatumGetChar(attr);
+			/*
+			* preferred-role
+			*/
+			attr = heap_getattr(tuple,
+								Anum_gp_segment_configuration_preferred_role,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->preferred_role = DatumGetChar(attr);
 
-		/*
-		 * hostname
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->hostname = TextDatumGetCString(attr);
+			/*
+			* mode
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_mode,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->mode = DatumGetChar(attr);
 
-		/*
-		 * address
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_address,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->address = TextDatumGetCString(attr);
+			/*
+			* status
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_status,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->status = DatumGetChar(attr);
 
-		/*
-		 * port
-		 */
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
-							RelationGetDescr(rel), &isNull);
-		Assert(!isNull);
-		i->port = DatumGetInt32(attr);
+			/*
+			* hostname
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->hostname = TextDatumGetCString(attr);
 
-		Assert(systable_getnext(scan) == NULL); /* should be only 1 */
+			/*
+			* address
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_address,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->address = TextDatumGetCString(attr);
+
+			/*
+			* port
+			*/
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
+								RelationGetDescr(rel), &isNull);
+			Assert(!isNull);
+			i->port = DatumGetInt32(attr);
+
+			break;
+		}
 	}
-	else
+	if (i == NULL)
 	{
 		elog(ERROR, "could not find configuration entry for dbid %i", dbid);
 	}
@@ -1619,7 +1635,8 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 {
 	int16		dbid = 0;
 	Relation	rel;
-	ScanKeyData scankey[2];
+	ScanKeyData scankey[3];
+	int			nkeys = 2;
 	SysScanDesc scan;
 	HeapTuple	tup;
 
@@ -1648,8 +1665,17 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 					Anum_gp_segment_configuration_preferred_role,
 					BTEqualStrategyNumber, F_CHAREQ,
 					CharGetDatum(role));
-		scan = systable_beginscan(rel, GpSegmentConfigContentPreferred_roleIndexId, true,
-								  NULL, 2, scankey);
+		if (contentid != MASTER_CONTENT_ID)
+		{
+			nkeys++;
+			ScanKeyInit(&scankey[2],
+						Anum_gp_segment_configuration_warehouseid,
+						BTEqualStrategyNumber, F_OIDEQ,
+						ObjectIdGetDatum(GetCurrentWarehouseId()));
+		}
+
+		scan = systable_beginscan(rel, GpSegmentConfigContentPreferred_roleWarehouseIndexId, true,
+								  NULL, nkeys, scankey);
 	}
 	else
 	{
@@ -1665,9 +1691,17 @@ contentid_get_dbid(int16 contentid, char role, bool getPreferredRoleNotCurrentRo
 					Anum_gp_segment_configuration_role,
 					BTEqualStrategyNumber, F_CHAREQ,
 					CharGetDatum(role));
+		if (contentid != MASTER_CONTENT_ID)
+		{
+			nkeys++;
+			ScanKeyInit(&scankey[2],
+						Anum_gp_segment_configuration_warehouseid,
+						BTEqualStrategyNumber, F_OIDEQ,
+						ObjectIdGetDatum(GetCurrentWarehouseId()));
+		}
 		/* no index */
 		scan = systable_beginscan(rel, InvalidOid, false,
-								  NULL, 2, scankey);
+								  NULL, nkeys, scankey);
 	}
 
 	tup = systable_getnext(scan);

@@ -4260,4 +4260,21 @@ typedef struct RetrieveStmt
 	bool		is_all;
 } RetrieveStmt;
 
+/* ----------------------
+ *		Warehouse Statement
+ * ----------------------
+ */
+typedef struct CreateWarehouseStmt
+{
+	NodeTag		type;
+	char		*whname;
+	List		*options;		/* List of DefElem nodes */
+} CreateWarehouseStmt;
+
+typedef struct DropWarehouseStmt
+{
+	NodeTag		type;
+	char		*whname;
+} DropWarehouseStmt;
+
 #endif							/* PARSENODES_H */

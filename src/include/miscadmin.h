@@ -460,6 +460,8 @@ extern void InitializeSessionUserIdStandalone(void);
 extern void SetSessionAuthorization(Oid userid, bool is_superuser);
 extern Oid	GetCurrentRoleId(void);
 extern void SetCurrentRoleId(Oid roleid, bool is_superuser);
+extern Oid GetCurrentWarehouseId(void);
+extern void SetCurrentWarehouseId(Oid warehouseid);
 
 /* in utils/misc/superuser.c */
 extern bool superuser(void);	/* current user is superuser */
