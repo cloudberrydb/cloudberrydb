@@ -162,6 +162,11 @@ extern TransactionId GlobalVisTestNonRemovableHorizon(GlobalVisState *state);
 extern bool GlobalVisCheckRemovableXid(Relation rel, TransactionId xid);
 extern bool GlobalVisCheckRemovableFullXid(Relation rel, FullTransactionId fxid);
 
+extern GlobalVisState GlobalVisSharedRels;
+extern GlobalVisState GlobalVisCatalogRels;
+extern GlobalVisState GlobalVisDataRels;
+extern GlobalVisState GlobalVisTempRels;
+
 /*
  * Utility functions for implementing visibility routines in table AMs.
  */

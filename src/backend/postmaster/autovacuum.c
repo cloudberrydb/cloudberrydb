@@ -207,6 +207,11 @@ static int	default_multixact_freeze_table_age;
 /* Memory context for long-lived data */
 static MemoryContext AutovacMemCxt;
 
+/*
+ * Hook for plugins to get control in AutoVacLauncher.
+ */
+AutoVacLauncherMain_hook_type AutoVacLauncherMain_hook = NULL;
+
 /* struct to keep track of databases in launcher */
 typedef struct avl_dbase
 {
@@ -488,6 +493,9 @@ NON_EXEC_STATIC void
 AutoVacLauncherMain(int argc, char *argv[])
 {
 	sigjmp_buf	local_sigjmp_buf;
+
+	if (AutoVacLauncherMain_hook)
+		(*AutoVacLauncherMain_hook) (argc, argv);
 
 	am_autovacuum_launcher = true;
 

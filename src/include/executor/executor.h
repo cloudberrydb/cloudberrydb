@@ -97,6 +97,9 @@ extern PGDLLIMPORT ExecutorEnd_hook_type ExecutorEnd_hook;
 typedef bool (*ExecutorCheckPerms_hook_type) (List *, bool);
 extern PGDLLIMPORT ExecutorCheckPerms_hook_type ExecutorCheckPerms_hook;
 
+/* Hook for plugins to get control in DtxTransaction Management */
+typedef bool (*SetDtxFlag_hook_type) (bool needDxt);
+extern PGDLLIMPORT SetDtxFlag_hook_type SetDtxFlag_hook;
 
 /*
  * prototypes from functions in execAmi.c

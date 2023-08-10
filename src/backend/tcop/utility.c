@@ -87,6 +87,9 @@
 /* Hook for plugins to get control in ProcessUtility() */
 ProcessUtility_hook_type ProcessUtility_hook = NULL;
 
+/* Hook for plugins to send explicit begin command */
+SendTxnExplicitBegin_hook_type SendTxnExplicitBegin_hook = NULL;
+
 /* counter to disable dispatch */
 int dispatch_nest_level = 0;
 
@@ -668,7 +671,10 @@ standard_ProcessUtility(PlannedStmt *pstmt,
 												  /* gp_dispatch */ false);
 							}
 
-							sendDtxExplicitBegin();
+							if (SendTxnExplicitBegin_hook)
+								SendTxnExplicitBegin_hook();
+							else
+								sendDtxExplicitBegin();
 						}
 						break;
 
@@ -730,7 +736,10 @@ standard_ProcessUtility(PlannedStmt *pstmt,
 						 * that the BEGIN has been dispatched
 						 * before we start dispatching our savepoint.
 						 */
-						sendDtxExplicitBegin();
+						if (SendTxnExplicitBegin_hook)
+							SendTxnExplicitBegin_hook();
+						else
+							sendDtxExplicitBegin();
 
 						DefineDispatchSavepoint(stmt->savepoint_name);
 						break;

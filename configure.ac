@@ -847,6 +847,16 @@ AC_MSG_RESULT([checking whether to build with catalog extension... $enable_catal
 AC_SUBST(enable_catalog_ext)
 
 #
+#
+# --enable-serverless uses serverless architecture of Cloudberry
+#
+PGAC_ARG_BOOL(enable, serverless, no, [use serverless architecture of Cloudberry],
+              [AC_DEFINE([SERVERLESS], 1,
+                                    [Define to 1 to use serverless architecture of Cloudberry. (--enable-serverless)])])
+AC_MSG_RESULT([checking whether to use serverless architecture of Cloudberry... $enable_serverless])
+AC_SUBST(enable_serverless)
+
+#
 # --enable-mapreduce enables GPMapreduce support
 #
 PGAC_ARG_BOOL(enable, mapreduce, no, [enable Cloudberry Mapreduce support],

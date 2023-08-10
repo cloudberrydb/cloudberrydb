@@ -43,6 +43,7 @@
 #include "catalog/catalog.h"
 #include "catalog/storage.h"
 #include "catalog/storage_xlog.h"
+#include "cdb/cdbvars.h"
 #include "crypto/bufenc.h"
 #include "executor/instrument.h"
 #include "lib/binaryheap.h"
@@ -1255,6 +1256,23 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 
 		*foundPtr = true;
 
+#ifdef SERVERLESS
+		/*
+		 * TODO: use GUC/hook instead of macro
+		 *
+		 * The page in buffer may be out of date, we need to check the buffer
+		 * and refresh the buffer if the page has been modified.
+		 */ 
+		if (Gp_role == GP_ROLE_EXECUTE && valid)
+		{
+			uint32 buf_state = LockBufHdr(buf);
+				
+			buf_state &= ~BM_VALID;
+			UnlockBufHdr(buf, buf_state);
+
+			valid = false;
+		}
+#endif
 		if (!valid)
 		{
 			/*

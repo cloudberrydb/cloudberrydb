@@ -44,6 +44,11 @@ int xid_warn_limit;
 NewSegRelfilenode_assign_hook_type NewSegRelfilenode_assign_hook = NULL;
 
 /*
+ * Hook for plugins to get control in GetNewTransactionId.
+ */
+GetNewTransactionId_hook_type GetNewTransactionId_hook = NULL;
+
+/*
  * Allocate the next FullTransactionId for a new transaction or
  * subtransaction.
  *
@@ -60,6 +65,9 @@ GetNewTransactionId(bool isSubXact)
 {
 	FullTransactionId full_xid;
 	TransactionId xid;
+
+	if (GetNewTransactionId_hook)
+		return (*GetNewTransactionId_hook) (isSubXact);
 
 	/*
 	 * Workers synchronize transaction state at the beginning of each parallel

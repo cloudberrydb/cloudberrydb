@@ -162,9 +162,21 @@ extern bool StandbyMode;
 /* tde feature enable or not */
 extern int  FileEncryptionEnabled;
 
-/* Hook for plugins to do some startup job */
+/* Hook for plugins to get control in StartupXLOG */
+typedef void (*StartupXLOG_hook_type) (void);
+extern PGDLLIMPORT StartupXLOG_hook_type StartupXLOG_hook;
+
+/* Hook for plugins to do additional startup works */
 typedef void (*Startup_hook_type) (void);
 extern PGDLLIMPORT Startup_hook_type Startup_hook;
+
+/* Hook for plugins to get control in XLogFlush */
+typedef void (*XLogFlush_hook_type) (XLogRecPtr record);
+extern PGDLLIMPORT XLogFlush_hook_type XLogFlush_hook;
+
+/* Hook for plugins to get control in CreateCheckPoint */
+typedef void (*CreateCheckPoint_hook_type)(int flags);
+extern PGDLLIMPORT CreateCheckPoint_hook_type CreateCheckPoint_hook;
 
 /* Archive modes */
 typedef enum ArchiveMode
@@ -229,7 +241,16 @@ extern PGDLLIMPORT int wal_level;
 		(DataChecksumsEnabled() || FileEncryptionEnabled || wal_log_hints)
 
 /* Do we need to WAL-log information required only for Hot Standby and logical replication? */
+#ifdef SERVERLESS
+/*
+ * This is not necessary.
+ * 
+ * Standby is not needed in serverless, so we do not need to WAL-log anything.
+ */
+#define XLogStandbyInfoActive() (false)
+#else
 #define XLogStandbyInfoActive() (wal_level >= WAL_LEVEL_REPLICA)
+#endif
 
 /* Do we need to WAL-log information required only for logical replication? */
 #define XLogLogicalInfoActive() (wal_level >= WAL_LEVEL_LOGICAL)
@@ -306,6 +327,7 @@ typedef enum WALAvailability
 } WALAvailability;
 
 struct XLogRecData;
+typedef struct XLogCtlData XLogCtlData;
 
 extern XLogRecPtr XLogInsertRecord(struct XLogRecData *rdata,
 								   XLogRecPtr fpw_lsn,
@@ -438,5 +460,7 @@ extern bool IsRoleMirror(void);
 extern void SignalPromote(void);
 extern XLogRecPtr XLogLastInsertBeginLoc(void);
 extern void initialize_wal_bytes_written(void);
+extern ControlFileData *GetControlFile(void);
+extern XLogCtlData *GetXLogCtl(void);
 
 #endif							/* XLOG_H */

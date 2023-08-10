@@ -138,6 +138,14 @@ typedef struct SlruCtlData
 
 typedef SlruCtlData *SlruCtl;
 
+/*
+ * Hooks for plugins to get control in SlruPhysicalReadPage/SlruPhysicalWritePage
+ */
+typedef bool (*SlruPhysicalReadPage_hook_type)(SlruCtl ctl, int pageno, int slotno, bool *result);
+extern PGDLLIMPORT SlruPhysicalReadPage_hook_type SlruPhysicalReadPage_hook;
+
+typedef bool (*SlruPhysicalWritePage_hook_type)(SlruCtl ctl, int pageno, int slotno, bool *result);
+extern PGDLLIMPORT SlruPhysicalWritePage_hook_type SlruPhysicalWritePage_hook;
 
 extern Size SimpleLruShmemSize(int nslots, int nlsns);
 extern void SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,

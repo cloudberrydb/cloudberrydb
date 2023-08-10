@@ -120,6 +120,9 @@ ExecutorEnd_hook_type ExecutorEnd_hook = NULL;
 /* Hook for plugin to get control in ExecCheckRTPerms() */
 ExecutorCheckPerms_hook_type ExecutorCheckPerms_hook = NULL;
 
+/* Hook for plugins to get control in DtxTransaction Management */
+SetDtxFlag_hook_type SetDtxFlag_hook = NULL;
+
 /* decls for local routines only used within this module */
 static void InitPlan(QueryDesc *queryDesc, int eflags);
 static void CheckValidRowMarkRel(Relation rel, RowMarkType markType);
@@ -562,6 +565,8 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			 * work for this query.
 			 */
 			needDtx = ExecutorSaysTransactionDoesWrites();
+			if (SetDtxFlag_hook)
+				needDtx = SetDtxFlag_hook(needDtx);
 			if (needDtx)
 				setupDtxTransaction();
 

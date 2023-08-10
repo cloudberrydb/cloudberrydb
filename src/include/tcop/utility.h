@@ -77,6 +77,10 @@ typedef void (*ProcessUtility_hook_type) (PlannedStmt *pstmt,
 										  DestReceiver *dest, QueryCompletion *qc);
 extern PGDLLIMPORT ProcessUtility_hook_type ProcessUtility_hook;
 
+/* Hook for plugins to send explicit begin command */
+typedef void (*SendTxnExplicitBegin_hook_type)(void);
+extern PGDLLIMPORT SendTxnExplicitBegin_hook_type SendTxnExplicitBegin_hook;
+
 extern void ProcessUtility(PlannedStmt *pstmt, const char *queryString,
 						   bool readOnlyTree,
 						   ProcessUtilityContext context, ParamListInfo params,
