@@ -4483,9 +4483,12 @@ create_hashjoin_path(PlannerInfo *root,
 	/*
 	 * For parallel hash, it is motionHazard. If there are parallel hash join on outside child,
 	 * not use parallel hash.
-	 * CBDB_PARALLEL_FIXME: At least, should not have impact on non-parallel path generation.
+	 * CBDB_PARALLEL_FIXME:
+	 * At least, should not have impact on non-parallel path generation and when there are no
+	 * parallel-aware paths.
 	 */
-	if (enable_parallel && outer_path->barrierHazard && !parallel_hash)
+	if (enable_parallel && enable_parallel_hash &&
+		outer_path->barrierHazard && !parallel_hash)
 		return NULL;
 
 	if (parallel_hash && outer_path->barrierHazard)
