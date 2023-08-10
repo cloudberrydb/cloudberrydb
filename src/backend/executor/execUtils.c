@@ -2053,9 +2053,8 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 			ReThrowError(qeError);
 		}
 
-                if (ProcessDispatchResult_hook) {
-                        ProcessDispatchResult_hook(ds);
-                }
+		if (ProcessDispatchResult_hook)
+			ProcessDispatchResult_hook(ds);
 
 		/* collect pgstat from QEs for current transaction level */
 		pgstat_combine_from_qe(pr, primaryWriterSliceIndex);
