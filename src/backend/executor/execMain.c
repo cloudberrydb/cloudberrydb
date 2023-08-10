@@ -769,6 +769,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	 */
 	ExecSlice  *currentSlice;
 	GpExecIdentity		exec_identity;
+	bool 	amIParallel = false;
 
 	/* sanity checks */
 	Assert(queryDesc != NULL);
@@ -795,7 +796,10 @@ standard_ExecutorRun(QueryDesc *queryDesc,
     {
         if (Gp_role == GP_ROLE_EXECUTE ||
             sliceRunsOnQD(currentSlice))
-            currentSliceId = currentSlice->sliceIndex;
+			{
+				currentSliceId = currentSlice->sliceIndex;
+				amIParallel = currentSlice->useMppParallelMode;
+			}
     }
 
 	/*
@@ -875,7 +879,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 
 			ExecutePlan(estate,
 						(PlanState *) motionState,
-						queryDesc->plannedstmt->parallelModeNeeded,
+						amIParallel,
 						CMD_SELECT,
 						sendTuples,
 						0,
@@ -920,7 +924,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			 */
 			ExecutePlan(estate,
 						queryDesc->planstate,
-						queryDesc->plannedstmt->parallelModeNeeded,
+						amIParallel,
 						operation,
 						isParallelRetrieveCursor ? true : sendTuples,
 						count,

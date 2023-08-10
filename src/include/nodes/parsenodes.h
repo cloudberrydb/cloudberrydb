@@ -3318,8 +3318,6 @@ typedef struct SecLabelStmt
  * of the query are always postponed until execution.
  * ----------------------
  */
-#define CURSOR_OPT_PARALLEL_NOT_OK	0x0000	/* parallel mode is not OK */
-
 #define CURSOR_OPT_BINARY		0x0001	/* BINARY */
 #define CURSOR_OPT_SCROLL		0x0002	/* SCROLL explicitly given */
 #define CURSOR_OPT_NO_SCROLL	0x0004	/* NO SCROLL explicitly given */
