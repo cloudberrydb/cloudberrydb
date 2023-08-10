@@ -561,6 +561,23 @@ abort;
 -- End of Test locus after eliding mtion node.
 --
 
+--
+-- Test outer path has Motion of parallel plan. 
+--
+begin;
+create table t1(a int, b int) with(parallel_workers=3);
+create table t2(b int, a int) with(parallel_workers=2);
+insert into t1 select i, i+1 from generate_series(1, 10) i;
+insert into t2 select i, i+1 from generate_series(1, 5) i;
+analyze t1;
+analyze t2;
+set local optimizer=off;
+set local enable_parallel=on;
+set local enable_parallel_hash=off;
+set local max_parallel_workers_per_gather= 4;
+explain(costs off) select * from t1 right join t2 on t1.b = t2.a;
+abort;
+
 -- start_ignore
 drop schema test_parallel cascade;
 -- end_ignore
