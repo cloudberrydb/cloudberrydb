@@ -1788,7 +1788,14 @@ ProcessUtilitySlow(ParseState *pstate,
 
 			case T_DropTaskStmt:
 				address = DropTask(pstate, (DropTaskStmt *) parsetree);
-				break;				
+				break;
+
+			case T_CreateWarehouseStmt:
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("warehouse feature is not supported"),
+						 errhint("Create extension unionstore to enable the feature.")));
+				break;
 
 			case T_CreateExternalStmt:
 				{

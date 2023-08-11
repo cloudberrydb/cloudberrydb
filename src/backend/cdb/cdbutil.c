@@ -261,7 +261,12 @@ readGpSegConfigFromCatalog(int *total_dbs)
 		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_warehouseid, RelationGetDescr(gp_seg_config_rel), &isNull);
 		Assert(!isNull);
 		warehouseid = DatumGetObjectId(attr);
-		if (OidIsValid(warehouseid) && warehouseid != GetCurrentWarehouseId())
+
+		/* content */
+		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_content, RelationGetDescr(gp_seg_config_rel), &isNull);
+		Assert(!isNull);
+
+		if (warehouseid != GetCurrentWarehouseId() && (OidIsValid(warehouseid) || DatumGetInt16(attr) != MASTER_CONTENT_ID))
 			continue;
 
 		config = &configs[idx];
