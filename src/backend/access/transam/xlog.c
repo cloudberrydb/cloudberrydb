@@ -111,11 +111,6 @@ StartupXLOG_hook_type StartupXLOG_hook = NULL;
  */
 XLogFlush_hook_type XLogFlush_hook = NULL;
 
-/*
- * Hook for plugins to get control in CreateCheckPoint.
- */
-CreateCheckPoint_hook_type CreateCheckPoint_hook = NULL;
-
 /* Unsupported old recovery command file names (relative to $PGDATA) */
 #define RECOVERY_COMMAND_FILE	"recovery.conf"
 #define RECOVERY_COMMAND_DONE	"recovery.done"
@@ -3147,15 +3142,6 @@ XLogBackgroundFlush(void)
 	static TimestampTz lastflush;
 	TimestampTz now;
 	int			flushbytes;
-
-#ifdef SERVERLESS
-	/*
-	 * TODO: use GUC/hook instead of macro.
-	 *
-	 * Indeed, walwriter is not needed in serverless, we have no WAL in buffer.
-	 */
-	return true;
-#endif
 
 	/* XLOG doesn't need flushing during recovery */
 	if (RecoveryInProgress())
@@ -9438,12 +9424,6 @@ CreateCheckPoint(int flags)
 	XLogRecPtr	last_important_lsn;
 	VirtualTransactionId *vxids;
 	int			nvxids;
-
-	if (CreateCheckPoint_hook)
-	{
-		(*CreateCheckPoint_hook) (flags);
-		return;
-	}
 
 	/*
 	 * An end-of-recovery checkpoint is really a shutdown checkpoint, just

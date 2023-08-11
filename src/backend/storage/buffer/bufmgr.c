@@ -51,6 +51,7 @@
 #include "pg_trace.h"
 #include "pgstat.h"
 #include "postmaster/bgwriter.h"
+#include "postmaster/postmaster.h"
 #include "storage/buf_internals.h"
 #include "storage/bufmgr.h"
 #include "storage/ipc.h"
@@ -1256,14 +1257,11 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 
 		*foundPtr = true;
 
-#ifdef SERVERLESS
 		/*
-		 * TODO: use GUC/hook instead of macro
-		 *
 		 * The page in buffer may be out of date, we need to check the buffer
 		 * and refresh the buffer if the page has been modified.
 		 */ 
-		if (Gp_role == GP_ROLE_EXECUTE && valid)
+		if (enable_serverless && Gp_role == GP_ROLE_EXECUTE && valid)
 		{
 			uint32 buf_state = LockBufHdr(buf);
 				
@@ -1272,7 +1270,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 
 			valid = false;
 		}
-#endif
+
 		if (!valid)
 		{
 			/*

@@ -147,16 +147,22 @@ extern PGDLLIMPORT SlruPhysicalReadPage_hook_type SlruPhysicalReadPage_hook;
 typedef bool (*SlruPhysicalWritePage_hook_type)(SlruCtl ctl, int pageno, int slotno, bool *result);
 extern PGDLLIMPORT SlruPhysicalWritePage_hook_type SlruPhysicalWritePage_hook;
 
+typedef int (*SimpleLruReadPage_hook_type)(SlruCtl ctl, int pageno, bool write_ok, TransactionId xid);
+extern PGDLLIMPORT SimpleLruReadPage_hook_type SimpleLruReadPage_hook;
+
 extern Size SimpleLruShmemSize(int nslots, int nlsns);
 extern void SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,
 						  LWLock *ctllock, const char *subdir, int tranche_id,
 						  SyncRequestHandler sync_handler);
 extern int	SimpleLruZeroPage(SlruCtl ctl, int pageno);
+extern void SimpleLruZeroLSNs(SlruCtl ctl, int slotno);
+extern void SimpleLruWaitIO(SlruCtl ctl, int slotno);
 extern int	SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 							  TransactionId xid);
 extern int	SimpleLruReadPage_ReadOnly(SlruCtl ctl, int pageno,
 									   TransactionId xid);
 extern void SimpleLruWritePage(SlruCtl ctl, int slotno);
+extern int	SlruSelectLRUPage(SlruCtl ctl, int pageno);
 extern void SimpleLruWriteAll(SlruCtl ctl, bool allow_redirtied);
 #ifdef USE_ASSERT_CHECKING
 extern void SlruPagePrecedesUnitTests(SlruCtl ctl, int per_page);
@@ -166,6 +172,8 @@ extern void SlruPagePrecedesUnitTests(SlruCtl ctl, int per_page);
 extern void SimpleLruTruncate(SlruCtl ctl, int cutoffPage);
 extern void SimpleLruTruncateWithLock(SlruCtl ctl, int cutoffPage);
 extern bool SimpleLruDoesPhysicalPageExist(SlruCtl ctl, int pageno);
+extern bool SlruPhysicalReadPage(SlruCtl ctl, int pageno, int slotno);
+extern void SlruReportIOError(SlruCtl ctl, int pageno, TransactionId xid);
 
 typedef bool (*SlruScanCallback) (SlruCtl ctl, char *filename, int segpage,
 								  void *data);

@@ -1606,7 +1606,7 @@ Optional Features:
   --enable-cassert        enable assertion checks (for debugging)
   --disable-orca          disable ORCA optimizer
   --enable-catalog-ext    enable CloudberryDB catalog extension
-  --enable-serverless     use Cloudberry serverless architecture
+  --enable-serverless     use CloudberryDB serverless architecture
   --enable-mapreduce      enable CloudberryDB Mapreduce support
   --enable-gpcloud        enable gpcloud support
   --enable-external-fts   enable external fts support
