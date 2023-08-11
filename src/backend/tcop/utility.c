@@ -1791,10 +1791,10 @@ ProcessUtilitySlow(ParseState *pstate,
 				break;
 
 			case T_CreateWarehouseStmt:
+			case T_DropWarehouseStmt:
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-						 errmsg("warehouse feature is not supported"),
-						 errhint("Create extension unionstore to enable the feature.")));
+						 errmsg("warehouse feature is not supported")));
 				break;
 
 			case T_CreateExternalStmt:
