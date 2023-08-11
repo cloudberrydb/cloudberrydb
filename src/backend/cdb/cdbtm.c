@@ -1608,14 +1608,6 @@ doQEDistributedExplicitBegin()
 static bool
 isDtxQueryDispatcher(void)
 {
-#ifdef SERVERLESS
-	/*
-	 * TODO: use GUC/hook instead of macro.
-	 * 
-	 * Distributed transaction is not necessary in serverless.
-	 */
-	return false;
-#endif
 	bool		isDtmStarted;
 	bool		isSharedLocalSnapshotSlotPresent;
 
@@ -1624,7 +1616,8 @@ isDtxQueryDispatcher(void)
 
 	return (Gp_role == GP_ROLE_DISPATCH &&
 			isDtmStarted &&
-			isSharedLocalSnapshotSlotPresent);
+			isSharedLocalSnapshotSlotPresent &&
+			!enable_serverless);
 }
 
 /*

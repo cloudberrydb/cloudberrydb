@@ -282,6 +282,9 @@ bool		remove_temp_files_after_crash = true;
 /* Hook for plugins to start background workers */
 start_bgworkers_hook_type start_bgworkers_hook = NULL;
 
+/* Hook for plugins to get control in StartChildProcess */
+StartChildProcess_hook_type StartChildProcess_hook = NULL;
+
 /*
  * PIDs of special child processes; 0 when not running. When adding a new PID
  * to the list, remember to add the process title to GetServerProcessTitle()
@@ -465,6 +468,8 @@ bool		ClientAuthInProgress = false;	/* T during new-client
 											 * authentication */
 
 bool		redirection_done = false;	/* stderr redirected for syslogger? */
+
+bool		enable_serverless = false; /* use CloudberryDB serverless architecture */
 
 /* received START_AUTOVAC_LAUNCHER signal */
 static volatile sig_atomic_t start_autovac_launcher = false;
@@ -5990,6 +5995,15 @@ CountChildren(int target)
  */
 static pid_t
 StartChildProcess(AuxProcType type)
+{
+	if (StartChildProcess_hook)
+		return (*StartChildProcess_hook) (type);
+
+	return StartChildProcessInternal(type);
+}
+
+pid_t
+StartChildProcessInternal(AuxProcType type)
 {
 	pid_t		pid;
 	char	   *av[10];

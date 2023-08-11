@@ -54,7 +54,6 @@
 #include "access/slru.h"
 #include "access/transam.h"
 #include "access/xlog.h"
-#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pgstat.h"
 #include "storage/fd.h"
@@ -135,20 +134,15 @@ static SlruErrorCause slru_errcause;
 static int	slru_errno;
 
 /*
- * Hooks for plugins to get control in SlruPhysicalReadPage/SlruPhysicalWritePage
+ * Hooks for plugins to get control in SlruPhysicalReadPage/SlruPhysicalWritePage/SimpleLruReadPage
  */
 SlruPhysicalReadPage_hook_type SlruPhysicalReadPage_hook = NULL;
 SlruPhysicalWritePage_hook_type SlruPhysicalWritePage_hook = NULL;
+SimpleLruReadPage_hook_type SimpleLruReadPage_hook = NULL;
 
-static void SimpleLruZeroLSNs(SlruCtl ctl, int slotno);
-static void SimpleLruWaitIO(SlruCtl ctl, int slotno);
 static void SlruInternalWritePage(SlruCtl ctl, int slotno, SlruWriteAll fdata);
-static bool SlruPhysicalReadPage(SlruCtl ctl, int pageno, int slotno);
 static bool SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno,
 								  SlruWriteAll fdata);
-static void SlruReportIOError(SlruCtl ctl, int pageno, TransactionId xid);
-static int	SlruSelectLRUPage(SlruCtl ctl, int pageno);
-
 static bool SlruScanDirCbDeleteCutoff(SlruCtl ctl, char *filename,
 									  int segpage, void *data);
 static void SlruInternalDeleteSegment(SlruCtl ctl, int segno);
@@ -325,7 +319,7 @@ SimpleLruZeroPage(SlruCtl ctl, int pageno)
  *
  * This assumes that InvalidXLogRecPtr is bitwise-all-0.
  */
-static void
+void
 SimpleLruZeroLSNs(SlruCtl ctl, int slotno)
 {
 	SlruShared	shared = ctl->shared;
@@ -342,7 +336,7 @@ SimpleLruZeroLSNs(SlruCtl ctl, int slotno)
  *
  * Control lock must be held at entry, and will be held at exit.
  */
-static void
+void
 SimpleLruWaitIO(SlruCtl ctl, int slotno)
 {
 	SlruShared	shared = ctl->shared;
@@ -402,6 +396,9 @@ SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 {
 	SlruShared	shared = ctl->shared;
 
+	if (SimpleLruReadPage_hook)
+		return (*SimpleLruReadPage_hook) (ctl, pageno, write_ok, xid);
+
 	/* Outer loop handles restart if we must wait for someone else's I/O */
 	for (;;)
 	{
@@ -427,17 +424,6 @@ SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 				/* Now we must recheck state from the top */
 				continue;
 			}
-#ifdef SERVERLESS
-			/*
-			 * TODO: add hook/GUC instead?
-			 * The page in buffer may be out of date, we need to check the buffer
-			 * and refresh the buffer if the page has been modified.
-			 */
-			if (Gp_role == GP_ROLE_EXECUTE)
-			{
-				goto PageRead;
-			}
-#endif
 			/* Otherwise, it's ready to use */
 			SlruRecentlyUsed(shared, slotno);
 
@@ -451,10 +437,6 @@ SimpleLruReadPage(SlruCtl ctl, int pageno, bool write_ok,
 		Assert(shared->page_status[slotno] == SLRU_PAGE_EMPTY ||
 			   (shared->page_status[slotno] == SLRU_PAGE_VALID &&
 				!shared->page_dirty[slotno]));
-
-#ifdef SERVERLESS
-PageRead:
-#endif
 
 		/* Mark the slot read-busy */
 		shared->page_number[slotno] = pageno;
@@ -517,6 +499,12 @@ SimpleLruReadPage_ReadOnly(SlruCtl ctl, int pageno, TransactionId xid)
 	SlruShared	shared = ctl->shared;
 	int			slotno;
 
+	if (SimpleLruReadPage_hook)
+	{
+		LWLockAcquire(shared->ControlLock, LW_EXCLUSIVE);
+		return (*SimpleLruReadPage_hook) (ctl, pageno, true, xid);
+	}
+
 	/* Try to find the page while holding only shared lock */
 	LWLockAcquire(shared->ControlLock, LW_SHARED);
 
@@ -527,18 +515,6 @@ SimpleLruReadPage_ReadOnly(SlruCtl ctl, int pageno, TransactionId xid)
 			shared->page_status[slotno] != SLRU_PAGE_EMPTY &&
 			shared->page_status[slotno] != SLRU_PAGE_READ_IN_PROGRESS)
 		{
-#ifdef SERVERLESS
-			/*
-			* TODO: add hook/GUC instead?
-			* The page in buffer may be out of date, we need to check the buffer
-			* and refresh the buffer if the page has been modified.
-			*/
-			if (Gp_role == GP_ROLE_EXECUTE)
-			{
-				break;
-			}
-#endif
-
 			/* See comments for SlruRecentlyUsed macro */
 			SlruRecentlyUsed(shared, slotno);
 
@@ -712,7 +688,7 @@ SimpleLruDoesPhysicalPageExist(SlruCtl ctl, int pageno)
  * For now, assume it's not worth keeping a file pointer open across
  * read/write operations.  We could cache one virtual file pointer ...
  */
-static bool
+bool
 SlruPhysicalReadPage(SlruCtl ctl, int pageno, int slotno)
 {
 	SlruShared	shared = ctl->shared;
@@ -973,7 +949,7 @@ SlruPhysicalWritePage(SlruCtl ctl, int pageno, int slotno, SlruWriteAll fdata)
  * Issue the error message after failure of SlruPhysicalReadPage or
  * SlruPhysicalWritePage.  Call this after cleaning up shared-memory state.
  */
-static void
+void
 SlruReportIOError(SlruCtl ctl, int pageno, TransactionId xid)
 {
 	int			segno = pageno / SLRU_PAGES_PER_SEGMENT;
@@ -1058,7 +1034,7 @@ SlruReportIOError(SlruCtl ctl, int pageno, TransactionId xid)
  *
  * Control lock must be held at entry, and will be held at exit.
  */
-static int
+int
 SlruSelectLRUPage(SlruCtl ctl, int pageno)
 {
 	SlruShared	shared = ctl->shared;
