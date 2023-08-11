@@ -2579,6 +2579,26 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 												  offset_est, count_est);
 			}
 
+			/*
+			 * Like pathlist:
+			 * Take Motion cost into accout before standard_planner().
+			 * Don't foo by one-phase LIMIT with partial_path here.
+			 */
+			if ((CdbPathLocus_IsHashed(root->final_locus) ||
+				CdbPathLocus_IsSingleQE(root->final_locus) ||
+				CdbPathLocus_IsEntry(root->final_locus) ||
+				CdbPathLocus_IsReplicated(root->final_locus)) &&
+				!root->glob->is_parallel_cursor)
+			{
+				Path	   *orig_path = partial_path;
+
+				partial_path = cdbpath_create_motion_path(root, orig_path,
+												  root->sort_pathkeys,
+												  false,
+												  root->final_locus);
+				if (!partial_path)
+					partial_path = orig_path;
+			}
 			add_partial_path(final_rel, partial_path);
 		}
 	}
