@@ -335,7 +335,7 @@ UnscheduleCronJob(const char *jobname, const char *username, Oid taskid, bool mi
 
 	EnsureDeletePermission(pg_task, heapTuple);
 
-	simple_heap_delete(pg_task, &heapTuple->t_self);
+	simple_table_tuple_delete(pg_task, &heapTuple->t_self);
 
 	systable_endscan(scanDescriptor);
 	table_close(pg_task, RowExclusiveLock);

@@ -692,7 +692,7 @@ createdb(ParseState *pstate, const CreatedbStmt *stmt)
 		 */
 		rel = table_open(TableSpaceRelationId, AccessShareLock);
 		scan = table_beginscan_catalog(rel, 0, NULL);
-		while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+		while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 		{
 			Form_pg_tablespace spaceform = (Form_pg_tablespace) GETSTRUCT(tuple);
 			Oid			srctablespace = spaceform->oid;
@@ -2162,7 +2162,7 @@ remove_dbtablespaces(Oid db_id)
 
 	rel = table_open(TableSpaceRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(rel, 0, NULL);
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_tablespace spcform = (Form_pg_tablespace) GETSTRUCT(tuple);
 		Oid			dsttablespace = spcform->oid;
@@ -2248,7 +2248,7 @@ check_db_file_conflict(Oid db_id)
 
 	rel = table_open(TableSpaceRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(rel, 0, NULL);
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_tablespace spcform = (Form_pg_tablespace) GETSTRUCT(tuple);
 		Oid			dsttablespace = spcform->oid;

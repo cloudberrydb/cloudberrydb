@@ -412,7 +412,7 @@ RemoveSubscriptionRel(Oid subid, Oid relid)
 
 	/* Do the search and delete what we found. */
 	scan = table_beginscan_catalog(rel, nkeys, skey);
-	while (HeapTupleIsValid(tup = heap_getnext(scan, ForwardScanDirection)))
+	while (HeapTupleIsValid(tup = table_scan_getnext(scan, ForwardScanDirection)))
 	{
 		Form_pg_subscription_rel subrel;
 

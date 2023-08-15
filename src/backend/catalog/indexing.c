@@ -227,7 +227,7 @@ CatalogTupleInsert(Relation heapRel, HeapTuple tup)
 
 	indstate = CatalogOpenIndexes(heapRel);
 
-	simple_heap_insert(heapRel, tup);
+	simple_table_tuple_insert(heapRel, tup);
 
 	CatalogIndexInsert(indstate, tup);
 	CatalogCloseIndexes(indstate);
@@ -247,7 +247,7 @@ CatalogTupleInsertWithInfo(Relation heapRel, HeapTuple tup,
 {
 	CatalogTupleCheckConstraints(heapRel, tup);
 
-	simple_heap_insert(heapRel, tup);
+	simple_table_tuple_insert(heapRel, tup);
 
 	CatalogIndexInsert(indstate, tup);
 }
@@ -266,8 +266,8 @@ CatalogTuplesMultiInsertWithInfo(Relation heapRel, TupleTableSlot **slot,
 	if (ntuples <= 0)
 		return;
 
-	heap_multi_insert(heapRel, slot, ntuples,
-					  GetCurrentCommandId(true), 0, NULL);
+	table_multi_insert(heapRel, slot, ntuples,
+					   GetCurrentCommandId(true), 0, NULL);
 
 	/*
 	 * There is no equivalent to heap_multi_insert for the catalog indexes, so
@@ -307,7 +307,7 @@ CatalogTupleUpdate(Relation heapRel, ItemPointer otid, HeapTuple tup)
 
 	indstate = CatalogOpenIndexes(heapRel);
 
-	simple_heap_update(heapRel, otid, tup);
+	simple_table_tuple_update(heapRel, otid, tup);
 
 	CatalogIndexInsert(indstate, tup);
 	CatalogCloseIndexes(indstate);
@@ -327,7 +327,7 @@ CatalogTupleUpdateWithInfo(Relation heapRel, ItemPointer otid, HeapTuple tup,
 {
 	CatalogTupleCheckConstraints(heapRel, tup);
 
-	simple_heap_update(heapRel, otid, tup);
+	simple_table_tuple_update(heapRel, otid, tup);
 
 	CatalogIndexInsert(indstate, tup);
 }
@@ -350,7 +350,7 @@ CatalogTupleUpdateWithInfo(Relation heapRel, ItemPointer otid, HeapTuple tup,
 void
 CatalogTupleDelete(Relation heapRel, ItemPointer tid)
 {
-	simple_heap_delete(heapRel, tid);
+	simple_table_tuple_delete(heapRel, tid);
 }
 
 /*
@@ -365,7 +365,7 @@ CatalogTupleInsertFrozen(Relation heapRel, HeapTuple tup)
 
 	indstate = CatalogOpenIndexes(heapRel);
 
-	frozen_heap_insert(heapRel, tup);
+	frozen_table_tuple_insert(heapRel, tup);
 
 	CatalogIndexInsert(indstate, tup);
 	CatalogCloseIndexes(indstate);

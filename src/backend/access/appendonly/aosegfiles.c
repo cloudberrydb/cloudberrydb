@@ -631,7 +631,7 @@ ClearFileSegInfo(Relation parentrel, int segno)
 	pg_aoseg_dsc = RelationGetDescr(pg_aoseg_rel);
 
 	aoscan = table_beginscan_catalog(pg_aoseg_rel, 0, NULL);
-	while (segno != tuple_segno && (tuple = heap_getnext(aoscan, ForwardScanDirection)) != NULL)
+	while (segno != tuple_segno && (tuple = table_scan_getnext(aoscan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(tuple, Anum_pg_aoseg_segno, pg_aoseg_dsc, &isNull));
 		if (isNull)
@@ -672,7 +672,7 @@ ClearFileSegInfo(Relation parentrel, int segno)
 	new_tuple = heap_modify_tuple(tuple, pg_aoseg_dsc, new_record,
 								  new_record_nulls, new_record_repl);
 
-	simple_heap_update(pg_aoseg_rel, &tuple->t_self, new_tuple);
+	simple_table_tuple_update(pg_aoseg_rel, &tuple->t_self, new_tuple);
 	heap_freetuple(new_tuple);
 
 	table_endscan(aoscan);
@@ -765,7 +765,7 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	pg_aoseg_dsc = RelationGetDescr(pg_aoseg_rel);
 
 	aoscan = table_beginscan_catalog(pg_aoseg_rel, 0, NULL);
-	while (segno != tuple_segno && (tuple = heap_getnext(aoscan, ForwardScanDirection)) != NULL)
+	while (segno != tuple_segno && (tuple = table_scan_getnext(aoscan, ForwardScanDirection)) != NULL)
 	{
 		tuple_segno = DatumGetInt32(fastgetattr(tuple, Anum_pg_aoseg_segno, pg_aoseg_dsc, &isNull));
 		if (isNull)
@@ -920,7 +920,7 @@ UpdateFileSegInfo_internal(Relation parentrel,
 	new_tuple = heap_modify_tuple(tuple, pg_aoseg_dsc, new_record,
 								  new_record_nulls, new_record_repl);
 
-	simple_heap_update(pg_aoseg_rel, &tuple->t_self, new_tuple);
+	simple_table_tuple_update(pg_aoseg_rel, &tuple->t_self, new_tuple);
 
 	heap_freetuple(new_tuple);
 

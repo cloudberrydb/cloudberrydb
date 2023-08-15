@@ -633,7 +633,7 @@ DropTableSpace(DropTableSpaceStmt *stmt)
 				BTEqualStrategyNumber, F_NAMEEQ,
 				CStringGetDatum(tablespacename));
 	scandesc = table_beginscan_catalog(rel, 1, entry);
-	tuple = heap_getnext(scandesc, ForwardScanDirection);
+	tuple = table_scan_getnext(scandesc, ForwardScanDirection);
 
 	if (!HeapTupleIsValid(tuple))
 	{
@@ -1343,7 +1343,7 @@ RenameTableSpace(const char *oldname, const char *newname)
 				BTEqualStrategyNumber, F_NAMEEQ,
 				CStringGetDatum(oldname));
 	scan = table_beginscan_catalog(rel, 1, entry);
-	tup = heap_getnext(scan, ForwardScanDirection);
+	tup = table_scan_getnext(scan, ForwardScanDirection);
 	if (!HeapTupleIsValid(tup))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -1385,7 +1385,7 @@ RenameTableSpace(const char *oldname, const char *newname)
 				BTEqualStrategyNumber, F_NAMEEQ,
 				CStringGetDatum(newname));
 	scan = table_beginscan_catalog(rel, 1, entry);
-	tup = heap_getnext(scan, ForwardScanDirection);
+	tup = table_scan_getnext(scan, ForwardScanDirection);
 	if (HeapTupleIsValid(tup))
 		ereport(ERROR,
 				(errcode(ERRCODE_DUPLICATE_OBJECT),
@@ -1443,7 +1443,7 @@ AlterTableSpaceOptions(AlterTableSpaceOptionsStmt *stmt)
 				BTEqualStrategyNumber, F_NAMEEQ,
 				CStringGetDatum(stmt->tablespacename));
 	scandesc = table_beginscan_catalog(rel, 1, entry);
-	tup = heap_getnext(scandesc, ForwardScanDirection);
+	tup = table_scan_getnext(scandesc, ForwardScanDirection);
 	if (!HeapTupleIsValid(tup))
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
@@ -1528,7 +1528,7 @@ check_tablespace(const char *tablespacename)
 				BTEqualStrategyNumber, F_NAMEEQ,
 				CStringGetDatum(tablespacename));
 	scandesc = table_beginscan_catalog(rel, 1, entry);
-	tuple = heap_getnext(scandesc, ForwardScanDirection);
+	tuple = table_scan_getnext(scandesc, ForwardScanDirection);
 
 	/* If nothing matches then the tablespace doesn't exist */
 	if (HeapTupleIsValid(tuple))
@@ -1904,7 +1904,7 @@ get_tablespace_oid(const char *tablespacename, bool missing_ok)
 				BTEqualStrategyNumber, F_NAMEEQ,
 				CStringGetDatum(tablespacename));
 	scandesc = table_beginscan_catalog(rel, 1, entry);
-	tuple = heap_getnext(scandesc, ForwardScanDirection);
+	tuple = table_scan_getnext(scandesc, ForwardScanDirection);
 
 	/* If nothing matches then the tablespace doesn't exist */
 	if (HeapTupleIsValid(tuple))
@@ -1950,7 +1950,7 @@ get_tablespace_name(Oid spc_oid)
 				BTEqualStrategyNumber, F_OIDEQ,
 				ObjectIdGetDatum(spc_oid));
 	scandesc = table_beginscan_catalog(rel, 1, entry);
-	tuple = heap_getnext(scandesc, ForwardScanDirection);
+	tuple = table_scan_getnext(scandesc, ForwardScanDirection);
 
 	/* We assume that there can be at most one matching tuple */
 	if (HeapTupleIsValid(tuple))

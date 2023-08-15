@@ -339,7 +339,7 @@ _bitmap_insert_lov(Relation lovHeap, Relation lovIndex, Datum *datum,
 
 	/* insert this tuple into the heap */
 	tuple = heap_form_tuple(tupDesc, datum, nulls);
-	frozen_heap_insert(lovHeap, tuple);
+	frozen_table_tuple_insert(lovHeap, tuple);
 
 	/* insert a new tuple into the index */
 	indexDatum = palloc0((tupDesc->natts - 2) * sizeof(Datum));

@@ -831,7 +831,7 @@ InsertOneTuple(void)
 	tuple = heap_form_tuple(tupDesc, values, Nulls);
 	pfree(tupDesc);				/* just free's tupDesc, not the attrtypes */
 
-	simple_heap_insert(boot_reldesc, tuple);
+	simple_table_tuple_insert(boot_reldesc, tuple);
 	heap_freetuple(tuple);
 	elog(DEBUG4, "row inserted");
 
@@ -928,7 +928,7 @@ populate_typ_list(void)
 	rel = table_open(TypeRelationId, NoLock);
 	scan = table_beginscan_catalog(rel, 0, NULL);
 	old = MemoryContextSwitchTo(TopMemoryContext);
-	while ((tup = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tup = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_type typForm = (Form_pg_type) GETSTRUCT(tup);
 		struct typmap *newtyp;

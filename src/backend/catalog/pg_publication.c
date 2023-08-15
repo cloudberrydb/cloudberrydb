@@ -432,7 +432,7 @@ GetAllTablesPublicationRelations(bool pubviaroot)
 
 	scan = table_beginscan_catalog(classRel, 1, key);
 
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class relForm = (Form_pg_class) GETSTRUCT(tuple);
 		Oid			relid = relForm->oid;
@@ -453,7 +453,7 @@ GetAllTablesPublicationRelations(bool pubviaroot)
 
 		scan = table_beginscan_catalog(classRel, 1, key);
 
-		while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+		while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 		{
 			Form_pg_class relForm = (Form_pg_class) GETSTRUCT(tuple);
 			Oid			relid = relForm->oid;

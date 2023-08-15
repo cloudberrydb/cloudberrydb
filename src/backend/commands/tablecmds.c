@@ -1841,7 +1841,7 @@ ao_aux_tables_safe_truncate(Relation rel)
 	{
 		aorel = table_open(AppendOnlyRelationId, RowExclusiveLock);
 		aoform->segfilecount = 0;
-		heap_inplace_update(aorel, aotup);
+		inplace_table_tuple_update(aorel, aotup);
 		table_close(aorel, RowExclusiveLock);
 	}
 	ReleaseSysCache(aotup);
@@ -7754,7 +7754,7 @@ find_typed_table_dependencies(Oid typeOid, const char *typeName, DropBehavior be
 
 	scan = table_beginscan_catalog(classRel, 1, key);
 
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classform = (Form_pg_class) GETSTRUCT(tuple);
 
@@ -16100,7 +16100,7 @@ AlterTableMoveAll(AlterTableMoveAllStmt *stmt)
 
 	rel = table_open(RelationRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(rel, 1, key);
-	while ((tuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((tuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class relForm = (Form_pg_class) GETSTRUCT(tuple);
 		Oid			relOid = relForm->oid;
