@@ -324,6 +324,14 @@ MultiExecParallelHash(HashState *node)
 			{
 				bool		hashkeys_null = false;
 
+				/* CBDB_PARALLEL: Siblings must have found null value. */
+				if (pstate->phs_lasj_has_null)
+				{
+					node->hs_hashkeys_null = true;
+					ExecSquelchNode(outerNode);
+					break;
+				}
+
 				slot = ExecProcNode(outerNode);
 				if (TupIsNull(slot))
 					break;
@@ -333,14 +341,40 @@ MultiExecParallelHash(HashState *node)
 										 &hashvalue, &hashkeys_null))
 					ExecParallelHashTableInsert(hashtable, slot, hashvalue);
 				hashtable->partialTuples++;
+
+				if (node->hs_quit_if_hashkeys_null && hashkeys_null)
+				{
+					/* CBDB_PARALLEL:
+					 * If we are LASJ and found NULL value by ourself or sibling processes had
+					 * found NULL values, quit and tell siblings to quit if possible.
+					 *
+					 * It's safe to fetch and set phs_lasj_has_null without lock here and at
+					 * other places. As it's a atomic boolean value. And we should avoid more locks in HashJion Impl.
+					 * If other processes miss it here and some others set it at the same time, just bypass
+					 * and we may get it at the next Hash batch.
+					 * If we missed it across all batches, we will know it when PHJ_BUILD_HASHING_INNER
+					 * ends with the help of build_barrier.
+					 * If we never participated in building hash table, check it when hash table
+					 * creation job is finished.
+					 */
+					pstate->phs_lasj_has_null = true;
+					pg_write_barrier();
+					node->hs_hashkeys_null = true;
+					ExecSquelchNode(outerNode);
+					break;
+				}
 			}
 
+			/* CBDB_PARALLEL: No need to flush tuples if phs_lasj_has_null. */
 			/*
 			 * Make sure that any tuples we wrote to disk are visible to
 			 * others before anyone tries to load them.
 			 */
-			for (i = 0; i < hashtable->nbatch; ++i)
-				sts_end_write(hashtable->batches[i].inner_tuples);
+			if (!pstate->phs_lasj_has_null)
+			{
+				for (i = 0; i < hashtable->nbatch; ++i)
+					sts_end_write(hashtable->batches[i].inner_tuples);
+			}
 
 			/*
 			 * Update shared counters.  We need an accurate total tuple count
@@ -366,7 +400,21 @@ MultiExecParallelHash(HashState *node)
 				 * skew).
 				 */
 				pstate->growth = PHJ_GROWTH_DISABLED;
+				/* In case we didn't find null values ourself. */
+				if (pstate->phs_lasj_has_null)
+				{
+					node->hs_hashkeys_null = true;
+					return;
+				}
 			}
+	}
+
+	/* In case we didn't participate in PHJ_BUILD_HASHING_INNER */
+	pg_memory_barrier();
+	if (pstate->phs_lasj_has_null)
+	{
+		node->hs_hashkeys_null = true;
+		return;
 	}
 
 	/*
@@ -3779,7 +3827,12 @@ ExecHashTableDetachBatch(HashJoinTable hashtable)
 		sts_end_parallel_scan(hashtable->batches[curbatch].outer_tuples);
 
 		/* Detach from the batch we were last working on. */
-		if (BarrierArriveAndDetach(&batch->batch_barrier))
+		/*
+		 * CBDB_PARALLEL: Parallel Hash Left Anti Semi (Not-In) Join(parallel-aware)
+		 * If phs_lasj_has_null is true, that means we have found null when building hash table,
+		 * there were no batches to detach.
+		 */
+		if (!hashtable->parallel_state->phs_lasj_has_null && BarrierArriveAndDetach(&batch->batch_barrier))
 		{
 			/*
 			 * Technically we shouldn't access the barrier because we're no

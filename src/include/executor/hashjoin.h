@@ -286,6 +286,7 @@ typedef struct ParallelHashJoinState
 	Barrier		grow_buckets_barrier;
 	Barrier		sync_barrier;
 	Barrier		batch0_barrier;
+	volatile 	bool	phs_lasj_has_null; 	/* LASJ has found null value, identify early quit */
 	pg_atomic_uint32 distributor;	/* counter for load balancing */
 
 	SharedFileSet fileset;		/* space for shared temporary files */

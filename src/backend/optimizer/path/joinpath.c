@@ -2318,7 +2318,6 @@ hash_inner_and_outer(PlannerInfo *root,
 			 */
 			if (innerrel->partial_pathlist != NIL &&
 				save_jointype != JOIN_UNIQUE_INNER &&
-				save_jointype != JOIN_LASJ_NOTIN &&
 				enable_parallel_hash)
 			{
 				cheapest_partial_inner =
