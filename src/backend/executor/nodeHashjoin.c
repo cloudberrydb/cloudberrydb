@@ -2065,6 +2065,7 @@ ExecHashJoinInitializeDSM(HashJoinState *state, ParallelContext *pcxt)
 
 	BarrierInit(&pstate->sync_barrier, pcxt->nworkers);
 	BarrierInit(&pstate->batch0_barrier, pcxt->nworkers);
+	pstate->phs_lasj_has_null = false;
 
 	/* Set up the space we'll use for shared temporary files. */
 	SharedFileSetInit(&pstate->fileset, pcxt->seg);

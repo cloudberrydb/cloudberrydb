@@ -491,10 +491,12 @@ abort;
 create table t1(c1 int, c2 int) using ao_row distributed by (c1);
 create table t2(c1 int, c2 int) using ao_row distributed by (c1);
 create table t3_null(c1 int, c2 int) using ao_row distributed by (c1);
-set enable_parallel = on;
-set gp_appendonly_insert_files = 2;
-set gp_appendonly_insert_files_tuples_range = 100;
-set max_parallel_workers_per_gather = 2;
+begin;
+set local enable_parallel = on;
+set local gp_appendonly_insert_files = 2;
+set local gp_appendonly_insert_files_tuples_range = 100;
+set local max_parallel_workers_per_gather = 2;
+set local enable_parallel_hash = off;
 insert into t1 select i, i from generate_series(1, 5000000) i;
 insert into t2 select i+1, i from generate_series(1, 1200) i;
 insert into t3_null select i+1, i from generate_series(1, 1200) i;
@@ -507,14 +509,47 @@ select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
 explain(costs off) select * from t1 where c1 not in (select c1 from t3_null);
 select * from t1 where c1 not in (select c1 from t3_null);
 -- non-parallel results.
-set enable_parallel = off;
+set local enable_parallel = off;
 select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
 select * from t1 where c1 not in (select c1 from t3_null);
+end;
 drop table t1;
 drop table t2;
 drop table t3_null;
 --
 -- End of Test Parallel Hash Left Anti Semi (Not-In) Join.
+--
+
+--
+-- Test Parallel-aware Hash Left Anti Semi (Not-In) Join.
+--
+begin;
+create table t1(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+create table t2(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+create table t3_null(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+set local enable_parallel = on;
+set local max_parallel_workers_per_gather = 2;
+insert into t1 select i, i from generate_series(1, 500000) i;
+insert into t2 select i, i+1 from generate_series(1, 500000) i;
+insert into t3_null select i, i+1 from generate_series(1, 500000) i;
+insert into t3_null values(NULL, NULL);
+analyze t1;
+analyze t2;
+analyze t3_null;
+explain(costs off) select sum(t1.c1) from t1 where c1 not in (select c2 from t2);
+select sum(t1.c1) from t1 where c1 not in (select c2 from t2);
+explain(costs off) select * from t1 where c1 not in (select c2 from t3_null);
+select * from t1 where c1 not in (select c2 from t3_null);
+-- non-parallel results.
+set local enable_parallel = off;
+select sum(t1.c1) from t1 where c1 not in (select c2 from t2);
+select * from t1 where c1 not in (select c2 from t3_null);
+drop table t1;
+drop table t2;
+drop table t3_null;
+end;
+--
+-- End of Test Parallel-aware Hash Left Anti Semi (Not-In) Join.
 --
 
 --

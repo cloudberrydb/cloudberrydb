@@ -2980,13 +2980,6 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 	outer.ok_to_replicate = !outer.has_wts;
 	inner.ok_to_replicate = true;
 
-	/*
-	 * For parallel mode, join is executed by each batches.
-	 * It is hard to tell whether null exists in the whole table.
-	 */
-	if (parallel_aware && jointype == JOIN_LASJ_NOTIN)
-		goto fail;
-
 	switch (jointype)
 	{
 		case JOIN_INNER:
