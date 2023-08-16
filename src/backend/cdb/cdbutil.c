@@ -261,69 +261,74 @@ readGpSegConfigFromCatalog(int *total_dbs)
 		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_warehouseid, RelationGetDescr(gp_seg_config_rel), &isNull);
 		Assert(!isNull);
 		warehouseid = DatumGetObjectId(attr);
-		if (OidIsValid(warehouseid) && warehouseid != GetCurrentWarehouseId())
-			continue;
-
-		config = &configs[idx];
-
-		/* dbid */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_dbid, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->dbid = DatumGetInt16(attr);
 
 		/* content */
 		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_content, RelationGetDescr(gp_seg_config_rel), &isNull);
 		Assert(!isNull);
-		config->segindex= DatumGetInt16(attr);
 
-		/* role */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_role, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->role = DatumGetChar(attr);
-
-		/* preferred-role */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_preferred_role, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->preferred_role = DatumGetChar(attr);
-
-		/* mode */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_mode, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->mode = DatumGetChar(attr);
-
-		/* status */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_status, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->status = DatumGetChar(attr);
-
-		/* hostname */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_hostname, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->hostname = TextDatumGetCString(attr);
-
-		/* address */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_address, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->address = TextDatumGetCString(attr);
-
-		/* port */
-		attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_port, RelationGetDescr(gp_seg_config_rel), &isNull);
-		Assert(!isNull);
-		config->port = DatumGetInt32(attr);
-
-		/* datadir is not dumped*/
-
-		idx++;
-
-		/*
-		 * Expand CdbComponentDatabaseInfo array if we've used up
-		 * currently allocated space
-		 */
-		if (idx >= array_size)
+		if (warehouseid == GetCurrentWarehouseId() || DatumGetInt16(attr) == MASTER_CONTENT_ID)
 		{
-			array_size = array_size * 2;
-			configs = (GpSegConfigEntry *)
-				repalloc(configs, sizeof(GpSegConfigEntry) * array_size);
+			config = &configs[idx];
+
+			/* dbid */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_dbid, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->dbid = DatumGetInt16(attr);
+
+			/* content */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_content, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->segindex= DatumGetInt16(attr);
+
+			/* role */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_role, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->role = DatumGetChar(attr);
+
+			/* preferred-role */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_preferred_role, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->preferred_role = DatumGetChar(attr);
+
+			/* mode */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_mode, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->mode = DatumGetChar(attr);
+
+			/* status */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_status, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->status = DatumGetChar(attr);
+
+			/* hostname */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_hostname, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->hostname = TextDatumGetCString(attr);
+
+			/* address */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_address, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->address = TextDatumGetCString(attr);
+
+			/* port */
+			attr = heap_getattr(gp_seg_config_tuple, Anum_gp_segment_configuration_port, RelationGetDescr(gp_seg_config_rel), &isNull);
+			Assert(!isNull);
+			config->port = DatumGetInt32(attr);
+
+			/* datadir is not dumped*/
+
+			idx++;
+
+			/*
+			* Expand CdbComponentDatabaseInfo array if we've used up
+			* currently allocated space
+			*/
+			if (idx >= array_size)
+			{
+				array_size = array_size * 2;
+				configs = (GpSegConfigEntry *)
+					repalloc(configs, sizeof(GpSegConfigEntry) * array_size);
+			}
 		}
 	}
 
