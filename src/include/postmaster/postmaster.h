@@ -37,8 +37,6 @@ extern bool remove_temp_files_after_crash;
 
 extern int	terminal_fd;
 
-extern bool enable_serverless;
-
 #ifdef WIN32
 extern HANDLE PostmasterHandle;
 #else

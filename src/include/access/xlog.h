@@ -237,7 +237,7 @@ extern PGDLLIMPORT int wal_level;
 		(DataChecksumsEnabled() || FileEncryptionEnabled || wal_log_hints)
 
 /* Do we need to WAL-log information required only for Hot Standby and logical replication? */
-#define XLogStandbyInfoActive() (wal_level >= WAL_LEVEL_REPLICA)
+#define XLogStandbyInfoActive() (wal_level >= WAL_LEVEL_REPLICA && !enable_serverless)
 
 /* Do we need to WAL-log information required only for logical replication? */
 #define XLogLogicalInfoActive() (wal_level >= WAL_LEVEL_LOGICAL)

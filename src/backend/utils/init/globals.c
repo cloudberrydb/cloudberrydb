@@ -149,6 +149,11 @@ double		hash_mem_multiplier = 1.0;
 int			maintenance_work_mem = 65536;
 int			max_parallel_maintenance_workers = 2;
 
+/* 
+ * use CloudberryDB serverless architecture
+ */
+bool		enable_serverless = false; 
+
 /*
  * Primary determinants of sizes of shared-memory structures.
  *
