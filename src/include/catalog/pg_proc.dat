@@ -8770,7 +8770,7 @@
   prosrc => 'json_build_object_noargs' },
 { oid => '3202', descr => 'map text array of key value pairs to json object',
   proname => 'json_object', prorettype => 'json', proargtypes => '_text',
-  prosrc => 'json_object' },
+  prosrc => 'pg_json_object' },
 { oid => '3203', descr => 'map text arrays of keys and values to json object',
   proname => 'json_object', prorettype => 'json', proargtypes => '_text _text',
   prosrc => 'json_object_two_arg' },
