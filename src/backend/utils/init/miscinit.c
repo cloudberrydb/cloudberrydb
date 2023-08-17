@@ -76,6 +76,8 @@ static List *lock_files = NIL;
 
 static Latch LocalLatchData;
 
+void load_libraries_array(void);
+
 /* ----------------------------------------------------------------
  *		ignoring system indexes support stuff
  *
@@ -1762,6 +1764,29 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 }
 
 /*
+ * process shared preload libraries array.
+ */
+static const char *process_shared_preload_libraries_array[] =
+{
+	#include "utils/process_shared_preload_libraries.h"
+};
+
+/*
+ * preload load external libraries.
+ */
+void
+load_libraries_array(void)
+{
+	int shared_preload_libraries_num = sizeof(process_shared_preload_libraries_array) / sizeof(char *);
+	for (int i = 0; i < shared_preload_libraries_num; i++)
+	{
+		load_libraries(process_shared_preload_libraries_array[i],
+				"shared_preload_libraries",
+				false);
+	}
+}
+
+/*
  * process any libraries that should be preloaded at postmaster start
  */
 void
@@ -1778,6 +1803,8 @@ process_shared_preload_libraries(void)
 				   "preload interconnect module",
 				   false);
 #endif
+
+	load_libraries_array();
 
 	process_shared_preload_libraries_in_progress = false;
 }
