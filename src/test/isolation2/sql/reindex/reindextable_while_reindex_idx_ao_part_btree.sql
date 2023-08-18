@@ -33,7 +33,23 @@ DELETE FROM reindex_crtab_part_ao_btree  WHERE id < 128;
     select gp_segment_id as dbid, relfilenode, oid, relname from pg_class
     where relname like 'reindex_crtab_part_ao_btree%_idx');
 -- Expect two distinct relfilenodes for one segment in old_relfilenodes table.
-3: select distinct count(distinct relfilenode), relname from old_relfilenodes group by dbid, relname;
+-- CBDB#26: This test actually assumes when txn1 commits, its lock is acquired by
+-- txn3, and txn2 is blocked by it. Normally this is the case, but when the system
+-- load is high (e.g., when parallel is enabled, or other processes stress the system),
+-- it could be the case that the scheduler pass the access exclusive lock acquired by
+-- txn1 to txn2 (not txn3) in L22-L23, invalidate the assumption, causing the test to fail.
+-- Here I workaround this by instead of relying on the only one expected file which
+-- cannot checks two behaviour, SQL statement is used to directly check the correctness
+-- of one column.
+-- See https://github.com/cloudberrydb/cloudberrydb/issues/26#issuecomment-1682097755
+-- for more details.
+3: select relname,
+          relname = 'reindex_crtab_part_ao_btree_1_prt_p_one_id_idx' and res.cnt in (1, 2) as special_case_for_p_one_id_idx,
+          case
+              when relname = 'reindex_crtab_part_ao_btree_1_prt_p_one_id_idx' then -1
+              else res.cnt
+          end as count
+   from (select distinct count(distinct relfilenode) as cnt, relname from old_relfilenodes group by dbid, relname) as res;
 3: COMMIT;
 -- After session 3 commits, session 2 could complete, the relfilenode it assigned to the
 -- "1_prt_de_fault" index is visible to session 3.
@@ -45,7 +61,14 @@ DELETE FROM reindex_crtab_part_ao_btree  WHERE id < 128;
     select gp_segment_id as dbid, relfilenode, oid, relname from pg_class
     where relname like 'reindex_crtab_part_ao_btree%_idx');
 -- Expect three distinct relfilenodes per segment for "1_prt_de_fault" index.
-3: select distinct count(distinct relfilenode), relname from old_relfilenodes group by dbid, relname;
+-- CBDB#26: Same as L45.
+3: select relname,
+          relname = 'reindex_crtab_part_ao_btree_1_prt_de_fault_id_idx' and res.cnt in (2, 3) as special_case_for_de_fault_id_idx,
+          case
+              when relname = 'reindex_crtab_part_ao_btree_1_prt_de_fault_id_idx' then -1
+              else res.cnt
+          end as count
+   from (select distinct count(distinct relfilenode) as cnt, relname from old_relfilenodes group by dbid, relname) as res;
 
 3: select count(*) from reindex_crtab_part_ao_btree where id = 998;
 3: set enable_seqscan=false;
