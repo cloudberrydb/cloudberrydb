@@ -140,7 +140,7 @@ CREATE
 -- If this test failed due to WAL size, please check to see if the xl_heap_freeze_tuple struct
 -- has changed, and if we should initialize any new field in heap_freeze_tuple_no_cutoff().
 ! seg0_datadir=$(psql -At -c "select datadir from gp_segment_configuration where content = 0 and role = 'p'" postgres) && seg0_last_wal_file=$(psql -At -c "SELECT pg_walfile_name(pg_current_wal_lsn()) from gp_dist_random('gp_id') where gp_segment_id = 0" postgres) && pg_waldump ${seg0_last_wal_file} -p ${seg0_datadir}/pg_wal | grep FREEZE_PAGE;
-rmgr: Heap2       len (rec/tot):     64/    64, tx: ##, lsn: #/########, prev #/########, desc: FREEZE_PAGE cutoff xid 0 ntuples 1, blkref #0: rel ####/######/###### blk 0
+rmgr: Heap2       len (rec/tot):     68/    68, tx: ##, lsn: #/########, prev #/########, desc: FREEZE_PAGE cutoff xid 0 ntuples 1, blkref #0: rel ####/######/###### blk 0
 
 
 -- inject a panic and resume in same way as Case 1. But this time we will be able to replay the frozen insert.
