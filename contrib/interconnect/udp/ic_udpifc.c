@@ -1599,6 +1599,14 @@ initConnHashTable(ConnHashTable *ht, MemoryContext cxt)
 
 	ht->cxt = cxt;
 	ht->size = Gp_role == GP_ROLE_DISPATCH ? (getgpsegmentCount() * 2) : ic_htab_size;
+
+	/*
+	 * In serverless architecture, the cluster may have only one QD, skip Initialization.
+	 * Initialization will be done later.
+	 */
+	if (enable_serverless && Gp_role == GP_ROLE_DISPATCH && ht->size == 0)
+		return true;
+
 	Assert(ht->size > 0);
 
 	if (ht->cxt)
@@ -1634,6 +1642,18 @@ connAddHash(ConnHashTable *ht, MotionConn *mConn)
 			   *newbin;
 	MemoryContext old = NULL;
 	MotionConnUDP *conn = NULL;
+
+	/*
+	 * Initialize connection hash table if needed.
+	 */
+	if (enable_serverless && Gp_role == GP_ROLE_DISPATCH && ht->size == 0)
+	{
+		old = MemoryContextSwitchTo(ht->cxt);
+		initConnHashTable(ht, ht->cxt);
+		MemoryContextSwitchTo(old);
+
+		Assert(ht->size > 0);
+	}
 
 	conn = CONTAINER_OF(mConn, MotionConnUDP, mConn);
 

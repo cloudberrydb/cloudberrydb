@@ -1114,7 +1114,7 @@ tmShmemInit(void)
 		/* Initialize locks and shared memory area */
 	{
 		*shmNextSnapshotId = 0;
-		*shmDtmStarted = false;
+		*shmDtmStarted = enable_serverless;
 		*shmCleanupBackends = false;
 		*shmDtxRecoveryPid = 0;
 		*shmDtxRecoveryEvents = DTX_RECOVERY_EVENT_ABORT_PREPARED;
