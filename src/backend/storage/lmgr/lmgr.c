@@ -3,7 +3,7 @@
  * lmgr.c
  *	  POSTGRES lock manager code
  *
- * Portions Copyright (c) 2006-2008, Cloudberry inc
+ * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -803,6 +803,26 @@ GxactLockTableWait(DistributedTransactionId gxid)
 	LockRelease(&tag, ShareLock, false);
 }
 
+void
+LockWarehouse(Oid warehouseOid, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_WAREHOUSE(tag, warehouseOid);
+
+	(void) LockAcquire(&tag, lockmode, true, false);
+}
+
+void
+UnlockWarehouse(Oid warehouseOid, LOCKMODE lockmode)
+{
+	LOCKTAG		tag;
+
+	SET_LOCKTAG_WAREHOUSE(tag, warehouseOid);
+
+	LockRelease(&tag, lockmode, true);
+}
+
 /*
  *		ConditionalXactLockTableWait
  *
@@ -1284,6 +1304,11 @@ DescribeLockTag(StringInfo buf, const LOCKTAG *tag)
 							 _("resource queue %u"),
 							 tag->locktag_field1);
 			break;
+		case LOCKTAG_WAREHOUSE:
+			appendStringInfo(buf,
+							 _("warehouse %u"),
+							 tag->locktag_field1);
+			break;
 		default:
 			appendStringInfo(buf,
 							 _("unrecognized locktag type %d"),
@@ -1330,6 +1355,7 @@ LockTagIsTemp(const LOCKTAG *tag)
 			break;
 		case LOCKTAG_USERLOCK:
 		case LOCKTAG_ADVISORY:
+		case LOCKTAG_WAREHOUSE:
 			/* assume these aren't temp */
 			break;
 	}

@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+*
+* cdbpq.c
+*
+* Portions Copyright (c) 2023, HashData Technology Limited.
+*
+*
+*--------------------------------------------------------------------------
+*/ 
 #include "postgres.h"
 #include "libpq-fe.h"
 #include "libpq-int.h"

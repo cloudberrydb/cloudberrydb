@@ -1,3 +1,12 @@
+/*-------------------------------------------------------------------------
+*
+* fstream.c
+*
+* Portions Copyright (c) 2023, HashData Technology Limited.
+*
+*
+*--------------------------------------------------------------------------
+*/
 #ifdef WIN32
 /* exclude transformation features on windows for now */
 #undef GPFXDIST

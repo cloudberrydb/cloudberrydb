@@ -2,7 +2,7 @@
  * interconnect_internal.h
  *	  Motion IPC Layer.
  *
- * Portions Copyright (c) 2023-, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
@@ -165,7 +165,15 @@ typedef struct ChunkTransportStateEntry
 	int			motNodeId;
 	bool		valid;
 
-	/* Connection array */
+	/* Connection array
+	 *
+	 * MUST pay attention: use getMotionConn to get MotionConn.
+	 * must not use `->conns[index]` to get MotionConn. Because the struct
+	 * MotionConn is a base structure for MotionConnTCP and
+	 * MotionConnUDP. After connection setup, the `conns` will be fill
+	 * with MotionConnUDP/MotionConnTCP, but the pointer still is
+	 * MotionConn which should use `CONTAINER_OF` to get the real object.
+	 */
 	MotionConn *conns;
 	int			numConns;
 

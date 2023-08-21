@@ -2671,8 +2671,8 @@ startOutgoingUDPConnections(ChunkTransportState *transportStates,
 {
 	ChunkTransportStateEntry *pChunkEntry;
 	ChunkTransportStateEntryUDP *pEntry;
-	MotionConn *mConn;
-	MotionConnUDP *conn;
+	MotionConn *mConn = NULL;
+	MotionConnUDP *conn = NULL;
 	ListCell   *cell;
 	ExecSlice  *recvSlice;
 	CdbProcess *cdbProc;
@@ -3317,7 +3317,7 @@ SetupUDPIFCInterconnect(EState *estate)
 		for (int i = 0; i < ht->size; i++)
 		{
 			struct ConnHtabBin *trash;
-			MotionConn *conn;
+			MotionConn *conn = NULL;
 
 			trash = ht->table[i];
 			while (trash != NULL)
@@ -3413,10 +3413,13 @@ static bool
 chunkTransportStateEntryInitialized(ChunkTransportState *transportStates,
 									int16 motNodeID)
 {
-	if (motNodeID > transportStates->size || !transportStates->states[motNodeID - 1].valid)
+	ChunkTransportStateEntry *pEntry = NULL;
+	if (motNodeID > transportStates->size) {
 		return false;
+	}
 
-	return true;
+	getChunkTransportStateNoValid(transportStates, motNodeID, &pEntry);
+	return pEntry->valid;
 }
 
 /*
@@ -3454,7 +3457,7 @@ TeardownUDPIFCInterconnect_Internal(ChunkTransportState *transportStates,
 	ChunkTransportStateEntry *pEntry = NULL;
 	int			i;
 	ExecSlice  *mySlice;
-	MotionConn *mConn;
+	MotionConn *mConn = NULL;
 	MotionConnUDP *conn = NULL;
 
 	uint64		maxRtt = 0;
@@ -4331,7 +4334,7 @@ DeregisterReadInterestUDP(ChunkTransportState *transportStates,
 					   const char *reason)
 {
 	ChunkTransportStateEntry *pEntry = NULL;
-	MotionConn *conn;
+	MotionConn *conn = NULL;
 
 	if (!transportStates)
 	{
@@ -5869,7 +5872,7 @@ SendEOSUDPIFC(ChunkTransportState *transportStates,
 {
 	ChunkTransportStateEntry *pChunkEntry = NULL;
 	ChunkTransportStateEntryUDP *pEntry = NULL;
-	MotionConn *mConn;
+	MotionConn *mConn = NULL;
 	MotionConnUDP *conn = NULL;
 	int			i = 0;
 	int			retry = 0;
@@ -6919,8 +6922,8 @@ handleMismatch(icpkthdr *pkt, struct sockaddr_storage *peer, int peer_len)
 static bool
 cacheFuturePacket(icpkthdr *pkt, struct sockaddr_storage *peer, int peer_len)
 {
-	MotionConn *mConn;
-	MotionConnUDP *conn;
+	MotionConn *mConn = NULL;
+	MotionConnUDP *conn = NULL;
 
 	mConn = findConnByHeader(&ic_control_info.startupCacheHtab, pkt);
 
@@ -7122,8 +7125,8 @@ dumpConnections(ChunkTransportStateEntry *pEntry, const char *fname)
 {
 	int			i,
 				j;
-	MotionConn *mConn;
-	MotionConnUDP *conn;
+	MotionConn *mConn = NULL;
+	MotionConnUDP *conn = NULL;
 
 	FILE	   *ofile = fopen(fname, "w+");
 

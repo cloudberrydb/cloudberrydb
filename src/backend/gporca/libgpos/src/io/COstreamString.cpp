@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
+//	Greenplum Database
 //	Copyright (C) 2009 - 2010 Greenplum Inc.
 //
 //	@filename:

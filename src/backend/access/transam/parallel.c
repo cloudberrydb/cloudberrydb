@@ -1665,7 +1665,7 @@ InitGpParallelDSMHash(void)
 Size
 GpParallelDSMHashSize(void)
 {
-	/* GPDB_PARALLEL_FIXME: limit for max slice */
+	/* CBDB_PARALLEL_FIXME: limit for max slice */
 	return hash_estimate_size(SHARED_PARALLEL_DSM_TABLE_SIZE,
 							   sizeof(GpParallelDSMEntry));
 }

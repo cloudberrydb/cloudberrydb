@@ -3,6 +3,7 @@
 # GNUmakefile--
 #    Makefile for src/test/regress (the regression tests)
 #
+# Portions Copyright (c) 2023, HashData Technology Limited.
 # Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
 # Portions Copyright (c) 1994, Regents of the University of California
 #
@@ -203,8 +204,18 @@ installcheck: installcheck-good
 installcheck-small: all
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(EXTRA_TESTS)
 
+# We have set default gp_appendonly_insert_files = 4 for user's underlying parallelism.
+# But that will cause lots of diffs between non-parallel and parallel mode that we can't
+# afford to modify them one by one, or create lots of answer files(and we didn't support that yet).
+# Any tests related to ao parallel should set GUCs in their own sql files, like gp_parallel.
+# Using gpconfig is a workaround for regression test for non-parallel and parallel mode.
+# Same for src/test/isolation2/Makefile
 installcheck-good: all twophase_pqexecparams hooktest query_info_hook_test
-	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS)
+	(\
+	gpconfig -c gp_appendonly_insert_files -v 0; \
+	gpstop -u; \
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS) \
+	)
 
 installcheck-parallel: all
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)

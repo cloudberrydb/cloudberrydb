@@ -26,7 +26,8 @@
  *	before ExecutorEnd.  This can be omitted only in case of EXPLAIN,
  *	which should also omit ExecutorRun.
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -1773,7 +1774,7 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 
 			/* set our global sliceid variable for elog. */
 			int			save_currentSliceId = estate->currentSliceId;
-			/* GPDB_PARALLEL_FIXME: Is it necessary to save and recover this? */
+			/* CBDB_PARALLEL_FIXME: Is it necessary to save and recover this? */
 			bool		save_useMppParallelMode = estate->useMppParallelMode;
 
 			estate->currentSliceId = estate->es_plannedstmt->subplan_sliceIds[subplan_id - 1];

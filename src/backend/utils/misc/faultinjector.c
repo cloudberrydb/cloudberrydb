@@ -1,7 +1,7 @@
 /*-------------------------------------------------------------------------
  *
  * faultinjector.c
- *	  GP Fault Injectors are used for Cloudberry internal testing only.
+ *	  GP Fault Injectors are used for Greenplum internal testing only.
  * 
  * Fault injectors are used for fine control during testing. They allow a
  * developer to create deterministic tests for scenarios that are hard to
@@ -9,6 +9,7 @@
  * suspend, skip, or even panic the process. Fault injectors are set in shared
  * memory so they are accessible to all segment processes.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2009-2010 Greenplum Inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *

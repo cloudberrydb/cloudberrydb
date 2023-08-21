@@ -3,7 +3,7 @@
  * cdbdispatchresult.h
  * routines for processing dispatch results.
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -316,5 +316,7 @@ cdbdisp_makeDispatchResults(struct CdbDispatcherState *ds,
 
 void
 cdbdisp_clearCdbPgResults(CdbPgResults* cdb_pgresults);
+typedef void (*ProcessDispatchResult_hook_type) (CdbDispatcherState*);
+extern PGDLLIMPORT ProcessDispatchResult_hook_type ProcessDispatchResult_hook;
 
 #endif   /* CDBDISPATCHRESULT_H */

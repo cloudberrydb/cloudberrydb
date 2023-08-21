@@ -119,35 +119,46 @@ get_segment_configuration(int dbid, char **hostname, int *port, int *content)
 	SysScanDesc scan;
 	Datum       attr;
 	bool        isNull;
+	Oid			warehouseid = InvalidOid;
+	bool		find_config = false;
 
 	configrel = table_open(GpSegmentConfigRelationId, AccessShareLock);
 	ScanKeyInit(&scankey[0],
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	scan = systable_beginscan(configrel, GpSegmentConfigDbidIndexId, true,
+	scan = systable_beginscan(configrel, GpSegmentConfigDbidWarehouseIndexId, true,
 							  NULL, 1, scankey);
 
-	tuple = systable_getnext(scan);
-
-	if (HeapTupleIsValid(tuple))
+	while (HeapTupleIsValid(tuple = systable_getnext(scan)))
 	{
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouseid,
 							RelationGetDescr(configrel), &isNull);
 		Assert(!isNull);
-		*hostname = TextDatumGetCString(attr);
+		warehouseid = DatumGetObjectId(attr);
 
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
-							RelationGetDescr(configrel), &isNull);
-		Assert(!isNull);
-		*port = DatumGetInt32(attr);
+		if (!OidIsValid(warehouseid) || warehouseid == GetCurrentWarehouseId())
+		{
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_hostname,
+								RelationGetDescr(configrel), &isNull);
+			Assert(!isNull);
+			*hostname = TextDatumGetCString(attr);
 
-		attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
-							RelationGetDescr(configrel), &isNull);
-		Assert(!isNull);
-		*content = DatumGetInt32(attr);
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_port,
+								RelationGetDescr(configrel), &isNull);
+			Assert(!isNull);
+			*port = DatumGetInt32(attr);
+
+			attr = heap_getattr(tuple, Anum_gp_segment_configuration_content,
+								RelationGetDescr(configrel), &isNull);
+			Assert(!isNull);
+			*content = DatumGetInt32(attr);
+
+			find_config = true;
+			break;
+		}
 	}
-	else
+	if (!find_config)
 		elog(ERROR, "dbid %d not found", dbid);
 
 	systable_endscan(scan);

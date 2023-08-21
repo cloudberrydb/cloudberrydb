@@ -7,6 +7,7 @@
  * by the PG_KEYWORD macro, which is not defined in this file; it can
  * be defined by the caller for special purposes.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -519,6 +520,8 @@ PG_KEYWORD("version", VERSION_P, UNRESERVED_KEYWORD, BARE_LABEL)
 PG_KEYWORD("view", VIEW, UNRESERVED_KEYWORD, BARE_LABEL)
 PG_KEYWORD("views", VIEWS, UNRESERVED_KEYWORD, BARE_LABEL)
 PG_KEYWORD("volatile", VOLATILE, UNRESERVED_KEYWORD, BARE_LABEL)
+PG_KEYWORD("warehouse", WAREHOUSE, UNRESERVED_KEYWORD, BARE_LABEL)
+PG_KEYWORD("warehouse_size", WAREHOUSE_SIZE, UNRESERVED_KEYWORD, BARE_LABEL)
 PG_KEYWORD("web", WEB, UNRESERVED_KEYWORD, BARE_LABEL)
 PG_KEYWORD("when", WHEN, RESERVED_KEYWORD, BARE_LABEL)
 PG_KEYWORD("where", WHERE, RESERVED_KEYWORD, AS_LABEL)

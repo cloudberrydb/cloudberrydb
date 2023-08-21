@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
+//	Greenplum Database
 //	Copyright (C) 2008-2010 Greenplum Inc.
 //	Copyright (C) 2011 EMC Corp.
 //

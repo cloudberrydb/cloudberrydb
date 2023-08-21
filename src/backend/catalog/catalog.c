@@ -5,6 +5,7 @@
  *		bits of hard-wired knowledge
  *
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -58,6 +59,7 @@
 #include "catalog/gp_configuration_history.h"
 #include "catalog/gp_id.h"
 #include "catalog/gp_version_at_initdb.h"
+#include "catalog/gp_warehouse.h"
 #include "catalog/pg_event_trigger.h"
 #include "catalog/pg_largeobject_metadata.h"
 #include "catalog/pg_resourcetype.h"
@@ -458,8 +460,8 @@ IsSharedRelation(Oid relationId)
 		relationId == AuthIdRolResQueueIndexId ||
 		relationId == AuthIdRolResGroupIndexId ||
 #ifdef USE_INTERNAL_FTS
-		relationId == GpSegmentConfigContentPreferred_roleIndexId ||
-		relationId == GpSegmentConfigDbidIndexId ||
+		relationId == GpSegmentConfigContentPreferred_roleWarehouseIndexId ||
+		relationId == GpSegmentConfigDbidWarehouseIndexId ||
 #endif
 		relationId == AuthTimeConstraintAuthIdIndexId)
 	{
@@ -500,6 +502,14 @@ IsSharedRelation(Oid relationId)
 		relationId == TaskRunHistoryRelationId ||
 		relationId == TaskRunHistoryJobIdIndexId ||
 		relationId == TaskRunHistoryRunIdIndexId)
+	{
+		return true;
+	}
+
+	/* warehouse table and its indexes */
+	if (relationId == GpWarehouseRelationId ||
+		relationId == GpWarehouseOidIndexId ||
+		relationId == GpWarehouseNameIndexId)
 	{
 		return true;
 	}

@@ -5,6 +5,8 @@
  * extended_protocol_commit_test_fdw.c
  *
  *		A foreign data wrapper for testing of its interaction with FDW.
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  */
 
 #include "postgres.h"

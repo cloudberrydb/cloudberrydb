@@ -1,3 +1,13 @@
+/*-------------------------------------------------------------------------
+*
+* sync_guc_name.h
+*
+* Portions Copyright (c) 2023, HashData Technology Limited.
+*
+* DENTIFICATION
+*	src/include/utils/sync_guc_name.h
+*--------------------------------------------------------------------------
+*/
 		"backtrace_functions",
 		"bytea_output",
 		"client_min_messages",

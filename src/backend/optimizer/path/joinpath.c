@@ -3,7 +3,8 @@
  * joinpath.c
  *	  Routines to find all possible paths for processing a set of joins
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -1147,7 +1148,7 @@ try_partial_hashjoin_path(PlannerInfo *root,
 		return;
 
 	/*
-	 * GPDB_PARALLEL_FIXME
+	 * CBDB_PARALLEL_FIXME
 	 * Customers encounter an issue that when parallel hash, broadcast motion
 	 * a smaller table may be worser than redistribute a big table.
 	 * We add a path whic doesn't try broadcast if possible.
@@ -1174,7 +1175,7 @@ try_partial_hashjoin_path(PlannerInfo *root,
 	}
 
 	/* 
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * We only want non-broadcast in parallel hash if the guc is set.
 	 */
 	if (parallel_hash && !parallel_hash_enable_motion_broadcast)
@@ -2298,7 +2299,6 @@ hash_inner_and_outer(PlannerInfo *root,
 			save_jointype != JOIN_UNIQUE_OUTER &&
 			save_jointype != JOIN_FULL &&
 			save_jointype != JOIN_RIGHT &&
-			save_jointype != JOIN_LASJ_NOTIN &&
 			save_jointype != JOIN_DEDUP_SEMI &&
 			save_jointype != JOIN_DEDUP_SEMI_REVERSE &&
 			outerrel->partial_pathlist != NIL &&
@@ -2318,6 +2318,7 @@ hash_inner_and_outer(PlannerInfo *root,
 			 */
 			if (innerrel->partial_pathlist != NIL &&
 				save_jointype != JOIN_UNIQUE_INNER &&
+				save_jointype != JOIN_LASJ_NOTIN &&
 				enable_parallel_hash)
 			{
 				cheapest_partial_inner =

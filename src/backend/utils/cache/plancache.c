@@ -44,6 +44,7 @@
  * if the old one gets invalidated.
  *
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -964,7 +965,7 @@ BuildCachedPlan(CachedPlanSource *plansource, List *qlist,
 	}
 
 	/*
-	 * GP_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * GPDB hack here for IntoClause, see GetCachedPlan().
 	 * Disable parallel if into a AO/AOCS table.
 	 */

@@ -1,3 +1,13 @@
+/*-------------------------------------------------------------------------
+*
+* hook_test.c
+*
+* Portions Copyright (c) 2023, HashData Technology Limited.
+*
+* DENTIFICATION
+*	src/test/regress/hootest/hook_test.c
+*--------------------------------------------------------------------------
+*/
 #include "postgres.h"
 
 #include "fmgr.h"

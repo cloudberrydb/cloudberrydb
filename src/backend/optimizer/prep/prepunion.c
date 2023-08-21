@@ -17,7 +17,8 @@
  * append relations, and thenceforth share code with the UNION ALL case.
  *
  *
- * Portions Copyright (c) 2006-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -590,7 +591,7 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 	ListCell   *lc;
 	List	   *pathlist = NIL;
 	List	   *partial_pathlist = NIL;
-	bool		partial_paths_valid = false; /* GPDB_PARALLEL_FIXME: temproary disable partial path */
+	bool		partial_paths_valid = false; /* CBDB_PARALLEL_FIXME: temproary disable partial path */
 	bool		consider_parallel = true;
 	List	   *rellist;
 	List	   *tlist_list;
@@ -749,7 +750,7 @@ generate_union_paths(SetOperationStmt *op, PlannerInfo *root,
 							   NIL, NULL,
 							   parallel_workers, enable_parallel_append,
 							   -1);
-		/* GPDB_PARALLEL_FIXME: we disable pg styple Gather/GatherMerge node */
+		/* CBDB_PARALLEL_FIXME: we disable pg styple Gather/GatherMerge node */
 #if 0
 		ppath = (Path *)
 			create_gather_path(root, result_rel, ppath,

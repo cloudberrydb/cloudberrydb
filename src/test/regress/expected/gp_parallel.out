@@ -35,6 +35,8 @@ set force_parallel_mode = 0;
 set optimizer = off;
 create schema test_parallel;
 set search_path to test_parallel;
+-- set this to default in case regress change it by gpstop.
+set gp_appendonly_insert_files = 4;
 create table ao1(x int, y int) with(appendonly=true);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Greenplum Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -48,7 +50,8 @@ begin;
 -- encourage use of parallel plans
 set local min_parallel_table_scan_size = 0;
 set local max_parallel_workers_per_gather = 4;
-set local enable_parallel = true;
+-- test insert into multiple files even enable_parallel is off.
+set local enable_parallel = off;
 -- insert multiple segfiles for parallel
 set local gp_appendonly_insert_files = 4;
 -- test appendonly table parallel 
@@ -62,6 +65,7 @@ select segfilecount from pg_appendonly where relid = 'ao1'::regclass;
             4
 (1 row)
 
+set local enable_parallel = on;
 explain(costs off) select count(*) from ao1;
                     QUERY PLAN                    
 --------------------------------------------------
@@ -79,6 +83,7 @@ select count(*) from ao1;
 (1 row)
 
 -- test aocs table parallel 
+set local enable_parallel = off;
 insert into aocs1 select i, i from generate_series(1, 1200000) g(i);
 analyze aocs1;
 select segfilecount from pg_appendonly where relid = 'aocs1'::regclass;
@@ -87,6 +92,7 @@ select segfilecount from pg_appendonly where relid = 'aocs1'::regclass;
             4
 (1 row)
 
+set local enable_parallel = on;
 explain(costs off) select count(*) from aocs1;
                     QUERY PLAN                    
 --------------------------------------------------
@@ -200,6 +206,77 @@ commit;
 drop table ao1;
 drop table ao2;
 drop table aocs1;
+-- test Parallel Bitmap Heap Scan
+begin;
+create table t1(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+set local enable_parallel = on;
+create index on t1(c2);
+insert into t1 select i, i from generate_series(1, 10000000) i;
+analyze t1;
+set local force_parallel_mode = 1;
+set local enable_seqscan = off;
+explain(locus, costs off) select c2 from t1;
+                 QUERY PLAN                 
+--------------------------------------------
+ Gather Motion 6:1  (slice1; segments: 6)
+   Locus: Entry
+   ->  Parallel Bitmap Heap Scan on t1
+         Locus: HashedWorkers
+         Parallel Workers: 2
+         ->  Bitmap Index Scan on t1_c2_idx
+               Locus: NULL
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+-- results check
+explain(locus, costs off) select count(c2) from t1;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Finalize Aggregate
+   Locus: Entry
+   ->  Gather Motion 6:1  (slice1; segments: 6)
+         Locus: Entry
+         ->  Partial Aggregate
+               Locus: HashedWorkers
+               Parallel Workers: 2
+               ->  Parallel Bitmap Heap Scan on t1
+                     Locus: HashedWorkers
+                     Parallel Workers: 2
+                     ->  Bitmap Index Scan on t1_c2_idx
+                           Locus: NULL
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+select count(c2) from t1;
+  count   
+----------
+ 10000000
+(1 row)
+
+set local enable_parallel = off;
+explain(locus, costs off) select count(c2) from t1;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Finalize Aggregate
+   Locus: Entry
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Locus: Entry
+         ->  Partial Aggregate
+               Locus: Hashed
+               ->  Bitmap Heap Scan on t1
+                     Locus: Hashed
+                     ->  Bitmap Index Scan on t1_c2_idx
+                           Locus: NULL
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select count(c2) from t1;
+  count   
+----------
+ 10000000
+(1 row)
+
+abort;
 -- test gp_appendonly_insert_files doesn't take effect
 begin;
 create table t (x int);
@@ -1513,6 +1590,81 @@ select * from t1 order by c2 asc limit 3 offset 5;
 
 abort;
 --
+-- Test Parallel Hash Left Anti Semi (Not-In) Join(parallel-oblivious).
+--
+create table t1(c1 int, c2 int) using ao_row distributed by (c1);
+create table t2(c1 int, c2 int) using ao_row distributed by (c1);
+create table t3_null(c1 int, c2 int) using ao_row distributed by (c1);
+set enable_parallel = on;
+set gp_appendonly_insert_files = 2;
+set gp_appendonly_insert_files_tuples_range = 100;
+set max_parallel_workers_per_gather = 2;
+insert into t1 select i, i from generate_series(1, 5000000) i;
+insert into t2 select i+1, i from generate_series(1, 1200) i;
+insert into t3_null select i+1, i from generate_series(1, 1200) i;
+insert into t3_null values(NULL, NULL);
+analyze t1;
+analyze t2;
+analyze t3_null;
+explain(costs off) select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
+                                QUERY PLAN                                 
+---------------------------------------------------------------------------
+ Finalize Aggregate
+   ->  Gather Motion 6:1  (slice1; segments: 6)
+         ->  Partial Aggregate
+               ->  Hash Left Anti Semi (Not-In) Join
+                     Hash Cond: (t1.c1 = t2.c1)
+                     ->  Parallel Seq Scan on t1
+                     ->  Hash
+                           ->  Broadcast Motion 3:6  (slice2; segments: 3)
+                                 ->  Seq Scan on t2
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
+      sum       
+----------------
+ 12500001778200
+(1 row)
+
+explain(costs off) select * from t1 where c1 not in (select c1 from t3_null);
+                          QUERY PLAN                           
+---------------------------------------------------------------
+ Gather Motion 6:1  (slice1; segments: 6)
+   ->  Hash Left Anti Semi (Not-In) Join
+         Hash Cond: (t1.c1 = t3_null.c1)
+         ->  Parallel Seq Scan on t1
+         ->  Hash
+               ->  Broadcast Motion 3:6  (slice2; segments: 3)
+                     ->  Seq Scan on t3_null
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+select * from t1 where c1 not in (select c1 from t3_null);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- non-parallel results.
+set enable_parallel = off;
+select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
+      sum       
+----------------
+ 12500001778200
+(1 row)
+
+select * from t1 where c1 not in (select c1 from t3_null);
+ c1 | c2 
+----+----
+(0 rows)
+
+drop table t1;
+drop table t2;
+drop table t3_null;
+--
+-- End of Test Parallel Hash Left Anti Semi (Not-In) Join.
+--
+--
 -- Test alter ao/aocs table parallel_workers options
 --
 begin;
@@ -1698,5 +1850,6 @@ abort;
 -- start_ignore
 drop schema test_parallel cascade;
 -- end_ignore
+reset gp_appendonly_insert_files;
 reset force_parallel_mode;
 reset optimizer;

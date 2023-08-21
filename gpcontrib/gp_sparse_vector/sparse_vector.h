@@ -6,7 +6,7 @@
  * Consists of the dimension of the vector (how many elements) and a SparseData
  * structure that stores the data in a compressed format.
  *
- * Copyright (c) 2010, Cloudberry Software
+ * Copyright (c) 2010, Greenplum Software
  * Portions Copyright (c) 2013-Present VMware, Inc. or its affiliates.
  *
  *

@@ -2,7 +2,7 @@
  * cdbinterconnect.h
  *	  Defines state that is used by both the Motion Layer and IPC Layer.
  *
- * Portions Copyright (c) 2006-2008, Cloudberry inc
+ * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -192,7 +192,16 @@ typedef struct MotionConnSentRecordTypmodEnt
 
 typedef struct ChunkTransportState
 {
-	/* array of per-motion-node chunk transport state */
+	/* array of per-motion-node chunk transport state
+	 *
+	 * MUST pay attention: use getChunkTransportStateNoValid/getChunkTransportState
+	 * to get ChunkTransportStateEntry.
+	 * must not use `->states[index]` to get ChunkTransportStateEntry. Because the struct
+	 * ChunkTransportStateEntry is a base structure for ChunkTransportStateEntryTCP and
+	 * ChunkTransportStateEntryUDP. After interconnect setup, the `states` will be fill
+	 * with EntryUDP/EntryTCP, but the pointer still is ChunkTransportStateEntry which
+	 * should use `CONTAINER_OF` to get the real object.
+	 */
 	int size;
 	struct ChunkTransportStateEntry *states;
 

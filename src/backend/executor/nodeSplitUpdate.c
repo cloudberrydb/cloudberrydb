@@ -3,6 +3,7 @@
  * nodeSplitUpdate.c
  *	  Implementation of nodeSplitUpdate.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2012, EMC Corp.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *

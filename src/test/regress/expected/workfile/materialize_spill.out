@@ -59,7 +59,7 @@ set enable_nestloop = true;
 -- ORCA doesn't honor enable_nestloop/enable_hashjoin, so this won't produce
 -- the kind of plan we're looking for.
 set optimizer=off;
--- GP_PARALLEL_FIXME: seems like work_mem are affected by parallel, thus more spilling
+-- CBDB_PARALLEL_FIXME: seems like work_mem are affected by parallel, thus more spilling
 -- happened. Temporally disable parallel in this case to pass the test.
 set enable_parallel=off;
 -- This is the actual test query.

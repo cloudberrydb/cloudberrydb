@@ -3,6 +3,7 @@
  * gp_segment_configuration.h
  *    a segment configuration table
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2006-2011, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
@@ -57,6 +58,7 @@ CATALOG(gp_segment_configuration,7026,GpSegmentConfigRelationId) BKI_SHARED_RELA
 	text		address;
 
 	text		datadir;
+	Oid			warehouseid BKI_DEFAULT(0);
 #endif
 } FormData_gp_segment_configuration;
 

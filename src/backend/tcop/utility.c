@@ -5,6 +5,7 @@
  *	  commands.  At one time acted as an interface between the Lisp and C
  *	  systems.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -240,8 +241,10 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_DropTaskStmt:
 		case T_DropQueueStmt:
 		case T_DropResourceGroupStmt:
+		case T_DropWarehouseStmt:
 		case T_CreateExternalStmt:
 		case T_RetrieveStmt:
+		case T_CreateWarehouseStmt:
 			{
 				/* DDL is not read-only, and neither is TRUNCATE. */
 				return COMMAND_IS_NOT_READ_ONLY;
@@ -1785,7 +1788,14 @@ ProcessUtilitySlow(ParseState *pstate,
 
 			case T_DropTaskStmt:
 				address = DropTask(pstate, (DropTaskStmt *) parsetree);
-				break;				
+				break;
+
+			case T_CreateWarehouseStmt:
+			case T_DropWarehouseStmt:
+				ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("warehouse feature is not supported")));
+				break;
 
 			case T_CreateExternalStmt:
 				{
@@ -3728,6 +3738,13 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_RETRIEVE;
 			break;
 
+		case T_CreateWarehouseStmt:
+			tag = CMDTAG_CREATE_WAREHOUSE;
+			break;
+		case T_DropWarehouseStmt:
+			tag = CMDTAG_DROP_WAREHOUSE;
+			break;
+
 		default:
 			elog(WARNING, "unrecognized node type: %d",
 				 (int) nodeTag(parsetree));
@@ -4203,6 +4220,14 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_AlterCollationStmt:
+			lev = LOGSTMT_DDL;
+			break;
+			
+		case T_CreateWarehouseStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_DropWarehouseStmt:
 			lev = LOGSTMT_DDL;
 			break;
 

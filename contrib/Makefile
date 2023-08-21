@@ -4,7 +4,7 @@ subdir = contrib
 top_builddir = ..
 include $(top_builddir)/src/Makefile.global
 
-# Cloudberry specific changes to the targetlist:
+# Cloudberry Database specific changes to the targetlist:
 # tsearch2 and postgres_fdw are currently disabled due to test failures.
 # cube and the related earthdistance are disabled since GPDB define CUBE
 # as a keyword. lo is disabled since large objects aren't supported.
@@ -54,7 +54,7 @@ SUBDIRS = \
 		unaccent	\
 		vacuumlo
 
-# Cloudberry-specific additions (to ease merge pain).
+# CloudberryDB-specific additions (to ease merge pain).
 SUBDIRS += \
 		formatter \
 		formatter_fixedwidth \

@@ -2,6 +2,11 @@
  *
  * etcdutils.h
  *	  Interface for etcd configuration file parsing tools.
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
+ * src/include/common/etcdutils.h
+ * 
  *-------------------------------------------------------------------------
  */
 #ifndef ETCDUTILS_H

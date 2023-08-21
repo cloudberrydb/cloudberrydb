@@ -13,7 +13,7 @@ Summary:	A High Performance Massively Parallel Data Warehouse
 
 Group:		Applications/Databases
 License:	Apache License Version 2.0
-URL:		http://www.hashdata.cn
+URL:		http://www.cloudberrydb.org
 Source0:	bin_cbdb.tar.gz
 Prefix: 	%{cbdb_install_prefix}
 AutoReqProv: 	no

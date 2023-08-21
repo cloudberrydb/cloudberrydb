@@ -1,9 +1,9 @@
 /*-------------------------------------------------------------------------
- *
+ * Cloudberry Database
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
  * pg_task_run_history.h
  *	  save all tasks run history of cron task scheduler.
- *
- * Portions Copyright (c) 2023-Present Hashdata Inc.
  *
  *
  * IDENTIFICATION

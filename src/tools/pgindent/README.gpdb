@@ -1,4 +1,4 @@
-pgindent'ing Cloudberry Code
+pgindent'ing Greenplum Code
 ============================
 On upstream Postgres, pgindent is run before major releases to maintain a
 uniform layout style across the codebase. However, pgindent is not run as

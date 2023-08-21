@@ -478,6 +478,8 @@ static int	SecurityRestrictionContext = 0;
 /* We also remember if a SET ROLE is currently active */
 static bool SetRoleIsActive = false;
 
+static Oid CurrentWarehouseId = InvalidOid;
+
 /*
  * GetUserId - get the current effective user ID.
  *
@@ -963,6 +965,18 @@ GetUserNameFromId(Oid roleid, bool noerr)
 	return result;
 }
 
+Oid
+GetCurrentWarehouseId(void)
+{
+	return CurrentWarehouseId;
+}
+
+void
+SetCurrentWarehouseId(Oid warehouseid)
+{
+	AssertArg(OidIsValid(warehouseid));
+	CurrentWarehouseId = warehouseid;
+}
 
 /*-------------------------------------------------------------------------
  *				Interlock-file support

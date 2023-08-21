@@ -3,7 +3,8 @@
  * nodeHash.c
  *	  Routines to hash relations for hashjoin
  *
- * Portions Copyright (c) 2006-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2006-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -778,7 +779,7 @@ ExecChooseHashTableSize(double ntuples, int tupwidth, bool useskew,
 		/* Careful, this could overflow size_t */
 		double		newlimit;
 
-		/* GP_PARALLEL_FIXME: if we enable pg style parallel some day, we should reconsider it. */
+		/* CBDB_PARALLEL_FIXME: if we enable pg style parallel some day, we should reconsider it. */
 		newlimit = (double) hash_table_bytes * (double) parallel_workers;
 		newlimit = Min(newlimit, (double) SIZE_MAX);
 		hash_table_bytes = (size_t) newlimit;
@@ -2563,7 +2564,7 @@ ExecHashTableExplainEnd(PlanState *planstate, struct StringInfoData *buf)
     }
 
     /* Report workfile I/O statistics. */
-    /* GPDB_PARALLEL_FIXME: ExecHashTableExplainBatches if parallel_aware? */
+    /* CBDB_PARALLEL_FIXME: ExecHashTableExplainBatches if parallel_aware? */
     if (hashtable->nbatch > 1 && !planstate->plan->parallel_aware)
     {
     	ExecHashTableExplainBatches(hashtable, buf, 0, 1, "Initial");

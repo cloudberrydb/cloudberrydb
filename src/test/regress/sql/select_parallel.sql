@@ -402,7 +402,7 @@ explain (costs off)
 -- to increase the parallel query test coverage
 SAVEPOINT settings;
 SET LOCAL force_parallel_mode = 1;
--- GPDB_PARALLEL_FIXME: analyze actual rows may be different by running multiple times.
+-- CBDB_PARALLEL_FIXME: analyze actual rows may be different by running multiple times.
 EXPLAIN (timing off, summary off, costs off) SELECT * FROM tenk1;
 ROLLBACK TO SAVEPOINT settings;
 

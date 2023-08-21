@@ -1,10 +1,7 @@
-<!--
-Thank you for contributing! 
-***If you're the first time contributor, please sign the Contributor License Agreement(CLA).***
--->
+<!--Thank you for contributing!-->
 
 <!--In case of an existing issue or discussions, please reference it-->
-closes: #ISSUE
+closes: #ISSUE_Number
 <!--Remove this section if no corresponding issue.-->
 
 ---
@@ -28,12 +25,14 @@ _If yes, please clarify the previous behavior and the change this PR proposes._
 _Please detail how the changes were tested, including manual tests and any relevant unit or integration tests._
 
 ### Contributor's Checklist
-Here are some reminders before you submit the pull request:
-* Document changes
-* Communicate in the [GitHub Issues](https://github.com/cloudberrydb/cloudberrydb/issues) or [Discussions](https://github.com/orgs/cloudberrydb/discussions) (list them if needed)
-* Add tests for the change
-* Pass `make installcheck`
-* Pass `make -C src/test installcheck-cbdb-parallel`
 
-<!--Who can review & approve your PR?
-Feel free to @dev team for the approve! -->
+Here are some reminders and checklists before/when submitting your pull request, please check them:
+
+- [ ] Make sure your Pull Request has a clear title and commit message. You can take [git-commit](https://github.com/cloudberrydb/cloudberrydb/blob/main/.gitmessage) template as a reference.
+- [ ] Sign the Contributor License Agreement as prompted for your first-time contribution.
+- [ ] List your communication in the [GitHub Issues](https://github.com/cloudberrydb/cloudberrydb/issues) or [Discussions](https://github.com/orgs/cloudberrydb/discussions) (if has or needed).
+- [ ] Document changes.
+- [ ] Add tests for the change
+- [ ] Pass `make installcheck`
+- [ ] Pass `make -C src/test installcheck-cbdb-parallel`
+- [ ] Feel free to @cloudberrydb/dev team for review and approval when your PR is ready🥳

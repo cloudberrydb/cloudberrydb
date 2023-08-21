@@ -12,7 +12,8 @@
  * identifying statement boundaries in multi-statement source strings.
  *
  *
- * Portions Copyright (c) 2006-2009, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -4258,5 +4259,22 @@ typedef struct RetrieveStmt
 	int64		count;
 	bool		is_all;
 } RetrieveStmt;
+
+/* ----------------------
+ *		Warehouse Statement
+ * ----------------------
+ */
+typedef struct CreateWarehouseStmt
+{
+	NodeTag		type;
+	char		*whname;
+	List		*options;		/* List of DefElem nodes */
+} CreateWarehouseStmt;
+
+typedef struct DropWarehouseStmt
+{
+	NodeTag		type;
+	char		*whname;
+} DropWarehouseStmt;
 
 #endif							/* PARSENODES_H */

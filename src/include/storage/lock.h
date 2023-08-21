@@ -4,6 +4,7 @@
  *	  POSTGRES low-level lock mechanism
  *
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -167,10 +168,11 @@ typedef enum LockTagType
 	LOCKTAG_RESOURCE_QUEUE,		/* ID info for resource queue is QUEUE ID */
 	LOCKTAG_DISTRIB_TRANSACTION,/* CDB: distributed transaction (for waiting for distributed xact done) */
 	LOCKTAG_USERLOCK,			/* reserved for old contrib/userlock code */
-	LOCKTAG_ADVISORY			/* advisory user locks */
+	LOCKTAG_ADVISORY,			/* advisory user locks */
+	LOCKTAG_WAREHOUSE			/* warehouse locks */
 } LockTagType;
 
-#define LOCKTAG_LAST_TYPE	LOCKTAG_ADVISORY
+#define LOCKTAG_LAST_TYPE	LOCKTAG_WAREHOUSE
 
 extern const char *const LockTagTypeNames[];
 
@@ -315,6 +317,14 @@ typedef struct LOCKTAG
 	 (locktag).locktag_field4 = 0, \
 	 (locktag).locktag_type = LOCKTAG_RESOURCE_QUEUE,		\
 	 (locktag).locktag_lockmethodid = RESOURCE_LOCKMETHOD)
+
+#define SET_LOCKTAG_WAREHOUSE(locktag,warehouseid) \
+	((locktag).locktag_field1 = (warehouseid), \
+	 (locktag).locktag_field2 = 0, \
+	 (locktag).locktag_field3 = 0, \
+	 (locktag).locktag_field4 = 0, \
+	 (locktag).locktag_type = LOCKTAG_WAREHOUSE, \
+	 (locktag).locktag_lockmethodid = DEFAULT_LOCKMETHOD)
 
 /*
  * Per-locked-object lock information:

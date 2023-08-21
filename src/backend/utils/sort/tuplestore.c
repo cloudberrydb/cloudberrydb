@@ -43,10 +43,10 @@
  * before switching to the other state or activating a different read pointer.
  *
  *
- * Cloudberry changes
+ * Greenplum changes
  * -----------------
  *
- * In Cloudberry, tuplestores have one extra capability: a tuplestore can
+ * In Greenplum, tuplestores have one extra capability: a tuplestore can
  * be created and filled in one process, and opened for reading in another
  * process. To do this, call tuplestore_make_shared() immediately
  * after creating the tuplestore, in the writer process. Then populate the

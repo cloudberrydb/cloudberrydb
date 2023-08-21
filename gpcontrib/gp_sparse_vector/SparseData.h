@@ -14,7 +14,7 @@
  * into a persisted structure like a VARLENA when leaving a GP / Postgres
  * function.  This implies a COPY from the SparseData to the VARLENA.
  *
- * Copyright (c) 2010, Cloudberry Software
+ * Copyright (c) 2010, Greenplum Software
  * Portions Copyright (c) 2013-Present VMware, Inc. or its affiliates.
  *
  *

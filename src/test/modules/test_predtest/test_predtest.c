@@ -3,6 +3,7 @@
  * test_predtest.c
  *		Test correctness of optimizer's predicate proof logic.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Copyright (c) 2018-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION

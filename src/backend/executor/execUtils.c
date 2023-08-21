@@ -3,7 +3,8 @@
  * execUtils.c
  *	  miscellaneous executor utility routines
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -99,6 +100,7 @@
 static bool tlist_matches_tupdesc(PlanState *ps, List *tlist, Index varno, TupleDesc tupdesc);
 static void ShutdownExprContext(ExprContext *econtext, bool isCommit);
 static List *flatten_logic_exprs(Node *node);
+ProcessDispatchResult_hook_type ProcessDispatchResult_hook = NULL;
 
 
 /* ----------------------------------------------------------------
@@ -1601,7 +1603,7 @@ FillSliceGangInfo(ExecSlice *slice, PlanSlice *ps)
 			 * It's either the root slice or an InitPlan slice that runs in
 			 * the QD process, or really unused slice.
 			 */
-			/* GPDB_PARALLEL_FIXME: QD process should never be parallel, do we need to plus factor? */
+			/* CBDB_PARALLEL_FIXME: QD process should never be parallel, do we need to plus factor? */
 			slice->planNumSegments = 1;
 			break;
 		case GANGTYPE_PRIMARY_WRITER:
@@ -1629,13 +1631,13 @@ FillSliceGangInfo(ExecSlice *slice, PlanSlice *ps)
 			}
 			break;
 		case GANGTYPE_ENTRYDB_READER:
-			/* GPDB_PARALLEL_FIXME: QD parallel is disabled */
+			/* CBDB_PARALLEL_FIXME: QD parallel is disabled */
 			slice->planNumSegments = 1;
 			slice->segments = list_make1_int(-1);
 			break;
 		case GANGTYPE_SINGLETON_READER:
 			/*
-			 * GPDB_PARALLEL_FIXME:
+			 * CBDB_PARALLEL_FIXME:
 			 * Could be parallel, parallel scan on replica tables.
 			 */
 			slice->planNumSegments = 1 * factor;
@@ -2052,6 +2054,9 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 			FlushErrorState();
 			ReThrowError(qeError);
 		}
+
+		if (ProcessDispatchResult_hook)
+			ProcessDispatchResult_hook(ds);
 
 		/* collect pgstat from QEs for current transaction level */
 		pgstat_combine_from_qe(pr, primaryWriterSliceIndex);

@@ -207,8 +207,9 @@ ScheduleCronJob(text *scheduleText, text *commandText, text *databaseText,
 	aclresult = pg_database_aclcheck(get_database_oid(database_name, false),
 									 userIdcheckacl, ACL_CONNECT);
 	if (aclresult != ACLCHECK_OK)
-		elog(ERROR, "User %s does not have CONNECT privilege on %s",
-			 GetUserNameFromId(userIdcheckacl, false), database_name);
+		ereport(ERROR, (errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+						errmsg("User %s does not have CONNECT privilege on %s",
+								GetUserNameFromId(userIdcheckacl, false), database_name)));
 
 	GetUserIdAndSecContext(&savedUserId, &savedSecurityContext);
 
@@ -680,7 +681,9 @@ AlterCronJob(int64 jobId, char *schedule, char *command,
 										 userIdcheckacl, ACL_CONNECT);
 
 		if (aclresult != ACLCHECK_OK)
-			elog(ERROR, "User %s does not have CONNECT privilege on %s", GetUserNameFromId(userIdcheckacl, false), database_name);
+			ereport(ERROR, (errcode(ERRCODE_INSUFFICIENT_PRIVILEGE),
+							errmsg("User %s does not have CONNECT privilege on %s",
+									GetUserNameFromId(userIdcheckacl, false), database_name)));
 	}
 
 	/* ensure schedule is valid */

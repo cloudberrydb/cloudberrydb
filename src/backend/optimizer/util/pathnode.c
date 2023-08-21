@@ -3,7 +3,8 @@
  * pathnode.c
  *	  Routines to manipulate pathlists and create path nodes
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -649,9 +650,10 @@ add_path(RelOptInfo *parent_rel, Path *new_path, PlannerInfo *root)
 				}
 			}
 
-			/* GPDB_13_MERGE_FIXME: With enable_seqscan as OFF, enable_bitmapscan as OFF,
-			 * bring_to_outer_query won't choose IndexScan due to external param between motion.
-			 * So we need to keep original seqscan path here, otherwise no path available.
+			/* GPDB_13_MERGE_FIXME: With enable_seqscan as OFF,
+			 * enable_bitmapscan as OFF, bring_to_outer_query won't choose
+			 * IndexScan due to external param between motion.  So we need to
+			 * keep original seqscan path here, otherwise no path available.
 			 * The failure query is in create_index_spgist.sql:
 			 *
 			 * SELECT (SELECT p FROM kd_point_tbl ORDER BY p <-> pt, p <-> '0,0' LIMIT 1)
@@ -1400,7 +1402,7 @@ create_append_path(PlannerInfo *root,
 	ListCell   *l;
 
 	/*
-	 * GPDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
+	 * CBDB_PARALLEL_FIXME: it still cannot be opened after we deal with append.
 	 * Because we currently allow path with non parallel_workers been added to
 	 * partial_path.
 	 */
@@ -1803,14 +1805,14 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 		{ CdbLocusType_SegmentGeneralWorkers, CdbLocusType_Strewn, CdbLocusType_Strewn },
 
 		/*
-		 * GPDB_PARALLEL_FIXME: The following three locus are not considering parallel for now.
+		 * CBDB_PARALLEL_FIXME: The following three locus are not considering parallel for now.
 		 * We might need to consider it in the future.
 		 */
 		{ CdbLocusType_SegmentGeneralWorkers, CdbLocusType_OuterQuery, CdbLocusType_OuterQuery},
 		{ CdbLocusType_SegmentGeneralWorkers, CdbLocusType_Entry, CdbLocusType_Entry},
 		{ CdbLocusType_SegmentGeneralWorkers, CdbLocusType_SingleQE, CdbLocusType_SingleQE},
 
-		/* GPDB_PARALLEL_FIXME: Is there any chance replicated workers exist in append subpath? */
+		/* CBDB_PARALLEL_FIXME: Is there any chance replicated workers exist in append subpath? */
 	};
 
 	targetlocustype = CdbLocusType_General;
@@ -2138,7 +2140,7 @@ set_append_path_locus(PlannerInfo *root, Path *pathnode, RelOptInfo *rel,
 
 	pathnode->locus = targetlocus;
 	/*
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * Workaround for assertions in create_plan,
 	 * else will get wrong plan, ex: general locus with parallel_workers > 1.
 	 * Reconsider this after append locus is fixed.
@@ -3420,7 +3422,7 @@ create_ctescan_path(PlannerInfo *root, RelOptInfo *rel,
 		pathnode->rows = clamp_row_est(rel->rows / numsegments);
 		pathnode->startup_cost = subpath->startup_cost;
 		pathnode->total_cost = subpath->total_cost;
-		/* GPDB_PARALLEL_FIXME: Is it correct to set parallel workers here? */
+		/* CBDB_PARALLEL_FIXME: Is it correct to set parallel workers here? */
 		pathnode->parallel_workers = subpath->parallel_workers;
 
 		ctepath->subpath = subpath;
@@ -3498,7 +3500,7 @@ create_resultscan_path(PlannerInfo *root, RelOptInfo *rel,
 			CdbPathLocus_MakeEntry(&pathnode->locus);
 		else if (exec_location == PROEXECLOCATION_ALL_SEGMENTS)
 		{
-			/* GPDB_PARALLEL_FIXME: I'm not sure if this makes sense. This
+			/* CBDB_PARALLEL_FIXME: I'm not sure if this makes sense. This
 			 * would return multiple rows, one for each segment, but usually
 			 * a "SELECT func()" is expected to return just one row.
 			 */
@@ -4340,7 +4342,7 @@ create_hashjoin_path(PlannerInfo *root,
 	int			rowidexpr_id;
 
 	/*
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * We do have outer_path(parallel_workers=0) when parallel_aware is true
 	 * as we try more partial hash join paths than upstream.
 	 * Are them reasonable? Better to remove them until we have a clear answer.
@@ -4481,7 +4483,7 @@ create_hashjoin_path(PlannerInfo *root,
 	/*
 	 * For parallel hash, it is motionHazard. If there are parallel hash join on outside child,
 	 * not use parallel hash.
-	 * GPDB_PARALLEL_FIXME: At least, should not have impact on non-parallel path generation.
+	 * CBDB_PARALLEL_FIXME: At least, should not have impact on non-parallel path generation.
 	 */
 	if (enable_parallel && outer_path->barrierHazard && !parallel_hash)
 		return NULL;

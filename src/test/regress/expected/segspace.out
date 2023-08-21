@@ -1,7 +1,7 @@
 --
 -- Tests the spill files disk space accounting mechanism
 --
--- GPDP_PARALLEL_FIXME: it's hard to make fault_injection work with prallel processes.
+-- CBDB_PARALLEL_FIXME: it's hard to make fault_injection work with prallel processes.
 set enable_parallel = false;
 -- check segspace before test
 reset statement_mem;

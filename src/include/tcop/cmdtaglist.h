@@ -8,6 +8,7 @@
  * determined by the PG_CMDTAG macro, which is not defined in this file;
  * it can be defined by the caller for special purposes.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -134,6 +135,7 @@ PG_CMDTAG(CMDTAG_CREATE_TYPE, "CREATE TYPE", true, false, false)
 PG_CMDTAG(CMDTAG_CREATE_TASK, "CREATE TASK", true, false, false)
 PG_CMDTAG(CMDTAG_CREATE_USER_MAPPING, "CREATE USER MAPPING", true, false, false)
 PG_CMDTAG(CMDTAG_CREATE_VIEW, "CREATE VIEW", true, false, false)
+PG_CMDTAG(CMDTAG_CREATE_WAREHOUSE, "CREATE WAREHOUSE", true, false, false)
 PG_CMDTAG(CMDTAG_DEALLOCATE, "DEALLOCATE", false, false, false)
 PG_CMDTAG(CMDTAG_DEALLOCATE_ALL, "DEALLOCATE ALL", false, false, false)
 PG_CMDTAG(CMDTAG_DECLARE_CURSOR, "DECLARE CURSOR", false, false, false)
@@ -200,6 +202,7 @@ PG_CMDTAG(CMDTAG_DROP_TRIGGER, "DROP TRIGGER", true, false, false)
 PG_CMDTAG(CMDTAG_DROP_TYPE, "DROP TYPE", true, false, false)
 PG_CMDTAG(CMDTAG_DROP_USER_MAPPING, "DROP USER MAPPING", true, false, false)
 PG_CMDTAG(CMDTAG_DROP_VIEW, "DROP VIEW", true, false, false)
+PG_CMDTAG(CMDTAG_DROP_WAREHOUSE, "DROP WAREHOUSE", true, false, false)
 
 
 

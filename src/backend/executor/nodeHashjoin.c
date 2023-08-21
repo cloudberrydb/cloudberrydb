@@ -3,7 +3,8 @@
  * nodeHashjoin.c
  *	  Routines to handle hash join nodes
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -204,7 +205,7 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 	hashtable = node->hj_HashTable;
 	econtext = node->js.ps.ps_ExprContext;
 	parallel_state = hashNode->parallel_state;
-	/* GPDB_PARALLEL_FIXME: When parallel is true and parallel_state is NULL */
+	/* CBDB_PARALLEL_FIXME: When parallel is true and parallel_state is NULL */
 	parallel = parallel && (parallel_state != NULL);
 
 	/*

@@ -5,6 +5,7 @@
  *	  Provides utils functions for analyze.c
  *
  * Copyright (c) 2015, VMware, Inc. or its affiliates.
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *-------------------------------------------------------------------------
  */

@@ -36,6 +36,8 @@ set optimizer = off;
 
 create schema test_parallel;
 set search_path to test_parallel;
+-- set this to default in case regress change it by gpstop.
+set gp_appendonly_insert_files = 4;
 
 create table ao1(x int, y int) with(appendonly=true);
 create table ao2(x int, y int) with(appendonly=true);
@@ -46,7 +48,8 @@ begin;
 -- encourage use of parallel plans
 set local min_parallel_table_scan_size = 0;
 set local max_parallel_workers_per_gather = 4;
-set local enable_parallel = true;
+-- test insert into multiple files even enable_parallel is off.
+set local enable_parallel = off;
 
 -- insert multiple segfiles for parallel
 set local gp_appendonly_insert_files = 4;
@@ -57,13 +60,16 @@ analyze ao1;
 insert into ao2 select i%10, i from generate_series(1, 1200000) g(i);
 analyze ao2;
 select segfilecount from pg_appendonly where relid = 'ao1'::regclass;
+set local enable_parallel = on;
 explain(costs off) select count(*) from ao1;
 select count(*) from ao1;
 
 -- test aocs table parallel 
+set local enable_parallel = off;
 insert into aocs1 select i, i from generate_series(1, 1200000) g(i);
 analyze aocs1;
 select segfilecount from pg_appendonly where relid = 'aocs1'::regclass;
+set local enable_parallel = on;
 explain(costs off) select count(*) from aocs1;
 select count(*) from aocs1;
 
@@ -100,6 +106,24 @@ commit;
 drop table ao1;
 drop table ao2;
 drop table aocs1;
+
+-- test Parallel Bitmap Heap Scan
+begin;
+create table t1(c1 int, c2 int) with(parallel_workers=2) distributed by (c1);
+set local enable_parallel = on;
+create index on t1(c2);
+insert into t1 select i, i from generate_series(1, 10000000) i;
+analyze t1;
+set local force_parallel_mode = 1;
+set local enable_seqscan = off;
+explain(locus, costs off) select c2 from t1;
+-- results check
+explain(locus, costs off) select count(c2) from t1;
+select count(c2) from t1;
+set local enable_parallel = off;
+explain(locus, costs off) select count(c2) from t1;
+select count(c2) from t1;
+abort;
 
 
 -- test gp_appendonly_insert_files doesn't take effect
@@ -441,6 +465,39 @@ set local enable_parallel = off;
 explain(costs off, locus) select * from t1 order by c2 asc limit 3 offset 5;
 select * from t1 order by c2 asc limit 3 offset 5;
 abort;
+
+--
+-- Test Parallel Hash Left Anti Semi (Not-In) Join(parallel-oblivious).
+--
+create table t1(c1 int, c2 int) using ao_row distributed by (c1);
+create table t2(c1 int, c2 int) using ao_row distributed by (c1);
+create table t3_null(c1 int, c2 int) using ao_row distributed by (c1);
+set enable_parallel = on;
+set gp_appendonly_insert_files = 2;
+set gp_appendonly_insert_files_tuples_range = 100;
+set max_parallel_workers_per_gather = 2;
+insert into t1 select i, i from generate_series(1, 5000000) i;
+insert into t2 select i+1, i from generate_series(1, 1200) i;
+insert into t3_null select i+1, i from generate_series(1, 1200) i;
+insert into t3_null values(NULL, NULL);
+analyze t1;
+analyze t2;
+analyze t3_null;
+explain(costs off) select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
+select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
+explain(costs off) select * from t1 where c1 not in (select c1 from t3_null);
+select * from t1 where c1 not in (select c1 from t3_null);
+-- non-parallel results.
+set enable_parallel = off;
+select sum(t1.c1) from t1 where c1 not in (select c1 from t2);
+select * from t1 where c1 not in (select c1 from t3_null);
+drop table t1;
+drop table t2;
+drop table t3_null;
+--
+-- End of Test Parallel Hash Left Anti Semi (Not-In) Join.
+--
+
 --
 -- Test alter ao/aocs table parallel_workers options
 --
@@ -508,5 +565,6 @@ abort;
 drop schema test_parallel cascade;
 -- end_ignore
 
+reset gp_appendonly_insert_files;
 reset force_parallel_mode;
 reset optimizer;

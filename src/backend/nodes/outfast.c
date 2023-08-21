@@ -3,14 +3,15 @@
  * outfast.c
  *	  Fast serialization functions for Postgres tree nodes.
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2008, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
  *
  * NOTES
- *	  Every node type that can appear in an Cloudberry Database serialized query or plan
+ *	  Every node type that can appear in an Greenplum Database serialized query or plan
  *    tree must have an output function defined here.
  *
  * 	  There *MUST* be a one-to-one correspondence between this routine

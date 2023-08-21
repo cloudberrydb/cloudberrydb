@@ -2,7 +2,7 @@
  * ic_common.c
  *	   Interconnect code shared between UDP, and TCP IPC Layers.
  *
- * Portions Copyright (c) 2023-, Cloudberry
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
@@ -94,7 +94,7 @@ extern ChunkTransportStateEntry *removeChunkTransportState(ChunkTransportState *
  */
 #define doBroadcast(transportStates, pChunkEntry, tcItem, inactiveCountPtr) \
 	do { \
-		MotionConn *conn; \
+		MotionConn *conn = NULL; \
 		int			*p_inactive = inactiveCountPtr; \
 		int			i, index, inactive = 0; \
 		/* add our tcItem to each of the outgoing buffers. */ \

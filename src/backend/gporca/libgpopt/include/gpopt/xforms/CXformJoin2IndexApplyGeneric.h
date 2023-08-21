@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------
-// Cloudberry Database
+// Greenplum Database
 // Copyright (c) 2020 VMware and affiliates, Inc.
 //
 // Transform a join into an index apply. Allow a variety of nodes on

@@ -5,6 +5,8 @@
  *    Also used in src/bin/gpfts
  *    Don't define any method in current header
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * 
  * IDENTIFICATION
  *		src/include/postmaster/fts_comm.h
  *
@@ -146,6 +148,7 @@ typedef struct GpSegConfigEntry
 	char		*hostname;		/* name or ip address of host machine */
 	char		*address;		/* ip address of host machine */
 	char		*datadir;		/* absolute path to data directory on the host. */
+	Oid			warehouseid;
 
 	/* additional cached info */
 	char		*hostip;	/* cached lookup of name */

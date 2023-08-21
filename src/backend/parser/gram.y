@@ -6,7 +6,8 @@
  * gram.y
  *	  POSTGRESQL BISON rules/actions
  *
- * Portions Copyright (c) 2006-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited
+ * Portions Copyright (c) 2006-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -293,8 +294,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 		CreateFdwStmt CreateForeignServerStmt CreateForeignTableStmt
 		CreateAssertionStmt CreateTransformStmt CreateTrigStmt CreateEventTrigStmt
 		CreateUserStmt CreateUserMappingStmt CreateRoleStmt CreatePolicyStmt
-		CreatedbStmt DeclareCursorStmt DefineStmt DeleteStmt DiscardStmt DoStmt
-		DropOpClassStmt DropOpFamilyStmt DropStmt
+		CreatedbStmt CreateWarehouseStmt DeclareCursorStmt DefineStmt DeleteStmt DiscardStmt DoStmt
+		DropOpClassStmt DropOpFamilyStmt DropStmt DropWarehouseStmt
 		DropCastStmt DropRoleStmt
 		DropdbStmt DropTableSpaceStmt
 		DropTransformStmt
@@ -704,6 +705,8 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 %type <list>		hash_partbound
 %type <defelt>		hash_partbound_elem
 
+%type <list>	OptWarehouseOptList WarehouseOptList
+%type <defelt>	WarehouseOptElem
 
 /*
  * Non-keyword token types.  These are hard-wired into the "flex" lexer.
@@ -870,6 +873,10 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	THRESHOLD
 
 	VALIDATION
+
+	WAREHOUSE
+
+	WAREHOUSE_SIZE
 
 	WEB WRITABLE
 
@@ -1419,6 +1426,7 @@ stmt:
 			| CreateOpClassStmt
 			| CreateOpFamilyStmt
 			| CreatePublicationStmt
+			| CreateWarehouseStmt
 			| AlterOpFamilyStmt
 			| CreatePolicyStmt
 			| CreatePLangStmt
@@ -1458,6 +1466,7 @@ stmt:
 			| DropRoleStmt
 			| DropUserMappingStmt
 			| DropdbStmt
+			| DropWarehouseStmt
 			| ExecuteStmt
 			| ExplainStmt
 			| FetchStmt
@@ -12334,6 +12343,48 @@ publication_for_tables:
 
 /*****************************************************************************
  *
+ *	QUERY:
+ *		CREATE WAREHOUSE name
+ *			[WAREHOUSE_SIZE <warehouse_size>]
+ *
+ *****************************************************************************/
+
+CreateWarehouseStmt: CREATE WAREHOUSE name OptWarehouseOptList
+						{
+							CreateWarehouseStmt *n = makeNode(CreateWarehouseStmt);
+							n->whname = $3;
+							n->options = $4;
+							$$ = (Node *) n;
+						}
+				;
+
+OptWarehouseOptList: WarehouseOptList							{ $$ = $1; }
+					| /*EMPTY*/									{ $$ = NIL; }
+			;
+
+WarehouseOptList: WarehouseOptElem								{ $$ = list_make1($1); }
+				| WarehouseOptList WarehouseOptElem				{ $$ = lappend($1, $2); }
+		;
+
+WarehouseOptElem:
+			WAREHOUSE_SIZE SignedIconst
+				{
+					$$ = makeDefElem("warehouse_size", (Node *)makeInteger($2), @1);
+				}
+		;
+
+
+DropWarehouseStmt: DROP WAREHOUSE name
+						{
+							DropWarehouseStmt *n = makeNode(DropWarehouseStmt);
+							n->whname = $3;
+							$$ = (Node *) n;
+						}
+				;
+
+
+/*****************************************************************************
+ *
  * ALTER PUBLICATION name SET ( options )
  *
  * ALTER PUBLICATION name ADD TABLE table [, table2]
@@ -18794,6 +18845,8 @@ unreserved_keyword:
 			| VIEW
 			| VIEWS
 			| VOLATILE
+			| WAREHOUSE
+			| WAREHOUSE_SIZE
 			| WEB /* gp */
 			| WHITESPACE_P
 			| WITHIN
@@ -19782,6 +19835,8 @@ bare_label_keyword:
 			| VIEW
 			| VIEWS
 			| VOLATILE
+			| WAREHOUSE
+			| WAREHOUSE_SIZE
 			| WEB
 			| WHEN
 			| WHITESPACE_P

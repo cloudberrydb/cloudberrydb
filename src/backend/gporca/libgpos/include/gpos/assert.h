@@ -1,6 +1,7 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2008 Cloudberry, Inc.
+//	Greenplum Database
+//	Copyright (C) 2008 Greenplum, Inc.
+//	Portions Copyright (c) 2023, HashData Technology Limited.
 //
 //	@filename:
 //		assert.h

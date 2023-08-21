@@ -1,0 +1,53 @@
+<!--
+doc/src/sgml/ref/create_warehouse.sgml
+PostgreSQL documentation
+-->
+
+<refentry id="sql-createwarehouse">
+ <indexterm zone="sql-createwarehouse">
+  <primary>CREATE WAREHOUSE</primary>
+ </indexterm>
+
+ <refmeta>
+  <refentrytitle>CREATE WAREHOUSE</refentrytitle>
+  <manvolnum>7</manvolnum>
+  <refmiscinfo>SQL - Language Statements</refmiscinfo>
+ </refmeta>
+
+ <refnamediv>
+  <refname>CREATE WAREHOUSE</refname>
+  <refpurpose>define a new warehouse for query processing</refpurpose>
+ </refnamediv>
+
+ <refsynopsisdiv>
+<synopsis>
+CREATE WAREHOUSE <replaceable class="parameter">name</replaceable>
+[ WAREHOUSE_SIZE <replaceable class="parameter">size</replaceable> ]
+</synopsis>
+ </refsynopsisdiv>
+
+ <refsect1>
+  <title>Description</title>
+
+  <para>
+   <command>CREATE WAREHOUSE</command> Creates a new virtual warehouse in the system.
+    Initial creation of a virtual warehouse might take some time to provision the compute resources.
+  </para>
+
+ </refsect1>
+
+ <refsect1>
+  <title>Parameters</title>
+  <variablelist>
+  <varlistentry>
+    <term><literal>WAREHOUSE_SIZE</literal></term>
+    <listitem>
+     <para>
+        The size of the warehouse.
+     </para>
+    </listitem>
+   </varlistentry>
+  </variablelist>
+ </refsect1>
+
+</refentry>

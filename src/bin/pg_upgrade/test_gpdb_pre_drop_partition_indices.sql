@@ -1,4 +1,4 @@
--- Cloudberry pg_upgrade doesn't support indexes on partitions since they can't
+-- Greenplum pg_upgrade doesn't support indexes on partitions since they can't
 -- be reliably dump/restored in all situations. Drop all such indexes before
 -- attempting the upgrade.
 CREATE OR REPLACE FUNCTION drop_indexes() RETURNS void AS $$

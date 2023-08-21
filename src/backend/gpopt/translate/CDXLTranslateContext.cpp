@@ -1,7 +1,9 @@
 //---------------------------------------------------------------------------
-//	Cloudberry Database
-//	Copyright (C) 2010 Cloudberry, Inc.
 //
+//	Greenplum Database
+//	Copyright (C) 2010 Greenplum, Inc.
+//	Portions Copyright (c) 2023, HashData Technology Limited.
+// 
 //	@filename:
 //		CDXLTranslateContext.cpp
 //

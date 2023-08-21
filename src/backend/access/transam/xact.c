@@ -2466,7 +2466,7 @@ StartTransaction(void)
 	/*
 	 * Transactions may be started while recovery is in progress, if
 	 * hot standby is enabled.  This mode is not supported in
-	 * Cloudberry yet.
+	 * CloudberryDB yet.
 	 */
 	AssertImply(DistributedTransactionContext != DTX_CONTEXT_LOCAL_ONLY,
 				!s->startedInRecovery);
@@ -5748,7 +5748,7 @@ AbortOutOfAnyTransaction(void)
 	AtAbort_Memory();
 
 	/*
-	 * Cloudberry specific behavior:
+	 * CloudberryDB specific behavior:
 	 * Some QEs might already be in Abort State, they still need
 	 * to reset Extension related global vars, so we invoke them
 	 * here (not AbortTransction).

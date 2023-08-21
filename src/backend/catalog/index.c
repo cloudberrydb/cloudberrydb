@@ -3,7 +3,7 @@
  * index.c
  *	  code to create and destroy POSTGRES index relations
  *
- * Portions Copyright (c) 2006-2009, Cloudberry inc
+ * Portions Copyright (c) 2006-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -1374,7 +1374,7 @@ index_create_internal(Relation heapRelation,
 	else
 	{
 		/*
-		 * GP_PARALLEL_FIXME: temporarily set ii_ParallelWorkers to -1 to disable parallel in bitmap index
+		 * CBDB_PARALLEL_FIXME: temporarily set ii_ParallelWorkers to -1 to disable parallel in bitmap index
 		 * building. That's because that we still hold InterruptHoldoffCount after launch parallel workers.
 		 * And when parallel workers detach the message 'X' is not interrupt the leader. However, the leader
 		 * must wait for workers detaching. Thus there will be a hang issue.

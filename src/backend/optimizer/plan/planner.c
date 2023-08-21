@@ -3,7 +3,8 @@
  * planner.c
  *	  The query optimizer external interface.
  *
- * Portions Copyright (c) 2005-2008, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -549,7 +550,7 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	 * Unlike upstream, partial_path is valid in GP without Gather nodes.
 	 * Keep the two pathlist separated until the final. Now it's the time
 	 * to choose the best.
-	 * GPDB_PARALLEL_FIXME:
+	 * CBDB_PARALLEL_FIXME:
 	 * Take GP's special into partial_pathlist, ex: agg and etc.
 	 */
 	if (final_rel->partial_pathlist != NIL)
@@ -2463,7 +2464,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	 * be able to make use of them.
 	 */
 	/*
-	 * GPDB_PARALLEL_FIXME: should keep query_level > 1 in GPDB?
+	 * CBDB_PARALLEL_FIXME: should keep query_level > 1 in GPDB?
 	 * It will lose parallel path, ex: plain parallel scan.
 	 * PG have Gather node but GP delay partial path until Gather Motion.
 	 *
@@ -2491,7 +2492,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	{
 		Assert(!parse->rowMarks && parse->commandType == CMD_SELECT);
 
-		/* GPDB_PARALLEL_FIXEME: support parallel SCATTER BY? */
+		/* CBDB_PARALLEL_FIXME: support parallel SCATTER BY? */
 		if (parse->scatterClause)
 		{
 			current_rel->partial_pathlist = NIL;
@@ -5040,7 +5041,7 @@ create_distinct_paths(PlannerInfo *root,
 				/* On how many segments will the distinct result reside? */
 				if (CdbPathLocus_IsPartitioned(path->locus))
 				{
-					/* GPDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
+					/* CBDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
 					numDistinctRows = numDistinctRowsTotal / CdbPathLocus_NumSegments(path->locus);
 					if (path->locus.parallel_workers > 1)
 						numDistinctRows /= path->locus.parallel_workers;
@@ -5084,7 +5085,7 @@ create_distinct_paths(PlannerInfo *root,
 
 		if (CdbPathLocus_IsPartitioned(path->locus))
 		{
-			/* GPDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
+			/* CBDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
 			numDistinctRows = numDistinctRowsTotal / CdbPathLocus_NumSegments(path->locus);
 			if (path->locus.parallel_workers > 1)
 				numDistinctRows /= path->locus.parallel_workers;
@@ -5133,7 +5134,7 @@ create_distinct_paths(PlannerInfo *root,
 
 		if (CdbPathLocus_IsPartitioned(path->locus))
 		{
-			/* GPDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
+			/* CBDB_PARALLEL_FIXME: should we consider parallel in distinct path? */
 			numDistinctRows = clamp_row_est(numDistinctRowsTotal / CdbPathLocus_NumSegments(path->locus));
 			if (path->locus.parallel_workers > 1)
 				numDistinctRows /= path->locus.parallel_workers;

@@ -1,5 +1,3 @@
-
-
 #ifndef _SM3_H_
 #define _SM3_H_
 
@@ -79,6 +77,5 @@ init_sm3(PX_MD *md)
 
 	md->reset(md);
 }
-
 
 #endif

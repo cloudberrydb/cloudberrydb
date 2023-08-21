@@ -34,6 +34,7 @@
  * happen, it would tie up KnownAssignedXids indefinitely, so we protect
  * ourselves by pruning the array when a valid list of running XIDs arrives.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
  *
@@ -2904,7 +2905,7 @@ GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext)
 
 	/*
 	 * Support for true serializable isolation is not yet implemented in
-	 * Cloudberry.  See merge fixme in assign_XactIsoLevel().
+	 * CloudberryDB.  See merge fixme in assign_XactIsoLevel().
 	 */
 	Assert(XactIsoLevel < XACT_SERIALIZABLE);
 

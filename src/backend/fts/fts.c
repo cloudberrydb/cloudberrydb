@@ -6,6 +6,7 @@
  *
  * Maintains an array in shared memory containing the state of each segment.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2005-2010, Greenplum Inc.
  * Portions Copyright (c) 2011, EMC Corp.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
@@ -227,18 +228,22 @@ probeWalRepUpdateConfig(int16 dbid, int16 segindex, char role,
 		bool confignulls[Natts_gp_segment_configuration] = { false };
 		bool repls[Natts_gp_segment_configuration] = { false };
 
-		ScanKeyData scankey;
+		ScanKeyData scankey[2];
 		SysScanDesc sscan;
 
 		configrel = table_open(GpSegmentConfigRelationId,
 							   RowExclusiveLock);
 
-		ScanKeyInit(&scankey,
+		ScanKeyInit(&scankey[0],
 					Anum_gp_segment_configuration_dbid,
 					BTEqualStrategyNumber, F_INT2EQ,
 					Int16GetDatum(dbid));
-		sscan = systable_beginscan(configrel, GpSegmentConfigDbidIndexId,
-								   true, NULL, 1, &scankey);
+		ScanKeyInit(&scankey[1],
+					Anum_gp_segment_configuration_warehouseid,
+					BTEqualStrategyNumber, F_OIDEQ,
+					ObjectIdGetDatum(GetCurrentWarehouseId()));
+		sscan = systable_beginscan(configrel, GpSegmentConfigDbidWarehouseIndexId,
+								   true, NULL, 2, scankey);
 
 		configtuple = systable_getnext(sscan);
 

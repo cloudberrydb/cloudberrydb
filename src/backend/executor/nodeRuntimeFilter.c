@@ -3,7 +3,7 @@
  * nodeRuntimeFilter.c
  *	  Routines to handle runtime filter.
  *
- * Portions Copyright (c) 2023-Present, Cloudberry inc
+ * Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION

@@ -3,7 +3,7 @@
  * ftsprobe.c
  *	  Implementation of segment probing interface
  *
- * Portions Copyright (c) 2006-2011, Cloudberry inc
+ * Portions Copyright (c) 2006-2011, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *

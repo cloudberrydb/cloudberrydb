@@ -11,7 +11,8 @@
  * Also have a look at vacuum_ao.c, which contains VACUUM related code for
  * Append-Optimized tables.
  *
- * Portions Copyright (c) 2005-2010, Cloudberry inc
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2005-2010, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  * Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group
  * Portions Copyright (c) 1994, Regents of the University of California
@@ -3183,7 +3184,7 @@ vac_update_relstats_from_list(List *updated_stats)
 		if (RelationIsAppendOptimized(rel))
 		{
 			/*
-			 * GPDB_PARALLEL_FIXME: This is very hacky!
+			 * CBDB_PARALLEL_FIXME: This is very hacky!
 			 * relallvisible came from vacuum AO/AOCO processes means the segment file count
 			 * of AO/AOCO tables. We use it to update pg_appendonly.segfilecount.
 			 * See ao_vacuum_rel_post_cleanup in vacuum_ao.c.

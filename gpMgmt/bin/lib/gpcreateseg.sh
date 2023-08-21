@@ -7,8 +7,8 @@
 #	Contact:-		gcoombe@greenplum.com
 #	Release date:-		Dec 2006
 #	Release stat:-		Released
-#                               Copyright (c) Metapa 2005. All Rights Reserved.
-#                               Copyright (c) 2007 Greenplum Inc
+#                       Copyright (c) Metapa 2005. All Rights Reserved.
+#                       Copyright (c) 2007 Greenplum Inc
 #******************************************************************************
 # Update History
 #******************************************************************************

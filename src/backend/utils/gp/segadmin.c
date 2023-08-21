@@ -3,7 +3,8 @@
  * segadmin.c
  *	  Functions to support administrative tasks with GPDB segments.
  *
- * Portions Copyright (c) 2010 Cloudberry
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ * Portions Copyright (c) 2010 Greenplum
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
  *
@@ -193,13 +194,24 @@ remove_segment_config(int16 dbid)
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-
-	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
 							   NULL, 1, &scankey);
 	while ((tuple = systable_getnext(sscan)) != NULL)
 	{
-		CatalogTupleDelete(rel, &tuple->t_self);
-		numDel++;
+		Datum		attr;
+		bool		isNull;
+		Oid			warehouseid = InvalidOid;
+
+		attr = heap_getattr(tuple, Anum_gp_segment_configuration_warehouseid,
+							RelationGetDescr(rel), &isNull);
+		Assert(!isNull);
+		warehouseid = DatumGetObjectId(attr);
+
+		if (!OidIsValid(warehouseid) || warehouseid == GetCurrentWarehouseId())
+		{
+			CatalogTupleDelete(rel, &tuple->t_self);
+			numDel++;
+		}
 	}
 	systable_endscan(sscan);
 
@@ -239,6 +251,8 @@ add_segment_config_entry(GpSegConfigEntry *i)
 		CStringGetTextDatum(i->address);
 	values[Anum_gp_segment_configuration_datadir - 1] =
 		CStringGetTextDatum(i->datadir);
+	values[Anum_gp_segment_configuration_warehouseid - 1] =
+		ObjectIdGetDatum(i->warehouseid);
 
 	tuple = heap_form_tuple(RelationGetDescr(rel), values, nulls);
 
@@ -392,6 +406,11 @@ gp_add_segment(PG_FUNCTION_ARGS)
 		elog(ERROR, "datadir cannot be NULL");
 	new.datadir = TextDatumGetCString(PG_GETARG_DATUM(9));
 
+	if (new.segindex == MASTER_CONTENT_ID)
+		new.warehouseid = InvalidOid;
+	else
+		new.warehouseid = GetCurrentWarehouseId();
+
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment");
 
 	new.mode = GP_SEGMENT_CONFIGURATION_MODE_NOTINSYNC;
@@ -471,7 +490,12 @@ gp_add_segment_mirror(PG_FUNCTION_ARGS)
 	if (PG_ARGISNULL(4))
 		elog(ERROR, "datadir cannot be NULL");
 	new.datadir = TextDatumGetCString(PG_GETARG_DATUM(4));
-	
+
+	if (new.segindex == MASTER_CONTENT_ID)
+		new.warehouseid = InvalidOid;
+	else
+		new.warehouseid = GetCurrentWarehouseId();
+
 	mirroring_sanity_check(MASTER_ONLY | SUPERUSER, "gp_add_segment_mirror");
 
 	new.dbid = get_availableDbId();
@@ -608,7 +632,9 @@ gp_add_master_standby(PG_FUNCTION_ARGS)
 	config->address = TextDatumGetCString(PG_GETARG_TEXT_P(1));
 
 	config->datadir = TextDatumGetCString(PG_GETARG_TEXT_P(2));
-	
+
+	config->warehouseid = InvalidOid;
+
 	/* Use the new port number if specified */
 	if (PG_NARGS() > 3 && !PG_ARGISNULL(3))
 		config->port = PG_GETARG_INT32(3);
@@ -664,7 +690,7 @@ catalog_activate_standby(int16 standby_dbid, int16 master_dbid)
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(master_dbid));
-	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
 							   NULL, 1, &scankey);
 	while ((tuple = systable_getnext(sscan)) != NULL)
 	{
@@ -681,7 +707,7 @@ catalog_activate_standby(int16 standby_dbid, int16 master_dbid)
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(standby_dbid));
-	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
 							   NULL, 1, &scankey);
 
 	tuple = systable_getnext(sscan);
@@ -829,16 +855,20 @@ gp_update_segment_configuration_mode_status(PG_FUNCTION_ARGS)
 	/* we use AccessExclusiveLock to prevent races */
 	Relation	rel = table_open(GpSegmentConfigRelationId, AccessExclusiveLock);
 	HeapTuple	tuple;
-	ScanKeyData scankey;
+	ScanKeyData scankey[2];
 	SysScanDesc sscan;
 
 	/* now, set out rows for old standby. */
-	ScanKeyInit(&scankey,
+	ScanKeyInit(&scankey[0],
 				Anum_gp_segment_configuration_dbid,
 				BTEqualStrategyNumber, F_INT2EQ,
 				Int16GetDatum(dbid));
-	sscan = systable_beginscan(rel, GpSegmentConfigDbidIndexId, true,
-							   NULL, 1, &scankey);
+	ScanKeyInit(&scankey[1],
+				Anum_gp_segment_configuration_warehouseid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(GetCurrentWarehouseId()));
+	sscan = systable_beginscan(rel, GpSegmentConfigDbidWarehouseIndexId, true,
+							   NULL, 2, scankey);
 
 	tuple = systable_getnext(sscan);
 

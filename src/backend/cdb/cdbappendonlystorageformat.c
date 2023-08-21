@@ -2,9 +2,9 @@
  *
  * cdbappendonlystorageformat.c
  *
- * Portions Copyright (c) 2007-2009, Cloudberry inc
+ * Portions Copyright (c) 2007-2009, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
- *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  * IDENTIFICATION
  *	    src/backend/cdb/cdbappendonlystorageformat.c

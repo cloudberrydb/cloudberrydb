@@ -6,6 +6,7 @@
 # IDENTIFICATION
 #    src/backend/libpq/Makefile
 #
+# Portions Copyright (c) 2023, HashData Technology Limited.
 #-------------------------------------------------------------------------
 
 subdir = src/backend/libpq
@@ -37,18 +38,18 @@ ifeq ($(with_gssapi),yes)
 OBJS += be-gssapi-common.o be-secure-gssapi.o
 endif
 
-# Cloudberry objects follow
+# CloudberryDB objects follow
 OBJS += fe-protocol3.o fe-connect.o \
         fe-exec.o pqexpbuffer.o fe-auth.o fe-misc.o fe-secure.o \
         fe-auth-scram.o fe-trace.o \
         $(filter getpeereid.o, $(LIBOBJS))
 
-# Cloudberry OpenSSL objects follow
+# CloudberryDB OpenSSL objects follow
 ifeq ($(with_ssl),openssl)
 OBJS += fe-secure-common.o fe-secure-openssl.o
 endif
 
-# Cloudberry GSSAPI objects follow
+# CloudberryDB GSSAPI objects follow
 ifeq ($(with_gssapi),yes)
 OBJS += fe-gssapi-common.o fe-secure-gssapi.o
 endif

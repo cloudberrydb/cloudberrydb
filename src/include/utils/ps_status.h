@@ -3,6 +3,8 @@
  * ps_status.h
  *
  * Declarations for backend/utils/misc/ps_status.c
+ * 
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  * src/include/utils/ps_status.h
  *
