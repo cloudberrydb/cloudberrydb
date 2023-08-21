@@ -6,6 +6,24 @@
   ./README.CentOS.bash
   ```
 
+- Update gcc to (devtoolset-10) to support c++14
+
+  ```bash
+  yum install centos-release-scl
+  yum -y install devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-binutils
+  scl enable devtoolset-10 bash
+  source /opt/rh/devtoolset-10/enable
+  ```
+
+- Install additional packages required for some configurations
+
+  ```bash
+  yum -y install R apr apr-devel apr-util automake autoconf bash bison bison-devel bzip2 bzip2-devel centos-release-scl curl flex flex-devel gcc gcc-c++ git gdb ibxml2 iproute krb5 krb5-devel less libcurl libcurl-devel libevent libevent-devel libxml2 libxml2-devel libyaml libzstd-devel libzstd.x86_64 make openldap openssh-client openssl openssl-devel openssl-libs perl python3-devel readline readline-devel rsync sed sudo tar vim wget which xerces-c-devel zip zip-devel zlib && \
+  yum -y install epel-release.noarch && \
+  yum -y install libzstd.x86_64 && \
+  yum -y install devtoolset-9-gcc*
+  ```
+  
 - If you want to link cmake3 to cmake, run:
 
   ```bash
@@ -14,14 +32,6 @@
 
 - Make sure that you add `/usr/local/lib` and `/usr/local/lib64` to
 `/etc/ld.so.conf`, then run command `ldconfig`.
-
-- If you want to install and use gcc-7 by default, run:
-
-  ```bash
-  sudo yum install -y centos-release-scl
-  sudo yum install -y devtoolset-7-toolchain
-  echo 'source scl_source enable devtoolset-7' >> ~/.bashrc
-  ```
 
 ## For RHEL:
 
@@ -66,12 +76,32 @@
   sudo ./README.Ubuntu.bash
   ```
 
+- If the script download fails, you can try changing the software download source for Ubuntu
+
+    ```bash
+    cp /etc/apt/sources.list /etc/apt/sources.list.bak_yyyymmdd
+    vim /etc/apt/sources.list #Open the sources.list file
+    
+    #Add the following content to the end of the file
+    deb http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+    deb http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+    deb http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+    deb http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+    deb http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+    deb-src http://mirrors.aliyun.com/ubuntu/ bionic main restricted universe multiverse
+    deb-src http://mirrors.aliyun.com/ubuntu/ bionic-security main restricted universe multiverse
+    deb-src http://mirrors.aliyun.com/ubuntu/ bionic-updates main restricted universe multiverse
+    deb-src http://mirrors.aliyun.com/ubuntu/ bionic-proposed main restricted universe multiverse
+    deb-src http://mirrors.aliyun.com/ubuntu/ bionic-backports main restricted universe multiverse
+    ```
 - Ubuntu 18.04 and newer should have use gcc 7 or newer, but you can also enable gcc-7 on older versions of Ubuntu:
 
   ```bash
-  sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-  sudo apt-get update
-  sudo apt-get install -y gcc-7 g++-7
+  ## Installing gcc-9
+  sudo apt install software-properties-common
+  sudo add-apt-repository ppa:ubuntu-toolchain-r/test
+  sudo apt install gcc-9 g++-9
+  sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-9 100
   ```
 
 ## Common Platform Tasks:
@@ -89,19 +119,34 @@ then run command `ldconfig`.
 
    OR
 
-   manually create ssh keys so you can do ssh localhost without a password, e.g., 
+   Manually create ssh keys based on different operating systems, so that you can execute ssh localhost without a password e.g., 
    
-   ```
+   ```bash
+   ### Centos7
+   useradd gpadmin
+   su - gpadmin 
    ssh-keygen
    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
    chmod 600 ~/.ssh/authorized_keys
+   
+   ### Ubuntu
+   useradd -r -m -s /bin/bash gpadmin
+   chown -R gpadmin:gpadmin cloudberrydb/
+   su - gpadmin
+   ssh-keygen
+   cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+   chmod 600 ~/.ssh/authorized_keys
+ 
    ```
 
 1. Verify that you can ssh to your machine name without a password.
 
    ```bash
+   ssh gpadmin@localhost 
+   or
    ssh <hostname of your machine>  # e.g., ssh briarwood (You can use `hostname` to get the hostname of your machine.)
-   ```
+   
+    ```
 
 1. Set up your system configuration by following the installation guide on [docs.cloudberrydb.org](https://cloudberrydb.org/docs/cbdb-overview)
 
