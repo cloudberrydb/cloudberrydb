@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-# internal usage: 目前只是用于本地环境快速设置cbdb环境变量, 没有用在pipeline中
+# internal usage: Currently, it is only used for rapid cleaning of the local environment and is not used in the pipeline
 # Usage: source /code/gpdb_src/hd-ci/dev/env.bash
 source /usr/local/cloudberry-db-devel/greenplum_path.sh
 source /code/gpdb_src/gpAux/gpdemo/gpdemo-env.sh

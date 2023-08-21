@@ -58,7 +58,7 @@ GRTAGS
 GTAGS
 lib*dll.def
 lib*.pc
-
+.idea
 # Local excludes in root directory
 /GNUmakefile
 /config.cache

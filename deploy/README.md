@@ -1,7 +1,7 @@
 ### Cloudberry Automation Build and Deployment
 
 #### Download the Cloudberry project source code into your working directory
-git clone git@code.hashdata.xyz:cloudberry/cbdb.git
+git clone git@github.com:cloudberrydb/cloudberrydb.git
 
 #### Enter the directory under workspace/cbdb, developer can deploy the automation build & test environment with vagrant virtual machine or docker container, vagrant and docker tool is required to be installed in your local environment before running the script.
 
