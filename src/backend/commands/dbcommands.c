@@ -671,8 +671,9 @@ createdb(ParseState *pstate, const CreatedbStmt *stmt)
 	 * we're about to copy it, causing the lstat() call in copydir() to fail
 	 * with ENOENT.
 	 */
-	RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT
-					  | CHECKPOINT_FLUSH_ALL);
+	if (!enable_serverless)
+		RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT
+						  | CHECKPOINT_FLUSH_ALL);
 
 	/*
 	 * Once we start copying subdirectories, we need to be able to clean 'em
@@ -788,7 +789,8 @@ createdb(ParseState *pstate, const CreatedbStmt *stmt)
 		 * Perhaps if we ever implement CREATE DATABASE in a less cheesy way,
 		 * we can avoid this.
 		 */
-		RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+		if (!enable_serverless)
+			RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
 
 		/*
 		 * Close pg_database, but keep lock till commit.
@@ -1032,7 +1034,7 @@ dropdb(const char *dbname, bool missing_ok, bool force)
 	/*
 	 * Free the database on the segDBs
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && !enable_serverless)
 	{
 		StringInfoData buffer;
 
@@ -1104,21 +1106,24 @@ dropdb(const char *dbname, bool missing_ok, bool force)
 	 */
 	pgstat_drop_database(db_id);
 
-	/*
-	 * Tell checkpointer to forget any pending fsync and unlink requests for
-	 * files in the database; else the fsyncs will fail at next checkpoint, or
-	 * worse, it will delete files that belong to a newly created database
-	 * with the same OID.
-	 */
-	ForgetDatabaseSyncRequests(db_id);
+	if (!enable_serverless)
+	{
+		/*
+		* Tell checkpointer to forget any pending fsync and unlink requests for
+		* files in the database; else the fsyncs will fail at next checkpoint, or
+		* worse, it will delete files that belong to a newly created database
+		* with the same OID.
+		*/
+		ForgetDatabaseSyncRequests(db_id);
 
-	/*
-	 * Force a checkpoint to make sure the checkpointer has received the
-	 * message sent by ForgetDatabaseSyncRequests. On Windows, this also
-	 * ensures that background procs don't hold any open files, which would
-	 * cause rmdir() to fail.
-	 */
-	RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+		/*
+		* Force a checkpoint to make sure the checkpointer has received the
+		* message sent by ForgetDatabaseSyncRequests. On Windows, this also
+		* ensures that background procs don't hold any open files, which would
+		* cause rmdir() to fail.
+		*/
+		RequestCheckpoint(CHECKPOINT_IMMEDIATE | CHECKPOINT_FORCE | CHECKPOINT_WAIT);
+	}
 
 	/*
 	 * Remove all tablespace subdirs belonging to the database.
