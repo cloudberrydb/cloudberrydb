@@ -1825,10 +1825,13 @@ destroyConnHashTable(ConnHashTable *ht)
 		}
 	}
 
-	if (ht->cxt)
-		pfree(ht->table);
-	else
-		free(ht->table);
+	if (ht->size > 0)
+	{
+		if (ht->cxt)
+			pfree(ht->table);
+		else
+			free(ht->table);
+	}
 
 	ht->table = NULL;
 	ht->size = 0;
