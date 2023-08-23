@@ -97,7 +97,7 @@ makeGpPolicy(GpPolicyType ptype, int nattrs, int numsegments)
 	policy->numsegments = numsegments;
 	policy->nattrs = nattrs; 
 
-	Assert(numsegments > 0 ||
+	Assert(numsegments >= 0 ||
 		   (ptype == POLICYTYPE_ENTRY && numsegments == -1));
 
 	return policy;
@@ -458,8 +458,16 @@ GpPolicyFetch(Oid tbloid)
 				}
 
 				/* Create a GpPolicy object. */
-				policy = makeGpPolicy(POLICYTYPE_PARTITIONED,
-									  nattrs, policyform->numsegments);
+				if (policyform->numsegments == 0)
+				{
+					policy = makeGpPolicy(POLICYTYPE_PARTITIONED,
+									  	nattrs, getgpsegmentCount());
+				}
+				else
+				{
+					policy = makeGpPolicy(POLICYTYPE_PARTITIONED,
+										nattrs, policyform->numsegments);
+				}
 
 				for (i = 0; i < nattrs; i++)
 				{
