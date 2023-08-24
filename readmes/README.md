@@ -3,7 +3,7 @@ Greenplum Database READE.md here. Thanks all the original writers.-->
 
 This guide shows how to build Cloudberry Database with GPORCA.
 
-## Building Cloudberry Database with GPORCA
+# Building Cloudberry Database with GPORCA
 
 GPORCA is a cost-based optimizer which is used by Greenplum
 Database/Cloudberry Database in conjunction with the PostgreSQL
@@ -11,7 +11,7 @@ planner. It is also known as just ORCA, and Pivotal Optimizer. The
 code for GPORCA resides src/backend/gporca. It is built automatically
 by default.
 
-### Installing dependencies
+## Installing dependencies
 
 Please follow these steps for your OS to get your system ready.
 
@@ -19,7 +19,7 @@ Please follow these steps for your OS to get your system ready.
 - for Linux developers: Follow [appropriate Linux
   steps](README.Linux.md) including CentOS, RHEL, Ubuntu
 
-### Build the database
+## Build the database
 
 ```
 # Configure build environment to install at /usr/local/cloudberrydb
@@ -38,25 +38,25 @@ make create-demo-cluster
 source gpAux/gpdemo/gpdemo-env.sh
 ```
 
-The directory and the TCP ports for the demo cluster can be changed on the fly.
+- The directory and the TCP ports for the demo cluster can be changed on the fly.
 Instead of `make cluster`, consider:
 
 ```
 DATADIRS=/tmp/cbdb-cluster PORT_BASE=5555 make cluster
 ```
 
-The TCP port for the regression test can be changed on the fly:
+- The TCP port for the regression test can be changed on the fly:
 
 ```
 PGPORT=5555 make installcheck-world
 ```
 
-To turn GPORCA off and use Postgres planner for query optimization:
+- To turn GPORCA off and use Postgres planner for query optimization:
 ```
 set optimizer=off;
 ```
 
-If you want to clean all generated files
+- If you want to clean all generated files
 ```
 make distclean
 ```
@@ -90,9 +90,9 @@ make installcheck-world
   upstream. We try to keep the upstream tests identical to the upstream
   versions, to make merging with newer PostgreSQL releases easier.
 
-## Alternative Configurations
+# Alternative Configurations
 
-### Building Cloudberry Database without GPORCA
+## Building Cloudberry Database without GPORCA
 
 Currently, CBDB is built with GPORCA by default. If you want to build CBDB
 without GPORCA, configure requires `--disable-orca` flag to be set.
@@ -105,7 +105,7 @@ make distclean
 ./configure --disable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/cloudberrydb
 ```
 
-### Building Cloudberry Database with PXF
+## Building Cloudberry Database with PXF
 
 PXF is an extension framework for Greenplum Database/Cloudberry
 Database to enable fast access to external Hadoop datasets. Refer to
@@ -115,16 +115,16 @@ Currently, CBDB is built with PXF by default (--enable-pxf is on).
 In order to build CBDB without pxf, simply invoke `./configure` with additional option `--disable-pxf`.
 PXF requires curl, so `--enable-pxf` is not compatible with the `--without-libcurl` option.
 
-### Building Cloudberry Database with Python3 enabled
+## Building Cloudberry Database with Python3 enabled
 
 Cloudberry Database supports Python3 with plpython3u UDF
 
 See [how to enable Python3](../src/pl/plpython/README.md) for details.
 
-### Building Cloudberry Database client tools on Windows
+## Building Cloudberry Database client tools on Windows
 
 See [Building CBDB client tools on Windows](README.Windows.md) for details.
 
-## Development with Vagrant
+# Development with Vagrant
 
 There is a Vagrant-based [quickstart guide for developers](../src/tools/vagrant/README.md).
