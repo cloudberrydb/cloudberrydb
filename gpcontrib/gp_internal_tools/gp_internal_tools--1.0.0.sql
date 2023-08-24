@@ -5,11 +5,6 @@
 --------------------------------------------------------------------------------
 --  Session state functions and views                                         --
 --------------------------------------------------------------------------------
---  Adjust this setting to control where the objects get created.
-
-CREATE SCHEMA session_state;
-SET search_path = session_state;
-
 -- SessionState views
 --------------------------------------------------------------------------------
 
@@ -105,5 +100,3 @@ pg_stat_activity as S
 ON M.sessionid = S.sess_id;
 
 GRANT SELECT ON session_level_memory_consumption TO public;
-
-SET search_path TO DEFAULT;
