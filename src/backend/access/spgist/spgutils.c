@@ -35,7 +35,7 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
-
+is_likeam_hook_type is_likespgist_hook = NULL;
 /*
  * SP-GiST handler function: return IndexAmRoutine with access method parameters
  * and callbacks.

@@ -1372,7 +1372,8 @@ assignProcTypes(OpFamilyMember *member, Oid amoid, Oid typeoid,
 						 errmsg("btree equal image functions must not be cross-type")));
 		}
 	}
-	else if (amoid == HASH_AM_OID)
+	else if ((is_likehash_hook && (*is_likehash_hook)(amoid)) ||
+             (!is_likehash_hook && amoid == HASH_AM_OID))
 	{
 		if (member->number == HASHSTANDARD_PROC)
 		{

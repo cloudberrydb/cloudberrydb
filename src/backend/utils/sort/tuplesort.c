@@ -985,7 +985,8 @@ tuplesort_begin_cluster(TupleDesc tupDesc,
 	MemoryContext oldcontext;
 	int			i;
 
-	Assert(indexRel->rd_rel->relam == BTREE_AM_OID);
+	Assert((is_likebtree_hook && (*is_likebtree_hook)(indexRel->rd_rel->relam)) ||
+           (!is_likebtree_hook && indexRel->rd_rel->relam == BTREE_AM_OID));
 
 	oldcontext = MemoryContextSwitchTo(state->maincontext);
 

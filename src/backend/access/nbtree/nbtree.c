@@ -41,7 +41,7 @@
 #include "catalog/indexing.h"
 #include "catalog/pg_namespace.h"
 
-
+is_likeam_hook_type is_likebtree_hook = NULL;
 /*
  * BTPARALLEL_NOT_INITIALIZED indicates that the scan has not started.
  *

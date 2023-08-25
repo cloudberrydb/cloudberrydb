@@ -98,6 +98,8 @@
 #include "cdb/cdboidsync.h"
 #include "utils/faultinjector.h"
 
+/* GUC variables */
+char       *default_index_type = DEFAULT_INDEX_TYPE;
 /* Potentially set by pg_upgrade_support functions */
 Oid			binary_upgrade_next_index_pg_class_oid = InvalidOid;
 
@@ -2807,7 +2809,8 @@ BuildSpeculativeIndexInfo(Relation index, IndexInfo *ii)
 	 */
 	Assert(ii->ii_Unique);
 
-	if (index->rd_rel->relam != BTREE_AM_OID)
+	if ((is_likebtree_hook && !(*is_likebtree_hook)(index->rd_rel->relam)) ||
+        (!is_likebtree_hook && index->rd_rel->relam != BTREE_AM_OID))
 		elog(ERROR, "unexpected non-btree speculative unique index");
 
 	ii->ii_UniqueOps = (Oid *) palloc(sizeof(Oid) * indnkeyatts);
@@ -3123,7 +3126,8 @@ index_build(Relation heapRelation,
 	 * Note that planner considers parallel safety for us.
 	 */
 	if (parallel && IsNormalProcessingMode() &&
-		indexRelation->rd_rel->relam == BTREE_AM_OID)
+            ((is_likebtree_hook && (*is_likebtree_hook)(indexRelation->rd_rel->relam)) ||
+             (!is_likebtree_hook && indexRelation->rd_rel->relam == BTREE_AM_OID)))
 		indexInfo->ii_ParallelWorkers =
 			plan_create_index_workers(RelationGetRelid(heapRelation),
 									  RelationGetRelid(indexRelation));

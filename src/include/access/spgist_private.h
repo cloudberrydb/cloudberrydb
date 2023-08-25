@@ -31,7 +31,8 @@ typedef struct SpGistOptions
 
 #define SpGistGetFillFactor(relation) \
 	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
-				 relation->rd_rel->relam == SPGIST_AM_OID), \
+				 ((is_likespgist_hook && (*is_likespgist_hook)(relation->rd_rel->relam)) || \
+                  (!is_likespgist_hook &&  relation->rd_rel->relam == SPGIST_AM_OID))), \
 	 (relation)->rd_options ? \
 	 ((SpGistOptions *) (relation)->rd_options)->fillfactor : \
 	 SPGIST_DEFAULT_FILLFACTOR)

@@ -17,6 +17,7 @@
 		"DateStyle",
 		"debug_discard_caches",
 		"default_table_access_method",
+        "default_index_type",
 		"default_tablespace",
 		"default_toast_compression",
 		"dml_ignore_target_partition_check",
