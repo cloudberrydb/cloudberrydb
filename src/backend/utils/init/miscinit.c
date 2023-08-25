@@ -76,8 +76,6 @@ static List *lock_files = NIL;
 
 static Latch LocalLatchData;
 
-void load_libraries_array(void);
-
 /* ----------------------------------------------------------------
  *		ignoring system indexes support stuff
  *
@@ -1709,6 +1707,88 @@ char	   *local_preload_libraries_string = NULL;
 bool		process_shared_preload_libraries_in_progress = false;
 
 /*
+ * process shared preload libraries array.
+ */
+static const char *process_shared_preload_libraries_array[] =
+{
+	#include "utils/process_shared_preload_libraries.h"
+};
+
+/*
+ * expand preload load libraries string.
+ */
+static char*
+expand_shared_preload_libraries_string()
+{
+	List	   *elemlist = NIL;
+	List	   *deduplicate_elemlist = NIL;
+	ListCell   *l;
+	char	   *rawstring;
+	char	   *libraries = shared_preload_libraries_string;
+
+	/* Need a modifiable copy of string */
+	rawstring = pstrdup(libraries);
+	if (libraries != NULL && libraries[0] != '\0')
+	{
+		/* Parse string into list of filename paths */
+		if (!SplitDirectoriesString(rawstring, ',', &elemlist))
+		{
+			/* syntax error in list */
+			list_free_deep(elemlist);
+			pfree(rawstring);
+			ereport(LOG,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					errmsg("invalid list syntax in parameter \"%s\"",
+							libraries)));
+			return NULL;
+		}
+
+	}
+
+	/* load expand libraries */
+	int shared_preload_libraries_num = sizeof(process_shared_preload_libraries_array) / sizeof(char *);
+	if (shared_preload_libraries_num > 0)
+	{
+		for (int i = 0; i < shared_preload_libraries_num; i++)
+		{
+			elemlist = lappend(elemlist, pstrdup((char*)process_shared_preload_libraries_array[i]));
+		}
+
+	}
+
+	if (list_length(elemlist) == 0)
+	{
+		list_free_deep(elemlist);
+		pfree(rawstring);
+		return NULL;
+	}
+
+
+	/* deduplicate list string */
+	if (list_length(elemlist) > 1)
+	{
+		list_sort(elemlist, list_string_cmp);
+		deduplicate_elemlist = list_deduplicate_string(elemlist);
+	}
+
+	/* format string delimiter with ',' */
+	StringInfoData expand_string;
+	initStringInfo(&expand_string);
+	for (int i = 0; i < list_length(deduplicate_elemlist); i++)
+	{
+		l = &deduplicate_elemlist->elements[i];
+		if (i == 0)
+			appendStringInfo(&expand_string, "%s", (char*)lfirst(l));
+		else
+			appendStringInfo(&expand_string, ",%s", (char*)lfirst(l));
+	}
+	list_free_deep(elemlist);
+	list_free_deep(deduplicate_elemlist);
+	pfree(rawstring);
+	return expand_string.data;
+}
+
+/*
  * load the shared libraries listed in 'libraries'
  *
  * 'gucname': name of GUC variable, for error reports
@@ -1764,29 +1844,6 @@ load_libraries(const char *libraries, const char *gucname, bool restricted)
 }
 
 /*
- * process shared preload libraries array.
- */
-static const char *process_shared_preload_libraries_array[] =
-{
-	#include "utils/process_shared_preload_libraries.h"
-};
-
-/*
- * preload load external libraries.
- */
-void
-load_libraries_array(void)
-{
-	int shared_preload_libraries_num = sizeof(process_shared_preload_libraries_array) / sizeof(char *);
-	for (int i = 0; i < shared_preload_libraries_num; i++)
-	{
-		load_libraries(process_shared_preload_libraries_array[i],
-				"shared_preload_libraries",
-				false);
-	}
-}
-
-/*
  * process any libraries that should be preloaded at postmaster start
  */
 void
@@ -1794,7 +1851,7 @@ process_shared_preload_libraries(void)
 {
 	process_shared_preload_libraries_in_progress = true;
 
-	load_libraries(shared_preload_libraries_string,
+	load_libraries(expand_shared_preload_libraries_string(),
 				   "shared_preload_libraries",
 				   false);
 
@@ -1803,8 +1860,6 @@ process_shared_preload_libraries(void)
 				   "preload interconnect module",
 				   false);
 #endif
-
-	load_libraries_array();
 
 	process_shared_preload_libraries_in_progress = false;
 }

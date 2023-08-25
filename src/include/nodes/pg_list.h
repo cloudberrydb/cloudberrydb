@@ -616,6 +616,7 @@ extern pg_nodiscard List *list_concat_unique_int(List *list1, const List *list2)
 extern pg_nodiscard List *list_concat_unique_oid(List *list1, const List *list2);
 
 extern void list_deduplicate_oid(List *list);
+extern List* list_deduplicate_string(List *list);
 
 extern void list_free(List *list);
 extern void list_free_deep(List *list);
@@ -629,5 +630,6 @@ extern void list_sort(List *list, list_sort_comparator cmp);
 
 extern int	list_int_cmp(const ListCell *p1, const ListCell *p2);
 extern int	list_oid_cmp(const ListCell *p1, const ListCell *p2);
+extern int	list_string_cmp(const ListCell *p1, const ListCell *p2);
 
 #endif							/* PG_LIST_H */

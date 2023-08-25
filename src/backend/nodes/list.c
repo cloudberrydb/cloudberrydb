@@ -1425,6 +1425,42 @@ list_deduplicate_oid(List *list)
 }
 
 /*
+ * Remove adjacent duplicates in a list of String.
+ *
+ * It is caller's responsibility to have sorted the list to bring duplicates
+ * together, perhaps via list_sort(list, list_string_cmp).
+ */
+List*
+list_deduplicate_string(List *list)
+{
+	int			len;
+	List		*result = NIL;
+	ListCell	*l;
+	len = list_length(list);
+	if (len == 0)
+		return result;
+
+	l = &list->elements[0];
+	result = lappend(result, pstrdup(l->ptr_value));
+
+	if (len > 1)
+	{
+		ListCell   *elements = list->elements;
+		int			i = 0;
+		for (int j = 1; j < len; j++)
+		{
+			if (strncmp(elements[i].ptr_value, elements[j].ptr_value,
+					Max(strlen(elements[i].ptr_value), strlen(elements[j].ptr_value))) != 0)
+			{
+				result = lappend(result, pstrdup(elements[j].ptr_value));
+			}
+			++i;
+		}
+	}
+	return result;
+}
+
+/*
  * Free all storage in a list, and optionally the pointed-to elements
  */
 static void
@@ -1600,6 +1636,22 @@ list_oid_cmp(const ListCell *p1, const ListCell *p2)
 	if (v1 < v2)
 		return -1;
 	if (v1 > v2)
+		return 1;
+	return 0;
+}
+
+/*
+ * list_sort comparator for sorting a list into ascending string order.
+ */
+int
+list_string_cmp(const ListCell *p1, const ListCell *p2)
+{
+	char		*v1 = lfirst(p1);
+	char		*v2 = lfirst(p2);
+	int result = strncmp(v1, v2, Max(strlen(v1), strlen(v2)));
+	if (result < 0)
+		return -1;
+	if (result > 0)
 		return 1;
 	return 0;
 }
