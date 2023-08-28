@@ -38,9 +38,6 @@ EXCL_OBJS=\
 # of the test programs. Feel free to link them back (i.e. remove them from
 # this exclusion list) as needed.
 EXCL_OBJS+=\
-	src/backend/access/hash/hash.o \
-	src/backend/access/hash/hashsearch.o \
-	\
 	src/backend/utils/adt/cash.o \
 	src/backend/utils/adt/char.o \
 	src/backend/utils/adt/complex_type.o \
