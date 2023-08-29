@@ -87,6 +87,9 @@ FtsNotifyProber(void)
 	if (am_ftsprobe)
 		return;
 
+	if (enable_serverless)
+		return;
+
 	SpinLockAcquire(&ftsProbeInfo->lock);
 	initial_started = ftsProbeInfo->start_count;
 	SpinLockRelease(&ftsProbeInfo->lock);
@@ -177,6 +180,9 @@ getFtsVersion(void)
 void
 FtsNotifyProber(void)
 {
+	if (enable_serverless)
+		return;
+
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 	SendPostmasterSignal(PMSIGNAL_WAKEN_FTS);
 	SIMPLE_FAULT_INJECTOR("ftsNotify_before");
