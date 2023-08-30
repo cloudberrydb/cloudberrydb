@@ -988,3 +988,54 @@ index_opclass_options(Relation indrel, AttrNumber attnum, Datum attoptions,
 
 	return build_local_reloptions(&relopts, attoptions, validate);
 }
+
+/* check_hook: validate new default_index_access_method */
+bool
+check_default_index_access_method(char **newval, void **extra, GucSource source)
+{
+	if (**newval == '\0')
+	{
+		GUC_check_errdetail("%s cannot be empty.",
+		                    "check_default_index_access_method");
+		return false;
+	}
+
+	if (strlen(*newval) >= NAMEDATALEN)
+	{
+		GUC_check_errdetail("%s is too long (maximum %d characters).",
+		                    "check_default_index_access_method", NAMEDATALEN - 1);
+		return false;
+	}
+
+	/*
+	 * If we aren't inside a transaction, or not connected to a database, we
+	 * cannot do the catalog access necessary to verify the method.  Must
+	 * accept the value on faith.
+	 */
+	if (IsTransactionState() && MyDatabaseId != InvalidOid)
+	{
+		if (!OidIsValid(get_index_am_oid(*newval, true)))
+		{
+			/*
+			 * When source == PGC_S_TEST, don't throw a hard error for a
+			 * nonexistent index access method, only a NOTICE. See comments in
+			 * guc.h.
+			 */
+			if (source == PGC_S_TEST)
+			{
+				ereport(NOTICE,
+				        (errcode(ERRCODE_UNDEFINED_OBJECT),
+					        errmsg("index access method \"%s\" does not exist",
+					               *newval)));
+			}
+			else
+			{
+				GUC_check_errdetail("index access method \"%s\" does not exist.",
+				                    *newval);
+				return false;
+			}
+		}
+	}
+
+	return true;
+}

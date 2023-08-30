@@ -595,7 +595,7 @@ DefineOpClass(CreateOpClassStmt *stmt)
 	if (OidIsValid(storageoid))
 	{
 		/* Just drop the spec if same as column datatype */
-		if (storageoid == typeoid)
+		if (storageoid == typeoid && !amstorage)
 			storageoid = InvalidOid;
 		else if (!amstorage)
 			ereport(ERROR,
@@ -1289,7 +1289,7 @@ assignProcTypes(OpFamilyMember *member, Oid amoid, Oid typeoid,
 	 * returning int4, while proc 2 must be a 2-arg proc returning int8.
 	 * Otherwise we don't know.
 	 */
-	else if (amoid == BTREE_AM_OID)
+	else if (IsIndexAccessMethod(amoid, BTREE_AM_OID))
 	{
 		if (member->number == BTORDER_PROC)
 		{
@@ -1372,7 +1372,7 @@ assignProcTypes(OpFamilyMember *member, Oid amoid, Oid typeoid,
 						 errmsg("btree equal image functions must not be cross-type")));
 		}
 	}
-	else if (amoid == HASH_AM_OID)
+	else if (IsIndexAccessMethod(amoid, HASH_AM_OID))
 	{
 		if (member->number == HASHSTANDARD_PROC)
 		{

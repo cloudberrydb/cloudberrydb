@@ -511,7 +511,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE a = 1;
 EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE b = 1;
 
 -- make sure data are properly de-toasted in BRIN index
-CREATE TABLE brintest_3 (a text, b text, c text, d text);
+CREATE TABLE brintest_3 (a text, b text, c text, d text, e varchar);
 
 -- long random strings (~2000 chars each, so ~6kB for min/max on two
 -- columns) to trigger toasting
@@ -527,6 +527,10 @@ DELETE FROM brintest_3;
 -- is a one way to achieve that, because it does exactly such wait.
 CREATE INDEX brin_test_temp_idx ON brintest_3(a);
 DROP INDEX brin_test_temp_idx;
+
+-- make sure varchar to text implicitly
+CREATE INDEX brin_test_varchar_to_text_idx on brintest_3(e);
+DROP INDEX brin_test_varchar_to_text_idx;
 
 -- vacuum the table, to discard TOAST data
 VACUUM brintest_3;
