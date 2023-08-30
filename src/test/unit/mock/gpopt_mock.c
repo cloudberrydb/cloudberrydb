@@ -22,21 +22,21 @@ Datum
 LibraryVersion(void)
 {
 	elog(ERROR, "mock implementation of LibraryVersion called");
-	return NULL;
+	PG_RETURN_VOID();
 }
 
 Datum
 EnableXform(PG_FUNCTION_ARGS)
 {
 	elog(ERROR, "mock implementation of EnableXform called");
-	return (Datum) 0;
+	PG_RETURN_VOID();
 }
 
 Datum
 DisableXform(PG_FUNCTION_ARGS)
 {
 	elog(ERROR, "mock implementation of EnableXform called");
-	return (Datum) 0;
+	PG_RETURN_VOID();
 }
 
 void
