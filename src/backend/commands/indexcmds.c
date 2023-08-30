@@ -1021,6 +1021,10 @@ DefineIndex(Oid relationId,
 	 * look up the access method, verify it can handle the requested features
 	 */
 	accessMethodName = stmt->accessMethod;
+	if (accessMethodName == NULL)
+	{
+		accessMethodName = default_index_access_method;
+	}
 	tuple = SearchSysCache1(AMNAME, PointerGetDatum(accessMethodName));
 	if (!HeapTupleIsValid(tuple))
 	{
@@ -1268,7 +1272,7 @@ DefineIndex(Oid relationId,
 			 * btree opclasses; if there are ever any other index types that
 			 * support unique indexes, this logic will need extension.
 			 */
-			if (accessMethodId == BTREE_AM_OID)
+			if (IsIndexAccessMethod(accessMethodId, BTREE_AM_OID))
 				eq_strategy = BTEqualStrategyNumber;
 			else
 				ereport(ERROR,

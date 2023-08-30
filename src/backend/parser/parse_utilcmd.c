@@ -3289,7 +3289,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 		index->idxname = NULL;	/* DefineIndex will choose name */
 
 	index->relation = cxt->relation;
-	index->accessMethod = constraint->access_method ? constraint->access_method : DEFAULT_INDEX_TYPE;
+	index->accessMethod = constraint->access_method ? constraint->access_method : default_index_access_method;
 	index->options = constraint->options;
 	index->tableSpace = constraint->indexspace;
 	index->whereClause = constraint->where_clause;
@@ -3413,7 +3413,7 @@ transformIndexConstraint(Constraint *constraint, CreateStmtContext *cxt)
 		 * else dump and reload will produce a different index (breaking
 		 * pg_upgrade in particular).
 		 */
-		if (index_rel->rd_rel->relam != get_index_am_oid(DEFAULT_INDEX_TYPE, false))
+		if (!IsIndexAccessMethod(index_rel->rd_rel->relam, BTREE_AM_OID))
 			ereport(ERROR,
 					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 					 errmsg("index \"%s\" is not a btree", index_name),

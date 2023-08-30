@@ -1042,7 +1042,7 @@ gin_clean_pending_list(PG_FUNCTION_ARGS)
 
 	/* Must be a GIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		indexRel->rd_rel->relam != GIN_AM_OID)
+		!IsIndexAccessMethod(indexRel->rd_rel->relam, GIN_AM_OID))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a GIN index",

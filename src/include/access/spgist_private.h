@@ -31,7 +31,7 @@ typedef struct SpGistOptions
 
 #define SpGistGetFillFactor(relation) \
 	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
-				 relation->rd_rel->relam == SPGIST_AM_OID), \
+				 IsIndexAccessMethod(relation->rd_rel->relam, SPGIST_AM_OID)), \
 	 (relation)->rd_options ? \
 	 ((SpGistOptions *) (relation)->rd_options)->fillfactor : \
 	 SPGIST_DEFAULT_FILLFACTOR)

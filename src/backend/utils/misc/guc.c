@@ -48,6 +48,7 @@
 #include "catalog/pg_authid.h"
 #include "catalog/pg_profile.h"
 #include "catalog/storage.h"
+#include "catalog/index.h"
 #include "commands/async.h"
 #include "commands/prepare.h"
 #include "commands/trigger.h"
