@@ -55,7 +55,7 @@ smgr_init_hook_type smgr_init_hook = NULL;
 smgr_hook_type smgr_hook = NULL;
 smgr_shutdown_hook_type smgr_shutdown_hook = NULL;
 
-static const f_smgr smgrsw[] = {
+f_smgr smgrsw[] = {
 	/* magnetic disk */
 	{
 		.smgr_init = mdinit,
@@ -97,10 +97,36 @@ static const f_smgr smgrsw[] = {
 		.smgr_nblocks = mdnblocks,
 		.smgr_truncate = mdtruncate,
 		.smgr_immedsync = mdimmedsync,
+	},
+	/* extensible smgr's slot for other storage format */
+	{
+		0
+	},
+	{
+		0
+	},
+	{
+		0
+	},
+	{
+		0
+	},
+	{
+		0
+	},
+	{
+		0
+	},
+	{
+		0
+	},
+	{
+		0
 	}
 };
 
-static const int NSmgr = lengthof(smgrsw);
+int NSmgr = lengthof(smgrsw);
+int CurSmgr = SMGR_AO + 1;
 
 /*
  * Each backend has a hashtable that stores all extant SMgrRelation objects.

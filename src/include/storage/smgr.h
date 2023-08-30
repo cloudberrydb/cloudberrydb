@@ -23,13 +23,11 @@
 #include "storage/dbdirnode.h"
 #include "utils/relcache.h"
 
-typedef enum SMgrImplementation
-{
-	SMGR_MD = 0,
-	SMGR_AO = 1
-} SMgrImpl;
+#define SMGR_MD 0
+#define SMGR_AO 1
 
 struct f_smgr;
+typedef int SMgrImpl;
 
 /*
  * smgr.c maintains a table of SMgrRelation objects, which are essentially
@@ -183,4 +181,7 @@ extern PGDLLIMPORT file_truncate_hook_type file_truncate_hook;
 typedef void (*file_unlink_hook_type)(RelFileNodeBackend rnode);
 extern PGDLLIMPORT file_unlink_hook_type file_unlink_hook;
 
+extern f_smgr smgrsw[];
+extern int NSmgr;
+extern int CurSmgr;
 #endif							/* SMGR_H */
