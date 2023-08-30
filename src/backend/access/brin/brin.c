@@ -50,6 +50,7 @@
 #include "storage/procarray.h"
 #include "utils/snapshot.h"
 
+is_likeam_hook_type is_likebrin_hook = NULL;
 /*
  * We use a BrinBuildState during initial construction of a BRIN index.
  * The running state is kept in a BrinMemTuple.

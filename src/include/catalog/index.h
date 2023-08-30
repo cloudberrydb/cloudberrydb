@@ -24,6 +24,8 @@
 struct EState;                  /* #include "nodes/execnodes.h" */
 
 #define DEFAULT_INDEX_TYPE	"btree"
+/* GUCs */
+extern char *default_index_type;
 
 /* Action code for index_set_state_flags */
 typedef enum

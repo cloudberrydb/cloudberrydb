@@ -866,8 +866,10 @@ equality_ops_are_compatible(Oid opno1, Oid opno2)
 		Form_pg_amop op_form = (Form_pg_amop) GETSTRUCT(op_tuple);
 
 		/* must be btree or hash */
-		if (op_form->amopmethod == BTREE_AM_OID ||
-			op_form->amopmethod == HASH_AM_OID)
+		if (((is_likebtree_hook && (*is_likebtree_hook)(op_form->amopmethod)) ||
+             (!is_likebtree_hook && op_form->amopmethod == BTREE_AM_OID)) ||
+            ((is_likehash_hook && (*is_likehash_hook)(op_form->amopmethod)) ||
+             (!is_likehash_hook && op_form->amopmethod == HASH_AM_OID)))
 		{
 			if (op_in_opfamily(opno2, op_form->amopfamily))
 			{

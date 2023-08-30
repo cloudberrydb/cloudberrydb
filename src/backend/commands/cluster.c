@@ -962,7 +962,8 @@ copy_table_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex, bool verbose,
 	 * tells us it's cheaper.  Otherwise, always indexscan if an index is
 	 * provided, else plain seqscan.
 	 */
-	if (OldIndex != NULL && OldIndex->rd_rel->relam == BTREE_AM_OID)
+	if (OldIndex != NULL && ((is_likebtree_hook && (*is_likebtree_hook)(OldIndex->rd_rel->relam)) ||
+                             (!is_likebtree_hook && OldIndex->rd_rel->relam == BTREE_AM_OID)))
 		use_sort = plan_cluster_use_sort(OIDOldHeap, OIDOldIndex);
 	else
 		use_sort = false;

@@ -48,6 +48,7 @@
 #include "catalog/pg_authid.h"
 #include "catalog/pg_profile.h"
 #include "catalog/storage.h"
+#include "catalog/index.h"
 #include "commands/async.h"
 #include "commands/prepare.h"
 #include "commands/trigger.h"
@@ -4094,6 +4095,17 @@ static struct config_string ConfigureNamesString[] =
 		DEFAULT_TABLE_ACCESS_METHOD,
 		check_default_table_access_method, NULL, NULL
 	},
+
+    {
+            {"default_index_type", PGC_USERSET, CLIENT_CONN_STATEMENT,
+                    gettext_noop("Sets the default index type for primary key."),
+                    NULL,
+                    GUC_IS_NAME
+            },
+            &default_index_type,
+            DEFAULT_INDEX_TYPE,
+            NULL, NULL, NULL
+    },
 
 	{
 		{"default_tablespace", PGC_USERSET, CLIENT_CONN_STATEMENT,
