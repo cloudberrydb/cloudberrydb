@@ -25,8 +25,10 @@
 
 typedef enum SMgrImplementation
 {
-	SMGR_MD = 0,
-	SMGR_AO = 1
+    SMGR_MD = 0,
+    SMGR_AO = 1,
+
+    SMGR_LAST_DEFAULT = SMGR_AO
 } SMgrImpl;
 
 struct f_smgr;
@@ -164,6 +166,7 @@ extern void smgrtruncate(SMgrRelation reln, ForkNumber *forknum,
 						 int nforks, BlockNumber *nblocks);
 extern void smgrimmedsync(SMgrRelation reln, ForkNumber forknum);
 extern void AtEOXact_SMgr(void);
+extern SMgrImpl add_smgr_kind(void);
 
 
 /*
@@ -183,4 +186,5 @@ extern PGDLLIMPORT file_truncate_hook_type file_truncate_hook;
 typedef void (*file_unlink_hook_type)(RelFileNodeBackend rnode);
 extern PGDLLIMPORT file_unlink_hook_type file_unlink_hook;
 
+extern f_smgr smgrsw[];
 #endif							/* SMGR_H */
