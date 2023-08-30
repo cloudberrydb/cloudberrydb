@@ -10165,7 +10165,7 @@ opt_index_name:
 
 access_method_clause:
 			USING name								{ $$ = $2; }
-			| /*EMPTY*/								{ $$ = DEFAULT_INDEX_TYPE; }
+			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
 index_params:	index_elem							{ $$ = list_make1($1); }

@@ -167,7 +167,7 @@ PrepareSortSupportFromIndexRel(Relation indexRel, int16 strategy,
 
 	Assert(ssup->comparator == NULL);
 
-	if (indexRel->rd_rel->relam != BTREE_AM_OID)
+	if (!IsIndexAccessMethod(indexRel->rd_rel->relam, BTREE_AM_OID))
 		elog(ERROR, "unexpected non-btree AM: %u", indexRel->rd_rel->relam);
 	if (strategy != BTGreaterStrategyNumber &&
 		strategy != BTLessStrategyNumber)
@@ -194,7 +194,7 @@ PrepareSortSupportFromGistIndexRel(Relation indexRel, SortSupport ssup)
 
 	Assert(ssup->comparator == NULL);
 
-	if (indexRel->rd_rel->relam != GIST_AM_OID)
+	if (!IsIndexAccessMethod(indexRel->rd_rel->relam, GIST_AM_OID))
 		elog(ERROR, "unexpected non-gist AM: %u", indexRel->rd_rel->relam);
 	ssup->ssup_reverse = false;
 

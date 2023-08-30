@@ -20,7 +20,18 @@
 #include "utils/builtins.h"
 #include "utils/syscache.h"
 
+is_index_access_method_hook_type is_index_access_method_hook = NULL;
 
+bool
+IsIndexAccessMethod(Oid relam, Oid indexAccessMethod)
+{
+	if ((is_index_access_method_hook && (*is_index_access_method_hook)(relam, indexAccessMethod)) ||
+		(!is_index_access_method_hook && relam == indexAccessMethod))
+	{
+		return true;
+	}
+	return false;
+}
 /*
  * GetIndexAmRoutine - call the specified access method handler routine to get
  * its IndexAmRoutine struct, which will be palloc'd in the caller's context.
