@@ -44,6 +44,21 @@ For better collaboration, we hope you:
   Slack](https://github.com/cloudberrydb/cloudberrydb/issues/new/choose)
   instead.
 
+## Handling Process
+
+Here's an overview of the security issues handling process:
+
+* The reporter reports the security issues to the Cloudberry Database
+  team.
+* The Cloudberry Database team investigates the report and decides to
+  accept or reject the report. If our team rejects the report, the
+  team will explain why to the reporter. If we accept the report, our
+  team will work privately with the reporter to fix the security
+  issues.
+* Release the new version of the Cloudberry Database that includes the
+  fix.
+* Public the security issues.
+
 ## Preferred Languages
 
 We prefer all communications to be in English.
