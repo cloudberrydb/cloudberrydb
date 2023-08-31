@@ -5,7 +5,7 @@
       <option name="SMART_TABS" value="true" />
     </value>
   </option>
-  <option name="RIGHT_MARGIN" value="80" />
+  <option name="RIGHT_MARGIN" value="78" />
   <DBN-PSQL>
     <case-options enabled="false">
       <option name="KEYWORD_CASE" value="lower" />
