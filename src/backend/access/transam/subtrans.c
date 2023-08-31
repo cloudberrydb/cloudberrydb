@@ -379,3 +379,12 @@ SubTransPagePrecedes(int page1, int page2)
 	return (TransactionIdPrecedes(xid1, xid2) &&
 			TransactionIdPrecedes(xid1, xid2 + SUBTRANS_XACTS_PER_PAGE - 1));
 }
+
+/*
+ * Get SUBTRANS control data
+ */
+SlruCtl
+SUBTRANS_Ctl(void)
+{
+    return SubTransCtl;
+}
