@@ -20,6 +20,9 @@ typedef struct SubTransData
 	TransactionId topMostParent;
 } SubTransData;
 
+struct SlruCtlData;
+typedef struct SlruCtlData *SlruCtl;
+
 extern void SubTransSetParent(TransactionId xid, TransactionId parent);
 extern TransactionId SubTransGetParent(TransactionId xid);
 extern TransactionId SubTransGetTopmostTransaction(TransactionId xid);
@@ -31,5 +34,6 @@ extern void StartupSUBTRANS(TransactionId oldestActiveXID);
 extern void CheckPointSUBTRANS(void);
 extern void ExtendSUBTRANS(TransactionId newestXact);
 extern void TruncateSUBTRANS(TransactionId oldestXact);
+extern SlruCtl SUBTRANS_Ctl(void);
 
 #endif							/* SUBTRANS_H */

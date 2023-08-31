@@ -5566,16 +5566,18 @@ BeginInternalSubTransaction(const char *name)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		if (!doDispatchSubtransactionInternalCmd(
-			DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL))
+		if (NotifySubTransaction_hook)
+			NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_BEGIN);
+		else
 		{
-			elog(ERROR,
-				"Could not BeginInternalSubTransaction dispatch failed");
+			if (!doDispatchSubtransactionInternalCmd(
+				DTX_PROTOCOL_COMMAND_SUBTRANSACTION_BEGIN_INTERNAL))
+			{
+				elog(ERROR,
+					"Could not BeginInternalSubTransaction dispatch failed");
+			}
 		}
 	}
-
-	if (NotifySubTransaction_hook)
-		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_BEGIN);
 
 	/*
 	 * Workers synchronize transaction state at the beginning of each parallel
@@ -5749,7 +5751,7 @@ RollbackAndReleaseCurrentSubTransaction(void)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		if (!doDispatchSubtransactionInternalCmd(
+		if (!NotifySubTransaction_hook && !doDispatchSubtransactionInternalCmd(
 				DTX_PROTOCOL_COMMAND_SUBTRANSACTION_ROLLBACK_INTERNAL))
 		{
 			ereport(ERROR, (errcode(ERRCODE_GP_INTERCONNECTION_ERROR),
@@ -7603,4 +7605,71 @@ MarkSubTransactionAssigned(void)
 	Assert(IsSubTransactionAssignmentPending());
 
 	CurrentTransactionState->assigned = true;
+}
+
+/*
+ * Get all xids of top level transaction and subtransactons
+ */
+FullTransactionId *
+GetAllXids(int *nxids)
+{
+	FullTransactionId *xids = NULL;
+	int	len = PGPROC_MAX_CACHED_SUBXIDS;
+
+	*nxids = 0;
+	
+	if (FullTransactionIdIsValid(CurrentTransactionState->fullTransactionId))
+	{
+		TransactionState xact = CurrentTransactionState;
+
+		if (xids == NULL)
+			xids = (FullTransactionId *)palloc(sizeof(FullTransactionId) * len);
+		xids[(*nxids)++] = xact->fullTransactionId;
+
+		while (xact->parent)
+		{
+			xact = xact->parent;
+			xids[(*nxids)++] = xact->fullTransactionId;
+
+			if ((*nxids) >= len)
+			{
+				len *= 2;
+				xids = (FullTransactionId *)repalloc(xids, sizeof(FullTransactionId) * len);
+			}
+		}
+	}
+
+	return xids;
+}
+
+/*
+ * Get number of transaction and subtransactions which have no xid.
+ */
+int
+GetNumOfTxnStatesWithoutXid(void)
+{
+	int nlevels = 0;
+
+	if (!FullTransactionIdIsValid(CurrentTransactionState->fullTransactionId))
+	{
+		TransactionState xact = CurrentTransactionState;
+
+		nlevels++;
+
+		while (xact->parent)
+		{
+			xact = xact->parent;
+
+			if (!FullTransactionIdIsValid(xact->fullTransactionId))
+			{
+				nlevels++;
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	return nlevels;
 }

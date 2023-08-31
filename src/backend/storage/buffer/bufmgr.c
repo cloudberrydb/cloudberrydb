@@ -1263,8 +1263,7 @@ BufferAlloc(SMgrRelation smgr, char relpersistence, ForkNumber forkNum,
 		if (enable_serverless && Gp_role == GP_ROLE_EXECUTE && valid)
 		{
 			uint32 buf_state = LockBufHdr(buf);
-				
-			buf_state &= ~BM_VALID;
+			buf_state &= ~(BM_VALID | BM_DIRTY);
 			UnlockBufHdr(buf, buf_state);
 
 			valid = false;

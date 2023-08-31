@@ -38,6 +38,7 @@
 #include "access/xlog.h"
 #include "access/xloginsert.h"
 #include "access/xlogutils.h"
+#include "cdb/cdbvars.h"
 #include "miscadmin.h"
 #include "pg_trace.h"
 #include "pgstat.h"
@@ -166,6 +167,9 @@ TransactionIdSetTreeStatus(TransactionId xid, int nsubxids,
 {
 	int			pageno = TransactionIdToPage(xid);	/* get page of parent */
 	int			i;
+
+	if (enable_serverless && Gp_role != GP_ROLE_DISPATCH)
+		return;
 
 	Assert(status == TRANSACTION_STATUS_COMMITTED ||
 		   status == TRANSACTION_STATUS_ABORTED);

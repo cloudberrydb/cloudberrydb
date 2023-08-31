@@ -548,6 +548,8 @@ extern void UnregisterSubXactCallback(SubXactCallback callback, void *arg);
 extern void RecordDistributedForgetCommitted(DistributedTransactionId gxid);
 extern bool IsSubTransactionAssignmentPending(void);
 extern void MarkSubTransactionAssigned(void);
+extern FullTransactionId *GetAllXids(int *nxids);
+extern int GetNumOfTxnStatesWithoutXid(void);
 
 extern int	xactGetCommittedChildren(TransactionId **ptr);
 
