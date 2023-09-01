@@ -633,6 +633,15 @@ transformAOStdRdOptions(StdRdOptions *opts, Datum withOpts)
 		}
 	}
 
+	if (opts->parallel_workers != -1)
+	{
+		d = CStringGetTextDatum(psprintf("%s=%d",
+		                                 "parallel_workers",
+		                                 opts->parallel_workers));
+		astate = accumArrayResult(astate, d, false, TEXTOID,
+		                          CurrentMemoryContext);
+	}
+
 	if ((opts->blocksize != AO_DEFAULT_BLOCKSIZE) && !foundBlksz)
 	{
 		d = CStringGetTextDatum(psprintf("%s=%d",
