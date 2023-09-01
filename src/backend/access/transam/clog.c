@@ -168,7 +168,10 @@ TransactionIdSetTreeStatus(TransactionId xid, int nsubxids,
 	int			pageno = TransactionIdToPage(xid);	/* get page of parent */
 	int			i;
 
-	if (enable_serverless && Gp_role != GP_ROLE_DISPATCH)
+	/*
+	 * Only master can set transaction status
+	 */
+	if (enable_serverless && (Gp_role != GP_ROLE_DISPATCH && GpIdentity.segindex != MASTER_CONTENT_ID))
 		return;
 
 	Assert(status == TRANSACTION_STATUS_COMMITTED ||
