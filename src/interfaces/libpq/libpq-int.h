@@ -908,6 +908,8 @@ extern void pqTraceOutputMessage(PGconn *conn, const char *message,
 								 bool toServer);
 extern void pqTraceOutputNoTypeByteMessage(PGconn *conn, const char *message);
 
+extern bool pqAddTuple(PGresult *res, PGresAttValue *tup, const char **errmsgp);
+
 /* === miscellaneous macros === */
 
 /*

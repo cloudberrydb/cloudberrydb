@@ -42,7 +42,9 @@ static dispatcher_handle_t *allocate_dispatcher_handle(void);
 static void destroy_dispatcher_handle(dispatcher_handle_t *h);
 static char * segmentsListToString(const char *prefix, List *segments);
 
-static DispatcherInternalFuncs *pDispatchFuncs = &DispatcherAsyncFuncs;
+DispatcherInternalFuncs *pDispatchFuncs = &DispatcherAsyncFuncs;
+
+PGResStausOK_hook_type PGResStausOK_hook = NULL;
 
 /*
  * cdbdisp_dispatchToGang:
@@ -660,4 +662,14 @@ segmentsToContentStr(List *segments)
 		return segmentsListToString("PARTIAL contents", segments);
 	else
 		return segmentsListToString("ALL contents", segments);
+}
+
+void
+SetupDispatchFuncs(DispatcherInternalFuncs *dispatcherInternalFuncs)
+{
+	if (!dispatcherInternalFuncs)
+		elog(ERROR, "Dispatch Internal Functions can't be NULL");
+
+	/* set up current extension pDispatchFuncs */
+	pDispatchFuncs = dispatcherInternalFuncs;
 }

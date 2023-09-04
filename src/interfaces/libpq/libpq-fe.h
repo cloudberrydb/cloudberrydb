@@ -90,7 +90,7 @@ typedef enum
 								 * compatibility */
 } PostgresPollingStatusType;
 
-typedef enum
+typedef enum ExecStatusType
 {
 	PGRES_EMPTY_QUERY = 0,		/* empty query string was executed */
 	PGRES_COMMAND_OK,			/* a query command that doesn't return
@@ -110,6 +110,10 @@ typedef enum
 	PGRES_PIPELINE_SYNC,		/* pipeline synchronization point */
 	PGRES_PIPELINE_ABORTED		/* Command didn't run because of an abort
 								 * earlier in a pipeline */
+#ifndef FRONTEND
+	/* if you add a new exec status kind, remember to update "last default" too */
+        , PGRES_LAST_DEFAULT = PGRES_PIPELINE_ABORTED
+#endif
 } ExecStatusType;
 
 typedef enum
@@ -682,6 +686,9 @@ extern PQsslKeyPassHook_OpenSSL_type PQgetSSLKeyPassHook_OpenSSL(void);
 extern void PQsetSSLKeyPassHook_OpenSSL(PQsslKeyPassHook_OpenSSL_type hook);
 extern int	PQdefaultSSLKeyPassHook_OpenSSL(char *buf, int size, PGconn *conn);
 
+#ifndef FRONTEND
+extern ExecStatusType add_exec_status_type(void);
+#endif
 #ifdef __cplusplus
 }
 #endif

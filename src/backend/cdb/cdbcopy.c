@@ -79,6 +79,9 @@
 
 #include <poll.h>
 
+CopyProcessResult_hook_type CopyProcessResult_hook = NULL;
+CdbCopyEnd_hook_type	    CdbCopyEnd_hook = NULL;
+
 static void cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 				   int64 *total_rows_completed_p,
 				   int64 *total_rows_rejected_p);
@@ -650,6 +653,9 @@ cdbCopyEndInternal(CdbCopy *c, char *abort_msg,
 				if (buffer)
 					PQfreemem(buffer);
 			}
+
+			if (CopyProcessResult_hook)
+				CopyProcessResult_hook(res);
 
 			/* in SREH mode, check if this seg rejected (how many) rows */
 			if (res->numRejected > 0)

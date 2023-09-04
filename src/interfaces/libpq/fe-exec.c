@@ -65,8 +65,6 @@ static bool static_std_strings = false;
 
 
 static PGEvent *dupEvents(PGEvent *events, int count, size_t *memSize);
-static bool pqAddTuple(PGresult *res, PGresAttValue *tup,
-					   const char **errmsgp);
 
 static int	PQsendQueryInternal(PGconn *conn, const char *query, bool newQuery);
 bool PQsendQueryStart(PGconn *conn, bool newQuery);
@@ -926,7 +924,7 @@ pqInternalNotice(const PGNoticeHooks *hooks, const char *fmt,...)
  * On error, *errmsgp can be set to an error string to be returned.
  * If it is left NULL, the error is presumed to be "out of memory".
  */
-static bool
+bool
 pqAddTuple(PGresult *res, PGresAttValue *tup, const char **errmsgp)
 {
 	if (res->ntups >= res->tupArrSize)

@@ -316,7 +316,5 @@ cdbdisp_makeDispatchResults(struct CdbDispatcherState *ds,
 
 void
 cdbdisp_clearCdbPgResults(CdbPgResults* cdb_pgresults);
-typedef void (*ProcessDispatchResult_hook_type) (CdbDispatcherState*);
-extern PGDLLIMPORT ProcessDispatchResult_hook_type ProcessDispatchResult_hook;
 
 #endif   /* CDBDISPATCHRESULT_H */

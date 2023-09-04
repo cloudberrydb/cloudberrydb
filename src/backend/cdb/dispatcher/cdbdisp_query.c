@@ -1361,6 +1361,10 @@ CdbDispatchCopyEnd(struct CdbCopy *cdbCopy)
 	CdbDispatcherState *ds;
 
 	ds = cdbCopy->dispatcherState;
+
+	if (CdbCopyEnd_hook)
+		CdbCopyEnd_hook();
+
 	cdbCopy->dispatcherState = NULL;
 	cdbdisp_destroyDispatcherState(ds);
 }
