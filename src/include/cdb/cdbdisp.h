@@ -26,6 +26,7 @@ struct CdbPgResults;
 struct Gang; /* #include "cdb/cdbgang.h" */
 struct ResourceOwnerData;
 enum GangType;
+enum ExecStatusType;
 
 /*
  * Types of message to QE when we wait for it.
@@ -220,5 +221,13 @@ void AtSubAbort_DispatcherState(void);
 
 char *
 segmentsToContentStr(List *segments);
+
+extern void
+SetupDispatchFuncs(DispatcherInternalFuncs *dispatcherInternalFuncs);
+
+typedef bool (*PGResStausOK_hook_type) (enum ExecStatusType statusType);
+extern PGDLLIMPORT PGResStausOK_hook_type PGResStausOK_hook;
+
+extern DispatcherInternalFuncs *pDispatchFuncs;
 
 #endif   /* CDBDISP_H */

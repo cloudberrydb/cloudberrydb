@@ -23,7 +23,7 @@ struct pg_result;                   /* PGresult ... #include "libpq-fe.h" */
 struct SegmentDatabaseDescriptor;   /* #include "cdb/cdbconn.h" */
 struct StringInfoData;              /* #include "lib/stringinfo.h" */
 struct PQExpBufferData;             /* #include "libpq-int.h" */
-struct PGnotify;                    /* PGnotify ... #include "libpq-fe.h" */
+struct pgNotify;                    /* PGnotify ... #include "libpq-fe.h" */
 
 typedef struct CdbPgResults
 {
@@ -121,7 +121,7 @@ typedef struct CdbDispatchResult
 	 * queue for acknowledge NOTIFY messages, get freed for
 	 * each cdbdisp_waitDispatchAckMessage call
 	 */
-	struct PGnotify *ackPGNotifies;
+	struct pgNotify *ackPGNotifies;
 } CdbDispatchResult;
 
 /*
@@ -316,7 +316,5 @@ cdbdisp_makeDispatchResults(struct CdbDispatcherState *ds,
 
 void
 cdbdisp_clearCdbPgResults(CdbPgResults* cdb_pgresults);
-typedef void (*ProcessDispatchResult_hook_type) (CdbDispatcherState*);
-extern PGDLLIMPORT ProcessDispatchResult_hook_type ProcessDispatchResult_hook;
 
 #endif   /* CDBDISPATCHRESULT_H */

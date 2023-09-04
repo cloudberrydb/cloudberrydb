@@ -43,7 +43,8 @@ OBJS = \
 	legacy-pqsignal.o \
 	libpq-events.o \
 	pqexpbuffer.o \
-	fe-auth.o
+	fe-auth.o \
+	extensible_protocol.o
 
 # File shared across all SSL implementations supported.
 ifneq ($(with_ssl),no)
@@ -117,6 +118,7 @@ install: all installdirs install-lib
 	$(INSTALL_DATA) $(srcdir)/libpq-events.h '$(DESTDIR)$(includedir)'
 	$(INSTALL_DATA) $(srcdir)/libpq-int.h '$(DESTDIR)$(includedir_internal)'
 	$(INSTALL_DATA) $(srcdir)/pqexpbuffer.h '$(DESTDIR)$(includedir_internal)'
+	$(INSTALL_DATA) $(srcdir)/extensible_protocol.h '$(DESTDIR)$(includedir_internal)'
 	$(INSTALL_DATA) $(srcdir)/pg_service.conf.sample '$(DESTDIR)$(datadir)/pg_service.conf.sample'
 
 installcheck:
@@ -130,6 +132,7 @@ uninstall: uninstall-lib
 	rm -f '$(DESTDIR)$(includedir)/libpq-events.h'
 	rm -f '$(DESTDIR)$(includedir_internal)/libpq-int.h'
 	rm -f '$(DESTDIR)$(includedir_internal)/pqexpbuffer.h'
+	rm -f '$(DESTDIR)$(includedir_internal)/extensible_protocol.h'
 	rm -f '$(DESTDIR)$(datadir)/pg_service.conf.sample'
 
 clean distclean: clean-lib

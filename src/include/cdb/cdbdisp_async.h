@@ -18,4 +18,19 @@
 
 extern DispatcherInternalFuncs DispatcherAsyncFuncs;
 
+extern void *cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *queryText, int len);
+
+extern bool cdbdisp_checkAckMessage_async(struct CdbDispatcherState *ds, const char *message,
+					  int timeout_sec);
+
+extern void cdbdisp_checkDispatchResult_async(struct CdbDispatcherState *ds,
+					      DispatchWaitMode waitMode);
+
+extern void cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
+					 struct Gang *gp,
+					 int sliceIndex);
+extern void	cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds);
+
+extern bool	cdbdisp_checkForCancel_async(struct CdbDispatcherState *ds);
+extern int *cdbdisp_getWaitSocketFds_async(struct CdbDispatcherState *ds, int *nsocks);
 #endif

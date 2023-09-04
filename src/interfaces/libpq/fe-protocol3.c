@@ -39,6 +39,7 @@
 #include "libpq-int.h"
 #include "mb/pg_wchar.h"
 #include "port/pg_bswap.h"
+#include "extensible_protocol.h"
 
 /*
  * This macro lists the backend message types that could be "long" (more
@@ -84,6 +85,7 @@ pqParseInput3(PGconn *conn)
 	int			i;
 	int64		numRejected  = 0;
 	int64		numCompleted = 0;
+	const ExtensibleProtocolMethods *extensibleProtocolMethods;
 #endif
 
 
@@ -576,16 +578,28 @@ pqParseInput3(PGconn *conn)
 					break;
 #endif
 				default:
-					appendPQExpBuffer(&conn->errorMessage,
-									  libpq_gettext("unexpected response from server; first received character was \"%c\"\n"),
-									  id);
-					/* build an error result holding the error message */
-					pqSaveErrorResult(conn);
-					/* not sure if we will see more, so go to ready state */
-					conn->asyncStatus = PGASYNC_READY;
-					/* Discard the unexpected message */
-					conn->inCursor += msgLength;
-					break;
+#ifndef FRONTEND
+					extensibleProtocolMethods = GetExtensibleProtocolMethods(id, true);
+					if (extensibleProtocolMethods)
+					{
+						if (extensibleProtocolMethods->protocolRecv(conn, msgLength))
+							return;
+						break;
+					}
+					else
+#endif
+					{
+						appendPQExpBuffer(&conn->errorMessage,
+								  libpq_gettext("unexpected response from server; first received character was \"%c\"\n"),
+								  id);
+						/* build an error result holding the error message */
+						pqSaveErrorResult(conn);
+						/* not sure if we will see more, so go to ready state */
+						conn->asyncStatus = PGASYNC_READY;
+						/* Discard the unexpected message */
+						conn->inCursor += msgLength;
+						break;
+					}
 			}					/* switch on protocol character */
 		}
 		/* Successfully consumed this message */

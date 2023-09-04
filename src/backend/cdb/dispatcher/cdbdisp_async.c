@@ -93,22 +93,6 @@ typedef struct CdbDispatchCmdAsync
 
 } CdbDispatchCmdAsync;
 
-static void *cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *queryText, int len);
-
-static bool cdbdisp_checkAckMessage_async(struct CdbDispatcherState *ds, const char *message,
-									int timeout_sec);
-
-static void cdbdisp_checkDispatchResult_async(struct CdbDispatcherState *ds,
-								  DispatchWaitMode waitMode);
-
-static void cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
-							 struct Gang *gp,
-							 int sliceIndex);
-static void	cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds);
-
-static bool	cdbdisp_checkForCancel_async(struct CdbDispatcherState *ds);
-static int *cdbdisp_getWaitSocketFds_async(struct CdbDispatcherState *ds, int *nsocks);
-
 DispatcherInternalFuncs DispatcherAsyncFuncs =
 {
 	cdbdisp_checkForCancel_async,
@@ -150,7 +134,7 @@ static bool
  *
  * Return true if any connection received error.
  */
-static bool
+bool
 cdbdisp_checkForCancel_async(struct CdbDispatcherState *ds)
 {
 	Assert(ds);
@@ -167,7 +151,7 @@ cdbdisp_checkForCancel_async(struct CdbDispatcherState *ds)
  * Return value is the array of waiting socket fds.
  * It's be palloced in this function, so caller need to pfree it.
  */
-static int *
+int *
 cdbdisp_getWaitSocketFds_async(struct CdbDispatcherState *ds, int *nsocks)
 {
 	CdbDispatchCmdAsync *pParms = (CdbDispatchCmdAsync *) ds->dispatchParams;
@@ -207,7 +191,7 @@ cdbdisp_getWaitSocketFds_async(struct CdbDispatcherState *ds, int *nsocks)
 /*
  * Block until all data are dispatched.
  */
-static void
+void
 cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds)
 {
 	const static int DISPATCH_POLL_TIMEOUT = 500;
@@ -293,7 +277,7 @@ cdbdisp_waitDispatchFinish_async(struct CdbDispatcherState *ds)
  * Throw out error to upper try-catch block if anything goes wrong. This function only kicks off dispatching,
  * call cdbdisp_waitDispatchFinish_async to ensure the completion
  */
-static void
+void
 cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
 							 struct Gang *gp,
 							 int sliceIndex)
@@ -338,7 +322,7 @@ cdbdisp_dispatchToGang_async(struct CdbDispatcherState *ds,
  *              0 means checking immediately, and -1 means waiting until all ack
  *              messages are received.
  */
-static bool
+bool
 cdbdisp_checkAckMessage_async(struct CdbDispatcherState *ds, const char *message,
 							  int timeout_sec)
 {
@@ -384,7 +368,7 @@ cdbdisp_checkAckMessage_async(struct CdbDispatcherState *ds, const char *message
  * Wait all dispatch work to complete, either success or fail.
  * (Set stillRunning to true when one dispatch work is completed)
  */
-static void
+void
 cdbdisp_checkDispatchResult_async(struct CdbDispatcherState *ds,
 								  DispatchWaitMode waitMode)
 {
@@ -420,7 +404,7 @@ cdbdisp_checkDispatchResult_async(struct CdbDispatcherState *ds,
  * Memory will be freed in function cdbdisp_destroyDispatcherState by deleting the
  * memory context.
  */
-static void *
+void *
 cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *queryText, int len)
 {
 	int			maxResults = maxSlices * largestGangSize;
@@ -991,6 +975,7 @@ processResults(CdbDispatchResult *dispatchResult)
 {
 	SegmentDatabaseDescriptor *segdbDesc = dispatchResult->segdbDesc;
 	char	   *msg;
+	bool resultStatusOk;
 
 	/*
 	 * Receive input from QE.
@@ -1004,6 +989,8 @@ processResults(CdbDispatchResult *dispatchResult)
 		return true;
 	}
 	forwardQENotices();
+
+	resultStatusOk = false;
 
 	/*
 	 * If we have received one or more complete messages, process them.
@@ -1077,11 +1064,18 @@ processResults(CdbDispatchResult *dispatchResult)
 		 * Did a command complete successfully?
 		 */
 		resultStatus = PQresultStatus(pRes);
+
+		if (PGResStausOK_hook)
+		{
+			resultStatusOk = PGResStausOK_hook(resultStatus);
+		}
+
 		if (resultStatus == PGRES_COMMAND_OK ||
 			resultStatus == PGRES_TUPLES_OK ||
 			resultStatus == PGRES_COPY_IN ||
 			resultStatus == PGRES_COPY_OUT ||
-			resultStatus == PGRES_EMPTY_QUERY)
+			resultStatus == PGRES_EMPTY_QUERY ||
+			resultStatusOk)
 		{
 			ELOG_DISPATCHER_DEBUG("%s -> ok %s",
 								  segdbDesc->whoami,
