@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- * ic_udp.h
+ * ic_udpifc.h
  *	  Motion IPC UDP implements.
  *
  * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
- *	    contrib/interconnect/udp/ic_udp.h
+ *	    contrib/interconnect/udp/ic_udpifc.h
  *
  *-------------------------------------------------------------------------
  */

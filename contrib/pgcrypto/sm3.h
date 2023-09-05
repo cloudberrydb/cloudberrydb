@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * sm3.h
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * IDENTIFICATION
+ *          contrib/pgcrypto/sm3.h
+ *
+ *-------------------------------------------------------------------------
+ */
 #ifndef _SM3_H_
 #define _SM3_H_
 

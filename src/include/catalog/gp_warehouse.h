@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * gp_warehouse.h
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * IDENTIFICATION
+ *          src/include/catalog/gp_warehouse.h
+ *
+ *-------------------------------------------------------------------------
+ */
 #ifndef GP_WAREHOUSE_H
 #define GP_WAREHOUSE_H
 
@@ -9,8 +20,8 @@
  */
 CATALOG(gp_warehouse,8690,GpWarehouseRelationId) BKI_SHARED_RELATION
 {
-    Oid			oid;			/* oid */
-    text        warehouse_name; /* warehouse name */
+	Oid			oid;			/* oid */
+	text        warehouse_name; /* warehouse name */
 } FormData_gp_warehouse;
 
 typedef FormData_gp_warehouse *Form_gp_warehouse;

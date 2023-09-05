@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * gpextprotocol.c
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * IDENTIFICATION
+ *          contrib/extprotocol/gpextprotocol.c
+ *
+ *-------------------------------------------------------------------------
+ */
 #include "postgres.h"
 #include "fmgr.h"
 #include "funcapi.h"

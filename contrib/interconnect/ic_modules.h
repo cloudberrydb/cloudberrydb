@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- * interconnect.h
+ * ic_modules.h
  *	  Motion IPC Layer.
  *
  * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
- *	    contrib/interconnect/interconnect.h
+ *		contrib/interconnect/ic_modules.h
  *
  *-------------------------------------------------------------------------
  */

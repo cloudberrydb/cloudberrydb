@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- * ic_common.c
+ * ic_common.h
  *	   Interconnect code shared between UDP, and TCP IPC Layers.
  *
  * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
- *	    contrib/interconnect/ic_common.c
+ *	    contrib/interconnect/ic_common.h
  *
  *-------------------------------------------------------------------------
  */

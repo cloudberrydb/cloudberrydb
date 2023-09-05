@@ -3,6 +3,7 @@
  * varsup.c
  *	  postgres OID & XID variables support routines
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Copyright (c) 2000-2021, PostgreSQL Global Development Group
  *
  * IDENTIFICATION
@@ -700,7 +701,7 @@ AdvanceObjectId(Oid newOid)
 static RelFileNodeId
 GetNewSegRelfilenodeUnderLock(void)
 {
-    RelFileNodeId result;
+	RelFileNodeId result;
 
 	Assert(LWLockHeldByMe(RelfilenodeGenLock));
 
@@ -719,7 +720,7 @@ GetNewSegRelfilenodeUnderLock(void)
 	}
 
 	if (NewSegRelfilenode_assign_hook)
-	    return (*NewSegRelfilenode_assign_hook) ();
+		return (*NewSegRelfilenode_assign_hook) ();
 
 	result = ShmemVariableCache->nextRelfilenode;
 
@@ -740,7 +741,7 @@ GetNewSegRelfilenodeUnderLock(void)
 RelFileNodeId
 GetNewSegRelfilenode(void)
 {
-    RelFileNodeId result;
+	RelFileNodeId result;
 
 	LWLockAcquire(RelfilenodeGenLock, LW_EXCLUSIVE);
 
