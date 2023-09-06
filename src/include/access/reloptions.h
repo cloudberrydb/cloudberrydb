@@ -300,9 +300,13 @@ extern void validate_and_adjust_options(StdRdOptions *result, relopt_value *opti
 										int num_options, relopt_kind kind, bool validate);
 
 /* attribute enconding specific functions */
-extern List *transformColumnEncoding(Relation rel, List *colDefs,
-										List *stenc, List *withOptions,
-										bool rootpartition, bool allowEncodingClause);
+extern void validateAOCOColumnEncodingClauses(List *aocoColumnEncoding);
+extern List *transformColumnEncoding(const TableAmRoutine *tam, Relation rel, List *colDefs,
+										List *stenc, List *withOptions, bool allowEncodingClause,
+										bool createDefaultOne);
+
+List* transfromColumnEncodingAocoRootPartition(List *colDefs, List *stenc, List *withOptions, bool errorOnEncodingClause);
+
 extern List *transformStorageEncodingClause(List *options, bool validate);
 extern List *form_default_storage_directive(List *enc);
 extern bool is_storage_encoding_directive(char *name);

@@ -1022,29 +1022,36 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	 * This is done in dispatcher (and in utility mode). In QE, we receive
 	 * the already-processed options from the QD.
 	 */
-	if ((relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW ||
-		 relkind == RELKIND_PARTITIONED_TABLE) &&
+	if ((relkind == RELKIND_RELATION || relkind == RELKIND_MATVIEW) &&
 		Gp_role != GP_ROLE_EXECUTE)
 	{
-		/*
-		 * Note that we disallow encoding clauses for non-AOCO table
-		 * besides only one exception: if we're creating a partition as
-		 * part of a CREATE TABLE ... PARTITION BY ... command, ignore the
-		 * ENCODING options instead. The parent table might be AOCS, while
-		 * some of the partitions are not, or vice versa, so options can
-		 * make sense for some parts of the partition hierarchy, even if
-		 * it doesn't for this partition.
-		 */
-		stmt->attr_encodings = transformColumnEncoding(NULL /* Relation */, 
+		const TableAmRoutine *tam = GetTableAmRoutineByAmId(accessMethodId);
+
+		stmt->attr_encodings = transformColumnEncoding(tam, /* TableAmRoutine */
+								NULL /* Relation */, 
 								schema,
 								stmt->attr_encodings,
 								stmt->options,
-								relkind == RELKIND_PARTITIONED_TABLE,
-								!AMHandlerIsAoCols(amHandlerOid)
-										&& !stmt->partbound 
-										&& !stmt->partspec /* errorOnEncodingClause */);
-		if (!AMHandlerIsAoCols(amHandlerOid) && relkind != RELKIND_PARTITIONED_TABLE)
+								!AMHandlerSupportEncodingClause(tam) /* errorOnEncodingClause */,
+								AMHandlerIsAoCols(amHandlerOid) /* createDefaultOne*/);
+		if (!AMHandlerSupportEncodingClause(tam) && relkind != RELKIND_PARTITIONED_TABLE)
 			stmt->attr_encodings = NIL;
+	} else if (relkind == RELKIND_PARTITIONED_TABLE) {
+		/*
+		 * The parent table might be AOCS, while some of the partitions
+		 * are not, or vice versa, so options can make sense for some
+		 * parts of the partition hierarchy, even if it doesn't for this partition.
+		 *
+		 * Also in this time, we can't get the access method from root partition.
+		 * But for other access method which support encoding clause, still can't
+		 * pass the encoding clause from root partition.
+		 */
+		stmt->attr_encodings = transfromColumnEncodingAocoRootPartition(schema,
+								stmt->attr_encodings,
+								stmt->options,
+								!AMHandlerIsAoCols(amHandlerOid)
+										&& !stmt->partbound
+										&& !stmt->partspec /* errorOnEncodingClause */);
 	}
 
 	/*
@@ -8286,6 +8293,10 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	add_column_datatype_dependency(myrelid, newattnum, attribute.atttypid);
 	add_column_collation_dependency(myrelid, newattnum, attribute.attcollation);
 
+	const TableAmRoutine *tam = OidIsValid(rel->rd_rel->relam)
+								? GetTableAmRoutineByAmId(rel->rd_rel->relam)
+								: NULL;
+
 	/* 
 	 * Process the encoding clauses.
 	 *
@@ -8293,16 +8304,18 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	 * clause was provided, store the default encoding clause.
 	 * If there's an encoding clause for non AO/CO tables, we'll throw an error 
 	 * in the function (indicated by errorOnEncodingClause == true).
+	 *
+	 * AOCO table creates default encoding clause, others will not.
 	 */
-	enc = transformColumnEncoding(rel, list_make1(colDef), 
+	enc = transformColumnEncoding(tam /* TableAmRoutine */, rel, list_make1(colDef), 
 					NULL /* COLUMN ENCODING clauses is only for CREATE TABLE */, 
 					NULL /* withOptions */,
-					false /* rootpartition */, 
-					!RelationIsAoCols(rel) /* errorOnEncodingClause */);
+					!AMHandlerSupportEncodingClause(tam) /* errorOnEncodingClause */,
+					RelationIsAoCols(rel) /* createDefaultOne */);
 	/* 
 	 * Store the encoding clause for AO/CO tables.
 	 */
-	if (RelationIsAoCols(rel))
+	if (tam && tam->validate_column_encoding_clauses && tam->transform_column_encoding_clauses)
 		AddRelationAttributeEncodings(rel, enc);
 
 	/* MPP-6929: metadata tracking */
