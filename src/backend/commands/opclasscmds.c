@@ -1289,7 +1289,8 @@ assignProcTypes(OpFamilyMember *member, Oid amoid, Oid typeoid,
 	 * returning int4, while proc 2 must be a 2-arg proc returning int8.
 	 * Otherwise we don't know.
 	 */
-	else if (amoid == BTREE_AM_OID)
+	else if ((is_likebtree_hook && (*is_likebtree_hook)(amoid)) ||
+             (!is_likebtree_hook && amoid == BTREE_AM_OID))
 	{
 		if (member->number == BTORDER_PROC)
 		{
