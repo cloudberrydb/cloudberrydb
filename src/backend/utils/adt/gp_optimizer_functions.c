@@ -15,6 +15,11 @@
 
 #include "funcapi.h"
 #include "utils/builtins.h"
+#include "optimizer/planner.h"
+
+#ifdef USE_ORCA
+extern void InitGPOPT();
+#endif
 
 extern Datum EnableXform(PG_FUNCTION_ARGS);
 
@@ -25,6 +30,16 @@ Datum
 enable_xform(PG_FUNCTION_ARGS)
 {
 #ifdef USE_ORCA
+	if (!optimizer_init) {
+		/* Initialize GPOPT */
+		OptimizerMemoryContext = AllocSetContextCreate(TopMemoryContext,
+													"GPORCA Top-level Memory Context",
+													ALLOCSET_DEFAULT_MINSIZE,
+													ALLOCSET_DEFAULT_INITSIZE,
+													ALLOCSET_DEFAULT_MAXSIZE);
+		InitGPOPT();
+		optimizer_init = true;
+	}
 	return EnableXform(fcinfo);
 #else
 	return CStringGetTextDatum("Server has been compiled without ORCA");
@@ -40,6 +55,16 @@ Datum
 disable_xform(PG_FUNCTION_ARGS)
 {
 #ifdef USE_ORCA
+	if (!optimizer_init) {
+		/* Initialize GPOPT */
+		OptimizerMemoryContext = AllocSetContextCreate(TopMemoryContext,
+													"GPORCA Top-level Memory Context",
+													ALLOCSET_DEFAULT_MINSIZE,
+													ALLOCSET_DEFAULT_INITSIZE,
+													ALLOCSET_DEFAULT_MAXSIZE);
+		InitGPOPT();
+		optimizer_init = true;
+	}
 	return DisableXform(fcinfo);
 #else
 	return CStringGetTextDatum("Server has been compiled without ORCA");
