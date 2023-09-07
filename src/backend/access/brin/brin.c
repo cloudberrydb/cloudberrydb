@@ -1301,7 +1301,7 @@ brin_desummarize_range(PG_FUNCTION_ARGS)
 
 	/* User must own the index (comparable to privileges needed for VACUUM) */
 	if (!pg_class_ownercheck(indexoid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_INDE
+		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_INDEX,
 					   RelationGetRelationName(indexRel));
 
 	/*
