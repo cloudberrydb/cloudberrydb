@@ -1205,7 +1205,8 @@ brin_summarize_range_internal(PG_FUNCTION_ARGS)
 
 	/* Must be a BRIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		indexRel->rd_rel->relam != BRIN_AM_OID)
+		((is_likebrin_hook && !(*is_likebrin_hook)(indexRel->rd_rel->relam)) ||
+		 (!is_likebrin_hook && indexRel->rd_rel->relam != BRIN_AM_OID)))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a BRIN index",
@@ -1291,7 +1292,8 @@ brin_desummarize_range(PG_FUNCTION_ARGS)
 
 	/* Must be a BRIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		indexRel->rd_rel->relam != BRIN_AM_OID)
+		((is_likebrin_hook && !(*is_likebrin_hook)(indexRel->rd_rel->relam)) ||
+		 (!is_likebrin_hook && indexRel->rd_rel->relam != BRIN_AM_OID)))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a BRIN index",
@@ -1299,7 +1301,7 @@ brin_desummarize_range(PG_FUNCTION_ARGS)
 
 	/* User must own the index (comparable to privileges needed for VACUUM) */
 	if (!pg_class_ownercheck(indexoid, GetUserId()))
-		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_INDEX,
+		aclcheck_error(ACLCHECK_NOT_OWNER, OBJECT_INDE
 					   RelationGetRelationName(indexRel));
 
 	/*
