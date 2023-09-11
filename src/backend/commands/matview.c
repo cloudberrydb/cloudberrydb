@@ -626,6 +626,8 @@ transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo)
 		appendonly_dml_init(myState->transientrel, CMD_INSERT);
 	else if (RelationIsAoCols(myState->transientrel))
 		aoco_dml_init(myState->transientrel, CMD_INSERT);
+	else if(ext_dml_init_hook)
+		ext_dml_init_hook(myState->transientrel, CMD_INSERT);
 
 	/*
 	 * Valid smgr_targblock implies something already wrote to the relation.
