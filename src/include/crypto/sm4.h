@@ -12,15 +12,6 @@
 #define _SM4_H_
 #include "c.h"
 
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef short int16_t;
-typedef unsigned short uint16_t;
-typedef int int32_t;
-typedef unsigned int uint32_t;
-typedef long int64_t;
-typedef unsigned long int uint64_t;
-
 # define SM4_ENCRYPT     1
 # define SM4_DECRYPT     0
 

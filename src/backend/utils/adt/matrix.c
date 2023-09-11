@@ -176,7 +176,7 @@ matrix_add(PG_FUNCTION_ARGS)
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						 errmsg("matrix_add: non-conformable arrays")));
 		}
-		if (ARR_NULLBITMAP(m) || ARR_NULLBITMAP(n))
+		if (ARR_HASNULL(m) || ARR_HASNULL(n))
 			ereport(ERROR,
 					(errcode(ERRCODE_NULL_VALUE_NOT_ALLOWED),
 					 errmsg("matrix_add: null array element not allowed in this context")));
