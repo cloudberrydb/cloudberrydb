@@ -47,12 +47,18 @@ LOCALOBJS += utils/probes.o
 endif
 endif
 
+# FIXME: The --enable-shared-postgres-backend parameter build the postgres.so shared between postmaster
+# But we only test it locally without CI test. Please use it with caution.
+ifeq ($(enable_shared_postgres_backend),yes)
+OBJS = $(LOCALOBJS) $(SUBDIROBJS)
+else
 OBJS = \
 	$(LOCALOBJS) \
 	$(SUBDIROBJS) \
 	$(top_builddir)/src/common/libpgcommon_srv.a \
 	$(top_builddir)/src/port/libpgport_srv.a
 
+endif
 ifeq ($(PORTNAME), darwin)
 LDOPTS = -Z
 endif
@@ -79,8 +85,18 @@ ifneq ($(PORTNAME), cygwin)
 ifneq ($(PORTNAME), win32)
 ifneq ($(PORTNAME), aix)
 
+ifeq ($(enable_shared_postgres_backend),yes)
+postgres.so: $(OBJS)
+	$(CXX) -shared $(CXXFLAGS) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(filter-out main/main.o, $(call expand_subsys,$^)) -o $@
+
+postgres: main/main.o postgres.so $(top_builddir)/src/port/libpgport_srv.a $(top_builddir)/src/common/libpgcommon_srv.a
+	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) \
+	  main/main.o postgres.so $(top_builddir)/src/port/libpgport_srv.a \
+	  $(top_builddir)/src/common/libpgcommon_srv.a $(LIBS) -o $@
+else
 postgres: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(LIBS) -o $@
+endif
 
 endif
 endif
@@ -136,9 +152,13 @@ $(top_builddir)/src/port/libpgport_srv.a: | submake-libpgport
 
 # The postgres.o target is needed by the rule in Makefile.global that
 # creates the exports file when MAKE_EXPORTS = true.
+ifeq ($(enable_shared_postgres_backend),yes)
+postgres.o: $(OBJS)  $(top_builddir)/src/port/libpgport_srv.a $(top_builddir)/src/common/libpgcommon_srv.a
+	$(CXX) $(LDREL) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
+else
 postgres.o: $(OBJS)
 	$(CXX) $(LDREL) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
-
+endif
 
 # The following targets are specified in make commands that appear in
 # the make files in our subdirectories. Note that it's important we
@@ -251,6 +271,9 @@ endif
 
 install-bin: postgres $(POSTGRES_IMP) installdirs
 	$(INSTALL_PROGRAM) postgres$(X) '$(DESTDIR)$(bindir)/postgres$(X)'
+ifeq ($(enable_shared_postgres_backend),yes)
+	$(INSTALL_PROGRAM) postgres.so '$(DESTDIR)$(libdir)/postgres.so'
+endif
 ifneq ($(PORTNAME), win32)
 	@rm -f $(DESTDIR)$(bindir)/postmaster$(X)
 	ln -s postgres$(X) $(DESTDIR)$(bindir)/postmaster$(X)
@@ -287,6 +310,9 @@ endif
 
 uninstall:
 	rm -f $(DESTDIR)$(bindir)/postgres$(X) $(DESTDIR)$(bindir)/postmaster $(DESTDIR)$(bindir)/cdbsyncmaster
+ifeq ($(enable_shared_postgres_backend),yes)
+	rm -f $(DESTDIR)$(bindir)/postgres$(X) $(DESTDIR)$(libdir)/postgres.so $(DESTDIR)$(bindir)/postmaster $(DESTDIR)$(bindir)/cdbsyncmaster
+endif
 ifeq ($(MAKE_EXPORTS), true)
 	rm -f '$(DESTDIR)$(pkglibdir)/$(POSTGRES_IMP)'
 	rm -f '$(DESTDIR)$(pgxsdir)/$(MKLDEXPORT_DIR)/mkldexport.sh'
@@ -322,6 +348,9 @@ endif
 
 clean:
 	rm -f $(LOCALOBJS) postgres$(X) $(POSTGRES_IMP)
+ifeq ($(enable_shared_postgres_backend),yes)
+	rm -f $(LOCALOBJS) postgres.so $(POSTGRES_IMP)
+endif
 ifeq ($(PORTNAME), cygwin)
 	rm -f postgres.dll libpostgres.a
 endif

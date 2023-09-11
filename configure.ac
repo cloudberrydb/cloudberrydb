@@ -856,6 +856,21 @@ AC_MSG_RESULT([checking whether to build with Cloudberry Mapreduce... $enable_ma
 AC_SUBST(enable_mapreduce)
 
 #
+# --enable-shared-postgres-backend enables shared postgres backend support
+#
+PGAC_ARG_BOOL(enable, shared-postgres-backend, no, [enable Cloudberry shared postgres backend support],
+              [AC_DEFINE([USE_SHARED_POSTGRES_BACKEND], 1,
+			             [Define to 1 to build with shared postgres backend capabilities (--enable-shared-postgres-backend)])])
+AC_MSG_RESULT([checking whether to build with Cloudberry shared postgres backend... $enable_shared_postgres_backend])
+AC_SUBST(enable_shared_postgres_backend)
+
+AS_IF([test "$enable_shared_postgres_backend" = yes ],
+[ # then
+  CFLAGS="$CFLAGS -fPIC "
+  CXXFLAGS="$CXXFLAGS -fPIC "
+]) # fi
+
+#
 # gpcloud, enabled by default
 #
 PGAC_ARG_BOOL(enable, gpcloud, no, [enable gpcloud support],
@@ -1071,6 +1086,14 @@ AC_MSG_CHECKING([whether to build with SELinux support])
 PGAC_ARG_BOOL(with, selinux, no, [build with SELinux support])
 AC_SUBST(with_selinux)
 AC_MSG_RESULT([$with_selinux])
+
+#
+# libseccomp
+#
+AC_MSG_CHECKING([whether to build with libseccomp support])
+PGAC_ARG_BOOL(with, libseccomp, no, [build with libseccomp support])
+AC_SUBST(with_libseccomp)
+AC_MSG_RESULT([$with_libseccomp])
 
 #
 # Systemd
@@ -1710,6 +1733,11 @@ AC_SUBST(LDAP_LIBS_BE)
 if test "$with_selinux" = yes; then
   AC_CHECK_LIB(selinux, security_compute_create_name, [],
                [AC_MSG_ERROR([library 'libselinux', version 2.1.10 or newer, is required for SELinux support])])
+fi
+
+if test "$with_libseccomp" = yes; then
+  AC_CHECK_LIB(seccomp, seccomp_init, [],
+               [AC_MSG_ERROR([library 'libseccomp' is required for Seccomp BPF support])])
 fi
 
 # for contrib/uuid-ossp

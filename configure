@@ -758,9 +758,10 @@ enable_ic_proxy
 enable_external_fts
 HAVE_CXX14
 enable_gpcloud
+enable_shared_postgres_backend
 enable_mapreduce
-enable_orca
 enable_catalog_ext
+enable_orca
 autodepend
 PKG_CONFIG_LIBDIR
 PKG_CONFIG_PATH
@@ -895,6 +896,7 @@ enable_cassert
 enable_orca
 enable_catalog_ext
 enable_mapreduce
+enable_shared_postgres_backend
 enable_gpcloud
 enable_external_fts
 enable_ic_proxy
@@ -1603,8 +1605,10 @@ Optional Features:
   --enable-depend         turn on automatic dependency tracking
   --enable-cassert        enable assertion checks (for debugging)
   --disable-orca          disable ORCA optimizer
-  --enable-catalog-ext    enable CloudberryDB catalog extension
-  --enable-mapreduce      enable CloudberryDB Mapreduce support
+  --enable-catalog-ext    enable Cloudberry catalog extension
+  --enable-mapreduce      enable Cloudberry Mapreduce support
+  --enable-shared-postgres-backend
+                          enable Cloudberry shared postgres backend support
   --enable-gpcloud        enable gpcloud support
   --enable-external-fts   enable external fts support
   --enable-ic-proxy       enable interconnect proxy mode (requires libuv
@@ -8309,9 +8313,8 @@ $as_echo "#define GPOS_Darwin 1" >>confdefs.h
 
 fi
 
-
 #
-# Enable catalog extension
+# --enable-catalog-ext enables catalog extension
 #
 
 
@@ -8338,8 +8341,9 @@ else
 fi
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with CloudberryDB catalog extension... $enable_catalog_ext" >&5
-$as_echo "checking whether to build with CloudberryDB catalog extension ... $enable_catalog_ext" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with catalog extension... $enable_catalog_ext" >&5
+$as_echo "checking whether to build with catalog extension... $enable_catalog_ext" >&6; }
+
 
 #
 # --enable-mapreduce enables GPMapreduce support
@@ -8369,9 +8373,48 @@ else
 fi
 
 
-{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with CloudberryDB Mapreduce... $enable_mapreduce" >&5
-$as_echo "checking whether to build with CloudberryDB Mapreduce... $enable_mapreduce" >&6; }
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with Cloudberry Mapreduce... $enable_mapreduce" >&5
+$as_echo "checking whether to build with Cloudberry Mapreduce... $enable_mapreduce" >&6; }
 
+
+#
+# --enable-shared-postgres-backend enables shared postgres backend support
+#
+
+
+# Check whether --enable-shared-postgres-backend was given.
+if test "${enable_shared_postgres_backend+set}" = set; then :
+  enableval=$enable_shared_postgres_backend;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_SHARED_POSTGRES_BACKEND 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-shared-postgres-backend option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_shared_postgres_backend=no
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with Cloudberry shared postgres backend... $enable_shared_postgres_backend" >&5
+$as_echo "checking whether to build with Cloudberry shared postgres backend... $enable_shared_postgres_backend" >&6; }
+
+
+if test "$enable_shared_postgres_backend" = yes ; then :
+   # then
+  CFLAGS="$CFLAGS -fPIC "
+  CXXFLAGS="$CXXFLAGS -fPIC "
+
+fi # fi
 
 #
 # gpcloud, enabled by default
@@ -9626,6 +9669,8 @@ else
   with_libseccomp=no
 
 fi
+
+
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: $with_libseccomp" >&5
 $as_echo "$with_libseccomp" >&6; }
@@ -11717,10 +11762,10 @@ else
             break 2
           else
             { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING:
-*** The installed version of Flex, $pgac_candidate, is too old to use with CloudberryDB.
+*** The installed version of Flex, $pgac_candidate, is too old to use with Cloudberry DB.
 *** Flex version 2.5.4 or later is required, but this is $pgac_flex_version." >&5
 $as_echo "$as_me: WARNING:
-*** The installed version of Flex, $pgac_candidate, is too old to use with CloudberryDB.
+*** The installed version of Flex, $pgac_candidate, is too old to use with Cloudberry DB.
 *** Flex version 2.5.4 or later is required, but this is $pgac_flex_version." >&2;}
           fi
         fi
@@ -15607,7 +15652,7 @@ fi
 
 fi
 
-if test "$with_libseccomp" = yes ; then
+if test "$with_libseccomp" = yes; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: checking for seccomp_init in -lseccomp" >&5
 $as_echo_n "checking for seccomp_init in -lseccomp... " >&6; }
 if ${ac_cv_lib_seccomp_seccomp_init+:} false; then :
@@ -16821,7 +16866,7 @@ fi
 
 if test "$enable_mapreduce" = yes; then
   if test "$with_perl" = no; then
-    as_fn_error $? "CloudberryDB Mapreduce requires Perl, reconfigure with --with-perl" "$LINENO" 5
+    as_fn_error $? "Cloudberry Mapreduce requires Perl, reconfigure with --with-perl" "$LINENO" 5
   fi
   for ac_header in yaml.h
 do :
@@ -16832,7 +16877,7 @@ if test "x$ac_cv_header_yaml_h" = xyes; then :
 _ACEOF
 
 else
-  as_fn_error $? "header file <yaml.h> is required for CloudberryDB Mapreduce" "$LINENO" 5
+  as_fn_error $? "header file <yaml.h> is required for Cloudberry Mapreduce" "$LINENO" 5
 fi
 
 done
@@ -18435,7 +18480,7 @@ _ACEOF
 
 else
 
-	as_fn_error $? "getifaddrs and inet_ntop are required for CloudberryDB" "$LINENO" 5
+	as_fn_error $? "getifaddrs and inet_ntop are required for Cloudberry" "$LINENO" 5
 
 fi
 done
@@ -22774,7 +22819,7 @@ fi
 BLD_ARCH=`echo $BLD_ARCH`
 
 
-# Get the CloudberryDB version string from VERSION
+# Get the Cloudberry version string from VERSION
 
 GP_VERSION_LONG=`bash ./getversion`
 
