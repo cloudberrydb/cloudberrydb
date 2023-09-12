@@ -29,7 +29,8 @@ _Please detail how the changes were tested, including manual tests and any relev
 Here are some reminders and checklists before/when submitting your pull request, please check them:
 
 - [ ] Make sure your Pull Request has a clear title and commit message. You can take [git-commit](https://github.com/cloudberrydb/cloudberrydb/blob/main/.gitmessage) template as a reference.
-- [ ] Sign the Contributor License Agreement as prompted for your first-time contribution.
+- [ ] Sign the Contributor License Agreement as prompted for your first-time contribution(*One-time setup*).
+- [ ] Learn the [coding contribution guide](https://cloudberrydb.org/contribute/code), including our code conventions, workflow and more.
 - [ ] List your communication in the [GitHub Issues](https://github.com/cloudberrydb/cloudberrydb/issues) or [Discussions](https://github.com/orgs/cloudberrydb/discussions) (if has or needed).
 - [ ] Document changes.
 - [ ] Add tests for the change

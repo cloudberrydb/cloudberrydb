@@ -61,6 +61,7 @@ typedef struct AppendOnlyDMLState
 	AppendOnlyInsertDesc	insertDesc;
 	dlist_head				head; // Head of multiple segment files insertion list.
 	AppendOnlyDeleteDesc	deleteDesc;
+	AppendOnlyUniqueCheckDesc uniqueCheckDesc;
 } AppendOnlyDMLState;
 
 
@@ -160,6 +161,7 @@ enter_dml_state(const Oid relationOid)
 
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
+	state->uniqueCheckDesc = NULL;
 	dlist_init(&state->head);
 
 	Assert(!found);
@@ -242,6 +244,7 @@ void
 appendonly_dml_finish(Relation relation, CmdType operation)
 {
 	AppendOnlyDMLState *state;
+	bool				had_delete_desc = false;
 
 	state = remove_dml_state(RelationGetRelid(relation));
 
@@ -260,6 +263,8 @@ appendonly_dml_finish(Relation relation, CmdType operation)
 		 */
 		if (!state->insertDesc)
 			AORelIncrementModCount(relation);
+
+		had_delete_desc = true;
 	}
 
 	if (state->insertDesc)
@@ -267,6 +272,29 @@ appendonly_dml_finish(Relation relation, CmdType operation)
 		Assert(state->insertDesc->aoi_rel == relation);
 		appendonly_insert_finish(state->insertDesc, &state->head);
 		state->insertDesc = NULL;
+	}
+
+	if (state->uniqueCheckDesc)
+	{
+		/* clean up the block directory */
+		AppendOnlyBlockDirectory_End_forUniqueChecks(state->uniqueCheckDesc->blockDirectory);
+		pfree(state->uniqueCheckDesc->blockDirectory);
+		state->uniqueCheckDesc->blockDirectory = NULL;
+
+		/*
+		 * If this fetch is a part of an update, then we have been reusing the
+		 * visimap used by the delete half of the update, which would have
+		 * already been cleaned up above. Clean up otherwise.
+		 */
+		if (!had_delete_desc)
+		{
+			AppendOnlyVisimap_Finish_forUniquenessChecks(state->uniqueCheckDesc->visimap);
+			pfree(state->uniqueCheckDesc->visimap);
+		}
+		state->uniqueCheckDesc->visimap = NULL;
+
+		pfree(state->uniqueCheckDesc);
+		state->uniqueCheckDesc = NULL;
 	}
 }
 
@@ -302,12 +330,13 @@ get_insert_descriptor(const Relation relation)
 		MemoryContext oldcxt;
 
 		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
-		state->insertDesc = appendonly_insert_init(relation,
-												   ChooseSegnoForWrite(relation));
+		state->insertDesc= appendonly_insert_init(relation,
+											ChooseSegnoForWrite(relation));
 
 		dlist_init(&state->head);
 		dlist_head *head = &state->head;
 		dlist_push_tail(head, &state->insertDesc->node);
+		
 		if (state->insertDesc->insertMultiFiles)
 		{
 			segments = lappend_int(segments, state->insertDesc->cur_segno);
@@ -320,6 +349,18 @@ get_insert_descriptor(const Relation relation)
 			}
 			list_free(segments);
 		}
+		
+		//* mark all insertDesc  placeholderInserted with false */
+        if (relationHasUniqueIndex(relation))
+        {
+            dlist_iter          iter;
+            dlist_foreach(iter, head)
+            {
+                AppendOnlyInsertDesc insertDesc = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, iter.cur);
+                insertDesc->placeholderInserted = false;
+            }
+        }
+	
 		MemoryContextSwitchTo(oldcxt);
 	}
 
@@ -334,6 +375,26 @@ get_insert_descriptor(const Relation relation)
 
 		state->insertDesc = next;
 	}
+	/*
+    * If we have a unique index, insert a placeholder block directory row
+    * to entertain uniqueness checks from concurrent inserts. See
+    * AppendOnlyBlockDirectory_InsertPlaceholder() for details.
+    */
+    if (relationHasUniqueIndex(relation) && !state->insertDesc->placeholderInserted)
+    {
+
+        AppendOnlyInsertDesc insertDesc = state->insertDesc;
+        int64 firstRowNum = insertDesc->lastSequence + 1;
+        BufferedAppend *bufferedAppend = &insertDesc->storageWrite.bufferedAppend;
+        int64 fileOffset = BufferedAppendNextBufferPosition(bufferedAppend);
+
+        AppendOnlyBlockDirectory_InsertPlaceholder(&insertDesc->blockDirectory,
+                                                        firstRowNum,
+                                                        fileOffset,
+                                                        0);
+        insertDesc->placeholderInserted = true;                                         
+    }
+
 
 	return state->insertDesc;
 }
@@ -376,6 +437,50 @@ get_delete_descriptor(const Relation relation, bool forUpdate)
 	return state->deleteDesc;
 }
 
+static AppendOnlyUniqueCheckDesc
+get_or_create_unique_check_desc(Relation relation, Snapshot snapshot)
+{
+	AppendOnlyDMLState *state = find_dml_state(RelationGetRelid(relation));
+
+	if (!state->uniqueCheckDesc)
+	{
+		MemoryContext oldcxt;
+		AppendOnlyUniqueCheckDesc uniqueCheckDesc;
+
+		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
+		uniqueCheckDesc = palloc0(sizeof(AppendOnlyUniqueCheckDescData));
+
+		/* Initialize the block directory */
+		uniqueCheckDesc->blockDirectory = palloc0(sizeof(AppendOnlyBlockDirectory));
+		AppendOnlyBlockDirectory_Init_forUniqueChecks(uniqueCheckDesc->blockDirectory,
+													  relation,
+													  1, /* numColGroups */
+													  snapshot);
+
+		/*
+		 * If this is part of an update, we need to reuse the visimap used by
+		 * the delete half of the update. This is to avoid spurious conflicts
+		 * when the key's previous and new value are identical. Using the
+		 * visimap from the delete half ensures that the visimap can recognize
+		 * any tuples deleted by us prior to this insert, within this command.
+		 */
+		if (state->deleteDesc)
+			uniqueCheckDesc->visimap = &state->deleteDesc->visibilityMap;
+		else
+		{
+			/* Initialize the visimap */
+			uniqueCheckDesc->visimap = palloc0(sizeof(AppendOnlyVisimap));
+			AppendOnlyVisimap_Init_forUniqueCheck(uniqueCheckDesc->visimap,
+												  relation,
+												  snapshot);
+		}
+
+		state->uniqueCheckDesc = uniqueCheckDesc;
+		MemoryContextSwitchTo(oldcxt);
+	}
+
+	return state->uniqueCheckDesc;
+}
 
 /* ------------------------------------------------------------------------
  * Slot related callbacks for appendonly AM
@@ -547,7 +652,126 @@ appendonly_index_fetch_tuple(struct IndexFetchTableData *scan,
 
 	appendonly_fetch(aoscan->aofetch, (AOTupleId *) tid, slot);
 
+	/*
+	 * Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff we can determine that this row is dead to all
+	 * transactions. Failure to set this will lead to use of a garbage value
+	 * in certain code, such as that for unique index checks.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (all_dead)
+		*all_dead = false;
+
+	/* Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff there is another tuple for the tid, so that we can prompt
+	 * the caller to call index_fetch_tuple() again for the same tid.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (call_again)
+		*call_again = false;
+
 	return !TupIsNull(slot);
+}
+
+/*
+ * Check if a visible tuple exists given the tid and a snapshot. This is
+ * currently used to determine uniqueness checks.
+ *
+ * We determine existence simply by checking if a *visible* block directory
+ * entry covers the given tid.
+ *
+ * There is no need to fetch the tuple (we actually can't reliably do so as
+ * we might encounter a placeholder row in the block directory)
+ *
+ * If no visible block directory entry exists, we are done. If it does, we need
+ * to further check the visibility of the tuple itself by consulting the visimap.
+ * Now, the visimap check can be skipped if the tuple was found to have been
+ * inserted by a concurrent in-progress transaction, in which case we return
+ * true and have the xwait machinery kick in.
+ */
+static bool
+appendonly_index_unique_check(Relation rel,
+									ItemPointer tid,
+									Snapshot snapshot,
+									bool *all_dead)
+{
+	AppendOnlyUniqueCheckDesc 	uniqueCheckDesc;
+	AOTupleId 					*aoTupleId = (AOTupleId *) tid;
+	bool						visible;
+
+#ifdef USE_ASSERT_CHECKING
+	int			segmentFileNum = AOTupleIdGet_segmentFileNum(aoTupleId);
+	int64		rowNum = AOTupleIdGet_rowNum(aoTupleId);
+
+	Assert(segmentFileNum != InvalidFileSegNumber);
+	Assert(rowNum != InvalidAORowNum);
+	/*
+	 * Since this can only be called in the context of a unique index check, the
+	 * snapshots that are supplied can only be non-MVCC snapshots: SELF and DIRTY.
+	 */
+	Assert(snapshot->snapshot_type == SNAPSHOT_SELF ||
+		   snapshot->snapshot_type == SNAPSHOT_DIRTY);
+#endif
+
+	/*
+	 * Currently, we don't determine this parameter. By contract, it is to be
+	 * set to true iff we can determine that this row is dead to all
+	 * transactions. Failure to set this will lead to use of a garbage value
+	 * in certain code, such as that for unique index checks.
+	 * This is typically used for HOT chains, which we don't support.
+	 */
+	if (all_dead)
+		*all_dead = false;
+
+	/*
+	 * FIXME: for when we want CREATE UNIQUE INDEX CONCURRENTLY to work
+	 * Unique constraint violation checks with SNAPSHOT_SELF are currently
+	 * required to support CREATE UNIQUE INDEX CONCURRENTLY. Currently, the
+	 * sole placeholder row inserted at first insert might not be visible to
+	 * the snapshot, if it was already updated by its actual first row. So,
+	 * we would need to flush a placeholder row at the beginning of each new
+	 * in-memory minipage. Currently, CREATE INDEX CONCURRENTLY isn't
+	 * supported, so we assume such a check satisfies SNAPSHOT_SELF.
+	 */
+	if (snapshot->snapshot_type == SNAPSHOT_SELF)
+		return true;
+
+	uniqueCheckDesc = get_or_create_unique_check_desc(rel, snapshot);
+
+	/* First, scan the block directory */
+	if (!AppendOnlyBlockDirectory_UniqueCheck(uniqueCheckDesc->blockDirectory,
+											  aoTupleId,
+											  snapshot))
+		return false;
+
+	/*
+	 * If the xmin or xmax are set for the dirty snapshot, after the block
+	 * directory is scanned with the snapshot, it means that there is a
+	 * concurrent in-progress transaction inserting the tuple. So, return true
+	 * and have the xwait machinery kick in.
+	 */
+	Assert(snapshot->snapshot_type == SNAPSHOT_DIRTY);
+	if (TransactionIdIsValid(snapshot->xmin) || TransactionIdIsValid(snapshot->xmax))
+		return true;
+
+	/* Now, consult the visimap */
+	visible = AppendOnlyVisimap_UniqueCheck(uniqueCheckDesc->visimap,
+											aoTupleId,
+											snapshot);
+
+	/*
+	 * Since we disallow deletes and updates running in parallel with inserts,
+	 * there is no way that the dirty snapshot has it's xmin and xmax populated
+	 * after the visimap has been scanned with it.
+	 *
+	 * Note: we disallow it by grabbing an ExclusiveLock on the QD (See
+	 * CdbTryOpenTable()). So if we are running in utility mode, there is no
+	 * such restriction.
+	 */
+	AssertImply(Gp_role != GP_ROLE_UTILITY,
+				(!TransactionIdIsValid(snapshot->xmin) && !TransactionIdIsValid(snapshot->xmax)));
+
+	return visible;
 }
 
 
@@ -2110,6 +2334,7 @@ static const TableAmRoutine ao_row_methods = {
 	.index_fetch_reset = appendonly_index_fetch_reset,
 	.index_fetch_end = appendonly_index_fetch_end,
 	.index_fetch_tuple = appendonly_index_fetch_tuple,
+	.index_unique_check = appendonly_index_unique_check,
 
 	.tuple_insert = appendonly_tuple_insert,
 	.tuple_insert_speculative = appendonly_tuple_insert_speculative,

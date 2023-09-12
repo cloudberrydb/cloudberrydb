@@ -701,6 +701,7 @@ DefineIndex(Oid relationId,
 	int			root_save_nestlevel;
 	int			i;
 	bool		shouldDispatch;
+	Oid			blkdirrelid = InvalidOid;
 
 	shouldDispatch = (Gp_role == GP_ROLE_DISPATCH &&
 					  ENABLE_DISPATCH() &&
@@ -819,7 +820,6 @@ DefineIndex(Oid relationId,
 	rel = table_open(relationId, NoLock);
 	if (RelationIsAppendOptimized(rel))
 	{
-		Oid blkdirrelid = InvalidOid;
 		GetAppendOnlyEntryAuxOids(relationId, NULL, NULL, &blkdirrelid, NULL, NULL, NULL);
 
 		if (!OidIsValid(blkdirrelid))
@@ -1071,9 +1071,32 @@ DefineIndex(Oid relationId,
 						accessMethodName)));
 
 	if (stmt->unique && RelationIsAppendOptimized(rel))
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("append-only tables do not support unique indexes")));
+	{
+		if (stmt->concurrent)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						errmsg("append-only tables do not support unique indexes built concurrently")));
+
+		/* Additional version checks needed if block directory already exists */
+		if (OidIsValid(blkdirrelid) && !AORelationVersion_Validate(rel, AORelationVersion_CB2))
+		{
+			/*
+			 * We currently raise an error in this scenario. We could alternatively
+			 * recreate the block directory (and perform a relfile swap of the block
+			 * directory relation, similar to alter table rewrites). Such a solution is
+			 * complex enough and can be explored with appropriate user need. Block
+			 * directory creation during DefineIndex() has exposed complexities in the
+			 * past too, especially around locking when multiple indexes are being
+			 * created at a time.
+			 */
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						errmsg("append-only tables with older relation versions do not support unique indexes"),
+						errdetail("version found = %d, minimum version required = %d", AORelationVersion_Get(rel),
+								  AORelationVersion_CB2),
+						errhint("ALTER TABLE <table-name> SET WITH (REORGANIZE = true) before creating the unique index")));
+		}
+	}
 
 	/*
 	 * The TableAmRoutine of AO/AOCS does not implement the index_validate_scan method,

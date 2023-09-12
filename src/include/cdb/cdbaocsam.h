@@ -77,6 +77,8 @@ typedef struct AOCSInsertDescData
 	bool			insertMultiFiles; /* insert into multi files */
 	dlist_node		node;	/* node of segfiles list */
 	int 			range;  /* inserted tuples of each range */
+	/* flag for insert placeholder in unique index   */
+    bool			placeholderInserted;
 } AOCSInsertDescData;
 
 typedef AOCSInsertDescData *AOCSInsertDesc;
@@ -258,8 +260,39 @@ typedef struct AOCSFetchDescData
 
 typedef AOCSFetchDescData *AOCSFetchDesc;
 
-typedef struct AOCSUpdateDescData *AOCSUpdateDesc;
+/*
+ * AOCSDeleteDescData is used for delete data from AOCS relations.
+ * It serves an equivalent purpose as AppendOnlyScanDescData
+ * (relscan.h) only that the later is used for scanning append-only
+ * relations.
+ */
+typedef struct AOCSDeleteDescData
+{
+	/*
+	 * Relation to delete from
+	 */
+	Relation	aod_rel;
+
+	/*
+	 * visibility map
+	 */
+	AppendOnlyVisimap visibilityMap;
+
+	/*
+	 * Visimap delete support structure. Used to handle out-of-order deletes
+	 */
+	AppendOnlyVisimapDelete visiMapDelete;
+
+}			AOCSDeleteDescData;
 typedef struct AOCSDeleteDescData *AOCSDeleteDesc;
+
+typedef struct AOCSUniqueCheckDescData
+{
+	AppendOnlyBlockDirectory *blockDirectory;
+	AppendOnlyVisimap 		 *visimap;
+} AOCSUniqueCheckDescData;
+
+typedef struct AOCSUniqueCheckDescData *AOCSUniqueCheckDesc;
 
 /*
  * Descriptor for fetches from table via an index.
@@ -341,12 +374,6 @@ extern bool aocs_fetch(AOCSFetchDesc aocsFetchDesc,
 					   AOTupleId *aoTupleId,
 					   TupleTableSlot *slot);
 extern void aocs_fetch_finish(AOCSFetchDesc aocsFetchDesc);
-
-extern AOCSUpdateDesc aocs_update_init(Relation rel, int segno);
-extern void aocs_update_finish(AOCSUpdateDesc desc);
-extern TM_Result aocs_update(AOCSUpdateDesc desc, TupleTableSlot *slot,
-			AOTupleId *oldTupleId, AOTupleId *newTupleId);
-
 extern AOCSDeleteDesc aocs_delete_init(Relation rel);
 extern TM_Result aocs_delete(AOCSDeleteDesc desc, 
 		AOTupleId *aoTupleId);

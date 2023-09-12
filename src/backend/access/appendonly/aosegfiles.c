@@ -106,13 +106,9 @@ InsertInitialSegnoEntry(Relation parentrel, int segno)
 	ValidateAppendonlySegmentDataBeforeStorage(segno);
 
 	/* New segments are always created in the latest format */
-	formatVersion = AORelationVersion_GetLatest();
+	formatVersion = AOSegfileFormatVersion_GetLatest();
 
 	GetAppendOnlyEntryAuxOids(parentrel->rd_id, NULL, &segrelid, NULL, NULL, NULL, NULL);
-
-	InsertFastSequenceEntry(segrelid,
-							(int64) segno,
-							0);
 
 	pg_aoseg_rel = heap_open(segrelid, RowExclusiveLock);
 
@@ -302,7 +298,7 @@ GetFileSegInfo(Relation parentrel, Snapshot appendOnlyMetaDataSnapshot, int segn
 		ereport(ERROR,
 				(errcode(ERRCODE_UNDEFINED_OBJECT),
 				 errmsg("got invalid formatversion value: NULL")));
-	AORelationVersion_CheckValid(fsinfo->formatversion);
+	AOSegfileFormatVersion_CheckValid(fsinfo->formatversion);
 
 	/* get the state */
 	fsinfo->state = DatumGetInt16(
@@ -494,7 +490,7 @@ GetAllFileSegInfo_pg_aoseg_rel(char *relationName,
 					(errcode(ERRCODE_UNDEFINED_OBJECT),
 					 errmsg("got invalid formatversion value: NULL")));
 
-		AORelationVersion_CheckValid(formatversion);
+		AOSegfileFormatVersion_CheckValid(formatversion);
 		oneseginfo->formatversion = DatumGetInt16(formatversion);
 
 		/* get the state */
@@ -665,7 +661,7 @@ ClearFileSegInfo(Relation parentrel, int segno)
 	new_record_repl[Anum_pg_aoseg_eofuncompressed - 1] = true;
 
 	/* When the segment is later recreated, it will be in new format */
-	new_record[Anum_pg_aoseg_formatversion - 1] = Int16GetDatum(AORelationVersion_GetLatest());
+	new_record[Anum_pg_aoseg_formatversion - 1] = Int16GetDatum(AOSegfileFormatVersion_GetLatest());
 	new_record_repl[Anum_pg_aoseg_formatversion - 1] = true;
 
 	/* We do not reset the modcount here */

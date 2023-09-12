@@ -68,54 +68,6 @@
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
 
-/*
- * AppendOnlyDeleteDescData is used for delete data from append-only
- * relations. It serves an equivalent purpose as AppendOnlyScanDescData
- * (cdbappendonlyam.h) only that the later is used for scanning append-only
- * relations.
- */
-typedef struct AppendOnlyDeleteDescData
-{
-	/*
-	 * Relation to delete from
-	 */
-	Relation	aod_rel;
-
-	/*
-	 * Snapshot to use for meta data operations
-	 */
-	Snapshot	appendOnlyMetaDataSnapshot;
-
-	/*
-	 * visibility map
-	 */
-	AppendOnlyVisimap visibilityMap;
-
-	/*
-	 * Visimap delete support structure. Used to handle out-of-order deletes
-	 */
-	AppendOnlyVisimapDelete visiMapDelete;
-
-}			AppendOnlyDeleteDescData;
-
-/*
- * AppendOnlyUpdateDescData is used to update data from append-only
- * relations. It serves an equivalent purpose as AppendOnlyScanDescData
- * (cdbappendonlyam.h) only that the later is used for scanning append-only
- * relations.
- */
-typedef struct AppendOnlyUpdateDescData
-{
-	AppendOnlyInsertDesc aoInsertDesc;
-
-	AppendOnlyVisimap visibilityMap;
-
-	/*
-	 * Visimap delete support structure. Used to handle out-of-order deletes
-	 */
-	AppendOnlyVisimapDelete visiMapDelete;
-
-}			AppendOnlyUpdateDescData;
 
 typedef enum AoExecutorBlockKind
 {
@@ -305,27 +257,6 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 			/* Initialize the block directory for inserts if needed. */
 			if (scan->blockDirectory)
 			{
-				Oid segrelid;
-
-				GetAppendOnlyEntryAuxOids(reln->rd_id, NULL,
-						&segrelid, NULL, NULL, NULL, NULL);
-
-				/*
-				 * if building the block directory, we need to make sure the
-				 * sequence starts higher than our highest tuple's rownum.  In
-				 * the case of upgraded blocks, the highest tuple will have
-				 * tupCount as its row num for non-upgrade cases, which use
-				 * the sequence, it will be enough to start off the end of the
-				 * sequence; note that this is not ideal -- if we are at least
-				 * curSegInfo->tupcount + 1 then we don't even need to update
-				 * the sequence value.
-				 */
-				int64		firstSequence =
-				GetFastSequences(segrelid,
-								 segno,
-								 fsinfo->total_tupcount + 1,
-								 NUM_FAST_SEQUENCES);
-
 				AppendOnlyBlockDirectory_Init_forInsert(scan->blockDirectory,
 														scan->appendOnlyMetaDataSnapshot,
 														fsinfo,
@@ -334,10 +265,6 @@ SetNextFileSegForRead(AppendOnlyScanDesc scan)
 														segno,	/* segno */
 														1,	/* columnGroupNo */
 														false);
-
-				InsertFastSequenceEntry(segrelid,
-										segno,
-										firstSequence);
 			}
 
 			finished_all_files = false;
@@ -877,7 +804,7 @@ upgrade_tuple(AppendOnlyExecutorReadBlock *executorReadBlock,
 	 * stored memtuple is problematic and then create a clone of the tuple
 	 * with properly aligned bindings to be used by the executor.
 	 */
-	if (formatversion < AORelationVersion_Aligned64bit &&
+	if (formatversion < AOSegfileFormatVersion_Aligned64bit &&
 		memtuple_has_misaligned_attribute(mtup, pbind))
 		convert_alignment = true;
 
@@ -1021,7 +948,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(AppendOnlyExecutorReadBlock *executorRe
 	AOTupleId  *aoTupleId = (AOTupleId *) &fake_ctid;
 	int			formatVersion = executorReadBlock->storageRead->formatVersion;
 
-	AORelationVersion_CheckValid(formatVersion);
+	AOSegfileFormatVersion_CheckValid(formatVersion);
 
 	AOTupleIdInit(aoTupleId, executorReadBlock->segmentFileNum, rowNum);
 
@@ -1040,7 +967,7 @@ AppendOnlyExecutorReadBlock_ProcessTuple(AppendOnlyExecutorReadBlock *executorRe
 
 		/* If the tuple is not in the latest format, convert it */
 		// GPDB_12_MERGE_FIXME: Is pg_upgrade from old versions still a thing? Can we drop this?
-		if (formatVersion < AORelationVersion_GetLatest())
+		if (formatVersion < AOSegfileFormatVersion_GetLatest ())
 			tuple = upgrade_tuple(executorReadBlock, tuple, executorReadBlock->mt_bind, formatVersion, &shouldFree);
 
 		ExecClearTuple(slot);
@@ -1978,30 +1905,68 @@ fetchNextBlock(AppendOnlyFetchDesc aoFetchDesc)
 	return true;
 }
 
-static bool
+/*
+ * Fetch the tuple from the block indicated by the block directory entry that
+ * covers the tuple.
+ */
+static void
 fetchFromCurrentBlock(AppendOnlyFetchDesc aoFetchDesc,
 					  int64 rowNum,
 					  TupleTableSlot *slot)
 {
-	Assert(aoFetchDesc->currentBlock.have);
-	Assert(rowNum >= aoFetchDesc->currentBlock.firstRowNum);
-	Assert(rowNum <= aoFetchDesc->currentBlock.lastRowNum);
+	bool							fetched;
+	CurrentBlock 					*currentBlock = &aoFetchDesc->currentBlock;
+	AppendOnlyExecutorReadBlock 	*executorReadBlock = &aoFetchDesc->executorReadBlock;
+	AppendOnlyBlockDirectoryEntry 	*entry = &currentBlock->blockDirectoryEntry;
 
-	if (!aoFetchDesc->currentBlock.gotContents)
+	if (!currentBlock->gotContents)
 	{
 		/*
 		 * Do decompression if necessary and get contents.
 		 */
-		AppendOnlyExecutorReadBlock_GetContents(&aoFetchDesc->executorReadBlock);
+		AppendOnlyExecutorReadBlock_GetContents(executorReadBlock);
 
-		aoFetchDesc->currentBlock.gotContents = true;
+		currentBlock->gotContents = true;
 	}
 
-	return AppendOnlyExecutorReadBlock_FetchTuple(&aoFetchDesc->executorReadBlock,
-												  rowNum,
-												   /* nkeys */ 0,
-												   /* key */ NULL,
-												  slot);
+	fetched = AppendOnlyExecutorReadBlock_FetchTuple(executorReadBlock,
+													 rowNum,
+													 /* nkeys */ 0,
+													 /* key */ NULL,
+													 slot);
+	if (!fetched)
+	{
+		if (AppendOnlyBlockDirectoryEntry_RangeHasRow(entry, rowNum))
+		{
+			/*
+			 * We fell into a hole inside the resolved block directory entry
+			 * we obtained from AppendOnlyBlockDirectory_GetEntry().
+			 * This should not be happening for versions >= CB2. Scream
+			 * appropriately. See AppendOnlyBlockDirectoryEntry for details.
+			 */
+			ereportif(AORelationVersion_Get(aoFetchDesc->relation) >= AORelationVersion_CB2,
+					  ERROR,
+					  (errcode(ERRCODE_INTERNAL_ERROR),
+						  errmsg("tuple with row number %ld not found in block directory entry range", rowNum),
+						  errdetail("block directory entry: (fileOffset = %ld, firstRowNum = %ld, "
+									"afterFileOffset = %ld, lastRowNum = %ld)",
+									entry->range.fileOffset,
+									entry->range.firstRowNum,
+									entry->range.afterFileOffset,
+									entry->range.lastRowNum)));
+		}
+		else
+		{
+			/*
+			 * The resolved block directory entry we obtained from
+			 * AppendOnlyBlockDirectory_GetEntry() has range s.t.
+			 * firstRowNum < lastRowNum < rowNum
+			 * This can happen when rowNum maps to an aborted transaction, and
+			 * we find an earlier committed block directory row due to the
+			 * <= scan condition in AppendOnlyBlockDirectory_GetEntry().
+			 */
+		}
+	}
 }
 
 static void
@@ -2106,7 +2071,10 @@ scanToFetchTuple(AppendOnlyFetchDesc aoFetchDesc,
 		}
 
 		if (rowNum <= aoFetchDesc->currentBlock.lastRowNum)
-			return fetchFromCurrentBlock(aoFetchDesc, rowNum, slot);
+		{
+			fetchFromCurrentBlock(aoFetchDesc, rowNum, slot);
+			return true;
+		}
 
 		/*
 		 * Update information to get next block.
@@ -2355,7 +2323,8 @@ appendonly_fetch(AppendOnlyFetchDesc aoFetchDesc,
 					}
 					return false;	/* row has been deleted or updated. */
 				}
-				return fetchFromCurrentBlock(aoFetchDesc, rowNum, slot);
+				fetchFromCurrentBlock(aoFetchDesc, rowNum, slot);
+				return true;
 			}
 
 			/*
