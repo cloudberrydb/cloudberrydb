@@ -16,6 +16,8 @@
  */
 #include "postgres.h"
 
+#include "access/aosegfiles.h"
+#include "access/aocssegfiles.h"
 #include "access/table.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_opclass.h"
@@ -118,4 +120,3 @@ AlterTableCreateAoBlkdirTable(Oid relOid)
 
 	table_close(rel, NoLock);
 }
-

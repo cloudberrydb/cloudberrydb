@@ -4974,7 +4974,7 @@ SELECT logerrors from pg_exttable a, pg_class b where a.reloid = b.oid and b.rel
 SELECT logerrors from pg_exttable a, pg_class b where a.reloid = b.oid and b.relname = 'ext_persistently';
  logerrors 
 -----------
- p
+ t
 (1 row)
 
 -- drop tables

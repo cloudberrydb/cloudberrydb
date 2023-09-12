@@ -1102,7 +1102,7 @@ json_build_array_noargs(PG_FUNCTION_ARGS)
  * for a json object.
  */
 Datum
-json_object(PG_FUNCTION_ARGS)
+pg_json_object(PG_FUNCTION_ARGS)
 {
 	ArrayType  *in_array = PG_GETARG_ARRAYTYPE_P(0);
 	int			ndims = ARR_NDIM(in_array);

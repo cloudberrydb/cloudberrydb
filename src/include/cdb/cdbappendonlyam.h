@@ -55,6 +55,8 @@
 #define DEFAULT_VARBLOCK_TEMPSPACE_LEN   	 (4 * 1024)
 #define DEFAULT_FS_SAFE_WRITE_SIZE			 (0)
 
+extern AppendOnlyBlockDirectory *GetAOBlockDirectory(Relation relation);
+
 /*
  * AppendOnlyInsertDescData is used for inserting data into append-only
  * relations. It serves an equivalent purpose as AppendOnlyScanDescData
@@ -116,6 +118,9 @@ typedef struct AppendOnlyInsertDescData
 	bool			insertMultiFiles; /* insert into multi files */
 	dlist_node		node;	/* node of segfiles list */
 	int 			range;  /* inserted tuples of each range */
+	/* flag for insert placeholder in unique index   */
+    bool			placeholderInserted;
+
 } AppendOnlyInsertDescData;
 
 typedef AppendOnlyInsertDescData *AppendOnlyInsertDesc;
@@ -128,7 +133,7 @@ typedef struct AppendOnlyExecutorReadBlock
 
 	MemTupleBinding *mt_bind;
 	/*
-	 * When reading a segfile that's using version < AORelationVersion_PG83,
+	 * When reading a segfile that's using version < AOSegfileFormatVersion_GP5,
 	 * that is, was created before GPDB 5.0 and upgraded with pg_upgrade, we need
 	 * to convert numeric attributes on the fly to new format. numericAtts
 	 * is an array of attribute numbers (0-based), of all numeric columns (including
@@ -366,8 +371,45 @@ typedef struct AppendOnlyFetchDescData
 
 typedef AppendOnlyFetchDescData *AppendOnlyFetchDesc;
 
+/*
+ * AppendOnlyDeleteDescData is used for delete data from append-only
+ * relations. It serves an equivalent purpose as AppendOnlyScanDescData
+ * (relscan.h) only that the later is used for scanning append-only
+ * relations.
+ */
+typedef struct AppendOnlyDeleteDescData
+{
+	/*
+	 * Relation to delete from
+	 */
+	Relation	aod_rel;
+
+	/*
+	 * Snapshot to use for meta data operations
+	 */
+	Snapshot	appendOnlyMetaDataSnapshot;
+
+	/*
+	 * visibility map
+	 */
+	AppendOnlyVisimap visibilityMap;
+
+	/*
+	 * Visimap delete support structure. Used to handle out-of-order deletes
+	 */
+	AppendOnlyVisimapDelete visiMapDelete;
+
+}			AppendOnlyDeleteDescData;
+
 typedef struct AppendOnlyDeleteDescData *AppendOnlyDeleteDesc;
 
+typedef struct AppendOnlyUniqueCheckDescData
+{
+	AppendOnlyBlockDirectory *blockDirectory;
+	AppendOnlyVisimap 		 *visimap;
+} AppendOnlyUniqueCheckDescData;
+
+typedef struct AppendOnlyUniqueCheckDescData *AppendOnlyUniqueCheckDesc;
 /*
  * Descriptor for fetches from table via an index.
  */

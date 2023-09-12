@@ -14,4 +14,11 @@ SELECT relname, reltuples FROM pg_class WHERE relname = 'uao_stats_index';
 DELETE FROM uao_stats WHERE a < 16;
 VACUUM uao_stats;
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uao_stats';
+
+-- New strategy of VACUUM AO/CO was introduced by PR #13255 for performance enhancement.
+-- Index dead tuples will not always be cleaned up completely after VACUUM, resulting
+-- index stats pg_class->reltuples will not always be accurate. So ignore the stats check
+-- for reltuples to coordinate with the new behavior.
+-- start_ignore
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uao_stats_index';
+-- end_ignore

@@ -6,11 +6,15 @@
 "
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 
-:if match(getcwd(), "/pgsql") >=0 ||  match(getcwd(), "/postgresql") >= 0
+:if match(getcwd(), "/pgsql") >=0 || match(getcwd(), "/postgresql") >= 0 || match(getcwd(), "/cloudberrydb*") >= 0 || match(getcwd(), "/cbdb*") >= 0
 
 :  set cinoptions=(0
 :  set tabstop=4
 :  set shiftwidth=4
+:  set textwidth=78
+:  syntax on
+:  set colorcolumn=78
+:  highlight ColorColumn ctermbg=52
 
 :endif
 

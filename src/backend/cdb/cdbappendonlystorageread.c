@@ -267,7 +267,7 @@ AppendOnlyStorageRead_FinishOpenFile(AppendOnlyStorageRead *storageRead,
 {
 	MemoryContext oldMemoryContext;
 
-	AORelationVersion_CheckValid(version);
+	AOSegfileFormatVersion_CheckValid(version);
 
 	storageRead->file = file;
 	storageRead->formatVersion = version;

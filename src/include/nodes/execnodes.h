@@ -713,6 +713,12 @@ typedef struct EState
 	bool eliminateAliens;
 
 	Bitmapset *locallyExecutableSubplans;
+	/*
+	 * GPDB: gp_bypass_unique_check is introduced so that routines, such as AO
+	 * vacuum, can avoid running uniqueness checks while inserting tuples.
+	 */
+	bool		gp_bypass_unique_check;
+
 } EState;
 
 struct PlanState;

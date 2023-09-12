@@ -409,29 +409,6 @@ open_next_scan_seg(AOCSScanDesc scan)
 				 */
 				if (scan->blockDirectory)
 				{
-					/*
-					 * if building the block directory, we need to make sure
-					 * the sequence starts higher than our highest tuple's
-					 * rownum.  In the case of upgraded blocks, the highest
-					 * tuple will have tupCount as its row num for non-upgrade
-					 * cases, which use the sequence, it will be enough to
-					 * start off the end of the sequence; note that this is
-					 * not ideal -- if we are at least curSegInfo->tupcount +
-					 * 1 then we don't even need to update the sequence value
-					 */
-					int64		firstSequence;
-					Oid         segrelid;
-					GetAppendOnlyEntryAuxOids(RelationGetRelid(scan->rs_base.rs_rd),
-                                              scan->appendOnlyMetaDataSnapshot,
-                                              &segrelid, NULL, NULL,
-                                              NULL, NULL);
-
-					firstSequence =
-						GetFastSequences(segrelid,
-										 curSegInfo->segno,
-										 curSegInfo->total_tupcount + 1,
-										 NUM_FAST_SEQUENCES);
-
 					AppendOnlyBlockDirectory_Init_forInsert(scan->blockDirectory,
 															scan->appendOnlyMetaDataSnapshot,
 															(FileSegInfo *) curSegInfo,
@@ -440,10 +417,6 @@ open_next_scan_seg(AOCSScanDesc scan)
 															curSegInfo->segno,
 															scan->columnScanInfo.relationTupleDesc->natts,
 															true);
-
-					InsertFastSequenceEntry(segrelid,
-											curSegInfo->segno,
-											firstSequence);
 				}
 
 				open_all_datumstreamread_segfiles(scan->rs_base.rs_rd,
@@ -868,7 +841,7 @@ ReadNext:
 			/*
 			 * Perform any required upgrades on the Datum we just fetched.
 			 */
-			if (curseginfo->formatversion < AORelationVersion_GetLatest())
+			if (curseginfo->formatversion < AOSegfileFormatVersion_GetLatest ())
 			{
 				upgrade_datum_scan(scan, attno, d, null,
 								   curseginfo->formatversion);
@@ -1272,6 +1245,10 @@ positionSkipCurrentBlock(DatumStreamFetchDesc datumStreamFetchDesc)
 		datumStreamFetchDesc->currentBlock.lastRowNum + 1;
 }
 
+/*
+ * Fetch the tuple's datum from the block indicated by the block directory entry
+ * that covers the tuple, given the colno.
+ */
 static void
 fetchFromCurrentBlock(AOCSFetchDesc aocsFetchDesc,
 					  int64 rowNum,
@@ -1313,7 +1290,7 @@ fetchFromCurrentBlock(AOCSFetchDesc aocsFetchDesc,
 		/*
 		 * Perform any required upgrades on the Datum we just fetched.
 		 */
-		if (formatversion < AORelationVersion_GetLatest())
+		if (formatversion < AOSegfileFormatVersion_GetLatest ())
 		{
 			upgrade_datum_fetch(aocsFetchDesc, colno, values, nulls,
 								formatversion);
@@ -1331,14 +1308,49 @@ scanToFetchValue(AOCSFetchDesc aocsFetchDesc,
 				 TupleTableSlot *slot,
 				 int colno)
 {
-	DatumStreamFetchDesc datumStreamFetchDesc = aocsFetchDesc->datumStreamFetchDesc[colno];
-	DatumStreamRead *datumStream = datumStreamFetchDesc->datumStream;
-	bool		found;
+	DatumStreamFetchDesc 			datumStreamFetchDesc = aocsFetchDesc->datumStreamFetchDesc[colno];
+	DatumStreamRead 				*datumStream = datumStreamFetchDesc->datumStream;
+	CurrentBlock 			*currentBlock = &datumStreamFetchDesc->currentBlock;
+	AppendOnlyBlockDirectoryEntry 	*entry = &currentBlock->blockDirectoryEntry;
+	bool							found;
 
 	found = datumstreamread_find_block(datumStream,
 									   datumStreamFetchDesc,
 									   rowNum);
-	if (found)
+	if (!found)
+	{
+		if (AppendOnlyBlockDirectoryEntry_RangeHasRow(entry, rowNum))
+		{
+			/*
+			 * We fell into a hole inside the resolved block directory entry
+			 * we obtained from AppendOnlyBlockDirectory_GetEntry().
+			 * This should not be happening for versions >= CB2. Scream
+			 * appropriately. See AppendOnlyBlockDirectoryEntry for details.
+			 */
+			ereportif(AORelationVersion_Get(aocsFetchDesc->relation) >= AORelationVersion_CB2,
+					  ERROR,
+					  (errcode(ERRCODE_INTERNAL_ERROR),
+					   errmsg("datum with row number %ld and col no %d not found in block directory entry range", rowNum, colno),
+					   errdetail("block directory entry: (fileOffset = %ld, firstRowNum = %ld, "
+								 "afterFileOffset = %ld, lastRowNum = %ld)",
+								 entry->range.fileOffset,
+								 entry->range.firstRowNum,
+								 entry->range.afterFileOffset,
+								 entry->range.lastRowNum)));
+		}
+		else
+		{
+			/*
+			 * The resolved block directory entry we obtained from
+			 * AppendOnlyBlockDirectory_GetEntry() has range s.t.
+			 * firstRowNum < lastRowNum < rowNum
+			 * This can happen when rowNum maps to an aborted transaction, and
+			 * we find an earlier committed block directory row due to the
+			 * <= scan condition in AppendOnlyBlockDirectory_GetEntry().
+			 */
+		}
+	}
+	else
 		fetchFromCurrentBlock(aocsFetchDesc, rowNum, slot, colno);
 
 	return found;
@@ -1412,6 +1424,11 @@ openFetchSegmentFile(AOCSFetchDesc aocsFetchDesc,
 	return true;
 }
 
+/*
+ * Note: we don't reset the block directory entry here. This is crucial, so we
+ * can use the block directory entry later on. See comment in AOFetchBlockMetadata
+ * FIXME: reset other fields here.
+ */
 static void
 resetCurrentBlockInfo(CurrentBlock *currentBlock)
 {
@@ -1815,119 +1832,6 @@ aocs_fetch_finish(AOCSFetchDesc aocsFetchDesc)
 	AppendOnlyVisimap_Finish(&aocsFetchDesc->visibilityMap, AccessShareLock);
 }
 
-typedef struct AOCSUpdateDescData
-{
-	AOCSInsertDesc insertDesc;
-
-	/*
-	 * visibility map
-	 */
-	AppendOnlyVisimap visibilityMap;
-
-	/*
-	 * Visimap delete support structure. Used to handle out-of-order deletes
-	 */
-	AppendOnlyVisimapDelete visiMapDelete;
-
-}			AOCSUpdateDescData;
-
-AOCSUpdateDesc
-aocs_update_init(Relation rel, int segno)
-{
-	Oid			visimaprelid;
-	Oid			visimapidxid;
-	AOCSUpdateDesc desc = (AOCSUpdateDesc) palloc0(sizeof(AOCSUpdateDescData));
-
-	desc->insertDesc = aocs_insert_init(rel, segno);
-
-    GetAppendOnlyEntryAuxOids(rel->rd_id,
-                              desc->insertDesc->appendOnlyMetaDataSnapshot,
-                              NULL, NULL, NULL,
-                              &visimaprelid, &visimapidxid);
-	AppendOnlyVisimap_Init(&desc->visibilityMap,
-						   visimaprelid,
-						   visimapidxid,
-						   RowExclusiveLock,
-						   desc->insertDesc->appendOnlyMetaDataSnapshot);
-
-	AppendOnlyVisimapDelete_Init(&desc->visiMapDelete,
-								 &desc->visibilityMap);
-
-	return desc;
-}
-
-void
-aocs_update_finish(AOCSUpdateDesc desc)
-{
-	Assert(desc);
-
-	AppendOnlyVisimapDelete_Finish(&desc->visiMapDelete);
-
-	aocs_insert_finish(desc->insertDesc, NULL);
-	desc->insertDesc = NULL;
-
-	/* Keep lock until the end of transaction */
-	AppendOnlyVisimap_Finish(&desc->visibilityMap, NoLock);
-
-	pfree(desc);
-}
-
-TM_Result
-aocs_update(AOCSUpdateDesc desc, TupleTableSlot *slot,
-			AOTupleId *oldTupleId, AOTupleId *newTupleId)
-{
-	TM_Result result;
-
-	Assert(desc);
-	Assert(oldTupleId);
-	Assert(newTupleId);
-
-#ifdef FAULT_INJECTOR
-	FaultInjector_InjectFaultIfSet(
-								   "appendonly_update",
-								   DDLNotSpecified,
-								   "", //databaseName
-								   RelationGetRelationName(desc->insertDesc->aoi_rel));
-	/* tableName */
-#endif
-
-	result = AppendOnlyVisimapDelete_Hide(&desc->visiMapDelete, oldTupleId);
-	if (result != TM_Ok)
-		return result;
-
-	slot_getallattrs(slot);
-	aocs_insert_values(desc->insertDesc,
-					   slot->tts_values, slot->tts_isnull,
-					   newTupleId);
-
-	return result;
-}
-
-
-/*
- * AOCSDeleteDescData is used for delete data from AOCS relations.
- * It serves an equivalent purpose as AppendOnlyScanDescData
- * (relscan.h) only that the later is used for scanning append-only
- * relations.
- */
-typedef struct AOCSDeleteDescData
-{
-	/*
-	 * Relation to delete from
-	 */
-	Relation	aod_rel;
-
-	/*
-	 * visibility map
-	 */
-	AppendOnlyVisimap visibilityMap;
-
-	/*
-	 * Visimap delete support structure. Used to handle out-of-order deletes
-	 */
-	AppendOnlyVisimapDelete visiMapDelete;
-
-}			AOCSDeleteDescData;
 
 
 /*
@@ -2186,7 +2090,7 @@ aocs_addcol_newsegfile(AOCSAddColumnDesc desc,
 		int			version;
 
 		/* Always write in the latest format */
-		version = AORelationVersion_GetLatest();
+		version = AOSegfileFormatVersion_GetLatest();
 
 		FormatAOSegmentFileName(basepath, seginfo->segno, colno,
 								&fileSegNo, fn);
@@ -2674,7 +2578,7 @@ ReadNext:
 			/*
 			 * Perform any required upgrades on the Datum we just fetched.
 			 */
-			if (curseginfo->formatversion < AORelationVersion_GetLatest())
+			if (curseginfo->formatversion < AOSegfileFormatVersion_GetLatest ())
 			{
 				upgrade_datum_scan(scan, attno, d, null,
 								   curseginfo->formatversion);

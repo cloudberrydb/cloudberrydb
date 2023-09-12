@@ -84,13 +84,9 @@ InsertInitialAOCSFileSegInfo(Relation prel, int32 segno, int32 nvp, Oid segrelid
 	ValidateAppendonlySegmentDataBeforeStorage(segno);
 
 	/* New segments are always created in the latest format */
-	formatVersion = AORelationVersion_GetLatest();
+	formatVersion = AOSegfileFormatVersion_GetLatest();
 
 	segrel = heap_open(segrelid, RowExclusiveLock);
-
-	InsertFastSequenceEntry(segrelid,
-							(int64) segno,
-							0);
 
 	values[Anum_pg_aocs_segno - 1] = Int32GetDatum(segno);
 	values[Anum_pg_aocs_vpinfo - 1] = PointerGetDatum(vpinfo);
@@ -665,7 +661,7 @@ ClearAOCSFileSegInfo(Relation prel, int segno)
 	repl[Anum_pg_aocs_varblockcount - 1] = true;
 
 	/* When the segment is later recreated, it will be in new format */
-	d[Anum_pg_aocs_formatversion - 1] = Int16GetDatum(AORelationVersion_GetLatest());
+	d[Anum_pg_aocs_formatversion - 1] = Int16GetDatum(AOSegfileFormatVersion_GetLatest());
 	repl[Anum_pg_aocs_formatversion - 1] = true;
 
 	/* We do not reset the modcount here */
