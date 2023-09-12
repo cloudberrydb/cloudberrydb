@@ -1715,6 +1715,40 @@ static const char *process_shared_preload_libraries_array[] =
 };
 
 /*
+ * remove duplicates list.
+ */
+static List*
+removeDuplicates(List* elemlist)
+{
+	List* unique_arr = NIL;
+	int i, j;
+	ListCell *l;
+	ListCell *l2;
+	for (i = 0; i < list_length(elemlist); i++)
+	{
+		int found = 0;
+		l = &elemlist->elements[i];
+		char* a = (char*)lfirst(l);
+		for (j = 0; j < list_length(unique_arr); j++)
+		{
+			l2 = &unique_arr->elements[j];
+			char* b = (char*)lfirst(l2);
+			if (strncmp(a, b, Max(strlen(a), strlen(b))) == 0)
+			{
+				found = 1;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			unique_arr = lappend(unique_arr, pstrdup(a));
+		}
+	}
+	return unique_arr;
+}
+
+/*
  * expand preload load libraries string.
  */
 static char*
@@ -1767,8 +1801,7 @@ expand_shared_preload_libraries_string()
 	/* deduplicate list string */
 	if (list_length(elemlist) > 1)
 	{
-		list_sort(elemlist, list_string_cmp);
-		deduplicate_elemlist = list_deduplicate_string(elemlist);
+		deduplicate_elemlist = removeDuplicates(elemlist);
 	}
 
 	/* format string delimiter with ',' */
