@@ -1733,7 +1733,7 @@ removeDuplicates(List* elemlist)
 		{
 			l2 = &unique_arr->elements[j];
 			char* b = (char*)lfirst(l2);
-			if (strncmp(a, b, Max(strlen(a), strlen(b))) == 0)
+			if (strcmp(a, b) == 0)
 			{
 				found = 1;
 				break;
