@@ -209,7 +209,7 @@ pg_buffercache_pages(PG_FUNCTION_ARGS)
 		}
 		else
 		{
-			values[1] = ObjectIdGetDatum(fctx->record[i].relfilenode);
+			values[1] = Int64GetDatum(fctx->record[i].relfilenode);
 			nulls[1] = false;
 			values[2] = ObjectIdGetDatum(fctx->record[i].reltablespace);
 			nulls[2] = false;
