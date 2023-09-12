@@ -1,4 +1,7 @@
-![Cloudberry Database](logo_cloudberry_database.png)
+<p align="center">
+<img src="./logo_cloudberry_database.png"><br>
+<strong>Next Generation Unified Database for Analytics and AI</strong>
+</p>
 
 [![Slack](https://img.shields.io/badge/Join_Slack-6a32c9)](https://communityinviter.com/apps/cloudberrydb/welcome)
 [![Twitter Follow](https://img.shields.io/twitter/follow/cloudberrydb)](https://twitter.com/cloudberrydb)
@@ -8,6 +11,7 @@
 ![GitHub contributors](https://img.shields.io/github/contributors/cloudberrydb/cloudberrydb)
 ![GitHub License](https://img.shields.io/github/license/cloudberrydb/cloudberrydb)
 ![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fcloudberrydb%2Fcloudberrydb.svg?type=shield)
+[![cbdb pipeline](https://github.com/cloudberrydb/cloudberrydb/actions/workflows/build.yml/badge.svg)](https://github.com/cloudberrydb/cloudberrydb/actions/workflows/build.yml)
 
 ---------
 
@@ -29,17 +33,17 @@ The directory layout of the repository follows the same general layout
 as upstream PostgreSQL. There are changes compared to PostgreSQL
 throughout the codebase, but a few larger additions worth noting:
 
-* __gpMgmt/__ : Contains Cloudberry-specific command-line tools for
+* __gpMgmt/__ : Contains CloudberryDB-specific command-line tools for
     managing the cluster. Scripts like gpinit, gpstart, and gpstop
     live here. They are mostly written in Python.
 
-* __gpAux/__ : Contains Cloudberry-specific release management
+* __gpAux/__ : Contains CloudberryDB-specific release management
     scripts, and vendored dependencies. Some additional directories
     are submodules and will be made available over time.
 
 * __gpcontrib/__ : Much like the PostgreSQL contrib/ directory, this
     directory contains extensions such as gpfdist, PXF and gpmapreduce
-    which are Cloudberry-specific.
+    which are CloudberryDB-specific.
 
 * __doc/__ : In PostgreSQL, the user manual lives here. In Cloudberry
     Database, the user manual is maintained separately at [Cloudberry
@@ -51,18 +55,19 @@ throughout the codebase, but a few larger additions worth noting:
 
 * __src/__
 
-  * __src/backend/cdb/__ : Contains larger Cloudberry-specific backend
-    modules. For example, communication between segments, turning
-    plans into parallelizable plans, mirroring, distributed
+  * __src/backend/cdb/__ : Contains larger CloudberryDB-specific
+    backend modules. For example, communication between segments,
+    turning plans into parallelizable plans, mirroring, distributed
     transaction and snapshot management, etc. __cdb__ stands for
     __Cluster Database__ - it was a workname used in the early
     days. That name is no longer used, but the __cdb__ prefix remains.
-  
+
   * __src/backend/gpopt/__ : Contains the so-called __translator__
-    library, for using the GPORCA optimizer with Cloudberry. The
-    translator library is written in C++ code, and contains glue code
-    for translating plans and queries between the DXL format used by
-    GPORCA, and the PostgreSQL internal representation.
+    library, for using the GPORCA optimizer with Cloudberry
+    Database. The translator library is written in C++ code, and
+    contains glue code for translating plans and queries between the
+    DXL format used by GPORCA, and the PostgreSQL internal
+    representation.
 
   * __src/backend/gporca/__ : Contains the GPORCA optimizer code and
     tests. This is written in C++. See
@@ -73,14 +78,18 @@ throughout the codebase, but a few larger additions worth noting:
     coordinator node, and periodically polls the segments to maintain
     the status of each segment.
 
+## Building Cloudberry Database
+
+You can follow [these guides](./readmes) to build the Cloudberry
+Database on Linux OS(including CentOS, RHEL, and Ubuntu) and macOS.
+
 ## Documentation
 
 For Cloudberry Database documentation, please check the [documentation
-website](https://cloudberrydb.org/docs/cbdb-overview). Our documents
-are still in construction, welcome to help. If you're interested in
-[document
-contribution](https://cloudberrydb.org/community/docs-contributing-guide),
-you can submit the pull request
+website](https://cloudberrydb.org/docs/). Our documents are still in
+construction, welcome to help. If you're interested in [document
+contribution](https://cloudberrydb.org/contribute/doc), you can submit
+the pull request
 [here](https://github.com/cloudberrydb/cloudberrydb-site/tree/main/docs).
 
 We also recommend you take [PostgreSQL
@@ -96,50 +105,39 @@ Apache Way "Community Over Code" and we want to make Cloudberry
 Database a community-driven project.
 
 Contributions can be diverse, such as code enhancements, bug fixes,
-feature proposals, documents, marketing and so on. No contribution is
-too small, we encourage all types of contributions. We hope you can
-enjoy it here.
+feature proposals, documents, marketing, and so on. No contribution is
+too small, we encourage all types of contributions. Cloudberry
+Database community welcomes contributions from anyone, new and
+experienced! Our [contribution
+guide](https://cloudberrydb.org/contribute/how-to-contribute) will
+help you get started with the contribution.
 
-Assume you have all the skills in collaboration, if not, please learn
-more about [Git and GitHub](https://docs.github.com). For coding
-guidelines, we try to follow [PostgreSQL Coding
-Conventions](postgresql.org/docs/devel/source.html).
+| Type | Description |
+|----|---------------|
+| Code contribution | Learn how to contribute code to the Cloudberry Database, including coding preparation, conventions, workflow, review, and checklist following the [code contribution guide](https://cloudberrydb.org/contribute/code).|
+| Submit the proposal | Proposing major changes to Cloudberry Database through [proposal guide](https://cloudberrydb.org/contribute/proposal).|
+| Doc contribution | We need you to join us to help us improve the documentation, see the [doc contribution guide](https://cloudberrydb.org/contribute/doc).|
 
-If the change you're working on touches functionality that is common
-between PostgreSQL and Cloudberry Database, you may be asked to
-forward-port it to PostgreSQL. This is not only so that we keep
-reducing the delta between the two projects, but also so that any
-change that is relevant to PostgreSQL can benefit from a much broader
-review of the upstream PostgreSQL community. In general, keep both
-code bases handy so you can be sure whether your changes need to be
-forward-ported.
+For better collaboration, it's important for developers to learn how
+to work well with Git and GitHub, see the guide ["Working with Git &
+GitHub"](https://cloudberrydb.org/contribute/git).
 
-Before you commit your changes, please run the command to configure
-the [commit message
-template](https://github.com/cloudberrydb/cloudberrydb/blob/main/.gitmessage)
-for your own git: `git config --global commit.template .gitmessage`
-
-## Community
+## Community & Support
 
 We have many channels for community members to discuss, ask for help,
-feedback ,and chat:
+feedback, and chat:
 
-- [GitHub
-  Discussions](https://github.com/orgs/cloudberrydb/discussions): we
-  use GitHub Discussions to broadcast news, answer questions, share
-  ideas. You can start a new discussion under different categories,
-  such as "Announcements", "Ideas / Feature Requests", "Proposal" and
-  "Q&A".
+| Type | Description |
+|------|-------------|
+| Slack | [Click to Join](https://communityinviter.com/apps/cloudberrydb/welcome) the real-time chat on Slack for QA, Dev, Events, and more. Don't miss out! Check out the [Slack guide](https://cloudberrydb.org/community/slack) to learn more. |
+| Q&A | Ask for help when running/developing Cloudberry Database, visit [GitHub Discussions - QA](https://github.com/orgs/cloudberrydb/discussions/categories/q-a). |
+| New ideas / Feature Requests | Share ideas for new features, visit [GitHub Discussions - Ideas](https://github.com/orgs/cloudberrydb/discussions/categories/ideas-feature-requests).  |
+| Report bugs | Problems and issues in Cloudberry Database core. If you find bugs, welcome to submit them [here](https://github.com/cloudberrydb/cloudberrydb/issues).  |
+| Report a security vulnerability | View our [security policy](https://github.com/cloudberrydb/cloudberrydb/security/policy) to learn how to report and contact us.  |
+| Community events | Including meetups, webinars, conferences, and more events, visit the [Events page](https://cloudberrydb.org/community/events) and subscribe events calendar.  |
+| Documentation | [Official documentation](https://cloudberrydb.org/docs/) for Cloudberry Database. You can explore it to discover more details about us. |
 
-- [GitHub
-  Issues](https://github.com/cloudberrydb/cloudberrydb/issues): You
-  can report bugs and issues with code in Cloudberry Database core.
-
-- [Slack](https://communityinviter.com/apps/cloudberrydb/welcome):
-  Slack is used for real-time chat, including QA, Dev, Events and
-  more.
-
-When you involve, please follow our community [Code of
+When you are involved, please follow our community [Code of
 Conduct](https://cloudberrydb.org/community/coc) to help create a safe
 space for everyone.
 
