@@ -22,6 +22,7 @@
 #include "catalog/dependency.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
+#include "catalog/main_manifest.h"
 #include "catalog/namespace.h"
 #include "catalog/objectaccess.h"
 #include "catalog/pg_am.h"
@@ -199,7 +200,8 @@ static const Oid object_classes[] = {
 
 	/* GPDB additions */
 	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
-	TaskRelationId				/* OCLASS_TASK */
+	TaskRelationId,				/* OCLASS_TASK */
+	ManifestRelationId			/* MAIN_MANIFEST */
 };
 
 
@@ -1542,6 +1544,9 @@ doDeletion(const ObjectAddress *object, int flags)
 			break;
 		case OCLASS_TASK:
 			RemoveTaskById(object->objectId);
+			break;
+		case OCLASS_MAIN_MANIFEST:
+			RemoveMainManifestByRelid(object->objectId);
 			break;
 
 		case OCLASS_CAST:
@@ -2948,6 +2953,9 @@ getObjectClass(const ObjectAddress *object)
 
 		case TaskRelationId:
 			return OCLASS_TASK;
+
+		case ManifestRelationId:
+			return OCLASS_MAIN_MANIFEST;
 	}
 
 	/* shouldn't get here */

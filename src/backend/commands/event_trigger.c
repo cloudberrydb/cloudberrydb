@@ -1063,6 +1063,7 @@ EventTriggerSupportsObjectClass(ObjectClass objclass)
 			return true;
 		case OCLASS_EXTPROTOCOL:
 		case OCLASS_TASK:
+		case OCLASS_MAIN_MANIFEST:
 			return false;
 
 			/*

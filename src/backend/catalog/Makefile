@@ -52,7 +52,7 @@ OBJS += pg_extprotocol.o \
        pg_appendonly.o \
        oid_dispatch.o aocatalog.o storage_tablespace.o storage_database.o \
        storage_tablespace_twophase.o storage_tablespace_xact.o \
-       gp_partition_template.o pg_task.o pg_task_run_history.o
+       gp_partition_template.o pg_task.o pg_task_run_history.o main_manifest.o
 
 CATALOG_JSON:= $(addprefix $(top_srcdir)/gpMgmt/bin/gppylib/data/, $(addsuffix .json,$(GP_MAJORVERSION)))
 
@@ -80,6 +80,7 @@ CATALOG_HEADERS := \
 	gp_configuration_history.h gp_id.h gp_distribution_policy.h gp_version_at_initdb.h \
 	gp_warehouse.h \
 	pg_appendonly.h \
+	main_manifest.h \
 	gp_fastsequence.h pg_extprotocol.h \
 	pg_attribute_encoding.h \
 	pg_auth_time_constraint.h \
