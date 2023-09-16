@@ -1479,7 +1479,7 @@ ProcessUtilitySlow(ParseState *pstate,
 								NewRelationCreateToastTable(address.objectId,
 															toast_options);
 							}
-							if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
+							if (Gp_role == GP_ROLE_DISPATCH)
 							{
 								CdbDispatchUtilityStatement((Node *) stmt,
 															DF_CANCEL_ON_ERROR |
@@ -1707,7 +1707,7 @@ ProcessUtilitySlow(ParseState *pstate,
 								 (int) stmt->subtype);
 							break;
 					}
-					if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
+					if (Gp_role == GP_ROLE_DISPATCH)
 					{
 						/* ADD CONSTRAINT will assign a new OID for the constraint */
 						CdbDispatchUtilityStatement((Node *) stmt,
@@ -2104,7 +2104,7 @@ ProcessUtilitySlow(ParseState *pstate,
 										queryString, InvalidOid, InvalidOid,
 										InvalidOid, InvalidOid, InvalidOid,
 										InvalidOid, NULL, false, false);
-				if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
+				if (Gp_role == GP_ROLE_DISPATCH )
 				{
 					CdbDispatchUtilityStatement((Node *) parsetree,
 												DF_CANCEL_ON_ERROR|

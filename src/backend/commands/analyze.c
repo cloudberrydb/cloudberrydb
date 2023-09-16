@@ -201,6 +201,8 @@ static void acquire_hll_by_query(Relation onerel, int nattrs, VacAttrStats **att
 
 static int16 AcquireCountOfSegmentFile(Relation onerel);
 
+void parse_record_to_string(char *string, TupleDesc tupdesc, char** values, bool *nulls);
+
 /*
  *	analyze_rel() -- analyze one relation
  *
@@ -1603,16 +1605,14 @@ acquire_sample_rows(Relation onerel, int elevel,
 
 	Assert(targrows > 0);
 
-	if (Gp_role == GP_ROLE_DISPATCH &&
-		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy))
-	{
+	if (ENABLE_DISPATCH() && Gp_role == GP_ROLE_DISPATCH &&
+		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy)) {
 		/* Fetch sample from the segments. */
-		return acquire_sample_rows_dispatcher(onerel, false, elevel,
-											  rows, targrows,
-											  totalrows, totaldeadrows);
+		return acquire_sample_rows_dispatcher(
+			onerel, false, elevel, rows, targrows, totalrows, totaldeadrows);
 	}
 
-	/*
+    /*
 	 * GPDB: Analyze does make a lot of assumptions regarding the file layout of a
 	 * relation. These assumptions are heap specific and do not hold for AO/AOCO
 	 * relations. In the case of AO/AOCO, what is actually needed and used instead
@@ -1621,7 +1621,7 @@ acquire_sample_rows(Relation onerel, int elevel,
 	 * GPDB_12_MERGE_FIXME: BlockNumber is uint32 and Number of tuples is uint64.
 	 * That means that after row number UINT_MAX we will never analyze the table.
 	 */
-	if (RelationIsAppendOptimized(onerel))
+	if (RelationIsNonblockRelation(onerel))
 	{
 		BlockNumber pages;
 		double		tuples;
@@ -1653,7 +1653,7 @@ acquire_sample_rows(Relation onerel, int elevel,
 	 * because Blocks is not same as Heap tables.
 	 * Set prefetch_maximum to zero seems the easiest way to bypass.
 	 */
-	if (RelationIsAppendOptimized(onerel))
+	if (RelationIsNonblockRelation(onerel))
 	{
 		prefetch_maximum = 0;
 	}
@@ -1673,7 +1673,30 @@ acquire_sample_rows(Relation onerel, int elevel,
 	/* Prepare for sampling rows */
 	reservoir_init_selection_state(&rstate, targrows);
 
-	scan = table_beginscan_analyze(onerel);
+	gp_acquire_sample_rows_context* ctx = NULL;
+
+	if(Gp_role == GP_ROLE_DISPATCH) 
+	{
+		ctx = (gp_acquire_sample_rows_context *) palloc0(sizeof(gp_acquire_sample_rows_context));
+		ctx->targrows = targrows;
+
+		/* copy from function analyze_rel_internal */
+		if (onerel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE) 
+		{
+			ctx->inherited = false;
+		}
+		else if(onerel->rd_rel->relhassubclass) 
+		{
+			ctx->inherited = true;
+		}
+		else 
+		{
+			/* should be here*/
+			Assert(false);
+		}
+	}
+	
+	scan = table_beginscan_analyze(onerel, ctx);
 	slot = table_slot_create(onerel, NULL);
 
 #ifdef USE_PREFETCH
@@ -1792,6 +1815,8 @@ acquire_sample_rows(Relation onerel, int elevel,
 
 	ExecDropSingleTupleTableSlot(slot);
 	table_endscan(scan);
+	if (ctx) 
+		pfree(ctx);
 
 	/*
 	 * If we didn't find as many tuples as we wanted then we're done. No sort
@@ -2375,7 +2400,7 @@ acquire_index_number_of_blocks(Relation indexrel, Relation tablerel)
  * CDB: a copy of record_in, but only parse the record string
  * into separate strs for each column.
  */
-static void
+void
 parse_record_to_string(char *string, TupleDesc tupdesc, char** values, bool *nulls)
 {
 	char	*ptr;

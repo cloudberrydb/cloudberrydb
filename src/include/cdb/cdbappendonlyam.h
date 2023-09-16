@@ -393,7 +393,7 @@ extern TableScanDesc appendonly_beginscan(Relation relation,
 										  Snapshot snapshot,
 										  int nkeys, struct ScanKeyData *key,
 										  ParallelTableScanDesc pscan,
-										  uint32 flags);
+										  uint32 flags,void * ctx);
 extern void appendonly_rescan(TableScanDesc scan, ScanKey key,
 								bool set_params, bool allow_strat,
 								bool allow_sync, bool allow_pagemode);

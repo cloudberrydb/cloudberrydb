@@ -1116,7 +1116,7 @@ appendonly_relation_copy_for_cluster(Relation OldHeap, Relation NewHeap,
 	/* Scan through old table to convert data into tuples for sorting */
 	slot = table_slot_create(OldHeap, NULL);
 	aoscandesc = appendonly_beginscan(OldHeap, GetActiveSnapshot(), 0, NULL,
-										NULL, 0);
+										NULL, 0, NULL);
 	mt_bind = create_memtuple_binding(oldTupDesc);
 
 	while (appendonly_getnextslot(aoscandesc, ForwardScanDirection, slot))
