@@ -50,22 +50,8 @@
 #include "utils/snapmgr.h"
 #include "utils/syscache.h"
 
-
-typedef struct
-{
-	DestReceiver pub;			/* publicly-known function pointers */
-	Oid			transientoid;	/* OID of new heap into which to store */
-	Oid			oldreloid;
-	bool		concurrent;
-	bool		skipData;
-	char 		relpersistence;
-	/* These fields are filled by transientrel_startup: */
-	Relation	transientrel;	/* relation to write to */
-	CommandId	output_cid;		/* cmin to insert in output tuples */
-	int			ti_options;		/* table_tuple_insert performance options */
-	BulkInsertState bistate;	/* bulk insert state */
-	uint64		processed;		/* GPDB: number of tuples inserted */
-} DR_transientrel;
+/* Hook for plugins to get control in transientrel_init */
+transientrel_init_hook_type transientrel_init_hook = NULL;
 
 static int	matview_maintenance_depth = 0;
 
@@ -546,7 +532,7 @@ CreateTransientRelDestReceiver(Oid transientoid, Oid oldreloid, bool concurrent,
 }
 
 void
-transientrel_init(QueryDesc *queryDesc)
+transientrel_init_internal(QueryDesc *queryDesc)
 {
 	Oid			matviewOid;
 	Relation	matviewRel;
@@ -600,6 +586,15 @@ transientrel_init(QueryDesc *queryDesc)
 													 relpersistence, refreshClause->skipData);
 
 	heap_close(matviewRel, NoLock);
+}
+
+void
+transientrel_init(QueryDesc *queryDesc)
+{
+	if (transientrel_init_hook)
+		return (*transientrel_init_hook)(queryDesc);
+
+	transientrel_init_internal(queryDesc);
 }
 
 /*
