@@ -191,11 +191,14 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 	/*
 	 * Parse external table data encoding
 	 */
-	foreach(option, createExtStmt->encoding)
+	foreach(option, createExtStmt->formatOpts)
 	{
+
 		DefElem    *defel = (DefElem *) lfirst(option);
 
-		Assert(strcmp(defel->defname, "encoding") == 0);
+		if(strcmp(defel->defname, "encoding") != 0){
+			continue;
+		}
 
 		if (dencoding)
 			ereport(ERROR,
@@ -227,15 +230,13 @@ DefineExternalRelation(CreateExternalStmt *createExtStmt)
 						 errmsg("%s is not a valid encoding name",
 								encoding_name)));
 			encoding = pg_char_to_encoding(encoding_name);
+			/* convert encoding string to integer */
+			dencoding->arg = (Node *)makeInteger(encoding);
 		}
 		else
 			elog(ERROR, "unrecognized node type: %d",
 				 nodeTag(dencoding->arg));
 	}
-
-	/* If encoding is defaulted, use database encoding */
-	if (encoding < 0)
-		encoding = pg_get_client_encoding();
 
 	/*
 	 * If the number of locations (file or http URIs) exceed the number of
@@ -854,7 +855,12 @@ GenerateExtTableEntryOptions(Oid 	tbloid,
 	}
 
 	entryOptions = lappend(entryOptions, makeDefElem("log_errors", (Node *) makeString(psprintf("%c", logerrors)), -1));
-	entryOptions = lappend(entryOptions, makeDefElem("encoding", (Node *) makeString(psprintf("%d", encoding)), -1));
+
+	/* If encoding is defaulted, use database encoding */
+	if (encoding < 0){
+		encoding = pg_get_client_encoding();
+		entryOptions = lappend(entryOptions, makeDefElem("encoding", (Node *) makeString(psprintf("%d", encoding)), -1));
+	}
 	entryOptions = lappend(entryOptions, makeDefElem("is_writable", (Node *) makeString(iswritable ? pstrdup("true") : pstrdup("false")), -1));
 
 	/*
