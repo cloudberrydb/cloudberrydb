@@ -21,6 +21,25 @@
 #include "tcop/dest.h"
 #include "utils/relcache.h"
 
+typedef struct
+{
+	DestReceiver pub;			/* publicly-known function pointers */
+	Oid			transientoid;	/* OID of new heap into which to store */
+	Oid			oldreloid;
+	bool		concurrent;
+	bool		skipData;
+	char 		relpersistence;
+	/* These fields are filled by transientrel_startup: */
+	Relation	transientrel;	/* relation to write to */
+	CommandId	output_cid;		/* cmin to insert in output tuples */
+	int			ti_options;		/* table_tuple_insert performance options */
+	BulkInsertState bistate;	/* bulk insert state */
+	uint64		processed;		/* GPDB: number of tuples inserted */
+} DR_transientrel;
+
+/* Hook for plugins to get control in transientrel_init */
+typedef void (*transientrel_init_hook_type)(QueryDesc *queryDesc);
+extern PGDLLIMPORT transientrel_init_hook_type transientrel_init_hook;
 
 extern void SetMatViewPopulatedState(Relation relation, bool newstate);
 
@@ -31,6 +50,8 @@ extern DestReceiver *CreateTransientRelDestReceiver(Oid oid, Oid oldreloid, bool
 													char relpersistence, bool skipdata);
 
 extern bool MatViewIncrementalMaintenanceIsEnabled(void);
+
+extern void transientrel_init_internal(QueryDesc *queryDesc);
 
 extern void transientrel_init(QueryDesc *queryDesc);
 

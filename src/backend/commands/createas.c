@@ -25,7 +25,6 @@
  */
 #include "postgres.h"
 
-#include "access/heapam.h"
 #include "access/htup_details.h"
 #include "access/reloptions.h"
 #include "access/sysattr.h"
@@ -64,17 +63,8 @@
 #include "utils/metrics_utils.h"
 #include "utils/faultinjector.h"
 
-typedef struct
-{
-	DestReceiver pub;			/* publicly-known function pointers */
-	IntoClause *into;			/* target relation specification */
-	/* These fields are filled by intorel_startup: */
-	Relation	rel;			/* relation to write to */
-	ObjectAddress reladdr;		/* address of rel, for ExecCreateTableAs */
-	CommandId	output_cid;		/* cmin to insert in output tuples */
-	int			ti_options;		/* table_tuple_insert performance options */
-	BulkInsertState bistate;	/* bulk insert state */
-} DR_intorel;
+/* Hook for plugins to get control in intorel_initplan */
+intorel_initplan_hook_type intorel_initplan_hook = NULL;
 
 static void intorel_startup_dummy(DestReceiver *self, int operation, TupleDesc typeinfo);
 /* utility functions for CTAS definition creation */
@@ -588,17 +578,8 @@ intorel_startup_dummy(DestReceiver *self, int operation, TupleDesc typeinfo)
 		ext_dml_init_hook(((DR_intorel *)self)->rel, CMD_INSERT);
 }
 
-/*
- * intorel_initplan --- Based on PG intorel_startup().
- * Parameters are different. We need to run the code earlier before the
- * executor runs since we want the relation to be created earlier else current
- * MPP framework will fail. This could be called in InitPlan() as before, but
- * we could call it just before ExecutorRun() in ExecCreateTableAs(). In the
- * future if the requirment is general we could add an interface into
- * DestReceiver but so far that is not needed (Based on PG 11 code.)
- */
 void
-intorel_initplan(struct QueryDesc *queryDesc, int eflags)
+intorel_initplan_internal(struct QueryDesc *queryDesc, int eflags)
 {
 	DR_intorel *myState;
 	/* Get 'into' from the dispatched plan */
@@ -610,11 +591,6 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	ListCell   *lc;
 	int			attnum;
 	TupleDesc   typeinfo = queryDesc->tupDesc;
-
-	/* If EXPLAIN/QE, skip creating the "into" relation. */
-	if ((eflags & EXEC_FLAG_EXPLAIN_ONLY) ||
-		(Gp_role == GP_ROLE_EXECUTE && !Gp_is_writer))
-		return;
 
 	/* This code supports both CREATE TABLE AS and CREATE MATERIALIZED VIEW */
 	is_matview = (into->viewQuery != NULL);
@@ -730,6 +706,29 @@ intorel_initplan(struct QueryDesc *queryDesc, int eflags)
 	 * This may be harmless, but this function hasn't planned for it.
 	 */
 	Assert(RelationGetTargetBlock(intoRelationDesc) == InvalidBlockNumber);
+}
+
+/*
+ * intorel_initplan --- Based on PG intorel_startup().
+ * Parameters are different. We need to run the code earlier before the
+ * executor runs since we want the relation to be created earlier else current
+ * MPP framework will fail. This could be called in InitPlan() as before, but
+ * we could call it just before ExecutorRun() in ExecCreateTableAs(). In the
+ * future if the requirment is general we could add an interface into
+ * DestReceiver but so far that is not needed (Based on PG 11 code.)
+ */
+void
+intorel_initplan(struct QueryDesc *queryDesc, int eflags)
+{
+	/* If EXPLAIN/QE, skip creating the "into" relation. */
+	if ((eflags & EXEC_FLAG_EXPLAIN_ONLY) ||
+		(Gp_role == GP_ROLE_EXECUTE && !Gp_is_writer))
+		return;
+
+	if (intorel_initplan_hook)
+		return (*intorel_initplan_hook) (queryDesc, eflags);
+
+	intorel_initplan_internal(queryDesc, eflags);
 }
 
 /*
