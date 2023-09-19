@@ -1924,6 +1924,15 @@ _equalVacuumRelation(const VacuumRelation *a, const VacuumRelation *b)
 }
 
 static bool
+_equalVacuumCopyDataStmt(const VacuumCopyDataStmt *a, const VacuumCopyDataStmt *b)
+{
+	COMPARE_SCALAR_FIELD(oldOid);
+	COMPARE_SCALAR_FIELD(newOid);
+
+	return true;
+}
+
+static bool
 _equalExplainStmt(const ExplainStmt *a, const ExplainStmt *b)
 {
 	COMPARE_NODE_FIELD(query);
@@ -3839,6 +3848,9 @@ equal(const void *a, const void *b)
 			break;
 		case T_VacuumRelation:
 			retval = _equalVacuumRelation(a, b);
+			break;
+		case T_VacuumCopyDataStmt:
+			retval = _equalVacuumCopyDataStmt(a, b);
 			break;
 		case T_ExplainStmt:
 			retval = _equalExplainStmt(a, b);

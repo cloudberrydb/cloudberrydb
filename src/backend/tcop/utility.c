@@ -248,6 +248,7 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_CreateExternalStmt:
 		case T_RetrieveStmt:
 		case T_CreateWarehouseStmt:
+		case T_VacuumCopyDataStmt:
 			{
 				/* DDL is not read-only, and neither is TRUNCATE. */
 				return COMMAND_IS_NOT_READ_ONLY;
@@ -3369,6 +3370,10 @@ CreateCommandTag(Node *parsetree)
 				tag = CMDTAG_ANALYZE;
 			break;
 
+		case T_VacuumCopyDataStmt:
+			tag = CMDTAG_VACUUM_COPY_DATA;
+			break;
+
 		case T_ExplainStmt:
 			tag = CMDTAG_EXPLAIN;
 			break;
@@ -4046,6 +4051,7 @@ GetCommandLogLevel(Node *parsetree)
 			break;
 
 		case T_VacuumStmt:
+		case T_VacuumCopyDataStmt:
 			lev = LOGSTMT_ALL;
 			break;
 

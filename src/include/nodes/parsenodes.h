@@ -3904,6 +3904,17 @@ typedef struct VacuumRelation
 } VacuumRelation;
 
 /* ----------------------
+ * Vacuum Copy Data Statement
+ * ----------------------
+ */
+typedef struct VacuumCopyDataStmt
+{
+	NodeTag type;
+	Oid		oldOid; // where data is coming from
+	Oid		newOid; // where data is going to
+} VacuumCopyDataStmt;
+
+/* ----------------------
  *		Explain Statement
  *
  * The "query" field is initially a raw parse tree, and is converted to a

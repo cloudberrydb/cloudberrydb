@@ -3264,6 +3264,8 @@ parseNodeString(void)
 		return_value = _readVacuumStmt();
 	else if (MATCHX("VACUUMRELATION"))
 		return_value = _readVacuumRelation();
+	else if (MATCHX("VACUUMCOPYDATASTMT"))
+		return_value = _readVacuumCopyDataStmt();
 	else if (MATCHX("VARIABLESETSTMT"))
 		return_value = _readVariableSetStmt();
 	else if (MATCHX("VIEWSTMT"))

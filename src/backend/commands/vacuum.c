@@ -2186,6 +2186,11 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	int			save_nestlevel;
 	bool		is_appendoptimized;
 	bool		is_toast;
+	bool		shouldDispatch;
+
+	shouldDispatch = (Gp_role == GP_ROLE_DISPATCH &&
+					ENABLE_DISPATCH() &&
+					!enable_serverless);
 
 	Assert(params != NULL);
 
@@ -2687,7 +2692,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	 * Don't dispatch auto-vacuum. Each segment performs auto-vacuum as per
 	 * its own need.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && !recursing &&
+	if (shouldDispatch && !recursing &&
 		!IsAutoVacuumWorkerProcess() &&
 		(!is_appendoptimized || ao_vacuum_phase))
 	{

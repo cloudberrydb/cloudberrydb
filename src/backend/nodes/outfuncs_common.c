@@ -1369,6 +1369,15 @@ _outVacuumRelation(StringInfo str, const VacuumRelation *node)
 }
 
 static void
+_outVacuumCopyDataStmt(StringInfo str, const VacuumCopyDataStmt *node)
+{
+	WRITE_NODE_TYPE("VACUUMCOPYDATASTMT");
+
+	WRITE_OID_FIELD(oldOid);
+	WRITE_OID_FIELD(newOid);
+}
+
+static void
 _outCdbProcess(StringInfo str, const CdbProcess *node)
 {
 	WRITE_NODE_TYPE("CDBPROCESS");
