@@ -2425,6 +2425,9 @@ readNodeBinary(void)
 			case T_VacuumRelation:
 				return_value = _readVacuumRelation();
 				break;
+			case T_VacuumCopyDataStmt:
+				return_value = _readVacuumCopyDataStmt();
+				break;
 			case T_CdbProcess:
 				return_value = _readCdbProcess();
 				break;

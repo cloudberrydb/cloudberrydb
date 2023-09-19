@@ -4730,6 +4730,17 @@ _copyVacuumRelation(const VacuumRelation *from)
 	return newnode;
 }
 
+static VacuumCopyDataStmt *
+_copyVacuumCopyDataStmt(const VacuumCopyDataStmt *from)
+{
+	VacuumCopyDataStmt *newnode = makeNode(VacuumCopyDataStmt);
+
+	COPY_SCALAR_FIELD(oldOid);
+	COPY_SCALAR_FIELD(newOid);
+
+	return newnode;
+}
+
 static ExplainStmt *
 _copyExplainStmt(const ExplainStmt *from)
 {
@@ -6644,6 +6655,9 @@ copyObjectImpl(const void *from)
 			break;
 		case T_VacuumRelation:
 			retval = _copyVacuumRelation(from);
+			break;
+		case T_VacuumCopyDataStmt:
+			retval = _copyVacuumCopyDataStmt(from);
 			break;
 		case T_ExplainStmt:
 			retval = _copyExplainStmt(from);

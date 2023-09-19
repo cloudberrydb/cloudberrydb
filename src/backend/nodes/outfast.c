@@ -1565,6 +1565,9 @@ _outNode(StringInfo str, void *obj)
 			case T_VacuumRelation:
 				_outVacuumRelation(str, obj);
 				break;
+			case T_VacuumCopyDataStmt:
+				_outVacuumCopyDataStmt(str, obj);
+				break;
 			case T_CdbProcess:
 				_outCdbProcess(str, obj);
 				break;

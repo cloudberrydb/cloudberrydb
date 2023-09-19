@@ -1640,6 +1640,16 @@ _readVacuumRelation(void)
 	READ_DONE();
 }
 
+static VacuumCopyDataStmt *
+_readVacuumCopyDataStmt(void)
+{
+	READ_LOCALS(VacuumCopyDataStmt);
+
+	READ_OID_FIELD(oldOid);
+	READ_OID_FIELD(newOid);
+
+	READ_DONE();
+}
 
 /*
  * _readVacuumStmt
