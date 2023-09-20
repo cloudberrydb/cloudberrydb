@@ -208,6 +208,7 @@ PG_CMDTAG(CMDTAG_DROP_WAREHOUSE, "DROP WAREHOUSE", true, false, false)
 
 PG_CMDTAG(CMDTAG_EXECUTE, "EXECUTE", false, false, false)
 PG_CMDTAG(CMDTAG_EXPLAIN, "EXPLAIN", false, false, false)
+PG_CMDTAG(CMDTAG_EXTENSIBLE, "EXTENSIBLE", false, false, false)
 PG_CMDTAG(CMDTAG_FAULT_INJECT, "FAULT_INJECT", false, false, false)
 PG_CMDTAG(CMDTAG_FETCH, "FETCH", false, false, true)
 PG_CMDTAG(CMDTAG_GRANT, "GRANT", true, false, false)

@@ -3754,6 +3754,10 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_DROP_WAREHOUSE;
 			break;
 
+		case T_ExtensibleNode:
+			tag = CMDTAG_EXTENSIBLE;
+			break;
+
 		default:
 			elog(WARNING, "unrecognized node type: %d",
 				 (int) nodeTag(parsetree));
