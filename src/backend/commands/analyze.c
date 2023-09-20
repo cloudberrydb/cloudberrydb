@@ -1605,7 +1605,7 @@ acquire_sample_rows(Relation onerel, int elevel,
 
 	Assert(targrows > 0);
 
-	if (ENABLE_DISPATCH() && Gp_role == GP_ROLE_DISPATCH &&
+	if (Gp_role == GP_ROLE_DISPATCH &&
 		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy)) {
 		/* Fetch sample from the segments. */
 		return acquire_sample_rows_dispatcher(
