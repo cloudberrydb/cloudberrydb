@@ -1607,10 +1607,18 @@ acquire_sample_rows(Relation onerel, int elevel,
 
 	if (Gp_role == GP_ROLE_DISPATCH &&
 		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy)) 
-	{
-		/* Fetch sample from the segments. */
-		return acquire_sample_rows_dispatcher(
-			onerel, false, elevel, rows, targrows, totalrows, totaldeadrows);
+	{	
+		int flags = 0;
+		VacuumStmt *stmt = makeNode(VacuumStmt);
+		stmt->is_vacuumcmd = false;
+		if (CdbNeedDispatchUtility_hook && !CdbNeedDispatchUtility_hook((Node*)stmt, &flags))
+		{
+			pfree(stmt);
+			/* Fetch sample from the segments. */
+			return acquire_sample_rows_dispatcher(
+				onerel, false, elevel, rows, targrows, totalrows, totaldeadrows);
+		}
+		pfree(stmt);
 	}
 
 	/*
