@@ -1673,30 +1673,13 @@ acquire_sample_rows(Relation onerel, int elevel,
 	/* Prepare for sampling rows */
 	reservoir_init_selection_state(&rstate, targrows);
 
-	gp_acquire_sample_rows_context* ctx = NULL;
-
+	AnalyzeContext ctx;
 	if(Gp_role == GP_ROLE_DISPATCH) 
 	{
-		ctx = (gp_acquire_sample_rows_context *) palloc0(sizeof(gp_acquire_sample_rows_context));
-		ctx->targrows = targrows;
-
-		/* copy from function analyze_rel_internal */
-		if (onerel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE) 
-		{
-			ctx->inherited = false;
-		}
-		else if(onerel->rd_rel->relhassubclass) 
-		{
-			ctx->inherited = true;
-		}
-		else 
-		{
-			/* should be here*/
-			Assert(false);
-		}
+		ctx.targrows = targrows;
 	}
 	
-	scan = table_beginscan_analyze(onerel, ctx);
+	scan = table_beginscan_analyze(onerel, &ctx);
 	slot = table_slot_create(onerel, NULL);
 
 #ifdef USE_PREFETCH
@@ -1815,8 +1798,6 @@ acquire_sample_rows(Relation onerel, int elevel,
 
 	ExecDropSingleTupleTableSlot(slot);
 	table_endscan(scan);
-	if (ctx) 
-		pfree(ctx);
 
 	/*
 	 * If we didn't find as many tuples as we wanted then we're done. No sort

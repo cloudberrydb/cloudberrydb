@@ -42,6 +42,10 @@ struct TBMIterateResult;
 struct VacuumParams;
 struct ValidateIndexState;
 
+typedef struct AnalyzeContext{
+	int32		targrows;
+} AnalyzeContext;
+
 /*
  * Bitmask values for the flags argument to the scan_begin callback.
  */
@@ -1069,11 +1073,11 @@ table_beginscan_tid(Relation rel, Snapshot snapshot)
  * the same data structure although the behavior is rather different.
  */
 static inline TableScanDesc
-table_beginscan_analyze(Relation rel, gp_acquire_sample_rows_context *params)
+table_beginscan_analyze(Relation rel, AnalyzeContext *ctx)
 {
 	uint32		flags = SO_TYPE_ANALYZE;
 
-	return rel->rd_tableam->scan_begin(rel, NULL, 0, NULL, NULL, flags, (void*) params);
+	return rel->rd_tableam->scan_begin(rel, NULL, 0, NULL, NULL, flags, (void*) ctx);
 }
 
 /*
