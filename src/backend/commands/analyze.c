@@ -1606,13 +1606,14 @@ acquire_sample_rows(Relation onerel, int elevel,
 	Assert(targrows > 0);
 
 	if (Gp_role == GP_ROLE_DISPATCH &&
-		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy)) {
+		onerel->rd_cdbpolicy && !GpPolicyIsEntry(onerel->rd_cdbpolicy)) 
+	{
 		/* Fetch sample from the segments. */
 		return acquire_sample_rows_dispatcher(
 			onerel, false, elevel, rows, targrows, totalrows, totaldeadrows);
 	}
 
-    /*
+	/*
 	 * GPDB: Analyze does make a lot of assumptions regarding the file layout of a
 	 * relation. These assumptions are heap specific and do not hold for AO/AOCO
 	 * relations. In the case of AO/AOCO, what is actually needed and used instead
