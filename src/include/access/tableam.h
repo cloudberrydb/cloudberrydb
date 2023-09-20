@@ -21,7 +21,6 @@
 #include "access/relscan.h"
 #include "access/sdir.h"
 #include "access/xact.h"
-#include "commands/vacuum.h"
 #include "utils/guc.h"
 #include "utils/rel.h"
 #include "utils/snapshot.h"
