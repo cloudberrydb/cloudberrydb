@@ -1611,14 +1611,17 @@ acquire_sample_rows(Relation onerel, int elevel,
 		int flags = 0;
 		VacuumStmt *stmt = makeNode(VacuumStmt);
 		stmt->is_vacuumcmd = false;
-		if (CdbNeedDispatchUtility_hook && !CdbNeedDispatchUtility_hook((Node*)stmt, &flags))
+		if(CdbNeedDispatchUtility_hook && !CdbNeedDispatchUtility_hook((Node*)stmt, &flags))
+		{
+			pfree(stmt);
+		}
+		else
 		{
 			pfree(stmt);
 			/* Fetch sample from the segments. */
 			return acquire_sample_rows_dispatcher(
 				onerel, false, elevel, rows, targrows, totalrows, totaldeadrows);
 		}
-		pfree(stmt);
 	}
 
 	/*
