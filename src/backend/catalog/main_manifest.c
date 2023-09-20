@@ -21,11 +21,11 @@
 #include "utils/rel.h"
 
 /*
- * RemoveMainManifestByRelid
- *      Remove the main manifest record for the relid.
+ * RemoveMainManifestByRelnode
+ *      Remove the main manifest record for the relnode.
  */
 void
-RemoveMainManifestByRelid(RelFileNodeId relnode)
+RemoveMainManifestByRelnode(RelFileNodeId relnode)
 {
     Relation    main_manifest;
     HeapTuple   tuple;
