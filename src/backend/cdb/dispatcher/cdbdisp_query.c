@@ -99,6 +99,11 @@ typedef struct DispatchCommandQueryParms
 	int			serializedDtxContextInfolen;
 } DispatchCommandQueryParms;
 
+/*
+ * Hooks for plugins to get control in command dispatch
+ */
+CdbNeedDispatchCommand_hook_type CdbNeedDispatchCommand_hook = NULL;
+CdbNeedDispatchUtility_hook_type CdbNeedDispatchUtility_hook = NULL;
 
 static int fillSliceVector(SliceTable *sliceTable,
 				int sliceIndex,
@@ -395,7 +400,7 @@ CdbDispatchCommandToSegments(const char *strCommand,
 	DispatchCommandQueryParms *pQueryParms;
 	bool needTwoPhase;
 
-	if(!ENABLE_DISPATCH())
+	if (CdbNeedDispatchCommand_hook && !CdbNeedDispatchCommand_hook(strCommand, &flags, segments, cdb_pgresults))
 		return;
 
 	needTwoPhase = flags & DF_NEED_TWO_PHASE;
@@ -438,9 +443,9 @@ CdbDispatchUtilityStatement(struct Node *stmt,
 	DispatchCommandQueryParms *pQueryParms;
 	bool needTwoPhase;
 
-	Assert(Gp_role == GP_ROLE_DISPATCH);
+	Assert(Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH());
 
-	if(!ENABLE_DISPATCH())
+	if (CdbNeedDispatchUtility_hook && !CdbNeedDispatchUtility_hook(stmt, &flags))
 		return;
 
 	needTwoPhase = flags & DF_NEED_TWO_PHASE;
@@ -1332,7 +1337,7 @@ CdbDispatchCopyStart(struct CdbCopy *cdbCopy, Node *stmt, int flags)
 	ErrorData *error = NULL;
 	bool needTwoPhase;
 
-	if(!ENABLE_DISPATCH())
+	if (CdbNeedDispatchUtility_hook && !CdbNeedDispatchUtility_hook(stmt, &flags))
 		return;
 
 	needTwoPhase = flags & DF_NEED_TWO_PHASE;
