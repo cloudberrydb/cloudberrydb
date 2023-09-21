@@ -74,6 +74,7 @@ kd_point_tbl|t
 line_tbl|f
 log_table|f
 lseg_tbl|f
+main_manifest|f
 main_table|f
 mlparted|f
 mlparted1|f

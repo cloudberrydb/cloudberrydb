@@ -1189,7 +1189,7 @@ processResults(CdbDispatchResult *dispatchResult)
 		else if (strcmp(qnotifies->relname, CDB_NOTIFY_ENDPOINT_ACK) == 0)
 		{
 			qnotifies->next = (struct pgNotify *) dispatchResult->ackPGNotifies;
-			dispatchResult->ackPGNotifies = (struct PGnotify *) qnotifies;
+			dispatchResult->ackPGNotifies = (struct pgNotify *) qnotifies;
 
 			/* Don't free the notify here since it in queue now */
 			qnotifies = NULL;

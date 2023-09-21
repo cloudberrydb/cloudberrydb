@@ -4,6 +4,7 @@ on:
     types: [opened, synchronize, reopened, ready_for_review]
     branches:    
       - main
+      - union_store_catalog
   
 env:
   BUILD_TYPE: "debug"

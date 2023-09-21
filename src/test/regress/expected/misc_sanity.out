@@ -106,6 +106,7 @@ ORDER BY 1, 2;
  gp_configuration_history | desc               | text
  gp_version_at_initdb     | productversion     | text
  gp_warehouse             | warehouse_name     | text
+ main_manifest            | path               | text
  pg_attribute             | attacl             | aclitem[]
  pg_attribute             | attfdwoptions      | text[]
  pg_attribute             | attmissingval      | anyarray
@@ -134,7 +135,7 @@ ORDER BY 1, 2;
  pg_task_run_history      | return_message     | text
  pg_task_run_history      | status             | text
  pg_task_run_history      | username           | text
-(31 rows)
+(32 rows)
 
 -- system catalogs without primary keys
 --
@@ -155,6 +156,7 @@ ORDER BY 1;
  gp_partition_template
  gp_version_at_initdb
  gp_warehouse
+ main_manifest
  pg_appendonly
  pg_attribute_encoding
  pg_auth_time_constraint
@@ -171,7 +173,7 @@ ORDER BY 1;
  pg_stat_last_operation
  pg_stat_last_shoperation
  pg_type_encoding
-(23 rows)
+(24 rows)
 
 -- system catalog unique indexes not wrapped in a constraint
 -- (There should be none.)
