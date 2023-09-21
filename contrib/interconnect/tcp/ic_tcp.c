@@ -4,10 +4,11 @@
  *
  * Portions Copyright (c) 2005-2008, Greenplum, Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
- *	    src/backend/cdb/motion/ic_tcp.c
+ *		contrib/interconnect/tcp/ic_tcp.c
  *
  *-------------------------------------------------------------------------
  */

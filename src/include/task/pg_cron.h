@@ -3,6 +3,7 @@
  * pg_cron.h
  *	  definition of pg_cron data types
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Copyright (c) 2010-2015, Citus Data, Inc.
  *
  *-------------------------------------------------------------------------
