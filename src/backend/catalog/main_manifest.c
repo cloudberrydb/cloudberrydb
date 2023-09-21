@@ -21,11 +21,11 @@
 #include "utils/rel.h"
 
 /*
- * RemoveMainManifestByRelid
- *      Remove the main manifest record for the relid.
+ * RemoveMainManifestByRelnode
+ *      Remove the main manifest record for the relnode.
  */
 void
-RemoveMainManifestByRelid(Oid relid)
+RemoveMainManifestByRelnode(RelFileNodeId relnode)
 {
     Relation    main_manifest;
     HeapTuple   tuple;
@@ -33,8 +33,8 @@ RemoveMainManifestByRelid(Oid relid)
     ScanKeyData scanKey[1];
 
     main_manifest = table_open(ManifestRelationId, RowExclusiveLock);
-    ScanKeyInit(&scanKey[0], Anum_main_manifest_relid, BTEqualStrategyNumber,
-                F_OIDEQ, ObjectIdGetDatum(relid));
+    ScanKeyInit(&scanKey[0], Anum_main_manifest_relnode, BTEqualStrategyNumber,
+                F_OIDEQ, ObjectIdGetDatum(relnode));
 
     scanDescriptor = systable_beginscan(main_manifest, InvalidOid,
                                         false, NULL, 1, scanKey);

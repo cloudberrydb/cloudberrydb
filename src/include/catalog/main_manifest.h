@@ -24,12 +24,12 @@
  */
 CATALOG(main_manifest,9004,ManifestRelationId) BKI_SHARED_RELATION
 {
-	Oid			relid;
+	RelFileNodeId	relnode;
 	text		path;
 } FormData_main_manifest;
 
 typedef FormData_main_manifest *Form_main_manifest;
 
-extern void RemoveMainManifestByRelid(Oid relid);
+extern void RemoveMainManifestByRelnode(RelFileNodeId relnode);
 
 #endif /* MAIN_MANIFEST.h */
