@@ -878,75 +878,6 @@ _bt_parallel_advance_array_keys(IndexScanDesc scan)
 }
 
 /*
- * _bt_vacuum_needs_cleanup() -- Checks if index needs cleanup assuming that
- *			btbulkdelete() wasn't called.
- */
-static bool
-_bt_vacuum_needs_cleanup(IndexVacuumInfo *info)
-{
-	Buffer		metabuf;
-	Page		metapg;
-	BTMetaPageData *metad;
-	bool		result = false;
-
-	/* Return true directly on QE for stats collection from QD. */
-	if (gp_vacuum_needs_update_stats())
-		return true;
-
-	metabuf = _bt_getbuf(info->index, BTREE_METAPAGE, BT_READ);
-	metapg = BufferGetPage(metabuf);
-	metad = BTPageGetMeta(metapg);
-
-	if (metad->btm_version < BTREE_NOVAC_VERSION)
-	{
-		/*
-		 * Do cleanup if metapage needs upgrade, because we don't have
-		 * cleanup-related meta-information yet.
-		 */
-		result = true;
-	}
-	else if (TransactionIdIsValid(metad->btm_oldest_btpo_xact) &&
-			 TransactionIdPrecedes(metad->btm_oldest_btpo_xact,
-								   RecentGlobalXmin))
-	{
-		/*
-		 * If oldest btpo.xact in the deleted pages is older than
-		 * RecentGlobalXmin, then at least one deleted page can be recycled.
-		 */
-		result = true;
-	}
-	else
-	{
-		StdRdOptions *relopts;
-		float8		cleanup_scale_factor;
-		float8		prev_num_heap_tuples;
-
-		/*
-		 * If table receives enough insertions and no cleanup was performed,
-		 * then index would appear have stale statistics.  If scale factor is
-		 * set, we avoid that by performing cleanup if the number of inserted
-		 * tuples exceeds vacuum_cleanup_index_scale_factor fraction of
-		 * original tuples count.
-		 */
-		relopts = (StdRdOptions *) info->index->rd_options;
-		cleanup_scale_factor = (relopts &&
-								relopts->vacuum_cleanup_index_scale_factor >= 0)
-			? relopts->vacuum_cleanup_index_scale_factor
-			: vacuum_cleanup_index_scale_factor;
-		prev_num_heap_tuples = metad->btm_last_cleanup_num_heap_tuples;
-
-		if (cleanup_scale_factor <= 0 ||
-			prev_num_heap_tuples <= 0 ||
-			(info->num_heap_tuples - prev_num_heap_tuples) /
-			prev_num_heap_tuples >= cleanup_scale_factor)
-			result = true;
-	}
-
-	_bt_relbuf(info->index, metabuf);
-	return result;
-}
-
-/*
  * Bulk deletion of all index entries pointing to a set of heap tuples.
  * The set of target tuples is specified via a callback routine that tells
  * whether any given heap tuple (identified by ItemPointer) is being deleted.
@@ -1025,7 +956,6 @@ btvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
 		 */
 		stats = (IndexBulkDeleteResult *) palloc0(sizeof(IndexBulkDeleteResult));
 		btvacuumscan(info, stats, NULL, NULL, 0);
-		stats->estimated_count = true;
 	}
 
 	/*
