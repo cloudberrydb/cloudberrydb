@@ -267,7 +267,7 @@ class GpRecoverSegmentProgram:
 
         gpArray = confProvider.loadSystemConfig(useUtilityMode=False)
 
-        if not gpArray.hasMirrors:
+        if not gpArray.hasMirrors and not gpArray.standbyCoordinator:
             raise ExceptionNoStackTraceNeeded(
                 'GPDB Mirroring replication is not configured for this Cloudberry Database instance.')
 

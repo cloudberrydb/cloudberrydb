@@ -57,3 +57,6 @@
 /trigger_sets_oid.out
 /workfile_mgr_test.out
 /external_table_persistent_error_log.out
+
+# CBDB specific ignores
+/singlenode_compatibility_cbdb.out

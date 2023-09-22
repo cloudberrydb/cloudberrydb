@@ -447,7 +447,10 @@ getCdbComponentInfo(void)
 	 * Validate that there exists at least one entry and one segment database
 	 * in the configuration
 	 */
-	if (component_databases->total_segment_dbs == 0)
+	/*
+	 * In singlenode deployment, total_segment_dbs is zero and it should still work.
+	 */
+	if (component_databases->total_segment_dbs == 0 && !IS_SINGLENODE())
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_CARDINALITY_VIOLATION),
@@ -464,8 +467,8 @@ getCdbComponentInfo(void)
 	 * Now sort the data by segindex, isprimary desc
 	 */
 	qsort(component_databases->segment_db_info,
-		  component_databases->total_segment_dbs, sizeof(CdbComponentDatabaseInfo),
-		  CdbComponentDatabaseInfoCompare);
+	      component_databases->total_segment_dbs, sizeof(CdbComponentDatabaseInfo),
+	      CdbComponentDatabaseInfoCompare);
 
 	qsort(component_databases->entry_db_info,
 		  component_databases->total_entry_dbs, sizeof(CdbComponentDatabaseInfo),
@@ -1068,7 +1071,7 @@ cdb_setup(void)
 {
 	elog(DEBUG1, "Initializing Cloudberry components...");
 
-	if (Gp_role != GP_ROLE_UTILITY)
+	if (Gp_role != GP_ROLE_UTILITY && !IS_SINGLENODE())
 	{
 		if (!CurrentMotionIPCLayer) {
 			ereport(ERROR,
@@ -1128,7 +1131,7 @@ cdb_cleanup(int code pg_attribute_unused(), Datum arg
 		}
 	}
 
-	if (Gp_role != GP_ROLE_UTILITY)
+	if (Gp_role != GP_ROLE_UTILITY && !IS_SINGLENODE())
 	{
 		/* shutdown our listener socket */
 		CurrentMotionIPCLayer->CleanUpMotionLayerIPC();
@@ -1857,7 +1860,13 @@ getgpsegmentCount(void)
 			 IsBinaryUpgrade &&
 			 IS_QUERY_DISPATCHER())
 	{
-		numsegments = cdbcomponent_getCdbComponents()->total_segments;
+		/*
+		 * While upgrading in single node mode, we will get zero total
+		 * segment count, which will cause assertion error in makeGpPolicy.
+		 *
+		 * Segment number should be set to a value not less than 1 anyway.
+		 */
+		numsegments = Max(cdbcomponent_getCdbComponents()->total_segments, 1);
 	}
 
 	return numsegments;
@@ -3419,7 +3428,7 @@ cdb_setup(void)
 {
 	elog(DEBUG1, "Initializing Cloudberry components...");
 
-	if (Gp_role != GP_ROLE_UTILITY)
+	if (Gp_role != GP_ROLE_UTILITY && !IS_SINGLENODE())
 	{
 		if (!CurrentMotionIPCLayer) {
 			ereport(ERROR,
@@ -3478,7 +3487,7 @@ cdb_cleanup(int code pg_attribute_unused(), Datum arg
 		}
 	}
 
-	if (Gp_role != GP_ROLE_UTILITY)
+	if (Gp_role != GP_ROLE_UTILITY && !IS_SINGLENODE())
 	{
 		/* shutdown our listener socket */
 		CurrentMotionIPCLayer->CleanUpMotionLayerIPC();

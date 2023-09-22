@@ -17,6 +17,11 @@ show gp_enable_global_deadlock_detector;
 
 -- 1. The firs part of test is with
 --    gp_enable_global_deadlock_detector off
+--
+--    because local deadlock detector can already detect and handle deadlocks in
+--    singlenode mode, locking is acted as if GDD is enabled to provide better
+--    concurrency, so locks won't be elevated from RowExclusive to Exclusive,
+--    thus the following results are different from cluster mode.
 
 -- 1.1 test for heap tables
 create table t_lockmods (c int);

@@ -157,7 +157,7 @@ CreateSharedMemoryAndSemaphores(void)
 		size = add_size(size, LockShmemSize());
 		size = add_size(size, PredicateLockShmemSize());
 
-		if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH)
+		if (IsResQueueEnabled() && (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()))
 		{
 			size = add_size(size, ResSchedulerShmemSize());
 			size = add_size(size, ResPortalIncrementShmemSize());

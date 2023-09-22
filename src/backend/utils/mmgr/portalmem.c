@@ -228,7 +228,7 @@ CreatePortal(const char *name, bool allowDup, bool dupSilent)
 	if (IsResQueueEnabled())
 	{
 		/* Only QD needs to set portal id if have enabled resource scheduling */
-		if (Gp_role == GP_ROLE_DISPATCH)
+		if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
 		{
 			portal->portalId = ResCreatePortalId(name);
 			portal->queueId = GetResQueueId();

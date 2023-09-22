@@ -96,6 +96,7 @@ bool 		optimizer_enabled = false;
 bool 		resgroup_enabled = false;
 bool 		external_fts = false;
 bool 		force_parallel_enabled = false;
+bool        is_singlenode_mode = false;
 static _stringlist *loadextension = NULL;
 static int	max_connections = 0;
 static int	max_concurrent_tests = 0;
@@ -151,7 +152,7 @@ static bool detectCgroupMountPoint(char *cgdir, int len);
 static bool should_exclude_test(char *test);
 static int run_diff(const char *cmd, const char *filename);
 
-static char *content_zero_hostname = NULL;
+static char *content_zero_hostname = NULL; // hostname of content 0 in cluster mode but of content 1 in singlenode mode
 static char *get_host_name(int16 contentid, char role);
 static bool cluster_healthy(void);
 
@@ -940,7 +941,7 @@ convert_sourcefiles_in(const char *source_subdir, const char *dest_dir, const ch
 static void
 convert_sourcefiles(void)
 {
-	content_zero_hostname = get_host_name(0, 'p');
+	content_zero_hostname = get_host_name(is_singlenode_mode ? -1 : 0, 'p');
 
 	convert_sourcefiles_in("input", outputdir, "sql", "sql");
 	convert_sourcefiles_in("output", outputdir, "expected", "out");
@@ -1351,7 +1352,6 @@ initialize_environment(void)
 			printf(_("(using postmaster on Unix socket, default port)\n"));
 	}
 
-	convert_sourcefiles();
 	load_resultmap();
 }
 
@@ -3395,10 +3395,16 @@ regression_main(int argc, char *argv[],
 	resgroup_enabled = check_feature_status("gp_resource_manager", "group",
 			"Resource group enabled. Using resource group answer files whenever possible",
 			"Resource group disabled. Using default answer files");
+	is_singlenode_mode = check_feature_status("gp_internal_is_singlenode", "on",
+            "Single node (no segments) mode enabled. Replace '@hostname@' by hostname of contentid = -1",
+            "Normal cluster detected. Replace '@hostname@' by hostname of contentid = 0");
 
 	force_parallel_enabled = check_feature_status("force_parallel_mode", "on",
 			"Force parallel mode enabled. Result diffs will ignore plans.",
 			"Force parallel mode disabled. Using default answer files");
+
+	convert_sourcefiles();
+
 	/*
 	 * Ready to run the tests
 	 */

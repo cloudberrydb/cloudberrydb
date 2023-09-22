@@ -1637,7 +1637,7 @@ vac_update_relstats(Relation relation,
 	 * Because there's a chance that we overwrite perfectly good stats with zeros
 	 */
 
-	bool ifUpdate = ! (IS_QUERY_DISPATCHER() && Gp_role == GP_ROLE_UTILITY);
+	bool ifUpdate = ! (IS_QUERY_DISPATCHER() && Gp_role == GP_ROLE_UTILITY) || IS_SINGLENODE();
 
 	dirty = false;
 	if (pgcform->relpages != (int32) num_pages && ifUpdate)
@@ -2672,7 +2672,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	 * Don't dispatch auto-vacuum. Each segment performs auto-vacuum as per
 	 * its own need.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && !recursing &&
+	if ((Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && !recursing &&
 		!IsAutoVacuumWorkerProcess() &&
 		(!is_appendoptimized || ao_vacuum_phase))
 	{
@@ -2680,15 +2680,25 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		char	   *vsubtype;
 
 		/*
+		 * SINGLENODE_FIXME:
+		 * From my understanding, we don't need to open a transaction here since
+		 * we don't need to dispatch.
+		 * However, there is some assert below to make sure we are in a transaction.
+		 * Make it more reasonable in the future.
+		 */
+		/*
 		 * Dispatching needs a transaction. At least in some error scenarios,
 		 * it uses TopTransactionContext to store stuff.
 		 */
 		StartTransactionCommand();
 		PushActiveSnapshot(GetTransactionSnapshot());
 
-		stats_context.updated_stats = NIL;
-		dispatchVacuum(params, relid, &stats_context);
-		vac_update_relstats_from_list(&stats_context);
+		if (Gp_role == GP_ROLE_DISPATCH)
+		{
+			stats_context.updated_stats = NIL;
+			dispatchVacuum(params, relid, &stats_context);
+			vac_update_relstats_from_list(&stats_context);
+		}
 
 		/* Also update pg_stat_last_operation */
 		if (IsAutoVacuumWorkerProcess())
@@ -3096,7 +3106,7 @@ vacuum_combine_stats(VacuumStatsContext *stats_context, CdbPgResults *cdb_pgresu
 	 *
 	 */
 	for(result_no = 0; result_no < cdb_pgresults->numResults; result_no++)
-	{		
+	{
 		struct pg_result *pgresult = cdb_pgresults->pg_results[result_no];
 
 		if (pgresult->extras == NULL || pgresult->extraType != PGExtraTypeVacuumStats)
@@ -3120,7 +3130,7 @@ vacuum_combine_stats(VacuumStatsContext *stats_context, CdbPgResults *cdb_pgresu
 				tmp_stats_combo->rel_pages += pgclass_stats_combo->rel_pages;
 				tmp_stats_combo->rel_tuples += pgclass_stats_combo->rel_tuples;
 				tmp_stats_combo->relallvisible += pgclass_stats_combo->relallvisible;
-				/* 
+				/*
 				 * Accumulate the number of QEs, assuming sending only once
 				 * per QE for each relid in the VACUUM scenario.
 				 */
@@ -3240,20 +3250,20 @@ vac_update_relstats_from_list(VacuumStatsContext *stats_context)
 			 * while others may not. Only the QEs which dropping dead segfiles could go to
 			 * vacuum indexes path then update and send the statistics to QD, QD just
 			 * collected part of QEs' stats hence should not be as the final result to
-			 * overwrite QD's stats. 
-			 * 
+			 * overwrite QD's stats.
+			 *
 			 * One may think why not having the stats update only happens in the final
 			 * phase (POST_CLEANUP_PHASE), yes that's an alternative to get a final stats
-			 * accurately for QD. 
-			 * 
+			 * accurately for QD.
+			 *
 			 * Given the AO/CO VACUUM is a multi-phases process which may have an interval
 			 * between each phase. In real circumstance, concurrent VACUUM is mostly a heavy
 			 * job and this interval could get longer than normal cases, hence it seems
-			 * better to collect and update QD's stats timely. So current strategy is, QD always 
+			 * better to collect and update QD's stats timely. So current strategy is, QD always
 			 * collect QE's stats across phases, once we collected the expected number (means
 			 * same as dispatched QE number) of QE's stats, we update QD's stats subsequently,
 			 * instead of updating at the final phase.
-			 * 
+			 *
 			 * Set the logging level to LOG as skipping sending stats here is not considered as
 			 * a real issue, displaying it in log may be helpful to hint.
 			 */
@@ -3332,7 +3342,7 @@ vacuumStatement_IsTemporary(Relation onerel)
  * GPDB: Check whether needs to update or send stats from QE to QD.
  * This is GPDB specific check in vacuum-index scenario for collecting
  * QEs' stats (such as index->relpages and index->reltuples) on QD.
- * GPDB needs accumulating all QEs' stats for updating corresponding 
+ * GPDB needs accumulating all QEs' stats for updating corresponding
  * statistics into QD's pg_class correctly. So if current instance is
  * acting as QE, it should scan and send its current stats to QD instead
  * of skipping them for cost saving.

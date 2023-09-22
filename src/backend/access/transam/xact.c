@@ -2824,7 +2824,7 @@ CommitTransaction(void)
 	AtEOXact_SharedSnapshot();
 
 	/* Perform any Resource Scheduler commit procesing. */
-	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled())
+	if ((Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && IsResQueueEnabled())
 		AtCommit_ResScheduler();
 
 	/*
@@ -3026,7 +3026,7 @@ CommitTransaction(void)
 	 * worry about aborts as we release session level locks automatically during
 	 * an abort as opposed to a commit.
 	 */
-	if(Gp_role == GP_ROLE_DISPATCH)
+	if(Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
 		MoveDbSessionLockRelease();
 
 	AtCommit_TablespaceStorage();
@@ -3555,7 +3555,7 @@ AbortTransaction(void)
 	AtEOXact_SharedSnapshot();
 
 	/* Perform any Resource Scheduler abort procesing. */
-	if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled())
+	if ((Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && IsResQueueEnabled())
 		AtAbort_ResScheduler();
 
 	AtEOXact_DispatchOids(false);
