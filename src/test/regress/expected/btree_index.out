@@ -344,7 +344,7 @@ INSERT INTO btree_stats_tbl VALUES (1, 'aa', 1001, 101), (2, 'bb', 1002, 102);
 SELECT reltuples FROM pg_class WHERE relname='btree_stats_tbl';
  reltuples 
 -----------
-         0
+        -1
 (1 row)
 
 -- inspect the state of the stats on segments
