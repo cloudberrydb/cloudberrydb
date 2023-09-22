@@ -254,7 +254,7 @@ def get_gucs_from_database(gucname):
 
 
 def _print_gucs(gucname, gucs, options):
-    collection = GucCollection()
+    collection = GucCollection(options)
     collection.update_list(gucs)
 
     if _show_all_segment_values_always(options):

@@ -773,6 +773,14 @@ CREATE VIEW pg_stat_sys_tables AS
     WHERE schemaname IN ('pg_catalog', 'information_schema') OR
           schemaname ~ '^pg_toast';
 
+-- In singlenode mode, the result of pg_stat_sys_tables will be messed up,
+-- since we don't have segments.
+-- We create a new view for single node mode.
+CREATE VIEW pg_stat_sys_tables_single_node AS
+    SELECT * FROM pg_stat_all_tables_internal
+    WHERE schemaname IN ('pg_catalog', 'information_schema') OR
+          schemaname ~ '^pg_toast';
+
 CREATE VIEW pg_stat_xact_sys_tables AS
     SELECT * FROM pg_stat_xact_all_tables
     WHERE schemaname IN ('pg_catalog', 'information_schema') OR
@@ -780,6 +788,14 @@ CREATE VIEW pg_stat_xact_sys_tables AS
 
 CREATE VIEW pg_stat_user_tables AS
     SELECT * FROM pg_stat_all_tables
+    WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND
+          schemaname !~ '^pg_toast';
+
+-- In singlenode mode, the result of pg_stat_user_tables will be messed up,
+-- since we don't have segments.
+-- We create a new view for single node mode.
+CREATE VIEW pg_stat_user_tables_single_node AS
+    SELECT * FROM pg_stat_all_tables_internal
     WHERE schemaname NOT IN ('pg_catalog', 'information_schema') AND
           schemaname !~ '^pg_toast';
 

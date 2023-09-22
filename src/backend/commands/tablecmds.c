@@ -2845,7 +2845,8 @@ MergeAttributes(List *schema, List *supers, char relpersistence,
 		 * current transaction, such as being used in some manner by an
 		 * enclosing command.
 		 */
-		if (is_partition && (Gp_role != GP_ROLE_DISPATCH))
+		/* SINGLENODE_FIXME: check and enable partition operations */
+		if (is_partition && (Gp_role != GP_ROLE_DISPATCH && !IS_SINGLENODE()))
 			CheckTableNotInUse(relation, "CREATE TABLE .. PARTITION OF or ALTER TABLE ADD PARTITION"); 
 
 		/*
@@ -5314,6 +5315,12 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			pass = AT_PASS_MISC;
 			break;
 		case AT_SetDistributedBy:	/* SET DISTRIBUTED BY */
+			/* Setting distributed by is meaningless in utility mode. */
+			if (Gp_role == GP_ROLE_UTILITY)
+			{
+				pass = AT_PASS_MISC;
+				break;
+			}
 			ATSimplePermissions(rel, ATT_TABLE);
 
 			if (!recursing) /* MPP-5772, MPP-5784 */
@@ -10465,7 +10472,7 @@ ATAddCheckConstraint(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	 * constraint creation only if there are no children currently.  Error out
 	 * otherwise.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH && children && !recurse)
+	if ((Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_UTILITY) && children && !recurse)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_TABLE_DEFINITION),
 				 errmsg("constraint must be added to child tables too")));
@@ -18775,6 +18782,12 @@ make_distributedby_for_rel(Relation rel)
 	DistributedBy *dist;
 
 	dist = makeNode(DistributedBy);
+
+	if (Gp_role == GP_ROLE_UTILITY)
+	{
+		Assert(policy->ptype == POLICYTYPE_ENTRY);
+		return NULL;
+	}
 
 	Assert(policy->ptype != POLICYTYPE_ENTRY);
 

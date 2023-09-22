@@ -278,6 +278,7 @@
 		"gp_resqueue_priority_sweeper_interval",
 		"gp_retrieve_conn",
 		"gp_role",
+		"gp_internal_is_singlenode",
 		"gp_safefswritesize",
 		"gp_segment_connect_timeout",
 		"gp_segments_for_planner",

@@ -1588,7 +1588,7 @@ AutoVacWorkerMain(int argc, char *argv[])
 	am_autovacuum_worker = true;
 
 	/* MPP-4990: Autovacuum always runs as utility-mode */
-	if (IS_QUERY_DISPATCHER())
+	if (IS_QUERY_DISPATCHER() && !IS_SINGLENODE())
 		Gp_role = GP_ROLE_DISPATCH;
 	else
 		Gp_role = GP_ROLE_UTILITY;

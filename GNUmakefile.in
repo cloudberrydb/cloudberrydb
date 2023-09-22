@@ -126,6 +126,10 @@ distclean maintainer-clean:
 installcheck-resgroup:
 	$(MAKE) -C src/test/isolation2 $@
 
+# Create a demo singlenode deployment.
+create-demo-singlenode:
+	$(MAKE) -C gpAux/gpdemo create-demo-cluster NUM_PRIMARY_MIRROR_PAIRS=0
+
 # Create or destroy a demo cluster.
 create-demo-cluster:
 	$(MAKE) -C gpAux/gpdemo create-demo-cluster

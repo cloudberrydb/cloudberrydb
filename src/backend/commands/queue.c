@@ -938,7 +938,11 @@ CreateQueue(CreateQueueStmt *stmt)
 	 * Create the in-memory resource queue, if resource scheduling is on,
 	 * otherwise don't - and gripe a little about it.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	/*
+	 * SINGLENODE_FIXME: Do we need support resource queue for utility mode. If so,
+	 * what is the semantic? Should it be a global shared one?
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
 	{
 		if (IsResQueueEnabled())
 		{
@@ -1351,7 +1355,7 @@ AlterQueue(AlterQueueStmt *stmt)
 	 * for the in-memory queue.
 	 * otherwise don't - and gripe a little about it.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
 	{
 		if (IsResQueueEnabled())
 		{
@@ -1505,7 +1509,7 @@ DropQueue(DropQueueStmt *stmt)
 	 * If resource scheduling is on, see if we can destroy the in-memory queue.
 	 * otherwise don't - and gripe a little about it.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
 	{
 		if (IsResQueueEnabled())
 		{

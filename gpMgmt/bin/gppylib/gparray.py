@@ -959,6 +959,9 @@ class GpArray:
             if not version.isVersionCurrentRelease():
                 raise Exception("Cannot connect to GPDB version %s from installed version %s"%(version.getVersionRelease(), MAIN_VERSION[0]))
 
+            # Get gp_internal_is_singlenode GUC
+            is_singlenode = dbconn.querySingleton(conn, "SHOW gp_internal_is_singlenode") == "on"
+
             config_rows = dbconn.query(conn, '''
             SELECT dbid, content, role, preferred_role, mode, status,
             hostname, address, port, datadir
@@ -993,6 +996,7 @@ class GpArray:
 
         array = GpArray(segments, origSegments)
         array.__version = version
+        array.is_singlenode = is_singlenode
         array.recoveredSegmentDbids = recoveredSegmentDbids
         array.hasMirrors = hasMirrors
 

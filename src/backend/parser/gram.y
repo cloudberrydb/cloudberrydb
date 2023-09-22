@@ -5780,7 +5780,22 @@ DistributedBy:   DISTRIBUTED BY  '(' distributed_by_list ')'
 			}
 		;
 
-OptDistributedBy:   DistributedBy			{ $$ = $1; }
+OptDistributedBy:   DistributedBy
+			{
+				/*
+				 * In singlenode mode, distributed by clause has no real effect.
+				 * We simply ignore it and issue a warning to ensure compatibility.
+				 */
+				if (IS_SINGLENODE())
+				{
+					ereport(WARNING,
+							(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+								errmsg("DISTRIBUTED BY clause has no effect in singlenode mode")));
+					$$ = NULL;
+				}
+				else
+					$$ = $1;
+			}
 			| /*EMPTY*/								{ $$ = NULL; }
 		;
 
@@ -16919,7 +16934,19 @@ table_value_select_clause:
 		SelectStmt scatter_clause
 		{
 			SelectStmt	*s	 = (SelectStmt *) $1;
-			s->scatterClause = $2;
+			/*
+			 * In singlenode mode, scatter clause has no real effect.
+			 * We simply ignore it and issue a warning to ensure compatibility.
+			 */
+			if (IS_SINGLENODE())
+			{
+				ereport(WARNING,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+							errmsg("SCATTER BY clause has no effect in singlenode mode")));
+				s->scatterClause = NIL;
+			}
+			else
+				s->scatterClause = $2;
 			$$ = (Node *) s;
 		}
   		;

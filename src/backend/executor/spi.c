@@ -2899,7 +2899,7 @@ _SPI_pquery(QueryDesc *queryDesc, bool fire_triggers, uint64 tcount)
 			 * If the Active portal already hold a lock on the queue, we cannot
 			 * acquire it again.
 			 */
-			if (Gp_role == GP_ROLE_DISPATCH && IsResQueueEnabled() && !superuser())
+			if ((Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && IsResQueueEnabled() && !superuser())
 			{
 				/*
 				 * This is SELECT, so we should have planTree anyway.

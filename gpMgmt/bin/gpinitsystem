@@ -62,6 +62,7 @@ LOG_STATEMENT_TXT="#log_statement ="
 LISTEN_ADR_TXT="listen_addresses"
 CONTENT_ID_TXT="gp_contentid"
 DBID_TXT="gp_dbid"
+SINGLENODE_MODE_TXT="gp_internal_is_singlenode"
 INIT_STANDBY_PROG=$GPINITSTANDBY
 QE_MIRROR_ARRAY=""
 GP_PASSWD=gparray
@@ -89,6 +90,7 @@ declare -a FTS_HOST_MACHINE_LIST
 USE_EXTERNAL_FTS=0
 DEMO_CLUSTER_HOST="127.0.0.1"
 ETCD_EXIST="false"
+SINGLENODE_MODE="false"
 
 #******************************************************************************
 # DCA Specific Variables
@@ -334,7 +336,7 @@ CHK_PARAMS () {
 		if [ x"" = x"$SEG_PREFIX" ]; then
 			ERROR_EXIT "[FATAL]:-SEG_PREFIX not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file."
 		fi
-		if [ x"" = x"$DATA_DIRECTORY" ]; then
+		if [ "$SINGLENODE_MODE" == "false" ] && [ x"" = x"$DATA_DIRECTORY" ]; then
 			ERROR_EXIT "[FATAL]:-DATA_DIRECTORY not specified in $CLUSTER_CONFIG file, is this the correct instance configuration file."
 		fi
 
@@ -411,7 +413,7 @@ CHK_PARAMS () {
 
 		# DATA_DIRECTORY
 		((QE_PRIMARY_COUNT=${#DATA_DIRECTORY[@]}))
-		if [ $QE_PRIMARY_COUNT -eq 0 ]; then
+		if [ "$SINGLENODE_MODE" == "false" ] && [ $QE_PRIMARY_COUNT -eq 0 ]; then
 			ERROR_EXIT "[FATAL]:-Number of primary directories 0 (zero)"
 		fi
 
@@ -469,7 +471,7 @@ CHK_PARAMS () {
 		fi
 		# Number of QE hosts in this configuration
 		((NUM_QES=${#MACHINE_LIST[*]}))
-		if [ $NUM_QES -eq 0 ]; then
+		if [ "$SINGLENODE_MODE" == "false" ] && [ $NUM_QES -eq 0 ]; then
 			ERROR_EXIT "[FATAL]:-Number of Segment instances's 0 (zero)"
 		else
 			LOG_MSG "[INFO]:-Number of segment instance hosts = $NUM_QES"
@@ -1029,7 +1031,7 @@ CREATE_QE_ARRAY () {
 		LAST_HOST=$QE_HOST
 	done
 	if [ $DEBUG_LEVEL -eq 0 ] && [ x"" != x"$VERBOSE" ];then $ECHO;fi
-	if [ $MIRRORING -eq 1 ] ;then
+	if [ $MIRRORING -eq 1 ] && [ "$SINGLENODE_MODE" == "false" ] ;then
 		((MIRROR_OFFSET=$MIRROR_PORT_BASE-$PORT_BASE))
 		if [ $MIRROR_TYPE -eq 1 ];then
 			CREATE_SPREAD_MIRROR_ARRAY
@@ -1330,6 +1332,12 @@ CREATE_QD_DB () {
 		SED_PG_CONF ${GP_DIR}/$PG_INTERNAL_CONF "$DBID_TXT" "gp_dbid=$GP_DBID" 0
 		ERROR_CHK $? "set gp_dbid=$GP_DBID in ${GP_DIR}/$PG_INTERNAL_CONF" 1
 
+		if [ "$SINGLENODE_MODE" == "true" ]; then
+				LOG_MSG "[INFO]:-Setting Coordinator singlenodeMode"
+				SED_PG_CONF ${GP_DIR}/$PG_CONF "$SINGLENODE_MODE_TXT" "gp_internal_is_singlenode=on" 0
+				ERROR_CHK $? "set gp_internal_is_singlenode=on in ${GP_DIR}/$PG_CONF" 1
+		fi
+
 		if [  x"" != x"$PG_CONF_ADD_FILE" ]; then
 				LOG_MSG "[INFO]:-Processing additional configuration parameters"
 				for NEW_PARAM in `$CAT $PG_CONF_ADD_FILE|$TR -s ' '|$TR -d ' '|$GREP -v "^#"`
@@ -1368,7 +1376,9 @@ CREATE_QD_DB () {
 		fi
 		UPDATE_GPCONFIG $GP_PORT $GP_DBID $GP_CONTENT $GP_HOSTNAME $GP_HOSTADDRESS $GP_PORT $GP_DIR p
 		SET_LOCALE_VARS_BASED_ON_COORDINATOR
-		LOAD_QE_SYSTEM_DATA $DEFAULTDB
+		if [ "$SINGLENODE_MODE" == "false" ]; then
+			LOAD_QE_SYSTEM_DATA $DEFAULTDB
+		fi
 		SET_VAR $QD_PRIMARY_ARRAY
 		LOG_MSG "[INFO]:-End Function $FUNCNAME"
 }
@@ -2128,6 +2138,7 @@ while getopts ":vaqe:c:l:-:p:m:h:n:s:P:S:b:DB:I:O:E:F:M:U:T:C" opt
 					NAME=${OPTARG%%=*}
 					VAL=${OPTARG#*=}
 					case $NAME in
+						"singlenodeMode"  ) SINGLENODE_MODE=$VAL ;;
 						"max_connections" ) COORDINATOR_MAX_CONNECT=$VAL ;;
 						"shared_buffers"  ) NEW_BUFFERS=$VAL ;;
 						"su_password"     ) GP_PASSWD=$VAL ;;
@@ -2199,7 +2210,10 @@ else
     CHK_MULTI_HOME
     CREATE_QE_ARRAY
     CHK_QE_ARRAY_PORT_RANGES
-    CHK_QES
+
+    if [ "$SINGLENODE_MODE" == "false" ] ; then
+        CHK_QES
+    fi
 
     if [ x"" != x"$OUTPUT_CONFIG" ] ; then
         DUMP_OUTPUT_CONFIG
@@ -2207,7 +2221,9 @@ else
     fi
 
     DISPLAY_CONFIG
-    ARRAY_REORDER
+	if [ "$SINGLENODE_MODE" == "false" ] ; then
+		ARRAY_REORDER
+	fi
 fi
 
 if [ $USE_EXTERNAL_FTS -ne 0 ];then
@@ -2224,19 +2240,21 @@ CREATE_QD_DB
 
 CREATE_ARRAY_SORTED_ON_CONTENT_ID
 
-CREATE_SEGMENT IS_PRIMARY
-if [ $REPORT_FAIL -ne 0 ];then
-	LOG_MSG "[FATAL]:-Errors generated from parallel processes" 1
-	LOG_MSG "[INFO]:-Dumped contents of status file to the log file" 1
-	ERROR_EXIT "[FATAL]:-Failures detected, see log file $LOG_FILE for more detail"
-else
-	LOG_MSG "[INFO]:-Removing back out file" 1
-	$RM -f $BACKOUT_FILE
-	LOG_MSG "[INFO]:-No errors generated from parallel processes" 1
-fi
+if [ "$SINGLENODE_MODE" == "false" ]; then
+	CREATE_SEGMENT IS_PRIMARY
+	if [ $REPORT_FAIL -ne 0 ];then
+		LOG_MSG "[FATAL]:-Errors generated from parallel processes" 1
+		LOG_MSG "[INFO]:-Dumped contents of status file to the log file" 1
+		ERROR_EXIT "[FATAL]:-Failures detected, see log file $LOG_FILE for more detail"
+	else
+		LOG_MSG "[INFO]:-Removing back out file" 1
+		$RM -f $BACKOUT_FILE
+		LOG_MSG "[INFO]:-No errors generated from parallel processes" 1
+	fi
 
-if [ -f $DCA_VERSION_FILE ]; then
-	SET_DCA_CONFIG_SETTINGS	
+	if [ -f $DCA_VERSION_FILE ]; then
+		SET_DCA_CONFIG_SETTINGS
+	fi
 fi
 
 if [ $USE_EXTERNAL_FTS -ne 0 ];then
