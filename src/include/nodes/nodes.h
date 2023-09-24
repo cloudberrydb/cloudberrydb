@@ -651,6 +651,8 @@ typedef enum NodeTag
 	T_ExternalScanInfo,			/* in access/plannodes.h */
 	T_CookedConstraint,			/* in catalog/heap.h */
 
+	T_AlterTableExecuteStmt,
+
     /* CDB: tags for random other stuff */
     T_CdbExplain_StatHdr = 1000,             /* in cdb/cdbexplain.c */
 	T_GpPolicy,					/* in catalog/gp_distribution_policy.h */

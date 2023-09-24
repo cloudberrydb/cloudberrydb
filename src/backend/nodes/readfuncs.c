@@ -3138,6 +3138,8 @@ parseNodeString(void)
 		return_value = _readAlterTableStmt();
 	else if (MATCHX("ALTERTYPESTMT"))
 		return_value = _readAlterTypeStmt();
+	else if (MATCHX("ALTERTABLEEXECUTESTMT"))
+		return_value = _readAlterTableExecuteStmt();
 	else if (MATCHX("CDBPROCESS"))
 		return_value = _readCdbProcess();
 	else if (MATCHX("CLUSTERSTMT"))

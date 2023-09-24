@@ -2028,6 +2028,18 @@ typedef struct AlterTableStmt
 	bool	   is_internal;     /* GPDB: set for internal generated alter table stmt */
 } AlterTableStmt;
 
+typedef struct AlterTableExecuteStmt
+{
+	NodeTag type;
+	Oid relid;
+	Oid newTmpOid;
+	List *newvals;
+	int	rewrite;
+	int lockmode;
+	TupleDescNode *oldDescNode;
+} AlterTableExecuteStmt;
+
+
 typedef enum AlterTableType
 {
 	AT_AddColumn,				/* add column */

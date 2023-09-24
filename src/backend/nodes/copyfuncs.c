@@ -3915,6 +3915,19 @@ _copyAlterTableCmd(const AlterTableCmd *from)
 	return newnode;
 }
 
+static AlterTableExecuteStmt *
+_copyAlterTableExecuteStmt(const AlterTableExecuteStmt *from)
+{
+	AlterTableExecuteStmt *newnode = makeNode(AlterTableExecuteStmt);
+	COPY_SCALAR_FIELD(relid);
+	COPY_SCALAR_FIELD(newTmpOid);
+	COPY_NODE_FIELD(newvals);
+	COPY_SCALAR_FIELD(rewrite);
+	COPY_SCALAR_FIELD(lockmode);
+	COPY_NODE_FIELD(oldDescNode);
+	return newnode;
+}
+
 static AlterCollationStmt *
 _copyAlterCollationStmt(const AlterCollationStmt *from)
 {
@@ -6473,6 +6486,9 @@ copyObjectImpl(const void *from)
 			break;
 		case T_AlterTableCmd:
 			retval = _copyAlterTableCmd(from);
+			break;
+		case T_AlterTableExecuteStmt:
+			retval = _copyAlterTableExecuteStmt(from);
 			break;
 		case T_AlterCollationStmt:
 			retval = _copyAlterCollationStmt(from);

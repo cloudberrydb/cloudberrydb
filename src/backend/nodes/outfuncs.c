@@ -3268,6 +3268,7 @@ _outQuery(StringInfo str, const Query *node)
 			case T_TruncateStmt:
 			case T_AlterTableStmt:
 			case T_AlterTableCmd:
+			case T_AlterTableExecuteStmt:
 			case T_ViewStmt:
 			case T_RuleStmt:
 
@@ -4734,6 +4735,9 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_AlterTableCmd:
 				_outAlterTableCmd(str, obj);
+				break;
+			case T_AlterTableExecuteStmt:
+				_outAlterTableExecuteStmt(str, obj);
 				break;
 			case T_AlteredTableInfo:
 				_outAlteredTableInfo(str, obj);

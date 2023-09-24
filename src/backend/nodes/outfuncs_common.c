@@ -709,6 +709,26 @@ _outAlterTableCmd(StringInfo str, const AlterTableCmd *node)
 }
 
 static void
+_outAlterTableExecuteStmt(StringInfo str, const AlterTableExecuteStmt *node)
+{
+	ListCell   *lc;
+
+	WRITE_NODE_TYPE("ALTERTABLEEXECUTESTMT");
+
+	WRITE_OID_FIELD(relid);
+	WRITE_OID_FIELD(newTmpOid);
+	foreach(lc, node->newvals)
+	{
+		NewColumnValue *e = (NewColumnValue *) lfirst(lc);
+		e->type = T_NewColumnValue;
+	}
+	WRITE_NODE_FIELD(newvals);
+	WRITE_INT_FIELD(rewrite);
+	WRITE_INT_FIELD(lockmode);
+	WRITE_NODE_FIELD(oldDescNode);
+}
+
+static void
 wrapStringList(List *list)
 {
 	ListCell *lc;

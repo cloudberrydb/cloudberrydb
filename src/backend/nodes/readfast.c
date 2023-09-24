@@ -2224,6 +2224,9 @@ readNodeBinary(void)
 			case T_AlterTableCmd:
 				return_value = _readAlterTableCmd();
 				break;
+			case T_AlterTableExecuteStmt:
+				return_value = _readAlterTableExecuteStmt();
+				break;
 			case T_AlteredTableInfo:
 				return_value = _readAlteredTableInfo();
 				break;

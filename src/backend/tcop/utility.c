@@ -181,6 +181,7 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_AlterTableMoveAllStmt:
 		case T_AlterTableSpaceOptionsStmt:
 		case T_AlterTableStmt:
+		case T_AlterTableExecuteStmt:
 		case T_AlterTypeStmt:
 		case T_AlterUserMappingStmt:
 		case T_CommentStmt:
@@ -1652,6 +1653,9 @@ ProcessUtilitySlow(ParseState *pstate,
 
 				/* ALTER TABLE stashes commands internally */
 				commandCollected = true;
+				break;
+
+			case T_AlterTableExecuteStmt:
 				break;
 
 			case T_AlterDomainStmt:
@@ -3184,6 +3188,9 @@ CreateCommandTag(Node *parsetree)
 			tag = AlterObjectTypeCommandTag(((AlterTableStmt *) parsetree)->objtype);
 			break;
 
+		case T_AlterTableExecuteStmt:
+			tag = CMDTAG_ALTER_TABLE_EXECUTE;
+			break;
 		case T_AlterDomainStmt:
 			tag = CMDTAG_ALTER_DOMAIN;
 			break;

@@ -460,6 +460,21 @@ _readAlterTableStmt(void)
 	READ_DONE();
 }
 
+static AlterTableExecuteStmt *
+_readAlterTableExecuteStmt(void)
+{
+	READ_LOCALS(AlterTableExecuteStmt);
+
+	READ_OID_FIELD(relid);
+	READ_OID_FIELD(newTmpOid);
+	READ_NODE_FIELD(newvals);
+	READ_INT_FIELD(rewrite);
+	READ_INT_FIELD(lockmode);
+	READ_NODE_FIELD(oldDescNode);
+
+	READ_DONE();
+}
+
 static AlterTypeStmt *
 _readAlterTypeStmt(void)
 {

@@ -1319,6 +1319,9 @@ _outNode(StringInfo str, void *obj)
 			case T_AlterTableCmd:
 				_outAlterTableCmd(str, obj);
 				break;
+			case T_AlterTableExecuteStmt:
+				_outAlterTableExecuteStmt(str, obj);
+				break;
 			case T_AlteredTableInfo:
 				_outAlteredTableInfo(str, obj);
 				break;
