@@ -1927,10 +1927,21 @@ acquire_inherited_sample_rows(Relation onerel, int elevel,
 	 */
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		return acquire_sample_rows_dispatcher(onerel,
+		int flags = 0;
+		VacuumStmt *stmt = makeNode(VacuumStmt);
+		stmt->is_vacuumcmd = false;
+		if(CdbNeedDispatchUtility_hook && !CdbNeedDispatchUtility_hook((Node*)stmt, &flags))
+		{
+			pfree(stmt);
+		}
+		else
+		{
+			pfree(stmt);
+			return acquire_sample_rows_dispatcher(onerel,
 											  true, /* inherited stats */
 											  elevel, rows, targrows,
 											  totalrows, totaldeadrows);
+		}
 	}
 
 	/*
