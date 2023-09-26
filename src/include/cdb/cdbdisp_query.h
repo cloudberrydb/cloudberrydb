@@ -47,7 +47,7 @@ typedef bool (*CdbNeedDispatchCommand_hook_type) (const char *strCommand,
 												int *flags,
 												List *segments,
 												struct CdbPgResults *cdb_pgresults);
-extern PGDLLIMPORT CdbNeedDispatchCommand_hook_type CdbNeedDispatchCommand_hook;												
+extern PGDLLIMPORT CdbNeedDispatchCommand_hook_type CdbNeedDispatchCommand_hook;
 
 typedef bool (*CdbNeedDispatchUtility_hook_type) (struct Node *stmt, int *flags);
 extern PGDLLIMPORT CdbNeedDispatchUtility_hook_type CdbNeedDispatchUtility_hook;

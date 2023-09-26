@@ -41,6 +41,10 @@ struct TBMIterateResult;
 struct VacuumParams;
 struct ValidateIndexState;
 
+typedef struct AnalyzeContext{
+	int32		targrows;
+} AnalyzeContext;
+
 /*
  * Bitmask values for the flags argument to the scan_begin callback.
  */
@@ -302,12 +306,15 @@ typedef struct TableAmRoutine
 	 * the scan's behaviour (ScanOptions's SO_ALLOW_*, several may be
 	 * specified, an AM may ignore unsupported ones) and whether the snapshot
 	 * needs to be deallocated at scan_end (ScanOptions's SO_TEMP_SNAPSHOT).
+	 * 
+	 * 
+	 * `ctx` is a context pointer that can be used to pass information from analyze or other scan types.
 	 */
 	TableScanDesc (*scan_begin) (Relation rel,
 								 Snapshot snapshot,
 								 int nkeys, struct ScanKeyData *key,
 								 ParallelTableScanDesc pscan,
-								 uint32 flags);
+								 uint32 flags, void * ctx);
 
 	/*
 	 * GPDB: Extract columns for scan from targetlist and quals. This is mainly
@@ -909,7 +916,7 @@ table_beginscan(Relation rel, Snapshot snapshot,
 	uint32		flags = SO_TYPE_SEQSCAN |
 	SO_ALLOW_STRAT | SO_ALLOW_SYNC | SO_ALLOW_PAGEMODE;
 
-	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags, NULL);
 }
 
 /*
@@ -952,7 +959,7 @@ table_beginscan_es(Relation relation, Snapshot snapshot, ParallelTableScanDesc p
 
 	return relation->rd_tableam->scan_begin(relation, snapshot,
 									   0, NULL,
-									   parallel_scan, flags);
+									   parallel_scan, flags, NULL);
 }
 
 /*
@@ -981,7 +988,7 @@ table_beginscan_strat(Relation rel, Snapshot snapshot,
 	if (allow_sync)
 		flags |= SO_ALLOW_SYNC;
 
-	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags, NULL);
 }
 
 /*
@@ -996,7 +1003,7 @@ table_beginscan_bm(Relation rel, Snapshot snapshot,
 {
 	uint32		flags = SO_TYPE_BITMAPSCAN | SO_ALLOW_PAGEMODE;
 
-	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags, NULL);
 }
 
 /*
@@ -1018,7 +1025,7 @@ table_beginscan_bm_ecs(Relation rel, Snapshot snapshot,
 															 bitmapqualorig,
 															 flags);
 
-	return rel->rd_tableam->scan_begin(rel, snapshot, 0, NULL, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, snapshot, 0, NULL, NULL, flags, NULL);
 }
 
 /*
@@ -1043,7 +1050,7 @@ table_beginscan_sampling(Relation rel, Snapshot snapshot,
 	if (allow_pagemode)
 		flags |= SO_ALLOW_PAGEMODE;
 
-	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, snapshot, nkeys, key, NULL, flags, NULL);
 }
 
 /*
@@ -1056,7 +1063,7 @@ table_beginscan_tid(Relation rel, Snapshot snapshot)
 {
 	uint32		flags = SO_TYPE_TIDSCAN;
 
-	return rel->rd_tableam->scan_begin(rel, snapshot, 0, NULL, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, snapshot, 0, NULL, NULL, flags, NULL);
 }
 
 /*
@@ -1065,11 +1072,11 @@ table_beginscan_tid(Relation rel, Snapshot snapshot)
  * the same data structure although the behavior is rather different.
  */
 static inline TableScanDesc
-table_beginscan_analyze(Relation rel)
+table_beginscan_analyze(Relation rel, AnalyzeContext *ctx)
 {
 	uint32		flags = SO_TYPE_ANALYZE;
 
-	return rel->rd_tableam->scan_begin(rel, NULL, 0, NULL, NULL, flags);
+	return rel->rd_tableam->scan_begin(rel, NULL, 0, NULL, NULL, flags, (void*) ctx);
 }
 
 /*
@@ -1149,7 +1156,7 @@ table_beginscan_tidrange(Relation rel, Snapshot snapshot,
 	TableScanDesc sscan;
 	uint32		flags = SO_TYPE_TIDRANGESCAN | SO_ALLOW_PAGEMODE;
 
-	sscan = rel->rd_tableam->scan_begin(rel, snapshot, 0, NULL, NULL, flags);
+	sscan = rel->rd_tableam->scan_begin(rel, snapshot, 0, NULL, NULL, flags, NULL);
 
 	/* Set the range of TIDs to scan */
 	sscan->rs_rd->rd_tableam->scan_set_tidrange(sscan, mintid, maxtid);
