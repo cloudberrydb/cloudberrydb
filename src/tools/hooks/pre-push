@@ -1,0 +1,29 @@
+#!/bin/bash
+# A hook for the reminder before pushing to the original repo.
+
+remote="$1"
+url="$2"
+
+z40=0000000000000000000000000000000000000000
+
+function user_input_to_proceed() {
+  read -p 'Proceed with push? (y/N): ' yesno </dev/tty
+  case "$yesno" in
+    y|Y|yes|Yes|YES) ;;
+    *) echo "Aborting push" >&2; exit 1 ;;
+  esac
+}
+
+while read local_ref local_sha remote_ref remote_sha ; do
+  if [ "$local_sha" = $z40 ] ; then
+    # Handle delete
+    continue
+  fi
+  if [ "$remote_sha" = $z40 ] ; then
+    # New branch
+    continue
+  fi
+  # Update to existing branch, examine new commits
+  range="$remote_sha..$local_sha"
+
+exit 0
