@@ -16,6 +16,8 @@ try:
     import shutil
     import sys
     import tempfile
+    import base64
+    import pickle
 
     from optparse import Option, OptionParser
     from gppylib.gpparseopts import OptParser, OptChecker
@@ -101,7 +103,7 @@ def add_parameter(filename, name, value):
         for line in lines:
             outfile.write(line)
             new_lines = new_lines + 1
-        outfile.write(name + '=' + value + os.linesep)
+        outfile.write(name + '=' + pickle.loads(base64.urlsafe_b64decode(value)) + os.linesep)
         new_lines = new_lines + 1
 
     if new_lines == len(lines) + 1:
@@ -122,7 +124,7 @@ def main():
     if options.get_parameter:
         try:
             value = get_parameter(options.file, options.get_parameter)
-            sys.stdout.write(value)
+            sys.stdout.write(base64.urlsafe_b64encode(pickle.dumps(value)).decode())
             return
         except Exception as err:
             sys.stderr.write("Failed to get value for parameter '%s' in file %s due to: %s" % (
