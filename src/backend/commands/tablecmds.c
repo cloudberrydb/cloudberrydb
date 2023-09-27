@@ -4551,6 +4551,30 @@ AlterTable(AlterTableStmt *stmt, LOCKMODE lockmode,
 		CheckTableNotInUse(rel, "ALTER TABLE");
 
 	ATController(stmt, rel, stmt->cmds, stmt->relation->inh, lockmode, context);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		/*
+		 * If a transaction is in progress, kill any idle QE backends. They
+		 * might be running with obsolete information in their relcaches. Any
+		 * relcache invalidation events sent by the ALTER TABLE subcommands
+		 * won't be sent to the other backend until the end of transaction, and
+		 * we don't have any better way of invalidating them. The primary
+		 * writer backends should be up-to-date, because we have used that to
+		 * execute all the subcommands, so they should've created local
+		 * invalidation events for themselves.
+		 */
+		if (IsTransactionBlock())
+			DisconnectAndDestroyUnusedQEs();
+
+		if (stmt->cmds && ENABLE_DISPATCH())
+			CdbDispatchUtilityStatement((Node *) stmt,
+										DF_CANCEL_ON_ERROR |
+										DF_WITH_SNAPSHOT |
+										DF_NEED_TWO_PHASE,
+										GetAssignedOidsForDispatch(),
+										NULL);
+	}
 }
 
 /*
