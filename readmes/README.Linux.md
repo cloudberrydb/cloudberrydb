@@ -1,20 +1,26 @@
-# Set up development environment for Cloudberry Database on Linux
+# Compile and Install Cloudberry Database on Linux
 
-This document shares how to set up the development environments on different Linux systems (CentOS 7, RHEL, and Ubuntu). Before you start to [explore the Cloudberry Database](https://github.com/cloudberrydb/cloudberrydb/tree/main/readmes), follow this document to download and install the required tools and dependencies, and create demo user.
+This document shares how to compile and install Cloudberry Database on Linux systems (CentOS 7, RHEL, and Ubuntu). Note that this document is for developers to try out Cloudberry Database in a single-node environments. DO NOT use this document for production environments.
 
 Take the following steps to set up the development environments:
 
 1. [Clone GitHub repo](#step-1-clone-github-repo).
 2. [Install dependencies](#step-2-install-dependencies).
-3. [Perform prerequisite platform tasks](#step-3-prerequisite-platform-tasks).
+3. [Perform prerequisite platform tasks](#step-3-perform-prerequisite-platform-tasks).
+4. [Build Cloudberry Database](#step-4-build-cloudberry-database).
+5. [Verify the cluster](#step-5-verify-the-cluster).
 
 ## Step 1. Clone GitHub repo
 
-Clone the GitHub repository `cloudberrydb/cloudberrydb` to the target machine using `git clone git@github.com:cloudberrydb/cloudberrydb.git`.
+Clone the GitHub repository `cloudberrydb/cloudberrydb` to the target machine:
+
+```shell
+git clone https://github.com/cloudberrydb/cloudberrydb.git
+```
 
 ## Step 2. Install dependencies
 
-Install dependencies according to your operating systems:
+Enter the repository and install dependencies according to your operating systems:
 
 - [For CentOS 7](#for-centos-7)
 - [For RHEL 7 and 8](#for-rhel-7-and-8)
@@ -27,24 +33,27 @@ The following dependencies work on CentOS 7. For other CentOS versions, these st
 1. Run the Bash script `README.CentOS.bash` in the `readmes` directory of the `cloudberrydb/cloudberrydb` repository. To run this script, password is required. Then, some required dependencies will be automatically downloaded.
 
     ```bash
+    cd cloudberrydb/readmes
     ./README.CentOS.bash
     ```
 
-2. Update the GNU Compiler Collection (GCC) to version `devtoolset-10` to support C++ 14.
+2. Install additional packages required for configurations.
 
     ```bash
-    yum install centos-release-scl
-    yum -y install devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-binutils
-    scl enable devtoolset-10 bash
-    source /opt/rh/devtoolset-10/enable
+    yum -y install R apr apr-devel apr-util automake autoconf bash bison bison-devel bzip2 bzip2-devel centos-release-scl curl flex flex-devel gcc gcc-c++ git gdb iproute krb5-devel less libcurl libcurl-devel libevent libevent-devel libxml2 libxml2-devel libyaml libzstd-devel libzstd make openldap openssh openssh-clients openssh-server openssl openssl-devel openssl-libs perl python3-devel readline readline-devel rsync sed sudo tar vim wget which xerces-c-devel zip zlib && \
+    yum -y install epel-release
     ```
 
-3. Install additional packages required for some configurations.
+3. Update the GNU Compiler Collection (GCC) to version `devtoolset-10` to support C++ 14.
 
     ```bash
-    yum -y install R apr apr-devel apr-util automake autoconf bash bison bison-devel bzip2 bzip2-devel centos-release-scl curl flex flex-devel gcc gcc-c++ git gdb ibxml2 iproute krb5 krb5-devel less libcurl libcurl-devel libevent libevent-devel libxml2 libxml2-devel libyaml libzstd-devel libzstd.x86_64 make openldap openssh-client openssl openssl-devel openssl-libs perl python3-devel readline readline-devel rsync sed sudo tar vim wget which xerces-c-devel zip zip-devel zlib && \
-    yum -y install epel-release.noarch && \
-    yum -y install libzstd
+    yum install centos-release-scl 
+    yum -y install devtoolset-10-gcc devtoolset-10-gcc-c++ devtoolset-10-binutils 
+    scl enable devtoolset-10 bash 
+    source /opt/rh/devtoolset-10/enable 
+    echo "source /opt/rh/devtoolset-10/enable" >> /etc/bashrc
+    source /etc/bashrc
+    gcc -v
     ```
 
 4. Link cmake3 to cmake:
@@ -75,10 +84,7 @@ The following dependencies work on CentOS 7. For other CentOS versions, these st
     - For RHEL 8:
 
         ```bash
-        # First install the epel extension for RHEL 8.
-        # This makes sure that git and make is installed.
-        sudo yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
-        
+        # This makes sure that git and make is installed.       
         # Then run the README.CentOS.bash script in the `readmes` directory.
         ./README.CentOS.bash
         ```
@@ -88,9 +94,6 @@ The following dependencies work on CentOS 7. For other CentOS versions, these st
         ```bash
         # First install the epel extension for RHEL 7.
         # This makes sure that git and make is installed.
-        sudo yum install -y http://dl.fedoraproject.org/pub/epel/7/x86_64/e/epel-release-7-9.noarch.rpm
-        
-        # Then run the README.CentOS.bash script in the `readmes` directory.
         ./README.CentOS.bash
         ```
 
@@ -103,10 +106,9 @@ The following dependencies work on CentOS 7. For other CentOS versions, these st
     sudo ./README.Ubuntu.bash
     ```
 
-   > **Note:**
-   >
-   > - When you run the `README.Ubuntu.bash` script for dependencies, you will be asked to configure `realm` for kerberos. You can enter any realm, because this is just for testing, and during testing, it will reconfigure a local server/client. If you want to skip this manual configuration, run `export DEBIAN_FRONTEND=noninteractive`.
-   > - If you fail to download packages, we recommend that you can try another one software source for Ubuntu.
+    > [!Note]
+    > - When you run the `README.Ubuntu.bash` script for dependencies, you will be asked to configure `realm` for kerberos. You can enter any realm, because this is just for testing, and during testing, it will reconfigure a local server/client. If you want to skip this manual configuration, run `export DEBIAN_FRONTEND=noninteractive`.
+    > - If you fail to download packages, we recommend that you can try another one software source for Ubuntu.
 
 2. Install GCC 10. Ubuntu 18.04 and later versions should use GCC 10 or newer:
 
@@ -125,49 +127,118 @@ After you have installed all the dependencies for your operating system, it is t
 1. Make sure that you add `/usr/local/lib` and `/usr/local/lib64` to the `/etc/ld.so.conf` file.
 
     ```bash
-    $ vi /etc/ld.so.conf
+    echo -e "/usr/local/lib \n/usr/local/lib64" >> /etc/ld.so.conf
+    ldconfig
+    ```
+
+2. Create the `gpadmin` user and set up the SSH key. Manually create SSH keys based on different operating systems, so that you can run `ssh localhost` without a password.
+
+    - For CentOS 7:
+
+        ```bash
+        useradd gpadmin  # Creates gpadmin user
+        su - gpadmin  # Uses the gpadmin user
+        ssh-keygen  # Creates SSH key
+        cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+        chmod 600 ~/.ssh/authorized_keys
+        exit
+        ```
+
+    - For Ubuntu:
+
+        ```bash
+        useradd -r -m -s /bin/bash gpadmin  # Creates gpadmin user
+        su - gpadmin  # Uses the gpadmin user
+        ssh-keygen  # Creates SSH key
+        cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+        chmod 600 ~/.ssh/authorized_keys 
+        exit
+        ```
+
+## Step 4. Build Cloudberry Database
+
+After you have installed all the dependencies and performed the prerequisite platform tasks, you can start to build Cloudberry Database. Run the following commands in sequence.
+
+1. Configure the build environment. Enter the `cloudberrydb` directory and run the `configure` script.
+
+    ```bash
+    cd cloudberrydb
+    ./configure --with-perl --with-python --with-libxml --with-gssapi --prefix=/usr/local/cloudberrydb
+    ```
+
+    > [!Note]
+    > CloudberryDB is built with GPORCA by default. If you want to build CBDB without GPORCA, add the `--disable-orca` flag in the `./configure` command.
+    >
+    > ```bash
+    > ./configure --disable-orca --with-perl --with-python --with-libxml --prefix=/usr/local/cloudberrydb
+    > ```
+
+2. Compile the code and install the database.
+
+    ```bash
+    make -j8
+    make -j8 install
+    ```
+
+3. Bring in the Greenplum environment for your running shell.
+
+    ```bash
+    cd ..
+    cp -r cloudberrydb/ /home/gpadmin/
+    cd /home/gpadmin/
+    chown -R gpadmin:gpadmin cloudberrydb/
+    su - gpadmin
+    cd cloudberrydb/
+    source /usr/local/cloudberrydb/greenplum_path.sh
+    ```
+
+5. Start the demo cluster.
+
+    ```bash
+    scl enable devtoolset-10 bash 
+    source /opt/rh/devtoolset-10/enable 
+    make create-demo-cluster
+    ```
+
+6. Prepare the test by running the following command. This command will configure the port and environment variables for the test.
+
+    Environment variables such as `PGPORT` and `MASTER_DATA_DIRECTORY` will be configured, which are the default port and the data directory of the master node.
+
+    ```bash
+    source gpAux/gpdemo/gpdemo-env.sh
+    ```
+
+## Step 5. Verify the cluster
+
+1. You can verify whether the cluster has started successfully by running the following command. You might see many active `postgres` processes with ports ranging from `7000` to `7007`.
+
+    ```bash
+    ps -ef | grep postgres
+    ```
     
-    ## Add the following two lines to /etc/ld.so.conf
-    /usr/local/lib
-    /usr/local/lib64
+2. Connect to the Cloudberry Database and see the active segment information by querying the system table `gp_segement_configuration`. For detailed description of this table, see the Greenplum document [here](https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/ref_guide-system_catalogs-gp_segment_configuration.html).
+
+    ```sql
+    $ psql -p 7000 postgres
+    psql (14.4, server 14.4)
+    Type "help" for help.
+    
+    postgres=# select version();
+                                                                                            version                                                                                         
+    -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+    PostgreSQL 14.4 (Cloudberry Database 1.0.0+1c0d6e2224 build dev) on x86_64( GCC 13.2.0) 13.2.0, 64-bit compiled on Sep 22 2023 10:56:01
+    (1 row)
+    
+    postgres=# select * from gp_segment_configuration;
+     dbid | content | role | preferred_role | mode | status | port |  hostname  |  address   |                                   datadir                                    | warehouseid 
+    ------+---------+------+----------------+------+--------+------+------------+------------+------------------------------------------------------------------------------+-------------
+        1 |      -1 | p    | p              | n    | u      | 7000 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/qddir/demoDataDir-1         |           0
+        8 |      -1 | m    | m              | s    | u      | 7001 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/standby                     |           0
+        3 |       1 | p    | p              | s    | u      | 7003 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1        |           0
+        6 |       1 | m    | m              | s    | u      | 7006 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1 |           0
+        2 |       0 | p    | p              | s    | u      | 7002 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0        |           0
+        5 |       0 | m    | m              | s    | u      | 7005 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0 |           0
+        4 |       2 | p    | p              | s    | u      | 7004 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2        |           0
+        7 |       2 | m    | m              | s    | u      | 7007 | i-6wvpa9wt | i-6wvpa9wt | /home/gpadmin/cloudberrydb/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2 |           0
+    (8 rows)
     ```
-
-   Then run the `ldconfig` command.
-
-2. Create the `gpadmin` user and set up the SSH key.
-
-   Manually create SSH keys based on different operating systems, so that you can run `ssh localhost` without a password.
-
-    ```bash
-    ### For CentOS 7
-    useradd gpadmin  # Creates gpadmin user.
-    chown -R gpadmin:gpadmin /cloudberrydb/
-    su - gpadmin  # Uses the gpadmin user.
-    ssh-keygen  # Creates SSH key.
-    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-    chmod 600 ~/.ssh/authorized_keys
-    ```
-
-    ```bash
-    ### For Ubuntu
-    useradd -r -m -s /bin/bash gpadmin  # Creates gpadmin user.
-    chown -R gpadmin:gpadmin /cloudberrydb/
-    su - gpadmin  # Uses the gpadmin user.
-    ssh-keygen  # Creates SSH key.
-    cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
-    chmod 600 ~/.ssh/authorized_keys 
-    ```
-
-3. Verify that you can use SSH to connect to your machine without a password.
-
-    ```bash
-    ssh gpadmin@localhost
-    ```
-
-   or
-
-    ```bash
-    ssh <hostname of your machine>  # e.g., ssh briarwood (You can use `hostname` to get the hostname of your machine.)
-    ```
-
-4. Set up your system configuration by following the installation guide on [README.md](https://github.com/cloudberrydb/cloudberrydb/tree/main/readmes).
