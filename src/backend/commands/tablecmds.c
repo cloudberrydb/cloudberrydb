@@ -344,7 +344,7 @@ static AlterTableCmd *ATParseTransformCmd(List **wqueue, AlteredTableInfo *tab,
 static void ATRewriteTables(AlterTableStmt *parsetree,
 							List **wqueue, LOCKMODE lockmode,
 							AlterTableUtilityContext *context);
-static void ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode);
+void ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode);
 static void ATAocsWriteSegFileNewColumns(
 		AOCSAddColumnDesc idesc, AOCSHeaderScanDesc sdesc,
 		AlteredTableInfo *tab, ExprContext *econtext, TupleTableSlot *slot, const char *relname);
@@ -567,6 +567,7 @@ static bool prebuild_temp_table(Relation rel, RangeVar *tmpname, DistributedBy *
 								char *amname, List *opts,
 								bool isTmpTableAo, bool useExistingColumnAttributes);
 
+ATRewriteTable_hook_type ATRewriteTable_hook = NULL;
 
 /* ----------------------------------------------------------------
  *		DefineRelation
@@ -4550,30 +4551,6 @@ AlterTable(AlterTableStmt *stmt, LOCKMODE lockmode,
 		CheckTableNotInUse(rel, "ALTER TABLE");
 
 	ATController(stmt, rel, stmt->cmds, stmt->relation->inh, lockmode, context);
-
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		/*
-		 * If a transaction is in progress, kill any idle QE backends. They
-		 * might be running with obsolete information in their relcaches. Any
-		 * relcache invalidation events sent by the ALTER TABLE subcommands
-		 * won't be sent to the other backend until the end of transaction, and
-		 * we don't have any better way of invalidating them. The primary
-		 * writer backends should be up-to-date, because we have used that to
-		 * execute all the subcommands, so they should've created local
-		 * invalidation events for themselves.
-		 */
-		if (IsTransactionBlock())
-			DisconnectAndDestroyUnusedQEs();
-
-		if (stmt->cmds && ENABLE_DISPATCH())
-			CdbDispatchUtilityStatement((Node *) stmt,
-										DF_CANCEL_ON_ERROR |
-										DF_WITH_SNAPSHOT |
-										DF_NEED_TWO_PHASE,
-										GetAssignedOidsForDispatch(),
-										NULL);
-	}
 }
 
 /*
@@ -6895,7 +6872,7 @@ ATAocsWriteNewColumns(AlteredTableInfo *tab)
  *
  * OIDNewHeap is InvalidOid if we don't need to rewrite
  */
-static void
+void
 ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 {
 	Relation	oldrel;
@@ -6911,6 +6888,9 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 	BulkInsertState bistate;
 	int			ti_options;
 	ExprState  *partqualstate = NULL;
+
+	if (ATRewriteTable_hook)
+		ATRewriteTable_hook(tab, OIDNewHeap, lockmode);
 
 	/*
 	 * Open the relation(s).  We have surely already locked the existing
