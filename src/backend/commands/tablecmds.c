@@ -344,7 +344,7 @@ static AlterTableCmd *ATParseTransformCmd(List **wqueue, AlteredTableInfo *tab,
 static void ATRewriteTables(AlterTableStmt *parsetree,
 							List **wqueue, LOCKMODE lockmode,
 							AlterTableUtilityContext *context);
-static void ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode);
+void ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode);
 static void ATAocsWriteSegFileNewColumns(
 		AOCSAddColumnDesc idesc, AOCSHeaderScanDesc sdesc,
 		AlteredTableInfo *tab, ExprContext *econtext, TupleTableSlot *slot, const char *relname);
@@ -567,6 +567,7 @@ static bool prebuild_temp_table(Relation rel, RangeVar *tmpname, DistributedBy *
 								char *amname, List *opts,
 								bool isTmpTableAo, bool useExistingColumnAttributes);
 
+ATRewriteTable_hook_type ATRewriteTable_hook = NULL;
 
 /* ----------------------------------------------------------------
  *		DefineRelation
@@ -6895,7 +6896,7 @@ ATAocsWriteNewColumns(AlteredTableInfo *tab)
  *
  * OIDNewHeap is InvalidOid if we don't need to rewrite
  */
-static void
+void
 ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 {
 	Relation	oldrel;
@@ -6911,6 +6912,9 @@ ATRewriteTable(AlteredTableInfo *tab, Oid OIDNewHeap, LOCKMODE lockmode)
 	BulkInsertState bistate;
 	int			ti_options;
 	ExprState  *partqualstate = NULL;
+
+	if (ATRewriteTable_hook)
+		ATRewriteTable_hook(tab, OIDNewHeap, lockmode);
 
 	/*
 	 * Open the relation(s).  We have surely already locked the existing
