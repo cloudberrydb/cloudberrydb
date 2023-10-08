@@ -5669,7 +5669,7 @@ ReleaseCurrentSubTransaction(void)
 
 	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		if (!doDispatchSubtransactionInternalCmd(
+		if (!NotifySubTransaction_hook && !doDispatchSubtransactionInternalCmd(
 			DTX_PROTOCOL_COMMAND_SUBTRANSACTION_RELEASE_INTERNAL))
 		{
 			elog(ERROR,
