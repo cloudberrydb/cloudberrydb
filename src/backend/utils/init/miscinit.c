@@ -1727,7 +1727,7 @@ removeDuplicates(List* elemlist)
 	ListCell *l2;
 	for (i = 0; i < list_length(elemlist); i++)
 	{
-		int found = 0;
+		bool found = false;
 		l = &elemlist->elements[i];
 		char* a = (char*)lfirst(l);
 		for (j = 0; j < list_length(unique_arr); j++)
@@ -1736,7 +1736,7 @@ removeDuplicates(List* elemlist)
 			char* b = (char*)lfirst(l2);
 			if (strcmp(a, b) == 0)
 			{
-				found = 1;
+				found = true;
 				break;
 			}
 		}
