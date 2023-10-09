@@ -1,72 +1,101 @@
-# Contributing
+Cloudberry Database community welcomes contributions from anyone, new
+and experienced! We appreciate your interest in contributing. This
+guide will help you get started with the contribution.
 
-Cloudberry is maintained by a core team of developers with commit rights to the main gpdb repository on GitHub. At the same time, we are very eager to receive contributions from anybody in the wider Cloudberry community. This section covers all you need to know if you want to see your code or documentation changes be added to Cloudberry and appear in the future releases.
+## Code of Conduct
 
-## Getting started
+Everyone who participates in Cloudberry Database, either as a user or
+a contributor, is obliged to follow our community [Code of
+Conduct](./CODE_OF_CONDUCT.md). Every violation against it will be
+reviewed and investigated and will result in a response that is deemed
+necessary and appropriate to the circumstances. The moderator team is
+obligated to maintain confidentiality regarding the reporter of an
+incident.
 
-Cloudberry is developed on GitHub, and anybody wishing to contribute to it will have to have a GitHub account and be familiar with Git tools and workflow. It is also recommend that you follow the developer's mailing list since some of the contributions may generate more detailed discussions there.
+Some behaviors that contribute to creating a positive environment
+include:
 
-Once you have your GitHub account, fork this repository so that you can have your private copy to start hacking on and to use as source of pull requests.
+* Use welcoming and inclusive language.
+* Respect differing viewpoints and experiences.
+* Accept constructive criticism gracefully.
+* Foster what's best for the community.
+* Show empathy for community members.
 
-Anybody contributing to Cloudberry has to be covered by either the Corporate or the Individual Contributor License Agreement. If you have not previously done so, please fill out and submit the Contributor License Agreement. Note that we do allow for really trivial changes to be contributed without a CLA if they fall under the rubric of obvious fixes. However, since our GitHub workflow checks for CLA by default you may find it easier to submit one instead of claiming an "obvious fix" exception.
+## Find a Way to Contribute
 
-## Licensing of Cloudberry contributions
+There are many ways to contribute to Cloudberry Database. Here are
+some ways you need to get started. The most common contributions
+include code, documentation, and community support.
 
-If the contribution you're submitting is original work, you can assume that Pivotal will release it as part of an overall Cloudberry release available to the downstream consumers under the Apache License, Version 2.0. However, in addition to that, Pivotal may also decide to release it under a different license (such as PostgreSQL License to the upstream consumers that require it. A typical example here would be Pivotal upstreaming your contribution back to PostgreSQL community (which can be done either verbatim or your contribution being upstreamed as part of the larger changeset).
+You can participate by:
 
-If the contribution you're submitting is NOT original work you have to indicate the name of the license and also make sure that it is similar in terms to the Apache License 2.0. Apache Software Foundation maintains a list of these licenses under Category A. In addition to that, you may be required to make proper attribution in the NOTICE file file similar to these examples.
+* [Contributing code](https://cloudberrydb.org/contribute/code).
+* [Improving documentation](https://cloudberrydb.org/contribute/doc).
+* Helping out in the Slack channels, see [Slack
+  Guide](https://cloudberrydb.org/community/slack)
+* Answering questions on [GitHub
+  Discussions](https://github.com/orgs/cloudberrydb/discussions/categories/q-a).
+* Investigating [GitHub
+  issues](https://github.com/cloudberrydb/cloudberrydb/issues).
+* [Reporting a new
+  bug](https://github.com/cloudberrydb/cloudberrydb/issues/new/choose).
+* [Sharing ideas for new
+  features](https://github.com/orgs/cloudberrydb/discussions/new?category=ideas-feature-requests).
+* Helping review [Pull
+  Requests](https://github.com/cloudberrydb/cloudberrydb/pulls) or
+  [Proposals](https://github.com/orgs/cloudberrydb/discussions/categories/proposal).
+* Proposing your proposal, see [Proposal Guide](https://cloudberrydb.org/contribute/proposal).
+* [Reporting security issues](./SECURITY.md).
+* Testing code, testing releases.
+* Creating educational content (Blog posts, tutorials, videos, etc.)
+* Spreading the word about Cloudberry Database on social media(eg,
+  Twitter, LinkedIn).
+* ...
+* More things to make Cloudberry Database better.
 
-Finally, keep in mind that it is NEVER a good idea to remove licensing headers from the work that is not your original one. Even if you are using parts of the file that originally had a licensing header at the top you should err on the side of preserving it. As always, if you are not quite sure about the licensing implications of your contributions, feel free to reach out to us on the developer mailing list.
+## Getting Help
 
-## Coding guidelines
+Feel free to reach out to us in [Slack `#dev`
+channels](https://cloudberrydb.org/community/slack) or [GitHub
+Discussions](https://github.com/cloudberrydb/cloudberrydb/discussions)
+when your contribution is blocked, especially when making your first
+contribution. Don't be shy, we're happy to help.
 
-Your chances of getting feedback and seeing your code merged into the project greatly depend on how granular your changes are. If you happen to have a bigger change in mind, we highly recommend engaging on the developer's mailing list first and sharing your proposal with us before you spend a lot of time writing code. Even when your proposal gets validated by the community, we still recommend doing the actual work as a series of small, self-contained commits. This makes the reviewer's job much easier and increases the timeliness of feedback.
+As the next-generation unified database, Cloudberry Database cannot
+grow without the support from the community. Hope to make our mission
+with you!
 
-When it comes to C and C++ parts of Cloudberry, we try to follow PostgreSQL Coding Conventions. In addition to that:
+## Benefits of Contribution
 
-For C and perl code, please run pgindent if necessary as specified in [README.gpdb](/src/tools/pgindent/README.gpdb).
-All Python code must pass Pylint.
-All Go code must be formatted according to gofmt.
-We recommend using `git diff --color` when reviewing your changes so that you don't have any spurious whitespace issues in the code that you submit.
+There are many reasons to contribute to Cloudberry Database and open
+source projects in general. Here are some of the benefits of
+participating:
 
-All new functionality that is contributed to Cloudberry should be covered by regression tests that are contributed alongside it. If you are uncertain on how to test or document your work, please raise the question on the gpdb-dev mailing list and the developer community will do its best to help you.
+* Growing your network. Working with Cloudberry Database in open
+source can help connect you with people working on similar things. You
+can get help or give help, and you might even make a real-life
+acquaintance!
 
-At the very minimum you should always be running make installcheck-world to make sure that you're not breaking anything.
+* Improving your skills. When you work on a Cloudberry Database issue
+or Pull Request, inevitably you'll learn more about how something
+works in our project; either by asking questions and gathering info or
+by digging deeper into the code yourself. There’s a skill-building
+benefit to contributing to open source projects.
 
-## Changes applicable to upstream PostgreSQL
+* Becoming an expert. You might start new to a project like Cloudberry
+Database or PostgreSQL, and by building things and opening issues when
+you encounter a new challenge or a bug, you’ll learn a ton over
+time. You could find your knowledge of said project has grown so much
+that you’ve become an expert.
 
-If the change you're working on touches functionality that is common between PostgreSQL and Cloudberry, you may be asked to forward-port it to PostgreSQL. This is not only so that we keep reducing the delta between the two projects, but also so that any change that is relevant to PostgreSQL can benefit from a much broader review of the upstream PostgreSQL community. In general, it is a good idea to keep both code bases handy so you can be sure whether your changes may need to be forward-ported.
+* Speaking at conferences or more community events. With those skills
+you’ve earned yourself working in open source, you can let other
+people hear from you, and build your professional reputation through
+these community activities.
 
-## Submission timing
+* Getting free swag! By participating in GitHub and other community
+channels, you can become eligible for free swag that the Cloudberry
+Database team offers as a way to say thank you.
 
-To improve the odds of the right discussion of your patch or idea happening, pay attention to what the community work cycle is. For example, if you send in a brand new idea in the beta phase of a release, we may defer review or target its inclusion for a later version. Feel free to ask on the mailing list to learn more about the Cloudberry release policy and timing.
-
-## Patch submission
-
-Once you are ready to share your work with the Cloudberry core team and the rest of the Cloudberry community, you should push all the commits to a branch in your own repository forked from the official Cloudberry and send us a pull request.
-
-For now, we require all pull requests to be submitted against the main master branch, but over time, once there are many supported open source releases of Cloudberry in the wild, you may decide to submit your pull requests against an active release branch if the change is only applicable to a given release.
-
-## Validation checks and CI
-
-Once you submit your pull request, you will immediately see a number of validation checks performed by our automated CI pipelines. There also will be a CLA check telling you whether your CLA was recognized. If any of these checks fails, you will need to update your pull request to take care of the issue. Pull requests with failed validation checks are very unlikely to receive any further peer review from the community members.
-
-Keep in mind that the most common reason for a failed CLA check is a mismatch between an email on file and an email recorded in the commits submitted as part of the pull request.
-
-If you cannot figure out why a certain validation check failed, feel free to ask on the developer's mailing list, but make sure to include a direct link to a pull request in your email.
-
-## Patch review
-
-A submitted pull request with passing validation checks is assumed to be available for peer review. Peer review is the process that ensures that contributions to Cloudberry are of high quality and align well with the road map and community expectations. Every member of the Cloudberry community is encouraged to review pull requests and provide feedback. Since you don't have to be a core team member to be able to do that, we recommend following a stream of pull reviews to anybody who's interested in becoming a long-term contributor to Cloudberry. As Linus would say "given enough eyeballs, all bugs are shallow".
-
-One outcome of the peer review could be a consensus that you need to modify your pull request in certain ways. GitHub allows you to push additional commits into a branch from which a pull request was sent. Those additional commits will be then visible to all of the reviewers.
-
-A peer review converges when it receives at least one +1 and no -1s votes from the participants. At that point you should expect one of the core team members to pull your changes into the project.
-
-Cloudberry prides itself on being a collaborative, consensus-driven environment. We do not believe in vetoes and any -1 vote casted as part of the peer review has to have a detailed technical explanation of what's wrong with the change. Should a strong disagreement arise it may be advisable to take the matter onto the mailing list since it allows for a more natural flow of the conversation.
-
-At any time during the patch review, you may experience delays based on the availability of reviewers and core team members. Please be patient. That being said, don't get discouraged either. If you're not getting expected feedback for a few days add a comment asking for updates on the pull request itself or send an email to the mailing list.
-
-## Direct commits to the repository
-
-On occasion you will see core team members committing directly to the repository without going through the pull request workflow. This is reserved for small changes only and the rule of thumb we use is this: if the change touches any functionality that may result in a test failure, then it has to go through a pull request workflow. If, on the other hand, the change is in the non-functional part of the code base (such as fixing a typo inside of a comment block) core team members can decide to just commit to the repository directly.
+There are undoubtedly more benefits than those listed here. Hope you
+enjoy your contribution to the Cloudberry Database community!
