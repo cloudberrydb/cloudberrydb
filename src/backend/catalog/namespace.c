@@ -171,7 +171,7 @@ static bool baseTempCreationPending = false;
 static Oid	namespaceUser = InvalidOid;
 
 /* The above four values are valid only if baseSearchPathValid */
-static bool baseSearchPathValid = true;
+bool baseSearchPathValid = true;
 
 /* Override requests are remembered in a stack of OverrideStackEntry structs */
 
@@ -199,11 +199,11 @@ static List *overrideStack = NIL;
  * we either haven't made the TEMP namespace yet, or have successfully
  * committed its creation, depending on whether myTempNamespace is valid.
  */
-static Oid	myTempNamespace = InvalidOid;
+Oid	myTempNamespace = InvalidOid;
 
-static Oid	myTempToastNamespace = InvalidOid;
+Oid	myTempToastNamespace = InvalidOid;
 
-static SubTransactionId myTempNamespaceSubID = InvalidSubTransactionId;
+SubTransactionId myTempNamespaceSubID = InvalidSubTransactionId;
 
 /*
  * This is the user's textual search path specification --- it's the value
