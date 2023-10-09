@@ -3,6 +3,7 @@
  * cdbdispatchresult.h
  * routines for processing dispatch results.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2005-2008, Greenplum inc
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
@@ -29,6 +30,7 @@ typedef struct CdbPgResults
 {
 	struct pg_result **pg_results;
 	int numResults;
+	int numDispatches; /* the number of dispatched QE, from CdbDispatchResults.resultCount */
 }CdbPgResults;
 
 /*

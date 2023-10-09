@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * sm4.c
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * IDENTIFICATION
+ *          contrib/pgcrypto/sm4.c
+ *
+ *-------------------------------------------------------------------------
+ */
 #include "postgres.h"
 #include "sm4.h"
 #include "px.h"

@@ -1,3 +1,14 @@
+/*-------------------------------------------------------------------------
+ *
+ * gp_replica_check.c
+ *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
+ *
+ * IDENTIFICATION
+ *          gpcontrib/gp_replica_check/gp_replica_check.c
+ *
+ *-------------------------------------------------------------------------
+ */
 #include "postgres.h"
 
 #include "access/heapam.h"
@@ -57,7 +68,7 @@ extern Datum gp_replica_check(PG_FUNCTION_ARGS);
 
 typedef struct RelfilenodeEntry
 {
-    RelFileNodeId relfilenode;
+	RelFileNodeId relfilenode;
 	Oid relam;
 	int relkind;
 	char relname[NAMEDATALEN];

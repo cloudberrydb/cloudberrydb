@@ -94,7 +94,7 @@ cbdb_log(cbdb_log_level level, const char* file, int line, const char* format, .
     gettimeofday(&tv, NULL);
     ptm = localtime(&tv.tv_sec);
     strftime(date, sizeof(date), "%Y-%m-%d %H:%M:%S", ptm);
-    snprintf(timestamp, MAX_TIMESTAMP_LENGTH, "%s.%06ld", date, tv.tv_usec);
+    snprintf(timestamp, MAX_TIMESTAMP_LENGTH, "%s.%06ld", date, (long) tv.tv_usec);
 
     // record timestamp, file name, and line num
     len = snprintf(NULL, 0, fmt, timestamp, s_level[level], file, line);

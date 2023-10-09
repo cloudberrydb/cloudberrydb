@@ -69,23 +69,23 @@ SELECT explain_memoize('
 SELECT COUNT(*),AVG(t2.unique1) FROM tenk1 t1,
 LATERAL (SELECT t2.unique1 FROM tenk1 t2 WHERE t1.twenty = t2.unique1) t2
 WHERE t1.unique1 < 1000;', false);
-                                            explain_memoize                                             
---------------------------------------------------------------------------------------------------------
+                                            explain_memoize                                            
+-------------------------------------------------------------------------------------------------------
  Finalize Aggregate (actual rows=1 loops=N)
    ->  Gather Motion 3:1  (slice1; segments: 3) (actual rows=3 loops=N)
          ->  Partial Aggregate (actual rows=1 loops=N)
-               ->  Merge Join (actual rows=400 loops=N)
-                     Merge Cond: (t2.unique1 = t1.twenty)
-                     ->  Index Only Scan using tenk1_unique1 on tenk1 t2 (actual rows=9 loops=N)
-                           Heap Fetches: N
-                     ->  Sort (actual rows=400 loops=N)
-                           Sort Key: t1.twenty
-                           Sort Method:  quicksort  Memory: NkB
-                           ->  Redistribute Motion 3:3  (slice2; segments: 3) (actual rows=400 loops=N)
-                                 Hash Key: t1.twenty
-                                 ->  Seq Scan on tenk1 t1 (actual rows=340 loops=N)
-                                       Filter: (unique1 < 1000)
-                                       Rows Removed by Filter: 2906
+               ->  Nested Loop (actual rows=400 loops=N)
+                     ->  Redistribute Motion 3:3  (slice2; segments: 3) (actual rows=400 loops=N)
+                           Hash Key: t1.twenty
+                           ->  Seq Scan on tenk1 t1 (actual rows=340 loops=N)
+                                 Filter: (unique1 < 1000)
+                                 Rows Removed by Filter: 2906
+                     ->  Memoize (actual rows=1 loops=N)
+                           Cache Key: t1.twenty
+                           Cache Mode: logical
+                           ->  Index Only Scan using tenk1_unique1 on tenk1 t2 (actual rows=1 loops=N)
+                                 Index Cond: (unique1 = t1.twenty)
+                                 Heap Fetches: N
  Optimizer: Postgres query optimizer
 (16 rows)
 
@@ -276,10 +276,12 @@ WHERE t1.unique1 < 1000;
                      ->  Hash
                            ->  Redistribute Motion 3:3  (slice2; segments: 3)
                                  Hash Key: t1.twenty
-                                 ->  Seq Scan on tenk1 t1
-                                       Filter: (unique1 < 1000)
+                                 ->  Bitmap Heap Scan on tenk1 t1
+                                       Recheck Cond: (unique1 < 1000)
+                                       ->  Bitmap Index Scan on tenk1_unique1
+                                             Index Cond: (unique1 < 1000)
  Optimizer: Postgres query optimizer
-(12 rows)
+(14 rows)
 
 -- And ensure the parallel plan gives us the correct results.
 SELECT COUNT(*),AVG(t2.unique1) FROM tenk1 t1,

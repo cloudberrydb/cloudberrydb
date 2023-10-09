@@ -86,11 +86,15 @@
 #include "storage/lmgr.h"
 #include "utils/guc.h"
 
+#ifdef USE_ORCA
+extern void InitGPOPT();
+#endif
 
 /* GUC parameters */
 double		cursor_tuple_fraction = DEFAULT_CURSOR_TUPLE_FRACTION;
 int			force_parallel_mode = FORCE_PARALLEL_OFF;
 bool		parallel_leader_participation = false;
+bool		optimizer_init = false;
 
 /* Hook for plugins to get control in planner() */
 planner_hook_type planner_hook = NULL;
@@ -366,6 +370,20 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 		(cursorOptions & CURSOR_OPT_SKIP_FOREIGN_PARTITIONS) == 0 &&
 		(cursorOptions & CURSOR_OPT_PARALLEL_RETRIEVE) == 0)
 	{
+
+#ifdef USE_ORCA
+		if (!optimizer_init) {
+			/* Initialize GPOPT */
+			OptimizerMemoryContext = AllocSetContextCreate(TopMemoryContext,
+														"GPORCA Top-level Memory Context",
+														ALLOCSET_DEFAULT_MINSIZE,
+														ALLOCSET_DEFAULT_INITSIZE,
+														ALLOCSET_DEFAULT_MAXSIZE);
+			InitGPOPT();
+			optimizer_init = true;
+		}
+#endif
+
 		if (gp_log_optimization_time)
 			INSTR_TIME_SET_CURRENT(starttime);
 

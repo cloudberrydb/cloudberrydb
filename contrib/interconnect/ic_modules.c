@@ -1,12 +1,12 @@
 /*-------------------------------------------------------------------------
- * interconnect.c
+ * ic_modules.c
  *	   Interconnect code shared between UDP, and TCP IPC Layers.
  *
  * Portions Copyright (c) 2023, HashData Technology Limited.
  *
  *
  * IDENTIFICATION
- *	    contrib/interconnect/interconnect.c
+ *	    contrib/interconnect/ic_modules.c
  *
  *-------------------------------------------------------------------------
  */

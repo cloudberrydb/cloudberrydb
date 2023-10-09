@@ -36,6 +36,7 @@
 #include "utils/memdebug.h"
 #include "utils/memutils.h"
 #include "utils/snapmgr.h"
+#include "commands/vacuum.h"
 
 static BTMetaPageData *_bt_getmeta(Relation rel, Buffer metabuf);
 static void _bt_log_reuse_page(Relation rel, BlockNumber blkno,
@@ -185,6 +186,10 @@ _bt_vacuum_needs_cleanup(Relation rel)
 	BTMetaPageData *metad;
 	uint32		btm_version;
 	BlockNumber prev_num_delpages;
+
+	/* Return true directly on QE for stats collection from QD. */
+	if (gp_vacuum_needs_update_stats())
+		return true;
 
 	/*
 	 * Copy details from metapage to local variables quickly.

@@ -19,6 +19,9 @@ fi
 #CMDPATH is the list of locations to search for commands, in precedence order
 declare -a CMDPATH
 CMDPATH=(/usr/kerberos/bin /usr/sfw/bin /opt/sfw/bin /usr/local/bin /bin /usr/bin /sbin /usr/sbin /usr/ucb /sw/bin)
+if hash brew 2> /dev/null; then
+  CMDPATH+=("$(brew --prefix)/bin")
+fi
 
 #GPPATH is the list of possible locations for the Cloudberry Database binaries, in precedence order
 declare -a GPPATH
@@ -900,7 +903,7 @@ GET_PG_PID_ACTIVE () {
 			if [ $RETVAL -ne 0 ];then
 				PID=0
 			else
-				PORT_ARRAY=($( REMOTE_EXECUTE_AND_GET_OUTPUT $HOST $SS -an 2>/dev/null |$AWK '{for (i =1; i<=NF ; i++) if ($i==".s.PGSQL.${PORT}") print $i}'|$AWK -F"." '{print $NF}'|$SORT -u))
+				PORT_ARRAY=($( REMOTE_EXECUTE_AND_GET_OUTPUT $HOST "$SS -an 2>/dev/null |$AWK '{for (i =1; i<=NF ; i++) if (\$i==\".s.PGSQL.${PORT}\") print \$i}'|$AWK -F\".\" '{print \$NF}'|$SORT -u"))
 				for P_CHK in ${PORT_ARRAY[@]}
 				do
 					if [ $P_CHK -eq $PORT ];then  PG_LOCK_NETSTAT=$PORT;fi

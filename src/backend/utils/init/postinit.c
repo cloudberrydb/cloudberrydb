@@ -676,17 +676,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 	/* Initialize memory protection */
 	GPMemoryProtect_Init();
 
-#ifdef USE_ORCA
-	/* Initialize GPOPT */
-	OptimizerMemoryContext = AllocSetContextCreate(TopMemoryContext,
-												   "GPORCA Top-level Memory Context",
-												   ALLOCSET_DEFAULT_MINSIZE,
-												   ALLOCSET_DEFAULT_INITSIZE,
-												   ALLOCSET_DEFAULT_MAXSIZE);
 
-	if (!bootstrap && Gp_role == GP_ROLE_DISPATCH)
-		InitGPOPT();
-#endif
 
 	/*
 	 * Initialize my entry in the shared-invalidation manager's array of

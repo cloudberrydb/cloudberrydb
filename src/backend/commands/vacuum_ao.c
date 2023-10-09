@@ -145,7 +145,7 @@
 
 
 static void vacuum_appendonly_index(Relation indexRelation,
-									double rel_tuple_count,
+									Relation aoRelation,
 									Bitmapset *dead_segs,
 									int elevel,
 									BufferAccessStrategy bstrategy);
@@ -491,7 +491,10 @@ vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs
 		{
 			for (i = 0; i < nindexes; i++)
 			{
-				scan_index(Irel[i], aoRelation , elevel, bstrategy);
+				scan_index(Irel[i],
+						   aoRelation,
+						   elevel,
+						   bstrategy);
 			}
 		}
 		else
@@ -499,7 +502,7 @@ vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs
 			for (i = 0; i < nindexes; i++)
 			{
 				vacuum_appendonly_index(Irel[i],
-										aoRelation->rd_rel->reltuples,
+										aoRelation,
 										dead_segs,
 										elevel,
 										bstrategy);
@@ -516,11 +519,10 @@ vacuum_appendonly_indexes(Relation aoRelation, int options, Bitmapset *dead_segs
  *
  * This is called after an append-only segment file compaction to move
  * all tuples from the compacted segment files.
- * The segmentFileList is an
  */
 static void
 vacuum_appendonly_index(Relation indexRelation,
-						double rel_tuple_count,
+						Relation aoRelation,
 						Bitmapset *dead_segs,
 						int elevel,
 						BufferAccessStrategy bstrategy)
@@ -534,8 +536,14 @@ vacuum_appendonly_index(Relation indexRelation,
 	pg_rusage_init(&ru0);
 
 	ivinfo.index = indexRelation;
+	ivinfo.analyze_only = false;
 	ivinfo.message_level = elevel;
-	ivinfo.num_heap_tuples = rel_tuple_count;
+	/* 
+	 * We can only provide the AO rel's reltuples as an estimate
+	 * (similar to heapam. See: lazy_vacuum_index()).
+	 */
+	ivinfo.num_heap_tuples = aoRelation->rd_rel->reltuples;
+	ivinfo.estimated_count = true;
 	ivinfo.strategy = bstrategy;
 
 	/* Do bulk deletion */
@@ -680,9 +688,7 @@ vacuum_appendonly_fill_stats(Relation aorel, Snapshot snapshot, int elevel,
  * We use this when we have no deletions to do.
  */
 void
-scan_index(Relation indrel,
-		   Relation aorel,
-		   int elevel, BufferAccessStrategy vac_strategy)
+scan_index(Relation indrel, Relation aorel, int elevel, BufferAccessStrategy vac_strategy)
 {
 	IndexBulkDeleteResult *stats;
 	IndexVacuumInfo ivinfo;
@@ -692,9 +698,13 @@ scan_index(Relation indrel,
 
 	ivinfo.index = indrel;
 	ivinfo.analyze_only = false;
-	ivinfo.estimated_count = false;
 	ivinfo.message_level = elevel;
+	/* 
+	 * We can only provide the AO rel's reltuples as an estimate
+	 * (similar to heapam. See: lazy_vacuum_index()).
+	 */
 	ivinfo.num_heap_tuples = aorel->rd_rel->reltuples;
+	ivinfo.estimated_count = true;
 	ivinfo.strategy = vac_strategy;
 
 
