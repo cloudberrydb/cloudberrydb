@@ -807,10 +807,40 @@ void
 LockWarehouse(Oid warehouseOid, LOCKMODE lockmode)
 {
 	LOCKTAG		tag;
+	LOCALLOCK  *locallock;
+	LockAcquireResult	lockResult;
 
 	SET_LOCKTAG_WAREHOUSE(tag, warehouseOid);
 
-	(void) LockAcquire(&tag, lockmode, true, false);
+	lockResult = LockAcquireExtended(&tag, lockmode, true, true, true, &locallock);
+
+	/*
+	 * Now that we have the lock, check for invalidation messages;
+	 */
+	if (lockResult != LOCKACQUIRE_ALREADY_CLEAR)
+	{
+		AcceptInvalidationMessages();
+		MarkLockClear(locallock);
+	}
+}
+
+LockAcquireResult
+LockWarehouseNoWait(Oid warehouseOid, LOCKMODE lockmode)
+{
+	LOCKTAG 	tag;
+	LockAcquireResult	lockResult;
+
+	SET_LOCKTAG_WAREHOUSE(tag, warehouseOid);
+
+	lockResult = LockAcquire(&tag, lockmode, true, true);
+
+	/*
+	 * Now that we have the lock, check for invalidation messages;
+	 */
+	if (lockResult != LOCKACQUIRE_ALREADY_HELD)
+		AcceptInvalidationMessages();
+
+	return lockResult;
 }
 
 void

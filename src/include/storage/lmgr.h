@@ -123,5 +123,6 @@ extern void GxactLockTableWait(DistributedTransactionId xid);
 
 /* Lock a warehouse */
 extern void LockWarehouse(Oid warehouseOid, LOCKMODE lockmode);
+extern LockAcquireResult LockWarehouseNoWait(Oid warehouseOid, LOCKMODE lockmode);
 extern void UnlockWarehouse(Oid warehouseOid, LOCKMODE lockmode);
 #endif							/* LMGR_H */
