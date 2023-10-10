@@ -9,8 +9,9 @@
  */
 CATALOG(gp_warehouse,8690,GpWarehouseRelationId) BKI_SHARED_RELATION
 {
-    Oid			oid;			/* oid */
-    text        warehouse_name; /* warehouse name */
+    Oid		oid		BKI_FORCE_NOT_NULL;	/* oid */
+    int32	warehouse_size;				/* warehouse size */
+    text	warehouse_name	BKI_FORCE_NOT_NULL;	/* warehouse name */
 } FormData_gp_warehouse;
 
 typedef FormData_gp_warehouse *Form_gp_warehouse;
