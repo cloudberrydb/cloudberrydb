@@ -61,6 +61,12 @@
 #define CACHE_elog(...)
 #endif
 
+/* Hook for plugins to get control in SearchCatCache */
+SearchCatCache_hook_type SearchCatCache_hook = NULL;
+
+/* Hook for plugins to get control in ReleaseCatCache */
+ReleaseCatCache_hook_type ReleaseCatCache_hook = NULL;
+
 /* Cache management header --- pointer is NULL until created */
 static CatCacheHeader *CacheHdr = NULL;
 
@@ -89,7 +95,6 @@ static void CatCachePrintStats(int code, Datum arg);
 #endif
 static void CatCacheRemoveCTup(CatCache *cache, CatCTup *ct);
 static void CatCacheRemoveCList(CatCache *cache, CatCList *cl);
-static void CatalogCacheInitializeCache(CatCache *cache);
 static CatCTup *CatalogCacheCreateEntry(CatCache *cache, HeapTuple ntp,
 										Datum *arguments,
 										uint32 hashValue, Index hashIndex,
@@ -920,7 +925,7 @@ do { \
 #define CatalogCacheInitializeCache_DEBUG2
 #endif
 
-static void
+void
 CatalogCacheInitializeCache(CatCache *cache)
 {
 	Relation	relation;
@@ -1081,7 +1086,7 @@ InitCatCachePhase2(CatCache *cache, bool touch_index)
  *		authentication even if we don't yet have relcache entries for those
  *		catalogs' indexes.
  */
-static bool
+bool
 IndexScanOK(CatCache *cache, ScanKey cur_skey)
 {
 	switch (cache->id)
@@ -1267,6 +1272,9 @@ SearchCatCacheInternal(CatCache *cache,
 	Assert(IsTransactionState());
 
 	Assert(cache->cc_nkeys == nkeys);
+
+	if (SearchCatCache_hook)
+		return (*SearchCatCache_hook)(cache, nkeys, v1, v2, v3, v4);
 
 	/*
 	 * one-time startup overhead for each cache
@@ -1504,6 +1512,9 @@ SearchCatCacheMiss(CatCache *cache,
 void
 ReleaseCatCache(HeapTuple tuple)
 {
+	if (ReleaseCatCache_hook)
+		return (*ReleaseCatCache_hook)(tuple);
+
 	CatCTup    *ct = (CatCTup *) (((char *) tuple) -
 								  offsetof(CatCTup, tuple));
 
