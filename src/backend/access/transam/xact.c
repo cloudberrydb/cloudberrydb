@@ -95,6 +95,9 @@
 #include "utils/vmem_tracker.h"
 #include "cdb/cdbdisp.h"
 #include "postmaster/autovacuum.h"
+#include "utils/combocid.h"
+
+combocid_hook_type combocid_hook = NULL;
 
 /*
  *	User-tweakable parameters
@@ -1345,6 +1348,11 @@ CommandCounterIncrement(void)
 		 */
 		AtCCI_LocalCache();
 	}
+	
+	/* Add hook for combocid dispatch for QD*/
+	if (combocid_hook)
+		combocid_hook();
+
 }
 
 /*

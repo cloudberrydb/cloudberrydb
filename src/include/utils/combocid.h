@@ -26,4 +26,17 @@ extern void RestoreComboCIDState(char *comboCIDstate);
 extern void SerializeComboCIDState(Size maxsize, char *start_address);
 extern Size EstimateComboCIDStateSpace(void);
 
+/* Key and entry structures for the hash table */
+typedef struct
+{
+	CommandId	cmin;
+	CommandId	cmax;
+} ComboCidKeyData;
+
+typedef ComboCidKeyData *ComboCidKey;
+
+/* Hook for combocid */
+typedef void (*combocid_hook_type) ();
+extern PGDLLIMPORT combocid_hook_type combocid_hook;
+
 #endif							/* COMBOCID_H */

@@ -274,6 +274,7 @@ typedef struct xl_heap_vacuum
 #define XLHL_XMAX_EXCL_LOCK		0x04
 #define XLHL_XMAX_KEYSHR_LOCK	0x08
 #define XLHL_KEYS_UPDATED		0x10
+#define XLHL_COMBOCID			0x20
 
 /* flag bits for xl_heap_lock / xl_heap_lock_updated's flag field */
 #define XLH_LOCK_ALL_FROZEN_CLEARED		0x01

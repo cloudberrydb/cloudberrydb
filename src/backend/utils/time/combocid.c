@@ -62,14 +62,6 @@
 /* Hash table to lookup combo cids by cmin and cmax */
 static HTAB *comboHash = NULL;
 
-/* Key and entry structures for the hash table */
-typedef struct
-{
-	CommandId	cmin;
-	CommandId	cmax;
-} ComboCidKeyData;
-
-typedef ComboCidKeyData *ComboCidKey;
 
 typedef struct
 {
@@ -87,15 +79,15 @@ typedef ComboCidEntryData *ComboCidEntry;
  * An array of cmin,cmax pairs, indexed by combo command id.
  * To convert a combo CID to cmin and cmax, you do a simple array lookup.
  */
-static ComboCidKey comboCids = NULL;
-static int	usedComboCids = 0;	/* number of elements in comboCids */
+ComboCidKey comboCids = NULL;
+int	usedComboCids = 0;	/* number of elements in comboCids */
 static int	sizeComboCids = 0;	/* allocated size of array */
 
 /* Initial size of the array */
 #define CCID_ARRAY_SIZE			100
 
 /* prototypes for internal functions */
-static CommandId GetComboCommandId(CommandId cmin, CommandId cmax);
+CommandId GetComboCommandId(CommandId cmin, CommandId cmax);
 static CommandId PGGetComboCommandId(CommandId cmin, CommandId cmax);
 static CommandId GetRealCmin(CommandId combocid);
 static CommandId GetRealCmax(CommandId combocid);
@@ -227,7 +219,7 @@ AtEOXact_ComboCid(void)
  *
  * We try to reuse old combo command ids when possible.
  */
-static CommandId
+CommandId
 GetComboCommandId(CommandId cmin, CommandId cmax)
 {
 	CommandId	combocid;

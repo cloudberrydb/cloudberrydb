@@ -29,6 +29,8 @@ out_infobits(StringInfo buf, uint8 infobits)
 		appendStringInfoString(buf, "KEYSHR_LOCK ");
 	if (infobits & XLHL_KEYS_UPDATED)
 		appendStringInfoString(buf, "KEYS_UPDATED ");
+	if (infobits & XLHL_COMBOCID)
+		appendStringInfoString(buf, "COMBOCID");
 }
 
 void

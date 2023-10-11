@@ -404,6 +404,13 @@ struct HeapTupleHeaderData
 	(tup)->t_choice.t_heap.t_field3.t_cid \
 )
 
+/* SetCid only set cid but not set HEAP_COMBOCID flag*/
+#define HeapTupleHeaderSetCid(tup, cid) \
+do { \
+	Assert(!((tup)->t_infomask & HEAP_MOVED)); \
+	(tup)->t_choice.t_heap.t_field3.t_cid = (cid); \
+} while (0)
+
 /* SetCmin is reasonably simple since we never need a combo CID */
 #define HeapTupleHeaderSetCmin(tup, cid) \
 do { \
