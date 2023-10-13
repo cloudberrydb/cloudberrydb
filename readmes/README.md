@@ -121,9 +121,6 @@ Cloudberry Database supports Python3 with plpython3u UDF
 
 See [how to enable Python3](../src/pl/plpython/README.md) for details.
 
-## Building Cloudberry Database client tools on Windows
-
-See [Building CBDB client tools on Windows](README.Windows.md) for details.
 
 # Development with Vagrant
 
