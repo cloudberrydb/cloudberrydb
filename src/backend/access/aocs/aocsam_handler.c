@@ -590,12 +590,14 @@ extractcolumns_from_node(Node *expr, bool *cols, AttrNumber natts)
 }
 
 static TableScanDesc
-aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot, ParallelTableScanDesc parallel_scan,
-							  List *targetlist, List *qual,
-							  uint32 flags)
+aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot, int nkeys, struct ScanKeyData *key,
+							  ParallelTableScanDesc parallel_scan,
+							  PlanState *ps, uint32 flags)
 {
 	AOCSScanDesc	aoscan;
 	AttrNumber		natts = RelationGetNumberOfAttributes(rel);
+	List *targetlist = ps->plan->targetlist;
+	List *qual = ps->plan->qual;
 	bool		   *cols;
 	bool			found = false;
 
@@ -619,6 +621,9 @@ aoco_beginscan_extractcolumns(Relation rel, Snapshot snapshot, ParallelTableScan
 							flags);
 
 	pfree(cols);
+
+	if (gp_enable_predicate_pushdown)
+		ps->qual = aocs_predicate_pushdown_prepare(aoscan, qual, ps->qual, ps->ps_ExprContext, ps);
 
 	return (TableScanDesc)aoscan;
 }

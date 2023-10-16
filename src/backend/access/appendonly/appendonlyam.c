@@ -1663,6 +1663,18 @@ appendonly_beginscan(Relation relation,
 	return (TableScanDesc) aoscan;
 }
 
+TableScanDesc
+appendonly_beginscan_extractcolumns(Relation rel, Snapshot snapshot, int nkeys, struct ScanKeyData *key,
+									ParallelTableScanDesc parallel_scan,
+									PlanState *ps, uint32 flags)
+{
+	AppendOnlyScanDesc aoscan;
+	aoscan = (AppendOnlyScanDesc) appendonly_beginscan(rel, snapshot, nkeys, key, parallel_scan, flags);
+	if (gp_enable_predicate_pushdown)
+		ps->qual = appendonly_predicate_pushdown_prepare(aoscan, ps->qual, ps->ps_ExprContext);
+	return (TableScanDesc) aoscan;
+}
+
 /* ----------------
  *		appendonly_rescan		- restart a relation scan
  *
