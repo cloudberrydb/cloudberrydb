@@ -2327,6 +2327,11 @@ static const TableAmRoutine ao_row_methods = {
 
 	.slot_callbacks = appendonly_slot_callbacks,
 
+	/*
+	 * appendonly row table doesn't extract columns, but handles
+	 * predicate pushdown.
+	 */
+	.scan_begin_extractcolumns = appendonly_beginscan_extractcolumns,
 	.scan_begin = appendonly_beginscan,
 	.scan_end = appendonly_endscan,
 	.scan_rescan = appendonly_rescan,

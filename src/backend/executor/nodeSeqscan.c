@@ -100,9 +100,9 @@ SeqNext(SeqScanState *node)
 				/* try parallel mode for AOCO extract columns */
 				scandesc = table_beginscan_es(node->ss.ss_currentRelation,
 											  estate->es_snapshot,
+											  0, NULL,
 											  pscan,
-											  node->ss.ps.plan->targetlist,
-											  node->ss.ps.plan->qual);
+											  &node->ss.ps);
 			}
 			else
 			{
@@ -120,30 +120,10 @@ SeqNext(SeqScanState *node)
 			 */
 			scandesc = table_beginscan_es(node->ss.ss_currentRelation,
 										  estate->es_snapshot,
+										  0, NULL,
 										  NULL,
-										  node->ss.ps.plan->targetlist,
-										  node->ss.ps.plan->qual);
+										  &node->ss.ps);
 			node->ss.ss_currentScanDesc = scandesc;
-		}
-		if (gp_enable_predicate_pushdown)
-		{
-			if (RelationIsAoRows(node->ss.ss_currentRelation))
-			{
-				/* eval predicate push down */
-				node->ss.ps.qual =
-					appendonly_predicate_pushdown_prepare((AppendOnlyScanDesc)node->ss.ss_currentScanDesc,
-														  node->ss.ps.qual,
-														  node->ss.ps.ps_ExprContext);
-			}
-			else if (RelationIsAoCols(node->ss.ss_currentRelation))
-			{
-				node->ss.ps.qual =
-					aocs_predicate_pushdown_prepare((AOCSScanDesc)node->ss.ss_currentScanDesc,
-													node->ss.ps.plan->qual,
-													node->ss.ps.qual,
-													node->ss.ps.ps_ExprContext,
-													&node->ss.ps);
-			}
 		}
 	}
 

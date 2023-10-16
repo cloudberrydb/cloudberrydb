@@ -255,6 +255,13 @@ typedef void (*IndexBuildCallback) (Relation index,
 									void *state);
 
 /*
+ * CBDB: Execution structure shouldn't appear here in PG design. We need to
+ * tell the scan node to do low-level and efficient filtering. The scan node
+ * will use low-level APIs exposed by the storage.
+ */
+struct PlanState;
+
+/*
  * API struct for a table AM.  Note this must be allocated in a
  * server-lifetime manner, typically as a static const struct, which then gets
  * returned by FormData_pg_am.amhandler.
@@ -315,9 +322,9 @@ typedef struct TableAmRoutine
 	 */
 	TableScanDesc	(*scan_begin_extractcolumns) (Relation rel,
 												  Snapshot snapshot,
+												  int nkeys, struct ScanKeyData *key,
 												  ParallelTableScanDesc parallel_scan,
-												  List *targetlist,
-												  List *qual,
+												  struct PlanState *ps,
 												  uint32 flags);
 
 	/*
@@ -925,8 +932,10 @@ table_beginscan(Relation rel, Snapshot snapshot,
  * Like table_beginscan_parallel, it will be parallel mode if parallel_scan is not NULL.
  */
 static inline TableScanDesc
-table_beginscan_es(Relation relation, Snapshot snapshot, ParallelTableScanDesc parallel_scan,
-				   List *targetList, List *qual)
+table_beginscan_es(Relation relation, Snapshot snapshot,
+				   int nkeys, struct ScanKeyData *key,
+				   ParallelTableScanDesc parallel_scan,
+				   struct PlanState *ps)
 {
 	bool isParallel = parallel_scan != NULL;
 	uint32		flags = SO_TYPE_SEQSCAN |
@@ -951,12 +960,13 @@ table_beginscan_es(Relation relation, Snapshot snapshot, ParallelTableScanDesc p
 	}
 
 	if (relation->rd_tableam->scan_begin_extractcolumns)
-		return relation->rd_tableam->scan_begin_extractcolumns(relation, snapshot, parallel_scan,
-														  targetList, qual,
-														  flags);
+		return relation->rd_tableam->scan_begin_extractcolumns(relation, snapshot,
+															   nkeys, key,
+															   parallel_scan,
+															   ps, flags);
 
 	return relation->rd_tableam->scan_begin(relation, snapshot,
-									   0, NULL,
+									   nkeys, key,
 									   parallel_scan, flags);
 }
 
