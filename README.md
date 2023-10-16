@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./logo_cloudberry_database.png"><br>
+<img src="./logo_cloudberry_database.svg"><br>
 <strong>Next Generation Unified Database for Analytics and AI</strong>
 </p>
 
@@ -16,7 +16,7 @@
 ---------
 
 Cloudberry Database (CBDB) is shipped with PostgreSQL 14.4 as its
-kernel and is forked from Greenplum Database 6, which serves as our
+kernel and is forked from Greenplum Database 7, which serves as our
 code base.
 
 ## Features
