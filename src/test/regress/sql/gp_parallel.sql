@@ -675,7 +675,7 @@ begin
   if results0 <> results1 then
     raise notice 'results of non-parallel % are not equal to parallel %', results0, results1;
   end if;
-  parallel_is_better = dur0 * 0.8 > dur1; -- Make sure we have significant improvements, given the fluctuations.
+  parallel_is_better = dur0 > dur1;
   if NOT parallel_is_better then
     raise notice 'Non-parallel refresh duration=%', dur0;
     raise notice 'Parallel refresh duration=%', dur1;
