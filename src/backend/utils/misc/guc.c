@@ -44,6 +44,7 @@
 #include "access/twophase.h"
 #include "access/xact.h"
 #include "access/xlog_internal.h"
+#include "bootstrap/bootstrap.h"
 #include "catalog/namespace.h"
 #include "catalog/pg_authid.h"
 #include "catalog/storage.h"
@@ -1981,6 +1982,16 @@ static struct config_bool ConfigureNamesBool[] =
 		&in_hot_standby,
 		false,
 		NULL, NULL, show_in_hot_standby
+	},
+
+	{
+		{"enable_transaction_service", PGC_POSTMASTER, DEVELOPER_OPTIONS,
+			gettext_noop("In cloud native, use transaction service"),
+			NULL
+		},
+		&enable_transaction_service,
+		false,
+		NULL, NULL, NULL
 	},
 
 	{

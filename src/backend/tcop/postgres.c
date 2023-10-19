@@ -5128,7 +5128,10 @@ PostgresMain(int argc, char *argv[],
 	if (am_walsender)
 		InitWalSender();
 
-	/*
+#ifdef USE_CATALOG_EXT
+	load_file("transaction-service", false);
+#endif
+    /*
 	 * process any libraries that should be preloaded at backend start (this
 	 * likewise can't be done until GUC settings are complete)
 	 */

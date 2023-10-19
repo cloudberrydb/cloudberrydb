@@ -81,7 +81,6 @@ Relation	boot_reldesc;		/* current relation descriptor */
 Form_pg_attribute attrtypes[MAXATTR];	/* points to attribute info */
 int			numattr;			/* number of attributes for cur. rel */
 
-
 /*
  * Basic information associated with each type.  This is used before
  * pg_type is filled, so it has to cover the datatypes used as column types
@@ -342,6 +341,11 @@ AuxiliaryProcessMain(int argc, char *argv[])
 		write_stderr("%s: invalid command-line arguments\n", progname);
 		proc_exit(1);
 	}
+
+#ifdef USE_CATALOG_EXT
+	if (!IsUnderPostmaster)
+		load_file("transaction-service", false);
+#endif
 
 	switch (MyAuxProcType)
 	{

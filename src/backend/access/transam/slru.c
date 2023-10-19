@@ -119,17 +119,6 @@ typedef struct SlruWriteAllData *SlruWriteAll;
 		} \
 	} while (0)
 
-/* Saved info for SlruReportIOError */
-typedef enum
-{
-	SLRU_OPEN_FAILED,
-	SLRU_SEEK_FAILED,
-	SLRU_READ_FAILED,
-	SLRU_WRITE_FAILED,
-	SLRU_FSYNC_FAILED,
-	SLRU_CLOSE_FAILED
-} SlruErrorCause;
-
 static SlruErrorCause slru_errcause;
 static int	slru_errno;
 
@@ -676,6 +665,13 @@ SimpleLruDoesPhysicalPageExist(SlruCtl ctl, int pageno)
 	}
 
 	return result;
+}
+
+void
+SlruSetErrInof(SlruErrorCause err_cause, int err_no)
+{
+    slru_errcause = err_cause;
+    slru_errno = err_no;
 }
 
 /*

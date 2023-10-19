@@ -11,6 +11,9 @@
 #ifndef CLOG_H
 #define CLOG_H
 
+#ifndef FRONTEND
+#include "access/slru.h"
+#endif
 #include "access/xlogreader.h"
 #include "storage/sync.h"
 #include "lib/stringinfo.h"
@@ -28,6 +31,11 @@ typedef int XidStatus;
 #define TRANSACTION_STATUS_COMMITTED		0x01
 #define TRANSACTION_STATUS_ABORTED			0x02
 #define TRANSACTION_STATUS_SUB_COMMITTED	0x03
+
+#ifndef FRONTEND
+typedef XidStatus (*TransactionIdStatusRefresh_hook_type) (XidStatus status, SlruCtl ctl, TransactionId xid);
+extern PGDLLIMPORT TransactionIdStatusRefresh_hook_type TransactionIdStatusRefresh_hook;
+#endif
 
 typedef struct xl_clog_truncate
 {

@@ -268,6 +268,9 @@ currentDtxActivate(void)
 {
 	bool signal_dtx_recovery;
 
+	if (enable_serverless)
+		return;
+	
 	if (ShmemVariableCache->GxidCount <= GXID_PRETCH_THRESHOLD &&
 		(GetDtxRecoveryEvent() & DTX_RECOVERY_EVENT_BUMP_GXID) == 0)
 	{
@@ -1244,7 +1247,7 @@ doDispatchDtxProtocolCommand(DtxProtocolCommand dtxProtocolCommand,
 	int *waitGxids = NULL;
 	int totalWaits = 0;
 
-	if (!dtxSegments)
+	if (!dtxSegments || enable_serverless)
 		return true;
 
 	dtxProtocolCommandStr = DtxProtocolCommandToString(dtxProtocolCommand);
@@ -2013,7 +2016,11 @@ isDtxExplicitBegin(void)
 void
 sendDtxExplicitBegin(void)
 {
-	if (Gp_role != GP_ROLE_DISPATCH)
+	/*
+	 * In serverless mode, do not need to
+	 * send the dtx message.
+	 */
+	if (Gp_role != GP_ROLE_DISPATCH || enable_serverless)
 		return;
 
 	setupDtxTransaction();

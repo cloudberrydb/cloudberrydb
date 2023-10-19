@@ -31,6 +31,8 @@
 #include "cdb/cdbgang.h"
 
 
+cdbgang_build_catalog_params_hook_type cdbgang_build_catalog_params_hook = NULL;
+
 static uint32 cdbconn_get_motion_listener_port(PGconn *conn);
 static void cdbconn_disconnect(SegmentDatabaseDescriptor *segdbDesc);
 
@@ -138,6 +140,11 @@ cdbconn_doConnectStart(SegmentDatabaseDescriptor *segdbDesc,
 	char		keepalivesCountStr[MAX_INT_STRING_LEN];
 	char		keepalivesIntervalStr[MAX_INT_STRING_LEN];
 	int			nkeywords = 0;
+
+	if (cdbgang_build_catalog_params_hook)
+	{
+		gpqeid = cdbgang_build_catalog_params_hook(gpqeid);
+	}
 
 	keywords[nkeywords] = "gpqeid";
 	values[nkeywords] = gpqeid;

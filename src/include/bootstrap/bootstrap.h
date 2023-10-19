@@ -32,7 +32,6 @@ extern Relation boot_reldesc;
 extern Form_pg_attribute attrtypes[MAXATTR];
 extern int	numattr;
 
-
 extern void AuxiliaryProcessMain(int argc, char *argv[]) pg_attribute_noreturn();
 
 extern void closerel(char *name);

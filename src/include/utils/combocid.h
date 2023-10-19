@@ -14,6 +14,20 @@
 #ifndef COMBOCID_H
 #define COMBOCID_H
 
+#include "c.h"
+
+/* Key and entry structures for the hash table */
+typedef struct
+{
+	CommandId	cmin;
+	CommandId	cmax;
+} ComboCidKeyData;
+
+typedef ComboCidKeyData *ComboCidKey;
+
+extern ComboCidKey comboCids;
+extern int	usedComboCids;
+extern CommandId GetComboCommandId(CommandId cmin, CommandId cmax);
 /*
  * HeapTupleHeaderGetCmin and HeapTupleHeaderGetCmax function prototypes
  * are in access/htup.h, because that's where the macro definitions that

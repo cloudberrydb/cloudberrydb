@@ -17,6 +17,9 @@
 #define CDBCONN_H
 
 
+typedef char * (*cdbgang_build_catalog_params_hook_type) (const char *gpqeid);
+extern PGDLLIMPORT cdbgang_build_catalog_params_hook_type cdbgang_build_catalog_params_hook;
+
 /* --------------------------------------------------------------------------------------------------
  * Structure for segment database definition and working values
  */

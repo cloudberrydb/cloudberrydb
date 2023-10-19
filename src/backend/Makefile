@@ -29,7 +29,6 @@ ifeq ($(enable_orca),yes)
 SUBDIRS += gporca gpopt
 endif
 ifeq ($(enable_catalog_ext),yes)
-SUBDIRS += catalog-extension
 LDFLAGS += -lprotobuf -lstdc++
 endif
 ifeq ($(enable_serverless),yes)
@@ -240,9 +239,6 @@ endif
 ifeq ($(enable_orca), yes)
 	$(MAKE) -C gporca $@ INSTLOC=$(DESTDIR)$(libdir)
 	$(MAKE) -C gpopt $@ INSTLOC=$(DESTDIR)$(libdir)
-endif
-ifeq ($(enable_catalog_ext), yes)
-	$(MAKE) -C catalog-extension $@ INSTLOC=$(DESTDIR)$(libdir)
 endif
 
 ifeq ($(with_llvm), yes)

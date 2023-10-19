@@ -74,6 +74,9 @@ CreateGangFunc pCreateGangFunc = cdbgang_createGang_async;
 static bool NeedResetSession = false;
 static Oid	OldTempNamespace = InvalidOid;
 
+
+cdbgang_parse_catalog_params_hook_type cdbgang_parse_catalog_params_hook = NULL;
+
 /*
  * cdbgang_createGang:
  *
@@ -492,6 +495,11 @@ void
 cdbgang_parse_gpqeid_params(struct Port *port pg_attribute_unused(),
 							const char *gpqeid_value)
 {
+	if (cdbgang_parse_catalog_params_hook)
+	{
+		gpqeid_value = cdbgang_parse_catalog_params_hook(port, gpqeid_value);
+	}
+	
 	char	   *gpqeid = pstrdup(gpqeid_value);
 	char	   *cp;
 	char	   *np = gpqeid;

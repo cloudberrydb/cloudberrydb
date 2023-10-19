@@ -100,6 +100,9 @@ extern void cdbgang_parse_gpqeid_params(struct Port *port, const char *gpqeid_va
 
 extern void resetSessionForPrimaryGangLoss(void);
 
+typedef const char * (*cdbgang_parse_catalog_params_hook_type) (struct Port *port, const char *b64_msg);
+extern PGDLLIMPORT cdbgang_parse_catalog_params_hook_type cdbgang_parse_catalog_params_hook;
+
 /*
  * MPP Worker Process information
  *

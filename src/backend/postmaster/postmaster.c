@@ -1229,8 +1229,10 @@ PostmasterMain(int argc, char *argv[])
 	 * background worker slots.
 	 */
 	ApplyLauncherRegister();
-
-	/*
+#ifdef USE_CATALOG_EXT
+	load_file("transaction-service", false);
+#endif
+    /*
 	 * process any libraries that should be preloaded at postmaster start
 	 */
 	process_shared_preload_libraries();
@@ -2693,7 +2695,7 @@ retry1:
 	 * replication commands to be issued even if connected to a database as it
 	 * can make sense to first make a basebackup and then stream changes
 	 * starting from that.
-	 */
+	*/
 	if ((am_walsender && !am_db_walsender) || am_ftshandler || am_faulthandler)
 		port->database_name[0] = '\0';
 

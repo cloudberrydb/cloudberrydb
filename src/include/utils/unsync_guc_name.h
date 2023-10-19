@@ -639,3 +639,4 @@
 		"cluster_key_command",
 		"file_encryption_method",
 		"tde_force_switch",
+		"enable_transaction_service",

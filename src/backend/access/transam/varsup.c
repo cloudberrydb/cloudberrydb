@@ -585,6 +585,8 @@ GetNewObjectIdUnderLock(void)
 
 	Assert(LWLockHeldByMe(OidGenLock));
 
+	if (GetNewObjectIdUnderLock_hook)
+		return GetNewObjectIdUnderLock_hook();
 	/*
 	 * Check for wraparound of the OID counter.  We *must* not return 0
 	 * (InvalidOid), and in normal operation we mustn't return anything below

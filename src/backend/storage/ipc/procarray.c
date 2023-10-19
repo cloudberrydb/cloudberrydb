@@ -2303,7 +2303,7 @@ updateSharedLocalSnapshot(DtxContextInfo *dtxContextInfo,
 	LWLockRelease(SharedLocalSnapshotSlot->slotLock);
 }
 
-static void
+void
 SnapshotResetDslm(Snapshot snapshot)
 {
 	DistributedSnapshotWithLocalMapping *dslm;
@@ -3423,7 +3423,118 @@ GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext)
 	return snapshot;
 }
 
+void SetGlobalVisInfo(Snapshot snapshot)
+{
+	TransactionId def_vis_xid;
+	TransactionId def_vis_xid_data;
+	FullTransactionId def_vis_fxid;
+	FullTransactionId def_vis_fxid_data;
+	FullTransactionId oldestfxid;
+	FullTransactionId latest_completed;
+	TransactionId oldestxid;
+	TransactionId globalxmin;
+	TransactionId replication_slot_xmin;
+	TransactionId replication_slot_catalog_xmin;
+	TransactionId myxid = InvalidTransactionId;
 
+	latest_completed = ShmemVariableCache->latestCompletedXid;
+	if (FullTransactionIdIsValid(latest_completed))
+	{
+		latest_completed = FullTransactionIdFromEpochAndXid(0, FirstNormalTransactionId);
+	}
+
+	oldestxid = ShmemVariableCache->oldestXid;
+
+	globalxmin = snapshot->xmin;
+	if (TransactionIdPrecedes(snapshot->xmax, globalxmin))
+		globalxmin = snapshot->xmax;
+
+	for (int i = 0; i < snapshot->xcnt; i++)
+	{
+		if (TransactionIdPrecedes(snapshot->xip[i], globalxmin))
+			globalxmin = snapshot->xip[i];
+	}
+
+	replication_slot_xmin = procArray->replication_slot_xmin;
+	replication_slot_catalog_xmin = procArray->replication_slot_catalog_xmin;
+
+	myxid = GetCurrentTransactionIdIfAny();
+
+	/*
+	 * Converting oldestXid is only safe when xid horizon cannot advance,
+	 * i.e. holding locks. While we don't hold the lock anymore, all the
+	 * necessary data has been gathered with lock held.
+	 */
+	oldestfxid = FullXidRelativeTo(latest_completed, oldestxid);
+
+	/* apply vacuum_defer_cleanup_age */
+	def_vis_xid_data =
+		TransactionIdRetreatedBy(globalxmin, vacuum_defer_cleanup_age);
+
+	/* Check whether there's a replication slot requiring an older xmin. */
+	def_vis_xid_data =
+		TransactionIdOlder(def_vis_xid_data, replication_slot_xmin);
+
+	/*
+	 * Rows in non-shared, non-catalog tables possibly could be vacuumed
+	 * if older than this xid.
+	 */
+	def_vis_xid = def_vis_xid_data;
+
+	/*
+	 * Check whether there's a replication slot requiring an older catalog
+	 * xmin.
+	 */
+	def_vis_xid =
+		TransactionIdOlder(replication_slot_catalog_xmin, def_vis_xid);
+
+	def_vis_fxid = FullXidRelativeTo(latest_completed, def_vis_xid);
+	def_vis_fxid_data = FullXidRelativeTo(latest_completed, def_vis_xid_data);
+
+	/*
+	 * Check if we can increase upper bound. As a previous
+	 * GlobalVisUpdate() might have computed more aggressive values, don't
+	 * overwrite them if so.
+	 */
+	GlobalVisSharedRels.definitely_needed =
+		FullTransactionIdNewer(def_vis_fxid,
+							   GlobalVisSharedRels.definitely_needed);
+	GlobalVisCatalogRels.definitely_needed =
+		FullTransactionIdNewer(def_vis_fxid,
+							   GlobalVisCatalogRels.definitely_needed);
+	GlobalVisDataRels.definitely_needed =
+		FullTransactionIdNewer(def_vis_fxid_data,
+							   GlobalVisDataRels.definitely_needed);
+	/* See temp_oldest_nonremovable computation in ComputeXidHorizons() */
+	if (TransactionIdIsNormal(myxid))
+		GlobalVisTempRels.definitely_needed =
+			FullXidRelativeTo(latest_completed, myxid);
+	else
+	{
+		GlobalVisTempRels.definitely_needed = latest_completed;
+		FullTransactionIdAdvance(&GlobalVisTempRels.definitely_needed);
+	}
+
+	/*
+	 * Check if we know that we can initialize or increase the lower
+	 * bound. Currently the only cheap way to do so is to use
+	 * ShmemVariableCache->oldestXid as input.
+	 *
+	 * We should definitely be able to do better. We could e.g. put a
+	 * global lower bound value into ShmemVariableCache.
+	 */
+	GlobalVisSharedRels.maybe_needed =
+		FullTransactionIdNewer(GlobalVisSharedRels.maybe_needed,
+							   oldestfxid);
+	GlobalVisCatalogRels.maybe_needed =
+		FullTransactionIdNewer(GlobalVisCatalogRels.maybe_needed,
+							   oldestfxid);
+	GlobalVisDataRels.maybe_needed =
+		FullTransactionIdNewer(GlobalVisDataRels.maybe_needed,
+							   oldestfxid);
+	/* accurate value known */
+	GlobalVisTempRels.maybe_needed = GlobalVisTempRels.definitely_needed;
+}
 
 /*
  * ProcArrayInstallImportedXmin -- install imported xmin into MyProc->xmin

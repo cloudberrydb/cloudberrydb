@@ -138,6 +138,16 @@ typedef struct SlruCtlData
 
 typedef SlruCtlData *SlruCtl;
 
+typedef enum
+{
+	SLRU_OPEN_FAILED,
+	SLRU_SEEK_FAILED,
+	SLRU_READ_FAILED,
+	SLRU_WRITE_FAILED,
+	SLRU_FSYNC_FAILED,
+	SLRU_CLOSE_FAILED
+} SlruErrorCause;
+
 /*
  * Hooks for plugins to get control in SlruPhysicalReadPage/SlruPhysicalWritePage
  */
@@ -149,6 +159,8 @@ extern PGDLLIMPORT SlruPhysicalWritePage_hook_type SlruPhysicalWritePage_hook;
 
 typedef int (*SimpleLruReadPage_hook_type)(SlruCtl ctl, int pageno, bool write_ok, TransactionId xid);
 extern PGDLLIMPORT SimpleLruReadPage_hook_type SimpleLruReadPage_hook;
+
+extern void SlruSetErrInof(SlruErrorCause err_cause, int err_no);
 
 extern Size SimpleLruShmemSize(int nslots, int nlsns);
 extern void SimpleLruInit(SlruCtl ctl, const char *name, int nslots, int nlsns,

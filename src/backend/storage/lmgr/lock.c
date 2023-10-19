@@ -66,6 +66,7 @@
  */
 ActivateLock_hook_type ActivateLock_hook = NULL;
 DeactivateLock_hook_type DeactivateLock_hook = NULL;
+SkipDispatchedLock_hook_type SkipDispatchedLock_hook = NULL;
 
 /* This configuration variable is used to set the lock table size */
 int			max_locks_per_xact; /* set by guc.c */
@@ -640,6 +641,9 @@ LockHeldByMe(const LOCKTAG *locktag, LOCKMODE lockmode)
 	localtag.lock = *locktag;
 	localtag.mode = lockmode;
 
+	if (SkipDispatchedLock_hook && SkipDispatchedLock_hook(&localtag))
+		return true;
+
 	locallock = (LOCALLOCK *) hash_search(LockMethodLocalHash,
 										  (void *) &localtag,
 										  HASH_FIND, NULL);
@@ -856,6 +860,9 @@ LockAcquireExtended(const LOCKTAG *locktag,
 	MemSet(&localtag, 0, sizeof(localtag)); /* must clear padding */
 	localtag.lock = *locktag;
 	localtag.mode = lockmode;
+
+	if (SkipDispatchedLock_hook && SkipDispatchedLock_hook(&localtag))
+		return LOCKACQUIRE_ALREADY_CLEAR;
 
 	locallock = (LOCALLOCK *) hash_search(LockMethodLocalHash,
 										  (void *) &localtag,
@@ -2270,6 +2277,9 @@ LockRelease(const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock)
 	MemSet(&localtag, 0, sizeof(localtag)); /* must clear padding */
 	localtag.lock = *locktag;
 	localtag.mode = lockmode;
+
+	if (SkipDispatchedLock_hook && SkipDispatchedLock_hook(&localtag))
+		return true;
 
 	locallock = (LOCALLOCK *) hash_search(LockMethodLocalHash,
 										  (void *) &localtag,

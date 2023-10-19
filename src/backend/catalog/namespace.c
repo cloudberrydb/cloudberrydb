@@ -4549,6 +4549,14 @@ RemoveTempRelationsCallback(int code, Datum arg)
 		return;
 	}
 
+	if (enable_serverless && Gp_role == GP_ROLE_EXECUTE)
+	{
+		/*
+		 * we only remove temp relation in qd when enable serverless.
+		 */
+		return;
+	}
+
 	if (OidIsValid(myTempNamespace))
 	{
 		/* Need to ensure we have a usable transaction. */

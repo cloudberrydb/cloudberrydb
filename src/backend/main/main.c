@@ -47,7 +47,6 @@
 
 const char *progname;
 
-
 static void startup_hacks(const char *progname);
 static void init_locale(const char *categoryname, int category, const char *locale);
 static void help(const char *progname);

@@ -577,6 +577,8 @@ extern PGDLLIMPORT ActivateLock_hook_type ActivateLock_hook;
 typedef void (*DeactivateLock_hook_type) (const LOCKTAG *locktag, LOCKMODE lockmode, bool sessionLock, bool releaseAll);
 extern PGDLLIMPORT DeactivateLock_hook_type DeactivateLock_hook;
 
+typedef bool (*SkipDispatchedLock_hook_type) (const LOCALLOCKTAG *locktag);
+extern PGDLLIMPORT SkipDispatchedLock_hook_type SkipDispatchedLock_hook;
 /*
  * The lockmgr's shared hash tables are partitioned to reduce contention.
  * To determine which partition a given locktag belongs to, compute the tag's

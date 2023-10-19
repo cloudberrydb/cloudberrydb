@@ -153,6 +153,7 @@ int			max_parallel_maintenance_workers = 2;
  * use CloudberryDB serverless architecture
  */
 bool		enable_serverless = false; 
+bool		enable_transaction_service = false; 
 
 /*
  * Primary determinants of sizes of shared-memory structures.

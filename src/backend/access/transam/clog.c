@@ -82,6 +82,8 @@
  */
 #define THRESHOLD_SUBTRANS_CLOG_OPT	5
 
+TransactionIdStatusRefresh_hook_type TransactionIdStatusRefresh_hook = NULL; 
+
 /*
  * Link to shared-memory data structures for CLOG control
  */
@@ -660,6 +662,9 @@ TransactionIdGetStatus(TransactionId xid, XLogRecPtr *lsn)
 	byteptr = XactCtl->shared->page_buffer[slotno] + byteno;
 
 	status = (*byteptr >> bshift) & CLOG_XACT_BITMASK;
+
+	if (TransactionIdStatusRefresh_hook)
+		status = TransactionIdStatusRefresh_hook(status, XactCtl, xid);
 
 	lsnindex = GetLSNIndex(slotno, xid);
 	*lsn = XactCtl->shared->group_lsn[lsnindex];

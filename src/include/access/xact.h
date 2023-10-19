@@ -128,7 +128,13 @@ typedef enum
 	XACT_EVENT_PREPARE,
 	XACT_EVENT_PRE_COMMIT,
 	XACT_EVENT_PARALLEL_PRE_COMMIT,
-	XACT_EVENT_PRE_PREPARE
+	XACT_EVENT_PRE_PREPARE,
+	/*
+	 * add it for transaction.
+	 */
+	XACT_EVENT_START_CATALOG_EXT,
+	XACT_EVENT_COMMIT_CATALOG_EXT,
+	XACT_EVENT_ABORT_CATALOG_EXT
 } XactEvent;
 
 typedef void (*XactCallback) (XactEvent event, void *arg);
@@ -138,7 +144,13 @@ typedef enum
 	SUBXACT_EVENT_START_SUB,
 	SUBXACT_EVENT_COMMIT_SUB,
 	SUBXACT_EVENT_ABORT_SUB,
-	SUBXACT_EVENT_PRE_COMMIT_SUB
+	SUBXACT_EVENT_PRE_COMMIT_SUB,
+	/*
+	 * add it for transaction.
+	 */
+	SUBXACT_EVENT_START_CATALOG_EXT,
+	SUBXACT_EVENT_COMMIT_CATALOG_EXT,
+	SUBXACT_EVENT_ABORT_CATALOG_EXT
 } SubXactEvent;
 
 typedef void (*SubXactCallback) (SubXactEvent event, SubTransactionId mySubid,
@@ -203,6 +215,13 @@ typedef enum
 /*
  * Hooks for plugins to get control in Transaction Management
  */
+
+typedef FullTransactionId (*GetNewTransactionIdWithLevel_hook_type) (bool bootstrap, int level);
+extern PGDLLIMPORT GetNewTransactionIdWithLevel_hook_type GetNewTransactionIdWithLevel_hook;
+
+typedef void(*CommandCounterIncrement_hook_type)(CommandId currentCommandId);
+extern PGDLLIMPORT CommandCounterIncrement_hook_type CommandCounterIncrement_hook;
+
 typedef void(*TransactionParticipateEnd_hook_type)(bool commit);
 extern PGDLLIMPORT TransactionParticipateEnd_hook_type TransactionParticipateEnd_hook;
 
@@ -230,6 +249,11 @@ typedef XLogRecPtr
 				   int xactflags, TransactionId twophase_xid,
 				   const char *twophase_gid);
 extern PGDLLIMPORT XactLogAbortRecord_hook_type XactLogAbortRecord_hook;
+
+typedef Oid (*GetNewObjectIdUnderLock_hook_type)();
+extern PGDLLIMPORT GetNewObjectIdUnderLock_hook_type GetNewObjectIdUnderLock_hook;
+
+extern FullTransactionId XactTopFullTransactionId;
 
 /*
  * Also stored in xinfo, these indicating a variety of additional actions that

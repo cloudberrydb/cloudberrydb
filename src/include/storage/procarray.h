@@ -52,6 +52,8 @@ extern int	GetMaxSnapshotSubxidCount(void);
 typedef Snapshot (*GetSnapshotData_hook_type)(Snapshot snapshot, DtxContext distributedTransactionContext);
 extern PGDLLIMPORT GetSnapshotData_hook_type GetSnapshotData_hook;
 
+extern void SetGlobalVisInfo(Snapshot snapshot);
+extern void SnapshotResetDslm(Snapshot snapshot);
 extern Snapshot GetSnapshotData(Snapshot snapshot, DtxContext distributedTransactionContext);
 
 extern bool ProcArrayInstallImportedXmin(TransactionId xmin,

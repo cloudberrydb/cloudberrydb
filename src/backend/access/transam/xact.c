@@ -301,11 +301,13 @@ static TransactionState CurrentTransactionState = &TopTransactionStateData;
 /*
  * Hooks for plugins to get control in Transaction Management.
  */
+GetNewTransactionIdWithLevel_hook_type GetNewTransactionIdWithLevel_hook = NULL;
 TransactionParticipateEnd_hook_type TransactionParticipateEnd_hook = NULL;
 NotifySubTransaction_hook_type NotifySubTransaction_hook = NULL;
 XactLogCommitRecord_hook_type XactLogCommitRecord_hook = NULL;
 XactLogAbortRecord_hook_type XactLogAbortRecord_hook = NULL;
-
+CommandCounterIncrement_hook_type CommandCounterIncrement_hook = NULL;
+GetNewObjectIdUnderLock_hook_type GetNewObjectIdUnderLock_hook = NULL;
 /*
  * The subtransaction ID and command ID assignment counters are global
  * to a whole transaction, so we do not keep them in the state stack.
@@ -761,7 +763,10 @@ AssignTransactionId(TransactionState s)
 	 * PG_PROC, the subtrans entry is needed to ensure that other backends see
 	 * the Xid as "running".  See GetNewTransactionId.
 	 */
-	s->fullTransactionId = GetNewTransactionId(isSubXact);
+	if (Gp_role != GP_ROLE_EXECUTE && GetNewTransactionIdWithLevel_hook)
+		s->fullTransactionId = GetNewTransactionIdWithLevel_hook(isSubXact, s->nestingLevel);
+	else
+		s->fullTransactionId = GetNewTransactionId(isSubXact);
 
 	ereportif(Debug_print_full_dtm, LOG,
 			  (errmsg("AssignTransactionId(): assigned xid " UINT64_FORMAT,
@@ -1309,6 +1314,11 @@ void
 CommandCounterIncrement(void)
 {
 	/*
+	 * In serverless mode, never increase the cid in qe node.
+	 */
+	if (enable_serverless && Gp_role == GP_ROLE_EXECUTE)
+		return;
+	/*
 	 * If the current value of the command counter hasn't been "used" to mark
 	 * tuples, we need not increment it, since there's no need to distinguish
 	 * a read-only command from others.  This helps postpone command counter
@@ -1333,6 +1343,9 @@ CommandCounterIncrement(void)
 					 errmsg("cannot have more than 2^32-2 commands in a transaction")));
 		}
 		currentCommandIdUsed = false;
+
+		if (Gp_role != GP_ROLE_EXECUTE && CommandCounterIncrement_hook)
+			CommandCounterIncrement_hook(currentCommandId);
 
 		/* Propagate new command ID into static snapshots */
 		SnapshotSetCommandId(currentCommandId);
@@ -2347,6 +2360,7 @@ SetSharedTransactionId_writer(DtxContext distributedTransactionContext)
 void
 SetSharedTransactionId_reader(FullTransactionId xid, CommandId cid, DtxContext distributedTransactionContext)
 {
+
 	Assert(distributedTransactionContext == DTX_CONTEXT_QE_READER ||
 		   distributedTransactionContext == DTX_CONTEXT_QE_ENTRY_DB_SINGLETON);
 
@@ -2712,6 +2726,7 @@ StartTransaction(void)
 	AtStart_Cache();
 	AfterTriggerBeginXact();
 
+	CallXactCallbacks(XACT_EVENT_START_CATALOG_EXT);
 	/*
 	 * done with start processing, set current transaction state to "in
 	 * progress"
@@ -2914,6 +2929,8 @@ CommitTransaction(void)
 	 */
 	s->state = TRANS_COMMIT;
 	s->parallelModeLevel = 0;
+
+	CallXactCallbacks(XACT_EVENT_COMMIT_CATALOG_EXT);
 
 	if (!is_parallel_worker)
 	{
@@ -3583,6 +3600,7 @@ AbortTransaction(void)
 	AtEOXact_RelationMap(false, is_parallel_worker);
 	AtAbort_Twophase();
 
+	CallXactCallbacks(XACT_EVENT_ABORT_CATALOG_EXT);
 	/*
 	 * Advertise the fact that we aborted in pg_xact (assuming that we got as
 	 * far as assigning an XID to advertise).  But if we're inside a parallel
@@ -6033,6 +6051,9 @@ StartSubTransaction(void)
 	 */
 	CallSubXactCallbacks(SUBXACT_EVENT_START_SUB, s->subTransactionId,
 						 s->parent->subTransactionId);
+	
+	CallSubXactCallbacks(SUBXACT_EVENT_START_CATALOG_EXT, s->subTransactionId,
+						 s->parent->subTransactionId);
 
 	ShowTransactionState("StartSubTransaction");
 }
@@ -6075,6 +6096,8 @@ CommitSubTransaction(void)
 	if (NotifySubTransaction_hook)
 		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_RELEASE);
 
+	CallSubXactCallbacks(SUBXACT_EVENT_COMMIT_CATALOG_EXT, s->subTransactionId,
+						 s->parent->subTransactionId);
 	/*
 	 * Prior to 8.4 we marked subcommit in clog at this point.  We now only
 	 * perform that step, if required, as part of the atomic update of the
@@ -6249,6 +6272,8 @@ AbortSubTransaction(void)
 	if (NotifySubTransaction_hook)
 		NotifySubTransaction_hook(TXN_PROTOCOL_COMMAND_SUB_ROLLBACK);
 
+	CallSubXactCallbacks(SUBXACT_EVENT_ABORT_CATALOG_EXT, s->subTransactionId,
+							s->parent->subTransactionId);
 	/*
 	 * We can skip all this stuff if the subxact failed before creating a
 	 * ResourceOwner...
