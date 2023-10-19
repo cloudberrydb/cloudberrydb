@@ -211,6 +211,7 @@ CREATE TABLE unique_index_ao_row (a INT unique) USING ao_row
 
 SELECT gp_inject_fault('insert_new_entry_curr_minipage_full', 'suspend', '', '', '', 2, 2, 0, dbid)
 FROM gp_segment_configuration WHERE role = 'p' AND content <> -1;
+1: set gp_appendonly_insert_files = 0;
 1&: INSERT INTO unique_index_ao_row SELECT generate_series(1, 661510);
 
 -- Wait until we have inserted (2048 * (161 * 2 + 1) + 3) = 661507 rows and we

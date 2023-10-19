@@ -2634,7 +2634,6 @@ appendonly_insert_init(Relation rel, int segno)
 
 	aoInsertDesc->aoi_rel = rel;
 	aoInsertDesc->range = 0;
-	aoInsertDesc->insertMultiFiles = false;
 
 	/*
 	 * We want to see an up-to-date view of the metadata. The target segment's
@@ -2822,9 +2821,6 @@ aoInsertDesc->appendOnlyMetaDataSnapshot, //CONCERN:Safe to assume all block dir
 											aoInsertDesc->fsInfo, aoInsertDesc->lastSequence,
 											rel, segno, 1, false);
 
-	/* Should not enable insertMultiFiles if the table is created by own transaction or in utility mode */
-	if (Gp_role != GP_ROLE_UTILITY)
-		aoInsertDesc->insertMultiFiles = gp_appendonly_insert_files > 1 && !ShouldUseReservedSegno(rel, CHOOSE_MODE_WRITE);
 	return aoInsertDesc;
 }
 

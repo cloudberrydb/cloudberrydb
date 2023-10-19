@@ -72,6 +72,7 @@ set local enable_parallel = off;
 
 -- insert multiple segfiles for parallel
 set local gp_appendonly_insert_files = 4;
+set local gp_appendonly_insert_files_tuples_range = 50000;
 
 -- test appendonly table parallel 
 insert into ao1 select i, i from generate_series(1, 1200000) g(i);
@@ -144,6 +145,55 @@ explain(locus, costs off) select count(c2) from t1;
 select count(c2) from t1;
 abort;
 
+-- test segfilecount according to data volume.
+create table ao_segfilecount(x int, y int) with(appendonly=true);
+create table aocs_segfilecount(x int, y int) with(appendonly=true, orientation=column);
+begin;
+set local gp_appendonly_insert_files = 5;
+set local gp_appendonly_insert_files_tuples_range = 10;
+
+-- no enough data, open only one segment file.
+insert into ao_segfilecount select i, i from generate_series(1, 29) g(i);
+analyze ao_segfilecount;
+select segfilecount from pg_appendonly where relid='ao_segfilecount'::regclass;
+
+-- no enough data, open two segment files.
+insert into ao_segfilecount select i, i from generate_series(1, 60) g(i);
+analyze ao_segfilecount;
+select segfilecount from pg_appendonly where relid='ao_segfilecount'::regclass;
+
+-- proper data, open segment file according to GUC.
+insert into ao_segfilecount select i, i from generate_series(1, 150) g(i);
+analyze ao_segfilecount;
+select segfilecount from pg_appendonly where relid='ao_segfilecount'::regclass;
+
+-- excess data, open segment file according to GUC.
+insert into ao_segfilecount select i, i from generate_series(1, 200) g(i);
+analyze ao_segfilecount;
+select segfilecount from pg_appendonly where relid='ao_segfilecount'::regclass;
+
+-- no enough data, open only one segment file.
+insert into aocs_segfilecount select i, i from generate_series(1, 29) g(i);
+analyze aocs_segfilecount;
+select segfilecount from pg_appendonly where relid='aocs_segfilecount'::regclass;
+
+-- no enough data, open two segment files.
+insert into aocs_segfilecount select i, i from generate_series(1, 60) g(i);
+analyze aocs_segfilecount;
+select segfilecount from pg_appendonly where relid='aocs_segfilecount'::regclass;
+
+-- proper data, open segment file according to GUC.
+insert into aocs_segfilecount select i, i from generate_series(1, 150) g(i);
+analyze aocs_segfilecount;
+select segfilecount from pg_appendonly where relid='aocs_segfilecount'::regclass;
+
+-- excess data, open segment file according to GUC.
+insert into aocs_segfilecount select i, i from generate_series(1, 200) g(i);
+analyze aocs_segfilecount;
+select segfilecount from pg_appendonly where relid='aocs_segfilecount'::regclass;
+abort;
+drop table ao_segfilecount;
+drop table aocs_segfilecount;
 
 -- test gp_appendonly_insert_files doesn't take effect
 begin;

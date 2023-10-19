@@ -59,9 +59,19 @@ typedef struct AppendOnlyDMLState
 {
 	Oid relationOid;
 	AppendOnlyInsertDesc	insertDesc;
-	dlist_head				head; // Head of multiple segment files insertion list.
 	AppendOnlyDeleteDesc	deleteDesc;
 	AppendOnlyUniqueCheckDesc uniqueCheckDesc;
+
+	/*
+	 * CBDB_PARALLEL
+	 * head: the Head of multiple segment files insertion list.
+	 * insertMultiFiles: number of seg files to be inserted into.
+	 * used_segment_files: used to avoid used files when asking
+	 * for a new segment file.
+	 */
+	dlist_head		head;
+	int 			insertMultiFiles;
+	List* 			used_segment_files;
 } AppendOnlyDMLState;
 
 
@@ -162,6 +172,8 @@ enter_dml_state(const Oid relationOid)
 	state->insertDesc = NULL;
 	state->deleteDesc = NULL;
 	state->uniqueCheckDesc = NULL;
+	state->insertMultiFiles = 0;
+	state->used_segment_files = NIL;
 	dlist_init(&state->head);
 
 	Assert(!found);
@@ -326,48 +338,41 @@ get_insert_descriptor(const Relation relation)
 
 	if (state->insertDesc == NULL)
 	{
-		List	*segments = NIL;
 		MemoryContext oldcxt;
+
+		/*
+		 * CBDB_PARALLEL:
+		 * Should not enable insertMultiFiles if the table is created by own transaction
+		 * or in utility mode.
+		 */
+		if (Gp_role != GP_ROLE_UTILITY &&
+			gp_appendonly_insert_files > 1 &&
+			!ShouldUseReservedSegno(relation, CHOOSE_MODE_WRITE))
+			state->insertMultiFiles = gp_appendonly_insert_files;
 
 		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
 		state->insertDesc= appendonly_insert_init(relation,
 											ChooseSegnoForWrite(relation));
 
+		state->used_segment_files = list_make1_int(state->insertDesc->cur_segno);
 		dlist_init(&state->head);
-		dlist_head *head = &state->head;
-		dlist_push_tail(head, &state->insertDesc->node);
-		
-		if (state->insertDesc->insertMultiFiles)
-		{
-			segments = lappend_int(segments, state->insertDesc->cur_segno);
-			for (int i = 0; i < gp_appendonly_insert_files - 1; i++)
-			{
-				next = appendonly_insert_init(relation,
-												ChooseSegnoForWriteMultiFile(relation, segments));
-				dlist_push_tail(head, &next->node);
-				segments = lappend_int(segments, next->cur_segno);
-			}
-			list_free(segments);
-		}
-		
-		//* mark all insertDesc  placeholderInserted with false */
-        if (relationHasUniqueIndex(relation))
-        {
-            dlist_iter          iter;
-            dlist_foreach(iter, head)
-            {
-                AppendOnlyInsertDesc insertDesc = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, iter.cur);
-                insertDesc->placeholderInserted = false;
-            }
-        }
+		dlist_push_tail(&state->head, &state->insertDesc->node);
 	
 		MemoryContextSwitchTo(oldcxt);
 	}
 
 	/* switch insertDesc */
-	if (state->insertDesc->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
+	if (state->insertMultiFiles && state->insertDesc->range == gp_appendonly_insert_files_tuples_range)
 	{
 		state->insertDesc->range = 0;
+
+		if (list_length(state->used_segment_files) < state->insertMultiFiles)
+		{
+			next = appendonly_insert_init(relation, ChooseSegnoForWriteMultiFile(relation, state->used_segment_files));
+			dlist_push_tail(&state->head, &next->node);
+			state->used_segment_files = lappend_int(state->used_segment_files, next->cur_segno);
+		}
+
 		if (!dlist_has_next(&state->head, &state->insertDesc->node))
 			next = (AppendOnlyInsertDesc)dlist_container(AppendOnlyInsertDescData, node, dlist_head_node(&state->head));
 		else

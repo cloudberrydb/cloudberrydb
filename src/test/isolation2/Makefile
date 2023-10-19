@@ -63,11 +63,7 @@ clean distclean:
 install: all gpdiff.pl gpstringsubs.pl
 
 installcheck: install installcheck-parallel-retrieve-cursor
-	(\
-	gpconfig -c gp_appendonly_insert_files -v 0; \
-	gpstop -u; \
-	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule \
-	)
+	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule
 
 installcheck-resgroup: install
 	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_resgroup --dbname=isolation2resgrouptest --schedule=$(srcdir)/isolation2_resgroup_schedule
@@ -78,8 +74,6 @@ installcheck-parallel-retrieve-cursor: install
 # Add a new rule for running installcheck with parallel mode enabled.
 installcheck-cbdb-parallel: install
 	(\
-	gpconfig -c gp_appendonly_insert_files -v 0; \
-	gpstop -u; \
 	export PGOPTIONS='-c optimizer=off -c enable_parallel=true'; \
 	$(pg_isolation2_regress_installcheck) --init-file=$(top_builddir)/src/test/regress/init_file --init-file=./init_file_isolation2 --schedule=$(srcdir)/isolation2_schedule \
 	)

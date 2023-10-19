@@ -302,6 +302,8 @@ SELECT gp_inject_fault('insert_new_entry_curr_minipage_full', 'suspend', '', '',
  Success:        
  Success:        
 (3 rows)
+1: set gp_appendonly_insert_files = 0;
+SET
 1&: INSERT INTO unique_index_ao_row SELECT generate_series(1, 661510);  <waiting ...>
 
 -- Wait until we have inserted (2048 * (161 * 2 + 1) + 3) = 661507 rows and we

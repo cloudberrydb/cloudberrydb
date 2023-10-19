@@ -112,10 +112,6 @@ typedef struct AppendOnlyInsertDescData
 	/* The block directory for the appendonly relation. */
 	AppendOnlyBlockDirectory blockDirectory;
 
-	/*
-	 * For multiple segment files insertion.
-	 */
-	bool			insertMultiFiles; /* insert into multi files */
 	dlist_node		node;	/* node of segfiles list */
 	int 			range;  /* inserted tuples of each range */
 	/* flag for insert placeholder in unique index   */
