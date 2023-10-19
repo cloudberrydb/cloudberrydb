@@ -136,6 +136,7 @@
 #include "cdb/cdbvars.h"
 
 
+#if 0
 /*
  * To minimize palloc traffic, we keep pending requests in successively-
  * larger chunks (a slightly more sophisticated version of an expansible
@@ -155,6 +156,10 @@ typedef struct InvalidationListHeader
 	InvalidationChunk *cclist;	/* list of chunks holding catcache msgs */
 	InvalidationChunk *rclist;	/* list of chunks holding relcache msgs */
 } InvalidationListHeader;
+#endif
+ProcessInvalMessages_hook_type ProcessInvalMessages_hook = NULL;
+
+List *local_inval_messages = NULL;
 
 /*----------------
  * Invalidation info is divided into two lists:
@@ -491,6 +496,11 @@ ProcessInvalidationMessages(InvalidationListHeader *hdr,
 {
 	ProcessMessageList(hdr->cclist, func(msg));
 	ProcessMessageList(hdr->rclist, func(msg));
+
+	if (ProcessInvalMessages_hook)
+	{
+		ProcessInvalMessages_hook(hdr->rclist, hdr->cclist);
+	}
 }
 
 /*
@@ -1048,6 +1058,12 @@ AtEOXact_Inval(bool isCommit)
 
 		if (transInvalInfo->RelcacheInitFileInval)
 			RelationCacheInitFilePostInvalidate();
+
+		if (local_inval_messages)
+		{
+			list_free_deep(local_inval_messages);
+			local_inval_messages = NULL;
+		}
 	}
 	else
 	{

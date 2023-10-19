@@ -16,7 +16,30 @@
 
 #include "access/htup.h"
 #include "storage/relfilenode.h"
+#include "storage/sinval.h"
 #include "utils/relcache.h"
+
+extern List *local_inval_messages;
+
+/*
+ * To minimize palloc traffic, we keep pending requests in successively-
+ * larger chunks (a slightly more sophisticated version of an expansible
+ * array).  All request types can be stored as SharedInvalidationMessage
+ * records.  The ordering of requests within a list is never significant.
+ */
+typedef struct InvalidationChunk
+{
+    struct InvalidationChunk *next; /* list link */
+    int			nitems;			/* # items currently stored in chunk */
+    int			maxitems;		/* size of allocated array in this chunk */
+    SharedInvalidationMessage msgs[FLEXIBLE_ARRAY_MEMBER];
+} InvalidationChunk;
+
+typedef struct InvalidationListHeader
+{
+    InvalidationChunk *cclist;	/* list of chunks holding catcache msgs */
+    InvalidationChunk *rclist;	/* list of chunks holding relcache msgs */
+} InvalidationListHeader;
 
 extern PGDLLIMPORT int debug_discard_caches;
 
@@ -65,4 +88,7 @@ extern void InvalidateSystemCaches(void);
 extern void InvalidateSystemCachesExtended(bool debug_discard);
 
 extern void LogLogicalInvalidations(void);
+
+typedef void (*ProcessInvalMessages_hook_type) (InvalidationChunk *rclist, InvalidationChunk *cclist);
+extern PGDLLIMPORT ProcessInvalMessages_hook_type ProcessInvalMessages_hook;
 #endif							/* INVAL_H */

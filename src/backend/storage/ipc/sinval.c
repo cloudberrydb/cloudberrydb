@@ -80,6 +80,9 @@ ReceiveSharedInvalidMessages(void (*invalFunction) (SharedInvalidationMessage *m
 {
 #define MAXINVALMSGS 32
 	static SharedInvalidationMessage messages[MAXINVALMSGS];
+	MemoryContext	oldctx;
+	SharedInvalidationMessage *inval_msg;
+
 
 	/*
 	 * We use volatile here to prevent bugs if a compiler doesn't realize that
@@ -95,6 +98,12 @@ ReceiveSharedInvalidMessages(void (*invalFunction) (SharedInvalidationMessage *m
 
 		SharedInvalidMessageCounter++;
 		invalFunction(&msg);
+
+		oldctx = MemoryContextSwitchTo(TopMemoryContext);
+		inval_msg = (SharedInvalidationMessage *) palloc0(sizeof(SharedInvalidationMessage));
+		memcpy((char *)inval_msg, (char *) &msg, sizeof(SharedInvalidationMessage));
+		local_inval_messages = lappend(local_inval_messages, inval_msg);
+		MemoryContextSwitchTo(oldctx);
 	}
 
 	do
@@ -125,6 +134,12 @@ ReceiveSharedInvalidMessages(void (*invalFunction) (SharedInvalidationMessage *m
 
 			SharedInvalidMessageCounter++;
 			invalFunction(&msg);
+
+			oldctx = MemoryContextSwitchTo(TopMemoryContext);
+			inval_msg = (SharedInvalidationMessage *) palloc0(sizeof(SharedInvalidationMessage));
+			memcpy((char *)inval_msg, (char *) &msg, sizeof(SharedInvalidationMessage));
+			local_inval_messages = lappend(local_inval_messages, inval_msg);
+			MemoryContextSwitchTo(oldctx);
 		}
 
 		/*
