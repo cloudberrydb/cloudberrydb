@@ -16,9 +16,37 @@
 
 #include "access/htup.h"
 #include "storage/relfilenode.h"
+#include "storage/sinval.h"
 #include "utils/relcache.h"
 
+/*
+ * To minimize palloc traffic, we keep pending requests in successively-
+ * larger chunks (a slightly more sophisticated version of an expansible
+ * array).  All request types can be stored as SharedInvalidationMessage
+ * records.  The ordering of requests within a list is never significant.
+ */
+typedef struct InvalidationChunk
+{
+    struct InvalidationChunk *next; /* list link */
+    int			nitems;			/* # items currently stored in chunk */
+    int			maxitems;		/* size of allocated array in this chunk */
+    SharedInvalidationMessage msgs[FLEXIBLE_ARRAY_MEMBER];
+} InvalidationChunk;
+
+typedef struct InvalidationListHeader
+{
+    InvalidationChunk *cclist;	/* list of chunks holding catcache msgs */
+    InvalidationChunk *rclist;	/* list of chunks holding relcache msgs */
+} InvalidationListHeader;
+
+typedef struct CacheAsyncMessages
+{
+    List *local_inval_messages;
+    bool reset_cache_state;
+} CacheAsyncMessages;
+
 extern PGDLLIMPORT int debug_discard_caches;
+extern CacheAsyncMessages *cache_async_messages;
 
 typedef void (*SyscacheCallbackFunction) (Datum arg, int cacheid, uint32 hashvalue);
 typedef void (*RelcacheCallbackFunction) (Datum arg, Oid relid);
@@ -65,4 +93,13 @@ extern void InvalidateSystemCaches(void);
 extern void InvalidateSystemCachesExtended(bool debug_discard);
 
 extern void LogLogicalInvalidations(void);
+
+typedef void (*CollectInvalMessages_hook_type) (SharedInvalidationMessage *msg);
+typedef void (*ProcessResetCache_hook_type) (void);
+typedef void (*cache_invalidation_async_hook_type) (CacheAsyncMessages *cache_async_messages);
+typedef void (*cache_async_cleanup_hook_type) (CacheAsyncMessages *cache_async_messages);
+extern PGDLLIMPORT CollectInvalMessages_hook_type CollectInvalMessages_hook;
+extern PGDLLIMPORT ProcessResetCache_hook_type ProcessResetCache_hook;
+extern PGDLLIMPORT cache_invalidation_async_hook_type cache_invalidation_async_hook;
+extern PGDLLIMPORT cache_async_cleanup_hook_type cache_async_cleanup_hook;
 #endif							/* INVAL_H */
