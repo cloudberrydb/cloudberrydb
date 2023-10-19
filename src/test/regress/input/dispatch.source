@@ -553,7 +553,7 @@ analyze gp_segment_configuration;
 -- end_ignore
 SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'interrupt', dbid, current_setting('gp_session_id')::int)
  from gp_segment_configuration where content=-1 and role='p';
-select * from gp_segment_configuration a, t13393 ,gp_segment_configuration b where a.dbid = t13393.tc1 limit 0;
+select count(*) from gp_segment_configuration a, t13393 ,gp_segment_configuration b where a.dbid = t13393.tc1 limit 0;
 SELECT gp_inject_fault('cdbcomponent_recycle_idle_qe_error', 'reset', dbid, current_setting('gp_session_id')::int)
  from gp_segment_configuration where content=-1 and role='p';
 drop table t13393;
