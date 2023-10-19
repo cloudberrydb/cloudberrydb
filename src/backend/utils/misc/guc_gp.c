@@ -3166,7 +3166,7 @@ struct config_int ConfigureNamesInt_gp[] =
 			NULL
 		},
 		&gp_appendonly_insert_files,
-		4 /* CBDB_PARALLEL If default value is changed, set it in src/test/regress/GNUMakefile too, see details there */, 0, 127,
+		4, 0, 127,
 		NULL, NULL, NULL
 	},
 

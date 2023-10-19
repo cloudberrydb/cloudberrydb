@@ -204,18 +204,8 @@ installcheck: installcheck-good
 installcheck-small: all
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(EXTRA_TESTS)
 
-# We have set default gp_appendonly_insert_files = 4 for user's underlying parallelism.
-# But that will cause lots of diffs between non-parallel and parallel mode that we can't
-# afford to modify them one by one, or create lots of answer files(and we didn't support that yet).
-# Any tests related to ao parallel should set GUCs in their own sql files, like gp_parallel.
-# Using gpconfig is a workaround for regression test for non-parallel and parallel mode.
-# Same for src/test/isolation2/Makefile
 installcheck-good: all twophase_pqexecparams hooktest query_info_hook_test
-	(\
-	gpconfig -c gp_appendonly_insert_files -v 0; \
-	gpstop -u; \
-	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS) \
-	)
+	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(EXTRA_TESTS)
 
 installcheck-parallel: all
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule $(MAXCONNOPT) $(EXTRA_TESTS)
@@ -223,7 +213,7 @@ installcheck-parallel: all
 # cbdb parallel plan tests, ignore the incompatible cases, should run with 5 GUCs like below:
 installcheck-cbdb-parallel: all twophase_pqexecparams
 	( \
-	export PGOPTIONS='-c optimizer=off -c enable_parallel=true -c min_parallel_table_scan_size=0 -c min_parallel_index_scan_size=0 -c force_parallel_mode=1 -c gp_appendonly_insert_files=0'; \
+	export PGOPTIONS='-c optimizer=off -c enable_parallel=true -c min_parallel_table_scan_size=0 -c min_parallel_index_scan_size=0 -c force_parallel_mode=1'; \
 	$(pg_regress_installcheck) $(REGRESS_OPTS) --schedule=$(srcdir)/parallel_schedule --schedule=$(srcdir)/greenplum_schedule $(MAXCONNOPT) $(EXTRA_TESTS) --exclude-tests explain \
 	)
 

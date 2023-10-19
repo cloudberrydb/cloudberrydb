@@ -34,8 +34,10 @@ SELECT (gp_toolkit.__gp_aoblkdir('ao_blkdir_test')).* FROM gp_dist_random('gp_id
 WHERE gp_segment_id = 0 ORDER BY 1,2,3,4,5;
 
 TRUNCATE ao_blkdir_test;
+set gp_appendonly_insert_files = 0;
 -- Insert enough rows to overflow the first block directory minipage by 2.
 INSERT INTO ao_blkdir_test SELECT i, 2 FROM generate_series(1, 292700) i;
+reset gp_appendonly_insert_files;
 -- There should be 2 block directory rows, one with 161 entries covering 292698
 -- rows and the other with 1 entry covering the 2 overflow rows.
 SELECT (gp_toolkit.__gp_aoblkdir('ao_blkdir_test')).* FROM gp_dist_random('gp_id')
@@ -128,7 +130,9 @@ WHERE gp_segment_id = 0 ORDER BY 1,2,3,4,5;
 
 TRUNCATE aoco_blkdir_test;
 -- Insert enough rows to overflow the first block directory minipage by 2.
+set gp_appendonly_insert_files = 0;
 INSERT INTO aoco_blkdir_test SELECT i, 2 FROM generate_series(1, 1317143) i;
+reset gp_appendonly_insert_files;
 -- There should be 2 block directory rows, 2 for each column, one with 161
 -- entries covering 1317141 rows and the other with 1 entry covering the 2
 -- overflow rows.
