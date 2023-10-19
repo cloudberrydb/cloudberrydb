@@ -2773,6 +2773,9 @@ CommitTransaction(void)
 	TransactionId latestXid;
 	bool		is_parallel_worker;
 
+	if (cache_invalidation_async_hook)
+		cache_invalidation_async_hook(cache_async_messages);
+
 	is_parallel_worker = (s->blockState == TBLOCK_PARALLEL_INPROGRESS);
 
 	/* Enforce parallel mode restrictions during parallel worker commit. */

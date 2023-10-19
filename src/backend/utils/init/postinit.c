@@ -70,6 +70,7 @@
 #include "utils/faultinjector.h"
 #include "utils/fmgroids.h"
 #include "utils/guc.h"
+#include "utils/inval.h"
 #include "utils/memutils.h"
 #include "utils/pg_locale.h"
 #include "utils/portal.h"

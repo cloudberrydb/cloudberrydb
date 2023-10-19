@@ -54,7 +54,7 @@ RegisterExtraDispatch(const char *extraDispName, PackFunc packFunc, UnpackFunc u
  * message.
  */
 char *
-PackExtraMsgs(int *len)
+PackExtraMsgs(int *len, bool need_snapshot)
 {
 	HASH_SEQ_STATUS status;
 	ExtraDispEntry *hentry;
@@ -86,7 +86,7 @@ PackExtraMsgs(int *len)
 	hash_seq_init(&status, ExtraDispTable);
 	while ((hentry = (ExtraDispEntry *) hash_seq_search(&status)) != NULL)
 	{
-		payloads[i] = (*(hentry->packFunc))(lengths + i);
+		payloads[i] = (*(hentry->packFunc))(lengths + i, need_snapshot);
 		names[i] = hentry->extraDispName;
 		totalLen += sizeof(int) + strlen(names[i]) + 1 + *(lengths + i);
 		i++;

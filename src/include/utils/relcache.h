@@ -37,12 +37,6 @@ typedef struct RelationData *Relation;
 typedef Relation *RelationPtr;
 
 /*
- * Hook for plugins to validate the relation in RelationIdGetRelation.
- */
-typedef void (*RelationValidation_hook_type)(Oid relationId, Relation relation);
-extern PGDLLIMPORT RelationValidation_hook_type RelationValidation_hook;
-
-/*
  * Routines to open (lookup) and close a relcache entry
  */
 extern Relation RelationIdGetRelation(Oid relationId);
