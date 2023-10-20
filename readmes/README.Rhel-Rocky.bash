@@ -2,17 +2,15 @@
 
 # Install needed packages. Please add to this list if you discover additional prerequisites
 sudo yum group install -y "Development Tools"
-INSTALL_PKGS="apr-devel bison bzip2-devel cmake3 epel-release flex gcc gcc-c++ krb5-devel libcurl-devel libevent-devel libkadm5 libxml2-devel libzstd-devel openssl-devel python39 python39-devel python39-psutil python3-pip perl-ExtUtils-MakeMaker.noarch perl-ExtUtils-Embed.noarch readline-devel rsync xerces-c-devel zlib-devel"
+INSTALL_PKGS="apr-devel bison bzip2-devel cmake3 epel-release flex gcc gcc-c++ krb5-devel libcurl-devel libevent-devel libkadm5 libxml2-devel libzstd-devel openssl-devel python39 python39-devel python39-psutil python3-pip perl-ExtUtils-MakeMaker.noarch perl-ExtUtils-Embed.noarch readline-devel rsync xerces-c-devel zlib-devel python3-psutil python3-pyyaml python3-psycopg2"
 
-for i in $INSTALL_PKGS; do
-  sudo yum install -y $i
-done
+sudo yum install -y $INSTALL_PKGS
 
-# Needed for pygresql, or you can source greenplum_path.sh after compiling database and installing python-dependencies then
-sudo yum install -y postgresql 
+sudo yum --enablerepo=powertools install -y libyaml-devel
+
+sudo yum install -y postgresql
 sudo yum install -y postgresql-devel
 
-pip3.9 install pygresql
 pip3.9 install -r python-dependencies.txt
 
 #Remove the python3 softlink because on Rocky8 its pointing to python3.6 by default. We need python3.9 for gpdb7.
