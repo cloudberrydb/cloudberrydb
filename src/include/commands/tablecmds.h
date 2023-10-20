@@ -124,6 +124,8 @@ extern void RangeVarCallbackOwnsRelation(const RangeVar *relation,
 										 Oid relId, Oid oldRelId, void *arg);
 extern bool PartConstraintImpliedByRelConstraint(Relation scanrel,
 												 List *partConstraint);
+extern void ComputePartitionAttrs(ParseState *pstate, Relation rel, List *partParams, AttrNumber *partattrs,
+								  List **partexprs, Oid *partopclass, Oid *partcollation, char strategy);
 
 /* GPDB specific functions */
 extern void ATExecGPPartCmds(Relation origrel, AlterTableCmd *cmd);

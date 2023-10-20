@@ -1572,6 +1572,20 @@ list_sort(List *list, list_sort_comparator cmp)
 		qsort(list->elements, len, sizeof(ListCell), (qsort_comparator) cmp);
 }
 
+void
+list_sort_arg(List *list, list_sort_arg_comparator cmp, void *arg)
+{
+	typedef int (*qsort_arg_comparator) (const void *a, const void *b, void *arg);
+	int			len;
+
+	check_list_invariants(list);
+
+	/* Nothing to do if there's less than two elements */
+	len = list_length(list);
+	if (len > 1)
+		qsort_arg(list->elements, len, sizeof(ListCell), (qsort_arg_comparator) cmp, arg);
+}
+
 /*
  * list_sort comparator for sorting a list into ascending int order.
  */

@@ -155,7 +155,7 @@ static void transformColumnType(CreateStmtContext *cxt, ColumnDef *column);
 static void setSchemaName(char *context_schema, char **stmt_schema_name);
 static void transformPartitionCmd(CreateStmtContext *cxt, PartitionCmd *cmd);
 static List *transformPartitionRangeBounds(ParseState *pstate, List *blist,
-										   Relation parent);
+										   Relation parent, PartitionKey key);
 static void validateInfiniteBounds(ParseState *pstate, List *blist);
 
 static DistributedBy *getLikeDistributionPolicy(TableLikeClause *e);
@@ -5127,7 +5127,7 @@ transformPartitionCmd(CreateStmtContext *cxt, PartitionCmd *cmd)
 			Assert(RelationGetPartitionKey(parentRel) != NULL);
 			if (cmd->bound != NULL)
 				cxt->partbound = transformPartitionBound(cxt->pstate, parentRel,
-														 cmd->bound);
+														 RelationGetPartitionKey(parentRel), cmd->bound);
 			break;
 		case RELKIND_PARTITIONED_INDEX:
 
@@ -5169,11 +5169,10 @@ transformPartitionCmd(CreateStmtContext *cxt, PartitionCmd *cmd)
  * Transform a partition bound specification
  */
 PartitionBoundSpec *
-transformPartitionBound(ParseState *pstate, Relation parent,
+transformPartitionBound(ParseState *pstate, Relation parent, PartitionKey key,
 						PartitionBoundSpec *spec)
 {
 	PartitionBoundSpec *result_spec;
-	PartitionKey key = RelationGetPartitionKey(parent);
 	char		strategy = get_partition_strategy(key);
 	int			partnatts = get_partition_natts(key);
 	List	   *partexprs = get_partition_exprs(key);
@@ -5306,10 +5305,10 @@ transformPartitionBound(ParseState *pstate, Relation parent,
 		 */
 		result_spec->lowerdatums =
 			transformPartitionRangeBounds(pstate, spec->lowerdatums,
-										  parent);
+										  parent, key);
 		result_spec->upperdatums =
 			transformPartitionRangeBounds(pstate, spec->upperdatums,
-										  parent);
+										  parent, key);
 	}
 	else
 		elog(ERROR, "unexpected partition strategy: %d", (int) strategy);
@@ -5324,10 +5323,9 @@ transformPartitionBound(ParseState *pstate, Relation parent,
  */
 static List *
 transformPartitionRangeBounds(ParseState *pstate, List *blist,
-							  Relation parent)
+							  Relation parent, PartitionKey key)
 {
 	List	   *result = NIL;
-	PartitionKey key = RelationGetPartitionKey(parent);
 	List	   *partexprs = get_partition_exprs(key);
 	ListCell   *lc;
 	int			i,
