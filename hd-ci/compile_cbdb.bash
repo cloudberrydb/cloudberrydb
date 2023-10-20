@@ -84,6 +84,8 @@ CBDB_VERSION=${CBDB_VERSION}
 EOF
 	else
 		cat <<EOF >>"${SRC_PATH}/cbdb-artifacts.txt"
+external_tar_download_url=${tar_package_path}
+external_rpm_download_url=${rpm_package_path}
 external_fts_RELEASE_cbdb_${OS_TYPE}_${OS_ARCH}_url=${rpm_download_url}
 external_fts_TARGZ_cbdb_${OS_TYPE}_${OS_ARCH}_url=${tar_download_url}
 EOF
