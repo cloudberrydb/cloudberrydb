@@ -119,6 +119,8 @@
 #include "executor/nodeRuntimeFilter.h"
 #include "miscadmin.h"
 #include "pgstat.h"
+#include "utils/guc.h"
+#include "utils/fmgroids.h"
 #include "utils/memutils.h"
 #include "utils/sharedtuplestore.h"
 
@@ -162,6 +164,16 @@ static void ReleaseHashTable(HashJoinState *node);
 static void SpillCurrentBatch(HashJoinState *node);
 static bool ExecHashJoinReloadHashTable(HashJoinState *hjstate);
 static void ExecEagerFreeHashJoin(HashJoinState *node);
+static void CreateRuntimeFilter(HashJoinState* hjstate);
+static bool IsEqualOp(Expr *expr);
+static bool CheckEqualArgs(Expr *expr, AttrNumber *lattno, AttrNumber *rattno);
+static PlanState *FindTargetAttr(HashJoinState *hjstate,
+								 AttrNumber attno,
+								 AttrNumber *lattno);
+static AttrFilter *CreateAttrFilter(PlanState *target,
+									AttrNumber lattno,
+									AttrNumber rattno,
+									double plan_rows);
 extern bool Test_print_prefetch_joinqual;
 
 
@@ -999,6 +1011,11 @@ ExecInitHashJoin(HashJoin *node, EState *estate, int eflags)
 		hstate->rfstate = rfstate;
 		ExecInitRuntimeFilterFinish(rfstate, hstate->ps.plan->plan_rows);
 	}
+
+	if (Gp_role == GP_ROLE_EXECUTE
+		&& gp_enable_runtime_filter_pushdown
+		&& !estate->useMppParallelMode)
+		CreateRuntimeFilter(hjstate);
 
 	return hjstate;
 }
@@ -2152,4 +2169,231 @@ ExecHashJoinInitializeWorker(HashJoinState *state,
 		state->worker_id = ParallelWorkerNumber + 1;
 		ExecSetExecProcNode(&state->js.ps, ExecParallelHashJoin);
 	}
+}
+
+/*
+ * Find "inner var = outer var" in hj->hashclauses and create runtime filter
+ * for it.
+ */
+void
+CreateRuntimeFilter(HashJoinState* hjstate)
+{
+	ListCell *lc;
+	AttrNumber lattno, rattno;
+
+	/*
+	 * Only applicatable for inner, right and semi join,
+	 */
+	JoinType jointype = hjstate->js.jointype;
+	if (jointype != JOIN_INNER
+		&& jointype != JOIN_RIGHT
+		&& jointype != JOIN_SEMI
+	   )
+		return;
+
+	HashState *hstate = castNode(HashState, innerPlanState(hjstate));
+	hstate->filters = NIL;
+
+	/*
+	 * check and initialize the runtime filter for all hash conds in
+	 * hj->hashclauses
+	 */
+	HashJoin *hj = castNode(HashJoin, hjstate->js.ps.plan);
+	foreach (lc, hj->hashclauses)
+	{
+		Expr *expr = (Expr *)lfirst(lc);
+
+		if (!IsEqualOp(expr))
+			continue;
+
+		lattno = -1;
+		rattno = -1;
+		if (!CheckEqualArgs(expr, &lattno, &rattno))
+			continue;
+
+		if (lattno < 1 || rattno < 1)
+			continue;
+
+		PlanState *target = FindTargetAttr(hjstate, lattno, &lattno);
+		if (lattno == -1 || target == NULL || IsA(target, HashJoinState))
+			continue;
+		Assert(IsA(target, SeqScanState));
+
+		AttrFilter *af = CreateAttrFilter(target, lattno, rattno,
+										  hstate->ps.plan->plan_rows);
+		if (af->bf)
+			hstate->filters = lappend(hstate->filters, af);
+		else
+			pfree(af);
+	}
+}
+
+static bool
+IsEqualOp(Expr *expr)
+{
+	if (!IsA(expr, OpExpr) && !IsA(expr, FuncExpr))
+		return false;
+
+	Oid funcid = InvalidOid;
+	if (IsA(expr, OpExpr))
+		funcid = ((OpExpr *)expr)->opfuncid;
+	if (IsA(expr, FuncExpr))
+		funcid = ((FuncExpr *)expr)->funcid;
+
+	if (funcid == F_INT2EQ  || funcid == F_INT4EQ  || funcid == F_INT8EQ
+		|| funcid == F_INT24EQ || funcid == F_INT42EQ
+		|| funcid == F_INT28EQ || funcid == F_INT82EQ
+		|| funcid == F_INT48EQ || funcid == F_INT84EQ
+	   )
+		return true;
+	else
+		return false;
+}
+
+/*
+ * runtime filters which can be pushed down:
+ * 1. hash expr MUST BE equal op;
+ * 2. args MUST BE Var node;
+ * 3. the data type MUST BE integer;
+ */
+static bool
+CheckEqualArgs(Expr *expr, AttrNumber *lattno, AttrNumber *rattno)
+{
+	if (lattno == NULL || rattno == NULL)
+		return false;
+
+	if (!IsA(expr, OpExpr) && !IsA(expr, FuncExpr))
+		return false;
+
+	List *args = NIL;
+	if (IsA(expr, OpExpr))
+		args = ((OpExpr *)expr)->args;
+	if (IsA(expr, FuncExpr))
+		args = ((FuncExpr *)expr)->args;
+
+	if (!args || list_length(args) != 2)
+		return false;
+
+	ListCell *lc;
+	bool match = false;
+	foreach (lc, args)
+	{
+		match = false;
+
+		if (!IsA(lfirst(lc), Var))
+			break;
+
+		Var *var = lfirst(lc);
+		if (var->varno == INNER_VAR)
+		{
+			*rattno = var->varattno;
+		}
+		else if (var->varno == OUTER_VAR)
+		{
+			*lattno = var->varattno;
+		}
+		else
+			break;
+
+		match = true;
+	}
+
+	return match;
+}
+
+/*
+ * it's just allowed like this:
+ *   HashJoin
+ *      ... a series of HashJoin nodes
+ *        HashJoin
+ *          SeqScan <- target
+ */
+static PlanState *
+FindTargetAttr(HashJoinState *hjstate, AttrNumber attno, AttrNumber *lattno)
+{
+	TargetEntry *te;
+
+	PlanState *parent = (PlanState *)hjstate;
+	PlanState *child  = outerPlanState(hjstate);
+	Assert(child);
+
+	while (child)
+	{
+		/* target is seqscan */
+		if (IsA(child, SeqScanState))
+		{
+			te = (TargetEntry *)list_nth(child->plan->targetlist, attno - 1);
+			if (!IsA(te->expr, Var))
+			{
+				*lattno = -1;
+				return NULL;
+			}
+			else
+			{
+				Var *var = castNode(Var, te->expr);
+
+				/* system column is not allowed */
+				if (var->varattno <= 0)
+				{
+					*lattno = -1;
+					return NULL;
+				}
+
+				*lattno = var->varattno;
+				return child;
+			}
+		}
+
+		/*
+		 * hashjoin
+		 *   result (hash filter)
+		 *     seqscan on t1, t1 is replicated table
+		 */
+		if (!IsA(child, HashJoinState) && !IsA(child, ResultState))
+		{
+			*lattno = -1;
+			return NULL;
+		}
+
+		/* child is hashjoin or result node */
+		te = (TargetEntry *)list_nth(child->plan->targetlist, attno - 1);
+		if (!IsA(te->expr, Var))
+		{
+			*lattno = -1;
+			return NULL;
+		}
+		else
+		{
+			Var *var = castNode(Var, te->expr);
+			if (var->varno == INNER_VAR)
+			{
+				*lattno = -1;
+				return NULL;
+			}
+			attno = var->varattno;
+		}
+
+		parent = child;
+		child  = outerPlanState(parent);
+	}
+
+	*lattno = -1;
+	return NULL;
+}
+
+static AttrFilter*
+CreateAttrFilter(PlanState *target, AttrNumber lattno, AttrNumber rattno,
+				 double plan_rows)
+{
+	AttrFilter *af = palloc0(sizeof(AttrFilter));
+	af->empty  = true;
+	af->target = target;
+
+	af->lattno = lattno;
+	af->rattno = rattno;
+	af->bf     = bloom_create_aggresive(plan_rows, work_mem, random());
+	af->min    = LLONG_MAX;
+	af->max    = LLONG_MIN;
+
+	return af;
 }

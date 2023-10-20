@@ -620,6 +620,13 @@ extern bool gp_enable_global_deadlock_detector;
 extern bool gp_enable_predicate_pushdown;
 extern int  gp_predicate_pushdown_sample_rows;
 
+/*
+ * Try to push the hash table of hash join node down to the scan node as
+ * bloom filter for performance.
+ */
+extern bool gp_enable_runtime_filter_pushdown;
+
+
 typedef enum
 {
 	INDEX_CHECK_NONE,
