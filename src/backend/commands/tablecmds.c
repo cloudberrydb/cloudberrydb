@@ -533,8 +533,6 @@ static void ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTab
 static void ATExecSetDistributedBy(Relation rel, Node *node,
 								   AlterTableCmd *cmd);
 static PartitionSpec *transformPartitionSpec(Relation rel, PartitionSpec *partspec, char *strategy);
-static void ComputePartitionAttrs(ParseState *pstate, Relation rel, List *partParams, AttrNumber *partattrs,
-								  List **partexprs, Oid *partopclass, Oid *partcollation, char strategy);
 static void CreateInheritance(Relation child_rel, Relation parent_rel);
 static void RemoveInheritance(Relation child_rel, Relation parent_rel,
 							  bool allow_detached);
@@ -1241,7 +1239,7 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 											   NULL, false, false);
 		addNSItemToQuery(pstate, nsitem, false, true, true);
 
-		bound = transformPartitionBound(pstate, parent, stmt->partbound);
+		bound = transformPartitionBound(pstate, parent, RelationGetPartitionKey(parent), stmt->partbound);
 
 		/*
 		 * Check first that the new partition's bound is valid and does not
@@ -20435,7 +20433,7 @@ transformPartitionSpec(Relation rel, PartitionSpec *partspec, char *strategy)
  * Compute per-partition-column information from a list of PartitionElems.
  * Expressions in the PartitionElems must be parse-analyzed already.
  */
-static void
+void
 ComputePartitionAttrs(ParseState *pstate, Relation rel, List *partParams, AttrNumber *partattrs,
 					  List **partexprs, Oid *partopclass, Oid *partcollation,
 					  char strategy)

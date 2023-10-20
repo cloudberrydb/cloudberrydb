@@ -85,11 +85,11 @@ static char *extract_tablename_from_options(List **options);
  * Used when sorting CreateStmts across all partitions.
  */
 static int32
-qsort_stmt_cmp(const void *a, const void *b, void *arg)
+qsort_stmt_cmp(const ListCell *a, const ListCell *b, void *arg)
 {
 	int32		cmpval = 0;
-	CreateStmt	   *b1cstmt = *(CreateStmt **) a;
-	CreateStmt	   *b2cstmt = *(CreateStmt **) b;
+	CreateStmt	   *b1cstmt = lfirst_node(CreateStmt, a);
+	CreateStmt	   *b2cstmt = lfirst_node(CreateStmt, b);
 	PartitionKey partKey = (PartitionKey) arg;
 	PartitionBoundSpec *b1 = b1cstmt->partbound;
 	PartitionBoundSpec *b2 = b2cstmt->partbound;
@@ -318,36 +318,6 @@ consts_to_datums(PartitionKey partkey, List *consts)
 }
 
 /*
- * Sort a list of CreateStmts in-place.
- */
-static void
-list_qsort_arg(List *list, qsort_arg_comparator cmp, void *arg)
-{
-	int			len = list_length(list);
-	ListCell   *cell;
-	CreateStmt **create_stmts;
-	int			i;
-
-	/* Empty list is easy */
-	if (len == 0)
-		return;
-
-	/* Flatten list into an array, so we can use qsort */
-	create_stmts = (CreateStmt **) palloc(sizeof(CreateStmt *) * len);
-	i = 0;
-	foreach(cell, list)
-		create_stmts[i++] = (CreateStmt *) lfirst(cell);
-
-	qsort_arg(create_stmts, len, sizeof(CreateStmt *), cmp, arg);
-
-	i = 0;
-	foreach(cell, list)
-		cell->ptr_value = create_stmts[i++];
-
-	pfree(create_stmts);
-}
-
-/*
  * Sort the list of GpPartitionBoundSpecs based first on START, if START does
  * not exist, use END. After sort, if any stmt contains an implicit START or
  * END, deduce the value and update the corresponding list of CreateStmts.
@@ -359,7 +329,7 @@ deduceImplicitRangeBounds(ParseState *pstate, Relation parentrel, List *stmts)
 	/* GPDB_14_MERGE_FIXEME: most places use true for new api, need to check */
 	PartitionDesc desc = RelationGetPartitionDesc(parentrel, true);
 
-	list_qsort_arg(stmts, qsort_stmt_cmp, key);
+	list_sort_arg(stmts, qsort_stmt_cmp, key);
 
 	/*
 	 * This works slightly differenly, depending on whether this is a
@@ -1111,7 +1081,7 @@ generateListPartition(ParseState *pstate,
 	boundspec->listdatums = listdatums;
 	boundspec->location = -1;
 
-	boundspec = transformPartitionBound(pstate, parentrel, boundspec);
+	boundspec = transformPartitionBound(pstate, parentrel, RelationGetPartitionKey(parentrel), boundspec);
 	childstmt = makePartitionCreateStmt(parentrel, elem->partName, boundspec, subPart,
 										elem, partnamecomp);
 
