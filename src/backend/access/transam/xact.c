@@ -7065,9 +7065,9 @@ XactLogAbortRecord(TimestampTz abort_time,
 	Assert(CritSectionCount > 0);
 
 	if (XactLogAbortRecord_hook)
-		(*XactLogAbortRecord_hook) (abort_time, tablespace_oid_to_delete_on_abort,
-									nsubxacts, subxacts, nrels, rels, ndeldbs, deldbs,
-									xactflags, twophase_xid, twophase_gid);
+		return (*XactLogAbortRecord_hook) (abort_time, tablespace_oid_to_delete_on_abort,
+											nsubxacts, subxacts, nrels, rels, ndeldbs, deldbs,
+											xactflags, twophase_xid, twophase_gid);
 
 	xl_xinfo.xinfo = 0;
 
@@ -7608,20 +7608,24 @@ MarkSubTransactionAssigned(void)
 }
 
 /*
- * Get all xids of top level transaction and subtransactons
+ * Get all xids of top level transaction and subtransactons, exclude subcommitted child XIDs.
  */
 FullTransactionId *
 GetAllXids(int *nxids)
 {
 	FullTransactionId *xids = NULL;
 	int	len = PGPROC_MAX_CACHED_SUBXIDS;
+	TransactionState xact = CurrentTransactionState;
 
 	*nxids = 0;
-	
-	if (FullTransactionIdIsValid(CurrentTransactionState->fullTransactionId))
-	{
-		TransactionState xact = CurrentTransactionState;
 
+	while (xact && !FullTransactionIdIsValid(xact->fullTransactionId))
+	{
+		xact = xact->parent;
+	}
+	
+	if (xact)
+	{
 		if (xids == NULL)
 			xids = (FullTransactionId *)palloc(sizeof(FullTransactionId) * len);
 		xids[(*nxids)++] = xact->fullTransactionId;
@@ -7643,16 +7647,113 @@ GetAllXids(int *nxids)
 }
 
 /*
+ * Get all xids of top level transaction and subtransactons, include subcommitted child XIDs.
+ */
+TransactionId *
+GetAllChildXids(int *nxids)
+{
+	TransactionId *xids = NULL;
+	int	len = PGPROC_MAX_CACHED_SUBXIDS;
+	TransactionState xact = CurrentTransactionState;
+
+	*nxids = 0;
+
+	while (xact && !FullTransactionIdIsValid(xact->fullTransactionId))
+	{
+		xact = xact->parent;
+	}
+
+	while (xact)
+	{
+		int index = 0;
+		int nChildXids = xact->nChildXids;
+
+		/* exclude top transaction's xid */
+		if (xact->parent)
+			nChildXids += 1;
+
+		if (xids == NULL)
+			xids = (TransactionId *)palloc(sizeof(TransactionId) * len);
+		else if ((*nxids) + nChildXids >= len)
+		{
+			len = ((*nxids) + nChildXids) * 2;
+			
+			xids = (TransactionId *)repalloc(xids, sizeof(TransactionId) * len);
+		}
+
+		if (nChildXids)
+			memmove((char *)xids + nChildXids * sizeof(TransactionId), (char *)xids, (*nxids) * sizeof(TransactionId));
+
+		if (xact->parent)
+			xids[index++] = XidFromFullTransactionId(xact->fullTransactionId);
+
+		if (xact->nChildXids)
+			memcpy((char *)xids + index * sizeof(TransactionId), (char *)xact->childXids, xact->nChildXids * sizeof(TransactionId));
+
+		(*nxids) = (*nxids) + nChildXids;
+
+		xact = xact->parent;
+	}
+
+	return xids;
+}
+
+void
+SetChildXids(int nChildXids, TransactionId *childXids)
+{
+	TransactionState xact;
+	MemoryContext old;
+
+	if (nChildXids == 0)
+		return;
+
+	xact = CurrentTransactionState;
+	old = MemoryContextSwitchTo(xact->curTransactionContext);
+
+	if (xact->maxChildXids < nChildXids)
+	{
+		int			new_maxChildXids;
+		TransactionId *new_childXids;
+
+		new_maxChildXids = Min(nChildXids * 2,
+							   (int) (MaxAllocSize / sizeof(TransactionId)));
+
+		if (new_maxChildXids < nChildXids)
+			ereport(ERROR,
+					(errcode(ERRCODE_PROGRAM_LIMIT_EXCEEDED),
+					 errmsg("maximum number of committed subtransactions (%d) exceeded",
+							(int) (MaxAllocSize / sizeof(TransactionId)))));
+
+		if (xact->childXids == NULL)
+			new_childXids =
+				MemoryContextAlloc(TopTransactionContext,
+								   new_maxChildXids * sizeof(TransactionId));
+		else
+			new_childXids = repalloc(xact->childXids,
+									 new_maxChildXids * sizeof(TransactionId));
+
+		xact->childXids = new_childXids;
+		xact->maxChildXids = new_maxChildXids;
+	}
+
+	memcpy((char *)xact->childXids, (char *)childXids, nChildXids * sizeof(TransactionId));
+
+	xact->nChildXids = nChildXids;
+
+	MemoryContextSwitchTo(old);
+}
+
+/*
  * Get number of transaction and subtransactions which have no xid.
  */
 int
-GetNumOfTxnStatesWithoutXid(void)
+GetNumOfTxnStatesWithoutXid(TransactionState transactionState)
 {
 	int nlevels = 0;
 
-	if (!FullTransactionIdIsValid(CurrentTransactionState->fullTransactionId))
+	if (!FullTransactionIdIsValid(transactionState->fullTransactionId))
 	{
-		TransactionState xact = CurrentTransactionState;
+		TransactionState xact = transactionState;
 
 		nlevels++;
 
@@ -7672,4 +7773,49 @@ GetNumOfTxnStatesWithoutXid(void)
 	}
 
 	return nlevels;
+}
+
+/*
+ * Get current transaction state
+ */
+TransactionState
+GetCurrentTransactionState(void)
+{
+	return CurrentTransactionState;
+}
+
+/*
+ * Get parent transaction state of given transaction state 
+ */
+TransactionState
+GetParentTransactionState(TransactionState transactionState)
+{
+	return transactionState->parent;
+}
+
+/*
+ * Get nesting level of given transaction state
+ */
+int
+GetTransactionNestLevel(TransactionState transactionState)
+{
+	return transactionState->nestingLevel;
+}
+
+/*
+ * Get full transaction id of given transaction state
+ */
+FullTransactionId
+GetFullTransactionId(TransactionState transactionState)
+{
+	return transactionState->fullTransactionId;
+}
+
+/*
+ * Set current transaction state to given transaction state
+ */
+void
+SetCurrentTransactionState(TransactionState transactionState)
+{
+	CurrentTransactionState = transactionState;
 }
