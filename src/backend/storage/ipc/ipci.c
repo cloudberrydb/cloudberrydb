@@ -30,6 +30,7 @@
 #include "cdb/cdblocaldistribxact.h"
 #include "cdb/cdbvars.h"
 #include "commands/async.h"
+#include "commands/matview.h"
 #include "crypto/kmgr.h"
 #include "executor/nodeShareInputScan.h"
 #include "miscadmin.h"
@@ -244,6 +245,7 @@ CreateSharedMemoryAndSemaphores(void)
 		/* size of standby promote flags */
 		size = add_size(size, ShmemStandbyPromoteReadySize());
 #endif
+		size = add_size(size, mv_TableShmemSize());
 		elog(DEBUG3, "invoking IpcMemoryCreate(size=%zu)", size);
 
 		/*

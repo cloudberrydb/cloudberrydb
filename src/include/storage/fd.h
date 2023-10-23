@@ -189,4 +189,6 @@ extern const char *FileGetFilename(File file);
 
 extern void FileSetIsWorkfile(File file);
 
+extern void FileSetTempfile(File file, bool isTemp);
+
 #endif							/* FD_H */

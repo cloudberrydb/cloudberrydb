@@ -55,6 +55,20 @@ typedef struct EphemeralNamedRelationData
 
 typedef EphemeralNamedRelationData *EphemeralNamedRelation;
 
+
+typedef struct EphemeralNamedRelationInfo
+{
+	NodeTag 	type;
+	char		*name;			/* name used to identify the relation */
+	Oid			reliddesc;		/* oid of relation to get tupdesc */
+	int			natts;			/* # of attributes */
+	TupleDesc	tuple;		/* description of result rows */
+
+	EphemeralNameRelationType enrtype;	/* to identify type of relation */
+	double		enrtuples;		/* number of tuples */
+} EphemeralNamedRelationInfo;
+
+
 /*
  * This is an opaque structure outside of queryenvironment.c itself.  The
  * intention is to be able to change the implementation or add new context
@@ -71,4 +85,6 @@ extern void unregister_ENR(QueryEnvironment *queryEnv, const char *name);
 extern EphemeralNamedRelation get_ENR(QueryEnvironment *queryEnv, const char *name);
 extern TupleDesc ENRMetadataGetTupDesc(EphemeralNamedRelationMetadata enrmd);
 
+extern void AddPreassignedENR(QueryEnvironment *queryEnv, List* enrs);
+extern void configure_queryEnv(QueryEnvironment *queryEnv, Oid matviewOid, Oid tableid, char* snapname, Size snaplen);
 #endif							/* QUERYENVIRONMENT_H */

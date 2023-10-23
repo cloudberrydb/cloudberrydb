@@ -566,6 +566,9 @@ _readIntoClause(void)
 	READ_NODE_FIELD(viewQuery);
 	READ_BOOL_FIELD(skipData);
 	READ_NODE_FIELD(distributedBy);
+	READ_BOOL_FIELD(ivm);
+	READ_OID_FIELD(matviewOid);
+	READ_STRING_FIELD(enrname);
 
 	READ_DONE();
 }
@@ -1440,6 +1443,7 @@ _readRangeTblEntry(void)
 	READ_NODE_FIELD(alias);
 	READ_NODE_FIELD(eref);
 	READ_ENUM_FIELD(rtekind, RTEKind);
+	READ_BOOL_FIELD(relisivm);
 
 	switch (local_node->rtekind)
 	{

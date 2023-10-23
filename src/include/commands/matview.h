@@ -35,11 +35,16 @@ extern DestReceiver *CreateTransientRelDestReceiver(Oid oid, Oid oldreloid, bool
 extern bool MatViewIncrementalMaintenanceIsEnabled(void);
 
 extern void transientrel_init(QueryDesc *queryDesc);
+extern void transientenr_init(QueryDesc *queryDesc);
 
-extern Datum IVM_immediate_before(PG_FUNCTION_ARGS);
-extern Datum IVM_immediate_maintenance(PG_FUNCTION_ARGS);
-extern Datum IVM_visible_in_prestate(PG_FUNCTION_ARGS);
+extern Datum ivm_immediate_before(PG_FUNCTION_ARGS);
+extern Datum ivm_immediate_maintenance(PG_FUNCTION_ARGS);
+extern Datum ivm_immediate_cleanup(PG_FUNCTION_ARGS);
+extern Datum ivm_visible_in_prestate(PG_FUNCTION_ARGS);
 extern void AtAbort_IVM(void);
+extern void AtEOXact_IVM(bool isCommit);
 extern bool isIvmName(const char *s);
-
+extern void mv_InitHashTables(void);
+extern Size mv_TableShmemSize(void);
+extern void AddPreassignedMVEntry(Oid matview_id, Oid table_id, const char* snapname);
 #endif							/* MATVIEW_H */

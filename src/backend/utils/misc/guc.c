@@ -579,6 +579,7 @@ bool		Debug_print_plan = false;
 bool		Debug_print_parse = false;
 bool		Debug_print_rewritten = false;
 bool		Debug_pretty_print = true;
+bool 		Debug_print_ivm = false;
 
 bool		log_parser_stats = false;
 bool		log_planner_stats = false;
@@ -1531,6 +1532,15 @@ static struct config_bool ConfigureNamesBool[] =
 		},
 		&Debug_pretty_print,
 		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"debug_print_ivm", PGC_USERSET, LOGGING_WHAT,
+			gettext_noop("Logs incremental matview execution steps."),
+			NULL
+		},
+		&Debug_print_ivm,
+		false,
 		NULL, NULL, NULL
 	},
 	{

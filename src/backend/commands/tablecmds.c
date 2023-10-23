@@ -66,6 +66,7 @@
 #include "commands/comment.h"
 #include "commands/createas.h"
 #include "commands/defrem.h"
+#include "commands/matview.h"
 #include "commands/event_trigger.h"
 #include "commands/policy.h"
 #include "commands/sequence.h"
@@ -3847,6 +3848,14 @@ renameatt_internal(Oid myrelid,
 	 */
 	targetrelation = relation_open(myrelid, AccessExclusiveLock);
 	renameatt_check(myrelid, RelationGetForm(targetrelation), recursing);
+
+	/*
+	 * Don't rename IVM columns.
+	 */
+	if (RelationIsIVM(targetrelation) && isIvmName(oldattname))
+		ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				 errmsg("IVM column can not be renamed")));
 
 	/*
 	 * if the 'recurse' flag is set then we are supposed to rename this

@@ -21,7 +21,7 @@ PostgreSQL documentation
 
  <refsynopsisdiv>
 <synopsis>
-CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] <replaceable>table_name</replaceable>
+CREATE [ INCREMENTAL ] MATERIALIZED VIEW [ IF NOT EXISTS ] <replaceable>table_name</replaceable>
     [ (<replaceable>column_name</replaceable> [, ...] ) ]
     [ USING <replaceable class="parameter">method</replaceable> ]
     [ WITH ( <replaceable class="parameter">storage_parameter</replaceable> [= <replaceable class="parameter">value</replaceable>] [, ... ] ) ]
@@ -60,6 +60,116 @@ CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] <replaceable>table_name</replaceable>
   <title>Parameters</title>
 
   <variablelist>
+   <varlistentry>
+    <term><literal>INCREMENTAL</literal></term>
+    <listitem>
+     <para>
+      If specified, some triggers are automatically created so that the rows
+      of the materialized view are immediately updated when base tables of the
+      materialized view are updated. In general, this allows faster update of
+      the materialized view at a price of slower update of the base tables
+      because the triggers will be invoked. We call this form of materialized
+      view as "Incrementally Maintainable Materialized View" (IMMV).
+     </para>
+     <para>
+      There are restrictions of query definitions allowed to use this
+      option. The following are supported in query definitions for IMMV:
+      <itemizedlist>
+
+       <listitem>
+        <para>
+         Inner joins (including self-joins).
+        </para>
+       </listitem>
+
+       <listitem>
+        <para>
+         Some built-in aggregate functions (count, sum, avg, min, max) without a HAVING
+         clause.
+        </para>
+        </listitem>
+      </itemizedlist>
+
+      Unsupported queries with this option include the following:
+
+      <itemizedlist>
+       <listitem>
+        <para>
+         Outer joins.
+        </para>
+       </listitem>
+
+       <listitem>
+        <para>
+         Sub-queries.
+        </para>
+       </listitem>
+
+       <listitem>
+        <para>
+         Aggregate functions other than built-in count, sum, avg, min and max.
+        </para>
+       </listitem>
+       <listitem>
+        <para>
+         Aggregate functions with a HAVING clause.
+        </para>
+       </listitem>
+       <listitem>
+        <para>
+         DISTINCT ON, WINDOW, VALUES, LIMIT and OFFSET clause.
+        </para>
+       </listitem>
+      </itemizedlist>
+
+      Other restrictions include:
+      <itemizedlist>
+
+       <listitem>
+        <para>
+         IMMVs must be based on simple base tables. It's not supported to
+         create them on top of views or materialized views.
+        </para>
+       </listitem>
+
+       <listitem>
+        <para>
+         It is not supported to include system columns in an IMMV.
+         <programlisting>
+CREATE INCREMENTAL MATERIALIZED VIEW  mv_ivm02 AS SELECT i,j FROM mv_base_a WHERE xmin = '610';
+ERROR:  system column is not supported with IVM
+         </programlisting>
+        </para>
+       </listitem>
+
+       <listitem>
+        <para>
+         Non-immutable functions are not supported.
+         <programlisting>
+CREATE INCREMENTAL MATERIALIZED VIEW  mv_ivm12 AS SELECT i,j FROM mv_base_a WHERE i = random()::int;
+ERROR:  functions in IMMV must be marked IMMUTABLE
+         </programlisting>
+        </para>
+        </listitem>
+
+       <listitem>
+        <para>
+         IMMVs do not support expressions that contains aggregates
+        </para>
+       </listitem>
+
+       <listitem>
+        <para>
+         Logical replication does not support IMMVs.
+        </para>
+       </listitem>
+
+      </itemizedlist>
+
+     </para>
+    </listitem>
+   </varlistentry>
+
    <varlistentry>
     <term><literal>IF NOT EXISTS</literal></term>
     <listitem>
@@ -153,7 +263,8 @@ CREATE MATERIALIZED VIEW [ IF NOT EXISTS ] <replaceable>table_name</replaceable>
       This clause specifies whether or not the materialized view should be
       populated at creation time.  If not, the materialized view will be
       flagged as unscannable and cannot be queried until <command>REFRESH
-      MATERIALIZED VIEW</command> is used.
+      MATERIALIZED VIEW</command> is used.  Also, if the view is IMMV,
+      triggers for maintaining the view are not created.
      </para>
     </listitem>
    </varlistentry>
