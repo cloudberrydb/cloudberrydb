@@ -4075,30 +4075,7 @@ initial_cost_hashjoin(PlannerInfo *root, JoinCostWorkspace *workspace,
 	 * number, so we need to undo the division.
 	 */
 	if (parallel_hash)
-	{
-		/*
-		 * GPDB
-		 * For GP style parallel, inner path's locus could be ReplicatedWorkers.
-		 *
-		 *       Join
-		 *      /    \
-		 *  Outer   ParallelHash
-		 *              \
-		 *          ParallelBroadcastMotion
-		 *                \
-		 *             origin_inner
-		 *
-		 * In this case, inner_path.rows has already taken parallel into account.
-		 * We shouldn't plus parallel_divisor again, else the estimation of Hash
-		 * Table will be much more than the size it really is.
-		 * The side-effect will lead to:
-		 * 1. Estimate or allocate much more memory for shared Hash Table.
-		 * 2. Use MergeJoin instead of HashJoin if planner recognize inner table
-		 * is too big.
-		 */
-		if(!CdbPathLocus_IsReplicatedWorkers(inner_path->locus))
-			inner_path_rows_total *= get_parallel_divisor(inner_path);
-	}
+		inner_path_rows_total *= get_parallel_divisor(inner_path);
 
 	/*
 	 * Get hash table size that executor would use for inner relation.
