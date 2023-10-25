@@ -25,6 +25,7 @@
 #include "access/nbtree.h"
 #include "access/reloptions.h"
 #include "access/relscan.h"
+#include "access/subtrans.h"
 #include "access/sysattr.h"
 #include "access/tableam.h"
 #include "access/toast_compression.h"
@@ -10099,6 +10100,12 @@ ATExecAddIndex(AlteredTableInfo *tab, Relation rel,
 
 		irel->rd_createSubid = stmt->oldCreateSubid;
 		irel->rd_firstRelfilenodeSubid = stmt->oldFirstRelfilenodeSubid;
+
+		if (subtransaction_id_hook)
+		{
+			subtransaction_id_hook(irel);
+		}
+
 		RelationPreserveStorage(irel->rd_node, true);
 		index_close(irel, NoLock);
 	}

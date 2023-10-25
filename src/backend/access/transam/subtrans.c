@@ -55,6 +55,8 @@
 #define TransactionIdToEntry(xid) ((xid) % (uint32) SUBTRANS_XACTS_PER_PAGE)
 
 
+subtransaction_id_hook_type subtransaction_id_hook = NULL;
+
 /*
  * Link to shared-memory data structures for SUBTRANS control
  */

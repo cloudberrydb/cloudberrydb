@@ -38,6 +38,7 @@
 #include "access/nbtree.h"
 #include "access/parallel.h"
 #include "access/reloptions.h"
+#include "access/subtrans.h"
 #include "access/sysattr.h"
 #include "access/table.h"
 #include "access/tableam.h"
@@ -1425,6 +1426,11 @@ RelationInitPhysicalAddr(Relation relation)
 			relation->rd_firstRelfilenodeSubid = TopSubTransactionId;
 		else
 			relation->rd_firstRelfilenodeSubid = InvalidSubTransactionId;
+
+		if (subtransaction_id_hook)
+		{
+			subtransaction_id_hook(relation);
+		}
 	}
 }
 
@@ -2924,6 +2930,11 @@ RelationForgetRelation(Oid rid)
 		 * transaction, we could opt to destroy the entry.)
 		 */
 		relation->rd_droppedSubid = GetCurrentSubTransactionId();
+
+		if (subtransaction_id_hook)
+		{
+			subtransaction_id_hook(relation);
+		}
 	}
 
 	RelationClearRelation(relation, false);
@@ -3642,6 +3653,11 @@ RelationBuildLocalRelation(const char *relname,
 	rel->rd_firstRelfilenodeSubid = InvalidSubTransactionId;
 	rel->rd_droppedSubid = InvalidSubTransactionId;
 
+	if (subtransaction_id_hook)
+	{
+		subtransaction_id_hook(rel);
+	}
+
 	/*
 	 * create a new tuple descriptor from the one passed in.  We do this
 	 * partly to copy it into the cache context, and partly because the new
@@ -4006,6 +4022,11 @@ RelationAssumeNewRelfilenode(Relation relation)
 	relation->rd_newRelfilenodeSubid = GetCurrentSubTransactionId();
 	if (relation->rd_firstRelfilenodeSubid == InvalidSubTransactionId)
 		relation->rd_firstRelfilenodeSubid = relation->rd_newRelfilenodeSubid;
+
+	if (subtransaction_id_hook)
+	{
+		subtransaction_id_hook(relation);
+	}
 
 	/* Flag relation as needing eoxact cleanup (to clear these fields) */
 	EOXactListAdd(relation);

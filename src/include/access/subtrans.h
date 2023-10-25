@@ -11,6 +11,8 @@
 #ifndef SUBTRANS_H
 #define SUBTRANS_H
 
+#include "utils/rel.h"
+
 /* Number of SLRU buffers to use for subtrans */
 #define NUM_SUBTRANS_BUFFERS	32
 
@@ -22,6 +24,10 @@ typedef struct SubTransData
 
 struct SlruCtlData;
 typedef struct SlruCtlData *SlruCtl;
+
+/* Hook for subtransaction id */
+typedef void (*subtransaction_id_hook_type) (Relation rel);
+extern PGDLLIMPORT subtransaction_id_hook_type subtransaction_id_hook;
 
 extern void SubTransSetParent(TransactionId xid, TransactionId parent);
 extern TransactionId SubTransGetParent(TransactionId xid);

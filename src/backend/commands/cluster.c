@@ -26,6 +26,7 @@
 #include "access/tableam.h"
 #include "access/toast_internals.h"
 #include "access/transam.h"
+#include "access/subtrans.h"
 #include "access/xact.h"
 #include "access/xlog.h"
 #include "catalog/catalog.h"
@@ -1255,6 +1256,12 @@ swap_relation_files(Oid r1, Oid r2, bool target_is_pg_class,
 		rel2->rd_newRelfilenodeSubid = rel1->rd_newRelfilenodeSubid;
 		rel2->rd_firstRelfilenodeSubid = rel1->rd_firstRelfilenodeSubid;
 		RelationAssumeNewRelfilenode(rel1);
+
+		if (subtransaction_id_hook)
+		{
+			subtransaction_id_hook(rel2);
+		}
+
 		relation_close(rel1, NoLock);
 		relation_close(rel2, NoLock);
 	}
