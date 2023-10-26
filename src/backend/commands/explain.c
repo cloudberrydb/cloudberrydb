@@ -1789,8 +1789,8 @@ ExplainNode(PlanState *planstate, List *ancestors,
 					case MOTIONTYPE_BROADCAST:
 						sname = "Broadcast Motion";
 						break;
-					case MOTIONTYPE_PARALLEL_BROADCAST:
-						sname = "Parallel Broadcast Motion";
+					case MOTIONTYPE_BROADCAST_WORKERS:
+						sname = "Broadcast Workers Motion";
 						break;
 					case MOTIONTYPE_EXPLICIT:
 						sname = "Explicit Redistribute Motion";

@@ -1827,7 +1827,7 @@ explain(costs off) select sum(t1.c1) from t1 where c1 not in (select c2 from t2)
                      Hash Cond: (t1.c1 = t2.c2)
                      ->  Parallel Seq Scan on t1
                      ->  Parallel Hash
-                           ->  Parallel Broadcast Motion 6:6  (slice2; segments: 6)
+                           ->  Broadcast Workers Motion 6:6  (slice2; segments: 6)
                                  ->  Parallel Seq Scan on t2
  Optimizer: Postgres query optimizer
 (10 rows)
@@ -1846,7 +1846,7 @@ explain(costs off) select * from t1 where c1 not in (select c2 from t3_null);
          Hash Cond: (t1.c1 = t3_null.c2)
          ->  Parallel Seq Scan on t1
          ->  Parallel Hash
-               ->  Parallel Broadcast Motion 6:6  (slice2; segments: 6)
+               ->  Broadcast Workers Motion 6:6  (slice2; segments: 6)
                      ->  Parallel Seq Scan on t3_null
  Optimizer: Postgres query optimizer
 (8 rows)

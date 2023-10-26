@@ -980,7 +980,7 @@ _readMotion(void)
 		   local_node->motionType == MOTIONTYPE_GATHER_SINGLE ||
 		   local_node->motionType == MOTIONTYPE_HASH ||
 		   local_node->motionType == MOTIONTYPE_BROADCAST ||
-		   local_node->motionType == MOTIONTYPE_PARALLEL_BROADCAST ||
+		   local_node->motionType == MOTIONTYPE_BROADCAST_WORKERS ||
 		   local_node->motionType == MOTIONTYPE_EXPLICIT);
 
 	READ_BOOL_FIELD(sendSorted);
