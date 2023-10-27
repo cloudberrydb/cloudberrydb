@@ -35,9 +35,13 @@ REFRESH MATERIALIZED VIEW [ CONCURRENTLY ] <replaceable class="parameter">name</
    owner of the materialized view.  The old contents are discarded.  If
    <literal>WITH DATA</literal> is specified (or defaults) the backing query
    is executed to provide the new data, and the materialized view is left in a
-   scannable state.  If <literal>WITH NO DATA</literal> is specified no new
+   scannable state.  If the view is an incrementally maintainable materialized
+   view (IMMV) and was unpopulated, triggers for maintaining the view are
+   created. Also, a unique index is created for IMMV if it is possible and the
+   view doesn't have that yet.
+   If <literal>WITH NO DATA</literal> is specified no new
    data is generated and the materialized view is left in an unscannable
-   state.
+   state.  If the view is IMMV, the triggers are dropped.
   </para>
   <para>
    <literal>CONCURRENTLY</literal> and <literal>WITH NO DATA</literal> may not
