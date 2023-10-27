@@ -1090,6 +1090,443 @@ SELECT word FROM words ORDER BY word &lt;-&gt; 'caterpiler' LIMIT 10;
 
 </sect1>
 
+<sect1 id="rules-ivm">
+<title>Incremental View Maintenance</title>
+
+<indexterm zone="rules-ivm">
+ <primary>incremental view maintenance</primary>
+</indexterm>
+
+<indexterm zone="rules-ivm">
+ <primary>materialized view</primary>
+ <secondary>incremental view maintenance</secondary>
+</indexterm>
+
+<indexterm zone="rules-ivm">
+ <primary>view</primary>
+ <secondary>incremental view maintenance</secondary>
+</indexterm>
+
+<sect2 id="rules-ivm-overview">
+<title>Overview</title>
+
+<para>
+    Incremental View Maintenance (<acronym>IVM</acronym>) is a way to make
+    materialized views up-to-date in which only incremental changes are computed
+    and applied on views rather than recomputing the contents from scratch as
+    <command>REFRESH MATERIALIZED VIEW</command> does.  <acronym>IVM</acronym>
+    can update materialized views more efficiently than recomputation when only
+    small parts of the view are changed.
+</para>
+
+<para>
+    There are two approaches with regard to timing of view maintenance:
+    immediate and deferred.  In immediate maintenance, views are updated in the
+    same transaction that its base table is modified.  In deferred maintenance,
+    views are updated after the transaction is committed, for example, when the
+    view is accessed, as a response to user command like <command>REFRESH
+    MATERIALIZED VIEW</command>, or periodically in background, and so on.
+    <productname>PostgreSQL</productname> currently implements only a kind of
+    immediate maintenance, in which materialized views are updated immediately
+    in AFTER triggers when a base table is modified.
+</para>
+
+<para>
+    To create materialized views supporting <acronym>IVM</acronym>, use the
+    <command>CREATE INCREMENTAL MATERIALIZED VIEW</command>, for example:
+<programlisting>
+CREATE <emphasis>INCREMENTAL</emphasis> MATERIALIZED VIEW mymatview AS SELECT * FROM mytab;
+</programlisting>
+    When a materialized view is created with the <literal>INCREMENTAL</literal>
+    keyword, some triggers are automatically created so that the view's contents are
+    immediately updated when its base tables are modified. We call this form
+    of materialized view an Incrementally Maintainable Materialized View
+    (<acronym>IMMV</acronym>).
+<programlisting>
+postgres=# CREATE INCREMENTAL MATERIALIZED VIEW m AS SELECT * FROM t0;
+NOTICE:  could not create an index on materialized view "m" automatically
+HINT:  Create an index on the materialized view for effcient incremental maintenance.
+SELECT 3
+postgres=# SELECT * FROM m;
+ i
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+postgres=# INSERT INTO t0 VALUES (4);
+INSERT 0 1
+postgres=# SELECT * FROM m; -- automatically updated
+ i
+---
+ 1
+ 2
+ 3
+ 4
+(4 rows)
+</programlisting>
+</para>
+
+<para>
+    Some <acronym>IMMV</acronym>s have hidden columns which are added
+    automatically when a materialized view is created. Their name starts
+    with <literal>__ivm_</literal> and they contain information required
+    for maintaining the <acronym>IMMV</acronym>. Such columns are not visible
+    when the <acronym>IMMV</acronym> is accessed by <literal>SELECT *</literal>
+    but are visible if the column name is explicitly specified in the target
+    list. We can also see the hidden columns in <literal>\d</literal>
+    meta-commands of <command>psql</command> commands.
+</para>
+
+<para>
+    In general, <acronym>IMMV</acronym>s allow faster updates of materialized
+    views at the price of slower updates to their base tables. Updates of
+    <acronym>IMMV</acronym> is slower because triggers will be invoked and the
+    view is updated in triggers per modification statement.
+</para>
+
+<para>
+    For example, suppose a normal materialized view defined as below:
+
+<programlisting>
+test=# CREATE INCREMENTAL MATERIALIZED VIEW mv_ivm AS
+        SELECT a.aid, b.bid, a.abalance, b.bbalance
+        FROM pgbench_accounts a JOIN pgbench_branches b USING(bid);
+SELECT 10000000
+
+</programlisting>
+
+    Updating a tuple in a base table of this materialized view is rapid but the
+   <command>REFRESH MATERIALIZED VIEW</command> command on this view takes a long time:
+
+<programlisting>
+test=# UPDATE pgbench_accounts SET abalance = 1000 WHERE aid = 1;
+UPDATE 1
+Time: 0.990 ms
+
+test=# REFRESH MATERIALIZED VIEW mv_normal ;
+REFRESH MATERIALIZED VIEW
+Time: 33533.952 ms (00:33.534)
+</programlisting>
+</para>
+
+<para>
+    On the other hand, after creating <acronym>IMMV</acronym> with the same view
+    definition as below:
+
+<programlisting>
+test=# CREATE INCREMENTAL MATERIALIZED VIEW mv_ivm AS
+        SELECT a.aid, b.bid, a.abalance, b.bbalance
+        FROM pgbench_accounts a JOIN pgbench_branches b USING(bid);
+test=# UPDATE pgbench_accounts SET abalance = 1000 WHERE aid = 1;
+NOTICE:  created index "mv_ivm_index" on materialized view "mv_ivm"
+</programlisting>
+
+    updating a tuple in a base table takes more than the normal view,
+    but its content is updated automatically and this is faster than the
+    <command>REFRESH MATERIALIZED VIEW</command> command.
+
+<programlisting>
+test=# UPDATE pgbench_accounts SET abalance = 1000 WHERE aid = 1;
+UPDATE 1
+Time: 13.068 ms
+</programlisting>
+
+</para>
+
+<para>
+    Appropriate indexes on <acronym>IMMV</acronym>s are necessary for
+    efficient <acronym>IVM</acronym> because it looks for tuples to be
+    updated in <acronym>IMMV</acronym>.  If there are no indexes, it
+    will take a long time.
+</para>
+
+<para>
+    Therefore, when <acronym>IMMV</acronym> is defined, a unique index is created on the view
+    automatically if possible.  If the view definition query has a GROUP BY clause, a unique
+    index is created on the columns of GROUP BY expressions.  Also, if the view has DISTINCT
+    clause, a unique index is created on all columns in the target list. Otherwise, if the
+    view contains all primary key attritubes of its base tables in the target list, a unique
+    index is created on these attritubes.  In other cases, no index is created.
+</para>
+
+<para>
+    In the previous example, a unique index "mv_ivm_index" is created on aid and bid
+    columns of materialized view "mv_ivm", and this enables the rapid update of the view.
+    Dropping this index make updating the view take a loger time.
+<programlisting>
+test=# DROP INDEX mv_ivm_index;
+DROP INDEX
+Time: 67.081 ms
+
+test=# UPDATE pgbench_accounts SET abalance = 1000 WHERE aid = 1;
+UPDATE 1
+Time: 16386.245 ms (00:16.386)
+</programlisting>
+
+</para>
+
+<para>
+    <acronym>IVM</acronym> is effective when we want to keep a materialized
+    view up-to-date and small fraction of a base table is modified
+    infrequently.  Due to the overhead of immediate maintenance, <acronym>IVM</acronym>
+    is not effective when a base table is modified frequently.  Also, when a
+    large part of a base table is modified or large data is inserted into a
+    base table, <acronym>IVM</acronym> is not effective and the cost of
+    maintenance can be larger than the <command>REFRESH MATERIALIZED VIEW</command>
+    command. In such situation, we can use <command>REFRESH MATERIALIZED VIEW</command>
+    and specify <literal>WITH NO DATA</literal> to disable immediate
+    maintenance before modifying a base table. After a base table modification,
+    execute the <command>REFRESH MATERIALIZED VIEW</command> (with <literal>WITH DATA</literal>)
+    command to refresh the view data and enable immediate maintenance.
+</para>
+
+</sect2>
+
+<sect2 id="rules-ivm-support">
+<title>Supported View Definitions and Restrictions</title>
+
+<para>
+    Currently, we can create <acronym>IMMV</acronym>s using inner joins, and some
+    aggregates. However, several restrictions apply to the definition of IMMV.
+</para>
+
+<sect3 id="rules-ivm-support-joins">
+<title>Joins</title>
+<para>
+    Inner joins including self-join are supported. Outer joins are not supported.
+</para>
+</sect3>
+
+<sect3 id="rules-ivm-support-aggregates">
+<title>Aggregates</title>
+<para>
+    Supported aggregate functions are <function>count</function>, <function>sum</function>,
+    <function>avg</function>, <function>min</function>, and <function>max</function>.
+    Currently, only built-in aggregate functions are supported and user defined
+    aggregates cannot be used.  When a base table is modified, the new aggregated
+    values are incrementally calculated using the old aggregated values and values
+    of related hidden columns stored in <acronym>IMMV</acronym>.
+</para>
+
+<para>
+     Note that for <function>min</function> or <function>max</function>, the new values
+     could be re-calculated from base tables with regard to the affected groups when a
+     tuple containing the current minimal or maximal values are deleted from a base table.
+     Therefore, it can takes a long time to update an <acronym>IMMV</acronym> containing
+     these functions.
+</para>
+
+<para>
+    Also note that using <function>sum</function> or <function>avg</function> on
+    <type>real</type> (<type>float4</type>) type or <type>double precision</type>
+    (<type>float8</type>) type in <acronym>IMMV</acronym> is unsafe. This is
+    because aggregated values in <acronym>IMMV</acronym> can become different from
+    results calculated from base tables due to the limited precision of these types.
+    To avoid this problem, use the <type>numeric</type> type instead.
+</para>
+
+    <sect4 id="rules-ivm-restrictions-aggregates">
+    <title>Restrictions on Aggregates</title>
+    <para>
+        There are the following restrictions:
+    <itemizedlist>
+        <listitem>
+        <para>
+            If we have a <literal>GROUP BY</literal> clause, expressions specified in
+           <literal>GROUP BY</literal> must appear in the target list.  This is
+           how tuples to be updated in the <acronym>IMMV</acronym> are identified.
+           These attributes are used as scan keys for searching tuples in the
+           <acronym>IMMV</acronym>, so indexes on them are required for efficient
+           <acronym>IVM</acronym>.
+        </para>
+        </listitem>
+
+        <listitem>
+        <para>
+            <literal>HAVING</literal> clause cannot be used.
+        </para>
+        </listitem>
+    </itemizedlist>
+    </para>
+    </sect4>
+</sect3>
+
+<sect3 id="rules-ivm-general-restricitons">
+<title>Other General Restrictions</title>
+<para>
+    There are other restrictions which generally apply to <acronym>IMMV</acronym>:
+    <itemizedlist>
+        <listitem>
+          <para>
+           Sub-queries cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+           CTEs cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+           Window functions cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            <acronym>IMMV</acronym>s must be based on simple base tables.  It's not
+               supported to create them on top of views, materialized views, foreign tables, inhe.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            LIMIT and OFFSET clauses cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            <acronym>IMMV</acronym>s cannot contain system columns.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            <acronym>IMMV</acronym>s cannot contain non-immutable functions.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            UNION/INTERSECT/EXCEPT clauses cannnot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            DISTINCT ON clauses cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            TABLESAMPLE parameter cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            inheritance parent tables cannnot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            VALUES clause cannnot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            <literal>GROUPING SETS</literal> and <literal>FILTER</literal> clauses cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            FOR UPDATE/SHARE cannot be used.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            targetlist cannot contain columns whose name start with <literal>__ivm_</literal>.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+            targetlist cannot contain expressions which contain an aggregate in it.
+          </para>
+        </listitem>
+
+        <listitem>
+          <para>
+              Logical replication is not supported, that is, even when a base table
+               at a publisher node is modified, <acronym>IMMV</acronym>s at subscriber
+               nodes are not updated.
+          </para>
+        </listitem>
+
+    </itemizedlist>
+</para>
+</sect3>
+
+</sect2>
+
+<sect2 id="rules-ivm-distinct">
+<title><literal>DISTINCT</literal></title>
+
+<para>
+    <productname>PostgreSQL</productname> supports <acronym>IMMV</acronym> with
+    <literal>DISTINCT</literal>.  For example, suppose a <acronym>IMMV</acronym>
+    defined with <literal>DISTINCT</literal> on a base table containing duplicate
+    tuples.  When tuples are deleted from the base table, a tuple in the view is
+    deleted if and only if the multiplicity of the tuple becomes zero.  Moreover,
+    when tuples are inserted into the base table, a tuple is inserted into the
+    view only if the same tuple doesn't already exist in it.
+</para>
+
+<para>
+    Physically, an <acronym>IMMV</acronym> defined with <literal>DISTINCT</literal>
+    contains tuples after eliminating duplicates, and the multiplicity of each tuple
+    is stored in a hidden column named <literal>__ivm_count__</literal>.
+</para>
+</sect2>
+
+<sect2 id="rules-ivm-concurrent-transactions">
+<title>Concurrent Transactions</title>
+<para>
+    Suppose an <acronym>IMMV</acronym> is defined on two base tables and each
+    table was modified in different a concurrent transaction simultaneously.
+    In the transaction which was committed first, <acronym>IMMV</acronym> can
+    be updated considering only the change which happened in this transaction.
+    On the other hand, in order to update the view correctly in the transaction
+    which was committed later, we need to know the changes occurred in
+    both transactions.  For this reason, <literal>ExclusiveLock</literal>
+    is held on an <acronym>IMMV</acronym> immediately after a base table is
+    modified in <literal>READ COMMITTED</literal> mode to make sure that
+    the <acronym>IMMV</acronym> is updated in the latter transaction after
+    the former transaction is committed.  In <literal>REPEATABLE READ</literal>
+    or <literal>SERIALIZABLE</literal> mode, an error is raised immediately
+    if lock acquisition fails because any changes which occurred in
+    other transactions are not be visible in these modes and
+    <acronym>IMMV</acronym> cannot be updated correctly in such situations.
+    However, as an exception if the view has only one base table and
+    <command>INSERT</command> is performed on the table,
+    the lock held on thew view is <literal>RowExclusiveLock</literal>.
+</para>
+</sect2>
+
+<sect2 id="rules-ivm-rls">
+<title>Row Level Security</title>
+<para>
+    If some base tables have row level security policy, rows that are not visible
+    to the materialized view's owner are excluded from the result.  In addition, such
+    rows are excluded as well when views are incrementally maintained.  However, if a
+    new policy is defined or policies are changed after the materialized view was created,
+    the new policy will not be applied to the view contents.  To apply the new policy,
+    you need to refresh materialized views.
+</para>
+</sect2>
+
+</sect1>
+
 <sect1 id="rules-update">
 <title>Rules on <command>INSERT</command>, <command>UPDATE</command>, and <command>DELETE</command></title>
 
