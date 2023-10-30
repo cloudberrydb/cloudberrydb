@@ -20,7 +20,18 @@
 #include "utils/builtins.h"
 #include "utils/syscache.h"
 
+is_likeam_hook_type is_same_index_am_hook = NULL;
 
+bool
+isIndexAccessMethod(Oid relam, Oid indexAccessMethod)
+{
+	if ((is_same_index_am_hook && (*is_same_index_am_hook)(indexAccessMethod, relam)) ||
+		(!is_same_index_am_hook && relam == indexAccessMethod))
+	{
+		return true;
+	}
+	return false;
+}
 /*
  * GetIndexAmRoutine - call the specified access method handler routine to get
  * its IndexAmRoutine struct, which will be palloc'd in the caller's context.

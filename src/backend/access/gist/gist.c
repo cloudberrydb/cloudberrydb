@@ -27,7 +27,6 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 
-is_likeam_hook_type is_likegist_hook = NULL;
 /* non-export function prototypes */
 static void gistfixsplit(GISTInsertState *state, GISTSTATE *giststate);
 static bool gistinserttuple(GISTInsertState *state, GISTInsertStack *stack,

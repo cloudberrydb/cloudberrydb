@@ -1268,8 +1268,7 @@ DefineIndex(Oid relationId,
 			 * btree opclasses; if there are ever any other index types that
 			 * support unique indexes, this logic will need extension.
 			 */
-			if ((is_likebtree_hook && (*is_likebtree_hook)(accessMethodId)) ||
-                (!is_likebtree_hook && accessMethodId == BTREE_AM_OID))
+			if (isIndexAccessMethod(accessMethodId, BTREE_AM_OID))
 				eq_strategy = BTEqualStrategyNumber;
 			else
 				ereport(ERROR,

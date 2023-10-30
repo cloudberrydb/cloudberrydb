@@ -2810,8 +2810,7 @@ BuildSpeculativeIndexInfo(Relation index, IndexInfo *ii)
 	 */
 	Assert(ii->ii_Unique);
 
-	if ((is_likebtree_hook && !(*is_likebtree_hook)(index->rd_rel->relam)) ||
-        (!is_likebtree_hook && index->rd_rel->relam != BTREE_AM_OID))
+	if (!isIndexAccessMethod(index->rd_rel->relam, BTREE_AM_OID))
 		elog(ERROR, "unexpected non-btree speculative unique index");
 
 	ii->ii_UniqueOps = (Oid *) palloc(sizeof(Oid) * indnkeyatts);
@@ -3132,8 +3131,7 @@ index_build(Relation heapRelation,
 	 * to introduce parallelism to singlenode mode.
 	 */
 	if (parallel && !IS_SINGLENODE() && IsNormalProcessingMode() &&
-            ((is_likebtree_hook && (*is_likebtree_hook)(indexRelation->rd_rel->relam)) ||
-             (!is_likebtree_hook && indexRelation->rd_rel->relam == BTREE_AM_OID)))
+		isIndexAccessMethod(indexRelation->rd_rel->relam, BTREE_AM_OID))
 		indexInfo->ii_ParallelWorkers =
 			plan_create_index_workers(RelationGetRelid(heapRelation),
 									  RelationGetRelid(indexRelation));

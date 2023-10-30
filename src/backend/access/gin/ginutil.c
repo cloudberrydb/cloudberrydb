@@ -29,7 +29,6 @@
 #include "utils/index_selfuncs.h"
 #include "utils/typcache.h"
 
-is_likeam_hook_type is_likegin_hook = NULL;
 /*
  * GIN handler function: return IndexAmRoutine with access method parameters
  * and callbacks.

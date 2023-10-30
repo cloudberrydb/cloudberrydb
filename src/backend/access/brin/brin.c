@@ -50,7 +50,6 @@
 #include "storage/procarray.h"
 #include "utils/snapshot.h"
 
-is_likeam_hook_type is_likebrin_hook = NULL;
 /*
  * We use a BrinBuildState during initial construction of a BRIN index.
  * The running state is kept in a BrinMemTuple.
@@ -1205,8 +1204,7 @@ brin_summarize_range_internal(PG_FUNCTION_ARGS)
 
 	/* Must be a BRIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		((is_likebrin_hook && !(*is_likebrin_hook)(indexRel->rd_rel->relam)) ||
-		 (!is_likebrin_hook && indexRel->rd_rel->relam != BRIN_AM_OID)))
+		!isIndexAccessMethod(indexRel->rd_rel->relam, BRIN_AM_OID))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a BRIN index",
@@ -1292,8 +1290,7 @@ brin_desummarize_range(PG_FUNCTION_ARGS)
 
 	/* Must be a BRIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		((is_likebrin_hook && !(*is_likebrin_hook)(indexRel->rd_rel->relam)) ||
-		 (!is_likebrin_hook && indexRel->rd_rel->relam != BRIN_AM_OID)))
+		!isIndexAccessMethod(indexRel->rd_rel->relam, BRIN_AM_OID))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a BRIN index",

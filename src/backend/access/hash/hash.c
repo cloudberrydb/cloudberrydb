@@ -32,7 +32,6 @@
 #include "utils/index_selfuncs.h"
 #include "utils/rel.h"
 
-is_likeam_hook_type is_likehash_hook = NULL;
 /* Working state for hashbuild and its callback */
 typedef struct
 {

@@ -4098,7 +4098,7 @@ static struct config_string ConfigureNamesString[] =
 
     {
             {"default_index_type", PGC_USERSET, CLIENT_CONN_STATEMENT,
-                    gettext_noop("Sets the default index type for primary key."),
+                    gettext_noop("Sets the default index type."),
                     NULL,
                     GUC_IS_NAME
             },

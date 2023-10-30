@@ -2830,8 +2830,7 @@ match_rowcompare_to_indexcol(PlannerInfo *root,
 	Oid			expr_coll;
 
 	/* Forget it if we're not dealing with a btree index */
-	if ((is_likebtree_hook && !(*is_likebtree_hook)(index->relam)) ||
-        (!is_likebtree_hook && index->relam != BTREE_AM_OID))
+	if (!isIndexAccessMethod(index->relam, BTREE_AM_OID))
 		return NULL;
 
 	index_relid = index->rel->relid;
@@ -3530,8 +3529,7 @@ ec_member_matches_indexcol(PlannerInfo *root, RelOptInfo *rel,
 	 * generate_implied_equalities_for_column; see
 	 * match_eclass_clauses_to_index.
 	 */
-	if (((is_likebtree_hook && (*is_likebtree_hook)(index->relam)) ||
-         (!is_likebtree_hook && index->relam == BTREE_AM_OID)) &&
+	if (isIndexAccessMethod(index->relam, BTREE_AM_OID) &&
 		!list_member_oid(ec->ec_opfamilies, curFamily))
 		return false;
 

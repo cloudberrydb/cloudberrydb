@@ -45,7 +45,6 @@
 
 #include "nodes/execnodes.h"
 
-is_likeam_hook_type is_likebitmap_hook = NULL;
 static void bmbuildCallback(Relation index,	ItemPointer tupleId, Datum *attdata,
 							bool *nulls, bool tupleIsAlive,	void *state);
 static bool words_get_match(BMBatchWords *words, BMIterateResult *result,

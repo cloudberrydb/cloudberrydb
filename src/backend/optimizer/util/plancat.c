@@ -311,8 +311,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 			/*
 			 * Fetch the ordering information for the index, if any.
 			 */
-			if ((is_likebtree_hook && (*is_likebtree_hook)(info->relam)) ||
-                (!is_likebtree_hook && info->relam == BTREE_AM_OID))
+			if (isIndexAccessMethod(info->relam, BTREE_AM_OID))
 			{
 				/*
 				 * If it's a btree index, we can use its opfamily OIDs
@@ -437,8 +436,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 				info->tuples > rel->tuples)
 				info->tuples = rel->tuples;
 
-			if ((is_likebtree_hook && (*is_likebtree_hook)(info->relam)) ||
-                (!is_likebtree_hook && info->relam == BTREE_AM_OID))
+			if (isIndexAccessMethod(info->relam, BTREE_AM_OID))
 			{
 				/* For btrees, get tree height while we have the index open */
 				info->tree_height = _bt_getrootheight(indexRelation);

@@ -32,14 +32,12 @@ typedef struct GinOptions
 #define GIN_DEFAULT_USE_FASTUPDATE	true
 #define GinGetUseFastUpdate(relation) \
 	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
-				 ((is_likegin_hook && (*is_likegin_hook)(relation->rd_rel->relam)) || \
-                  (!is_likegin_hook &&  relation->rd_rel->relam == GIN_AM_OID))), \
+				 isIndexAccessMethod(relation->rd_rel->relam, GIN_AM_OID)), \
 	 (relation)->rd_options ? \
 	 ((GinOptions *) (relation)->rd_options)->useFastUpdate : GIN_DEFAULT_USE_FASTUPDATE)
 #define GinGetPendingListCleanupSize(relation) \
 	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
-				 ((is_likegin_hook && (*is_likegin_hook)(relation->rd_rel->relam)) || \
-                  (!is_likegin_hook &&  relation->rd_rel->relam == GIN_AM_OID))), \
+				 isIndexAccessMethod(relation->rd_rel->relam, GIN_AM_OID)), \
 	 (relation)->rd_options && \
 	 ((GinOptions *) (relation)->rd_options)->pendingListCleanupSize != -1 ? \
 	 ((GinOptions *) (relation)->rd_options)->pendingListCleanupSize : \

@@ -38,15 +38,13 @@ typedef struct BrinStatsData
 #define BRIN_DEFAULT_PAGES_PER_RANGE	128
 #define BrinGetPagesPerRange(relation) \
 	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
-				 ((is_likebrin_hook && (*is_likebrin_hook)(relation->rd_rel->relam)) || \
-                  (!is_likebrin_hook && relation->rd_rel->relam == BRIN_AM_OID))), \
+				 isIndexAccessMethod(relation->rd_rel->relam, BRIN_AM_OID)), \
 	 (relation)->rd_options ? \
 	 ((BrinOptions *) (relation)->rd_options)->pagesPerRange : \
 	  BRIN_DEFAULT_PAGES_PER_RANGE)
 #define BrinGetAutoSummarize(relation) \
 	(AssertMacro(relation->rd_rel->relkind == RELKIND_INDEX && \
-				 ((is_likebrin_hook && (*is_likebrin_hook)(relation->rd_rel->relam)) || \
-                  (!is_likebrin_hook && relation->rd_rel->relam == BRIN_AM_OID))), \
+				 isIndexAccessMethod(relation->rd_rel->relam, BRIN_AM_OID)), \
 	 (relation)->rd_options ? \
 	 ((BrinOptions *) (relation)->rd_options)->autosummarize : \
 	  false)
