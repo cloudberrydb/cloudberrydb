@@ -1,23 +1,12 @@
 <!-- For a better file structure, we moved this guide from original
 Greenplum Database READE.md here. Thanks all the original writers.-->
 
-This guide shows how to build Cloudberry Database with GPORCA.
+# Build Cloudberry Database from Source Code
 
-# Building Cloudberry Database with GPORCA
+This guides describes how to build Cloudberry Database from source code.
 
-GPORCA is a cost-based optimizer which is used by Greenplum
-Database/Cloudberry Database in conjunction with the PostgreSQL
-planner. It is also known as just ORCA, and Pivotal Optimizer. The
-code for GPORCA resides src/backend/gporca. It is built automatically
-by default.
-
-## Installing dependencies
-
-Please follow these steps for your OS to get your system ready.
-
-- for macOS developers: Follow [these macOS steps](README.macOS.md)
-- for Linux developers: Follow [appropriate Linux
-  steps](README.Linux.md) including CentOS, RHEL, Ubuntu
+- For building on Linux systems, see [Compile and Install Cloudberry Database on Linux](/readmes/README.Linux.md).
+- For building on macOS system, see [Compile and Install Cloudberry Database on macOS](/readmes/README.macOS.md).
 
 ## Build the database
 
