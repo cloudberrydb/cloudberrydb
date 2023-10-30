@@ -1716,6 +1716,121 @@ char	   *local_preload_libraries_string = NULL;
 bool		process_shared_preload_libraries_in_progress = false;
 
 /*
+ * process shared preload libraries array.
+ */
+static const char *process_shared_preload_libraries_array[] =
+{
+	#include "utils/process_shared_preload_libraries.h"
+};
+
+/*
+ * remove duplicates list.
+ */
+static List*
+removeDuplicates(List* elemlist)
+{
+	List* unique_arr = NIL;
+	int i, j;
+	ListCell *l;
+	ListCell *l2;
+	for (i = 0; i < list_length(elemlist); i++)
+	{
+		bool found = false;
+		l = &elemlist->elements[i];
+		char* a = (char*)lfirst(l);
+		for (j = 0; j < list_length(unique_arr); j++)
+		{
+			l2 = &unique_arr->elements[j];
+			char* b = (char*)lfirst(l2);
+			if (strcmp(a, b) == 0)
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			unique_arr = lappend(unique_arr, pstrdup(a));
+		}
+	}
+	return unique_arr;
+}
+
+/*
+ * expand preload load libraries string.
+ */
+static char*
+expand_shared_preload_libraries_string()
+{
+	List	   *elemlist = NIL;
+	List	   *deduplicate_elemlist = NIL;
+	ListCell   *l;
+	char	   *rawstring;
+	char	   *libraries = shared_preload_libraries_string;
+
+	/* Need a modifiable copy of string */
+	rawstring = pstrdup(libraries);
+	if (libraries != NULL && libraries[0] != '\0')
+	{
+		/* Parse string into list of filename paths */
+		if (!SplitDirectoriesString(rawstring, ',', &elemlist))
+		{
+			/* syntax error in list */
+			list_free_deep(elemlist);
+			pfree(rawstring);
+			ereport(LOG,
+					(errcode(ERRCODE_SYNTAX_ERROR),
+					errmsg("invalid list syntax in parameter \"%s\"",
+							libraries)));
+			return NULL;
+		}
+
+	}
+
+	/* load expand libraries */
+	int shared_preload_libraries_num = sizeof(process_shared_preload_libraries_array) / sizeof(char *);
+	if (shared_preload_libraries_num > 0)
+	{
+		for (int i = 0; i < shared_preload_libraries_num; i++)
+		{
+			elemlist = lappend(elemlist, pstrdup((char*)process_shared_preload_libraries_array[i]));
+		}
+
+	}
+
+	if (list_length(elemlist) == 0)
+	{
+		list_free_deep(elemlist);
+		pfree(rawstring);
+		return NULL;
+	}
+
+
+	/* deduplicate list string */
+	if (list_length(elemlist) > 1)
+	{
+		deduplicate_elemlist = removeDuplicates(elemlist);
+	}
+
+	/* format string delimiter with ',' */
+	StringInfoData expand_string;
+	initStringInfo(&expand_string);
+	for (int i = 0; i < list_length(deduplicate_elemlist); i++)
+	{
+		l = &deduplicate_elemlist->elements[i];
+		if (i == 0)
+			appendStringInfo(&expand_string, "%s", (char*)lfirst(l));
+		else
+			appendStringInfo(&expand_string, ",%s", (char*)lfirst(l));
+	}
+	list_free_deep(elemlist);
+	list_free_deep(deduplicate_elemlist);
+	pfree(rawstring);
+	return expand_string.data;
+}
+
+/*
  * load the shared libraries listed in 'libraries'
  *
  * 'gucname': name of GUC variable, for error reports
@@ -1778,9 +1893,14 @@ process_shared_preload_libraries(void)
 {
 	process_shared_preload_libraries_in_progress = true;
 
-	load_libraries(shared_preload_libraries_string,
+	char* libraries = expand_shared_preload_libraries_string();
+	load_libraries(libraries,
 				   "shared_preload_libraries",
 				   false);
+	if (libraries != NULL)
+	{
+		pfree(libraries);
+	}
 
 #ifdef ENABLE_PRELOAD_IC_MODULE
 	load_libraries("interconnect",
