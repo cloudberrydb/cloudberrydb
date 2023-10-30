@@ -4,13 +4,13 @@ This document shares how to compile and install Cloudberry Database on Linux sys
 
 Take the following steps to set up the development environments:
 
-1. [Clone GitHub repo](#step-1-clone-github-repo).
+1. [Clone the GitHub repo](#step-1-clone-the-github-repo).
 2. [Install dependencies](#step-2-install-dependencies).
 3. [Perform prerequisite platform tasks](#step-3-perform-prerequisite-platform-tasks).
 4. [Build Cloudberry Database](#step-4-build-cloudberry-database).
 5. [Verify the cluster](#step-5-verify-the-cluster).
 
-## Step 1. Clone GitHub repo
+## Step 1. Clone the GitHub repo
 
 Clone the GitHub repository `cloudberrydb/cloudberrydb` to the target machine:
 
@@ -23,14 +23,14 @@ git clone https://github.com/cloudberrydb/cloudberrydb.git
 Enter the repository and install dependencies according to your operating systems:
 
 - [For CentOS 7](#for-centos-7)
-- [For RHEL 7 and 8](#for-rhel-7-and-8)
+- [For RHEL 8 or Rocky Linux 8](#for-rhel-8-or-rocky-linux-8)
 - [For Ubuntu 18.04 or later](#for-ubuntu-1804-or-later)
 
 ### For CentOS 7
 
-The following dependencies work on CentOS 7. For other CentOS versions, these steps might work but are not guaranteed to work.
+The following steps work on CentOS 7. For other CentOS versions, these steps might work but are not guaranteed to work.
 
-1. Run the Bash script `README.CentOS.bash` in the `readmes` directory of the `cloudberrydb/cloudberrydb` repository. To run this script, password is required. Then, some required dependencies will be automatically downloaded.
+1. Run the bash script `README.CentOS.bash` in the `readmes` directory of the `cloudberrydb/cloudberrydb` repository. To run this script, password is required. Then, some required dependencies will be automatically downloaded.
 
     ```bash
     cd cloudberrydb/readmes
@@ -62,58 +62,45 @@ The following dependencies work on CentOS 7. For other CentOS versions, these st
     sudo ln -sf /usr/bin/cmake3 /usr/local/bin/cmake
     ```
 
-### For RHEL 7 and 8
+### For RHEL 8 or Rocky Linux 8
 
 1. Install Development Tools.
 
-    - For RHEL 8: Install:
+    ```bash
+    sudo yum group install -y "Development Tools"
+    ```
 
-        ```bash
-        sudo yum group install -y "Development Tools"
-        ```
+2. Install dependencies:
 
-    - For RHEL versions (< 8.0):
+    ```bash
+    sudo yum install -y epel-release
 
-        ```bash
-        sudo yum-config-manager --enable rhui-REGION-rhel-server-rhscl
-        sudo yum install -y devtoolset-7-toolchain
-        ```
+    sudo yum install -y apr-devel bison bzip2-devel cmake3 flex gcc gcc-c++ krb5-devel libcurl-devel libevent-devel libkadm5  libxml2-devel libzstd-devel openssl-devel perl-ExtUtils-Embed python3-devel python3-pip readline-devel xerces-c-devel zlib-devel
+    ```
 
-2. Install dependencies by running the `README.CentOS.bash` script.
+3. Install more dependencies by running the `README.Rhel-Rocky.bash` script.
 
-    - For RHEL 8:
-
-        ```bash
-        # This makes sure that git and make is installed.       
-        # Then run the README.CentOS.bash script in the `readmes` directory.
-        ./README.CentOS.bash
-        ```
-
-    - For RHEL 7:
-
-        ```bash
-        # First install the epel extension for RHEL 7.
-        # This makes sure that git and make is installed.
-        ./README.CentOS.bash
-        ```
+    ```bash
+    ~/cloudberrydb/readmes/README.Rhel-Rocky.bash
+    ```
 
 ### For Ubuntu 18.04 or later
 
 1. Install dependencies by running the `README.Ubuntu.bash` script in the `readmes` directory.
 
     ```shell
-    ## You need to enter your password to run
-    sudo ./README.Ubuntu.bash
+    # You need to enter your password to run.
+    sudo ~/cloudberrydb/readmes/README.Ubuntu.bash
     ```
 
     > [!Note]
-    > - When you run the `README.Ubuntu.bash` script for dependencies, you will be asked to configure `realm` for kerberos. You can enter any realm, because this is just for testing, and during testing, it will reconfigure a local server/client. If you want to skip this manual configuration, run `export DEBIAN_FRONTEND=noninteractive`.
-    > - If you fail to download packages, we recommend that you can try another one software source for Ubuntu.
+    > - When you run the `README.Ubuntu.bash` script for dependencies, you will be asked to configure `realm` for Kerberos. You can enter any realm, because this is just for testing, and during testing, it will reconfigure a local server/client. If you want to skip this manual configuration, run `export DEBIAN_FRONTEND=noninteractive`.
+    > - If the script fails to download packages, we recommend that you can try another one software source for Ubuntu.
 
-2. Install GCC 10. Ubuntu 18.04 and later versions should use GCC 10 or newer:
+2. Install GCC 10. Ubuntu 18.04 and later versions should use GCC 10 or later:
 
     ```bash
-    ## Install gcc-10
+    # Install gcc-10.
     sudo apt install software-properties-common
     sudo add-apt-repository ppa:ubuntu-toolchain-r/test
     sudo apt install gcc-10 g++-10
@@ -122,7 +109,7 @@ The following dependencies work on CentOS 7. For other CentOS versions, these st
 
 ## Step 3. Perform prerequisite platform tasks
 
-After you have installed all the dependencies for your operating system, it is time to do some prerequisite platform tasks before you go on building Cloudberry Database. These operation include manually running `ldconfig` on all platforms, creating the `gpadmin` user, and setting up a password to start the Cloudberry Database and test.
+After you have installed all the dependencies for your operating system, it is time to do some prerequisite platform tasks before you go on building Cloudberry Database. These operations include manually running `ldconfig`, creating the `gpadmin` user, and setting up a password to start the Cloudberry Database and test.
 
 1. Make sure that you add `/usr/local/lib` and `/usr/local/lib64` to the `/etc/ld.so.conf` file.
 
@@ -133,7 +120,7 @@ After you have installed all the dependencies for your operating system, it is t
 
 2. Create the `gpadmin` user and set up the SSH key. Manually create SSH keys based on different operating systems, so that you can run `ssh localhost` without a password.
 
-    - For CentOS 7:
+    - For CentOS, RHEL, and Rocky Linux:
 
         ```bash
         useradd gpadmin  # Creates gpadmin user
@@ -192,15 +179,23 @@ After you have installed all the dependencies and performed the prerequisite pla
     source /usr/local/cloudberrydb/greenplum_path.sh
     ```
 
-5. Start the demo cluster.
+4. Start the demo cluster.
 
-    ```bash
-    scl enable devtoolset-10 bash 
-    source /opt/rh/devtoolset-10/enable 
-    make create-demo-cluster
-    ```
+    - For CentOS:
 
-6. Prepare the test by running the following command. This command will configure the port and environment variables for the test.
+        ```bash
+        scl enable devtoolset-10 bash 
+        source /opt/rh/devtoolset-10/enable 
+        make create-demo-cluster
+        ```
+
+    - For Ubuntu, Rocky, and RHEL:
+
+        ```bash
+        make create-demo-cluster
+        ```
+
+5. Prepare the test by running the following command. This command will configure the port and environment variables for the test.
 
     Environment variables such as `PGPORT` and `MASTER_DATA_DIRECTORY` will be configured, which are the default port and the data directory of the master node.
 
@@ -210,7 +205,7 @@ After you have installed all the dependencies and performed the prerequisite pla
 
 ## Step 5. Verify the cluster
 
-1. You can verify whether the cluster has started successfully by running the following command. You might see many active `postgres` processes with ports ranging from `7000` to `7007`.
+1. You can verify whether the cluster has started successfully by running the following command. If successful, you can see multiple active `postgres` processes with ports ranging from `7000` to `7007`.
 
     ```bash
     ps -ef | grep postgres
