@@ -3,6 +3,7 @@
  * pg_appendonly.h
  *	  internal specifications of the appendonly relation storage.
  *
+ * Portions Copyright (c) 2023, HashData Technology Limited.
  * Portions Copyright (c) 2008-2010, Greenplum Inc.
  * Portions Copyright (c) 2012-Present VMware, Inc. or its affiliates.
  *
