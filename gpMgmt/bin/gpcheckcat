@@ -1575,6 +1575,10 @@ def checkTableInconsistentEntry(cat):
         columns.remove("rolpasswordexpire")
         castcols.remove("rolpasswordexpire")
 
+    if catname == "pg_password_history":
+        columns.remove("passhistpasswordsetat")
+        castcols.remove("passhistpasswordsetat")
+
     if cat.tableHasConsistentOids():
         qry = inconsistentEntryQuery(GV.max_content, catname, ['oid'], columns, castcols)
     else:
