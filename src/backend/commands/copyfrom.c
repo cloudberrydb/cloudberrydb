@@ -789,7 +789,8 @@ CopyFrom(CopyFromState cstate)
 					 errmsg("cannot perform COPY FREEZE because of prior transaction activity")));
 
 		if (cstate->rel->rd_createSubid != GetCurrentSubTransactionId() &&
-			cstate->rel->rd_newRelfilenodeSubid != GetCurrentSubTransactionId())
+			cstate->rel->rd_newRelfilenodeSubid != GetCurrentSubTransactionId() &&
+			((enable_serverless && Gp_role == GP_ROLE_DISPATCH) || !enable_serverless))
 			ereport(ERROR,
 					(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
 					 errmsg("cannot perform COPY FREEZE because the table was not created or truncated in the current subtransaction")));
