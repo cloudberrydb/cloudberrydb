@@ -2,9 +2,9 @@ name: cbdb pipeline
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review]
-    branches:    
+    branches:
       - main
-  
+
 env:
   BUILD_TYPE: "debug"
   FTS_MODE: "internal_fts"
@@ -32,6 +32,13 @@ jobs:
         with:
           name: cbdb-package
           path: /tmp/server-build*
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        if: failure()
+        with:
+          limit-access-to-actor: true
+          limit-access-to-users: hashdata-build
+          wait-timeout-minutes: 60
   icw-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -62,7 +69,7 @@ jobs:
         if: failure()
         with:
           name: icw-test
-          path: | 
+          path: |
             /code/gpdb_src/src/test/regress/regression.out
             /code/gpdb_src/src/test/regress/regression.diffs
             /code/gpdb_src/src/test/regress/results/
@@ -79,6 +86,13 @@ jobs:
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        if: failure()
+        with:
+          limit-access-to-actor: true
+          limit-access-to-users: hashdata-build
+          wait-timeout-minutes: 60
   icw-orca-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -109,7 +123,7 @@ jobs:
         if: failure()
         with:
           name: icw-orca-test
-          path: | 
+          path: |
             /code/gpdb_src/src/test/regress/regression.out
             /code/gpdb_src/src/test/regress/regression.diffs
             /code/gpdb_src/src/test/regress/results/
@@ -126,6 +140,13 @@ jobs:
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        if: failure()
+        with:
+          limit-access-to-actor: true
+          limit-access-to-users: hashdata-build
+          wait-timeout-minutes: 60
   icw-parallel-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -156,7 +177,7 @@ jobs:
         if: failure()
         with:
           name: icw-parallel-test
-          path: | 
+          path: |
             /code/gpdb_src/src/test/regress/regression.out
             /code/gpdb_src/src/test/regress/regression.diffs
             /code/gpdb_src/src/test/regress/results/
@@ -173,6 +194,10 @@ jobs:
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
-
-
-
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        if: failure()
+        with:
+          limit-access-to-actor: true
+          limit-access-to-users: hashdata-build
+          wait-timeout-minutes: 60
