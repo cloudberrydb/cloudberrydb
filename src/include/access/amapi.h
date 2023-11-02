@@ -286,7 +286,7 @@ typedef struct IndexAmRoutine
 
 
 /* Functions in access/index/amapi.c */
-extern bool isIndexAccessMethod(Oid relam, Oid indexAccessMethod);
+extern bool IsIndexAccessMethod(Oid relam, Oid indexAccessMethod);
 extern IndexAmRoutine *GetIndexAmRoutine(Oid amhandler);
 extern IndexAmRoutine *GetIndexAmRoutineByAmId(Oid amoid, bool noerror);
 

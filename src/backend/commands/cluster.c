@@ -962,7 +962,7 @@ copy_table_data(Oid OIDNewHeap, Oid OIDOldHeap, Oid OIDOldIndex, bool verbose,
 	 * tells us it's cheaper.  Otherwise, always indexscan if an index is
 	 * provided, else plain seqscan.
 	 */
-	if (OldIndex != NULL && isIndexAccessMethod(OldIndex->rd_rel->relam, BTREE_AM_OID))
+	if (OldIndex != NULL && IsIndexAccessMethod(OldIndex->rd_rel->relam, BTREE_AM_OID))
 		use_sort = plan_cluster_use_sort(OIDOldHeap, OIDOldIndex);
 	else
 		use_sort = false;

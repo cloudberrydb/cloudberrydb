@@ -1378,7 +1378,7 @@ ExecIndexBuildScanKeys(PlanState *planstate, Relation index,
 				 * We have to look up the operator's associated btree support
 				 * function
 				 */
-				if (!isIndexAccessMethod(index->rd_rel->relam, BTREE_AM_OID) ||
+				if (!IsIndexAccessMethod(index->rd_rel->relam, BTREE_AM_OID) ||
 					varattno < 1 || varattno > indnkeyatts)
 					elog(ERROR, "bogus RowCompare index qualification");
 				opfamily = index->rd_opfamily[varattno - 1];

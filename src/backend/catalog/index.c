@@ -100,7 +100,7 @@
 #include "utils/faultinjector.h"
 
 /* GUC variables */
-char       *default_index_type = DEFAULT_INDEX_TYPE;
+char       *default_index_access_method = DEFAULT_INDEX_TYPE;
 /* Potentially set by pg_upgrade_support functions */
 Oid			binary_upgrade_next_index_pg_class_oid = InvalidOid;
 
@@ -2810,7 +2810,7 @@ BuildSpeculativeIndexInfo(Relation index, IndexInfo *ii)
 	 */
 	Assert(ii->ii_Unique);
 
-	if (!isIndexAccessMethod(index->rd_rel->relam, BTREE_AM_OID))
+	if (!IsIndexAccessMethod(index->rd_rel->relam, BTREE_AM_OID))
 		elog(ERROR, "unexpected non-btree speculative unique index");
 
 	ii->ii_UniqueOps = (Oid *) palloc(sizeof(Oid) * indnkeyatts);
@@ -3131,7 +3131,7 @@ index_build(Relation heapRelation,
 	 * to introduce parallelism to singlenode mode.
 	 */
 	if (parallel && !IS_SINGLENODE() && IsNormalProcessingMode() &&
-		isIndexAccessMethod(indexRelation->rd_rel->relam, BTREE_AM_OID))
+		IsIndexAccessMethod(indexRelation->rd_rel->relam, BTREE_AM_OID))
 		indexInfo->ii_ParallelWorkers =
 			plan_create_index_workers(RelationGetRelid(heapRelation),
 									  RelationGetRelid(indexRelation));

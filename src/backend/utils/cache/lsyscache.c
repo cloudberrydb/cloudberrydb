@@ -866,8 +866,8 @@ equality_ops_are_compatible(Oid opno1, Oid opno2)
 		Form_pg_amop op_form = (Form_pg_amop) GETSTRUCT(op_tuple);
 
 		/* must be btree or hash */
-		if (isIndexAccessMethod(op_form->amopmethod, BTREE_AM_OID) ||
-			isIndexAccessMethod(op_form->amopmethod, HASH_AM_OID))
+		if (IsIndexAccessMethod(op_form->amopmethod, BTREE_AM_OID) ||
+			IsIndexAccessMethod(op_form->amopmethod, HASH_AM_OID))
 		{
 			if (op_in_opfamily(opno2, op_form->amopfamily))
 			{

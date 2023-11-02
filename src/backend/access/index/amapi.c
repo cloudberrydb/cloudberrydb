@@ -23,7 +23,7 @@
 is_likeam_hook_type is_same_index_am_hook = NULL;
 
 bool
-isIndexAccessMethod(Oid relam, Oid indexAccessMethod)
+IsIndexAccessMethod(Oid relam, Oid indexAccessMethod)
 {
 	if ((is_same_index_am_hook && (*is_same_index_am_hook)(indexAccessMethod, relam)) ||
 		(!is_same_index_am_hook && relam == indexAccessMethod))

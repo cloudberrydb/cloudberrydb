@@ -985,7 +985,7 @@ tuplesort_begin_cluster(TupleDesc tupDesc,
 	MemoryContext oldcontext;
 	int			i;
 
-	Assert(isIndexAccessMethod(indexRel->rd_rel->relam, BTREE_AM_OID));
+	Assert(IsIndexAccessMethod(indexRel->rd_rel->relam, BTREE_AM_OID));
 
 	oldcontext = MemoryContextSwitchTo(state->maincontext);
 

@@ -4096,17 +4096,6 @@ static struct config_string ConfigureNamesString[] =
 		check_default_table_access_method, NULL, NULL
 	},
 
-    {
-            {"default_index_type", PGC_USERSET, CLIENT_CONN_STATEMENT,
-                    gettext_noop("Sets the default index type."),
-                    NULL,
-                    GUC_IS_NAME
-            },
-            &default_index_type,
-            DEFAULT_INDEX_TYPE,
-            NULL, NULL, NULL
-    },
-
 	{
 		{"default_tablespace", PGC_USERSET, CLIENT_CONN_STATEMENT,
 			gettext_noop("Sets the default tablespace to create tables and indexes in."),

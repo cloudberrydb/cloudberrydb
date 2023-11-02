@@ -29,6 +29,7 @@
 #include "utils/index_selfuncs.h"
 #include "utils/typcache.h"
 
+
 /*
  * GIN handler function: return IndexAmRoutine with access method parameters
  * and callbacks.

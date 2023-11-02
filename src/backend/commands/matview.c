@@ -909,7 +909,7 @@ refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 				if (!HeapTupleIsValid(cla_ht))
 					elog(ERROR, "cache lookup failed for opclass %u", opclass);
 				cla_tup = (Form_pg_opclass) GETSTRUCT(cla_ht);
-				Assert(isIndexAccessMethod(cla_tup->opcmethod, BTREE_AM_OID));
+				Assert(IsIndexAccessMethod(cla_tup->opcmethod, BTREE_AM_OID));
 				opfamily = cla_tup->opcfamily;
 				opcintype = cla_tup->opcintype;
 				ReleaseSysCache(cla_ht);
@@ -1069,7 +1069,7 @@ is_usable_unique_index(Relation indexRel)
 	 */
 	if (indexStruct->indisunique &&
 		indexStruct->indimmediate &&
-        isIndexAccessMethod(indexRel->rd_rel->relam, BTREE_AM_OID) &&
+        IsIndexAccessMethod(indexRel->rd_rel->relam, BTREE_AM_OID) &&
 		indexStruct->indisvalid &&
 		RelationGetIndexPredicate(indexRel) == NIL &&
 		indexStruct->indnatts > 0)

@@ -1125,7 +1125,7 @@ create_index_path(PlannerInfo *root,
 														  required_outer);
 	pathnode->path.parallel_aware = false;
 	/* GPDB_12_MERGE_FEATURE_NOT_SUPPORTED: the parallel StreamBitmap scan is not implemented */
-	pathnode->path.parallel_safe = rel->consider_parallel && !isIndexAccessMethod(index->relam, BITMAP_AM_OID);
+	pathnode->path.parallel_safe = rel->consider_parallel && !IsIndexAccessMethod(index->relam, BITMAP_AM_OID);
 	pathnode->path.parallel_workers = 0;
 	pathnode->path.pathkeys = pathkeys;
 

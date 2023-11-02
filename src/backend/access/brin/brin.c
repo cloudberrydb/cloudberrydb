@@ -1204,7 +1204,7 @@ brin_summarize_range_internal(PG_FUNCTION_ARGS)
 
 	/* Must be a BRIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		!isIndexAccessMethod(indexRel->rd_rel->relam, BRIN_AM_OID))
+		!IsIndexAccessMethod(indexRel->rd_rel->relam, BRIN_AM_OID))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a BRIN index",
@@ -1290,7 +1290,7 @@ brin_desummarize_range(PG_FUNCTION_ARGS)
 
 	/* Must be a BRIN index */
 	if (indexRel->rd_rel->relkind != RELKIND_INDEX ||
-		!isIndexAccessMethod(indexRel->rd_rel->relam, BRIN_AM_OID))
+		!IsIndexAccessMethod(indexRel->rd_rel->relam, BRIN_AM_OID))
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a BRIN index",
