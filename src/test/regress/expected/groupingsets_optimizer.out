@@ -908,7 +908,7 @@ select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 or
 explain (costs off)
   select a,count(*) from gstest2 group by rollup(a) having a is distinct from 1 order by a;
                                           QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: (NULL::integer)
    ->  Sort
@@ -916,24 +916,23 @@ explain (costs off)
          ->  Sequence
                ->  Shared Scan (share slice:id 1:0)
                      ->  Seq Scan on gstest2
-               ->  Redistribute Motion 1:3  (slice2)
-                     ->  Append
+               ->  Append
+                     ->  Redistribute Motion 1:3  (slice2)
                            ->  Result
                                  Filter: ((NULL::integer) IS DISTINCT FROM 1)
                                  ->  Finalize Aggregate
                                        ->  Gather Motion 3:1  (slice3; segments: 3)
                                              ->  Partial Aggregate
                                                    ->  Shared Scan (share slice:id 3:0)
-                           ->  Gather Motion 3:1  (slice4; segments: 3)
-                                 ->  GroupAggregate
-                                       Group Key: share0_ref3.a
-                                       ->  Sort
-                                             Sort Key: share0_ref3.a
-                                             ->  Result
-                                                   Filter: (share0_ref3.a IS DISTINCT FROM 1)
-                                                   ->  Shared Scan (share slice:id 4:0)
+                     ->  GroupAggregate
+                           Group Key: share0_ref3.a
+                           ->  Sort
+                                 Sort Key: share0_ref3.a
+                                 ->  Result
+                                       Filter: (share0_ref3.a IS DISTINCT FROM 1)
+                                       ->  Shared Scan (share slice:id 1:0)
  Optimizer: Pivotal Optimizer (GPORCA)
-(24 rows)
+(23 rows)
 
 select v.c, (select count(*) from gstest2 group by () having v.c)
   from (values (false),(true)) v(c) order by v.c;
