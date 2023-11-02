@@ -20,6 +20,7 @@
 #include "catalog/objectaddress.h"
 #include "executor/tuptable.h"  /* TupTableSlot */
 #include "nodes/execnodes.h"
+#include "utils/guc.h"
 
 struct EState;                  /* #include "nodes/execnodes.h" */
 
