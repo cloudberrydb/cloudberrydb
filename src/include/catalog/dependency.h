@@ -290,4 +290,39 @@ extern void recordProfileDependency(Oid roleId, Oid profileId);
 
 extern void changeProfileDependency(Oid roleId, Oid profileId);
 
+/* Custom object class */
+struct StringInfoData;
+struct CustomObjectClass {
+	Oid class_id;
+	int oclass;
+
+	void (*do_delete)(struct CustomObjectClass *self,
+					  const ObjectAddress *object, int flags);
+	void (*object_desc)(struct CustomObjectClass *self,
+						const ObjectAddress *object,
+						bool missing_ok,
+						struct StringInfoData *buffer);
+	void (*object_type_desc)(struct CustomObjectClass *self,
+							 const ObjectAddress *object,
+							 bool missing_ok,
+							 struct StringInfoData *buffer);
+	void (*object_identity_parts)(struct CustomObjectClass *self,
+								  const ObjectAddress *object,
+								  List **objname,
+								  List **objargs,
+								  bool missing_ok,
+								  struct StringInfoData *buffer);
+
+	Oid (*alter_namespace)(struct CustomObjectClass *self,
+						   const ObjectAddress *object,
+						   Oid nspOid,
+						   ObjectAddresses *objsMoved);
+	bool (*support_event_trigger)(struct CustomObjectClass *self);
+	// FIXME: unclear which arguments should pass
+	void (*alter_column_type)(struct CustomObjectClass *self);
+
+};
+extern int register_custom_object_class(struct CustomObjectClass *coc);
+extern struct CustomObjectClass *find_custom_object_class(int oclass);
+extern struct CustomObjectClass *find_custom_object_class_by_classid(Oid class_id, bool missing_ok);
 #endif							/* DEPENDENCY_H */

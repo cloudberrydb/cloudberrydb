@@ -14028,10 +14028,18 @@ ATExecAlterColumnType(AlteredTableInfo *tab, Relation rel,
 					 getObjectDescription(&foundObject, false));
 				break;
 
+			default:
+			{
+				struct CustomObjectClass *coc;
+				coc = find_custom_object_class_by_classid(foundObject.classId, false);
+				if (coc->alter_column_type)
+					coc->alter_column_type(coc);
 				/*
 				 * There's intentionally no default: case here; we want the
 				 * compiler to warn if a new OCLASS hasn't been handled above.
 				 */
+				break;
+			}
 		}
 	}
 

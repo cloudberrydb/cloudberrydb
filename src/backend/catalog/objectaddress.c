@@ -4079,6 +4079,15 @@ getObjectDescription(const ObjectAddress *object, bool missing_ok)
 					appendStringInfo(&buffer, _("history password for role %s"), username);
 				break;
 			}
+
+		default:
+			{
+				struct CustomObjectClass *coc;
+
+				coc = find_custom_object_class_by_classid(object->classId, missing_ok);
+				if (coc && coc->object_desc)
+					coc->object_desc(coc, object, missing_ok, &buffer);
+			}
 	}
 
 	/* an empty buffer is equivalent to no object found */
@@ -4650,10 +4659,19 @@ getObjectTypeDescription(const ObjectAddress *object, bool missing_ok)
 			appendStringInfoString(&buffer, "password_history");
 			break;
 
+		default:
+		{
+			struct CustomObjectClass *coc;
+
+			coc = find_custom_object_class_by_classid(object->classId, false);
+			if (coc->object_type_desc)
+				coc->object_type_desc(coc, object, missing_ok, &buffer);
 			/*
 			 * There's intentionally no default: case here; we want the
 			 * compiler to warn if a new OCLASS hasn't been handled above.
 			 */
+			break;
+		}
 	}
 
 	/* the result can never be empty */
@@ -5988,10 +6006,19 @@ getObjectIdentityParts(const ObjectAddress *object,
 				break;
 			}
 
+		default:
+		{
+			struct CustomObjectClass *coc;
+
+			coc = find_custom_object_class_by_classid(object->classId, false);
+			if (coc->object_identity_parts)
+				coc->object_identity_parts(coc, object, objname, objargs, missing_ok, &buffer);
 			/*
 			 * There's intentionally no default: case here; we want the
 			 * compiler to warn if a new OCLASS hasn't been handled above.
 			 */
+			break;
+		}
 	}
 
 	if (!missing_ok)
