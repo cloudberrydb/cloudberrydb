@@ -43,7 +43,6 @@ AppendOnlyVisimapStore_Finish(AppendOnlyVisimapStore *visiMapStore,
 		visiMapStore->scanKeys = NULL;
 	}
 
-	UnregisterSnapshot(visiMapStore->snapshot);
 	index_close(visiMapStore->visimapIndex, lockmode);
 	table_close(visiMapStore->visimapRelation, lockmode);
 }
@@ -71,7 +70,7 @@ AppendOnlyVisimapStore_Init(AppendOnlyVisimapStore *visiMapStore,
 	Assert(OidIsValid(visimapRelid));
 	Assert(OidIsValid(visimapIdxid));
 
-	visiMapStore->snapshot = RegisterSnapshot(snapshot);
+	visiMapStore->snapshot = snapshot;
 	visiMapStore->memoryContext = memoryContext;
 
 	visiMapStore->visimapRelation = table_open(visimapRelid, lockmode);
