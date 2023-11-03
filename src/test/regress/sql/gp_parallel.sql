@@ -758,6 +758,35 @@ explain(costs off) create table ctas_ao using ao_row as select sum(a.c2) as c2, 
 explain(costs off) create table ctas_aoco using ao_column as select sum(a.c2) as c2, avg(b.c1) as c1 from t_p2 a join t_p2 b on a.c1 = b.c1 distributed by(c2);
 abort;
 
+--
+-- Parallel Semi Join
+--
+begin;
+set local optimizer=off;
+set local enable_parallel=on;
+set local force_parallel_mode =1 ;
+set local min_parallel_table_scan_size = 0;
+create table semi_t1 (c1 integer) with(parallel_workers=2) distributed randomly;
+create table semi_t2 (c2 integer) with(parallel_workers=2) distributed randomly;
+insert into semi_t1 values (generate_series (1,20000));
+insert into semi_t2 values (generate_series (1,10000));
+analyze semi_t1;
+analyze semi_t2;
+
+-- Parallel-aware Hash Semi Join
+explain(costs off) select c1 from semi_t1 where not c1 >=all (select c2 from semi_t2 where c2 = c1);
+-- Parallel-oblivious Hash Semi Join
+set local enable_parallel_hash = off;
+explain(costs off) select c1 from semi_t1 where not c1 >=all (select c2 from semi_t2 where c2 = c1);
+-- Parallel Merge Semi Join
+set local enable_hashjoin = off;
+explain(costs off) select c1 from semi_t1 where not c1 >=all (select c2 from semi_t2 where c2 = c1);
+set local enable_mergejoin = off;
+set local enable_nestloop = on;
+-- Parallel Nested Loop Semi Join
+explain(costs off) select c1 from semi_t1 where not c1 >=all (select c2 from semi_t2 where c2 = c1);
+abort;
+
 -- start_ignore
 drop schema test_parallel cascade;
 -- end_ignore
