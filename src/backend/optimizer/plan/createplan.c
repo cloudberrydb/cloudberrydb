@@ -277,7 +277,7 @@ static HashJoin *make_hashjoin(List *tlist,
 							   List *hashoperators, List *hashcollations,
 							   List *hashkeys,
 							   Plan *lefttree, Plan *righttree,
-							   JoinType jointype, bool inner_unique, bool batch0_barrier);
+							   JoinType jointype, bool inner_unique, bool batch0_barrier, bool outer_motionhazard);
 static Hash *make_hash(Plan *lefttree,
 					   List *hashkeys,
 					   Oid skewTable,
@@ -5786,6 +5786,7 @@ create_hashjoin_plan(PlannerInfo *root,
 	bool		skewInherit = false;
 	bool		partition_selectors_created = false;
 	ListCell   *lc;
+	bool outer_motionhazard = false;
 
 	/* CBDB_PARALLEL_FIXME:
 	 * PartitionSelector is not parallel-aware, so disable it temporarily.
@@ -5971,6 +5972,7 @@ create_hashjoin_plan(PlannerInfo *root,
 	{
 		hash_plan->plan.parallel_aware = true;
 		hash_plan->rows_total = best_path->inner_rows_total;
+		outer_motionhazard = best_path->jpath.outerjoinpath->motionHazard;
 	}
 
 	join_plan = make_hashjoin(tlist,
@@ -5984,7 +5986,8 @@ create_hashjoin_plan(PlannerInfo *root,
 							  (Plan *) hash_plan,
 							  best_path->jpath.jointype,
 							  best_path->jpath.inner_unique,
-							  best_path->batch0_barrier);
+							  best_path->batch0_barrier,
+							  outer_motionhazard);
 
 	/*
 	 * MPP-4635.  best_path->jpath.outerjoinpath may be NULL.
@@ -7160,7 +7163,8 @@ make_hashjoin(List *tlist,
 			  Plan *righttree,
 			  JoinType jointype,
 			  bool inner_unique,
-			  bool batch0_barrier)
+			  bool batch0_barrier,
+			  bool outer_motionhazard)
 {
 	HashJoin   *node = makeNode(HashJoin);
 	Plan	   *plan = &node->join.plan;
@@ -7177,6 +7181,7 @@ make_hashjoin(List *tlist,
 	node->join.inner_unique = inner_unique;
 	node->join.joinqual = joinclauses;
 	node->batch0_barrier = batch0_barrier;
+	node->outer_motionhazard = outer_motionhazard;
 
 	return node;
 }
