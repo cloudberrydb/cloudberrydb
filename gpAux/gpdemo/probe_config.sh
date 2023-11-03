@@ -44,13 +44,13 @@ declare -a PORTS=(5432 10001 10002 10003)
 ((PORT_MIN=0))
 ((PORT_MAX=$NUM_PRIMARY_MIRROR_PAIRS))
 
-if [ -z $DEMO_PORT_BASE ] ; then
-    echo "set DEMO_PORT_BASE"
+if [ -z $PORT_BASE ] ; then
+    echo "set PORT_BASE"
     exit 1
 fi
 
-declare -a PORTS=(`expr $DEMO_PORT_BASE` \
-   `expr $DEMO_PORT_BASE + 2` `expr $DEMO_PORT_BASE + 3 ` `expr $DEMO_PORT_BASE + 4`)
+declare -a PORTS=(`expr $PORT_BASE` \
+   `expr $PORT_BASE + 2` `expr $PORT_BASE + 3 ` `expr $PORT_BASE + 4`)
 
 #
 # Check tables on Coordinator

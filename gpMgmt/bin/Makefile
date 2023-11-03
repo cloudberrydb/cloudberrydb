@@ -16,15 +16,23 @@ PROGRAMS= analyzedb gpactivatestandby gpaddmirrors gpcheckcat gpcheckperf \
 	gpcheckresgroupimpl gpconfig gpdeletesystem gpexpand gpinitstandby \
 	gpinitsystem gpload gpload.py gplogfilter gpmovemirrors \
 	gppkg gprecoverseg gpreload gpscp gpsd gpssh gpssh-exkeys gpstart \
-	gpstate gpstop minirepro gpmemwatcher gpmemreport
+	gpstate gpstop minirepro gpmemwatcher gpmemreport gpdemo
+
+GPDEMO_LIBS = gpdemo-defaults.sh lalshell generate_certs.sh demo_cluster.sh \
+				probe_config.sh README
 
 installdirs:
 	$(MKDIR_P) '$(DESTDIR)$(bindir)/lib'
+	$(MKDIR_P) '$(DESTDIR)$(bindir)/lib/gpdemo'
 
 installprograms: installdirs
 	for file in $(PROGRAMS); do \
 		$(INSTALL_SCRIPT) $$file '$(DESTDIR)$(bindir)/'$$file ; \
 		$(PERL) $(top_builddir)/putversion '$(DESTDIR)$(bindir)/'$$file ; \
+	done
+	# install dependencies of gpdemo
+	for file in $(GPDEMO_LIBS); do \
+		$(INSTALL_SCRIPT) $(top_builddir)/gpAux/gpdemo/$$file '$(DESTDIR)$(bindir)/lib/gpdemo/'$$file ; \
 	done
 	# Symlink gpcheckcat from bin to bin/lib to maintain backward compatibility
 	if [ ! -L $(DESTDIR)$(bindir)/lib/gpcheckcat  ]; then \
@@ -35,6 +43,9 @@ installprograms: installdirs
 uninstall:
 	for file in $(PROGRAMS); do \
 		rm -f '$(DESTDIR)$(bindir)/'$$file ; \
+	done
+	for file in $(GPDEMO_LIBS); do \
+		rm -f '$(DESTDIR)$(bindir)/lib/gpdemo/'$$file ; \
 	done
 	rm -f '$(DESTDIR)$(bindir)/gpload.bat'
 
