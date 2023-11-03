@@ -864,6 +864,7 @@ _outHashJoin(StringInfo str, const HashJoin *node)
 	WRITE_NODE_FIELD(hashkeys);
 	WRITE_NODE_FIELD(hashqualclauses);
 	WRITE_BOOL_FIELD(batch0_barrier);
+	WRITE_BOOL_FIELD(outer_motionhazard);
 }
 
 static void

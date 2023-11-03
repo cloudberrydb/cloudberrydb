@@ -2270,6 +2270,7 @@ _readHashJoin(void)
 	READ_NODE_FIELD(hashkeys);
 	READ_NODE_FIELD(hashqualclauses);
 	READ_BOOL_FIELD(batch0_barrier);
+	READ_BOOL_FIELD(outer_motionhazard);
 
 	READ_DONE();
 }

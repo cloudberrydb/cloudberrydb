@@ -1061,6 +1061,7 @@ typedef struct HashJoin
 	List	   *hashkeys;
 	List	   *hashqualclauses;
 	bool	    batch0_barrier;
+	bool	    outer_motionhazard; /* CBDB_PARALLEL: for parallel aware join */
 } HashJoin;
 
 #define SHARE_ID_NOT_SHARED (-1)

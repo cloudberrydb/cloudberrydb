@@ -415,6 +415,7 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 				if (parallel)
 				{
 					Barrier    *build_barrier;
+					Barrier    *outer_motion_barrier = &parallel_state->outer_motion_barrier;
 
 					build_barrier = &parallel_state->build_barrier;
 					Assert(BarrierPhase(build_barrier) == PHJ_BUILD_HASHING_OUTER ||
@@ -427,6 +428,14 @@ ExecHashJoinImpl(PlanState *pstate, bool parallel)
 						 */
 						if (hashtable->nbatch > 1)
 							ExecParallelHashJoinPartitionOuter(node);
+						/*
+						 * CBDB_PARALLEL
+						 * If outer side has motion behind, we need to wait for all siblings
+						 * before next phase.
+						 */
+						if (((HashJoin *)node->js.ps.plan)->outer_motionhazard)
+							BarrierArriveAndWait(outer_motion_barrier, WAIT_EVENT_PARALLEL_FINISH);
+
 						BarrierArriveAndWait(build_barrier,
 											 WAIT_EVENT_HASH_BUILD_HASH_OUTER);
 					}
@@ -2065,6 +2074,10 @@ ExecHashJoinInitializeDSM(HashJoinState *state, ParallelContext *pcxt)
 
 	BarrierInit(&pstate->sync_barrier, pcxt->nworkers);
 	BarrierInit(&pstate->batch0_barrier, pcxt->nworkers);
+
+	if (((HashJoin *)state->js.ps.plan)->outer_motionhazard)
+		BarrierInit(&pstate->outer_motion_barrier, pcxt->nworkers);
+
 	pstate->phs_lasj_has_null = false;
 
 	/* Set up the space we'll use for shared temporary files. */

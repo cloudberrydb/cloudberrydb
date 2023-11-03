@@ -1127,6 +1127,7 @@ _copyHashJoin(const HashJoin *from)
 	COPY_NODE_FIELD(hashkeys);
 	COPY_NODE_FIELD(hashqualclauses);
 	COPY_SCALAR_FIELD(batch0_barrier);
+	COPY_SCALAR_FIELD(outer_motionhazard);
 
 	return newnode;
 }
