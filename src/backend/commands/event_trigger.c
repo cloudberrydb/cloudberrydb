@@ -1069,10 +1069,20 @@ EventTriggerSupportsObjectClass(ObjectClass objclass)
 		case OCLASS_TASK:
 			return false;
 
+		default:
+		{
+			struct CustomObjectClass *coc;
+
+			coc = find_custom_object_class(objclass);
+			Assert(coc);
+			if (coc->support_event_trigger)
+				return coc->support_event_trigger(coc);
 			/*
 			 * There's intentionally no default: case here; we want the
 			 * compiler to warn if a new OCLASS hasn't been handled above.
 			 */
+			break;
+		}
 	}
 
 	return true;
