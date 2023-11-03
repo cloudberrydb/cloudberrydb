@@ -102,16 +102,6 @@ checkDemoConfig(){
     return 0
 }
 
-USAGE(){
-    echo ""
-    echo " `basename $0` {-c | -d | -u} <-K>"
-    echo " -c : Check if demo is possible."
-    echo " -d : Delete the demo."
-    echo " -K : Create cluster without data checksums."
-    echo " -u : Usage, prints this message."
-    echo ""
-}
-
 #
 # Clean up the demo
 #
@@ -140,6 +130,10 @@ cleanDemo(){
             echo "Deleting clusterConfigFile"
             rm -f clusterConfigFile
         fi
+        if [ -f clusterConfigPostgresAddonsFile ];  then
+            echo "Deleting clusterConfigPostgresAddonsFile"
+            rm -f clusterConfigPostgresAddonsFile
+        fi
         if [ -d ${DATADIRS} ];  then
             echo "Deleting ${DATADIRS}"
             rm -rf ${DATADIRS}
@@ -155,10 +149,9 @@ cleanDemo(){
 # Main Section
 #*****************************************************************************
 
-while getopts ":cdK'?'" opt
+while getopts ":cdK" opt
 do
-	case $opt in 
-		'?' ) USAGE ;;
+	case $opt in
         c) checkDemoConfig
            RETVAL=$?
            if [ $RETVAL -ne 0 ]; then
@@ -173,9 +166,7 @@ do
         K) DATACHECKSUMS=0
            shift
            ;;
-        *) USAGE
-           exit 0
-           ;;
+        *) USAGE; exit 1;;
 	esac
 done
 
@@ -302,7 +293,7 @@ cat >> $CLUSTER_CONFIG <<-EOF
 	COORDINATOR_PORT=${COORDINATOR_DEMO_PORT}
 	
 	# Shell to use to execute commands on all hosts
-	TRUSTED_SHELL="`pwd`/lalshell"
+	TRUSTED_SHELL="$(dirname "$0")/lalshell"
 	
 	ENCODING=UNICODE
 EOF
@@ -487,6 +478,7 @@ cat > gpdemo-env.sh <<-EOF
 	export PGPORT=${COORDINATOR_DEMO_PORT}
 	export COORDINATOR_DATA_DIRECTORY=$QDDIR/${SEG_PREFIX}-1
 	export MASTER_DATA_DIRECTORY=$QDDIR/${SEG_PREFIX}-1
+	export NUM_PRIMARY_MIRROR_PAIRS=${NUM_PRIMARY_MIRROR_PAIRS}
 EOF
 
 if [ "${RETURN}" -gt 1 ];

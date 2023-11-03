@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+
+WORKDIR=$(dirname "$0")
+GPDEMO_LIB=$WORKDIR/lib/gpdemo
+
+README() {
+  cat "$GPDEMO_LIB"/README
+}
+
+PROBE_CONFIG() {
+  source_gpdemo_defaults
+  "$GPDEMO_LIB"/probe_config.sh
+}
+
+DEMO_CLUSTER() {
+  source_gpdemo_defaults
+  "$GPDEMO_LIB"/demo_cluster.sh "$@"
+}
+
+source_gpdemo_defaults() {
+  . "$GPDEMO_LIB"/gpdemo-defaults.sh
+
+  # overwrite the shorter usage defined in gpdemo-defaults.sh
+  USAGE() {
+    echo ""
+    echo " gpdemo {-c | -d | -p | -h | -H | -v} <-K>"
+    echo "    : Default behaviour (no argument) is to create demo cluster."
+    echo " -c : Check if demo is possible."
+    echo " -d : Delete the demo."
+    echo " -K : Create cluster without data checksums."
+    echo " -p : Probe configuration of an alive cluster."
+    echo " -h : Usage, prints this message."
+    echo " -H : Detailed usage."
+    echo " -v : Show version."
+    echo ""
+    echo " There are few environment variables (e.g., PORT_BASE, DATADIRS) to"
+    echo " further config the demo cluster. See \"gpdemo -H\" for more info."
+    echo ""
+  }
+}
+
+CHECK_FILENAME=("demo_cluster.sh" "probe_config.sh" "gpdemo-defaults.sh" "lalshell" "README" "../gp_bash_version.sh")
+for filename in "${CHECK_FILENAME[@]}"; do
+  checking="$GPDEMO_LIB"/"$filename"
+  if [[ ! -f "$checking" ]]; then
+    echo "Missing $checking"
+    echo ""
+    echo "This may be caused by incomplete installation or packaging error."
+    echo "Try to re-install CloudBerryDB. If it doesn't help, contact support."
+    exit 1
+  fi
+done
+
+. "$WORKDIR"/lib/gp_bash_version.sh
+
+while getopts ":pHv" opt
+do
+  case $opt in
+    p) PROBE_CONFIG; exit 0;;
+    H) README; exit 0;;
+    v) print_version; exit 0;;
+    *) DEMO_CLUSTER "$@"; exit $?;; # fallback to demo_cluster.sh
+  esac
+done
+
+# default behaviour is fallback to "demo_cluster.sh" (no argument)
+DEMO_CLUSTER

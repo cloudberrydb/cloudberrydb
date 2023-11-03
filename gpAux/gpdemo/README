@@ -31,11 +31,7 @@ RUNNING GP DEMO
 
 	su - gpadmin
 
-2. Go into the gpdemo directory:
-
-	cd gpAux/gpdemo
-
-3. Source greenplum_path.sh
+2. Source greenplum_path.sh
 
 	. /usr/local/greenplum-db/greenplum_path.sh
 
@@ -44,23 +40,28 @@ RUNNING GP DEMO
    The "." will source the greenplum_path.sh into the current
    shell, instead of starting a subprocess.
 
-4. Create the cluster:
+3. Create the cluster at the current directory:
 
-	make cluster
+   gpdemo
 
-5. Source gpAux/gpdemo/gpdemo-env.sh
+   By default, all data of the demo cluster will be stored in
+   "./datadirs" of the current directory. You may change this by
+   cd to another directory or using "DATADIRS" environment variable
+   described in the next section.
 
-6. If setup completes correctly, you will have a virtual Cloudberry
+4. Source ./gpdemo-env.sh
+
+5. If setup completes correctly, you will have a virtual Cloudberry
    Database system running on the local host. You can connect to it
    using the psql client program as follows:
 
 	psql postgres
 
-7. To exit the psql client program:
+6. To exit the psql client program:
 
 	\q
 
-8. See the Cloudberry Database User Guide for more information on
+7. See the Cloudberry Database User Guide for more information on
    using your Cloudberry Database system.
 
 
@@ -68,9 +69,9 @@ RUNNING GP DEMO
 REMOVING GP DEMO
 ******************************************************************
 
-1. From the gpdemo directory run make clean:
+1. In the directory where you run "gpdemo" to create cluster:
 
-	make clean
+	gpdemo -d
 
 2. This will stop all Cloudberry Database demo server processes
    and remove all files and directories created by the GP demo
@@ -96,7 +97,10 @@ environment variables before initializing the cluster:
 	export NUM_PRIMARY_MIRROR_PAIRS=<number segments>
 
   It is recommended to specify an odd number of segments, in order
-  to catch problems with data distribution.
+  to catch problems with data distribution. When set to 0, a singlenode
+  deployment will be created. Under this mode, there are no segments,
+  only one coordinator (QD) and one coordinator standby. All data sit
+  on the two nodes and nothing gets distributed.
 
 * Data directory:
 
