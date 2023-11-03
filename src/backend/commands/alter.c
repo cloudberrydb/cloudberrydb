@@ -736,10 +736,19 @@ AlterObjectNamespace_oid(Oid classId, Oid objid, Oid nspOid,
 			/* ignore object types that don't have schema-qualified names */
 			break;
 
+		default:
+		{
+			struct CustomObjectClass *coc;
+
+			coc = find_custom_object_class_by_classid(classId, false);
+			if (coc->alter_namespace)
+				coc->alter_namespace(coc, &dep, nspOid, objsMoved);
 			/*
 			 * There's intentionally no default: case here; we want the
 			 * compiler to warn if a new OCLASS hasn't been handled above.
 			 */
+			break;
+		}
 	}
 
 	return oldNspOid;
