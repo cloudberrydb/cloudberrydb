@@ -785,6 +785,9 @@ CTranslatorUtils::GetSystemColName(AttrNumber attno)
 		case GpSegmentIdAttributeNumber:
 			return CDXLTokens::GetDXLTokenStr(EdxltokenGpSegmentIdColName);
 
+		case GpForeignServerAttributeNumber:
+			return CDXLTokens::GetDXLTokenStr(EdxltokenGpForeignServerColName);
+
 		default:
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
 					   GPOS_WSZ_LIT("Invalid attribute number"));
@@ -830,6 +833,10 @@ CTranslatorUtils::GetSystemColType(CMemoryPool *mp, AttrNumber attno)
 			// int4
 			return GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4);
 
+		case GpForeignServerAttributeNumber:
+			// int4
+			return GPOS_NEW(mp) CMDIdGPDB(GPDB_INT4);
+
 		default:
 			GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiPlStmt2DXLConversion,
 					   GPOS_WSZ_LIT("Invalid attribute number"));
@@ -863,6 +870,7 @@ CTranslatorUtils::GetSystemColLength(AttrNumber attno)
 			// cid type
 
 		case GpSegmentIdAttributeNumber:
+		case GpForeignServerAttributeNumber:
 			// int4
 			return 4;
 

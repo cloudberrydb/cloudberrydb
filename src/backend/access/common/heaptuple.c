@@ -63,6 +63,7 @@
 #include "access/sysattr.h"
 #include "access/tupdesc_details.h"
 #include "executor/tuptable.h"
+#include "foreign/foreign.h"
 #include "utils/expandeddatum.h"
 
 #include "catalog/pg_type.h"
@@ -396,6 +397,7 @@ heap_attisnull(HeapTuple tup, int attnum, TupleDesc tupleDesc)
 		case MaxTransactionIdAttributeNumber:
 		case MaxCommandIdAttributeNumber:
         case GpSegmentIdAttributeNumber:       /*CDB*/
+		case GpForeignServerAttributeNumber:
 			/* these are never null */
 			break;
 
@@ -671,6 +673,9 @@ heap_getsysattr(HeapTuple tup, int attnum, TupleDesc tupleDesc, bool *isnull)
 			break;
 		case GpSegmentIdAttributeNumber:                       /*CDB*/
 			result = Int32GetDatum(GpIdentity.segindex);
+			break;
+		case GpForeignServerAttributeNumber:
+			result = ObjectIdGetDatum(GetForeignServerSegByRelid(tup->t_tableOid));
 			break;
 		default:
 			elog(ERROR, "invalid attnum: %d", attnum);

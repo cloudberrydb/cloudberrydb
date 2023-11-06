@@ -24,6 +24,7 @@ AclResult
 AcquireSampleRowsFunc
 ActionList
 ActiveSnapshotElt
+AddForeignSegStmt
 AddForeignUpdateTargets_function
 AffixNode
 AffixNodeData

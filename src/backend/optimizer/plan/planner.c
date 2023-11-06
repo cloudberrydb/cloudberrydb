@@ -27,6 +27,7 @@
 #include "access/sysattr.h"
 #include "access/table.h"
 #include "access/xact.h"
+#include "catalog/pg_aggregate.h"
 #include "catalog/pg_constraint.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_proc.h"
@@ -2639,7 +2640,8 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	 * let it consider adding ForeignPaths.
 	 */
 	if (final_rel->fdwroutine &&
-		final_rel->fdwroutine->GetForeignUpperPaths)
+		final_rel->fdwroutine->GetForeignUpperPaths &&
+		!final_rel->segSeverids)
 		final_rel->fdwroutine->GetForeignUpperPaths(root, UPPERREL_FINAL,
 													current_rel, final_rel,
 													&extra);
@@ -4199,7 +4201,36 @@ make_grouping_rel(PlannerInfo *root, RelOptInfo *input_rel,
 	/*
 	 * If the input rel belongs to a single FDW, so does the grouped rel.
 	 */
+	if (OidIsValid(input_rel->serverid) &&
+		input_rel->exec_location == FTEXECLOCATION_ALL_SEGMENTS)
+	{
+		ListCell *cell;
+
+		foreach(cell, grouped_rel->reltarget->exprs)
+		{
+			Expr *expr = lfirst(cell);
+
+			if (IsA(expr, Aggref))
+			{
+				HeapTuple			aggTuple;
+				Form_pg_aggregate	aggregate;
+				Aggref *aggref = (Aggref *) expr;
+
+				aggTuple = SearchSysCache1(AGGFNOID, ObjectIdGetDatum(aggref->aggfnoid));
+				aggregate = (Form_pg_aggregate) GETSTRUCT(aggTuple);
+				if (OidIsValid(aggregate->aggfinalfn))
+				{
+					ReleaseSysCache(aggTuple);
+					return grouped_rel;
+				}
+
+				ReleaseSysCache(aggTuple);
+			}
+		}
+	}
+
 	grouped_rel->serverid = input_rel->serverid;
+	grouped_rel->segSeverids = input_rel->segSeverids;
 	grouped_rel->userid = input_rel->userid;
 	grouped_rel->useridiscurrent = input_rel->useridiscurrent;
 	grouped_rel->fdwroutine = input_rel->fdwroutine;
@@ -4432,7 +4463,8 @@ create_ordinary_grouping_paths(PlannerInfo *root, RelOptInfo *input_rel,
 	 * let it consider adding ForeignPaths.
 	 */
 	if (grouped_rel->fdwroutine &&
-		grouped_rel->fdwroutine->GetForeignUpperPaths)
+		grouped_rel->fdwroutine->GetForeignUpperPaths &&
+		!grouped_rel->segSeverids)
 		grouped_rel->fdwroutine->GetForeignUpperPaths(root, UPPERREL_GROUP_AGG,
 													  input_rel, grouped_rel,
 													  extra);
@@ -4849,7 +4881,8 @@ create_window_paths(PlannerInfo *root,
 	 * let it consider adding ForeignPaths.
 	 */
 	if (window_rel->fdwroutine &&
-		window_rel->fdwroutine->GetForeignUpperPaths)
+		window_rel->fdwroutine->GetForeignUpperPaths &&
+		!window_rel->segSeverids)
 		window_rel->fdwroutine->GetForeignUpperPaths(root, UPPERREL_WINDOW,
 													 input_rel, window_rel,
 													 NULL);
@@ -5249,7 +5282,8 @@ create_distinct_paths(PlannerInfo *root,
 	 * let it consider adding ForeignPaths.
 	 */
 	if (distinct_rel->fdwroutine &&
-		distinct_rel->fdwroutine->GetForeignUpperPaths)
+		distinct_rel->fdwroutine->GetForeignUpperPaths &&
+		!distinct_rel->segSeverids)
 		distinct_rel->fdwroutine->GetForeignUpperPaths(root, UPPERREL_DISTINCT,
 													   input_rel, distinct_rel,
 													   NULL);
@@ -5523,7 +5557,8 @@ create_ordered_paths(PlannerInfo *root,
 	 */
 
 	if (ordered_rel->fdwroutine &&
-		ordered_rel->fdwroutine->GetForeignUpperPaths)
+		ordered_rel->fdwroutine->GetForeignUpperPaths &&
+		!ordered_rel->segSeverids)
 		ordered_rel->fdwroutine->GetForeignUpperPaths(root, UPPERREL_ORDERED,
 													  input_rel, ordered_rel,
 													  NULL);
@@ -7886,6 +7921,7 @@ create_partial_grouping_paths(PlannerInfo *root,
 		grouped_rel->consider_parallel;
 	partially_grouped_rel->reloptkind = grouped_rel->reloptkind;
 	partially_grouped_rel->serverid = grouped_rel->serverid;
+	partially_grouped_rel->segSeverids = grouped_rel->segSeverids;
 	partially_grouped_rel->userid = grouped_rel->userid;
 	partially_grouped_rel->useridiscurrent = grouped_rel->useridiscurrent;
 	partially_grouped_rel->fdwroutine = grouped_rel->fdwroutine;
@@ -8250,7 +8286,8 @@ create_partial_grouping_paths(PlannerInfo *root,
 	 * let it consider adding partially grouped ForeignPaths.
 	 */
 	if (partially_grouped_rel->fdwroutine &&
-		partially_grouped_rel->fdwroutine->GetForeignUpperPaths)
+		partially_grouped_rel->fdwroutine->GetForeignUpperPaths &&
+		!partially_grouped_rel->segSeverids)
 	{
 		FdwRoutine *fdwroutine = partially_grouped_rel->fdwroutine;
 

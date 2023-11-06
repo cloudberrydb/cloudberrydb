@@ -886,7 +886,8 @@ sub gen_pg_attribute
 				{ name => 'xmax',     type => 'xid' },
 				{ name => 'cmax',     type => 'cid' },
 				{ name => 'tableoid', type => 'oid' },
-				{ name => 'gp_segment_id', type => 'int4' });
+				{ name => 'gp_segment_id', type => 'int4' },
+				{ name => 'gp_foreign_server', type => 'oid' });
 			foreach my $attr (@SYS_ATTRS)
 			{
 				$attnum--;
