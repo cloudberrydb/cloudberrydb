@@ -253,6 +253,8 @@ CopyPlanFields(const Plan *from, Plan *newnode)
 	COPY_BITMAPSET_FIELD(extParam);
 	COPY_BITMAPSET_FIELD(allParam);
 	COPY_NODE_FIELD(flow);
+	COPY_SCALAR_FIELD(locustype);
+	COPY_SCALAR_FIELD(parallel);
 
 	COPY_SCALAR_FIELD(operatorMemKB);
 }

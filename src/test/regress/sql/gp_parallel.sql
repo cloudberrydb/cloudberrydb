@@ -654,6 +654,7 @@ create table pagg_tab_p2 partition of pagg_tab for values in ('0005', '0006', '0
 create table pagg_tab_p3 partition of pagg_tab for values in ('0009', '0010', '0011');
 insert into pagg_tab select i % 20, i % 30, to_char(i % 12, 'FM0000'), i % 30 from generate_series(0, 2999) i;
 analyze pagg_tab;
+set local enable_parallel to off;
 set local enable_partitionwise_aggregate to true;
 set local enable_partitionwise_join to true;
 set local enable_incremental_sort to off;
@@ -785,6 +786,52 @@ set local enable_mergejoin = off;
 set local enable_nestloop = on;
 -- Parallel Nested Loop Semi Join
 explain(costs off) select c1 from semi_t1 where not c1 >=all (select c2 from semi_t2 where c2 = c1);
+abort;
+
+--
+-- Test Materialize locus when enable_material is off.
+--
+begin;
+create table t1(id int) distributed by (id);
+create index on t1(id);
+insert into t1 values(generate_series(1, 100));
+analyze t1;
+set enable_seqscan =off;
+set enable_material =off;
+explain (locus, costs off)
+select * from
+  (select count(id) from t1 where id > 10) ss
+  right join (values (1),(2),(3)) v(x) on true;
+abort;
+
+-- Subplan locus, One-time flter locus is null
+begin;
+drop table if exists mrs_t1;
+create table mrs_t1(x int) distributed by (x);
+insert into mrs_t1 select generate_series(1,20);
+analyze mrs_t1;
+explain(locus, costs off) select * from mrs_t1 where exists (select x from mrs_t1 where x < -1);
+explain(locus, costs off) select * from mrs_t1 where exists (select x from mrs_t1 where x = 1);
+explain(locus, costs off) select * from mrs_t1 where x in (select x-95 from mrs_t1) or x < 5;
+explain(locus, costs off) select * from pg_class where oid in (select x-95 from mrs_t1) or oid < 5;
+drop table if exists mrs_t1;
+abort;
+
+-- prepare, execute locus is null
+begin;
+create table t1(c1 int, c2 int);
+analyze t1;
+prepare t1_count(integer) as select count(*) from t1;
+explain(locus, costs off) execute t1_count(1);
+abort;
+
+-- Result locus is null
+begin;
+create table t1(id int) distributed by (id);
+create index on t1(id);
+insert into t1 values(generate_series(1, 10));
+analyze t1;
+explain(costs off, locus) select max(100) from t1;
 abort;
 
 -- start_ignore

@@ -807,6 +807,7 @@ cdbllize_decorate_subplans_with_motions(PlannerInfo *root, Plan *plan)
 			 * and hashed SubPlans are never rescanned.
 			 */
 			if (IsA(subplan, Motion) && !sstate->is_initplan &&
+				/* CBDB_PARALLEL_FIXME: enable_material && */
 				!sstate->useHashTable)
 				subplan = (Plan *) make_material(subplan);
 		}
@@ -1075,6 +1076,8 @@ fix_subplan_motion(PlannerInfo *root, Plan *subplan, Flow *outer_query_flow)
 		motion->senderSliceInfo = sendSlice;
 
 		subplan = (Plan *) motion;
+		subplan->locustype = (motion->motionType == MOTIONTYPE_GATHER) ?
+			CdbLocusType_SingleQE: CdbLocusType_Replicated;
 	}
 	return subplan;
 }
