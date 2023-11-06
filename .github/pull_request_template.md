@@ -1,7 +1,6 @@
 <!--Thank you for contributing!-->
-
 <!--In case of an existing issue or discussions, please reference it-->
-closes: #ISSUE_Number
+fix #ISSUE_Number
 <!--Remove this section if no corresponding issue.-->
 
 ---
@@ -36,4 +35,4 @@ Here are some reminders and checklists before/when submitting your pull request,
 - [ ] Add tests for the change
 - [ ] Pass `make installcheck`
 - [ ] Pass `make -C src/test installcheck-cbdb-parallel`
-- [ ] Feel free to @cloudberrydb/dev team for review and approval when your PR is ready🥳
+- [ ] Feel free to request `cloudberrydb/dev` team for review and approval when your PR is ready🥳
