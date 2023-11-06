@@ -196,6 +196,7 @@ ClassifyUtilityCommandAsReadOnly(Node *parsetree)
 		case T_CreateFdwStmt:
 		case T_CreateForeignServerStmt:
 		case T_CreateForeignTableStmt:
+		case T_AddForeignSegStmt:
 		case T_CreateFunctionStmt:
 		case T_CreateOpClassStmt:
 		case T_CreateOpFamilyStmt:
@@ -1629,7 +1630,13 @@ ProcessUtilitySlow(ParseState *pstate,
 					commandCollected = true;
 				}
 				break;
+			case T_AddForeignSegStmt:
+				{
+					AddForeignSegStmt *afsstmt = (AddForeignSegStmt *) parsetree;
 
+					AddForeignSeg(afsstmt);
+				}
+				break;
 			case T_AlterTableStmt:
 				{
 					AlterTableStmt *atstmt = (AlterTableStmt *) parsetree;
@@ -3125,6 +3132,10 @@ CreateCommandTag(Node *parsetree)
 			tag = CMDTAG_CREATE_FOREIGN_TABLE;
 			break;
 
+		case T_AddForeignSegStmt:
+			tag = CMDTAG_ADD_FOREIGN_TABLE_SEG;
+			break;
+
 		case T_ImportForeignSchemaStmt:
 			tag = CMDTAG_IMPORT_FOREIGN_SCHEMA;
 			break;
@@ -3961,6 +3972,10 @@ GetCommandLogLevel(Node *parsetree)
 
 		case T_CreateStmt:
 		case T_CreateForeignTableStmt:
+			lev = LOGSTMT_DDL;
+			break;
+
+		case T_AddForeignSegStmt:
 			lev = LOGSTMT_DDL;
 			break;
 

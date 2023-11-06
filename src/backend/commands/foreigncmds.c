@@ -25,6 +25,7 @@
 #include "catalog/pg_foreign_data_wrapper.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_foreign_table.h"
+#include "catalog/pg_foreign_table_seg.h"
 #include "catalog/pg_proc.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_user_mapping.h"
@@ -1459,6 +1460,66 @@ RemoveUserMapping(DropUserMappingStmt *stmt)
 	return umId;
 }
 
+static void
+InsertForeignTableSeg(Oid relid, Oid serverid, Datum options)
+{
+	Relation	ftsrel;
+	Datum		values[Natts_pg_foreign_table_seg];
+	bool		nulls[Natts_pg_foreign_table_seg];
+	HeapTuple	tuple;
+
+	ftsrel = table_open(ForeignTableRelationSegId, RowExclusiveLock);
+
+	/*
+	 * Insert tuple into pg_foreign_table_seg.
+	 */
+	memset(values, 0, sizeof(values));
+	memset(nulls, false, sizeof(nulls));
+
+	values[Anum_pg_foreign_table_seg_ftsrelid - 1] = ObjectIdGetDatum(relid);
+	values[Anum_pg_foreign_table_seg_ftsserver - 1] = ObjectIdGetDatum(serverid);
+	if (PointerIsValid(DatumGetPointer(options)))
+		values[Anum_pg_foreign_table_seg_ftsoptions - 1] = options;
+	else
+		nulls[Anum_pg_foreign_table_seg_ftsoptions - 1] = true;
+	tuple = heap_form_tuple(ftsrel->rd_att, values, nulls);
+
+	CatalogTupleInsert(ftsrel, tuple);
+
+	heap_freetuple(tuple);
+
+	table_close(ftsrel, RowExclusiveLock);
+}
+
+void
+AddForeignSeg(AddForeignSegStmt *stmt)
+{
+	Oid relid;
+	Datum		ftoptions;
+	ForeignServer *server;
+	ForeignDataWrapper *fdw;
+
+	relid = RelnameGetRelid(stmt->tablename);
+	Assert(OidIsValid(relid));
+
+	server = GetForeignServerByName(stmt->servername, false);
+
+	fdw = GetForeignDataWrapper(server->fdwid);
+	/* Add table generic options */
+	ftoptions = transformGenericOptions(ForeignTableRelationId,
+										PointerGetDatum(NULL),
+										stmt->options,
+										fdw->fdwvalidator);
+	InsertForeignTableSeg(relid, server->serverid, ftoptions);
+
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		CdbDispatchUtilityStatement((Node *) stmt,
+									DF_WITH_SNAPSHOT | DF_CANCEL_ON_ERROR | DF_NEED_TWO_PHASE,
+									GetAssignedOidsForDispatch(),
+									NULL);
+	}
+}
 
 /*
  * Create a foreign table

@@ -19,6 +19,7 @@
 #include "postgres.h"
 
 #include "access/transam.h"
+#include "catalog/pg_foreign_table_seg.h"
 #include "catalog/pg_type.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
@@ -1142,6 +1143,7 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 		case T_Agg:
 			{
 				Agg		   *agg = (Agg *) plan;
+				bool			is_foreign_final_agg = false;
 
 				if (DO_AGGSPLIT_DEDUPLICATED(agg->aggsplit))
 				{
@@ -1155,6 +1157,11 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 					agg->aggsplit &= ~AGGSPLITOP_DEDUPLICATED;
 				}
 
+				if ((IsA(plan->lefttree, Motion) &&
+					IsA(plan->lefttree->lefttree, ForeignScan)) ||
+					IsA(plan->lefttree, ForeignScan))
+					is_foreign_final_agg = true;
+
 				/*
 				 * If this node is combining partial-aggregation results, we
 				 * must convert its Aggrefs to contain references to the
@@ -1165,7 +1172,7 @@ set_plan_refs(PlannerInfo *root, Plan *plan, int rtoffset)
 				{
 					plan->targetlist = (List *)
 						convert_combining_aggrefs((Node *) plan->targetlist,
-												  NULL);
+												  &is_foreign_final_agg);
 					plan->qual = (List *)
 						convert_combining_aggrefs((Node *) plan->qual,
 												  NULL);
@@ -1702,11 +1709,42 @@ set_foreignscan_references(PlannerInfo *root,
 
 	if (fscan->fdw_scan_tlist != NIL || fscan->scan.scanrelid == 0)
 	{
+		ListCell *cell;
+
 		/*
 		 * Adjust tlist, qual, fdw_exprs, fdw_recheck_quals to reference
 		 * foreign scan tuple
 		 */
 		indexed_tlist *itlist = build_tlist_index(fscan->fdw_scan_tlist);
+
+		foreach(cell, fscan->scan.plan.targetlist)
+		{
+			TargetEntry *tle;
+
+			tle = lfirst(cell);
+
+			if (IsA(tle->expr, Var))
+			{
+				Var *var;
+
+				var = (Var*) tle->expr;
+				if (var->varattno == GpForeignServerAttributeNumber)
+				{
+					FuncExpr	   *funcExpr;
+					RangeTblEntry  *rte;
+					Const 		   *relid;
+
+					rte = root->simple_rte_array[var->varno];
+					relid = makeConst(OIDOID, -1, InvalidOid, sizeof(Oid),
+									  ObjectIdGetDatum(rte->relid), false, true);
+					funcExpr = makeFuncExpr(GP_FOREIGN_SERVER_ID_FUNC, OIDOID,
+											list_make1(relid), InvalidOid, InvalidOid,
+											COERCE_EXPLICIT_CALL);
+					tle->expr = (Expr*) funcExpr;
+				}
+			}
+
+		}
 
 		fscan->scan.plan.targetlist = (List *)
 			fix_upper_expr(root,
@@ -1744,6 +1782,37 @@ set_foreignscan_references(PlannerInfo *root,
 	}
 	else
 	{
+		ListCell *cell;
+
+		foreach(cell, fscan->scan.plan.targetlist)
+		{
+			TargetEntry *tle;
+
+			tle = lfirst(cell);
+
+			if (IsA(tle->expr, Var))
+			{
+				Var *var;
+
+				var = (Var*) tle->expr;
+				if (var->varattno == GpForeignServerAttributeNumber)
+				{
+					FuncExpr	   *funcExpr;
+					RangeTblEntry  *rte;
+					Const 		   *relid;
+
+					rte = root->simple_rte_array[var->varno];
+					relid = makeConst(OIDOID, -1, InvalidOid, sizeof(Oid),
+									  ObjectIdGetDatum(rte->relid), false, true);
+					funcExpr = makeFuncExpr(GP_FOREIGN_SERVER_ID_FUNC, OIDOID,
+											list_make1(relid), InvalidOid, InvalidOid,
+											COERCE_EXPLICIT_CALL);
+					tle->expr = (Expr*) funcExpr;
+				}
+			}
+
+		}
+
 		/*
 		 * Adjust tlist, qual, fdw_exprs, fdw_recheck_quals in the standard
 		 * way
@@ -2699,7 +2768,10 @@ convert_combining_aggrefs(Node *node, void *context)
 		 * Now, set up child_agg to represent the first phase of partial
 		 * aggregation.  For now, assume serialization is required.
 		 */
-		mark_partial_aggref(child_agg, AGGSPLIT_INITIAL_SERIAL);
+		if (context && *(bool *)context)
+			mark_partial_aggref(child_agg, AGGSPLIT_SIMPLE);
+		else
+			mark_partial_aggref(child_agg, AGGSPLIT_INITIAL_SERIAL);
 
 		/*
 		 * And set up parent_agg to represent the second phase.

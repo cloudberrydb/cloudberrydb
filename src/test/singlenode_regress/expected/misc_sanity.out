@@ -113,6 +113,7 @@ ORDER BY 1, 2;
  pg_class                 | relacl             | aclitem[]
  pg_class                 | reloptions         | text[]
  pg_class                 | relpartbound       | pg_node_tree
+ pg_foreign_table_seg     | ftsoptions         | text[]
  pg_index                 | indexprs           | pg_node_tree
  pg_index                 | indpred            | pg_node_tree
  pg_largeobject           | data               | bytea
@@ -134,7 +135,7 @@ ORDER BY 1, 2;
  pg_task_run_history      | return_message     | text
  pg_task_run_history      | status             | text
  pg_task_run_history      | username           | text
-(31 rows)
+(32 rows)
 
 -- system catalogs without primary keys
 --
@@ -161,6 +162,7 @@ ORDER BY 1;
  pg_compression
  pg_depend
  pg_extprotocol
+ pg_foreign_table_seg
  pg_password_history
  pg_proc_callback
  pg_profile
@@ -173,7 +175,7 @@ ORDER BY 1;
  pg_stat_last_operation
  pg_stat_last_shoperation
  pg_type_encoding
-(25 rows)
+(26 rows)
 
 -- system catalog unique indexes not wrapped in a constraint
 -- (There should be none.)

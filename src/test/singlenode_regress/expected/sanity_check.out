@@ -136,6 +136,7 @@ pg_extprotocol|t
 pg_foreign_data_wrapper|t
 pg_foreign_server|t
 pg_foreign_table|t
+pg_foreign_table_seg|t
 pg_index|t
 pg_inherits|t
 pg_init_privs|t

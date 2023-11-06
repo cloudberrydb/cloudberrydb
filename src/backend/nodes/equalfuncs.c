@@ -2136,6 +2136,16 @@ _equalCreateForeignServerStmt(const CreateForeignServerStmt *a, const CreateFore
 }
 
 static bool
+_equalAddForeignSegStmt(const AddForeignSegStmt *a, const AddForeignSegStmt *b)
+{
+	COMPARE_STRING_FIELD(servername);
+	COMPARE_STRING_FIELD(tablename);
+	COMPARE_NODE_FIELD(options);
+
+	return true;
+}
+
+static bool
 _equalAlterForeignServerStmt(const AlterForeignServerStmt *a, const AlterForeignServerStmt *b)
 {
 	COMPARE_STRING_FIELD(servername);
@@ -4002,6 +4012,9 @@ equal(const void *a, const void *b)
 			break;
 		case T_CreateForeignServerStmt:
 			retval = _equalCreateForeignServerStmt(a, b);
+			break;
+		case T_AddForeignSegStmt:
+			retval = _equalAddForeignSegStmt(a, b);
 			break;
 		case T_AlterForeignServerStmt:
 			retval = _equalAlterForeignServerStmt(a, b);

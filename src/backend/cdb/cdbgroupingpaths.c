@@ -56,6 +56,7 @@
 #include "cdb/cdbpathlocus.h"
 #include "cdb/cdbutil.h"
 #include "cdb/cdbvars.h"
+#include "foreign/fdwapi.h"
 #include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/clauses.h"
@@ -320,6 +321,13 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 	ctx.groupingSets = parse->groupingSets;
 	ctx.havingQual = havingQual;
 	ctx.partial_rel = fetch_upper_rel(root, UPPERREL_CDB_FIRST_STAGE_GROUP_AGG, NULL);
+	ctx.partial_rel->fdwroutine = input_rel->fdwroutine;
+	ctx.partial_rel->serverid = input_rel->serverid;
+	ctx.partial_rel->segSeverids = input_rel->segSeverids;
+	ctx.partial_rel->userid = input_rel->userid;
+	ctx.partial_rel->exec_location = input_rel->exec_location;
+	ctx.partial_rel->num_segments = input_rel->num_segments;
+
 	/* create a partial rel similar to make_grouping_rel() */
 	if (IS_OTHER_REL(input_rel))
 	{
@@ -505,17 +513,17 @@ cdb_create_multistage_grouping_paths(PlannerInfo *root,
 		case MULTI_DQAS:
 			{
 				fetch_multi_dqas_info(root, cheapest_path, &ctx, &info);
-				/* 
+				/*
 				 * GPDB_14_MERGE_FIXME: We have done some copy job in
 				 * make_partial_grouping_target, so that the agg references
-				 * in plan is actually different from 
+				 * in plan is actually different from
 				 * agg_partial_costs->distinctAggrefs. And it has to be
 				 * different since we need to compute and set agg_expr_id for
 				 * tuple split cases.
 				 * However, we need to push multi dqa's filter to tuplesplit
 				 * to get the correct result. And thus we need to remove the
 				 * filter in aggref referenced by the plan.
-				 * 
+				 *
 				 * It's not that trivial to fix it perfectly. By manually
 				 * removing the origin plan's aggfilter can work around
 				 * this problem. We'll look at it again later.
@@ -743,6 +751,31 @@ create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 		}
 	}
 
+	if (ctx->partial_rel->fdwroutine &&
+		ctx->partial_rel->fdwroutine->GetForeignUpperPaths &&
+		ctx->partial_rel->segSeverids)
+	{
+		GroupPathExtraData extra;
+		FdwRoutine *fdwroutine = ctx->partial_rel->fdwroutine;
+		ListCell *lc;
+
+		extra.patype = PARTITIONWISE_AGGREGATE_NONE;
+		extra.havingQual = NULL;
+
+		foreach(lc, ctx->partial_rel->reltarget->exprs)
+		{
+			Expr *expr;
+
+			expr = lfirst(lc);
+
+			if (IsA(expr, Aggref))
+				((Aggref*)expr)->aggsplit = AGGSPLIT_SIMPLE;
+		}
+
+		fdwroutine->GetForeignUpperPaths(root, UPPERREL_GROUP_AGG, input_rel,
+										 ctx->partial_rel, &extra);
+	}
+
 	/*
 	 * We now have partially aggregated paths in ctx->partial_rel. Consider
 	 * different ways of performing the Finalize Aggregate stage.
@@ -753,6 +786,22 @@ create_two_stage_paths(PlannerInfo *root, cdb_agg_planning_context *ctx,
 
 		set_cheapest(ctx->partial_rel);
 		cheapest_first_stage_path = ctx->partial_rel->cheapest_total_path;
+
+		if (!IsA(cheapest_first_stage_path, ForeignPath))
+		{
+			ListCell *lc;
+
+			foreach(lc, ctx->partial_rel->reltarget->exprs)
+			{
+				Expr *expr;
+
+				expr = lfirst(lc);
+
+				if (IsA(expr, Aggref))
+					((Aggref*)expr)->aggsplit = AGGSPLIT_INITIAL_SERIAL;
+			}
+		}
+
 		if (ctx->can_sort)
 		{
 			ListCell   *lc;
@@ -1124,17 +1173,18 @@ add_second_stage_group_agg_path(PlannerInfo *root,
 									  false, singleQE_locus);
 
 	path = (Path *) create_agg_path(root,
-									output_rel,
-									path,
-									ctx->target,
-									(ctx->final_groupClause ? AGG_SORTED : AGG_PLAIN),
-									ctx->hasAggs ? AGGSPLIT_FINAL_DESERIAL : AGGSPLIT_SIMPLE,
-									false, /* streaming */
-									ctx->final_groupClause,
-									ctx->havingQual,
-									ctx->agg_final_costs,
-									ctx->dNumGroupsTotal);
+								output_rel,
+								path,
+								ctx->target,
+								(ctx->final_groupClause ? AGG_SORTED : AGG_PLAIN),
+								ctx->hasAggs ? AGGSPLIT_FINAL_DESERIAL : AGGSPLIT_SIMPLE,
+								false, /* streaming */
+								ctx->final_groupClause,
+								ctx->havingQual,
+								ctx->agg_final_costs,
+								ctx->dNumGroupsTotal);
 	path->pathkeys = strip_gsetid_from_pathkeys(ctx->gsetid_sortref, path->pathkeys);
+
 	if (!is_partial)
 		add_path(output_rel, path, root);
 	else
@@ -1286,6 +1336,7 @@ add_second_stage_hash_agg_path(PlannerInfo *root,
 											ctx->havingQual,
 											ctx->agg_final_costs,
 											ctx->dNumGroupsTotal);
+
 			if (!is_partial)
 				add_path(output_rel, path, root);
 			else

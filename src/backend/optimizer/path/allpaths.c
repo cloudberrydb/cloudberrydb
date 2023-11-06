@@ -1212,6 +1212,27 @@ set_foreign_size(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 	rel->tuples = Max(rel->tuples, rel->rows);
 }
 
+static void
+adjust_costs_for_mpp_foreign_scan(List *pathlist)
+{
+	ListCell *cell;
+
+	foreach(cell, pathlist)
+	{
+		Path *path;
+
+		path = lfirst(cell);
+		if (IsA(path, ForeignPath))
+		{
+			if (path->locus.locustype == CdbLocusType_Strewn &&
+				path->locus.numsegments > 1)
+			{
+				path->rows *= (path->locus.numsegments * 10);
+			}
+		}
+	}
+}
+
 /*
  * set_foreign_pathlist
  *		Build access paths for a foreign table RTE
@@ -1221,6 +1242,7 @@ set_foreign_pathlist(PlannerInfo *root, RelOptInfo *rel, RangeTblEntry *rte)
 {
 	/* Call the FDW's GetForeignPaths function to generate path(s) */
 	rel->fdwroutine->GetForeignPaths(root, rel, rte->relid);
+	adjust_costs_for_mpp_foreign_scan(rel->pathlist);
 }
 
 /*
