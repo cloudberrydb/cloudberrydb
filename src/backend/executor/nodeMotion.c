@@ -220,7 +220,7 @@ execMotionSender(MotionState *node)
 				motion->motionType == MOTIONTYPE_GATHER_SINGLE ||
 				motion->motionType == MOTIONTYPE_HASH ||
 				motion->motionType == MOTIONTYPE_BROADCAST ||
-				motion->motionType == MOTIONTYPE_PARALLEL_BROADCAST ||
+				motion->motionType == MOTIONTYPE_BROADCAST_WORKERS ||
 				(motion->motionType == MOTIONTYPE_EXPLICIT && motion->segidColIdx > 0));
 	Assert(node->ps.state->interconnect_context);
 
@@ -316,7 +316,7 @@ execMotionUnsortedReceiver(MotionState *node)
 				motion->motionType == MOTIONTYPE_GATHER_SINGLE ||
 				motion->motionType == MOTIONTYPE_HASH ||
 				motion->motionType == MOTIONTYPE_BROADCAST ||
-				motion->motionType == MOTIONTYPE_PARALLEL_BROADCAST ||
+				motion->motionType == MOTIONTYPE_BROADCAST_WORKERS ||
 				(motion->motionType == MOTIONTYPE_EXPLICIT && motion->segidColIdx > 0));
 
 	Assert(node->ps.state->motionlayer_context);
@@ -1210,7 +1210,7 @@ doSendTuple(Motion *motion, MotionState *node, TupleTableSlot *outerTupleSlot)
 	{
 		targetRoute = BROADCAST_SEGIDX;
 	}
-	else if (motion->motionType == MOTIONTYPE_PARALLEL_BROADCAST)
+	else if (motion->motionType == MOTIONTYPE_BROADCAST_WORKERS)
 	{
 		int			numSegments = recvSlice->planNumSegments;
 

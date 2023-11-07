@@ -153,7 +153,7 @@ make_parallel_broadcast_motion(Plan *lefttree)
 
 	motion = make_motion(NULL, lefttree,
 		      				0, NULL, NULL, NULL, NULL);
-	motion->motionType = MOTIONTYPE_PARALLEL_BROADCAST;
+	motion->motionType = MOTIONTYPE_BROADCAST_WORKERS;
 	motion->hashExprs = NIL;
 	motion->hashFuncs = NULL;
 
