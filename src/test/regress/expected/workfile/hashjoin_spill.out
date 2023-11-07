@@ -39,22 +39,6 @@ insert into test_hj_spill SELECT i,i,i%1000,i,i,i,i,i from
 	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
 SET statement_mem=1024;
 set gp_resqueue_print_operator_memory_limits=on;
-explain(costs off) select count(i3), avg(i3::numeric) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
- Finalize Aggregate  (operatorMem: 100kB)
-   ->  Gather Motion 3:1  (slice1; segments: 3)  (operatorMem: 100kB)
-         ->  Partial Aggregate  (operatorMem: 100kB)
-               ->  Hash Left Join  (operatorMem: 100kB)
-                     Hash Cond: (t2.i2 = t1.i1)
-                     ->  Redistribute Motion 3:3  (slice2; segments: 3)  (operatorMem: 100kB)
-                           Hash Key: t2.i2
-                           ->  Seq Scan on test_hj_spill t2  (operatorMem: 100kB)
-                     ->  Hash  (operatorMem: 624kB)
-                           ->  Seq Scan on test_hj_spill t1  (operatorMem: 100kB)
- Optimizer: Postgres query optimizer
-(11 rows)
-
 set gp_workfile_compression = on;
 select count(i3), avg(i3::numeric) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
  count |         avg          

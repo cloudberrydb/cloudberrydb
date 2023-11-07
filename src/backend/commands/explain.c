@@ -2083,7 +2083,9 @@ ExplainNode(PlanState *planstate, List *ancestors,
 	}
 
 	if (ResManagerPrintOperatorMemoryLimits())
-		appendStringInfo(es->str, "  (operatorMem: "UINT64_FORMAT"kB)", PlanStateOperatorMemKB(planstate));
+	{
+		ExplainPropertyInteger("operatorMem", "kB", PlanStateOperatorMemKB(planstate), es);
+	}
 	/*
 	 * We have to forcibly clean up the instrumentation state because we
 	 * haven't done ExecutorEnd yet.  This is pretty grotty ...
