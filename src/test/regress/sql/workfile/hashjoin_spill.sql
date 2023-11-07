@@ -42,6 +42,7 @@ insert into test_hj_spill SELECT i,i,i%1000,i,i,i,i,i from
 	(select count(*) as nsegments from gp_segment_configuration where role='p' and content >= 0) foo) bar;
 SET statement_mem=1024;
 set gp_resqueue_print_operator_memory_limits=on;
+explain(costs off) select count(i3), avg(i3::numeric) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
 
 set gp_workfile_compression = on;
 select count(i3), avg(i3::numeric) from (SELECT t1.* FROM test_hj_spill AS t1 RIGHT JOIN test_hj_spill AS t2 ON t1.i1=t2.i2) foo;
