@@ -872,6 +872,7 @@ create_scan_plan(PlannerInfo *root, Path *best_path, int flags)
 	if (Gp_role == GP_ROLE_DISPATCH && root->config->gp_enable_direct_dispatch)
 		DirectDispatchUpdateContentIdsFromPlan(root, plan);
 
+	plan->locustype = best_path->locus.locustype;
 	/*
 	 * If there are any pseudoconstant clauses attached to this node, insert a
 	 * gating Result node that evaluates the pseudoconstants as one-time
@@ -5265,7 +5266,8 @@ create_nestloop_plan(PlannerInfo *root,
 			mat->plan.total_cost = matpath.total_cost;
 			mat->plan.plan_rows = inner_plan->plan_rows;
 			mat->plan.plan_width = inner_plan->plan_width;
-
+			mat->plan.locustype = inner_plan->locustype;
+			mat->plan.parallel = inner_plan->parallel;
 			inner_plan = (Plan *) mat;
 		}
 
@@ -7808,6 +7810,8 @@ make_material(Plan *lefttree)
 	plan->qual = NIL;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
+	plan->locustype = lefttree->locustype;
+	plan->parallel = lefttree->parallel;
 
 	node->cdb_strict = false;
 
@@ -8285,6 +8289,8 @@ make_limit(Plan *lefttree, Node *limitOffset, Node *limitCount,
 	plan->qual = NIL;
 	plan->lefttree = lefttree;
 	plan->righttree = NULL;
+	plan->locustype = lefttree->locustype;
+	plan->parallel = lefttree->parallel;
 
 	node->limitOffset = limitOffset;
 	node->limitCount = limitCount;
