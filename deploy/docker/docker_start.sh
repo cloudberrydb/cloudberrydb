@@ -6,7 +6,7 @@ then
     user="gpadmin"
 fi
 
-docker_image_version=docker.artifactory.hashdata.xyz/docker/cbdb:devel-devtoolset-10-cbdb-docker-ubuntu-2019-20230313
+docker_image_version=cloudberrydb/cloudberrydb:devel-devtoolset-10-cbdb-docker-ubuntu-2019-20230313
 
 docker pull ${docker_image_version}
 
