@@ -406,7 +406,7 @@ AOCSCompact(Relation aorel,
 		}
 		else
 		{
-			/* :;FIXME: Could not find a target segment. What now? */
+			/* FIXME: Could not find a target segment. What now? */
 		}
 	}
 
