@@ -12349,11 +12349,12 @@ publication_for_tables:
  *
  *****************************************************************************/
 
-CreateWarehouseStmt: CREATE WAREHOUSE name OptWarehouseOptList
+CreateWarehouseStmt: CREATE WAREHOUSE name OptWarehouseOptList create_generic_options
 						{
 							CreateWarehouseStmt *n = makeNode(CreateWarehouseStmt);
 							n->whname = $3;
 							n->options = $4;
+							n->wh_options = $5;
 							$$ = (Node *) n;
 						}
 				;

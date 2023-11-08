@@ -5980,6 +5980,28 @@ _copyAlteredTableInfo(const AlteredTableInfo *from)
 	return newnode;
 }
 
+static CreateWarehouseStmt *
+_copyCreateWarehouseStmt(const CreateWarehouseStmt *from)
+{
+	CreateWarehouseStmt *newnode = makeNode(CreateWarehouseStmt);
+
+	COPY_STRING_FIELD(whname);
+	COPY_NODE_FIELD(options);
+	COPY_NODE_FIELD(wh_options);
+
+	return newnode;
+}
+
+static DropWarehouseStmt *
+_copyDropWarehouseStmt(const DropWarehouseStmt *from)
+{
+	DropWarehouseStmt *newnode = makeNode(DropWarehouseStmt);
+
+	COPY_STRING_FIELD(whname);
+
+	return newnode;
+}
+
 /*
  * copyObjectImpl -- implementation of copyObject(); see nodes/nodes.h
  *
@@ -7076,6 +7098,14 @@ copyObjectImpl(const void *from)
 
 		case T_AlteredTableInfo:
 			retval = _copyAlteredTableInfo(from);
+			break;
+
+		case T_CreateWarehouseStmt:
+			retval = _copyCreateWarehouseStmt(from);
+			break;
+
+		case T_DropWarehouseStmt:
+			retval = _copyDropWarehouseStmt(from);
 			break;
 
 		default:
