@@ -502,15 +502,13 @@ explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) retur
 explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) returning *) select * from cte1 right join (select count(*) as c from hash_issue_15860) a on a.c = cte1.c1;
 explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) returning *) select * from cte1 full join (select count(*) as c from hash_issue_15860) a on a.c = cte1.c1;
 
--- start_ignore
 -- When external_fts is on
 -- Seq scan on gp_segment_configuration would be replaced by 
 -- Function Scan on gp_get_segment_configuration 
 -- Inconsistence between CIs will cause such cases to fail.
--- Ignore these as workaround.
+-- Use other catalog to test Entry.
 -- Replicate join Entry.
-explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) returning *) select * from cte1 join gp_segment_configuration g on g.dbid = cte1.c1;
--- end_ignore
+explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) returning *) select * from cte1 join pg_class c on c.oid = cte1.c1;
 
 --
 -- Begin of Replicated join Partitioned.

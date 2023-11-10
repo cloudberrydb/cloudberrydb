@@ -2376,19 +2376,18 @@ explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) retur
  Optimizer: Postgres query optimizer
 (10 rows)
 
--- start_ignore
 -- When external_fts is on
 -- Seq scan on gp_segment_configuration would be replaced by 
 -- Function Scan on gp_get_segment_configuration 
 -- Inconsistence between CIs will cause such cases to fail.
--- Ignore these as workaround.
+-- Use other catalog to test Entry.
 -- Replicate join Entry.
-explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) returning *) select * from cte1 join gp_segment_configuration g on g.dbid = cte1.c1;
+explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) returning *) select * from cte1 join pg_class c on c.oid = cte1.c1;
                           QUERY PLAN                           
 ---------------------------------------------------------------
  Hash Join
-   Hash Cond: (g.dbid = rpt_issue_15860.c1)
-   ->  Seq Scan on gp_segment_configuration g
+   Hash Cond: (c.oid = (rpt_issue_15860.c1)::oid)
+   ->  Seq Scan on pg_class c
    ->  Hash
          ->  Explicit Gather Motion 3:1  (slice1; segments: 3)
                ->  Insert on rpt_issue_15860
@@ -2396,7 +2395,6 @@ explain(costs off) with cte1 as (insert into rpt_issue_15860 values (1, 2) retur
  Optimizer: Postgres query optimizer
 (8 rows)
 
--- end_ignore
 --
 -- Begin of Replicated join Partitioned.
 --
