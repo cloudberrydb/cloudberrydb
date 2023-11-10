@@ -1,6 +1,6 @@
 --
--- GP PARALLEL
--- Test GP style parallel plan.
+-- CBDB PARALLEL
+-- Test CBDB style parallel plan.
 -- GUCs shoule be set with local, do not disturb other parallel plans.
 -- Should not use force_parallel_mode as it will ignore plan and check results only.
 -- We want to check plan in this file!
