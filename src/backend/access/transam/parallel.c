@@ -69,8 +69,8 @@
 /* Magic number for parallel context TOC. */
 #define PARALLEL_MAGIC						0x50477c7c
 
-/* Magic number for gp style parallel context TOC. */
-#define GP_PARALLEL_MAGIC					0x50477d7d
+/* Magic number for CBDB style parallel context TOC. */
+#define CBDB_PARALLEL_MAGIC					0x50477d7d
 
 /*
  * Magic numbers for per-context parallel state sharing.  Higher-level code
@@ -1692,7 +1692,7 @@ GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id)
 	else
 	{
 		Assert(ParallelSession->segment);
-		toc = shm_toc_attach(GP_PARALLEL_MAGIC, dsm_segment_address(ParallelSession->segment));
+		toc = shm_toc_attach(CBDB_PARALLEL_MAGIC, dsm_segment_address(ParallelSession->segment));
 	}
 
 	Assert(toc != NULL);
@@ -1749,15 +1749,15 @@ void GpDestroyParallelDSMEntry()
 }
 
 void
-AtEOXact_GP_Parallel()
+AtEOXact_CBDB_Parallel()
 {
 	GpDestroyParallelDSMEntry();
 }
 
 void
-AtProcExit_GP_Parallel(int code, Datum arg)
+AtProcExit_CBDB_Parallel(int code, Datum arg)
 {
-	AtEOXact_GP_Parallel();
+	AtEOXact_CBDB_Parallel();
 }
 
 GpParallelDSMEntry *
@@ -1818,14 +1818,14 @@ GpInsertParallelDSMHash(PlanState *planstate)
 		dsm_segment* seg = dsm_create(segsize, DSM_CREATE_NULL_IF_MAXSEGMENTS);
 
 		if (seg != NULL)
-			toc = shm_toc_create(GP_PARALLEL_MAGIC,
+			toc = shm_toc_create(CBDB_PARALLEL_MAGIC,
 								dsm_segment_address(seg),
 								segsize);
 		else
 			ereport(ERROR,
 					(errcode(ERRCODE_OUT_OF_MEMORY),
 					 errmsg("out of shared memory"),
-					 errhint("create dsm for gp style parallel workers failed.")));
+					 errhint("create dsm for CBDB style parallel workers failed.")));
 
 		BarrierInit(&entry->build_barrier, parallel_workers);
 		entry->handle = dsm_segment_handle(seg);
@@ -1866,7 +1866,7 @@ GpInsertParallelDSMHash(PlanState *planstate)
 		if (!init)
 		{
 			/* should ensure that no shared memory is pinned before process exist. */
-			before_shmem_exit(AtProcExit_GP_Parallel, 0);
+			before_shmem_exit(AtProcExit_CBDB_Parallel, 0);
 			init = true;
 		}
 	}
@@ -1878,7 +1878,7 @@ GpInsertParallelDSMHash(PlanState *planstate)
 		ParallelSession->segment = seg;
 
 		/* Attach to DSA area that can be used by the leader and all workers. */
-		shm_toc* toc = shm_toc_attach(GP_PARALLEL_MAGIC, dsm_segment_address(seg));
+		shm_toc* toc = shm_toc_attach(CBDB_PARALLEL_MAGIC, dsm_segment_address(seg));
 		char* area_space = shm_toc_lookup(toc, PARALLEL_KEY_GP_DSA, false);
 		dsa_area* area = dsa_attach_in_place(area_space, seg);
 
