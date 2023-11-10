@@ -2950,7 +2950,7 @@ can_elide_explicit_motion(PlannerInfo *root, Index rti, Path *subpath,
  * parallel plan with Motion(1:6), but it still can't be processed by multiple
  * workers or be duplicated in every worker as the inner path.
  *
- * All locus test cases are in gp_parallel, see final join locus examples there.
+ * All locus test cases are in cbdb_parallel, see final join locus examples there.
  */
 CdbPathLocus
 cdbpath_motion_for_parallel_join(PlannerInfo *root,
@@ -3137,7 +3137,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 			/*
 			 * SegmentGeneralWorkers parallel join SegmentGeneralWorkers when parallel_aware
 			 * generate SegmentGeneralWorerks locus.
-			 * see ex 5_P_5_5 in gp_parallel.sql
+			 * see ex 5_P_5_5 in cbdb_parallel.sql
 			 */
 			if (outer.ok_to_replicate && inner.ok_to_replicate)
 				return outer.locus;
@@ -3156,7 +3156,7 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 			 * SegmentGeneralWorkers JOIN SegmentGeneral without shared hash table.
 			 * And the join locus is SegmentGeneralWorkers.
 			 * Then we can return the outer locus as join will set workers as outer locus.
-			 * See ex 5_4_5 in gp_parallel.sql
+			 * See ex 5_4_5 in cbdb_parallel.sql
 			 */
 			if (outer.ok_to_replicate && inner.ok_to_replicate)
 				return outer.locus;

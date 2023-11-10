@@ -125,8 +125,8 @@ extern void* GpFetchParallelDSMEntry(ParallelEntryTag tag, int plan_node_id);
 
 extern void GpDestroyParallelDSMEntry(void);
 
-extern void AtEOXact_GP_Parallel(void);
+extern void AtEOXact_CBDB_Parallel(void);
 
-extern void AtProcExit_GP_Parallel(int code, Datum arg);
+extern void AtProcExit_CBDB_Parallel(int code, Datum arg);
 
 #endif							/* PARALLEL_H */

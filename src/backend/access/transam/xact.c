@@ -2816,8 +2816,8 @@ CommitTransaction(void)
 	if (IsInParallelMode())
 		AtEOXact_Parallel(true);
 
-	/* Clean up GP style parallel workers which we might have. */
-	AtEOXact_GP_Parallel();
+	/* Clean up CBDB style parallel workers which we might have. */
+	AtEOXact_CBDB_Parallel();
 
 	/* Shut down the deferred-trigger manager */
 	AfterTriggerEndXact(true);
@@ -3546,8 +3546,8 @@ AbortTransaction(void)
 		s->parallelModeLevel = 0;
 	}
 
-	/* Clean up GP style parallel workers which we might have. */
-	AtEOXact_GP_Parallel();
+	/* Clean up CBDB style parallel workers which we might have. */
+	AtEOXact_CBDB_Parallel();
 
 	/*
 	 * do abort processing

@@ -2504,7 +2504,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 	 * Limit parallel:
 	 * PG doesn't have to handle limit here becuase all partial paths have been Gathered
 	 * into pathlist, and the subpath of Limit node could be parallel.
-	 * For our GP style, we don't have Gather node and keep the partial path in partial_pathlist
+	 * For our CBDB style, we don't have Gather node and keep the partial path in partial_pathlist
 	 * until the last step if possible.
 	 * When we generate two phase limit path or limit has sub partial path,
 	 * the Limit node on QEs could be parallel.

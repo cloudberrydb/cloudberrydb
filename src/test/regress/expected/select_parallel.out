@@ -1,6 +1,6 @@
 --
 -- PARALLEL
--- We have GP style parallel now, open this file in parallel mode.
+-- We have CBDB style parallel now, open this file in parallel mode.
 --
 set enable_parallel = on;
 set optimizer = off;

@@ -14,11 +14,11 @@ Cloudberry Database treats all workers equally. They work together to
 execute a plan node with some sync mechanism to keep the right thing,
 ex: create a shared hash table etc.
 
-That's called GP style.  GP style launches workers as non-parallel
+That's called CBDB style. CBDB style launches workers as non-parallel
 plan except that expand Gang size by factor if a top path node has
 parallel_workers > 1.
 
-The reasons we choose GP style but not PG style or mix them is complex.
+The reasons we choose CBDB style but not PG style or mix them is complex.
 
 We encounter lots of problems when mixing them together and we don't
 have enough time to enable both and don't know how much the benefit we
@@ -41,7 +41,7 @@ The Gather node should be Hashed locus in that situation. But things
 become complex when joining with other locus and if there is a Motion
 node below that.
 
-3. GP style could parallelize plan as late as possible until the final
+3. CBDB style could parallelize plan as late as possible until the final
 Gather(to QD or to QE in the middle), But PG style will Gather workers
 in apply_scanjoin_target_to_path. PG style can't generate the final
 scan/join target in parallel workers. This is PG's last opportunity to
@@ -49,7 +49,7 @@ use any partial paths that exist.
 
 It will empty partial_pathlist, all paths are moved to pathlist that
 it couldn't participate in later parallel join as the outer path, ex:
-parallel_aware hash join with a shared table.  But GP style could keep
+parallel_aware hash join with a shared table.  But CBDB style could keep
 partial path in partial_pathlist because we have a Gather Motion on
 the top.
 

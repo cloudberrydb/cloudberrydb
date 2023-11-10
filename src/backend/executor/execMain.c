@@ -2540,7 +2540,7 @@ ExecutePlan(EState *estate,
 		EnterParallelMode();
 
 	/*
-	 * GP style parallelism won't interfere PG style parallel mechanism.
+	 * CBDB style parallelism won't interfere PG style parallel mechanism.
 	 * So that we will pass if use_parallel_mode is true which means there exists
 	 * Gather/GatherMerge node.
 	 */
