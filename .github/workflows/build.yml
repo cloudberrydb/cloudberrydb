@@ -95,7 +95,7 @@ jobs:
           wait-timeout-minutes: 60
   ic-singlenode-test:
     needs: build
-    runs-on: [ self-hosted, example ]
+    runs-on: [self-hosted, example]
     env:
       MAKE_TEST_COMMAND: "-C src/test installcheck-singlenode"
       NUM_PRIMARY_MIRROR_PAIRS: "0"
@@ -197,7 +197,7 @@ jobs:
     needs: build
     runs-on: [self-hosted, example]
     env:
-      MAKE_TEST_COMMAND: "-C src/test/regress installcheck-cbdb-parallel"
+      MAKE_TEST_COMMAND: "MAX_CONNECTIONS=5 -C src/test/regress installcheck-cbdb-parallel"
       TEST_OS: "centos"
       DUMP_DB: "true"
     steps:
