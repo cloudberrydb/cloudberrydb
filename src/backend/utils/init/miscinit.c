@@ -1809,10 +1809,7 @@ expand_shared_preload_libraries_string()
 
 
 	/* deduplicate list string */
-	if (list_length(elemlist) > 1)
-	{
-		deduplicate_elemlist = removeDuplicates(elemlist);
-	}
+	deduplicate_elemlist = removeDuplicates(elemlist);
 
 	/* format string delimiter with ',' */
 	StringInfoData expand_string;
