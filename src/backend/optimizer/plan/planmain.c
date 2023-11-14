@@ -240,7 +240,12 @@ query_planner(PlannerInfo *root,
 	 * generate pathkeys in canonical form; so compute query_pathkeys and
 	 * other pathkeys fields in PlannerInfo.
 	 */
+	/* AQUMV_FIXME_MVP: qp_callback may be NULL. */
+#if 0
 	(*qp_callback) (root, qp_extra);
+#endif
+	if (qp_callback != NULL)
+		(*qp_callback) (root, qp_extra);
 
 	/*
 	 * Examine any "placeholder" expressions generated during subquery pullup.
