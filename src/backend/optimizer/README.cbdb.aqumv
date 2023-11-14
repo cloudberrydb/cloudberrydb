@@ -1,0 +1,241 @@
+src/backend/optimizer/README.cbdb.aqumv
+
+Portions Copyright (c) 2023, HashData Technology Limited.
+
+Author
+============
+Zhang Mingli   avamingli@gmail.com
+
+
+Answer Query Using Materialized Views
+=====================================
+
+AQUMV for short, is used to compute part or all of a Query from materialized views during planning.
+It could provide massive improvements in query processing time, especially for aggregation queries over large tables[1].
+
+AQUMV usually uses Incremental Materialized Views(IMV) as candidates, as IMV has real time data
+when there are writable operations on related tables.
+
+Basic Theory
+------------
+
+A materialized view(MV) could be use to compute a Query if:
+1. The view contains all rows needed by the query expression(Construct Rows).
+      If MV has more rows than query wants, additional filter may be added if possible.
+2. All output expressions can be computed from the output of the view(Construct Columns).
+      The output expressions could be fully or partially matched from MV's TargetList.
+3. Cost-based Equivalent Transformation.
+      There may be multiple valid MV candidates, or select from MV is not better than
+      select from origin table(ex: has an index and etc), let planner decide the best one.
+
+Vocabulary:
+      origin_query: the SQL we want to query.
+      mv_query: for materialized view's corresponding query, the SELECT part of a Create Materialized View.
+
+Construct Rows
+--------------
+
+If MV has all rows of query needed, it means that MV query's restrictions are looser than query's restrictions.
+For AQUMV_MVP0, we only do logistic transformation.
+All rewrites are on the Query tree, neither Equivalent Classes nor Restrictions are used.
+For a single relation:
+process mv_query and origin_query's WHERE part to set:
+mv_query_quals and origin_query_quals.
+
+example0:
+      CREATE MATERIALIZED VIEW mv0 AS SELECT * FROM t WHERE a = 1 AND b = 2;
+      Query: SELECT * FROM t WHERE a = 1;
+
+mv_query_quals = {a = 1, b = 2}.
+origin_query_quals = {a = 1}.
+
+1) A MV can't be used if the difference set:  {mv_query_quals - origin_query_quals} is not empty.
+
+It 'typically' means that the MV has less rows than origin_query wants.
+For example0, the difference set is:
+      mv_query_quals - origin_query_quals = {b = 2}.
+
+mv0's all rows meet requirement {a = 1 and b = 2}, but we only want rows {a = 1}.
+mv0 couldn't provide all the rows we want, we can't use it to answer the query.
+
+'typically' means that if there are range quals, this conclusion is not sure.
+But we couldn't handle that for now.
+
+2) The intersection set: {mv_query_quals ∩ origin_query_quals} should be dropped.
+
+If the intersection set is not empty, we choose to drop it.
+example1:
+      CREATE MATERIALIZED VIEW mv1 AS SELECT * FROM t WHERE a = 1;
+      Query: SELECT * FROM t WHERE a = 1;
+
+{mv_query_quals ∩ origin_query_quals} = {a = 1};
+
+It seems everything is good and we have nothing more to do.
+Because the two quals are the same and we could rewrite the SQL to:
+      Rewritten SQL: SELECT * FROM mv1 WHERE a = 1;
+
+As all mv1's rows meet the requirement: a = 1, it's pointless that we do filter a = 1 again at execution.
+
+What's worse is the unnecessary filter {a = 1} will mislead the clause-selectivity of the relation.
+For the example1, a {a = 1} will estimate less rows from relation MV, but as we are clear that all rows
+meet the requirement, and the selectivity from mv1 should be 100%.
+
+Another reason we dropped the intersection set is: we couldn't just keep the intersection set.
+example2:
+      CREATE MATERIALIZED VIEW mv2 AS SELECT b FROM t WHERE a = 1;
+      Query: SELECT b FROM t WHERE a = 1;
+
+{mv_query_quals ∩ origin_query_quals} = {a = 1};
+
+mv2 and origin_query only select column b from t with the same quals {a = 1}.
+If the intersection set is kept, we will get a wrong SQL:
+      Wrong: SELECT b FROM mv2 WHERE a = 1;
+
+mv2 doesn't have column a, the SQL will get a syntax error.
+
+It's not always impossible to keep the intersection set, for
+example3:
+      CREATE MATERIALIZED VIEW mv3 AS SELECT a, b FROM t WHERE a = 1;
+      Query: SELECT a, b FROM t WHERE a = 1;
+
+We could rewrite it to:
+      SELECT a, b FROM mv3 WHERE a = 1;
+
+There is a way to see if it's possible to rewrite that, but it isn't worth trying according to
+what we mentioned above.
+
+The disadvantages of dropping the intersection set of mv_query_quals and origin_query_quals is:
+We may lose some Equivalent Classes if there are equal operations like: a = 1.
+But not for other operations, ex: c > 1, because Postgres only have Equivalent Class for equal operations.
+And we haven't taken Equivalent Class into account for AQUMV_MVP0, it's reasonable to drop that.
+
+3) process difference set: {origin_query_quals - mv_query_quals}
+If 1) and 2) passed, the difference set on the other hand, we call it post_quals:
+
+      post_quals = {origin_query_quals - mv_query_quals}
+
+The MV has more rows than query if post_quals is not empty.
+We have to add it to MV to filter the rows query want.
+example4:
+      CREATE MATERIALIZED VIEW mv4 AS SELECT a, b FROM t WHERE a = 1;
+      Query: SELECT a, b FROM t WHERE a = 1 and b = 2;
+
+We could rewrite it to:
+      SELECT a, b FROM mv4 WHERE b = 2;
+
+All rows in MV are {a = 1} ones as the MV defination, we only need to add the extra filter {b = 2}.
+
+But it's not always true, if we don't have the columns that the post_quals need.
+example5:
+      CREATE MATERIALIZED VIEW mv5 AS SELECT a FROM t WHERE a = 1;
+      Query: SELECT a FROM t WHERE a = 1 and b = 2;
+
+mv5 has all rows {a = 1} and only have column 'a', but the query want additional filter {b = 2}.
+We couldn't rewrite it by just adding the {b = 2} to MV as no equivalent b in MV relation.
+      Wrong: SELECT a FROM mv5 WHERE b = 2;
+
+The algorithem behind that is: all quals's expression could be computed from a mv_query's target list.
+That's what Construct Columns does.
+
+Construct Columns
+-----------------
+
+A MV could be a candidate if the query's target list and the post_quals could be computed form
+mv_query's target list and rewrite to expressions bases on MV relation's columns itself.
+
+example6:
+      CREATE MATERIALIZED VIEW mv6 AS SELECT abs(c) as mc1, b as mc2 FROM t WHERE a = 1;
+      Query: SELECT abs(c) as res1 FROM t WHERE a = 1 and b = 2;
+
+The post_quals is: {b = 2} while column b exists in mv6, corresponding to mc2 with alias.
+We can rewrite post_quals to {mc2 = 2}.
+
+The query wants a target abs(c) with an alias res1, while expression abs(c) exists in mv6,
+corresponding to column mc1 with alias.
+Then we can rewrite SQL to:
+
+      Rewrite: SELECT mc1 as res1 FROM mv6 WHERE mc2 = 2;
+
+The expression abs(c) is eliminated and simplified to a column reference mc1, and the alias is kept.
+
+Things become complex when there are multiple expression candidates, and some ones could be
+part of others.
+
+example7:
+      CREATE MATERIALIZED VIEW mv7 AS
+            SELECT c1 AS mc1, c2 AS mc2, abs(c2) AS mc3, abs(abs(c2) - c1 - 1) AS mc4
+            FROM t1 WHERE c1 > 30 AND c1 < 40;
+      Query: SELECT sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) AS res1 FROM t1 WHERE c1 > 30 AND c1 < 40 AND c2 > 23;
+
+There are many choices to construct column res1:
+      sqrt(abs(abs(mc2) - mc1 - 1) + abs(mc2))  // constructed by mc1, mc2
+      sqrt(abs(abs(mc2) - mc1 - 1) + mc3))      // constructed by mc1, mc2, mc3
+      sqrt(abs(mc3 - mc1 - 1) + abs(mc2)))      // constructed by mc1, mc2, mc3
+      sqrt(abs(mc3 - mc1 - 1) + mc3))           // constructed by mc1, mc3
+      sqrt(mc4 + mc3))                          // constructed by mc3, mc4
+
+Obviously, the best one is sqrt(mc4 + mc3) which avoids much of expression execution for each row.
+
+We try to use the most-submatched expression to do a first rewrite and then next.
+It's not only optimization, but also unnecessary for some cases that a less-matched expression
+rewrite may close the door for more-matched ones, especially for post_quals rewrite.
+example8:
+      CREATE MATERIALIZED VIEW mv8 AS
+            SELECT c2 as mc3, c2 AS mc2, abs(c2) AS m_abs_c2
+            FROM t1 WHERE c1 > 1;
+      Query: SELECT c3 AS res1 FROM t1 WHERE c1 > 1 and (abs(c2) - c1 - 1) > 10;
+
+      post_quals: {(abs(c2) - c1 - 1) > 10}
+
+If we choose less-matched mc2 to rewrite, an intermediate expression would be:
+      {(abs(mc2) - c1 - 1) > 10}
+
+But mv8 don't have a corresponding column c1 to continue the work, that's bad and we will lose
+the chance to use it.
+
+The approach is: use a Greedy Algorithm to rewrite the target expression.
+
+First,  Split the MV query's expressions to pure-Var and nonpure-Var ones.
+Because pure Var expression is always the leaf of an expression tree if it needs to be rewritten.
+
+Sort the nonpure-Var expressions by complexity.
+We don't need an absolute order for every expression.
+All we need to guarantee is that:
+if expression A is sub part of expression B, put A after B.
+
+The approach applies to post_quals rewrite too.
+
+Expressions that have no Vars are kept to upper(ex: Const Expressions) or rewritten if there were
+corresponding expressions.
+
+
+Cost-based
+----------
+
+There could be multiple candidates after equivalent transformation.
+After all things is done for a materialized view candidate, build a plan to compare with current one.
+Let the planner decide the best one.
+
+AQUMV_MVP
+---------
+Support SELECT FROM a single relation both for mv_query and the origin_query.
+Below are not supported now:
+      AGG
+      Subquery
+      Order by(for origin_query)
+      Join
+      Sublink
+      Group by
+      Window Functions
+      CTE
+      Distinct On
+      Refresh Materialized View
+      Create AS
+      Partition Tables
+      Inherit Tables
+
+Reference:
+   [1] Optimizing Queries Using Materialized Views: A Practical, Scalable Solution.
+         https://courses.cs.washington.edu/courses/cse591d/01sp/opt_views.pdf
+   [2] Automated Selection of Materialized Views and Indexes for SQL Databases.
+         https://www.vldb.org/conf/2000/P496.pdf
