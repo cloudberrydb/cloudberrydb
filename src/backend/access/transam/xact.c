@@ -82,6 +82,7 @@
 #include "utils/snapmgr.h"
 #include "utils/timeout.h"
 #include "utils/timestamp.h"
+#include "utils/sharedqueryplan.h"
 #include "pg_trace.h"
 
 #include "access/distributedlog.h"
@@ -3557,6 +3558,7 @@ AbortTransaction(void)
 	AtAbort_Portals();
 	AtAbort_DispatcherState();
 	AtEOXact_SharedSnapshot();
+	AtAbort_SharedQueryPlan();
 
 	/* Perform any Resource Scheduler abort procesing. */
 	if ((Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && IsResQueueEnabled())

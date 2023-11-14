@@ -95,6 +95,8 @@ typedef struct CdbDispatchCmdAsync
 
 static void *cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *queryText, int len);
 
+static void cdbdisp_setDispatchParamsQueryText_async(struct CdbDispatcherState *ds, char *queryText, int queryTextLen);
+
 static bool cdbdisp_checkAckMessage_async(struct CdbDispatcherState *ds, const char *message,
 									int timeout_sec);
 
@@ -114,6 +116,7 @@ DispatcherInternalFuncs DispatcherAsyncFuncs =
 	cdbdisp_checkForCancel_async,
 	cdbdisp_getWaitSocketFds_async,
 	cdbdisp_makeDispatchParams_async,
+	cdbdisp_setDispatchParamsQueryText_async,
 	cdbdisp_checkAckMessage_async,
 	cdbdisp_checkDispatchResult_async,
 	cdbdisp_dispatchToGang_async,
@@ -437,6 +440,19 @@ cdbdisp_makeDispatchParams_async(int maxSlices, int largestGangSize, char *query
 	pParms->query_text_len = len;
 
 	return (void *) pParms;
+}
+
+/*
+ * Set queryText in an already allocated CdbDispatchCmdAsync structure.
+ *
+ * Need to call cdbdisp_makeDispatchParams_async first.
+ */
+static void
+cdbdisp_setDispatchParamsQueryText_async(struct CdbDispatcherState *ds, char *queryText, int queryTextLen)
+{
+	CdbDispatchCmdAsync *pParms = (CdbDispatchCmdAsync *) ds->dispatchParams;
+	pParms->query_text = queryText;
+	pParms->query_text_len = queryTextLen;
 }
 
 /*

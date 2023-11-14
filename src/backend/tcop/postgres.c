@@ -88,6 +88,7 @@
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/ps_status.h"
+#include "utils/sharedqueryplan.h"
 #include "utils/snapmgr.h"
 #include "utils/timeout.h"
 #include "utils/timestamp.h"
@@ -1166,6 +1167,15 @@ exec_mpp_query(const char *query_string,
 	 */
 	oldcontext = MemoryContextSwitchTo(MessageContext);
 
+	if (!Gp_is_writer && UseSharedQueryPlan() && serializedQueryDispatchDesclen > 0)
+	{
+		char *shmemSerializedPlantree = palloc(serializedPlantreelen);
+		char *shmemSerializedQueryDispatchDesc = palloc(serializedQueryDispatchDesclen);
+		ReadSharedQueryPlan(shmemSerializedPlantree, serializedPlantreelen, shmemSerializedQueryDispatchDesc, serializedQueryDispatchDesclen);
+		serializedPlantree = shmemSerializedPlantree;
+		serializedQueryDispatchDesc = shmemSerializedQueryDispatchDesc;
+	}
+
  	/*
      * Deserialize the query execution plan (a PlannedStmt node), if there is one.
      */
@@ -1214,6 +1224,13 @@ exec_mpp_query(const char *query_string,
 
 			/* Set global sliceid variable for elog. */
 			currentSliceId = sliceTable->localSlice;
+
+			// two type of utility statements: one with a query plan (e.g., CTAS), one does not (e.g., drop table)
+			// filter out all of them by !plan->utilityStmt.
+			// drop table: serializedQueryDispatchDesclen == 0, serializedPlantreelen != 0, plan->utilityStmt != NULL
+			// create table as (CTAS): serializedQueryDispatchDesclen != 0, serializedPlantreelen != 0, plan->utilityStmt != NULL
+			if (Gp_is_writer && UseSharedQueryPlan() && !plan->utilityStmt)
+				WriteSharedQueryPlan(serializedPlantree, serializedPlantreelen, serializedQueryDispatchDesc, serializedQueryDispatchDesclen, sliceTable);
 		}
 
 		if (ddesc->oidAssignments)
@@ -5602,6 +5619,7 @@ PostgresMain(int argc, char *argv[],
 					int serializedPlantreelen = 0;
 					int serializedQueryDispatchDesclen = 0;
 					int resgroupInfoLen = 0;
+					uint8 withPlanAndDdesc = 0;
 					TimestampTz statementStart;
 					Oid suid;
 					Oid ouid;
@@ -5634,6 +5652,7 @@ PostgresMain(int argc, char *argv[],
 
 					statementStart = pq_getmsgint64(&input_message);
 					query_string_len = pq_getmsgint(&input_message, 4);
+					withPlanAndDdesc = pq_getmsgbyte(&input_message);
 					serializedPlantreelen = pq_getmsgint(&input_message, 4);
 					serializedQueryDispatchDesclen = pq_getmsgint(&input_message, 4);
 					serializedDtxContextInfolen = pq_getmsgint(&input_message, 4);
@@ -5670,11 +5689,13 @@ PostgresMain(int argc, char *argv[],
 					if (query_string_len > 0)
 						query_string = pq_getmsgbytes(&input_message,query_string_len);
 
-					if (serializedPlantreelen > 0)
-						serializedPlantree = pq_getmsgbytes(&input_message,serializedPlantreelen);
+					if (withPlanAndDdesc) {
+						if (serializedPlantreelen > 0)
+							serializedPlantree = pq_getmsgbytes(&input_message,serializedPlantreelen);
 
-					if (serializedQueryDispatchDesclen > 0)
-						serializedQueryDispatchDesc = pq_getmsgbytes(&input_message,serializedQueryDispatchDesclen);
+						if (serializedQueryDispatchDesclen > 0)
+							serializedQueryDispatchDesc = pq_getmsgbytes(&input_message,serializedQueryDispatchDesclen);
+					}
 
 					/*
 					 * Always use the same GpIdentity.numsegments with QD on QEs

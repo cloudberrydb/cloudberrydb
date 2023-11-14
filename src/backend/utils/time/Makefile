@@ -14,7 +14,8 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS = \
 	combocid.o \
-	snapmgr.o
+	snapmgr.o \
+	sharedqueryplan.o
 
 OBJS += sharedsnapshot.o
 

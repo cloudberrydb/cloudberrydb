@@ -354,6 +354,13 @@ cdbdisp_makeDispatchParams(CdbDispatcherState *ds,
 	MemoryContextSwitchTo(oldContext);
 }
 
+void
+cdbdisp_setDispatchParamsQueryText(CdbDispatcherState *ds, char *queryText, int queryTextLen)
+{
+	(pDispatchFuncs->setDispatchParamsQueryText)(ds, queryText, queryTextLen);
+}
+
+
 /*
  * Free memory in CdbDispatcherState
  *
