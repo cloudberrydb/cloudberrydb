@@ -73,8 +73,8 @@ FOREIGN_KEY(indrelid REFERENCES pg_class(oid));
  * ----------------
  */
 typedef FormData_pg_index *Form_pg_index;
-typedef bool (*is_likeam_hook_type)(Oid expected_oid, Oid id);
-extern PGDLLIMPORT is_likeam_hook_type is_same_index_am_hook;
+typedef bool (*is_index_access_method_hook_type)(Oid id, Oid expected_oid);
+extern PGDLLIMPORT is_index_access_method_hook_type is_index_access_method_hook;
 
 DECLARE_INDEX(pg_index_indrelid_index, 2678, on pg_index using btree(indrelid oid_ops));
 #define IndexIndrelidIndexId  2678

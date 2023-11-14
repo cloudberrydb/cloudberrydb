@@ -20,13 +20,13 @@
 #include "utils/builtins.h"
 #include "utils/syscache.h"
 
-is_likeam_hook_type is_same_index_am_hook = NULL;
+is_index_access_method_hook_type is_index_access_method_hook = NULL;
 
 bool
 IsIndexAccessMethod(Oid relam, Oid indexAccessMethod)
 {
-	if ((is_same_index_am_hook && (*is_same_index_am_hook)(indexAccessMethod, relam)) ||
-		(!is_same_index_am_hook && relam == indexAccessMethod))
+	if ((is_index_access_method_hook && (*is_index_access_method_hook)(relam, indexAccessMethod)) ||
+		(!is_index_access_method_hook && relam == indexAccessMethod))
 	{
 		return true;
 	}
