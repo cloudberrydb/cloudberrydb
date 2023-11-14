@@ -430,6 +430,8 @@ bool		gp_enable_global_deadlock_detector = false;
 bool gp_enable_predicate_pushdown;
 int  gp_predicate_pushdown_sample_rows;
 
+bool answer_query_using_materialized_views = false;
+
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
 	{"csv", 1},
@@ -2972,7 +2974,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		false,
 		NULL, NULL, NULL
 	},
-
 	{
 		{"gp_internal_is_singlenode", PGC_POSTMASTER, UNGROUPED,
 			 gettext_noop("Is in SingleNode mode (no segments). WARNING: user SHOULD NOT set this by any means."),
@@ -2980,6 +2981,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 			 GUC_IS_NAME | GUC_NO_SHOW_ALL | GUC_NO_RESET_ALL | GUC_NOT_WHILE_SEC_REST
 		},
 		&gp_internal_is_singlenode,
+		false,
+		NULL, NULL, NULL
+	},
+	{
+		{"answer_query_using_materialized_views", PGC_USERSET, QUERY_TUNING_METHOD,
+			gettext_noop("allow to answer query results using materialized views."),
+			NULL,
+			GUC_EXPLAIN
+		},
+		&answer_query_using_materialized_views,
 		false,
 		NULL, NULL, NULL
 	},

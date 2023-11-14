@@ -10,6 +10,7 @@
 */
 		"allow_segment_DML",
 		"allow_system_table_mods",
+		"answer_query_using_materialized_views",
 		"application_name",
 		"archive_cleanup_command",
 		"archive_command",
