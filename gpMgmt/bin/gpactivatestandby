@@ -157,7 +157,7 @@ def print_results(array, hostname, options):
     logger.info('to set this value.')
     logger.info('COORDINATOR_PORT is now %d, if this has changed, you' % array.coordinator.getSegmentPort())
     logger.info('may need to make additional configuration changes to allow access')
-    logger.info('to the Cloudberry instance.')
+    logger.info('to the CloudberryDB instance.')
     logger.info('Refer to the Administrator Guide for instructions on how to re-activate')
     logger.info('the coordinator to its previous state once it becomes available.')
     logger.info('Query planner statistics must be updated on all databases')
@@ -302,14 +302,14 @@ def start_coordinator(options):
     """Starts the coordinator."""
 
     logger.info('Starting standby coordinator database in utility mode...')
-    gp.NewGpStart.local('Start GPDB', coordinatorOnly=True, coordinatorDirectory=options.coordinator_data_dir)
+    gp.NewGpStart.local('Start CBDB', coordinatorOnly=True, coordinatorDirectory=options.coordinator_data_dir)
 
 #-------------------------------------------------------------------------
 def stop_coordinator():
     """Stops the coordinator."""
     
     logger.info('Stopping standby coordinator...')
-    gp.GpStop.local('Stop GPDB', coordinatorOnly=True, fast=True)
+    gp.GpStop.local('Stop CBDB', coordinatorOnly=True, fast=True)
  
 #-------------------------------------------------------------------------
 def promote_standby(coordinator_data_dir):
@@ -381,7 +381,7 @@ try:
     # If we forced to start utility coordinator, this is the time to restart
     # cluster so that the new coordinator becomes dispatch mode.
     if requires_restart:
-        cmd = gp.GpStop.local('GPDB restart', restart=True, datadir=options_.coordinator_data_dir)
+        cmd = gp.GpStop.local('CBDB restart', restart=True, datadir=options_.coordinator_data_dir)
 
     # At this point, cancel isn't all that bad so re-enable 
     # keyboard interrupt.

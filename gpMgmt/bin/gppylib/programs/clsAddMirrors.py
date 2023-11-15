@@ -422,10 +422,10 @@ class GpAddMirrorsProgram:
             return self.__generateMirrorsToBuild(gpEnv, gpArray)
 
     def __displayAddMirrors(self, gpEnv, mirrorBuilder, gpArray):
-        logger.info('Cloudberry Add Mirrors Parameters')
+        logger.info('CloudberryDB Add Mirrors Parameters')
         logger.info('--------------------------------------------')
-        logger.info('Cloudberry coordinator data directory    = %s' % gpEnv.getCoordinatorDataDir())
-        logger.info('Cloudberry coordinator port              = %d' % gpEnv.getCoordinatorPort())
+        logger.info('CloudberryDB coordinator data directory = %s' % gpEnv.getCoordinatorDataDir())
+        logger.info('CloudberryDB coordinator port           = %d' % gpEnv.getCoordinatorPort())
         logger.info('Batch size                              = %d' % self.__options.batch_size)
         logger.info('Segment batch size                      = %d' % self.__options.segment_batch_size)
 
@@ -522,7 +522,7 @@ class GpAddMirrorsProgram:
         # check that we actually have mirrors
         if gpArray.hasMirrors:
             raise ExceptionNoStackTraceNeeded( \
-                "GPDB physical mirroring cannot be added.  The cluster is already configured with Mirrors.")
+                "CBDB physical mirroring cannot be added.  The cluster is already configured with Mirrors.")
 
         # figure out what needs to be done (AND update the gpArray!)
         mirrorBuilder = self.__getMirrorsToBuildBasedOnOptions(gpEnv, gpArray)

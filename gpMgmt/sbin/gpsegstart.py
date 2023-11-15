@@ -139,7 +139,7 @@ class GpSegStart:
         self.dblist                = list(map(gparray.Segment.initFromString, dblist))
 
         expected_gpversion         = gpversion
-        actual_gpversion           = gp.GpVersion.local('local GP software version check', os.path.abspath(os.pardir))
+        actual_gpversion           = gp.GpVersion.local('local software version check', os.path.abspath(os.pardir))
         if actual_gpversion != expected_gpversion:
             raise Exception("Local Software Version does not match what is expected.\n"
                             "The local software version is: '%s'\n"

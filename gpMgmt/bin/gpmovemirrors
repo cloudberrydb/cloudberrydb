@@ -40,7 +40,7 @@ GPDB_UTILITY = 3
 GP_MOVEMIRRORS_LOCK_PATH = "gpmovemirrors.lock"
 
 description = ("""
-Moves mirror segments in a pre-existing GPDB Array.
+Moves mirror segments in a pre-existing CBDB Array.
 """)
 
 EXECNAME = os.path.split(__file__)[-1]
@@ -339,7 +339,7 @@ try:
         gpArrayInstance = GpArray.initFromCatalog(dburl, utility=True)
     except DatabaseError as ex:
         logger.error('Failed to connect to database.  Make sure the')
-        logger.error('Cloudberry instance is running, and that')
+        logger.error('CloudberryDB instance is running, and that')
         logger.error('your environment is correct, then rerun')
         logger.error('gpmovemirrors ' + ' '.join(sys.argv[1:]))
         sys.exit(1)

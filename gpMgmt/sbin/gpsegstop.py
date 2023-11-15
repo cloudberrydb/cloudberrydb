@@ -144,7 +144,7 @@ class GpSegStop:
         self.expected_gpversion = gpversion
         self.timeout = timeout
         self.gphome = os.path.abspath(os.pardir)
-        self.actual_gpversion = gp.GpVersion.local('local GP software version check', self.gphome)
+        self.actual_gpversion = gp.GpVersion.local('local software version check', self.gphome)
         if self.actual_gpversion != self.expected_gpversion:
             raise Exception("Local Software Version does not match what is expected.\n"
                             "The local software version is: '%s'\n"
