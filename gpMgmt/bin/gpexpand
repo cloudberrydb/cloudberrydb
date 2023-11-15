@@ -57,7 +57,7 @@ DBNAME = 'postgres'
 _gp_expand = None
 
 description = ("""
-Adds additional segments to a pre-existing GPDB Array.
+Adds additional segments to a pre-existing CBDB Array.
 """)
 
 _help = ["""
@@ -571,7 +571,7 @@ class SegmentTemplateError(Exception): pass
 # -------------------------------------------------------------------------
 class SegmentTemplate:
     """Class for creating, distributing and deploying new segments to an
-    existing GPDB array"""
+    existing CBDB array"""
 
     def __init__(self, logger, statusLogger, pool,
                  gparray, coordinatorDataDirectory,
@@ -2195,7 +2195,7 @@ def read_hosts_file(hosts_file):
 
 def interview_setup(gparray, options):
     help = """
-System Expansion is used to add segments to an existing GPDB array.
+System Expansion is used to add segments to an existing CBDB array.
 gpexpand did not detect a System Expansion that is in progress.
 
 Before initiating a System Expansion, you need to provision and burn-in
@@ -2397,7 +2397,7 @@ def main(options, args, parser):
             gparray = GpArray.initFromCatalog(dburl, utility=True)
         except DatabaseError as ex:
             logger.error('Failed to connect to database.  Make sure the')
-            logger.error('Cloudberry instance you wish to expand is running')
+            logger.error('CloudberryDB instance you wish to expand is running')
             logger.error('and that your environment is correct, then rerun')
             logger.error('gexpand ' + ' '.join(sys.argv[1:]))
             sys.exit(1)

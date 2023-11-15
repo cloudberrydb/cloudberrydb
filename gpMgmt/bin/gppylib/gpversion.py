@@ -175,7 +175,7 @@ class GpVersion:
 
         # If part of the conversion process above failed, throw an error,
         except Exception as e:
-            raise Exception("Unrecognised Cloudberry Version '%s' due to %s" %
+            raise Exception("Unrecognised CloudberryDB Version '%s' due to %s" %
                                 (str(version), str(e)))
 
     #------------------------------------------------------------
