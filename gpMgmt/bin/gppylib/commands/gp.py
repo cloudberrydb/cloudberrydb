@@ -1203,7 +1203,7 @@ def get_coordinatorport(datadir):
 
 ######
 def check_permissions(username):
-    logger.debug("--Checking that current user can use GP binaries")
+    logger.debug("--Checking that current user can use CloudberryDB binaries")
     chk_gpdb_id(username)
 
 
@@ -1523,7 +1523,7 @@ def chk_gpdb_id(username):
     path="%s/bin/initdb" % GPHOME
     if not os.access(path,os.X_OK):
         raise GpError("File permission mismatch.  The current user %s does not have sufficient"
-                      " privileges to run the Cloudberry binaries and management utilities." % username )
+                      " privileges to run the CloudberryDB binaries and management utilities." % username )
 
 
 def chk_local_db_running(datadir, port):
@@ -1571,7 +1571,7 @@ def get_lockfile_name(port):
 
 
 def get_local_db_mode(coordinator_data_dir):
-    """ Gets the mode Cloudberry is running in.
+    """ Gets the mode CloudberryDB is running in.
         Possible return values are:
             'NORMAL'
             'RESTRICTED'

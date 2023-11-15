@@ -147,7 +147,7 @@ class GpRecoverSegmentProgram:
             self.logger.warning('Please run gppkg --clean after successful segment recovery.')
 
     def displayRecovery(self, mirrorBuilder, gpArray):
-        self.logger.info('Cloudberry instance recovery parameters')
+        self.logger.info('CloudberryDB instance recovery parameters')
         self.logger.info('---------------------------------------------------------')
 
         if self.__options.recoveryConfigFile:

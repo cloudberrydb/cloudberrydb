@@ -125,14 +125,14 @@ def parseargs():
     optgrp.add_option('-r', '--remove', action='store_true',
                       help='remove current warm coordinator standby.  Use this option '
                       'if the warm coordinator standby host has failed.  This option will '
-                      'need to shutdown the GPDB array to be able to complete the request')
+                      'need to shutdown the CBDB array to be able to complete the request')
     optgrp.add_option('', '--hba-hostnames', action='store_true', dest='hba_hostnames',
                       help='use hostnames instead of CIDR in pg_hba.conf')
 
     # XXX - This option is added to keep backward compatibility with DCA tools.
     # But this option plays no role in the whole process, its a No-Op
     optgrp.add_option('-M', '--mode', type='string', default='smart',
-                      help='use specified mode when stopping the GPDB array.  Default: smart')
+                      help='use specified mode when stopping the CBDB array.  Default: smart')
     optgrp.add_option('-f', '--fts-host', type='string', dest='fts_host',
                       help='hostname of fts to configure hba configuration.')
     parser.add_option_group(optgrp)
@@ -193,19 +193,19 @@ def print_summary(options, array, standby_datadir, unreachable_hosts=[]):
     if options.remove:
         logger.info('Warm coordinator standby removal parameters')
     else:
-        logger.info('Cloudberry standby coordinator initialization parameters')
+        logger.info('CloudberryDB standby coordinator initialization parameters')
     logger.info('-----------------------------------------------------')
-    logger.info('Cloudberry coordinator hostname               = %s' \
+    logger.info('CloudberryDB coordinator hostname               = %s' \
                     % array.coordinator.getSegmentHostName())
-    logger.info('Cloudberry coordinator data directory         = %s' \
+    logger.info('CloudberryDB coordinator data directory         = %s' \
                     % array.coordinator.getSegmentDataDirectory())
-    logger.info('Cloudberry coordinator port                   = %s' \
+    logger.info('CloudberryDB coordinator port                   = %s' \
                     % array.coordinator.getSegmentPort())
     if options.remove:
-        logger.info('Cloudberry standby coordinator hostname       = %s' \
+        logger.info('CloudberryDB standby coordinator hostname       = %s' \
                         % array.standbyCoordinator.getSegmentHostName())
     else:
-        logger.info('Cloudberry standby coordinator hostname       = %s' \
+        logger.info('CloudberryDB standby coordinator hostname       = %s' \
                         % options.standby_host)
 
     if array.standbyCoordinator:
@@ -215,22 +215,22 @@ def print_summary(options, array, standby_datadir, unreachable_hosts=[]):
     else:
         standby_port = array.coordinator.getSegmentPort()
 
-    logger.info('Cloudberry standby coordinator port           = %d' \
+    logger.info('CloudberryDB standby coordinator port           = %d' \
                     % standby_port)
 
     if array.standbyCoordinator:
-        logger.info('Cloudberry standby coordinator data directory = %s' \
+        logger.info('CloudberryDB standby coordinator data directory = %s' \
                         % array.standbyCoordinator.getSegmentDataDirectory())
     else:
         if standby_datadir:
-            logger.info('Cloudberry standby coordinator data directory = %s' % standby_datadir)
+            logger.info('CloudberryDB standby coordinator data directory = %s' % standby_datadir)
         else:
             raise GpInitStandbyException('No data directory specified for standby coordinator')
 
     if not options.remove and options.no_update:
-        logger.info('Cloudberry update system catalog         = Off')
+        logger.info('CloudberryDB update system catalog         = Off')
     elif not options.remove:
-        logger.info('Cloudberry update system catalog         = On')
+        logger.info('CloudberryDB update system catalog         = On')
 
     # Confirm the action
     if options.confirm:

@@ -267,7 +267,7 @@ slashUsage(unsigned short int pager)
 	fprintf(output, _("  \\dT[S+] [PATTERN]      list data types\n"));
 	fprintf(output, _("  \\du[S+] [PATTERN]      list roles\n"));
 	fprintf(output, _("  \\dv[S+] [PATTERN]      list views\n"));
-	/* In GPDB, we use \dE for both external and foreign tables. */
+	/* In GPDB and CBDB, we use \dE for both external and foreign tables. */
 	fprintf(output, _("  \\dE[S+] [PATTERN]      list foreign and external tables\n"));
 	fprintf(output, _("  \\dx[+]  [PATTERN]      list extensions\n"));
 	fprintf(output, _("  \\dX     [PATTERN]      list extended statistics\n"));
@@ -692,6 +692,8 @@ print_copyright(void)
 {
 	puts(
 		 "Cloudberry Database version of PostgreSQL Database Management System\n"
+		 "Portions Copyright (c) 2023-, HashData Technology Limited.\n\n"
+		 "Greenplum Database version of PostgreSQL Database Management System\n"
 		 "Portions Copyright (c) 1996-2020, PostgreSQL Global Development Group\n\n"
 		 "Portions Copyright (c) 2014-Present VMware, Inc. or its affiliates.\n\n"
 		 "Portions Copyright (c) 2011-2014 EMC\n\n"
