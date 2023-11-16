@@ -1,3 +1,0 @@
-!\retcode ./test_parallel_retrieve_cursor_extended_query @curusername@ postgres;
-!\retcode ./test_parallel_retrieve_cursor_extended_query_error @curusername@ postgres;
-

@@ -1,4 +1,0 @@
-!\retcode gpconfig -r statement_timeout;
-(exited with code 0)
-!\retcode gpstop -u;
-(exited with code 0)
