@@ -208,16 +208,12 @@ CdbTryOpenTable(Oid relid, LOCKMODE reqmode, bool *lockUpgraded)
 	 * only be possible when GUC allow_system_table_mods is set), the
 	 * update or delete does not hold locks on catalog on segments, so
 	 * we do not need to consider lock-upgrade for DML on catalogs.
-	 *
-	 * In singlenode mode, since local deadlock detection can already
-	 * detect and solve deadlocks, we act as if the global deadlock
-	 * detector is enabled.
 	 */
 	if (reqmode == RowExclusiveLock &&
-		(Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) &&
+		Gp_role == GP_ROLE_DISPATCH &&
 		relid >= FirstNormalObjectId)
 	{
-		if (!gp_enable_global_deadlock_detector && !IS_SINGLENODE())
+		if (!gp_enable_global_deadlock_detector)
 		{
 			/*
 			 * Without GDD, to avoid global deadlock, always

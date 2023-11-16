@@ -646,11 +646,7 @@ transformRangeFunction(ParseState *pstate, RangeFunction *r)
 					rte = addRangeTableEntry(pstate, rel, r->alias, false, true);
 
 					/* Now we set our special attribute in the rte. */
-					/*
-					 * However, in singlenode mode distribution is meaningless and might introduce unexpected
-					 * motions in the plan, which will lead to some assert failures.
-					 */
-					rte->p_rte->forceDistRandom = !IS_SINGLENODE();
+					rte->p_rte->forceDistRandom = true;
 
 					return rte;
 				}

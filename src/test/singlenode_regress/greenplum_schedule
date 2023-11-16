@@ -310,6 +310,4 @@ test: AOCO_Compression AORO_Compression
 # check correct error message when create extension error on segment
 # test: create_extension_fail
 
-# CBDB specific tests
-test: singlenode_compatibility_cbdb
 # end of tests

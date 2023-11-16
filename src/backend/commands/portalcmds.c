@@ -534,7 +534,7 @@ PersistHoldablePortal(Portal portal)
 		 * don't want to reset the position because we are already in
 		 * the position we need to be. Allow this only in utility mode.
 		 */
-		if (Gp_role == GP_ROLE_UTILITY)
+		if(Gp_role == GP_ROLE_UTILITY)
 		{
 			if (portal->atEnd)
 			{

@@ -22,14 +22,6 @@ SEG_PREFIX=demoDataDir
 STANDBYDIR=$DATADIRS/standby
 EXTERNAL_FTS_ENABLED="false"
 
-SINGLENODE_OPTS=""
-SINGLENODE_MODE=""
-if [ "${NUM_PRIMARY_MIRROR_PAIRS}" -eq "0" ]; then
-    SINGLENODE_MODE="true"
-    SINGLENODE_OPTS="--singlenodeMode=true"
-    QDDIR=$DATADIRS/singlenodedir
-fi
-
 # ======================================================================
 # Database Ports
 # ======================================================================
@@ -399,33 +391,33 @@ if [ -f "${CLUSTER_CONFIG_POSTGRES_ADDONS}" ]; then
     if [ $EXTERNAL_FTS_ENABLED == "true" ]; then
         echo "=========================================================================================="
         echo "executing:"
-        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -U 1 -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} \"$@\""
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -U 1 -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} \"$@\""
         echo "=========================================================================================="
         echo ""
-        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -U 1 -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} "$@"
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -U 1 -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} "$@"        
     else
         echo "=========================================================================================="
         echo "executing:"
-        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} \"$@\""
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} \"$@\""
         echo "=========================================================================================="
         echo ""
-        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} "$@"
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs -p ${CLUSTER_CONFIG_POSTGRES_ADDONS} ${STANDBY_INIT_OPTS} "$@"
     fi
 else
     if [ $EXTERNAL_FTS_ENABLED == "true" ]; then
         echo "=========================================================================================="
         echo "executing:"
-        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -U 1 -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} \"$@\""
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -U 1 -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} \"$@\""
         echo "=========================================================================================="
         echo ""
-        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -U 1 -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} "$@"
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -U 1 -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} "$@"
     else
         echo "=========================================================================================="
         echo "executing:"
-        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} \"$@\""
+        echo "  $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} \"$@\""
         echo "=========================================================================================="
         echo ""
-        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} ${SINGLENODE_OPTS} "$@"
+        $GPPATH/gpinitsystem -a -c $CLUSTER_CONFIG -l $DATADIRS/gpAdminLogs ${STANDBY_INIT_OPTS} "$@"
     fi
 fi
 RETURN=$?

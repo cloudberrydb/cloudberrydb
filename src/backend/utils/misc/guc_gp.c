@@ -2972,17 +2972,6 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 
-	{
-		{"gp_internal_is_singlenode", PGC_POSTMASTER, UNGROUPED,
-			 gettext_noop("Is in SingleNode mode (no segments). WARNING: user SHOULD NOT set this by any means."),
-			 NULL,
-			 GUC_IS_NAME | GUC_NO_SHOW_ALL | GUC_NO_RESET_ALL | GUC_NOT_WHILE_SEC_REST
-		},
-		&gp_internal_is_singlenode,
-		false,
-		NULL, NULL, NULL
-	},
-
 	/* End-of-list marker */
 	{
 		{NULL, 0, 0, NULL, NULL}, NULL, false, NULL, NULL

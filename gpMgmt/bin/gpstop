@@ -163,12 +163,7 @@ class GpStop:
         """
         self._prepare()
 
-        if self.gparray.get_segment_count() == 0:
-            self.coordinatoronly = True
-
         if self.coordinatoronly:
-            if self.sighup:
-                return self._sighup_cluster()
             if self.interactive:
                 if not userinput.ask_yesno(None, "\nContinue with coordinator-only shutdown", 'N'):
                     raise UserAbortedException()
@@ -185,10 +180,6 @@ class GpStop:
                 self._clean_fts()
                 if self.etcd_hosts is not None:
                     self._clean_etcd()
-            if self.restart:
-                    logger.info("Restarting System...")
-                    gp.NewGpStart.local('restarting system', verbose=logging_is_verbose(), coordinatorOnly=self.coordinatoronly,
-                                        nostandby=not self.stopstandby, coordinatorDirectory=self.coordinator_datadir)
         else:
             if self.sighup:
                 return self._sighup_cluster()

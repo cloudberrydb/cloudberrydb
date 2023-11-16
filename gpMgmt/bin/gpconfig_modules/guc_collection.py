@@ -9,9 +9,8 @@ class GucCollection:
     """
     COORDINATOR_KEY = '-1'
 
-    def __init__(self, options):
+    def __init__(self):
         self.gucs = {}
-        self.options = options
 
     def update_list(self, guc_list):
         for guc in guc_list:
@@ -52,7 +51,7 @@ class GucCollection:
         return True
 
     def validate(self):
-        if (len(self.gucs) < 2 and not self.options.coordinatoronly) or self.COORDINATOR_KEY not in self.gucs:
+        if len(self.gucs) < 2 or self.COORDINATOR_KEY not in self.gucs:
             raise Exception("Collections must have at least a coordinator and segment value")
 
     def values(self):

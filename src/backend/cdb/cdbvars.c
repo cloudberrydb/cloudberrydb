@@ -47,7 +47,7 @@
  * ----------------
  */
 
-bool        gp_internal_is_singlenode;   /* CBDB#69: true if we are in singlenode mode (no segments) */
+
 
 GpRoleValue Gp_role;			/* Role paid by this Cloudberry Database
 								 * backend */
@@ -441,7 +441,7 @@ assign_gp_role(const char *newval, void *extra)
 {
 	Gp_role = string_to_role(newval);
 
-	if (IS_UTILITY_BUT_NOT_SINGLENODE() && MyProc != NULL)
+	if (Gp_role == GP_ROLE_UTILITY && MyProc != NULL)
 		MyProc->mppIsWriter = false;
 }
 

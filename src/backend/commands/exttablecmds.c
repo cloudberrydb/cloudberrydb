@@ -488,14 +488,7 @@ transformExecOnClause(List *on_clause)
 	ListCell   *exec_location_opt;
 	char	   *exec_location_str = NULL;
 
-	/*
-	 * In single node, we only have one node which behave like QD in many aspects.
-	 * And set exec_location_str as "COORDINATOR_ONLY" will force the execution be
-	 * execute on the only node in singlenode mode, which is what we want.
-	 */
-	if (IS_SINGLENODE())
-		exec_location_str = "COORDINATOR_ONLY";
-	else if (on_clause == NIL)
+	if (on_clause == NIL)
 		exec_location_str = "ALL_SEGMENTS";
 	else
 	{

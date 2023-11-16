@@ -321,8 +321,6 @@ max_prepared_transactions = 250		# can be 0 or more
 
 # - Standby Servers -
 
-#gp_internal_is_singlenode = off   # is in SingleNode mode or not. WARNING: user SHOULD NOT change this by any means.
-
 # These settings are ignored on a primary server.
 
 #primary_conninfo = ''			# connection string to sending server

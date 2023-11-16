@@ -19,11 +19,6 @@ show gp_enable_global_deadlock_detector;
 
 -- 1. The firs part of test is with
 --    gp_enable_global_deadlock_detector off
---
---    because local deadlock detector can already detect and handle deadlocks in
---    singlenode mode, locking is acted as if GDD is enabled to provide better
---    concurrency, so locks won't be elevated from RowExclusive to Exclusive,
---    thus the following results are different from cluster mode.
 
 -- 1.1 test for heap tables
 create table t_lockmods (c int);
@@ -265,9 +260,9 @@ BEGIN
 1: update t_lockmods set c = c + 0;
 UPDATE 5
 2: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation   
-----------+------------------+---------+------------
- relation | RowExclusiveLock | t       | t_lockmods 
+ locktype | mode          | granted | relation   
+----------+---------------+---------+------------
+ relation | ExclusiveLock | t       | t_lockmods 
 (1 row)
 1: abort;
 ABORT
@@ -277,9 +272,9 @@ BEGIN
 1: delete from t_lockmods;
 DELETE 5
 2: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation   
-----------+------------------+---------+------------
- relation | RowExclusiveLock | t       | t_lockmods 
+ locktype | mode          | granted | relation   
+----------+---------------+---------+------------
+ relation | ExclusiveLock | t       | t_lockmods 
 (1 row)
 1: abort;
 ABORT
@@ -303,9 +298,9 @@ BEGIN
 1: insert into t_lockmods_upsert values (1, 1) on conflict(a, b) do update set b = 99;
 INSERT 1
 2: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation          
-----------+------------------+---------+-------------------
- relation | RowExclusiveLock | t       | t_lockmods_upsert 
+ locktype | mode          | granted | relation          
+----------+---------------+---------+-------------------
+ relation | ExclusiveLock | t       | t_lockmods_upsert 
 (1 row)
 1: abort;
 ABORT
@@ -409,9 +404,9 @@ BEGIN
 1: execute update_tlockmods;
 EXECUTE 5
 2: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation   
-----------+------------------+---------+------------
- relation | RowExclusiveLock | t       | t_lockmods 
+ locktype | mode          | granted | relation   
+----------+---------------+---------+------------
+ relation | ExclusiveLock | t       | t_lockmods 
 (1 row)
 1: abort;
 ABORT
@@ -421,9 +416,9 @@ BEGIN
 1: execute delete_tlockmods;
 EXECUTE 5
 2: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation   
-----------+------------------+---------+------------
- relation | RowExclusiveLock | t       | t_lockmods 
+ locktype | mode          | granted | relation   
+----------+---------------+---------+------------
+ relation | ExclusiveLock | t       | t_lockmods 
 (1 row)
 1: abort;
 ABORT
@@ -445,9 +440,9 @@ BEGIN
 1: execute upsert_tlockmods;
 EXECUTE 1
 2: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation          
-----------+------------------+---------+-------------------
- relation | RowExclusiveLock | t       | t_lockmods_upsert 
+ locktype | mode          | granted | relation          
+----------+---------------+---------+-------------------
+ relation | ExclusiveLock | t       | t_lockmods_upsert 
 (1 row)
 1: abort;
 ABORT
@@ -1012,11 +1007,11 @@ BEGIN
 DELETE 10
 -- on QD, there's a lock on the root and the target partition
 1: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation                            
-----------+------------------+---------+-------------------------------------
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del         
+ locktype | mode          | granted | relation                            
+----------+---------------+---------+-------------------------------------
+ relation | ExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
+ relation | ExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
+ relation | ExclusiveLock | t       | t_lockmods_part_tbl_upd_del         
 (3 rows)
 1: ROLLBACK;
 ROLLBACK
@@ -1050,12 +1045,12 @@ BEGIN
 UPDATE 1
 -- on QD, there's a lock on the root and the target partition
 1: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation                            
-----------+------------------+---------+-------------------------------------
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del         
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del         
+ locktype | mode            | granted | relation                            
+----------+-----------------+---------+-------------------------------------
+ relation | ExclusiveLock   | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
+ relation | ExclusiveLock   | t       | t_lockmods_part_tbl_upd_del_1_prt_2 
+ relation | AccessShareLock | t       | t_lockmods_part_tbl_upd_del         
+ relation | ExclusiveLock   | t       | t_lockmods_part_tbl_upd_del         
 (4 rows)
 1: ROLLBACK;
 ROLLBACK
@@ -1067,9 +1062,9 @@ BEGIN
 DELETE 10
 -- since the delete operation is on leaf part, there will be a lock on QD
 1: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation                            
-----------+------------------+---------+-------------------------------------
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
+ locktype | mode          | granted | relation                            
+----------+---------------+---------+-------------------------------------
+ relation | ExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
 (1 row)
 1: ROLLBACK;
 ROLLBACK
@@ -1081,10 +1076,10 @@ BEGIN
 UPDATE 1
 -- since the update operation is on leaf part, there will be a lock on QD
 1: select * from show_locks_lockmodes;
- locktype | mode             | granted | relation                            
-----------+------------------+---------+-------------------------------------
- relation | AccessShareLock  | t       | t_lockmods_part_tbl_upd_del         
- relation | RowExclusiveLock | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
+ locktype | mode            | granted | relation                            
+----------+-----------------+---------+-------------------------------------
+ relation | AccessShareLock | t       | t_lockmods_part_tbl_upd_del         
+ relation | ExclusiveLock   | t       | t_lockmods_part_tbl_upd_del_1_prt_1 
 (2 rows)
 1: ROLLBACK;
 ROLLBACK

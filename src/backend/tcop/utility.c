@@ -686,14 +686,7 @@ standard_ProcessUtility(PlannedStmt *pstmt,
 						break;
 
 					case TRANS_STMT_PREPARE:
-						/*
-						 * SINGLENODE_FIXME:
-						 * It seems like `PREPARE TRANSACTION` works in singlenode mode,
-						 * but currently we just disable it to make it behaves closer
-						 * to cluster mode.
-						 * Maybe reconsider it in the future.
-						 */
-						if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
+						if (Gp_role == GP_ROLE_DISPATCH)
 						{
 							ereport(ERROR, (errcode(ERRCODE_GP_COMMAND_ERROR),
 									errmsg("PREPARE TRANSACTION is not yet supported in Cloudberry Database")));
@@ -1053,11 +1046,8 @@ standard_ProcessUtility(PlannedStmt *pstmt,
 			 * transaction block because the shared memory structures are not
 			 * cleaned up on abort, resulting in "leaked", unreachable queues.
 			 */
-			/*
-			 * SINGLENODE_FIXME: not sure if it's happening in single node,
-			 * let's just keep it behaving the same as greenplum for safety.
-			 */
-			if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
+
+			if (Gp_role == GP_ROLE_DISPATCH)
 				PreventInTransactionBlock(isTopLevel, "CREATE RESOURCE QUEUE");
 
 			CreateQueue((CreateQueueStmt *) parsetree);

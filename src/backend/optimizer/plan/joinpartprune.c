@@ -114,7 +114,6 @@ push_partition_selector_candidate_for_join(PlannerInfo *root, JoinPath *join_pat
 	bool		good_type = false;
 	PartitionSelectorCandidateInfo *candidate;
 
-	/* SINGLENODE_FIXME: enable partition selector in the future? */
 	if (Gp_role != GP_ROLE_DISPATCH || !gp_dynamic_partition_pruning)
 	{
 		root->partition_selector_candidates = lcons(NULL, root->partition_selector_candidates);

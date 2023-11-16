@@ -113,7 +113,7 @@ extern bool ExecMaterializesOutput(NodeTag plantype);
 /*
  * prototypes from functions in execCurrent.c
  */
-extern bool getCurrentOf(CurrentOfExpr *cexpr,
+extern void getCurrentOf(CurrentOfExpr *cexpr,
 			  ExprContext *econtext,
 			  Oid table_oid,
 			  ItemPointer current_tid,

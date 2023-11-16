@@ -611,12 +611,7 @@ ExecuteGrantStmt(GrantStmt *stmt)
 	 * To make that a little bit less confusing, emit a NOTICE, when
 	 * REVOKE find no permissions to remove.
 	 */
-	/*
-	 * SINGLENODE: It used to ereport only in dispatch mode. We should do it in singlenode mode for sure.
-	 * But for utility mode? Ummm, I don't know, let's reconsider it in the future.
-	 * Personally, I think using grant in utility mode makes no sense.
-	 */
-	if (!revoked_something && !stmt->is_grant && (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()))
+	if (!revoked_something && !stmt->is_grant && Gp_role == GP_ROLE_DISPATCH)
 	{
 		ereport(NOTICE,
 				(errcode(ERRCODE_WARNING_PRIVILEGE_NOT_REVOKED),

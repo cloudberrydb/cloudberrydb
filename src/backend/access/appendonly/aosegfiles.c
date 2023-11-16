@@ -1343,12 +1343,6 @@ get_ao_distribution(PG_FUNCTION_ARGS)
 	Relation	aosegrel;
 	int			ret;
 
-	if (IS_SINGLENODE())
-	{
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					 errmsg("get_ao_distribution not supported in singlenode mode.")));
-	}
 	Assert(Gp_role == GP_ROLE_DISPATCH);
 
 	/*

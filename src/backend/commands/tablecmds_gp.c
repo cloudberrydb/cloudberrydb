@@ -1478,8 +1478,7 @@ ATExecGPPartCmds(Relation origrel, AlterTableCmd *cmd)
 	 * pg_stat_last_operation for GPDB specific alter partition 
 	 * commands. 
 	 */
-	/* In singlenode mode, the same metadata as in the cluster should be tracked. */
-	if (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE())
+	if (Gp_role == GP_ROLE_DISPATCH)
 		GpAlterPartMetaTrackUpdObject(RelationGetRelid(rel), cmd->subtype);
 }
 

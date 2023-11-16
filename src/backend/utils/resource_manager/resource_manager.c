@@ -40,7 +40,7 @@ bool		ResGroupActivated = false;
 void
 ResManagerShmemInit(void)
 {
-	if (IsResQueueEnabled() && (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()))
+	if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH)
 	{
 		InitResScheduler();
 		InitResPortalIncrementHash();
@@ -54,7 +54,7 @@ ResManagerShmemInit(void)
 void
 InitResManager(void)
 {
-	if (IsResQueueEnabled() && (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && !am_walsender)
+	if (IsResQueueEnabled() && Gp_role == GP_ROLE_DISPATCH && !am_walsender)
 	{
 		gp_resmanager_memory_policy = (ResManagerMemoryPolicy *) &gp_resqueue_memory_policy;
 		gp_log_resmanager_memory = &gp_log_resqueue_memory;
@@ -64,7 +64,7 @@ InitResManager(void)
 		InitResQueues();
 	}
 	else if  (IsResGroupEnabled() &&
-			 (Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE() || Gp_role == GP_ROLE_EXECUTE) &&
+			 (Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE) &&
 			 IsUnderPostmaster &&
 			 !amAuxiliaryBgWorker() &&
 			 !am_walsender && !am_ftshandler && !am_faulthandler)
@@ -100,6 +100,6 @@ InitResManager(void)
 
 	if (MySessionState &&
 		!IsBackgroundWorker &&
-		(Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE() || Gp_role == GP_ROLE_EXECUTE))
+		(Gp_role == GP_ROLE_DISPATCH || Gp_role == GP_ROLE_EXECUTE))
 		GPMemoryProtect_TrackStartupMemory();
 }

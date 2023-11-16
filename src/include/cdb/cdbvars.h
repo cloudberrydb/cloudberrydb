@@ -70,11 +70,6 @@ typedef enum
 	GP_ROLE_EXECUTE,			/* Operating as a parallel query executor */
 } GpRoleValue;
 
-extern bool gp_internal_is_singlenode;  /* CBDB#69: support single node (no segment) mode */
-
-#define IS_SINGLENODE() (gp_internal_is_singlenode)
-#define IS_UTILITY_BUT_NOT_SINGLENODE() (Gp_role == GP_ROLE_UTILITY && !IS_SINGLENODE())
-
 extern GpRoleValue Gp_role;	/* GUC var - server operating mode.  */
 extern char *gp_role_string;	/* Use by guc.c as staging area for value. */
 
