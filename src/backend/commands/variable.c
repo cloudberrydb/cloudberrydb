@@ -527,6 +527,17 @@ check_XactIsoLevel(int *newval, void **extra, GucSource source)
 {
 	int			newXactIsoLevel = *newval;
 
+	/*
+	 * FIXME: we cannot support XACT_REPEATABLE_READ now due to concurrent 
+	 * insert. In concurrent insert, one transaction apply new change based
+	 * on the result of other transaction done. Thus, XACT_REPEATABLE_READ
+	 * is not support and will be support soon.
+	 */
+	if(enable_serverless && newXactIsoLevel == XACT_REPEATABLE_READ){
+		GUC_check_errcode(ERRCODE_ACTIVE_SQL_TRANSACTION);
+		GUC_check_errmsg("XACT_REPEATABLE_READ is not support now");	
+	}
+
 	if (newXactIsoLevel != XactIsoLevel && IsTransactionState())
 	{
 		if (FirstSnapshotSet)
