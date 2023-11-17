@@ -223,6 +223,14 @@ typedef struct PortalData
 	bool		is_extended_query; /* simple or extended query protocol? */
 }			PortalData;
 
+#define MAX_PORTALNAME_LEN		NAMEDATALEN
+
+typedef struct portalhashent
+{
+	char		portalname[MAX_PORTALNAME_LEN];
+	Portal		portal;
+} PortalHashEnt;
+
 /*
  * PortalIsValid
  *		True iff portal is valid.
@@ -271,6 +279,7 @@ extern void PortalHashTableDeleteAll(void);
 extern bool ThereAreNoReadyPortals(void);
 extern void HoldPinnedPortals(void);
 extern void ForgetPortalSnapshots(void);
+extern HTAB *GetPortalHashTable(void);
 
 extern void AtExitCleanup_ResPortals(void);
 extern void TotalResPortalIncrements(int pid, Oid queueid,
