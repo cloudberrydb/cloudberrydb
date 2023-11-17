@@ -8943,6 +8943,8 @@ void
 ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel)
 {
 	GucAction	action = stmt->is_local ? GUC_ACTION_LOCAL : GUC_ACTION_SET;
+	struct config_generic *record = NULL;
+	bool	guc_need_async = true;
 
 	/*
 	 * Workers synchronize these parameters at the start of the parallel
@@ -8969,7 +8971,17 @@ ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel)
 									 (superuser() ? PGC_SUSET : PGC_USERSET),
 									 PGC_S_SESSION,
 									 action, true, 0, false);
-			DispatchSetPGVariable(stmt->name, stmt->args, stmt->is_local);
+
+			record = find_option(stmt->name, true, false, 0);
+			if (record != NULL)
+			{
+				guc_need_async = !(record->flags & GUC_GPDB_NO_SYNC);
+			}
+
+			if (guc_need_async)
+			{
+				DispatchSetPGVariable(stmt->name, stmt->args, stmt->is_local);
+			}
 			break;
 		case VAR_SET_MULTI:
 
@@ -9084,7 +9096,18 @@ ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel)
 			else
 				appendStringInfo(&buffer, "RESET %s", stmt->name);
 
-			CdbDispatchSetCommand(buffer.data, false);
+			guc_need_async = true;
+			if (stmt->name)
+			{
+				record = find_option(stmt->name, true, false, 0);
+				if (record != NULL)
+					guc_need_async = !(record->flags & GUC_GPDB_NO_SYNC);
+			}
+
+			if (guc_need_async)
+			{
+				CdbDispatchSetCommand(buffer.data, false);
+			}
 		}
 	}
 }
