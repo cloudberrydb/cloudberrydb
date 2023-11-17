@@ -78,6 +78,7 @@ jobs:
             /code/gpdb_src/src/test/isolation2/regression.diffs
             /code/gpdb_src/src/test/isolation2/results/
             /code/gpdb_src/src/test/isolation2/expected/
+            /code/gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs
             /code/gpdb_src/gpAux/gpdemo/datadirs/standby/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
@@ -86,6 +87,14 @@ jobs:
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/qddir/demoDataDir-1/log
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast1/demoDataDir0/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast2/demoDataDir1/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror1/demoDataDir0/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror2/demoDataDir1/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/upgrade/qd/*.log
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
         if: failure()
@@ -137,8 +146,16 @@ jobs:
             /code/gpdb_src/src/test/isolation/regression.diffs
             /code/gpdb_src/src/test/isolation/output_iso/results/
             /code/gpdb_src/src/test/isolation/expected/
+            /code/gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs
             /code/gpdb_src/gpAux/gpdemo/datadirs/standby/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/singlenodedir/demoDataDir-1/log/
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        if: failure()
+        with:
+          limit-access-to-actor: true
+          limit-access-to-users: hashdata-build
+          wait-timeout-minutes: 60
   icw-orca-test:
     needs: build
     runs-on: [self-hosted, example]
@@ -178,6 +195,7 @@ jobs:
             /code/gpdb_src/src/test/isolation2/regression.diffs
             /code/gpdb_src/src/test/isolation2/results/
             /code/gpdb_src/src/test/isolation2/expected/
+            /code/gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs
             /code/gpdb_src/gpAux/gpdemo/datadirs/standby/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
@@ -186,6 +204,14 @@ jobs:
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/qddir/demoDataDir-1/log
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast1/demoDataDir0/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast2/demoDataDir1/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror1/demoDataDir0/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror2/demoDataDir1/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/upgrade/qd/*.log
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
         if: failure()
@@ -232,6 +258,7 @@ jobs:
             /code/gpdb_src/src/test/isolation2/regression.diffs
             /code/gpdb_src/src/test/isolation2/results/
             /code/gpdb_src/src/test/isolation2/expected/
+            /code/gpdb_src/gpAux/gpdemo/datadirs/gpAdminLogs
             /code/gpdb_src/gpAux/gpdemo/datadirs/standby/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
@@ -240,6 +267,14 @@ jobs:
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
             /code/gpdb_src/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/qddir/demoDataDir-1/log
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast1/demoDataDir0/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast2/demoDataDir1/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror1/demoDataDir0/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror2/demoDataDir1/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/datadirs/dbfast_mirror3/demoDataDir2/log/
+            /code/gpdb_src/src/bin/pg_upgrade/tmp_check/upgrade/qd/*.log
       - name: Setup upterm session
         uses: lhotari/action-upterm@v1
         if: failure()
