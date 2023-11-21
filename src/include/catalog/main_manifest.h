@@ -22,10 +22,10 @@
  *		typedef struct FormData_main_manifest
  * ----------------
  */
-CATALOG(main_manifest,9004,ManifestRelationId) BKI_SHARED_RELATION
+CATALOG(main_manifest,9004,ManifestRelationId)
 {
 	RelFileNodeId	relnode;
-	text		path;
+	text			path;
 } FormData_main_manifest;
 
 typedef FormData_main_manifest *Form_main_manifest;
