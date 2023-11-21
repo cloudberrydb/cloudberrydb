@@ -8983,27 +8983,71 @@ ExecSetVariableStmt(VariableSetStmt *stmt, bool isTopLevel)
 			if (strcmp(stmt->name, "TRANSACTION") == 0)
 			{
 				ListCell   *head;
+				StringInfoData buffer;
+				A_Const	   *con;
+				char	   *val;
 
 				if (Gp_role != GP_ROLE_EXECUTE)
 					WarnNoTransactionBlock(isTopLevel, "SET TRANSACTION");
+
+				initStringInfo(&buffer);
 
 				foreach(head, stmt->args)
 				{
 					DefElem    *item = (DefElem *) lfirst(head);
 
 					if (strcmp(item->defname, "transaction_isolation") == 0)
-						SetPGVariable("transaction_isolation",
-									  list_make1(item->arg), stmt->is_local);
+					{
+						SetPGVariableOptDispatch("transaction_isolation",
+									 list_make1(item->arg), stmt->is_local, false);
+					}
 					else if (strcmp(item->defname, "transaction_read_only") == 0)
-						SetPGVariable("transaction_read_only",
-									  list_make1(item->arg), stmt->is_local);
+					{
+						SetPGVariableOptDispatch("transaction_read_only",
+									 list_make1(item->arg), stmt->is_local, false);
+					}
 					else if (strcmp(item->defname, "transaction_deferrable") == 0)
-						SetPGVariable("transaction_deferrable",
-									  list_make1(item->arg), stmt->is_local);
+					{
+						SetPGVariableOptDispatch("transaction_deferrable",
+									 list_make1(item->arg), stmt->is_local, false);
+					}
 					else
 						elog(ERROR, "unexpected SET TRANSACTION element: %s",
 							 item->defname);
+
+					appendStringInfo(&buffer, "SET %s TO ", item->defname);
+
+					con = (A_Const *) item->arg;
+					val = strVal(&con->val);
+
+					switch (nodeTag(&con->val))
+					{
+						case T_Integer:
+							appendStringInfo(&buffer, "%d", intVal(&con->val));
+							break;
+						case T_Float:
+							/* represented as a string, so just copy it */
+							appendStringInfoString(&buffer, strVal(&con->val));
+							break;
+						case T_String:
+							val = strVal(&con->val);
+
+							/*
+							 * Plain string literal or identifier. Quote it.
+							 */
+							appendStringInfo(&buffer, "\'%s\'", val);
+
+							break;
+						default:
+							elog(ERROR, "unrecognized node type: %d",
+							     (int) nodeTag(&con->val));
+							break;
+					}
+
+					appendStringInfo(&buffer, "; \n");
 				}
+				if (Gp_role == GP_ROLE_DISPATCH && !IsBootstrapProcessingMode())
+					CdbDispatchSetCommand(buffer.data, false);
 			}
 			else if (strcmp(stmt->name, "SESSION CHARACTERISTICS") == 0)
 			{
