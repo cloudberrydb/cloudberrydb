@@ -70,7 +70,7 @@ pg_resgroup_get_iostats(PG_FUNCTION_ARGS)
 		/* collect stats */
 		rel_resgroup_caps = table_open(ResGroupCapabilityRelationId, AccessShareLock);
 
-		/* pg_usleep can be interrupted, so we use timestap as the interval */
+		/* pg_usleep can be interrupted, so we use timestamp as the interval */
 		INSTR_TIME_SET_CURRENT(start_time);
 		stats = getIOLimitStats(rel_resgroup_caps);
 
