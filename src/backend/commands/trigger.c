@@ -220,6 +220,17 @@ CreateTriggerFiringOn(CreateTrigStmt *stmt, const char *queryString,
 					 errmsg("\"%s\" is a table",
 							RelationGetRelationName(rel)),
 					 errdetail("Tables cannot have INSTEAD OF triggers.")));
+		/*
+		 * FIXME: table which is not a heap table and AO table
+		 * does not support constraint(deferred) trigger now.
+		 */
+		if (stmt->isconstraint && enable_serverless &&
+			(!RelationIsHeap(rel) && !RelationIsAppendOptimized(rel)))
+			ereport(ERROR,
+					(errcode(ERRCODE_GP_FEATURE_NOT_YET),
+					 errmsg("\"%s\" is not a heap table and AO table",
+							RelationGetRelationName(rel)),
+					 errdetail("constraint trigger is not supported now")));
 	}
 	else if (rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
 	{
@@ -715,7 +726,7 @@ CreateTriggerFiringOn(CreateTrigStmt *stmt, const char *queryString,
 	}
 
 	/* Check GPDB limitations */
-	if (RelationIsNonblockRelation(rel) &&
+	if (RelationIsAppendOptimized(rel) &&
 		TRIGGER_FOR_ROW(tgtype) &&
 		!stmt->isconstraint)
 	{
@@ -3128,8 +3139,24 @@ GetTupleForTrigger(EState *estate,
 {
 	Relation	relation = relinfo->ri_RelationDesc;
 
+	/*
+	 * FIXME: table which is not a heap table and AO table does not support
+	 * concurrently update or delete. So we can fetch tuple directly
+	 * without locking tuple.
+	 */
+	if(enable_serverless && (!RelationIsHeap(relation) && !RelationIsAppendOptimized(relation)))
+	{
+		/*
+		 * We expect the tuple to be present, thus very simple error handling
+		 * suffices.
+		 */
+		if (!table_tuple_fetch_row_version(relation, tid, SnapshotAny,
+										   oldslot))
+			elog(ERROR, "failed to fetch tuple for trigger");
+		return true;
+	}
 	/* these should be rejected when you try to create such triggers, but let's check */
-	if (RelationIsNonblockRelation(relation))
+	if (RelationIsAppendOptimized(relation))
 		elog(ERROR, "UPDATE and DELETE triggers are not supported on append-only tables");
 
 	Assert(RelationIsHeap(relation));
@@ -4363,7 +4390,8 @@ afterTriggerInvokeEvents(AfterTriggerEventList *events,
 						ExecDropSingleTupleTableSlot(slot2);
 						slot1 = slot2 = NULL;
 					}
-					if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+					if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE ||
+						(enable_serverless && (!RelationIsHeap(rel) && !RelationIsAppendOptimized(rel))))
 					{
 						slot1 = MakeSingleTupleTableSlot(rel->rd_att,
 														 &TTSOpsMinimalTuple);
@@ -5197,6 +5225,14 @@ AfterTriggerSetState(ConstraintsSetStmt *stmt)
 {
 	int			my_level = GetCurrentTransactionNestLevel();
 
+	/*
+	 * FIXME: deferred trigger is not supported in the serverless architecture now.
+	 */
+	if (enable_serverless && stmt->deferred)
+		ereport(ERROR,
+			(errcode(ERRCODE_GP_FEATURE_NOT_YET),
+			 errmsg("deferred trigger is not supported in Cloudberry now")));
+
 	/* If we haven't already done so, initialize our state. */
 	if (afterTriggers.state == NULL)
 		afterTriggers.state = SetConstraintStateCreate(8);
@@ -5811,7 +5847,14 @@ AfterTriggerSaveEvent(EState *estate, ResultRelInfo *relinfo,
 							modifiedCols, oldslot, newslot))
 			continue;
 
-		if (relkind == RELKIND_FOREIGN_TABLE && row_trigger)
+		/*
+		 * In serverless architecture, implementing trigger the
+		 * same as foreign table which use tuplestore to store the tuple
+		 * is more efficient. Because it is inefficient to fetch tuple
+		 * throught its ctid.
+		 */
+		if (row_trigger && (relkind == RELKIND_FOREIGN_TABLE ||
+			(enable_serverless && (!RelationIsHeap(rel) && !RelationIsAppendOptimized(rel)))))
 		{
 			if (fdw_tuplestore == NULL)
 			{
