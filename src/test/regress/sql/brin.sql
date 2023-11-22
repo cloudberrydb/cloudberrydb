@@ -511,7 +511,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE a = 1;
 EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE b = 1;
 
 -- make sure data are properly de-toasted in BRIN index
-CREATE TABLE brintest_3 (a text, b text, c text, d text);
+CREATE TABLE brintest_3 (a text, b text, c text, d text, e varchar);
 
 -- long random strings (~2000 chars each, so ~6kB for min/max on two
 -- columns) to trigger toasting
