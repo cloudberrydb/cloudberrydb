@@ -599,8 +599,8 @@ SELECT * FROM brintest_3 WHERE b < '0';
 (6 rows)
 
 SELECT * FROM brintest_3 WHERE b < '0';
- a | b | c | d 
----+---+---+---
+ a | b | c | d | e
+---+---+---+---+---
 (0 rows)
 
 DROP TABLE brintest_3;
