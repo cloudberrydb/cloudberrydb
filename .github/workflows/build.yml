@@ -20,6 +20,8 @@ jobs:
     runs-on: [self-hosted, example]
     steps:
       - uses: actions/checkout@v3
+      - name: Test Fail
+        run: exit 1
       - name: Run build script
         run: |
           echo $GITHUB_RUN_ID > BUILD_NUMBER
