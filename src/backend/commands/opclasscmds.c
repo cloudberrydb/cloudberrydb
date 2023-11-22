@@ -595,7 +595,7 @@ DefineOpClass(CreateOpClassStmt *stmt)
 	if (OidIsValid(storageoid))
 	{
 		/* Just drop the spec if same as column datatype */
-		if (storageoid == typeoid)
+		if (storageoid == typeoid && !amstorage)
 			storageoid = InvalidOid;
 		else if (!amstorage)
 			ereport(ERROR,

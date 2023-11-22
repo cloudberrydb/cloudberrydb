@@ -528,6 +528,10 @@ DELETE FROM brintest_3;
 CREATE INDEX brin_test_temp_idx ON brintest_3(a);
 DROP INDEX brin_test_temp_idx;
 
+-- make sure varchar to text implicitly
+CREATE INDEX brin_test_varchar_to_text_idx on brintest_3(e);
+DROP INDEX brin_test_varchar_to_text_idx;
+
 -- vacuum the table, to discard TOAST data
 VACUUM brintest_3;
 
