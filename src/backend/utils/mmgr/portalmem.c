@@ -50,6 +50,7 @@
  * ----------------
  */
 
+#if 0
 #define MAX_PORTALNAME_LEN		NAMEDATALEN
 
 typedef struct portalhashent
@@ -57,6 +58,7 @@ typedef struct portalhashent
 	char		portalname[MAX_PORTALNAME_LEN];
 	Portal		portal;
 } PortalHashEnt;
+#endif
 
 static HTAB *PortalHashTable = NULL;
 
@@ -1471,4 +1473,10 @@ ForgetPortalSnapshots(void)
 	if (numPortalSnaps != numActiveSnaps)
 		elog(ERROR, "portal snapshots (%d) did not account for all active snapshots (%d)",
 			 numPortalSnaps, numActiveSnaps);
+}
+
+HTAB *
+GetPortalHashTable(void)
+{
+	return PortalHashTable;
 }

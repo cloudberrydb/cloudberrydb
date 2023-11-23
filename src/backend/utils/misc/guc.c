@@ -5131,8 +5131,6 @@ static void write_auto_conf_file(int fd, const char *filename, ConfigVariable *h
 static void replace_auto_config_value(ConfigVariable **head_p, ConfigVariable **tail_p,
 									  const char *name, const char *value);
 
-static void DispatchSetPGVariable(const char *name, List *args, bool is_local);
-
 /*
  * Some infrastructure for checking malloc/strdup/realloc calls
  */
@@ -9139,7 +9137,7 @@ SetPGVariableOptDispatch(const char *name, List *args, bool is_local, bool gp_di
 		DispatchSetPGVariable(name, args, is_local);
 }
 
-static void
+void
 DispatchSetPGVariable(const char *name, List *args, bool is_local)
 {
 	ListCell   *l;
