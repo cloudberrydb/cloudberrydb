@@ -312,6 +312,10 @@ CdbDispatchSetCommand(const char *strCommand, bool cancelOnError)
 	int		queryTextLength;
 	ListCell   *le;
 	ErrorData *qeError = NULL;
+	int flags = DF_NONE;
+
+	if (CdbNeedDispatchCommand_hook && !CdbNeedDispatchCommand_hook(strCommand, &flags, NULL, NULL))
+		return;
 
 	elog((Debug_print_full_dtm ? LOG : DEBUG5),
 		 "CdbDispatchSetCommand for command = '%s'",
