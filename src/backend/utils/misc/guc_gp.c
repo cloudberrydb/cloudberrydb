@@ -363,6 +363,7 @@ int			optimizer_penalize_broadcast_threshold;
 double		optimizer_cost_threshold;
 double		optimizer_nestloop_factor;
 double		optimizer_sort_factor;
+double		optimizer_spilling_mem_threshold;
 
 /* Optimizer hints */
 int			optimizer_join_arity_for_associativity_commutativity;
@@ -4412,13 +4413,24 @@ struct config_real ConfigureNamesReal_gp[] =
 	},
 
 	{
-		{"optimizer_sort_factor",PGC_USERSET, QUERY_TUNING_OTHER,
+		{"optimizer_sort_factor", PGC_USERSET, QUERY_TUNING_OTHER,
 			gettext_noop("Set the sort cost factor in the optimizer, 1.0 means same as default, > 1.0 means more costly than default, < 1.0 means means less costly than default"),
 			NULL,
 			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
 		},
 		&optimizer_sort_factor,
 		1.0, 0.0, DBL_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"optimizer_spilling_mem_threshold", PGC_USERSET, QUERY_TUNING_OTHER,
+			gettext_noop("Set the optimizer factor for threshold of spilling to memory, 0.0 means unbounded"),
+			NULL,
+			GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE
+		},
+		&optimizer_spilling_mem_threshold,
+		0.0, 0.0, DBL_MAX,
 		NULL, NULL, NULL
 	},
 
