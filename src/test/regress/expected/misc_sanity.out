@@ -105,6 +105,7 @@ ORDER BY 1, 2;
 --------------------------+--------------------+--------------
  gp_configuration_history | desc               | text
  gp_version_at_initdb     | productversion     | text
+ gp_warehouse             | status             | text
  gp_warehouse             | warehouse_name     | text
  main_manifest            | path               | text
  pg_attribute             | attacl             | aclitem[]
@@ -135,7 +136,7 @@ ORDER BY 1, 2;
  pg_task_run_history      | return_message     | text
  pg_task_run_history      | status             | text
  pg_task_run_history      | username           | text
-(32 rows)
+(33 rows)
 
 -- system catalogs without primary keys
 --
