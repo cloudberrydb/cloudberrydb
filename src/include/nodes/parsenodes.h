@@ -4269,6 +4269,7 @@ typedef struct CreateWarehouseStmt
 	NodeTag		type;
 	char		*whname;
 	List		*options;		/* List of DefElem nodes */
+	List		*wh_options;	/* generic options to warehouse */
 } CreateWarehouseStmt;
 
 typedef struct DropWarehouseStmt

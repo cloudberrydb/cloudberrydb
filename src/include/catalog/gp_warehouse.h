@@ -4,14 +4,19 @@
 #include "catalog/genbki.h"
 #include "catalog/gp_warehouse_d.h"
 
-/*
- * Defines for gp_version_at_initdb table
+/* ----------------
+ *		gp_warehouse definition.  cpp turns this into
+ *		typedef struct FormData_gp_warehouse
+ * ----------------
  */
 CATALOG(gp_warehouse,8690,GpWarehouseRelationId) BKI_SHARED_RELATION
 {
     Oid		oid		BKI_FORCE_NOT_NULL;	/* oid */
     int32	warehouse_size;				/* warehouse size */
     text	warehouse_name	BKI_FORCE_NOT_NULL;	/* warehouse name */
+#ifdef CATALOG_VARLEN			/* variable-length fields start here */
+    text    status          BKI_FORCE_NOT_NULL; /* status */
+#endif
 } FormData_gp_warehouse;
 
 typedef FormData_gp_warehouse *Form_gp_warehouse;
