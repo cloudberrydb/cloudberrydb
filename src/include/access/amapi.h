@@ -14,6 +14,7 @@
 #define AMAPI_H
 
 #include "access/genam.h"
+#include "catalog/pg_index.h"
 
 /*
  * We don't wish to include planner header files here, since most of an index
@@ -285,6 +286,7 @@ typedef struct IndexAmRoutine
 
 
 /* Functions in access/index/amapi.c */
+extern bool IsIndexAccessMethod(Oid relam, Oid indexAccessMethod);
 extern IndexAmRoutine *GetIndexAmRoutine(Oid amhandler);
 extern IndexAmRoutine *GetIndexAmRoutineByAmId(Oid amoid, bool noerror);
 

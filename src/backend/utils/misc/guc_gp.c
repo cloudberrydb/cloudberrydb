@@ -58,6 +58,7 @@
 #include "utils/resource_manager.h"
 #include "utils/varlena.h"
 #include "utils/vmem_tracker.h"
+#include "catalog/index.h"
 
 /*
  * These constants are copied from guc.c. They should not bitrot when we
@@ -4571,6 +4572,17 @@ struct config_string ConfigureNamesString_gp[] =
 		&gp_server_version_string,
 		GP_VERSION,
 		NULL, NULL, NULL
+	},
+
+	{
+		{"default_index_access_method", PGC_USERSET, CLIENT_CONN_STATEMENT,
+		 gettext_noop("Sets the default index access method."),
+		 NULL,
+		 GUC_IS_NAME
+		},
+		&default_index_access_method,
+		DEFAULT_INDEX_TYPE,
+		check_default_index_access_method, NULL, NULL
 	},
 #ifndef USE_INTERNAL_FTS
 	{

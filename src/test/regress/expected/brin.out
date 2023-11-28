@@ -560,7 +560,7 @@ EXPLAIN (COSTS OFF) SELECT * FROM brin_test WHERE b = 1;
 (4 rows)
 
 -- make sure data are properly de-toasted in BRIN index
-CREATE TABLE brintest_3 (a text, b text, c text, d text);
+CREATE TABLE brintest_3 (a text, b text, c text, d text, e varchar);
 -- long random strings (~2000 chars each, so ~6kB for min/max on two
 -- columns) to trigger toasting
 WITH rand_value AS (SELECT string_agg(md5(i::text),'') AS val FROM generate_series(1,60) s(i))
@@ -573,6 +573,9 @@ DELETE FROM brintest_3;
 -- is a one way to achieve that, because it does exactly such wait.
 CREATE INDEX brin_test_temp_idx ON brintest_3(a);
 DROP INDEX brin_test_temp_idx;
+-- make sure varchar to text implicitly
+CREATE INDEX brin_test_varchar_to_text_idx on brintest_3(e);
+DROP INDEX brin_test_varchar_to_text_idx;
 -- vacuum the table, to discard TOAST data
 VACUUM brintest_3;
 -- retry insert with a different random-looking (but deterministic) value
@@ -596,8 +599,8 @@ SELECT * FROM brintest_3 WHERE b < '0';
 (6 rows)
 
 SELECT * FROM brintest_3 WHERE b < '0';
- a | b | c | d 
----+---+---+---
+ a | b | c | d | e 
+---+---+---+---+---
 (0 rows)
 
 DROP TABLE brintest_3;

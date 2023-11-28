@@ -35,7 +35,6 @@
 #include "utils/lsyscache.h"
 #include "utils/syscache.h"
 
-
 /*
  * SP-GiST handler function: return IndexAmRoutine with access method parameters
  * and callbacks.

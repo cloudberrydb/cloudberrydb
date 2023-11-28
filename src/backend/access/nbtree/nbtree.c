@@ -41,7 +41,6 @@
 #include "catalog/indexing.h"
 #include "catalog/pg_namespace.h"
 
-
 /*
  * BTPARALLEL_NOT_INITIALIZED indicates that the scan has not started.
  *

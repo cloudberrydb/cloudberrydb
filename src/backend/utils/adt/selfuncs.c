@@ -6229,7 +6229,7 @@ get_actual_variable_range(PlannerInfo *root, VariableStatData *vardata,
 		ScanDirection indexscandir;
 
 		/* Ignore non-btree indexes */
-		if (index->relam != BTREE_AM_OID)
+		if (!IsIndexAccessMethod(index->relam, BTREE_AM_OID))
 			continue;
 
 		/*

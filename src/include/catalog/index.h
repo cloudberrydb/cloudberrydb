@@ -20,10 +20,13 @@
 #include "catalog/objectaddress.h"
 #include "executor/tuptable.h"  /* TupTableSlot */
 #include "nodes/execnodes.h"
+#include "utils/guc.h"
 
 struct EState;                  /* #include "nodes/execnodes.h" */
 
 #define DEFAULT_INDEX_TYPE	"btree"
+/* GUCs */
+extern char *default_index_access_method;
 
 /* Action code for index_set_state_flags */
 typedef enum
@@ -225,6 +228,8 @@ extern void SerializeReindexState(Size maxsize, char *start_address);
 extern void RestoreReindexState(void *reindexstate);
 
 extern void IndexSetParentIndex(Relation idx, Oid parentOid);
+extern bool check_default_index_access_method(char **newval, void **extra,
+                                              GucSource source);
 
 
 /*
