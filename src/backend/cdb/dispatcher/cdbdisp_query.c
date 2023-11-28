@@ -104,6 +104,7 @@ typedef struct DispatchCommandQueryParms
  */
 CdbNeedDispatchCommand_hook_type CdbNeedDispatchCommand_hook = NULL;
 CdbNeedDispatchUtility_hook_type CdbNeedDispatchUtility_hook = NULL;
+CdbConfirmDispatch_hook_type CdbConfirmDispatch_hook = NULL;
 
 static int fillSliceVector(SliceTable *sliceTable,
 				int sliceIndex,

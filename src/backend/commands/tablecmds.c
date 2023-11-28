@@ -1258,6 +1258,8 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 		 */
 		if (OidIsValid(defaultPartOid))
 		{
+			if (Gp_role == GP_ROLE_DISPATCH && CdbConfirmDispatch_hook)
+				CdbConfirmDispatch_hook();
 			check_default_partition_contents(parent, defaultRel, bound);
 			/* Keep the lock until commit. */
 			table_close(defaultRel, NoLock);

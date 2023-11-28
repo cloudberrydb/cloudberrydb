@@ -52,6 +52,9 @@ extern PGDLLIMPORT CdbNeedDispatchCommand_hook_type CdbNeedDispatchCommand_hook;
 typedef bool (*CdbNeedDispatchUtility_hook_type) (struct Node *stmt, int *flags);
 extern PGDLLIMPORT CdbNeedDispatchUtility_hook_type CdbNeedDispatchUtility_hook;
 
+typedef bool (*CdbConfirmDispatch_hook_type) (void);
+extern PGDLLIMPORT CdbConfirmDispatch_hook_type CdbConfirmDispatch_hook;
+
 /* Compose and dispatch the MPPEXEC commands corresponding to a plan tree
  * within a complete parallel plan.
  *
