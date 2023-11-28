@@ -1,0 +1,266 @@
+/*-------------------------------------------------------------------------
+ *
+ * pagestore_client.h
+ *
+ *
+ * Portions Copyright (c) 1996-2021, PostgreSQL Global Development Group
+ * Portions Copyright (c) 1994, Regents of the University of California
+ *
+ *-------------------------------------------------------------------------
+ */
+#ifndef pageserver_h
+#define pageserver_h
+
+#include "postgres.h"
+
+#include "access/genam.h"
+#include "access/xlogdefs.h"
+#include "catalog/index.h"
+#include "storage/relfilenode.h"
+#include "storage/block.h"
+#include "storage/smgr.h"
+#include "tcop/utility.h"
+#include "lib/stringinfo.h"
+#include "libpq/pqformat.h"
+#include "utils/memutils.h"
+#include "utils/rel.h"
+
+#include "pg_config.h"
+
+typedef enum
+{
+	/* pagestore_client -> pagestore */
+	T_NeonExistsRequest = 0,
+	T_NeonNblocksRequest,
+	T_NeonGetPageRequest,
+	T_NeonDbSizeRequest,
+	T_NeonTxnIdRequest,
+
+	/* pagestore -> pagestore_client */
+	T_NeonExistsResponse = 100,
+	T_NeonNblocksResponse,
+	T_NeonGetPageResponse,
+	T_NeonErrorResponse,
+	T_NeonDbSizeResponse,
+	T_NeonTxnIdResponse,
+}			NeonMessageTag;
+
+/* base struct for c-style inheritance */
+typedef struct
+{
+	NeonMessageTag tag;
+}			NeonMessage;
+
+#define messageTag(m) (((const NeonMessage *)(m))->tag)
+
+#define NEON_TAG "[NEON_SMGR] "
+#define neon_log(tag, fmt, ...) ereport(tag,                                  \
+										(errmsg(NEON_TAG fmt, ##__VA_ARGS__), \
+										 errhidestmt(true), errhidecontext(true), internalerrposition(0)))
+
+/*
+ * supertype of all the Neon*Request structs below
+ *
+ * If 'latest' is true, we are requesting the latest page version, and 'lsn'
+ * is just a hint to the server that we know there are no versions of the page
+ * (or relation size, for exists/nblocks requests) later than the 'lsn'.
+ */
+typedef struct
+{
+	NeonMessageTag tag;
+	bool		latest;			/* if true, request latest page version */
+	XLogRecPtr	lsn;			/* request page version @ this LSN */
+}			NeonRequest;
+
+typedef struct
+{
+	NeonRequest req;
+	RelFileNode rnode;
+	ForkNumber	forknum;
+}			NeonExistsRequest;
+
+typedef struct
+{
+	NeonRequest req;
+	RelFileNode rnode;
+	ForkNumber	forknum;
+}			NeonNblocksRequest;
+
+typedef struct
+{
+	NeonRequest req;
+	Oid			dbNode;
+}			NeonDbSizeRequest;
+
+typedef struct
+{
+	NeonRequest req;
+	RelFileNode rnode;
+	ForkNumber	forknum;
+	BlockNumber blkno;
+	XLogRecPtr	local_lsn;
+}			NeonGetPageRequest;
+
+typedef struct
+{
+    NeonRequest req;
+}			NeonTxnIdRequest;
+
+/* supertype of all the Neon*Response structs below */
+typedef struct
+{
+	NeonMessageTag tag;
+}			NeonResponse;
+
+typedef struct
+{
+	NeonMessageTag tag;
+	bool		exists;
+}			NeonExistsResponse;
+
+typedef struct
+{
+	NeonMessageTag tag;
+	uint32		n_blocks;
+}			NeonNblocksResponse;
+
+typedef struct
+{
+	NeonMessageTag tag;
+	char		page[FLEXIBLE_ARRAY_MEMBER];
+}			NeonGetPageResponse;
+
+#define PS_GETPAGERESPONSE_SIZE (MAXALIGN(offsetof(NeonGetPageResponse, page) + BLCKSZ))
+
+typedef struct
+{
+	NeonMessageTag tag;
+	int64		db_size;
+}			NeonDbSizeResponse;
+
+typedef struct
+{
+	NeonMessageTag tag;
+	char		message[FLEXIBLE_ARRAY_MEMBER]; /* null-terminated error
+												 * message */
+}			NeonErrorResponse;
+
+typedef struct
+{
+    NeonMessageTag tag;
+    uint64		   xid;
+}			NeonTxnIdResponse;
+
+extern StringInfoData nm_pack_request(NeonRequest * msg);
+extern NeonResponse * nm_unpack_response(StringInfo s);
+extern char *nm_to_string(NeonMessage * msg);
+
+/*
+ * API
+ */
+
+typedef struct
+{
+	void		(*send) (NeonRequest * request);
+	NeonResponse *(*receive) (void);
+	void		(*flush) (void);
+}			page_server_api;
+
+extern void prefetch_on_ps_disconnect(void);
+
+extern page_server_api * page_server;
+
+extern char *page_server_connstring;
+extern int flush_every_n_requests;
+extern int readahead_buffer_size;
+extern bool seqscan_prefetch_enabled;
+extern int seqscan_prefetch_distance;
+extern char *neon_timeline;
+extern char *neon_tenant;
+extern bool wal_redo;
+extern int32 max_cluster_size;
+
+extern PGDLLIMPORT smgr_hook_type neon_prev_smgr_hook;
+extern PGDLLIMPORT ProcessUtility_hook_type neon_prev_ProcessUtility;
+extern PGDLLIMPORT index_create_hook_type neon_prev_index_create;
+extern PGDLLIMPORT ambuild_function neon_prev_index_build;
+extern PGDLLIMPORT relation_size_hook_type neon_prev_relation_size;
+extern PGDLLIMPORT is_index_access_method_hook_type neon_prev_is_index_access_method;
+
+extern const struct f_smgr neon_smgr;
+extern void smgr_init_neon(void);
+extern void readahead_buffer_resize(int newsize, void *extra);
+
+#define SmgrIsUnionStore(reln) \
+                        ((reln)->smgr == &neon_smgr)
+
+/* Neon storage manager functionality */
+
+extern void neon_init(void);
+extern void neon_open(SMgrRelation reln);
+extern void neon_close(SMgrRelation reln, ForkNumber forknum);
+extern void neon_create(SMgrRelation reln, ForkNumber forknum, bool isRedo);
+extern bool neon_exists(SMgrRelation reln, ForkNumber forknum);
+extern FullTransactionId neon_get_latest_transaction_id(XLogRecPtr lsn);
+extern void neon_unlink(RelFileNodeBackend rnode, ForkNumber forknum, bool isRedo);
+extern void neon_extend(SMgrRelation reln, ForkNumber forknum,
+						BlockNumber blocknum, char *buffer, bool skipFsync);
+extern bool neon_prefetch(SMgrRelation reln, ForkNumber forknum,
+						  BlockNumber blocknum);
+extern void neon_read(SMgrRelation reln, ForkNumber forknum, BlockNumber blocknum,
+					  char *buffer);
+
+extern void neon_read_at_lsn(RelFileNode rnode, ForkNumber forkNum, BlockNumber blkno,
+							 XLogRecPtr request_lsn, bool request_latest, char *buffer);
+
+extern void neon_write(SMgrRelation reln, ForkNumber forknum,
+					   BlockNumber blocknum, char *buffer, bool skipFsync);
+extern void neon_writeback(SMgrRelation reln, ForkNumber forknum,
+						   BlockNumber blocknum, BlockNumber nblocks);
+extern BlockNumber neon_nblocks(SMgrRelation reln, ForkNumber forknum);
+extern int64 neon_dbsize(Oid dbNode);
+extern void neon_truncate(SMgrRelation reln, ForkNumber forknum,
+						  BlockNumber nblocks);
+extern void neon_immedsync(SMgrRelation reln, ForkNumber forknum);
+
+/* utils for neon relsize cache */
+extern void relsize_hash_init(void);
+extern bool get_cached_relsize(RelFileNode rnode, ForkNumber forknum, BlockNumber *size);
+extern void set_cached_relsize(RelFileNode rnode, ForkNumber forknum, BlockNumber size);
+extern void update_cached_relsize(RelFileNode rnode, ForkNumber forknum, BlockNumber size);
+extern void forget_cached_relsize(RelFileNode rnode, ForkNumber forknum);
+
+/* functions for local file cache */
+extern void lfc_write(RelFileNode rnode, ForkNumber forkNum, BlockNumber blkno, char *buffer);
+extern bool lfc_read(RelFileNode rnode, ForkNumber forkNum, BlockNumber blkno, char *buffer);
+extern bool lfc_cache_contains(RelFileNode rnode, ForkNumber forkNum, BlockNumber blkno);
+extern void lfc_init(void);
+extern void neon_smgr_init(SMgrRelation reln, BackendId backend, SMgrImpl which, Relation rel);
+extern void neon_ProcessUtility(PlannedStmt *pstmt, const char *queryString,
+                           bool readOnlyTree,
+                           ProcessUtilityContext context,
+                           ParamListInfo params, QueryEnvironment *queryEnv,
+                           DestReceiver *dest, QueryCompletion *qc);
+extern Oid neon_index_create(Relation heapRelation,
+                              const char *indexRelationName,
+                              Oid indexRelationId,
+                              Oid parentIndexRelid,
+                              Oid parentConstraintId,
+                              RelFileNodeId relFileNode,
+                              IndexInfo *indexInfo,
+                              List *indexColNames,
+                              Oid accessMethodObjectId,
+                              Oid tableSpaceId,
+                              Oid *collationObjectId,
+                              Oid *classObjectId,
+                              int16 *coloptions,
+                              Datum reloptions,
+                              bits16 flags,
+                              bits16 constr_flags,
+                              bool allow_system_table_mods,
+                              bool is_internal,
+                              Oid *constraintId);
+extern IndexBuildResult *neon_index_build(Relation heap, Relation index, IndexInfo *indexInfo);
+extern int64 neon_relation_size(Relation rel, ForkNumber forknum);
+extern bool neon_is_index_access_method(Oid oid, Oid expected_oid);
+#endif

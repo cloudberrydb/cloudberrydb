@@ -1,0 +1,1 @@
+alter database contrib_regression set default_table_access_method to union_store;

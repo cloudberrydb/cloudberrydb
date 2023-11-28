@@ -1,0 +1,4 @@
+# unionstore extension
+comment = 'cloud storage for CloudBerry'
+default_version = '1.0'
+module_pathname = '$libdir/unionstore'
