@@ -799,6 +799,7 @@ ExecSquelchNode(PlanState *node)
 		case T_SampleScanState:
 		case T_GatherState:
 		case T_GatherMergeState:
+		case T_NamedTuplestoreScanState:
 			break;
 
 			/*

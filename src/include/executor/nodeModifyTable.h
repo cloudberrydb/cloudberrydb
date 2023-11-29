@@ -24,4 +24,6 @@ extern void ExecEndModifyTable(ModifyTableState *node);
 extern void ExecReScanModifyTable(ModifyTableState *node);
 extern void ExecSquelchModifyTable(ModifyTableState *node);
 
+extern void fireASTriggers(ModifyTableState *node);
+
 #endif							/* NODEMODIFYTABLE_H */

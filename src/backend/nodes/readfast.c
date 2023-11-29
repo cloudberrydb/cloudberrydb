@@ -837,6 +837,11 @@ _readQueryDispatchDesc(void)
 	READ_STRING_FIELD(parallelCursorName);
 	READ_BOOL_FIELD(useChangedAOOpts);
 	READ_INT_FIELD(secContext);
+	READ_NODE_FIELD(namedRelList);
+	READ_OID_FIELD(matviewOid);
+	READ_OID_FIELD(tableid);
+	READ_INT_FIELD(snaplen);
+	READ_STRING_FIELD(snapname);
 	READ_DONE();
 }
 
@@ -1098,6 +1103,7 @@ _readCreateTrigStmt(void)
 	READ_BOOL_FIELD(deferrable);
 	READ_BOOL_FIELD(initdeferred);
 	READ_NODE_FIELD(constrrel);
+	READ_OID_FIELD(matviewId);
 
 	READ_DONE();
 }
@@ -1632,6 +1638,38 @@ _readCreateStatsStmt(void)
 	READ_STRING_FIELD(stxcomment);
 	READ_BOOL_FIELD(transformed);
 	READ_BOOL_FIELD(if_not_exists);
+
+	READ_DONE();
+}
+
+static EphemeralNamedRelationInfo *
+_readEphemeralNamedRelationInfo(void)
+{
+	READ_LOCALS(EphemeralNamedRelationInfo);
+
+	READ_STRING_FIELD(name);
+	READ_OID_FIELD(reliddesc);
+	READ_INT_FIELD(natts);
+
+	local_node->tuple = CreateTemplateTupleDesc(local_node->natts);
+
+	READ_INT_FIELD(tuple->natts);
+	if (local_node->tuple->natts > 0)
+	{
+		int i = 0;
+		for (; i < local_node->tuple->natts; i++)
+		{
+			memcpy(&local_node->tuple->attrs[i], read_str_ptr, ATTRIBUTE_FIXED_PART_SIZE);
+			read_str_ptr+=ATTRIBUTE_FIXED_PART_SIZE;
+		}
+	}
+
+	READ_OID_FIELD(tuple->tdtypeid);
+	READ_INT_FIELD(tuple->tdtypmod);
+	READ_INT_FIELD(tuple->tdrefcount);
+
+	READ_ENUM_FIELD(enrtype, EphemeralNameRelationType);
+	READ_FLOAT_FIELD(enrtuples);
 
 	READ_DONE();
 }
@@ -2629,6 +2667,9 @@ readNodeBinary(void)
 				break;
 			case T_StatsElem:
 				return_value = _readStatsElem();
+				break;
+			case T_EphemeralNamedRelationInfo:
+				return_value = _readEphemeralNamedRelationInfo();
 				break;
 			default:
 				return_value = NULL; /* keep the compiler silent */

@@ -255,7 +255,9 @@ extern void AfterTriggerSetState(ConstraintsSetStmt *stmt);
 extern bool AfterTriggerPendingOnRel(Oid relid);
 
 extern void SetTransitionTablePreserved(Oid relid, CmdType cmdType);
-
+extern List* AfterTriggerGetMvList(void);
+extern void AfterTriggerAppendMvList(Oid matview_id);
+extern void SetTransitionTableName(Oid relid, CmdType cmdType, Oid mvoid);
 
 /*
  * in utils/adt/ri_triggers.c

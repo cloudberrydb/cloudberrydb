@@ -173,7 +173,9 @@ _equalIntoClause(const IntoClause *a, const IntoClause *b)
 	COMPARE_NODE_FIELD(viewQuery);
 	COMPARE_SCALAR_FIELD(skipData);
 	COMPARE_NODE_FIELD(distributedBy);
-
+	COMPARE_SCALAR_FIELD(ivm);
+	COMPARE_SCALAR_FIELD(matviewOid);
+	COMPARE_STRING_FIELD(enrname);
 	return true;
 }
 
@@ -2239,6 +2241,7 @@ _equalCreateTrigStmt(const CreateTrigStmt *a, const CreateTrigStmt *b)
 	COMPARE_SCALAR_FIELD(deferrable);
 	COMPARE_SCALAR_FIELD(initdeferred);
 	COMPARE_NODE_FIELD(constrrel);
+	COMPARE_SCALAR_FIELD(matviewId);
 
 	return true;
 }
@@ -3008,6 +3011,7 @@ _equalRangeTblEntry(const RangeTblEntry *a, const RangeTblEntry *b)
 	COMPARE_SCALAR_FIELD(relkind);
 	COMPARE_SCALAR_FIELD(rellockmode);
 	COMPARE_NODE_FIELD(tablesample);
+	COMPARE_SCALAR_FIELD(relisivm);
 	COMPARE_NODE_FIELD(subquery);
 	COMPARE_SCALAR_FIELD(security_barrier);
 	COMPARE_SCALAR_FIELD(jointype);

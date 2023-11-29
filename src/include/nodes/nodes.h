@@ -659,6 +659,7 @@ typedef enum NodeTag
 	T_GpPolicy,					/* in catalog/gp_distribution_policy.h */
 	T_RetrieveStmt,
 	T_ReindexIndexInfo,			/* in nodes/parsenodes.h */
+	T_EphemeralNamedRelationInfo, /* utils/queryenvironment.h */
 
 } NodeTag;
 

@@ -40,6 +40,7 @@
 #include "catalog/pg_profile.h"
 #include "commands/tablespace.h"
 #include "datatype/timestamp.h"
+#include "commands/matview.h"
 
 #include "libpq/auth.h"
 #include "libpq/hba.h"
@@ -767,6 +768,7 @@ InitPostgres(const char *in_dbname, Oid dboid, const char *username,
 
 	/* Initialize portal manager */
 	EnablePortalManager();
+	mv_InitHashTables();
 
 	/* Initialize stats collection --- must happen before first xact */
 	if (!bootstrap)

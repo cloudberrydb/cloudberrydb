@@ -246,6 +246,14 @@ typedef struct QueryDispatchDesc
 	 * Security context flags.
 	 */
 	int		secContext;
+	/*
+	 * Matview context fields
+	 */
+	List	*namedRelList;
+	Oid 	matviewOid;
+	Oid 	tableid;
+	int 	snaplen;
+	char	*snapname;
 } QueryDispatchDesc;
 
 /*
@@ -336,5 +344,7 @@ extern QueryDesc *CreateQueryDesc(PlannedStmt *plannedstmt,
 								  int instrument_options);
 
 extern void FreeQueryDesc(QueryDesc *qdesc);
+extern void FillQueryDispatchDesc(QueryEnvironment *queryEnv, QueryDispatchDesc *ddesc);
+
 
 #endif							/* EXECDESC_H  */
