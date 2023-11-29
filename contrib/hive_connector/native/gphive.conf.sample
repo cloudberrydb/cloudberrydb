@@ -1,0 +1,12 @@
+# server name
+hive-server-1:
+    # address of hive metastore service
+    uris: thrift://192.168.50.22:9083
+    # auth method: simple or kerberos
+    auth_method: simple
+    # kerberos service principal
+    krb_service_principal: hive/hashdata@company.com
+    # kerberos client principal
+    krb_client_principal: user/hashdata@company.com
+    # kerberos client keytab file
+    krb_client_keytab: path to keytab file

@@ -1,0 +1,520 @@
+-- create datalake_fdw
+-- clean table
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+NOTICE:  foreign table "oss_read" does not exist, skipping
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER foreign_server;
+NOTICE:  server "foreign_server" does not exist, skipping
+DROP SERVER IF EXISTS foreign_server;
+NOTICE:  server "foreign_server" does not exist, skipping
+DROP FOREIGN DATA WRAPPER IF EXISTS datalake_fdw;
+CREATE EXTENSION IF NOT EXISTS datalake_fdw;
+NOTICE:  extension "datalake_fdw" already exists, skipping
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+  HANDLER datalake_fdw_handler
+  VALIDATOR datalake_fdw_validator 
+  OPTIONS ( mpp_execute 'all segments' );
+CREATE SERVER foreign_server
+        FOREIGN DATA WRAPPER datalake_fdw
+        OPTIONS (host 'pek3b.qingstor.com', protocol 'qs', isvirtual 'false',
+        ishttps 'false');
+CREATE USER MAPPING FOR gpadmin
+        SERVER foreign_server
+        OPTIONS (user 'gpadmin', accesskey 'KGCPPHVCHRMZMFEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+set vector.enable_vectorization=off;
+-- small file
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+NOTICE:  foreign table "oss_read" does not exist, skipping
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/oneSmallFile/', enableCache 'false', format 'orc');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+ 5 | 5
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/twoSmallFile/', enableCache 'false', format 'orc');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+ 1 | 1
+ 2 | 2
+(2 rows)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/moreSmallFile/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+ count 
+-------
+    20
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/1024_smallFile/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+ count 
+-------
+  1728
+(1 row)
+
+-- big file
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/oneBigFile/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+  count  
+---------
+ 3000823
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/twoBigFile/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+  count  
+---------
+ 5995705
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/more_bigFile/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+  count   
+----------
+ 24000000
+(1 row)
+
+-- 64k stripes
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/strips_64k/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+ count 
+-------
+    50
+(1 row)
+
+-- empty
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/emptyfloder/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+ count 
+-------
+     0
+(1 row)
+
+-- complex
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/alltest/', enableCache 'false', format 'orc');
+select count(*) from oss_read;
+  count   
+----------
+ 49000050
+(1 row)
+
+-- numeric
+drop table if exists test;
+NOTICE:  table "test" does not exist, skipping
+create table test(
+col numeric(2,1),
+col2 numeric(9,6),
+col3 numeric(18,3),
+col4 numeric(38,3),
+col5 numeric(18,17),
+col6 numeric(38,37)
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'col' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+col numeric(2,1),
+col2 numeric(9,6),
+col3 numeric(18,3),
+col4 numeric(38,3),
+col5 numeric(18,17),
+col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/numeric/', enableCache 'false', format 'orc');
+select * from oss_read order by col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+   0 |        0 |                   0 |                                      0 |                   0 |                                       0
+ 0.1 | 0.000001 |               0.001 |                                  0.001 | 0.00000000000000001 | 0.0000000000000000000000000000000000001
+ 1.0 | 1.000000 |               1.000 |                                  1.000 | 1.00000000000000000 | 1.0000000000000000000000000000000000000
+ 1.1 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.000001 | 923456789123456.781 | 9234567891234567891234567891234567.891 | 9.12345678912345671 | 9.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(9 rows)
+
+insert into test select * from oss_read;
+select * from test order by col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+   0 |        0 |                   0 |                                      0 |                   0 |                                       0
+ 0.1 | 0.000001 |               0.001 |                                  0.001 | 0.00000000000000001 | 0.0000000000000000000000000000000000001
+ 1.0 | 1.000000 |               1.000 |                                  1.000 | 1.00000000000000000 | 1.0000000000000000000000000000000000000
+ 1.1 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.000001 | 923456789123456.781 | 9234567891234567891234567891234567.891 | 9.12345678912345671 | 9.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(9 rows)
+
+-- null col
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b text, c int, d text)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/colNull/', enableCache 'false', format 'orc');
+select * from oss_read order by a,b,c,d;
+ a | b | c | d  
+---+---+---+----
+ 1 | w | 1 | se
+ 1 |   | 1 | se
+ 1 |   |   | se
+ 1 |   |   | 
+ 2 | w | 1 | se
+ 2 |   | 1 | se
+ 2 |   |   | se
+ 2 |   |   | 
+ 3 | w | 1 | se
+ 3 |   | 1 | se
+ 3 |   |   | se
+ 3 |   |   | 
+ 4 | w | 1 | se
+   | w | 1 | se
+   |   |   | 
+(15 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a date)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/date/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+     a      
+------------
+ 1577-12-31
+ 1877-12-31
+ 1977-12-31
+ 2022-02-22
+ 2999-12-31
+ 3999-12-22
+ 7777-07-07
+ 9999-12-31
+(8 rows)
+
+-- timestamp
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a timestamp)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/timestamp/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+             a              
+----------------------------
+ 1577-12-31 23:59:59.999999
+ 1877-12-31 09:59:59.999999
+ 2999-02-22 19:10:25
+ 2999-12-29 00:00:00
+ 2999-12-29 12:59:59
+ 2999-12-29 12:59:59.123456
+ 2999-12-29 12:59:59.123456
+ 7777-07-07 00:59:59.999999
+ 9999-12-26 00:00:01
+ 9999-12-26 00:00:01.1
+ 9999-12-27 00:00:01.01
+ 9999-12-28 00:00:01.001
+ 9999-12-29 00:00:01.001
+ 9999-12-30 00:00:01
+ 9999-12-30 00:00:01.123457
+ 9999-12-30 00:00:01.999999
+ 9999-12-30 00:00:03
+(17 rows)
+
+-- big text
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a text)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/bigText/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                a                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ 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
+(2 rows)
+
+-- bool varchar char
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b bool, c varchar(20), d char(20), e text, f bytea)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/bool/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+ a | b |   c   |          d           |   e   |      f       
+---+---+-------+----------------------+-------+--------------
+ 1 | t | TRUE  | TRUE                 | TRUE  | \x54525545
+ 2 | f | FALSE | FALSE                | FALSE | \x46414c5345
+ 3 | t | true  | true                 | true  | \x74727565
+ 4 | f | false | false                | false | \x66616c7365
+ 5 | t | 'yes' | 'yes'                | TRUE  | \x54525545
+ 6 | f | 'no'  | 'no'                 | FALSE | \x46414c5345
+ 7 | t | '1'   | '1'                  | true  | \x74727565
+ 8 | f | '0'   | '0'                  | FALSE | \x46414c5345
+ 9 |   | NULL  | NULL                 | NULL  | \x4e554c4c
+(9 rows)
+
+-- int2
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int2)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/int2/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+   a    
+--------
+ -32768
+ -32767
+  -1234
+      0
+   1234
+  32767
+(6 rows)
+
+-- int2 invalid
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int2)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/int4/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+ a  
+----
+ -1
+  0
+  0
+(3 rows)
+
+-- int4
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int4)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/int4/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+      a      
+-------------
+ -2147483648
+           0
+  2147483647
+(3 rows)
+
+-- int4 invalid
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int4)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/int8/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+ a  
+----
+ -1
+  0
+  0
+(3 rows)
+
+-- int8
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int8)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/int8/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+          a           
+----------------------
+ -9223372036854775808
+                    0
+  9223372036854775807
+(3 rows)
+
+-- float4
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a float4)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/float4/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+       a       
+---------------
+        -34.84
+             0
+ 1.2345679e-20
+        1004.3
+ 1.2345679e+20
+(5 rows)
+
+-- float8
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a float8)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/float8/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+            a            
+-------------------------
+ -1.2345700066324696e+20
+                       0
+  1.2345699722922348e-20
+  1.2345700066324696e+20
+(4 rows)
+
+-- timestamp
+SET datestyle = 'ISO, DMY';
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+drop table if exists test;
+create table test(a timestamp);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+CREATE FOREIGN TABLE oss_read (a timestamp)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/timestamp/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+             a              
+----------------------------
+ 1577-12-31 23:59:59.999999
+ 1877-12-31 09:59:59.999999
+ 2999-02-22 19:10:25
+ 2999-12-29 00:00:00
+ 2999-12-29 12:59:59
+ 2999-12-29 12:59:59.123456
+ 2999-12-29 12:59:59.123456
+ 7777-07-07 00:59:59.999999
+ 9999-12-26 00:00:01
+ 9999-12-26 00:00:01.1
+ 9999-12-27 00:00:01.01
+ 9999-12-28 00:00:01.001
+ 9999-12-29 00:00:01.001
+ 9999-12-30 00:00:01
+ 9999-12-30 00:00:01.123457
+ 9999-12-30 00:00:01.999999
+ 9999-12-30 00:00:03
+(17 rows)
+
+insert into test select a + (5 || 'day')::interval FROM oss_read;
+select * from test order by a;
+              a              
+-----------------------------
+ 1578-01-05 23:59:59.999999
+ 1878-01-05 09:59:59.999999
+ 2999-02-27 19:10:25
+ 3000-01-03 00:00:00
+ 3000-01-03 12:59:59
+ 3000-01-03 12:59:59.123456
+ 3000-01-03 12:59:59.123456
+ 7777-07-12 00:59:59.999999
+ 9999-12-31 00:00:01
+ 9999-12-31 00:00:01.1
+ 10000-01-01 00:00:01.01
+ 10000-01-02 00:00:01.001
+ 10000-01-03 00:00:01.001
+ 10000-01-04 00:00:01
+ 10000-01-04 00:00:01.123457
+ 10000-01-04 00:00:01.999999
+ 10000-01-04 00:00:03
+(17 rows)
+
+-- time
+SET datestyle = 'ISO, DMY';
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a time)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/time/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+    a     
+----------
+ 00:00:00
+ 11:59:59
+ 15:31:45
+(3 rows)
+
+-- timestamp2
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a timestamp)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/timestamp2045/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+               a               
+-------------------------------
+ 2000-10-19 10:23:54.123456 BC
+ 1970-10-19 10:23:54.123456 BC
+ 1900-10-19 10:23:54.123456 BC
+ 0099-10-19 10:23:54.123456 BC
+ 0031-01-12 23:59:59.999999 BC
+ 0001-12-31 23:59:59.999999 BC
+ 0001-10-19 10:23:54.123456
+ 0099-10-19 10:23:54.123456
+ 1577-12-31 23:59:59.999999
+ 1970-01-01 00:00:00.999999
+ 1970-01-01 23:59:59.999999
+ 2004-10-19 10:23:54
+ 2004-10-19 10:23:54.1234
+ 2004-10-19 10:23:54.123457
+ 2019-01-10 10:23:54.123456
+ 9999-12-30 00:00:01.123457
+(16 rows)
+
+-- date2
+SET datestyle = ISO, MDY;
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a date)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/ext_orc/date2045/', enableCache 'false', format 'orc');
+select * from oss_read order by a;
+       a       
+---------------
+ 4713-01-01 BC
+ 4713-01-01 BC
+ 2000-01-01 BC
+ 1970-01-01 BC
+ 1900-01-01 BC
+ 0100-01-01 BC
+ 0002-01-01 BC
+ 0001-01-01 BC
+ 0001-01-01 BC
+ 0001-01-01
+ 0001-01-01
+ 0001-01-01
+ 1577-12-31
+ 1877-12-31
+ 1977-12-31
+ 1999-01-08
+ 1999-01-08
+ 1999-01-08
+ 1999-01-08
+ 2001-01-01
+ 2001-01-01
+ 2022-02-22
+ 2999-12-31
+ 3999-12-22
+ 7777-07-07
+ 9999-12-31
+(26 rows)
+

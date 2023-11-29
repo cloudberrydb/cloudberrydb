@@ -1,0 +1,5 @@
+# datalake_proxy extension
+comment = 'datalake_proxy for datalake agent'
+default_version = '1.0'
+module_pathname = '$libdir/datalake_proxy'
+relocatable = true

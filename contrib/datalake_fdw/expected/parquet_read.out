@@ -1,0 +1,593 @@
+-- create datalake_fdw
+-- clean table
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER foreign_server;
+DROP SERVER IF EXISTS foreign_server;
+NOTICE:  server "foreign_server" does not exist, skipping
+DROP FOREIGN DATA WRAPPER IF EXISTS datalake_fdw;
+CREATE EXTENSION IF NOT EXISTS datalake_fdw;
+NOTICE:  extension "datalake_fdw" already exists, skipping
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+  HANDLER datalake_fdw_handler
+  VALIDATOR datalake_fdw_validator 
+  OPTIONS ( mpp_execute 'all segments' );
+CREATE SERVER foreign_server
+        FOREIGN DATA WRAPPER datalake_fdw
+        OPTIONS (host 'pek3b.qingstor.com', protocol 'qs', isvirtual 'false',
+        ishttps 'false');
+CREATE USER MAPPING FOR gpadmin
+        SERVER foreign_server
+        OPTIONS (user 'gpadmin', accesskey 'KGCPPHVCHRMZMFEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+set vector.enable_vectorization=off;
+-- uncompress test
+-- base test
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+NOTICE:  foreign table "oss_read" does not exist, skipping
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/oneSmallFile/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+ 1 | 2
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/1024SmallFile/', enableCache 'false', format 'parquet');
+select count(*) from oss_read;
+ count 
+-------
+  1024
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/morebigfile/', enableCache 'false', format 'parquet');
+select count(*) from oss_read;
+  count  
+---------
+ 2400000
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/empty_floder/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+(0 rows)
+
+-- numeric
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+col numeric(2,1),
+col2 numeric(9,6),
+col3 numeric(18,3),
+col4 numeric(38,3),
+col5 numeric(18,17),
+col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/numeric/', enableCache 'false', format 'parquet');
+select * from oss_read order by col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+ 0.0 | 0.000000 |               0.000 |                                  0.000 | 0.00000000000000000 | 0.0000000000000000000000000000000000000
+ 0.1 | 0.000001 |               0.001 |                                  0.001 | 0.00000000000000001 | 0.0000000000000000000000000000000000001
+ 1.0 | 1.000000 |               1.000 |                                  1.000 | 1.00000000000000000 | 1.0000000000000000000000000000000000000
+ 1.1 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.000001 | 923456789123456.781 | 9234567891234567891234567891234567.891 | 9.12345678912345671 | 9.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(9 rows)
+
+-- null col
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int, b text, c int, d text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/nullcol/', enableCache 'false', format 'parquet');
+select * from oss_read order by a, b, c, d;
+ a | b | c | d  
+---+---+---+----
+ 1 | w | 1 | se
+ 1 | w | 1 | se
+ 1 | w | 1 | 
+ 1 | w |   | se
+ 1 | w |   | 
+ 1 |   | 1 | se
+ 1 |   |   | se
+   | w | 1 | se
+   |   | 1 | se
+   |   |   | 
+(10 rows)
+
+-- time
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a time
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/time/', enableCache 'false', format 'parquet');
+select * from oss_read order by a;
+    a     
+----------
+ 00:00:00
+ 11:59:59
+ 15:31:45
+(3 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a date
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/date/', enableCache 'false', format 'parquet');
+select * from oss_read order by a;
+       a       
+---------------
+ 4713-01-01 BC
+ 4713-01-01 BC
+ 2000-01-01 BC
+ 1970-01-01 BC
+ 1900-01-01 BC
+ 0100-01-01 BC
+ 0002-01-01 BC
+ 0001-01-01 BC
+ 0001-01-01 BC
+ 0001-01-01
+ 0001-01-01
+ 0001-01-01
+ 1577-12-31
+ 1577-12-31
+ 1877-12-31
+ 1877-12-31
+ 1977-12-31
+ 1977-12-31
+ 1999-01-08
+ 1999-01-08
+ 1999-01-08
+ 1999-01-08
+ 2001-01-01
+ 2001-01-01
+ 2022-02-22
+ 2022-02-22
+ 2999-12-31
+ 2999-12-31
+ 3999-12-22
+ 3999-12-22
+ 7777-07-07
+ 7777-07-07
+ 9999-12-31
+ 9999-12-31
+(34 rows)
+
+-- timestamp
+SET datestyle = ISO, MDY;
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a timestamp
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/timestamp/', enableCache 'false', format 'parquet');
+select * from oss_read order by a;
+               a               
+-------------------------------
+ 2000-10-19 10:23:54.123456 BC
+ 1970-10-19 10:23:54.123456 BC
+ 1900-10-19 10:23:54.123456 BC
+ 0099-10-19 10:23:54.123456 BC
+ 0031-01-12 23:59:59.999999 BC
+ 0001-12-31 23:59:59.999999 BC
+ 0001-10-19 10:23:54.123456
+ 0099-10-19 10:23:54.123456
+ 1577-12-31 23:59:59.999999
+ 1970-01-01 00:00:00.999999
+ 1970-01-01 23:59:59.999999
+ 2004-10-19 10:23:54
+ 2004-10-19 10:23:54.1234
+ 2004-10-19 10:23:54.123457
+ 2019-01-10 10:23:54.123456
+ 9999-12-30 00:00:01.123457
+(16 rows)
+
+-- big text
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/bigtext/', enableCache 'false', format 'parquet');
+select count(*) from oss_read;
+ count 
+-------
+     2
+(1 row)
+
+-- int2 int4 int8 float4 float8
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int2,
+b int4,
+c int8,
+d float4,
+e float8,
+f bool,
+g varchar(20),
+h char(20),
+i text,
+j bytea
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v3/parquet_uncompress/basetype/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b,c,d,e,f,g,h,i,j;
+   a    |      b      |          c           |      d      |           e           | f |     g      |          h           |  i   |     j      
+--------+-------------+----------------------+-------------+-----------------------+---+------------+----------------------+------+------------
+ -32768 | -2147483648 | -9223372036854775808 |      -34.84 | -1.23457000663247e+20 | t | aaaaaaaaaa | zzz                  | name | \x54525545
+ -32767 |           0 |                    0 |           0 |                     0 | f | bbbb       | xxx                  | age  | \x54525545
+  -1234 |  2147483647 |  9223372036854775807 | 1.23457e-20 |  1.23456997229223e-20 |   | ccc        | yyy                  |      | 
+      0 |             |                      |      1004.3 |  1.23457000663247e+20 |   |            |                      |      | 
+   1234 |             |                      | 1.23457e+20 |                       |   |            |                      |      | 
+  32767 |             |                      |             |                       |   |            |                      |      | 
+        |             |                      |             |                       |   |            |                      |      | 
+(7 rows)
+
+-- snappy test
+-- base test
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/oneSmallFile/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+ 1 | 2
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/twoSmallFile/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+ 1 | 2
+ 2 | 3
+(2 rows)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/1024SmallFile/', enableCache 'false', format 'parquet');
+select count(*) from oss_read;
+ count 
+-------
+  1024
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/morebigfile/', enableCache 'false', format 'parquet');
+select count(*) from oss_read;
+  count  
+---------
+ 2400000
+(1 row)
+
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (a int, b int)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/empty_floder/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b;
+ a | b 
+---+---
+(0 rows)
+
+-- numeric
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+col numeric(2,1),
+col2 numeric(9,6),
+col3 numeric(18,3),
+col4 numeric(38,3),
+col5 numeric(18,17),
+col6 numeric(38,37)
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/numeric/', enableCache 'false', format 'parquet');
+select * from oss_read order by col, col2, col3, col4, col5;
+ col |   col2   |        col3         |                  col4                  |        col5         |                  col6                   
+-----+----------+---------------------+----------------------------------------+---------------------+-----------------------------------------
+ 0.0 | 0.000000 |               0.000 |                                  0.000 | 0.00000000000000000 | 0.0000000000000000000000000000000000000
+ 0.1 | 0.000001 |               0.001 |                                  0.001 | 0.00000000000000001 | 0.0000000000000000000000000000000000001
+ 1.0 | 1.000000 |               1.000 |                                  1.000 | 1.00000000000000000 | 1.0000000000000000000000000000000000000
+ 1.1 | 1.000001 |               1.001 |                                  1.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.000001 | 100000000000000.001 | 1000000000000000000000000000000000.001 | 1.00000000000000001 | 1.0000000000000000000000000000000000001
+ 1.1 | 1.234561 | 123456789123456.781 | 1234567891234567891234567891234567.891 | 1.12345678912345671 | 1.1234567891234567891234567891234567891
+ 9.9 | 9.000001 | 923456789123456.781 | 9234567891234567891234567891234567.891 | 9.12345678912345671 | 9.1234567891234567891234567891234567891
+ 9.9 | 9.999999 | 999999999999999.999 | 9999999999999999999999999999999999.999 | 9.99999999999999999 | 9.9999999999999999999999999999999999999
+(9 rows)
+
+-- null col
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int, b text, c int, d text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/nullcol/', enableCache 'false', format 'parquet');
+select * from oss_read order by a, b, c, d;
+ a | b | c | d  
+---+---+---+----
+ 1 | w | 1 | se
+ 1 | w | 1 | se
+ 1 | w | 1 | 
+ 1 | w |   | se
+ 1 | w |   | 
+ 1 |   | 1 | se
+ 1 |   |   | se
+   | w | 1 | se
+   |   | 1 | se
+   |   |   | 
+(10 rows)
+
+-- time
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a time
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/time/', enableCache 'false', format 'parquet');
+select * from oss_read order by a;
+    a     
+----------
+ 00:00:00
+ 11:59:59
+ 15:31:45
+(3 rows)
+
+-- date
+SET datestyle = ISO, MDY;
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a date
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/date/', enableCache 'false', format 'parquet');
+select * from oss_read order by a;
+       a       
+---------------
+ 4713-01-01 BC
+ 4713-01-01 BC
+ 2000-01-01 BC
+ 1970-01-01 BC
+ 1900-01-01 BC
+ 0100-01-01 BC
+ 0002-01-01 BC
+ 0001-01-01 BC
+ 0001-01-01 BC
+ 0001-01-01
+ 0001-01-01
+ 0001-01-01
+ 1577-12-31
+ 1577-12-31
+ 1877-12-31
+ 1877-12-31
+ 1977-12-31
+ 1977-12-31
+ 1999-01-08
+ 1999-01-08
+ 1999-01-08
+ 1999-01-08
+ 2001-01-01
+ 2001-01-01
+ 2022-02-22
+ 2022-02-22
+ 2999-12-31
+ 2999-12-31
+ 3999-12-22
+ 3999-12-22
+ 7777-07-07
+ 7777-07-07
+ 9999-12-31
+ 9999-12-31
+(34 rows)
+
+-- timestamp
+SET datestyle = ISO, MDY;
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a timestamp
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/timestamp/', enableCache 'false', format 'parquet');
+select * from oss_read order by a;
+               a               
+-------------------------------
+ 2000-10-19 10:23:54.123456 BC
+ 1970-10-19 10:23:54.123456 BC
+ 1900-10-19 10:23:54.123456 BC
+ 0099-10-19 10:23:54.123456 BC
+ 0031-01-12 23:59:59.999999 BC
+ 0001-12-31 23:59:59.999999 BC
+ 0001-10-19 10:23:54.123456
+ 0099-10-19 10:23:54.123456
+ 1577-12-31 23:59:59.999999
+ 1970-01-01 00:00:00.999999
+ 1970-01-01 23:59:59.999999
+ 2004-10-19 10:23:54
+ 2004-10-19 10:23:54.1234
+ 2004-10-19 10:23:54.123457
+ 2019-01-10 10:23:54.123456
+ 9999-12-30 00:00:01.123457
+(16 rows)
+
+-- big text
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a text
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/bigtext/', enableCache 'false', format 'parquet');
+select count(*) from oss_read;
+ count 
+-------
+     2
+(1 row)
+
+-- int2 int4 int8 float4 float8
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int2,
+b int4,
+c int8,
+d float4,
+e float8,
+f bool,
+g varchar(20),
+h char(20),
+i text,
+j bytea
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_snappy/basetype/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b,c,d,e,f,g,h,i,j;
+   a    |      b      |          c           |      d      |           e           | f |     g      |          h           |  i   |     j      
+--------+-------------+----------------------+-------------+-----------------------+---+------------+----------------------+------+------------
+ -32768 | -2147483648 | -9223372036854775808 |      -34.84 | -1.23457000663247e+20 | t | aaaaaaaaaa | zzz                  | name | \x54525545
+ -32767 |           0 |                    0 |           0 |                     0 | f | bbbb       | xxx                  | age  | \x54525545
+  -1234 |  2147483647 |  9223372036854775807 | 1.23457e-20 |  1.23456997229223e-20 |   | ccc        | yyy                  |      | 
+      0 |             |                      |      1004.3 |  1.23457000663247e+20 |   |            |                      |      | 
+   1234 |             |                      | 1.23457e+20 |                       |   |            |                      |      | 
+  32767 |             |                      |             |                       |   |            |                      |      | 
+        |             |                      |             |                       |   |            |                      |      | 
+(7 rows)
+
+-- gzip
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int2,
+b int4,
+c int8,
+d float4,
+e float8,
+f bool,
+g varchar(20),
+h char(20),
+i text,
+j bytea
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_gzip/basetype/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b,c,d,e,f,g,h,i,j;
+   a    |      b      |          c           |      d      |           e           | f |     g      |          h           |  i   |     j      
+--------+-------------+----------------------+-------------+-----------------------+---+------------+----------------------+------+------------
+ -32768 | -2147483648 | -9223372036854775808 |      -34.84 | -1.23457000663247e+20 | t | aaaaaaaaaa | zzz                  | name | \x54525545
+ -32767 |           0 |                    0 |           0 |                     0 | f | bbbb       | xxx                  | age  | \x54525545
+  -1234 |  2147483647 |  9223372036854775807 | 1.23457e-20 |  1.23456997229223e-20 |   | ccc        | yyy                  |      | 
+      0 |             |                      |      1004.3 |  1.23457000663247e+20 |   |            |                      |      | 
+   1234 |             |                      | 1.23457e+20 |                       |   |            |                      |      | 
+  32767 |             |                      |             |                       |   |            |                      |      | 
+        |             |                      |             |                       |   |            |                      |      | 
+(7 rows)
+
+-- zstd
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int2,
+b int4,
+c int8,
+d float4,
+e float8,
+f bool,
+g varchar(20),
+h char(20),
+i text,
+j bytea
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_zstd/basetype/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b,c,d,e,f,g,h,i,j;
+   a    |      b      |          c           |      d      |           e           | f |     g      |          h           |  i   |     j      
+--------+-------------+----------------------+-------------+-----------------------+---+------------+----------------------+------+------------
+ -32768 | -2147483648 | -9223372036854775808 |      -34.84 | -1.23457000663247e+20 | t | aaaaaaaaaa | zzz                  | name | \x54525545
+ -32767 |           0 |                    0 |           0 |                     0 | f | bbbb       | xxx                  | age  | \x54525545
+  -1234 |  2147483647 |  9223372036854775807 | 1.23457e-20 |  1.23456997229223e-20 |   | ccc        | yyy                  |      | 
+      0 |             |                      |      1004.3 |  1.23457000663247e+20 |   |            |                      |      | 
+   1234 |             |                      | 1.23457e+20 |                       |   |            |                      |      | 
+  32767 |             |                      |             |                       |   |            |                      |      | 
+        |             |                      |             |                       |   |            |                      |      | 
+(7 rows)
+
+-- lz4
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int2,
+b int4,
+c int8,
+d float4,
+e float8,
+f bool,
+g varchar(20),
+h char(20),
+i text,
+j bytea
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_lz4/basetype/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b,c,d,e,f,g,h,i,j;
+   a    |      b      |          c           |      d      |           e           | f |     g      |          h           |  i   |     j      
+--------+-------------+----------------------+-------------+-----------------------+---+------------+----------------------+------+------------
+ -32768 | -2147483648 | -9223372036854775808 |      -34.84 | -1.23457000663247e+20 | t | aaaaaaaaaa | zzz                  | name | \x54525545
+ -32767 |           0 |                    0 |           0 |                     0 | f | bbbb       | xxx                  | age  | \x54525545
+  -1234 |  2147483647 |  9223372036854775807 | 1.23457e-20 |  1.23456997229223e-20 |   | ccc        | yyy                  |      | 
+      0 |             |                      |      1004.3 |  1.23457000663247e+20 |   |            |                      |      | 
+   1234 |             |                      | 1.23457e+20 |                       |   |            |                      |      | 
+  32767 |             |                      |             |                       |   |            |                      |      | 
+        |             |                      |             |                       |   |            |                      |      | 
+(7 rows)
+
+-- uncompress
+DROP EXTERNAL TABLE IF EXISTS oss_read;
+CREATE FOREIGN TABLE oss_read (
+a int2,
+b int4,
+c int8,
+d float4,
+e float8,
+f bool,
+g varchar(20),
+h char(20),
+i text,
+j bytea
+)
+SERVER foreign_server
+OPTIONS (filePath '/ossext-ci-test/parquet_v2/parquet_uncompress/basetype/', enableCache 'false', format 'parquet');
+select * from oss_read order by a,b,c,d,e,f,g,h,i,j;
+   a    |      b      |          c           |      d      |           e           | f |     g      |          h           |  i   |     j      
+--------+-------------+----------------------+-------------+-----------------------+---+------------+----------------------+------+------------
+ -32768 | -2147483648 | -9223372036854775808 |      -34.84 | -1.23457000663247e+20 | t | aaaaaaaaaa | zzz                  | name | \x54525545
+ -32767 |           0 |                    0 |           0 |                     0 | f | bbbb       | xxx                  | age  | \x54525545
+  -1234 |  2147483647 |  9223372036854775807 | 1.23457e-20 |  1.23456997229223e-20 |   | ccc        | yyy                  |      | 
+      0 |             |                      |      1004.3 |  1.23457000663247e+20 |   |            |                      |      | 
+   1234 |             |                      | 1.23457e+20 |                       |   |            |                      |      | 
+  32767 |             |                      |             |                       |   |            |                      |      | 
+        |             |                      |             |                       |   |            |                      |      | 
+(7 rows)
+

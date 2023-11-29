@@ -1,0 +1,25 @@
+\timing
+insert into date_dim_w select * from er_date_dim_hdfs;
+insert into time_dim_w select * from er_time_dim_hdfs;
+insert into item_w select * from er_item_hdfs;
+insert into customer_w select * from er_customer_hdfs;
+insert into customer_demographics_w select * from er_customer_demographics_hdfs;
+insert into household_demographics_w select * from er_household_demographics_hdfs;
+insert into customer_address_w select * from er_customer_address_hdfs;
+insert into store_w select * from er_store_hdfs;
+insert into promotion_w select * from er_promotion_hdfs;
+insert into warehouse_w select * from er_warehouse_hdfs;
+insert into ship_mode_w select * from er_ship_mode_hdfs;
+insert into reason_w select * from er_reason_hdfs;
+insert into income_band_w select * from er_income_band_hdfs;
+insert into call_center_w select * from er_call_center_hdfs;
+insert into web_page_w select * from er_web_page_hdfs;
+insert into catalog_page_w select * from er_catalog_page_hdfs;
+insert into web_site_w select * from er_web_site_hdfs;
+insert into store_sales_w select * from er_store_sales_hdfs;
+insert into store_returns_w select * from er_store_returns_hdfs;
+insert into web_sales_w select * from er_web_sales_hdfs;
+insert into web_returns_w select * from er_web_returns_hdfs;
+insert into catalog_sales_w select * from er_catalog_sales_hdfs;
+insert into catalog_returns_w select * from er_catalog_returns_hdfs;
+insert into inventory_w select * from er_inventory_hdfs;

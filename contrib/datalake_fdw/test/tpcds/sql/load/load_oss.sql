@@ -1,0 +1,25 @@
+\timing
+insert into date_dim select * from er_date_dim;
+insert into time_dim select * from er_time_dim;
+insert into item select * from er_item;
+insert into customer select * from er_customer;
+insert into customer_demographics select * from er_customer_demographics;
+insert into household_demographics select * from er_household_demographics;
+insert into customer_address select * from er_customer_address;
+insert into store select * from er_store;
+insert into promotion select * from er_promotion;
+insert into warehouse select * from er_warehouse;
+insert into ship_mode select * from er_ship_mode;
+insert into reason select * from er_reason;
+insert into income_band select * from er_income_band;
+insert into call_center select * from er_call_center;
+insert into web_page select * from er_web_page;
+insert into catalog_page select * from er_catalog_page;
+insert into web_site select * from er_web_site;
+insert into store_sales select * from er_store_sales;
+insert into store_returns select * from er_store_returns;
+insert into web_sales select * from er_web_sales;
+insert into web_returns select * from er_web_returns;
+insert into catalog_sales select * from er_catalog_sales;
+insert into catalog_returns select * from er_catalog_returns;
+insert into inventory select * from er_inventory;

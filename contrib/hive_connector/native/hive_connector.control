@@ -1,0 +1,5 @@
+# hive_connector extension
+comment = 'hive connector'
+default_version = '1.0'
+module_pathname = '$libdir/hive_connector'
+relocatable = true

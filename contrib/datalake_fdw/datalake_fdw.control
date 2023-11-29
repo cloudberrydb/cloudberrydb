@@ -1,0 +1,5 @@
+# datalake_fdw extension
+comment = 'DATALAKE Foreign Data Wrapper for Cloudberry'
+default_version = '1.0'
+module_pathname = '$libdir/datalake_fdw'
+relocatable = true

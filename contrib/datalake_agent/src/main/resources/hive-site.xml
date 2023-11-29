@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?><configuration/>
+<!--
+  This file is required because initialization of HiveConf fails when it
+  attempts to find the file in the classloader, then in HIVE_CONF_DIR, then
+  HIVE_HOME, and finally it tries to find the file in the parent directory
+  of the jar "new File(new File(jarUri).getParentFile(), nameInConf)".
+  However, because the jar is an "opaque" jar (A URI is opaque if, and only if,
+  it is absolute and its scheme-specific part does not begin with a slash
+  character ('/'). An opaque URI has a scheme, a scheme-specific part, and
+  possibly a fragment; all other components are undefined) the `File(jarUri)`
+  call throws an IllegalArgumentException which causes the HiveConf class to
+  completely fail to load. Adding this file, allows the `findConfigFile` method
+  in HiveConf find the desired file by doing `classLoader.getResource(name)`
+  and it prevents going to the failing branch of the code.
+-->

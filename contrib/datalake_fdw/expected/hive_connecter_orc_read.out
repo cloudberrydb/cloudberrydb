@@ -1,0 +1,1054 @@
+-- create datalake_fdw
+-- clean table
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER foreign_server;
+DROP SERVER IF EXISTS foreign_server;
+DROP FOREIGN DATA WRAPPER IF EXISTS datalake_fdw;
+NOTICE:  foreign-data wrapper "datalake_fdw" does not exist, skipping
+CREATE EXTENSION IF NOT EXISTS datalake_fdw;
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+CREATE EXTENSION IF NOT EXISTS hive_connector;
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+set vector.enable_vectorization=off;
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+HANDLER datalake_fdw_handler
+VALIDATOR datalake_fdw_validator
+OPTIONS (mpp_execute 'all segments');
+SELECT public.create_foreign_server('foreign_server', 'gpadmin', 'datalake_fdw', 'paa_cluster');
+ create_foreign_server 
+-----------------------
+ t
+(1 row)
+
+-- hive partition tinyint
+DROP FOREIGN TABLE IF EXISTS hive_type_test_1;
+NOTICE:  foreign table "hive_type_test_1" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_1', 'paa_cluster', 'hive_type_test_1', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_1 order by id, name, m;
+ id |   name    | m 
+----+-----------+---
+  1 | aaaaabbbb | 1
+  2 | aaaaabbbb | 1
+  3 | aaaaabbbb | 1
+  4 | aaaaabbbb | 1
+  5 | aaaaabbbb | 1
+  6 | aaaaabbbb | 3
+  6 | aaaaabbbb | 3
+  7 | aaaaabbbb | 2
+  7 | aaaaabbbb | 3
+  7 |           | 3
+  8 | aaaaabbbb | 2
+  8 | aaaaabbbb | 3
+  8 |           | 3
+  9 | aaaaabbbb | 2
+  9 | aaaaabbbb | 3
+  9 |           | 3
+ 10 | aaaaabbbb | 2
+ 10 | aaaaabbbb | 3
+    | aaaaabbbb | 2
+    |           | 3
+(20 rows)
+
+select count(*) from hive_type_test_1;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition smallint
+DROP FOREIGN TABLE IF EXISTS hive_type_test_2;
+NOTICE:  foreign table "hive_type_test_2" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_2', 'paa_cluster', 'hive_type_test_2', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_2 order by id, name, m;
+ id |   name    | m 
+----+-----------+---
+  1 | aaaaabbbb | 1
+  2 | aaaaabbbb | 1
+  3 | aaaaabbbb | 1
+  4 | aaaaabbbb | 1
+  5 | aaaaabbbb | 1
+  6 | aaaaabbbb | 2
+  6 | aaaaabbbb | 3
+  6 | aaaaabbbb | 3
+  7 | aaaaabbbb | 3
+  7 | aaaaabbbb | 3
+  8 | aaaaabbbb | 2
+  8 | aaaaabbbb | 3
+  9 | aaaaabbbb | 2
+  9 | aaaaabbbb | 3
+  9 |           | 3
+ 10 | aaaaabbbb | 2
+ 10 | aaaaabbbb | 3
+ 10 | aaaaabbbb | 3
+    | aaaaabbbb | 2
+    |           | 3
+(20 rows)
+
+select count(*) from hive_type_test_2;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition int
+DROP FOREIGN TABLE IF EXISTS hive_type_test_3;
+NOTICE:  foreign table "hive_type_test_3" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_3', 'paa_cluster', 'hive_type_test_3', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_3 order by id, name, m;
+ id |   name    | m 
+----+-----------+---
+  1 | aaaaabbbb | 1
+  2 | aaaaabbbb | 1
+  3 | aaaaabbbb | 1
+  4 | aaaaabbbb | 1
+  5 | aaaaabbbb | 1
+  6 | aaaaabbbb | 2
+  6 | aaaaabbbb | 3
+  6 | aaaaabbbb | 3
+  7 | aaaaabbbb | 3
+  7 | aaaaabbbb | 3
+  8 | aaaaabbbb | 2
+  8 | aaaaabbbb | 3
+  9 | aaaaabbbb | 2
+  9 | aaaaabbbb | 3
+  9 |           | 3
+ 10 | aaaaabbbb | 2
+ 10 | aaaaabbbb | 3
+ 10 | aaaaabbbb | 3
+    | aaaaabbbb | 2
+    |           | 3
+(20 rows)
+
+select count(*) from hive_type_test_3;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition bigint
+DROP FOREIGN TABLE IF EXISTS hive_type_test_4;
+NOTICE:  foreign table "hive_type_test_4" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_4', 'paa_cluster', 'hive_type_test_4', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_4 order by id, name, m;
+ id |   name    | m 
+----+-----------+---
+  1 | aaaaabbbb | 1
+  2 | aaaaabbbb | 1
+  3 | aaaaabbbb | 1
+  4 | aaaaabbbb | 1
+  5 | aaaaabbbb | 1
+  6 | aaaaabbbb | 2
+  6 | aaaaabbbb | 3
+  6 | aaaaabbbb | 3
+  7 | aaaaabbbb | 3
+  7 | aaaaabbbb | 3
+  8 | aaaaabbbb | 2
+  8 | aaaaabbbb | 3
+  9 | aaaaabbbb | 2
+  9 | aaaaabbbb | 3
+  9 |           | 3
+ 10 | aaaaabbbb | 2
+ 10 | aaaaabbbb | 3
+ 10 | aaaaabbbb | 3
+    | aaaaabbbb | 2
+    |           | 3
+(20 rows)
+
+select count(*) from hive_type_test_4;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition float
+DROP FOREIGN TABLE IF EXISTS hive_type_test_5;
+NOTICE:  foreign table "hive_type_test_5" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_5', 'paa_cluster', 'hive_type_test_5', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_5 order by id, name, m;
+ id |   name    |  m  
+----+-----------+-----
+  1 | aaaaabbbb | 1.1
+  2 | aaaaabbbb | 1.1
+  3 | aaaaabbbb | 1.1
+  4 | aaaaabbbb | 1.1
+  5 | aaaaabbbb | 1.1
+  6 | aaaaabbbb | 2.1
+  6 | aaaaabbbb | 3.1
+  6 | aaaaabbbb | 3.1
+  7 | aaaaabbbb | 3.1
+  7 | aaaaabbbb | 3.1
+  8 | aaaaabbbb | 2.1
+  8 | aaaaabbbb | 3.1
+  9 | aaaaabbbb | 2.1
+  9 | aaaaabbbb | 3.1
+  9 |           | 3.1
+ 10 | aaaaabbbb | 2.1
+ 10 | aaaaabbbb | 3.1
+ 10 | aaaaabbbb | 3.1
+    | aaaaabbbb | 2.1
+    |           | 3.1
+(20 rows)
+
+select count(*) from hive_type_test_5;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition double
+DROP FOREIGN TABLE IF EXISTS hive_type_test_6;
+NOTICE:  foreign table "hive_type_test_6" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_6', 'paa_cluster', 'hive_type_test_6', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_6 order by id, name, m;
+ id |   name    |  m  
+----+-----------+-----
+  1 | aaaaabbbb | 1.1
+  2 | aaaaabbbb | 1.1
+  3 | aaaaabbbb | 1.1
+  4 | aaaaabbbb | 1.1
+  5 | aaaaabbbb | 1.1
+  6 | aaaaabbbb | 2.1
+  6 | aaaaabbbb | 3.1
+  6 | aaaaabbbb | 3.1
+  7 | aaaaabbbb | 3.1
+  7 | aaaaabbbb | 3.1
+  8 | aaaaabbbb | 2.1
+  8 | aaaaabbbb | 3.1
+  9 | aaaaabbbb | 2.1
+  9 | aaaaabbbb | 3.1
+  9 |           | 3.1
+ 10 | aaaaabbbb | 2.1
+ 10 | aaaaabbbb | 3.1
+ 10 | aaaaabbbb | 3.1
+    | aaaaabbbb | 2.1
+    |           | 3.1
+(20 rows)
+
+select count(*) from hive_type_test_6;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition string
+DROP FOREIGN TABLE IF EXISTS hive_type_test_7;
+NOTICE:  foreign table "hive_type_test_7" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_7', 'paa_cluster', 'hive_type_test_7', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_7 order by id, name, m;
+ id |   name    |  m  
+----+-----------+-----
+  1 | aaaaabbbb | 1.1
+  2 | aaaaabbbb | 1.1
+  3 | aaaaabbbb | 1.1
+  4 | aaaaabbbb | 1.1
+  5 | aaaaabbbb | 1.1
+  6 | aaaaabbbb | 2.1
+  6 | aaaaabbbb | 3.1
+  6 | aaaaabbbb | 3.1
+  7 | aaaaabbbb | 3.1
+  7 | aaaaabbbb | 3.1
+  8 | aaaaabbbb | 2.1
+  8 | aaaaabbbb | 3.1
+  9 | aaaaabbbb | 2.1
+  9 | aaaaabbbb | 3.1
+  9 |           | 3.1
+ 10 | aaaaabbbb | 2.1
+ 10 | aaaaabbbb | 3.1
+ 10 | aaaaabbbb | 3.1
+    | aaaaabbbb | 2.1
+    |           | 3.1
+(20 rows)
+
+select count(*) from hive_type_test_7;
+ count 
+-------
+    20
+(1 row)
+
+-- hive partition date
+DROP FOREIGN TABLE IF EXISTS hive_type_test_8;
+NOTICE:  foreign table "hive_type_test_8" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_8', 'paa_cluster', 'hive_type_test_8', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_8 order by id, name, m;
+ id |   name    |     m      
+----+-----------+------------
+  1 | aaaaabbbb | 0009-01-01
+  1 | aaaaabbbb | 0009-01-01
+  2 | aaaaabbbb | 0010-01-01
+  2 | aaaaabbbb | 0010-01-01
+  3 | aaaaabbbb | 1011-01-01
+  3 | aaaaabbbb | 1011-01-01
+  4 | aaaaabbbb | 0001-12-30
+  4 | aaaaabbbb | 0001-12-30
+  5 | aaaaabbbb | 0001-12-01
+  5 | aaaaabbbb | 0001-12-01
+  6 | aaaaabbbb | 0099-01-01
+  6 | aaaaabbbb | 0099-01-01
+  6 | aaaaabbbb | 1969-12-01
+  6 | aaaaabbbb | 1969-12-01
+  6 | aaaaabbbb | 1970-01-01
+  6 | aaaaabbbb | 1970-01-01
+  7 | aaaaabbbb | 0099-01-01
+  7 | aaaaabbbb | 0099-01-01
+  7 | aaaaabbbb | 0100-01-01
+  7 | aaaaabbbb | 0100-01-01
+  8 | aaaaabbbb | 0100-01-01
+  8 | aaaaabbbb | 0100-01-01
+  8 | aaaaabbbb | 1969-12-30
+  8 | aaaaabbbb | 1969-12-30
+  9 | aaaaabbbb | 1969-12-30
+  9 | aaaaabbbb | 1969-12-30
+  9 | aaaaabbbb | 2999-12-30
+  9 | aaaaabbbb | 2999-12-30
+  9 |           | 1560-01-01
+  9 |           | 1560-01-01
+ 10 | aaaaabbbb | 1560-01-01
+ 10 | aaaaabbbb | 1560-01-01
+ 10 | aaaaabbbb | 1970-01-01
+ 10 | aaaaabbbb | 1970-01-01
+ 10 | aaaaabbbb | 2999-12-31
+ 10 | aaaaabbbb | 2999-12-31
+    | aaaaabbbb | 1969-12-01
+    | aaaaabbbb | 1969-12-01
+    |           | 1968-01-01
+    |           | 1968-01-01
+(40 rows)
+
+select count(*) from hive_type_test_8;
+ count 
+-------
+    40
+(1 row)
+
+-- hive partition varchar
+DROP FOREIGN TABLE IF EXISTS hive_type_test_9;
+NOTICE:  foreign table "hive_type_test_9" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_9', 'paa_cluster', 'hive_type_test_9', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_9 order by id, name, m;
+ id |   name    |   m    
+----+-----------+--------
+  1 | aaaaabbbb | aa
+  1 | aaaaabbbb | aabb
+  1 | aaaaabbbb | aabbcc
+  2 | aaaaabbbb | aa
+  2 | aaaaabbbb | aabb
+  2 | aaaaabbbb | aabbcc
+  3 | aaaaabbbb | aa
+  3 | aaaaabbbb | aabb
+  3 | aaaaabbbb | aabbcc
+  4 | aaaaabbbb | aa
+  4 | aaaaabbbb | aabb
+  4 | aaaaabbbb | aabbcc
+(12 rows)
+
+select count(*) from hive_type_test_9;
+ count 
+-------
+    12
+(1 row)
+
+-- hive partition decimal
+DROP FOREIGN TABLE IF EXISTS hive_type_test_10;
+NOTICE:  foreign table "hive_type_test_10" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_type_test_10', 'paa_cluster', 'hive_type_test_10', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_type_test_10 order by id, name, m;
+ id |   name    |          m          
+----+-----------+---------------------
+  1 | aaaaabbbb |         1.000000001
+  1 | aaaaabbbb |         1.000000001
+  1 | aaaaabbbb |             12345.1
+  1 | aaaaabbbb |             12345.1
+  1 | aaaaabbbb |         12345.12345
+  1 | aaaaabbbb |         12345.12345
+  2 | aaaaabbbb |         1.000000001
+  2 | aaaaabbbb |         1.000000001
+  2 | aaaaabbbb |             12345.1
+  2 | aaaaabbbb |             12345.1
+  2 | aaaaabbbb | 123456789.123456789
+  2 | aaaaabbbb | 123456789.123456789
+  3 | aaaaabbbb |         1.999999991
+  3 | aaaaabbbb |         1.999999991
+  3 | aaaaabbbb |         123456780.1
+  3 | aaaaabbbb |         123456780.1
+  3 | aaaaabbbb |        1234567890.1
+  3 | aaaaabbbb |        1234567890.1
+  4 | aaaaabbbb |         12345.12345
+  4 | aaaaabbbb |         12345.12345
+  4 | aaaaabbbb |         123456780.1
+  4 | aaaaabbbb |         123456780.1
+  4 | aaaaabbbb |        1234567890.1
+  4 | aaaaabbbb |        1234567890.1
+(24 rows)
+
+select count(*) from hive_type_test_10;
+ count 
+-------
+    24
+(1 row)
+
+-- hive simple table
+DROP FOREIGN TABLE IF EXISTS hive_test_1;
+NOTICE:  foreign table "hive_test_1" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_1', 'paa_cluster', 'hive_test_1', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_1 order by id;
+ id | name | name2 
+----+------+-------
+  1 | a    | a
+  2 |      | a
+  3 | a    | a
+  4 | a    | 
+  5 | a    | a
+  7 |      | 
+  8 |      | 
+  9 |      | 
+ 10 |      | 
+    |      | 
+(10 rows)
+
+select * from hive_test_1 where id=1 order by id;
+ id | name | name2 
+----+------+-------
+  1 | a    | a
+(1 row)
+
+select count(*) from hive_test_1 where id=1;
+ count 
+-------
+     1
+(1 row)
+
+select count(*) from hive_test_1;
+ count 
+-------
+    10
+(1 row)
+
+-- hive partition and transaction table
+DROP FOREIGN TABLE IF EXISTS hive_test_2;
+NOTICE:  foreign table "hive_test_2" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_2', 'paa_cluster', 'hive_test_2', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_2 order by id;
+ id | name | name2 | name3 
+----+------+-------+-------
+  1 | a    | a     | a
+  1 | a    | a     | b
+  1 | a    | a     | c
+  1 | a    | a     | d
+  2 |      | a     | d
+  2 |      | a     | a
+  2 | a    | a     | c
+  2 |      | a     | b
+  3 | a    | a     | d
+  3 | a    | a     | b
+  3 |      | a     | c
+  3 | a    | a     | a
+  4 | a    |       | a
+  4 | a    | a     | b
+  4 | a    | a     | c
+  4 | a    |       | d
+  5 | a    |       | b
+  5 | a    |       | c
+  5 | a    | a     | d
+  5 | a    | a     | a
+  6 | a    | a     | c
+  6 | a    | a     | b
+  6 | a    | a     | d
+  6 |      | a     | a
+  7 |      | a     | d
+  7 |      | a     | b
+  7 | a    | a     | a
+  7 | a    | a     | c
+  8 | a    | a     | a
+  8 | a    | a     | b
+  8 |      | a     | c
+  8 | a    | a     | d
+  9 | a    | a     | d
+  9 | a    | a     | a
+  9 | a    | a     | c
+  9 | a    | a     | b
+ 10 | a    |       | d
+ 10 | a    | a     | b
+ 10 | a    | a     | c
+ 10 | a    | a     | a
+(40 rows)
+
+select * from hive_test_2 where name3='a' order by id;
+ id | name | name2 | name3 
+----+------+-------+-------
+  1 | a    | a     | a
+  2 |      | a     | a
+  3 | a    | a     | a
+  4 | a    |       | a
+  5 | a    | a     | a
+  6 |      | a     | a
+  7 | a    | a     | a
+  8 | a    | a     | a
+  9 | a    | a     | a
+ 10 | a    | a     | a
+(10 rows)
+
+select count(*) from hive_test_2;
+ count 
+-------
+    40
+(1 row)
+
+select count(*) from hive_test_2 where name3='b';
+ count 
+-------
+    10
+(1 row)
+
+select count(*) from hive_test_2 where name3='c';
+ count 
+-------
+    10
+(1 row)
+
+-- hive partiton key is int type
+DROP FOREIGN TABLE IF EXISTS hive_test_3;
+NOTICE:  foreign table "hive_test_3" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_3', 'paa_cluster', 'hive_test_3', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_3 order by id;
+ id |    name     | m 
+----+-------------+---
+  1 | fsdf        | 2
+  1 | 23423       | 3
+  2 | rewrwe      | 2
+  2 | werwer      | 3
+  3 | 2345fsd     | 2
+  3 | 2345gagefsd | 3
+  4 | trewtaf     | 2
+  4 | 46346       | 3
+  5 | fdsfsdfwe   | 2
+  5 | agasdg      | 3
+  6 | rewrwr3r2   | 1
+  7 | fdsfsf      | 1
+  8 | ddddbbbb    | 1
+  9 | bbbbcccc    | 1
+ 10 | aaaaabbbb   | 1
+(15 rows)
+
+select * from hive_test_3 where m=1 order by id;
+ id |   name    | m 
+----+-----------+---
+  6 | rewrwr3r2 | 1
+  7 | fdsfsf    | 1
+  8 | ddddbbbb  | 1
+  9 | bbbbcccc  | 1
+ 10 | aaaaabbbb | 1
+(5 rows)
+
+select count(*) from hive_test_3;
+ count 
+-------
+    15
+(1 row)
+
+select count(*) from hive_test_3 where m=2;
+ count 
+-------
+     5
+(1 row)
+
+select count(*) from hive_test_3 where m=3;
+ count 
+-------
+     5
+(1 row)
+
+-- hive partiton key is int and char type
+DROP FOREIGN TABLE IF EXISTS hive_test_4;
+NOTICE:  foreign table "hive_test_4" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_4', 'paa_cluster', 'hive_test_4', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_4 order by id, name, m, n;
+ id |    name     | m | n  
+----+-------------+---+----
+  1 | 23423       | 3 | aa
+  1 | 23423       | 3 | aa
+  1 | 23423       | 3 | aa
+  1 | fsdf        | 2 | cc
+  1 | fsdf        | 2 | cc
+  1 | fsdf        | 2 | cc
+  2 | rewrwe      | 2 | cc
+  2 | rewrwe      | 2 | cc
+  2 | rewrwe      | 2 | cc
+  2 | werwer      | 3 | cc
+  2 | werwer      | 3 | cc
+  2 | werwer      | 3 | cc
+  3 | 2345fsd     | 2 | dd
+  3 | 2345fsd     | 2 | dd
+  3 | 2345fsd     | 2 | dd
+  3 | 2345gagefsd | 3 | cc
+  3 | 2345gagefsd | 3 | cc
+  3 | 2345gagefsd | 3 | cc
+  4 | 46346       | 3 | dd
+  4 | 46346       | 3 | dd
+  4 | 46346       | 3 | dd
+  4 | trewtaf     | 2 | ee
+  4 | trewtaf     | 2 | ee
+  4 | trewtaf     | 2 | ee
+  5 | agasdg      | 3 | ee
+  5 | agasdg      | 3 | ee
+  5 | agasdg      | 3 | ee
+  5 | fdsfsdfwe   | 2 | ff
+  5 | fdsfsdfwe   | 2 | ff
+  5 | fdsfsdfwe   | 2 | ff
+  6 | rewrwr3r2   | 1 | bb
+  6 | rewrwr3r2   | 1 | bb
+  6 | rewrwr3r2   | 1 | bb
+  7 | fdsfsf      | 1 | bb
+  7 | fdsfsf      | 1 | bb
+  7 | fdsfsf      | 1 | bb
+  8 | ddddbbbb    | 1 | aa
+  8 | ddddbbbb    | 1 | aa
+  8 | ddddbbbb    | 1 | aa
+  9 | bbbbcccc    | 1 | aa
+  9 | bbbbcccc    | 1 | aa
+  9 | bbbbcccc    | 1 | aa
+ 10 | aaaaabbbb   | 1 | aa
+ 10 | aaaaabbbb   | 1 | aa
+ 10 | aaaaabbbb   | 1 | aa
+(45 rows)
+
+select count(*) from hive_test_4;
+ count 
+-------
+    45
+(1 row)
+
+select * from hive_test_4 where m=2 order by id, name, m, n;
+ id |   name    | m | n  
+----+-----------+---+----
+  1 | fsdf      | 2 | cc
+  1 | fsdf      | 2 | cc
+  1 | fsdf      | 2 | cc
+  2 | rewrwe    | 2 | cc
+  2 | rewrwe    | 2 | cc
+  2 | rewrwe    | 2 | cc
+  3 | 2345fsd   | 2 | dd
+  3 | 2345fsd   | 2 | dd
+  3 | 2345fsd   | 2 | dd
+  4 | trewtaf   | 2 | ee
+  4 | trewtaf   | 2 | ee
+  4 | trewtaf   | 2 | ee
+  5 | fdsfsdfwe | 2 | ff
+  5 | fdsfsdfwe | 2 | ff
+  5 | fdsfsdfwe | 2 | ff
+(15 rows)
+
+select * from hive_test_4 where n='cc' order by id, name, m, n;
+ id |    name     | m | n  
+----+-------------+---+----
+  1 | fsdf        | 2 | cc
+  1 | fsdf        | 2 | cc
+  1 | fsdf        | 2 | cc
+  2 | rewrwe      | 2 | cc
+  2 | rewrwe      | 2 | cc
+  2 | rewrwe      | 2 | cc
+  2 | werwer      | 3 | cc
+  2 | werwer      | 3 | cc
+  2 | werwer      | 3 | cc
+  3 | 2345gagefsd | 3 | cc
+  3 | 2345gagefsd | 3 | cc
+  3 | 2345gagefsd | 3 | cc
+(12 rows)
+
+-- hive partiton key is int and char and date type
+DROP FOREIGN TABLE IF EXISTS hive_test_5;
+NOTICE:  foreign table "hive_test_5" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_5', 'paa_cluster', 'hive_test_5', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_5 order by id, name, m, n, o;
+ id |    name     | m | n  |     o      
+----+-------------+---+----+------------
+  1 | 23423       | 3 | aa | 1969-12-01
+  1 | 23423       | 3 | aa | 1969-12-01
+  1 | 23423       | 3 | aa | 1969-12-01
+  1 | 23423       | 3 | aa | 1969-12-01
+  1 | 23423       | 3 | aa | 1969-12-01
+  1 | fsdf        | 2 | cc | 1900-01-01
+  1 | fsdf        | 2 | cc | 1900-01-01
+  1 | fsdf        | 2 | cc | 1900-01-01
+  1 | fsdf        | 2 | cc | 1900-01-01
+  1 | fsdf        | 2 | cc | 1900-01-01
+  2 | rewrwe      | 2 | cc | 9999-09-09
+  2 | rewrwe      | 2 | cc | 9999-09-09
+  2 | rewrwe      | 2 | cc | 9999-09-09
+  2 | rewrwe      | 2 | cc | 9999-09-09
+  2 | rewrwe      | 2 | cc | 9999-09-09
+  2 | werwer      | 3 | cc | 1969-12-31
+  2 | werwer      | 3 | cc | 1969-12-31
+  2 | werwer      | 3 | cc | 1969-12-31
+  2 | werwer      | 3 | cc | 1969-12-31
+  2 | werwer      | 3 | cc | 1969-12-31
+  3 | 2345fsd     | 2 | dd | 0002-03-30
+  3 | 2345fsd     | 2 | dd | 0002-03-30
+  3 | 2345fsd     | 2 | dd | 0002-03-30
+  3 | 2345fsd     | 2 | dd | 0002-03-30
+  3 | 2345fsd     | 2 | dd | 0002-03-30
+  3 | 2345gagefsd | 3 | cc | 1970-01-01
+  3 | 2345gagefsd | 3 | cc | 1970-01-01
+  3 | 2345gagefsd | 3 | cc | 1970-01-01
+  3 | 2345gagefsd | 3 | cc | 1970-01-01
+  3 | 2345gagefsd | 3 | cc | 1970-01-01
+  4 | 46346       | 3 | dd | 1999-09-01
+  4 | 46346       | 3 | dd | 1999-09-01
+  4 | 46346       | 3 | dd | 1999-09-01
+  4 | 46346       | 3 | dd | 1999-09-01
+  4 | 46346       | 3 | dd | 1999-09-01
+  4 | trewtaf     | 2 | ee | 2999-12-30
+  4 | trewtaf     | 2 | ee | 2999-12-30
+  4 | trewtaf     | 2 | ee | 2999-12-30
+  4 | trewtaf     | 2 | ee | 2999-12-30
+  4 | trewtaf     | 2 | ee | 2999-12-30
+  5 | agasdg      | 3 | ee | 1000-01-01
+  5 | agasdg      | 3 | ee | 1000-01-01
+  5 | agasdg      | 3 | ee | 1000-01-01
+  5 | agasdg      | 3 | ee | 1000-01-01
+  5 | agasdg      | 3 | ee | 1000-01-01
+  5 | fdsfsdfwe   | 2 | ff | 2000-01-01
+  5 | fdsfsdfwe   | 2 | ff | 2000-01-01
+  5 | fdsfsdfwe   | 2 | ff | 2000-01-01
+  5 | fdsfsdfwe   | 2 | ff | 2000-01-01
+  5 | fdsfsdfwe   | 2 | ff | 2000-01-01
+  6 | rewrwr3r2   | 1 | bb | 1969-12-30
+  6 | rewrwr3r2   | 1 | bb | 1969-12-30
+  6 | rewrwr3r2   | 1 | bb | 1969-12-30
+  6 | rewrwr3r2   | 1 | bb | 1969-12-30
+  6 | rewrwr3r2   | 1 | bb | 1969-12-30
+  7 | fdsfsf      | 1 | bb | 1970-01-01
+  7 | fdsfsf      | 1 | bb | 1970-01-01
+  7 | fdsfsf      | 1 | bb | 1970-01-01
+  7 | fdsfsf      | 1 | bb | 1970-01-01
+  7 | fdsfsf      | 1 | bb | 1970-01-01
+  8 | ddddbbbb    | 1 | aa | 0001-01-01
+  8 | ddddbbbb    | 1 | aa | 0001-01-01
+  8 | ddddbbbb    | 1 | aa | 0001-01-01
+  8 | ddddbbbb    | 1 | aa | 0001-01-01
+  8 | ddddbbbb    | 1 | aa | 0001-01-01
+  9 | bbbbcccc    | 1 | aa | 0099-01-01
+  9 | bbbbcccc    | 1 | aa | 0099-01-01
+  9 | bbbbcccc    | 1 | aa | 0099-01-01
+  9 | bbbbcccc    | 1 | aa | 0099-01-01
+  9 | bbbbcccc    | 1 | aa | 0099-01-01
+ 10 | aaaaabbbb   | 1 | aa | 1900-01-01
+ 10 | aaaaabbbb   | 1 | aa | 1900-01-01
+ 10 | aaaaabbbb   | 1 | aa | 1900-01-01
+ 10 | aaaaabbbb   | 1 | aa | 1900-01-01
+ 10 | aaaaabbbb   | 1 | aa | 1900-01-01
+(75 rows)
+
+select count(*) from hive_test_5;
+ count 
+-------
+    75
+(1 row)
+
+-- hive partiton key is int and string and float type
+DROP FOREIGN TABLE IF EXISTS hive_test_6;
+NOTICE:  foreign table "hive_test_6" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_6', 'paa_cluster', 'hive_test_6', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_6 order by id, name, m, n, o;
+ id |   name    | m | n  |   o    
+----+-----------+---+----+--------
+  6 | rewrwr3r2 | 1 | bb |  10000
+  6 | rewrwr3r2 | 2 | bb |  10000
+  6 | rewrwr3r2 | 3 | bb |  10000
+  7 | fdsfsf    | 1 | bb | 2.9999
+  7 | fdsfsf    | 2 | bb | 2.9999
+  7 | fdsfsf    | 3 | bb | 2.9999
+  8 | ddddbbbb  | 1 | aa | 1.0001
+  8 | ddddbbbb  | 2 | aa | 1.0001
+  8 | ddddbbbb  | 3 | aa | 1.0001
+  9 | bbbbcccc  | 1 | aa | 200.11
+  9 | bbbbcccc  | 2 | aa | 200.11
+  9 | bbbbcccc  | 3 | aa | 200.11
+ 10 | aaaaabbbb | 1 | aa |   1.11
+ 10 | aaaaabbbb | 2 | aa |   1.11
+ 10 | aaaaabbbb | 3 | aa |   1.11
+(15 rows)
+
+select count(*) from hive_test_6;
+ count 
+-------
+    15
+(1 row)
+
+-- hive partiton key is int and string and decimal and tinyint type
+DROP FOREIGN TABLE IF EXISTS hive_test_7;
+NOTICE:  foreign table "hive_test_7" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_7', 'paa_cluster', 'hive_test_7', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_7 order by id, name, m, n, o, p;
+ id |   name    | m | n  |           o           | p 
+----+-----------+---+----+-----------------------+---
+  6 | rewrwr3r2 | 1 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 1 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 1 | bb |         1234567890.01 | 1
+  6 | rewrwr3r2 | 1 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 1 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 1 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 2 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 2 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 3 | bb |         1234567890.01 | 1
+  6 | rewrwr3r2 | 3 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 3 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 3 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 4 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 4 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 5 | bb |         1234567890.01 | 1
+  6 | rewrwr3r2 | 5 | bb |         1234567890.01 | 1
+  6 | rewrwr3r2 | 5 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 5 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 6 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 6 | bb |              9999.999 | 1
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1
+  7 | fdsfsf    | 1 | bb |                  2.99 | 0
+  7 | fdsfsf    | 1 | bb |                  2.99 | 0
+  7 | fdsfsf    | 1 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 1 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 1 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 1 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 2 | bb |                  2.99 | 0
+  7 | fdsfsf    | 2 | bb |                  2.99 | 0
+  7 | fdsfsf    | 3 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 3 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 3 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 3 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 4 | bb |                  2.99 | 0
+  7 | fdsfsf    | 4 | bb |                  2.99 | 0
+  7 | fdsfsf    | 5 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 5 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 5 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 5 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 6 | bb |                  2.99 | 0
+  7 | fdsfsf    | 6 | bb |                  2.99 | 0
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0
+  8 | ddddbbbb  | 1 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 1 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 1 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 1 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 2 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 2 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 3 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 3 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 4 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 4 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 5 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 5 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 6 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 6 | aa |                   1.1 | 1
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1
+  9 | bbbbcccc  | 1 | aa |                200.01 | 0
+  9 | bbbbcccc  | 1 | aa |                200.01 | 0
+  9 | bbbbcccc  | 1 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 1 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 2 | aa |                200.01 | 0
+  9 | bbbbcccc  | 2 | aa |                200.01 | 0
+  9 | bbbbcccc  | 3 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 3 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 4 | aa |                200.01 | 0
+  9 | bbbbcccc  | 4 | aa |                200.01 | 0
+  9 | bbbbcccc  | 5 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 5 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 6 | aa |                200.01 | 0
+  9 | bbbbcccc  | 6 | aa |                200.01 | 0
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0
+ 10 | aaaaabbbb | 1 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 1 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 1 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 1 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 2 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 2 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 3 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 3 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 4 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 4 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 5 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 5 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 6 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 6 | aa |          1.0000000001 | 1
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1
+(96 rows)
+
+select count(*) from hive_test_7;
+ count 
+-------
+    96
+(1 row)
+
+-- hive partiton key is int and string and decimal and tinyint type
+DROP FOREIGN TABLE IF EXISTS hive_test_8;
+NOTICE:  foreign table "hive_test_8" does not exist, skipping
+select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_8', 'paa_cluster', 'hive_test_8', 'foreign_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+select * from hive_test_8 order by id, name, m, n, o, p, q, s;
+ id |   name    | m | n  |           o           | p | q  | s  
+----+-----------+---+----+-----------------------+---+----+----
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1 |  2 | 13
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1 |  2 | 13
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1 |  2 | 13
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1 |  2 | 13
+  6 | rewrwr3r2 | 7 | bb |         1234567890.01 | 1 |  2 | 13
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1 |  2 |  3
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1 |  2 |  3
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1 |  2 |  3
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1 |  2 |  3
+  6 | rewrwr3r2 | 7 | bb | 1234567890.1234567891 | 1 |  2 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 20 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 20 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 20 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 20 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 20 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 22 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 22 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 22 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 22 |  3
+  7 | fdsfsf    | 7 | bb |     999999999.9999999 | 0 | 22 |  3
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1 |  4 |  5
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1 |  4 |  5
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1 |  4 |  5
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1 |  4 |  5
+  8 | ddddbbbb  | 7 | aa |               1.99999 | 1 |  4 |  5
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0 |  2 |  3
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0 |  2 |  3
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0 |  2 |  3
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0 |  2 |  3
+  9 | bbbbcccc  | 7 | aa |            200.999999 | 0 |  2 |  3
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1 |  1 |  1
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1 |  1 |  1
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1 |  1 |  1
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1 |  1 |  1
+ 10 | aaaaabbbb | 7 | aa |                   1.1 | 1 |  1 |  1
+(35 rows)
+
+select count(*) from hive_test_8;
+ count 
+-------
+    35
+(1 row)
+
+DROP FOREIGN TABLE IF EXISTS hive_type_test_1;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_2;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_3;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_4;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_5;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_6;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_7;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_8;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_9;
+DROP FOREIGN TABLE IF EXISTS hive_type_test_10;
+DROP FOREIGN TABLE IF EXISTS hive_test_1;
+DROP FOREIGN TABLE IF EXISTS hive_test_2;
+DROP FOREIGN TABLE IF EXISTS hive_test_3;
+DROP FOREIGN TABLE IF EXISTS hive_test_4;
+DROP FOREIGN TABLE IF EXISTS hive_test_5;
+DROP FOREIGN TABLE IF EXISTS hive_test_6;
+DROP FOREIGN TABLE IF EXISTS hive_test_7;
+DROP FOREIGN TABLE IF EXISTS hive_test_8;
