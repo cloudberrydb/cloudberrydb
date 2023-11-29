@@ -1,0 +1,5 @@
+# vectorization extension
+comment = 'vectorization engine for cbdb'
+default_version = '1.0'
+module_pathname = '$libdir/vectorization'
+relocatable = true

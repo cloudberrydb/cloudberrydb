@@ -1,0 +1,156 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+        s_acctbal,
+        s_name,
+        n_name,
+        p_partkey,
+        p_mfgr,
+        s_address,
+        s_phone,
+        s_comment
+from
+        part,
+        supplier,
+        partsupp,
+        nation,
+        region
+where
+        p_partkey = ps_partkey
+        and s_suppkey = ps_suppkey
+        and p_size = 36
+        and p_type like '%COPPER'
+        and s_nationkey = n_nationkey
+        and n_regionkey = r_regionkey
+        and r_name = 'EUROPE'
+        and ps_supplycost = (
+                select
+                        min(ps_supplycost)
+                from
+                        partsupp,
+                        supplier,
+                        nation,
+                        region
+                where
+                        p_partkey = ps_partkey
+                        and s_suppkey = ps_suppkey
+                        and s_nationkey = n_nationkey
+                        and n_regionkey = r_regionkey
+                        and r_name = 'EUROPE'
+        )
+order by
+        s_acctbal desc,
+        n_name,
+        s_name,
+        p_partkey
+LIMIT 100;
+                                                                  QUERY PLAN                                                                  
+----------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Limit
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: supplier.s_acctbal, nation.n_name, supplier.s_name, part.p_partkey
+         ->  Vec Limit
+               ->  Vec Sort
+                     Sort Key: supplier.s_acctbal DESC, nation.n_name, supplier.s_name, part.p_partkey
+                     ->  Vec Hash Join
+                           Hash Cond: ((partsupp.ps_partkey = part.p_partkey) AND (partsupp.ps_supplycost = (min(partsupp_1.ps_supplycost))))
+                           ->  Vec Hash Join
+                                 Hash Cond: (partsupp.ps_suppkey = supplier.s_suppkey)
+                                 ->  Vec Seq Scan on partsupp
+                                 ->  Vec Hash
+                                       ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (supplier.s_nationkey = nation.n_nationkey)
+                                                   ->  Vec Seq Scan on supplier
+                                                   ->  Vec Hash
+                                                         ->  Vec Broadcast Motion 3:3  (slice3; segments: 3)
+                                                               ->  Vec Hash Join
+                                                                     Hash Cond: (nation.n_regionkey = region.r_regionkey)
+                                                                     ->  Vec Seq Scan on nation
+                                                                     ->  Vec Hash
+                                                                           ->  Vec Broadcast Motion 3:3  (slice4; segments: 3)
+                                                                                 ->  Vec Seq Scan on region
+                                                                                       Filter: (r_name = 'EUROPE'::text)
+                           ->  Vec Hash
+                                 ->  Vec Hash Right Join
+                                       Hash Cond: (partsupp_1.ps_partkey = part.p_partkey)
+                                       ->  Vec HashAggregate
+                                             Group Key: partsupp_1.ps_partkey
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (partsupp_1.ps_suppkey = supplier_1.s_suppkey)
+                                                   ->  Vec Seq Scan on partsupp partsupp_1
+                                                   ->  Vec Hash
+                                                         ->  Vec Broadcast Motion 3:3  (slice5; segments: 3)
+                                                               ->  Vec Hash Join
+                                                                     Hash Cond: (supplier_1.s_nationkey = nation_1.n_nationkey)
+                                                                     ->  Vec Redistribute Motion 3:3  (slice6; segments: 3)
+                                                                           Hash Key: supplier_1.s_nationkey
+                                                                           ->  Vec Seq Scan on supplier supplier_1
+                                                                     ->  Vec Hash
+                                                                           ->  Vec Hash Join
+                                                                                 Hash Cond: (nation_1.n_regionkey = region_1.r_regionkey)
+                                                                                 ->  Vec Seq Scan on nation nation_1
+                                                                                 ->  Vec Hash
+                                                                                       ->  Vec Broadcast Motion 3:3  (slice7; segments: 3)
+                                                                                             ->  Vec Seq Scan on region region_1
+                                                                                                   Filter: (r_name = 'EUROPE'::text)
+                                       ->  Vec Hash
+                                             ->  Vec Seq Scan on part
+                                                   Filter: ((p_size = 36) AND ((p_type)::text ~~ '%COPPER'::text))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(52 rows)
+
+select
+        s_acctbal,
+        s_name,
+        n_name,
+        p_partkey,
+        p_mfgr,
+        s_address,
+        s_phone,
+        s_comment
+from
+        part,
+        supplier,
+        partsupp,
+        nation,
+        region
+where
+        p_partkey = ps_partkey
+        and s_suppkey = ps_suppkey
+        and p_size = 36
+        and p_type like '%COPPER'
+        and s_nationkey = n_nationkey
+        and n_regionkey = r_regionkey
+        and r_name = 'EUROPE'
+        and ps_supplycost = (
+                select
+                        min(ps_supplycost)
+                from
+                        partsupp,
+                        supplier,
+                        nation,
+                        region
+                where
+                        p_partkey = ps_partkey
+                        and s_suppkey = ps_suppkey
+                        and s_nationkey = n_nationkey
+                        and n_regionkey = r_regionkey
+                        and r_name = 'EUROPE'
+        )
+order by
+        s_acctbal desc,
+        n_name,
+        s_name,
+        p_partkey
+LIMIT 100;
+ s_acctbal |       s_name       |     n_name     | p_partkey |     p_mfgr     |                s_address                 |     s_phone     |                                         s_comment                                         
+-----------+--------------------+----------------+-----------+----------------+------------------------------------------+-----------------+-------------------------------------------------------------------------------------------
+   9202.57 | Supplier#000000062 | ROMANIA        |      1361 | Manufacturer#2 | bSmlFYUKBeRsqJxwC9 zS6xpFdEf5jNTb        | 29-603-653-2494 | ts. furiously ironic pinto beans are permanently after the bold ideas. regular, express f
+   3556.47 | Supplier#000000032 | UNITED KINGDOM |      1317 | Manufacturer#4 | yvoD3TtZSx1skQNCK8agk5bZlZLug            | 33-484-637-7873 | usly even depths. quickly ironic theodolites s
+   2455.98 | Supplier#000000066 | UNITED KINGDOM |       701 | Manufacturer#4 | qYdruFJQJYYiKvnNVmYfCVydVB8bcW,AW,U6SOV3 | 33-300-836-9529 | ar requests. express orbits de
+   1687.81 | Supplier#000000017 | ROMANIA        |       685 | Manufacturer#3 | c2d,ESHRSkK3WYnxpgw6aOqN0q               | 29-601-884-9219 | eep against the furiously bold ideas. fluffily bold packa
+(4 rows)
+

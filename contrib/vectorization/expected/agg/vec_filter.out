@@ -1,0 +1,34 @@
+SET vector.enable_vectorization = on;
+SET
+SET optimizer=on;
+SET
+
+explain (verbose on, costs off) select c2 from trow where c2 > 15 order by c2;
+ QUERY PLAN
+-------------------------------------------------
+ Gather VecMotion 2:1  (slice1; segments: 2)
+   Output: c2
+   Merge Key: c2
+   ->  Vec Sort
+         Output: c2
+         Sort Key: trow.c2
+         ->  Vec Seq Scan on public.trow
+               Output: c2
+               Filter: (trow.c2 > 15)
+ Optimizer: Pivotal Optimizer (GPORCA)
+ Settings: vector.enable_vectorization=on, optimizer=on
+(11 rows)
+select c2 from trow where c2 > 15 order by c2;
+ c2
+----
+ 16
+ 16
+ 17
+ 17
+ 18
+ 18
+ 19
+ 19
+ 20
+ 20
+(10 rows)

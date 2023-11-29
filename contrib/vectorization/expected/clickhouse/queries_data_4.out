@@ -1,0 +1,114 @@
+-- turn on vectorization
+SET vector.enable_vectorization=on;
+SET vector.max_batch_size = 128;
+-- query 31-40
+SELECT SearchEngineID, ClientIP, count() AS c, sum(Refresh) FROM hits WHERE SearchPhrase != '' GROUP BY SearchEngineID, ClientIP ORDER BY SearchEngineID, ClientIP, c LIMIT 10;
+ searchengineid |  clientip  | c | sum 
+----------------+------------+---+-----
+              1 | 1981394941 | 1 |   0
+              1 | 3911193819 | 1 |   0
+              2 |  994141745 | 1 |   0
+              2 | 1279830590 | 1 |   0
+              2 | 1391335000 | 1 |   0
+              2 | 1806166577 | 1 |   0
+              2 | 3565819545 | 1 |   0
+              3 |  123100983 | 1 |   0
+              3 |  280750947 | 2 |   0
+              3 | 1123459887 | 3 |   0
+(10 rows)
+
+SELECT WatchID, ClientIP, count() AS c, sum(Refresh) FROM hits WHERE SearchPhrase != '' GROUP BY WatchID, ClientIP ORDER BY WatchID, ClientIP, c LIMIT 10;
+       watchid       |  clientip  | c | sum 
+---------------------+------------+---+-----
+ 2370572883684523774 | 2210313842 | 1 |   0
+ 2397372187785327459 | 4191794658 | 1 |   0
+ 2418830460083264512 |  280750947 | 1 |   0
+ 2425627489746929327 | 1203004419 | 1 |   0
+ 2569487703065994317 |  280750947 | 1 |   0
+ 2575778147731572765 | 3187318999 | 1 |   0
+ 2579302298216730375 | 1123459887 | 1 |   0
+ 2645533985302387130 | 1087886866 | 1 |   0
+ 2654822103360689749 | 1767624985 | 1 |   0
+ 2709700930805423614 | 1492372489 | 1 |   0
+(10 rows)
+
+SELECT WatchID, ClientIP, count() AS c, sum(Refresh) FROM hits GROUP BY WatchID, ClientIP ORDER BY WatchID, ClientIP, c LIMIT 10;
+       watchid       |  clientip  | c | sum 
+---------------------+------------+---+-----
+ 2307261798382077788 | 2774904469 | 1 |   0
+ 2308731918818823571 | 1427241295 | 1 |   0
+ 2315692199031372470 | 1970040484 | 1 |   0
+ 2316401189111190233 | 2723656327 | 1 |   0
+ 2328018451884552508 | 1866619125 | 1 |   0
+ 2343192785334240064 | 1737794345 | 1 |   0
+ 2344125483693698649 | 2121643623 | 1 |   0
+ 2351273767110258110 |  946668915 | 1 |   0
+ 2351273846735152200 | 1123459887 | 1 |   0
+ 2353829412121252872 | 3053643248 | 1 |   0
+(10 rows)
+
+SELECT URL, count() AS c FROM hits GROUP BY URL ORDER BY url, c LIMIT 10;
+                                                                url                                                                 | c 
+------------------------------------------------------------------------------------------------------------------------------------+---
+ http:%2F%2Fimg_url=http://master.ru.perm                                                                                           | 2
+ http:%2F%2Fwww.e-l-Esarp.jpgI,Iphotos?album/30709_3001236922                                                                       | 1
+ http://24autor.tv/news/spider-disk.ru/CATE&sort_by=2&extras                                                                        | 1
+ http://24autore.com.ua/detskiye%2Fb0                                                                                               | 1
+ http://24autore.com.ua/kuban.ru/used.genesus_-4-sektor                                                                             | 2
+ http://24autore.com.ua/mercedes_currencyId                                                                                         | 1
+ http://24autore.com.ua/yandex.ru/messembler.ru/car/obshchnogo                                                                      | 2
+ http://24autorrellik_s_bron?CLAIM=7117&z=15&topic/366379524585-wh-467-pd-1&p=3&pvalutkrasnodaromnatnye/payOrder_search.xml/?search | 2
+ http://24autorrellik_s_broniny/649000000Zh9ojwSf.pl?type=45070209221/419517500247195c2s                                            | 2
+ http://4glazaru.ru/cars/kornews/2014-03-23                                                                                         | 1
+(10 rows)
+
+SELECT 1, URL, count() AS c FROM hits GROUP BY 1, URL ORDER BY url, c LIMIT 10;
+ ?column? |                                                                url                                                                 | c 
+----------+------------------------------------------------------------------------------------------------------------------------------------+---
+        1 | http:%2F%2Fimg_url=http://master.ru.perm                                                                                           | 2
+        1 | http:%2F%2Fwww.e-l-Esarp.jpgI,Iphotos?album/30709_3001236922                                                                       | 1
+        1 | http://24autor.tv/news/spider-disk.ru/CATE&sort_by=2&extras                                                                        | 1
+        1 | http://24autore.com.ua/detskiye%2Fb0                                                                                               | 1
+        1 | http://24autore.com.ua/kuban.ru/used.genesus_-4-sektor                                                                             | 2
+        1 | http://24autore.com.ua/mercedes_currencyId                                                                                         | 1
+        1 | http://24autore.com.ua/yandex.ru/messembler.ru/car/obshchnogo                                                                      | 2
+        1 | http://24autorrellik_s_bron?CLAIM=7117&z=15&topic/366379524585-wh-467-pd-1&p=3&pvalutkrasnodaromnatnye/payOrder_search.xml/?search | 2
+        1 | http://24autorrellik_s_broniny/649000000Zh9ojwSf.pl?type=45070209221/419517500247195c2s                                            | 2
+        1 | http://4glazaru.ru/cars/kornews/2014-03-23                                                                                         | 1
+(10 rows)
+
+SELECT ClientIP AS x, ClientIP - 1 AS y, ClientIP - 2 AS z, ClientIP - 3 AS w, count() AS c FROM hits GROUP BY x, y, z, w ORDER BY x, y, z, w, c LIMIT 10;
+     x     |     y     |     z     |     w     | c  
+-----------+-----------+-----------+-----------+----
+  44808656 |  44808655 |  44808654 |  44808653 |  1
+  46316870 |  46316869 |  46316868 |  46316867 |  4
+  76731730 |  76731729 |  76731728 |  76731727 |  4
+  85558628 |  85558627 |  85558626 |  85558625 | 15
+ 114394410 | 114394409 | 114394408 | 114394407 | 13
+ 123100983 | 123100982 | 123100981 | 123100980 | 15
+ 280750947 | 280750946 | 280750945 | 280750944 |  2
+ 374391783 | 374391782 | 374391781 | 374391780 |  1
+ 468087059 | 468087058 | 468087057 | 468087056 |  2
+ 492581834 | 492581833 | 492581832 | 492581831 |  1
+(10 rows)
+
+SELECT URL, count() AS PageViews FROM hits WHERE CounterID = 34 AND EventDate >= '2013-07-01'::DATE AND EventDate <= '2013-07-31'::DATE AND NOT DontCountHits = 1::smallint AND NOT Refresh = 1::smallint AND URL != '' GROUP BY URL ORDER BY PageViews LIMIT 10;
+ url | pageviews 
+-----+-----------
+(0 rows)
+
+SELECT Title, count() AS PageViews FROM hits WHERE CounterID = 34 AND EventDate >= '2013-07-01'::DATE AND EventDate <= '2013-07-31'::DATE AND NOT DontCountHits = 1::smallint AND NOT Refresh = 1::smallint AND Title != '' GROUP BY Title ORDER BY PageViews LIMIT 10;
+ title | pageviews 
+-------+-----------
+(0 rows)
+
+SELECT URL, count() AS PageViews FROM hits WHERE CounterID = 34 AND EventDate >= '2013-07-01'::DATE AND EventDate <= '2013-07-31'::DATE AND NOT Refresh = 1::smallint AND IsLink = 1::smallint AND NOT IsDownload = 1::smallint GROUP BY URL ORDER BY PageViews LIMIT 1000;
+ url | pageviews 
+-----+-----------
+(0 rows)
+
+SELECT TraficSourceID, SearchEngineID, AdvEngineID, URL AS Dst, count() AS PageViews FROM hits WHERE CounterID = 34 AND EventDate >= '2013-07-01'::DATE AND EventDate <= '2013-07-31'::DATE AND NOT Refresh = 1::smallint GROUP BY TraficSourceID, SearchEngineID, AdvEngineID, Dst ORDER BY PageViews LIMIT 1000;
+ traficsourceid | searchengineid | advengineid | dst | pageviews 
+----------------+----------------+-------------+-----+-----------
+(0 rows)
+

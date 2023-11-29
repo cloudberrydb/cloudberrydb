@@ -1,0 +1,136 @@
+-- turn on vectorization
+SET vector.enable_vectorization=on;
+SET vector.max_batch_size = 128;
+-- query 11 -20
+SELECT MobilePhoneModel, count(distinct UserID) AS u FROM hits WHERE MobilePhoneModel != '' GROUP BY MobilePhoneModel ORDER BY MobilePhoneModel, u LIMIT 10;
+ mobilephonemodel | u  
+------------------+----
+ Desire A81810a   |  1
+ LG Optimus       | 13
+ S820_ROW         |  6
+ iPad 7           |  1
+ iPad HD 7        |  1
+ iPhone 2         | 10
+(6 rows)
+
+SELECT MobilePhone, MobilePhoneModel, count(distinct UserID) AS u FROM hits WHERE MobilePhoneModel != '' GROUP BY MobilePhone, MobilePhoneModel ORDER BY MobilePhone, MobilePhoneModel, u LIMIT 10;
+ mobilephone | mobilephonemodel | u  
+-------------+------------------+----
+           1 | LG Optimus       | 13
+           1 | S820_ROW         |  6
+           7 | iPhone 2         | 10
+          12 | Desire A81810a   |  1
+          24 | iPad HD 7        |  1
+          92 | iPad 7           |  1
+(6 rows)
+
+SELECT SearchPhrase, count() AS c FROM hits WHERE SearchPhrase != '' GROUP BY SearchPhrase ORDER BY SearchPhrase, c LIMIT 10;
+                                                                                                               searchphrase                                                                                                                | c 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---
+ CACBDCDBCGCECF CJCKCICBDA DNCHCBCGDCDACKCKCXCJCWDP CECZDADL DBCGCKDACKDCCW DECKDCCK CGCWCHCK                                                                                                                                              | 1
+ CCCECYCKDCCJDLDF DCDADDCXCKDDCGCHCW                                                                                                                                                                                                       | 1
+ CDCBCHCBCJCKCZCK CLCHCWCJCEDACKCYCKCACEDCDBDP                                                                                                                                                                                             | 1
+ CDCKCKDECECHCECLDDDCDL CGDACWCF CHCE DECBDACX DBCBCIDMCE DACEDBDDCJCKCG CJCWCFDCCHCE CGDACEDBDCCW CGCWDACWCJCA CLCBDBCJDO CWCIDDDACWCYCJCKDBDCCE CWCGCWCACBDCDL CJCW 20.03.2014CZ. DDDECB                                                 | 1
+ CECJDCCBDACJCBDC CICWCZCWCDCECJ DECECJCBDB CE DECECDCEDHCBDBCGDD CK CLDACECGCKCHCBDBCJCKCGCW, CYCWCHCBDACEDP                                                                                                                              | 1
+ CGCKCICBCACECW CICWCZCWCDCECJ CICWDACGCE DCCBCLCHCKDBCGCKCY                                                                                                                                                                               | 2
+ CGCWCG DDCGDACWDXCJCE CY CGDADLCICW DECKDCCK DB CLCK                                                                                                                                                                                      | 1
+ CHCECYCJCKDBDCCE DECKDCCK CJCWCHCECDDL DCCWCICXCK CDCWCFDHCECGCW                                                                                                                                                                          | 1
+ CJCWDCDPCCCJDLCB CICKDADPCG CACEDBCGCE CACHDP CGCKDACKCYCKCHCKDB                                                                                                                                                                          | 1
+ CKDADFCECACBDP CY CICEDACWCJCACWDICKCI DGCBCJCWDACEDBDL CZDDCDCBCBCYCKCF CICKDCCK DACEDBDDCJCKCG CE CLDACKDBDCDACKCFDJCECGCW DECKDCCK DB CLCKCDCADACWCYCHCBCJCECF DCCBCHCBCGCWCJCGCW DECKDCCK 2014 CZCKCA DBCKCXCHCWDBDCCE DDCCCZCKDACKCA | 1
+(10 rows)
+
+SELECT SearchPhrase, count(distinct UserID) AS u FROM hits WHERE SearchPhrase != '' GROUP BY SearchPhrase ORDER BY SearchPhrase, u LIMIT 10;
+                                                                                                               searchphrase                                                                                                                | u 
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---
+ CACBDCDBCGCECF CJCKCICBDA DNCHCBCGDCDACKCKCXCJCWDP CECZDADL DBCGCKDACKDCCW DECKDCCK CGCWCHCK                                                                                                                                              | 1
+ CCCECYCKDCCJDLDF DCDADDCXCKDDCGCHCW                                                                                                                                                                                                       | 1
+ CDCBCHCBCJCKCZCK CLCHCWCJCEDACKCYCKCACEDCDBDP                                                                                                                                                                                             | 1
+ CDCKCKDECECHCECLDDDCDL CGDACWCF CHCE DECBDACX DBCBCIDMCE DACEDBDDCJCKCG CJCWCFDCCHCE CGDACEDBDCCW CGCWDACWCJCA CLCBDBCJDO CWCIDDDACWCYCJCKDBDCCE CWCGCWCACBDCDL CJCW 20.03.2014CZ. DDDECB                                                 | 1
+ CECJDCCBDACJCBDC CICWCZCWCDCECJ DECECJCBDB CE DECECDCEDHCBDBCGDD CK CLDACECGCKCHCBDBCJCKCGCW, CYCWCHCBDACEDP                                                                                                                              | 1
+ CGCKCICBCACECW CICWCZCWCDCECJ CICWDACGCE DCCBCLCHCKDBCGCKCY                                                                                                                                                                               | 1
+ CGCWCG DDCGDACWDXCJCE CY CGDADLCICW DECKDCCK DB CLCK                                                                                                                                                                                      | 1
+ CHCECYCJCKDBDCCE DECKDCCK CJCWCHCECDDL DCCWCICXCK CDCWCFDHCECGCW                                                                                                                                                                          | 1
+ CJCWDCDPCCCJDLCB CICKDADPCG CACEDBCGCE CACHDP CGCKDACKCYCKCHCKDB                                                                                                                                                                          | 1
+ CKDADFCECACBDP CY CICEDACWCJCACWDICKCI DGCBCJCWDACEDBDL CZDDCDCBCBCYCKCF CICKDCCK DACEDBDDCJCKCG CE CLDACKDBDCDACKCFDJCECGCW DECKDCCK DB CLCKCDCADACWCYCHCBCJCECF DCCBCHCBCGCWCJCGCW DECKDCCK 2014 CZCKCA DBCKCXCHCWDBDCCE DDCCCZCKDACKCA | 1
+(10 rows)
+
+SELECT SearchEngineID, SearchPhrase, count() AS c FROM hits WHERE SearchPhrase != '' GROUP BY SearchEngineID, SearchPhrase ORDER BY SearchEngineID, SearchPhrase, c LIMIT 10;
+ searchengineid |                                                                                       searchphrase                                                                                        | c 
+----------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---
+              1 | CCCECYCKDCCJDLDF DCDADDCXCKDDCGCHCW                                                                                                                                                       | 1
+              1 | CY DACKDBDBCECE CKDCCJCKDBDCCE                                                                                                                                                            | 1
+              2 | CLDBCEDFCKCHCKCZCACW DCDDDACW CGCEDACLCEDH                                                                                                                                                | 1
+              2 | CWCJCACCCBCHCECJCW CYCWCZCJCBDACWDC DB DECKDCCK                                                                                                                                           | 1
+              2 | DBCICKDCDACBDCDM CKDC CDCWCLDHCWDBDCCJCKCB CCCECH CY CKDACHCWCJCACKDADL DB CWCJCZCHCECFDBCG CICWDACGCW                                                                                    | 1
+              2 | don DICJDDDACKCYCJCKCZCKDACECF DIDRCHCG DJDRCHCG                                                                                                                                          | 1
+              2 | how to copystalk 230 CGCI                                                                                                                                                                 | 1
+              3 | CACBDCDBCGCECF CJCKCICBDA DNCHCBCGDCDACKCKCXCJCWDP CECZDADL DBCGCKDACKDCCW DECKDCCK CGCWCHCK                                                                                              | 1
+              3 | CDCBCHCBCJCKCZCK CLCHCWCJCEDACKCYCKCACEDCDBDP                                                                                                                                             | 1
+              3 | CDCKCKDECECHCECLDDDCDL CGDACWCF CHCE DECBDACX DBCBCIDMCE DACEDBDDCJCKCG CJCWCFDCCHCE CGDACEDBDCCW CGCWDACWCJCA CLCBDBCJDO CWCIDDDACWCYCJCKDBDCCE CWCGCWCACBDCDL CJCW 20.03.2014CZ. DDDECB | 1
+(10 rows)
+
+SELECT UserID, count() FROM hits GROUP BY UserID ORDER BY userid, count() LIMIT 10;
+       userid       | count 
+--------------------+-------
+     95243641781380 |    39
+  19444017200716752 |    11
+  31612493169387779 |     3
+  55647443226167911 |     2
+  59612137003692347 |     1
+  74367164094472307 |     1
+  96549279586131633 |     3
+ 136395667136109433 |    15
+ 138399097849861934 |     4
+ 154622932596995800 |     2
+(10 rows)
+
+SELECT UserID, SearchPhrase, count() FROM hits GROUP BY UserID, SearchPhrase ORDER BY UserID, SearchPhrase, count() LIMIT 10;
+      userid       |                                       searchphrase                                       | count 
+-------------------+------------------------------------------------------------------------------------------+-------
+    95243641781380 |                                                                                          |    36
+    95243641781380 | DECKDCCK DBCEDCDDCWDGCEDP regi                                                           |     2
+    95243641781380 | DHCBDACJCK CKCLDDDF CLDACBCDCBCJDCCWDGCEDPCHCWDA                                         |     1
+ 19444017200716752 |                                                                                          |    11
+ 31612493169387779 |                                                                                          |     3
+ 55647443226167911 |                                                                                          |     1
+ 55647443226167911 | DPCJCACBCGDBDL CJCW 5 CGCECBCYCB DBDDCACBCXCJDLCB CZCHCWCDCWDA DFCKCGCGCB DHCWDBDCCJDLCB |     1
+ 59612137003692347 |                                                                                          |     1
+ 74367164094472307 |                                                                                          |     1
+ 96549279586131633 |                                                                                          |     3
+(10 rows)
+
+SELECT UserID, SearchPhrase, count() FROM hits GROUP BY UserID, SearchPhrase ORDER BY UserID, SearchPhrase LIMIT 10;
+      userid       |                                       searchphrase                                       | count 
+-------------------+------------------------------------------------------------------------------------------+-------
+    95243641781380 |                                                                                          |    36
+    95243641781380 | DECKDCCK DBCEDCDDCWDGCEDP regi                                                           |     2
+    95243641781380 | DHCBDACJCK CKCLDDDF CLDACBCDCBCJDCCWDGCEDPCHCWDA                                         |     1
+ 19444017200716752 |                                                                                          |    11
+ 31612493169387779 |                                                                                          |     3
+ 55647443226167911 |                                                                                          |     1
+ 55647443226167911 | DPCJCACBCGDBDL CJCW 5 CGCECBCYCB DBDDCACBCXCJDLCB CZCHCWCDCWDA DFCKCGCGCB DHCWDBDCCJDLCB |     1
+ 59612137003692347 |                                                                                          |     1
+ 74367164094472307 |                                                                                          |     1
+ 96549279586131633 |                                                                                          |     3
+(10 rows)
+
+SELECT UserID, EventTime AS m, SearchPhrase, count() FROM hits GROUP BY UserID, m, SearchPhrase ORDER BY UserID, m, SearchPhrase, count() LIMIT 10;
+     userid     |            m             |                   searchphrase                   | count 
+----------------+--------------------------+--------------------------------------------------+-------
+ 95243641781380 | Sun Mar 23 00:58:03 2014 | DHCBDACJCK CKCLDDDF CLDACBCDCBCJDCCWDGCEDPCHCWDA |     1
+ 95243641781380 | Sun Mar 23 00:58:05 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 00:58:10 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 00:58:15 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 00:58:24 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 00:58:36 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 01:06:20 2014 | DECKDCCK DBCEDCDDCWDGCEDP regi                   |     1
+ 95243641781380 | Sun Mar 23 01:06:22 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 01:06:29 2014 |                                                  |     1
+ 95243641781380 | Sun Mar 23 01:06:34 2014 |                                                  |     1
+(10 rows)
+
+SELECT UserID FROM hits WHERE UserID = '1234567890123456789';
+ userid 
+--------
+(0 rows)
+

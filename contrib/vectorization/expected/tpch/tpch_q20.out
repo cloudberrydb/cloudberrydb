@@ -1,0 +1,121 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	s_name,
+	s_address
+from
+	supplier,
+	nation
+where
+	s_suppkey in (
+		select
+			ps_suppkey
+		from
+			partsupp
+		where
+			ps_partkey in (
+				select
+					p_partkey
+				from
+					part
+				where
+					p_name like 'burnished%'
+			)
+			and ps_availqty > (
+				select
+					0.5 * sum(l_quantity)
+				from
+					lineitem
+				where
+					l_partkey = ps_partkey
+					and l_suppkey = ps_suppkey
+					and l_shipdate >= date '1997-01-01'
+					and l_shipdate < date '1997-01-01' + interval '1 year'
+			)
+	)
+	and s_nationkey = n_nationkey
+	and n_name = 'RUSSIA'
+order by
+	s_name;
+                                                                                QUERY PLAN                                                                                 
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: supplier.s_name
+   ->  Vec Sort
+         Sort Key: supplier.s_name
+         ->  Vec Hash Semi Join
+               Hash Cond: (supplier.s_suppkey = partsupp.ps_suppkey)
+               ->  Vec Hash Join
+                     Hash Cond: (supplier.s_nationkey = nation.n_nationkey)
+                     ->  Vec Seq Scan on supplier
+                     ->  Vec Hash
+                           ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
+                                 ->  Vec Seq Scan on nation
+                                       Filter: (n_name = 'RUSSIA'::text)
+               ->  Vec Hash
+                     ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                           Hash Key: partsupp.ps_suppkey
+                           ->  Vec Hash Join
+                                 Hash Cond: ((lineitem.l_partkey = partsupp.ps_partkey) AND (lineitem.l_suppkey = partsupp.ps_suppkey))
+                                 Join Filter: ((partsupp.ps_availqty)::double precision > (('0.5'::double precision * sum(lineitem.l_quantity))))
+                                 ->  Vec HashAggregate
+                                       Group Key: lineitem.l_partkey, lineitem.l_suppkey
+                                       ->  Vec Redistribute Motion 3:3  (slice4; segments: 3)
+                                             Hash Key: lineitem.l_partkey, lineitem.l_suppkey
+                                             ->  Vec Seq Scan on lineitem
+                                                   Filter: ((l_shipdate >= '01-01-1997'::date) AND (l_shipdate < 'Thu Jan 01 00:00:00 1998'::timestamp without time zone))
+                                 ->  Vec Hash
+                                       ->  Vec Broadcast Motion 3:3  (slice5; segments: 3)
+                                             ->  Vec Hash Semi Join
+                                                   Hash Cond: (partsupp.ps_partkey = part.p_partkey)
+                                                   ->  Vec Seq Scan on partsupp
+                                                   ->  Vec Hash
+                                                         ->  Vec Seq Scan on part
+                                                               Filter: ((p_name)::text ~~ 'burnished%'::text)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(34 rows)
+
+select
+	s_name,
+	s_address
+from
+	supplier,
+	nation
+where
+	s_suppkey in (
+		select
+			ps_suppkey
+		from
+			partsupp
+		where
+			ps_partkey in (
+				select
+					p_partkey
+				from
+					part
+				where
+					p_name like 'burnished%'
+			)
+			and ps_availqty > (
+				select
+					0.5 * sum(l_quantity)
+				from
+					lineitem
+				where
+					l_partkey = ps_partkey
+					and l_suppkey = ps_suppkey
+					and l_shipdate >= date '1997-01-01'
+					and l_shipdate < date '1997-01-01' + interval '1 year'
+			)
+	)
+	and s_nationkey = n_nationkey
+	and n_name = 'RUSSIA'
+order by
+	s_name;
+       s_name       |             s_address              
+--------------------+------------------------------------
+ Supplier#000000042 | 1Y5lwEgpe3j2vbUBYj3SwLhK62JlwEMtDC
+(1 row)
+

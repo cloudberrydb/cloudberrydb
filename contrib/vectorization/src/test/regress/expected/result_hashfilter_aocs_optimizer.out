@@ -1,0 +1,60 @@
+SET default_table_access_method=ao_column;
+DROP TABLE IF EXISTS rep;
+NOTICE:  table "rep" does not exist, skipping
+DROP TABLE IF EXISTS dis;
+NOTICE:  table "dis" does not exist, skipping
+CREATE TABLE rep (a int, b int) DISTRIBUTED REPLICATED;
+CREATE TABLE dis (a int, b int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO rep VALUES (1, 1), (2, 2), (3, NULL), (NULL, 4);
+INSERT INTO dis VALUES (1, 1), (2, 2);
+EXPLAIN SELECT rep.a, rep.b, dis.a, dis.b FROM rep LEFT JOIN dis ON rep.a = dis.a ORDER BY rep.a;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=2 width=16)
+   Merge Key: rep.a
+   ->  Vec Sort  (cost=0.00..862.00 rows=1 width=16)
+         Sort Key: rep.a
+         ->  Vec Hash Left Join  (cost=0.00..862.00 rows=1 width=16)
+               Hash Cond: (rep.a = dis.a)
+               ->  Vec Result  (cost=0.00..431.00 rows=1 width=8)
+                     ->  Vec Seq Scan on rep  (cost=0.00..431.00 rows=1 width=8)
+               ->  Vec Hash  (cost=431.00..431.00 rows=1 width=8)
+                     ->  Vec Seq Scan on dis  (cost=0.00..431.00 rows=1 width=8)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(11 rows)
+
+SELECT rep.a, rep.b, dis.a, dis.b FROM rep LEFT JOIN dis ON rep.a = dis.a ORDER BY rep.a;
+ a | b | a | b 
+---+---+---+---
+ 1 | 1 | 1 | 1
+ 2 | 2 | 2 | 2
+ 3 |   |   |  
+   | 4 |   |  
+(4 rows)
+
+INSERT INTO rep SELECT generate_series(1, 10000), generate_series(1, 10000);
+INSERT INTO dis SELECT generate_series(1, 3000), generate_series(1, 3000);
+EXPLAIN SELECT count(*) FROM rep LEFT JOIN dis ON rep.a = dis.a;
+                                       QUERY PLAN                                       
+----------------------------------------------------------------------------------------
+ Vec Aggregate  (cost=0.00..862.00 rows=1 width=8)
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=2 width=1)
+         ->  Vec Hash Left Join  (cost=0.00..862.00 rows=1 width=1)
+               Hash Cond: (rep.a = dis.a)
+               ->  Vec Result  (cost=0.00..431.00 rows=1 width=4)
+                     ->  Vec Seq Scan on rep  (cost=0.00..431.00 rows=1 width=4)
+               ->  Vec Hash  (cost=431.00..431.00 rows=1 width=4)
+                     ->  Vec Seq Scan on dis  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(9 rows)
+
+SELECT count(*) FROM rep LEFT JOIN dis ON rep.a = dis.a;
+ count 
+-------
+ 10008
+(1 row)
+
+DROP TABLE rep;
+DROP TABLE dis;

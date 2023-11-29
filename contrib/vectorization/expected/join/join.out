@@ -1,0 +1,212 @@
+set vector.enable_vectorization = on;
+set optimizer = on;
+-- test left anti semi join(lasj not-in)
+drop table if exists t1, t2;
+NOTICE:  table "t1" does not exist, skipping
+NOTICE:  table "t2" does not exist, skipping
+create table t1(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table t2(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- explain
+explain select * from t1 where t1.c2 not in (select t2.c2 from t2);
+                                            QUERY PLAN                                             
+---------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+   ->  Vec Hash Left Anti Semi (Not-In) Join  (cost=0.00..862.00 rows=1 width=8)
+         Hash Cond: (t1.c2 = t2.c2)
+         ->  Vec Seq Scan on t1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Vec Hash  (cost=431.00..431.00 rows=1 width=4)
+               ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)  (cost=0.00..431.00 rows=1 width=4)
+                     ->  Vec Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(8 rows)
+
+-- case 0: t1 empty; t2.c2 empty;
+select * from t1 where t1.c2 not in (select t2.c2 from t2);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 1: t1.c2 not-empty, no null; t2.c2 empty
+insert into t1 values (1,2);
+select * from t1 where t1.c2 not in (select t2.c2 from t2);
+ c1 | c2 
+----+----
+  1 |  2
+(1 row)
+
+-- case 2: t1.c2 not-empty, has null; t2.c2 empty
+insert into t1 values (1, null);
+select * from t1 where t1.c2 not in (select t2.c2 from t2);
+ c1 | c2 
+----+----
+  1 |  2
+  1 |   
+(2 rows)
+
+-- case 3: t1.c2 not-empty, has null; t2.c2 not empty, no null, has match
+insert into t2 values (1, 5);
+select * from t1 where t1.c2 not in (select t2.c2 from t2);
+ c1 | c2 
+----+----
+  1 |  2
+(1 row)
+
+-- case 4: t1.c2 not-empty, has null; t2.c2 not empty, no null, no match
+insert into t2 values (1, 2);
+select * from t1 where t1.c2 not in (select t2.c2 from t2);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 5: t1.c2 not-empty, has null; t2.c2 not empty, has null
+insert into t2 values (1, null);
+select * from t1 where t1.c2 not in (select t2.c2 from t2);
+ c1 | c2 
+----+----
+(0 rows)
+
+--------------------------------------------------------------------------
+-- test semi join(exists)
+drop table if exists t1, t2;
+create table t1(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table t2(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- explain
+explain select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+   ->  Vec Hash Semi Join  (cost=0.00..862.00 rows=1 width=8)
+         Hash Cond: (t1.c1 = t2.c1)
+         ->  Vec Seq Scan on t1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Vec Hash  (cost=431.00..431.00 rows=1 width=4)
+               ->  Vec Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(7 rows)
+
+-- case 1: t1 empty, t2 empty
+select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 2: t1 null; t2 empty
+insert into t1 values (1, null);
+select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 3: t1 (null, 1); t2 empty
+insert into t1 values (1,1);
+select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 3: t1 (null, 1), t2 null
+insert into t2 values (1, null);
+select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+  1 |   
+  1 |  1
+(2 rows)
+
+-- case 4: t1 (null, 1), t2 (null, 1)
+insert into t2 values (1, 1);
+select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+  1 |   
+  1 |  1
+(2 rows)
+
+-- case 5: t1 (null, 1), t2 (1)
+drop table if exists t2;
+create table t2(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+insert into t2 values (1, 1);
+select * from t1 where exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+  1 |   
+  1 |  1
+(2 rows)
+
+--------------------------------------------------------------------------
+-- test anti join (not exists)
+drop table if exists t1, t2;
+create table t1(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create table t2(c1 int, c2 int) with(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+-- explain
+explain select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+   ->  Vec Hash Anti Join  (cost=0.00..862.00 rows=1 width=8)
+         Hash Cond: (t1.c1 = t2.c1)
+         ->  Vec Seq Scan on t1  (cost=0.00..431.00 rows=1 width=8)
+         ->  Vec Hash  (cost=431.00..431.00 rows=1 width=4)
+               ->  Vec Seq Scan on t2  (cost=0.00..431.00 rows=1 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(7 rows)
+
+-- case 0: t1 empty; t2.c2 empty;
+select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 1: t1.c2 not-empty, no null; t2.c2 empty
+insert into t1 values (1,2);
+select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+  1 |  2
+(1 row)
+
+-- case 2: t1.c2 not-empty, has null; t2.c2 empty
+insert into t1 values (1, null);
+select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+  1 |  2
+  1 |   
+(2 rows)
+
+-- case 3: t1.c2 not-empty, has null; t2.c2 not empty, no null, has match
+insert into t2 values (1, 5);
+select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 4: t1.c2 not-empty, has null; t2.c2 not empty, no null, no match
+insert into t2 values (1, 2);
+select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- case 5: t1.c2 not-empty, has null; t2.c2 not empty, has null
+insert into t2 values (1, null);
+select * from t1 where not exists (select t2.c2 from t2 where t1.c1 = t2.c1);
+ c1 | c2 
+----+----
+(0 rows)
+
+-- finish
+drop table if exists t1, t2;

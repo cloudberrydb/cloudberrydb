@@ -1,0 +1,123 @@
+set extra_float_digits = -1;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	c_custkey,
+	c_name,
+	sum(l_extendedprice * (1 - l_discount)) as revenue,
+	c_acctbal,
+	n_name,
+	c_address,
+	c_phone,
+	c_comment
+from
+	customer,
+	orders,
+	lineitem,
+	nation
+where
+	c_custkey = o_custkey
+	and l_orderkey = o_orderkey
+	and o_orderdate >= date '1993-06-01'
+	and o_orderdate < date '1993-06-01' + interval '3 month'
+	and l_returnflag = 'R'
+	and c_nationkey = n_nationkey
+group by
+	c_custkey,
+	c_name,
+	c_acctbal,
+	c_phone,
+	n_name,
+	c_address,
+	c_comment
+order by
+	revenue desc
+LIMIT 20;
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Limit
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount))))
+         ->  Vec Limit
+               ->  Vec Sort
+                     Sort Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))) DESC
+                     ->  Vec HashAggregate
+                           Group Key: customer.c_custkey, customer.c_name, customer.c_acctbal, customer.c_phone, nation.n_name, customer.c_address, customer.c_comment
+                           ->  Vec Hash Join
+                                 Hash Cond: (customer.c_custkey = orders.o_custkey)
+                                 ->  Vec Hash Join
+                                       Hash Cond: (customer.c_nationkey = nation.n_nationkey)
+                                       ->  Vec Seq Scan on customer
+                                       ->  Vec Hash
+                                             ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
+                                                   ->  Vec Seq Scan on nation
+                                 ->  Vec Hash
+                                       ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                                             Hash Key: orders.o_custkey
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+                                                   ->  Vec Seq Scan on lineitem
+                                                         Filter: (l_returnflag = 'R'::text)
+                                                   ->  Vec Hash
+                                                         ->  Vec Seq Scan on orders
+                                                               Filter: ((o_orderdate >= '06-01-1993'::date) AND (o_orderdate < 'Wed Sep 01 00:00:00 1993'::timestamp without time zone))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(27 rows)
+
+select
+	c_custkey,
+	c_name,
+	sum(l_extendedprice * (1 - l_discount)) as revenue,
+	c_acctbal,
+	n_name,
+	c_address,
+	c_phone,
+	c_comment
+from
+	customer,
+	orders,
+	lineitem,
+	nation
+where
+	c_custkey = o_custkey
+	and l_orderkey = o_orderkey
+	and o_orderdate >= date '1993-06-01'
+	and o_orderdate < date '1993-06-01' + interval '3 month'
+	and l_returnflag = 'R'
+	and c_nationkey = n_nationkey
+group by
+	c_custkey,
+	c_name,
+	c_acctbal,
+	c_phone,
+	n_name,
+	c_address,
+	c_comment
+order by
+	revenue desc
+LIMIT 20;
+ c_custkey |       c_name       |   revenue   | c_acctbal |    n_name    |               c_address                |     c_phone     |                                                      c_comment                                                       
+-----------+--------------------+-------------+-----------+--------------+----------------------------------------+-----------------+----------------------------------------------------------------------------------------------------------------------
+      1355 | Customer#000001355 |  456831.601 |    2351.1 | SAUDI ARABIA | c1r6G98ixzLQkvUV2KphsFwhYvpDo18oToGB   | 30-918-883-1662 | anent dependencies are blithely above the quickly silent escapades. requests sleep. final foxes sleep slyl
+      1249 | Customer#000001249 | 434521.4048 |    448.49 | GERMANY      | x9ukZnNiUM5pBPXyE3epagewVQBPZzxGYD6sMH | 17-866-269-1165 |  the ironic packages sleep carefully express theodolites. even, final deposits across the even deposits nag after t
+       109 | Customer#000000109 | 392384.5988 |    -716.1 | MOZAMBIQUE   | OOOkYBgCMzgMQXUmkocoLb56rfrdWp2NE2c    | 26-992-422-8153 | es. fluffily final dependencies sleep along the blithely even pinto beans. final deposits haggle furiously furiou
+      1169 | Customer#000001169 | 339756.0156 |    7503.3 | EGYPT        | 04YQNIYyRRFxUnJsTP36da                 | 14-975-169-9356 | into beans doubt about the slyly ironic multipliers. carefully regular requests breach theodolites. special packages
+       124 | Customer#000000124 | 324706.0802 |   1842.49 | CHINA        | aTbyVAW5tCd,v09O                       | 28-183-750-7809 | le fluffily even dependencies. quietly s
+       583 | Customer#000000583 |   312689.31 |   3686.07 | JORDAN       | V3i6Gu9,LZtvdnNppXnI2eKQFx0b36WvL,F    | 23-234-625-4041 |  haggle. regular, regular accounts hinder carefully i
+       436 | Customer#000000436 | 302330.7952 |   5896.87 | ROMANIA      | 4DCNzAT842cVYTcaUS94kR0QXHSRM5oco0D6Z  | 29-927-687-6390 | olites engage carefully. slyly ironic asymptotes about the ironi
+       331 | Customer#000000331 | 297982.0426 |    170.27 | ETHIOPIA     | Ug e2IBbl,LJuqjNz5XeQV                 | 15-411-430-7917 | r the silent ideas. carefully ironic deposits was carefully above the furiously even excuses. evenly regu
+       919 | Customer#000000919 | 295380.3102 |   9774.97 | INDONESIA    | cHGtsqVvXRiK                           | 19-537-180-2200 | lar instructions. blithely final deposits haggle furiously bold pinto bean
+       883 | Customer#000000883 | 293929.3974 |    479.96 | CANADA       | qVQ8rWNU5KZYDcS                        | 13-526-239-6950 | uctions are carefully across the regular, regular asymptote
+       854 | Customer#000000854 | 275067.9743 |   3393.86 | ALGERIA      | flSR,SlEXwxrDcm3uedfK1Oiq,c9mZI        | 10-544-967-2382 | t slyly after the furiously even escapades. carefully regular pa
+       244 | Customer#000000244 | 273550.0799 |   2506.38 | MOROCCO      | FBVbCpEVaFaP8KogqQO2VuXeVx             | 25-621-225-8173 | encies. requests nag carefully. regularly final accounts h
+       556 | Customer#000000556 | 263201.9724 |   7944.22 | ARGENTINA    | UMHllVkuyQUQ3aLXCVRxrXatsyd0AL6Xw      | 11-934-412-5846 | nt excuses! carefully final requests solve quick
+      1495 | Customer#000001495 | 261023.1374 |   6227.55 | IRAN         | 78w5H7VJSo0Ps,jqeoCWS4Kay17ygM4RtIH    | 20-416-910-7075 | osely blithe, ironic foxes. regular dependencies use blithely about 
+       149 | Customer#000000149 |  252438.442 |   8959.65 | ROMANIA      | 3byTHCp2mNLPigUrrq                     | 29-797-439-6760 | al instructions haggle against the slyly bold w
+      1178 | Customer#000001178 | 243638.4672 |   4966.58 | INDONESIA    | W,03Nl2iWQ94xYyCo3R8CTMNFhu            | 19-717-739-3103 |  even requests cajole furiously after the quickly ironic accounts. even re
+      1339 | Customer#000001339 | 240475.7082 |    8167.5 | EGYPT        | QGiiQ1iMDmLKLAHsZa L68gZFyPXX18a38IS   | 14-904-963-2452 | neath the carefully unusual plat
+      1192 | Customer#000001192 | 239670.9892 |   3231.33 | SAUDI ARABIA | 8DbtM3KloBZ4OO1dRrF99                  | 30-904-936-4914 | efully final packages use. slyly pend
+       805 | Customer#000000805 | 239373.7929 |    511.69 | IRAN         | wCKx5zcHvwpSffyc9qfi9dvqcm9LT,cLAG     | 20-732-989-5653 | busy sentiments. pending packages haggle among the express requests-- slyly regular excuses above the slyl
+      1015 | Customer#000001015 | 238242.7673 |      6392 | IRAN         | RDJWEmcAk4GC8OT8WCsXB                  | 20-134-926-5391 | g courts nag daringly brave pains. blithely special deposits use blithely carefully c
+(20 rows)
+

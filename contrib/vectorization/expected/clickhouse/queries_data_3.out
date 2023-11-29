@@ -1,0 +1,126 @@
+-- turn on vectorization
+SET vector.enable_vectorization=on;
+SET vector.max_batch_size = 128;
+-- query 21-30
+SELECT count() FROM hits WHERE URL LIKE '%metrika%';
+ count 
+-------
+     0
+(1 row)
+
+SELECT SearchPhrase, min(URL), count() AS c FROM hits WHERE URL LIKE '%metrika%' AND SearchPhrase != '' GROUP BY SearchPhrase ORDER BY SearchPhrase, c LIMIT 10;
+ searchphrase | min | c 
+--------------+-----+---
+(0 rows)
+
+SELECT SearchPhrase, min(URL), min(Title), count() AS c, count(distinct UserID) FROM hits WHERE Title LIKE '%abc%' AND URL NOT LIKE '%.yandex.%' AND SearchPhrase != '' GROUP BY SearchPhrase ORDER BY SearchPhrase, c LIMIT 10;
+ searchphrase | min | min | c | count 
+--------------+-----+-----+---+-------
+(0 rows)
+
+SELECT URL FROM hits WHERE URL LIKE '%metrika%' ORDER BY EventTime LIMIT 10;
+ url 
+-----
+(0 rows)
+
+SELECT SearchPhrase FROM hits WHERE SearchPhrase != '' ORDER BY EventTime LIMIT 10;
+                                                          searchphrase                                                           
+---------------------------------------------------------------------------------------------------------------------------------
+ DFDACWCICW CICECJCECICWDGCEDP
+ CLDACKCACWCI CICECJCADOCGCE CIDDCDDLCGCE CKCJCHCWCFCJ CXCBDBCLCHCWDCCJCK CGDDCLCEDCDM CGCHCECLDL DECWCJCBDA CACBDCCBCF
+ CWCJCACCCBCHCECJCW CYCWCZCJCBDACWDC DB DECKDCCK
+ DBCGCWDHCWDCDM CGCWCG CY 4 CICKCACW CY 2014 DECKDCCK DPCGDWDBCJDW DBDCDACECE DBCBCYCBDACBDJCWCZCE
+ hotel nude for mystem enter 2014 DBCICKDCDACBDCDM CKCJCHCWCFCJ CXCBDBCLCHCWDCCJCK fb2 DBCGCWDHCWDCDM CACKCICKCY CY CACBDCDBCGCW
+ DHCBDACJCK CKCLDDDF CLDACBCDCBCJDCCWDGCEDPCHCWDA
+ CYCECADL CGCWDADCCECJCGCE DBCWCADD
+ DECKDCCK DBCEDCDDCWDGCEDP regi
+ DBDGCBCJDL
+ DECKDCCK DBCEDCDDCWDGCEDP regi
+(10 rows)
+
+SELECT SearchPhrase FROM hits WHERE SearchPhrase != '' ORDER BY SearchPhrase LIMIT 10;
+                                                                                       searchphrase                                                                                        
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ CACBDCDBCGCECF CJCKCICBDA DNCHCBCGDCDACKCKCXCJCWDP CECZDADL DBCGCKDACKDCCW DECKDCCK CGCWCHCK
+ CCCECYCKDCCJDLDF DCDADDCXCKDDCGCHCW
+ CDCBCHCBCJCKCZCK CLCHCWCJCEDACKCYCKCACEDCDBDP
+ CDCKCKDECECHCECLDDDCDL CGDACWCF CHCE DECBDACX DBCBCIDMCE DACEDBDDCJCKCG CJCWCFDCCHCE CGDACEDBDCCW CGCWDACWCJCA CLCBDBCJDO CWCIDDDACWCYCJCKDBDCCE CWCGCWCACBDCDL CJCW 20.03.2014CZ. DDDECB
+ CECJDCCBDACJCBDC CICWCZCWCDCECJ DECECJCBDB CE DECECDCEDHCBDBCGDD CK CLDACECGCKCHCBDBCJCKCGCW, CYCWCHCBDACEDP
+ CGCKCICBCACECW CICWCZCWCDCECJ CICWDACGCE DCCBCLCHCKDBCGCKCY
+ CGCKCICBCACECW CICWCZCWCDCECJ CICWDACGCE DCCBCLCHCKDBCGCKCY
+ CGCWCG DDCGDACWDXCJCE CY CGDADLCICW DECKDCCK DB CLCK
+ CHCECYCJCKDBDCCE DECKDCCK CJCWCHCECDDL DCCWCICXCK CDCWCFDHCECGCW
+ CJCWDCDPCCCJDLCB CICKDADPCG CACEDBCGCE CACHDP CGCKDACKCYCKCHCKDB
+(10 rows)
+
+SELECT SearchPhrase FROM hits WHERE SearchPhrase != '' ORDER BY EventTime, SearchPhrase LIMIT 10;
+                                                          searchphrase                                                           
+---------------------------------------------------------------------------------------------------------------------------------
+ DFDACWCICW CICECJCECICWDGCEDP
+ CLDACKCACWCI CICECJCADOCGCE CIDDCDDLCGCE CKCJCHCWCFCJ CXCBDBCLCHCWDCCJCK CGDDCLCEDCDM CGCHCECLDL DECWCJCBDA CACBDCCBCF
+ CWCJCACCCBCHCECJCW CYCWCZCJCBDACWDC DB DECKDCCK
+ DBCGCWDHCWDCDM CGCWCG CY 4 CICKCACW CY 2014 DECKDCCK DPCGDWDBCJDW DBDCDACECE DBCBCYCBDACBDJCWCZCE
+ hotel nude for mystem enter 2014 DBCICKDCDACBDCDM CKCJCHCWCFCJ CXCBDBCLCHCWDCCJCK fb2 DBCGCWDHCWDCDM CACKCICKCY CY CACBDCDBCGCW
+ DHCBDACJCK CKCLDDDF CLDACBCDCBCJDCCWDGCEDPCHCWDA
+ CYCECADL CGCWDADCCECJCGCE DBCWCADD
+ DECKDCCK DBCEDCDDCWDGCEDP regi
+ DBDGCBCJDL
+ DECKDCCK DBCEDCDDCWDGCEDP regi
+(10 rows)
+
+SELECT CounterID, count() AS c FROM hits WHERE URL != '' GROUP BY CounterID HAVING count() > 100000 ORDER BY counterid, c LIMIT 25;
+ counterid | c 
+-----------+---
+(0 rows)
+
+SELECT Referer AS key, count() AS c, min(Referer) FROM hits WHERE Referer != '' GROUP BY key ORDER BY key, c LIMIT 25;
+                                                                                                                              key                                                                                                                              | c |                                                                                                                              min                                                                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+---+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ http://abc-news.doubley%2Fmoscope-tLRFyxchfXJO2SXCmUIq9jGOeqTZccRX                                                                                                                                                                                            | 1 | http://abc-news.doubley%2Fmoscope-tLRFyxchfXJO2SXCmUIq9jGOeqTZccRX
+ http://apps/docview/Kvasi.html&ei=cL5HMPDC31TNXJ0MHZlWHNVctY2ozU0EzNUJVddxVjBmc1ld9IX1iEAbgEDgu                                                                                                                                                               | 1 | http://apps/docview/Kvasi.html&ei=cL5HMPDC31TNXJ0MHZlWHNVctY2ozU0EzNUJVddxVjBmc1ld9IX1iEAbgEDgu
+ http://atism/v-gory_1-k_220843811917 CZCKCADD&clid=17686&adx=36055                                                                                                                                                                                            | 1 | http://atism/v-gory_1-k_220843811917 CZCKCADD&clid=17686&adx=36055
+ http://atism/v-gory_103_samarskiy-tufli/page=0&ads_app_user                                                                                                                                                                                                   | 2 | http://atism/v-gory_103_samarskiy-tufli/page=0&ads_app_user
+ http://atism/v-gory_10422995602&fr=ff061913555dff81456&selects/COCECJDL                                                                                                                                                                                       | 1 | http://atism/v-gory_10422995602&fr=ff061913555dff81456&selects/COCECJDL
+ http://atism/v-gory_13_1_500587/2/3/mility-pohol                                                                                                                                                                                                              | 2 | http://atism/v-gory_13_1_500587/2/3/mility-pohol
+ http://atism/v-greh-len.ru/my/message/2401,d.bGQ&cad=rjt                                                                                                                                                                                                      | 1 | http://atism/v-greh-len.ru/my/message/2401,d.bGQ&cad=rjt
+ http://atism/v-greh-len.ru/tova-mp3_industry=248_265175&text=266.WqKv02Dlf7ZHSECsFKlZcvbIIwJRACnwnR&data=UlNrNmk5WktYejR0eWJFYk1LdmtxbE1CQTVuYjNDM1VLTzF                                                                                                      | 2 | http://atism/v-greh-len.ru/tova-mp3_industry=248_265175&text=266.WqKv02Dlf7ZHSECsFKlZcvbIIwJRACnwnR&data=UlNrNmk5WktYejR0eWJFYk1LdmtxbE1CQTVuYjNDM1VLTzF
+ http://auto.yandsearch[run][max]=3500147&request=milovat-peterburg/kvarticles/u/7288%26group_id=1906723&lr=103&text=CECZDADL CACHDP DFDACWCJCBDCCW. 73 DNDEDECBCGDC CLCBDBCJCE&films.goha.ru                                                                  | 1 | http://auto.yandsearch[run][max]=3500147&request=milovat-peterburg/kvarticles/u/7288%26group_id=1906723&lr=103&text=CECZDADL CACHDP DFDACWCJCBDCCW. 73 DNDEDECBCGDC CLCBDBCJCE&films.goha.ru
+ http://avito.ru/yandex                                                                                                                                                                                                                                        | 3 | http://avito.ru/yandex
+ http://avito.ru/yandex.ru/clck/jsredir?from=look_ogolet                                                                                                                                                                                                       | 1 | http://avito.ru/yandex.ru/clck/jsredir?from=look_ogolet
+ http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/film/885269_0&geo=0&l10n=ru&lr=193&compensation=&color_id=0&public                                                                                                                                      | 1 | http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/film/885269_0&geo=0&l10n=ru&lr=193&compensation=&color_id=0&public
+ http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/orenl0b0hnSHZleH8xIAEsQVgWCVtXd0B_d2ACemhNAhsaeVRof3lzXUlfR0pxCDBeR3tqVg4baRlRAUUlEAYMC2heSVdnY2pWQXImPWF-VWFxckViZmFmS0tvbmhFUQ&b64e=2&state=AiuY0DBWFJ4ePaEse6rgeAjgs2pI3DW99KUdgowt9Xs               | 6 | http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/orenl0b0hnSHZleH8xIAEsQVgWCVtXd0B_d2ACemhNAhsaeVRof3lzXUlfR0pxCDBeR3tqVg4baRlRAUUlEAYMC2heSVdnY2pWQXImPWF-VWFxckViZmFmS0tvbmhFUQ&b64e=2&state=AiuY0DBWFJ4ePaEse6rgeAjgs2pI3DW99KUdgowt9Xs
+ http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/sobaki/school.oyunlar-yasam/lucky.ru/posle-katmebel/?api_id=228879,-p14972228978-300&currency=2&uinfo.do?id=9582&lr=213&text=CLCKCZCKCACW CYCHCWCACECICEDA CXCWDADBCBCJCWCH CLDPDCDM CGCKDACKCHCHCBDCCK | 8 | http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/sobaki/school.oyunlar-yasam/lucky.ru/posle-katmebel/?api_id=228879,-p14972228978-300&currency=2&uinfo.do?id=9582&lr=213&text=CLCKCZCKCACW CYCHCWCACECICEDA CXCWDADBCBCJCWCH CLDPDCDM CGCKDACKCHCHCBDCCK
+ http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/talk/for/tsotsikleridetay/80587/user/1402&text=DBCBCYCWDBDCCKDHCGCE-DFCK/page=0&curr=3                                                                                                                  | 2 | http://avito.ru/yandex.ru/clck/jsredir?from=yandex.ru/talk/for/tsotsikleridetay/80587/user/1402&text=DBCBCYCWDBDCCKDHCGCE-DFCK/page=0&curr=3
+ http://avito.ru/yandex.ru/clck/jsredir?from_language                                                                                                                                                                                                          | 3 | http://avito.ru/yandex.ru/clck/jsredir?from_language
+ http://avito.ru/yandex.ru/clck/jsredircnt=13954                                                                                                                                                                                                               | 1 | http://avito.ru/yandex.ru/clck/jsredircnt=13954
+ http://avito.ru/yandex.ru/clck/jsredirect                                                                                                                                                                                                                     | 1 | http://avito.ru/yandex.ru/clck/jsredirect
+ http://avito.ru/yandex.ru/dk?cmd=logout&refresh                                                                                                                                                                                                               | 1 | http://avito.ru/yandex.ru/dk?cmd=logout&refresh
+ http://avito.ru/yandex.ru/dk?cmd=logout.phtml%2Fparsaflab.com/en/search=2&CHILD=0&P=2&SHOW_STYLE                                                                                                                                                              | 1 | http://avito.ru/yandex.ru/dk?cmd=logout.phtml%2Fparsaflab.com/en/search=2&CHILD=0&P=2&SHOW_STYLE
+ http://avito.ru/yandex.ru/krasno-finladi.sk%2Fjoblasti_i_stvo/59f                                                                                                                                                                                             | 1 | http://avito.ru/yandex.ru/krasno-finladi.sk%2Fjoblasti_i_stvo/59f
+ http://avito.ru/yandex.ru/krasoti.ru/film/885269_0&geo=0&l10n=ru                                                                                                                                                                                              | 4 | http://avito.ru/yandex.ru/krasoti.ru/film/885269_0&geo=0&l10n=ru
+ http://avito.ru/yandex.ru/neo2/#inbox                                                                                                                                                                                                                         | 4 | http://avito.ru/yandex.ru/neo2/#inbox
+ http://avito.ru/yandex.ru/shop-shyna.com/ssay                                                                                                                                                                                                                 | 1 | http://avito.ru/yandex.ru/shop-shyna.com/ssay
+ http://avito.ru/yandex.ru/shop-zippy=30&stime=LARGETING                                                                                                                                                                                                       | 1 | http://avito.ru/yandex.ru/shop-zippy=30&stime=LARGETING
+(25 rows)
+
+SELECT sum(ResolutionWidth), sum(ResolutionWidth + 1), sum(ResolutionWidth + 2), sum(ResolutionWidth + 88), sum(ResolutionWidth + 89) FROM hits;
+  sum   |  sum   |  sum   |  sum   |  sum   
+--------+--------+--------+--------+--------
+ 674001 | 674513 | 675025 | 719057 | 719569
+(1 row)
+
+-- test gp optimizer
+SELECT replace(Referer, 'www.', '') AS key, avg(length(Referer)) AS l, count(), min(Referer) FROM hits WHERE Referer != '' GROUP BY key HAVING count() > 40 ORDER BY l DESC LIMIT 25;
+       key        | l  | count |       min        
+------------------+----+-------+------------------
+ http://megogorod | 16 |    46 | http://megogorod
+(1 row)
+
+SET optimizer = off;
+SELECT replace(Referer, 'www.', '') AS key, avg(length(Referer)) AS l, count(), min(Referer) FROM hits WHERE Referer != '' GROUP BY key HAVING count() > 40 ORDER BY l DESC LIMIT 25;
+       key        | l  | count |       min        
+------------------+----+-------+------------------
+ http://megogorod | 16 |    46 | http://megogorod
+(1 row)
+
+RESET optimizer;

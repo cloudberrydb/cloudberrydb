@@ -1,0 +1,71 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	l_returnflag,
+	l_linestatus,
+	sum(l_quantity) as sum_qty,
+	sum(l_extendedprice) as sum_base_price,
+	sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
+	sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
+	avg(l_quantity) as avg_qty,
+	avg(l_extendedprice) as avg_price,
+	avg(l_discount) as avg_disc,
+	count(*) as count_order
+from
+	lineitem
+where
+	l_shipdate <= date '1998-12-01' - interval '106 day'
+group by
+	l_returnflag,
+	l_linestatus
+order by
+	l_returnflag,
+	l_linestatus;	
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: l_returnflag, l_linestatus
+   ->  Vec Finalize Vec GroupAggregate
+         Group Key: l_returnflag, l_linestatus
+         ->  Vec Sort
+               Sort Key: l_returnflag, l_linestatus
+               ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: l_returnflag, l_linestatus
+                     ->  Vec Streaming Vec Partial Vec HashAggregate
+                           Group Key: l_returnflag, l_linestatus
+                           ->  Vec Seq Scan on lineitem
+                                 Filter: (l_shipdate <= 'Mon Aug 17 00:00:00 1998'::timestamp without time zone)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(13 rows)
+
+select
+	l_returnflag,
+	l_linestatus,
+	sum(l_quantity) as sum_qty,
+	sum(l_extendedprice) as sum_base_price,
+	sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
+	sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
+	avg(l_quantity) as avg_qty,
+	avg(l_extendedprice) as avg_price,
+	avg(l_discount) as avg_disc,
+	count(*) as count_order
+from
+	lineitem
+where
+	l_shipdate <= date '1998-12-01' - interval '106 day'
+group by
+	l_returnflag,
+	l_linestatus
+order by
+	l_returnflag,
+	l_linestatus;	
+ l_returnflag | l_linestatus | sum_qty | sum_base_price | sum_disc_price |   sum_charge    |     avg_qty     |    avg_price    |     avg_disc      | count_order 
+--------------+--------------+---------+----------------+----------------+-----------------+-----------------+-----------------+-------------------+-------------
+ A            | F            |  380456 |   532348211.65 | 505822441.4861 | 526165934.00084 | 25.575154611455 | 35785.709306937 | 0.050081339069643 |       14876
+ N            | F            |    8971 |    12384801.37 |   11798257.208 | 12282485.056933 | 25.778735632184 | 35588.509683908 | 0.047758620689655 |         348
+ N            | O            |  734559 |  1030052646.95 | 978881360.2469 | 1018119579.2431 | 25.447204323425 | 35683.941209381 |  0.04990958220744 |       28866
+ R            | F            |  381449 |   534594445.35 | 507996454.4067 |  528524219.3589 | 25.597168165347 |  35874.00653268 | 0.049827539927527 |       14902
+(4 rows)
+

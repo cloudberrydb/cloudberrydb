@@ -1,0 +1,524 @@
+-- test heap table sequence 
+
+-- create table
+
+CREATE TABLE IF NOT EXISTS t1 (a INT, b BIGINT, c SMALLINT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b BIGINT, c SMALLINT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b BIGINT, c SMALLINT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+
+-- SET VECTORIZATION ON
+
+SET vector.enable_vectorization=ON;
+SET hashdata_use_late_materialize=ON;
+-- empty data query
+
+SELECT * FROM t1;
+SELECT a FROM t1;
+SELECT b FROM t1;
+SELECT c FROM t1;
+SELECT * FROM t2;
+SELECT a FROM t2;
+SELECT b FROM t2;
+SELECT c FROM t2;
+SELECT * FROM t3;
+SELECT a FROM t3;
+SELECT b FROM t3;
+SELECT c FROM t3;
+
+SELECT * FROM t1 WHERE a=1;
+SELECT a FROM t1 WHERE a=1;
+SELECT b FROM t1 WHERE a=1;
+SELECT c FROM t1 WHERE a=1;
+SELECT * FROM t2 WHERE a=1;
+SELECT a FROM t2 WHERE a=1;
+SELECT b FROM t2 WHERE a=1;
+SELECT c FROM t2 WHERE a=1;
+SELECT * FROM t3 WHERE a=1;
+SELECT a FROM t3 WHERE a=1;
+SELECT b FROM t3 WHERE a=1;
+SELECT c FROM t3 WHERE a=1;
+
+SELECT * FROM t1 WHERE a!=1;
+SELECT a FROM t1 WHERE a!=1;
+SELECT b FROM t1 WHERE a!=1;
+SELECT c FROM t1 WHERE a!=1;
+SELECT * FROM t2 WHERE a!=1;
+SELECT a FROM t2 WHERE a!=1;
+SELECT b FROM t2 WHERE a!=1;
+SELECT c FROM t1 WHERE a!=1;
+SELECT * FROM t3 WHERE a!=1;
+SELECT a FROM t3 WHERE a!=1;
+SELECT b FROM t3 WHERE a!=1;
+SELECT c FROM t1 WHERE a!=1;
+
+SELECT * FROM t1 WHERE a>1;
+SELECT a FROM t1 WHERE a>1;
+SELECT b FROM t1 WHERE a>1;
+SELECT c FROM t1 WHERE a>1;
+SELECT * FROM t2 WHERE a>1;
+SELECT a FROM t2 WHERE a>1;
+SELECT b FROM t2 WHERE a>1;
+SELECT c FROM t2 WHERE a>1;
+SELECT * FROM t3 WHERE a>1;
+SELECT a FROM t3 WHERE a>1;
+SELECT b FROM t3 WHERE a>1;
+SELECT c FROM t3 WHERE a>1;
+
+SELECT * FROM t1 WHERE a<1;
+SELECT a FROM t1 WHERE a<1;
+SELECT b FROM t1 WHERE a<1;
+SELECT c FROM t1 WHERE a<1;
+SELECT * FROM t2 WHERE a<1;
+SELECT a FROM t2 WHERE a<1;
+SELECT b FROM t2 WHERE a<1;
+SELECT c FROM t2 WHERE a<1;
+SELECT * FROM t3 WHERE a<1;
+SELECT a FROM t3 WHERE a<1;
+SELECT b FROM t3 WHERE a<1;
+SELECT c FROM t3 WHERE a<1;
+
+SELECT * FROM t1 WHERE a>=1;
+SELECT a FROM t1 WHERE a>=1;
+SELECT b FROM t1 WHERE a>=1;
+SELECT c FROM t1 WHERE a>=1;
+SELECT * FROM t2 WHERE a>=1;
+SELECT a FROM t2 WHERE a>=1;
+SELECT b FROM t2 WHERE a>=1;
+SELECT c FROM t2 WHERE a>=1;
+SELECT * FROM t3 WHERE a>=1;
+SELECT a FROM t3 WHERE a>=1;
+SELECT b FROM t3 WHERE a>=1;
+SELECT c FROM t3 WHERE a>=1;
+
+SELECT * FROM t1 WHERE a<=1;
+SELECT a FROM t1 WHERE a<=1;
+SELECT b FROM t1 WHERE a<=1;
+SELECT c FROM t1 WHERE a<=1;
+SELECT * FROM t2 WHERE a<=1;
+SELECT a FROM t2 WHERE a<=1;
+SELECT b FROM t2 WHERE a<=1;
+SELECT c FROM t2 WHERE a<=1;
+SELECT * FROM t3 WHERE a<=1;
+SELECT a FROM t3 WHERE a<=1;
+SELECT b FROM t3 WHERE a<=1;
+SELECT c FROM t3 WHERE a<=1;
+
+-- SELECT * FROM t1 WHERE a=1 AND a=2;
+-- SELECT a FROM t1 WHERE a=1 AND a=2;
+-- SELECT b FROM t1 WHERE a=1 AND a=2;
+-- SELECT c FROM t1 WHERE a=1 AND a=2;
+-- SELECT * FROM t2 WHERE a=1 AND a=2;
+-- SELECT a FROM t2 WHERE a=1 AND a=2;
+-- SELECT b FROM t2 WHERE a=1 AND a=2;
+-- SELECT c FROM t1 WHERE a=1 AND a=2;
+-- SELECT * FROM t3 WHERE a=1 AND a=2;
+-- SELECT a FROM t3 WHERE a=1 AND a=2;
+-- SELECT b FROM t3 WHERE a=1 AND a=2;
+-- SELECT c FROM t3 WHERE a=1 AND a=2;
+
+
+-- SELECT * FROM t1 WHERE a=1 OR a=2;
+-- SELECT a FROM t1 WHERE a=1 OR a=2;
+-- SELECT b FROM t1 WHERE a=1 OR a=2;
+-- SELECT c FROM t1 WHERE a=1 OR a=2;
+-- SELECT * FROM t2 WHERE a=1 OR a=2;
+-- SELECT a FROM t2 WHERE a=1 OR a=2;
+-- SELECT b FROM t2 WHERE a=1 OR a=2;
+-- SELECT c FROM t2 WHERE a=1 OR a=2;
+-- SELECT * FROM t3 WHERE a=1 OR a=2;
+-- SELECT a FROM t3 WHERE a=1 OR a=2;
+-- SELECT b FROM t3 WHERE a=1 OR a=2;
+-- SELECT c FROM t3 WHERE a=1 OR a=2;
+
+
+-- load data
+
+INSERT INTO t1 VALUES (1, 2, 3), (2, 3, 4),(3, 4, 5);
+INSERT INTO t2 VALUES (1, 2, 3), (2, 3, 4),(3, 4, 5);
+INSERT INTO t3 VALUES (1, 2, 3), (2, 3, 4),(3, 4, 5);
+
+-- Query
+
+SELECT * FROM t1;
+SELECT a FROM t1;
+SELECT b FROM t1;
+SELECT c FROM t1;
+SELECT * FROM t2;
+SELECT a FROM t2;
+SELECT b FROM t2;
+SELECT c FROM t2;
+SELECT * FROM t3;
+SELECT a FROM t3;
+SELECT b FROM t3;
+SELECT c FROM t3;
+
+
+SELECT * FROM t1 WHERE a=1;
+SELECT a FROM t1 WHERE a=1;
+SELECT b FROM t1 WHERE a=1;
+SELECT c FROM t1 WHERE a=1;
+SELECT * FROM t2 WHERE a=1;
+SELECT a FROM t2 WHERE a=1;
+SELECT b FROM t2 WHERE a=1;
+SELECT c FROM t2 WHERE a=1;
+SELECT * FROM t3 WHERE a=1;
+SELECT a FROM t3 WHERE a=1;
+SELECT b FROM t3 WHERE a=1;
+SELECT c FROM t3 WHERE a=1;
+
+SELECT * FROM t1 WHERE a!=1;
+SELECT a FROM t1 WHERE a!=1;
+SELECT b FROM t1 WHERE a!=1;
+SELECT c FROM t1 WHERE a!=1;
+SELECT * FROM t2 WHERE a!=1;
+SELECT a FROM t2 WHERE a!=1;
+SELECT b FROM t2 WHERE a!=1;
+SELECT c FROM t1 WHERE a!=1;
+SELECT * FROM t3 WHERE a!=1;
+SELECT a FROM t3 WHERE a!=1;
+SELECT b FROM t3 WHERE a!=1;
+SELECT c FROM t1 WHERE a!=1;
+
+SELECT * FROM t1 WHERE a>1;
+SELECT a FROM t1 WHERE a>1;
+SELECT b FROM t1 WHERE a>1;
+SELECT c FROM t1 WHERE a>1;
+SELECT * FROM t2 WHERE a>1;
+SELECT a FROM t2 WHERE a>1;
+SELECT b FROM t2 WHERE a>1;
+SELECT c FROM t2 WHERE a>1;
+SELECT * FROM t3 WHERE a>1;
+SELECT a FROM t3 WHERE a>1;
+SELECT b FROM t3 WHERE a>1;
+SELECT c FROM t3 WHERE a>1;
+
+SELECT * FROM t1 WHERE a<1;
+SELECT a FROM t1 WHERE a<1;
+SELECT b FROM t1 WHERE a<1;
+SELECT c FROM t1 WHERE a<1;
+SELECT * FROM t2 WHERE a<1;
+SELECT a FROM t2 WHERE a<1;
+SELECT b FROM t2 WHERE a<1;
+SELECT c FROM t2 WHERE a<1;
+SELECT * FROM t3 WHERE a<1;
+SELECT a FROM t3 WHERE a<1;
+SELECT b FROM t3 WHERE a<1;
+SELECT c FROM t3 WHERE a<1;
+
+SELECT * FROM t1 WHERE a>=1;
+SELECT a FROM t1 WHERE a>=1;
+SELECT b FROM t1 WHERE a>=1;
+SELECT c FROM t1 WHERE a>=1;
+SELECT * FROM t2 WHERE a>=1;
+SELECT a FROM t2 WHERE a>=1;
+SELECT b FROM t2 WHERE a>=1;
+SELECT c FROM t2 WHERE a>=1;
+SELECT * FROM t3 WHERE a>=1;
+SELECT a FROM t3 WHERE a>=1;
+SELECT b FROM t3 WHERE a>=1;
+SELECT c FROM t3 WHERE a>=1;
+
+SELECT * FROM t1 WHERE a<=1;
+SELECT a FROM t1 WHERE a<=1;
+SELECT b FROM t1 WHERE a<=1;
+SELECT c FROM t1 WHERE a<=1;
+SELECT * FROM t2 WHERE a<=1;
+SELECT a FROM t2 WHERE a<=1;
+SELECT b FROM t2 WHERE a<=1;
+SELECT c FROM t2 WHERE a<=1;
+SELECT * FROM t3 WHERE a<=1;
+SELECT a FROM t3 WHERE a<=1;
+SELECT b FROM t3 WHERE a<=1;
+SELECT c FROM t3 WHERE a<=1;
+
+SELECT * FROM t1 WHERE a=b;
+SELECT * FROM t1 WHERE a!=b;
+SELECT * FROM t1 WHERE a>b;
+SELECT * FROM t1 WHERE a<b;
+SELECT * FROM t1 WHERE a>=b;
+SELECT * FROM t1 WHERE a<=b;
+
+SELECT * FROM t2 WHERE a=b;
+SELECT * FROM t2 WHERE a!=b;
+SELECT * FROM t2 WHERE a>b;
+SELECT * FROM t2 WHERE a<b;
+SELECT * FROM t2 WHERE a>=b;
+SELECT * FROM t2 WHERE a<=b;
+
+SELECT * FROM t3 WHERE a=b;
+SELECT * FROM t3 WHERE a!=b;
+SELECT * FROM t3 WHERE a>b;
+SELECT * FROM t3 WHERE a<b;
+SELECT * FROM t3 WHERE a>=b;
+SELECT * FROM t3 WHERE a<=b;
+
+SELECT * FROM t1 WHERE b=a;
+SELECT * FROM t1 WHERE b!=a;
+SELECT * FROM t1 WHERE b>a;
+SELECT * FROM t1 WHERE b<a;
+SELECT * FROM t1 WHERE b>=a;
+SELECT * FROM t1 WHERE b<=a;
+
+SELECT * FROM t2 WHERE b=a;
+SELECT * FROM t2 WHERE b!=a;
+SELECT * FROM t2 WHERE b>a;
+SELECT * FROM t2 WHERE b<a;
+SELECT * FROM t2 WHERE b>=a;
+SELECT * FROM t2 WHERE b<=a;
+
+SELECT * FROM t3 WHERE b=a;
+SELECT * FROM t3 WHERE b!=a;
+SELECT * FROM t3 WHERE b>a;
+SELECT * FROM t3 WHERE b<a;
+SELECT * FROM t3 WHERE b>=a;
+SELECT * FROM t3 WHERE b<=a;
+
+SELECT * FROM t1 WHERE c=b;
+SELECT * FROM t1 WHERE c!=b;
+SELECT * FROM t1 WHERE c>b;
+SELECT * FROM t1 WHERE c<b;
+SELECT * FROM t1 WHERE c>=b;
+SELECT * FROM t1 WHERE c<=b;
+
+SELECT * FROM t2 WHERE c=b;
+SELECT * FROM t2 WHERE c!=b;
+SELECT * FROM t2 WHERE c>b;
+SELECT * FROM t2 WHERE c<b;
+SELECT * FROM t2 WHERE c>=b;
+SELECT * FROM t2 WHERE c<=b;
+
+SELECT * FROM t3 WHERE c=b;
+SELECT * FROM t3 WHERE c!=b;
+SELECT * FROM t3 WHERE c>b;
+SELECT * FROM t3 WHERE c<b;
+SELECT * FROM t3 WHERE c>=b;
+SELECT * FROM t3 WHERE c<=b;
+
+SELECT * FROM t1 WHERE a=1 AND b=2;
+SELECT a FROM t1 WHERE a=1 AND b=2;
+SELECT b FROM t1 WHERE a=1 AND b=2;
+SELECT * FROM t2 WHERE a=1 AND b=2;
+SELECT a FROM t2 WHERE a=1 AND b=2;
+SELECT b FROM t2 WHERE a=1 AND b=2;
+SELECT * FROM t3 WHERE a=1 AND b=2;
+SELECT a FROM t3 WHERE a=1 AND b=2;
+SELECT b FROM t3 WHERE a=1 AND b=2;
+
+
+SELECT * FROM t1 WHERE a=1 OR a=2;
+SELECT a FROM t1 WHERE a=1 OR a=2;
+SELECT b FROM t1 WHERE a=1 OR a=2;
+SELECT * FROM t2 WHERE a=1 OR a=2;
+SELECT a FROM t2 WHERE a=1 OR a=2;
+SELECT b FROM t2 WHERE a=1 OR a=2;
+SELECT * FROM t3 WHERE a=1 OR a=2;
+SELECT a FROM t3 WHERE a=1 OR a=2;
+SELECT b FROM t3 WHERE a=1 OR a=2;
+
+-- drop table
+
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;
+
+
+-- create table
+
+CREATE TABLE IF NOT EXISTS t1 (a INT, b INT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b INT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b INT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+
+-- load data with NULL
+
+INSERT INTO t1 VALUES (NULL, 2), (3, NULL),(NULL, NULL);
+INSERT INTO t2 VALUES (NULL, 2), (3, NULL),(NULL, NULL);
+INSERT INTO t3 VALUES (NULL, 2), (3, NULL),(NULL, NULL);
+
+
+-- query
+
+SELECT * FROM t1;
+SELECT a FROM t1;
+SELECT b FROM t1;
+SELECT * FROM t2;
+SELECT a FROM t2;
+SELECT b FROM t2;
+SELECT * FROM t3;
+SELECT a FROM t3;
+SELECT b FROM t3;
+
+SELECT * FROM t1 WHERE a=1;
+SELECT a FROM t1 WHERE a=1;
+SELECT b FROM t1 WHERE a=1;
+SELECT * FROM t2 WHERE a=1;
+SELECT a FROM t2 WHERE a=1;
+SELECT b FROM t2 WHERE a=1;
+SELECT * FROM t3 WHERE a=1;
+SELECT a FROM t3 WHERE a=1;
+SELECT b FROM t3 WHERE a=1;
+
+SELECT * FROM t1 WHERE a>1;
+SELECT a FROM t1 WHERE a>1;
+SELECT b FROM t1 WHERE a>1;
+SELECT * FROM t2 WHERE a>1;
+SELECT a FROM t2 WHERE a>1;
+SELECT b FROM t2 WHERE a>1;
+SELECT * FROM t3 WHERE a>1;
+SELECT a FROM t3 WHERE a>1;
+SELECT b FROM t3 WHERE a>1;
+
+SELECT * FROM t1 WHERE a<1;
+SELECT a FROM t1 WHERE a<1;
+SELECT b FROM t1 WHERE a<1;
+SELECT * FROM t2 WHERE a<1;
+SELECT a FROM t2 WHERE a<1;
+SELECT b FROM t2 WHERE a<1;
+SELECT * FROM t3 WHERE a<1;
+SELECT a FROM t3 WHERE a<1;
+SELECT b FROM t3 WHERE a<1;
+
+SELECT * FROM t1 WHERE a>=1;
+SELECT a FROM t1 WHERE a>=1;
+SELECT b FROM t1 WHERE a>=1;
+SELECT * FROM t2 WHERE a>=1;
+SELECT a FROM t2 WHERE a>=1;
+SELECT b FROM t2 WHERE a>=1;
+SELECT * FROM t3 WHERE a>=1;
+SELECT a FROM t3 WHERE a>=1;
+SELECT b FROM t3 WHERE a>=1;
+
+SELECT * FROM t1 WHERE a<=1;
+SELECT a FROM t1 WHERE a<=1;
+SELECT b FROM t1 WHERE a<=1;
+SELECT * FROM t2 WHERE a<=1;
+SELECT a FROM t2 WHERE a<=1;
+SELECT b FROM t2 WHERE a<=1;
+SELECT * FROM t3 WHERE a<=1;
+SELECT a FROM t3 WHERE a<=1;
+SELECT b FROM t3 WHERE a<=1;
+
+SELECT * FROM t1 WHERE a=1 AND b=2;
+SELECT a FROM t1 WHERE a=1 AND b=2;
+SELECT b FROM t1 WHERE a=1 AND b=2;
+SELECT * FROM t2 WHERE a=1 AND b=2;
+SELECT a FROM t2 WHERE a=1 AND b=2;
+SELECT b FROM t2 WHERE a=1 AND b=2;
+SELECT * FROM t3 WHERE a=1 AND b=2;
+SELECT a FROM t3 WHERE a=1 AND b=2;
+SELECT b FROM t3 WHERE a=1 AND b=2;
+
+SELECT * FROM t1 WHERE a=1 OR a=2;
+SELECT a FROM t1 WHERE a=1 OR a=2;
+SELECT b FROM t1 WHERE a=1 OR a=2;
+SELECT * FROM t2 WHERE a=1 OR a=2;
+SELECT a FROM t2 WHERE a=1 OR a=2;
+SELECT b FROM t2 WHERE a=1 OR a=2;
+SELECT * FROM t3 WHERE a=1 OR a=2;
+SELECT a FROM t3 WHERE a=1 OR a=2;
+SELECT b FROM t3 WHERE a=1 OR a=2;
+
+SELECT * FROM t1 WHERE a IS NOT NULL;
+SELECT a FROM t1 WHERE a IS NOT NULL;
+SELECT b FROM t1 WHERE a IS NOT NULL;
+SELECT * FROM t2 WHERE a IS NOT NULL;
+SELECT a FROM t2 WHERE a IS NOT NULL;
+SELECT b FROM t2 WHERE a IS NOT NULL;
+SELECT * FROM t3 WHERE a IS NOT NULL;
+SELECT a FROM t3 WHERE a IS NOT NULL;
+SELECT b FROM t3 WHERE a IS NOT NULL;
+
+SELECT * FROM t1 WHERE a IS NULL;
+SELECT a FROM t1 WHERE a IS NULL;
+SELECT b FROM t1 WHERE a IS NULL;
+SELECT * FROM t2 WHERE a IS NULL;
+SELECT a FROM t2 WHERE a IS NULL;
+SELECT b FROM t2 WHERE a IS NULL;
+SELECT * FROM t3 WHERE a IS NULL;
+SELECT a FROM t3 WHERE a IS NULL;
+SELECT b FROM t3 WHERE a IS NULL;
+
+
+-- drop table
+
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;
+
+
+-- create table
+
+CREATE TABLE IF NOT EXISTS t1 (a INT, b INT, c INT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b INT, c INT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b INT, C INT) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+
+-- queries
+
+select * from t1 where b is NULL;
+select * from t1 where c is NULL;
+select * from t2 where b is NULL;
+select * from t2 where c is NULL;
+select * from t3 where b is NULL;
+select * from t3 where c is NULL;
+
+select * from t1 where b is not NULL;
+select * from t1 where c is not NULL;
+select * from t2 where b is not NULL;
+select * from t2 where c is not NULL;
+select * from t3 where b is not NULL;
+select * from t3 where c is not NULL;
+
+-- load data
+SET vector.enable_vectorization=OFF;
+
+insert into t1 select i, NULL, i from generate_series(1, 10)i;
+insert into t1 select i, i, NULL from generate_series(1, 10)i;
+insert into t2 select i, NULL, i from generate_series(1, 10)i;
+insert into t2 select i, i, NULL from generate_series(1, 10)i;
+insert into t3 select i, NULL, i from generate_series(1, 10)i;
+insert into t3 select i, i, NULL from generate_series(1, 10)i;
+
+SET vector.enable_vectorization=ON;
+
+
+-- queries
+
+select * from t1 where b is NULL;
+select * from t1 where c is NULL;
+select * from t2 where b is NULL;
+select * from t2 where c is NULL;
+select * from t3 where b is NULL;
+select * from t3 where c is NULL;
+
+select * from t1 where b is not NULL;
+select * from t1 where c is not NULL;
+select * from t2 where b is not NULL;
+select * from t2 where c is not NULL;
+select * from t3 where b is not NULL;
+select * from t3 where c is not NULL;
+
+select * from t1 where b is not NULL and c is NULL;
+select * from t1 where c is not NULL and b is NULL;
+select * from t2 where b is not NULL and c is NULL;
+select * from t2 where c is not NULL and b is NULL;
+select * from t3 where b is not NULL and c is NULL;
+select * from t3 where c is not NULL and b is NULL;
+
+select * from t1 where b is  NULL or c is NULL;
+select * from t1 where b is  NOT NULL or c is NOT NULL;
+select * from t2 where b is  NULL or c is NULL;
+select * from t2 where b is  NOT NULL or c is NOT NULL;
+select * from t3 where b is  NULL or c is NULL;
+select * from t3 where b is  NOT NULL or c is NOT NULL;
+
+
+select * from t1 where b is  NULL  and a > 5;
+select * from t2 where b is  NULL  and a > 5;
+select * from t3 where b is  NULL  and a > 5;
+
+
+-- drop table
+
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;
+

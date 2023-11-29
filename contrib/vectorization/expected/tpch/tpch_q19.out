@@ -1,0 +1,96 @@
+set extra_float_digits = -1;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	sum(l_extendedprice* (1 - l_discount)) as revenue
+from
+	lineitem,
+	part
+where
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#11'
+		and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+		and l_quantity >= 9 and l_quantity <= 9 + 10
+		and p_size between 1 and 5
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#51'
+		and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+		and l_quantity >= 10 and l_quantity <= 10 + 10
+		and p_size between 1 and 10
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#23'
+		and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+		and l_quantity >= 22 and l_quantity <= 22 + 10
+		and p_size between 1 and 15
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	);
+                                                                                                                                                                                                                                                                                                                                                                                                QUERY PLAN                                                                                                                                                                                                                                                                                                                                                                                                
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Finalize Vec Aggregate
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         ->  Vec Partial Vec Aggregate
+               ->  Vec Hash Join
+                     Hash Cond: (lineitem.l_partkey = part.p_partkey)
+                     Join Filter: (((part.p_brand = 'Brand#11'::text) AND (part.p_container = ANY ('{"SM CASE","SM BOX","SM PACK","SM PKG"}'::text[])) AND (lineitem.l_quantity >= '9'::double precision) AND (lineitem.l_quantity <= '19'::double precision) AND (part.p_size <= 5)) OR ((part.p_brand = 'Brand#51'::text) AND (part.p_container = ANY ('{"MED BAG","MED BOX","MED PKG","MED PACK"}'::text[])) AND (lineitem.l_quantity >= '10'::double precision) AND (lineitem.l_quantity <= '20'::double precision) AND (part.p_size <= 10)) OR ((part.p_brand = 'Brand#23'::text) AND (part.p_container = ANY ('{"LG CASE","LG BOX","LG PACK","LG PKG"}'::text[])) AND (lineitem.l_quantity >= '22'::double precision) AND (lineitem.l_quantity <= '32'::double precision) AND (part.p_size <= 15)))
+                     ->  Vec Seq Scan on lineitem
+                           Filter: ((l_shipmode = ANY ('{AIR,"AIR REG"}'::text[])) AND (l_shipinstruct = 'DELIVER IN PERSON'::text) AND (((l_quantity >= '9'::double precision) AND (l_quantity <= '19'::double precision)) OR ((l_quantity >= '10'::double precision) AND (l_quantity <= '20'::double precision)) OR ((l_quantity >= '22'::double precision) AND (l_quantity <= '32'::double precision))))
+                     ->  Vec Hash
+                           ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
+                                 ->  Vec Seq Scan on part
+                                       Filter: ((p_size >= 1) AND (((p_brand = 'Brand#11'::text) AND (p_container = ANY ('{"SM CASE","SM BOX","SM PACK","SM PKG"}'::text[])) AND (p_size <= 5)) OR ((p_brand = 'Brand#51'::text) AND (p_container = ANY ('{"MED BAG","MED BOX","MED PKG","MED PACK"}'::text[])) AND (p_size <= 10)) OR ((p_brand = 'Brand#23'::text) AND (p_container = ANY ('{"LG CASE","LG BOX","LG PACK","LG PKG"}'::text[])) AND (p_size <= 15))))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(13 rows)
+
+select
+	sum(l_extendedprice* (1 - l_discount)) as revenue
+from
+	lineitem,
+	part
+where
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#11'
+		and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+		and l_quantity >= 9 and l_quantity <= 9 + 10
+		and p_size between 1 and 5
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#51'
+		and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+		and l_quantity >= 10 and l_quantity <= 10 + 10
+		and p_size between 1 and 10
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	)
+	or
+	(
+		p_partkey = l_partkey
+		and p_brand = 'Brand#23'
+		and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG')
+		and l_quantity >= 22 and l_quantity <= 22 + 10
+		and p_size between 1 and 15
+		and l_shipmode in ('AIR', 'AIR REG')
+		and l_shipinstruct = 'DELIVER IN PERSON'
+	);
+ revenue  
+----------
+ 50268.12
+(1 row)
+

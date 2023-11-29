@@ -1,0 +1,1073 @@
+-- test heap table sequence 
+-- create table
+CREATE TABLE IF NOT EXISTS t1 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+-- SET VECTORIZATION ON
+SET vector.enable_vectorization=ON;
+-- empty data query
+SELECT * FROM t1;
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1;
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1;
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1;
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2;
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2;
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2;
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2;
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3;
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3;
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3;
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3;
+ c 
+---
+(0 rows)
+
+SELECT * FROM t1 WHERE a=1;
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1 WHERE a=1;
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1 WHERE a=1;
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1 WHERE a=1;
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2 WHERE a=1;
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2 WHERE a=1;
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2 WHERE a=1;
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2 WHERE a=1;
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3 WHERE a=1;
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3 WHERE a=1;
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3 WHERE a=1;
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3 WHERE a=1;
+ c 
+---
+(0 rows)
+
+SELECT * FROM t1 WHERE b='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1 WHERE b='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1 WHERE b='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1 WHERE b='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2 WHERE b='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2 WHERE b='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2 WHERE b='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2 WHERE b='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3 WHERE b='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3 WHERE b='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3 WHERE b='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3 WHERE b='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t1 WHERE b!='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1 WHERE b!='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1 WHERE b!='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1 WHERE b!='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2 WHERE b!='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2 WHERE b!='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2 WHERE b!='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2 WHERE b!='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3 WHERE b!='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3 WHERE b!='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3 WHERE b!='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3 WHERE b!='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t1 WHERE a=1 AND b='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1 WHERE a=1 AND b='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1 WHERE a=1 AND b='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1 WHERE a=1 AND b='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2 WHERE a=1 AND b='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2 WHERE a=1 AND b='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2 WHERE a=1 AND b='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2 WHERE a=1 AND b='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3 WHERE a=1 AND b='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3 WHERE a=1 AND b='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3 WHERE a=1 AND b='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3 WHERE a=1 AND b='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t1 WHERE a=1 AND b='a' AND c='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1 WHERE a=1 AND b='a' AND c='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1 WHERE a=1 AND b='a' AND c='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1 WHERE a=1 AND b='a' AND c='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2 WHERE a=1 AND b='a' AND c='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2 WHERE a=1 AND b='a' AND c='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2 WHERE a=1 AND b='a' AND c='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2 WHERE a=1 AND b='a' AND c='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3 WHERE a=1 AND b='a' AND c='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3 WHERE a=1 AND b='a' AND c='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3 WHERE a=1 AND b='a' AND c='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3 WHERE a=1 AND b='a' AND c='a';
+ c 
+---
+(0 rows)
+
+-- SELECT * FROM t1 WHERE a=1 OR a=2;
+-- SELECT a FROM t1 WHERE a=1 OR a=2;
+-- SELECT b FROM t1 WHERE a=1 OR a=2;
+-- SELECT * FROM t2 WHERE a=1 OR a=2;
+-- SELECT a FROM t2 WHERE a=1 OR a=2;
+-- SELECT b FROM t2 WHERE a=1 OR a=2;
+-- SELECT * FROM t3 WHERE a=1 OR a=2;
+-- SELECT a FROM t3 WHERE a=1 OR a=2;
+-- SELECT b FROM t3 WHERE a=1 OR a=2;
+-- load data
+INSERT INTO t1 VALUES (1, 'a', 'a'), (2, 'a', 'a'),(3, 'a', 'a');
+INSERT INTO t2 VALUES (1, 'a', 'a'), (2, 'a', 'a'),(3, 'a', 'a');
+INSERT INTO t3 VALUES (1, 'a', 'a'), (2, 'a', 'a'),(3, 'a', 'a');
+-- Query
+SELECT * FROM t1;
+ a | b | c 
+---+---+---
+ 1 | a | a
+ 2 | a | a
+ 3 | a | a
+(3 rows)
+
+SELECT a FROM t1;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t1;
+ b 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT c FROM t1;
+ c 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT * FROM t2;
+ a | b | c 
+---+---+---
+ 1 | a | a
+ 2 | a | a
+ 3 | a | a
+(3 rows)
+
+SELECT a FROM t2;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t2;
+ b 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT c FROM t2;
+ c 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT * FROM t3;
+ a | b | c 
+---+---+---
+ 1 | a | a
+ 2 | a | a
+ 3 | a | a
+(3 rows)
+
+SELECT a FROM t3;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT c FROM t3;
+ c 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT b FROM t3;
+ b 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT * FROM t1 WHERE a=1;
+ a | b | c 
+---+---+---
+ 1 | a | a
+(1 row)
+
+SELECT a FROM t1 WHERE a=1;
+ a 
+---
+ 1
+(1 row)
+
+SELECT b FROM t1 WHERE a=1;
+ b 
+---
+ a
+(1 row)
+
+SELECT c FROM t1 WHERE a=1;
+ c 
+---
+ a
+(1 row)
+
+SELECT * FROM t2 WHERE a=1;
+ a | b | c 
+---+---+---
+ 1 | a | a
+(1 row)
+
+SELECT a FROM t2 WHERE a=1;
+ a 
+---
+ 1
+(1 row)
+
+SELECT b FROM t2 WHERE a=1;
+ b 
+---
+ a
+(1 row)
+
+SELECT c FROM t2 WHERE a=1;
+ c 
+---
+ a
+(1 row)
+
+SELECT * FROM t3 WHERE a=1;
+ a | b | c 
+---+---+---
+ 1 | a | a
+(1 row)
+
+SELECT a FROM t3 WHERE a=1;
+ a 
+---
+ 1
+(1 row)
+
+SELECT b FROM t3 WHERE a=1;
+ b 
+---
+ a
+(1 row)
+
+SELECT c FROM t3 WHERE a=1;
+ c 
+---
+ a
+(1 row)
+
+SELECT * FROM t1 WHERE b='a';
+ a | b | c 
+---+---+---
+ 1 | a | a
+ 2 | a | a
+ 3 | a | a
+(3 rows)
+
+SELECT a FROM t1 WHERE b='a';
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t1 WHERE b='a';
+ b 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT c FROM t1 WHERE b='a';
+ c 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT * FROM t2 WHERE b='a';
+ a | b | c 
+---+---+---
+ 1 | a | a
+ 2 | a | a
+ 3 | a | a
+(3 rows)
+
+SELECT a FROM t2 WHERE b='a';
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t2 WHERE b='a';
+ b 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT c FROM t2 WHERE b='a';
+ c 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT * FROM t3 WHERE b='a';
+ a | b | c 
+---+---+---
+ 1 | a | a
+ 2 | a | a
+ 3 | a | a
+(3 rows)
+
+SELECT a FROM t3 WHERE b='a';
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t3 WHERE b='a';
+ b 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT c FROM t3 WHERE b='a';
+ c 
+---
+ a
+ a
+ a
+(3 rows)
+
+SELECT * FROM t1 WHERE b!='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t1 WHERE b!='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t1 WHERE b!='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t1 WHERE b!='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t2 WHERE b!='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t2 WHERE b!='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t2 WHERE b!='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t2 WHERE b!='a';
+ c 
+---
+(0 rows)
+
+SELECT * FROM t3 WHERE b!='a';
+ a | b | c 
+---+---+---
+(0 rows)
+
+SELECT a FROM t3 WHERE b!='a';
+ a 
+---
+(0 rows)
+
+SELECT b FROM t3 WHERE b!='a';
+ b 
+---
+(0 rows)
+
+SELECT c FROM t3 WHERE b!='a';
+ c 
+---
+(0 rows)
+
+-- SELECT * FROM t1 WHERE a=1 AND b='a';
+-- SELECT a FROM t1 WHERE a=1 AND b='a';
+-- SELECT b FROM t1 WHERE a=1 AND b='a';
+-- SELECT c FROM t1 WHERE a=1 AND b='a';
+-- SELECT * FROM t2 WHERE a=1 AND b='a';
+-- SELECT a FROM t2 WHERE a=1 AND b='a';
+-- SELECT b FROM t2 WHERE a=1 AND b='a';
+-- SELECT c FROM t2 WHERE a=1 AND b='a';
+-- SELECT * FROM t3 WHERE a=1 AND b='a';
+-- SELECT a FROM t3 WHERE a=1 AND b='a';
+-- SELECT b FROM t3 WHERE a=1 AND b='a';
+-- SELECT c FROM t3 WHERE a=1 AND b='a';
+-- SELECT * FROM t1 WHERE a=1 AND b='a' AND c='a';
+-- SELECT a FROM t1 WHERE a=1 AND b='a' AND c='a';
+-- SELECT b FROM t1 WHERE a=1 AND b='a' AND c='a';
+-- SELECT c FROM t1 WHERE a=1 AND b='a' AND c='a';
+-- SELECT * FROM t2 WHERE a=1 AND b='a' AND c='a';
+-- SELECT a FROM t2 WHERE a=1 AND b='a' AND c='a';
+-- SELECT b FROM t2 WHERE a=1 AND b='a' AND c='a';
+-- SELECT c FROM t2 WHERE a=1 AND b='a' AND c='a';
+-- SELECT * FROM t3 WHERE a=1 AND b='a' AND c='a';
+-- SELECT a FROM t3 WHERE a=1 AND b='a' AND c='a';
+-- SELECT b FROM t3 WHERE a=1 AND b='a' AND c='a';
+-- SELECT c FROM t3 WHERE a=1 AND b='a' AND c='a';
+-- SELECT * FROM t1 WHERE a=1 OR a=2;
+-- SELECT a FROM t1 WHERE a=1 OR a=2;
+-- SELECT b FROM t1 WHERE a=1 OR a=2;
+-- SELECT * FROM t2 WHERE a=1 OR a=2;
+-- SELECT a FROM t2 WHERE a=1 OR a=2;
+-- SELECT b FROM t2 WHERE a=1 OR a=2;
+-- SELECT * FROM t3 WHERE a=1 OR a=2;
+-- SELECT a FROM t3 WHERE a=1 OR a=2;
+-- SELECT b FROM t3 WHERE a=1 OR a=2;
+-- drop table
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;
+-- create table
+CREATE TABLE IF NOT EXISTS t1 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+-- SET VECTORIZATION ON
+SET vector.enable_vectorization=ON;
+-- empty data query
+INSERT INTO t1 VALUES (1, 'abcl', 'ablx'), (2, 'flsaa', 'ssddf'),(3, 'ddsse', 'dddcd');
+INSERT INTO t2 VALUES (1, 'abcl', 'ablx'), (2, 'flsaa', 'ssddf'),(3, 'ddsse', 'dddcd');
+INSERT INTO t3 VALUES (1, 'abcl', 'ablx'), (2, 'flsaa', 'ssddf'),(3, 'ddsse', 'dddcd');
+-- Query
+SELECT * FROM t1;
+ a |   b   |   c   
+---+-------+-------
+ 1 | abcl  | ablx
+ 2 | flsaa | ssddf
+ 3 | ddsse | dddcd
+(3 rows)
+
+SELECT a FROM t1;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t1;
+   b   
+-------
+ abcl
+ flsaa
+ ddsse
+(3 rows)
+
+SELECT c FROM t1;
+   c   
+-------
+ ablx
+ ssddf
+ dddcd
+(3 rows)
+
+SELECT * FROM t2;
+ a |   b   |   c   
+---+-------+-------
+ 1 | abcl  | ablx
+ 2 | flsaa | ssddf
+ 3 | ddsse | dddcd
+(3 rows)
+
+SELECT a FROM t2;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t2;
+   b   
+-------
+ abcl
+ flsaa
+ ddsse
+(3 rows)
+
+SELECT c FROM t2;
+   c   
+-------
+ ablx
+ ssddf
+ dddcd
+(3 rows)
+
+SELECT * FROM t3;
+ a |   b   |   c   
+---+-------+-------
+ 1 | abcl  | ablx
+ 2 | flsaa | ssddf
+ 3 | ddsse | dddcd
+(3 rows)
+
+SELECT a FROM t3;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT c FROM t3;
+   c   
+-------
+ ablx
+ ssddf
+ dddcd
+(3 rows)
+
+SELECT b FROM t3;
+   b   
+-------
+ abcl
+ flsaa
+ ddsse
+(3 rows)
+
+-- test like ops
+SELECT * FROM t1 where b like '%abc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t1 where b like 'abc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t1 where b like '%bc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t1 where b like '%bcl';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t1 where b like '_bc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t1 where b like 'a_c%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t2 where b like '%abc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t2 where b like 'abc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t2 where b like '%bc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t2 where b like '%bcl';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t2 where b like '_bc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t2 where b like 'a_c%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t3 where b like '%abc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t3 where b like 'abc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t3 where b like '%bc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t3 where b like '%bcl';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t3 where b like '_bc%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+SELECT * FROM t3 where b like 'a_c%';
+ a |  b   |  c   
+---+------+------
+ 1 | abcl | ablx
+(1 row)
+
+-- drop table
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;
+-- create table
+CREATE TABLE IF NOT EXISTS t1 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b TEXT, c VARCHAR(20)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+-- SET VECTORIZATION ON
+SET vector.enable_vectorization=ON;
+INSERT INTO t1 VALUES (1, NULL, 'ablx'), (2, 'flsaa', NULL),(3, NULL, NULL);
+INSERT INTO t2 VALUES (1, NULL, 'ablx'), (2, 'flsaa', NULL),(3, NULL, NULL);
+INSERT INTO t3 VALUES (1, NULL, 'ablx'), (2, 'flsaa', NULL),(3, NULL, NULL);
+-- Query
+SELECT * FROM t1;
+ a |   b   |  c   
+---+-------+------
+ 1 |       | ablx
+ 2 | flsaa | 
+ 3 |       | 
+(3 rows)
+
+SELECT a FROM t1;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t1;
+   b   
+-------
+ 
+ flsaa
+ 
+(3 rows)
+
+SELECT c FROM t1;
+  c   
+------
+ ablx
+ 
+ 
+(3 rows)
+
+SELECT * FROM t2;
+ a |   b   |  c   
+---+-------+------
+ 1 |       | ablx
+ 2 | flsaa | 
+ 3 |       | 
+(3 rows)
+
+SELECT a FROM t2;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t2;
+   b   
+-------
+ 
+ flsaa
+ 
+(3 rows)
+
+SELECT c FROM t2;
+  c   
+------
+ ablx
+ 
+ 
+(3 rows)
+
+SELECT * FROM t3;
+ a |   b   |  c   
+---+-------+------
+ 1 |       | ablx
+ 2 | flsaa | 
+ 3 |       | 
+(3 rows)
+
+SELECT a FROM t3;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT c FROM t3;
+  c   
+------
+ ablx
+ 
+ 
+(3 rows)
+
+SELECT b FROM t3;
+   b   
+-------
+ 
+ flsaa
+ 
+(3 rows)
+
+-- drop table
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;

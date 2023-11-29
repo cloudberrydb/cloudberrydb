@@ -1,0 +1,97 @@
+SET default_table_access_method=ao_column;
+CREATE TABLE test_agg_stddev(
+	i int,
+	x int);
+INSERT INTO test_agg_stddev(i, x)
+SELECT n, n
+FROM generate_series(1, 20) AS s(n);
+ANALYZE test_agg_stddev;
+explain SELECT stddev_samp(i) FROM test_agg_stddev;
+                                       QUERY PLAN                                       
+----------------------------------------------------------------------------------------
+ Vec Finalize Vec Aggregate  (cost=0.00..431.00 rows=1 width=8)
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=1 width=8)
+         ->  Vec Partial Vec Aggregate  (cost=0.00..431.00 rows=1 width=8)
+               ->  Vec Seq Scan on test_agg_stddev  (cost=0.00..431.00 rows=7 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(5 rows)
+
+explain SELECT stddev_samp(a.i) FROM test_agg_stddev a , test_agg_stddev b WHERE a.i = b.i ;
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Vec Finalize Vec Aggregate  (cost=0.00..862.00 rows=1 width=8)
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=1 width=8)
+         ->  Vec Partial Vec Aggregate  (cost=0.00..862.00 rows=1 width=8)
+               ->  Vec Hash Join  (cost=0.00..862.00 rows=7 width=4)
+                     Hash Cond: (test_agg_stddev.i = test_agg_stddev_1.i)
+                     ->  Vec Seq Scan on test_agg_stddev  (cost=0.00..431.00 rows=7 width=4)
+                     ->  Vec Hash  (cost=431.00..431.00 rows=7 width=4)
+                           ->  Vec Seq Scan on test_agg_stddev test_agg_stddev_1  (cost=0.00..431.00 rows=7 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(9 rows)
+
+explain SELECT stddev_samp(a.i) FROM test_agg_stddev a , test_agg_stddev b WHERE a.i = b.i GROUP BY a.x;
+                                                     QUERY PLAN                                                      
+---------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..862.00 rows=20 width=8)
+   ->  Vec HashAggregate  (cost=0.00..862.00 rows=7 width=8)
+         Group Key: test_agg_stddev.x
+         ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)  (cost=0.00..862.00 rows=7 width=8)
+               Hash Key: test_agg_stddev.x
+               ->  Vec Hash Join  (cost=0.00..862.00 rows=7 width=8)
+                     Hash Cond: (test_agg_stddev.i = test_agg_stddev_1.i)
+                     ->  Vec Seq Scan on test_agg_stddev  (cost=0.00..431.00 rows=7 width=8)
+                     ->  Vec Hash  (cost=431.00..431.00 rows=7 width=4)
+                           ->  Vec Seq Scan on test_agg_stddev test_agg_stddev_1  (cost=0.00..431.00 rows=7 width=4)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(11 rows)
+
+SELECT stddev_samp(i) FROM test_agg_stddev;
+    stddev_samp    
+-------------------
+ 5.916079783099616
+(1 row)
+
+SELECT stddev_samp(a.i) FROM test_agg_stddev a , test_agg_stddev b WHERE a.i = b.i ;
+    stddev_samp    
+-------------------
+ 5.916079783099616
+(1 row)
+
+INSERT INTO test_agg_stddev(i, x)
+SELECT n + 15, n
+FROM generate_series(1, 20) AS s(n)
+UNION ALL
+SELECT n + 15, n
+FROM generate_series(1, 20) AS s(n)
+UNION ALL
+SELECT n + 15, n
+FROM generate_series(1, 20) AS s(n)
+UNION ALL
+SELECT n + 15, n
+FROM generate_series(1, 20) AS s(n);
+SELECT stddev_samp(a.i) AS stddev FROM test_agg_stddev a , test_agg_stddev b WHERE a.i = b.i GROUP BY a.x ORDER BY stddev;
+       stddev       
+--------------------
+ 3.1943828249996997
+ 3.1943828249996997
+ 3.1943828249996997
+ 3.1943828249996997
+ 3.1943828249996997
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+ 3.5294117647058822
+  6.388765649999399
+  6.388765649999399
+  6.388765649999399
+  6.388765649999399
+  6.388765649999399
+(20 rows)
+

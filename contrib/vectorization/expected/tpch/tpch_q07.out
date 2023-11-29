@@ -1,0 +1,133 @@
+set extra_float_digits = -1;;;;;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	supp_nation,
+	cust_nation,
+	l_year,
+	sum(volume) as revenue
+from
+	(
+		select
+			n1.n_name as supp_nation,
+			n2.n_name as cust_nation,
+			extract(year from l_shipdate) as l_year,
+			l_extendedprice * (1 - l_discount) as volume
+		from
+			supplier,
+			lineitem,
+			orders,
+			customer,
+			nation n1,
+			nation n2
+		where
+			s_suppkey = l_suppkey
+			and o_orderkey = l_orderkey
+			and c_custkey = o_custkey
+			and s_nationkey = n1.n_nationkey
+			and c_nationkey = n2.n_nationkey
+			and (
+				(n1.n_name = 'ALGERIA' and n2.n_name = 'ROMANIA')
+				or (n1.n_name = 'ROMANIA' and n2.n_name = 'ALGERIA')
+			)
+			and l_shipdate between date '1995-01-01' and date '1996-12-31'
+	) as shipping
+group by
+	supp_nation,
+	cust_nation,
+	l_year
+order by
+	supp_nation,
+	cust_nation,
+	l_year;
+                                                                                             QUERY PLAN                                                                                              
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: nation.n_name, nation_1.n_name, (EXTRACT(year FROM lineitem.l_shipdate))
+   ->  Vec GroupAggregate
+         Group Key: nation.n_name, nation_1.n_name, (EXTRACT(year FROM lineitem.l_shipdate))
+         ->  Vec Sort
+               Sort Key: nation.n_name, nation_1.n_name, (EXTRACT(year FROM lineitem.l_shipdate)) USING <
+               ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: nation.n_name, nation_1.n_name, (EXTRACT(year FROM lineitem.l_shipdate))
+                     ->  Vec Hash Join
+                           Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+                           Join Filter: (((nation.n_name = 'ALGERIA'::text) AND (nation_1.n_name = 'ROMANIA'::text)) OR ((nation.n_name = 'ROMANIA'::text) AND (nation_1.n_name = 'ALGERIA'::text)))
+                           ->  Vec Hash Join
+                                 Hash Cond: (lineitem.l_suppkey = supplier.s_suppkey)
+                                 ->  Vec Seq Scan on lineitem
+                                       Filter: ((l_shipdate >= '01-01-1995'::date) AND (l_shipdate <= '12-31-1996'::date))
+                                 ->  Vec Hash
+                                       ->  Vec Broadcast Motion 3:3  (slice3; segments: 3)
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (supplier.s_nationkey = nation.n_nationkey)
+                                                   ->  Vec Redistribute Motion 3:3  (slice4; segments: 3)
+                                                         Hash Key: supplier.s_nationkey
+                                                         ->  Vec Seq Scan on supplier
+                                                   ->  Vec Hash
+                                                         ->  Vec Seq Scan on nation
+                                                               Filter: ((n_name = 'ALGERIA'::text) OR (n_name = 'ROMANIA'::text))
+                           ->  Vec Hash
+                                 ->  Vec Hash Join
+                                       Hash Cond: (orders.o_custkey = customer.c_custkey)
+                                       ->  Vec Seq Scan on orders
+                                       ->  Vec Hash
+                                             ->  Vec Broadcast Motion 3:3  (slice5; segments: 3)
+                                                   ->  Vec Hash Join
+                                                         Hash Cond: (customer.c_nationkey = nation_1.n_nationkey)
+                                                         ->  Vec Seq Scan on customer
+                                                         ->  Vec Hash
+                                                               ->  Vec Broadcast Motion 3:3  (slice6; segments: 3)
+                                                                     ->  Vec Seq Scan on nation nation_1
+                                                                           Filter: ((n_name = 'ROMANIA'::text) OR (n_name = 'ALGERIA'::text))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(39 rows)
+
+select
+	supp_nation,
+	cust_nation,
+	l_year,
+	sum(volume) as revenue
+from
+	(
+		select
+			n1.n_name as supp_nation,
+			n2.n_name as cust_nation,
+			extract(year from l_shipdate) as l_year,
+			l_extendedprice * (1 - l_discount) as volume
+		from
+			supplier,
+			lineitem,
+			orders,
+			customer,
+			nation n1,
+			nation n2
+		where
+			s_suppkey = l_suppkey
+			and o_orderkey = l_orderkey
+			and c_custkey = o_custkey
+			and s_nationkey = n1.n_nationkey
+			and c_nationkey = n2.n_nationkey
+			and (
+				(n1.n_name = 'ALGERIA' and n2.n_name = 'ROMANIA')
+				or (n1.n_name = 'ROMANIA' and n2.n_name = 'ALGERIA')
+			)
+			and l_shipdate between date '1995-01-01' and date '1996-12-31'
+	) as shipping
+group by
+	supp_nation,
+	cust_nation,
+	l_year
+order by
+	supp_nation,
+	cust_nation,
+	l_year;
+ supp_nation | cust_nation | l_year |   revenue   
+-------------+-------------+--------+-------------
+ ALGERIA     | ROMANIA     |   1995 | 296065.0708
+ ALGERIA     | ROMANIA     |   1996 | 470996.6221
+ ROMANIA     | ALGERIA     |   1995 | 731344.5422
+ ROMANIA     | ALGERIA     |   1996 | 770117.2617
+(4 rows)
+

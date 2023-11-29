@@ -1,0 +1,122 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	cntrycode,
+	count(*) as numcust,
+	sum(c_acctbal) as totacctbal
+from
+	(
+		select
+			substring(c_phone from 1 for 2) as cntrycode,
+			c_acctbal
+		from
+			customer
+		where
+			substring(c_phone from 1 for 2) in
+				('13', '31', '23', '29', '30', '18', '17')
+			and c_acctbal > (
+				select
+						avg(c_acctbal)
+				from
+						customer
+				where
+						c_acctbal > 0.00
+						and substring(c_phone from 1 for 2) in
+								('13', '31', '23', '29', '30', '18', '17')
+			)
+			and not exists (
+				select
+						*
+				from
+						orders
+				where
+						o_custkey = c_custkey
+			)
+	) as custsale
+group by
+	cntrycode
+order by
+	cntrycode;	
+                                                                                            QUERY PLAN                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: (SUBSTRING(customer.c_phone FROM 1 FOR 2))
+   ->  Vec GroupAggregate
+         Group Key: (SUBSTRING(customer.c_phone FROM 1 FOR 2))
+         ->  Vec Sort
+               Sort Key: (SUBSTRING(customer.c_phone FROM 1 FOR 2))
+               ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: (SUBSTRING(customer.c_phone FROM 1 FOR 2))
+                     ->  Vec Result
+                           Filter: (COALESCE((count()), '0'::bigint) = '0'::bigint)
+                           ->  Vec Hash Left Join
+                                 Hash Cond: (customer.c_custkey = orders.o_custkey)
+                                 ->  Vec Nested Loop
+                                       Join Filter: (customer.c_acctbal > (avg(customer_1.c_acctbal)))
+                                       ->  Vec Broadcast Motion 1:3  (slice3)
+                                             ->  Vec Finalize Vec Aggregate
+                                                   ->  Vec Gather Motion 3:1  (slice4; segments: 3)
+                                                         ->  Vec Partial Vec Aggregate
+                                                               ->  Vec Seq Scan on customer customer_1
+                                                                     Filter: ((c_acctbal > '0'::double precision) AND (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[])))
+                                       ->  Vec Seq Scan on customer
+                                             Filter: (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[]))
+                                 ->  Vec Hash
+                                       ->  Vec HashAggregate
+                                             Group Key: orders.o_custkey
+                                             ->  Vec Redistribute Motion 3:3  (slice5; segments: 3)
+                                                   Hash Key: orders.o_custkey
+                                                   ->  Vec Seq Scan on orders
+ Optimizer: Pivotal Optimizer (GPORCA)
+(29 rows)
+
+select
+	cntrycode,
+	count(*) as numcust,
+	sum(c_acctbal) as totacctbal
+from
+	(
+		select
+			substring(c_phone from 1 for 2) as cntrycode,
+			c_acctbal
+		from
+			customer
+		where
+			substring(c_phone from 1 for 2) in
+				('13', '31', '23', '29', '30', '18', '17')
+			and c_acctbal > (
+				select
+						avg(c_acctbal)
+				from
+						customer
+				where
+						c_acctbal > 0.00
+						and substring(c_phone from 1 for 2) in
+								('13', '31', '23', '29', '30', '18', '17')
+			)
+			and not exists (
+				select
+						*
+				from
+						orders
+				where
+						o_custkey = c_custkey
+			)
+	) as custsale
+group by
+	cntrycode
+order by
+	cntrycode;	
+ cntrycode | numcust | totacctbal 
+-----------+---------+------------
+ 13        |      10 |   75359.29
+ 17        |       8 |   62288.98
+ 18        |      14 |  111072.45
+ 23        |       5 |   40458.86
+ 29        |      11 |   88722.85
+ 30        |      17 |  122189.33
+ 31        |       8 |   66313.16
+(7 rows)
+

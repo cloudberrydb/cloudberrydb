@@ -1,0 +1,90 @@
+set extra_float_digits = -1;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	l_orderkey,
+	sum(l_extendedprice * (1 - l_discount)) as revenue,
+	o_orderdate,
+	o_shippriority
+from
+	customer,
+	orders,
+	lineitem
+where
+	c_mktsegment = 'AUTOMOBILE'
+	and c_custkey = o_custkey
+	and l_orderkey = o_orderkey
+	and o_orderdate < date '1995-03-22'
+	and l_shipdate > date '1995-03-22'
+group by
+	l_orderkey,
+	o_orderdate,
+	o_shippriority
+order by
+	revenue desc,
+	o_orderdate
+LIMIT 10;
+                                                                QUERY PLAN                                                                
+------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Limit
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))), orders.o_orderdate
+         ->  Vec Limit
+               ->  Vec Sort
+                     Sort Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))) DESC, orders.o_orderdate
+                     ->  Vec HashAggregate
+                           Group Key: orders.o_orderdate, lineitem.l_orderkey, orders.o_shippriority
+                           ->  Vec Hash Join
+                                 Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+                                 ->  Vec Seq Scan on lineitem
+                                       Filter: (l_shipdate > '03-22-1995'::date)
+                                 ->  Vec Hash
+                                       ->  Vec Hash Join
+                                             Hash Cond: (orders.o_custkey = customer.c_custkey)
+                                             ->  Vec Seq Scan on orders
+                                                   Filter: (o_orderdate < '03-22-1995'::date)
+                                             ->  Vec Hash
+                                                   ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
+                                                         ->  Vec Seq Scan on customer
+                                                               Filter: (c_mktsegment = 'AUTOMOBILE'::text)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(22 rows)
+
+select
+	l_orderkey,
+	sum(l_extendedprice * (1 - l_discount)) as revenue,
+	o_orderdate,
+	o_shippriority
+from
+	customer,
+	orders,
+	lineitem
+where
+	c_mktsegment = 'AUTOMOBILE'
+	and c_custkey = o_custkey
+	and l_orderkey = o_orderkey
+	and o_orderdate < date '1995-03-22'
+	and l_shipdate > date '1995-03-22'
+group by
+	l_orderkey,
+	o_orderdate,
+	o_shippriority
+order by
+	revenue desc,
+	o_orderdate
+LIMIT 10;
+ l_orderkey |   revenue   | o_orderdate | o_shippriority 
+------------+-------------+-------------+----------------
+      15205 | 301345.2724 | 03-18-1995  |              0
+      55973 | 298104.5352 | 02-15-1995  |              0
+      29095 | 276518.9348 | 03-09-1995  |              0
+      46115 | 268918.6409 | 03-03-1995  |              0
+      24960 | 267797.1378 | 01-28-1995  |              0
+      51713 |  239655.366 | 03-20-1995  |              0
+      45059 | 218461.8626 | 02-04-1995  |              0
+      55808 | 213870.0336 | 02-15-1995  |              0
+      28003 |  209621.676 | 03-20-1995  |              0
+      53539 | 196601.0217 | 03-15-1995  |              0
+(10 rows)
+

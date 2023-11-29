@@ -1,0 +1,4 @@
+SET default_table_access_method=ao_column;
+SELECT getdatabaseencoding() <> 'UTF8' AS skip_test \gset
+\if :skip_test
+\quit

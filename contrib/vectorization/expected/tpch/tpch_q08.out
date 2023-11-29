@@ -1,0 +1,141 @@
+set extra_float_digits = -1;;;;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	o_year,
+	sum(case
+		when nation = 'ROMANIA' then volume
+		else 0
+	end) / sum(volume) as mkt_share
+from
+	(
+		select
+			extract(year from o_orderdate) as o_year,
+			l_extendedprice * (1 - l_discount) as volume,
+			n2.n_name as nation
+		from
+			part,
+			supplier,
+			lineitem,
+			orders,
+			customer,
+			nation n1,
+			nation n2,
+			region
+		where
+			p_partkey = l_partkey
+			and s_suppkey = l_suppkey
+			and l_orderkey = o_orderkey
+			and o_custkey = c_custkey
+			and c_nationkey = n1.n_nationkey
+			and n1.n_regionkey = r_regionkey
+			and r_name = 'EUROPE'
+			and s_nationkey = n2.n_nationkey
+			and o_orderdate between date '1995-01-01' and date '1996-12-31'
+			and p_type = 'ECONOMY BRUSHED COPPER'
+	) as all_nations
+group by
+	o_year
+order by
+	o_year;
+                                                                  QUERY PLAN                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: (EXTRACT(year FROM orders.o_orderdate))
+   ->  Vec GroupAggregate
+         Group Key: (EXTRACT(year FROM orders.o_orderdate))
+         ->  Vec Sort
+               Sort Key: (EXTRACT(year FROM orders.o_orderdate)) USING <
+               ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: (EXTRACT(year FROM orders.o_orderdate))
+                     ->  Vec Hash Join
+                           Hash Cond: (lineitem.l_suppkey = supplier.s_suppkey)
+                           ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                                 Hash Key: lineitem.l_suppkey
+                                 ->  Vec Hash Join
+                                       Hash Cond: (orders.o_custkey = customer.c_custkey)
+                                       ->  Vec Redistribute Motion 3:3  (slice4; segments: 3)
+                                             Hash Key: orders.o_custkey
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (orders.o_orderkey = lineitem.l_orderkey)
+                                                   ->  Vec Seq Scan on orders
+                                                         Filter: ((o_orderdate >= '01-01-1995'::date) AND (o_orderdate <= '12-31-1996'::date))
+                                                   ->  Vec Hash
+                                                         ->  Vec Hash Join
+                                                               Hash Cond: (lineitem.l_partkey = part.p_partkey)
+                                                               ->  Vec Seq Scan on lineitem
+                                                               ->  Vec Hash
+                                                                     ->  Vec Broadcast Motion 3:3  (slice5; segments: 3)
+                                                                           ->  Vec Seq Scan on part
+                                                                                 Filter: ((p_type)::text = 'ECONOMY BRUSHED COPPER'::text)
+                                       ->  Vec Hash
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (customer.c_nationkey = nation.n_nationkey)
+                                                   ->  Vec Seq Scan on customer
+                                                   ->  Vec Hash
+                                                         ->  Vec Broadcast Motion 3:3  (slice6; segments: 3)
+                                                               ->  Vec Hash Join
+                                                                     Hash Cond: (nation.n_regionkey = region.r_regionkey)
+                                                                     ->  Vec Redistribute Motion 3:3  (slice7; segments: 3)
+                                                                           Hash Key: nation.n_regionkey
+                                                                           ->  Vec Seq Scan on nation
+                                                                     ->  Vec Hash
+                                                                           ->  Vec Seq Scan on region
+                                                                                 Filter: (r_name = 'EUROPE'::text)
+                           ->  Vec Hash
+                                 ->  Vec Redistribute Motion 3:3  (slice8; segments: 3)
+                                       Hash Key: supplier.s_suppkey
+                                       ->  Vec Hash Join
+                                             Hash Cond: (supplier.s_nationkey = nation_1.n_nationkey)
+                                             ->  Vec Redistribute Motion 3:3  (slice9; segments: 3)
+                                                   Hash Key: supplier.s_nationkey
+                                                   ->  Vec Seq Scan on supplier
+                                             ->  Vec Hash
+                                                   ->  Vec Seq Scan on nation nation_1
+ Optimizer: Pivotal Optimizer (GPORCA)
+(53 rows)
+
+select
+	o_year,
+	sum(case
+		when nation = 'ROMANIA' then volume
+		else 0
+	end) / sum(volume) as mkt_share
+from
+	(
+		select
+			extract(year from o_orderdate) as o_year,
+			l_extendedprice * (1 - l_discount) as volume,
+			n2.n_name as nation
+		from
+			part,
+			supplier,
+			lineitem,
+			orders,
+			customer,
+			nation n1,
+			nation n2,
+			region
+		where
+			p_partkey = l_partkey
+			and s_suppkey = l_suppkey
+			and l_orderkey = o_orderkey
+			and o_custkey = c_custkey
+			and c_nationkey = n1.n_nationkey
+			and n1.n_regionkey = r_regionkey
+			and r_name = 'EUROPE'
+			and s_nationkey = n2.n_nationkey
+			and o_orderdate between date '1995-01-01' and date '1996-12-31'
+			and p_type = 'ECONOMY BRUSHED COPPER'
+	) as all_nations
+group by
+	o_year
+order by
+	o_year;
+ o_year |    mkt_share     
+--------+------------------
+   1995 | 0.13500506424159
+   1996 | 0.24485701085455
+(2 rows)
+

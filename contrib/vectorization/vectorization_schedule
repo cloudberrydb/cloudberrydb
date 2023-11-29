@@ -1,0 +1,96 @@
+# tpch
+test: tpch/tpch_init
+test: tpch/tpch_q01
+test: tpch/tpch_q02
+test: tpch/tpch_q03
+test: tpch/tpch_q04
+test: tpch/tpch_q05
+test: tpch/tpch_q06
+test: tpch/tpch_q07
+test: tpch/tpch_q08
+test: tpch/tpch_q09
+test: tpch/tpch_q10
+test: tpch/tpch_q11
+test: tpch/tpch_q12
+test: tpch/tpch_q13
+test: tpch/tpch_q14
+test: tpch/tpch_q15
+test: tpch/tpch_q16
+test: tpch/tpch_q17
+test: tpch/tpch_q18
+test: tpch/tpch_q19
+test: tpch/tpch_q20
+test: tpch/tpch_q21
+test: tpch/tpch_q22
+test: tpch/tpch_drop
+
+#test: agg/vec_prepare
+#test: agg/vec_normal agg/vec_filter agg/vec_agg  agg/vec_agg_nulls  agg/vec_agg_empty agg/vec_regress_agg
+#test: agg/vec_end
+#
+#test: seqscan/heap_table_ss_1
+#test: seqscan/heap_table_ss_2
+#test: seqscan/heap_table_ss_3
+test: seqscan/aocs_table_ss_1 
+test: seqscan/aocs_table_ss_2
+test: seqscan/aocs_table_ss_3
+test: seqscan/aocs_table_ss_lm_1
+test: seqscan/aocs_table_ss_lm_2
+test: seqscan/aocs_table_ss_lm_3
+test: seqscan/aocs_table_ss_lm_misc
+test: seqscan/aocs_table_ss_lm_varmax_1
+test: seqscan/aocs_table_ss_lm_varmax_2
+#
+test: result/simple_expr
+test: sort/sort
+test: sort/arrow_merge_sort
+test: explain/exec_explain
+test: combos/combo_1
+##test: misc/clickhouse_simplifed
+
+#clickhouse cases
+test: clickhouse/clkhse_init
+
+##test cases without any data
+test: clickhouse/queries_emp_1
+test: clickhouse/queries_emp_2
+test: clickhouse/queries_emp_3
+test: clickhouse/queries_emp_4
+test: clickhouse/queries_emp_5
+
+#start load data
+
+test: clickhouse/clkhse_ld
+
+##test cases with data
+test: clickhouse/queries_data_1
+test: clickhouse/queries_data_2
+test: clickhouse/queries_data_3
+test: clickhouse/queries_data_4
+test: clickhouse/queries_data_5
+
+#parallel test
+test: clickhouse/queries_data_1 clickhouse/queries_data_2 clickhouse/queries_data_3 clickhouse/queries_data_4 clickhouse/queries_data_5
+
+test: clickhouse/clkhse_uninit
+
+#clickhouse release cases
+test: clickhouse_release/clkhse_init
+
+##test cases without any data
+test: clickhouse_release/queries_emp
+#start load data
+test: clickhouse_release/clkhse_ld
+##test cases with data
+test: clickhouse_release/queries_data
+test: clickhouse_release/clkhse_uninit
+
+#test: misc/vec_hash
+
+#test: misc/datatype/date misc/datatype/int2 misc/datatype/int4 misc/datatype/int8 misc/datatype/text misc/datatype/float4 misc/datatype/float8 misc/datatype/timestamp
+
+# test join
+test: join/join
+
+# test subqueryscan
+test: subquery/subquery

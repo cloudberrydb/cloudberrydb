@@ -1,0 +1,94 @@
+set extra_float_digits = -1;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+CREATE VIEW revenue0 (supplier_no, total_revenue) AS
+	select
+		l_suppkey,
+		sum(l_extendedprice * (1 - l_discount))
+	from
+		lineitem
+	where
+		l_shipdate >= date '1997-08-01'
+		and l_shipdate < date '1997-08-01' + interval '10 month'
+	group by
+		l_suppkey;
+explain (costs off) select
+	s_suppkey,
+	s_name,
+	s_address,
+	s_phone,
+	total_revenue
+from
+	supplier,
+	revenue0
+where
+	s_suppkey = supplier_no
+	and total_revenue = (
+		select
+			max(total_revenue)
+		from
+			revenue0
+	)
+order by
+	s_suppkey;
+                                                                                                       QUERY PLAN                                                                                                        
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: supplier.s_suppkey
+   ->  Vec Sort
+         Sort Key: supplier.s_suppkey
+         ->  Vec Hash Join
+               Hash Cond: (supplier.s_suppkey = lineitem.l_suppkey)
+               ->  Vec Seq Scan on supplier
+               ->  Vec Hash
+                     ->  Vec Hash Join
+                           Hash Cond: ((sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))) = (max((sum((lineitem_1.l_extendedprice * ('1'::double precision - lineitem_1.l_discount)))))))
+                           ->  Vec Finalize Vec HashAggregate
+                                 Group Key: lineitem.l_suppkey
+                                 ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                                       Hash Key: lineitem.l_suppkey
+                                       ->  Vec Streaming Vec Partial Vec HashAggregate
+                                             Group Key: lineitem.l_suppkey
+                                             ->  Vec Seq Scan on lineitem
+                                                   Filter: ((l_shipdate >= '08-01-1997'::date) AND (l_shipdate < 'Mon Jun 01 00:00:00 1998'::timestamp without time zone))
+                           ->  Vec Hash
+                                 ->  Vec Broadcast Motion 1:3  (slice3)
+                                       ->  Vec Finalize Vec Aggregate
+                                             ->  Vec Gather Motion 3:1  (slice4; segments: 3)
+                                                   ->  Vec Partial Vec Aggregate
+                                                         ->  Vec Finalize Vec HashAggregate
+                                                               Group Key: lineitem_1.l_suppkey
+                                                               ->  Vec Redistribute Motion 3:3  (slice5; segments: 3)
+                                                                     Hash Key: lineitem_1.l_suppkey
+                                                                     ->  Vec Streaming Vec Partial Vec HashAggregate
+                                                                           Group Key: lineitem_1.l_suppkey
+                                                                           ->  Vec Seq Scan on lineitem lineitem_1
+                                                                                 Filter: ((l_shipdate >= '08-01-1997'::date) AND (l_shipdate < 'Mon Jun 01 00:00:00 1998'::timestamp without time zone))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(32 rows)
+
+select
+	s_suppkey,
+	s_name,
+	s_address,
+	s_phone,
+	total_revenue
+from
+	supplier,
+	revenue0
+where
+	s_suppkey = supplier_no
+	and total_revenue = (
+		select
+			max(total_revenue)
+		from
+			revenue0
+	)
+order by
+	s_suppkey;
+ s_suppkey |       s_name       |         s_address         |     s_phone     | total_revenue 
+-----------+--------------------+---------------------------+-----------------+---------------
+        83 | Supplier#000000083 | WRJUkzCn050seVz57oAfrbCuw | 24-529-559-2461 |  3343061.0582
+(1 row)
+
+drop view revenue0;

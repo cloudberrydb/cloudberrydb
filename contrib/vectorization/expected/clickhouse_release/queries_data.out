@@ -1,0 +1,373 @@
+-- set on vectorization
+SET vector.enable_vectorization=on;
+SET vector.max_batch_size=128;
+SELECT COUNT(*) FROM hits;
+ count 
+-------
+  1000
+(1 row)
+
+SELECT COUNT(*) FROM hits WHERE AdvEngineID <> 0;
+ count 
+-------
+    57
+(1 row)
+
+SELECT SUM(AdvEngineID), COUNT(*), AVG(ResolutionWidth) FROM hits;
+ sum | count |   avg    
+-----+-------+----------
+ 158 |  1000 | 1677.636
+(1 row)
+
+--FIXME: The current result overflows.
+--SELECT AVG(UserID) FROM hits;
+SELECT COUNT(DISTINCT UserID) FROM hits;
+ count 
+-------
+    72
+(1 row)
+
+SELECT COUNT(DISTINCT SearchPhrase) FROM hits;
+ count 
+-------
+    40
+(1 row)
+
+SELECT MIN(EventDate), MAX(EventDate) FROM hits;
+    min     |    max     
+------------+------------
+ 07-15-2013 | 07-15-2013
+(1 row)
+
+SELECT AdvEngineID, COUNT(*) FROM hits WHERE AdvEngineID <> 0 GROUP BY AdvEngineID ORDER BY COUNT(*) DESC;
+ advengineid | count 
+-------------+-------
+           2 |    53
+          13 |     4
+(2 rows)
+
+SELECT RegionID, COUNT(DISTINCT UserID) AS u FROM hits GROUP BY RegionID ORDER BY u DESC, RegionID LIMIT 10;
+ regionid | u  
+----------+----
+      229 | 34
+        2 | 10
+      839 |  4
+        1 |  3
+      208 |  2
+        4 |  1
+        7 |  1
+        9 |  1
+       11 |  1
+       33 |  1
+(10 rows)
+
+SELECT RegionID, SUM(AdvEngineID), COUNT(*) AS c, AVG(ResolutionWidth), COUNT(DISTINCT UserID) FROM hits GROUP BY RegionID ORDER BY c DESC LIMIT 10;
+ regionid | sum |  c  |        avg         | count 
+----------+-----+-----+--------------------+-------
+      229 | 134 | 701 |  1781.138373751783 |    34
+        2 |   0 |  81 |  1398.469135802469 |    10
+        1 |   0 |  58 | 1405.2413793103449 |     3
+     8287 |   0 |  30 |               1368 |     1
+        4 |   0 |  24 |               1996 |     1
+      191 |  22 |  20 |               1638 |     1
+   119000 |   0 |  17 |               1638 |     1
+        9 |   0 |  10 |               1087 |     1
+      839 |   0 |  10 |                  0 |     4
+      158 |   0 |   8 |            1976.25 |     1
+(10 rows)
+
+SELECT MobilePhoneModel, COUNT(DISTINCT UserID) AS u FROM hits WHERE MobilePhoneModel <> '' GROUP BY MobilePhoneModel ORDER BY u DESC LIMIT 10;
+ mobilephonemodel | u 
+------------------+---
+(0 rows)
+
+SELECT MobilePhone, MobilePhoneModel, COUNT(DISTINCT UserID) AS u FROM hits WHERE MobilePhoneModel <> '' GROUP BY MobilePhone, MobilePhoneModel ORDER BY u DESC LIMIT 10;
+ mobilephone | mobilephonemodel | u 
+-------------+------------------+---
+(0 rows)
+
+SELECT SearchPhrase, COUNT(*) AS c FROM hits WHERE SearchPhrase <> '' GROUP BY SearchPhrase ORDER BY c DESC, SearchPhrase LIMIT 10;
+                              searchphrase                              | c  
+------------------------------------------------------------------------+----
+ ведомосковский                                                         | 14
+ ведомосквы вместу                                                      | 11
+ покеты рецепт засня                                                    |  5
+ великал ников шарарта год                                              |  4
+ ведомосквы вы из                                                       |  3
+ diamond rmc m45011-8 сериал                                            |  2
+ my loving teknos 200885;&#1091;&                                       |  2
+ record radiorecord foreverything ford pusu 39 сериал полиуретаря форум |  2
+ usb на алекомедиционновской                                            |  2
+ usb на юбился в лате вакансионат рома садовом кто такое у мужчин       |  2
+(10 rows)
+
+SELECT SearchPhrase, COUNT(DISTINCT UserID) AS u FROM hits WHERE SearchPhrase <> '' GROUP BY SearchPhrase ORDER BY u DESC, searchphrase LIMIT 10;
+                              searchphrase                              | u 
+------------------------------------------------------------------------+---
+ ведомосковский                                                         | 3
+ ведомосквы вместу                                                      | 2
+ diamond rmc m45011-8 сериал                                            | 1
+ my loving teknos 200885;&#1091;&                                       | 1
+ record radiorecord foreverything ford pusu 39 сериал полиуретаря форум | 1
+ usb на алекомедиционновской                                            | 1
+ usb на юбился в лате вакансионат рома садовом кто такое у мужчин       | 1
+ авом районе по прямых                                                  | 1
+ авомосква веб каменисный                                               | 1
+ авомоскважин в хорошем качестве                                        | 1
+(10 rows)
+
+SELECT SearchEngineID, SearchPhrase, COUNT(*) AS c FROM hits WHERE SearchPhrase <> '' GROUP BY SearchEngineID, SearchPhrase ORDER BY c DESC, searchphrase LIMIT 10;
+ searchengineid |                              searchphrase                              | c  
+----------------+------------------------------------------------------------------------+----
+              2 | ведомосковский                                                         | 14
+              2 | ведомосквы вместу                                                      | 11
+              4 | покеты рецепт засня                                                    |  5
+              2 | великал ников шарарта год                                              |  4
+              4 | ведомосквы вы из                                                       |  3
+              2 | diamond rmc m45011-8 сериал                                            |  2
+              2 | my loving teknos 200885;&#1091;&                                       |  2
+              4 | record radiorecord foreverything ford pusu 39 сериал полиуретаря форум |  2
+              4 | usb на алекомедиционновской                                            |  2
+              2 | usb на юбился в лате вакансионат рома садовом кто такое у мужчин       |  2
+(10 rows)
+
+SELECT UserID, COUNT(*) FROM hits GROUP BY UserID ORDER BY COUNT(*) DESC, userid LIMIT 10;
+        userid        | count 
+----------------------+-------
+ -8906290752198210953 |   113
+ -9158995094684353950 |    72
+ -9007471654748602165 |    70
+ -9120545112576005405 |    60
+ -9148139899013780533 |    56
+ -9152913373696709210 |    54
+ -9057858837113208387 |    46
+ -9154375582268094750 |    42
+ -9178515231912571900 |    32
+ -9052146544381558785 |    32
+(10 rows)
+
+SELECT UserID, SearchPhrase, COUNT(*) FROM hits GROUP BY UserID, SearchPhrase ORDER BY COUNT(*) DESC, UserID ASC LIMIT 10;
+        userid        | searchphrase | count 
+----------------------+--------------+-------
+ -8906290752198210953 |              |   113
+ -9158995094684353950 |              |    72
+ -9007471654748602165 |              |    70
+ -9120545112576005405 |              |    58
+ -9152913373696709210 |              |    52
+ -9148139899013780533 |              |    46
+ -9057858837113208387 |              |    46
+ -9154375582268094750 |              |    42
+ -9052146544381558785 |              |    30
+ -9178515231912571900 |              |    26
+(10 rows)
+
+--FIXME: extract not support yet,wait decimal
+--SELECT UserID, extract(minute FROM EventTime) AS m, SearchPhrase, COUNT(*) FROM hits GROUP BY UserID, m, SearchPhrase ORDER BY COUNT(*) DESC LIMIT 10;
+SELECT UserID FROM hits WHERE UserID = 435090932899640449;
+ userid 
+--------
+(0 rows)
+
+SELECT COUNT(*) FROM hits WHERE URL LIKE '%google%';
+ count 
+-------
+     0
+(1 row)
+
+SELECT SearchPhrase, MIN(URL), COUNT(*) AS c FROM hits WHERE URL LIKE '%google%' AND SearchPhrase <> '' GROUP BY SearchPhrase ORDER BY c DESC LIMIT 10;
+ searchphrase | min | c 
+--------------+-----+---
+(0 rows)
+
+SELECT SearchPhrase, MIN(URL), MIN(Title), COUNT(*) AS c, COUNT(DISTINCT UserID) FROM hits WHERE Title LIKE '%Google%' AND URL NOT LIKE '%.google.%' AND SearchPhrase <> '' GROUP BY SearchPhrase ORDER BY c DESC LIMIT 10;
+ searchphrase | min | min | c | count 
+--------------+-----+-----+---+-------
+(0 rows)
+
+SELECT * FROM hits WHERE URL LIKE '%google%' ORDER BY EventTime LIMIT 10;
+ watchid | javaenable | title | goodevent | eventtime | eventdate | counterid | clientip | regionid | userid | counterclass | os | useragent | url | referer | isrefresh | referercategoryid | refererregionid | urlcategoryid | urlregionid | resolutionwidth | resolutionheight | resolutiondepth | flashmajor | flashminor | flashminor2 | netmajor | netminor | useragentmajor | useragentminor | cookieenable | javascriptenable | ismobile | mobilephone | mobilephonemodel | params | ipnetworkid | traficsourceid | searchengineid | searchphrase | advengineid | isartifical | windowclientwidth | windowclientheight | clienttimezone | clienteventtime | silverlightversion1 | silverlightversion2 | silverlightversion3 | silverlightversion4 | pagecharset | codeversion | islink | isdownload | isnotbounce | funiqid | originalurl | hid | isoldcounter | isevent | isparameter | dontcounthits | withhash | hitcolor | localeventtime | age | sex | income | interests | robotness | remoteip | windowname | openername | historylength | browserlanguage | browsercountry | socialnetwork | socialaction | httperror | sendtiming | dnstiming | connecttiming | responsestarttiming | responseendtiming | fetchtiming | socialsourcenetworkid | socialsourcepage | paramprice | paramorderid | paramcurrency | paramcurrencyid | openstatservicename | openstatcampaignid | openstatadid | openstatsourceid | utmsource | utmmedium | utmcampaign | utmcontent | utmterm | fromtag | hasgclid | refererhash | urlhash | clid 
+---------+------------+-------+-----------+-----------+-----------+-----------+----------+----------+--------+--------------+----+-----------+-----+---------+-----------+-------------------+-----------------+---------------+-------------+-----------------+------------------+-----------------+------------+------------+-------------+----------+----------+----------------+----------------+--------------+------------------+----------+-------------+------------------+--------+-------------+----------------+----------------+--------------+-------------+-------------+-------------------+--------------------+----------------+-----------------+---------------------+---------------------+---------------------+---------------------+-------------+-------------+--------+------------+-------------+---------+-------------+-----+--------------+---------+-------------+---------------+----------+----------+----------------+-----+-----+--------+-----------+-----------+----------+------------+------------+---------------+-----------------+----------------+---------------+--------------+-----------+------------+-----------+---------------+---------------------+-------------------+-------------+-----------------------+------------------+------------+--------------+---------------+-----------------+---------------------+--------------------+--------------+------------------+-----------+-----------+-------------+------------+---------+---------+----------+-------------+---------+------
+(0 rows)
+
+SELECT SearchPhrase FROM hits WHERE SearchPhrase <> '' ORDER BY EventTime LIMIT 10;
+                searchphrase                 
+---------------------------------------------
+ ведомосква мартыне
+ ведомосква мартыне
+ ведомосквы вместу
+ ведомосковский
+ ведомосковский
+ ведомосковский
+ ведомосковский
+ хаски воспитанцуем чолович блокировка рав 4
+ хаски воспитанцуем чолович блокировка рав 4
+ смотреть онлайн бесплатно в канцтова
+(10 rows)
+
+SELECT SearchPhrase FROM hits WHERE SearchPhrase <> '' ORDER BY SearchPhrase LIMIT 10;
+                              searchphrase                              
+------------------------------------------------------------------------
+ diamond rmc m45011-8 сериал
+ diamond rmc m45011-8 сериал
+ my loving teknos 200885;&#1091;&
+ my loving teknos 200885;&#1091;&
+ record radiorecord foreverything ford pusu 39 сериал полиуретаря форум
+ record radiorecord foreverything ford pusu 39 сериал полиуретаря форум
+ usb на алекомедиционновской
+ usb на алекомедиционновской
+ usb на юбился в лате вакансионат рома садовом кто такое у мужчин
+ usb на юбился в лате вакансионат рома садовом кто такое у мужчин
+(10 rows)
+
+SELECT SearchPhrase FROM hits WHERE SearchPhrase <> '' ORDER BY EventTime, SearchPhrase LIMIT 10;
+                searchphrase                 
+---------------------------------------------
+ ведомосква мартыне
+ ведомосква мартыне
+ ведомосквы вместу
+ ведомосковский
+ ведомосковский
+ ведомосковский
+ ведомосковский
+ хаски воспитанцуем чолович блокировка рав 4
+ хаски воспитанцуем чолович блокировка рав 4
+ смотреть онлайн бесплатно в канцтова
+(10 rows)
+
+SELECT CounterID, AVG(length(URL)) AS l, COUNT(*) AS c FROM hits WHERE URL <> '' GROUP BY CounterID HAVING COUNT(*) > 100000 ORDER BY l DESC LIMIT 25;
+ counterid | l | c 
+-----------+---+---
+(0 rows)
+
+SELECT REGEXP_REPLACE(Referer, '^https?://(?:www\.)?([^/]+)/.*$', '\1') AS k, AVG(length(Referer)) AS l, COUNT(*) AS c, MIN(Referer) FROM hits WHERE Referer <> '' GROUP BY k HAVING COUNT(*) > 100000 ORDER BY l DESC LIMIT 25;
+ k | l | c | min 
+---+---+---+-----
+(0 rows)
+
+SELECT SUM(ResolutionWidth), SUM(ResolutionWidth + 1), SUM(ResolutionWidth + 2), SUM(ResolutionWidth + 3), SUM(ResolutionWidth + 4), SUM(ResolutionWidth + 5), SUM(ResolutionWidth + 6), SUM(ResolutionWidth + 7), SUM(ResolutionWidth + 8), SUM(ResolutionWidth + 9), SUM(ResolutionWidth + 10), SUM(ResolutionWidth + 11), SUM(ResolutionWidth + 12), SUM(ResolutionWidth + 13), SUM(ResolutionWidth + 14), SUM(ResolutionWidth + 15), SUM(ResolutionWidth + 16), SUM(ResolutionWidth + 17), SUM(ResolutionWidth + 18), SUM(ResolutionWidth + 19), SUM(ResolutionWidth + 20), SUM(ResolutionWidth + 21), SUM(ResolutionWidth + 22), SUM(ResolutionWidth + 23), SUM(ResolutionWidth + 24), SUM(ResolutionWidth + 25), SUM(ResolutionWidth + 26), SUM(ResolutionWidth + 27), SUM(ResolutionWidth + 28), SUM(ResolutionWidth + 29), SUM(ResolutionWidth + 30), SUM(ResolutionWidth + 31), SUM(ResolutionWidth + 32), SUM(ResolutionWidth + 33), SUM(ResolutionWidth + 34), SUM(ResolutionWidth + 35), SUM(ResolutionWidth + 36), SUM(ResolutionWidth + 37), SUM(ResolutionWidth + 38), SUM(ResolutionWidth + 39), SUM(ResolutionWidth + 40), SUM(ResolutionWidth + 41), SUM(ResolutionWidth + 42), SUM(ResolutionWidth + 43), SUM(ResolutionWidth + 44), SUM(ResolutionWidth + 45), SUM(ResolutionWidth + 46), SUM(ResolutionWidth + 47), SUM(ResolutionWidth + 48), SUM(ResolutionWidth + 49), SUM(ResolutionWidth + 50), SUM(ResolutionWidth + 51), SUM(ResolutionWidth + 52), SUM(ResolutionWidth + 53), SUM(ResolutionWidth + 54), SUM(ResolutionWidth + 55), SUM(ResolutionWidth + 56), SUM(ResolutionWidth + 57), SUM(ResolutionWidth + 58), SUM(ResolutionWidth + 59), SUM(ResolutionWidth + 60), SUM(ResolutionWidth + 61), SUM(ResolutionWidth + 62), SUM(ResolutionWidth + 63), SUM(ResolutionWidth + 64), SUM(ResolutionWidth + 65), SUM(ResolutionWidth + 66), SUM(ResolutionWidth + 67), SUM(ResolutionWidth + 68), SUM(ResolutionWidth + 69), SUM(ResolutionWidth + 70), SUM(ResolutionWidth + 71), SUM(ResolutionWidth + 72), SUM(ResolutionWidth + 73), SUM(ResolutionWidth + 74), SUM(ResolutionWidth + 75), SUM(ResolutionWidth + 76), SUM(ResolutionWidth + 77), SUM(ResolutionWidth + 78), SUM(ResolutionWidth + 79), SUM(ResolutionWidth + 80), SUM(ResolutionWidth + 81), SUM(ResolutionWidth + 82), SUM(ResolutionWidth + 83), SUM(ResolutionWidth + 84), SUM(ResolutionWidth + 85), SUM(ResolutionWidth + 86), SUM(ResolutionWidth + 87), SUM(ResolutionWidth + 88), SUM(ResolutionWidth + 89) FROM hits;
+   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   |   sum   
+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------+---------
+ 1677636 | 1678636 | 1679636 | 1680636 | 1681636 | 1682636 | 1683636 | 1684636 | 1685636 | 1686636 | 1687636 | 1688636 | 1689636 | 1690636 | 1691636 | 1692636 | 1693636 | 1694636 | 1695636 | 1696636 | 1697636 | 1698636 | 1699636 | 1700636 | 1701636 | 1702636 | 1703636 | 1704636 | 1705636 | 1706636 | 1707636 | 1708636 | 1709636 | 1710636 | 1711636 | 1712636 | 1713636 | 1714636 | 1715636 | 1716636 | 1717636 | 1718636 | 1719636 | 1720636 | 1721636 | 1722636 | 1723636 | 1724636 | 1725636 | 1726636 | 1727636 | 1728636 | 1729636 | 1730636 | 1731636 | 1732636 | 1733636 | 1734636 | 1735636 | 1736636 | 1737636 | 1738636 | 1739636 | 1740636 | 1741636 | 1742636 | 1743636 | 1744636 | 1745636 | 1746636 | 1747636 | 1748636 | 1749636 | 1750636 | 1751636 | 1752636 | 1753636 | 1754636 | 1755636 | 1756636 | 1757636 | 1758636 | 1759636 | 1760636 | 1761636 | 1762636 | 1763636 | 1764636 | 1765636 | 1766636
+(1 row)
+
+SELECT SearchEngineID, ClientIP, COUNT(*) AS c, SUM(IsRefresh), AVG(ResolutionWidth) FROM hits WHERE SearchPhrase <> '' GROUP BY SearchEngineID, ClientIP ORDER BY c DESC, clientip LIMIT 10;
+ searchengineid |  clientip   | c  | sum | avg  
+----------------+-------------+----+-----+------
+              2 |  1515936442 | 10 |   5 | 1917
+              4 | -1862498328 |  8 |   5 | 1368
+              2 | -1881772677 |  6 |   3 | 1074
+              2 |  1119579082 |  6 |   1 | 1638
+              2 |  1404486817 |  6 |   3 | 1828
+              2 |  1837696684 |  6 |   3 | 1638
+              2 | -1961138443 |  2 |   1 |  611
+              2 | -1689537417 |  2 |   1 | 2038
+              2 | -1636200394 |  2 |   1 | 2040
+              2 | -1382870857 |  2 |   1 | 1638
+(10 rows)
+
+SELECT WatchID, ClientIP, COUNT(*) AS c, SUM(IsRefresh), AVG(ResolutionWidth) FROM hits WHERE SearchPhrase <> '' GROUP BY WatchID, ClientIP ORDER BY c, watchid DESC LIMIT 10;
+       watchid       |  clientip   | c | sum | avg  
+---------------------+-------------+---+-----+------
+ 9186339937460003790 | -1881772677 | 1 |   0 | 1074
+ 9174213054617248375 | -1382870857 | 1 |   0 | 1638
+ 9142387834119691951 |  1837696684 | 1 |   1 | 1638
+ 9129003716674303915 |  -680506442 | 1 |   1 | 1087
+ 8964884988095136938 | -1862498328 | 1 |   1 | 1368
+ 8919441558605699669 |  2108173360 | 1 |   0 | 1996
+ 8909638964276385285 |   595608853 | 1 |   1 | 1996
+ 8881843599842674306 |  1119579082 | 1 |   0 | 1638
+ 8817012166220483238 |  2007437209 | 1 |   0 | 1917
+ 8775810786519978190 |  1404486817 | 1 |   0 | 1828
+(10 rows)
+
+SELECT WatchID, ClientIP, COUNT(*) AS c, SUM(IsRefresh), AVG(ResolutionWidth) FROM hits GROUP BY WatchID, ClientIP ORDER BY c DESC, watchid LIMIT 10;
+       watchid       |  clientip   | c | sum | avg  
+---------------------+-------------+---+-----+------
+ 4613805872289589946 |  1251479417 | 1 |   0 | 1368
+ 4616283530312678068 | -1042740163 | 1 |   1 | 1250
+ 4616321837681632879 |  1515936442 | 1 |   1 | 1917
+ 4619481195620947503 | -1042740163 | 1 |   0 | 1250
+ 4621548433098056642 |  1515936442 | 1 |   1 | 1917
+ 4622412312117619097 |  1477120991 | 1 |   1 | 1750
+ 4625386692135846249 |  1880321564 | 1 |   1 | 1917
+ 4626697675795403428 |  1119579082 | 1 |   1 | 1638
+ 4640532508726438989 | -1170323632 | 1 |   1 | 1996
+ 4640697727885782315 | -1689537417 | 1 |   1 | 2038
+(10 rows)
+
+SELECT URL, COUNT(*) AS c FROM hits GROUP BY URL ORDER BY c DESC, url LIMIT 10;
+                                                          url                                                           | c  
+------------------------------------------------------------------------------------------------------------------------+----
+ https://produkty%2Fpulove.ru/kiroverlanet.ru/otdam-soulmjj/628965/detail.aspx?Forum.cofe.ru&pvid=163789569-geniya_1538 | 53
+ https://produkty%2Fpulove.ru/album/login                                                                               | 50
+ https://produkty%2Fpulove.ru/kiroverlanet.ru/otdam-soul                                                                | 24
+ https://produkty%2Fkategory_id=&auto_id=0&s_yers=0&with Valu-v-na-briuki%2F%2Fwww.bonprix.ru%2Fkategory                | 22
+ https://produkty%2Fproduct                                                                                             | 22
+ http://md.mirkvartira-ul-2-10-plugi-advert2741792&pv=22&deletedAutos&marka=9&model                                     | 18
+ https://produkty%2Fpulove.ru/kiroverlanet.ru/otdam-soulder/search&evential/byid=1600033                                | 16
+ http://md.mirkvartira-ul-2-10-plugi-advert2741792&pv=22&deletedAutos&marka=91&mode                                     | 12
+ https://produkty%2Fpulove.ru/booklyattion-war-sinij-9182/women                                                         | 12
+ https://produkty%2Fpulove.ru/booklyattion-ware-nezhno-goda.yandex.ru/messa                                             | 12
+(10 rows)
+
+SELECT 1, URL, COUNT(*) AS c FROM hits GROUP BY 1, URL ORDER BY c DESC, url LIMIT 10;
+ ?column? |                                                          url                                                           | c  
+----------+------------------------------------------------------------------------------------------------------------------------+----
+        1 | https://produkty%2Fpulove.ru/kiroverlanet.ru/otdam-soulmjj/628965/detail.aspx?Forum.cofe.ru&pvid=163789569-geniya_1538 | 53
+        1 | https://produkty%2Fpulove.ru/album/login                                                                               | 50
+        1 | https://produkty%2Fpulove.ru/kiroverlanet.ru/otdam-soul                                                                | 24
+        1 | https://produkty%2Fkategory_id=&auto_id=0&s_yers=0&with Valu-v-na-briuki%2F%2Fwww.bonprix.ru%2Fkategory                | 22
+        1 | https://produkty%2Fproduct                                                                                             | 22
+        1 | http://md.mirkvartira-ul-2-10-plugi-advert2741792&pv=22&deletedAutos&marka=9&model                                     | 18
+        1 | https://produkty%2Fpulove.ru/kiroverlanet.ru/otdam-soulder/search&evential/byid=1600033                                | 16
+        1 | http://md.mirkvartira-ul-2-10-plugi-advert2741792&pv=22&deletedAutos&marka=91&mode                                     | 12
+        1 | https://produkty%2Fpulove.ru/booklyattion-war-sinij-9182/women                                                         | 12
+        1 | https://produkty%2Fpulove.ru/booklyattion-ware-nezhno-goda.yandex.ru/messa                                             | 12
+(10 rows)
+
+SELECT ClientIP, ClientIP - 1, ClientIP - 2, ClientIP - 3, COUNT(*) AS c FROM hits GROUP BY ClientIP, ClientIP - 1, ClientIP - 2, ClientIP - 3 ORDER BY c DESC LIMIT 10;
+  clientip   |  ?column?   |  ?column?   |  ?column?   |  c  
+-------------+-------------+-------------+-------------+-----
+  2107723744 |  2107723743 |  2107723742 |  2107723741 | 113
+ -1258870999 | -1258871000 | -1258871001 | -1258871002 |  72
+  1902523699 |  1902523698 |  1902523697 |  1902523696 |  70
+ -1689537417 | -1689537418 | -1689537419 | -1689537420 |  60
+  1515936442 |  1515936441 |  1515936440 |  1515936439 |  56
+ -1042740163 | -1042740164 | -1042740165 | -1042740166 |  54
+  1251479417 |  1251479416 |  1251479415 |  1251479414 |  46
+ -2135135037 | -2135135038 | -2135135039 | -2135135040 |  42
+  1404486817 |  1404486816 |  1404486815 |  1404486814 |  32
+  1519390919 |  1519390918 |  1519390917 |  1519390916 |  32
+(10 rows)
+
+SELECT URL, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-01' AND EventDate <= '2013-07-31' AND DontCountHits = 0 AND IsRefresh = 0 AND URL <> '' GROUP BY URL ORDER BY PageViews DESC LIMIT 10;
+ url | pageviews 
+-----+-----------
+(0 rows)
+
+SELECT Title, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-01' AND EventDate <= '2013-07-31' AND DontCountHits = 0 AND IsRefresh = 0 AND Title <> '' GROUP BY Title ORDER BY PageViews DESC LIMIT 10;
+ title | pageviews 
+-------+-----------
+(0 rows)
+
+SELECT URL, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-01' AND EventDate <= '2013-07-31' AND IsRefresh = 0 AND IsLink <> 0 AND IsDownload = 0 GROUP BY URL ORDER BY PageViews DESC LIMIT 10 OFFSET 1000;
+ url | pageviews 
+-----+-----------
+(0 rows)
+
+SELECT TraficSourceID, SearchEngineID, AdvEngineID, CASE WHEN (SearchEngineID = 0 AND AdvEngineID = 0) THEN Referer ELSE '' END AS Src, URL AS Dst, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-01' AND EventDate <= '2013-07-31' AND IsRefresh = 0 GROUP BY TraficSourceID, SearchEngineID, AdvEngineID, Src, Dst ORDER BY PageViews DESC LIMIT 10 OFFSET 1000;
+ traficsourceid | searchengineid | advengineid | src | dst | pageviews 
+----------------+----------------+-------------+-----+-----+-----------
+(0 rows)
+
+SELECT URLHash, EventDate, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-01' AND EventDate <= '2013-07-31' AND IsRefresh = 0 AND TraficSourceID IN (-1, 6) AND RefererHash = 3594120000172545465 GROUP BY URLHash, EventDate ORDER BY PageViews DESC LIMIT 10 OFFSET 100;
+ urlhash | eventdate | pageviews 
+---------+-----------+-----------
+(0 rows)
+
+SELECT WindowClientWidth, WindowClientHeight, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-01' AND EventDate <= '2013-07-31' AND IsRefresh = 0 AND DontCountHits = 0 AND URLHash = 2868770270353813622 GROUP BY WindowClientWidth, WindowClientHeight ORDER BY PageViews DESC LIMIT 10 OFFSET 10000;
+ windowclientwidth | windowclientheight | pageviews 
+-------------------+--------------------+-----------
+(0 rows)
+
+---SELECT DATE_TRUNC('minute', EventTime) AS M, COUNT(*) AS PageViews FROM hits WHERE CounterID = 62 AND EventDate >= '2013-07-14' AND EventDate <= '2013-07-15' AND IsRefresh = 0 AND DontCountHits = 0 GROUP BY DATE_TRUNC('minute', EventTime) ORDER BY DATE_TRUNC('minute', EventTime) LIMIT 10 OFFSET 1000;

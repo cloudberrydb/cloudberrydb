@@ -1,0 +1,150 @@
+
+-- set vectorization
+SET vector.enable_vectorization=off;
+SET
+
+-- create table
+CREATE TABLE INT2_TBL(f1 int2) WITH(APPENDONLY=true, ORIENTATION=column);
+CREATE
+
+-- load data
+INSERT INTO INT2_TBL(f1) VALUES ('0   ');
+INSERT 1
+
+INSERT INTO INT2_TBL(f1) VALUES ('  1234 ');
+INSERT 1
+
+INSERT INTO INT2_TBL(f1) VALUES ('    -1234');
+INSERT 1
+
+INSERT INTO INT2_TBL(f1) VALUES ('34.5');
+ERROR:  invalid input syntax for integer: "34.5"
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('34.5');
+                                         ^
+
+-- largest and smallest values
+INSERT INTO INT2_TBL(f1) VALUES ('32767');
+INSERT 1
+
+INSERT INTO INT2_TBL(f1) VALUES ('-32767');
+INSERT 1
+
+-- bad input values -- should give errors
+INSERT INTO INT2_TBL(f1) VALUES ('100000');
+ERROR:  value "100000" is out of range for type smallint
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('100000');
+                                         ^
+INSERT INTO INT2_TBL(f1) VALUES ('asdf');
+ERROR:  invalid input syntax for integer: "asdf"
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('asdf');
+                                         ^
+INSERT INTO INT2_TBL(f1) VALUES ('    ');
+ERROR:  invalid input syntax for integer: "    "
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('    ');
+                                         ^
+INSERT INTO INT2_TBL(f1) VALUES ('- 1234');
+ERROR:  invalid input syntax for integer: "- 1234"
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('- 1234');
+                                         ^
+INSERT INTO INT2_TBL(f1) VALUES ('4 444');
+ERROR:  invalid input syntax for integer: "4 444"
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('4 444');
+                                         ^
+INSERT INTO INT2_TBL(f1) VALUES ('123 dt');
+ERROR:  invalid input syntax for integer: "123 dt"
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('123 dt');
+                                         ^
+INSERT INTO INT2_TBL(f1) VALUES ('');
+ERROR:  invalid input syntax for integer: ""
+LINE 1: INSERT INTO INT2_TBL(f1) VALUES ('');
+                                         ^
+
+-- set vectorization
+SET vector.enable_vectorization=on;
+SET
+
+--queries
+SELECT * FROM INT2_TBL;
+ f1
+--------
+ 0
+ 1234
+ 32767
+ -1234
+ -32767
+(5 rows)
+SELECT i.* FROM INT2_TBL i WHERE i.f1 <> int2 '0';
+ f1
+--------
+ -1234
+ -32767
+ 1234
+ 32767
+(4 rows)
+SELECT i.* FROM INT2_TBL i WHERE i.f1 = int4 '0';
+ f1
+----
+ 0
+(1 row)
+
+-- SELECT '' AS five, * FROM INT2_TBL;
+
+-- SELECT '' AS four, i.* FROM INT2_TBL i WHERE i.f1 <> int2 '0';
+
+-- SELECT '' AS four, i.* FROM INT2_TBL i WHERE i.f1 <> int4 '0';
+
+-- SELECT '' AS one, i.* FROM INT2_TBL i WHERE i.f1 = int2 '0';
+
+-- SELECT '' AS one, i.* FROM INT2_TBL i WHERE i.f1 = int4 '0';
+
+-- SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 < int2 '0';
+
+-- SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 < int4 '0';
+
+-- SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 <= int2 '0';
+
+-- SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 <= int4 '0';
+
+-- SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 > int2 '0';
+
+-- SELECT '' AS two, i.* FROM INT2_TBL i WHERE i.f1 > int4 '0';
+
+-- SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 >= int2 '0';
+
+-- SELECT '' AS three, i.* FROM INT2_TBL i WHERE i.f1 >= int4 '0';
+
+-- positive odds
+-- SELECT '' AS one, i.* FROM INT2_TBL i WHERE (i.f1 % int2 '2') = int2 '1';
+
+-- any evens
+-- SELECT '' AS three, i.* FROM INT2_TBL i WHERE (i.f1 % int4 '2') = int2 '0';
+
+-- SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT2_TBL i;
+
+--SELECT '' AS five, i.f1, i.f1 * int2 '2' AS x FROM INT2_TBL i
+-- WHERE abs(f1) < 16384;
+
+-- SELECT '' AS five, i.f1, i.f1 * int4 '2' AS x FROM INT2_TBL i;
+
+-- SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT2_TBL i;
+
+-- SELECT '' AS five, i.f1, i.f1 + int2 '2' AS x FROM INT2_TBL i
+-- WHERE f1 < 32766;
+
+-- SELECT '' AS five, i.f1, i.f1 + int4 '2' AS x FROM INT2_TBL i;
+
+-- SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT2_TBL i;
+
+-- SELECT '' AS five, i.f1, i.f1 - int2 '2' AS x FROM INT2_TBL i
+-- WHERE f1 > -32767;
+
+-- SELECT '' AS five, i.f1, i.f1 - int4 '2' AS x FROM INT2_TBL i;
+
+-- SELECT '' AS five, i.f1, i.f1 / int2 '2' AS x FROM INT2_TBL i;
+
+-- SELECT '' AS five, i.f1, i.f1 / int4 '2' AS x FROM INT2_TBL i;
+
+-- drop table
+
+DROP TABLE INT2_TBL;
+DROP

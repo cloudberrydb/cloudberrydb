@@ -1,0 +1,9 @@
+*.o
+*.so
+*.bc
+.vscode
+.cache/
+regression.diffs
+regression.out
+results/
+data/tpch/

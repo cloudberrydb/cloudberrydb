@@ -1,0 +1,195 @@
+# Cloudberry-specific tests
+#
+# The order of the tests is fairly random, but there are a couple of things
+# to consider when placing a new test:
+#
+# * Keep long-running tests in the same group with other tests with a similar
+#   runtime. That way, on a multi-processor system, the tests will finish
+#   roughly at the same time, which maximizes parallelism.
+# * Keep tests together with other tests for similar functionality.
+# * There are some dependencies between tests, and some tests cannot run
+#   in parallel with other tests.
+# * The maximum size of a group is about 20, like in the Postgres
+#   parallel_schedule. However, some queries can dispatch a lot of workers
+#   to the segments, and therefore has to run in smaller groups to avoid
+#   hitting max_connections limit on segments.
+#
+
+test: gp_dispatch_keepalives
+
+# copy command
+# copy form a file with different EOL
+test: copy_eol
+
+# gp_toolkit performs a vacuum and checks that it truncated the relation. That
+# might not happen if other backends are holding transactions open, preventing
+# vacuum from removing dead tuples. And run gp_toolkit early to make some log
+# file related tests (like gp_log_system, etc) faster.
+test: disable_autovacuum
+test: gp_toolkit
+test: python_processed64bit
+test: enable_autovacuum
+
+test: log_guc
+# enable query metrics cluster GUC
+test: instr_in_shmem_setup
+# run separately - because slot counter may influenced by other parallel queries
+test: instr_in_shmem
+
+test: createdb
+test: gp_aggregates gp_aggregates_costs gp_metadata variadic_parameters default_parameters function_extensions spi gp_xml shared_scan triggers_gp returning_gp resource_queue_with_rule gp_types gp_index cluster_gp combocid_gp gp_sort
+
+# FIXME: disable update-related tests
+# test: update_gp
+
+test: spi_processed64bit
+test: gp_tablespace_with_faults
+# below test(s) inject faults so each of them need to be in a separate group
+test: gp_tablespace
+
+test: temp_tablespaces
+test: default_tablespace
+
+test: leastsquares opr_sanity_gp decode_expr bitmapscan bitmapscan_ao case_gp limit_gp notin percentile join_gp union_gp gpcopy_encoding gp_create_table gp_create_view window_views replication_slots create_table_like_gp gp_constraints matview_ao gpcopy_dispatch
+# below test(s) inject faults so each of them need to be in a separate group
+test: gpcopy
+
+test: orca_static_pruning orca_groupingsets_fallbacks
+test: filter gpctas gpdist gpdist_opclasses gpdist_legacy_opclasses matrix sublink table_functions olap_setup complex opclass_ddl information_schema guc_env_var gp_explain distributed_transactions explain_format olap_plans misc_jiras gp_copy_dtx
+# below test(s) inject faults so each of them need to be in a separate group
+test: guc_gp
+test: toast
+
+# namespace_gp test will show diff if concurrent tests use temporary tables.
+# So run it separately.
+test: namespace_gp
+
+# test gpdb internal and segment connections
+test: gp_connections
+
+# bitmap_index triggers recovery, run it seperately
+test: qp_functions_in_contexts_setup
+# test: qp_misc_rio_join_small qp_misc_rio qp_correlated_query qp_targeted_dispatch qp_gist_indexes2 qp_gist_indexes3 qp_gist_indexes4 qp_query_execution qp_functions_in_from qp_functions_in_select qp_functions_in_subquery qp_functions_in_subquery_column qp_functions_in_subquery_constant qp_functions_in_with
+test: qp_misc_rio_join_small qp_correlated_query qp_targeted_dispatch qp_gist_indexes2 qp_gist_indexes3 qp_gist_indexes4 qp_query_execution qp_functions_in_from qp_functions_in_select qp_functions_in_subquery qp_functions_in_subquery_column qp_functions_in_with
+
+test: dpe qp_dpe qp_subquery qp_left_anti_semi_join qp_union_intersect qp_functions qp_functions_idf qp_regexp qp_resource_queue qp_orca_fallback
+
+test: olap_setup
+test: qp_olap_group qp_olap_group2
+
+test: hooktest tuple_serialization
+
+# Test query_info_collect_hook are called in expected sequence on normal query, query error/abort
+test: query_info_hook_test
+
+ignore: tpch500GB_orca
+
+# Tests for "compaction", i.e. VACUUM, of updatable append-only tables
+test: uao_compaction/full uao_compaction/outdated_partialindex uao_compaction/drop_column_update uao_compaction/eof_truncate uao_compaction/basic uao_compaction/outdatedindex uao_compaction/update_toast uao_compaction/outdatedindex_abort uao_compaction/delete_toast uao_compaction/alter_table_analyze uao_compaction/full_eof_truncate uao_compaction/full_threshold
+# TODO find why these tests fail in parallel, for now keeping them sequential
+test: uao_compaction/full_stats
+test: uao_compaction/stats
+test: uao_compaction/index_stats
+test: uao_compaction/index
+test: uao_compaction/drop_column
+test: uao_compaction/index2
+
+
+# Tests for "compaction", i.e. VACUUM, of updatable append-only column oriented tables
+test: uaocs_compaction/alter_table_analyze uaocs_compaction/basic uaocs_compaction/drop_column_update uaocs_compaction/eof_truncate  uaocs_compaction/full_eof_truncate uaocs_compaction/full_threshold uaocs_compaction/outdated_partialindex uaocs_compaction/outdatedindex
+
+# FIXME: disable update-related tests
+# uaocs_compaction/basic uaocs_compaction/full uaocs_compaction/outdatedindex_abort
+
+# TODO find why these tests fail in parallel, for now keeping them sequential
+# FIXME: disable update-related tests
+# test: uaocs_compaction/full_stats
+test: uaocs_compaction/stats
+test: uaocs_compaction/index_stats
+test: uaocs_compaction/index
+# FIXME: disable update-related tests
+# test: uaocs_compaction/drop_column
+
+# FIXME: disable update-related tests
+# test: uao_ddl/cursor_column 
+test: uao_ddl/cursor_row uao_ddl/alter_ao_table_statistics_row uao_ddl/alter_ao_table_statistics_column uao_ddl/alter_ao_table_setdefault_row uao_ddl/alter_ao_table_index_row uao_ddl/alter_ao_table_owner_column uao_ddl/spgist_over_ao_table_row
+test: uao_ddl/alter_ao_table_owner_row uao_ddl/alter_ao_table_setstorage_row uao_ddl/alter_ao_table_constraint_row uao_ddl/alter_ao_table_constraint_column uao_ddl/alter_ao_table_index_column uao_ddl/blocksize_row uao_ddl/compresstype_column uao_ddl/alter_ao_table_setdefault_column uao_ddl/blocksize_column uao_ddl/temp_on_commit_delete_rows_row uao_ddl/spgist_over_ao_table_column
+# FIXME: disable update-related tests
+# test: uao_ddl/temp_on_commit_delete_rows_column
+# test: uao_ddl/create_ao_tables_column
+test: uao_ddl/alter_ao_table_setstorage_column uao_ddl/alter_ao_table_col_ddl_row uao_ddl/compresstype_row uao_ddl/alter_ao_table_col_ddl_column uao_ddl/alter_ao_part_tables_splitpartition_row uao_ddl/alter_ao_part_tables_splitpartition_column uao_ddl/create_ao_tables_row uao_ddl/create_ao_table_500cols_row uao_ddl/alter_ao_part_exch_row
+test: uao_ddl/alter_ao_part_exch_column uao_ddl/alter_ao_part_tables_row uao_ddl/create_ao_table_500cols_column uao_ddl/alter_ao_part_tables_column
+
+test: uao_ddl/alter_drop_allcol_row uao_ddl/alter_drop_allcol_column uao_ddl/alter_rollback_row uao_ddl/alter_rollback_column uao_ddl/uao_allalter_row uao_ddl/uao_allalter_column
+
+# These tests use gp_select_invisible and VACUUM, and will get confused if there are
+# concurrent transactions holding back the global xmin.
+
+test: uao_dml/uao_dml_cursor_row uao_dml/uao_dml_select_row uao_dml/uao_dml_cursor_column uao_dml/uao_dml_select_column
+
+# disable autovacuum for the test
+test: disable_autovacuum
+# Run uao[cs]_catalog_tables separately. They run VACUUM FULL on
+# append-optimized tables and assume that no AWAITING_DROP segfiles exist at
+# the end of VACUUM FULL.
+test: uao_catalog_tables
+test: uaocs_catalog_tables
+test: uao_compaction/threshold
+# FIXME: disable update-related tests
+# test: uaocs_compaction/threshold
+test: uao_ddl/analyze_ao_table_every_dml_row 
+# FIXME: disable update-related tests
+# test: uao_ddl/analyze_ao_table_every_dml_column
+test: uao_dml/uao_dml_row
+# FIXME: disable update-related tests
+# test: uao_dml/uao_dml_column
+test: ao_locks
+# FIXME: disable update-related tests
+# test: freeze_aux_tables
+
+# These cannot run in parallel, because they check that VACUUM FULL shrinks table size.
+# A concurrent session could hold back the xid horizon and prevent old tuples from being
+# removed.
+test: vacuum_full_ao
+test: vacuum_full_freeze_heap
+test: vacuum_full_heap
+test: vacuum_full_heap_bitmapindex
+# Check for shmem leak for instrumentation slots
+test: instr_in_shmem_verify
+# check autostats
+test: autostats
+test: enable_autovacuum
+
+test: ao_checksum_corruption AOCO_Compression AORO_Compression table_statistics
+test: session_reset
+# below test(s) inject faults so each of them need to be in a separate group
+test: fts_error
+
+test: psql_gp_commands pg_resetwal dropdb_check_shared_buffer_cache gp_upgrade_cornercases
+
+test: temp_relation
+test: alter_db_set_tablespace
+
+# This cannot run in parallel because other tests could increment the Oid
+# counters and make the Oid counter observations hardcoded in the answer file
+# incorrect.
+test: oid_wraparound
+
+# fts_recovery_in_progresss uses fault injectors to simulate FTS fault states,
+# hence it should be run in isolation.
+test: fts_recovery_in_progress
+test: mirror_replay
+test: autovacuum
+test: autovacuum-segment
+test: autovacuum-template0-segment
+
+# gpexpand introduce the partial tables, check them if they can run correctly
+test: gangsize gang_reuse
+
+# some utilities do not work while doing gpexpand, check them can print correct message
+test: run_utility_gpexpand_phase1
+
+# check correct error message when create extension error on segment
+test: create_extension_fail
+
+# end of tests

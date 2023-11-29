@@ -1,0 +1,319 @@
+SET default_table_access_method=ao_column;
+--
+-- CONSTRAINTS
+-- Constraints can be specified with:
+--  - DEFAULT clause
+--  - CHECK clauses
+--  - PRIMARY KEY clauses
+--  - UNIQUE clauses
+--  - EXCLUDE clauses
+--
+-- start_matchsubs
+-- m/DETAIL:  Failing row contains \(.*\)/
+-- s/DETAIL:  Failing row contains \(.*\)/DETAIL:  Failing row contains (#####)/
+-- end_matchsubs
+--
+-- DEFAULT syntax
+--
+CREATE TABLE DEFAULT_TBL (i int DEFAULT 100,
+	x text DEFAULT 'vadim', f float8 DEFAULT 123.456);
+INSERT INTO DEFAULT_TBL VALUES (1, 'thomas', 57.0613);
+INSERT INTO DEFAULT_TBL VALUES (1, 'bruce');
+INSERT INTO DEFAULT_TBL (i, f) VALUES (2, 987.654);
+INSERT INTO DEFAULT_TBL (x) VALUES ('marc');
+INSERT INTO DEFAULT_TBL VALUES (3, null, 1.0);
+SELECT * FROM DEFAULT_TBL;
+  i  |   x    |    f    
+-----+--------+---------
+   1 | thomas | 57.0613
+   1 | bruce  | 123.456
+   2 | vadim  | 987.654
+ 100 | marc   | 123.456
+   3 |        |       1
+(5 rows)
+
+CREATE SEQUENCE DEFAULT_SEQ CACHE 1;
+CREATE TABLE DEFAULTEXPR_TBL (i1 int DEFAULT 100 + (200-199) * 2,
+	i2 int DEFAULT nextval('default_seq'));
+INSERT INTO DEFAULTEXPR_TBL VALUES (-1, -2);
+INSERT INTO DEFAULTEXPR_TBL (i1) VALUES (-3);
+INSERT INTO DEFAULTEXPR_TBL (i2) VALUES (-4);
+INSERT INTO DEFAULTEXPR_TBL (i2) VALUES (NULL);
+SELECT * FROM DEFAULTEXPR_TBL;
+ i1  | i2 
+-----+----
+  -1 | -2
+  -3 |  1
+ 102 | -4
+ 102 |   
+(4 rows)
+
+-- syntax errors
+--  test for extraneous comma
+CREATE TABLE error_tbl (i int DEFAULT (100, ));
+ERROR:  syntax error at or near ")"
+LINE 1: CREATE TABLE error_tbl (i int DEFAULT (100, ));
+                                                    ^
+--  this will fail because gram.y uses b_expr not a_expr for defaults,
+--  to avoid a shift/reduce conflict that arises from NOT NULL being
+--  part of the column definition syntax:
+CREATE TABLE error_tbl (b1 bool DEFAULT 1 IN (1, 2));
+ERROR:  syntax error at or near "IN"
+LINE 1: CREATE TABLE error_tbl (b1 bool DEFAULT 1 IN (1, 2));
+                                                  ^
+--  this should work, however:
+CREATE TABLE error_tbl (b1 bool DEFAULT (1 IN (1, 2)));
+DROP TABLE error_tbl;
+--
+-- CHECK syntax
+--
+CREATE TABLE CHECK_TBL (x int,
+	CONSTRAINT CHECK_CON CHECK (x > 3));
+INSERT INTO CHECK_TBL VALUES (5);
+INSERT INTO CHECK_TBL VALUES (4);
+INSERT INTO CHECK_TBL VALUES (3);
+ERROR:  new row for relation "check_tbl" violates check constraint "check_con"
+DETAIL:  Failing row contains (3).
+INSERT INTO CHECK_TBL VALUES (2);
+ERROR:  new row for relation "check_tbl" violates check constraint "check_con"
+DETAIL:  Failing row contains (2).
+INSERT INTO CHECK_TBL VALUES (6);
+INSERT INTO CHECK_TBL VALUES (1);
+ERROR:  new row for relation "check_tbl" violates check constraint "check_con"
+DETAIL:  Failing row contains (1).
+SELECT * FROM CHECK_TBL;
+ x 
+---
+ 5
+ 4
+ 6
+(3 rows)
+
+CREATE SEQUENCE CHECK_SEQ CACHE 1;
+CREATE TABLE CHECK2_TBL (x int, y text, z int,
+	CONSTRAINT SEQUENCE_CON
+	CHECK (x > 3 and y <> 'check failed' and z < 8));
+INSERT INTO CHECK2_TBL VALUES (4, 'check ok', -2);
+INSERT INTO CHECK2_TBL VALUES (1, 'x check failed', -2);
+ERROR:  new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (1, x check failed, -2).
+INSERT INTO CHECK2_TBL VALUES (5, 'z check failed', 10);
+ERROR:  new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (5, z check failed, 10).
+INSERT INTO CHECK2_TBL VALUES (0, 'check failed', -2);
+ERROR:  new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (0, check failed, -2).
+INSERT INTO CHECK2_TBL VALUES (6, 'check failed', 11);
+ERROR:  new row for relation "check2_tbl" violates check constraint "sequence_con"
+DETAIL:  Failing row contains (6, check failed, 11).
+INSERT INTO CHECK2_TBL VALUES (7, 'check ok', 7);
+SELECT * from CHECK2_TBL;
+ x |    y     | z  
+---+----------+----
+ 4 | check ok | -2
+ 7 | check ok |  7
+(2 rows)
+
+--
+-- Check constraints on INSERT
+--
+CREATE SEQUENCE INSERT_SEQ CACHE 1;
+CREATE TABLE INSERT_TBL (x INT DEFAULT nextval('insert_seq'),
+	y TEXT DEFAULT '-NULL-',
+	z INT DEFAULT -1 * (nextval('insert_seq')-1),
+	CONSTRAINT INSERT_TBL_CON CHECK (x >= 3 AND y <> 'check failed' AND x < 8),
+	CHECK (x + z = 0)) DISTRIBUTED BY(y);
+INSERT INTO INSERT_TBL(x,z) VALUES (2, -2);
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (2, -NULL-, -2).
+SELECT * FROM INSERT_TBL;
+ x | y | z 
+---+---+---
+(0 rows)
+
+SELECT 'one' AS one, nextval('insert_seq');
+ one | nextval 
+-----+---------
+ one |       1
+(1 row)
+
+INSERT INTO INSERT_TBL(y) VALUES ('Y');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (2, Y, -2).
+INSERT INTO INSERT_TBL(y) VALUES ('Y');
+INSERT INTO INSERT_TBL(x,z) VALUES (1, -2);
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (1, -NULL-, -2).
+INSERT INTO INSERT_TBL(z,x) VALUES (-7,  7);
+INSERT INTO INSERT_TBL VALUES (5, 'check failed', -5);
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (5, check failed, -5).
+INSERT INTO INSERT_TBL VALUES (7, '!check failed', -7);
+INSERT INTO INSERT_TBL(y) VALUES ('-!NULL-');
+SELECT * FROM INSERT_TBL;
+ x |       y       | z  
+---+---------------+----
+ 4 | Y             | -4
+ 7 | -NULL-        | -7
+ 7 | !check failed | -7
+ 6 | -!NULL-       | -6
+(4 rows)
+
+-- GPDB: reset the table contents to match upstream.
+delete from insert_tbl;
+insert into insert_tbl values
+  (3, 'Y', -3),
+  (7, '-NULL-', -7),
+  (7, '!check failed', -7),
+  (4, '-!NULL-', -4);
+INSERT INTO INSERT_TBL(y,z) VALUES ('check failed', 4);
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (8, check failed, 4).
+INSERT INTO INSERT_TBL(x,y) VALUES (5, 'check failed');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (5, check failed, -8).
+-- these fail on GPDB, because we cannot use currval in the z columns' DEFAULT like in upstream.
+INSERT INTO INSERT_TBL(x,y) VALUES (5, '!check failed');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (5, !check failed, -9).
+INSERT INTO INSERT_TBL(y) VALUES ('-!NULL-');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (11, -!NULL-, -11).
+-- GPDB: fix the table contents to match upstream again, so that the subsequent
+-- tests start with the same state as in upstream.
+insert into insert_tbl values
+  (5, '!check failed', -5),
+  (6, '-!NULL-', -6);
+SELECT * FROM INSERT_TBL;
+ x |       y       | z  
+---+---------------+----
+ 3 | Y             | -3
+ 7 | -NULL-        | -7
+ 7 | !check failed | -7
+ 4 | -!NULL-       | -4
+ 5 | !check failed | -5
+ 6 | -!NULL-       | -6
+(6 rows)
+
+SELECT 'seven' AS one, nextval('insert_seq');
+  one  | nextval 
+-------+---------
+ seven |      13
+(1 row)
+
+INSERT INTO INSERT_TBL(y) VALUES ('Y');
+ERROR:  new row for relation "insert_tbl" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (14, Y, -14).
+SELECT 'eight' AS one, nextval('insert_seq');
+  one  | nextval 
+-------+---------
+ eight |      16
+(1 row)
+
+-- According to SQL, it is OK to insert a record that gives rise to NULL
+-- constraint-condition results.  Postgres used to reject this, but it
+-- was wrong:
+INSERT INTO INSERT_TBL VALUES (null, null, null);
+SELECT * FROM INSERT_TBL;
+ x |       y       | z  
+---+---------------+----
+ 3 | Y             | -3
+ 7 | -NULL-        | -7
+ 7 | !check failed | -7
+ 4 | -!NULL-       | -4
+ 5 | !check failed | -5
+ 6 | -!NULL-       | -6
+   |               |   
+(7 rows)
+
+--
+-- Check constraints on system columns
+--
+CREATE TABLE SYS_COL_CHECK_TBL (city text, state text, is_capital bool,
+                  altitude int,
+                  CHECK (NOT (is_capital AND tableoid::regclass::text = 'sys_col_check_tbl')));
+INSERT INTO SYS_COL_CHECK_TBL VALUES ('Seattle', 'Washington', false, 100);
+INSERT INTO SYS_COL_CHECK_TBL VALUES ('Olympia', 'Washington', true, 100);
+ERROR:  new row for relation "sys_col_check_tbl" violates check constraint "sys_col_check_tbl_check"
+DETAIL:  Failing row contains (Olympia, Washington, t, 100).
+SELECT *, tableoid::regclass::text FROM SYS_COL_CHECK_TBL;
+  city   |   state    | is_capital | altitude |     tableoid      
+---------+------------+------------+----------+-------------------
+ Seattle | Washington | f          |      100 | sys_col_check_tbl
+(1 row)
+
+DROP TABLE SYS_COL_CHECK_TBL;
+--
+-- Check constraints on system columns other then TableOid should return error
+--
+CREATE TABLE SYS_COL_CHECK_TBL (city text, state text, is_capital bool,
+                  altitude int,
+				  CHECK (NOT (is_capital AND ctid::text = 'sys_col_check_tbl')));
+ERROR:  system column "ctid" reference in check constraint is invalid
+LINE 3:       CHECK (NOT (is_capital AND ctid::text = 'sys_col_check...
+                                         ^
+--
+-- Check inheritance of defaults and constraints
+--
+CREATE TABLE INSERT_CHILD (cx INT default 42,
+	cy INT CHECK (cy > x))
+	INHERITS (INSERT_TBL);
+INSERT INTO INSERT_CHILD(x,z,cy) VALUES (7,-7,11);
+INSERT INTO INSERT_CHILD(x,z,cy) VALUES (7,-7,6);
+ERROR:  new row for relation "insert_child" violates check constraint "insert_child_check"
+DETAIL:  Failing row contains (7, -NULL-, -7, 42, 6).
+INSERT INTO INSERT_CHILD(x,z,cy) VALUES (6,-7,7);
+ERROR:  new row for relation "insert_child" violates check constraint "insert_tbl_check"
+DETAIL:  Failing row contains (6, -NULL-, -7, 42, 7).
+INSERT INTO INSERT_CHILD(x,y,z,cy) VALUES (6,'check failed',-6,7);
+ERROR:  new row for relation "insert_child" violates check constraint "insert_tbl_con"
+DETAIL:  Failing row contains (6, check failed, -6, 42, 7).
+SELECT * FROM INSERT_CHILD;
+ x |   y    | z  | cx | cy 
+---+--------+----+----+----
+ 7 | -NULL- | -7 | 42 | 11
+(1 row)
+
+DROP TABLE INSERT_CHILD;
+--
+-- Check NO INHERIT type of constraints and inheritance
+--
+CREATE TABLE ATACC1 (TEST INT
+	CHECK (TEST > 0) NO INHERIT);
+CREATE TABLE ATACC2 (TEST2 INT) INHERITS (ATACC1);
+-- check constraint is not there on child
+INSERT INTO ATACC2 (TEST) VALUES (-3);
+-- check constraint is there on parent
+INSERT INTO ATACC1 (TEST) VALUES (-3);
+ERROR:  new row for relation "atacc1" violates check constraint "atacc1_test_check"
+DETAIL:  Failing row contains (-3).
+DROP TABLE ATACC1 CASCADE;
+NOTICE:  drop cascades to table atacc2
+CREATE TABLE ATACC1 (TEST INT, TEST2 INT
+	CHECK (TEST > 0), CHECK (TEST2 > 10) NO INHERIT);
+CREATE TABLE ATACC2 () INHERITS (ATACC1);
+-- check constraint is there on child
+INSERT INTO ATACC2 (TEST) VALUES (-3);
+ERROR:  new row for relation "atacc2" violates check constraint "atacc1_test_check"
+DETAIL:  Failing row contains (-3, null).
+-- check constraint is there on parent
+INSERT INTO ATACC1 (TEST) VALUES (-3);
+ERROR:  new row for relation "atacc1" violates check constraint "atacc1_test_check"
+DETAIL:  Failing row contains (-3, null).
+-- check constraint is not there on child
+INSERT INTO ATACC2 (TEST2) VALUES (3);
+-- check constraint is there on parent
+INSERT INTO ATACC1 (TEST2) VALUES (3);
+ERROR:  new row for relation "atacc1" violates check constraint "atacc1_test2_check"
+DETAIL:  Failing row contains (null, 3).
+DROP TABLE ATACC1 CASCADE;
+NOTICE:  drop cascades to table atacc2
+--
+-- Check constraints on INSERT INTO
+--
+DELETE FROM INSERT_TBL;
+ALTER SEQUENCE INSERT_SEQ RESTART WITH 4;
+CREATE TEMP TABLE tmp (xd INT, yd TEXT, zd INT);
+INSERT INTO tmp VALUES (null, 'Y', null);
+INSERT INTO tmp VALUES (5, '!check failed', null);
+INSERT INTO tmp VALUES (null, 'try again', null);

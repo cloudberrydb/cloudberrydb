@@ -1,0 +1,122 @@
+SET vector.enable_vectorization = on;
+SET
+SET optimizer=on;
+SET
+
+explain (verbose on, costs off) select * from trow order by c1;
+ QUERY PLAN
+-------------------------------------------------
+ Gather VecMotion 2:1  (slice1; segments: 2)
+   Output: c1, c2
+   Merge Key: c1
+   ->  Vec Sort
+         Output: c1, c2
+         Sort Key: trow.c1
+         ->  Vec Seq Scan on public.trow
+               Output: c1, c2
+ Optimizer: Pivotal Optimizer (GPORCA)
+ Settings: vector.enable_vectorization=on, optimizer=on
+(10 rows)
+explain (verbose on, costs off) select c1 from trow order by c1;
+ QUERY PLAN
+-------------------------------------------------
+ Gather VecMotion 2:1  (slice1; segments: 2)
+   Output: c1
+   Merge Key: c1
+   ->  Vec Sort
+         Output: c1
+         Sort Key: trow.c1
+         ->  Vec Seq Scan on public.trow
+               Output: c1
+ Optimizer: Pivotal Optimizer (GPORCA)
+ Settings: vector.enable_vectorization=on, optimizer=on
+(10 rows)
+explain (verbose on, costs off) select c2 from trow order by c2;
+ QUERY PLAN
+-------------------------------------------------
+ Gather VecMotion 2:1  (slice1; segments: 2)
+   Output: c2
+   Merge Key: c2
+   ->  Vec Sort
+         Output: c2
+         Sort Key: trow.c2
+         ->  Vec Seq Scan on public.trow
+               Output: c2
+ Optimizer: Pivotal Optimizer (GPORCA)
+ Settings: vector.enable_vectorization=on, optimizer=on
+(10 rows)
+
+
+select * from trow order by c1;
+ c1 | c2
+----+----
+ 1  | 11
+ 1  | 11
+ 2  | 12
+ 2  | 12
+ 3  | 13
+ 3  | 13
+ 4  | 14
+ 4  | 14
+ 5  | 15
+ 5  | 15
+ 6  | 16
+ 6  | 16
+ 7  | 17
+ 7  | 17
+ 8  | 18
+ 8  | 18
+ 9  | 19
+ 9  | 19
+ 10 | 20
+ 10 | 20
+(20 rows)
+select c1 from trow order by c1;
+ c1
+----
+ 1
+ 1
+ 2
+ 2
+ 3
+ 3
+ 4
+ 4
+ 5
+ 5
+ 6
+ 6
+ 7
+ 7
+ 8
+ 8
+ 9
+ 9
+ 10
+ 10
+(20 rows)
+select c2 from trow order by c2;
+ c2
+----
+ 11
+ 11
+ 12
+ 12
+ 13
+ 13
+ 14
+ 14
+ 15
+ 15
+ 16
+ 16
+ 17
+ 17
+ 18
+ 18
+ 19
+ 19
+ 20
+ 20
+(20 rows)
+

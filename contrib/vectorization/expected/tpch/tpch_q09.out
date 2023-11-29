@@ -1,0 +1,289 @@
+set extra_float_digits = -1;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	nation,
+	o_year,
+	sum(amount) as sum_profit
+from
+	(
+		select
+			n_name as nation,
+			extract(year from o_orderdate) as o_year,
+			l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+		from
+			part,
+			supplier,
+			lineitem,
+			partsupp,
+			orders,
+			nation
+		where
+			s_suppkey = l_suppkey
+			and ps_suppkey = l_suppkey
+			and ps_partkey = l_partkey
+			and p_partkey = l_partkey
+			and o_orderkey = l_orderkey
+			and s_nationkey = n_nationkey
+			and p_name like '%seashell%'
+	) as profit
+group by
+	nation,
+	o_year
+order by
+	nation,
+	o_year desc;
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate))
+   ->  Vec GroupAggregate
+         Group Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate))
+         ->  Vec Sort
+               Sort Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate)) USING >
+               ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                     Hash Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate))
+                     ->  Vec Hash Join
+                           Hash Cond: ((partsupp.ps_suppkey = lineitem.l_suppkey) AND (partsupp.ps_partkey = lineitem.l_partkey))
+                           ->  Vec Seq Scan on partsupp
+                           ->  Vec Hash
+                                 ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                                       Hash Key: lineitem.l_partkey
+                                       ->  Vec Hash Join
+                                             Hash Cond: (lineitem.l_suppkey = supplier.s_suppkey)
+                                             ->  Vec Redistribute Motion 3:3  (slice4; segments: 3)
+                                                   Hash Key: lineitem.l_suppkey
+                                                   ->  Vec Hash Join
+                                                         Hash Cond: (orders.o_orderkey = lineitem.l_orderkey)
+                                                         ->  Vec Seq Scan on orders
+                                                         ->  Vec Hash
+                                                               ->  Vec Hash Join
+                                                                     Hash Cond: (lineitem.l_partkey = part.p_partkey)
+                                                                     ->  Vec Seq Scan on lineitem
+                                                                     ->  Vec Hash
+                                                                           ->  Vec Broadcast Motion 3:3  (slice5; segments: 3)
+                                                                                 ->  Vec Seq Scan on part
+                                                                                       Filter: ((p_name)::text ~~ '%seashell%'::text)
+                                             ->  Vec Hash
+                                                   ->  Vec Redistribute Motion 3:3  (slice6; segments: 3)
+                                                         Hash Key: supplier.s_suppkey
+                                                         ->  Vec Hash Join
+                                                               Hash Cond: (supplier.s_nationkey = nation.n_nationkey)
+                                                               ->  Vec Redistribute Motion 3:3  (slice7; segments: 3)
+                                                                     Hash Key: supplier.s_nationkey
+                                                                     ->  Vec Seq Scan on supplier
+                                                               ->  Vec Hash
+                                                                     ->  Vec Seq Scan on nation
+ Optimizer: Pivotal Optimizer (GPORCA)
+(40 rows)
+
+select
+	nation,
+	o_year,
+	sum(amount) as sum_profit
+from
+	(
+		select
+			n_name as nation,
+			extract(year from o_orderdate) as o_year,
+			l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity as amount
+		from
+			part,
+			supplier,
+			lineitem,
+			partsupp,
+			orders,
+			nation
+		where
+			s_suppkey = l_suppkey
+			and ps_suppkey = l_suppkey
+			and ps_partkey = l_partkey
+			and p_partkey = l_partkey
+			and o_orderkey = l_orderkey
+			and s_nationkey = n_nationkey
+			and p_name like '%seashell%'
+	) as profit
+group by
+	nation,
+	o_year
+order by
+	nation,
+	o_year desc;
+     nation     | o_year | sum_profit  
+----------------+--------+-------------
+ ALGERIA        |   1998 | 246518.2304
+ ALGERIA        |   1997 | 340071.0064
+ ALGERIA        |   1996 | 158600.1828
+ ALGERIA        |   1995 | 512159.3483
+ ALGERIA        |   1994 | 291364.6837
+ ALGERIA        |   1993 | 213891.1692
+ ALGERIA        |   1992 | 331703.1779
+ ARGENTINA      |   1998 | 201981.4471
+ ARGENTINA      |   1997 |  97823.5764
+ ARGENTINA      |   1996 | 187632.5884
+ ARGENTINA      |   1995 |   89568.819
+ ARGENTINA      |   1994 |  90138.4455
+ ARGENTINA      |   1993 | 214670.3779
+ ARGENTINA      |   1992 |  79374.4425
+ BRAZIL         |   1998 | 132837.7158
+ BRAZIL         |   1997 | 222672.0454
+ BRAZIL         |   1996 |  30863.2184
+ BRAZIL         |   1995 | 254490.0786
+ BRAZIL         |   1994 |  98772.5608
+ BRAZIL         |   1993 |  106411.736
+ BRAZIL         |   1992 | 106508.7028
+ CANADA         |   1998 |  98313.0763
+ CANADA         |   1997 | 378306.7187
+ CANADA         |   1996 | 364216.1058
+ CANADA         |   1995 | 178565.5803
+ CANADA         |   1994 | 255557.2168
+ CANADA         |   1993 |  77878.3288
+ CANADA         |   1992 | 218890.3923
+ CHINA          |   1998 | 184902.4368
+ CHINA          |   1997 |  512207.817
+ CHINA          |   1996 | 426976.1898
+ CHINA          |   1995 |  805806.671
+ CHINA          |   1994 | 367326.6611
+ CHINA          |   1993 | 514247.7633
+ CHINA          |   1992 |  482143.643
+ EGYPT          |   1998 | 271119.6372
+ EGYPT          |   1997 | 517416.7567
+ EGYPT          |   1996 | 364228.5296
+ EGYPT          |   1995 | 468911.4219
+ EGYPT          |   1994 | 706762.7446
+ EGYPT          |   1993 | 525575.4016
+ EGYPT          |   1992 | 626772.9059
+ ETHIOPIA       |   1998 |  69611.6247
+ ETHIOPIA       |   1997 | 244760.6619
+ ETHIOPIA       |   1996 | 136907.1031
+ ETHIOPIA       |   1995 |  231237.104
+ ETHIOPIA       |   1994 |  90187.5609
+ ETHIOPIA       |   1993 | 208009.5321
+ ETHIOPIA       |   1992 | 310218.5164
+ FRANCE         |   1997 | 144789.1384
+ FRANCE         |   1996 | 127851.9768
+ FRANCE         |   1995 |  33405.5428
+ FRANCE         |   1994 | 313689.7546
+ FRANCE         |   1993 |   44032.212
+ FRANCE         |   1992 | 299110.6518
+ GERMANY        |   1998 | 223055.3671
+ GERMANY        |   1997 | 411766.6871
+ GERMANY        |   1996 | 411410.4916
+ GERMANY        |   1995 | 257178.5104
+ GERMANY        |   1994 | 411764.0341
+ GERMANY        |   1993 |  299030.486
+ GERMANY        |   1992 | 224973.4985
+ INDIA          |   1998 | 276746.5395
+ INDIA          |   1997 |  394314.657
+ INDIA          |   1996 | 413567.6717
+ INDIA          |   1995 | 575082.0837
+ INDIA          |   1994 | 333971.7559
+ INDIA          |   1993 | 379174.9787
+ INDIA          |   1992 |  499508.661
+ INDONESIA      |   1998 | 125635.7049
+ INDONESIA      |   1997 | 376751.9979
+ INDONESIA      |   1996 | 207423.4752
+ INDONESIA      |   1995 | 272948.2056
+ INDONESIA      |   1994 | 255748.4415
+ INDONESIA      |   1993 | 113417.9561
+ INDONESIA      |   1992 | 229956.9902
+ IRAN           |   1998 |  33529.1776
+ IRAN           |   1997 |  11770.3692
+ IRAN           |   1996 |  47977.0406
+ IRAN           |   1995 | 103218.2752
+ IRAN           |   1994 |  13128.8162
+ IRAN           |   1993 | 128381.6724
+ IRAN           |   1992 |  114690.486
+ IRAQ           |   1998 |  32625.8877
+ IRAQ           |   1997 | 152871.1998
+ IRAQ           |   1996 |  58329.6025
+ IRAQ           |   1995 |  107295.575
+ IRAQ           |   1994 |  94626.9044
+ IRAQ           |   1993 |  89824.2657
+ IRAQ           |   1992 |  28010.8798
+ JAPAN          |   1998 | 173033.8409
+ JAPAN          |   1997 |  517846.066
+ JAPAN          |   1996 | 566390.5424
+ JAPAN          |   1995 | 568306.9273
+ JAPAN          |   1994 | 591225.0166
+ JAPAN          |   1993 | 458046.1125
+ JAPAN          |   1992 | 467766.3502
+ JORDAN         |   1998 |    74281.56
+ JORDAN         |   1997 |  77015.6023
+ JORDAN         |   1996 |  92537.0419
+ JORDAN         |   1995 |  73435.5285
+ JORDAN         |   1994 |    36792.63
+ JORDAN         |   1993 |  44574.9998
+ JORDAN         |   1992 | 110278.7546
+ KENYA          |   1998 | 147128.1707
+ KENYA          |   1997 | 492282.4294
+ KENYA          |   1996 |  747513.956
+ KENYA          |   1995 |  617955.572
+ KENYA          |   1994 | 653152.8758
+ KENYA          |   1993 | 652045.2438
+ KENYA          |   1992 | 631432.1276
+ MOROCCO        |   1998 |  67514.4085
+ MOROCCO        |   1997 | 297463.4284
+ MOROCCO        |   1996 | 400415.5559
+ MOROCCO        |   1995 | 149620.1892
+ MOROCCO        |   1994 | 227271.1419
+ MOROCCO        |   1993 | 334040.9203
+ MOROCCO        |   1992 | 348157.4386
+ MOZAMBIQUE     |   1998 |   242439.94
+ MOZAMBIQUE     |   1997 | 812575.4191
+ MOZAMBIQUE     |   1996 | 546485.0176
+ MOZAMBIQUE     |   1995 | 646876.7595
+ MOZAMBIQUE     |   1994 | 470850.6003
+ MOZAMBIQUE     |   1993 | 668421.5793
+ MOZAMBIQUE     |   1992 |  680094.837
+ PERU           |   1998 | 202493.0587
+ PERU           |   1997 | 308408.6007
+ PERU           |   1996 | 378036.9875
+ PERU           |   1995 | 211294.4526
+ PERU           |   1994 | 457567.5176
+ PERU           |   1993 | 344495.8334
+ PERU           |   1992 | 286076.3607
+ ROMANIA        |   1998 | 206835.0056
+ ROMANIA        |   1997 | 432407.1596
+ ROMANIA        |   1996 | 497880.7594
+ ROMANIA        |   1995 | 400199.8643
+ ROMANIA        |   1994 | 381929.2278
+ ROMANIA        |   1993 | 406102.0551
+ ROMANIA        |   1992 | 450935.5812
+ RUSSIA         |   1998 | 260672.5002
+ RUSSIA         |   1997 | 623517.5249
+ RUSSIA         |   1996 | 552602.7191
+ RUSSIA         |   1995 | 759817.8999
+ RUSSIA         |   1994 | 672557.4823
+ RUSSIA         |   1993 | 732948.5373
+ RUSSIA         |   1992 | 613819.9349
+ SAUDI ARABIA   |   1997 |  62191.7818
+ SAUDI ARABIA   |   1996 |  67457.6375
+ SAUDI ARABIA   |   1995 |  39572.1508
+ SAUDI ARABIA   |   1994 | 119776.7219
+ SAUDI ARABIA   |   1993 |   42354.702
+ SAUDI ARABIA   |   1992 | 114288.9926
+ UNITED KINGDOM |   1998 | 329461.2006
+ UNITED KINGDOM |   1997 | 386722.6288
+ UNITED KINGDOM |   1996 | 282497.3699
+ UNITED KINGDOM |   1995 | 586850.1212
+ UNITED KINGDOM |   1994 | 550791.3283
+ UNITED KINGDOM |   1993 | 429116.0451
+ UNITED KINGDOM |   1992 | 279902.8101
+ UNITED STATES  |   1998 | 266551.9071
+ UNITED STATES  |   1997 | 591069.3638
+ UNITED STATES  |   1996 | 745163.3309
+ UNITED STATES  |   1995 | 684367.9576
+ UNITED STATES  |   1994 | 589979.3126
+ UNITED STATES  |   1993 |  888535.843
+ UNITED STATES  |   1992 | 688080.8071
+ VIETNAM        |   1998 |  312728.788
+ VIETNAM        |   1997 |  422950.894
+ VIETNAM        |   1996 | 183729.3664
+ VIETNAM        |   1995 | 479546.2766
+ VIETNAM        |   1994 | 648421.6319
+ VIETNAM        |   1993 | 504602.8718
+ VIETNAM        |   1992 | 682770.1604
+(173 rows)
+

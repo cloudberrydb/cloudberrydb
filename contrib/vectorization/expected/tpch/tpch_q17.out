@@ -1,0 +1,69 @@
+set extra_float_digits = -1;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	sum(l_extendedprice) / 7.0 as avg_yearly
+from
+	lineitem,
+	part
+where
+	p_partkey = l_partkey
+	and p_brand = 'Brand#54'
+	and p_container = 'SM CAN'
+	and l_quantity < (
+		select
+			0.2 * avg(l_quantity)
+		from
+			lineitem
+		where
+			l_partkey = p_partkey
+	);
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ Vec Finalize Vec Aggregate
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         ->  Vec Partial Vec Aggregate
+               ->  Vec Hash Join
+                     Hash Cond: (lineitem.l_partkey = part.p_partkey)
+                     Join Filter: (lineitem.l_quantity < (('0.2'::double precision * avg(lineitem_1.l_quantity))))
+                     ->  Vec Seq Scan on lineitem
+                     ->  Vec Hash
+                           ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
+                                 ->  Vec Hash Right Join
+                                       Hash Cond: (lineitem_1.l_partkey = part.p_partkey)
+                                       ->  Vec Finalize Vec HashAggregate
+                                             Group Key: lineitem_1.l_partkey
+                                             ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                                                   Hash Key: lineitem_1.l_partkey
+                                                   ->  Vec Streaming Vec Partial Vec HashAggregate
+                                                         Group Key: lineitem_1.l_partkey
+                                                         ->  Vec Seq Scan on lineitem lineitem_1
+                                       ->  Vec Hash
+                                             ->  Vec Seq Scan on part
+                                                   Filter: ((p_brand = 'Brand#54'::text) AND (p_container = 'SM CAN'::text))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(22 rows)
+
+select
+	sum(l_extendedprice) / 7.0 as avg_yearly
+from
+	lineitem,
+	part
+where
+	p_partkey = l_partkey
+	and p_brand = 'Brand#54'
+	and p_container = 'SM CAN'
+	and l_quantity < (
+		select
+			0.2 * avg(l_quantity)
+		from
+			lineitem
+		where
+			l_partkey = p_partkey
+	);
+   avg_yearly    
+-----------------
+ 1935.0385714286
+(1 row)
+

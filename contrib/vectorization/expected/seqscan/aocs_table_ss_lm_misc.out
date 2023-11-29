@@ -1,0 +1,56 @@
+-- test cases collected from development
+-- create table
+CREATE TABLE t1 (a INT, b VARCHAR(100), c VARCHAR(100)) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+-- set configuration
+SET vector.enable_vectorization=off;
+-- insert data
+INSERT INTO t1 SELECT i % 100, 'adafrsdgrgdffbgfg', 'sscdscdsvfdbhfd' FROM generate_series(1, 100000)i;
+-- set configuration
+SET vector.enable_vectorization=on;
+SET hashdata_use_late_materialize=on;
+ERROR:  unrecognized configuration parameter "hashdata_use_late_materialize"
+-- queries
+SELECT a, count(b), count(c) FROM t1 WHERE a=10 GROUP BY a;
+ a  | count | count 
+----+-------+-------
+ 10 |  1000 |  1000
+(1 row)
+
+SELECT a, count(b), count(c) FROM t1 WHERE a<10 GROUP BY a;
+ a | count | count 
+---+-------+-------
+ 0 |  1000 |  1000
+ 1 |  1000 |  1000
+ 2 |  1000 |  1000
+ 3 |  1000 |  1000
+ 4 |  1000 |  1000
+ 5 |  1000 |  1000
+ 6 |  1000 |  1000
+ 7 |  1000 |  1000
+ 8 |  1000 |  1000
+ 9 |  1000 |  1000
+(10 rows)
+
+SELECT a, count(b), count(c) FROM t1 WHERE b != 'adafrsdgrgdffbgfg' GROUP BY a;
+ a | count | count 
+---+-------+-------
+(0 rows)
+
+SELECT a, count(b), count(c) FROM t1 WHERE a = 10 and b = 'adafrsdgrgdffbgfg' GROUP BY a ;
+ a  | count | count 
+----+-------+-------
+ 10 |  1000 |  1000
+(1 row)
+
+SELECT a, count(b), count(c) FROM t1 WHERE a is NULL GROUP BY a;
+ a | count | count 
+---+-------+-------
+(0 rows)
+
+SELECT a, count(b), count(c) FROM t1 WHERE a is NOT NULL and b != 'adafrsdgrgdffbgfg' GROUP BY a ;
+ a | count | count 
+---+-------+-------
+(0 rows)
+
+-- drop table
+DROP TABLE t1;

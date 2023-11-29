@@ -1,0 +1,37 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	sum(l_extendedprice * l_discount) as revenue
+from
+	lineitem
+where
+	l_shipdate >= date '1993-01-01'
+	and l_shipdate < date '1993-01-01' + interval '1 year'
+	and l_discount between 0.02 - 0.01 and 0.02 + 0.01
+	and l_quantity < 25;
+                                                                                                                                   QUERY PLAN                                                                                                                                    
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Finalize Vec Aggregate
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         ->  Vec Partial Vec Aggregate
+               ->  Vec Seq Scan on lineitem
+                     Filter: ((l_shipdate >= '01-01-1993'::date) AND (l_shipdate < 'Sat Jan 01 00:00:00 1994'::timestamp without time zone) AND (l_discount >= '0.01'::double precision) AND (l_discount <= '0.03'::double precision) AND (l_quantity < '25'::double precision))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(6 rows)
+
+select
+	sum(l_extendedprice * l_discount) as revenue
+from
+	lineitem
+where
+	l_shipdate >= date '1993-01-01'
+	and l_shipdate < date '1993-01-01' + interval '1 year'
+	and l_discount between 0.02 - 0.01 and 0.02 + 0.01
+	and l_quantity < 25;
+   revenue   
+-------------
+ 404744.4617
+(1 row)
+

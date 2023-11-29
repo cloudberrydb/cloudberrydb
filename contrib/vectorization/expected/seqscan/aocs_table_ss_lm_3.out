@@ -1,0 +1,191 @@
+-- test heap table sequence 
+-- create table
+CREATE TABLE IF NOT EXISTS t1 (a INT, b date, c TIMESTAMP) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED BY(a);
+CREATE TABLE IF NOT EXISTS t2 (a INT, b date, c TIMESTAMP) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED RANDOMLY;
+CREATE TABLE IF NOT EXISTS t3 (a INT, b date, c timestamp) WITH(APPENDONLY=true, ORIENTATION=column) DISTRIBUTED REPLICATED;
+-- SET VECTORIZATION ON
+SET vector.enable_vectorization=ON;
+SET hashdata_use_late_materialize=ON;
+ERROR:  unrecognized configuration parameter "hashdata_use_late_materialize"
+-- empty data query
+INSERT INTO t1 VALUES (1, '1957-04-09', 'today'), (2, '1996-03-01', 'yesterday'),(3, '1999-01-08', 'tomorrow');
+INSERT INTO t2 VALUES (1, '1957-04-09', 'today'), (2, '1996-03-01', 'yesterday'),(3, '1999-01-08', 'tomorrow');
+INSERT INTO t3 VALUES (1, '1957-04-09', 'today'), (2, '1996-03-01', 'yesterday'),(3, '1999-01-08', 'tomorrow');
+-- Query
+SELECT a FROM t1;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t1;
+     b      
+------------
+ 04-09-1957
+ 03-01-1996
+ 01-08-1999
+(3 rows)
+
+SELECT a FROM t2;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t2;
+     b      
+------------
+ 04-09-1957
+ 03-01-1996
+ 01-08-1999
+(3 rows)
+
+SELECT a FROM t3;
+ a 
+---
+ 1
+ 2
+ 3
+(3 rows)
+
+SELECT b FROM t3;
+     b      
+------------
+ 04-09-1957
+ 03-01-1996
+ 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t1 where b < '2000-01-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 2 | 03-01-1996
+ 3 | 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t1 where b <= '2000-01-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 2 | 03-01-1996
+ 3 | 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t1 where b = '1996-03-01';
+ a |     b      
+---+------------
+ 2 | 03-01-1996
+(1 row)
+
+SELECT a, b FROM t1 where b != '1996-03-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 3 | 01-08-1999
+(2 rows)
+
+SELECT a, b FROM t1 where b > '2000-01-01';
+ a | b 
+---+---
+(0 rows)
+
+SELECT a, b FROM t1 where b >= '2000-01-01';
+ a | b 
+---+---
+(0 rows)
+
+SELECT a, b FROM t2 where b < '2000-01-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 2 | 03-01-1996
+ 3 | 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t2 where b <= '2000-01-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 2 | 03-01-1996
+ 3 | 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t2 where b = '1996-03-01';
+ a |     b      
+---+------------
+ 2 | 03-01-1996
+(1 row)
+
+SELECT a, b FROM t2 where b != '1996-03-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 3 | 01-08-1999
+(2 rows)
+
+SELECT a, b FROM t2 where b > '2000-01-01';
+ a | b 
+---+---
+(0 rows)
+
+SELECT a, b FROM t2 where b >= '2000-01-01';
+ a | b 
+---+---
+(0 rows)
+
+SELECT a, b FROM t3 where b < '2000-01-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 2 | 03-01-1996
+ 3 | 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t3 where b <= '2000-01-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 2 | 03-01-1996
+ 3 | 01-08-1999
+(3 rows)
+
+SELECT a, b FROM t3 where b = '1996-03-01';
+ a |     b      
+---+------------
+ 2 | 03-01-1996
+(1 row)
+
+SELECT a, b FROM t3 where b != '1996-03-01';
+ a |     b      
+---+------------
+ 1 | 04-09-1957
+ 3 | 01-08-1999
+(2 rows)
+
+SELECT a, b FROM t3 where b > '2000-01-01';
+ a | b 
+---+---
+(0 rows)
+
+SELECT a, b FROM t3 where b >= '2000-01-01';
+ a | b 
+---+---
+(0 rows)
+
+-- SELECT a, b, c FROM t1 WHERE c = timestamp without time zone 'today';
+-- SELECT a, b, c FROM t1 WHERE c = timestamp without time zone 'tomorrow';
+-- SELECT a, b, c FROM t1 WHERE c = timestamp without time zone 'yesterday';
+-- SELECT a, b, c FROM t2 WHERE c = timestamp without time zone 'today';
+-- SELECT a, b, c FROM t2 WHERE c = timestamp without time zone 'tomorrow';
+-- SELECT a, b, c FROM t2 WHERE c = timestamp without time zone 'yesterday';
+-- SELECT a, b, c FROM t3 WHERE c = timestamp without time zone 'today';
+-- SELECT a, b, c FROM t3 WHERE c = timestamp without time zone 'tomorrow';
+-- SELECT a, b, c FROM t3 WHERE c = timestamp without time zone 'yesterday';
+DROP TABLE if EXISTS t1;
+DROP TABLE if EXISTS t2;
+DROP TABLE if EXISTS t3;

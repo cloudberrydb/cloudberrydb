@@ -1,0 +1,8 @@
+/results/
+/log/
+regression.diffs
+regression.out
+twophase_pqexecparams
+
+# ignore test tablespaces
+/testtablespace*/

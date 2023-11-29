@@ -1,0 +1,51 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off)  select
+	100.00 * sum(case
+		when p_type like 'PROMO%'
+			then l_extendedprice * (1 - l_discount)
+		else 0
+	end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
+from
+	lineitem,
+	part
+where
+	l_partkey = p_partkey
+	and l_shipdate >= date '1997-08-01'
+	and l_shipdate < date '1997-08-01' + interval '1 month';
+                                                                       QUERY PLAN                                                                        
+---------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Finalize Vec Aggregate
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         ->  Vec Partial Vec Aggregate
+               ->  Vec Hash Join
+                     Hash Cond: (lineitem.l_partkey = part.p_partkey)
+                     ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                           Hash Key: lineitem.l_partkey
+                           ->  Vec Seq Scan on lineitem
+                                 Filter: ((l_shipdate >= '08-01-1997'::date) AND (l_shipdate < 'Mon Sep 01 00:00:00 1997'::timestamp without time zone))
+                     ->  Vec Hash
+                           ->  Vec Seq Scan on part
+ Optimizer: Pivotal Optimizer (GPORCA)
+(12 rows)
+
+select
+	100.00 * sum(case
+		when p_type like 'PROMO%'
+			then l_extendedprice * (1 - l_discount)
+		else 0
+	end) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
+from
+	lineitem,
+	part
+where
+	l_partkey = p_partkey
+	and l_shipdate >= date '1997-08-01'
+	and l_shipdate < date '1997-08-01' + interval '1 month';
+  promo_revenue  
+-----------------
+ 14.864300838938
+(1 row)
+

@@ -1,0 +1,38 @@
+
+-- drop table
+DROP TABLE IF EXISTS hashagg_test;
+DROP
+CREATE TABLE hashagg_test (id1 int4, id2 int4, day date, grp text, v int4) WITH(APPENDONLY=true, ORIENTATION=column);
+CREATE
+
+-- load data
+set vector.enable_vectorization=off;
+SET
+
+INSERT INTO hashagg_test VALUES (1,1,'1/1/2006','there',1);
+INSERT 1
+INSERT INTO hashagg_test VALUES (1,1,'1/2/2006','there',2);
+INSERT 1
+INSERT INTO hashagg_test VALUES (1,1,'1/3/2006','there',3);
+INSERT 1
+INSERT INTO hashagg_test VALUES (1,1,'1/1/2006','hi',2);
+INSERT 1
+INSERT INTO hashagg_test VALUES (1,1,'1/2/2006','hi',3);
+INSERT 1
+INSERT INTO hashagg_test VALUES (1,1,'1/3/2006','hi',4);
+INSERT 1
+
+-- queries
+set vector.enable_vectorization=on;
+SET
+select grp,sum(v) from hashagg_test where id1 = 1 and id2 = 1 and day between '1/1/2006' and '1/31/2006' group by grp order by sum(v) desc;
+ grp   | sum
+-------+-----
+ hi    | 9
+ there | 6
+(2 rows)
+
+-- drop table
+DROP TABLE hashagg_test;
+DROP
+

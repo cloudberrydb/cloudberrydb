@@ -1,0 +1,172 @@
+# ----------
+# src/test/regress/parallel_schedule_aocs
+#
+# By convention, we put no more than twenty tests in any one parallel group;
+# this limits the number of connections needed to run the tests.
+# ----------
+
+# run tablespace by itself, and first, because it forces a checkpoint;
+# we'd prefer not to have checkpoints later in the tests because that
+# interferes with crash-recovery testing.
+test: tablespace_aocs
+# ----------
+# The first group of parallel tests
+# ----------
+test: txid_aocs
+test: char_aocs
+test: boolean_aocs int2_aocs int4_aocs int8_aocs  float8_aocs  numeric_aocs
+test: name_aocs varchar_aocs text_aocs oid_aocs float4_aocs bit money_aocs regproc_aocs rangetypes_aocs pg_lsn_aocs enum_aocs
+test: agg_stddev_aocs
+test: result_hashfilter_aocs
+# ----------
+# The second group of parallel tests
+# strings depends on char, varchar and text
+# numerology depends on int2, int4, int8, float4, float8
+# multirangetypes depends on rangetypes
+# multirangetypes shouldn't run concurrently with type_sanity
+# ----------
+# FIXME: extract Decimal type support is required
+# test: timestamp_aocs timestamptz_aocs
+test: strings_aocs interval_aocs inet_aocs  multirangetypes_aocs
+test: polygon_aocs numerology_aocs point_aocs lseg_aocs line_aocs box_aocs path_aocs circle_aocs time_aocs macaddr_aocs macaddr8_aocs create_function_0_aocs  timetz_aocs date_aocs
+
+# ----------
+# Another group of parallel tests
+# geometry depends on point, lseg, box, path, polygon and circle
+# horology depends on interval, timetz, timestamp, timestamptz
+# opr_sanity depends on create_function_0
+# ----------
+# FIXME: depends on timestamptz
+#test: horology_aocs
+test: geometry_aocs tstypes_aocs regex_aocs misc_sanity_aocs comments_aocs unicode_aocs xid type_sanity_aocs opr_sanity_aocs expressions_aocs mvcc_aocs
+# ----------
+# These four each depend on the previous one
+# ----------
+test: create_function_1_aocs
+test: create_type_aocs
+test: create_table_aocs
+test: create_function_2_aocs
+# ----------
+# Load huge amounts of data
+# We should split the data files into single files and then
+# execute two copy tests parallel, to check that copy itself
+# is concurrent safe.
+# ----------
+test: copy_aocs copyselect_aocs copydml_aocs insert_aocs
+# ----------
+# More groups of parallel tests
+# ----------
+test: create_misc_aocs create_operator_aocs create_procedure_aocs
+test: create_index_aocs
+
+test: select_aocs
+
+# ----------
+# Another group of parallel tests
+# ----------
+test: create_aggregate_aocs vacuum_aocs create_function_3_aocs create_cast_aocs constraints_aocs inherit_aocs typed_table_aocs  drop_if_exists_aocs roleattributes_aocs create_am_aocs hash_func_aocs errors_aocs
+# ----------
+# Because vacuum will detect concurrently running transactions, it is necessary to
+# run this test on its own, or it might not detect the pages are 'all visible'
+# ----------
+test: disable_autovacuum_aocs
+test: vacuum_stats_aocs
+test: enable_autovacuum_aocs
+
+# ----------
+# sanity_check does a vacuum, affecting the sort order of SELECT *
+# results. So it should not run parallel to other tests.
+test: sanity_check_aocs
+
+# ----------
+# Another group of parallel tests
+# Note: the ignore: line does not run random, just mark it as ignorable
+# ----------
+#ignore: random_aocs join_aocs
+test: select_distinct_aocs  select_implicit_aocs delete_aocs
+test: select_into_aocs select_having_aocs union_aocs case_aocs arrays_aocs
+
+test: select_distinct_on_aocs delete_aocs case_aocs
+
+#test: aggregates
+
+# In PostgreSQL, namespace test is run as part of the previous group, but there
+# are some GPDB additions in it that will show diff if concurrent tests use
+# temporary tables. So run it separately.
+test: namespace_aocs
+
+# ----------
+# Another group of parallel tests
+# ----------
+test: join_hash_aocs 
+test: groupingsets_aocs tablesample_aocs drop_operator_aocs password_aocs identity_aocs appendonly_sample_aocs aocs_sample_aocs
+# ----------
+# Another group of parallel tests
+# ----------
+
+test: tsrf_aocs collate.linux.utf8_aocs
+test: subselect_aocs psql_crosstab_aocs random_aocs
+test: misc_functions_aocs async_aocs dbsize_aocs
+#test: misc_aocs tid_aocs tidscan_aocs tidrangescan_aocs
+
+test: create_table_like_aocs alter_generic_aocs alter_operator_aocs  sysviews_aocs collate.icu.utf8_aocs incremental_sort_aocs
+# rules cannot run concurrently with any test that creates
+# a view or rule in the public schema
+#
+# 'rules' test is disabled in GPDB. Maintaining the list of views in it is
+# too painful, and there are also errors because of cross-segment UPDATEs
+# and functions.
+#
+# GPDB_84_MERGE_FIXME: While disabling this was not really an effect of the 8.4
+# merge, it was done a long time ago, it's time to revisit this so we can re-
+# enable it
+#test: rules
+# collate.*.utf8 tests cannot be run in parallel with each other
+
+# run by itself so it can run parallel workers
+test: write_parallel_aocs
+
+# no relation related tests can be put in this group
+test: publication_aocs subscription_aocs
+
+# ----------
+# Another group of parallel tests
+# ----------
+# FIXME: ctid not support now
+#test: combocid_aocs select_views_aocs
+test: portals_p2_aocs bitmapops_aocs foreign_data_aocs window_aocs
+test: dependency_aocs tsdicts_aocs  advisory_lock_aocs indirect_toast_aocs equivclass_aocs
+
+# ----------
+# Another group of parallel tests (JSON related)
+# ----------
+test: json_aocs jsonb_aocs
+test: json_encoding_aocs jsonpath_aocs jsonpath_encoding_aocs jsonb_jsonpath_aocs
+
+# ----------
+# Another group of parallel tests
+# NB: temp.sql does a reconnect which transiently uses 2 connections,
+# so keep this parallel group to at most 19 tests
+# ----------
+# test: plancache_aocs
+test: limit_aocs
+test: prepare_aocs conversion_aocs sequence_aocs returning_aocs xml_aocs
+# large objects are not supported by GPDB
+# test: largeobject
+
+test: gp_foreign_data_aocs
+
+# ----------
+# Another group of parallel tests
+# ----------
+test: partition_join_aocs partition_prune_aocs hash_part_aocs partition_info_aocs
+test: hash_part_aocs partition_aggregate_aocs tuplesort_aocs explain_aocs memoize_aocs
+# event triggers cannot run concurrently with any test that runs DDL
+# oidjoins is read-only, though, and should run late for best coverage
+# test: event_trigger_aocs oidjoins_aocs
+# this test also uses event triggers, so likewise run it by itself
+# test: fast_default_aocs
+
+# run stats by itself because its delay may be insufficient under heavy load
+#test: stats_aocs
+

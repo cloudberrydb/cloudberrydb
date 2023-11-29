@@ -1,0 +1,138 @@
+set extra_float_digits = -1;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	s_name,
+	count(*) as numwait
+from
+	supplier,
+	lineitem l1,
+	orders,
+	nation
+where
+	s_suppkey = l1.l_suppkey
+	and o_orderkey = l1.l_orderkey
+	and o_orderstatus = 'F'
+	and l1.l_receiptdate > l1.l_commitdate
+	and exists (
+		select
+			*
+		from
+			lineitem l2
+		where
+			l2.l_orderkey = l1.l_orderkey
+			and l2.l_suppkey <> l1.l_suppkey
+	)
+	and not exists (
+		select
+			*
+		from
+			lineitem l3
+		where
+			l3.l_orderkey = l1.l_orderkey
+			and l3.l_suppkey <> l1.l_suppkey
+			and l3.l_receiptdate > l3.l_commitdate
+	)
+	and s_nationkey = n_nationkey
+	and n_name = 'SAUDI ARABIA'
+group by
+	s_name
+order by
+	numwait desc,
+	s_name
+LIMIT 100;
+                                                                                                        QUERY PLAN                                                                                                        
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Limit
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: (count()), supplier.s_name
+         ->  Vec Sort
+               Sort Key: (count()) DESC, supplier.s_name
+               ->  Vec HashAggregate
+                     Group Key: supplier.s_name
+                     ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                           Hash Key: supplier.s_name
+                           ->  Vec Hash Join
+                                 Hash Cond: (orders.o_orderkey = lineitem_1.l_orderkey)
+                                 ->  Vec Seq Scan on orders
+                                       Filter: (o_orderstatus = 'F'::text)
+                                 ->  Vec Hash
+                                       ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                                             Hash Key: lineitem_1.l_orderkey
+                                             ->  Vec HashAggregate
+                                                   Group Key: supplier.s_name, supplier.ctid, supplier.gp_segment_id, lineitem_1.l_orderkey, lineitem_1.ctid, lineitem_1.gp_segment_id, nation.ctid, nation.gp_segment_id
+                                                   ->  Vec Redistribute Motion 3:3  (slice4; segments: 3)
+                                                         Hash Key: supplier.ctid, supplier.gp_segment_id, lineitem_1.ctid, lineitem_1.gp_segment_id, nation.ctid, nation.gp_segment_id
+                                                         ->  Vec Hash Join
+                                                               Hash Cond: (lineitem.l_orderkey = lineitem_1.l_orderkey)
+                                                               Join Filter: (lineitem.l_suppkey <> lineitem_1.l_suppkey)
+                                                               ->  Vec Seq Scan on lineitem
+                                                               ->  Vec Hash
+                                                                     ->  Vec Hash Anti Join
+                                                                           Hash Cond: (lineitem_1.l_orderkey = lineitem_2.l_orderkey)
+                                                                           Join Filter: (lineitem_2.l_suppkey <> lineitem_1.l_suppkey)
+                                                                           ->  Vec Hash Join
+                                                                                 Hash Cond: (lineitem_1.l_suppkey = supplier.s_suppkey)
+                                                                                 ->  Vec Seq Scan on lineitem lineitem_1
+                                                                                       Filter: (l_receiptdate > l_commitdate)
+                                                                                 ->  Vec Hash
+                                                                                       ->  Vec Broadcast Motion 3:3  (slice5; segments: 3)
+                                                                                             ->  Vec Hash Join
+                                                                                                   Hash Cond: (supplier.s_nationkey = nation.n_nationkey)
+                                                                                                   ->  Vec Seq Scan on supplier
+                                                                                                   ->  Vec Hash
+                                                                                                         ->  Vec Broadcast Motion 3:3  (slice6; segments: 3)
+                                                                                                               ->  Vec Seq Scan on nation
+                                                                                                                     Filter: (n_name = 'SAUDI ARABIA'::text)
+                                                                           ->  Vec Hash
+                                                                                 ->  Vec Seq Scan on lineitem lineitem_2
+                                                                                       Filter: (l_receiptdate > l_commitdate)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(45 rows)
+
+select
+	s_name,
+	count(*) as numwait
+from
+	supplier,
+	lineitem l1,
+	orders,
+	nation
+where
+	s_suppkey = l1.l_suppkey
+	and o_orderkey = l1.l_orderkey
+	and o_orderstatus = 'F'
+	and l1.l_receiptdate > l1.l_commitdate
+	and exists (
+		select
+			*
+		from
+			lineitem l2
+		where
+			l2.l_orderkey = l1.l_orderkey
+			and l2.l_suppkey <> l1.l_suppkey
+	)
+	and not exists (
+		select
+			*
+		from
+			lineitem l3
+		where
+			l3.l_orderkey = l1.l_orderkey
+			and l3.l_suppkey <> l1.l_suppkey
+			and l3.l_receiptdate > l3.l_commitdate
+	)
+	and s_nationkey = n_nationkey
+	and n_name = 'SAUDI ARABIA'
+group by
+	s_name
+order by
+	numwait desc,
+	s_name
+LIMIT 100;
+       s_name       | numwait 
+--------------------+---------
+ Supplier#000000074 |       9
+(1 row)
+

@@ -1,0 +1,89 @@
+set extra_float_digits = -1;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	l_shipmode,
+	sum(case
+		when o_orderpriority = '1-URGENT'
+			or o_orderpriority = '2-HIGH'
+			then 1
+		else 0
+	end) as high_line_count,
+	sum(case
+		when o_orderpriority <> '1-URGENT'
+			and o_orderpriority <> '2-HIGH'
+			then 1
+		else 0
+	end) as low_line_count
+from
+	orders,
+	lineitem
+where
+	o_orderkey = l_orderkey
+	and l_shipmode in ('AIR', 'MAIL')
+	and l_commitdate < l_receiptdate
+	and l_shipdate < l_commitdate
+	and l_receiptdate >= date '1997-01-01'
+	and l_receiptdate < date '1997-01-01' + interval '1 year'
+group by
+	l_shipmode
+order by
+	l_shipmode;
+                                                                                                                                            QUERY PLAN                                                                                                                                            
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   Merge Key: lineitem.l_shipmode
+   ->  Vec Sort
+         Sort Key: lineitem.l_shipmode
+         ->  Vec Finalize Vec GroupAggregate
+               Group Key: lineitem.l_shipmode
+               ->  Vec Sort
+                     Sort Key: lineitem.l_shipmode
+                     ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                           Hash Key: lineitem.l_shipmode
+                           ->  Vec Streaming Vec Partial Vec HashAggregate
+                                 Group Key: lineitem.l_shipmode
+                                 ->  Vec Hash Join
+                                       Hash Cond: (orders.o_orderkey = lineitem.l_orderkey)
+                                       ->  Vec Seq Scan on orders
+                                       ->  Vec Hash
+                                             ->  Vec Seq Scan on lineitem
+                                                   Filter: ((l_shipmode = ANY ('{AIR,MAIL}'::text[])) AND (l_commitdate < l_receiptdate) AND (l_shipdate < l_commitdate) AND (l_receiptdate >= '01-01-1997'::date) AND (l_receiptdate < 'Thu Jan 01 00:00:00 1998'::timestamp without time zone))
+ Optimizer: Pivotal Optimizer (GPORCA)
+(19 rows)
+
+select
+	l_shipmode,
+	sum(case
+		when o_orderpriority = '1-URGENT'
+			or o_orderpriority = '2-HIGH'
+			then 1
+		else 0
+	end) as high_line_count,
+	sum(case
+		when o_orderpriority <> '1-URGENT'
+			and o_orderpriority <> '2-HIGH'
+			then 1
+		else 0
+	end) as low_line_count
+from
+	orders,
+	lineitem
+where
+	o_orderkey = l_orderkey
+	and l_shipmode in ('AIR', 'MAIL')
+	and l_commitdate < l_receiptdate
+	and l_shipdate < l_commitdate
+	and l_receiptdate >= date '1997-01-01'
+	and l_receiptdate < date '1997-01-01' + interval '1 year'
+group by
+	l_shipmode
+order by
+	l_shipmode;
+ l_shipmode | high_line_count | low_line_count 
+------------+-----------------+----------------
+ AIR        |              47 |             97
+ MAIL       |              62 |             80
+(2 rows)
+

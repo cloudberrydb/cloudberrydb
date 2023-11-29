@@ -1,0 +1,121 @@
+-- set these values purely to cut down test time, as default fts trigger is
+-- every min and 5 retries
+alter system set gp_fts_probe_interval to 10;
+alter system set gp_fts_probe_retries to 1;
+select pg_reload_conf();
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+select count(*) = 2 as in_sync from gp_segment_configuration
+where content = 0 and mode = 's';
+ in_sync 
+---------
+ t
+(1 row)
+
+-- Once this fault is hit, FTS process should abort current
+-- transaction and exit.
+select gp_inject_fault_infinite('fts_update_config', 'error', 1);
+ gp_inject_fault_infinite 
+--------------------------
+ Success:
+(1 row)
+
+-- FTS probe connection should encounter an error due to this fault,
+-- injected on content 0 primary.
+select gp_inject_fault_infinite('fts_handle_message', 'error', dbid)
+from gp_segment_configuration where content = 0 and role = 'p';
+ gp_inject_fault_infinite 
+--------------------------
+ Success:
+(1 row)
+
+-- Upon failure to probe content 0 primary, FTS will try to update the
+-- configuration.  The update to configuration will hit error due to
+-- the "fts_update_config" fault.
+select gp_wait_until_triggered_fault('fts_update_config', 1, 1);
+ gp_wait_until_triggered_fault 
+-------------------------------
+ Success:
+(1 row)
+
+select gp_inject_fault('fts_handle_message', 'reset', dbid)
+from gp_segment_configuration where content = 0 and role = 'p';
+ gp_inject_fault 
+-----------------
+ Success:
+(1 row)
+
+select gp_inject_fault('fts_update_config', 'reset', 1);
+ gp_inject_fault 
+-----------------
+ Success:
+(1 row)
+
+-- Postmaster should have restarted FTS by now. Trigger a scan and
+-- validate that configuration is sane.
+select gp_request_fts_probe_scan();
+ gp_request_fts_probe_scan 
+---------------------------
+ t
+(1 row)
+
+-- Verify that FTS didn't leak any locks due to the error during
+-- config update.
+select locktype, mode, relation, pid, granted from pg_locks where
+relation = 'gp_segment_configuration'::regclass or
+relation = 'gp_configuration_history'::regclass;
+ locktype | mode | relation | pid | granted 
+----------+------+----------+-----+---------
+(0 rows)
+
+select count(*) = 2 as in_sync from gp_segment_configuration
+where content = 0 and mode = 's';
+ in_sync 
+---------
+ t
+(1 row)
+
+alter system set gp_fts_probe_retries to 0;
+select pg_reload_conf();
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+
+set optimizer = off;
+-- start_ignore
+\! gpconfig -c client_min_messages -v DEBUG1
+\! gpstop -u
+-- end_ignore
+select gp_request_fts_probe_scan();
+DEBUG:  Message type Q received by from libpq, len = 36
+LOG:  statement: select gp_request_fts_probe_scan();
+ gp_request_fts_probe_scan 
+---------------------------
+ t
+(1 row)
+
+select count(*) from gp_segment_configuration where status = 'd';
+DEBUG:  Message type Q received by from libpq, len = 66
+LOG:  statement: select count(*) from gp_segment_configuration where status = 'd';
+ count 
+-------
+     0
+(1 row)
+
+-- start_ignore
+\! gpconfig -r client_min_messages
+\! gpstop -u
+-- end_ignore
+reset optimizer;
+alter system reset gp_fts_probe_interval;
+alter system reset gp_fts_probe_retries;
+select pg_reload_conf();
+ pg_reload_conf 
+----------------
+ t
+(1 row)
+

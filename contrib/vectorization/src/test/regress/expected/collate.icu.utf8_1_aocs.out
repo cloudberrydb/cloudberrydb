@@ -1,0 +1,10 @@
+SET default_table_access_method=ao_column;
+/*
+ * This test is for ICU collations.
+ */
+/* skip test if not UTF8 server encoding or no ICU collations installed */
+SELECT getdatabaseencoding() <> 'UTF8' OR
+       (SELECT count(*) FROM pg_collation WHERE collprovider = 'i') = 0
+       AS skip_test \gset
+\if :skip_test
+\quit

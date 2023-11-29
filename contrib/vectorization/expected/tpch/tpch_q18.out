@@ -1,0 +1,110 @@
+set extra_float_digits = -1;;;
+set default_table_access_method=ao_column;
+set vector.enable_vectorization = on;
+ANALYZE;
+explain (costs off) select
+	c_name,
+	c_custkey,
+	o_orderkey,
+	o_orderdate,
+	o_totalprice,
+	sum(l_quantity)
+from
+	customer,
+	orders,
+	lineitem
+where
+	o_orderkey in (
+		select
+			l_orderkey
+		from
+			lineitem
+		group by
+			l_orderkey having
+				sum(l_quantity) > 280
+	)
+	and c_custkey = o_custkey
+	and o_orderkey = l_orderkey
+group by
+	c_name,
+	c_custkey,
+	o_orderkey,
+	o_orderdate,
+	o_totalprice
+order by
+	o_totalprice desc,
+	o_orderdate
+LIMIT 100;
+                                                                 QUERY PLAN                                                                 
+--------------------------------------------------------------------------------------------------------------------------------------------
+ Vec Limit
+   ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+         Merge Key: orders.o_totalprice, orders.o_orderdate
+         ->  Vec Limit
+               ->  Vec GroupAggregate
+                     Group Key: orders.o_totalprice, orders.o_orderdate, customer.c_name, customer.c_custkey, orders.o_orderkey
+                     ->  Vec Sort
+                           Sort Key: orders.o_totalprice DESC, orders.o_orderdate, customer.c_name, customer.c_custkey, orders.o_orderkey
+                           ->  Vec Hash Join
+                                 Hash Cond: (lineitem.l_orderkey = orders.o_orderkey)
+                                 ->  Vec Seq Scan on lineitem
+                                 ->  Vec Hash
+                                       ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
+                                             Hash Key: orders.o_orderkey
+                                             ->  Vec Hash Join
+                                                   Hash Cond: (orders.o_custkey = customer.c_custkey)
+                                                   ->  Vec Redistribute Motion 3:3  (slice3; segments: 3)
+                                                         Hash Key: orders.o_custkey
+                                                         ->  Vec Hash Semi Join
+                                                               Hash Cond: (orders.o_orderkey = lineitem_1.l_orderkey)
+                                                               ->  Vec Seq Scan on orders
+                                                               ->  Vec Hash
+                                                                     ->  Vec Result
+                                                                           Filter: ((sum(lineitem_1.l_quantity)) > '280'::double precision)
+                                                                           ->  Vec HashAggregate
+                                                                                 Group Key: lineitem_1.l_orderkey
+                                                                                 ->  Vec Seq Scan on lineitem lineitem_1
+                                                   ->  Vec Hash
+                                                         ->  Vec Seq Scan on customer
+ Optimizer: Pivotal Optimizer (GPORCA)
+(30 rows)
+
+select
+	c_name,
+	c_custkey,
+	o_orderkey,
+	o_orderdate,
+	o_totalprice,
+	sum(l_quantity)
+from
+	customer,
+	orders,
+	lineitem
+where
+	o_orderkey in (
+		select
+			l_orderkey
+		from
+			lineitem
+		group by
+			l_orderkey having
+				sum(l_quantity) > 280
+	)
+	and c_custkey = o_custkey
+	and o_orderkey = l_orderkey
+group by
+	c_name,
+	c_custkey,
+	o_orderkey,
+	o_orderdate,
+	o_totalprice
+order by
+	o_totalprice desc,
+	o_orderdate
+LIMIT 100;
+       c_name       | c_custkey | o_orderkey | o_orderdate | o_totalprice | sum 
+--------------------+-----------+------------+-------------+--------------+-----
+ Customer#000000667 |       667 |      29158 | 10-21-1995  |    439687.23 | 305
+ Customer#000000178 |       178 |       6882 | 04-09-1997  |    422359.65 | 303
+(2 rows)
+

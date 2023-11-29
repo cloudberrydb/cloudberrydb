@@ -1,0 +1,12 @@
+set default_table_access_method=ao_column;
+set optimizer=off;
+create table subquery_tbl(cnt int, v int);
+insert into subquery_tbl values(121, 1);
+insert into subquery_tbl values(2, 1);
+insert into subquery_tbl values(-2, 2);
+insert into subquery_tbl values(-2, 1);
+insert into subquery_tbl values(3, 1);
+insert into subquery_tbl values(4, 2);
+explain select cnt + 1 from (select count(*) as cnt from subquery_tbl group by v) v where cnt > 0;
+select cnt + 1 from (select count(*) as cnt from subquery_tbl group by v) v where cnt > 0;
+drop table subquery_tbl;

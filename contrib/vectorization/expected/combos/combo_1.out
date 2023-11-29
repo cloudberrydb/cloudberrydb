@@ -1,0 +1,385 @@
+-- set vectorization on
+SET vector.enable_vectorization=ON;
+--creat table
+CREATE TABLE IF NOT EXISTS t1 (a INT, b BIGINT, c TEXT) WITH(APPENDONLY=true, ORIENTATION=column)  DISTRIBUTED BY(a);
+-- load data
+INSERT INTO t1 SELECT i, i%5, 'abc' FROM GENERATE_SERIES(1, 20)i;
+INSERT INTO t1 SELECT i, i%5, 'ssdfjdjasj' FROM GENERATE_SERIES(1, 20)i;
+INSERT INTO t1 SELECT i, i%5, 'kkskdfd' FROM GENERATE_SERIES(1, 20)i;
+-- set multi phase agg on
+SET gp_enable_multiphase_agg=on;
+-- query
+-- SELECT a+1 col1, a-1 col2 FROM t1 WHERE a > 5 ORDER BY a,b;
+SELECT  SUM(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ sum 
+-----
+  18
+  21
+  24
+  27
+  30
+  33
+  36
+  39
+  42
+  45
+  48
+  51
+  54
+  57
+  60
+(15 rows)
+
+SELECT  SUM(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ sum 
+-----
+  15
+  18
+  21
+  24
+  27
+  30
+  33
+  36
+  39
+  42
+  45
+  48
+  51
+  54
+  57
+(15 rows)
+
+SELECT  SUM(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ sum 
+-----
+  21
+  24
+  27
+  30
+  33
+  36
+  39
+  42
+  45
+  48
+  51
+  54
+  57
+  60
+  63
+(15 rows)
+
+-- SELECT  COUNT(*) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(distinct a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(distinct b) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(distinct c) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+SELECT  AVG(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ avg 
+-----
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20
+(15 rows)
+
+SELECT  AVG(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ avg 
+-----
+   5
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+(15 rows)
+
+SELECT  AVG(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ avg 
+-----
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20
+  21
+(15 rows)
+
+SELECT  MAX(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ max 
+-----
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20
+(15 rows)
+
+SELECT  MAX(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ max 
+-----
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20
+  21
+(15 rows)
+
+SELECT  MAX(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ max 
+-----
+   5
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+(15 rows)
+
+SELECT  MIN(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ min 
+-----
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20
+(15 rows)
+
+SELECT  MIN(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ min 
+-----
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+  20
+  21
+(15 rows)
+
+SELECT  MIN(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+ min 
+-----
+   5
+   6
+   7
+   8
+   9
+  10
+  11
+  12
+  13
+  14
+  15
+  16
+  17
+  18
+  19
+(15 rows)
+
+-- SELECT a+1 col1, a-1 col2 FROM t1 WHERE a > 5 ORDER BY c;
+-- SELECT  SUM(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  SUM(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  SUM(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  COUNT(*) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  AVG(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  AVG(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  AVG(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+SELECT  MAX(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+ max 
+-----
+  20
+  20
+  20
+(3 rows)
+
+-- SELECT  MAX(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MAX(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MIN(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MIN(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MIN(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- set multi phase agg off
+SET gp_enable_multiphase_agg=off;
+-- query
+-- SELECT a+1 col1, a-1 col2 FROM t1 WHERE a > 5 ORDER BY a,b;
+-- SELECT  SUM(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  SUM(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  SUM(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(*) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(distinct a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(distinct b) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  COUNT(distinct c) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  AVG(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  AVG(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  AVG(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  MAX(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  MAX(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  MAX(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  MIN(a) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  MIN(a+1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT  MIN(a-1) FROM t1 WHERE a > 5 GROUP BY a, b ORDER BY a,b;
+-- SELECT a+1 col1, a-1 col2 FROM t1 WHERE a > 5 ORDER BY c;
+-- SELECT  SUM(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  SUM(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  SUM(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  COUNT(*) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  AVG(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  AVG(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  AVG(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MAX(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MAX(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MAX(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MIN(a) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MIN(a+1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- SELECT  MIN(a-1) FROM t1 WHERE a > 5 GROUP BY c ORDER BY c;
+-- drop table
+DROP TABLE IF EXISTS t1;
+-- timestamp test
+DROP TABLE IF EXISTS tts;
+NOTICE:  table "tts" does not exist, skipping
+CREATE TABLE tts(c1 INT, c2 TIMESTAMP) WITH(appendonly=true, orientation=column);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c1' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO tts VALUES (1, '850-01-01 09:12:34.567891'), (1, '1950-12-31 12:34:56.789123'), (1, '2050-06-01 21:56:12.345678');
+-- The execMain.c line number difference is ignored.
+-- Here, the line number of the code is replaced with `###` by matching
+--
+-- start_matchsubs
+-- m/\(execMain.c:\d+\)/
+-- s/\(execMain.c:\d+\)/\(execMain.c:###\)/
+-- end_matchsubs
+-- FIXME :wait decimal type to support
+SET vector.enable_vectorization = off;
+SELECT c2,
+  extract(epoch       FROM c2) AS epoch,
+  extract(millennium  FROM c2) AS millennium,
+  extract(century     FROM c2) AS century,
+  extract(decade      FROM c2) AS decade,
+  extract(year        FROM c2) AS year,
+  extract(isoyear     FROM c2) AS isoyear,
+  extract(quarter     FROM c2) AS quarter,
+  extract(month       FROM c2) AS month,
+  extract(week        FROM c2) AS week,
+  extract(day         FROM c2) AS day,
+  extract(dow         FROM c2) AS dow,
+  extract(isodow      FROM c2) AS isodow,
+  extract(doy         FROM c2) AS doy,
+  extract(hour        FROM c2) AS hour,
+  extract(minute      FROM c2) AS minute,
+  extract(second      FROM c2) AS second,
+  extract(millisecond FROM c2) AS millisecond,
+  extract(microsecond FROM c2) AS microsecond
+FROM tts;
+               c2                |        epoch        | millennium | century | decade | year | isoyear | quarter | month | week | day | dow | isodow | doy | hour | minute |  second   | millisecond | microsecond 
+---------------------------------+---------------------+------------+---------+--------+------+---------+---------+-------+------+-----+-----+--------+-----+------+--------+-----------+-------------+-------------
+ Sat Jan 01 09:12:34.567891 0850 | -35343701245.432109 |          1 |       9 |     85 |  850 |     849 |       1 |     1 |   52 |   1 |   6 |      6 |   1 |    9 |     12 | 34.567891 |   34567.891 |    34567891
+ Sun Dec 31 12:34:56.789123 1950 |   -599657103.210877 |          2 |      20 |    195 | 1950 |    1950 |       4 |    12 |   52 |  31 |   0 |      7 | 365 |   12 |     34 | 56.789123 |   56789.123 |    56789123
+ Wed Jun 01 21:56:12.345678 2050 |   2537733372.345678 |          3 |      21 |    205 | 2050 |    2050 |       2 |     6 |   22 |   1 |   3 |      3 | 152 |   21 |     56 | 12.345678 |   12345.678 |    12345678
+(3 rows)
+
+SET vector.enable_vectorization = off;
+SELECT c2,
+  extract(epoch       FROM c2) AS epoch,
+  extract(millennium  FROM c2) AS millennium,
+  extract(century     FROM c2) AS century,
+  extract(decade      FROM c2) AS decade,
+  extract(year        FROM c2) AS year,
+  extract(isoyear     FROM c2) AS isoyear,
+  extract(quarter     FROM c2) AS quarter,
+  extract(month       FROM c2) AS month,
+  extract(week        FROM c2) AS week,
+  extract(day         FROM c2) AS day,
+  extract(dow         FROM c2) AS dow,
+  extract(isodow      FROM c2) AS isodow,
+  extract(doy         FROM c2) AS doy,
+  extract(hour        FROM c2) AS hour,
+  extract(minute      FROM c2) AS minute,
+  extract(second      FROM c2) AS second,
+  extract(millisecond FROM c2) AS millisecond,
+  extract(microsecond FROM c2) AS microsecond
+FROM tts;
+               c2                |        epoch        | millennium | century | decade | year | isoyear | quarter | month | week | day | dow | isodow | doy | hour | minute |  second   | millisecond | microsecond 
+---------------------------------+---------------------+------------+---------+--------+------+---------+---------+-------+------+-----+-----+--------+-----+------+--------+-----------+-------------+-------------
+ Sat Jan 01 09:12:34.567891 0850 | -35343701245.432109 |          1 |       9 |     85 |  850 |     849 |       1 |     1 |   52 |   1 |   6 |      6 |   1 |    9 |     12 | 34.567891 |   34567.891 |    34567891
+ Sun Dec 31 12:34:56.789123 1950 |   -599657103.210877 |          2 |      20 |    195 | 1950 |    1950 |       4 |    12 |   52 |  31 |   0 |      7 | 365 |   12 |     34 | 56.789123 |   56789.123 |    56789123
+ Wed Jun 01 21:56:12.345678 2050 |   2537733372.345678 |          3 |      21 |    205 | 2050 |    2050 |       2 |     6 |   22 |   1 |   3 |      3 | 152 |   21 |     56 | 12.345678 |   12345.678 |    12345678
+(3 rows)
+
+DROP TABLE IF EXISTS tts;

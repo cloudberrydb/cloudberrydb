@@ -1,0 +1,11 @@
+resgroup_memory_statistic.sql
+resgroup_memory_limit.sql
+disable_resgroup.sql
+enable_resgroup.sql
+enable_resgroup_validate.sql
+resgroup_cpu_rate_limit.sql
+resgroup_alter_memory.sql
+pt_io_in_progress_deadlock.sql
+resgroup_bypass.sql
+resgroup_cpuset.sql
+gp_collation.sql
