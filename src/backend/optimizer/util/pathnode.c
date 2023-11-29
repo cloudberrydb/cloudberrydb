@@ -3457,16 +3457,12 @@ create_namedtuplestorescan_path(PlannerInfo *root, RelOptInfo *rel,
 	pathnode->parallel_safe = rel->consider_parallel;
 	pathnode->parallel_workers = 0;
 	pathnode->pathkeys = NIL;	/* result is always unordered */
-
-	cost_namedtuplestorescan(pathnode, root, rel, pathnode->param_info);
-
 	/*
-	 * When this is used in triggers that run on QEs, the locus is ignored
-	 * and the scan is executed locally on the QE anyway. On QD, it's not
-	 * clear if named tuplestores are populated correctly in triggers, but if
-	 * it does work t all, Entry seems most appropriate.
+	 * When this is used in triggers that run on QEs, the locus is should
+	 * follow the distribution of base relation.
 	 */
-	CdbPathLocus_MakeEntry(&pathnode->locus);
+	pathnode->locus = cdbpathlocus_from_baserel(root, rel, 0);
+	cost_namedtuplestorescan(pathnode, root, rel, pathnode->param_info);
 
 	return pathnode;
 }

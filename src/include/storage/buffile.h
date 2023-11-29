@@ -70,4 +70,5 @@ extern bool gp_workfile_compression;
 extern void BufFilePledgeSequential(BufFile *buffile);
 extern void BufFileSetIsTempFile(BufFile *file, bool isTempFile);
 
+extern BufFile *BufFileOpenSharedV2(SharedFileSet *fileset, const char *name, int mode);
 #endif							/* BUFFILE_H */

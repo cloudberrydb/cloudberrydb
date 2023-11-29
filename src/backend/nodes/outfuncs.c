@@ -1206,6 +1206,9 @@ _outIntoClause(StringInfo str, const IntoClause *node)
 	WRITE_NODE_FIELD(viewQuery);
 	WRITE_BOOL_FIELD(skipData);
 	WRITE_NODE_FIELD(distributedBy);
+	WRITE_BOOL_FIELD(ivm);
+	WRITE_OID_FIELD(matviewOid);
+	WRITE_STRING_FIELD(enrname);
 }
 
 static void
@@ -3496,6 +3499,7 @@ _outRangeTblEntry(StringInfo str, const RangeTblEntry *node)
 	WRITE_NODE_FIELD(alias);
 	WRITE_NODE_FIELD(eref);
 	WRITE_ENUM_FIELD(rtekind, RTEKind);
+	WRITE_BOOL_FIELD(relisivm);
 
 	switch (node->rtekind)
 	{
@@ -5150,7 +5154,9 @@ outNode(StringInfo str, const void *obj)
 			case T_GpPartitionListSpec:
 				_outGpPartitionListSpec(str, obj);
 				break;
-
+			case T_EphemeralNamedRelationInfo:
+				_outEphemeralNamedRelationInfo(str, obj);
+				break;
 			default:
 
 				/*

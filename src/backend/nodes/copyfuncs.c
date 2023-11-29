@@ -168,6 +168,11 @@ _copyQueryDispatchDesc(const QueryDispatchDesc *from)
 	COPY_SCALAR_FIELD(useChangedAOOpts);
 	COPY_SCALAR_FIELD(secContext);
 	COPY_NODE_FIELD(paramInfo);
+	COPY_NODE_FIELD(namedRelList);
+	COPY_SCALAR_FIELD(matviewOid);
+	COPY_SCALAR_FIELD(tableid);
+	COPY_SCALAR_FIELD(snaplen);
+	COPY_STRING_FIELD(snapname);
 
 	return newnode;
 }
@@ -1800,6 +1805,9 @@ _copyIntoClause(const IntoClause *from)
 	COPY_NODE_FIELD(viewQuery);
 	COPY_SCALAR_FIELD(skipData);
 	COPY_NODE_FIELD(distributedBy);
+	COPY_SCALAR_FIELD(ivm);
+	COPY_SCALAR_FIELD(matviewOid);
+	COPY_STRING_FIELD(enrname);
 
 	return newnode;
 }
@@ -2965,6 +2973,7 @@ _copyRangeTblEntry(const RangeTblEntry *from)
 	COPY_SCALAR_FIELD(relkind);
 	COPY_SCALAR_FIELD(rellockmode);
 	COPY_NODE_FIELD(tablesample);
+	COPY_SCALAR_FIELD(relisivm);
 	COPY_NODE_FIELD(subquery);
 	COPY_SCALAR_FIELD(security_barrier);
 	COPY_SCALAR_FIELD(jointype);
@@ -5103,6 +5112,7 @@ _copyCreateTrigStmt(const CreateTrigStmt *from)
 	COPY_SCALAR_FIELD(deferrable);
 	COPY_SCALAR_FIELD(initdeferred);
 	COPY_NODE_FIELD(constrrel);
+	COPY_SCALAR_FIELD(matviewId);
 
 	return newnode;
 }
@@ -6012,6 +6022,22 @@ _copyAlteredTableInfo(const AlteredTableInfo *from)
 	COPY_STRING_FIELD(clusterOnIndex);
 	COPY_NODE_FIELD(beforeStmtLists);
 	COPY_NODE_FIELD(constraintLists);
+
+	return newnode;
+}
+
+static EphemeralNamedRelationInfo*
+_copyEphemeralNamedRelationInfo(const EphemeralNamedRelationInfo *from)
+{
+	EphemeralNamedRelationInfo *newnode = makeNode(EphemeralNamedRelationInfo);
+
+	COPY_STRING_FIELD(name);
+	COPY_SCALAR_FIELD(reliddesc);
+	COPY_SCALAR_FIELD(natts);
+
+	newnode->tuple = CreateTupleDescCopyConstr(from->tuple);
+	COPY_SCALAR_FIELD(enrtype);
+	COPY_SCALAR_FIELD(enrtuples);
 
 	return newnode;
 }
@@ -7122,7 +7148,9 @@ copyObjectImpl(const void *from)
 		case T_AlteredTableInfo:
 			retval = _copyAlteredTableInfo(from);
 			break;
-
+		case T_EphemeralNamedRelationInfo:
+			retval = _copyEphemeralNamedRelationInfo(from);
+			break;
 		default:
 			elog(ERROR, "unrecognized node type: %d", (int) nodeTag(from));
 			retval = 0;			/* keep compiler quiet */

@@ -441,6 +441,70 @@ BufFileOpenShared(SharedFileSet *fileset, const char *name, int mode)
 }
 
 /*
+ * Open a shared BufFile with the given fileset, name, and mode.
+ *
+ * Parameters:
+ *	- fileset: the shared fileset to open the BufFile in
+ *	- name: the name of the BufFile
+ *	- mode: the file mode to open the BufFile with
+ *
+ * Returns:
+ *	- a pointer to the opened BufFile or maybe NULL no error.
+ */
+BufFile *
+BufFileOpenSharedV2(SharedFileSet *fileset, const char *name, int mode)
+{
+	BufFile    *file = NULL;
+	char		segment_name[MAXPGPATH];
+	Size		capacity = 16;
+	File	   *files;
+	int			nfiles = 0;
+
+	files = palloc(sizeof(File) * capacity);
+
+	/*
+	 * We don't know how many segments there are, so we'll probe the
+	 * filesystem to find out.
+	 */
+	for (;;)
+	{
+		/* See if we need to expand our file segment array. */
+		if (nfiles + 1 > capacity)
+		{
+			capacity *= 2;
+			files = repalloc(files, sizeof(File) * capacity);
+		}
+		/* Try to load a segment. */
+		SharedSegmentName(segment_name, name, nfiles);
+		files[nfiles] = SharedFileSetOpen(fileset, segment_name, mode);
+		if (files[nfiles] <= 0)
+			break;
+		++nfiles;
+
+		CHECK_FOR_INTERRUPTS();
+	}
+
+	/*
+	 * If we didn't find any files at all, then no BufFile exists with this
+	 * name.
+	 */
+	if (nfiles == 0)
+	{
+		elog(DEBUG1, "could not find temporary file \"%s\" from BufFileOpenSharedV2 \"%s\": %m",
+			 segment_name, name);
+		return file;
+	}
+
+	file = makeBufFileCommon(nfiles);
+	file->files = files;
+	file->readOnly = (mode == O_RDONLY) ? true : false;
+	file->fileset = fileset;
+	file->name = pstrdup(name);
+
+	return file;
+}
+
+/*
  * Delete a BufFile that was created by BufFileCreateShared in the given
  * SharedFileSet using the given name.
  *
@@ -1545,4 +1609,17 @@ BufFileTruncateShared(BufFile *file, int fileno, off_t offset)
 		file->nbytes = 0;
 	}
 	/* Nothing to do, if the truncate point is beyond current file. */
+}
+
+/*
+ * Set whether the BufFile is a temporary file or not.
+ */
+void
+BufFileSetIsTempFile(BufFile *file, bool isTempFile)
+{
+	int			i;
+
+	/* close and delete the underlying file(s) */
+	for (i = 0; i < file->numFiles; i++)
+		FileSetTempfile(file->files[i], true);
 }

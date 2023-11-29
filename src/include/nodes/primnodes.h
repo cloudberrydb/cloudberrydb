@@ -122,7 +122,9 @@ typedef struct IntoClause
 	Node	   *viewQuery;		/* materialized view's SELECT query */
 	bool		skipData;		/* true for WITH NO DATA */
 	Node       *distributedBy;  /* GPDB: columns to distribubte the data on. */
-	bool            ivm;		/* true for WITH IVM */
+	bool		ivm;			/* true for WITH IVM */
+	Oid 		matviewOid;		/* matview oid */
+	char		*enrname;		/* ENR name for materialized view delta */
 } IntoClause;
 
 typedef struct CopyIntoClause

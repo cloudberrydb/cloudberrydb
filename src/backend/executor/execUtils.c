@@ -90,6 +90,7 @@
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
 #include "storage/ipc.h"
+#include "cdb/cdbexplain.h"
 #include "cdb/cdbllize.h"
 #include "utils/guc.h"
 #include "utils/workfile_mgr.h"
@@ -2078,6 +2079,92 @@ void mppExecutorFinishup(QueryDesc *queryDesc)
 		estate->dispatcherState = NULL;
 		cdbdisp_destroyDispatcherState(ds);
 	}
+}
+
+/*
+ * QD wait for QEs to finish and check their results.
+ */
+uint64 mppExecutorWait(QueryDesc *queryDesc)
+{
+	EState	   *estate;
+	ExecSlice  *currentSlice;
+	int 		primaryWriterSliceIndex;
+	uint64		es_processed = 0;
+
+	/* caller must have switched into per-query memory context already */
+	estate = queryDesc->estate;
+
+	currentSlice = getCurrentSlice(estate, LocallyExecutingSliceIndex(estate));
+	primaryWriterSliceIndex = PrimaryWriterSliceIndex(estate);
+
+	/*
+	 * If QD, wait for QEs to finish and check their results.
+	 */
+	if (estate->dispatcherState && estate->dispatcherState->primaryResults)
+	{
+		CdbDispatchResults *pr = NULL;
+		CdbDispatcherState *ds = estate->dispatcherState;
+		DispatchWaitMode waitMode = DISPATCH_WAIT_NONE;
+		ErrorData *qeError = NULL;
+
+		/*
+		 * If we are finishing a query before all the tuples of the query
+		 * plan were fetched we must call ExecSquelchNode before checking
+		 * the dispatch results in order to tell the nodes below we no longer
+		 * need any more tuples.
+		 */
+		if (!estate->es_got_eos)
+		{
+			ExecSquelchNode(queryDesc->planstate);
+		}
+
+		/*
+		 * Wait for completion of all QEs.  We send a "graceful" query
+		 * finish, not cancel signal.  Since the query has succeeded,
+		 * don't confuse QEs by sending erroneous message.
+		 */
+		if (estate->cancelUnfinished)
+			waitMode = DISPATCH_WAIT_FINISH;
+
+		cdbdisp_checkDispatchResult(ds, waitMode);
+
+		pr = cdbdisp_getDispatchResults(ds, &qeError);
+
+		if (qeError)
+		{
+			FlushErrorState();
+			ReThrowError(qeError);
+		}
+
+		if (ProcessDispatchResult_hook)
+			ProcessDispatchResult_hook(ds);
+
+		/* collect pgstat from QEs for current transaction level */
+		pgstat_combine_from_qe(pr, primaryWriterSliceIndex);
+
+		if (queryDesc->planstate->instrument && queryDesc->planstate->instrument->need_cdb)
+		{
+			cdbexplain_recvExecStats(queryDesc->planstate, ds->primaryResults,
+										LocallyExecutingSliceIndex(queryDesc->estate),
+										estate->showstatctx);
+		}
+		/* get num of rows processed from writer QEs. */
+		es_processed +=
+			cdbdisp_sumCmdTuples(pr, primaryWriterSliceIndex);
+
+		/* sum up rejected rows if any (single row error handling only) */
+		cdbdisp_sumRejectedRows(pr);
+
+		/*
+		 * Check and free the results of all gangs. If any QE had an
+		 * error, report it and exit to our error handler via PG_THROW.
+		 * NB: This call doesn't wait, because we already waited above.
+		 */
+		estate->dispatcherState = NULL;
+		cdbdisp_destroyDispatcherState(ds);
+	}
+
+	return es_processed;
 }
 
 /*

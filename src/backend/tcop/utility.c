@@ -2130,6 +2130,17 @@ ProcessUtilitySlow(ParseState *pstate,
 												GetAssignedOidsForDispatch(),
 												NULL);
 				}
+				{
+					CreateTrigStmt *stmt = (CreateTrigStmt *) parsetree;
+					if (OidIsValid(stmt->matviewId))
+					{
+						ObjectAddress	refaddr;
+						refaddr.classId = RelationRelationId;
+						refaddr.objectId = stmt->matviewId;
+						refaddr.objectSubId = 0;
+						recordDependencyOn(&address, &refaddr, DEPENDENCY_AUTO);
+					}
+				}
 				break;
 
 			case T_CreatePLangStmt:

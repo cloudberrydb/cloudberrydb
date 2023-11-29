@@ -3966,3 +3966,11 @@ pg_pwritev_with_retry(int fd, const struct iovec *iov, int iovcnt, off_t offset)
 
 	return sum;
 }
+
+void FileSetTempfile(File file, bool isTemp)
+{
+	if (isTemp)
+		VfdCache[file].fdstate |= FD_DELETE_AT_CLOSE;
+	else
+		VfdCache[file].fdstate &= ~FD_DELETE_AT_CLOSE;
+}

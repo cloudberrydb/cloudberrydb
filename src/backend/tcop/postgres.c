@@ -110,6 +110,7 @@
 #include "utils/session_state.h"
 #include "utils/vmem_tracker.h"
 #include "tcop/idle_resource_cleaner.h"
+#include "commands/matview.h"
 
 /* ----------------
  *		global variables
@@ -1276,6 +1277,10 @@ exec_mpp_query(const char *query_string,
 	else
 		paramLI = NULL;
 
+	if (ddesc && ddesc->snaplen > 0)
+	{
+		AddPreassignedMVEntry(ddesc->matviewOid, ddesc->tableid, ddesc->snapname);
+	}
 	/*
 	 * Switch back to transaction context to enter the loop.
 	 */

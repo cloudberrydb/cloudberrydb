@@ -83,6 +83,7 @@
 #include "access/htup_details.h"
 #include "commands/tablespace.h"
 #include "executor/executor.h"
+#include "executor/nodeShareInputScan.h"
 #include "miscadmin.h"
 #include "storage/buffile.h"
 #include "utils/memutils.h"
@@ -227,6 +228,8 @@ struct Tuplestorestate
 	struct Instrumentation *instrument;
 	long        availMemMin;    /* availMem low water mark (bytes) */
 	int64       spilledBytes;   /* memory used for spilled tuples */
+
+	Oid    		tableid;		/* table oid for ivm */
 };
 
 #define COPYTUP(state,tup)	((*(state)->copytup) (state, tup))
@@ -331,6 +334,7 @@ tuplestore_begin_common(int eflags, bool interXact, int maxKBytes)
 	state->memtupcount = 0;
 	state->tuples = 0;
 	state->remaining_tuples = 0;
+	state->tableid = InvalidOid;
 
 	/*
 	 * Initial size of array must be more than ALLOCSET_SEPARATE_THRESHOLD;
@@ -906,29 +910,39 @@ tuplestore_puttuple_common(Tuplestorestate *state, void *tuple)
 			if (state->memtupcount < state->memtupsize && !LACKMEM(state))
 				return;
 
-			/*
-			 * Nope; time to switch to tape-based operation.  Make sure that
-			 * the temp file(s) are created in suitable temp tablespaces.
-			 */
-			PrepareTempTablespaces();
+			if (OidIsValid(state->tableid) && state->shared_filename)
+			{
+				tuplestore_make_sharedV2(state,
+							get_shareinput_fileset(),
+							state->shared_filename,
+							tuplestore_get_resowner(state));
+			}
+			else
+			{
+				/*
+				* Nope; time to switch to tape-based operation.  Make sure that
+				* the temp file(s) are created in suitable temp tablespaces.
+				*/
+				PrepareTempTablespaces();
 
-			/* associate the file with the store's resource owner */
-			oldowner = CurrentResourceOwner;
-			CurrentResourceOwner = state->resowner;
+				/* associate the file with the store's resource owner */
+				oldowner = CurrentResourceOwner;
+				CurrentResourceOwner = state->resowner;
 
-			char tmpprefix[50];
-			snprintf(tmpprefix, 50, "slice%d_tuplestore", currentSliceId);
-			state->myfile = BufFileCreateTemp(tmpprefix, state->interXact);
+				char tmpprefix[50];
+				snprintf(tmpprefix, 50, "slice%d_tuplestore", currentSliceId);
+				state->myfile = BufFileCreateTemp(tmpprefix, state->interXact);
 
-			CurrentResourceOwner = oldowner;
+				CurrentResourceOwner = oldowner;
 
-			/*
-			 * Freeze the decision about whether trailing length words will be
-			 * used.  We can't change this choice once data is on tape, even
-			 * though callers might drop the requirement.
-			 */
-			state->backward = (state->eflags & EXEC_FLAG_BACKWARD) != 0;
-			state->status = TSS_WRITEFILE;
+				/*
+				* Freeze the decision about whether trailing length words will be
+				* used.  We can't change this choice once data is on tape, even
+				* though callers might drop the requirement.
+				*/
+				state->backward = (state->eflags & EXEC_FLAG_BACKWARD) != 0;
+				state->status = TSS_WRITEFILE;
+			}
 			dumptuples(state);
 			break;
 		case TSS_WRITEFILE:
@@ -1807,3 +1821,176 @@ extern void tuplestore_consume_tuple(Tuplestorestate *state)
 	--state->remaining_tuples;
 }
 
+/*
+ * tuplestore_open_shared_noerror
+ *
+ * Open a shared tuplestore that has been populated in another process
+ * for reading and ignore error when open an empty file.
+ */
+Tuplestorestate *
+tuplestore_open_shared_noerror(SharedFileSet *fileset, const char *filename)
+{
+	Tuplestorestate *state;
+	int			eflags;
+	BufFile		*myfile;
+
+	myfile = BufFileOpenSharedV2(fileset, filename, O_RDONLY);
+	if (myfile == NULL)
+		return NULL;
+
+	eflags = EXEC_FLAG_BACKWARD | EXEC_FLAG_REWIND;
+
+	state = tuplestore_begin_common(eflags,
+									false /* interXact, ignored because we open existing files */,
+									10 /* no need for memory buffers */);
+
+	state->backward = true;
+
+	state->copytup = copytup_heap;
+	state->writetup = writetup_forbidden;
+	state->readtup = readtup_heap;
+
+	state->myfile = myfile;
+	state->readptrs[0].file = 0;
+	state->readptrs[0].offset = 0L;
+	state->status = TSS_READFILE;
+
+	state->share_status = TSHARE_READER;
+	state->frozen = false;
+	state->fileset = fileset;
+	state->shared_filename = pstrdup(filename);
+
+	return state;
+}
+
+/*
+ * tuplestore_make_sharedV2
+ *
+ * Make a tuplestore for sharing. This can be called
+ * after tuplestore_begin_heap().
+ */
+void
+tuplestore_make_sharedV2(Tuplestorestate *state, SharedFileSet *fileset,
+						const char *filename,
+						ResourceOwner owner)
+{
+	ResourceOwner oldowner;
+	MemoryContext oldctx;
+
+	if (state->status == TSS_WRITEFILE)
+		return;
+
+	oldctx = MemoryContextSwitchTo(TopMemoryContext);
+
+	state->work_set = workfile_mgr_create_set("SharedTupleStore", filename, true /* hold pin */);
+
+	Assert(state->status == TSS_INMEM);
+	Assert(state->share_status == TSHARE_NOT_SHARED);
+	state->share_status = TSHARE_WRITER;
+	state->fileset = fileset;
+	if (state->shared_filename == NULL)
+		state->shared_filename = pstrdup(filename);
+
+	/*
+	 * Switch to tape-based operation, like in tuplestore_puttuple_common().
+	 * We could delay this until tuplestore_freeze(), but we know we'll have
+	 * to write everything to the file anyway, so let's not waste memory
+	 * buffering the tuples in the meanwhile.
+	 */
+	PrepareTempTablespaces();
+
+	/* associate the file with the store's resource owner */
+	oldowner = CurrentResourceOwner;
+	CurrentResourceOwner = owner;
+
+	state->myfile = BufFileCreateShared(fileset, filename, state->work_set);
+	CurrentResourceOwner = oldowner;
+
+	/*
+	 * For now, be conservative and always use trailing length words for
+	 * cross-process tuplestores. It's important that the writer and the
+	 * reader processes agree on this, and forcing it to true is the
+	 * simplest way to achieve that.
+	 */
+	state->backward = true;
+	state->status = TSS_WRITEFILE;
+	MemoryContextSwitchTo(oldctx);
+}
+
+/*
+ * tuplestore_set_tuplecount
+ *
+ * Set the number of tuples in the tuplestore.
+ */
+void
+tuplestore_set_tuplecount(Tuplestorestate *state, int64 tuplecount)
+{
+	state->tuples = tuplecount;
+}
+
+/*
+ * tuplestore_get_sharedname
+ *
+ * Get the shared filename associated with the tuplestore.
+ */
+char *
+tuplestore_get_sharedname(Tuplestorestate *state)
+{
+	return state->shared_filename;
+}
+
+/*
+ * tuplestore_get_resowner
+ *
+ * Get the resource owner associated with the tuplestore.
+ */
+ResourceOwner
+tuplestore_get_resowner(Tuplestorestate *state)
+{
+	return state->resowner;
+}
+
+/*
+ * tuplestore_set_tableid
+ *
+ * Set the table OID associated with the tuplestore.
+ */
+void
+tuplestore_set_tableid(Tuplestorestate *state, Oid tableid)
+{
+	state->tableid = tableid;
+}
+
+/*
+ * tuplestore_set_sharedname
+ *
+ * Set the shared filename associated with the tuplestore.
+ */
+void
+tuplestore_set_sharedname(Tuplestorestate *state, char *sharedname)
+{
+	state->shared_filename = pstrdup(sharedname);
+}
+
+/*
+ * tuplestore_in_freezed
+ *
+ * Check if the tuplestore is frozen.
+ */
+bool
+tuplestore_in_freezed(Tuplestorestate *state)
+{
+	return state->frozen == true;
+}
+
+/*
+ * tuplestore_set_flags
+ *
+ * Set the flags for the tuplestore.
+ */
+void
+tuplestore_set_flags(Tuplestorestate *state, bool isTemp)
+{
+	/* Set the file as a temporary file */
+	BufFileSetIsTempFile(state->myfile, true);
+}

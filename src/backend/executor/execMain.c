@@ -39,6 +39,7 @@
  *-------------------------------------------------------------------------
  */
 #include "postgres.h"
+#include "pgstat.h"
 
 #include "access/heapam.h"
 #include "access/htup_details.h"
@@ -52,6 +53,7 @@
 #include "commands/tablespace.h"
 #include "commands/trigger.h"
 #include "executor/execdebug.h"
+#include "executor/nodeModifyTable.h"
 #include "executor/nodeSubplan.h"
 #include "foreign/fdwapi.h"
 #include "jit/jit.h"
@@ -70,9 +72,9 @@
 #include "utils/ruleutils.h"
 #include "utils/snapmgr.h"
 #include "utils/metrics_utils.h"
+#include "utils/queryenvironment.h"
 
 #include "utils/ps_status.h"
-#include "utils/snapmgr.h"
 #include "utils/typcache.h"
 #include "utils/workfile_mgr.h"
 #include "utils/faultinjector.h"
@@ -310,6 +312,13 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 	/*
 	 * Fill in the query environment, if any, from queryDesc.
 	 */
+	if (queryDesc->ddesc && queryDesc->ddesc->namedRelList)
+	{
+		if (queryDesc->queryEnv == NULL)
+			queryDesc->queryEnv = create_queryEnv();
+		/* Update environment */
+		AddPreassignedENR(queryDesc->queryEnv, queryDesc->ddesc->namedRelList);
+	}
 	estate->es_queryEnv = queryDesc->queryEnv;
 
 	/*
@@ -583,6 +592,7 @@ standard_ExecutorStart(QueryDesc *queryDesc, int eflags)
 			if (queryDesc->ddesc != NULL)
 			{
 				queryDesc->ddesc->sliceTable = estate->es_sliceTable;
+				FillQueryDispatchDesc(estate->es_queryEnv, queryDesc->ddesc);
 				/*
 				 * For CTAS querys that contain initplan, we need to copy a new oid dispatch list,
 				 * since the preprocess_initplan will start a subtransaction, and if it's rollbacked,
@@ -762,7 +772,7 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 	bool		sendTuples;
 	MemoryContext oldcontext;
 	EndpointExecState *endpointExecState = NULL;
-
+	uint64 es_processed = 0;
 	/*
 	 * NOTE: Any local vars that are set in the PG_TRY block and examined in the
 	 * PG_CATCH block should be declared 'volatile'. (setjmp shenanigans)
@@ -937,11 +947,17 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 			/* should never happen */
 			Assert(!"undefined parallel execution strategy");
 		}
+		if ((exec_identity == GP_IGNORE || exec_identity == GP_ROOT_SLICE) && operation != CMD_SELECT)
+			es_processed = mppExecutorWait(queryDesc);
     }
 	PG_CATCH();
 	{
         /* Close down interconnect etc. */
 		mppExecutorCleanup(queryDesc);
+		if (list_length(queryDesc->plannedstmt->paramExecTypes) > 0)
+		{
+			postprocess_initplans(queryDesc);
+		}
 		PG_RE_THROW();
 	}
 	PG_END_TRY();
@@ -981,7 +997,8 @@ standard_ExecutorRun(QueryDesc *queryDesc,
 
 	if (sendTuples)
 		dest->rShutdown(dest);
-
+	if (es_processed)
+		estate->es_processed = es_processed;
 	if (queryDesc->totaltime)
 		InstrStopNode(queryDesc->totaltime, estate->es_processed);
 
@@ -1502,8 +1519,8 @@ ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
 	 */
 	if (plannedstmt->intoClause != NULL)
 	{
-		Assert(plannedstmt->intoClause->rel);
-		if (plannedstmt->intoClause->rel->relpersistence == RELPERSISTENCE_TEMP)
+		if ((plannedstmt->intoClause->rel && plannedstmt->intoClause->rel->relpersistence == RELPERSISTENCE_TEMP)
+		   || (plannedstmt->intoClause->rel == NULL && plannedstmt->intoClause->ivm))
 			ExecutorMarkTransactionDoesWrites();
 		else
 			PreventCommandIfReadOnly(CreateCommandName((Node *) plannedstmt));
@@ -1870,7 +1887,15 @@ InitPlan(QueryDesc *queryDesc, int eflags)
 	 *   Also need to create tables in advance.
 	 */
 	if (queryDesc->plannedstmt->intoClause != NULL)
-		intorel_initplan(queryDesc, eflags);
+	{
+		if (queryDesc->plannedstmt->intoClause->rel)
+			intorel_initplan(queryDesc, eflags);
+		if (queryDesc->plannedstmt->intoClause->rel == NULL &&
+			queryDesc->plannedstmt->intoClause->ivm && Gp_role == GP_ROLE_EXECUTE)
+		{
+			transientenr_init(queryDesc);
+		}
+	}
 	else if(queryDesc->plannedstmt->copyIntoClause != NULL)
 	{
 		queryDesc->dest = CreateCopyDestReceiver();
@@ -2315,6 +2340,18 @@ ExecPostprocessPlan(EState *estate)
 	 */
 	estate->es_direction = ForwardScanDirection;
 
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		/* Fire after triggers. */
+		foreach(lc, estate->es_auxmodifytables)
+		{
+			PlanState  *ps = (PlanState *) lfirst(lc);
+			ModifyTableState *node = castNode(ModifyTableState, ps);
+
+			fireASTriggers(node);
+		}
+		return;
+	}
 	/*
 	 * Run any secondary ModifyTable nodes to completion, in case the main
 	 * query did not fetch all rows from them.  (We do this to ensure that

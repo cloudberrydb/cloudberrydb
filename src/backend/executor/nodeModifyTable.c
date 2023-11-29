@@ -2355,7 +2355,7 @@ fireBSTriggers(ModifyTableState *node)
 /*
  * Process AFTER EACH STATEMENT triggers
  */
-static void
+void
 fireASTriggers(ModifyTableState *node)
 {
 	ModifyTable *plan = (ModifyTable *) node->ps.plan;
@@ -3482,6 +3482,16 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 											   estate->es_auxmodifytables);
 	}
 
+	if (Gp_role == GP_ROLE_DISPATCH && !(eflags & EXEC_FLAG_EXPLAIN_ONLY))
+	{
+		estate->es_auxmodifytables = lcons(mtstate,
+											   estate->es_auxmodifytables);
+		if (mtstate->fireBSTriggers)
+		{
+			fireBSTriggers(mtstate);
+			mtstate->fireBSTriggers = false;
+		}
+	}
 	return mtstate;
 }
 
