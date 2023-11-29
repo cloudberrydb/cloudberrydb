@@ -141,6 +141,8 @@ CreateDestReceiver(CommandDest dest)
 
 		case DestTuplestore:
 			return CreateTuplestoreDestReceiver();
+		case DestPersistentstore:
+			return CreatePersistentTstoreDestReceiver();
 
 		case DestIntoRel:
 			return CreateIntoRelDestReceiver(NULL);
@@ -211,6 +213,7 @@ EndCommand(const QueryCompletion *qc, CommandDest dest, bool force_undecorated_o
 		case DestSQLFunction:
 		case DestTransientRel:
 		case DestTupleQueue:
+		case DestPersistentstore:
 			break;
 	}
 }
@@ -256,6 +259,7 @@ NullCommand(CommandDest dest)
 		case DestSQLFunction:
 		case DestTransientRel:
 		case DestTupleQueue:
+		case DestPersistentstore:
 			break;
 	}
 }
@@ -310,6 +314,7 @@ ReadyForQuery(CommandDest dest)
 		case DestSQLFunction:
 		case DestTransientRel:
 		case DestTupleQueue:
+		case DestPersistentstore:
 			break;
 	}
 }

@@ -97,7 +97,8 @@ typedef enum
 	DestCopyOut,				/* results sent to COPY TO code */
 	DestSQLFunction,			/* results sent to SQL-language func mgr */
 	DestTransientRel,			/* results sent to transient relation */
-	DestTupleQueue				/* results sent to tuple queue */
+	DestTupleQueue,				/* results sent to tuple queue */
+	DestPersistentstore,		/* results sent to Persistent Tuplestore */
 } CommandDest;
 
 /* ----------------

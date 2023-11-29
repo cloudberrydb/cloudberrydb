@@ -2828,6 +2828,7 @@ CommitTransaction(void)
 	if ((Gp_role == GP_ROLE_DISPATCH || IS_SINGLENODE()) && IsResQueueEnabled())
 		AtCommit_ResScheduler();
 
+	AtEOXact_IVM(true);
 	/*
 	 * Let ON COMMIT management do its thing (must happen after closing
 	 * cursors, to avoid dangling-reference problems)
@@ -3157,6 +3158,8 @@ PrepareTransaction(void)
 
 	/* Shut down the deferred-trigger manager */
 	AfterTriggerEndXact(true);
+	/* Just after clean up triggers */
+	AtEOXact_IVM(true);
 
 	/*
 	 * Let ON COMMIT management do its thing (must happen after closing

@@ -37,21 +37,27 @@
 #include "cdb/cdbvars.h"
 #include "commands/cluster.h"
 #include "commands/createas.h"
+#include "commands/defrem.h"
 #include "commands/matview.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "common/hashfn.h"
 #include "executor/executor.h"
+#include "executor/nodeShareInputScan.h"
 #include "executor/spi.h"
 #include "executor/tstoreReceiver.h"
 #include "miscadmin.h"
 #include "nodes/makefuncs.h"
+#include "optimizer/optimizer.h"
 #include "parser/analyze.h"
 #include "parser/parse_clause.h"
 #include "parser/parse_func.h"
 #include "parser/parse_relation.h"
+#include "parser/parsetree.h"
 #include "pgstat.h"
 #include "rewrite/rewriteHandler.h"
 #include "rewrite/rowsecurity.h"
+#include "storage/proc.h"
 #include "storage/lmgr.h"
 #include "storage/smgr.h"
 #include "tcop/tcopprot.h"
@@ -79,7 +85,9 @@ typedef struct
 	uint64		processed;		/* GPDB: number of tuples inserted */
 } DR_transientrel;
 
-#define MV_INIT_QUERYHASHSIZE	16
+#define MV_INIT_QUERYHASHSIZE	32
+#define MV_INIT_SNAPSHOTHASHSIZE	(2 * MaxBackends)
+#define SNAPSHOT_KEYSIZE 128
 
 /*
  * MV_TriggerHashEntry
@@ -91,13 +99,28 @@ typedef struct MV_TriggerHashEntry
 	Oid	matview_id;			/* OID of the materialized view */
 	int	before_trig_count;	/* count of before triggers invoked */
 	int	after_trig_count;	/* count of after triggers invoked */
+	int pid;				/* for debug */
+	int reference;			/* reference count */
 
-	Snapshot	snapshot;	/* Snapshot just before table change */
+	Snapshot  snapshot;		/* Snapshot just before table change */
+	char  *snapname;		/* Snapshot name for lookup */
 
 	List   *tables;		/* List of MV_TriggerTable */
 	bool	has_old;	/* tuples are deleted from any table? */
 	bool	has_new;	/* tuples are inserted into any table? */
+	MemoryContext context;		/* The session-scoped memory context. */
+	ResourceOwner resowner;		/* The session-scoped resource owner. */
 } MV_TriggerHashEntry;
+
+/* SnapshotDumpEntry to hold information about a snapshot dump entry */
+typedef struct SnapshotDumpEntry
+{
+	char	snapname[SNAPSHOT_KEYSIZE];  /* Name of the snapshot */
+	Oid 	matview_id;			/* OID of the materialized view */
+	int 	pid;  				/* Process ID of creater */
+	dsm_handle  handle;  		/* Handle to the DSM segment */
+	dsm_segment *segment;  		/* Pointer to the DSM segment */
+} SnapshotDumpEntry;
 
 /*
  * MV_TriggerTable
@@ -118,8 +141,14 @@ typedef struct MV_TriggerTable
 } MV_TriggerTable;
 
 static HTAB *mv_trigger_info = NULL;
+static HTAB *mv_trigger_snapshot = NULL;
 
-static bool in_delta_calculation = false;
+/* kind of IVM operation for the view */
+typedef enum
+{
+	IVM_ADD,
+	IVM_SUB
+} IvmOp;
 
 /* ENR name for materialized view delta */
 #define NEW_DELTA_ENRNAME "new_delta"
@@ -128,14 +157,17 @@ static bool in_delta_calculation = false;
 static int	matview_maintenance_depth = 0;
 
 static RefreshClause* MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation);
+static IntoClause* makeIvmIntoClause(const char *enrname, Relation matviewRel);
 static void transientrel_startup(DestReceiver *self, int operation, TupleDesc typeinfo);
 static bool transientrel_receive(TupleTableSlot *slot, DestReceiver *self);
 static void transientrel_shutdown(DestReceiver *self);
 static void transientrel_destroy(DestReceiver *self);
 static uint64 refresh_matview_datafill(DestReceiver *dest, Query *query,
-									   QueryEnvironment *queryEnv,
-									   TupleDesc *resultTupleDesc,
 									   const char *queryString, RefreshClause *refreshClause);
+static uint64 refresh_matview_memoryfill(DestReceiver *dest,Query *query,
+						 QueryEnvironment *queryEnv,
+						 TupleDesc *resultTupleDesc,
+						 const char *queryString, Relation matviewRel);
 static char *make_temptable_name_n(char *tempname, int n);
 static void refresh_by_match_merge(Oid matviewOid, Oid tempOid, Oid relowner,
 								   int save_sec_context);
@@ -153,28 +185,53 @@ static RangeTblEntry *get_prestate_rte(RangeTblEntry *rte, MV_TriggerTable *tabl
 				 QueryEnvironment *queryEnv, Oid matviewid);
 static RangeTblEntry *replace_rte_with_delta(RangeTblEntry *rte, MV_TriggerTable *table, bool is_new,
 		   QueryEnvironment *queryEnv);
-static Query *rewrite_query_for_counting(Query *query, ParseState *pstate);
+static Query *rewrite_query_for_counting_and_aggregates(Query *query, ParseState *pstate);
 
-static void calc_delta(MV_TriggerTable *table, int rte_index, Query *query,
-			DestReceiver *dest_old, DestReceiver *dest_new,
-			TupleDesc *tupdesc_old, TupleDesc *tupdesc_new,
+static char* calc_delta_old(Tuplestorestate *ts,Relation matviewRel, MV_TriggerTable *table, int rte_index, Query *query,
+			DestReceiver *dest_old,
+			TupleDesc *tupdesc_old,
+			QueryEnvironment *queryEnv);
+static char* calc_delta_new(Tuplestorestate *ts, Relation matviewRel, MV_TriggerTable *table, int rte_index, Query *query,
+			DestReceiver *dest_new,
+			TupleDesc *tupdesc_new,
 			QueryEnvironment *queryEnv);
 static Query *rewrite_query_for_postupdate_state(Query *query, MV_TriggerTable *table, int rte_index);
 
-static void apply_delta(Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *new_tuplestores,
+static void apply_delta(char *old_enr, char *new_enr, MV_TriggerTable *table, Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *new_tuplestores,
 			TupleDesc tupdesc_old, TupleDesc tupdesc_new,
-			Query *query);
+			Query *query, bool use_count, char *count_colname);
+static void append_set_clause_for_count(const char *resname, StringInfo buf_old,
+							StringInfo buf_new,StringInfo aggs_list);
+static void append_set_clause_for_sum(const char *resname, StringInfo buf_old,
+						  StringInfo buf_new, StringInfo aggs_list);
+static void append_set_clause_for_avg(const char *resname, StringInfo buf_old,
+						  StringInfo buf_new, StringInfo aggs_list,
+						  const char *aggtype);
+static char *get_operation_string(IvmOp op, const char *col, const char *arg1, const char *arg2,
+					 const char* count_col, const char *castType);
+static char *get_null_condition_string(IvmOp op, const char *arg1, const char *arg2,
+						  const char* count_col);
 static void apply_old_delta(const char *matviewname, const char *deltaname_old,
 				List *keys);
+static void apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
+				List *keys, StringInfo aggs_list, StringInfo aggs_set,
+				const char *count_colname);
 static void apply_new_delta(const char *matviewname, const char *deltaname_new,
 				StringInfo target_list);
+static void apply_new_delta_with_count(const char *matviewname, const char* deltaname_new,
+				List *keys, StringInfo target_list, StringInfo aggs_set,
+				const char* count_colname);
 static char *get_matching_condition_string(List *keys);
 static void generate_equal(StringInfo querybuf, Oid opttype,
 			   const char *leftop, const char *rightop);
 
-static void mv_InitHashTables(void);
 static void clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort);
-
+static void clean_up_ivm_dsm_entry(MV_TriggerHashEntry *entry);
+static void apply_cleanup(Oid matview_id);
+static void ivm_export_snapshot(Oid matview_id, char *snapname);
+static Snapshot ivm_import_snapshot(const char *idstr);
+static void ExecuteTruncateGuts_IVM(Relation matviewRel, Oid matviewOid, Query *query);
+static void ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid);
 /*
  * SetMatViewPopulatedState
  *		Mark a materialized view as populated, or not.
@@ -294,9 +351,8 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 {
 	Oid			matviewOid;
 	Relation	matviewRel;
-	RewriteRule *rule;
-	List	   *actions;
 	Query	   *dataQuery;
+	Query	   *viewQuery;
 	Oid			tableSpace;
 	Oid			relowner;
 	Oid			OIDNewHeap;
@@ -358,32 +414,13 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 				 errmsg("%s and %s options cannot be used together",
 						"CONCURRENTLY", "WITH NO DATA")));
 
-	/*
-	 * Check that everything is correct for a refresh. Problems at this point
-	 * are internal errors, so elog is sufficient.
-	 */
-	if (matviewRel->rd_rel->relhasrules == false ||
-		matviewRel->rd_rules->numLocks < 1)
-		elog(ERROR,
-			 "materialized view \"%s\" is missing rewrite information",
-			 RelationGetRelationName(matviewRel));
+	viewQuery = get_matview_query(matviewRel);
 
-	if (matviewRel->rd_rules->numLocks > 1)
-		elog(ERROR,
-			 "materialized view \"%s\" has too many rules",
-			 RelationGetRelationName(matviewRel));
-
-	rule = matviewRel->rd_rules->rules[0];
-	if (rule->event != CMD_SELECT || !(rule->isInstead))
-		elog(ERROR,
-			 "the rule for materialized view \"%s\" is not a SELECT INSTEAD OF rule",
-			 RelationGetRelationName(matviewRel));
-
-	actions = rule->actions;
-	if (list_length(actions) != 1)
-		elog(ERROR,
-			 "the rule for materialized view \"%s\" is not a single action",
-			 RelationGetRelationName(matviewRel));
+	/* For IMMV, we need to rewrite matview query */
+	if (!stmt->skipData && RelationIsIVM(matviewRel))
+		dataQuery = rewriteQueryForIMMV(viewQuery,NIL);
+	else
+		dataQuery = viewQuery;
 
 	/*
 	 * Check that there is a unique index with no WHERE clause on one or more
@@ -444,7 +481,6 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 	 * is not equal to newRel->rule(parentStmtType = PARENTSTMTTYPE_NONE),
 	 * caused oldRel->rule(dataQuery) to be released
 	 */
-	dataQuery = copyObject(linitial_node(Query, actions));
 	Assert(IsA(dataQuery, Query));
 
 	dataQuery->parentStmtType = PARENTSTMTTYPE_REFRESH_MATVIEW;
@@ -554,7 +590,7 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 	 * In GPDB, we call refresh_matview_datafill() even when WITH NO DATA was
 	 * specified, because it will dispatch the operation to the segments.
 	 */
-	processed = refresh_matview_datafill(dest, dataQuery, NULL, NULL, queryString, refreshClause);
+	processed = refresh_matview_datafill(dest, dataQuery, queryString, refreshClause);
 
 	/* Make the matview match the newly generated data. */
 	if (concurrent)
@@ -599,7 +635,6 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 
 	if (!stmt->skipData && RelationIsIVM(matviewRel) && !oldPopulated)
 	{
-		//CreateIndexOnIMMV(dataQuery, matviewRel);
 		CreateIvmTriggersOnBaseTables(dataQuery, matviewOid);
 	}
 
@@ -637,8 +672,6 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
  */
 static uint64
 refresh_matview_datafill(DestReceiver *dest, Query *query,
-						 QueryEnvironment *queryEnv,
-						 TupleDesc *resultTupleDesc,
 						 const char *queryString, RefreshClause *refreshClause)
 {
 	List	   *rewritten;
@@ -696,7 +729,7 @@ refresh_matview_datafill(DestReceiver *dest, Query *query,
 	/* Create a QueryDesc, redirecting output to our tuple receiver */
 	queryDesc = CreateQueryDesc(plan, queryString,
 								GetActiveSnapshot(), InvalidSnapshot,
-								dest, NULL, queryEnv ? queryEnv: NULL, 0);
+								dest, NULL, NULL, 0);
 
 	RestoreOidAssignments(saved_dispatch_oids);
 
@@ -716,12 +749,11 @@ refresh_matview_datafill(DestReceiver *dest, Query *query,
 	 */
 	processed = queryDesc->estate->es_processed;
 
-	if (resultTupleDesc)
-		*resultTupleDesc = CreateTupleDescCopy(queryDesc->tupDesc);
-
 	/* and clean up */
 	ExecutorFinish(queryDesc);
 	ExecutorEnd(queryDesc);
+
+	processed = queryDesc->es_processed;
 
 	FreeQueryDesc(queryDesc);
 
@@ -1390,14 +1422,14 @@ get_matview_query(Relation matviewRel)
  */
 
 /*
- * IVM_immediate_before
+ * ivm_immediate_before
  *
  * IVM trigger function invoked before base table is modified. If this is
  * invoked firstly in the same statement, we save the transaction id and the
  * command id at that time.
  */
 Datum
-IVM_immediate_before(PG_FUNCTION_ARGS)
+ivm_immediate_before(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
 	char	   *matviewOid_text = trigdata->tg_trigger->tgargs[0];
@@ -1406,6 +1438,9 @@ IVM_immediate_before(PG_FUNCTION_ARGS)
 	MV_TriggerHashEntry *entry;
 	bool	found;
 	bool	ex_lock;
+	ResourceOwner oldowner;
+	MemoryContext oldctx;
+	Relation rel = trigdata->tg_relation;
 
 	matviewOid = DatumGetObjectId(DirectFunctionCall1(oidin, CStringGetDatum(matviewOid_text)));
 	ex_lock = DatumGetBool(DirectFunctionCall1(boolin, CStringGetDatum(ex_lock_text)));
@@ -1441,12 +1476,6 @@ IVM_immediate_before(PG_FUNCTION_ARGS)
 	else
 		LockRelationOid(matviewOid, RowExclusiveLock);
 
-	/*
-	 * On the first call initialize the hashtable
-	 */
-	if (!mv_trigger_info)
-		mv_InitHashTables();
-
 	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
 											  (void *) &matviewOid,
 											  HASH_ENTER, &found);
@@ -1458,31 +1487,55 @@ IVM_immediate_before(PG_FUNCTION_ARGS)
 		 * Get a snapshot just before the table was modified for checking
 		 * tuple visibility in the pre-update state of the table.
 		 */
-		Snapshot snapshot = GetActiveSnapshot();
+		entry->context = AllocSetContextCreate(TopMemoryContext,
+													"IVM Writer Session",
+													ALLOCSET_DEFAULT_SIZES);
+		entry->resowner = ResourceOwnerCreate(TopTransactionResourceOwner, "IVM Writer Session");
+		/* Change to session owner */
+		oldowner = CurrentResourceOwner;
+		CurrentResourceOwner = entry->resowner;
+		oldctx = MemoryContextSwitchTo(entry->context);
 
+		entry->snapname = (char*) palloc0(SNAPSHOT_KEYSIZE);
 		entry->matview_id = matviewOid;
 		entry->before_trig_count = 0;
 		entry->after_trig_count = 0;
-		entry->snapshot = RegisterSnapshot(snapshot);
+		entry->snapshot = NULL;
 		entry->tables = NIL;
 		entry->has_old = false;
 		entry->has_new = false;
+		entry->reference = 1;
+		entry->pid = MyProcPid;
+
+		entry->snapname[0] = '\0';
+		MemoryContextSwitchTo(oldctx);
+		CurrentResourceOwner = oldowner;
 	}
 
 	entry->before_trig_count++;
+
+	elogif(Debug_print_ivm, INFO, "IVM ivm_immediate_before ref %d, mvid:%d", entry->before_trig_count, matviewOid);
+
+	if (Gp_role == GP_ROLE_DISPATCH && !TRIGGER_FIRED_BY_TRUNCATE(trigdata->tg_event))
+	{
+		snprintf(entry->snapname, SNAPSHOT_KEYSIZE, "%08X-%08X-%d-%d",
+			 MyProc->backendId, MyProc->lxid, gp_command_count, entry->before_trig_count);
+		ivm_export_snapshot(matviewOid, entry->snapname);
+	}
+	ivm_set_ts_persitent_name(trigdata, rel->rd_id, matviewOid);
 
 	return PointerGetDatum(NULL);
 }
 
 /*
- * IVM_immediate_maintenance
+ * ivm_immediate_maintenance
  *
  * IVM trigger function invoked after base table is modified.
  * For each table, tuplestores of transition tables are collected.
  * and after the last modification
  */
 Datum
-IVM_immediate_maintenance(PG_FUNCTION_ARGS)
+ivm_immediate_maintenance(PG_FUNCTION_ARGS)
 {
 	TriggerData *trigdata = (TriggerData *) fcinfo->context;
 	Relation	rel;
@@ -1507,11 +1560,12 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 	bool	found;
 
 	ParseState		 *pstate;
-	QueryEnvironment *queryEnv = create_queryEnv();
 	MemoryContext	oldcxt;
 	ListCell   *lc;
 	int			i;
+	ResourceOwner oldowner;
 
+	QueryEnvironment *queryEnv = create_queryEnv();
 
 	/* Create a ParseState for rewriting the view definition query */
 	pstate = make_parsestate(NULL);
@@ -1523,12 +1577,6 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 
 	matviewOid = DatumGetObjectId(DirectFunctionCall1(oidin, CStringGetDatum(matviewOid_text)));
 
-	/*
-	 * On the first call initialize the hashtable
-	 */
-	if (!mv_trigger_info)
-		mv_InitHashTables();
-
 	/* get the entry for this materialized view */
 	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
 											  (void *) &matviewOid,
@@ -1536,6 +1584,12 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 	Assert (found && entry != NULL);
 	entry->after_trig_count++;
 
+	elogif(Debug_print_ivm, INFO, "IVM ivm_immediate_maintenance ref %d, mvid:%d", entry->after_trig_count, matviewOid);
+
+	oldowner = CurrentResourceOwner;
+	CurrentResourceOwner = entry->resowner;
+
+	oldcxt = MemoryContextSwitchTo(entry->context);
 	/* search the entry for the modified table and create new entry if not found */
 	found = false;
 	foreach(lc, entry->tables)
@@ -1547,10 +1601,9 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 			break;
 		}
 	}
+
 	if (!found)
 	{
-		oldcxt = MemoryContextSwitchTo(TopTransactionContext);
-
 		table = (MV_TriggerTable *) palloc0(sizeof(MV_TriggerTable));
 		table->table_id = relid;
 		table->old_tuplestores = NIL;
@@ -1559,24 +1612,18 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 		table->slot = MakeSingleTupleTableSlot(RelationGetDescr(rel), table_slot_callbacks(rel));
 		table->rel = table_open(RelationGetRelid(rel), NoLock);
 		entry->tables = lappend(entry->tables, table);
-
-		MemoryContextSwitchTo(oldcxt);
 	}
 
 	/* Save the transition tables and make a request to not free immediately */
 	if (trigdata->tg_oldtable)
 	{
-		oldcxt = MemoryContextSwitchTo(TopTransactionContext);
 		table->old_tuplestores = lappend(table->old_tuplestores, trigdata->tg_oldtable);
 		entry->has_old = true;
-		MemoryContextSwitchTo(oldcxt);
 	}
 	if (trigdata->tg_newtable)
 	{
-		oldcxt = MemoryContextSwitchTo(TopTransactionContext);
 		table->new_tuplestores = lappend(table->new_tuplestores, trigdata->tg_newtable);
 		entry->has_new = true;
-		MemoryContextSwitchTo(oldcxt);
 	}
 	if (entry->has_new || entry->has_old)
 	{
@@ -1590,7 +1637,6 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 			cmd = CMD_UPDATE;
 		else
 			elog(ERROR,"unsupported trigger type");
-
 		/* Prolong lifespan of transition tables to the end of the last AFTER trigger */
 		SetTransitionTablePreserved(relid, cmd);
 	}
@@ -1639,7 +1685,7 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 	relowner = matviewRel->rd_rel->relowner;
 	GetUserIdAndSecContext(&save_userid, &save_sec_context);
 	SetUserIdAndSecContext(relowner,
-						   save_sec_context | SECURITY_RESTRICTED_OPERATION);
+						   save_sec_context);
 	save_nestlevel = NewGUCNestLevel();
 
 	/* get view query*/
@@ -1647,13 +1693,23 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 
 	/*
 	 * When a base table is truncated, the view content will be empty if the
-	 * view definition query does not contain an aggregate without a GROUP clause.
-	 * Therefore, such views can be truncated.
+	 * view definition query does not contain an outer join or an aggregate
+	 * without a GROUP clause. Therefore, such views can be truncated.
+	 *
+	 * Aggregate views without a GROUP clause always have one row. Therefore,
+	 * if a base table is truncated, the view will not be empty and will contain
+	 * a row with NULL value (or 0 for count()). So, in this case, we refresh the
+	 * view instead of truncating it.
 	 */
 	if (TRIGGER_FIRED_BY_TRUNCATE(trigdata->tg_event))
 	{
-		ExecuteTruncateGuts(list_make1(matviewRel), list_make1_oid(matviewOid),
-							NIL, DROP_RESTRICT, false, false);
+		MemoryContextSwitchTo(oldcxt);
+
+		if (!(query->hasAggs && query->groupClause == NIL))
+			ExecuteTruncateGuts(list_make1(matviewRel), list_make1_oid(matviewOid),
+							NIL, DROP_RESTRICT, false, NULL);
+		else if (Gp_role == GP_ROLE_DISPATCH)
+			ExecuteTruncateGuts_IVM(matviewRel, matviewOid, query);
 
 		/* Clean up hash entry and delete tuplestores */
 		clean_up_IVM_hash_entry(entry, false);
@@ -1668,6 +1724,8 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 
 		/* Restore userid and security context */
 		SetUserIdAndSecContext(save_userid, save_sec_context);
+		/* Restore resource owner */
+		CurrentResourceOwner = oldowner;
 
 		return PointerGetDatum(NULL);
 	}
@@ -1689,17 +1747,19 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 		tle->resname = pstrdup(resname);
 		i++;
 	}
-
-	/* Set all tables in the query to pre-update state */
+	/*
+	 * Step1: collect transition tables in QEs and
+	 * Set all tables in the query to pre-update state and
+	 */
 	rewritten = rewrite_query_for_preupdate_state(rewritten, entry->tables,
 												  pstate, matviewOid);
-	/* Rewrite for counting duplicated tuples */
-	rewritten = rewrite_query_for_counting(rewritten, pstate);
+	/* Rewrite for counting duplicated tuples and aggregates functions*/
+	rewritten = rewrite_query_for_counting_and_aggregates(rewritten, pstate);
 
 	/* Create tuplestores to store view deltas */
 	if (entry->has_old)
 	{
-		oldcxt = MemoryContextSwitchTo(TopTransactionContext);
+		MemoryContext cxt = MemoryContextSwitchTo(TopTransactionContext);
 
 		old_tuplestore = tuplestore_begin_heap(false, false, work_mem);
 		dest_old = CreateDestReceiver(DestTuplestore);
@@ -1710,11 +1770,11 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 									NULL,
 									NULL);
 
-		MemoryContextSwitchTo(oldcxt);
+		MemoryContextSwitchTo(cxt);
 	}
 	if (entry->has_new)
 	{
-		oldcxt = MemoryContextSwitchTo(TopTransactionContext);
+		MemoryContext cxt = MemoryContextSwitchTo(TopTransactionContext);
 
 		new_tuplestore = tuplestore_begin_heap(false, false, work_mem);
 		dest_new = CreateDestReceiver(DestTuplestore);
@@ -1724,53 +1784,74 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 									false,
 									NULL,
 									NULL);
-		MemoryContextSwitchTo(oldcxt);
+		MemoryContextSwitchTo(cxt);
 	}
-
-	/* for all modified tables */
-	foreach(lc, entry->tables)
+	/*
+	 * Step2: calculate delta tables
+	 * Step3: apply delta tables to the materialized view
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
 	{
-		ListCell *lc2;
-
-		table = (MV_TriggerTable *) lfirst(lc);
-
-		/* loop for self-join */
-		foreach(lc2, table->rte_indexes)
+		/* for all modified tables */
+		foreach(lc, entry->tables)
 		{
-			int	rte_index = lfirst_int(lc2);
-			TupleDesc		tupdesc_old;
-			TupleDesc		tupdesc_new;
+			ListCell *lc2;
 
-			/* calculate delta tables */
-			calc_delta(table, rte_index, rewritten, dest_old, dest_new,
-					   &tupdesc_old, &tupdesc_new, queryEnv);
+			table = (MV_TriggerTable *) lfirst(lc);
 
-			/* Set the table in the query to post-update state */
-			rewritten = rewrite_query_for_postupdate_state(rewritten, table, rte_index);
-
-			PG_TRY();
+			/* loop for self-join */
+			foreach(lc2, table->rte_indexes)
 			{
-				/* apply the delta tables to the materialized view */
-				apply_delta(matviewOid, old_tuplestore, new_tuplestore,
-							tupdesc_old, tupdesc_new, query);
-			}
-			PG_CATCH();
-			{
-				matview_maintenance_depth = old_depth;
-				PG_RE_THROW();
-			}
-			PG_END_TRY();
+				int	rte_index = lfirst_int(lc2);
+				TupleDesc		tupdesc_old;
+				TupleDesc		tupdesc_new;
+				Size			snaplen = strlen(entry->snapname);
 
-			/* clear view delta tuplestores */
-			if (old_tuplestore)
-				tuplestore_clear(old_tuplestore);
-			if (new_tuplestore)
-				tuplestore_clear(new_tuplestore);
+				bool	use_count = false;
+				char	*count_colname = NULL;
+				char	*old_enr = NULL;
+				char	*new_enr = NULL;
+
+				count_colname = pstrdup("__ivm_count__");
+				if (query->hasAggs || query->distinctClause)
+					use_count = true;
+
+				configure_queryEnv(queryEnv, matviewOid, table->table_id, entry->snapname, snaplen);
+
+				/* calculate delta tables */
+				old_enr = calc_delta_old(old_tuplestore, matviewRel, table, rte_index, rewritten, dest_old,
+							&tupdesc_old, queryEnv);
+
+				new_enr = calc_delta_new(new_tuplestore, matviewRel, table, rte_index, rewritten, dest_new,
+							&tupdesc_new, queryEnv);
+
+				configure_queryEnv(queryEnv, InvalidOid, InvalidOid, NULL, 0);
+
+				/* Set the table in the query to post-update state */
+				rewritten = rewrite_query_for_postupdate_state(rewritten, table, rte_index);
+
+				PG_TRY();
+				{
+					/* apply the delta tables to the materialized view */
+					apply_delta(old_enr, new_enr, table, matviewOid, old_tuplestore, new_tuplestore,
+									tupdesc_old, tupdesc_new, query, use_count, count_colname);
+				}
+				PG_CATCH();
+				{
+					matview_maintenance_depth = old_depth;
+					PG_RE_THROW();
+				}
+				PG_END_TRY();
+
+				/* clear view delta tuplestores */
+				if (old_tuplestore)
+					tuplestore_clear(old_tuplestore);
+				if (new_tuplestore)
+					tuplestore_clear(new_tuplestore);
+			}
 		}
 	}
 
-	/* Clean up hash entry and delete tuplestores */
-	clean_up_IVM_hash_entry(entry, false);
 	if (old_tuplestore)
 	{
 		dest_old->rDestroy(dest_old);
@@ -1781,6 +1862,8 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 		dest_new->rDestroy(dest_new);
 		tuplestore_end(new_tuplestore);
 	}
+
+	MemoryContextSwitchTo(oldcxt);
 
 	/* Pop the original snapshot. */
 	PopActiveSnapshot();
@@ -1793,6 +1876,15 @@ IVM_immediate_maintenance(PG_FUNCTION_ARGS)
 	/* Restore userid and security context */
 	SetUserIdAndSecContext(save_userid, save_sec_context);
 
+	CurrentResourceOwner = oldowner;
+	/*
+	 * Step4: cleanup stage
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH)
+	{
+		apply_cleanup(matviewOid);
+		DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
+	}
 	return PointerGetDatum(NULL);
 }
 
@@ -1819,6 +1911,7 @@ rewrite_query_for_preupdate_state(Query *query, List *tables,
 	AcquireRewriteLocks(query, true, false);
 
 	i = 1;
+
 	foreach(lc, query->rtable)
 	{
 		RangeTblEntry *r = (RangeTblEntry*) lfirst(lc);
@@ -1839,7 +1932,6 @@ rewrite_query_for_preupdate_state(Query *query, List *tables,
 				bool  hasSubLinks;
 
 				RangeTblEntry *rte_pre = get_prestate_rte(r, table, pstate->p_queryEnv, matviewid);
-
 				/*
 				 * Set a row security poslicies of the modified table to the subquery RTE which
 				 * represents the pre-update state of the table.
@@ -1859,7 +1951,7 @@ rewrite_query_for_preupdate_state(Query *query, List *tables,
 				rte_pre->securityQuals = securityQuals;
 				lfirst(lc) = rte_pre;
 
-				table->rte_indexes = lappend_int(table->rte_indexes, i);
+				table->rte_indexes = list_append_unique_int(table->rte_indexes, i);
 				break;
 			}
 		}
@@ -1896,48 +1988,77 @@ register_delta_ENRs(ParseState *pstate, Query *query, List *tables)
 		foreach(lc2, table->old_tuplestores)
 		{
 			Tuplestorestate *oldtable = (Tuplestorestate *) lfirst(lc2);
+			bool freezed = tuplestore_in_freezed(oldtable);
 			EphemeralNamedRelation enr =
 				palloc(sizeof(EphemeralNamedRelationData));
 			ParseNamespaceItem *nsitem;
+			char* shared_name = tuplestore_get_sharedname(oldtable);
 
-			enr->md.name = make_delta_enr_name("old", table->table_id, count);
+			if (freezed || shared_name)
+				enr->md.name = pstrdup(shared_name);
+			else
+				enr->md.name = make_delta_enr_name("old", table->table_id, gp_command_count);
 			enr->md.reliddesc = table->table_id;
-			enr->md.tupdesc = NULL;
+			enr->md.tupdesc = CreateTupleDescCopy(table->rel->rd_att);
 			enr->md.enrtype = ENR_NAMED_TUPLESTORE;
 			enr->md.enrtuples = tuplestore_tuple_count(oldtable);
-			enr->reldata = oldtable;
+			enr->reldata = NULL;
 			register_ENR(queryEnv, enr);
 
 			nsitem = addRangeTableEntryForENR(pstate, makeRangeVar(NULL, enr->md.name, -1), true);
 			rte = nsitem->p_rte;
-
-			query->rtable = lappend(query->rtable, rte);
+			query->rtable = list_append_unique_ptr(query->rtable, rte);
 
 			count++;
+			/* Note: already freezed case */
+			if (freezed)
+			{
+				continue;
+			}
+			tuplestore_make_sharedV2(oldtable,
+						get_shareinput_fileset(),
+						enr->md.name,
+						tuplestore_get_resowner(oldtable));
+			tuplestore_freeze(oldtable);
 		}
 
 		count = 0;
 		foreach(lc2, table->new_tuplestores)
 		{
 			Tuplestorestate *newtable = (Tuplestorestate *) lfirst(lc2);
+			bool freezed = tuplestore_in_freezed(newtable);
 			EphemeralNamedRelation enr =
 				palloc(sizeof(EphemeralNamedRelationData));
 			ParseNamespaceItem *nsitem;
+			char* shared_name = tuplestore_get_sharedname(newtable);
 
-			enr->md.name = make_delta_enr_name("new", table->table_id, count);
+			if (freezed || shared_name)
+				enr->md.name = pstrdup(shared_name);
+			else
+				enr->md.name = make_delta_enr_name("new", table->table_id, gp_command_count);
 			enr->md.reliddesc = table->table_id;
-			enr->md.tupdesc = NULL;
+			enr->md.tupdesc = CreateTupleDescCopy(table->rel->rd_att);
 			enr->md.enrtype = ENR_NAMED_TUPLESTORE;
 			enr->md.enrtuples = tuplestore_tuple_count(newtable);
-			enr->reldata = newtable;
+			enr->reldata = NULL;
 			register_ENR(queryEnv, enr);
 
 			nsitem = addRangeTableEntryForENR(pstate, makeRangeVar(NULL, enr->md.name, -1), true);
 			rte = nsitem->p_rte;
 
-			query->rtable = lappend(query->rtable, rte);
+			query->rtable = list_append_unique_ptr(query->rtable, rte);
 
 			count++;
+			/* Note: already freezed case */
+			if (freezed)
+			{
+				continue;
+			}
+			tuplestore_make_sharedV2(newtable,
+						get_shareinput_fileset(),
+						enr->md.name,
+						tuplestore_get_resowner(newtable));
+			tuplestore_freeze(newtable);
 		}
 	}
 }
@@ -1957,16 +2078,14 @@ ivm_visible_in_prestate(PG_FUNCTION_ARGS)
 	Oid			tableoid = PG_GETARG_OID(0);
 	ItemPointer itemPtr = PG_GETARG_ITEMPOINTER(1);
 	Oid			matviewOid = PG_GETARG_OID(2);
+	ListCell   *lc;
+	bool	result = true;
+	bool	found = false;
+	MemoryContext oldcxt;
+	ResourceOwner oldowner;
+
 	MV_TriggerHashEntry *entry;
 	MV_TriggerTable		*table = NULL;
-	ListCell   *lc;
-	bool	found;
-	bool	result;
-
-	if (!in_delta_calculation)
-		ereport(ERROR,
-				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-				 errmsg("ivm_visible_in_prestate can be called only in delta calculation")));
 
 	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
 											  (void *) &matviewOid,
@@ -1981,9 +2100,24 @@ ivm_visible_in_prestate(PG_FUNCTION_ARGS)
 	}
 
 	Assert (table != NULL);
+	if (table->rel == NULL && table->slot == NULL)
+	{
+		oldowner = CurrentResourceOwner;
+		CurrentResourceOwner = entry->resowner;
+		oldcxt = MemoryContextSwitchTo(entry->context);
+		/* Lazy open relation */
+		table->rel = table_open(tableoid, NoLock);
+		table->slot = MakeSingleTupleTableSlot(RelationGetDescr(table->rel), table_slot_callbacks(table->rel));
+
+		MemoryContextSwitchTo(oldcxt);
+		CurrentResourceOwner = oldowner;
+	}
 
 	result = table_tuple_fetch_row_version(table->rel, itemPtr, entry->snapshot, table->slot);
 
+	ExecClearTuple(table->slot);
+
+	elogif(Debug_print_ivm, INFO, "IVM tableoid: %d, ctid: %s, visible %d.", tableoid, ItemPointerToString(itemPtr), result);
 	PG_RETURN_BOOL(result);
 }
 
@@ -2003,7 +2137,7 @@ get_prestate_rte(RangeTblEntry *rte, MV_TriggerTable *table,
 	Relation rel;
 	ParseState *pstate;
 	char *relname;
-	int i;
+	ListCell *lc;
 
 	pstate = make_parsestate(NULL);
 	pstate->p_queryEnv = queryEnv;
@@ -2021,22 +2155,23 @@ get_prestate_rte(RangeTblEntry *rte, MV_TriggerTable *table,
 
 	/*
 	 * Filtering inserted row using the snapshot taken before the table
-	 * is modified. ctid is required for maintaining outer join views.
+	 * is modified. <ctid,gp_segment_id> is required for maintaining outer join views.
 	 */
 	initStringInfo(&str);
 	appendStringInfo(&str,
-		"SELECT t.* FROM %s t"
-		" WHERE pg_catalog.ivm_visible_in_prestate(t.tableoid, t.ctid ,%d::pg_catalog.oid)",
-			relname, matviewid);
+			"SELECT t.* FROM %s t"
+			" WHERE pg_catalog.ivm_visible_in_prestate(t.tableoid, t.ctid,%d::pg_catalog.oid, t.gp_segment_id)",
+				relname, matviewid);
 
 	/*
 	 * Append deleted rows contained in old transition tables.
 	 */
-	for (i = 0; i < list_length(table->old_tuplestores); i++)
+	foreach(lc, table->old_tuplestores)
 	{
+		Tuplestorestate *tuplestore = (Tuplestorestate *) lfirst(lc);
 		appendStringInfo(&str, " UNION ALL ");
 		appendStringInfo(&str," SELECT * FROM %s",
-			make_delta_enr_name("old", table->table_id, i));
+			tuplestore_get_sharedname(tuplestore));
 	}
 
 	/* Get a subquery representing pre-state of the table */
@@ -2088,13 +2223,13 @@ static RangeTblEntry*
 replace_rte_with_delta(RangeTblEntry *rte, MV_TriggerTable *table, bool is_new,
 					   QueryEnvironment *queryEnv)
 {
-	Oid relid = table->table_id;
 	StringInfoData str;
 	ParseState	*pstate;
 	RawStmt *raw;
 	Query *sub;
-	int		num_tuplestores = list_length(is_new ? table->new_tuplestores : table->old_tuplestores);
 	int		i;
+	ListCell *lc;
+	List	*ts = is_new ? table->new_tuplestores : table->old_tuplestores;
 
 	/* the previous RTE must be a subquery which represents "pre-state" table */
 	Assert(rte->rtekind == RTE_SUBQUERY);
@@ -2106,14 +2241,16 @@ replace_rte_with_delta(RangeTblEntry *rte, MV_TriggerTable *table, bool is_new,
 
 	initStringInfo(&str);
 
-	for (i = 0; i < num_tuplestores; i++)
+	i = 0;
+	foreach(lc, ts)
 	{
+		Tuplestorestate *tuplestore = (Tuplestorestate *) lfirst(lc);
 		if (i > 0)
 			appendStringInfo(&str, " UNION ALL ");
-
 		appendStringInfo(&str,
 			" SELECT * FROM %s",
-			make_delta_enr_name(is_new ? "new" : "old", relid, i));
+			tuplestore_get_sharedname(tuplestore));
+		i++;
 	}
 
 	raw = (RawStmt*)linitial(raw_parser(str.data, RAW_PARSE_DEFAULT));
@@ -2127,22 +2264,46 @@ replace_rte_with_delta(RangeTblEntry *rte, MV_TriggerTable *table, bool is_new,
 	 */
 	rte->rtekind = RTE_SUBQUERY;
 	rte->subquery = sub;
+	rte->security_barrier = false;
+
+	/* Clear fields that should not be set in a subquery RTE */
+	rte->relid = InvalidOid;
+	rte->relkind = 0;
+	rte->rellockmode = 0;
+	rte->tablesample = NULL;
+	rte->inh = false;			/* must not be set for a subquery */
 
 	return rte;
 }
 
 /*
- * rewrite_query_for_counting
+ * rewrite_query_for_counting_and_aggregates
  *
- * Rewrite query for counting duplicated tuples.
+ * Rewrite query for counting duplicated tuples and aggregate functions.
  */
 static Query *
-rewrite_query_for_counting(Query *query, ParseState *pstate)
+rewrite_query_for_counting_and_aggregates(Query *query, ParseState *pstate)
 {
 	TargetEntry *tle_count;
 	FuncCall *fn;
 	Node *node;
 
+	/* For aggregate views */
+	if (query->hasAggs)
+	{
+		ListCell *lc;
+		List *aggs = NIL;
+		AttrNumber next_resno = list_length(query->targetList) + 1;
+
+		foreach(lc, query->targetList)
+		{
+			TargetEntry *tle = (TargetEntry *) lfirst(lc);
+
+			if (IsA(tle->expr, Aggref))
+				makeIvmAggColumn(pstate, (Aggref *)tle->expr, tle->resname, &next_resno, &aggs);
+		}
+		query->targetList = list_concat(query->targetList, aggs);
+	}
 	/* Add count(*) for counting distinct tuples in views */
 	fn = makeFuncCall(SystemFuncName("count"), NIL, COERCE_EXPLICIT_CALL, -1);
 	fn->agg_star = true;
@@ -2167,41 +2328,56 @@ rewrite_query_for_counting(Query *query, ParseState *pstate)
  * Calculate view deltas generated under the modification of a table specified
  * by the RTE index.
  */
-static void
-calc_delta(MV_TriggerTable *table, int rte_index, Query *query,
-			DestReceiver *dest_old, DestReceiver *dest_new,
-			TupleDesc *tupdesc_old, TupleDesc *tupdesc_new,
-			QueryEnvironment *queryEnv)
+static char*
+calc_delta_old(Tuplestorestate *ts, Relation matviewRel, MV_TriggerTable *table, int rte_index, Query *query,
+				DestReceiver *dest_old,
+				TupleDesc *tupdesc_old,
+				QueryEnvironment *queryEnv)
 {
 	ListCell *lc = list_nth_cell(query->rtable, rte_index - 1);
 	RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
-	RefreshClause *refreshClause;
-	in_delta_calculation = true;
-
-	RangeVar *relation = makeRangeVar(get_namespace_name(RelationGetNamespace(table->rel)),
-									pstrdup(RelationGetRelationName(table->rel)),
-									-1);
-
-	refreshClause = MakeRefreshClause(false, false, relation,
-										RelationIsAppendOptimized(table->rel));
+	uint64 es_processed = 0;
+	char *enrname = NULL;
 
 	/* Generate old delta */
 	if (list_length(table->old_tuplestores) > 0)
 	{
 		/* Replace the modified table with the old delta table and calculate the old view delta. */
 		replace_rte_with_delta(rte, table, false, queryEnv);
-		refresh_matview_datafill(dest_old, query, queryEnv, tupdesc_old, "", refreshClause);
+		enrname = make_delta_enr_name(OLD_DELTA_ENRNAME, RelationGetRelid(matviewRel), gp_command_count);
+		es_processed = refresh_matview_memoryfill(dest_old, query, queryEnv,
+									tupdesc_old, enrname, matviewRel);
+		if (ts)
+			tuplestore_set_tuplecount(ts, es_processed);
 	}
+
+	return enrname;
+}
+
+static char*
+calc_delta_new(Tuplestorestate *ts, Relation matviewRel, MV_TriggerTable *table, int rte_index, Query *query,
+				DestReceiver *dest_new,
+				TupleDesc *tupdesc_new,
+				QueryEnvironment *queryEnv)
+{
+	ListCell *lc = list_nth_cell(query->rtable, rte_index - 1);
+	RangeTblEntry *rte = (RangeTblEntry *) lfirst(lc);
+	uint64 es_processed = 0;
+	char *enrname = NULL;
 
 	/* Generate new delta */
 	if (list_length(table->new_tuplestores) > 0)
 	{
 		/* Replace the modified table with the new delta table and calculate the new view delta*/
 		replace_rte_with_delta(rte, table, true, queryEnv);
-		refresh_matview_datafill(dest_new, query, queryEnv, tupdesc_new, "", refreshClause);
+		enrname = make_delta_enr_name(NEW_DELTA_ENRNAME, RelationGetRelid(matviewRel), gp_command_count);
+		es_processed = refresh_matview_memoryfill(dest_new, query, queryEnv,
+									tupdesc_new, enrname, matviewRel);
+		if (ts)
+			tuplestore_set_tuplecount(ts, es_processed);
 	}
 
-	in_delta_calculation = false;
+	return enrname;
 }
 
 /*
@@ -2222,6 +2398,8 @@ rewrite_query_for_postupdate_state(Query *query, MV_TriggerTable *table, int rte
 	return query;
 }
 
+#define IVM_colname(type, col) makeObjectName("__ivm_" type, col, "_")
+
 /*
  * apply_delta
  *
@@ -2229,12 +2407,16 @@ rewrite_query_for_postupdate_state(Query *query, MV_TriggerTable *table, int rte
  * the view maintenance graph.
  */
 static void
-apply_delta(Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *new_tuplestores,
+apply_delta(char *old_enr, char *new_enr, MV_TriggerTable *table, Oid matviewOid,
+			Tuplestorestate *old_tuplestores, Tuplestorestate *new_tuplestores,
 			TupleDesc tupdesc_old, TupleDesc tupdesc_new,
-			Query *query)
+			Query *query, bool use_count, char *count_colname)
 {
 	StringInfoData querybuf;
 	StringInfoData target_list_buf;
+	StringInfo	aggs_list_buf = NULL;
+	StringInfo	aggs_set_old = NULL;
+	StringInfo	aggs_set_new = NULL;
 	Relation	matviewRel;
 	char	   *matviewname;
 	ListCell	*lc;
@@ -2257,12 +2439,20 @@ apply_delta(Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *n
 	initStringInfo(&querybuf);
 	initStringInfo(&target_list_buf);
 
+	if (query->hasAggs)
+	{
+		if (old_tuplestores && tuplestore_tuple_count(old_tuplestores) > 0)
+			aggs_set_old = makeStringInfo();
+		if (new_tuplestores && tuplestore_tuple_count(new_tuplestores) > 0)
+			aggs_set_new = makeStringInfo();
+		aggs_list_buf = makeStringInfo();
+	}
+
 	/* build string of target list */
 	for (i = 0; i < matviewRel->rd_att->natts; i++)
 	{
 		Form_pg_attribute attr = TupleDescAttr(matviewRel->rd_att, i);
 		char   *resname = NameStr(attr->attname);
-
 		if (i != 0)
 			appendStringInfo(&target_list_buf, ", ");
 		appendStringInfo(&target_list_buf, "%s", quote_qualified_identifier(NULL, resname));
@@ -2273,15 +2463,59 @@ apply_delta(Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *n
 	{
 		TargetEntry *tle = (TargetEntry *) lfirst(lc);
 		Form_pg_attribute attr = TupleDescAttr(matviewRel->rd_att, i);
+		char *resname = NameStr(attr->attname);
 
 		i++;
-
 		if (tle->resjunk)
 			continue;
 
-		keys = lappend(keys, attr);
-	}
+		/*
+		 * For views without aggregates, all attributes are used as keys to identify a
+		 * tuple in a view.
+		 */
+		if (!query->hasAggs)
+			keys = lappend(keys, attr);
 
+		/* For views with aggregates, we need to build SET clause for updating aggregate
+		 * values. */
+		if (query->hasAggs && IsA(tle->expr, Aggref))
+		{
+			Aggref *aggref = (Aggref *) tle->expr;
+			const char *aggname = get_func_name(aggref->aggfnoid);
+
+			/*
+			 * We can use function names here because it is already checked if these
+			 * can be used in IMMV by its OID at the definition time.
+			 */
+
+			/* count */
+			if (!strcmp(aggname, "count"))
+				append_set_clause_for_count(resname, aggs_set_old, aggs_set_new, aggs_list_buf);
+
+			/* sum */
+			else if (!strcmp(aggname, "sum"))
+				append_set_clause_for_sum(resname, aggs_set_old, aggs_set_new, aggs_list_buf);
+
+			/* avg */
+			else if (!strcmp(aggname, "avg"))
+				append_set_clause_for_avg(resname, aggs_set_old, aggs_set_new, aggs_list_buf,
+										  format_type_be(aggref->aggtype));
+			else
+				elog(ERROR, "unsupported aggregate function: %s", aggname);
+		}
+	}
+	/* If we have GROUP BY clause, we use its entries as keys. */
+	if (query->hasAggs && query->groupClause)
+	{
+		foreach (lc, query->groupClause)
+		{
+			SortGroupClause *sgcl = (SortGroupClause *) lfirst(lc);
+			TargetEntry		*tle = get_sortgroupclause_tle(sgcl, query->targetList);
+			Form_pg_attribute attr = TupleDescAttr(matviewRel->rd_att, tle->resno - 1);
+
+			keys = lappend(keys, attr);
+		}
+	}
 	/* Start maintaining the materialized view. */
 	OpenMatViewIncrementalMaintenance();
 
@@ -2292,44 +2526,55 @@ apply_delta(Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *n
 	/* For tuple deletion */
 	if (old_tuplestores && tuplestore_tuple_count(old_tuplestores) > 0)
 	{
-		EphemeralNamedRelation enr = palloc(sizeof(EphemeralNamedRelationData));
 		int				rc;
-
+		EphemeralNamedRelation enr = palloc(sizeof(EphemeralNamedRelationData));
 		/* convert tuplestores to ENR, and register for SPI */
-		enr->md.name = pstrdup(OLD_DELTA_ENRNAME);
-		enr->md.reliddesc = InvalidOid;
-		enr->md.tupdesc = tupdesc_old;
+		enr->md.name = pstrdup(old_enr);
+		enr->md.reliddesc = matviewOid;
+		enr->md.tupdesc = CreateTupleDescCopy(tupdesc_old);
 		enr->md.enrtype = ENR_NAMED_TUPLESTORE;
 		enr->md.enrtuples = tuplestore_tuple_count(old_tuplestores);
-		enr->reldata = old_tuplestores;
+		enr->reldata = NULL;
 
 		rc = SPI_register_relation(enr);
 		if (rc != SPI_OK_REL_REGISTER)
 			elog(ERROR, "SPI_register failed");
 
-		apply_old_delta(matviewname, OLD_DELTA_ENRNAME, keys);
-
+		elogif(Debug_print_ivm, INFO, "IVM apply old enr %s, command_count: %d", enr->md.name, gp_command_count);
+		if (use_count)
+			/* apply old delta and get rows to be recalculated */
+			apply_old_delta_with_count(matviewname, enr->md.name,
+										keys, aggs_list_buf, aggs_set_old,
+										count_colname);
+		else
+			apply_old_delta(matviewname, enr->md.name, keys);
 	}
 	/* For tuple insertion */
 	if (new_tuplestores && tuplestore_tuple_count(new_tuplestores) > 0)
 	{
-		EphemeralNamedRelation enr = palloc(sizeof(EphemeralNamedRelationData));
 		int rc;
+		EphemeralNamedRelation enr = palloc(sizeof(EphemeralNamedRelationData));
 
 		/* convert tuplestores to ENR, and register for SPI */
-		enr->md.name = pstrdup(NEW_DELTA_ENRNAME);
-		enr->md.reliddesc = InvalidOid;
-		enr->md.tupdesc = tupdesc_new;;
+		enr->md.name = pstrdup(new_enr);
+		enr->md.reliddesc = matviewOid;
+		enr->md.tupdesc = CreateTupleDescCopy(tupdesc_new);
 		enr->md.enrtype = ENR_NAMED_TUPLESTORE;
 		enr->md.enrtuples = tuplestore_tuple_count(new_tuplestores);
-		enr->reldata = new_tuplestores;
+		enr->reldata = NULL;
 
 		rc = SPI_register_relation(enr);
 		if (rc != SPI_OK_REL_REGISTER)
 			elog(ERROR, "SPI_register failed");
 
+		elogif(Debug_print_ivm, INFO, "IVM apply new enr %s, command_count: %d", enr->md.name, gp_command_count);
 		/* apply new delta */
-		apply_new_delta(matviewname, NEW_DELTA_ENRNAME, &target_list_buf);
+		if (use_count)
+			apply_new_delta_with_count(matviewname, enr->md.name,
+										keys, aggs_set_new,
+										&target_list_buf, count_colname);
+		else
+			apply_new_delta(matviewname, enr->md.name, &target_list_buf);
 	}
 
 	/* We're done maintaining the materialized view. */
@@ -2340,6 +2585,355 @@ apply_delta(Oid matviewOid, Tuplestorestate *old_tuplestores, Tuplestorestate *n
 	/* Close SPI context. */
 	if (SPI_finish() != SPI_OK_FINISH)
 		elog(ERROR, "SPI_finish failed");
+}
+
+/*
+ * append_set_clause_for_count
+ *
+ * Append SET clause string for count aggregation to given buffers.
+ * Also, append resnames required for calculating the aggregate value.
+ */
+static void
+append_set_clause_for_count(const char *resname, StringInfo buf_old,
+							StringInfo buf_new,StringInfo aggs_list)
+{
+	/* For tuple deletion */
+	if (buf_old)
+	{
+		/* resname = mv.resname - t.resname */
+		appendStringInfo(buf_old,
+			", %s = %s",
+			quote_qualified_identifier(NULL, resname),
+			get_operation_string(IVM_SUB, resname, "mv", "t", NULL, NULL));
+	}
+	/* For tuple insertion */
+	if (buf_new)
+	{
+		/* resname = mv.resname + diff.resname */
+		appendStringInfo(buf_new,
+			", %s = %s",
+			quote_qualified_identifier(NULL, resname),
+			get_operation_string(IVM_ADD, resname, "mv", "diff", NULL, NULL));
+	}
+
+	appendStringInfo(aggs_list, ", %s",
+		quote_qualified_identifier("diff", resname)
+	);
+}
+
+/*
+ * append_set_clause_for_sum
+ *
+ * Append SET clause string for sum aggregation to given buffers.
+ * Also, append resnames required for calculating the aggregate value.
+ */
+static void
+append_set_clause_for_sum(const char *resname, StringInfo buf_old,
+						  StringInfo buf_new, StringInfo aggs_list)
+{
+	char *count_col = IVM_colname("count", resname);
+
+	/* For tuple deletion */
+	if (buf_old)
+	{
+		/* sum = mv.sum - t.sum */
+		appendStringInfo(buf_old,
+			", %s = %s",
+			quote_qualified_identifier(NULL, resname),
+			get_operation_string(IVM_SUB, resname, "mv", "t", count_col, NULL)
+		);
+		/* count = mv.count - t.count */
+		appendStringInfo(buf_old,
+			", %s = %s",
+			quote_qualified_identifier(NULL, count_col),
+			get_operation_string(IVM_SUB, count_col, "mv", "t", NULL, NULL)
+		);
+	}
+	/* For tuple insertion */
+	if (buf_new)
+	{
+		/* sum = mv.sum + diff.sum */
+		appendStringInfo(buf_new,
+			", %s = %s",
+			quote_qualified_identifier(NULL, resname),
+			get_operation_string(IVM_ADD, resname, "mv", "diff", count_col, NULL)
+		);
+		/* count = mv.count + diff.count */
+		appendStringInfo(buf_new,
+			", %s = %s",
+			quote_qualified_identifier(NULL, count_col),
+			get_operation_string(IVM_ADD, count_col, "mv", "diff", NULL, NULL)
+		);
+	}
+
+	appendStringInfo(aggs_list, ", %s, %s",
+		quote_qualified_identifier("diff", resname),
+		quote_qualified_identifier("diff", IVM_colname("count", resname))
+	);
+}
+
+/*
+ * append_set_clause_for_avg
+ *
+ * Append SET clause string for avg aggregation to given buffers.
+ * Also, append resnames required for calculating the aggregate value.
+ */
+static void
+append_set_clause_for_avg(const char *resname, StringInfo buf_old,
+						  StringInfo buf_new, StringInfo aggs_list,
+						  const char *aggtype)
+{
+	char *sum_col = IVM_colname("sum", resname);
+	char *count_col = IVM_colname("count", resname);
+
+	/* For tuple deletion */
+	if (buf_old)
+	{
+		/* avg = (mv.sum - t.sum)::aggtype / (mv.count - t.count) */
+		appendStringInfo(buf_old,
+			", %s = %s OPERATOR(pg_catalog./) %s",
+			quote_qualified_identifier(NULL, resname),
+			get_operation_string(IVM_SUB, sum_col, "mv", "t", count_col, aggtype),
+			get_operation_string(IVM_SUB, count_col, "mv", "t", NULL, NULL)
+		);
+		/* sum = mv.sum - t.sum */
+		appendStringInfo(buf_old,
+			", %s = %s",
+			quote_qualified_identifier(NULL, sum_col),
+			get_operation_string(IVM_SUB, sum_col, "mv", "t", count_col, NULL)
+		);
+		/* count = mv.count - t.count */
+		appendStringInfo(buf_old,
+			", %s = %s",
+			quote_qualified_identifier(NULL, count_col),
+			get_operation_string(IVM_SUB, count_col, "mv", "t", NULL, NULL)
+		);
+
+	}
+	/* For tuple insertion */
+	if (buf_new)
+	{
+		/* avg = (mv.sum + diff.sum)::aggtype / (mv.count + diff.count) */
+		appendStringInfo(buf_new,
+			", %s = %s OPERATOR(pg_catalog./) %s",
+			quote_qualified_identifier(NULL, resname),
+			get_operation_string(IVM_ADD, sum_col, "mv", "diff", count_col, aggtype),
+			get_operation_string(IVM_ADD, count_col, "mv", "diff", NULL, NULL)
+		);
+		/* sum = mv.sum + diff.sum */
+		appendStringInfo(buf_new,
+			", %s = %s",
+			quote_qualified_identifier(NULL, sum_col),
+			get_operation_string(IVM_ADD, sum_col, "mv", "diff", count_col, NULL)
+		);
+		/* count = mv.count + diff.count */
+		appendStringInfo(buf_new,
+			", %s = %s",
+			quote_qualified_identifier(NULL, count_col),
+			get_operation_string(IVM_ADD, count_col, "mv", "diff", NULL, NULL)
+		);
+	}
+
+	appendStringInfo(aggs_list, ", %s, %s, %s",
+		quote_qualified_identifier("diff", resname),
+		quote_qualified_identifier("diff", IVM_colname("sum", resname)),
+		quote_qualified_identifier("diff", IVM_colname("count", resname))
+	);
+}
+
+/*
+ * get_operation_string
+ *
+ * Build a string to calculate the new aggregate values.
+ */
+static char *
+get_operation_string(IvmOp op, const char *col, const char *arg1, const char *arg2,
+					 const char* count_col, const char *castType)
+{
+	StringInfoData buf;
+	StringInfoData castString;
+	char   *col1 = quote_qualified_identifier(arg1, col);
+	char   *col2 = quote_qualified_identifier(arg2, col);
+	char	op_char = (op == IVM_SUB ? '-' : '+');
+
+	initStringInfo(&buf);
+	initStringInfo(&castString);
+
+	if (castType)
+		appendStringInfo(&castString, "::%s", castType);
+
+	if (!count_col)
+	{
+		/*
+		 * If the attributes don't have count columns then calc the result
+		 * by using the operator simply.
+		 */
+		appendStringInfo(&buf, "(%s OPERATOR(pg_catalog.%c) %s)%s",
+			col1, op_char, col2, castString.data);
+	}
+	else
+	{
+		/*
+		 * If the attributes have count columns then consider the condition
+		 * where the result becomes NULL.
+		 */
+		char *null_cond = get_null_condition_string(op, arg1, arg2, count_col);
+
+		appendStringInfo(&buf,
+			"(CASE WHEN %s THEN NULL "
+				"WHEN %s IS NULL THEN %s "
+				"WHEN %s IS NULL THEN %s "
+				"ELSE (%s OPERATOR(pg_catalog.%c) %s)%s END)",
+			null_cond,
+			col1, col2,
+			col2, col1,
+			col1, op_char, col2, castString.data
+		);
+	}
+
+	return buf.data;
+}
+
+/*
+ * get_null_condition_string
+ *
+ * Build a predicate string for CASE clause to check if an aggregate value
+ * will became NULL after the given operation is applied.
+ */
+static char *
+get_null_condition_string(IvmOp op, const char *arg1, const char *arg2,
+						  const char* count_col)
+{
+	StringInfoData null_cond;
+	initStringInfo(&null_cond);
+
+	switch (op)
+	{
+		case IVM_ADD:
+			appendStringInfo(&null_cond,
+				"%s OPERATOR(pg_catalog.=) 0 AND %s OPERATOR(pg_catalog.=) 0",
+				quote_qualified_identifier(arg1, count_col),
+				quote_qualified_identifier(arg2, count_col)
+			);
+			break;
+		case IVM_SUB:
+			appendStringInfo(&null_cond,
+				"%s OPERATOR(pg_catalog.=) %s",
+				quote_qualified_identifier(arg1, count_col),
+				quote_qualified_identifier(arg2, count_col)
+			);
+			break;
+		default:
+			elog(ERROR,"unknown operation");
+	}
+
+	return null_cond.data;
+}
+
+
+/*
+ * apply_old_delta_with_count
+ *
+ * Execute a query for applying a delta table given by deltname_old
+ * which contains tuples to be deleted from to a materialized view given by
+ * matviewname.  This is used when counting is required, that is, the view
+ * has aggregate or distinct.
+ *
+ * If the view desn't have aggregates or has GROUP BY, this requires a keys
+ * list to identify a tuple in the view. If the view has aggregates, this
+ * requires strings representing resnames of aggregates and SET clause for
+ * updating aggregate values.
+ */
+static void
+apply_old_delta_with_count(const char *matviewname, const char *deltaname_old,
+				List *keys, StringInfo aggs_list, StringInfo aggs_set,
+				const char *count_colname)
+{
+	StringInfoData	querybuf;
+	StringInfoData	tselect;
+	char   *match_cond;
+	bool	agg_without_groupby = (list_length(keys) == 0);
+
+	/* build WHERE condition for searching tuples to be deleted */
+	match_cond = get_matching_condition_string(keys);
+
+#if 0
+	initStringInfo(&querybuf);
+	appendStringInfo(&querybuf,
+					"WITH t AS ("			/* collecting tid of target tuples in the view */
+						"SELECT diff.%s, "			/* count column */
+								"(diff.%s OPERATOR(pg_catalog.=) mv.%s AND %s) AS for_dlt, "
+								"mv.ctid "
+								"%s "				/* aggregate columns */
+						"FROM %s AS mv, %s AS diff "
+						"WHERE %s"					/* tuple matching condition */
+					"), updt AS ("			/* update a tuple if this is not to be deleted */
+						"UPDATE %s AS mv SET %s = mv.%s OPERATOR(pg_catalog.-) t.%s "
+											"%s"	/* SET clauses for aggregates */
+						"FROM t WHERE mv.ctid OPERATOR(pg_catalog.=) t.ctid AND NOT for_dlt "
+					")"
+					/* delete a tuple if this is to be deleted */
+					"DELETE FROM %s AS mv USING t "
+					"WHERE mv.ctid OPERATOR(pg_catalog.=) t.ctid AND for_dlt",
+					count_colname,
+					count_colname, count_colname, (agg_without_groupby ? "false" : "true"),
+					(aggs_list != NULL ? aggs_list->data : ""),
+					matviewname, deltaname_old,
+					match_cond,
+					matviewname, count_colname, count_colname, count_colname,
+					(aggs_set != NULL ? aggs_set->data : ""),
+					matviewname);
+#else
+	/* CBDB_IVM_FIXME: use tuplestore to replace temp table. */
+	initStringInfo(&tselect);
+	initStringInfo(&querybuf);
+	appendStringInfo(&tselect,
+					"CREATE TEMP TABLE t AS SELECT diff.%s, "			/* count column */
+								"(diff.%s OPERATOR(pg_catalog.=) mv.%s AND %s) AS for_dlt, "
+								"mv.ctid AS tid, mv.gp_segment_id AS gid"
+								"%s "				/* aggregate columns */
+						"FROM %s AS mv, %s AS diff "
+						"WHERE %s DISTRIBUTED RANDOMLY",	/* tuple matching condition */
+					count_colname,
+					count_colname, count_colname, (agg_without_groupby ? "false" : "true"),
+					(aggs_list != NULL ? aggs_list->data : ""),
+					matviewname, deltaname_old,
+					match_cond);
+
+	/* Create the temporary table. */
+	if (SPI_exec(tselect.data, 0) != SPI_OK_UTILITY)
+		elog(ERROR, "SPI_exec failed: %s", tselect.data);
+
+	/* Search for matching tuples from the view and update or delete if found. */
+	appendStringInfo(&querybuf,
+					"UPDATE %s AS mv SET %s = mv.%s OPERATOR(pg_catalog.-) t.%s "
+											"%s"	/* SET clauses for aggregates */
+						"FROM t WHERE mv.ctid OPERATOR(pg_catalog.=) t.tid"
+						" AND mv.gp_segment_id OPERATOR(pg_catalog.=) t.gid"
+						" AND NOT for_dlt ",
+					matviewname, count_colname, count_colname, count_colname,
+					(aggs_set != NULL ? aggs_set->data : ""));
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_UPDATE)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+	elogif(Debug_print_ivm, INFO, "IVM apply_old_delta_with_count update: %s", querybuf.data);
+
+	resetStringInfo(&querybuf);
+	appendStringInfo(&querybuf,
+					"DELETE FROM %s AS mv USING t "
+					"WHERE mv.ctid OPERATOR(pg_catalog.=) t.tid"
+					" AND mv.gp_segment_id OPERATOR(pg_catalog.=) t.gid"
+					" AND for_dlt",
+					matviewname);
+#endif
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_DELETE)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+	elogif(Debug_print_ivm, INFO, "IVM apply_old_delta_with_count delete: %s", querybuf.data);
+
+	/* Clean up temp tables. */
+	resetStringInfo(&querybuf);
+	appendStringInfo(&querybuf, "DROP TABLE t");
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_UTILITY)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
 }
 
 /*
@@ -2375,9 +2969,9 @@ apply_old_delta(const char *matviewname, const char *deltaname_old,
 	/* Search for matching tuples from the view and update or delete if found. */
 	initStringInfo(&querybuf);
 	appendStringInfo(&querybuf,
-	"DELETE FROM %s WHERE ctid IN ("
-		"SELECT tid FROM (SELECT pg_catalog.row_number() over (partition by %s) AS \"__ivm_row_number__\","
-								  "mv.ctid AS tid,"
+	"DELETE FROM %s WHERE (ctid, gp_segment_id) IN ("
+		"SELECT tid, sid FROM (SELECT pg_catalog.row_number() over (partition by %s) AS \"__ivm_row_number__\","
+								  "mv.ctid AS tid, mv.gp_segment_id as sid,"
 								  "diff.\"__ivm_count__\""
 						 "FROM %s AS mv, %s AS diff "
 						 "WHERE %s) v "
@@ -2389,6 +2983,98 @@ apply_old_delta(const char *matviewname, const char *deltaname_old,
 
 	if (SPI_exec(querybuf.data, 0) != SPI_OK_DELETE)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+	elogif(Debug_print_ivm, INFO, "IVM apply_old_delta delete: %s", querybuf.data);
+}
+
+/*
+ * apply_new_delta_with_count
+ *
+ * Execute a query for applying a delta table given by deltname_new
+ * which contains tuples to be inserted into a materialized view given by
+ * matviewname.  This is used when counting is required, that is, the view
+ * has aggregate or distinct. Also, when a table in EXISTS sub queries
+ * is modified.
+ *
+ * If the view desn't have aggregates or has GROUP BY, this requires a keys
+ * list to identify a tuple in the view. If the view has aggregates, this
+ * requires strings representing SET clause for updating aggregate values.
+ */
+static void
+apply_new_delta_with_count(const char *matviewname, const char* deltaname_new,
+				List *keys, StringInfo aggs_set, StringInfo target_list,
+				const char* count_colname)
+{
+	StringInfoData	querybuf;
+	StringInfoData	returning_keys;
+	ListCell	*lc;
+	char	*match_cond = "";
+
+	/* build WHERE condition for searching tuples to be updated */
+	match_cond = get_matching_condition_string(keys);
+
+	/* build string of keys list */
+	initStringInfo(&returning_keys);
+	if (keys)
+	{
+		foreach (lc, keys)
+		{
+			Form_pg_attribute attr = (Form_pg_attribute) lfirst(lc);
+			char   *resname = NameStr(attr->attname);
+			appendStringInfo(&returning_keys, "%s", quote_qualified_identifier("mv", resname));
+			if (lnext(keys, lc))
+				appendStringInfo(&returning_keys, ", ");
+		}
+	}
+	else
+		appendStringInfo(&returning_keys, "NULL");
+
+	/* Search for matching tuples from the view and update if found or insert if not. */
+	initStringInfo(&querybuf);
+#if 0
+	appendStringInfo(&querybuf,
+					"WITH updt AS ("		/* update a tuple if this exists in the view */
+						"UPDATE %s AS mv SET %s = mv.%s OPERATOR(pg_catalog.+) diff.%s "
+											"%s "	/* SET clauses for aggregates */
+						"FROM %s AS diff "
+						"WHERE %s "					/* tuple matching condition */
+						"RETURNING %s"				/* returning keys of updated tuples */
+					") INSERT INTO %s (%s)"	/* insert a new tuple if this doesn't existw */
+						"SELECT %s FROM %s AS diff "
+						"WHERE NOT EXISTS (SELECT 1 FROM updt AS mv WHERE %s);",
+					matviewname, count_colname, count_colname, count_colname,
+					(aggs_set != NULL ? aggs_set->data : ""),
+					deltaname_new,
+					match_cond,
+					returning_keys.data,
+					matviewname, target_list->data,
+					target_list->data, deltaname_new,
+					match_cond);
+#else
+	appendStringInfo(&querybuf,
+					"UPDATE %s AS mv SET %s = mv.%s OPERATOR(pg_catalog.+) diff.%s "
+											"%s "	/* SET clauses for aggregates */
+						"FROM %s AS diff "
+						"WHERE %s ",					/* tuple matching condition */
+					matviewname, count_colname, count_colname, count_colname,
+					(aggs_set != NULL ? aggs_set->data : ""),
+					deltaname_new,
+					match_cond);
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_UPDATE)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+	elogif(Debug_print_ivm, INFO, "IVM apply_new_delta_with_count update: %s", querybuf.data);
+
+	resetStringInfo(&querybuf);
+	appendStringInfo(&querybuf,
+					"INSERT INTO %s (%s)"	/* insert a new tuple if this doesn't existw */
+						"SELECT %s FROM %s AS diff "
+						"WHERE NOT EXISTS (SELECT 1 FROM %s AS mv WHERE %s);",
+					matviewname, target_list->data,
+					target_list->data, deltaname_new,
+					matviewname, match_cond);
+#endif
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_INSERT)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+	elogif(Debug_print_ivm,INFO, "IVM apply_new_delta_with_count insert: %s", querybuf.data);
 }
 
 /*
@@ -2406,6 +3092,7 @@ apply_new_delta(const char *matviewname, const char *deltaname_new,
 
 	/* Search for matching tuples from the view and update or delete if found. */
 	initStringInfo(&querybuf);
+
 	appendStringInfo(&querybuf,
 					"INSERT INTO %s (%s) SELECT %s FROM ("
 						"SELECT diff.*, pg_catalog.generate_series(1, diff.\"__ivm_count__\")"
@@ -2416,6 +3103,7 @@ apply_new_delta(const char *matviewname, const char *deltaname_new,
 
 	if (SPI_exec(querybuf.data, 0) != SPI_OK_INSERT)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+	elogif(Debug_print_ivm, INFO, "IVM apply_new_delta: %s", querybuf.data);
 }
 
 /*
@@ -2483,18 +3171,35 @@ generate_equal(StringInfo querybuf, Oid opttype,
 /*
  * mv_InitHashTables
  */
-static void
+void
 mv_InitHashTables(void)
 {
-	HASHCTL		ctl;
+	HASHCTL		info, ctl;
 
-	memset(&ctl, 0, sizeof(ctl));
-	ctl.keysize = sizeof(Oid);
-	ctl.entrysize = sizeof(MV_TriggerHashEntry);
+	memset(&info, 0, sizeof(info));
+	info.keysize = sizeof(Oid);
+	info.entrysize = sizeof(MV_TriggerHashEntry);
 	mv_trigger_info = hash_create("MV trigger info",
 								 MV_INIT_QUERYHASHSIZE,
-								 &ctl, HASH_ELEM | HASH_BLOBS);
+								 &info, HASH_ELEM | HASH_BLOBS);
+
+	memset(&ctl, 0, sizeof(ctl));
+	ctl.keysize = SNAPSHOT_KEYSIZE;
+	ctl.entrysize = sizeof(SnapshotDumpEntry);
+	ctl.hash = string_hash;
+	mv_trigger_snapshot = ShmemInitHash("MV trigger snapshot",
+								 MV_INIT_SNAPSHOTHASHSIZE,
+								 MV_INIT_SNAPSHOTHASHSIZE,
+								 &ctl, HASH_ELEM | HASH_FUNCTION);
+
 }
+
+Size
+mv_TableShmemSize(void)
+{
+	return hash_estimate_size(MV_INIT_SNAPSHOTHASHSIZE, sizeof(SnapshotDumpEntry));
+}
+
 
 /*
  * AtAbort_IVM
@@ -2505,16 +3210,55 @@ mv_InitHashTables(void)
 void
 AtAbort_IVM()
 {
-	HASH_SEQ_STATUS seq;
-	MV_TriggerHashEntry *entry;
+	AtEOXact_IVM(false);
+}
 
-	if (mv_trigger_info)
+void
+AtEOXact_IVM(bool isCommit)
+{
+	ListCell *lc;
+	List	*mvlist = AfterTriggerGetMvList();
+
+	foreach(lc, mvlist)
 	{
-		hash_seq_init(&seq, mv_trigger_info);
-		while ((entry = hash_seq_search(&seq)) != NULL)
-			clean_up_IVM_hash_entry(entry, true);
+		Oid matviewOid = lfirst_oid(lc);
+		{
+			MV_TriggerHashEntry *entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
+													  (void *) &matviewOid,
+													  HASH_FIND, NULL);
+			if (entry != NULL)
+			{
+				entry->reference--;
+				ResourceOwner resowner = entry->resowner;
+				MemoryContext ctx = entry->context;
+				if (entry->reference == 0)
+				{
+					clean_up_IVM_hash_entry(entry, isCommit);
+				}
+				if (resowner)
+				{
+					ResourceOwnerRelease(resowner,
+										RESOURCE_RELEASE_BEFORE_LOCKS,
+										false, /* isCommit */
+										false); /* isTopLevel */
+					ResourceOwnerRelease(resowner,
+										RESOURCE_RELEASE_LOCKS,
+										false, /* isCommit */
+										false); /* isTopLevel */
+					ResourceOwnerRelease(resowner,
+										RESOURCE_RELEASE_AFTER_LOCKS,
+										false, /* isCommit */
+										false); /* isTopLevel */
+					ResourceOwnerDelete(resowner);
+				}
+				if (ctx)
+				{
+					MemoryContextReset(ctx);
+					MemoryContextDelete(ctx);
+				}
+			}
+		}
 	}
-	in_delta_calculation = false;
 }
 
 /*
@@ -2526,27 +3270,78 @@ AtAbort_IVM()
 static void
 clean_up_IVM_hash_entry(MV_TriggerHashEntry *entry, bool is_abort)
 {
-	bool found;
 	ListCell *lc;
 
 	foreach(lc, entry->tables)
 	{
 		MV_TriggerTable *table = (MV_TriggerTable *) lfirst(lc);
 
-		list_free(table->old_tuplestores);
-		list_free(table->new_tuplestores);
+		if (table->old_tuplestores)
+		{
+			list_free(table->old_tuplestores);
+			table->old_tuplestores = NIL;
+		}
+		if (table->new_tuplestores)
+		{
+			list_free(table->new_tuplestores);
+			table->new_tuplestores = NIL;
+		}
 		if (!is_abort)
 		{
-			ExecDropSingleTupleTableSlot(table->slot);
-			table_close(table->rel, NoLock);
+			if (table->slot)
+			{
+				ExecDropSingleTupleTableSlot(table->slot);
+				table->slot = NULL;
+			}
+			if (table->rel)
+			{
+				table_close(table->rel, NoLock);
+				table->rel = NULL;
+			}
 		}
 	}
-	list_free(entry->tables);
 
-	if (!is_abort)
-		UnregisterSnapshot(entry->snapshot);
+	if (entry->tables)
+	{
+		list_free(entry->tables);
+		entry->tables = NIL;
+	}
+	clean_up_ivm_dsm_entry(entry);
 
-	hash_search(mv_trigger_info, (void *) &entry->matview_id, HASH_REMOVE, &found);
+	hash_search(mv_trigger_info, (void *) &entry->matview_id, HASH_REMOVE, NULL);
+}
+
+/*
+ * clean_up_ivm_dsm_entry
+ *
+ * This function is responsible for cleaning up the DSM entry associated with
+ * a given materialized view trigger hash entry.
+ */
+static void
+clean_up_ivm_dsm_entry(MV_TriggerHashEntry *entry)
+{
+	SnapshotDumpEntry	*pDump;
+	if (entry->snapname && entry->snapname[0] != '\0' && Gp_is_writer)
+	{
+		bool found;
+		LWLockAcquire(GPIVMResLock, LW_EXCLUSIVE);
+		pDump = (SnapshotDumpEntry *) hash_search(mv_trigger_snapshot,
+													(void *)entry->snapname,
+													HASH_FIND, &found);
+		if (found)
+		{
+			/* Only creater can detach the dsm segment. */
+			if (pDump->handle && pDump->pid == MyProcPid)
+			{
+				Assert(entry->matview_id == pDump->matview_id);
+				dsm_detach(pDump->segment);
+				pDump->handle = DSM_HANDLE_INVALID;
+			}
+			hash_search(mv_trigger_snapshot, (void *)entry->snapname, HASH_REMOVE, NULL);
+			entry->snapname = NULL;
+		}
+		LWLockRelease(GPIVMResLock);
+	}
 }
 
 /*
@@ -2560,4 +3355,487 @@ isIvmName(const char *s)
 	if (s)
 		return (strncmp(s, "__ivm_", 6) == 0);
 	return false;
+}
+
+/*
+ * This function is responsible for refreshing the materialized view.
+ * It fills the memory with the result of the query execution.
+ * The result is then sent to the specified destination receiver.
+ */
+static uint64
+refresh_matview_memoryfill(DestReceiver *dest, Query *query,
+						 QueryEnvironment *queryEnv,
+						 TupleDesc *resultTupleDesc,
+						 const char *queryString, Relation matviewRel)
+{
+	List	   *rewritten;
+	PlannedStmt *plan;
+	QueryDesc  *queryDesc;
+	Query	   *copied_query;
+	uint64		processed;
+
+	List       *saved_dispatch_oids = GetAssignedOidsForDispatch();
+
+	/* Lock and rewrite, using a copy to preserve the original query. */
+	copied_query = copyObject(query);
+	AcquireRewriteLocks(copied_query, true, false);
+	rewritten = QueryRewrite(copied_query);
+
+	/* SELECT should never rewrite to more or less than one SELECT query */
+	if (list_length(rewritten) != 1)
+		elog(ERROR, "unexpected rewrite result for refresh_matview_memoryfill.");
+	query = (Query *) linitial(rewritten);
+	query->parentStmtType = PARENTSTMTTYPE_CTAS;
+
+	query->intoPolicy = matviewRel->rd_cdbpolicy;
+
+	/* Check for user-requested abort. */
+	CHECK_FOR_INTERRUPTS();
+	/* Close parallel insert to tuplestore. */
+	plan = pg_plan_query(query, queryString, CURSOR_OPT_PARALLEL_OK, NULL);
+
+	plan->intoClause = makeIvmIntoClause(queryString, matviewRel);
+	plan->refreshClause = NULL;
+	/*
+	 * Use a snapshot with an updated command ID to ensure this query sees
+	 * results of any previously executed queries.  (This could only matter if
+	 * the planner executed an allegedly-stable function that changed the
+	 * database contents, but let's do it anyway to be safe.)
+	 */
+	PushCopiedSnapshot(GetActiveSnapshot());
+	UpdateActiveSnapshotCommandId();
+
+	/* Create a QueryDesc, redirecting output to our tuple receiver */
+	queryDesc = CreateQueryDesc(plan, queryString,
+								GetActiveSnapshot(), InvalidSnapshot,
+								dest, NULL, queryEnv ? queryEnv: NULL, 0);
+
+	RestoreOidAssignments(saved_dispatch_oids);
+
+	/* call ExecutorStart to prepare the plan for execution */
+	ExecutorStart(queryDesc, 0);
+
+	/* run the plan */
+	ExecutorRun(queryDesc, ForwardScanDirection, 0L, true);
+
+	if (resultTupleDesc)
+		*resultTupleDesc = CreateTupleDescCopy(queryDesc->tupDesc);
+
+	/* and clean up */
+	ExecutorFinish(queryDesc);
+	ExecutorEnd(queryDesc);
+
+	processed = queryDesc->es_processed;
+
+	FreeQueryDesc(queryDesc);
+
+	PopActiveSnapshot();
+
+	elogif(Debug_print_ivm, INFO, "IVM processed %s, %lu tuples.", queryString, processed);
+
+	return processed;
+}
+
+/*
+ *
+ * Add a preassigned materialized view entry to the hash table.
+ */
+void
+AddPreassignedMVEntry(Oid matview_id, Oid table_id, const char* snapname)
+{
+	MV_TriggerTable *table;
+	bool found;
+	ListCell	*lc;
+	MV_TriggerHashEntry *entry;
+	MemoryContext oldcxt;
+	ResourceOwner oldowner;
+	int len = strlen(snapname);
+
+	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
+											  (void *) &matview_id,
+											  HASH_ENTER, &found);
+	if (!found)
+	{
+		entry->context = AllocSetContextCreate(TopMemoryContext,
+													"IVM Reader Session",
+													ALLOCSET_DEFAULT_SIZES);
+		entry->resowner = ResourceOwnerCreate(TopTransactionResourceOwner, "IVM Reader Session");
+		entry->matview_id = matview_id;
+		entry->reference = 1;
+		entry->tables = NIL;
+		entry->has_old = false;
+		entry->has_new = false;
+		entry->pid = MyProcPid;
+		entry->snapshot = NULL;
+	}
+
+	/* Switch to the new resource owner and memory context */
+	oldowner = CurrentResourceOwner;
+	CurrentResourceOwner = entry->resowner;
+	oldcxt = MemoryContextSwitchTo(entry->context);
+
+	/* Copy the snapshot name */
+	if (entry->snapname)
+		strncpy(entry->snapname, snapname, len);
+	else
+		entry->snapname = pstrdup(snapname);
+	entry->snapname[len] = '\0';
+
+	/* Import the snapshot */
+	entry->snapshot = ivm_import_snapshot(snapname);
+
+	Assert(entry->snapshot);
+
+	found = false;
+	foreach(lc, entry->tables)
+	{
+		table = (MV_TriggerTable *) lfirst(lc);
+		if (table->table_id == table_id)
+		{
+			found = true;
+			break;
+		}
+	}
+	if (!found)
+	{
+		table = (MV_TriggerTable *) palloc0(sizeof(MV_TriggerTable));
+		entry->tables = lappend(entry->tables, table);
+	}
+	/* Switch back to the old memory context and resource owner */
+	MemoryContextSwitchTo(oldcxt);
+	CurrentResourceOwner = oldowner;
+
+	AfterTriggerAppendMvList(matview_id);
+	return;
+}
+
+/*
+ * ivm_immediate_cleanup
+ *
+ * Clean up hash entries for a materialized view after its
+ * maintenance finished.
+ */
+Datum
+ivm_immediate_cleanup(PG_FUNCTION_ARGS)
+{
+	Oid matview_id = PG_GETARG_OID(0);
+	bool result = true;
+	ResourceOwner resowner;
+	MemoryContext ctx;
+
+	MV_TriggerHashEntry *entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
+													  (void *) &matview_id,
+													  HASH_FIND, NULL);
+	if (entry != NULL)
+	{
+		resowner = entry->resowner;
+		ctx = entry->context;
+		clean_up_IVM_hash_entry(entry, true);
+		if (resowner)
+		{
+			ResourceOwnerRelease(resowner,
+								RESOURCE_RELEASE_BEFORE_LOCKS,
+								false, /* isCommit */
+								false); /* isTopLevel */
+			ResourceOwnerRelease(resowner,
+								RESOURCE_RELEASE_LOCKS,
+								false, /* isCommit */
+								false); /* isTopLevel */
+			ResourceOwnerRelease(resowner,
+								RESOURCE_RELEASE_AFTER_LOCKS,
+								false, /* isCommit */
+								false); /* isTopLevel */
+		}
+		if (ctx)
+		{
+			MemoryContextReset(ctx);
+			MemoryContextDelete(ctx);
+		}
+	}
+
+	PG_RETURN_BOOL(result);
+}
+
+/*
+ * apply_cleanup
+ *
+ * Apply immediate cleanup for a materialized view.
+ */
+static void
+apply_cleanup(Oid matview_id)
+{
+	StringInfoData	querybuf;
+	/* Open SPI context. */
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+
+	initStringInfo(&querybuf);
+	appendStringInfo(&querybuf,
+			"SELECT pg_catalog.ivm_immediate_cleanup(%d::pg_catalog.oid)",
+				matview_id);
+
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+
+	elogif(Debug_print_ivm, INFO, "IVM apply_cleanup: %s", querybuf.data);
+
+	/* Close SPI context. */
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+
+	return;
+}
+
+/*
+ * ivm_export_snapshot
+ *
+ * Export a snapshot in QEs.
+ *
+ * Parameters:
+ * - matview_id: the OID of the materialized view
+ * - snapname: the name of the snapshot to export
+ */
+static void
+ivm_export_snapshot(Oid matview_id, char *snapname)
+{
+	StringInfoData	querybuf;
+	/* Open SPI context. */
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+
+	initStringInfo(&querybuf);
+	appendStringInfo(&querybuf,
+			"SELECT pg_catalog.pg_export_snapshot_def(%d::pg_catalog.oid, '%s')", matview_id, snapname);
+
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+
+	elogif(Debug_print_ivm, INFO, "IVM ivm_export_snapshot: %s", querybuf.data);
+
+	/* Close SPI context. */
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+	return;
+}
+
+/*
+ * pg_export_snapshot_def
+ *		SQL-callable wrapper for export snapshot.
+ */
+Datum
+pg_export_snapshot_def(PG_FUNCTION_ARGS)
+{
+	bool 	found;
+	Oid 	matview_id = PG_GETARG_OID(0);
+	char	*snapname = text_to_cstring(PG_GETARG_TEXT_PP(1));
+	Snapshot snapshot = GetActiveSnapshot();
+	SnapshotDumpEntry	*pDump;
+	dsm_segment *segment;
+	Assert(snapshot->snapshot_type == SNAPSHOT_MVCC);
+	Assert(snapname);
+
+	LWLockAcquire(GPIVMResLock, LW_EXCLUSIVE);
+	pDump = (SnapshotDumpEntry *) hash_search(mv_trigger_snapshot,
+											  (void *) snapname,
+											  HASH_ENTER_NULL,
+											  &found);
+	if (!pDump)
+		ereport(ERROR,
+				(errcode(ERRCODE_OUT_OF_MEMORY),
+				 errmsg("out of shared memory"),
+				 errhint("out of cross-slice trigger snapshot slots.")));
+
+	if (!found)
+	{
+		Size sz = EstimateSnapshotSpace(snapshot);
+		segment = dsm_create(sz, 0);
+
+		char *ptr = dsm_segment_address(segment);
+		SerializeSnapshot(snapshot, ptr);
+
+		pDump->segment = segment;
+		pDump->handle = dsm_segment_handle(segment);
+		pDump->pid = MyProcPid;
+		pDump->matview_id = matview_id;
+
+		dsm_pin_mapping(segment);
+	}
+	LWLockRelease(GPIVMResLock);
+
+	PG_RETURN_TEXT_P(cstring_to_text(snapname));
+}
+
+
+/*
+ * ExecuteTruncateGuts_IVM
+ *
+ * This function truncates the given materialized view and its dependent
+ * objects, and then regenerates the data for the materialized view.
+ *
+ * Parameters:
+ * - matviewRel: the relation of the materialized view to truncate
+ * - matviewOid: the OID of the materialized view to truncate
+ * - query: the query to use to regenerate the data for the materialized view
+ */
+static void
+ExecuteTruncateGuts_IVM(Relation matviewRel,
+						Oid matviewOid,
+						Query *query)
+{
+	Oid			OIDNewHeap;
+	DestReceiver *dest;
+	uint64		processed = 0;
+	Query		*dataQuery = rewriteQueryForIMMV(query, NIL);
+	char		relpersistence = matviewRel->rd_rel->relpersistence;
+	RefreshClause *refreshClause;
+	/*
+	* Create the transient table that will receive the regenerated data. Lock
+	* it against access by any other process until commit (by which time it
+	* will be gone).
+	*/
+	OIDNewHeap = make_new_heap(matviewOid, matviewRel->rd_rel->reltablespace,
+								relpersistence, ExclusiveLock, false, true);
+	LockRelationOid(OIDNewHeap, AccessExclusiveLock);
+	dest = CreateTransientRelDestReceiver(OIDNewHeap, matviewOid, false,
+										relpersistence, false);
+
+	RangeVar *relation = makeRangeVar(get_namespace_name(get_rel_namespace(matviewOid)),
+										get_rel_name(matviewOid), -1);
+	refreshClause = MakeRefreshClause(false, false, relation);
+
+	dataQuery->intoPolicy = matviewRel->rd_cdbpolicy;
+	dataQuery->parentStmtType = PARENTSTMTTYPE_REFRESH_MATVIEW;
+	/* Generate the data */
+	processed = refresh_matview_datafill(dest, dataQuery, "truncate", refreshClause);
+	refresh_by_heap_swap(matviewOid, OIDNewHeap, relpersistence);
+}
+
+
+/*
+ * ivm_import_snapshot
+ *
+ * This function imports a snapshot from the hash table based on the given name.
+ *
+ * Parameters:
+ * - idstr: a string representing the id of the snapshot to import
+ *
+ * Returns:
+ * - the imported snapshot
+ */
+static Snapshot
+ivm_import_snapshot(const char *idstr)
+{
+	bool found;
+	SnapshotDumpEntry *pDump;
+	Snapshot snapshot = NULL;
+
+	LWLockAcquire(GPIVMResLock, LW_SHARED);
+	pDump = hash_search(mv_trigger_snapshot, (void*)idstr, HASH_FIND, &found);
+
+	Assert (found && pDump != NULL);
+	if (found)
+	{
+		Assert(pDump);
+		if (pDump->pid == MyProcPid)
+		{
+			char *ptr = dsm_segment_address(pDump->segment);
+			snapshot = RestoreSnapshot(ptr);
+		}
+		else
+		{
+			dsm_segment* segment = dsm_attach(pDump->handle);
+			char *ptr = dsm_segment_address(segment);
+			snapshot = RestoreSnapshot(ptr);
+			dsm_detach(segment);
+		}
+	}
+	LWLockRelease(GPIVMResLock);
+
+	return snapshot;
+}
+
+/*
+ * makeIvmIntoClause
+ *
+ * This function creates an IntoClause node for IVM (Incremental View Maintenance).
+ * It sets the 'ivm' field to true, 'rel' field to NULL, 'enrname' field to the input enrname,
+ * 'distributedBy' field to the distribution policy of the input relation (matviewRel), and 'matviewOid' field
+ * to the OID of the input relation.
+ *
+ * Parameters:
+ * - enrname: a string representing the named tuplestore
+ * - matviewRel: a relation object representing the materialized view
+ *
+ * Returns:
+ * - a pointer to the created IntoClause node
+ */
+static IntoClause*
+makeIvmIntoClause(const char *enrname, Relation matviewRel)
+{
+	IntoClause *intoClause = makeNode(IntoClause);
+	intoClause->ivm = true;
+	/* rel is NULL means put tuples into memory.*/
+	intoClause->rel = NULL;
+	intoClause->enrname = (char*) enrname;
+	intoClause->distributedBy = (Node*) make_distributedby_for_rel(matviewRel);
+	intoClause->matviewOid = RelationGetRelid(matviewRel);
+	return intoClause;
+}
+
+/*
+ * transientenr_init
+ *
+ * This function initializes the transientenr.
+ *
+ * Parameters:
+ * - queryDesc: the query descriptor
+ */
+void
+transientenr_init(QueryDesc *queryDesc)
+{
+	MV_TriggerHashEntry *entry;
+	bool found;
+	IntoClause *into = queryDesc->plannedstmt->intoClause;
+	Oid matviewOid = into->matviewOid;
+
+	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
+											  (void *) &matviewOid,
+											  HASH_FIND, &found);
+	Assert (found && entry != NULL);
+	Assert (into->ivm);
+
+	queryDesc->dest = CreateDestReceiver(DestPersistentstore);
+	SetPersistentTstoreDestReceiverParams(queryDesc->dest,
+											NULL,
+											entry->resowner,
+											entry->context,
+											true,
+											into->enrname);
+}
+
+/*
+ * ivm_set_ts_persitent_name
+ *
+ * This function sets the transition table file name for the IVM trigger.
+ */
+static void
+ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid)
+{
+	MemoryContext oldctx;
+	CmdType cmd;
+
+	if (TRIGGER_FIRED_BY_INSERT(trigdata->tg_event))
+		cmd = CMD_INSERT;
+	else if (TRIGGER_FIRED_BY_DELETE(trigdata->tg_event))
+		cmd = CMD_DELETE;
+	else if (TRIGGER_FIRED_BY_UPDATE(trigdata->tg_event))
+		cmd = CMD_UPDATE;
+	else
+	{
+		AfterTriggerAppendMvList(mvid);
+		return;
+	}
+	oldctx = MemoryContextSwitchTo(TopMemoryContext);
+	SetTransitionTableName(relid, cmd, mvid);
+	MemoryContextSwitchTo(oldctx);
 }

@@ -1335,8 +1335,8 @@ ResourceOwnerForgetFile(ResourceOwner owner, File file)
 static void
 PrintFileLeakWarning(File file)
 {
-	elog(WARNING, "temporary file leak: File %d still referenced",
-		 file);
+	elog(WARNING, "temporary file %s leak: File %d still referenced",
+		 FilePathName(file), file);
 }
 
 /*

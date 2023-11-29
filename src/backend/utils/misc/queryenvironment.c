@@ -25,20 +25,128 @@
 #include "access/table.h"
 #include "utils/queryenvironment.h"
 #include "utils/rel.h"
+#include "commands/matview.h"
 
 /*
  * Private state of a query environment.
  */
 struct QueryEnvironment
 {
-	List	   *namedRelList;
+	List	*namedRelList;
+	Size	snaplen;
+	Oid 	matviewOid;
+	Oid 	tableid;
+	char	*snapname;
 };
 
+static List* construct_ENRList(QueryEnvironment *queryEnv);
 
 QueryEnvironment *
 create_queryEnv(void)
 {
 	return (QueryEnvironment *) palloc0(sizeof(QueryEnvironment));
+}
+
+/*
+ * Configure the query environment with the given parameters.
+ */
+void
+configure_queryEnv(QueryEnvironment *queryEnv, Oid matviewOid, Oid tableid, char* snapname, Size snaplen)
+{
+	if (queryEnv == NULL)
+		return;
+	queryEnv->matviewOid = matviewOid;
+	queryEnv->tableid = tableid;
+	queryEnv->snaplen = snaplen;
+	queryEnv->snapname = snapname;
+}
+
+
+/*
+ * Construct a list of EphemeralNamedRelationInfo objects from the namedRelList
+ * in the given query environment.
+ *
+ * Parameters:
+ *     - queryEnv: the query environment
+ *
+ * Returns:
+ *     - a list of EphemeralNamedRelationInfo objects
+ */
+static List*
+construct_ENRList(QueryEnvironment *queryEnv)
+{
+	ListCell   *lc;
+	List	*enrList = NIL;
+	Assert(queryEnv);
+
+	foreach(lc, queryEnv->namedRelList)
+	{
+		EphemeralNamedRelation enr = (EphemeralNamedRelation) lfirst(lc);
+		EphemeralNamedRelationInfo *node = palloc0(sizeof(EphemeralNamedRelationInfo));
+		node->type = T_EphemeralNamedRelationInfo;
+		node->natts = enr->md.tupdesc->natts;
+		node->name = enr->md.name;
+		node->reliddesc = enr->md.reliddesc;
+		node->tuple = CreateTupleDescCopy(enr->md.tupdesc);
+		node->enrtype = enr->md.enrtype;
+		node->enrtuples = enr->md.enrtuples;
+		enrList = lappend(enrList, node);
+	}
+
+	return enrList;
+}
+
+/*
+ * Add preassigned EphemeralNamedRelationInfo objects to the given query environment.
+ *
+ * Parameters:
+ *     - queryEnv: the query environment
+ *     - enrs: a list of EphemeralNamedRelationInfo objects to add
+ */
+void
+AddPreassignedENR(QueryEnvironment *queryEnv, List* enrs)
+{
+	ListCell   *lc;
+
+	foreach(lc, enrs)
+	{
+		EphemeralNamedRelationInfo *enrinfo = (EphemeralNamedRelationInfo *) lfirst(lc);
+
+		EphemeralNamedRelation enr = (EphemeralNamedRelation) palloc0(sizeof(EphemeralNamedRelationData));
+		enr->md.name = enrinfo->name;
+		enr->md.reliddesc = enrinfo->reliddesc;
+		enr->md.tupdesc = enrinfo->tuple;
+		enr->md.enrtype = enrinfo->enrtype;
+		enr->md.enrtuples = enrinfo->enrtuples;
+		enr->reldata = NULL;
+		if (get_visible_ENR_metadata(queryEnv, enr->md.name) == NULL)
+			register_ENR(queryEnv, enr);
+		else
+			pfree(enr);
+	}
+	return;
+}
+
+/*
+ * Fill the QueryDispatchDesc structure with information from the given query environment.
+ *
+ * Parameters:
+ *     - queryEnv: the query environment
+ *     - ddesc: the QueryDispatchDesc structure to fill
+ */
+void
+FillQueryDispatchDesc(QueryEnvironment *queryEnv, QueryDispatchDesc *ddesc)
+{
+	if (queryEnv == NULL)
+		return;
+	ddesc->namedRelList = construct_ENRList(queryEnv);
+	ddesc->snaplen = queryEnv->snaplen;
+	if (queryEnv->snaplen > 0)
+	{
+		ddesc->snapname = queryEnv->snapname;
+		ddesc->matviewOid = queryEnv->matviewOid;
+		ddesc->tableid = queryEnv->tableid;
+	}
 }
 
 EphemeralNamedRelationMetadata
@@ -126,8 +234,8 @@ ENRMetadataGetTupDesc(EphemeralNamedRelationMetadata enrmd)
 {
 	TupleDesc	tupdesc;
 
-	/* One, and only one, of these fields must be filled. */
-	Assert((enrmd->reliddesc == InvalidOid) != (enrmd->tupdesc == NULL));
+	/* not only one, but use reliddesc field first. */
+	Assert(enrmd->reliddesc || enrmd->tupdesc);
 
 	if (enrmd->tupdesc != NULL)
 		tupdesc = enrmd->tupdesc;

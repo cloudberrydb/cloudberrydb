@@ -1785,6 +1785,9 @@ _outNode(StringInfo str, void *obj)
 			case T_ReturnStmt:
 				_outReturnStmt(str, obj);
 				break;
+			case T_EphemeralNamedRelationInfo:
+				_outEphemeralNamedRelationInfo(str, obj);
+				break;
 			default:
 				elog(ERROR, "could not serialize unrecognized node type: %d",
 						 (int) nodeTag(obj));

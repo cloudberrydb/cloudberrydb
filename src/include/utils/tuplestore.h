@@ -35,6 +35,7 @@
 #include "executor/tuptable.h"
 
 #include "storage/sharedfileset.h"
+#include "utils/resowner.h"
 
 struct Instrumentation;                 /* #include "executor/instrument.h" */
 
@@ -106,4 +107,18 @@ extern bool tuplestore_has_remaining_tuples(Tuplestorestate *state);
 
 extern void tuplestore_consume_tuple(Tuplestorestate *state);
 
+/*
+ * These routines only for IVM.
+*/
+extern Tuplestorestate *tuplestore_open_shared_noerror(SharedFileSet *fileset, const char *filename);
+extern bool tuplestore_in_freezed(Tuplestorestate *state);
+extern void tuplestore_set_flags(Tuplestorestate *state, bool isTemp);
+extern void tuplestore_make_sharedV2(Tuplestorestate *state, SharedFileSet *fileset,
+									const char *filename,
+									ResourceOwner owner);
+extern void tuplestore_set_tuplecount(Tuplestorestate *state, int64 tuplecount);
+extern char *tuplestore_get_sharedname(Tuplestorestate *state);
+extern ResourceOwner tuplestore_get_resowner(Tuplestorestate *state);
+extern void tuplestore_set_tableid(Tuplestorestate *state, Oid tableid);
+extern void tuplestore_set_sharedname(Tuplestorestate *state, char* sharedname);
 #endif							/* TUPLESTORE_H */

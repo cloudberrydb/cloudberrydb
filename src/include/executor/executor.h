@@ -702,6 +702,8 @@ extern GpExecIdentity getGpExecIdentity(QueryDesc *queryDesc,
 										  EState	   *estate);
 extern void mppExecutorFinishup(QueryDesc *queryDesc);
 extern void mppExecutorCleanup(QueryDesc *queryDesc);
+extern uint64 mppExecutorWait(QueryDesc *queryDesc);
+
 
 extern ResultRelInfo *targetid_get_partition(Oid targetid, EState *estate, bool openIndices);
 extern ResultRelInfo *slot_get_partition(TupleTableSlot *slot, EState *estate, bool openIndices);

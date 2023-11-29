@@ -27,7 +27,7 @@
 #include "access/detoast.h"
 #include "access/tupconvert.h"
 #include "executor/tstoreReceiver.h"
-
+#include "executor/nodeShareInputScan.h"
 
 typedef struct
 {
@@ -282,4 +282,224 @@ SetTuplestoreDestReceiverParams(DestReceiver *self,
 	myState->detoast = detoast;
 	myState->target_tupdesc = target_tupdesc;
 	myState->map_failure_msg = map_failure_msg;
+}
+
+/*
+ * PersistentTupleStoreReceiver
+ *
+ * This receiver stores tuples in a persistent manner, allowing the
+ * tuples to be retrieved later even after the transaction has been
+ * committed.
+ */
+typedef struct PersistentTupleStore
+{
+	DestReceiver pub; /* base class */
+	ResourceOwner owner; /* resource owner for this receiver */
+	MemoryContext cxt;	/* context containing tstore */
+	Tuplestorestate *tstore; /* state for storing tuples */
+	SharedFileSet *fileset; /* shared fileset for storing tuples */
+	const char *filename; /* filename for storing tuples */
+	bool		detoast;		/* were we told to detoast? */
+	bool 		initfile;		/* is this the first time to init file? */
+	Datum	   *outvalues;		/* values array for result tuple */
+	Datum	   *tofree;			/* temp values to be pfree'd */
+} PersistentTupleStore;
+
+
+static bool
+persistentTstoreReceiveSlot_notoast(TupleTableSlot *slot, DestReceiver *self)
+{
+	PersistentTupleStore *myState = (PersistentTupleStore *) self;
+
+	if (!myState->initfile)
+	{
+		/* init file */
+		Assert(myState->fileset);
+		Assert(myState->filename);
+		tuplestore_make_sharedV2(myState->tstore, myState->fileset, myState->filename, myState->owner);
+		myState->initfile = true;
+	}
+	tuplestore_puttupleslot(myState->tstore, slot);
+
+	return true;
+}
+
+static bool
+persistentTstoreReceiveSlot_detoast(TupleTableSlot *slot, DestReceiver *self)
+{
+	PersistentTupleStore *myState = (PersistentTupleStore *) self;
+	TupleDesc	typeinfo = slot->tts_tupleDescriptor;
+	int			natts = typeinfo->natts;
+	int			nfree;
+	int			i;
+	MemoryContext oldcxt;
+
+	if (!myState->initfile)
+	{
+		/* init file */
+		Assert(myState->fileset);
+		Assert(myState->filename);
+		tuplestore_make_sharedV2(myState->tstore, myState->fileset, myState->filename, myState->owner);
+		myState->initfile = true;
+	}
+
+	/* Make sure the tuple is fully deconstructed */
+	slot_getallattrs(slot);
+
+	/*
+	 * Fetch back any out-of-line datums.  We build the new datums array in
+	 * myState->outvalues[] (but we can re-use the slot's isnull array). Also,
+	 * remember the fetched values to free afterwards.
+	 */
+	nfree = 0;
+	for (i = 0; i < natts; i++)
+	{
+		Datum		val = slot->tts_values[i];
+		Form_pg_attribute attr = TupleDescAttr(typeinfo, i);
+
+		if (!attr->attisdropped && attr->attlen == -1 && !slot->tts_isnull[i])
+		{
+			if (VARATT_IS_EXTERNAL(DatumGetPointer(val)))
+			{
+				val = PointerGetDatum(detoast_external_attr((struct varlena *)
+															DatumGetPointer(val)));
+				myState->tofree[nfree++] = val;
+			}
+		}
+
+		myState->outvalues[i] = val;
+	}
+
+	/*
+	 * Push the modified tuple into the tuplestore.
+	 */
+	oldcxt = MemoryContextSwitchTo(myState->cxt);
+	tuplestore_putvalues(myState->tstore, typeinfo,
+						 myState->outvalues, slot->tts_isnull);
+	MemoryContextSwitchTo(oldcxt);
+
+	/* And release any temporary detoasted values */
+	for (i = 0; i < nfree; i++)
+		pfree(DatumGetPointer(myState->tofree[i]));
+
+	return true;
+}
+
+static void
+persistentTstoreStartupReceiver(DestReceiver *self, int operation, TupleDesc typeinfo)
+{
+	bool		needtoast = false;
+	int			natts = typeinfo->natts;
+	int			i;
+	PersistentTupleStore *myState = (PersistentTupleStore *) self;
+	MemoryContext oldcxt;
+
+	oldcxt = MemoryContextSwitchTo(myState->cxt);
+	/* create in-memory tuplestore */
+	if (myState->tstore == NULL)
+		myState->tstore = tuplestore_begin_heap(true, false, work_mem);
+	MemoryContextSwitchTo(oldcxt);
+
+	if (myState->fileset == NULL)
+		myState->fileset = get_shareinput_fileset();
+
+	/* create tuplestore on disk */
+	Assert(myState->filename);
+	Assert(myState->owner);
+
+	/* Check if any columns require detoast work */
+	if (myState->detoast)
+	{
+		for (i = 0; i < natts; i++)
+		{
+			Form_pg_attribute attr = TupleDescAttr(typeinfo, i);
+
+			if (attr->attisdropped)
+				continue;
+			if (attr->attlen == -1)
+			{
+				needtoast = true;
+				break;
+			}
+		}
+	}
+
+	/* Set up appropriate callback */
+	if (needtoast)
+	{
+		myState->pub.receiveSlot = persistentTstoreReceiveSlot_detoast;
+		/* Create workspace */
+		myState->outvalues = (Datum *)
+			MemoryContextAlloc(myState->cxt, natts * sizeof(Datum));
+		myState->tofree = (Datum *)
+			MemoryContextAlloc(myState->cxt, natts * sizeof(Datum));
+	}
+	else
+	{
+		myState->pub.receiveSlot = persistentTstoreReceiveSlot_notoast;
+		myState->outvalues = NULL;
+		myState->tofree = NULL;
+	}
+
+}
+
+static void
+persistentTstoreShutdownReceiver(DestReceiver *self)
+{
+	PersistentTupleStore *myState = (PersistentTupleStore *) self;
+
+	if (myState->initfile)
+	{
+		/* Freeze tuplestore to file */
+		tuplestore_freeze(myState->tstore);
+
+		/* Set file to temporary to release file as soon as possible. */
+		tuplestore_set_flags(myState->tstore, true);
+	}
+	/* Release workspace if any */
+	if (myState->outvalues)
+		pfree(myState->outvalues);
+	myState->outvalues = NULL;
+	if (myState->tofree)
+		pfree(myState->tofree);
+	myState->tofree = NULL;
+}
+
+static void
+persistentTstoreDestroyReceiver(DestReceiver *self)
+{
+	pfree(self);
+}
+
+DestReceiver *
+CreatePersistentTstoreDestReceiver(void)
+{
+	PersistentTupleStore *self = palloc0(sizeof(PersistentTupleStore));
+
+	self->pub.receiveSlot = persistentTstoreReceiveSlot_notoast;	/* might change */
+	self->pub.rStartup = persistentTstoreStartupReceiver;
+	self->pub.rShutdown = persistentTstoreShutdownReceiver;
+	self->pub.rDestroy = persistentTstoreDestroyReceiver;
+	self->pub.mydest = DestPersistentstore;
+
+	return (DestReceiver *) self;
+}
+
+void
+SetPersistentTstoreDestReceiverParams(DestReceiver *self,
+								Tuplestorestate *tStore,
+								ResourceOwner owner,
+								MemoryContext tContext,
+								bool detoast,
+								const char *filename)
+{
+	PersistentTupleStore *myState = (PersistentTupleStore *) self;
+
+	Assert(myState->pub.mydest == DestPersistentstore);
+	myState->tstore = tStore;
+	myState->owner = owner;
+	myState->cxt = tContext;
+	myState->detoast = detoast;
+	myState->filename = filename;
+	myState->initfile = false;
 }

@@ -822,7 +822,8 @@ checkRuleResultList(List *targetList, TupleDesc resultDesc, bool isSelect,
 														attr->atttypmod))));
 	}
 
-	if (i != resultDesc->natts)
+	/* No check for materialized views since this could have special columns for IVM */
+	if ((!isSelect || requireColumnNameMatch) && i != resultDesc->natts)
 		ereport(ERROR,
 				(errcode(ERRCODE_INVALID_OBJECT_DEFINITION),
 				 isSelect ?

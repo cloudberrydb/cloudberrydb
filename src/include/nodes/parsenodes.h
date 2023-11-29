@@ -1111,7 +1111,7 @@ typedef struct RangeTblEntry
 	char		relkind;		/* relation kind (see pg_class.relkind) */
 	int			rellockmode;	/* lock level that query requires on the rel */
 	struct TableSampleClause *tablesample;	/* sampling info, or NULL */
-
+	bool		relisivm;		/* ivm relation or not */
 	/*
 	 * Fields valid for a subquery RTE (else NULL):
 	 */
@@ -2994,6 +2994,7 @@ typedef struct CreateTrigStmt
 	bool		deferrable;		/* [NOT] DEFERRABLE */
 	bool		initdeferred;	/* INITIALLY {DEFERRED|IMMEDIATE} */
 	RangeVar   *constrrel;		/* opposite relation, if RI trigger */
+	Oid			matviewId;		/* matview oid */
 } CreateTrigStmt;
 
 /* ----------------------

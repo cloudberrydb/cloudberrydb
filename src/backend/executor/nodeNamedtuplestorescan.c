@@ -17,6 +17,7 @@
 
 #include "executor/execdebug.h"
 #include "executor/nodeNamedtuplestorescan.h"
+#include "executor/nodeShareInputScan.h"
 #include "miscadmin.h"
 #include "utils/queryenvironment.h"
 
@@ -33,6 +34,8 @@ NamedTuplestoreScanNext(NamedTuplestoreScanState *node)
 {
 	TupleTableSlot *slot;
 
+	if (!node->relation)
+		return NULL;
 	/* We intentionally do not support backward scan. */
 	Assert(ScanDirectionIsForward(node->ss.ps.state->es_direction));
 
@@ -84,6 +87,7 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflag
 {
 	NamedTuplestoreScanState *scanstate;
 	EphemeralNamedRelation enr;
+	void	*reldata = NULL;
 
 	/* check for unsupported flags */
 	Assert(!(eflags & (EXEC_FLAG_BACKWARD | EXEC_FLAG_MARK)));
@@ -106,19 +110,27 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflag
 	if (!enr)
 		elog(ERROR, "executor could not find named tuplestore \"%s\"",
 			 node->enrname);
+	/* reldata is NULL means tuplestore is persistent, need to be read. */
+	if (enr->reldata == NULL)
+	{
+		reldata = (void*)tuplestore_open_shared_noerror(get_shareinput_fileset(), node->enrname);
+	}
+	else
+		reldata = enr->reldata;
 
-	Assert(enr->reldata);
-	scanstate->relation = (Tuplestorestate *) enr->reldata;
 	scanstate->tupdesc = ENRMetadataGetTupDesc(&(enr->md));
-	scanstate->readptr =
-		tuplestore_alloc_read_pointer(scanstate->relation, EXEC_FLAG_REWIND);
+	scanstate->relation = (Tuplestorestate *) reldata;
 
-	/*
-	 * The new read pointer copies its position from read pointer 0, which
-	 * could be anywhere, so explicitly rewind it.
-	 */
-	tuplestore_select_read_pointer(scanstate->relation, scanstate->readptr);
-	tuplestore_rescan(scanstate->relation);
+	if (scanstate->relation)
+	{
+		scanstate->readptr = tuplestore_alloc_read_pointer(scanstate->relation, EXEC_FLAG_REWIND);
+		/*
+		* The new read pointer copies its position from read pointer 0, which
+		* could be anywhere, so explicitly rewind it.
+		*/
+		tuplestore_select_read_pointer(scanstate->relation, scanstate->readptr);
+		tuplestore_rescan(scanstate->relation);
+	}
 
 	/*
 	 * XXX: Should we add a function to free that read pointer when done?
@@ -164,6 +176,7 @@ ExecInitNamedTuplestoreScan(NamedTuplestoreScan *node, EState *estate, int eflag
 void
 ExecEndNamedTuplestoreScan(NamedTuplestoreScanState *node)
 {
+	Tuplestorestate *ts = node->relation;
 	/*
 	 * Free exprcontext
 	 */
@@ -175,6 +188,11 @@ ExecEndNamedTuplestoreScan(NamedTuplestoreScanState *node)
 	if (node->ss.ps.ps_ResultTupleSlot)
 		ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 	ExecClearTuple(node->ss.ss_ScanTupleSlot);
+
+	if (ts && !tuplestore_in_memory(ts))
+	{
+		tuplestore_end(ts);
+	}
 }
 
 /* ----------------------------------------------------------------
@@ -196,6 +214,8 @@ ExecReScanNamedTuplestoreScan(NamedTuplestoreScanState *node)
 	/*
 	 * Rewind my own pointer.
 	 */
+	if (!tuplestorestate)
+		return;
 	tuplestore_select_read_pointer(tuplestorestate, node->readptr);
 	tuplestore_rescan(tuplestorestate);
 }

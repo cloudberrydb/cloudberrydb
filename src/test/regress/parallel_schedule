@@ -109,7 +109,12 @@ test: task
 # ----------
 # Another group of parallel tests
 # ----------
-test: create_table_like alter_generic alter_operator misc async dbsize misc_functions sysviews tsrf tid tidscan tidrangescan collate.icu.utf8 incremental_sort
+test: create_table_like alter_generic alter_operator misc async dbsize misc_functions sysviews tsrf tid tidscan tidrangescan collate.icu.utf8 incremental_sort incremental_matview
+
+# ----------
+# Additional incremental view maintenance tests
+# ----------
+test: ivm
 
 # rules cannot run concurrently with any test that creates
 # a view or rule in the public schema

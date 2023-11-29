@@ -100,7 +100,7 @@ static void AfterTriggerSaveEvent(EState *estate, ResultRelInfo *relinfo,
 static void AfterTriggerEnlargeQueryState(void);
 static bool before_stmt_triggers_fired(Oid relid, CmdType cmdType);
 
-
+static char* make_delta_ts_name(const char *prefix, Oid relid, int count);
 /*
  * Create a trigger.  Returns the address of the created trigger.
  *
@@ -2273,12 +2273,6 @@ ExecBSInsertTriggers(EState *estate, ResultRelInfo *relinfo)
 	int			i;
 	TriggerData LocTriggerData = {0};
 
-	if (Gp_role == GP_ROLE_EXECUTE)
-	{
-		/* Don't fire statement-triggers in executor nodes. */
-		return;
-	}
-
 	trigdesc = relinfo->ri_TrigDesc;
 
 	if (trigdesc == NULL)
@@ -2497,12 +2491,6 @@ ExecBSDeleteTriggers(EState *estate, ResultRelInfo *relinfo)
 	TriggerDesc *trigdesc;
 	int			i;
 	TriggerData LocTriggerData = {0};
-
-	if (Gp_role == GP_ROLE_EXECUTE)
-	{
-		/* Don't fire statement-triggers in executor nodes. */
-		return;
-	}
 
 	trigdesc = relinfo->ri_TrigDesc;
 
@@ -2736,12 +2724,6 @@ ExecBSUpdateTriggers(EState *estate, ResultRelInfo *relinfo)
 	int			i;
 	TriggerData LocTriggerData = {0};
 	Bitmapset  *updatedCols;
-
-	if (Gp_role == GP_ROLE_EXECUTE)
-	{
-		/* Don't fire statement-triggers in executor nodes. */
-		return;
-	}
 
 	trigdesc = relinfo->ri_TrigDesc;
 
@@ -3056,12 +3038,6 @@ ExecBSTruncateTriggers(EState *estate, ResultRelInfo *relinfo)
 	TriggerDesc *trigdesc;
 	int			i;
 	TriggerData LocTriggerData = {0};
-
-	if (Gp_role == GP_ROLE_EXECUTE)
-	{
-		/* Don't fire statement-triggers in executor nodes. */
-		return;
-	}
 
 	trigdesc = relinfo->ri_TrigDesc;
 
@@ -3622,6 +3598,7 @@ typedef struct AfterTriggersData
 	AfterTriggerEventList events;	/* deferred-event list */
 	MemoryContext event_cxt;	/* memory context for events, if any */
 	List   *prolonged_tuplestores;	/* list of prolonged tuplestores */
+	List   *mv_list;			/* materialized view oids */
 
 	/* per-query-level data: */
 	AfterTriggersQueryData *query_stack;	/* array of structs shown below */
@@ -4477,6 +4454,77 @@ SetTransitionTablePreserved(Oid relid, CmdType cmdType)
 		elog(ERROR,"could not find table with OID %d and command type %d", relid, cmdType);
 }
 
+/*
+ * SetTransitionTableName
+ *
+ * Preassign tuplestore dump file name.
+ * Currently, only immediate incremental view maintenance
+ * uses this.
+ */
+void
+SetTransitionTableName(Oid relid, CmdType cmdType, Oid mvoid)
+{
+	AfterTriggersTableData *table;
+	AfterTriggersQueryData *qs;
+	bool		found = false;
+	ListCell   *lc;
+
+	/* Check state, like AfterTriggerSaveEvent. */
+	if (afterTriggers.query_depth < 0)
+		elog(ERROR, "SetTransitionTableName() called outside of query");
+
+	qs = &afterTriggers.query_stack[afterTriggers.query_depth];
+
+	foreach(lc, qs->tables)
+	{
+		table = (AfterTriggersTableData *) lfirst(lc);
+		if (table->relid == relid && table->cmdType == cmdType)
+		{
+			if (table->new_tuplestore)
+			{
+				char *name = make_delta_ts_name("new", relid, gp_command_count);
+				tuplestore_set_sharedname(table->new_tuplestore, name);
+				tuplestore_set_tableid(table->new_tuplestore, relid);
+			}
+			if (table->old_tuplestore)
+			{
+				char *name = make_delta_ts_name("old", relid, gp_command_count);
+				tuplestore_set_sharedname(table->old_tuplestore, name);
+				tuplestore_set_tableid(table->old_tuplestore, relid);
+			}
+			found = true;
+		}
+	}
+
+	AfterTriggerAppendMvList(mvoid);
+
+	if (!found)
+		elog(ERROR,"could not find table with OID %d and command type %d", relid, cmdType);
+}
+
+/*
+ * AfterTriggerGetMvList
+ *
+ * Get the list of materialized views oid triggered by ivm.
+ */
+List*
+AfterTriggerGetMvList(void)
+{
+	return afterTriggers.mv_list;
+}
+
+/*
+ * AfterTriggerAppendMvList
+ *
+ * Append the materialized view oid to the list triggered by ivm.
+ */
+void
+AfterTriggerAppendMvList(Oid matview_id)
+{
+	MemoryContext oldcxt = MemoryContextSwitchTo(TopMemoryContext);
+	afterTriggers.mv_list = list_append_unique_oid(afterTriggers.mv_list, matview_id);
+	MemoryContextSwitchTo(oldcxt);
+}
 
 /*
  * GetAfterTriggersTableData
@@ -4849,18 +4897,6 @@ AfterTriggerFreeQuery(AfterTriggersQueryData *qs)
 	 */
 	qs->tables = NIL;
 	list_free_deep(tables);
-
-	/* Release prolonged tuplestores at the end of the outmost query */
-	if (afterTriggers.query_depth == 0)
-	{
-		foreach(lc, afterTriggers.prolonged_tuplestores)
-		{
-			ts = (Tuplestorestate *) lfirst(lc);
-			if (ts)
-				tuplestore_end(ts);
-		}
-		afterTriggers.prolonged_tuplestores = NIL;
-	}
 }
 
 /*
@@ -4869,9 +4905,9 @@ AfterTriggerFreeQuery(AfterTriggersQueryData *qs)
 static void
 release_or_prolong_tuplestore(Tuplestorestate *ts, bool prolonged)
 {
-	if (prolonged && afterTriggers.query_depth > 0)
+	if (prolonged && afterTriggers.query_depth >= 0)
 	{
-		MemoryContext oldcxt = MemoryContextSwitchTo(CurTransactionContext);
+		MemoryContext oldcxt = MemoryContextSwitchTo(TopMemoryContext);
 		afterTriggers.prolonged_tuplestores = lappend(afterTriggers.prolonged_tuplestores, ts);
 		MemoryContextSwitchTo(oldcxt);
 	}
@@ -4988,6 +5024,20 @@ AfterTriggerEndXact(bool isCommit)
 
 	/* No more afterTriggers manipulation until next transaction starts. */
 	afterTriggers.query_depth = -1;
+	{
+		ListCell   *lc;
+		foreach(lc, afterTriggers.prolonged_tuplestores)
+		{
+			Tuplestorestate *ts = (Tuplestorestate *) lfirst(lc);
+			if (ts)
+			{
+				//elog(INFO, "AfterTriggerEndXact releasing tuplestore c:%d", isCommit);
+				tuplestore_end(ts);
+			}
+		}
+		list_free(afterTriggers.prolonged_tuplestores);
+		afterTriggers.prolonged_tuplestores = NIL;
+	}
 }
 
 /*
@@ -5051,6 +5101,7 @@ AfterTriggerEndSubXact(bool isCommit)
 	AfterTriggerEvent event;
 	AfterTriggerEventChunk *chunk;
 	CommandId	subxact_firing_id;
+	ListCell	*lc;
 
 	/*
 	 * Pop the prior state if needed.
@@ -5132,6 +5183,16 @@ AfterTriggerEndSubXact(bool isCommit)
 					event->ate_flags &=
 						~(AFTER_TRIGGER_DONE | AFTER_TRIGGER_IN_PROGRESS);
 			}
+		}
+	}
+	foreach(lc, afterTriggers.prolonged_tuplestores)
+	{
+		Tuplestorestate *ts = (Tuplestorestate *) lfirst(lc);
+		if (CurrentResourceOwner == tuplestore_get_resowner(ts))
+		{
+			//elog(INFO, "AfterTriggerEndSubXact releasing tuplestore c:%d", isCommit);
+			tuplestore_end(ts);
+			afterTriggers.prolonged_tuplestores = foreach_delete_current(afterTriggers.prolonged_tuplestores, lc);
 		}
 	}
 }
@@ -5689,10 +5750,6 @@ AfterTriggerSaveEvent(EState *estate, ResultRelInfo *relinfo,
 	if (afterTriggers.query_depth < 0)
 		elog(ERROR, "AfterTriggerSaveEvent() called outside of query");
 
-	/* Don't fire statement-triggers in executor nodes. */
-	if (!row_trigger && Gp_role == GP_ROLE_EXECUTE)
-		return;
-
 	/* Be sure we have enough space to record events at this query depth. */
 	if (afterTriggers.query_depth >= afterTriggers.maxquerydepth)
 		AfterTriggerEnlargeQueryState();
@@ -6111,4 +6168,16 @@ Datum
 pg_trigger_depth(PG_FUNCTION_ARGS)
 {
 	PG_RETURN_INT32(MyTriggerDepth);
+}
+
+static char*
+make_delta_ts_name(const char *prefix, Oid relid, int count)
+{
+	char buf[NAMEDATALEN];
+	char *name;
+
+	snprintf(buf, NAMEDATALEN, "__ivm_%s_%u_%u", prefix, relid, count);
+	name = pstrdup(buf);
+
+	return name;
 }
