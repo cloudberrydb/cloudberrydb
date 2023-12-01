@@ -172,6 +172,7 @@ _equalIntoClause(const IntoClause *a, const IntoClause *b)
 	COMPARE_STRING_FIELD(tableSpaceName);
 	COMPARE_NODE_FIELD(viewQuery);
 	COMPARE_SCALAR_FIELD(skipData);
+	COMPARE_SCALAR_FIELD(defer);
 	COMPARE_NODE_FIELD(distributedBy);
 	COMPARE_SCALAR_FIELD(ivm);
 	COMPARE_SCALAR_FIELD(matviewOid);

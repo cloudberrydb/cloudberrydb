@@ -1804,6 +1804,7 @@ _copyIntoClause(const IntoClause *from)
 	COPY_STRING_FIELD(tableSpaceName);
 	COPY_NODE_FIELD(viewQuery);
 	COPY_SCALAR_FIELD(skipData);
+	COPY_SCALAR_FIELD(defer);
 	COPY_NODE_FIELD(distributedBy);
 	COPY_SCALAR_FIELD(ivm);
 	COPY_SCALAR_FIELD(matviewOid);

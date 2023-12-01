@@ -491,7 +491,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 
 %type <range>	OptTempTableName
 %type <into>	into_clause create_as_target create_mv_target
-%type <boolean>	incremental
+%type <boolean>	incremental OptRefreshOption
 
 %type <defelt>	createfunc_opt_item common_func_opt_item dostmt_opt_item
 %type <fun_param> func_arg func_arg_with_default table_func_column aggr_arg
@@ -6872,7 +6872,7 @@ CreateMatViewStmt:
 		;
 
 create_mv_target:
-			qualified_name opt_column_list table_access_method_clause opt_reloptions OptTableSpace
+			qualified_name opt_column_list table_access_method_clause opt_reloptions OptTableSpace OptRefreshOption
 				{
 					$$ = makeNode(IntoClause);
 					$$->rel = $1;
@@ -6884,6 +6884,7 @@ create_mv_target:
 					$$->viewQuery = NULL;		/* filled at analysis time */
 					$$->skipData = false;		/* might get changed later */
 					$$->ivm = false;
+					$$->defer = $6;
 
 					$$->accessMethod = greenplumLegacyAOoptions($$->accessMethod, &$$->options);
 				}
@@ -6897,6 +6898,11 @@ OptNoLog:	UNLOGGED					{ $$ = RELPERSISTENCE_UNLOGGED; }
 			| /*EMPTY*/					{ $$ = RELPERSISTENCE_PERMANENT; }
 		;
 
+OptRefreshOption:
+			REFRESH IMMEDIATE	{ $$ = false; }
+			| REFRESH DEFERRED	{ $$ = true; }
+			| /*EMPTY*/			{ $$ = false; }
+		;
 
 /*****************************************************************************
  *

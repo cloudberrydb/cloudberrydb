@@ -1205,6 +1205,7 @@ _outIntoClause(StringInfo str, const IntoClause *node)
 	WRITE_STRING_FIELD(tableSpaceName);
 	WRITE_NODE_FIELD(viewQuery);
 	WRITE_BOOL_FIELD(skipData);
+	WRITE_BOOL_FIELD(defer);
 	WRITE_NODE_FIELD(distributedBy);
 	WRITE_BOOL_FIELD(ivm);
 	WRITE_OID_FIELD(matviewOid);

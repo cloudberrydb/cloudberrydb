@@ -121,6 +121,7 @@ typedef struct IntoClause
 	char	   *tableSpaceName; /* table space to use, or NULL */
 	Node	   *viewQuery;		/* materialized view's SELECT query */
 	bool		skipData;		/* true for WITH NO DATA */
+	bool 		defer;			/* true for DEFERRED REFRESH */
 	Node       *distributedBy;  /* GPDB: columns to distribubte the data on. */
 	bool		ivm;			/* true for WITH IVM */
 	Oid 		matviewOid;		/* matview oid */
