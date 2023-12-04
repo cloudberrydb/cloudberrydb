@@ -2,7 +2,7 @@
 -- Will run in parallel mode with enable_parallel=on and non-parallel mode.
 -- Filter this gucs to pass regression.
 --
-SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%' and name != 'enable_parallel';
+SELECT name, setting FROM pg_settings WHERE name LIKE 'enable%' and name not in ('enable_parallel', 'enable_answer_query_using_materialized_views');
 -- start_ignore
 create schema rangefuncs_cdb;
 set search_path to rangefuncs_cdb, public;

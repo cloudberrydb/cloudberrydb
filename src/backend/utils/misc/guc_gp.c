@@ -430,7 +430,7 @@ bool		gp_enable_global_deadlock_detector = false;
 bool gp_enable_predicate_pushdown;
 int  gp_predicate_pushdown_sample_rows;
 
-bool answer_query_using_materialized_views = false;
+bool enable_answer_query_using_materialized_views = false;
 
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
@@ -2985,12 +2985,12 @@ struct config_bool ConfigureNamesBool_gp[] =
 		NULL, NULL, NULL
 	},
 	{
-		{"answer_query_using_materialized_views", PGC_USERSET, QUERY_TUNING_METHOD,
+		{"enable_answer_query_using_materialized_views", PGC_USERSET, QUERY_TUNING_METHOD,
 			gettext_noop("allow to answer query results using materialized views."),
 			NULL,
 			GUC_EXPLAIN
 		},
-		&answer_query_using_materialized_views,
+		&enable_answer_query_using_materialized_views,
 		false,
 		NULL, NULL, NULL
 	},
