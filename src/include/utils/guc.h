@@ -300,7 +300,7 @@ extern bool gp_appendonly_compaction;
 extern bool enable_parallel;
 extern int  gp_appendonly_insert_files;
 extern int  gp_appendonly_insert_files_tuples_range;
-extern bool answer_query_using_materialized_views;
+extern bool enable_answer_query_using_materialized_views;
 /*
  * gp_enable_multiphase_limit is not cost based.
  * When set to false, the planner will not use multi-phase limit.

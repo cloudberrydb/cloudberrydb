@@ -25,7 +25,8 @@ OBJS = \
 	planner.o \
 	setrefs.o \
 	subselect.o \
-	transform.o
+	transform.o \
+	aqumv.o
 
 ifeq ($(enable_orca),yes)
 OBJS += orca.o

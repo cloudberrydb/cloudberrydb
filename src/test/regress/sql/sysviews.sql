@@ -49,7 +49,7 @@ select count(*) = 0 as ok from pg_stat_wal_receiver;
 -- This is to record the prevailing planner enable_foo settings during
 -- a regression test run.
 -- GP parallel tests will run another with enable_parallel=on, filter this to pass regression.
-select name, setting from pg_settings where name like 'enable%' and name != 'enable_parallel';
+select name, setting from pg_settings where name like 'enable%' and name not in ('enable_parallel', 'enable_answer_query_using_materialized_views');
 
 -- Test that the pg_timezone_names and pg_timezone_abbrevs views are
 -- more-or-less working.  We can't test their contents in any great detail
