@@ -6,11 +6,11 @@ create table aqumv_t1(c1 int, c2 int, c3 int) distributed by (c1);
 insert into aqumv_t1 select i, i+1, i+2 from generate_series(1, 1000) i;
 insert into aqumv_t1 select * from aqumv_t1;
 analyze aqumv_t1;
-set answer_query_using_materialized_views = on;
+set enable_answer_query_using_materialized_views = on;
 -- drop views if there is no data populated
 begin;
 create incremental materialized view aqumv_mvt1_need_refresh as select * from aqumv_t1 where c1 = 2 with no data;
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 explain(verbose, costs off) select * from aqumv_t1 where c1 = 2;
                                 QUERY PLAN                                 
 ---------------------------------------------------------------------------
@@ -19,7 +19,7 @@ explain(verbose, costs off) select * from aqumv_t1 where c1 = 2;
    ->  Seq Scan on public.aqumv_t1
          Output: c1, c2, c3
          Filter: (aqumv_t1.c1 = 2)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -32,7 +32,7 @@ explain(verbose, costs off) select * from aqumv_t1 where c1 = 2;
    Output: c1, c2, c3
    ->  Seq Scan on public.aqumv_mvt1_need_refresh
          Output: c1, c2, c3
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -40,7 +40,7 @@ abort;
 begin;
 create incremental materialized view aqumv_mvt1_0 as select * from aqumv_t1 where c1 = 2;
 analyze aqumv_mvt1_0;
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select * from aqumv_t1 where c1 = 2;
  c1 | c2 | c3 
 ----+----+----
@@ -69,7 +69,7 @@ select c3, c2 from aqumv_t1 where c1 = 2;
   4 |  3
 (2 rows)
 
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 select * from aqumv_t1 where c1 = 2;
  c1 | c2 | c3 
 ----+----+----
@@ -106,7 +106,7 @@ explain(verbose, costs off) select * from aqumv_t1 where c1 = 2;
    Output: c1, c2, c3
    ->  Seq Scan on public.aqumv_mvt1_0
          Output: c1, c2, c3
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -117,7 +117,7 @@ explain(verbose, costs off) select c1, c2, c3 from aqumv_t1 where c1 = 2;
    Output: c1, c2, c3
    ->  Seq Scan on public.aqumv_mvt1_0
          Output: c1, c2, c3
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -129,7 +129,7 @@ explain(verbose, costs off) select c2 from aqumv_t1 where c1 = 2;
    Output: c2
    ->  Seq Scan on public.aqumv_mvt1_0
          Output: c2
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -141,7 +141,7 @@ explain(verbose, costs off) select c3, c2 from aqumv_t1 where c1 = 2;
    Output: c3, c2
    ->  Seq Scan on public.aqumv_mvt1_0
          Output: c3, c2
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -149,7 +149,7 @@ abort;
 begin;
 create incremental materialized view aqumv_mvt1_1 as select c2 as mc2, c3 as mc3, c1 as mc1, c2 as mc2_1 from aqumv_t1 where c1 = 3;
 analyze aqumv_mvt1_1;
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select c1 as col1, c2 as col2 from aqumv_t1 where c1 = 3;
  col1 | col2 
 ------+------
@@ -164,7 +164,7 @@ select c1, c1 from aqumv_t1 where c1 = 3;
   3 |  3
 (2 rows)
 
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 select c1 as col1, c2 as col2 from aqumv_t1 where c1 = 3;
  col1 | col2 
 ------+------
@@ -187,7 +187,7 @@ explain(verbose, costs off) select c1 as col1, c2 as col2 from aqumv_t1 where c1
    Output: mc1, mc2
    ->  Seq Scan on public.aqumv_mvt1_1
          Output: mc1, mc2
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -199,7 +199,7 @@ explain(verbose, costs off) select c1, c1 from aqumv_t1 where c1 = 3;
    Output: mc1, mc1
    ->  Seq Scan on public.aqumv_mvt1_1
          Output: mc1, mc1
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -209,7 +209,7 @@ create incremental materialized view aqumv_mvt1_nonvar_expr as
   select c2, 1 as mc_const_1, sqrt(100) as mc_sqrt_100
   from aqumv_t1 where c1 = 4;
 analyze aqumv_mvt1_nonvar_expr;
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select c2, 200 from aqumv_t1 where c1 = 4;
  c2 | ?column? 
 ----+----------
@@ -224,7 +224,7 @@ select c2, 1, sqrt(100) from aqumv_t1 where c1 = 4;
   5 |        1 |   10
 (2 rows)
 
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 select c2, 200 from aqumv_t1 where c1 = 4;
  c2 | ?column? 
 ----+----------
@@ -247,7 +247,7 @@ explain(verbose, costs off) select c2, 200 from aqumv_t1 where c1 = 4;
    Output: c2, 200
    ->  Seq Scan on public.aqumv_mvt1_nonvar_expr
          Output: c2, 200
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -258,7 +258,7 @@ explain(verbose, costs off) select c2, 1, sqrt(100) from aqumv_t1 where c1 = 4;
    Output: c2, 1, '10'::double precision
    ->  Seq Scan on public.aqumv_mvt1_nonvar_expr
          Output: c2, 1, '10'::double precision
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -273,7 +273,7 @@ create incremental materialized view aqumv_mvt1_func_has_var as
   select c2, aqumv_func(c1, c3) as mc_func_res
   from aqumv_t1 where c1 = 5;
 analyze aqumv_mvt1_func_has_var;
-set local answer_query_using_materialized_views = off; 
+set local enable_answer_query_using_materialized_views = off; 
 select c2, aqumv_func(c1, c3) from aqumv_t1 where c1 = 5;
  c2 | aqumv_func 
 ----+------------
@@ -281,7 +281,7 @@ select c2, aqumv_func(c1, c3) from aqumv_t1 where c1 = 5;
   6 |         12
 (2 rows)
 
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 select c2, aqumv_func(c1, c3) from aqumv_t1 where c1 = 5;
  c2 | aqumv_func 
 ----+------------
@@ -297,7 +297,7 @@ explain(verbose, costs off) select c2, aqumv_func(c1, c3), aqumv_func(c1, c3) fr
    Output: c2, mc_func_res, mc_func_res
    ->  Seq Scan on public.aqumv_mvt1_func_has_var
          Output: c2, mc_func_res, mc_func_res
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -305,7 +305,7 @@ abort;
 begin;
 create incremental materialized view aqumv_mvt1_2 as select c2 as mc2, c1 as mc1 from aqumv_t1 where c1 > 1 and c1 < 5;
 analyze aqumv_mvt1_2;
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 -- shoud be unable to use mv, projection doesn't exit in mv's tlist 
 explain(verbose, costs off) select c3 from aqumv_t1 where c1 < 5 and c1 > 1;
                                 QUERY PLAN                                 
@@ -315,7 +315,7 @@ explain(verbose, costs off) select c3 from aqumv_t1 where c1 < 5 and c1 > 1;
    ->  Seq Scan on public.aqumv_t1
          Output: c3
          Filter: ((aqumv_t1.c1 < 5) AND (aqumv_t1.c1 > 1))
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -327,12 +327,12 @@ explain(verbose, costs off) select c1, c2 from aqumv_t1 where c1 < 5 and c1 > 1;
    Output: mc1, mc2
    ->  Seq Scan on public.aqumv_mvt1_2
          Output: mc1, mc2
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
 -- post quals added to mv.
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select c1, c2 from aqumv_t1 where c1 < 5 and c1 > 1 and c2 = 4;
  c1 | c2 
 ----+----
@@ -340,7 +340,7 @@ select c1, c2 from aqumv_t1 where c1 < 5 and c1 > 1 and c2 = 4;
   3 |  4
 (2 rows)
 
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 select c1, c2 from aqumv_t1 where c1 < 5 and c1 > 1 and c2 = 4;
  c1 | c2 
 ----+----
@@ -356,7 +356,7 @@ explain(verbose, costs off) select c1, c2 from aqumv_t1 where c1 < 5 and c1 > 1 
    ->  Seq Scan on public.aqumv_mvt1_2
          Output: mc1, mc2
          Filter: (aqumv_mvt1_2.mc2 = 4)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -369,7 +369,7 @@ explain(verbose, costs off) select * from aqumv_t1 where c1 < 5 and c1 > 1 and c
    ->  Seq Scan on public.aqumv_t1
          Output: c1, c2, c3
          Filter: ((aqumv_t1.c1 < 5) AND (aqumv_t1.c1 > 1) AND (aqumv_t1.c3 > 1))
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -377,7 +377,7 @@ abort;
 begin;
 create incremental materialized view aqumv_mvt1_3 as select c2 as mc2, c1 as mc1, c3+1 as mc3 from aqumv_t1 where c1 > 5 and c1 < 10;
 analyze aqumv_mvt1_3;
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 -- should be unable to use mv, column c3 doesn't exist in mv's tlist.
 explain(verbose, costs off) select * from aqumv_t1 where c1 > 5 and c1 < 10; 
                                 QUERY PLAN                                 
@@ -387,7 +387,7 @@ explain(verbose, costs off) select * from aqumv_t1 where c1 > 5 and c1 < 10;
    ->  Seq Scan on public.aqumv_t1
          Output: c1, c2, c3
          Filter: ((aqumv_t1.c1 > 5) AND (aqumv_t1.c1 < 10))
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -399,7 +399,7 @@ explain(verbose, costs off) select c1 as col1, c3+1 as col2 from aqumv_t1 where 
    Output: mc1, mc3
    ->  Seq Scan on public.aqumv_mvt1_3
          Output: mc1, mc3
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -411,7 +411,7 @@ explain(verbose, costs off) select c1+1 as col1, c2, c3+1 as col2 from aqumv_t1 
    Output: ((mc1 + 1)), mc2, mc3
    ->  Seq Scan on public.aqumv_mvt1_3
          Output: (mc1 + 1), mc2, mc3
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -441,7 +441,7 @@ select c1+1 as col1, c2, c3+1 as col2 from aqumv_t1 where c1 > 5 and c1 < 10;
     9 |  9 |   11
 (8 rows)
 
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select c1 as col1, c3+1 as col2 from aqumv_t1 where c1 > 5 and c1 < 10; 
  col1 | col2 
 ------+------
@@ -474,7 +474,7 @@ create incremental materialized view aqumv_mvt1_4 as
   select c1 as mc1, c2 as mc2, abs(c2) as mc3, abs(abs(c2) - c1 - 1) as mc4
   from aqumv_t1 where c1 > 10 and c1 < 15;
 analyze aqumv_mvt1_4;
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 -- complex exprs
 explain(verbose, costs off) select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1 from aqumv_t1 where c1 > 10 and c1 < 15;
                                            QUERY PLAN                                            
@@ -483,7 +483,7 @@ explain(verbose, costs off) select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1
    Output: mc1, ((sqrt(((mc4 + mc3))::double precision) + '1'::double precision)), ((mc3 + 1))
    ->  Seq Scan on public.aqumv_mvt1_4
          Output: mc1, (sqrt(((mc4 + mc3))::double precision) + '1'::double precision), (mc3 + 1)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (6 rows)
 
@@ -500,7 +500,7 @@ select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1 from aqumv_t1 
  14 | 4.872983346207417 |       16
 (8 rows)
 
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1 from aqumv_t1 where c1 > 10 and c1 < 15;
  c1 |     ?column?      | ?column? 
 ----+-------------------+----------
@@ -521,7 +521,7 @@ create incremental materialized view aqumv_mvt1_post_quals as
   select c1 as mc1, c2 as mc2, abs(c2) as mc3, abs(abs(c2) - c1 - 1) as mc4
   from aqumv_t1 where c1 > 20 and c1 < 30;
 analyze aqumv_mvt1_post_quals;
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 explain(verbose, costs off)
   select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1
   from aqumv_t1 where c1 > 20 and c1 < 30 and sqrt(abs(c2) + 1) > 1;
@@ -532,7 +532,7 @@ explain(verbose, costs off)
    ->  Seq Scan on public.aqumv_mvt1_post_quals
          Output: mc1, (sqrt(((mc4 + mc3))::double precision) + '1'::double precision), (mc3 + 1)
          Filter: (sqrt(((aqumv_mvt1_post_quals.mc3 + 1))::double precision) > '1'::double precision)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -546,7 +546,7 @@ explain(verbose, costs off)
    ->  Seq Scan on public.aqumv_mvt1_post_quals
          Output: mc1, (sqrt(((mc4 + mc3))::double precision) + '1'::double precision), (mc3 + 1)
          Filter: (sqrt(((aqumv_mvt1_post_quals.mc3 + 1))::double precision) > ((abs(aqumv_mvt1_post_quals.mc1) + 2))::double precision)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -560,7 +560,7 @@ select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1
    ->  Seq Scan on public.aqumv_mvt1_post_quals
          Output: mc1, (sqrt(((mc4 + mc3))::double precision) + '1'::double precision), (mc3 + 1)
          Filter: (sqrt(((aqumv_mvt1_post_quals.mc4 + 10))::double precision) > '2'::double precision)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -618,7 +618,7 @@ select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1
  28 |  6.385164807134504 |       30
 (18 rows)
 
-set local answer_query_using_materialized_views = off;
+set local enable_answer_query_using_materialized_views = off;
 select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1
   from aqumv_t1 where c1 > 20 and c1 < 30 and sqrt(abs(c2) + 1) > 1;
  c1 |      ?column?      | ?column? 
@@ -676,7 +676,7 @@ select c1, sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) + 1, abs(c2) + 1
 abort;
 -- choose the best one if there are multiple chooses based on cost.
 begin;
-set local answer_query_using_materialized_views = on;
+set local enable_answer_query_using_materialized_views = on;
 create incremental materialized view aqumv_mvt1_candidate_0 as
   select c1 as mc1, c2 as mc2, abs(c2) as mc3
   from aqumv_t1 where c1 > 30;
@@ -691,7 +691,7 @@ select sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) from aqumv_t1 where c1 > 30 and c1 
    ->  Seq Scan on public.aqumv_mvt1_candidate_0
          Output: sqrt(((abs(((mc3 - mc1) - 1)) + mc3))::double precision)
          Filter: ((aqumv_mvt1_candidate_0.mc1 < 40) AND (sqrt((aqumv_mvt1_candidate_0.mc3)::double precision) > '5.8'::double precision))
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -709,7 +709,7 @@ select sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) from aqumv_t1 where c1 > 30 and c1 
    ->  Seq Scan on public.aqumv_mvt1_candidate_1
          Output: sqrt(((mc4 + mc3))::double precision)
          Filter: (sqrt((aqumv_mvt1_candidate_1.mc3)::double precision) > '5.8'::double precision)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
@@ -727,11 +727,11 @@ select sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) from aqumv_t1 where c1 > 30 and c1 
    ->  Seq Scan on public.aqumv_mvt1_candidate_1
          Output: sqrt(((mc4 + mc3))::double precision)
          Filter: (sqrt((aqumv_mvt1_candidate_1.mc3)::double precision) > '5.8'::double precision)
- Settings: answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
  Optimizer: Postgres query optimizer
 (7 rows)
 
 abort;
 reset optimizer;
-reset answer_query_using_materialized_views;
+reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;
