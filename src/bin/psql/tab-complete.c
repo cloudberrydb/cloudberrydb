@@ -3111,13 +3111,14 @@ psql_completion(const char *text, int start, int end)
 	else if (Matches("CREATE", "MATERIALIZED") ||
 			 Matches("CREATE", "INCREMENTAL", "MATERIALIZED"))
 		COMPLETE_WITH("VIEW");
-	/* Complete CREATE MATERIALIZED VIEW <name> with AS  */
-	else if (Matches("CREATE", "MATERIALIZED", "VIEW", MatchAny) ||
-			 Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny))
-		COMPLETE_WITH("AS");
-	/* Complete "CREATE MATERIALIZED VIEW <sth> AS with "SELECT" */
-	else if (Matches("CREATE", "MATERIALIZED", "VIEW", MatchAny, "AS") ||
-			 Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny, "AS"))
+	/* Complete CREATE [INCREMENTAL] MATERIALIZED VIEW [IF NOT EXISTS] <name> with AS or REFRESH */
+	else if (Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny))
+		COMPLETE_WITH("AS", "REFRESH");
+	/* Complete CREATE [INCREMENTAL] MATERIALIZED VIEW [IF NOT EXISTS] <name> REFRESH with IMMEDIATE or DEFERRED */
+	else if (Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny, "REFRESH"))
+		COMPLETE_WITH("IMMEDIATE", "DEFERRED");
+	/* Complete "CREATE [INCREMENTAL] MATERIALIZED VIEW [IF NOT EXISTS] <name> AS with "SELECT" */
+	else if (Matches("CREATE", "INCREMENTAL", "MATERIALIZED", "VIEW", MatchAny, "AS"))
 		COMPLETE_WITH("SELECT");
 
 /* CREATE EVENT TRIGGER */

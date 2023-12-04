@@ -112,7 +112,7 @@ static void intorel_shutdown(DestReceiver *self);
 static void intorel_destroy(DestReceiver *self);
 
 static void CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
-									 Relids *relids, bool ex_lock);
+									 Relids *relids, bool ex_lock, bool defer);
 static void CreateIvmTrigger(Oid relOid, Oid viewOid, int16 type, int16 timing, bool ex_lock);
 static void check_ivm_restriction(Node *node);
 static bool check_ivm_restriction_walker(Node *node, check_ivm_restriction_context *context);
@@ -531,8 +531,9 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 			{
 				Assert(query_immv != NULL);
 				/* Create triggers on incremental maintainable materialized view */
-				CreateIvmTriggersOnBaseTables(query_immv, matviewOid);
-				CreateTaskIVM(pstate, matviewOid, false);
+				CreateIvmTriggersOnBaseTables(query_immv, matviewOid, into->defer);
+				if (into->defer)
+					CreateTaskIVM(pstate, matviewOid, false);
 			}
 			table_close(matviewRel, NoLock);
 		}
@@ -1039,7 +1040,7 @@ GetIntoRelOid(QueryDesc *queryDesc)
  * CreateIvmTriggersOnBaseTables -- create IVM triggers on all base tables
  */
 void
-CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid)
+CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid, bool defer)
 {
 	Relids	relids = NULL;
 	bool	ex_lock = false;
@@ -1066,14 +1067,15 @@ CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid)
 	if (list_length(qry->rtable) > 1 || rte->rtekind != RTE_RELATION)
 		ex_lock = true;
 
-	CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)qry, matviewOid, &relids, ex_lock);
-	create_matview_dependency_tuple(matviewOid, relids, true);
+	CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)qry, matviewOid, &relids, ex_lock, defer);
+	if (defer)
+		create_matview_dependency_tuple(matviewOid, relids, true);
 	bms_free(relids);
 }
 
 static void
 CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
-									 Relids *relids, bool ex_lock)
+									 Relids *relids, bool ex_lock, bool defer)
 {
 	if (node == NULL)
 		return;
@@ -1087,7 +1089,7 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 			{
 				Query *query = (Query *) node;
 
-				CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)query->jointree, matviewOid, relids, ex_lock);
+				CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)query->jointree, matviewOid, relids, ex_lock, defer);
 			}
 			break;
 
@@ -1098,14 +1100,17 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 
 				if (rte->rtekind == RTE_RELATION && !bms_is_member(rte->relid, *relids))
 				{
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_BEFORE, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_BEFORE, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_BEFORE, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_BEFORE, true);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_AFTER, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_AFTER, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_AFTER, ex_lock);
-					CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_AFTER, true);
+					if (!defer)
+					{
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_BEFORE, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_BEFORE, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_BEFORE, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_BEFORE, true);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_INSERT, TRIGGER_TYPE_AFTER, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_DELETE, TRIGGER_TYPE_AFTER, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_UPDATE, TRIGGER_TYPE_AFTER, ex_lock);
+						CreateIvmTrigger(rte->relid, matviewOid, TRIGGER_TYPE_TRUNCATE, TRIGGER_TYPE_AFTER, true);
+					}
 
 					*relids = bms_add_member(*relids, rte->relid);
 				}
@@ -1118,7 +1123,7 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 				ListCell   *l;
 
 				foreach(l, f->fromlist)
-					CreateIvmTriggersOnBaseTablesRecurse(qry, lfirst(l), matviewOid, relids, ex_lock);
+					CreateIvmTriggersOnBaseTablesRecurse(qry, lfirst(l), matviewOid, relids, ex_lock, defer);
 			}
 			break;
 
@@ -1126,8 +1131,8 @@ CreateIvmTriggersOnBaseTablesRecurse(Query *qry, Node *node, Oid matviewOid,
 			{
 				JoinExpr   *j = (JoinExpr *) node;
 
-				CreateIvmTriggersOnBaseTablesRecurse(qry, j->larg, matviewOid, relids, ex_lock);
-				CreateIvmTriggersOnBaseTablesRecurse(qry, j->rarg, matviewOid, relids, ex_lock);
+				CreateIvmTriggersOnBaseTablesRecurse(qry, j->larg, matviewOid, relids, ex_lock, defer);
+				CreateIvmTriggersOnBaseTablesRecurse(qry, j->rarg, matviewOid, relids, ex_lock, defer);
 			}
 			break;
 

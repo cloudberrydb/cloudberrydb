@@ -26,7 +26,7 @@ extern ObjectAddress ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *st
 									   ParamListInfo params, QueryEnvironment *queryEnv,
 									   QueryCompletion *qc);
 
-extern void CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid);
+extern void CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid, bool defer);
 extern void CreateIndexOnIMMV(Query *query, Relation matviewRel);
 
 extern Query *rewriteQueryForIMMV(Query *query, List *colNames);

@@ -636,8 +636,7 @@ ExecRefreshMatView(ParseState *pstate, RefreshMatViewStmt *stmt, const char *que
 
 	if (!stmt->skipData && RelationIsIVM(matviewRel) && !oldPopulated)
 	{
-		CreateIvmTriggersOnBaseTables(dataQuery, matviewOid);
-		CreateTaskIVM(pstate, matviewOid, false);
+		CreateIvmTriggersOnBaseTables(dataQuery, matviewOid, false);
 	}
 
 	table_close(matviewRel, NoLock);
