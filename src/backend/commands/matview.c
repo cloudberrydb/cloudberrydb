@@ -24,6 +24,7 @@
 #include "access/xact.h"
 #include "access/xlog.h"
 #include "catalog/catalog.h"
+#include "catalog/gp_matview_dependency.h"
 #include "catalog/indexing.h"
 #include "catalog/namespace.h"
 #include "catalog/oid_dispatch.h"
@@ -346,7 +347,7 @@ SetMatViewIVMState(Relation relation, bool newstate)
  * reflect the result set of the materialized view's query.
  */
 ObjectAddress
-ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
+ExecRefreshMatView(ParseState *pstate, RefreshMatViewStmt *stmt, const char *queryString,
 				   ParamListInfo params, QueryCompletion *qc)
 {
 	Oid			matviewOid;
@@ -636,6 +637,7 @@ ExecRefreshMatView(RefreshMatViewStmt *stmt, const char *queryString,
 	if (!stmt->skipData && RelationIsIVM(matviewRel) && !oldPopulated)
 	{
 		CreateIvmTriggersOnBaseTables(dataQuery, matviewOid);
+		CreateTaskIVM(pstate, matviewOid, false);
 	}
 
 	table_close(matviewRel, NoLock);
@@ -3838,4 +3840,20 @@ ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid)
 	oldctx = MemoryContextSwitchTo(TopMemoryContext);
 	SetTransitionTableName(relid, cmd, mvid);
 	MemoryContextSwitchTo(oldctx);
+}
+
+Datum
+ivm_deferred_maintenance(PG_FUNCTION_ARGS)
+{
+	Datum	baseRelidsDatum;
+	Oid 	matview_id = PG_GETARG_OID(0);
+
+	char* out = "ivm_deferred_maintenance";
+	baseRelidsDatum = get_matview_dependency_relids(matview_id);
+	oidvector* base_relids = (oidvector *) DatumGetPointer(baseRelidsDatum);
+
+	Assert(base_relids);
+	for (int i = 0; i < base_relids->dim1; i++)
+		elog(LOG, "ivm deferred maintenance base table: %d", base_relids->values[i]);
+	PG_RETURN_TEXT_P(cstring_to_text(out));
 }

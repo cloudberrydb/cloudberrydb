@@ -2106,7 +2106,7 @@ ProcessUtilitySlow(ParseState *pstate,
 				EventTriggerInhibitCommandCollection();
 				PG_TRY();
 				{
-					address = ExecRefreshMatView((RefreshMatViewStmt *) parsetree,
+					address = ExecRefreshMatView(pstate, (RefreshMatViewStmt *) parsetree,
 												 queryString, params, qc);
 				}
 				PG_FINALLY();

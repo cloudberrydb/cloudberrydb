@@ -32,6 +32,7 @@
 #include "access/tableam.h"
 #include "access/xact.h"
 #include "access/xlog.h"
+#include "catalog/gp_matview_dependency.h"
 #include "catalog/namespace.h"
 #include "catalog/index.h"
 #include "catalog/pg_constraint.h"
@@ -44,6 +45,7 @@
 #include "commands/prepare.h"
 #include "commands/tablecmds.h"
 #include "commands/tablespace.h"
+#include "commands/taskcmds.h"
 #include "commands/trigger.h"
 #include "commands/view.h"
 #include "miscadmin.h"
@@ -530,6 +532,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 				Assert(query_immv != NULL);
 				/* Create triggers on incremental maintainable materialized view */
 				CreateIvmTriggersOnBaseTables(query_immv, matviewOid);
+				CreateTaskIVM(pstate, matviewOid, false);
 			}
 			table_close(matviewRel, NoLock);
 		}
@@ -1064,7 +1067,7 @@ CreateIvmTriggersOnBaseTables(Query *qry, Oid matviewOid)
 		ex_lock = true;
 
 	CreateIvmTriggersOnBaseTablesRecurse(qry, (Node *)qry, matviewOid, &relids, ex_lock);
-
+	create_matview_dependency_tuple(matviewOid, relids, true);
 	bms_free(relids);
 }
 
@@ -1800,4 +1803,32 @@ get_primary_key_attnos_from_query(Query *query, List **constraintList)
 	}
 
 	return keys;
+}
+
+ObjectAddress
+CreateTaskIVM(ParseState *pstate, Oid matviewOid, bool ex_lock)
+{
+	ObjectAddress	refaddr;
+	ObjectAddress	address;
+	StringInfoData namebuf;
+	CreateTaskStmt *stmt = makeNode(CreateTaskStmt);
+
+	initStringInfo(&namebuf);
+	appendStringInfo(&namebuf, "ivm_task_%u", matviewOid);
+	stmt->taskname = pstrdup(namebuf.data);
+	stmt->schedule = pstrdup("3 seconds");
+
+	resetStringInfo(&namebuf);
+	appendStringInfo(&namebuf, "select pg_catalog.ivm_deferred_maintenance(%u, '%s')",
+					matviewOid, ex_lock ? "true" : "false");
+	stmt->sql = pstrdup(namebuf.data);
+	stmt->options = NIL;
+	stmt->if_not_exists = true;
+
+	address = DefineTask(pstate, stmt);
+	refaddr.classId = RelationRelationId;
+	refaddr.objectId = matviewOid;
+	refaddr.objectSubId = 0;
+	recordDependencyOn(&address, &refaddr, DEPENDENCY_AUTO);
+	return address;
 }

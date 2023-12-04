@@ -12502,5 +12502,9 @@
   proname => 'pg_export_snapshot_def', provolatile => 'v', proparallel => 'u',
   prorettype => 'text', proargtypes => 'oid text',
   prosrc => 'pg_export_snapshot_def', proexeclocation => 's' },
+{ oid => '7202', descr => 'deferred ivm maintenance',
+  proname => 'ivm_deferred_maintenance', provolatile => 'v', proparallel => 'u',
+  prorettype => 'text', proargtypes => 'oid text',
+  prosrc => 'ivm_deferred_maintenance', proexeclocation => 'c' },
 ]
 
