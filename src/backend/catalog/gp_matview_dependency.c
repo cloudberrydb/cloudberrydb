@@ -101,3 +101,65 @@ Datum get_matview_dependency_relids(Oid matviewOid)
 
     return result;
 }
+
+void
+mark_matview_dependency_valid(Oid matviewOid)
+{
+    Relation gp_matview_dependency;
+    HeapTuple tup;
+    SysScanDesc scanDescriptor = NULL;
+    ScanKeyData scanKey[1];
+    Datum       values[Natts_gp_matview_dependency];
+    bool        nulls[Natts_gp_matview_dependency];
+    bool        doreplace[Natts_gp_matview_dependency];
+
+    memset(values, 0, sizeof(values));
+    memset(nulls, false, sizeof(nulls));
+    memset(doreplace, false, sizeof(doreplace));
+
+    gp_matview_dependency = table_open(MatviewDependencyId, RowExclusiveLock);
+
+    ScanKeyInit(&scanKey[0], Anum_gp_matview_dependency_matviewid, BTEqualStrategyNumber,
+                F_OIDEQ, ObjectIdGetDatum(matviewOid));
+
+    scanDescriptor = systable_beginscan(gp_matview_dependency, InvalidOid,
+                                        false, NULL, 1, scanKey);
+
+    while (HeapTupleIsValid(tup = systable_getnext(scanDescriptor)))
+    {
+        values[Anum_gp_matview_dependency_isvaild - 1] = BoolGetDatum(true);
+        doreplace[Anum_gp_matview_dependency_isvaild - 1] = true;
+
+        tup = heap_modify_tuple(tup, RelationGetDescr(gp_matview_dependency), values, nulls, doreplace);
+        CatalogTupleUpdate(gp_matview_dependency, &tup->t_self, tup);
+        heap_freetuple(tup);
+    }
+
+    systable_endscan(scanDescriptor);
+    table_close(gp_matview_dependency, RowExclusiveLock);
+}
+
+void
+remove_matview_dependency_byoid(Oid matviewOid)
+{
+    Relation    gp_matview_dependency;
+    HeapTuple   tup;
+    SysScanDesc scanDescriptor = NULL;
+    ScanKeyData scanKey[1];
+
+    gp_matview_dependency = table_open(MatviewDependencyId, RowExclusiveLock);
+
+    ScanKeyInit(&scanKey[0], Anum_gp_matview_dependency_matviewid, BTEqualStrategyNumber,
+                F_OIDEQ, ObjectIdGetDatum(matviewOid));
+
+    scanDescriptor = systable_beginscan(gp_matview_dependency, InvalidOid,
+                                        true, NULL, 1, scanKey);
+
+    while (HeapTupleIsValid(tup = systable_getnext(scanDescriptor)))
+    {
+        CatalogTupleDelete(gp_matview_dependency, &tup->t_self);
+    }
+
+    systable_endscan(scanDescriptor);
+    table_close(gp_matview_dependency, RowExclusiveLock);
+}

@@ -35,5 +35,6 @@ typedef FormData_gp_matview_dependency *Form_gp_matview_dependency;
 
 extern void create_matview_dependency_tuple(Oid matviewOid, Relids relids, bool defer);
 extern Datum get_matview_dependency_relids(Oid matviewOid);
-
+extern void mark_matview_dependency_valid(Oid matviewOid);
+extern void remove_matview_dependency_byoid(Oid matviewOid);
 #endif   /* GP_MATVIEW_DEPENDENCY_H */
