@@ -220,7 +220,7 @@ AQUMV_MVP
 ---------
 Support SELECT FROM a single relation both for mv_query and the origin_query.
 Below are not supported now:
-      AGG
+      Aggregation (on mv_query)
       Subquery
       Order by(for origin_query)
       Join

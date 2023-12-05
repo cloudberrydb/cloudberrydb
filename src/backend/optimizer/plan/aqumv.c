@@ -1,4 +1,3 @@
-
 /*-------------------------------------------------------------------------
  *
  * aqumv.c
@@ -112,11 +111,11 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 
 	bool can_not_use_mv = (parse->commandType != CMD_SELECT) ||
 						  (parse->rowMarks != NIL) ||
-						  parse->hasAggs ||
 						  parse->hasWindowFuncs ||
 						  parse->hasDistinctOn ||
 						  /* Group By without agg could be possible though IMMV doesn't support it yet. */
 						  (parse->groupClause != NIL) ||
+						  (parse->havingQual != NULL) ||
 						  parse->hasModifyingCTE ||
 						  parse->sortClause ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_REFRESH_MATVIEW) ||
@@ -277,8 +276,11 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 		subroot->plan_params = NIL;
 		subroot->outer_params = NULL;
 		subroot->init_plans = NIL;
-		subroot->agginfos = NIL;
-		subroot->aggtransinfos = NIL;
+		if (!parse->hasAggs)
+		{
+			subroot->agginfos = NIL;
+			subroot->aggtransinfos = NIL;
+		}
 		subroot->parse = mvQuery;
 
 		/*
@@ -334,6 +336,13 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 		 */
 		if(!aqumv_process_targetlist(context, parse->targetList, &mv_final_tlist))
 			continue;
+
+		/*
+		 * We have successfully processed target list, all columns in Aggrefs could be
+		 * computed from mvQuery.
+		 * It's safe to set hasAggs here.
+		 */
+		mvQuery->hasAggs = parse->hasAggs;
 
 		/*
 		 * AQUMV
@@ -459,6 +468,10 @@ aqumv_init_context(List *view_tlist, List *mv_tlist)
 	{
 		i++;
 		TargetEntry* tle = lfirst_node(TargetEntry, lc);
+
+		if (tle->resjunk)
+			continue;
+
 		expr = tle->expr;
 		if(IsA(expr, Var))
 		{
@@ -477,8 +490,6 @@ aqumv_init_context(List *view_tlist, List *mv_tlist)
 	context->has_unmatched = false;
 	return context;
 }
-
-
 
 /*
  * Process varno after we eliminate mv's actions("old" and "new" relation)
@@ -724,8 +735,9 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 									 PVC_RECURSE_WINDOWFUNCS |
 									 PVC_INCLUDE_PLACEHOLDERS);
 
+	/* Keep TargetEntry expr no changed in case for count(*). */
 	if (expr_vars == NIL)
-		return (Node *)node_expr;
+		return is_targetEntry ? node : (Node *)node_expr;
 	list_free(expr_vars);
 	
 	/* Try match with mv_pure_vars_index, but do not disturb already rewrited exprs(Var->location = -2)  */
