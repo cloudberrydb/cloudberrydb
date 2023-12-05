@@ -408,7 +408,7 @@ ResetColDesc(ColDesc *coldesc)
 
 		offsetbytes = garrow_buffer_get_data(offsetbuffer);
 		coldesc->offsets = (void *)g_bytes_get_data(offsetbytes, &size);
-		*(uint32*)(coldesc->offsets) = 0;
+		memset(coldesc->offsets, 0, size);
 		garrow_store_ptr(coldesc->offset_buffer, offsetbuffer);
 
 	}
