@@ -222,6 +222,74 @@ explain(verbose, costs off)
 select sqrt(abs(abs(c2) - c1 - 1) + abs(c2)) from aqumv_t1 where c1 > 30 and c1 < 40 and sqrt(abs(c2)) > 5.8;
 abort;
 
+
+--
+-- Support origin query with aggregations.
+-- Compute Aggregations from mv.
+--
+begin;
+create table aqumv_t2(c1 int, c2 int, c3 int) distributed by (c1);
+insert into aqumv_t2 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into aqumv_t2 values (91, NULL, 95);
+analyze aqumv_t2;
+
+create incremental materialized view aqumv_mvt2_0 as
+  select c1 as mc1, c2 as mc2, c3 as mc3
+  from aqumv_t2 where c1 > 90;
+analyze aqumv_mvt2_0;
+
+-- test aggregation functions supported in IVM. 
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c1), sum(c2), avg(c3) from aqumv_t2 where c1 > 90;
+select count(c1), sum(c2), avg(c3) from aqumv_t2 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c1), sum(c2), avg(c3) from aqumv_t2 where c1 > 90;
+select count(c1), sum(c2), avg(c3) from aqumv_t2 where c1 > 90;
+
+-- test complex expressions have AGG.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c1) + 1 from aqumv_t2 where c1 > 90;
+select count(c1) + 1 from aqumv_t2 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c1) + 1 from aqumv_t2 where c1 > 90;
+select count(c1) + 1 from aqumv_t2 where c1 > 90;
+
+-- test AGG FILTER.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select sum(c2), sum(c2) filter (where c2 > 95) from aqumv_t2 where c1 > 90;
+select sum(c2), sum(c2) filter (where c2 > 95) from aqumv_t2 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select sum(c2), sum(c2) filter (where c2 > 95) from aqumv_t2 where c1 > 90;
+select sum(c2), sum(c2) filter (where c2 > 95) from aqumv_t2 where c1 > 90;
+
+-- test AGG functions which are not supported in IVM now, but could work in AQUMV. 
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select max(c1), min(c3), stddev(c2) from aqumv_t2 where c1 > 90;
+select max(c1), min(c3), stddev(c2) from aqumv_t2 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select max(c1), min(c3), stddev(c2) from aqumv_t2 where c1 > 90;
+select max(c1), min(c3), stddev(c2) from aqumv_t2 where c1 > 90;
+
+-- test count(*)
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c2), count(*) from aqumv_t2 where c1 > 90;
+select count(c2), count(*) from aqumv_t2 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c2), count(*) from aqumv_t2 where c1 > 90;
+select count(c2), count(*) from aqumv_t2 where c1 > 90;
+
+abort;
+
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;
