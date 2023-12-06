@@ -24340,6 +24340,8 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
 
+source deploy/dependencies.sh ${prefix}
+
 # The configure args contain '-Wl,-rpath,\$$ORIGIN`, when it falls
 # as a C literal string, it's invalid, so converting `\` to `\\`
 # to be correct for C program.

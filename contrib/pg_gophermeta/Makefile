@@ -1,6 +1,4 @@
 # contrib/pg_gophermeta/Makefile
-dependencies:
-	sh dependencies.sh
 MODULE_big = pg_gophermeta
 OBJS = \
 	$(WIN32RES) \
