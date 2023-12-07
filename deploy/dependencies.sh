@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 
 #set GPHOME for libraries install
+set -exo pipefail
 export GPHOME=$1
 echo  "Message user set GPHOME = $GPHOME";
 
@@ -13,7 +14,7 @@ ARCH="$(uname -i)"
 OS="$(. /etc/os-release && echo "${ID}")"
 ARROW_BUILD_TYPE="release"
 ARROW_BRANCH="hdw"
-LAST_COMMIT=`git ls-remote git@code.hashdata.xyz:hashdata/arrow.git ${ARROW_BRANCH} | awk '{ print $1}'`
+LAST_COMMIT=`git ls-remote https://buildbot:Passw0rd@code.hashdata.xyz/hashdata/arrow.git ${ARROW_BRANCH} | awk '{ print $1}'`
 
 if [ $# -eq 1 ] && [ "${1,,}" = "debug" ]; then
   ARROW_BUILD_TYPE="debug"
@@ -26,7 +27,7 @@ HASHDATA_ARROW_CONAN_VERSION=${HASHDATA_ARROW_CONAN_VERSION:-arrow/"${ARROW_BRAN
 HASHDATA_LIBORC_CONAN_VERSION=${HASHDATA_LIBORC_CONAN_VERSION:-orc/1.7.0@hashdata/"${OS}"_"${ARCH}"_"${ARROW_BUILD_TYPE}"}
 
 # gopher
-HASHDATA_GOPHER_CONAN_VERSION=${HASHDATA_GOPHER_CONAN_VERSION:-gopher/master@hashdata/testing}
+HASHDATA_GOPHER_CONAN_VERSION=${HASHDATA_GOPHER_CONAN_VERSION:-gopher/master@hashdata/testing#12d434c215e4db686cd2f691915c55f097155e82}
 
 # libhdfs3, use gopher's dependency by default
 HASHDATA_LIBHDFS3_CONAN_VERSION=${HASHDATA_LIBHDFS3_CONAN_VERSION:-}

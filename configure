@@ -1380,6 +1380,16 @@ Try \`$0 --help' for more information"
   esac
 done
 
+if [ "${prefix}" = "NONE" ];then
+   export LDFLAGS+=" -L${ac_default_prefix}/lib"
+   export CPPFLAGS+=" -I${ac_default_prefix}/include"
+else
+   export LDFLAGS+=" -L${prefix}/lib"
+   export CPPFLAGS+=" -I${prefix}/include"
+fi
+
+echo  "Message User set CPPFLAGS = $CPPFLAGS";
+
 if test -n "$ac_prev"; then
   ac_option=--`echo $ac_prev | sed 's/_/-/g'`
   as_fn_error $? "missing argument to $ac_option"
