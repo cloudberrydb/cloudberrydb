@@ -1,10 +1,19 @@
 <p align="center">
-<img src="./logo_cloudberry_database.svg"><br>
-<strong>Next Generation Unified Database for Analytics and AI</strong>
+  <picture>
+    <source media="(prefers-color-scheme: light)" srcset="./.github/full_color_black.svg">
+    <source media="(prefers-color-scheme: dark)" srcset="./.github/full_color_white.svg">
+    <img alt="Cloudberry Database Logo" src="./.github/full_color_black.svg" width="400px">
+  </picture>
+</p>
+
+<p align="center">
+    Next Generation Unified Database for Analytics and AI
 </p>
 
 [![Slack](https://img.shields.io/badge/Join_Slack-6a32c9)](https://communityinviter.com/apps/cloudberrydb/welcome)
 [![Twitter Follow](https://img.shields.io/twitter/follow/cloudberrydb)](https://twitter.com/cloudberrydb)
+[![WeChat](https://img.shields.io/badge/WeChat-eebc46)](https://cloudberrydb.org/community/wechat)
+[![Youtube](https://img.shields.io/badge/Youtube-gebc46)](https://youtube.com/@cloudberrydb)
 [![Website](https://img.shields.io/badge/Visit%20Website-eebc46)](https://cloudberrydb.org)
 [![GitHub Discussions](https://img.shields.io/github/discussions/cloudberrydb/cloudberrydb)](https://github.com/orgs/cloudberrydb/discussions)
 ![GitHub commit activity(branch)](https://img.shields.io/github/commit-activity/m/cloudberrydb/cloudberrydb)
@@ -21,11 +30,11 @@ code base.
 
 ## Features
 
-Cloudberry Database is 100% compatible with Greenplum, and provides
-all the Greenplum features you need. In addition, Cloudberry Database
-possesses some features that Greenplum currently lacks or does not
-support. Visit this [feature comparison
-doc](https://cloudberrydb.org/docs/cbdb-vs-gp-features) for details.
+Cloudberry Database is compatible with Greenplum, and provides all the
+Greenplum features you need. In addition, Cloudberry Database possesses some
+features that Greenplum currently lacks or does not support. Visit this
+[feature comparison doc](https://cloudberrydb.org/docs/cbdb-vs-gp-features)
+for details.
 
 ## Code layout
 
@@ -49,9 +58,6 @@ throughout the codebase, but a few larger additions worth noting:
     Database, the user manual is maintained separately at [Cloudberry
     Database Website
     Repo](https://github.com/cloudberrydb/cloudberrydb-site/tree/main).
-
-* __hd-ci/__ : Contains configuration files for the CBDB continuous
-    integration system.
 
 * __src/__
 
@@ -96,6 +102,18 @@ We also recommend you take [PostgreSQL
 Documentation](https://www.postgresql.org/docs/) and [Greenplum
 Documentation](https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/landing-index.html#differences-compared-to-open-source-greenplum-database)
 as quick references.
+
+## Repositories
+
+This is the main repository for Cloudberry Database. Alongside this, there are
+several ecosystem repositories for the Cloudberry Database, including the
+website, extensions, connectors, adapters, and other utilities.
+
+* [cloudberrydb/cloudberrydb-site](https://github.com/cloudberrydb/cloudberrydb-site): website sources.
+* [bootcamp](https://github.com/cloudberrydb/bootcamp): help you quickly try out Cloudberry Database via one Docker-based Sandbox.
+* [gpbackup](https://github.com/cloudberrydb/gpbackup): backup utility for Cloudberry Database.
+* [gp-common-go-libs](https://github.com/cloudberrydb/gp-common-go-libs): gp-common-go-libs for Cloudberry Database.
+* More is coming...
 
 ## Contribution
 
