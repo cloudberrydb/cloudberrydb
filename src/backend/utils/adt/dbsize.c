@@ -89,21 +89,30 @@ get_size_from_segDBs(const char *cmd)
 	for (i = 0; i < cdb_pgresults.numResults; i++)
 	{
 		Datum		value;
+		ExecStatusType status;
+		int ntuples;
+		int nfields;
+
 		struct pg_result *pgresult = cdb_pgresults.pg_results[i];
 
-		if (PQresultStatus(pgresult) != PGRES_TUPLES_OK)
+		status = PQresultStatus(pgresult);
+		if (status != PGRES_TUPLES_OK)
 		{
 			cdbdisp_clearCdbPgResults(&cdb_pgresults);
 			ereport(ERROR,
 					(errmsg("unexpected result from segment: %d",
-							PQresultStatus(pgresult))));
+							status)));
 		}
-		if (PQntuples(pgresult) != 1 || PQnfields(pgresult) != 1)
+
+		ntuples = PQntuples(pgresult);
+		nfields = PQnfields(pgresult);
+
+		if (ntuples != 1 || nfields != 1)
 		{
 			cdbdisp_clearCdbPgResults(&cdb_pgresults);
 			ereport(ERROR,
 					(errmsg("unexpected shape of result from segment (%d rows, %d cols)",
-							PQntuples(pgresult), PQnfields(pgresult))));
+							ntuples, nfields)));
 		}
 		if (PQgetisnull(pgresult, 0, 0))
 			value = 0;
