@@ -528,6 +528,17 @@ vectorize_plan_mutator(Node *node, void *context)
 		if (mutated->righttree && IsA(mutated->righttree, Material))
 			mutated->righttree = mutated->righttree->lefttree;
 	}
+	// FIXME: This is temporary code that will need to be removed when the system supports numeric.
+	if (IsA(mutated, TargetEntry))
+	{
+		TargetEntry *tle = (TargetEntry *) mutated;
+		if (nodeTag(tle->expr) == T_FuncExpr && ((FuncExpr *)tle->expr)->funcid == F_FLOAT8_NUMERIC) {
+			FuncExpr *child_func = (FuncExpr *)tle->expr;
+			List *arg = child_func->args;
+			tle->expr =  linitial(arg);
+			pfree(child_func);
+		}
+	}
 
 	/* Modify table may contains vars didn't match children's targetlist*/
 	if (is_plan_node((Node *) mutated) && mutated->lefttree
