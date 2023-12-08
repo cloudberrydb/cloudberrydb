@@ -753,6 +753,8 @@ ICU_CFLAGS
 with_icu
 enable_thread_safety
 INCLUDES
+enable_gophermeta
+enable_datalake
 enable_preload_ic_module
 enable_ic_proxy
 enable_external_fts
@@ -901,6 +903,8 @@ enable_gpcloud
 enable_external_fts
 enable_ic_proxy
 enable_preload_ic_module
+enable_datalake
+enable_gophermeta
 enable_thread_safety
 with_icu
 with_tcl
@@ -1380,16 +1384,6 @@ Try \`$0 --help' for more information"
   esac
 done
 
-if [ "${prefix}" = "NONE" ];then
-   export LDFLAGS+=" -L${ac_default_prefix}/lib"
-   export CPPFLAGS+=" -I${ac_default_prefix}/include"
-else
-   export LDFLAGS+=" -L${prefix}/lib"
-   export CPPFLAGS+=" -I${prefix}/include"
-fi
-
-echo  "Message User set CPPFLAGS = $CPPFLAGS";
-
 if test -n "$ac_prev"; then
   ac_option=--`echo $ac_prev | sed 's/_/-/g'`
   as_fn_error $? "missing argument to $ac_option"
@@ -1625,6 +1619,8 @@ Optional Features:
                           library)
   --disable-preload-ic-module
                           disable preload interconnect module
+  --enable-datalake       enable preload datalake
+  --disable-gophermeta    enable preload gophermeta
   --disable-thread-safety disable thread-safety in client libraries
   --enable-openssl-redirect
                           enable redirect openssl interface to internal
@@ -9043,6 +9039,117 @@ fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload ic module ... $enable_preload_ic_module" >&5
 $as_echo "checking whether to build with preload ic module ... $enable_preload_ic_module" >&6; }
 
+
+#
+# datalake preload
+#
+
+
+# Check whether --enable-datalake was given.
+if test "${enable_datalake+set}" = set; then :
+  enableval=$enable_datalake;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_DATALAKE 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-datalake option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_datalake=no
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload datalake ... $enable_datalake" >&5
+$as_echo "checking whether to build with preload datalake ... $enable_datalake" >&6; }
+
+
+#
+# gophermeta preload
+# enforce enable_gophermeta if enable_datalake is yes
+#
+if test "$enable_datalake" = yes; then
+
+
+# Check whether --enable-gophermeta was given.
+if test "${enable_gophermeta+set}" = set; then :
+  enableval=$enable_gophermeta;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_GOPHERMETA 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-gophermeta option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_gophermeta=yes
+
+$as_echo "#define USE_GOPHERMETA 1" >>confdefs.h
+
+fi
+
+
+else
+
+
+# Check whether --enable-gophermeta was given.
+if test "${enable_gophermeta+set}" = set; then :
+  enableval=$enable_gophermeta;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_GOPHERMETA 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-gophermeta option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_gophermeta=no
+
+fi
+
+
+fi
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload gophermeta ... $enable_gophermeta" >&5
+$as_echo "checking whether to build with preload gophermeta ... $enable_gophermeta" >&6; }
+
+
+if test "$enable_gophermeta" = yes; then
+  if  "${prefix}" = "NONE" ;then
+    export LDFLAGS+=" -L${ac_default_prefix}/lib"
+    export CPPFLAGS+=" -I${ac_default_prefix}/include"
+  else
+    export LDFLAGS+=" -L${prefix}/lib"
+    export CPPFLAGS+=" -I${prefix}/include"
+  fi
+  echo  "Message User set CPPFLAGS = $CPPFLAGS";
+  DEPENDENCIES_IN="contrib/pg_gophermeta/dependencies.sh.in"
+  DEPENDENCIES_SH="contrib/pg_gophermeta/dependencies.sh"
+  if grep '##' $DEPENDENCIES_IN > /dev/null 2>&1 ; then
+      sed "s,##.*##,${prefix}," $DEPENDENCIES_IN > $DEPENDENCIES_SH
+  fi
+fi
 
 #
 # Include directories
@@ -24349,8 +24456,6 @@ if test -n "$ac_unrecognized_opts" && test "$enable_option_checking" != no; then
   { $as_echo "$as_me:${as_lineno-$LINENO}: WARNING: unrecognized options: $ac_unrecognized_opts" >&5
 $as_echo "$as_me: WARNING: unrecognized options: $ac_unrecognized_opts" >&2;}
 fi
-
-source deploy/dependencies.sh ${prefix}
 
 # The configure args contain '-Wl,-rpath,\$$ORIGIN`, when it falls
 # as a C literal string, it's invalid, so converting `\` to `\\`

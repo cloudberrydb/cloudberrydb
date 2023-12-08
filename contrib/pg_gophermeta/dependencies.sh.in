@@ -2,7 +2,7 @@
 
 #set GPHOME for libraries install
 set -exo pipefail
-export GPHOME=$1
+export GPHOME="##prefix##"
 echo  "Message user set GPHOME = $GPHOME";
 
 # Get the dependences libraries.

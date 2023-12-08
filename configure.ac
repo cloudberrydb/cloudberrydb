@@ -916,6 +916,50 @@ AC_MSG_RESULT([checking whether to build with preload ic module ... $enable_prel
 AC_SUBST(enable_preload_ic_module)
 
 #
+# datalake preload
+#
+PGAC_ARG_BOOL(enable, datalake, no,
+              [enable preload datalake],
+              [AC_DEFINE(USE_DATALAKE, 1,
+                         [Define to 1 to preload datalake])])
+AC_MSG_RESULT([checking whether to build with preload datalake ... $enable_datalake])
+AC_SUBST(enable_datalake)
+
+#
+# gophermeta preload
+# enforce enable_gophermeta if enable_datalake is yes
+#
+if test "$enable_datalake" = yes; then
+  PGAC_ARG_BOOL(enable, gophermeta,yes,
+                [enable preload gophermeta],
+                [AC_DEFINE(USE_GOPHERMETA, 1,
+                          [Define to 1 to preload gophermeta])])
+else
+  PGAC_ARG_BOOL(enable, gophermeta,no,
+                [enable preload gophermeta],
+                [AC_DEFINE(USE_GOPHERMETA, 1,
+                          [Define to 1 to preload gophermeta])])
+fi
+AC_MSG_RESULT([checking whether to build with preload gophermeta ... $enable_gophermeta])
+AC_SUBST(enable_gophermeta)
+
+if test "$enable_gophermeta" = yes; then
+  if [ "${prefix}" = "NONE" ];then
+    export LDFLAGS+=" -L${ac_default_prefix}/lib"
+    export CPPFLAGS+=" -I${ac_default_prefix}/include"
+  else
+    export LDFLAGS+=" -L${prefix}/lib"
+    export CPPFLAGS+=" -I${prefix}/include"
+  fi
+  echo  "Message User set CPPFLAGS = $CPPFLAGS";
+  DEPENDENCIES_IN="contrib/pg_gophermeta/dependencies.sh.in"
+  DEPENDENCIES_SH="contrib/pg_gophermeta/dependencies.sh"
+  if grep '##' $DEPENDENCIES_IN > /dev/null 2>&1 ; then
+      sed "s,##.*##,${prefix}," $DEPENDENCIES_IN > $DEPENDENCIES_SH
+  fi
+fi
+
+#
 # Include directories
 #
 ac_save_IFS=$IFS

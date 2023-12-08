@@ -1064,6 +1064,11 @@
 /* Define to 1 to build with Cloudberry ORCA optimizer. (--enable-orca) */
 #undef USE_ORCA
 
+/* Define to 1 to build with gophermeta. (--enable-gophermeta) */
+#undef USE_GOPHERMETA
+
+/* Define to 1 to build with datalake. (--enable-datalake) */
+#undef USE_DATALAKE
 
 /* Define to 1 to build with PAM support. (--with-pam) */
 #undef USE_PAM
