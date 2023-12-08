@@ -310,9 +310,22 @@ try_vectorize_plan(PlannedStmt *result)
 static bool
 beyond_float8_max(Datum num)
 {
-	Datum float_max =  DirectFunctionCall1(float8_numeric, Float8GetDatum(DBL_MAX));
-	Datum float_min = DirectFunctionCall1(float8_numeric, Float8GetDatum(DBL_MIN));
-	return DatumGetBool(DirectFunctionCall2(numeric_gt, num, float_max)) || \
+	Datum float_max;
+	Datum float_min;
+	Datum float_range_min;
+	Datum abc_num;
+
+	// handle num = 0
+	if (DatumGetBool(DirectFunctionCall2(numeric_eq, num, DirectFunctionCall3(numeric_in, CStringGetDatum("0"), 0, -1))))
+		return false;
+
+	float_max =  DirectFunctionCall1(float8_numeric, Float8GetDatum(DBL_MAX));
+	float_min = DirectFunctionCall1(float8_numeric, Float8GetDatum(-DBL_MAX));
+	float_range_min = DirectFunctionCall1(float8_numeric, Float8GetDatum(DBL_MIN));
+	abc_num = DirectFunctionCall1(numeric_abs, num);
+
+	return DatumGetBool(DirectFunctionCall2(numeric_lt, abc_num, float_range_min)) || \
+				DatumGetBool(DirectFunctionCall2(numeric_gt, num, float_max)) || \
 				DatumGetBool(DirectFunctionCall2(numeric_lt, num, float_min));
 }
 
