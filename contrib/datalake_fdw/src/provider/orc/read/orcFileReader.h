@@ -31,7 +31,8 @@ public:
 
 	arrow::Status readRecordBatch(arrow::MemoryPool* pool,
 				std::shared_ptr<arrow::Schema>& schema,
-				std::shared_ptr<arrow::RecordBatch>* out);
+				std::shared_ptr<arrow::RecordBatch>* out,
+				std::vector<int32_t> &schemaColMap);
 
 	bool compareToDeleteMap(orcReadDeltaFile &compact, int index);
 

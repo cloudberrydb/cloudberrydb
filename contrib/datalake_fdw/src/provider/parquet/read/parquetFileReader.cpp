@@ -139,6 +139,7 @@ void parquetFileReader::createScanners()
         if (options.nPartitionKey <= 0 && !options.includes_columns[i])
         {
             // not select columns continue
+            index++;
             continue;
         }
         std::shared_ptr<parquet::ColumnReader> col_reader = row_group_reader->Column(i);

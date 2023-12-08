@@ -40,8 +40,7 @@ GetFragmentList(dataLakeOptions *options, int64_t *totalSize)
 	ossFileStream stream = createFileSystem(conf);
 	int count = 0;
 	gopherFileInfo* lists = listDir(stream, options->prefix, &count, true);
-
-	fragment = SerializeFragmentList(lists, count, totalSize);
+	fragment = lappend(fragment, SerializeFragmentList(lists, count, totalSize));
 	freeListDir(stream, lists, count);
 	gopherDestroyHandle(stream);
 	freeGopherConfig(conf);

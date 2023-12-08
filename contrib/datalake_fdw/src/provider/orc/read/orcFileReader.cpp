@@ -91,14 +91,15 @@ void orcFileReader::read(TupleDesc tupdesc, Datum *values, bool *nulls, int inde
 
 arrow::Status orcFileReader::readRecordBatch(arrow::MemoryPool* pool,
 				std::shared_ptr<arrow::Schema>& schema,
-				std::shared_ptr<arrow::RecordBatch>* out)
+				std::shared_ptr<arrow::RecordBatch>* out,
+				std::vector<int32_t> &schemaColMap)
 {
 	std::unique_ptr<arrow::RecordBatchBuilder> builder;
 	arrow::RecordBatchBuilder::Make(schema, pool, ORC_BATCH_SIZE, &builder);
 	orc::StructVectorBatch *orcVector = readInterface.getORCStructVectorBatch();
 	for (int i = 0; i < builder->num_fields(); i++)
 	{
-		RETURN_NOT_OK(arrow::adapters::orc::AppendBatch(readInterface.type->getSubtype(i), orcVector->fields[i], 0,
+		RETURN_NOT_OK(arrow::adapters::orc::AppendBatch(readInterface.type->getSubtype(schemaColMap[i]), orcVector->fields[i], 0,
 								readInterface.batch->numElements, builder->GetField(i)));
 	}
 	RETURN_NOT_OK(builder->Flush(out));

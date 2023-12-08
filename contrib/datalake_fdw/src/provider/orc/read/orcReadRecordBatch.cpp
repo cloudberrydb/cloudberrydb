@@ -49,7 +49,25 @@ void orcReadRecordBatch::restart()
 	readNextGroup();
 }
 
-arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::string partitionkey, Datum mpp_datum, int nrows)
+arrow::Status orcReadRecordBatch::addColOrCreateRecordBatch(std::shared_ptr<arrow::Field> field_id, std::shared_ptr<arrow::Array> column, int nrows, int batch_index)
+{
+	std::shared_ptr<arrow::RecordBatch> newrbatch;
+	if (out->num_columns() == 0)
+	{
+		arrow::FieldVector fields = {field_id};
+		arrow::ArrayVector arrays = {column};
+		std::shared_ptr<arrow::Schema> schema = std::make_shared<arrow::Schema>(fields, std::make_shared<arrow::KeyValueMetadata>());
+		newrbatch = arrow::RecordBatch::Make(schema, nrows, arrays);
+	}
+	else 
+	{
+		ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(batch_index, field_id, column));
+	}
+	out = newrbatch;
+	return arrow::Status::OK();
+}
+
+arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, int batch_index, std::string partitionkey, Datum mpp_datum, int nrows)
 {
 	Oid typeOid = tupdesc->attrs[mpp_index].atttypid;
 	switch (typeOid)
@@ -67,10 +85,7 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			field_id = arrow::field(partitionkey.c_str(), arrow::int16());
 			ARROW_RETURN_NOT_OK(builder.AppendValues(vec));
 			ARROW_ASSIGN_OR_RAISE(columns, builder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field_id, columns));
-			out = newrbatch;
-
+			addColOrCreateRecordBatch(field_id, columns, nrows, batch_index);
 			break;
 		}
 		case INT4OID: {
@@ -86,9 +101,7 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			field_id = arrow::field(partitionkey.c_str(), arrow::int32());
 			ARROW_RETURN_NOT_OK(builder.AppendValues(vec));
 			ARROW_ASSIGN_OR_RAISE(columns, builder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field_id, columns));
-			out = newrbatch;
+			addColOrCreateRecordBatch(field_id, columns, nrows, batch_index);
 			break;
 		}
 		case INT8OID: {
@@ -104,9 +117,7 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			field_id = arrow::field(partitionkey.c_str(), arrow::int64());
 			ARROW_RETURN_NOT_OK(builder.AppendValues(vec));
 			ARROW_ASSIGN_OR_RAISE(columns, builder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field_id, columns));
-			out = newrbatch;
+			addColOrCreateRecordBatch(field_id, columns, nrows, batch_index);
 			break;
 		}
 		case FLOAT4OID: {
@@ -122,9 +133,7 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			field_id = arrow::field(partitionkey.c_str(), arrow::float32());
 			ARROW_RETURN_NOT_OK(builder.AppendValues(vec));
 			ARROW_ASSIGN_OR_RAISE(columns, builder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field_id, columns));
-			out = newrbatch;
+			addColOrCreateRecordBatch(field_id, columns, nrows, batch_index);
 			break;
 		}
 
@@ -141,9 +150,7 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			field_id = arrow::field(partitionkey.c_str(), arrow::float64());
 			ARROW_RETURN_NOT_OK(builder.AppendValues(vec));
 			ARROW_ASSIGN_OR_RAISE(columns, builder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field_id, columns));
-			out = newrbatch;
+			addColOrCreateRecordBatch(field_id, columns, nrows, batch_index);
 			break;
 		}
 		case NUMERICOID: {
@@ -162,25 +169,21 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			std::shared_ptr<arrow::Field> field;
 			field = arrow::field(partitionkey.c_str(), arrow::decimal(precision - scale, scale));
 			ARROW_ASSIGN_OR_RAISE(columns, decimal128Builder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field, columns));
-			out = newrbatch;
+			addColOrCreateRecordBatch(field, columns, nrows, batch_index);
 			break;
 		}
 		case TEXTOID: {
 			char* conVal = DatumGetCString(DirectFunctionCall1(textout, mpp_datum));
-			arrow::BinaryBuilder binaryBuilder;
+			arrow::StringBuilder stringBuilder;
 			for (int i = 0; i < nrows; i++)
 			{
-				binaryBuilder.Append(conVal, strlen(conVal));
+				stringBuilder.Append(conVal, strlen(conVal));
 			}
 			std::shared_ptr<arrow::Array> columns;
 			std::shared_ptr<arrow::Field> field;
-			field = arrow::field(partitionkey.c_str(), arrow::binary());
-			ARROW_ASSIGN_OR_RAISE(columns, binaryBuilder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field, columns));
-			out = newrbatch;
+			field = arrow::field(partitionkey.c_str(), arrow::utf8());
+			ARROW_ASSIGN_OR_RAISE(columns, stringBuilder.Finish());
+			addColOrCreateRecordBatch(field, columns, nrows, batch_index);
 			break;
 		}
 		case BPCHAROID: {
@@ -194,9 +197,7 @@ arrow::Status orcReadRecordBatch::recordBatchAddColumn(int mpp_index, std::strin
 			std::shared_ptr<arrow::Field> field;
 			field = arrow::field(partitionkey.c_str(), arrow::binary());
 			ARROW_ASSIGN_OR_RAISE(columns, binaryBuilder.Finish());
-			std::shared_ptr<arrow::RecordBatch> newrbatch;
-			ARROW_ASSIGN_OR_RAISE(newrbatch, out->AddColumn(mpp_index, field, columns));
-			out = newrbatch;
+			addColOrCreateRecordBatch(field, columns, nrows, batch_index);
 			break;
 		}
 		default:
@@ -217,12 +218,15 @@ nextPartition:
 			AttrNumber numDefaults = this->nDefaults;
 			int *defaultMap = this->defMap;
 			ExprState **defaultExprs = this->defExprs;
-
 			for (int i = 0; i < numDefaults; i++)
 			{
+				if (!options.includes_columns[defaultMap[i]])
+				{
+					continue;
+				}
 				std::string columnName = tupdesc->attrs[defaultMap[i]].attname.data;
 				Datum partitionvalue = ExecEvalConst2(defaultExprs[i], NULL, NULL);
-				recordBatchAddColumn(defaultMap[i], columnName, partitionvalue, tupleIndex);
+				recordBatchAddColumn(defaultMap[i], out->num_columns(), columnName, partitionvalue, tupleIndex);
 			}
 		}
 		arrow::ExportRecordBatch(*out.get(), &c_batch);
@@ -263,6 +267,7 @@ void orcReadRecordBatch::ReadSchema(std::shared_ptr<arrow::Schema>* out_schema)
 {
 	int size = fileReader.readInterface.type->getSubtypeCount();
 	std::vector<std::shared_ptr<arrow::Field>> fields;
+	schemaColMap.clear();
 	for (int child = 0; child < size; ++child)
 	{
 		if (attrs_used.find(child) == attrs_used.end())
@@ -273,6 +278,7 @@ void orcReadRecordBatch::ReadSchema(std::shared_ptr<arrow::Schema>* out_schema)
 		arrow::adapters::orc::GetArrowType(fileReader.readInterface.type->getSubtype(child), &elemtype);
 		std::string name = fileReader.readInterface.type->getFieldName(child);
 		fields.push_back(field(name, elemtype));
+		schemaColMap.push_back(child);
 	}
 	/* Comment out the getMetadataKeys. Not used at this stage */
 	//const std::list<std::string> keys = fileReader.readInterface.reader->getMetadataKeys();
@@ -292,7 +298,7 @@ bool orcReadRecordBatch::getRecordBatch(void** recordBatch)
 		{
 			std::shared_ptr<arrow::Schema> schema;
 			ReadSchema(&schema);
-			fileReader.readRecordBatch(pool, schema, &out);
+			fileReader.readRecordBatch(pool, schema, &out, schemaColMap);
 			tupleIndex = fileReader.readInterface.batch->numElements;
 			return true;
 		}

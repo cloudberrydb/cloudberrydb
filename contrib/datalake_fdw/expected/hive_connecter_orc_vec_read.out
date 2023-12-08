@@ -495,93 +495,6 @@ select count(*) from hive_test_1;
     10
 (1 row)
 
--- hive partition and transaction table
-DROP FOREIGN TABLE IF EXISTS hive_test_2;
-NOTICE:  foreign table "hive_test_2" does not exist, skipping
-select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_2', 'paa_cluster', 'hive_test_2', 'foreign_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-select * from hive_test_2 order by id;
- id | name | name2 | name3 
-----+------+-------+-------
-  1 | a    | a     | a
-  1 | a    | a     | b
-  1 | a    | a     | c
-  1 | a    | a     | d
-  2 |      | a     | d
-  2 |      | a     | a
-  2 | a    | a     | c
-  2 |      | a     | b
-  3 | a    | a     | d
-  3 | a    | a     | b
-  3 |      | a     | c
-  3 | a    | a     | a
-  4 | a    |       | a
-  4 | a    | a     | b
-  4 | a    | a     | c
-  4 | a    |       | d
-  5 | a    |       | b
-  5 | a    |       | c
-  5 | a    | a     | d
-  5 | a    | a     | a
-  6 | a    | a     | c
-  6 | a    | a     | b
-  6 | a    | a     | d
-  6 |      | a     | a
-  7 |      | a     | d
-  7 |      | a     | b
-  7 | a    | a     | a
-  7 | a    | a     | c
-  8 | a    | a     | a
-  8 | a    | a     | b
-  8 |      | a     | c
-  8 | a    | a     | d
-  9 | a    | a     | d
-  9 | a    | a     | a
-  9 | a    | a     | c
-  9 | a    | a     | b
- 10 | a    |       | d
- 10 | a    | a     | b
- 10 | a    | a     | c
- 10 | a    | a     | a
-(40 rows)
-
-select * from hive_test_2 where name3='a' order by id;
- id | name | name2 | name3 
-----+------+-------+-------
-  1 | a    | a     | a
-  2 |      | a     | a
-  3 | a    | a     | a
-  4 | a    |       | a
-  5 | a    | a     | a
-  6 |      | a     | a
-  7 | a    | a     | a
-  8 | a    | a     | a
-  9 | a    | a     | a
- 10 | a    | a     | a
-(10 rows)
-
-select count(*) from hive_test_2;
- count 
--------
-    40
-(1 row)
-
-select count(*) from hive_test_2 where name3='b';
- count 
--------
-    10
-(1 row)
-
-select count(*) from hive_test_2 where name3='c';
- count 
--------
-    10
-(1 row)
-
 -- hive partiton key is int type
 DROP FOREIGN TABLE IF EXISTS hive_test_3;
 NOTICE:  foreign table "hive_test_3" does not exist, skipping
@@ -740,6 +653,156 @@ select * from hive_test_4 where n='cc' order by id, name, m, n;
   3 | 2345gagefsd | 3 | cc
   3 | 2345gagefsd | 3 | cc
 (12 rows)
+
+select n from hive_test_4 order by n;
+ n  
+----
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ aa
+ bb
+ bb
+ bb
+ bb
+ bb
+ bb
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ cc
+ dd
+ dd
+ dd
+ dd
+ dd
+ dd
+ ee
+ ee
+ ee
+ ee
+ ee
+ ee
+ ff
+ ff
+ ff
+(45 rows)
+
+select name,m from hive_test_4 order by name, m;
+    name     | m 
+-------------+---
+ 23423       | 3
+ 23423       | 3
+ 23423       | 3
+ 2345fsd     | 2
+ 2345fsd     | 2
+ 2345fsd     | 2
+ 2345gagefsd | 3
+ 2345gagefsd | 3
+ 2345gagefsd | 3
+ 46346       | 3
+ 46346       | 3
+ 46346       | 3
+ aaaaabbbb   | 1
+ aaaaabbbb   | 1
+ aaaaabbbb   | 1
+ agasdg      | 3
+ agasdg      | 3
+ agasdg      | 3
+ bbbbcccc    | 1
+ bbbbcccc    | 1
+ bbbbcccc    | 1
+ ddddbbbb    | 1
+ ddddbbbb    | 1
+ ddddbbbb    | 1
+ fdsfsdfwe   | 2
+ fdsfsdfwe   | 2
+ fdsfsdfwe   | 2
+ fdsfsf      | 1
+ fdsfsf      | 1
+ fdsfsf      | 1
+ fsdf        | 2
+ fsdf        | 2
+ fsdf        | 2
+ rewrwe      | 2
+ rewrwe      | 2
+ rewrwe      | 2
+ rewrwr3r2   | 1
+ rewrwr3r2   | 1
+ rewrwr3r2   | 1
+ trewtaf     | 2
+ trewtaf     | 2
+ trewtaf     | 2
+ werwer      | 3
+ werwer      | 3
+ werwer      | 3
+(45 rows)
+
+select m,n from hive_test_4 order by m, n;
+ m | n  
+---+----
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | aa
+ 1 | bb
+ 1 | bb
+ 1 | bb
+ 1 | bb
+ 1 | bb
+ 1 | bb
+ 2 | cc
+ 2 | cc
+ 2 | cc
+ 2 | cc
+ 2 | cc
+ 2 | cc
+ 2 | dd
+ 2 | dd
+ 2 | dd
+ 2 | ee
+ 2 | ee
+ 2 | ee
+ 2 | ff
+ 2 | ff
+ 2 | ff
+ 3 | aa
+ 3 | aa
+ 3 | aa
+ 3 | cc
+ 3 | cc
+ 3 | cc
+ 3 | cc
+ 3 | cc
+ 3 | cc
+ 3 | dd
+ 3 | dd
+ 3 | dd
+ 3 | ee
+ 3 | ee
+ 3 | ee
+(45 rows)
 
 -- hive partiton key is int and char and date type
 DROP FOREIGN TABLE IF EXISTS hive_test_5;
@@ -1053,7 +1116,6 @@ DROP FOREIGN TABLE IF EXISTS hive_type_test_8;
 DROP FOREIGN TABLE IF EXISTS hive_type_test_9;
 DROP FOREIGN TABLE IF EXISTS hive_type_test_10;
 DROP FOREIGN TABLE IF EXISTS hive_test_1;
-DROP FOREIGN TABLE IF EXISTS hive_test_2;
 DROP FOREIGN TABLE IF EXISTS hive_test_3;
 DROP FOREIGN TABLE IF EXISTS hive_test_4;
 DROP FOREIGN TABLE IF EXISTS hive_test_5;

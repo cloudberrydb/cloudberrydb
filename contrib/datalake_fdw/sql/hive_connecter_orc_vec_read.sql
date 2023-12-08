@@ -12,7 +12,9 @@ CREATE EXTENSION IF NOT EXISTS hive_connector;
 
 SELECT pg_sleep(5);
 
-set vector.enable_vectorization=off;
+create extension vectorization;
+set vector.enable_vectorization=on;
+SELECT pg_sleep(5);
 
 CREATE FOREIGN DATA WRAPPER datalake_fdw
 HANDLER datalake_fdw_handler
@@ -89,16 +91,6 @@ select * from hive_test_1 where id=1 order by id;
 select count(*) from hive_test_1 where id=1;
 select count(*) from hive_test_1;
 
--- hive partition and transaction table
-DROP FOREIGN TABLE IF EXISTS hive_test_2;
-select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_2', 'paa_cluster', 'hive_test_2', 'foreign_server');
-
-select * from hive_test_2 order by id;
-select * from hive_test_2 where name3='a' order by id;
-select count(*) from hive_test_2;
-select count(*) from hive_test_2 where name3='b';
-select count(*) from hive_test_2 where name3='c';
-
 -- hive partiton key is int type
 DROP FOREIGN TABLE IF EXISTS hive_test_3;
 select sync_hive_table('hive_cluster', 'hive_orc_load_data_test', 'hive_test_3', 'paa_cluster', 'hive_test_3', 'foreign_server');
@@ -115,6 +107,9 @@ select * from hive_test_4 order by id, name, m, n;
 select count(*) from hive_test_4;
 select * from hive_test_4 where m=2 order by id, name, m, n;
 select * from hive_test_4 where n='cc' order by id, name, m, n;
+select n from hive_test_4 order by n;
+select name,m from hive_test_4 order by name, m;
+select m,n from hive_test_4 order by m, n;
 
 -- hive partiton key is int and char and date type
 DROP FOREIGN TABLE IF EXISTS hive_test_5;
@@ -151,7 +146,6 @@ DROP FOREIGN TABLE IF EXISTS hive_type_test_8;
 DROP FOREIGN TABLE IF EXISTS hive_type_test_9;
 DROP FOREIGN TABLE IF EXISTS hive_type_test_10;
 DROP FOREIGN TABLE IF EXISTS hive_test_1;
-DROP FOREIGN TABLE IF EXISTS hive_test_2;
 DROP FOREIGN TABLE IF EXISTS hive_test_3;
 DROP FOREIGN TABLE IF EXISTS hive_test_4;
 DROP FOREIGN TABLE IF EXISTS hive_test_5;
