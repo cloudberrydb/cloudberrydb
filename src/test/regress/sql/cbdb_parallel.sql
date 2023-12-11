@@ -397,6 +397,49 @@ select * from t_replica_workers_2 join t_random_workers_2 using(a);
 abort;
 
 --
+-- ex 2_P_5_2
+-- SingleQE join SegmentGeneralWorkers.
+-- Join locus: SingleQE(may be elided to Entry).
+--
+begin;
+create table t1(a int, b int) with(parallel_workers=2);
+create table rt1(a int, b int) with(parallel_workers=2) distributed replicated;
+insert into t1 select i, i from generate_series(1, 100000) i;
+insert into rt1 select i, i+1 from generate_series(1, 10000) i;
+analyze t1;
+analyze rt1;
+set local enable_parallel = on;
+explain(locus, costs off) select * from (select count(*) as a from t1) t1 left join rt1  on rt1.a = t1.a;
+select * from (select count(*) as a from t1) t1 left join rt1  on rt1.a = t1.a;
+set local enable_parallel = off;
+select * from (select count(*) as a from t1) t1 left join rt1  on rt1.a = t1.a;
+abort;
+
+--
+-- ex 5_P_2_2
+-- SingleQE join SegmentGeneralWorkers.
+-- Join locus: SingleQE(may be elided to Entry).
+--
+begin;
+set local enable_parallel = on;
+set local max_parallel_workers_per_gather = 4;
+create table t1(a int, b int) with(parallel_workers=4);
+create table t2(a int, b int) with(parallel_workers=4);
+create table rt1(a int, b int) with(parallel_workers=4) distributed replicated;
+insert into t1 select i, i from generate_series(1, 10000000) i;
+insert into t2 select i, i from generate_series(1, 10000000) i;
+insert into rt1 select i, i+1 from generate_series(1, 10000) i;
+analyze t1;
+analyze t2;
+analyze rt1;
+explain(costs off, locus) select * from rt1  join (select count(*) as c, sum(t1.a) as a  from t1 join t2 using(a)) t3 on t3.c = rt1.a;
+select * from rt1  join (select count(*) as c, sum(t1.a) as a  from t1 join t2 using(a)) t3 on t3.c = rt1.a;
+set local enable_parallel = off;
+explain(costs off, locus) select * from rt1  join (select count(*) as c, sum(t1.a) as a  from t1 join t2 using(a)) t3 on t3.c = rt1.a;
+select * from rt1  join (select count(*) as c, sum(t1.a) as a  from t1 join t2 using(a)) t3 on t3.c = rt1.a;
+abort;
+
+--
 -- Test final join path's parallel_workers should be same with join_locus whose
 -- parallel_workers is different from origin outer path(without motion).
 --

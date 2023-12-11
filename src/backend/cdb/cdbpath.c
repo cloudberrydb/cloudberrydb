@@ -3180,8 +3180,22 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 
 		if (CdbPathLocus_IsBottleneck(inner.locus))
 		{
-			/* CBDB_PARALLEL_FIXME: TODO, gather to single segment */
-			goto fail;
+			/*
+			 * We may win if we are a parallel-aware join, SingleQE is on the inner side that
+			 * means there is a chance to generate a parallel join under SingleQE.
+			 * In this case, we have both side parallel and may benefit.
+			 * See ex 5_P_2_2 in gp_parallel.sql
+			 * If not parallel-aware, we are not sure for the benefit and a simgle test
+			 * shows lower performance, ex: parallel scan on replicated table and join with
+			 * SingleQE which is a non-parallel plan.
+			 */
+			if (parallel_aware)
+			{
+				segGeneral->move_to = inner.locus;
+				segGeneral->move_to.numsegments = inner.locus.numsegments;
+			}
+			else
+				goto fail;
 		}
 		else if (CdbPathLocus_IsPartitioned(inner.locus))
 		{
@@ -3273,8 +3287,15 @@ cdbpath_motion_for_parallel_join(PlannerInfo *root,
 
 		if (CdbPathLocus_IsSegmentGeneralWorkers(other->locus))
 		{
-			/* CBDB_PARALLEL_FIXME: TODO, gather to single segment */
-			goto fail;
+			/*
+			 * We may win here if gather to SingleQE no matter what parallel-aware is.
+			 * SingleQE is outer side, there could be a parallel plan under it.
+			 * So we may benefit even without a shared hash table.
+			 * Let the planner decide.
+			 * See ex 2_P_5_2 in gp_parallel.sql.
+			 */
+			other->move_to = outer.locus;
+			other->move_to.numsegments = outer.locus.numsegments;
 		}
 		else if (CdbPathLocus_IsPartitioned(other->locus))
 		{
