@@ -3547,10 +3547,11 @@ ivm_immediate_cleanup(PG_FUNCTION_ARGS)
 								RESOURCE_RELEASE_BEFORE_LOCKS,
 								false, /* isCommit */
 								false); /* isTopLevel */
-			ResourceOwnerRelease(resowner,
-								RESOURCE_RELEASE_LOCKS,
-								false, /* isCommit */
-								false); /* isTopLevel */
+			if (entry->defer == false)
+				ResourceOwnerRelease(resowner,
+									RESOURCE_RELEASE_LOCKS,
+									false, /* isCommit */
+									false); /* isTopLevel */
 			ResourceOwnerRelease(resowner,
 								RESOURCE_RELEASE_AFTER_LOCKS,
 								false, /* isCommit */
@@ -3586,8 +3587,6 @@ apply_cleanup(Oid matview_id)
 
 	if (SPI_exec(querybuf.data, 0) != SPI_OK_SELECT)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
-
-	elogif(Debug_print_ivm, INFO, "IVM apply_cleanup: %s", querybuf.data);
 
 	/* Close SPI context. */
 	if (SPI_finish() != SPI_OK_FINISH)
@@ -3901,7 +3900,7 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 											  HASH_FIND, &found);
 	Assert (found && entry != NULL);
 
-	elogif(Debug_print_ivm, INFO, "IVM ivm_deferred_maintenance ref %d, mvid:%d", entry->after_trig_count, matviewOid);
+	elogif(Debug_print_ivm, LOG, "IVM ivm_deferred_maintenance cid %d, mv:%d", gp_command_id, matviewOid);
 
 	oldowner = CurrentResourceOwner;
 	CurrentResourceOwner = entry->resowner;
@@ -4079,8 +4078,8 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	 * Step4: cleanup stage
 	 */
 	//FIXME:
-	//apply_cleanup(matviewOid);
-	//DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
+	apply_cleanup(matviewOid);
+	DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
 
 	PG_RETURN_TEXT_P(cstring_to_text("OK"));
 }
@@ -4153,7 +4152,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 		entry->context = AllocSetContextCreate(TopMemoryContext,
 													"IVM Defer Session",
 													ALLOCSET_DEFAULT_SIZES);
-		entry->resowner = ResourceOwnerCreate(TopTransactionResourceOwner, "IVM Defer Session");
+		entry->resowner = ResourceOwnerCreate(NULL, "IVM Defer Session");
 		entry->matview_id = matview_id;
 		entry->reference = 1;
 		entry->tables = NIL;
@@ -4212,7 +4211,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 
 	if (Gp_role != GP_ROLE_DISPATCH)
 	{
-		//pg_usleep(30 * 1000000L);
+		pg_usleep(30 * 1000000L);
 	}
 
 	PG_RETURN_TEXT_P(cstring_to_text("OK"));

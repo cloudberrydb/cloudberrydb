@@ -20,6 +20,7 @@
 #include "nodes/parsenodes.h"
 #include "tcop/dest.h"
 #include "utils/relcache.h"
+#include "parser/parse_node.h"
 
 
 extern void SetMatViewPopulatedState(Relation relation, bool newstate);
