@@ -69,6 +69,7 @@
 #include "utils/syscache.h"
 #include "utils/typcache.h"
 
+#include "funcapi.h"
 
 typedef struct
 {
@@ -235,6 +236,9 @@ static void ExecuteTruncateGuts_IVM(Relation matviewRel, Oid matviewOid, Query *
 static void ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid);
 RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 				 QueryEnvironment *queryEnv, Oid matviewid, int64 version);
+
+static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, oidvector*, int value_a, int value_b);
+static void ivm_export_delta_table(Oid matview_id, Datum relids, int count);
 /*
  * SetMatViewPopulatedState
  *		Mark a materialized view as populated, or not.
@@ -3436,7 +3440,7 @@ refresh_matview_memoryfill(DestReceiver *dest, Query *query,
 
 	PopActiveSnapshot();
 
-	elogif(Debug_print_ivm, INFO, "IVM processed %s, %lu tuples.", queryString, processed);
+	elogif(Debug_print_ivm, LOG, "IVM processed %s, %lu tuples.", queryString, processed);
 
 	return processed;
 }
@@ -3852,7 +3856,6 @@ ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid)
 Datum
 ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 {
-	Oid			relid;
 	Oid			matviewOid = PG_GETARG_OID(0);
 	Query	   *query;
 	Query	   *rewritten = NULL;
@@ -3876,7 +3879,8 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	ListCell   *lc;
 	int			i;
 	ResourceOwner oldowner;
-	Datum	baseRelidsDatum;
+	Datum baseRelidsDatum;
+	int gp_command_id = gp_command_count + 1;
 
 	QueryEnvironment *queryEnv = create_queryEnv();
 
@@ -3885,7 +3889,11 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	pstate->p_queryEnv = queryEnv;
 	pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
 
-	char* out = "ivm_deferred_maintenance";
+	baseRelidsDatum = get_matview_dependency_relids(matviewOid);
+
+	ivm_export_delta_table(matviewOid, baseRelidsDatum, gp_command_id);
+	DirectFunctionCall3(pg_export_delta_table, ObjectIdGetDatum(matviewOid),
+						Int32GetDatum(gp_command_id), baseRelidsDatum);
 
 	/* get the entry for this materialized view */
 	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
@@ -3900,37 +3908,7 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 
 	oldcxt = MemoryContextSwitchTo(entry->context);
 
-	baseRelidsDatum = get_matview_dependency_relids(matviewOid);
-	oidvector* base_relids = (oidvector *) DatumGetPointer(baseRelidsDatum);
-
-	Assert(base_relids);
-	for (int i = 0; i < base_relids->dim1; i++)
-	{
-		relid = base_relids->values[i];
-		/* search the entry for the modified table and create new entry if not found */
-		found = false;
-		foreach(lc, entry->tables)
-		{
-			table = (MV_TriggerTable *) lfirst(lc);
-			if (table->table_id == relid)
-			{
-				found = true;
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			table = (MV_TriggerTable *) palloc0(sizeof(MV_TriggerTable));
-			table->table_id = relid;
-			entry->tables = lappend(entry->tables, table);
-		}
-	}
-
-	// TODO: export delta table
-
-	StartTransactionCommand();
-	matviewRel = table_open(matviewOid, NoLock);
+	matviewRel = table_open(matviewOid, AccessShareLock);
 
 	/* Make sure it is a materialized view. */
 	Assert(matviewRel->rd_rel->relkind == RELKIND_MATVIEW);
@@ -4088,7 +4066,7 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	/* Pop the original snapshot. */
 	PopActiveSnapshot();
 
-	table_close(matviewRel, NoLock);
+	table_close(matviewRel, AccessShareLock);
 
 	/* Roll back any GUC changes */
 	AtEOXact_GUC(false, save_nestlevel);
@@ -4100,15 +4078,145 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	/*
 	 * Step4: cleanup stage
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
-	{
-		apply_cleanup(matviewOid);
-		DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
-	}
-	CommitTransactionCommand();
-	PG_RETURN_TEXT_P(cstring_to_text(out));
+	//FIXME:
+	//apply_cleanup(matviewOid);
+	//DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
+
+	PG_RETURN_TEXT_P(cstring_to_text("OK"));
 }
 
+
+static void
+ivm_export_delta_table(Oid matview_id, Datum relids, int count)
+{
+	StringInfoData	querybuf;
+	StringInfoData	relids_str;
+	oidvector* oids = (oidvector *) DatumGetPointer(relids);
+
+	initStringInfo(&relids_str);
+	appendStringInfoChar(&relids_str, '\'');
+	for (int i = 0 ; i < oids->dim1; i++)
+	{
+		appendStringInfo(&relids_str, "%d", oids->values[i]);
+		if (i < oids->dim1 - 1)
+			appendStringInfo(&relids_str, ",");
+	}
+	appendStringInfoChar(&relids_str, '\'');
+
+	/* Open SPI context. */
+	if (SPI_connect() != SPI_OK_CONNECT)
+		elog(ERROR, "SPI_connect failed");
+
+	initStringInfo(&querybuf);
+	appendStringInfo(&querybuf,
+			"SELECT pg_catalog.pg_export_delta_table(%d::pg_catalog.oid, %d, %s::pg_catalog.oidvector)",
+			matview_id, count, relids_str.data);
+
+	if (SPI_exec(querybuf.data, 0) != SPI_OK_SELECT)
+		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
+
+	elogif(Debug_print_ivm, LOG, "IVM ivm_export_delta_table: %s", querybuf.data);
+
+	/* Close SPI context. */
+	if (SPI_finish() != SPI_OK_FINISH)
+		elog(ERROR, "SPI_finish failed");
+	return;
+}
+
+Datum
+pg_export_delta_table(PG_FUNCTION_ARGS)
+{
+	Oid 	matview_id = PG_GETARG_OID(0);
+	int		gp_count = PG_GETARG_INT32(1);
+	oidvector  *base_relids = (oidvector *) PG_GETARG_POINTER(2);
+	MV_TriggerTable *table = NULL;
+	bool found;
+	ListCell	*lc;
+	MV_TriggerHashEntry *entry;
+	MemoryContext oldcxt;
+	ResourceOwner oldowner;
+	Tuplestorestate *tupstore;
+	QueryEnvironment *queryEnv = create_queryEnv();
+	ParseState *pstate;
+	Relation matviewRel;
+
+	/* Create a ParseState for rewriting the view definition query */
+	pstate = make_parsestate(NULL);
+	pstate->p_queryEnv = queryEnv;
+	pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
+
+	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
+											  (void *) &matview_id,
+											  HASH_ENTER, &found);
+	if (!found)
+	{
+		entry->context = AllocSetContextCreate(TopMemoryContext,
+													"IVM Defer Session",
+													ALLOCSET_DEFAULT_SIZES);
+		entry->resowner = ResourceOwnerCreate(TopTransactionResourceOwner, "IVM Defer Session");
+		entry->matview_id = matview_id;
+		entry->reference = 1;
+		entry->tables = NIL;
+		entry->has_old = false;
+		entry->has_new = false;
+		entry->pid = MyProcPid;
+		entry->defer = true;
+		entry->snapshot = NULL;
+	}
+
+	/* Switch to the new resource owner and memory context */
+	oldowner = CurrentResourceOwner;
+	CurrentResourceOwner = entry->resowner;
+	oldcxt = MemoryContextSwitchTo(entry->context);
+
+	elog(LOG, "reveived count %d, inner worker count %d", gp_count, gp_command_count);
+
+	Assert(base_relids);
+	for (int i = 0; i < base_relids->dim1; i++)
+	{
+		Oid relid = base_relids->values[i];
+		/* search the entry for the modified table and create new entry if not found */
+		found = false;
+		foreach(lc, entry->tables)
+		{
+			table = (MV_TriggerTable *) lfirst(lc);
+			if (table->table_id == relid)
+			{
+				found = true;
+				break;
+			}
+		}
+
+		if (!found)
+		{
+			table = (MV_TriggerTable *) palloc0(sizeof(MV_TriggerTable));
+			table->table_id = relid;
+			table->rel = table_open(relid, AccessShareLock);
+			entry->tables = lappend(entry->tables, table);
+		}
+	}
+	//FIXME: use api to get the delta table name
+	tupstore = insert_tuple_into_tuplestore(matview_id, base_relids, gp_command_count, gp_count);
+	entry->has_new = true;
+	Assert(table);
+	table->new_tuplestores = lappend(table->new_tuplestores, tupstore);
+
+	matviewRel = table_open(matview_id, AccessShareLock);
+	Query* query = get_matview_query(matviewRel);
+
+	register_delta_ENRs(pstate, query, entry->tables);
+	table_close(matviewRel, AccessShareLock);
+	/* Switch back to the old memory context and resource owner */
+	MemoryContextSwitchTo(oldcxt);
+	CurrentResourceOwner = oldowner;
+
+	if (Gp_role != GP_ROLE_DISPATCH)
+	{
+		//pg_usleep(30 * 1000000L);
+	}
+
+	PG_RETURN_TEXT_P(cstring_to_text("OK"));
+}
 
 /*
  * get_prestate_rte_atversion
@@ -4164,4 +4272,40 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 	rte->inh = false;			/* must not be set for a subquery */
 
 	return rte;
+}
+
+static Tuplestorestate*
+insert_tuple_into_tuplestore(Oid matviewOid, oidvector* relids, int value_a, int value_b)
+{
+	Tuplestorestate *tupstore;
+	TupleDesc tupdesc;
+	HeapTuple tuple;
+	Datum values[2];
+	bool nulls[2];
+
+	Assert(relids->dim1 == 1);
+	Oid relid = relids->values[0];
+
+	tupstore = tuplestore_begin_heap(true, false, work_mem);
+	//FIXME: old delta table name
+	char *name = make_delta_enr_name("new", relid, value_b); //count
+	tuplestore_set_sharedname(tupstore, name);
+	tuplestore_set_tableid(tupstore, relid);
+
+	tupdesc = CreateTemplateTupleDesc(2);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "a", INT4OID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "b", INT4OID, -1, 0);
+	tupdesc = BlessTupleDesc(tupdesc);
+
+	values[0] = Int32GetDatum(value_a);
+	values[1] = Int32GetDatum(value_b);
+	nulls[0] = false;
+	nulls[1] = false;
+
+	tuple = heap_form_tuple(tupdesc, values, nulls);
+
+	tuplestore_puttuple(tupstore, tuple);
+
+	/* tuplestore_end(tupstore); */
+	return tupstore;
 }

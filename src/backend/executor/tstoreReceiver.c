@@ -453,8 +453,10 @@ persistentTstoreShutdownReceiver(DestReceiver *self)
 		/* Freeze tuplestore to file */
 		tuplestore_freeze(myState->tstore);
 
+		//pg_usleep(30 * 1000000L);
+
 		/* Set file to temporary to release file as soon as possible. */
-		tuplestore_set_flags(myState->tstore, true);
+		//tuplestore_set_flags(myState->tstore, true);
 	}
 	/* Release workspace if any */
 	if (myState->outvalues)

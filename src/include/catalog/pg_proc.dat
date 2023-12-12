@@ -12506,5 +12506,9 @@
   proname => 'ivm_deferred_maintenance', provolatile => 'v', proparallel => 'u',
   prorettype => 'text', proargtypes => 'oid text',
   prosrc => 'ivm_deferred_maintenance', proexeclocation => 'c' },
+{ oid => '7203', descr => 'export a delta-table for ivm',
+  proname => 'pg_export_delta_table', provolatile => 'v', proparallel => 'u',
+  prorettype => 'text', proargtypes => 'oid int4 oidvector',
+  prosrc => 'pg_export_delta_table', proexeclocation => 's' },
 ]
 
