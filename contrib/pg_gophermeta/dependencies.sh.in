@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 #set GPHOME for libraries install
-set -exo pipefail
+set -eo pipefail
 export GPHOME="##prefix##"
 echo  "Message user set GPHOME = $GPHOME";
 
@@ -38,6 +38,9 @@ HASHDATA_LIBOSS2_CONAN_VERSION=${HASHDATA_LIBOSS2_CONAN_VERSION:-}
 # plasma, use gopher's dependency by default
 HASHDATA_PLASMA_CONAN_VERSION=${HASHDATA_PLASMA_CONAN_VERSION:-}
 
+# parquet
+HASHDATA_PARQUET_CONAN_VERSION=${HASHDATA_PARQUET_CONAN_VERSION:-parquet/0.0.1@hashdata/testing}
+
 if [ ${GPHOME} ]; then
   BUILD_INSTALL_DIRECTORY="${GPHOME}"
 else
@@ -70,6 +73,7 @@ ${HASHDATA_GOPHER_CONAN_VERSION}
 ${HASHDATA_LIBHDFS3_CONAN_VERSION}
 ${HASHDATA_LIBOSS2_CONAN_VERSION}
 ${HASHDATA_PLASMA_CONAN_VERSION}
+${HASHDATA_PARQUET_CONAN_VERSION}
 
 [imports]
 bin, * -> ${BUILD_INSTALL_DIRECTORY}/bin
@@ -77,7 +81,7 @@ lib, * -> ${BUILD_INSTALL_DIRECTORY}/lib
 include, * -> ${BUILD_INSTALL_DIRECTORY}/include
 EOF
 
-  conan install /tmp/ --install-folder=${BUILD_INSTALL_DIRECTORY} --update
+  conan install /tmp/ --install-folder=${BUILD_INSTALL_DIRECTORY} --update || true
   chmod 0755 "${BUILD_INSTALL_DIRECTORY}"/bin/*
 }
 
