@@ -47,8 +47,9 @@ OBJS += $(CDBHASHJS)
 # add arrow.so and headers
 PG_CFLAGS += $(shell pg_config --cflags)
 PG_CFLAGS += $(shell pg_config --cppflags)
-PG_CFLAGS += $(shell PKG_CONFIG_PATH=${GPHOME}/lib/pkgconfig/:${PKG_CONFIG_PATH} pkg-config --cflags arrow-glib gandiva-glib)
-PG_LDFLAGS += $(shell PKG_CONFIG_PATH=${GPHOME}/lib/pkgconfig/:${PKG_CONFIG_PATH} pkg-config --libs arrow-glib gandiva-glib)
+PG_CFLAGS += $(shell PKG_CONFIG_PATH=${GPHOME}/lib/pkgconfig/:${PKG_CONFIG_PATH} pkg-config --cflags glib-2.0 gobject-2.0)
+PG_LDFLAGS += $(shell PKG_CONFIG_PATH=${GPHOME}/lib/pkgconfig/:${PKG_CONFIG_PATH} pkg-config --libs glib-2.0 gobject-2.0)
+PG_LDFLAGS += -lgandiva-glib -lgandiva -larrow-glib -larrow
 PG_CFLAGS += -I$(shell pg_config --includedir-server)
 PG_LDFLAGS += -L$(shell pg_config --libdir)
 
