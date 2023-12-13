@@ -1,0 +1,84 @@
+-- cleaning
+DROP TABLE IF EXISTS tab_test_local;
+NOTICE:  table "tab_test_local" does not exist, skipping
+DROP TABLE IF EXISTS tab_test_oss;
+NOTICE:  table "tab_test_oss" does not exist, skipping
+DROP TABLESPACE IF EXISTS oss_test;
+ERROR:  tablespace "oss_test" does not exist
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER test_server;
+NOTICE:  server "test_server" does not exist, skipping
+DROP SERVER IF EXISTS test_server;
+NOTICE:  server "test_server" does not exist, skipping
+DROP FOREIGN DATA WRAPPER IF EXISTS test_fdw;
+NOTICE:  foreign-data wrapper "test_fdw" does not exist, skipping
+DROP EXTENSION IF EXISTS dfs_tablespace;
+NOTICE:  extension "dfs_tablespace" does not exist, skipping
+-- create objects
+CREATE EXTENSION dfs_tablespace;
+CREATE FOREIGN DATA WRAPPER test_fdw;
+CREATE SERVER test_server FOREIGN DATA WRAPPER test_fdw OPTIONS(protocol 'qingstor', endpoint 'pek3b.qingstor.com', https 'true', virtual_host 'false');
+CREATE USER MAPPING FOR CURRENT_USER SERVER test_server OPTIONS (accesskey 'KGCPPHVCHRMZMFEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');
+CREATE TABLESPACE oss_test location '/tbs-49560-0-mgq-multi/tablespace-a' with(server='test_server');
+-- show objects
+SELECT fdwname, fdwowner, fdwhandler, fdwvalidator, fdwacl, fdwoptions
+FROM pg_foreign_data_wrapper
+WHERE fdwname = 'test_fdw';
+ fdwname  | fdwowner | fdwhandler | fdwvalidator | fdwacl | fdwoptions 
+----------+----------+------------+--------------+--------+------------
+ test_fdw |       10 |          0 |            0 |        | 
+(1 row)
+
+SELECT srvname, srvowner, srvtype, srvversion, srvacl, srvoptions
+FROM pg_foreign_server
+WHERE srvname = 'test_server';
+   srvname   | srvowner | srvtype | srvversion | srvacl |                                  srvoptions                                   
+-------------+----------+---------+------------+--------+-------------------------------------------------------------------------------
+ test_server |       10 |         |            |        | {protocol=qingstor,endpoint=pek3b.qingstor.com,https=true,virtual_host=false}
+(1 row)
+
+SELECT spcname, spcowner, spcacl, spcoptions
+FROM pg_tablespace
+WHERE spcname = 'oss_test';
+ spcname  | spcowner | spcacl |                           spcoptions                            
+----------+----------+--------+-----------------------------------------------------------------
+ oss_test |       10 |        | {server=test_server,prefix=/tbs-49560-0-mgq-multi/tablespace-a}
+(1 row)
+
+-- test oss api of ufs
+CREATE TABLE tab_test_oss (a int, b int) USING ufsdemo_am TABLESPACE oss_test;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO tab_test_oss VALUES (1, 1);
+INSERT INTO tab_test_oss VALUES (1, 1);
+SELECT * FROM tab_test_oss;
+ a | b 
+---+---
+ 1 | 1
+ 1 | 1
+(2 rows)
+
+-- should fail
+DROP TABLESPACE oss_test;
+ERROR:  tablespace "oss_test" cannot be dropped because some objects depend on it
+DETAIL:  tablespace for table tab_test_oss
+DROP TABLE tab_test_oss;
+-- test local fs api of ufs
+CREATE TABLE tab_test_local (a int, b int) USING ufsdemo_am;
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+INSERT INTO tab_test_local VALUES (1, 1);
+INSERT INTO tab_test_local VALUES (1, 1);
+SELECT * FROM tab_test_local;
+ a | b 
+---+---
+ 1 | 1
+ 1 | 1
+(2 rows)
+
+DROP TABLE tab_test_local;
+create type a as (a int);
+DROP TABLESPACE oss_test;
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER test_server;
+DROP SERVER test_server;
+DROP EXTENSION dfs_tablespace;
+DROP FOREIGN DATA WRAPPER test_fdw;

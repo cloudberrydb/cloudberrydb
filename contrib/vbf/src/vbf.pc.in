@@ -1,0 +1,7 @@
+Name: vbf
+Description: C library for parsing var block file
+Version: @VERSION@
+URL: https://www.hashdata.cn/
+Libs: -L@prefix@/lib -lvbf
+Cflags: -I@prefix@/include
+Requires: @CODEC_PKG@

@@ -1,0 +1,6 @@
+# dfs_tablespace extension
+comment = 'dfs tablespace'
+default_version = '1.0'
+module_pathname = '$libdir/dfs_tablespace'
+relocatable = true
+trusted = true
