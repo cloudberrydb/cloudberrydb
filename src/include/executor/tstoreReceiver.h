@@ -32,6 +32,7 @@ extern void SetPersistentTstoreDestReceiverParams(DestReceiver *self,
 											ResourceOwner owner,
 											MemoryContext ctx,
 											bool detoast,
-											const char *filename);
+											const char *filename,
+											bool defer);
 
 #endif							/* TSTORE_RECEIVER_H */

@@ -3532,7 +3532,7 @@ struct config_int ConfigureNamesInt_gp[] =
 #endif
 
 	{
-		{"gp_command_count", PGC_INTERNAL, CLIENT_CONN_OTHER,
+		{"gp_command_count", PGC_BACKEND, CLIENT_CONN_OTHER,
 			gettext_noop("Shows the number of commands received from the client in this session."),
 			NULL,
 			GUC_NOT_IN_SAMPLE | GUC_DISALLOW_IN_FILE

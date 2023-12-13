@@ -99,7 +99,8 @@
 #define PG_CRON_KEY_USERNAME	1
 #define PG_CRON_KEY_COMMAND		2
 #define PG_CRON_KEY_QUEUE		3
-#define PG_CRON_NKEYS			4
+#define PG_CRON_KEY_COMMAND_ID  4
+#define PG_CRON_NKEYS			5
 
 /* ways in which the clock can change between main loop iterations */
 typedef enum
@@ -397,6 +398,8 @@ PgCronLauncherMain(Datum arg)
 
 		WaitForCronTasks(taskList);
 		ManageCronTasks(taskList, currentTime);
+
+		increment_command_count();
 
 		MemoryContextReset(CronLoopContext);
 	}
@@ -1040,6 +1043,7 @@ ManageCronTask(CronTask *task, TimestampTz currentTime)
 			{
 				const char *clientEncoding = GetDatabaseEncodingName();
 				char nodePortString[12];
+				char gp_command_str[32] = {0,};
 				TimestampTz startDeadline = 0;
 
 				const char *keywordArray[] = {
@@ -1049,6 +1053,7 @@ ManageCronTask(CronTask *task, TimestampTz currentTime)
 					"client_encoding",
 					"dbname",
 					"user",
+					"options",
 					NULL
 					};
 				const char *valueArray[] = {
@@ -1058,9 +1063,11 @@ ManageCronTask(CronTask *task, TimestampTz currentTime)
 					clientEncoding,
 					cronJob->database,
 					cronJob->userName,
+					gp_command_str,
 					NULL
 				};
 				sprintf(nodePortString, "%d", cronJob->nodePort);
+				sprintf(gp_command_str, "-c gp_command_count=%d", gp_command_count);
 
 				Assert(sizeof(keywordArray) == sizeof(valueArray));
 
@@ -1111,6 +1118,7 @@ ManageCronTask(CronTask *task, TimestampTz currentTime)
 			char *database;
 			char *username;
 			char *command;
+			char *gp_command;
 			MemoryContext oldcontext;
 			shm_mq *mq;
 			Size segsize;
@@ -1138,6 +1146,7 @@ ManageCronTask(CronTask *task, TimestampTz currentTime)
 			shm_toc_estimate_chunk(&e, strlen(cronJob->userName) + 1);
 			shm_toc_estimate_chunk(&e, strlen(cronJob->command) + 1);
 			shm_toc_estimate_chunk(&e, QUEUE_SIZE);
+			shm_toc_estimate_chunk(&e, sizeof(int));
 			shm_toc_estimate_keys(&e, PG_CRON_NKEYS);
 			segsize = shm_toc_estimate(&e);
 
@@ -1172,6 +1181,9 @@ ManageCronTask(CronTask *task, TimestampTz currentTime)
 			shm_toc_insert(toc, PG_CRON_KEY_QUEUE, mq);
 			shm_mq_set_receiver(mq, MyProc);
 
+			gp_command = shm_toc_allocate(toc, sizeof(int));
+			*(int *)gp_command = gp_command_count;
+			shm_toc_insert(toc, PG_CRON_KEY_COMMAND_ID, gp_command);
 			/*
 			 * Attach the queue before launching a worker, so that we'll automatically
 			 * detach the queue if we error out.  (Otherwise, the worker might sit
@@ -1747,6 +1759,7 @@ CronBackgroundWorker(Datum main_arg)
 	char *database;
 	char *username;
 	char *command;
+	char *gp_command;
 	shm_mq *mq;
 	shm_mq_handle *responseq;
 
@@ -1778,6 +1791,7 @@ CronBackgroundWorker(Datum main_arg)
 	database = shm_toc_lookup(toc, PG_CRON_KEY_DATABASE, false);
 	username = shm_toc_lookup(toc, PG_CRON_KEY_USERNAME, false);
 	command = shm_toc_lookup(toc, PG_CRON_KEY_COMMAND, false);
+	gp_command = shm_toc_lookup(toc, PG_CRON_KEY_COMMAND_ID, false);
 	mq = shm_toc_lookup(toc, PG_CRON_KEY_QUEUE, false);
 
 	shm_mq_set_sender(mq, MyProc);
@@ -1789,6 +1803,7 @@ CronBackgroundWorker(Datum main_arg)
 	/* Prepare to execute the query. */
 	SetCurrentStatementStartTimestamp();
 	debug_query_string = command;
+	gp_command_count = *(int*) gp_command;
 	pgstat_report_activity(STATE_RUNNING, command);
 	StartTransactionCommand();
 	if (StatementTimeout > 0)

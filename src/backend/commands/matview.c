@@ -3819,7 +3819,8 @@ transientenr_init(QueryDesc *queryDesc)
 											entry->resowner,
 											entry->context,
 											true,
-											into->enrname);
+											into->enrname,
+											into->defer);
 }
 
 /*
@@ -4208,10 +4209,12 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 	/* Switch back to the old memory context and resource owner */
 	MemoryContextSwitchTo(oldcxt);
 	CurrentResourceOwner = oldowner;
+	//FIXME: close file
+	tuplestore_clear(tupstore);
 
 	if (Gp_role != GP_ROLE_DISPATCH)
 	{
-		pg_usleep(30 * 1000000L);
+		pg_usleep(10 * 1000000L);
 	}
 
 	PG_RETURN_TEXT_P(cstring_to_text("OK"));
