@@ -11,7 +11,5 @@ block_header.h.
 ## How to Build Vbf
 
 ```
-git clone https://code.hashdata.xyz/cloudberry/vbf.git
-cd vbf
-./build.sh --task=install
+./build_vbf.sh --prefix=$GPHOME
 ```
