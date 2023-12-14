@@ -1519,6 +1519,7 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 #define METATRACK_VALIDNAMESPACE(namespaceId) \
 	(namespaceId != PG_TOAST_NAMESPACE &&	\
 	 namespaceId != PG_BITMAPINDEX_NAMESPACE && \
+	 namespaceId != PG_EXTAUX_NAMESPACE && \
 	 namespaceId != PG_AOSEGMENT_NAMESPACE )
 
 /* check for valid namespace and valid relkind */
@@ -15263,6 +15264,7 @@ ATExecChangeOwner(Oid relationOid, Oid newOwnerId, bool recursing, LOCKMODE lock
 			tuple_class->relkind == RELKIND_PARTITIONED_TABLE ||
 			tuple_class->relkind == RELKIND_MATVIEW ||
 			tuple_class->relkind == RELKIND_TOASTVALUE ||
+			tuple_class->relnamespace == PG_EXTAUX_NAMESPACE ||
 			IsAppendonlyMetadataRelkind(tuple_class->relkind))
 		{
 			List	   *index_oid_list;

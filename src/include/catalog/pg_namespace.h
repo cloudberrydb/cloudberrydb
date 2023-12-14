@@ -57,8 +57,9 @@ typedef FormData_pg_namespace *Form_pg_namespace;
 #define IsBuiltInNameSpace(namespaceId) \
 	(namespaceId == PG_CATALOG_NAMESPACE || \
 	 namespaceId == PG_TOAST_NAMESPACE || \
-	 namespaceId == PG_BITMAPINDEX_NAMESPACE || \
 	 namespaceId == PG_PUBLIC_NAMESPACE || \
+	 namespaceId == PG_EXTAUX_NAMESPACE || \
+	 namespaceId == PG_BITMAPINDEX_NAMESPACE || \
 	 namespaceId == PG_AOSEGMENT_NAMESPACE)
 
 DECLARE_TOAST(pg_namespace, 4163, 4164);

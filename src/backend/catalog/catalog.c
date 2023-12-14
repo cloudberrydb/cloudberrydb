@@ -82,6 +82,7 @@
 #endif
 
 static bool IsAoSegmentClass(Form_pg_class reltuple);
+static bool IsExtAuxClass(Form_pg_class reltuple);
 
 /*
  * Like relpath(), but gets the directory containing the data file
@@ -179,6 +180,7 @@ IsSystemClass(Oid relid, Form_pg_class reltuple)
 {
 	/* IsCatalogRelationOid is a bit faster, so test that first */
 	return (IsCatalogRelationOid(relid) || IsToastClass(reltuple) ||
+			IsExtAuxClass(reltuple) ||
 			IsAoSegmentClass(reltuple));
 }
 
@@ -285,6 +287,14 @@ IsAoSegmentClass(Form_pg_class reltuple)
 	return IsAoSegmentNamespace(relnamespace);
 }
 
+static bool
+IsExtAuxClass(Form_pg_class reltuple)
+{
+	Oid			relnamespace = reltuple->relnamespace;
+
+	return IsExtAuxNamespace(relnamespace);
+}
+
 /*
  * IsCatalogNamespace
  *		True iff namespace is pg_catalog.
@@ -330,6 +340,12 @@ bool
 IsAoSegmentNamespace(Oid namespaceId)
 {
 	return namespaceId == PG_AOSEGMENT_NAMESPACE;
+}
+
+bool
+IsExtAuxNamespace(Oid namespaceId)
+{
+	return namespaceId == PG_EXTAUX_NAMESPACE;
 }
 
 /*
