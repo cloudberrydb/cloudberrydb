@@ -51,7 +51,7 @@ ExecVecSubqueryScan(PlanState *pstate)
 {
 	SubqueryScanState *node = castNode(SubqueryScanState, pstate);
 	VecSubqueryScanState *vnode = (VecSubqueryScanState*) node;
-    return ExecuteVecPlan(&vnode->estate);
+	return ExecuteVecPlan(&vnode->estate);
 }
 
 /* ----------------------------------------------------------------
@@ -74,9 +74,9 @@ ExecInitVecSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	/*
 	 * create state structure
 	 */
-    vecsubquerystate = (VecSubqueryScanState*) palloc0(sizeof(VecSubqueryScanState));
-    subquerystate = (SubqueryScanState *) vecsubquerystate;
-    NodeSetTag(subquerystate, T_SubqueryScanState);
+	vecsubquerystate = (VecSubqueryScanState*) palloc0(sizeof(VecSubqueryScanState));
+	subquerystate = (SubqueryScanState *) vecsubquerystate;
+	NodeSetTag(subquerystate, T_SubqueryScanState);
 	subquerystate->ss.ps.plan = (Plan *) node;
 	subquerystate->ss.ps.state = estate;
 	subquerystate->ss.ps.ExecProcNode = ExecVecSubqueryScan;
@@ -115,7 +115,7 @@ ExecInitVecSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	 * Initialize result type and projection.
 	 */
 	ExecInitResultTypeTL(&subquerystate->ss.ps);
-    ExecInitResultTupleSlotTL(&subquerystate->ss.ps, &TTSOpsVecTuple);
+	ExecInitResultTupleSlotTL(&subquerystate->ss.ps, &TTSOpsVecTuple);
 
 	/*
 	 * initialize child expressions
@@ -143,7 +143,7 @@ ExecEagerFreeVecSubqueryScan(VecSubqueryScanState *node)
 void
 ExecEndVecSubqueryScan(SubqueryScanState *node)
 {
-    VecSubqueryScanState *vnode = (VecSubqueryScanState *) node;
+	VecSubqueryScanState *vnode = (VecSubqueryScanState *) node;
 	/*
 	 * Free the exprcontext
 	 */

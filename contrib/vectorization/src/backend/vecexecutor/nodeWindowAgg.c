@@ -828,6 +828,8 @@ ExecEagerFreeVecWindowAgg(VecWindowAggState *vnode)
 	if (vnode->origin_rb)
 		ARROW_FREE(GArrowRecordBatch, &vnode->origin_rb);
 	FreeVecExecuteState(&vnode->estate);
+	if (vnode->result_slot)
+		ExecClearTuple(vnode->result_slot);
 }
 
 void
@@ -848,6 +850,8 @@ ExecEndVecWindowAgg(WindowAggState *node)
 	if (VECSLOT(node->ss.ps.ps_ResultTupleSlot)->vec_schema.schema)
 		ARROW_FREE(GArrowSchema, &VECSLOT(node->ss.ps.ps_ResultTupleSlot)->vec_schema.schema);
 
+	if (node->ss.ps.ps_ResultTupleSlot)
+		ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
 	ExecEagerFreeVecWindowAgg(vnode);
 	outerPlan = outerPlanState(node);
 	VecExecEndNode(outerPlan);

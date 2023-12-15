@@ -90,10 +90,10 @@ ExecInitVecNestLoop(NestLoop *node, EState *estate, int eflags)
 	/*
 	 * create state structure
 	 */
-    vnlstate = (VecNestLoopState *)palloc0(sizeof(VecNestLoopState));
-    nlstate = (NestLoopState *) vnlstate;
+	vnlstate = (VecNestLoopState *)palloc0(sizeof(VecNestLoopState));
+	nlstate = (NestLoopState *) vnlstate;
 	NodeSetTag(nlstate, T_NestLoopState);
-    nlstate->js.ps.plan = (Plan *) node;
+	nlstate->js.ps.plan = (Plan *) node;
 	nlstate->js.ps.state = estate;
 	nlstate->js.ps.ExecProcNode = ExecVecNestLoop;
 

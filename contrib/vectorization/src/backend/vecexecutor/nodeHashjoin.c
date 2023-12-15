@@ -316,6 +316,8 @@ ExecEndVecHashJoin(HashJoinState *node)
 	/*
 	 * clean out the tuple table
 	 */
+	if (vnode->result_slot)
+		ExecClearTuple(vnode->result_slot);
 	ExecClearTuple(node->js.ps.ps_ResultTupleSlot);
 
 	/*

@@ -279,7 +279,10 @@ ExecEndVecSeqScan(VecSeqScanState *node)
 	 */
 	if (ss->ps.ps_ResultTupleSlot)
 		ExecClearTuple(ss->ps.ps_ResultTupleSlot);
-	ExecClearTuple(ss->ss_ScanTupleSlot);
+	if (ss->ss_ScanTupleSlot)
+		ExecClearTuple(ss->ss_ScanTupleSlot);
+	if (node->vscanslot)
+		ExecClearTuple(node->vscanslot);
 
 	/*
 	 * close heap scan

@@ -46,6 +46,8 @@ ExecVecAssertOp(PlanState *pstate)
 static void
 ExecEagerFreeVecAssertOp(VecAssertOpState *vnode)
 {
+	AssertOpState *node = (AssertOpState *)vnode;
+	ExecClearTuple(node->ps.ps_ResultTupleSlot);
 	FreeVecExecuteState(&vnode->estate);
 }
 
@@ -55,8 +57,6 @@ void ExecEndVecAssertOp(AssertOpState *node)
 	VecAssertOpState *vnode = (VecAssertOpState *) node;
 	
 	ExecFreeExprContext(&node->ps);
-
-	ExecClearTuple(node->ps.ps_ResultTupleSlot);
 
 	ExecEagerFreeVecAssertOp(vnode);
 	/*

@@ -125,7 +125,7 @@ ExecInitVecAgg(Agg *node, EState *estate, int eflags)
 	/*
 	 * create state structure
 	 */
-    vaggstate = (VecAggState*) palloc0(sizeof(VecAggState));
+	vaggstate = (VecAggState*) palloc0(sizeof(VecAggState));
 	aggstate = (AggState*) vaggstate;
 	NodeSetTag(aggstate, T_AggState);
 	aggstate->ss.ps.plan = (Plan *) node;
@@ -185,8 +185,8 @@ ExecInitVecAgg(Agg *node, EState *estate, int eflags)
 		aggstate->hashcontext = CreateWorkExprContext(estate);
 
 	ExecAssignExprContext(estate, &aggstate->ss.ps);
-    /* veccontext for ExecVecProject */
-    vaggstate->veccontext = aggstate->ss.ps.ps_ExprContext;
+	/* veccontext for ExecVecProject */
+	vaggstate->veccontext = aggstate->ss.ps.ps_ExprContext;
 
 	ExecAssignExprContext(estate, &aggstate->ss.ps);
 
@@ -237,12 +237,12 @@ ExecInitVecAgg(Agg *node, EState *estate, int eflags)
 									aggstate->ss.ps.outerops);
 	scanDesc = aggstate->ss.ss_ScanTupleSlot->tts_tupleDescriptor;
 
-    for (int col = 0; col < scanDesc->natts; ++col)
-    {
+	for (int col = 0; col < scanDesc->natts; ++col)
+	{
 		aggstate->ss.ss_ScanTupleSlot->tts_values[col] = (Datum)0;
 		aggstate->ss.ss_ScanTupleSlot->tts_isnull[col] = true;
 	}
-    ExecStoreVirtualTuple(aggstate->ss.ss_ScanTupleSlot);
+	ExecStoreVirtualTuple(aggstate->ss.ss_ScanTupleSlot);
 
 	/*
 	 * Initialize result type, slot and projection.
@@ -340,6 +340,10 @@ ExecEagerFreeVecAgg(AggState *node)
 		ReScanExprContext(node->aggcontexts[setno]);
 	if (node->hashcontext)
 		ReScanExprContext(node->hashcontext);
+	if (node->ss.ps.ps_ResultTupleSlot)
+		ExecClearTuple(node->ss.ps.ps_ResultTupleSlot);
+	if (vnode->result_slot)
+		ExecClearTuple(vnode->result_slot);
 }
 
 void
