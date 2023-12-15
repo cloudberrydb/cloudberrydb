@@ -284,8 +284,8 @@ table_index_fetch_tuple_check(Relation rel,
 	bool		found;
 
 	/*
-	 * Optimized path for AO/CO relations as the aforementioned per-tuple
-	 * overhead is significant for AO/CO relations. For details, please refer to
+	 * Optimized path for non-heap relations as the aforementioned per-tuple
+	 * overhead is significant for non-heap relations. For details, please refer to
 	 * table_index_unique_check().
 	 */
 	if (rel->rd_tableam->index_unique_check)
