@@ -3879,7 +3879,7 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	ListCell   *lc;
 	int			i;
 	ResourceOwner oldowner;
-	Datum baseRelidsDatum;
+	Datum baseRelids;
 	int gp_command_id = gp_command_count + 1;
 
 	QueryEnvironment *queryEnv = create_queryEnv();
@@ -3889,11 +3889,11 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	pstate->p_queryEnv = queryEnv;
 	pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
 
-	baseRelidsDatum = get_matview_dependency_relids(matviewOid);
+	baseRelids = get_matview_dependency_relids(matviewOid);
 
-	ivm_export_delta_table(matviewOid, baseRelidsDatum, gp_command_id);
+	ivm_export_delta_table(matviewOid, baseRelids, gp_command_id);
 	DirectFunctionCall3(pg_export_delta_table, ObjectIdGetDatum(matviewOid),
-						Int32GetDatum(gp_command_id), baseRelidsDatum);
+						Int32GetDatum(gp_command_id), baseRelids);
 
 	/* get the entry for this materialized view */
 	entry = (MV_TriggerHashEntry *) hash_search(mv_trigger_info,
@@ -4098,7 +4098,7 @@ ivm_export_delta_table(Oid matview_id, Datum relids, int count)
 	{
 		appendStringInfo(&relids_str, "%d", oids->values[i]);
 		if (i < oids->dim1 - 1)
-			appendStringInfo(&relids_str, ",");
+			appendStringInfoChar(&relids_str, ' ');
 	}
 	appendStringInfoChar(&relids_str, '\'');
 
@@ -4161,6 +4161,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 		entry->pid = MyProcPid;
 		entry->defer = true;
 		entry->snapshot = NULL;
+		entry->snapname = NULL;
 	}
 
 	/* Switch to the new resource owner and memory context */
@@ -4282,7 +4283,7 @@ insert_tuple_into_tuplestore(Oid matviewOid, oidvector* relids, int value_a, int
 	Datum values[2];
 	bool nulls[2];
 
-	Assert(relids->dim1 == 1);
+	Assert(relids->dim1 > 0);
 	Oid relid = relids->values[0];
 
 	tupstore = tuplestore_begin_heap(true, false, work_mem);
@@ -4305,7 +4306,6 @@ insert_tuple_into_tuplestore(Oid matviewOid, oidvector* relids, int value_a, int
 
 	tuplestore_puttuple(tupstore, tuple);
 
-	/* tuplestore_end(tupstore); */
 	return tupstore;
 }
 
