@@ -525,7 +525,8 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 			/*
 			 * Mark relisivm field, if it's a matview and into->ivm is true.
 			 */
-			SetMatViewIVMState(matviewRel, true);
+			SetMatViewIVMState(matviewRel, into->defer ?
+								MATVIEW_IVM_DEFERRED : MATVIEW_IVM_IMMEDIATE);
 
 			if (!into->skipData)
 			{

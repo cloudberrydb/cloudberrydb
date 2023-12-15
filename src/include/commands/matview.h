@@ -25,7 +25,7 @@
 
 extern void SetMatViewPopulatedState(Relation relation, bool newstate);
 
-extern void SetMatViewIVMState(Relation relation, bool newstate);
+extern void SetMatViewIVMState(Relation relation, char newstate);
 
 extern ObjectAddress ExecRefreshMatView(ParseState *pstate, RefreshMatViewStmt *stmt, const char *queryString,
 										ParamListInfo params, QueryCompletion *qc);
@@ -48,4 +48,5 @@ extern bool isIvmName(const char *s);
 extern void mv_InitHashTables(void);
 extern Size mv_TableShmemSize(void);
 extern void AddPreassignedMVEntry(Oid matview_id, Oid table_id, const char* snapname);
+extern bool is_matview_latest(Oid matviewOid);
 #endif							/* MATVIEW_H */

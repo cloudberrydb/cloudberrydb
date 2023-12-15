@@ -1073,7 +1073,7 @@ index_create_internal(Relation heapRelation,
 	indexRelation->rd_rel->relowner = heapRelation->rd_rel->relowner;
 	indexRelation->rd_rel->relam = accessMethodObjectId;
 	indexRelation->rd_rel->relispartition = OidIsValid(parentIndexRelid);
-	indexRelation->rd_rel->relisivm = false;
+	indexRelation->rd_rel->relisivm = MATVIEW_IVM_NOTHING;
 
 	/*
 	 * store index's pg_class entry

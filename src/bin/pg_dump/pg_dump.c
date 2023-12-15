@@ -8203,7 +8203,7 @@ getTables(Archive *fout, int *numTables)
 		tblinfo[i].partkeydef = pg_strdup(PQgetvalue(res, i, i_partkeydef));
 		tblinfo[i].ispartition = (strcmp(PQgetvalue(res, i, i_ispartition), "t") == 0);
 		tblinfo[i].partbound = pg_strdup(PQgetvalue(res, i, i_partbound));
-		tblinfo[i].isivm = (strcmp(PQgetvalue(res, i, i_isivm), "t") == 0);
+		tblinfo[i].isivm = *(PQgetvalue(res, i, i_isivm));
 
 		/* foreign server */
 		tblinfo[i].foreign_server = atooid(PQgetvalue(res, i, i_foreignserver));
@@ -18123,7 +18123,8 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 		appendPQExpBuffer(q, "CREATE %s%s%s %s",
 						  tbinfo->relpersistence == RELPERSISTENCE_UNLOGGED ?
 						  "UNLOGGED " : "",
-						  tbinfo->relkind == RELKIND_MATVIEW && tbinfo->isivm ?
+						  tbinfo->relkind == RELKIND_MATVIEW &&
+						  tbinfo->isivm != MATVIEW_IVM_NOTHING ?
 						  "INCREMENTAL " : "",
 						  reltypename,
 						  qualrelname);

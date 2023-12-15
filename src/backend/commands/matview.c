@@ -299,7 +299,7 @@ MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation)
  * NOTE: caller must be holding an appropriate lock on the relation.
  */
 void
-SetMatViewIVMState(Relation relation, bool newstate)
+SetMatViewIVMState(Relation relation, char newstate)
 {
 	Relation	pgrel;
 	HeapTuple	tuple;
@@ -4078,7 +4078,6 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	/*
 	 * Step4: cleanup stage
 	 */
-	//FIXME:
 	apply_cleanup(matviewOid);
 	DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
 
@@ -4169,8 +4168,6 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 	CurrentResourceOwner = entry->resowner;
 	oldcxt = MemoryContextSwitchTo(entry->context);
 
-	elog(LOG, "reveived count %d, inner worker count %d", gp_count, gp_command_count);
-
 	Assert(base_relids);
 	for (int i = 0; i < base_relids->dim1; i++)
 	{
@@ -4209,7 +4206,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 	/* Switch back to the old memory context and resource owner */
 	MemoryContextSwitchTo(oldcxt);
 	CurrentResourceOwner = oldowner;
-	//FIXME: close file
+	// close file
 	tuplestore_clear(tupstore);
 
 	if (Gp_role != GP_ROLE_DISPATCH)
@@ -4310,4 +4307,19 @@ insert_tuple_into_tuplestore(Oid matviewOid, oidvector* relids, int value_a, int
 
 	/* tuplestore_end(tupstore); */
 	return tupstore;
+}
+
+
+bool
+is_matview_latest(Oid matviewOid)
+{
+	Datum relids;
+	relids = get_matview_dependency_relids(matviewOid);
+	oidvector* oids = (oidvector *) DatumGetPointer(relids);
+
+	for (int i = 0 ; i < oids->dim1; i++)
+	{
+		//FIXME: check version
+	}
+	return true;
 }

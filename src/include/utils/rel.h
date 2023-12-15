@@ -731,7 +731,7 @@ typedef struct ViewOptions
  */
 #define RelationIsPopulated(relation) ((relation)->rd_rel->relispopulated)
 
-#define RelationIsIVM(relation) ((relation)->rd_rel->relisivm)
+#define RelationIsIVM(relation) ((relation)->rd_rel->relisivm != MATVIEW_IVM_NOTHING)
 
 /*
  * RelationIsAccessibleInLogicalDecoding

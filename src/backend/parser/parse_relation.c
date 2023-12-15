@@ -1513,7 +1513,7 @@ addRangeTableEntry(ParseState *pstate,
 	rte->relid = RelationGetRelid(rel);
 	rte->relkind = rel->rd_rel->relkind;
 	rte->rellockmode = lockmode;
-	rte->relisivm = rel->rd_rel->relisivm;
+	rte->relisivm = rel->rd_rel->relisivm != MATVIEW_IVM_NOTHING ? true : false;
 
 	/*
 	 * Build the list of effective column names using user-supplied aliases
@@ -1603,7 +1603,7 @@ addRangeTableEntryForRelation(ParseState *pstate,
 	rte->relid = RelationGetRelid(rel);
 	rte->relkind = rel->rd_rel->relkind;
 	rte->rellockmode = lockmode;
-	rte->relisivm = rel->rd_rel->relisivm;
+	rte->relisivm = rel->rd_rel->relisivm != MATVIEW_IVM_NOTHING ? true : false;
 
 	/*
 	 * Build the list of effective column names using user-supplied aliases

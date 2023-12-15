@@ -2050,7 +2050,7 @@ is_agg_partial_capable(Oid aggid)
  *
  *		Returns the relisivm flag associated with a given relation.
  */
-bool
+char
 get_rel_relisivm(Oid relid)
 {
 	HeapTuple	tp;
@@ -2059,14 +2059,14 @@ get_rel_relisivm(Oid relid)
 	if (HeapTupleIsValid(tp))
 	{
 		Form_pg_class reltup = (Form_pg_class) GETSTRUCT(tp);
-		bool		result;
+		char		result;
 
 		result = reltup->relisivm;
 		ReleaseSysCache(tp);
 		return result;
 	}
 	else
-		return false;
+		return '\0';
 }
 
 /*

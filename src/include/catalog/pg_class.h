@@ -119,8 +119,8 @@ CATALOG(pg_class,1259,RelationRelationId) BKI_BOOTSTRAP BKI_ROWTYPE_OID(83,Relat
 	/* is relation a partition? */
 	bool		relispartition BKI_DEFAULT(f);
 
-	/* is relation a matview with ivm? */
-	bool		relisivm BKI_DEFAULT(f);
+	/* is relation a matview with ivm or defer ivm ? */
+	char		relisivm BKI_DEFAULT(n);
 
 	/* link to original rel during table rewrite; otherwise 0 */
 	Oid			relrewrite BKI_DEFAULT(0) BKI_LOOKUP_OPT(pg_class);
@@ -203,6 +203,9 @@ DECLARE_INDEX(pg_class_tblspc_relfilenode_index, 3455, on pg_class using btree(r
  */
 #define		  REPLICA_IDENTITY_INDEX	'i'
 
+#define		  MATVIEW_IVM_NOTHING		'n' /* not ivm */
+#define		  MATVIEW_IVM_DEFERRED		'd' /* defer ivm */
+#define		  MATVIEW_IVM_IMMEDIATE		'i' /* immediate ivm */
 /*
  * Relation kinds that have physical storage. These relations normally have
  * relfilenode set to non-zero, but it can also be zero if the relation is
