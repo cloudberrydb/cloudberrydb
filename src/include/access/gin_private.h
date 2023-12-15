@@ -89,7 +89,7 @@ typedef struct GinState
 
 
 /* ginutil.c */
-extern bytea *ginoptions(Datum reloptions, char relkind, bool validate);
+extern bytea *ginoptions(Datum reloptions, bool validate);
 extern void initGinState(GinState *state, Relation index);
 extern Buffer GinNewBuffer(Relation index);
 extern void GinInitBuffer(Buffer b, uint32 f);

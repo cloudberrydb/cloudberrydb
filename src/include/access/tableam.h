@@ -261,6 +261,10 @@ typedef void (*IndexBuildCallback) (Relation index,
  */
 struct PlanState;
 
+typedef bytea *(*tamoptions_function)(Datum reloptions,
+									  char relkind,
+									  bool validate);
+
 /*
  * API struct for a table AM.  Note this must be allocated in a
  * server-lifetime manner, typically as a static const struct, which then gets

@@ -735,7 +735,7 @@ SpGistInitMetapage(Page page)
  * reloptions processing for SPGiST
  */
 bytea *
-spgoptions(Datum reloptions, char relkind, bool validate)
+spgoptions(Datum reloptions, bool validate)
 {
 	static const relopt_parse_elt tab[] = {
 		{"fillfactor", RELOPT_TYPE_INT, offsetof(SpGistOptions, fillfactor)},

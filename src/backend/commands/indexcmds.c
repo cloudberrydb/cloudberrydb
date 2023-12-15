@@ -1131,7 +1131,7 @@ DefineIndex(Oid relationId,
 	reloptions = transformRelOptions((Datum) 0, stmt->options,
 									 NULL, NULL, false, false);
 
-	(void) index_reloptions(amoptions, reloptions, RELKIND_INDEX, true);
+	(void) index_reloptions(amoptions, reloptions, true);
 
 	/*
 	 * Prepare arguments for index_create, primarily an IndexInfo structure.

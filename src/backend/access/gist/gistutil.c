@@ -917,7 +917,7 @@ gistPageRecyclable(Page page)
 }
 
 bytea *
-gistoptions(Datum reloptions, char relkind, bool validate)
+gistoptions(Datum reloptions, bool validate)
 {
 	static const relopt_parse_elt tab[] = {
 		{"fillfactor", RELOPT_TYPE_INT, offsetof(GiSTOptions, fillfactor)},

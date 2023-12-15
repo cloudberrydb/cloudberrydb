@@ -2101,7 +2101,7 @@ BTreeShmemInit(void)
 }
 
 bytea *
-btoptions(Datum reloptions, char relkind, bool validate)
+btoptions(Datum reloptions, bool validate)
 {
 	static const relopt_parse_elt tab[] = {
 		{"fillfactor", RELOPT_TYPE_INT, offsetof(BTOptions, fillfactor)},

@@ -1381,7 +1381,7 @@ untransformRelOptions(Datum options)
  */
 bytea *
 extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
-				  amoptions_function amoptions)
+				  reloption_function amoptions)
 {
 	bytea	   *options;
 	bool		isnull;
@@ -1403,7 +1403,7 @@ extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
 		case RELKIND_RELATION:
 		case RELKIND_TOASTVALUE:
 		case RELKIND_MATVIEW:
-			options = table_reloptions(amoptions, datum, classForm->relkind, false);
+			options = table_reloptions((tamoptions_function)amoptions, datum, classForm->relkind, false);
 			break;
 		case RELKIND_PARTITIONED_TABLE:
 			options = partitioned_table_reloptions(datum, false);
@@ -1413,7 +1413,7 @@ extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
 			break;
 		case RELKIND_INDEX:
 		case RELKIND_PARTITIONED_INDEX:
-			options = index_reloptions(amoptions, datum, classForm->relkind, false);
+			options = index_reloptions((amoptions_function)amoptions, datum, false);
 			break;
 		case RELKIND_FOREIGN_TABLE:
 			options = NULL;
@@ -2025,7 +2025,7 @@ view_reloptions(Datum reloptions, bool validate)
 }
 
 bytea *
-table_reloptions(amoptions_function amoptions, Datum reloptions, char relkind, bool validate)
+table_reloptions(tamoptions_function amoptions, Datum reloptions, char relkind, bool validate)
 {
 	Assert(relkind == RELKIND_RELATION ||
 			relkind == RELKIND_TOASTVALUE ||
@@ -2048,16 +2048,7 @@ table_reloptions_am(Oid accessMethodId, Datum reloptions, char relkind, bool val
 			relkind == RELKIND_TOASTVALUE ||
 			relkind == RELKIND_MATVIEW);
 
-	switch(accessMethodId)
-	{
-		/* built-in table access method put here to fetch TAM fast */
-		case HEAP_TABLE_AM_OID:
-			tam = GetHeapamTableAmRoutine();
-			break;
-		default:
-			tam = GetTableAmRoutineByAmId(accessMethodId);
-			break;
-	}
+	tam = GetTableAmRoutineByAmId(accessMethodId);
 	return table_reloptions(tam->amoptions, reloptions, relkind, validate);
 }
 
@@ -2069,7 +2060,7 @@ table_reloptions_am(Oid accessMethodId, Datum reloptions, char relkind, bool val
  *	validate	error flag
  */
 bytea *
-index_reloptions(amoptions_function amoptions, Datum reloptions, char relkind, bool validate)
+index_reloptions(amoptions_function amoptions, Datum reloptions, bool validate)
 {
 	Assert(amoptions != NULL);
 
@@ -2077,7 +2068,7 @@ index_reloptions(amoptions_function amoptions, Datum reloptions, char relkind, b
 	if (!PointerIsValid(DatumGetPointer(reloptions)))
 		return NULL;
 
-	return amoptions(reloptions, relkind, validate);
+	return amoptions(reloptions, validate);
 }
 
 /*

@@ -484,7 +484,7 @@ extern void gistadjustmembers(Oid opfamilyoid,
 #define GIST_MIN_FILLFACTOR			10
 #define GIST_DEFAULT_FILLFACTOR		90
 
-extern bytea *gistoptions(Datum reloptions, char relkind, bool validate);
+extern bytea *gistoptions(Datum reloptions, bool validate);
 extern bool gistproperty(Oid index_oid, int attno,
 						 IndexAMProperty prop, const char *propname,
 						 bool *res, bool *isnull);

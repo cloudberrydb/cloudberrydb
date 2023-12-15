@@ -605,7 +605,7 @@ ginExtractEntries(GinState *ginstate, OffsetNumber attnum,
 }
 
 bytea *
-ginoptions(Datum reloptions, char relkind, bool validate)
+ginoptions(Datum reloptions, bool validate)
 {
 	static const relopt_parse_elt tab[] = {
 		{"fastupdate", RELOPT_TYPE_BOOL, offsetof(GinOptions, useFastUpdate)},

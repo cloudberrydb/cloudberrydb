@@ -1099,7 +1099,7 @@ brinvacuumcleanup(IndexVacuumInfo *info, IndexBulkDeleteResult *stats)
  * reloptions processor for BRIN indexes
  */
 bytea *
-brinoptions(Datum reloptions, char relkind, bool validate)
+brinoptions(Datum reloptions, bool validate)
 {
 	static const relopt_parse_elt tab[] = {
 		{"pages_per_range", RELOPT_TYPE_INT, offsetof(BrinOptions, pagesPerRange)},

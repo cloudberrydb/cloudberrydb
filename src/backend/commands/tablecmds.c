@@ -15697,7 +15697,7 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 			break;
 		case RELKIND_INDEX:
 		case RELKIND_PARTITIONED_INDEX:
-			(void) index_reloptions(rel->rd_indam->amoptions, newOptions, rel->rd_rel->relkind, true);
+			(void) index_reloptions(rel->rd_indam->amoptions, newOptions, true);
 			break;
 		default:
 			ereport(ERROR,

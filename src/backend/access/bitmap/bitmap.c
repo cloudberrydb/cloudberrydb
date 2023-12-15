@@ -1097,7 +1097,7 @@ GetBitmapIndexAuxOids(Relation index, Oid *heapId, Oid *indexId)
 }
 
 bytea *
-bmoptions(Datum reloptions, char relkind, bool validate)
+bmoptions(Datum reloptions, bool validate)
 {
 	return default_reloptions(reloptions, validate, RELOPT_KIND_BITMAP);
 }

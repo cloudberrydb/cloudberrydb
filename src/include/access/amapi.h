@@ -140,7 +140,6 @@ typedef void (*amcostestimate_function) (struct PlannerInfo *root,
 
 /* parse index reloptions */
 typedef bytea *(*amoptions_function) (Datum reloptions,
-									  char relkind,
 									  bool validate);
 
 /* report AM, index, or index column property */

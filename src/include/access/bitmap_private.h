@@ -269,7 +269,7 @@ extern IndexBulkDeleteResult *bmbulkdelete(IndexVacuumInfo *info,
 extern IndexBulkDeleteResult *bmvacuumcleanup(IndexVacuumInfo *info,
 				IndexBulkDeleteResult *stats);
 extern bool bmcanreturn(Relation index, int attno);
-extern bytea *bmoptions(Datum reloptions, char relkind, bool validate);
+extern bytea *bmoptions(Datum reloptions, bool validate);
 extern bool bmvalidate(Oid opclassoid);
 
 extern void GetBitmapIndexAuxOids(Relation index, Oid *heapId, Oid *indexId);

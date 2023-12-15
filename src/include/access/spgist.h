@@ -190,7 +190,7 @@ typedef struct spgLeafConsistentOut
 
 
 /* spgutils.c */
-extern bytea *spgoptions(Datum reloptions, char relkind, bool validate);
+extern bytea *spgoptions(Datum reloptions, bool validate);
 
 /* spginsert.c */
 extern IndexBuildResult *spgbuild(Relation heap, Relation index,
