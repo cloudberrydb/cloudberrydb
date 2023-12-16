@@ -23,6 +23,7 @@
 #include "access/heapam.h"
 #include "access/heaptoast.h"
 #include "access/multixact.h"
+#include "access/reloptions.h"
 #include "access/rewriteheap.h"
 #include "access/syncscan.h"
 #include "access/tableam.h"
@@ -2548,6 +2549,36 @@ SampleHeapTupleVisible(TableScanDesc scan, Buffer buffer,
 	}
 }
 
+/*
+ * Parse options for heaps, views and toast tables.
+ */
+static bytea *
+heapam_amoptions(Datum reloptions, char relkind, bool validate)
+{
+	StdRdOptions *rdopts;
+
+	switch (relkind)
+	{
+		case RELKIND_TOASTVALUE:
+			rdopts = (StdRdOptions *)
+				default_reloptions(reloptions, validate, RELOPT_KIND_TOAST);
+			if (rdopts != NULL)
+			{
+				/* adjust default-only parameters for TOAST relations */
+				rdopts->fillfactor = 100;
+				rdopts->autovacuum.analyze_threshold = -1;
+				rdopts->autovacuum.analyze_scale_factor = -1;
+			}
+			return (bytea *) rdopts;
+		case RELKIND_RELATION:
+		case RELKIND_MATVIEW:
+			return default_reloptions(reloptions, validate, RELOPT_KIND_HEAP);
+		default:
+			Assert(false);
+			return NULL;
+	}
+}
+
 
 /* ------------------------------------------------------------------------
  * Definition of the heap table access method.
@@ -2610,7 +2641,10 @@ static const TableAmRoutine heapam_methods = {
 	.scan_bitmap_next_block = heapam_scan_bitmap_next_block,
 	.scan_bitmap_next_tuple = heapam_scan_bitmap_next_tuple,
 	.scan_sample_next_block = heapam_scan_sample_next_block,
-	.scan_sample_next_tuple = heapam_scan_sample_next_tuple
+	.scan_sample_next_tuple = heapam_scan_sample_next_tuple,
+
+	.amoptions	= heapam_amoptions,
+
 };
 
 

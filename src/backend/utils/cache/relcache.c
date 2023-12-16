@@ -480,7 +480,7 @@ static void
 RelationParseRelOptions(Relation relation, HeapTuple tuple)
 {
 	bytea	   *options;
-	amoptions_function amoptsfn;
+	reloption_function amoptsfn;
 
 	relation->rd_options = NULL;
 
@@ -492,11 +492,13 @@ RelationParseRelOptions(Relation relation, HeapTuple tuple)
 	{
 		case RELKIND_RELATION:
 		case RELKIND_TOASTVALUE:
+		case RELKIND_MATVIEW:
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
 		case RELKIND_AOVISIMAP:
+			amoptsfn = relation->rd_tableam->amoptions;
+			break;
 		case RELKIND_VIEW:
-		case RELKIND_MATVIEW:
 		case RELKIND_PARTITIONED_TABLE:
 			amoptsfn = NULL;
 			break;

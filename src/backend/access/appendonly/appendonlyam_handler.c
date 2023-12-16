@@ -22,6 +22,7 @@
 #include "access/heapam.h"
 #include "access/heaptoast.h"
 #include "access/multixact.h"
+#include "access/reloptions.h"
 #include "access/tableam.h"
 #include "access/tsmapi.h"
 #include "access/xact.h"
@@ -2381,7 +2382,9 @@ static const TableAmRoutine ao_row_methods = {
 	.scan_bitmap_next_block = appendonly_scan_bitmap_next_block,
 	.scan_bitmap_next_tuple = appendonly_scan_bitmap_next_tuple,
 	.scan_sample_next_block = appendonly_scan_sample_next_block,
-	.scan_sample_next_tuple = appendonly_scan_sample_next_tuple
+	.scan_sample_next_tuple = appendonly_scan_sample_next_tuple,
+
+	.amoptions = ao_amoptions,
 };
 
 Datum
