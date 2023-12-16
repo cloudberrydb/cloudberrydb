@@ -1381,7 +1381,7 @@ untransformRelOptions(Datum options)
  */
 bytea *
 extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
-				  amoptions_function amoptions)
+				  reloption_function amoptions)
 {
 	bytea	   *options;
 	bool		isnull;
@@ -1403,7 +1403,7 @@ extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
 		case RELKIND_RELATION:
 		case RELKIND_TOASTVALUE:
 		case RELKIND_MATVIEW:
-			options = heap_reloptions(classForm->relkind, datum, false);
+			options = table_reloptions((tamoptions_function)amoptions, datum, classForm->relkind, false);
 			break;
 		case RELKIND_PARTITIONED_TABLE:
 			options = partitioned_table_reloptions(datum, false);
@@ -1413,7 +1413,7 @@ extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
 			break;
 		case RELKIND_INDEX:
 		case RELKIND_PARTITIONED_INDEX:
-			options = index_reloptions(amoptions, datum, false);
+			options = index_reloptions((amoptions_function)amoptions, datum, false);
 			break;
 		case RELKIND_FOREIGN_TABLE:
 			options = NULL;
@@ -2024,39 +2024,32 @@ view_reloptions(Datum reloptions, bool validate)
 									  tab, lengthof(tab));
 }
 
-/*
- * Parse options for heaps, views and toast tables.
- */
 bytea *
-heap_reloptions(char relkind, Datum reloptions, bool validate)
+table_reloptions(tamoptions_function amoptions, Datum reloptions, char relkind, bool validate)
 {
-	StdRdOptions *rdopts;
-
-	switch (relkind)
+	Assert(relkind == RELKIND_RELATION ||
+			relkind == RELKIND_TOASTVALUE ||
+			relkind == RELKIND_MATVIEW);
+	if (amoptions == NULL)
 	{
-		case RELKIND_TOASTVALUE:
-			rdopts = (StdRdOptions *)
-				default_reloptions(reloptions, validate, RELOPT_KIND_TOAST);
-			if (rdopts != NULL)
-			{
-				/* adjust default-only parameters for TOAST relations */
-				rdopts->fillfactor = 100;
-				rdopts->autovacuum.analyze_threshold = -1;
-				rdopts->autovacuum.analyze_scale_factor = -1;
-			}
-			return (bytea *) rdopts;
-		case RELKIND_RELATION:
-		case RELKIND_MATVIEW:
-			/*
-			 * GPDB_12_AFTER_MERGE_FIXME: should we accept AO-related options for
-			 * partitioned tables? A partitioned table has no data, but the options
-			 * might be inherited by partitions.
-			 */
-			return default_reloptions(reloptions, validate, RELOPT_KIND_HEAP);
-		default:
-			/* other relkinds are not supported */
-			return NULL;
+		if (PointerIsValid(DatumGetPointer(reloptions)))
+			elog(ERROR, "table access method doesn't supported reloptions");
+		return NULL;
 	}
+	return amoptions(reloptions, relkind, validate);
+}
+
+bytea *
+table_reloptions_am(Oid accessMethodId, Datum reloptions, char relkind, bool validate)
+{
+	const TableAmRoutine *tam;
+
+	Assert(relkind == RELKIND_RELATION ||
+			relkind == RELKIND_TOASTVALUE ||
+			relkind == RELKIND_MATVIEW);
+
+	tam = GetTableAmRoutineByAmId(accessMethodId);
+	return table_reloptions(tam->amoptions, reloptions, relkind, validate);
 }
 
 /*

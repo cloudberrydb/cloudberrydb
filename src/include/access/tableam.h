@@ -261,6 +261,10 @@ typedef void (*IndexBuildCallback) (Relation index,
  */
 struct PlanState;
 
+typedef bytea *(*tamoptions_function)(Datum reloptions,
+									  char relkind,
+									  bool validate);
+
 /*
  * API struct for a table AM.  Note this must be allocated in a
  * server-lifetime manner, typically as a static const struct, which then gets
@@ -882,6 +886,11 @@ typedef struct TableAmRoutine
 	bool		(*scan_sample_next_tuple) (TableScanDesc scan,
 										   struct SampleScanState *scanstate,
 										   TupleTableSlot *slot);
+
+	/*
+	 * This callback is used to parse reloptions for relation/matview/toast.
+	 */
+	bytea       *(*amoptions)(Datum reloptions, char relkind, bool validate);
 
 } TableAmRoutine;
 
@@ -2189,6 +2198,7 @@ extern void table_block_relation_estimate_size(Relation rel,
  */
 
 extern const TableAmRoutine *GetTableAmRoutine(Oid amhandler);
+extern const TableAmRoutine *GetTableAmRoutineByAmId(Oid amoid);
 extern const TableAmRoutine *GetHeapamTableAmRoutine(void);
 extern bool check_default_table_access_method(char **newval, void **extra,
 											  GucSource source);

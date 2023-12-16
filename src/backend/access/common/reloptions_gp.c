@@ -1697,3 +1697,30 @@ List* transformColumnEncoding(Relation rel, List *colDefs, List *stenc, List *wi
 
 	return result;
 }
+
+bytea *
+ao_amoptions(Datum reloptions, char relkind, bool validate)
+{
+	StdRdOptions *rdopts;
+
+	switch (relkind)
+	{
+		case RELKIND_TOASTVALUE:
+			rdopts = (StdRdOptions *)
+				default_reloptions(reloptions, validate, RELOPT_KIND_TOAST);
+			if (rdopts != NULL)
+			{
+				/* adjust default-only parameters for TOAST relations */
+				rdopts->fillfactor = 100;
+				rdopts->autovacuum.analyze_threshold = -1;
+				rdopts->autovacuum.analyze_scale_factor = -1;
+			}
+			return (bytea *) rdopts;
+		case RELKIND_RELATION:
+		case RELKIND_MATVIEW:
+			return default_reloptions(reloptions, validate, RELOPT_KIND_APPENDOPTIMIZED);
+		default:
+			Assert(false);
+			return NULL;
+	}
+}

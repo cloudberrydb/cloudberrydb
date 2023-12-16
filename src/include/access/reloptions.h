@@ -247,8 +247,11 @@ extern Datum transformRelOptions(Datum oldOptions, List *defList,
 								 const char *namspace, char *validnsps[],
 								 bool acceptOidsOff, bool isReset);
 extern List *untransformRelOptions(Datum options);
+
+/* reloption_function is either amoptions_function or tamoptions_function */
+typedef void *reloption_function;
 extern bytea *extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
-								amoptions_function amoptions);
+								reloption_function amoptions);
 extern void *build_reloptions(Datum reloptions, bool validate,
 							  relopt_kind kind,
 							  Size relopt_struct_size,
@@ -259,7 +262,11 @@ extern void *build_local_reloptions(local_relopts *relopts, Datum options,
 
 extern bytea *default_reloptions(Datum reloptions, bool validate,
 								 relopt_kind kind);
-extern bytea *heap_reloptions(char relkind, Datum reloptions, bool validate);
+
+extern bytea *table_reloptions(tamoptions_function amoptions, Datum reloptions,
+								char relkind, bool validate);
+extern bytea *table_reloptions_am(Oid accessMethodId, Datum reloptions,
+								  char relkind, bool validate);
 extern bytea *view_reloptions(Datum reloptions, bool validate);
 extern bytea *partitioned_table_reloptions(Datum reloptions, bool validate);
 extern bytea *index_reloptions(amoptions_function amoptions, Datum reloptions,
@@ -270,6 +277,8 @@ extern LOCKMODE AlterTableGetRelOptionsLockLevel(List *defList);
 
 
 /* in reloptions_gp.c */
+extern bytea *ao_amoptions(Datum reloptions, char relkind,
+									bool validate);
 extern Datum transformAOStdRdOptions(StdRdOptions *opts, Datum withOpts);
 
 extern void validateAppendOnlyRelOptions(int blocksize, int writesize,

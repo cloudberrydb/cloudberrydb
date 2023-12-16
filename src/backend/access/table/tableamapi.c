@@ -106,6 +106,39 @@ GetTableAmRoutine(Oid amhandler)
 	return routine;
 }
 
+/*
+ * GetTableAmRoutineByAmId - look up the handler of the table access method
+ * with the given OID, and get its TableAmRoutine struct.
+ *
+ * If the given OID isn't a valid index access method, throws error.
+ */
+const TableAmRoutine *
+GetTableAmRoutineByAmId(Oid amoid)
+{
+	HeapTuple	tuple;
+	Form_pg_am  amform;
+	regproc     amhandler;
+
+	if (amoid == HEAP_TABLE_AM_OID)
+		return GetHeapamTableAmRoutine();
+
+	tuple = SearchSysCache1(AMOID, ObjectIdGetDatum(amoid));
+	if (!HeapTupleIsValid(tuple))
+		ereport(ERROR, (errmsg("cache lookup failed for access method %u", amoid)));
+
+	amform = (Form_pg_am) GETSTRUCT(tuple);
+	if (amform->amtype != AMTYPE_TABLE)
+		ereport(ERROR,
+				(errcode(ERRCODE_OBJECT_NOT_IN_PREREQUISITE_STATE),
+				 errmsg("access method \"%s\" is not of type TABLE",
+						NameStr(amform->amname))));
+
+	amhandler = amform->amhandler;
+	ReleaseSysCache(tuple);
+
+	return GetTableAmRoutine(amhandler);
+}
+
 /* check_hook: validate new default_table_access_method */
 bool
 check_default_table_access_method(char **newval, void **extra, GucSource source)

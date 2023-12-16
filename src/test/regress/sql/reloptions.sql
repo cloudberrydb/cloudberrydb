@@ -91,6 +91,10 @@ SELECT reloptions FROM pg_class WHERE oid = :toast_oid;
 ALTER TABLE reloptions_test RESET (toast.autovacuum_vacuum_cost_delay);
 SELECT reloptions FROM pg_class WHERE oid = :toast_oid;
 
+-- CBDB: The following CREATE clause will success, which is different from upstream.
+-- The toast reloption is ignored, because the table has no toast
+-- table and the options are validated by the AM-spec routine.
+
 -- Fail on non-existent options in toast namespace
 CREATE TABLE reloptions_test2 (i int) WITH (toast.not_existing_option = 42);
 
