@@ -238,7 +238,7 @@ RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *t
 				 QueryEnvironment *queryEnv, Oid matviewid, int64 version);
 
 static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int value_a, int value_b);
-static void ivm_export_delta_table(Oid matview_id, Datum relids, int count);
+static char ivm_export_delta_table(Oid matview_id, Datum relids, int count);
 /*
  * SetMatViewPopulatedState
  *		Mark a materialized view as populated, or not.
@@ -3881,6 +3881,7 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	ResourceOwner oldowner;
 	Datum baseRelids;
 	int gp_command_id = gp_command_count + 1;
+	char event;
 
 	QueryEnvironment *queryEnv = create_queryEnv();
 
@@ -3890,8 +3891,8 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
 
 	baseRelids = get_matview_dependency_relids(matviewOid);
-
-	ivm_export_delta_table(matviewOid, baseRelids, gp_command_id);
+	//FIXME: check return event (truncate, insert ...)
+	event = ivm_export_delta_table(matviewOid, baseRelids, gp_command_id);
 	DirectFunctionCall3(pg_export_delta_table, ObjectIdGetDatum(matviewOid),
 						Int32GetDatum(gp_command_id), baseRelids);
 
@@ -3942,6 +3943,31 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	/* get view query*/
 	query = get_matview_query(matviewRel);
 
+	//FIXME: fix truncate case
+	if (event == 't')
+	{
+		MemoryContextSwitchTo(oldcxt);
+
+		ExecuteTruncateGuts_IVM(matviewRel, matviewOid, query);
+
+		/* Clean up hash entry and delete tuplestores */
+		clean_up_IVM_hash_entry(entry, false);
+
+		/* Pop the original snapshot. */
+		PopActiveSnapshot();
+
+		table_close(matviewRel, AccessShareLock);
+
+		/* Roll back any GUC changes */
+		AtEOXact_GUC(false, save_nestlevel);
+
+		/* Restore userid and security context */
+		SetUserIdAndSecContext(save_userid, save_sec_context);
+		/* Restore resource owner */
+		CurrentResourceOwner = oldowner;
+
+		PG_RETURN_TEXT_P(cstring_to_text("ok"));
+	}
 	/*
 	 * rewrite query for calculating deltas
 	 */
@@ -4085,16 +4111,17 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 }
 
 
-static void
+static char
 ivm_export_delta_table(Oid matview_id, Datum relids, int count)
 {
+	int i = 0;
 	StringInfoData	querybuf;
 	StringInfoData	relids_str;
 	oidvector* oids = (oidvector *) DatumGetPointer(relids);
 
 	initStringInfo(&relids_str);
 	appendStringInfoChar(&relids_str, '\'');
-	for (int i = 0 ; i < oids->dim1; i++)
+	for (i = 0 ; i < oids->dim1; i++)
 	{
 		appendStringInfo(&relids_str, "%d", oids->values[i]);
 		if (i < oids->dim1 - 1)
@@ -4111,15 +4138,25 @@ ivm_export_delta_table(Oid matview_id, Datum relids, int count)
 			"SELECT pg_catalog.pg_export_delta_table(%d::pg_catalog.oid, %d, %s::pg_catalog.oidvector)",
 			matview_id, count, relids_str.data);
 
-	if (SPI_exec(querybuf.data, 0) != SPI_OK_SELECT)
+	if (SPI_execute(querybuf.data, false, 0) != SPI_OK_SELECT)
 		elog(ERROR, "SPI_exec failed: %s", querybuf.data);
 
-	elogif(Debug_print_ivm, LOG, "IVM ivm_export_delta_table: %s", querybuf.data);
-
+	for (i = 0; i < SPI_processed; i++)
+	{
+		HeapTuple	tup = SPI_tuptable->vals[i];
+		Datum		dat;
+		bool		isnull;
+		text		*msg;
+		/* Extract column values in a 3-way representation */
+		dat = SPI_getbinval(tup, SPI_tuptable->tupdesc, 1, &isnull);
+		Assert(!isnull);
+		msg = DatumGetTextP(dat);
+		elog(LOG, "msg %s", VARDATA_ANY(msg));
+	}
 	/* Close SPI context. */
 	if (SPI_finish() != SPI_OK_FINISH)
 		elog(ERROR, "SPI_finish failed");
-	return;
+	return 'i';
 }
 
 Datum
@@ -4212,7 +4249,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 
 	pg_usleep(30 * 1000000L);
 
-	PG_RETURN_TEXT_P(cstring_to_text("OK"));
+	PG_RETURN_TEXT_P(cstring_to_text("insert"));
 }
 
 /*
