@@ -1811,6 +1811,8 @@ get_primary_key_attnos_from_query(Query *query, List **constraintList)
 	return keys;
 }
 
+#define DEFAULT_INTERVAL "30 seconds"
+
 ObjectAddress
 CreateTaskIVM(ParseState *pstate, Oid matviewOid, bool ex_lock)
 {
@@ -1822,7 +1824,7 @@ CreateTaskIVM(ParseState *pstate, Oid matviewOid, bool ex_lock)
 	initStringInfo(&namebuf);
 	appendStringInfo(&namebuf, "ivm_task_%u", matviewOid);
 	stmt->taskname = pstrdup(namebuf.data);
-	stmt->schedule = pstrdup("3 seconds");
+	stmt->schedule = pstrdup(DEFAULT_INTERVAL);
 
 	resetStringInfo(&namebuf);
 	appendStringInfo(&namebuf, "select pg_catalog.ivm_deferred_maintenance(%u, '%s')",

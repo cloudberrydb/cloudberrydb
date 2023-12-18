@@ -237,7 +237,7 @@ static void ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid
 RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 				 QueryEnvironment *queryEnv, Oid matviewid, int64 version);
 
-static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, oidvector*, int value_a, int value_b);
+static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int value_a, int value_b);
 static void ivm_export_delta_table(Oid matview_id, Datum relids, int count);
 /*
  * SetMatViewPopulatedState
@@ -4194,7 +4194,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 		}
 	}
 	//FIXME: use api to get the delta table name
-	tupstore = insert_tuple_into_tuplestore(matview_id, base_relids, gp_command_count, gp_count);
+	tupstore = insert_tuple_into_tuplestore(matview_id, table->rel, gp_command_count, gp_count);
 	entry->has_new = true;
 	Assert(table);
 	table->new_tuplestores = lappend(table->new_tuplestores, tupstore);
@@ -4210,10 +4210,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 	// close file
 	tuplestore_clear(tupstore);
 
-	if (Gp_role != GP_ROLE_DISPATCH)
-	{
-		pg_usleep(10 * 1000000L);
-	}
+	pg_usleep(30 * 1000000L);
 
 	PG_RETURN_TEXT_P(cstring_to_text("OK"));
 }
@@ -4275,32 +4272,33 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 }
 
 static Tuplestorestate*
-insert_tuple_into_tuplestore(Oid matviewOid, oidvector* relids, int value_a, int value_b)
+insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int value_a, int value_b)
 {
 	Tuplestorestate *tupstore;
 	TupleDesc tupdesc;
 	HeapTuple tuple;
-	Datum values[2];
-	bool nulls[2];
-
-	Assert(relids->dim1 > 0);
-	Oid relid = relids->values[0];
+	Datum	   *values;
+	bool	   *nulls;
 
 	tupstore = tuplestore_begin_heap(true, false, work_mem);
 	//FIXME: old delta table name
-	char *name = make_delta_enr_name("new", relid, value_b); //count
+#if 1
+	char *name = make_delta_enr_name("new", RelationGetRelid(rel), value_b); //count
+#else
+	char *name = make_delta_enr_name("old", RelationGetRelid(rel), value_b); //count
+#endif
 	tuplestore_set_sharedname(tupstore, name);
-	tuplestore_set_tableid(tupstore, relid);
+	tuplestore_set_tableid(tupstore, RelationGetRelid(rel));
 
-	tupdesc = CreateTemplateTupleDesc(2);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "a", INT4OID, -1, 0);
-	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "b", INT4OID, -1, 0);
-	tupdesc = BlessTupleDesc(tupdesc);
+	tupdesc = RelationGetDescr(rel);
+	values = (Datum *) palloc(tupdesc->natts * sizeof(Datum));
+	nulls = (bool *) palloc(tupdesc->natts * sizeof(bool));
 
-	values[0] = Int32GetDatum(value_a);
-	values[1] = Int32GetDatum(value_b);
-	nulls[0] = false;
-	nulls[1] = false;
+	for (int i = 0; i < tupdesc->natts; i++)
+	{
+		values[i] = value_a;
+		nulls[i] = false;
+	}
 
 	tuple = heap_form_tuple(tupdesc, values, nulls);
 
