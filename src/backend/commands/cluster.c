@@ -1304,7 +1304,24 @@ swap_relation_files(Oid r1, Oid r2, bool target_is_pg_class,
 		relform2->relallvisible = swap_allvisible;
 	}
 
-	SwapAppendonlyEntries(r1, r2);
+	/*
+	 * Swap auxiliary tables if the table AM has non-standard structure.
+	 * See the details of the callback swap_relation_files.
+	 */
+	if (relform1->relkind == RELKIND_RELATION ||
+		relform1->relkind == RELKIND_MATVIEW)
+	{
+		const TableAmRoutine *tam;
+		Oid relam;
+
+		relam = relform1->relam;
+		if (relam != relform2->relam)
+			elog(ERROR, "can't swap relation files for different AM");
+
+		tam = GetTableAmRoutineByAmId(relam);
+		if (tam->swap_relation_files)
+			tam->swap_relation_files(r1, r2, frozenXid, cutoffMulti);
+	}
 
 	/*
 	 * Update the tuples in pg_class --- unless the target relation of the

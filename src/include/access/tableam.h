@@ -892,6 +892,17 @@ typedef struct TableAmRoutine
 	 */
 	bytea       *(*amoptions)(Datum reloptions, char relkind, bool validate);
 
+	/*
+	 * This callback is used to swap internal auxiliary relation if
+	 * the table AM use different layout structure to organize tuples.
+	 *
+	 * Standard heap relation will swap the heap relation itself and optional
+	 * toast relation. Custom table AM could have different data structure,
+	 * like AO-row/AO-col tables have several auxiliary relations.
+	 * This behavior is table AM-specific.
+	 */
+	void		(*swap_relation_files) (Oid relid1, Oid relid2, TransactionId frozenXid, MultiXactId cutoffMulti);
+
 } TableAmRoutine;
 
 
