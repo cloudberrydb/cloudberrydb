@@ -81,11 +81,7 @@ static void ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node);
 static inline bool
 RelationSupportPrefetch(Relation rel)
 {
-	bool non_standard;
-	non_standard = (rel->rd_rel->relkind == RELKIND_RELATION ||
-					rel->rd_rel->relkind == RELKIND_MATVIEW) &&
-					!RelationIsHeap(rel);
-	return !non_standard;
+	return RelationIsHeap(rel);
 }
 
 /*
