@@ -3695,7 +3695,7 @@ RelationBuildLocalRelation(const char *relname,
 			rel->rd_islocaltemp = false;
 			break;
 		case RELPERSISTENCE_TEMP:
-			Assert(isTempOrTempToastNamespace(relnamespace));
+			Assert(relnamespace == PG_EXTAUX_NAMESPACE || isTempOrTempToastNamespace(relnamespace));
 			rel->rd_backend = BackendIdForTempRelations();
 			rel->rd_islocaltemp = true;
 			break;
