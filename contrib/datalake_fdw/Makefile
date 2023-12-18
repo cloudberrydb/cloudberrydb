@@ -46,7 +46,7 @@ OBJS = 	src/datalake_fdw.o \
 		src/hdw_gopher_cache/hdw_gopher_cache.o
 
 
-SHLIB_LINK += -lgopher -lparquet -lorc -larchive -ljansson -larrow
+SHLIB_LINK += -lgopher -lparquet -lorc-hdw -larchive -ljansson -larrow
 
 EXTENSION = datalake_fdw
 DATA = datalake_fdw--1.0.sql
