@@ -73,6 +73,16 @@ static inline void BitmapPrefetch(BitmapHeapScanState *node,
 static bool BitmapShouldInitializeSharedState(ParallelBitmapHeapState *pstate);
 static void ExecEagerFreeBitmapHeapScan(BitmapHeapScanState *node);
 
+/*
+ * Other non-heap table access method may use bitmap scan,
+ * the prefetch will not work for them if they have
+ * non-standard page-based storage.
+ */
+static inline bool
+RelationSupportPrefetch(Relation rel)
+{
+	return RelationIsHeap(rel);
+}
 
 /*
  * Free the state relevant to bitmaps
@@ -325,7 +335,8 @@ BitmapHeapNext(BitmapHeapScanState *node)
 		 * XXX: It's a layering violation that we do these checks above
 		 * tableam, they should probably moved below it at some point.
 		 */
-		BitmapPrefetch(node, scan);
+		if (RelationSupportPrefetch(scan->rs_rd))
+			BitmapPrefetch(node, scan);
 
 		if (node->return_empty_tuples > 0)
 		{
