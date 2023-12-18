@@ -2314,6 +2314,14 @@ appendonly_scan_sample_next_tuple(TableScanDesc scan, SampleScanState *scanstate
 	return ret;
 }
 
+static void
+appendonly_swap_relation_files(Oid relid1, Oid relid2,
+								TransactionId  frozenXid pg_attribute_unused(),
+								MultiXactId cutoffMulti pg_attribute_unused())
+{
+	SwapAppendonlyEntries(relid1, relid2);
+}
+
 /* ------------------------------------------------------------------------
  * Definition of the appendonly table access method.
  *
@@ -2385,6 +2393,7 @@ static const TableAmRoutine ao_row_methods = {
 	.scan_sample_next_tuple = appendonly_scan_sample_next_tuple,
 
 	.amoptions = ao_amoptions,
+	.swap_relation_files = appendonly_swap_relation_files,
 };
 
 Datum
