@@ -368,6 +368,7 @@ heap_create(const char *relname,
 	if (!allow_system_table_mods &&
 		((IsCatalogNamespace(relnamespace) && relkind != RELKIND_INDEX) ||
 		 IsToastNamespace(relnamespace) ||
+		 IsExtAuxNamespace(relnamespace) ||
 		 IsAoSegmentNamespace(relnamespace)) &&
 		IsNormalProcessingMode())
 		ereport(ERROR,
