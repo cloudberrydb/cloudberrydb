@@ -1878,7 +1878,7 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 */
 		if (Gp_role == GP_ROLE_DISPATCH &&
 			enable_answer_query_using_materialized_views)
-			current_rel = answer_query_using_materialized_views(root, current_rel);
+			current_rel = answer_query_using_materialized_views(root, current_rel, standard_qp_callback, &qp_extra);
 
 		/*
 		 * Convert the query's result tlist into PathTarget format.

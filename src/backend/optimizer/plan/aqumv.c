@@ -40,7 +40,10 @@
 #include "nodes/pathnodes.h"
 #include "nodes/pg_list.h"
 
-RelOptInfo *answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel);
+RelOptInfo *answer_query_using_materialized_views(PlannerInfo *root,
+												RelOptInfo *current_rel,
+												query_pathkeys_callback qp_callback,
+												void *qp_extra);
 
 typedef struct
 {
@@ -84,7 +87,10 @@ static inline Var *copyVarFromTatgetList(List* tlist, int var_index);
  * This function modifies root(parse and etc.), current_rel in-place.
  */
 RelOptInfo*
-answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel)
+answer_query_using_materialized_views(PlannerInfo *root,
+									RelOptInfo *current_rel,
+									query_pathkeys_callback qp_callback,
+									void *qp_extra)
 {
 	Query   		*parse = root->parse; /* Query of origin SQL. */
 	Query			*mvQuery; /* Query of view. */
@@ -109,12 +115,11 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 	List 			*post_quals = NIL;
 	aqumv_equivalent_transformation_context	*context;
 
+	/* Group By without agg could be possible though IMMV doesn't support it yet. */
 	bool can_not_use_mv = (parse->commandType != CMD_SELECT) ||
 						  (parse->rowMarks != NIL) ||
 						  parse->hasWindowFuncs ||
 						  parse->hasDistinctOn ||
-						  /* Group By without agg could be possible though IMMV doesn't support it yet. */
-						  (parse->groupClause != NIL) ||
 						  (parse->havingQual != NULL) ||
 						  parse->hasModifyingCTE ||
 						  parse->sortClause ||
@@ -343,6 +348,8 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 		 * It's safe to set hasAggs here.
 		 */
 		mvQuery->hasAggs = parse->hasAggs;
+		mvQuery->groupClause = parse->groupClause;
+		mvQuery->groupingSets = parse->groupingSets;
 
 		/*
 		 * AQUMV
@@ -400,14 +407,10 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 		mvQuery->jointree->quals = (Node *)post_quals; /* Could be NULL, but doesn'y matter for now. */
 
 		/*
-		 * AQUMV
 		 * Build a plan of new SQL.
 		 * AQUMV is cost-based, let planner decide which is better.
-		 * AQUMV_FIXME_MVP:
-		 * 	no qp_callback function now.
-		 * 	replcace one-by-one?
 		 */
-		mv_final_rel = query_planner(subroot, NULL, NULL);
+		mv_final_rel = query_planner(subroot, qp_callback, qp_extra);
 
 		/* AQUMV_FIXME_MVP
 		 * We don't use STD_FUZZ_FACTOR for cost comparisons like compare_path_costs_fuzzily here.
@@ -419,6 +422,16 @@ answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel
 		{
 			root->parse = mvQuery;
 			root->processed_tlist = subroot->processed_tlist;
+			/*
+			 * Update pathkeys which may be changed by qp_callback.
+			 * Set belows if corresponding feature is supported.
+			 * sort_pathkeys
+			 * distinct_pathkey
+			 * window_pathkeys
+			 */
+			root->group_pathkeys = subroot->group_pathkeys;
+			root->query_pathkeys = subroot->query_pathkeys;
+
 			/*
 			 * AQUMV_FIXME_MVP
 			 * Use new query's ecs.
