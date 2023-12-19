@@ -287,7 +287,64 @@ set local enable_answer_query_using_materialized_views = on;
 explain(costs off, verbose)
 select count(c2), count(*) from aqumv_t2 where c1 > 90;
 select count(c2), count(*) from aqumv_t2 where c1 > 90;
+abort;
 
+--
+-- Test Group By clause of origin query.
+-- GROUPING SETS
+-- ROLLUP
+-- CUBE
+--
+begin;
+create table aqumv_t3(c1 int, c2 int, c3 int) distributed by (c1);
+insert into aqumv_t3 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into aqumv_t3 values (91, NULL, 95);
+analyze aqumv_t3;
+
+create incremental materialized view aqumv_mvt3_0 as
+  select c1 as mc1, c2 as mc2, c3 as mc3
+  from aqumv_t3 where c1 > 90;
+analyze aqumv_mvt3_0;
+
+-- Group By
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+
+-- GROUPING SETS
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+
+-- ROLLUP
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+
+-- CUBE
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
 abort;
 
 reset optimizer;

@@ -62,8 +62,6 @@ extern Expr *preprocess_phv_expression(PlannerInfo *root, Expr *expr);
 
 extern bool optimizer_init;
 
-extern RelOptInfo* answer_query_using_materialized_views(PlannerInfo *root, RelOptInfo *current_rel);
-
 extern void preprocess_qual_conditions(PlannerInfo *root, Node *jtnode);
 
 #endif							/* PLANNER_H */
