@@ -17,6 +17,7 @@
 #include "access/heapam.h"
 #include "access/amapi.h"
 #include "catalog/index.h"
+#include "catalog/pg_am.h"
 #include "commands/vacuum.h"
 #include "executor/tuptable.h"
 #include "utils/wait_event.h"
@@ -339,7 +340,7 @@ ufsdemo_beginscan(Relation relation,
 				  Snapshot snapshot,
 				  int nkeys, struct ScanKeyData *key,
 				  ParallelTableScanDesc pscan,
-				  uint32 flags, void* ctx)
+				  uint32 flags)
 {
 	char errorMessage[4096];
 	UfsDemoScanDesc scan;
