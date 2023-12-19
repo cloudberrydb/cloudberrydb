@@ -986,6 +986,396 @@ select count(c2), count(*) from aqumv_t2 where c1 > 90;
 (1 row)
 
 abort;
+--
+-- Test Group By clause of origin query.
+-- GROUPING SETS
+-- ROLLUP
+-- CUBE
+--
+begin;
+create table aqumv_t3(c1 int, c2 int, c3 int) distributed by (c1);
+insert into aqumv_t3 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into aqumv_t3 values (91, NULL, 95);
+analyze aqumv_t3;
+create incremental materialized view aqumv_mvt3_0 as
+  select c1 as mc1, c2 as mc2, c3 as mc3
+  from aqumv_t3 where c1 > 90;
+analyze aqumv_mvt3_0;
+-- Group By
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: c1, c3, (count(c2))
+   ->  HashAggregate
+         Output: c1, c3, count(c2)
+         Group Key: aqumv_t3.c1, aqumv_t3.c3
+         ->  Seq Scan on public.aqumv_t3
+               Output: c1, c2, c3
+               Filter: (aqumv_t3.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+ c1  | c3  | count 
+-----+-----+-------
+  94 |  96 |     1
+  93 |  95 |     1
+  99 | 101 |     1
+  97 |  99 |     1
+  92 |  94 |     1
+  98 | 100 |     1
+  95 |  97 |     1
+  91 |  93 |     1
+  91 |  95 |     0
+ 100 | 102 |     1
+  96 |  98 |     1
+(11 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)
+   Output: mc1, mc3, (count(mc2))
+   ->  HashAggregate
+         Output: mc1, mc3, count(mc2)
+         Group Key: aqumv_mvt3_0.mc1, aqumv_mvt3_0.mc3
+         ->  Seq Scan on public.aqumv_mvt3_0
+               Output: mc1, mc2, mc3
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by c1, c3;
+ c1  | c3  | count 
+-----+-----+-------
+  94 |  96 |     1
+  93 |  95 |     1
+  99 | 101 |     1
+  97 |  99 |     1
+  92 |  94 |     1
+  98 | 100 |     1
+  95 |  97 |     1
+  91 |  93 |     1
+  91 |  95 |     0
+ 100 | 102 |     1
+  96 |  98 |     1
+(11 rows)
+
+-- GROUPING SETS
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ HashAggregate
+   Output: c1, c3, count(c2)
+   Hash Key: aqumv_t3.c1
+   Hash Key: aqumv_t3.c3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c1, c3, c2
+         ->  Seq Scan on public.aqumv_t3
+               Output: c1, c3, c2
+               Filter: (aqumv_t3.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+ c1  | c3  | count 
+-----+-----+-------
+  92 |     |     1
+  93 |     |     1
+  99 |     |     1
+  94 |     |     1
+ 100 |     |     1
+  97 |     |     1
+  96 |     |     1
+  98 |     |     1
+  95 |     |     1
+  91 |     |     1
+     | 101 |     1
+     |  93 |     1
+     |  99 |     1
+     |  94 |     1
+     | 100 |     1
+     | 102 |     1
+     |  96 |     1
+     |  97 |     1
+     |  98 |     1
+     |  95 |     1
+(20 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ HashAggregate
+   Output: mc1, mc3, count(mc2)
+   Hash Key: aqumv_mvt3_0.mc1
+   Hash Key: aqumv_mvt3_0.mc3
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc1, mc3, mc2
+         ->  Seq Scan on public.aqumv_mvt3_0
+               Output: mc1, mc3, mc2
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by grouping sets((c1), (c3));
+ c1  | c3  | count 
+-----+-----+-------
+  92 |     |     1
+  93 |     |     1
+  99 |     |     1
+  94 |     |     1
+ 100 |     |     1
+  96 |     |     1
+  97 |     |     1
+  98 |     |     1
+  95 |     |     1
+  91 |     |     1
+     |  93 |     1
+     | 101 |     1
+     |  99 |     1
+     |  94 |     1
+     | 100 |     1
+     | 102 |     1
+     |  97 |     1
+     |  96 |     1
+     |  98 |     1
+     |  95 |     1
+(20 rows)
+
+-- ROLLUP
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ GroupAggregate
+   Output: c1, c3, count(c2)
+   Group Key: aqumv_t3.c1, aqumv_t3.c3
+   Group Key: aqumv_t3.c1
+   Group Key: ()
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c1, c3, c2
+         Merge Key: c1, c3
+         ->  Sort
+               Output: c1, c3, c2
+               Sort Key: aqumv_t3.c1, aqumv_t3.c3
+               ->  Seq Scan on public.aqumv_t3
+                     Output: c1, c3, c2
+                     Filter: (aqumv_t3.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(16 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+ c1  | c3  | count 
+-----+-----+-------
+  91 |  93 |     1
+  91 |  95 |     0
+  91 |     |     1
+  92 |  94 |     1
+  92 |     |     1
+  93 |  95 |     1
+  93 |     |     1
+  94 |  96 |     1
+  94 |     |     1
+  95 |  97 |     1
+  95 |     |     1
+  96 |  98 |     1
+  96 |     |     1
+  97 |  99 |     1
+  97 |     |     1
+  98 | 100 |     1
+  98 |     |     1
+  99 | 101 |     1
+  99 |     |     1
+ 100 | 102 |     1
+ 100 |     |     1
+     |     |    10
+(22 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ GroupAggregate
+   Output: mc1, mc3, count(mc2)
+   Group Key: aqumv_mvt3_0.mc1, aqumv_mvt3_0.mc3
+   Group Key: aqumv_mvt3_0.mc1
+   Group Key: ()
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc1, mc3, mc2
+         Merge Key: mc1, mc3
+         ->  Sort
+               Output: mc1, mc3, mc2
+               Sort Key: aqumv_mvt3_0.mc1, aqumv_mvt3_0.mc3
+               ->  Seq Scan on public.aqumv_mvt3_0
+                     Output: mc1, mc3, mc2
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by rollup(c1, c3);
+ c1  | c3  | count 
+-----+-----+-------
+  91 |  93 |     1
+  91 |  95 |     0
+  91 |     |     1
+  92 |  94 |     1
+  92 |     |     1
+  93 |  95 |     1
+  93 |     |     1
+  94 |  96 |     1
+  94 |     |     1
+  95 |  97 |     1
+  95 |     |     1
+  96 |  98 |     1
+  96 |     |     1
+  97 |  99 |     1
+  97 |     |     1
+  98 | 100 |     1
+  98 |     |     1
+  99 | 101 |     1
+  99 |     |     1
+ 100 | 102 |     1
+ 100 |     |     1
+     |     |    10
+(22 rows)
+
+-- CUBE
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
+ MixedAggregate
+   Output: c1, c3, count(c2)
+   Hash Key: aqumv_t3.c3
+   Group Key: aqumv_t3.c1, aqumv_t3.c3
+   Group Key: aqumv_t3.c1
+   Group Key: ()
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: c1, c3, c2
+         Merge Key: c1, c3
+         ->  Sort
+               Output: c1, c3, c2
+               Sort Key: aqumv_t3.c1, aqumv_t3.c3
+               ->  Seq Scan on public.aqumv_t3
+                     Output: c1, c3, c2
+                     Filter: (aqumv_t3.c1 > 90)
+ Settings: enable_answer_query_using_materialized_views = 'off', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(17 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+ c1  | c3  | count 
+-----+-----+-------
+  91 |  93 |     1
+  91 |  95 |     0
+  91 |     |     1
+  92 |  94 |     1
+  92 |     |     1
+  93 |  95 |     1
+  93 |     |     1
+  94 |  96 |     1
+  94 |     |     1
+  95 |  97 |     1
+  95 |     |     1
+  96 |  98 |     1
+  96 |     |     1
+  97 |  99 |     1
+  97 |     |     1
+  98 | 100 |     1
+  98 |     |     1
+  99 | 101 |     1
+  99 |     |     1
+ 100 | 102 |     1
+ 100 |     |     1
+     |     |    10
+     | 101 |     1
+     |  93 |     1
+     |  99 |     1
+     |  94 |     1
+     | 100 |     1
+     | 102 |     1
+     |  97 |     1
+     |  96 |     1
+     |  98 |     1
+     |  95 |     1
+(32 rows)
+
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+                                    QUERY PLAN                                    
+----------------------------------------------------------------------------------
+ MixedAggregate
+   Output: mc1, mc3, count(mc2)
+   Hash Key: aqumv_mvt3_0.mc3
+   Group Key: aqumv_mvt3_0.mc1, aqumv_mvt3_0.mc3
+   Group Key: aqumv_mvt3_0.mc1
+   Group Key: ()
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Output: mc1, mc3, mc2
+         Merge Key: mc1, mc3
+         ->  Sort
+               Output: mc1, mc3, mc2
+               Sort Key: aqumv_mvt3_0.mc1, aqumv_mvt3_0.mc3
+               ->  Seq Scan on public.aqumv_mvt3_0
+                     Output: mc1, mc3, mc2
+ Settings: enable_answer_query_using_materialized_views = 'on', optimizer = 'off'
+ Optimizer: Postgres query optimizer
+(16 rows)
+
+select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
+ c1  | c3  | count 
+-----+-----+-------
+  91 |  93 |     1
+  91 |  95 |     0
+  91 |     |     1
+  92 |  94 |     1
+  92 |     |     1
+  93 |  95 |     1
+  93 |     |     1
+  94 |  96 |     1
+  94 |     |     1
+  95 |  97 |     1
+  95 |     |     1
+  96 |  98 |     1
+  96 |     |     1
+  97 |  99 |     1
+  97 |     |     1
+  98 | 100 |     1
+  98 |     |     1
+  99 | 101 |     1
+  99 |     |     1
+ 100 | 102 |     1
+ 100 |     |     1
+     |     |    10
+     | 101 |     1
+     |  93 |     1
+     |  99 |     1
+     |  94 |     1
+     | 100 |     1
+     | 102 |     1
+     |  97 |     1
+     |  96 |     1
+     |  98 |     1
+     |  95 |     1
+(32 rows)
+
+abort;
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;

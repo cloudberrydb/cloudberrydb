@@ -225,7 +225,7 @@ Below are not supported now:
       Order by(for origin_query)
       Join
       Sublink
-      Group by
+      Group By/Grouping Sets/Rollup/Cube (on mv_query)
       Window Functions
       CTE
       Distinct On
