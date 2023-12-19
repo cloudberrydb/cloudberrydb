@@ -28,6 +28,7 @@ import cn.hashdata.dlagent.api.security.SecureLogin;
 import cn.hashdata.dlagent.api.utilities.ColumnDescriptor;
 import cn.hashdata.dlagent.api.utilities.EnumGpdbType;
 import cn.hashdata.dlagent.api.utilities.Utilities;
+import cn.hashdata.dlagent.plugins.hive.utilities.DlCachedClientPool;
 import cn.hashdata.dlagent.plugins.hudi.HudiFsBackedTableMetadata;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -54,6 +55,7 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Collections;
 import java.util.stream.Collectors;
 
 /**
@@ -280,4 +282,18 @@ public class HudiUtilities {
         return new HoodieBackedTableMetadata(engineContext, metadataConfig, datasetBasePath, spillableMapPath, reuse);
     }
 
+    public static List<String> getAllPartitionPaths(DlCachedClientPool clients,
+                                                    boolean isPartitionTable,
+                                                    String dbName,
+                                                    String tableName) {
+        if (!isPartitionTable) {
+            return Collections.singletonList("");
+        }
+
+        try {
+            return clients.run(client -> client.listPartitionNames(dbName, tableName, (short) -1));
+        } catch (Exception e) {
+            throw new HoodieException("Error fetching partition paths from metadata table", e);
+        }
+    }
 }

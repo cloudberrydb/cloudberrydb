@@ -6,6 +6,7 @@ import cn.hashdata.dlagent.api.model.Metadata;
 import cn.hashdata.dlagent.api.model.RequestContext;
 import cn.hashdata.dlagent.api.security.SecureLogin;
 import cn.hashdata.dlagent.plugins.iceberg.utilities.IcebergUtilities;
+import cn.hashdata.dlagent.plugins.hudi.utilities.FilePathUtils;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
@@ -71,7 +72,8 @@ public class IcebergCatalogWrapper {
         String catalogType = context.getCatalogType();
         switch (catalogType) {
             case "hadoop":
-                return new IcebergHadoopCatalog(context.getPath(), icebergUtilities, context.getConfiguration());
+                return new IcebergHadoopCatalog(FilePathUtils.unescapePathName(context.getPath()),
+                        icebergUtilities, context.getConfiguration());
             case "hive":
                 return getHiveCatalog(context);
             default:

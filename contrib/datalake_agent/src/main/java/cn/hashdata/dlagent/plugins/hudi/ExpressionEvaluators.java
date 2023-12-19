@@ -641,8 +641,9 @@ public class ExpressionEvaluators implements TreeVisitor {
       case TIME:
       case TIMESTAMP:
       case LONG:
-      case DATE:
         return ((Long) val1).compareTo((Long) val2);
+      case DATE:
+        return ((Date) val1).compareTo((Date) val2);
       case BOOLEAN:
         return ((Boolean) val1).compareTo((Boolean) val2);
       case INT:

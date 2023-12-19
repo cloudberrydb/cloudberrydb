@@ -163,17 +163,41 @@ public class BaseConfigurationFactory implements ConfigurationFactory {
             configuration.set(SecureLogin.CONFIG_KEY_SERVICE_USER_NAME, serviceUser);
         }
 
-        String enableHa = (String) serverMap.get("is_ha_supported");
-        if (enableHa == null) {
+        Boolean enableHa = (Boolean) serverMap.get("is_ha_supported");
+        if (enableHa == null || enableHa == false) {
             String defaultFs = String.format("hdfs://%s:%s", serverMap.get("hdfs_namenode_host"),
-                                              serverMap.get("hdfs_namenode_port"));
+                    serverMap.get("hdfs_namenode_port"));
 
             configuration.set("fs.defaultFS", defaultFs);
             return;
         }
 
-        if (enableHa.equals("true")) {
-            configuration.set("fs.defaultFS", String.format("hdfs://%s", serverMap.get("dfs.nameservices")));
+        transformHdfsHaConfig(serverMap, configuration);
+    }
+
+    private void transformHdfsHaConfig(Map<String, Object> serverMap, Configuration configuration) {
+        String nameServices = (String) serverMap.get("dfs.nameservices");
+
+        configuration.set("fs.defaultFS", String.format("hdfs://%s", nameServices));
+        serverMap.forEach((key, value) -> {
+            if (value == null) {
+                return;
+            }
+
+            if (key.startsWith("dfs")) {
+                configuration.set(key, value.toString());
+            }
+        });
+
+        String providerKey = String.format("dfs.client.failover.proxy.provider.%s", nameServices);
+        String providerValue = (String) serverMap.get(providerKey);
+        if (providerValue == null) {
+            configuration.set(providerKey, "org.apache.hadoop.hdfs.server.namenode.ha.ConfiguredFailoverProxyProvider");
+        }
+
+        Boolean useHostName = (Boolean) serverMap.get("dfs_client_use_datanode_hostname");
+        if (useHostName != null && useHostName == true) {
+            configuration.set("dfs.client.use.datanode.hostname", "true");
         }
     }
 }

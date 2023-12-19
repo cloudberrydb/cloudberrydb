@@ -21,19 +21,38 @@ public class HudiHiveCatalog extends HudiBaseCatalog implements HudiCatalog {
     private static final Logger LOG = LoggerFactory.getLogger(HudiHiveCatalog.class);
 
     private final DlCachedClientPool hiveClients;
+    private final boolean isPartitionTable;
 
-    public HudiHiveCatalog(HoodieTableMetaClient metaClient, DlCachedClientPool hiveClients, SecureLogin secureLogin) {
+    public HudiHiveCatalog(HoodieTableMetaClient metaClient, DlCachedClientPool hiveClients, SecureLogin secureLogin, boolean isPartitionTable) {
         super(metaClient, secureLogin);
         this.hiveClients = hiveClients;
+        this.isPartitionTable = isPartitionTable;
     }
 
     @Override
     public Pair<HudiTableOptions, List<CombineHudiSplit>> getSplits(Metadata.Item tableName, RequestContext context) throws Exception {
-        return buildInputSplits(context);
+        return buildInputSplits(tableName, context);
     }
 
     @Override
     public InternalSchema getSchema(Metadata.Item tableName) throws Exception {
         return getTableSchema();
+    }
+
+    @Override
+    public HudiFileIndex createFileIndex(HudiPartitionPruner.PartitionPruner partitionPruner,
+                                         DataPruner dataPruner,
+                                         RequestContext context,
+                                         Metadata.Item tableName) throws Exception {
+        return HudiFileIndex.builder()
+                .path(metaClient.getBasePathV2())
+                .context(context)
+                .dataPruner(dataPruner)
+                .partitionPruner(partitionPruner)
+                .secureLogin(secureLogin)
+                .clients(hiveClients)
+                .tableName(tableName)
+                .setPartitionTable(isPartitionTable)
+                .build();
     }
 }

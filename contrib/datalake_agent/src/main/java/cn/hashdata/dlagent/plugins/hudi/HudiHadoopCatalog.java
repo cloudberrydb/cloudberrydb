@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Implementation of HudiCatalog for tables handled by Hudi's Catalogs API.
@@ -27,12 +28,26 @@ public class HudiHadoopCatalog extends HudiBaseCatalog implements HudiCatalog {
 
     @Override
     public Pair<HudiTableOptions, List<CombineHudiSplit>> getSplits(Metadata.Item tableName, RequestContext context) throws Exception {
-        return buildInputSplits(context);
+        return buildInputSplits(tableName, context);
     }
 
     @Override
     public InternalSchema getSchema(Metadata.Item tableName) throws Exception {
         return getTableSchema();
+    }
+
+    @Override
+    public HudiFileIndex createFileIndex(HudiPartitionPruner.PartitionPruner partitionPruner,
+                                         DataPruner dataPruner,
+                                         RequestContext context,
+                                         Metadata.Item tableName) throws Exception {
+        return HudiFileIndex.builder()
+                    .path(metaClient.getBasePathV2())
+                    .context(context)
+                    .dataPruner(dataPruner)
+                    .partitionPruner(partitionPruner)
+                    .secureLogin(secureLogin)
+                    .build();
     }
 }
 

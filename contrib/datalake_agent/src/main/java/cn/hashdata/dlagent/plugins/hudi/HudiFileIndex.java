@@ -18,8 +18,10 @@
 
 package cn.hashdata.dlagent.plugins.hudi;
 
+import cn.hashdata.dlagent.api.model.Metadata;
 import cn.hashdata.dlagent.api.model.RequestContext;
 import cn.hashdata.dlagent.api.security.SecureLogin;
+import cn.hashdata.dlagent.plugins.hive.utilities.DlCachedClientPool;
 import cn.hashdata.dlagent.plugins.hudi.data.RowData;
 import cn.hashdata.dlagent.plugins.hudi.data.RowField;
 import cn.hashdata.dlagent.plugins.hudi.utilities.HudiUtilities;
@@ -59,11 +61,18 @@ public class HudiFileIndex {
   private final RequestContext context;
   private final SecureLogin secureLogin;
 
+  private final DlCachedClientPool clients;
+  private final Metadata.Item tableName;
+  private final boolean isPartitionTable;
+
   private HudiFileIndex(Path path,
                         RequestContext context,
                         DataPruner dataPruner,
                         HudiPartitionPruner.PartitionPruner partitionPruner,
-                        SecureLogin secureLogin) {
+                        SecureLogin secureLogin,
+                        DlCachedClientPool clients,
+                        Metadata.Item tableName,
+                        boolean isPartitionTable) {
     this.path = path;
     this.tableExists = HudiUtilities.tableExists(path.toString(), context.getConfiguration());
     this.metadataConfig = getMetadataConfig(context.isMetadataTableEnabled(), context.getConfiguration());
@@ -71,6 +80,9 @@ public class HudiFileIndex {
     this.partitionPruner = partitionPruner;
     this.context = context;
     this.secureLogin = secureLogin;
+    this.clients = clients;
+    this.tableName = tableName;
+    this.isPartitionTable = isPartitionTable;
   }
 
   /**
@@ -226,10 +238,18 @@ public class HudiFileIndex {
     }
 
     Instant startTime = Instant.now();
-    List<String> allPartitionPaths = tableExists
-        ? HudiUtilities.getAllPartitionPaths(new HoodieLocalEngineContext(context.getConfiguration()),
-            metadataConfig, path.toString(), context, secureLogin)
-        : Collections.emptyList();
+    List<String> allPartitionPaths;
+    if (tableExists) {
+      if (clients == null) {
+        allPartitionPaths = HudiUtilities.getAllPartitionPaths(new HoodieLocalEngineContext(context.getConfiguration()),
+                metadataConfig, path.toString(), context, secureLogin);
+      } else {
+        allPartitionPaths = HudiUtilities.getAllPartitionPaths(clients,
+                isPartitionTable, tableName.getPath(), tableName.getName());
+      }
+    } else {
+      allPartitionPaths = Collections.emptyList();
+    }
 
     if (partitionPruner == null) {
       partitionPaths = allPartitionPaths;
@@ -304,6 +324,9 @@ public class HudiFileIndex {
     private HudiPartitionPruner.PartitionPruner partitionPruner;
     private RequestContext context;
     private SecureLogin secureLogin;
+    private DlCachedClientPool clients;
+    private Metadata.Item tableName;
+    private boolean isPartitionTable;
 
     private Builder() {
     }
@@ -333,8 +356,30 @@ public class HudiFileIndex {
       return this;
     }
 
+    public Builder clients(DlCachedClientPool clients) {
+      this.clients = clients;
+      return this;
+    }
+
+    public Builder tableName(Metadata.Item tableName) {
+      this.tableName = tableName;
+      return this;
+    }
+
+    public Builder setPartitionTable(boolean isPartitionTable) {
+      this.isPartitionTable = isPartitionTable;
+      return this;
+    }
+
     public HudiFileIndex build() {
-      return new HudiFileIndex(Objects.requireNonNull(path), context, dataPruner, partitionPruner, secureLogin);
+      return new HudiFileIndex(Objects.requireNonNull(path),
+              context,
+              dataPruner,
+              partitionPruner,
+              secureLogin,
+              clients,
+              tableName,
+              isPartitionTable);
     }
   }
 }

@@ -265,7 +265,7 @@ public final class HMSClient {
             types.add(partKeyTypeConversion(keys.get(i).getType()));
         }
 
-        List<Partition> partitions = client.listPartitions(dbName, tableName, ALL_PARTS);
+        List<Partition> partitions = new ArrayList<>();
 
         metaData.setPartitions(partitions);
         metaData.setPartKeys(columns);

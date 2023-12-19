@@ -6,7 +6,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 import org.apache.hadoop.hive.metastore.RetryingMetaStoreClient;
-import org.apache.hadoop.hive.metastore.HiveMetaStoreClientCompatibility1xx;
+import org.apache.hadoop.hive.metastore.HiveMetaStoreClientCompatibility2xx;
 import org.apache.hadoop.hive.metastore.HiveMetaHookLoader;
 import org.apache.hadoop.hive.metastore.api.MetaException;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -62,10 +62,10 @@ public class DlHiveClientPool extends ClientPoolImpl<IMetaStoreClient, TExceptio
                     // wrap in doAs for Kerberos to propagate kerberos tokens from login Subject
                     return loginUser.
                             doAs((PrivilegedExceptionAction<IMetaStoreClient>) () -> GET_CLIENT.invoke(
-                                    hiveConf, (HiveMetaHookLoader) tbl -> null, HiveMetaStoreClientCompatibility1xx.class.getName()));
+                                    hiveConf, (HiveMetaHookLoader) tbl -> null, HiveMetaStoreClientCompatibility2xx.class.getName()));
                 } else {
                     return GET_CLIENT.invoke(
-                            hiveConf, (HiveMetaHookLoader) tbl -> null, HiveMetaStoreClientCompatibility1xx.class.getName());
+                            hiveConf, (HiveMetaHookLoader) tbl -> null, HiveMetaStoreClientCompatibility2xx.class.getName());
                 }
             } catch (RuntimeException e) {
                 // any MetaException would be wrapped into RuntimeException during reflection, so let's

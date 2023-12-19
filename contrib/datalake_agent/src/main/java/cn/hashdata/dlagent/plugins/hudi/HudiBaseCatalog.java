@@ -5,10 +5,12 @@ import cn.hashdata.dlagent.api.filter.SupportedOperatorPruner;
 import cn.hashdata.dlagent.api.filter.SupportedDataTypePruner;
 import cn.hashdata.dlagent.api.filter.TreeTraverser;
 import cn.hashdata.dlagent.api.filter.FilterParser;
+import cn.hashdata.dlagent.api.model.Metadata;
 import cn.hashdata.dlagent.api.model.RequestContext;
 import cn.hashdata.dlagent.api.security.SecureLogin;
 import cn.hashdata.dlagent.api.utilities.ColumnDescriptor;
 import cn.hashdata.dlagent.plugins.hudi.utilities.DataTypeUtils;
+import cn.hashdata.dlagent.plugins.hudi.utilities.FilePathUtils;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hudi.common.model.HoodieFileFormat;
 import org.apache.hudi.common.model.HoodieLogFile;
@@ -84,7 +86,7 @@ public abstract class HudiBaseCatalog {
                 HudiMetadataFetcher.getSupportedDatatypesForPushdown());
 
         TreeTraverser traverser = new TreeTraverser();
-        traverser.traverse(new FilterParser().parse(context.getFilterString()),
+        traverser.traverse(new FilterParser().parse(FilePathUtils.unescapePathName(context.getFilterString())),
                 dataTypePruner,
                 operatorPruner,
                 builder);
@@ -110,7 +112,8 @@ public abstract class HudiBaseCatalog {
                 partitionKeys,
                 context.getTupleDescription(),
                 true);
-        ExpressionEvaluators.Evaluator partitionFilter = createFilter(context, partitionPruner).getLeft();
+
+        Pair<ExpressionEvaluators.Evaluator, Set<String>> partitionFilter = createFilter(context, partitionPruner);
 
         TreeVisitor dataPruner = new ColumnPruner(
                 HudiMetadataFetcher.getSupportedOperatorsForPushdown(),
@@ -119,10 +122,10 @@ public abstract class HudiBaseCatalog {
                 false);
         Pair<ExpressionEvaluators.Evaluator, Set<String>> dataFilter = createFilter(context, dataPruner);
 
-        return Pair.of(dataFilter, partitionFilter);
+        return Pair.of(dataFilter, partitionFilter != null ? partitionFilter.getLeft() : null);
     }
 
-    private HudiFileIndex getOrBuildFileIndex(RequestContext context) throws Exception {
+    private HudiFileIndex getOrBuildFileIndex(Metadata.Item tableName, RequestContext context) throws Exception {
         if (fileIndex == null) {
             Pair<Pair<ExpressionEvaluators.Evaluator, Set<String>>, ExpressionEvaluators.Evaluator>
                     splitFilters = splitExprByPartitionKeys(context);
@@ -135,19 +138,18 @@ public abstract class HudiBaseCatalog {
 
             partitionPruner = cratePartitionPruner(context, splitFilters.getRight());
 
-            fileIndex = HudiFileIndex.builder()
-                    .path(metaClient.getBasePathV2())
-                    .context(context)
-                    .dataPruner(dataPruner)
-                    .partitionPruner(partitionPruner)
-                    .secureLogin(secureLogin)
-                    .build();
+            fileIndex = createFileIndex(partitionPruner, dataPruner, context, tableName);
         }
         return fileIndex;
     }
 
-    private List<HudiSplit> buildSnapshotInputSplits(RequestContext context) throws Exception {
-        HudiFileIndex fileIndex = getOrBuildFileIndex(context);
+    public abstract HudiFileIndex createFileIndex(HudiPartitionPruner.PartitionPruner partitionPruner,
+                                                  DataPruner dataPruner,
+                                                  RequestContext context,
+                                                  Metadata.Item tableName) throws Exception;
+
+    private List<HudiSplit> buildSnapshotInputSplits(Metadata.Item tableName, RequestContext context) throws Exception {
+        HudiFileIndex fileIndex = getOrBuildFileIndex(tableName, context);
         List<String> relPartitionPaths = fileIndex.getOrBuildPartitionPaths();
         if (relPartitionPaths.size() == 0) {
             return Collections.emptyList();
@@ -187,8 +189,8 @@ public abstract class HudiBaseCatalog {
                 .collect(Collectors.toList());
     }
 
-    private List<HudiSplit> buildBaseFileInputSplits(RequestContext context) throws Exception {
-        HudiFileIndex fileIndex = getOrBuildFileIndex(context);
+    private List<HudiSplit> buildBaseFileInputSplits(Metadata.Item tableName, RequestContext context) throws Exception {
+        HudiFileIndex fileIndex = getOrBuildFileIndex(tableName, context);
         List<String> relPartitionPaths = fileIndex.getOrBuildPartitionPaths();
         if (relPartitionPaths.size() == 0) {
             return Collections.emptyList();
@@ -216,7 +218,7 @@ public abstract class HudiBaseCatalog {
                 .collect(Collectors.toList());
     }
 
-    private List<HudiSplit> buildIncrementalSplits(RequestContext context) throws Exception {
+    private List<HudiSplit> buildIncrementalSplits(Metadata.Item tableName, RequestContext context) throws Exception {
         throw new UnsupportedOperationException("Hudi accessor does not support incremental query.");
     }
 
@@ -278,22 +280,23 @@ public abstract class HudiBaseCatalog {
         return Pair.of(resolveTableOptions(), result);
     }
 
-    protected Pair<HudiTableOptions, List<CombineHudiSplit>> buildInputSplits (RequestContext context) throws Exception {
+    protected Pair<HudiTableOptions, List<CombineHudiSplit>> buildInputSplits (Metadata.Item tableName,
+                                                                               RequestContext context) throws Exception {
         if (tableConfig.getTableType() == HoodieTableType.MERGE_ON_READ) {
             switch (context.getQueryType()) {
                 case "snapshot":
-                    return groupSplits(buildSnapshotInputSplits(context), context.getSplitSize());
+                    return groupSplits(buildSnapshotInputSplits(tableName, context), context.getSplitSize());
                 case "readoptimized":
-                    return groupSplits(buildBaseFileInputSplits(context), context.getSplitSize());
+                    return groupSplits(buildBaseFileInputSplits(tableName, context), context.getSplitSize());
                 default:
-                    return groupSplits(buildIncrementalSplits(context), context.getSplitSize());
+                    return groupSplits(buildIncrementalSplits(tableName, context), context.getSplitSize());
             }
         }
 
         if (context.getQueryType().equals("snapshot")) {
-            return groupSplits(buildBaseFileInputSplits(context), context.getSplitSize());
+            return groupSplits(buildBaseFileInputSplits(tableName, context), context.getSplitSize());
         }
 
-        return groupSplits(buildIncrementalSplits(context), context.getSplitSize());
+        return groupSplits(buildIncrementalSplits(tableName, context), context.getSplitSize());
     }
 }

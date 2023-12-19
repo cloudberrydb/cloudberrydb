@@ -1,28 +1,39 @@
 package cn.hashdata.dlagent.plugins.hive;
 
-import cn.hashdata.dlagent.api.model.*;
+import cn.hashdata.dlagent.api.model.BasePlugin;
+import cn.hashdata.dlagent.api.model.MetadataFetcher;
+import cn.hashdata.dlagent.api.model.Partition;
+import cn.hashdata.dlagent.api.model.Metadata;
+import cn.hashdata.dlagent.api.model.FragmentDescription;
+import cn.hashdata.dlagent.api.utilities.SpringContext;
 
 import cn.hashdata.dlagent.api.security.SecureLogin;
 import cn.hashdata.dlagent.plugins.hive.utilities.DlCachedClientPool;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import cn.hashdata.dlagent.plugins.hudi.utilities.FilePathUtils;
 import org.apache.hadoop.hive.conf.HiveConf;
 import org.apache.hadoop.hive.metastore.IMetaStoreClient;
 
-import cn.hashdata.dlagent.api.utilities.SpringContext;
 import cn.hashdata.dlagent.plugins.hive.utilities.HiveUtilities;
+import org.apache.hadoop.hive.metastore.api.FieldSchema;
+import org.apache.hadoop.hive.metastore.api.Table;
 import org.apache.iceberg.CatalogProperties;
 import org.apache.iceberg.ClientPool;
 import org.apache.thrift.TException;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class HiveMetadataFetcher extends BasePlugin implements MetadataFetcher {
     private static final short ALL_PARTS = -1;
-    private static final Log LOG = LogFactory.getLog(HiveMetadataFetcher.class);
+    private static final Logger LOG = LoggerFactory.getLogger(HiveMetadataFetcher.class);
 
     private final HiveClientWrapper hiveClientWrapper;
     protected final HiveUtilities hiveUtilities;
@@ -74,15 +85,23 @@ public class HiveMetadataFetcher extends BasePlugin implements MetadataFetcher {
     }
 
     private List<Partition> fetchPartitions(Metadata.Item tblDesc) throws Exception {
-        List<org.apache.hadoop.hive.metastore.api.Partition> partitions;
+        Table table = clients.run(client -> client.getTable(tblDesc.getPath(), tblDesc.getName()));
+        String[] partitionKeys = table.getPartitionKeys()
+                .stream().map(FieldSchema::getName).toArray(String[]::new);
 
-        partitions = clients.run(client -> client.listPartitions(tblDesc.getPath(), tblDesc.getName(), ALL_PARTS));
+        Instant startTime = Instant.now();
+        List<String> partitions = clients.run(
+                client -> client.listPartitionNames(tblDesc.getPath(), tblDesc.getName(), ALL_PARTS));
+        Duration duration = Duration.between(startTime, Instant.now());
+        LOG.info("Finished listPartitionNames [{}] operation in {} ms.", partitions.size(), duration.toMillis());
 
-        List<Partition> partitionsList = new ArrayList<>();
-        for (org.apache.hadoop.hive.metastore.api.Partition partition : partitions) {
-            HivePartitionMetadata metadata = new HivePartitionMetadata(partition.getValues());
-            partitionsList.add(new Partition(metadata));
-        }
+        List<Partition> partitionsList = partitions.stream().
+                map(p ->
+                {List<String> values = FilePathUtils.extractPartitionKeyValues(new org.apache.hadoop.fs.Path(p),
+                        true, partitionKeys).values().stream().collect(Collectors.toList());
+
+                    return new Partition(new HivePartitionMetadata(values));
+                }).collect(Collectors.toList());
 
         return partitionsList;
     }

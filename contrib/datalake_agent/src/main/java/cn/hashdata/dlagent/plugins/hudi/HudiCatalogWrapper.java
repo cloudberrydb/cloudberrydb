@@ -91,6 +91,7 @@ public class HudiCatalogWrapper {
                 DlCachedClientPool clients = getHiveClients(context);
                 Table hiveTable = clients.run(client -> client.getTable(tableName.getPath(), tableName.getName()));
                 String inputFormat = hiveTable.getSd().getInputFormat();
+                boolean isPartitionTable = hiveTable.getPartitionKeys().size() > 0;
 
                 if (!inputFormat.equals("org.apache.hudi.hadoop.HoodieParquetInputFormat") &&
                         !inputFormat.equals("org.apache.hudi.hadoop.realtime.HoodieParquetRealtimeInputFormat")) {
@@ -98,7 +99,7 @@ public class HudiCatalogWrapper {
                 }
 
                 context.setPath(hiveTable.getSd().getLocation());
-                return new HudiHiveCatalog(getMetaClient(context), clients, secureLogin);
+                return new HudiHiveCatalog(getMetaClient(context), clients, secureLogin, isPartitionTable);
             default:
                 throw new DlRuntimeException("Unexpected catalog type: " + catalogType);
         }

@@ -26,6 +26,7 @@ import org.apache.hudi.internal.schema.Type;
 
 import javax.annotation.Nullable;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class DataTypeUtils {
       case DOUBLE:
         return Double.valueOf(partition);
       case DATE:
-        return LocalDate.parse(partition);
+        return Date.valueOf(partition);
       case TIMESTAMP:
         return LocalDateTime.parse(partition);
       case DECIMAL:

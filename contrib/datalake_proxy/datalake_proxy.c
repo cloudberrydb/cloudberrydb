@@ -77,6 +77,8 @@ static bool register_datalake_proxy = true;
 /* variables */
 static volatile sig_atomic_t gotSIG = false;
 
+int dlagent_memory_limit;
+
 static void
 DataLakeQuickdie(SIGNAL_ARGS)
 {
@@ -104,6 +106,17 @@ _PG_init(void)
 							 NULL,
 							 NULL);
 
+	DefineCustomIntVariable("datalake_proxy.dlagent_memory_limit",
+							 "Sets the maximum memory to be used for dlagent guc unit mb.",
+							 "Sets dlagent memory limit.",
+							 &dlagent_memory_limit,
+							 2048,
+							 512, MAX_KILOBYTES / 1024,
+							 PGC_SIGHUP,
+							 GUC_UNIT_MB,
+							 NULL,
+							 NULL,
+							 NULL);
 
 
 	EmitWarningsOnPlaceholders("datalake_proxy");
@@ -201,11 +214,17 @@ startProxyProcess(pid_t pid)
 	int   i = 0;
 	char *proxyArgs[10];
 	char  parentPid[128];
+	char  maxMemoryLimit[128];
 	char  jarFile[MAXPGPATH];
 
 	proxyArgs[i++] = "java";
 	proxyArgs[i++] = "-Xms512m";
-	proxyArgs[i++] = "-Xmx1024m";
+
+	snprintf(maxMemoryLimit, sizeof(maxMemoryLimit), "-Xmx%dm", dlagent_memory_limit);
+	proxyArgs[i++] = maxMemoryLimit;
+
+	proxyArgs[i++] = "-XX:+ExitOnOutOfMemoryError";
+
 	proxyArgs[i++] = "-jar";
 	snprintf(jarFile, sizeof(jarFile), "%s/java/dlagent-1.0.0.jar", pkglib_path);
 	proxyArgs[i++] = jarFile;
@@ -231,7 +250,7 @@ DataLakeProxyLoop(pid_t pid)
 		{
 			gotSIG = false;
 			kill(pid, SIGTERM);
-			break;
+			proc_exit(1);
 		}
 
 		if (waitpid(pid, NULL, WNOHANG) != 0)

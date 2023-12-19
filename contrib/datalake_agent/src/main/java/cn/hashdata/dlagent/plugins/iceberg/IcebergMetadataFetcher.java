@@ -19,6 +19,7 @@ import cn.hashdata.dlagent.api.model.FragmentDescription;
 import cn.hashdata.dlagent.api.utilities.ColumnDescriptor;
 import cn.hashdata.dlagent.api.utilities.SpringContext;
 import cn.hashdata.dlagent.api.utilities.Utilities;
+import cn.hashdata.dlagent.plugins.hudi.utilities.FilePathUtils;
 import cn.hashdata.dlagent.plugins.iceberg.utilities.IcebergUtilities;
 import org.apache.iceberg.Table;
 import org.apache.iceberg.TableScan;
@@ -197,7 +198,7 @@ public class IcebergMetadataFetcher extends BasePlugin implements MetadataFetche
                 new IcebergExpressionBuilder(context.getTupleDescription());
 
         // Parse the filter string into a expression tree Node
-        Node root = new FilterParser().parse(context.getFilterString());
+        Node root = new FilterParser().parse(FilePathUtils.unescapePathName(context.getFilterString()));
         TreeTraverser traverser = new TreeTraverser();
 
         // Prune the parsed tree with valid supported datatypes and operators and then
