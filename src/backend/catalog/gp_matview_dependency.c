@@ -53,6 +53,7 @@ void create_matview_dependency_tuple(Oid matviewOid, Relids relids, bool defer)
 
     nulls[Anum_gp_matview_dependency_snapshotid - 1] = true;
     nulls[Anum_gp_matview_dependency_isvaild - 1] = true;
+    nulls[Anum_gp_matview_dependency_refresh_time - 1] = true;
 
     tup = heap_form_tuple(RelationGetDescr(gp_matview_dependency), values, nulls);
     CatalogTupleInsert(gp_matview_dependency, tup);
@@ -158,6 +159,88 @@ remove_matview_dependency_byoid(Oid matviewOid)
     while (HeapTupleIsValid(tup = systable_getnext(scanDescriptor)))
     {
         CatalogTupleDelete(gp_matview_dependency, &tup->t_self);
+    }
+
+    systable_endscan(scanDescriptor);
+    table_close(gp_matview_dependency, RowExclusiveLock);
+}
+
+int64
+get_restart_snapshot_id(Oid matviewOid)
+{
+    Relation gp_matview_dependency;
+    Datum result;
+
+    ScanKeyData skey;
+    SysScanDesc scan;
+    HeapTuple tuple;
+    bool    isnull;
+
+    gp_matview_dependency = table_open(MatviewDependencyId, RowExclusiveLock);
+
+    ScanKeyInit(&skey,
+                Anum_gp_matview_dependency_matviewid,
+                BTEqualStrategyNumber, F_OIDEQ,
+                ObjectIdGetDatum(matviewOid));
+
+    scan = systable_beginscan(gp_matview_dependency, InvalidOid, false,
+                              NULL, 1, &skey);
+
+    tuple = systable_getnext(scan);
+    if (!HeapTupleIsValid(tuple))
+    {
+        systable_endscan(scan);
+        table_close(gp_matview_dependency, RowExclusiveLock);
+        elog(ERROR, "cache lookup failed for matview %u", matviewOid);
+    }
+
+    result = heap_getattr(tuple, Anum_gp_matview_dependency_snapshotid,
+                          RelationGetDescr(gp_matview_dependency), &isnull);
+    if (isnull)
+    {
+        result = Int64GetDatum(-1);
+    }
+
+    systable_endscan(scan);
+    table_close(gp_matview_dependency, RowExclusiveLock);
+
+    return DatumGetInt64(result);
+}
+
+void
+record_restart_snapshot_id(Oid matviewOid, int64 snapshotid, TimestampTz ftime)
+{
+    Relation gp_matview_dependency;
+    HeapTuple tup;
+    SysScanDesc scanDescriptor = NULL;
+    ScanKeyData scanKey[1];
+    Datum       values[Natts_gp_matview_dependency];
+    bool        nulls[Natts_gp_matview_dependency];
+    bool        doreplace[Natts_gp_matview_dependency];
+
+    memset(values, 0, sizeof(values));
+    memset(nulls, false, sizeof(nulls));
+    memset(doreplace, false, sizeof(doreplace));
+
+    gp_matview_dependency = table_open(MatviewDependencyId, RowExclusiveLock);
+
+    ScanKeyInit(&scanKey[0], Anum_gp_matview_dependency_matviewid, BTEqualStrategyNumber,
+                F_OIDEQ, ObjectIdGetDatum(matviewOid));
+
+    scanDescriptor = systable_beginscan(gp_matview_dependency, InvalidOid,
+                                        false, NULL, 1, scanKey);
+
+    while (HeapTupleIsValid(tup = systable_getnext(scanDescriptor)))
+    {
+        values[Anum_gp_matview_dependency_snapshotid - 1] = Int64GetDatum(snapshotid);
+        doreplace[Anum_gp_matview_dependency_snapshotid - 1] = true;
+
+        values[Anum_gp_matview_dependency_refresh_time - 1] = TimestampTzGetDatum(ftime);
+        doreplace[Anum_gp_matview_dependency_refresh_time - 1] = true;
+
+        tup = heap_modify_tuple(tup, RelationGetDescr(gp_matview_dependency), values, nulls, doreplace);
+        CatalogTupleUpdate(gp_matview_dependency, &tup->t_self, tup);
+        heap_freetuple(tup);
     }
 
     systable_endscan(scanDescriptor);

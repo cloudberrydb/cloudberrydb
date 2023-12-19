@@ -239,6 +239,9 @@ RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *t
 
 static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int value_a, int value_b);
 static char ivm_export_delta_table(Oid matview_id, Datum relids, int count);
+static Datum ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid);
+Query* rewrite_query_for_preupdate_atversion(Query *query, List *tables,
+								  ParseState *pstate, Oid matviewid, int64 snapshotid);
 /*
  * SetMatViewPopulatedState
  *		Mark a materialized view as populated, or not.
@@ -3850,13 +3853,9 @@ ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid)
 	MemoryContextSwitchTo(oldctx);
 }
 
-/*
- * deferred maintenance for materialized view
-*/
-Datum
-ivm_deferred_maintenance(PG_FUNCTION_ARGS)
+static Datum
+ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid)
 {
-	Oid			matviewOid = PG_GETARG_OID(0);
 	Query	   *query;
 	Query	   *rewritten = NULL;
 	Relation	matviewRel;
@@ -4107,7 +4106,17 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	apply_cleanup(matviewOid);
 	DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
 
+	record_restart_snapshot_id(matviewOid, gp_command_id, GetCurrentTimestamp());
 	PG_RETURN_TEXT_P(cstring_to_text("OK"));
+}
+/*
+ * deferred maintenance for materialized view
+*/
+Datum
+ivm_deferred_maintenance(PG_FUNCTION_ARGS)
+{
+	Oid			matviewOid = PG_GETARG_OID(0);
+	return ivm_deferred_maintenance_internal(matviewOid, -1);
 }
 
 
@@ -4344,6 +4353,74 @@ insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int value_a, int valu
 	return tupstore;
 }
 
+Query*
+rewrite_query_for_preupdate_atversion(Query *query, List *tables,
+								  ParseState *pstate, Oid matviewid, int64 snapshotid)
+{
+	ListCell *lc;
+	int num_rte = list_length(query->rtable);
+	int i;
+
+
+	/* register delta ENRs */
+	register_delta_ENRs(pstate, query, tables);
+
+	/* XXX: Is necessary? Is this right timing? */
+	AcquireRewriteLocks(query, true, false);
+
+	i = 1;
+
+	foreach(lc, query->rtable)
+	{
+		RangeTblEntry *r = (RangeTblEntry*) lfirst(lc);
+
+		ListCell *lc2;
+		foreach(lc2, tables)
+		{
+			MV_TriggerTable *table = (MV_TriggerTable *) lfirst(lc2);
+			/*
+			 * if the modified table is found then replace the original RTE with
+			 * "pre-state" RTE and append its index to the list.
+			 */
+			if (r->relid == table->table_id)
+			{
+				List *securityQuals;
+				List *withCheckOptions;
+				bool  hasRowSecurity;
+				bool  hasSubLinks;
+
+				RangeTblEntry *rte_pre = get_prestate_rte_atversion(r, table, pstate->p_queryEnv, matviewid, snapshotid);
+				/*
+				 * Set a row security poslicies of the modified table to the subquery RTE which
+				 * represents the pre-update state of the table.
+				 */
+				get_row_security_policies(query, table->original_rte, i,
+										  &securityQuals, &withCheckOptions,
+										  &hasRowSecurity, &hasSubLinks);
+
+				if (hasRowSecurity)
+				{
+					query->hasRowSecurity = true;
+					rte_pre->security_barrier = true;
+				}
+				if (hasSubLinks)
+					query->hasSubLinks = true;
+
+				rte_pre->securityQuals = securityQuals;
+				lfirst(lc) = rte_pre;
+
+				table->rte_indexes = list_append_unique_int(table->rte_indexes, i);
+				break;
+			}
+		}
+
+		/* finish the loop if we processed all RTE included in the original query */
+		if (i++ >= num_rte)
+			break;
+	}
+
+	return query;
+}
 
 bool
 is_matview_latest(Oid matviewOid)

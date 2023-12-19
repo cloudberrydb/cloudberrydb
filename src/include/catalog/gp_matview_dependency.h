@@ -20,15 +20,19 @@
 
 #include "nodes/pathnodes.h"
 
+#define timestamptz Datum
+
 CATALOG(gp_matview_dependency,8757,MatviewDependencyId) BKI_SHARED_RELATION
 {
-	Oid     matviewid BKI_FORCE_NOT_NULL;
-	oidvector    relids;
-	int64    snapshotid;
-	bool	defer;
-	bool	ivm;
-	bool    isvaild;
+	Oid 			matviewid BKI_FORCE_NOT_NULL;
+	oidvector		relids;
+	int64    		snapshotid;
+	bool			defer;
+	bool			ivm;
+	bool			isvaild;
+	timestamptz 	refresh_time;
 } FormData_gp_matview_dependency;
+
 
 typedef FormData_gp_matview_dependency *Form_gp_matview_dependency;
 
@@ -37,4 +41,9 @@ extern void create_matview_dependency_tuple(Oid matviewOid, Relids relids, bool 
 extern Datum get_matview_dependency_relids(Oid matviewOid);
 extern void mark_matview_dependency_valid(Oid matviewOid);
 extern void remove_matview_dependency_byoid(Oid matviewOid);
+extern void record_restart_snapshot_id(Oid matviewOid, int64 snapshotid, TimestampTz ftime);
+extern int64 get_restart_snapshot_id(Oid matviewOid);
+
+#undef timestamptz
+
 #endif   /* GP_MATVIEW_DEPENDENCY_H */
