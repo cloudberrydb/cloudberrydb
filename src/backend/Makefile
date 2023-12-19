@@ -49,16 +49,12 @@ endif
 
 # FIXME: The --enable-shared-postgres-backend parameter build the libpostgres.so shared between postmaster
 # But we only test it locally without CI test. Please use it with caution.
-ifeq ($(enable_shared_postgres_backend),yes)
-OBJS = $(LOCALOBJS) $(SUBDIROBJS)
-else
 OBJS = \
 	$(LOCALOBJS) \
 	$(SUBDIROBJS) \
 	$(top_builddir)/src/common/libpgcommon_srv.a \
 	$(top_builddir)/src/port/libpgport_srv.a
 
-endif
 ifeq ($(PORTNAME), darwin)
 LDOPTS = -Z
 endif
@@ -87,12 +83,14 @@ ifneq ($(PORTNAME), aix)
 
 ifeq ($(enable_shared_postgres_backend),yes)
 libpostgres.so: $(OBJS)
-	$(CXX) -shared $(CXXFLAGS) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(filter-out main/main.o, $(call expand_subsys,$^)) -o $@
+	$(CXX) -shared $(CXXFLAGS) $(LDFLAGS) $(LDFLAGS_SL) $(export_dynamic) \
+	  $(filter-out main/main.o, $(call expand_subsys,$^)) $(LIBS) -o $@
 
 postgres: main/main.o libpostgres.so $(top_builddir)/src/port/libpgport_srv.a $(top_builddir)/src/common/libpgcommon_srv.a
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) \
-	  main/main.o -lpostgres $(top_builddir)/src/port/libpgport_srv.a \
+	  main/main.o libpostgres.so $(top_builddir)/src/port/libpgport_srv.a \
 	  $(top_builddir)/src/common/libpgcommon_srv.a $(LIBS) -o $@
+
 else
 postgres: $(OBJS)
 	$(CXX) $(CXXFLAGS) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(export_dynamic) $(LIBS) -o $@
@@ -152,13 +150,8 @@ $(top_builddir)/src/port/libpgport_srv.a: | submake-libpgport
 
 # The postgres.o target is needed by the rule in Makefile.global that
 # creates the exports file when MAKE_EXPORTS = true.
-ifeq ($(enable_shared_postgres_backend),yes)
-postgres.o: $(OBJS)  $(top_builddir)/src/port/libpgport_srv.a $(top_builddir)/src/common/libpgcommon_srv.a
-	$(CXX) $(LDREL) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
-else
 postgres.o: $(OBJS)
 	$(CXX) $(LDREL) $(call expand_subsys,$^) $(LDFLAGS) $(LDFLAGS_EX) $(LIBS) -o $@
-endif
 
 # The following targets are specified in make commands that appear in
 # the make files in our subdirectories. Note that it's important we
