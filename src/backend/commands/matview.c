@@ -70,6 +70,7 @@
 #include "utils/typcache.h"
 
 #include "funcapi.h"
+#include "replication/delta.h"
 
 typedef struct
 {
@@ -239,7 +240,7 @@ RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *t
 
 static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int value_a, int value_b);
 static char ivm_export_delta_table(Oid matview_id, Datum relids, int count);
-static Datum ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid);
+static bool ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid);
 Query* rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 								  ParseState *pstate, Oid matviewid, int64 snapshotid);
 /*
@@ -3853,8 +3854,8 @@ ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid)
 	MemoryContextSwitchTo(oldctx);
 }
 
-static Datum
-ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid)
+static bool
+ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 {
 	Query	   *query;
 	Query	   *rewritten = NULL;
@@ -3965,7 +3966,7 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid)
 		/* Restore resource owner */
 		CurrentResourceOwner = oldowner;
 
-		PG_RETURN_TEXT_P(cstring_to_text("ok"));
+		return true;
 	}
 	/*
 	 * rewrite query for calculating deltas
@@ -4107,7 +4108,7 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid)
 	DirectFunctionCall1(ivm_immediate_cleanup, ObjectIdGetDatum(matviewOid));
 
 	record_restart_snapshot_id(matviewOid, gp_command_id, GetCurrentTimestamp());
-	PG_RETURN_TEXT_P(cstring_to_text("OK"));
+	return true;
 }
 /*
  * deferred maintenance for materialized view
@@ -4115,8 +4116,35 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 snapshotid)
 Datum
 ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 {
+	bool		ret;
 	Oid			matviewOid = PG_GETARG_OID(0);
-	return ivm_deferred_maintenance_internal(matviewOid, -1);
+#if 0
+	DeltaOutputCtx *ctx = CreateDeltaContext("mock", -1, false);
+
+	int64 start_snapshotid = get_restart_snapshot_id(matviewOid);
+	int64 last_snapshotid = ctx->callbacks.latest_snapshot_cb(NULL);
+
+	int64 next_snapshotid = ctx->callbacks.successor_of_cb(start_snapshotid, NULL);
+
+	if (next_snapshotid == last_snapshotid)
+	{
+		elogif(Debug_print_ivm, LOG, "IVM ivm_deferred_maintenance cid %d, mv:%d, no delta", gp_command_count, matviewOid);
+		PG_RETURN_TEXT_P(cstring_to_text("OK"));
+	}
+
+	for (int64 snapshotid = next_snapshotid; snapshotid != last_snapshotid;)
+	{
+		elogif(Debug_print_ivm, LOG, "IVM ivm_deferred_maintenance cid %d, mv:%d, snapshotid %ld", gp_command_count, matviewOid, snapshotid);
+		ret = ivm_deferred_maintenance_internal(matviewOid, snapshotid);
+		if (ret != true)
+			break;
+		snapshotid = ctx->callbacks.successor_of_cb(snapshotid, NULL);
+	}
+#endif
+	ret = ivm_deferred_maintenance_internal(matviewOid, -1, -1);
+
+	//FreeDeltaContext(ctx);
+	PG_RETURN_TEXT_P(cstring_to_text("ok"));
 }
 
 
@@ -4238,7 +4266,9 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 			table->rel = table_open(relid, AccessShareLock);
 			entry->tables = lappend(entry->tables, table);
 		}
+
 	}
+	elog(LOG, "recv %d, local %d", gp_count, gp_command_count);
 	//FIXME: use api to get the delta table name
 	tupstore = insert_tuple_into_tuplestore(matview_id, table->rel, gp_command_count, gp_count);
 	entry->has_new = true;
@@ -4256,7 +4286,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 	// close file
 	tuplestore_clear(tupstore);
 
-	pg_usleep(30 * 1000000L);
+	pg_usleep(10 * 1000000L);
 
 	PG_RETURN_TEXT_P(cstring_to_text("insert"));
 }
@@ -4434,4 +4464,86 @@ is_matview_latest(Oid matviewOid)
 		//FIXME: check version
 	}
 	return true;
+}
+
+
+/*
+ * Load the output plugin, lookup its output plugin init function, and check
+ * that it provides the required callbacks.
+ */
+static void
+LoadDeltaPlugin(DeltaTableCallbacks *callbacks, const char *plugin)
+{
+	DeltaOutputPluginInit plugin_init;
+
+	plugin_init = (DeltaOutputPluginInit)
+		load_external_function(plugin, "_PG_delta_plugin_init", false, NULL);
+
+	if (plugin_init == NULL)
+		elog(ERROR, "output plugins have to declare the _PG_delta_plugin_init symbol");
+
+	/* ask the output plugin to fill the callback struct */
+	plugin_init(callbacks);
+
+	if (callbacks->latest_snapshot_cb == NULL)
+		elog(ERROR, "output plugins have to register a latest_snapshot_cb callback");
+	if (callbacks->change_cb == NULL)
+		elog(ERROR, "output plugins have to register a change callback");
+	if (callbacks->successor_of_cb == NULL)
+		elog(ERROR, "output plugins have to register a successor_of_cb callback");
+}
+
+
+DeltaOutputCtx*
+CreateDeltaContext(const char* plugin, int64 start_id, bool fast_forward)
+{
+	DeltaOutputCtx *ctx;
+	MemoryContext context,
+				old_context;
+
+	context = AllocSetContextCreate(CurrentMemoryContext,
+									"Delta table context",
+									ALLOCSET_DEFAULT_SIZES);
+	old_context = MemoryContextSwitchTo(context);
+	ctx = palloc0(sizeof(DeltaOutputCtx));
+
+	ctx->context = context;
+
+	/*
+	 * (re-)load output plugins, so we detect a bad (removed) output plugin
+	 * now.
+	 */
+	if (!fast_forward)
+		LoadDeltaPlugin(&ctx->callbacks, plugin);
+
+	ctx->fast_forward = fast_forward;
+	ctx->cur_snapshot_id = start_id;
+	ctx->prev_snapshot_id = start_id;
+
+	if (ctx->callbacks.startup_cb != NULL)
+		ctx->callbacks.startup_cb(ctx, NIL, true);
+
+	MemoryContextSwitchTo(old_context);
+
+	return ctx;
+}
+
+void
+FreeDeltaContext(DeltaOutputCtx *ctx)
+{
+	if (ctx->callbacks.shutdown_cb != NULL)
+		ctx->callbacks.shutdown_cb(ctx);
+
+	MemoryContextDelete(ctx->context);
+}
+
+bool
+DeltaPluginIsReady(const char* plugin)
+{
+	DeltaOutputPluginInit plugin_init;
+
+	plugin_init = (DeltaOutputPluginInit)
+		load_external_function(plugin, "_PG_delta_plugin_init", false, NULL);
+
+	return plugin_init == NULL ? false : true;
 }
