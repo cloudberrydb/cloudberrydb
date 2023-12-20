@@ -858,7 +858,7 @@ AC_SUBST(enable_mapreduce)
 #
 # --enable-shared-postgres-backend enables shared postgres backend support
 #
-PGAC_ARG_BOOL(enable, shared-postgres-backend, no, [enable Cloudberry shared postgres backend support],
+PGAC_ARG_BOOL(enable, shared-postgres-backend, yes, [enable Cloudberry shared postgres backend support],
               [AC_DEFINE([USE_SHARED_POSTGRES_BACKEND], 1,
 			             [Define to 1 to build with shared postgres backend capabilities (--enable-shared-postgres-backend)])])
 AC_MSG_RESULT([checking whether to build with Cloudberry shared postgres backend... $enable_shared_postgres_backend])
