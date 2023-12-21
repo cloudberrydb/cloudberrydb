@@ -1,0 +1,5 @@
+/regression.diffs
+/regression.out
+/results/
+/delta.so
+*.o

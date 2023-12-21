@@ -16,6 +16,17 @@ typedef struct DeltaVersion
 	int32 event; /* reuse TRIGGER_EVENT_XXX bits*/
 } DeltaVersion;
 
+typedef struct DeltaOutputState
+{
+	Tuplestorestate *tg_oldtable;
+	Tuplestorestate *tg_newtable;
+	TupleDesc	tupdesc;
+	int64		returned_rows;
+	int			serial_id;
+	Oid			relid;
+	uint32      event;
+} DeltaOutputState;
+
 /*
  * Type of the shared library symbol _PG_delta_plugin_init that is looked up
  * when loading an output plugin shared library.
@@ -29,16 +40,14 @@ typedef void (*DeltaOutputPluginInit) (struct DeltaTableCallbacks *cb);
  * "is_init" will be set to "true" if the decoding slot just got defined. When
  * the same slot is used from there one, it will be "false".
  */
-typedef void (*DeltaOutputStartupCB) (struct DeltaOutputCtx *ctx,
-									  List *options,
-									  bool is_init);
+typedef void (*DeltaOutputStartupCB) (struct DeltaOutputCtx *ctx, Relation rel,
+									  int serial_id);
 
 /*
  * Callback for every individual change in a successful transaction.
  */
-typedef void (*DeltaOutputChangeCB) (struct DeltaOutputCtx *ctx,
-									   Relation relation,
-									   ReorderBufferChange *change);
+typedef DeltaOutputState* (*DeltaOutputChangeCB) (struct DeltaOutputCtx *ctx,
+									            Relation relation);
 
 
 typedef void (*DeltaOutputShutdownCB) (struct DeltaOutputCtx *ctx);
@@ -46,6 +55,8 @@ typedef void (*DeltaOutputShutdownCB) (struct DeltaOutputCtx *ctx);
 typedef int64 (*DeltaOutputGetLatestSnapshotIdCB) (void *ctx);
 
 typedef int64 (*DeltaOutputSuccessorOfCB) (int64 snapshotId, void *ctx);
+
+typedef int64 (*DeltaOutputAncestorsOfCB) (int64 snapshotId, void *ctx);
 
 typedef DeltaVersion (*DeltaOutputGetVersionCB) (int64 snapshotId, void *ctx);
 
@@ -55,9 +66,11 @@ typedef struct DeltaTableCallbacks
 	DeltaOutputChangeCB change_cb;
 	DeltaOutputShutdownCB shutdown_cb;
 	DeltaOutputGetLatestSnapshotIdCB latest_snapshot_cb;
+	DeltaOutputAncestorsOfCB ancestors_of_cb;
 	DeltaOutputSuccessorOfCB successor_of_cb;
 	DeltaOutputGetVersionCB get_version_cb;
 } DeltaTableCallbacks;
+
 
 
 typedef struct DeltaOutputCtx
