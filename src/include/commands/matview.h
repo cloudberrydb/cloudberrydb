@@ -48,6 +48,6 @@ extern bool isIvmName(const char *s);
 extern void mv_InitHashTables(void);
 extern Size mv_TableShmemSize(void);
 extern void AddPreassignedMVEntry(Oid matview_id, Oid table_id, const char* snapname);
-extern bool is_matview_latest(Oid matviewOid);
+extern bool DeltaPluginIsReady(const char* plugin);
 extern char *make_delta_enr_name(const char *prefix, Oid relid, int count);
 #endif							/* MATVIEW_H */

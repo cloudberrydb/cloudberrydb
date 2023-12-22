@@ -239,7 +239,6 @@ static void ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid
 RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 				 QueryEnvironment *queryEnv, Oid matviewid, int64 version);
 
-//static Tuplestorestate* insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int64 value_a);
 static char ivm_export_delta_table(Oid matview_id, Datum relids, int64 count);
 static bool ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid);
 Query* rewrite_query_for_preupdate_atversion(Query *query, List *tables,
@@ -4196,6 +4195,7 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 	ret = ivm_deferred_maintenance_internal(matviewOid, -1, -1);
 
 	//FreeDeltaContext(ctx);
+	//FIXME: return json
 	PG_RETURN_TEXT_P(cstring_to_text("ok"));
 }
 
@@ -4333,13 +4333,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 			table->old_tuplestores = lappend(table->old_tuplestores, state->tg_oldtable);
 		}
 	}
-#if 0
-	//FIXME: use api to get the delta table name
-	tupstore = insert_tuple_into_tuplestore(matview_id, table->rel, gp_count);
-	entry->has_new = true;
-	Assert(table);
-	table->new_tuplestores = lappend(table->new_tuplestores, tupstore);
-#endif
+
 	matviewRel = table_open(matview_id, AccessShareLock);
 	Query* query = get_matview_query(matviewRel);
 
@@ -4354,11 +4348,11 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 		table = (MV_TriggerTable *) lfirst(lc);
 		FreeDeltaContext((DeltaOutputCtx*) table->delta_ctx);
 	}
-	//tuplestore_clear(tupstore);
 
+	//DirectFunctionCall1(json_build_object, CStringGetDatum("{'123':'insert'}"));
 	//pg_usleep(10 * 1000000L);
-
-	PG_RETURN_TEXT_P(cstring_to_text("insert"));
+	//FIXME: return json { oid1: 'insert', oid2: 'delete'}
+	PG_RETURN_TEXT_P(cstring_to_text("i"));
 }
 
 /*
@@ -4376,6 +4370,7 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 	Relation rel;
 	ParseState *pstate;
 	char *relname;
+	ListCell *lc;
 
 	pstate = make_parsestate(NULL);
 	pstate->p_queryEnv = queryEnv;
@@ -4393,8 +4388,19 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 
 	initStringInfo(&str);
 	appendStringInfo(&str,
-			"SELECT t.* FROM %s@%ld t",
+			"SELECT * FROM %s@%ld ",
 				relname, version);
+
+	/*
+	 * Append deleted rows contained in old transition tables.
+	 */
+	foreach(lc, table->old_tuplestores)
+	{
+		Tuplestorestate *tuplestore = (Tuplestorestate *) lfirst(lc);
+		appendStringInfo(&str, " UNION ALL ");
+		appendStringInfo(&str," SELECT * FROM %s",
+			tuplestore_get_sharedname(tuplestore));
+	}
 
 	/* Get a subquery representing pre-state of the table */
 	raw = (RawStmt*)linitial(raw_parser(str.data, RAW_PARSE_DEFAULT));
@@ -4417,43 +4423,6 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 	return rte;
 }
 
-#if 0
-static Tuplestorestate*
-insert_tuple_into_tuplestore(Oid matviewOid, Relation rel, int64 value_a)
-{
-	Tuplestorestate *tupstore;
-	TupleDesc tupdesc;
-	HeapTuple tuple;
-	Datum	   *values;
-	bool	   *nulls;
-
-	tupstore = tuplestore_begin_heap(true, false, work_mem);
-	//FIXME: old delta table name
-#if 1
-	char *name = make_delta_enr_name("new", RelationGetRelid(rel), gp_command_count); //count
-#else
-	char *name = make_delta_enr_name("old", RelationGetRelid(rel), value_b); //count
-#endif
-	tuplestore_set_sharedname(tupstore, name);
-	tuplestore_set_tableid(tupstore, RelationGetRelid(rel));
-
-	tupdesc = RelationGetDescr(rel);
-	values = (Datum *) palloc(tupdesc->natts * sizeof(Datum));
-	nulls = (bool *) palloc(tupdesc->natts * sizeof(bool));
-
-	for (int i = 0; i < tupdesc->natts; i++)
-	{
-		values[i] = value_a;
-		nulls[i] = false;
-	}
-
-	tuple = heap_form_tuple(tupdesc, values, nulls);
-
-	tuplestore_puttuple(tupstore, tuple);
-
-	return tupstore;
-}
-#endif
 
 Query*
 rewrite_query_for_preupdate_atversion(Query *query, List *tables,
@@ -4524,6 +4493,7 @@ rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 	return query;
 }
 
+#if 0
 bool
 is_matview_latest(Oid matviewOid)
 {
@@ -4537,7 +4507,7 @@ is_matview_latest(Oid matviewOid)
 	}
 	return true;
 }
-
+#endif
 
 /*
  * Load the output plugin, lookup its output plugin init function, and check

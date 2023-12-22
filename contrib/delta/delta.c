@@ -129,6 +129,8 @@ pg_delta_change(DeltaOutputCtx *ctx,
 
 	p->returned_rows++;
 
+	p->error_code = 0;
+
 	return p;
 }
 

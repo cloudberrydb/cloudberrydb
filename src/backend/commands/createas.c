@@ -533,7 +533,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 				Assert(query_immv != NULL);
 				/* Create triggers on incremental maintainable materialized view */
 				CreateIvmTriggersOnBaseTables(query_immv, matviewOid, into->defer);
-				if (into->defer)
+				if (into->defer && DeltaPluginIsReady("delta"))
 					CreateTaskIVM(pstate, matviewOid, false);
 			}
 			table_close(matviewRel, NoLock);

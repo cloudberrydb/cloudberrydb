@@ -25,6 +25,7 @@ typedef struct DeltaOutputState
 	int			serial_id;
 	Oid			relid;
 	uint32      event;
+	int			error_code;
 } DeltaOutputState;
 
 /*
@@ -52,6 +53,7 @@ typedef DeltaOutputState* (*DeltaOutputChangeCB) (struct DeltaOutputCtx *ctx,
 
 typedef void (*DeltaOutputShutdownCB) (struct DeltaOutputCtx *ctx);
 
+//FIXME: make global api
 typedef int64 (*DeltaOutputGetLatestSnapshotIdCB) (void *ctx);
 
 typedef int64 (*DeltaOutputSuccessorOfCB) (int64 snapshotId, void *ctx);
