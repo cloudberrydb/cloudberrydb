@@ -390,12 +390,18 @@ gopherConfig* createGopherConfig(void *opt)
 	{
 		conf->ufs_type = HDFS;
 
+		conf->port = options->hdfs_namenode_port;
+
 		if (options->hdfs_namenode_host)
 		{
-			conf->name_node = pstrdup(options->hdfs_namenode_host);
+			std::vector<std::string> hostAndPort;
+			splitString(options->hdfs_namenode_host, ":", hostAndPort);
+			conf->name_node = pstrdup(hostAndPort[0].c_str());
+			if (hostAndPort.size > 1)
+			{
+				conf->port = std::stoi(hostAndPort[1]);
+			}
 		}
-
-		conf->port = options->hdfs_namenode_port;
 
 		if (options->hdfs_auth_method)
 		{
