@@ -565,6 +565,9 @@ static RangeVar *make_temp_table_name(Relation rel, BackendId id);
 static bool prebuild_temp_table(Relation rel, RangeVar *tmpname, DistributedBy *distro,
 								char *amname, List *opts,
 								bool isTmpTableAo, bool useExistingColumnAttributes);
+static void ATExecSetRelOptionsCheck(DefElem *def);
+
+ATExecSetRelOptionsCheck_hook_type ATExecSetRelOptionsCheck_hook = NULL;
 
 
 /* ----------------------------------------------------------------
@@ -8235,7 +8238,7 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
 		 * should be smarter..
 		 */
 
-		if (RelationIsAppendOptimized(rel))
+		if (!RelationIsHeap(rel))
 		{
 			if (!defval)
 				defval = (Expr *) makeNullConst(typeOid, -1, collOid);
@@ -15656,17 +15659,8 @@ ATExecSetRelOptions(Relation rel, List *defList, AlterTableType operation,
 		foreach(cell, defList)
 		{
 			DefElem    *def = lfirst(cell);
-			int			kw_len = strlen(def->defname);
 
-			if (pg_strncasecmp(SOPT_APPENDONLY, def->defname, kw_len) == 0 ||
-				pg_strncasecmp(SOPT_BLOCKSIZE, def->defname, kw_len) == 0 ||
-				pg_strncasecmp(SOPT_COMPTYPE, def->defname, kw_len) == 0 ||
-				pg_strncasecmp(SOPT_COMPLEVEL, def->defname, kw_len) == 0 ||
-				pg_strncasecmp(SOPT_CHECKSUM, def->defname, kw_len) == 0)
-				ereport(ERROR,
-						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-						 errmsg("cannot SET reloption \"%s\"",
-								def->defname)));
+            ATExecSetRelOptionsCheck(def);
 			/*
 			 * Autovacuum on user tables is not enabled in Cloudberry.  Move on
 			 * with a warning.  The decision to not error out is in favor of
@@ -22555,4 +22549,23 @@ GetAttributeCompression(Oid atttypid, char *compression)
 				 errmsg("invalid compression method \"%s\"", compression)));
 
 	return cmethod;
+}
+
+static void
+ATExecSetRelOptionsCheck(DefElem *def)
+{
+    int kw_len = strlen(def->defname);
+
+    if (ATExecSetRelOptionsCheck_hook)
+        ATExecSetRelOptionsCheck_hook(def);
+    else if (pg_strncasecmp(SOPT_APPENDONLY, def->defname, kw_len) == 0 ||
+        pg_strncasecmp(SOPT_BLOCKSIZE, def->defname, kw_len) == 0 ||
+        pg_strncasecmp(SOPT_COMPTYPE, def->defname, kw_len) == 0 ||
+        pg_strncasecmp(SOPT_COMPLEVEL, def->defname, kw_len) == 0 ||
+        pg_strncasecmp(SOPT_CHECKSUM, def->defname, kw_len) == 0)
+        ereport(ERROR,
+                    (errcode(ERRCODE_WRONG_OBJECT_TYPE),
+                     errmsg("cannot SET reloption \"%s\"",
+                           def->defname)));
+    return;
 }
