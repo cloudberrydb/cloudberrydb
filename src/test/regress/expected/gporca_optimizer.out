@@ -14671,3 +14671,15 @@ ON t1.tradingday = t2.tradingday;
 (1 row)
 
 DROP TABLE t_clientinstrumentind2, t_clientproductind2;
+---------------------------------------------------------------------------------
+-- Test ALL NULL scalar array compare 
+create table DatumSortedSet_core (a int, b character varying NOT NULL) distributed by (a);
+explain select * from DatumSortedSet_core where b in (NULL, NULL);
+                QUERY PLAN                 
+-------------------------------------------
+ Result  (cost=0.00..0.00 rows=0 width=12)
+   One-Time Filter: false
+ Optimizer: GPORCA
+(3 rows)
+
+---------------------------------------------------------------------------------

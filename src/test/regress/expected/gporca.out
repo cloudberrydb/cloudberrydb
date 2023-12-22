@@ -14328,3 +14328,16 @@ ON t1.tradingday = t2.tradingday;
 (1 row)
 
 DROP TABLE t_clientinstrumentind2, t_clientproductind2;
+---------------------------------------------------------------------------------
+-- Test ALL NULL scalar array compare 
+create table DatumSortedSet_core (a int, b character varying NOT NULL) distributed by (a);
+explain select * from DatumSortedSet_core where b in (NULL, NULL);
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..240.69 rows=1 width=36)
+   ->  Seq Scan on datumsortedset_core  (cost=0.00..240.67 rows=1 width=36)
+         Filter: ((b)::text = ANY ('{NULL,NULL}'::text[]))
+ Optimizer: Postgres-based planner
+(4 rows)
+
+---------------------------------------------------------------------------------
