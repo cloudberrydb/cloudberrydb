@@ -601,6 +601,11 @@ extern bool gp_enable_preunique;
 extern bool gp_enable_explain_allstat;
 
 /*
+ * Show motion sender status when explain analyze?
+ */
+extern bool gp_enable_explain_motion_detail;
+
+/*
  * What level of details of the memory accounting information to show during EXPLAIN ANALYZE?
  */
 extern int explain_memory_verbosity;

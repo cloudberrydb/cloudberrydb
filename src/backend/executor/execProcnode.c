@@ -528,8 +528,16 @@ ExecInitNode(Plan *node, EState *estate, int eflags)
 
 	/* Set up instrumentation for this node if requested */
 	if (estate->es_instrument && result != NULL)
-		result->instrument = GpInstrAlloc(node, estate->es_instrument,
-										  result->async_capable);
+	{
+		/* For Motion node in dispatcher, need to collect both the sender
+		 * and receiver instruments. */
+		if (IsA(node, Motion) && Gp_role == GP_ROLE_DISPATCH)
+			result->instrument = InstrAlloc(2, estate->es_instrument,
+											result->async_capable);
+		else
+			result->instrument = GpInstrAlloc(node, estate->es_instrument,
+											  result->async_capable);
+	}
 
 	return result;
 }
