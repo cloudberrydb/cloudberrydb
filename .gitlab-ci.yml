@@ -1,0 +1,298 @@
+stages:
+  - build
+  - icw_test
+
+workflow:
+  name: Hashdata Lightning Merge Request Check
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: always
+    - when: never
+
+variables:
+  CBDB_SRC_BRANCH:
+    value: "main"
+    description: "cloudberry/hashdata-lightning 的分支名称"
+  CBDB_SRC_DEPTH:
+    value: "10"
+    description: "克隆 cloudberry/hashdata-lightning repo 的深度"
+  CBDB_BUILD_TYPE:
+    value: "debug"
+    options:
+      - "debug"
+      - "release"
+    description: "编译模式"
+  CBDB_RELEASE_VERSION:
+    value: ""
+    description: "本次发布的版本号:x.y.z"
+
+  # 内置组件编译启用开关
+  CBDB_BUILD_HIVE_CONNECTOR:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 postgis 扩展组件"
+  CBDB_BUILD_POSTGIS:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 postgis 扩展组件"
+  CBDB_BUILD_PLR:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 plr 扩展组件"
+  CBDB_BUILD_PLJAVA:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 pljava 扩展组件"
+  CBDB_BUILD_GPBACKUP:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 gpbackup 组件"
+  CBDB_BUILD_ANON:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 pg_anonymizer 扩展组件"
+  CBDB_BUILD_KAFKA_FDW:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 kafka_fdw 扩展组件"
+  CBDB_BUILD_PGVECTOR:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 pgvector 扩展组件"
+  CBDB_BUILD_UNIONSTORE_EXT:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 unionstore_ext 扩展组件"
+  CBDB_BUILD_VECTORIZATION:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 vectorization 向量化扩展组件(1X_STABLE支持)"
+  CBDB_BUILD_PG_POOL:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 pg_pool 扩展组件"
+  CBDB_BUILD_GP_EXTTABLE_DELIMITER:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含gp exttable delimiter扩展组件"
+  CBDB_BUILD_CBDB_UI:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 cbdb ui 工具"
+  CBDB_BUILD_HASHCOPY:
+    value: "on"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 hashcopy 工具"
+  CBDB_BUILD_TABLESPACE:
+    value: "off"
+    options:
+      - "on"
+      - "off"
+    description: "是否包含 tablespace 扩展"
+  # 内置组件的代码分支
+  CBDB_POSTGIS_BRANCH:
+    value: "master"
+    description: "cloudberry/postgis-2.5.4.git 的分支名称"
+  CBDB_PLR_BRANCH:
+    value: "master"
+    description: "cloudberry/plr.git 的分支名称"
+  CBDB_PLJAVA_BRANCH:
+    value: "cbdb_1X"
+    description: "cloudberry/pljava.git 的分支名称"
+  CBDB_GPBACKUP_BRANCH:
+    value: "main"
+    description: "cloudberry/gpbackup.git 的分支名称"
+  CBDB_GP_COMMON_GO_LIBS_BRANCH:
+    value: "main"
+    description: "cloudberry/gp-common-go-libs.git 的分支名称 (一般不用变化)"
+  CBDB_ANON_BRANCH:
+    value: "master"
+    description: "cloudberry/postgresql-anonymizer.git 的分支名称"
+  CBDB_KAFKA_FDW_BRANCH:
+    value: "master"
+    description: "cloudberry/kafka_fdw.git 的分支名称"
+  CBDB_PGVECTOR_BRANCH:
+    value: "master"
+    description: "cloudberry/pgvector.git 的分支名称"
+  CBDB_GP_EXTTABLE_DELIMITER_BRANCH:
+    value: "main"
+    description: "cloudberry/gp_exttable_delimiter.git 的分支名称"
+  CBDB_UI_BRANCH:
+    value: "rc/1.0"
+    description: "cloudberry/cloudberryui.git 的分支名称"
+
+  # component 代码分支
+  CBDB_MADLIB_BRANCH:
+    value: "master"
+    description: "cloudberry/madlib.git 的分支名称"
+  CBDB_PXF_BRANCH:
+    value: "cbdb_1X"
+    description: "cloudberry/pxf.git 的分支名称"
+  CBDB_PGX_BRANCH:
+    value: "master"
+    description: "cloudberry/pgx.git 的分支名称"
+  CBDB_ZOMBODB_BRANCH:
+    value: "master"
+    description: "cloudberry/zombodb.git 的分支名称"
+  CBDB_ALREADY_HAS_CODE:
+    value: "true"
+    description: "这里必须填true才能正常的进行构建"
+  CBDB_RELEASE_BRANCH:
+    value: release/hashdata-lightning
+
+.global_variables: &global_variables
+  TF_VAR_instance_name: "hashdata-lightning-pipeline-${CI_PIPELINE_ID}-job-${CI_JOB_ID}"
+  TF_VAR_qingcloud_access_key: "key"
+  TF_VAR_qingcloud_secret_key: "secret"
+  TF_VAR_huawei_access_key: "key"
+  TF_VAR_huawei_secret_key: "secret"
+  ARTIFACTORY_USERNAME: "admin"
+  ARTIFACTORY_PASSWORD: "token"
+  
+  AWS_ACCESS_KEY_ID: "${TF_VAR_huawei_access_key}"
+  AWS_SECRET_ACCESS_KEY: "${TF_VAR_huawei_secret_key}"
+
+  GIT_CLONE_PATH: "/code/cbdb_release"
+  GIT_SUBMODULE_STRATEGY: "normal"
+  GIT_DEPTH: 1
+  CI_USER: root
+.retry_rule:  &retry_rule
+  retry:
+    max: 2
+    when: always
+.regress_artifacts: &regress_artifacts
+  artifacts:
+    name: "regression"
+    when: always
+    paths:
+      - ${CI_PROJECT_DIR}/src/test/regress/regression.out
+      - ${CI_PROJECT_DIR}/src/test/regress/regression.diffs
+      - ${CI_PROJECT_DIR}/src/test/regress/results/
+      - ${CI_PROJECT_DIR}/src/test/regress/expected/
+      - ${CI_PROJECT_DIR}/src/test/isolation2/regression.out
+      - ${CI_PROJECT_DIR}/src/test/isolation2/regression.diffs
+      - ${CI_PROJECT_DIR}/src/test/isolation2/results/
+      - ${CI_PROJECT_DIR}/src/test/isolation2/expected/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/standby/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
+      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+  timeout: 5 hours
+
+.icw_scripts: &icw_scripts
+  script: |
+    mkdir -p /code
+    pushd /code
+    # 构建与cbdb-release项目下相同的目录结构
+    mv cbdb_release cbdb_src
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release cbdb_release
+    cp cbdb_src/cbdb-artifacts.txt  cbdb_release/cbdb-artifacts.txt
+
+    popd
+    shutdown -P +480
+    function on_complete() {
+      sync
+      poweroff
+    }
+    trap on_complete EXIT
+
+    /code/cbdb_release/actions/action-icw-test.bash 
+
+centos7:x86_64:build:
+  stage: build
+  variables:
+    <<: *global_variables
+    OS_TYPE: "centos7"
+    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
+  script: |
+    mkdir -p /code
+    pushd /code
+    # 构建与cbdb-release项目下相同的目录结构
+    mv cbdb_release cbdb_src
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release cbdb_release
+    /code/cbdb_release/actions/action-build.bash
+  timeout: 8 hours
+  artifacts:
+    name: "cbdb-artifacts"
+    paths:
+      - ${CI_PROJECT_DIR}/cbdb-artifacts.txt
+    reports:
+      dotenv: ${CI_PROJECT_DIR}/cbdb-artifacts.txt
+    expire_in: 1 week
+
+
+centos7:x86_64:icw:
+  stage: icw_test
+  variables:
+    <<: *global_variables
+    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off' installcheck-world"
+    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
+  needs: [ "centos7:x86_64:build" ]
+  <<: 
+  - *icw_scripts
+  - *regress_artifacts
+  - *retry_rule
+  timeout: 8 hours
+
+centos7:x86_64:icw-orca:
+  stage: icw_test
+  variables:
+    <<: *global_variables
+    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=on' installcheck-world"
+    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
+    TF_VAR_flavor_id: "m6.4xlarge.8"
+  needs: [ "centos7:x86_64:build" ]
+  <<: 
+  - *icw_scripts
+  - *regress_artifacts
+  - *retry_rule
+  timeout: 8 hours
+
+centos7:x86_64:icw-parallel:
+  stage: icw_test
+  variables:
+    <<: *global_variables
+    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "MAX_CONNECTIONS=10 -C src/test -k installcheck-cbdb-parallel"
+    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
+    TF_VAR_flavor_id: "m6.4xlarge.8"
+  needs: [ "centos7:x86_64:build" ]
+  <<: 
+  - *icw_scripts
+  - *regress_artifacts
+  - *retry_rule
+  timeout: 8 hours
