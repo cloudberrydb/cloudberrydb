@@ -532,7 +532,8 @@ typedef struct ViewOptions
  *      True iff relation(table) should run the code path as AO/CO
  */
 #define RelationIsNonblockRelation(relation) \
-	((relation)->rd_tableam && (relation)->rd_rel->relam != HEAP_TABLE_AM_OID)
+	((relation)->rd_rel->relkind == RELKIND_RELATION && \
+	 (relation)->rd_rel->relam != HEAP_TABLE_AM_OID)
 
 /*
  * RelationIsBitmapIndex
