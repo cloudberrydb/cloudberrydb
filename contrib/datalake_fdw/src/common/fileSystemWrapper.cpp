@@ -397,7 +397,7 @@ gopherConfig* createGopherConfig(void *opt)
 			std::vector<std::string> hostAndPort;
 			splitString(options->hdfs_namenode_host, ":", hostAndPort);
 			conf->name_node = pstrdup(hostAndPort[0].c_str());
-			if (hostAndPort.size > 1)
+			if (hostAndPort.size() > 1)
 			{
 				conf->port = std::stoi(hostAndPort[1]);
 			}
