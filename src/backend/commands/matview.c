@@ -158,6 +158,11 @@ typedef enum
 #define NEW_DELTA_ENRNAME "new_delta"
 #define OLD_DELTA_ENRNAME "old_delta"
 
+#define IVM_EVENT_INSERT			(1U << 0)
+#define IVM_EVENT_DELETE			(1U << 1)
+#define IVM_EVENT_UPDATE			(1U << 2)
+#define IVM_EVENT_TRUNCATE			(1U << 3)
+
 static int	matview_maintenance_depth = 0;
 
 static RefreshClause* MakeRefreshClause(bool concurrent, bool skipData, RangeVar *relation);
@@ -239,7 +244,7 @@ static void ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid
 RangeTblEntry* get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 				 QueryEnvironment *queryEnv, Oid matviewid, int64 version);
 
-static char ivm_export_delta_table(Oid matview_id, Datum relids, int64 count);
+static uint32 ivm_export_delta_table(Oid matview_id, Datum relids, int64 count);
 static bool ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid);
 Query* rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 								  ParseState *pstate, Oid matviewid, int64 snapshotid);
@@ -3854,6 +3859,11 @@ ivm_set_ts_persitent_name(TriggerData *trigdata, Oid relid, Oid mvid)
 	MemoryContextSwitchTo(oldctx);
 }
 
+/*
+ * ivm_deferred_maintenance_internal
+ *
+ * This function performs deferred maintenance for the materialized view.
+ */
 static bool
 ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 {
@@ -3880,8 +3890,7 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 	int			i;
 	ResourceOwner oldowner;
 	Datum baseRelids;
-	//int gp_command_id = gp_command_count + 1;
-	char event;
+	uint32 event;
 
 	QueryEnvironment *queryEnv = create_queryEnv();
 
@@ -3946,15 +3955,16 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 		}
 
 		Tuplestorestate *tg_newtable = NULL;
-		// if (tg_oldtable)
-		// {
-		// 	table->old_tuplestores = lappend(table->old_tuplestores, tg_oldtable);
-		// 	entry->has_old = true;
-		// }
-		//FIXME: qd get tg_newtable ?
-		tg_newtable = tuplestore_begin_heap(true, false, work_mem);
-		if (tg_newtable)
+		Tuplestorestate *tg_oldtable = NULL;
+		if (event & IVM_EVENT_DELETE)
 		{
+			tg_oldtable = tuplestore_begin_heap(true, false, work_mem);
+			table->old_tuplestores = lappend(table->old_tuplestores, tg_oldtable);
+			entry->has_old = true;
+		}
+		if (event & IVM_EVENT_INSERT)
+		{
+			tg_newtable = tuplestore_begin_heap(true, false, work_mem);
 			table->new_tuplestores = lappend(table->new_tuplestores, tg_newtable);
 			entry->has_new = true;
 		}
@@ -3995,7 +4005,7 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 	query = get_matview_query(matviewRel);
 
 	//FIXME: fix truncate case
-	if (event == 't')
+	if (event & IVM_EVENT_TRUNCATE)
 	{
 		MemoryContextSwitchTo(oldcxt);
 
@@ -4200,10 +4210,16 @@ ivm_deferred_maintenance(PG_FUNCTION_ARGS)
 }
 
 
-static char
+/*
+ * ivm_export_delta_table
+ *
+ * Export delta table to the given plugin and start snapshot id.
+ */
+static uint32
 ivm_export_delta_table(Oid matview_id, Datum relids, int64 count)
 {
 	int i = 0;
+	uint32 event = 0;
 	StringInfoData	querybuf;
 	StringInfoData	relids_str;
 	oidvector* oids = (oidvector *) DatumGetPointer(relids);
@@ -4233,21 +4249,23 @@ ivm_export_delta_table(Oid matview_id, Datum relids, int64 count)
 	for (i = 0; i < SPI_processed; i++)
 	{
 		HeapTuple	tup = SPI_tuptable->vals[i];
-		Datum		dat;
-		bool		isnull;
-		text		*msg;
-		/* Extract column values in a 3-way representation */
-		dat = SPI_getbinval(tup, SPI_tuptable->tupdesc, 1, &isnull);
-		Assert(!isnull);
-		msg = DatumGetTextP(dat);
-		elog(LOG, "msg %s", VARDATA_ANY(msg));
+		uint32	val;
+		bool	isnull;
+		val = DatumGetUInt32(SPI_getbinval(tup, SPI_tuptable->tupdesc, 1, &isnull));
+		event |= val;
+		elog(LOG, "qdout %x", event);
 	}
 	/* Close SPI context. */
 	if (SPI_finish() != SPI_OK_FINISH)
 		elog(ERROR, "SPI_finish failed");
-	return 'i';
+	return event;
 }
 
+/*
+ * pg_export_delta_table
+ *
+ * Export delta table to the given plugin and start snapshot id.
+ */
 Datum
 pg_export_delta_table(PG_FUNCTION_ARGS)
 {
@@ -4263,6 +4281,7 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 	QueryEnvironment *queryEnv = create_queryEnv();
 	ParseState *pstate;
 	Relation matviewRel;
+	uint32 event = 0;
 
 	/* Create a ParseState for rewriting the view definition query */
 	pstate = make_parsestate(NULL);
@@ -4326,12 +4345,15 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 		{
 			table->new_tuplestores = lappend(table->new_tuplestores, state->tg_newtable);
 			entry->has_new = true;
+			event |= IVM_EVENT_INSERT;
 		}
 		if (state->tg_oldtable)
 		{
 			entry->has_old = true;
 			table->old_tuplestores = lappend(table->old_tuplestores, state->tg_oldtable);
+			event |= IVM_EVENT_DELETE;
 		}
+		elog(LOG, "qe out %s", ctx->out->data);
 	}
 
 	matviewRel = table_open(matview_id, AccessShareLock);
@@ -4349,10 +4371,9 @@ pg_export_delta_table(PG_FUNCTION_ARGS)
 		FreeDeltaContext((DeltaOutputCtx*) table->delta_ctx);
 	}
 
-	//DirectFunctionCall1(json_build_object, CStringGetDatum("{'123':'insert'}"));
-	//pg_usleep(10 * 1000000L);
 	//FIXME: return json { oid1: 'insert', oid2: 'delete'}
-	PG_RETURN_TEXT_P(cstring_to_text("i"));
+	//PG_RETURN_TEXT_P(cstring_to_text_with_len(str->data,str->len));
+	PG_RETURN_UINT32(event);
 }
 
 /*
@@ -4424,6 +4445,9 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 }
 
 
+/*
+ * Rewrite the query for pre-update at a specific version.
+ */
 Query*
 rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 								  ParseState *pstate, Oid matviewid, int64 snapshotid)
@@ -4431,7 +4455,6 @@ rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 	ListCell *lc;
 	int num_rte = list_length(query->rtable);
 	int i;
-
 
 	/* register delta ENRs */
 	register_delta_ENRs(pstate, query, tables);
@@ -4527,14 +4550,17 @@ LoadDeltaPlugin(DeltaTableCallbacks *callbacks, const char *plugin)
 	/* ask the output plugin to fill the callback struct */
 	plugin_init(callbacks);
 
-	if (callbacks->latest_snapshot_cb == NULL)
-		elog(ERROR, "output plugins have to register a latest_snapshot_cb callback");
+	if (callbacks->startup_cb == NULL)
+		elog(ERROR, "output plugins have to register a startup callback");
 	if (callbacks->change_cb == NULL)
 		elog(ERROR, "output plugins have to register a change callback");
-	if (callbacks->successor_of_cb == NULL)
-		elog(ERROR, "output plugins have to register a successor_of_cb callback");
+	if (callbacks->shutdown_cb == NULL)
+		elog(ERROR, "output plugins have to register a shutdown callback");
 }
 
+/*
+ * Create a new delta context for the given plugin, start ID, and fast forward flag.
+ */
 
 DeltaOutputCtx*
 CreateDeltaContext(const char* plugin, int64 start_id, bool fast_forward)
@@ -4558,6 +4584,7 @@ CreateDeltaContext(const char* plugin, int64 start_id, bool fast_forward)
 	if (!fast_forward)
 		LoadDeltaPlugin(&ctx->callbacks, plugin);
 
+	ctx->out = makeStringInfo();
 	ctx->fast_forward = fast_forward;
 	ctx->cur_snapshot_id = start_id;
 	ctx->prev_snapshot_id = start_id;
@@ -4567,6 +4594,9 @@ CreateDeltaContext(const char* plugin, int64 start_id, bool fast_forward)
 	return ctx;
 }
 
+/*
+ * Free the memory context and call the shutdown callback if it exists.
+ */
 void
 FreeDeltaContext(DeltaOutputCtx *ctx)
 {
@@ -4576,6 +4606,9 @@ FreeDeltaContext(DeltaOutputCtx *ctx)
 	MemoryContextDelete(ctx->context);
 }
 
+/*
+ * Check if the delta plugin is ready to be used.
+ */
 bool
 DeltaPluginIsReady(const char* plugin)
 {

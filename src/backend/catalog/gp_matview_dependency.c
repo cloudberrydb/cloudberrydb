@@ -50,8 +50,8 @@ void create_matview_dependency_tuple(Oid matviewOid, Relids relids, bool defer)
     values[Anum_gp_matview_dependency_relids - 1] = PointerGetDatum(depend_ids);
     values[Anum_gp_matview_dependency_defer - 1] = BoolGetDatum(defer);
     values[Anum_gp_matview_dependency_ivm - 1 ] = BoolGetDatum(true);
+    values[Anum_gp_matview_dependency_snapshotid - 1] = Int64GetDatum(-1);
 
-    nulls[Anum_gp_matview_dependency_snapshotid - 1] = true;
     nulls[Anum_gp_matview_dependency_isvaild - 1] = true;
     nulls[Anum_gp_matview_dependency_refresh_time - 1] = true;
 

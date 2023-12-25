@@ -131,6 +131,30 @@ pg_delta_change(DeltaOutputCtx *ctx,
 
 	p->error_code = 0;
 
+	appendStringInfoChar(ctx->out, '{');
+
+	switch (p->event)
+	{
+		case TRIGGER_EVENT_INSERT:
+			appendStringInfoString(ctx->out, "\"action\":\"I\"");
+			break;
+		case TRIGGER_EVENT_UPDATE:
+			appendStringInfoString(ctx->out, "\"action\":\"U\"");
+			break;
+		case TRIGGER_EVENT_DELETE:
+			appendStringInfoString(ctx->out, "\"action\":\"D\"");
+			break;
+		case TRIGGER_EVENT_TRUNCATE:
+			appendStringInfoString(ctx->out, "\"action\":\"T\"");
+			break;
+		default:
+			Assert(false);
+	}
+
+	appendStringInfo(ctx->out, ",\"table\": %d", RelationGetRelid(rel));
+	//escape_json(ctx->out, RelationGetRelationName(rel));
+	appendStringInfoChar(ctx->out, '}');
+
 	return p;
 }
 

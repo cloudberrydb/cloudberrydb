@@ -89,6 +89,11 @@ typedef struct DeltaOutputCtx
 	/* Are we processing the end LSN of a transaction? */
 	bool		end_xact;
 
+	/*
+	 * Output buffer.
+	 */
+	StringInfo	out;
+
 	DeltaTableCallbacks callbacks;
 
 	/*
