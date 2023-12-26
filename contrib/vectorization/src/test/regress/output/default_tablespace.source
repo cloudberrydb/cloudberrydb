@@ -1,5 +1,7 @@
 create tablespace some_default_tablespace location '@testtablespace@_default_tablespace';
 create tablespace some_database_tablespace location '@testtablespace@_database_tablespace';
+DETAIL:  The location is used to create a symlink target from pg_tblspc. Symlink targets are truncated to 100 characters when sending a TAR (e.g the BASE_BACKUP protocol response).
+WARNING:  tablespace location "@testtablespace@_database_tablespace" is too long for TAR
 create database database_for_default_tablespace;
 \c database_for_default_tablespace;
 set default_tablespace to some_default_tablespace;

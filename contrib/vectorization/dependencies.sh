@@ -8,7 +8,7 @@
 ARCH="$(uname -i)"
 OS="$(. /etc/os-release && echo "${ID}")"
 ARROW_BUILD_TYPE="release"
-ARROW_BRANCH="lightning"
+ARROW_BRANCH="hdw"
 LAST_COMMIT=`git ls-remote git@code.hashdata.xyz:hashdata/arrow.git ${ARROW_BRANCH} | awk '{ print $1}'`
 
 if [ $# -eq 1 ] && [ "${1,,}" = "debug" ]; then

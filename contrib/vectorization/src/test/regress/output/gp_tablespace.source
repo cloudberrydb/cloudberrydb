@@ -386,6 +386,8 @@ FROM gp_tablespace_location((SELECT oid FROM pg_tablespace WHERE spcname='testsp
 -- Create a tablespace with an existing GP_TABLESPACE_VERSION_DIRECTORY for
 -- another version of GPDB.
 CREATE TABLESPACE testspace_existing_version_dir LOCATION '@testtablespace@_existing_version_dir';
+DETAIL:  The location is used to create a symlink target from pg_tblspc. Symlink targets are truncated to 100 characters when sending a TAR (e.g the BASE_BACKUP protocol response).
+WARNING:  tablespace location "@testtablespace@_existing_version_dir" is too long for TAR
 SELECT * FROM
   (SELECT pg_ls_dir('pg_tblspc/' || oid) AS versiondirs
     FROM pg_tablespace

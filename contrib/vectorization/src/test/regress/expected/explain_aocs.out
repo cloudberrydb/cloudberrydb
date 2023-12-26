@@ -699,6 +699,7 @@ select jsonb_pretty(
          "Settings": {                                      +
              "Optimizer": "Postgres query optimizer",       +
              "optimizer": "off",                            +
+             "enable_parallel": "off",                      +
              "parallel_setup_cost": "0",                    +
              "parallel_tuple_cost": "0",                    +
              "min_parallel_table_scan_size": "0"            +

@@ -645,11 +645,9 @@ explain (costs off)
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
                ->  Merge Join
-                     Merge Cond: (tenk2.unique1 = tenk1.unique1)
+                     Merge Cond: (tenk1.unique1 = tenk2.unique1)
+                     ->  Index Only Scan using tenk1_unique1 on tenk1
                      ->  Index Only Scan using tenk2_unique1 on tenk2
-                     ->  Sort
-                           Sort Key: tenk1.unique1
-                           ->  Seq Scan on tenk1
  Optimizer: Postgres query optimizer
 (10 rows)
 

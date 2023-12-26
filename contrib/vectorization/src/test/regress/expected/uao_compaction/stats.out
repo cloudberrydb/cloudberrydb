@@ -30,6 +30,6 @@ SELECT relname, reltuples FROM pg_class WHERE relname = 'uao_stats';
 SELECT relname, reltuples FROM pg_class WHERE relname = 'uao_stats_index';
      relname     | reltuples 
 -----------------+-----------
- uao_stats_index |        85
+ uao_stats_index |        88
 (1 row)
 
