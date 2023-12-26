@@ -180,10 +180,13 @@ variables:
   AWS_ACCESS_KEY_ID: "${TF_VAR_huawei_access_key}"
   AWS_SECRET_ACCESS_KEY: "${TF_VAR_huawei_secret_key}"
 
-  GIT_CLONE_PATH: "/code/cbdb_release"
+  GIT_CLONE_PATH: "/code/cbdb_src"
+  ROOT_PATH: "/code"
+  CBDB_RELEASE_SRC: "/code/cbdb_release"
   GIT_SUBMODULE_STRATEGY: "normal"
   GIT_DEPTH: 1
   CI_USER: root
+  OS_TYPE: "centos7"
 
 .retry_rule:  &retry_rule
   retry:
@@ -195,63 +198,59 @@ variables:
     name: "regression"
     when: always
     paths:
-      - ${CI_PROJECT_DIR}/src/test/regress/regression.out
-      - ${CI_PROJECT_DIR}/src/test/regress/regression.diffs
-      - ${CI_PROJECT_DIR}/src/test/regress/results/
-      - ${CI_PROJECT_DIR}/src/test/regress/expected/
-      - ${CI_PROJECT_DIR}/src/test/isolation2/regression.out
-      - ${CI_PROJECT_DIR}/src/test/isolation2/regression.diffs
-      - ${CI_PROJECT_DIR}/src/test/isolation2/results/
-      - ${CI_PROJECT_DIR}/src/test/isolation2/expected/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/standby/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
-      - ${CI_PROJECT_DIR}/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
+      - ${GIT_CLONE_PATH}/src/test/regress/regression.out
+      - ${GIT_CLONE_PATH}/src/test/regress/regression.diffs
+      - ${GIT_CLONE_PATH}/src/test/regress/results/
+      - ${GIT_CLONE_PATH}/src/test/regress/expected/
+      - ${GIT_CLONE_PATH}/src/test/isolation2/regression.out
+      - ${GIT_CLONE_PATH}/src/test/isolation2/regression.diffs
+      - ${GIT_CLONE_PATH}/src/test/isolation2/results/
+      - ${GIT_CLONE_PATH}/src/test/isolation2/expected/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/standby/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/qddir/demoDataDir-1/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/dbfast1/demoDataDir0/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/dbfast2/demoDataDir1/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/dbfast3/demoDataDir2/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/dbfast_mirror1/demoDataDir0/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/dbfast_mirror2/demoDataDir1/log/
+      - ${GIT_CLONE_PATH}/gpAux/gpdemo/datadirs/dbfast_mirror3/demoDataDir2/log/
   timeout: 5 hours
 
 .icw_scripts: &icw_scripts
   script: |
-    mkdir -p /code
-    pushd /code
-    # 构建与cbdb-release项目下相同的目录结构
-    mv cbdb_release cbdb_src
-    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release cbdb_release
-    cp cbdb_src/cbdb-artifacts.txt  cbdb_release/cbdb-artifacts.txt
+    mkdir -p ${ROOT_PATH}
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release ${CBDB_RELEASE_SRC}
+    cp ${GIT_CLONE_PATH}/cbdb-artifacts.txt  ${CBDB_RELEASE_SRC}/cbdb-artifacts.txt
 
-    popd
     shutdown -P +480
     function on_complete() {
       sync
       poweroff
     }
     trap on_complete EXIT
-
-    /code/cbdb_release/actions/action-icw-test.bash 
+    
+    unset GIT_CLONE_PATH
+    ${CBDB_RELEASE_SRC}/actions/action-icw-test.bash
+    export GIT_CLONE_PATH="/code/cbdb_src"
 
 centos7:x86_64:build:
   stage: build
   variables:
     <<: *global_variables
-    OS_TYPE: "centos7"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
   script: |
-    mkdir -p /code
-    pushd /code
-    # 构建与cbdb-release项目下相同的目录结构
-    mv cbdb_release cbdb_src
-    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release cbdb_release
-    /code/cbdb_release/actions/action-build.bash
+    mkdir -p ${ROOT_PATH}
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release ${CBDB_RELEASE_SRC}
+    unset GIT_CLONE_PATH
+    ${CBDB_RELEASE_SRC}/actions/action-build.bash
+    export GIT_CLONE_PATH="/code/cbdb_src"
+    cp ${CBDB_RELEASE_SRC}/cbdb-artifacts.txt ${GIT_CLONE_PATH}/cbdb-artifacts.txt 
   timeout: 8 hours
   artifacts:
     name: "cbdb-artifacts"
     paths:
-      - ${CI_PROJECT_DIR}/cbdb-artifacts.txt
+      - ${GIT_CLONE_PATH}/cbdb-artifacts.txt
     reports:
-      dotenv: ${CI_PROJECT_DIR}/cbdb-artifacts.txt
+      dotenv: ${GIT_CLONE_PATH}/cbdb-artifacts.txt
     expire_in: 1 week
 
 
@@ -259,9 +258,7 @@ centos7:x86_64:icw:
   stage: icw_test
   variables:
     <<: *global_variables
-    OS_TYPE: "centos7"
     MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=off' installcheck-world"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
   needs: [ "centos7:x86_64:build" ]
   <<: 
   - *icw_scripts
@@ -273,10 +270,7 @@ centos7:x86_64:icw-orca:
   stage: icw_test
   variables:
     <<: *global_variables
-    OS_TYPE: "centos7"
     MAKE_TEST_COMMAND: "-k PGOPTIONS='-c optimizer=on' installcheck-world"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
   needs: [ "centos7:x86_64:build" ]
   <<: 
   - *icw_scripts
@@ -288,10 +282,7 @@ centos7:x86_64:icw-parallel:
   stage: icw_test
   variables:
     <<: *global_variables
-    OS_TYPE: "centos7"
     MAKE_TEST_COMMAND: "MAX_CONNECTIONS=10 -C src/test -k installcheck-cbdb-parallel"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
   needs: [ "centos7:x86_64:build" ]
   <<: 
   - *icw_scripts
@@ -304,30 +295,28 @@ centos7:x86_64:icw-parallel:
 ##############################################################################
 .vec_test_script: &vec_test_script
   script: |
-    mkdir -p /code
-    pushd /code
-    # 构建与cbdb-release项目下相同的目录结构
-    mv cbdb_release cbdb_src
-    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release cbdb_release
-    cp cbdb_src/cbdb-artifacts.txt  cbdb_release/cbdb-artifacts.txt
+    mkdir -p ${ROOT_PATH}
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release ${CBDB_RELEASE_SRC}
+    cp ${GIT_CLONE_PATH}/cbdb-artifacts.txt  ${CBDB_RELEASE_SRC}/cbdb-artifacts.txt
 
-    /code/cbdb_release/actions/action-vec-test.bash
-
+    unset GIT_CLONE_PATH
+    ${CBDB_RELEASE_SRC}/actions/action-vec-test.bash
+    export GIT_CLONE_PATH="/code/cbdb_src"
 
 .vec_regress_artifacts: &vec_regress_artifacts
   artifacts:
     name: "regression"
     when: always
     paths:
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/regress/regression.out
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/regress/regression.diffs
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/regress/results/
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/regress/expected/
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/isolation2/regression.out
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/isolation2/regression.diffs
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/isolation2/results/
-      - ${CI_PROJECT_DIR}/contrib/vectorization/src/test/isolation2/expected/
-      - ${CI_PROJECT_DIR}/contrib/vectorization/coredumps/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/regress/regression.out
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/regress/regression.diffs
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/regress/results/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/regress/expected/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/isolation2/regression.out
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/isolation2/regression.diffs
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/isolation2/results/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/isolation2/expected/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/coredumps/
       - ci_status/${CI_JOB_NAME}.txt
   timeout: 2 hours
 
@@ -336,10 +325,10 @@ centos7:x86_64:icw-parallel:
     name: "clickhouse"
     when: always
     paths:
-      - ${CI_PROJECT_DIR}/contrib/vectorization/expected/
-      - ${CI_PROJECT_DIR}/contrib/vectorization/results/
-      - ${CI_PROJECT_DIR}/contrib/vectorization/regression.diffs
-      - ${CI_PROJECT_DIR}/contrib/vectorization/coredumps/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/expected/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/results/
+      - ${GIT_CLONE_PATH}/contrib/vectorization/regression.diffs
+      - ${GIT_CLONE_PATH}/contrib/vectorization/coredumps/
       - ci_status/${CI_JOB_NAME}.txt
   timeout: 2 hours
 
@@ -349,10 +338,7 @@ vectorization:clickhouse:
   variables:
     <<: *global_variables
     TEST_TYPE: "vec_test"
-    MAKEOPTS: ""
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
-    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_clickhouse_artifacts
@@ -365,10 +351,7 @@ vectorization:icw:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_test"
-    MAKEOPTS: "PGOPTIONS='-c optimizer=off'"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
-    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=off -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
@@ -381,10 +364,7 @@ vectorization:icw-orca:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_test"
-    MAKEOPTS: "PGOPTIONS='-c optimizer=on'"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
-    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=on -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
@@ -397,10 +377,7 @@ vectorization:icw-aocs:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_aocs"
-    MAKEOPTS: "PGOPTIONS='-c optimizer=off'"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
-    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=off -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
@@ -413,10 +390,7 @@ vectorization:icw-orca-aocs:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_aocs"
-    MAKEOPTS: "PGOPTIONS='-c optimizer=on'"
-    CI_TF_LOCATION: ".ci/tf-huawei-centos7-x86_64"
-    TF_VAR_flavor_id: "m6.4xlarge.8"
-    OS_TYPE: "centos7"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=on -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts

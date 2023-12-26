@@ -21,7 +21,7 @@ variable "instance_image" {
 }
 
 variable "flavor_id" {
-  default = "c6.4xlarge.4"
+  default = "m6.4xlarge.8"
 }
 
 variable "instance_securitygroup" {
