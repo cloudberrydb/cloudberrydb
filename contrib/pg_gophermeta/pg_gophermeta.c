@@ -69,9 +69,9 @@ static char plasmaSocketDir[MAXPGPATH + 1];
 void _PG_init(void);
 void gophermeta_main(Datum main_arg);
 static void gophermeta_start_worker(void);
-void GetGopherMetaPath(char *dest);
-void GetGopherSocketPath(char *dest);
-void GetGopherPlasmaSocketPath(char *dest);
+static void GetGopherMetaPath(char *dest);
+static void GetGopherSocketPath(char *dest);
+static void GetGopherPlasmaSocketPath(char *dest);
 
 /* signal handler routines */
 static void ReqShutdownHandler(SIGNAL_ARGS);
@@ -190,19 +190,19 @@ gophermeta_start_worker(void)
 }
 
 
-void
+static void
 GetGopherMetaPath(char *dest)
 {
 	sprintf(dest, "%s/%s", DataDir, GOPHERMETA_FOLDER);
 }
 
-void
+static void
 GetGopherSocketPath(char *dest)
 {
 	sprintf(dest, ".s.gopher.%d", PostPortNumber);
 }
 
-void
+static void
 GetGopherPlasmaSocketPath(char *dest)
 {
 	sprintf(dest, ".s.gopher.plasma.%d", PostPortNumber);
