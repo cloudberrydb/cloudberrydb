@@ -1621,8 +1621,9 @@ acquire_sample_rows(Relation onerel, int elevel,
 	 * GPDB_12_MERGE_FIXME: BlockNumber is uint32 and Number of tuples is uint64.
 	 * That means that after row number UINT_MAX we will never analyze the table.
 	 */
-	if (RelationIsAppendOptimized(onerel))
+	if (RelationIsNonblockRelation(onerel))
 	{
+		/* AO/CO/PAX use non-fixed block layout */
 		BlockNumber pages;
 		double		tuples;
 		double		allvisfrac;
@@ -1653,7 +1654,7 @@ acquire_sample_rows(Relation onerel, int elevel,
 	 * because Blocks is not same as Heap tables.
 	 * Set prefetch_maximum to zero seems the easiest way to bypass.
 	 */
-	if (RelationIsAppendOptimized(onerel))
+	if (RelationIsNonblockRelation(onerel))
 	{
 		prefetch_maximum = 0;
 	}
