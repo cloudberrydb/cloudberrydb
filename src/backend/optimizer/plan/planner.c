@@ -561,6 +561,8 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	/* primary planning entry point (may recurse for subqueries) */
 	root = subquery_planner(glob, parse, NULL,
 							false, tuple_fraction, config);
+	/* AQUMV: parse tree may be rewritten. */
+	parse = root->parse;
 
 	/* Select best Path and turn it into a Plan */
 	final_rel = fetch_upper_rel(root, UPPERREL_FINAL, NULL);
@@ -1878,7 +1880,10 @@ grouping_planner(PlannerInfo *root, double tuple_fraction)
 		 */
 		if (Gp_role == GP_ROLE_DISPATCH &&
 			enable_answer_query_using_materialized_views)
+		{
 			current_rel = answer_query_using_materialized_views(root, current_rel, standard_qp_callback, &qp_extra);
+			parse = root->parse;
+		}
 
 		/*
 		 * Convert the query's result tlist into PathTarget format.

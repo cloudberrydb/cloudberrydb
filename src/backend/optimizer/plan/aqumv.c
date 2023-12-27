@@ -101,6 +101,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 	Node			*mvjtnode;
 	int				varno;
 	RangeTblEntry 	*rte;
+	Oid				origin_rel_oid;
 	RangeTblEntry 	*mvrte;
 	Relation		ruleDesc;
 	Relation		matviewRel;
@@ -144,11 +145,13 @@ answer_query_using_materialized_views(PlannerInfo *root,
 	varno = ((RangeTblRef *) jtnode)->rtindex;
 	rte = root->simple_rte_array[varno];
 	Assert(rte != NULL);
+	/* root's stuff like simple_rte_array may be changed during rewrite, fetch oid here. */
+	origin_rel_oid = rte->relid;
 
 	if ((rte->rtekind != RTE_RELATION) || 
-		IsSystemClassByRelid(rte->relid) ||
-		has_superclass(rte->relid) ||
-		has_subclass(rte->relid))
+		IsSystemClassByRelid(origin_rel_oid) ||
+		has_superclass(origin_rel_oid) ||
+		has_subclass(origin_rel_oid))
 		return mv_final_rel;
 
 	ruleDesc = table_open(RewriteRelationId, AccessShareLock);
@@ -235,7 +238,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * AQUMV_FIXME_MVP
 		 * Must be same relation, recursiviely embeded mv is not supported now.
 		 */
-		if (mvrte->relid != rte->relid)
+		if (mvrte->relid != origin_rel_oid)
 			continue;
 
 		/*
@@ -281,11 +284,9 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		subroot->plan_params = NIL;
 		subroot->outer_params = NULL;
 		subroot->init_plans = NIL;
-		if (!parse->hasAggs)
-		{
-			subroot->agginfos = NIL;
-			subroot->aggtransinfos = NIL;
-		}
+		/* Agg infos would be processed by subroot itself. */
+		subroot->agginfos = NIL;
+		subroot->aggtransinfos = NIL;
 		subroot->parse = mvQuery;
 
 		/*
@@ -387,6 +388,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * NB: Update processed_tlist again in case that tlist has been changed. 
 		 */
 		preprocess_targetlist(subroot);
+		preprocess_aggrefs(subroot, (Node *) subroot->processed_tlist);
 
 		/*
 		 * AQUMV
@@ -422,6 +424,18 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		{
 			root->parse = mvQuery;
 			root->processed_tlist = subroot->processed_tlist;
+			root->agginfos = subroot->agginfos;
+			root->aggtransinfos =  subroot->aggtransinfos;
+			root->simple_rte_array = subroot->simple_rte_array;
+			root->simple_rel_array = subroot->simple_rel_array;
+			root->simple_rel_array_size = subroot->simple_rel_array_size;
+			root->hasNonPartialAggs = subroot->hasNonPartialAggs;
+			root->hasNonSerialAggs = subroot->hasNonSerialAggs;
+			root->numOrderedAggs = subroot->numOrderedAggs;
+			/* CBDB specifical */
+			root->hasNonCombine = subroot->hasNonCombine;
+			root->numPureOrderedAggs = subroot->numPureOrderedAggs;
+
 			/*
 			 * Update pathkeys which may be changed by qp_callback.
 			 * Set belows if corresponding feature is supported.
