@@ -289,6 +289,28 @@ select count(c2), count(*) from aqumv_t2 where c1 > 90;
 select count(c2), count(*) from aqumv_t2 where c1 > 90;
 abort;
 
+-- Test Agg on IMMV who has less columns than origin table.
+begin;
+create table aqumv_t2(c1 int, c2 int, c3 int) distributed by (c1);
+insert into aqumv_t2 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into aqumv_t2 values (91, NULL, 95);
+analyze aqumv_t2;
+
+create incremental materialized view aqumv_mvt2_1 as
+  select c3 as mc3, c1 as mc1
+  from aqumv_t2 where c1 > 90;
+analyze aqumv_mvt2_1;
+
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select count(c3) from aqumv_t2 where c1 > 90;
+select count(c3) from aqumv_t2 where c1 > 90;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select count(c3) from aqumv_t2 where c1 > 90;
+select count(c3) from aqumv_t2 where c1 > 90;
+abort;
+
 --
 -- Test Group By clause of origin query.
 -- GROUPING SETS
