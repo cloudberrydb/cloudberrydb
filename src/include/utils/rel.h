@@ -518,6 +518,11 @@ typedef struct ViewOptions
 	AMHandlerIsAO((relation)->rd_amhandler)
 
 /*
+ * FIXME: CBDB should not know the am oid of PAX. We put here because the kernel
+ * can't distinguish the PAX and renamed heap(heap_psql) in test `psql`.
+ */
+#define PAX_AM_OID 7014
+/*
  * CAUTION: this macro is a violation of the absraction that table AM and
  * index AM interfaces provide.  Use of this macro is discouraged.  If
  * table/index AM API falls short for your use case, consider enhancing the
@@ -532,8 +537,8 @@ typedef struct ViewOptions
  *      True iff relation(table) should run the code path as AO/CO
  */
 #define RelationIsNonblockRelation(relation) \
-	((relation)->rd_rel->relkind == RELKIND_RELATION && \
-	 (relation)->rd_rel->relam != HEAP_TABLE_AM_OID)
+	(RelationIsAppendOptimized(relation) || \
+	 (relation)->rd_rel->relam == PAX_AM_OID)
 
 /*
  * RelationIsBitmapIndex
