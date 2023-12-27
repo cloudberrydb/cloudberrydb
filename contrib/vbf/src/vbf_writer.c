@@ -59,7 +59,7 @@ void vbf_writer_fini(vbf_writer_t *writer)
 	stream_writer_fini(&writer->stream_writer);
 }
 
-static void begin_write_block(vbf_writer_t *writer)
+void begin_write_block(vbf_writer_t *writer)
 {
 	stream_writer_set_rownum(&writer->stream_writer, writer->rownum);
 	writer->buffer = stream_writer_get_buffer(&writer->stream_writer);

@@ -33,5 +33,7 @@ int vbf_writer_write(vbf_writer_t *writer,
 					 int buffer_length);
 int64_t vbf_writer_file_size(vbf_writer_t *writer);
 
+void begin_write_block(vbf_writer_t *writer);
+
 CLOSE_EXTERN
 #endif
