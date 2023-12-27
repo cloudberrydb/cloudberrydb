@@ -464,7 +464,7 @@ calculate_relation_size(Relation rel, ForkNumber forknum)
 		return (*relation_size_hook) (rel, forknum);
 
 	/* Call into the tableam api if the table is not heap, i.e. AO/CO/PAX relations. */
-	if (RelationIsAppendOptimized(rel))
+	if (RelationIsNonblockRelation(rel))
 		return table_relation_size(rel, forknum);
 
 	relationpath = relpathbackend(rel->rd_node, rel->rd_backend, forknum);
