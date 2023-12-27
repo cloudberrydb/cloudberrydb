@@ -112,29 +112,32 @@ GetVecTableAmRoutine(Oid amhandler)
  */
 TableScanDesc
 table_beginscan_es_vec(Relation rel, Snapshot snapshot,
-					   List *targetList, List *qual, uint32 flags)
+					int nkeys, struct ScanKeyData *keys,
+					struct PlanState *ps, uint32 flags)
 {
 	flags |= SO_TYPE_SEQSCAN |
 	SO_ALLOW_STRAT | SO_ALLOW_SYNC | SO_ALLOW_PAGEMODE;
 
 	if (rel->rd_tableam->scan_begin_extractcolumns)
-		return rel->rd_tableam->scan_begin_extractcolumns(rel, snapshot, NULL,
-														  targetList, qual,
+	return rel->rd_tableam->scan_begin_extractcolumns(rel, snapshot, nkeys, keys,
+														  NULL, ps,
 														  flags);
 
 	return rel->rd_tableam->scan_begin(rel, snapshot,
-									   0, NULL,
+									   nkeys, keys,
 									   NULL, flags);
 }
 
 TableScanDesc
 aoco_scan_begin_wrapper(Relation rel,
 						Snapshot snapshot,
-					    ParallelTableScanDesc parallel_scan,
-						List *targetlist,
-						List *qual,
+						int nkeys, struct ScanKeyData *keys,
+						ParallelTableScanDesc parallel_scan,
+						struct PlanState *ps,
 						uint32 flags)
 {
+	List *targetlist = ps->plan->targetlist;
+	List *qual = ps->plan->qual;
 
 	/* Vectorization aocs scan */
 	if (flags & SO_TYPE_VECTOR)
@@ -143,7 +146,7 @@ aoco_scan_begin_wrapper(Relation rel,
 	}
 	else
 	{
-		return scan_begin_prev(rel, snapshot, parallel_scan, targetlist, qual, flags);
+		return scan_begin_prev(rel, snapshot, nkeys, keys, parallel_scan, ps, flags);
 	}
 }
 

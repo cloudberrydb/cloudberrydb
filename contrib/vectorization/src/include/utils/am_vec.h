@@ -24,9 +24,9 @@ extern TableAmRoutine *GetVecTableAmRoutine(Oid amhandler);
 extern void InitAOCSVecHandler(void);
 typedef TableScanDesc (*scan_begin) (Relation rel,
 									 Snapshot snapshot,
+                                     int nkeys, struct ScanKeyData *key,
 									 ParallelTableScanDesc parallel_scan,
-									 List *targetlist,
-									 List *qual,
+									 struct PlanState *ps,
 									 uint32 flags);
 
 typedef bool (*scan_getnextslot)(TableScanDesc scan,
@@ -39,14 +39,18 @@ extern scan_end scan_end_prev;
 
 extern TableScanDesc aoco_scan_begin_wrapper(Relation rel,
                                              Snapshot snapshot,
+                                             int nkeys, struct ScanKeyData *key,
 											 ParallelTableScanDesc parallel_scan,
-                                             List *targetlist,
-                                             List *qual,
+                                             struct PlanState *ps,
                                              uint32 flags);
 extern bool aoco_getnextslot_wrapper(TableScanDesc scan, ScanDirection direction, TupleTableSlot *slot);
 extern void aoco_endscan_wrapper(TableScanDesc scan);
 
 extern TableScanDesc
-table_beginscan_es_vec(Relation rel, Snapshot snapshot, List *targetList, List *qual, uint32 flags);
+table_beginscan_es_vec(Relation rel, Snapshot snapshot,
+					   int nkeys, struct ScanKeyData *keys,
+					   struct PlanState *ps,
+					   uint32 flags);
+
 
 #endif   /* VEC_AM_H */

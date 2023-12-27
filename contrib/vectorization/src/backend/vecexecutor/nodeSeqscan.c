@@ -23,6 +23,7 @@
 #include "access/relscan.h"
 #include "access/tableam.h"
 #include "executor/execdebug.h"
+#include "executor/nodeSeqscan.h"
 #include "utils/rel.h"
 #include "nodes/nodeFuncs.h"
 
@@ -69,6 +70,7 @@ VecSeqNext(VecSeqScanState *node)
 	{
 		VecAOCSScanDescData* vaocs;
 
+
 		/*
 		 * We reach here if the scan is not parallel, or if we're serially
 		 * executing a scan that was planned to be parallel.
@@ -80,8 +82,10 @@ VecSeqNext(VecSeqScanState *node)
 		 */
 		scandesc = table_beginscan_es_vec(ss->ss_currentRelation,
 										  estate->es_snapshot,
-										  ss->ps.plan->targetlist,
-										  ss->ps.plan->qual, SO_TYPE_VECTOR);
+										  0, NULL,
+										  (struct PlanState *)node,
+										  SO_TYPE_VECTOR);
+
 
 		ss->ss_currentScanDesc = scandesc;
 
