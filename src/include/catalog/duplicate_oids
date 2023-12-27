@@ -33,7 +33,7 @@ my $oids = Catalog::FindAllOidsFromHeaders(@input_files);
 my %oidcounts;
 
 # preserved oid for PAX table AM
-$oidcounts{7014}++;
+$oidcounts{7047}++;
 
 foreach my $oid (@{$oids})
 {

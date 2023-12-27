@@ -521,7 +521,7 @@ typedef struct ViewOptions
  * FIXME: CBDB should not know the am oid of PAX. We put here because the kernel
  * can't distinguish the PAX and renamed heap(heap_psql) in test `psql`.
  */
-#define PAX_AM_OID 7014
+#define PAX_AM_OID 7047
 /*
  * CAUTION: this macro is a violation of the absraction that table AM and
  * index AM interfaces provide.  Use of this macro is discouraged.  If
