@@ -1275,6 +1275,7 @@ default_column_encoding_clause(Relation rel)
 					(ao_opts->compresslevel != 0 ? ao_opts->compresslevel : AO_DEFAULT_COMPRESSLEVEL);
 	e3 = makeDefElem("compresslevel", (Node *) makeInteger(compresslevel), -1);
 
+	/* keep the order in: compresstype, compresslevel, blocksize */
 	return list_make3(e1, e3, e2);
 }
 
@@ -1568,27 +1569,28 @@ find_crsd(const char *column, List *stenc)
  * This needs access to possible inherited columns, so it can only be done after
  * expanding them.
  */
-List* transformColumnEncoding(const TableAmRoutine *tam, Relation rel, List *colDefs, List *stenc, List *withOptions, bool errorOnEncodingClause, bool createDefaultOne)
+List* transformColumnEncoding(const TableAmRoutine *tam, Relation rel, List *colDefs, List *stenc, List *withOptions, bool createDefaultOne)
 {
 	ColumnReferenceStorageDirective *deflt = NULL;
 	ListCell   *lc;
 	List	   *result = NIL;
+	bool		errorOnEncodingClause;
 
-	if (rel && rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
-		return result;
+	Assert(tam);
+	AssertImply(rel, rel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE);
+	errorOnEncodingClause = !AMHandlerSupportEncodingClause(tam);
 
 	if (stenc) {
-		if (errorOnEncodingClause)
-			ereport(ERROR,
-					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
-					errmsg("ENCODING clause only supported with column oriented tables")));
 		/*
 		 * if no `tam` or no encoding callback in am
 		 * then `errorOnEncodingClause` will be true
 		 */
+		if (errorOnEncodingClause)
+			ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("ENCODING clause only supported with column oriented tables")));
 		validateColumnStorageEncodingClauses(stenc, colDefs, tam->validate_column_encoding_clauses);
 	}
-		
 
 	/* get the default clause, if there is one. */
 	foreach(lc, stenc)
@@ -1636,14 +1638,12 @@ List* transformColumnEncoding(const TableAmRoutine *tam, Relation rel, List *col
 			deflt = makeNode(ColumnReferenceStorageDirective);
 			deflt->deflt = true;
 
-			Assert(tam);
 			/*
 			 * if current am not inmplement transform_column_encoding_clauses
 			 * then tmpenc not null but no need fill with options.
 			 */
-			if (tam->transform_column_encoding_clauses) {
+			if (tam->transform_column_encoding_clauses)
 				deflt->encoding = tam->transform_column_encoding_clauses(rel, tmpenc, false, false);
-			}
 		}
 	}
 
@@ -1680,7 +1680,6 @@ List* transformColumnEncoding(const TableAmRoutine *tam, Relation rel, List *col
 			ColumnReferenceStorageDirective *s = find_crsd(d->colname, stenc);
 
 			if (s) {
-				Assert(tam);
 				encoding = tam->transform_column_encoding_clauses(rel, s->encoding, true, false);
 			} else {
 				if (deflt)
@@ -1690,7 +1689,7 @@ List* transformColumnEncoding(const TableAmRoutine *tam, Relation rel, List *col
 					if (d->typeName) {
 						/* get encoding by type, still need do transform and validate */
 						encoding = get_type_encoding(d->typeName);
-						if (tam && tam->transform_column_encoding_clauses)
+						if (tam->transform_column_encoding_clauses)
 							encoding = tam->transform_column_encoding_clauses(rel, encoding, true, true);
 					}
 					if (!encoding && createDefaultOne) {
