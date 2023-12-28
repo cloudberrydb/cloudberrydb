@@ -8297,7 +8297,7 @@ ATExecAddColumn(List **wqueue, AlteredTableInfo *tab, Relation rel,
 	if (rel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE)
 	{
 		List *enc;
-		const TableAmRoutine *tam = GetTableAmRoutineByAmId(rel->rd_rel->relam)
+		const TableAmRoutine *tam = GetTableAmRoutineByAmId(rel->rd_rel->relam);
 
 		/*
 		 * Process the encoding clauses.
