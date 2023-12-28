@@ -326,7 +326,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 execute ccddlcheck;
  relname | attnum |                     attoptions                      
 ---------+--------+-----------------------------------------------------
- ccddl   |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl   |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddl   |      2 | {compresstype=zlib,blocksize=65536,compresslevel=1}
 (2 rows)
 
@@ -336,7 +336,7 @@ alter table ccddl add column k timestamp default now()
 execute ccddlcheck;
  relname | attnum |                     attoptions                      
 ---------+--------+-----------------------------------------------------
- ccddl   |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl   |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddl   |      2 | {compresstype=zlib,blocksize=65536,compresslevel=1}
  ccddl   |      3 | {compresstype=zlib,compresslevel=1,blocksize=32768}
 (3 rows)
@@ -347,10 +347,10 @@ alter table ccddl add column l numeric
 execute ccddlcheck;
  relname | attnum |                     attoptions                      
 ---------+--------+-----------------------------------------------------
- ccddl   |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl   |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddl   |      2 | {compresstype=zlib,blocksize=65536,compresslevel=1}
  ccddl   |      3 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- ccddl   |      4 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl   |      4 | {compresstype=none,compresslevel=0,blocksize=32768}
 (4 rows)
 
 drop table ccddl;
@@ -389,7 +389,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 execute ccddlcheck;
  relname | attnum |                     attoptions                      
 ---------+--------+-----------------------------------------------------
- ccddl   |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl   |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddl   |      2 | {compresstype=ZlIb,compresslevel=1,blocksize=32768}
 (2 rows)
 
@@ -404,7 +404,7 @@ NOTICE:  table doesn't have 'DISTRIBUTED BY' clause, defaulting to distribution 
 execute ccddlcheck;
  relname  | attnum |                     attoptions                      
 ----------+--------+-----------------------------------------------------
- ccddl_co |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl_co |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
 (1 row)
 
 drop table ccddl_co;
@@ -509,10 +509,10 @@ execute ccddlcheck;
    relname   | attnum |                     attoptions                      
 -------------+--------+-----------------------------------------------------
  ccddlparent |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- ccddlchild  |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddlchild  |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddlchild  |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- ccddlchild2 |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- ccddlchild2 |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddlchild2 |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ ccddlchild2 |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
 (5 rows)
 
 drop table ccddlparent cascade;
@@ -541,12 +541,12 @@ execute ccddlcheck;
    relname    | attnum |                     attoptions                      
 --------------+--------+-----------------------------------------------------
  ccddlparent1 |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- ccddlparent1 |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
- ccddlparent2 |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddlparent1 |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
+ ccddlparent2 |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddlparent2 |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- ccddlchild   |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- ccddlchild   |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
- ccddlchild   |      3 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddlchild   |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ ccddlchild   |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
+ ccddlchild   |      3 | {compresstype=none,compresslevel=0,blocksize=32768}
 (7 rows)
 
 drop table ccddlparent1 cascade;
@@ -1099,6 +1099,7 @@ execute ccddlcheck;
 (8 rows)
 
 alter table ccddl add partition p3 start(20) end(30);
+ERROR:  ENCODING clause only supported with column oriented tables
 execute ccddlcheck;
          relname          | attnum |                       attoptions                        
 --------------------------+--------+---------------------------------------------------------
@@ -1224,10 +1225,10 @@ CREATE TABLE ccddl (id int, year int, month int, day int, region text)
 execute ccddlcheck;
              relname             | attnum |                       attoptions                        
 ---------------------------------+--------+---------------------------------------------------------
- ccddl_1_prt_1_2_prt_1_3_prt_usa |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- ccddl_1_prt_1_2_prt_1_3_prt_usa |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl_1_prt_1_2_prt_1_3_prt_usa |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ ccddl_1_prt_1_2_prt_1_3_prt_usa |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddl_1_prt_1_2_prt_1_3_prt_usa |      3 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
- ccddl_1_prt_1_2_prt_1_3_prt_usa |      4 | {compresstype=none,blocksize=32768,compresslevel=0}
+ ccddl_1_prt_1_2_prt_1_3_prt_usa |      4 | {compresstype=none,compresslevel=0,blocksize=32768}
  ccddl_1_prt_1_2_prt_1_3_prt_usa |      5 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
 (5 rows)
 
@@ -1448,14 +1449,14 @@ create table ccddl
 	);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'i' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+ERROR:  ENCODING clause only supported with column oriented tables
 execute ccddlcheck;
-    relname     | attnum |                       attoptions                        
-----------------+--------+---------------------------------------------------------
- ccddl_1_prt_p2 |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- ccddl_1_prt_p2 |      2 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
-(2 rows)
+ relname | attnum | attoptions 
+---------+--------+------------
+(0 rows)
 
 drop table ccddl;
+ERROR:  table "ccddl" does not exist
 -- MPP-16875: ensure that WITH () is honoured
 CREATE TABLE ccddl (a int, b text)
 with (appendonly=true, orientation=column,
@@ -1553,12 +1554,14 @@ partition by range(a1)
 	);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+ERROR:  ENCODING clause only supported with column oriented tables
 execute ccddlcheck;
  relname | attnum | attoptions 
 ---------+--------+------------
 (0 rows)
 
 drop table ccddl;
+ERROR:  table "ccddl" does not exist
 -----------------------------------------------------------------------
 -- Type support
 -- Expect: success

@@ -248,7 +248,7 @@ select attrelid::regclass, attnum, attoptions
  t2       |      1 | {blocksize=65536,compresstype=zlib,compresslevel=2}
  t2       |      2 | {compresstype=zlib,compresslevel=2,blocksize=32768}
  t2       |      3 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
- t2       |      4 | {compresstype=zlib,blocksize=32768,compresslevel=2}
+ t2       |      4 | {compresstype=zlib,compresslevel=2,blocksize=32768}
 (4 rows)
 
 -- SET operation in a session has higher precedence.  Also test if
@@ -406,9 +406,9 @@ select attrelid::regclass,attnum,attoptions
  t2       |      1 | {blocksize=65536,compresstype=zlib,compresslevel=2}
  t2       |      2 | {compresstype=zlib,compresslevel=2,blocksize=32768}
  t2       |      3 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
- t2       |      4 | {compresstype=zlib,blocksize=32768,compresslevel=2}
- co1      |      1 | {compresstype=zlib,blocksize=32768,compresslevel=1}
- co1      |      2 | {compresstype=zlib,blocksize=32768,compresslevel=1}
+ t2       |      4 | {compresstype=zlib,compresslevel=2,blocksize=32768}
+ co1      |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
+ co1      |      2 | {compresstype=zlib,compresslevel=1,blocksize=32768}
  co2      |      1 | {blocksize=8192,compresstype=zlib,compresslevel=1}
  co2      |      2 | {blocksize=8192,compresstype=zlib,compresslevel=1}
  co3      |      1 | {blocksize=65536,compresstype=zlib,compresslevel=1}
@@ -504,15 +504,15 @@ select attrelid::regclass,attnum,attoptions
  co1      |      1 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
  co1      |      2 | {compresslevel=5,compresstype=zlib,blocksize=32768}
  co1      |      3 | {compresslevel=0,blocksize=65536,compresstype=none}
- co1      |      4 | {compresstype=none,blocksize=32768,compresslevel=0}
+ co1      |      4 | {compresstype=none,compresslevel=0,blocksize=32768}
  co2      |      1 | {compresstype=rle_type,compresslevel=3,blocksize=32768}
  co2      |      2 | {compresslevel=5,compresstype=zlib,blocksize=32768}
  co2      |      3 | {compresslevel=0,blocksize=65536,compresstype=none}
  co2      |      4 | {compresstype=none,compresslevel=0,blocksize=32768}
- co3      |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- co3      |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ co3      |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ co3      |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
  co5      |      1 | {blocksize=8192,compresstype=none,compresslevel=0}
- co5      |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ co5      |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
 (12 rows)
 
 -- misc tests
@@ -803,9 +803,9 @@ select attnum,attoptions from pg_attribute_encoding
     where attrelid = 'co10'::regclass order by attnum;
  attnum |                     attoptions                      
 --------+-----------------------------------------------------
-      1 | {compresstype=none,blocksize=32768,compresslevel=0}
-      2 | {compresstype=none,blocksize=32768,compresslevel=0}
-      3 | {compresstype=none,blocksize=32768,compresslevel=0}
+      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+      2 | {compresstype=none,compresslevel=0,blocksize=32768}
+      3 | {compresstype=none,compresslevel=0,blocksize=32768}
 (3 rows)
 
 select compresstype from pg_appendonly where relid = 'co10'::regclass;

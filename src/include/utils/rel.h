@@ -481,6 +481,10 @@ typedef struct ViewOptions
 	((amhandler) == F_AO_COLUMN_TABLEAM_HANDLER)
 #define AMHandlerIsAO(amhandler) \
 	(AMHandlerIsAoRows(amhandler) || AMHandlerIsAoCols(amhandler))
+
+#define AMHandlerSupportEncodingClause(amhandler) \
+	((amhandler) && (amhandler)->validate_column_encoding_clauses && (amhandler)->transform_column_encoding_clauses)
+
 /*
  * CAUTION: this macro is a violation of the absraction that table AM and
  * index AM interfaces provide.  Use of this macro is discouraged.  If
