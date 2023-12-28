@@ -304,4 +304,7 @@ test: profile
 # Tests of Answer Query Using Materialized Views.
 test: aqumv
 
+# test access method with encoding options
+test: am_encoding
+
 # end of tests

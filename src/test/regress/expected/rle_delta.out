@@ -131,7 +131,7 @@ HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sur
 select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_attribute_encoding e  where c.relname = 'delta_alter'  and c.oid=e.attrelid  order by relname, attnum;
    relname   | attnum |                       attoptions                        
 -------------+--------+---------------------------------------------------------
- delta_alter |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ delta_alter |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  delta_alter |      2 | {compresstype=rle_type,compresslevel=1,blocksize=32768}
  delta_alter |      3 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
  delta_alter |      4 | {compresstype=rle_type,compresslevel=3,blocksize=32768}
@@ -721,10 +721,10 @@ select attrelid::regclass as relname, attnum, attoptions from pg_class c, pg_att
  delta_none |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
  delta_none |      3 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
  delta_none |      4 | {compresstype=rle_type,compresslevel=3,blocksize=32768}
- delta_none |      5 | {compresstype=none,blocksize=32768,compresslevel=0}
+ delta_none |      5 | {compresstype=none,compresslevel=0,blocksize=32768}
  delta_none |      6 | {compresstype=none,compresslevel=0,blocksize=32768}
  delta_none |      7 | {compresstype=rle_type,compresslevel=4,blocksize=32768}
- delta_none |      8 | {compresstype=none,blocksize=32768,compresslevel=0}
+ delta_none |      8 | {compresstype=none,compresslevel=0,blocksize=32768}
  delta_none |      9 | {compresstype=rle_type,compresslevel=2,blocksize=32768}
 (9 rows)
 

@@ -32,9 +32,11 @@
 #include "catalog/storage_xlog.h"
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbvars.h"
+#include "commands/defrem.h"
 #include "commands/progress.h"
 #include "commands/vacuum.h"
 #include "executor/executor.h"
+#include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "pgstat.h"
 #include "storage/lmgr.h"
@@ -806,7 +808,7 @@ aoco_index_fetch_reset(IndexFetchTableData *scan)
 	 * Unlike Heap, we don't release the resources (fetch descriptor and its
 	 * members) here because it is more like a global data structure shared
 	 * across scans, rather than an iterator to yield a granularity of data.
-	 * 
+	 *
 	 * Additionally, should be aware of that no matter whether allocation or
 	 * release on fetch descriptor, it is considerably expensive.
 	 */
@@ -2189,6 +2191,188 @@ aoco_swap_relation_files(Oid relid1, Oid relid2,
 	SwapAppendonlyEntries(relid1, relid2);
 }
 
+static void
+aoco_validate_column_encoding_clauses(List *aocoColumnEncoding)
+{
+	validateAOCOColumnEncodingClauses(aocoColumnEncoding);
+}
+
+static List *
+aoco_transform_column_encoding_clauses(Relation rel, List *aocoColumnEncoding,
+									   bool validate,
+									   bool optionFromType pg_attribute_unused())
+{
+	ListCell   *lc;
+	DefElem	   *dl;
+	bool foundCompressType = false;
+	bool foundCompressTypeNone = false;
+	char *cmplevel = NULL;
+	bool foundBlockSize = false;
+	char *arg;
+	List *retList = list_copy(aocoColumnEncoding);
+	DefElem *el;
+	const StdRdOptions *ao_opts = currentAOStorageOptions();
+
+	int32		blocksize = -1;
+	int16		compresslevel = 0;
+	char	   *compresstype = NULL;
+	NameData	compresstype_nd;
+
+	foreach(lc, aocoColumnEncoding)
+	{
+		dl = (DefElem *) lfirst(lc);
+		if (pg_strncasecmp(dl->defname, SOPT_CHECKSUM, strlen(SOPT_CHECKSUM)) == 0)
+		{
+			ereport(ERROR,
+					(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+					 errmsg("\"%s\" is not a column specific option",
+							SOPT_CHECKSUM)));
+		}
+	}
+
+	foreach(lc, aocoColumnEncoding)
+	{
+		el = lfirst(lc);
+
+		if (pg_strcasecmp("compresstype", el->defname) == 0)
+		{
+			foundCompressType = true;
+			arg = defGetString(el);
+			if (pg_strcasecmp("none", arg) == 0)
+				foundCompressTypeNone = true;
+		}
+		else if (pg_strcasecmp("compresslevel", el->defname) == 0)
+		{
+			cmplevel = defGetString(el);
+		}
+		else if (pg_strcasecmp("blocksize", el->defname) == 0)
+			foundBlockSize = true;
+	}
+
+	/*
+	 * if rel is not NULL, the function is called for ADD COLUMN.
+	 * table setting in pg_appendonly is preferred over default
+	 * options in GUC gp_default_storage_option.
+	 */
+	if (rel)
+	{
+		GetAppendOnlyEntryAttributes(RelationGetRelid(rel),
+									 &blocksize,
+									 NULL,
+									 &compresslevel,
+									 NULL,
+									 &compresstype_nd);
+		compresstype = NameStr(compresstype_nd);
+	}
+
+	if (!foundCompressType && rel && compresstype[0])
+	{
+		el = makeDefElem("compresstype", (Node *) makeString(pstrdup(compresstype)), -1);
+		retList = lappend(retList, el);
+		if (compresslevel == 0 && ao_opts->compresslevel != 0)
+			compresslevel = ao_opts->compresslevel;
+
+		if (compresslevel != 0)
+		{
+			el = makeDefElem("compresslevel",
+							 (Node *) makeInteger(compresslevel),
+							 -1);
+			retList = lappend(retList, el);
+		}
+	}
+	else if (!foundCompressType && cmplevel == NULL)
+	{
+		/* No compression option specified, use current defaults. */
+		arg = ao_opts->compresstype[0] ?
+			   pstrdup(ao_opts->compresstype) : "none";
+		el = makeDefElem("compresstype", (Node *) makeString(arg), -1);
+		retList = lappend(retList, el);
+		el = makeDefElem("compresslevel",
+						 (Node *) makeInteger(ao_opts->compresslevel),
+						 -1);
+		retList = lappend(retList, el);
+	}
+	else if (!foundCompressType && cmplevel)
+	{
+		if (strcmp(cmplevel, "0") == 0)
+		{
+			/*
+			 * User wants to disable compression by specifying
+			 * compresslevel=0.
+			 */
+			el = makeDefElem("compresstype", (Node *) makeString("none"), -1);
+			retList = lappend(retList, el);
+		}
+		else
+		{
+			/*
+			 * User wants to enable compression by specifying non-zero
+			 * compresslevel.  Therefore, choose default compresstype
+			 * if configured, otherwise use zlib.
+			 */
+			if (ao_opts->compresstype[0] &&
+				strcmp(ao_opts->compresstype, "none") != 0)
+			{
+				arg = pstrdup(ao_opts->compresstype);
+			}
+			else
+			{
+				arg = AO_DEFAULT_COMPRESSTYPE;
+			}
+			el = makeDefElem("compresstype", (Node *) makeString(arg), -1);
+			retList = lappend(retList, el);
+		}
+	}
+	else if (foundCompressType && cmplevel == NULL)
+	{
+		if (foundCompressTypeNone)
+		{
+			/*
+			 * User wants to disable compression by specifying
+			 * compresstype=none.
+			 */
+			el = makeDefElem("compresslevel", (Node *) makeInteger(0), -1);
+			retList = lappend(retList, el);
+		}
+		else
+		{
+			/*
+			 * Valid compresstype specified.  Use default
+			 * compresslevel if it's non-zero, otherwise use 1.
+			 */
+			el = makeDefElem("compresslevel",
+							 (Node *) makeInteger(ao_opts->compresslevel > 0 ?
+												 ao_opts->compresslevel : 1),
+							 -1);
+			retList = lappend(retList, el);
+		}
+	}
+
+	if (foundBlockSize == false)
+	{
+		if (blocksize <= 0)
+			blocksize = ao_opts->blocksize;
+		el = makeDefElem("blocksize", (Node *) makeInteger(blocksize), -1);
+		retList = lappend(retList, el);
+	}
+	/*
+	 * The following two statements validate that the encoding clause is well
+	 * formed.
+	 */
+	if (validate)
+	{
+		Datum		d;
+
+		d = transformRelOptions(PointerGetDatum(NULL),
+								retList,
+								NULL, NULL,
+								true, false);
+		(void) default_reloptions(d, true, RELOPT_KIND_APPENDOPTIMIZED);
+	}
+
+	return retList;
+}
+
 /* ------------------------------------------------------------------------
  * Definition of the AO_COLUMN table access method.
  *
@@ -2267,6 +2451,8 @@ static TableAmRoutine ao_column_methods = {
 
 	.amoptions = ao_amoptions,
 	.swap_relation_files = aoco_swap_relation_files,
+	.validate_column_encoding_clauses = aoco_validate_column_encoding_clauses,
+	.transform_column_encoding_clauses = aoco_transform_column_encoding_clauses,
 };
 
 Datum

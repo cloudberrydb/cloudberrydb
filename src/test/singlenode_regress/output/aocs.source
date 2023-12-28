@@ -442,11 +442,11 @@ WITH (appendonly=true, orientation=column);
 SELECT c.relname, ae.attnum, ae.attoptions FROM pg_class c, pg_attribute_encoding ae WHERE c.relname LIKE 'aocs_inh%' AND c.oid=ae.attrelid ORDER BY 1,2;
      relname     | attnum |                     attoptions                      
 -----------------+--------+-----------------------------------------------------
- aocs_inh_child2 |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- aocs_inh_child2 |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ aocs_inh_child2 |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ aocs_inh_child2 |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
  aocs_inh_child3 |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- aocs_inh_child3 |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
- aocs_inh_parent |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
+ aocs_inh_child3 |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
+ aocs_inh_parent |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
  aocs_inh_parent |      2 | {blocksize=8192,compresstype=none,compresslevel=0}
 (6 rows)
 
@@ -463,9 +463,9 @@ WITH (appendonly=true, orientation=column);
 SELECT c.relname, ae.attnum, ae.attoptions FROM pg_class c, pg_attribute_encoding ae WHERE c.relname LIKE 'aocs_inh_multi%' AND c.oid=ae.attrelid ORDER BY 1,2;
        relname       | attnum |                     attoptions                      
 ---------------------+--------+-----------------------------------------------------
- aocs_inh_multichild |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- aocs_inh_multichild |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
- aocs_inh_multichild |      3 | {compresstype=none,blocksize=32768,compresslevel=0}
+ aocs_inh_multichild |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ aocs_inh_multichild |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
+ aocs_inh_multichild |      3 | {compresstype=none,compresslevel=0,blocksize=32768}
 (3 rows)
 
 -- AOCO table inherits a heap table.
@@ -477,10 +477,10 @@ WITH (appendonly=true, orientation=column);
 SELECT c.relname, ae.attnum, ae.attoptions FROM pg_class c, pg_attribute_encoding ae WHERE c.relname LIKE 'aocs_inh2_%' AND c.oid=ae.attrelid ORDER BY 1,2;
      relname      | attnum |                     attoptions                      
 ------------------+--------+-----------------------------------------------------
- aocs_inh2_child1 |      1 | {compresstype=none,blocksize=32768,compresslevel=0}
- aocs_inh2_child1 |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ aocs_inh2_child1 |      1 | {compresstype=none,compresslevel=0,blocksize=32768}
+ aocs_inh2_child1 |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
  aocs_inh2_child2 |      1 | {compresstype=zlib,compresslevel=1,blocksize=32768}
- aocs_inh2_child2 |      2 | {compresstype=none,blocksize=32768,compresslevel=0}
+ aocs_inh2_child2 |      2 | {compresstype=none,compresslevel=0,blocksize=32768}
 (4 rows)
 
 -- don't drop the tables, to also test pg_dump & restore of them.
