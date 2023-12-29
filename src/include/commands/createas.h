@@ -42,6 +42,6 @@ extern void intorel_initplan(struct QueryDesc *queryDesc, int eflags);
 
 extern bool CreateTableAsRelExists(CreateTableAsStmt *ctas);
 
-extern ObjectAddress CreateTaskIVM(ParseState *pstate, Oid matviewOid, bool ex_lock);
+extern ObjectAddress CreateTaskIVM(ParseState *pstate, Oid matviewOid, char* interval);
 
 #endif							/* CREATEAS_H */

@@ -534,7 +534,7 @@ ExecCreateTableAs(ParseState *pstate, CreateTableAsStmt *stmt,
 				/* Create triggers on incremental maintainable materialized view */
 				CreateIvmTriggersOnBaseTables(query_immv, matviewOid, into->defer);
 				if (into->defer && DeltaPluginIsReady("delta"))
-					CreateTaskIVM(pstate, matviewOid, false);
+					CreateTaskIVM(pstate, matviewOid, into->interval);
 			}
 			table_close(matviewRel, NoLock);
 		}
@@ -1811,24 +1811,28 @@ get_primary_key_attnos_from_query(Query *query, List **constraintList)
 	return keys;
 }
 
-#define DEFAULT_INTERVAL "30 seconds"
+
 
 ObjectAddress
-CreateTaskIVM(ParseState *pstate, Oid matviewOid, bool ex_lock)
+CreateTaskIVM(ParseState *pstate, Oid matviewOid, char* interval)
 {
 	ObjectAddress	refaddr;
 	ObjectAddress	address;
 	StringInfoData namebuf;
+	char	*schedule = interval;
 	CreateTaskStmt *stmt = makeNode(CreateTaskStmt);
+
+	if (schedule == NULL)
+		schedule = "30 seconds";
 
 	initStringInfo(&namebuf);
 	appendStringInfo(&namebuf, "ivm_task_%u", matviewOid);
 	stmt->taskname = pstrdup(namebuf.data);
-	stmt->schedule = pstrdup(DEFAULT_INTERVAL);
+	stmt->schedule = pstrdup(schedule);
 
 	resetStringInfo(&namebuf);
 	appendStringInfo(&namebuf, "select pg_catalog.ivm_deferred_maintenance(%u, '%s')",
-					matviewOid, ex_lock ? "true" : "false");
+					matviewOid, schedule);
 	stmt->sql = pstrdup(namebuf.data);
 	stmt->options = NIL;
 	stmt->if_not_exists = true;

@@ -124,6 +124,7 @@ typedef struct IntoClause
 	bool 		defer;			/* true for DEFERRED REFRESH */
 	Node       *distributedBy;  /* GPDB: columns to distribubte the data on. */
 	bool		ivm;			/* true for WITH IVM */
+	char	   *interval;		/* interval for IVM REFRESH */
 	Oid 		matviewOid;		/* matview oid */
 	char		*enrname;		/* ENR name for materialized view delta */
 } IntoClause;

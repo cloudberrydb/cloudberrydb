@@ -18361,6 +18361,10 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 		if (tbinfo->relkind == RELKIND_MATVIEW)
 		{
 			PQExpBuffer result;
+			if (tbinfo->isivm == MATVIEW_IVM_DEFERRED)
+				appendPQExpBuffer(q, " REFERSH DEFERRED");
+			else if (tbinfo->isivm == MATVIEW_IVM_IMMEDIATE)
+				appendPQExpBuffer(q, " REFRESH IMMEDIATE");
 
 			result = createViewAsClause(fout, tbinfo);
 			appendPQExpBuffer(q, " AS\n%s\n  WITH NO DATA",
