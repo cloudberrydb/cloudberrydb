@@ -20,6 +20,7 @@
 #include "fmgr.h"
 #include "access/tupdesc.h"
 #include "access/xlog.h"
+#include "catalog/pg_am.h"
 #include "catalog/pg_appendonly.h"
 #include "catalog/pg_class.h"
 #include "catalog/pg_index.h"
@@ -480,6 +481,10 @@ typedef struct ViewOptions
 	((amhandler) == F_AO_COLUMN_TABLEAM_HANDLER)
 #define AMHandlerIsAO(amhandler) \
 	(AMHandlerIsAoRows(amhandler) || AMHandlerIsAoCols(amhandler))
+
+#define AMHandlerSupportEncodingClause(amhandler) \
+	((amhandler) && (amhandler)->validate_column_encoding_clauses && (amhandler)->transform_column_encoding_clauses)
+
 /*
  * CAUTION: this macro is a violation of the absraction that table AM and
  * index AM interfaces provide.  Use of this macro is discouraged.  If
@@ -515,6 +520,29 @@ typedef struct ViewOptions
  */
 #define RelationIsAppendOptimized(relation) \
 	AMHandlerIsAO((relation)->rd_amhandler)
+
+/*
+ * FIXME: CBDB should not know the am oid of PAX. We put here because the kernel
+ * can't distinguish the PAX and renamed heap(heap_psql) in test `psql`.
+ */
+#define PAX_AM_OID 7047
+/*
+ * CAUTION: this macro is a violation of the absraction that table AM and
+ * index AM interfaces provide.  Use of this macro is discouraged.  If
+ * table/index AM API falls short for your use case, consider enhancing the
+ * interface.
+ *
+ * RelationIsNonblockRelation looks replacable by `!RelationIsHeap`, but
+ * they have different meanings. RelationIsNonblockRelation expand the
+ * relation type to run the code path like AO/CO. `!RelationIsHeap`
+ * emphasizes NOT heap relation.
+ *
+ * RelationIsNonblockRelation
+ *      True iff relation(table) should run the code path as AO/CO
+ */
+#define RelationIsNonblockRelation(relation) \
+	(RelationIsAppendOptimized(relation) || \
+	 (relation)->rd_rel->relam == PAX_AM_OID)
 
 /*
  * RelationIsBitmapIndex

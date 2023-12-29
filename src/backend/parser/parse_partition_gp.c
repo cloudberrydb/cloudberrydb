@@ -1425,6 +1425,7 @@ generatePartitions(Oid parentrelid, GpPartitionDefinition *gpPartSpec,
 	List	   *ancestors = get_partition_ancestors(parentrelid);
 	partname_comp partcomp = {.tablename=NULL, .level=0, .partnum=0};
 	bool isSubTemplate = false;
+	List       *penc_cls_before_merge = NIL;
 	List       *penc_cls = NIL;
 	List       *parent_tblenc = NIL;
 	bool		hasImplicitRangeBounds;
@@ -1472,6 +1473,26 @@ generatePartitions(Oid parentrelid, GpPartitionDefinition *gpPartSpec,
 		if (IsA(n, ColumnReferenceStorageDirective))
 			penc_cls = lappend(penc_cls, lfirst(lc));
 	}
+
+	/**
+	 * merge_partition_encoding used by aoco, but in
+	 * RELKIND_PARTITIONED_TABLE, it is impossible to tell
+	 * whether the partition subtable is aoco.
+	 *
+	 * Therefore, only the encoding clause of the partition
+	 * main table can call merge_partition_encoding in advance,
+	 * and the merge_partition_encoding can be performed again
+	 * when the partition sub-table is aoco (the encoding clause
+	 * set in the partition sub-table)
+	 *
+	 * But for other access methods which implement the encoding
+	 * interface, they do not need (also can not) fully fill
+	 * the encoding attrs. In this case, only need to pass the
+	 * `penc_cls` before it call merge_partition_encoding which
+	 * will fill aoco attrs. Also `penc_cls` will ignore the
+	 * encoding clause which partition main table set.
+	 */
+	penc_cls_before_merge = list_copy(penc_cls);
 
 	/*
 	 * Merge encoding specified for parent table level and partition
@@ -1593,6 +1614,15 @@ generatePartitions(Oid parentrelid, GpPartitionDefinition *gpPartSpec,
 
 			if (elem->accessMethod && strcmp(elem->accessMethod, "ao_column") == 0)
 				elem->colencs = merge_partition_encoding(pstate, elem->colencs, penc_cls);
+			else if (!elem->colencs) {
+				/* For the aoco, used `transfromColumnEncodingAocoRootPartition` to
+				 * pass encoding clause in root partition. The logic in that method is
+				 * relate to aoco that means it only validate and pass the aoco encoding
+				 * clause options. So we have to give up pass root partition encoding
+				 * clause options in other access methods which implements the call back.
+				 */
+				elem->colencs = penc_cls_before_merge;
+			}
 
 			if (elem->isDefault)
 				new_parts = generateDefaultPartition(pstate, parentrel, elem, tmpSubPartSpec, &partcomp);
