@@ -369,6 +369,46 @@ select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
 select c1, c3, count(c2) from aqumv_t3 where c1 > 90 group by cube(c1, c3);
 abort;
 
+--
+-- Test HAVING clause
+--
+begin;
+create table aqumv_t4(c1 int, c2 int, c3 int) distributed by (c1);
+insert into aqumv_t4 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into aqumv_t4 values (91, NULL, 95);
+analyze aqumv_t4;
+
+create incremental materialized view aqumv_mvt4_0 as
+  select c1 as mc1, c2 as mc2, c3 as mc3
+  from aqumv_t4 where c1 > 90;
+analyze aqumv_mvt4_0;
+
+-- HAVING clause pushed down to where quals.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t4 where c1 > 90 group by (c1, c3) having c3 > 97 ;
+select c1, c3 from aqumv_t4 where c1 > 90 group by (c1, c3) having c3 > 97 ;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t4 where c1 > 90 group by (c1, c3) having c3 > 97 ;
+select c1, c3 from aqumv_t4 where c1 > 90 group by (c1, c3) having c3 > 97 ;
+
+-- quals kept in HAVING clause.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having avg(c2) > 95;
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having avg(c2) > 95;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having avg(c2) > 95;
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having avg(c2) > 95;
+
+-- duplicated having quals with where quals.
+explain(costs off, verbose)
+select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having c1 > 90;
+
+abort;
+
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;

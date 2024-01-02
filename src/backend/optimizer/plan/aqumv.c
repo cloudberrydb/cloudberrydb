@@ -121,7 +121,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 						  (parse->rowMarks != NIL) ||
 						  parse->hasWindowFuncs ||
 						  parse->hasDistinctOn ||
-						  (parse->havingQual != NULL) ||
 						  parse->hasModifyingCTE ||
 						  parse->sortClause ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_REFRESH_MATVIEW) ||
@@ -344,13 +343,19 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			continue;
 
 		/*
-		 * We have successfully processed target list, all columns in Aggrefs could be
-		 * computed from mvQuery.
-		 * It's safe to set hasAggs here.
+		 * We have successfully processed target list, and all columns in Aggrefs
+		 * could be computed from mvQuery.
 		 */
 		mvQuery->hasAggs = parse->hasAggs;
 		mvQuery->groupClause = parse->groupClause;
 		mvQuery->groupingSets = parse->groupingSets;
+		/*
+		 * For HAVING quals have aggregations, we have already processed them in
+		 * Aggrefs during aqumv_process_targetlist().
+		 * For HAVING quals don't have aggregations, they may be pushed down to
+		 * jointree's quals and would be processed in post_quals later.
+		 */
+		mvQuery->havingQual = parse->havingQual;
 
 		/*
 		 * AQUMV
@@ -359,7 +364,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * We assume that the selection predicates of view and query expressions
 		 * have been converted into conjunctive normal form(CNF) before we process
 		 * them.
-		 * AQUMV_MVP: no having quals now.
 		 */
 		preprocess_qual_conditions(subroot, (Node *) mvQuery->jointree);
 
@@ -388,7 +392,11 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * NB: Update processed_tlist again in case that tlist has been changed. 
 		 */
 		preprocess_targetlist(subroot);
-		preprocess_aggrefs(subroot, (Node *) subroot->processed_tlist);
+		if(mvQuery->hasAggs)
+		{
+			preprocess_aggrefs(subroot, (Node *) subroot->processed_tlist);
+			preprocess_aggrefs(subroot, mvQuery->havingQual);
+		}
 
 		/*
 		 * AQUMV
