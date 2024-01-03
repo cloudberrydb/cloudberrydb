@@ -258,10 +258,6 @@ cdbhashreduce_vec(VecCdbHash *h)
 	g_autoptr(GArrowArrayDatum) res_datum = NULL;
 	g_autoptr(GArrowFunction)   func = NULL;
 
-	GList         *args = NULL;
-	g_autoptr(GError)        error = NULL;
-	int           index = 0;
-
 	/*
 	 * Reduce our 32-bit hash value to a segment number
 	 */
@@ -289,30 +285,6 @@ cdbhashreduce_vec(VecCdbHash *h)
 			elog(ERROR, "not support reduce algorithm %d", h->base.reducealg);
 			break;
 	}
-
-	func = garrow_function_find("choose");
-
-	if (func == NULL)
-	{
-		elog(ERROR, "%s find choose function fail", __FUNCTION__);
-	}
-
-	args = garrow_list_append_ptr(args, res_datum);
-
-	for (index = 0; index < h->base.numsegs; index++)
-	{
-		g_autoptr(GArrowDatum) tmp = garrow_copy_ptr(((VecCdbHash *)h)->segmapping_scalar[index]);
-		args = garrow_list_append_ptr(args, tmp);
-	}
-
-	garrow_store_func(res_datum, garrow_function_execute(func, args, NULL, NULL, &error));
-
-	if (error != NULL)
-	{
-		elog(ERROR, "%s execute choose function fail caused by %s", __FUNCTION__, error->message);
-	}
-
-	garrow_list_free_ptr(&args);
 
 	PG_VEC_RETURN_POINTER(res_datum);
 }
