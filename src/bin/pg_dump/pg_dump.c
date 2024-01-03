@@ -387,6 +387,7 @@ static bool isGPDB(Archive *fout);
 static bool isGPDB5000OrLater(Archive *fout);
 static bool isGPDB6000OrLater(Archive *fout);
 static void error_unsupported_server_version(Archive *fout) pg_attribute_noreturn();
+static PQExpBuffer createViewRefreshClause(Archive *fout, const TableInfo *tbinfo);
 
 /* END MPP ADDITION */
 
@@ -18362,9 +18363,12 @@ dumpTableSchema(Archive *fout, const TableInfo *tbinfo)
 		{
 			PQExpBuffer result;
 			if (tbinfo->isivm == MATVIEW_IVM_DEFERRED)
+			{
 				appendPQExpBuffer(q, " REFERSH DEFERRED");
-			else if (tbinfo->isivm == MATVIEW_IVM_IMMEDIATE)
-				appendPQExpBuffer(q, " REFRESH IMMEDIATE");
+				result = createViewRefreshClause(fout, tbinfo);
+				appendPQExpBuffer(q, " SCHEDULE '%s'", result->data);
+				resetPQExpBuffer(result);
+			}
 
 			result = createViewAsClause(fout, tbinfo);
 			appendPQExpBuffer(q, " AS\n%s\n  WITH NO DATA",
@@ -21692,6 +21696,46 @@ nextToken(register char **stringp, register const char *delim)
 		} while (sc != 0);
 	}
 	/* NOTREACHED */
+}
+
+
+static PQExpBuffer
+createViewRefreshClause(Archive *fout, const TableInfo *tbinfo)
+{
+	PQExpBuffer query = createPQExpBuffer();
+	PQExpBuffer result = createPQExpBuffer();
+	PGresult   *res;
+	int			len;
+
+	/* Fetch the task definition */
+	appendPQExpBuffer(query,
+					  "SELECT schedule from pg_catalog.pg_task WHERE jobname = 'ivm_task_%u';",
+					  tbinfo->dobj.catId.oid);
+
+	res = ExecuteSqlQuery(fout, query->data, PGRES_TUPLES_OK);
+
+	if (PQntuples(res) != 1)
+	{
+		if (PQntuples(res) < 1)
+			fatal("query to obtain definition of view \"%s\" returned no data",
+				  tbinfo->dobj.name);
+		else
+			fatal("query to obtain definition of view \"%s\" returned more than one definition",
+				  tbinfo->dobj.name);
+	}
+
+	len = PQgetlength(res, 0, 0);
+
+	if (len == 0)
+		fatal("definition of view \"%s\" appears to be empty (length zero)",
+			  tbinfo->dobj.name);
+
+	appendBinaryPQExpBuffer(result, PQgetvalue(res, 0, 0), len - 1);
+
+	PQclear(res);
+	destroyPQExpBuffer(query);
+
+	return result;
 }
 
 /* END MPP ADDITION */
