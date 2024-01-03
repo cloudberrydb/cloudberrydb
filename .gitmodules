@@ -1,3 +1,14 @@
 [submodule "gpcontrib/gpcloud/test/googletest"]
 	path = gpcontrib/gpcloud/test/googletest
 	url = https://code.hashdata.xyz/cloudberry/googletest.git
+[submodule "contrib/pax_storage/src/cpp/contrib/googletest"]
+	path = contrib/pax_storage/src/cpp/contrib/googletest
+	url = https://code.hashdata.xyz/cloudberry/googletest
+[submodule "contrib/pax_storage/src/cpp/contrib/zstd"]
+	path = contrib/pax_storage/src/cpp/contrib/zstd
+	url = https://code.hashdata.xyz/cloudberry/lib_zstd.git
+	branch = v1.5.5
+[submodule "contrib/pax_storage/src/cpp/contrib/cpp-stub"]
+	path = contrib/pax_storage/src/cpp/contrib/cpp-stub
+	url = https://code.hashdata.xyz/cloudberry/cpp-stub
+	branch = dev

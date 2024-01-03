@@ -1,0 +1,284 @@
+#include "storage/pax_buffer.h"
+
+#include "exceptions/CException.h"
+
+namespace pax {
+
+#define MEMORY_RESIZE_LIMIT (768UL * 1024 * 1024)
+
+BlockBuffer::BlockBuffer(char *begin_offset, char *end_offset)
+    : begin_offset_(begin_offset), end_offset_(end_offset) {}
+
+BlockBufferBase::BlockBufferBase(char *ptr, size_t size, size_t offset)
+    : block_pos_(ptr + offset), block_buffer_(ptr, ptr + size) {
+  Assert(offset <= size);
+}
+
+void BlockBufferBase::Set(char *ptr, size_t size, size_t offset) {
+  Assert(offset <= size);
+  block_buffer_ = BlockBuffer(ptr, ptr + size);
+  block_pos_ = ptr + offset;
+}
+
+void BlockBufferBase::Set(char *ptr, size_t size) {
+  block_buffer_ = BlockBuffer(ptr, ptr + size);
+  block_pos_ = ptr;
+}
+
+void BlockBufferBase::Write(char *ptr, size_t size) {
+  Assert(block_pos_ + size <= block_buffer_.End());
+  memcpy(block_pos_, ptr, size);
+}
+
+void BlockBufferBase::WriteZero(size_t size) {
+  Assert(block_pos_ + size <= block_buffer_.End());
+  memset(block_pos_, 0, size);
+}
+
+void BlockBufferBase::Combine(const BlockBufferBase &buffer) {
+  Assert(Available() > buffer.Used());
+  Write(buffer.block_buffer_.Start(), buffer.Used());
+}
+
+template <typename T>
+DataBuffer<T>::DataBuffer(T *data_buffer, size_t size, bool allow_null,
+                          bool mem_take_over)
+    : BlockBufferBase(nullptr, 0, 0),
+      mem_take_over_(mem_take_over),
+      data_buffer_(data_buffer) {
+  if (!allow_null && !data_buffer_ && size != 0) {
+    data_buffer_ = reinterpret_cast<T *>(cbdb::Palloc(size));
+  }
+  BlockBufferBase::Set(reinterpret_cast<char *>(data_buffer_), size, 0);
+}
+
+template <typename T>
+DataBuffer<T>::DataBuffer(const DataBuffer &data_buffer)
+    : BlockBufferBase(data_buffer),
+      mem_take_over_(false),
+      data_buffer_(data_buffer.data_buffer_) {}
+
+template <typename T>  // NOLINT: redirect constructor
+DataBuffer<T>::DataBuffer(size_t size)
+    : DataBuffer(nullptr, size, false, true) {}
+
+template <typename T>
+T &DataBuffer<T>::operator[](size_t i) {
+  return data_buffer_[i];
+}
+
+template <typename T>
+size_t DataBuffer<T>::GetSize() {
+  return Used() / sizeof(T);
+}
+
+template <typename T>
+DataBuffer<T>::~DataBuffer() {
+  if (mem_take_over_ && data_buffer_) {
+    cbdb::Pfree(data_buffer_);
+  }
+}
+
+template <typename T>
+void DataBuffer<T>::Set(char *ptr, size_t size, size_t offset) {
+  Assert(data_buffer_ == nullptr);
+  BlockBufferBase::Set(ptr, size, offset);
+  data_buffer_ = reinterpret_cast<T *>(ptr);
+}
+
+template <typename T>
+void DataBuffer<T>::Set(char *ptr, size_t size) {
+  Assert(data_buffer_ == nullptr);
+  BlockBufferBase::Set(ptr, size);
+  data_buffer_ = reinterpret_cast<T *>(ptr);
+}
+
+template <typename T>
+void DataBuffer<T>::Reset() {
+  Assert(!mem_take_over_);
+  BlockBufferBase::Set(nullptr, 0);
+  data_buffer_ = nullptr;
+}
+
+template <typename T>
+void DataBuffer<T>::Write(T value) {
+  Assert(block_pos_ + sizeof(T) <= block_buffer_.End());
+  *(reinterpret_cast<T *>(block_pos_)) = value;
+}
+
+template <typename T>
+void DataBuffer<T>::Write(T *ptr, size_t size) {
+  Assert(size % sizeof(T) == 0 && (block_pos_ + size) <= block_buffer_.End());
+  memcpy(block_pos_, reinterpret_cast<const char *>(ptr), size);
+}
+
+template <typename T>
+void DataBuffer<T>::Write(const T *ptr, size_t size) {
+  Assert(size % sizeof(T) == 0 && (block_pos_ + size) <= block_buffer_.End());
+  memcpy(block_pos_, reinterpret_cast<const char *>(ptr), size);
+}
+
+template <typename T>
+void DataBuffer<T>::Read(T *dst) {
+  Assert(Used() > sizeof(T) && Used() <= Capacity());
+  memcpy(dst, block_pos_, sizeof(T));
+}
+
+template <typename T>
+void DataBuffer<T>::Read(void *dst, size_t n) {
+  Assert(Used() > n && Used() <= Capacity());
+  memcpy(dst, block_pos_, n);
+}
+
+template <typename T>
+T *DataBuffer<T>::GetBuffer() const {
+  return data_buffer_;
+}
+
+template <typename T>
+T *DataBuffer<T>::GetAvailableBuffer() const {
+  return data_buffer_ + Used();
+}
+
+template <typename T>
+void DataBuffer<T>::ReSize(size_t size, double mul_ratio) {
+  Assert(mul_ratio > 1);
+  auto cap = Capacity();
+
+  if (size <= cap) {
+    return;
+  }
+
+  while (cap < size) {
+    cap = cap * mul_ratio;
+  }
+
+  ReSize(cap);
+}
+
+template <typename T>
+void DataBuffer<T>::ReSize(size_t size) {
+  if (!mem_take_over_) {
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidMemoryOperation);
+  }
+
+  if (unlikely(size > MEMORY_RESIZE_LIMIT)) {
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeOOM);
+  }
+
+  size_t used = Used();
+  if (data_buffer_) {
+    data_buffer_ = reinterpret_cast<T *>(cbdb::RePalloc(data_buffer_, size));
+  } else {
+    data_buffer_ = reinterpret_cast<T *>(cbdb::Palloc(size));
+  }
+  BlockBufferBase::Set(reinterpret_cast<char *>(data_buffer_), size, used);
+}
+
+template <typename T>
+bool DataBuffer<T>::IsMemTakeOver() const {
+  return mem_take_over_;
+}
+
+template <typename T>
+void DataBuffer<T>::SetMemTakeOver(bool take_over) {
+  mem_take_over_ = take_over;
+}
+
+template <typename T>
+void DataBuffer<T>::Clear() {
+  if (mem_take_over_ && data_buffer_) {
+    cbdb::Pfree(data_buffer_);
+  }
+  data_buffer_ = nullptr;
+}
+
+template class DataBuffer<char>;
+template class DataBuffer<int8>;
+template class DataBuffer<int16>;
+template class DataBuffer<uint32>;
+template class DataBuffer<int32>;
+template class DataBuffer<int64>;
+template class DataBuffer<float>;
+template class DataBuffer<double>;
+template class DataBuffer<bool>;
+
+template <typename T>
+UntreatedDataBuffer<T>::UntreatedDataBuffer(size_t size)
+    : DataBuffer<T>(nullptr, size, false, true) {
+  untreated_pos_ = BlockBufferBase::block_buffer_.Start();
+}
+
+template <typename T>
+void UntreatedDataBuffer<T>::BrushUnTreated(size_t size) {
+  Assert(size >= 0);
+  Assert(untreated_pos_ + size <= BlockBufferBase::block_pos_);
+  untreated_pos_ += size;
+}
+
+template <typename T>
+void UntreatedDataBuffer<T>::BrushBackUnTreated(size_t size) {
+  size_t new_offset = UnTreated() - size;
+  Assert(new_offset >= 0 && UnTreated() <= BlockBufferBase::Used());
+
+  untreated_pos_ = BlockBufferBase::block_buffer_.Start() + new_offset;
+}
+
+template <typename T>
+void UntreatedDataBuffer<T>::TreatedAll() {
+  Assert(UnTreated() <= BlockBufferBase::Used());
+  size_t treated = UnTreated();
+  size_t untouched = UnTouched();
+  if (untouched <= treated) {
+    memcpy(BlockBufferBase::block_buffer_.Start(), untreated_pos_, untouched);
+    untreated_pos_ = BlockBufferBase::block_buffer_.Start();
+    BlockBufferBase::block_pos_ = untreated_pos_ + untouched;
+    return;
+  }
+
+  char *write_pos = BlockBufferBase::block_buffer_.Start();
+  size_t batch_size = 0;
+  while (untouched != 0) {
+    batch_size = untouched > treated ? treated : untouched;
+
+    memcpy(write_pos, untreated_pos_, batch_size);
+    untreated_pos_ = untreated_pos_ + batch_size;
+    write_pos = write_pos + batch_size;
+
+    untouched -= batch_size;
+  }
+
+  BlockBufferBase::block_pos_ = write_pos;
+  untreated_pos_ = BlockBufferBase::block_buffer_.Start();
+}
+
+template <typename T>
+void UntreatedDataBuffer<T>::ReSize(size_t size, double mul_ratio) {
+  size_t untreated = UnTreated();
+  DataBuffer<T>::ReSize(size, mul_ratio);
+  untreated_pos_ = BlockBufferBase::block_buffer_.Start() + untreated;
+}
+
+template <typename T>
+void UntreatedDataBuffer<T>::ReSize(size_t size) {
+  size_t untreated = UnTreated();
+  DataBuffer<T>::ReSize(size);
+  untreated_pos_ = BlockBufferBase::block_buffer_.Start() + untreated;
+}
+
+template class UntreatedDataBuffer<char>;
+template class UntreatedDataBuffer<int64>;
+
+template <typename T>
+TreatedDataBuffer<T>::TreatedDataBuffer(T *data_buffer, size_t size)
+    : DataBuffer<T>(data_buffer, size, false, false) {
+  Assert(data_buffer);
+  Assert(size != 0);
+  BlockBufferBase::Brush(size);
+  treated_pos_ = BlockBufferBase::block_buffer_.Start();
+}
+
+template class TreatedDataBuffer<char>;
+template class TreatedDataBuffer<int64>;
+
+}  // namespace pax

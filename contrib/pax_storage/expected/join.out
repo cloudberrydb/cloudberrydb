@@ -1,0 +1,46 @@
+-- start_ignore
+create extension pax;
+drop table if exists t1;
+-- end_ignore
+create table t1(v int) using pax distributed by(v);
+insert into t1 select generate_series(1,10);
+select * from t1 order by v;
+ v  
+----
+  1
+  2
+  3
+  4
+  5
+  6
+  7
+  8
+  9
+ 10
+(10 rows)
+
+update t1 set v=(select max(v) from t1) where v <= 5;
+select * from t1 order by v;
+ v  
+----
+  6
+  7
+  8
+  9
+ 10
+ 10
+ 10
+ 10
+ 10
+ 10
+(10 rows)
+
+select * from t1 as a join t1 as b on a.v=b.v where a.v<10;
+ v | v 
+---+---
+ 6 | 6
+ 9 | 9
+ 7 | 7
+ 8 | 8
+(4 rows)
+

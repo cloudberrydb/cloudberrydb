@@ -1,0 +1,25 @@
+syntax = "proto2";
+package pax.stats;
+
+message ColumnDataStats {
+  optional bytes minimal = 1;             // Minimal value stored as Datum.
+  optional bytes maximum = 2;             // Maximum value stored as Datum.
+}
+message ColumnBasicInfo {
+  optional uint32 typid = 1;              // type oid of the column
+  optional uint32 collation = 2;          // collation oid of the column
+  optional uint32 opfamily = 3;
+}
+
+message MicroPartitionStatisticsInfo
+{
+  repeated ColumnStats columnStats = 1;  // Statistics info stored by single column.
+}
+
+message ColumnStats {
+  optional bool allnull = 1 [default=true];     // all-null value for single column.
+  optional bool hasnull = 2 [default=false];    // has-null value for single column.
+  optional ColumnBasicInfo info = 3;
+  optional ColumnDataStats  dataStats = 4;    // minimal vaule stats.
+}
+
