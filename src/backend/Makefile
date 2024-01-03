@@ -67,7 +67,7 @@ LIBS := $(filter-out -lpgport -lpgcommon, $(LIBS)) $(LDAP_LIBS_BE) $(ICU_LIBS)
 LIBS := $(filter-out -lreadline -ledit -ltermcap -lncurses -lcurses, $(LIBS))
 
 # Cloudberry uses threads in the backend
-LIBS := $(LIBS) -lpthread
+LIBS := $(LIBS) -lpthread -lstdc++
 
 ifeq ($(with_systemd),yes)
 LIBS += -lsystemd
