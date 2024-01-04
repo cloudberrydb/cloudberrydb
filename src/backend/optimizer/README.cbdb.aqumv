@@ -228,7 +228,11 @@ Below are not supported now:
       Group By/Grouping Sets/Rollup/Cube (on mv_query)
       Window Functions
       CTE
+      Distinct
       Distinct On
+      UNION/INTERSECT/EXCEPT
+      FOR UPDATE, FOR NO KEY UPDATE, FOR SHARE, FOR KEY SHARE
+      Scatter By
       Refresh Materialized View
       Create AS
       Partition Tables
