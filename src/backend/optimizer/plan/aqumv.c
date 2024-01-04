@@ -119,6 +119,10 @@ answer_query_using_materialized_views(PlannerInfo *root,
 	/* Group By without agg could be possible though IMMV doesn't support it yet. */
 	bool can_not_use_mv = (parse->commandType != CMD_SELECT) ||
 						  (parse->rowMarks != NIL) ||
+						  (parse->distinctClause != NIL) ||
+						  (parse->scatterClause != NIL) ||
+						  (parse->cteList != NIL) ||
+						  (parse->setOperations != NULL) ||
 						  parse->hasWindowFuncs ||
 						  parse->hasDistinctOn ||
 						  parse->hasModifyingCTE ||
@@ -211,7 +215,14 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			mvQuery->hasWindowFuncs ||
 			mvQuery->hasDistinctOn ||
 			mvQuery->hasModifyingCTE ||
-			mvQuery->hasSubLinks)
+			mvQuery->hasSubLinks ||
+			(mvQuery->groupClause != NIL) ||
+			/* IVM doesn't support belows now, just in case. */
+			(mvQuery->rowMarks != NIL) ||
+			(mvQuery->distinctClause != NIL) ||
+			(mvQuery->cteList != NIL) ||
+			(mvQuery->setOperations != NULL) ||
+			(mvQuery->scatterClause != NIL))
 			continue;
 
 		if (list_length(mvQuery->jointree->fromlist) != 1)
