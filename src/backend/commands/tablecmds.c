@@ -17379,6 +17379,7 @@ build_ctas_with_dist(Relation rel, DistributedBy *dist_clause,
 		into->options = storage_opts;
 		into->tableSpaceName = get_tablespace_name(tblspc);
 		into->distributedBy = (Node *)dist_clause;
+		into->ivm = false;
 		s->intoClause = into;
 
 		RawStmt *rawstmt = makeNode(RawStmt);

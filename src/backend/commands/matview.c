@@ -138,6 +138,7 @@ typedef struct MV_TriggerTable
 
 	List   *rte_indexes;		/* List of RTE index of the modified table */
 	RangeTblEntry *original_rte;	/* the original RTE saved before rewriting query */
+	RangeTblEntry *version_rte;	/* the version RTE saved after rewriting query */
 
 	Relation	rel;			/* relation of the modified table */
 	TupleTableSlot *slot;		/* for checking visibility in the pre-state table */
@@ -248,6 +249,10 @@ static uint32 ivm_export_delta_table(Oid matview_id, Datum relids, int64 count);
 static bool ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid);
 Query* rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 								  ParseState *pstate, Oid matviewid, int64 snapshotid);
+RangeTblEntry* get_poststate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
+				 QueryEnvironment *queryEnv, Oid matviewid, int64 version);
+Query* rewrite_query_atversion(Query *query, List *tables,
+						ParseState *pstate, Oid matviewid, int64 snapshotid);
 /*
  * SetMatViewPopulatedState
  *		Mark a materialized view as populated, or not.
@@ -2410,7 +2415,7 @@ rewrite_query_for_postupdate_state(Query *query, MV_TriggerTable *table, int rte
 	ListCell *lc = list_nth_cell(query->rtable, rte_index - 1);
 
 	/* Retore the original RTE */
-	lfirst(lc) = table->original_rte; //TODO: defer
+	lfirst(lc) = table->original_rte;
 
 	return query;
 }
@@ -4007,6 +4012,8 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 	//FIXME: fix truncate case
 	if (event & IVM_EVENT_TRUNCATE)
 	{
+		// rewritten = rewrite_query_atversion(rewritten, entry->tables,
+		// 									pstate, matviewOid, currentid);
 		MemoryContextSwitchTo(oldcxt);
 
 		ExecuteTruncateGuts_IVM(matviewRel, matviewOid, query);
@@ -4049,6 +4056,8 @@ ivm_deferred_maintenance_internal(Oid matviewOid, int64 previd, int64 currentid)
 	 * Step1: collect transition tables in QEs and
 	 * Set all tables in the query to pre-update state and
 	 */
+	// rewritten = rewrite_query_atversion(rewritten, entry->tables,
+	// 									pstate, matviewOid, currentid);
 	rewritten = rewrite_query_for_preupdate_state(rewritten, entry->tables,
 												  pstate, matviewOid);
 	/* Rewrite for counting duplicated tuples and aggregates functions*/
@@ -4393,6 +4402,8 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 	char *relname;
 	ListCell *lc;
 
+	Assert(rte->rtekind == RTE_SUBQUERY);
+
 	pstate = make_parsestate(NULL);
 	pstate->p_queryEnv = queryEnv;
 	pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
@@ -4428,11 +4439,9 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 	subquery = transformStmt(pstate, raw->stmt);
 
 	/* save the original RTE */
-	table->original_rte = copyObject(rte);
-
+	//table->original_rte = copyObject(rte);
 	rte->rtekind = RTE_SUBQUERY;
 	rte->subquery = subquery;
-	rte->security_barrier = false;
 
 	/* Clear fields that should not be set in a subquery RTE */
 	rte->relid = InvalidOid;
@@ -4440,6 +4449,7 @@ get_prestate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
 	rte->rellockmode = 0;
 	rte->tablesample = NULL;
 	rte->inh = false;			/* must not be set for a subquery */
+	rte->security_barrier = false;
 
 	return rte;
 }
@@ -4516,7 +4526,137 @@ rewrite_query_for_preupdate_atversion(Query *query, List *tables,
 	return query;
 }
 
+
+/*
+ * get_poststate_rte_atversion
+ * Get a subquery representing post-state of the table at the given version.
+ *
+*/
+RangeTblEntry*
+get_poststate_rte_atversion(RangeTblEntry *rte, MV_TriggerTable *table,
+				 QueryEnvironment *queryEnv, Oid matviewid, int64 version)
+{
+	StringInfoData str;
+	RawStmt *raw;
+	Query *subquery;
+	Relation rel;
+	ParseState *pstate;
+	char *relname;
+
+	pstate = make_parsestate(NULL);
+	pstate->p_queryEnv = queryEnv;
+	pstate->p_expr_kind = EXPR_KIND_SELECT_TARGET;
+
+	/*
+	 * We can use NoLock here since AcquireRewriteLocks should
+	 * have locked the relation already.
+	 */
+	rel = table_open(table->table_id, NoLock);
+	relname = quote_qualified_identifier(
+					get_namespace_name(RelationGetNamespace(rel)),
+									   RelationGetRelationName(rel));
+	table_close(rel, NoLock);
+
+	initStringInfo(&str);
+	appendStringInfo(&str,
+			"SELECT * FROM %s@%ld ",
+				relname, version);
+
+	/* Get a subquery representing pre-state of the table */
+	raw = (RawStmt*)linitial(raw_parser(str.data, RAW_PARSE_DEFAULT));
+	subquery = transformStmt(pstate, raw->stmt);
+
+	/* save the original RTE */
+	table->original_rte = copyObject(rte);
+
+	rte->rtekind = RTE_SUBQUERY;
+	rte->subquery = subquery;
+	rte->security_barrier = false;
+
+	/* Clear fields that should not be set in a subquery RTE */
+	rte->relid = InvalidOid;
+	rte->relkind = 0;
+	rte->rellockmode = 0;
+	rte->tablesample = NULL;
+	rte->inh = false;			/* must not be set for a subquery */
+
+	table->version_rte = rte; // for debug
+	return rte;
+}
+
+/*
+ * Rewrite the query for post-update at a specific version.
+ */
+Query*
+rewrite_query_atversion(Query *query, List *tables,
+								  ParseState *pstate, Oid matviewid, int64 snapshotid)
+{
+	ListCell *lc;
+	int num_rte = list_length(query->rtable);
+	int i = 1;
+
+	foreach(lc, query->rtable)
+	{
+		RangeTblEntry *r = (RangeTblEntry*) lfirst(lc);
+
+		ListCell *lc2;
+		foreach(lc2, tables)
+		{
+			MV_TriggerTable *table = (MV_TriggerTable *) lfirst(lc2);
+
+			if (r->relid == table->table_id)
+			{
+				List *securityQuals;
+				List *withCheckOptions;
+				bool  hasRowSecurity;
+				bool  hasSubLinks;
+
+				RangeTblEntry *version_pre = get_poststate_rte_atversion(r, table, pstate->p_queryEnv, matviewid, snapshotid);
+				/*
+				 * Set a row security poslicies of the modified table to the subquery RTE which
+				 * represents the pre-update state of the table.
+				 */
+				get_row_security_policies(query, table->original_rte, i,
+										  &securityQuals, &withCheckOptions,
+										  &hasRowSecurity, &hasSubLinks);
+
+				if (hasRowSecurity)
+				{
+					query->hasRowSecurity = true;
+					version_pre->security_barrier = true;
+				}
+				if (hasSubLinks)
+					query->hasSubLinks = true;
+
+				version_pre->securityQuals = securityQuals;
+				lfirst(lc) = version_pre;
+
+				//table->rte_indexes = list_append_unique_int(table->rte_indexes, i);
+				break;
+			}
+		}
+
+		/* finish the loop if we processed all RTE included in the original query */
+		if (i++ >= num_rte)
+			break;
+	}
+
+	return query;
+}
+
 #if 0
+static Query*
+rewrite_query_for_postversion_state(Query *query, MV_TriggerTable *table, int rte_index)
+{
+	ListCell *lc = list_nth_cell(query->rtable, rte_index - 1);
+
+	/* Retore the version RTE */
+	lfirst(lc) = table->version_rte;
+
+	return query;
+}
+
+
 bool
 is_matview_latest(Oid matviewOid)
 {
