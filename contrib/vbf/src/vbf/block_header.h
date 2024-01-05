@@ -14,19 +14,6 @@ extern "C" {
 #define SMALL_HEADER_MAX_COUNT 0x3FFF   
 							   // 14 bits, or 16,383 (16k-1).
 							   // Maximum row count for small content.
-#define storage_round_up4(l) ((((l) + 3) / 4) * 4) /* 32-bit alignment */
-#define storage_round_up8(l) ((((l) + 7) / 8) * 8) /* 64-bit alignment */
-#define storage_round_up(l) (storage_round_up8(l))
-#define	storage_zero_pad(\
-			buf,\
-			len,\
-			padToLen)\
-{\
-	int b;\
-\
-	for (b = len; b < padToLen; b++)\
-		buf[b] = 0;\
-}
 
 typedef enum header_kind
 {

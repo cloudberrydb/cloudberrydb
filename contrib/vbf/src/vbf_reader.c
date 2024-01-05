@@ -10,7 +10,9 @@
 int vbf_reader_init(vbf_reader_t *reader,
 					const char *compress_type,
 					int compress_level,
-					int block_size)
+					int block_size,
+					unsigned int dbid,
+					crypto_vbf_callback callback)
 {
 	memset(reader, 0, sizeof(vbf_reader_t));
 
@@ -19,6 +21,9 @@ int vbf_reader_init(vbf_reader_t *reader,
 		vbf_set_error("out of memory");
 		return -1;
 	}
+
+	reader->dbid = dbid;
+	reader->callback = callback;
 
 	return stream_reader_init(&reader->stream_reader,
 							  compress_type,
@@ -137,6 +142,8 @@ static int vbf_reader_get_contents(vbf_reader_t *reader)
 {
 	uint8_t *data_buffer;
 	block_check_error_t error_code;
+	uint16_t 	dek_version;
+	bool 		is_encrypt = false;
 
 	if (vbf_reader_get_buffer(reader, &data_buffer) == -1) {
 		return -1;
@@ -144,13 +151,33 @@ static int vbf_reader_get_contents(vbf_reader_t *reader)
 
 	switch (reader->block_kind) {
 		case BlockKindVarBlock:
-			error_code = block_is_valid(data_buffer, reader->data_length);
-			if (error_code != BlockCheckOk) {
-				vbf_prefix_error("block is not valid, valid block check error %d, detail:", error_code);
+
+			if (block_reader_init(&reader->block_reader, data_buffer, reader->data_length) == -1) {
 				return -1;
 			}
 
-			if (block_reader_init(&reader->block_reader, data_buffer, reader->data_length) == -1) {
+			/*
+			 * when tde enable, we should decrypt the varblock data first.
+			 */
+			if (block_get_is_encrypt((block_header_t *)data_buffer)) {
+				int 		encrypt_offset = BLOCK_HEADER_LEN + storage_round_up(sizeof(dek_version));
+		
+				dek_version = *(uint16_t *)(data_buffer + BLOCK_HEADER_LEN);
+				is_encrypt = true;
+
+				reader->callback(3,
+								reader->dbid,
+								NULL,
+								&dek_version,
+								data_buffer + encrypt_offset,
+								reader->block_reader.buffer_length - encrypt_offset);
+				
+				/* skip the dek version */
+				reader->block_reader.next_item = &data_buffer[encrypt_offset];
+			}
+			error_code = block_is_valid(data_buffer, reader->data_length, is_encrypt);
+			if (error_code != BlockCheckOk) {
+				vbf_prefix_error("block is not valid, valid block check error %d, detail:", error_code);
 				return -1;
 			}
 
@@ -170,6 +197,27 @@ static int vbf_reader_get_contents(vbf_reader_t *reader)
 			}
 			reader->single_buffer = data_buffer;
 			break;
+		
+		case BlockKindSingleEncryptRow:
+			if (reader->row_count != 1) {
+				vbf_set_error("row count %d in storage header is not 1 for single encrypt row", reader->row_count);
+				return -1;
+			}
+
+			dek_version = *(uint16_t *)data_buffer;
+			
+			/* skip the dek version */
+			reader->single_buffer = data_buffer + storage_round_up(sizeof(dek_version));
+			reader->data_length = reader->data_length - storage_round_up(sizeof(dek_version));
+
+			reader->callback(3,
+							 reader->dbid,
+							 NULL,
+							 &dek_version,
+							 reader->single_buffer,
+							 reader->data_length);
+
+			break;
 		default:
 			vbf_set_error("unrecognized block kind: %d", reader->block_kind);
 			return -1;
@@ -186,7 +234,8 @@ static bool vbf_reader_scan_next(vbf_reader_t *reader,
 	uint8_t *item;
 	int      item_length = 0;
 
-	if (reader->block_kind == BlockKindSingleRow) {
+	if (reader->block_kind == BlockKindSingleRow ||
+		reader->block_kind == BlockKindSingleEncryptRow) {
 		if (reader->single_buffer == NULL) {
 			reader->rownum += reader->row_count;
 			return false;

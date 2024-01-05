@@ -67,7 +67,9 @@ static void write_file(char *file_name)
 							 file_name,
 							 true, /* is_create_file */
 							 0, /* file_length */
-							 0 /* rownum */);
+							 0, /* rownum */
+							 0, /* dbid */
+							 NULL);
 	if (result == -1) {
 		fprintf(stderr, "failed to init vbf_writer: %s\n", vbf_strerror());
 		exit(EXIT_FAILURE);
@@ -105,7 +107,9 @@ static void read_file(char *file_name)
 	result = vbf_reader_init(&reader,
 							 "none", /* compress_type: none, zlib, zstd */
 							 0, /* compress_level: 0-9 */
-							 64 * 1024 /* block_size: 8192-2097152 */);
+							 64 * 1024, /* block_size: 8192-2097152 */
+							 0,
+							 NULL);
 	if (result == -1) {
 		fprintf(stderr, "failed to init vbf_reader: %s\n", vbf_strerror());
 		exit(EXIT_FAILURE);
@@ -144,7 +148,9 @@ static void read_file_with_rownum(char *file_name)
 	result = vbf_reader_init(&reader,
 							 "none", /* compress_type: none, zlib, zstd */
 							 0, /* compress_level: 0-9 */
-							 64 * 1024 /* block_size: 8192-2097152 */);
+							 64 * 1024, /* block_size: 8192-2097152 */
+							 0,
+							 NULL);
 	if (result == -1) {
 		fprintf(stderr, "failed to init vbf_reader: %s\n", vbf_strerror());
 		exit(EXIT_FAILURE);

@@ -3,6 +3,7 @@
 
 #include "vbf/errors.h"
 #include "vbf/block_header.h"
+#include "vbf_private.h"
 
 static void block_header_add_rownum(uint8_t *header, int64_t rownum)
 {

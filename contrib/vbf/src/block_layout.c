@@ -15,8 +15,13 @@ static int block_get_offset(block_header_t *header, int offset, int item_index);
 int block_maker_init(block_maker_t *maker,
 					 uint8_t *buffer,
 					 int buffer_length,
-					 int scratch_buffer_length)
+					 int scratch_buffer_length,
+					 uint32_t dbid,
+					 crypto_vbf_callback callback)
 {
+	bool is_encrypt = false;
+	uint16_t dek_version = 0;
+
 	maker->header = (block_header_t *) buffer;
 	maker->buffer_length = buffer_length;
 	maker->scratch_buffer = vbf_malloc(scratch_buffer_length);
@@ -27,6 +32,22 @@ int block_maker_init(block_maker_t *maker,
 
 	maker->scratch_buffer_length = scratch_buffer_length;
 	maker->last2byte_offset_ptr = &buffer[MAX_2BYTE_OFFSET];
+	maker->dbid = dbid;
+	maker->callback = callback;
+	maker->is_encrypt = false;
+
+	if (maker->callback)
+	 	maker->callback(1 /* operation type for get dek info */,
+						maker->dbid,
+						&is_encrypt,
+						&dek_version,
+						NULL,
+						0);
+	if (is_encrypt)
+	{
+		maker->is_encrypt = true;
+		maker->dek_version = dek_version;
+	}
 
 	block_maker_reset(maker, buffer);
 	return 0;
@@ -34,15 +55,32 @@ int block_maker_init(block_maker_t *maker,
 
 void block_maker_reset(block_maker_t *maker, uint8_t *buffer)
 {
+
+	int		dekVersionOffset = 0;	
+	if (maker->is_encrypt)
+	{
+		/*
+		 * if encrypt is enable, store the dek version after blocker header
+		 */
+		dekVersionOffset = storage_round_up(sizeof(maker->dek_version));
+	}
+
 	maker->header = (block_header_t *) buffer;
-	maker->item_length = 0;
-	maker->next_item = &buffer[BLOCK_HEADER_LEN];
+	maker->item_length = dekVersionOffset;
+	maker->next_item = &buffer[BLOCK_HEADER_LEN + dekVersionOffset];
 	maker->item_count = 0;
 	maker->max_item_count = maker->scratch_buffer_length / 2;
 
-	memset(buffer, 0, BLOCK_HEADER_LEN);
+	memset(buffer, 0, BLOCK_HEADER_LEN + dekVersionOffset);
 	block_set_version(maker->header, VbfInitialVersion);
 	block_set_small_offset(maker->header, true);
+	
+	if (maker->is_encrypt)
+	{
+		block_set_is_encrypt(maker->header, true);
+		memcpy(&buffer[BLOCK_HEADER_LEN], &maker->dek_version, sizeof(maker->dek_version));
+	}
+
 }
 
 void block_maker_fini(block_maker_t *maker)
@@ -225,7 +263,7 @@ block_check_error_t block_header_is_valid(uint8_t *buffer, int peek_length)
 	return BlockCheckOk;
 }
 
-block_check_error_t block_is_valid(uint8_t *buffer, int buffer_length)
+block_check_error_t block_is_valid(uint8_t *buffer, int buffer_length, bool is_encrypt)
 {
 	int i;
 	int z;
@@ -240,6 +278,7 @@ block_check_error_t block_is_valid(uint8_t *buffer, int buffer_length)
 	int header_length = BLOCK_HEADER_LEN;
 	block_check_error_t error_code;
 	block_header_t *header = (block_header_t *) buffer;
+	int OffsetStart;
 
 	error_code = block_header_is_valid(buffer, buffer_length);
 	if (error_code != BlockCheckOk) {
@@ -295,8 +334,16 @@ block_check_error_t block_is_valid(uint8_t *buffer, int buffer_length)
 		return BlockCheckItemCountBad2;
 	}
 
+	/*
+	 * If tde enable, dek store right after the header.
+	 * So we should calculate the really offset.
+	 */
+	OffsetStart = BLOCK_HEADER_LEN;
+	if (is_encrypt)
+		OffsetStart += storage_round_up(sizeof(uint16_t));
+
 	offset = block_get_offset(header, array_offset, 0);
-	if (offset != BLOCK_HEADER_LEN) {
+	if (offset != OffsetStart) {
 		vbf_set_error("offset %d at index 0 is bad -- must equal %d (bytes_0_3 0x%08x, bytes_4_7 0x%08x)",
 					   offset, header_length, header->bytes_0_3, header->bytes_4_7);
 		return BlockCheckOffsetBad1;
@@ -415,11 +462,12 @@ block_reader_get_item(block_reader_t *reader, int item_index, int *item_length)
 	return &buffer[offset];
 }
 
-int block_make_single_item(uint8_t *target, uint8_t *source, int source_length)
+int block_make_single_item(uint8_t *target, uint8_t *source, int source_length, block_maker_t *maker)
 {
 	block_reader_t reader;
 	uint8_t *item;
 	int item_length;
+	int EncryptDataLen = 0;
 
 	if (block_reader_init(&reader, source, source_length) == -1) {
 		return -1;
@@ -427,11 +475,30 @@ int block_make_single_item(uint8_t *target, uint8_t *source, int source_length)
 
 	item = block_reader_get_item(&reader, 0, &item_length);
 
+	/* store the dek version before the item */
+	if (maker->is_encrypt)
+	{
+		memcpy(target, &maker->dek_version, sizeof(maker->dek_version));
+		EncryptDataLen = storage_round_up(sizeof(maker->dek_version));
+	}
+
 	/*
 	 * Slide data back. Since we have overlapping data, we use memmove which
 	 * knows how to do that instead of memcpy which isn't guaranteed to do
 	 * that right.
 	 */
-	memmove(target, item, item_length);
-	return item_length;
+	memmove(target + EncryptDataLen, item, item_length);
+
+
+	if (maker->is_encrypt)
+	{
+		maker->callback(2,
+				maker->dbid,
+				NULL,
+				&maker->dek_version,
+				target + EncryptDataLen,
+				item_length);
+	}
+
+	return item_length + EncryptDataLen;
 }

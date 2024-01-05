@@ -27,12 +27,16 @@ typedef struct vbf_reader
 	int             current_item_count;
 	uint8_t        *single_buffer;
 	bool            need_next_block;
+	uint32_t 		dbid;
+	crypto_vbf_callback callback;			
 } vbf_reader_t;
 
 int vbf_reader_init(vbf_reader_t *reader,
 					const char *compress_type,
 					int compress_level,
-					int block_size);
+					int block_size,
+					unsigned int dbid,
+					crypto_vbf_callback callback);
 void vbf_reader_fini(vbf_reader_t *reader);
 int vbf_reader_reset(vbf_reader_t *reader,
 					 char *file_name,

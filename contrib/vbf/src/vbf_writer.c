@@ -16,7 +16,9 @@ int vbf_writer_init(vbf_writer_t *writer,
 					char *file_name,
 					bool is_create_file,
 					int64_t file_offset,
-					int64_t rownum)
+					int64_t rownum,
+					uint32_t dbid,
+					crypto_vbf_callback callback)
 {
 	int result;
 	int header_length;
@@ -41,7 +43,9 @@ int vbf_writer_init(vbf_writer_t *writer,
 	return block_maker_init(&writer->block_maker,
 							 writer->buffer,
 							 block_size - header_length,
-							 block_size / 8);
+							 block_size / 8,
+							 dbid,
+							 callback);
 }
 
 int vbf_writer_flush(vbf_writer_t *writer)
@@ -80,6 +84,7 @@ static int end_write_block(vbf_writer_t *writer)
 {
 	int  data_length;
 	int  block_kind = BlockKindVarBlock;
+	block_maker_t *maker = &writer->block_maker;
 	int  item_count = block_maker_item_count(&writer->block_maker);
 
 	if (item_count == 0) {
@@ -89,12 +94,28 @@ static int end_write_block(vbf_writer_t *writer)
 
 	data_length = block_maker_form(&writer->block_maker);
 	if (item_count == 1) {
-		data_length = block_make_single_item(writer->buffer, writer->buffer, data_length);
+		data_length = block_make_single_item(writer->buffer, writer->buffer, data_length, maker);
 		if (data_length == -1) {
 			return -1;
 		}
 
-		block_kind = BlockKindSingleRow;
+		if (maker->is_encrypt)
+			block_kind = BlockKindSingleEncryptRow;
+		else
+			block_kind = BlockKindSingleRow;
+
+	}
+
+	if (maker->is_encrypt && item_count != 1) {
+		/* block header and dek */
+		int encryptDataOffset = BLOCK_HEADER_LEN + storage_round_up(sizeof(maker->dek_version));
+		//assert(block_get_is_encrypt(maker->header));
+		maker->callback(2,
+						maker->dbid,
+						NULL,
+						&maker->dek_version,
+						writer->buffer + encryptDataOffset,
+						data_length - encryptDataOffset);
 	}
 
 	if (stream_writer_append(&writer->stream_writer,
@@ -112,6 +133,9 @@ int vbf_writer_write(vbf_writer_t *writer, uint8_t *buffer, int buffer_length)
 {
 	uint8_t *item;
 	bool     is_large = false;
+	block_maker_t *maker = &writer->block_maker;
+	uint8_t *content = buffer;
+	block_kind_t block_kind;
 
 	/*
 	 * If we are at the limit for storage header's row count, force this
@@ -173,12 +197,41 @@ int vbf_writer_write(vbf_writer_t *writer, uint8_t *buffer, int buffer_length)
 	 * Write the large tuple as a large content multiple-block set.
 	 */
 	reset_buffer(writer);
+
+	block_kind = BlockKindSingleRow;
+
+	/* store the dek version before the larger buffer */
+	if (maker->is_encrypt)
+	{
+		int dek_size = storage_round_up(sizeof(maker->dek_version));
+
+		content = malloc(buffer_length + dek_size);
+		
+		memcpy(content, &maker->dek_version, sizeof(maker->dek_version));
+		memcpy(content + dek_size, buffer, buffer_length);
+
+		maker->callback(2,
+						maker->dbid,
+						NULL,
+						&maker->dek_version,
+						content + dek_size,
+						buffer_length);
+
+		block_kind = BlockKindSingleEncryptRow;
+	}
+
 	if (stream_writer_large_append(&writer->stream_writer,
-								   buffer,
+								   content,
 								   buffer_length,
-								   BlockKindSingleRow, 1) == -1) {
+								   block_kind, 1) == -1) {
 		return -1;
 	}
+
+	if (maker->is_encrypt)
+	{
+		free(content);
+	}
+
 	begin_write_block(writer);
 
 	writer->rownum++;

@@ -25,7 +25,9 @@ int vbf_writer_init(vbf_writer_t *writer,
 					char *file_name,
 					bool is_create_file,
 					int64_t file_offset,
-					int64_t rownum);
+					int64_t rownum,
+					uint32_t dbid,
+					crypto_vbf_callback callback);
 int vbf_writer_flush(vbf_writer_t *writer);
 void vbf_writer_fini(vbf_writer_t *writer);
 int vbf_writer_write(vbf_writer_t *writer,

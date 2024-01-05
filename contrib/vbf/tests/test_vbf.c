@@ -81,7 +81,7 @@ static void create_data_file(char *base_file, char *data_file, char *compress_ty
 	vbf_writer_t  writer;
 
 	CHECK_NOT_NULL("vbf_file_open", file, vbf_file_open(base_file, vbf_file_get_open_flags(true)));
-	CHECK_SUCCESS("vbf_writer_init", result, vbf_writer_init(&writer, compress_type, 0, 64 * 1024, data_file, true, 0, 0));
+	CHECK_SUCCESS("vbf_writer_init", result, vbf_writer_init(&writer, compress_type, 0, 64 * 1024, data_file, true, 0, 0, 0, NULL));
 
 	while (true) {
 		size = rand_integer(min_record_size, max_record_size);
@@ -112,7 +112,7 @@ static void recover_base_file(char *data_file, char *base_file, char *compress_t
 	uint8_t      *data;
 	off_t         offset = 0;
 
-	CHECK_SUCCESS("vbf_reader_init", result, vbf_reader_init(&reader, compress_type, 0, 64 * 1024));
+	CHECK_SUCCESS("vbf_reader_init", result, vbf_reader_init(&reader, compress_type, 0, 64 * 1024, 0, NULL));
 	CHECK_SUCCESS("vbf_reader_reset", result, vbf_reader_reset(&reader, data_file, get_file_size(data_file)));
 
 	CHECK_NOT_NULL("vbf_file_open", file, vbf_file_open(base_file, vbf_file_get_create_flags()));
@@ -175,7 +175,7 @@ static void test_create(void)
 
 	CHECK_SUCCESS("vbf_writer_init",
 					result,
-					vbf_writer_init(&writer, "none", 0, 64 * 1024, TEST_DATA_FILE, true, 0, 0));
+					vbf_writer_init(&writer, "none", 0, 64 * 1024, TEST_DATA_FILE, true, 0, 0, 0, NULL));
 	CHECK_SUCCESS("vbf_writer_flush",
 					result,
 					vbf_writer_flush(&writer));
@@ -183,7 +183,7 @@ static void test_create(void)
 
 	CHECK_SUCCESS("vbf_writer_init",
 					result,
-					vbf_writer_init(&writer, "zlib", 0, 64 * 1024, TEST_DATA_FILE, false, 0, 0));
+					vbf_writer_init(&writer, "zlib", 0, 64 * 1024, TEST_DATA_FILE, false, 0, 0, 0, NULL));
 	CHECK_SUCCESS("vbf_writer_flush",
 					result,
 					vbf_writer_flush(&writer));
@@ -191,7 +191,7 @@ static void test_create(void)
 
 	CHECK_SUCCESS("vbf_writer_init",
 					result,
-					vbf_writer_init(&writer, "zstd", 0, 64 * 1024, TEST_DATA_FILE, false, 0, 0));
+					vbf_writer_init(&writer, "zstd", 0, 64 * 1024, TEST_DATA_FILE, false, 0, 0, 0, NULL));
 	CHECK_SUCCESS("vbf_writer_flush",
 					result,
 					vbf_writer_flush(&writer));

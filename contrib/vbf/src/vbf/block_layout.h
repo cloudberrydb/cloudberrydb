@@ -8,14 +8,23 @@ extern "C" {
 #endif
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #define BLOCK_BYTE_OFFSET_24_LEN 3
+
+typedef void (*crypto_vbf_callback)(int op_type,
+				uint32_t database_oid,
+				bool *is_encrypt,
+				uint16_t *dek_version,
+ 				unsigned char *data_buf,
+				const int data_len);
 
 typedef enum block_kind
 {
 	BlockKindNone = 0,
 	BlockKindVarBlock,
 	BlockKindSingleRow,
+	BlockKindSingleEncryptRow,
 	MaxBlockKind
 } block_kind_t;
 
@@ -78,7 +87,8 @@ typedef struct block_header
 #define BLOCK_HEADER_LEN sizeof(block_header_t)
 
 #define block_are_small_offset(h)   ((h)->bytes_0_3 >> 31)
-#define block_get_reserved(h)       (((h)->bytes_0_3 & 0x7C000000) >>26)
+#define block_get_is_encrypt(h) 	(((h)->bytes_0_3&0x40000000)>>30)
+#define block_get_reserved(h)       (((h)->bytes_0_3 & 0x3C000000) >>26)
 #define block_get_version(h)        (((h)->bytes_0_3 & 0x03000000) >>24)
 #define block_get_item_length(h)    ((h)->bytes_0_3 & 0x00FFFFFF)
 #define block_get_more_reserved(h)  (((h)->bytes_4_7 & 0xFF000000) >>24)
@@ -86,6 +96,7 @@ typedef struct block_header
 
 // For single bits, set or clear directly.  Otherwise, use AND to clear field then OR to set.
 #define block_set_small_offset(h, e)  {if(e)(h)->bytes_0_3 |= 0x80000000; else (h)->bytes_0_3 &= 0x7FFFFFFF;} 
+#define block_set_is_encrypt(h,e) 	  {if(e)(h)->bytes_0_3 |= 0x40000000; else (h)->bytes_0_3 &= 0xBFFFFFFF;} 
 #define block_set_version(h, e)       {(h)->bytes_0_3 &= 0xFCFFFFFF; (h)->bytes_0_3 |= (0x03000000 & ((e) << 24));} 
 #define block_set_item_length(h, e)   {(h)->bytes_0_3 &= 0xFF000000; (h)->bytes_0_3 |= (0x00FFFFFF & (e));}
 #define block_set_item_count(h, e)    {(h)->bytes_4_7 &= 0xFF000000; (h)->bytes_4_7 |= (0x00FFFFFF & (e));}
@@ -109,6 +120,10 @@ typedef struct block_maker
 	uint8_t        *last2byte_offset_ptr;
     int             item_count;
 	int             max_item_count;
+	unsigned int 	dbid;
+	crypto_vbf_callback callback;
+	uint16_t  		dek_version;
+	bool 			is_encrypt;
 } block_maker_t;
 
 // ----------------------------------------------------------
@@ -141,7 +156,9 @@ typedef enum block_check_error
 int block_maker_init(block_maker_t *maker,
 					 uint8_t *buffer,
 					 int buffer_length,
-					 int scratch_buffer_length);
+					 int scratch_buffer_length,
+					 uint32_t dbid,
+					 crypto_vbf_callback callback);
 void block_maker_reset(block_maker_t *maker, uint8_t *buffer);
 uint8_t *block_maker_next_item(block_maker_t *maker, int item_length);
 int block_maker_item_count(block_maker_t *maker);
@@ -149,8 +166,8 @@ int block_maker_form(block_maker_t *maker);
 void block_maker_fini(block_maker_t *maker);
 
 block_check_error_t block_header_is_valid(uint8_t *buffer, int peek_length);
-block_check_error_t block_is_valid(uint8_t *buffer, int buffer_length);
-int block_make_single_item(uint8_t *target, uint8_t *source, int source_length);
+block_check_error_t block_is_valid(uint8_t *buffer, int buffer_length, bool is_encrypt);
+int block_make_single_item(uint8_t *target, uint8_t *source, int source_length, block_maker_t *maker);
 int block_reader_init(block_reader_t *reader, uint8_t *buffer, int buffer_length);
 uint8_t *block_reader_next_item(block_reader_t *reader, int *item_length);
 int block_reader_item_count(block_reader_t *reader);
