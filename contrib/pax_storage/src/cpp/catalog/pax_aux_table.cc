@@ -135,7 +135,6 @@ void CPaxCreateMicroPartitionTable(Relation rel) {
   }
   CommandCounterIncrement();
 
-#ifdef ENABLE_LOCAL_INDEX
   // 4. create index on ptblockname dynamically, the index name should be pg_paxaux.pg_pax_blocks_index_xxx.
   {
     char aux_index_name[NAMEDATALEN];
@@ -193,7 +192,6 @@ void CPaxCreateMicroPartitionTable(Relation rel) {
 
     CommandCounterIncrement();
   }
-#endif
 
 }
 
