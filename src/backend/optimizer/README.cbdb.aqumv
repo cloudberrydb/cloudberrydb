@@ -134,7 +134,7 @@ mv5 has all rows {a = 1} and only have column 'a', but the query want additional
 We couldn't rewrite it by just adding the {b = 2} to MV as no equivalent b in MV relation.
       Wrong: SELECT a FROM mv5 WHERE b = 2;
 
-The algorithem behind that is: all quals's expression could be computed from a mv_query's target list.
+The algorithm behind that is: all quals's expression could be computed from a mv_query's target list.
 That's what Construct Columns does.
 
 Construct Columns
@@ -222,7 +222,6 @@ Support SELECT FROM a single relation both for mv_query and the origin_query.
 Below are not supported now:
       Aggregation (on mv_query)
       Subquery
-      Order by(for origin_query)
       Join
       Sublink
       Group By/Grouping Sets/Rollup/Cube (on mv_query)
