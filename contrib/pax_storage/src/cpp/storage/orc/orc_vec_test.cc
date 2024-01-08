@@ -10,42 +10,23 @@
 #include "exceptions/CException.h"
 #include "storage/local_file_system.h"
 #include "storage/columns/pax_column_traits.h"
-
+#include "pax_gtest_helper.h"
 namespace pax::tests {
 
-static void CreateOrcTestResourceOwner() {
-  CurrentResourceOwner = ResourceOwnerCreate(NULL, "OrcTestResourceOwner");
-}
-
-static void ReleaseOrcTestResourceOwner() {
-  ResourceOwner tmp_resource_owner = CurrentResourceOwner;
-  CurrentResourceOwner = NULL;
-  ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_BEFORE_LOCKS, false,
-                       true);
-  ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_LOCKS, false, true);
-  ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_AFTER_LOCKS, false,
-                       true);
-  ResourceOwnerDelete(tmp_resource_owner);
-}
+#ifdef VEC_BUILD
 
 class OrcVecTest : public ::testing::Test {
  public:
   void SetUp() override {
-    Singleton<LocalFileSystem>::GetInstance();
-    remove(file_name_.c_str());
+    Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
 
-    MemoryContext orc_test_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "OrcTestMemoryContext", 80 * 1024 * 1024,
-        80 * 1024 * 1024, 80 * 1024 * 1024);
-
-    MemoryContextSwitchTo(orc_test_memory_context);
-    CreateOrcTestResourceOwner();
+    CreateMemoryContext();
+    CreateTestResourceOwner();
   }
 
   void TearDown() override {
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
-    ReleaseOrcTestResourceOwner();
-    remove(file_name_.c_str());
+    ReleaseTestResourceOwner();
   }
 
   static CTupleSlot *CreateFakeCTupleSlot() {
@@ -380,5 +361,7 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   delete group2;
   delete reader;
 }
+
+#endif  // VEC_BUILD
 
 }  // namespace pax::tests

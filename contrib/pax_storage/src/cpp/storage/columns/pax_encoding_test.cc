@@ -8,11 +8,11 @@
 #include "comm/cbdb_wrappers.h"
 #include "comm/gtest_wrappers.h"
 #include "exceptions/CException.h"
+#include "pax_gtest_helper.h"
 #include "storage/columns/pax_decoding.h"
 #include "storage/columns/pax_encoding_utils.h"
 #include "storage/columns/pax_rlev2_decoding.h"
 #include "storage/columns/pax_rlev2_encoding.h"
-
 namespace pax::tests {
 
 PaxDecoder *GetDecoderByBits(
@@ -44,36 +44,18 @@ PaxDecoder *GetDecoderByBits(
 }
 
 class PaxEncodingTest : public ::testing::Test {
-  void SetUp() override {
-    MemoryContext pax_encoding_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxCompressTestMemoryContext", 200 * 1024 * 1024,
-        200 * 1024 * 1024, 200 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_encoding_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxEncodingRangeTest
     : public ::testing::TestWithParam<::testing::tuple<uint64, bool>> {
-  void SetUp() override {
-    MemoryContext pax_encoding_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxCompressTestMemoryContext", 1 * 1024 * 1024,
-        1 * 1024 * 1024, 1 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_encoding_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxEncodingRangeWithBitsTest
     : public ::testing::TestWithParam<::testing::tuple<uint64, bool, uint8>> {
  public:
-  void SetUp() override {
-    MemoryContext pax_encoding_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxCompressTestMemoryContext", 1 * 1024 * 1024,
-        1 * 1024 * 1024, 1 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_encoding_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxEncodingShortRepeatRangeTest : public PaxEncodingRangeWithBitsTest {};
@@ -82,13 +64,7 @@ class PaxEncodingWriteReadLongsRangeTest : public PaxEncodingRangeTest {};
 
 class PaxEncodingDeltaIncDecRangeTest
     : public ::testing::TestWithParam<::testing::tuple<uint64, uint64, bool>> {
-  void SetUp() override {
-    MemoryContext pax_encoding_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxCompressTestMemoryContext", 1 * 1024 * 1024,
-        1 * 1024 * 1024, 1 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_encoding_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxEncodingDirectRangeTest : public PaxEncodingDeltaIncDecRangeTest {};
@@ -96,13 +72,7 @@ class PaxEncodingDirectRangeTest : public PaxEncodingDeltaIncDecRangeTest {};
 class PaxEncodingRawDataTest
     : public testing::TestWithParam<
           ::testing::tuple<std::vector<int64>, uint8>> {
-  void SetUp() override {
-    MemoryContext pax_encoding_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxCompressTestMemoryContext", 200 * 1024 * 1024,
-        200 * 1024 * 1024, 200 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_encoding_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxEncodingPBTest : public PaxEncodingRawDataTest {};

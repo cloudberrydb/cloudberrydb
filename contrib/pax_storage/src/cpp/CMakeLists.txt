@@ -289,6 +289,7 @@ else()
     add_subdirectory(contrib/googletest)
     ADD_DEFINITIONS(-DRUN_GTEST)
     file(GLOB test_case_sources
+      pax_gtest_helper.cc
       pax_gtest.cc
       ${CMAKE_CURRENT_SOURCE_DIR}/*/*_test.cc
       ${CMAKE_CURRENT_SOURCE_DIR}/*/*/*_test.cc)

@@ -9,6 +9,7 @@
 #include "access/pax_partition.h"
 #include "comm/gtest_wrappers.h"
 #include "exceptions/CException.h"
+#include "pax_gtest_helper.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition.h"
 #include "storage/orc/orc.h"
@@ -26,44 +27,6 @@ using ::testing::Return;
 using ::testing::ReturnRoundRobin;
 
 const char *pax_file_name = "12";
-#define COLUMN_NUMS 2
-
-CTupleSlot *CreateFakeCTupleSlot(bool with_value) {
-  TupleTableSlot *tuple_slot;
-
-  auto tuple_desc = reinterpret_cast<TupleDescData *>(cbdb::Palloc0(
-      sizeof(TupleDescData) + sizeof(FormData_pg_attribute) * COLUMN_NUMS));
-
-  tuple_desc->natts = COLUMN_NUMS;
-  tuple_desc->attrs[0] = {
-      .attlen = 4,
-      .attbyval = true,
-      .attalign = TYPALIGN_INT,
-  };
-
-  tuple_desc->attrs[1] = {
-      .attlen = 4,
-      .attbyval = true,
-      .attalign = TYPALIGN_INT,
-  };
-
-  tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual);
-
-  if (with_value) {
-    bool *fake_is_null = new bool[COLUMN_NUMS];
-
-    fake_is_null[0] = false;
-    fake_is_null[1] = false;
-
-    tuple_slot->tts_values[0] = Int32GetDatum(1);
-    tuple_slot->tts_values[1] = Int32GetDatum(2);
-    tuple_slot->tts_isnull = fake_is_null;
-  }
-
-  auto ctuple_slot = new CTupleSlot(tuple_slot);
-
-  return ctuple_slot;
-}
 
 class MockReaderInterator : public IteratorBase<MicroPartitionMetadata> {
  public:
@@ -101,30 +64,19 @@ class MockWriter : public TableWriter {
 class PaxWriterTest : public ::testing::Test {
  public:
   void SetUp() override {
-    Singleton<LocalFileSystem>::GetInstance();
-    MemoryContext pax_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxMemoryContext", 80 * 1024 * 1024,
-        80 * 1024 * 1024, 80 * 1024 * 1024);
-    MemoryContextSwitchTo(pax_memory_context);
-    CurrentResourceOwner = ResourceOwnerCreate(NULL, "PaxTestResourceOwner");
+    Singleton<LocalFileSystem>::GetInstance()->Delete(pax_file_name);
+    CreateMemoryContext();
+    CreateTestResourceOwner();
   }
 
   void TearDown() override {
-    std::remove(pax_file_name);
-    ResourceOwner tmp_resource_owner = CurrentResourceOwner;
-    CurrentResourceOwner = NULL;
-    ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_BEFORE_LOCKS,
-                         false, true);
-    ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_LOCKS, false,
-                         true);
-    ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_AFTER_LOCKS,
-                         false, true);
-    ResourceOwnerDelete(tmp_resource_owner);
+    Singleton<LocalFileSystem>::GetInstance()->Delete(pax_file_name);
+    ReleaseTestResourceOwner();
   }
 };
 
 TEST_F(PaxWriterTest, WriteReadTuple) {
-  CTupleSlot *slot = CreateFakeCTupleSlot(true);
+  CTupleSlot *slot = CreateTestCTupleSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
@@ -155,7 +107,7 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  cbdb::Pfree(slot->GetTupleTableSlot());
+  DeleteTestCTupleSlot(slot);
   delete writer;
 
   std::vector<MicroPartitionMetadata> meta_info_list;
@@ -177,18 +129,18 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateFakeCTupleSlot(true);
+  CTupleSlot *rslot = CreateTestCTupleSlot(false);
 
   reader->ReadTuple(rslot);
+  EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
 
-  ASSERT_EQ(1, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[0]));
-  ASSERT_EQ(2, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[1]));
+  DeleteTestCTupleSlot(rslot);
   delete relation;
   delete reader;
 }
 
 TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
-  CTupleSlot *slot = CreateFakeCTupleSlot(true);
+  CTupleSlot *slot = CreateTestCTupleSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
 
@@ -205,7 +157,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(2))
       .WillRepeatedly(testing::Invoke([&call_times]() -> std::string {
-        return pax_file_name + std::to_string(call_times++);
+        return std::string(pax_file_name) + std::to_string(call_times++);
       }));
   for (size_t i = 0; i < COLUMN_NUMS; i++) {
     encoding_opts.emplace_back(
@@ -220,11 +172,13 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   ASSERT_TRUE(writer->GetFileSplitStrategy()->SplitTupleNumbers());
   auto split_size = writer->GetFileSplitStrategy()->SplitTupleNumbers();
 
-  for (size_t i = 0; i < split_size + 1; i++) writer->WriteTuple(slot);
+  for (size_t i = 0; i < split_size + 1; i++) {
+    writer->WriteTuple(slot);
+  }
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  cbdb::Pfree(slot->GetTupleTableSlot());
+  DeleteTestCTupleSlot(slot);
   delete writer;
 
   std::vector<MicroPartitionMetadata> meta_info_list;
@@ -250,16 +204,16 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateFakeCTupleSlot(true);
+  CTupleSlot *rslot = CreateTestCTupleSlot(false);
 
   for (size_t i = 0; i < split_size + 1; i++) {
     ASSERT_TRUE(reader->ReadTuple(rslot));
-    ASSERT_EQ(1, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[0]));
-    ASSERT_EQ(2, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[1]));
+    EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
   }
   ASSERT_FALSE(reader->ReadTuple(rslot));
   reader->Close();
 
+  DeleteTestCTupleSlot(rslot);
   delete reader;
   delete relation;
 
@@ -270,7 +224,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
 #ifdef ENABLE_PLASMA
 
 TEST_F(PaxWriterTest, TestCacheColumns) {
-  CTupleSlot *slot = CreateFakeCTupleSlot(true);
+  CTupleSlot *slot = CreateTestCTupleSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   const char *uuid_file_name = "40fdcd4e-52cc-11ee-a652-52549e1c7e53";
 
@@ -303,7 +257,7 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  cbdb::Pfree(slot->GetTupleTableSlot());
+  DeleteTestCTupleSlot(slot);
   delete writer;
 
   std::vector<MicroPartitionMetadata> meta_info_list;
@@ -342,15 +296,12 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateFakeCTupleSlot(true);
+  CTupleSlot *rslot = CreateTestCTupleSlot(false);
 
   reader->ReadTuple(rslot);
-
-  ASSERT_EQ(1, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[0]));
-  ASSERT_EQ(2, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[1]));
-
   reader->Close();
 
+  DeleteTestCTupleSlot(rslot);
   delete reader;
 
   std::unique_ptr<IteratorBase<MicroPartitionMetadata>> meta_info_iterator2 =
@@ -359,14 +310,13 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
 
   reader = new TableReader(std::move(meta_info_iterator2), reader_options);
   reader->Open();
-  rslot = CreateFakeCTupleSlot(true);
+  rslot = CreateTestCTupleSlot(false);
 
   reader->ReadTuple(rslot);
-
-  ASSERT_EQ(1, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[0]));
-  ASSERT_EQ(2, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[1]));
+  EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
 
   reader->Close();
+  DeleteTestCTupleSlot(rslot);
   delete reader;
 
   std::remove(uuid_file_name);
@@ -416,7 +366,7 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
       "pax_parition_4.file", "pax_parition_5.file", "pax_parition_6.file",
       "pax_parition_8.file", "pax_parition_9.file",
   };
-  CTupleSlot *slot = CreateFakeCTupleSlot(true);
+  CTupleSlot *slot = CreateTestCTupleSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
   relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
@@ -472,7 +422,7 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  cbdb::Pfree(slot->GetTupleTableSlot());
+  DeleteTestCTupleSlot(slot);
   delete part_obj;
   delete writer;
 
@@ -512,16 +462,14 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateFakeCTupleSlot(true);
+  CTupleSlot *rslot = CreateTestCTupleSlot(false);
 
   for (int i = 0; i < 400; i++) {
     ASSERT_TRUE(reader->ReadTuple(rslot));
-
-    ASSERT_EQ(1, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[0]));
-    ASSERT_EQ(2, cbdb::DatumToInt32(rslot->GetTupleTableSlot()->tts_values[1]));
+    EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
   }
 
-  ASSERT_FALSE(reader->ReadTuple(rslot));
+  DeleteTestCTupleSlot(rslot);
   delete relation;
   delete reader;
   delete stub;

@@ -11,8 +11,6 @@ class CommTest : public ::testing::Test {
         1 * 1024 * 1024, 1 * 1024 * 1024);
     MemoryContextSwitchTo(comm_test_memory_context);
   }
-
-  void TearDown() override {}
 };
 
 TEST_F(CommTest, TestDeleteOperator) {

@@ -9,18 +9,12 @@
 #include <thread>
 
 // #include "comm/gtest_wrappers.h"
+#include "pax_gtest_helper.h"
 #include "storage/cache/pax_cache.h"
 #include "storage/cache/pax_plasma_cache.h"
-
 #ifdef ENABLE_PLASMA
 
 namespace pax::tests {
-
-static void GenFakeBuffer(char *buffer, size_t length) {
-  for (size_t i = 0; i < length; i++) {
-    buffer[i] = static_cast<char>(i);
-  }
-}
 
 #define CACHE_DATA_LEN 100
 #define CACHE_META_LEN 20
@@ -81,8 +75,8 @@ TEST_F(PaxCacheTest, TestCacheInterface) {
   // create 3 key
   char data[CACHE_DATA_LEN];
   char meta[CACHE_META_LEN];
-  GenFakeBuffer(data, CACHE_DATA_LEN);
-  GenFakeBuffer(meta, CACHE_META_LEN);
+  GenTextBuffer(data, CACHE_DATA_LEN);
+  GenTextBuffer(meta, CACHE_META_LEN);
 
   batch_buffer.buffer = data;
   batch_buffer.buffer_len = CACHE_DATA_LEN;
@@ -164,7 +158,7 @@ TEST_F(PaxCacheTest, TestLRUReplace) {
   ASSERT_TRUE(status.Ok()) << status.Error();
 
   char data[CACHE_DATA_LEN];
-  GenFakeBuffer(data, CACHE_DATA_LEN);
+  GenTextBuffer(data, CACHE_DATA_LEN);
 
   batch_buffer.buffer = data;
   batch_buffer.buffer_len = CACHE_DATA_LEN;
@@ -238,8 +232,8 @@ TEST_F(PaxCacheTest, TestGetNoExist) {
 
   char data[CACHE_DATA_LEN];
   char meta[CACHE_META_LEN];
-  GenFakeBuffer(data, CACHE_DATA_LEN);
-  GenFakeBuffer(meta, CACHE_META_LEN);
+  GenTextBuffer(data, CACHE_DATA_LEN);
+  GenTextBuffer(meta, CACHE_META_LEN);
 
   batch_buffer.buffer = data;
   batch_buffer.buffer_len = CACHE_DATA_LEN;
@@ -294,8 +288,8 @@ TEST_F(PaxCacheTest, TestDifferentClientDelete) {
 
   char data[CACHE_DATA_LEN];
   char meta[CACHE_META_LEN];
-  GenFakeBuffer(data, CACHE_DATA_LEN);
-  GenFakeBuffer(meta, CACHE_META_LEN);
+  GenTextBuffer(data, CACHE_DATA_LEN);
+  GenTextBuffer(meta, CACHE_META_LEN);
 
   batch_buffer.buffer = data;
   batch_buffer.buffer_len = CACHE_DATA_LEN;

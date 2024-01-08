@@ -5,6 +5,7 @@
 #include "comm/cbdb_wrappers.h"
 #include "comm/gtest_wrappers.h"
 #include "exceptions/CException.h"
+#include "pax_gtest_helper.h"
 #include "storage/columns/pax_column_traits.h"
 
 namespace pax::tests {
@@ -180,51 +181,27 @@ static PaxColumn *CreateDecodeColumn(
 
 class PaxColumnTest : public ::testing::TestWithParam<PaxStorageFormat> {
  public:
-  void SetUp() override {
-    MemoryContext orc_test_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxColumn memory context", 80 * 1024 * 1024,
-        80 * 1024 * 1024, 80 * 1024 * 1024);
-
-    MemoryContextSwitchTo(orc_test_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxColumnEncodingTest : public ::testing::TestWithParam<
                                   ::testing::tuple<uint8, PaxStorageFormat>> {
  public:
-  void SetUp() override {
-    MemoryContext orc_test_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxColumn memory context", 80 * 1024 * 1024,
-        80 * 1024 * 1024, 80 * 1024 * 1024);
-
-    MemoryContextSwitchTo(orc_test_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxColumnCompressTest
     : public ::testing::TestWithParam<
           ::testing::tuple<uint8, ColumnEncoding_Kind>> {
  public:
-  void SetUp() override {
-    MemoryContext orc_test_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxColumn memory context", 800 * 1024 * 1024,
-        800 * 1024 * 1024, 800 * 1024 * 1024);
-
-    MemoryContextSwitchTo(orc_test_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 class PaxNonFixedColumnCompressTest
     : public ::testing::TestWithParam<
           ::testing::tuple<uint8, ColumnEncoding_Kind, bool>> {
  public:
-  void SetUp() override {
-    MemoryContext orc_test_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxColumn memory context", 800 * 1024 * 1024,
-        800 * 1024 * 1024, 800 * 1024 * 1024);
-
-    MemoryContextSwitchTo(orc_test_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {

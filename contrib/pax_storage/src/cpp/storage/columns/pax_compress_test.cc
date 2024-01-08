@@ -5,18 +5,13 @@
 #include "comm/cbdb_wrappers.h"
 #include "comm/gtest_wrappers.h"
 #include "exceptions/CException.h"
+#include "pax_gtest_helper.h"
 #include "storage/columns/pax_encoding_utils.h"
 
 namespace pax::tests {
 class PaxCompressTest : public ::testing::TestWithParam<
                             ::testing::tuple<ColumnEncoding_Kind, uint32>> {
-  void SetUp() override {
-    MemoryContext pax_compress_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxCompressTestMemoryContext", 200 * 1024 * 1024,
-        200 * 1024 * 1024, 200 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_compress_memory_context);
-  }
+  void SetUp() override { CreateMemoryContext(); }
 };
 
 TEST_P(PaxCompressTest, TestCompressAndDecompress) {

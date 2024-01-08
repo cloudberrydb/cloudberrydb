@@ -1,7 +1,7 @@
 #include "comm/gtest_wrappers.h"
+#include "pax_gtest_helper.h"
 #include "storage/pax.h"
 #include "storage/vec/pax_vec_adapter.h"
-
 #ifdef VEC_BUILD
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
@@ -27,31 +27,12 @@ static void GenFakeBuffer(char *buffer, size_t length) {
   }
 }
 
-static void CreateOrcTestResourceOwner() {
-  CurrentResourceOwner = ResourceOwnerCreate(NULL, "PaxVecTestResourceOwner");
-}
-
-static void ReleaseOrcTestResourceOwner() {
-  ResourceOwner tmp_resource_owner = CurrentResourceOwner;
-  CurrentResourceOwner = NULL;
-  ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_BEFORE_LOCKS, false,
-                       true);
-  ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_LOCKS, false, true);
-  ResourceOwnerRelease(tmp_resource_owner, RESOURCE_RELEASE_AFTER_LOCKS, false,
-                       true);
-  ResourceOwnerDelete(tmp_resource_owner);
-}
-
 class PaxVecTest : public ::testing::TestWithParam<bool> {
  public:
   void SetUp() override {
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
-    MemoryContext pax_vec_test_memory_context = AllocSetContextCreate(
-        (MemoryContext)NULL, "PaxVecTestMemoryContext", 80 * 1024 * 1024,
-        80 * 1024 * 1024, 80 * 1024 * 1024);
-
-    MemoryContextSwitchTo(pax_vec_test_memory_context);
-    CreateOrcTestResourceOwner();
+    CreateMemoryContext();
+    CreateTestResourceOwner();
   }
 
   static CTupleSlot *CreateCtuple(bool is_fixed, bool with_value = false) {
@@ -64,19 +45,17 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
 
     tuple_desc->natts = 1;
     if (is_fixed) {
-      tuple_desc->attrs[0] = {
-          .atttypid = INT4OID,
-          .attlen = 4,
-          .attbyval = true,
-          .attalign = TYPALIGN_INT,
-      };
+      tuple_desc->attrs[0] = {.atttypid = INT4OID,
+                              .attlen = 4,
+                              .attbyval = true,
+                              .attalign = TYPALIGN_INT,
+                              .attcollation = InvalidOid};
     } else {
-      tuple_desc->attrs[0] = {
-          .atttypid = TEXTOID,
-          .attlen = -1,
-          .attbyval = false,
-          .attalign = TYPALIGN_DOUBLE,
-      };
+      tuple_desc->attrs[0] = {.atttypid = TEXTOID,
+                              .attlen = -1,
+                              .attbyval = false,
+                              .attalign = TYPALIGN_DOUBLE,
+                              .attcollation = DEFAULT_COLLATION_OID};
     }
 
     tuple_slot = (TupleTableSlot *)cbdb::RePalloc(
@@ -115,8 +94,8 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
   }
 
   void TearDown() override {
-    // Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
-    ReleaseOrcTestResourceOwner();
+    Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
+    ReleaseTestResourceOwner();
   }
 
  protected:
