@@ -126,7 +126,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 						  parse->hasWindowFuncs ||
 						  parse->hasDistinctOn ||
 						  parse->hasModifyingCTE ||
-						  parse->sortClause ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_REFRESH_MATVIEW) ||
 						  (parse->parentStmtType == PARENTSTMTTYPE_CTAS) ||
 						  parse->hasSubLinks;
@@ -202,7 +201,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 *
 		 * AQUMV_FIXME_MVP: mvQuery is a simple query too, like the parse query.
 		 * mvQuery->sortClause is ok here, though we can't use the Order by
-		 * clause of mvQuery, and we have disabled the parse->sortClause.
+		 * clause of mvQuery.
 		 * The reason is: the Order by clause of materialized view's query is
 		 * typically pointless. We can't rely on the order even we wrote the
 		 * ordered data into mv, ex: some other access methods except heap.
@@ -367,6 +366,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * jointree's quals and would be processed in post_quals later.
 		 */
 		mvQuery->havingQual = parse->havingQual;
+		mvQuery->sortClause = parse->sortClause;
 
 		/*
 		 * AQUMV
@@ -458,11 +458,11 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			/*
 			 * Update pathkeys which may be changed by qp_callback.
 			 * Set belows if corresponding feature is supported.
-			 * sort_pathkeys
 			 * distinct_pathkey
 			 * window_pathkeys
 			 */
 			root->group_pathkeys = subroot->group_pathkeys;
+			root->sort_pathkeys = subroot->sort_pathkeys;
 			root->query_pathkeys = subroot->query_pathkeys;
 
 			/*

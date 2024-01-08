@@ -409,6 +409,59 @@ select c1, c3, avg(c2) from aqumv_t4 where c1 > 90 group by (c1, c3) having c1 >
 
 abort;
 
+-- Test Order By of origin query.
+begin;
+create table aqumv_t5(c1 int, c2 int, c3 int) distributed by (c1);
+insert into aqumv_t5 select i, i+1, i+2 from generate_series(1, 100) i;
+insert into aqumv_t5 values (91, NULL, 95);
+analyze aqumv_t5;
+
+create incremental materialized view aqumv_mvt5_0 as
+  select c1 as mc1, c2 as mc2, c3 as mc3
+  from aqumv_t5 where c1 > 90;
+analyze aqumv_mvt5_0;
+
+-- order by column.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2, c3 asc;
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2, c3 asc;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2, c3 asc;
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2, c3 asc;
+
+-- order by expression.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2 - c1 - 1 asc;
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2 - c1 - 1 asc;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2 - c1 - 1 asc;
+select c1, c3 from aqumv_t5 where c1 > 90 order by c2 - c1 - 1 asc;
+
+-- order by number.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t5 where c1 > 90 order by 2, 1 asc;
+select c1, c3 from aqumv_t5 where c1 > 90 order by 2, 1 asc;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, c3 from aqumv_t5 where c1 > 90 order by 2, 1 asc;
+select c1, c3 from aqumv_t5 where c1 > 90 order by 2, 1 asc;
+
+-- order by result column.
+set local enable_answer_query_using_materialized_views = off;
+explain(costs off, verbose)
+select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by sum_c3 asc;
+select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by sum_c3 asc;
+set local enable_answer_query_using_materialized_views = on;
+explain(costs off, verbose)
+select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by sum_c3 asc;
+select c1, sum(c3) as sum_c3 from aqumv_t5 where c1 > 90 group by c1 order by sum_c3 asc;
+abort;
+
 reset optimizer;
 reset enable_answer_query_using_materialized_views;
 drop table aqumv_t1 cascade;
