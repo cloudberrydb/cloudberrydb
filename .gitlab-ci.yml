@@ -112,7 +112,7 @@ variables:
       - "off"
     description: "是否包含 hashcopy 工具"
   CBDB_BUILD_TABLESPACE:
-    value: "off"
+    value: "on"
     options:
       - "on"
       - "off"

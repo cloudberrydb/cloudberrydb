@@ -370,7 +370,7 @@ ufsdemo_beginscan(Relation relation,
 	scan->dataFiles = retrieveDataFiles(&relFileNode, formatMetadataFileName(&relFileNode));
 	scan->filesProcessed = 0;
 
-	if (vbf_reader_init(&scan->reader, "none", 0, 64 * 1024) == -1)
+	if (vbf_reader_init(&scan->reader, "none", 0, 64 * 1024, 0, NULL) == -1)
 		elog(ERROR, "failed to initialize vbf reader: %s", vbf_strerror());
 
 	if (list_length(scan->dataFiles) > 0)
@@ -584,7 +584,9 @@ ufsdemo_tuple_insert(Relation relation, TupleTableSlot *slot, CommandId cid,
 						(char *) file,
 						true, /* is_create_file */
 						0, /* file_length */
-						0 /* rownum */) == -1)
+						0, /* rownum */
+						0, /* dbid */
+						NULL /* vbf callback function */) == -1)
 		elog(ERROR, "failed to initialize vbf writer: %s", vbf_strerror());
 
 	mtBind = create_memtuple_binding(RelationGetDescr(relation));
