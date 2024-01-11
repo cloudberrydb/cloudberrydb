@@ -870,6 +870,10 @@ main(int argc, char **argv)
 				exit_nicely(1);
 		}
 	}
+#ifdef USE_VECTORIZATION
+	simple_string_list_append(&schema_exclude_patterns, "vector");
+#endif
+
 
 	/*
 	 * Non-option argument specifies database name as long as it wasn't

@@ -25,7 +25,6 @@ extern void ExecReScanVecShareInputScan(ShareInputScanState *node);
 extern void ExecSquelchVecShareInputScan(ShareInputScanState *node);
 
 extern Size ShareInputShmemSizeVec(void);
-extern void ShareInputShmemInitVec(void);
 
 extern SharedFileSet *get_shareinput_fileset_vec(void);
 

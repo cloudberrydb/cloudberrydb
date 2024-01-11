@@ -1070,6 +1070,9 @@
 /* Define to 1 to build with datalake. (--enable-datalake) */
 #undef USE_DATALAKE
 
+/* Define to 1 to build with vectorization. (--enable-vectorization) */
+#undef USE_VECTORIZATION
+
 /* Define to 1 to build with PAM support. (--with-pam) */
 #undef USE_PAM
 

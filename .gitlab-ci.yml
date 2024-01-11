@@ -338,7 +338,7 @@ vectorization:clickhouse:
   variables:
     <<: *global_variables
     TEST_TYPE: "vec_test"
-    MAKE_TEST_COMMAND: "PGOPTIONS='-c enable_parallel=off'"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c vector.enable_vectorization=on -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_clickhouse_artifacts
@@ -351,7 +351,7 @@ vectorization:icw:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_test"
-    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=off -c enable_parallel=off'"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c vector.enable_vectorization=off -c optimizer=off -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
@@ -364,7 +364,7 @@ vectorization:icw-orca:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_test"
-    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=on -c enable_parallel=off'"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c vector.enable_vectorization=off -c optimizer=on -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
@@ -377,7 +377,7 @@ vectorization:icw-aocs:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_aocs"
-    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=off -c enable_parallel=off'"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c vector.enable_vectorization=on -c optimizer=off -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
@@ -390,7 +390,7 @@ vectorization:icw-orca-aocs:
   variables:
     <<: *global_variables
     TEST_TYPE: "icw_aocs"
-    MAKE_TEST_COMMAND: "PGOPTIONS='-c optimizer=on -c enable_parallel=off'"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c vector.enable_vectorization=on -c optimizer=on -c enable_parallel=off'"
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts

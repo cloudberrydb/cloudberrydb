@@ -76,15 +76,15 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
          ->  Hash  (cost=596.00..596.00 rows=16534 width=36) (never executed)
                Buckets: 131072  Batches: 1  Memory Usage: 1024kB
                ->  Seq Scan on box_locations  (cost=0.00..596.00 rows=16534 width=36) (never executed)
- Planning Time: 2.219 ms
-   (slice0)    Executor memory: 127K bytes.
-   (slice1)    Executor memory: 1104K bytes avg x 3 workers, 1104K bytes max (seg0).  Work_mem: 1024K bytes max.
-   (slice2)    Executor memory: 2162K bytes avg x 3 workers, 2162K bytes max (seg0).  Work_mem: 2070K bytes max.
-   (slice3)    Executor memory: 60K bytes avg x 3 workers, 60K bytes max (seg0).
- Memory used:  128000kB
+ Planning Time: 1.078 ms
+   (slice0)    Executor memory: 126K bytes.
+   (slice1)    Executor memory: 2075K bytes avg x 3x(0) workers, 2075K bytes max (seg0).  Work_mem: 2048K bytes max.
+   (slice2)    Executor memory: 3390K bytes avg x 3x(0) workers, 3390K bytes max (seg0).  Work_mem: 3225K bytes max.
+   (slice3)    Executor memory: 113K bytes avg x 3x(0) workers, 113K bytes max (seg0).
+ Memory used:  256000kB
  Optimizer: Postgres query optimizer
- Execution Time: 59.644 ms
-(22 rows)
+ Execution Time: 58.855 ms
+(24 rows)
 
 -- explain_processing_on
 -- Unaligned output format is better for the YAML / XML / JSON outputs.
@@ -468,18 +468,21 @@ QUERY PLAN
       Executor Memory: 
         Average: 1129528
         Workers: 3
+        Subworkers: 0
         Maximum Memory Used: 1129528
       Work Maximum Memory: 1048576
     - Slice: 2
       Executor Memory: 
         Average: 2213776
         Workers: 3
+        Subworkers: 0
         Maximum Memory Used: 2213776
       Work Maximum Memory: 2119360
     - Slice: 3
       Executor Memory: 
         Average: 60624
         Workers: 3
+        Subworkers: 0
         Maximum Memory Used: 60624
   Statement statistics: 
     Memory used: 128000

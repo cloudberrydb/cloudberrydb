@@ -122,8 +122,7 @@ typedef struct shareinput_Xslice_state
 
 } shareinput_Xslice_state;
 
-/* shared memory hash table holding 'shareinput_Xslice_state' entries*/
-static HTAB *shareinput_Xslice_hash_vec = NULL;
+ extern HTAB *shareinput_Xslice_hash;
 
 /*
  * The tuplestore files for all share input scans are held in one SharedFileSet.
@@ -140,8 +139,7 @@ static HTAB *shareinput_Xslice_hash_vec = NULL;
  * are reference counted separately, and we clean up the files backing each
  * individual ShareInputScan whenever its reference count reaches zero.
  */
-
- static dsm_handle *shareinput_Xslice_dsm_handle_ptr_vec;
+ extern dsm_handle *shareinput_Xslice_dsm_handle_ptr;
  static SharedFileSet *shareinput_Xslice_fileset_vec;
 
 
@@ -684,33 +682,6 @@ ShareInputShmemSizeVec(void)
 	return size;
 }
 
-void
-ShareInputShmemInitVec(void)
-{
-	bool		found;
-
-	shareinput_Xslice_dsm_handle_ptr_vec =
-		ShmemInitStruct("ShareInputScan DSM handle", sizeof(dsm_handle), &found);
-
-	elog(DEBUG2, "shareinput_Xslice_dsm_handle_ptr = %p", shareinput_Xslice_dsm_handle_ptr_vec);
-
-	if (found)
-	{
-		HASHCTL		info;
-
-		info.keysize = sizeof(shareinput_tag);
-		info.entrysize = sizeof(shareinput_Xslice_state);
-
-		shareinput_Xslice_hash_vec = ShmemInitHash("ShareInputiScan notifications",
-											   N_SHAREINPUT_SLOTS(),
-											   N_SHAREINPUT_SLOTS(),
-											   &info,
-											   HASH_ELEM | HASH_BLOBS);
-
-		elog(DEBUG2, "shareinput_Xslice_hash = %p", shareinput_Xslice_hash_vec);
-	}
-}
-
 /*
  * Get reference to the SharedFileSet used to hold all the tuplestore files.
  *
@@ -728,7 +699,7 @@ get_shareinput_fileset_vec(void)
 
 		LWLockAcquire(ShareInputScanLock, LW_EXCLUSIVE);
 
-		handle = *shareinput_Xslice_dsm_handle_ptr_vec;
+		handle = *shareinput_Xslice_dsm_handle_ptr;
 
 		if (handle)
 		{
@@ -743,7 +714,7 @@ get_shareinput_fileset_vec(void)
 		{
 			seg = dsm_create(sizeof(SharedFileSet), 0);
 			dsm_pin_segment(seg);
-			*shareinput_Xslice_dsm_handle_ptr_vec = dsm_segment_handle(seg);
+			*shareinput_Xslice_dsm_handle_ptr = dsm_segment_handle(seg);
 			dsm_pin_mapping(seg);
 
 			shareinput_Xslice_fileset_vec = dsm_segment_address(seg);
@@ -793,7 +764,7 @@ get_shareinput_reference_vec(int share_id)
 	tag.session_id = gp_session_id;
 	tag.command_count = gp_command_count;
 	tag.share_id = share_id;
-	xslice_state = hash_search(shareinput_Xslice_hash_vec,
+	xslice_state = hash_search(shareinput_Xslice_hash,
 							   &tag,
 							   HASH_ENTER_NULL,
 							   &found);
@@ -843,7 +814,7 @@ release_shareinput_reference_vec(shareinput_Xslice_reference *ref)
 	{
 		bool		found;
 
-		(void) hash_search(shareinput_Xslice_hash_vec,
+		(void) hash_search(shareinput_Xslice_hash,
 						   &state->tag,
 						   HASH_REMOVE,
 						   &found);

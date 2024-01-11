@@ -916,6 +916,16 @@ AC_MSG_RESULT([checking whether to build with preload ic module ... $enable_prel
 AC_SUBST(enable_preload_ic_module)
 
 #
+# vectorization support
+#
+PGAC_ARG_BOOL(enable, vectorization, no,
+              [enable vectorization support],
+              [AC_DEFINE(USE_VECTORIZATION, 1,
+                         [Define to 1 to support vectorization])])
+AC_MSG_RESULT([checking whether to build with vectorization support ... $enable_vectorization])
+AC_SUBST(enable_vectorization)
+
+#
 # datalake preload
 #
 PGAC_ARG_BOOL(enable, datalake, no,

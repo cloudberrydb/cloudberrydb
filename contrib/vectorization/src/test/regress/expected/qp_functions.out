@@ -554,7 +554,7 @@ select current_setting('datestyle');
 SELECT round(4, 2);
  round 
 -------
-     4
+  4.00
 (1 row)
 
 SELECT round(4, 0);
@@ -578,7 +578,7 @@ SELECT round(4);
 SELECT round(4, 1+1);
  round 
 -------
-     4
+  4.00
 (1 row)
 
 SELECT round(CAST (4 AS numeric), 4);

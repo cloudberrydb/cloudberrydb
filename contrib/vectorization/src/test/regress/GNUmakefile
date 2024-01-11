@@ -41,24 +41,20 @@ tablespace-setup:
 icw_parallel_test: tablespace-setup
 	$(PG_REGRESS) \
 	--init-file=init_file --schedule=parallel_schedule \
-	--load-extension=vectorization
 
 icw_greenplum_test:
 	$(PG_REGRESS) \
 	--init-file=init_file --schedule=greenplum_schedule \
-	--load-extension=vectorization \
 	--load-extension=gp_inject_fault
 
 icw_test: tablespace-setup 
 	$(PG_REGRESS) \
 	--init-file=init_file --schedule=parallel_schedule --schedule=greenplum_schedule \
-	--load-extension=vectorization \
 	--load-extension=gp_inject_fault
 
 icw_aocs: tablespace-setup
 	$(PG_REGRESS) \
         --init-file=init_file --schedule=parallel_schedule_aocs \
-        --load-extension=vectorization \
         --load-extension=gp_inject_fault
 
 regress_link:

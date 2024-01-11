@@ -67,7 +67,6 @@ static bool is_sort_collation_vectorable(Sort *sort);
 static bool fallback_full_semi_anti(Plan *plan);
 static bool fallback_distinct_junk(Plan *plan);
 static void replace_sort_operators(Motion *node);
-static bool check_extension_status(void);
 static bool fallback_nested_loop_jointype(Plan *plan);
 static bool joinclauses_type_different(Expr *node, void *context);
 static bool
@@ -244,10 +243,11 @@ planner_hook_wrapper(Query *parse, const char *query_string, int cursorOptions, 
 
 	/* fallback for prepare and execute */
 	/* fallback for cursor */
-	if (!enable_vectorization || !check_extension_status() || \
+	if (!enable_vectorization  || \
 			boundParams || cursorOptions != CURSOR_OPT_PARALLEL_OK)
 		return result;
 	
+	init_vector_types();
 	if (!try_vectorize_plan(result) && force_vectorization) {
 		PG_TRY();
 		{
@@ -1583,31 +1583,4 @@ joinclauses_type_different(Expr *node, void *context)
 		break;
 	}
 	return expression_tree_walker((Node *) node, joinclauses_type_different, context);
-}
-
-/*
- * Make sure extension "vectorization" and schema "vector" is exist.
- * And init vector types.
- * If not, execute sql: create extension vectorization.
- */
-static bool
-check_extension_status(void)
-{
-	Oid extension = InvalidOid;
-	bool prev_enable = enable_vectorization;
-
-	enable_vectorization = false;
-	extension = get_extension_oid("vectorization", true);
-	if (!OidIsValid(extension))
-	{
-		enable_vectorization = prev_enable;
-		elog(DEBUG2, "Vector type not found. Please create vectorization"
-				"for database %s.", get_database_name(MyDatabaseId));
-		return false;
-	}
-	enable_vectorization = prev_enable;
-
-	/* init vector types for planner. */
-	init_vector_types();
-	return true;
 }

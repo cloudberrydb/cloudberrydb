@@ -74,14 +74,14 @@ EXPLAIN (ANALYZE) SELECT * from boxes LEFT JOIN apples ON apples.id = boxes.appl
                            Index Cond: (id = boxes.location_id)
          ->  Index Scan using apples_pkey on apples  (cost=0.00..12.00 rows=1 width=12) (never executed)
                Index Cond: (id = boxes.apple_id)
- Planning Time: 40.380 ms
-   (slice0)    Executor memory: 56K bytes.
-   (slice1)    Executor memory: 43K bytes avg x 3 workers, 43K bytes max (seg0).
-   (slice2)    Executor memory: 42K bytes avg x 3 workers, 42K bytes max (seg0).
-   (slice3)    Executor memory: 39K bytes avg x 3 workers, 39K bytes max (seg0).
+ Planning Time: 19.998 ms
+   (slice0)    Executor memory: 135K bytes.
+   (slice1)    Executor memory: 119K bytes avg x 3x(0) workers, 119K bytes max (seg0).
+   (slice2)    Executor memory: 118K bytes avg x 3x(0) workers, 118K bytes max (seg0).
+   (slice3)    Executor memory: 113K bytes avg x 3x(0) workers, 113K bytes max (seg0).
  Memory used:  256000kB
  Optimizer: Pivotal Optimizer (GPORCA)
- Execution Time: 19.964 ms
+ Execution Time: 27.405 ms
 (22 rows)
 
 -- explain_processing_on
@@ -416,16 +416,19 @@ QUERY PLAN
       Executor Memory: 
         Average: 97488
         Workers: 3
+        Subworkers: 0
         Maximum Memory Used: 97488
     - Slice: 2
       Executor Memory: 
         Average: 97488
         Workers: 3
+        Subworkers: 0
         Maximum Memory Used: 97488
     - Slice: 3
       Executor Memory: 
         Average: 60624
         Workers: 3
+        Subworkers: 0
         Maximum Memory Used: 60624
   Statement statistics: 
     Memory used: 128000

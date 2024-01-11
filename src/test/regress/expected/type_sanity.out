@@ -21,9 +21,11 @@ WHERE p1.typnamespace = 0 OR
     NOT p1.typisdefined OR
     (p1.typalign not in ('c', 's', 'i', 'd')) OR
     (p1.typstorage not in ('p', 'x', 'e', 'm'));
- oid | typname 
------+---------
-(0 rows)
+  oid  | typname 
+-------+---------
+ 13277 | int128
+ 13278 | stddev
+(2 rows)
 
 -- Look for "pass by value" types that can't be passed by value.
 SELECT p1.oid, p1.typname
@@ -171,10 +173,12 @@ WHERE p1.typinput = p2.oid AND p1.typtype in ('b', 'p') AND NOT
     (p1.typelem != 0 AND p1.typlen < 0) AND NOT
     (p2.prorettype = p1.oid AND NOT p2.proretset)
 ORDER BY 1;
- oid  |  typname  | oid | proname 
-------+-----------+-----+---------
- 1790 | refcursor |  46 | textin
-(1 row)
+  oid  |  typname  | oid  | proname  
+-------+-----------+------+----------
+  1790 | refcursor |   46 | textin
+ 13277 | int128    | 2398 | shell_in
+ 13278 | stddev    | 2398 | shell_in
+(3 rows)
 
 -- Varlena array types will point to array_in
 -- Exception as of 8.1: int2vector and oidvector have their own I/O routines
@@ -233,10 +237,12 @@ WHERE p1.typoutput = p2.oid AND p1.typtype in ('b', 'p') AND NOT
       (p2.oid = 'array_out'::regproc AND
        p1.typelem != 0 AND p1.typlen = -1)))
 ORDER BY 1;
- oid  |  typname  | oid | proname 
-------+-----------+-----+---------
- 1790 | refcursor |  47 | textout
-(1 row)
+  oid  |  typname  | oid  |  proname  
+-------+-----------+------+-----------
+  1790 | refcursor |   47 | textout
+ 13277 | int128    | 2399 | shell_out
+ 13278 | stddev    | 2399 | shell_out
+(3 rows)
 
 SELECT p1.oid, p1.typname, p2.oid, p2.proname
 FROM pg_type AS p1, pg_proc AS p2

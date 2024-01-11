@@ -1,96 +1,85 @@
-# source files directory
-REGRESS_DIR=src/test/regress
+MODULE_big = vectorization
+
+REGRESS_DIR = src/test/regress
 VECHEADERS = src/include
 BACKENDS = src/backend
 
 ARROW = $(BACKENDS)/utils/arrow
-ARROWOBJS = $(ARROW)/decimal.o $(ARROW)/transfuncs.o $(ARROW)/wrapper.o $(ARROW)/vecfuncs.o \
-			$(ARROW)/fmgr.o $(ARROW)/options.o
 PLAN = $(BACKENDS)/optimizer
-PLANOBJS = $(PLAN)/planner_vec.o
 MISC = $(BACKENDS)/utils/misc
-MISCOBJS = $(MISC)/guc_vec.o
-VHEAPOBJS = $(BACKENDS)/utils/vheap/vecheap.o
-HOOKOBJS = $(BACKENDS)/hook/executor.o $(BACKENDS)/hook/explain.o
+VHEAP = $(BACKENDS)/utils/vheap
+HOOK = $(BACKENDS)/hook/
 EXECUTOR = $(BACKENDS)/vecexecutor
-EXECUTOROBJS = $(EXECUTOR)/execSlot.o $(EXECUTOR)/execUtils.o $(EXECUTOR)/execTuples.o  \
-			   $(EXECUTOR)/execMain.o $(EXECUTOR)/execScan.o $(EXECUTOR)/nodeSeqscan.o  $(EXECUTOR)/nodeMotion.o $(EXECUTOR)/nodeWindowAgg.o \
-			   $(EXECUTOR)/nodeSort.o $(EXECUTOR)/nodeAgg.o $(EXECUTOR)/nodeLimit.o $(EXECUTOR)/nodeResult.o $(EXECUTOR)/execAmi.o \
-			   $(EXECUTOR)/nodeHash.o $(EXECUTOR)/nodeHashjoin.o $(EXECUTOR)/nodeAppend.o $(EXECUTOR)/nodeSequence.o  $(EXECUTOR)/nodeSubqueryscan.o \
-			   $(EXECUTOR)/nodeMaterial.o $(EXECUTOR)/nodeShareInputScan.o $(EXECUTOR)/nodeNestloop.o $(EXECUTOR)/nodeAssertOp.o \
-			   $(EXECUTOR)/nodeForeignscan.o
-
-AMOBJS = $(BACKENDS)/utils/am/am_vec.o
+AM = $(BACKENDS)/utils/am
 ACCESS = $(BACKENDS)/access
-AOCSOBJS = $(ACCESS)/vecaocs/datumstreamblock.o $(ACCESS)/vecaocs/aocs.o
-COMMONOBJS = $(ACCESS)/common/printtup_vec.o
+AOCS = $(ACCESS)/vecaocs
+COMMON = $(ACCESS)/common
 CDB = $(BACKENDS)/cdb
-MOTIONOBJS = $(CDB)/vecmotion/tupser.o $(CDB)/vecmotion/cdbmotion.o
-CDBHASHJS = $(CDB)/veccdbhash.o
+MOTION = $(CDB)/vecmotion
 SORT = $(BACKENDS)/utils/sort
-SORTOBJS = $(SORT)/vecsort.o $(SORT)/tuplestore.o
 
-OBJS = main.o 
-OBJS += $(VHEAPOBJS)
-OBJS += $(ARROWOBJS)
-OBJS += $(AOCSOBJS)
-OBJS += $(COMMONOBJS)
-OBJS += $(AMOBJS)
-OBJS += $(HOOKOBJS)
-OBJS += $(PLANOBJS)
-OBJS += $(MISCOBJS)
-OBJS += $(EXECUTOROBJS)
-OBJS += $(MOTIONOBJS)
-OBJS += $(SORTOBJS)
-OBJS += $(CDBHASHJS)
+SUBDIRS = $(VHEAP) $(ARROW) $(AOCS) $(COMMON) $(AM) $(HOOK) $(PLAN) $(MISC) $(EXECUTOR) $(MOTION) $(SORT) $(CDB)
+SRC := $(foreach dir,$(SUBDIRS),$(wildcard $(dir)/*.c))
+OBJS = main.o $(patsubst %.c,%.o,$(SRC))
 
-# add arrow.so and headers
-PG_CFLAGS += $(shell pg_config --cflags)
-PG_CFLAGS += $(shell pg_config --cppflags)
-PG_CFLAGS += $(shell PKG_CONFIG_PATH=${GPHOME}/lib/pkgconfig/:${PKG_CONFIG_PATH} pkg-config --cflags glib-2.0 gobject-2.0)
-PG_LDFLAGS += $(shell PKG_CONFIG_PATH=${GPHOME}/lib/pkgconfig/:${PKG_CONFIG_PATH} pkg-config --libs glib-2.0 gobject-2.0)
+PG_CFLAGS += $(shell pkg-config --cflags glib-2.0 gobject-2.0)
+PG_LDFLAGS += $(shell pkg-config --libs glib-2.0 gobject-2.0)
 PG_LDFLAGS += -lgandiva-glib -lgandiva -larrow-glib -larrow
-PG_CFLAGS += -I$(shell pg_config --includedir-server)
-PG_LDFLAGS += -L$(shell pg_config --libdir)
 
-# support libpqd
-PG_CFLAGS += -I $(shell pg_config --includedir)
-PG_LDFLAGS += -I $(shell pg_config --ldflags)
+PG_LDFLAGS += -Larrow/lib
+PG_CFLAGS += -Iarrow/include
+PG_CPPFLAGS = -I$(libpq_srcdir)
 
-PG_CFLAGS += -I $(VECHEADERS) 
+top_builddir = ../../
+PG_REGRESS = $(top_builddir)/src/test/regress/pg_regress
 
-MODULE_big = vectorization
-EXTENSION = vectorization
-DATA = vectorization--1.0.sql
+PG_CFLAGS += -I$(VECHEADERS) 
 
+ifdef USE_PGXS
 PG_CONFIG = pg_config
 PGXS := $(shell $(PG_CONFIG) --pgxs)
 include $(PGXS)
-PGXS_DIR := $(dir $(PGXS))
-PG_REGRESS = $(PGXS_DIR)/../../src/test/regress/pg_regress
+else
+subdir = contrib/vectorization
+include $(top_builddir)/src/Makefile.global
+include $(top_builddir)/contrib/contrib-global.mk
+endif
 
-all: 
-	make -C $(REGRESS_DIR) all
+.PHONY: install-data
+install-data:
+	$(INSTALL_SHLIB) arrow/lib/* '$(DESTDIR)$(libdir)'
+	$(INSTALL_DATA) vectorization--1.0.sql '$(DESTDIR)$(datadir)/cdb_init.d/vectorization--1.0.sql'
 
+install: install-data
+
+.PHONY: uninstall-data
+uninstall-data:
+	$(RM) '$(DESTDIR)$(datadir)/cdb_init.d/vectorization--1.0.sql'
+	$(RM) $(DESTDIR)$(libdir)/libarrow*.so* $(DESTDIR)$(libdir)/libgandiva*.so*
+
+uninstall: uninstall-data
+
+.PHONY: download_arrow
+download_arrow:
+	sh dependencies.sh
+
+.PHONY: load
 load:
-	gpconfig -c session_preload_libraries -v '${GPHOME}/lib/postgresql/${EXTENSION}.so'
-	gpstop -u
+	gpconfig -c shared_preload_libraries -v vectorization
+	gpstop -ar
 
-installcheck: vec_test icw_parallel_test icw_greenplum_test
-
+.PHONY: vec_test
 vec_test:
 	mkdir -p data/tpch
 	wget https://artifactory.hashdata.xyz/artifactory/list/utility/tpch_data.tar
 	tar xf tpch_data.tar -C data/tpch
 	rm -f tpch_data.tar
-	$(PG_REGRESS) --init-file=init_file --schedule=vectorization_schedule --load-extension=vectorization
+	$(PG_REGRESS) --init-file=init_file --schedule=vectorization_schedule
 
-icw_parallel_test:
-	make -C $(REGRESS_DIR) icw_parallel_test
-icw_greenplum_test:
-	make -C $(REGRESS_DIR) icw_greenplum_test
+.PHONY: icw_test
 icw_test:
 	make -C $(REGRESS_DIR) icw_test
+
+.PHONY: icw_aocs
 icw_aocs:
 	make -C $(REGRESS_DIR) icw_aocs
-

@@ -4,3 +4,7 @@
 #ifdef USE_DATALAKE
 		"datalake_proxy",
 #endif
+#ifdef USE_VECTORIZATION
+		"vectorization",
+#endif
+

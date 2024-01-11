@@ -717,6 +717,7 @@ select jsonb_pretty(
                  "Executor Memory": {                       +
                      "Average": 0,                          +
                      "Workers": 0,                          +
+                     "Subworkers": 0,                       +
                      "Maximum Memory Used": 0               +
                  },                                         +
                  "Work Maximum Memory": 0                   +

@@ -44,7 +44,7 @@ _PG_init(void)
                              "and restore to default value when disabled.",
                              NULL,
                              &enable_vectorization,
-                             true,
+                             false,
                              PGC_USERSET,
 							 GUC_GPDB_NEED_SYNC,
                              NULL, assign_enable_vectorization, NULL);
@@ -97,5 +97,5 @@ _PG_init(void)
     InitAOCSVecHandler();
 
     RegisterXactCallback(dummy_schema_xact_cb, NULL);
-    ShareInputShmemInitVec();
+
 }

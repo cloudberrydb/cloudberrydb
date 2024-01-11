@@ -755,6 +755,7 @@ enable_thread_safety
 INCLUDES
 enable_gophermeta
 enable_datalake
+enable_vectorization
 enable_preload_ic_module
 enable_ic_proxy
 enable_external_fts
@@ -903,6 +904,7 @@ enable_gpcloud
 enable_external_fts
 enable_ic_proxy
 enable_preload_ic_module
+enable_vectorization
 enable_datalake
 enable_gophermeta
 enable_thread_safety
@@ -1611,7 +1613,7 @@ Optional Features:
   --disable-orca          disable ORCA optimizer
   --enable-catalog-ext    enable Cloudberry catalog extension
   --enable-mapreduce      enable Cloudberry Mapreduce support
-  --enable-shared-postgres-backend
+  --disable-shared-postgres-backend
                           enable Cloudberry shared postgres backend support
   --enable-gpcloud        enable gpcloud support
   --enable-external-fts   enable external fts support
@@ -1619,6 +1621,7 @@ Optional Features:
                           library)
   --disable-preload-ic-module
                           disable preload interconnect module
+  --enable-vectorization  enable vectorization support
   --enable-datalake       enable preload datalake
   --disable-gophermeta    enable preload gophermeta
   --disable-thread-safety disable thread-safety in client libraries
@@ -8408,6 +8411,8 @@ $as_echo "#define USE_SHARED_POSTGRES_BACKEND 1" >>confdefs.h
 else
   enable_shared_postgres_backend=yes
 
+$as_echo "#define USE_SHARED_POSTGRES_BACKEND 1" >>confdefs.h
+
 fi
 
 
@@ -9038,6 +9043,47 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload ic module ... $enable_preload_ic_module" >&5
 $as_echo "checking whether to build with preload ic module ... $enable_preload_ic_module" >&6; }
+
+
+#
+# vectorization support
+#
+
+
+# Check whether --enable-vectorization was given.
+if test "${enable_vectorization+set}" = set; then :
+  enableval=$enable_vectorization;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_VECTORIZATION 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-vectorization option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_vectorization=no
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with vectorization support ... $enable_vectorization" >&5
+$as_echo "checking whether to build with vectorization support ... $enable_vectorization" >&6; }
+
+
+if test "$enable_vectorization" = yes; then
+  DEPENDENCIES_IN="contrib/vectorization/dependencies.sh.in"
+  DEPENDENCIES_SH="contrib/vectorization/dependencies.sh"
+  if grep '##' $DEPENDENCIES_IN > /dev/null 2>&1 ; then
+      sed "s,##.*##,${prefix}," $DEPENDENCIES_IN > $DEPENDENCIES_SH
+  fi
+fi
 
 
 #

@@ -31,6 +31,10 @@ all:
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo all
 endif
+ifeq ($(enable_vectorization), yes)
+	$(MAKE) -C contrib/vectorization download_arrow
+	$(MAKE) -C contrib/vectorization all
+endif 
 	$(MAKE) -C gpMgmt all
 	$(MAKE) -C gpcontrib all
 	+@echo "All of Cloudberry Database successfully made. Ready to install."
@@ -74,6 +78,9 @@ install:
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo $@
 endif
+ifeq ($(enable_vectorization), yes)
+	$(MAKE) -C contrib/vectorization $@
+endif 
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C gpcontrib $@
 	+@echo "Cloudberry Database installation complete."

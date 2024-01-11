@@ -190,8 +190,8 @@ static void show_motion_keys(PlanState *planstate, List *hashExpr, int nkeys,
 
 static void
 gpexplain_formatSlicesOutput(struct CdbExplain_ShowStatCtx *showstatctx,
-                             struct EState *estate,
-                             ExplainState *es);
+							struct EState *estate,
+							ExplainState *es);
 
 /* EXPLAIN ANALYZE statistics for one plan node of a slice */
 typedef struct CdbExplain_StatInst
@@ -314,39 +314,46 @@ void VecExplainOneQuery(Query *query, int cursorOptions,
 						QueryEnvironment *queryEnv)
 {
 
-    PlannedStmt *plan;
-    instr_time planstart,
-        planduration;
-    BufferUsage bufusage_start,
-        bufusage;
+	PlannedStmt *plan;
+	instr_time planstart, planduration;
+	BufferUsage bufusage_start, bufusage;
+	int vec_type = Invalid;
 
-    if (es->buffers)
-        bufusage_start = pgBufferUsage;
-    INSTR_TIME_SET_CURRENT(planstart);
+	if (es->buffers)
+		bufusage_start = pgBufferUsage;
+	INSTR_TIME_SET_CURRENT(planstart);
 
-    /* plan the query */
-    plan = pg_plan_query(query, queryString, cursorOptions, params);
+	/* plan the query */
+	plan = pg_plan_query(query, queryString, cursorOptions, params);
 
-    INSTR_TIME_SET_CURRENT(planduration);
-    INSTR_TIME_SUBTRACT(planduration, planstart);
+	INSTR_TIME_SET_CURRENT(planduration);
+	INSTR_TIME_SUBTRACT(planduration, planstart);
 
-    /*
-     * GPDB_92_MERGE_FIXME: it really should be an optimizer's responsibility
-     * to correctly set the into-clause and into-policy of the PlannedStmt.
-     */
-    if (into != NULL)
-        plan->intoClause = copyObject(into);
+	if (plan->extensionContext)
+		vec_type = linitial_int(plan->extensionContext);
 
-    /* calc differences of buffer counters. */
-    if (es->buffers)
-    {
-        memset(&bufusage, 0, sizeof(BufferUsage));
-        BufferUsageAccumDiff(&bufusage, &pgBufferUsage, &bufusage_start);
-    }
+	if (vec_type == Invalid && vec_explain_prev) {
+		(*vec_explain_prev) (query, cursorOptions, into, es, queryString, params, queryEnv);
+		return;
+	}
 
-    /* run it (if needed) and produce output */
-    VecExplainOnePlan(plan, into, es, queryString, params, queryEnv,
-                   &planduration, (es->buffers ? &bufusage : NULL), cursorOptions);
+	/*
+		* GPDB_92_MERGE_FIXME: it really should be an optimizer's responsibility
+		* to correctly set the into-clause and into-policy of the PlannedStmt.
+		*/
+	if (into != NULL)
+		plan->intoClause = copyObject(into);
+
+	/* calc differences of buffer counters. */
+	if (es->buffers)
+	{
+		memset(&bufusage, 0, sizeof(BufferUsage));
+		BufferUsageAccumDiff(&bufusage, &pgBufferUsage, &bufusage_start);
+	}
+
+	(vec_type == Invalid ? ExplainOnePlan : VecExplainOnePlan)
+					(plan, into, es, queryString, params, queryEnv, 
+									&planduration, (es->buffers ? &bufusage : NULL), cursorOptions);
 }
 
 /* ----------------
@@ -458,12 +465,12 @@ VecExplainOnePlan(PlannedStmt *plannedstmt, IntoClause *into, ExplainState *es,
 		(*query_info_collect_hook)(METRICS_QUERY_SUBMIT, queryDesc);
 
     /* Allocate workarea for summary stats. */
-    if (es->analyze)
-    {
-        /* Attach workarea to QueryDesc so ExecSetParamPlan() can find it. */
-        queryDesc->showstatctx = cdbexplain_showExecStatsBegin(queryDesc,
-															   starttime);
-    }
+	if (es->analyze)
+	{
+		/* Attach workarea to QueryDesc so ExecSetParamPlan() can find it. */
+		queryDesc->showstatctx = cdbexplain_showExecStatsBegin(queryDesc,
+																starttime);
+	}
 	else
 		queryDesc->showstatctx = NULL;
 
