@@ -27,13 +27,20 @@ else
 fi
 EOF
 
+# only override PATH when Python used during ./configure isn't included in.
+if [[ $(python3 -c "import sys; print(sys.executable)") == "${WHICHPYTHON}" ]]; then
+  PATHSTR='${GPHOME}/bin:${PATH}'
+else
+  PATHSTR='${GPHOME}/bin:${PYTHONBINDIR}:${PATH}'
+fi
+
 cat <<EOF
 PYTHONBINDIR="$(dirname "${WHICHPYTHON}")"
+PATH="${PATHSTR}"
 EOF
 
 cat <<"EOF"
 PYTHONPATH="${GPHOME}/lib/python"
-PATH="${GPHOME}/bin:${PYTHONBINDIR}:${PATH}"
 LD_LIBRARY_PATH="${GPHOME}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 if [ -e "${GPHOME}/etc/openssl.cnf" ]; then
