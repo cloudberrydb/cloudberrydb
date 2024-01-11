@@ -102,6 +102,10 @@ cbdb::CException global_exception(cbdb::CException::kExTypeInvalid);
   }                                                                         \
   while (0)
 
+#define PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE 8 * 1024 * 1024
+#define PAX_SCAN_REUSE_BUFFER_MIN_SIZE 1 * 1024 * 1024
+#define PAX_SCAN_REUSE_BUFFER_MAX_SIZE 32 * 1024 * 1024
+
 // access methods that are implemented in C++
 namespace pax {
 
@@ -1231,6 +1235,11 @@ static void DefineGUCs() {
       "pax.enable_plasma", "Enable plasma cache the set of columns", NULL,
       &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, 0, NULL, NULL, NULL);
 #endif
+  DefineCustomIntVariable(
+      "pax.scan_reuse_buffer_size", "set the reuse buffer size", NULL,
+      &pax::pax_scan_reuse_buffer_size, PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE,
+      PAX_SCAN_REUSE_BUFFER_MIN_SIZE, PAX_SCAN_REUSE_BUFFER_MAX_SIZE,
+      PGC_USERSET, GUC_GPDB_NEED_SYNC, NULL, NULL, NULL);
 }
 
 struct PaxObjectProperty {

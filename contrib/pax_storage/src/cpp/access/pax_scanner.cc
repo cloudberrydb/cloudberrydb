@@ -164,7 +164,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
   desc->rs_base_.rs_nkeys = nkeys;
   desc->rs_base_.rs_flags = flags;
   desc->rs_base_.rs_parallel = pscan;
-  desc->reused_buffer_ = new DataBuffer<char>(32 * 1024 * 1024);  // 32mb
+  desc->reused_buffer_ = new DataBuffer<char>(pax_scan_reuse_buffer_size);
   desc->filter_ = filter;
   if (!desc->filter_) {
     desc->filter_ = new PaxFilter();
