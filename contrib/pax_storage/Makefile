@@ -47,6 +47,6 @@ uninstall: uninstall-data
 
 clean-data:
 	$(RM) pax-cdbinit--1.0.sql
-	$(RM) build
+	$(RM) -r build
 
 clean: clean-data

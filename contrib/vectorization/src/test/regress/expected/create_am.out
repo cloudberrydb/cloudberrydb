@@ -144,7 +144,8 @@ SELECT amname, amhandler, amtype FROM pg_am where amtype = 't' ORDER BY 1, 2;
  ao_row    | ao_row_tableam_handler    | t
  heap      | heap_tableam_handler      | t
  heap2     | heap_tableam_handler      | t
-(4 rows)
+ pax       | pax_tableam_handler       | t
+(5 rows)
 
 -- First create tables employing the new AM using USING
 -- plain CREATE TABLE

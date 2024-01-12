@@ -5005,8 +5005,9 @@ List of access methods
  hash      | Index
  heap      | Table
  heap2     | Table
+ pax       | Table
  spgist    | Index
-(11 rows)
+(12 rows)
 
 \dA *
 List of access methods
@@ -5022,8 +5023,9 @@ List of access methods
  hash      | Index
  heap      | Table
  heap2     | Table
+ pax       | Table
  spgist    | Index
-(11 rows)
+(12 rows)
 
 \dA h*
 List of access methods
@@ -5061,8 +5063,9 @@ List of access methods
  hash      | Index | hashhandler               | hash index access method
  heap      | Table | heap_tableam_handler      | heap table access method
  heap2     | Table | heap_tableam_handler      | 
+ pax       | Table | pax_tableam_handler       | 
  spgist    | Index | spghandler                | SP-GiST index access method
-(11 rows)
+(12 rows)
 
 \dA+ *
                                         List of access methods
@@ -5078,8 +5081,9 @@ List of access methods
  hash      | Index | hashhandler               | hash index access method
  heap      | Table | heap_tableam_handler      | heap table access method
  heap2     | Table | heap_tableam_handler      | 
+ pax       | Table | pax_tableam_handler       | 
  spgist    | Index | spghandler                | SP-GiST index access method
-(11 rows)
+(12 rows)
 
 \dA+ h*
                      List of access methods

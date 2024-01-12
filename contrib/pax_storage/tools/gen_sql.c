@@ -87,7 +87,7 @@ int main() {
       "AND refobjid='pg_ext_aux.pg_pax_tables'::regclass AND objid = (SELECT "
       "indexrelid FROM pg_index WHERE "
       "indrelid='pg_ext_aux.pg_pax_tables'::regclass);",
-      PAX_TABLES_RELID_INDEX_ID, PAX_TABLES_RELATION_ID, PAX_TABLES_RELATION_ID);
+      PAX_TABLES_RELID_INDEX_ID, RelationRelationId, RelationRelationId);
 
   printf("\n-- update index oid\n");
   printf(
@@ -154,7 +154,7 @@ int main() {
       ";\n",
       PAX_AUX_STATS_IN_OID,  /* oid: pg_proc.oid */
       "paxauxstats_in",      /* proname */
-      PG_CATALOG_NAMESPACE,  /* pronamespace: pg_namespace.oid: pg_catalog */
+      PG_EXTAUX_NAMESPACE,   /* pronamespace: pg_namespace.oid: pg_catalog */
       BOOTSTRAP_SUPERUSERID, /* proowner: pg_authid.oid */
       ClanguageId,           /* prolang: pg_language.oid */
       1,                     /* procost: 1 */
@@ -192,7 +192,7 @@ int main() {
       ";\n",
       PAX_AUX_STATS_OUT_OID, /* oid: pg_proc.oid */
       "paxauxstats_out",     /* proname */
-      PG_CATALOG_NAMESPACE,  /* pronamespace: pg_namespace.oid: pg_catalog */
+      PG_EXTAUX_NAMESPACE,   /* pronamespace: pg_namespace.oid: pg_catalog */
       BOOTSTRAP_SUPERUSERID, /* proowner: pg_authid.oid */
       ClanguageId,           /* prolang: pg_language.oid */
       1,                     /* procost: 1 */
@@ -230,7 +230,7 @@ int main() {
       "%u,%d,%d,%u,null,null,null);\n",
       PAX_AUX_STATS_TYPE_OID,  /* pg_type.oid */
       PAX_AUX_STATS_TYPE_NAME, /* pg_type.typname */
-      PG_CATALOG_NAMESPACE,    /* pg_type.typnamespace: pg_namespace.oid:
+      PG_EXTAUX_NAMESPACE,     /* pg_type.typnamespace: pg_namespace.oid:
                                   pg_catalog */
       BOOTSTRAP_SUPERUSERID,   /* pg_type.typowner: pg_authid.oid */
       -1,                      /* pg_type.typlen: -1 variable length */
