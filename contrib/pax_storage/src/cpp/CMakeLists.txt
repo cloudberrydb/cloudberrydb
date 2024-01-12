@@ -100,7 +100,7 @@ add_custom_command(OUTPUT ${stats_proto_src}
 add_custom_target(generate_protobuf DEPENDS ${orc_proto_src} ${pax_proto_src} ${stats_proto_src})
 
 add_executable(generate_sql_script_program "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/gen_sql.c")
-target_include_directories(generate_sql_script_program PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
+target_include_directories(generate_sql_script_program PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
 add_custom_command(OUTPUT generate_sql_file
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/generate_sql_script_program > "${CMAKE_CURRENT_SOURCE_DIR}/../../pax-cdbinit--1.0.sql"
   DEPENDS generate_sql_script_program
@@ -194,7 +194,7 @@ if(BUILD_PAX_FORMAT)
   # paxformat.so
   ADD_DEFINITIONS(-DBUILD_PAX_FORMAT)
   add_library(paxformat SHARED ${orc_proto_src} ${pax_proto_src} ${stats_proto_src} ${pax_storage_src} ${pax_exceptions_src} ${pax_comm_src} )
-  target_include_directories(paxformat PUBLIC ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
+  target_include_directories(paxformat PUBLIC ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
   target_link_libraries(paxformat PUBLIC uuid orc_protobuf zstd z)
   set_target_properties(paxformat PROPERTIES
    OUTPUT_NAME paxformat)
@@ -238,8 +238,9 @@ if(BUILD_PAX_FORMAT)
 else()
   set(pax_target_src  ${orc_proto_src} ${pax_proto_src} ${pax_storage_src} ${stats_proto_src} ${pax_exceptions_src}
     ${pax_access_src} ${pax_comm_src} ${pax_catalog_src} ${pax_vec_src})
-  set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
+  set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
   set(pax_target_link_libs orc_protobuf zstd z postgres)
+  set(pax_target_link_directories ${PROJECT_SOURCE_DIR}/../../src/backend/)
   set(pax_target_dependencies generate_protobuf create_sql_script)
 
   # enable local index, not use uuid to generate file name
@@ -252,24 +253,30 @@ else()
     set(pax_target_link_libs ${pax_target_link_libs} plasma)
   endif()
 
-  # vec build
-  if (VEC_BUILD)
-
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GLIB REQUIRED glib-2.0)
-    set(pax_target_include ${pax_target_include}
-      ${VEC_INCLUDE_DIR} # for utils/tuptable_vec.h
-      ${CBDB_ROOT_INCLUDE_DIR}  # for arrow-glib/arrow-glib.h and otehr arrow interface
-      ${GLIB_INCLUDE_DIRS} # for glib-object.h
-    )
-  endif(VEC_BUILD)
-
   add_library(pax SHARED ${pax_target_src})
   set_target_properties(pax PROPERTIES OUTPUT_NAME pax)
-  target_include_directories(pax PUBLIC ${pax_target_include})
-  target_link_directories(pax PUBLIC ${PROJECT_SOURCE_DIR}/../../src/backend/)
-  target_link_libraries(pax PUBLIC ${pax_target_link_libs})
 
+  # vec build
+  if (VEC_BUILD)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(GLIB REQUIRED glib-2.0)
+    set(pax_target_include
+        ${pax_target_include}
+        ${VEC_HOME}/src/include # for utils/tuptable_vec.h
+        ${VEC_HOME}/arrow/include  # for arrow-glib/arrow-glib.h and otehr arrow interface
+        ${GLIB_INCLUDE_DIRS} # for glib-object.h
+    )
+    set(pax_target_link_directories
+        ${pax_target_link_directories}
+        ${VEC_HOME}/arrow/lib)
+    set(pax_target_link_libs
+        ${pax_target_link_libs}
+        arrow)
+  endif(VEC_BUILD)
+
+  target_include_directories(pax PUBLIC ${pax_target_include})
+  target_link_directories(pax PUBLIC ${pax_target_link_directories})
+  target_link_libraries(pax PUBLIC ${pax_target_link_libs})
   set_target_properties(pax PROPERTIES
     BUILD_RPATH_USE_ORIGIN ON
     BUILD_WITH_INSTALL_RPATH ON
@@ -281,9 +288,6 @@ else()
   add_custom_command(TARGET pax POST_BUILD
                   COMMAND ${CMAKE_COMMAND} -E
                   copy_if_different $<TARGET_FILE:pax> ${CMAKE_CURRENT_SOURCE_DIR}/../../pax.so)
-  if (VEC_BUILD)
-    target_link_libraries(pax PRIVATE arrow)
-  endif()
 
   if (BUILD_GTEST)
     add_subdirectory(contrib/googletest)
@@ -294,15 +298,12 @@ else()
       ${CMAKE_CURRENT_SOURCE_DIR}/*/*_test.cc
       ${CMAKE_CURRENT_SOURCE_DIR}/*/*/*_test.cc)
 
-    link_directories(${PROJECT_SOURCE_DIR}/../../src/backend/)
     add_executable(test_main ${pax_target_src} ${test_case_sources})
     add_dependencies(test_main ${pax_target_dependencies} gtest gmock)
     target_include_directories(test_main PUBLIC ${pax_target_include} ${CMAKE_CURRENT_SOURCE_DIR} ${gtest_SOURCE_DIR}/include contrib/cpp-stub/src/ contrib/cpp-stub/src_linux/)
 
+    target_link_directories(test_main PUBLIC ${pax_target_link_directories})
     target_link_libraries(test_main PUBLIC ${pax_target_link_libs} gtest gmock postgres)
-    if (VEC_BUILD)
-      target_link_libraries(test_main PRIVATE arrow)
-    endif(VEC_BUILD)
   endif(BUILD_GTEST)
 endif(BUILD_PAX_FORMAT)
 

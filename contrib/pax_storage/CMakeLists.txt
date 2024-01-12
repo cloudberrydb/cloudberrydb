@@ -5,8 +5,6 @@ set(CMAKE_CXX_STANDARD 14)
 find_package(BISON REQUIRED)
 set(TOP_DIR ${PROJECT_SOURCE_DIR}/../..)
 set(CBDB_INCLUDE_DIR ${TOP_DIR}/src/include)
-set(ARROW_INCLUDE_DIR ${TOP_DIR}/contrib/vectorization/arrow/include)
-set(VEC_INCLUDE_DIR ${TOP_DIR}/contrib/vectorization/src/include)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g")
 
@@ -25,7 +23,7 @@ if (NOT DEFINED ENV{BUILD_TYPE})
 endif()
 
 set(BUILD_TYPE $ENV{BUILD_TYPE})
-message(INFO "env BUILD_TYPE=$ENV{BUILD_TYPE} => ${BUILD_TYPE}")
+message(STATUS "env BUILD_TYPE=$ENV{BUILD_TYPE} => ${BUILD_TYPE}")
 
 if (${BUILD_TYPE} STREQUAL "release")
   SET(CMAKE_BUILD_TYPE "Release")
@@ -59,11 +57,30 @@ set(CMAKE_CXX_STANDARD 17)
 endif()
 
 # Vec options
-option(VEC_BUILD "Build pax vectorization version" OFF)
+include(CheckSymbolExists)
+SET(PG_CONFIG_HEADER_FILE "${CBDB_INCLUDE_DIR}/pg_config.h")
+CHECK_SYMBOL_EXISTS(USE_VECTORIZATION "${PG_CONFIG_HEADER_FILE}" VEC_BUILD)
+message(STATUS "pg_config.h => ${PG_CONFIG_HEADER_FILE}")
 if (VEC_BUILD)
-
-  set(CBDB_ROOT_INCLUDE_DIR ${PG_INCLUDEDIR})
+  set(VEC_HOME "${PROJECT_SOURCE_DIR}/../vectorization")
   ADD_DEFINITIONS(-DVEC_BUILD)
 
+  message(STATUS "Build pax with vectorization support, VEC_HOME=${VEC_HOME}")
+
+# resolve vectorization dependency, or the header files will miss
+  message(STATUS "Resolve vectorization dependency ...")
+  execute_process(
+    COMMAND make download_arrow
+    WORKING_DIRECTORY ${VEC_HOME}
+    RESULT_VARIABLE CMD_RESULT
+  )
+  if(CMD_RESULT EQUAL 0)
+    message(STATUS "Resolve vectorization dependency succeeded.")
+  else()
+    message(FATAL_ERROR "Resolve vectorization dependency failed with result: ${CMD_RESULT}")
+  endif()
+
+else()
+  message(STATUS "Build pax without vectorization support")
 endif(VEC_BUILD)
 add_subdirectory(src/cpp)
