@@ -1,8 +1,11 @@
 MODULE_big = vectorization
 
+top_builddir = ../../
+
 REGRESS_DIR = src/test/regress
 VECHEADERS = src/include
 BACKENDS = src/backend
+PAX_DIR = ${top_builddir}/contrib/pax_storage/
 
 ARROW = $(BACKENDS)/utils/arrow
 PLAN = $(BACKENDS)/optimizer
@@ -28,9 +31,9 @@ PG_LDFLAGS += -lgandiva-glib -lgandiva -larrow-glib -larrow
 
 PG_LDFLAGS += -Larrow/lib
 PG_CFLAGS += -Iarrow/include
+PG_CFLAGS += -I$(PAX_DIR)/src/cpp/
 PG_CPPFLAGS = -I$(libpq_srcdir)
 
-top_builddir = ../../
 PG_REGRESS = $(top_builddir)/src/test/regress/pg_regress
 
 PG_CFLAGS += -I$(VECHEADERS) 

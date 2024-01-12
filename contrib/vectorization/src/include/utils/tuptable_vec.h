@@ -69,7 +69,7 @@ static inline bool IsContainEmptyTuples(TupleTableSlot *slot)
 {
 	if (TupIsNull(slot) || TTS_IS_DIRTY(slot))
 		return false;
-	return garrow_record_batch_is_null(VECSLOT(slot)->tts_recordbatch);
+	return garrow_record_batch_is_null((GArrowRecordBatch *)(VECSLOT(slot)->tts_recordbatch));
 }
 
 extern const char *GetUniqueAttrName(char *attr_name, AttrNumber attr);

@@ -100,7 +100,7 @@ add_custom_command(OUTPUT ${stats_proto_src}
 add_custom_target(generate_protobuf DEPENDS ${orc_proto_src} ${pax_proto_src} ${stats_proto_src})
 
 add_executable(generate_sql_script_program "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/gen_sql.c")
-target_include_directories(generate_sql_script_program PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
+target_include_directories(generate_sql_script_program PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
 add_custom_command(OUTPUT generate_sql_file
   COMMAND ${CMAKE_CURRENT_BINARY_DIR}/generate_sql_script_program > "${CMAKE_CURRENT_SOURCE_DIR}/../../pax-cdbinit--1.0.sql"
   DEPENDS generate_sql_script_program
@@ -194,7 +194,7 @@ if(BUILD_PAX_FORMAT)
   # paxformat.so
   ADD_DEFINITIONS(-DBUILD_PAX_FORMAT)
   add_library(paxformat SHARED ${orc_proto_src} ${pax_proto_src} ${stats_proto_src} ${pax_storage_src} ${pax_exceptions_src} ${pax_comm_src} )
-  target_include_directories(paxformat PUBLIC ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
+  target_include_directories(paxformat PUBLIC ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
   target_link_libraries(paxformat PUBLIC uuid orc_protobuf zstd z)
   set_target_properties(paxformat PROPERTIES
    OUTPUT_NAME paxformat)
@@ -205,6 +205,7 @@ if(BUILD_PAX_FORMAT)
     comm/bitmap.h
     comm/cbdb_api.h
     comm/cbdb_wrappers.h
+    comm/pax_rel.h
   )
 
   # export headers
@@ -237,7 +238,7 @@ if(BUILD_PAX_FORMAT)
 else()
   set(pax_target_src  ${orc_proto_src} ${pax_proto_src} ${pax_storage_src} ${stats_proto_src} ${pax_exceptions_src}
     ${pax_access_src} ${pax_comm_src} ${pax_catalog_src} ${pax_vec_src})
-  set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
+  set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR} ${ARROW_INCLUDE_DIR})
   set(pax_target_link_libs orc_protobuf zstd z postgres)
   set(pax_target_dependencies generate_protobuf create_sql_script)
 
@@ -253,12 +254,11 @@ else()
 
   # vec build
   if (VEC_BUILD)
-    set(VEC_HEADER ${VEC_HOME}/src/include/)
 
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GLIB REQUIRED glib-2.0)
     set(pax_target_include ${pax_target_include}
-      ${VEC_HEADER} # for utils/tuptable_vec.h
+      ${VEC_INCLUDE_DIR} # for utils/tuptable_vec.h
       ${CBDB_ROOT_INCLUDE_DIR}  # for arrow-glib/arrow-glib.h and otehr arrow interface
       ${GLIB_INCLUDE_DIRS} # for glib-object.h
     )

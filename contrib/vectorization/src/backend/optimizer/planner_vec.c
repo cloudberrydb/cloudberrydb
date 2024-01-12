@@ -52,6 +52,7 @@
 #include "utils/guc_vec.h"
 #include "utils/wrapper.h"
 #include "utils/fmgr_vec.h"
+#include "comm/pax_rel.h"
 
 planner_hook_type           planner_prev = NULL;
 
@@ -1234,7 +1235,7 @@ is_relation_vectorable(Scan* seqscan, List *rtable, bool isForeign)
 	rel = relation_open(rte->relid, AccessShareLock);
 	/* Fixme : Support more table, only aocs now. */
 	/* Foreign scan relation has no amhandle, skip this.*/
-	if (!isForeign && !RelationIsAoCols(rel))
+	if (!isForeign && !(RelationIsAoCols(rel) || RelationIsPAX(rel)))
 	{
 		elog(DEBUG2, "Fallback to non-vectorization; relation is not acos.");
 		relation_close(rel, AccessShareLock);

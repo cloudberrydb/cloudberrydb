@@ -3,9 +3,10 @@ cmake_minimum_required (VERSION 3.11.0)
 set(CMAKE_CXX_STANDARD 14)
 
 find_package(BISON REQUIRED)
-
-# TODO check exists if this is needed
-set(CBDB_INCLUDE_DIR ${PROJECT_SOURCE_DIR}/../../src/include)
+set(TOP_DIR ${PROJECT_SOURCE_DIR}/../..)
+set(CBDB_INCLUDE_DIR ${TOP_DIR}/src/include)
+set(ARROW_INCLUDE_DIR ${TOP_DIR}/contrib/vectorization/arrow/include)
+set(VEC_INCLUDE_DIR ${TOP_DIR}/contrib/vectorization/src/include)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g")
 
@@ -59,12 +60,7 @@ endif()
 
 # Vec options
 option(VEC_BUILD "Build pax vectorization version" OFF)
-set(VEC_HOME "" CACHE STRING "Path to vectorization home")
 if (VEC_BUILD)
-
-  if("${VEC_HOME}" STREQUAL "")
-    message(FATAL_ERROR "No found vectorization home setting. Using -DVEC_HOME to spec vectorization home")
-  endif()
 
   set(CBDB_ROOT_INCLUDE_DIR ${PG_INCLUDEDIR})
   ADD_DEFINITIONS(-DVEC_BUILD)

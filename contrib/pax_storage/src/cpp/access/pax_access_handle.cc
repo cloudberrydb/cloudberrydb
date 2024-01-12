@@ -1342,8 +1342,3 @@ void _PG_init(void) {  // NOLINT
   paxc::paxc_reg_rel_options();
 }
 }  // extern "C"
-
-// assume rd_tableam is set
-bool RelationIsPAX(Relation rel) {
-  return rel->rd_tableam == &kPaxColumnMethods;
-}
