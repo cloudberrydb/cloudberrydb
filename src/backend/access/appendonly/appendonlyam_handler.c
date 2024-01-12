@@ -335,12 +335,13 @@ get_insert_descriptor(const Relation relation)
 {
 	AppendOnlyDMLState *state;
 	AppendOnlyInsertDesc next = NULL;
+	MemoryContext oldcxt;
 
 	state = find_dml_state(RelationGetRelid(relation));
+	oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
 
 	if (state->insertDesc == NULL)
 	{
-		MemoryContext oldcxt;
 
 		/*
 		 * CBDB_PARALLEL:
@@ -352,7 +353,6 @@ get_insert_descriptor(const Relation relation)
 			!ShouldUseReservedSegno(relation, CHOOSE_MODE_WRITE))
 			state->insertMultiFiles = gp_appendonly_insert_files;
 
-		oldcxt = MemoryContextSwitchTo(appendOnlyLocal.stateCxt);
 		state->insertDesc= appendonly_insert_init(relation,
 											ChooseSegnoForWrite(relation));
 
@@ -360,7 +360,6 @@ get_insert_descriptor(const Relation relation)
 		dlist_init(&state->head);
 		dlist_push_tail(&state->head, &state->insertDesc->node);
 	
-		MemoryContextSwitchTo(oldcxt);
 	}
 
 	/* switch insertDesc */
@@ -401,6 +400,7 @@ get_insert_descriptor(const Relation relation)
                                                         0);
         insertDesc->placeholderInserted = true;                                         
     }
+	MemoryContextSwitchTo(oldcxt);
 
 
 	return state->insertDesc;
