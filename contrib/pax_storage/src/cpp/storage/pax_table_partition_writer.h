@@ -18,7 +18,9 @@ class TableParitionWriter : public TableWriter {
 
   void Close() override;
 
+#ifndef RUN_GTEST
  private:
+#endif
   std::vector<std::vector<size_t>> GetPartitionMergeInfos();
 
  private:

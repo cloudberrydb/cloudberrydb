@@ -305,6 +305,24 @@ else()
     target_link_directories(test_main PUBLIC ${pax_target_link_directories})
     target_link_libraries(test_main PUBLIC ${pax_target_link_libs} gtest gmock postgres)
   endif(BUILD_GTEST)
+
+  if(BUILD_GBENCH)
+    add_subdirectory(contrib/googlebench)
+    ADD_DEFINITIONS(-DRUN_GBENCH)
+    file(GLOB bench_sources
+        pax_gbench.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/*/*_bench.cc
+        ${CMAKE_CURRENT_SOURCE_DIR}/*/*/*_bench.cc)
+
+      add_executable(bench_main ${pax_target_src} ${bench_sources})
+      add_dependencies(bench_main ${pax_target_dependencies} gtest gmock)
+      target_include_directories(bench_main PUBLIC ${pax_target_include} ${CMAKE_CURRENT_SOURCE_DIR} contrib/googlebench/include contrib/cpp-stub/src/ contrib/cpp-stub/src_linux/)
+      link_directories(contrib/googlebench/src)
+      target_link_libraries(bench_main PUBLIC ${pax_target_link_libs} gtest gmock benchmark postgres)
+      if (VEC_BUILD)
+        target_link_libraries(bench_main PRIVATE arrow)
+      endif(VEC_BUILD)
+  endif(BUILD_GBENCH)
 endif(BUILD_PAX_FORMAT)
 
 if (BUILD_TOOLS) 

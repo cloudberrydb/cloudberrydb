@@ -15,3 +15,6 @@
 [submodule "contrib/pax_storage/src/cpp/contrib/tabulate"]
 	path = contrib/pax_storage/src/cpp/contrib/tabulate
 	url = https://code.hashdata.xyz/cloudberry/tabulate
+[submodule "contrib/pax_storage/src/cpp/contrib/googlebench"]
+	path = contrib/pax_storage/src/cpp/contrib/googlebench
+	url = https://code.hashdata.xyz/cloudberry/benchmark.git

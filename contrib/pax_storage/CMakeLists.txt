@@ -14,6 +14,9 @@ option(ENABLE_LOCAL_INDEX "Enable local index support" OFF)
 # Build gtest options
 option(BUILD_GTEST "Build with google test" ON)
 
+
+option(BUILD_GBENCH "Build with google benchmark" OFF)
+
 # Build pax format lib
 option(BUILD_PAX_FORMAT "Build pax format lib" OFF)
 
@@ -45,6 +48,11 @@ endif()
 if (ENABLE_LOCAL_INDEX)
   ADD_DEFINITIONS(-DENABLE_LOCAL_INDEX)
 endif(ENABLE_LOCAL_INDEX)
+
+
+if(BUILD_GBENCH)
+  SET(BUILD_GTEST ON)
+endif(BUILD_GBENCH)
 
 if (BUILD_GTEST)
   SET(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -no-pie -fno-stack-protector -Wall -Wno-unused-function  -Wno-unused-variable")
