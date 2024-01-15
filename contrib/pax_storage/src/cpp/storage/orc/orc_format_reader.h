@@ -37,9 +37,13 @@ class OrcFormatReader final {
                                             size_t sf_length, size_t sf_offset,
                                             size_t sf_data_len);
 
+  orc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
+                                            size_t stripe_index);
+
   void BuildProtoTypes();
 
  private:
+  friend class PaxDumpReader;
   friend class OrcGroupStatsProvider;
   std::vector<orc::proto::Type_Kind> column_types_;
   File *file_;

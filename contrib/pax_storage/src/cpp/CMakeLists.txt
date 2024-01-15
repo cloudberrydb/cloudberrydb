@@ -307,3 +307,12 @@ else()
   endif(BUILD_GTEST)
 endif(BUILD_PAX_FORMAT)
 
+if (BUILD_TOOLS) 
+  add_subdirectory(contrib/tabulate)
+  link_directories($ENV{GPHOME}/lib)
+
+  add_executable(pax_dump storage/tools/pax_dump.cpp storage/tools/pax_dump_reader.cpp)
+  target_include_directories(pax_dump PUBLIC ${pax_target_include} ${CMAKE_CURRENT_SOURCE_DIR} contrib/tabulate/include)
+  add_dependencies(pax_dump ${pax_target_dependencies})
+  target_link_libraries(pax_dump PUBLIC pax)
+endif(BUILD_TOOLS)

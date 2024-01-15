@@ -17,6 +17,9 @@ option(BUILD_GTEST "Build with google test" ON)
 # Build pax format lib
 option(BUILD_PAX_FORMAT "Build pax format lib" OFF)
 
+# Build pax tools
+option(BUILD_TOOLS "Build with pax tools" ON)
+
 # env BUILD_TYPE is set by Lighting pipeline
 if (NOT DEFINED ENV{BUILD_TYPE})
     set(ENV{BUILD_TYPE} "debug")

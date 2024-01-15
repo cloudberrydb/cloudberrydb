@@ -182,6 +182,31 @@ orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
   return stripe_footer;
 }
 
+orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
+    DataBuffer<char> *data_buffer, size_t stripe_index) {
+  size_t sf_data_len;
+  size_t sf_offset;
+  size_t sf_length;
+  orc::proto::StripeInformation stripe_info;
+
+  Assert(stripe_index < GetStripeNums());
+
+  stripe_info = file_footer_.stripes(static_cast<int>(stripe_index));
+
+  sf_data_len = stripe_info.datalength();
+  sf_offset = stripe_info.offset();
+  sf_length = stripe_info.footerlength();
+
+  Assert(data_buffer->IsMemTakeOver());
+  Assert(data_buffer->Used() == 0);
+
+  if (data_buffer->Capacity() < (sf_length - sf_data_len)) {
+    data_buffer->ReSize(sf_length - sf_data_len);
+  }
+
+  return ReadStripeFooter(data_buffer, sf_length, sf_offset, sf_data_len);
+}
+
 orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
     DataBuffer<char> *data_buffer,
     const ::orc::proto::StripeInformation &stripe_info,
