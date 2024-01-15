@@ -56,15 +56,14 @@ static Node *aqumv_adjust_varno_mutator(Node *node, aqumv_adjust_varno_context *
 
 typedef struct
 {
-	List	*mv_pure_vars;				/* List of pure Vars expression. */
 	List	*mv_pure_vars_index; 		/* Index list of pure Vars. */
 	List	*mv_nonpure_vars_index; 	/* Index list of nonpure Vars. */
-	List	*mv_query_tlist;			/* mv query target list. */
-	List	*mv_tlist;					/* mv relation's target list. */
-	bool	has_unmatched;				/* True if we fail to rewrite an expression. */
+	List	*mv_query_tlist;			/* view query's target list. */
+	TupleDesc mv_tupledesc;				/* mv relation's tuple desc. */
+	bool has_unmatched;		/* True if we fail to rewrite an expression. */
 } aqumv_equivalent_transformation_context;
 
-static aqumv_equivalent_transformation_context* aqumv_init_context(List *view_tlist, List *mv_tlist);
+static aqumv_equivalent_transformation_context* aqumv_init_context(List *view_tlist, TupleDesc mv_tupledesc);
 static bool aqumv_process_targetlist(aqumv_equivalent_transformation_context *context, List *query_tlist, List **mv_final_tlist);
 static void aqumv_process_nonpure_vars_expr(aqumv_equivalent_transformation_context* context);
 static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_transformation_context *context);
@@ -80,8 +79,6 @@ typedef struct
 	int	count;			/* Count of subnodes in this expression */
 } expr_to_sort;
 
-static inline Var *copyVarFromTatgetList(List* tlist, int var_index);
-
 /*
  * Answer Query Using Materialized Views(AQUMV).
  * This function modifies root(parse and etc.), current_rel in-place.
@@ -93,8 +90,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 									void *qp_extra)
 {
 	Query   		*parse = root->parse; /* Query of origin SQL. */
-	Query			*mvQuery; /* Query of view. */
-	Query			*mvRelQueryTree; /* Query tree of select from mv itself. */
+	Query			*viewQuery; /* Query of view. */
 	RelOptInfo 		*mv_final_rel = current_rel; /* Final rel after rewritten. */
 	ListCell 		*lc;
 	Node    		*jtnode;
@@ -196,48 +192,48 @@ answer_query_using_materialized_views(PlannerInfo *root,
 
 		/*
 		 * AQUMV
-		 * We will do some Equivalet Transformation on the mvQuery which
+		 * We will do some Equivalet Transformation on the viewQuery which
 		 * represents the mv's corresponding query.
 		 *
-		 * AQUMV_FIXME_MVP: mvQuery is a simple query too, like the parse query.
-		 * mvQuery->sortClause is ok here, though we can't use the Order by
-		 * clause of mvQuery.
+		 * AQUMV_FIXME_MVP: viewQuery is a simple query too, like the parse query.
+		 * viewQuery->sortClause is ok here, though we can't use the Order by
+		 * clause of viewQuery.
 		 * The reason is: the Order by clause of materialized view's query is
 		 * typically pointless. We can't rely on the order even we wrote the
 		 * ordered data into mv, ex: some other access methods except heap.
 		 * The Seqscan on a heap-storaged mv seems ordered, but it's a free lunch.
 		 * A Parallel Seqscan breaks that hypothesis.
 		 */
-		mvQuery = copyObject(linitial_node(Query, actions));
-		Assert(IsA(mvQuery, Query));
-		if(mvQuery->hasAggs ||
-			mvQuery->hasWindowFuncs ||
-			mvQuery->hasDistinctOn ||
-			mvQuery->hasModifyingCTE ||
-			mvQuery->hasSubLinks ||
-			(mvQuery->groupClause != NIL) ||
+		viewQuery = copyObject(linitial_node(Query, actions));
+		Assert(IsA(viewQuery, Query));
+		if(viewQuery->hasAggs ||
+			viewQuery->hasWindowFuncs ||
+			viewQuery->hasDistinctOn ||
+			viewQuery->hasModifyingCTE ||
+			viewQuery->hasSubLinks ||
+			(viewQuery->groupClause != NIL) ||
 			/* IVM doesn't support belows now, just in case. */
-			(mvQuery->rowMarks != NIL) ||
-			(mvQuery->distinctClause != NIL) ||
-			(mvQuery->cteList != NIL) ||
-			(mvQuery->setOperations != NULL) ||
-			(mvQuery->scatterClause != NIL))
+			(viewQuery->rowMarks != NIL) ||
+			(viewQuery->distinctClause != NIL) ||
+			(viewQuery->cteList != NIL) ||
+			(viewQuery->setOperations != NULL) ||
+			(viewQuery->scatterClause != NIL))
 			continue;
 
-		if (list_length(mvQuery->jointree->fromlist) != 1)
+		if (list_length(viewQuery->jointree->fromlist) != 1)
 			continue;
 
-		mvjtnode = (Node *) linitial(mvQuery->jointree->fromlist);
+		mvjtnode = (Node *) linitial(viewQuery->jointree->fromlist);
 		if (!IsA(mvjtnode, RangeTblRef))
 			continue;
 
 		/*
 		 * AQUMV
-		 * Require that the relation of mvQuery is a simple query too.
+		 * Require that the relation of viewQuery is a simple query too.
 		 * We haven't do sth like: pull up sublinks or subqueries yet.
 		 */
 		varno = ((RangeTblRef*) mvjtnode)->rtindex;
-		mvrte = rt_fetch(varno, mvQuery->rtable);
+		mvrte = rt_fetch(varno, viewQuery->rtable);
 		Assert(mvrte != NULL);
 
 		if (mvrte->rtekind != RTE_RELATION)
@@ -249,37 +245,6 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 */
 		if (mvrte->relid != origin_rel_oid)
 			continue;
-
-		/*
-		 * AQUMV_FIXME_MVP
-		 * mv's query tree itself is needed to do the final replacement
-		 * when we found corresponding column expression from mvQuery's
-		 * TargetList by Query's.
-		 * 
-		 * A plain SELECT on all columns seems the easiest way, though
-		 * some columns may not be needed.
-		 * And we get a mvRelQueryTree represents SELECT * FROM mv.
-		 */
-		char *mvname = quote_qualified_identifier(get_namespace_name(RelationGetNamespace(matviewRel)),
-							 RelationGetRelationName(matviewRel));
-		StringInfoData query_mv;
-		initStringInfo(&query_mv);
-		appendStringInfo(&query_mv, "SELECT * FROM %s", mvname);
-		List *raw_parsetree_list = pg_parse_query(query_mv.data);
-
-		/*
-		 * AQUMV_FIXME_MVP
-		 * We should drop the mv if it has rules.
-		 * Because mv's rules shouldn't apply to origin query.
-		 */
-		if (list_length(raw_parsetree_list) != 1)
-			continue;
-
-		ParseState *mv_pstate = make_parsestate(NULL);
-		mv_pstate->p_sourcetext = query_mv.data;
-		mvRelQueryTree = transformTopLevelStmt(mv_pstate, linitial(raw_parsetree_list));
-		free_parsestate(mv_pstate);
-		/* AQUMV_FIXME_MVP: free mvRelQueryTree? */
 
 		subroot = (PlannerInfo *) palloc(sizeof(PlannerInfo));
 		memcpy(subroot, root, sizeof(PlannerInfo));
@@ -296,7 +261,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		/* Agg infos would be processed by subroot itself. */
 		subroot->agginfos = NIL;
 		subroot->aggtransinfos = NIL;
-		subroot->parse = mvQuery;
+		subroot->parse = viewQuery;
 
 		/*
 		 * AQUMV
@@ -307,7 +272,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * refresh mv.
 		 * Earse unused relatoins, keep the right one.
 		 */
-		foreach(lc, mvQuery->rtable)
+		foreach(lc, viewQuery->rtable)
 		{
 			RangeTblEntry* rtetmp = lfirst(lc);
 			if ((rtetmp->relkind == RELKIND_MATVIEW) &&
@@ -315,7 +280,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 				(strcmp(rtetmp->alias->aliasname, "new") == 0 ||
 				strcmp(rtetmp->alias->aliasname,"old") == 0))
 			{
-				foreach_delete_current(mvQuery->rtable, lc);
+				foreach_delete_current(viewQuery->rtable, lc);
 			}
 		}
 
@@ -326,7 +291,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * is supported now, we could assign varno
 		 * to 1 opportunistically.
 		 */
-		aqumv_adjust_varno(mvQuery, 1);
+		aqumv_adjust_varno(viewQuery, 1);
 
 		/*
 		 * AQUMV_FIXME_MVP
@@ -338,10 +303,10 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * results is guaranteed.
 		 * Its's unclear whether STABLE is OK, let's be conservative for now.
 		 */
-		if(contain_mutable_functions((Node *)mvQuery))
+		if(contain_mutable_functions((Node *)viewQuery))
 			continue;
 
-		context = aqumv_init_context(mvQuery->targetList, mvRelQueryTree->targetList);
+		context = aqumv_init_context(viewQuery->targetList, matviewRel->rd_att);
 
 		/* Sort nonpure vars expression, prepare for Greedy Algorithm. */
 		aqumv_process_nonpure_vars_expr(context);
@@ -352,21 +317,34 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		if(!aqumv_process_targetlist(context, parse->targetList, &mv_final_tlist))
 			continue;
 
+		viewQuery->targetList = mv_final_tlist;
+
+		/*
+		 * NB: Update processed_tlist again in case that tlist has been changed. 
+		 */
+		preprocess_targetlist(subroot);
+
 		/*
 		 * We have successfully processed target list, and all columns in Aggrefs
-		 * could be computed from mvQuery.
+		 * could be computed from viewQuery.
 		 */
-		mvQuery->hasAggs = parse->hasAggs;
-		mvQuery->groupClause = parse->groupClause;
-		mvQuery->groupingSets = parse->groupingSets;
+		viewQuery->hasAggs = parse->hasAggs;
 		/*
 		 * For HAVING quals have aggregations, we have already processed them in
 		 * Aggrefs during aqumv_process_targetlist().
 		 * For HAVING quals don't have aggregations, they may be pushed down to
 		 * jointree's quals and would be processed in post_quals later.
+		 * Set havingQual before we preprocess_aggrefs for that.
 		 */
-		mvQuery->havingQual = parse->havingQual;
-		mvQuery->sortClause = parse->sortClause;
+		viewQuery->havingQual = parse->havingQual;
+		if (viewQuery->hasAggs)
+		{
+			preprocess_aggrefs(subroot, (Node *) subroot->processed_tlist);
+			preprocess_aggrefs(subroot, viewQuery->havingQual);
+		}
+		viewQuery->groupClause = parse->groupClause;
+		viewQuery->groupingSets = parse->groupingSets;
+		viewQuery->sortClause = parse->sortClause;
 
 		/*
 		 * AQUMV
@@ -376,7 +354,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * have been converted into conjunctive normal form(CNF) before we process
 		 * them.
 		 */
-		preprocess_qual_conditions(subroot, (Node *) mvQuery->jointree);
+		preprocess_qual_conditions(subroot, (Node *) viewQuery->jointree);
 
 		/*
 		 * Process quals, return false if failed. 
@@ -384,30 +362,13 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * Like process target list, post_quals is used later to see if we could
 		 * rewrite and apply it to mv relation.
 		 */
-		if(!aqumv_process_from_quals(parse->jointree->quals, mvQuery->jointree->quals, &post_quals))
+		if(!aqumv_process_from_quals(parse->jointree->quals, viewQuery->jointree->quals, &post_quals))
 			continue;
 
 		/* Rewrite post_quals, return false if failed. */
 		post_quals = (List *)aqumv_adjust_sub_matched_expr_mutator((Node *)post_quals, context);
 		if (context->has_unmatched)
 			continue;
-
-		/*
-		 * Here! We succeed to rewrite a new SQL.
-		 * Begin to replace all guts.
-		 */
-		mvQuery->targetList = mv_final_tlist;
-
-		/*
-		 * AQUMV
-		 * NB: Update processed_tlist again in case that tlist has been changed. 
-		 */
-		preprocess_targetlist(subroot);
-		if(mvQuery->hasAggs)
-		{
-			preprocess_aggrefs(subroot, (Node *) subroot->processed_tlist);
-			preprocess_aggrefs(subroot, mvQuery->havingQual);
-		}
 
 		/*
 		 * AQUMV
@@ -424,8 +385,8 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 * Not sure where it's true from actions even it's not inherit tables.
 		 */
 		mvrte->inh = false;
-		mvQuery->rtable = list_make1(mvrte); /* rewrite to SELECT FROM mv itself. */
-		mvQuery->jointree->quals = (Node *)post_quals; /* Could be NULL, but doesn'y matter for now. */
+		viewQuery->rtable = list_make1(mvrte); /* rewrite to SELECT FROM mv itself. */
+		viewQuery->jointree->quals = (Node *)post_quals; /* Could be NULL, but doesn'y matter for now. */
 
 		/*
 		 * Build a plan of new SQL.
@@ -441,7 +402,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 		 */
 		if (mv_final_rel->cheapest_total_path->total_cost < current_rel->cheapest_total_path->total_cost)
 		{
-			root->parse = mvQuery;
+			root->parse = viewQuery;
 			root->processed_tlist = subroot->processed_tlist;
 			root->agginfos = subroot->agginfos;
 			root->aggtransinfos =  subroot->aggtransinfos;
@@ -468,7 +429,7 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			/*
 			 * AQUMV_FIXME_MVP
 			 * Use new query's ecs.
-			 * Equivalence Class is not supported now, we may lost some ECs if the mv_query has
+			 * Equivalence Class is not supported now, we may lost some ECs if the viewQuery has
 			 * equal quals or implicit ones.
 			 * But keeping them also introduces more complex as we should process them like target list.
 			 * Another flaw: the generated Filter expressions by keeping them are pointless as all
@@ -476,9 +437,8 @@ answer_query_using_materialized_views(PlannerInfo *root,
 			 * See more in README.cbdb.aqumv
 			 */
 			root->eq_classes = subroot->eq_classes;
-			/* Replace relation, don't close the right one. */
 			current_rel = mv_final_rel;
-			table_close(matviewRel, AccessShareLock);
+			table_close(matviewRel, NoLock);
 			need_close = false;
 		}
 	}
@@ -496,42 +456,35 @@ answer_query_using_materialized_views(PlannerInfo *root,
  * put all stuff into a context.
  */
 static aqumv_equivalent_transformation_context*
-aqumv_init_context(List *view_tlist, List *mv_tlist)
+aqumv_init_context(List *view_tlist, TupleDesc mv_tupledesc)
 {
 	aqumv_equivalent_transformation_context *context = palloc0(sizeof(aqumv_equivalent_transformation_context));
-	List	*mv_pure_vars = NIL; /* TargetEntry[Var] in mv query. */
-	List	*mv_pure_vars_index = NIL; /* Index of TargetEntry[Var] in mv query. */
-	List	*mv_nonpure_vars_index = NIL; /* Index of nonpure[Var] expression in mv query. */
-	Expr	*expr;
+	List	*mv_pure_vars_index = NIL; /* Index of TargetEntry[Var] in view query. */
+	List	*mv_nonpure_vars_index = NIL; /* Index of nonpure[Var] expression in view query. */
 	ListCell *lc;
 
 	/*
-	 * Process mv_query's tlist to pure-Var and no pure-Var expressions.
+	 * Process viewQuery's tlist to pure-Var and no pure-Var expressions.
 	 * See details in README.cbdb.aqumv
 	 */
-	int i = 0;
+	int i = -1;
 	foreach(lc, view_tlist)
 	{
 		i++;
 		TargetEntry* tle = lfirst_node(TargetEntry, lc);
-
+		/* IMMV query couldn't have resjunk column not, just in case. */
 		if (tle->resjunk)
 			continue;
 
-		expr = tle->expr;
-		if(IsA(expr, Var))
-		{
-			mv_pure_vars = lappend(mv_pure_vars, expr);
+		if (IsA(tle->expr, Var))
 			mv_pure_vars_index = lappend_int(mv_pure_vars_index, i);
-		}
 		else
 			mv_nonpure_vars_index = lappend_int(mv_nonpure_vars_index, i);
 	}
 
-	context->mv_pure_vars = mv_pure_vars;
 	context->mv_pure_vars_index = mv_pure_vars_index;
 	context->mv_nonpure_vars_index = mv_nonpure_vars_index;
-	context->mv_tlist = mv_tlist;
+	context->mv_tupledesc = mv_tupledesc;
 	context->mv_query_tlist = view_tlist;
 	context->has_unmatched = false;
 	return context;
@@ -593,20 +546,6 @@ aqumv_adjust_varno(Query* parse, int varno)
 	parse = query_tree_mutator(parse, aqumv_adjust_varno_mutator, &context, QTW_DONT_COPY_QUERY);
 }
 
-/*
- * Only for plain select * from mv;
- * All TargetEntrys are pure Var.
- * var_index start from 1
- */
-static inline Var * 
-copyVarFromTatgetList(List* tlist, int var_index)
-{
-	TargetEntry * tle = (TargetEntry *) list_nth(tlist, var_index - 1);
-	Assert(IsA(tle->expr,Var));
-	Var *var = copyObject((Var *)tle->expr);
-	return var;
-}
-
 /* 
  * Adjust varno and rindex with delta. 
  */ 
@@ -656,7 +595,7 @@ aqumv_process_nonpure_vars_expr(aqumv_equivalent_transformation_context* context
 	foreach(lc, context->mv_nonpure_vars_index)
 	{
 		int index = lfirst_int(lc);
-		Node *expr = lfirst(list_nth_cell(context->mv_query_tlist, index -1));
+		Node *expr = lfirst(list_nth_cell(context->mv_query_tlist, index));
 		node_complexity_context *subnode_context = palloc0(sizeof(node_complexity_context));
 		(void) compute_node_complexity_walker(expr, subnode_context);
 		expr_to_sort *ets = palloc0(sizeof(expr_to_sort));
@@ -752,17 +691,23 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 	foreach(lc, context->mv_nonpure_vars_index)
 	{
 		int index = lfirst_int(lc);
-		TargetEntry *tle = list_nth_node(TargetEntry, context->mv_query_tlist, index - 1);
+		TargetEntry *tle = list_nth_node(TargetEntry, context->mv_query_tlist, index);
 		if(equal(node_expr, tle->expr))
 		{
-			Var *newVar = copyVarFromTatgetList(context->mv_tlist, index);
+			Form_pg_attribute attr = TupleDescAttr(context->mv_tupledesc, index);
+			Var *newVar =  makeVar(1, /* AQUMV_FIXME_MVP: single relation */
+								attr->attnum,
+								attr->atttypid,
+								attr->atttypmod,
+								attr->attcollation,
+								0 /* AQUMV_FIXME_MVP: no subquery. */);
 			newVar->location = -2; /* hack here, use -2 to indicate already rewrited by mv rel Vars. */
 			if (is_targetEntry)
 			{
 				TargetEntry *qtle = (TargetEntry *) node;
 				/*
 				 * AQUMV_FIXME_MVP:
-				 * resorigtbl, resorigcol, resjunck in mv_query is also rejunck in mv table itself ?
+				 * resorigtbl, resorigcol, resjunck in viewQuery is also rejunck in mv table itself ?
 				 */
 				TargetEntry *mvtle = makeTargetEntry((Expr *)newVar, qtle->resno, qtle->resname, qtle->resjunk);
 				return (Node *) mvtle;
@@ -792,24 +737,29 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 		Var *var = (Var *)node_expr;
 		if (var->location == -2)
 			return node;
+
 		lc = NULL;
-		int i = 0;
-		foreach(lc, context->mv_pure_vars)
+		foreach(lc, context->mv_pure_vars_index)
 		{
-			Var *pure_var = lfirst_node(Var,lc);
-			if (equal(node_expr, pure_var))
+			int index = lfirst_int(lc);
+			TargetEntry *tle = list_nth_node(TargetEntry, context->mv_query_tlist, index);
+			if (equal(node_expr, tle->expr))
 			{
-				int j = list_nth_int(context->mv_pure_vars_index, i);
-				Var *newvar = copyVarFromTatgetList(context->mv_tlist, j);
+				Form_pg_attribute attr = TupleDescAttr(context->mv_tupledesc, index);
+				Var *newVar =  makeVar(1, /* AQUMV_FIXME_MVP: single relation */
+								attr->attnum,
+								attr->atttypid,
+								attr->atttypmod,
+								attr->attcollation,
+								0 /* AQUMV_FIXME_MVP: no subquery. */);
 				if (is_targetEntry)
 				{
-					((TargetEntry *)node)->expr = (Expr *)newvar;
+					((TargetEntry *)node)->expr = (Expr *)newVar;
 					return node;
 				}
 				else
-					return (Node *)newvar;
+					return (Node *)newVar;
 			}
-			i++;
 		}
 		context->has_unmatched = true;
 	}
@@ -819,7 +769,7 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
 
 /*
  * Process query and materialized views' target list.
- * Return true if all query_tlist are in mv_tlist.
+ * Return true if all expressions could be computed from view
  * else return false.
  * 
  * If return true, put tlist in mv_quals but not in query_tlist
@@ -840,7 +790,7 @@ static Node *aqumv_adjust_sub_matched_expr_mutator(Node *node, aqumv_equivalent_
  *	select c1 from t1 where c1 = 50 and abs(c2) = 51;
  *	rewrite: select c1 from mv where c2 = 51; 
  * 
- * mv_final_tlist is the final targetList of mvQuery.
+ * mv_final_tlist is the final targetList of viewQuery.
  * 
  */
 static bool

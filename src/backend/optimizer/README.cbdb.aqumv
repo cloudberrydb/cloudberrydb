@@ -30,7 +30,7 @@ A materialized view(MV) could be use to compute a Query if:
 
 Vocabulary:
       origin_query: the SQL we want to query.
-      mv_query: for materialized view's corresponding query, the SELECT part of a Create Materialized View.
+      view_query:  the materialized view's corresponding query, SELECT part of Create Materialized View statement.
 
 Construct Rows
 --------------
@@ -39,7 +39,7 @@ If MV has all rows of query needed, it means that MV query's restrictions are lo
 For AQUMV_MVP0, we only do logistic transformation.
 All rewrites are on the Query tree, neither Equivalent Classes nor Restrictions are used.
 For a single relation:
-process mv_query and origin_query's WHERE part to set:
+process view_query and origin_query's WHERE part to set:
 mv_query_quals and origin_query_quals.
 
 example0:
@@ -134,14 +134,14 @@ mv5 has all rows {a = 1} and only have column 'a', but the query want additional
 We couldn't rewrite it by just adding the {b = 2} to MV as no equivalent b in MV relation.
       Wrong: SELECT a FROM mv5 WHERE b = 2;
 
-The algorithm behind that is: all quals's expression could be computed from a mv_query's target list.
+The algorithm behind that is: all quals's expression could be computed from a view_query's target list.
 That's what Construct Columns does.
 
 Construct Columns
 -----------------
 
 A MV could be a candidate if the query's target list and the post_quals could be computed form
-mv_query's target list and rewrite to expressions bases on MV relation's columns itself.
+view_query's target list and rewrite to expressions bases on MV relation's columns itself.
 
 example6:
       CREATE MATERIALIZED VIEW mv6 AS SELECT abs(c) as mc1, b as mc2 FROM t WHERE a = 1;
@@ -218,13 +218,13 @@ Let the planner decide the best one.
 
 AQUMV_MVP
 ---------
-Support SELECT FROM a single relation both for mv_query and the origin_query.
+Support SELECT FROM a single relation both for view_query and the origin_query.
 Below are not supported now:
-      Aggregation (on mv_query)
+      Aggregation (on view_query)
       Subquery
       Join
       Sublink
-      Group By/Grouping Sets/Rollup/Cube (on mv_query)
+      Group By/Grouping Sets/Rollup/Cube (on view_query)
       Window Functions
       CTE
       Distinct
