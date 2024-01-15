@@ -240,7 +240,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 }
 
 void PaxScanDesc::EndScan() {
-  if (filter_) {
+  if (pax_enable_debug && filter_) {
     filter_->LogStatistics();
   }
 

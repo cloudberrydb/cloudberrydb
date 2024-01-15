@@ -5,7 +5,6 @@
 #include <utility>
 #include <vector>
 
-#include "comm/guc.h"
 #include "comm/log.h"
 #include "storage/pax_defined.h"
 namespace pax {
@@ -78,14 +77,12 @@ class PaxFilter final {
   }
 
   inline void LogStatistics() {
-    if (pax_enable_debug) {
-      for (size_t i = 0; i < filter_kind_desc.size(); i++) {
-        if (this->totals_[i] == 0) {
-          PAX_LOG("kind %s, no filter. ", filter_kind_desc[i]);
-        } else {
-          PAX_LOG("kind %s, filter rate: %d / %d", filter_kind_desc[i],
-                  hits_[i], this->totals_[i]);
-        }
+    for (size_t i = 0; i < filter_kind_desc.size(); i++) {
+      if (this->totals_[i] == 0) {
+        PAX_LOG("kind %s, no filter. ", filter_kind_desc[i]);
+      } else {
+        PAX_LOG("kind %s, filter rate: %d / %d", filter_kind_desc[i], hits_[i],
+                this->totals_[i]);
       }
     }
   }

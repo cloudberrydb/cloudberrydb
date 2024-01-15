@@ -99,6 +99,7 @@ add_custom_command(OUTPUT ${stats_proto_src}
 
 add_custom_target(generate_protobuf DEPENDS ${orc_proto_src} ${pax_proto_src} ${stats_proto_src})
 
+if(NOT BUILD_PAX_FORMAT)
 add_executable(generate_sql_script_program "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/gen_sql.c")
 target_include_directories(generate_sql_script_program PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
 add_custom_command(OUTPUT generate_sql_file
@@ -107,6 +108,7 @@ add_custom_command(OUTPUT generate_sql_file
   COMMENT "dynamically generate sql script file"
 )
 add_custom_target(create_sql_script DEPENDS generate_sql_script_program generate_sql_file)
+endif(BUILD_PAX_FORMAT)
 
 # ztsd
 set(ZSTD_BUILD_PROGRAMS OFF)
@@ -156,14 +158,18 @@ set(pax_storage_src
     storage/pax_buffer.cc
     storage/pax_filter.cc
     storage/pax_itemptr.cc
-    storage/pax_table_partition_writer.cc
     storage/paxc_block_map_manager.cc
     storage/proto/protobuf_stream.cc
-    storage/strategy.cc)
+   )
 
 if(NOT BUILD_PAX_FORMAT)
-  set(pax_storage_src ${pax_storage_src} storage/pax.cc)
-  set(pax_storage_src ${pax_storage_src} storage/micro_partition_iterator.cc)
+  set(pax_storage_src 
+    ${pax_storage_src} 
+    storage/pax.cc 
+    storage/pax_table_partition_writer.cc  
+    storage/strategy.cc
+    storage/micro_partition_iterator.cc
+  )
 endif(NOT BUILD_PAX_FORMAT)
 
 set(pax_access_src
@@ -204,6 +210,7 @@ if(BUILD_PAX_FORMAT)
   set(PAX_COMM_HEADERS
     comm/bitmap.h
     comm/cbdb_api.h
+    comm/log.h
     comm/cbdb_wrappers.h
     comm/pax_rel.h
   )
