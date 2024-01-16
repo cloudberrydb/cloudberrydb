@@ -719,11 +719,11 @@ CreateTriggerFiringOn(CreateTrigStmt *stmt, const char *queryString,
 		TRIGGER_FOR_ROW(tgtype) &&
 		!stmt->isconstraint)
 	{
-		if (TRIGGER_FOR_UPDATE(tgtype))
+		if (TRIGGER_FOR_UPDATE(tgtype) && TRIGGER_FOR_AFTER(tgtype))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("ON UPDATE triggers are not supported on append-only tables")));
-		if (TRIGGER_FOR_DELETE(tgtype))
+		if (TRIGGER_FOR_DELETE(tgtype) && TRIGGER_FOR_AFTER(tgtype))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("ON DELETE triggers are not supported on append-only tables")));
