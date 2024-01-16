@@ -486,8 +486,12 @@ UpdateVisimap(VecDesc vecdesc, int64 rowNum, AppendOnlyVisimap *visiMap)
 		vecdesc->visbitmaps =
 				lappend(vecdesc->visbitmaps, newbitmap);
 	}
-	else
-		vecdesc->visbitmaps = lappend(vecdesc->visbitmaps, NULL);
+	else {
+		vecdesc->visbitmaps = vecdesc->visbitmaps ? 
+					lappend(vecdesc->visbitmaps, NULL) :
+					NULL;
+	}
+
 
 }
 
