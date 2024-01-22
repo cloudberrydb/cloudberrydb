@@ -4,81 +4,62 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <iostream>
+
 #include "exceptions/CException.h"
 
-namespace paxc {
-struct paxc_fd_handle_t {
+namespace pax {
+
+struct pax_fd_handle_t {
   int fd;
 
-  // owner of this handle
-  ResourceOwner owner;
-  struct paxc_fd_handle_t *prev;
-  struct paxc_fd_handle_t *next;
+  struct pax_fd_handle_t *prev;
+  struct pax_fd_handle_t *next;
 };
 
-static struct paxc_fd_handle_t *open_local_fd_handle = NULL;
+static struct pax_fd_handle_t *open_local_fd_handle = NULL;
+static std::mutex fd_resouce_owner_mutex;
 
-static struct paxc_fd_handle_t *CreateFdHandle() {
-  struct paxc_fd_handle_t *h;
+static inline struct pax_fd_handle_t *RememberFdHandle(int fd) {
+  struct pax_fd_handle_t *h;
 
-  h = (struct paxc_fd_handle_t *)MemoryContextAlloc(
-      TopMemoryContext, sizeof(struct paxc_fd_handle_t));
-  h->fd = -1;
+  h = (struct pax_fd_handle_t *)malloc(sizeof(struct pax_fd_handle_t));
+  if (!h) {
+    close(fd);
+    return h;
+  }
 
-  h->owner = CurrentResourceOwner;
-  h->next = open_local_fd_handle;
   h->prev = NULL;
-  if (open_local_fd_handle) open_local_fd_handle->prev = h;
-  open_local_fd_handle = h;
+  h->fd = fd;
+
+  {
+    std::lock_guard<std::mutex> lock(fd_resouce_owner_mutex);
+    h->next = open_local_fd_handle;
+    if (open_local_fd_handle) open_local_fd_handle->prev = h;
+    open_local_fd_handle = h;
+  }
 
   return h;
 }
 
-static void DestroyFdHandle(struct paxc_fd_handle_t *h) {
-  int fd = h->fd;
+static inline void ForgetFdHandle(struct pax_fd_handle_t *h) {
+  {
+    std::lock_guard<std::mutex> lock(fd_resouce_owner_mutex);
 
-  // unlink from linked list first
-  if (h->prev)
-    h->prev->next = h->next;
-  else
-    open_local_fd_handle = h->next;
-  if (h->next) h->next->prev = h->prev;
-
-  if (fd != -1) close(fd);
-
-  pfree(h);
-}
-
-void FdHandleAbortCallback(ResourceReleasePhase phase, bool is_commit,
-                           bool /*isTopLevel*/, void * /*arg*/) {
-  struct paxc_fd_handle_t *curr;
-  struct paxc_fd_handle_t *next;
-
-  if (phase != RESOURCE_RELEASE_AFTER_LOCKS) return;
-
-  next = open_local_fd_handle;
-  while (next) {
-    curr = next;
-    next = curr->next;
-
-    if (curr->owner == CurrentResourceOwner) {
-      if (is_commit)
-        elog(WARNING, "pax local fds reference leak: %p still referenced",
-             curr);
-
-      DestroyFdHandle(curr);
-    }
+    // unlink from linked list first
+    if (h->prev)
+      h->prev->next = h->next;
+    else
+      open_local_fd_handle = h->next;
+    if (h->next) h->next->prev = h->prev;
   }
+
+  free(h);
 }
 
-}  // namespace paxc
-
-namespace pax {
-
-LocalFile::LocalFile(int fd, paxc::paxc_fd_handle_t *ht,
-                     const std::string &file_path)
-    : File(), fd_(fd), handle_t_(ht), file_path_(file_path) {
-  Assert(fd >= 0);
+LocalFile::LocalFile(pax_fd_handle_t *ht, const std::string &file_path)
+    : File(), fd_(ht->fd), handle_t_(ht), file_path_(file_path) {
+  Assert(fd_ >= 0);
   Assert(handle_t_);
 }
 
@@ -154,12 +135,8 @@ void LocalFile::Close() {
   } while (unlikely(rc == -1 && errno == EINTR));
   CBDB_CHECK(rc == 0, cbdb::CException::ExType::kExTypeIOError);
 
-  CBDB_WRAP_START;
-  {
-    handle_t_->fd = -1;
-    paxc::DestroyFdHandle(handle_t_);
-  }
-  CBDB_WRAP_END;
+  handle_t_->fd = -1;
+  ForgetFdHandle(handle_t_);
 }
 
 std::string LocalFile::GetPath() const { return file_path_; }
@@ -167,7 +144,7 @@ std::string LocalFile::GetPath() const { return file_path_; }
 File *LocalFileSystem::Open(const std::string &file_path, int flags) {
   LocalFile *local_file;
   int fd;
-  paxc::paxc_fd_handle_t *ht;
+  pax_fd_handle_t *ht;
 
   if (flags & O_CREAT) {
     fd = open(file_path.c_str(), flags, fs::kDefaultWritePerm);
@@ -177,15 +154,10 @@ File *LocalFileSystem::Open(const std::string &file_path, int flags) {
 
   CBDB_CHECK(fd >= 0, cbdb::CException::ExType::kExTypeIOError);
 
-  CBDB_WRAP_START;
-  {
-    ht = paxc::CreateFdHandle();
-    Assert(ht);
-    ht->fd = fd;
-  }
-  CBDB_WRAP_END;
+  ht = RememberFdHandle(fd);
+  CBDB_CHECK(ht, cbdb::CException::ExType::kExTypeIOError);
 
-  local_file = new LocalFile(fd, ht, file_path);
+  local_file = new LocalFile(ht, file_path);
   return local_file;
 }
 
@@ -246,3 +218,32 @@ void LocalFileSystem::DeleteDirectory(const std::string &path,
 }
 
 }  // namespace pax
+
+namespace paxc {
+
+void FdHandleAbortCallback(ResourceReleasePhase phase, bool is_commit,
+                           bool /*isTopLevel*/, void * /*arg*/) {
+  struct pax::pax_fd_handle_t *curr;
+  struct pax::pax_fd_handle_t *temp;
+
+  if (phase != RESOURCE_RELEASE_AFTER_LOCKS) return;
+
+  if (pax::open_local_fd_handle && is_commit)
+    elog(WARNING, "pax local fds reference leak");
+
+  // make sure all of thread have been finished before call this callback
+  curr = pax::open_local_fd_handle;
+  AssertImply(curr, !(curr->prev));
+  while (curr) {
+    temp = curr;
+    curr = curr->next;
+
+    Assert(temp->fd >= 0);
+    close(temp->fd);
+    free(temp);
+  }
+
+  pax::open_local_fd_handle = NULL;
+}
+
+}  // namespace paxc

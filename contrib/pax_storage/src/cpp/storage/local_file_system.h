@@ -11,16 +11,17 @@
 #include "storage/file_system.h"
 
 namespace paxc {
-struct paxc_fd_handle_t;
 extern void FdHandleAbortCallback(ResourceReleasePhase phase, bool is_commit,
                                   bool is_top_level, void *arg);
-}  // namespace paxc
+}
 
 namespace pax {
 
+struct pax_fd_handle_t;
+
 class LocalFile final : public File {
  public:
-  LocalFile(int fd, paxc::paxc_fd_handle_t *ht, const std::string &file_path);
+  LocalFile(pax_fd_handle_t *ht, const std::string &file_path);
 
   ssize_t Read(void *ptr, size_t n) override;
   ssize_t Write(const void *ptr, size_t n) override;
@@ -34,7 +35,7 @@ class LocalFile final : public File {
 
  private:
   int fd_;
-  paxc::paxc_fd_handle_t *handle_t_;
+  pax_fd_handle_t *handle_t_;
   std::string file_path_;
 };
 
