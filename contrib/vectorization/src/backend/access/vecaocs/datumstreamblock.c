@@ -132,6 +132,9 @@ CopyVarlena(uint8 *datump, ColDesc *coldesc)
 		coldesc->hasnull = false;
 	}
 
+	if (coldesc->isbpchar)
+		len = bpchartruelen(str, len);
+
 	/*  start copy data */
 	uint32 *offsets = (uint32*)coldesc->offsets;
 	uint32 offset = offsets[coldesc->currows];

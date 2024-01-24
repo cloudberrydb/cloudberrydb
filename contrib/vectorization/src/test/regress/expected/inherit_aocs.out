@@ -1883,46 +1883,46 @@ create table part_40_inf_ab partition of part_40_inf for values in ('ab');
 create table part_40_inf_cd partition of part_40_inf for values in ('cd');
 create table part_40_inf_null partition of part_40_inf for values in (null);
 explain (costs off) select * from range_list_parted;
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on part_1_10_ab range_list_parted_1
-         ->  Seq Scan on part_1_10_cd range_list_parted_2
-         ->  Seq Scan on part_10_20_ab range_list_parted_3
-         ->  Seq Scan on part_10_20_cd range_list_parted_4
-         ->  Seq Scan on part_21_30_ab range_list_parted_5
-         ->  Seq Scan on part_21_30_cd range_list_parted_6
-         ->  Seq Scan on part_40_inf_ab range_list_parted_7
-         ->  Seq Scan on part_40_inf_cd range_list_parted_8
-         ->  Seq Scan on part_40_inf_null range_list_parted_9
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on part_1_10_ab range_list_parted_1
+         ->  Vec Seq Scan on part_1_10_cd range_list_parted_2
+         ->  Vec Seq Scan on part_10_20_ab range_list_parted_3
+         ->  Vec Seq Scan on part_10_20_cd range_list_parted_4
+         ->  Vec Seq Scan on part_21_30_ab range_list_parted_5
+         ->  Vec Seq Scan on part_21_30_cd range_list_parted_6
+         ->  Vec Seq Scan on part_40_inf_ab range_list_parted_7
+         ->  Vec Seq Scan on part_40_inf_cd range_list_parted_8
+         ->  Vec Seq Scan on part_40_inf_null range_list_parted_9
  Optimizer: Postgres query optimizer
 (12 rows)
 
 explain (costs off) select * from range_list_parted where a = 5;
-                        QUERY PLAN                        
-----------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on part_1_10_ab range_list_parted_1
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on part_1_10_ab range_list_parted_1
                Filter: (a = 5)
-         ->  Seq Scan on part_1_10_cd range_list_parted_2
+         ->  Vec Seq Scan on part_1_10_cd range_list_parted_2
                Filter: (a = 5)
  Optimizer: Postgres query optimizer
 (7 rows)
 
 explain (costs off) select * from range_list_parted where b = 'ab';
-                         QUERY PLAN                         
-------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on part_1_10_ab range_list_parted_1
+                           QUERY PLAN                           
+----------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on part_1_10_ab range_list_parted_1
                Filter: (b = 'ab'::bpchar)
-         ->  Seq Scan on part_10_20_ab range_list_parted_2
+         ->  Vec Seq Scan on part_10_20_ab range_list_parted_2
                Filter: (b = 'ab'::bpchar)
-         ->  Seq Scan on part_21_30_ab range_list_parted_3
+         ->  Vec Seq Scan on part_21_30_ab range_list_parted_3
                Filter: (b = 'ab'::bpchar)
-         ->  Seq Scan on part_40_inf_ab range_list_parted_4
+         ->  Vec Seq Scan on part_40_inf_ab range_list_parted_4
                Filter: (b = 'ab'::bpchar)
  Optimizer: Postgres query optimizer
 (11 rows)
@@ -1930,13 +1930,13 @@ explain (costs off) select * from range_list_parted where b = 'ab';
 explain (costs off) select * from range_list_parted where a between 3 and 23 and b in ('ab');
                               QUERY PLAN                               
 -----------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on part_1_10_ab range_list_parted_1
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on part_1_10_ab range_list_parted_1
                Filter: ((a >= 3) AND (a <= 23) AND (b = 'ab'::bpchar))
-         ->  Seq Scan on part_10_20_ab range_list_parted_2
+         ->  Vec Seq Scan on part_10_20_ab range_list_parted_2
                Filter: ((a >= 3) AND (a <= 23) AND (b = 'ab'::bpchar))
-         ->  Seq Scan on part_21_30_ab range_list_parted_3
+         ->  Vec Seq Scan on part_21_30_ab range_list_parted_3
                Filter: ((a >= 3) AND (a <= 23) AND (b = 'ab'::bpchar))
  Optimizer: Postgres query optimizer
 (9 rows)
@@ -1954,48 +1954,48 @@ explain (costs off) select * from range_list_parted where a is null;
 explain (costs off) select * from range_list_parted where b is null;
                         QUERY PLAN                        
 ----------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Seq Scan on part_40_inf_null range_list_parted
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Seq Scan on part_40_inf_null range_list_parted
          Filter: (b IS NULL)
  Optimizer: Postgres query optimizer
 (4 rows)
 
 explain (costs off) select * from range_list_parted where a is not null and a < 67;
-                      QUERY PLAN                      
-------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on part_1_10_ab range_list_parted_1
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on part_1_10_ab range_list_parted_1
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_1_10_cd range_list_parted_2
+         ->  Vec Seq Scan on part_1_10_cd range_list_parted_2
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_10_20_ab range_list_parted_3
+         ->  Vec Seq Scan on part_10_20_ab range_list_parted_3
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_10_20_cd range_list_parted_4
+         ->  Vec Seq Scan on part_10_20_cd range_list_parted_4
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_21_30_ab range_list_parted_5
+         ->  Vec Seq Scan on part_21_30_ab range_list_parted_5
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_21_30_cd range_list_parted_6
+         ->  Vec Seq Scan on part_21_30_cd range_list_parted_6
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_40_inf_ab range_list_parted_7
+         ->  Vec Seq Scan on part_40_inf_ab range_list_parted_7
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_40_inf_cd range_list_parted_8
+         ->  Vec Seq Scan on part_40_inf_cd range_list_parted_8
                Filter: ((a IS NOT NULL) AND (a < 67))
-         ->  Seq Scan on part_40_inf_null range_list_parted_9
+         ->  Vec Seq Scan on part_40_inf_null range_list_parted_9
                Filter: ((a IS NOT NULL) AND (a < 67))
  Optimizer: Postgres query optimizer
 (21 rows)
 
 explain (costs off) select * from range_list_parted where a >= 30;
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on part_40_inf_ab range_list_parted_1
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on part_40_inf_ab range_list_parted_1
                Filter: (a >= 30)
-         ->  Seq Scan on part_40_inf_cd range_list_parted_2
+         ->  Vec Seq Scan on part_40_inf_cd range_list_parted_2
                Filter: (a >= 30)
-         ->  Seq Scan on part_40_inf_null range_list_parted_3
+         ->  Vec Seq Scan on part_40_inf_null range_list_parted_3
                Filter: (a >= 30)
  Optimizer: Postgres query optimizer
 (9 rows)

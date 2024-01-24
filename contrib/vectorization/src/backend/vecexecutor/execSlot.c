@@ -221,6 +221,7 @@ TupleTableSlot *
 ExecGetVirtualSlotFromVec(TupleTableSlot *vec_slot, int index, TupleTableSlot *out, ItemPointer itid)
 {
 	int i;
+	TupleDesc desc;
 
 	Assert(TTS_IS_VECTOR(vec_slot));
 	Assert(!TTS_IS_VECTOR(out));
@@ -234,16 +235,18 @@ ExecGetVirtualSlotFromVec(TupleTableSlot *vec_slot, int index, TupleTableSlot *o
 		return NULL;
 
 	ExecClearTuple(out);
+	desc = vec_slot->tts_tupleDescriptor;
 	out->tts_nvalid = vec_slot->tts_nvalid;
 	for (i = 0; i < out->tts_nvalid; i++)
 	{
 		GArrowArray *array;
+		Form_pg_attribute att = TupleDescAttr(desc, i);
 
 		array = (GArrowArray *)vec_slot->tts_values[i];
 		out->tts_isnull[i] = garrow_array_is_null(array, index);
-		out->tts_values[i] = ArrowArrayGetValueDatum(array, index);
+		out->tts_values[i] = ArrowArrayGetValueDatum(array, index, att);
 		/* print ctid */
-		if (vec_slot->tts_tupleDescriptor->attrs[i].atttypid == TIDOID)
+		if (att->atttypid == TIDOID)
 		{
 			int64 data = DatumGetInt64(out->tts_values[i]);
 			BlockNumber bk = data >> 16;

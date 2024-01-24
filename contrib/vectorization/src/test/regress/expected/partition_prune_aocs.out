@@ -38,27 +38,27 @@ create table lp_bc partition of lp for values in ('b', 'c');
 create table lp_g partition of lp for values in ('g');
 create table lp_null partition of lp for values in (null);
 explain (costs off) select * from lp;
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
-         ->  Seq Scan on lp_bc lp_2
-         ->  Seq Scan on lp_ef lp_3
-         ->  Seq Scan on lp_g lp_4
-         ->  Seq Scan on lp_null lp_5
-         ->  Seq Scan on lp_default lp_6
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
+         ->  Vec Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_ef lp_3
+         ->  Vec Seq Scan on lp_g lp_4
+         ->  Vec Seq Scan on lp_null lp_5
+         ->  Vec Seq Scan on lp_default lp_6
  Optimizer: Postgres query optimizer
 (9 rows)
 
 explain (costs off) select * from lp where a > 'a' and a < 'd';
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_bc lp_1
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_bc lp_1
                Filter: ((a > 'a'::bpchar) AND (a < 'd'::bpchar))
-         ->  Seq Scan on lp_default lp_2
+         ->  Vec Seq Scan on lp_default lp_2
                Filter: ((a > 'a'::bpchar) AND (a < 'd'::bpchar))
  Optimizer: Postgres query optimizer
 (7 rows)
@@ -66,58 +66,58 @@ explain (costs off) select * from lp where a > 'a' and a < 'd';
 explain (costs off) select * from lp where a > 'a' and a <= 'd';
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
                Filter: ((a > 'a'::bpchar) AND (a <= 'd'::bpchar))
-         ->  Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_bc lp_2
                Filter: ((a > 'a'::bpchar) AND (a <= 'd'::bpchar))
-         ->  Seq Scan on lp_default lp_3
+         ->  Vec Seq Scan on lp_default lp_3
                Filter: ((a > 'a'::bpchar) AND (a <= 'd'::bpchar))
  Optimizer: Postgres query optimizer
 (9 rows)
 
 explain (costs off) select * from lp where a = 'a';
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Seq Scan on lp_ad lp
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Seq Scan on lp_ad lp
          Filter: (a = 'a'::bpchar)
  Optimizer: Postgres query optimizer
 (4 rows)
 
 explain (costs off) select * from lp where 'a' = a;	/* commuted */
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Seq Scan on lp_ad lp
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Seq Scan on lp_ad lp
          Filter: ('a'::bpchar = a)
  Optimizer: Postgres query optimizer
 (4 rows)
 
 explain (costs off) select * from lp where a is not null;
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
                Filter: (a IS NOT NULL)
-         ->  Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_bc lp_2
                Filter: (a IS NOT NULL)
-         ->  Seq Scan on lp_ef lp_3
+         ->  Vec Seq Scan on lp_ef lp_3
                Filter: (a IS NOT NULL)
-         ->  Seq Scan on lp_g lp_4
+         ->  Vec Seq Scan on lp_g lp_4
                Filter: (a IS NOT NULL)
-         ->  Seq Scan on lp_default lp_5
+         ->  Vec Seq Scan on lp_default lp_5
                Filter: (a IS NOT NULL)
  Optimizer: Postgres query optimizer
 (13 rows)
 
 explain (costs off) select * from lp where a is null;
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Seq Scan on lp_null lp
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Seq Scan on lp_null lp
          Filter: (a IS NULL)
  Optimizer: Postgres query optimizer
 (4 rows)
@@ -125,11 +125,11 @@ explain (costs off) select * from lp where a is null;
 explain (costs off) select * from lp where a = 'a' or a = 'c';
                            QUERY PLAN                           
 ----------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
                Filter: ((a = 'a'::bpchar) OR (a = 'c'::bpchar))
-         ->  Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_bc lp_2
                Filter: ((a = 'a'::bpchar) OR (a = 'c'::bpchar))
  Optimizer: Postgres query optimizer
 (7 rows)
@@ -137,27 +137,27 @@ explain (costs off) select * from lp where a = 'a' or a = 'c';
 explain (costs off) select * from lp where a is not null and (a = 'a' or a = 'c');
                                       QUERY PLAN                                      
 --------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
                Filter: ((a IS NOT NULL) AND ((a = 'a'::bpchar) OR (a = 'c'::bpchar)))
-         ->  Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_bc lp_2
                Filter: ((a IS NOT NULL) AND ((a = 'a'::bpchar) OR (a = 'c'::bpchar)))
  Optimizer: Postgres query optimizer
 (7 rows)
 
 explain (costs off) select * from lp where a <> 'g';
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
                Filter: (a <> 'g'::bpchar)
-         ->  Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_bc lp_2
                Filter: (a <> 'g'::bpchar)
-         ->  Seq Scan on lp_ef lp_3
+         ->  Vec Seq Scan on lp_ef lp_3
                Filter: (a <> 'g'::bpchar)
-         ->  Seq Scan on lp_default lp_4
+         ->  Vec Seq Scan on lp_default lp_4
                Filter: (a <> 'g'::bpchar)
  Optimizer: Postgres query optimizer
 (11 rows)
@@ -165,15 +165,15 @@ explain (costs off) select * from lp where a <> 'g';
 explain (costs off) select * from lp where a <> 'a' and a <> 'd';
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_bc lp_1
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_bc lp_1
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
-         ->  Seq Scan on lp_ef lp_2
+         ->  Vec Seq Scan on lp_ef lp_2
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
-         ->  Seq Scan on lp_g lp_3
+         ->  Vec Seq Scan on lp_g lp_3
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
-         ->  Seq Scan on lp_default lp_4
+         ->  Vec Seq Scan on lp_default lp_4
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
  Optimizer: Postgres query optimizer
 (11 rows)
@@ -1631,19 +1631,19 @@ explain (costs off) select * from rp where a <> 1 and a <> 2;
 
 -- null partition should be eliminated due to strict <> clause.
 explain (costs off) select * from lp where a <> 'a';
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad lp_1
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad lp_1
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_bc lp_2
+         ->  Vec Seq Scan on lp_bc lp_2
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_ef lp_3
+         ->  Vec Seq Scan on lp_ef lp_3
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_g lp_4
+         ->  Vec Seq Scan on lp_g lp_4
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_default lp_5
+         ->  Vec Seq Scan on lp_default lp_5
                Filter: (a <> 'a'::bpchar)
  Optimizer: Postgres query optimizer
 (13 rows)
@@ -1660,17 +1660,17 @@ explain (costs off) select * from lp where a <> 'a' and a is null;
 explain (costs off) select * from lp where (a <> 'a' and a <> 'd') or a is null;
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_bc lp_1
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_bc lp_1
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_ef lp_2
+         ->  Vec Seq Scan on lp_ef lp_2
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_g lp_3
+         ->  Vec Seq Scan on lp_g lp_3
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_null lp_4
+         ->  Vec Seq Scan on lp_null lp_4
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_default lp_5
+         ->  Vec Seq Scan on lp_default lp_5
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
  Optimizer: Postgres query optimizer
 (13 rows)

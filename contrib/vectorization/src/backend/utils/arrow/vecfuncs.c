@@ -211,10 +211,14 @@ ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type)
 		{
 			struct varlena *s = (struct varlena *) datum;
 			g_autoptr(GArrowBuffer) buffer = NULL;
+			int len;
 			char *str = NULL;
 
 			str = text_to_cstring(s);
-			buffer = garrow_buffer_new((guint8 *)str, VARSIZE_ANY_EXHDR(s));
+			len = VARSIZE_ANY_EXHDR(s);
+			if (pg_type == BPCHAROID)
+				len = bpchartruelen(str, len);
+			buffer = garrow_buffer_new((guint8 *)str, len);
 			ret = (GArrowScalar*)garrow_string_scalar_new(buffer);
 			break;
 		}
@@ -390,7 +394,7 @@ ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type)
  * Get PG Datum by garrow_xxx_array_get_value
  */
 Datum
-ArrowArrayGetValueDatum(void *array, int i)
+ArrowArrayGetValueDatum(void *array, int i, Form_pg_attribute att)
 {
 	g_autoptr(GArrowArray) arrowarray;
 	GArrowType type;
@@ -451,7 +455,14 @@ ArrowArrayGetValueDatum(void *array, int i)
 			g_autofree gchar *data;
 
 			data = garrow_string_array_get_string(GARROW_STRING_ARRAY(arrowarray), i);
-			return (Datum) cstring_to_text(data);
+			/* Whitespaces is striped for strings in arrow, convert raw string to bpchar fromat */
+			if (att->atttypid == BPCHAROID)
+				return (Datum) DirectFunctionCall3(bpcharin,
+												   CStringGetDatum(data),
+												   (Datum) (0),
+												   Int32GetDatum(att->atttypmod));
+			else
+				return (Datum) cstring_to_text(data);
 			break;
 		}
 		case GARROW_TYPE_DECIMAL128:

@@ -282,6 +282,7 @@ PGTypeToArrowID(Oid pg_type)
 			return GARROW_TYPE_DATE32;
 		case INT4OID:
 			return  GARROW_TYPE_INT32;
+		case BPCHAROID:
 		case VARCHAROID:
 		case TEXTOID:
 			return  GARROW_TYPE_STRING;
@@ -291,12 +292,15 @@ PGTypeToArrowID(Oid pg_type)
 			return GARROW_TYPE_FLOAT;
 		case FLOAT8OID:
 			return GARROW_TYPE_DOUBLE;
+		/* Fixme: Other ARRAY OID needed to support, such as:
+		 * BOOLARRAYOID, CHARARRAYOID and so on. */
 		case INT2ARRAYOID:
 		case INT4ARRAYOID:
 		case INT8ARRAYOID:
 		case FLOAT4ARRAYOID:
 		case FLOAT8ARRAYOID:
 		case TEXTARRAYOID:
+		case VARCHARARRAYOID:
 		case BPCHARARRAYOID:
 		case DATEARRAYOID:
 			return  GARROW_TYPE_LIST;
@@ -634,9 +638,9 @@ FreeVecDesc(VecDesc vecdesc)
 }
 
 static void
-InitColDesc(ColDesc *coldesc, Oid pg_type)
+InitColDesc(ColDesc *coldesc, GArrowType arrow_type)
 {
-	coldesc->type = pg_type;
+	coldesc->type = arrow_type;
 	coldesc->currows = 0;
 	coldesc->hasnull = false;
 	coldesc->value_buffer = NULL;
@@ -647,6 +651,7 @@ InitColDesc(ColDesc *coldesc, Oid pg_type)
 	coldesc->pos_values = NULL;
 	coldesc->rowstoread = max_batch_size;
 	coldesc->block_row_count = 0;
+	coldesc->isbpchar = false;
 
 	switch (coldesc->type)
 	{
@@ -744,6 +749,8 @@ TupleDescToVecDesc(TupleDesc tupdesc)
 				+ tupdesc->natts * sizeof(ColDesc *) + i * sizeof(ColDesc));
 		coldesc = result->coldescs[index];
 		InitColDesc(coldesc, PGTypeToArrowID(tupdesc->attrs[index].atttypid));	
+		if (tupdesc->attrs[index].atttypid == BPCHAROID)
+			coldesc->isbpchar = true;
 	}
 	return result;
 }

@@ -172,6 +172,7 @@ typedef struct ColDesc
 	bool hasnull; /* always false for variable-sized data, in this case nulls contains in builder.*/
 	GArrowType type;
 	int datalen; /* size in Byte of each data, -1 for variable-size data and boolean */
+	bool isbpchar;
 	int currows;
 	int rowstoread;
 	int values_len;

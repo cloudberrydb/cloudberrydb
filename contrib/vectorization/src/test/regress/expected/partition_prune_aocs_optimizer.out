@@ -48,16 +48,16 @@ NOTICE:  table has parent, setting distribution columns to match parent table
 explain (costs off) select * from lp;
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad
-         ->  Seq Scan on lp_bc
-         ->  Seq Scan on lp_ef
-         ->  Seq Scan on lp_g
-         ->  Seq Scan on lp_null
-         ->  Seq Scan on lp_default
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
+         ->  Vec Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_ef
+         ->  Vec Seq Scan on lp_g
+         ->  Vec Seq Scan on lp_null
+         ->  Vec Seq Scan on lp_default
  Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
 
@@ -66,11 +66,11 @@ NOTICE:  One or more columns in the following table(s) do not have statistics: l
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
                            QUERY PLAN                            
 -----------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_bc
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_bc
                Filter: ((a > 'a'::bpchar) AND (a < 'd'::bpchar))
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: ((a > 'a'::bpchar) AND (a < 'd'::bpchar))
  Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
@@ -80,13 +80,13 @@ NOTICE:  One or more columns in the following table(s) do not have statistics: l
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
                             QUERY PLAN                            
 ------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: ((a > 'a'::bpchar) AND (a <= 'd'::bpchar))
-         ->  Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_bc
                Filter: ((a > 'a'::bpchar) AND (a <= 'd'::bpchar))
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: ((a > 'a'::bpchar) AND (a <= 'd'::bpchar))
  Optimizer: Pivotal Optimizer (GPORCA)
 (9 rows)
@@ -94,11 +94,11 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from lp where a = 'a';
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_ad
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: (a = 'a'::bpchar)
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
@@ -106,11 +106,11 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from lp where 'a' = a;	/* commuted */
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_ad
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: (a = 'a'::bpchar)
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
@@ -118,19 +118,19 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from lp where a is not null;
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: (NOT (a IS NULL))
-         ->  Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_bc
                Filter: (NOT (a IS NULL))
-         ->  Seq Scan on lp_ef
+         ->  Vec Seq Scan on lp_ef
                Filter: (NOT (a IS NULL))
-         ->  Seq Scan on lp_g
+         ->  Vec Seq Scan on lp_g
                Filter: (NOT (a IS NULL))
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: (NOT (a IS NULL))
  Optimizer: Pivotal Optimizer (GPORCA)
 (13 rows)
@@ -138,11 +138,11 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from lp where a is null;
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_null
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_null
                Filter: (a IS NULL)
  Optimizer: Pivotal Optimizer (GPORCA)
 (5 rows)
@@ -152,11 +152,11 @@ NOTICE:  One or more columns in the following table(s) do not have statistics: l
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
                            QUERY PLAN                           
 ----------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_ad
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: ((a = 'a'::bpchar) OR (a = 'c'::bpchar))
-         ->  Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_bc
                Filter: ((a = 'a'::bpchar) OR (a = 'c'::bpchar))
  Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
@@ -166,11 +166,11 @@ NOTICE:  One or more columns in the following table(s) do not have statistics: l
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
                                        QUERY PLAN                                       
 ----------------------------------------------------------------------------------------
- Gather Motion 1:1  (slice1; segments: 1)
-   ->  Append
-         ->  Seq Scan on lp_ad
+ Vec Gather Motion 1:1  (slice1; segments: 1)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: ((NOT (a IS NULL)) AND ((a = 'a'::bpchar) OR (a = 'c'::bpchar)))
-         ->  Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_bc
                Filter: ((NOT (a IS NULL)) AND ((a = 'a'::bpchar) OR (a = 'c'::bpchar)))
  Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
@@ -178,17 +178,17 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from lp where a <> 'g';
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: (a <> 'g'::bpchar)
-         ->  Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_bc
                Filter: (a <> 'g'::bpchar)
-         ->  Seq Scan on lp_ef
+         ->  Vec Seq Scan on lp_ef
                Filter: (a <> 'g'::bpchar)
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: (a <> 'g'::bpchar)
  Optimizer: Pivotal Optimizer (GPORCA)
 (11 rows)
@@ -198,15 +198,15 @@ NOTICE:  One or more columns in the following table(s) do not have statistics: l
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
                             QUERY PLAN                             
 -------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_bc
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_bc
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
-         ->  Seq Scan on lp_ef
+         ->  Vec Seq Scan on lp_ef
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
-         ->  Seq Scan on lp_g
+         ->  Vec Seq Scan on lp_g
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: ((a <> 'a'::bpchar) AND (a <> 'd'::bpchar))
  Optimizer: Pivotal Optimizer (GPORCA)
 (11 rows)
@@ -1808,19 +1808,19 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from lp where a <> 'a';
 NOTICE:  One or more columns in the following table(s) do not have statistics: lp
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-                QUERY PLAN                
-------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_ad
+                  QUERY PLAN                  
+----------------------------------------------
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_ad
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_bc
+         ->  Vec Seq Scan on lp_bc
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_ef
+         ->  Vec Seq Scan on lp_ef
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_g
+         ->  Vec Seq Scan on lp_g
                Filter: (a <> 'a'::bpchar)
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: (a <> 'a'::bpchar)
  Optimizer: Pivotal Optimizer (GPORCA)
 (13 rows)
@@ -1839,17 +1839,17 @@ NOTICE:  One or more columns in the following table(s) do not have statistics: l
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
                                      QUERY PLAN                                     
 ------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Seq Scan on lp_bc
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Seq Scan on lp_bc
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_ef
+         ->  Vec Seq Scan on lp_ef
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_g
+         ->  Vec Seq Scan on lp_g
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_null
+         ->  Vec Seq Scan on lp_null
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
-         ->  Seq Scan on lp_default
+         ->  Vec Seq Scan on lp_default
                Filter: (((a <> 'a'::bpchar) AND (a <> 'd'::bpchar)) OR (a IS NULL))
  Optimizer: Pivotal Optimizer (GPORCA)
 (13 rows)
