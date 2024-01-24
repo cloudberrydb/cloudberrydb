@@ -143,6 +143,8 @@ set(pax_storage_src
     storage/columns/pax_rlev2_encoding.cc
     storage/columns/pax_vec_column.cc
     storage/columns/pax_vec_encoding_column.cc
+    storage/oper/pax_oper.cc
+    storage/oper/pax_stats.cc
     storage/file_system.cc
     storage/local_file_system.cc
     storage/micro_partition.cc

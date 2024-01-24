@@ -5,6 +5,7 @@
 #include <utility>
 #include <vector>
 
+#include "comm/guc.h"
 #include "comm/log.h"
 #include "storage/pax_defined.h"
 namespace pax {
@@ -41,7 +42,7 @@ class ColumnStatsProvider {
 
 class PaxFilter final {
  public:
-  PaxFilter() = default;
+  explicit PaxFilter(bool allow_fallback_to_pg = pax_allow_oper_fallback);
 
   ~PaxFilter();
 
@@ -99,6 +100,8 @@ class PaxFilter final {
                         TupleDesc desc) const;
 
   void FillRemainingColumns(Relation rel);
+
+  bool allow_fallback_to_pg_ = false;
 
   // micro partition filter: we use the scan keys to filter a whole of micro
   // partition by comparing the scan keys with the min/max values in micro

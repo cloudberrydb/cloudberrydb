@@ -5,8 +5,9 @@
 #include <utility>
 #include <vector>
 
+#include "comm/guc.h"
+#include "storage/oper/pax_stats.h"
 #include "storage/pax_filter.h"
-
 namespace pax {
 namespace stats {
 class MicroPartitionStatisticsInfo;
@@ -48,7 +49,8 @@ class MicroPartittionFileStatsData final : public MicroPartitionStatsData {
 
 class MicroPartitionStats final {
  public:
-  MicroPartitionStats() = default;
+  explicit MicroPartitionStats(
+      bool allow_fallback_to_pg = pax_allow_oper_fallback);
   ~MicroPartitionStats();
   MicroPartitionStats *SetStatsMessage(MicroPartitionStatsData *stats,
                                        int natts);
@@ -70,8 +72,6 @@ class MicroPartitionStats final {
   void DoInitialCheck(TupleDesc desc);
   void UpdateMinMaxValue(int column_index, Datum datum, Oid collation,
                          int typlen, bool typbyval);
-  static bool GetStrategyProcinfo(Oid typid, Oid subtype, Oid *opfamily,
-                                  std::pair<FmgrInfo, FmgrInfo> &finfos);
 
   // stats_: only references the info object by pointer
   MicroPartitionStatsData *stats_ = nullptr;
@@ -79,6 +79,8 @@ class MicroPartitionStats final {
   std::vector<Oid> opfamilies_;
   // less: pair[0], greater: pair[1]
   std::vector<std::pair<FmgrInfo, FmgrInfo>> finfos_;
+  std::vector<std::pair<OperMinMaxFunc, OperMinMaxFunc>> local_funcs_;
+  bool allow_fallback_to_pg_ = false;
 
   // status to indicate whether the oids are initialized
   // or the min-max values are initialized

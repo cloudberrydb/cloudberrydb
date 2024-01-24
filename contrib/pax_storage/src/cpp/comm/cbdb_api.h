@@ -13,6 +13,7 @@ extern "C" {
 #include "postgres.h"  //  NOLINT
 #include "postmaster/postmaster.h"
 
+#include "access/detoast.h"
 #include "access/genam.h"
 #include "access/heapam.h"
 #include "access/relscan.h"
@@ -72,11 +73,13 @@ extern "C" {
 #include "storage/smgr.h"
 #include "utils/backend_progress.h"
 #include "utils/builtins.h"
+#include "utils/date.h"
 #include "utils/datum.h"
 #include "utils/elog.h"
 #include "utils/hsearch.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
+#include "utils/numeric.h"
 #include "utils/relcache.h"
 #include "utils/snapshot.h"
 #include "utils/syscache.h"

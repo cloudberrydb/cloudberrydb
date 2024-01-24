@@ -231,8 +231,8 @@ void CCPaxAccessMethod::RelationSetNewFilenode(Relation rel,
 
   ScanKeyInit(&scan_key[0], ANUM_PG_PAX_TABLES_RELID, BTEqualStrategyNumber,
               F_OIDEQ, ObjectIdGetDatum(pax_relid));
-  scan = systable_beginscan(pax_tables_rel, PAX_TABLES_RELID_INDEX_ID, true, NULL,
-                            1, scan_key);
+  scan = systable_beginscan(pax_tables_rel, PAX_TABLES_RELID_INDEX_ID, true,
+                            NULL, 1, scan_key);
   tuple = systable_getnext(scan);
   exists = HeapTupleIsValid(tuple);
   if (exists) {
@@ -340,8 +340,7 @@ void CCPaxAccessMethod::RelationFileUnlink(RelFileNodeBackend rnode) {
 
 void CCPaxAccessMethod::ScanRescan(TableScanDesc scan, ScanKey key,
                                    bool set_params, bool allow_strat,
-                                   bool allow_sync,
-                                   bool allow_pagemode) {
+                                   bool allow_sync, bool allow_pagemode) {
   CBDB_TRY();
   {
     auto desc = PaxScanDesc::ToDesc(scan);
@@ -424,9 +423,9 @@ TM_Result CCPaxAccessMethod::TupleUpdate(Relation relation, ItemPointer otid,
   pg_unreachable();
 }
 
-bool CCPaxAccessMethod::ScanAnalyzeNextBlock(
-    TableScanDesc scan, BlockNumber blockno,
-    BufferAccessStrategy bstrategy) {
+bool CCPaxAccessMethod::ScanAnalyzeNextBlock(TableScanDesc scan,
+                                             BlockNumber blockno,
+                                             BufferAccessStrategy bstrategy) {
   CBDB_TRY();
   {
     auto desc = PaxScanDesc::ToDesc(scan);
@@ -862,7 +861,8 @@ double PaxAccessMethod::IndexBuildRangeScan(
   return reltuples;
 }
 
-bool PaxAccessMethod::IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot, bool *all_dead) {
+bool PaxAccessMethod::IndexUniqueCheck(Relation rel, ItemPointer tid,
+                                       Snapshot snapshot, bool *all_dead) {
   return paxc::IndexUniqueCheck(rel, tid, snapshot, all_dead);
 }
 
@@ -878,7 +878,9 @@ double PaxAccessMethod::IndexBuildRangeScan(
   return 0.0;
 }
 
-bool PaxAccessMethod::IndexUniqueCheck(Relation /*rel*/, ItemPointer /*tid*/, Snapshot /*snapshot*/, bool * /*all_dead*/) {
+bool PaxAccessMethod::IndexUniqueCheck(Relation /*rel*/, ItemPointer /*tid*/,
+                                       Snapshot /*snapshot*/,
+                                       bool * /*all_dead*/) {
   NOT_SUPPORTED_YET;
   return false;
 }
@@ -912,10 +914,11 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
   desc = RelationGetDescr(pax_rel);
 
   // save ctid, auxrelid and partition-spec for the first pax relation
-  ScanKeyInit(&key[0], ANUM_PG_PAX_TABLES_RELID, BTEqualStrategyNumber,
-              F_OIDEQ, ObjectIdGetDatum(relid1));
+  ScanKeyInit(&key[0], ANUM_PG_PAX_TABLES_RELID, BTEqualStrategyNumber, F_OIDEQ,
+              ObjectIdGetDatum(relid1));
 
-  scan = systable_beginscan(pax_rel, PAX_TABLES_RELID_INDEX_ID, true, nullptr, 1, key);
+  scan = systable_beginscan(pax_rel, PAX_TABLES_RELID_INDEX_ID, true, nullptr,
+                            1, key);
   old_tuple1 = systable_getnext(scan);
   if (!HeapTupleIsValid(old_tuple1))
     ereport(ERROR, (errmsg("relid=%u is not a pax relation", relid1)));
@@ -924,9 +927,10 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
   systable_endscan(scan);
 
   // save ctid, auxrelid and partition-spec for the second pax relation
-  ScanKeyInit(&key[0], ANUM_PG_PAX_TABLES_RELID, BTEqualStrategyNumber,
-              F_OIDEQ, ObjectIdGetDatum(relid2));
-  scan = systable_beginscan(pax_rel, PAX_TABLES_RELID_INDEX_ID, true, nullptr, 1, key);
+  ScanKeyInit(&key[0], ANUM_PG_PAX_TABLES_RELID, BTEqualStrategyNumber, F_OIDEQ,
+              ObjectIdGetDatum(relid2));
+  scan = systable_beginscan(pax_rel, PAX_TABLES_RELID_INDEX_ID, true, nullptr,
+                            1, key);
   old_tuple2 = systable_getnext(scan);
   if (!HeapTupleIsValid(old_tuple2))
     ereport(ERROR, (errmsg("relid=%u is not a pax relation", relid2)));
@@ -939,11 +943,12 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
     HeapTuple tuple1;
     HeapTuple tuple2;
     Datum values[NATTS_PG_PAX_TABLES];
-    bool  nulls[NATTS_PG_PAX_TABLES];
+    bool nulls[NATTS_PG_PAX_TABLES];
     Datum datum;
-    bool  isnull;
+    bool isnull;
 
-    datum = heap_getattr(old_tuple1, ANUM_PG_PAX_TABLES_AUXRELID, desc, &isnull);
+    datum =
+        heap_getattr(old_tuple1, ANUM_PG_PAX_TABLES_AUXRELID, desc, &isnull);
     Assert(!isnull);
     aux_relid1 = DatumGetObjectId(datum);
 
@@ -952,9 +957,10 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
     nulls[ANUM_PG_PAX_TABLES_RELID - 1] = false;
     nulls[ANUM_PG_PAX_TABLES_AUXRELID - 1] = false;
 
-    datum = heap_getattr(old_tuple2, ANUM_PG_PAX_TABLES_PARTITIONSPEC, desc, &isnull);
+    datum = heap_getattr(old_tuple2, ANUM_PG_PAX_TABLES_PARTITIONSPEC, desc,
+                         &isnull);
     if (!isnull) {
-      auto vl = reinterpret_cast<struct varlena*>(DatumGetPointer(datum));
+      auto vl = reinterpret_cast<struct varlena *>(DatumGetPointer(datum));
       vl = pg_detoast_datum_packed(vl);
       values[ANUM_PG_PAX_TABLES_PARTITIONSPEC - 1] = PointerGetDatum(vl);
     }
@@ -965,8 +971,8 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
     tuple1->t_self = old_tuple1->t_self;
     tuple1->t_tableOid = old_tuple1->t_tableOid;
 
-
-    datum = heap_getattr(old_tuple2, ANUM_PG_PAX_TABLES_AUXRELID, desc, &isnull);
+    datum =
+        heap_getattr(old_tuple2, ANUM_PG_PAX_TABLES_AUXRELID, desc, &isnull);
     Assert(!isnull);
     aux_relid2 = DatumGetObjectId(datum);
 
@@ -975,9 +981,10 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
     nulls[ANUM_PG_PAX_TABLES_RELID - 1] = false;
     nulls[ANUM_PG_PAX_TABLES_AUXRELID - 1] = false;
 
-    datum = heap_getattr(old_tuple1, ANUM_PG_PAX_TABLES_PARTITIONSPEC, desc, &isnull);
+    datum = heap_getattr(old_tuple1, ANUM_PG_PAX_TABLES_PARTITIONSPEC, desc,
+                         &isnull);
     if (!isnull) {
-      auto vl = reinterpret_cast<struct varlena*>(DatumGetPointer(datum));
+      auto vl = reinterpret_cast<struct varlena *>(DatumGetPointer(datum));
       vl = pg_detoast_datum_packed(vl);
       values[ANUM_PG_PAX_TABLES_PARTITIONSPEC - 1] = PointerGetDatum(vl);
     }
@@ -1010,14 +1017,16 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
     aux_rel2 = relation_open(aux_relid2, AccessExclusiveLock);
 
     if (OidIsValid(aux_rel1->rd_rel->reltoastrelid))
-      toast_rel1 = relation_open(aux_rel1->rd_rel->reltoastrelid, AccessExclusiveLock);
+      toast_rel1 =
+          relation_open(aux_rel1->rd_rel->reltoastrelid, AccessExclusiveLock);
     if (OidIsValid(aux_rel2->rd_rel->reltoastrelid))
-      toast_rel2 = relation_open(aux_rel2->rd_rel->reltoastrelid, AccessExclusiveLock);
+      toast_rel2 =
+          relation_open(aux_rel2->rd_rel->reltoastrelid, AccessExclusiveLock);
 
     swap_relation_files(aux_relid1, aux_relid2, false, /* target_is_pg_class */
-                        true,                      /* swap_toast_by_content */
-                        true,                      /*swap_stats */
-                        true,                      /* is_internal */
+                        true, /* swap_toast_by_content */
+                        true, /*swap_stats */
+                        true, /* is_internal */
                         frozen_xid, cutoff_multi, NULL);
 
     if (toast_rel1) relation_close(toast_rel1, NoLock);
@@ -1230,6 +1239,10 @@ static void DefineGUCs() {
   DefineCustomBoolVariable("pax.enable_debug", "enable pax debug", NULL,
                            &pax::pax_enable_debug, true, PGC_USERSET, 0, NULL,
                            NULL, NULL);
+
+  DefineCustomBoolVariable(
+      "pax.allow_oper_fallback", "enable pax oper fallback to opg", NULL,
+      &pax::pax_allow_oper_fallback, false, PGC_USERSET, 0, NULL, NULL, NULL);
 #ifdef ENABLE_PLASMA
   DefineCustomBoolVariable(
       "pax.enable_plasma", "Enable plasma cache the set of columns", NULL,

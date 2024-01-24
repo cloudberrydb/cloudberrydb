@@ -7,6 +7,10 @@
 #include "storage/proto/proto_wrappers.h"
 
 namespace pax {
+
+MicroPartitionStats::MicroPartitionStats(bool allow_fallback_to_pg)
+    : allow_fallback_to_pg_(allow_fallback_to_pg) {}
+
 MicroPartitionStats::~MicroPartitionStats() { delete stats_; }
 // SetStatsMessage may be called several times in a write,
 // one for each micro partition, so all members need to reset.
@@ -25,10 +29,13 @@ MicroPartitionStats *MicroPartitionStats::SetStatsMessage(
   memset(&finfo, 0, sizeof(finfo));
   opfamilies_.clear();
   finfos_.clear();
+  local_funcs_.clear();
   status_.clear();
   for (int i = 0; i < natts; i++) {
     opfamilies_.emplace_back(InvalidOid);
     finfos_.emplace_back(std::pair<FmgrInfo, FmgrInfo>({finfo, finfo}));
+    local_funcs_.emplace_back(
+        std::pair<OperMinMaxFunc, OperMinMaxFunc>({nullptr, nullptr}));
     status_.emplace_back('u');
   }
   Assert(stats_->ColumnSize() == natts);
@@ -185,49 +192,44 @@ void MicroPartitionStats::AddNonNullColumn(int column_index, Datum value,
 void MicroPartitionStats::UpdateMinMaxValue(int column_index, Datum datum,
                                             Oid collation, int typlen,
                                             bool typbyval) {
+  auto data_stats = stats_->GetColumnDataStats(column_index);
+  const auto &min = data_stats->minimal();
+  const auto &max = data_stats->maximum();
+  Datum min_datum, max_datum;
+  bool ok, umin = false, umax = false;
+
   Assert(initial_check_);
   Assert(column_index >= 0 &&
          static_cast<size_t>(column_index) < status_.size());
   Assert(status_[column_index] == 'y');
 
-  auto &finfos = finfos_[column_index];
-  auto data_stats = stats_->GetColumnDataStats(column_index);
-  bool ok;
+  min_datum = FromValue(min, typlen, typbyval, &ok);
+  CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
 
-  {
-    const auto &min = data_stats->minimal();
-    auto val = FromValue(min, typlen, typbyval, &ok);
-    CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
-    auto update = DatumGetBool(
-        cbdb::FunctionCall2Coll(&finfos.first, collation, datum, val));
-    if (update) data_stats->set_minimal(ToValue(datum, typlen, typbyval));
-  }
-  {
-    const auto &max = data_stats->maximum();
-    auto val = FromValue(max, typlen, typbyval, &ok);
-    CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
-    auto update = DatumGetBool(
-        cbdb::FunctionCall2Coll(&finfos.second, collation, datum, val));
-    if (update) data_stats->set_maximum(ToValue(datum, typlen, typbyval));
-  }
-}
+  max_datum = FromValue(max, typlen, typbyval, &ok);
+  CBDB_CHECK(ok, cbdb::CException::kExTypeLogicError);
 
-bool MicroPartitionStats::GetStrategyProcinfo(
-    Oid typid, Oid subtype, Oid *opfamily,
-    std::pair<FmgrInfo, FmgrInfo> &finfos) {
-  Oid opfamily1;
-  Oid opfamily2;
-  auto ok =
-      cbdb::MinMaxGetStrategyProcinfo(typid, subtype, &opfamily1, &finfos.first,
-                                      BTLessStrategyNumber) &&
-      cbdb::MinMaxGetStrategyProcinfo(typid, subtype, &opfamily2,
-                                      &finfos.second, BTGreaterStrategyNumber);
-  if (ok) {
-    Assert(opfamily1 == opfamily2);
-    Assert(OidIsValid(opfamily1));
-    *opfamily = opfamily1;
+  // If do have local oper here, then direct call it
+  // But if local oper is null, it must be fallback to pg
+  auto &lfunc = local_funcs_[column_index];
+  if (lfunc.first && CollateIsSupport(collation)) {
+    Assert(lfunc.second);
+
+    umin = lfunc.first(&datum, &min_datum, collation);
+    umax = lfunc.second(&datum, &max_datum, collation);
+  } else if (allow_fallback_to_pg_) {  // may not support collation,
+    auto &finfos = finfos_[column_index];
+    umin = DatumGetBool(
+        cbdb::FunctionCall2Coll(&finfos.first, collation, datum, min_datum));
+    umax = DatumGetBool(
+        cbdb::FunctionCall2Coll(&finfos.second, collation, datum, max_datum));
+  } else {
+    // unreachable
+    Assert(false);
   }
-  return ok;
+
+  if (umin) data_stats->set_minimal(ToValue(datum, typlen, typbyval));
+  if (umax) data_stats->set_maximum(ToValue(datum, typlen, typbyval));
 }
 
 void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
@@ -239,12 +241,24 @@ void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
 
   for (int i = 0; i < natts; i++) {
     auto att = TupleDescAttr(desc, i);
-    if (att->attisdropped ||
+
+    if (att->attisdropped) {
+      status_[i] = 'x';
+      continue;
+    }
+
+    if (GetStrategyProcinfo(att->atttypid, att->atttypid, local_funcs_[i])) {
+      status_[i] = 'n';
+      continue;
+    }
+
+    if (!allow_fallback_to_pg_ ||
         !GetStrategyProcinfo(att->atttypid, att->atttypid, &opfamilies_[i],
                              finfos_[i])) {
       status_[i] = 'x';
       continue;
     }
+
     status_[i] = 'n';
   }
 }
