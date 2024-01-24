@@ -927,7 +927,6 @@ DefineRelation(CreateStmt *stmt, char relkind, Oid ownerId,
 	 */
 	if (intoPolicy)
 	{
-		Assert(!stmt->inhRelations);
 		policy = intoPolicy;
 	}
 	else
