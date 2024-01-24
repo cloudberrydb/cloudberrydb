@@ -2,6 +2,7 @@
 
 #include "access/pax_access_handle.h"
 #include "catalog/pax_aux_table.h"
+#include "catalog/pg_pax_tables.h"
 #include "comm/guc.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition.h"

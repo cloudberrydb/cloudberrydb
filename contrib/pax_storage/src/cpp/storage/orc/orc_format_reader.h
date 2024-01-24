@@ -6,6 +6,7 @@
 #include "storage/proto/protobuf_stream.h"
 
 namespace pax {
+namespace tools { class PaxDumpReader; }
 class OrcFormatReader final {
  public:
   explicit OrcFormatReader(File *file);
@@ -43,7 +44,7 @@ class OrcFormatReader final {
   void BuildProtoTypes();
 
  private:
-  friend class PaxDumpReader;
+  friend class tools::PaxDumpReader;
   friend class OrcGroupStatsProvider;
   std::vector<orc::proto::Type_Kind> column_types_;
   File *file_;

@@ -1,103 +1,38 @@
 cmake_minimum_required (VERSION 3.11.0)
 
 # protobuf
-include(ExternalProject)
-option(ORC_PREFER_STATIC_PROTOBUF "Prefer static protobuf library, if available" ON)
-set(THIRDPARTY_CONFIGURE_COMMAND "${CMAKE_COMMAND}" -G "${CMAKE_GENERATOR}")
-set(THIRDPARTY_DIR "${CMAKE_BINARY_DIR}/src/cpp/contrib")
-set(THIRDPARTY_LOG_OPTIONS LOG_CONFIGURE 1
-                           LOG_BUILD 1
-                           LOG_INSTALL 1
-                           LOG_DOWNLOAD 1)
+include(FindProtobuf)
+find_package(Protobuf 3.6.1 REQUIRED)
 
-set(PROTOBUF_PREFIX "${THIRDPARTY_DIR}/protobuf_ep-install")
-set(PROTOBUF_INCLUDE_DIR "${PROTOBUF_PREFIX}/include")
-set(PROTOBUF_CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${PROTOBUF_PREFIX}
-                        -DCMAKE_INSTALL_LIBDIR=lib
-                        -DBUILD_SHARED_LIBS=OFF
-                        -Dprotobuf_BUILD_TESTS=OFF)
+set(protobuf_files
+  ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/micro_partition_stats.proto
+  ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/pax.proto
+  ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/orc_proto.proto
+)
 
-set(PROTOBUF_CMAKE_ARGS ${PROTOBUF_CMAKE_ARGS} -DCMAKE_POSITION_INDEPENDENT_CODE=ON)
-set(PROTOBUF_STATIC_LIB_PREFIX ${CMAKE_STATIC_LIBRARY_PREFIX})
-set(PROTOBUF_STATIC_LIB "${PROTOBUF_PREFIX}/lib/${PROTOBUF_STATIC_LIB_PREFIX}protobuf${CMAKE_STATIC_LIBRARY_SUFFIX}")
-message(STATUS "${PROTOBUF_STATIC_LIB}")
-set(PROTOC_STATIC_LIB "${PROTOBUF_PREFIX}/lib/${PROTOBUF_STATIC_LIB_PREFIX}protoc${CMAKE_STATIC_LIBRARY_SUFFIX}")
-set(PROTOBUF_EXECUTABLE "${PROTOBUF_PREFIX}/bin/protoc${CMAKE_EXECUTABLE_SUFFIX}")
 
-set(PROTOBUF_CONFIGURE CONFIGURE_COMMAND "${THIRDPARTY_CONFIGURE_COMMAND}" ${PROTOBUF_CMAKE_ARGS}
-                                             "${CMAKE_CURRENT_BINARY_DIR}/protobuf_ep-prefix/src/protobuf_ep/cmake")
+set(PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto)
+set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto)
 
-ExternalProject_Add(protobuf_ep
-    URL "https://artifactory.hashdata.xyz/artifactory/utility/protobuf-3.6.1.tar.gz"
-    ${PROTOBUF_CONFIGURE}
-    ${THIRDPARTY_LOG_OPTIONS}
-    BUILD_BYPRODUCTS "${PROTOBUF_STATIC_LIB}" "${PROTOC_STATIC_LIB}")
+## we generate these files in the cmake -B build phase. 
+## when we start the make phase, all dependent files exist, and we can compile with multiple threads.
+FOREACH(FIL ${protobuf_files})
+    GET_FILENAME_COMPONENT(FIL_WE ${FIL} NAME_WE)
+    string(REGEX REPLACE ".+/(.+)\\..*" "\\1" FILE_NAME ${FIL})
+    string(REGEX REPLACE "(.+)\\${FILE_NAME}.*" "\\1" FILE_PATH ${FIL})
 
-set(PROTOBUF_LIBRARY ${PROTOBUF_STATIC_LIB})
-set(PROTOC_LIBRARY ${PROTOC_STATIC_LIB})
-set(PROTOBUF_VENDORED ON)
-set(INSTALL_VENDORED_LIBS OFF)
+    set(PROTO_SRCS ${PROTO_SRCS} "${PROTO_OUTPUT_DIR}/${FIL_WE}.pb.cc")
+    set(PROTO_HDRS ${PROTO_SRCS} "${PROTO_OUTPUT_DIR}/${FIL_WE}.pb.h")
 
-add_library (orc_protobuf INTERFACE)
-add_library (orc::protobuf ALIAS orc_protobuf)
-add_library (orc_protoc INTERFACE)
-add_library (orc::protoc ALIAS orc_protoc)
+    EXECUTE_PROCESS(
+            COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} -I ${PROTO_DIR} --cpp_out=${PROTO_OUTPUT_DIR} ${FIL}
+    )
+ENDFOREACH()
 
+add_custom_target(generate_protobuf DEPENDS ${PROTO_SRCS} ${PROTO_HDRS})
+
+# bison
 bison_target(paxc_gram access/paxc_gram.y ${CMAKE_CURRENT_BINARY_DIR}/paxc_gram.c)
-
-if (ORC_PREFER_STATIC_PROTOBUF AND ${PROTOBUF_STATIC_LIB})
-  target_link_libraries (orc_protobuf INTERFACE ${PROTOBUF_STATIC_LIB})
-else ()
-  target_link_libraries (orc_protobuf INTERFACE ${PROTOBUF_LIBRARY})
-endif()
-
-target_include_directories (orc_protobuf SYSTEM INTERFACE ${PROTOBUF_INCLUDE_DIR})
-
-if (ORC_PREFER_STATIC_PROTOBUF AND ${PROTOC_STATIC_LIB})
-  target_link_libraries (orc_protoc INTERFACE ${PROTOC_STATIC_LIB})
-else ()
-  target_link_libraries (orc_protoc INTERFACE ${PROTOC_LIBRARY})
-endif()
-
-target_include_directories (orc_protoc SYSTEM INTERFACE ${PROTOBUF_INCLUDE_DIR})
-
-if (PROTOBUF_VENDORED)
-  add_dependencies (orc_protoc protobuf_ep)
-  add_dependencies (orc_protobuf protobuf_ep)
-  if (INSTALL_VENDORED_LIBS)
-    install(FILES "${PROTOBUF_STATIC_LIB}" "${PROTOC_STATIC_LIB}"
-            DESTINATION "lib")
-  endif ()
-endif ()
-
-set(orc_proto_file "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/orc_proto.proto")
-set(orc_proto_src "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/orc_proto.pb.h" "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/orc_proto.pb.cc")
-
-set(pax_proto_file "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/pax.proto")
-set(pax_proto_src "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/pax.pb.h" "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/pax.pb.cc")
-
-set(catalog_proto_file "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/micro_partition_stats.proto")
-set(stats_proto_src "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/micro_partition_stats.pb.h" "${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/micro_partition_stats.pb.cc")
-
-add_custom_command(OUTPUT ${orc_proto_src}
-  COMMAND ${PROTOBUF_EXECUTABLE}
-  -I ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/
-  --cpp_out="${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/"
-  ${orc_proto_file})
-
-add_custom_command(OUTPUT ${pax_proto_src}
-  COMMAND ${PROTOBUF_EXECUTABLE}
-  -I ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/
-  --cpp_out="${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/"
-  ${pax_proto_file})
-
-add_custom_command(OUTPUT ${stats_proto_src}
-  COMMAND ${PROTOBUF_EXECUTABLE}
-  -I ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/
-  --cpp_out="${CMAKE_CURRENT_SOURCE_DIR}/storage/proto"
-  ${catalog_proto_file})
-
-add_custom_target(generate_protobuf DEPENDS ${orc_proto_src} ${pax_proto_src} ${stats_proto_src})
 
 if(NOT BUILD_PAX_FORMAT)
 add_executable(generate_sql_script_program "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/gen_sql.c")
@@ -201,9 +136,9 @@ link_directories($ENV{GPHOME}/lib)
 if(BUILD_PAX_FORMAT)
   # paxformat.so
   ADD_DEFINITIONS(-DBUILD_PAX_FORMAT)
-  add_library(paxformat SHARED ${orc_proto_src} ${pax_proto_src} ${stats_proto_src} ${pax_storage_src} ${pax_exceptions_src} ${pax_comm_src} )
+  add_library(paxformat SHARED ${PROTO_SRCS} ${pax_storage_src} ${pax_exceptions_src} ${pax_comm_src} )
   target_include_directories(paxformat PUBLIC ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
-  target_link_libraries(paxformat PUBLIC uuid orc_protobuf zstd z)
+  target_link_libraries(paxformat PUBLIC uuid protobuf zstd z)
   set_target_properties(paxformat PROPERTIES
    OUTPUT_NAME paxformat)
   add_dependencies(paxformat generate_protobuf)
@@ -245,10 +180,10 @@ if(BUILD_PAX_FORMAT)
   )
 
 else()
-  set(pax_target_src  ${orc_proto_src} ${pax_proto_src} ${pax_storage_src} ${stats_proto_src} ${pax_exceptions_src}
+  set(pax_target_src  ${PROTO_SRCS} ${pax_storage_src}  ${pax_exceptions_src}
     ${pax_access_src} ${pax_comm_src} ${pax_catalog_src} ${pax_vec_src})
   set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
-  set(pax_target_link_libs orc_protobuf zstd z postgres)
+  set(pax_target_link_libs protobuf zstd z postgres)
   set(pax_target_link_directories ${PROJECT_SOURCE_DIR}/../../src/backend/)
   set(pax_target_dependencies generate_protobuf create_sql_script)
 
@@ -341,5 +276,5 @@ if (BUILD_TOOLS)
   add_executable(pax_dump storage/tools/pax_dump.cpp storage/tools/pax_dump_reader.cpp)
   target_include_directories(pax_dump PUBLIC ${pax_target_include} ${CMAKE_CURRENT_SOURCE_DIR} contrib/tabulate/include)
   add_dependencies(pax_dump ${pax_target_dependencies})
-  target_link_libraries(pax_dump PUBLIC pax)
+  target_link_libraries(pax_dump PUBLIC pax protobuf)
 endif(BUILD_TOOLS)

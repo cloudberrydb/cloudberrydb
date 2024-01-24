@@ -6,6 +6,8 @@
 
 namespace pax {
 
+namespace tools { class PaxDumpReader; }
+
 class OrcGroup : public MicroPartitionReader::Group {
  public:
   OrcGroup(PaxColumns *pax_column, size_t row_offset);
@@ -50,6 +52,7 @@ class OrcGroup : public MicroPartitionReader::Group {
   size_t current_row_index_;
 
  private:
+  friend class tools::PaxDumpReader;
   uint32 *current_nulls_ = nullptr;
 };
 
