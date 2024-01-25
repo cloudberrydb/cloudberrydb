@@ -32,10 +32,10 @@ PaxEncodingColumn<T>::PaxEncodingColumn(
 
 template <typename T>
 PaxEncodingColumn<T>::~PaxEncodingColumn() {
-  delete encoder_;
-  delete decoder_;
-  delete shared_data_;
-  delete compressor_;
+  PAX_DELETE(encoder_);
+  PAX_DELETE(decoder_);
+  PAX_DELETE(shared_data_);
+  PAX_DELETE(compressor_);
 }
 
 template <typename T>
@@ -87,7 +87,7 @@ void PaxEncodingColumn<T>::InitDecoder() {
   if (decoder_) {
     // init the shared_data_ with the buffer from PaxCommColumn<T>::data_
     // cause decoder_ need a DataBuffer<char> * as dst buffer
-    shared_data_ = new DataBuffer<char>(*PaxCommColumn<T>::data_);
+    shared_data_ = PAX_NEW<DataBuffer<char>>(*PaxCommColumn<T>::data_);
     decoder_->SetDataBuffer(shared_data_);
     return;
   }
@@ -109,7 +109,7 @@ void PaxEncodingColumn<T>::Set(DataBuffer<T> *data) {
     }
 
     Assert(!data->IsMemTakeOver());
-    delete data;
+    PAX_DELETE(data);
   } else if (compressor_) {
     if (data->Used() != 0) {
       // should not init `shared_data_`, direct uncompress to `data_`
@@ -126,7 +126,7 @@ void PaxEncodingColumn<T>::Set(DataBuffer<T> *data) {
     }
 
     Assert(!data->IsMemTakeOver());
-    delete data;
+    PAX_DELETE(data);
   } else {
     PaxCommColumn<T>::Set(data);
   }
@@ -150,7 +150,7 @@ std::pair<char *, size_t> PaxEncodingColumn<T>::GetBuffer() {
       // because we still need store a origin data in `PaxCommColumn<T>`
       auto origin_data_buffer = PaxCommColumn<T>::data_;
 
-      shared_data_ = new DataBuffer<char>(origin_data_buffer->Used());
+      shared_data_ = PAX_NEW<DataBuffer<char>>(origin_data_buffer->Used());
       encoder_->SetDataBuffer(shared_data_);
       for (size_t i = 0; i < origin_data_buffer->GetSize(); i++) {
         encoder_->Append((*origin_data_buffer)[i]);
@@ -160,7 +160,7 @@ std::pair<char *, size_t> PaxEncodingColumn<T>::GetBuffer() {
     } else if (compressor_) {
       size_t bound_size =
           compressor_->GetCompressBound(PaxCommColumn<T>::data_->Used());
-      shared_data_ = new DataBuffer<char>(bound_size);
+      shared_data_ = PAX_NEW<DataBuffer<char>>(bound_size);
 
       size_t c_size = compressor_->Compress(
           shared_data_->Start(), shared_data_->Capacity(),

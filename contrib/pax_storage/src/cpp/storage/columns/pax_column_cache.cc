@@ -39,9 +39,9 @@ PaxColumnCache::PaxColumnCache(PaxCache *cache, const std::string &file_name,
 
 template <typename T>
 static PaxColumn *NewFixColumn(const char *buffer, size_t buffer_len) {
-  auto column = new PaxCommColumn<T>(0);
+  auto column = PAX_NEW<PaxCommColumn<T>>(0);
   Assert(buffer_len % sizeof(T) == 0);
-  auto data_buffer = new DataBuffer<T>((T *)(buffer), buffer_len, false, false);
+  auto data_buffer = PAX_NEW<DataBuffer<T>>((T *)(buffer), buffer_len, false, false);
   data_buffer->BrushAll();
   column->Set(data_buffer);
   return column;
@@ -49,12 +49,12 @@ static PaxColumn *NewFixColumn(const char *buffer, size_t buffer_len) {
 
 std::tuple<PaxColumns *, std::vector<std::string>, bool *>
 PaxColumnCache::ReadCache(size_t group_index) {
-  PaxColumns *columns = new PaxColumns();
+  PaxColumns *columns = PAX_NEW<PaxColumns>();
   std::vector<std::string> keys;
   std::vector<PaxCache::BatchBuffer> batchs;
   size_t cache_index = 0;
   int64 rows = -1;
-  bool *proj_copy = new bool[proj_num_];
+  bool *proj_copy = PAX_NEW_ARRAY<bool>(proj_num_);
   size_t no_proj_num = 0;
 
   memcpy(proj_copy, proj_, proj_num_);
@@ -99,12 +99,12 @@ PaxColumnCache::ReadCache(size_t group_index) {
     PaxColumn *column = nullptr;
     switch (meta->type_len) {
       case -1: {
-        auto non_fixed_column = new PaxNonFixedColumn(0);
+        auto non_fixed_column = PAX_NEW<PaxNonFixedColumn>(0);
         Assert(meta->len_size % sizeof(int64) == 0);
-        auto data_buffer = new DataBuffer<char>(
+        auto data_buffer = PAX_NEW<DataBuffer<char>>(
             (char *)(batch_buffer.buffer + meta->null_size), meta->data_size,
             false, false);
-        auto len_data_buffer = new DataBuffer<int64>(
+        auto len_data_buffer = PAX_NEW<DataBuffer<int64>>(
             (int64 *)(batch_buffer.buffer + meta->null_size + meta->data_size),
             meta->len_size, false, false);
         data_buffer->BrushAll();
@@ -141,7 +141,7 @@ PaxColumnCache::ReadCache(size_t group_index) {
     }
 
     if (meta->null_size != 0) {
-      auto null_bitmap = new Bitmap8(
+      auto null_bitmap = PAX_NEW<Bitmap8>(
           BitmapRaw<uint8>((uint8 *)(batch_buffer.buffer), meta->null_size),
           BitmapTpl<uint8>::ReadOnlyRefBitmap);
       column->SetBitmap(null_bitmap);

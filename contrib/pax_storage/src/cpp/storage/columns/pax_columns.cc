@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 
 namespace pax {
@@ -29,7 +30,7 @@ PaxColumns::PaxColumns(const std::vector<orc::proto::Type_Kind> &types,
     : row_nums_(0), storage_format_(storage_format) {
   Assert(columns_.empty());
   Assert(types.size() == column_encoding_types.size());
-  data_ = new DataBuffer<char>(0);
+  data_ = PAX_NEW<DataBuffer<char>>(0);
   auto is_vec = storage_format_ == PaxStorageFormat::kTypeStorageOrcVec;
 
   for (size_t i = 0; i < types.size(); i++) {
@@ -82,19 +83,19 @@ PaxColumns::PaxColumns(const std::vector<orc::proto::Type_Kind> &types,
 
 PaxColumns::PaxColumns()
     : row_nums_(0), storage_format_(PaxStorageFormat::kTypeStorageOrcNonVec) {
-  data_ = new DataBuffer<char>(0);
+  data_ = PAX_NEW<DataBuffer<char>>(0);
 }
 
 PaxColumns::~PaxColumns() {
   // Notice that: the resources freed here,
   // must transform owner in `PaxColumns::Merge`
   for (auto column : columns_) {
-    delete column;
+    PAX_DELETE(column);
   }
   for (auto holder : data_holder_) {
-    delete holder;
+    PAX_DELETE(holder);
   }
-  delete data_;
+  PAX_DELETE(data_);
 }
 
 void PaxColumns::SetStorageFormat(PaxStorageFormat format) {
@@ -123,7 +124,7 @@ void PaxColumns::Merge(PaxColumns *columns) {
     columns->data_ = nullptr;
   }
 
-  delete columns;
+  PAX_DELETE(columns);
 }
 
 PaxColumn *PaxColumns::operator[](uint64 i) { return columns_[i]; }
@@ -137,7 +138,7 @@ void PaxColumns::Append(char * /*buffer*/, size_t /*size*/) {
 void PaxColumns::Set(DataBuffer<char> *data) {
   Assert(data_->GetBuffer() == nullptr);
 
-  delete data_;
+  PAX_DELETE(data_);
   data_ = data;
 }
 

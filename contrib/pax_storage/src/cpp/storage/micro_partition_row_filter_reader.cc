@@ -2,6 +2,7 @@
 
 #include "comm/guc.h"
 #include "comm/log.h"
+#include "comm/pax_memory.h"
 #include "storage/pax_filter.h"
 #include "storage/pax_defined.h"
 
@@ -18,7 +19,7 @@ MicroPartitionRowFilterReader *MicroPartitionRowFilterReader::New(MicroPartition
   Assert(reader);
   Assert(filter && filter->HasRowScanFilter());
 
-  auto r = new MicroPartitionRowFilterReader();
+  auto r = PAX_NEW<MicroPartitionRowFilterReader>();
   r->SetReader(reader);
   r->filter_ = filter;
   return r;
@@ -56,7 +57,7 @@ retry_next_group:
   nrows = g->GetRows();
 retry_next:
   if (row_index_ >= nrows) {
-    delete group_;
+    PAX_DELETE(group_);
     group_ = nullptr;
     goto retry_next_group;
   }

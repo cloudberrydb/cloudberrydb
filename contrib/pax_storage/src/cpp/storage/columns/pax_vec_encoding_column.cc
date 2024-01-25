@@ -1,5 +1,7 @@
 #include "storage/columns/pax_vec_encoding_column.h"
 
+#include "comm/pax_memory.h"
+
 namespace pax {
 
 template <typename T>
@@ -30,10 +32,10 @@ PaxVecEncodingColumn<T>::PaxVecEncodingColumn(
 
 template <typename T>
 PaxVecEncodingColumn<T>::~PaxVecEncodingColumn() {
-  delete encoder_;
-  delete decoder_;
-  delete shared_data_;
-  delete compressor_;
+  PAX_DELETE(encoder_);
+  PAX_DELETE(decoder_);
+  PAX_DELETE(shared_data_);
+  PAX_DELETE(compressor_);
 }
 
 template <typename T>
@@ -69,7 +71,7 @@ void PaxVecEncodingColumn<T>::InitDecoder() {
   if (decoder_) {
     // init the shared_data_ with the buffer from PaxVecCommColumn<T>::data_
     // cause decoder_ need a DataBuffer<char> * as dst buffer
-    shared_data_ = new DataBuffer<char>(*PaxVecCommColumn<T>::data_);
+    shared_data_ = PAX_NEW<DataBuffer<char>>(*PaxVecCommColumn<T>::data_);
     decoder_->SetDataBuffer(shared_data_);
     return;
   }
@@ -90,7 +92,7 @@ void PaxVecEncodingColumn<T>::Set(DataBuffer<T> *data, size_t non_null_rows) {
     }
 
     Assert(!data->IsMemTakeOver());
-    delete data;
+    PAX_DELETE(data);
   } else if (compressor_) {
     if (data->Used() != 0) {
       // should not init `shared_data_`, direct uncompress to `data_`
@@ -107,7 +109,7 @@ void PaxVecEncodingColumn<T>::Set(DataBuffer<T> *data, size_t non_null_rows) {
     }
 
     Assert(!data->IsMemTakeOver());
-    delete data;
+    PAX_DELETE(data);
   } else {
     PaxVecCommColumn<T>::Set(data, non_null_rows);
   }
@@ -131,7 +133,7 @@ std::pair<char *, size_t> PaxVecEncodingColumn<T>::GetBuffer() {
       // because we still need store a origin data in `PaxVecCommColumn<T>`
       auto origin_data_buffer = PaxVecCommColumn<T>::data_;
 
-      shared_data_ = new DataBuffer<char>(origin_data_buffer->Used());
+      shared_data_ = PAX_NEW<DataBuffer<char>>(origin_data_buffer->Used());
       encoder_->SetDataBuffer(shared_data_);
       for (size_t i = 0; i < origin_data_buffer->GetSize(); i++) {
         encoder_->Append((*origin_data_buffer)[i]);
@@ -141,7 +143,7 @@ std::pair<char *, size_t> PaxVecEncodingColumn<T>::GetBuffer() {
     } else if (compressor_) {
       size_t bound_size =
           compressor_->GetCompressBound(PaxVecCommColumn<T>::data_->Used());
-      shared_data_ = new DataBuffer<char>(bound_size);
+      shared_data_ = PAX_NEW<DataBuffer<char>>(bound_size);
 
       size_t c_size = compressor_->Compress(
           shared_data_->Start(), shared_data_->Capacity(),
@@ -238,8 +240,8 @@ PaxVecNonFixedEncodingColumn::PaxVecNonFixedEncodingColumn(
 }
 
 PaxVecNonFixedEncodingColumn::~PaxVecNonFixedEncodingColumn() {
-  delete compressor_;
-  delete shared_data_;
+  PAX_DELETE(compressor_);
+  PAX_DELETE(shared_data_);
 }
 
 void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
@@ -251,7 +253,7 @@ void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
     Assert(!compress_route_);
 
     // still need update origin logic
-    delete offsets_;
+    PAX_DELETE(offsets_);
     offsets_ = offsets;
 
     if (data->Used() != 0) {
@@ -265,7 +267,7 @@ void PaxVecNonFixedEncodingColumn::Set(DataBuffer<char> *data,
     }
 
     Assert(!data->IsMemTakeOver());
-    delete data;
+    PAX_DELETE(data);
   } else {
     PaxVecNonFixedColumn::Set(data, offsets_, total_size, non_null_rows);
   }
@@ -285,7 +287,7 @@ std::pair<char *, size_t> PaxVecNonFixedEncodingColumn::GetBuffer() {
 
     size_t bound_size =
         compressor_->GetCompressBound(PaxVecNonFixedColumn::data_->Used());
-    shared_data_ = new DataBuffer<char>(bound_size);
+    shared_data_ = PAX_NEW<DataBuffer<char>>(bound_size);
 
     auto c_size = compressor_->Compress(
         shared_data_->Start(), shared_data_->Capacity(),

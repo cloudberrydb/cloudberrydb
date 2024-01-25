@@ -19,9 +19,7 @@ PaxColumn::PaxColumn()
       type_align_size_(PAX_DATA_NO_ALIGN) {}
 
 PaxColumn::~PaxColumn() {
-  if (null_bitmap_) {
-    delete null_bitmap_;
-  }
+  PAX_DELETE(null_bitmap_);
 }
 
 PaxColumnTypeInMem PaxColumn::GetPaxColumnTypeInMem() const {
@@ -57,7 +55,7 @@ size_t PaxColumn::GetRangeNonNullRows(size_t start_pos, size_t len) {
 
 void PaxColumn::CreateNulls(size_t cap) {
   Assert(!null_bitmap_);
-  null_bitmap_ = new Bitmap8(cap);
+  null_bitmap_ = PAX_NEW<Bitmap8>(cap);
   null_bitmap_->SetN(total_rows_);
 }
 
@@ -91,12 +89,12 @@ ColumnEncoding_Kind PaxColumn::GetEncodingType() const { return encoded_type_; }
 
 template <typename T>
 PaxCommColumn<T>::PaxCommColumn(uint32 capacity) {
-  data_ = new DataBuffer<T>(capacity * sizeof(T));
+  data_ = PAX_NEW<DataBuffer<T>>(capacity * sizeof(T));
 }
 
 template <typename T>
 PaxCommColumn<T>::~PaxCommColumn() {
-  delete data_;
+  PAX_DELETE(data_);
 }
 
 template <typename T>  // NOLINT: redirect constructor
@@ -104,7 +102,7 @@ PaxCommColumn<T>::PaxCommColumn() : PaxCommColumn(DEFAULT_CAPACITY) {}
 
 template <typename T>
 void PaxCommColumn<T>::Set(DataBuffer<T> *data) {
-  delete data_;
+  PAX_DELETE(data_);
 
   data_ = data;
 }
@@ -187,21 +185,21 @@ template class PaxCommColumn<float>;
 template class PaxCommColumn<double>;
 
 PaxNonFixedColumn::PaxNonFixedColumn(uint32 capacity) : estimated_size_(0) {
-  data_ = new DataBuffer<char>(capacity * sizeof(char));
-  lengths_ = new DataBuffer<int64>(capacity * sizeof(char));
+  data_ = PAX_NEW<DataBuffer<char>>(capacity * sizeof(char));
+  lengths_ = PAX_NEW<DataBuffer<int64>>(capacity * sizeof(char));
 }
 
 PaxNonFixedColumn::PaxNonFixedColumn() : PaxNonFixedColumn(DEFAULT_CAPACITY) {}
 
 PaxNonFixedColumn::~PaxNonFixedColumn() {
-  delete data_;
-  delete lengths_;
+  PAX_DELETE(data_);
+  PAX_DELETE(lengths_);
 }
 
 void PaxNonFixedColumn::Set(DataBuffer<char> *data, DataBuffer<int64> *lengths,
                             size_t total_size) {
-  delete data_;
-  delete lengths_;
+  PAX_DELETE(data_);
+  PAX_DELETE(lengths_);
 
   estimated_size_ = total_size;
   data_ = data;

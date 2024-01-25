@@ -12,6 +12,7 @@
 #include "catalog/pax_fastsequence.h"
 #include "catalog/pg_pax_tables.h"
 #include "comm/guc.h"
+#include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 #include "storage/local_file_system.h"
 #include "storage/paxc_block_map_manager.h"
@@ -153,7 +154,7 @@ TableScanDesc CCPaxAccessMethod::ScanExtractColumns(
 struct IndexFetchTableData *CCPaxAccessMethod::IndexFetchBegin(Relation rel) {
   CBDB_TRY();
   {
-    auto desc = new PaxIndexScanDesc(rel);
+    auto desc = PAX_NEW<PaxIndexScanDesc>(rel);
     return desc->ToBase();
   }
   CBDB_CATCH_DEFAULT();
@@ -166,7 +167,7 @@ void CCPaxAccessMethod::IndexFetchEnd(IndexFetchTableData *scan) {
   CBDB_TRY();
   {
     auto desc = PaxIndexScanDesc::FromBase(scan);
-    delete desc;
+    PAX_DELETE(desc);
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});

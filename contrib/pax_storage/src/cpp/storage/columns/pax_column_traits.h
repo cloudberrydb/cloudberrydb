@@ -1,4 +1,5 @@
 #pragma once
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_column.h"
 #include "storage/columns/pax_encoding_column.h"
 #include "storage/columns/pax_encoding_non_fixed_column.h"
@@ -14,7 +15,7 @@ using CreateFunc = std::function<T *(uint64)>;
 
 template <typename T>
 static T *CreateImpl(uint64 cap) {
-  auto t = new T(cap);
+  auto t = PAX_NEW<T>(cap);
   return t;
 }
 
@@ -29,14 +30,14 @@ using CreateDecodingFunc =
 template <typename T>
 static T *CreateEncodingImpl(uint64 cap,
                              const PaxEncoder::EncodingOption &encoding_opt) {
-  auto t = new T(cap, encoding_opt);
+  auto t = PAX_NEW<T>(cap, encoding_opt);
   return t;
 }
 
 template <typename T>
 static T *CreateDecodingImpl(uint64 cap,
                              const PaxDecoder::DecodingOption &decoding_opt) {
-  auto t = new T(cap, decoding_opt);
+  auto t = PAX_NEW<T>(cap, decoding_opt);
   return t;
 }
 

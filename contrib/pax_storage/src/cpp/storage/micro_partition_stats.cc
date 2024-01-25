@@ -3,6 +3,7 @@
 #include "comm/cbdb_api.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "storage/micro_partition_metadata.h"
 #include "storage/proto/proto_wrappers.h"
 
@@ -11,7 +12,7 @@ namespace pax {
 MicroPartitionStats::MicroPartitionStats(bool allow_fallback_to_pg)
     : allow_fallback_to_pg_(allow_fallback_to_pg) {}
 
-MicroPartitionStats::~MicroPartitionStats() { delete stats_; }
+MicroPartitionStats::~MicroPartitionStats() { PAX_DELETE(stats_); }
 // SetStatsMessage may be called several times in a write,
 // one for each micro partition, so all members need to reset.
 // Some metainfo like typid, collation, oids for less/greater,
@@ -23,7 +24,7 @@ MicroPartitionStats *MicroPartitionStats::SetStatsMessage(
   Assert(natts >= 0);
   Assert(stats);
   initial_check_ = false;
-  delete stats_;
+  PAX_DELETE(stats_);
   stats_ = stats;
 
   memset(&finfo, 0, sizeof(finfo));

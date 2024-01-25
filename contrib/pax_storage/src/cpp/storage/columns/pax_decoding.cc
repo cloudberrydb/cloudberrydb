@@ -1,5 +1,6 @@
 #include "storage/columns/pax_decoding.h"
 
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_rlev2_decoding.h"
 
 namespace pax {
@@ -13,7 +14,7 @@ PaxDecoder *PaxDecoder::CreateDecoder(const DecodingOption &decoder_options) {
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2: {
-      decoder = new PaxOrcDecoder<T>(decoder_options);
+      decoder = PAX_NEW<PaxOrcDecoder<T>>(decoder_options);
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_DIRECT_DELTA: {

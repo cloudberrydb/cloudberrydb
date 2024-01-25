@@ -4,6 +4,7 @@
 #include "catalog/pax_aux_table.h"
 #include "catalog/pg_pax_tables.h"
 #include "comm/guc.h"
+#include "comm/pax_memory.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition.h"
 #include "storage/micro_partition_iterator.h"
@@ -48,7 +49,7 @@ PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel=rel} {
 PaxIndexScanDesc::~PaxIndexScanDesc() {
   if (reader_) {
     reader_->Close();
-    delete reader_;
+    PAX_DELETE(reader_);
   }
 }
 
@@ -86,11 +87,11 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block, Snapshot snapshot) 
     options.block_id = block_name;
     options.file_name = cbdb::BuildPaxFilePath(base_.rel, block_name);
     auto file = Singleton<LocalFileSystem>::GetInstance()->Open(options.file_name, fs::kReadMode);
-    auto reader = new OrcReader(file);
+    auto reader = PAX_NEW<OrcReader>(file);
     reader->Open(options);
     if (reader_) {
       reader_->Close();
-      delete reader_;
+      PAX_DELETE(reader_);
     }
     reader_ = reader;
     current_block_ = block;
@@ -102,7 +103,7 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block, Snapshot snapshot) 
 bool PaxScanDesc::BitmapNextBlock(struct TBMIterateResult *tbmres) {
   cindex_ = 0;
   if (!index_desc_) {
-    index_desc_ = new PaxIndexScanDesc(rs_base_.rs_rd);
+    index_desc_ = PAX_NEW<PaxIndexScanDesc>(rs_base_.rs_rd);
   }
   return true;
 }
@@ -154,7 +155,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
       offsetof(PaxScanDesc, rs_base_) == 0,
       "rs_base should be the first field and aligned to the object address");
 
-  desc = new PaxScanDesc();
+  desc = PAX_NEW<PaxScanDesc>();
 
   desc->memory_context_ = cbdb::AllocSetCtxCreate(
       CurrentMemoryContext, "Pax Storage", PAX_ALLOCSET_DEFAULT_SIZES);
@@ -165,15 +166,15 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
   desc->rs_base_.rs_nkeys = nkeys;
   desc->rs_base_.rs_flags = flags;
   desc->rs_base_.rs_parallel = pscan;
-  desc->reused_buffer_ = new DataBuffer<char>(pax_scan_reuse_buffer_size);
+  desc->reused_buffer_ = PAX_NEW<DataBuffer<char>>(pax_scan_reuse_buffer_size);
   desc->filter_ = filter;
   if (!desc->filter_) {
-    desc->filter_ = new PaxFilter();
+    desc->filter_ = PAX_NEW<PaxFilter>();
   }
 
   if (!desc->filter_->GetColumnProjection().first) {
     auto natts = cbdb::RelationGetAttributesNumber(relation);
-    auto cols = new bool[natts];
+    auto cols = PAX_NEW_ARRAY<bool>(natts);
     memset(cols, true, natts);
     desc->filter_->SetColumnProjection(cols, natts);
   }
@@ -181,7 +182,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 #ifdef VEC_BUILD
   if (flags & (1 << 12)) {
     desc->vec_adapter_ =
-        new VecAdapter(cbdb::RelationGetTupleDesc(relation), build_bitmap);
+        PAX_NEW<VecAdapter>(cbdb::RelationGetTupleDesc(relation), build_bitmap);
     reader_options.is_vec = true;
     reader_options.adapter = desc->vec_adapter_;
   }
@@ -198,12 +199,12 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
     cache_options.memory_quota = 0;
     cache_options.waitting_ms = 0;
 
-    desc->pax_cache_ = new PaxPlasmaCache(std::move(cache_options));
+    desc->pax_cache_ = PAX_NEW<PaxPlasmaCache>(std::move(cache_options));
     auto status = desc->pax_cache_->Initialize();
     if (!status.Ok()) {
       elog(WARNING, "Plasma cache client init failed, message: %s",
            status.Error().c_str());
-      delete desc->pax_cache_;
+      PAX_DELETE(desc->pax_cache_);
       desc->pax_cache_ = nullptr;
     }
 
@@ -225,7 +226,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 
   auto iter = MicroPartitionInfoIterator::New(relation, snapshot);
   if (filter && filter->HasMicroPartitionFilter()) {
-    auto wrap = new FilterIterator<MicroPartitionMetadata>(
+    auto wrap = PAX_NEW<FilterIterator<MicroPartitionMetadata>>(
         std::move(iter), [filter, relation](const auto &x) {
           MicroPartitionStatsProvider provider(x.GetStats());
           auto ok = filter->TestScan(provider, RelationGetDescr(relation), PaxFilterStatisticsKind::kFile);
@@ -233,7 +234,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
         });
     iter = std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(wrap);
   }
-  desc->reader_ = new TableReader(std::move(iter), reader_options);
+  desc->reader_ = PAX_NEW<TableReader>(std::move(iter), reader_options);
   desc->reader_->Open();
 
   MemoryContextSwitchTo(old_ctx);
@@ -248,29 +249,30 @@ void PaxScanDesc::EndScan() {
   Assert(reader_);
   reader_->Close();
 
-  delete reused_buffer_;
-  delete reader_;
-  delete filter_;
+  PAX_DELETE(reused_buffer_);
+  PAX_DELETE(reader_);
+  PAX_DELETE(filter_);
 
 #ifdef VEC_BUILD
-  delete vec_adapter_;
+  PAX_DELETE(vec_adapter_);
 #endif
 
 #ifdef ENABLE_PLASMA
   if (pax_cache_) {
     pax_cache_->Destroy();
-    delete pax_cache_;
+    PAX_DELETE(pax_cache_);
   }
 #endif
 
 #ifdef ENABLE_LOCAL_INDEX
-  delete index_desc_;
+  PAX_DELETE(index_desc_);
 #endif
 
   // TODO(jiaqizho): please double check with abort transaction @gongxun
   Assert(memory_context_);
   cbdb::MemoryCtxDelete(memory_context_);
-  delete this;
+  auto self = this;
+  PAX_DELETE(self);
 }
 
 TableScanDesc PaxScanDesc::BeginScanExtractColumns(
@@ -287,11 +289,11 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
   bool build_bitmap = true;
   PaxcExtractcolumnContext extract_column;
 
-  filter = new PaxFilter();
+  filter = PAX_NEW<PaxFilter>();
 
   Assert(natts >= 0);
 
-  cols = new bool[natts];
+  cols = PAX_NEW_ARRAY<bool>(natts);
   memset(cols, false, natts);
 
   extract_column.cols = cols;

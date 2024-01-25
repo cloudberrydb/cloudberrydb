@@ -1,6 +1,7 @@
 #include "storage/columns/pax_compress.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "zlib.h"  // NOLINT
 #include "zstd.h"  // NOLINT
 
@@ -11,11 +12,11 @@ PaxCompressor *PaxCompressor::CreateBlockCompressor(
   PaxCompressor *compressor = nullptr;
   switch (kind) {
     case ColumnEncoding_Kind::ColumnEncoding_Kind_COMPRESS_ZSTD: {
-      compressor = new PaxZSTDCompressor();
+      compressor = PAX_NEW<PaxZSTDCompressor>();
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_COMPRESS_ZLIB: {
-      compressor = new PaxZlibCompressor();
+      compressor = PAX_NEW<PaxZlibCompressor>();
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED: {

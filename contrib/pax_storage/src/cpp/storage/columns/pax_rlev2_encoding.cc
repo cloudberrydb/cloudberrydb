@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 
 namespace pax {
 
@@ -197,15 +198,15 @@ void PaxOrcEncoder::EncoderContext::ResetPbCtx() const {
 
 PaxOrcEncoder::PaxOrcEncoder(const EncodingOption &encoder_options)
     : PaxEncoder(encoder_options),
-      data_buffer_(new UntreatedDataBuffer<int64>(1024)),
-      zigzag_buffer_(new DataBuffer<int64>(128)),
+      data_buffer_(PAX_NEW<UntreatedDataBuffer<int64>>(1024)),
+      zigzag_buffer_(PAX_NEW<DataBuffer<int64>>(128)),
       status_(EncoderStatus::kInit) {
   encoder_context_.is_sign = encoder_options_.is_sign;
 }
 
 PaxOrcEncoder::~PaxOrcEncoder() {
-  delete data_buffer_;
-  delete zigzag_buffer_;
+  PAX_DELETE(data_buffer_);
+  PAX_DELETE(zigzag_buffer_);
 }
 
 void PaxOrcEncoder::Append(const int64 data) { AppendInternal(data, false); }

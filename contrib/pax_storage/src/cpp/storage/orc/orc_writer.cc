@@ -2,6 +2,7 @@
 
 #include "comm/guc.h"
 #include "comm/log.h"
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/micro_partition_stats.h"
 #include "storage/orc/orc.h"
@@ -61,7 +62,7 @@ static PaxColumns *BuildColumns(
   PaxColumns *columns;
   bool is_vec;
 
-  columns = new PaxColumns();
+  columns = PAX_NEW<PaxColumns>();
   is_vec = (storage_format == PaxStorageFormat::kTypeStorageOrcVec);
   columns->SetStorageFormat(storage_format);
 
@@ -170,19 +171,19 @@ OrcWriter::OrcWriter(const MicroPartitionWriter::WriterOptions &writer_options,
   post_script_.set_magic(ORC_MAGIC_ID);
 
   auto natts = static_cast<int>(column_types.size());
-  auto stats_data = new OrcColumnStatsData();
+  auto stats_data = PAX_NEW<OrcColumnStatsData>();
   stats_collector_.SetStatsMessage(stats_data->Initialize(natts), natts);
 }
 
 OrcWriter::~OrcWriter() {
-  delete pax_columns_;
-  delete file_;
+  PAX_DELETE(pax_columns_);
+  PAX_DELETE(file_);
 }
 
 MicroPartitionWriter *OrcWriter::SetStatsCollector(
     MicroPartitionStats *mpstats) {
   if (mpstats) {
-    auto stats_data = new MicroPartittionFileStatsData(
+    auto stats_data = PAX_NEW<MicroPartittionFileStatsData>(
         &summary_.mp_stats, static_cast<int>(column_types_.size()));
     mpstats->SetStatsMessage(stats_data, column_types_.size());
     mp_stats_ = mpstats;
@@ -198,8 +199,8 @@ void OrcWriter::Flush() {
     file_->PWriteN(buffer_mem_stream.GetDataBuffer()->GetBuffer(),
                    buffer_mem_stream.GetDataBuffer()->Used(),
                    current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
-    delete pax_columns_;
-    pax_columns_ = new PaxColumns(column_types_, writer_options_.encoding_opts,
+    PAX_DELETE(pax_columns_);
+    pax_columns_ = PAX_NEW<PaxColumns>(column_types_, writer_options_.encoding_opts,
                                   writer_options_.storage_format);
   }
 }
@@ -516,7 +517,7 @@ void OrcWriter::Close() {
 
   empty_stripe = !WriteStripe(&buffer_mem_stream);
   if (empty_stripe) {
-    data_buffer = new DataBuffer<char>(2048);
+    data_buffer = PAX_NEW<DataBuffer<char>>(2048);
     buffer_mem_stream.Set(data_buffer);
   }
 
@@ -532,7 +533,7 @@ void OrcWriter::Close() {
   file_->Flush();
   file_->Close();
   if (empty_stripe) {
-    delete data_buffer;
+    PAX_DELETE(data_buffer);
   }
   is_closed_ = true;
 }

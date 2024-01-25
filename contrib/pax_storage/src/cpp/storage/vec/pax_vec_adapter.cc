@@ -473,7 +473,7 @@ VecAdapter::~VecAdapter() {
     for (int i = 0; i < vec_cache_buffer_lens_; i++) {
       vec_cache_buffer_[i].SetMemoryTakeOver(false);
     }
-    delete[] vec_cache_buffer_;
+    PAX_DELETE_ARRAY(vec_cache_buffer_);
   }
 }
 
@@ -488,7 +488,7 @@ void VecAdapter::SetDataSource(PaxColumns *columns) {
   AssertImply(vec_cache_buffer_,
               columns->GetColumns() == (size_t)vec_cache_buffer_lens_);
   if (!vec_cache_buffer_) {
-    vec_cache_buffer_ = new VecBatchBuffer[columns->GetColumns()];
+    vec_cache_buffer_ = PAX_NEW_ARRAY<VecBatchBuffer>(columns->GetColumns());
     vec_cache_buffer_lens_ = columns->GetColumns();
   }
 }

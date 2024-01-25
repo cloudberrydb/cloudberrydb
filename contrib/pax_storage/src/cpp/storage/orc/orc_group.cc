@@ -1,18 +1,20 @@
 #include "storage/orc/orc_group.h"
 
+#include "comm/pax_memory.h"
+
 namespace pax {
 
 OrcGroup::OrcGroup(PaxColumns *pax_column, size_t row_offset)
     : pax_columns_(pax_column), row_offset_(row_offset), current_row_index_(0) {
   Assert(pax_columns_);
 
-  current_nulls_ = new uint32[pax_columns_->GetColumns()];
+  current_nulls_ = PAX_NEW_ARRAY<uint32>(pax_columns_->GetColumns());
   memset(current_nulls_, 0, pax_columns_->GetColumns() * sizeof(uint32));
 }
 
 OrcGroup::~OrcGroup() {
-  delete pax_columns_;
-  delete[] current_nulls_;
+  PAX_DELETE(pax_columns_);
+  PAX_DELETE_ARRAY(current_nulls_);
 }
 
 size_t OrcGroup::GetRows() const { return pax_columns_->GetRows(); }

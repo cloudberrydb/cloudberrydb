@@ -6,6 +6,7 @@
 #include "access/paxc_rel_options.h"
 #include "catalog/pax_aux_table.h"
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_encoding.h"
 #include "storage/micro_partition_file_factory.h"
 #include "storage/micro_partition_metadata.h"
@@ -142,8 +143,8 @@ TableWriter::~TableWriter() {
   // must call close before delete table writer
   Assert(writer_ == nullptr);
 
-  delete strategy_;
-  delete mp_stats_;
+  PAX_DELETE(strategy_);
+  PAX_DELETE(mp_stats_);
 }
 
 const FileSplitStrategy *TableWriter::GetFileSplitStrategy() const {
@@ -236,7 +237,7 @@ void TableWriter::WriteTuple(CTupleSlot *slot) {
   // otherwise, may got a empty file in the disk
   if (strategy_->ShouldSplit(writer_->PhysicalSize(), num_tuples_)) {
     writer_->Close();
-    delete writer_;
+    PAX_DELETE(writer_);
     Open();
   }
   if (mp_stats_) mp_stats_->AddRow(slot->GetTupleTableSlot());
@@ -251,7 +252,7 @@ void TableWriter::WriteTuple(CTupleSlot *slot) {
 
 void TableWriter::Close() {
   writer_->Close();
-  delete writer_;
+  PAX_DELETE(writer_);
   writer_ = nullptr;
   num_tuples_ = 0;
 }
@@ -267,7 +268,7 @@ TableReader::TableReader(
 TableReader::~TableReader() {
   if (reader_) {
     reader_->Close();
-    delete reader_;
+    PAX_DELETE(reader_);
     reader_ = nullptr;
   }
 }
@@ -350,17 +351,15 @@ void TableReader::OpenFile() {
   options.pax_cache = reader_options_.pax_cache;
 #endif
 
-  if (reader_) {
-    delete reader_;
-  }
+  PAX_DELETE(reader_);
 
-  reader_ = new OrcReader(Singleton<LocalFileSystem>::GetInstance()->Open(
+  reader_ = PAX_NEW<OrcReader>(Singleton<LocalFileSystem>::GetInstance()->Open(
       options.file_name, fs::kReadMode));
 
 #ifdef VEC_BUILD
   if (reader_options_.is_vec) {
     Assert(reader_options_.adapter);
-    reader_ = new PaxVecReader(reader_, reader_options_.adapter,
+    reader_ = PAX_NEW<PaxVecReader>(reader_, reader_options_.adapter,
                                reader_options_.filter);
   } else
 #endif  // VEC_BUILD
@@ -387,13 +386,13 @@ TableDeleter::TableDeleter(
 TableDeleter::~TableDeleter() {
   if (reader_) {
     reader_->Close();
-    delete reader_;
+    PAX_DELETE(reader_);
     reader_ = nullptr;
   }
 
   if (writer_) {
     writer_->Close();
-    delete writer_;
+    PAX_DELETE(writer_);
     writer_ = nullptr;
   }
 }
@@ -437,10 +436,10 @@ void TableDeleter::Delete() {
 }
 
 void TableDeleter::OpenWriter() {
-  writer_ = new TableWriter(rel_);
+  writer_ = PAX_NEW<TableWriter>(rel_);
   writer_->SetWriteSummaryCallback(&cbdb::InsertOrUpdateMicroPartitionEntry)
-      ->SetFileSplitStrategy(new PaxDefaultSplitStrategy())
-      ->SetStatsCollector(new MicroPartitionStats())
+      ->SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>())
+      ->SetStatsCollector(PAX_NEW<MicroPartitionStats>())
       ->Open();
 }
 
@@ -448,7 +447,7 @@ void TableDeleter::OpenReader() {
   TableReader::ReaderOptions reader_options{};
   reader_options.build_bitmap = false;
   reader_options.rel_oid = rel_->rd_id;
-  reader_ = new TableReader(std::move(iterator_), reader_options);
+  reader_ = PAX_NEW<TableReader>(std::move(iterator_), reader_options);
   reader_->Open();
 }
 

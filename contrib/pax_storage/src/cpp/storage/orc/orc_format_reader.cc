@@ -1,6 +1,7 @@
 #include "storage/orc/orc_format_reader.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/orc/orc_defined.h"
 
@@ -12,7 +13,7 @@ OrcFormatReader::OrcFormatReader(File *file)
       num_of_stripes_(0),
       is_vec_(false) {}
 
-OrcFormatReader::~OrcFormatReader() { delete file_; }
+OrcFormatReader::~OrcFormatReader() { PAX_DELETE(file_); }
 
 void OrcFormatReader::SetReusedBuffer(DataBuffer<char> *data_buffer) {
   reused_buffer_ = data_buffer;
@@ -319,7 +320,7 @@ static PaxColumn *BuildEncodingColumn(DataBuffer<char> *data_buffer,
   not_null_rows = static_cast<uint32>(data_stream.column());
   column_data_len = static_cast<uint64>(data_stream.length());
 
-  column_data_buffer = new DataBuffer<T>(
+  column_data_buffer = PAX_NEW<DataBuffer<T>>(
       reinterpret_cast<T *>(data_buffer->GetAvailableBuffer()), column_data_len,
       false, false);
 
@@ -376,7 +377,7 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
   column_lens_len = static_cast<uint64>(len_stream.length());
 
   Assert(column_lens_len >= ((total_rows + 1) * sizeof(int32)));
-  column_offset_buffer = new DataBuffer<int32>(
+  column_offset_buffer = PAX_NEW<DataBuffer<int32>>(
       reinterpret_cast<int32 *>(data_buffer->GetAvailableBuffer()),
       column_lens_len, false, false);
 
@@ -384,7 +385,7 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
   // at lease 2
   Assert(column_offset_buffer->GetSize() >= 2);
   data_buffer->Brush(column_lens_len);
-  column_data_buffer = new DataBuffer<char>(data_buffer->GetAvailableBuffer(),
+  column_data_buffer = PAX_NEW<DataBuffer<char>>(data_buffer->GetAvailableBuffer(),
                                             column_data_len, false, false);
 
   if (data_encoding.kind() ==
@@ -424,7 +425,7 @@ static PaxColumn *BuildEncodingNonFixedColumn(
   column_lens_size = static_cast<uint32>(len_stream.column());
   column_lens_len = static_cast<uint64>(len_stream.length());
 
-  column_len_buffer = new DataBuffer<int64>(
+  column_len_buffer = PAX_NEW<DataBuffer<int64>>(
       reinterpret_cast<int64 *>(data_buffer->GetAvailableBuffer()),
       column_lens_len, false, false);
 
@@ -445,7 +446,7 @@ static PaxColumn *BuildEncodingNonFixedColumn(
   }
 #endif
 
-  column_data_buffer = new DataBuffer<char>(data_buffer->GetAvailableBuffer(),
+  column_data_buffer = PAX_NEW<DataBuffer<char>>(data_buffer->GetAvailableBuffer(),
                                             column_data_len, false, false);
   column_data_buffer->BrushAll();
   data_buffer->Brush(column_data_len);
@@ -476,7 +477,7 @@ static PaxColumn *BuildEncodingNonFixedColumn(
 PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
                                         size_t proj_len) {
   auto stripe_info = file_footer_.stripes(static_cast<int>(group_index));
-  auto pax_columns = new PaxColumns();
+  auto pax_columns = PAX_NEW<PaxColumns>();
   DataBuffer<char> *data_buffer = nullptr;
   orc::proto::StripeFooter stripe_footer;
   size_t streams_index = 0;
@@ -496,11 +497,11 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
       reused_buffer_->ReSize(
           reused_buffer_->Used() + stripe_info.footerlength(), 1.5);
     }
-    data_buffer = new DataBuffer<char>(
+    data_buffer = PAX_NEW<DataBuffer<char>>(
         reused_buffer_->GetBuffer(), reused_buffer_->Capacity(), false, false);
 
   } else {
-    data_buffer = new DataBuffer<char>(stripe_info.footerlength());
+    data_buffer = PAX_NEW<DataBuffer<char>>(stripe_info.footerlength());
   }
   pax_columns->Set(data_buffer);
   pax_columns->SetStorageFormat(is_vec_
@@ -555,7 +556,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
           reinterpret_cast<uint8 *>(data_buffer->GetAvailableBuffer());
 
       Assert(non_null_stream.kind() == orc::proto::Stream_Kind_PRESENT);
-      non_null_bitmap = new Bitmap8(BitmapRaw<uint8>(bm_bytes, bm_nbytes),
+      non_null_bitmap = PAX_NEW<Bitmap8>(BitmapRaw<uint8>(bm_bytes, bm_nbytes),
                                     BitmapTpl<uint8>::ReadOnlyRefBitmap);
       data_buffer->Brush(bm_nbytes);
     }

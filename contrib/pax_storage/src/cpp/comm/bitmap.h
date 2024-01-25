@@ -6,6 +6,7 @@
 
 #include <cstddef>
 
+#include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 
 namespace pax {
@@ -124,7 +125,7 @@ struct BitmapRaw final {
   BitmapRaw &operator=(const BitmapRaw &) = delete;
   BitmapRaw &operator=(BitmapRaw &&raw) {
     if (this != &raw) {
-      delete[] bitmap;
+      PAX_DELETE_ARRAY(bitmap);
       bitmap = raw.bitmap;
       size = raw.size;
       raw.bitmap = nullptr;
@@ -223,12 +224,12 @@ class BitmapTpl final {
     auto old_bitmap = raw.bitmap;
     auto old_size = raw.size;
     auto size = Max(BM_INDEX_WORD_OFF(index) + 1, old_size * 2);
-    auto p = new T[size];
+    auto p = PAX_NEW_ARRAY<T>(size);
     if (old_size > 0) memcpy(p, old_bitmap, sizeof(T) * old_size);
     memset(&p[old_size], 0, sizeof(T) * (size - old_size));
     raw.bitmap = p;
     raw.size = size;
-    delete[] old_bitmap;
+    PAX_DELETE_ARRAY(old_bitmap);
   }
   static void ReadOnlyRefBitmap(BitmapRaw<T> &/*raw*/, uint32 /*index*/) {
     // raise

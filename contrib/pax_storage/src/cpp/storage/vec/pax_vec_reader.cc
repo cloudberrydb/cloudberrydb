@@ -1,6 +1,7 @@
 #include "storage/vec/pax_vec_reader.h"
 
 #include "comm/guc.h"
+#include "comm/pax_memory.h"
 #include "storage/vec/pax_vec_adapter.h"
 #ifdef VEC_BUILD
 
@@ -17,7 +18,7 @@ PaxVecReader::PaxVecReader(MicroPartitionReader *reader, VecAdapter *adapter,
   Assert(reader && adapter);
 }
 
-PaxVecReader::~PaxVecReader() { delete reader_; }
+PaxVecReader::~PaxVecReader() { PAX_DELETE(reader_); }
 
 void PaxVecReader::Open(const ReaderOptions &options) {
   reader_->Open(options);
@@ -44,7 +45,7 @@ retry_read_group:
   }
 
   if (!adapter_->AppendToVecBuffer()) {
-    delete working_group_;
+    PAX_DELETE(working_group_);
     working_group_ = nullptr;
     goto retry_read_group;
   }

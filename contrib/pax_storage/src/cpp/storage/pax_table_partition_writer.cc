@@ -5,6 +5,7 @@
 #include "access/pax_deleter.h"
 #include "access/pax_partition.h"
 #include "catalog/pax_aux_table.h"
+#include "comm/pax_memory.h"
 #include "storage/micro_partition_stats.h"
 
 namespace pax {
@@ -20,13 +21,13 @@ TableParitionWriter::TableParitionWriter(Relation relation,
 
 TableParitionWriter::~TableParitionWriter() {
   for (int i = 0; i < writer_counts_; i++) {
-    delete writers_[i];
-    delete mp_stats_[i];
+    PAX_DELETE(writers_[i]);
+    PAX_DELETE(mp_stats_[i]);
   }
-  delete[] writers_;
-  delete[] mp_stats_;
-  delete[] num_tuples_;
-  delete[] current_blocknos_;
+  PAX_DELETE_ARRAY(writers_);
+  PAX_DELETE_ARRAY(mp_stats_);
+  PAX_DELETE_ARRAY(num_tuples_);
+  PAX_DELETE_ARRAY(current_blocknos_);
 }
 
 void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
@@ -40,7 +41,7 @@ void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
 
   if (!writers_[part_index]) {
     Assert(!mp_stats_[part_index]);
-    mp_stats_[part_index] = new MicroPartitionStats();
+    mp_stats_[part_index] = PAX_NEW<MicroPartitionStats>();
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
 #ifdef ENABLE_LOCAL_INDEX
 // insert tuple into the aux table before inserting any tuples.
@@ -52,7 +53,7 @@ void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
   if (strategy_->ShouldSplit(writers_[part_index]->PhysicalSize(),
                              num_tuples_[part_index])) {
     writers_[part_index]->Close();
-    delete writers_[part_index];
+    PAX_DELETE(writers_[part_index]);
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
     num_tuples_[part_index] = 0;
 #ifdef ENABLE_LOCAL_INDEX
@@ -79,18 +80,18 @@ void TableParitionWriter::Open() {
   writer_counts_ = part_obj_->NumPartitions() + 1;
   Assert(writer_counts_ > 1);
 
-  writers_ = new MicroPartitionWriter *[writer_counts_];
+  writers_ = PAX_NEW_ARRAY<MicroPartitionWriter *>(writer_counts_);
   memset(writers_, 0,
          sizeof(MicroPartitionWriter *) * writer_counts_);  // NOLINT
 
-  mp_stats_ = new MicroPartitionStats *[writer_counts_];
+  mp_stats_ = PAX_NEW_ARRAY<MicroPartitionStats *>(writer_counts_);
   memset(mp_stats_, 0,
          sizeof(MicroPartitionStats *) * writer_counts_);  // NOLINT
 
-  num_tuples_ = new size_t[writer_counts_];
+  num_tuples_ = PAX_NEW_ARRAY<size_t>(writer_counts_);
   memset(num_tuples_, 0, sizeof(size_t) * writer_counts_);
 
-  current_blocknos_ = new BlockNumber[writer_counts_];
+  current_blocknos_ = PAX_NEW_ARRAY<BlockNumber>(writer_counts_);
 }
 
 static inline bool PartIndexIsNear(const int *const inverted_indexes,
@@ -148,7 +149,7 @@ std::vector<std::vector<size_t>> TableParitionWriter::GetPartitionMergeInfos() {
   std::vector<std::vector<size_t>> merge_list;
   int part_counts = writer_counts_ - 1;
   std::pair<int *, size_t> near_list = part_obj_->GetMergeListInfo();
-  int *inverted_indexes = new int[part_counts];
+  int *inverted_indexes = PAX_NEW_ARRAY<int>(part_counts);
   auto split_tuple_limit = strategy_->SplitTupleNumbers();
 
   BuildInvertedPartIndex(near_list, inverted_indexes, part_counts);
@@ -222,7 +223,7 @@ std::vector<std::vector<size_t>> TableParitionWriter::GetPartitionMergeInfos() {
     merge_list.emplace_back(gen_merge_info(l, r));
   }
 
-  delete[] inverted_indexes;
+  PAX_DELETE_ARRAY(inverted_indexes);
 
   return merge_list;
 }
@@ -242,7 +243,7 @@ void TableParitionWriter::Close() {
         auto w = writers_[merge_indexes[i]];
         auto block = current_blocknos_[merge_indexes[i]];
         w->Close();
-        delete w;
+        PAX_DELETE(w);
         writers_[merge_indexes[i]] = nullptr;
 
         del.MarkDelete(block);
@@ -259,12 +260,12 @@ void TableParitionWriter::Close() {
         Assert(w);
         first_write->MergeTo(w);
         w->Close();
-        delete w;
+        PAX_DELETE(w);
         writers_[merge_indexes[i]] = nullptr;
       }
       CommandCounterIncrement();
       first_write->Close();
-      delete first_write;
+      PAX_DELETE(first_write);
       writers_[merge_indexes[0]] = nullptr;
     }
 #endif
@@ -273,7 +274,7 @@ void TableParitionWriter::Close() {
   for (int i = 0; i < writer_counts_; i++) {
     if (writers_[i]) {
       writers_[i]->Close();
-      delete writers_[i];
+      PAX_DELETE(writers_[i]);
       writers_[i] = nullptr;
     }
   }

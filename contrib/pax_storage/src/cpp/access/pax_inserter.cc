@@ -15,21 +15,21 @@ namespace pax {
 
 CPaxInserter::CPaxInserter(Relation rel)
     : rel_(rel), insert_count_(0), part_obj_(nullptr), writer_(nullptr) {
-  part_obj_ = new PartitionObject();
+  part_obj_ = PAX_NEW<PartitionObject>();
   auto ok = part_obj_->Initialize(rel_);
   if (ok) {
-    writer_ = new TableParitionWriter(rel, part_obj_);
+    writer_ = PAX_NEW<TableParitionWriter>(rel, part_obj_);
   } else {
     // fallback to TableWriter
-    writer_ = new TableWriter(rel);
+    writer_ = PAX_NEW<TableWriter>(rel);
     part_obj_->Release();
-    delete part_obj_;
+    PAX_DELETE(part_obj_);
     part_obj_ = nullptr;
   }
 
   writer_->SetWriteSummaryCallback(&cbdb::InsertOrUpdateMicroPartitionEntry)
-      ->SetFileSplitStrategy(new PaxDefaultSplitStrategy())
-      ->SetStatsCollector(new MicroPartitionStats())
+      ->SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>())
+      ->SetStatsCollector(PAX_NEW<MicroPartitionStats>())
       ->Open();
 }
 
@@ -65,12 +65,12 @@ void CPaxInserter::FinishBulkInsert(Relation relation, int /*options*/) {
 
 void CPaxInserter::FinishInsert() {
   writer_->Close();
-  delete writer_;
+  PAX_DELETE(writer_);
   writer_ = nullptr;
 
   if (part_obj_) {
     part_obj_->Release();
-    delete part_obj_;
+    PAX_DELETE(part_obj_);
     part_obj_ = nullptr;
   }
 }

@@ -3,6 +3,7 @@
 #include "comm/cbdb_api.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "storage/micro_partition_stats.h"
 #include "storage/proto/proto_wrappers.h"
 
@@ -335,7 +336,7 @@ bool BuildExecutionFilterForColumns(Relation rel, PlanState *ps,
 PaxFilter::PaxFilter(bool allow_fallback_to_pg)
     : allow_fallback_to_pg_(allow_fallback_to_pg) {}
 
-PaxFilter::~PaxFilter() { delete[] proj_; }
+PaxFilter::~PaxFilter() { PAX_DELETE_ARRAY(proj_); }
 
 std::pair<bool *, size_t> PaxFilter::GetColumnProjection() {
   return std::make_pair(proj_, proj_len_);
@@ -549,7 +550,7 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
 
 void PaxFilter::FillRemainingColumns(Relation rel) {
   int natts = RelationGetNumberOfAttributes(rel);
-  bool *atts = new bool[natts];
+  bool *atts = PAX_NEW_ARRAY<bool>(natts);
   if (proj_len_ > 0) {
     Assert(natts >= 0 && static_cast<size_t>(natts) >= proj_len_);
     memcpy(atts, proj_, sizeof(bool) * proj_len_);
@@ -566,6 +567,7 @@ void PaxFilter::FillRemainingColumns(Relation rel) {
   for (AttrNumber attno = 1; attno <= (AttrNumber)natts; attno++) {
     if (atts[attno - 1]) remaining_attnos_.emplace_back(attno);
   }
+  PAX_DELETE_ARRAY(atts);
 }
 
 }  // namespace pax

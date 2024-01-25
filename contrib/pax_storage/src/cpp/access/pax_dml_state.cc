@@ -44,7 +44,7 @@ void CPaxDmlStateLocal::FinishDmlState(Relation rel, CmdType /*operation*/) {
     // TODO(gongxun): deleter finish
     state->deleter->ExecDelete();
 
-    delete state->deleter;
+    PAX_DELETE(state->deleter);
     state->deleter = nullptr;
     // FIXME: it's update operation, maybe we should do something here
   }
@@ -55,7 +55,7 @@ void CPaxDmlStateLocal::FinishDmlState(Relation rel, CmdType /*operation*/) {
 
     old_ctx = MemoryContextSwitchTo(cbdb::pax_memory_context);
     state->inserter->FinishInsert();
-    delete state->inserter;
+    PAX_DELETE(state->inserter);
     state->inserter = nullptr;
     MemoryContextSwitchTo(old_ctx);
   }
@@ -66,7 +66,7 @@ CPaxInserter *CPaxDmlStateLocal::GetInserter(Relation rel) {
   state = FindDmlState(cbdb::RelationGetRelationId(rel));
   // TODO(gongxun): switch memory context??
   if (state->inserter == nullptr) {
-    state->inserter = new CPaxInserter(rel);
+    state->inserter = PAX_NEW<CPaxInserter>(rel);
   }
   return state->inserter;
 }
@@ -76,7 +76,7 @@ CPaxDeleter *CPaxDmlStateLocal::GetDeleter(Relation rel, Snapshot snapshot) {
   state = FindDmlState(cbdb::RelationGetRelationId(rel));
   // TODO(gongxun): switch memory context??
   if (state->deleter == nullptr) {
-    state->deleter = new CPaxDeleter(rel, snapshot);
+    state->deleter = PAX_NEW<CPaxDeleter>(rel, snapshot);
   }
   return state->deleter;
 }

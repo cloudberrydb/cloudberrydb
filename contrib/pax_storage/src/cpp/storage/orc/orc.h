@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 #include "storage/columns/pax_column.h"
 #include "storage/columns/pax_columns.h"
@@ -81,7 +82,7 @@ class OrcWriter : public MicroPartitionWriter {
 
     options.encoding_opts = all_no_encoding_types;
 
-    return new OrcWriter(options, column_types, file);
+    return PAX_NEW<OrcWriter>(options, column_types, file);
   }
 
   void BuildFooterType();

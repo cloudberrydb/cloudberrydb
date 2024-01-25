@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "comm/pax_memory.h"
 #include "storage/columns/pax_rlev2_encoding.h"
 
 namespace pax {
@@ -11,7 +12,7 @@ PaxEncoder *PaxEncoder::CreateStreamingEncoder(
   PaxEncoder *encoder = nullptr;
   switch (encoder_options.column_encode_type) {
     case ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2: {
-      encoder = new PaxOrcEncoder(std::move(encoder_options));
+      encoder = PAX_NEW<PaxOrcEncoder>(std::move(encoder_options));
       break;
     }
     case ColumnEncoding_Kind::ColumnEncoding_Kind_DIRECT_DELTA: {

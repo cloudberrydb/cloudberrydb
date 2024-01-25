@@ -4,6 +4,8 @@
 #include <cmath>
 #include <vector>
 
+#include "comm/pax_memory.h"
+
 namespace pax {
 
 #ifndef RUN_GTEST
@@ -568,15 +570,9 @@ PaxOrcDecoder<T>::PaxOrcDecoder(
 
 template <typename T>
 PaxOrcDecoder<T>::~PaxOrcDecoder() {
-  if (data_buffer_) {
-    delete data_buffer_;
-  }
-  if (copy_data_buffer_) {
-    delete copy_data_buffer_;
-  }
-  if (unpacked_data_) {
-    delete unpacked_data_;
-  }
+  PAX_DELETE(data_buffer_);
+  PAX_DELETE(copy_data_buffer_);
+  PAX_DELETE(unpacked_data_);
 }
 
 template <typename T>
@@ -584,9 +580,9 @@ PaxDecoder *PaxOrcDecoder<T>::SetSrcBuffer(char *data, size_t data_len) {
   Assert(!data_buffer_);
   if (data) {
     data_buffer_ =
-        new TreatedDataBuffer<int64>(reinterpret_cast<int64 *>(data), data_len);
+        PAX_NEW<TreatedDataBuffer<int64>>(reinterpret_cast<int64 *>(data), data_len);
     copy_data_buffer_ =
-        new DataBuffer<int64>(ORC_MAX_LITERAL_SIZE * sizeof(int64));
+        PAX_NEW<DataBuffer<int64>>(ORC_MAX_LITERAL_SIZE * sizeof(int64));
   }
 
   return this;
@@ -957,7 +953,7 @@ uint64 PaxOrcDecoder<T>::NextPatched(TreatedDataBuffer<int64> *data_buffer,
   }
 
   if (unpacked_data_ == nullptr) {
-    unpacked_data_ = new DataBuffer<int64>(pl * sizeof(int64));
+    unpacked_data_ = PAX_NEW<DataBuffer<int64>>(pl * sizeof(int64));
   } else {
     unpacked_data_->BrushBackAll();
     if (unpacked_data_->Capacity() < (pl * sizeof(int64))) {

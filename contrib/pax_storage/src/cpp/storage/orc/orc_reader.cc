@@ -61,7 +61,7 @@ OrcReader::OrcReader(File *file)
 
 std::unique_ptr<ColumnStatsProvider> OrcReader::GetGroupStatsInfo(
     size_t group_index) {
-  auto x = new OrcGroupStatsProvider(format_reader_, group_index);
+  auto x = PAX_NEW<OrcGroupStatsProvider>(format_reader_, group_index);
   return std::unique_ptr<ColumnStatsProvider>(x);
 }
 
@@ -90,12 +90,12 @@ MicroPartitionReader::Group *OrcReader::ReadGroup(size_t group_index) {
       pax_column_cache_->WriteCache(columns_readed, group_index);
     }
 
-    delete[] proj_copy;
+    PAX_DELETE_ARRAY(proj_copy);
 
     // No get the cache columns
     if (pax_columns->GetRows() == 0) {
       Assert(columns_readed);
-      delete pax_columns;
+      PAX_DELETE(pax_columns);
       pax_columns = columns_readed;
     } else if (still_remain) {
       Assert(columns_readed);
@@ -125,9 +125,9 @@ MicroPartitionReader::Group *OrcReader::ReadGroup(size_t group_index) {
 
   size_t group_offset = format_reader_.GetStripeOffset(group_index);
   if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns))
-    return new OrcVecGroup(pax_columns, group_offset);
+    return PAX_NEW<OrcVecGroup>(pax_columns, group_offset);
   else
-    return new OrcGroup(pax_columns, group_offset);
+    return PAX_NEW<OrcGroup>(pax_columns, group_offset);
 }
 
 size_t OrcReader::GetGroupNums() { return format_reader_.GetStripeNums(); }
@@ -148,7 +148,7 @@ void OrcReader::Open(const ReaderOptions &options) {
 
 #ifdef ENABLE_PLASMA
   if (options.pax_cache)
-    pax_column_cache_ = new PaxColumnCache(options.pax_cache, options.block_id,
+    pax_column_cache_ = PAX_NEW<PaxColumnCache>(options.pax_cache, options.block_id,
                                            proj_map_, proj_len_);
 #endif
   format_reader_.Open();
@@ -157,10 +157,10 @@ void OrcReader::Open(const ReaderOptions &options) {
 }
 
 void OrcReader::ResetCurrentReading() {
-  delete working_group_;
+  PAX_DELETE(working_group_);
   working_group_ = nullptr;
 
-  delete cached_group_;
+  PAX_DELETE(cached_group_);
   cached_group_ = nullptr;
 
   current_group_index_ = 0;
@@ -174,7 +174,7 @@ void OrcReader::Close() {
 #ifdef ENABLE_PLASMA
   if (pax_column_cache_) {
     pax_column_cache_->ReleaseCache(release_key_);
-    delete pax_column_cache_;
+    PAX_DELETE(pax_column_cache_);
   }
 #endif
 
@@ -210,7 +210,7 @@ retry_read_group:
 
   std::tie(ok, group_row_offset) = working_group_->ReadTuple(slot);
   if (!ok) {
-    delete working_group_;
+    PAX_DELETE(working_group_);
     working_group_ = nullptr;
     goto retry_read_group;
   }
@@ -261,7 +261,7 @@ bool OrcReader::GetTuple(CTupleSlot *cslot, size_t row_index) {
 
   // group_offset have been inited in loop
   // and must not in cached_group_
-  delete cached_group_;
+  PAX_DELETE(cached_group_);
   cached_group_ = ReadGroup(group_index);
 
 found:

@@ -3,6 +3,9 @@
 #include <memory>
 #include <mutex>
 #include <utility>
+
+#include "comm/pax_memory.h"
+
 namespace pax {
 
 template <typename T>
@@ -15,7 +18,7 @@ class Singleton final {
     std::call_once(
         of,
         [](ArgTypes &&...args) {
-          instance.reset(new T(std::forward<ArgTypes>(args)...));
+          instance.reset(PAX_NEW<T>(std::forward<ArgTypes>(args)...));
         },
         std::forward<ArgTypes>(args)...);
 

@@ -7,6 +7,7 @@
 #include <string>
 
 #include "comm/bitmap.h"
+#include "comm/pax_memory.h"
 #include "storage/pax.h"
 
 namespace pax {
@@ -23,9 +24,9 @@ class CPaxDeleter {
   void ExecDelete();
 
  private:
-  std::unique_ptr<IteratorBase<MicroPartitionMetadata>> BuildDeleteIterator();
+  pax_unique_ptr<IteratorBase<MicroPartitionMetadata>> BuildDeleteIterator();
 
-  std::map<std::string, std::unique_ptr<Bitmap64>> block_bitmap_map_;
+  std::map<std::string, pax_unique_ptr<Bitmap64>> block_bitmap_map_;
   Relation rel_;
   Snapshot snapshot_;
 };  // class CPaxDeleter

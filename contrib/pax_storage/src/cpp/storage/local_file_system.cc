@@ -6,6 +6,7 @@
 
 #include <iostream>
 
+#include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 
 namespace pax {
@@ -157,7 +158,7 @@ File *LocalFileSystem::Open(const std::string &file_path, int flags) {
   ht = RememberFdHandle(fd);
   CBDB_CHECK(ht, cbdb::CException::ExType::kExTypeIOError);
 
-  local_file = new LocalFile(ht, file_path);
+  local_file = PAX_NEW<LocalFile>(ht, file_path);
   return local_file;
 }
 

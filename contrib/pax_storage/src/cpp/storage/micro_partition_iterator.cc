@@ -1,6 +1,7 @@
 #include "storage/micro_partition_iterator.h"
 
 #include "comm/cbdb_wrappers.h"
+#include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 #include "catalog/pax_aux_table.h"
 
@@ -52,7 +53,7 @@ void MicroPartitionInfoIterator::Rewind() {
 
 std::unique_ptr<IteratorBase<MicroPartitionMetadata>> MicroPartitionInfoIterator::New(Relation pax_rel, Snapshot snapshot) {
   MicroPartitionInfoIterator *it;
-  it = new MicroPartitionInfoIterator(pax_rel, snapshot);
+  it = PAX_NEW<MicroPartitionInfoIterator>(pax_rel, snapshot);
   it->Begin();
   return std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(it);
 }

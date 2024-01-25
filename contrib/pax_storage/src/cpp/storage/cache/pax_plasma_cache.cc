@@ -35,9 +35,9 @@ PaxPlasmaCache::PaxPlasmaCache(const CacheOptions &option)
     : PaxCache(),
       options_(option),
       is_initialized_(false),
-      plasma_client_(new plasma::PlasmaClient()) {}
+      plasma_client_(PAX_NEW<plasma::PlasmaClient>()) {}
 
-PaxPlasmaCache::~PaxPlasmaCache() { delete plasma_client_; };
+PaxPlasmaCache::~PaxPlasmaCache() { PAX_DELETE(plasma_client_); };
 
 PaxCache::Status PaxPlasmaCache::Initialize() {
   PaxCache::Status status;

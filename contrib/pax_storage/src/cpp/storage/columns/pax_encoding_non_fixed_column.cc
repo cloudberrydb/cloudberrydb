@@ -1,5 +1,6 @@
 #include "storage/columns/pax_encoding_non_fixed_column.h"
 
+#include "comm/pax_memory.h"
 #include "storage/pax_defined.h"
 
 namespace pax {
@@ -38,8 +39,8 @@ PaxNonFixedEncodingColumn::PaxNonFixedEncodingColumn(
 }
 
 PaxNonFixedEncodingColumn::~PaxNonFixedEncodingColumn() {
-  delete compressor_;
-  delete shared_data_;
+  PAX_DELETE(compressor_);
+  PAX_DELETE(shared_data_);
 }
 
 void PaxNonFixedEncodingColumn::Set(DataBuffer<char> *data,
@@ -49,7 +50,7 @@ void PaxNonFixedEncodingColumn::Set(DataBuffer<char> *data,
     Assert(!compress_route_);
 
     // still need update origin logic
-    delete lengths_;
+    PAX_DELETE(lengths_);
     estimated_size_ = total_size;
     lengths_ = lengths;
     BuildOffsets();
@@ -65,7 +66,7 @@ void PaxNonFixedEncodingColumn::Set(DataBuffer<char> *data,
       PaxNonFixedColumn::data_->Brush(d_size);
     }
 
-    delete data;
+    PAX_DELETE(data);
   } else {
     PaxNonFixedColumn::Set(data, lengths, total_size);
   }
@@ -85,7 +86,7 @@ std::pair<char *, size_t> PaxNonFixedEncodingColumn::GetBuffer() {
 
     size_t bound_size =
         compressor_->GetCompressBound(PaxNonFixedColumn::data_->Used());
-    shared_data_ = new DataBuffer<char>(bound_size);
+    shared_data_ = PAX_NEW<DataBuffer<char>>(bound_size);
 
     auto c_size = compressor_->Compress(
         shared_data_->Start(), shared_data_->Capacity(),

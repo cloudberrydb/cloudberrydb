@@ -1,15 +1,17 @@
 #include "storage/columns/pax_vec_column.h"
 
+#include "comm/pax_memory.h"
+
 namespace pax {
 
 template <typename T>
 PaxVecCommColumn<T>::PaxVecCommColumn(uint32 capacity) {
-  data_ = new DataBuffer<T>(TYPEALIGN(MEMORY_ALIGN_SIZE, capacity * sizeof(T)));
+  data_ = PAX_NEW<DataBuffer<T>>(TYPEALIGN(MEMORY_ALIGN_SIZE, capacity * sizeof(T)));
 }
 
 template <typename T>
 PaxVecCommColumn<T>::~PaxVecCommColumn() {
-  delete data_;
+  PAX_DELETE(data_);
 }
 
 template <typename T>  // NOLINT: redirect constructor
@@ -17,7 +19,7 @@ PaxVecCommColumn<T>::PaxVecCommColumn() : PaxVecCommColumn(DEFAULT_CAPACITY) {}
 
 template <typename T>
 void PaxVecCommColumn<T>::Set(DataBuffer<T> *data, size_t non_null_rows) {
-  delete data_;
+  PAX_DELETE(data_);
 
   data_ = data;
   non_null_rows_ = non_null_rows;
@@ -112,9 +114,9 @@ template class PaxVecCommColumn<double>;
 
 PaxVecNonFixedColumn::PaxVecNonFixedColumn(uint32 capacity)
     : estimated_size_(0),
-      data_(new DataBuffer<char>(
+      data_(PAX_NEW<DataBuffer<char>>(
           TYPEALIGN(MEMORY_ALIGN_SIZE, capacity * sizeof(char)))),
-      offsets_(new DataBuffer<int32>(capacity)),
+      offsets_(PAX_NEW<DataBuffer<int32>>(capacity)),
       next_offsets_(0) {
   Assert(capacity % sizeof(int64) == 0);
 }
@@ -123,15 +125,15 @@ PaxVecNonFixedColumn::PaxVecNonFixedColumn()
     : PaxVecNonFixedColumn(DEFAULT_CAPACITY) {}
 
 PaxVecNonFixedColumn::~PaxVecNonFixedColumn() {
-  delete data_;
-  delete offsets_;
+  PAX_DELETE(data_);
+  PAX_DELETE(offsets_);
 }
 
 void PaxVecNonFixedColumn::Set(DataBuffer<char> *data,
                                DataBuffer<int32> *offsets, size_t total_size,
                                size_t non_null_rows) {
-  delete data_;
-  delete offsets_;
+  PAX_DELETE(data_);
+  PAX_DELETE(offsets_);
   Assert(data && offsets);
 
   estimated_size_ = total_size;

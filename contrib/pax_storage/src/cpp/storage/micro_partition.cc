@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "comm/pax_memory.h"
 #include "storage/pax_filter.h"
 #include "storage/pax_itemptr.h"
 
@@ -53,7 +54,7 @@ MicroPartitionWriter *MicroPartitionWriter::SetStatsCollector(
   return this;
 }
 
-MicroPartitionReaderProxy::~MicroPartitionReaderProxy() { delete reader_; }
+MicroPartitionReaderProxy::~MicroPartitionReaderProxy() { PAX_DELETE(reader_); }
 
 void MicroPartitionReaderProxy::Open(
     const MicroPartitionReader::ReaderOptions &options) {
