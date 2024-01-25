@@ -1607,7 +1607,7 @@ Optional Features:
   --disable-orca          disable ORCA optimizer
   --enable-catalog-ext    enable Cloudberry catalog extension
   --enable-mapreduce      enable Cloudberry Mapreduce support
-  --enable-shared-postgres-backend
+  --disable-shared-postgres-backend
                           enable Cloudberry shared postgres backend support
   --enable-gpcloud        enable gpcloud support
   --enable-external-fts   enable external fts support
@@ -8401,6 +8401,8 @@ $as_echo "#define USE_SHARED_POSTGRES_BACKEND 1" >>confdefs.h
 
 else
   enable_shared_postgres_backend=yes
+
+$as_echo "#define USE_SHARED_POSTGRES_BACKEND 1" >>confdefs.h
 
 fi
 
