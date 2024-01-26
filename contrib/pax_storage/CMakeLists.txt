@@ -2,7 +2,6 @@ project(Pax)
 cmake_minimum_required (VERSION 3.11.0)
 set(CMAKE_CXX_STANDARD 14)
 
-find_package(BISON REQUIRED)
 set(TOP_DIR ${PROJECT_SOURCE_DIR}/../..)
 set(CBDB_INCLUDE_DIR ${TOP_DIR}/src/include)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -75,23 +74,13 @@ message(STATUS "pg_config.h => ${PG_CONFIG_HEADER_FILE}")
 if (VEC_BUILD)
   set(VEC_HOME "${PROJECT_SOURCE_DIR}/../vectorization")
   ADD_DEFINITIONS(-DVEC_BUILD)
-
   message(STATUS "Build pax with vectorization support, VEC_HOME=${VEC_HOME}")
-
-# resolve vectorization dependency, or the header files will miss
-  message(STATUS "Resolve vectorization dependency ...")
-  execute_process(
-    COMMAND make download_arrow
-    WORKING_DIRECTORY ${VEC_HOME}
-    RESULT_VARIABLE CMD_RESULT
-  )
-  if(CMD_RESULT EQUAL 0)
-    message(STATUS "Resolve vectorization dependency succeeded.")
-  else()
-    message(FATAL_ERROR "Resolve vectorization dependency failed with result: ${CMD_RESULT}")
-  endif()
-
 else()
   message(STATUS "Build pax without vectorization support")
 endif(VEC_BUILD)
+
+## find dependency
+## depend on the value of the above option to check dependencies.
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/")
+include(FindDependencies)
 add_subdirectory(src/cpp)

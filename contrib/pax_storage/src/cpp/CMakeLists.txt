@@ -1,8 +1,6 @@
 cmake_minimum_required (VERSION 3.11.0)
 
 # protobuf
-include(FindProtobuf)
-find_package(Protobuf 3.6.1 REQUIRED)
 
 set(protobuf_files
   ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto/micro_partition_stats.proto
@@ -45,12 +43,6 @@ add_custom_command(OUTPUT generate_sql_file
 add_custom_target(create_sql_script DEPENDS generate_sql_script_program generate_sql_file)
 endif(BUILD_PAX_FORMAT)
 
-# ztsd
-set(ZSTD_BUILD_PROGRAMS OFF)
-set(ZSTD_BUILD_TESTS OFF)
-set(ZSTD_BUILD_CONTRIB OFF)
-add_subdirectory(contrib/zstd/build/cmake/)
-set(ZTSD_HEADER contrib/zstd/lib)
 
 set(pax_comm_src
     comm/bitmap.cc
@@ -203,8 +195,6 @@ else()
 
   # vec build
   if (VEC_BUILD)
-    find_package(PkgConfig REQUIRED)
-    pkg_check_modules(GLIB REQUIRED glib-2.0)
     set(pax_target_include
         ${pax_target_include}
         ${VEC_HOME}/src/include # for utils/tuptable_vec.h

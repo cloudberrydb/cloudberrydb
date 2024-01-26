@@ -4,17 +4,13 @@
 [submodule "contrib/pax_storage/src/cpp/contrib/googletest"]
 	path = contrib/pax_storage/src/cpp/contrib/googletest
 	url = https://code.hashdata.xyz/cloudberry/googletest
-[submodule "contrib/pax_storage/src/cpp/contrib/zstd"]
-	path = contrib/pax_storage/src/cpp/contrib/zstd
-	url = https://code.hashdata.xyz/cloudberry/lib_zstd.git
-	branch = v1.5.5
-[submodule "contrib/pax_storage/src/cpp/contrib/cpp-stub"]
-	path = contrib/pax_storage/src/cpp/contrib/cpp-stub
-	url = https://code.hashdata.xyz/cloudberry/cpp-stub
-	branch = dev
 [submodule "contrib/pax_storage/src/cpp/contrib/tabulate"]
 	path = contrib/pax_storage/src/cpp/contrib/tabulate
 	url = https://code.hashdata.xyz/cloudberry/tabulate
 [submodule "contrib/pax_storage/src/cpp/contrib/googlebench"]
 	path = contrib/pax_storage/src/cpp/contrib/googlebench
 	url = https://code.hashdata.xyz/cloudberry/benchmark.git
+[submodule "contrib/pax_storage/src/cpp/contrib/cpp-stub"]
+	path = contrib/pax_storage/src/cpp/contrib/cpp-stub
+	url = https://code.hashdata.xyz/cloudberry/cpp-stub.git
+	branch = dev
