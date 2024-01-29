@@ -602,6 +602,16 @@ extern int	get_hash_mem(void);
  * HOLD_DISPATCH() to disable dispatch temporarily, and calls RESUME_DISPATCH()
  * to resume the dispatch states to allow the outer utility to normally
  * dispatch the commands to the QEs.
+ *
+ * In Greenplum, in some situations, maybe we should not allow to dispatch
+ * from QD to QE. To achieve that, we should use dispatch_nest_level to judge
+ * whether dispatch or not. When dispatch_nest_level > 0, we not dispatch,
+ * only when dispatch_nest_level is 0, we can dispatch. However, sometimes
+ * we also need to dispatch when dispatch_nest_level > 0, to do that, we should
+ * save dispatch_nest_level first and set dispatch_nest_level to 0. After
+ * finishing dispatch, we should restore dispatch_nest_level to original value.
+ * SAVE_DISPATCH_LEVEL is used to save dispatch_nest_level and set it to 0.
+ * RESTORE_DISPATCH_LEVEL is used to restore the original dispatch_nest_level.
  */
 extern int dispatch_nest_level;
 extern void GpRecoveryFromError(void);
@@ -614,6 +624,13 @@ extern void GpRecoveryFromError(void);
 #define RESUME_DISPATCH()	do { \
 	Assert(dispatch_nest_level >  0); \
 	dispatch_nest_level--; \
+} while(0)
+#define SAVE_DISPATCH_LEVEL(saved_dispatch_nest_level)	do { \
+	saved_dispatch_nest_level = dispatch_nest_level; \
+	dispatch_nest_level = 0; \
+} while(0)
+#define RESTORE_DISPATCH_LEVEL(saved_dispatch_nest_level)	do { \
+	dispatch_nest_level = saved_dispatch_nest_level; \
 } while(0)
 #define CLEAR_DISPATCH()	do { \
 	dispatch_nest_level = 0; \

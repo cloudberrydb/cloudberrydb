@@ -19,6 +19,7 @@
 #include "c.h"
 #include <sys/time.h>
 #include <setjmp.h>
+#include "miscadmin.h" /* dispatch_nest_level */
 
 /* Error level codes */
 #define DEBUG5		10			/* Debugging messages, in categories of
@@ -369,6 +370,7 @@ extern PGDLLIMPORT ErrorContextCallback *error_context_stack;
 		ErrorContextCallback *_save_context_stack = error_context_stack; \
 		sigjmp_buf _local_sigjmp_buf; \
 		bool _do_rethrow = false; \
+		int _saved_dispatch_nest_level pg_attribute_unused() = dispatch_nest_level; \
 		if (sigsetjmp(_local_sigjmp_buf, 0) == 0) \
 		{ \
 			PG_exception_stack = &_local_sigjmp_buf
@@ -377,6 +379,7 @@ extern PGDLLIMPORT ErrorContextCallback *error_context_stack;
 		} \
 		else \
 		{ \
+            dispatch_nest_level = _saved_dispatch_nest_level; \
 			PG_exception_stack = _save_exception_stack; \
 			error_context_stack = _save_context_stack
 

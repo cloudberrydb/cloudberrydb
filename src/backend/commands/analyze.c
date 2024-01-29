@@ -347,7 +347,15 @@ analyze_rel_internal(Oid relid, RangeVar *relation,
 		onerel->rd_rel->relkind == RELKIND_MATVIEW)
 	{
 		/* Regular table, so we'll use the regular row acquisition function */
-		acquirefunc = acquire_sample_rows;
+		if (onerel->rd_tableam)
+			acquirefunc = onerel->rd_tableam->acquire_sample_rows;
+
+		/*
+		 * If the TableAmRoutine's acquire_sample_rows if NULL, we use
+		 * acquire_sample_rows as default.
+		 */
+		if (acquirefunc == NULL)
+			acquirefunc = acquire_sample_rows;
 
 		/* Also get regular table's size */
 		relpages = AcquireNumberOfBlocks(onerel);
@@ -1908,7 +1916,7 @@ acquire_inherited_sample_rows(Relation onerel, int elevel,
 	 * Like in acquire_sample_rows(), if we're in the QD, fetch the sample
 	 * from segments.
 	 */
-	if (Gp_role == GP_ROLE_DISPATCH)
+	if (Gp_role == GP_ROLE_DISPATCH && ENABLE_DISPATCH())
 	{
 		return acquire_sample_rows_dispatcher(onerel,
 											  true, /* inherited stats */
@@ -1979,7 +1987,16 @@ acquire_inherited_sample_rows(Relation onerel, int elevel,
 			childrel->rd_rel->relkind == RELKIND_MATVIEW)
 		{
 			/* Regular table, so use the regular row acquisition function */
-			acquirefunc = acquire_sample_rows;
+			if (childrel->rd_tableam)
+				acquirefunc = childrel->rd_tableam->acquire_sample_rows;
+
+			/*
+			 * If the TableAmRoutine's acquire_sample_rows if NULL, we use
+			 * acquire_sample_rows as default.
+			 */
+			if (acquirefunc == NULL)
+				acquirefunc = acquire_sample_rows;
+
 			relpages = AcquireNumberOfBlocks(childrel);
 		}
 		else if (childrel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
