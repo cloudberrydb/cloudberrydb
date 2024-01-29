@@ -22,26 +22,26 @@ option(BUILD_PAX_FORMAT "Build pax format lib" OFF)
 # Build pax tools
 option(BUILD_TOOLS "Build with pax tools" ON)
 
-# env BUILD_TYPE is set by Lighting pipeline
-if (NOT DEFINED ENV{BUILD_TYPE})
-    set(ENV{BUILD_TYPE} "debug")
+# env CBDB_BUILD_TYPE is set by Lighting pipeline
+if (NOT DEFINED ENV{CBDB_BUILD_TYPE})
+    set(ENV{CBDB_BUILD_TYPE} "debug")
 endif()
 
-set(BUILD_TYPE $ENV{BUILD_TYPE})
-message(STATUS "env BUILD_TYPE=$ENV{BUILD_TYPE} => ${BUILD_TYPE}")
+set(CBDB_BUILD_TYPE $ENV{CBDB_BUILD_TYPE})
+message(STATUS "env CBDB_BUILD_TYPE=$ENV{CBDB_BUILD_TYPE} => ${CBDB_BUILD_TYPE}")
 
-if (${BUILD_TYPE} STREQUAL "release")
+if (${CBDB_BUILD_TYPE} STREQUAL "release")
   SET(CMAKE_BUILD_TYPE "Release")
   SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3")
   # no need build gtest in release mode
   SET(BUILD_GTEST OFF)
-elseif(${BUILD_TYPE} STREQUAL "debug")
+elseif(${CBDB_BUILD_TYPE} STREQUAL "debug")
   ADD_DEFINITIONS(-DENABLE_DEBUG)
   # Use to build compile_commands.json
   SET(CMAKE_BUILD_TYPE "Debug")
   SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -ggdb")
 else()
-  message(FATAL_ERROR "unknown BUILD_TYPE: ${BUILD_TYPE}")
+  message(FATAL_ERROR "unknown CBDB_BUILD_TYPE: ${CBDB_BUILD_TYPE}")
 endif()
 
 if (ENABLE_LOCAL_INDEX)
