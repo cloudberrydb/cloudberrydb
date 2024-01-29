@@ -614,7 +614,7 @@ vacuum(List *relations, VacuumParams *params,
 	}
 
 	if ((params->options & VACOPT_VACUUM) && !IsAutoVacuumWorkerProcess() &&
-		(Gp_role != GP_ROLE_EXECUTE || (params->options & VACOPT_UPDATE_DATFROZENXID)))
+		(Gp_role != GP_ROLE_EXECUTE || (params->options & VACOPT_UPDATE_DATFROZENXID)) && ENABLE_DISPATCH())
 	{
 		/*
 		 * Update pg_database.datfrozenxid, and truncate pg_xact if possible.

@@ -888,6 +888,15 @@ typedef struct TableAmRoutine
 										   TupleTableSlot *slot);
 
 	/*
+	 * Like scan_sample_next_block and scan_sample_next_tuple, this callback
+	 * is also used to sample tuple rows. As different storage maybe need to
+	 * use different acquire sample rows process, we extend an interface to
+	 * achieve this requirement. 
+	 */
+	int			(*acquire_sample_rows) (Relation onerel, int elevel,
+										HeapTuple *rows, int targrows,
+										double *totalrows, double *totaldeadrows);
+	/*
 	 * This callback is used to parse reloptions for relation/matview/toast.
 	 */
 	bytea       *(*amoptions)(Datum reloptions, char relkind, bool validate);
