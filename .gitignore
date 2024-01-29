@@ -74,3 +74,4 @@ lib*.pc
 /tmp_install/
 /.cache/
 /install/
+dependencies.sh

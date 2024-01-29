@@ -962,11 +962,12 @@ if test "$enable_gophermeta" = yes; then
     export CPPFLAGS+=" -I${prefix}/include"
   fi
   echo  "Message User set CPPFLAGS = $CPPFLAGS";
-  DEPENDENCIES_IN="contrib/pg_gophermeta/dependencies.sh.in"
-  DEPENDENCIES_SH="contrib/pg_gophermeta/dependencies.sh"
-  if grep '##' $DEPENDENCIES_IN > /dev/null 2>&1 ; then
-      sed "s,##.*##,${prefix}," $DEPENDENCIES_IN > $DEPENDENCIES_SH
-  fi
+fi
+
+DEPENDENCIES_IN="dependencies.sh.in"
+DEPENDENCIES_SH="dependencies.sh"
+if grep '##' $DEPENDENCIES_IN > /dev/null 2>&1 ; then
+  sed "s,##.*##,${prefix:-${ac_default_prefix}}," $DEPENDENCIES_IN > $DEPENDENCIES_SH
 fi
 
 #

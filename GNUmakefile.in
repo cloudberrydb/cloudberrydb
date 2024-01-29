@@ -32,10 +32,18 @@ all:
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo all
 endif
+ifeq (yes, $(findstring yes, $(enable_vectorization)$(enable_gophermeta)$(enable_datalake)))
+	chmod +x dependencies.sh  && ./dependencies.sh
+endif
 ifeq ($(enable_vectorization), yes)
-	$(MAKE) -C contrib/vectorization download_arrow
 	$(MAKE) -C contrib/vectorization all
 endif 
+ifeq ($(enable_gophermeta), yes)
+	$(MAKE) -C contrib/pg_gophermeta all
+endif
+ifeq ($(enable_datalake), yes)
+	$(MAKE) -C contrib/datalake_proxy all
+endif
 	$(MAKE) -C gpMgmt all
 	$(MAKE) -C gpcontrib all
 	+@echo "All of Cloudberry Database successfully made. Ready to install."
@@ -83,6 +91,12 @@ endif
 ifeq ($(enable_vectorization), yes)
 	$(MAKE) -C contrib/vectorization $@
 endif 
+ifeq ($(enable_gophermeta), yes)
+	$(MAKE) -C contrib/pg_gophermeta $@
+endif
+ifeq ($(enable_datalake), yes)
+	$(MAKE) -C contrib/datalake_proxy $@
+endif
 	$(MAKE) -C gpMgmt $@
 	$(MAKE) -C gpcontrib $@
 	+@echo "Cloudberry Database installation complete."
