@@ -121,7 +121,6 @@ OrcWriter::OrcWriter(const MicroPartitionWriter::WriterOptions &writer_options,
       is_closed_(false),
       column_types_(column_types),
       file_(file),
-      mp_stats_(nullptr),
       row_index_(0),
       total_rows_(0),
       current_offset_(0) {
@@ -186,7 +185,7 @@ MicroPartitionWriter *OrcWriter::SetStatsCollector(
     auto stats_data = PAX_NEW<MicroPartittionFileStatsData>(
         &summary_.mp_stats, static_cast<int>(column_types_.size()));
     mpstats->SetStatsMessage(stats_data, column_types_.size());
-    mp_stats_ = mpstats;
+    return MicroPartitionWriter::SetStatsCollector(mpstats);
   }
   return MicroPartitionWriter::SetStatsCollector(mpstats);
 }
@@ -200,8 +199,9 @@ void OrcWriter::Flush() {
                    buffer_mem_stream.GetDataBuffer()->Used(),
                    current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
     PAX_DELETE(pax_columns_);
-    pax_columns_ = PAX_NEW<PaxColumns>(column_types_, writer_options_.encoding_opts,
-                                  writer_options_.storage_format);
+    pax_columns_ =
+        PAX_NEW<PaxColumns>(column_types_, writer_options_.encoding_opts,
+                            writer_options_.storage_format);
   }
 }
 
@@ -339,8 +339,8 @@ void OrcWriter::MergePaxColumns(OrcWriter *writer) {
   }
 
   BufferedOutputStream buffer_mem_stream(2048);
-  auto ok =
-      WriteStripe(&buffer_mem_stream, columns, &(writer->stats_collector_));
+  auto ok = WriteStripe(&buffer_mem_stream, columns,
+                        &(writer->stats_collector_), writer->mp_stats_);
 
   // must be ok
   Assert(ok);
@@ -412,12 +412,14 @@ void OrcWriter::DeleteUnstateFile() {
 }
 
 bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream) {
-  return WriteStripe(buffer_mem_stream, pax_columns_, &stats_collector_);
+  return WriteStripe(buffer_mem_stream, pax_columns_, &stats_collector_,
+                     mp_stats_);
 }
 
 bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
                             PaxColumns *pax_columns,
-                            MicroPartitionStats *stats_collector) {
+                            MicroPartitionStats *stripe_stats,
+                            MicroPartitionStats *file_stats) {
   std::vector<orc::proto::Stream> streams;
   std::vector<ColumnEncoding> encoding_kinds;
   orc::proto::StripeFooter stripe_footer;
@@ -469,7 +471,7 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
 
   stripe_info = file_footer_.add_stripes();
   auto stats_data =
-      dynamic_cast<OrcColumnStatsData *>(stats_collector->GetStatsData());
+      dynamic_cast<OrcColumnStatsData *>(stripe_stats->GetStatsData());
   Assert(stats_data);
   for (size_t i = 0; i < pax_columns->GetColumns(); i++) {
     auto pb_stats = stripe_info->add_colstats();
@@ -486,8 +488,12 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
                pax_column->AllNull() ? "true" : "false",
                pax_column->HasNull() ? "true" : "false", pax_column->GetRows());
   }
+  if (file_stats) {
+    file_stats->MergeTo(stripe_stats, writer_options_.desc);
+  }
+
   stats_data->Reset();
-  stats_collector->LightReset();
+  stripe_stats->LightReset();
 
   buffer_mem_stream->Set(data_buffer);
 
@@ -591,6 +597,9 @@ OrcColumnStatsData *OrcColumnStatsData::Initialize(int natts) {
   Assert(natts >= 0);
   col_data_stats_.resize(natts);
   col_basic_info_.resize(natts);
+  has_nulls_.resize(natts);
+  all_nulls_.resize(natts);
+
   Reset();
   return this;
 }
@@ -607,6 +616,8 @@ void OrcColumnStatsData::Reset() {
   auto n = col_basic_info_.size();
   for (size_t i = 0; i < n; i++) {
     col_data_stats_[i].Clear();
+    has_nulls_[i] = false;
+    all_nulls_[i] = true;
   }
 }
 
@@ -627,19 +638,19 @@ int OrcColumnStatsData::ColumnSize() const {
   return static_cast<int>(col_basic_info_.size());
 }
 
-// PaxColumns has updated all null
-void OrcColumnStatsData::SetAllNull(int column_index, bool allnull) {}
-
-// PaxColumns has updated has null
-void OrcColumnStatsData::SetHasNull(int column_index, bool hasnull) {}
-
-// PaxColumns has updated all null
-bool OrcColumnStatsData::GetAllNull(int /*column_index*/) {
-  CBDB_RAISE(cbdb::CException::ExType::kExTypeUnImplements);
+void OrcColumnStatsData::SetAllNull(int column_index, bool allnull) {
+  all_nulls_[column_index] = allnull;
 }
 
-// PaxColumns has updated all null
-bool OrcColumnStatsData::GetHasNull(int /*column_index*/) {
-  CBDB_RAISE(cbdb::CException::ExType::kExTypeUnImplements);
+void OrcColumnStatsData::SetHasNull(int column_index, bool hasnull) {
+  has_nulls_[column_index] = hasnull;
+}
+
+bool OrcColumnStatsData::GetAllNull(int column_index) {
+  return all_nulls_[column_index];
+}
+
+bool OrcColumnStatsData::GetHasNull(int column_index) {
+  return has_nulls_[column_index];
 }
 }  // namespace pax

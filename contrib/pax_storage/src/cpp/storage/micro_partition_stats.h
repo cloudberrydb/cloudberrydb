@@ -49,8 +49,7 @@ class MicroPartittionFileStatsData final : public MicroPartitionStatsData {
 
 class MicroPartitionStats final {
  public:
-  explicit MicroPartitionStats(
-      bool allow_fallback_to_pg = pax_allow_oper_fallback);
+  explicit MicroPartitionStats(bool allow_fallback_to_pg = false);
   ~MicroPartitionStats();
   MicroPartitionStats *SetStatsMessage(MicroPartitionStatsData *stats,
                                        int natts);
@@ -66,10 +65,12 @@ class MicroPartitionStats final {
   static Datum FromValue(const std::string &s, int typlen, bool typbyval,
                          bool *ok);
 
+  void DoInitialCheck(TupleDesc desc);
+
  private:
   void AddNullColumn(int column_index);
   void AddNonNullColumn(int column_index, Datum value, TupleDesc desc);
-  void DoInitialCheck(TupleDesc desc);
+
   void UpdateMinMaxValue(int column_index, Datum datum, Oid collation,
                          int typlen, bool typbyval);
 

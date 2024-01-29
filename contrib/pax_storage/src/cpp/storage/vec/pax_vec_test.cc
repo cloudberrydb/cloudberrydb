@@ -883,9 +883,9 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   delete adapter;
 }
 
-class MockWriter : public TableWriter {
+class MockTableWriter : public TableWriter {
  public:
-  MockWriter(const Relation relation, WriteSummaryCallback callback)
+  MockTableWriter(const Relation relation, WriteSummaryCallback callback)
       : TableWriter(relation) {
     SetWriteSummaryCallback(callback);
     SetFileSplitStrategy(new PaxDefaultSplitStrategy());
@@ -930,7 +930,7 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
         callback_called = true;
       };
 
-  auto writer = new MockWriter(relation, callback);
+  auto writer = new MockTableWriter(relation, callback);
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(file_name_));

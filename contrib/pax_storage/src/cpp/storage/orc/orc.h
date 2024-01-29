@@ -39,6 +39,8 @@ class OrcColumnStatsData : public MicroPartitionStatsData {
 
   std::vector<::pax::stats::ColumnDataStats> col_data_stats_;
   std::vector<::pax::stats::ColumnBasicInfo> col_basic_info_;
+  std::vector<bool> has_nulls_;
+  std::vector<bool> all_nulls_;
 };
 
 class OrcWriter : public MicroPartitionWriter {
@@ -87,8 +89,8 @@ class OrcWriter : public MicroPartitionWriter {
 
   void BuildFooterType();
   bool WriteStripe(BufferedOutputStream *buffer_mem_stream,
-                   PaxColumns *pax_columns,
-                   MicroPartitionStats *stats_collector);
+                   PaxColumns *pax_columns, MicroPartitionStats *stripe_stats,
+                   MicroPartitionStats *file_stats);
   bool WriteStripe(BufferedOutputStream *buffer_mem_stream);
   void WriteFileFooter(BufferedOutputStream *buffer_mem_stream);
   void WritePostscript(BufferedOutputStream *buffer_mem_stream);
@@ -104,7 +106,6 @@ class OrcWriter : public MicroPartitionWriter {
   PaxColumns *pax_columns_;
   const std::vector<orc::proto::Type_Kind> column_types_;
   File *file_;
-  MicroPartitionStats *mp_stats_;
   WriteSummary summary_;
 
   int32 row_index_;

@@ -55,10 +55,7 @@ void MicroPartitionStats::AddRow(TupleTableSlot *slot) {
   auto desc = slot->tts_tupleDescriptor;
   auto n = desc->natts;
 
-  if (!initial_check_) {
-    DoInitialCheck(desc);
-    initial_check_ = true;
-  }
+  DoInitialCheck(desc);
   CBDB_CHECK(status_.size() == static_cast<size_t>(n),
              cbdb::CException::ExType::kExTypeSchemaNotMatch);
   for (auto i = 0; i < n; i++) {
@@ -240,6 +237,10 @@ void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
   Assert(status_.size() == opfamilies_.size());
   Assert(status_.size() == finfos_.size());
 
+  if (initial_check_) {
+    return;
+  }
+
   for (int i = 0; i < natts; i++) {
     auto att = TupleDescAttr(desc, i);
 
@@ -262,6 +263,7 @@ void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
 
     status_[i] = 'n';
   }
+  initial_check_ = true;
 }
 
 Datum MicroPartitionStats::FromValue(const std::string &s, int typlen,
@@ -355,9 +357,21 @@ MicroPartittionFileStatsData::MicroPartittionFileStatsData(
 
 void MicroPartittionFileStatsData::CopyFrom(MicroPartitionStatsData *stats) {
   Assert(stats);
-  auto file_stats = dynamic_cast<MicroPartittionFileStatsData *>(stats);
-  Assert(file_stats);
-  info_->CopyFrom(*file_stats->info_);
+  if (typeid(this) == typeid(stats)) {
+    auto file_stats = dynamic_cast<MicroPartittionFileStatsData *>(stats);
+    Assert(file_stats);
+    info_->CopyFrom(*file_stats->info_);
+  } else {
+    Assert(info_->columnstats_size() == stats->ColumnSize());
+    for (int index = 0; index < stats->ColumnSize(); index++) {
+      auto column_stats = info_->mutable_columnstats(index);
+      column_stats->set_allnull(stats->GetAllNull(index));
+      column_stats->set_hasnull(stats->GetHasNull(index));
+      column_stats->mutable_datastats()->CopyFrom(
+          *stats->GetColumnDataStats(index));
+      column_stats->mutable_info()->CopyFrom(*stats->GetColumnBasicInfo(index));
+    }
+  }
 }
 
 ::pax::stats::ColumnBasicInfo *MicroPartittionFileStatsData::GetColumnBasicInfo(

@@ -63,10 +63,6 @@ void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
 #endif
   }
 
-  if (TableWriter::mp_stats_) {
-    mp_stats_[part_index]->AddRow(slot->GetTupleTableSlot());
-  }
-
   writers_[part_index]->WriteTuple(slot);
   num_tuples_[part_index]++;
 #ifdef ENABLE_LOCAL_INDEX

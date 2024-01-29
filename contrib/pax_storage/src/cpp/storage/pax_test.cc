@@ -53,12 +53,24 @@ class MockWriter : public TableWriter {
   MockWriter(const Relation relation, WriteSummaryCallback callback)
       : TableWriter(relation) {
     SetWriteSummaryCallback(callback);
-    SetFileSplitStrategy(new PaxDefaultSplitStrategy());
   }
 
   MOCK_METHOD(std::string, GenFilePath, (const std::string &), (override));
   MOCK_METHOD((std::vector<std::tuple<ColumnEncoding_Kind, int>>),
               GetRelEncodingOptions, (), (override));
+};
+
+class MockSplitStrategy final : public FileSplitStrategy {
+  size_t SplitTupleNumbers() const override {
+    // 1000 tuple
+    return 200 * 8;
+  }
+
+  size_t SplitFileSize() const override { return 0; }
+
+  bool ShouldSplit(size_t phy_size, size_t num_tuples) const override {
+    return num_tuples >= SplitTupleNumbers();
+  }
 };
 
 class PaxWriterTest : public ::testing::Test {
@@ -89,6 +101,7 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
       };
 
   auto writer = new MockWriter(relation, callback);
+  writer->SetFileSplitStrategy(new PaxDefaultSplitStrategy());
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(pax_file_name));
@@ -139,6 +152,120 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
   delete reader;
 }
 
+TEST_F(PaxWriterTest, TestOper) {
+  CTupleSlot *slot = CreateTestCTupleSlot(true);
+  TupleTableSlot *tuple_slot;
+  std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
+  Relation relation;
+  std::vector<size_t> mins;
+  std::vector<size_t> maxs;
+  int origin_pax_max_tuples_per_group = pax_max_tuples_per_group;
+
+  std::remove((pax_file_name + std::to_string(0)).c_str());
+  std::remove((pax_file_name + std::to_string(1)).c_str());
+  std::remove((pax_file_name + std::to_string(2)).c_str());
+
+  tuple_slot = slot->GetTupleTableSlot();
+  relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  relation->rd_att = slot->GetTupleTableSlot()->tts_tupleDescriptor;
+
+  TableWriter::WriteSummaryCallback callback =
+      [&mins, &maxs](const WriteSummary &summary) {
+        auto min = *reinterpret_cast<const int32 *>(
+            summary.mp_stats.columnstats(2).datastats().minimal().data());
+        auto max = *reinterpret_cast<const int32 *>(
+            summary.mp_stats.columnstats(2).datastats().maximum().data());
+
+        mins.emplace_back(min);
+        maxs.emplace_back(max);
+      };
+
+  auto strategy = new MockSplitStrategy();
+  auto split_size = strategy->SplitTupleNumbers();
+
+  // 8 groups in a file
+  pax_max_tuples_per_group = split_size / 8;
+
+  auto writer = new MockWriter(relation, callback);
+  writer->SetFileSplitStrategy(strategy);
+  writer->SetStatsCollector(new MicroPartitionStats());
+  uint32 call_times = 0;
+  EXPECT_CALL(*writer, GenFilePath(_))
+      .Times(AtLeast(2))
+      .WillRepeatedly(testing::Invoke([&call_times]() -> std::string {
+        return std::string(pax_file_name) + std::to_string(call_times++);
+      }));
+  for (size_t i = 0; i < COLUMN_NUMS; i++) {
+    encoding_opts.emplace_back(
+        std::make_tuple(ColumnEncoding_Kind_NO_ENCODED, 0));
+  }
+  EXPECT_CALL(*writer, GetRelEncodingOptions())
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(encoding_opts));
+
+  writer->Open();
+
+  // 3 files
+  for (size_t i = 0; i < split_size * 3; i++) {
+    tuple_slot->tts_values[2] = i;
+    writer->WriteTuple(slot);
+  }
+  writer->Close();
+
+  // verify file min/max
+  ASSERT_EQ(mins.size(), 3);
+  ASSERT_EQ(maxs.size(), 3);
+
+  for (size_t i = 0; i < 3; i++) {
+    std::cout << "mins[i]: " << mins[i] << std::endl;
+    std::cout << "maxs[i]: " << maxs[i] << std::endl;
+    ASSERT_EQ(mins[i], split_size * i);
+    ASSERT_EQ(maxs[i], split_size * (i + 1) - 1);
+  }
+
+  DeleteTestCTupleSlot(slot);
+  delete writer;
+
+  // verify stripe min/max
+  auto verify_single_file = [](size_t file_index, size_t file_tuples) {
+    LocalFileSystem *local_fs;
+    MicroPartitionReader::ReaderOptions reader_options;
+    CTupleSlot *rslot = CreateTestCTupleSlot(false);
+    size_t file_min_max_offset = file_index * file_tuples;
+
+    local_fs = Singleton<LocalFileSystem>::GetInstance();
+    auto reader = new OrcReader(local_fs->Open(
+        pax_file_name + std::to_string(file_index), fs::kReadMode));
+    reader->Open(reader_options);
+
+    ASSERT_EQ(reader->GetGroupNums(), 8);
+    for (size_t i = 0; i < 8; i++) {
+      auto stats = reader->GetGroupStatsInfo(i);
+      auto min = *reinterpret_cast<const int32 *>(
+          stats->DataStats(2).minimal().data());
+      auto max = *reinterpret_cast<const int32 *>(
+          stats->DataStats(2).maximum().data());
+
+      EXPECT_EQ(pax_max_tuples_per_group * i + file_min_max_offset, min);
+      EXPECT_EQ(pax_max_tuples_per_group * (i + 1) + file_min_max_offset - 1,
+                max);
+    }
+
+    delete reader;
+    DeleteTestCTupleSlot(rslot);
+  };
+
+  verify_single_file(0, split_size);
+  verify_single_file(1, split_size);
+  verify_single_file(2, split_size);
+
+  std::remove((pax_file_name + std::to_string(0)).c_str());
+  std::remove((pax_file_name + std::to_string(1)).c_str());
+  std::remove((pax_file_name + std::to_string(2)).c_str());
+
+  pax_max_tuples_per_group = origin_pax_max_tuples_per_group;
+}
+
 TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   CTupleSlot *slot = CreateTestCTupleSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
@@ -153,6 +280,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
       };
 
   auto writer = new MockWriter(relation, callback);
+  writer->SetFileSplitStrategy(new MockSplitStrategy());
   uint32 call_times = 0;
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(2))
@@ -240,6 +368,7 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
       };
 
   auto writer = new MockWriter(relation, callback);
+  writer->SetFileSplitStrategy(new PaxDefaultSplitStrategy());
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(1))
       .WillRepeatedly(Return(uuid_file_name));

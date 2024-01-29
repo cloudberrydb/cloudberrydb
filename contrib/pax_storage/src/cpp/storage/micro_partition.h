@@ -49,7 +49,7 @@ class MicroPartitionWriter {
     Oid rel_oid = InvalidOid;
     std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
-    size_t group_limit = VEC_BATCH_LENGTH;
+    size_t group_limit = pax_max_tuples_per_group;
     PaxStorageFormat storage_format = PaxStorageFormat::kTypeStorageOrcNonVec;
 
     WriterOptions() = default;
@@ -115,7 +115,7 @@ class MicroPartitionWriter {
   WriterOptions writer_options_;
   FileSystem *file_system_ = nullptr;
   // only reference the mpstats, not the owner
-  MicroPartitionStats *mpstats_ = nullptr;
+  MicroPartitionStats *mp_stats_ = nullptr;
 };
 
 #ifdef ENABLE_PLASMA
@@ -169,8 +169,6 @@ class MicroPartitionReader {
   };
 
   struct ReaderOptions {
-    // file name(excluding directory path) for read
-    std::string file_name;
     // additioinal info to initialize a reader.
     std::string block_id;
 

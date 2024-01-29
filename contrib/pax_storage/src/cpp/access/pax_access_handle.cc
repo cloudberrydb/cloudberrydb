@@ -1241,14 +1241,18 @@ static void DefineGUCs() {
                            &pax::pax_enable_debug, true, PGC_USERSET, 0, NULL,
                            NULL, NULL);
 
-  DefineCustomBoolVariable(
-      "pax.allow_oper_fallback", "enable pax oper fallback to opg", NULL,
-      &pax::pax_allow_oper_fallback, false, PGC_USERSET, 0, NULL, NULL, NULL);
+  DefineCustomIntVariable(
+      "pax.max_tuples_per_group",
+      "the default value for the limit on the number of tuples in a group",
+      NULL, &pax::pax_max_tuples_per_group, VEC_BATCH_LENGTH, 0,
+      VEC_BATCH_LENGTH * 100, PGC_USERSET, 0, NULL, NULL, NULL);
+
 #ifdef ENABLE_PLASMA
   DefineCustomBoolVariable(
       "pax.enable_plasma", "Enable plasma cache the set of columns", NULL,
       &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, 0, NULL, NULL, NULL);
 #endif
+
   DefineCustomIntVariable(
       "pax.scan_reuse_buffer_size", "set the reuse buffer size", NULL,
       &pax::pax_scan_reuse_buffer_size, PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE,

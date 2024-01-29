@@ -42,7 +42,7 @@ class ColumnStatsProvider {
 
 class PaxFilter final {
  public:
-  explicit PaxFilter(bool allow_fallback_to_pg = pax_allow_oper_fallback);
+  explicit PaxFilter(bool allow_fallback_to_pg = false);
 
   ~PaxFilter();
 

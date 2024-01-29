@@ -217,6 +217,11 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
 
   mp_writer->SetWriteSummaryCallback(summary_callback_);
   mp_writer->SetStatsCollector(mp_stats);
+
+  if (mp_stats) {
+    mp_stats->DoInitialCheck(relation_->rd_att);
+  }
+
   return mp_writer;
 }
 
@@ -240,7 +245,6 @@ void TableWriter::WriteTuple(CTupleSlot *slot) {
     PAX_DELETE(writer_);
     Open();
   }
-  if (mp_stats_) mp_stats_->AddRow(slot->GetTupleTableSlot());
 
   writer_->WriteTuple(slot);
 #ifdef ENABLE_LOCAL_INDEX
@@ -344,7 +348,6 @@ void TableReader::OpenFile() {
     current_block_number_ = block_number;
   }
 #endif
-  options.file_name = it.GetFileName();
   options.filter = reader_options_.filter;
   options.reused_buffer = reader_options_.reused_buffer;
 #ifdef ENABLE_PLASMA
@@ -354,13 +357,13 @@ void TableReader::OpenFile() {
   PAX_DELETE(reader_);
 
   reader_ = PAX_NEW<OrcReader>(Singleton<LocalFileSystem>::GetInstance()->Open(
-      options.file_name, fs::kReadMode));
+      it.GetFileName(), fs::kReadMode));
 
 #ifdef VEC_BUILD
   if (reader_options_.is_vec) {
     Assert(reader_options_.adapter);
     reader_ = PAX_NEW<PaxVecReader>(reader_, reader_options_.adapter,
-                               reader_options_.filter);
+                                    reader_options_.filter);
   } else
 #endif  // VEC_BUILD
     if (reader_options_.filter && reader_options_.filter->HasRowScanFilter()) {
