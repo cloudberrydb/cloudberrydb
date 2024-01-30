@@ -16,9 +16,6 @@ option(BUILD_GTEST "Build with google test" ON)
 
 option(BUILD_GBENCH "Build with google benchmark" OFF)
 
-# Build pax format lib
-option(BUILD_PAX_FORMAT "Build pax format lib" OFF)
-
 # Build pax tools
 option(BUILD_TOOLS "Build with pax tools" ON)
 
