@@ -11,6 +11,7 @@
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
 #include "storage/pax_filter.h"
+#include "storage/pax_itemptr.h"
 
 namespace pax {
 
@@ -183,11 +184,7 @@ void OrcReader::Close() {
   is_closed_ = true;
 }
 
-bool OrcReader::ReadTuple(CTupleSlot *cslot) {
-  TupleTableSlot *slot;
-
-  slot = cslot->GetTupleTableSlot();
-
+bool OrcReader::ReadTuple(TupleTableSlot *slot) {
 retry_read_group:
   if (!working_group_) {
     if (current_group_index_ >= GetGroupNums()) {
@@ -215,23 +212,21 @@ retry_read_group:
     goto retry_read_group;
   }
 
-  cslot->SetOffset(working_group_->GetRowOffset() + group_row_offset);
+  SetTupleOffset(&slot->tts_tid,
+                 working_group_->GetRowOffset() + group_row_offset);
   return true;
 }
 
-bool OrcReader::GetTuple(CTupleSlot *cslot, size_t row_index) {
+bool OrcReader::GetTuple(TupleTableSlot *slot, size_t row_index) {
   int32 group_index = -1;
   size_t nums_of_group;
   int left, right;
 
-  TupleTableSlot *slot;
   size_t group_offset, number_of_rows;
 
   nums_of_group = GetGroupNums();
   left = 0;
   right = nums_of_group - 1;
-
-  slot = cslot->GetTupleTableSlot();
 
   // current `row_index` in group
   if (cached_group_ && cached_group_->GetRowOffset() >= row_index &&
@@ -268,7 +263,7 @@ found:
   auto ok =
       cached_group_->GetTuple(slot, row_index - cached_group_->GetRowOffset());
   Assert(ok);
-  cslot->SetOffset(row_index);
+  SetTupleOffset(&slot->tts_tid, row_index);
   return ok;
 }
 

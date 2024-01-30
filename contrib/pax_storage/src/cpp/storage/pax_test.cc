@@ -88,11 +88,11 @@ class PaxWriterTest : public ::testing::Test {
 };
 
 TEST_F(PaxWriterTest, WriteReadTuple) {
-  CTupleSlot *slot = CreateTestCTupleSlot(true);
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
-  relation->rd_att = slot->GetTupleTableSlot()->tts_tupleDescriptor;
+  relation->rd_att = slot->tts_tupleDescriptor;
   bool callback_called = false;
 
   TableWriter::WriteSummaryCallback callback =
@@ -120,7 +120,7 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  DeleteTestCTupleSlot(slot);
+  DeleteTestTupleTableSlot(slot);
   delete writer;
 
   std::vector<MicroPartitionMetadata> meta_info_list;
@@ -142,19 +142,18 @@ TEST_F(PaxWriterTest, WriteReadTuple) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateTestCTupleSlot(false);
+  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
 
   reader->ReadTuple(rslot);
-  EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
+  EXPECT_TRUE(VerifyTestTupleTableSlot(rslot));
 
-  DeleteTestCTupleSlot(rslot);
+  DeleteTestTupleTableSlot(rslot);
   delete relation;
   delete reader;
 }
 
 TEST_F(PaxWriterTest, TestOper) {
-  CTupleSlot *slot = CreateTestCTupleSlot(true);
-  TupleTableSlot *tuple_slot;
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   Relation relation;
   std::vector<size_t> mins;
@@ -165,9 +164,8 @@ TEST_F(PaxWriterTest, TestOper) {
   std::remove((pax_file_name + std::to_string(1)).c_str());
   std::remove((pax_file_name + std::to_string(2)).c_str());
 
-  tuple_slot = slot->GetTupleTableSlot();
   relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
-  relation->rd_att = slot->GetTupleTableSlot()->tts_tupleDescriptor;
+  relation->rd_att = slot->tts_tupleDescriptor;
 
   TableWriter::WriteSummaryCallback callback =
       [&mins, &maxs](const WriteSummary &summary) {
@@ -207,7 +205,7 @@ TEST_F(PaxWriterTest, TestOper) {
 
   // 3 files
   for (size_t i = 0; i < split_size * 3; i++) {
-    tuple_slot->tts_values[2] = i;
+    slot->tts_values[2] = i;
     writer->WriteTuple(slot);
   }
   writer->Close();
@@ -223,14 +221,14 @@ TEST_F(PaxWriterTest, TestOper) {
     ASSERT_EQ(maxs[i], split_size * (i + 1) - 1);
   }
 
-  DeleteTestCTupleSlot(slot);
+  DeleteTestTupleTableSlot(slot);
   delete writer;
 
   // verify stripe min/max
   auto verify_single_file = [](size_t file_index, size_t file_tuples) {
     LocalFileSystem *local_fs;
     MicroPartitionReader::ReaderOptions reader_options;
-    CTupleSlot *rslot = CreateTestCTupleSlot(false);
+    TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
     size_t file_min_max_offset = file_index * file_tuples;
 
     local_fs = Singleton<LocalFileSystem>::GetInstance();
@@ -252,7 +250,7 @@ TEST_F(PaxWriterTest, TestOper) {
     }
 
     delete reader;
-    DeleteTestCTupleSlot(rslot);
+    DeleteTestTupleTableSlot(rslot);
   };
 
   verify_single_file(0, split_size);
@@ -267,11 +265,11 @@ TEST_F(PaxWriterTest, TestOper) {
 }
 
 TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
-  CTupleSlot *slot = CreateTestCTupleSlot(true);
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
 
-  relation->rd_att = slot->GetTupleTableSlot()->tts_tupleDescriptor;
+  relation->rd_att = slot->tts_tupleDescriptor;
   bool callback_called = false;
 
   TableWriter::WriteSummaryCallback callback =
@@ -306,7 +304,7 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  DeleteTestCTupleSlot(slot);
+  DeleteTestTupleTableSlot(slot);
   delete writer;
 
   std::vector<MicroPartitionMetadata> meta_info_list;
@@ -332,16 +330,16 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateTestCTupleSlot(false);
+  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
 
   for (size_t i = 0; i < split_size + 1; i++) {
     ASSERT_TRUE(reader->ReadTuple(rslot));
-    EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
+    EXPECT_TRUE(VerifyTestTupleTableSlot(rslot));
   }
   ASSERT_FALSE(reader->ReadTuple(rslot));
   reader->Close();
 
-  DeleteTestCTupleSlot(rslot);
+  DeleteTestTupleTableSlot(rslot);
   delete reader;
   delete relation;
 
@@ -352,14 +350,14 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
 #ifdef ENABLE_PLASMA
 
 TEST_F(PaxWriterTest, TestCacheColumns) {
-  CTupleSlot *slot = CreateTestCTupleSlot(true);
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   const char *uuid_file_name = "40fdcd4e-52cc-11ee-a652-52549e1c7e53";
 
   std::remove(uuid_file_name);
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
-  relation->rd_att = slot->GetTupleTableSlot()->tts_tupleDescriptor;
+  relation->rd_att = slot->tts_tupleDescriptor;
   bool callback_called = false;
 
   TableWriter::WriteSummaryCallback callback =
@@ -386,7 +384,7 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  DeleteTestCTupleSlot(slot);
+  DeleteTestTupleTableSlot(slot);
   delete writer;
 
   std::vector<MicroPartitionMetadata> meta_info_list;
@@ -425,12 +423,12 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateTestCTupleSlot(false);
+  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
 
   reader->ReadTuple(rslot);
   reader->Close();
 
-  DeleteTestCTupleSlot(rslot);
+  DeleteTestTupleTableSlot(rslot);
   delete reader;
 
   std::unique_ptr<IteratorBase<MicroPartitionMetadata>> meta_info_iterator2 =
@@ -439,13 +437,13 @@ TEST_F(PaxWriterTest, TestCacheColumns) {
 
   reader = new TableReader(std::move(meta_info_iterator2), reader_options);
   reader->Open();
-  rslot = CreateTestCTupleSlot(false);
+  rslot = CreateTestTupleTableSlot(false);
 
   reader->ReadTuple(rslot);
-  EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
+  EXPECT_TRUE(VerifyTestTupleTableSlot(rslot));
 
   reader->Close();
-  DeleteTestCTupleSlot(rslot);
+  DeleteTestTupleTableSlot(rslot);
   delete reader;
 
   std::remove(uuid_file_name);
@@ -495,11 +493,11 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
       "pax_parition_4.file", "pax_parition_5.file", "pax_parition_6.file",
       "pax_parition_8.file", "pax_parition_9.file",
   };
-  CTupleSlot *slot = CreateTestCTupleSlot(true);
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
   relation->rd_rel = (Form_pg_class)cbdb::Palloc0(sizeof(*relation->rd_rel));
-  relation->rd_att = slot->GetTupleTableSlot()->tts_tupleDescriptor;
+  relation->rd_att = slot->tts_tupleDescriptor;
   bool callback_called = false;
   Stub *stub;
   stub = new Stub();
@@ -551,7 +549,7 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  DeleteTestCTupleSlot(slot);
+  DeleteTestTupleTableSlot(slot);
   delete part_obj;
   delete writer;
 
@@ -591,14 +589,14 @@ TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  CTupleSlot *rslot = CreateTestCTupleSlot(false);
+  TupleTableSlot *rslot = CreateTestTupleTableSlot(false);
 
   for (int i = 0; i < 400; i++) {
     ASSERT_TRUE(reader->ReadTuple(rslot));
-    EXPECT_TRUE(VerifyTestCTupleSlot(rslot));
+    EXPECT_TRUE(VerifyTestTupleTableSlot(rslot));
   }
 
-  DeleteTestCTupleSlot(rslot);
+  DeleteTestTupleTableSlot(rslot);
   delete relation;
   delete reader;
   delete stub;

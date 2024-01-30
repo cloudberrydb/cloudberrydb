@@ -35,14 +35,14 @@ class VecAdapter final {
 
   bool AppendToVecBuffer();
 
-  size_t FlushVecBuffer(CTupleSlot *cslot);
+  size_t FlushVecBuffer(TupleTableSlot *slot);
 
   const TupleDesc GetRelationTupleDesc() const;
 
   bool ShouldBuildCtid() const;
 
  private:
-  void FullWithCTID(CTupleSlot *cslot, VecBatchBuffer *batch_buffer);
+  void FullWithCTID(TupleTableSlot *slot, VecBatchBuffer *batch_buffer);
   bool AppendVecFormat();
 
  private:

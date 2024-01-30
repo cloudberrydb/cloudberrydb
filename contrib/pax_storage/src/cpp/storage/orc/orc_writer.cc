@@ -8,6 +8,7 @@
 #include "storage/orc/orc.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
+#include "storage/pax_itemptr.h"
 
 namespace pax {
 
@@ -205,19 +206,16 @@ void OrcWriter::Flush() {
   }
 }
 
-void OrcWriter::WriteTuple(CTupleSlot *slot) {
+void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   int n;
-  TupleTableSlot *table_slot;
   TupleDesc table_desc;
   int16 type_len;
   bool type_by_val;
 
   summary_.num_tuples++;
 
-  table_slot = slot->GetTupleTableSlot();
-  table_desc = slot->GetTupleDesc();
-  slot->SetOffset(row_index_);
-  ++row_index_;
+  table_desc = table_slot->tts_tupleDescriptor;
+  SetTupleOffset(&table_slot->tts_tid, row_index_++);
   n = table_desc->natts;
 
   CBDB_CHECK(pax_columns_->GetColumns() == static_cast<size_t>(n),
@@ -301,10 +299,6 @@ void OrcWriter::WriteTuple(CTupleSlot *slot) {
   if (pax_columns_->GetRows() >= writer_options_.group_limit) {
     Flush();
   }
-}
-
-void OrcWriter::WriteTupleN(CTupleSlot **slot, size_t n) {
-  // TODO(jiaqizho): support WriteTupleN
 }
 
 void OrcWriter::MergeTo(MicroPartitionWriter *writer) {

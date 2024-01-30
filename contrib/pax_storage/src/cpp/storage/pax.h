@@ -37,7 +37,7 @@ class TableWriter {
 
   virtual const FileSplitStrategy *GetFileSplitStrategy() const;
 
-  virtual void WriteTuple(CTupleSlot *slot);
+  virtual void WriteTuple(TupleTableSlot *slot);
 
   virtual void Open();
 
@@ -107,7 +107,7 @@ class TableReader final {
 
   void Close();
 
-  bool ReadTuple(CTupleSlot *slot);
+  bool ReadTuple(TupleTableSlot *slot);
 
   // deprecate:
   // DON'T USE, this function will be removed

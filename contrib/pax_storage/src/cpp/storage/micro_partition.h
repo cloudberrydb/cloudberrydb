@@ -14,26 +14,6 @@
 #include "storage/pax_filter.h"
 
 namespace pax {
-class CTupleSlot {
- public:
-  explicit CTupleSlot(TupleTableSlot *tuple_slot);
-
-  inline void SetCtid(ItemPointerData ctid) { ctid_ = ctid; }
-  inline ItemPointerData GetCtid() const { return ctid_; }
-  void SetOffset(uint32 offset);
-  void SetBlockNumber(uint32 block_number);
-  void SetTableNo(uint8 table_no);
-
-  void StoreVirtualTuple();
-
-  TupleDesc GetTupleDesc() const;
-
-  TupleTableSlot *GetTupleTableSlot() const;
-
- private:
-  TupleTableSlot *slot_;
-  ItemPointerData ctid_;
-};
 
 struct WriteSummary;
 class FileSystem;
@@ -89,8 +69,7 @@ class MicroPartitionWriter {
 
   // append tuple to the current micro partition file
   // return the number of tuples the current micro partition has written
-  virtual void WriteTuple(CTupleSlot *slot) = 0;
-  virtual void WriteTupleN(CTupleSlot **slot, size_t n) = 0;
+  virtual void WriteTuple(TupleTableSlot *slot) = 0;
 
   // The current writer merges with another open `MicroPartitionWriter`
   // two of `MicroPartitionWriter` must be the same sub-class.
@@ -197,7 +176,7 @@ class MicroPartitionReader {
   // NOTE: the ctid is stored in slot, mapping from block_id to micro partition
   // is also created during this stage, no matter the map relation is needed or
   // not. We may optimize to avoid creating the map relation later.
-  virtual bool ReadTuple(CTupleSlot *slot) = 0;
+  virtual bool ReadTuple(TupleTableSlot *slot) = 0;
 
   // ------------------------------------------
   // below interface different with `ReadTuple`
@@ -206,7 +185,7 @@ class MicroPartitionReader {
   // index. The group index will not be changed, and won't have any middle state
   // in this process.
   // ------------------------------------------
-  virtual bool GetTuple(CTupleSlot *slot, size_t row_index) = 0;
+  virtual bool GetTuple(TupleTableSlot *slot, size_t row_index) = 0;
 
   virtual size_t GetGroupNums() = 0;
 
@@ -239,9 +218,9 @@ class MicroPartitionReaderProxy : public MicroPartitionReader {
   // NOTE: the ctid is stored in slot, mapping from block_id to micro partition
   // is also created during this stage, no matter the map relation is needed or
   // not. We may optimize to avoid creating the map relation later.
-  bool ReadTuple(CTupleSlot *slot) override;
+  bool ReadTuple(TupleTableSlot *slot) override;
 
-  bool GetTuple(CTupleSlot *slot, size_t row_index) override;
+  bool GetTuple(TupleTableSlot *slot, size_t row_index) override;
 
   size_t GetGroupNums() override;
 

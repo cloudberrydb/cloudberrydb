@@ -622,17 +622,17 @@ bool VecAdapter::AppendToVecBuffer() {
 
 bool VecAdapter::ShouldBuildCtid() const { return build_ctid_; }
 
-void VecAdapter::FullWithCTID(CTupleSlot *cslot, VecBatchBuffer *batch_buffer) {
+void VecAdapter::FullWithCTID(TupleTableSlot *slot,
+                              VecBatchBuffer *batch_buffer) {
   auto buffer_len = sizeof(int64) * cached_batch_lens_;
   DataBuffer<int64> ctid_data_buffer((int64 *)cbdb::Palloc(buffer_len),
                                      buffer_len, false, false);
 
-  auto item_ptr = cslot->GetCtid();
-  auto base_offset = GetTupleOffset(item_ptr);
+  auto base_offset = GetTupleOffset(slot->tts_tid);
 
   for (size_t i = 0; i < cached_batch_lens_; i++) {
-    SetTupleOffset(&item_ptr, base_offset + i);
-    ctid_data_buffer[i] = CTIDToUint64(item_ptr);
+    SetTupleOffset(&slot->tts_tid, base_offset + i);
+    ctid_data_buffer[i] = CTIDToUint64(slot->tts_tid);
   }
   batch_buffer->vec_buffer.Set(ctid_data_buffer.Start(),
                                ctid_data_buffer.Capacity());
@@ -783,7 +783,7 @@ bool VecAdapter::AppendVecFormat() {
   return true;
 }
 
-size_t VecAdapter::FlushVecBuffer(CTupleSlot *cslot) {
+size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   std::vector<std::shared_ptr<arrow::Field>> schema_types;
   arrow::ArrayVector array_vector;
   std::vector<std::string> field_names;
@@ -802,10 +802,10 @@ size_t VecAdapter::FlushVecBuffer(CTupleSlot *cslot) {
   columns = process_columns_;
   Assert(columns);
 
-  vslot = VECSLOT(cslot->GetTupleTableSlot());
+  vslot = VECSLOT(slot);
   Assert(vslot);
 
-  target_desc = cslot->GetTupleDesc();
+  target_desc = slot->tts_tupleDescriptor;
   column_size = columns->GetColumns();
 
   Assert(column_size <= (size_t)rel_tuple_desc_->natts);
@@ -891,7 +891,7 @@ size_t VecAdapter::FlushVecBuffer(CTupleSlot *cslot) {
     Assert((int)schema_types.size() == target_desc->natts - 1);
     VecBatchBuffer ctid_batch_buffer;
 
-    FullWithCTID(cslot, &ctid_batch_buffer);
+    FullWithCTID(slot, &ctid_batch_buffer);
     char *target_column_name =
         NameStr(target_desc->attrs[target_desc->natts - 1].attname);
 

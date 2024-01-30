@@ -235,7 +235,7 @@ void TableWriter::Open() {
 #endif
 }
 
-void TableWriter::WriteTuple(CTupleSlot *slot) {
+void TableWriter::WriteTuple(TupleTableSlot *slot) {
   Assert(writer_);
   Assert(strategy_);
   // should check split strategy before write tuple
@@ -248,8 +248,8 @@ void TableWriter::WriteTuple(CTupleSlot *slot) {
 
   writer_->WriteTuple(slot);
 #ifdef ENABLE_LOCAL_INDEX
-  slot->SetBlockNumber(current_blockno_);
-  slot->StoreVirtualTuple();
+  SetBlockNumber(&slot->tts_tid, current_blockno_);
+  ExecStoreVirtualTuple(slot);
 #endif
   ++num_tuples_;
 }
@@ -309,14 +309,14 @@ void TableReader::Close() {
   }
 }
 
-bool TableReader::ReadTuple(CTupleSlot *slot) {
+bool TableReader::ReadTuple(TupleTableSlot *slot) {
   if (is_empty_) {
     return false;
   }
 
-  ExecClearTuple(slot->GetTupleTableSlot());
+  ExecClearTuple(slot);
 #ifndef ENABLE_LOCAL_INDEX
-  slot->SetTableNo(block_number_manager_.GetTableNo());
+  pax::SetTableNo(&slot->tts_tid, block_number_manager_.GetTableNo());
 #endif
   while (!reader_->ReadTuple(slot)) {
     reader_->Close();
@@ -326,8 +326,10 @@ bool TableReader::ReadTuple(CTupleSlot *slot) {
     }
     OpenFile();
   }
-  slot->SetBlockNumber(current_block_number_);
-  slot->StoreVirtualTuple();
+
+  SetBlockNumber(&slot->tts_tid, current_block_number_);
+  ExecStoreVirtualTuple(slot);
+
   return true;
 }
 
@@ -412,25 +414,24 @@ void TableDeleter::Delete() {
   Assert(rel_->rd_rel->relhasindex == index_updater.HasIndex());
   auto slot = index_updater.GetSlot();
 
-  CTupleSlot cslot(slot);
   slot->tts_tableOid = RelationGetRelid(rel_);
   // TODO(gongxun): because bulk insert as AO/HEAP does with tuples iteration
   // not implemented. we should implement bulk insert firstly. and then we can
   // use ReadTupleN and WriteTupleN to delete tuples in batch.
-  while (reader_->ReadTuple(&cslot)) {
+  while (reader_->ReadTuple(slot)) {
     auto block_id = reader_->GetCurrentMicroPartitionId();
     auto it = delete_bitmap_.find(block_id);
     Assert(it != delete_bitmap_.end());
 
     auto bitmap = it->second.get();
-    if (bitmap->Test(pax::GetTupleOffset(cslot.GetCtid()))) continue;
+    if (bitmap->Test(pax::GetTupleOffset(slot->tts_tid))) continue;
 
-    writer_->WriteTuple(&cslot);
+    writer_->WriteTuple(slot);
 #ifdef ENABLE_LOCAL_INDEX
     if (index_updater.HasIndex()) {
-      // TableWriter has stored ctid in cslot, we need to store it in
-      // slot.tts_tid and set the valid number of columns.
-      cslot.StoreVirtualTuple();
+      // Already store the ctid after WriteTuple
+      Assert(TTS_EMPTY(slot));
+      Assert(ItemPointerIsValid(&slot->tts_tid));
       index_updater.UpdateIndex(slot);
     }
 #endif

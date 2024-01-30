@@ -8,36 +8,6 @@
 
 namespace pax {
 
-CTupleSlot::CTupleSlot(TupleTableSlot *tuple_slot)
-    : slot_(tuple_slot), ctid_() {
-  ItemPointerSetInvalid(&ctid_);
-}
-
-void CTupleSlot::StoreVirtualTuple() {
-  slot_->tts_tid = ctid_;
-  slot_->tts_flags &= ~TTS_FLAG_EMPTY;
-  slot_->tts_nvalid = slot_->tts_tupleDescriptor->natts;
-}
-
-#ifndef ENABLE_LOCAL_INDEX
-void CTupleSlot::SetTableNo(uint8 table_no) {
-  pax::SetTableNo(&ctid_, table_no);
-}
-#endif
-
-void CTupleSlot::SetBlockNumber(uint32 block_number) {
-  pax::SetBlockNumber(&ctid_, block_number);
-}
-void CTupleSlot::SetOffset(uint32 offset) {
-  pax::SetTupleOffset(&ctid_, offset);
-}
-
-TupleDesc CTupleSlot::GetTupleDesc() const {
-  return slot_->tts_tupleDescriptor;
-}
-
-TupleTableSlot *CTupleSlot::GetTupleTableSlot() const { return slot_; }
-
 MicroPartitionWriter::MicroPartitionWriter(const WriterOptions &writer_options)
     : writer_options_(writer_options) {}
 
@@ -67,12 +37,13 @@ void MicroPartitionReaderProxy::Close() {
   reader_->Close();
 }
 
-bool MicroPartitionReaderProxy::ReadTuple(CTupleSlot *slot) {
+bool MicroPartitionReaderProxy::ReadTuple(TupleTableSlot *slot) {
   Assert(reader_);
   return reader_->ReadTuple(slot);
 }
 
-bool MicroPartitionReaderProxy::GetTuple(CTupleSlot *slot, size_t row_index) {
+bool MicroPartitionReaderProxy::GetTuple(TupleTableSlot *slot,
+                                         size_t row_index) {
   Assert(reader_);
   return reader_->GetTuple(slot, row_index);
 }

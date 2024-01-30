@@ -29,7 +29,7 @@ class OrcVecTest : public ::testing::Test {
     ReleaseTestResourceOwner();
   }
 
-  static CTupleSlot *CreateFakeCTupleSlot() {
+  static TupleTableSlot *CreateFakeTupleSlot() {
     TupleTableSlot *tuple_slot = nullptr;
     auto tuple_desc = reinterpret_cast<TupleDescData *>(cbdb::Palloc0(
         sizeof(TupleDescData) + sizeof(FormData_pg_attribute) * 2));
@@ -51,19 +51,16 @@ class OrcVecTest : public ::testing::Test {
     bool *fake_is_null =
         reinterpret_cast<bool *>(cbdb::Palloc0(sizeof(bool) * 2));
     tuple_slot->tts_isnull = fake_is_null;
-    auto ctuple_slot = new CTupleSlot(tuple_slot);
-    return ctuple_slot;
+    return tuple_slot;
   }
 
-  static void DeleteCTupleSlot(CTupleSlot *ctuple_slot) {
-    auto tuple_table_slot = ctuple_slot->GetTupleTableSlot();
+  static void DeleteTupleSlot(TupleTableSlot *tuple_table_slot) {
     cbdb::Pfree(tuple_table_slot->tts_tupleDescriptor);
     if (tuple_table_slot->tts_isnull) {
       cbdb::Pfree(tuple_table_slot->tts_isnull);
     }
 
     cbdb::Pfree(tuple_table_slot);
-    delete ctuple_slot;
   }
 
  protected:
@@ -71,7 +68,7 @@ class OrcVecTest : public ::testing::Test {
 };
 
 TEST_F(OrcVecTest, WriteReadGroup) {
-  CTupleSlot *ctuple_slot = CreateFakeCTupleSlot();
+  TupleTableSlot *tuple_slot = CreateFakeTupleSlot();
 
   auto local_fs = Singleton<LocalFileSystem>::GetInstance();
   ASSERT_NE(nullptr, local_fs);
@@ -84,40 +81,40 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   types.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
   OrcWriter::WriterOptions writer_options;
 
-  writer_options.desc = ctuple_slot->GetTupleDesc();
+  writer_options.desc = tuple_slot->tts_tupleDescriptor;
   writer_options.storage_format = PaxStorageFormat::kTypeStorageOrcVec;
 
   auto writer = OrcWriter::CreateWriter(writer_options, types, file_ptr);
 
   for (uint16 i = 0; i < 10000; i++) {
     if (i % 3 == 0) {
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[0] = true;
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[1] = true;
+      tuple_slot->tts_isnull[0] = true;
+      tuple_slot->tts_isnull[1] = true;
     } else {
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[0] = false;
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[1] = false;
+      tuple_slot->tts_isnull[0] = false;
+      tuple_slot->tts_isnull[1] = false;
     }
 
-    ctuple_slot->GetTupleTableSlot()->tts_values[0] =
+    tuple_slot->tts_values[0] =
         cbdb::DatumFromCString((char *)&i, sizeof(uint16));
-    ctuple_slot->GetTupleTableSlot()->tts_values[1] = Int64GetDatum(i);
-    writer->WriteTuple(ctuple_slot);
+    tuple_slot->tts_values[1] = Int64GetDatum(i);
+    writer->WriteTuple(tuple_slot);
   }
 
   writer->Flush();
 
-  ctuple_slot->GetTupleTableSlot()->tts_isnull[0] = false;
-  ctuple_slot->GetTupleTableSlot()->tts_isnull[1] = false;
+  tuple_slot->tts_isnull[0] = false;
+  tuple_slot->tts_isnull[1] = false;
 
   uint16 i = 10000;
-  ctuple_slot->GetTupleTableSlot()->tts_values[0] =
+  tuple_slot->tts_values[0] =
       cbdb::DatumFromCString((char *)&i, sizeof(uint16));
-  ctuple_slot->GetTupleTableSlot()->tts_values[1] = Int64GetDatum(10000);
-  writer->WriteTuple(ctuple_slot);
+  tuple_slot->tts_values[1] = Int64GetDatum(10000);
+  writer->WriteTuple(tuple_slot);
 
   writer->Close();
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
   delete writer;
 
   MicroPartitionReader::ReaderOptions reader_options;
@@ -215,7 +212,7 @@ TEST_F(OrcVecTest, WriteReadGroup) {
 }
 
 TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
-  CTupleSlot *ctuple_slot = CreateFakeCTupleSlot();
+  TupleTableSlot *tuple_slot = CreateFakeTupleSlot();
 
   auto local_fs = Singleton<LocalFileSystem>::GetInstance();
   ASSERT_NE(nullptr, local_fs);
@@ -233,7 +230,7 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = ctuple_slot->GetTupleDesc();
+  writer_options.desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
   writer_options.storage_format = PaxStorageFormat::kTypeStorageOrcVec;
 
@@ -241,33 +238,33 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
 
   for (uint16 i = 0; i < 10000; i++) {
     if (i % 3 == 0) {
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[0] = true;
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[1] = true;
+      tuple_slot->tts_isnull[0] = true;
+      tuple_slot->tts_isnull[1] = true;
     } else {
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[0] = false;
-      ctuple_slot->GetTupleTableSlot()->tts_isnull[1] = false;
+      tuple_slot->tts_isnull[0] = false;
+      tuple_slot->tts_isnull[1] = false;
     }
 
-    ctuple_slot->GetTupleTableSlot()->tts_values[0] =
+    tuple_slot->tts_values[0] =
         cbdb::DatumFromCString((char *)&i, sizeof(uint16));
-    ctuple_slot->GetTupleTableSlot()->tts_values[1] = Int64GetDatum(i);
-    writer->WriteTuple(ctuple_slot);
+    tuple_slot->tts_values[1] = Int64GetDatum(i);
+    writer->WriteTuple(tuple_slot);
   }
 
   writer->Flush();
 
-  ctuple_slot->GetTupleTableSlot()->tts_isnull[0] = false;
-  ctuple_slot->GetTupleTableSlot()->tts_isnull[1] = false;
+  tuple_slot->tts_isnull[0] = false;
+  tuple_slot->tts_isnull[1] = false;
 
   uint16 i = 10000;
-  ctuple_slot->GetTupleTableSlot()->tts_values[0] =
+  tuple_slot->tts_values[0] =
       cbdb::DatumFromCString((char *)&i, sizeof(uint16));
-  ctuple_slot->GetTupleTableSlot()->tts_values[1] = Int64GetDatum(10000);
-  writer->WriteTuple(ctuple_slot);
+  tuple_slot->tts_values[1] = Int64GetDatum(10000);
+  writer->WriteTuple(tuple_slot);
 
   writer->Close();
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
   delete writer;
 
   MicroPartitionReader::ReaderOptions reader_options;

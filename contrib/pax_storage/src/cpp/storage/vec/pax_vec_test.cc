@@ -35,10 +35,10 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
     CreateTestResourceOwner();
   }
 
-  static CTupleSlot *CreateCtuple(bool is_fixed, bool with_value = false) {
-    TupleTableSlot *tuple_slot;
+  static TupleTableSlot *CreateTupleSlot(bool is_fixed,
+                                         bool with_value = false) {
     TupleDescData *tuple_desc;
-    CTupleSlot *ctuple_slot;
+    TupleTableSlot *tuple_slot;
 
     tuple_desc = reinterpret_cast<TupleDescData *>(cbdb::Palloc0(
         sizeof(TupleDescData) + sizeof(FormData_pg_attribute) * 1));
@@ -81,16 +81,12 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
     }
 
     tuple_slot->tts_tupleDescriptor = tuple_desc;
-    ctuple_slot = new CTupleSlot(tuple_slot);
-
-    return ctuple_slot;
+    return tuple_slot;
   }
 
-  static void DeleteCTupleSlot(CTupleSlot *ctuple_slot) {
-    auto tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    cbdb::Pfree(tuple_table_slot->tts_tupleDescriptor);
-    cbdb::Pfree(tuple_table_slot);
-    delete ctuple_slot;
+  static void DeleteTupleSlot(TupleTableSlot *tuple_slot) {
+    cbdb::Pfree(tuple_slot->tts_tupleDescriptor);
+    cbdb::Pfree(tuple_slot);
   }
 
   void TearDown() override {
@@ -108,9 +104,9 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   PaxColumn *column;
 
   auto is_fixed = GetParam();
-  auto ctuple_slot = CreateCtuple(is_fixed);
+  auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(ctuple_slot->GetTupleDesc());
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
   columns = new PaxColumns();
   if (is_fixed) {
     column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
@@ -140,14 +136,13 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_FALSE(append_rc);
 
-  size_t flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(VEC_BATCH_LENGTH, flush_counts);
 
-  // verify ctuple_slot 1
+  // verify tuple_slot 1
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ArrowArray *arrow_array = &rb->batch;
@@ -200,14 +195,13 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_TRUE(append_rc);
 
-  flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000, flush_counts);
 
-  // verify ctuple_slot 2
+  // verify tuple_slot 2
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ASSERT_NE(rb, nullptr);
@@ -260,7 +254,7 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
     ASSERT_EQ(child_array->dictionary, nullptr);
   }
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
 
   delete columns;
   delete adapter;
@@ -270,13 +264,12 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   VecAdapter *adapter;
   PaxColumns *columns;
   PaxColumn *column;
-  CTupleSlot *ctuple_slot;
   size_t null_counts = 0;
   auto is_fixed = GetParam();
 
-  ctuple_slot = CreateCtuple(is_fixed);
+  TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(ctuple_slot->GetTupleDesc());
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
   columns = new PaxColumns();
   if (is_fixed) {
     column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
@@ -311,13 +304,12 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_FALSE(append_rc);
 
-  size_t flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(VEC_BATCH_LENGTH, flush_counts);
 
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ASSERT_NE(rb, nullptr);
@@ -424,13 +416,12 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_TRUE(append_rc);
 
-  flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(null_counts + 1000, flush_counts);
 
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     size_t range_size = null_counts + 1000;
 
@@ -523,7 +514,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
     ASSERT_EQ(child_array->dictionary, nullptr);
   }
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
 
   delete columns;
   delete adapter;
@@ -535,9 +526,9 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   PaxColumn *column;
 
   auto is_fixed = GetParam();
-  auto ctuple_slot = CreateCtuple(is_fixed);
+  auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(ctuple_slot->GetTupleDesc());
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
   columns = new PaxColumns();
   if (is_fixed) {
     column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
@@ -567,14 +558,13 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_FALSE(append_rc);
 
-  size_t flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000, flush_counts);
 
-  // verify ctuple_slot
+  // verify tuple_slot
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ASSERT_NE(rb, nullptr);
@@ -625,7 +615,7 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
     ASSERT_EQ(child_array->dictionary, nullptr);
   }
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
 
   delete columns;
   delete adapter;
@@ -638,9 +628,9 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   size_t null_counts = 0;
 
   auto is_fixed = GetParam();
-  auto ctuple_slot = CreateCtuple(is_fixed);
+  auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(ctuple_slot->GetTupleDesc());
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
   columns = new PaxColumns();
   if (is_fixed) {
     column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
@@ -677,14 +667,13 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_FALSE(append_rc);
 
-  size_t flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000 + null_counts, flush_counts);
 
-  // verify ctuple_slot 2
+  // verify tuple_slot 2
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ASSERT_NE(rb, nullptr);
@@ -777,7 +766,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
     ASSERT_EQ(child_array->dictionary, nullptr);
   }
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
 
   delete columns;
   delete adapter;
@@ -789,9 +778,9 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   PaxColumn *column;
 
   auto is_fixed = GetParam();
-  auto ctuple_slot = CreateCtuple(is_fixed);
+  auto tuple_slot = CreateTupleSlot(is_fixed);
 
-  adapter = new VecAdapter(ctuple_slot->GetTupleDesc());
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
   columns = new PaxColumns();
   if (is_fixed) {
     column = new PaxCommColumn<int32>(1000);
@@ -813,13 +802,12 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   append_rc = adapter->AppendToVecBuffer();
   ASSERT_FALSE(append_rc);
 
-  size_t flush_counts = adapter->FlushVecBuffer(ctuple_slot);
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000, flush_counts);
 
   {
     VecTupleTableSlot *vslot = nullptr;
-    TupleTableSlot *tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-    vslot = (VecTupleTableSlot *)tuple_table_slot;
+    vslot = (VecTupleTableSlot *)tuple_slot;
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ASSERT_NE(rb, nullptr);
@@ -877,7 +865,7 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
     ASSERT_EQ(child_array->dictionary, nullptr);
   }
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
 
   delete columns;
   delete adapter;
@@ -918,11 +906,11 @@ class MockReaderInterator : public IteratorBase<MicroPartitionMetadata> {
 
 TEST_P(PaxVecTest, PaxVecReaderTest) {
   auto is_fixed = GetParam();
-  CTupleSlot *ctuple_slot = CreateCtuple(is_fixed, true);
+  TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed, true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
   auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
-  relation->rd_att = ctuple_slot->GetTupleTableSlot()->tts_tupleDescriptor;
+  relation->rd_att = tuple_slot->tts_tupleDescriptor;
   bool callback_called = false;
 
   TableWriter::WriteSummaryCallback callback =
@@ -943,17 +931,17 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   writer->Open();
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
-    writer->WriteTuple(ctuple_slot);
+    writer->WriteTuple(tuple_slot);
   }
 
   writer->Close();
   ASSERT_TRUE(callback_called);
 
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
   delete writer;
 
-  ctuple_slot = CreateCtuple(is_fixed);
-  auto adapter = new VecAdapter(ctuple_slot->GetTupleDesc());
+  tuple_slot = CreateTupleSlot(is_fixed);
+  auto adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
 
   std::vector<MicroPartitionMetadata> meta_info_list;
   MicroPartitionMetadata meta_info;
@@ -976,16 +964,16 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   reader = new TableReader(std::move(meta_info_iterator), reader_options);
   reader->Open();
 
-  bool ok = reader->ReadTuple(ctuple_slot);
+  bool ok = reader->ReadTuple(tuple_slot);
   ASSERT_TRUE(ok);
 
-  ok = reader->ReadTuple(ctuple_slot);
+  ok = reader->ReadTuple(tuple_slot);
   ASSERT_TRUE(ok);
-  ok = reader->ReadTuple(ctuple_slot);
+  ok = reader->ReadTuple(tuple_slot);
   ASSERT_FALSE(ok);
 
   reader->Close();
-  DeleteCTupleSlot(ctuple_slot);
+  DeleteTupleSlot(tuple_slot);
   delete adapter;
   delete relation;
   delete reader;

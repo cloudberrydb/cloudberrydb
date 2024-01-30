@@ -30,8 +30,8 @@ TableParitionWriter::~TableParitionWriter() {
   PAX_DELETE_ARRAY(current_blocknos_);
 }
 
-void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
-  auto part_index = part_obj_->FindPartition(slot->GetTupleTableSlot());
+void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
+  auto part_index = part_obj_->FindPartition(slot);
   Assert(part_index < writer_counts_);
   Assert(strategy_);
 
@@ -44,9 +44,10 @@ void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
     mp_stats_[part_index] = PAX_NEW<MicroPartitionStats>();
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
 #ifdef ENABLE_LOCAL_INDEX
-// insert tuple into the aux table before inserting any tuples.
+    // insert tuple into the aux table before inserting any tuples.
     current_blocknos_[part_index] = current_blockno_;
-    cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_), std::to_string(current_blockno_));
+    cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_),
+                                          std::to_string(current_blockno_));
 #endif
   }
 
@@ -57,17 +58,18 @@ void TableParitionWriter::WriteTuple(CTupleSlot *slot) {
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
     num_tuples_[part_index] = 0;
 #ifdef ENABLE_LOCAL_INDEX
-// insert tuple into the aux table before inserting any tuples.
+    // insert tuple into the aux table before inserting any tuples.
     current_blocknos_[part_index] = current_blockno_;
-    cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_), std::to_string(current_blockno_));
+    cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_),
+                                          std::to_string(current_blockno_));
 #endif
   }
 
   writers_[part_index]->WriteTuple(slot);
   num_tuples_[part_index]++;
 #ifdef ENABLE_LOCAL_INDEX
-  slot->SetBlockNumber(current_blocknos_[part_index]);
-  slot->StoreVirtualTuple();
+  SetBlockNumber(&slot->tts_tid, current_blocknos_[part_index]);
+  ExecStoreVirtualTuple(slot);
 #endif
 }
 

@@ -37,7 +37,7 @@ class MicroPartitionFileFactoryTest : public ::testing::Test {
 };
 
 TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionWriter) {
-  CTupleSlot *tuple_slot = CreateTestCTupleSlot();
+  TupleTableSlot *tuple_slot = CreateTestTupleTableSlot();
   auto local_fs = Singleton<LocalFileSystem>::GetInstance();
   ASSERT_NE(nullptr, local_fs);
 
@@ -53,7 +53,7 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionWriter) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->GetTupleDesc();
+  writer_options.desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
@@ -62,12 +62,12 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionWriter) {
   writer->WriteTuple(tuple_slot);
   writer->Close();
 
-  DeleteTestCTupleSlot(tuple_slot);
+  DeleteTestTupleTableSlot(tuple_slot);
   delete writer;
 }
 
 TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionReader) {
-  CTupleSlot *tuple_slot = CreateTestCTupleSlot();
+  TupleTableSlot *tuple_slot = CreateTestTupleTableSlot();
   auto local_fs = Singleton<LocalFileSystem>::GetInstance();
   ASSERT_NE(nullptr, local_fs);
 
@@ -83,12 +83,12 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionReader) {
       std::make_tuple(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED, 0));
 
   MicroPartitionWriter::WriterOptions writer_options;
-  writer_options.desc = tuple_slot->GetTupleDesc();
+  writer_options.desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
 
   auto writer = MicroPartitionFileFactory::CreateMicroPartitionWriter(
       pax_format, file_ptr, writer_options);
-  CTupleSlot *tuple_slot_empty = CreateTestCTupleSlot(false);
+  TupleTableSlot *tuple_slot_empty = CreateTestTupleTableSlot(false);
 
   writer->WriteTuple(tuple_slot);
   writer->Close();
@@ -100,12 +100,12 @@ TEST_F(MicroPartitionFileFactoryTest, CreateMicroPartitionReader) {
   auto reader = MicroPartitionFileFactory::CreateMicroPartitionReader(
       pax_format, file_ptr, reader_options);
   reader->ReadTuple(tuple_slot_empty);
-  EXPECT_TRUE(VerifyTestCTupleSlot(tuple_slot_empty));
+  EXPECT_TRUE(VerifyTestTupleTableSlot(tuple_slot_empty));
 
   reader->Close();
 
-  DeleteTestCTupleSlot(tuple_slot_empty);
-  DeleteTestCTupleSlot(tuple_slot);
+  DeleteTestTupleTableSlot(tuple_slot_empty);
+  DeleteTestTupleTableSlot(tuple_slot);
   delete writer;
   delete reader;
 }

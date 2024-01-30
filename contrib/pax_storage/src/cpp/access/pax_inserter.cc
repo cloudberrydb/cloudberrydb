@@ -43,8 +43,7 @@ void CPaxInserter::InsertTuple(Relation relation, TupleTableSlot *slot,
     slot_getallattrs(slot);
   }
 
-  CTupleSlot cslot(slot);
-  writer_->WriteTuple(&cslot);
+  writer_->WriteTuple(slot);
 }
 
 void CPaxInserter::MultiInsert(Relation relation, TupleTableSlot **slots,

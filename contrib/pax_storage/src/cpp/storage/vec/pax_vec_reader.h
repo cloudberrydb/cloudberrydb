@@ -22,9 +22,9 @@ class PaxVecReader : public MicroPartitionReader {
 
   void Close() override;
 
-  bool ReadTuple(CTupleSlot *cslot) override;
+  bool ReadTuple(TupleTableSlot *slot) override;
 
-  bool GetTuple(CTupleSlot *slot, size_t row_index) override;
+  bool GetTuple(TupleTableSlot *slot, size_t row_index) override;
 
   size_t GetGroupNums() override;
 

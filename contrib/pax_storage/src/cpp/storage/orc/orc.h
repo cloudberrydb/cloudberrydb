@@ -52,9 +52,7 @@ class OrcWriter : public MicroPartitionWriter {
 
   void Flush() override;
 
-  void WriteTuple(CTupleSlot *slot) override;
-
-  void WriteTupleN(CTupleSlot **slot, size_t n) override;
+  void WriteTuple(TupleTableSlot *slot) override;
 
   void MergeTo(MicroPartitionWriter *writer) override;
 
@@ -131,9 +129,9 @@ class OrcReader : public MicroPartitionReader {
 
   void Close() override;
 
-  bool ReadTuple(CTupleSlot *cslot) override;
+  bool ReadTuple(TupleTableSlot *cslot) override;
 
-  bool GetTuple(CTupleSlot *slot, size_t row_index) override;
+  bool GetTuple(TupleTableSlot *slot, size_t row_index) override;
 
   size_t GetGroupNums() override;
 

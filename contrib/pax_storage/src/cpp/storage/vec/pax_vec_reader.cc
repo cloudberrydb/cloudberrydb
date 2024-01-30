@@ -2,6 +2,7 @@
 
 #include "comm/guc.h"
 #include "comm/pax_memory.h"
+#include "storage/pax_itemptr.h"
 #include "storage/vec/pax_vec_adapter.h"
 #ifdef VEC_BUILD
 
@@ -26,7 +27,7 @@ void PaxVecReader::Open(const ReaderOptions &options) {
 
 void PaxVecReader::Close() { reader_->Close(); }
 
-bool PaxVecReader::ReadTuple(CTupleSlot *cslot) {
+bool PaxVecReader::ReadTuple(TupleTableSlot *slot) {
   auto desc = adapter_->GetRelationTupleDesc();
 retry_read_group:
   if (!working_group_) {
@@ -52,18 +53,18 @@ retry_read_group:
 
   size_t flush_nums_of_rows = 0;
   if (adapter_->ShouldBuildCtid()) {
-    cslot->SetOffset(ctid_offset_);
-    flush_nums_of_rows = adapter_->FlushVecBuffer(cslot);
+    SetTupleOffset(&slot->tts_tid, ctid_offset_);
+    flush_nums_of_rows = adapter_->FlushVecBuffer(slot);
     ctid_offset_ += flush_nums_of_rows;
   } else {
-    flush_nums_of_rows = adapter_->FlushVecBuffer(cslot);
+    flush_nums_of_rows = adapter_->FlushVecBuffer(slot);
   }
 
   Assert(flush_nums_of_rows);
   return true;
 }
 
-bool PaxVecReader::GetTuple(CTupleSlot *slot, size_t row_index) {
+bool PaxVecReader::GetTuple(TupleTableSlot *slot, size_t row_index) {
   CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
 }
 

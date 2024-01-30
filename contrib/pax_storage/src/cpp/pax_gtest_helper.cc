@@ -60,7 +60,7 @@ static TupleDesc CreateTestTupleDesc() {
   return tuple_desc;
 }
 
-CTupleSlot *CreateTestCTupleSlot(bool with_value) {
+TupleTableSlot *CreateTestTupleTableSlot(bool with_value) {
   TupleTableSlot *tuple_slot = nullptr;
   TupleDesc tuple_desc = nullptr;
 
@@ -83,7 +83,7 @@ CTupleSlot *CreateTestCTupleSlot(bool with_value) {
     tuple_slot->tts_isnull[2] = false;
   }
 
-  return new CTupleSlot(tuple_slot);
+  return tuple_slot;
 }
 
 static bool VerifyTestNonFixed(Datum datum, bool is_null) {
@@ -121,15 +121,12 @@ static bool VerifyTestFixed(Datum datum, bool is_null) {
   return !is_null && cbdb::DatumToInt32(datum) == INT32_COLUMN_VALUE;
 }
 
-bool VerifyTestCTupleSlot(CTupleSlot *ctuple_slot) {
-  TupleTableSlot *tuple_slot = nullptr;
+bool VerifyTestTupleTableSlot(TupleTableSlot *tuple_slot) {
   bool ok = true;
 
-  if (!ctuple_slot || !ctuple_slot->GetTupleTableSlot()) {
+  if (!tuple_slot) {
     return false;
   }
-
-  tuple_slot = ctuple_slot->GetTupleTableSlot();
 
   ok &=
       VerifyTestNonFixed(tuple_slot->tts_values[0], tuple_slot->tts_isnull[0]);
@@ -139,16 +136,13 @@ bool VerifyTestCTupleSlot(CTupleSlot *ctuple_slot) {
   return ok;
 }
 
-bool VerifyTestCTupleSlot(CTupleSlot *ctuple_slot, int attrno) {
-  TupleTableSlot *tuple_slot = nullptr;
-
+bool VerifyTestTupleTableSlot(TupleTableSlot *tuple_slot, int attrno) {
   Assert(attrno <= 3 && attrno > 0);
 
-  if (!ctuple_slot || !ctuple_slot->GetTupleTableSlot()) {
+  if (!tuple_slot) {
     return false;
   }
 
-  tuple_slot = ctuple_slot->GetTupleTableSlot();
   if (attrno <= 2) {
     return VerifyTestNonFixed(tuple_slot->tts_values[attrno - 1],
                               tuple_slot->tts_isnull[attrno - 1]);
@@ -158,11 +152,9 @@ bool VerifyTestCTupleSlot(CTupleSlot *ctuple_slot, int attrno) {
   }
 }
 
-void DeleteTestCTupleSlot(CTupleSlot *ctuple_slot) {
-  auto tuple_table_slot = ctuple_slot->GetTupleTableSlot();
-  cbdb::Pfree(tuple_table_slot->tts_tupleDescriptor);
-  cbdb::Pfree(tuple_table_slot);
-  delete ctuple_slot;
+void DeleteTestTupleTableSlot(TupleTableSlot *tuple_slot) {
+  cbdb::Pfree(tuple_slot->tts_tupleDescriptor);
+  cbdb::Pfree(tuple_slot);
 }
 
 std::vector<orc::proto::Type_Kind> CreateTestSchemaTypes() {

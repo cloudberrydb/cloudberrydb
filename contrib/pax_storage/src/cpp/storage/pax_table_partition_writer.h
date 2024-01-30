@@ -12,7 +12,7 @@ class TableParitionWriter : public TableWriter {
 
   ~TableParitionWriter() override;
 
-  void WriteTuple(CTupleSlot *slot) override;
+  void WriteTuple(TupleTableSlot *slot) override;
 
   void Open() override;
 

@@ -5,14 +5,16 @@
 namespace pax {
 class MicroPartitionRowFilterReader : public MicroPartitionReaderProxy {
  public:
-  static MicroPartitionRowFilterReader *New(MicroPartitionReader *reader, PaxFilter *filter);
+  static MicroPartitionRowFilterReader *New(MicroPartitionReader *reader,
+                                            PaxFilter *filter);
   MicroPartitionRowFilterReader() = default;
   ~MicroPartitionRowFilterReader() override = default;
-  bool ReadTuple(CTupleSlot *slot) override;
+  bool ReadTuple(TupleTableSlot *slot) override;
   MicroPartitionReader::Group *GetNextGroup(TupleDesc desc);
 
  private:
-  bool TestRowScanInternal(TupleTableSlot *slot, ExprState *estate, AttrNumber attno);
+  bool TestRowScanInternal(TupleTableSlot *slot, ExprState *estate,
+                           AttrNumber attno);
 
   // filter is referenced only, the reader doesn't own it.
   PaxFilter *filter_ = nullptr;
@@ -21,4 +23,4 @@ class MicroPartitionRowFilterReader : public MicroPartitionReaderProxy {
   size_t local_index_ = 0;
   MicroPartitionReader::Group *group_ = nullptr;
 };
-}
+}  // namespace pax

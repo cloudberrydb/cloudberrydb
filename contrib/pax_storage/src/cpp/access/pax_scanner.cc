@@ -20,7 +20,8 @@
 
 #ifdef ENABLE_LOCAL_INDEX
 namespace paxc {
-bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot, bool * /*all_dead*/) {
+bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
+                      bool * /*all_dead*/) {
   paxc::ScanAuxContext context;
   HeapTuple tuple;
   char block_name[NAMEDATALEN];
@@ -29,19 +30,20 @@ bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot, bool * /
 
   aux_relid = ::paxc::GetPaxAuxRelid(RelationGetRelid(rel));
   snprintf(block_name, sizeof(block_name), "%u", pax::GetBlockNumber(*tid));
-  context.BeginSearchMicroPartition(aux_relid, InvalidOid, snapshot, AccessShareLock, block_name);
+  context.BeginSearchMicroPartition(aux_relid, InvalidOid, snapshot,
+                                    AccessShareLock, block_name);
   tuple = context.SearchMicroPartitionEntry();
   exists = HeapTupleIsValid(tuple);
   context.EndSearchMicroPartition(AccessShareLock);
   return exists;
 }
-}
+}  // namespace paxc
 #endif
 
 namespace pax {
 
 #ifdef ENABLE_LOCAL_INDEX
-PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel=rel} {
+PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel = rel} {
   Assert(rel);
   Assert(&base_ == reinterpret_cast<IndexFetchTableData *>(this));
 }
@@ -53,28 +55,29 @@ PaxIndexScanDesc::~PaxIndexScanDesc() {
   }
 }
 
-bool PaxIndexScanDesc::FetchTuple(ItemPointer tid, Snapshot snapshot, TupleTableSlot *slot, bool *call_again, bool *all_dead) {
+bool PaxIndexScanDesc::FetchTuple(ItemPointer tid, Snapshot snapshot,
+                                  TupleTableSlot *slot, bool *call_again,
+                                  bool *all_dead) {
   BlockNumber block = pax::GetBlockNumber(*tid);
   if (block != current_block_ || !reader_) {
-    if (!OpenMicroPartition(block, snapshot))
-      return false;
+    if (!OpenMicroPartition(block, snapshot)) return false;
   }
 
   Assert(current_block_ == block && reader_);
   if (call_again) *call_again = false;
   if (all_dead) *all_dead = false;
 
-  CTupleSlot cslot(slot);
-  auto ok = reader_->GetTuple(&cslot, pax::GetTupleOffset(*tid));
+  auto ok = reader_->GetTuple(slot, pax::GetTupleOffset(*tid));
   if (ok) {
-    cslot.SetBlockNumber(block);
-    cslot.StoreVirtualTuple();
+    SetBlockNumber(&slot->tts_tid, block);
+    ExecStoreVirtualTuple(slot);
   }
 
   return ok;
 }
 
-bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block, Snapshot snapshot) {
+bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block,
+                                          Snapshot snapshot) {
   bool ok;
 
   Assert(block != current_block_);
@@ -86,7 +89,8 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block, Snapshot snapshot) 
     auto block_name = std::to_string(block);
     options.block_id = block_name;
     options.file_name = cbdb::BuildPaxFilePath(base_.rel, block_name);
-    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(options.file_name, fs::kReadMode);
+    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
+        options.file_name, fs::kReadMode);
     auto reader = PAX_NEW<OrcReader>(file);
     reader->Open(options);
     if (reader_) {
@@ -108,13 +112,13 @@ bool PaxScanDesc::BitmapNextBlock(struct TBMIterateResult *tbmres) {
   return true;
 }
 
-bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult *tbmres, TupleTableSlot *slot) {
+bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult *tbmres,
+                                  TupleTableSlot *slot) {
   ItemPointerData tid;
   if (tbmres->ntuples < 0) {
     // lossy bitmap. The maximum value of the last 16 bits in CTID is
     // 0x7FFF + 1, i.e. 0x8000. See layout of ItemPointerData in PAX
-    if (cindex_ > 0X8000)
-      elog(ERROR, "unexpected offset in pax");
+    if (cindex_ > 0X8000) elog(ERROR, "unexpected offset in pax");
 
     ItemPointerSet(&tid, tbmres->blockno, cindex_);
   } else if (cindex_ < tbmres->ntuples) {
@@ -128,7 +132,8 @@ bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult *tbmres, TupleTableSlo
     return false;
   }
   ++cindex_;
-  return index_desc_->FetchTuple(&tid, rs_base_.rs_snapshot, slot, nullptr, nullptr);
+  return index_desc_->FetchTuple(&tid, rs_base_.rs_snapshot, slot, nullptr,
+                                 nullptr);
 }
 
 #else
@@ -137,7 +142,8 @@ bool PaxScanDesc::BitmapNextBlock(struct TBMIterateResult * /*tbmres*/) {
   return false;
 }
 
-bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult * /*tbmres*/, TupleTableSlot * /*slot*/) {
+bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult * /*tbmres*/,
+                                  TupleTableSlot * /*slot*/) {
   elog(ERROR, "This build doesn't support index");
   return false;
 }
@@ -229,7 +235,8 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
     auto wrap = PAX_NEW<FilterIterator<MicroPartitionMetadata>>(
         std::move(iter), [filter, relation](const auto &x) {
           MicroPartitionStatsProvider provider(x.GetStats());
-          auto ok = filter->TestScan(provider, RelationGetDescr(relation), PaxFilterStatisticsKind::kFile);
+          auto ok = filter->TestScan(provider, RelationGetDescr(relation),
+                                     PaxFilterStatisticsKind::kFile);
           return ok;
         });
     iter = std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(wrap);
@@ -330,7 +337,9 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
 }
 
 // FIXME: shall we take these parameters into account?
-void PaxScanDesc::ReScan(ScanKey /*key*/, bool /*set_params*/, bool /*allow_strat*/, bool /*allow_sync*/, bool /*allow_pagemode*/) {
+void PaxScanDesc::ReScan(ScanKey /*key*/, bool /*set_params*/,
+                         bool /*allow_strat*/, bool /*allow_sync*/,
+                         bool /*allow_pagemode*/) {
   MemoryContext old_ctx;
   Assert(reader_);
 
@@ -343,22 +352,23 @@ bool PaxScanDesc::GetNextSlot(TupleTableSlot *slot) {
   MemoryContext old_ctx;
   bool ok = false;
 
-  CTupleSlot cslot(slot);
   old_ctx = MemoryContextSwitchTo(memory_context_);
 
   Assert(reader_);
-  ok = reader_->ReadTuple(&cslot);
+  ok = reader_->ReadTuple(slot);
 
   MemoryContextSwitchTo(old_ctx);
   return ok;
 }
 
-bool PaxScanDesc::ScanAnalyzeNextBlock(BlockNumber blockno, BufferAccessStrategy /*bstrategy*/) {
+bool PaxScanDesc::ScanAnalyzeNextBlock(BlockNumber blockno,
+                                       BufferAccessStrategy /*bstrategy*/) {
   target_tuple_id_ = blockno;
   return true;
 }
 
-bool PaxScanDesc::ScanAnalyzeNextTuple(TransactionId /*oldest_xmin*/, double *liverows,
+bool PaxScanDesc::ScanAnalyzeNextTuple(TransactionId /*oldest_xmin*/,
+                                       double *liverows,
                                        const double * /* deadrows */,
                                        TupleTableSlot *slot) {
   MemoryContext old_ctx;
