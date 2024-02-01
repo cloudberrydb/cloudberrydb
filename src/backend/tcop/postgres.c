@@ -97,6 +97,7 @@
 #include "cdb/cdbsrlz.h"
 #include "cdb/cdbtm.h"
 #include "cdb/cdbdtxcontextinfo.h"
+#include "cdb/cdbdisp_extra.h"
 #include "cdb/cdbdisp_query.h"
 #include "cdb/cdbdispatchresult.h"
 #include "cdb/cdbendpoint.h"
@@ -5684,6 +5685,8 @@ PostgresMain(int argc, char *argv[],
 					resgroupInfoLen = pq_getmsgint(&input_message, 4);
 					if (resgroupInfoLen > 0)
 						resgroupInfoBuf = pq_getmsgbytes(&input_message, resgroupInfoLen);
+
+					UnPackExtraMsgs(&input_message);
 
 					pq_getmsgend(&input_message);
 
