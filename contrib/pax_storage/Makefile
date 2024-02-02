@@ -29,7 +29,7 @@ all: build-pax
 build-pax:
 	@echo "build pax"
 	mkdir -p build
-	cd build && cmake .. && make -j && cp src/cpp/libpax.so ../pax.so
+	cd build && cmake .. -DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) && make -j && cp src/cpp/libpax.so ../pax.so
 
 install-data: build-pax
 	$(INSTALL_DATA) pax-cdbinit--1.0.sql '$(DESTDIR)$(datadir)/cdb_init.d/pax-cdbinit--1.0.sql'
@@ -37,6 +37,7 @@ install-data: build-pax
 .PHONY: install
 install: install-data
 	@echo "install data"
+	make -C build install
 
 .PHONY: uninstall-data
 

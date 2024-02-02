@@ -63,6 +63,8 @@ set(PAX_COMM_HEADERS
   comm/log.h
   comm/cbdb_wrappers.h
   comm/pax_rel.h
+  comm/pax_memory.h
+  comm/guc.h
 )
 
 set(PAX_EXCEPTION_HEADERS

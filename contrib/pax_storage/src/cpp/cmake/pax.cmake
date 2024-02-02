@@ -187,3 +187,7 @@ if (BUILD_TOOLS)
   add_dependencies(pax_dump ${pax_target_dependencies})
   target_link_libraries(pax_dump PUBLIC pax protobuf)
 endif(BUILD_TOOLS)
+
+## install dynamic libraray
+install(TARGETS pax
+  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
