@@ -44,7 +44,8 @@ declare -a PORTS=(5432 10001 10002 10003)
 ((PORT_MIN=0))
 ((PORT_MAX=$NUM_PRIMARY_MIRROR_PAIRS))
 
-if [ -z $PORT_BASE ] ; then
+PORT_BASE=$DEMO_PORT_BASE
+if [ -z "$PORT_BASE" ] ; then
     echo "set PORT_BASE"
     exit 1
 fi
@@ -65,7 +66,7 @@ for ((i=PORT_MIN; i<PORT_MAX+1; i++)); do
     echo "======================================================================"
     echo "Probing segment instance at port number ${PORTS[$i]}"
     echo "======================================================================"
-    if [ ${i} -eq 0 ]; then 
+    if [ ${i} -eq 0 ]; then
         for table in ${TABLESQD[@]}; do
             echo ""
             echo "----------------------------------------"
