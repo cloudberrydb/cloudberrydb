@@ -240,6 +240,9 @@ test: disable_autovacuum
 # Run uao[cs]_catalog_tables separately. They run VACUUM FULL on
 # append-optimized tables and assume that no AWAITING_DROP segfiles exist at
 # the end of VACUUM FULL.
+
+# uao_catalog_tables/uaocs_catalog_tables/uao_compaction/threshold/uaocs_compaction/threshold
+# should always be below disable_autovacuum, don't change the order.
 test: uao_catalog_tables
 test: uaocs_catalog_tables
 test: uao_compaction/threshold

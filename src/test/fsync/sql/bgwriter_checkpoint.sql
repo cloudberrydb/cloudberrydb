@@ -24,6 +24,20 @@ alter system set autovacuum = off;
 select gp_segment_id, pg_reload_conf() from gp_id union select gp_segment_id, pg_reload_conf() from gp_dist_random('gp_id');
 
 begin;
+create or replace function wait_until_dirty_buffer_flushed() returns text as $$
+begin
+	for i in 1..60 loop
+		if ((select count(*) = 0 from dirty_buffers_on_qes() as (tablespace oid, database oid, relfilenode int8, block int)) AND 
+         (select count(*) = 0 from dirty_buffers_on_qd() as (tablespace oid, database oid, relfilenode int8, block int))) then
+			return 'OK'; /* in func */
+		end if; /* in func */
+		perform pg_sleep(0.1); /* in func */
+		checkpoint; /* in func */
+ 	end loop; /* in func */
+	return 'Fail'; /* in func */
+end; /* in func */
+$$ language plpgsql;
+
 create function num_dirty_on_qes(relid oid) returns setof bigint as
 $$
 declare
@@ -86,6 +100,9 @@ select gp_inject_fault_infinite('all', 'reset', dbid) from gp_segment_configurat
 -- Start with a clean slate (no dirty buffers).
 checkpoint;
 
+-- Ensure no buffers are dirty before we start.
+select wait_until_dirty_buffer_flushed();
+
 -- Skip checkpoints.
 select gp_inject_fault_infinite('checkpoint', 'skip', dbid)
 from gp_segment_configuration where role = 'p' and content > -1;
@@ -93,12 +110,6 @@ from gp_segment_configuration where role = 'p' and content > -1;
 -- Suspend bgwriter.
 select gp_inject_fault_infinite('fault_in_background_writer_main', 'suspend', dbid)
 from gp_segment_configuration where role = 'p' and content > -1;
-
--- Ensure no buffers are dirty before we start.
-select * from dirty_buffers_on_qd()
- as (tablespace oid, database oid, relfilenode int8, block int);
-select * from dirty_buffers_on_qes()
- as (tablespace oid, database oid, relfilenode int8, block int);
 
 -- Make buffers dirty.  At least two relfiles must be sync'ed during
 -- next checkpoint.
