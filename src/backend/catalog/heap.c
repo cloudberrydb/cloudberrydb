@@ -1654,6 +1654,10 @@ heap_create_with_catalog(const char *relname,
 	 * NAMEDATALEN and gets truncated. Then the name may same with other child
 	 * table's.
 	 *
+	 * Auxiliary relations in pg_ext_aux don't need array type. Relations in
+	 * pg_ext_aux are assumed simple relation, their array types are unexpected
+	 * to be used in the extension code.
+	 *
 	 * The below code is different from upstream since we preassign type
 	 * OID first on QD and use the name as key to retrieve the pre-assigned
 	 * OID from QE.
@@ -1666,7 +1670,10 @@ heap_create_with_catalog(const char *relname,
 		  relkind == RELKIND_AOBLOCKDIR ||
 		  relkind == RELKIND_AOVISIMAP ||
 		  relnamespace == PG_BITMAPINDEX_NAMESPACE ||
-		  relnamespace == PG_EXTAUX_NAMESPACE))
+		  (relnamespace == PG_EXTAUX_NAMESPACE &&
+		   (relkind == RELKIND_RELATION ||
+			relkind == RELKIND_VIEW ||
+			relkind == RELKIND_MATVIEW))))
 	{
 		/* OK, so pre-assign a type OID for the array type */
 		Oid			new_array_oid;
