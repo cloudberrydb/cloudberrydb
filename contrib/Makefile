@@ -60,7 +60,15 @@ SUBDIRS += \
 		formatter_fixedwidth \
 		extprotocol \
 		pax_storage \
-		indexscan
+		indexscan  \
+		datalake_agent \
+		datalake_fdw \
+		datalake_proxy \
+		vbf \
+		dfs-tablespace-ext \
+		pg_gophermeta \
+		vectorization
+		
 
 ifeq ($(with_ssl),openssl)
 SUBDIRS += sslinfo
