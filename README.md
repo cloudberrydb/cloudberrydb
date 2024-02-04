@@ -10,11 +10,12 @@
     Next Generation Unified Database for Analytics and AI
 </p>
 
+[![Website](https://img.shields.io/badge/Website-eebc46)](https://cloudberrydb.org)
+[![Documentation](https://img.shields.io/badge/Documentation-acd94a)](https://cloudberrydb.org/docs)
 [![Slack](https://img.shields.io/badge/Join_Slack-6a32c9)](https://communityinviter.com/apps/cloudberrydb/welcome)
 [![Twitter Follow](https://img.shields.io/twitter/follow/cloudberrydb)](https://twitter.com/cloudberrydb)
 [![WeChat](https://img.shields.io/badge/WeChat-eebc46)](https://cloudberrydb.org/community/wechat)
 [![Youtube](https://img.shields.io/badge/Youtube-gebc46)](https://youtube.com/@cloudberrydb)
-[![Website](https://img.shields.io/badge/Visit%20Website-eebc46)](https://cloudberrydb.org)
 [![GitHub Discussions](https://img.shields.io/github/discussions/cloudberrydb/cloudberrydb)](https://github.com/orgs/cloudberrydb/discussions)
 ![GitHub commit activity(branch)](https://img.shields.io/github/commit-activity/m/cloudberrydb/cloudberrydb)
 ![GitHub contributors](https://img.shields.io/github/contributors/cloudberrydb/cloudberrydb)
@@ -24,84 +25,41 @@
 
 ---------
 
-Cloudberry Database (CBDB) is shipped with PostgreSQL 14.4 as its
-kernel and is forked from Greenplum Database 7, which serves as our
-code base.
+## What's Cloudberry Database
 
-## Features
+Cloudberry Database (`CBDB` or `CloudberryDB` for short) is created by a bunch
+of original Greenplum Database developers and ASF committers. We aim to bring
+modern computing capabilities to the traditional distributed MPP database to
+support Analytics and AI/ML workloads in one platform.
 
-Cloudberry Database is compatible with Greenplum, and provides all the
-Greenplum features you need. In addition, Cloudberry Database possesses some
-features that Greenplum currently lacks or does not support. Visit this
-[feature comparison doc](https://cloudberrydb.org/docs/cbdb-vs-gp-features)
-for details.
+As a derivative of Greenplum Database 7, Cloudberry Database is compatible
+with Greenplum Database, but it's shipped with a newer PostgreSQL 14.4 kernel
+(scheduled kernel upgrade yearly) and a bunch of features Greenplum Database
+lacks or does not support. View the [Cloudberry Database vs Greenplum
+Database](https://cloudberrydb.org/docs/cbdb-vs-gp-features) doc for details.
 
-## Code layout
+## Roadmap
 
-The directory layout of the repository follows the same general layout
-as upstream PostgreSQL. There are changes compared to PostgreSQL
-throughout the codebase, but a few larger additions worth noting:
+You can check our [Cloudberry Database Roadmap
+2024](https://github.com/orgs/cloudberrydb/discussions/369) out to see the
+product plans and goals we want to achieve in 2024. Welcome to share your
+thoughts and ideas to join us in shaping the future of the Cloudberry
+Database.
 
-* __gpMgmt/__ : Contains CloudberryDB-specific command-line tools for
-    managing the cluster. Scripts like gpinit, gpstart, and gpstop
-    live here. They are mostly written in Python.
+## Build and try out
 
-* __gpAux/__ : Contains CloudberryDB-specific release management
-    scripts, and vendored dependencies. Some additional directories
-    are submodules and will be made available over time.
+### Build from source
 
-* __gpcontrib/__ : Much like the PostgreSQL contrib/ directory, this
-    directory contains extensions such as gpfdist, PXF and gpmapreduce
-    which are CloudberryDB-specific.
+You can follow [these guides](./readmes) to build the Cloudberry Database on
+Linux OS(including CentOS, RHEL/Rocky Linux, and Ubuntu) and macOS.
 
-* __doc/__ : In PostgreSQL, the user manual lives here. In Cloudberry
-    Database, the user manual is maintained separately at [Cloudberry
-    Database Website
-    Repo](https://github.com/cloudberrydb/cloudberrydb-site/tree/main).
+### Try out quickly
 
-* __src/__
-
-  * __src/backend/cdb/__ : Contains larger CloudberryDB-specific
-    backend modules. For example, communication between segments,
-    turning plans into parallelizable plans, mirroring, distributed
-    transaction and snapshot management, etc. __cdb__ stands for
-    __Cluster Database__ - it was a workname used in the early
-    days. That name is no longer used, but the __cdb__ prefix remains.
-
-  * __src/backend/gpopt/__ : Contains the so-called __translator__
-    library, for using the GPORCA optimizer with Cloudberry
-    Database. The translator library is written in C++ code, and
-    contains glue code for translating plans and queries between the
-    DXL format used by GPORCA, and the PostgreSQL internal
-    representation.
-
-  * __src/backend/gporca/__ : Contains the GPORCA optimizer code and
-    tests. This is written in C++. See
-    [README.md](src/backend/gporca/README.md) for more information and
-    how to unit-test GPORCA.
-
-  * __src/backend/fts/__ : FTS is a process that runs in the
-    coordinator node, and periodically polls the segments to maintain
-    the status of each segment.
-
-## Building Cloudberry Database
-
-You can follow [these guides](./readmes) to build the Cloudberry
-Database on Linux OS(including CentOS, RHEL, and Ubuntu) and macOS.
-
-## Documentation
-
-For Cloudberry Database documentation, please check the [documentation
-website](https://cloudberrydb.org/docs/). Our documents are still in
-construction, welcome to help. If you're interested in [document
-contribution](https://cloudberrydb.org/contribute/doc), you can submit
-the pull request
-[here](https://github.com/cloudberrydb/cloudberrydb-site/tree/main/docs).
-
-We also recommend you take [PostgreSQL
-Documentation](https://www.postgresql.org/docs/) and [Greenplum
-Documentation](https://docs.vmware.com/en/VMware-Greenplum/6/greenplum-database/landing-index.html#differences-compared-to-open-source-greenplum-database)
-as quick references.
+Welcome to try out Cloudberry Database via building [one Docker-based
+Sandbox](https://github.com/cloudberrydb/bootcamp), which is tailored to help
+you gain a basic understanding of Cloudberry Database's capabilities and
+features a range of materials, including tutorials, sample code, and crash
+courses.
 
 ## Repositories
 
@@ -109,36 +67,11 @@ This is the main repository for Cloudberry Database. Alongside this, there are
 several ecosystem repositories for the Cloudberry Database, including the
 website, extensions, connectors, adapters, and other utilities.
 
-* [cloudberrydb/cloudberrydb-site](https://github.com/cloudberrydb/cloudberrydb-site): website sources.
-* [bootcamp](https://github.com/cloudberrydb/bootcamp): help you quickly try out Cloudberry Database via one Docker-based Sandbox.
-* [gpbackup](https://github.com/cloudberrydb/gpbackup): backup utility for Cloudberry Database.
-* [gp-common-go-libs](https://github.com/cloudberrydb/gp-common-go-libs): gp-common-go-libs for Cloudberry Database.
+* [cloudberrydb/cloudberrydb-site](https://github.com/cloudberrydb/cloudberrydb-site): website and documentation sources.
+* [cloudberrydb/bootcamp](https://github.com/cloudberrydb/bootcamp): help you quickly try out Cloudberry Database via one Docker-based Sandbox.
+* [cloudberrydb/gpbackup](https://github.com/cloudberrydb/gpbackup): backup utility for Cloudberry Database.
+* [cloudberrydb/gp-common-go-libs](https://github.com/cloudberrydb/gp-common-go-libs): gp-common-go-libs for Cloudberry Database.
 * More is coming...
-
-## Contribution
-
-Cloudberry Database is maintained actively by a group of community
-database experts by individuals and companies. We believe in the
-Apache Way "Community Over Code" and we want to make Cloudberry
-Database a community-driven project.
-
-Contributions can be diverse, such as code enhancements, bug fixes,
-feature proposals, documents, marketing, and so on. No contribution is
-too small, we encourage all types of contributions. Cloudberry
-Database community welcomes contributions from anyone, new and
-experienced! Our [contribution
-guide](https://cloudberrydb.org/contribute/how-to-contribute) will
-help you get started with the contribution.
-
-| Type | Description |
-|----|---------------|
-| Code contribution | Learn how to contribute code to the Cloudberry Database, including coding preparation, conventions, workflow, review, and checklist following the [code contribution guide](https://cloudberrydb.org/contribute/code).|
-| Submit the proposal | Proposing major changes to Cloudberry Database through [proposal guide](https://cloudberrydb.org/contribute/proposal).|
-| Doc contribution | We need you to join us to help us improve the documentation, see the [doc contribution guide](https://cloudberrydb.org/contribute/doc).|
-
-For better collaboration, it's important for developers to learn how
-to work well with Git and GitHub, see the guide ["Working with Git &
-GitHub"](https://cloudberrydb.org/contribute/git).
 
 ## Community & Support
 
@@ -156,14 +89,44 @@ feedback, and chat:
 | Documentation | [Official documentation](https://cloudberrydb.org/docs/) for Cloudberry Database. You can explore it to discover more details about us. |
 
 When you are involved, please follow our community [Code of
-Conduct](https://cloudberrydb.org/community/coc) to help create a safe
-space for everyone.
+Conduct](https://cloudberrydb.org/community/coc) to help create a safe space
+for everyone.
+
+## Contribution
+
+We believe in the Apache Way "Community Over Code" and we want to make
+Cloudberry Database a community-driven project.
+
+Contributions can be diverse, such as code enhancements, bug fixes, feature
+proposals, documents, marketing, and so on. No contribution is too small, we
+encourage all types of contributions. Cloudberry Database community welcomes
+contributions from anyone, new and experienced! Our [contribution
+guide](https://cloudberrydb.org/contribute) will help you get started with the
+contribution.
+
+| Type | Description |
+|----|---------------|
+| Code contribution | Learn how to contribute code to the Cloudberry Database, including coding preparation, conventions, workflow, review, and checklist following the [code contribution guide](https://cloudberrydb.org/contribute/code).|
+| Submit the proposal | Proposing major changes to Cloudberry Database through [proposal guide](https://cloudberrydb.org/contribute/proposal).|
+| Doc contribution | We need you to join us to help us improve the documentation, see the [doc contribution guide](https://cloudberrydb.org/contribute/doc).|
+
+## Contributors Wall
+
+Thanks to all the people who already contributed!
+
+<a href="https://github.com/cloudberrydb/cloudberrydb/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=cloudberrydb/cloudberrydb&max=800&columns=20&anon=0" />
+</a>
+
+<sub>Please note that the images shown above highlight the avatars of our
+active and upstream contributors while not including anonymous
+contributors. To view all the contributors, you can click on the images.</sub>
 
 ## Acknowledgment
 
 Thanks to [PostgreSQL](https://www.postgresql.org/), [Greenplum
-Database](https://greenplum.org/) and other great open source projects
-to make Cloudberry Database has a sound foundation.
+Database](https://greenplum.org/) and other great open source projects to make
+Cloudberry Database has a sound foundation.
 
 ## License
 
