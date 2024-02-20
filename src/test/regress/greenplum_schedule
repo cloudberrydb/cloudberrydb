@@ -15,6 +15,9 @@
 #   hitting max_connections limit on segments.
 #
 
+# test for builtin namespace pg_ext_aux
+test: pg_ext_aux
+
 test: gp_dispatch_keepalives
 
 # copy command
