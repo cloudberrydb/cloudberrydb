@@ -17,7 +17,8 @@ OBJS = \
 	copydir.o \
 	fd.o \
 	reinit.o \
-	sharedfileset.o
+	sharedfileset.o \
+	ufile.o
 
 OBJS += execute_pipe.o gp_compress.o
 

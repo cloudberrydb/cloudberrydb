@@ -627,6 +627,7 @@ vacuum_one_database(ConnParams *cparams,
 	{
 		appendPQExpBufferStr(&catalog_query, " WHERE c.relkind OPERATOR(pg_catalog.=) ANY (array["
 							 CppAsString2(RELKIND_RELATION) ", "
+							 CppAsString2(RELKIND_DIRECTORY_TABLE) ", "
 							 CppAsString2(RELKIND_MATVIEW) "])\n");
 		has_where = true;
 	}

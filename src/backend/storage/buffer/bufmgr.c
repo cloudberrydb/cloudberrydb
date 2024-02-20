@@ -3137,6 +3137,7 @@ RelationGetNumberOfBlocksInFork(Relation relation, ForkNumber forkNum)
 			return smgrnblocks(relation->rd_smgr, forkNum);
 
 		case RELKIND_RELATION:
+		case RELKIND_DIRECTORY_TABLE:
 		case RELKIND_TOASTVALUE:
 		case RELKIND_MATVIEW:
 		case RELKIND_AOSEGMENTS:

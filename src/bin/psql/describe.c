@@ -1330,6 +1330,7 @@ permissionsList(const char *pattern)
 					  "  c.relname as \"%s\",\n"
 					  "  CASE c.relkind"
 					  " WHEN " CppAsString2(RELKIND_RELATION) " THEN '%s'"
+					  " WHEN " CppAsString2(RELKIND_DIRECTORY_TABLE) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_VIEW) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_MATVIEW) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_SEQUENCE) " THEN '%s'"
@@ -1340,6 +1341,7 @@ permissionsList(const char *pattern)
 					  gettext_noop("Schema"),
 					  gettext_noop("Name"),
 					  gettext_noop("table"),
+					  gettext_noop("directory table"),
 					  gettext_noop("view"),
 					  gettext_noop("materialized view"),
 					  gettext_noop("sequence"),
@@ -1427,6 +1429,7 @@ permissionsList(const char *pattern)
 						 "     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n"
 						 "WHERE c.relkind IN ("
 						 CppAsString2(RELKIND_RELATION) ","
+						 CppAsString2(RELKIND_DIRECTORY_TABLE) ","
 						 CppAsString2(RELKIND_VIEW) ","
 						 CppAsString2(RELKIND_MATVIEW) ","
 						 CppAsString2(RELKIND_SEQUENCE) ","
@@ -2315,6 +2318,7 @@ describeOneTableDetails(const char *schemaname,
 
 	/* Identify whether we should print collation, nullable, default vals */
 	if (tableinfo.relkind == RELKIND_RELATION ||
+		tableinfo.relkind == RELKIND_DIRECTORY_TABLE ||
 		tableinfo.relkind == RELKIND_VIEW ||
 		tableinfo.relkind == RELKIND_MATVIEW ||
 		tableinfo.relkind == RELKIND_FOREIGN_TABLE ||
@@ -2403,6 +2407,7 @@ describeOneTableDetails(const char *schemaname,
 
 		/* stats target, if relevant to relkind */
 		if (tableinfo.relkind == RELKIND_RELATION ||
+			tableinfo.relkind == RELKIND_DIRECTORY_TABLE ||
 			tableinfo.relkind == RELKIND_INDEX ||
 			tableinfo.relkind == RELKIND_PARTITIONED_INDEX ||
 			tableinfo.relkind == RELKIND_MATVIEW ||
@@ -2427,6 +2432,7 @@ describeOneTableDetails(const char *schemaname,
 		 * types, and foreign tables (cf. CommentObject() in comment.c).
 		 */
 		if (tableinfo.relkind == RELKIND_RELATION ||
+			tableinfo.relkind == RELKIND_DIRECTORY_TABLE ||
 			tableinfo.relkind == RELKIND_VIEW ||
 			tableinfo.relkind == RELKIND_MATVIEW ||
 			tableinfo.relkind == RELKIND_FOREIGN_TABLE ||
@@ -2461,6 +2467,10 @@ describeOneTableDetails(const char *schemaname,
 								  schemaname, relationname);
 			else
 				printfPQExpBuffer(&title, _("Table \"%s.%s\""),
+								  schemaname, relationname);
+			break;
+		case RELKIND_DIRECTORY_TABLE:
+				printfPQExpBuffer(&title, _("Directory able \"%s.%s\""),
 								  schemaname, relationname);
 			break;
 		case RELKIND_VIEW:
@@ -2917,6 +2927,7 @@ describeOneTableDetails(const char *schemaname,
 	}
 	/* If you add relkinds here, see also "Finish printing..." stanza below */
 	else if (tableinfo.relkind == RELKIND_RELATION ||
+			 tableinfo.relkind == RELKIND_DIRECTORY_TABLE ||
 			 tableinfo.relkind == RELKIND_MATVIEW ||
 			 tableinfo.relkind == RELKIND_FOREIGN_TABLE ||
 			 tableinfo.relkind == RELKIND_PARTITIONED_TABLE ||
@@ -3859,6 +3870,7 @@ describeOneTableDetails(const char *schemaname,
 	 * Finish printing the footer information about a table.
 	 */
 	if (tableinfo.relkind == RELKIND_RELATION ||
+		tableinfo.relkind == RELKIND_DIRECTORY_TABLE ||
 		tableinfo.relkind == RELKIND_MATVIEW ||
 		tableinfo.relkind == RELKIND_FOREIGN_TABLE ||
 		tableinfo.relkind == RELKIND_PARTITIONED_TABLE ||
@@ -4937,6 +4949,7 @@ listDbRoleSettings(const char *pattern, const char *pattern2)
  * m - materialized views
  * s - sequences
  * E - foreign table (Note: different from 'f', the relkind value)
+ * Y - directory table
  * (any order of the above is fine)
  */
 bool
@@ -4949,6 +4962,7 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 	bool		showMatViews = strchr(tabtypes, 'm') != NULL;
 	bool		showSeq = strchr(tabtypes, 's') != NULL;
 	bool		showForeign = strchr(tabtypes, 'E') != NULL;
+	bool		showDirectory = strchr(tabtypes, 'Y') != NULL;
 
 	PQExpBufferData buf;
 	PGresult   *res;
@@ -4957,8 +4971,8 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 	bool		translate_columns[] = {false, false, true, false, false, false, false, false, false};
 
 	/* If tabtypes is empty, we default to \dtvmsE (but see also command.c) */
-	if (!(showTables || showIndexes || showViews || showMatViews || showSeq || showForeign))
-		showTables = showViews = showMatViews = showSeq = showForeign = true;
+	if (!(showTables || showIndexes || showViews || showMatViews || showSeq || showForeign || showDirectory))
+		showTables = showViews = showMatViews = showSeq = showForeign = showDirectory = true;
 
 	bool		showExternal = showForeign;
 
@@ -4979,6 +4993,7 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 					  "  c.relname as \"%s\",\n"
 					  "  CASE c.relkind"
 					  " WHEN " CppAsString2(RELKIND_RELATION) " THEN '%s'"
+					  " WHEN " CppAsString2(RELKIND_DIRECTORY_TABLE) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_VIEW) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_MATVIEW) " THEN '%s'"
 					  " WHEN " CppAsString2(RELKIND_INDEX) " THEN '%s'"
@@ -4992,6 +5007,7 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 					  gettext_noop("Schema"),
 					  gettext_noop("Name"),
 					  gettext_noop("table"),
+					  gettext_noop("directory table"),
 					  gettext_noop("view"),
 					  gettext_noop("materialized view"),
 					  gettext_noop("index"),
@@ -5113,6 +5129,8 @@ listTables(const char *tabtypes, const char *pattern, bool verbose, bool showSys
 		if (showSystem || pattern)
 			appendPQExpBufferStr(&buf, CppAsString2(RELKIND_TOASTVALUE) ",");
 	}
+	if (showDirectory)
+		appendPQExpBufferStr(&buf, CppAsString2(RELKIND_DIRECTORY_TABLE) ",");
 	if (showViews)
 		appendPQExpBufferStr(&buf, CppAsString2(RELKIND_VIEW) ",");
 	if (showMatViews)

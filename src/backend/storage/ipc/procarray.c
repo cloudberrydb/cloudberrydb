@@ -2079,6 +2079,7 @@ GlobalVisHorizonKindForRel(Relation rel)
 	Assert(!rel ||
 		   rel->rd_rel->relkind == RELKIND_RELATION ||
 		   rel->rd_rel->relkind == RELKIND_MATVIEW ||
+		   rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE ||
 		   rel->rd_rel->relkind == RELKIND_AOSEGMENTS ||
 		   rel->rd_rel->relkind == RELKIND_AOVISIMAP ||
 		   rel->rd_rel->relkind == RELKIND_AOBLOCKDIR ||

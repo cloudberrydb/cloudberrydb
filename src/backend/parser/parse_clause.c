@@ -1319,7 +1319,8 @@ transformFromClauseItem(ParseState *pstate, Node *n,
 		if (rte->rtekind != RTE_RELATION ||
 			(rte->relkind != RELKIND_RELATION &&
 			 rte->relkind != RELKIND_MATVIEW &&
-			 rte->relkind != RELKIND_PARTITIONED_TABLE))
+			 rte->relkind != RELKIND_PARTITIONED_TABLE &&
+			 rte->relkind != RELKIND_DIRECTORY_TABLE))
 			ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 					 errmsg("TABLESAMPLE clause can only be applied to tables and materialized views"),

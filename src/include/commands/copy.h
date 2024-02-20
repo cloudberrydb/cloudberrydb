@@ -119,6 +119,7 @@ typedef struct CopyFormatOptions
 	bool		delim_off;	/* delimiter is set to OFF? */
 	EolType		eol_type;		/* EOL type of input */
 	char	   *eol_str;		/* optional NEWLINE from command. before eol_type is defined */
+	char	   *tags;			/* directory table */
 	SingleRowErrorDesc *sreh;
 	/* end Cloudberry Database specific variables */
 } CopyFormatOptions;
@@ -143,6 +144,7 @@ extern void DoCopy(ParseState *state, const CopyStmt *stmt,
 				   uint64 *processed);
 
 extern void ProcessCopyOptions(ParseState *pstate, CopyFormatOptions *ops_out, bool is_from, List *options, Oid rel_oid);
+extern void ProcessCopyDirectoryTableOptions(ParseState *pstate, CopyFormatOptions *ops_out, bool is_from, List *options, Oid rel_oid);
 extern CopyFromState BeginCopyFrom(ParseState *pstate, Relation rel, Node *whereClause,
 								   const char *filename,
 								   bool is_program, copy_data_source_cb data_source_cb,

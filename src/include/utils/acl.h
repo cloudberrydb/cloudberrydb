@@ -160,6 +160,7 @@ typedef struct ArrayType Acl;
 #define ACL_ALL_RIGHTS_EXTPROTOCOL  (ACL_INSERT|ACL_SELECT)
 #define ACL_ALL_RIGHTS_FDW			(ACL_USAGE)
 #define ACL_ALL_RIGHTS_FOREIGN_SERVER (ACL_USAGE)
+#define ACL_ALL_RIGHTS_STORAGE_SERVER (ACL_USAGE)
 #define ACL_ALL_RIGHTS_FUNCTION		(ACL_EXECUTE)
 #define ACL_ALL_RIGHTS_LANGUAGE		(ACL_USAGE)
 #define ACL_ALL_RIGHTS_LARGEOBJECT	(ACL_SELECT|ACL_UPDATE)
@@ -260,6 +261,8 @@ extern AclMode pg_foreign_data_wrapper_aclmask(Oid fdw_oid, Oid roleid,
 											   AclMode mask, AclMaskHow how);
 extern AclMode pg_foreign_server_aclmask(Oid srv_oid, Oid roleid,
 										 AclMode mask, AclMaskHow how);
+extern AclMode gp_storage_server_aclmask(Oid srv_oid, Oid roleid,
+										 AclMode mask, AclMaskHow how);
 extern AclMode pg_extprotocol_aclmask(Oid ptc_oid, Oid roleid,
 									  AclMode mask, AclMaskHow how);
 extern AclMode pg_type_aclmask(Oid type_oid, Oid roleid,
@@ -284,6 +287,7 @@ extern AclResult pg_namespace_aclcheck(Oid nsp_oid, Oid roleid, AclMode mode);
 extern AclResult pg_tablespace_aclcheck(Oid spc_oid, Oid roleid, AclMode mode);
 extern AclResult pg_foreign_data_wrapper_aclcheck(Oid fdw_oid, Oid roleid, AclMode mode);
 extern AclResult pg_foreign_server_aclcheck(Oid srv_oid, Oid roleid, AclMode mode);
+extern AclResult gp_storage_server_aclcheck(Oid srv_oid, Oid roleid, AclMode mode);
 extern AclResult pg_extprotocol_aclcheck(Oid ptc_oid, Oid roleid, AclMode mode);
 extern AclResult pg_type_aclcheck(Oid type_oid, Oid roleid, AclMode mode);
 
@@ -318,6 +322,7 @@ extern bool pg_ts_dict_ownercheck(Oid dict_oid, Oid roleid);
 extern bool pg_ts_config_ownercheck(Oid cfg_oid, Oid roleid);
 extern bool pg_foreign_data_wrapper_ownercheck(Oid srv_oid, Oid roleid);
 extern bool pg_foreign_server_ownercheck(Oid srv_oid, Oid roleid);
+extern bool gp_storage_server_ownercheck(Oid srv_oid, Oid roleid);
 extern bool pg_event_trigger_ownercheck(Oid et_oid, Oid roleid);
 extern bool pg_extension_ownercheck(Oid ext_oid, Oid roleid);
 extern bool pg_publication_ownercheck(Oid pub_oid, Oid roleid);

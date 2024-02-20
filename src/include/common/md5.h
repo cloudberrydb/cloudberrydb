@@ -30,5 +30,6 @@ extern bool pg_md5_hash(const void *buff, size_t len, char *hexsum);
 extern bool pg_md5_binary(const void *buff, size_t len, void *outbuf);
 extern bool pg_md5_encrypt(const char *passwd, const char *salt,
 						   size_t salt_len, char *buf);
+extern void bytesToHex(uint8 b[16], char *s);
 
 #endif							/* PG_MD5_H */

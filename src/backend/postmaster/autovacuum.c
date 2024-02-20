@@ -2173,6 +2173,7 @@ do_autovacuum(void)
 		bool		wraparound;
 
 		if (classForm->relkind != RELKIND_RELATION &&
+			classForm->relkind != RELKIND_DIRECTORY_TABLE &&
 			classForm->relkind != RELKIND_MATVIEW &&
 			classForm->relkind != RELKIND_AOSEGMENTS &&
 			classForm->relkind != RELKIND_AOBLOCKDIR &&
@@ -2362,7 +2363,8 @@ do_autovacuum(void)
 		 * completely unrelated to the one we saw before.
 		 */
 		if (!((classForm->relkind == RELKIND_RELATION ||
-			   classForm->relkind == RELKIND_MATVIEW) &&
+			   classForm->relkind == RELKIND_MATVIEW ||
+			   classForm->relkind == RELKIND_DIRECTORY_TABLE) &&
 			  classForm->relpersistence == RELPERSISTENCE_TEMP))
 		{
 			UnlockRelationOid(relid, AccessExclusiveLock);
@@ -2859,6 +2861,7 @@ extract_autovac_opts(HeapTuple tup, TupleDesc pg_class_desc)
 
 	Assert(((Form_pg_class) GETSTRUCT(tup))->relkind == RELKIND_RELATION ||
 		   ((Form_pg_class) GETSTRUCT(tup))->relkind == RELKIND_MATVIEW ||
+		   ((Form_pg_class) GETSTRUCT(tup))->relkind == RELKIND_DIRECTORY_TABLE ||
 		   ((Form_pg_class) GETSTRUCT(tup))->relkind == RELKIND_TOASTVALUE ||
 		   ((Form_pg_class) GETSTRUCT(tup))->relkind == RELKIND_AOSEGMENTS ||
 		   ((Form_pg_class) GETSTRUCT(tup))->relkind == RELKIND_AOBLOCKDIR ||

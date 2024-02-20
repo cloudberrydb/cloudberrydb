@@ -62,7 +62,8 @@ gp_distribution_policy_table_check(PG_FUNCTION_ARGS)
 
 	/* Validate that the relation is a table */
 	if (rel->rd_rel->relkind != RELKIND_RELATION &&
-		rel->rd_rel->relkind != RELKIND_MATVIEW)
+		rel->rd_rel->relkind != RELKIND_MATVIEW &&
+		rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
 	{
 		ereport(ERROR,
 				(errcode(ERRCODE_INTERNAL_ERROR),

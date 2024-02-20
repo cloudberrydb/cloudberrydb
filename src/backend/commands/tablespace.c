@@ -83,6 +83,7 @@
 #include "commands/tablespace.h"
 #include "common/file_perm.h"
 #include "miscadmin.h"
+#include "parser/parse_func.h"
 #include "postmaster/bgwriter.h"
 #include "storage/bufmgr.h"
 #include "storage/fd.h"
@@ -269,6 +270,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	Oid			ownerId;
 	Datum		newOptions;
 	List       *nonContentOptions = NIL;
+	char       *fileHandler = NULL;
 
 	/* Must be super user */
 	if (!superuser())
@@ -323,6 +325,9 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 
 	if (!location)
 		location = pstrdup(stmt->location);
+
+	if (stmt->filehandler)
+		fileHandler = pstrdup(stmt->filehandler);
 
 	/* Unix-ify the offered path, and strip any trailing slashes */
 	canonicalize_path(location);
@@ -419,6 +424,26 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	values[Anum_pg_tablespace_spcowner - 1] =
 		ObjectIdGetDatum(ownerId);
 	nulls[Anum_pg_tablespace_spcacl - 1] = true;
+
+	if (fileHandler)
+	{
+		List	*fileHandler_list;
+		char	*spcfilehandlerbin = NULL;
+		char	*spcfilehandlersrc = NULL;
+
+		SplitIdentifierString(fileHandler, ',', &fileHandler_list);
+
+		spcfilehandlerbin = (char *) linitial(fileHandler_list);
+		spcfilehandlersrc = (char *) lsecond(fileHandler_list);
+
+		values[Anum_pg_tablespace_spcfilehandlerbin - 1] = CStringGetTextDatum(spcfilehandlerbin);
+		values[Anum_pg_tablespace_spcfilehandlersrc - 1] = CStringGetTextDatum(spcfilehandlersrc);
+	}
+	else
+	{
+		nulls[Anum_pg_tablespace_spcfilehandlersrc - 1] = true;
+		nulls[Anum_pg_tablespace_spcfilehandlerbin - 1] = true;
+	}
 
 	/* Generate new proposed spcoptions (text array) */
 	newOptions = transformRelOptions((Datum) 0,

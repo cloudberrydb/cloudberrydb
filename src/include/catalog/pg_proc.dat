@@ -7375,6 +7375,12 @@
 { oid => '3117', descr => 'I/O',
   proname => 'fdw_handler_out', prorettype => 'cstring',
   proargtypes => 'fdw_handler', prosrc => 'fdw_handler_out' },
+{ oid => '6451', descr => 'I/O',
+  proname => 'tblspc_handler_in', proisstrict => 'f', prorettype => 'tblspc_handler',
+  proargtypes => 'cstring', prosrc => 'tblspc_handler_in' },
+{ oid => '6452', descr => 'I/O',
+  proname => 'tblspc_handler_out', prorettype => 'cstring',
+  proargtypes => 'tblspc_handler', prosrc => 'tblspc_handler_out'},
 { oid => '326', descr => 'I/O',
   proname => 'index_am_handler_in', proisstrict => 'f',
   prorettype => 'index_am_handler', proargtypes => 'cstring',
@@ -11968,6 +11974,14 @@
 { oid => 7050, descr => 'bitmap(internal)',
    proname => 'bmhandler', provolatile => 'v', prorettype => 'index_am_handler', proargtypes => 'internal', prosrc => 'bmhandler' },
 
+{ oid => 8644, descr => 'table function for directory table',
+   proname => 'directory_table', prorows => '1000', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => 'regclass', proallargtypes => '{regclass,text,text,text,int8,timestamptz,text,bytea}', proargmodes => '{i,o,o,o,o,o,o,o}', proargnames => '{relid,scoped_file_url,relative_path,tag,size,last_modified,md5,content}', prosrc => 'directory_table', proexeclocation => 's' },
+
+{ oid => 8996, descr => 'delete a file in a directory table',
+   proname => 'remove_file', provolatile => 'v', prorettype => 'bool', proargtypes => 'regclass cstring', prosrc => 'remove_file' },
+
+{ oid => 9109, descr => 'delete a file in a directory table on segment',
+   proname => 'remove_file_segment', provolatile => 'v', prorettype => 'bool', proargtypes => 'regclass cstring', prosrc => 'remove_file_segment', proexeclocation => 's' },
 
 # AOCS functions.
 { oid => 9900, descr => 'decode internal AOCSVPInfo struct',
