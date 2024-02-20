@@ -131,9 +131,15 @@ extern ObjectAddress CreateForeignDataWrapper(CreateFdwStmt *stmt);
 extern ObjectAddress AlterForeignDataWrapper(AlterFdwStmt *stmt);
 extern ObjectAddress CreateForeignServer(CreateForeignServerStmt *stmt);
 extern ObjectAddress AlterForeignServer(AlterForeignServerStmt *stmt);
+extern ObjectAddress CreateStorageServer(CreateStorageServerStmt *stmt);
+extern ObjectAddress AlterStorageServer(AlterStorageServerStmt *stmt);
+extern Oid RemoveStorageServer(DropStorageServerStmt *stmt);
 extern ObjectAddress CreateUserMapping(CreateUserMappingStmt *stmt);
 extern ObjectAddress AlterUserMapping(AlterUserMappingStmt *stmt);
 extern Oid	RemoveUserMapping(DropUserMappingStmt *stmt);
+extern ObjectAddress CreateStorageUserMapping(CreateStorageUserMappingStmt *stmt);
+extern ObjectAddress AlterStorageUserMapping(AlterStorageUserMappingStmt *stmt);
+extern Oid RemoveStorageUserMapping(DropStorageUserMappingStmt *stmt);
 extern void CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid, bool skip_permission_check);
 extern void ImportForeignSchema(ImportForeignSchemaStmt *stmt);
 extern Datum transformGenericOptions(Oid catalogId,

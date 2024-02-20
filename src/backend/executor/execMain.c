@@ -59,6 +59,7 @@
 #include "jit/jit.h"
 #include "mb/pg_wchar.h"
 #include "miscadmin.h"
+#include "nodes/plannodes.h"
 #include "parser/parsetree.h"
 #include "storage/bufmgr.h"
 #include "storage/lmgr.h"
@@ -88,6 +89,7 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/catalog.h"
 #include "catalog/oid_dispatch.h"
+#include "catalog/pg_directory_table.h"
 #include "catalog/pg_type.h"
 #include "commands/copy.h"
 #include "commands/createas.h"
@@ -1926,11 +1928,15 @@ InitPlan(QueryDesc *queryDesc, int eflags)
  * CheckValidRowMarkRel.
  */
 void
-CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation)
+CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation, ModifyTableState *mtstate)
 {
 	Relation	resultRel = resultRelInfo->ri_RelationDesc;
 	TriggerDesc *trigDesc = resultRel->trigdesc;
 	FdwRoutine *fdwroutine;
+	ModifyTable *node;
+	int			whichrel;
+	List 		*updateColnos;
+	ListCell	*lc;
 
 	switch (resultRel->rd_rel->relkind)
 	{
@@ -2088,6 +2094,40 @@ CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation)
 						 errmsg("cannot change AO visibility map relation \"%s\"",
 								RelationGetRelationName(resultRel))));
 			break;
+		case RELKIND_DIRECTORY_TABLE:
+			switch(operation)
+			{
+				case CMD_INSERT:
+				case CMD_DELETE:
+					ereport(ERROR,
+								(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+								 errmsg("cannot change directory table \"%s\"",
+										RelationGetRelationName(resultRel))));
+					break;
+				case CMD_UPDATE:
+					if (mtstate)
+					{
+						node = (ModifyTable *) mtstate->ps.plan;
+						whichrel = mtstate->mt_lastResultIndex;
+
+						updateColnos = (List *) list_nth(node->updateColnosLists, whichrel);
+
+						foreach(lc, updateColnos)
+						{
+							AttrNumber targetattnum = lfirst_int(lc);
+
+							if (targetattnum != DIRECTORY_TABLE_TAG_COLUMN_ATTNUM)
+								ereport(ERROR,
+											(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+											 errmsg("Only allow to update directory \"tag\" column.")));
+						}
+					}
+					break;
+				default:
+					elog(ERROR, "unrecognized CmdType: %d", (int) operation);
+					break;
+			}
+			break;
 
 		default:
 			ereport(ERROR,
@@ -2151,6 +2191,14 @@ CheckValidRowMarkRel(Relation rel, RowMarkType markType)
 				ereport(ERROR,
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						 errmsg("cannot lock rows in foreign table \"%s\"",
+								RelationGetRelationName(rel))));
+			break;
+		case RELKIND_DIRECTORY_TABLE:
+			/* Allow referencing a directory table, but not actual locking clauses */
+			if (markType != ROW_MARK_REFERENCE)
+				ereport(ERROR,
+						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						 errmsg("cannot lock rows in directory table \"%s\"",
 								RelationGetRelationName(rel))));
 			break;
 		default:

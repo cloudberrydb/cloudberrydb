@@ -58,6 +58,8 @@
 
 #include "catalog/gp_configuration_history.h"
 #include "catalog/gp_id.h"
+#include "catalog/gp_storage_server.h"
+#include "catalog/gp_storage_user_mapping.h"
 #include "catalog/gp_version_at_initdb.h"
 #include "catalog/gp_warehouse.h"
 #include "catalog/pg_event_trigger.h"
@@ -439,6 +441,9 @@ IsSharedRelation(Oid relationId)
 #endif
 		relationId == AuthTimeConstraintRelationId ||
 
+		relationId == StorageUserMappingRelationId ||
+		relationId == StorageServerRelationId ||
+
 		relationId == ProfileRelationId ||
 		relationId == PasswordHistoryRelationId)
 		return true;
@@ -486,6 +491,10 @@ IsSharedRelation(Oid relationId)
 #endif
 		relationId == AuthTimeConstraintAuthIdIndexId ||
 		relationId == AuthIdRolProfileIndexId ||
+		relationId == StorageUserMappingOidIndexId ||
+		relationId == StorageUserMappingServerIndexId ||
+		relationId == StorageServerOidIndexId ||
+		relationId == StorageServerNameIndexId ||
 		relationId == ProfilePrfnameIndexId ||
 		relationId == ProfileOidIndexId ||
 		relationId == ProfileVerifyFunctionIndexId ||
@@ -523,6 +532,13 @@ IsSharedRelation(Oid relationId)
 		return true;
 	}
 #endif
+
+	/* GPDB added toast tables and toast indexes */
+	if (relationId == GpStorageUserMappingToastTable ||
+		relationId == GpStorageUserMappingToastIndex ||
+		relationId == GpStorageServerToastTable ||
+		relationId == GpStorageServerToastIndex)
+		return true;
 
 	/* GPDB added task tables and their indexes */
 	if (relationId == TaskRelationId ||

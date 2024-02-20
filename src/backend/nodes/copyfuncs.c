@@ -4089,6 +4089,7 @@ _copyCopyStmt(const CopyStmt *from)
 	COPY_SCALAR_FIELD(is_from);
 	COPY_SCALAR_FIELD(is_program);
 	COPY_STRING_FIELD(filename);
+	COPY_STRING_FIELD(dirfilename);
 	COPY_NODE_FIELD(options);
 	COPY_NODE_FIELD(whereClause);
 	COPY_NODE_FIELD(sreh);
@@ -4870,6 +4871,7 @@ _copyCreateTableSpaceStmt(const CreateTableSpaceStmt *from)
 	COPY_NODE_FIELD(owner);
 	COPY_STRING_FIELD(location);
 	COPY_NODE_FIELD(options);
+	COPY_STRING_FIELD(filehandler);
 
 	return newnode;
 }
@@ -5001,6 +5003,40 @@ _copyAlterForeignServerStmt(const AlterForeignServerStmt *from)
 	return newnode;
 }
 
+static CreateStorageServerStmt *
+_copyCreateStorageServerStmt(const CreateStorageServerStmt *from)
+{
+	CreateStorageServerStmt *newnode = makeNode(CreateStorageServerStmt);
+
+	COPY_STRING_FIELD(servername);
+	COPY_SCALAR_FIELD(if_not_exists);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
+static AlterStorageServerStmt *
+_copyAlterStorageServerStmt(const AlterStorageServerStmt *from)
+{
+	AlterStorageServerStmt *newnode = makeNode(AlterStorageServerStmt);
+
+	COPY_STRING_FIELD(servername);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
+static DropStorageServerStmt *
+_copyDropStorageServerStmt(const DropStorageServerStmt *from)
+{
+	DropStorageServerStmt  *newnode = makeNode(DropStorageServerStmt);
+
+	COPY_STRING_FIELD(servername);
+	COPY_SCALAR_FIELD(missing_ok);
+
+	return newnode;
+}
+
 static CreateUserMappingStmt *
 _copyCreateUserMappingStmt(const CreateUserMappingStmt *from)
 {
@@ -5030,6 +5066,43 @@ static DropUserMappingStmt *
 _copyDropUserMappingStmt(const DropUserMappingStmt *from)
 {
 	DropUserMappingStmt *newnode = makeNode(DropUserMappingStmt);
+
+	COPY_NODE_FIELD(user);
+	COPY_STRING_FIELD(servername);
+	COPY_SCALAR_FIELD(missing_ok);
+
+	return newnode;
+}
+
+static CreateStorageUserMappingStmt *
+_copyCreateStorageUserMappingStmt(const CreateStorageUserMappingStmt *from)
+{
+	CreateStorageUserMappingStmt *newnode = makeNode(CreateStorageUserMappingStmt);
+
+	COPY_NODE_FIELD(user);
+	COPY_STRING_FIELD(servername);
+	COPY_SCALAR_FIELD(if_not_exists);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
+static AlterStorageUserMappingStmt *
+_copyAlterStorageUserMappingStmt(const AlterStorageUserMappingStmt *from)
+{
+	AlterStorageUserMappingStmt *newnode = makeNode(AlterStorageUserMappingStmt);
+
+	COPY_NODE_FIELD(user);
+	COPY_STRING_FIELD(servername);
+	COPY_NODE_FIELD(options);
+
+	return newnode;
+}
+
+static DropStorageUserMappingStmt *
+_copyDropStorageUserMappingStmt(const DropStorageUserMappingStmt *from)
+{
+	DropStorageUserMappingStmt *newnode = makeNode(DropStorageUserMappingStmt);
 
 	COPY_NODE_FIELD(user);
 	COPY_STRING_FIELD(servername);
@@ -6027,6 +6100,18 @@ _copyAlteredTableInfo(const AlteredTableInfo *from)
 	return newnode;
 }
 
+static CreateDirectoryTableStmt *
+_copyCreateDirectoryTableStmt(const CreateDirectoryTableStmt *from)
+{
+	CreateDirectoryTableStmt *newnode = makeNode(CreateDirectoryTableStmt);
+
+	CopyCreateStmtFields((const CreateStmt *) from, (CreateStmt *) newnode);
+
+	COPY_STRING_FIELD(tablespacename);
+
+	return newnode;
+}
+
 static EphemeralNamedRelationInfo*
 _copyEphemeralNamedRelationInfo(const EphemeralNamedRelationInfo *from)
 {
@@ -6771,6 +6856,15 @@ copyObjectImpl(const void *from)
 		case T_AlterForeignServerStmt:
 			retval = _copyAlterForeignServerStmt(from);
 			break;
+		case T_CreateStorageServerStmt:
+			retval = _copyCreateStorageServerStmt(from);
+			break;
+		case T_AlterStorageServerStmt:
+			retval = _copyAlterStorageServerStmt(from);
+			break;
+		case T_DropStorageServerStmt:
+			retval = _copyDropStorageServerStmt(from);
+			break;
 		case T_CreateUserMappingStmt:
 			retval = _copyCreateUserMappingStmt(from);
 			break;
@@ -6779,6 +6873,15 @@ copyObjectImpl(const void *from)
 			break;
 		case T_DropUserMappingStmt:
 			retval = _copyDropUserMappingStmt(from);
+			break;
+		case T_CreateStorageUserMappingStmt:
+			retval = _copyCreateStorageUserMappingStmt(from);
+			break;
+		case T_AlterStorageUserMappingStmt:
+			retval = _copyAlterStorageUserMappingStmt(from);
+			break;
+		case T_DropStorageUserMappingStmt:
+			retval = _copyDropStorageUserMappingStmt(from);
 			break;
 		case T_CreateForeignTableStmt:
 			retval = _copyCreateForeignTableStmt(from);
@@ -7149,6 +7252,11 @@ copyObjectImpl(const void *from)
 		case T_AlteredTableInfo:
 			retval = _copyAlteredTableInfo(from);
 			break;
+
+		case T_CreateDirectoryTableStmt:
+			retval = _copyCreateDirectoryTableStmt(from);
+			break;
+
 		case T_EphemeralNamedRelationInfo:
 			retval = _copyEphemeralNamedRelationInfo(from);
 			break;

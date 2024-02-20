@@ -669,6 +669,7 @@ get_parallel_object_list(PGconn *conn, ReindexType type,
 								 " WHERE ns.nspname != 'pg_catalog'\n"
 								 "   AND c.relkind IN ("
 								 CppAsString2(RELKIND_RELATION) ", "
+								 CppAsString2(RELKIND_DIRECTORY_TABLE) ", "
 								 CppAsString2(RELKIND_MATVIEW) ")\n"
 								 " ORDER BY c.relpages DESC;");
 			break;
@@ -691,6 +692,7 @@ get_parallel_object_list(PGconn *conn, ReindexType type,
 									 " ON c.relnamespace = ns.oid\n"
 									 " WHERE c.relkind IN ("
 									 CppAsString2(RELKIND_RELATION) ", "
+									 CppAsString2(RELKIND_DIRECTORY_TABLE) ", "
 									 CppAsString2(RELKIND_MATVIEW) ")\n"
 									 " AND ns.nspname IN (");
 

@@ -34,13 +34,6 @@
 /* Hash table for information about each tablespace */
 static HTAB *TableSpaceCacheHash = NULL;
 
-typedef struct
-{
-	Oid			oid;			/* lookup key - must be first */
-	TableSpaceOpts *opts;		/* options, or NULL if none */
-} TableSpaceCacheEntry;
-
-
 /*
  * InvalidateTableSpaceCacheCallback
  *		Flush all cache entries when pg_tablespace is updated.
@@ -102,7 +95,7 @@ InitializeTableSpaceCache(void)
  * Pointers returned by this function should not be stored, since a cache
  * flush will invalidate them.
  */
-static TableSpaceCacheEntry *
+TableSpaceCacheEntry *
 get_tablespace(Oid spcid)
 {
 	TableSpaceCacheEntry *spc;

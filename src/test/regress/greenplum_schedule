@@ -313,4 +313,7 @@ test: aqumv
 # test access method with encoding options
 test: am_encoding
 
+# tests of directory table
+test: directory_table
+
 # end of tests

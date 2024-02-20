@@ -906,6 +906,7 @@ add_row_identity_columns(PlannerInfo *root, Index rtindex,
 	Assert(commandType == CMD_UPDATE || commandType == CMD_DELETE);
 
 	if (relkind == RELKIND_RELATION ||
+		relkind == RELKIND_DIRECTORY_TABLE ||
 		relkind == RELKIND_MATVIEW ||
 		relkind == RELKIND_PARTITIONED_TABLE)
 	{

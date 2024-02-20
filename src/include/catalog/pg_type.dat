@@ -620,6 +620,13 @@
   typcategory => 'P', typinput => 'fdw_handler_in',
   typoutput => 'fdw_handler_out', typreceive => '-', typsend => '-',
   typalign => 'i' },
+{
+  oid => '5102',
+  descr => 'pseudo-type for the result of a table space handler function',
+  typname => 'tblspc_handler', typlen => '4', typbyval => 't', typtype => 'p',
+  typcategory => 'P', typinput => 'tblspc_handler_in',
+  typoutput => 'tblspc_handler_out', typreceive => '-', typsend => '-',
+  typalign => 'i' },
 { oid => '325',
   descr => 'pseudo-type for the result of an index AM handler function',
   typname => 'index_am_handler', typlen => '4', typbyval => 't', typtype => 'p',

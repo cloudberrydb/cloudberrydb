@@ -209,6 +209,7 @@ _outCopyStmt(StringInfo str, const CopyStmt *node)
 	WRITE_BOOL_FIELD(is_from);
 	WRITE_BOOL_FIELD(is_program);
 	WRITE_STRING_FIELD(filename);
+	WRITE_STRING_FIELD(dirfilename);
 	WRITE_NODE_FIELD(options);
 	WRITE_NODE_FIELD(sreh);
 }
@@ -1483,6 +1484,7 @@ _outCreateTableSpaceStmt(StringInfo str, const CreateTableSpaceStmt *node)
 	WRITE_NODE_FIELD(owner);
 	WRITE_STRING_FIELD(location);
 	WRITE_NODE_FIELD(options);
+	WRITE_STRING_FIELD(filehandler);
 }
 
 static void

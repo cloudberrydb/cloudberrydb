@@ -2569,14 +2569,14 @@ SELECT relid, parentrelid, level FROM pg_partition_tree('concur_reindex_part_ind
 -- REINDEX TABLE fails for partitioned indexes
 -- Top-most parent index
 REINDEX TABLE concur_reindex_part_index; -- error
-ERROR:  "concur_reindex_part_index" is not a table or materialized view
+ERROR:  "concur_reindex_part_index" is not a table, directory table or materialized view
 REINDEX TABLE concur_reindex_part_index; -- error
-ERROR:  "concur_reindex_part_index" is not a table or materialized view
+ERROR:  "concur_reindex_part_index" is not a table, directory table or materialized view
 -- Partitioned index with no leaves
 REINDEX TABLE concur_reindex_part_index_10; -- error
-ERROR:  "concur_reindex_part_index_10" is not a table or materialized view
+ERROR:  "concur_reindex_part_index_10" is not a table, directory table or materialized view
 REINDEX TABLE concur_reindex_part_index_10; -- error
-ERROR:  "concur_reindex_part_index_10" is not a table or materialized view
+ERROR:  "concur_reindex_part_index_10" is not a table, directory table or materialized view
 -- Cannot run in a transaction block
 BEGIN;
 REINDEX INDEX concur_reindex_part_index;

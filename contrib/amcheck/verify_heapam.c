@@ -549,10 +549,11 @@ sanity_check_relation(Relation rel)
 {
 	if (rel->rd_rel->relkind != RELKIND_RELATION &&
 		rel->rd_rel->relkind != RELKIND_MATVIEW &&
-		rel->rd_rel->relkind != RELKIND_TOASTVALUE)
+		rel->rd_rel->relkind != RELKIND_TOASTVALUE &&
+		rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is not a table, materialized view, or TOAST table",
+				 errmsg("\"%s\" is not a table, directory table, materialized view, or TOAST table",
 						RelationGetRelationName(rel))));
 	if (rel->rd_rel->relam != HEAP_TABLE_AM_OID)
 		ereport(ERROR,
