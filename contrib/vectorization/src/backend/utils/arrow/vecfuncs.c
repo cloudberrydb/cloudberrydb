@@ -432,6 +432,10 @@ ArrowArrayGetValueDatum(void *array, int i)
 			return Int32GetDatum(garrow_date32_array_get_value(
 					GARROW_DATE32_ARRAY(arrowarray), i));
 			break;
+		case GARROW_TYPE_DATE64:
+			return Int64GetDatum(garrow_date64_array_get_value(
+					GARROW_DATE64_ARRAY(arrowarray), i));
+			break;
 		case GARROW_TYPE_BINARY:
 		{
 			gsize size;
