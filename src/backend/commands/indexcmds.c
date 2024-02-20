@@ -31,6 +31,7 @@
 #include "catalog/indexing.h"
 #include "catalog/pg_am.h"
 #include "catalog/pg_constraint.h"
+#include "catalog/pg_directory_table.h"
 #include "catalog/pg_inherits.h"
 #include "catalog/pg_opclass.h"
 #include "catalog/pg_opfamily.h"
@@ -704,6 +705,9 @@ DefineIndex(Oid relationId,
 	bool		shouldDispatch;
 	Oid			blkdirrelid = InvalidOid;
 
+	if (RelationIsDirectoryTable(relationId))
+		elog(ERROR, "Disallowed to create index on directory table \"%s\".", get_rel_name(relationId));
+
 	shouldDispatch = (Gp_role == GP_ROLE_DISPATCH &&
 					  ENABLE_DISPATCH() &&
 					  !IsBootstrapProcessingMode());
@@ -847,6 +851,7 @@ DefineIndex(Oid relationId,
 		case RELKIND_RELATION:
 		case RELKIND_MATVIEW:
 		case RELKIND_PARTITIONED_TABLE:
+		case RELKIND_DIRECTORY_TABLE:
 			/* OK */
 			break;
 		case RELKIND_FOREIGN_TABLE:
@@ -3507,6 +3512,7 @@ ReindexMultipleTables(ReindexStmt *stmt, ReindexParams *params)
 		 * are processed.
 		 */
 		if (classtuple->relkind != RELKIND_RELATION &&
+			classtuple->relkind != RELKIND_DIRECTORY_TABLE &&
 			classtuple->relkind != RELKIND_MATVIEW)
 			continue;
 
@@ -3967,6 +3973,7 @@ ReindexRelationConcurrently(ReindexStmt *stmt, Oid relationOid, ReindexParams *p
 		case RELKIND_RELATION:
 		case RELKIND_MATVIEW:
 		case RELKIND_TOASTVALUE:
+		case RELKIND_DIRECTORY_TABLE:
 			{
 				/*
 				 * In the case of a relation, find all its indexes including

@@ -504,7 +504,7 @@ DROP TABLE noinh_con_copy, noinh_con_copy1;
 CREATE TABLE ctlt4 (a int, b text);
 CREATE SEQUENCE ctlseq1;
 CREATE TABLE ctlt10 (LIKE ctlseq1);  -- fail
-ERROR:  "ctlseq1" is not a table, view, materialized view, composite type, or foreign table
+ERROR:  "ctlseq1" is not a table, directory table, view, materialized view, composite type, or foreign table
 LINE 1: CREATE TABLE ctlt10 (LIKE ctlseq1);
                                   ^
 CREATE VIEW ctlv1 AS SELECT * FROM ctlt4;

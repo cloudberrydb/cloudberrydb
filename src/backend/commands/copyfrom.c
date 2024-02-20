@@ -31,13 +31,20 @@
 #include "access/xact.h"
 #include "access/xlog.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_directory_table.h"
+#include "catalog/storage_directory_table.h"
 #include "cdb/cdbaocsam.h"
 #include "cdb/cdbappendonlyam.h"
+#include "cdb/cdbdisp.h"
 #include "cdb/cdbvars.h"
 #include "commands/copy.h"
 #include "commands/copyfrom_internal.h"
 #include "commands/progress.h"
+#include "commands/tablespace.h"
 #include "commands/trigger.h"
+#include "common/base64.h"
+#include "common/cryptohash.h"
+#include "common/md5.h"
 #include "executor/execPartition.h"
 #include "executor/executor.h"
 #include "executor/nodeModifyTable.h"
@@ -50,7 +57,9 @@
 #include "pgstat.h"
 #include "rewrite/rewriteHandler.h"
 #include "storage/fd.h"
+#include "storage/ufile.h"
 #include "tcop/tcopprot.h"
+#include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"
 #include "utils/portal.h"
@@ -205,6 +214,10 @@ static void FreeDistributionData(GpDistributionData *distData);
 static void InitCopyFromDispatchSplit(CopyFromState cstate, GpDistributionData *distData, EState *estate);
 static unsigned int GetTargetSeg(GpDistributionData *distData, TupleTableSlot *slot);
 
+static uint64 CopyFromDirectoryTable(CopyFromState cstate);
+static CopyFromState BeginCopyFromDirectoryTable(ParseState *pstate, const char *fileName,
+						 				Relation rel, List *options);
+
 /*
  * No more than this many tuples per CopyMultiInsertBuffer
  *
@@ -224,6 +237,9 @@ static unsigned int GetTargetSeg(GpDistributionData *distData, TupleTableSlot *s
 
 /* Trim the list of buffers back down to this number after flushing */
 #define MAX_PARTITION_BUFFERS	32
+
+/* The buffer size of directory table files */
+#define DIR_FILE_BUFF_SIZE 8192
 
 /* Stores multi-insert data related to a single relation in CopyFrom. */
 typedef struct CopyMultiInsertBuffer
@@ -666,6 +682,779 @@ CopyMultiInsertInfoStore(CopyMultiInsertInfo *miinfo, ResultRelInfo *rri,
 	miinfo->bufferedBytes += tuplen;
 }
 
+static CopyStmt *
+convertToCopyTextStmt(CopyStmt *stmt)
+{
+	CopyStmt *copiedStmt = copyObject(stmt);
+
+	copiedStmt->options = NIL;
+
+	return copiedStmt;
+}
+
+static char *
+trimFilePath(char *filePath, char c)
+{
+	char *end;
+
+	while (*filePath == c)
+		filePath++;
+
+	end = filePath + strlen(filePath) - 1;
+	while (end > filePath && *end == c)
+		end--;
+
+	*(end + 1) = '\0';
+
+	return filePath;
+}
+
+static void
+formDirTableSlot(CopyFromState cstate,
+				 Oid spcId,
+				 char *relativePath,
+				 int64 fileSize,
+				 char *md5sum,
+				 char *tags,
+				 StringInfo	buf,
+				 Datum *values,
+				 bool *nulls)
+{
+	TupleDesc	tupDesc;
+	AttrNumber	num_phys_attrs;
+	ListCell   *cur;
+	char	   *field[6];
+	FmgrInfo   *in_functions = cstate->in_functions;
+	Oid		   *typioparams = cstate->typioparams;
+	List	   *attnumlist = cstate->qd_attnumlist;
+	pg_time_t	stampTime = (pg_time_t) time(NULL);
+	char		lastModified[128];
+	char	*encode_file;
+	int		encode_file_len;
+
+	encode_file_len = pg_b64_enc_len(buf->len);
+	encode_file = (char *) palloc0(encode_file_len + 1);
+
+	encode_file_len = pg_b64_encode(buf->data, buf->len, encode_file, encode_file_len);
+	if (encode_file_len < 0)
+	{
+		elog(ERROR, "base 64 encode failed in copy from directory table");
+	}
+	encode_file[encode_file_len] = '\0';
+	if (buf->data)
+	{
+		pfree(buf->data);
+	}
+
+	pg_strftime(lastModified, sizeof(lastModified),
+				"%Y-%m-%d %H:%M:%S",
+				pg_localtime(&stampTime, log_timezone));
+
+	tupDesc = RelationGetDescr(cstate->rel);
+	num_phys_attrs = tupDesc->natts;
+
+	MemSet(values, 0, num_phys_attrs * sizeof(Datum));
+	MemSet(nulls, false, num_phys_attrs * sizeof(bool));
+
+	field[0] = relativePath; /* relative_path */
+	field[1] = psprintf(INT64_FORMAT, fileSize); /* size */
+	field[2] = lastModified; /* last_modified */
+	field[3] = md5sum; /* md5sum */
+	field[4] = tags; /* tags */
+	if (tags == NULL)
+		nulls[4] = true;
+	field[5] = encode_file;
+
+	/* Loop to read the user attributes on the line. */
+	foreach(cur, attnumlist)
+	{
+		int    attnum = lfirst_int(cur);
+		int    m = attnum - 1;
+		char *value;
+		Form_pg_attribute att = TupleDescAttr(tupDesc, m);
+
+		value = field[m];
+
+		values[m] = InputFunctionCall(&in_functions[m],
+									  value,
+									  typioparams[m],
+									  att->atttypmod);
+	}
+}
+
+/*
+ * Copy From file to directory table.
+ */
+static uint64
+CopyFromDirectoryTable(CopyFromState cstate)
+{
+	ResultRelInfo *resultRelInfo;
+	ResultRelInfo *target_resultRelInfo;
+	EState	   *estate = CreateExecutorState();
+	TupleTableSlot *myslot = NULL;
+	StringInfoData	buf;
+	ExprContext *econtext;
+	int			bytesRead;
+	char		hexMd5Sum[256];
+	char		buffer[DIR_FILE_BUFF_SIZE];
+	int64		processed = 0;
+	int64		fileSize = 0;
+	CdbCopy	   *cdbCopy = NULL;
+	char	   *dirTablePath;
+	char	   *orgiFileName;
+	char	   *relaFileDirPointer;
+	char	   relaFileDir[MAXPGPATH] = {0};
+	char	   *orgiFileDir = NULL;
+	char	   *relaFileName;
+	TupleDesc	tupdesc;
+	unsigned int targetSeg;
+	DirectoryTable     *dirTable;
+	pg_cryptohash_ctx  *hashCtx;
+	uint8 md5Sum[MD5_DIGEST_LENGTH];
+	GpDistributionData *distData = NULL; /* distribution data used to compute target seg */
+
+	/*
+	 * We need a ResultRelInfo so we can use the regular executor's
+	 * index-entry-making machinery.  (There used to be a huge amount of code
+	 * here that basically duplicated execUtils.c ...)
+	 */
+	ExecInitRangeTable(estate, cstate->range_table);
+	resultRelInfo = target_resultRelInfo = makeNode(ResultRelInfo);
+	ExecInitResultRelation(estate, resultRelInfo, 1);
+
+	ExecOpenIndices(resultRelInfo, false);
+
+	/* Prepare to catch AFTER triggers. */
+	AfterTriggerBeginQuery();
+
+	/*
+	 * If there are any triggers with transition tables on the named relation,
+	 * we need to be prepared to capture transition tuples.
+	 */
+	cstate->transition_capture = MakeTransitionCaptureState(cstate->rel->trigdesc,
+															RelationGetRelid(cstate->rel),
+															CMD_INSERT);
+
+	/*
+	 * Check BEFORE STATEMENT insertion triggers. It's debatable whether we
+	 * should do this for COPY, since it's not really an "INSERT" statement as
+	 * such. However, executing these triggers maintains consistency with the
+	 * EACH ROW triggers that we already fire on COPY.
+	 */
+	ExecBSInsertTriggers(estate, resultRelInfo);
+
+	/* Assemble directory table file location. */
+	relaFileName = trimFilePath(glob_copystmt->dirfilename, '/');
+	relaFileDirPointer = strrchr(relaFileName, '/');
+	if (relaFileDirPointer)
+	{
+		memcpy(relaFileDir, relaFileName, relaFileDirPointer - relaFileName);
+	}
+
+	dirTable = GetDirectoryTable(RelationGetRelid(cstate->rel));
+	dirTablePath = dirTable->location;
+	orgiFileName = psprintf("%s/%s", dirTablePath, relaFileName);
+	if (relaFileDir[0] != '\0')
+		orgiFileDir = psprintf("%s/%s", dirTablePath, relaFileDir);
+
+	/*
+	 * build tupledesc and slot for copy from
+	 */
+	tupdesc = CreateTemplateTupleDesc(6);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 1, "relative_path",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 2, "size",
+					   INT8OID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 3, "last_modified",
+					   TIMESTAMPTZOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 4, "md5",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 5, "tag",
+					   TEXTOID, -1 ,0);
+	TupleDescInitEntry(tupdesc, (AttrNumber) 6, "file",
+					   TEXTOID, -1, 0);
+
+	myslot = MakeSingleTupleTableSlot(tupdesc, &TTSOpsVirtual);
+
+	if (cstate->dispatch_mode == COPY_DISPATCH)
+	{
+		/*
+		 * Initialize information about distribution keys, needed to compute target
+		 * segment for each row.
+		 */
+		distData = InitDistributionData(cstate, estate);
+
+		/* Determine which fields we need to parse in the QD. */
+		InitCopyFromDispatchSplit(cstate, distData, estate);
+	}
+
+	if (cstate->dispatch_mode == COPY_DISPATCH ||
+		cstate->dispatch_mode == COPY_EXECUTOR)
+	{
+		/*
+		 * Now split the attnumlist into the parts that are parsed in the QD, and
+		 * in QE.
+		 */
+		ListCell   *lc;
+		int			i = 0;
+		List	   *qd_attnumlist = NIL;
+		List	   *qe_attnumlist = NIL;
+		int			first_qe_processed_field;
+
+		first_qe_processed_field = cstate->first_qe_processed_field;
+
+		foreach(lc, cstate->attnumlist)
+		{
+			int			attnum = lfirst_int(lc);
+
+			if (i < first_qe_processed_field)
+				qd_attnumlist = lappend_int(qd_attnumlist, attnum);
+			else
+				qe_attnumlist = lappend_int(qe_attnumlist, attnum);
+			i++;
+		}
+		cstate->qd_attnumlist = qd_attnumlist;
+		cstate->qe_attnumlist = qe_attnumlist;
+	}
+
+	if (cstate->dispatch_mode == COPY_DISPATCH)
+	{
+		/*
+		 * We are the QD node, and we are receiving rows from client, or
+		 * reading them from a file. We are not writing any data locally,
+		 * instead, we determine the correct target segment for row,
+		 * and forward each to the correct segment.
+		 */
+
+		/*
+		 * pre-allocate buffer for constructing a message.
+		 */
+		cstate->dispatch_msgbuf = makeStringInfo();
+		enlargeStringInfo(cstate->dispatch_msgbuf, SizeOfCopyFromDispatchRow);
+
+		/*
+		 * prepare to COPY data into segDBs:
+		 */
+		cdbCopy = makeCdbCopyFrom(cstate);
+
+		/*
+		 * Dispatch the COPY command.
+		 */
+		elog(DEBUG5, "COPY command sent to segdbs");
+
+		cdbCopyStart(cdbCopy, convertToCopyTextStmt(glob_copystmt), cstate->file_encoding);
+
+		/*
+		 * Header processing.
+		 */
+		SendCopyFromForwardedHeader(cstate, cdbCopy);
+
+		/* FIXME:
+		 *
+		 * Even if we use FileExist function, writing to the same file in two
+		 * concurrent sessions can still cause the file content to be corrupted.
+		 *
+		 * 1. Some DFS don't support renaming files, which means we can't use
+		 * the common technique of generating a random filename for upload and
+		 * then renaming it to the final name once it's complete.
+		 *
+		 * 2. Seems like unique index could be a good solution to fix the issue,
+		 * But unique indexes can cause concurrent sessions to wait for each
+		 * other(see comments in _bt_doinsert), and uploads can take a long time,
+		 * so transactions waiting for each other for a long time without releasing
+		 * resources is also not ideal(I know that we can set lock timeout).
+		 *
+		 * Another reason for not using unique index is that the file is uploading
+		 * in the copy context, based on the current copy protocol, we are not able
+		 * to insert a record first, then, once the file is uploaded, we could update
+		 * the record.
+		 *
+		 * 3. We should probably create a file status table in catalog service
+		 * to keep track of files currrently being uploaded.
+		 */
+		initStringInfo(&buf);
+
+		hashCtx = pg_cryptohash_create(PG_MD5);
+		if (hashCtx == NULL)
+			ereport(ERROR,
+						(errcode(ERRCODE_OUT_OF_MEMORY),
+						 errmsg("failed to create md5hash context: out of memory")));
+		pg_cryptohash_init(hashCtx);
+
+		for (;;)
+		{
+			CHECK_FOR_INTERRUPTS();
+
+			bytesRead = CopyReadBinaryData(cstate, buffer, DIR_FILE_BUFF_SIZE);
+
+			if (bytesRead > 0)
+			{
+				appendBinaryStringInfo(&buf, buffer, bytesRead);
+
+				fileSize += bytesRead;
+				pg_cryptohash_update(hashCtx, (const uint8 *) buffer, bytesRead);
+			}
+
+			if (bytesRead != DIR_FILE_BUFF_SIZE)
+			{
+				Assert(cstate->raw_reached_eof == true);
+				break;
+			}
+		}
+
+		pg_cryptohash_final(hashCtx, md5Sum, sizeof(md5Sum));
+		pg_cryptohash_free(hashCtx);
+		bytesToHex(md5Sum, hexMd5Sum);
+
+		formDirTableSlot(cstate,
+						 dirTable->spcId,
+						 relaFileName,
+						 fileSize,
+						 hexMd5Sum,
+						 cstate->opts.tags,
+						 &buf,
+						 myslot->tts_values,
+						 myslot->tts_isnull);
+		ExecStoreVirtualTuple(myslot);
+
+		targetSeg = GetTargetSeg(distData, myslot);
+		/* in the QD, forward the row to the correct segment(s). */
+		SendCopyFromForwardedTuple(cstate, cdbCopy, false,
+								   targetSeg,
+								   resultRelInfo->ri_RelationDesc,
+								   cstate->cur_lineno,
+								   cstate->line_buf.data,
+								   cstate->line_buf.len,
+								   myslot->tts_values,
+								   myslot->tts_isnull);
+		{
+			int64		total_completed_from_qes;
+			int64		total_rejected_from_qes;
+
+			cdbCopyEnd(cdbCopy,
+					   &total_completed_from_qes,
+					   &total_rejected_from_qes);
+
+			processed = total_completed_from_qes;
+		}
+	}
+	else if (cstate->dispatch_mode == COPY_EXECUTOR)
+	{
+#define DIRECTORY_TABLE_COLUMNS	5
+		List	   *recheckIndexes = NIL;
+		TupleTableSlot *tmpslot = NULL;
+		CommandId	mycid = GetCurrentCommandId(true);
+		MemoryContext oldcontext = CurrentMemoryContext;
+		char		errorMessage[256];
+		UFile		*file;
+		char 		*file_buf;
+		int			i;
+		char 		*decode_file;
+		int			decode_file_len;
+
+		econtext = GetPerTupleExprContext(estate);
+
+		if (NextCopyFromExecute(cstate, econtext, myslot->tts_values, myslot->tts_isnull))
+		{
+			if (tupdesc)
+				pfree(tupdesc);
+
+			tupdesc = CreateTemplateTupleDesc(DIRECTORY_TABLE_COLUMNS);
+			TupleDescInitEntry(tupdesc, (AttrNumber) 1, "relative_path",
+							   TEXTOID, -1, 0);
+			TupleDescInitEntry(tupdesc, (AttrNumber) 2, "size",
+							   INT8OID, -1, 0);
+			TupleDescInitEntry(tupdesc, (AttrNumber) 3, "last_modified",
+							   TIMESTAMPTZOID, -1, 0);
+			TupleDescInitEntry(tupdesc, (AttrNumber) 4, "md5",
+							   TEXTOID, -1, 0);
+			TupleDescInitEntry(tupdesc, (AttrNumber) 5, "tag",
+							   TEXTOID, -1 ,0);
+
+			tmpslot = MakeSingleTupleTableSlot(tupdesc, &TTSOpsVirtual);
+
+			for (i = 0; i < DIRECTORY_TABLE_COLUMNS; i++)
+			{
+				tmpslot->tts_values[i] = myslot->tts_values[i];
+				tmpslot->tts_isnull[i] = myslot->tts_isnull[i];
+			}
+
+			cstate->rel->rd_att = CreateTupleDescCopy(tupdesc);
+			cstate->rel->rd_att->tdrefcount = 1;	/* mark as refcounted */
+
+			/*
+			 * Reset the per-tuple exprcontext. We do this after every tuple, to
+			 * clean-up after expression evaluations etc.
+			 */
+			ResetPerTupleExprContext(estate);
+
+			/*
+			 * Switch to per-tuple context before calling NextCopyFrom, which does
+			 * evaluate default expressions etc. and requires per-tuple context.
+			 */
+			MemoryContextSwitchTo(GetPerTupleMemoryContext(estate));
+
+			/*
+			 * NextCopyFromExecute set up estate->es_result_relation_info,
+			 * and stored the tuple in the correct slot.
+			 */
+			resultRelInfo = estate->es_result_relations[0];
+
+			ExecStoreVirtualTuple(tmpslot);
+
+			/*
+			 * Constraints and where clause might reference the tableoid column,
+			 * so (re-)initialize tts_tableOid before evaluating them.
+			 */
+			tmpslot->tts_tableOid = RelationGetRelid(target_resultRelInfo->ri_RelationDesc);
+
+			/* Triggers and stuff need to be invoked in query context. */
+			MemoryContextSwitchTo(oldcontext);
+
+			/* OK, store the tuple and create index entries for it */
+			table_tuple_insert(resultRelInfo->ri_RelationDesc,
+							   tmpslot, mycid, 0, NULL);
+
+			recheckIndexes = ExecInsertIndexTuples(resultRelInfo,
+												   tmpslot,
+												   estate,
+												   false,
+												   false,
+												   NULL,
+												   NIL);
+
+			/* AFTER ROW INSERT Triggers */
+			ExecARInsertTriggers(estate, resultRelInfo, tmpslot,
+								 recheckIndexes, cstate->transition_capture);
+
+			list_free(recheckIndexes);
+
+			if (tupdesc)
+				pfree(tupdesc);
+
+			if (UFileExists(dirTable->spcId, orgiFileName))
+			{
+				UFileUnlink(dirTable->spcId, orgiFileName);
+			}
+
+			if (orgiFileDir)
+				UFileEnsurePath(dirTable->spcId, orgiFileDir);
+
+			file = UFileOpen(dirTable->spcId,
+						 	orgiFileName,
+						 	O_CREAT | O_WRONLY,
+						 	errorMessage,
+						 	sizeof(errorMessage));
+			if (file == NULL)
+				ereport(ERROR,
+							(errcode(ERRCODE_IO_ERROR),
+						 	 errmsg("failed to open file \"%s\": %s", orgiFileName, errorMessage)));
+
+			/* Delete uploaded file when the transaction fails */
+			UFileAddCreatePendingEntry(cstate->rel, dirTable->spcId, orgiFileName);
+
+			file_buf = TextDatumGetCString(myslot->tts_values[5]);
+			decode_file_len = strlen(file_buf);
+			decode_file = (char *) palloc0(decode_file_len);
+			decode_file_len = pg_b64_decode(file_buf, strlen(file_buf), decode_file, decode_file_len);
+
+			if (decode_file_len < 0)
+			{
+				elog(ERROR, "can not decode in copy from directory table, b64_msg is empty");
+			}
+
+			if (UFileWrite(file, decode_file, decode_file_len) == -1)
+				ereport(ERROR,
+							(errcode(ERRCODE_IO_ERROR),
+							 errmsg("failed to write file \"%s\": %s", orgiFileName, UFileGetLastError(file))));
+
+			if (UFileSync(file) != 0)
+				ereport(ERROR,
+							(errcode(ERRCODE_IO_ERROR),
+							 errmsg("unable to sync file \"%s\": %s", glob_copystmt->dirfilename, UFileGetLastError(file))));
+
+			UFileClose(file);
+
+			ExecClearTuple(myslot);
+			ExecClearTuple(tmpslot);
+
+			/*
+			 * We count only tuples not suppressed by a BEFORE INSERT trigger
+			 * or FDW; this is the same definition used by nodeModifyTable.c
+			 * for counting tuples inserted by an INSERT command.  Update
+			 * progress of the COPY command as well.
+			 *
+			 * MPP: incrementing this counter here only matters for utility
+			 * mode. in dispatch mode only the dispatcher COPY collects row
+			 * count, so this counter is meaningless.
+			 */
+			pgstat_progress_update_param(PROGRESS_COPY_TUPLES_PROCESSED,
+										 ++processed);
+		}
+	}
+	else
+	{
+		ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("This copy from dispatch mode is not supported.")));
+	}
+
+	cstate->filename = NULL;
+
+	/* Execute AFTER STATEMENT insertion triggers */
+	ExecASInsertTriggers(estate, resultRelInfo, cstate->transition_capture);
+
+	/* Handle queued AFTER triggers */
+	AfterTriggerEndQuery(estate);
+
+	/*
+	 * In QE, send the number of rejected rows to the client (QD COPY) if
+	 * SREH is on, always send the number of completed rows.
+	 */
+	if (Gp_role == GP_ROLE_EXECUTE)
+	{
+		SendNumRows((cstate->errMode != ALL_OR_NOTHING) ? cstate->cdbsreh->rejectcount : 0, processed);
+	}
+
+	ExecResetTupleTable(estate->es_tupleTable, false);
+
+	/* Close the result relations, including any trigger target relations */
+	ExecCloseResultRelations(estate);
+	ExecCloseRangeTableRelations(estate);
+
+	FreeDistributionData(distData);
+	FreeExecutorState(estate);
+
+	return processed;
+}
+
+/*
+ * Setup to read tuple from a file for COPY FROM.
+ *
+ * 'rel': Used as a template for the tuples
+ * 'options': List of DefElem. See copy_opt_item in gram.y for selections.
+ *
+ * Returns a CopyFromState, to be passed to NextCopyFrom and related functions.
+ */
+static CopyFromState
+BeginCopyFromDirectoryTable(ParseState *pstate,
+							const char *filename,
+							Relation rel,
+							List *options)
+{
+	CopyFromState cstate;
+	bool		pipe;
+	MemoryContext oldcontext;
+	TupleDesc	tupDesc;
+	AttrNumber	num_phys_attrs;
+	FmgrInfo   *in_functions;
+	Oid		   *typioparams;
+	int			attnum;
+	Oid			in_func_oid;
+	const int	progress_cols[] = {
+		PROGRESS_COPY_COMMAND,
+		PROGRESS_COPY_TYPE,
+		PROGRESS_COPY_BYTES_TOTAL
+	};
+	int64		progress_vals[] = {
+		PROGRESS_COPY_COMMAND_FROM,
+		0,
+		0
+	};
+
+	if (!glob_copystmt->dirfilename)
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("Copy from directory table file name can't be null.")));
+
+	/* Allocate workspace and zero all fields */
+	cstate = (CopyFromStateData *) palloc0(sizeof(CopyFromStateData));
+
+	/*
+	 * We allocate everything used by a cstate in a new memory context. This
+	 * avoids memory leaks during repeated use of COPY in a query.
+	 */
+	cstate->copycontext = AllocSetContextCreate(CurrentMemoryContext,
+												"COPY",
+												ALLOCSET_DEFAULT_SIZES);
+
+	oldcontext = MemoryContextSwitchTo(cstate->copycontext);
+
+	/* Process the target relation */
+	cstate->rel = rel;
+
+	/* Check whether copy directory table options allowed */
+	ProcessCopyDirectoryTableOptions(pstate, &cstate->opts, true, options, rel->rd_id);
+
+	if (Gp_role == GP_ROLE_DISPATCH && !cstate->opts.binary)
+		ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					 errmsg("Only support copy binary from directory table.")));
+
+	cstate->copy_src = COPY_FILE;	/* default */
+
+	/*
+	 * Determine the mode
+	 */
+	if (Gp_role == GP_ROLE_DISPATCH &&
+		cstate->rel && cstate->rel->rd_cdbpolicy &&
+		cstate->rel->rd_cdbpolicy->ptype != POLICYTYPE_ENTRY)
+		cstate->dispatch_mode = COPY_DISPATCH;
+	else if (Gp_role == GP_ROLE_EXECUTE)
+		cstate->dispatch_mode = COPY_EXECUTOR;
+
+	cstate->cur_relname = RelationGetRelationName(cstate->rel);
+	cstate->cur_lineno = 0;
+	cstate->cur_attname = NULL;
+	cstate->cur_attval = NULL;
+	if (filename)
+		cstate->filename = pstrdup(filename);
+	cstate->file_encoding = GetDatabaseEncoding();
+
+	/*
+	 * Allocate buffers for the input pipeline.
+	 */
+	cstate->raw_buf = palloc(RAW_BUF_SIZE + 1);
+	cstate->raw_buf_index = cstate->raw_buf_len = 0;
+	MemSet(cstate->raw_buf, ' ', RAW_BUF_SIZE * sizeof(char));
+	cstate->raw_buf[RAW_BUF_SIZE] = '\0';
+	cstate->raw_reached_eof = false;
+
+	initStringInfo(&cstate->line_buf);
+
+	/* Assign range table, we'll need it in CopyFrom. */
+	if (pstate)
+		cstate->range_table = pstate->p_rtable;
+
+	/*
+	 * build tupledesc and slot for copy from
+	 */
+	tupDesc = CreateTemplateTupleDesc(6);
+	TupleDescInitEntry(tupDesc, (AttrNumber) 1, "relative_path",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupDesc, (AttrNumber) 2, "size",
+					   INT8OID, -1, 0);
+	TupleDescInitEntry(tupDesc, (AttrNumber) 3, "last_modified",
+					   TIMESTAMPTZOID, -1, 0);
+	TupleDescInitEntry(tupDesc, (AttrNumber) 4, "md5",
+					   TEXTOID, -1, 0);
+	TupleDescInitEntry(tupDesc, (AttrNumber) 5, "tag",
+					   TEXTOID, -1 ,0);
+	TupleDescInitEntry(tupDesc, (AttrNumber) 6, "file",
+					   TEXTOID, -1, 0);
+
+	num_phys_attrs = tupDesc->natts;
+
+	cstate->rel->rd_att = CreateTupleDescCopy(tupDesc);
+	cstate->rel->rd_att->tdrefcount = 1;	/* mark as refcounted */
+	cstate->attnumlist = CopyGetAttnums(tupDesc, cstate->rel, NIL);
+
+	/*
+	 * Pick up the required catalog information for each attribute in the
+	 * relation, including the input function, the element type (to pass to
+	 * the input function), and info about defaults and constraints. (Which
+	 * input function we use depends on text/binary format choice.)
+	 */
+	in_functions = (FmgrInfo *) palloc(num_phys_attrs * sizeof(FmgrInfo));
+	typioparams = (Oid *) palloc(num_phys_attrs * sizeof(Oid));
+
+	for (attnum = 1; attnum <= num_phys_attrs; attnum++)
+	{
+		Form_pg_attribute att = TupleDescAttr(tupDesc, attnum - 1);
+
+		/* Fetch the input function and typioparam info */
+		getTypeInputInfo(att->atttypid,
+						 &in_func_oid, &typioparams[attnum - 1]);
+		fmgr_info(in_func_oid, &in_functions[attnum - 1]);
+	}
+
+	/* initialize progress */
+	pgstat_progress_start_command(PROGRESS_COMMAND_COPY,
+								  cstate->rel ? RelationGetRelid(cstate->rel) : InvalidOid);
+	cstate->bytes_processed = 0;
+
+	/* We keep those variables in cstate. */
+	cstate->in_functions = in_functions;
+	cstate->typioparams = typioparams;
+	cstate->is_program = false;
+
+	pipe = (filename == NULL || cstate->dispatch_mode == COPY_EXECUTOR);
+
+	if (pipe)
+	{
+		progress_vals[1] = PROGRESS_COPY_TYPE_PIPE;
+		if (whereToSendOutput == DestRemote)
+			ReceiveCopyBegin(cstate);
+		else
+			cstate->copy_file = stdin;
+	}
+	else
+	{
+		struct stat st;
+
+		cstate->filename = pstrdup(filename);
+
+		progress_vals[1] = PROGRESS_COPY_TYPE_FILE;
+		cstate->copy_file = AllocateFile(cstate->filename, PG_BINARY_R);
+		if (cstate->copy_file == NULL)
+		{
+			/* copy errno because ereport subfunctions might change it */
+			int			save_errno = errno;
+
+			ereport(ERROR,
+					(errcode_for_file_access(),
+						errmsg("could not open file \"%s\" for reading: %m",
+							   cstate->filename),
+						(save_errno == ENOENT || save_errno == EACCES) ?
+						errhint("COPY FROM instructs the PostgreSQL server process to read a file. "
+								"You may want a client-side facility such as psql's \\copy.") : 0));
+		}
+
+		// Increase buffer size to improve performance  (cmcdevitt)
+		/* GPDB_14_MERGE_FIXME: Ret value process. */
+		setvbuf(cstate->copy_file, NULL, _IOFBF, 393216); // 384 Kbytes
+
+		if (fstat(fileno(cstate->copy_file), &st))
+			ereport(ERROR,
+					(errcode_for_file_access(),
+						errmsg("could not stat file \"%s\": %m",
+							   cstate->filename)));
+
+		if (S_ISDIR(st.st_mode))
+			ereport(ERROR,
+					(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						errmsg("\"%s\" is a directory", cstate->filename)));
+
+		progress_vals[2] = st.st_size;
+	}
+
+	pgstat_progress_update_multi_param(3, progress_cols, progress_vals);
+
+	if (cstate->dispatch_mode == COPY_EXECUTOR && cstate->copy_src != COPY_CALLBACK)
+	{
+		/* Read special header from QD */
+		char		readSig[sizeof(QDtoQESignature)];
+		copy_from_dispatch_header header_frame;
+
+		if (CopyGetData(cstate, &readSig, sizeof(QDtoQESignature), sizeof(QDtoQESignature)) != sizeof(QDtoQESignature) ||
+			memcmp(readSig, QDtoQESignature, sizeof(QDtoQESignature)) != 0)
+			ereport(ERROR,
+						(errcode(ERRCODE_INTERNAL_ERROR),
+						 errmsg("QD->QE COPY communication signature not recognized")));
+
+		if (CopyGetData(cstate, &header_frame, sizeof(header_frame), sizeof(header_frame)) != sizeof(header_frame))
+			ereport(ERROR,
+						(errcode(ERRCODE_BAD_COPY_FILE_FORMAT),
+						 errmsg("invalid QD->QD COPY communication header")));
+
+		cstate->first_qe_processed_field = header_frame.first_qe_processed_field;
+	}
+
+	MemoryContextSwitchTo(oldcontext);
+
+	return cstate;
+}
+
 /*
  * Copy FROM file to relation.
  */
@@ -707,6 +1496,7 @@ CopyFrom(CopyFromState cstate)
 	 * allowed on views, so we only hint about them in the view case.)
 	 */
 	if (cstate->rel->rd_rel->relkind != RELKIND_RELATION &&
+		cstate->rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE &&
 		cstate->rel->rd_rel->relkind != RELKIND_FOREIGN_TABLE &&
 		cstate->rel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE &&
 		!(cstate->rel->trigdesc &&
@@ -734,6 +1524,9 @@ CopyFrom(CopyFromState cstate)
 					 errmsg("cannot copy to non-table relation \"%s\"",
 							RelationGetRelationName(cstate->rel))));
 	}
+
+	if (cstate->rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+		return CopyFromDirectoryTable(cstate);
 
 	/*
 	 * If the target file is new-in-transaction, we assume that checking FSM
@@ -807,7 +1600,8 @@ CopyFrom(CopyFromState cstate)
 	ExecInitResultRelation(estate, resultRelInfo, 1);
 
 	/* Verify the named relation is a valid target for INSERT */
-	CheckValidResultRel(resultRelInfo, CMD_INSERT);
+	if (!(cstate->rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE))
+		CheckValidResultRel(resultRelInfo, CMD_INSERT, NULL);
 
 	ExecOpenIndices(resultRelInfo, false);
 
@@ -1688,6 +2482,9 @@ BeginCopyFrom(ParseState *pstate,
 		0,
 		0
 	};
+
+	if (rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+		return BeginCopyFromDirectoryTable(pstate, filename, rel, options);
 
 	/* Allocate workspace and zero all fields */
 	cstate = (CopyFromStateData *) palloc0(sizeof(CopyFromStateData));
@@ -3109,12 +3906,37 @@ SendCopyFromForwardedError(CopyFromState cstate, CdbCopy *cdbCopy, char *errorms
 	cdbCopySendData(cdbCopy, target_seg, msgbuf->data, msgbuf->len);
 }
 
+static void
+EndCopyFromDirectoryTable(CopyFromState cstate)
+{
+	/* No COPY FROM related resources except memory. */
+	if (cstate->copy_file && FreeFile(cstate->copy_file))
+	{
+		ereport(ERROR,
+					(errcode_for_file_access(),
+					 errmsg("could not close file \"%s\": %m",
+						   cstate->filename)));
+	}
+
+	/* Clean up single row error handling related memory */
+	if (cstate->cdbsreh)
+		destroyCdbSreh(cstate->cdbsreh);
+
+	pgstat_progress_end_command();
+
+	MemoryContextDelete(cstate->copycontext);
+	pfree(cstate);
+}
+
 /*
  * Clean up storage and release resources for COPY FROM.
  */
 void
 EndCopyFrom(CopyFromState cstate)
 {
+	if (cstate->rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+		return EndCopyFromDirectoryTable(cstate);
+
 	/* No COPY FROM related resources except memory. */
 	if (cstate->is_program)
 	{

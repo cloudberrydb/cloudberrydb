@@ -261,6 +261,7 @@ pgstat_relation(Relation rel, FunctionCallInfo fcinfo)
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
 		case RELKIND_AOVISIMAP:
+		case RELKIND_DIRECTORY_TABLE:
 			return pgstat_heap(rel, fcinfo);
 		case RELKIND_INDEX:
 			switch (rel->rd_rel->relam)

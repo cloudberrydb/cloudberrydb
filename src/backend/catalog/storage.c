@@ -27,6 +27,7 @@
 #include "access/xloginsert.h"
 #include "access/xlogutils.h"
 #include "catalog/storage.h"
+#include "catalog/storage_directory_table.h"
 #include "catalog/storage_xlog.h"
 #include "common/relpath.h"
 #include "commands/dbcommands.h"
@@ -637,6 +638,8 @@ smgrDoPendingDeletes(bool isCommit)
 				maxrels = 0;
 	SMgrRelation *srels = NULL;
 
+	UFileDoDeletesActions(isCommit);
+
 	prev = NULL;
 	for (pending = pendingDeletes; pending != NULL; pending = next)
 	{
@@ -933,6 +936,8 @@ AtSubCommit_smgr(void)
 	int			nestLevel = GetCurrentTransactionNestLevel();
 	PendingRelDelete *pending;
 
+	UFileAtSubCommitSmgr();
+
 	for (pending = pendingDeletes; pending != NULL; pending = pending->next)
 	{
 		if (pending->nestLevel >= nestLevel)
@@ -950,6 +955,7 @@ AtSubCommit_smgr(void)
 void
 AtSubAbort_smgr(void)
 {
+	UFileAtSubAbortSmgr();
 	smgrDoPendingDeletes(false);
 }
 

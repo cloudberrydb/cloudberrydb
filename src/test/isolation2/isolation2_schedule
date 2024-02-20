@@ -308,3 +308,5 @@ test: ao_unique_index
 test: aocs_unique_index
 test: uao/ao_unique_index_vacuum_row
 test: uao/ao_unique_index_vacuum_column
+
+test: local_directory_table_mixed

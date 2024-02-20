@@ -792,6 +792,15 @@ ProcessCopyOptions(ParseState *pstate,
 						 errmsg("conflicting or redundant options")));
 			opts_out->skip_foreign_partitions = true;
 		}
+		else if (strcmp(defel->defname, "tag") == 0)
+		{
+			if (opts_out->tags)
+				ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("conflicting or redundant options"),
+								 parser_errposition(pstate, defel->location)));
+			opts_out->tags = defGetString(defel);
+		}
 		else if (!rel_is_external_table(rel_oid))
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
@@ -965,6 +974,11 @@ ProcessCopyOptions(ParseState *pstate,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("CSV quote character must not appear in the NULL specification")));
 
+	if (opts_out->tags != NULL && !is_from)
+		ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("COPY with tag only available using COPY FROM")));
+
 	/*
 	 * DELIMITER
 	 *
@@ -1031,6 +1045,84 @@ ProcessCopyOptions(ParseState *pstate,
 						 errhint("Valid options are: 'LF', 'CRLF' and 'CR'.")));
 		}
 	}
+}
+
+void
+ProcessCopyDirectoryTableOptions(ParseState *pstate,
+								 CopyFormatOptions *opts_out,
+								 bool is_from,
+								 List *options,
+								 Oid rel_oid)
+{
+	bool		format_specified = false;
+	ListCell   *option;
+
+	/* Support external use for option sanity checking */
+	if (opts_out == NULL)
+		opts_out = (CopyFormatOptions *) palloc0(sizeof(CopyFormatOptions));
+
+	opts_out->file_encoding = -1;
+
+	/* Extract options from the statement node tree */
+	foreach(option, options)
+	{
+		DefElem    *defel = lfirst_node(DefElem, option);
+
+		if (strcmp(defel->defname, "format") == 0)
+		{
+			char	   *fmt = defGetString(defel);
+
+			if (format_specified)
+				ereport(ERROR,
+							(errcode(ERRCODE_SYNTAX_ERROR),
+							 errmsg("conflicting or redundant options"),
+							 parser_errposition(pstate, defel->location)));
+			format_specified = true;
+			if (strcmp(fmt, "binary") == 0)
+				opts_out->binary = true;
+			else
+				ereport(ERROR,
+							(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
+						 	 errmsg("format option is not allowed in copy binary from directory table."),
+							 parser_errposition(pstate, defel->location)));
+		}
+		else if (strcmp(defel->defname, "tag") == 0)
+		{
+			if (opts_out->tags)
+				ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+						 		 errmsg("conflicting or redundant options"),
+						 		 parser_errposition(pstate, defel->location)));
+			opts_out->tags = defGetString(defel);
+		}
+		else
+			ereport(ERROR,
+						(errcode(ERRCODE_SYNTAX_ERROR),
+						 errmsg("option \"%s\" not recognized",
+							   defel->defname),
+						 parser_errposition(pstate, defel->location)));
+	}
+
+	opts_out->eol_type = EOL_UNKNOWN;
+
+	/* Set defaults for omitted options */
+	if (!opts_out->delim)
+		opts_out->delim = opts_out->csv_mode ? "," : "\t";
+
+	if (!opts_out->null_print)
+		opts_out->null_print = opts_out->csv_mode ? "" : "\\N";
+	opts_out->null_print_len = strlen(opts_out->null_print);
+
+	if (opts_out->csv_mode)
+	{
+		if (!opts_out->quote)
+			opts_out->quote = "\"";
+		if (!opts_out->escape)
+			opts_out->escape = opts_out->quote;
+	}
+
+	if (!opts_out->csv_mode && !opts_out->escape)
+		opts_out->escape = "\\";			/* default escape for text mode */
 }
 
 /*

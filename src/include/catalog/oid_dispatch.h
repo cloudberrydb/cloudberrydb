@@ -63,6 +63,8 @@ extern Oid GetNewOidForForeignDataWrapper(Relation relation, Oid indexId, AttrNu
 										  char *fdwname);
 extern Oid GetNewOidForForeignServer(Relation relation, Oid indexId, AttrNumber oidcolumn,
 									 char *srvname);
+extern Oid GetNewOidForStorageServer(Relation relation, Oid indexId, AttrNumber oidcolumn,
+						  			char *srvname);
 extern Oid GetNewOidForLanguage(Relation relation, Oid indexId, AttrNumber oidcolumn,
 								char *lanname);
 extern Oid GetNewOidForNamespace(Relation relation, Oid indexId, AttrNumber oidcolumn,
@@ -107,6 +109,8 @@ extern Oid GetNewOidForResGroup(Relation relation, Oid indexId, AttrNumber oidco
 								char *rsgname);
 extern Oid GetNewOidForUserMapping(Relation relation, Oid indexId, AttrNumber oidcolumn,
 								   Oid umuser, Oid umserver);
+extern Oid GetNewOidForStorageUserMapping(Relation relation, Oid indexId, AttrNumber oidcolumn,
+										  Oid umuser, Oid umserver);
 extern Oid GetNewOidForPublication(Relation relation, Oid indexId, AttrNumber oidcolumn,
 								   char *pubname);
 extern Oid GetNewOidForPublicationRel(Relation relation, Oid indexId, AttrNumber oidcolumn,

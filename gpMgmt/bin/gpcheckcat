@@ -1579,6 +1579,10 @@ def checkTableInconsistentEntry(cat):
         columns.remove("passhistpasswordsetat")
         castcols.remove("passhistpasswordsetat")
 
+    if catname == "pg_directory_table":
+        columns.remove("dtlocation")
+        castcols.remove("dtlocation")
+
     if cat.tableHasConsistentOids():
         qry = inconsistentEntryQuery(GV.max_content, catname, ['oid'], columns, castcols)
     else:
@@ -2926,7 +2930,7 @@ class GPObject:
 
         # Report missing issues
         if len(self.missingIssues):
-            omitlist = ['pg_attribute', 'pg_attribute_encoding', 'pg_type', 'pg_appendonly', 'pg_index', 'pg_password_history']
+            omitlist = ['pg_attribute', 'pg_attribute_encoding', 'pg_type', 'pg_appendonly', 'pg_index', 'pg_password_history', 'pg_directory_table']
             if 'pg_class' in self.missingIssues:
                 myprint('    Name of test which found this issue: missing_extraneous_pg_class')
                 for name in omitlist:

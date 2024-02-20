@@ -9,6 +9,7 @@ endif
 
 SUBDIRS = stream gpcheckcat_modules gpconfig_modules gpssh_modules gppylib lib
 SUBDIRS += ifaddrs
+SUBDIRS += cbload
 
 $(recurse)
 

@@ -549,6 +549,7 @@ pg_relation_size(PG_FUNCTION_ARGS)
 
 	forkNumber = forkname_to_number(text_to_cstring(forkName));
 
+	// TODO directory table
 	size = calculate_relation_size(rel, forkNumber);
 
 	if (Gp_role == GP_ROLE_DISPATCH)
@@ -1176,6 +1177,7 @@ pg_relation_filenode(PG_FUNCTION_ARGS)
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOBLOCKDIR:
 		case RELKIND_AOVISIMAP:
+		case RELKIND_DIRECTORY_TABLE:
 			/* okay, these have storage */
 			if (relform->relfilenode)
 				result = relform->relfilenode;
@@ -1260,6 +1262,7 @@ pg_relation_filepath(PG_FUNCTION_ARGS)
 		case RELKIND_AOSEGMENTS:
 		case RELKIND_AOVISIMAP:
 		case RELKIND_AOBLOCKDIR:
+		case RELKIND_DIRECTORY_TABLE:
 			/* okay, these have storage */
 
 			/* This logic should match RelationInitPhysicalAddr */

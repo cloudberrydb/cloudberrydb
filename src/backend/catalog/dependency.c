@@ -20,6 +20,8 @@
 #include "access/table.h"
 #include "access/xact.h"
 #include "catalog/dependency.h"
+#include "catalog/gp_storage_server.h"
+#include "catalog/gp_storage_user_mapping.h"
 #include "catalog/heap.h"
 #include "catalog/index.h"
 #include "catalog/namespace.h"
@@ -36,6 +38,7 @@
 #include "catalog/pg_database.h"
 #include "catalog/pg_default_acl.h"
 #include "catalog/pg_depend.h"
+#include "catalog/pg_directory_table.h"
 #include "catalog/pg_event_trigger.h"
 #include "catalog/pg_extension.h"
 #include "catalog/pg_foreign_data_wrapper.h"
@@ -202,6 +205,9 @@ static const Oid object_classes[] = {
 	/* GPDB additions */
 	ProfileRelationId,		/* OCLASS_PROFILE */
 	PasswordHistoryRelationId,	/* OCLASS_PASSWORDHISTORY */
+	DirectoryTableRelationId,	/* OCLASS_DIRECTORY_TABLE */
+	StorageServerRelationId,	/* OCLASS_STORAGE_SERVER */
+	StorageUserMappingRelationId,	/* OCLASS_STORAGE_USER_MAPPING */
 	ExtprotocolRelationId,		/* OCLASS_EXTPROTOCOL */
 	TaskRelationId				/* OCLASS_TASK */
 };
@@ -1579,6 +1585,8 @@ doDeletion(const ObjectAddress *object, int flags)
 		case OCLASS_SUBSCRIPTION:
 		case OCLASS_PROFILE:
 		case OCLASS_PASSWORDHISTORY:
+		case OCLASS_STORAGE_SERVER:
+		case OCLASS_STORAGE_USER_MAPPING:
 			elog(ERROR, "global objects cannot be deleted by doDeletion");
 			break;
 
@@ -2969,6 +2977,15 @@ getObjectClass(const ObjectAddress *object)
 
 		case TaskRelationId:
 			return OCLASS_TASK;
+
+		case DirectoryTableRelationId:
+			return OCLASS_DIRTABLE;
+
+		case StorageServerRelationId:
+			return OCLASS_STORAGE_SERVER;
+
+		case StorageUserMappingRelationId:
+			return OCLASS_STORAGE_USER_MAPPING;
 
 		default:
 		{

@@ -24,7 +24,7 @@
 #include "common/cryptohash.h"
 #include "common/md5.h"
 
-static void
+void
 bytesToHex(uint8 b[16], char *s)
 {
 	static const char *hex = "0123456789abcdef";

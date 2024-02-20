@@ -37,6 +37,8 @@ CATALOG(pg_tablespace,1213,TableSpaceRelationId) BKI_SHARED_RELATION
 #ifdef CATALOG_VARLEN			/* variable-length fields start here */
 	aclitem		spcacl[1];		/* access permissions */
 	text		spcoptions[1];	/* per-tablespace options */
+	text		spcfilehandlersrc	BKI_DEFAULT(_null_);	/* handler function src path */
+	text 		spcfilehandlerbin	BKI_DEFAULT(_null_);	/* handler function bin path */
 #endif
 } FormData_pg_tablespace;
 

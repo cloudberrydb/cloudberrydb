@@ -86,6 +86,8 @@ AlterRoleSetStmt
 AlterRoleStmt
 AlterSeqStmt
 AlterStatsStmt
+AlterStorageServer
+AlterStorageUserMappingStmt
 AlterSubscriptionStmt
 AlterSubscriptionType
 AlterSystemStmt
@@ -484,6 +486,8 @@ CreateSeqStmt
 CreateStatsStmt
 CreateStmt
 CreateStmtContext
+CreateStorageServerStmt
+CreateStorageUserMappingStmt
 CreateSubscriptionStmt
 CreateTableAsStmt
 CreateTableSpaceStmt
@@ -572,6 +576,8 @@ DropProfileStmt
 DropReplicationSlotCmd
 DropRoleStmt
 DropStmt
+DropStorageServer
+DropStorageUserMappingStmt
 DropSubscriptionStmt
 DropTableSpaceStmt
 DropUserMappingStmt

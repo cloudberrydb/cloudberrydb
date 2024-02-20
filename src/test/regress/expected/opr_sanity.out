@@ -402,12 +402,14 @@ WHERE 'cstring'::regtype = ANY (p1.proargtypes)
     AND NOT EXISTS(SELECT 1 FROM pg_conversion WHERE conproc = p1.oid)
     AND p1.oid != 'shell_in(cstring)'::regprocedure
 ORDER BY 1;
- oid  |     proname     
-------+-----------------
+ oid  |       proname       
+------+---------------------
  2293 | cstring_out
  2501 | cstring_send
  7060 | get_role_status
-(3 rows)
+ 8996 | remove_file
+ 9109 | remove_file_segment
+(5 rows)
 
 -- Likewise, look for functions that return cstring and aren't datatype output
 -- functions nor typmod output functions.

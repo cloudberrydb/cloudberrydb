@@ -27,6 +27,7 @@
 #include "catalog/binary_upgrade.h"
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
+#include "catalog/gp_storage_server.h"
 #include "catalog/heap.h"
 #include "catalog/indexing.h"
 #include "catalog/objectaccess.h"
@@ -269,6 +270,9 @@ restrict_and_check_grant(bool is_grant, AclMode avail_goptions, bool all_privs,
 			break;
 		case OBJECT_FOREIGN_SERVER:
 			whole_mask = ACL_ALL_RIGHTS_FOREIGN_SERVER;
+			break;
+		case OBJECT_STORAGE_SERVER:
+			whole_mask = ACL_ALL_RIGHTS_STORAGE_SERVER;
 			break;
 		case OBJECT_EVENT_TRIGGER:
 			elog(ERROR, "grantable rights not supported for event triggers");
@@ -527,6 +531,10 @@ ExecuteGrantStmt(GrantStmt *stmt)
 		case OBJECT_FOREIGN_SERVER:
 			all_privileges = ACL_ALL_RIGHTS_FOREIGN_SERVER;
 			errormsg = gettext_noop("invalid privilege type %s for foreign server");
+			break;
+		case OBJECT_STORAGE_SERVER:
+			all_privileges = ACL_ALL_RIGHTS_STORAGE_SERVER;
+			errormsg = gettext_noop("invalid privilege type %s from storage server");
 			break;
 		case OBJECT_EXTPROTOCOL:
 			all_privileges = ACL_ALL_RIGHTS_EXTPROTOCOL;
@@ -921,6 +929,8 @@ objectsInSchemaToOids(ObjectType objtype, List *nspnames)
 				objs = getRelationsInNamespace(namespaceId, RELKIND_FOREIGN_TABLE);
 				objects = list_concat(objects, objs);
 				objs = getRelationsInNamespace(namespaceId, RELKIND_PARTITIONED_TABLE);
+				objects = list_concat(objects, objs);
+				objs = getRelationsInNamespace(namespaceId, RELKIND_DIRECTORY_TABLE);
 				objects = list_concat(objects, objs);
 				break;
 			case OBJECT_SEQUENCE:
@@ -3691,6 +3701,9 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 					case OBJECT_DOMAIN:
 						msg = gettext_noop("permission denied for domain %s");
 						break;
+					case OBJECT_DIRECTORY_TABLE:
+						msg = gettext_noop("permission denied for directory table %s");
+						break;
 					case OBJECT_EVENT_TRIGGER:
 						msg = gettext_noop("permission denied for event trigger %s");
 						break;
@@ -3751,6 +3764,9 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 					case OBJECT_STATISTIC_EXT:
 						msg = gettext_noop("permission denied for statistics object %s");
 						break;
+					case OBJECT_STORAGE_SERVER:
+						msg = gettext_noop("permission denied for storage server %s");
+						break;
 					case OBJECT_SUBSCRIPTION:
 						msg = gettext_noop("permission denied for subscription %s");
 						break;
@@ -3796,6 +3812,7 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 					case OBJECT_TSTEMPLATE:
 					case OBJECT_USER_MAPPING:
 					case OBJECT_PROFILE:
+					case OBJECT_STORAGE_USER_MAPPING:
 						elog(ERROR, "unsupported object type %d", objtype);
 				}
 
@@ -3824,6 +3841,9 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 						break;
 					case OBJECT_DOMAIN:
 						msg = gettext_noop("must be owner of domain %s");
+						break;
+					case OBJECT_DIRECTORY_TABLE:
+						msg = gettext_noop("must be owner of directory table %s");
 						break;
 					case OBJECT_EVENT_TRIGGER:
 						msg = gettext_noop("must be owner of event trigger %s");
@@ -3938,6 +3958,8 @@ aclcheck_error(AclResult aclerr, ObjectType objtype,
 					case OBJECT_TSTEMPLATE:
 					case OBJECT_USER_MAPPING:
 					case OBJECT_PROFILE:
+					case OBJECT_STORAGE_SERVER:
+					case OBJECT_STORAGE_USER_MAPPING:
 						elog(ERROR, "unsupported object type %d", objtype);
 				}
 
@@ -4829,6 +4851,65 @@ pg_foreign_server_aclmask(Oid srv_oid, Oid roleid,
 }
 
 /*
+ * Exported routine for examining a user's privileges for a storage
+ * server.
+ */
+AclMode
+gp_storage_server_aclmask(Oid srv_oid, Oid roleid,
+						AclMode mask, AclMaskHow how)
+{
+	AclMode		result;
+	HeapTuple	tuple;
+	Datum		aclDatum;
+	bool		isNull;
+	Acl		*acl;
+	Oid		ownerId;
+
+	Form_gp_storage_server srvForm;
+
+	/* Bypass permission checks for superusers */
+	if (superuser_arg(roleid))
+		return mask;
+
+	tuple = SearchSysCache1(STORAGESERVEROID, ObjectIdGetDatum(srv_oid));
+	if (!HeapTupleIsValid(tuple))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("storage server with OID %u does not exist",
+					    srv_oid)));
+	srvForm = (Form_gp_storage_server) GETSTRUCT(tuple);
+
+	/*
+	 * Normal case: get the storage server's ACL from gp_storage_server
+	 */
+	ownerId = srvForm->srvowner;
+
+	aclDatum = SysCacheGetAttr(STORAGESERVEROID, tuple,
+							   Anum_gp_storage_server_srvacl, &isNull);
+	if (isNull)
+	{
+		/* No ACL, so build default ACL */
+		acl = acldefault(OBJECT_STORAGE_SERVER, ownerId);
+		aclDatum = (Datum) 0;
+	}
+	else
+	{
+		/* detoast rel's ACL if necessary */
+		acl = DatumGetAclP(aclDatum);
+	}
+
+	result = aclmask(acl, roleid, ownerId, mask, how);
+
+	/* if we have a detoasted copy, free it */
+	if (acl && (Pointer) acl != DatumGetPointer(aclDatum))
+		pfree(acl);
+
+	ReleaseSysCache(tuple);
+
+	return result;
+}
+
+/*
  * Exported routine for examining a user's privileges for a type.
  */
 AclMode
@@ -5246,6 +5327,19 @@ pg_foreign_server_aclcheck(Oid srv_oid, Oid roleid, AclMode mode)
 }
 
 /*
+ * Exported routine for checking a user's access privileges to a storage
+ * server
+ */
+AclResult
+gp_storage_server_aclcheck(Oid srv_oid, Oid roleid, AclMode mode)
+{
+	if (gp_storage_server_aclmask(srv_oid, roleid, mode, ACLMASK_ANY) != 0)
+		return ACLCHECK_OK;
+	else
+		return ACLCHECK_NO_PRIV;
+}
+
+/*
  * Exported routine for checking a user's access privileges to a type
  */
 AclResult
@@ -5655,6 +5749,33 @@ pg_foreign_server_ownercheck(Oid srv_oid, Oid roleid)
 						srv_oid)));
 
 	ownerId = ((Form_pg_foreign_server) GETSTRUCT(tuple))->srvowner;
+
+	ReleaseSysCache(tuple);
+
+	return has_privs_of_role(roleid, ownerId);
+}
+
+/*
+ * Ownership check for a storage server (specified by OID).
+ */
+bool
+gp_storage_server_ownercheck(Oid srv_oid, Oid roleid)
+{
+	HeapTuple	tuple;
+	Oid			ownerId;
+
+	/* Superusers bypass all permission checking. */
+	if (superuser_arg(roleid))
+		return true;
+
+	tuple = SearchSysCache1(STORAGESERVEROID, ObjectIdGetDatum(srv_oid));
+	if (!HeapTupleIsValid(tuple))
+		ereport(ERROR,
+				(errcode(ERRCODE_UNDEFINED_OBJECT),
+				 errmsg("storage server with OID %u does not exist",
+					   srv_oid)));
+
+	ownerId = ((Form_gp_storage_server) GETSTRUCT(tuple))->srvowner;
 
 	ReleaseSysCache(tuple);
 
@@ -6679,6 +6800,7 @@ CopyRelationAcls(Oid srcId, Oid destId)
 
 	if (pg_class_tuple->relkind != RELKIND_RELATION &&
 		pg_class_tuple->relkind != RELKIND_PARTITIONED_TABLE &&
+		pg_class_tuple->relkind != RELKIND_DIRECTORY_TABLE &&
 		pg_class_tuple->relkind != RELKIND_FOREIGN_TABLE)
 		elog(ERROR, "unexpected relkind %c",  pg_class_tuple->relkind);
 
