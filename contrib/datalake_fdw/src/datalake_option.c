@@ -79,6 +79,13 @@ static const struct datalakeFdwOption valid_foreign_options[] = {
 	{DATALAKE_COPY_OPTION_FILL_MISSING_FIELDS, ForeignTableRelationId},
 	{DATALAKE_COPY_OPTION_FORCE_NOT_NULL, ForeignTableRelationId},
 	{DATALAKE_COPY_OPTION_FORCE_NULL, ForeignTableRelationId},
+	{DATALAKE_OPTION_TABLE_IDENTIFIER, ForeignTableRelationId},
+	{DATALAKE_OPTION_SERVER_NAME, ForeignTableRelationId},
+	{DATALAKE_OPTION_CATALOG_TYPE, ForeignTableRelationId},
+	{DATALAKE_OPTION_SPLIT_SIZE, ForeignTableRelationId},
+	{DATALAKE_OPTION_CACHE_ENABLED, ForeignTableRelationId},
+	{DATALAKE_OPTION_QUERY_TYPE, ForeignTableRelationId},
+	{DATALAKE_OPTION_METADATA_TABLE_ENABLE, ForeignTableRelationId},
 	{NULL, InvalidOid}
 };
 
@@ -372,6 +379,41 @@ void parseForeignTableOptions(dataLakeOptions* opt, List *options)
 		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_HDFS_CLUSTER_NAME) == 0)
 		{
 			opt->hdfs_cluster_name = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_CATALOG_TYPE) == 0)
+		{
+			opt->catalog_type = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_SPLIT_SIZE) == 0)
+		{
+			opt->split_size = atoi(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_SERVER_NAME) == 0)
+		{
+			opt->server_name = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_TABLE_IDENTIFIER) == 0)
+		{
+			opt->table_identifier = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_CACHE_ENABLED) == 0)
+		{
+			opt->cache_enabled = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_QUERY_TYPE) == 0)
+		{
+			opt->query_type = pstrdup(defGetString(def));
+		}
+
+		if (pg_strcasecmp(def->defname, DATALAKE_OPTION_METADATA_TABLE_ENABLE) == 0)
+		{
+			opt->metadata_table_enable = pstrdup(defGetString(def));
 		}
 	}
 }
@@ -936,12 +978,14 @@ void check_foreign_option(List *options_list, Oid catalog)
 	if (!(pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_TEXT) == 0 ||
 		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_CSV) == 0 ||
 		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_ORC) == 0 ||
-		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_PARQUET) == 0))
+		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_PARQUET) == 0 ||
+		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_ICEBERG) == 0 ||
+		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_HUDI) == 0))
 	{
 		ereport(ERROR,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 						errmsg("invalid foreign format option \"%s\". "
-							"datalake support csv, text, parquet, orc.",
+							"datalake support csv, text, parquet, orc, iceberg, hudi.",
 							format)));
 	}
 

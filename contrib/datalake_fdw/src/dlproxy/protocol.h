@@ -61,19 +61,19 @@ hive_get_external_partitions(Oid relid,
 							 List *locations,
 							 char *formatType);
 
-// extern List *
-// iceberg_get_external_fragments(Oid relid,
-// 							   Index relno,
-// 							   List *restrictInfo,
-// 							   List *targetList,
-// 							   List *locations);
+extern List *
+iceberg_get_external_fragments(Oid relid,
+							   Index relno,
+							   List *restrictInfo,
+							   List *targetList,
+							   List *locations);
 
-// extern List *
-// hudi_get_external_fragments(Oid relid,
-// 							Index relno,
-// 							List *restrictInfo,
-// 							List *targetList,
-// 							List *locations);
+extern List *
+hudi_get_external_fragments(Oid relid,
+							Index relno,
+							List *restrictInfo,
+							List *targetList,
+							List *locations);
 
 extern List *
 internal_get_external_fragments(char *profile,

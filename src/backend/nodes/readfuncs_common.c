@@ -1428,6 +1428,54 @@ _readReindexIndexInfo(void)
 	READ_DONE();
 }
 
+static FileFragment *
+_readFileFragment(void)
+{
+	READ_LOCALS(FileFragment);
+
+	READ_STRING_FIELD(filePath);
+	READ_ENUM_FIELD(content, FileContent);
+	READ_ENUM_FIELD(format, FileFormat);
+	READ_LONG_FIELD(recordCount);
+	READ_NODE_FIELD(eqColumnNames);
+
+	READ_DONE();
+}
+
+static FileScanTask *
+_readFileScanTask(void)
+{
+	READ_LOCALS(FileScanTask);
+
+	READ_LONG_FIELD(start);
+	READ_LONG_FIELD(length);
+	READ_NODE_FIELD(dataFile);
+	READ_NODE_FIELD(deletes);
+	READ_STRING_FIELD(instantTime);
+
+	READ_DONE();
+}
+
+static ExternalTableMetadata *
+_readExternalTableMetadata(void)
+{
+	READ_LOCALS(ExternalTableMetadata);
+
+	READ_BOOL_FIELD(isTablePartitioned);
+	READ_NODE_FIELD(recordKeyFields);
+	READ_NODE_FIELD(partitionKeyFields);
+	READ_STRING_FIELD(preCombineField);
+	READ_STRING_FIELD(recordMergerStrategy);
+	READ_NODE_FIELD(completedInstants);
+	READ_NODE_FIELD(inflightInstants);
+	READ_STRING_FIELD(firstNonSavepointCommit);
+	READ_BOOL_FIELD(extractPartitionValueFromPath);
+	READ_BOOL_FIELD(hiveStylePartitioningEnabled);
+	READ_BOOL_FIELD(isMorTable);
+
+	READ_DONE();
+}
+
 static RenameStmt *
 _readRenameStmt(void)
 {

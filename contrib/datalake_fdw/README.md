@@ -4,10 +4,13 @@ datalake-ext is foreign data wrapper for PostgreSQL. support read/write oss and 
 
 ## Installation
 
-datalake-ext requires `libgopher`, `libparquet`, `liborc`, `libarchive` installed in your system. To build datalake-ext run:
+datalake-ext requires `libgopher`, `libparquet`, `liborc`, `libarchive`, `libavro`, `libcurl` installed in your system. To build datalake-ext run:
 ```
 make install
 ```
+> `libavro` https://artifactory.hashdata.xyz/artifactory/opensource-codes/avro/rpms/avrocpp-1.11.2-1.centos7_x86_64.rpm
+> 
+> `libcurl` version must be 7.29.0 or later
 
 After extension was successfully installed run in psql:
 ```
@@ -278,7 +281,47 @@ CREATE FOREIGN TABLE example (
 ```
 the parameters are the same as the oss storage.
 
+### support iceberg & hudi
 
+see the whole example in test:
+https://code.hashdata.xyz/cloudberry/hashdata-lightning/-/tree/main/contrib/datalake_fdw/sql
+
+#### iceberg
+```
+CREATE EXTENSION IF NOT EXISTS datalake_fdw;
+CREATE EXTENSION IF NOT EXISTS hive_connector;
+
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+HANDLER datalake_fdw_handler
+VALIDATOR datalake_fdw_validator
+OPTIONS (mpp_execute 'all segments');
+
+SELECT public.create_foreign_server('sync_server', 'gpadmin', 'datalake_fdw', 'hdfs-cluster-1');
+
+------ create iceberg table ------
+CREATE FOREIGN TABLE iceberg_table1 (
+    id int,
+    name text,
+    age int,
+    address text
+)
+server sync_server
+OPTIONS (filePath 'icebergdb.iceberg_table1', catalog_type 'hive', server_name 'hive-cluster-1', hdfs_cluster_name 'hdfs-cluster-1', table_identifier 'icebergdb.iceberg_table1', format 'iceberg');
+```
+
+#### hudi
+```
+------ create hudi table ------
+DROP FOREIGN TABLE IF EXISTS hudi_table1;
+CREATE FOREIGN TABLE hudi_table1 (
+    id int,
+    name text,
+    age int,
+    address text
+)
+server sync_server
+OPTIONS (filePath 'hudidb.hudi_table1', catalog_type 'hive', server_name 'hive-cluster-1', hdfs_cluster_name 'hdfs-cluster-1', table_identifier 'hudidb.hudi_table1', format 'hudi');
+```
 
 ### support hive-connector
 Run a hive-connector sync SQL. An fdw foregin table will be created. Here only the description of hive-connector fdw foregin table parameters.

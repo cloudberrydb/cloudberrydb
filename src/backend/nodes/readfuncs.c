@@ -3249,6 +3249,12 @@ parseNodeString(void)
 		return_value = _readReindexStmt();
 	else if (MATCHX("REINDEXINDEXINFO"))
 		return_value = _readReindexIndexInfo();
+	else if (MATCHX("FILEFRAGMENT"))
+		return_value = _readFileFragment();
+	else if (MATCHX("FILESCANTASK"))
+		return_value = _readFileScanTask();
+	else if (MATCHX("EXTERNALTABLEMETADATA"))
+		return_value = _readExternalTableMetadata();
 	else if (MATCHX("RENAMESTMT"))
 		return_value = _readRenameStmt();
 	else if (MATCHX("REPLICAIDENTITYSTMT"))

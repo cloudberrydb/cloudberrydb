@@ -10,6 +10,7 @@ static List *GetFragmentList(dataLakeOptions *options, int64_t *totalSize);
 static List *get_partition_values(Relation relation, dataLakeOptions *options);
 static List *getNextPartitionFragmentList(dataLakeOptions *options, ossFileStream stream, int64_t *totalSize);
 static List *GetPartitionFragmentList(Relation relation, List *quals, dataLakeOptions *options, int64_t *totalSize);
+static List *convert_iceberg_hudi_options(dataLakeOptions *options);
 
 static List*
 SerializeFragmentList(gopherFileInfo* lists, int count, int64_t *totalSize)
@@ -175,6 +176,13 @@ GetPartitionFragmentList(Relation relation, List *quals, dataLakeOptions *option
 List *
 GetExternalFragmentList(Relation relation, List *quals, dataLakeOptions *options, int64_t *totalSize)
 {
+	if (FORMAT_IS_ICEBERG(options->format) || FORMAT_IS_HUDI(options->format))
+	{
+		List *locations = convert_iceberg_hudi_options(options);
+		return get_external_fragments(RelationGetRelid(relation), 0, NIL, NIL,
+									  locations, options->format, false);
+	}
+
 	if (SUPPORT_PARTITION_TABLE(options->gopher->gopherType,
 								options->format,
 								options->hiveOption->hivePartitionKey,
@@ -189,10 +197,41 @@ GetExternalFragmentList(Relation relation, List *quals, dataLakeOptions *options
 	}
 }
 
+static List *
+convert_iceberg_hudi_options(dataLakeOptions *options)
+{
+	List			*result = NIL;
+	StringInfoData	buf;
+
+	initStringInfo(&buf);
+	appendStringInfo(&buf, "datalake://%s catalog_type=%s server_name=%s",
+					 options->filePath, options->catalog_type,
+					 options->server_name);
+	if (options->table_identifier)
+		appendStringInfo(&buf, " table_identifier=%s", options->table_identifier);
+	if (options->split_size > 0)
+		appendStringInfo(&buf, " split_size=%d", options->split_size);
+	if (options->cache_enabled)
+		appendStringInfo(&buf, " cache_enabled=%s", options->cache_enabled);
+	if (options->query_type)
+		appendStringInfo(&buf, " query_type=%s", options->query_type);
+	if (options->metadata_table_enable)
+		appendStringInfo(&buf, " metadata_table_enable=%s", options->metadata_table_enable);
+
+	result = lappend(result, makeString(pstrdup(buf.data)));
+	return result;
+}
+
 List *
 deserializeExternalFragmentList(Relation relation, List *quals, dataLakeOptions *options, List *fragmentInfo)
 {
 	List *fragmentData = NIL;
+
+	if (FORMAT_IS_ICEBERG(options->format) || FORMAT_IS_HUDI(options->format))
+	{
+		fragmentData = list_delete_first_n(fragmentInfo, FdwScanPrivateFragmentList);
+		return fragmentData;
+	}
 
 	if (SUPPORT_PARTITION_TABLE(options->gopher->gopherType,
 								options->format,

@@ -66,6 +66,7 @@ extern Datum datalake_fdw_handler(PG_FUNCTION_ARGS);
 
 extern Bitmapset **acquire_func_colLargeRowIndexes;
 
+void _PG_init(void);
 
 /*
  * SQL functions
@@ -146,7 +147,7 @@ void iterateRecordBatch(dataLakeFdwScanState *dataLakesstate, VirtualTupleTableS
 
 void endScanStatus(dataLakeFdwScanState *dataLakesstate);
 
-void freeFdwPrivateList(List *fdw_private);
+void freeFdwPrivateList(char *format, List *fdw_private);
 
 void freeFdwPrivatePartitionList(List *fdw_private);
 
@@ -194,6 +195,49 @@ typedef struct DataLakeAnalyzeState
 	MemoryContext anl_cxt;		/* context for per-analyze lifespan data */
 	MemoryContext temp_cxt;		/* context for per-tuple temporary data */
 } DataLakeAnalyzeState;
+
+static bool disableFilterPushdown;
+bool disableCacheFile;
+int icebergPostionDeletesThreshold;
+
+void
+_PG_init(void)
+{
+	DefineCustomBoolVariable("datalake.disable_filter_pushdown",
+								"Enable passing of query constraints to datalake extension",
+								NULL,
+								&disableFilterPushdown,
+								false,
+								PGC_USERSET,
+								0,
+								NULL,
+								NULL,
+								NULL);
+
+	DefineCustomBoolVariable("datalake.disable_cache_file",
+								"Enable cache files",
+								NULL,
+								&disableCacheFile,
+								false,
+								PGC_USERSET,
+								0,
+								NULL,
+								NULL,
+								NULL);
+
+	DefineCustomIntVariable("datalake.iceberg_postion_deletes_threshold",
+							"default iceberg position delete file threshold",
+							NULL,
+							&icebergPostionDeletesThreshold,
+							100000,
+							100000,
+							10000000,
+							PGC_USERSET,
+							0,
+							NULL,
+							NULL,
+							NULL);
+}
 
 /*
  * Foreign-data wrapper handler functions:
@@ -927,8 +971,14 @@ endScanStatus(dataLakeFdwScanState *dataLakesstate)
 }
 
 void
-freeFdwPrivateList(List *fdw_private)
+freeFdwPrivateList(char *format, List *fdw_private)
 {
+	// iceberg and hudi already freed before.
+	if (FORMAT_IS_ICEBERG(format) || FORMAT_IS_HUDI(format))
+	{
+		pfree(fdw_private);
+		return;
+	}
 	List *fragmentLists = (List *) list_nth(fdw_private, FdwScanPrivateFragmentList);
 	ListCell *cell;
 	foreach(cell, fragmentLists)
@@ -996,7 +1046,7 @@ freeFdwPrivate(dataLakeFdwScanState *sstate, ForeignScan *foreignScan)
 			}
 			else
 			{
-				freeFdwPrivateList(foreignScan->fdw_private);
+				freeFdwPrivateList(sstate->options->format, foreignScan->fdw_private);
 				foreignScan->fdw_private = NULL;
 			}
 		}
@@ -1009,7 +1059,7 @@ freeFdwPrivate(dataLakeFdwScanState *sstate, ForeignScan *foreignScan)
 			}
 			else
 			{
-				freeFdwPrivateList(foreignScan->fdw_private);
+				freeFdwPrivateList(sstate->options->format, foreignScan->fdw_private);
 				foreignScan->fdw_private = NULL;
 			}
 		}

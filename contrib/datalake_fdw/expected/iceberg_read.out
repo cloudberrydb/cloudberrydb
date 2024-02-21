@@ -1,0 +1,288 @@
+-- create datalake_fdw
+-- clean table
+DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER sync_server;
+NOTICE:  server "sync_server" does not exist, skipping
+DROP SERVER IF EXISTS sync_server;
+NOTICE:  server "sync_server" does not exist, skipping
+DROP FOREIGN DATA WRAPPER IF EXISTS datalake_fdw;
+NOTICE:  foreign-data wrapper "datalake_fdw" does not exist, skipping
+CREATE EXTENSION IF NOT EXISTS datalake_fdw;
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+CREATE EXTENSION IF NOT EXISTS hive_connector;
+SELECT pg_sleep(5);
+ pg_sleep 
+----------
+ 
+(1 row)
+
+set vector.enable_vectorization=off;
+CREATE FOREIGN DATA WRAPPER datalake_fdw
+HANDLER datalake_fdw_handler
+VALIDATOR datalake_fdw_validator
+OPTIONS (mpp_execute 'all segments');
+SELECT public.create_foreign_server('sync_server', 'gpadmin', 'datalake_fdw', 'hdfs-cluster-1');
+ create_foreign_server 
+-----------------------
+ t
+(1 row)
+
+------ iceberg_table1 ------
+CREATE FOREIGN TABLE iceberg_table1 (
+    id int,
+    name text,
+    age int,
+    address text
+)
+server sync_server
+OPTIONS (filePath 'icebergdb.iceberg_table1', catalog_type 'hive', server_name 'hive-cluster-1', hdfs_cluster_name 'hdfs-cluster-1', table_identifier 'icebergdb.iceberg_table1', format 'iceberg');
+-- count
+select count(*) from iceberg_table1;
+ count 
+-------
+    15
+(1 row)
+
+-- explain
+explain select * from iceberg_table1 order by id, name limit 10;
+                                           QUERY PLAN                                            
+-------------------------------------------------------------------------------------------------
+ Limit  (cost=1114.67..1114.81 rows=10 width=72)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=1114.67..1115.09 rows=30 width=72)
+         Merge Key: id, name
+         ->  Limit  (cost=1114.67..1114.69 rows=10 width=72)
+               ->  Sort  (cost=1114.67..1194.92 rows=32100 width=72)
+                     Sort Key: id, name
+                     ->  Foreign Scan on iceberg_table1  (cost=0.00..421.00 rows=32100 width=72)
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+-- order by, limit
+select * from iceberg_table1 order by id, name  limit 10;
+ id | name | age | address 
+----+------+-----+---------
+  1 | a    |   1 | a
+  2 | b    |   2 | b
+  3 | c    |   3 | c
+  4 | d    |   4 | d
+  5 | e    |   5 | e
+  6 | f    |   6 | f
+  7 | g    |   7 | g
+  8 | h    |   8 | h
+  9 | i    |   9 | i
+ 10 | j    |  10 | j
+(10 rows)
+
+-- group by
+select name, count(*) from iceberg_table1 group by name order by name;
+ name | count 
+------+-------
+ a    |     1
+ b    |     1
+ c    |     1
+ d    |     1
+ e    |     1
+ f    |     1
+ g    |     1
+ h    |     1
+ i    |     1
+ j    |     1
+ k    |     1
+ l    |     1
+ m    |     1
+ n    |     1
+ o    |     1
+(15 rows)
+
+-- where
+select * from iceberg_table1 where id = 10;
+ id | name | age | address 
+----+------+-----+---------
+ 10 | j    |  10 | j
+(1 row)
+
+------ iceberg_table2 ------
+CREATE FOREIGN TABLE iceberg_table2
+(
+    a int,
+    b decimal(10,5),
+    c text,
+    d text,
+    e text,
+    f text
+)
+server sync_server
+OPTIONS (filePath 'icebergdb.iceberg_table2', catalog_type 'hive', server_name 'hive-cluster-1', hdfs_cluster_name 'hdfs-cluster-1', table_identifier 'icebergdb.iceberg_table2', format 'iceberg');
+-- count
+select count(*) from iceberg_table2;
+ count 
+-------
+   500
+(1 row)
+
+-- explain
+explain select * from iceberg_table2 order by a, b  limit 10;
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Limit  (cost=678.46..678.60 rows=10 width=148)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=678.46..678.88 rows=30 width=148)
+         Merge Key: a, b
+         ->  Limit  (cost=678.46..678.48 rows=10 width=148)
+               ->  Sort  (cost=678.46..724.21 rows=18300 width=148)
+                     Sort Key: a, b
+                     ->  Foreign Scan on iceberg_table2  (cost=0.00..283.00 rows=18300 width=148)
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+-- order by, limit
+select * from iceberg_table2 order by a, b  limit 10;
+ a |      b      |  c   |   d   |   e    |  f   
+---+-------------+------+-------+--------+------
+ 0 | 11111.01111 | date | year0 | month0 | day0
+ 1 | 11111.01111 | date | year1 | month0 | day0
+ 1 | 11111.01111 | date | year0 | month1 | day0
+ 1 | 11111.11111 | date | year0 | month0 | day1
+ 2 | 11111.01111 | date | year0 | month2 | day0
+ 2 | 11111.01111 | date | year1 | month1 | day0
+ 2 | 11111.01111 | date | year2 | month0 | day0
+ 2 | 11111.11111 | date | year1 | month0 | day1
+ 2 | 11111.11111 | date | year0 | month1 | day1
+ 2 | 11111.21111 | date | year0 | month0 | day2
+(10 rows)
+
+-- group by
+select a, count(*) from iceberg_table2 group by a order by a;
+ a  | count 
+----+-------
+  0 |     1
+  1 |     3
+  2 |     6
+  3 |    10
+  4 |    15
+  5 |    20
+  6 |    25
+  7 |    30
+  8 |    35
+  9 |    40
+ 10 |    43
+ 11 |    44
+ 12 |    43
+ 13 |    40
+ 14 |    35
+ 15 |    30
+ 16 |    25
+ 17 |    20
+ 18 |    15
+ 19 |    10
+ 20 |     6
+ 21 |     3
+ 22 |     1
+(23 rows)
+
+-- where
+select count(*) from iceberg_table2 where a = 1;
+ count 
+-------
+     3
+(1 row)
+
+------ iceberg_table3: PARTITIONED ------
+CREATE FOREIGN TABLE iceberg_table3
+(
+    id   bigint,
+    name text,
+    dt text,
+    hh text
+)
+server sync_server
+OPTIONS (filePath 'icebergdb.iceberg_table3', catalog_type 'hive', server_name 'hive-cluster-1', hdfs_cluster_name 'hdfs-cluster-1', table_identifier 'icebergdb.iceberg_table3', format 'iceberg');
+-- count
+select count(*) from iceberg_table3;
+ count 
+-------
+    32
+(1 row)
+
+-- explain
+explain select * from iceberg_table3 order by id, name limit 10;
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Limit  (cost=871.28..871.42 rows=10 width=104)
+   ->  Gather Motion 3:1  (slice1; segments: 3)  (cost=871.28..871.70 rows=30 width=104)
+         Merge Key: id, name
+         ->  Limit  (cost=871.28..871.30 rows=10 width=104)
+               ->  Sort  (cost=871.28..932.28 rows=24400 width=104)
+                     Sort Key: id, name
+                     ->  Foreign Scan on iceberg_table3  (cost=0.00..344.00 rows=24400 width=104)
+ Optimizer: Postgres query optimizer
+(8 rows)
+
+-- order by, limit
+select * from iceberg_table3 order by id, name  limit 10;
+ id | name |   dt   |  hh  
+----+------+--------+------
+  1 | a    | date1  | hh1
+  2 | b    | date2  | hh2
+  3 | c    | date3  | hh3
+  4 | d    | date4  | hh4
+  5 | e    | date5  | hh5
+  6 | f    | date6  | hh6
+  7 | g    | date7  | hh7
+  8 | h    | date8  | hh8
+  9 | i    | date9  | hh9
+ 10 | j    | date10 | hh10
+(10 rows)
+
+-- group by
+select name, count(*) from iceberg_table3 group by name order by name;
+ name | count 
+------+-------
+ a    |     1
+ aa   |     1
+ b    |     1
+ bb   |     1
+ c    |     1
+ cc   |     1
+ d    |     1
+ dd   |     1
+ e    |     1
+ ee   |     1
+ f    |     1
+ ff   |     1
+ g    |     1
+ h    |     1
+ i    |     1
+ j    |     1
+ k    |     1
+ l    |     1
+ m    |     1
+ n    |     1
+ o    |     1
+ p    |     1
+ q    |     1
+ r    |     1
+ s    |     1
+ t    |     1
+ u    |     1
+ v    |     1
+ w    |     1
+ x    |     1
+ y    |     1
+ z    |     1
+(32 rows)
+
+-- where
+select * from iceberg_table3 where id = 10;
+ id | name |   dt   |  hh  
+----+------+--------+------
+ 10 | j    | date10 | hh10
+(1 row)
+
+-- clean table
+DROP FOREIGN TABLE IF EXISTS iceberg_table1;
+DROP FOREIGN TABLE IF EXISTS iceberg_table2;
+DROP FOREIGN TABLE IF EXISTS iceberg_table3;

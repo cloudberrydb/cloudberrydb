@@ -92,6 +92,15 @@
 #define DATALAKE_COPY_OPTION_FORCE_NOT_NULL "force_not_null"
 #define DATALAKE_COPY_OPTION_FORCE_NULL "force_null"
 
+/* iceberg & hudi options */
+#define DATALAKE_OPTION_TABLE_IDENTIFIER "table_identifier"
+#define DATALAKE_OPTION_SERVER_NAME "server_name"
+#define DATALAKE_OPTION_CATALOG_TYPE "catalog_type"
+#define DATALAKE_OPTION_SPLIT_SIZE "split_size"
+#define DATALAKE_OPTION_CACHE_ENABLED "cache_enabled"
+#define DATALAKE_OPTION_QUERY_TYPE "query_type"
+#define DATALAKE_OPTION_METADATA_TABLE_ENABLE "metadata_table_enable"
+
 #define FORMAT_IS_CSV(format) (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_CSV) == 0)
 
 #define FORMAT_IS_TEXT(format) (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_TEXT) == 0)
@@ -218,6 +227,14 @@ typedef struct dataLakeOptions
 	bool		readFdw;
 	int64_t 	fileSizeLimit;
 	bool		vectorization;
+	/* iceberg & hudi options */
+	char		*table_identifier;
+	char		*server_name;
+	char		*catalog_type;
+	int			split_size;
+	char		*cache_enabled;
+	char		*query_type;
+	char		*metadata_table_enable;
 } dataLakeOptions;
 
 typedef struct dataLakeFdwPlanState

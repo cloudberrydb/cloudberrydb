@@ -4298,4 +4298,58 @@ typedef struct DropWarehouseStmt
 	char		*whname;
 } DropWarehouseStmt;
 
+typedef enum FileContent
+{
+	DATA = 0,
+	POSITION_DELETES,
+	EQUALITY_DELETES,
+	DELTA_LOG
+} FileContent;
+
+typedef enum FileFormat
+{
+	ORC = 0,
+	PARQUET,
+	AVRO,
+	HFILE,
+	HLOG,
+	AVRO_FILE_BLOCK
+} FileFormat;
+
+typedef struct FileFragment
+{
+	NodeTag      type;
+	char        *filePath;
+	FileContent  content;
+	FileFormat   format;
+	int64        recordCount;
+	List        *eqColumnNames;
+} FileFragment;
+
+typedef struct FileScanTask
+{
+	NodeTag       type;
+	int64         start;
+	int64         length;
+	FileFragment *dataFile;
+	List         *deletes;
+	char		 *instantTime;
+} FileScanTask;
+
+typedef struct ExternalTableMetadata
+{
+	NodeTag		type;
+	bool		isTablePartitioned;
+	List	   *recordKeyFields;
+	List	   *partitionKeyFields;
+	char	   *preCombineField;
+	char	   *recordMergerStrategy;
+	List	   *completedInstants;
+	List	   *inflightInstants;
+	char	   *firstNonSavepointCommit;
+	bool		extractPartitionValueFromPath;
+	bool		hiveStylePartitioningEnabled;
+	bool		isMorTable;
+} ExternalTableMetadata;
+
 #endif							/* PARSENODES_H */

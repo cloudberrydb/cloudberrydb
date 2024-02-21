@@ -449,11 +449,9 @@ get_external_fragments(Oid relid,
 		return NIL;
 
 	if (FORMAT_IS_ICEBERG(formatType))
-		//return iceberg_get_external_fragments(relid, relno, restrictInfo, targetList, locations);
-		return NIL;
+		return iceberg_get_external_fragments(relid, relno, restrictInfo, targetList, locations);
 	else if (FORMAT_IS_HUDI(formatType))
-		//return hudi_get_external_fragments(relid, relno, restrictInfo, targetList, locations);
-		return NIL;
+		return hudi_get_external_fragments(relid, relno, restrictInfo, targetList, locations);
 	else
 		return hive_get_external_partitions(relid, locations, formatType);
 }

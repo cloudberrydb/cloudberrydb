@@ -41,18 +41,47 @@ OBJS = 	src/datalake_fdw.o \
 		src/provider/archive/read/archiveRead.o \
 		src/provider/archive/write/archiveFileWrite.o \
 		src/provider/archive/write/archiveWrite.o \
+		src/provider/common/config.o \
+		src/provider/common/gopher_random_file.o \
+		src/provider/common/base_reader.o \
+		src/provider/common/common.o \
+		src/provider/common/utils.o \
+		src/provider/common/parquet_reader_c.o \
+		src/provider/common/parquet_reader.o \
+		src/provider/common/avro_block_reader.o \
+		src/provider/common/avro_block_reader_c.o \
+		src/provider/common/file_reader.o \
+		src/provider/common/delete_bitmap.o \
+		src/provider/common/delete_bitmap_c.o \
+		src/provider/common/sorted_merge.o \
+		src/provider/common/sorted_merge_c.o \
+		src/provider/common/kryo.o \
+		src/provider/common/kryo_input.o \
+		src/provider/common/row_reader.o \
+		src/provider/iceberg/iceberg_equality_filter.o \
+		src/provider/iceberg/iceberg_task_reader.o \
+		src/provider/iceberg/iceberg_position_filter.o \
+		src/provider/iceberg/iceberg_read.o \
+		src/provider/hudi/hudi_task_reader.o \
+		src/provider/hudi/hudi_deltalog_filter.o \
+		src/provider/hudi/hudi_logfile_block_reader.o \
+		src/provider/hudi/hudi_merged_logfile_record_reader.o \
+		src/provider/hudi/hudi_read.o \
 		src/provider/providerWrapper.o \
 		src/provider/provider.o \
 		src/hdw_gopher_cache/hdw_gopher_cache.o
 
 
-SHLIB_LINK += -lgopher -lparquet -lorc-hdw -larchive -ljansson -larrow
+SHLIB_LINK += -lgopher -lparquet -lorc-hdw -larchive -ljansson -larrow  -lavro -lcurl
 
 EXTENSION = datalake_fdw
 DATA = datalake_fdw--1.0.sql
 
+ifdef ICEBERG_HUDI_TEST
+REGRESS = iceberg_read hudi_read
+else
 REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_parquet_read orc_read parquet_read iresearch_orc_test iresearch_orc_vec_test hive_connector
-
+endif
 
 PG_CPPFLAGS += -fPIC
 PG_CFLAGS += -I $(shell pg_config --includedir)

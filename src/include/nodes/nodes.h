@@ -660,7 +660,9 @@ typedef enum NodeTag
 	T_RetrieveStmt,
 	T_ReindexIndexInfo,			/* in nodes/parsenodes.h */
 	T_EphemeralNamedRelationInfo, /* utils/queryenvironment.h */
-
+	T_FileFragment,
+	T_FileScanTask,
+	T_ExternalTableMetadata
 } NodeTag;
 
 /*

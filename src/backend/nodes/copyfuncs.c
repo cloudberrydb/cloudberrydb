@@ -5314,6 +5314,54 @@ _copyReindexIndexInfo(const ReindexIndexInfo *from)
 	return newnode;
 }
 
+static FileFragment *
+_copyFileFragment(const FileFragment *from)
+{
+	FileFragment    *newnode = makeNode(FileFragment);
+
+	COPY_STRING_FIELD(filePath);
+	COPY_SCALAR_FIELD(content);
+	COPY_SCALAR_FIELD(format);
+	COPY_SCALAR_FIELD(recordCount);
+	COPY_NODE_FIELD(eqColumnNames);
+
+	return newnode;
+}
+
+static FileScanTask *
+_copyFileScanTask(const FileScanTask *from)
+{
+	FileScanTask    *newnode = makeNode(FileScanTask);
+
+	COPY_SCALAR_FIELD(start);
+	COPY_SCALAR_FIELD(length);
+	COPY_NODE_FIELD(dataFile);
+	COPY_NODE_FIELD(deletes);
+	COPY_STRING_FIELD(instantTime);
+
+	return newnode;
+}
+
+static ExternalTableMetadata *
+_copyExternalTableMetadata(const ExternalTableMetadata *from)
+{
+	ExternalTableMetadata    *newnode = makeNode(ExternalTableMetadata);
+
+	COPY_SCALAR_FIELD(isTablePartitioned);
+	COPY_NODE_FIELD(recordKeyFields);
+	COPY_NODE_FIELD(partitionKeyFields);
+	COPY_STRING_FIELD(preCombineField);
+	COPY_STRING_FIELD(recordMergerStrategy);
+	COPY_NODE_FIELD(completedInstants);
+	COPY_NODE_FIELD(inflightInstants);
+	COPY_STRING_FIELD(firstNonSavepointCommit);
+	COPY_SCALAR_FIELD(extractPartitionValueFromPath);
+	COPY_SCALAR_FIELD(hiveStylePartitioningEnabled);
+	COPY_SCALAR_FIELD(isMorTable);
+
+	return newnode;
+}
+
 static CreateSchemaStmt *
 _copyCreateSchemaStmt(const CreateSchemaStmt *from)
 {
@@ -6836,6 +6884,15 @@ copyObjectImpl(const void *from)
 			break;
 		case T_ReindexIndexInfo:
 			retval = _copyReindexIndexInfo(from);
+			break;
+		case T_FileFragment:
+			retval = _copyFileFragment(from);
+			break;
+		case T_FileScanTask:
+			retval = _copyFileScanTask(from);
+			break;
+		case T_ExternalTableMetadata:
+			retval = _copyExternalTableMetadata(from);
 			break;
 		case T_CheckPointStmt:
 			retval = (void *) makeNode(CheckPointStmt);

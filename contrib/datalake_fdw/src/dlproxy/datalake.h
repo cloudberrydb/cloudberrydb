@@ -18,24 +18,6 @@ typedef struct TableFieldDefination
 	int32 fieldTypeMod2;
 } TableFieldDefination;
 
-typedef enum FileContent
-{
-	DATA = 0,
-	POSITION_DELETES,
-	EQUALITY_DELETES,
-	DELTA_LOG
-} FileContent;
-
-typedef enum FileFormat
-{
-	ORC = 0,
-	PARQUET,
-	AVRO,
-	HFILE,
-	HLOG,
-	AVRO_FILE_BLOCK
-} FileFormat;
-
 typedef struct CombinedScanTask
 {
 	List *fileTasks;

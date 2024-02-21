@@ -8,6 +8,8 @@
 #include "src/provider/orc/write/orcWriter.h"
 #include "src/provider/archive/read/archiveRead.h"
 #include "src/provider/archive/write/archiveWrite.h"
+#include "src/provider/iceberg/iceberg_read.h"
+#include "src/provider/hudi/hudi_read.h"
 #include "provider.h"
 #include "src/common/util.h"
 
@@ -16,6 +18,8 @@ using Datalake::Internal::parquetRead;
 using Datalake::Internal::archiveRead;
 using Datalake::Internal::archiveWrite;
 using Datalake::Internal::orcReadRecordBatch;
+using Datalake::Internal::icebergRead;
+using Datalake::Internal::hudiRead;
 
 
 std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vectorization)
@@ -44,6 +48,14 @@ std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vecto
 		else if (strcmp(DATALAKE_OPTION_FORMAT_PARQUET, type) == 0)
 		{
 			return std::make_shared<parquetRead>();
+		}
+		else if (strcmp(DATALAKE_OPTION_FORMAT_ICEBERG, type) == 0)
+		{
+			return std::make_shared<icebergRead>();
+		}
+		else if (strcmp(DATALAKE_OPTION_FORMAT_HUDI, type) == 0)
+		{
+			return std::make_shared<hudiRead>();
 		}
 		else
 		{

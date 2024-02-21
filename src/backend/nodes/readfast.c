@@ -2181,6 +2181,16 @@ readNodeBinary(void)
 				return_value = _readReindexIndexInfo();
 				break;
 
+			case T_FileFragment:
+				return_value = _readFileFragment();
+				break;
+			case T_FileScanTask:
+				return_value = _readFileScanTask();
+				break;
+			case T_ExternalTableMetadata:
+				return_value = _readExternalTableMetadata();
+				break;
+
 			case T_ConstraintsSetStmt:
 				return_value = _readConstraintsSetStmt();
 				break;

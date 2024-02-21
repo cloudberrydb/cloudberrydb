@@ -4670,7 +4670,15 @@ outNode(StringInfo str, const void *obj)
 			case T_ReindexIndexInfo:
 				_outReindexIndexInfo(str, obj);
 				break;
-
+			case T_FileFragment:
+				_outFileFragment(str, obj);
+				break;
+			case T_FileScanTask:
+				_outFileScanTask(str, obj);
+				break;
+			case T_ExternalTableMetadata:
+				_outExternalTableMetadata(str, obj);
+				break;
 			case T_ConstraintsSetStmt:
 				_outConstraintsSetStmt(str, obj);
 				break;

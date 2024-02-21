@@ -609,6 +609,48 @@ _outReindexIndexInfo(StringInfo str, const ReindexIndexInfo *node)
 }
 
 static void
+_outFileFragment(StringInfo str, const FileFragment *node)
+{
+	WRITE_NODE_TYPE("FILEFRAGMENT");
+
+	WRITE_STRING_FIELD(filePath);
+	WRITE_ENUM_FIELD(content, FileContent);
+	WRITE_ENUM_FIELD(format, FileFormat);
+	WRITE_LONG_FIELD(recordCount);
+	WRITE_NODE_FIELD(eqColumnNames);
+}
+
+static void
+_outFileScanTask(StringInfo str, const FileScanTask *node)
+{
+	WRITE_NODE_TYPE("FILESCANTASK");
+
+	WRITE_LONG_FIELD(start);
+	WRITE_LONG_FIELD(length);
+	WRITE_NODE_FIELD(dataFile);
+	WRITE_NODE_FIELD(deletes);
+	WRITE_STRING_FIELD(instantTime);
+}
+
+static void
+_outExternalTableMetadata(StringInfo str, const ExternalTableMetadata *node)
+{
+	WRITE_NODE_TYPE("EXTERNALTABLEMETADATA");
+
+	WRITE_BOOL_FIELD(isTablePartitioned);
+	WRITE_NODE_FIELD(recordKeyFields);
+	WRITE_NODE_FIELD(partitionKeyFields);
+	WRITE_STRING_FIELD(preCombineField);
+	WRITE_STRING_FIELD(recordMergerStrategy);
+	WRITE_NODE_FIELD(completedInstants);
+	WRITE_NODE_FIELD(inflightInstants);
+	WRITE_STRING_FIELD(firstNonSavepointCommit);
+	WRITE_BOOL_FIELD(extractPartitionValueFromPath);
+	WRITE_BOOL_FIELD(hiveStylePartitioningEnabled);
+	WRITE_BOOL_FIELD(isMorTable);
+}
+
+static void
 _outViewStmt(StringInfo str, const ViewStmt *node)
 {
 	WRITE_NODE_TYPE("VIEWSTMT");
