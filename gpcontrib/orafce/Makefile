@@ -84,10 +84,13 @@ REGRESS = orafce\
 		nlssort\
 		dbms_random\
 		regexp_func\
+		gp_partition_by\
+		gp_distributed_by\
 		dbms_sql
 
 #REGRESS_OPTS = --load-language=plpgsql --schedule=parallel_schedule --encoding=utf8
 REGRESS_OPTS = --schedule=parallel_schedule --encoding=utf8
+REGRESS_OPTS += --init-file=init_file
 
 # override CFLAGS += -Wextra -Wimplicit-fallthrough=0
 
