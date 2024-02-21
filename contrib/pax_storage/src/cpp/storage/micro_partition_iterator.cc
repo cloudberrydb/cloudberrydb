@@ -1,11 +1,19 @@
 #include "storage/micro_partition_iterator.h"
 
+#include "catalog/pax_aux_table.h"
 #include "comm/cbdb_wrappers.h"
 #include "comm/pax_memory.h"
 #include "exceptions/CException.h"
-#include "catalog/pax_aux_table.h"
 
 namespace pax {
+
+MicroPartitionInfoIterator::MicroPartitionInfoIterator(Relation pax_rel,
+                                                       Snapshot snapshot,
+                                                       std::string rel_path)
+    : rel_path_(rel_path), pax_rel_(pax_rel), snapshot_(snapshot) {}
+
+MicroPartitionInfoIterator::~MicroPartitionInfoIterator() { End(); }
+
 void MicroPartitionInfoIterator::Begin() {
   Assert(pax_rel_);
   Assert(!desc_);
@@ -16,7 +24,8 @@ void MicroPartitionInfoIterator::Begin() {
     aux_rel_ = cbdb::TableOpen(aux_oid, AccessShareLock);
   }
 
-  desc_ = cbdb::SystableBeginScan(aux_rel_, InvalidOid, false, snapshot_, 0, NULL);
+  desc_ =
+      cbdb::SystableBeginScan(aux_rel_, InvalidOid, false, snapshot_, 0, NULL);
 }
 
 void MicroPartitionInfoIterator::End() {
@@ -51,15 +60,14 @@ void MicroPartitionInfoIterator::Rewind() {
   Begin();
 }
 
-std::unique_ptr<IteratorBase<MicroPartitionMetadata>> MicroPartitionInfoIterator::New(Relation pax_rel, Snapshot snapshot) {
+std::unique_ptr<IteratorBase<MicroPartitionMetadata>>
+MicroPartitionInfoIterator::New(Relation pax_rel, Snapshot snapshot) {
   MicroPartitionInfoIterator *it;
-  it = PAX_NEW<MicroPartitionInfoIterator>(pax_rel, snapshot);
+  it = PAX_NEW<MicroPartitionInfoIterator>(
+      pax_rel, snapshot,
+      cbdb::BuildPaxDirectoryPath(pax_rel->rd_node, pax_rel->rd_backend));
   it->Begin();
   return std::unique_ptr<IteratorBase<MicroPartitionMetadata>>(it);
-}
-
-MicroPartitionInfoIterator::~MicroPartitionInfoIterator() {
-  End();
 }
 
 MicroPartitionMetadata MicroPartitionInfoIterator::ToValue(HeapTuple tuple) {
@@ -69,29 +77,33 @@ MicroPartitionMetadata MicroPartitionInfoIterator::ToValue(HeapTuple tuple) {
   auto tup_desc = RelationGetDescr(aux_rel_);
 
   {
-    auto blockid = cbdb::HeapGetAttr(tuple, ANUM_PG_PAX_BLOCK_TABLES_PTBLOCKNAME, tup_desc, &is_null);
+    auto blockid = cbdb::HeapGetAttr(
+        tuple, ANUM_PG_PAX_BLOCK_TABLES_PTBLOCKNAME, tup_desc, &is_null);
     CBDB_CHECK(!is_null, cbdb::CException::kExTypeLogicError);
 
     auto name = NameStr(*DatumGetName(blockid));
-    auto file_name = cbdb::BuildPaxFilePath(pax_rel_, name);
+    auto file_name = cbdb::BuildPaxFilePath(rel_path_, name);
     v.SetFileName(std::move(file_name));
     v.SetMicroPartitionId(name);
   }
 
-  auto tup_count = cbdb::HeapGetAttr(tuple, ANUM_PG_PAX_BLOCK_TABLES_PTTUPCOUNT, tup_desc, &is_null);
+  auto tup_count = cbdb::HeapGetAttr(tuple, ANUM_PG_PAX_BLOCK_TABLES_PTTUPCOUNT,
+                                     tup_desc, &is_null);
   CBDB_CHECK(!is_null, cbdb::CException::kExTypeLogicError);
   v.SetTupleCount(cbdb::DatumToInt32(tup_count));
 
   {
-    auto stats = reinterpret_cast<struct varlena *>(cbdb::DatumToPointer(cbdb::HeapGetAttr(tuple, ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS, tup_desc, &is_null)));
+    auto stats = reinterpret_cast<struct varlena *>(cbdb::DatumToPointer(
+        cbdb::HeapGetAttr(tuple, ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS,
+                          tup_desc, &is_null)));
     CBDB_CHECK(!is_null, cbdb::CException::kExTypeLogicError);
     auto flat_stats = cbdb::PgDeToastDatumPacked(stats);
-    auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats), VARSIZE_ANY_EXHDR(flat_stats));
+    auto ok = stats_info.ParseFromArray(VARDATA_ANY(flat_stats),
+                                        VARSIZE_ANY_EXHDR(flat_stats));
     CBDB_CHECK(ok, cbdb::CException::kExTypeIOError);
     v.SetStats(std::move(stats_info));
 
-    if (flat_stats != stats)
-      cbdb::Pfree(flat_stats);
+    if (flat_stats != stats) cbdb::Pfree(flat_stats);
   }
 
   // deserialize protobuf message

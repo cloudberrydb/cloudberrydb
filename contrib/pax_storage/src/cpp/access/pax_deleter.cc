@@ -36,7 +36,8 @@ TM_Result CPaxDeleter::MarkDelete(ItemPointer tid) {
   if (block_bitmap_map_.find(block_id) == block_bitmap_map_.end()) {
     block_bitmap_map_[block_id] =
         pax_unique_ptr<Bitmap64>(PAX_NEW<Bitmap64>());  // NOLINT
-    cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_, block_id);
+    cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_,
+                                    block_id);
   }
   auto bitmap = block_bitmap_map_[block_id].get();
   if (bitmap->Test(tuple_offset)) {
@@ -51,9 +52,9 @@ void CPaxDeleter::MarkDelete(BlockNumber pax_block_id) {
   std::string block_id = std::to_string(pax_block_id);
 
   if (block_bitmap_map_.find(block_id) == block_bitmap_map_.end()) {
-    block_bitmap_map_[block_id] =
-        pax_unique_ptr<Bitmap64>(PAX_NEW<Bitmap64>());
-    cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_, block_id);
+    block_bitmap_map_[block_id] = pax_unique_ptr<Bitmap64>(PAX_NEW<Bitmap64>());
+    cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_,
+                                    block_id);
   }
 }
 
@@ -68,18 +69,20 @@ void CPaxDeleter::ExecDelete() {
 pax_unique_ptr<IteratorBase<MicroPartitionMetadata>>
 CPaxDeleter::BuildDeleteIterator() {
   std::vector<pax::MicroPartitionMetadata> micro_partitions;
+  auto rel_path = cbdb::BuildPaxDirectoryPath(rel_->rd_node, rel_->rd_backend);
   for (auto &it : block_bitmap_map_) {
     std::string block_id = it.first;
     {
       pax::MicroPartitionMetadata meta_info;
 
-      meta_info.SetFileName(cbdb::BuildPaxFilePath(rel_, block_id));
+      meta_info.SetFileName(cbdb::BuildPaxFilePath(rel_path, block_id));
       meta_info.SetMicroPartitionId(std::move(block_id));
       micro_partitions.push_back(std::move(meta_info));
     }
   }
   IteratorBase<MicroPartitionMetadata> *iter =
-      PAX_NEW<VectorIterator<MicroPartitionMetadata>>(std::move(micro_partitions));
+      PAX_NEW<VectorIterator<MicroPartitionMetadata>>(
+          std::move(micro_partitions));
 
   return pax_unique_ptr<IteratorBase<MicroPartitionMetadata>>(iter);
 }

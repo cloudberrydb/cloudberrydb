@@ -46,6 +46,7 @@ namespace pax {
 PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel = rel} {
   Assert(rel);
   Assert(&base_ == reinterpret_cast<IndexFetchTableData *>(this));
+  rel_path_ = cbdb::BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
 }
 
 PaxIndexScanDesc::~PaxIndexScanDesc() {
@@ -88,7 +89,7 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block,
 
     auto block_name = std::to_string(block);
     options.block_id = block_name;
-    options.file_name = cbdb::BuildPaxFilePath(base_.rel, block_name);
+    options.file_name = cbdb::BuildPaxFilePath(rel_path_, block_name);
     auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
         options.file_name, fs::kReadMode);
     auto reader = PAX_NEW<OrcReader>(file);

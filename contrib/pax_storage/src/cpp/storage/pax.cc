@@ -152,7 +152,7 @@ const FileSplitStrategy *TableWriter::GetFileSplitStrategy() const {
 }
 
 std::string TableWriter::GenFilePath(const std::string &block_id) {
-  return cbdb::BuildPaxFilePath(relation_, block_id);
+  return cbdb::BuildPaxFilePath(rel_path_, block_id);
 }
 
 std::vector<std::tuple<ColumnEncoding_Kind, int>>
@@ -226,6 +226,7 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
 }
 
 void TableWriter::Open() {
+  rel_path_ = cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
   writer_ = CreateMicroPartitionWriter(mp_stats_);
   num_tuples_ = 0;
 #ifdef ENABLE_LOCAL_INDEX

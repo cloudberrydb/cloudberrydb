@@ -63,6 +63,7 @@ class TableWriter {
       MicroPartitionStats *mp_stats);
 
  protected:
+  std::string rel_path_;
   const Relation relation_ = nullptr;
   MicroPartitionWriter *writer_ = nullptr;
   const FileSplitStrategy *strategy_ = nullptr;

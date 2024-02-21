@@ -74,6 +74,8 @@ void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
 }
 
 void TableParitionWriter::Open() {
+  // still need init rel_path_, which used to generate next file
+  rel_path_ = cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
   // 1 for the default parition
   writer_counts_ = part_obj_->NumPartitions() + 1;
   Assert(writer_counts_ > 1);

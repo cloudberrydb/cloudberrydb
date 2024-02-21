@@ -12,7 +12,8 @@
 
 #ifdef ENABLE_LOCAL_INDEX
 namespace paxc {
-  bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot, bool *all_dead);
+bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
+                      bool *all_dead);
 }
 #endif
 
@@ -22,13 +23,17 @@ class PaxIndexScanDesc final {
  public:
   explicit PaxIndexScanDesc(Relation rel);
   ~PaxIndexScanDesc();
-  bool FetchTuple(ItemPointer tid, Snapshot snapshot, TupleTableSlot *slot, bool *call_again, bool *all_dead);
+  bool FetchTuple(ItemPointer tid, Snapshot snapshot, TupleTableSlot *slot,
+                  bool *call_again, bool *all_dead);
   inline IndexFetchTableData *ToBase() { return &base_; }
-  static inline PaxIndexScanDesc *FromBase(IndexFetchTableData *base) { return reinterpret_cast<PaxIndexScanDesc *>(base); }
+  static inline PaxIndexScanDesc *FromBase(IndexFetchTableData *base) {
+    return reinterpret_cast<PaxIndexScanDesc *>(base);
+  }
 
  private:
   bool OpenMicroPartition(BlockNumber block, Snapshot snapshot);
 
+  std::string rel_path_;
   IndexFetchTableData base_;
   BlockNumber current_block_ = InvalidBlockNumber;
   MicroPartitionReader *reader_ = nullptr;
@@ -42,20 +47,20 @@ class PaxScanDesc {
                                  ParallelTableScanDesc pscan, uint32 flags,
                                  PaxFilter *filter, bool build_bitmap);
 
-
   static TableScanDesc BeginScanExtractColumns(
       Relation rel, Snapshot snapshot, int nkeys, struct ScanKeyData *key,
       ParallelTableScanDesc parallel_scan, struct PlanState *ps, uint32 flags);
 
   void EndScan();
-  void ReScan(ScanKey key, bool set_params, bool allow_strat, bool allow_sync, bool allow_pagemode);
+  void ReScan(ScanKey key, bool set_params, bool allow_strat, bool allow_sync,
+              bool allow_pagemode);
 
   bool GetNextSlot(TupleTableSlot *slot);
 
-  bool ScanAnalyzeNextBlock(BlockNumber blockno, BufferAccessStrategy bstrategy);
+  bool ScanAnalyzeNextBlock(BlockNumber blockno,
+                            BufferAccessStrategy bstrategy);
   bool ScanAnalyzeNextTuple(TransactionId oldest_xmin, double *liverows,
-                                   const double *deadrows,
-                                   TupleTableSlot *slot);
+                            const double *deadrows, TupleTableSlot *slot);
 
   bool ScanSampleNextBlock(SampleScanState *scanstate);
 

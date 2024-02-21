@@ -155,21 +155,6 @@ char *BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend) {
   return paxrelpath;
 }
 
-// BuildPaxFilePath: function used to build pax storage directory path following
-// pg convension, for example base/{database_oid}/{blocks_relid}_pax. parameter
-// rel IN Relation information. parameter block_id IN micro-partition block id.
-// return palloc'd pax storage directory path.
-char *BuildPaxFilePath(Relation rel, const char *block_id) {
-  char *relpath = NULL;
-  char *filepath = NULL;
-
-  relpath = BuildPaxDirectoryPath(rel->rd_node, rel->rd_backend);
-  Assert(relpath[0] != '\0');
-  filepath = psprintf("%s/%s", relpath, block_id);
-  pfree(relpath);
-  return filepath;
-}
-
 static void UnlinkIfExistsFname(const char *fname, bool isdir, int elevel) {
   if (isdir) {
     if (rmdir(fname) != 0 && errno != ENOENT)
