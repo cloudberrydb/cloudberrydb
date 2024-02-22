@@ -557,7 +557,8 @@ static void int64_to_numericvar(int64 val, NumericVar *var);
 static bool numericvar_to_uint64(const NumericVar *var, uint64 *result);
 #ifdef HAVE_INT128
 static bool numericvar_to_int128(const NumericVar *var, int128 *result);
-static void int128_to_numericvar(int128 val, NumericVar *var);
+static void int128_to_numericvar_zero_scale(int128 val, NumericVar *var);
+static void int128_to_numericvar_with_scale(int128 val, NumericVar *var, bool neg, int scale);
 #endif
 static double numericvar_to_double_no_overflow(const NumericVar *var);
 
@@ -4423,6 +4424,41 @@ int64_to_numeric(int64 val)
 	return res;
 }
 
+#ifdef HAVE_INT128
+Numeric
+int128_to_numeric(int128 val, int scale, bool neg,
+				  bool nan, bool pinf, bool ninf)
+{
+	Numeric		res;
+	NumericVar	result;
+
+	/* Make sure the parameter passed in is already a positive integer */
+	Assert(val >= 0);
+	AssertImply(nan, !(pinf || ninf));
+	AssertImply(pinf, !(nan || ninf));
+	AssertImply(ninf, !(nan || pinf));
+
+	if (nan)
+	{
+		res = make_result(&const_nan);
+	} else if (pinf) {
+		res = make_result(&const_pinf);
+	} else if (ninf) {
+		res = make_result(&const_ninf);
+	} else {
+		init_var(&result);
+
+		int128_to_numericvar_with_scale(val, &result, neg, scale);
+
+		res = make_result(&result);
+
+		free_var(&result);
+	}
+
+	return res;
+}
+#endif
+
 /*
  * Convert val1/(10**val2) to numeric.  This is much faster than normal
  * numeric division.
@@ -5858,7 +5894,7 @@ numeric_poly_serialize(PG_FUNCTION_ARGS)
 		init_var(&num);
 
 #ifdef HAVE_INT128
-		int128_to_numericvar(state->sumX, &num);
+		int128_to_numericvar_zero_scale(state->sumX, &num);
 #else
 		accum_sum_final(&state->sumX, &num);
 #endif
@@ -5867,7 +5903,7 @@ numeric_poly_serialize(PG_FUNCTION_ARGS)
 		sumX = DatumGetByteaPP(temp);
 
 #ifdef HAVE_INT128
-		int128_to_numericvar(state->sumX2, &num);
+		int128_to_numericvar_zero_scale(state->sumX2, &num);
 #else
 		accum_sum_final(&state->sumX2, &num);
 #endif
@@ -6089,7 +6125,7 @@ int8_avg_serialize(PG_FUNCTION_ARGS)
 		init_var(&num);
 
 #ifdef HAVE_INT128
-		int128_to_numericvar(state->sumX, &num);
+		int128_to_numericvar_zero_scale(state->sumX, &num);
 #else
 		accum_sum_final(&state->sumX, &num);
 #endif
@@ -6281,7 +6317,7 @@ numeric_poly_sum(PG_FUNCTION_ARGS)
 
 	init_var(&result);
 
-	int128_to_numericvar(state->sumX, &result);
+	int128_to_numericvar_zero_scale(state->sumX, &result);
 
 	res = make_result(&result);
 
@@ -6310,7 +6346,7 @@ numeric_poly_avg(PG_FUNCTION_ARGS)
 
 	init_var(&result);
 
-	int128_to_numericvar(state->sumX, &result);
+	int128_to_numericvar_zero_scale(state->sumX, &result);
 
 	countd = NumericGetDatum(int64_to_numeric(state->N));
 	sumd = NumericGetDatum(make_result(&result));
@@ -6573,10 +6609,10 @@ numeric_poly_stddev_internal(Int128AggState *state,
 
 		init_var(&tmp_var);
 
-		int128_to_numericvar(state->sumX, &tmp_var);
+		int128_to_numericvar_zero_scale(state->sumX, &tmp_var);
 		accum_sum_add(&numstate.sumX, &tmp_var);
 
-		int128_to_numericvar(state->sumX2, &tmp_var);
+		int128_to_numericvar_zero_scale(state->sumX2, &tmp_var);
 		accum_sum_add(&numstate.sumX2, &tmp_var);
 
 		free_var(&tmp_var);
@@ -8208,7 +8244,7 @@ numericvar_to_int128(const NumericVar *var, int128 *result)
  * Convert 128 bit integer to numeric.
  */
 static void
-int128_to_numericvar(int128 val, NumericVar *var)
+int128_to_numericvar_zero_scale(int128 val, NumericVar *var)
 {
 	uint128		uval,
 				newuval;
@@ -8248,6 +8284,91 @@ int128_to_numericvar(int128 val, NumericVar *var)
 	var->ndigits = ndigits;
 	var->weight = ndigits - 1;
 }
+
+/*
+ * Convert 128 bit integer to numeric with scale.
+ */
+static void
+int128_to_numericvar_with_scale(int128 val, NumericVar *var,
+	bool neg, int scale)
+{
+	NumericDigit *ptr;
+	int		ndigits = 0;
+	int		dweight, weight, nweight = 0;
+	int		offset, scale_padding;
+	bool    padding_done;
+	uint128 temp;
+
+	var->sign = neg ? NUMERIC_NEG : NUMERIC_POS;
+	var->dscale = scale;
+	if (val == 0)
+	{
+		var->ndigits = 0;
+		var->weight = 0;
+		return;
+	}
+
+	/* int128 can require at most 39 decimal digits; add one for safety */
+	alloc_var(var, 40 / DEC_DIGITS);
+	Assert(val > 0);
+
+	temp = val;
+	while (temp != 0) {
+		temp /= 10;
+		nweight++;
+	}
+
+	dweight = nweight - scale - 1;
+
+	ptr = var->digits + var->ndigits;
+
+	if (dweight >= 0)
+		weight = (dweight + 1 + DEC_DIGITS - 1) / DEC_DIGITS - 1;
+	else
+		weight = -((-dweight - 1) / DEC_DIGITS + 1);
+
+	/*
+	 * offset is the number of decimal zeroes to insert before
+	 * the first given digit to have a correctly aligned first NBASE digit.
+	 *
+	 * scale_padding determines the number of decimal places to complement.
+	 */
+	offset = (weight + 1) * DEC_DIGITS - (dweight + 1);
+	scale_padding = (offset + nweight) % DEC_DIGITS;
+	padding_done = scale_padding == 0;
+
+	while (val > 0) {
+		ptr--;
+		ndigits++;
+
+		if (!padding_done) {
+			int16 pow_padding = 10;
+			int16 pow_padding_remain = 10;
+			for (int i = 1; i < scale_padding; i++) {
+				pow_padding *= 10;
+			}
+
+			for (int i = 1; i < (DEC_DIGITS - scale_padding); i++) {
+				pow_padding_remain *= 10;
+			}
+
+			temp = val / pow_padding;
+			*ptr = (val - (temp * pow_padding)) * pow_padding_remain;
+			val = temp;
+
+			padding_done = true;
+		} else {
+			temp = val / NBASE;
+			*ptr = (val - (temp * NBASE));
+			val = temp;
+		}
+	}
+
+	var->digits = ptr;
+	var->ndigits = ndigits;
+	var->weight = weight;
+}
+
 #endif
 
 /*
@@ -10019,9 +10140,9 @@ sqrt_var(const NumericVar *arg, NumericVar *result, int rscale)
 		 * iteration we don't need the remainder, so we can save a few cycles
 		 * there by not fully computing it.
 		 */
-		int128_to_numericvar(s_int128, &s_var);
+		int128_to_numericvar_zero_scale(s_int128, &s_var);
 		if (step >= 0)
-			int128_to_numericvar(r_int128, &r_var);
+			int128_to_numericvar_zero_scale(r_int128, &r_var);
 	}
 	else
 	{
