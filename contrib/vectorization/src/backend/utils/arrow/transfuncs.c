@@ -16,6 +16,7 @@
 
 #include "catalog/pg_type_d.h"
 #include "catalog/namespace.h"
+#include "catalog/pg_namespace.h"
 #include "utils/arrow.h"
 #include "utils/tuptable_vec.h"
 #include "utils/guc_vec.h"
@@ -41,12 +42,7 @@ init_vector_types(void)
 	Oid oid;
 	Oid namespace;
 
-	namespace = LookupNamespaceNoError("vector");
-	if (namespace == InvalidOid)
-	{
-		elog(ERROR, "Lookup namespace 'vector' failed, please execute sql:"
-				"DROP EXTENSION VECTORIZATION; CREATE EXTENSION VECTORIZATION!");
-	}
+	namespace = PG_EXTAUX_NAMESPACE;
 
 	if (INT128OID == InvalidOid)
 	{

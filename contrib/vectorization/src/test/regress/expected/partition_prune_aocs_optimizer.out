@@ -1566,7 +1566,7 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from coercepart where a = any (null::text[]);
 NOTICE:  One or more columns in the following table(s) do not have statistics: coercepart
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:254)
+ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:250)
 explain (costs off) select * from coercepart where a = all ('{ab}');
 NOTICE:  One or more columns in the following table(s) do not have statistics: coercepart
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
@@ -1608,7 +1608,7 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from coercepart where a = all (null::text[]);
 NOTICE:  One or more columns in the following table(s) do not have statistics: coercepart
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:254)
+ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:250)
 drop table coercepart;
 CREATE TABLE part (a INT, b INT) PARTITION BY LIST (a);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
