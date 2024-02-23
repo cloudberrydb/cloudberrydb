@@ -18,6 +18,10 @@
 #include "storage/cache/pax_plasma_cache.h"
 #endif
 
+#ifdef VEC_BUILD
+#include "utils/am_vec.h"
+#endif
+
 namespace paxc {
 bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
                       bool * /*all_dead*/) {
@@ -171,7 +175,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
   }
 
 #ifdef VEC_BUILD
-  if (flags & (1 << 12)) {
+  if (flags & SO_TYPE_VECTOR) {
     desc->vec_adapter_ =
         PAX_NEW<VecAdapter>(cbdb::RelationGetTupleDesc(relation), build_bitmap);
     reader_options.is_vec = true;
@@ -308,7 +312,11 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
     auto ok = pax::BuildScanKeys(rel, qual, false, &scan_keys, &n_scan_keys);
     if (ok) filter->SetScanKeys(scan_keys, n_scan_keys);
 
-    if (gp_enable_predicate_pushdown && !(flags & (1 << 12)))
+    if (gp_enable_predicate_pushdown
+#ifdef VEC_BUILD
+        && !(flags & SO_TYPE_VECTOR)
+#endif
+       )
       filter->BuildExecutionFilterForColumns(rel, ps);
   }
   paxscan = BeginScan(rel, snapshot, 0, nullptr, parallel_scan, flags, filter,
