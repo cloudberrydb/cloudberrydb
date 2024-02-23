@@ -1148,6 +1148,10 @@ static void DefineGUCs() {
                            &pax::pax_enable_debug, true, PGC_USERSET, 0, NULL,
                            NULL, NULL);
 
+  DefineCustomBoolVariable("pax.enable_filter", "enable pax filter", NULL,
+                           &pax::pax_enable_filter, true, PGC_USERSET, 0, NULL,
+                           NULL, NULL);
+
   DefineCustomIntVariable(
       "pax.max_tuples_per_group",
       "the default value for the limit on the number of tuples in a group",

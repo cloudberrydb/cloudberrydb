@@ -302,14 +302,15 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
   // The `cols` life cycle will be bound to `PaxFilter`
   filter->SetColumnProjection(cols, natts);
 
-  {
+  if (pax_enable_filter) {
     ScanKey scan_keys = nullptr;
     int n_scan_keys = 0;
     auto ok = pax::BuildScanKeys(rel, qual, false, &scan_keys, &n_scan_keys);
     if (ok) filter->SetScanKeys(scan_keys, n_scan_keys);
+
+    if (gp_enable_predicate_pushdown && !(flags & (1 << 12)))
+      filter->BuildExecutionFilterForColumns(rel, ps);
   }
-  if (gp_enable_predicate_pushdown && !(flags & (1 << 12)))
-    filter->BuildExecutionFilterForColumns(rel, ps);
   paxscan = BeginScan(rel, snapshot, 0, nullptr, parallel_scan, flags, filter,
                       build_bitmap);
 

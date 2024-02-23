@@ -2,6 +2,7 @@
 
 namespace pax {
 extern bool pax_enable_debug;
+extern bool pax_enable_filter;
 extern int pax_scan_reuse_buffer_size;
 extern int pax_max_tuples_per_group;
 

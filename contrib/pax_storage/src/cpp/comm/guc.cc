@@ -4,6 +4,7 @@
 
 namespace pax {
 bool pax_enable_debug = true;
+bool pax_enable_filter = true;
 int pax_scan_reuse_buffer_size = 0;
 int pax_max_tuples_per_group = VEC_BATCH_LENGTH;
 
