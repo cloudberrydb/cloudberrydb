@@ -109,20 +109,20 @@ finish_read:
   auto max_id = file_footer_.types_size();
   CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidORCFormat);
 
-  const orc::proto::Type &type = file_footer_.types(0);
+  const pax::orc::proto::Type &type = file_footer_.types(0);
   // There is an assumption here: for all pg tables, the outermost structure
   // should be Type_Kind_STRUCT
-  CBDB_CHECK(type.kind() == orc::proto::Type_Kind_STRUCT,
+  CBDB_CHECK(type.kind() == pax::orc::proto::Type_Kind_STRUCT,
              cbdb::CException::ExType::kExTypeInvalidORCFormat);
   CBDB_CHECK(type.subtypes_size() == max_id - 1,
              cbdb::CException::ExType::kExTypeInvalidORCFormat);
 
   for (int j = 0; j < type.subtypes_size(); ++j) {
     int sub_type_id = static_cast<int>(type.subtypes(j)) + 1;
-    const orc::proto::Type &sub_type = file_footer_.types(sub_type_id);
+    const pax::orc::proto::Type &sub_type = file_footer_.types(sub_type_id);
     // should allow struct contain struct
     // but not support yet
-    CBDB_CHECK(sub_type.kind() != orc::proto::Type_Kind_STRUCT,
+    CBDB_CHECK(sub_type.kind() != pax::orc::proto::Type_Kind_STRUCT,
                cbdb::CException::ExType::kExTypeInvalidORCFormat);
 
     column_types_.emplace_back(sub_type.kind());
@@ -165,10 +165,10 @@ static bool ProjShouldReadAll(const bool *const proj_map, size_t proj_len) {
   return true;
 }
 
-orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
+pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
     DataBuffer<char> *data_buffer, size_t sf_length, size_t sf_offset,
     size_t sf_data_len) {
-  orc::proto::StripeFooter stripe_footer;
+  pax::orc::proto::StripeFooter stripe_footer;
 
   Assert(data_buffer->Capacity() >= (sf_length - sf_data_len));
   file_->PReadN(data_buffer->GetBuffer(), sf_length - sf_data_len,
@@ -183,12 +183,12 @@ orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
   return stripe_footer;
 }
 
-orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
+pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
     DataBuffer<char> *data_buffer, size_t stripe_index) {
   size_t sf_data_len;
   size_t sf_offset;
   size_t sf_length;
-  orc::proto::StripeInformation stripe_info;
+  pax::orc::proto::StripeInformation stripe_info;
 
   Assert(stripe_index < GetStripeNums());
 
@@ -208,11 +208,11 @@ orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
   return ReadStripeFooter(data_buffer, sf_length, sf_offset, sf_data_len);
 }
 
-orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
+pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
     DataBuffer<char> *data_buffer,
-    const ::orc::proto::StripeInformation &stripe_info,
+    const ::pax::orc::proto::StripeInformation &stripe_info,
     const bool *const proj_map, size_t proj_len) {
-  orc::proto::StripeFooter stripe_footer;
+  pax::orc::proto::StripeFooter stripe_footer;
   size_t stripe_footer_data_len;
   size_t stripe_footer_offset;
   size_t stripe_footer_length;
@@ -260,11 +260,11 @@ orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
     if (!proj_map[index]) {
       index++;
 
-      const orc::proto::Stream *n_stream = nullptr;
+      const pax::orc::proto::Stream *n_stream = nullptr;
       do {
         n_stream = &stripe_footer.streams(streams_index++);
         batch_offset += n_stream->length();
-      } while (n_stream->kind() != ::orc::proto::Stream_Kind::Stream_Kind_DATA);
+      } while (n_stream->kind() != ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA);
 
       continue;
     }
@@ -282,17 +282,17 @@ orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
     do {
       bool has_null = stripe_info.colstats(index).hasnull();
       if (has_null) {
-        const orc::proto::Stream &non_null_stream =
+        const pax::orc::proto::Stream &non_null_stream =
             stripe_footer.streams(streams_index++);
         batch_len += non_null_stream.length();
       }
 
-      const orc::proto::Stream *len_or_data_stream =
+      const pax::orc::proto::Stream *len_or_data_stream =
           &stripe_footer.streams(streams_index++);
       batch_len += len_or_data_stream->length();
 
       if (len_or_data_stream->kind() ==
-          ::orc::proto::Stream_Kind::Stream_Kind_LENGTH) {
+          ::pax::orc::proto::Stream_Kind::Stream_Kind_LENGTH) {
         len_or_data_stream = &stripe_footer.streams(streams_index++);
         batch_len += len_or_data_stream->length();
       }
@@ -308,14 +308,14 @@ orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
 
 template <typename T>
 static PaxColumn *BuildEncodingColumn(DataBuffer<char> *data_buffer,
-                                      const orc::proto::Stream &data_stream,
+                                      const pax::orc::proto::Stream &data_stream,
                                       const ColumnEncoding &data_encoding,
                                       bool is_vec) {
   uint32 not_null_rows = 0;
   uint64 column_data_len = 0;
   DataBuffer<T> *column_data_buffer = nullptr;
 
-  Assert(data_stream.kind() == orc::proto::Stream_Kind_DATA);
+  Assert(data_stream.kind() == pax::orc::proto::Stream_Kind_DATA);
 
   not_null_rows = static_cast<uint32>(data_stream.column());
   column_data_len = static_cast<uint64>(data_stream.length());
@@ -362,8 +362,8 @@ static PaxColumn *BuildEncodingColumn(DataBuffer<char> *data_buffer,
 }
 
 static PaxColumn *BuildEncodingVecNonFixedColumn(
-    DataBuffer<char> *data_buffer, const orc::proto::Stream &data_stream,
-    const orc::proto::Stream &len_stream, const ColumnEncoding &data_encoding) {
+    DataBuffer<char> *data_buffer, const pax::orc::proto::Stream &data_stream,
+    const pax::orc::proto::Stream &len_stream, const ColumnEncoding &data_encoding) {
   uint32 not_null_rows = 0;
   uint64 column_lens_len = 0;
   uint64 column_data_len = 0;
@@ -413,8 +413,8 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
 }
 
 static PaxColumn *BuildEncodingNonFixedColumn(
-    DataBuffer<char> *data_buffer, const orc::proto::Stream &data_stream,
-    const orc::proto::Stream &len_stream, const ColumnEncoding &data_encoding) {
+    DataBuffer<char> *data_buffer, const pax::orc::proto::Stream &data_stream,
+    const pax::orc::proto::Stream &len_stream, const ColumnEncoding &data_encoding) {
   uint32 column_lens_size = 0;
   uint64 column_lens_len = 0;
   uint64 column_data_len = 0;
@@ -479,7 +479,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
   auto stripe_info = file_footer_.stripes(static_cast<int>(group_index));
   auto pax_columns = PAX_NEW<PaxColumns>();
   DataBuffer<char> *data_buffer = nullptr;
-  orc::proto::StripeFooter stripe_footer;
+  pax::orc::proto::StripeFooter stripe_footer;
   size_t streams_index = 0;
   size_t streams_size = 0;
   size_t encoding_kinds_size = 0;
@@ -537,10 +537,10 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
      * make sure sizeof pax_columns eq with column number
      */
     if (proj_map && !proj_map[index]) {
-      const orc::proto::Stream *n_stream = nullptr;
+      const pax::orc::proto::Stream *n_stream = nullptr;
       do {
         n_stream = &stripe_footer.streams(streams_index++);
-      } while (n_stream->kind() != ::orc::proto::Stream_Kind::Stream_Kind_DATA);
+      } while (n_stream->kind() != ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA);
 
       pax_columns->Append(nullptr);
       continue;
@@ -549,29 +549,29 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
     Bitmap8 *non_null_bitmap = nullptr;
     bool has_null = stripe_info.colstats(index).hasnull();
     if (has_null) {
-      const orc::proto::Stream &non_null_stream =
+      const pax::orc::proto::Stream &non_null_stream =
           stripe_footer.streams(streams_index++);
       auto bm_nbytes = static_cast<uint32>(non_null_stream.length());
       auto bm_bytes =
           reinterpret_cast<uint8 *>(data_buffer->GetAvailableBuffer());
 
-      Assert(non_null_stream.kind() == orc::proto::Stream_Kind_PRESENT);
+      Assert(non_null_stream.kind() == pax::orc::proto::Stream_Kind_PRESENT);
       non_null_bitmap = PAX_NEW<Bitmap8>(BitmapRaw<uint8>(bm_bytes, bm_nbytes),
                                     BitmapTpl<uint8>::ReadOnlyRefBitmap);
       data_buffer->Brush(bm_nbytes);
     }
 
     switch (column_types_[index]) {
-      case (orc::proto::Type_Kind::Type_Kind_STRING): {
-        const orc::proto::Stream &len_stream =
+      case (pax::orc::proto::Type_Kind::Type_Kind_STRING): {
+        const pax::orc::proto::Stream &len_stream =
             stripe_footer.streams(streams_index++);
-        const orc::proto::Stream &data_stream =
+        const pax::orc::proto::Stream &data_stream =
             stripe_footer.streams(streams_index++);
         const ColumnEncoding &data_encoding =
             stripe_footer.pax_col_encodings(index);
 
-        Assert(len_stream.kind() == orc::proto::Stream_Kind_LENGTH);
-        Assert(data_stream.kind() == orc::proto::Stream_Kind_DATA);
+        Assert(len_stream.kind() == pax::orc::proto::Stream_Kind_LENGTH);
+        Assert(data_stream.kind() == pax::orc::proto::Stream_Kind_DATA);
 
         pax_columns->Append(
             is_vec_ ? BuildEncodingVecNonFixedColumn(data_buffer, data_stream,
@@ -580,24 +580,24 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
                                                   len_stream, data_encoding));
         break;
       }
-      case (orc::proto::Type_Kind::Type_Kind_BOOLEAN):
-      case (orc::proto::Type_Kind::Type_Kind_BYTE):
+      case (pax::orc::proto::Type_Kind::Type_Kind_BOOLEAN):
+      case (pax::orc::proto::Type_Kind::Type_Kind_BYTE):
         pax_columns->Append(BuildEncodingColumn<int8>(
             data_buffer, stripe_footer.streams(streams_index++),
             stripe_footer.pax_col_encodings(index), is_vec_));
         break;
-      case (orc::proto::Type_Kind::Type_Kind_SHORT):
+      case (pax::orc::proto::Type_Kind::Type_Kind_SHORT):
         pax_columns->Append(BuildEncodingColumn<int16>(
             data_buffer, stripe_footer.streams(streams_index++),
             stripe_footer.pax_col_encodings(index), is_vec_));
         break;
-      case (orc::proto::Type_Kind::Type_Kind_INT): {
+      case (pax::orc::proto::Type_Kind::Type_Kind_INT): {
         pax_columns->Append(BuildEncodingColumn<int32>(
             data_buffer, stripe_footer.streams(streams_index++),
             stripe_footer.pax_col_encodings(index), is_vec_));
         break;
       }
-      case (orc::proto::Type_Kind::Type_Kind_LONG): {
+      case (pax::orc::proto::Type_Kind::Type_Kind_LONG): {
         pax_columns->Append(BuildEncodingColumn<int64>(
             data_buffer, stripe_footer.streams(streams_index++),
             stripe_footer.pax_col_encodings(index), is_vec_));

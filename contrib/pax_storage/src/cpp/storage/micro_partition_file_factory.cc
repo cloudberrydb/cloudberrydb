@@ -21,7 +21,7 @@ MicroPartitionWriter *MicroPartitionFileFactory::CreateMicroPartitionWriter(
     const std::string &type, File *file,
     const MicroPartitionWriter::WriterOptions &options) {
   if (type == MICRO_PARTITION_TYPE_PAX) {
-    std::vector<orc::proto::Type_Kind> type_kinds;
+    std::vector<pax::orc::proto::Type_Kind> type_kinds;
     MicroPartitionWriter *writer = nullptr;
     type_kinds = OrcWriter::BuildSchema(options.desc);
     writer = PAX_NEW<OrcWriter>(std::move(options), std::move(type_kinds), file);

@@ -76,9 +76,9 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<orc::proto::Type_Kind> types;
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
+  std::vector<pax::orc::proto::Type_Kind> types;
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
   OrcWriter::WriterOptions writer_options;
 
   writer_options.desc = tuple_slot->tts_tupleDescriptor;
@@ -220,9 +220,9 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<orc::proto::Type_Kind> types;
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
+  std::vector<pax::orc::proto::Type_Kind> types;
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> types_encoding;
   types_encoding.emplace_back(std::make_tuple(
       ColumnEncoding_Kind::ColumnEncoding_Kind_COMPRESS_ZSTD, 5));

@@ -12,23 +12,23 @@
 
 namespace pax {
 
-std::vector<orc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc) {
-  std::vector<orc::proto::Type_Kind> type_kinds;
+std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc) {
+  std::vector<pax::orc::proto::Type_Kind> type_kinds;
   for (int i = 0; i < desc->natts; i++) {
     auto attr = &desc->attrs[i];
     if (attr->attbyval) {
       switch (attr->attlen) {
         case 1:
-          type_kinds.emplace_back(orc::proto::Type_Kind::Type_Kind_BYTE);
+          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_BYTE);
           break;
         case 2:
-          type_kinds.emplace_back(orc::proto::Type_Kind::Type_Kind_SHORT);
+          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_SHORT);
           break;
         case 4:
-          type_kinds.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
+          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
           break;
         case 8:
-          type_kinds.emplace_back(orc::proto::Type_Kind::Type_Kind_LONG);
+          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_LONG);
           break;
         default:
           Assert(!"should not be here! pg_type which attbyval=true only have typlen of "
@@ -36,7 +36,7 @@ std::vector<orc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc) {
       }
     } else {
       Assert(attr->attlen > 0 || attr->attlen == -1);
-      type_kinds.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
+      type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
     }
   }
 
@@ -56,7 +56,7 @@ static PaxColumn *CreateCommColumn(bool is_vec,
 }
 
 static PaxColumns *BuildColumns(
-    const std::vector<orc::proto::Type_Kind> &types,
+    const std::vector<pax::orc::proto::Type_Kind> &types,
     const std::vector<std::tuple<ColumnEncoding_Kind, int>>
         &column_encoding_types,
     const PaxStorageFormat &storage_format) {
@@ -76,7 +76,7 @@ static PaxColumns *BuildColumns(
     encoding_option.compress_level = std::get<1>(column_encoding_types[i]);
 
     switch (type) {
-      case (orc::proto::Type_Kind::Type_Kind_STRING): {
+      case (pax::orc::proto::Type_Kind::Type_Kind_STRING): {
         encoding_option.is_sign = false;
         columns->Append(is_vec
                             ? (PaxColumn *)traits::ColumnOptCreateTraits2<
@@ -89,20 +89,20 @@ static PaxColumns *BuildColumns(
                                                   std::move(encoding_option)));
         break;
       }
-      case (orc::proto::Type_Kind::Type_Kind_BOOLEAN):
-      case (orc::proto::Type_Kind::Type_Kind_BYTE):  // len 1 integer
+      case (pax::orc::proto::Type_Kind::Type_Kind_BOOLEAN):
+      case (pax::orc::proto::Type_Kind::Type_Kind_BYTE):  // len 1 integer
         columns->Append(
             CreateCommColumn<int8>(is_vec, std::move(encoding_option)));
         break;
-      case (orc::proto::Type_Kind::Type_Kind_SHORT):  // len 2 integer
+      case (pax::orc::proto::Type_Kind::Type_Kind_SHORT):  // len 2 integer
         columns->Append(
             CreateCommColumn<int16>(is_vec, std::move(encoding_option)));
         break;
-      case (orc::proto::Type_Kind::Type_Kind_INT):  // len 4 integer
+      case (pax::orc::proto::Type_Kind::Type_Kind_INT):  // len 4 integer
         columns->Append(
             CreateCommColumn<int32>(is_vec, std::move(encoding_option)));
         break;
-      case (orc::proto::Type_Kind::Type_Kind_LONG):  // len 8 integer
+      case (pax::orc::proto::Type_Kind::Type_Kind_LONG):  // len 8 integer
         columns->Append(
             CreateCommColumn<int64>(is_vec, std::move(encoding_option)));
         break;
@@ -116,7 +116,7 @@ static PaxColumns *BuildColumns(
 }
 
 OrcWriter::OrcWriter(const MicroPartitionWriter::WriterOptions &writer_options,
-                     const std::vector<orc::proto::Type_Kind> &column_types,
+                     const std::vector<pax::orc::proto::Type_Kind> &column_types,
                      File *file)
     : MicroPartitionWriter(writer_options),
       is_closed_(false),
@@ -414,10 +414,10 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
                             PaxColumns *pax_columns,
                             MicroPartitionStats *stripe_stats,
                             MicroPartitionStats *file_stats) {
-  std::vector<orc::proto::Stream> streams;
+  std::vector<pax::orc::proto::Stream> streams;
   std::vector<ColumnEncoding> encoding_kinds;
-  orc::proto::StripeFooter stripe_footer;
-  orc::proto::StripeInformation *stripe_info;
+  pax::orc::proto::StripeFooter stripe_footer;
+  pax::orc::proto::StripeInformation *stripe_info;
 
   size_t data_len = 0;
   size_t number_of_row = pax_columns->GetRows();
@@ -428,9 +428,9 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
   }
 
   PaxColumns::ColumnStreamsFunc column_streams_func =
-      [&streams](const orc::proto::Stream_Kind &kind, size_t column,
+      [&streams](const pax::orc::proto::Stream_Kind &kind, size_t column,
                  size_t length) {
-        orc::proto::Stream stream;
+        pax::orc::proto::Stream stream;
         stream.set_kind(kind);
         stream.set_column(static_cast<uint32>(column));
         stream.set_length(length);
@@ -542,7 +542,7 @@ size_t OrcWriter::PhysicalSize() const { return pax_columns_->PhysicalSize(); }
 
 void OrcWriter::BuildFooterType() {
   auto proto_type = file_footer_.add_types();
-  proto_type->set_kind(::orc::proto::Type_Kind_STRUCT);
+  proto_type->set_kind(::pax::orc::proto::Type_Kind_STRUCT);
 
   for (size_t i = 0; i < column_types_.size(); ++i) {
     auto orc_type = column_types_[i];

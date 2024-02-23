@@ -157,11 +157,11 @@ void DeleteTestTupleTableSlot(TupleTableSlot *tuple_slot) {
   cbdb::Pfree(tuple_slot);
 }
 
-std::vector<orc::proto::Type_Kind> CreateTestSchemaTypes() {
-  std::vector<orc::proto::Type_Kind> types;
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
+std::vector<pax::orc::proto::Type_Kind> CreateTestSchemaTypes() {
+  std::vector<pax::orc::proto::Type_Kind> types;
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
   return types;
 }
 

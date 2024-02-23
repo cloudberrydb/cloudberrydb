@@ -507,9 +507,9 @@ TEST_P(OrcEncodingTest, ReadTupleWithEncoding) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<orc::proto::Type_Kind> types;
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_LONG);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_LONG);
+  std::vector<pax::orc::proto::Type_Kind> types;
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_LONG);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_LONG);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> types_encoding;
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 0));
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 0));
@@ -587,9 +587,9 @@ TEST_P(OrcCompressTest, ReadTupleWithCompress) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<orc::proto::Type_Kind> types;
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_STRING);
+  std::vector<pax::orc::proto::Type_Kind> types;
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> types_encoding;
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 5));
   types_encoding.emplace_back(std::make_tuple(encoding_kind, 5));
@@ -812,9 +812,9 @@ TEST_F(OrcTest, WriteReadBigTuple) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<orc::proto::Type_Kind> types;
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
-  types.emplace_back(orc::proto::Type_Kind::Type_Kind_INT);
+  std::vector<pax::orc::proto::Type_Kind> types;
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
+  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
   MicroPartitionWriter::WriterOptions writer_options;
   writer_options.desc = tuple_desc;
 

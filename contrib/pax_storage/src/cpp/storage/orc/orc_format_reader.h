@@ -29,16 +29,16 @@ class OrcFormatReader final {
                          size_t proj_len = 0);
 
  private:
-  orc::proto::StripeFooter ReadStripeWithProjection(
+  pax::orc::proto::StripeFooter ReadStripeWithProjection(
       DataBuffer<char> *data_buffer,
-      const ::orc::proto::StripeInformation &stripe_info, const bool *proj_map,
+      const ::pax::orc::proto::StripeInformation &stripe_info, const bool *proj_map,
       size_t proj_len);
 
-  orc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
+  pax::orc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
                                             size_t sf_length, size_t sf_offset,
                                             size_t sf_data_len);
 
-  orc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
+  pax::orc::proto::StripeFooter ReadStripeFooter(DataBuffer<char> *data_buffer,
                                             size_t stripe_index);
 
   void BuildProtoTypes();
@@ -46,7 +46,7 @@ class OrcFormatReader final {
  private:
   friend class tools::PaxDumpReader;
   friend class OrcGroupStatsProvider;
-  std::vector<orc::proto::Type_Kind> column_types_;
+  std::vector<pax::orc::proto::Type_Kind> column_types_;
   File *file_;
   DataBuffer<char> *reused_buffer_;
   size_t num_of_stripes_;
@@ -54,8 +54,8 @@ class OrcFormatReader final {
 
   std::vector<size_t> stripe_row_offsets_;
 
-  orc::proto::PostScript post_script_;
-  orc::proto::Footer file_footer_;
+  pax::orc::proto::PostScript post_script_;
+  pax::orc::proto::Footer file_footer_;
 };
 
 }  // namespace pax

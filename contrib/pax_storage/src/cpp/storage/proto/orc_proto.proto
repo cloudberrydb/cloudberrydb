@@ -17,7 +17,7 @@
  */
 
 syntax = "proto2";
-package orc.proto;
+package pax.orc.proto;
 
 import "pax.proto";
 import "micro_partition_stats.proto";

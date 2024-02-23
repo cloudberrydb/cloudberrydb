@@ -187,7 +187,7 @@ void PaxDumpReader::DumpSchema() {
 
   // verify schema defined
   auto struct_types = &(footer->types(0));
-  CBDB_CHECK(struct_types->kind() == orc::proto::Type_Kind_STRUCT,
+  CBDB_CHECK(struct_types->kind() == pax::orc::proto::Type_Kind_STRUCT,
              cbdb::CException::ExType::kExTypeInvalidORCFormat);
   CBDB_CHECK(struct_types->subtypes_size() == col_infos->size(),
              cbdb::CException::ExType::kExTypeInvalidORCFormat);
@@ -436,7 +436,7 @@ void PaxDumpReader::DumpGroupFooter() {
   size_t streams_index;
   for (int i = group_start; i < group_end; i++) {
     auto stripe_footer = format_reader_->ReadStripeFooter(data_buffer, i);
-    const orc::proto::Stream *n_stream = nullptr;
+    const pax::orc::proto::Stream *n_stream = nullptr;
     const pax::ColumnEncoding *column_encoding = nullptr;
 
     tabulate::Table group_footer_table;
@@ -449,7 +449,7 @@ void PaxDumpReader::DumpGroupFooter() {
 
     for (int j = 0; j < column_start;) {
       n_stream = &stripe_footer.streams(streams_index++);
-      if (n_stream->kind() == ::orc::proto::Stream_Kind::Stream_Kind_DATA) {
+      if (n_stream->kind() == ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
         j++;
       }
     }
@@ -461,7 +461,7 @@ void PaxDumpReader::DumpGroupFooter() {
       stream_desc_table.add_row({"Column", std::to_string(n_stream->column())});
       stream_desc_table.add_row({"Length", std::to_string(n_stream->length())});
 
-      if (n_stream->kind() == ::orc::proto::Stream_Kind::Stream_Kind_DATA) {
+      if (n_stream->kind() == ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
         column_encoding = &stripe_footer.pax_col_encodings(j);
 
         tabulate::Table group_footer_desc_table;
@@ -535,7 +535,7 @@ void PaxDumpReader::DumpAllData() {
   DataBuffer<char> *data_buffer = nullptr;
   auto stripe_info = (*stripes)[group_start];
   size_t number_of_rows = 0;
-  orc::proto::StripeFooter stripe_footer;
+  pax::orc::proto::StripeFooter stripe_footer;
   bool proj_map[number_of_columns];
   PaxColumns *columns = nullptr;
   OrcGroup *group = nullptr;

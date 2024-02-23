@@ -12,7 +12,7 @@ namespace pax {
 // Inheriting PaxCommColumn use to be able to nest itself
 class PaxColumns : public PaxColumn {
  public:
-  explicit PaxColumns(const std::vector<orc::proto::Type_Kind> &types,
+  explicit PaxColumns(const std::vector<pax::orc::proto::Type_Kind> &types,
                       const std::vector<std::tuple<ColumnEncoding_Kind, int>>
                           &column_encoding_types,
                       const PaxStorageFormat &storage_format);
@@ -63,7 +63,7 @@ class PaxColumns : public PaxColumn {
   size_t GetNonNullRows() const override;
 
   using ColumnStreamsFunc =
-      std::function<void(const orc::proto::Stream_Kind &, size_t, size_t)>;
+      std::function<void(const pax::orc::proto::Stream_Kind &, size_t, size_t)>;
 
   using ColumnEncodingFunc =
       std::function<void(const ColumnEncoding_Kind &, size_t)>;
