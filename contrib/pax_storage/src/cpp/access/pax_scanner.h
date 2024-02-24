@@ -30,10 +30,10 @@ class PaxIndexScanDesc final {
  private:
   bool OpenMicroPartition(BlockNumber block, Snapshot snapshot);
 
-  std::string rel_path_;
   IndexFetchTableData base_;
   BlockNumber current_block_ = InvalidBlockNumber;
   MicroPartitionReader *reader_ = nullptr;
+  std::string rel_path_;
 };
 
 class PaxScanDesc {
