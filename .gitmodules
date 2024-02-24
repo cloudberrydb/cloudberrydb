@@ -3,10 +3,10 @@
 	url = https://code.hashdata.xyz/cloudberry/googletest.git
 [submodule "contrib/pax_storage/src/cpp/contrib/googletest"]
 	path = contrib/pax_storage/src/cpp/contrib/googletest
-	url = https://code.hashdata.xyz/cloudberry/googletest
+	url = https://code.hashdata.xyz/cloudberry/googletest.git
 [submodule "contrib/pax_storage/src/cpp/contrib/tabulate"]
 	path = contrib/pax_storage/src/cpp/contrib/tabulate
-	url = https://code.hashdata.xyz/cloudberry/tabulate
+	url = https://code.hashdata.xyz/cloudberry/tabulate.git
 [submodule "contrib/pax_storage/src/cpp/contrib/googlebench"]
 	path = contrib/pax_storage/src/cpp/contrib/googlebench
 	url = https://code.hashdata.xyz/cloudberry/benchmark.git
