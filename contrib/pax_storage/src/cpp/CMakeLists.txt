@@ -12,7 +12,7 @@ set(protobuf_files
 set(PROTO_DIR ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto)
 set(PROTO_OUTPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/storage/proto)
 
-## we generate these files in the cmake -B build phase. 
+## we generate these files in the cmake -B build phase.
 ## when we start the make phase, all dependent files exist, and we can compile with multiple threads.
 FOREACH(FIL ${protobuf_files})
     GET_FILENAME_COMPONENT(FIL_WE ${FIL} NAME_WE)

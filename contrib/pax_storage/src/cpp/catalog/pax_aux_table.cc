@@ -11,7 +11,6 @@
 #include "storage/file_system.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition_metadata.h"
-#include "storage/paxc_block_map_manager.h"
 
 namespace paxc {
 
@@ -57,9 +56,7 @@ static void CPaxNontransactionalTruncateTable(Relation rel) {
   heap_truncate_one_rel(aux_rel);
   relation_close(aux_rel, NoLock);
 
-#ifdef ENABLE_LOCAL_INDEX
   paxc::CPaxInitializeFastSequenceEntry(RelationGetRelid(rel), FASTSEQUENCE_INIT_TYPE_INPLACE);
-#endif
 }
 
 void CPaxCreateMicroPartitionTable(Relation rel) {
@@ -265,7 +262,6 @@ void InsertOrUpdateMicroPartitionPlaceHolder(Oid aux_relid,
   values[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1] = PointerGetDatum(output);
   nulls[ANUM_PG_PAX_BLOCK_TABLES_PTSTATISITICS - 1] = false;
 
-#ifdef ENABLE_LOCAL_INDEX
   ScanAuxContext context;
   context.BeginSearchMicroPartition(aux_relid, InvalidOid, NULL, RowExclusiveLock, blockname);
   auto aux_rel = context.GetRelation();
@@ -285,10 +281,6 @@ void InsertOrUpdateMicroPartitionPlaceHolder(Oid aux_relid,
     CatalogTupleDelete(aux_rel, &oldtuple->t_self);
   }
   context.EndSearchMicroPartition(NoLock);
-#else
-  if (num_tuples > 0)
-    InsertTuple(aux_relid, values, nulls);
-#endif
 
   pfree(output);
 

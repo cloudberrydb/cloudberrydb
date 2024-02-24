@@ -260,8 +260,6 @@ int main() {
       InvalidOid               /* pg_type.typcollation */
   );
 
-#ifdef ENABLE_LOCAL_INDEX
-
   printf("\n");
   /* create pax auxiliary fast sequence table. */
   printf("CREATE TABLE %s.%s(objid oid NOT NULL, seq int NOT NULL);\n",
@@ -316,7 +314,6 @@ int main() {
          PAX_FASTSEQUENCE_OID, PG_PAX_FASTSEQUENCE_TABLE);
   printf("UPDATE pg_class SET oid=%u WHERE relname='%s';\n",
          PAX_FASTSEQUENCE_INDEX_OID, PG_PAX_FASTSEQUENCE_INDEX_NAME);
-#endif
 
   return 0;
 }

@@ -198,9 +198,7 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
 
   block_id = GenerateBlockID(relation_);
   file_path = GenFilePath(block_id);
-#ifdef ENABLE_LOCAL_INDEX
   current_blockno_ = std::stol(block_id);
-#endif
 
   options.rel_oid = relation_->rd_id;
   options.desc = relation_->rd_att;
@@ -229,11 +227,9 @@ void TableWriter::Open() {
   rel_path_ = cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
   writer_ = CreateMicroPartitionWriter(mp_stats_);
   num_tuples_ = 0;
-#ifdef ENABLE_LOCAL_INDEX
   // insert tuple into the aux table before inserting any tuples.
   cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_),
                                         std::to_string(current_blockno_));
-#endif
 }
 
 void TableWriter::WriteTuple(TupleTableSlot *slot) {
@@ -248,10 +244,7 @@ void TableWriter::WriteTuple(TupleTableSlot *slot) {
   }
 
   writer_->WriteTuple(slot);
-#ifdef ENABLE_LOCAL_INDEX
   SetBlockNumber(&slot->tts_tid, current_blockno_);
-  ExecStoreVirtualTuple(slot);
-#endif
   ++num_tuples_;
 }
 
@@ -283,12 +276,6 @@ void TableReader::Open() {
     is_empty_ = true;
     return;
   }
-#ifndef ENABLE_LOCAL_INDEX
-  if (reader_options_.build_bitmap) {
-    // first open, now alloc a table no in pax shmem for scan
-    block_number_manager_.InitOpen(reader_options_.rel_oid);
-  }
-#endif
   OpenFile();
   is_empty_ = false;
 }
@@ -316,9 +303,6 @@ bool TableReader::ReadTuple(TupleTableSlot *slot) {
   }
 
   ExecClearTuple(slot);
-#ifndef ENABLE_LOCAL_INDEX
-  pax::SetTableNo(&slot->tts_tid, block_number_manager_.GetTableNo());
-#endif
   while (!reader_->ReadTuple(slot)) {
     reader_->Close();
     if (!iterator_->HasNext()) {
@@ -339,18 +323,8 @@ void TableReader::OpenFile() {
   auto it = iterator_->Next();
   MicroPartitionReader::ReaderOptions options;
   micro_partition_id_ = options.block_id = it.GetMicroPartitionId();
-#ifdef ENABLE_LOCAL_INDEX
   current_block_number_ = std::stol(options.block_id);
-#else
-  if (reader_options_.build_bitmap) {
-    int block_number = 0;
-    block_number = block_number_manager_.GetBlockNumber(reader_options_.rel_oid,
-                                                        options.block_id);
 
-    Assert(block_number >= 0);
-    current_block_number_ = block_number;
-  }
-#endif
   options.filter = reader_options_.filter;
   options.reused_buffer = reader_options_.reused_buffer;
 #ifdef ENABLE_PLASMA
@@ -428,14 +402,12 @@ void TableDeleter::Delete() {
     if (bitmap->Test(pax::GetTupleOffset(slot->tts_tid))) continue;
 
     writer_->WriteTuple(slot);
-#ifdef ENABLE_LOCAL_INDEX
     if (index_updater.HasIndex()) {
       // Already store the ctid after WriteTuple
       Assert(TTS_EMPTY(slot));
       Assert(ItemPointerIsValid(&slot->tts_tid));
       index_updater.UpdateIndex(slot);
     }
-#endif
   }
   index_updater.End();
 }

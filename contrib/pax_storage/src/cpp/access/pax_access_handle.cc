@@ -15,7 +15,6 @@
 #include "comm/pax_memory.h"
 #include "exceptions/CException.h"
 #include "storage/local_file_system.h"
-#include "storage/paxc_block_map_manager.h"
 
 #define NOT_IMPLEMENTED_YET                        \
   ereport(ERROR,                                   \
@@ -150,7 +149,6 @@ TableScanDesc CCPaxAccessMethod::ScanExtractColumns(
   pg_unreachable();
 }
 
-#ifdef ENABLE_LOCAL_INDEX
 struct IndexFetchTableData *CCPaxAccessMethod::IndexFetchBegin(Relation rel) {
   CBDB_TRY();
   {
@@ -188,28 +186,6 @@ bool CCPaxAccessMethod::IndexFetchTuple(struct IndexFetchTableData *scan,
   CBDB_END_TRY();
   return false;  // keep compiler quiet
 }
-
-#else
-struct IndexFetchTableData *CCPaxAccessMethod::IndexFetchBegin(
-    Relation /*rel*/) {
-  NOT_SUPPORTED_YET;
-  return nullptr;
-}
-
-void CCPaxAccessMethod::IndexFetchEnd(IndexFetchTableData * /*scan*/) {
-  NOT_SUPPORTED_YET;
-}
-
-bool CCPaxAccessMethod::IndexFetchTuple(struct IndexFetchTableData * /*scan*/,
-                                        ItemPointer /*tid*/,
-                                        Snapshot /*snapshot*/,
-                                        TupleTableSlot * /*slot*/,
-                                        bool * /*call_again*/,
-                                        bool * /*all_dead*/) {
-  NOT_SUPPORTED_YET;
-  return false;
-}
-#endif
 
 void CCPaxAccessMethod::IndexFetchReset(IndexFetchTableData * /*scan*/) {}
 
@@ -254,12 +230,10 @@ void CCPaxAccessMethod::RelationSetNewFilenode(Relation rel,
     paxc::CPaxCreateMicroPartitionTable(rel);
   }
 
-#ifdef ENABLE_LOCAL_INDEX
   // initialize or reset the fast sequence number
   paxc::CPaxInitializeFastSequenceEntry(
       pax_relid,
       exists ? FASTSEQUENCE_INIT_TYPE_UPDATE : FASTSEQUENCE_INIT_TYPE_CREATE);
-#endif
 
   systable_endscan(scan);
   table_close(pax_tables_rel, NoLock);
@@ -754,7 +728,6 @@ void PaxAccessMethod::EstimateRelSize(Relation rel, int32 * /*attr_widths*/,
   *pages = RelationGuessNumberOfBlocksFromSize(pax_size);
 }
 
-#ifdef ENABLE_LOCAL_INDEX
 double PaxAccessMethod::IndexBuildRangeScan(
     Relation heap_relation, Relation index_relation, IndexInfo *index_info,
     bool /*allow_sync*/, bool anyvisible, bool progress,
@@ -866,26 +839,6 @@ bool PaxAccessMethod::IndexUniqueCheck(Relation rel, ItemPointer tid,
                                        Snapshot snapshot, bool *all_dead) {
   return paxc::IndexUniqueCheck(rel, tid, snapshot, all_dead);
 }
-
-#else
-
-double PaxAccessMethod::IndexBuildRangeScan(
-    Relation /*heap_relation*/, Relation /*index_relation*/,
-    IndexInfo * /*index_info*/, bool /*allow_sync*/, bool /*anyvisible*/,
-    bool /*progress*/, BlockNumber /*start_blockno*/, BlockNumber /*numblocks*/,
-    IndexBuildCallback /*callback*/, void * /*callback_state*/,
-    TableScanDesc /*scan*/) {
-  NOT_SUPPORTED_YET;
-  return 0.0;
-}
-
-bool PaxAccessMethod::IndexUniqueCheck(Relation /*rel*/, ItemPointer /*tid*/,
-                                       Snapshot /*snapshot*/,
-                                       bool * /*all_dead*/) {
-  NOT_SUPPORTED_YET;
-  return false;
-}
-#endif
 
 void PaxAccessMethod::IndexValidateScan(Relation /*heap_relation*/,
                                         Relation /*index_relation*/,
@@ -1135,52 +1088,6 @@ Datum pax_tableam_handler(PG_FUNCTION_ARGS) {  // NOLINT
 
 static object_access_hook_type prev_object_access_hook = NULL;
 
-#ifndef ENABLE_LOCAL_INDEX
-static shmem_startup_hook_type prev_shmem_startup_hook = NULL;
-static ExecutorStart_hook_type prev_executor_start = NULL;
-static ExecutorEnd_hook_type prev_executor_end = NULL;
-static uint32 executor_run_ref_count = 0;
-
-static void PaxShmemInit() {
-  if (prev_shmem_startup_hook) prev_shmem_startup_hook();
-
-  paxc::paxc_shmem_startup();
-}
-
-static void PaxExecutorStart(QueryDesc *query_desc, int eflags) {
-  if (prev_executor_start)
-    prev_executor_start(query_desc, eflags);
-  else
-    standard_ExecutorStart(query_desc, eflags);
-
-  executor_run_ref_count++;
-}
-
-static void PaxExecutorEnd(QueryDesc *query_desc) {
-  if (prev_executor_end)
-    prev_executor_end(query_desc);
-  else
-    standard_ExecutorEnd(query_desc);
-
-  executor_run_ref_count--;
-  Assert(executor_run_ref_count >= 0);
-  if (executor_run_ref_count == 0) {
-    paxc::release_command_resource();
-  }
-}
-
-static void PaxXactCallback(XactEvent event, void * /*arg*/) {
-  if (event == XACT_EVENT_COMMIT || event == XACT_EVENT_ABORT ||
-      event == XACT_EVENT_PARALLEL_ABORT ||
-      event == XACT_EVENT_PARALLEL_COMMIT) {
-    if (executor_run_ref_count > 0) {
-      executor_run_ref_count = 0;
-      paxc::release_command_resource();
-    }
-  }
-}
-#endif
-
 static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
                                 Oid object_id, int sub_id, void *arg) {
   Relation rel;
@@ -1325,24 +1232,6 @@ static struct CustomObjectClass pax_tables_coc = {
 };
 
 void _PG_init(void) {  // NOLINT
-#ifndef ENABLE_LOCAL_INDEX
-  if (!process_shared_preload_libraries_in_progress) {
-    ereport(ERROR, (errmsg("pax must be loaded via shared_preload_libraries")));
-    return;
-  }
-  paxc::paxc_shmem_request();
-  prev_shmem_startup_hook = shmem_startup_hook;
-  shmem_startup_hook = PaxShmemInit;
-
-  prev_executor_start = ExecutorStart_hook;
-  ExecutorStart_hook = PaxExecutorStart;
-
-  prev_executor_end = ExecutorEnd_hook;
-  ExecutorEnd_hook = PaxExecutorEnd;
-
-  RegisterXactCallback(PaxXactCallback, NULL);
-#endif
-
   prev_object_access_hook = object_access_hook;
   object_access_hook = PaxObjectAccessHook;
 

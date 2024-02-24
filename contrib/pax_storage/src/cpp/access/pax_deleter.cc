@@ -8,7 +8,6 @@
 #include "catalog/pax_aux_table.h"
 #include "comm/singleton.h"
 #include "storage/pax_itemptr.h"
-#include "storage/paxc_block_map_manager.h"
 namespace pax {
 CPaxDeleter::CPaxDeleter(Relation rel, Snapshot snapshot)
     : rel_(rel), snapshot_(snapshot) {}

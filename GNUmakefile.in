@@ -28,7 +28,6 @@ all:
 	$(MAKE) -C contrib/pg_trgm all
 	$(MAKE) -C contrib/tablefunc all
 	$(MAKE) -C contrib/passwordcheck all
-	$(MAKE) -C contrib/pax_storage all
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo all
 endif
@@ -38,6 +37,7 @@ endif
 ifeq ($(enable_vectorization), yes)
 	$(MAKE) -C contrib/vectorization all
 endif 
+	$(MAKE) -C contrib/pax_storage all
 ifeq ($(enable_gophermeta), yes)
 	$(MAKE) -C contrib/pg_gophermeta all
 endif

@@ -1,7 +1,6 @@
 #include "comm/cbdb_wrappers.h"
 
 #include "comm/paxc_wrappers.h"
-#include "storage/paxc_block_map_manager.h"
 extern "C" {
 const char *progname;
 }

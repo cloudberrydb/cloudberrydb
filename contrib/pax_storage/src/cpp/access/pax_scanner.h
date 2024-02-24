@@ -10,15 +10,12 @@
 #include "storage/vec/pax_vec_adapter.h"
 #endif
 
-#ifdef ENABLE_LOCAL_INDEX
 namespace paxc {
 bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
                       bool *all_dead);
 }
-#endif
 
 namespace pax {
-#ifdef ENABLE_LOCAL_INDEX
 class PaxIndexScanDesc final {
  public:
   explicit PaxIndexScanDesc(Relation rel);
@@ -38,7 +35,6 @@ class PaxIndexScanDesc final {
   BlockNumber current_block_ = InvalidBlockNumber;
   MicroPartitionReader *reader_ = nullptr;
 };
-#endif
 
 class PaxScanDesc {
  public:
@@ -107,11 +103,9 @@ class PaxScanDesc {
   PaxCache *pax_cache_ = nullptr;
 #endif
 
-#ifdef ENABLE_LOCAL_INDEX
   // used only by bitmap index scan
   PaxIndexScanDesc *index_desc_ = nullptr;
   int cindex_ = 0;
-#endif
 };  // class PaxScanDesc
 
 }  // namespace pax

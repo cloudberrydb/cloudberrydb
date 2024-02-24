@@ -18,7 +18,6 @@
 #include "storage/cache/pax_plasma_cache.h"
 #endif
 
-#ifdef ENABLE_LOCAL_INDEX
 namespace paxc {
 bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
                       bool * /*all_dead*/) {
@@ -38,11 +37,9 @@ bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
   return exists;
 }
 }  // namespace paxc
-#endif
 
 namespace pax {
 
-#ifdef ENABLE_LOCAL_INDEX
 PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel = rel} {
   Assert(rel);
   Assert(&base_ == reinterpret_cast<IndexFetchTableData *>(this));
@@ -88,10 +85,10 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block,
     MicroPartitionReader::ReaderOptions options;
 
     auto block_name = std::to_string(block);
+    auto file_name = cbdb::BuildPaxFilePath(rel_path_, block_name);
     options.block_id = block_name;
-    options.file_name = cbdb::BuildPaxFilePath(rel_path_, block_name);
     auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
-        options.file_name, fs::kReadMode);
+        file_name, fs::kReadMode);
     auto reader = PAX_NEW<OrcReader>(file);
     reader->Open(options);
     if (reader_) {
@@ -137,19 +134,6 @@ bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult *tbmres,
                                  nullptr);
 }
 
-#else
-bool PaxScanDesc::BitmapNextBlock(struct TBMIterateResult * /*tbmres*/) {
-  elog(ERROR, "This build doesn't support index");
-  return false;
-}
-
-bool PaxScanDesc::BitmapNextTuple(struct TBMIterateResult * /*tbmres*/,
-                                  TupleTableSlot * /*slot*/) {
-  elog(ERROR, "This build doesn't support index");
-  return false;
-}
-
-#endif
 TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
                                      int nkeys, struct ScanKeyData * /*key*/,
                                      ParallelTableScanDesc pscan, uint32 flags,
@@ -220,9 +204,6 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 
 #endif  // ENABLE_PLASMA
 
-  // init shared memory
-  cbdb::InitCommandResource();
-
   old_ctx = MemoryContextSwitchTo(desc->memory_context_);
 
   // build reader
@@ -272,9 +253,7 @@ void PaxScanDesc::EndScan() {
   }
 #endif
 
-#ifdef ENABLE_LOCAL_INDEX
   PAX_DELETE(index_desc_);
-#endif
 
   // TODO(jiaqizho): please double check with abort transaction @gongxun
   Assert(memory_context_);

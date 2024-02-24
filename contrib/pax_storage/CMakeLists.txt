@@ -7,9 +7,6 @@ set(CBDB_INCLUDE_DIR ${TOP_DIR}/src/include)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -g")
 
-# use sequential block number to enable btree index
-option(ENABLE_LOCAL_INDEX "Enable local index support" OFF)
-
 # Build gtest options
 option(BUILD_GTEST "Build with google test" ON)
 
@@ -40,11 +37,6 @@ elseif(${CBDB_BUILD_TYPE} STREQUAL "debug")
 else()
   message(FATAL_ERROR "unknown CBDB_BUILD_TYPE: ${CBDB_BUILD_TYPE}")
 endif()
-
-if (ENABLE_LOCAL_INDEX)
-  ADD_DEFINITIONS(-DENABLE_LOCAL_INDEX)
-endif(ENABLE_LOCAL_INDEX)
-
 
 if(BUILD_GBENCH)
   SET(BUILD_GTEST ON)

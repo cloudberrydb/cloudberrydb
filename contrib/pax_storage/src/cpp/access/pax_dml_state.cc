@@ -8,10 +8,6 @@ void CPaxDmlStateLocal::DmlStateResetCallback(void * /*arg*/) {
 }
 
 void CPaxDmlStateLocal::InitDmlState(Relation rel, CmdType operation) {
-  if (operation == CMD_UPDATE || operation == CMD_DELETE) {
-    cbdb::InitCommandResource();
-  }
-
   if (!dml_descriptor_tab_) {
     HASHCTL hash_ctl;
     Assert(!cbdb::pax_memory_context);

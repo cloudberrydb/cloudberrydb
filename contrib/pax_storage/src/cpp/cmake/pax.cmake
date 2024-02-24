@@ -57,7 +57,6 @@ set(pax_storage_src
     storage/pax_buffer.cc
     storage/pax_filter.cc
     storage/pax_itemptr.cc
-    storage/paxc_block_map_manager.cc
     storage/proto/protobuf_stream.cc
     storage/pax.cc 
     storage/pax_table_partition_writer.cc  
@@ -97,14 +96,9 @@ set(pax_target_link_libs protobuf zstd z postgres)
 set(pax_target_link_directories ${PROJECT_SOURCE_DIR}/../../src/backend/)
 set(pax_target_dependencies generate_protobuf create_sql_script)
 
-# enable local index, not use uuid to generate file name
-if (NOT ENABLE_LOCAL_INDEX OR ENABLE_PLASMA)
-  set(pax_target_link_libs ${pax_target_link_libs} uuid)
-endif()
-
 # enable plasma
 if (ENABLE_PLASMA)
-  set(pax_target_link_libs ${pax_target_link_libs} plasma)
+  set(pax_target_link_libs ${pax_target_link_libs} uuid plasma)
 endif()
 
 add_library(pax SHARED ${pax_target_src})

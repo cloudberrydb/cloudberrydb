@@ -43,34 +43,29 @@ void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
     Assert(!mp_stats_[part_index]);
     mp_stats_[part_index] = PAX_NEW<MicroPartitionStats>();
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
-#ifdef ENABLE_LOCAL_INDEX
+
     // insert tuple into the aux table before inserting any tuples.
     current_blocknos_[part_index] = current_blockno_;
     cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_),
                                           std::to_string(current_blockno_));
-#endif
   }
-
-  if (strategy_->ShouldSplit(writers_[part_index]->PhysicalSize(),
+  else if (strategy_->ShouldSplit(writers_[part_index]->PhysicalSize(),
                              num_tuples_[part_index])) {
     writers_[part_index]->Close();
     PAX_DELETE(writers_[part_index]);
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
     num_tuples_[part_index] = 0;
-#ifdef ENABLE_LOCAL_INDEX
+
     // insert tuple into the aux table before inserting any tuples.
     current_blocknos_[part_index] = current_blockno_;
     cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_),
                                           std::to_string(current_blockno_));
-#endif
   }
 
   writers_[part_index]->WriteTuple(slot);
   num_tuples_[part_index]++;
-#ifdef ENABLE_LOCAL_INDEX
   SetBlockNumber(&slot->tts_tid, current_blocknos_[part_index]);
   ExecStoreVirtualTuple(slot);
-#endif
 }
 
 void TableParitionWriter::Open() {
@@ -235,7 +230,6 @@ void TableParitionWriter::Close() {
   for (const auto &merge_indexes : merge_indexes_list) {
     Assert(!merge_indexes.empty());
 
-#ifdef ENABLE_LOCAL_INDEX
     {
       Snapshot snapshot = nullptr;
       pax::CPaxDeleter del(relation_, snapshot);
@@ -251,24 +245,6 @@ void TableParitionWriter::Close() {
       CommandCounterIncrement();
       del.ExecDelete();
     }
-#else
-    {
-      auto first_write = writers_[merge_indexes[0]];
-
-      for (size_t i = 1; i < merge_indexes.size(); i++) {
-        auto w = writers_[merge_indexes[i]];
-        Assert(w);
-        first_write->MergeTo(w);
-        w->Close();
-        PAX_DELETE(w);
-        writers_[merge_indexes[i]] = nullptr;
-      }
-      CommandCounterIncrement();
-      first_write->Close();
-      PAX_DELETE(first_write);
-      writers_[merge_indexes[0]] = nullptr;
-    }
-#endif
   }
 
   for (int i = 0; i < writer_counts_; i++) {

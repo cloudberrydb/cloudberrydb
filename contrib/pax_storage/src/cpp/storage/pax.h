@@ -16,7 +16,6 @@
 #include "storage/orc/orc.h"
 #include "storage/pax_filter.h"
 #include "storage/pax_itemptr.h"
-#include "storage/paxc_block_map_manager.h"
 #include "storage/strategy.h"
 
 #ifdef VEC_BUILD
@@ -49,9 +48,7 @@ class TableWriter {
 
   TableWriter *SetStatsCollector(MicroPartitionStats *mp_stats);
 
-#ifdef ENABLE_LOCAL_INDEX
   BlockNumber GetBlockNumber() const { return current_blockno_; }
-#endif
 
  protected:
   virtual std::string GenFilePath(const std::string &block_id);
@@ -127,10 +124,6 @@ class TableReader final {
   uint32 current_block_number_ = 0;
 
   std::string micro_partition_id_;
-#ifndef ENABLE_LOCAL_INDEX
-  // only for ctid bitmap
-  BlockNumberManager block_number_manager_;
-#endif
 };
 
 class TableDeleter final {

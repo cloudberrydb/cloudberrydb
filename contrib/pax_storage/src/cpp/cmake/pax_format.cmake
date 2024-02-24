@@ -44,7 +44,6 @@ set(pax_storage_src
     storage/pax_buffer.cc
     storage/pax_filter.cc
     storage/pax_itemptr.cc
-    storage/paxc_block_map_manager.cc
     storage/proto/protobuf_stream.cc
    )
 
