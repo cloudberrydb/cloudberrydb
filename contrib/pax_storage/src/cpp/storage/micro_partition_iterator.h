@@ -21,6 +21,8 @@ class MicroPartitionInfoIterator final
  private:
   MicroPartitionInfoIterator(Relation pax_rel, Snapshot snapshot,
                              std::string rel_path);
+  template <typename T, typename... Args>
+  friend T *PAX_NEW(Args &&...args);
   ~MicroPartitionInfoIterator() override;
   void Begin();
   void End();

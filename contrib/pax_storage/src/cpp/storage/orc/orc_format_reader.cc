@@ -47,11 +47,14 @@ void OrcFormatReader::Open() {
 
     // read file_footer
     {
-      char buffer[footer_len];
+      // The footer contains statistical information. The min/max implementation
+      // may have a large attribute value. buffer cannot be allocated on the
+      // stack, which may cause stack overflow.
+      std::unique_ptr<char[]> buffer(new char[footer_len]());
 
-      file_->PReadN(&buffer, footer_len, footer_offset);
+      file_->PReadN(buffer.get(), footer_len, footer_offset);
 
-      SeekableInputStream input_stream(buffer, footer_len);
+      SeekableInputStream input_stream(buffer.get(), footer_len);
       CBDB_CHECK(file_footer_.ParseFromZeroCopyStream(&input_stream),
                  cbdb::CException::ExType::kExTypeIOError);
     }
@@ -264,7 +267,8 @@ pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
       do {
         n_stream = &stripe_footer.streams(streams_index++);
         batch_offset += n_stream->length();
-      } while (n_stream->kind() != ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA);
+      } while (n_stream->kind() !=
+               ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA);
 
       continue;
     }
@@ -307,10 +311,9 @@ pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
 }
 
 template <typename T>
-static PaxColumn *BuildEncodingColumn(DataBuffer<char> *data_buffer,
-                                      const pax::orc::proto::Stream &data_stream,
-                                      const ColumnEncoding &data_encoding,
-                                      bool is_vec) {
+static PaxColumn *BuildEncodingColumn(
+    DataBuffer<char> *data_buffer, const pax::orc::proto::Stream &data_stream,
+    const ColumnEncoding &data_encoding, bool is_vec) {
   uint32 not_null_rows = 0;
   uint64 column_data_len = 0;
   DataBuffer<T> *column_data_buffer = nullptr;
@@ -363,7 +366,8 @@ static PaxColumn *BuildEncodingColumn(DataBuffer<char> *data_buffer,
 
 static PaxColumn *BuildEncodingVecNonFixedColumn(
     DataBuffer<char> *data_buffer, const pax::orc::proto::Stream &data_stream,
-    const pax::orc::proto::Stream &len_stream, const ColumnEncoding &data_encoding) {
+    const pax::orc::proto::Stream &len_stream,
+    const ColumnEncoding &data_encoding) {
   uint32 not_null_rows = 0;
   uint64 column_lens_len = 0;
   uint64 column_data_len = 0;
@@ -385,8 +389,8 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
   // at lease 2
   Assert(column_offset_buffer->GetSize() >= 2);
   data_buffer->Brush(column_lens_len);
-  column_data_buffer = PAX_NEW<DataBuffer<char>>(data_buffer->GetAvailableBuffer(),
-                                            column_data_len, false, false);
+  column_data_buffer = PAX_NEW<DataBuffer<char>>(
+      data_buffer->GetAvailableBuffer(), column_data_len, false, false);
 
   if (data_encoding.kind() ==
       ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED) {
@@ -414,7 +418,8 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
 
 static PaxColumn *BuildEncodingNonFixedColumn(
     DataBuffer<char> *data_buffer, const pax::orc::proto::Stream &data_stream,
-    const pax::orc::proto::Stream &len_stream, const ColumnEncoding &data_encoding) {
+    const pax::orc::proto::Stream &len_stream,
+    const ColumnEncoding &data_encoding) {
   uint32 column_lens_size = 0;
   uint64 column_lens_len = 0;
   uint64 column_data_len = 0;
@@ -446,8 +451,8 @@ static PaxColumn *BuildEncodingNonFixedColumn(
   }
 #endif
 
-  column_data_buffer = PAX_NEW<DataBuffer<char>>(data_buffer->GetAvailableBuffer(),
-                                            column_data_len, false, false);
+  column_data_buffer = PAX_NEW<DataBuffer<char>>(
+      data_buffer->GetAvailableBuffer(), column_data_len, false, false);
   column_data_buffer->BrushAll();
   data_buffer->Brush(column_data_len);
 
@@ -540,7 +545,8 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
       const pax::orc::proto::Stream *n_stream = nullptr;
       do {
         n_stream = &stripe_footer.streams(streams_index++);
-      } while (n_stream->kind() != ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA);
+      } while (n_stream->kind() !=
+               ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA);
 
       pax_columns->Append(nullptr);
       continue;
@@ -557,7 +563,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
 
       Assert(non_null_stream.kind() == pax::orc::proto::Stream_Kind_PRESENT);
       non_null_bitmap = PAX_NEW<Bitmap8>(BitmapRaw<uint8>(bm_bytes, bm_nbytes),
-                                    BitmapTpl<uint8>::ReadOnlyRefBitmap);
+                                         BitmapTpl<uint8>::ReadOnlyRefBitmap);
       data_buffer->Brush(bm_nbytes);
     }
 

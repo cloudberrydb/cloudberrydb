@@ -73,6 +73,8 @@ class PaxScanDesc {
   }
 
  private:
+  template <typename T, typename... Args>
+  friend T *PAX_NEW(Args &&...args);
   PaxScanDesc() = default;
 
  private:

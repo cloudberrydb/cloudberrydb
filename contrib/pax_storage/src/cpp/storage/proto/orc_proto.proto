@@ -122,6 +122,8 @@ message Footer {
 //   psLen: byte
 // serialized length better less that 32k 
 // then a single io(32k) can read the footer + meta + postscript
+// If the min/max statistics in the footer have a large attribute value, 
+// then the 32k tail_buffer is not enough and needs to be read multiple times.
 message PostScript {
   // current ORC version 
   required uint32 majorVersion = 1;

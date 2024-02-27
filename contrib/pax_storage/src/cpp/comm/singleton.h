@@ -18,7 +18,7 @@ class Singleton final {
     std::call_once(
         of,
         [](ArgTypes &&...args) {
-          instance.reset(PAX_NEW<T>(std::forward<ArgTypes>(args)...));
+          instance.reset(new T(std::forward<ArgTypes>(args)...));
         },
         std::forward<ArgTypes>(args)...);
 
