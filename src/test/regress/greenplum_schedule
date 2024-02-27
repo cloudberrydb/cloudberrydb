@@ -301,6 +301,9 @@ test: create_extension_fail
 # check profile feature
 test: profile
 
+# check offload entry root slice to QE feature
+test: offload_entry_to_qe
+
 # Tests of Answer Query Using Materialized Views.
 test: aqumv
 

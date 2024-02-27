@@ -1,0 +1,936 @@
+set optimizer = off; -- orca is currently unsupported
+set enable_offload_entry_to_qe = on;
+create temp table tst(x int, y int);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'x' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+create index tst_y_idx on tst(y);
+insert into tst values (1, 1), (1, 1), (2, 1), (10, 10);
+analyze tst;
+-- accept Aggregate, Finalize Aggregate, Limit + Finalize Aggregate, WindowAgg, Sort + Unique
+explain (costs off, locus) select count(x) from tst where x > 1;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Seq Scan on tst
+                     Locus: Hashed
+                     Filter: (x > 1)
+ Optimizer: Postgres query optimizer
+(10 rows)
+
+explain (costs off, locus) select count(x) from tst;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Finalize Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Partial Aggregate
+                     Locus: Hashed
+                     ->  Seq Scan on tst
+                           Locus: Hashed
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+explain (costs off, locus) select count(x) from tst limit 1;
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Limit
+         Locus: SingleQE
+         ->  Finalize Aggregate
+               Locus: SingleQE
+               ->  Gather Motion 3:1  (slice2; segments: 3)
+                     Locus: SingleQE
+                     ->  Partial Aggregate
+                           Locus: Hashed
+                           ->  Seq Scan on tst
+                                 Locus: Hashed
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+explain (costs off, locus) select count(x) over () from tst;
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  WindowAgg
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Seq Scan on tst
+                     Locus: Hashed
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+explain (costs off, locus) select count(x) over () from tst group by x limit 1;
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Limit
+         Locus: SingleQE
+         ->  WindowAgg
+               Locus: SingleQE
+               ->  Gather Motion 3:1  (slice2; segments: 3)
+                     Locus: SingleQE
+                     ->  HashAggregate
+                           Locus: Hashed
+                           Group Key: x
+                           ->  Seq Scan on tst
+                                 Locus: Hashed
+ Optimizer: Postgres query optimizer
+(14 rows)
+
+explain (costs off, locus) select distinct min(x), max(x) from tst;
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Unique
+         Locus: SingleQE
+         Group Key: (min(x)), (max(x))
+         ->  Sort
+               Locus: SingleQE
+               Sort Key: (min(x)), (max(x))
+               ->  Finalize Aggregate
+                     Locus: SingleQE
+                     ->  Gather Motion 3:1  (slice2; segments: 3)
+                           Locus: SingleQE
+                           ->  Partial Aggregate
+                                 Locus: Hashed
+                                 ->  Seq Scan on tst
+                                       Locus: Hashed
+ Optimizer: Postgres query optimizer
+(17 rows)
+
+reset enable_offload_entry_to_qe;  -- compare results with GUC set to false
+select count(x) from tst where x > 1;
+ count 
+-------
+     2
+(1 row)
+
+select count(x) from tst;
+ count 
+-------
+     4
+(1 row)
+
+select count(x) from tst limit 1;
+ count 
+-------
+     4
+(1 row)
+
+select count(x) over () from tst;
+ count 
+-------
+     4
+     4
+     4
+     4
+(4 rows)
+
+select count(x) over () from tst group by x limit 1;
+ count 
+-------
+     3
+(1 row)
+
+select distinct min(x), max(x) from tst;
+ min | max 
+-----+-----
+   1 |  10
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select count(x) from tst where x > 1;
+ count 
+-------
+     2
+(1 row)
+
+select count(x) from tst;
+ count 
+-------
+     4
+(1 row)
+
+select count(x) from tst limit 1;
+ count 
+-------
+     4
+(1 row)
+
+select count(x) over () from tst;
+ count 
+-------
+     4
+     4
+     4
+     4
+(4 rows)
+
+select count(x) over () from tst group by x limit 1;
+ count 
+-------
+     3
+(1 row)
+
+select distinct min(x), max(x) from tst;
+ min | max 
+-----+-----
+   1 |  10
+(1 row)
+
+-- accept Merge Join, Nested Loop and Hash Join
+set enable_seqscan = off;
+set enable_nestloop = off;
+set enable_mergejoin = on;
+explain (costs off, locus) select * from tst t1, tst t2 where t1.y = t2.y order by t1.y;
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Merge Join
+         Locus: SingleQE
+         Merge Cond: (t1.y = t2.y)
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               Merge Key: t1.y
+               ->  Index Scan using tst_y_idx on tst t1
+                     Locus: Hashed
+         ->  Materialize
+               Locus: SingleQE
+               ->  Gather Motion 3:1  (slice3; segments: 3)
+                     Locus: SingleQE
+                     Merge Key: t2.y
+                     ->  Index Scan using tst_y_idx on tst t2
+                           Locus: Hashed
+ Optimizer: Postgres query optimizer
+(18 rows)
+
+set enable_offload_entry_to_qe = off;
+select * from tst t1, tst t2 where t1.y = t2.y order by t1.y;
+ x  | y  | x  | y  
+----+----+----+----
+  2 |  1 |  2 |  1
+  2 |  1 |  1 |  1
+  2 |  1 |  1 |  1
+  1 |  1 |  2 |  1
+  1 |  1 |  1 |  1
+  1 |  1 |  1 |  1
+  1 |  1 |  2 |  1
+  1 |  1 |  1 |  1
+  1 |  1 |  1 |  1
+ 10 | 10 | 10 | 10
+(10 rows)
+
+set enable_offload_entry_to_qe = on;
+select * from tst t1, tst t2 where t1.y = t2.y order by t1.y;
+ x  | y  | x  | y  
+----+----+----+----
+  2 |  1 |  2 |  1
+  2 |  1 |  1 |  1
+  2 |  1 |  1 |  1
+  1 |  1 |  2 |  1
+  1 |  1 |  1 |  1
+  1 |  1 |  1 |  1
+  1 |  1 |  2 |  1
+  1 |  1 |  1 |  1
+  1 |  1 |  1 |  1
+ 10 | 10 | 10 | 10
+(10 rows)
+
+reset enable_mergejoin;
+reset enable_nestloop;
+reset enable_seqscan;
+explain (costs off, locus) select * from (select min(x) x from tst) t1 join (values (1), (10)) v(x) on true;
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Nested Loop
+         Locus: SingleQE
+         ->  Finalize Aggregate
+               Locus: SingleQE
+               ->  Gather Motion 3:1  (slice2; segments: 3)
+                     Locus: SingleQE
+                     ->  Partial Aggregate
+                           Locus: Hashed
+                           ->  Seq Scan on tst
+                                 Locus: Hashed
+         ->  Values Scan on "*VALUES*"
+               Locus: General
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+explain (costs off, locus) select * from (select min(x) x from tst) t1 join (values (1), (10)) v(x) on t1.x = v.x;
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Hash Join
+         Locus: SingleQE
+         Hash Cond: ("*VALUES*".column1 = (min(tst.x)))
+         ->  Values Scan on "*VALUES*"
+               Locus: General
+         ->  Hash
+               Locus: SingleQE
+               ->  Finalize Aggregate
+                     Locus: SingleQE
+                     ->  Gather Motion 3:1  (slice2; segments: 3)
+                           Locus: SingleQE
+                           ->  Partial Aggregate
+                                 Locus: Hashed
+                                 ->  Seq Scan on tst
+                                       Locus: Hashed
+ Optimizer: Postgres query optimizer
+(18 rows)
+
+reset enable_offload_entry_to_qe;
+select * from (select min(x) x from tst) t1 join (values (1), (10)) v(x) on true;
+ x | x  
+---+----
+ 1 |  1
+ 1 | 10
+(2 rows)
+
+select * from (select min(x) x from tst) t1 join (values (1), (10)) v(x) on t1.x = v.x;
+ x | x 
+---+---
+ 1 | 1
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select * from (select min(x) x from tst) t1 join (values (1), (10)) v(x) on true;
+ x | x  
+---+----
+ 1 |  1
+ 1 | 10
+(2 rows)
+
+select * from (select min(x) x from tst) t1 join (values (1), (10)) v(x) on t1.x = v.x;
+ x | x 
+---+---
+ 1 | 1
+(1 row)
+
+-- accept InitPlan and SubPlan
+explain (costs off, locus) select count(*) from tst where tst.y = (select max(y) from tst);
+                          QUERY PLAN                          
+--------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Aggregate
+         Locus: SingleQE
+         InitPlan 1 (returns $1)  (slice3)
+           ->  Finalize Aggregate
+                 Locus: Entry
+                 ->  Gather Motion 3:1  (slice4; segments: 3)
+                       Locus: Entry
+                       ->  Partial Aggregate
+                             Locus: Hashed
+                             ->  Seq Scan on tst tst_1
+                                   Locus: Hashed
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Seq Scan on tst
+                     Locus: Hashed
+                     Filter: (y = $1)
+ Optimizer: Postgres query optimizer
+(19 rows)
+
+explain (costs off, locus) select (select max((select distinct x from tst t2 where t2.x = t1.x))) from tst t1;
+                                       QUERY PLAN                                        
+-----------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Finalize Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Partial Aggregate
+                     Locus: Hashed
+                     ->  Seq Scan on tst t1
+                           Locus: Hashed
+                     SubPlan 1
+                       ->  Unique
+                             Locus: OuteryQuery
+                             ->  Result
+                                   Locus: OuteryQuery
+                                   Filter: (t2.x = t1.x)
+                                   ->  Materialize
+                                         Locus: OuteryQuery
+                                         ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                                               Locus: OuteryQuery
+                                               ->  Seq Scan on tst t2
+                                                     Locus: Hashed
+         SubPlan 2
+           ->  Result
+                 Locus: General
+ Optimizer: Postgres query optimizer
+(26 rows)
+
+reset enable_offload_entry_to_qe;
+select count(*) from tst where tst.y = (select max(y) from tst);
+ count 
+-------
+     1
+(1 row)
+
+select (select max((select distinct x from tst t2 where t2.x = t1.x))) from tst t1;
+ max 
+-----
+  10
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select count(*) from tst where tst.y = (select max(y) from tst);
+ count 
+-------
+     1
+(1 row)
+
+select (select max((select distinct x from tst t2 where t2.x = t1.x))) from tst t1;
+ max 
+-----
+  10
+(1 row)
+
+-- test cte and recursive cte
+explain (costs off, locus)
+with t(a,b) as (select min(y), max(y) from tst),
+     unused(a) as (select * from tst)
+select t.b, rank() over () from t; -- test Subquery on QD
+                            QUERY PLAN                            
+------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  WindowAgg
+         Locus: SingleQE
+         ->  Subquery Scan on t
+               Locus: SingleQE
+               ->  Finalize Aggregate
+                     Locus: SingleQE
+                     ->  Gather Motion 3:1  (slice2; segments: 3)
+                           Locus: SingleQE
+                           ->  Partial Aggregate
+                                 Locus: Hashed
+                                 ->  Seq Scan on tst
+                                       Locus: Hashed
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+explain (costs off, locus)
+with t1(a,b) as (select min(y), max(y) from tst),
+     t2(a,b) as (select x, count(x) over () from tst group by x)
+select * from t1 join t2 on t1.a < t2.a order by t1.a, t2.a;
+                               QUERY PLAN                               
+------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Sort
+         Locus: SingleQE
+         Sort Key: (min(tst.y)), tst_1.x
+         ->  Nested Loop
+               Locus: SingleQE
+               Join Filter: ((min(tst.y)) < tst_1.x)
+               ->  Finalize Aggregate
+                     Locus: SingleQE
+                     ->  Gather Motion 3:1  (slice2; segments: 3)
+                           Locus: SingleQE
+                           ->  Partial Aggregate
+                                 Locus: Hashed
+                                 ->  Seq Scan on tst
+                                       Locus: Hashed
+               ->  Materialize
+                     Locus: SingleQE
+                     ->  WindowAgg
+                           Locus: SingleQE
+                           ->  Gather Motion 3:1  (slice3; segments: 3)
+                                 Locus: SingleQE
+                                 ->  HashAggregate
+                                       Locus: Hashed
+                                       Group Key: tst_1.x
+                                       ->  Seq Scan on tst tst_1
+                                             Locus: Hashed
+ Optimizer: Postgres query optimizer
+(28 rows)
+
+create table recursive_cte_tst (id int,parentid int,score int) distributed replicated;
+insert into recursive_cte_tst values(0, -1, 1);
+insert into recursive_cte_tst values(1,  0, 1);
+insert into recursive_cte_tst values(2,  0, 2);
+insert into recursive_cte_tst values(3,  1, 10);
+insert into recursive_cte_tst values(4,  1, 5);
+insert into recursive_cte_tst values(5,  2, 1);
+insert into recursive_cte_tst values(6,  3, 41);
+insert into recursive_cte_tst values(7,  4, 42);
+insert into recursive_cte_tst values(8,  5, 42);
+insert into recursive_cte_tst values(9,  6, 42);
+explain (locus, costs off) with recursive cte as (
+  select 1 depth, a.id, a.score from recursive_cte_tst a where id = 0
+  union all
+  select c.depth + 1, k.id, k.score from recursive_cte_tst k inner join cte c on c.id = k.parentid
+)
+select rank() over (order by avg(score) desc),
+       avg(score)
+from cte group by depth order by avg desc limit 5; -- note that the SingleQE on the left side of RecursiveUnion *isn't* the same SingleQE as the right side
+                                        QUERY PLAN                                        
+------------------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Limit
+         Locus: SingleQE
+         ->  WindowAgg
+               Locus: SingleQE
+               Order By: (avg(a.score))
+               ->  Sort
+                     Locus: SingleQE
+                     Sort Key: (avg(a.score)) DESC
+                     ->  HashAggregate
+                           Locus: SingleQE
+                           Group Key: (1)
+                           ->  Recursive Union
+                                 Locus: SingleQE
+                                 ->  Gather Motion 1:1  (slice2; segments: 1)
+                                       Locus: SingleQE
+                                       ->  Seq Scan on recursive_cte_tst a
+                                             Locus: SegmentGeneral
+                                             Filter: (id = 0)
+                                 ->  Hash Join
+                                       Locus: SingleQE
+                                       Hash Cond: (c.id = k.parentid)
+                                       ->  WorkTable Scan on cte c
+                                             Locus: SingleQE
+                                       ->  Hash
+                                             Locus: SingleQE
+                                             ->  Gather Motion 1:1  (slice3; segments: 1)
+                                                   Locus: SingleQE
+                                                   ->  Seq Scan on recursive_cte_tst k
+                                                         Locus: SegmentGeneral
+ Optimizer: Postgres query optimizer
+(32 rows)
+
+reset enable_offload_entry_to_qe;
+with t(a,b) as (select min(y), max(y) from tst),
+     unused(a) as (select * from tst)
+select t.b, rank() over () from t;
+ b  | rank 
+----+------
+ 10 |    1
+(1 row)
+
+with t1(a,b) as (select min(y), max(y) from tst),
+     t2(a,b) as (select x, count(x) over () from tst group by x)
+select * from t1 join t2 on t1.a < t2.a order by t1.a, t2.a;
+ a | b  | a  | b 
+---+----+----+---
+ 1 | 10 |  2 | 3
+ 1 | 10 | 10 | 3
+(2 rows)
+
+with recursive cte as (
+  select 1 depth, a.id, a.score from recursive_cte_tst a where id = 0
+  union all
+  select c.depth + 1, k.id, k.score from recursive_cte_tst k inner join cte c on c.id = k.parentid
+) select rank() over (order by avg(score) desc), avg(score) from cte group by depth order by avg desc limit 5;
+ rank |          avg           
+------+------------------------
+    1 |    42.0000000000000000
+    2 |    41.6666666666666667
+    3 |     5.3333333333333333
+    4 |     1.5000000000000000
+    5 | 1.00000000000000000000
+(5 rows)
+
+set enable_offload_entry_to_qe = on;
+with t(a,b) as (select min(y), max(y) from tst),
+     unused(a) as (select * from tst)
+select t.b, rank() over () from t;
+ b  | rank 
+----+------
+ 10 |    1
+(1 row)
+
+with t1(a,b) as (select min(y), max(y) from tst),
+     t2(a,b) as (select x, count(x) over () from tst group by x)
+select * from t1 join t2 on t1.a < t2.a order by t1.a, t2.a;
+ a | b  | a  | b 
+---+----+----+---
+ 1 | 10 |  2 | 3
+ 1 | 10 | 10 | 3
+(2 rows)
+
+with recursive cte as (
+  select 1 depth, a.id, a.score from recursive_cte_tst a where id = 0
+  union all
+  select c.depth + 1, k.id, k.score from recursive_cte_tst k inner join cte c on c.id = k.parentid
+) select rank() over (order by avg(score) desc), avg(score) from cte group by depth order by avg desc limit 5;
+ rank |          avg           
+------+------------------------
+    1 |    42.0000000000000000
+    2 |    41.6666666666666667
+    3 |     5.3333333333333333
+    4 |     1.5000000000000000
+    5 | 1.00000000000000000000
+(5 rows)
+
+-- reject pure Limit and pure InitPlan
+explain (costs off, locus) select * from tst limit 1;
+                   QUERY PLAN                   
+------------------------------------------------
+ Limit
+   Locus: Entry
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Locus: Entry
+         ->  Limit
+               Locus: Hashed
+               ->  Seq Scan on tst
+                     Locus: Hashed
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+create function dummyf(int) returns int as 'select 1;' language sql;
+explain (costs off, locus) select min(dummyf(x)) from tst;
+                       QUERY PLAN                       
+--------------------------------------------------------
+ Result
+   Locus: Entry
+   InitPlan 1 (returns $0)  (slice1)
+     ->  Limit
+           Locus: Entry
+           ->  Gather Motion 3:1  (slice2; segments: 3)
+                 Locus: Entry
+                 ->  Result
+                       Locus: Hashed
+                       One-Time Filter: (1 IS NOT NULL)
+                       ->  Seq Scan on tst
+                             Locus: Hashed
+ Optimizer: Postgres query optimizer
+(13 rows)
+
+explain (costs off, locus) select count(*) from tst where tst.x = (select min(dummyf(x)) from tst);
+                              QUERY PLAN                              
+----------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Aggregate
+         Locus: SingleQE
+         InitPlan 2 (returns $1)  (slice3)
+           ->  Result
+                 Locus: Entry
+                 InitPlan 1 (returns $0)  (slice4)
+                   ->  Limit
+                         Locus: Entry
+                         ->  Gather Motion 3:1  (slice5; segments: 3)
+                               Locus: Entry
+                               ->  Result
+                                     Locus: Hashed
+                                     One-Time Filter: (1 IS NOT NULL)
+                                     ->  Seq Scan on tst tst_1
+                                           Locus: Hashed
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Seq Scan on tst
+                     Locus: Hashed
+                     Filter: (x = $1)
+ Optimizer: Postgres query optimizer
+(23 rows)
+
+reset enable_offload_entry_to_qe;
+select min(dummyf(x)) from tst;
+ min 
+-----
+   1
+(1 row)
+
+select count(*) from tst where tst.x = (select min(dummyf(x)) from tst);
+ count 
+-------
+     2
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select min(dummyf(x)) from tst;
+ min 
+-----
+   1
+(1 row)
+
+select count(*) from tst where tst.x = (select min(dummyf(x)) from tst);
+ count 
+-------
+     2
+(1 row)
+
+-- reject updates
+explain (costs off, locus) update tst set x = (select min(x) from tst);
+                          QUERY PLAN                           
+---------------------------------------------------------------
+ Update on tst
+   Locus: Strewn
+   InitPlan 1 (returns $0)  (slice2)
+     ->  Finalize Aggregate
+           Locus: Entry
+           ->  Gather Motion 3:1  (slice3; segments: 3)
+                 Locus: Entry
+                 ->  Partial Aggregate
+                       Locus: Hashed
+                       ->  Seq Scan on tst tst_1
+                             Locus: Hashed
+   ->  Explicit Redistribute Motion 3:3  (slice1; segments: 3)
+         Locus: Hashed
+         ->  Split
+               Locus: Hashed
+               ->  Seq Scan on tst
+                     Locus: Hashed
+ Optimizer: Postgres query optimizer
+(18 rows)
+
+-- test functions
+explain (costs off, locus) select max(x)::text || ' ' || timeofday() from tst; -- volatile
+                   QUERY PLAN                   
+------------------------------------------------
+ Finalize Aggregate
+   Locus: Entry
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Locus: Entry
+         ->  Partial Aggregate
+               Locus: Hashed
+               ->  Seq Scan on tst
+                     Locus: Hashed
+ Optimizer: Postgres query optimizer
+(9 rows)
+
+explain (costs off, locus) select max(x)::text || ' ' || now() from tst; -- stable
+                      QUERY PLAN                      
+------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Finalize Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Partial Aggregate
+                     Locus: Hashed
+                     ->  Seq Scan on tst
+                           Locus: Hashed
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+-- test write functions
+create function mod_dummyf(i int) returns int as $$
+begin
+update tst set y = y + 1 where x = $1;
+return $1;
+end;
+$$ language plpgsql stable;
+explain (costs off, locus) select mod_dummyf(42);
+             QUERY PLAN              
+-------------------------------------
+ Result
+   Locus: General
+ Optimizer: Postgres query optimizer
+(3 rows)
+
+select mod_dummyf(42); -- should fail
+ERROR:  UPDATE is not allowed in a non-volatile function
+CONTEXT:  SQL statement "update tst set y = y + 1 where x = $1"
+PL/pgSQL function mod_dummyf(integer) line 3 at SQL statement
+drop function dummyf;
+drop function mod_dummyf;
+-- test external table
+CREATE EXTERNAL WEB TEMP TABLE tst_exttbl(LIKE tst) EXECUTE 'printf "1\t42\n"' ON COORDINATOR FORMAT 'text';
+CREATE EXTERNAL WEB TEMP TABLE tst_exttbl_all(LIKE tst) EXECUTE 'printf "2\t43\n"' ON ALL FORMAT 'text';
+explain (costs off, locus) select max(e.y) from tst_exttbl e join tst t2 on (e.x = t2.x);
+                         QUERY PLAN                         
+------------------------------------------------------------
+ Aggregate
+   Locus: Entry
+   ->  Gather Motion 3:1  (slice1; segments: 3)
+         Locus: Entry
+         ->  Hash Join
+               Locus: Hashed
+               Hash Cond: (t2.x = e.x)
+               ->  Seq Scan on tst t2
+                     Locus: Hashed
+               ->  Hash
+                     Locus: Hashed
+                     ->  Redistribute Motion 1:3  (slice2)
+                           Locus: Hashed
+                           Hash Key: e.x
+                           ->  Foreign Scan on tst_exttbl e
+                                 Locus: Entry
+ Optimizer: Postgres query optimizer
+(17 rows)
+
+explain (costs off, locus) select max(e.y) from tst_exttbl_all e join tst t2 on (e.x = t2.x);
+                                   QUERY PLAN                                    
+---------------------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Finalize Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Partial Aggregate
+                     Locus: Strewn
+                     ->  Hash Join
+                           Locus: Strewn
+                           Hash Cond: (e.x = t2.x)
+                           ->  Foreign Scan on tst_exttbl_all e
+                                 Locus: Strewn
+                           ->  Hash
+                                 Locus: Replicated
+                                 ->  Broadcast Motion 3:3  (slice3; segments: 3)
+                                       Locus: Replicated
+                                       ->  Seq Scan on tst t2
+                                             Locus: Hashed
+ Optimizer: Postgres query optimizer
+(20 rows)
+
+reset enable_offload_entry_to_qe;
+select max(e.y) from tst_exttbl e join tst t2 on (e.x = t2.x);
+ max 
+-----
+  42
+(1 row)
+
+select max(e.y) from tst_exttbl_all e join tst t2 on (e.x = t2.x);
+ max 
+-----
+  43
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select max(e.y) from tst_exttbl e join tst t2 on (e.x = t2.x);
+ max 
+-----
+  42
+(1 row)
+
+select max(e.y) from tst_exttbl_all e join tst t2 on (e.x = t2.x);
+ max 
+-----
+  43
+(1 row)
+
+-- test partitioned table
+create temp table part(like tst) distributed by (x) partition by range (x)
+(
+    partition part1 start (0) end (10),
+    partition part2 start (10) end (20)
+);
+insert into part select * from tst;
+explain (costs off, locus) select min(y), max(y) from part;
+                            QUERY PLAN                             
+-------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Finalize Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Partial Aggregate
+                     Locus: Strewn
+                     ->  Append
+                           Locus: Strewn
+                           ->  Seq Scan on part_1_prt_part1 part_1
+                                 Locus: Hashed
+                           ->  Seq Scan on part_1_prt_part2 part_2
+                                 Locus: Hashed
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+reset enable_offload_entry_to_qe;
+select min(y), max(y) from part;
+ min | max 
+-----+-----
+   1 |  10
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select min(y), max(y) from part;
+ min | max 
+-----+-----
+   1 |  10
+(1 row)
+
+-- test partitioned table with external table as partition
+ALTER TABLE part EXCHANGE PARTITION part1 WITH TABLE tst_exttbl;
+explain (costs off, locus) select min(y), max(y) from part;
+                      QUERY PLAN                       
+-------------------------------------------------------
+ Aggregate
+   Locus: Entry
+   ->  Append
+         Locus: Entry
+         ->  Foreign Scan on part_1_prt_part1 part_1
+               Locus: Entry
+         ->  Gather Motion 3:1  (slice1; segments: 3)
+               Locus: Entry
+               ->  Seq Scan on part_1_prt_part2 part_2
+                     Locus: Hashed
+ Optimizer: Postgres query optimizer
+(11 rows)
+
+reset enable_offload_entry_to_qe;
+select min(y), max(y) from part;
+ min | max 
+-----+-----
+  10 |  42
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select min(y), max(y) from part;
+ min | max 
+-----+-----
+  10 |  42
+(1 row)
+
+ALTER TABLE part EXCHANGE PARTITION part1 WITH TABLE tst_exttbl_all;
+explain (costs off, locus) select min(y), max(y) from part;
+                              QUERY PLAN                               
+-----------------------------------------------------------------------
+ Gather Motion 1:1  (slice1; segments: 1)
+   Locus: Entry
+   ->  Finalize Aggregate
+         Locus: SingleQE
+         ->  Gather Motion 3:1  (slice2; segments: 3)
+               Locus: SingleQE
+               ->  Partial Aggregate
+                     Locus: Strewn
+                     ->  Append
+                           Locus: Strewn
+                           ->  Foreign Scan on part_1_prt_part1 part_1
+                                 Locus: Strewn
+                           ->  Seq Scan on part_1_prt_part2 part_2
+                                 Locus: Hashed
+ Optimizer: Postgres query optimizer
+(15 rows)
+
+reset enable_offload_entry_to_qe;
+select min(y), max(y) from part;
+ min | max 
+-----+-----
+  10 |  43
+(1 row)
+
+set enable_offload_entry_to_qe = on;
+select min(y), max(y) from part;
+ min | max 
+-----+-----
+  10 |  43
+(1 row)
+
+reset enable_offload_entry_to_qe;

@@ -46,6 +46,7 @@
 #include "optimizer/tlist.h"
 #include "parser/parse_clause.h"
 #include "parser/parsetree.h"
+#include "partitioning/partdesc.h"
 #include "partitioning/partprune.h"
 #include "utils/lsyscache.h"
 #include "utils/uri.h"
@@ -101,6 +102,11 @@ typedef struct
 	Bitmapset            *seen_subplans;
 	bool                  result;
 } contain_motion_walk_context;
+
+typedef struct
+{
+	bool computeOnSlice;    /* does root slice contain computation node (Sort, Join, Agg) */
+} offload_entry_to_qe_plan_walk_context;
 
 static Plan *create_scan_plan(PlannerInfo *root, Path *best_path,
 							  int flags);
@@ -9063,4 +9069,160 @@ push_locus_down_after_elide_motion(Plan* plan)
 				plan = plan->lefttree;
 		}
 	}
+}
+
+/*
+ * Restore Entry locus to SingleQE in the root slice.
+ * This is simply a reverse of push_locus_down_after_elide_motion.
+ * The difference is that it's NOT used when creating a plan but rather
+ * after a plan gets created, it's used to modify the plan in offload_entry_to_qe.
+ */
+static void
+replace_entry_locus_with_singleqe(Plan *plan)
+{
+	while (plan && (plan->locustype == CdbLocusType_Entry))
+	{
+		plan->locustype = CdbLocusType_SingleQE;
+		switch (nodeTag(plan))
+		{
+			case T_Motion:
+				return;
+			case T_Append:
+			{
+				List *subplans = NIL;
+				ListCell *cell;
+				subplans = ((Append *) (plan))->appendplans;
+				foreach(cell, subplans)
+				{
+					replace_entry_locus_with_singleqe(lfirst(cell));
+				}
+				break;
+			}
+			case T_SubqueryScan:
+				plan = ((SubqueryScan *)(plan))->subplan;
+				break;
+			case T_NestLoop:
+			case T_MergeJoin:
+			case T_HashJoin:
+				replace_entry_locus_with_singleqe(plan->righttree);
+				/* FALLTHROUGH */
+			default:
+				plan = plan->lefttree;
+				break;
+		}
+	}
+}
+
+/*
+ * Check whether we can safely offload root slice on QD to a QE.
+ */
+static bool
+safe_to_offload_entry_to_qe_rte_walker(List *rtes)
+{
+	ListCell *lc;
+	foreach(lc, rtes)
+	{
+		RangeTblEntry *rte = lfirst_node(RangeTblEntry, lc);
+		if (rte->rtekind == RTE_RELATION)
+		{
+			// check if any partition of a partitioned table is a coordinator-only external/foreign table
+			if (rte->relkind == RELKIND_PARTITIONED_TABLE)
+			{
+				Relation rel;
+				PartitionDesc desc;
+
+				rel = relation_open(rte->relid, NoLock);
+				desc = RelationGetPartitionDesc(rel, true);
+				relation_close(rel, NoLock);
+				for (int i = 0; i < desc->nparts; i++)
+				{
+					if (GpPolicyIsEntry(GpPolicyFetch(desc->oids[i])))
+						return false;
+				}
+				return true;
+			}
+			else
+				return !GpPolicyIsEntry(GpPolicyFetch(rte->relid));
+		}
+		else if (rte->rtekind == RTE_SUBQUERY)
+		{
+			if (!safe_to_offload_entry_to_qe_rte_walker(rte->subquery->rtable))
+				return false;
+		}
+	}
+	return true;
+}
+
+/*
+ * Check if there are multiple Motion in which the root slice contains computation (Sort, Join or Aggregate).
+ */
+static bool
+should_offload_entry_to_qe_plan_walker(Plan *plan, offload_entry_to_qe_plan_walk_context *ctx)
+{
+	while (plan && plan->locustype == CdbLocusType_Entry)
+	{
+		switch (nodeTag(plan))
+		{
+			case T_Motion:
+				return ctx->computeOnSlice;
+			case T_SubqueryScan:
+				plan = ((SubqueryScan *) plan)->subplan;
+				break;
+			/* join */
+			case T_Join:
+			case T_MergeJoin:
+			case T_HashJoin:
+			case T_NestLoop:
+				ctx->computeOnSlice = true;
+				if (should_offload_entry_to_qe_plan_walker(plan->righttree, ctx))
+					return true;
+				plan = plan->lefttree;
+				break;
+			/* sort */
+			case T_Sort:
+			/* aggregates*/
+			case T_Agg:
+			case T_WindowAgg:
+				ctx->computeOnSlice = true;
+				/* FALLTHROUGH */
+			default:
+				plan = plan->lefttree;
+				break;
+		}
+	}
+	return false;
+}
+
+Plan *
+offload_entry_to_qe(PlannerInfo *root, Plan *plan, int sendslice_parallel)
+{
+	offload_entry_to_qe_plan_walk_context plan_walk_ctx;
+	plan_walk_ctx.computeOnSlice = false;
+
+	if (root->parse->commandType == CMD_SELECT &&
+		should_offload_entry_to_qe_plan_walker(plan, &plan_walk_ctx) &&
+		safe_to_offload_entry_to_qe_rte_walker(root->parse->rtable) &&
+		!contain_volatile_functions((Node *) root->parse))
+	{
+		CdbPathLocus entrylocus;
+		PlanSlice *sendSlice;
+		sendSlice = (PlanSlice *) palloc0(sizeof(PlanSlice));
+		sendSlice->gangType = GANGTYPE_SINGLETON_READER;
+		sendSlice->numsegments = 1;
+		sendSlice->sliceIndex = -1;
+		sendSlice->parallel_workers = sendslice_parallel;
+		sendSlice->segindex = gp_session_id % getgpsegmentCount();
+
+		replace_entry_locus_with_singleqe(plan);
+
+		plan = (Plan *) make_union_motion(plan);
+		((Motion *) plan)->senderSliceInfo = sendSlice;
+
+		plan->locustype = CdbLocusType_Entry;
+		CdbPathLocus_MakeEntry(&entrylocus);
+		if (plan->flow)
+			pfree(plan->flow);
+		plan->flow = cdbpathtoplan_create_flow(root, entrylocus);
+	}
+	return plan;
 }

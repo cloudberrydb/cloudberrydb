@@ -430,6 +430,7 @@ bool		gp_enable_global_deadlock_detector = false;
 bool gp_enable_predicate_pushdown;
 int  gp_predicate_pushdown_sample_rows;
 
+bool        enable_offload_entry_to_qe = false;
 bool enable_answer_query_using_materialized_views = false;
 
 static const struct config_enum_entry gp_log_format_options[] = {
@@ -2427,6 +2428,16 @@ struct config_bool ConfigureNamesBool_gp[] =
 		},
 		&optimizer_enable_streaming_material,
 		true,
+		NULL, NULL, NULL
+	},
+	{
+		{"enable_offload_entry_to_qe", PGC_USERSET, DEVELOPER_OPTIONS,
+		    gettext_noop("Enable plans with operations on coordinator to be offloaded to QEs."),
+	        NULL,
+		    GUC_NO_SHOW_ALL | GUC_NOT_IN_SAMPLE | GUC_GPDB_NO_SYNC
+		},
+		&enable_offload_entry_to_qe,
+		false,
 		NULL, NULL, NULL
 	},
 	{

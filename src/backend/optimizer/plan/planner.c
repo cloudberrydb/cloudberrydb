@@ -594,6 +594,12 @@ standard_planner(Query *parse, const char *query_string, int cursorOptions,
 	/* Decorate the top node of the plan with a Flow node. */
 	top_plan->flow = cdbpathtoplan_create_flow(root, best_path->locus);
 
+	/* Modifier: If root slice is executed on QD, try to offload it to a QE */
+	if (enable_offload_entry_to_qe && Gp_role == GP_ROLE_DISPATCH)
+	{
+		top_plan = offload_entry_to_qe(root, top_plan, best_path->locus.parallel_workers);
+	}
+
 	/*
 	 * If creating a plan for a scrollable cursor, make sure it can run
 	 * backwards on demand.  Add a Material node at the top at need.
