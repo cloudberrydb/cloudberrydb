@@ -43,7 +43,6 @@ set(pax_storage_src
     storage/orc/orc_writer.cc
     storage/pax_buffer.cc
     storage/pax_filter.cc
-    storage/pax_itemptr.cc
     storage/proto/protobuf_stream.cc
    )
 
