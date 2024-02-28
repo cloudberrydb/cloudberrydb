@@ -265,12 +265,12 @@ TRHandleTypeLists(TupleRemapper *remapper, List *typelist)
  * typmods.
  */
 Datum
-TRRemapDatum(TupleRemapper *remapper, Oid typeid, Datum value)
+TRRemapDatum(TupleRemapper *remapper, Oid type_id, Datum value)
 {
 	TupleRemapInfo *remapinfo;
 	bool		changed;
 
-	remapinfo = BuildTupleRemapInfo(typeid, remapper->mycontext);
+	remapinfo = BuildTupleRemapInfo(type_id, remapper->mycontext);
 
 	if (!remapinfo)
 		return value;

@@ -199,6 +199,75 @@ SendChunk/RecvTupleChunk() {
 
 ```
 
+# interconnect test && bench
+
+In the path `contrib/interconnect/test`, the test of the interconnect and the benchmark are implemented, also need to be compiled separately.
+
+For proxy type interconnect, user need to compile `cbdb` with `--enable-ic-proxy` to make the test take effect.
+
+compile test and benchmark
+
+```
+cd contrib/interconnect/test
+mkdir build && cd build
+cmake ..
+make -j
+```
+
+Notice that: for now, only `single client + single server` is supported in testing and benchmarking.
+
+## bench result 
+
+test env 
+
+- system: CentOS Linux release 7.5.1804
+- machine: qingcloud e2, x86, 8 cpu, 16G memory
+- mtu: 1500
+- buffer size: 200
+- time: 100s
 
 
+tcp result:
+
+```
++----------------+------------+
+| Total time(s)  |    100.000 |
+| Loop times     |   48045111 |
+| LPS(l/ms)      |    480.451 |
+| Recv mbs       |      65430 |
+| TPS(mb/s)      |    654.301 |
+| Recv counts    |  336315777 |
+| Items ops/ms   |   3363.157 |
++----------------+------------+
+```
+
+proxy result:
+
+```
++----------------+------------+
+| Total time(s)  |    100.118 |
+| Loop times     |   11447670 |
+| LPS(l/ms)      |    114.342 |
+| Recv mbs       |      15589 |
+| TPS(mb/s)      |    155.716 |
+| Recv counts    |   80133690 |
+| Items ops/ms   |    800.393 |
++----------------+------------+
+```
+
+udpifc result:
+
+```
++----------------+------------+
+| Total time(s)  |    100.079 |
+| Loop times     |     369104 |
+| LPS(l/ms)      |      3.688 |
+| Recv mbs       |        502 |
+| TPS(mb/s)      |      5.023 |
+| Recv counts    |    2583728 |
+| Items ops/ms   |     25.817 |
++----------------+------------+
+```
+
+Notice that: Lower TPS does not mean the protocol is slower, might means that the cpu time taken by the protocol is low. For the udpifc, it satisfies the highest tps required by `cbdb`. at the same time it occupies a lower cpu than other types of interconnect.
 
