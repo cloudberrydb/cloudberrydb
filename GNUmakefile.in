@@ -31,19 +31,19 @@ all:
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo all
 endif
-ifeq (yes, $(findstring yes, $(enable_vectorization)$(enable_gophermeta)$(enable_datalake)))
-	chmod +x dependencies.sh  && ./dependencies.sh
-endif
 ifeq ($(enable_vectorization), yes)
+	chmod +x dependencies.sh  && ./dependencies.sh vectorization
 	$(MAKE) -C contrib/vectorization all
 endif
 ifeq ($(enable_pax), yes)
 	$(MAKE) -C contrib/pax_storage all
 endif
 ifeq ($(enable_gophermeta), yes)
+	chmod +x dependencies.sh  && ./dependencies.sh gopher
 	$(MAKE) -C contrib/pg_gophermeta all
 endif
 ifeq ($(enable_datalake), yes)
+	chmod +x dependencies.sh  && ./dependencies.sh datalake
 	$(MAKE) -C contrib/datalake_proxy all
 endif
 	$(MAKE) -C gpMgmt all

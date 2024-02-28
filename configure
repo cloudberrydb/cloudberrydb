@@ -1626,7 +1626,7 @@ Optional Features:
   --enable-pax            enable pax support
   --enable-vectorization  enable vectorization support
   --enable-datalake       enable preload datalake
-  --disable-gophermeta    enable preload gophermeta
+  --enable-gophermeta     enable preload gophermeta
   --disable-thread-safety disable thread-safety in client libraries
   --enable-openssl-redirect
                           enable redirect openssl interface to internal
@@ -9148,35 +9148,6 @@ $as_echo "checking whether to build with preload datalake ... $enable_datalake" 
 # gophermeta preload
 # enforce enable_gophermeta if enable_datalake is yes
 #
-if test "$enable_datalake" = yes; then
-
-
-# Check whether --enable-gophermeta was given.
-if test "${enable_gophermeta+set}" = set; then :
-  enableval=$enable_gophermeta;
-  case $enableval in
-    yes)
-
-$as_echo "#define USE_GOPHERMETA 1" >>confdefs.h
-
-      ;;
-    no)
-      :
-      ;;
-    *)
-      as_fn_error $? "no argument expected for --enable-gophermeta option" "$LINENO" 5
-      ;;
-  esac
-
-else
-  enable_gophermeta=yes
-
-$as_echo "#define USE_GOPHERMETA 1" >>confdefs.h
-
-fi
-
-
-else
 
 
 # Check whether --enable-gophermeta was given.
@@ -9201,6 +9172,11 @@ else
 
 fi
 
+
+if test "$enable_datalake" = yes; then
+  enable_gophermeta=yes
+
+$as_echo "#define USE_GOPHERMETA 1" >>confdefs.h
 
 fi
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload gophermeta ... $enable_gophermeta" >&5

@@ -17,7 +17,7 @@ ARROW_BUILD_TYPE="release"
 ARROW_BRANCH="hdw"
 LAST_COMMIT=`git ls-remote https://buildbot:Passw0rd@code.hashdata.xyz/hashdata/arrow.git ${ARROW_BRANCH} | awk '{ print $1}'`
 
-if [ $# -eq 1 ] && [ "${1,,}" = "debug" ]; then
+if [ $# -eq 2 ] && [ "${2,,}" = "debug" ]; then
   ARROW_BUILD_TYPE="debug"
 fi
 
@@ -68,13 +68,28 @@ function install_conan_dependencies() {
 
   cat <<EOF >/tmp/conanfile.txt
 [requires]
-${HASHDATA_ARROW_CONAN_VERSION}
-${HASHDATA_LIBORC_CONAN_VERSION}
-${HASHDATA_GOPHER_CONAN_VERSION}
+$(
+  case $1 in
+    "vectorization")
+echo "${HASHDATA_ARROW_CONAN_VERSION}"
+    ;;
+    "gopher")
+echo "${HASHDATA_GOPHER_CONAN_VERSION}
 ${HASHDATA_LIBHDFS3_CONAN_VERSION}
 ${HASHDATA_LIBOSS2_CONAN_VERSION}
-${HASHDATA_PLASMA_CONAN_VERSION}
-${HASHDATA_PARQUET_CONAN_VERSION}
+${HASHDATA_PLASMA_CONAN_VERSION}"
+    ;;
+    "datalake")
+echo "${HASHDATA_ARROW_CONAN_VERSION}
+${HASHDATA_LIBORC_CONAN_VERSION}
+${HASHDATA_PARQUET_CONAN_VERSION}"
+    ;;
+    *)
+echo -e "please specify dependency of extension" 1>&2
+exit 1
+    ;;
+  esac
+)
 
 [imports]
 bin, * -> ${BUILD_INSTALL_DIRECTORY}/bin
@@ -87,6 +102,6 @@ EOF
 }
 
 echo -e "\e[0Ksection_start:`date +%s`:install_conan_dependencies\r\e[0KInstall arrow、orc、gopher、liboss2、libhdfs3..."
-install_conan_dependencies
+install_conan_dependencies $1
 echo -e "\e[0Ksection_end:`date +%s`:install_conan_dependencies\r\e[0K"
 

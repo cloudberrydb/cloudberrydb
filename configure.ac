@@ -949,16 +949,12 @@ AC_SUBST(enable_datalake)
 # gophermeta preload
 # enforce enable_gophermeta if enable_datalake is yes
 #
+PGAC_ARG_BOOL(enable, gophermeta, no, [enable preload gophermeta],
+              AC_DEFINE(USE_GOPHERMETA, 1, [Define to 1 to preload gophermeta]))
 if test "$enable_datalake" = yes; then
-  PGAC_ARG_BOOL(enable, gophermeta,yes,
-                [enable preload gophermeta],
-                [AC_DEFINE(USE_GOPHERMETA, 1,
-                          [Define to 1 to preload gophermeta])])
-else
-  PGAC_ARG_BOOL(enable, gophermeta,no,
-                [enable preload gophermeta],
-                [AC_DEFINE(USE_GOPHERMETA, 1,
-                          [Define to 1 to preload gophermeta])])
+  enable_gophermeta=yes
+  AC_DEFINE(USE_GOPHERMETA, 1,
+                          [Define to 1 to preload gophermeta])
 fi
 AC_MSG_RESULT([checking whether to build with preload gophermeta ... $enable_gophermeta])
 AC_SUBST(enable_gophermeta)
