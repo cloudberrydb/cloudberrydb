@@ -1144,28 +1144,28 @@ out:
 }
 
 static void DefineGUCs() {
-  DefineCustomBoolVariable("pax.enable_debug", "enable pax debug", NULL,
+  DefineCustomBoolVariable("pax_enable_debug", "enable pax debug", NULL,
                            &pax::pax_enable_debug, true, PGC_USERSET, 0, NULL,
                            NULL, NULL);
 
-  DefineCustomBoolVariable("pax.enable_filter", "enable pax filter", NULL,
+  DefineCustomBoolVariable("pax_enable_filter", "enable pax filter", NULL,
                            &pax::pax_enable_filter, true, PGC_USERSET, 0, NULL,
                            NULL, NULL);
 
   DefineCustomIntVariable(
-      "pax.max_tuples_per_group",
+      "pax_max_tuples_per_group",
       "the default value for the limit on the number of tuples in a group",
       NULL, &pax::pax_max_tuples_per_group, VEC_BATCH_LENGTH, 0,
       VEC_BATCH_LENGTH * 100, PGC_USERSET, 0, NULL, NULL, NULL);
 
 #ifdef ENABLE_PLASMA
   DefineCustomBoolVariable(
-      "pax.enable_plasma", "Enable plasma cache the set of columns", NULL,
+      "pax_enable_plasma", "Enable plasma cache the set of columns", NULL,
       &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, 0, NULL, NULL, NULL);
 #endif
 
   DefineCustomIntVariable(
-      "pax.scan_reuse_buffer_size", "set the reuse buffer size", NULL,
+      "pax_scan_reuse_buffer_size", "set the reuse buffer size", NULL,
       &pax::pax_scan_reuse_buffer_size, PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE,
       PAX_SCAN_REUSE_BUFFER_MIN_SIZE, PAX_SCAN_REUSE_BUFFER_MAX_SIZE,
       PGC_USERSET, GUC_GPDB_NEED_SYNC, NULL, NULL, NULL);
