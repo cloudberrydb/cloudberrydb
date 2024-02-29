@@ -1,28 +1,43 @@
--- start_ignore
-create extension pax;
-drop table if exists users;
--- end_ignore
-create table users(
-    id int ,
+set default_table_access_method = 'pax';
+
+create table pax_test.t1(
+    id int,
     name text not null,
     height float not null,
     decimal_col decimal(10, 2) not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null
 )  using pax distributed BY (id);
+\d+ pax_test.t1
 
-insert into users (id, name, height, decimal_col, created_at, updated_at) values
+create table pax_test.t2(
+    id int,
+    name text not null,
+    height float not null,
+    decimal_col decimal(10, 2) not null,
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null
+);
+\d+ pax_test.t2
+
+insert into pax_test.t1 (id, name, height, decimal_col, created_at, updated_at) values
     (1, 'Alice', 1.65, 1.23, '2023-05-17 17:56:49.633664+08', '2023-05-17 17:56:49.633664+08'),
     (2, 'Bob', 1.75, 2.34, '2023-05-17 17:56:49.633664+08', '2023-05-17 17:56:49.633664+08'),
     (3, 'Carol', 1.85, 3.45, '2023-05-17 17:56:49.633664+08', '2023-05-17 17:56:49.633664+08');
-select * from users;
 
-DELETE FROM users WHERE id = 1;
-select * from users;
+alter table pax_test.t1 add column new_col1 int;
+alter table pax_test.t1 add column new_col2 int default null;
+alter table pax_test.t1 add column new_col3 int default 0;
+alter table pax_test.t1 add column new_col4 int default 12;
 
-UPDATE users SET name = 'Alice' WHERE id = 2;
-select * from users;
+select * from pax_test.t1;
 
-UPDATE users SET height = (select max(height) from users),decimal_col = (select min(decimal_col) from users);
-select * from users;
+alter table pax_test.t1 drop column new_col2;
+alter table pax_test.t1 drop column new_col3;
+
+vacuum pax_test.t1;
+vacuum full pax_test.t1;
+
+drop table pax_test.t1;
+drop table pax_test.t2;
 

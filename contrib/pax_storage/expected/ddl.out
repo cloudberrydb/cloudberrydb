@@ -1,48 +1,65 @@
--- start_ignore
-create extension pax;
-drop table if exists users;
--- end_ignore
-create table users(
-    id int ,
+set default_table_access_method = 'pax';
+create table pax_test.t1(
+    id int,
     name text not null,
     height float not null,
     decimal_col decimal(10, 2) not null,
     created_at timestamp with time zone not null,
     updated_at timestamp with time zone not null
 )  using pax distributed BY (id);
-insert into users (id, name, height, decimal_col, created_at, updated_at) values
+\d+ pax_test.t1
+                                               Table "pax_test.t1"
+   Column    |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+-------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ id          | integer                  |           |          |         | plain    |              | 
+ name        | text                     |           | not null |         | extended |              | 
+ height      | double precision         |           | not null |         | plain    |              | 
+ decimal_col | numeric(10,2)            |           | not null |         | main     |              | 
+ created_at  | timestamp with time zone |           | not null |         | plain    |              | 
+ updated_at  | timestamp with time zone |           | not null |         | plain    |              | 
+Distributed by: (id)
+
+create table pax_test.t2(
+    id int,
+    name text not null,
+    height float not null,
+    decimal_col decimal(10, 2) not null,
+    created_at timestamp with time zone not null,
+    updated_at timestamp with time zone not null
+);
+NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'id' as the Cloudberry Database data distribution key for this table.
+HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
+\d+ pax_test.t2
+                                               Table "pax_test.t2"
+   Column    |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+-------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ id          | integer                  |           |          |         | plain    |              | 
+ name        | text                     |           | not null |         | extended |              | 
+ height      | double precision         |           | not null |         | plain    |              | 
+ decimal_col | numeric(10,2)            |           | not null |         | main     |              | 
+ created_at  | timestamp with time zone |           | not null |         | plain    |              | 
+ updated_at  | timestamp with time zone |           | not null |         | plain    |              | 
+Distributed by: (id)
+
+insert into pax_test.t1 (id, name, height, decimal_col, created_at, updated_at) values
     (1, 'Alice', 1.65, 1.23, '2023-05-17 17:56:49.633664+08', '2023-05-17 17:56:49.633664+08'),
     (2, 'Bob', 1.75, 2.34, '2023-05-17 17:56:49.633664+08', '2023-05-17 17:56:49.633664+08'),
     (3, 'Carol', 1.85, 3.45, '2023-05-17 17:56:49.633664+08', '2023-05-17 17:56:49.633664+08');
-select * from users;
- id | name  | height | decimal_col |             created_at              |             updated_at              
-----+-------+--------+-------------+-------------------------------------+-------------------------------------
-  1 | Alice |   1.65 |        1.23 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-  2 | Bob   |   1.75 |        2.34 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-  3 | Carol |   1.85 |        3.45 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
+alter table pax_test.t1 add column new_col1 int;
+alter table pax_test.t1 add column new_col2 int default null;
+alter table pax_test.t1 add column new_col3 int default 0;
+alter table pax_test.t1 add column new_col4 int default 12;
+select * from pax_test.t1;
+ id | name  | height | decimal_col |             created_at              |             updated_at              | new_col1 | new_col2 | new_col3 | new_col4 
+----+-------+--------+-------------+-------------------------------------+-------------------------------------+----------+----------+----------+----------
+  1 | Alice |   1.65 |        1.23 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT |          |          |        0 |       12
+  2 | Bob   |   1.75 |        2.34 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT |          |          |        0 |       12
+  3 | Carol |   1.85 |        3.45 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT |          |          |        0 |       12
 (3 rows)
 
-DELETE FROM users WHERE id = 1;
-select * from users;
- id | name  | height | decimal_col |             created_at              |             updated_at              
-----+-------+--------+-------------+-------------------------------------+-------------------------------------
-  2 | Bob   |   1.75 |        2.34 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-  3 | Carol |   1.85 |        3.45 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-(2 rows)
-
-UPDATE users SET name = 'Alice' WHERE id = 2;
-select * from users;
- id | name  | height | decimal_col |             created_at              |             updated_at              
-----+-------+--------+-------------+-------------------------------------+-------------------------------------
-  3 | Carol |   1.85 |        3.45 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-  2 | Alice |   1.75 |        2.34 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-(2 rows)
-
-UPDATE users SET height = (select max(height) from users),decimal_col = (select min(decimal_col) from users);
-select * from users;
- id | name  | height | decimal_col |             created_at              |             updated_at              
-----+-------+--------+-------------+-------------------------------------+-------------------------------------
-  3 | Carol |   1.85 |        2.34 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-  2 | Alice |   1.85 |        2.34 | Wed May 17 02:56:49.633664 2023 PDT | Wed May 17 02:56:49.633664 2023 PDT
-(2 rows)
-
+alter table pax_test.t1 drop column new_col2;
+alter table pax_test.t1 drop column new_col3;
+vacuum pax_test.t1;
+vacuum full pax_test.t1;
+drop table pax_test.t1;
+drop table pax_test.t2;

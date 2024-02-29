@@ -1,3 +1,3 @@
 -- start_ignore
-create EXTENSION if not exists pax;
+create schema pax_test;
 -- end_ignore

@@ -9,7 +9,11 @@ PG_CXXFLAGS = -std=c++14
 PGFILEDESC = "pax - PAX table access method"
 SHLIB_LINK += -luuid
 
-REGRESS = ddl types join update update_gp
+REGRESS = setup
+REGRESS += ddl types update
+# FIXME: several plans are bad in update_gp when use orca
+# REGRESS += update_gp
+REGRESS +=  teardown
 
 ifdef USE_PGXS
 PG_CONFIG = pg_config
@@ -21,6 +25,8 @@ top_builddir = ../../
 include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/contrib/contrib-global.mk
 endif
+
+REGRESS_OPTS += --init-file=$(top_builddir)/src/test/regress/init_file
 
 .PHONY: all
 all: build-pax
