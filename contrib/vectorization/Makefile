@@ -62,9 +62,15 @@ uninstall-data:
 
 uninstall: uninstall-data
 
+debug = ""
+
+ifeq ($(enable_debug), yes)
+	debug = "debug"	
+endif
+
 .PHONY: download_arrow
 download_arrow:
-	sh dependencies.sh
+	sh dependencies.sh $(debug)
 
 .PHONY: load
 load:
