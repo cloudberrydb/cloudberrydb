@@ -36,8 +36,10 @@ ifeq (yes, $(findstring yes, $(enable_vectorization)$(enable_gophermeta)$(enable
 endif
 ifeq ($(enable_vectorization), yes)
 	$(MAKE) -C contrib/vectorization all
-endif 
+endif
+ifeq ($(enable_pax), yes)
 	$(MAKE) -C contrib/pax_storage all
+endif
 ifeq ($(enable_gophermeta), yes)
 	$(MAKE) -C contrib/pg_gophermeta all
 endif
@@ -84,13 +86,15 @@ install:
 	$(MAKE) -C contrib/pg_trgm $@
 	$(MAKE) -C contrib/tablefunc $@
 	$(MAKE) -C contrib/passwordcheck $@
-	$(MAKE) -C contrib/pax_storage $@
 ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo $@
 endif
 ifeq ($(enable_vectorization), yes)
 	$(MAKE) -C contrib/vectorization $@
-endif 
+endif
+ifeq ($(enable_pax), yes)
+	$(MAKE) -C contrib/pax_storage $@
+endif
 ifeq ($(enable_gophermeta), yes)
 	$(MAKE) -C contrib/pg_gophermeta $@
 endif

@@ -53,7 +53,7 @@ install-data:
 	$(INSTALL_SHLIB) arrow/lib/* '$(DESTDIR)$(libdir)'
 	$(INSTALL_DATA) vectorization--1.0.sql '$(DESTDIR)$(datadir)/cdb_init.d/vectorization--1.0.sql'
 
-install: install-data
+install: download_arrow install-data
 
 .PHONY: uninstall-data
 uninstall-data:

@@ -916,6 +916,16 @@ AC_MSG_RESULT([checking whether to build with preload ic module ... $enable_prel
 AC_SUBST(enable_preload_ic_module)
 
 #
+# pax support
+#
+PGAC_ARG_BOOL(enable, pax, no,
+              [enable pax support],
+              [AC_DEFINE(USE_PAX_STORAGE, 1,
+                         [Define to 1 to support pax])])
+AC_MSG_RESULT([checking whether to build with pax support ... $enable_pax])
+AC_SUBST(enable_pax)
+
+#
 # vectorization support
 #
 PGAC_ARG_BOOL(enable, vectorization, no,

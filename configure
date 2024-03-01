@@ -756,6 +756,7 @@ INCLUDES
 enable_gophermeta
 enable_datalake
 enable_vectorization
+enable_pax
 enable_preload_ic_module
 enable_ic_proxy
 enable_external_fts
@@ -904,6 +905,7 @@ enable_gpcloud
 enable_external_fts
 enable_ic_proxy
 enable_preload_ic_module
+enable_pax
 enable_vectorization
 enable_datalake
 enable_gophermeta
@@ -1621,6 +1623,7 @@ Optional Features:
                           library)
   --disable-preload-ic-module
                           disable preload interconnect module
+  --enable-pax            enable pax support
   --enable-vectorization  enable vectorization support
   --enable-datalake       enable preload datalake
   --disable-gophermeta    enable preload gophermeta
@@ -9043,6 +9046,38 @@ fi
 
 { $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with preload ic module ... $enable_preload_ic_module" >&5
 $as_echo "checking whether to build with preload ic module ... $enable_preload_ic_module" >&6; }
+
+
+#
+# pax support
+#
+
+
+# Check whether --enable-pax was given.
+if test "${enable_pax+set}" = set; then :
+  enableval=$enable_pax;
+  case $enableval in
+    yes)
+
+$as_echo "#define USE_PAX_STORAGE 1" >>confdefs.h
+
+      ;;
+    no)
+      :
+      ;;
+    *)
+      as_fn_error $? "no argument expected for --enable-pax option" "$LINENO" 5
+      ;;
+  esac
+
+else
+  enable_pax=no
+
+fi
+
+
+{ $as_echo "$as_me:${as_lineno-$LINENO}: result: checking whether to build with pax support ... $enable_pax" >&5
+$as_echo "checking whether to build with pax support ... $enable_pax" >&6; }
 
 
 #
@@ -21184,6 +21219,7 @@ if test x"$pgac_cv_gcc_atomic_int64_cas" = x"yes"; then
 $as_echo "#define HAVE_GCC__ATOMIC_INT64_CAS 1" >>confdefs.h
 
 fi
+
 
 # Check for x86 cpuid instruction
 { $as_echo "$as_me:${as_lineno-$LINENO}: checking for __get_cpuid" >&5
