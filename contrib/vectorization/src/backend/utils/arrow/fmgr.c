@@ -86,7 +86,7 @@ const FuncTable arrow_func_tables[] = {
 	{ "stddev_avg_trans", "hash_avg_trans_stddev", "stddev_avg_trans", "stddev_avg_trans", build_empty},
 	{ "stddev_avg_final", "hash_avg_final_stddev", "stddev_avg_final", "stddev_avg_final", build_empty},
 	{ "mean", "hash_mean", "hash_mean", "hash_mean", build_empty},
-	{ "stddev", "hash_stddev", "hash_stddev", "hash_stddev", build_empty},
+	{ "stddev", "hash_stddev", "hash_stddev", "hash_stddev", build_sample_stddev_options},
 };
 
 const ArrowFmgr *

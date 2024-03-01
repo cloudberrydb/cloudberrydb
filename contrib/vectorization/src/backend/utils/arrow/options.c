@@ -35,3 +35,14 @@ build_count_options(int numargs, GArrowCountMode mode)
 	garrow_count_options_set(count_options, mode);
 	return (GArrowFunctionOptions *)garrow_move_ptr(count_options);
 }
+
+GArrowFunctionOptions *
+build_sample_stddev_options(int numargs)
+{
+	g_autoptr(GArrowVarianceOptions) options = NULL;
+
+	options = garrow_variance_options_new();
+	/* stddev_samp need o set ddof */
+	g_object_set(options, "ddof", 1, NULL);
+	return (GArrowFunctionOptions *)garrow_move_ptr(options);
+}

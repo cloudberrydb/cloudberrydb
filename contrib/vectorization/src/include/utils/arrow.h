@@ -385,6 +385,7 @@ extern void resetVecDescBitmap(VecDesc vecdes);
 /* arrow plan options */
 extern GArrowFunctionOptions *build_all_count_options(int numargs);
 extern GArrowFunctionOptions *build_all_sum_options(int numargs);
+extern GArrowFunctionOptions *build_sample_stddev_options(int numargs);
 
 /* debug */
 extern void DebugArrowPlan(GArrowExecutePlan *plan, const char *label);
