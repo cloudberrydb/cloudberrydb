@@ -1,5 +1,6 @@
 #include "comm/cbdb_api.h"
 
+#include "comm/cbdb_wrappers.h"
 #include "comm/guc.h"
 #include "comm/log.h"
 #include "comm/pax_memory.h"
@@ -173,11 +174,14 @@ OrcWriter::OrcWriter(const MicroPartitionWriter::WriterOptions &writer_options,
   auto natts = static_cast<int>(column_types.size());
   auto stats_data = PAX_NEW<OrcColumnStatsData>();
   stats_collector_.SetStatsMessage(stats_data->Initialize(natts), natts);
+  toast_holder_ = PAX_NEW_ARRAY<Datum>(natts);
+  memset(toast_holder_, 0, natts * sizeof(Datum));
 }
 
 OrcWriter::~OrcWriter() {
   PAX_DELETE(pax_columns_);
   PAX_DELETE(file_);
+  PAX_DELETE_ARRAY(toast_holder_);
 }
 
 MicroPartitionWriter *OrcWriter::SetStatsCollector(
@@ -211,6 +215,10 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   TupleDesc table_desc;
   int16 type_len;
   bool type_by_val;
+  bool is_null, is_dropped;
+  Datum tts_value;
+  bool has_detoast = false;
+  struct varlena *tts_value_vl = nullptr, *detoast_vl = nullptr;
 
   summary_.num_tuples++;
 
@@ -221,16 +229,16 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
   CBDB_CHECK(pax_columns_->GetColumns() == static_cast<size_t>(n),
              cbdb::CException::ExType::kExTypeSchemaNotMatch);
 
-  pax_columns_->AddRows(1);
-  stats_collector_.AddRow(table_slot);
-
   for (int i = 0; i < n; i++) {
     type_len = table_desc->attrs[i].attlen;
     type_by_val = table_desc->attrs[i].attbyval;
+    is_dropped = table_desc->attrs[i].attisdropped;
+    is_null = table_slot->tts_isnull[i];
+    tts_value = table_slot->tts_values[i];
 
-    AssertImply(table_desc->attrs[i].attisdropped, table_slot->tts_isnull[i]);
+    AssertImply(is_dropped, is_null);
 
-    if (table_slot->tts_isnull[i]) {
+    if (is_null) {
       (*pax_columns_)[i]->AppendNull();
       continue;
     }
@@ -238,25 +246,25 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
     if (type_by_val) {
       switch (type_len) {
         case 1: {
-          auto value = cbdb::DatumToInt8(table_slot->tts_values[i]);
+          auto value = cbdb::DatumToInt8(tts_value);
           (*pax_columns_)[i]->Append(reinterpret_cast<char *>(&value),
                                      type_len);
           break;
         }
         case 2: {
-          auto value = cbdb::DatumToInt16(table_slot->tts_values[i]);
+          auto value = cbdb::DatumToInt16(tts_value);
           (*pax_columns_)[i]->Append(reinterpret_cast<char *>(&value),
                                      type_len);
           break;
         }
         case 4: {
-          auto value = cbdb::DatumToInt32(table_slot->tts_values[i]);
+          auto value = cbdb::DatumToInt32(tts_value);
           (*pax_columns_)[i]->Append(reinterpret_cast<char *>(&value),
                                      type_len);
           break;
         }
         case 8: {
-          auto value = cbdb::DatumToInt64(table_slot->tts_values[i]);
+          auto value = cbdb::DatumToInt64(tts_value);
           (*pax_columns_)[i]->Append(reinterpret_cast<char *>(&value),
                                      type_len);
           break;
@@ -268,30 +276,43 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
     } else {
       switch (type_len) {
         case -1: {
+          tts_value_vl = (struct varlena *)DatumGetPointer(tts_value);
+          detoast_vl = cbdb::PgDeToastDatum(tts_value_vl);
+          Assert(detoast_vl != nullptr);
+
+          if (tts_value_vl != detoast_vl) {
+            has_detoast = true;
+            toast_holder_[i] = tts_value;
+            table_slot->tts_values[i] = PointerGetDatum(detoast_vl);
+          }
+
           if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns_)) {
-            auto vl =
-                (struct varlena *)DatumGetPointer(table_slot->tts_values[i]);
-
-            auto read_len = VARSIZE_ANY_EXHDR(vl);
-            auto read_data = VARDATA_ANY(vl);
-
-            (*pax_columns_)[i]->Append(reinterpret_cast<char *>(read_data),
-                                       read_len);
+            (*pax_columns_)[i]->Append(VARDATA_ANY(detoast_vl),
+                                       VARSIZE_ANY_EXHDR(detoast_vl));
           } else {
-            void *vl = nullptr;
-            int len = -1;
-            vl = cbdb::PointerAndLenFromDatum(table_slot->tts_values[i], &len);
-            Assert(vl != nullptr && len != -1);
-            (*pax_columns_)[i]->Append(reinterpret_cast<char *>(vl), len);
+            (*pax_columns_)[i]->Append(reinterpret_cast<char *>(detoast_vl),
+                                       VARSIZE_ANY(detoast_vl));
           }
           break;
         }
         default:
           Assert(type_len > 0);
-          (*pax_columns_)[i]->Append(static_cast<char *>(cbdb::DatumToPointer(
-                                         table_slot->tts_values[i])),
-                                     type_len);
+          (*pax_columns_)[i]->Append(
+              static_cast<char *>(cbdb::DatumToPointer(tts_value)), type_len);
           break;
+      }
+    }
+  }
+
+  pax_columns_->AddRows(1);
+  stats_collector_.AddRow(table_slot);
+
+  if (has_detoast) {
+    for (int i = 0; i < n; i++) {
+      if (PointerIsValid(toast_holder_[i])) {
+        cbdb::Pfree(DatumGetPointer(table_slot->tts_values[i]));
+        table_slot->tts_values[i] = toast_holder_[i];
+        toast_holder_[i] = 0;
       }
     }
   }

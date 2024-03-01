@@ -10,7 +10,7 @@ PGFILEDESC = "pax - PAX table access method"
 SHLIB_LINK += -luuid
 
 REGRESS = setup
-REGRESS += ddl types update
+REGRESS += detoast ddl types update
 # FIXME: several plans are bad in update_gp when use orca
 # REGRESS += update_gp
 REGRESS +=  teardown

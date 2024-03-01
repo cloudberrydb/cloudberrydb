@@ -157,6 +157,14 @@ Datum cbdb::DatumFromPointer(const void *p, int16 typlen) {
 }
 #endif
 
+
+struct varlena *cbdb::PgDeToastDatum(struct varlena *datum) {
+  CBDB_WRAP_START;
+  { return detoast_attr(datum); }
+  CBDB_WRAP_END;
+  return nullptr;
+}
+
 struct varlena *cbdb::PgDeToastDatumPacked(struct varlena *datum) {
   CBDB_WRAP_START;
   { return pg_detoast_datum_packed(datum); }

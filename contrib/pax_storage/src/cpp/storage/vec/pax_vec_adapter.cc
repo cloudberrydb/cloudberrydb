@@ -239,7 +239,7 @@ static void CopyNonFixedRawBuffer(PaxColumn *column, size_t range_begin,
       auto vl = (struct varlena *)(buffer);
       size_t read_len = 0;
 
-      auto tunpacked = pg_detoast_datum_packed(vl);
+      auto tunpacked = cbdb::PgDeToastDatum(vl);
       Assert((Pointer)vl == (Pointer)tunpacked);
 
       read_len = VARSIZE_ANY_EXHDR(tunpacked);

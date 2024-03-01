@@ -121,6 +121,8 @@ Datum DatumFromCString(const char *src, size_t length);
 Datum DatumFromPointer(const void *p, int16 typlen);
 #endif
 
+struct varlena *PgDeToastDatum(struct varlena *datum);
+
 struct varlena *PgDeToastDatumPacked(struct varlena *datum);
 
 void RelationCreateStorageDirectory(RelFileNode rnode, char relpersistence,

@@ -102,6 +102,7 @@ class OrcWriter : public MicroPartitionWriter {
  protected:
   bool is_closed_;
   PaxColumns *pax_columns_;
+  Datum *toast_holder_;
   const std::vector<pax::orc::proto::Type_Kind> column_types_;
   File *file_;
   WriteSummary summary_;
