@@ -1168,7 +1168,7 @@ static void DefineGUCs() {
       "pax_scan_reuse_buffer_size", "set the reuse buffer size", NULL,
       &pax::pax_scan_reuse_buffer_size, PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE,
       PAX_SCAN_REUSE_BUFFER_MIN_SIZE, PAX_SCAN_REUSE_BUFFER_MAX_SIZE,
-      PGC_USERSET, GUC_GPDB_NEED_SYNC, NULL, NULL, NULL);
+      PGC_USERSET, 0, NULL, NULL, NULL);
 }
 
 struct PaxObjectProperty {
