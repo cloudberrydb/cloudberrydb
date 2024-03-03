@@ -230,6 +230,7 @@ enable_orafce		= @enable_orafce@
 enable_mapreduce    = @enable_mapreduce@
 enable_shared_postgres_backend    = @enable_shared_postgres_backend@
 enable_vectorization    = @enable_vectorization@
+enable_pax		= @enable_pax@
 enable_datalake     = @enable_datalake@
 enable_gophermeta   = @enable_gophermeta@
 enable_gpcloud 	    = @enable_gpcloud@
