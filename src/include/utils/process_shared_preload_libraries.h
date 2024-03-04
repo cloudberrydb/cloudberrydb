@@ -7,4 +7,6 @@
 #ifdef USE_VECTORIZATION
 		"vectorization",
 #endif
-
+#ifdef ENABLE_PRELOAD_IC_MODULE
+  		"interconnect",
+#endif
