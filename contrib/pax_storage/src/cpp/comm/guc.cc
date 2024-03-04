@@ -70,14 +70,15 @@ void DefineGUCs() {
 #ifdef ENABLE_PLASMA
   DefineCustomBoolVariable(
       "pax_enable_plasma", "Enable plasma cache the set of columns", NULL,
-      &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, 0, NULL, NULL, NULL);
+      &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, GUC_GPDB_NEED_SYNC,
+      NULL, NULL, NULL);
 #endif
 
   DefineCustomIntVariable(
       "pax_scan_reuse_buffer_size", "set the reuse buffer size", NULL,
       &pax::pax_scan_reuse_buffer_size, PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE,
       PAX_SCAN_REUSE_BUFFER_MIN_SIZE, PAX_SCAN_REUSE_BUFFER_MAX_SIZE,
-      PGC_USERSET, 0, NULL, NULL, NULL);
+      PGC_USERSET, GUC_GPDB_NEED_SYNC, NULL, NULL, NULL);
 
   DefineCustomIntVariable(
       "pax_max_tuples_per_group",

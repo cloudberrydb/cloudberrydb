@@ -1215,7 +1215,7 @@ check_numeric_options:
   }
 
 out:
-  relation_close(rel, NoLock);
+  relation_close(rel, RowExclusiveLock);
 }
 
 struct PaxObjectProperty {
