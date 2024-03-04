@@ -1891,7 +1891,7 @@ process_shared_preload_libraries(void)
 {
 	process_shared_preload_libraries_in_progress = true;
 
-	char* libraries = expand_shared_preload_libraries_string();
+	char *libraries = expand_shared_preload_libraries_string();
 	load_libraries(libraries,
 				   "shared_preload_libraries",
 				   false);
@@ -1899,12 +1899,6 @@ process_shared_preload_libraries(void)
 	{
 		pfree(libraries);
 	}
-
-#ifdef ENABLE_PRELOAD_IC_MODULE
-	load_libraries("interconnect",
-				   "preload interconnect module",
-				   false);
-#endif
 
 	process_shared_preload_libraries_in_progress = false;
 	process_shared_preload_libraries_done = true;
