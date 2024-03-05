@@ -215,8 +215,6 @@ TEST_F(PaxWriterTest, TestOper) {
   ASSERT_EQ(maxs.size(), 3);
 
   for (size_t i = 0; i < 3; i++) {
-    std::cout << "mins[i]: " << mins[i] << std::endl;
-    std::cout << "maxs[i]: " << maxs[i] << std::endl;
     ASSERT_EQ(mins[i], split_size * i);
     ASSERT_EQ(maxs[i], split_size * (i + 1) - 1);
   }
@@ -489,9 +487,7 @@ void MicroPartitionStatsMerge(MicroPartitionStats *stats, TupleDesc desc) {}
 
 TEST_F(PaxWriterTest, ParitionWriteReadTuple) {
   std::vector<const char *> file_names = {
-      "pax_parition_0.file", "pax_parition_2.file", "pax_parition_3.file",
-      "pax_parition_4.file", "pax_parition_5.file", "pax_parition_6.file",
-      "pax_parition_8.file", "pax_parition_9.file",
+      "80000", "80002", "80003", "80004", "80005", "80006", "80008", "80009",
   };
   TupleTableSlot *slot = CreateTestTupleTableSlot(true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;

@@ -95,7 +95,7 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
   }
 
  protected:
-  const char *file_name_ = "./test.file";
+  const char *file_name_ = "9000";
 };
 
 TEST_P(PaxVecTest, PaxColumnToVec) {

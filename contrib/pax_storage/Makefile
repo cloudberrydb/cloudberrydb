@@ -37,8 +37,13 @@ build-pax:
 	mkdir -p build
 	cd build && cmake .. -DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) && make -j8 && cp src/cpp/libpax.so ../pax.so
 
+pax-test: build-pax
+	cd build && ./src/cpp/test_main
+
 install-data: build-pax
 	$(INSTALL_DATA) pax-cdbinit--1.0.sql '$(DESTDIR)$(datadir)/cdb_init.d/pax-cdbinit--1.0.sql'
+
+installcheck: pax-test
 
 .PHONY: install
 install: install-data
