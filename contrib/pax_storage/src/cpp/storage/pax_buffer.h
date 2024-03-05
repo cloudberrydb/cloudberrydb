@@ -77,9 +77,16 @@ class BlockBufferBase {
 
   virtual void Set(char *ptr, size_t size);
 
-  void Write(char *ptr, size_t size);
+  inline void Write(char *ptr, size_t size) {
+    Assert(block_pos_ + size <= block_buffer_.End());
+    memcpy(block_pos_, ptr, size);
+  }
 
-  void WriteZero(size_t size);
+  inline void WriteZero(size_t size) {
+    Assert(block_pos_ + size <= block_buffer_.End());
+    memset(block_pos_, 0, size);
+  }
+
 
   void Combine(const BlockBufferBase &buffer);
 
@@ -139,12 +146,16 @@ class DataBuffer : public BlockBufferBase {
         data_buffer_(reinterpret_cast<T *>(data_buffer.data_buffer_)) {}
 
   // Direct access elements of internal buffer
-  T &operator[](size_t i);
+  inline T &operator[](size_t i) {
+    return data_buffer_[i];
+  }
 
-  T *StartT() const { return data_buffer_; }
+  inline T *StartT() const { return data_buffer_; }
 
   // Get size of elements of internal buffer
-  size_t GetSize();
+  inline size_t GetSize() {
+    return Used() / sizeof(T);
+  }
 
   ~DataBuffer() override;
 
@@ -160,22 +171,41 @@ class DataBuffer : public BlockBufferBase {
 
   // Direct write a element into available buffer
   // Should call `Brush` after write
-  virtual void Write(T value);
+  inline void Write(T value) {
+    Assert(block_pos_ + sizeof(T) <= block_buffer_.End());
+    *(reinterpret_cast<T *>(block_pos_)) = value;
+  }
 
-  virtual void Write(T *ptr, size_t size);
+  inline void Write(T *ptr, size_t size) {
+    Assert(size % sizeof(T) == 0 && (block_pos_ + size) <= block_buffer_.End());
+    memcpy(block_pos_, reinterpret_cast<const char *>(ptr), size);
+  }
 
-  virtual void Write(const T *ptr, size_t size);
+  inline void Write(const T *ptr, size_t size) {
+    Assert(size % sizeof(T) == 0 && (block_pos_ + size) <= block_buffer_.End());
+    memcpy(block_pos_, reinterpret_cast<const char *>(ptr), size);
+  }
 
   // Read all to dst pointer
-  virtual void Read(T *dst);
+  inline void Read(T *dst) {
+    Assert(Used() > sizeof(T) && Used() <= Capacity());
+    memcpy(dst, block_pos_, sizeof(T));
+  }
 
-  virtual void Read(void *dst, size_t n);
+  inline void Read(void *dst, size_t n) {
+    Assert(Used() > n && Used() <= Capacity());
+    memcpy(dst, block_pos_, n);
+  }
 
   // Get the internal buffer pointer
-  T *GetBuffer() const;
+  inline T *GetBuffer() const {
+    return data_buffer_;
+  }
 
   // Get the available buffer pointer
-  T *GetAvailableBuffer() const;
+  inline T *GetAvailableBuffer() const {
+    return data_buffer_ + Used();
+  }
 
   // Resize the internal buffer, size should bigger than capacity of internal
   // buffer `mem_take_over` should be true
@@ -188,13 +218,22 @@ class DataBuffer : public BlockBufferBase {
   virtual void ReSize(size_t size);
 
   // Is current internal buffer take over by DataBuffer
-  bool IsMemTakeOver() const;
+  inline bool IsMemTakeOver() const {
+    return mem_take_over_;
+  }
 
-  void SetMemTakeOver(bool take_over);
+  inline void SetMemTakeOver(bool take_over) {
+    mem_take_over_ = take_over;
+  }
 
   // Clear up the DataBuffer
   // Caller should call `Set` to reuse current `DataBuffer` after call `Clear`
-  virtual void Clear();
+  inline void Clear() {
+    if (mem_take_over_ && data_buffer_) {
+      cbdb::Pfree(data_buffer_);
+    }
+    data_buffer_ = nullptr;
+  }
 
  protected:
   bool mem_take_over_;

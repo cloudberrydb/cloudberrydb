@@ -25,16 +25,6 @@ void BlockBufferBase::Set(char *ptr, size_t size) {
   block_pos_ = ptr;
 }
 
-void BlockBufferBase::Write(char *ptr, size_t size) {
-  Assert(block_pos_ + size <= block_buffer_.End());
-  memcpy(block_pos_, ptr, size);
-}
-
-void BlockBufferBase::WriteZero(size_t size) {
-  Assert(block_pos_ + size <= block_buffer_.End());
-  memset(block_pos_, 0, size);
-}
-
 void BlockBufferBase::Combine(const BlockBufferBase &buffer) {
   Assert(Available() > buffer.Used());
   Write(buffer.block_buffer_.Start(), buffer.Used());
@@ -63,16 +53,6 @@ DataBuffer<T>::DataBuffer(size_t size)
     : DataBuffer(nullptr, size, false, true) {}
 
 template <typename T>
-T &DataBuffer<T>::operator[](size_t i) {
-  return data_buffer_[i];
-}
-
-template <typename T>
-size_t DataBuffer<T>::GetSize() {
-  return Used() / sizeof(T);
-}
-
-template <typename T>
 DataBuffer<T>::~DataBuffer() {
   if (mem_take_over_ && data_buffer_) {
     cbdb::Pfree(data_buffer_);
@@ -98,46 +78,6 @@ void DataBuffer<T>::Reset() {
   Assert(!mem_take_over_);
   BlockBufferBase::Set(nullptr, 0);
   data_buffer_ = nullptr;
-}
-
-template <typename T>
-void DataBuffer<T>::Write(T value) {
-  Assert(block_pos_ + sizeof(T) <= block_buffer_.End());
-  *(reinterpret_cast<T *>(block_pos_)) = value;
-}
-
-template <typename T>
-void DataBuffer<T>::Write(T *ptr, size_t size) {
-  Assert(size % sizeof(T) == 0 && (block_pos_ + size) <= block_buffer_.End());
-  memcpy(block_pos_, reinterpret_cast<const char *>(ptr), size);
-}
-
-template <typename T>
-void DataBuffer<T>::Write(const T *ptr, size_t size) {
-  Assert(size % sizeof(T) == 0 && (block_pos_ + size) <= block_buffer_.End());
-  memcpy(block_pos_, reinterpret_cast<const char *>(ptr), size);
-}
-
-template <typename T>
-void DataBuffer<T>::Read(T *dst) {
-  Assert(Used() > sizeof(T) && Used() <= Capacity());
-  memcpy(dst, block_pos_, sizeof(T));
-}
-
-template <typename T>
-void DataBuffer<T>::Read(void *dst, size_t n) {
-  Assert(Used() > n && Used() <= Capacity());
-  memcpy(dst, block_pos_, n);
-}
-
-template <typename T>
-T *DataBuffer<T>::GetBuffer() const {
-  return data_buffer_;
-}
-
-template <typename T>
-T *DataBuffer<T>::GetAvailableBuffer() const {
-  return data_buffer_ + Used();
 }
 
 template <typename T>
@@ -173,24 +113,6 @@ void DataBuffer<T>::ReSize(size_t size) {
     data_buffer_ = reinterpret_cast<T *>(cbdb::Palloc(size));
   }
   BlockBufferBase::Set(reinterpret_cast<char *>(data_buffer_), size, used);
-}
-
-template <typename T>
-bool DataBuffer<T>::IsMemTakeOver() const {
-  return mem_take_over_;
-}
-
-template <typename T>
-void DataBuffer<T>::SetMemTakeOver(bool take_over) {
-  mem_take_over_ = take_over;
-}
-
-template <typename T>
-void DataBuffer<T>::Clear() {
-  if (mem_take_over_ && data_buffer_) {
-    cbdb::Pfree(data_buffer_);
-  }
-  data_buffer_ = nullptr;
 }
 
 template class DataBuffer<char>;
