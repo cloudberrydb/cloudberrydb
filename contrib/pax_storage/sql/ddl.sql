@@ -41,3 +41,7 @@ vacuum full pax_test.t1;
 drop table pax_test.t1;
 drop table pax_test.t2;
 
+-- alter column with options 
+create table pax_test.t3 (v1 numeric(100,1)) with(compresstype=zstd, compresslevel=1);
+alter table pax_test.t3 alter column v1 type numeric;
+drop table pax_test.t3;

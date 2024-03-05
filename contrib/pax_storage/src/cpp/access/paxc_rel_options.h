@@ -31,7 +31,10 @@ namespace paxc {
 
 // plain structure used by reloptions, can be accessed from C++ code.
 struct PaxOptions {
-  int32 vl_len; /* varlena header (do not touch directly!) */
+  // Pax needs to define the StdRdOptions instead of just vl_len. 
+  // This is because many places in the CBDB assume that option in 
+  // relation can be cast into StdRdOptions.
+  StdRdOptions rd_options; 
   char storage_format[16];
   char compress_type[16];
   int compress_level;
