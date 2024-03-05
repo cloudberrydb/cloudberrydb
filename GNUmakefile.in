@@ -10,6 +10,12 @@ include $(top_builddir)/src/Makefile.global
 
 $(call recurse,all install,src config)
 
+debug = ""
+
+ifeq ($(enable_debug), yes)
+	debug = "debug"	
+endif
+
 all:
 	$(MAKE) -C contrib/auto_explain all
 	$(MAKE) -C contrib/citext all
@@ -32,7 +38,7 @@ ifeq ($(with_openssl), yes)
 	$(MAKE) -C contrib/sslinfo all
 endif
 ifeq ($(enable_vectorization), yes)
-	chmod +x dependencies.sh  && ./dependencies.sh vectorization
+	chmod +x dependencies.sh  && ./dependencies.sh vectorization ${debug}
 	$(MAKE) -C contrib/vectorization all
 endif
 ifeq ($(enable_pax), yes)

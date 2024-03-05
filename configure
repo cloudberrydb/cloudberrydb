@@ -9183,16 +9183,14 @@ fi
 $as_echo "checking whether to build with preload gophermeta ... $enable_gophermeta" >&6; }
 
 
-if test "$enable_gophermeta" = yes; then
-  if  "${prefix}" = "NONE" ;then
-    export LDFLAGS+=" -L${ac_default_prefix}/lib"
-    export CPPFLAGS+=" -I${ac_default_prefix}/include"
-  else
-    export LDFLAGS+=" -L${prefix}/lib"
-    export CPPFLAGS+=" -I${prefix}/include"
-  fi
-  echo  "Message User set CPPFLAGS = $CPPFLAGS";
+if  "${prefix}" = "NONE" ;then
+  export LDFLAGS+=" -L${ac_default_prefix}/lib"
+  export CPPFLAGS+=" -I${ac_default_prefix}/include"
+else
+  export LDFLAGS+=" -L${prefix}/lib"
+  export CPPFLAGS+=" -I${prefix}/include"
 fi
+echo  "Message User set CPPFLAGS = $CPPFLAGS";
 
 DEPENDENCIES_IN="dependencies.sh.in"
 DEPENDENCIES_SH="dependencies.sh"

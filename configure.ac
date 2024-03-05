@@ -959,16 +959,14 @@ fi
 AC_MSG_RESULT([checking whether to build with preload gophermeta ... $enable_gophermeta])
 AC_SUBST(enable_gophermeta)
 
-if test "$enable_gophermeta" = yes; then
-  if [ "${prefix}" = "NONE" ];then
-    export LDFLAGS+=" -L${ac_default_prefix}/lib"
-    export CPPFLAGS+=" -I${ac_default_prefix}/include"
-  else
-    export LDFLAGS+=" -L${prefix}/lib"
-    export CPPFLAGS+=" -I${prefix}/include"
-  fi
-  echo  "Message User set CPPFLAGS = $CPPFLAGS";
+if [ "${prefix}" = "NONE" ];then
+  export LDFLAGS+=" -L${ac_default_prefix}/lib"
+  export CPPFLAGS+=" -I${ac_default_prefix}/include"
+else
+  export LDFLAGS+=" -L${prefix}/lib"
+  export CPPFLAGS+=" -I${prefix}/include"
 fi
+echo  "Message User set CPPFLAGS = $CPPFLAGS";
 
 DEPENDENCIES_IN="dependencies.sh.in"
 DEPENDENCIES_SH="dependencies.sh"
