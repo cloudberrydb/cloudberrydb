@@ -19,6 +19,7 @@
 #include "cdb/cdbmutate.h"
 #include "commands/dbcommands.h"
 #include "commands/extension.h"
+#include "commands/defrem.h"
 #include "optimizer/cost.h"
 #include "optimizer/planshare.h"
 #include "optimizer/planmain.h"
@@ -1234,8 +1235,31 @@ is_relation_vectorable(Scan* seqscan, List *rtable, bool isForeign)
 
 	rel = relation_open(rte->relid, AccessShareLock);
 	/* Fixme : Support more table, only aocs now. */
-	/* Foreign scan relation has no amhandle, skip this.*/
-	if (!isForeign && !(RelationIsAoCols(rel) || RelationIsPAX(rel)))
+	if (isForeign)
+	{
+		ForeignTable *table;
+		ListCell   *lc;
+
+		table = GetForeignTable(rte->relid);
+		foreach(lc, table->options)
+		{
+			DefElem    *def = (DefElem *) lfirst(lc);
+
+			if (strcmp(def->defname, "transactional") == 0 && defGetBoolean(def))
+			{
+				elog(DEBUG2, "Fallback to non-vectorization;"
+						" foreign table relation is transactional.");
+				return false;
+			}
+			if (strcmp(def->defname, "format") == 0 && strcmp(defGetString(def), "orc") != 0)
+			{
+				elog(DEBUG2, "Fallback to non-vectorization;"
+						" foreign table relation is not orc.");
+				return false;
+			}
+		}
+	}
+	else if (!(RelationIsAoCols(rel) || RelationIsPAX(rel)))
 	{
 		elog(DEBUG2, "Fallback to non-vectorization; relation is not acos.");
 		relation_close(rel, AccessShareLock);
