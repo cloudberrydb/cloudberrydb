@@ -45,3 +45,7 @@ drop table pax_test.t2;
 create table pax_test.t3 (v1 numeric(100,1)) with(compresstype=zstd, compresslevel=1);
 alter table pax_test.t3 alter column v1 type numeric;
 drop table pax_test.t3;
+-- add column with options
+create table pax_test.t4 (v1 text) with(compresstype=zstd, compresslevel=1);
+alter table pax_test.t4 add column v2 text;
+drop table pax_test.t4;

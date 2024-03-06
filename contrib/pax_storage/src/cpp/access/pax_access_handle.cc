@@ -1108,8 +1108,6 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
              rel->rd_options && RelationIsPAX(rel));
   if (!ok) goto out;
 
-  Assert(sub_id == 0);
-
   options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
   if (!options->partition_by()) {
     if (options->partition_ranges()) {
