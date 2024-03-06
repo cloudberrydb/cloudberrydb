@@ -390,6 +390,13 @@ typedef struct TableAmRoutine
 											  ScanDirection direction,
 											  TupleTableSlot *slot);
 
+	/*
+	 * This callback is used to indicate what the AM can do, what features the
+	 * AM can support, return the flags represented the supported features of
+	 * scan.
+	 */
+	int			(*scan_flags) (Relation rel);
+
 	/* ------------------------------------------------------------------------
 	 * Parallel table scan related functions.
 	 * ------------------------------------------------------------------------
