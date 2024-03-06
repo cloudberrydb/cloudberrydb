@@ -93,11 +93,10 @@ retry_next:
         g->GetColumnValue(desc, attno - 1, current_group_row_index_);
   }
   current_group_row_index_++;
+  SetTupleOffset(&slot->tts_tid, g->GetRowOffset() + current_group_row_index_ - 1);
   if (ctx->estate_final && !TestRowScanInternal(slot, ctx->estate_final, 0))
     goto retry_next;
 
-  SetTupleOffset(&slot->tts_tid,
-                 g->GetRowOffset() + current_group_row_index_ - 1);
   return true;
 }
 

@@ -106,6 +106,17 @@ MicroPartitionMetadata MicroPartitionInfoIterator::ToValue(HeapTuple tuple) {
     if (flat_stats != stats) cbdb::Pfree(flat_stats);
   }
 
+  {
+    auto visibility_map_filename = cbdb::HeapGetAttr(
+        tuple, ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME, tup_desc, &is_null);
+
+    if (!is_null) {
+      auto name = NameStr(*DatumGetName(visibility_map_filename));
+      auto v_file_name = cbdb::BuildPaxFilePath(rel_path_, name);
+      v.SetVisibilityBitmapFile(std::move(v_file_name));
+    }
+  }
+
   // deserialize protobuf message
   return v;
 }

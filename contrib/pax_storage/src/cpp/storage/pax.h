@@ -132,25 +132,28 @@ class TableDeleter final {
  public:
   TableDeleter(Relation rel,
                std::unique_ptr<IteratorBase<MicroPartitionMetadata>> &&iterator,
-               std::map<std::string, std::shared_ptr<Bitmap64>> delete_bitmap,
+               std::map<std::string, std::shared_ptr<Bitmap8>> delete_bitmap,
                Snapshot snapshot);
 
   ~TableDeleter();
 
   void Delete();
 
+  // delete and mark in visibility map
+  void DeleteWithVisibilityMap(TransactionId delete_xid);
+
  private:
   void OpenWriter();
-
   void OpenReader();
 
  private:
   Relation rel_;
   std::unique_ptr<IteratorBase<MicroPartitionMetadata>> iterator_;
-  std::map<std::string, std::shared_ptr<Bitmap64>> delete_bitmap_;
+  std::map<std::string, std::shared_ptr<Bitmap8>> delete_bitmap_;
   Snapshot snapshot_;
   TableReader *reader_;
   TableWriter *writer_;
 };
 
 }  // namespace pax
+

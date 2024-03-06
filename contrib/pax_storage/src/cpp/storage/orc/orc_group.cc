@@ -83,8 +83,8 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
       // column DDL is done, for these cases it is normal that pg catalog schema
       // is not match with that in PAX file.
       if (index >= column_nums) {
-        cbdb::SlotGetMissingAttrs(slot, index, nattrs);
-        break;
+        cbdb::SlotGetMissingAttrs(slot, index, index + 1);
+        continue;
       }
 
       // In case column is droped, then set its value as null without reading

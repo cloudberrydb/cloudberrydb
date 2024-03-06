@@ -20,13 +20,16 @@ class CPaxDeleter {
                                TM_FailureData *tmfd);
 
   TM_Result MarkDelete(ItemPointer tid);
+  bool IsMarked(ItemPointerData tid) const;
   void MarkDelete(BlockNumber pax_block_id);
   void ExecDelete();
 
  private:
   std::unique_ptr<IteratorBase<MicroPartitionMetadata>> BuildDeleteIterator();
-  std::map<std::string, std::shared_ptr<Bitmap64>> block_bitmap_map_;
+  std::map<std::string, std::shared_ptr<Bitmap8>> block_bitmap_map_;
   Relation rel_;
   Snapshot snapshot_;
+  TransactionId delete_xid_;
+  bool use_visimap_;
 };  // class CPaxDeleter
 }  // namespace pax

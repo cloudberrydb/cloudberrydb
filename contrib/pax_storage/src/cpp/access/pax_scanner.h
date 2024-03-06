@@ -23,6 +23,7 @@ class PaxIndexScanDesc final {
   bool FetchTuple(ItemPointer tid, Snapshot snapshot, TupleTableSlot *slot,
                   bool *call_again, bool *all_dead);
   inline IndexFetchTableData *ToBase() { return &base_; }
+  inline Relation GetRelation() { return base_.rel; }
   static inline PaxIndexScanDesc *FromBase(IndexFetchTableData *base) {
     return reinterpret_cast<PaxIndexScanDesc *>(base);
   }

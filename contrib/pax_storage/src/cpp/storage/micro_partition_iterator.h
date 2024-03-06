@@ -9,8 +9,10 @@
 
 namespace pax {
 class MicroPartitionInfoIterator final
-    : public IteratorBase<MicroPartitionMetadata> {
+: public IteratorBase<MicroPartitionMetadata> {
  public:
+  template <typename T, typename... Args>
+  friend T *PAX_NEW(Args &&...args);
   static std::unique_ptr<IteratorBase<MicroPartitionMetadata>> New(
       Relation pax_rel, Snapshot snapshot);
 
@@ -21,8 +23,6 @@ class MicroPartitionInfoIterator final
  private:
   MicroPartitionInfoIterator(Relation pax_rel, Snapshot snapshot,
                              std::string rel_path);
-  template <typename T, typename... Args>
-  friend T *PAX_NEW(Args &&...args);
   ~MicroPartitionInfoIterator() override;
   void Begin();
   void End();

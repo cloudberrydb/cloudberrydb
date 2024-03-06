@@ -592,7 +592,6 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
     const auto &data_stats = provider.DataStats(column_index);
 
     Assert(data_stats.has_minimal() == data_stats.has_maximum());
-
     // Check whether alter column type will result rewriting whole table.
     AssertImply(info.typid(), attr->atttypid == info.typid());
 
@@ -601,7 +600,8 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
       return false;
     } else if (scan_key->sk_collation != info.collation()) {
       // collation doesn't match ignore this scan key
-    } else if (!CheckNonnullValue(info, data_stats, scan_key, attr,
+    } else if (data_stats.has_minimal() &&
+               !CheckNonnullValue(info, data_stats, scan_key, attr,
                                   allow_fallback_to_pg_)) {
       return false;
     }

@@ -270,10 +270,13 @@ std::string cbdb::BuildPaxDirectoryPath(RelFileNode rd_node,
   CBDB_WRAP_END;
 }
 
-std::string cbdb::BuildPaxFilePath(const std::string &rel_path,
-                                   const std::string &block_id) {
-  Assert(!rel_path.empty());
-  return rel_path + "/" + block_id;
+std::string cbdb::BuildPaxFilePath(const char *rel_path,
+                                   const char *block_id) {
+  char path[4096];
+  Assert(rel_path && block_id);
+
+  snprintf(path, sizeof(path), "%s/%s", rel_path, block_id);
+  return std::string(path);
 }
 
 int cbdb::RelationGetAttributesNumber(Relation rel) {

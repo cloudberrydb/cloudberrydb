@@ -8,6 +8,7 @@
 namespace pax {
 #define PAX_BLOCK_BIT_SIZE 24
 #define PAX_TUPLE_BIT_SIZE (48 - (PAX_BLOCK_BIT_SIZE + 1))
+#define PAX_MAX_NUM_TUPLES_PER_FILE	(1UL << PAX_TUPLE_BIT_SIZE)
 
 static inline ItemPointerData MakeCTID(uint32 block_number,
                                        uint32 tuple_offset) {

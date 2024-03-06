@@ -29,80 +29,6 @@
 #define RELATION_IS_PAX(rel) \
   (OidIsValid((rel)->rd_rel->relam) && RelationIsPAX(rel))
 
-// CBDB_TRY();
-// {
-//   // C++ implementation code
-// }
-// CBDB_CATCH_MATCH(std::exception &exp); // optional
-// {
-//    // specific exception handler
-//    error_message.Append("error message: %s", error_message.Message());
-// }
-// CBDB_CATCH_DEFAULT();
-// CBDB_END_TRY();
-//
-// CBDB_CATCH_MATCH() is optional and can have several match pattern.
-
-char *global_pg_error_message = nullptr;
-cbdb::CException global_exception(cbdb::CException::kExTypeInvalid);
-
-// being of a try block w/o explicit handler
-#define CBDB_TRY()                                          \
-  do {                                                      \
-    bool internal_cbdb_try_throw_error_ = false;            \
-    bool internal_cbdb_try_throw_error_with_stack_ = false; \
-    cbdb::ErrorMessage error_message;                       \
-    try {
-// begin of a catch block
-#define CBDB_CATCH_MATCH(exception_decl) \
-  }                                      \
-  catch (exception_decl) {               \
-    internal_cbdb_try_throw_error_ = true;
-
-// catch c++ exception and rethrow ERROR to C code
-// only used by the outer c++ code called by C
-#define CBDB_CATCH_DEFAULT()                          \
-  }                                                   \
-  catch (cbdb::CException & e) {                      \
-    internal_cbdb_try_throw_error_ = true;            \
-    internal_cbdb_try_throw_error_with_stack_ = true; \
-    global_pg_error_message = elog_message();         \
-    elog(LOG, "\npax stack trace: \n%s", e.Stack());  \
-    global_exception = e;                             \
-  }                                                   \
-  catch (...) {                                       \
-    internal_cbdb_try_throw_error_ = true;            \
-    internal_cbdb_try_throw_error_with_stack_ = false;
-
-// like PG_FINALLY
-#define CBDB_FINALLY(...) \
-  }                       \
-  {                       \
-    do {                  \
-      __VA_ARGS__;        \
-    } while (0);
-
-// end of a try-catch block
-#define CBDB_END_TRY()                                                      \
-  }                                                                         \
-  if (internal_cbdb_try_throw_error_) {                                     \
-    if (global_pg_error_message) {                                          \
-      elog(LOG, "\npg error message:%s", global_pg_error_message);          \
-    }                                                                       \
-    if (internal_cbdb_try_throw_error_with_stack_) {                        \
-      elog(LOG, "\npax stack trace: \n%s", global_exception.Stack());       \
-      ereport(                                                              \
-          ERROR,                                                            \
-          errmsg("%s (PG message: %s)", global_exception.What().c_str(),    \
-                 !global_pg_error_message ? "" : global_pg_error_message)); \
-    }                                                                       \
-    if (error_message.Length() == 0)                                        \
-      error_message.Append("ERROR: %s", __func__);                          \
-    ereport(ERROR, errmsg("%s", error_message.Message()));                  \
-  }                                                                         \
-  }                                                                         \
-  while (0)
-
 // access methods that are implemented in C++
 namespace pax {
 
@@ -146,9 +72,28 @@ TableScanDesc CCPaxAccessMethod::ScanExtractColumns(
   pg_unreachable();
 }
 
+bool CCPaxAccessMethod::IndexUniqueCheck(Relation rel, ItemPointer tid,
+                                       Snapshot snapshot, bool *all_dead) {
+  CBDB_TRY();
+  {
+    auto dsl = pax::CPaxDmlStateLocal::Instance();
+    if (dsl->IsInitialized()) {
+      auto del = dsl->GetDeleter(rel, snapshot, true);
+
+      if (del && del->IsMarked(*tid)) return false;
+    }
+  }
+  CBDB_CATCH_DEFAULT();
+  CBDB_FINALLY({});
+  CBDB_END_TRY();
+
+  return paxc::IndexUniqueCheck(rel, tid, snapshot, all_dead);
+}
+
 struct IndexFetchTableData *CCPaxAccessMethod::IndexFetchBegin(Relation rel) {
   CBDB_TRY();
   {
+    Assert(RELATION_IS_PAX(rel));
     auto desc = PAX_NEW<PaxIndexScanDesc>(rel);
     return desc->ToBase();
   }
@@ -872,11 +817,6 @@ double PaxAccessMethod::IndexBuildRangeScan(
   return reltuples;
 }
 
-bool PaxAccessMethod::IndexUniqueCheck(Relation rel, ItemPointer tid,
-                                       Snapshot snapshot, bool *all_dead) {
-  return paxc::IndexUniqueCheck(rel, tid, snapshot, all_dead);
-}
-
 void PaxAccessMethod::IndexValidateScan(Relation /*heap_relation*/,
                                         Relation /*index_relation*/,
                                         IndexInfo * /*index_info*/,
@@ -1085,7 +1025,7 @@ static const TableAmRoutine kPaxColumnMethods = {
     .index_fetch_reset = pax::CCPaxAccessMethod::IndexFetchReset,
     .index_fetch_end = pax::CCPaxAccessMethod::IndexFetchEnd,
     .index_fetch_tuple = pax::CCPaxAccessMethod::IndexFetchTuple,
-    .index_unique_check = paxc::PaxAccessMethod::IndexUniqueCheck,
+    .index_unique_check = pax::CCPaxAccessMethod::IndexUniqueCheck,
 
     .tuple_fetch_row_version = paxc::PaxAccessMethod::TupleFetchRowVersion,
     .tuple_tid_valid = paxc::PaxAccessMethod::TupleTidValid,

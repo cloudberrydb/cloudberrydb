@@ -41,6 +41,7 @@ class LocalFile final : public File {
 
 class LocalFileSystem final : public FileSystem {
   friend class Singleton<LocalFileSystem>;
+  friend class ClassCreator;
 
  public:
   File *Open(const std::string &file_path, int flags) override;

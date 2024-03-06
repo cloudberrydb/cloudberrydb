@@ -29,8 +29,10 @@ class CPaxDmlStateLocal final {
   void InitDmlState(Relation rel, CmdType operation);
   void FinishDmlState(Relation rel, CmdType operation);
 
+  bool IsInitialized() const { return dml_descriptor_tab_ != nullptr; }
   CPaxInserter *GetInserter(Relation rel);
-  CPaxDeleter *GetDeleter(Relation rel, Snapshot snapshot);
+  CPaxDeleter *GetDeleter(Relation rel, Snapshot snapshot,
+                          bool missing_null=false);
 
   void Reset();
 

@@ -129,6 +129,106 @@ TEST_F(BitMapTest, Bitmap64ClearN) {
   for (uint32 i = 0; i <= nbits; i++) fn(i);
 }
 
+TEST_F(BitMapTest, Clone) {
+  Bitmap8 bm8(1024);
+
+  for (int i = 0; i < 1024; i++) {
+    if (i % 2 == 0) {
+      bm8.Set(i);
+    }
+  }
+
+  ASSERT_EQ(bm8.CountBits(0, 1023), 512);
+
+  auto bm8_copy = bm8.Clone();
+
+  ASSERT_EQ(bm8.Raw().size, bm8_copy->Raw().size);
+
+  ASSERT_EQ(bm8.CountBits(0, 1023), 512);
+  for (int i = 0; i < 1024; i++) {
+    if (i % 2 == 0) {
+      ASSERT_TRUE(bm8_copy->Test(i));
+    }
+  }
+
+  PAX_DELETE<Bitmap8>(bm8_copy);
+
+  Bitmap64 bm(1024);
+
+  for (int i = 0; i < 1024; i++) {
+    if (i % 2 == 0) {
+      bm.Set(i);
+    }
+  }
+
+  ASSERT_EQ(bm.CountBits(0, 1023), 512);
+
+  auto bm_copy = bm.Clone();
+
+  ASSERT_EQ(bm.Raw().size, bm_copy->Raw().size);
+
+  ASSERT_EQ(bm.CountBits(0, 1023), 512);
+  for (int i = 0; i < 1024; i++) {
+    if (i % 2 == 0) {
+      ASSERT_TRUE(bm_copy->Test(i));
+    }
+  }
+
+  PAX_DELETE<Bitmap64>(bm_copy);
+}
+
+TEST_F(BitMapTest, Union) {
+  {
+    Bitmap8 bm8_1(1024);
+    Bitmap8 bm8_2(1024);
+
+    for (int i = 0; i < 1024; i++) {
+      if (i % 2 == 0) {
+        bm8_1.Set(i);
+      } else {
+        bm8_2.Set(i);
+      }
+    }
+
+    ASSERT_EQ(bm8_1.CountBits(0, 1023), 512);
+    ASSERT_EQ(bm8_2.CountBits(0, 1023), 512);
+
+    auto bm_union = Bitmap8::Union(&bm8_1, &bm8_2);
+
+    ASSERT_EQ(bm_union->CurrentBytes(), bm8_1.CurrentBytes());
+    ASSERT_EQ(bm_union->CountBits(0, 1023), 1024);
+
+    for (int i = 0; i < 1024; i++) {
+      ASSERT_TRUE(bm_union->Test(i));
+    }
+  }
+
+  {
+    Bitmap8 bm8_1(1024);
+    Bitmap8 bm8_2(2048);
+
+    for (int i = 0; i < 1024; i++) {
+      if (i % 2 == 0) {
+        bm8_1.Set(i);
+      } else {
+        bm8_2.Set(i);
+      }
+    }
+
+    ASSERT_EQ(bm8_1.CountBits(0, 1023), 512);
+    ASSERT_EQ(bm8_2.CountBits(0, 2047), 512);
+
+    auto bm_union = Bitmap8::Union(&bm8_1, &bm8_2);
+
+    ASSERT_EQ(bm_union->CurrentBytes(), bm8_2.CurrentBytes());
+    ASSERT_EQ(bm_union->CountBits(0, 2047), 1024);
+
+    for (int i = 0; i < 1024; i++) {
+      ASSERT_TRUE(bm_union->Test(i));
+    }
+  }
+}
+
 TEST_F(BitMapTest, CountBits) {
   const uint32 starts[] = {0, 1, 3, 7};
   const uint32 ends[] = {0, 1, 7, 8, 9, 15, 16, 17};

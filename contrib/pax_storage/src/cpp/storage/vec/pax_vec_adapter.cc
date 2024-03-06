@@ -13,6 +13,7 @@ extern "C" {
 
 #include "comm/vec_numeric.h"
 #include "storage/columns/pax_column_traits.h"
+#include "storage/pax_buffer.h"
 #include "storage/pax_itemptr.h"
 #include "storage/vec/arrow_wrapper.h"
 
@@ -55,22 +56,24 @@ void ExportArrayRelease(ArrowArray *array) {
       }
     }
 
-    pfree(array->children);
+    pax::PAX_DELETE_ARRAY<ArrowArray *>(array->children);
   }
 
   if (array->buffers) {
     for (int64_t i = 0; i < array->n_buffers; i++) {
       if (array->buffers[i]) {
-        pfree((void *)array->buffers[i]);
+        char *temp = const_cast<char *>((const char *)array->buffers[i]);
+        pax::BlockBuffer::Free(temp);
       }
     }
-
-    pfree(array->buffers);
+    char **temp = const_cast<char **>((const char **)array->buffers);
+    pax::PAX_DELETE_ARRAY<char *>(temp);
   }
 
   array->release = NULL;
   if (array->private_data) {
-    pfree((ArrowArray *)array->private_data);
+    ArrowArray *temp = static_cast<ArrowArray *>(array->private_data);
+    pax::PAX_DELETE<ArrowArray>(temp);
   }
 };
 
@@ -84,10 +87,10 @@ void ExportArrayNodeDetails(ArrowArray *export_array,
 
   export_array->n_buffers = static_cast<int64_t>(data->buffers.size());
   export_array->n_children = static_cast<int64_t>(child_array.size());
-  export_array->buffers = export_array->n_buffers
-                              ? (const void **)cbdb::Palloc0(
-                                    export_array->n_buffers * sizeof(void *))
-                              : nullptr;
+  export_array->buffers =
+      export_array->n_buffers
+          ? (const void **)pax::PAX_NEW_ARRAY<char *>(export_array->n_buffers)
+          : nullptr;
 
   for (int64_t i = 0; i < export_array->n_buffers; i++) {
     auto buffer = data->buffers[i];
@@ -96,8 +99,7 @@ void ExportArrayNodeDetails(ArrowArray *export_array,
 
   export_array->children =
       export_array->n_children
-          ? (ArrowArray **)cbdb::Palloc0(export_array->n_children *
-                                         sizeof(ArrowArray *))
+          ? pax::PAX_NEW_ARRAY<ArrowArray *>(export_array->n_children)
           : nullptr;
   for (int64_t i = 0; i < export_array->n_children; i++) {
     export_array->children[i] = child_array[i];
@@ -116,7 +118,7 @@ static ArrowArray *ExportArrayNode(const std::shared_ptr<ArrayData> &data) {
     child_array.emplace_back(ExportArrayNode(data->child_data[i]));
   }
 
-  export_array = (ArrowArray *)cbdb::Palloc0(sizeof(ArrowArray));
+  export_array = pax::PAX_NEW<ArrowArray>();
   ExportArrayNodeDetails(export_array, data, child_array, true);
   return export_array;
 }
@@ -181,7 +183,7 @@ static void CopyBitmapToVecBuffer(
           TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(range_lens));
       Bitmap8 *bitmap = nullptr;
       Assert(!null_bits_buffer->GetBuffer());
-      null_bits_buffer->Set((char *)cbdb::Palloc(null_align_bytes),
+      null_bits_buffer->Set(BlockBuffer::Alloc<char *>(null_align_bytes),
                             null_align_bytes);
       bitmap = column->GetBitmap();
       Assert(bitmap);
@@ -214,7 +216,7 @@ static void CopyBitmapToVecBuffer(
       auto null_bytes =
           TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(out_range_lens));
       Assert(!null_bits_buffer->GetBuffer());
-      null_bits_buffer->Set((char *)cbdb::Palloc0(null_bytes), null_bytes);
+      null_bits_buffer->Set(BlockBuffer::Alloc0<char *>(null_bytes), null_bytes);
       CopyBitmap(null_bitmap, 0, out_range_lens, null_bits_buffer);
       vec_cache_buffer_->null_counts = null_count;
       CBDB_CHECK(out_range_lens == null_index,
@@ -770,7 +772,8 @@ void VecAdapter::SetDataSource(PaxColumns *columns) {
   AssertImply(vec_cache_buffer_,
               columns->GetColumns() == (size_t)vec_cache_buffer_lens_);
   if (!vec_cache_buffer_) {
-    vec_cache_buffer_ = PAX_NEW_ARRAY<VecBatchBuffer>(columns->GetColumns());
+    vec_cache_buffer_ =
+        PAX_NEW_ARRAY<VecBatchBuffer>(columns->GetColumns());
     vec_cache_buffer_lens_ = columns->GetColumns();
   }
 }
@@ -880,9 +883,8 @@ int VecAdapter::AppendToVecBuffer() {
             TYPEALIGN(MEMORY_ALIGN_SIZE, (out_range_lens + 1) * sizeof(int32));
 
         Assert(!vec_buffer->GetBuffer() && !offset_buffer->GetBuffer());
-        vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
-
-        offset_buffer->Set((char *)cbdb::Palloc0(offset_align_bytes),
+        vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
+        offset_buffer->Set(BlockBuffer::Alloc<char *>(offset_align_bytes),
                            offset_align_bytes);
 
         CopyNonFixedRawBuffer(column, micro_partition_visibility_bitmap_,
@@ -898,7 +900,7 @@ int VecAdapter::AppendToVecBuffer() {
                                     (out_range_lens * column->GetTypeLength()));
         Assert(!vec_buffer->GetBuffer());
 
-        vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
+        vec_buffer->Set(BlockBuffer::Alloc<char *>(align_size), align_size);
         CopyFixedBuffer(column, micro_partition_visibility_bitmap_,
                         range_begin + micro_partition_row_offset_, range_begin,
                         range_lens, data_index_begin, data_range_lens,
@@ -942,7 +944,7 @@ int VecAdapter::AppendToVecBuffer() {
 void VecAdapter::BuildCtidOffset(size_t range_begin, size_t range_lens) {
   auto buffer_len = sizeof(int32) * cached_batch_lens_;
   ctid_offset_in_current_range_ = PAX_NEW<DataBuffer<int32>>(
-      (int32 *)cbdb::Palloc(buffer_len), buffer_len, false, false);
+      BlockBuffer::Alloc<int32 *>(buffer_len), buffer_len, false, false);
 
   size_t range_row_index = 0;
   for (size_t i = 0; i < cached_batch_lens_; i++) {
@@ -971,7 +973,7 @@ bool VecAdapter::ShouldBuildCtid() const { return build_ctid_; }
 void VecAdapter::FullWithCTID(TupleTableSlot *slot,
                               VecBatchBuffer *batch_buffer) {
   auto buffer_len = sizeof(int64) * cached_batch_lens_;
-  DataBuffer<int64> ctid_data_buffer((int64 *)cbdb::Palloc(buffer_len),
+  DataBuffer<int64> ctid_data_buffer(BlockBuffer::Alloc<int64 *>(buffer_len),
                                      buffer_len, false, false);
 
   auto base_offset = GetTupleOffset(slot->tts_tid);
@@ -1055,9 +1057,9 @@ int VecAdapter::AppendVecFormat() {
           vec_buffer->Set(buffer, cap_len);
           vec_buffer->BrushAll();
         } else {
-          vec_buffer->Set(
-              (char *)cbdb::Palloc0(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
-              TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
+          vec_buffer->Set(BlockBuffer::Alloc<char*>(
+                              TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
+                          TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
           vec_buffer->Write(buffer, buffer_len);
           vec_buffer->BrushAll();
         }
@@ -1069,7 +1071,7 @@ int VecAdapter::AppendVecFormat() {
         buffer_len = offset_buffer_from_column->Capacity();
 
         offset_buffer->Set(
-            (char *)cbdb::Palloc0(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
+            BlockBuffer::Alloc<char*>(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
             TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
         offset_buffer->Write((int *)buffer, buffer_len);
         offset_buffer->BrushAll();
@@ -1144,9 +1146,9 @@ int VecAdapter::AppendVecFormat() {
           vec_buffer->Set(buffer, cap_len);
           vec_buffer->BrushAll();
         } else {
-          vec_buffer->Set(
-              (char *)cbdb::Palloc0(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
-              TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
+          vec_buffer->Set(BlockBuffer::Alloc<char*>(
+                              TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
+                          TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
           vec_buffer->Write(buffer, buffer_len);
           vec_buffer->BrushAll();
         }
@@ -1160,7 +1162,7 @@ int VecAdapter::AppendVecFormat() {
     if (column->HasNull()) {
       Bitmap8 *bitmap = nullptr;
       Assert(!null_bits_buffer->GetBuffer());
-      null_bits_buffer->Set((char *)cbdb::Palloc(null_align_bytes),
+      null_bits_buffer->Set(BlockBuffer::Alloc<char*>(null_align_bytes),
                             null_align_bytes);
       bitmap = column->GetBitmap();
       Assert(bitmap);
@@ -1305,7 +1307,7 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   // `ArrowRecordBatch/ArrowSchema/ArrowArray` alloced by pax memory context.
   // Can not possible to hold the lifecycle of these three objects in pax.
   // It will be freed after memory context reset.
-  auto arrow_rb = (ArrowRecordBatch *)cbdb::Palloc0(sizeof(ArrowRecordBatch));
+  auto arrow_rb = (ArrowRecordBatch *)pax::PAX_NEW<ArrowRecordBatch>();
 
   auto export_status = arrow::ArrowExportTraits<arrow::DataType>::export_func(
       *arrow::struct_(std::move(schema_types)), &arrow_rb->schema);

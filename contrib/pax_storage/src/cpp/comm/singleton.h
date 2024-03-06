@@ -11,6 +11,7 @@ namespace pax {
 template <typename T>
 class Singleton final {
  public:
+  friend class ClassCreator;
   Singleton(const Singleton &) = delete;
   Singleton &operator=(const Singleton &) = delete;
   template <typename... ArgTypes>

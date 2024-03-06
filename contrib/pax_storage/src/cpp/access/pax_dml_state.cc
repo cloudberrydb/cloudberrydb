@@ -79,11 +79,12 @@ CPaxInserter *CPaxDmlStateLocal::GetInserter(Relation rel) {
   return state->inserter;
 }
 
-CPaxDeleter *CPaxDmlStateLocal::GetDeleter(Relation rel, Snapshot snapshot) {
+CPaxDeleter *CPaxDmlStateLocal::GetDeleter(Relation rel, Snapshot snapshot,
+                                           bool missing_null) {
   PaxDmlState *state;
   state = FindDmlState(cbdb::RelationGetRelationId(rel));
   // TODO(gongxun): switch memory context??
-  if (state->deleter == nullptr) {
+  if (state->deleter == nullptr && !missing_null) {
     state->deleter = PAX_NEW<CPaxDeleter>(rel, snapshot);
   }
   return state->deleter;

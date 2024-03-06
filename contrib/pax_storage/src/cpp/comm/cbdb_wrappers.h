@@ -149,8 +149,12 @@ void MakedirRecursive(const char *path);
 
 std::string BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend);
 
-std::string BuildPaxFilePath(const std::string &rel_path,
-                             const std::string &block_id);
+std::string BuildPaxFilePath(const char *rel_path,
+                             const char *block_id);
+static inline std::string BuildPaxFilePath(const std::string &rel_path,
+                             const std::string &block_id) {
+  return BuildPaxFilePath(rel_path.c_str(), block_id.c_str());
+}
 
 int RelationGetAttributesNumber(Relation rel);
 

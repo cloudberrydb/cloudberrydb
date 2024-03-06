@@ -4,6 +4,7 @@
 #include <utility>
 
 #include "access/paxc_rel_options.h"
+#include "access/pax_visimap.h"
 #include "catalog/pax_aux_table.h"
 #include "comm/cbdb_wrappers.h"
 #include "comm/pax_memory.h"
@@ -307,6 +308,7 @@ bool TableReader::ReadTuple(TupleTableSlot *slot) {
   }
 
   ExecClearTuple(slot);
+  SetBlockNumber(&slot->tts_tid, current_block_number_);
   while (!reader_->ReadTuple(slot)) {
     reader_->Close();
     if (!iterator_->HasNext()) {
@@ -314,9 +316,9 @@ bool TableReader::ReadTuple(TupleTableSlot *slot) {
       return false;
     }
     OpenFile();
+    SetBlockNumber(&slot->tts_tid, current_block_number_);
   }
 
-  SetBlockNumber(&slot->tts_tid, current_block_number_);
   Assert(TTS_EMPTY(slot));
   ExecStoreVirtualTuple(slot);
 
@@ -338,6 +340,18 @@ void TableReader::OpenFile() {
 
   PAX_DELETE(reader_);
 
+  // load visibility map
+  std::string visibility_bitmap_file = it.GetVisibilityBitmapFile();
+  if (!visibility_bitmap_file.empty()) {
+    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
+        visibility_bitmap_file, fs::kReadMode);
+    auto file_length = file->FileLength();
+    Bitmap8 *bm = PAX_NEW<Bitmap8>(file_length * 8);
+    file->ReadN(bm->Raw().bitmap, file_length);
+    options.visibility_bitmap = bm;
+    file->Close();
+  }
+
   reader_ = PAX_NEW<OrcReader>(Singleton<LocalFileSystem>::GetInstance()->Open(
       it.GetFileName(), fs::kReadMode));
 
@@ -349,8 +363,8 @@ void TableReader::OpenFile() {
   } else
 #endif  // VEC_BUILD
     if (reader_options_.filter && reader_options_.filter->HasRowScanFilter()) {
-      reader_ =
-          MicroPartitionRowFilterReader::New(reader_, reader_options_.filter);
+      reader_ = MicroPartitionRowFilterReader::New(
+          reader_, reader_options_.filter, options.visibility_bitmap);
     }
 
   reader_->Open(options);
@@ -359,7 +373,7 @@ void TableReader::OpenFile() {
 TableDeleter::TableDeleter(
     Relation rel,
     std::unique_ptr<IteratorBase<MicroPartitionMetadata>> &&iterator,
-    std::map<std::string, std::shared_ptr<Bitmap64>> delete_bitmap,
+    std::map<std::string, std::shared_ptr<Bitmap8>> delete_bitmap,
     Snapshot snapshot)
     : rel_(rel),
       iterator_(std::move(iterator)),
@@ -380,6 +394,86 @@ TableDeleter::~TableDeleter() {
     PAX_DELETE(writer_);
     writer_ = nullptr;
   }
+}
+
+// The pattern of file name of the visimap file is:
+// <blocknum>_<generation>_<tag>.visimap
+// blocknum: the corresponding micro partition that the visimap is for
+// generation: every delete operation will increase the generation
+// tag: used to make the file name unique in reality. Only the first two
+//      parts is enough to be unique in normal. If the next generation
+//      visimap file is generated, but was canceled later, the visimap
+//      file may be not deleted in time. Then, the next delete will
+//      use the same file name for visimap file.
+void TableDeleter::DeleteWithVisibilityMap(TransactionId delete_xid) {
+  if (!iterator_->HasNext()) {
+    return;
+  }
+
+  Bitmap8 *visi_bitmap = nullptr;
+  auto aux_oid = cbdb::GetPaxAuxRelid(RelationGetRelid(rel_));
+  auto rel_path = cbdb::BuildPaxDirectoryPath(rel_->rd_node, rel_->rd_backend);
+  auto fs = pax::Singleton<LocalFileSystem>::GetInstance();
+
+  do {
+    auto it = iterator_->Next();
+
+    auto block_id = it.GetMicroPartitionId();
+    auto micro_partition_metadata =
+        cbdb::GetMicroPartitionMetadata(rel_, snapshot_, block_id);
+    int generate = 0;
+    char visimap_file_name[128];
+
+    // union bitmap
+    auto delete_visi_bitmap = delete_bitmap_[block_id]->Clone();
+    // read visibility map
+    {
+      auto visibility_map_filename =
+          micro_partition_metadata.GetVisibilityBitmapFile();
+
+      if (!visibility_map_filename.empty()) {
+        int blocknum;
+        TransactionId xid;
+
+        std::string v_file_name =
+            cbdb::BuildPaxFilePath(rel_path, visibility_map_filename);
+        auto buffer = LoadVisimap(v_file_name);
+        auto visibility_file_bitmap = Bitmap8(
+            BitmapRaw<uint8>(buffer->data(), buffer->size()),
+            Bitmap8::ReadOnlyOwnBitmap);
+        visi_bitmap =
+            Bitmap8::Union(&visibility_file_bitmap, delete_visi_bitmap);
+
+        PAX_DELETE<Bitmap8>(delete_visi_bitmap);
+
+        auto rc = sscanf(visibility_map_filename.c_str(), "%d_%x_%x.visimap", &blocknum, &generate, &xid);
+        Assert(blocknum >= 0 && block_id == std::to_string(blocknum));
+        (void) xid;
+        CBDB_CHECK(rc == 3, cbdb::CException::kExTypeLogicError);
+      } else {
+        visi_bitmap = delete_visi_bitmap;
+      }
+
+      // generate new file name for visimap
+      auto rc = snprintf(visimap_file_name, sizeof(visimap_file_name), "%s_%x_%x.visimap",
+                         block_id.c_str(), generate + 1, delete_xid);
+      Assert(rc <= NAMEDATALEN);
+    }
+
+    Assert(visi_bitmap != nullptr);
+    std::string visimap_file_path =
+        cbdb::BuildPaxFilePath(rel_path.c_str(), visimap_file_name);
+    {
+      auto &raw = visi_bitmap->Raw();
+      fs->WriteFile(visimap_file_path, raw.bitmap, raw.size);
+    }
+    // Replace PAX_DELETE by smart pointer
+    PAX_DELETE<Bitmap8>(visi_bitmap);
+    visi_bitmap = nullptr;
+
+    // write pg_pax_blocks_oid
+    cbdb::UpdateVisimap(aux_oid, block_id.c_str(), visimap_file_name);
+  } while (iterator_->HasNext());
 }
 
 void TableDeleter::Delete() {

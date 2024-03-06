@@ -160,14 +160,12 @@ DataBuffer<char> *PaxColumns::GetDataBuffer(
   if (COLUMN_STORAGE_FORMAT_IS_VEC(this)) {
     buffer_len =
         MeasureVecDataBuffer(column_streams_func, column_encoding_func);
-    data_->Set(reinterpret_cast<char *>(cbdb::Palloc(buffer_len)), buffer_len,
-               0);
+    data_->Set(BlockBuffer::Alloc<char *>(buffer_len), buffer_len, 0);
     CombineVecDataBuffer();
   } else {
     buffer_len =
         MeasureOrcDataBuffer(column_streams_func, column_encoding_func);
-    data_->Set(reinterpret_cast<char *>(cbdb::Palloc(buffer_len)), buffer_len,
-               0);
+    data_->Set(BlockBuffer::Alloc<char *>(buffer_len), buffer_len, 0);
     CombineOrcDataBuffer();
   }
 

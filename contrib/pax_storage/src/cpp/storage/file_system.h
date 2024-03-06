@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -65,7 +66,9 @@ class FileSystem {
   virtual void DeleteDirectory(const std::string &path,
                                bool delete_topleveldir) const = 0;
 
- protected:
+  void WriteFile(const std::string &file_path, const void *ptr, size_t length);
+  void WriteFile(const std::string &file_path,
+                 const std::function<void(File *file)> &callback);
 };
 
 }  //  namespace pax

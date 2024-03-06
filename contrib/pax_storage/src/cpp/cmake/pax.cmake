@@ -77,6 +77,7 @@ set(pax_access_src
     access/pax_inserter.cc
     access/pax_partition.cc
     access/pax_updater.cc
+    access/pax_visimap.cc
     access/pax_scanner.cc)
 
 set(pax_catalog_src

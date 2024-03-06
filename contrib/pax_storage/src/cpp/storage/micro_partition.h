@@ -164,7 +164,11 @@ class MicroPartitionReader {
 
     TupleDesc desc = nullptr;
 
-    // only reference
+    // flags is used to control the behavior of the reader
+    // refer to the definition of ReaderFlags.
+    uint32 flags = 0;
+    bool is_vec_scan = false;
+
     Bitmap8 *visibility_bitmap = nullptr;
   };
   MicroPartitionReader() = default;

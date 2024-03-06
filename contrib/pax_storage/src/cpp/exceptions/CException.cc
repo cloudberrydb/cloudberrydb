@@ -234,3 +234,6 @@ const char *CException::exception_names[] = {
 };
 
 }  // namespace cbdb
+
+cbdb::CException global_exception(cbdb::CException::kExTypeInvalid);
+char *global_pg_error_message = nullptr;

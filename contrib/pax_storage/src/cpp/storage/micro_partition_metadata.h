@@ -48,10 +48,20 @@ struct MicroPartitionMetadata {
 
   inline void SetStats(::pax::stats::MicroPartitionStatisticsInfo &&stats) { stats_ = std::move(stats); }
 
+  inline const std::string &GetVisibilityBitmapFile() const {
+    return visibility_bitmap_file_;
+  }
+
+  inline void SetVisibilityBitmapFile(std::string &&file) {
+    visibility_bitmap_file_ = std::move(file);
+  }
+
  private:
   std::string micro_partition_id_;
 
   std::string file_name_;
+
+  std::string visibility_bitmap_file_;
 
   // statistics info
   uint32 tuple_count_ = 0;

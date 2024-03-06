@@ -4,7 +4,6 @@
 
 #include "comm/pax_memory.h"
 #include "storage/pax_filter.h"
-#include "storage/pax_itemptr.h"
 
 namespace pax {
 

@@ -461,11 +461,11 @@ void OrcWriter::MergeGroup(OrcWriter *orc_writer, int group_index,
   Assert(stripe_data_len);
 
   if (!merge_buffer->GetBuffer()) {
-    merge_buffer->Set((char *)cbdb::Palloc(total_len), total_len);
+    merge_buffer->Set(BlockBuffer::Alloc<char *>(total_len), total_len);
     merge_buffer->SetMemTakeOver(true);
   } else if (merge_buffer->Capacity() < total_len) {
     merge_buffer->Clear();
-    merge_buffer->Set((char *)cbdb::Palloc(total_len), total_len);
+    merge_buffer->Set(BlockBuffer::Alloc<char *>(total_len), total_len);
   }
   orc_writer->file_->Flush();
   orc_writer->file_->PReadN(merge_buffer->GetBuffer(), total_len,

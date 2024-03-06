@@ -1,6 +1,8 @@
 #include "access/pax_scanner.h"
 
 #include "access/pax_access_handle.h"
+#include "access/pax_dml_state.h"
+#include "access/pax_visimap.h"
 #include "catalog/pax_aux_table.h"
 #include "catalog/pg_pax_tables.h"
 #include "comm/guc.h"
@@ -23,6 +25,16 @@
 #endif
 
 namespace paxc {
+
+static inline bool TestVisimap(Relation rel, const char *visimap_name, int offset) {
+  CBDB_TRY();
+  { return pax::TestVisimap(rel, visimap_name, offset); }
+  CBDB_CATCH_DEFAULT();
+  CBDB_FINALLY({});
+  CBDB_END_TRY();
+  pg_unreachable();
+}
+
 bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
                       bool * /*all_dead*/) {
   paxc::ScanAuxContext context;
@@ -37,12 +49,29 @@ bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot,
                                     AccessShareLock, block_name);
   tuple = context.SearchMicroPartitionEntry();
   exists = HeapTupleIsValid(tuple);
+  if (exists) {
+    bool isnull;
+    auto desc = RelationGetDescr(context.GetRelation());
+    auto visimap = heap_getattr(tuple, ANUM_PG_PAX_BLOCK_TABLES_PTVISIMAPNAME,
+                                desc, &isnull);
+    if (!isnull) {
+      exists = TestVisimap(rel, NameStr(*DatumGetName(visimap)),
+                           pax::GetTupleOffset(*tid));
+    }
+  }
+
   context.EndSearchMicroPartition(AccessShareLock);
   return exists;
 }
 }  // namespace paxc
 
 namespace pax {
+
+static inline bool CheckExists(Relation rel, ItemPointer tid, Snapshot snapshot, bool *all_dead) {
+  CBDB_WRAP_START;
+  { return paxc::IndexUniqueCheck(rel, tid, snapshot, all_dead); }
+  CBDB_WRAP_END;
+}
 
 PaxIndexScanDesc::PaxIndexScanDesc(Relation rel) : base_{.rel = rel} {
   Assert(rel);
@@ -70,7 +99,8 @@ bool PaxIndexScanDesc::FetchTuple(ItemPointer tid, Snapshot snapshot,
   if (all_dead) *all_dead = false;
 
   ExecClearTuple(slot);
-  if (reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
+  if (CheckExists(GetRelation(), tid, snapshot, all_dead) &&
+			reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
     SetBlockNumber(&slot->tts_tid, block);
     ExecStoreVirtualTuple(slot);
 

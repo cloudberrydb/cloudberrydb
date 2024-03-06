@@ -60,7 +60,6 @@ class PaxAccessMethod final {
       bool allow_sync, bool anyvisible, bool progress,
       BlockNumber start_blockno, BlockNumber numblocks,
       IndexBuildCallback callback, void *callback_state, TableScanDesc scan);
-  static bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot, bool *all_dead);
   static void IndexValidateScan(Relation heap_relation, Relation index_relation,
                                 IndexInfo *index_info, Snapshot snapshot,
                                 ValidateIndexState *state);
@@ -96,6 +95,8 @@ class CCPaxAccessMethod final {
                                           int nkeys, struct ScanKeyData *key,
                                           ParallelTableScanDesc parallel_scan,
                                           struct PlanState *ps, uint32 flags);
+
+  static bool IndexUniqueCheck(Relation rel, ItemPointer tid, Snapshot snapshot, bool *all_dead);
 
   /* Index Scan Callbacks */
   static struct IndexFetchTableData *IndexFetchBegin(Relation rel);

@@ -4,6 +4,78 @@
 #include <sstream>
 #include <string>
 
+// CBDB_TRY();
+// {
+//   // C++ implementation code
+// }
+// CBDB_CATCH_MATCH(std::exception &exp); // optional
+// {
+//    // specific exception handler
+//    error_message.Append("error message: %s", error_message.Message());
+// }
+// CBDB_CATCH_DEFAULT();
+// CBDB_END_TRY();
+//
+// CBDB_CATCH_MATCH() is optional and can have several match pattern.
+
+
+// being of a try block w/o explicit handler
+#define CBDB_TRY()                                          \
+  do {                                                      \
+    bool internal_cbdb_try_throw_error_ = false;            \
+    bool internal_cbdb_try_throw_error_with_stack_ = false; \
+    cbdb::ErrorMessage error_message;                       \
+    try {
+// begin of a catch block
+#define CBDB_CATCH_MATCH(exception_decl) \
+  }                                      \
+  catch (exception_decl) {               \
+    internal_cbdb_try_throw_error_ = true;
+
+// catch c++ exception and rethrow ERROR to C code
+// only used by the outer c++ code called by C
+#define CBDB_CATCH_DEFAULT()                          \
+  }                                                   \
+  catch (cbdb::CException & e) {                      \
+    internal_cbdb_try_throw_error_ = true;            \
+    internal_cbdb_try_throw_error_with_stack_ = true; \
+    global_pg_error_message = elog_message();         \
+    elog(LOG, "\npax stack trace: \n%s", e.Stack());  \
+    global_exception = e;                             \
+  }                                                   \
+  catch (...) {                                       \
+    internal_cbdb_try_throw_error_ = true;            \
+    internal_cbdb_try_throw_error_with_stack_ = false;
+
+// like PG_FINALLY
+#define CBDB_FINALLY(...) \
+  }                       \
+  {                       \
+    do {                  \
+      __VA_ARGS__;        \
+    } while (0);
+
+// end of a try-catch block
+#define CBDB_END_TRY()                                                      \
+  }                                                                         \
+  if (internal_cbdb_try_throw_error_) {                                     \
+    if (global_pg_error_message) {                                          \
+      elog(LOG, "\npg error message:%s", global_pg_error_message);          \
+    }                                                                       \
+    if (internal_cbdb_try_throw_error_with_stack_) {                        \
+      elog(LOG, "\npax stack trace: \n%s", global_exception.Stack());       \
+      ereport(                                                              \
+          ERROR,                                                            \
+          errmsg("%s (PG message: %s)", global_exception.What().c_str(),    \
+                 !global_pg_error_message ? "" : global_pg_error_message)); \
+    }                                                                       \
+    if (error_message.Length() == 0)                                        \
+      error_message.Append("ERROR: %s", __func__);                          \
+    ereport(ERROR, errmsg("%s", error_message.Message()));                  \
+  }                                                                         \
+  }                                                                         \
+  while (0)
+
 namespace cbdb {
 
 #define DEFAULT_STACK_MAX_DEPTH 63
@@ -72,6 +144,9 @@ class CException {
 };
 
 }  // namespace cbdb
+
+extern cbdb::CException global_exception;
+extern char *global_pg_error_message;
 
 #define CBDB_RAISE(...) cbdb::CException::Raise(__FILE__, __LINE__, __VA_ARGS__)
 #define CBDB_RERAISE(ex) cbdb::CException::ReRaise(ex)

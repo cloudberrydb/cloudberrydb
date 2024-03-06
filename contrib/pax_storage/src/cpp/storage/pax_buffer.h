@@ -33,6 +33,19 @@ struct BlockBuffer {
     std::swap(end_offset_, other.end_offset_);
   }
 
+  template <typename T=char *>
+  static inline T Alloc(size_t size) { return reinterpret_cast<T>(cbdb::Palloc(size)); }
+
+  template <typename T=char *>
+  static inline T Alloc0(size_t size) { return reinterpret_cast<T>(cbdb::Palloc0(size)); }
+
+  template <typename T=char *>
+  static inline T Realloc(void *ptr, size_t new_size) {
+    return reinterpret_cast<T>(cbdb::RePalloc(ptr, new_size));
+  }
+  template <typename T>
+  static inline void Free(T ptr) { cbdb::Pfree(ptr); }
+
  private:
   char *begin_offset_;
   char *end_offset_;
@@ -230,7 +243,7 @@ class DataBuffer : public BlockBufferBase {
   // Caller should call `Set` to reuse current `DataBuffer` after call `Clear`
   inline void Clear() {
     if (mem_take_over_ && data_buffer_) {
-      cbdb::Pfree(data_buffer_);
+      BlockBuffer::Free(data_buffer_);
     }
     data_buffer_ = nullptr;
   }

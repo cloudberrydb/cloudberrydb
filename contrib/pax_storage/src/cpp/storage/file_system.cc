@@ -27,4 +27,15 @@ void File::PWriteN(const void *buf, size_t count, off_t offset) {
              cbdb::CException::ExType::kExTypeIOError);
 }
 
+void FileSystem::WriteFile(const std::string &file_path,
+                           const std::function<void(File *file)> &callback) {
+  auto file = Open(file_path, pax::fs::kWriteMode);
+  callback(file);
+  file->Close();
+}
+
+void FileSystem::WriteFile(const std::string &file_path, const void *ptr,
+                           size_t length) {
+  WriteFile(file_path, [=](File *file) { file->WriteN(ptr, length); });
+}
 }  // namespace pax
