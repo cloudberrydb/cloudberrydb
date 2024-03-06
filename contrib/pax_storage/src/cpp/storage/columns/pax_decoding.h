@@ -14,11 +14,13 @@ class PaxDecoder {
   struct DecodingOption {
     ColumnEncoding_Kind column_encode_type;
     bool is_sign;
+    int compress_level;
 
     DecodingOption()
         : column_encode_type(
               ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED),
-          is_sign(true) {}
+          is_sign(true),
+          compress_level(0) {}
   };
 
   explicit PaxDecoder(const DecodingOption &decoder_options);

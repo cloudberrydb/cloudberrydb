@@ -302,7 +302,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
                 column->GetOriginLength() >= 0);
 
     column_encoding_func(
-        column->GetEncodingType(),
+        column->GetEncodingType(), column->GetCompressLevel(),
         (column->GetEncodingType() !=
          ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED)
             ? TYPEALIGN(MEMORY_ALIGN_SIZE, column->GetOriginLength())
@@ -327,8 +327,8 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       Assert(bm);
       size_t bm_length = bm->MinimalStoredBytes(column->GetRows());
       buffer_len += bm_length;
-      column_streams_func(pax::orc::proto::Stream_Kind_PRESENT, column->GetRows(),
-                          bm_length);
+      column_streams_func(pax::orc::proto::Stream_Kind_PRESENT,
+                          column->GetRows(), bm_length);
     }
 
     size_t column_size = column->GetNonNullRows();
@@ -371,7 +371,8 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       }
     }
 
-    column_encoding_func(column->GetEncodingType(), column->GetOriginLength());
+    column_encoding_func(column->GetEncodingType(), column->GetCompressLevel(),
+                         column->GetOriginLength());
   }
   return buffer_len;
 }

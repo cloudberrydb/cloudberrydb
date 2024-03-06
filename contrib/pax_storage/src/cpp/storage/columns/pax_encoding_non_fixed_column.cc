@@ -16,12 +16,15 @@ PaxNonFixedEncodingColumn::PaxNonFixedEncodingColumn(
       ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED) {
     encoder_options_.column_encode_type = ColumnEncoding_Kind_COMPRESS_ZSTD;
   }
+  PaxColumn::SetEncodeType(encoder_options_.column_encode_type);
+  PaxColumn::SetCompressLevel(encoder_options_.compress_level);
 
-  PaxColumn::encoded_type_ = encoder_options_.column_encode_type;
-  compressor_ = PaxCompressor::CreateBlockCompressor(PaxColumn::encoded_type_);
+  compressor_ =
+      PaxCompressor::CreateBlockCompressor(PaxColumn::GetEncodingType());
   if (!compressor_) {
-    PaxColumn::encoded_type_ =
-        ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED;
+    PaxColumn::SetEncodeType(
+        ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED);
+    PaxColumn::SetCompressLevel(0);
   }
 }
 
@@ -34,8 +37,10 @@ PaxNonFixedEncodingColumn::PaxNonFixedEncodingColumn(
       shared_data_(nullptr) {
   Assert(decoder_options_.column_encode_type !=
          ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
-  PaxColumn::encoded_type_ = decoder_options_.column_encode_type;
-  compressor_ = PaxCompressor::CreateBlockCompressor(PaxColumn::encoded_type_);
+  PaxColumn::SetEncodeType(decoder_options_.column_encode_type);
+  PaxColumn::SetCompressLevel(decoder_options_.compress_level);
+  compressor_ =
+      PaxCompressor::CreateBlockCompressor(PaxColumn::GetEncodingType());
 }
 
 PaxNonFixedEncodingColumn::~PaxNonFixedEncodingColumn() {

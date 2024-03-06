@@ -31,8 +31,6 @@ class PaxColumn {
 
   virtual ~PaxColumn();
 
-  virtual PaxColumn *SetColumnEncodeType(ColumnEncoding_Kind encoding_type);
-
   // Get the column in memory type
   virtual PaxColumnTypeInMem GetPaxColumnTypeInMem() const;
 
@@ -150,9 +148,6 @@ class PaxColumn {
   // Estimated memory size from current column
   virtual size_t PhysicalSize() const = 0;
 
-  // Get current encoding type
-  virtual ColumnEncoding_Kind GetEncodingType() const;
-
   // Get current storage type
   virtual PaxStorageFormat GetStorageFormat() const = 0;
 
@@ -182,6 +177,22 @@ class PaxColumn {
 
   virtual void SetAlignSize(size_t align_size);
 
+  // Get current encoding type
+  inline ColumnEncoding_Kind GetEncodingType() const { return encoded_type_; }
+
+  // Get current compress level
+  inline int GetCompressLevel() const { return compress_level_; }
+
+ protected:
+  // The encoding option should pass in sub-class
+  inline void SetEncodeType(ColumnEncoding_Kind encoding_type) {
+    encoded_type_ = encoding_type;
+  }
+
+  inline void SetCompressLevel(int compress_level) {
+    compress_level_ = compress_level;
+  }
+
  private:
   void CreateNulls(size_t cap);
 
@@ -197,8 +208,11 @@ class PaxColumn {
   // but can direct get not null rows by data part.
   size_t non_null_rows_;
 
-  // the column is encoded type
+  // the column encoded type
   ColumnEncoding_Kind encoded_type_;
+
+  // the column compress level
+  int compress_level_;
 
   // data part align size.
   // This field only takes effect when current column is no encoding/compress.

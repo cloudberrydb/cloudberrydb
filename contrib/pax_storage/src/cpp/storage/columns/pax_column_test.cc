@@ -417,6 +417,7 @@ TEST_P(PaxColumnEncodingTest, GetRangeEncodingColumnTest) {
       bits, origin_len, origin_rows, std::move(decoding_option), encoded_buff,
       encoded_len, storage_type, 100);
 
+  ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
   char *verify_buff;
   size_t verify_len;
   std::tie(verify_buff, verify_len) =
@@ -471,11 +472,13 @@ TEST_P(PaxColumnCompressTest, FixedCompressColumnGetRangeTest) {
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
   decoding_option.is_sign = true;
+  decoding_option.compress_level = 5;
 
   auto int_column_for_read =
       CreateDecodeColumn(bits, (100) * bits / 8, origin_rows,
                          std::move(decoding_option), encoded_buff, encoded_len);
 
+  ASSERT_EQ(int_column_for_read->GetCompressLevel(), 5);
   char *verify_buff;
   size_t verify_len;
   std::tie(verify_buff, verify_len) =
@@ -534,6 +537,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnDefault) {
       bits, origin_len, origin_rows, std::move(decoding_option), encoded_buff,
       encoded_len, storage_type);
 
+  ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
   char *verify_buff;
   size_t verify_len;
   std::tie(verify_buff, verify_len) = int_column_for_read->GetBuffer();
@@ -577,6 +581,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnSpecType) {
   auto int_column_for_read = CreateDecodeColumn(
       bits, origin_len, origin_rows, std::move(decoding_option), encoded_buff,
       encoded_len, storage_type);
+  ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
 
   char *verify_buff;
   size_t verify_len;
@@ -620,7 +625,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnNoEncoding) {
   auto int_column_for_read = CreateDecodeColumn(
       bits, encoded_len, origin_rows, std::move(decoding_option), encoded_buff,
       encoded_len, storage_type);
-
+  ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
   char *verify_buff;
   size_t verify_len;
   std::tie(verify_buff, verify_len) = int_column_for_read->GetBuffer();
@@ -659,11 +664,13 @@ TEST_P(PaxColumnCompressTest, PaxEncodingColumnCompressDecompress) {
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
   decoding_option.is_sign = true;
+  decoding_option.compress_level = 5;
 
   auto int_column_for_read =
       CreateDecodeColumn(bits, (UINT16_MAX + 1) * bits / 8, origin_rows,
                          std::move(decoding_option), encoded_buff, encoded_len);
 
+  ASSERT_EQ(int_column_for_read->GetCompressLevel(), 5);
   char *verify_buff;
   size_t verify_len;
   std::tie(verify_buff, verify_len) = int_column_for_read->GetBuffer();
@@ -718,6 +725,7 @@ TEST_P(PaxNonFixedColumnCompressTest,
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
   decoding_option.is_sign = true;
+  decoding_option.compress_level = 5;
 
   auto non_fixed_column_for_read = new PaxNonFixedEncodingColumn(
       buffer_len * number, std::move(decoding_option));
@@ -727,7 +735,7 @@ TEST_P(PaxNonFixedColumnCompressTest,
   auto length_buffer_cpy = new DataBuffer<int64>(*length_buffer);
   non_fixed_column_for_read->Set(data_buffer_for_read, length_buffer_cpy,
                                  origin_len);
-
+  ASSERT_EQ(non_fixed_column_for_read->GetCompressLevel(), 5);
   char *verify_buff;
   size_t verify_len;
 

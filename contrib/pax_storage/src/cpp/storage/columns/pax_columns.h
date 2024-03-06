@@ -65,8 +65,8 @@ class PaxColumns : public PaxColumn {
   using ColumnStreamsFunc =
       std::function<void(const pax::orc::proto::Stream_Kind &, size_t, size_t)>;
 
-  using ColumnEncodingFunc =
-      std::function<void(const ColumnEncoding_Kind &, size_t)>;
+  using ColumnEncodingFunc = std::function<void(
+      const ColumnEncoding_Kind &, const uint64 compress_lvl, size_t)>;
 
   // Get the combined data buffer of all columns
   // TODO(jiaqizho): consider add a new api which support split IO from

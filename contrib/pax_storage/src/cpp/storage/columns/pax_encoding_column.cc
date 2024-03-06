@@ -45,7 +45,8 @@ void PaxEncodingColumn<T>::InitEncoder() {
     encoder_options_.column_encode_type = GetDefaultColumnType();
   }
 
-  PaxColumn::encoded_type_ = encoder_options_.column_encode_type;
+  PaxColumn::SetEncodeType(encoder_options_.column_encode_type);
+  PaxColumn::SetCompressLevel(encoder_options_.compress_level);
 
   // Create a streaming encoder
   // If current `encoded_type_` can not create a streaming encoder,
@@ -65,7 +66,8 @@ void PaxEncodingColumn<T>::InitEncoder() {
   // Create a block compressor
   // Compressor have a different interface with pax encoder
   // If no pax encoder no provided, then try to create a compressor.
-  compressor_ = PaxCompressor::CreateBlockCompressor(PaxColumn::encoded_type_);
+  compressor_ =
+      PaxCompressor::CreateBlockCompressor(PaxColumn::GetEncodingType());
   if (compressor_) {
     return;
   }
@@ -73,15 +75,17 @@ void PaxEncodingColumn<T>::InitEncoder() {
   // can't find any encoder or compressor
   // then should reset encode type
   // or will got origin length is -1 but still have encode type
-  PaxColumn::encoded_type_ =
-      ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED;
+  PaxColumn::SetEncodeType(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED);
+  PaxColumn::SetCompressLevel(0);
 }
 
 template <typename T>
 void PaxEncodingColumn<T>::InitDecoder() {
   Assert(decoder_options_.column_encode_type !=
          ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
-  PaxColumn::encoded_type_ = decoder_options_.column_encode_type;
+
+  PaxColumn::SetEncodeType(decoder_options_.column_encode_type);
+  PaxColumn::SetCompressLevel(decoder_options_.compress_level);
 
   decoder_ = PaxDecoder::CreateDecoder<T>(decoder_options_);
   if (decoder_) {
@@ -92,7 +96,8 @@ void PaxEncodingColumn<T>::InitDecoder() {
     return;
   }
 
-  compressor_ = PaxCompressor::CreateBlockCompressor(PaxColumn::encoded_type_);
+  compressor_ =
+      PaxCompressor::CreateBlockCompressor(PaxColumn::GetEncodingType());
 }
 
 template <typename T>

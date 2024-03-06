@@ -333,6 +333,7 @@ static PaxColumn *BuildEncodingColumn(
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = data_encoding.kind();
   decoding_option.is_sign = true;
+  decoding_option.compress_level = data_encoding.compress_lvl();
 
   size_t alloc_size = 0;
 
@@ -406,6 +407,7 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
     PaxDecoder::DecodingOption decoding_option;
     decoding_option.column_encode_type = data_encoding.kind();
     decoding_option.is_sign = true;
+    decoding_option.compress_level = data_encoding.compress_lvl();
 
     pax_column =
         traits::ColumnOptCreateTraits2<PaxVecNonFixedEncodingColumn>::  //
@@ -466,6 +468,7 @@ static PaxColumn *BuildEncodingNonFixedColumn(
     PaxDecoder::DecodingOption decoding_option;
     decoding_option.column_encode_type = data_encoding.kind();
     decoding_option.is_sign = true;
+    decoding_option.compress_level = data_encoding.compress_lvl();
 
     pax_column = traits::ColumnOptCreateTraits2<
         PaxNonFixedEncodingColumn>::create_decoding(data_encoding.length(),

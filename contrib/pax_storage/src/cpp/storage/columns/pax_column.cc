@@ -16,11 +16,10 @@ PaxColumn::PaxColumn()
       total_rows_(0),
       non_null_rows_(0),
       encoded_type_(ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED),
+      compress_level_(0),
       type_align_size_(PAX_DATA_NO_ALIGN) {}
 
-PaxColumn::~PaxColumn() {
-  PAX_DELETE(null_bitmap_);
-}
+PaxColumn::~PaxColumn() { PAX_DELETE(null_bitmap_); }
 
 PaxColumnTypeInMem PaxColumn::GetPaxColumnTypeInMem() const {
   return PaxColumnTypeInMem::kTypeInvalid;
@@ -79,13 +78,6 @@ void PaxColumn::SetAlignSize(size_t align_size) {
   Assert(align_size > 0 && (align_size & (align_size - 1)) == 0);
   type_align_size_ = align_size;
 }
-
-PaxColumn *PaxColumn::SetColumnEncodeType(ColumnEncoding_Kind encoding_type) {
-  encoded_type_ = encoding_type;
-  return this;
-}
-
-ColumnEncoding_Kind PaxColumn::GetEncodingType() const { return encoded_type_; }
 
 template <typename T>
 PaxCommColumn<T>::PaxCommColumn(uint32 capacity) {

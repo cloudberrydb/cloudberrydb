@@ -116,9 +116,9 @@ static PaxColumns *BuildColumns(
   return columns;
 }
 
-OrcWriter::OrcWriter(const MicroPartitionWriter::WriterOptions &writer_options,
-                     const std::vector<pax::orc::proto::Type_Kind> &column_types,
-                     File *file)
+OrcWriter::OrcWriter(
+    const MicroPartitionWriter::WriterOptions &writer_options,
+    const std::vector<pax::orc::proto::Type_Kind> &column_types, File *file)
     : MicroPartitionWriter(writer_options),
       is_closed_(false),
       column_types_(column_types),
@@ -460,7 +460,7 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
 
   PaxColumns::ColumnEncodingFunc column_encoding_func =
       [&encoding_kinds](const ColumnEncoding_Kind &encoding_kind,
-                        int64 origin_len) {
+                        const uint64 compress_lvl, int64 origin_len) {
         ColumnEncoding column_encoding;
         Assert(encoding_kind !=
                ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
@@ -469,6 +469,7 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
           CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
         }
         column_encoding.set_kind(encoding_kind);
+        column_encoding.set_compress_lvl(compress_lvl);
         column_encoding.set_length(origin_len);
 
         encoding_kinds.push_back(std::move(column_encoding));
