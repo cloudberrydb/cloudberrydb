@@ -732,7 +732,7 @@ TEST_P(PaxNonFixedColumnCompressTest,
   auto data_buffer_for_read =
       new DataBuffer<char>(encoded_buff, encoded_len, false, false);
   data_buffer_for_read->Brush(encoded_len);
-  auto length_buffer_cpy = new DataBuffer<int64>(*length_buffer);
+  auto length_buffer_cpy = new DataBuffer<int32>(*length_buffer);
   non_fixed_column_for_read->Set(data_buffer_for_read, length_buffer_cpy,
                                  origin_len);
   ASSERT_EQ(non_fixed_column_for_read->GetCompressLevel(), 5);

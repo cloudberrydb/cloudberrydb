@@ -15,7 +15,7 @@ class PaxNonFixedEncodingColumn final : public PaxNonFixedColumn {
 
   ~PaxNonFixedEncodingColumn() override;
 
-  void Set(DataBuffer<char> *data, DataBuffer<int64> *lengths,
+  void Set(DataBuffer<char> *data, DataBuffer<int32> *lengths,
            size_t total_size) override;
 
   std::pair<char *, size_t> GetBuffer() override;

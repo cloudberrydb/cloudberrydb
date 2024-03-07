@@ -425,19 +425,19 @@ static PaxColumn *BuildEncodingNonFixedColumn(
   uint32 column_lens_size = 0;
   uint64 column_lens_len = 0;
   uint64 column_data_len = 0;
-  DataBuffer<int64> *column_len_buffer = nullptr;
+  DataBuffer<int32> *column_len_buffer = nullptr;
   DataBuffer<char> *column_data_buffer = nullptr;
   PaxNonFixedColumn *pax_column = nullptr;
 
   column_lens_size = static_cast<uint32>(len_stream.column());
   column_lens_len = static_cast<uint64>(len_stream.length());
 
-  column_len_buffer = PAX_NEW<DataBuffer<int64>>(
-      reinterpret_cast<int64 *>(data_buffer->GetAvailableBuffer()),
+  column_len_buffer = PAX_NEW<DataBuffer<int32>>(
+      reinterpret_cast<int32 *>(data_buffer->GetAvailableBuffer()),
       column_lens_len, false, false);
 
-  Assert(column_lens_len >= column_lens_size * sizeof(int64));
-  column_len_buffer->Brush(column_lens_size * sizeof(int64));
+  Assert(column_lens_len >= column_lens_size * sizeof(int32));
+  column_len_buffer->Brush(column_lens_size * sizeof(int32));
   data_buffer->Brush(column_lens_len);
 
   column_data_len = data_stream.length();

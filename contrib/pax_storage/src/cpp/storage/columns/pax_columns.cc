@@ -335,7 +335,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
 
     switch (column->GetPaxColumnTypeInMem()) {
       case kTypeNonFixed: {
-        size_t lengths_size = column_size * sizeof(int64);
+        size_t lengths_size = column_size * sizeof(int32);
 
         if ((buffer_len + lengths_size) % column->GetAlignSize() != 0) {
           auto align_buffer_len =

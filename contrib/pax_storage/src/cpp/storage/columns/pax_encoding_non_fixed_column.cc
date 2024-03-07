@@ -49,7 +49,7 @@ PaxNonFixedEncodingColumn::~PaxNonFixedEncodingColumn() {
 }
 
 void PaxNonFixedEncodingColumn::Set(DataBuffer<char> *data,
-                                    DataBuffer<int64> *lengths,
+                                    DataBuffer<int32> *lengths,
                                     size_t total_size) {
   if (compressor_) {
     Assert(!compress_route_);

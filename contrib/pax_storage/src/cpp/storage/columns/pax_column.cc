@@ -178,7 +178,7 @@ template class PaxCommColumn<double>;
 
 PaxNonFixedColumn::PaxNonFixedColumn(uint32 capacity) : estimated_size_(0) {
   data_ = PAX_NEW<DataBuffer<char>>(capacity * sizeof(char));
-  lengths_ = PAX_NEW<DataBuffer<int64>>(capacity * sizeof(char));
+  lengths_ = PAX_NEW<DataBuffer<int32>>(capacity * sizeof(char));
 }
 
 PaxNonFixedColumn::PaxNonFixedColumn() : PaxNonFixedColumn(DEFAULT_CAPACITY) {}
@@ -188,7 +188,7 @@ PaxNonFixedColumn::~PaxNonFixedColumn() {
   PAX_DELETE(lengths_);
 }
 
-void PaxNonFixedColumn::Set(DataBuffer<char> *data, DataBuffer<int64> *lengths,
+void PaxNonFixedColumn::Set(DataBuffer<char> *data, DataBuffer<int32> *lengths,
                             size_t total_size) {
   PAX_DELETE(data_);
   PAX_DELETE(lengths_);
@@ -222,15 +222,15 @@ void PaxNonFixedColumn::Append(char *buffer, size_t size) {
   }
 
   if (lengths_->Available() == 0) {
-    lengths_->ReSize(lengths_->Used() + sizeof(int64), 2);
+    lengths_->ReSize(lengths_->Used() + sizeof(int32), 2);
   }
 
   estimated_size_ += size;
   data_->Write(buffer, origin_size);
   data_->Brush(size);
 
-  lengths_->Write(reinterpret_cast<int64 *>(&size), sizeof(int64));
-  lengths_->Brush(sizeof(int64));
+  lengths_->Write(reinterpret_cast<int32 *>(&size), sizeof(int32));
+  lengths_->Brush(sizeof(int32));
 
   offsets_.emplace_back(offsets_.empty()
                             ? 0
@@ -239,7 +239,7 @@ void PaxNonFixedColumn::Append(char *buffer, size_t size) {
   Assert(offsets_.size() == lengths_->GetSize());
 }
 
-DataBuffer<int64> *PaxNonFixedColumn::GetLengthBuffer() const {
+DataBuffer<int32> *PaxNonFixedColumn::GetLengthBuffer() const {
   return lengths_;
 }
 

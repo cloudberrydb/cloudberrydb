@@ -286,7 +286,7 @@ class PaxNonFixedColumn : public PaxColumn {
 
   ~PaxNonFixedColumn() override;
 
-  virtual void Set(DataBuffer<char> *data, DataBuffer<int64> *lengths,
+  virtual void Set(DataBuffer<char> *data, DataBuffer<int32> *lengths,
                    size_t total_size);
 
   void Append(char *buffer, size_t size) override;
@@ -310,7 +310,7 @@ class PaxNonFixedColumn : public PaxColumn {
 
   size_t GetNonNullRows() const override;
 
-  DataBuffer<int64> *GetLengthBuffer() const;
+  DataBuffer<int32> *GetLengthBuffer() const;
 
   DataBuffer<int32> *GetOffsetBuffer(bool append_last = false);
 
@@ -321,8 +321,11 @@ class PaxNonFixedColumn : public PaxColumn {
   size_t estimated_size_;
   DataBuffer<char> *data_;
 
-  // orc needs to serialize int64 array
-  DataBuffer<int64> *lengths_;
+  // orc needs to serialize int32 array
+  // the length of a single tuple field will not exceed 2GB,
+  // so a variable-length element of the lengths stream can use int32 
+  // to represent the length
+  DataBuffer<int32> *lengths_;
   std::vector<uint64> offsets_;
 };
 
