@@ -2345,6 +2345,7 @@ static const TableAmRoutine ao_row_methods = {
 	.scan_end = appendonly_endscan,
 	.scan_rescan = appendonly_rescan,
 	.scan_getnextslot = appendonly_getnextslot,
+	.scan_flags = appendonly_scan_flags,
 
 	.parallelscan_estimate = appendonly_parallelscan_estimate,
 	.parallelscan_initialize = appendonly_parallelscan_initialize,

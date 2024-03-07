@@ -135,6 +135,7 @@ extern void heap_set_tidrange(TableScanDesc sscan, ItemPointer mintid,
 extern bool heap_getnextslot_tidrange(TableScanDesc sscan,
 									  ScanDirection direction,
 									  TupleTableSlot *slot);
+extern int heap_scan_flags(Relation relation);
 extern bool heap_fetch(Relation relation, Snapshot snapshot,
 					   HeapTuple tuple, Buffer *userbuf);
 extern bool heap_fetch_extended(Relation relation, Snapshot snapshot,
