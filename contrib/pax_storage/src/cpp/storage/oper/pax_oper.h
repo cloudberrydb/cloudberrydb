@@ -23,6 +23,7 @@ extern bool CharLE(const void *l, const void *r, Oid /*collation*/);
 extern bool CharEQ(const void *l, const void *r, Oid /*collation*/);
 extern bool CharGE(const void *l, const void *r, Oid /*collation*/);
 extern bool CharGT(const void *l, const void *r, Oid /*collation*/);
+
 }  // namespace charop
 
 namespace int2op {
@@ -128,6 +129,13 @@ extern bool TextLE(const void *l, const void *r, Oid collation);
 extern bool TextEQ(const void *l, const void *r, Oid collation);
 extern bool TextGE(const void *l, const void *r, Oid collation);
 extern bool TextGT(const void *l, const void *r, Oid collation);
+
+extern bool BpCharLT(const void *l, const void *r, Oid /*collation*/);
+extern bool BpCharLE(const void *l, const void *r, Oid /*collation*/);
+extern bool BpCharEQ(const void *l, const void *r, Oid /*collation*/);
+extern bool BpCharGE(const void *l, const void *r, Oid /*collation*/);
+extern bool BpCharGT(const void *l, const void *r, Oid /*collation*/);
+
 }  // namespace textop
 
 namespace numericop {

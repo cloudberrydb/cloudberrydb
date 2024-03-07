@@ -78,6 +78,16 @@ void MicroPartitionStats::MergeTo(MicroPartitionStats *stats, TupleDesc desc) {
 
     if (stats->status_[column_index] == 'n' ||
         stats->status_[column_index] == 'x') {
+      // still need update all and has null
+      if (stats_->GetAllNull(column_index) &&
+          !stats->stats_->GetAllNull(column_index)) {
+        stats_->SetAllNull(column_index, false);
+      }
+
+      if (!stats_->GetHasNull(column_index) &&
+          stats->stats_->GetHasNull(column_index)) {
+        stats_->SetHasNull(column_index, true);
+      }
       continue;
     }
 

@@ -546,6 +546,52 @@ bool TextGT(const void *l, const void *r, Oid collation) {
   return TextCmp(*(const text **)l, *(const text **)r, collation) > 0;
 }
 
+static inline int
+BcTruelen(const BpChar *arg)
+{
+	return bpchartruelen(VARDATA_ANY(arg), VARSIZE_ANY_EXHDR(arg));
+}
+
+bool BpCharLT(const void *l, const void *r, Oid collation) {
+  const BpChar *lbpchar = *(const BpChar **)l;
+  const BpChar *rbpchar = *(const BpChar **)r;
+
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
+					 collation) < 0;
+}
+
+bool BpCharLE(const void *l, const void *r, Oid collation) {
+  const BpChar *lbpchar = *(const BpChar **)l;
+  const BpChar *rbpchar = *(const BpChar **)r;
+
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
+					 collation) <= 0;
+}
+
+bool BpCharEQ(const void *l, const void *r, Oid collation) {
+  const BpChar *lbpchar = *(const BpChar **)l;
+  const BpChar *rbpchar = *(const BpChar **)r;
+
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
+					 collation) == 0;
+}
+
+bool BpCharGE(const void *l, const void *r, Oid collation) {
+  const BpChar *lbpchar = *(const BpChar **)l;
+  const BpChar *rbpchar = *(const BpChar **)r;
+
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
+					 collation) >= 0;
+}
+
+bool BpCharGT(const void *l, const void *r, Oid collation) {
+  const BpChar *lbpchar = *(const BpChar **)l;
+  const BpChar *rbpchar = *(const BpChar **)r;
+
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
+					 collation) > 0;
+}
+
 }  // namespace textop
 
 namespace numericop {
@@ -754,6 +800,16 @@ std::map<OperMinMaxKey, OperMinMaxFunc> min_max_opers = {
                       textop::TextGE),
     INIT_MIN_MAX_OPER(TEXTOID, TEXTOID, BTGreaterStrategyNumber,
                       textop::TextGT),
+
+    // oper(bpchar, bpchar)
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTLessStrategyNumber, textop::BpCharLT),
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTLessEqualStrategyNumber,
+                      textop::BpCharLE),
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTEqualStrategyNumber, textop::BpCharEQ),
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTGreaterEqualStrategyNumber,
+                      textop::BpCharGE),
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTGreaterStrategyNumber,
+                      textop::BpCharGT),
 
     // oper(numeric, numeric)
     INIT_MIN_MAX_OPER(NUMERICOID, NUMERICOID, BTLessStrategyNumber,

@@ -494,7 +494,7 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
       break;
     }
     default:
-      Assert(false);
+      // not support others `sk_strategy`
       matches = BoolGetDatum(true);
       break;
   }
