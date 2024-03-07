@@ -1621,6 +1621,12 @@ heap_getnextslot_tidrange(TableScanDesc sscan, ScanDirection direction,
 	return true;
 }
 
+int
+heap_scan_flags(Relation relation)
+{
+	return 0;
+}
+
 /*
  *	heap_fetch		- retrieve tuple with given tid
  *
