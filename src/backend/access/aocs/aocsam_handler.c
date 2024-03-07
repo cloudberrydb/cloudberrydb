@@ -757,6 +757,12 @@ aoco_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSlot *sl
 	return false;
 }
 
+static int
+aoco_scan_flags(Relation rel)
+{
+	return 0;
+}
+
 static Size
 aoco_parallelscan_estimate(Relation rel)
 {
@@ -2402,6 +2408,7 @@ static TableAmRoutine ao_column_methods = {
 	.scan_end = aoco_endscan,
 	.scan_rescan = aoco_rescan,
 	.scan_getnextslot = aoco_getnextslot,
+	.scan_flags = aoco_scan_flags,
 
 	.parallelscan_estimate = aoco_parallelscan_estimate,
 	.parallelscan_initialize = aoco_parallelscan_initialize,

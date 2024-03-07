@@ -1799,6 +1799,12 @@ appendonly_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSl
 	return false;
 }
 
+int
+appendonly_scan_flags(Relation relation)
+{
+	return 0;
+}
+
 static void
 closeFetchSegmentFile(AppendOnlyFetchDesc aoFetchDesc)
 {
