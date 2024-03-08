@@ -1109,6 +1109,8 @@ class gpexpand:
         tblspc_info = {}
 
         for oid in tblspc_oids:
+            if oid not in tblspc_oid_names:
+                continue
             location = os.path.dirname(os.readlink(os.path.join(coordinator_tblspc_dir,
                                                                 oid)))
             tblspc_info[oid] = {"location": location,
@@ -1221,6 +1223,15 @@ class gpexpand:
         """
         coordinator_tblspc_dir = self.gparray.coordinator.getSegmentTableSpaceDirectory()
         if not os.listdir(coordinator_tblspc_dir):
+            return None
+        
+        tblspc_oids = os.listdir(coordinator_tblspc_dir)
+        tblspc_oid_names = self.get_tablespace_oid_names()
+        flag = False
+        for oid in tblspc_oids:
+            if oid in tblspc_oid_names:
+                flag = True
+        if not flag:
             return None
 
         if not self.options.filename:
@@ -1384,6 +1395,25 @@ class gpexpand:
             self.pool.addCommand(segStartCmd)
         self.pool.join()
         self.pool.check_results()
+
+
+        for i in range(1,12):
+            flag = True
+            for segment in newSegments:
+                if seg.isSegmentMirror() == True:
+                    continue
+
+                cmd = Command('pg_isready for segment',
+                            "pg_isready -q -h %s -p %d -d %s" % (segment.getSegmentHostName(), segment.getSegmentPort(), segment.getSegmentDataDirectory()))
+                cmd.run()
+                rc = cmd.get_return_code()
+                if rc != 0:
+                    flag &= False
+            if flag: 
+                break
+            time.sleep(10)
+            self.logger.info("Waiting for segment ready last for %s second" % (i*10))
+
 
         """
         Build the list of delete statements based on the COORDINATOR_ONLY_TABLES

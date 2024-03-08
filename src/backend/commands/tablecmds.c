@@ -526,9 +526,9 @@ static void RangeVarCallbackForDropRelation(const RangeVar *rel, Oid relOid,
 static void RangeVarCallbackForAlterRelation(const RangeVar *rv, Oid relid,
 											 Oid oldrelid, void *arg);
 
-static void ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd);
-static void ATExecExpandPartitionTablePrepare(Relation rel);
-static void ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd);
+static void ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd, int numsegments);
+static void ATExecExpandPartitionTablePrepare(Relation rel, int numsegments);
+static void ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd, int numsegments);
 
 static void ATExecSetDistributedBy(Relation rel, Node *node,
 								   AlterTableCmd *cmd);
@@ -4908,6 +4908,7 @@ AlterTableGetLockLevel(List *cmds)
 				/* GPDB additions */
 			case AT_ExpandTable:
 			case AT_ExpandPartitionTablePrepare:
+			case AT_ShrinkTable:
 			case AT_SetDistributedBy:
 				cmd_lockmode = AccessExclusiveLock;
 				break;
@@ -5478,6 +5479,37 @@ ATPrepCmd(List **wqueue, Relation rel, AlterTableCmd *cmd,
 			pass = AT_PASS_MISC;
 			break;
 
+		case AT_ShrinkTable:
+			ATSimplePermissions(rel, ATT_TABLE | ATT_FOREIGN_TABLE | ATT_MATVIEW);
+
+			/* ATTACH and DETACH will process in ATExecAttachPartition function */
+			if (!recursing)
+			{
+				Assert(IsA(cmd->def, Integer));
+				if (Gp_role == GP_ROLE_DISPATCH &&
+					rel->rd_cdbpolicy->numsegments <= intVal(cmd->def))
+					ereport(ERROR,
+							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+							 errmsg("cannot shrink table \"%s\"",
+									RelationGetRelationName(rel)),
+							 errdetail("table numsegments \"%d\", shrink size \"%d\" " ,rel->rd_cdbpolicy->numsegments, intVal(cmd->def))));
+
+				if (rel->rd_rel->relispartition)
+				{
+					ereport(ERROR,
+							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+							 errmsg("cannot shrink leaf or interior partition \"%s\"",
+									RelationGetRelationName(rel)),
+							 errdetail("Root/leaf/interior partitions need to have same numsegments"),
+							 errhint("Call ALTER TABLE SHRINK TABLE on the root table instead")));
+				}
+
+			}
+
+			ATSimpleRecursion(wqueue, rel, cmd, recurse, lockmode, context);
+			pass = AT_PASS_MISC;
+			break;
+
 		case AT_AddInherit:		/* INHERIT */
 			ATSimplePermissions(rel, ATT_TABLE | ATT_FOREIGN_TABLE);
 			/* This command never recurses */
@@ -5981,10 +6013,13 @@ ATExecCmd(List **wqueue, AlteredTableInfo *tab,
 			ATExecSetDistributedBy(rel, (Node *) cmd->def, cmd);
 			break;
 		case AT_ExpandTable:	/* EXPAND TABLE */
-			ATExecExpandTable(wqueue, rel, cmd);
+			ATExecExpandTable(wqueue, rel, cmd, getgpsegmentCount());
 			break;
 		case AT_ExpandPartitionTablePrepare:	/* EXPAND PARTITION PREPARE */
-			ATExecExpandPartitionTablePrepare(rel);
+			ATExecExpandPartitionTablePrepare(rel, getgpsegmentCount());
+			break;
+		case AT_ShrinkTable:	/* EXPAND TABLE */
+			ATExecExpandTable(wqueue, rel, cmd, intVal(cmd->def));
 			break;
 		case AT_AttachPartition:
 			cmd = ATParseTransformCmd(wqueue, tab, rel, cmd, false, lockmode,
@@ -17839,9 +17874,13 @@ checkPolicyCompatibleWithIndexes(Relation rel, GpPolicy *pol)
  *    the data to the new reltion file, and swap it in place of the old one.
  *    This is called the "CTAS method", because it uses a CREATE TABLE AS
  *    command internally to create the new physical relation.
+ * 
+ * To support shrink, We add parameter numsegments to set table policy to 
+ * arbitrary size. For expand, the numsegments is getgpsegmentCount. For shrink
+ * the numsegments is input of user.
  */
 static void
-ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd)
+ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd, int numsegments)
 {
 	AlteredTableInfo	*tab;
 	AlterTableCmd		*rootCmd;
@@ -17903,11 +17942,11 @@ ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd)
 	}
 	else
 	{
-		ATExecExpandTableCTAS(rootCmd, rel, cmd);
+		ATExecExpandTableCTAS(rootCmd, rel, cmd, numsegments);
 	}
 
 	/* Update numsegments to cluster size */
-	newPolicy->numsegments = getgpsegmentCount();
+	newPolicy->numsegments = numsegments;
 	GpPolicyReplace(relid, newPolicy);
 }
 
@@ -17932,11 +17971,12 @@ ATExecExpandTable(List **wqueue, Relation rel, AlterTableCmd *cmd)
  *    and new policy type of leaf partitions are randomly on 3 segments
  *
  * @param rel the parent or leaf of partition table
+ * 
+ * Add parameter numsegments, see ATExecExpandTable for details.
  */
 static void
-ATExecExpandPartitionTablePrepare(Relation rel)
+ATExecExpandPartitionTablePrepare(Relation rel, int numsegments)
 {
-	int       new_numsegments = getgpsegmentCount();
 	Oid       relid = RelationGetRelid(rel);
 
 	if (GpPolicyIsRandomPartitioned(rel->rd_cdbpolicy) || rel->rd_rel->relkind == RELKIND_PARTITIONED_TABLE)
@@ -17951,7 +17991,7 @@ ATExecExpandPartitionTablePrepare(Relation rel)
 		 */
 		oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
 		new_policy = GpPolicyCopy(rel->rd_cdbpolicy);
-		new_policy->numsegments = new_numsegments;
+		new_policy->numsegments = numsegments;
 		MemoryContextSwitchTo(oldcontext);
 
 		GpPolicyReplace(relid, new_policy);
@@ -17977,7 +18017,7 @@ ATExecExpandPartitionTablePrepare(Relation rel)
 					/* Just modify the numsegments for external writable leaves */
 					oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
 					new_policy = GpPolicyCopy(rel->rd_cdbpolicy);
-					new_policy->numsegments = new_numsegments;
+					new_policy->numsegments = numsegments;
 					MemoryContextSwitchTo(oldcontext);
 
 					GpPolicyReplace(relid, new_policy);
@@ -17993,7 +18033,7 @@ ATExecExpandPartitionTablePrepare(Relation rel)
 
 			/* we change policy type to randomly for regular leaf partitions distributed by hash */
 			oldcontext = MemoryContextSwitchTo(GetMemoryChunkContext(rel));
-			new_policy = createRandomPartitionedPolicy(new_numsegments);
+			new_policy = createRandomPartitionedPolicy(numsegments);
 			MemoryContextSwitchTo(oldcontext);
 
 			GpPolicyReplace(relid, new_policy);
@@ -18004,7 +18044,7 @@ ATExecExpandPartitionTablePrepare(Relation rel)
 }
 
 static void
-ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd)
+ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd, int numsegments)
 {
 	RangeVar			*tmprv;
 	Datum				newOptions;
@@ -18045,7 +18085,7 @@ ATExecExpandTableCTAS(AlterTableCmd *rootCmd, Relation rel, AlterTableCmd *cmd)
 
 		/* Step (b) - build CTAS */
 		distby = make_distributedby_for_rel(rel);
-		distby->numsegments = getgpsegmentCount();
+		distby->numsegments = numsegments;
 
 		newOptions = new_rel_opts(rel);
 

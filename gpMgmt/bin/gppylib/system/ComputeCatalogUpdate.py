@@ -54,7 +54,7 @@ class ComputeCatalogUpdate:
         self.dbsegmap    = dict([(seg.getSegmentDbId(), seg) for seg in gpArray.getSegmentsAsLoadedFromDb()])
 
         # 'goalsegmap' reflects the desired state of the catalog
-        self.goalsegmap  = dict([(seg.getSegmentDbId(), seg) for seg in gpArray.getDbList(includeExpansionSegs=True)])
+        self.goalsegmap  = dict([(seg.getSegmentDbId(), seg) for seg in gpArray.getDbList(includeExpansionSegs=True, removeShrinkSegs=True)])
 
         # find mirrors and primaries to remove
         self.mirror_to_remove = [

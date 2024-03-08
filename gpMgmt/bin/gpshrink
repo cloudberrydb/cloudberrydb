@@ -1,0 +1,1511 @@
+#!/usr/bin/env python3
+# Line too long            - pylint: disable=C0301
+# Invalid name             - pylint: disable=C0103
+#
+# Copyright (c) Greenplum Inc 2008. All Rights Reserved.
+#
+from gppylib.mainUtils import getProgramName
+
+import copy
+import datetime
+import os
+import random
+import sys
+import json
+import shutil
+import signal
+import traceback
+from collections import defaultdict
+from time import strftime, sleep
+
+try:
+    import pg, pgdb
+
+    from gppylib.commands.unix import *
+    from gppylib.commands.gp import *
+    from gppylib.gparray import GpArray, MODE_NOT_SYNC, STATUS_DOWN
+    from gppylib.gpparseopts import OptParser, OptChecker
+    from gppylib.gplog import *
+    from gppylib.db import catalog
+    from gppylib.db import dbconn
+    from gppylib.userinput import *
+    from gppylib.operations.startSegments import MIRROR_MODE_MIRRORLESS
+    from gppylib.system import configurationInterface, configurationImplGpdb
+    from gppylib.system.environment import GpCoordinatorEnvironment
+    from pgdb import DatabaseError
+    from gppylib.gpcatalog import COORDINATOR_ONLY_TABLES
+    from gppylib.operations.package import SyncPackages
+    from gppylib.operations.utils import ParallelOperation
+    from gppylib.parseutils import line_reader, check_values, canonicalize_address
+    from gppylib.heapchecksum import HeapChecksum
+    from gppylib.commands.pg import PgBaseBackup
+    from gppylib.mainUtils import ExceptionNoStackTraceNeeded
+    from gppylib.operations.update_pg_hba_on_segments import update_pg_hba_on_segments
+
+except ImportError as e:
+    sys.exit('ERROR: Cannot import modules.  Please check that you have sourced greenplum_path.sh.  Detail: ' + str(e))
+
+# constants
+MAX_PARALLEL_SHRINKS = 96
+MAX_BATCH_SIZE = 128
+
+SEGMENT_CONFIGURATION_BACKUP_FILE = "gpshrink.gp_segment_configuration"
+
+DBNAME = 'postgres'
+
+#global var
+_gp_shrink = None
+
+description = ("""
+Adds additional segments to a pre-existing CBDB Array.
+""")
+
+_help = ["""
+The input file should be a plain text file with a line for each segment
+to add with the format:
+
+  <hostname>|<address>|<port>|<data_directory>|<dbid>|<content>|<definedprimary>
+
+And add primary before mirror.
+
+""",
+         ]
+
+_TODO = ["""
+
+Remaining TODO items:
+====================
+""",
+
+         """* smarter heuristics on deciding which tables to reorder first. """,
+
+         """* make sure system isn't in "readonly mode" during setup. """,
+
+         """* need a startup validation where we check the status detail
+             with gp_distribution_policy and make sure that our book
+             keeping matches reality. we don't have a perfect transactional
+             model since the tables can be in a different database from
+             where the gpshrink schema is kept. """,
+
+         """* currently requires that GPHOME and PYTHONPATH be set on all of the remote hosts of
+              the system.  should get rid of this requirement. """
+         ]
+
+_usage = """[-f hosts_file]
+
+gpshrink -i input_file [-B batch_size] [-t segment_tar_dir] [-S]
+
+gpshrink [-d duration[hh][:mm[:ss]] | [-e 'YYYY-MM-DD hh:mm:ss']]
+         [-a] [-n parallel_processes]
+
+gpshrink -r
+
+gpshrink -c
+
+gpshrink -? | -h | --help | --verbose | -v"""
+
+EXECNAME = os.path.split(__file__)[-1]
+
+
+# ----------------------- Command line option parser ----------------------
+
+def parseargs():
+    parser = OptParser(option_class=OptChecker,
+                       description=' '.join(description.split()),
+                       version='%prog version $Revision$')
+    parser.setHelp(_help)
+    parser.set_usage('%prog ' + _usage)
+    parser.remove_option('-h')
+
+    parser.add_option('-c', '--clean', action='store_true',
+                      help='remove the shrink schema.')
+    parser.add_option('-r', '--rollback', action='store_true',
+                      help='rollback failed shrink setup.')
+    parser.add_option('-a', '--analyze', action='store_true',
+                      help='Analyze the shrinked table after redistribution.')
+    parser.add_option('-d', '--duration', type='duration', metavar='[h][:m[:s]]',
+                      help='duration from beginning to end.')
+    parser.add_option('-e', '--end', type='datetime', metavar='datetime',
+                      help="ending date and time in the format 'YYYY-MM-DD hh:mm:ss'.")
+    parser.add_option('-i', '--input', dest="filename",
+                      help="input shrink configuration file.", metavar="FILE")
+    parser.add_option('-f', '--hosts-file', metavar='<hosts_file>',
+                      help='file containing new host names used to generate input file')
+    parser.add_option('-B', '--batch-size', type='int', default=16, metavar="<batch_size>",
+                      help='shrink configuration batch size. Valid values are 1-%d' % MAX_BATCH_SIZE)
+    parser.add_option('-n', '--parallel', type="int", default=1, metavar="<parallel_processes>",
+                      help='number of tables to shrink at a time. Valid values are 1-%d.' % MAX_PARALLEL_SHRINKS)
+    parser.add_option('-v', '--verbose', action='store_true',
+                      help='debug output.')
+    parser.add_option('-S', '--simple-progress', action='store_true',
+                      help='show simple progress.')
+    parser.add_option('-t', '--tardir', default='.', metavar="FILE",
+                      help='Tar file directory.')
+    parser.add_option('-h', '-?', '--help', action='help',
+                      help='show this help message and exit.')
+    parser.add_option('-s', '--silent', action='store_true',
+                      help='Do not prompt for confirmation to proceed on warnings')
+    parser.add_option('', '--hba-hostnames', action='store_true', default=False,
+                      help='use hostnames instead of CIDR in pg_hba.conf')
+    parser.add_option('--usage', action="briefhelp")
+
+    parser.set_defaults(verbose=False, filters=[], slice=(None, None))
+
+    # Parse the command line arguments
+    (options, args) = parser.parse_args()
+    return options, args, parser
+
+def validate_options(options, args, parser):
+    if len(args) > 0:
+        logger.error('Unknown argument %s' % args[0])
+        parser.exit()
+
+    # -n sanity check
+    if options.parallel > MAX_PARALLEL_SHRINKS or options.parallel < 1:
+        logger.error('Invalid argument.  parallel value must be >= 1 and <= %d' % MAX_PARALLEL_SHRINKS)
+        parser.print_help()
+        parser.exit()
+
+    proccount = os.environ.get('GP_MGMT_PROCESS_COUNT')
+    if options.batch_size == 16 and proccount is not None:
+        options.batch_size = int(proccount)
+
+    if options.batch_size < 1 or options.batch_size > 128:
+        logger.error('Invalid argument.  -B value must be >= 1 and <= %s' % MAX_BATCH_SIZE)
+        parser.print_help()
+        parser.exit()
+
+    # OptParse can return date instead of datetime so we might need to convert
+    if options.end and not isinstance(options.end, datetime.datetime):
+        options.end = datetime.datetime.combine(options.end, datetime.time(0))
+
+    if options.end and options.end < datetime.datetime.now():
+        logger.error('End time occurs in the past')
+        parser.print_help()
+        parser.exit()
+
+    if options.end and options.duration:
+        logger.warn('Both end and duration options were given.')
+        # Both a duration and an end time were given.
+        if options.end > datetime.datetime.now() + options.duration:
+            logger.warn('The duration argument will be used for the shrink end time.')
+            options.end = datetime.datetime.now() + options.duration
+        else:
+            logger.warn('The end argument will be used for the shrink end time.')
+    elif options.duration:
+        options.end = datetime.datetime.now() + options.duration
+
+    # -c and -r options are mutually exclusive
+    if options.rollback and options.clean:
+        rollbackOpt = "--rollback" if "--rollback" in sys.argv else "-r"
+        cleanOpt = "--clean" if "--clean" in sys.argv else "-c"
+        logger.error("%s and %s options cannot be specified together." % (rollbackOpt, cleanOpt))
+        parser.exit()
+
+    try:
+        options.coordinator_data_directory = get_coordinatordatadir()
+        options.gphome = get_gphome()
+    except GpError as msg:
+        logger.error(msg)
+        parser.exit()
+
+    if not os.path.exists(options.coordinator_data_directory):
+        logger.error('Coordinator data directory %s does not exist.' % options.coordinator_data_directory)
+        parser.exit()
+
+    return options, args
+
+# -------------------------------------------------------------------------
+# process information functions
+def create_pid_file(coordinator_data_directory):
+    """Creates gpshrink pid file"""
+    try:
+        fp = open(coordinator_data_directory + '/gpshrink.pid', 'w')
+        fp.write(str(os.getpid()))
+    except IOError:
+        raise
+    finally:
+        if fp: fp.close()
+
+
+def remove_pid_file(coordinator_data_directory):
+    """Removes gpshrink pid file"""
+    try:
+        os.unlink(coordinator_data_directory + '/gpshrink.pid')
+    except:
+        pass
+
+
+def is_gpshrink_running(coordinator_data_directory):
+    """Checks if there is another instance of gpshrink running"""
+    is_running = False
+    try:
+        fp = open(coordinator_data_directory + '/gpshrink.pid', 'r')
+        pid = int(fp.readline().strip())
+        fp.close()
+        is_running = check_pid(pid)
+    except IOError:
+        pass
+    except Exception:
+        raise
+
+    return is_running
+
+
+def gpshrink_status_file_exists(coordinator_data_directory):
+    """Checks if gpshrink.pid exists"""
+    return os.path.exists(coordinator_data_directory + '/gpshrink.status')
+
+
+# -------------------------------------------------------------------------
+# shrink schema
+
+undone_status = "NOT STARTED"
+start_status = "IN PROGRESS"
+done_status = "COMPLETED"
+does_not_exist_status = 'NO LONGER EXISTS'
+
+create_schema_sql = "CREATE SCHEMA gpshrink"
+drop_schema_sql = "DROP SCHEMA IF EXISTS gpshrink CASCADE"
+
+status_table_sql = """CREATE TABLE gpshrink.status
+                        ( status text,
+                          updated timestamp ) """
+
+status_detail_table_sql = """CREATE TABLE gpshrink.status_detail
+                        ( dbname text,
+                          fq_name text,
+                          table_oid oid,
+                          root_partition_oid oid,
+                          rank int,
+                          external_writable bool,
+                          status text,
+                          shrink_started timestamp,
+                          shrink_finished timestamp,
+                          source_bytes numeric ) """
+# gpshrink views
+progress_view_simple_sql = """CREATE VIEW gpshrink.shrink_progress AS
+SELECT
+    CASE status
+        WHEN '%s' THEN 'Tables Shrinked'
+        WHEN '%s' THEN 'Tables Left'
+    END AS Name,
+    count(*)::text AS Value
+FROM gpshrink.status_detail GROUP BY status""" % (done_status, undone_status)
+
+progress_view_sql = """CREATE VIEW gpshrink.shrink_progress AS
+SELECT
+    CASE status
+        WHEN '%s' THEN 'Tables Shrinked'
+        WHEN '%s' THEN 'Tables Left'
+        WHEN '%s' THEN 'Tables In Progress'
+    END AS Name,
+    count(*)::text AS Value
+FROM gpshrink.status_detail GROUP BY status
+
+UNION
+
+SELECT
+    CASE status
+        WHEN '%s' THEN 'Bytes Done'
+        WHEN '%s' THEN 'Bytes Left'
+        WHEN '%s' THEN 'Bytes In Progress'
+    END AS Name,
+    SUM(source_bytes)::text AS Value
+FROM gpshrink.status_detail GROUP BY status
+
+UNION
+
+SELECT
+    'Estimated shrink Rate' AS Name,
+    (SUM(source_bytes) / (1 + extract(epoch FROM (max(shrink_finished) - min(shrink_started)))) / 1024 / 1024)::text || ' MB/s' AS Value
+FROM gpshrink.status_detail
+WHERE status = '%s'
+AND
+shrink_started > (SELECT updated FROM gpshrink.status WHERE status = '%s' ORDER BY updated DESC LIMIT 1)
+
+UNION
+
+SELECT
+'Estimated Time to Completion' AS Name,
+CAST((SUM(source_bytes) / (
+SELECT 1 + SUM(source_bytes) / (1 + (extract(epoch FROM (max(shrink_finished) - min(shrink_started)))))
+FROM gpshrink.status_detail
+WHERE status = '%s'
+AND
+shrink_started > (SELECT updated FROM gpshrink.status WHERE status = '%s' ORDER BY
+updated DESC LIMIT 1)))::text || ' seconds' as interval)::text AS Value
+FROM gpshrink.status_detail
+WHERE status = '%s'
+  OR status = '%s'""" % (done_status, undone_status, start_status,
+                         done_status, undone_status, start_status,
+                         done_status,
+                         'SHRINK STARTED',
+                         done_status,
+                         'SHRINK STARTED',
+                         start_status, undone_status)
+
+# -------------------------------------------------------------------------
+class InvalidStatusError(Exception): pass
+
+
+class ValidationError(Exception): pass
+
+
+# -------------------------------------------------------------------------
+class gpshrinkStatus():
+    """Class that manages gpshrink status file.
+
+    The status file is placed in the coordinator data directory on both the coordinator and
+    the standby coordinator.  it's used to keep track of where we are in the progression.
+    """
+
+    def __init__(self, logger, coordinator_data_directory, coordinator_mirror=None):
+        self.logger = logger
+
+        self._status_values = {'UNINITIALIZED': 1,
+                               'SHRINK_PREPARE_STARTED': 2,
+                               'UPDATE_CATALOG_STARTED': 3,
+                               'UPDATE_CATALOG_DONE': 4,
+                               'SETUP_SHRINK_SCHEMA_STARTED': 5,
+                               'SETUP_SHRINK_SCHEMA_DONE': 6,
+                               'PREPARE_SHRINK_SCHEMA_STARTED': 7,
+                               'PREPARE_SHRINK_SCHEMA_DONE': 8,
+                               'SHRINK_PREPARE_DONE': 9,
+                               'SHRINK_PERFOEM_STARTED':10,
+                               'SHRINK_TABLE_STARTED': 11,
+                               'SHRINK_TABLE_DONE': 12,
+                               'SHRINK_CATALOG_STARTED': 13,
+                               'SHRINK_CATALOG_DONE': 14,
+                               'SHRINK_PERFOEM_DONE': 15,
+                               }
+        self._status = []
+        self._status_info = []
+        self._coordinator_data_directory = coordinator_data_directory
+        self._coordinator_mirror = coordinator_mirror
+        self._status_filename = coordinator_data_directory + '/gpshrink.status'
+        if coordinator_mirror:
+            self._status_standby_filename = coordinator_mirror.getSegmentDataDirectory() \
+                                            + '/gpshrink.status'
+            self._segment_configuration_standby_filename = coordinator_mirror.getSegmentDataDirectory() \
+                                            + '/' + SEGMENT_CONFIGURATION_BACKUP_FILE
+        self._fp = None
+        self._temp_dir = None
+        self._input_filename = None
+        self._gp_segment_configuration_backup = None
+
+        if os.path.exists(self._status_filename):
+            self._read_status_file()
+
+    def _read_status_file(self):
+        """Reads in an existing gpshrink status file"""
+        self.logger.debug("Trying to read in a pre-existing gpshrink status file")
+        try:
+            self._fp = open(self._status_filename, 'a+')
+            self._fp.seek(0)
+
+            for line in self._fp:
+                (status, status_info) = line.rstrip().split(':')
+                if status == 'SHRINK_PREPARE_STARTED':
+                    self._input_filename = status_info
+                elif status == 'UPDATE_CATALOG_STARTED':
+                    self._gp_segment_configuration_backup = status_info
+
+                self._status.append(status)
+                self._status_info.append(status_info)
+        except IOError:
+            raise
+
+        if self._status[-1] not in self._status_values:
+            raise InvalidStatusError('Invalid status file.  Unknown status %s' % self._status)
+
+    def create_status_file(self):
+        """Creates a new gpshrink status file"""
+        try:
+            self._fp = open(self._status_filename, 'w')
+            self._fp.write('UNINITIALIZED:None\n')
+            self._fp.flush()
+            os.fsync(self._fp)
+            self._status.append('UNINITIALIZED')
+            self._status_info.append('None')
+        except IOError:
+            raise
+
+        if self._coordinator_mirror:
+            self._sync_status_file()
+
+    def _sync_status_file(self):
+        """Syncs the gpshrink status file with the coordinator mirror"""
+        cpCmd = Scp('gpshrink copying status file to coordinator mirror',
+                    srcFile=self._status_filename,
+                    dstFile=self._status_standby_filename,
+                    dstHost=self._coordinator_mirror.getSegmentHostName())
+        cpCmd.run(validateAfter=True)
+
+    def set_status(self, status, status_info=None, force=False):
+        """Sets the current status.  gpshrink status must be set in
+           proper order.  Any out of order status result in an
+           InvalidStatusError exception. But if force is True, setting
+           status out of order is allowded"""
+        if len(self._status) == 0 or not os.path.exists(self._status_filename):
+            raise InvalidStatusError('not in shrink status or no status file')
+        
+        self.logger.debug("Transitioning from %s to %s" % (self._status[-1], status))
+
+        if not self._fp:
+            raise InvalidStatusError('The status file is invalid and cannot be written to')
+        if status not in self._status_values:
+            raise InvalidStatusError('%s is an invalid gpshrink status' % status)
+        self._fp.write('%s:%s\n' % (status, status_info))
+        self._fp.flush()
+        os.fsync(self._fp)
+        self._status.append(status)
+        self._status_info.append(status_info)
+        if self._coordinator_mirror:
+            self._sync_status_file()
+
+    def get_current_status(self):
+        """Gets the current status that has been written to the gpshrink
+           status file"""
+        if (len(self._status) > 0 and len(self._status_info) > 0):
+            return (self._status[-1], self._status_info[-1])
+        else:
+            return (None, None)
+
+    def get_status_history(self):
+        """Gets the full status history"""
+        return list(zip(self._status, self._status_info))
+
+    def remove_status_file(self):
+        """Closes and removes the gpexand status file"""
+        if self._fp:
+            self._fp.close()
+            self._fp = None
+        if os.path.exists(self._status_filename):
+            os.unlink(self._status_filename)
+        if self._coordinator_mirror:
+            RemoveFile.remote('gpshrink coordinator mirror status file cleanup',
+                              self._coordinator_mirror.getSegmentHostName(),
+                              self._status_standby_filename)
+
+    def remove_segment_configuration_backup_file(self):
+        """ Remove the segment configuration backup file """
+        self.logger.debug("Removing segment configuration backup file")
+        if self._gp_segment_configuration_backup != None and os.path.exists(
+                self._gp_segment_configuration_backup) == True:
+            os.unlink(self._gp_segment_configuration_backup)
+        if self._coordinator_mirror:
+            RemoveFile.remote('gpshrink coordinator mirror segment configuration backup file cleanup',
+                              self._coordinator_mirror.getSegmentHostName(),
+                              self._segment_configuration_standby_filename)
+
+    def sync_segment_configuration_backup_file(self):
+        """ Sync the segment configuration backup file to standby """
+        if self._coordinator_mirror:
+            self.logger.debug("Sync segment configuration backup file")
+            cpCmd = Scp('gpshrink copying segment configuration backup file to coordinator mirror',
+                        srcFile=self._gp_segment_configuration_backup,
+                        dstFile=self._segment_configuration_standby_filename,
+                        dstHost=self._coordinator_mirror.getSegmentHostName())
+            cpCmd.run(validateAfter=True)
+
+    def get_input_filename(self):
+        """Gets input file that was used by shrink setup"""
+        return self._input_filename
+
+    def get_gp_segment_configuration_backup(self):
+        """Gets the filename of the gp_segment_configuration backup file
+        created during shrink setup"""
+        return self._gp_segment_configuration_backup
+
+    def set_gp_segment_configuration_backup(self, filename):
+        """Sets the filename of the gp_segment_configuration backup file"""
+        self._gp_segment_configuration_backup = filename
+
+
+
+# -------------------------------------------------------------------------
+
+class ShrinkError(Exception): pass
+
+
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------
+class NewSegmentInput:
+    def __init__(self, hostname, address, port, datadir, dbid, contentId, role):
+        self.hostname = hostname
+        self.address = address
+        self.port = port
+        self.datadir = datadir
+        self.dbid = dbid
+        self.contentId = contentId
+        self.role = role
+
+
+# ------------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------------------
+class gpshrink:
+    def __init__(self, logger, gparray, dburl, options, parallel=1, size=0):
+        self.pastThePointOfNoReturn = False
+        self.logger = logger
+        self.dburl = dburl
+        self.options = options
+        self.numworkers = parallel
+        self.gparray = gparray
+        self.size = size
+        self.conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8', allowSystemTableMods=True)
+        self.old_segments = self.gparray.getSegDbList()
+
+        datadir = self.gparray.coordinator.getSegmentDataDirectory()
+        self.statusLogger = gpshrinkStatus(logger=logger,
+                                           coordinator_data_directory=datadir,
+                                           coordinator_mirror=self.gparray.standbyCoordinator)
+
+        # Adjust batch size if it's too high given the number of segments
+        seg_count = len(self.old_segments)
+        if self.options.batch_size > seg_count:
+            self.options.batch_size = seg_count
+        self.pool = WorkerPool(numWorkers=self.options.batch_size)
+
+        self.queue = None
+
+
+    @staticmethod
+    def prepare_gpdb_state(logger, dburl, options):
+        """ Gets GPDB in the appropriate state for an shrink.
+        This state will depend on if this is a new shrink setup,
+        a continuation of a previous shrink or a rollback """
+        # Get the database in the expected state for the shrink/rollback
+        # If gpshrink status file exists ,the last run of gpshrink didn't finish properly
+
+        gpshrink_db_status = gpshrink.get_status_from_db(dburl, options)
+
+        return gpshrink_db_status
+
+    @staticmethod
+    def get_status_from_db(dburl, options):
+        """Gets gpshrink status from the gpshrink schema"""
+        status_conn = None
+        gpshrink_db_status = None
+        if get_local_db_mode(options.coordinator_data_directory) == 'NORMAL':
+            try:
+                status_conn = dbconn.connect(dburl, encoding='UTF8')
+                # Get the last status entry
+                cursor = dbconn.query(status_conn, 'SELECT status FROM gpshrink.status ORDER BY updated DESC LIMIT 1')
+                if cursor.rowcount == 1:
+                    gpshrink_db_status = cursor.fetchone()[0]
+
+            except Exception:
+                # shrink schema doesn't exists or there was a connection failure.
+                pass
+            finally:
+                if status_conn: status_conn.close()
+
+        # make sure gpshrink schema doesn't exist since it wasn't in DB provided
+        if not gpshrink_db_status:
+            """
+            MPP-14145 - If there's no discernible status, the schema must not exist.
+
+            The checks in get_status_from_db claim to look for existence of the 'gpshrink' schema, but more accurately they're
+            checking for non-emptiness of the gpshrink.status table. If the table were empty, but the schema did exist, gpshrink would presume
+            a new shrink was taking place and it would try to CREATE SCHEMA later, which would fail. So, here, if this is the case, we error out.
+
+            Note: -c/--clean will not necessarily work either, as it too has assumptions about the non-emptiness of the gpshrink schema.
+            """
+            conn = dbconn.connect(dburl, encoding='UTF8', utility=True)
+            try:
+                count = dbconn.querySingleton(conn,
+                                                   "SELECT count(n.nspname) FROM pg_catalog.pg_namespace n WHERE n.nspname = 'gpshrink'")
+                if count > 0:
+                    raise ShrinkError(
+                        "Existing shrink state could not be determined, but a gpshrink schema already exists. Cannot proceed.")
+            finally:
+                conn.close()
+
+        return gpshrink_db_status
+
+    def validate_max_connections(self):
+        try:
+            conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
+            max_connections = int(catalog.getSessionGUC(conn, 'max_connections'))
+        except DatabaseError as ex:
+            if self.options.verbose:
+                logger.exception(ex)
+            logger.error('Failed to check max_connections GUC')
+            raise ex
+        finally:
+            conn.close()
+
+        if max_connections < self.options.parallel * 2 + 1:
+            self.logger.error('max_connections is too small to shrink %d tables at' % self.options.parallel)
+            self.logger.error('a time.  This will lead to connection errors.  Either')
+            self.logger.error('reduce the value for -n passed to gpshrink or raise')
+            self.logger.error('max_connections in postgresql.conf')
+            return False
+
+        return True
+
+    def cleanup_file(self):
+        """simple remove remove status_file segment_configuration_backup_file """
+        self.statusLogger.remove_status_file()
+        self.statusLogger.remove_segment_configuration_backup_file()
+
+    def get_state(self):
+        """Returns shrink state from status logger"""
+        return self.statusLogger.get_current_status()[0]
+
+    def generate_inputfile(self):
+        """Writes a gpshrink input file based on shrink segments
+        added to gparray by the gpshrink interview"""
+        outputfile = 'gpshrink_inputfile_' + strftime("%Y%m%d_%H%M%S")
+        outfile = open(outputfile, 'w')
+
+        logger.info("Generating input file...")
+
+        for db in self.gparray.getShrinkSegDbList():
+            tempStr = "%s|%s|%d|%s|%d|%d|%s" % (canonicalize_address(db.getSegmentHostName())
+                                                , canonicalize_address(db.getSegmentAddress())
+                                                , db.getSegmentPort()
+                                                , db.getSegmentDataDirectory()
+                                                , db.getSegmentDbId()
+                                                , db.getSegmentContentId()
+                                                , db.getSegmentPreferredRole()
+                                                )
+            outfile.write(tempStr + "\n")
+
+        outfile.close()
+
+        return outputfile
+
+
+    def add_remove_segments(self, inputFileEntryList):
+        for seg in inputFileEntryList:
+            self.gparray.addShrinkSeg(content=int(seg.contentId)
+                                         , preferred_role=seg.role
+                                         , dbid=int(seg.dbid)
+                                         , role=seg.role
+                                         , hostname=seg.hostname.strip()
+                                         , address=seg.address.strip()
+                                         , port=int(seg.port)
+                                         , datadir=os.path.abspath(seg.datadir.strip())
+                                         )
+        try:
+            self.gparray.validateShrinkSegs()
+        except Exception as e:
+            raise ShrinkError('Invalid input file: %s' % e)
+
+    def _getParsedRow(self, lineno, line):
+        parts = line.split('|')
+        if len(parts) != 7:
+            raise ExceptionNoStackTraceNeeded("expected 7 parts, obtained %d" % len(parts))
+        hostname, address, port, datadir, dbid, contentId, role = parts
+        check_values(lineno, address=address, port=port, datadir=datadir, content=contentId,
+                     hostname=hostname, dbid=dbid, role=role)
+        return NewSegmentInput(hostname=hostname
+                                        , port=port
+                                        , address=address
+                                        , datadir=datadir
+                                        , dbid=dbid
+                                        , contentId=contentId
+                                        , role=role
+                                        )
+
+    def read_input_files(self, inputFilename=None):
+        """Reads and validates line format of the input file passed
+        in on the command line via the -i arg"""
+
+        retValue = []
+
+        if not self.options.filename and not inputFilename:
+            raise ShrinkError('Missing input file')
+
+        if self.options.filename:
+            inputFilename = self.options.filename
+        f = None
+
+        try:
+            f = open(inputFilename, 'r')
+            for lineno, line in line_reader(f):
+                try:
+                    retValue.append(self._getParsedRow(lineno, line))
+                except ValueError:
+                    raise ShrinkError('Missing or invalid value on line %d of file %s.' % (lineno, inputFilename))
+                except Exception as e:
+                    raise ShrinkError('Invalid input file on line %d of file %s: %s' % (lineno, inputFilename, str(e)))
+        except IOError:
+            raise ShrinkError('Input file %s not found' % inputFilename)
+        finally:
+            if f is not None:
+                f.close()
+
+        return retValue
+
+
+    def lock_catalog(self):
+        self.conn_catalog_lock = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
+        self.logger.info('Locking catalog')
+        dbconn.execSQL(self.conn_catalog_lock, "BEGIN", autocommit=False)
+        # FIXME: is CHECKPOINT inside BEGIN the one wanted by us?
+        dbconn.execSQL(self.conn_catalog_lock, "select gp_expand_lock_catalog()", autocommit=False)
+        dbconn.execSQL(self.conn_catalog_lock, "CHECKPOINT", autocommit=False)
+        self.logger.info('Locked catalog')
+
+    def unlock_catalog(self):
+        self.logger.info('Unlocking catalog')
+        dbconn.execSQL(self.conn_catalog_lock, "COMMIT")
+        self.conn_catalog_lock.close()
+        self.conn_catalog_lock = None
+        self.logger.info('Unlocked catalog')
+
+    def update_original_segments(self):
+        """Updates the gp_id catalog table of existing hosts"""
+
+        # Update the gp_id of original segments
+        self.newPrimaryCount = 0;
+        for seg in self.gparray.getShrinkSegDbList():
+            if seg.isSegmentPrimary(False):
+                self.newPrimaryCount -= 1
+
+        self.newPrimaryCount -= self.gparray.get_primary_count()
+
+        # FIXME: update postmaster.opts
+
+    def update_catalog_swap_segment(self):
+        """
+        Backup the gp_segment_configuration.
+        Fixme: we should swap the removed segment to the end. And 
+        save the new removed segment in the file to remove in the
+        next pahse. 
+        """
+        self.statusLogger.set_gp_segment_configuration_backup(
+            self.options.coordinator_data_directory + '/' + SEGMENT_CONFIGURATION_BACKUP_FILE)
+        self.gparray.dumpToFile(self.statusLogger.get_gp_segment_configuration_backup())
+        self.statusLogger.set_status('UPDATE_CATALOG_STARTED', self.statusLogger.get_gp_segment_configuration_backup())
+        self.statusLogger.sync_segment_configuration_backup_file()
+        
+        
+
+        self.statusLogger.set_status('UPDATE_CATALOG_DONE')
+        
+        
+    
+    def update_catalog_remove_segments(self):
+        """
+        Starts the database, calls updateSystemConfig() to setup
+        the catalog tables and get the actual dbid and content id
+        for the new segments.
+        """
+        
+        self.statusLogger.set_status('SHRINK_CATALOG_STARTED')
+
+        # Update the catalog
+        configurationInterface.getConfigurationProvider().updateSystemConfig(
+            self.gparray,
+            "%s: segment config for resync" % getProgramName(),
+            dbIdToForceMirrorRemoveAdd={},
+            useUtilityMode=True,
+            allowPrimary=True
+        )
+
+        # Issue checkpoint due to forced shutdown below
+        self.conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
+        dbconn.execSQL(self.conn, "CHECKPOINT")
+        self.conn.close()
+
+        # increase expand version 
+        self.conn = dbconn.connect(self.dburl, utility=True, encoding='UTF8')
+        dbconn.execSQL(self.conn, "select gp_expand_bump_version()")
+        self.conn.close()
+
+        self.statusLogger.set_status('SHRINK_CATALOG_DONE')
+        self.statusLogger.set_status('SHRINK_PERFOEM_DONE')
+
+    def stop_remove_segments(self):
+        """
+        Stop the removed segment, and join the pool
+        """
+        newSegments = self.gparray.getShrinkSegDbList()
+        for seg in newSegments:
+            segStopCmd = SegmentStop(
+                name="Stopping new segment dbid %s on host %s." % (str(seg.getSegmentDbId), seg.getSegmentHostName())
+                , dataDir=seg.getSegmentDataDirectory()
+                , mode='fast'
+                , nowait=False
+                , ctxt=REMOTE
+                , remoteHost=seg.getSegmentHostName()
+            )
+            self.pool.addCommand(segStopCmd)
+        self.pool.join()
+        self.pool.check_results()
+        self.pool.haltWork()
+        self.pool.joinWorkers()
+
+    def start_prepare(self):
+        """Inserts into gpshrink.status that shrink preparation has started."""
+        if self.options.filename:
+            self.statusLogger.create_status_file()
+            self.statusLogger.set_status('SHRINK_PREPARE_STARTED', os.path.abspath(self.options.filename))
+
+    def setup_schema(self):
+        """Used to setup the gpshrink schema"""
+        self.statusLogger.set_status('SETUP_SHRINK_SCHEMA_STARTED')
+        self.logger.info('Creating shrink schema')
+        self.conn = dbconn.connect(self.dburl, encoding='UTF8')
+        dbconn.execSQL(self.conn, create_schema_sql)
+        dbconn.execSQL(self.conn, status_table_sql)
+        dbconn.execSQL(self.conn, status_detail_table_sql)
+
+        # views
+        if not self.options.simple_progress:
+            dbconn.execSQL(self.conn, progress_view_sql)
+        else:
+            dbconn.execSQL(self.conn, progress_view_simple_sql)
+
+        self.statusLogger.set_status('SETUP_SHRINK_SCHEMA_DONE')
+
+    def prepare_schema(self):
+        """Prepares the gpshrink schema"""
+        self.statusLogger.set_status('PREPARE_SHRINK_SCHEMA_STARTED')
+
+        if not self.conn:
+            self.conn = dbconn.connect(self.dburl, encoding='UTF8', allowSystemTableMods=True)
+            self.gparray = GpArray.initFromCatalog(self.dburl)
+
+        nowStr = datetime.datetime.now()
+        statusSQL = "INSERT INTO gpshrink.status VALUES ( 'SETUP', '%s' ) " % (nowStr)
+
+        dbconn.execSQL(self.conn, statusSQL)
+
+        db_list = catalog.getDatabaseList(self.conn)
+
+        for db in db_list:
+            dbname = db[0]
+            if dbname == 'template0':
+                continue
+            self.logger.info('Populating gpshrink.status_detail with data from database %s' % (
+                dbname))
+            self._populate_regular_tables(dbname)
+
+        nowStr = datetime.datetime.now()
+        statusSQL = "INSERT INTO gpshrink.status VALUES ( 'SETUP DONE', '%s' ) " % (nowStr)
+        dbconn.execSQL(self.conn, statusSQL)
+
+        self.conn.close()
+
+        self.statusLogger.set_status('PREPARE_SHRINK_SCHEMA_DONE')
+        self.statusLogger.set_status('SHRINK_PREPARE_DONE')
+
+
+    def _populate_regular_tables(self, dbname):
+        # FIXME: we process partition table as regular_table, because processing each leaf table 
+        # like exapnd in shrink may result unsafe intermediate state and cannot roll back.
+        src_bytes_str = "0" if self.options.simple_progress else "pg_relation_size(quote_ident(n.nspname) || '.' || quote_ident(c.relname))"
+        sql = """SELECT
+    current_database(),
+    quote_ident(n.nspname) || '.' || quote_ident(c.relname) as fq_name,
+    c.oid as tableoid,
+    NULL as root_partition_oid,
+    2 as rank,
+    pe.writable is not null as external_writable,
+    '%s' as undone_status,
+    NULL as shrink_started,
+    NULL as shrink_finished,
+    %s as source_bytes
+FROM
+    pg_class c
+    JOIN pg_namespace n ON (c.relnamespace=n.oid)
+    JOIN pg_catalog.gp_distribution_policy p on (c.oid = p.localoid)
+    LEFT JOIN pg_partitioned_table pp on (c.oid=pp.partrelid)
+    LEFT JOIN pg_exttable pe on (c.oid=pe.reloid and pe.writable)
+WHERE
+    NOT c.relispartition
+    AND n.nspname != 'pg_bitmapindex'
+    AND c.relpersistence != 't'
+                  """ % (undone_status, src_bytes_str)
+        self.logger.debug(sql)
+        table_conn = self.connect_database(dbname)
+
+        try:
+            data_file = os.path.abspath('./status_detail.dat')
+            self.logger.debug('status_detail data file: %s' % data_file)
+            copySQL = """COPY (%s) TO '%s'""" % (sql, data_file)
+
+            self.logger.debug(copySQL)
+            dbconn.execSQL(table_conn, copySQL)
+            table_conn.close()
+        except Exception as e:
+            raise ShrinkError(e)
+
+        try:
+            copySQL = """COPY gpshrink.status_detail FROM '%s'""" % (data_file)
+
+            self.logger.debug(copySQL)
+            dbconn.execSQL(self.conn, copySQL)
+        except Exception as e:
+            raise ShrinkError(e)
+        finally:
+            os.unlink(data_file)
+
+    def compute_shrink_size(self):
+        """Compute we need to shrink the cluster to actual size """
+        totalsize = len(self.gparray.segmentPairs)
+        removesize = len(self.gparray.shrinkSegmentPairs)
+
+        if removesize >= totalsize:
+            self.logger.error('remove segment num %d more than segment num %d', removesize, totalsize)
+            exit(1)
+        elif removesize < 1:
+            self.logger.error('remove segment num %d less than 1', removesize)
+            exit(1)
+        self.size = totalsize - removesize
+
+    def perform_shrink(self):
+        """Performs the actual table re-organizations"""
+        self.statusLogger.set_status('SHRINK_PERFOEM_STARTED')
+        self.statusLogger.set_status('SHRINK_TABLE_STARTED')
+
+        shrinkStart = datetime.datetime.now()
+
+        # setup a threadpool
+        self.queue = WorkerPool(numWorkers=self.numworkers)
+
+        # go through and reset any "IN PROGRESS" tables
+        self.conn = dbconn.connect(self.dburl, encoding='UTF8')
+        sql = "INSERT INTO gpshrink.status VALUES ( 'SHRINK STARTED', '%s' ) " % (
+            shrinkStart)
+        dbconn.execSQL(self.conn, sql)
+
+        sql = """UPDATE gpshrink.status_detail set status = '%s' WHERE status = '%s' """ % (undone_status, start_status)
+        dbconn.execSQL(self.conn, sql)
+
+        # read schema and queue up commands
+        sql = "SELECT * FROM gpshrink.status_detail WHERE status = 'NOT STARTED' ORDER BY rank"
+        cursor = dbconn.query(self.conn, sql)
+
+        for row in cursor:
+            self.logger.debug(row)
+            name = "name"
+            tbl = ShrinkTable(options=self.options, row=row, size=self.size)
+            cmd = ShrinkCommand(name=name, status_url=self.dburl, table=tbl, options=self.options)
+            self.queue.addCommand(cmd)
+
+        table_shrink_error = False
+
+        stopTime = None
+        stoppedEarly = False
+        if self.options.end:
+            stopTime = self.options.end
+
+        # wait till done.
+        while not self.queue.isDone():
+            logger.debug(
+                "woke up.  queue: %d finished %d  " % (self.queue.assigned, self.queue.completed_queue.qsize()))
+            if stopTime and datetime.datetime.now() >= stopTime:
+                stoppedEarly = True
+                break
+            time.sleep(5)
+
+        shrinkStopped = datetime.datetime.now()
+
+        self.queue.haltWork()
+        self.queue.joinWorkers()
+
+
+        # Doing this after the halt and join workers guarantees that no new completed items can be added
+        # while we're doing a check
+        for shrinkCommand in self.queue.getCompletedItems():
+            if shrinkCommand.table_shrink_error:
+                table_shrink_error = True
+                break
+
+        if stoppedEarly:
+            logger.info('End time reached.  Stopping shrink.')
+            sql = "INSERT INTO gpshrink.status VALUES ( 'SHRINK STOPPED', '%s' ) " % (
+                shrinkStopped)
+            dbconn.execSQL(self.conn, sql)
+            logger.info('You can resume shrink by running gpshrink again')
+        elif table_shrink_error:
+            logger.warn('**************************************************')
+            logger.warn('One or more tables failed to shrink successfully.')
+            logger.warn('Please check the log file, correct the problem and')
+            logger.warn('run gpshrink again to finish the shrink process')
+            logger.warn('**************************************************')
+            # We'll try to update the status, but if the errors were caused by
+            # going into read only mode, this will fail.  That's ok though as
+            # gpshrink will resume next run
+            try:
+                sql = "INSERT INTO gpshrink.status VALUES ( 'SHRINK STOPPED', '%s' ) " % (
+                    shrinkStopped)
+                dbconn.execSQL(self.conn, sql)
+            except:
+                pass
+        else:
+            sql = "INSERT INTO gpshrink.status VALUES ( 'SHRINK COMPLETE', '%s' ) " % (
+                shrinkStopped)
+            dbconn.execSQL(self.conn, sql)
+            logger.info("SHRINK COMPLETED SUCCESSFULLY")
+
+        self.conn.commit()
+        self.conn.close()
+        self.statusLogger.set_status('SHRINK_TABLE_DONE')
+
+    def shutdown(self):
+        """used if the script is closed abrubtly"""
+        logger.info('Shutting down gpshrink...')
+        if self.pool:
+            self.pool.haltWork()
+            self.pool.joinWorkers()
+
+        if self.queue:
+            self.queue.haltWork()
+            self.queue.joinWorkers()
+
+        try:
+            shrinkStopped = datetime.datetime.now()
+            sql = "INSERT INTO gpshrink.status VALUES ( 'SHRINK STOPPED', '%s' ) " % (
+                shrinkStopped)
+            dbconn.execSQL(self.conn, sql)
+            self.conn.close()
+        except pgdb.OperationalError:
+            pass
+        except Exception:
+            # schema doesn't exist.  Cancel or error during setup
+            pass
+
+    def halt_work(self):
+        if self.pool:
+            self.pool.haltWork()
+            self.pool.joinWorkers()
+
+        if self.queue:
+            self.queue.haltWork()
+            self.queue.joinWorkers()
+
+    def cleanup_schema(self):
+        """Removes the gpshrink schema"""
+        # drop schema
+
+        # See if user wants to dump the status_detail table to file
+        c = dbconn.connect(self.dburl, encoding='UTF8')
+
+        self.logger.info("Removing gpshrink schema")
+        dbconn.execSQL(c, drop_schema_sql)
+        c.commit()
+        c.close()
+
+    def connect_database(self, dbname):
+        test_url = copy.deepcopy(self.dburl)
+        test_url.pgdb = dbname
+        c = dbconn.connect(test_url, encoding='UTF8', allowSystemTableMods=True)
+        return c
+
+    def validate_heap_checksums(self):
+        num_workers = min(len(self.gparray.get_hostlist()), MAX_PARALLEL_SHRINKS)
+        heap_checksum_util = HeapChecksum(gparray=self.gparray, num_workers=num_workers, logger=self.logger)
+        successes, failures = heap_checksum_util.get_segments_checksum_settings()
+        if len(successes) == 0:
+            logger.fatal("No segments responded to ssh query for heap checksum. Not shrinking the cluster.")
+            return 1
+
+        consistent, inconsistent, coordinator_heap_checksum = heap_checksum_util.check_segment_consistency(successes)
+
+        inconsistent_segment_msgs = []
+        for segment in inconsistent:
+            inconsistent_segment_msgs.append("dbid: %s "
+                                             "checksum set to %s differs from coordinator checksum set to %s" %
+                                             (segment.getSegmentDbId(), segment.heap_checksum,
+                                              coordinator_heap_checksum))
+
+        if not heap_checksum_util.are_segments_consistent(consistent, inconsistent):
+            self.logger.fatal("Cluster heap checksum setting differences reported")
+            self.logger.fatal("Heap checksum settings on %d of %d segment instances do not match coordinator <<<<<<<<"
+                              % (len(inconsistent_segment_msgs), len(self.gparray.segmentPairs)))
+            self.logger.fatal("Review %s for details" % get_logfile())
+            log_to_file_only("Failed checksum consistency validation:", logging.WARN)
+            self.logger.fatal("gpshrink error: Cluster will not be modified as checksum settings are not consistent "
+                              "across the cluster.")
+
+            for msg in inconsistent_segment_msgs:
+                log_to_file_only(msg, logging.WARN)
+                raise Exception("Segments have heap_checksum set inconsistently to coordinator")
+        else:
+            self.logger.info("Heap checksum setting consistent across cluster")
+
+
+# -----------------------------------------------
+class ShrinkTable():
+    def __init__(self, options, row=None, size = 0):
+        self.options = options
+        if row is not None:
+            (self.dbname, self.fq_name, self.table_oid,
+             self.root_partition_oid,
+             self.rank, self.external_writable, self.status,
+             self.shrink_started, self.shrink_finished,
+             self.source_bytes) = row
+        self.size = size
+
+    def add_table(self, conn):
+        insertSQL = """INSERT INTO gpshrink.status_detail
+                            VALUES ('%s','%s',%s,
+                                    '%d',%d,'%s','%s','%s','%s',%d)
+                    """ % (self.dbname.replace("'", "''"), self.fq_name.replace("'", "''"), self.table_oid,
+                           self.root_partition_oid,
+                           self.rank, self.external_writable, self.status,
+                           self.shrink_started, self.shrink_finished,
+                           self.source_bytes)
+        logger.info('Added table %s.%s' % (self.dbname, self.fq_name))
+        logger.debug(insertSQL)
+        dbconn.execSQL(conn, insertSQL)
+
+    def mark_started(self, status_conn, table_conn, start_time, cancel_flag):
+        if cancel_flag:
+            return
+        sql = "SELECT pg_relation_size(%s)" % (self.table_oid)
+        row = dbconn.queryRow(table_conn, sql)
+        src_bytes = int(row[0])
+        logger.debug(" Table: %s has %d bytes" % (self.fq_name, src_bytes))
+
+        sql = """UPDATE gpshrink.status_detail
+                  SET status = '%s', shrink_started='%s',
+                      source_bytes = %d
+                  WHERE dbname = '%s'
+                        AND table_oid = %s """ % (start_status, start_time,
+                                                  src_bytes, self.dbname.replace("'", "''"),
+                                                  self.table_oid)
+
+        logger.debug("Mark Started: " + sql)
+        dbconn.execSQL(status_conn, sql)
+
+    def reset_started(self, status_conn):
+        sql = """UPDATE gpshrink.status_detail
+                 SET status = '%s', shrink_started=NULL, shrink_finished=NULL
+                 WHERE dbname = '%s'
+                 AND table_oid = %s """ % (undone_status,
+                                           self.dbname.replace("'", "''"), self.table_oid)
+
+        logger.debug('Resetting detailed_status: %s' % sql)
+        dbconn.execSQL(status_conn, sql)
+
+    def shrink(self, table_conn, cancel_flag):
+        # shrink leaf partitions separately in parallel
+        # FIXME: alter table on external table does not throw
+        #        a warning, but it will throw error in 6X
+        #        do we still need using alter external table?
+        if self.root_partition_oid is not None:
+            return True
+        else:
+            # FIXME: Can "ONLY" be allowed in "EXPAND TABLE"?
+            sql = 'ALTER TABLE %s SHRINK TABLE to %d' % (self.fq_name, self.size)
+
+        logger.info('Shrinking %s.%s' % (self.dbname, self.fq_name))
+        logger.debug("Shrink SQL: %s" % sql)
+
+        # check is atomic in python
+        if not cancel_flag:
+            dbconn.execSQL(table_conn, sql)
+            # the ALTER TABLE command requires a commit to execute
+            table_conn.commit()
+            if self.options.analyze:
+                sql = 'ANALYZE %s' % (self.fq_name)
+                logger.info('Analyzing %s' % (self.fq_name))
+                dbconn.execSQL(table_conn, sql)
+
+            return True
+
+        # I can only get here if the cancel flag is True
+        return False
+
+    def mark_finished(self, status_conn, start_time, finish_time):
+        sql = """UPDATE gpshrink.status_detail
+                  SET status = '%s', shrink_started='%s', shrink_finished='%s'
+                  WHERE dbname = '%s'
+                  AND table_oid = %s """ % (done_status, start_time, finish_time,
+                                            self.dbname.replace("'", "''"), self.table_oid)
+        logger.debug(sql)
+        dbconn.execSQL(status_conn, sql)
+
+    def mark_does_not_exist(self, status_conn, finish_time):
+        sql = """UPDATE gpshrink.status_detail
+                  SET status = '%s', shrink_finished='%s'
+                  WHERE dbname = '%s'
+                  AND table_oid = %s """ % (does_not_exist_status, finish_time,
+                                            self.dbname.replace("'", "''"), self.table_oid)
+        logger.debug(sql)
+        dbconn.execSQL(status_conn, sql)
+
+def sig_handler(sig, arg):
+    if _gp_shrink is not None:
+        _gp_shrink.shutdown()
+
+    signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    signal.signal(signal.SIGHUP, signal.SIG_DFL)
+
+    # raise sig
+    os.kill(os.getpid(), sig)
+
+
+# -----------------------------------------------
+class ShrinkCommand(SQLCommand):
+    def __init__(self, name, status_url, table, options):
+        self.status_url = status_url
+        self.table = table
+        self.options = options
+        self.cmdStr = "Shrink %s.%s" % (table.dbname, table.fq_name)
+        self.table_url = copy.deepcopy(status_url)
+        self.table_url.pgdb = table.dbname
+        self.table_shrink_error = False
+
+        SQLCommand.__init__(self, name)
+
+    def run(self, validateAfter=False):
+        # connect.
+        status_conn = None
+        table_conn = None
+        table_exp_success = False
+
+        try:
+            status_conn = dbconn.connect(self.status_url, encoding='UTF8')
+            table_conn = dbconn.connect(self.table_url, encoding='UTF8')
+        except DatabaseError as ex:
+            if self.options.verbose:
+                logger.exception(ex)
+            logger.error(ex.__str__().strip())
+            if status_conn: status_conn.close()
+            if table_conn: table_conn.close()
+            self.table_shrink_error = True
+            return
+
+        # validate table hasn't been dropped
+        start_time = None
+        try:
+            sql = """select * from pg_class c where c.oid = %d """ % (self.table.table_oid)
+
+            cursor = dbconn.query(table_conn, sql)
+
+            if cursor.rowcount == 0:
+                logger.info('%s no longer exists in database %s' % (self.table.fq_name,
+                                                                       self.table.dbname))
+
+                self.table.mark_does_not_exist(status_conn, datetime.datetime.now())
+                status_conn.close()
+                table_conn.close()
+                return
+            else:
+                # Set conn for  cancel
+                self.cancel_conn = table_conn
+                start_time = datetime.datetime.now()
+                if not self.options.simple_progress:
+                    self.table.mark_started(status_conn, table_conn, start_time, self.cancel_flag)
+
+                table_exp_success = self.table.shrink(table_conn, self.cancel_flag)
+
+        except Exception as ex:
+            if ex.__str__().find('canceling statement due to user request') == -1 and not self.cancel_flag:
+                self.table_shrink_error = True
+                if self.options.verbose:
+                    logger.exception(ex)
+                logger.error('Table %s.%s failed to shrink: %s' % (self.table.dbname,
+                                                                   self.table.fq_name,
+                                                                   ex.__str__().strip()))
+            else:
+                logger.info('ALTER TABLE of %s.%s canceled' % (
+                    self.table.dbname, self.table.fq_name))
+
+        if table_exp_success:
+            end_time = datetime.datetime.now()
+            # update metadata
+            logger.info(
+                "Finished shrinking %s.%s" % (self.table.dbname, self.table.fq_name))
+            self.table.mark_finished(status_conn, start_time, end_time)
+        elif not self.options.simple_progress:
+            logger.info("Resetting status_detail for %s.%s" % (
+                self.table.dbname, self.table.fq_name))
+            self.table.reset_started(status_conn)
+
+        # disconnect
+        status_conn.close()
+        table_conn.close()
+
+    def set_results(self, results):
+        raise ExecutionError("TODO:  must implement", None)
+
+    def get_results(self):
+        raise ExecutionError("TODO:  must implement", None)
+
+    def was_successful(self):
+        raise ExecutionError("TODO:  must implement", None)
+
+    def validate(self, expected_rc=0):
+        raise ExecutionError("TODO:  must implement", None)
+
+
+# ------------------------------- UI Help --------------------------------
+def read_hosts_file(hosts_file):
+    new_hosts = []
+    try:
+        f = open(hosts_file, 'r')
+        try:
+            for l in f:
+                if l.strip().startswith('#') or l.strip() == '':
+                    continue
+
+                new_hosts.append(l.strip())
+
+        finally:
+            f.close()
+    except IOError:
+        raise ShrinkError('Hosts file %s not found' % hosts_file)
+
+    return new_hosts
+
+
+# --------------------------------------------------------------------------
+# Main
+# --------------------------------------------------------------------------
+def main(options, args, parser):
+    global _gp_shrink
+
+    remove_pid = True
+    try:
+        # setup signal handlers so we can clean up correctly
+        signal.signal(signal.SIGTERM, sig_handler)
+        signal.signal(signal.SIGHUP, sig_handler)
+
+        logger = get_default_logger()
+        setup_tool_logging(EXECNAME, getLocalHostname(), getUserName())
+
+        options, args = validate_options(options, args, parser)
+
+        if options.verbose:
+            enable_verbose_logging()
+
+        if is_gpshrink_running(options.coordinator_data_directory):
+            logger.error('gpshrink is already running.  Only one instance')
+            logger.error('of gpshrink is allowed at a time.')
+            remove_pid = False
+            sys.exit(1)
+        else:
+            create_pid_file(options.coordinator_data_directory)
+
+        # prepare provider for updateSystemConfig
+        gpEnv = GpCoordinatorEnvironment(options.coordinator_data_directory, True)
+        configurationInterface.registerConfigurationProvider(
+            configurationImplGpdb.GpConfigurationProviderUsingGpdbCatalog())
+        configurationInterface.getConfigurationProvider().initializeProvider(gpEnv.getCoordinatorPort())
+
+        dburl = dbconn.DbURL(dbname=DBNAME, port=gpEnv.getCoordinatorPort())
+
+        gpshrink_db_status = gpshrink.prepare_gpdb_state(logger, dburl, options)
+
+        # Get array configuration
+        try:
+            gparray = GpArray.initFromCatalog(dburl, utility=True)
+        except DatabaseError as ex:
+            logger.error('Failed to connect to database.  Make sure the')
+            logger.error('CloudberryDB instance you wish to shrink is running')
+            logger.error('and that your environment is correct, then rerun')
+            logger.error('gshrink ' + ' '.join(sys.argv[1:]))
+            sys.exit(1)
+
+        _gp_shrink = gpshrink(logger, gparray, dburl, options, parallel=options.parallel)
+
+        if options.clean:
+            _gp_shrink.cleanup_schema()
+            _gp_shrink.cleanup_file()
+            logger.info('Cleanup Finished.  exiting...')
+            sys.exit(0)
+
+        if options.rollback:
+            try:
+                logger.info('Rollback is not support in shrink.')
+                sys.exit(0)
+            except ShrinkError as e:
+                logger.error(e)
+                sys.exit(1)
+            
+        if options.filename is None:
+            logger.error('gpshrink must with input file')
+
+        if gpshrink_db_status is None and options.filename:
+            _gp_shrink.validate_heap_checksums()
+            removeSegList = _gp_shrink.read_input_files()
+            _gp_shrink.add_remove_segments(removeSegList)
+            _gp_shrink.start_prepare()
+            _gp_shrink.lock_catalog()
+            _gp_shrink.update_original_segments()
+            _gp_shrink.update_catalog_swap_segment()
+            _gp_shrink.unlock_catalog()
+            _gp_shrink.setup_schema()
+            _gp_shrink.prepare_schema()
+            logger.info('************************************************')
+            logger.info('Initialization of the system shrink complete.')
+            logger.info('To begin table shrink onto the new segments')
+            logger.info('rerun gpshrink')
+            logger.info('************************************************')
+        elif gpshrink_db_status == 'SETUP DONE' or gpshrink_db_status == 'SHRINK STARTED' or gpshrink_db_status == 'SHRINK STOPPED':
+            if not _gp_shrink.validate_max_connections():
+                raise ValidationError()
+            removeSegList = _gp_shrink.read_input_files()
+            _gp_shrink.add_remove_segments(removeSegList)
+            _gp_shrink.compute_shrink_size()
+            _gp_shrink.perform_shrink()
+            _gp_shrink.lock_catalog()
+            _gp_shrink.update_original_segments()
+            _gp_shrink.update_catalog_remove_segments()
+            _gp_shrink.unlock_catalog()
+            _gp_shrink.stop_remove_segments()
+        elif gpshrink_db_status == 'SHRINK COMPLETE':
+            logger.info('shrink has already completed.')
+            logger.info('If you want to shrink again, run gpshrink -c to remove')
+            logger.info('the gpshrink schema and begin a new shrink')
+        else:
+            logger.error('gpshrink_db_status is %s', gpshrink_db_status)
+            logger.error('The last gpshrink setup did not complete successfully.')
+            logger.error('Please run gpshrink -c to clean to the original state.')
+
+        logger.info("Exiting...")
+        sys.exit(0)
+
+    except ValidationError as e:
+        logger.info('Input validation failed: %s', e)
+        if _gp_shrink is not None:
+            _gp_shrink.shutdown()
+        sys.exit()
+    except Exception as e:
+        logger.error('Exeception happens: %s', e)
+        if _gp_shrink is not None:
+            _gp_shrink.shutdown()
+        if not (gpshrink_db_status is None):
+            logger.error('May left the database in uncompleted state')
+            logger.error('Any remaining issues must be addressed outside of gpexpand.')
+            logger.error('You can shrink all the table in the database by yourself in gpshrink.status_detail.')
+            logger.error('And \'gpshrink -c\' to clean the file and schema.')
+        sys.exit(3)
+    except KeyboardInterrupt:
+        # Disable SIGINT while we shutdown.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+
+        if _gp_shrink is not None:
+            _gp_shrink.shutdown()
+
+        # Re-enabled SIGINT
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+
+        sys.exit('\nUser Interrupted')
+
+
+    finally:
+        try:
+            if remove_pid and options:
+                remove_pid_file(options.coordinator_data_directory)
+        except NameError:
+            pass
+
+        if _gp_shrink is not None:
+            _gp_shrink.halt_work()
+
+
+if __name__ == '__main__':
+    options, args, parser = parseargs()
+    main(options, args, parser)

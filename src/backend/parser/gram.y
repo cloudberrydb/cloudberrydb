@@ -869,7 +869,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 	RANDOMLY READABLE READS REJECT_P REPLICATED RESOURCE
 	ROOTPARTITION
 
-	SCATTER SEGMENT SEGMENTS SPLIT SUBPARTITION
+	SCATTER SEGMENT SEGMENTS SHRINK SPLIT SUBPARTITION
 
 	TASK SCHEDULE
 
@@ -3545,6 +3545,14 @@ alter_table_cmd:
 				{
 					AlterTableCmd *n = makeNode(AlterTableCmd);
 					n->subtype = AT_ExpandPartitionTablePrepare;
+					$$ = (Node *)n;
+				}
+			/* ALTER TABLE <name> SHRINK TABLE TO <segmentnum>*/
+			| SHRINK TABLE TO SignedIconst
+				{
+					AlterTableCmd *n = makeNode(AlterTableCmd);
+					n->subtype = AT_ShrinkTable;
+					n->def = (Node *) makeInteger($4);
 					$$ = (Node *)n;
 				}
 			/* ALTER TABLE <name> OF <type_name> */
@@ -18961,6 +18969,7 @@ unreserved_keyword:
 			| SETS
 			| SHARE
 			| SHOW
+			| SHRINK
 			| SIMPLE
 			| SKIP
 			| SNAPSHOT
@@ -19937,6 +19946,7 @@ bare_label_keyword:
 			| SETS
 			| SHARE
 			| SHOW
+			| SHRINK
 			| SIMILAR
 			| SIMPLE
 			| SKIP
