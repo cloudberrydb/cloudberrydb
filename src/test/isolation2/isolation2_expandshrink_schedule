@@ -1,0 +1,3 @@
+# Tests for gpexpand and gpshrink
+# Keep for single schedule due to redistribute all the table in all database
+test: gpexpand_gpshrink

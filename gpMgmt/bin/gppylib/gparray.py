@@ -148,7 +148,7 @@ class Segment:
         return True
 
     def __eq__(self, other):
-        return self.__equal(other)
+        return self.__equal(other, ['mode'])
 
 
     def __hash__(self):
@@ -428,6 +428,9 @@ class SegmentPair:
     def __str__(self):
         return "(Primary: %s, Mirror: %s)" % (str(self.primaryDB),
                                               str(self.mirrorDB))
+
+    def __eq__(self, other):
+        return self.primaryDB == other.primaryDB  and self.mirrorDB == other.mirrorDB                                    
 
     # --------------------------------------------------------------------
     def addPrimary(self,segDB):
@@ -799,6 +802,7 @@ class GpArray:
         self.standbyCoordinator = None
         self.segmentPairs = []
         self.expansionSegmentPairs=[]
+        self.shrinkSegmentPairs=[]
         self.numPrimarySegments = 0
 
         self.recoveredSegmentDbids = []
@@ -1045,7 +1049,7 @@ class GpArray:
         fp.close()
 
     # --------------------------------------------------------------------
-    def getDbList(self, includeExpansionSegs=False):
+    def getDbList(self, includeExpansionSegs=False, removeShrinkSegs=False):
         """
         Return a list of all Segment objects that make up the array
         """
@@ -1054,8 +1058,8 @@ class GpArray:
         dbs.append(self.coordinator)
         if self.standbyCoordinator:
             dbs.append(self.standbyCoordinator)
-        if includeExpansionSegs:
-            dbs.extend(self.getSegDbList(True))
+        if includeExpansionSegs or removeShrinkSegs:
+            dbs.extend(self.getSegDbList(includeExpansionSegs, removeShrinkSegs))
         else:
             dbs.extend(self.getSegDbList())
         return dbs
@@ -1105,7 +1109,7 @@ class GpArray:
 
 
     # --------------------------------------------------------------------
-    def getSegDbList(self, includeExpansionSegs=False):
+    def getSegDbList(self, includeExpansionSegs=False, removeShrinkSegs=False):
         """Return a list of all Segment objects for all segments in the array"""
         dbs=[]
         for segPair in self.segmentPairs:
@@ -1113,15 +1117,21 @@ class GpArray:
         if includeExpansionSegs:
             for segPair in self.expansionSegmentPairs:
                 dbs.extend(segPair.get_dbs())
+        if removeShrinkSegs:
+            for segPair in self.shrinkSegmentPairs:
+                    dbs =  list(filter(lambda x: segPair.primaryDB != x and segPair.mirrorDB != x, dbs))
         return dbs
 
     # --------------------------------------------------------------------
-    def getSegmentList(self, includeExpansionSegs=False):
+    def getSegmentList(self, includeExpansionSegs=False, removeShrinkSegs=False):
         """Return a list of SegmentPair objects for all segments in the array"""
         dbs=[]
         dbs.extend(self.segmentPairs)
         if includeExpansionSegs:
             dbs.extend(self.expansionSegmentPairs)
+        if removeShrinkSegs:
+            for segPair in self.shrinkSegmentPairs:
+                dbs.remove(segPair)
         return dbs
 
     # --------------------------------------------------------------------
@@ -1148,6 +1158,21 @@ class GpArray:
         """Returns a list of all SegmentPair objects that make up the new segments
         of an expansion"""
         return self.expansionSegmentPairs
+    
+    # --------------------------------------------------------------------
+    def getShrinkSegDbList(self):
+        """Returns a list of all Segment objects that make up the new segments
+        of an expansion"""
+        dbs=[]
+        for segPair in self.shrinkSegmentPairs:
+            dbs.extend(segPair.get_dbs())
+        return dbs
+
+    # --------------------------------------------------------------------
+    def getShrinkSegPairList(self):
+        """Returns a list of all SegmentPair objects that make up the new segments
+        of an expansion"""
+        return self.shrinkSegmentPairs
 
     # --------------------------------------------------------------------
     def getSegmentContainingDb(self, db):
@@ -1164,6 +1189,15 @@ class GpArray:
                 if db.getSegmentDbId() == segDb.getSegmentDbId():
                     return segPair
         return None
+    
+    # --------------------------------------------------------------------
+    def getShrinkSegmentContainingDb(self, db):
+        for segPair in self.shrinkSegmentPairs:
+            for segDb in segPair.get_dbs():
+                if db.getSegmentDbId() == segDb.getSegmentDbId():
+                    return segPair
+        return None
+
     # --------------------------------------------------------------------
     def get_invalid_segdbs(self):
         dbs=[]
@@ -1489,6 +1523,37 @@ class GpArray:
             seg.addMirror(segdb)
 
     # --------------------------------------------------------------------
+    def addShrinkSeg(self, content, preferred_role, dbid, role,
+                        hostname, address, port, datadir):
+        """
+        Add a segment to the gparray as an shrink segment.
+
+        Note: may work better to construct the new Segment in gpshrink and
+        simply pass it in.
+        """
+
+        segdb = Segment(content = content,
+                     preferred_role = preferred_role,
+                     dbid = dbid,
+                     role = role,
+                     mode = MODE_SYNCHRONIZED,
+                     status = STATUS_UP,
+                     hostname = hostname,
+                     address = address,
+                     port = port,
+                     datadir = datadir)
+        
+        if preferred_role == ROLE_PRIMARY:
+            self.shrinkSegmentPairs.append(SegmentPair())
+            seg = self.shrinkSegmentPairs[-1]
+            if seg.primaryDB:
+                raise Exception('Duplicate content id for primary segment')
+            seg.addPrimary(segdb)
+        else:
+            seg = self.shrinkSegmentPairs[-1]
+            seg.addMirror(segdb)
+
+    # --------------------------------------------------------------------
     def reOrderExpansionSegs(self):
         """
         The expansion segments content ID may have changed during the expansion.
@@ -1595,6 +1660,52 @@ class GpArray:
             else:
                 used_ports[hostname] = []
                 used_ports[hostname].append(db.port)
+    
+        # --------------------------------------------------------------------
+    def validateShrinkSegs(self):
+        """ Checks the segments added for various inconsistencies and errors.
+        """
+
+        # make sure we have added at least one segment
+        if len(self.shrinkSegmentPairs) == 0:
+            raise Exception('No shrink segments defined')
+        
+        totalsize = len(self.segmentPairs)
+        removesize = len(self.shrinkSegmentPairs)
+
+        if removesize >= totalsize:
+            self.logger.error('removed segment num %d more than or equal to total segment num %d', removesize, totalsize)
+            exit(1)
+        elif removesize < 1:
+            self.logger.error('removed segment num %d less than 1', removesize)
+            exit(1)
+
+        for segPair in self.shrinkSegmentPairs:
+            if self.hasMirrors:
+                if segPair.mirrorDB is None:
+                    raise Exception('primaryDB and mirrorDB should be removed simultaneously')
+                
+                if segPair.primaryDB.content != segPair.mirrorDB.content:
+                    raise Exception('primaryDB content is not equal mirrorDB content')
+            
+            # If shrinkSegmentPairs not in the segmentPairs raise exception
+            flag = False
+            for segPair_ in self.segmentPairs :
+                if segPair_ == segPair :
+                    flag = True
+                    
+            if flag == False:
+                raise Exception('Shrink segments not in the gp_segment_configuration table')
+            
+        # If shrinkSegmentPairs is not the last n segment.
+        self.shrinkSegmentPairs.sort(key=lambda segPair: segPair.primaryDB.content)
+
+        if self.shrinkSegmentPairs[-1].primaryDB.content !=  self.get_max_contentid():
+            raise Exception('please remove segment from max contentid')
+        
+        if self.shrinkSegmentPairs[0].primaryDB.content !=  self.get_max_contentid()-len(self.shrinkSegmentPairs)+1:
+            raise Exception('please remove segment in continuous contentid')        
+
 
     # --------------------------------------------------------------------
     def addExpansionHosts(self, hosts, mirror_type):
