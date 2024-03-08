@@ -224,7 +224,8 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
 }
 
 void TableWriter::Open() {
-  rel_path_ = cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
+  rel_path_ =
+      cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
   writer_ = CreateMicroPartitionWriter(mp_stats_);
   num_tuples_ = 0;
   // insert tuple into the aux table before inserting any tuples.
@@ -313,6 +314,7 @@ bool TableReader::ReadTuple(TupleTableSlot *slot) {
   }
 
   SetBlockNumber(&slot->tts_tid, current_block_number_);
+  Assert(TTS_EMPTY(slot));
   ExecStoreVirtualTuple(slot);
 
   return true;

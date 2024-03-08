@@ -69,13 +69,15 @@ bool PaxIndexScanDesc::FetchTuple(ItemPointer tid, Snapshot snapshot,
   if (call_again) *call_again = false;
   if (all_dead) *all_dead = false;
 
-  auto ok = reader_->GetTuple(slot, pax::GetTupleOffset(*tid));
-  if (ok) {
+  ExecClearTuple(slot);
+  if (reader_->GetTuple(slot, pax::GetTupleOffset(*tid))) {
     SetBlockNumber(&slot->tts_tid, block);
     ExecStoreVirtualTuple(slot);
+
+    return true;
   }
 
-  return ok;
+  return false;
 }
 
 bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block,
@@ -91,8 +93,8 @@ bool PaxIndexScanDesc::OpenMicroPartition(BlockNumber block,
     auto block_name = std::to_string(block);
     auto file_name = cbdb::BuildPaxFilePath(rel_path_, block_name);
     options.block_id = block_name;
-    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(
-        file_name, fs::kReadMode);
+    auto file = Singleton<LocalFileSystem>::GetInstance()->Open(file_name,
+                                                                fs::kReadMode);
     auto reader = PAX_NEW<OrcReader>(file);
     reader->Open(options);
     if (reader_) {
@@ -316,7 +318,7 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
 #ifdef VEC_BUILD
         && !(flags & SO_TYPE_VECTOR)
 #endif
-       )
+    )
       filter->BuildExecutionFilterForColumns(rel, ps);
   }
   paxscan = BeginScan(rel, snapshot, 0, nullptr, parallel_scan, flags, filter,
