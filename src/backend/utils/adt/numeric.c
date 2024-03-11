@@ -49,263 +49,10 @@
 
 /* ----------
  * Uncomment the following to enable compilation of dump_numeric()
- * and dump_var() and to get a dump of any result produced by make_result().
+ * and dump_var() and to get a dump of any result produced by make_numeric_result().
  * ----------
 #define NUMERIC_DEBUG
  */
-
-
-/* ----------
- * Local data types
- *
- * Numeric values are represented in a base-NBASE floating point format.
- * Each "digit" ranges from 0 to NBASE-1.  The type NumericDigit is signed
- * and wide enough to store a digit.  We assume that NBASE*NBASE can fit in
- * an int.  Although the purely calculational routines could handle any even
- * NBASE that's less than sqrt(INT_MAX), in practice we are only interested
- * in NBASE a power of ten, so that I/O conversions and decimal rounding
- * are easy.  Also, it's actually more efficient if NBASE is rather less than
- * sqrt(INT_MAX), so that there is "headroom" for mul_var and div_var_fast to
- * postpone processing carries.
- *
- * Values of NBASE other than 10000 are considered of historical interest only
- * and are no longer supported in any sense; no mechanism exists for the client
- * to discover the base, so every client supporting binary mode expects the
- * base-10000 format.  If you plan to change this, also note the numeric
- * abbreviation code, which assumes NBASE=10000.
- * ----------
- */
-
-
-#if 1
-#define NBASE		10000
-#define HALF_NBASE	5000
-#define DEC_DIGITS	4			/* decimal digits per NBASE digit */
-#define MUL_GUARD_DIGITS	2	/* these are measured in NBASE digits */
-#define DIV_GUARD_DIGITS	4
-
-typedef int16 NumericDigit;
-#endif
-
-/*
- * The Numeric type as stored on disk.
- *
- * If the high bits of the first word of a NumericChoice (n_header, or
- * n_short.n_header, or n_long.n_sign_dscale) are NUMERIC_SHORT, then the
- * numeric follows the NumericShort format; if they are NUMERIC_POS or
- * NUMERIC_NEG, it follows the NumericLong format. If they are NUMERIC_SPECIAL,
- * the value is a NaN or Infinity.  We currently always store SPECIAL values
- * using just two bytes (i.e. only n_header), but previous releases used only
- * the NumericLong format, so we might find 4-byte NaNs (though not infinities)
- * on disk if a database has been migrated using pg_upgrade.  In either case,
- * the low-order bits of a special value's header are reserved and currently
- * should always be set to zero.
- *
- * In the NumericShort format, the remaining 14 bits of the header word
- * (n_short.n_header) are allocated as follows: 1 for sign (positive or
- * negative), 6 for dynamic scale, and 7 for weight.  In practice, most
- * commonly-encountered values can be represented this way.
- *
- * In the NumericLong format, the remaining 14 bits of the header word
- * (n_long.n_sign_dscale) represent the display scale; and the weight is
- * stored separately in n_weight.
- *
- * NOTE: by convention, values in the packed form have been stripped of
- * all leading and trailing zero digits (where a "digit" is of base NBASE).
- * In particular, if the value is zero, there will be no digits at all!
- * The weight is arbitrary in that case, but we normally set it to zero.
- */
-
-struct NumericShort
-{
-	uint16		n_header;		/* Sign + display scale + weight */
-	NumericDigit n_data[FLEXIBLE_ARRAY_MEMBER]; /* Digits */
-};
-
-struct NumericLong
-{
-	uint16		n_sign_dscale;	/* Sign + display scale */
-	int16		n_weight;		/* Weight of 1st digit	*/
-	NumericDigit n_data[FLEXIBLE_ARRAY_MEMBER]; /* Digits */
-};
-
-union NumericChoice
-{
-	uint16		n_header;		/* Header word */
-	struct NumericLong n_long;	/* Long form (4-byte header) */
-	struct NumericShort n_short;	/* Short form (2-byte header) */
-};
-
-struct NumericData
-{
-	int32		vl_len_;		/* varlena header (do not touch directly!) */
-	union NumericChoice choice; /* choice of format */
-};
-
-
-/*
- * Interpretation of high bits.
- */
-
-#define NUMERIC_SIGN_MASK	0xC000
-#define NUMERIC_POS			0x0000
-#define NUMERIC_NEG			0x4000
-#define NUMERIC_SHORT		0x8000
-#define NUMERIC_SPECIAL		0xC000
-
-#define NUMERIC_FLAGBITS(n) ((n)->choice.n_header & NUMERIC_SIGN_MASK)
-#define NUMERIC_IS_SHORT(n)		(NUMERIC_FLAGBITS(n) == NUMERIC_SHORT)
-#define NUMERIC_IS_SPECIAL(n)	(NUMERIC_FLAGBITS(n) == NUMERIC_SPECIAL)
-
-#define NUMERIC_HDRSZ	(VARHDRSZ + sizeof(uint16) + sizeof(int16))
-#define NUMERIC_HDRSZ_SHORT (VARHDRSZ + sizeof(uint16))
-
-/*
- * If the flag bits are NUMERIC_SHORT or NUMERIC_SPECIAL, we want the short
- * header; otherwise, we want the long one.  Instead of testing against each
- * value, we can just look at the high bit, for a slight efficiency gain.
- */
-#define NUMERIC_HEADER_IS_SHORT(n)	(((n)->choice.n_header & 0x8000) != 0)
-#define NUMERIC_HEADER_SIZE(n) \
-	(VARHDRSZ + sizeof(uint16) + \
-	 (NUMERIC_HEADER_IS_SHORT(n) ? 0 : sizeof(int16)))
-
-/*
- * Definitions for special values (NaN, positive infinity, negative infinity).
- *
- * The two bits after the NUMERIC_SPECIAL bits are 00 for NaN, 01 for positive
- * infinity, 11 for negative infinity.  (This makes the sign bit match where
- * it is in a short-format value, though we make no use of that at present.)
- * We could mask off the remaining bits before testing the active bits, but
- * currently those bits must be zeroes, so masking would just add cycles.
- */
-#define NUMERIC_EXT_SIGN_MASK	0xF000	/* high bits plus NaN/Inf flag bits */
-#define NUMERIC_NAN				0xC000
-#define NUMERIC_PINF			0xD000
-#define NUMERIC_NINF			0xF000
-#define NUMERIC_INF_SIGN_MASK	0x2000
-
-#define NUMERIC_EXT_FLAGBITS(n)	((n)->choice.n_header & NUMERIC_EXT_SIGN_MASK)
-#define NUMERIC_IS_NAN(n)		((n)->choice.n_header == NUMERIC_NAN)
-#define NUMERIC_IS_PINF(n)		((n)->choice.n_header == NUMERIC_PINF)
-#define NUMERIC_IS_NINF(n)		((n)->choice.n_header == NUMERIC_NINF)
-#define NUMERIC_IS_INF(n) \
-	(((n)->choice.n_header & ~NUMERIC_INF_SIGN_MASK) == NUMERIC_PINF)
-
-/*
- * Short format definitions.
- */
-
-#define NUMERIC_SHORT_SIGN_MASK			0x2000
-#define NUMERIC_SHORT_DSCALE_MASK		0x1F80
-#define NUMERIC_SHORT_DSCALE_SHIFT		7
-#define NUMERIC_SHORT_DSCALE_MAX		\
-	(NUMERIC_SHORT_DSCALE_MASK >> NUMERIC_SHORT_DSCALE_SHIFT)
-#define NUMERIC_SHORT_WEIGHT_SIGN_MASK	0x0040
-#define NUMERIC_SHORT_WEIGHT_MASK		0x003F
-#define NUMERIC_SHORT_WEIGHT_MAX		NUMERIC_SHORT_WEIGHT_MASK
-#define NUMERIC_SHORT_WEIGHT_MIN		(-(NUMERIC_SHORT_WEIGHT_MASK+1))
-
-/*
- * Extract sign, display scale, weight.  These macros extract field values
- * suitable for the NumericVar format from the Numeric (on-disk) format.
- *
- * Note that we don't trouble to ensure that dscale and weight read as zero
- * for an infinity; however, that doesn't matter since we never convert
- * "special" numerics to NumericVar form.  Only the constants defined below
- * (const_nan, etc) ever represent a non-finite value as a NumericVar.
- */
-
-#define NUMERIC_DSCALE_MASK			0x3FFF
-#define NUMERIC_DSCALE_MAX			NUMERIC_DSCALE_MASK
-
-#define NUMERIC_SIGN(n) \
-	(NUMERIC_IS_SHORT(n) ? \
-		(((n)->choice.n_short.n_header & NUMERIC_SHORT_SIGN_MASK) ? \
-		 NUMERIC_NEG : NUMERIC_POS) : \
-		(NUMERIC_IS_SPECIAL(n) ? \
-		 NUMERIC_EXT_FLAGBITS(n) : NUMERIC_FLAGBITS(n)))
-#define NUMERIC_DSCALE(n)	(NUMERIC_HEADER_IS_SHORT((n)) ? \
-	((n)->choice.n_short.n_header & NUMERIC_SHORT_DSCALE_MASK) \
-		>> NUMERIC_SHORT_DSCALE_SHIFT \
-	: ((n)->choice.n_long.n_sign_dscale & NUMERIC_DSCALE_MASK))
-#define NUMERIC_WEIGHT(n)	(NUMERIC_HEADER_IS_SHORT((n)) ? \
-	(((n)->choice.n_short.n_header & NUMERIC_SHORT_WEIGHT_SIGN_MASK ? \
-		~NUMERIC_SHORT_WEIGHT_MASK : 0) \
-	 | ((n)->choice.n_short.n_header & NUMERIC_SHORT_WEIGHT_MASK)) \
-	: ((n)->choice.n_long.n_weight))
-
-/* ----------
- * NumericVar is the format we use for arithmetic.  The digit-array part
- * is the same as the NumericData storage format, but the header is more
- * complex.
- *
- * The value represented by a NumericVar is determined by the sign, weight,
- * ndigits, and digits[] array.  If it is a "special" value (NaN or Inf)
- * then only the sign field matters; ndigits should be zero, and the weight
- * and dscale fields are ignored.
- *
- * Note: the first digit of a NumericVar's value is assumed to be multiplied
- * by NBASE ** weight.  Another way to say it is that there are weight+1
- * digits before the decimal point.  It is possible to have weight < 0.
- *
- * buf: points at the physical start of the digit buffer for the NumericVar.
- * This is either the local buffer (ndb) or a palloc'd buffer.
- *
- * digits: points at the first digit in actual use (the one with the
- * specified weight).	We normally leave an unused digit or two
- * (preset to zeroes) between buf and digits, so that there is room to store
- * a carry out of the top digit without reallocating space.  We just need to
- * decrement digits (and increment weight) to make room for the carry digit.
- * (There is no such extra space in a numeric value stored in the database,
- * only in a NumericVar in memory.)
- *
- * If buf is set to ndb, then the digit buffer isn't actually palloc'd and
- * should not be freed --- see the constants below for an example.
- *
- * dscale: display scale, is the nominal precision expressed as number
- * of digits after the decimal point (it must always be >= 0 at present).
- * dscale may be more than the number of physically stored fractional digits,
- * implying that we have suppressed storage of significant trailing zeroes.
- * It should never be less than the number of stored digits, since that would
- * imply hiding digits that are present.  NOTE that dscale is always expressed
- * in *decimal* digits, and so it may correspond to a fractional number of
- * base-NBASE digits --- divide by DEC_DIGITS to convert to NBASE digits.
- *
- * rscale, or result scale, is the target precision for a computation.
- * Like dscale it is expressed as number of *decimal* digits after the decimal
- * point, and is always >= 0 at present.
- * Note that rscale is not stored in variables --- it's figured on-the-fly
- * from the dscales of the inputs.
- *
- * While we consistently use "weight" to refer to the base-NBASE weight of
- * a numeric value, it is convenient in some scale-related calculations to
- * make use of the base-10 weight (ie, the approximate log10 of the value).
- * To avoid confusion, such a decimal-units weight is called a "dweight".
- *
- * NB: All the variable-level functions are written in a style that makes it
- * possible to give one and the same variable as argument and destination.
- *
- * ----------
- */
-#define	NUMERIC_LOCAL_NDIG	36		/* number of 'digits' in local digits[] */
-#define NUMERIC_LOCAL_NMAX	(NUMERIC_LOCAL_NDIG - 2)
-#define	NUMERIC_LOCAL_DTXT	128		/* number of char in local text */
-#define NUMERIC_LOCAL_DMAX	(NUMERIC_LOCAL_DTXT - 2)
-
-typedef struct NumericVar
-{
-	int			ndigits;		/* # of digits in digits[] - can be 0! */
-	int			weight;			/* weight of first digit */
-	int			sign;			/* NUMERIC_POS, _NEG, _NAN, _PINF, or _NINF */
-	int			dscale;			/* display scale */
-	NumericDigit *buf;			/* start of space for digits[] */
-	NumericDigit *digits;		/* base-NBASE digits */
-	NumericDigit ndb[NUMERIC_LOCAL_NDIG];	/* local space for digits[] */
-} NumericVar;
-
-#define NUMERIC_LOCAL_HSIZ	\
-			(sizeof(NumericVar) - (sizeof(NumericDigit) * NUMERIC_LOCAL_NDIG))
 
 /* ----------
  * Data for generate_series
@@ -455,7 +202,6 @@ static const NumericVar const_ninf =
 static const int round_powers[4] = {0, 1000, 100, 10};
 #endif
 
-
 /* ----------
  * Local functions
  * ----------
@@ -481,7 +227,6 @@ static void dump_var(const char *str, NumericVar *var);
 		(v)->buf = (v)->ndb;	\
 		(v)->digits = NULL; 	\
 	} while (0)
-
 
 
 #define digitbuf_alloc(ndigits)  \
@@ -523,29 +268,13 @@ static void dump_var(const char *str, NumericVar *var);
 	} while (0)
 
 
-#define NUMERIC_DIGITS(num) (NUMERIC_HEADER_IS_SHORT(num) ? \
-	(num)->choice.n_short.n_data : (num)->choice.n_long.n_data)
-#define NUMERIC_NDIGITS(num) \
-	((VARSIZE(num) - NUMERIC_HEADER_SIZE(num)) / sizeof(NumericDigit))
 #define NUMERIC_CAN_BE_SHORT(scale,weight) \
 	((scale) <= NUMERIC_SHORT_DSCALE_MAX && \
 	(weight) <= NUMERIC_SHORT_WEIGHT_MAX && \
 	(weight) >= NUMERIC_SHORT_WEIGHT_MIN)
 
-static void alloc_var(NumericVar *var, int ndigits);
-static void zero_var(NumericVar *var);
-
-static const char *init_var_from_str(const char *str, const char *cp, NumericVar *dest);
-static void init_var_from_var(const NumericVar *value, NumericVar *dest);
-static void init_ro_var_from_var(const NumericVar *value, NumericVar *dest);
-static void set_var_from_num(Numeric value, NumericVar *dest);
-static void init_var_from_num(Numeric value, NumericVar *dest);
-static void set_var_from_var(const NumericVar *value, NumericVar *dest);
-static char *get_str_from_var(const NumericVar *var);
-static char *get_str_from_var_sci(const NumericVar *var, int rscale);
 
 static Numeric duplicate_numeric(Numeric num);
-static Numeric make_result(const NumericVar *var);
 static Numeric make_result_opt_error(const NumericVar *var, bool *error);
 
 static void apply_typmod(NumericVar *var, int32 typmod);
@@ -673,37 +402,37 @@ numeric_in(PG_FUNCTION_ARGS)
 	 */
 	if (pg_strncasecmp(cp, "NaN", 3) == 0)
 	{
-		res = make_result(&const_nan);
+		res = make_numeric_result(&const_nan);
 		cp += 3;
 	}
 	else if (pg_strncasecmp(cp, "Infinity", 8) == 0)
 	{
-		res = make_result(&const_pinf);
+		res = make_numeric_result(&const_pinf);
 		cp += 8;
 	}
 	else if (pg_strncasecmp(cp, "+Infinity", 9) == 0)
 	{
-		res = make_result(&const_pinf);
+		res = make_numeric_result(&const_pinf);
 		cp += 9;
 	}
 	else if (pg_strncasecmp(cp, "-Infinity", 9) == 0)
 	{
-		res = make_result(&const_ninf);
+		res = make_numeric_result(&const_ninf);
 		cp += 9;
 	}
 	else if (pg_strncasecmp(cp, "inf", 3) == 0)
 	{
-		res = make_result(&const_pinf);
+		res = make_numeric_result(&const_pinf);
 		cp += 3;
 	}
 	else if (pg_strncasecmp(cp, "+inf", 4) == 0)
 	{
-		res = make_result(&const_pinf);
+		res = make_numeric_result(&const_pinf);
 		cp += 4;
 	}
 	else if (pg_strncasecmp(cp, "-inf", 4) == 0)
 	{
-		res = make_result(&const_ninf);
+		res = make_numeric_result(&const_ninf);
 		cp += 4;
 	}
 	else
@@ -734,7 +463,7 @@ numeric_in(PG_FUNCTION_ARGS)
 
 		apply_typmod(&value, typmod);
 
-		res = make_result(&value);
+		res = make_numeric_result(&value);
 		free_var(&value);
 
 		PG_RETURN_NUMERIC(res);
@@ -791,50 +520,6 @@ numeric_out(PG_FUNCTION_ARGS)
 	str = get_str_from_var(&x);
 
 	PG_RETURN_CSTRING(str);
-}
-
-/*
- * numeric_is_nan() -
- *
- *	Is Numeric value a NaN?
- */
-bool
-numeric_is_nan(Numeric num)
-{
-	return NUMERIC_IS_NAN(num);
-}
-
-/*
- * numeric_digits() -
- *
- *	Output function for numeric's digits
- */
-NumericDigit *
-numeric_digits(Numeric num)
-{
-	return NUMERIC_DIGITS(num);
-}
-
-/*
- * numeric_len() -
- *
- *	Output size of digits in bytes
- */
-int
-numeric_len(Numeric num)
-{
-	return NUMERIC_NDIGITS(num) * sizeof(NumericDigit);
-}
-
-/*
- * numeric_is_inf() -
- *
- *	Is Numeric value an infinity?
- */
-bool
-numeric_is_inf(Numeric num)
-{
-	return NUMERIC_IS_INF(num);
 }
 
 /*
@@ -1057,12 +742,12 @@ numeric_recv(PG_FUNCTION_ARGS)
 
 		apply_typmod(&value, typmod);
 
-		res = make_result(&value);
+		res = make_numeric_result(&value);
 	}
 	else
 	{
 		/* apply_typmod_special wants us to make the Numeric first */
-		res = make_result(&value);
+		res = make_numeric_result(&value);
 
 		apply_typmod_special(res, typmod);
 	}
@@ -1227,7 +912,7 @@ numeric		(PG_FUNCTION_ARGS)
 
 	set_var_from_num(num, &var);
 	apply_typmod(&var, typmod);
-	new = make_result(&var);
+	new = make_numeric_result(&var);
 
 	free_var(&var);
 
@@ -1429,17 +1114,17 @@ numeric_sign(PG_FUNCTION_ARGS)
 	 * Handle NaN (infinities can be handled normally)
 	 */
 	if (NUMERIC_IS_NAN(num))
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 
 	switch (numeric_sign_internal(num))
 	{
 		case 0:
-			PG_RETURN_NUMERIC(make_result(&const_zero));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 		case 1:
-			PG_RETURN_NUMERIC(make_result(&const_one));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_one));
 		case -1:
-			PG_RETURN_NUMERIC(make_result(&const_minus_one));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_minus_one));
 	}
 
 	Assert(false);
@@ -1489,7 +1174,7 @@ numeric_round(PG_FUNCTION_ARGS)
 	/*
 	 * Return the rounded result
 	 */
-	res = make_result(&arg);
+	res = make_numeric_result(&arg);
 
 	free_var(&arg);
 	PG_RETURN_NUMERIC(res);
@@ -1538,7 +1223,7 @@ numeric_trunc(PG_FUNCTION_ARGS)
 	/*
 	 * Return the truncated result
 	 */
-	res = make_result(&arg);
+	res = make_numeric_result(&arg);
 
 	free_var(&arg);
 	PG_RETURN_NUMERIC(res);
@@ -1566,7 +1251,7 @@ numeric_ceil(PG_FUNCTION_ARGS)
 	init_var_from_num(num, &result);
 	ceil_var(&result, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 	free_var(&result);
 
 	PG_RETURN_NUMERIC(res);
@@ -1594,7 +1279,7 @@ numeric_floor(PG_FUNCTION_ARGS)
 	init_var_from_num(num, &result);
 	floor_var(&result, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 	free_var(&result);
 
 	PG_RETURN_NUMERIC(res);
@@ -1718,7 +1403,7 @@ generate_series_step_numeric(PG_FUNCTION_ARGS)
 		(fctx->step.sign == NUMERIC_NEG &&
 		 cmp_var(&fctx->current, &fctx->stop) >= 0))
 	{
-		Numeric		result = make_result(&fctx->current);
+		Numeric		result = make_numeric_result(&fctx->current);
 
 		/* switch to memory context appropriate for iteration calculation */
 		oldcontext = MemoryContextSwitchTo(funcctx->multi_call_memory_ctx);
@@ -2790,26 +2475,26 @@ numeric_add_opt_error(Numeric num1, Numeric num2, bool *have_error)
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
 	{
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			return make_result(&const_nan);
+			return make_numeric_result(&const_nan);
 		if (NUMERIC_IS_PINF(num1))
 		{
 			if (NUMERIC_IS_NINF(num2))
-				return make_result(&const_nan); /* Inf + -Inf */
+				return make_numeric_result(&const_nan); /* Inf + -Inf */
 			else
-				return make_result(&const_pinf);
+				return make_numeric_result(&const_pinf);
 		}
 		if (NUMERIC_IS_NINF(num1))
 		{
 			if (NUMERIC_IS_PINF(num2))
-				return make_result(&const_nan); /* -Inf + Inf */
+				return make_numeric_result(&const_nan); /* -Inf + Inf */
 			else
-				return make_result(&const_ninf);
+				return make_numeric_result(&const_ninf);
 		}
 		/* by here, num1 must be finite, so num2 is not */
 		if (NUMERIC_IS_PINF(num2))
-			return make_result(&const_pinf);
+			return make_numeric_result(&const_pinf);
 		Assert(NUMERIC_IS_NINF(num2));
-		return make_result(&const_ninf);
+		return make_numeric_result(&const_ninf);
 	}
 
 	/*
@@ -2868,26 +2553,26 @@ numeric_sub_opt_error(Numeric num1, Numeric num2, bool *have_error)
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
 	{
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			return make_result(&const_nan);
+			return make_numeric_result(&const_nan);
 		if (NUMERIC_IS_PINF(num1))
 		{
 			if (NUMERIC_IS_PINF(num2))
-				return make_result(&const_nan); /* Inf - Inf */
+				return make_numeric_result(&const_nan); /* Inf - Inf */
 			else
-				return make_result(&const_pinf);
+				return make_numeric_result(&const_pinf);
 		}
 		if (NUMERIC_IS_NINF(num1))
 		{
 			if (NUMERIC_IS_NINF(num2))
-				return make_result(&const_nan); /* -Inf - -Inf */
+				return make_numeric_result(&const_nan); /* -Inf - -Inf */
 			else
-				return make_result(&const_ninf);
+				return make_numeric_result(&const_ninf);
 		}
 		/* by here, num1 must be finite, so num2 is not */
 		if (NUMERIC_IS_PINF(num2))
-			return make_result(&const_ninf);
+			return make_numeric_result(&const_ninf);
 		Assert(NUMERIC_IS_NINF(num2));
-		return make_result(&const_pinf);
+		return make_numeric_result(&const_pinf);
 	}
 
 	/*
@@ -2946,17 +2631,17 @@ numeric_mul_opt_error(Numeric num1, Numeric num2, bool *have_error)
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
 	{
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			return make_result(&const_nan);
+			return make_numeric_result(&const_nan);
 		if (NUMERIC_IS_PINF(num1))
 		{
 			switch (numeric_sign_internal(num2))
 			{
 				case 0:
-					return make_result(&const_nan); /* Inf * 0 */
+					return make_numeric_result(&const_nan); /* Inf * 0 */
 				case 1:
-					return make_result(&const_pinf);
+					return make_numeric_result(&const_pinf);
 				case -1:
-					return make_result(&const_ninf);
+					return make_numeric_result(&const_ninf);
 			}
 			Assert(false);
 		}
@@ -2965,11 +2650,11 @@ numeric_mul_opt_error(Numeric num1, Numeric num2, bool *have_error)
 			switch (numeric_sign_internal(num2))
 			{
 				case 0:
-					return make_result(&const_nan); /* -Inf * 0 */
+					return make_numeric_result(&const_nan); /* -Inf * 0 */
 				case 1:
-					return make_result(&const_ninf);
+					return make_numeric_result(&const_ninf);
 				case -1:
-					return make_result(&const_pinf);
+					return make_numeric_result(&const_pinf);
 			}
 			Assert(false);
 		}
@@ -2979,11 +2664,11 @@ numeric_mul_opt_error(Numeric num1, Numeric num2, bool *have_error)
 			switch (numeric_sign_internal(num1))
 			{
 				case 0:
-					return make_result(&const_nan); /* 0 * Inf */
+					return make_numeric_result(&const_nan); /* 0 * Inf */
 				case 1:
-					return make_result(&const_pinf);
+					return make_numeric_result(&const_pinf);
 				case -1:
-					return make_result(&const_ninf);
+					return make_numeric_result(&const_ninf);
 			}
 			Assert(false);
 		}
@@ -2991,11 +2676,11 @@ numeric_mul_opt_error(Numeric num1, Numeric num2, bool *have_error)
 		switch (numeric_sign_internal(num1))
 		{
 			case 0:
-				return make_result(&const_nan); /* 0 * -Inf */
+				return make_numeric_result(&const_nan); /* 0 * -Inf */
 			case 1:
-				return make_result(&const_ninf);
+				return make_numeric_result(&const_ninf);
 			case -1:
-				return make_result(&const_pinf);
+				return make_numeric_result(&const_pinf);
 		}
 		Assert(false);
 	}
@@ -3071,11 +2756,11 @@ numeric_div_opt_error(Numeric num1, Numeric num2, bool *have_error)
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
 	{
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			return make_result(&const_nan);
+			return make_numeric_result(&const_nan);
 		if (NUMERIC_IS_PINF(num1))
 		{
 			if (NUMERIC_IS_SPECIAL(num2))
-				return make_result(&const_nan); /* Inf / [-]Inf */
+				return make_numeric_result(&const_nan); /* Inf / [-]Inf */
 			switch (numeric_sign_internal(num2))
 			{
 				case 0:
@@ -3089,16 +2774,16 @@ numeric_div_opt_error(Numeric num1, Numeric num2, bool *have_error)
 							 errmsg("division by zero")));
 					break;
 				case 1:
-					return make_result(&const_pinf);
+					return make_numeric_result(&const_pinf);
 				case -1:
-					return make_result(&const_ninf);
+					return make_numeric_result(&const_ninf);
 			}
 			Assert(false);
 		}
 		if (NUMERIC_IS_NINF(num1))
 		{
 			if (NUMERIC_IS_SPECIAL(num2))
-				return make_result(&const_nan); /* -Inf / [-]Inf */
+				return make_numeric_result(&const_nan); /* -Inf / [-]Inf */
 			switch (numeric_sign_internal(num2))
 			{
 				case 0:
@@ -3112,9 +2797,9 @@ numeric_div_opt_error(Numeric num1, Numeric num2, bool *have_error)
 							 errmsg("division by zero")));
 					break;
 				case 1:
-					return make_result(&const_ninf);
+					return make_numeric_result(&const_ninf);
 				case -1:
-					return make_result(&const_pinf);
+					return make_numeric_result(&const_pinf);
 			}
 			Assert(false);
 		}
@@ -3125,7 +2810,7 @@ numeric_div_opt_error(Numeric num1, Numeric num2, bool *have_error)
 		 * otherwise throw an underflow error.  But the numeric type doesn't
 		 * really do underflow, so let's just return zero.
 		 */
-		return make_result(&const_zero);
+		return make_numeric_result(&const_zero);
 	}
 
 	/*
@@ -3184,11 +2869,11 @@ numeric_div_trunc(PG_FUNCTION_ARGS)
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
 	{
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			PG_RETURN_NUMERIC(make_result(&const_nan));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 		if (NUMERIC_IS_PINF(num1))
 		{
 			if (NUMERIC_IS_SPECIAL(num2))
-				PG_RETURN_NUMERIC(make_result(&const_nan)); /* Inf / [-]Inf */
+				PG_RETURN_NUMERIC(make_numeric_result(&const_nan)); /* Inf / [-]Inf */
 			switch (numeric_sign_internal(num2))
 			{
 				case 0:
@@ -3197,16 +2882,16 @@ numeric_div_trunc(PG_FUNCTION_ARGS)
 							 errmsg("division by zero")));
 					break;
 				case 1:
-					PG_RETURN_NUMERIC(make_result(&const_pinf));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 				case -1:
-					PG_RETURN_NUMERIC(make_result(&const_ninf));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 			}
 			Assert(false);
 		}
 		if (NUMERIC_IS_NINF(num1))
 		{
 			if (NUMERIC_IS_SPECIAL(num2))
-				PG_RETURN_NUMERIC(make_result(&const_nan)); /* -Inf / [-]Inf */
+				PG_RETURN_NUMERIC(make_numeric_result(&const_nan)); /* -Inf / [-]Inf */
 			switch (numeric_sign_internal(num2))
 			{
 				case 0:
@@ -3215,9 +2900,9 @@ numeric_div_trunc(PG_FUNCTION_ARGS)
 							 errmsg("division by zero")));
 					break;
 				case 1:
-					PG_RETURN_NUMERIC(make_result(&const_ninf));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 				case -1:
-					PG_RETURN_NUMERIC(make_result(&const_pinf));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 			}
 			Assert(false);
 		}
@@ -3228,7 +2913,7 @@ numeric_div_trunc(PG_FUNCTION_ARGS)
 		 * otherwise throw an underflow error.  But the numeric type doesn't
 		 * really do underflow, so let's just return zero.
 		 */
-		PG_RETURN_NUMERIC(make_result(&const_zero));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 	}
 
 	/*
@@ -3244,7 +2929,7 @@ numeric_div_trunc(PG_FUNCTION_ARGS)
 	 */
 	div_var(&arg1, &arg2, &result, 0, false);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3296,7 +2981,7 @@ numeric_mod_opt_error(Numeric num1, Numeric num2, bool *have_error)
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
 	{
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			return make_result(&const_nan);
+			return make_numeric_result(&const_nan);
 		if (NUMERIC_IS_INF(num1))
 		{
 			if (numeric_sign_internal(num2) == 0)
@@ -3311,7 +2996,7 @@ numeric_mod_opt_error(Numeric num1, Numeric num2, bool *have_error)
 						 errmsg("division by zero")));
 			}
 			/* Inf % any nonzero = NaN */
-			return make_result(&const_nan);
+			return make_numeric_result(&const_nan);
 		}
 		/* num2 must be [-]Inf; result is num1 regardless of sign of num2 */
 		return duplicate_numeric(num1);
@@ -3366,7 +3051,7 @@ numeric_inc(PG_FUNCTION_ARGS)
 
 	add_var(&arg, &const_one, &arg);
 
-	res = make_result(&arg);
+	res = make_numeric_result(&arg);
 
 	free_var(&arg);
 
@@ -3389,7 +3074,7 @@ numeric_dec(PG_FUNCTION_ARGS)
 	 * Handle NaN
 	 */
 	if (NUMERIC_IS_NAN(num))
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	/*
 	 * Compute the result and return it
@@ -3399,7 +3084,7 @@ numeric_dec(PG_FUNCTION_ARGS)
 
 	sub_var(&arg, &const_one, &arg);
 
-	res = make_result(&arg);
+	res = make_numeric_result(&arg);
 
 	free_var(&arg);
 
@@ -3478,7 +3163,7 @@ numeric_gcd(PG_FUNCTION_ARGS)
 	 * cases.
 	 */
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	/*
 	 * Unpack the arguments
@@ -3493,7 +3178,7 @@ numeric_gcd(PG_FUNCTION_ARGS)
 	 */
 	gcd_var(&arg1, &arg2, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3521,7 +3206,7 @@ numeric_lcm(PG_FUNCTION_ARGS)
 	 * cases.
 	 */
 	if (NUMERIC_IS_SPECIAL(num1) || NUMERIC_IS_SPECIAL(num2))
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	/*
 	 * Unpack the arguments
@@ -3553,7 +3238,7 @@ numeric_lcm(PG_FUNCTION_ARGS)
 
 	result.dscale = Max(arg1.dscale, arg2.dscale);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3580,7 +3265,7 @@ numeric_fac(PG_FUNCTION_ARGS)
 				 errmsg("factorial of a negative number is undefined")));
 	if (num <= 1)
 	{
-		res = make_result(&const_one);
+		res = make_numeric_result(&const_one);
 		PG_RETURN_NUMERIC(res);
 	}
 	/* Fail immediately if the result would overflow */
@@ -3610,7 +3295,7 @@ numeric_fac(PG_FUNCTION_ARGS)
 		mul_var(&result, &fact, &result, 0);
 	}
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&fact);
 	free_var(&result);
@@ -3670,7 +3355,7 @@ numeric_sqrt(PG_FUNCTION_ARGS)
 	 */
 	sqrt_var(&arg, &result, rscale);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3700,7 +3385,7 @@ numeric_exp(PG_FUNCTION_ARGS)
 	{
 		/* Per POSIX, exp(-Inf) is zero */
 		if (NUMERIC_IS_NINF(num))
-			PG_RETURN_NUMERIC(make_result(&const_zero));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 		/* For NAN or PINF, just duplicate the input */
 		PG_RETURN_NUMERIC(duplicate_numeric(num));
 	}
@@ -3737,7 +3422,7 @@ numeric_exp(PG_FUNCTION_ARGS)
 	 */
 	exp_var(&arg, &result, rscale);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3786,7 +3471,7 @@ numeric_ln(PG_FUNCTION_ARGS)
 
 	ln_var(&arg, &result, rscale);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3818,7 +3503,7 @@ numeric_log(PG_FUNCTION_ARGS)
 					sign2;
 
 		if (NUMERIC_IS_NAN(num1) || NUMERIC_IS_NAN(num2))
-			PG_RETURN_NUMERIC(make_result(&const_nan));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 		/* fail on negative inputs including -Inf, as log_var would */
 		sign1 = numeric_sign_internal(num1);
 		sign2 = numeric_sign_internal(num2);
@@ -3835,13 +3520,13 @@ numeric_log(PG_FUNCTION_ARGS)
 		{
 			/* log(Inf, Inf) reduces to Inf/Inf, so it's NaN */
 			if (NUMERIC_IS_PINF(num2))
-				PG_RETURN_NUMERIC(make_result(&const_nan));
+				PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 			/* log(Inf, finite-positive) is zero (we don't throw underflow) */
-			PG_RETURN_NUMERIC(make_result(&const_zero));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 		}
 		Assert(NUMERIC_IS_PINF(num2));
 		/* log(finite-positive, Inf) is Inf */
-		PG_RETURN_NUMERIC(make_result(&const_pinf));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 	}
 
 	/*
@@ -3857,7 +3542,7 @@ numeric_log(PG_FUNCTION_ARGS)
 	 */
 	log_var(&arg1, &arg2, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -3898,9 +3583,9 @@ numeric_power(PG_FUNCTION_ARGS)
 			{
 				init_var_from_num(num2, &arg2);
 				if (cmp_var(&arg2, &const_zero) == 0)
-					PG_RETURN_NUMERIC(make_result(&const_one));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_one));
 			}
-			PG_RETURN_NUMERIC(make_result(&const_nan));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 		}
 		if (NUMERIC_IS_NAN(num2))
 		{
@@ -3908,9 +3593,9 @@ numeric_power(PG_FUNCTION_ARGS)
 			{
 				init_var_from_num(num1, &arg1);
 				if (cmp_var(&arg1, &const_one) == 0)
-					PG_RETURN_NUMERIC(make_result(&const_one));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_one));
 			}
-			PG_RETURN_NUMERIC(make_result(&const_nan));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 		}
 		/* At least one input is infinite, but error rules still apply */
 		sign1 = numeric_sign_internal(num1);
@@ -3933,14 +3618,14 @@ numeric_power(PG_FUNCTION_ARGS)
 		{
 			init_var_from_num(num1, &arg1);
 			if (cmp_var(&arg1, &const_one) == 0)
-				PG_RETURN_NUMERIC(make_result(&const_one));
+				PG_RETURN_NUMERIC(make_numeric_result(&const_one));
 		}
 
 		/*
 		 * For any value of x, if y is [-]0, 1.0 shall be returned.
 		 */
 		if (sign2 == 0)
-			PG_RETURN_NUMERIC(make_result(&const_one));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_one));
 		/*
 		 * For any odd integer value of y > 0, if x is [-]0, [-]0 shall be
 		 * returned.  For y > 0 and not an odd integer, if x is [-]0, +0 shall
@@ -3948,7 +3633,7 @@ numeric_power(PG_FUNCTION_ARGS)
 		 * distinguish these two cases.)
 		 */
 		if (sign1 == 0 && sign2 > 0)
-			PG_RETURN_NUMERIC(make_result(&const_zero));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 
 
 		/*
@@ -3972,14 +3657,14 @@ numeric_power(PG_FUNCTION_ARGS)
 			{
 				init_var_from_num(num1, &arg1);
 				if (cmp_var(&arg1, &const_minus_one) == 0)
-					PG_RETURN_NUMERIC(make_result(&const_one));
+					PG_RETURN_NUMERIC(make_numeric_result(&const_one));
 				arg1.sign = NUMERIC_POS;	/* now arg1 = abs(x) */
 				abs_x_gt_one = (cmp_var(&arg1, &const_one) > 0);
 			}
 			if (abs_x_gt_one == (sign2 > 0))
-				PG_RETURN_NUMERIC(make_result(&const_pinf));
+				PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 			else
-				PG_RETURN_NUMERIC(make_result(&const_zero));
+				PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 		}
 
 		/*
@@ -3990,9 +3675,9 @@ numeric_power(PG_FUNCTION_ARGS)
 		if (NUMERIC_IS_PINF(num1))
 		{
 			if (sign2 > 0)
-				PG_RETURN_NUMERIC(make_result(&const_pinf));
+				PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 			else
-				PG_RETURN_NUMERIC(make_result(&const_zero));
+				PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 		}
 
 		Assert(NUMERIC_IS_NINF(num1));
@@ -4003,7 +3688,7 @@ numeric_power(PG_FUNCTION_ARGS)
 		 * (Again, we need not distinguish these two cases.)
 		 */
 		if (sign2 < 0)
-			PG_RETURN_NUMERIC(make_result(&const_zero));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_zero));
 
 		/*
 		 * For y an odd integer > 0, if x is -Inf, -Inf shall be returned. For
@@ -4012,9 +3697,9 @@ numeric_power(PG_FUNCTION_ARGS)
 		init_var_from_num(num2, &arg2);
 		if (arg2.ndigits > 0 && arg2.ndigits == arg2.weight + 1 &&
 			(arg2.digits[arg2.ndigits - 1] & 1))
-			PG_RETURN_NUMERIC(make_result(&const_ninf));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 		else
-			PG_RETURN_NUMERIC(make_result(&const_pinf));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 	}
 
 	/*
@@ -4045,7 +3730,7 @@ numeric_power(PG_FUNCTION_ARGS)
 	 */
 	power_var(&arg1, &arg2, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -4071,11 +3756,11 @@ numeric_interval_bound_common(Numeric value, Numeric width,
 
 	/* NAN, if either of the first two non-NULL arguments is NAN. */
 	if (NUMERIC_IS_NAN(value) || NUMERIC_IS_NAN(width))
-		return make_result(&const_nan);
+		return make_numeric_result(&const_nan);
 
 	/* NAN, if rbound is NAN. */
 	if (rbound != NULL && NUMERIC_IS_NAN(rbound))
-		return make_result(&const_nan);
+		return make_numeric_result(&const_nan);
 
 	/* result = value */
 	init_var_from_num(value, &result);
@@ -4118,7 +3803,7 @@ numeric_interval_bound_common(Numeric value, Numeric width,
 	free_var(&wrkvar);
 	free_var(&widvar);
 
-	return make_result(&result);
+	return make_numeric_result(&result);
 }
 
 /*
@@ -4198,7 +3883,7 @@ numeric_li_value(float8 f, Numeric y0, Numeric y1)
 	
 	if ( NUMERIC_IS_NAN(y0) || NUMERIC_IS_NAN(y1) || isnan(f) )
 	{
-		y = make_result(&const_nan);
+		y = make_numeric_result(&const_nan);
 	}
 	else
 	{
@@ -4220,7 +3905,7 @@ numeric_li_value(float8 f, Numeric y0, Numeric y1)
 		mul_var(&vf, &v1, &v1, vf.dscale + v1.dscale);
 		add_var(&v0, &v1, &v1);  
 		
-		y = make_result(&v1);
+		y = make_numeric_result(&v1);
 	}
 	
 	return y;
@@ -4392,7 +4077,7 @@ numeric_trim_scale(PG_FUNCTION_ARGS)
 
 	init_var_from_num(num, &result);
 	result.dscale = get_min_scale(&result);
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 	free_var(&result);
 
 	PG_RETURN_NUMERIC(res);
@@ -4416,7 +4101,7 @@ int64_to_numeric(int64 val)
 
 	int64_to_numericvar(val, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -4477,7 +4162,7 @@ int64_div_fast_to_numeric(int64 val1, int log10val2)
 	result.weight -= w;
 	result.dscale += w * DEC_DIGITS - (DEC_DIGITS - m);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -4670,14 +4355,14 @@ float8_numeric(PG_FUNCTION_ARGS)
 	char		buf[DBL_DIG + 100];
 
 	if (isnan(val))
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	if (isinf(val))
 	{
 		if (val < 0)
-			PG_RETURN_NUMERIC(make_result(&const_ninf));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 		else
-			PG_RETURN_NUMERIC(make_result(&const_pinf));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 	}
 
 	snprintf(buf, sizeof(buf), "%.*g", DBL_DIG, val);
@@ -4685,7 +4370,7 @@ float8_numeric(PG_FUNCTION_ARGS)
 	/* Assume we need not worry about leading/trailing spaces */
 	(void) init_var_from_str(buf, buf, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -4774,14 +4459,14 @@ float4_numeric(PG_FUNCTION_ARGS)
 	char		buf[FLT_DIG + 100];
 
 	if (isnan(val))
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	if (isinf(val))
 	{
 		if (val < 0)
-			PG_RETURN_NUMERIC(make_result(&const_ninf));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 		else
-			PG_RETURN_NUMERIC(make_result(&const_pinf));
+			PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 	}
 
 	snprintf(buf, sizeof(buf), "%.*g", FLT_DIG, val);
@@ -4789,7 +4474,7 @@ float4_numeric(PG_FUNCTION_ARGS)
 	/* Assume we need not worry about leading/trailing spaces */
 	(void) init_var_from_str(buf, buf, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -5318,7 +5003,7 @@ numeric_avg_serialize(PG_FUNCTION_ARGS)
 	accum_sum_final(&state->sumX, &tmp_var);
 
 	temp = DirectFunctionCall1(numeric_send,
-							   NumericGetDatum(make_result(&tmp_var)));
+							   NumericGetDatum(make_numeric_result(&tmp_var)));
 	sumX = DatumGetByteaPP(temp);
 	free_var(&tmp_var);
 
@@ -5452,12 +5137,12 @@ numeric_serialize(PG_FUNCTION_ARGS)
 
 	accum_sum_final(&state->sumX, &tmp_var);
 	temp = DirectFunctionCall1(numeric_send,
-							   NumericGetDatum(make_result(&tmp_var)));
+							   NumericGetDatum(make_numeric_result(&tmp_var)));
 	sumX = DatumGetByteaPP(temp);
 
 	accum_sum_final(&state->sumX2, &tmp_var);
 	temp = DirectFunctionCall1(numeric_send,
-							   NumericGetDatum(make_result(&tmp_var)));
+							   NumericGetDatum(make_numeric_result(&tmp_var)));
 	sumX2 = DatumGetByteaPP(temp);
 
 	free_var(&tmp_var);
@@ -5863,7 +5548,7 @@ numeric_poly_serialize(PG_FUNCTION_ARGS)
 		accum_sum_final(&state->sumX, &num);
 #endif
 		temp = DirectFunctionCall1(numeric_send,
-								   NumericGetDatum(make_result(&num)));
+								   NumericGetDatum(make_numeric_result(&num)));
 		sumX = DatumGetByteaPP(temp);
 
 #ifdef HAVE_INT128
@@ -5872,7 +5557,7 @@ numeric_poly_serialize(PG_FUNCTION_ARGS)
 		accum_sum_final(&state->sumX2, &num);
 #endif
 		temp = DirectFunctionCall1(numeric_send,
-								   NumericGetDatum(make_result(&num)));
+								   NumericGetDatum(make_numeric_result(&num)));
 		sumX2 = DatumGetByteaPP(temp);
 
 		free_var(&num);
@@ -6094,7 +5779,7 @@ int8_avg_serialize(PG_FUNCTION_ARGS)
 		accum_sum_final(&state->sumX, &num);
 #endif
 		temp = DirectFunctionCall1(numeric_send,
-								   NumericGetDatum(make_result(&num)));
+								   NumericGetDatum(make_numeric_result(&num)));
 		sumX = DatumGetByteaPP(temp);
 
 		free_var(&num);
@@ -6283,7 +5968,7 @@ numeric_poly_sum(PG_FUNCTION_ARGS)
 
 	int128_to_numericvar(state->sumX, &result);
 
-	res = make_result(&result);
+	res = make_numeric_result(&result);
 
 	free_var(&result);
 
@@ -6313,7 +5998,7 @@ numeric_poly_avg(PG_FUNCTION_ARGS)
 	int128_to_numericvar(state->sumX, &result);
 
 	countd = NumericGetDatum(int64_to_numeric(state->N));
-	sumd = NumericGetDatum(make_result(&result));
+	sumd = NumericGetDatum(make_numeric_result(&result));
 
 	free_var(&result);
 
@@ -6338,21 +6023,21 @@ numeric_avg(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	if (state->NaNcount > 0)	/* there was at least one NaN input */
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	/* adding plus and minus infinities gives NaN */
 	if (state->pInfcount > 0 && state->nInfcount > 0)
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 	if (state->pInfcount > 0)
-		PG_RETURN_NUMERIC(make_result(&const_pinf));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 	if (state->nInfcount > 0)
-		PG_RETURN_NUMERIC(make_result(&const_ninf));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 
 	N_datum = NumericGetDatum(int64_to_numeric(state->N));
 
 	init_var(&sumX_var);
 	accum_sum_final(&state->sumX, &sumX_var);
-	sumX_datum = NumericGetDatum(make_result(&sumX_var));
+	sumX_datum = NumericGetDatum(make_numeric_result(&sumX_var));
 	free_var(&sumX_var);
 
 	PG_RETURN_DATUM(DirectFunctionCall2(numeric_div, sumX_datum, N_datum));
@@ -6372,19 +6057,19 @@ numeric_sum(PG_FUNCTION_ARGS)
 		PG_RETURN_NULL();
 
 	if (state->NaNcount > 0)	/* there was at least one NaN input */
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 
 	/* adding plus and minus infinities gives NaN */
 	if (state->pInfcount > 0 && state->nInfcount > 0)
-		PG_RETURN_NUMERIC(make_result(&const_nan));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_nan));
 	if (state->pInfcount > 0)
-		PG_RETURN_NUMERIC(make_result(&const_pinf));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_pinf));
 	if (state->nInfcount > 0)
-		PG_RETURN_NUMERIC(make_result(&const_ninf));
+		PG_RETURN_NUMERIC(make_numeric_result(&const_ninf));
 
 	init_var(&sumX_var);
 	accum_sum_final(&state->sumX, &sumX_var);
-	result = make_result(&sumX_var);
+	result = make_numeric_result(&sumX_var);
 	free_var(&sumX_var);
 
 	PG_RETURN_NUMERIC(result);
@@ -6438,7 +6123,7 @@ numeric_stddev_internal(NumericAggState *state,
 	 * float8 functions, any infinity input produces NaN output.
 	 */
 	if (state->NaNcount > 0 || state->pInfcount > 0 || state->nInfcount > 0)
-		return make_result(&const_nan);
+		return make_numeric_result(&const_nan);
 
 	/* OK, normal calculation applies */
 	init_var(&vN);
@@ -6462,7 +6147,7 @@ numeric_stddev_internal(NumericAggState *state,
 	if (cmp_var(&vsumX2, &const_zero) <= 0)
 	{
 		/* Watch out for roundoff error producing a negative numerator */
-		res = make_result(&const_zero);
+		res = make_numeric_result(&const_zero);
 	}
 	else
 	{
@@ -6475,7 +6160,7 @@ numeric_stddev_internal(NumericAggState *state,
 		if (!variance)
 			sqrt_var(&vsumX, &vsumX, rscale);	/* stddev */
 
-		res = make_result(&vsumX);
+		res = make_numeric_result(&vsumX);
 	}
 
 	free_var(&vNminus1);
@@ -7130,26 +6815,36 @@ dump_var(const char *str, NumericVar *var)
 #endif							/* NUMERIC_DEBUG */
 
 
-/* ----------------------------------------------------------------------
+/*
+ * init_numeric_var() -
  *
- * Local functions follow
- *
- * In general, these do not support "special" (NaN or infinity) inputs;
- * callers should handle those possibilities first.
- * (There are one or two exceptions, noted in their header comments.)
- *
- * ----------------------------------------------------------------------
+ *	Init a NumericVar with not alloc digits
  */
-
+void
+init_numeric_var(NumericVar *var)
+{
+	init_var(var);
+}
 
 /*
- * alloc_var() -
+ * free_numeric_var() -
+ *
+ *	Free a NumericVar
+ */
+void
+free_numeric_var(NumericVar *var)
+{
+	free_var(var);
+}
+
+/*
+ * alloc_numeric_var() -
  *
  *	Allocate a digit buffer of ndigits digits (plus a spare digit for rounding)
  *  Called when a var may have been previously used.
  */
-static void
-alloc_var(NumericVar *var, int ndigits)
+void
+alloc_numeric_var(NumericVar *var, int ndigits)
 {
 	digitbuf_free(var);
 	init_alloc_var(var, ndigits);
@@ -7157,13 +6852,13 @@ alloc_var(NumericVar *var, int ndigits)
 
 
 /*
- * zero_var() -
+ * zero_numeric_var() -
  *
  *	Set a variable to ZERO.
  *	Note: its dscale is not touched.
  */
-static void
-zero_var(NumericVar *var)
+void
+zero_numeric_var(NumericVar *var)
 {
 	digitbuf_free(var);
 	quick_init_var(var);
@@ -7185,7 +6880,7 @@ zero_var(NumericVar *var)
  * cp is the place to actually start parsing; str is what to use in error
  * reports.  (Typically cp would be the same except advanced over spaces.)
  */
-static const char *
+const char *
 init_var_from_str(const char *str, const char *cp, NumericVar *dest)
 {
 	bool		have_dp = false;
@@ -7286,8 +6981,8 @@ init_var_from_str(const char *str, const char *cp, NumericVar *dest)
 		 * INT_MAX/2 due to the MaxAllocSize limit on string length, so
 		 * constraining the exponent similarly should be enough to prevent
 		 * integer overflow in this function.  If the value is too large to
-		 * fit in storage format, make_result() will complain about it later;
-		 * for consistency use the same ereport errcode/text as make_result().
+		 * fit in storage format, make_numeric_result() will complain about it later;
+		 * for consistency use the same ereport errcode/text as make_numeric_result().
 		 */
 		if (exponent >= INT_MAX / 2 || exponent <= -(INT_MAX / 2))
 			ereport(ERROR,
@@ -7348,14 +7043,14 @@ init_var_from_str(const char *str, const char *cp, NumericVar *dest)
  *
  *	Convert the packed db format into a variable
  */
-static void
+void
 set_var_from_num(Numeric num, NumericVar *dest)
 {
 	int			ndigits;
 
 	ndigits = NUMERIC_NDIGITS(num);
 
-	alloc_var(dest, ndigits);
+	alloc_numeric_var(dest, ndigits);
 
 	dest->weight = NUMERIC_WEIGHT(num);
 	dest->sign = NUMERIC_SIGN(num);
@@ -7379,7 +7074,7 @@ set_var_from_num(Numeric num, NumericVar *dest)
  *	propagate to the original Numeric! It's OK to use it as the destination
  *	argument of one of the calculational functions, though.
  */
-static void
+void
 init_var_from_num(Numeric num, NumericVar *dest)
 {
 	dest->ndigits = NUMERIC_NDIGITS(num);
@@ -7396,7 +7091,7 @@ init_var_from_num(Numeric num, NumericVar *dest)
  *
  *	Copy one variable into another
  */
-static void
+void
 set_var_from_var(const NumericVar *value, NumericVar *dest)
 {
 	NumericDigit *newbuf;
@@ -7423,7 +7118,7 @@ set_var_from_var(const NumericVar *value, NumericVar *dest)
  *
  *	init one variable from another - they must NOT be the same variable
  */
-static void
+void
 init_var_from_var(const NumericVar *value, NumericVar *dest)
 {
 	init_alloc_var(dest, value->ndigits);
@@ -7440,7 +7135,7 @@ init_var_from_var(const NumericVar *value, NumericVar *dest)
  *
  *	init one variable from another - they must NOT be the same variable
  */
-static void
+void
 init_ro_var_from_var(const NumericVar *value, NumericVar *dest)
 {
 	dest->ndigits = value->ndigits;
@@ -7458,7 +7153,7 @@ init_ro_var_from_var(const NumericVar *value, NumericVar *dest)
  *	The var is displayed to the number of digits indicated by its dscale.
  *	Returns a palloc'd string.
  */
-static char *
+char *
 get_str_from_var(const NumericVar *var)
 {
 	int			dscale;
@@ -7611,7 +7306,7 @@ get_str_from_var(const NumericVar *var)
  *
  *	Returns a palloc'd string.
  */
-static char *
+char *
 get_str_from_var_sci(const NumericVar *var, int rscale)
 {
 	int32		exponent;
@@ -7735,7 +7430,7 @@ make_result_opt_error(const NumericVar *var, bool *have_error)
 		result->choice.n_header = sign;
 		/* the header word is all we need */
 
-		dump_numeric("make_result()", result);
+		dump_numeric("make_numeric_result()", result);
 		return result;
 	}
 
@@ -7803,20 +7498,80 @@ make_result_opt_error(const NumericVar *var, bool *have_error)
 		}
 	}
 
-	dump_numeric("make_result()", result);
+	dump_numeric("make_numeric_result()", result);
 	return result;
 }
 
 
 /*
- * make_result() -
+ * make_numeric_result() -
  *
  *	An interface to make_result_opt_error() without "have_error" argument.
  */
-static Numeric
-make_result(const NumericVar *var)
+Numeric
+make_numeric_result(const NumericVar *var)
 {
 	return make_result_opt_error(var, NULL);
+}
+
+/*
+ * make_zero_numeric_result() -
+ *
+ *	An interface to quick make value(0) numeric
+ */
+Numeric make_zero_numeric_result(void)
+{
+	return make_numeric_result(&const_zero);
+}
+
+/*
+ * make_one_numeric_result() -
+ *
+ *	An interface to quick make value(1) numeric
+ */
+Numeric make_one_numeric_result(void)
+{
+	return make_numeric_result(&const_one);
+}
+
+/*
+ * make_minus_one_numeric_result() -
+ *
+ *	An interface to quick make value(-1) numeric
+ */
+Numeric make_minus_one_numeric_result(void)
+{
+	return make_numeric_result(&const_minus_one);
+}
+
+/*
+ * make_nan_numeric_result() -
+ *
+ *	An interface to quick make value(nan) numeric
+ */
+Numeric make_nan_numeric_result(void)
+{
+	return make_numeric_result(&const_nan);
+}
+
+/*
+ * make_pinf_numeric_result() -
+ *
+ *	An interface to quick make value(pinf) numeric
+ */
+Numeric make_pinf_numeric_result(void)
+{
+	return make_numeric_result(&const_pinf);
+}
+
+/*
+ * make_ninf_numeric_result() -
+ *
+ *	An interface to quick make value(ninf) numeric
+ */
+Numeric make_ninf_numeric_result(void)
+{
+	return make_numeric_result(&const_ninf);
 }
 
 
@@ -8025,7 +7780,7 @@ int64_to_numericvar(int64 val, NumericVar *var)
 	int			ndigits;
 
 	/* int64 can require at most 19 decimal digits; add one for safety */
-	alloc_var(var, 20 / DEC_DIGITS);
+	alloc_numeric_var(var, 20 / DEC_DIGITS);
 	if (val < 0)
 	{
 		var->sign = NUMERIC_NEG;
@@ -8216,7 +7971,7 @@ int128_to_numericvar(int128 val, NumericVar *var)
 	int			ndigits;
 
 	/* int128 can require at most 39 decimal digits; add one for safety */
-	alloc_var(var, 40 / DEC_DIGITS);
+	alloc_numeric_var(var, 40 / DEC_DIGITS);
 	if (val < 0)
 	{
 		var->sign = NUMERIC_NEG;
@@ -8372,7 +8127,7 @@ add_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result)
 					 * result = ZERO
 					 * ----------
 					 */
-					zero_var(result);
+					zero_numeric_var(result);
 					result->dscale = Max(var1->dscale, var2->dscale);
 					break;
 
@@ -8415,7 +8170,7 @@ add_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result)
 					 * result = ZERO
 					 * ----------
 					 */
-					zero_var(result);
+					zero_numeric_var(result);
 					result->dscale = Max(var1->dscale, var2->dscale);
 					break;
 
@@ -8493,7 +8248,7 @@ sub_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result)
 					 * result = ZERO
 					 * ----------
 					 */
-					zero_var(result);
+					zero_numeric_var(result);
 					result->dscale = Max(var1->dscale, var2->dscale);
 					break;
 
@@ -8536,7 +8291,7 @@ sub_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result)
 					 * result = ZERO
 					 * ----------
 					 */
-					zero_var(result);
+					zero_numeric_var(result);
 					result->dscale = Max(var1->dscale, var2->dscale);
 					break;
 
@@ -8626,7 +8381,7 @@ mul_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result,
 	if (var1ndigits == 0 || var2ndigits == 0)
 	{
 		/* one or both inputs is zero; so is result */
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -8658,7 +8413,7 @@ mul_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result,
 	if (res_ndigits < 3)
 	{
 		/* All input digits will be ignored; so result is zero */
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -8748,7 +8503,7 @@ mul_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result,
 	 * we combine with storing the result digits into the output. Note that
 	 * this is still done at full precision w/guard digits.
 	 */
-	alloc_var(result, res_ndigits);
+	alloc_numeric_var(result, res_ndigits);
 	res_digits = result->digits;
 	carry = 0;
 	for (i = res_ndigits - 1; i >= 0; i--)
@@ -8825,7 +8580,7 @@ div_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result,
 	 */
 	if (var1ndigits == 0)
 	{
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -8877,7 +8632,7 @@ div_var(const NumericVar *var1, const NumericVar *var2, NumericVar *result,
 	/*
 	 * Now we can realloc the result to hold the generated quotient digits.
 	 */
-	alloc_var(result, res_ndigits);
+	alloc_numeric_var(result, res_ndigits);
 	res_digits = result->digits;
 
 	if (var2ndigits == 1)
@@ -9116,7 +8871,7 @@ div_var_fast(const NumericVar *var1, const NumericVar *var2,
 	 */
 	if (var1ndigits == 0)
 	{
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -9344,7 +9099,7 @@ div_var_fast(const NumericVar *var1, const NumericVar *var2,
 	 * the result digits into the output.  Note that this is still done at
 	 * full precision w/guard digits.
 	 */
-	alloc_var(result, div_ndigits + 1);
+	alloc_numeric_var(result, div_ndigits + 1);
 	res_digits = result->digits;
 	carry = 0;
 	for (i = div_ndigits; i >= 0; i--)
@@ -9698,7 +9453,7 @@ sqrt_var(const NumericVar *arg, NumericVar *result, int rscale)
 	stat = cmp_var(arg, &const_zero);
 	if (stat == 0)
 	{
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -10049,7 +9804,7 @@ sqrt_var(const NumericVar *arg, NumericVar *result, int rscale)
 		if (src_idx < arg->ndigits)
 		{
 			tmp_len = Min(blen, arg->ndigits - src_idx);
-			alloc_var(&a1_var, tmp_len);
+			alloc_numeric_var(&a1_var, tmp_len);
 			memcpy(a1_var.digits, arg->digits + src_idx,
 				   tmp_len * sizeof(NumericDigit));
 			a1_var.weight = blen - 1;
@@ -10059,7 +9814,7 @@ sqrt_var(const NumericVar *arg, NumericVar *result, int rscale)
 		}
 		else
 		{
-			zero_var(&a1_var);
+			zero_numeric_var(&a1_var);
 			a1_var.dscale = 0;
 		}
 		src_idx += blen;
@@ -10067,7 +9822,7 @@ sqrt_var(const NumericVar *arg, NumericVar *result, int rscale)
 		if (src_idx < arg->ndigits)
 		{
 			tmp_len = Min(blen, arg->ndigits - src_idx);
-			alloc_var(&a0_var, tmp_len);
+			alloc_numeric_var(&a0_var, tmp_len);
 			memcpy(a0_var.digits, arg->digits + src_idx,
 				   tmp_len * sizeof(NumericDigit));
 			a0_var.weight = blen - 1;
@@ -10077,7 +9832,7 @@ sqrt_var(const NumericVar *arg, NumericVar *result, int rscale)
 		}
 		else
 		{
-			zero_var(&a0_var);
+			zero_numeric_var(&a0_var);
 			a0_var.dscale = 0;
 		}
 		src_idx += blen;
@@ -10186,7 +9941,7 @@ exp_var(const NumericVar *arg, NumericVar *result, int rscale)
 			ereport(ERROR,
 					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 					 errmsg("value overflows numeric format")));
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -10673,7 +10428,7 @@ power_var(const NumericVar *base, const NumericVar *exp, NumericVar *result)
 			ereport(ERROR,
 					(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 					 errmsg("value overflows numeric format")));
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = NUMERIC_MAX_DISPLAY_SCALE;
 		return;
 	}
@@ -10763,7 +10518,7 @@ power_var_int(const NumericVar *base, int exp, NumericVar *result, int rscale)
 			ereport(ERROR,
 					(errcode(ERRCODE_DIVISION_BY_ZERO),
 					 errmsg("division by zero")));
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -10801,7 +10556,7 @@ power_var_int(const NumericVar *base, int exp, NumericVar *result, int rscale)
 				 errmsg("value overflows numeric format")));
 	if (f + 1 < -rscale || f + 1 < -NUMERIC_MAX_DISPLAY_SCALE)
 	{
-		zero_var(result);
+		zero_numeric_var(result);
 		result->dscale = rscale;
 		return;
 	}
@@ -10872,7 +10627,7 @@ power_var_int(const NumericVar *base, int exp, NumericVar *result, int rscale)
 				ereport(ERROR,
 						(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 						 errmsg("value overflows numeric format")));
-			zero_var(result);
+			zero_numeric_var(result);
 			neg = false;
 			break;
 		}
