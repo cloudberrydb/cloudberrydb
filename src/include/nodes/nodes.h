@@ -547,6 +547,7 @@ typedef enum NodeTag
 	T_GpAlterPartitionCmd,
 	T_CreateWarehouseStmt,
 	T_DropWarehouseStmt,
+	T_AddForeignSegStmt,
 
 	/*
 	 * TAGS FOR PARSE TREE NODES (parsenodes.h)

@@ -23,6 +23,7 @@
 #include "foreign/fdwapi.h"
 #include "miscadmin.h"
 #include "nodes/extensible.h"
+#include "nodes/makefuncs.h"
 #include "nodes/nodeFuncs.h"
 #include "optimizer/appendinfo.h"
 #include "optimizer/clauses.h"
@@ -3770,7 +3771,7 @@ create_foreign_upper_path(PlannerInfo *root, RelOptInfo *rel,
 			CdbPathLocus_MakeGeneral(&(pathnode->path.locus));
 			break;
 		case FTEXECLOCATION_ALL_SEGMENTS:
-			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), getgpsegmentCount(), 0);
+			CdbPathLocus_MakeStrewn(&(pathnode->path.locus), rel->num_segments, 0);
 			break;
 		case FTEXECLOCATION_COORDINATOR:
 			CdbPathLocus_MakeEntry(&(pathnode->path.locus));

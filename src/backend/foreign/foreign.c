@@ -14,11 +14,15 @@
 
 #include "access/htup_details.h"
 #include "access/reloptions.h"
+#include "access/table.h"
 #include "catalog/pg_foreign_data_wrapper.h"
 #include "catalog/pg_foreign_server.h"
 #include "catalog/pg_foreign_table.h"
+#include "catalog/pg_foreign_table_seg.h"
 #include "catalog/pg_user_mapping.h"
+#include "cdb/cdbgang.h"
 #include "cdb/cdbutil.h"
+#include "cdb/cdbvars.h"
 #include "commands/defrem.h"
 #include "foreign/fdwapi.h"
 #include "foreign/foreign.h"
@@ -32,6 +36,7 @@
 
 extern Datum pg_options_to_table(PG_FUNCTION_ARGS);
 extern Datum postgresql_fdw_validator(PG_FUNCTION_ARGS);
+static int GetForeignTableSegNumbers(Oid relid);
 
 /* Get and separate out the mpp_execute option. */
 char
@@ -334,6 +339,116 @@ GetUserMapping(Oid userid, Oid serverid)
 	return um;
 }
 
+List *
+GetForeignServerSegsByRelId(Oid relid)
+{
+	Form_pg_foreign_table_seg tablesegform;
+	Relation 	foreignTableRel;
+	ScanKeyData	ftkey;
+	SysScanDesc	ftscan;
+	HeapTuple	fttuple;
+	List	   *segList = NIL;
+
+
+	foreignTableRel = table_open(ForeignTableRelationSegId, AccessShareLock);
+
+	ScanKeyInit(&ftkey,
+				Anum_pg_foreign_table_seg_ftsrelid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(relid));
+
+	ftscan = systable_beginscan(foreignTableRel, InvalidOid,
+								false, NULL, 1, &ftkey);
+
+	while (HeapTupleIsValid(fttuple = systable_getnext(ftscan)))
+	{
+		tablesegform = (Form_pg_foreign_table_seg) GETSTRUCT(fttuple);
+		segList = lappend_oid(segList, tablesegform->ftsserver);
+	}
+
+	systable_endscan(ftscan);
+
+	table_close(foreignTableRel, AccessShareLock);
+
+	return segList;
+}
+
+static int
+GetForeignTableSegNumbers(Oid relid)
+{
+	Relation 	foreignTableRel;
+	ScanKeyData	ftkey;
+	SysScanDesc	ftscan;
+	int 		number = 0;
+
+
+	foreignTableRel = table_open(ForeignTableRelationSegId, AccessShareLock);
+
+	ScanKeyInit(&ftkey,
+				Anum_pg_foreign_table_seg_ftsrelid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(relid));
+
+	ftscan = systable_beginscan(foreignTableRel, InvalidOid,
+								false, NULL, 1, &ftkey);
+
+	while (HeapTupleIsValid(systable_getnext(ftscan)))
+	{
+		number++;
+	}
+
+	systable_endscan(ftscan);
+
+	table_close(foreignTableRel, AccessShareLock);
+
+	return number;
+}
+
+static ForeignTable *
+GetForeignTableOnSegment(Oid relid)
+{
+	Form_pg_foreign_table_seg tablesegform;
+	ForeignTable *ft = NULL;
+	Relation 	foreignTableRel;
+	ScanKeyData	ftkey;
+	SysScanDesc	ftscan;
+	HeapTuple	fttuple;
+	int 		i;
+	int 		segNumber;
+
+	segNumber = GetForeignTableSegNumbers(relid);
+
+	foreignTableRel = table_open(ForeignTableRelationSegId, AccessShareLock);
+
+	ScanKeyInit(&ftkey,
+				Anum_pg_foreign_table_seg_ftsrelid,
+				BTEqualStrategyNumber, F_OIDEQ,
+				ObjectIdGetDatum(relid));
+
+	ftscan = systable_beginscan(foreignTableRel, InvalidOid,
+								false, NULL, 1, &ftkey);
+
+	i = 0;
+	while (HeapTupleIsValid(fttuple = systable_getnext(ftscan)))
+	{
+
+		if (i == qe_idx)
+		{
+			tablesegform = (Form_pg_foreign_table_seg) GETSTRUCT(fttuple);
+			ft = (ForeignTable *) palloc(sizeof(ForeignTable));
+			ft->relid = relid;
+			ft->serverid = tablesegform->ftsserver;
+			break;
+		}
+		i++;
+	}
+
+	systable_endscan(ftscan);
+
+	table_close(foreignTableRel, AccessShareLock);
+
+	return ft;
+}
 
 /*
  * GetForeignTable - look up the foreign table definition by relation oid.
@@ -366,21 +481,40 @@ GetForeignTable(Oid relid)
 	else
 		ft->options = untransformRelOptions(datum);
 
-	ForeignServer *server = GetForeignServer(ft->serverid);
+	ReleaseSysCache(tp);
 
 	ft->exec_location = SeparateOutMppExecute(&ft->options);
+
+	if (ft->exec_location == FTEXECLOCATION_ALL_SEGMENTS &&
+		OidIsValid(ft->serverid) &&
+		Gp_role == GP_ROLE_EXECUTE)
+	{
+		ForeignTable *segFt;
+		segFt = GetForeignTableOnSegment(relid);
+		if (segFt)
+		{
+			ft->serverid = segFt->serverid;
+
+			pfree(segFt);
+		}
+	}
+
+	ForeignServer *server = GetForeignServer(ft->serverid);
+
 	if (ft->exec_location == FTEXECLOCATION_NOT_DEFINED)
 	{
 		ft->exec_location = server->exec_location;
 	}
 
 	ft->num_segments = SeparateOutNumSegments(&ft->options);
+
+	if (ft->num_segments <= 0)
+		ft->num_segments = GetForeignTableSegNumbers(relid);
+
 	if (ft->num_segments <= 0)
 	{
-		ft->num_segments = server->num_segments;
+			ft->num_segments = server->num_segments;
 	}
-
-	ReleaseSysCache(tp);
 
 	return ft;
 }
@@ -963,4 +1097,61 @@ GetExistingLocalJoinPath(RelOptInfo *joinrel)
 		return (Path *) joinpath;
 	}
 	return NULL;
+}
+
+Oid
+GetForeignServerSegByRelid(Oid relid)
+{
+	Form_pg_foreign_table tableform;
+	ForeignTable *ft;
+	HeapTuple	tp;
+	Datum		datum;
+	bool		isnull;
+	Oid 		foreignServerId;
+
+	if (Gp_role != GP_ROLE_EXECUTE)
+	{
+		tp = SearchSysCache1(FOREIGNTABLEREL, ObjectIdGetDatum(relid));
+		if (!HeapTupleIsValid(tp))
+			return InvalidOid;
+		tableform = (Form_pg_foreign_table) GETSTRUCT(tp);
+
+		ft = (ForeignTable *) palloc(sizeof(ForeignTable));
+		ft->relid = relid;
+		ft->serverid = tableform->ftserver;
+
+		/* Extract the ftoptions */
+		datum = SysCacheGetAttr(FOREIGNTABLEREL,
+								tp,
+								Anum_pg_foreign_table_ftoptions,
+								&isnull);
+		if (isnull)
+			ft->options = NIL;
+		else
+			ft->options = untransformRelOptions(datum);
+
+		ReleaseSysCache(tp);
+	}
+	else
+	{
+		ft = GetForeignTableOnSegment(relid);
+
+		if (!ft)
+			return InvalidOid;
+	}
+
+	foreignServerId = ft->serverid;
+	pfree(ft);
+
+	return foreignServerId;
+}
+
+Datum
+gp_foreign_server_id(PG_FUNCTION_ARGS)
+{
+	Oid relid;
+
+	relid = PG_GETARG_OID(0);
+
+	return GetForeignServerSegByRelid(relid);
 }

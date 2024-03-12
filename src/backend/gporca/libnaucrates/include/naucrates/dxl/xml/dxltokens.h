@@ -356,6 +356,7 @@ enum Edxltoken
 	EdxltokenCmaxColName,
 	EdxltokenTableOidColName,
 	EdxltokenGpSegmentIdColName,
+	EdxltokenGpForeignServerColName,
 
 	EdxltokenActionColId,
 	EdxltokenOidColId,

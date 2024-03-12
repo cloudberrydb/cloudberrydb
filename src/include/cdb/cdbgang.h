@@ -48,6 +48,7 @@ extern int qe_identifier;
 
 extern int host_segments;
 extern int ic_htab_size;
+extern int qe_idx;
 
 extern MemoryContext GangContext;
 extern Gang *CurrentGangCreating;
@@ -80,7 +81,8 @@ extern void ResetAllGangs(void);
 extern struct SegmentDatabaseDescriptor *getSegmentDescriptorFromGang(const Gang *gp, int seg);
 
 Gang *buildGangDefinition(List *segments, SegmentType segmentType);
-bool build_gpqeid_param(char *buf, int bufsz, bool is_writer, int identifier, int hostSegs, int icHtabSize);
+bool build_gpqeid_param(char *buf, int bufsz, bool is_writer, int identifier, int hostSegs,
+						int icHtabSize, int qeidx);
 
 extern void makeOptions(char **options, char **diff_options);
 extern bool segment_failure_due_to_recovery(const char *error_message);

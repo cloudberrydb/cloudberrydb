@@ -11932,6 +11932,9 @@
 { oid => 6023, descr => 'Highest oid used so far',
    proname => 'pg_highest_oid', provolatile => 'v', proparallel => 'u', prorettype => 'oid', proargtypes => '', prosrc => 'pg_highest_oid', prodataaccess => 'r' },
 
+{ oid => 6024, descr => 'segment foreign server id function',
+   proname => 'gp_foreign_server_id', proisstrict => 'f', provolatile => 'v', prorettype => 'oid', proargtypes => 'oid', prosrc => 'gp_foreign_server_id' },
+
 { oid => 6035, descr => 'view mpp distributed transaction state',
    proname => 'gp_distributed_xacts', prorows => '1000', proisstrict => 'f', proretset => 't', provolatile => 'v', proparallel => 'u', prorettype => 'record', proargtypes => '', prosrc => 'gp_distributed_xacts__' },
 

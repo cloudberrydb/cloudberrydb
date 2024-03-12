@@ -641,6 +641,16 @@ _outCreateForeignServerStmt(StringInfo str, CreateForeignServerStmt *node)
 }
 
 static void
+_outAddForeignSegstmt(StringInfo str, AddForeignSegStmt *node)
+{
+	WRITE_NODE_TYPE("ADDFOREIGNSEGSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_STRING_FIELD(tablename);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
 _outAlterForeignServerStmt(StringInfo str, AlterForeignServerStmt *node)
 {
 	WRITE_NODE_TYPE("ALTERFOREIGNSERVERSTMT");
@@ -1677,6 +1687,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_CreateForeignServerStmt:
 				_outCreateForeignServerStmt(str, obj);
+				break;
+			case T_AddForeignSegStmt:
+				_outAddForeignSegstmt(str, obj);
 				break;
 			case T_AlterFdwStmt:
 				_outAlterFdwStmt(str, obj);

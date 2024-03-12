@@ -61,6 +61,7 @@
 #include "access/htup_details.h"
 #include "access/tupdesc_details.h"
 #include "catalog/pg_type.h"
+#include "foreign/foreign.h"
 #include "funcapi.h"
 #include "nodes/nodeFuncs.h"
 #include "storage/bufmgr.h"
@@ -151,6 +152,12 @@ tts_virtual_getsysattr(TupleTableSlot *slot, int attnum, bool *isnull)
 		*isnull = false;
 
 		return Int32GetDatum(GpIdentity.segindex);
+	}
+	else if (attnum == GpForeignServerAttributeNumber)
+	{
+		*isnull = false;
+
+		return ObjectIdGetDatum(GetForeignServerSegByRelid(slot->tts_tableOid));
 	}
 
 	elog(ERROR, "virtual tuple table slot does not have system attributes");

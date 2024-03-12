@@ -2926,6 +2926,14 @@ typedef struct ImportForeignSchemaStmt
 	List	   *options;		/* list of options to pass to FDW */
 } ImportForeignSchemaStmt;
 
+typedef struct AddForeignSegStmt
+{
+	NodeTag		type;
+	char	   *servername;
+	char	   *tablename;
+	List	   *options;
+} AddForeignSegStmt;
+
 /*----------------------
  *		Create POLICY Statement
  *----------------------

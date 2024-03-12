@@ -26,6 +26,7 @@
 
 /* symbol name, textual name, event_trigger_ok, table_rewrite_ok, rowcount */
 PG_CMDTAG(CMDTAG_UNKNOWN, "???", false, false, false)
+PG_CMDTAG(CMDTAG_ADD_FOREIGN_TABLE_SEG, "ADD FOREIGN TABLE SEG", true, false, false)
 PG_CMDTAG(CMDTAG_ALTER_ACCESS_METHOD, "ALTER ACCESS METHOD", true, false, false)
 PG_CMDTAG(CMDTAG_ALTER_AGGREGATE, "ALTER AGGREGATE", true, false, false)
 PG_CMDTAG(CMDTAG_ALTER_CAST, "ALTER CAST", true, false, false)

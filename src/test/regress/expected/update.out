@@ -856,7 +856,7 @@ insert into utrtest values (1, 'foo')
 
 insert into utrtest values (2, 'bar')
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;  -- fails
-ERROR:  virtual tuple table slot does not have system attributes (execTuples.c:156)
+ERROR:  virtual tuple table slot does not have system attributes (execTuples.c:163)
 insert into utrtest values (2, 'bar')
   returning *, tableoid::regclass;
  a |  b  | tableoid 
@@ -874,7 +874,7 @@ update utrtest set b = b || b from (values (1), (2)) s(x) where a = s.x
 
 update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass, xmin = pg_current_xact_id()::xid as xmin_ok;  -- fails
-ERROR:  virtual tuple table slot does not have system attributes (execTuples.c:156)
+ERROR:  virtual tuple table slot does not have system attributes (execTuples.c:163)
 update utrtest set a = 3 - a from (values (1), (2)) s(x) where a = s.x
   returning *, tableoid::regclass;
  a |   b    | x | tableoid 

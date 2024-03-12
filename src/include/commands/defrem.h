@@ -135,6 +135,7 @@ extern ObjectAddress CreateUserMapping(CreateUserMappingStmt *stmt);
 extern ObjectAddress AlterUserMapping(AlterUserMappingStmt *stmt);
 extern Oid	RemoveUserMapping(DropUserMappingStmt *stmt);
 extern void CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid, bool skip_permission_check);
+extern void AddForeignSeg(AddForeignSegStmt *stmt);
 extern void ImportForeignSchema(ImportForeignSchemaStmt *stmt);
 extern Datum transformGenericOptions(Oid catalogId,
 									 Datum oldOptions,

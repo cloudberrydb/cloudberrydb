@@ -920,6 +920,7 @@ typedef struct RelOptInfo
 
 	/* Information about foreign tables and foreign joins */
 	Oid			serverid;		/* identifies server for the table or join */
+	List	   *segSeverids;	/* server segments for mpp fdw */
 	Oid			userid;			/* identifies user to check access as */
 	bool		useridiscurrent;	/* join is only valid for current user */
 	char		exec_location;  /* execute on MASTER, ANY or ALL SEGMENTS, Cloudberry MPP specific */

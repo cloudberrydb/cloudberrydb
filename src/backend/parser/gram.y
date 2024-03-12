@@ -277,7 +277,7 @@ static void check_expressions_in_partition_key(PartitionSpec *spec, core_yyscan_
 }
 
 %type <node>	stmt toplevel_stmt schema_stmt routine_body_stmt
-		AlterEventTrigStmt AlterCollationStmt
+		AddForeignSegStmt AlterEventTrigStmt AlterCollationStmt
 		AlterDatabaseStmt AlterDatabaseSetStmt AlterDomainStmt AlterEnumStmt
 		AlterFdwStmt AlterForeignServerStmt AlterGroupStmt
 		AlterObjectDependsStmt AlterObjectSchemaStmt AlterOwnerStmt
@@ -1372,7 +1372,8 @@ toplevel_stmt:
 		;
 
 stmt:
-			AlterEventTrigStmt
+			AddForeignSegStmt
+			| AlterEventTrigStmt
 			| AlterCollationStmt
 			| AlterDatabaseStmt
 			| AlterDatabaseSetStmt
@@ -7886,6 +7887,23 @@ import_qualification:
 			}
 		;
 
+/*****************************************************************************
+ *
+ *      QUERY:
+ *             ADD SEG foreign_seg FROM SERVER server_name INTO foreign_table
+ *
+ *****************************************************************************/
+
+AddForeignSegStmt:
+       ADD_P FOREIGN SEGMENT FROM SERVER name create_generic_options INTO name
+			{
+				AddForeignSegStmt *n = makeNode(AddForeignSegStmt);
+				n->servername = $6;
+				n->options = $7;
+				n->tablename = $9;
+				$$ = (Node *) n;
+			}
+		;
 /*****************************************************************************
  *
  *		QUERY:

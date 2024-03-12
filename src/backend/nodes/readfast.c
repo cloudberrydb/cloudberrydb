@@ -1434,6 +1434,18 @@ _readCreateForeignServerStmt(void)
 	READ_DONE();
 }
 
+static AddForeignSegStmt *
+_readAddForeignSegStmt(void)
+{
+	READ_LOCALS(AddForeignSegStmt);
+
+	READ_STRING_FIELD(servername);
+	READ_STRING_FIELD(tablename);
+	READ_NODE_FIELD(options);
+
+	READ_DONE();
+}
+
 static AlterForeignServerStmt *
 _readAlterForeignServerStmt(void)
 {
@@ -2578,6 +2590,9 @@ readNodeBinary(void)
 				break;
 			case T_CreateForeignServerStmt:
 				return_value = _readCreateForeignServerStmt();
+				break;
+			case T_AddForeignSegStmt:
+				return_value = _readAddForeignSegStmt();
 				break;
 			case T_AlterFdwStmt:
 				return_value = _readAlterFdwStmt();

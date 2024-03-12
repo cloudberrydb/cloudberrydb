@@ -470,6 +470,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	if (relation->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
 	{
 		rel->serverid = GetForeignServerIdByRelId(RelationGetRelid(relation));
+		rel->segSeverids = GetForeignServerSegsByRelId(RelationGetRelid(relation));
 		rel->fdwroutine = GetFdwRoutineForRelation(relation, true);
 		rel->exec_location = GetForeignTable(RelationGetRelid(relation))->exec_location;
 		rel->num_segments = GetForeignTable(RelationGetRelid(relation))->num_segments;
@@ -477,6 +478,7 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 	else
 	{
 		rel->serverid = InvalidOid;
+		rel->segSeverids = NIL;
 		rel->fdwroutine = NULL;
 		rel->exec_location = FTEXECLOCATION_NOT_DEFINED;
 		rel->num_segments = getgpsegmentCount();
