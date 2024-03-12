@@ -390,11 +390,11 @@ PLyNumber_ToJsonbValue(PyObject *obj, JsonbValue *jbvNum)
 	 * jsonb doesn't allow NaN or infinity (per JSON specification), so we
 	 * have to reject those here explicitly.
 	 */
-	if (numeric_is_nan(num))
+	if (NUMERIC_IS_NAN(num))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("cannot convert NaN to jsonb")));
-	if (numeric_is_inf(num))
+	if (NUMERIC_IS_INF(num))
 		ereport(ERROR,
 				(errcode(ERRCODE_NUMERIC_VALUE_OUT_OF_RANGE),
 				 errmsg("cannot convert infinity to jsonb")));

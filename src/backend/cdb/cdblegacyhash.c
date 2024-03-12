@@ -377,7 +377,7 @@ cdblegacyhash_numeric(PG_FUNCTION_ARGS)
 	size_t		len;		/* length for the data buffer */
 	uint32		hash;
 
-	if (numeric_is_nan(num))
+	if (NUMERIC_IS_NAN(num))
 	{
 		static const uint32 nanbuf = NAN_VAL;
 
@@ -387,8 +387,8 @@ cdblegacyhash_numeric(PG_FUNCTION_ARGS)
 	else
 		/* not a nan */
 	{
-		buf = numeric_digits(num);
-		len = numeric_len(num);
+		buf = NUMERIC_DIGITS(num);
+		len = NUMERIC_NDIGITS(num) * sizeof(NumericDigit);
 	}
 
 	/* do the hash using the selected algorithm */
