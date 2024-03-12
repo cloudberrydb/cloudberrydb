@@ -257,7 +257,7 @@ pg_lsn_pli(PG_FUNCTION_ARGS)
 	Datum		res;
 	char		buf[32];
 
-	if (numeric_is_nan(nbytes))
+	if (NUMERIC_IS_NAN(nbytes))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("cannot add NaN to pg_lsn")));
@@ -291,7 +291,7 @@ pg_lsn_mii(PG_FUNCTION_ARGS)
 	Datum		res;
 	char		buf[32];
 
-	if (numeric_is_nan(nbytes))
+	if (NUMERIC_IS_NAN(nbytes))
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("cannot subtract NaN from pg_lsn")));
