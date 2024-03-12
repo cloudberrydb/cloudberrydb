@@ -48,9 +48,8 @@ void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
     current_blocknos_[part_index] = current_blockno_;
     cbdb::InsertMicroPartitionPlaceHolder(RelationGetRelid(relation_),
                                           std::to_string(current_blockno_));
-  }
-  else if (strategy_->ShouldSplit(writers_[part_index]->PhysicalSize(),
-                             num_tuples_[part_index])) {
+  } else if (strategy_->ShouldSplit(writers_[part_index]->PhysicalSize(),
+                                    num_tuples_[part_index])) {
     writers_[part_index]->Close();
     PAX_DELETE(writers_[part_index]);
     writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
@@ -64,13 +63,14 @@ void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
 
   writers_[part_index]->WriteTuple(slot);
   num_tuples_[part_index]++;
+
   SetBlockNumber(&slot->tts_tid, current_blocknos_[part_index]);
-  ExecStoreVirtualTuple(slot);
 }
 
 void TableParitionWriter::Open() {
   // still need init rel_path_, which used to generate next file
-  rel_path_ = cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
+  rel_path_ =
+      cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
   // 1 for the default parition
   writer_counts_ = part_obj_->NumPartitions() + 1;
   Assert(writer_counts_ > 1);
@@ -227,10 +227,20 @@ void TableParitionWriter::Close() {
   Assert(part_obj_->NumPartitions() + 1 == writer_counts_);
   const auto merge_indexes_list = GetPartitionMergeInfos();
 
-  for (const auto &merge_indexes : merge_indexes_list) {
-    Assert(!merge_indexes.empty());
+  // When pax uses `TableParitionWriter` to insert data, the file merging
+  // operation will be performed in the `Close`.
+  //
+  // If the current table already build the indexes, Pax can only use
+  // delete-update to update the indexes.
+  //
+  // If the current table is not indexed, pax assumes that the `CTID` in the
+  // `TableTupleSlot`(using `SetBlockNumber` + `SetTupleOffset`) has no meaning.
+  // which means that we can directly call `writer->MergeTo` to speed up the
+  // merge process.
+  if (relation_->rd_rel->relhasindex) {
+    for (const auto &merge_indexes : merge_indexes_list) {
+      Assert(!merge_indexes.empty());
 
-    {
       Snapshot snapshot = nullptr;
       pax::CPaxDeleter del(relation_, snapshot);
       for (size_t i = 0; i < merge_indexes.size(); i++) {
@@ -244,6 +254,31 @@ void TableParitionWriter::Close() {
       }
       CommandCounterIncrement();
       del.ExecDelete();
+    }
+  } else {  // no index
+    for (const auto &merge_indexes : merge_indexes_list) {
+      auto first_write = writers_[merge_indexes[0]];
+
+      for (size_t i = 1; i < merge_indexes.size(); i++) {
+        auto w = writers_[merge_indexes[i]];
+        Assert(w);
+        first_write->MergeTo(w);
+        w->Close();
+        PAX_DELETE(w);
+        writers_[merge_indexes[i]] = nullptr;
+
+        // Delete the place holder
+        // FIXME(jiaqizho): no need open-close per loop. we can open the
+        // auxiliary table, delete one tuple per loop, and then close the
+        // auxiliary table.
+        cbdb::DeleteMicroPartitionEntry(
+            RelationGetRelid(relation_), nullptr,
+            std::to_string(current_blocknos_[merge_indexes[i]]));
+      }
+      CommandCounterIncrement();
+      first_write->Close();
+      PAX_DELETE(first_write);
+      writers_[merge_indexes[0]] = nullptr;
     }
   }
 
