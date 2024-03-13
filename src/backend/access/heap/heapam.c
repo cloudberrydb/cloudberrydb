@@ -1621,7 +1621,7 @@ heap_getnextslot_tidrange(TableScanDesc sscan, ScanDirection direction,
 	return true;
 }
 
-int
+uint32
 heap_scan_flags(Relation relation)
 {
 	return 0;
