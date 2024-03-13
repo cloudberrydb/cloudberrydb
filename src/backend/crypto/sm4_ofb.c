@@ -1,6 +1,6 @@
 #include "postgres.h"
 #include <sys/param.h>
-#include "crypto/sm4.h"
+#include "crypto/sm4_ofb.h"
 
 static const uint8_t SM4_S[256] = {
     0xD6, 0x90, 0xE9, 0xFE, 0xCC, 0xE1, 0x3D, 0xB7, 0x16, 0xB6, 0x14, 0xC2,
@@ -368,13 +368,13 @@ void ossl_sm4_decrypt(const uint8_t *in, uint8_t *out, const SM4_KEY *ks)
     store_u32_be(B0, out + 12);
 }
 
-void sm4_setkey_enc(sm4_ctx *ctx, uint8_t* key)
+void sm4_ofb_setkey_enc(sm4_ctx *ctx, uint8_t* key)
 {
 	ossl_sm4_set_key(key, &ctx->rkey);
     ctx->encrypt = SM4_ENCRYPT;
 }
 
-void sm4_setkey_dec(sm4_ctx *ctx, uint8_t* key)
+void sm4_ofb_setkey_dec(sm4_ctx *ctx, uint8_t* key)
 {
 	ossl_sm4_set_key(key, &ctx->rkey);
     ctx->encrypt = SM4_DECRYPT;

@@ -8,8 +8,8 @@
  *
  *-------------------------------------------------------------------------
  */
-#ifndef _SM4_H_
-#define _SM4_H_
+#ifndef _SM4_OFB_H_
+#define _SM4_OFB_H_
 #include "c.h"
 
 # define SM4_ENCRYPT     1
@@ -55,9 +55,9 @@ int ossl_sm4_set_key(const uint8_t *key, SM4_KEY *ks);
 void ossl_sm4_encrypt(const uint8_t *in, uint8_t *out, const SM4_KEY *ks);
 
 void ossl_sm4_decrypt(const uint8_t *in, uint8_t *out, const SM4_KEY *ks);
-void sm4_setkey_enc(sm4_ctx *ctx, uint8_t* key);
-void sm4_setkey_dec(sm4_ctx *ctx, uint8_t* key);
+void sm4_ofb_setkey_enc(sm4_ctx *ctx, uint8_t* key);
+void sm4_ofb_setkey_dec(sm4_ctx *ctx, uint8_t* key);
 int sm4_ofb_cipher(sm4_ctx *ctx, unsigned char *out,
                         const unsigned char *in, size_t input_len,
                         unsigned char ivec[16]);
-#endif /* _SM4_H_ */
+#endif /* _SM4_OFB_H_ */
