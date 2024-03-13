@@ -1799,7 +1799,7 @@ appendonly_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSl
 	return false;
 }
 
-int
+uint32
 appendonly_scan_flags(Relation relation)
 {
 	return 0;

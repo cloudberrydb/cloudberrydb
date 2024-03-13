@@ -757,7 +757,7 @@ aoco_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSlot *sl
 	return false;
 }
 
-static int
+static uint32
 aoco_scan_flags(Relation rel)
 {
 	return 0;
