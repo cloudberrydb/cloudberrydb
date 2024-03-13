@@ -395,7 +395,7 @@ typedef struct TableAmRoutine
 	 * AM can support, return the flags represented the supported features of
 	 * scan.
 	 */
-	int			(*scan_flags) (Relation rel);
+	uint32		(*scan_flags) (Relation rel);
 
 	/* ------------------------------------------------------------------------
 	 * Parallel table scan related functions.
@@ -1245,6 +1245,16 @@ table_scan_getnextslot_tidrange(TableScanDesc sscan, ScanDirection direction,
 															   slot);
 }
 
+/*
+ * Return the flags represented the supported features of table AM scan.
+ */
+static inline uint32
+table_scan_flags(Relation rel)
+{
+	if (rel->rd_tableam->scan_flags)
+		return rel->rd_tableam->scan_flags(rel);
+	return 0;
+}
 
 /* ----------------------------------------------------------------------------
  * Parallel table scan related functions.
