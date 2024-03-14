@@ -1395,6 +1395,10 @@ heap_endscan(TableScanDesc sscan)
 	pfree(scan);
 }
 
+/*
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use table_scan_getnext() instead.
+ */
 HeapTuple
 heap_getnext(TableScanDesc sscan, ScanDirection direction)
 {
@@ -2397,6 +2401,9 @@ heap_prepare_insert(Relation relation, HeapTuple tup, TransactionId xid,
 /*
  *	heap_multi_insert	- insert multiple tuples into a heap
  *
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use table_multi_insert() instead.
+ *
  * This is like heap_insert(), but inserts multiple tuples in one operation.
  * That's faster than calling heap_insert() in a loop, because when multiple
  * tuples can be inserted on a single page, we can write just a single WAL
@@ -2744,6 +2751,9 @@ heap_multi_insert(Relation relation, TupleTableSlot **slots, int ntuples,
 /*
  *	simple_heap_insert - insert a tuple
  *
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use simple_table_tuple_insert() instead.
+ *
  * Currently, this routine differs from heap_insert only in supplying
  * a default command ID and not allowing access to the speedup options.
  *
@@ -2759,6 +2769,9 @@ simple_heap_insert(Relation relation, HeapTuple tup)
 
 /*
  *	frozen_heap_insert - insert a tuple and freeze it (always visible).
+ *
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use frozen_table_tuple_insert() instead.
  *
  * Currently, this routine differs from heap_insert in supplying
  * a default command ID and a frozen transaction id. Also, the committed
@@ -3230,6 +3243,9 @@ l1:
 
 /*
  *	simple_heap_delete - delete a tuple
+ *
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use simple_table_tuple_delete() instead.
  *
  * This routine may be used to delete a tuple when concurrent updates of
  * the target tuple are not expected (for example, because we have a lock
@@ -4348,6 +4364,9 @@ HeapDetermineColumnsInfo(Relation relation,
 
 /*
  *	simple_heap_update - replace a tuple
+ *
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use simple_table_tuple_update() instead.
  *
  * This routine may be used to update a tuple when concurrent updates of
  * the target tuple are not expected (for example, because we have a lock
@@ -6179,6 +6198,9 @@ heap_abort_speculative(Relation relation, ItemPointer tid)
 
 /*
  * heap_inplace_update - update a tuple "in place" (ie, overwrite it)
+ *
+ * NB: We no longer assume that catalog use heap. To avoid tableam
+ * errors, please use inplace_table_tuple_update() instead.
  *
  * Overwriting violates both MVCC and transactional safety, so the uses
  * of this function in Postgres are extremely limited.  Nonetheless we

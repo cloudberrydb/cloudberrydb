@@ -534,7 +534,7 @@ get_relfilenode_map()
 
 	pg_class = table_open(RelationRelationId, AccessShareLock);
 	scan = table_beginscan_catalog(pg_class, 0, NULL);
-	while((tup = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while((tup = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		Form_pg_class classtuple = (Form_pg_class) GETSTRUCT(tup);
 

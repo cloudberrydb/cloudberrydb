@@ -21,6 +21,7 @@
 
 #include <math.h>
 
+#include "access/heapam.h"
 #include "access/syncscan.h"
 #include "access/tableam.h"
 #include "access/xact.h"
@@ -338,9 +339,75 @@ table_tuple_get_latest_tid(TableScanDesc scan, ItemPointer tid)
 
 
 /* ----------------------------------------------------------------------------
+ * Functions for special catalog access.
+ * ----------------------------------------------------------------------------
+ */
+
+CatalogAmHookRoutine* catam_hook_routinue = NULL;
+
+HeapTuple
+table_scan_getnext(TableScanDesc scan, ScanDirection direction)
+{
+	if (catam_hook_routinue != NULL)
+		return catam_hook_routinue->getnext(scan, direction);
+	return heap_getnext(scan, direction);
+}
+
+void
+frozen_table_tuple_insert(Relation relation, HeapTuple tuple)
+{
+	if (catam_hook_routinue != NULL)
+	{
+		catam_hook_routinue->frozen_insert(relation, tuple);
+		return;
+	}
+	frozen_heap_insert(relation, tuple);
+}
+
+void
+inplace_table_tuple_update(Relation relation, HeapTuple tuple)
+{
+	if (catam_hook_routinue != NULL)
+	{
+		catam_hook_routinue->inplace_update(relation, tuple);
+		return;
+	}
+	heap_inplace_update(relation, tuple);
+}
+
+
+/* ----------------------------------------------------------------------------
  * Functions to make modifications a bit simpler.
  * ----------------------------------------------------------------------------
  */
+
+void
+simple_table_tuple_insert(Relation rel, HeapTuple tuple)
+{
+	if (catam_hook_routinue != NULL)
+	{
+		catam_hook_routinue->simple_insert(rel, tuple);
+		return;
+	}
+	simple_heap_insert(rel, tuple);
+}
+
+void
+simple_table_tuple_delete(Relation rel, ItemPointer tid)
+{
+	simple_tuple_slot_delete(rel, tid, InvalidSnapshot);
+}
+
+void
+simple_table_tuple_update(Relation rel, ItemPointer otid, HeapTuple tuple)
+{
+	if (catam_hook_routinue != NULL)
+	{
+		catam_hook_routinue->simple_update(rel, otid, tuple);
+		return;
+	}
+	simple_heap_update(rel, otid, tuple);
+}
 
 /*
  * simple_table_tuple_insert - insert a tuple
@@ -349,7 +416,7 @@ table_tuple_get_latest_tid(TableScanDesc scan, ItemPointer tid)
  * default command ID and not allowing access to the speedup options.
  */
 void
-simple_table_tuple_insert(Relation rel, TupleTableSlot *slot)
+simple_tuple_slot_insert(Relation rel, TupleTableSlot *slot)
 {
 	table_tuple_insert(rel, slot, GetCurrentCommandId(true), 0, NULL);
 }
@@ -363,7 +430,7 @@ simple_table_tuple_insert(Relation rel, TupleTableSlot *slot)
  * via ereport().
  */
 void
-simple_table_tuple_delete(Relation rel, ItemPointer tid, Snapshot snapshot)
+simple_tuple_slot_delete(Relation rel, ItemPointer tid, Snapshot snapshot)
 {
 	TM_Result	result;
 	TM_FailureData tmfd;
@@ -408,7 +475,7 @@ simple_table_tuple_delete(Relation rel, ItemPointer tid, Snapshot snapshot)
  * via ereport().
  */
 void
-simple_table_tuple_update(Relation rel, ItemPointer otid,
+simple_tuple_slot_update(Relation rel, ItemPointer otid,
 						  TupleTableSlot *slot,
 						  Snapshot snapshot,
 						  bool *update_indexes)

@@ -1716,7 +1716,7 @@ ThereIsAtLeastOneRole(void)
 	pg_authid_rel = table_open(AuthIdRelationId, AccessShareLock);
 
 	scan = table_beginscan_catalog(pg_authid_rel, 0, NULL);
-	result = (heap_getnext(scan, ForwardScanDirection) != NULL);
+	result = (table_scan_getnext(scan, ForwardScanDirection) != NULL);
 
 	table_endscan(scan);
 	table_close(pg_authid_rel, AccessShareLock);

@@ -440,7 +440,7 @@ ExecSimpleRelationInsert(ResultRelInfo *resultRelInfo,
 			ExecPartitionCheck(resultRelInfo, slot, estate, true);
 
 		/* OK, store the tuple and create index entries for it */
-		simple_table_tuple_insert(resultRelInfo->ri_RelationDesc, slot);
+		simple_tuple_slot_insert(resultRelInfo->ri_RelationDesc, slot);
 
 		if (resultRelInfo->ri_NumIndices > 0)
 			recheckIndexes = ExecInsertIndexTuples(resultRelInfo,
@@ -507,7 +507,7 @@ ExecSimpleRelationUpdate(ResultRelInfo *resultRelInfo,
 		if (rel->rd_rel->relispartition)
 			ExecPartitionCheck(resultRelInfo, slot, estate, true);
 
-		simple_table_tuple_update(rel, tid, slot, estate->es_snapshot,
+		simple_tuple_slot_update(rel, tid, slot, estate->es_snapshot,
 								  &update_indexes);
 
 		if (resultRelInfo->ri_NumIndices > 0 && update_indexes)
@@ -553,7 +553,7 @@ ExecSimpleRelationDelete(ResultRelInfo *resultRelInfo,
 	if (!skip_tuple)
 	{
 		/* OK, delete the tuple */
-		simple_table_tuple_delete(rel, tid, estate->es_snapshot);
+		simple_tuple_slot_delete(rel, tid, estate->es_snapshot);
 
 		/* AFTER ROW DELETE Triggers */
 		ExecARDeleteTriggers(estate, resultRelInfo,

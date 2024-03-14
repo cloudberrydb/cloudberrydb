@@ -626,7 +626,7 @@ AlterResqueueCapabilityEntry(Oid queueid,
 					((Form_pg_resqueuecapability) GETSTRUCT(tuple))->restypid)
 				{
 					/* no "off" setting -- just remove entry */
-					simple_heap_delete(rel, &tuple->t_self);
+					simple_table_tuple_delete(rel, &tuple->t_self);
 					ii++;
 				}
 			}
@@ -1501,7 +1501,7 @@ DropQueue(DropQueueStmt *stmt)
 	/*
 	 * Delete the queue from the catalog.
 	 */
-	simple_heap_delete(pg_resqueue_rel, &tuple->t_self);
+	simple_table_tuple_delete(pg_resqueue_rel, &tuple->t_self);
 
 	systable_endscan(sscan);
 
@@ -1560,7 +1560,7 @@ DropQueue(DropQueueStmt *stmt)
 							   true, NULL, 1, &scankey);
 
 	while ((tuple = systable_getnext(sscan)) != NULL)
-		simple_heap_delete(resqueueCapabilityRel, &tuple->t_self);
+		simple_table_tuple_delete(resqueueCapabilityRel, &tuple->t_self);
 
 	systable_endscan(sscan);
 

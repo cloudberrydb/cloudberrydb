@@ -165,7 +165,7 @@ insert_or_update_fastsequence(Relation gp_fastsequence_rel,
 		newTuple = heap_form_tuple(tupleDesc, values, nulls);
 		newTuple->t_data->t_ctid = oldTuple->t_data->t_ctid;
 		newTuple->t_self = oldTuple->t_self;
-		heap_inplace_update(gp_fastsequence_rel, newTuple);
+		inplace_table_tuple_update(gp_fastsequence_rel, newTuple);
 
 		heap_freetuple(newTuple);
 	}

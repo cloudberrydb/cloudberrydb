@@ -1726,7 +1726,7 @@ get_tables_to_cluster(MemoryContext cluster_context)
 				BTEqualStrategyNumber, F_BOOLEQ,
 				BoolGetDatum(true));
 	scan = table_beginscan_catalog(indRelation, 1, &entry);
-	while ((indexTuple = heap_getnext(scan, ForwardScanDirection)) != NULL)
+	while ((indexTuple = table_scan_getnext(scan, ForwardScanDirection)) != NULL)
 	{
 		index = (Form_pg_index) GETSTRUCT(indexTuple);
 
