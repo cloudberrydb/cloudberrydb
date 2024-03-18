@@ -98,6 +98,8 @@ _PG_init(void)
 
     RegisterXactCallback(dummy_schema_xact_cb, NULL);
 
+    RegisterVectorExtensibleNode();
+
 }
 
 PG_FUNCTION_INFO_V1(vector_int128_in);

@@ -288,6 +288,7 @@ try_vectorize_plan(PlannedStmt *result)
 	bool vectorable;
 	bool is_mutator_success = true;
 	Plan *plan_copy;
+	VectorExtensionContext *ext_ctx = NULL;
 
 	plan_copy = copyObject(result->planTree);
 	
@@ -300,7 +301,10 @@ try_vectorize_plan(PlannedStmt *result)
 	if (!vectorable)
 		return false;
 
-	result->extensionContext = list_make1_int(VecPlan);
+	ext_ctx = (VectorExtensionContext *) palloc(sizeof(VectorExtensionContext));
+	ext_ctx->base.type = T_ExtensibleNode;
+	ext_ctx->base.extnodename = pstrdup(VECTOR_EXTENSION_CONTEXT);
+	result->extensionContext = lappend(result->extensionContext, (ExtensibleNode *)ext_ctx);
 	result->planTree = plan_copy;
 
 	/* after vectorization, should reassign plan node id */

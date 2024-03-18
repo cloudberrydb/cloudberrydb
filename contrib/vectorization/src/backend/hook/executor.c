@@ -176,16 +176,17 @@ VecExecSetExecProcNode(PlanState *node, ExecProcNodeMtd function)
 void
 ExecutorStartWrapper(QueryDesc *queryDesc, int eflags)
 {
-	int vec_type = Invalid;
-	if (queryDesc->plannedstmt->extensionContext)
-		vec_type = linitial_int(queryDesc->plannedstmt->extensionContext);
+	bool vec_type = find_extension_context(queryDesc->plannedstmt->extensionContext);
 
-	if (vec_type == VecPlan)
+	if (vec_type)
 	{
 		init_vector_types();
 		/* Set vector executor flag, start vector executation. */
 		eflags |= EXEC_FLAG_VECTOR;
-		return VecExecutorStart(queryDesc, eflags);
+		if (vec_exec_start_prev)
+			(*vec_exec_start_prev) (queryDesc, eflags);
+		VecExecutorStart(queryDesc, eflags);
+		return;
 	}
 
 	if (vec_exec_start_prev)
@@ -200,13 +201,7 @@ ExecutorRunWrapper(QueryDesc *queryDesc,
 				   uint64 count,
 				   bool execute_once)
 {
-	int vec_type = Invalid;
-	if (queryDesc->plannedstmt->extensionContext)
-	{
-		vec_type = linitial_int(queryDesc->plannedstmt->extensionContext);
-	}
-
-	if (vec_type == VecPlan)
+	if (queryDesc->estate->es_top_eflags & EXEC_FLAG_VECTOR)
 		set_printtup_wrapper(&queryDesc->dest);
 
 	if (vec_exec_run_prev)
@@ -218,11 +213,13 @@ ExecutorRunWrapper(QueryDesc *queryDesc,
 void
 ExecutorEndWrapper(QueryDesc *queryDesc)
 {
-	int vec_type = Invalid;
-	if (queryDesc->plannedstmt->extensionContext)
-		vec_type = linitial_int(queryDesc->plannedstmt->extensionContext);
-	if (vec_type == VecPlan)
-		return VecExecutorEnd(queryDesc);
+	if (queryDesc->estate->es_top_eflags & EXEC_FLAG_VECTOR) 
+	{
+		if (vec_exec_end_prev)
+			(*vec_exec_end_prev)(queryDesc);
+		VecExecutorEnd(queryDesc);
+		return;
+	}
 
 	if (vec_exec_end_prev)
 		(*vec_exec_end_prev) (queryDesc);
@@ -1826,4 +1823,58 @@ ExecCheckXactReadOnly(PlannedStmt *plannedstmt)
 
 	if (plannedstmt->commandType != CMD_SELECT || plannedstmt->hasModifyingCTE)
 		PreventCommandIfParallelMode(CreateCommandName((Node *) plannedstmt));
+}
+
+bool find_extension_context(List *context) 
+{
+	ListCell *cell;
+	foreach(cell, context) 
+	{
+		ExtensibleNode *e = lfirst(cell);
+		if (strcmp(e->extnodename, VECTOR_EXTENSION_CONTEXT) == 0)
+			return true;
+	}
+	return false;
+}
+
+static void
+copyVectorExtensionContext(struct ExtensibleNode *newnode,
+			  const struct ExtensibleNode *oldnode) {
+  return;
+}
+
+static bool
+equalVectorExtensionContext(const struct ExtensibleNode *a,
+			   const struct ExtensibleNode *b) {
+  return false;
+}
+
+static void
+outVectorExtensionContext(struct StringInfoData *str,
+			 const struct ExtensibleNode *enode) {
+  return;
+}
+
+static void
+readVectorExtensionContext(struct ExtensibleNode *node) {
+  return;
+}
+
+static const ExtensibleNodeMethods methods[] =
+{
+    {
+      .extnodename = VECTOR_EXTENSION_CONTEXT,
+      .node_size = sizeof(VectorExtensionContext),
+      .nodeCopy = copyVectorExtensionContext,
+      .nodeEqual = equalVectorExtensionContext,
+      .nodeOut = outVectorExtensionContext,
+      .nodeRead = readVectorExtensionContext,
+    }
+};
+
+void
+RegisterVectorExtensibleNode(void) {
+    long unsigned int i;
+    for (i = 0; i < lengthof(methods); i++)
+        RegisterExtensibleNodeMethods(&methods[i]);
 }

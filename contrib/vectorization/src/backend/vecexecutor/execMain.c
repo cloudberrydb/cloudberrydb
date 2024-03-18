@@ -26,7 +26,7 @@
 #include "vecexecutor/execslot.h"
 #include "vecexecutor/executor.h"
 
-typedef struct AggInfo
+typedef struct VecAggInfo
 {
 	Aggref *aggref;
 	WindowFunc *wfunc;
@@ -34,7 +34,7 @@ typedef struct AggInfo
 	GArrowFunctionOptions *options;
 	char inname[NAMEDATALEN + 30];
 	char outname[NAMEDATALEN + 30];
-} AggInfo;
+} VecAggInfo;
 
 typedef enum
 {
@@ -107,9 +107,9 @@ typedef struct SortKey
 GArrowSchema *dummy_schema = NULL;
 static inline GArrowExpression *func_args_to_expression(List *args,
 		PlanBuildContext *pcontext, const char *name);
-static inline AggInfo* new_agg_info(Aggref *aggref, int aggno,
+static inline VecAggInfo* new_agg_info(Aggref *aggref, int aggno,
 		PlanBuildContext *pcontext);
-static inline AggInfo* new_winagg_info(WindowFunc *wfunc, PlanBuildContext *pcontext);
+static inline VecAggInfo* new_winagg_info(WindowFunc *wfunc, PlanBuildContext *pcontext);
 static GArrowExpression *expr_to_arrow_expression(Expr *node,
 		PlanBuildContext *pcontext);
 static const char* get_agg_func_name(Aggref *aggref, const FuncTable *table,
@@ -1211,13 +1211,13 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 		case T_WindowFunc:
 			{
 				WindowFunc *wfunc = (WindowFunc *) node;
-				AggInfo *agginfo = NULL;
+				VecAggInfo *agginfo = NULL;
 				ListCell *l;
 
 				/* check whether current window agg is duplicated */
 				foreach(l, pcontext->agginfos)
 				{
-					AggInfo *cinfo = (AggInfo *) lfirst(l);
+					VecAggInfo *cinfo = (VecAggInfo *) lfirst(l);
 
 					if (equal(wfunc, cinfo->wfunc) &&
 						!contain_volatile_functions((Node *) wfunc))
@@ -1244,13 +1244,13 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 		case T_Aggref:
 			{
 				Aggref *aggref = (Aggref *) node;
-				AggInfo *agginfo = NULL;
+				VecAggInfo *agginfo = NULL;
 				ListCell *l;
 
 				/* check whether current agg is duplicated */
 				foreach(l, pcontext->agginfos)
 				{
-					AggInfo *cinfo = (AggInfo *) lfirst(l);
+					VecAggInfo *cinfo = (VecAggInfo *) lfirst(l);
 					if (cinfo->aggref->aggno == aggref->aggno)
 					{
 						agginfo = cinfo;
@@ -1368,17 +1368,17 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 	return garrow_move_ptr(expr);
 }
 
-/* generate unique aggname and AggInfo*/
-static inline AggInfo *
+/* generate unique aggname and VecAggInfo*/
+static inline VecAggInfo *
 new_agg_info(Aggref *aggref, int aggno, PlanBuildContext *pcontext)
 {
-	AggInfo *agginfo;
+	VecAggInfo *agginfo;
 	const ArrowFmgr *fmgr;
 	const FuncTable *table;
 
 	Assert(aggref->aggsplit == pcontext->aggsplit);
 
-	agginfo = palloc(sizeof(AggInfo));
+	agginfo = palloc(sizeof(VecAggInfo));
 	agginfo->aggref = aggref;
 
 	fmgr = get_arrow_fmgr(aggref->aggfnoid);
@@ -1404,15 +1404,15 @@ new_agg_info(Aggref *aggref, int aggno, PlanBuildContext *pcontext)
 	return agginfo;
 }
 
-/* generate unique aggname and AggInfo */
-static inline AggInfo *
+/* generate unique aggname and VecAggInfo */
+static inline VecAggInfo *
 new_winagg_info(WindowFunc *wfunc, PlanBuildContext *pcontext)
 {
-	AggInfo *agginfo;
+	VecAggInfo *agginfo;
 	const ArrowFmgr *fmgr;
 	const FuncTable *table;
 
-	agginfo = palloc(sizeof(AggInfo));
+	agginfo = palloc(sizeof(VecAggInfo));
 	agginfo->wfunc = wfunc;
 
 	fmgr = get_arrow_fmgr(wfunc->winfnoid);
@@ -2193,7 +2193,7 @@ static void free_agg_infos(List *agginfos)
 
 	foreach(l, agginfos)
 	{
-		AggInfo *agginfo = (AggInfo *) lfirst(l);
+		VecAggInfo *agginfo = (VecAggInfo *) lfirst(l);
 
 		glib_autoptr_cleanup_GArrowFunctionOptions(&agginfo->options);
 	}
@@ -2432,7 +2432,7 @@ build_agg_project_options(List *targetList, List *aggInfos, PlanBuildContext *pc
 	foreach(l, aggInfos)
 	{
 		g_autoptr(GArrowExpression) arrow_expr = NULL;
-		AggInfo *agginfo = (AggInfo *) lfirst(l);
+		VecAggInfo *agginfo = (VecAggInfo *) lfirst(l);
 		Aggref *aggref = agginfo->aggref;
 		int key;
 		TargetEntry *source_tle;
@@ -2471,7 +2471,7 @@ build_agg_project_options(List *targetList, List *aggInfos, PlanBuildContext *pc
 	/* append aggrefs */
 	foreach(l, aggInfos)
 	{
-		AggInfo *agginfo = (AggInfo *) lfirst(l);
+		VecAggInfo *agginfo = (VecAggInfo *) lfirst(l);
 		Aggref *aggref = agginfo->aggref;
 
 		/* count() or count(*), needn't project this column.
@@ -2484,7 +2484,7 @@ build_agg_project_options(List *targetList, List *aggInfos, PlanBuildContext *pc
 
 			foreach(c, aggInfos)
 			{
-				AggInfo *cinfo = (AggInfo *) lfirst(c);
+				VecAggInfo *cinfo = (VecAggInfo *) lfirst(c);
 
 				if (cinfo->aggref->args)
 				{
@@ -2602,7 +2602,7 @@ build_winagg_project_options(List *targetList, List *aggInfos, PlanBuildContext 
 	foreach(l, aggInfos)
 	{
 		g_autoptr(GArrowExpression) arrow_expr = NULL;
-		AggInfo *agginfo = (AggInfo *) lfirst(l);
+		VecAggInfo *agginfo = (VecAggInfo *) lfirst(l);
 		WindowFunc *wfunc = agginfo->wfunc;
 
 		Assert(IsA(wfunc, WindowFunc));
@@ -2627,7 +2627,7 @@ build_winagg_project_options(List *targetList, List *aggInfos, PlanBuildContext 
 	/* append window aggrefs */
 	foreach(l, aggInfos)
 	{
-		AggInfo *agginfo = (AggInfo *) lfirst(l);
+		VecAggInfo *agginfo = (VecAggInfo *) lfirst(l);
 		WindowFunc *wfunc = agginfo->wfunc;
 
 		/*
@@ -2641,7 +2641,7 @@ build_winagg_project_options(List *targetList, List *aggInfos, PlanBuildContext 
 
 			foreach(c, aggInfos)
 			{
-				AggInfo *cinfo = (AggInfo *) lfirst(c);
+				VecAggInfo *cinfo = (VecAggInfo *) lfirst(c);
 
 				if (cinfo->wfunc->args)
 				{
@@ -2858,7 +2858,7 @@ BuildAggregatation(List *aggInfos, GArrowExecuteNode *input, PlanBuildContext *p
 	/* build aggregations */
 	foreach(l, aggInfos)
 	{
-		AggInfo *agginfo = (AggInfo *) lfirst(l);
+		VecAggInfo *agginfo = (VecAggInfo *) lfirst(l);
 
 		/*Fixme only normal agg now. */
 		if (true)

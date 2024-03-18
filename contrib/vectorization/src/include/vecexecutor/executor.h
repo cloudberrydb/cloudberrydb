@@ -19,8 +19,17 @@
 #include "executor/executor.h"
 #include "utils/tuptable_vec.h"
 #include "vecexecutor/execnodes.h"
+#include "nodes/extensible.h"
 
 #define EXEC_FLAG_VECTOR 0x8000 /* Vector execute plan */
+#define VEC_EXTENSION_NAME "vector"
+
+#define VECTOR_EXTENSION_CONTEXT "VectorExtensionContext"
+
+typedef struct VectorExtensionContext
+{
+	ExtensibleNode base;
+} VectorExtensionContext;
 
 typedef TupleTableSlot *(*ExecScanLMComboTupMtd) (ScanState *node, TupleTableSlot *slot);
 
@@ -36,6 +45,7 @@ extern TupleDesc BuildDescForScanExtract(TupleDesc tupdesc, List *targetlist, Li
 extern void ExecInitScanTupleSlotVec(EState *estate, ScanState *scanstate, TupleTableSlot **vscanslot,
 		TupleDesc tupledesc, int *columnmap);
 extern bool has_ctid(Expr *expr, void *context);
+extern void RegisterVectorExtensibleNode(void);
 
 /*
  * prototypes from functions in execVecUtils.c
@@ -103,4 +113,5 @@ extern void ExecutorRunWrapper(QueryDesc *queryDesc,
 							   uint64 count,
 							   bool execute_once);
 extern void ExecutorEndWrapper(QueryDesc *queryDesc);
+extern bool find_extension_context(List *context);
 #endif							/* VEC_EXECUTOR_H */

@@ -317,7 +317,7 @@ void VecExplainOneQuery(Query *query, int cursorOptions,
 	PlannedStmt *plan;
 	instr_time planstart, planduration;
 	BufferUsage bufusage_start, bufusage;
-	int vec_type = Invalid;
+	bool vec_type = false;
 
 	if (es->buffers)
 		bufusage_start = pgBufferUsage;
@@ -330,9 +330,9 @@ void VecExplainOneQuery(Query *query, int cursorOptions,
 	INSTR_TIME_SUBTRACT(planduration, planstart);
 
 	if (plan->extensionContext)
-		vec_type = linitial_int(plan->extensionContext);
+		vec_type = find_extension_context(plan->extensionContext);
 
-	if (vec_type == Invalid && vec_explain_prev) {
+	if (!vec_type && vec_explain_prev) {
 		(*vec_explain_prev) (query, cursorOptions, into, es, queryString, params, queryEnv);
 		return;
 	}
@@ -351,7 +351,7 @@ void VecExplainOneQuery(Query *query, int cursorOptions,
 		BufferUsageAccumDiff(&bufusage, &pgBufferUsage, &bufusage_start);
 	}
 
-	(vec_type == Invalid ? ExplainOnePlan : VecExplainOnePlan)
+	(vec_type ? VecExplainOnePlan : ExplainOnePlan)
 					(plan, into, es, queryString, params, queryEnv, 
 									&planduration, (es->buffers ? &bufusage : NULL), cursorOptions);
 }
@@ -911,16 +911,11 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 	int			motion_recv;
 	int			motion_snd;
 	ExecSlice  *parentSlice = NULL;
-	int			vec_type = Invalid;
+	bool vec_type = find_extension_context(es->pstmt->extensionContext);
 
 	/* Remember who called us. */
 	parentplanstate = es->parentPlanState;
 	es->parentPlanState = planstate;
-
-	if (es->pstmt->extensionContext)
-	{
-		vec_type = linitial_int(es->pstmt->extensionContext);
-	}
 
 	/*
 	 * If this is a Motion node, we're descending into a new slice.
@@ -951,7 +946,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 	switch (nodeTag(plan))
 	{
 		case T_Result:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				pname = sname = "Vec Result";
 			}
@@ -982,7 +977,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			}
 			break;
 		case T_Append:
-			if (vec_type == VecPlan)
+			if (vec_type)
 				pname = sname = "Vec Append";
 			else
 				pname = sname = "Append";
@@ -994,7 +989,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Recursive Union";
 			break;
 		case T_Sequence:
-			if (vec_type == VecPlan)
+			if (vec_type)
 				pname = sname = "Vec Sequence";
 			else
 				pname = sname = "Sequence";
@@ -1006,7 +1001,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "BitmapOr";
 			break;
 		case T_NestLoop:
-			if (vec_type == VecPlan) 
+			if (vec_type) 
 				pname = sname = "Vec Nested Loop";
 			else 
 				pname = sname = "Nested Loop";
@@ -1021,7 +1016,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			sname = "Merge Join";
 			break;
 		case T_HashJoin:
-			if (vec_type == VecPlan) 
+			if (vec_type) 
 			{
 				pname = "Vec Hash";		/* "Join" gets added by jointype switch */
 				sname = "Vec Hash Join";
@@ -1033,7 +1028,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			}
 			break;
 		case T_SeqScan:
-			if (vec_type == VecPlan) 
+			if (vec_type) 
 			{
 				pname = sname = "Vec Seq Scan";
 			}
@@ -1075,7 +1070,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Tid Range Scan";
 			break;
 		case T_SubqueryScan:
-			if (vec_type == VecPlan)
+			if (vec_type)
 				pname = sname = "Vec Subquery Scan";
 			else 
 				pname = sname = "Subquery Scan";
@@ -1099,7 +1094,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "WorkTable Scan";
 			break;
 		case T_ShareInputScan:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				pname = sname = "Vec Shared Scan";
 			}
@@ -1142,7 +1137,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 				pname = sname;
 			break;
 		case T_Material:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				pname = sname = "Vec Materialize";
 			}
@@ -1155,7 +1150,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Memoize";
 			break;
 		case T_Sort:
-			if (vec_type == VecPlan) 
+			if (vec_type) 
 			{
 				pname = sname = "Vec Sort";
 			}
@@ -1174,7 +1169,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Group";
 			break;
 		case T_Agg:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				Agg		   *agg = (Agg *) plan;
 
@@ -1266,7 +1261,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			}
 			break;
 		case T_WindowAgg:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				pname = sname = "Vec WindowAgg";
 			}
@@ -1307,7 +1302,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "RuntimeFilter";
 			break;
 		case T_Limit:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				pname = sname = "Vec Limit";
 			}
@@ -1317,7 +1312,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			}
 			break;
 		case T_Hash:
-			if (vec_type == VecPlan)
+			if (vec_type)
 				pname = sname = "Vec Hash";
 			else
 				pname = sname = "Hash";
@@ -1331,7 +1326,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 				motion_snd = list_length(es->currentSlice->segments);
 				motion_recv = parentSlice == NULL ? 1 : list_length(parentSlice->segments);
 
-				if (vec_type == VecPlan) 
+				if (vec_type) 
 				{
 					switch (pMotion->motionType)
 					{
@@ -1393,7 +1388,7 @@ VecExplainNode(PlanState *planstate, List *ancestors,
 			pname = sname = "Split";
 			break;
 		case T_AssertOp:
-			if (vec_type == VecPlan)
+			if (vec_type)
 			{
 				pname = sname = "Vec Assert";
 			}

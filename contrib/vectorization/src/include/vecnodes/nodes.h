@@ -13,6 +13,5 @@
 #include "nodes/plannodes.h"
 
 #define Invalid 0
-#define VecPlan 1
 
 #endif							/* VEC_NODES_H */
