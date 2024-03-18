@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 cat <<"EOF"
-#!/usr/bin/env bash
 if test -n "${ZSH_VERSION:-}"; then
     # zsh
     SCRIPT_PATH="${(%):-%x}"
@@ -27,13 +26,9 @@ else
 fi
 EOF
 
-cat <<EOF
-PYTHONBINDIR="$(dirname "${WHICHPYTHON}")"
-EOF
-
 cat <<"EOF"
 PYTHONPATH="${GPHOME}/lib/python"
-PATH="${GPHOME}/bin:${PYTHONBINDIR}:${PATH}"
+PATH="${GPHOME}/bin:${PATH}"
 LD_LIBRARY_PATH="${GPHOME}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
 if [ -e "${GPHOME}/etc/openssl.cnf" ]; then
