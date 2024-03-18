@@ -19,7 +19,7 @@
 #include "access/gist.h"
 #include "access/xlog.h"
 #include "crypto/bufenc.h"
-#include "crypto/sm4.h"
+#include "crypto/sm4_ofb.h"
 #include "storage/bufpage.h"
 #include "storage/fd.h"
 #include "storage/shmem.h"
@@ -57,8 +57,8 @@ InitializeBufferEncryption(void)
 
 		BufDecCtx = ShmemInitStruct("sm4 encryption method decrypt ctx",
 												sizeof(sm4_ctx), &found);
-		sm4_setkey_enc((sm4_ctx *)BufEncCtx, (unsigned char *)key->key);
-		sm4_setkey_dec((sm4_ctx *)BufDecCtx, (unsigned char *)key->key);
+		sm4_ofb_setkey_enc((sm4_ctx *)BufEncCtx, (unsigned char *)key->key);
+		sm4_ofb_setkey_dec((sm4_ctx *)BufDecCtx, (unsigned char *)key->key);
 	}
 	else 
 	{

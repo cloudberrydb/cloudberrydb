@@ -14,7 +14,7 @@ include $(top_builddir)/src/Makefile.global
 
 OBJS = \
 	bufenc.o \
-	sm4.o \
+	sm4_ofb.o \
 	kmgr.o
 
 include $(top_srcdir)/src/backend/common.mk

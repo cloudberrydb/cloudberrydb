@@ -36,7 +36,7 @@ bool px_find_cipher_support_redirect(const char *name) {
         return true;
     }
 
-    if (strcmp("sm4-128-cbc", name) == 0) {
+    if (strcmp("sm4-128-ecb", name) == 0) {
         return true;
     }
     return false;
