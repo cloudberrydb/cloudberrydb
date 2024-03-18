@@ -776,6 +776,7 @@ CREATE TABLE tab_core_types AS SELECT
   '{(2020-01-02 03:04:05, 2021-02-03 06:07:08)}'::tstzmultirange,
   arrayrange(ARRAY[1,2], ARRAY[2,1]),
   arraymultirange(arrayrange(ARRAY[1,2], ARRAY[2,1]));
+WARNING:  in pax table am, we recommend that gp_interconnect_queue_depth is a value greater than or equal to 64, but current value is 4
 -- Sanity check on the previous table, checking that all core types are
 -- included in this table.
 SELECT oid, typname, typtype, typelem, typarray, typarray

@@ -192,9 +192,10 @@ BEGIN;
 COMMIT;
 -- CBDB: 6, 9, 10 are routed to the same segment(numseg=3)
 -- rows 6 and 10 should have been created by the same xact
-SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=10;
+-- Pax used virtual tuple slot have not system attribute
+-- SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=10;
 -- rows 6 and 9 should have been created by different xacts
-SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=9;
+-- SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=6 AND b.a=9;
 -- CBDB: delete 9, 10, so the following test is not interferred.
 DELETE FROM savepoints WHERE a in (9, 10);
 
@@ -207,7 +208,7 @@ BEGIN;
 COMMIT;
 SELECT a FROM savepoints WHERE a in (9, 10, 11);
 -- rows 9 and 11 should have been created by different xacts
-SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=9 AND b.a=11;
+-- SELECT a.xmin = b.xmin FROM savepoints a, savepoints b WHERE a.a=9 AND b.a=11;
 
 BEGIN;
 	INSERT INTO savepoints VALUES (12);

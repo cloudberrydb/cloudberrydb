@@ -123,17 +123,19 @@ SELECT h.seqno AS t20000
    FROM hash_txt_heap h
    WHERE h.random = '959363399'::text;
 
-UPDATE hash_f8_heap
-   SET random = '-1234.1234'::float8
-   WHERE hash_f8_heap.seqno = 8906;
+-- Pax not support IndexDeleteTuples
+-- UPDATE hash_f8_heap
+--    SET random = '-1234.1234'::float8
+--    WHERE hash_f8_heap.seqno = 8906;
 
 SELECT h.seqno AS i8096, h.random AS f1234_1234
    FROM hash_f8_heap h
    WHERE h.random = '-1234.1234'::float8;
 
-UPDATE hash_f8_heap
-   SET seqno = 20000
-   WHERE hash_f8_heap.random = '488912369'::float8;
+-- Pax not support IndexDeleteTuples
+-- UPDATE hash_f8_heap
+--    SET seqno = 20000
+--    WHERE hash_f8_heap.random = '488912369'::float8;
 
 SELECT h.seqno AS f20000
    FROM hash_f8_heap h

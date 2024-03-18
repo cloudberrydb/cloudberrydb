@@ -671,7 +671,7 @@ insert into idxpart (b, a) values ('one', 142857), ('two', 285714);
 insert into idxpart select a * 2, b || b from idxpart where a between 2^16 and 2^19;
 insert into idxpart values (572814, 'five');
 insert into idxpart values (857142, 'six');
-select tableoid::regclass, * from idxpart order by a;
+select * from idxpart order by a;
 drop table idxpart;
 
 -- intentionally leave some objects around

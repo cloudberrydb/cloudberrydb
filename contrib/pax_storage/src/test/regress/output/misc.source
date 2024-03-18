@@ -381,6 +381,7 @@ SELECT * FROM e_star*;
 
 ALTER TABLE a_star* ADD COLUMN a text;
 NOTICE:  merging definition of column "a" for child "d_star"
+-- Pax not support store as a toast
 -- That ALTER TABLE should have added TOAST tables.
 SELECT relname, reltoastrelid <> 0 AS has_toast_table
    FROM pg_class
@@ -388,8 +389,8 @@ SELECT relname, reltoastrelid <> 0 AS has_toast_table
    ORDER BY 1;
  relname | has_toast_table 
 ---------+-----------------
- a_star  | t
- c_star  | t
+ a_star  | f
+ c_star  | f
 (2 rows)
 
 --UPDATE b_star*

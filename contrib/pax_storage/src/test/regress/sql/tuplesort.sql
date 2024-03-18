@@ -93,6 +93,7 @@ FROM abbrev_abort_uuids
 ORDER BY ctid LIMIT 5;
 
 -- tail
+-- Pax is append only, ctid will not reused.
 SELECT id, abort_increasing, abort_decreasing, noabort_increasing, noabort_decreasing
 FROM abbrev_abort_uuids
 ORDER BY ctid DESC LIMIT 5;

@@ -1,4 +1,4 @@
-CREATE TABLE test_tablesample (dist int, id int, name text) WITH (fillfactor=10) DISTRIBUTED BY (dist);
+CREATE TABLE test_tablesample (dist int, id int, name text) DISTRIBUTED BY (dist);
 -- use fillfactor so we don't have to load too much data to get multiple pages
 
 -- Changed the column length in order to match the expected results based on relation's blocksz

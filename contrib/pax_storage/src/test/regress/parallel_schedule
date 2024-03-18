@@ -45,29 +45,45 @@ test: create_function_2
 # execute two copy tests parallel, to check that copy itself
 # is concurrent safe.
 # ----------
-test: copy copyselect copydml insert insert_conflict
+test: copy copyselect copydml insert
+
+# ignore reason: Pax have not implements tuple_insert_speculative and tuple_lock
+# test: insert_conflict
 
 # ----------
 # More groups of parallel tests
 # ----------
 test: create_misc create_operator create_procedure
 # These depend on create_misc and create_operator
-test: create_index create_index_spgist create_view index_including index_including_gist
+
+test: create_index create_index_spgist create_view index_including 
+
+# ignore reason: Pax not support gist
+# test: index_including_gist
+
 # Depends on things setup for create_index
 test: gp_gin_index
 
 # ----------
 # Another group of parallel tests
 # ----------
-test: create_aggregate create_function_3 create_cast constraints triggers select inherit typed_table vacuum drop_if_exists updatable_views roleattributes create_am hash_func errors infinite_recurse
+
+test: create_aggregate create_function_3 create_cast select inherit typed_table drop_if_exists roleattributes create_am hash_func errors infinite_recurse
+
+# ignore reason:
+#  1. Pax have not implements tuple_insert_speculative and tuple_lock
+#  2. Pax not support almost of triggers
+#  3. Pax not support vacuum yet
+# test: constraints triggers vacuum updatable_views
 
 # ----------
 # Because vacuum will detect concurrently running transactions, it is necessary to
 # run this test on its own, or it might not detect the pages are 'all visible'
 # ----------
-test: disable_autovacuum
-test: vacuum_stats
-test: enable_autovacuum
+# ignore reason: Pax not support vacuum yet
+# test: disable_autovacuum
+# test: vacuum_stats
+# test: enable_autovacuum
 
 # ----------
 # sanity_check does a vacuum, affecting the sort order of SELECT *
@@ -78,8 +94,11 @@ test: sanity_check
 # Another group of parallel tests
 # Note: the ignore: line does not run random, just mark it as ignorable
 # ----------
-ignore: random
-test: select_into select_distinct select_distinct_on select_implicit select_having subselect union case join aggregates random portals arrays btree_index hash_index update delete
+# ignore: random
+test: select_into select_distinct select_distinct_on select_implicit select_having subselect union case join aggregates arrays btree_index hash_index update delete
+
+# ignore reason: not allow simple update in function `isSimplyUpdatableRelation`
+# test: portals
 
 # In PostgreSQL, namespace test is run as part of the previous group, but there
 # are some GPDB additions in it that will show diff if concurrent tests use
@@ -94,12 +113,22 @@ test: transactions
 # ----------
 # Another group of parallel tests
 # ----------
-test: brin gin gist spgist privileges init_privs security_label collate matview lock replica_identity rowsecurity object_address tablesample groupingsets drop_operator password identity generated join_hash appendonly_sample aocs_sample
+test: privileges init_privs security_label collate lock replica_identity rowsecurity object_address tablesample groupingsets drop_operator password identity appendonly_sample aocs_sample
+
+test: matview
+# ignore reason: 
+#   1. Pax not support trigger
+#   2. Pax not support parallel_workers
+#   3. Pax not support brin
+# test: generated join_hash brin 
+
+# ignore reason: Pax not support gin gist spgist indexes
+# test: gin gist spgist 
 
 # ----------
 # Additional BRIN tests
 # ----------
-test: brin_bloom brin_multi
+# test: brin_bloom brin_multi
 
 # ----------
 # Additional Task tests
@@ -109,12 +138,19 @@ test: task
 # ----------
 # Another group of parallel tests
 # ----------
-test: create_table_like alter_generic alter_operator misc async dbsize misc_functions sysviews tsrf tid tidscan tidrangescan collate.icu.utf8 incremental_sort incremental_matview
+test: create_table_like alter_generic alter_operator misc async dbsize misc_functions sysviews tsrf tid collate.icu.utf8 incremental_sort
+# ignore reason: tidrangescan assumes the ctid is organized by heap
+# test: tidrangescan 
+# ignore reason: pax not support incremental matview
+# test: incremental_matview
+
+# ignore reason: have not implements tuple_tid_valid
+# test: tidscan
 
 # ----------
 # Additional incremental view maintenance tests
 # ----------
-test: ivm
+# test: ivm
 
 # rules cannot run concurrently with any test that creates
 # a view or rule in the public schema
@@ -131,9 +167,10 @@ test: ivm
 test: psql psql_crosstab amutils stats_ext collate.linux.utf8
 
 # run by itself so it can run parallel workers
-test: select_parallel
-test: write_parallel
-test: vacuum_parallel
+# ignore reason: Pax not support parallel workers
+# test: select_parallel
+# test: write_parallel
+# test: vacuum_parallel
 
 # no relation related tests can be put in this group
 test: publication subscription
@@ -141,7 +178,12 @@ test: publication subscription
 # ----------
 # Another group of parallel tests
 # ----------
-test: select_views portals_p2 cluster dependency guc bitmapops combocid tsearch tsdicts foreign_data window xmlmap functional_deps advisory_lock indirect_toast equivclass
+test: select_views portals_p2  dependency guc bitmapops tsearch tsdicts foreign_data window xmlmap functional_deps advisory_lock indirect_toast equivclass
+
+# ignore reason:
+#   1. pax do cluster without changing anything
+#   2. virtual tuple table slot does not have system attributes
+# test: cluster combocid
 
 # 'foreign_key' test is disabled, because it contains several tables with
 # multiple UNIQUE constraints, which is not supported in GPDB.
@@ -157,16 +199,22 @@ test: json jsonb json_encoding jsonpath jsonpath_encoding jsonb_jsonpath
 # NB: temp.sql does a reconnect which transiently uses 2 connections,
 # so keep this parallel group to at most 19 tests
 # ----------
-test: plancache limit plpgsql copy2 temp domain rangefuncs prepare conversion truncate alter_table sequence polymorphism rowtypes returning with xml
+test: plancache limit copy2 temp domain rangefuncs prepare conversion truncate alter_table sequence polymorphism rowtypes xml
 # large objects are not supported by GPDB
 # test: largeobject
+
+# ignore reason: Pax not support almost of triggers and have not implements tuple_fetch_row_version
+# test: plpgsql returning with 
 
 test: gp_foreign_data
 
 # ----------
 # Another group of parallel tests
 # ----------
-test: partition_join partition_prune reloptions hash_part indexing partition_aggregate partition_info tuplesort explain compression memoize
+test: partition_join partition_prune hash_part indexing partition_aggregate partition_info tuplesort explain compression memoize
+
+# ignore reason: pax not support standary options
+# test: reloptions
 
 # event triggers cannot run concurrently with any test that runs DDL
 # oidjoins is read-only, though, and should run late for best coverage

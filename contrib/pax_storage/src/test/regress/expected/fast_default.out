@@ -431,22 +431,8 @@ SELECT * FROM T WHERE c_bigint > -1 ORDER BY c_bigint, c_text, pk LIMIT 10;
 (15 rows)
 
 --  DELETE with RETURNING
-DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
- pk | c_bigint | c_text 
-----+----------+--------
- 10 |       -1 | hello
- 11 |        1 | hello
- 12 |        2 | hello
- 13 |        3 | hello
- 14 |        4 | hello
- 15 |        5 | hello
- 16 |        6 | hello
- 17 |        7 | hello
- 18 |        8 | hello
- 19 |        9 | hello
- 20 |       10 | hello
-(11 rows)
-
+-- pax not support delete returning
+-- DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
 EXPLAIN (VERBOSE TRUE, COSTS FALSE)
 DELETE FROM T WHERE pk BETWEEN 10 AND 20 RETURNING *;
                       QUERY PLAN                       
@@ -591,7 +577,8 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,3);
 ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
 ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- no support update trigger in pax
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -599,7 +586,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":3,"x":4,"y":5}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -612,7 +598,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,3);
 ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
 ALTER TABLE t ADD COLUMN y int;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -620,7 +606,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":3,"x":4,"y":null}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -633,7 +618,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,3);
 ALTER TABLE t ADD COLUMN x int;
 ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -641,7 +626,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":3,"x":null,"y":5}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -654,7 +638,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,3);
 ALTER TABLE t ADD COLUMN x int;
 ALTER TABLE t ADD COLUMN y int;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -662,7 +646,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":3,"x":null,"y":null}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -676,7 +659,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,NULL);
 ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
 ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -684,7 +667,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":null,"x":4,"y":5}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -697,7 +679,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,NULL);
 ALTER TABLE t ADD COLUMN x int NOT NULL DEFAULT 4;
 ALTER TABLE t ADD COLUMN y int;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -705,7 +687,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":null,"x":4,"y":null}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -718,7 +699,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,NULL);
 ALTER TABLE t ADD COLUMN x int;
 ALTER TABLE t ADD COLUMN y int NOT NULL DEFAULT 5;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -726,7 +707,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":null,"x":null,"y":5}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -739,7 +719,7 @@ CREATE TABLE t (id serial PRIMARY KEY, a int, b int, c int);
 INSERT INTO t (a,b,c) VALUES (1,2,NULL);
 ALTER TABLE t ADD COLUMN x int;
 ALTER TABLE t ADD COLUMN y int;
-CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
+-- CREATE TRIGGER a BEFORE UPDATE ON t FOR EACH ROW EXECUTE PROCEDURE test_trigger();
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---
@@ -747,7 +727,6 @@ SELECT * FROM t;
 (1 row)
 
 UPDATE t SET y = 2;
-NOTICE:  old tuple: {"id":1,"a":1,"b":2,"c":null,"x":null,"y":null}
 SELECT * FROM t;
  id | a | b | c | x | y 
 ----+---+---+---+---+---

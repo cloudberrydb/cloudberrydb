@@ -13,6 +13,7 @@ INSERT INTO cmdata1 VALUES(repeat('1234567890', 1004));
 \d+ cmdata1
 
 -- verify stored compression method in the data
+-- Pax not support toast, so all of pg_column_compression will return NULL
 SELECT pg_column_compression(f1) FROM cmdata;
 SELECT pg_column_compression(f1) FROM cmdata1;
 

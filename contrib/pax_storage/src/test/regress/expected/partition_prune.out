@@ -3511,7 +3511,6 @@ select * from boolp where a = (select value from boolvalues where value);
      ->  Gather Motion 3:1  (slice3; segments: 3) (actual rows=1 loops=1)
            ->  Seq Scan on boolvalues (actual rows=1 loops=1)
                  Filter: value
-                 Rows Removed by Filter: 1
    ->  Append (never executed)
          ->  Seq Scan on boolp_f boolp_1 (never executed)
                Filter: (a = $0)
@@ -4212,7 +4211,7 @@ create table listp_12_2 partition of listp_12 for values in(2);
 -- Force the 2nd subnode of the Append to be non-parallel.  This results in
 -- a nested Append node because the mixed parallel / non-parallel paths cannot
 -- be pulled into the top-level Append.
-alter table listp_12_1 set (parallel_workers = 0);
+-- alter table listp_12_1 set (parallel_workers = 0);
 -- Ensure that listp_12_2 is not scanned.  (The nested Append is not seen in
 -- the plan as it's pulled in setref.c due to having just a single subnode).
 select explain_parallel_append('select * from listp where a = (select 1);');

@@ -280,7 +280,7 @@ insert into btree_bpchar select 'foo' from generate_series(1,1500);
 --
 -- Perform unique checking, with and without the use of deduplication
 --
-CREATE TABLE dedup_unique_test_table (a int) WITH (autovacuum_enabled=false);
+CREATE TABLE dedup_unique_test_table (a int);
 CREATE UNIQUE INDEX dedup_unique ON dedup_unique_test_table (a) WITH (deduplicate_items=on);
 CREATE UNIQUE INDEX plain_unique ON dedup_unique_test_table (a) WITH (deduplicate_items=off);
 -- Generate enough garbage tuples in index to ensure that even the unique index
@@ -334,7 +334,8 @@ VACUUM delete_test_table;
 --
 -- The vacuum above should've turned the leaf page into a fast root. We just
 -- need to insert some rows to cause the fast root page to split.
-INSERT INTO delete_test_table SELECT i, 1, 2, 3 FROM generate_series(1,1000) i;
+-- Pax not support IndexDeleteTuples
+-- INSERT INTO delete_test_table SELECT i, 1, 2, 3 FROM generate_series(1,1000) i;
 --
 -- GPDB: Test correctness of B-tree stats in consecutively VACUUM.
 --
@@ -362,8 +363,9 @@ SELECT reltuples FROM pg_class WHERE relname='btree_stats_idx';
          0
 (1 row)
 
--- 1st VACUUM, expect reltuples = 2
-vacuum btree_stats_tbl;
+-- 1st ANALYZE, expect reltuples = 2
+-- Pax not support VACUUM yet, replace VACUUM with ANALYZE
+ANALYZE btree_stats_tbl;
 SELECT reltuples FROM pg_class WHERE relname='btree_stats_tbl';
  reltuples 
 -----------
@@ -385,8 +387,8 @@ SELECT reltuples FROM pg_class WHERE relname='btree_stats_idx';
          2
 (1 row)
 
--- 2nd VACUUM, expect reltuples = 2
-vacuum btree_stats_tbl;
+-- 2nd ANALYZE, expect reltuples = 2
+ANALYZE btree_stats_tbl;
 SELECT reltuples FROM pg_class WHERE relname='btree_stats_tbl';
  reltuples 
 -----------
@@ -422,25 +424,8 @@ SELECT reltuples FROM pg_class WHERE relname='btree_stats_idx';
 -- from the 3rd time of consecutively VACUUM after fresh inserts due to above skipping index scan
 -- criteria.
 -- 3rd VACUUM, expect reltuples = 2
-vacuum btree_stats_tbl;
-SELECT reltuples FROM pg_class WHERE relname='btree_stats_tbl';
- reltuples 
------------
-         2
-(1 row)
-
+-- VACUUM btree_stats_tbl;
+-- SELECT reltuples FROM pg_class WHERE relname='btree_stats_tbl';
 -- inspect the state of the stats on segments
-SELECT gp_segment_id, relname, reltuples FROM gp_dist_random('pg_class') WHERE relname = 'btree_stats_idx';
- gp_segment_id |     relname     | reltuples 
----------------+-----------------+-----------
-             0 | btree_stats_idx |         1
-             1 | btree_stats_idx |         1
-             2 | btree_stats_idx |         0
-(3 rows)
-
-SELECT reltuples FROM pg_class WHERE relname='btree_stats_idx';
- reltuples 
------------
-         2
-(1 row)
-
+-- SELECT gp_segment_id, relname, reltuples FROM gp_dist_random('pg_class') WHERE relname = 'btree_stats_idx';
+-- SELECT reltuples FROM pg_class WHERE relname='btree_stats_idx';

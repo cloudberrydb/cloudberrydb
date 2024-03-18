@@ -256,16 +256,14 @@ HINT:  likely caused by a function that reads or modifies data in a distributed 
 CONTEXT:  SQL function "rngfunct" statement 1
 -- function in subselect
 select * from rngfunc2 where f2 in (select f2 from rngfunct(rngfunc2.rngfuncid) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2;
-ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"
-CONTEXT:  SQL function "rngfunct" during startup
+ERROR:  micro_partition_row_filter_reader.cc:14 C ERROR (PG message: function cannot execute on a QE slice because it accesses relation "public.rngfunc2") (pax_access_handle.cc:339)
 -- function in subselect
 select * from rngfunc2 where f2 in (select f2 from rngfunct(1) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2;
-ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"
+ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"  (entry db 127.0.1.1:7000 pid=18889)
 CONTEXT:  SQL function "rngfunct" during startup
 -- function in subselect
 select * from rngfunc2 where f2 in (select f2 from rngfunct(rngfunc2.rngfuncid) z where z.rngfuncid = 1) ORDER BY 1,2;
-ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"
-CONTEXT:  SQL function "rngfunct" during startup
+ERROR:  micro_partition_row_filter_reader.cc:14 C ERROR (PG message: function cannot execute on a QE slice because it accesses relation "public.rngfunc2") (pax_access_handle.cc:339)
 -- nested functions
 select rngfunct.rngfuncid, rngfunct.f2 from rngfunct(sin(pi()/2)::int) ORDER BY 1,2;
  rngfuncid | f2  
@@ -1710,16 +1708,15 @@ select * from tt;
 (10 rows)
 
 -- triggers will fire, too
-create function noticetrigger() returns trigger as $$
-begin
-  raise notice 'noticetrigger % %', new.f1, new.data;
-  return null;
-end $$ language plpgsql;
-create trigger tnoticetrigger after insert on tt for each row
-execute procedure noticetrigger();
+-- Pax have not implements tuple_fetch_row_version
+-- create function noticetrigger() returns trigger as $$
+-- begin
+--   raise notice 'noticetrigger % %', new.f1, new.data;
+--   return null;
+-- end $$ language plpgsql;
+-- create trigger tnoticetrigger after insert on tt for each row
+-- execute procedure noticetrigger();
 select insert_tt2('foolme','barme') limit 1;
-NOTICE:  noticetrigger 11 foolme
-NOTICE:  noticetrigger 12 barme
  insert_tt2 
 ------------
          11
@@ -1728,60 +1725,30 @@ NOTICE:  noticetrigger 12 barme
 select * from tt;
  f1 |   data   
 ----+----------
-  1 | foo
-  2 | bar
-  3 | fool
   4 | foolfool
   5 | foolish
-  6 | barrish
+  1 | foo
+  2 | bar
   7 | baz
   8 | quux
   9 | foolish
  10 | barrish
  11 | foolme
  12 | barme
+  3 | fool
+  6 | barrish
 (12 rows)
 
 -- and rules work
-create temp table tt_log(f1 int, data text);
-create rule insert_tt_rule as on insert to tt do also
-  insert into tt_log values(new.*);
-select insert_tt2('foollog','barlog') limit 1;
-NOTICE:  noticetrigger 13 foollog
-NOTICE:  noticetrigger 14 barlog
- insert_tt2 
-------------
-         13
-(1 row)
-
-select * from tt;
- f1 |   data   
-----+----------
-  1 | foo
-  2 | bar
-  3 | fool
-  4 | foolfool
-  5 | foolish
-  6 | barrish
-  7 | baz
-  8 | quux
-  9 | foolish
- 10 | barrish
- 11 | foolme
- 12 | barme
- 13 | foollog
- 14 | barlog
-(14 rows)
-
+-- Pax have not implements tuple_fetch_row_version
+-- create temp table tt_log(f1 int, data text);
+-- create rule insert_tt_rule as on insert to tt do also
+--   insert into tt_log values(new.*);
+-- select insert_tt2('foollog','barlog') limit 1;
+-- select * from tt;
 -- note that nextval() gets executed a second time in the rule expansion,
 -- which is expected.
-select * from tt_log;
- f1 |  data   
-----+---------
- 15 | foollog
- 16 | barlog
-(2 rows)
-
+-- select * from tt_log;
 -- test case for a whole-row-variable bug
 create function rngfunc1(n integer, out a text, out b text)
   returns setof record

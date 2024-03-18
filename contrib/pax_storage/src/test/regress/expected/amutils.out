@@ -79,53 +79,78 @@ select prop,
  bogus              |    |       | 
 (19 rows)
 
+-- pax not support brin index yet
+-- select prop,
+--        pg_index_column_has_property('onek_hundred'::regclass, 1, prop) as btree,
+--        pg_index_column_has_property('hash_i4_index'::regclass, 1, prop) as hash,
+--        pg_index_column_has_property('gcircleind'::regclass, 1, prop) as gist,
+--        pg_index_column_has_property('sp_radix_ind'::regclass, 1, prop) as spgist_radix,
+--        pg_index_column_has_property('sp_quad_ind'::regclass, 1, prop) as spgist_quad,
+--        pg_index_column_has_property('botharrayidx'::regclass, 1, prop) as gin,
+--        pg_index_column_has_property('brinidx'::regclass, 1, prop) as brin
+--   from unnest(array['asc', 'desc', 'nulls_first', 'nulls_last',
+--                     'orderable', 'distance_orderable', 'returnable',
+--                     'search_array', 'search_nulls',
+--                     'bogus']::text[])
+--          with ordinality as u(prop,ord)
+--  order by ord;
 select prop,
        pg_index_column_has_property('onek_hundred'::regclass, 1, prop) as btree,
        pg_index_column_has_property('hash_i4_index'::regclass, 1, prop) as hash,
        pg_index_column_has_property('gcircleind'::regclass, 1, prop) as gist,
        pg_index_column_has_property('sp_radix_ind'::regclass, 1, prop) as spgist_radix,
        pg_index_column_has_property('sp_quad_ind'::regclass, 1, prop) as spgist_quad,
-       pg_index_column_has_property('botharrayidx'::regclass, 1, prop) as gin,
-       pg_index_column_has_property('brinidx'::regclass, 1, prop) as brin
+       pg_index_column_has_property('botharrayidx'::regclass, 1, prop) as gin
   from unnest(array['asc', 'desc', 'nulls_first', 'nulls_last',
                     'orderable', 'distance_orderable', 'returnable',
                     'search_array', 'search_nulls',
                     'bogus']::text[])
          with ordinality as u(prop,ord)
  order by ord;
-        prop        | btree | hash | gist | spgist_radix | spgist_quad | gin | brin 
---------------------+-------+------+------+--------------+-------------+-----+------
- asc                | t     | f    | f    | f            | f           | f   | f
- desc               | f     | f    | f    | f            | f           | f   | f
- nulls_first        | f     | f    | f    | f            | f           | f   | f
- nulls_last         | t     | f    | f    | f            | f           | f   | f
- orderable          | t     | f    | f    | f            | f           | f   | f
- distance_orderable | f     | f    | t    | f            | t           | f   | f
- returnable         | t     | f    | f    | t            | t           | f   | f
- search_array       | t     | f    | f    | f            | f           | f   | f
- search_nulls       | t     | f    | t    | t            | t           | f   | t
- bogus              |       |      |      |              |             |     | 
+        prop        | btree | hash | gist | spgist_radix | spgist_quad | gin 
+--------------------+-------+------+------+--------------+-------------+-----
+ asc                | t     | f    | f    | f            | f           | f
+ desc               | f     | f    | f    | f            | f           | f
+ nulls_first        | f     | f    | f    | f            | f           | f
+ nulls_last         | t     | f    | f    | f            | f           | f
+ orderable          | t     | f    | f    | f            | f           | f
+ distance_orderable | f     | f    | t    | f            | t           | f
+ returnable         | t     | f    | f    | t            | t           | f
+ search_array       | t     | f    | f    | f            | f           | f
+ search_nulls       | t     | f    | t    | t            | t           | f
+ bogus              |       |      |      |              |             | 
 (10 rows)
 
+-- select prop,
+--        pg_index_has_property('onek_hundred'::regclass, prop) as btree,
+--        pg_index_has_property('hash_i4_index'::regclass, prop) as hash,
+--        pg_index_has_property('gcircleind'::regclass, prop) as gist,
+--        pg_index_has_property('sp_radix_ind'::regclass, prop) as spgist,
+--        pg_index_has_property('botharrayidx'::regclass, prop) as gin,
+--        pg_index_has_property('brinidx'::regclass, prop) as brin
+--   from unnest(array['clusterable', 'index_scan', 'bitmap_scan',
+--                     'backward_scan',
+--                     'bogus']::text[])
+--          with ordinality as u(prop,ord)
+--  order by ord;
 select prop,
        pg_index_has_property('onek_hundred'::regclass, prop) as btree,
        pg_index_has_property('hash_i4_index'::regclass, prop) as hash,
        pg_index_has_property('gcircleind'::regclass, prop) as gist,
        pg_index_has_property('sp_radix_ind'::regclass, prop) as spgist,
-       pg_index_has_property('botharrayidx'::regclass, prop) as gin,
-       pg_index_has_property('brinidx'::regclass, prop) as brin
+       pg_index_has_property('botharrayidx'::regclass, prop) as gin
   from unnest(array['clusterable', 'index_scan', 'bitmap_scan',
                     'backward_scan',
                     'bogus']::text[])
          with ordinality as u(prop,ord)
  order by ord;
-     prop      | btree | hash | gist | spgist | gin | brin 
----------------+-------+------+------+--------+-----+------
- clusterable   | t     | f    | t    | f      | f   | f
- index_scan    | t     | t    | t    | t      | f   | f
- bitmap_scan   | t     | t    | t    | t      | t   | t
- backward_scan | t     | t    | f    | f      | f   | f
- bogus         |       |      |      |        |     | 
+     prop      | btree | hash | gist | spgist | gin 
+---------------+-------+------+------+--------+-----
+ clusterable   | t     | f    | t    | f      | f
+ index_scan    | t     | t    | t    | t      | f
+ bitmap_scan   | t     | t    | t    | t      | t
+ backward_scan | t     | t    | f    | f      | f
+ bogus         |       |      |      |        | 
 (5 rows)
 
 select amname, prop, pg_indexam_has_property(a.oid, prop) as p

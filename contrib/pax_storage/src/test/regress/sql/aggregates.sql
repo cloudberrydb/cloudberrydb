@@ -1219,12 +1219,12 @@ CREATE AGGREGATE balk(int4)
 );
 
 -- force use of parallelism
-ALTER TABLE tenk1 set (parallel_workers = 4);
-SET LOCAL parallel_setup_cost=0;
-SET LOCAL max_parallel_workers_per_gather=4;
-
-EXPLAIN (COSTS OFF) SELECT balk(hundred) FROM tenk1;
-SELECT balk(hundred) FROM tenk1;
+-- Pax not support parallel scan
+-- ALTER TABLE tenk1 set (parallel_workers = 4);
+-- SET LOCAL parallel_setup_cost=0;
+-- SET LOCAL max_parallel_workers_per_gather=4;
+-- EXPLAIN (COSTS OFF) SELECT balk(hundred) FROM tenk1;
+-- SELECT balk(hundred) FROM tenk1;
 
 ROLLBACK;
 

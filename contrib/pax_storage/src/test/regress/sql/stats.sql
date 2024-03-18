@@ -180,9 +180,10 @@ SELECT st.seq_scan >= pr.seq_scan + 1,
 -- GPDB_13_MERGE_FIXME: Some statistics are handled by stat collector process on each segment but not sent to master.
 -- To keep this case, collect statistics from all segments.
 -- lack of the second column case, see https://github.com/my-ship-it/database-core-upgrade/issues/151
-SELECT (SELECT sum(st.heap_blks_read) + sum(st.heap_blks_hit) - sum(pr.heap_blks)
-  FROM gp_dist_random('pg_statio_user_tables') AS st, gp_dist_random('prevstats') AS pr WHERE st.relname='tenk2')
-  > (select relpages from pg_class where relname='tenk2');
+-- pax not used io interface from bufmgr.c, so will not record the `heap_blks_read`/`heap_blks_hit`
+-- SELECT (SELECT sum(st.heap_blks_read) + sum(st.heap_blks_hit) - sum(pr.heap_blks)
+--   FROM gp_dist_random('pg_statio_user_tables') AS st, gp_dist_random('prevstats') AS pr WHERE st.relname='tenk2')
+--   > (select relpages from pg_class where relname='tenk2');
 
 SELECT pr.snap_ts < pg_stat_get_snapshot_timestamp() as snapshot_newer
 FROM prevstats AS pr;

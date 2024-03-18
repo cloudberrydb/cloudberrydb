@@ -2359,23 +2359,21 @@ where b.f1 = t.thousand and a.f1 = b.f1 and (a.f1+b.f1+999) = t.tenthous;
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Nested Loop
          ->  Broadcast Motion 1:3  (slice2; segments: 1)
-               ->  Finalize Aggregate
+               ->  Aggregate
                      ->  Gather Motion 3:1  (slice3; segments: 3)
-                           ->  Partial Aggregate
-                                 ->  Seq Scan on int4_tbl i4b
+                           ->  Seq Scan on int4_tbl i4b
          ->  Materialize
                ->  Nested Loop
                      Join Filter: ((sum(i4b.f1)) = ((sum(i4a.f1) + 1)))
                      ->  Materialize
                            ->  Broadcast Motion 1:3  (slice4; segments: 1)
-                                 ->  Finalize Aggregate
+                                 ->  Aggregate
                                        ->  Gather Motion 3:1  (slice5; segments: 3)
-                                             ->  Partial Aggregate
-                                                   ->  Seq Scan on int4_tbl i4a
+                                             ->  Seq Scan on int4_tbl i4a
                      ->  Index Only Scan using tenk1_thous_tenthous on tenk1 t
                            Index Cond: ((thousand = (sum(i4b.f1))) AND (tenthous = ((((sum(i4a.f1) + 1)) + (sum(i4b.f1))) + 999)))
  Optimizer: Postgres query optimizer
-(19 rows)
+(17 rows)
 
 select a.f1, b.f1, t.thousand, t.tenthous from
   tenk1 t,
@@ -2469,7 +2467,9 @@ select count(*) from
                ->  Gather Motion 3:1  (slice2; segments: 3)
                      Merge Key: y.unique2
                      ->  Subquery Scan on y
-                           ->  Index Scan using tenk1_unique2 on tenk1 y_1
+                           ->  Sort
+                                 Sort Key: y_1.unique2
+                                 ->  Seq Scan on tenk1 y_1
  Optimizer: Postgres query optimizer
 (18 rows)
 
@@ -4426,22 +4426,22 @@ select t1.* from
                                  ->  Redistribute Motion 3:3  (slice3; segments: 3)
                                        Output: i8.q2, (NULL::integer)
                                        Hash Key: (NULL::integer)
-                                       ->  Hash Right Join
+                                       ->  Hash Left Join
                                              Output: i8.q2, (NULL::integer)
-                                             Hash Cond: (i8b2.q1 = i8.q1)
-                                             ->  Hash Join
-                                                   Output: i8b2.q1, NULL::integer
-                                                   Hash Cond: (i4b2.f1 = i8b2.q1)
-                                                   ->  Seq Scan on public.int4_tbl i4b2
-                                                         Output: i4b2.f1
-                                                   ->  Hash
-                                                         Output: i8b2.q1
-                                                         ->  Seq Scan on public.int8_tbl i8b2
-                                                               Output: i8b2.q1
-                                             ->  Hash
+                                             Hash Cond: (i8.q1 = i8b2.q1)
+                                             ->  Seq Scan on public.int8_tbl i8
                                                    Output: i8.q1, i8.q2
-                                                   ->  Seq Scan on public.int8_tbl i8
-                                                         Output: i8.q1, i8.q2
+                                             ->  Hash
+                                                   Output: i8b2.q1, (NULL::integer)
+                                                   ->  Hash Join
+                                                         Output: i8b2.q1, NULL::integer
+                                                         Hash Cond: (i8b2.q1 = i4b2.f1)
+                                                         ->  Seq Scan on public.int8_tbl i8b2
+                                                               Output: i8b2.q1, i8b2.q2
+                                                         ->  Hash
+                                                               Output: i4b2.f1
+                                                               ->  Seq Scan on public.int4_tbl i4b2
+                                                                     Output: i4b2.f1
                                  ->  Hash
                                        Output: i8b1.q2
                                        ->  Redistribute Motion 3:3  (slice4; segments: 3)
@@ -4455,8 +4455,9 @@ select t1.* from
                      Output: i4.f1
                      ->  Seq Scan on public.int4_tbl i4
                            Output: i4.f1
+ Settings: optimizer = 'off'
  Optimizer: Postgres query optimizer
-(50 rows)
+(51 rows)
 
 select t1.* from
   text_tbl t1
@@ -4498,16 +4499,16 @@ select * from
                      Output: i8.q1, i8.q2, i4.f1, t1.f1
                      ->  Nested Loop
                            Output: i8.q1, i8.q2, i4.f1, t1.f1
-                           ->  Hash Right Join
+                           ->  Hash Left Join
                                  Output: i8.q1, i8.q2, i4.f1
-                                 Hash Cond: (i4.f1 = i8.q1)
-                                 ->  Seq Scan on public.int4_tbl i4
-                                       Output: i4.f1
-                                 ->  Hash
+                                 Hash Cond: (i8.q1 = i4.f1)
+                                 ->  Seq Scan on public.int8_tbl i8
                                        Output: i8.q1, i8.q2
-                                       ->  Seq Scan on public.int8_tbl i8
-                                             Output: i8.q1, i8.q2
-                                             Filter: (i8.q2 = 456)
+                                       Filter: (i8.q2 = 456)
+                                 ->  Hash
+                                       Output: i4.f1
+                                       ->  Seq Scan on public.int4_tbl i4
+                                             Output: i4.f1
                            ->  Materialize
                                  Output: t1.f1
                                  ->  Broadcast Motion 1:3  (slice3; segments: 1)
@@ -4515,8 +4516,9 @@ select * from
                                        ->  Seq Scan on public.text_tbl t1
                                              Output: t1.f1
                                              Filter: (t1.f1 = 'doh!'::text)
+ Settings: optimizer = 'off'
  Optimizer: Postgres query optimizer
-(30 rows)
+(31 rows)
 
 select * from
   text_tbl t1

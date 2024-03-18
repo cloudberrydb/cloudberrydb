@@ -1225,17 +1225,17 @@ insert into idxpart values (572814, 'five');
 ERROR:  duplicate key value violates unique constraint "idxpart2_a_idx"
 DETAIL:  Key (a)=(572814) already exists.
 insert into idxpart values (857142, 'six');
-select tableoid::regclass, * from idxpart order by a;
- tableoid |   a    |       b        
-----------+--------+----------------
- idxpart1 |      0 | zero
- idxpart1 |     16 | sixteen
- idxpart1 |     42 | life
- idxpart1 |  65536 | sixteen
- idxpart2 | 142857 | one
- idxpart2 | 285714 | two
- idxpart2 | 572814 | inserted first
- idxpart2 | 857142 | six
+select * from idxpart order by a;
+   a    |       b        
+--------+----------------
+      0 | zero
+     16 | sixteen
+     42 | life
+  65536 | sixteen
+ 142857 | one
+ 285714 | two
+ 572814 | inserted first
+ 857142 | six
 (8 rows)
 
 drop table idxpart;

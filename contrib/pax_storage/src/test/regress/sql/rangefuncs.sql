@@ -509,28 +509,28 @@ select insert_tt2('foolish','barrish') limit 1;
 select * from tt;
 
 -- triggers will fire, too
-create function noticetrigger() returns trigger as $$
-begin
-  raise notice 'noticetrigger % %', new.f1, new.data;
-  return null;
-end $$ language plpgsql;
-create trigger tnoticetrigger after insert on tt for each row
-execute procedure noticetrigger();
+-- Pax have not implements tuple_fetch_row_version
+-- create function noticetrigger() returns trigger as $$
+-- begin
+--   raise notice 'noticetrigger % %', new.f1, new.data;
+--   return null;
+-- end $$ language plpgsql;
+-- create trigger tnoticetrigger after insert on tt for each row
+-- execute procedure noticetrigger();
 
 select insert_tt2('foolme','barme') limit 1;
 select * from tt;
 
 -- and rules work
-create temp table tt_log(f1 int, data text);
-
-create rule insert_tt_rule as on insert to tt do also
-  insert into tt_log values(new.*);
-
-select insert_tt2('foollog','barlog') limit 1;
-select * from tt;
+-- Pax have not implements tuple_fetch_row_version
+-- create temp table tt_log(f1 int, data text);
+-- create rule insert_tt_rule as on insert to tt do also
+--   insert into tt_log values(new.*);
+-- select insert_tt2('foollog','barlog') limit 1;
+-- select * from tt;
 -- note that nextval() gets executed a second time in the rule expansion,
 -- which is expected.
-select * from tt_log;
+-- select * from tt_log;
 
 -- test case for a whole-row-variable bug
 create function rngfunc1(n integer, out a text, out b text)

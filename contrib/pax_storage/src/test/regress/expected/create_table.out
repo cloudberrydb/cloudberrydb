@@ -279,6 +279,7 @@ DEALLOCATE select1;
 -- (temporarily hide query, to avoid the long CREATE TABLE stmt)
 \set ECHO none
 INSERT INTO extra_wide_table(firstc, lastc) VALUES('first col', 'last col');
+WARNING:  in pax table am, we recommend that gp_interconnect_queue_depth is a value greater than or equal to 64, but current value is 4
 SELECT firstc, lastc FROM extra_wide_table;
   firstc   |  lastc   
 -----------+----------

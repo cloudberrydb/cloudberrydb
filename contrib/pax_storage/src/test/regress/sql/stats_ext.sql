@@ -6,7 +6,7 @@
 -- roughly the same estimates as in upstream.
 set gp_selectivity_damping_for_scans = off;
 set gp_selectivity_damping_for_joins = off;
-
+set pax_enable_filter to off;
 -- Set constraint_exclusion to partition as same as upstream to make test pass.
 set constraint_exclusion to 'partition';
 
@@ -210,15 +210,16 @@ CREATE STATISTICS tststats.s6 ON a, b FROM tststats.ty;
 CREATE STATISTICS tststats.s7 ON a, b FROM tststats.f;
 CREATE STATISTICS tststats.s8 ON a, b FROM tststats.pt;
 CREATE STATISTICS tststats.s9 ON a, b FROM tststats.pt1;
-DO $$
-DECLARE
-	relname text := reltoastrelid::regclass FROM pg_class WHERE oid = 'tststats.t'::regclass;
-BEGIN
-	EXECUTE 'CREATE STATISTICS tststats.s10 ON a, b FROM ' || relname;
-EXCEPTION WHEN wrong_object_type THEN
-	RAISE NOTICE 'stats on toast table not created';
-END;
-$$;
+-- PAX doesn't have toast
+-- DO $$
+-- DECLARE
+-- 	relname text := reltoastrelid::regclass FROM pg_class WHERE oid = 'tststats.t'::regclass;
+-- BEGIN
+-- 	EXECUTE 'CREATE STATISTICS tststats.s10 ON a, b FROM ' || relname;
+-- EXCEPTION WHEN wrong_object_type THEN
+-- 	RAISE NOTICE 'stats on toast table not created';
+-- END;
+-- $$;
 
 DROP SCHEMA tststats CASCADE;
 DROP FOREIGN DATA WRAPPER extstats_dummy_fdw CASCADE;
@@ -232,8 +233,7 @@ CREATE TABLE ndistinct (
     filler3 DATE,
     c INT,
     d INT
-)
-WITH (autovacuum_enabled = off);
+);
 
 -- over-estimates when using only per-column statistics
 INSERT INTO ndistinct (a, b, c, filler1)
@@ -561,8 +561,7 @@ CREATE TABLE functional_dependencies (
     filler3 DATE,
     c INT,
     d TEXT
-)
-WITH (autovacuum_enabled = off);
+);
 
 CREATE INDEX fdeps_ab_idx ON functional_dependencies (a, b);
 CREATE INDEX fdeps_abc_idx ON functional_dependencies (a, b, c);
@@ -881,8 +880,7 @@ CREATE TABLE functional_dependencies_multi (
 	b INTEGER,
 	c INTEGER,
 	d INTEGER
-)
-WITH (autovacuum_enabled = off);
+);
 
 INSERT INTO functional_dependencies_multi (a, b, c, d)
     SELECT
@@ -924,8 +922,7 @@ CREATE TABLE mcv_lists (
     filler3 DATE,
     c INT,
     d TEXT
-)
-WITH (autovacuum_enabled = off);
+);
 
 -- random data (no MCV list)
 INSERT INTO mcv_lists (a, b, c, filler1)
@@ -1278,8 +1275,7 @@ CREATE TABLE mcv_lists_uuid (
     a UUID,
     b UUID,
     c UUID
-)
-WITH (autovacuum_enabled = off);
+);
 
 INSERT INTO mcv_lists_uuid (a, b, c)
      SELECT
@@ -1310,8 +1306,7 @@ CREATE TABLE mcv_lists_arrays (
     a TEXT[],
     b NUMERIC[],
     c INT[]
-)
-WITH (autovacuum_enabled = off);
+);
 
 INSERT INTO mcv_lists_arrays (a, b, c)
      SELECT
@@ -1330,8 +1325,7 @@ CREATE TABLE mcv_lists_bool (
     a BOOL,
     b BOOL,
     c BOOL
-)
-WITH (autovacuum_enabled = off);
+);
 
 INSERT INTO mcv_lists_bool (a, b, c)
      SELECT
@@ -1439,8 +1433,7 @@ CREATE TABLE mcv_lists_multi (
 	b INTEGER,
 	c INTEGER,
 	d INTEGER
-)
-WITH (autovacuum_enabled = off);
+);
 
 INSERT INTO mcv_lists_multi (a, b, c, d)
     SELECT
@@ -1651,3 +1644,4 @@ DROP FUNCTION op_leak(int, int);
 RESET SESSION AUTHORIZATION;
 DROP SCHEMA tststats CASCADE;
 DROP USER regress_stats_user1;
+reset pax_enable_filter;
