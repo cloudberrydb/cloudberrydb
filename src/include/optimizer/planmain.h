@@ -80,6 +80,7 @@ extern Result *make_result(List *tlist, Node *resconstantqual, Plan *subplan);
 extern Plan *add_sort_cost(PlannerInfo *root, Plan *input, 
 						   double limit_tuples);
 extern Plan *plan_pushdown_tlist(PlannerInfo *root, Plan *plan, List *tlist);      /*CDB*/
+extern Plan *offload_entry_to_qe(PlannerInfo *root, Plan *plan, int sendslice_parallel); /* CBDB */
 
 /* External use of these functions is deprecated: */
 extern Sort *make_sort_from_sortclauses(List *sortcls,

@@ -150,6 +150,7 @@
 		"enable_seqscan",
 		"enable_sort",
 		"enable_tidscan",
+		"enable_offload_entry_to_qe",
 		"escape_string_warning",
 		"event_source",
 		"exit_on_error",
