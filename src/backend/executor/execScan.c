@@ -224,6 +224,15 @@ ExecScan(ScanState *node,
 		econtext->ecxt_scantuple = slot;
 
 		/*
+		 * reinit qual
+		 *
+		 * CBDB already support pushdown qual-clause.
+		 * If current qual-clause have been process in access method
+		 * Then ExprState inside PlanState should reset to NULL.
+		 */
+		qual = node->ps.qual;
+
+		/*
 		 * check that the current tuple satisfies the qual-clause
 		 *
 		 * check for non-null qual here to avoid a function call to ExecQual()
