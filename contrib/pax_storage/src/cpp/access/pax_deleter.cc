@@ -34,7 +34,7 @@ TM_Result CPaxDeleter::MarkDelete(ItemPointer tid) {
 
   if (block_bitmap_map_.find(block_id) == block_bitmap_map_.end()) {
     block_bitmap_map_[block_id] =
-        pax_unique_ptr<Bitmap64>(PAX_NEW<Bitmap64>());  // NOLINT
+        pax_shared_ptr<Bitmap64>(PAX_NEW<Bitmap64>());  // NOLINT
     cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_,
                                     block_id);
   }
@@ -51,7 +51,7 @@ void CPaxDeleter::MarkDelete(BlockNumber pax_block_id) {
   std::string block_id = std::to_string(pax_block_id);
 
   if (block_bitmap_map_.find(block_id) == block_bitmap_map_.end()) {
-    block_bitmap_map_[block_id] = pax_unique_ptr<Bitmap64>(PAX_NEW<Bitmap64>());
+    block_bitmap_map_[block_id] = pax_shared_ptr<Bitmap64>(PAX_NEW<Bitmap64>());
     cbdb::DeleteMicroPartitionEntry(RelationGetRelid(rel_), snapshot_,
                                     block_id);
   }
@@ -60,8 +60,8 @@ void CPaxDeleter::MarkDelete(BlockNumber pax_block_id) {
 void CPaxDeleter::ExecDelete() {
   if (block_bitmap_map_.empty()) return;
 
-  TableDeleter table_deleter(rel_, BuildDeleteIterator(),
-                             std::move(block_bitmap_map_), snapshot_);
+  TableDeleter table_deleter(rel_, BuildDeleteIterator(), block_bitmap_map_,
+                             snapshot_);
   table_deleter.Delete();
 }
 

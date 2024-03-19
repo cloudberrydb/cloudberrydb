@@ -238,6 +238,7 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
 void TableWriter::Open() {
   rel_path_ =
       cbdb::BuildPaxDirectoryPath(relation_->rd_node, relation_->rd_backend);
+  // Exception may be thrown causing writer_ to be nullptr
   writer_ = CreateMicroPartitionWriter(mp_stats_);
   num_tuples_ = 0;
   // insert tuple into the aux table before inserting any tuples.
@@ -262,9 +263,11 @@ void TableWriter::WriteTuple(TupleTableSlot *slot) {
 }
 
 void TableWriter::Close() {
-  writer_->Close();
-  PAX_DELETE(writer_);
-  writer_ = nullptr;
+  if (writer_) {
+    writer_->Close();
+    PAX_DELETE(writer_);
+    writer_ = nullptr;
+  }
   num_tuples_ = 0;
 }
 
@@ -368,11 +371,11 @@ void TableReader::OpenFile() {
 TableDeleter::TableDeleter(
     Relation rel,
     std::unique_ptr<IteratorBase<MicroPartitionMetadata>> &&iterator,
-    std::map<std::string, std::unique_ptr<Bitmap64>> &&delete_bitmap,
+    std::map<std::string, std::shared_ptr<Bitmap64>> delete_bitmap,
     Snapshot snapshot)
     : rel_(rel),
       iterator_(std::move(iterator)),
-      delete_bitmap_(std::move(delete_bitmap)),
+      delete_bitmap_(delete_bitmap),
       snapshot_(snapshot),
       reader_(nullptr),
       writer_(nullptr) {}
@@ -418,7 +421,7 @@ void TableDeleter::Delete() {
     writer_->WriteTuple(slot);
     if (index_updater.HasIndex()) {
       // Already store the ctid after WriteTuple
-      Assert(TTS_EMPTY(slot));
+      Assert(!TTS_EMPTY(slot));
       Assert(ItemPointerIsValid(&slot->tts_tid));
       index_updater.UpdateIndex(slot);
     }

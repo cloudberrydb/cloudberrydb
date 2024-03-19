@@ -25,7 +25,7 @@ class CPaxDeleter {
 
  private:
   std::unique_ptr<IteratorBase<MicroPartitionMetadata>> BuildDeleteIterator();
-  std::map<std::string, std::unique_ptr<Bitmap64>> block_bitmap_map_;
+  std::map<std::string, std::shared_ptr<Bitmap64>> block_bitmap_map_;
   Relation rel_;
   Snapshot snapshot_;
 };  // class CPaxDeleter
