@@ -1,4 +1,4 @@
-set default_table_access_method = 'pax';
+set default_table_access_method = pax;
 create table pax_test.t1(
     id int,
     name text not null,

@@ -26,7 +26,7 @@
 #define FASTSEQUENCE_INIT_TYPE_UPDATE 'U'
 
 namespace paxc {
-void CPaxInitializeFastSequenceEntry(Oid objid, char init_type);
-int32 CPaxGetFastSequences(Oid objid);
+void CPaxInitializeFastSequenceEntry(Oid objid, char init_type, int32 fast_seq = 0);
+int32 CPaxGetFastSequences(Oid objid, bool increase = true);
 
 }  // namespace paxc

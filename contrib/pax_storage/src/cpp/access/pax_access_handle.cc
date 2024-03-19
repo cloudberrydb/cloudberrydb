@@ -960,6 +960,20 @@ void PaxAccessMethod::SwapRelationFiles(Oid relid1, Oid relid2,
 
   table_close(pax_rel, NoLock);
 
+  /* swap fast seq */
+  {
+    int32 seqno1, seqno2;
+
+    seqno1 = CPaxGetFastSequences(relid1, false);
+    seqno2 = CPaxGetFastSequences(relid2, false);
+
+    CPaxInitializeFastSequenceEntry(relid1, FASTSEQUENCE_INIT_TYPE_UPDATE,
+                                    seqno2);
+    CPaxInitializeFastSequenceEntry(relid2, FASTSEQUENCE_INIT_TYPE_UPDATE,
+                                    seqno1);
+  }
+  SIMPLE_FAULT_INJECTOR("pax_finish_swap_fast_fastsequence");
+
   /* swap relation files for aux table */
   {
     Relation aux_rel1;

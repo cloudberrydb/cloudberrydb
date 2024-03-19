@@ -76,6 +76,7 @@ extern "C" {
 #include "utils/date.h"
 #include "utils/datum.h"
 #include "utils/elog.h"
+#include "utils/faultinjector.h"
 #include "utils/hsearch.h"
 #include "utils/lsyscache.h"
 #include "utils/memutils.h"

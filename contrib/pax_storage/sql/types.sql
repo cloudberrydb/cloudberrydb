@@ -1,4 +1,4 @@
-
+set default_table_access_method = pax;
 CREATE TABLE pax_test.all_typbyval_pg_types (
   id int,
   bool_col bool,

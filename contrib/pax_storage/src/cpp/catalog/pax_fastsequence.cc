@@ -73,7 +73,7 @@ static void CPaxUpdateFastsequence(Relation pax_fastsequence_rel,
 // micropartition file number. objid indicates single pax micro-partition table
 // oid. lastsequence indicates the current allocated file number by using
 // fastsequence allocation.
-void CPaxInitializeFastSequenceEntry(Oid objid, char init_type) {
+void CPaxInitializeFastSequenceEntry(Oid objid, char init_type, int32 fast_seq) {
   Relation pax_fastsequence_rel;
   SysScanDesc scan;
   TupleDesc desc;
@@ -89,10 +89,10 @@ void CPaxInitializeFastSequenceEntry(Oid objid, char init_type) {
   // concurrency issue.
   tuple = CPaxOpenFastSequenceTable(objid, &pax_fastsequence_rel, &scan,
                                     RowExclusiveLock);
-
+  AssertImply(init_type == FASTSEQUENCE_INIT_TYPE_CREATE, fast_seq == 0);
   desc = RelationGetDescr(pax_fastsequence_rel);
   values[ANUM_PG_PAX_FAST_SEQUENCE_OBJID - 1] = ObjectIdGetDatum(objid);
-  values[ANUM_PG_PAX_FAST_SEQUENCE_LASTSEQUENCE - 1] = Int32GetDatum(0);
+  values[ANUM_PG_PAX_FAST_SEQUENCE_LASTSEQUENCE - 1] = Int32GetDatum(fast_seq);
   nulls[ANUM_PG_PAX_FAST_SEQUENCE_OBJID - 1] = false;
   nulls[ANUM_PG_PAX_FAST_SEQUENCE_LASTSEQUENCE - 1] = false;
   new_tuple = heap_form_tuple(desc, values, nulls);
@@ -133,7 +133,7 @@ void CPaxInitializeFastSequenceEntry(Oid objid, char init_type) {
 // GetFastSequences
 // Get consecutive sequence numbers, the returned sequence number is the
 // lastsequence + 1
-int32 CPaxGetFastSequences(Oid objid) {
+int32 CPaxGetFastSequences(Oid objid, bool increase) {
   Relation pax_fastsequence_rel = NULL;
   SysScanDesc scan = NULL;
   TupleDesc tuple_desc;
@@ -164,8 +164,10 @@ int32 CPaxGetFastSequences(Oid objid) {
   if (seqno < 0)
     elog(ERROR, "sequence number out of range: %d", seqno);
 
-  CPaxUpdateFastsequence(pax_fastsequence_rel, tuple, tuple_desc, objid,
+  if (increase) {
+    CPaxUpdateFastsequence(pax_fastsequence_rel, tuple, tuple_desc, objid,
                          seqno + 1);
+  }
 
   CPaxCloseFastSequenceTable(pax_fastsequence_rel, scan, RowExclusiveLock);
 
