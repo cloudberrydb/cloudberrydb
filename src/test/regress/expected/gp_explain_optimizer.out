@@ -458,6 +458,21 @@ explain analyze SELECT * FROM explaintest;
 (8 rows)
 
 set gp_enable_explain_allstat=DEFAULT;
+set gp_enable_explain_motion_detail=on;
+explain analyze SELECT * FROM explaintest;
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
+ Gather Motion 3:1  (slice1; segments: 3)  (cost=0.00..431.00 rows=10 width=4) (actual time=1.111..1.470/0.000..0.503 rows=10 loops=1)
+   ->  Seq Scan on explaintest  (cost=0.00..431.00 rows=4 width=4) (actual time=0.023..0.024 rows=5 loops=1)
+ Planning Time: 7.476 ms
+   (slice0)    Executor memory: 111K bytes.
+   (slice1)    Executor memory: 110K bytes avg x 3x(0) workers, 110K bytes max (seg0).
+ Memory used:  128000kB
+ Optimizer: Pivotal Optimizer (GPORCA)
+ Execution Time: 2.653 ms
+(8 rows)
+
+set gp_enable_explain_motion_detail=DEFAULT;
 --
 -- Test GPDB-specific EXPLAIN (SLICETABLE) option.
 --

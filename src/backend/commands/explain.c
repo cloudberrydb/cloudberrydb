@@ -938,11 +938,23 @@ ExplainPrintPlan(ExplainState *es, QueryDesc *queryDesc)
 			cdbexplain_localExecStats(queryDesc->planstate, es->showstatctx);
 
         /* Fill in the plan's Instrumentation with stats from qExecs. */
-        if (estate->dispatcherState && estate->dispatcherState->primaryResults)
-            cdbexplain_recvExecStats(queryDesc->planstate,
-                                     estate->dispatcherState->primaryResults,
-                                     LocallyExecutingSliceIndex(estate),
-                                     es->showstatctx);
+		if (estate->dispatcherState && estate->dispatcherState->primaryResults)
+		{
+			if (IsA(queryDesc->planstate->plan, Motion))
+			{
+				cdbexplain_recvExecStats(queryDesc->planstate,
+										 estate->dispatcherState->primaryResults,
+										 ((Motion *) queryDesc->planstate->plan)->motionID,
+										 es->showstatctx);
+			}
+			else
+			{
+				cdbexplain_recvExecStats(queryDesc->planstate,
+										 estate->dispatcherState->primaryResults,
+										 LocallyExecutingSliceIndex(estate),
+										 es->showstatctx);
+			}
+		}
 	}
 
 	ExplainPreScanNode(queryDesc->planstate, &rels_used);
@@ -2107,28 +2119,43 @@ ExplainNode(PlanState *planstate, List *ancestors,
 		double		total_ms = 1000.0 * planstate->instrument->total / nloops;
 		double		rows = planstate->instrument->ntuples / nloops;
 
-		if (es->format == EXPLAIN_FORMAT_TEXT)
+		/* Show both motion receiving and sending timing status. */
+		if (IsA(planstate->plan, Motion) && gp_enable_explain_motion_detail
+				&& es->format == EXPLAIN_FORMAT_TEXT && es->timing)
 		{
-			if (es->timing)
-				appendStringInfo(es->str,
-								 " (actual time=%.3f..%.3f rows=%.0f loops=%.0f)",
-								 startup_ms, total_ms, rows, nloops);
-			else
-				appendStringInfo(es->str,
-								 " (actual rows=%.0f loops=%.0f)",
-								 rows, nloops);
+			Instrumentation *snd_instr = &planstate->instrument[1];
+			double		snd_startup_ms = 1000.0 * snd_instr->startup / nloops;
+			double		snd_total_ms = 1000.0 * snd_instr->total / nloops;
+
+			appendStringInfo(es->str,
+							 " (actual time=%.3f..%.3f/%.3f..%.3f rows=%.0f loops=%.0f)",
+							 startup_ms, total_ms, snd_startup_ms, snd_total_ms, rows, nloops);
 		}
 		else
 		{
-			if (es->timing)
+			if (es->format == EXPLAIN_FORMAT_TEXT)
 			{
-				ExplainPropertyFloat("Actual Startup Time", "ms", startup_ms,
-									 3, es);
-				ExplainPropertyFloat("Actual Total Time", "ms", total_ms,
-									 3, es);
+				if (es->timing)
+					appendStringInfo(es->str,
+									 " (actual time=%.3f..%.3f rows=%.0f loops=%.0f)",
+									 startup_ms, total_ms, rows, nloops);
+				else
+					appendStringInfo(es->str,
+									 " (actual rows=%.0f loops=%.0f)",
+									 rows, nloops);
 			}
-			ExplainPropertyFloat("Actual Rows", NULL, rows, 0, es);
-			ExplainPropertyFloat("Actual Loops", NULL, nloops, 0, es);
+			else
+			{
+				if (es->timing)
+				{
+					ExplainPropertyFloat("Actual Startup Time", "ms", startup_ms,
+										 3, es);
+					ExplainPropertyFloat("Actual Total Time", "ms", total_ms,
+										 3, es);
+				}
+				ExplainPropertyFloat("Actual Rows", NULL, rows, 0, es);
+				ExplainPropertyFloat("Actual Loops", NULL, nloops, 0, es);
+			}
 		}
 	}
 	else if (es->analyze)

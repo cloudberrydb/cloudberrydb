@@ -228,6 +228,10 @@ set gp_enable_explain_allstat=on;
 explain analyze SELECT * FROM explaintest;
 set gp_enable_explain_allstat=DEFAULT;
 
+set gp_enable_explain_motion_detail=on;
+explain analyze SELECT * FROM explaintest;
+set gp_enable_explain_motion_detail=DEFAULT;
+
 
 --
 -- Test GPDB-specific EXPLAIN (SLICETABLE) option.

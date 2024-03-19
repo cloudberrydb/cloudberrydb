@@ -274,6 +274,7 @@ int			gp_motion_slice_noop = 0;
 
 /* Cloudberry Database Experimental Feature GUCs */
 bool		gp_enable_explain_allstat = false;
+bool		gp_enable_explain_motion_detail = false;
 bool		gp_enable_motion_deadlock_sanity = false;	/* planning time sanity
 														 * check */
 
