@@ -615,6 +615,16 @@ void PaxDumpReader::DumpAllData() {
             }
             break;
           }
+          case kTypeDecimal: {
+            CBDB_WRAP_START;
+            {
+              auto numeric_str = numeric_normalize(DatumGetNumeric(d));
+              current_row.emplace_back(std::string(numeric_str));
+              pfree(numeric_str);
+            }
+            CBDB_WRAP_END;
+            break;
+          }
           default:
             Assert(!"should't be here, non-implemented column type in memory");
             break;

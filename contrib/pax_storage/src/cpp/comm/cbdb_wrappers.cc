@@ -157,7 +157,6 @@ Datum cbdb::DatumFromPointer(const void *p, int16 typlen) {
 }
 #endif
 
-
 struct varlena *cbdb::PgDeToastDatum(struct varlena *datum) {
   CBDB_WRAP_START;
   { return detoast_attr(datum); }
@@ -348,7 +347,8 @@ bool cbdb::ExtractcolumnsFromNode(Node *expr, bool *cols, int natts) {
   CBDB_WRAP_END;
 }
 
-bool cbdb::MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily, FmgrInfo *finfo,
+bool cbdb::MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
+                                     FmgrInfo *finfo,
                                      StrategyNumber strategynum) {
   CBDB_WRAP_START;
   {

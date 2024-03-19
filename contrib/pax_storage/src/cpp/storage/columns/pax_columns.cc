@@ -23,64 +23,6 @@ static PaxColumn *CreateCommColumn(bool is_vec,
                                                           opts);
 }
 
-PaxColumns::PaxColumns(const std::vector<pax::orc::proto::Type_Kind> &types,
-                       const std::vector<std::tuple<ColumnEncoding_Kind, int>>
-                           &column_encoding_types,
-                       const PaxStorageFormat &storage_format)
-    : row_nums_(0), storage_format_(storage_format) {
-  Assert(columns_.empty());
-  Assert(types.size() == column_encoding_types.size());
-  data_ = PAX_NEW<DataBuffer<char>>(0);
-  auto is_vec = storage_format_ == PaxStorageFormat::kTypeStorageOrcVec;
-
-  for (size_t i = 0; i < types.size(); i++) {
-    auto type = types[i];
-
-    PaxEncoder::EncodingOption encoding_option;
-    encoding_option.column_encode_type = std::get<0>(column_encoding_types[i]);
-    encoding_option.is_sign = true;
-    encoding_option.compress_level = std::get<1>(column_encoding_types[i]);
-
-    switch (type) {
-      case (pax::orc::proto::Type_Kind::Type_Kind_STRING): {
-        encoding_option.is_sign = false;
-        columns_.emplace_back(
-            is_vec ? (PaxColumn *)traits::ColumnOptCreateTraits2<
-                         PaxVecNonFixedEncodingColumn>::
-                         create_encoding(DEFAULT_CAPACITY,
-                                         std::move(encoding_option))
-                   : (PaxColumn *)traits::ColumnOptCreateTraits2<
-                         PaxNonFixedEncodingColumn>::
-                         create_encoding(DEFAULT_CAPACITY,
-                                         std::move(encoding_option)));
-        break;
-      }
-      case (pax::orc::proto::Type_Kind::Type_Kind_BOOLEAN):
-      case (pax::orc::proto::Type_Kind::Type_Kind_BYTE):  // len 1 integer
-        columns_.emplace_back(
-            CreateCommColumn<int8>(is_vec, std::move(encoding_option)));
-        break;
-      case (pax::orc::proto::Type_Kind::Type_Kind_SHORT):  // len 2 integer
-        columns_.emplace_back(
-            CreateCommColumn<int16>(is_vec, std::move(encoding_option)));
-        break;
-      case (pax::orc::proto::Type_Kind::Type_Kind_INT):  // len 4 integer
-        columns_.emplace_back(
-            CreateCommColumn<int32>(is_vec, std::move(encoding_option)));
-        break;
-      case (pax::orc::proto::Type_Kind::Type_Kind_LONG):  // len 8 integer
-        columns_.emplace_back(
-            CreateCommColumn<int64>(is_vec, std::move(encoding_option)));
-        break;
-      default:
-        // TODO(jiaqizho): support other column type
-        // but now should't be here
-        Assert(!"non-implemented column type");
-        break;
-    }
-  }
-}
-
 PaxColumns::PaxColumns()
     : row_nums_(0), storage_format_(PaxStorageFormat::kTypeStorageOrcNonVec) {
   data_ = PAX_NEW<DataBuffer<char>>(0);
@@ -278,6 +220,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
 
         break;
       }
+      case kTypeDecimal:
       case kTypeFixed: {
         auto data_length = column->GetBuffer().second;
         if (column->GetEncodingType() ==
@@ -356,6 +299,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
 
         break;
       }
+      case kTypeDecimal:
       case kTypeFixed: {
         auto length_data = column->GetBuffer().second;
         buffer_len += length_data;
@@ -440,6 +384,7 @@ void PaxColumns::CombineVecDataBuffer() {
 
         break;
       }
+      case kTypeDecimal:
       case kTypeFixed: {
         std::tie(buffer, buffer_len) = column->GetBuffer();
 
@@ -506,6 +451,7 @@ void PaxColumns::CombineOrcDataBuffer() {
 
         break;
       }
+      case kTypeDecimal:
       case kTypeFixed: {
         std::tie(buffer, buffer_len) = column->GetBuffer();
         data_->Write(buffer, buffer_len);
@@ -559,6 +505,10 @@ std::pair<Datum, bool> GetColumnValue(PaxColumns *columns, size_t column_index,
         default:
           Assert(!"should't be here, fixed type len should be 1, 2, 4, 8");
       }
+      break;
+    }
+    case kTypeDecimal: {
+      datum = PointerGetDatum(*reinterpret_cast<int64 *>(buffer));
       break;
     }
     default:

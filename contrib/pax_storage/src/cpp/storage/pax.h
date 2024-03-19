@@ -34,6 +34,8 @@ class TableWriter {
 
   PaxStorageFormat GetStorageFormat();
 
+  bool GetNumericVecStorage();
+
   virtual const FileSplitStrategy *GetFileSplitStrategy() const;
 
   virtual void WriteTuple(TupleTableSlot *slot);
@@ -72,6 +74,8 @@ class TableWriter {
   BlockNumber current_blockno_ = 0;
   bool already_get_format_ = false;
   PaxStorageFormat storage_format_ = PaxStorageFormat::kTypeStorageOrcNonVec;
+  bool already_get_numeric_vec_storage_ = false;
+  bool numeric_vec_storage_ = false;
 };
 
 class TableReader final {

@@ -27,6 +27,8 @@
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 
+#include <arrow/array/array_decimal.h>
+#include <arrow/array/data.h>
 #include <arrow/array/array_binary.h>
 #include <arrow/array/array_nested.h>
 #include <arrow/array/array_primitive.h>

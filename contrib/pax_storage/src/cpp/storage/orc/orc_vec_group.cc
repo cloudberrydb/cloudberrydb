@@ -89,6 +89,10 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       }
       break;
     }
+    case kTypeDecimal: {
+      datum = PointerGetDatum(buffer);
+      break;
+    }
     default:
       Assert(!"should't be here, non-implemented column type in memory");
       break;

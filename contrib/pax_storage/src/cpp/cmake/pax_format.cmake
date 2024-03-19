@@ -5,7 +5,8 @@ set(pax_comm_src
     comm/guc.cc
     comm/paxc_wrappers.cc
     comm/pax_memory.cc
-    comm/cbdb_wrappers.cc)
+    comm/cbdb_wrappers.cc
+    comm/vec_numeric.cc)
 
 set(pax_exceptions_src
     exceptions/CException.cc)
@@ -23,6 +24,7 @@ set(pax_storage_src
     storage/columns/pax_encoding_column.cc
     storage/columns/pax_decoding.cc
     storage/columns/pax_encoding.cc
+    storage/columns/pax_numeric_column.cc
     storage/columns/pax_rlev2_decoding.cc
     storage/columns/pax_rlev2_encoding.cc
     storage/columns/pax_vec_column.cc

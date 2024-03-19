@@ -5,6 +5,7 @@
 #include "comm/log.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
+#include "storage/columns/pax_numeric_column.h"
 #include "storage/micro_partition_stats.h"
 #include "storage/orc/orc.h"
 #include "storage/orc/orc_defined.h"
@@ -13,7 +14,8 @@
 
 namespace pax {
 
-std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc) {
+std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(
+    TupleDesc desc, bool enable_numeric_vec_storage) {
   std::vector<pax::orc::proto::Type_Kind> type_kinds;
   for (int i = 0; i < desc->natts; i++) {
     auto attr = &desc->attrs[i];
@@ -37,11 +39,21 @@ std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc) {
       }
     } else {
       Assert(attr->attlen > 0 || attr->attlen == -1);
-      type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+      if (attr->atttypid == NUMERICOID && enable_numeric_vec_storage) {
+        type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_DECIMAL);
+      } else {
+        type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+      }
     }
   }
 
   return type_kinds;
+}
+
+static PaxColumn *CreateDecimalColumn(bool is_vec,
+                                      const PaxEncoder::EncodingOption &opts) {
+  CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
+  return PAX_NEW<PaxShortNumericColumn>(DEFAULT_CAPACITY, opts);
 }
 
 template <typename N>
@@ -88,6 +100,11 @@ static PaxColumns *BuildColumns(
                                   PaxNonFixedEncodingColumn>::
                                   create_encoding(DEFAULT_CAPACITY,
                                                   std::move(encoding_option)));
+        break;
+      }
+      case (pax::orc::proto::Type_Kind::Type_Kind_DECIMAL): {
+        columns->Append(
+            CreateDecimalColumn(is_vec, std::move(encoding_option)));
         break;
       }
       case (pax::orc::proto::Type_Kind::Type_Kind_BOOLEAN):
@@ -204,9 +221,9 @@ void OrcWriter::Flush() {
                    buffer_mem_stream.GetDataBuffer()->Used(),
                    current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
     PAX_DELETE(pax_columns_);
-    pax_columns_ =
-        PAX_NEW<PaxColumns>(column_types_, writer_options_.encoding_opts,
-                            writer_options_.storage_format);
+
+    pax_columns_ = BuildColumns(column_types_, writer_options_.encoding_opts,
+                                writer_options_.storage_format);
   }
 }
 

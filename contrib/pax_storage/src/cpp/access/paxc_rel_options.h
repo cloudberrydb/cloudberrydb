@@ -28,6 +28,7 @@ namespace paxc {
 #define PAX_SOPT_COMPLEVEL SOPT_COMPLEVEL
 #define PAX_SOPT_PARTITION_BY "partition_by"
 #define PAX_SOPT_PARTITION_RANGES "partition_ranges"
+#define PAX_SOPT_NUMERIC_VEC_STORAGE "numeric_vec_storage"
 
 // plain structure used by reloptions, can be accessed from C++ code.
 struct PaxOptions {
@@ -40,6 +41,7 @@ struct PaxOptions {
   int compress_level;
   int partition_by_offset = 0;
   int partition_ranges_offset = 0;
+  bool numeric_vec_storage = false;
 
   char *partition_by() {
     return partition_by_offset == 0

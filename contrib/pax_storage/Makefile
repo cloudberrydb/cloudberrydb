@@ -10,7 +10,7 @@ PGFILEDESC = "pax - PAX table access method"
 SHLIB_LINK += -luuid
 
 REGRESS = setup
-REGRESS += detoast ddl types update
+REGRESS += detoast ddl numeric types update
 # FIXME: several plans are bad in update_gp when use orca
 # REGRESS += update_gp
 REGRESS +=  teardown
@@ -26,7 +26,7 @@ include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/contrib/contrib-global.mk
 endif
 
-REGRESS_OPTS += --init-file=$(top_builddir)/src/test/regress/init_file
+REGRESS_OPTS += --init-file=init_file
 
 .PHONY: all
 all: build-pax

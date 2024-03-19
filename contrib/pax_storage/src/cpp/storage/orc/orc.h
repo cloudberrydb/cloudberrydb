@@ -46,7 +46,8 @@ class OrcColumnStatsData : public MicroPartitionStatsData {
 class OrcWriter : public MicroPartitionWriter {
  public:
   OrcWriter(const MicroPartitionWriter::WriterOptions &orc_writer_options,
-            const std::vector<pax::orc::proto::Type_Kind> &column_types, File *file);
+            const std::vector<pax::orc::proto::Type_Kind> &column_types,
+            File *file);
 
   ~OrcWriter() override;
 
@@ -63,7 +64,8 @@ class OrcWriter : public MicroPartitionWriter {
 
   size_t PhysicalSize() const override;
 
-  static std::vector<pax::orc::proto::Type_Kind> BuildSchema(TupleDesc desc);
+  static std::vector<pax::orc::proto::Type_Kind> BuildSchema(
+      TupleDesc desc, bool enable_numeric_vec_storage);
 
 #ifndef RUN_GTEST
  protected:  // NOLINT

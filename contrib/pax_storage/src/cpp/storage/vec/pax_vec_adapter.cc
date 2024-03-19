@@ -136,6 +136,9 @@ static void ExportArrayRoot(const std::shared_ptr<ArrayData> &data,
 
 namespace pax {
 
+#define DECIMAL_BUFFER_SIZE 16
+#define DECIMAL_BUFFER_BITS 128
+
 static void CopyFixedRawBufferWithNull(PaxColumn *column, size_t range_begin,
                                        size_t range_lens,
                                        size_t data_index_begin,
@@ -434,6 +437,33 @@ static void ConvSchemaAndDataToVec(
           all_nums_of_row, schema_types, array_vector, field_names);
       break;
     }
+    case NUMERICOID: {
+      std::string field_name = std::string(attname);
+      std::shared_ptr<arrow::Buffer> arrow_buffer;
+      std::shared_ptr<arrow::Buffer> arrow_null_buffer;
+      std::shared_ptr<arrow::DataType> data_type;
+
+      data_type = arrow::decimal128(-1, -1);
+
+      auto arrow_buffers = ConvToVecBuffer(vec_batch_buffer);
+      arrow_buffer = std::get<0>(arrow_buffers);
+      arrow_null_buffer = std::get<1>(arrow_buffers);
+      Assert(std::get<2>(arrow_buffers) == nullptr);
+      Assert(arrow_buffer);
+      AssertImply(vec_batch_buffer->null_counts > 0, arrow_null_buffer);
+
+      schema_types.emplace_back(arrow::field(field_name, data_type));
+      std::shared_ptr<arrow::ArrayData> decimal_array_data =
+          arrow::ArrayData::Make(
+              data_type, all_nums_of_row,
+              {arrow_null_buffer, arrow_buffer},  // 16bytes array
+              vec_batch_buffer->null_counts);
+      auto array = std::make_shared<arrow::Decimal128Array>(decimal_array_data);
+
+      array_vector.emplace_back(array);
+      field_names.emplace_back(field_name);
+      break;
+    }
     case INT2ARRAYOID:
     case INT4ARRAYOID:
     case INT8ARRAYOID:
@@ -450,7 +480,6 @@ static void ConvSchemaAndDataToVec(
     case JSONOID:
     case OIDOID:
     case REGPROCOID:
-    case NUMERICOID:  // TODO(jiaqizho): support it in 0.11
     default: {
       Assert(false);
     }
@@ -572,14 +601,15 @@ bool VecAdapter::AppendToVecBuffer() {
 
         Assert(!vec_buffer->GetBuffer() && !offset_buffer->GetBuffer());
         vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
+
         offset_buffer->Set((char *)cbdb::Palloc0(offset_align_bytes),
                            offset_align_bytes);
-
         CopyNonFixedRawBuffer(column, range_begin, range_lens, data_index_begin,
                               data_range_lens, offset_buffer, vec_buffer);
 
         break;
       }
+      case PaxColumnTypeInMem::kTypeDecimal:
       case PaxColumnTypeInMem::kTypeFixed: {
         Assert(column->GetTypeLength() > 0);
         auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE,

@@ -60,6 +60,8 @@ static const relopt_parse_elt kSelfReloptTab[] = {
      offsetof(PaxOptions, partition_by_offset)},
     {PAX_SOPT_PARTITION_RANGES, RELOPT_TYPE_STRING,
      offsetof(PaxOptions, partition_ranges_offset)},
+    {PAX_SOPT_NUMERIC_VEC_STORAGE, RELOPT_TYPE_BOOL,
+     offsetof(PaxOptions, numeric_vec_storage)},
 };
 
 static void paxc_validate_rel_options_storage_format(const char *value) {
@@ -236,6 +238,9 @@ void paxc_reg_rel_options() {
                        NULL, NULL, AccessExclusiveLock);
   add_string_reloption(self_relopt_kind, PAX_SOPT_PARTITION_RANGES,
                        "partition ranges", NULL, NULL, AccessExclusiveLock);
+  add_bool_reloption(self_relopt_kind, PAX_SOPT_NUMERIC_VEC_STORAGE,
+                     "use vec format store numeric type", false,
+                     AccessExclusiveLock);
 }
 
 }  // namespace paxc

@@ -1,5 +1,6 @@
 #include "comm/gtest_wrappers.h"
 #include "pax_gtest_helper.h"
+#include "storage/columns/pax_numeric_column.h"
 #include "storage/pax.h"
 #include "storage/vec/pax_vec_adapter.h"
 #ifdef VEC_BUILD
@@ -33,6 +34,41 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
     CreateMemoryContext();
     CreateTestResourceOwner();
+  }
+
+  static TupleTableSlot *CreateDecimalTupleSlot(bool with_value = false) {
+    TupleDescData *tuple_desc;
+    TupleTableSlot *tuple_slot;
+
+    tuple_desc = reinterpret_cast<TupleDescData *>(cbdb::Palloc0(
+        sizeof(TupleDescData) + sizeof(FormData_pg_attribute) * 1));
+
+    tuple_desc->natts = 1;
+    tuple_desc->attrs[0] = {.atttypid = NUMERICOID,
+                            .attlen = -1,
+                            .attbyval = false,
+                            .attalign = TYPALIGN_DOUBLE,
+                            .attcollation = DEFAULT_COLLATION_OID};
+
+    tuple_slot = (TupleTableSlot *)cbdb::RePalloc(
+        MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual),
+        MAXALIGN(TTSOpsVirtual.base_slot_size) +
+            MAXALIGN(tuple_desc->natts * sizeof(Datum)) +
+            MAXALIGN(tuple_desc->natts * sizeof(bool)) +
+            MAXALIGN(sizeof(VecTupleTableSlot)));
+
+    if (with_value) {
+      auto numeric = int64_to_numeric(1000);
+      tuple_slot->tts_values[0] = NumericGetDatum(numeric);
+
+      bool *fake_is_null =
+          reinterpret_cast<bool *>(cbdb::Palloc0(sizeof(bool)));
+      fake_is_null[0] = false;
+      tuple_slot->tts_isnull = fake_is_null;
+    }
+
+    tuple_slot->tts_tupleDescriptor = tuple_desc;
+    return tuple_slot;
   }
 
   static TupleTableSlot *CreateTupleSlot(bool is_fixed,
@@ -860,6 +896,124 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
         // no data in data part
         ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))), 0);
       }
+    }
+
+    ASSERT_EQ(child_array->dictionary, nullptr);
+  }
+
+  DeleteTupleSlot(tuple_slot);
+
+  delete columns;
+  delete adapter;
+}
+
+TEST_P(PaxVecTest, DecimalTest) {
+  PaxEncoder::EncodingOption encoding_option;
+  encoding_option.column_encode_type = ColumnEncoding_Kind_NO_ENCODED;
+
+  TupleTableSlot *tuple_slot = CreateDecimalTupleSlot();
+
+  auto adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
+  auto columns = new PaxColumns();
+  auto column =
+      new PaxShortNumericColumn(VEC_BATCH_LENGTH + 1000, encoding_option);
+
+  for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
+    auto numeric = int64_to_numeric(i);
+    column->Append((char *)numeric,
+                   NUMERIC_NDIGITS(numeric) * sizeof(NumericDigit) +
+                       sizeof(int16) + VARHDRSZ);
+  }
+
+  columns->AddRows(column->GetRows());
+  columns->Append(column);
+  adapter->SetDataSource(columns);
+  auto append_rc = adapter->AppendToVecBuffer();
+  ASSERT_TRUE(append_rc);
+
+  // already full
+  append_rc = adapter->AppendToVecBuffer();
+  ASSERT_FALSE(append_rc);
+
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
+  ASSERT_EQ(VEC_BATCH_LENGTH, flush_counts);
+
+  // verify tuple_slot 1
+  {
+    VecTupleTableSlot *vslot = nullptr;
+    vslot = (VecTupleTableSlot *)tuple_slot;
+
+    auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
+    ArrowArray *arrow_array = &rb->batch;
+    ASSERT_EQ(arrow_array->length, VEC_BATCH_LENGTH);
+    ASSERT_EQ(arrow_array->null_count, 0);
+    ASSERT_EQ(arrow_array->offset, 0);
+    ASSERT_EQ(arrow_array->n_buffers, 1);
+    ASSERT_EQ(arrow_array->n_children, 1);
+    ASSERT_NE(arrow_array->children, nullptr);
+    ASSERT_EQ(arrow_array->buffers[0], nullptr);
+    ASSERT_EQ(arrow_array->dictionary, nullptr);
+    ASSERT_EQ(arrow_array->private_data, nullptr);
+
+    ArrowArray *child_array = arrow_array->children[0];
+    ASSERT_EQ(child_array->length, VEC_BATCH_LENGTH);
+    ASSERT_EQ(child_array->null_count, 0);
+    ASSERT_EQ(child_array->offset, 0);
+    ASSERT_EQ(child_array->n_buffers, 2);  // decimal always 2
+    ASSERT_EQ(child_array->n_children, 0);
+    ASSERT_EQ(child_array->children, nullptr);
+    ASSERT_EQ(child_array->buffers[0], nullptr);  // null bitmap
+    ASSERT_EQ(child_array->private_data, child_array);
+
+    ASSERT_NE(child_array->buffers[1], nullptr);
+
+    char *buffer = (char *)child_array->buffers[1];
+    for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
+      ASSERT_EQ(*((int64 *)(buffer + (i * sizeof(int64) * 2))), i);
+    }
+
+    ASSERT_EQ(child_array->dictionary, nullptr);
+  }
+
+  append_rc = adapter->AppendToVecBuffer();
+  ASSERT_TRUE(append_rc);
+
+  flush_counts = adapter->FlushVecBuffer(tuple_slot);
+  ASSERT_EQ(1000, flush_counts);
+
+  // verify tuple_slot 2
+  {
+    VecTupleTableSlot *vslot = nullptr;
+    vslot = (VecTupleTableSlot *)tuple_slot;
+
+    auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
+    ArrowArray *arrow_array = &rb->batch;
+    ASSERT_EQ(arrow_array->length, 1000);
+    ASSERT_EQ(arrow_array->null_count, 0);
+    ASSERT_EQ(arrow_array->offset, 0);
+    ASSERT_EQ(arrow_array->n_buffers, 1);
+    ASSERT_EQ(arrow_array->n_children, 1);
+    ASSERT_NE(arrow_array->children, nullptr);
+    ASSERT_EQ(arrow_array->buffers[0], nullptr);
+    ASSERT_EQ(arrow_array->dictionary, nullptr);
+    ASSERT_EQ(arrow_array->private_data, nullptr);
+
+    ArrowArray *child_array = arrow_array->children[0];
+    ASSERT_EQ(child_array->length, 1000);
+    ASSERT_EQ(child_array->null_count, 0);
+    ASSERT_EQ(child_array->offset, 0);
+    ASSERT_EQ(child_array->n_buffers, 2);  // decimal always 2
+    ASSERT_EQ(child_array->n_children, 0);
+    ASSERT_EQ(child_array->children, nullptr);
+    ASSERT_EQ(child_array->buffers[0], nullptr);  // null bitmap
+    ASSERT_EQ(child_array->private_data, child_array);
+
+    ASSERT_NE(child_array->buffers[1], nullptr);
+
+    char *buffer = (char *)child_array->buffers[1];
+    for (size_t i = 0; i < 1000; i++) {
+      ASSERT_EQ(*((int64 *)(buffer + (i * sizeof(int64) * 2))),
+                i + VEC_BATCH_LENGTH);
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);

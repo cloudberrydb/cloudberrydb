@@ -23,7 +23,12 @@ namespace pax {
 #define NO_ENCODE_ORIGIN_LEN (-1)
 
 // Used to mapping pg_type
-enum PaxColumnTypeInMem { kTypeInvalid = 1, kTypeFixed = 2, kTypeNonFixed = 3 };
+enum PaxColumnTypeInMem {
+  kTypeInvalid = 1,
+  kTypeFixed = 2,
+  kTypeNonFixed = 3,
+  kTypeDecimal = 4
+};
 
 class PaxColumn {
  public:

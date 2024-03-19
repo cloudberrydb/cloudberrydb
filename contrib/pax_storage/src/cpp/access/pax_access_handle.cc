@@ -13,6 +13,7 @@
 #include "catalog/pg_pax_tables.h"
 #include "comm/guc.h"
 #include "comm/pax_memory.h"
+#include "comm/vec_numeric.h"
 #include "exceptions/CException.h"
 #include "storage/local_file_system.h"
 
@@ -1095,6 +1096,9 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
   List *part;
   List *pby;
   paxc::PaxOptions *options;
+  int relnatts;
+  TupleDesc tupdesc;
+  int64_t precision;
 
   if (prev_object_access_hook)
     prev_object_access_hook(access, class_id, object_id, sub_id, arg);
@@ -1114,7 +1118,7 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
       elog(ERROR, "set '%s', but partition_by not specified",
            options->partition_ranges());
     }
-    goto out;
+    goto check_numeric_options;
   }
 
   pby = paxc_raw_parse(options->partition_by());
@@ -1136,6 +1140,40 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
          options->partition_by());
 
   ::paxc::PaxInitializePartitionSpec(rel, reinterpret_cast<Node *>(part));
+
+check_numeric_options:
+  if (!options->numeric_vec_storage) {
+    goto out;
+  }
+
+#ifndef HAVE_INT128
+  elog(ERROR, "option 'numeric_vec_storage' must be enable INT128 build");
+#endif
+
+  relnatts = RelationGetNumberOfAttributes(rel);
+  tupdesc = RelationGetDescr(rel);
+  for (int attno = 0; attno < relnatts; attno++) {
+    Form_pg_attribute attr = TupleDescAttr(tupdesc, attno);
+    if (attr->atttypid != NUMERICOID) {
+      continue;
+    }
+
+    if (attr->atttypmod < 0) {
+      elog(ERROR,
+           "column '%s' created with not support precision(-1) and scale(-1).",
+           NameStr(attr->attname));
+    }
+
+    precision = ((attr->atttypmod - VARHDRSZ) >> 16) & 0xffff;
+
+    // no need check scale
+    if (precision > VEC_SHORT_NUMERIC_MAX_PRECISION) {
+      elog(ERROR,
+           "column '%s' precision(%ld) out of range, precision should be (0, "
+           "%d]",
+           NameStr(attr->attname), precision, VEC_SHORT_NUMERIC_MAX_PRECISION);
+    }
+  }
 
 out:
   relation_close(rel, NoLock);

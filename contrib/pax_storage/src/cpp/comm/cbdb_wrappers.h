@@ -146,7 +146,8 @@ void MakedirRecursive(const char *path);
 
 std::string BuildPaxDirectoryPath(RelFileNode rd_node, BackendId rd_backend);
 
-std::string BuildPaxFilePath(const std::string &rel_path, const std::string &block_id);
+std::string BuildPaxFilePath(const std::string &rel_path,
+                             const std::string &block_id);
 
 int RelationGetAttributesNumber(Relation rel);
 
@@ -161,8 +162,8 @@ bool IsSystemAttrNumExist(struct PaxcExtractcolumnContext *context,
 
 bool ExtractcolumnsFromNode(Node *expr, bool *cols, int natts);
 
-bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily, FmgrInfo *finfo,
-                               StrategyNumber strategynum);
+bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
+                               FmgrInfo *finfo, StrategyNumber strategynum);
 
 Datum FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1);
 

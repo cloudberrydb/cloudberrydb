@@ -27,6 +27,7 @@ class MicroPartitionWriter {
     std::string block_id;
     TupleDesc desc = nullptr;
     Oid rel_oid = InvalidOid;
+    bool numeric_vec_storage = false;
     std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
     size_t group_limit = pax_max_tuples_per_group;
@@ -39,6 +40,7 @@ class MicroPartitionWriter {
           block_id(std::move(wo.block_id)),
           desc(wo.desc),
           rel_oid(wo.rel_oid),
+          numeric_vec_storage(wo.numeric_vec_storage),
           encoding_opts(std::move(wo.encoding_opts)),
           group_limit(wo.group_limit) {}
     WriterOptions &operator=(WriterOptions &&wo) {
@@ -46,6 +48,7 @@ class MicroPartitionWriter {
       block_id = std::move(wo.block_id);
       desc = wo.desc;
       rel_oid = wo.rel_oid;
+      numeric_vec_storage = wo.numeric_vec_storage;
       encoding_opts = std::move(wo.encoding_opts);
       group_limit = wo.group_limit;
       return *this;
