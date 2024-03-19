@@ -328,12 +328,27 @@ ConvToVecBuffer(VecAdapter::VecBatchBuffer *vec_batch_buffer) {
   return std::make_tuple(arrow_buffer, arrow_null_buffer, arrow_offset_buffer);
 }
 
-template <typename ArrayType>
+template <typename ArrayType, typename Tuple, std::size_t... I>
+static inline std::shared_ptr<ArrayType> makeSharedArrayImpl(
+    Tuple &&tuple, std::index_sequence<I...>) {
+  return std::make_shared<ArrayType>(
+      std::get<I>(std::forward<Tuple>(tuple))...);
+}
+
+template <typename ArrayType, typename... Args>
+static inline std::shared_ptr<ArrayType> makeSharedArray(Args &&...args) {
+  return makeSharedArrayImpl<ArrayType>(
+      std::forward_as_tuple(std::forward<Args>(args)...),
+      std::make_index_sequence<sizeof...(Args)>{});
+}
+
+template <typename ArrayType, typename... Args>
 static void ConvArrowSchemaAndBuffer(
     const std::string &field_name, std::shared_ptr<arrow::DataType> data_type,
     VecAdapter::VecBatchBuffer *vec_batch_buffer, size_t all_nums_of_row,
     std::vector<std::shared_ptr<arrow::Field>> &schema_types,
-    arrow::ArrayVector &array_vector, std::vector<std::string> &field_names) {
+    arrow::ArrayVector &array_vector, std::vector<std::string> &field_names,
+    Args &&...args) {
   std::shared_ptr<arrow::Buffer> arrow_buffer;
   std::shared_ptr<arrow::Buffer> arrow_null_buffer;
 
@@ -342,9 +357,11 @@ static void ConvArrowSchemaAndBuffer(
   arrow_null_buffer = std::get<1>(arrow_buffers);
 
   schema_types.emplace_back(arrow::field(field_name, data_type));
-  auto array = std::make_shared<ArrayType>(all_nums_of_row, arrow_buffer,
-                                           arrow_null_buffer,
-                                           vec_batch_buffer->null_counts);
+
+  // if C++17 or later, we can use `std::apply` to simplify the code
+  auto array = makeSharedArray<ArrayType>(
+      std::forward<Args>(args)..., all_nums_of_row, arrow_buffer,
+      arrow_null_buffer, vec_batch_buffer->null_counts);
 
   array_vector.emplace_back(array);
   field_names.emplace_back(field_name);
@@ -371,9 +388,10 @@ static void ConvSchemaAndDataToVec(
     case TIMEOID:
     case TIMESTAMPOID:
     case TIMESTAMPTZOID: {
-      ConvArrowSchemaAndBuffer<arrow::Date64Array>(
-          std::string(attname), arrow::date64(), vec_batch_buffer,
-          all_nums_of_row, schema_types, array_vector, field_names);
+      ConvArrowSchemaAndBuffer<arrow::TimestampArray>(
+          std::string(attname), arrow::timestamp(arrow::TimeUnit::MICRO),
+          vec_batch_buffer, all_nums_of_row, schema_types, array_vector,
+          field_names, arrow::timestamp(arrow::TimeUnit::MICRO));
       break;
     }
     case TIDOID:
