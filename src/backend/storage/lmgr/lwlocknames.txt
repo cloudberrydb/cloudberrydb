@@ -74,3 +74,4 @@ GpParallelDSMHashLock               64
 LoginFailedControlLock				65
 LoginFailedSharedMemoryLock			66
 GPIVMResLock						67
+SharedQueryPlanLock                 68

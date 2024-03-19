@@ -62,6 +62,7 @@
 #include "utils/resource_manager.h"
 #include "utils/faultinjector.h"
 #include "utils/sharedsnapshot.h"
+#include "utils/sharedqueryplan.h"
 #include "utils/gpexpand.h"
 #include "utils/snapmgr.h"
 
@@ -155,6 +156,7 @@ CreateSharedMemoryAndSemaphores(void)
 		size = add_size(size, dsm_estimate_size());
 		size = add_size(size, BufferShmemSize());
 		size = add_size(size, GpParallelDSMHashSize());
+		size = add_size(size, SharedQueryPlanHashSize());
 		size = add_size(size, LockShmemSize());
 		size = add_size(size, PredicateLockShmemSize());
 
@@ -315,6 +317,7 @@ CreateSharedMemoryAndSemaphores(void)
 	InitBufferPool();
 
 	InitGpParallelDSMHash();
+	InitSharedQueryPlanHash();
 
 	/*
 	 * Set up lock manager

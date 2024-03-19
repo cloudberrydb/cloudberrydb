@@ -58,6 +58,7 @@ typedef struct DispatcherInternalFuncs
 	bool (*checkForCancel)(struct CdbDispatcherState *ds);
 	int* (*getWaitSocketFds)(struct CdbDispatcherState *ds, int *nsocks);
 	void* (*makeDispatchParams)(int maxSlices, int largestGangSize, char *queryText, int queryTextLen);
+	void (*setDispatchParamsQueryText)(struct CdbDispatcherState *ds, char *queryText, int queryTextLen);
 	bool (*checkAckMessage)(struct CdbDispatcherState *ds, const char* message, int timeout_sec);
 	void (*checkResults)(struct CdbDispatcherState *ds, DispatchWaitMode waitMode);
 	void (*dispatchToGang)(struct CdbDispatcherState *ds, struct Gang *gp, int sliceIndex);
@@ -208,6 +209,7 @@ cdbdisp_makeDispatchParams(CdbDispatcherState *ds,
 						   int maxSlices,
 						   char *queryText,
 						   int queryTextLen);
+void cdbdisp_setDispatchParamsQueryText(CdbDispatcherState *ds, char *queryText, int queryTextLen);
 
 bool cdbdisp_checkForCancel(CdbDispatcherState * ds);
 int *cdbdisp_getWaitSocketFds(CdbDispatcherState *ds, int *nsocks);
