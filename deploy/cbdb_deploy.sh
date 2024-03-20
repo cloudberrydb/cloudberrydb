@@ -71,7 +71,7 @@ function cbdb_build() {
 
     #download dbgen
     cd ~/workspace
-    curl https://artifactory.hashdata.xyz/artifactory/greenplum/cbdb/tool/dbgen/dbgen.tar.gz -o dbgen.tar.gz
+    curl https://cbdb-deps.s3.amazonaws.com/dbgen.tar.gz -o dbgen.tar.gz
     tar xzf dbgen.tar.gz -C $GPHOME/bin
 }
 
