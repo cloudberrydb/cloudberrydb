@@ -177,7 +177,8 @@ void CPaxCreateMicroPartitionTable(Relation rel) {
                   indexInfo,
                   indexColNames,
                   BTREE_AM_OID,
-                  rel->rd_rel->reltablespace,
+                  // The tablespace in aux index should follow aux table
+                  aux_rel->rd_rel->reltablespace,
                   collationObjectId, classObjectId, coloptions, (Datum) 0,
                   INDEX_CREATE_IS_PRIMARY, 0, true, true, NULL);
 
