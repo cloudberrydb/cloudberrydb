@@ -417,6 +417,11 @@ bool PaxScanDesc::ScanSampleNextTuple(SampleScanState * /*scanstate*/,
     if (!ok) break;
     next_tuple_id_++;
   }
+  
+  if (next_tuple_id_ == fetch_tuple_id_) {
+    ok = GetNextSlot(slot);
+    next_tuple_id_++;
+  }
   MemoryContextSwitchTo(old_ctx);
   return ok;
 }
