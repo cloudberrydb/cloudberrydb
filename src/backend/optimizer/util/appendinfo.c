@@ -957,7 +957,7 @@ add_row_identity_columns(PlannerInfo *root, Index rtindex,
 		{
 			var = makeVar(rtindex,
 						  InvalidAttrNumber,
-						  RECORDOID,
+						  target_relation->rd_att->tdtypeid,
 						  -1,
 						  InvalidOid,
 						  0);
