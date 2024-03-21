@@ -1,5 +1,8 @@
 #include "access/pax_dml_state.h"
 
+#define PAX_DEFAULT_GP_INTERCONNECT_QUEUE_DEPTH 64
+#define PAX_DEFAULT_COLUMN_NUM_OF_WIDE_TABLE 64
+
 namespace pax {
 // class CPaxDmlStateLocal
 
@@ -8,6 +11,15 @@ void CPaxDmlStateLocal::DmlStateResetCallback(void * /*arg*/) {
 }
 
 void CPaxDmlStateLocal::InitDmlState(Relation rel, CmdType operation) {
+  if (Gp_role == GP_ROLE_DISPATCH &&
+      Gp_interconnect_queue_depth < PAX_DEFAULT_GP_INTERCONNECT_QUEUE_DEPTH &&
+      rel->rd_att->natts > PAX_DEFAULT_COLUMN_NUM_OF_WIDE_TABLE) {
+    elog(WARNING,
+         "in pax table am, we recommend that gp_interconnect_queue_depth is a "
+         "value greater than or equal to 64, but current value is %d",
+         Gp_interconnect_queue_depth);
+  }
+
   if (!dml_descriptor_tab_) {
     HASHCTL hash_ctl;
     Assert(!cbdb::pax_memory_context);
