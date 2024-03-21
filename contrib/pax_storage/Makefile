@@ -29,18 +29,21 @@ endif
 REGRESS_OPTS += --init-file=init_file
 
 .PHONY: all
-all: build-pax
+all: build
 
-.PHONY: install-data build-pax
-build-pax:
+DIRS = $(shell find src/cpp -maxdepth 2 -type d)
+SRC = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.cc))
+
+.PHONY: install-data
+build: $(SRC)
 	@echo "build pax"
 	mkdir -p build
 	cd build && cmake .. -DCMAKE_INSTALL_PREFIX=$(DESTDIR)$(prefix) && make -j8 && cp src/cpp/libpax.so ../pax.so
 
-pax-test: build-pax
+pax-test: build
 	cd build && ./src/cpp/test_main
 
-install-data: build-pax
+install-data: build
 	$(INSTALL_DATA) pax-cdbinit--1.0.sql '$(DESTDIR)$(datadir)/cdb_init.d/pax-cdbinit--1.0.sql'
 
 installcheck: pax-test

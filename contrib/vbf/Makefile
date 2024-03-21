@@ -11,14 +11,18 @@ top_builddir = ../../
 include $(top_builddir)/src/Makefile.global
 include $(top_srcdir)/contrib/contrib-global.mk
 
-.PHONY: all build-vbf install-vbf install uninstall-data uninstall clean-data clean
-all: build-vbf
+.PHONY: all install-vbf install uninstall-data uninstall clean-data clean
+all: build
 
-build-vbf:
+DIRS = $(shell find src -maxdepth 2 -type d)
+SRC = $(foreach dir, $(DIRS), $(wildcard $(dir)/*.c))
+SRC += examples/quickstart.c
+
+build: ${SRC}
 	@./version.sh project
 	mkdir -p build  && cd build && cmake .. -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=${prefix} -DCMAKE_INSTALL_LIBDIR=lib && make && cp src/libvbf.so ../vbf.so
 
-install-vbf: build-vbf
+install-vbf: build
 	make -C build install
 
 install: install-vbf
