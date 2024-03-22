@@ -1,0 +1,91 @@
+#!/bin/sh
+#
+# A hook script to check the commit log message. Called by "git commit" with
+# one argument, the name of the file that has the commit message.  The hook
+# should exit with non-zero status after issuing an appropriate message if it
+# wants to stop the commit.  The hook is allowed to edit the commit message
+# file.
+#
+# Define the color
+readonly reset=$(tput sgr0)
+readonly red=$(tput bold; tput setaf 1)
+readonly green=$(tput bold; tput setaf 2)
+
+# Initialize exit code as 0
+exit_code=0
+
+# Function to check if a string starts with a specific prefix
+startsWith() {
+    case $1 in
+        "$2"*) return 0;;
+        *) return 1;;
+    esac
+}
+
+# Read the commit message from the commit-msg hook input
+commit_msg_file=$1
+commit_msg=$(cat "$commit_msg_file")
+
+echo -n "Check if the commit message is written... "
+if [ -z "$commit_msg" ]; then
+    echo -e "\n ${red}Error: Commit message is empty. Please write a commit message."
+    exit_code=1
+else
+    echo "${green}Done"
+fi
+echo "${reset}"
+
+echo -n "Check the commit title format... "
+commit_title=$(echo "$commit_msg" | head -n 1)
+if [[ ! "$commit_title" =~ ^[A-Z] ]]; then
+    echo -e "\n ${red}Error: Commit title must start with an uppercase letter!"
+    exit_code=1
+elif [[ "$commit_title" =~ [^\x00-\x7F] ]]; then
+    echo -e "\n ${red}Error: Commit title cannot contain fullwidth characters."
+    exit_code=1
+elif [ ${#commit_title} -gt 50 ]; then
+    echo -e "\n ${red}Error: Commit title length cannot exceeds 50 characters."
+    exit_code=1
+else
+    echo "${green}Done"
+fi
+echo "${reset}"
+
+echo -n "Check the commit body... "
+commit_body=$(echo "$commit_msg" | sed -n '2,$p')
+while IFS= read -r line; do
+    if [ ${#line} -gt 72 ]; then
+        echo -e "\n ${red}Error: Commit body line length cannot exceed 72 characters."
+        echo -e "\n ${red}For Vim editor, you can use `:set textwidth=72` to autowrap. Then you can input `:normal gqG` to apply the warp rule for existing body text."
+        exit_code=1
+    elif [[ "$line" =~ [^\x00-\x7F] ]]; then
+        echo -e "\n ${red}Error: Commit body line cannot contain fullwidth characters."
+        exit_code=1
+    else
+        echo "${green}Done"
+    fi
+done
+echo "${reset}"
+
+# Check the commit tailer and allow its length longer than 72
+commit_tailer=$(echo "$commit_msg" | tail -n 2)
+if startsWith "$commit_tailer" "See:" && [ ${#commit_tailer} -gt 72 ]; then
+    exit ${exit_code}
+fi
+
+# If any checks fail, exit the commit process.
+# If all checks pass, go with no exit.
+if [[ "${exit_code}" != 0 ]]; then
+    echo "${red}---------------------------------------------------"
+    echo "All Checks have been performed. Warnings/Errors happened!"
+    echo "Update your commit message before running `git commit` again!"
+    echo "---------------------------------------------------"
+    exit ${exit_code}
+    echo ${reset}
+else
+    echo "${green}---------------------------------------------------"
+    echo "All Checks have passed. Bingo!"
+    echo "---------------------------------------------------"
+    exit ${exit_code}
+    echo ${reset}
+fi
