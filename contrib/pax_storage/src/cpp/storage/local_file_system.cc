@@ -13,7 +13,7 @@ namespace pax {
 
 struct pax_fd_handle_t {
   int fd;
-
+  ResourceOwner owner;
   struct pax_fd_handle_t *prev;
   struct pax_fd_handle_t *next;
 };
@@ -32,6 +32,7 @@ static inline struct pax_fd_handle_t *RememberFdHandle(int fd) {
 
   h->prev = NULL;
   h->fd = fd;
+  h->owner = CurrentResourceOwner;
 
   {
     std::lock_guard<std::mutex> lock(fd_resouce_owner_mutex);
@@ -229,19 +230,22 @@ void FdHandleAbortCallback(ResourceReleasePhase phase, bool is_commit,
 
   if (phase != RESOURCE_RELEASE_AFTER_LOCKS) return;
 
-  if (pax::open_local_fd_handle && is_commit)
-    elog(WARNING, "pax local fds reference leak");
-
   // make sure all of thread have been finished before call this callback
   curr = pax::open_local_fd_handle;
   AssertImply(curr, !(curr->prev));
   while (curr) {
     temp = curr;
     curr = curr->next;
-
-    Assert(temp->fd >= 0);
-    close(temp->fd);
-    free(temp);
+    // When executing sql containing spi logic, ReleaseCurrentSubTransaction 
+    // will be called at the end of spi. At this time, FdHandleAbortCallback 
+    // will be called, We cannot release the parent's resources at this time.
+    // so it need to check the owner of the resource.
+    if (temp->owner == CurrentResourceOwner) {
+      if (is_commit) elog(WARNING, "pax local fds reference leak");
+      Assert(temp->fd >= 0);
+      close(temp->fd);
+      free(temp);
+    }
   }
 
   pax::open_local_fd_handle = NULL;
