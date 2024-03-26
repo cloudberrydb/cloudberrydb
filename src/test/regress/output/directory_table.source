@@ -344,12 +344,6 @@ CREATE DIRECTORY TABLE IF NOT EXISTS dir_table2 TABLESPACE directory_tblspc;    
 NOTICE:  relation "dir_table2" already exists, skipping
 CREATE DIRECTORY TABLE dir_table4 TABLESPACE directory_tblspc;
 CREATE DIRECTORY TABLE dir_table5 TABLESPACE directory_tblspc;
-\d
-           List of relations
- Schema | Name | Type | Owner | Storage 
---------+------+------+-------+---------
-(0 rows)
-
 \dY
                 List of relations
  Schema |    Name    |      Type       |  Owner  
@@ -428,12 +422,6 @@ ERROR:  directory table "dir_table4" does not exist
 DROP DIRECTORY TABLE IF EXISTS dir_table5;
 DROP DIRECTORY TABLE IF EXISTS dir_table5;  -- skip
 NOTICE:  directory table "dir_table5" does not exist, skipping
-\d
-           List of relations
- Schema | Name | Type | Owner | Storage 
---------+------+------+-------+---------
-(0 rows)
-
 \dY
                 List of relations
  Schema |    Name    |      Type       |  Owner  
