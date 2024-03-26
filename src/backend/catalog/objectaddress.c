@@ -4189,7 +4189,7 @@ getObjectDescription(const ObjectAddress *object, bool missing_ok)
 				else
 					usename = "public";
 
-				appendStringInfo(&buffer, _("storage user mapping for %s on server %s"), usename,
+				appendStringInfo(&buffer, _("storage user mapping for %s on storage server %s"), usename,
 								 srv->servername);
 				break;
 			}
