@@ -284,19 +284,19 @@ SELECT umoptions FROM gp_storage_user_mapping ORDER BY 1;
 -- Test DROP STOARGE SERVER
 DROP STORAGE SERVER oss_server1;    -- fail
 ERROR:  storage server "oss_server1" cannot be dropped because some objects depend on it
-DETAIL:  storage server of storage user mapping for gpadmin on server oss_server1
+DETAIL:  storage server of storage user mapping for gpadmin on storage server oss_server1
 DROP STORAGE SERVER oss_server2;    -- fail
 ERROR:  storage server "oss_server2" cannot be dropped because some objects depend on it
-DETAIL:  storage server of storage user mapping for test_dirtable1 on server oss_server2
+DETAIL:  storage server of storage user mapping for test_dirtable1 on storage server oss_server2
 DROP STORAGE SERVER oss_server3;    -- fail
 ERROR:  storage server "oss_server3" cannot be dropped because some objects depend on it
-DETAIL:  storage server of storage user mapping for gpadmin on server oss_server3
-storage server of storage user mapping for test_dirtable1 on server oss_server3
-storage server of storage user mapping for test_dirtable2 on server oss_server3
+DETAIL:  storage server of storage user mapping for gpadmin on storage server oss_server3
+storage server of storage user mapping for test_dirtable1 on storage server oss_server3
+storage server of storage user mapping for test_dirtable2 on storage server oss_server3
 DROP STORAGE SERVER oss_server4;    -- fail
 DROP STORAGE SERVER oss_server8;    -- fail
 ERROR:  storage server "oss_server8" cannot be dropped because some objects depend on it
-DETAIL:  storage server of storage user mapping for test_dirtable3 on server oss_server8
+DETAIL:  storage server of storage user mapping for test_dirtable3 on storage server oss_server8
 DROP STORAGE SERVER oss_server9;    -- fail
 ERROR:  storage server "oss_server9" not exists
 DROP STAROGE SERVER IF EXISTS oss_server9;  -- fail
