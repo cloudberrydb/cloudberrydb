@@ -61,7 +61,7 @@ GetTablespaceFileHandler(Oid spcId)
 		datum = OidFunctionCall0(fileHandlerOid);
 		currentFileAm = (FileAm *) DatumGetPointer(datum);
 		if (currentFileAm == NULL)
-			elog(ERROR, "table space file handler %u did not return a FileAm struct",
+			elog(ERROR, "tablespace file handler %u did not return a FileAm struct",
 				 		fileHandlerOid);
 	}
 	else

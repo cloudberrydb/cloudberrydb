@@ -265,6 +265,14 @@ SELECT remove_file('dir_table1', 'nation1');    -- fail
 SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
 SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
 
+-- Test transaction commit
+
+-- Test transaction rollback
+
+-- Test subtransaction commit
+
+-- Test subtransaction rollback
+
 -- clean up
 DROP DIRECTORY TABLE IF EXISTS dir_table1;
 DROP DIRECTORY TABLE IF EXISTS dir_table2;
