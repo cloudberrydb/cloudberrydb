@@ -111,7 +111,7 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 	   uint64 *processed)
 {
 	bool		is_from = stmt->is_from;
-	bool		pipe = ((stmt->dirfilename ? stmt->dirfilename : stmt->filename) == NULL || Gp_role == GP_ROLE_EXECUTE);
+	bool		pipe = (stmt->filename == NULL || Gp_role == GP_ROLE_EXECUTE);
 	Relation	rel;
 	Oid			relid;
 	RawStmt    *query = NULL;
@@ -393,7 +393,7 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 			PreventCommandIfReadOnly("COPY FROM");
 
 		cstate = BeginCopyFrom(pstate, rel, whereClause,
-							   rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE ? stmt->dirfilename : stmt->filename,
+							   stmt->filename,
 							   stmt->is_program,
 							   NULL, NULL, stmt->attlist, options);
 
