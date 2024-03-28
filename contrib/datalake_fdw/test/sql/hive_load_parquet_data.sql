@@ -6,7 +6,8 @@ SET hive.support.concurrency = true;
 SET hive.enforce.bucketing = true;
 SET hive.exec.dynamic.partition.mode = nonstrict;
 SET hive.txn.manager = org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
-
+SET hive.stats.autogather=false;
+SET hive.exec.mode.local.auto=true;
 
 
 -- hive partition tinyint
@@ -21,26 +22,31 @@ PARTITIONED BY
     m tinyint
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(7, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(8, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_1 values 
+(1, "aaaaabbbb", 1),
+(2, "aaaaabbbb", 1),
+(3, "aaaaabbbb", 1),
+(4, "aaaaabbbb", 1),
+(5, "aaaaabbbb", 1),
+(NULL, "aaaaabbbb", 2),
+(7, "aaaaabbbb", 2),
+(8, "aaaaabbbb", 2),
+(9, "aaaaabbbb", 2),
+(10, "aaaaabbbb", 2),
+(6, "aaaaabbbb", 3),
+(7, NULL, 3),
+(8, NULL, 3),
+(9, NULL, 3),
+(NULL, NULL, 3),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(8, "aaaaabbbb", 3),
+(9, "aaaaabbbb", 3),
+(10, "aaaaabbbb", 3);
+
+
+
+
 
 -- hive partition smallint
 drop table if exists hive_type_test_2;
@@ -54,26 +60,29 @@ PARTITIONED BY
     m smallint
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(10, "aaaaabbbb");
+
+
+INSERT INTO TABLE hive_type_test_2 values 
+(1, "aaaaabbbb", 1),
+(2, "aaaaabbbb", 1),
+(3, "aaaaabbbb", 1),
+(4, "aaaaabbbb", 1),
+(5, "aaaaabbbb", 1),
+(6, "aaaaabbbb", 2),
+(NULL, "aaaaabbbb", 2),
+(8, "aaaaabbbb", 2),
+(9, "aaaaabbbb", 2),
+(10, "aaaaabbbb", 2),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(8, "aaaaabbbb", 3),
+(9, NULL, 3),
+(10, "aaaaabbbb", 3),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(NULL, NULL, 3),
+(9, "aaaaabbbb", 3),
+(10, "aaaaabbbb", 3);
 
 
 -- hive partition int
@@ -88,26 +97,28 @@ PARTITIONED BY
     m int
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_3 values
+(1, "aaaaabbbb", 1),
+(2, "aaaaabbbb", 1),
+(3, "aaaaabbbb", 1),
+(4, "aaaaabbbb", 1),
+(5, "aaaaabbbb", 1),
+(6, "aaaaabbbb", 2),
+(NULL, "aaaaabbbb", 2),
+(8, "aaaaabbbb", 2),
+(9, "aaaaabbbb", 2),
+(10, "aaaaabbbb", 2),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(8, "aaaaabbbb", 3),
+(9, NULL, 3),
+(10, "aaaaabbbb", 3),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(NULL, NULL, 3),
+(9, "aaaaabbbb", 3),
+(10, "aaaaabbbb", 3);
 
 -- hive partition bigint
 drop table if exists hive_type_test_4;
@@ -121,26 +132,29 @@ PARTITIONED BY
     m bigint
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_4 values 
+(1, "aaaaabbbb", 1),
+(2, "aaaaabbbb", 1),
+(3, "aaaaabbbb", 1),
+(4, "aaaaabbbb", 1),
+(5, "aaaaabbbb", 1),
+(6, "aaaaabbbb", 2),
+(NULL, "aaaaabbbb", 2),
+(8, "aaaaabbbb", 2),
+(9, "aaaaabbbb", 2),
+(10, "aaaaabbbb", 2),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(8, "aaaaabbbb", 3),
+(9, NULL, 3),
+(10, "aaaaabbbb", 3),
+(6, "aaaaabbbb", 3),
+(7, "aaaaabbbb", 3),
+(NULL, NULL, 3),
+(9, "aaaaabbbb", 3),
+(10, "aaaaabbbb", 3);
+
 
 -- hive partition float
 drop table if exists hive_type_test_5;
@@ -154,27 +168,28 @@ PARTITIONED BY
     m float
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(9, NULL);
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(10, "aaaaabbbb");
 
+INSERT INTO TABLE hive_type_test_5 values
+(1, "aaaaabbbb", 1.1),
+(2, "aaaaabbbb", 1.1),
+(3, "aaaaabbbb", 1.1),
+(4, "aaaaabbbb", 1.1),
+(5, "aaaaabbbb", 1.1),
+(6, "aaaaabbbb", 2.1),
+(NULL, "aaaaabbbb", 2.1),
+(8, "aaaaabbbb", 2.1),
+(9, "aaaaabbbb", 2.1),
+(10, "aaaaabbbb", 2.1),
+(6, "aaaaabbbb", 3.1),
+(7, "aaaaabbbb", 3.1),
+(8, "aaaaabbbb", 3.1),
+(9, NULL, 3.1),
+(10, "aaaaabbbb", 3.1),
+(6, "aaaaabbbb", 3.1),
+(7, "aaaaabbbb", 3.1),
+(NULL, NULL, 3.1),
+(9, "aaaaabbbb", 3.1),
+(10, "aaaaabbbb", 3.1);
 
 -- hive partition double
 drop table if exists hive_type_test_6;
@@ -188,26 +203,28 @@ PARTITIONED BY
     m double
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(9, NULL);
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_6 
+values
+(1, "aaaaabbbb", 1.1),
+(2, "aaaaabbbb", 1.1),
+(3, "aaaaabbbb", 1.1),
+(4, "aaaaabbbb", 1.1),
+(5, "aaaaabbbb", 1.1),
+(6, "aaaaabbbb", 2.1),
+(NULL, "aaaaabbbb", 2.1),
+(8, "aaaaabbbb", 2.1),
+(9, "aaaaabbbb", 2.1),
+(10, "aaaaabbbb", 2.1),
+(6, "aaaaabbbb", 3.1),
+(7, "aaaaabbbb", 3.1),
+(8, "aaaaabbbb", 3.1),
+(9, NULL, 3.1),
+(10, "aaaaabbbb", 3.1),
+(6, "aaaaabbbb", 3.1),
+(7, "aaaaabbbb", 3.1),
+(NULL, NULL, 3.1),
+(9, "aaaaabbbb", 3.1),
+(10, "aaaaabbbb", 3.1);
 
 
 -- hive partition string
@@ -222,26 +239,28 @@ PARTITIONED BY
     m string
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(9, NULL);
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_7 
+values
+(1, "aaaaabbbb", "1.1"),
+(2, "aaaaabbbb", "1.1"),
+(3, "aaaaabbbb", "1.1"),
+(4, "aaaaabbbb", "1.1"),
+(5, "aaaaabbbb", "1.1"),
+(6, "aaaaabbbb", "2.1"),
+(NULL, "aaaaabbbb", "2.1"),
+(8, "aaaaabbbb", "2.1"),
+(9, "aaaaabbbb", "2.1"),
+(10, "aaaaabbbb", "2.1"),
+(6, "aaaaabbbb", "3.1"),
+(7, "aaaaabbbb", "3.1"),
+(8, "aaaaabbbb", "3.1"),
+(9, NULL, "3.1"),
+(10, "aaaaabbbb", "3.1"),
+(6, "aaaaabbbb", "3.1"),
+(7, "aaaaabbbb", "3.1"),
+(NULL, NULL, "3.1"),
+(9, "aaaaabbbb", "3.1"),
+(10, "aaaaabbbb", "3.1");
 
 
 
@@ -257,6 +276,7 @@ PARTITIONED BY
     m date
 )
 STORED AS PARQUET;
+
 INSERT INTO TABLE hive_type_test_8 PARTITION(m='0009-01-01') values(1, "aaaaabbbb");
 INSERT INTO TABLE hive_type_test_8 PARTITION(m='0010-01-01') values(2, "aaaaabbbb");
 INSERT INTO TABLE hive_type_test_8 PARTITION(m='1011-01-01') values(3, "aaaaabbbb");
@@ -310,18 +330,21 @@ PARTITIONED BY
     m varchar(20)
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(4, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_9 
+values
+(1, "aaaaabbbb", "aa"),
+(2, "aaaaabbbb", "aa"),
+(3, "aaaaabbbb", "aa"),
+(4, "aaaaabbbb", "aa"),
+(1, "aaaaabbbb", "aabb"),
+(2, "aaaaabbbb", "aabb"),
+(3, "aaaaabbbb", "aabb"),
+(4, "aaaaabbbb", "aabb"),
+(1, "aaaaabbbb", "aabbcc"),
+(2, "aaaaabbbb", "aabbcc"),
+(3, "aaaaabbbb", "aabbcc"),
+(4, "aaaaabbbb", "aabbcc");
 
 -- hive partition decimal
 drop table if exists hive_type_test_10;
@@ -335,30 +358,34 @@ PARTITIONED BY
     m decimal(20, 10)
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1234567890.1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1234567890.1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1.000000001) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1.000000001) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1.999999991) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.12345) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.12345) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=123456789.123456789) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=123456780.10000) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=123456780.10000) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1234567890.1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1234567890.1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1.000000001) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1.000000001) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=1.999999991) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.12345) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=12345.12345) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=123456789.123456789) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=123456780.10000) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_10 PARTITION(m=123456780.10000) values(4, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_10 
+values
+(1, "aaaaabbbb", 12345.1),
+(2, "aaaaabbbb", 12345.1),
+(3, "aaaaabbbb", 1234567890.1),
+(4, "aaaaabbbb", 1234567890.1),
+(1, "aaaaabbbb", 1.000000001),
+(2, "aaaaabbbb", 1.000000001),
+(3, "aaaaabbbb", 1.999999991),
+(4, "aaaaabbbb", 12345.12345),
+(1, "aaaaabbbb", 12345.12345),
+(2, "aaaaabbbb", 123456789.123456789),
+(3, "aaaaabbbb", 123456780.10000),
+(4, "aaaaabbbb", 123456780.10000),
+(1, "aaaaabbbb", 12345.1),
+(2, "aaaaabbbb", 12345.1),
+(3, "aaaaabbbb", 1234567890.1),
+(4, "aaaaabbbb", 1234567890.1),
+(1, "aaaaabbbb", 1.000000001),
+(2, "aaaaabbbb", 1.000000001),
+(3, "aaaaabbbb", 1.999999991),
+(4, "aaaaabbbb", 12345.12345),
+(1, "aaaaabbbb", 12345.12345),
+(2, "aaaaabbbb", 123456789.123456789),
+(3, "aaaaabbbb", 123456780.10000),
+(4, "aaaaabbbb", 123456780.10000);
+
 
 -- hive simple table
 drop table if exists hive_test_1;
@@ -369,17 +396,19 @@ CREATE TABLE hive_test_1 (
 ) CLUSTERED BY (id) INTO 5 BUCKETS
 STORED AS PARQUET
 TBLPROPERTIES ("transactional"="false");
-INSERT INTO TABLE hive_test_1 values(1, "a", "a");
-INSERT INTO TABLE hive_test_1 values(2, NULL, "a");
-INSERT INTO TABLE hive_test_1 values(3, "a", "a");
-INSERT INTO TABLE hive_test_1 values(4, "a", NULL);
-INSERT INTO TABLE hive_test_1 values(5, "a", "a");
-INSERT INTO TABLE hive_test_1 values(NULL, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(7, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(8, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(9, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(10, NULL, NULL);
 
+INSERT INTO TABLE hive_test_1 
+VALUES
+(1, "a", "a"),
+(2, NULL, "a"),
+(3, "a", "a"),
+(4, "a", NULL),
+(5, "a", "a"),
+(NULL, NULL, NULL),
+(7, NULL, NULL),
+(8, NULL, NULL),
+(9, NULL, NULL),
+(10, NULL, NULL);
 
 -- hive partition and transaction table
 drop table if exists hive_test_2;
@@ -400,50 +429,61 @@ alter table hive_test_2 add partition (name3="b");
 alter table hive_test_2 add partition (name3="c");
 alter table hive_test_2 add partition (name3="d");
 
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(1, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(2, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(3, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(4, "a", NULL);
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(5, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(6, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(7, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(8, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(9, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='a') values(10, "a", "a");
+INSERT INTO TABLE hive_test_2 
+PARTITION(name3='a') 
+VALUES
+(1, "a", "a"),
+(2, NULL, "a"),
+(3, "a", "a"),
+(4, "a", NULL),
+(5, "a", "a"),
+(6, NULL, "a"),
+(7, "a", "a"),
+(8, "a", "a"),
+(9, "a", "a"),
+(10, "a", "a");
 
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(1, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(2, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(3, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(4, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(5, "a", NULL);
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(6, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(7, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(8, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(9, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='b') values(10, "a", "a");
+INSERT INTO TABLE hive_test_2 
+PARTITION(name3='b') 
+VALUES
+(1, "a", "a"),
+(2, NULL, "a"),
+(3, "a", "a"),
+(4, "a", "a"),
+(5, "a", NULL),
+(6, "a", "a"),
+(7, NULL, "a"),
+(8, "a", "a"),
+(9, "a", "a"),
+(10, "a", "a");
 
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(1, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(2, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(3, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(4, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(5, "a", NULL);
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(6, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(7, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(8, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(9, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='c') values(10, "a", "a");
+INSERT INTO TABLE hive_test_2 
+PARTITION(name3='c') 
+VALUES
+(1, "a", "a"),
+(2, "a", "a"),
+(3, NULL, "a"),
+(4, "a", "a"),
+(5, "a", NULL),
+(6, "a", "a"),
+(7, "a", "a"),
+(8, NULL, "a"),
+(9, "a", "a"),
+(10, "a", "a");
 
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(1, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(2, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(3, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(4, "a", NULL);
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(5, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(6, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(7, NULL, "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(8, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(9, "a", "a");
-INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(10, "a", NULL);
-
+INSERT INTO TABLE hive_test_2 
+PARTITION(name3='d') 
+VALUES
+(1, "a", "a"),
+(2, NULL, "a"),
+(3, "a", "a"),
+(4, "a", NULL),
+(5, "a", "a"),
+(6, "a", "a"),
+(7, NULL, "a"),
+(8, "a", "a"),
+(9, "a", "a"),
+(10, "a", NULL);
 
 -- hive partiton key is int type
 drop table if exists hive_test_3;
@@ -457,6 +497,7 @@ PARTITIONED BY
     m int
 )
 STORED AS PARQUET;
+
 INSERT INTO TABLE hive_test_3 PARTITION(m=1) values(10, "aaaaabbbb");
 INSERT INTO TABLE hive_test_3 PARTITION(m=1) values(9, "bbbbcccc");
 INSERT INTO TABLE hive_test_3 PARTITION(m=1) values(8, "ddddbbbb");
@@ -485,51 +526,73 @@ PARTITIONED BY
     m int, n string
 )
 STORED AS PARQUET;
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(9, "bbbbcccc");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(8, "ddddbbbb");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") values(7, "fdsfsf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") values(6, "rewrwr3r2");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") values(1, "fsdf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") values(2, "rewrwe");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="dd") values(3, "2345fsd");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ee") values(4, "trewtaf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ff") values(5, "fdsfsdfwe");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="aa") values(1, "23423");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") values(2, "werwer");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") values(3, "2345gagefsd");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="dd") values(4, "46346");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="ee") values(5, "agasdg");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(9, "bbbbcccc");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(8, "ddddbbbb");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") values(7, "fdsfsf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") values(6, "rewrwr3r2");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") values(1, "fsdf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") values(2, "rewrwe");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="dd") values(3, "2345fsd");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ee") values(4, "trewtaf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ff") values(5, "fdsfsdfwe");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="aa") values(1, "23423");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") values(2, "werwer");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") values(3, "2345gagefsd");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="dd") values(4, "46346");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="ee") values(5, "agasdg");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(9, "bbbbcccc");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") values(8, "ddddbbbb");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") values(7, "fdsfsf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") values(6, "rewrwr3r2");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") values(1, "fsdf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") values(2, "rewrwe");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="dd") values(3, "2345fsd");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ee") values(4, "trewtaf");
-INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ff") values(5, "fdsfsdfwe");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="aa") values(1, "23423");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") values(2, "werwer");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") values(3, "2345gagefsd");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="dd") values(4, "46346");
-INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="ee") values(5, "agasdg");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="aa") VALUES
+  (10, "aaaaabbbb"),
+  (9, "bbbbcccc"),
+  (8, "ddddbbbb"),
+  (10, "aaaaabbbb"),
+  (9, "bbbbcccc"),
+  (8, "ddddbbbb"),
+  (10, "aaaaabbbb"),
+  (9, "bbbbcccc"),
+  (8, "ddddbbbb");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=1, n="bb") VALUES
+  (7, "fdsfsf"),
+  (6, "rewrwr3r2"),
+  (7, "fdsfsf"),
+  (6, "rewrwr3r2"),
+  (7, "fdsfsf"),
+  (6, "rewrwr3r2");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="cc") VALUES
+  (1, "fsdf"),
+  (2, "rewrwe"),
+  (1, "fsdf"),
+  (2, "rewrwe"),
+  (1, "fsdf"),
+  (2, "rewrwe");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="dd") VALUES
+  (3, "2345fsd"),
+  (3, "2345fsd"),
+  (3, "2345fsd");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ee") VALUES
+  (4, "trewtaf"),
+  (4, "trewtaf"),
+  (4, "trewtaf");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=2, n="ff") VALUES
+  (5, "fdsfsdfwe"),
+  (5, "fdsfsdfwe"),
+  (5, "fdsfsdfwe");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="aa") VALUES
+  (1, "23423"),
+  (1, "23423"),
+  (1, "23423");
+INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="cc") VALUES
+  (2, "werwer"),
+  (3, "2345gagefsd"),
+  (2, "werwer"),
+  (3, "2345gagefsd"),
+  (2, "werwer"),
+  (3, "2345gagefsd");
+INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="dd") VALUES 
+(4, "46346"),
+(4, "46346"),
+(4, "46346");
+
+INSERT INTO TABLE hive_test_4 PARTITION(m=3, n="ee") VALUES 
+(5, "agasdg"),
+(5, "agasdg"),
+(5, "agasdg");
+
+
+
+
 
 -- hive partiton key is int and string and date type
 drop table if exists hive_test_5;

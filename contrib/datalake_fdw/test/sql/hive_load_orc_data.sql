@@ -6,8 +6,8 @@ SET hive.support.concurrency = true;
 SET hive.enforce.bucketing = true;
 SET hive.exec.dynamic.partition.mode = nonstrict;
 SET hive.txn.manager = org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
-
-
+set hive.stats.autogather=false;
+set hive.exec.mode.local.auto=true;
 
 -- hive partition tinyint
 drop table if exists hive_type_test_1;
@@ -21,26 +21,35 @@ PARTITIONED BY
     m tinyint
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(7, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(8, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) values(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_1 PARTITION(m=1) 
+VALUES 
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_1 PARTITION(m=2) 
+VALUES 
+(NULL, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_1 PARTITION(m=3) 
+VALUES 
+(6, "aaaaabbbb"),
+(7, NULL),
+(8, NULL),
+(9, NULL),
+(NULL, NULL),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 -- hive partition smallint
 drop table if exists hive_type_test_2;
@@ -54,26 +63,34 @@ PARTITIONED BY
     m smallint
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_2 PARTITION(m=3) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_2 PARTITION(m=1)
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_2 PARTITION(m=2)
+VALUES
+(6, "aaaaabbbb"),
+(NULL, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_2 PARTITION(m=3)
+VALUES
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, NULL),
+(10, "aaaaabbbb"),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(NULL, NULL),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 
 -- hive partition int
@@ -88,26 +105,34 @@ PARTITIONED BY
     m int
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_3 PARTITION(m=3) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_3 PARTITION(m=1)
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_3 PARTITION(m=2)
+VALUES
+(6, "aaaaabbbb"),
+(NULL, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_3 PARTITION(m=3)
+VALUES
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, NULL),
+(10, "aaaaabbbb"),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(NULL, NULL),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 -- hive partition bigint
 drop table if exists hive_type_test_4;
@@ -121,26 +146,34 @@ PARTITIONED BY
     m bigint
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=2) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(9, NULL);
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_4 PARTITION(m=3) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_4 PARTITION(m=1)
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_4 PARTITION(m=2)
+VALUES
+(6, "aaaaabbbb"),
+(NULL, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_4 PARTITION(m=3)
+VALUES
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, NULL),
+(10, "aaaaabbbb"),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(NULL, NULL),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 -- hive partition float
 drop table if exists hive_type_test_5;
@@ -154,26 +187,34 @@ PARTITIONED BY
     m float
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(9, NULL);
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_5 PARTITION(m=1.1)
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_5 PARTITION(m=2.1)
+VALUES
+(6, "aaaaabbbb"),
+(NULL, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_5 PARTITION(m=3.1)
+VALUES
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, NULL),
+(10, "aaaaabbbb"),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(NULL, NULL),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 
 -- hive partition double
@@ -188,26 +229,34 @@ PARTITIONED BY
     m double
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1) values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(9, NULL);
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1) values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_6 PARTITION(m=1.1)
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_6 PARTITION(m=2.1)
+VALUES
+(6, "aaaaabbbb"),
+(NULL, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_6 PARTITION(m=3.1)
+VALUES
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, NULL),
+(10, "aaaaabbbb"),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(NULL, NULL),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 
 -- hive partition string
@@ -222,26 +271,34 @@ PARTITIONED BY
     m string
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1") values(5, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(NULL, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(8, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(9, NULL);
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(10, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(6, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(7, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(NULL, NULL);
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(9, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1") values(10, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_7 PARTITION(m="1.1")
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb"),
+(5, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_7 PARTITION(m="2.1")
+VALUES
+(6, "aaaaabbbb"),
+(NULL, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_7 PARTITION(m="3.1")
+VALUES
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(8, "aaaaabbbb"),
+(9, NULL),
+(10, "aaaaabbbb"),
+(6, "aaaaabbbb"),
+(7, "aaaaabbbb"),
+(NULL, NULL),
+(9, "aaaaabbbb"),
+(10, "aaaaabbbb");
 
 
 
@@ -310,18 +367,26 @@ PARTITIONED BY
     m varchar(20)
 )
 STORED AS ORC;
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa") values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb") values(4, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(1, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(2, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(3, "aaaaabbbb");
-INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc") values(4, "aaaaabbbb");
+INSERT INTO TABLE hive_type_test_9 PARTITION(m="aa")
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabb")
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb");
+
+INSERT INTO TABLE hive_type_test_9 PARTITION(m="aabbcc")
+VALUES
+(1, "aaaaabbbb"),
+(2, "aaaaabbbb"),
+(3, "aaaaabbbb"),
+(4, "aaaaabbbb");
 
 -- hive partition decimal
 drop table if exists hive_type_test_10;
@@ -369,16 +434,18 @@ CREATE TABLE hive_test_1 (
 ) CLUSTERED BY (id) INTO 5 BUCKETS
 STORED AS ORC
 TBLPROPERTIES ("transactional"="false");
-INSERT INTO TABLE hive_test_1 values(1, "a", "a");
-INSERT INTO TABLE hive_test_1 values(2, NULL, "a");
-INSERT INTO TABLE hive_test_1 values(3, "a", "a");
-INSERT INTO TABLE hive_test_1 values(4, "a", NULL);
-INSERT INTO TABLE hive_test_1 values(5, "a", "a");
-INSERT INTO TABLE hive_test_1 values(NULL, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(7, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(8, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(9, NULL, NULL);
-INSERT INTO TABLE hive_test_1 values(10, NULL, NULL);
+INSERT INTO TABLE hive_test_1 
+VALUES
+(1, "a", "a"),
+(2, NULL, "a"),
+(3, "a", "a"),
+(4, "a", NULL),
+(5, "a", "a"),
+(NULL, NULL, NULL),
+(7, NULL, NULL),
+(8, NULL, NULL),
+(9, NULL, NULL),
+(10, NULL, NULL);
 
 
 -- hive partition and transaction table
@@ -443,6 +510,7 @@ INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(7, NULL, "a");
 INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(8, "a", "a");
 INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(9, "a", "a");
 INSERT INTO TABLE hive_test_2 PARTITION(name3='d') values(10, "a", NULL);
+
 
 
 -- hive partiton key is int type

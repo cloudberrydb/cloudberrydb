@@ -19,7 +19,6 @@ SELECT pg_sleep(5);
  
 (1 row)
 
-create extension vectorization;
 set vector.enable_vectorization=on;
 SELECT pg_sleep(5);
  pg_sleep 

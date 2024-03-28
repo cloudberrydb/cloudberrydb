@@ -1,3 +1,4 @@
+#set -euo pipefail
 BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
 source $BASE_DIR/create_env.sh
 
@@ -30,7 +31,7 @@ function start_regress_test() {
 		source /usr/local/cloudberry-db-devel/greenplum_path.sh
 		export PGPORT=7000
 		export COORDINATOR_DATA_DIRECTORY=/code/gpdb_src/gpAux/gpdemo/datadirs/qddir/demoDataDir-1
-		pushd "/code/gpdb_src/gpcontrib/datalake_fdw/"
+		pushd "/code/gpdb_src/contrib/datalake_fdw/"
 		(
 			make > /dev/null 2>&1
 			make installcheck
@@ -49,14 +50,16 @@ function start_regress_test() {
 }
 
 function start_tpcds_test() {
+    source ${CBDB_INSTALL_DIRECTORY}/greenplum_path.sh
 	$BASE_DIR/tpcds/run.sh
 }
 
 function load_connector_data() {
-	echo "hadoop leave saft mode"
-	hadoop dfsadmin -safemode leave
+    date
 	echo "load hive connecter data waiting..."
 	$BASE_DIR/hive/hive.sh > $BASE_DIR/hive_connector_load.log 2>&1
+    date
+    echo "load_connector_data over"
 }
 
 function start_connector_test() {
@@ -67,8 +70,14 @@ function start_connector_test() {
 function load_data() {
 	echo "load orc and parquet data waiting..."
 	export HADOOP_HEAPSIZE=2048
+    date
+    echo "begin load orc waiting..."
 	hive -f $BASE_DIR/sql/hive_load_orc_data.sql > $BASE_DIR/hive_load_orc.log 2>&1
+    date
+    echo "begin load parquet waiting..."
 	hive -f $BASE_DIR/sql/hive_load_parquet_data.sql > $BASE_DIR/hive_load_parquet.log 2>&1
+    date
+    echo "load orc and parquet data over"
 }
 
 function start_test() {

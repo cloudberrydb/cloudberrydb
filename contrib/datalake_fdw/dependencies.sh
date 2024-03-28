@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # parquet
-HASHDATA_PARQUET_CONAN_VERSION=${HASHDATA_PARQUET_CONAN_VERSION:-parquet/0.0.1@hashdata/testing}
+HASHDATA_PARQUET_CONAN_VERSION=${HASHDATA_PARQUET_CONAN_VERSION:-parquet/0.0.1@hashdata/cbdb_"${OS}"_"${ARCH}"_"${BUILD_TYPE}"}
 
 if [ ${GPHOME} ]; then
 	BUILD_INSTALL_DIRECTORY="${GPHOME}"

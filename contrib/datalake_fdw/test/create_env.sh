@@ -1,6 +1,6 @@
 function start_hdfs() {
 echo "start hdfs server"
-/usr/local/hadoop-3.3.4/sbin/start-all.sh
+/opt/hadoop-3.3.5/sbin/start-all.sh
 docker start mysql
 nohup hive --service metastore > hive.out 2>&1 &
 }
@@ -11,7 +11,7 @@ paa_cluster:
     # namenode host
     hdfs_namenode_host: localhost
     # name port
-    hdfs_namenode_port: 9002
+    hdfs_namenode_port: 8020
     # authentication method
     hdfs_auth_method: simple
     # rpc protection
@@ -54,9 +54,8 @@ function load_vectorization() {
 }
 
 function build_env() {
+    export PATH=/opt/apache-hive-3.1.3-bin/bin:/opt/hadoop-3.3.5/bin:/opt/hadoop-3.3.5/sbin:$PATH
 	start_hdfs
 	create_configure
-	install_lib
 	source_file
-	load_vectorization
 }

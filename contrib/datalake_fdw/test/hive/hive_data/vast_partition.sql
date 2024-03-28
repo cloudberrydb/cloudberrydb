@@ -1,6 +1,8 @@
 DROP DATABASE IF EXISTS vast_partition;
 CREATE DATABASE vast_partition;
 USE vast_partition;
+SET hive.stats.autogather=false;
+SET hive.exec.mode.local.auto=true;
 CREATE TABLE partition_orc_1
 (
 a tinyint,

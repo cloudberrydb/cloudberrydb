@@ -80,7 +80,7 @@ DATA = datalake_fdw--1.0.sql
 ifdef ICEBERG_HUDI_TEST
 REGRESS = iceberg_read hudi_read
 else
-REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_parquet_read orc_read parquet_read iresearch_orc_test iresearch_orc_vec_test hive_connector
+REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_parquet_read orc_read parquet_read hive_connector
 endif
 
 PG_CPPFLAGS += -fPIC

@@ -4,6 +4,8 @@ SET hive.enforce.bucketing = true;
 SET hive.exec.dynamic.partition.mode = nonstrict;
 SET hive.txn.manager = org.apache.hadoop.hive.ql.lockmgr.DbTxnManager;
 SET hive.exec.max.dynamic.partitions.pernode = 1000;
+-- SET hive.stats.autogather=false;
+-- SET hive.exec.mode.local.auto=true;
 
 CREATE TABLE transactional_orc
 (

@@ -12,7 +12,6 @@ CREATE EXTENSION IF NOT EXISTS hive_connector;
 
 SELECT pg_sleep(5);
 
-create extension vectorization;
 set vector.enable_vectorization=on;
 SELECT pg_sleep(5);
 
