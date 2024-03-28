@@ -111,6 +111,8 @@ static inline Datum Int32ToDatum(int32 d) noexcept { return Int32GetDatum(d); }
 
 static inline Datum Int64ToDatum(int64 d) noexcept { return Int64GetDatum(d); }
 
+Numeric DatumToNumeric(Datum d);
+
 void *PointerAndLenFromDatum(Datum d, int *len);
 
 void SlotGetMissingAttrs(TupleTableSlot *slot, int start_attno, int last_attno);

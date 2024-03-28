@@ -10,8 +10,7 @@ PaxShortNumericColumn::PaxShortNumericColumn(
     uint32 capacity, const PaxEncoder::EncodingOption &encoding_option)
     : PaxEncodingColumn(capacity, encoding_option),
       already_combined_(false),
-      width_(VEC_SHORT_NUMERIC_STORE_BYTES),
-      numeric_holder_(nullptr) {
+      width_(VEC_SHORT_NUMERIC_STORE_BYTES) {
   Assert(capacity >= VEC_SHORT_NUMERIC_STORE_BYTES);
 }
 
@@ -19,8 +18,7 @@ PaxShortNumericColumn::PaxShortNumericColumn(
     uint32 capacity, const PaxDecoder::DecodingOption &decoding_option)
     : PaxEncodingColumn(capacity, decoding_option),
       already_combined_(false),
-      width_(VEC_SHORT_NUMERIC_STORE_BYTES),
-      numeric_holder_(nullptr) {}
+      width_(VEC_SHORT_NUMERIC_STORE_BYTES) {}
 
 PaxColumnTypeInMem PaxShortNumericColumn::GetPaxColumnTypeInMem() const {
   return PaxColumnTypeInMem::kTypeDecimal;
@@ -31,7 +29,11 @@ void PaxShortNumericColumn::Set(DataBuffer<int8> *data, size_t non_null_rows) {
   PaxEncodingColumn::Set(data);
 }
 
-PaxShortNumericColumn::~PaxShortNumericColumn() { PAX_DELETE(numeric_holder_); }
+PaxShortNumericColumn::~PaxShortNumericColumn() {
+  for (auto numeric : numeric_holder_) {
+    cbdb::Pfree(numeric);
+  }
+}
 
 void PaxShortNumericColumn::Append(char *buffer, size_t size) {
   PaxColumn::Append(buffer, size);
@@ -47,7 +49,7 @@ void PaxShortNumericColumn::Append(char *buffer, size_t size) {
   vl = (struct varlena *)DatumGetPointer(buffer);
   vl_len = VARSIZE_ANY_EXHDR(vl);
 
-  numeric = DatumGetNumeric(PointerGetDatum(buffer));
+  numeric = cbdb::DatumToNumeric(PointerGetDatum(buffer));
 
   int8 *dest_buff = data_->GetAvailableBuffer();
   pg_short_numeric_to_vec_short_numeric(numeric, vl_len, (int64 *)dest_buff,
@@ -65,6 +67,8 @@ std::pair<char *, size_t> PaxShortNumericColumn::GetRangeBuffer(
 
 std::pair<char *, size_t> PaxShortNumericColumn::GetBuffer(size_t position) {
   int8 *raw_buffer;
+  Datum datum;
+  struct varlena *vl;
 
   CBDB_CHECK(position < GetNonNullRows(),
              cbdb::CException::ExType::kExTypeOutOfRange);
@@ -72,9 +76,13 @@ std::pair<char *, size_t> PaxShortNumericColumn::GetBuffer(size_t position) {
   Assert(data_->Used() > position * width_);
 
   raw_buffer = data_->GetBuffer() + (position * width_);
-
-  return vec_short_numeric_to_buffer((int64 *)raw_buffer,
+  datum = vec_short_numeric_to_datum((int64 *)raw_buffer,
                                      (int64 *)(raw_buffer + sizeof(int64)));
+  Assert(datum != 0);
+
+  numeric_holder_.emplace_back(cbdb::DatumToNumeric(datum));
+  vl = (struct varlena *)DatumGetPointer(datum);
+  return {DatumGetPointer(datum), VARSIZE_ANY_EXHDR(vl) + VARHDRSZ};
 }
 
 DataBuffer<int8> *PaxShortNumericColumn::GetDataBuffer() { return data_; }

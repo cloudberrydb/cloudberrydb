@@ -29,5 +29,3 @@ extern void pg_short_numeric_to_vec_short_numeric(Numeric num, int num_len,
                                                   int64 *n_high_64);
 extern Datum vec_short_numeric_to_datum(const int64 *n_high,
                                         const int64 *n_low);
-extern std::pair<char *, size_t> vec_short_numeric_to_buffer(
-    const int64 *n_high, const int64 *n_low);

@@ -34,7 +34,7 @@ class PaxShortNumericColumn final : public PaxEncodingColumn<int8> {
   bool already_combined_;
   uint32 width_;
 
-  DataBuffer<int8> *numeric_holder_;
+  std::vector<Numeric> numeric_holder_;
 };
 
 }  // namespace pax

@@ -157,6 +157,13 @@ Datum cbdb::DatumFromPointer(const void *p, int16 typlen) {
 }
 #endif
 
+Numeric cbdb::DatumToNumeric(Datum d) {
+  CBDB_WRAP_START;
+  { return DatumGetNumeric(d); }
+  CBDB_WRAP_END;
+  return nullptr;
+}
+
 struct varlena *cbdb::PgDeToastDatum(struct varlena *datum) {
   CBDB_WRAP_START;
   { return detoast_attr(datum); }

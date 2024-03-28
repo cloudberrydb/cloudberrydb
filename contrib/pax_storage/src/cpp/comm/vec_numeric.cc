@@ -270,12 +270,3 @@ Datum vec_short_numeric_to_datum(const int64 *n_low, const int64 *n_high) {
   return (Datum)0;
 #endif
 }
-
-std::pair<char *, size_t> vec_short_numeric_to_buffer(const int64 *n_low,
-                                                      const int64 *n_high) {
-  Datum datum;
-  datum = vec_short_numeric_to_datum(n_low, n_high);
-  auto vl = (struct varlena *)DatumGetPointer(datum);
-
-  return {DatumGetPointer(datum), VARSIZE_ANY_EXHDR(vl) + VARHDRSZ};
-}
