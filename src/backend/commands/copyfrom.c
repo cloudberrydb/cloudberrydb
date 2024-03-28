@@ -1287,16 +1287,10 @@ BeginCopyFromDirectoryTable(ParseState *pstate,
 	/* Extract options from the statement node tree */
 	ProcessCopyOptions(pstate, &cstate->opts, true, options, rel->rd_id);
 
-	if (cstate->opts.file_encoding ||
-		cstate->opts.freeze ||
+	if (cstate->opts.freeze ||
 		cstate->opts.csv_mode ||
 		cstate->opts.header_line ||
-		cstate->opts.null_print ||
-		cstate->opts.null_print_len ||
-		cstate->opts.null_print_client ||
-		cstate->opts.delim ||
 		cstate->opts.quote ||
-		cstate->opts.escape ||
 		cstate->opts.force_quote ||
 		cstate->opts.force_quote_all ||
 		cstate->opts.force_quote_flags ||
@@ -1311,7 +1305,6 @@ BeginCopyFromDirectoryTable(ParseState *pstate,
 		cstate->opts.skip_foreign_partitions ||
 		cstate->opts.on_segment ||
 		cstate->opts.delim_off ||
-		cstate->opts.eol_type ||
 		cstate->opts.eol_str)
 		ereport(ERROR,
 					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
