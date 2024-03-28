@@ -9,30 +9,30 @@ CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
 1: COMMIT;
 2: COMMIT;
 
-1: \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
-2: \COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
-3: \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3';
-4: \COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation4';
+1: COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
+2: COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
+3: COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3';
+4: COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation4';
 
 -- Test copy binary from the same directory table in parallel session is allowed
 1: BEGIN;
 2: BEGIN;
-1: \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation5';
-2: \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation6';
+1: COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation5';
+2: COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation6';
 1: COMMIT;
 2: COMMIT;
 
 -- Test copy binary from and select directory table
 1: BEGIN;
 2: BEGIN;
-1: \COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation5';
+1: COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation5';
 2: SELECT * FROM dir_table2;
 1: COMMIT;
 2: COMMIT;
 
 1: BEGIN;
 2: BEGIN;
-1: \COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation6';
+1: COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation6';
 2: SELECT * FROM directory_table('dir_table2');
 1: COMMIT;
 2: COMMIT;
@@ -40,7 +40,7 @@ CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
 -- Test copy binary from and remove_file()
 1: BEGIN;
 2: BEGIN;
-1: \COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation7';
+1: COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation7';
 2: SELECT remove_file('dir_table1', 'nation6');
 1: COMMIT;
 2: COMIMT;
