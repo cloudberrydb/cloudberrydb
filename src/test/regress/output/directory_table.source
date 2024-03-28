@@ -1,0 +1,740 @@
+--
+-- Test for directory table
+--
+-- Display pg_tablespace, pg_directory_table, gp_storage_server, gp_storage_user_mapping catalog
+\d+ pg_tablespace;
+                                  Table "pg_catalog.pg_tablespace"
+     Column     |   Type    | Collation | Nullable | Default | Storage  | Stats target | Description 
+----------------+-----------+-----------+----------+---------+----------+--------------+-------------
+ oid            | oid       |           | not null |         | plain    |              | 
+ spcname        | name      |           | not null |         | plain    |              | 
+ spcowner       | oid       |           | not null |         | plain    |              | 
+ spcacl         | aclitem[] |           |          |         | extended |              | 
+ spcoptions     | text[]    | C         |          |         | extended |              | 
+ spcfilehandler | oid       |           |          |         | plain    |              | 
+Indexes:
+    "pg_tablespace_oid_index" PRIMARY KEY, btree (oid), tablespace "pg_global"
+    "pg_tablespace_spcname_index" UNIQUE CONSTRAINT, btree (spcname), tablespace "pg_global"
+Tablespace: "pg_global"
+
+\d+ pg_directory_table;
+                            Table "pg_catalog.pg_directory_table"
+    Column    | Type | Collation | Nullable | Default | Storage  | Stats target | Description 
+--------------+------+-----------+----------+---------+----------+--------------+-------------
+ dtrelid      | oid  |           | not null |         | plain    |              | 
+ dttablespace | oid  |           | not null |         | plain    |              | 
+ dtlocation   | text | C         |          |         | extended |              | 
+Indexes:
+    "pg_directory_table_relid_index" PRIMARY KEY, btree (dtrelid)
+
+\d+ gp_storage_server;
+                              Table "pg_catalog.gp_storage_server"
+   Column   |   Type    | Collation | Nullable | Default | Storage  | Stats target | Description 
+------------+-----------+-----------+----------+---------+----------+--------------+-------------
+ oid        | oid       |           | not null |         | plain    |              | 
+ srvname    | name      |           | not null |         | plain    |              | 
+ srvowner   | oid       |           | not null |         | plain    |              | 
+ srvacl     | aclitem[] |           |          |         | extended |              | 
+ srvoptions | text[]    | C         |          |         | extended |              | 
+Indexes:
+    "gp_storage_server_oid_index" PRIMARY KEY, btree (oid), tablespace "pg_global"
+    "gp_storage_server_name_index" UNIQUE CONSTRAINT, btree (srvname), tablespace "pg_global"
+Tablespace: "pg_global"
+
+\d+ gp_storage_user_mapping;
+                         Table "pg_catalog.gp_storage_user_mapping"
+  Column   |  Type  | Collation | Nullable | Default | Storage  | Stats target | Description 
+-----------+--------+-----------+----------+---------+----------+--------------+-------------
+ oid       | oid    |           | not null |         | plain    |              | 
+ umuser    | oid    |           | not null |         | plain    |              | 
+ umserver  | oid    |           | not null |         | plain    |              | 
+ umoptions | text[] | C         |          |         | extended |              | 
+Indexes:
+    "gp_storage_user_mapping_oid_index" PRIMARY KEY, btree (oid), tablespace "pg_global"
+    "gp_storage_user_mapping_server_index" UNIQUE CONSTRAINT, btree (umuser, umserver), tablespace "pg_global"
+Tablespace: "pg_global"
+
+-- CREATE TABLESPACE
+CREATE TABLESPACE directory_tblspc LOCATION '@testtablespace@';
+-- CREATE USER for directory table
+CREATE USER test_dirtable1;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+CREATE USER test_dirtable2;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+CREATE USER test_dirtable3;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+CREATE USER test_dirtable4;
+NOTICE:  resource queue required -- using default resource queue "pg_default"
+-- Test CREATE STORAGE SERVER
+SELECT srvname, srvacl, srvoptions from gp_storage_server ORDER BY 1;
+ srvname | srvacl | srvoptions 
+---------+--------+------------
+(0 rows)
+
+CREATE STORAGE SERVER oss_server1;
+CREATE STORAGE SERVER oss_server2 OPTIONS(protocal 'localhost');
+CREATE STORAGE SERVER oss_server3 OPTIONS(endpoint '127.0.0.1:9000');
+CREATE STORAGE SERVER oss_server4 OPTIONS(https 'true');
+CREATE STORAGE SERVER oss_server5 OPTIONS(virtual_host 'false');
+CREATE STORAGE SERVER oss_server6 OPTIONS(protocol 'qingstor', endpoint 'pek3b,qingstor.com');
+CREATE STORAGE SERVER oss_server7 OPTIONS(https 'false', virtual_host 'true');
+CREATE STORAGE SERVER oss_server8 OPTIONS(protocol 'hdfs', namenode '127.0.0.1:8020');
+CREATE STORAGE SERVER oss_server9 OWNER TO postgres;    -- fail
+ERROR:  syntax error at or near "OWNER"
+LINE 1: CREATE STORAGE SERVER oss_server9 OWNER TO postgres;
+                                          ^
+CREATE STORAGE SERVER IF NOT EXISTS oss_server10;
+CREATE STORAGE SERVER IF NOT EXISTS oss_server11 OPTIONS(protocol 's3av2');
+CREATE STORAGE SERVER IF NOT EXISTS oss_server12 OPTIONS(protocol 's3av2', endpoint '127.0.0.1:9000', https 'false');
+CREATE STORAGE SERVER IF NOT EXISTS oss_server13 OWNER TO postgres;   -- fail
+ERROR:  syntax error at or near "OWNER"
+LINE 1: CREATE STORAGE SERVER IF NOT EXISTS oss_server13 OWNER TO po...
+                                                         ^
+SELECT srvname, srvacl, srvoptions from gp_storage_server ORDER BY 1;
+   srvname    | srvacl |                      srvoptions                      
+--------------+--------+------------------------------------------------------
+ oss_server1  |        | 
+ oss_server10 |        | 
+ oss_server11 |        | {protocol=s3av2}
+ oss_server12 |        | {protocol=s3av2,endpoint=127.0.0.1:9000,https=false}
+ oss_server2  |        | {protocal=localhost}
+ oss_server3  |        | {endpoint=127.0.0.1:9000}
+ oss_server4  |        | {https=true}
+ oss_server5  |        | {virtual_host=false}
+ oss_server6  |        | {protocol=qingstor,"endpoint=pek3b,qingstor.com"}
+ oss_server7  |        | {https=false,virtual_host=true}
+ oss_server8  |        | {protocol=hdfs,namenode=127.0.0.1:8020}
+(11 rows)
+
+-- Test ALTER STORAGE SERVER
+ALTER STORAGE SERVER oss_server1 OPTIONS(protocol 'aws');
+ALTER STORAGE SERVER oss_server1 OPTIONS(protocol 'test');  -- fail
+ERROR:  option "protocol" provided more than once
+ALTER STORAGE SERVER oss_server2 OPTIONS(https 'true');
+ALTER STORAGE SERVER oss_server2 OPTIONS(https 'false', virtual_host 'true');   -- fail
+ERROR:  option "https" provided more than once
+ALTER STORAGE SERVER oss_server2 OPTIONS(virtual_host 'true');
+ALTER STORAGE SERVER oss_server3 OPTIONS(endpoint '192.168.0.1');   -- fail
+ERROR:  option "endpoint" provided more than once
+ALTER STORAGE SERVER oss_server4 OPTIONS(protocol 'localhost', virtual_host 'true');
+ALTER STORAGE SERVER oss_server4 OPTIONS(protocol 'qingstor');  -- fail
+ERROR:  option "protocol" provided more than once
+ALTER STORAGE SERVER oss_server5;   -- fail
+ERROR:  syntax error at or near ";"
+LINE 1: ALTER STORAGE SERVER oss_server5;
+                                        ^
+ALTER STORAGE SERVER oss_server6 OWNER TO postgres; -- fail
+ERROR:  syntax error at or near "OWNER"
+LINE 1: ALTER STORAGE SERVER oss_server6 OWNER TO postgres;
+                                         ^
+ALTER STORAGE SERVER IF EXISTS oss_server7 OPTIONS(endpoint '127.0.0.1:6555');    -- fail
+ERROR:  syntax error at or near "EXISTS"
+LINE 1: ALTER STORAGE SERVER IF EXISTS oss_server7 OPTIONS(endpoint ...
+                                ^
+ALTER STORAGE SERVER IF NOT EXISTS oss_server8 OPTIONS(virtual_host 'true');    -- fail
+ERROR:  syntax error at or near "NOT"
+LINE 1: ALTER STORAGE SERVER IF NOT EXISTS oss_server8 OPTIONS(virtu...
+                                ^
+SELECT srvname, srvacl, srvoptions from gp_storage_server ORDER BY 1;
+   srvname    | srvacl |                      srvoptions                      
+--------------+--------+------------------------------------------------------
+ oss_server1  |        | {protocol=aws}
+ oss_server10 |        | 
+ oss_server11 |        | {protocol=s3av2}
+ oss_server12 |        | {protocol=s3av2,endpoint=127.0.0.1:9000,https=false}
+ oss_server2  |        | {protocal=localhost,https=true,virtual_host=true}
+ oss_server3  |        | {endpoint=127.0.0.1:9000}
+ oss_server4  |        | {https=true,protocol=localhost,virtual_host=true}
+ oss_server5  |        | {virtual_host=false}
+ oss_server6  |        | {protocol=qingstor,"endpoint=pek3b,qingstor.com"}
+ oss_server7  |        | {https=false,virtual_host=true}
+ oss_server8  |        | {protocol=hdfs,namenode=127.0.0.1:8020}
+(11 rows)
+
+-- Test CREATE STORAGE USER MAPPING
+CREATE STORAGE USER MAPPING FOR CURRENT_USER;   -- fail
+ERROR:  syntax error at or near ";"
+LINE 1: CREATE STORAGE USER MAPPING FOR CURRENT_USER;
+                                                    ^
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server1;
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server1
+OPTIONS (accesskey 'KGFQWEFQQEFXVAEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');   -- fail
+ERROR:  storage user mapping for "gpadmin" already exists for storage server "oss_server1"
+CREATE STORAGE USER MAPPING IF NOT EXISTS FOR CURRENT_USER STORAGE SERVER oss_server1;
+NOTICE:  storage user mapping for "gpadmin" already exists for storage server "oss_server1", skipping
+CREATE STORAGE USER MAPPING IF NOT EXISTS FOR CURRENT_USER STORAGE SERVER oss_server1
+OPTIONS (auth_method 'simple');
+NOTICE:  storage user mapping for "gpadmin" already exists for storage server "oss_server1", skipping
+CREATE STORAGE USER MAPPING FOR CURRENT_ROLE STORAGE SERVER oss_server2
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE');
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server2
+OPTIONS (accesskey 'KGFQWEFQQEFXVAEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');   -- fail
+ERROR:  storage user mapping for "gpadmin" already exists for storage server "oss_server2"
+CREATE STORAGE USER MAPPING FOR CURRENT_ROLE STORAGE SERVER oss_server3
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE');
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_not_exits;  -- fail
+ERROR:  server "oss_not_exits" does not exist
+CREATE STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_not_exits
+OPTIONS (accesskey 'KGFQWEFQQEFXVAEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');   -- fail
+ERROR:  server "oss_not_exits" does not exist
+CREATE STORAGE USER MAPPING FOR test_dirtable1 STORAGE SERVER oss_server1;
+CREATE STORAGE USER MAPPING FOR test_dirtable1 STORAGE SERVER oss_server1
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H');   -- fail
+ERROR:  storage user mapping for "test_dirtable1" already exists for storage server "oss_server1"
+CREATE STORAGE USER MAPPING FOR test_dirtable1 STORAGE SERVER oss_server2
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H');
+CREATE STORAGE USER MAPPING FOR test_dirtable1 STORAGE SERVER oss_server3
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H');
+CREATE STORAGE USER MAPPING FOR no_exist_user STORAGE SERVER oss_server1;   -- fail
+ERROR:  role "no_exist_user" does not exist
+CREATE STORAGE USER MAPPING FOR no_exist_user STORAGE SERVER oss_server1
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H');   -- fail
+ERROR:  role "no_exist_user" does not exist
+CREATE STORAGE USER MAPPING IF NOT EXISTS FOR CURRENT_USER STORAGE SERVER oss_server1
+OPTIONS (accesskey 'KGFQWEFQQEFXVAEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');   -- skip
+NOTICE:  storage user mapping for "gpadmin" already exists for storage server "oss_server1", skipping
+CREATE STORAGE USER MAPPING IF NOT EXISTS FOR test_dirtable2 STORAGE SERVER oss_server3
+OPTIONS (endpoint '127.0.0.1:6555');
+CREATE STORAGE USER MAPPING IF NOT EXISTS FOR test_dirtable3 STORAGE SERVER oss_server8
+OPTIONS (auth_method 'simple');
+CREATE STORAGE USER MAPPING IF NOT EXISTS FOR no_exist_user STORAGE SERVER oss_server1;   -- fail
+ERROR:  role "no_exist_user" does not exist
+SELECT umoptions FROM gp_storage_user_mapping ORDER BY 1;
+                                      umoptions                                      
+-------------------------------------------------------------------------------------
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H}
+ {auth_method=simple}
+ {endpoint=127.0.0.1:6555}
+ 
+ 
+(8 rows)
+
+-- Test ALTER STORAGE USER MAPPING
+ALTER STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server1; -- fail
+ERROR:  syntax error at or near ";"
+LINE 1: ...GE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server1;
+                                                                      ^
+ALTER STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server1
+OPTIONS (accesskey 'KGFQWEFQQEFXVAEAWLLC', secretkey '0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs');
+ALTER STORAGE USER MAPPING FOR CURRENT_ROLE STORAGE SERVER oss_server1
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ'); -- fail
+ERROR:  option "accesskey" provided more than once
+ALTER STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server1
+OPTIONS (auth_method 'simple');
+ALTER STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server2
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE');   -- fail
+ERROR:  option "accesskey" provided more than once
+ALTER STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER server_not_exists
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE');   -- fail
+ERROR:  syntax error at or near "IF"
+LINE 1: ALTER STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAG...
+                                   ^
+ALTER STORAGE USER MAPPING IF EXISTS FOR no_exist_user STORAGE SERVER oss_server1
+OPTIONS (accesskey 'EQEJIOJFAKQWESQEJIWQ', secretkey '0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE');   -- fail
+ERROR:  syntax error at or near "IF"
+LINE 1: ALTER STORAGE USER MAPPING IF EXISTS FOR no_exist_user STORA...
+                                   ^
+ALTER STORAGE USER MAPPING IF NOT EXISTS FOR test_dirtable1 STORAGE SERVER oss_server3
+OPTIONS (auth_method 'simple'); -- fail
+ERROR:  syntax error at or near "IF"
+LINE 1: ALTER STORAGE USER MAPPING IF NOT EXISTS FOR test_dirtable1 ...
+                                   ^
+SELECT umoptions FROM gp_storage_user_mapping ORDER BY 1;
+                                               umoptions                                                
+--------------------------------------------------------------------------------------------------------
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H}
+ {accesskey=KGFQWEFQQEFXVAEAWLLC,secretkey=0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs,auth_method=simple}
+ {auth_method=simple}
+ {endpoint=127.0.0.1:6555}
+ 
+(8 rows)
+
+-- Test DROP STORAGE USER MAPPING
+DROP STORAGE USER MAPPING FOR CURRENT_USER; -- fail
+ERROR:  syntax error at or near ";"
+LINE 1: DROP STORAGE USER MAPPING FOR CURRENT_USER;
+                                                  ^
+DROP STORAGE USER MAPPING FOR CURRENT_USER STORAGE SERVER oss_server2;
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable1 STORAGE SERVER oss_server1;
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable2 STORAGE SERVER no_exist_server;
+NOTICE:  storage server "no_exist_server" does not exist, skipping
+DROP STORAGE USER MAPPING FOR test_dirtable3 STORAGE SERVER no_exist_server;    -- fail
+ERROR:  storage server "no_exist_server" does not exist
+DROP STORAGE USER MAPPING FOR no_exist_user STORAGE SERVER oss_server1; -- fail
+ERROR:  role "no_exist_user" does not exist
+DROP STORAGE USER MAPPING IF EXISTS FOR no_exist_user STORAGE SERVER oss_server1;   -- skip
+NOTICE:  role "no_exist_user" does not exist, skipping
+SELECT umoptions FROM gp_storage_user_mapping ORDER BY 1;
+                                               umoptions                                                
+--------------------------------------------------------------------------------------------------------
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=0ADQiAxcaUJ2lMHipis80hsUEhdiqui82JhduOKE}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H}
+ {accesskey=EQEJIOJFAKQWESQEJIWQ,secretkey=7KieQKdu02jHEUEjsqUYE83mx9OE2kdj2SJ72h6H}
+ {accesskey=KGFQWEFQQEFXVAEAWLLC,secretkey=0SJIWiIATh6jOlmAKr8DGq6hOAGBI1BnsnvgJmTs,auth_method=simple}
+ {auth_method=simple}
+ {endpoint=127.0.0.1:6555}
+(6 rows)
+
+-- Test DROP STOARGE SERVER
+DROP STORAGE SERVER oss_server1;    -- fail
+ERROR:  storage server "oss_server1" cannot be dropped because some objects depend on it
+DETAIL:  storage server of storage user mapping for gpadmin on storage server oss_server1
+DROP STORAGE SERVER oss_server2;    -- fail
+ERROR:  storage server "oss_server2" cannot be dropped because some objects depend on it
+DETAIL:  storage server of storage user mapping for test_dirtable1 on storage server oss_server2
+DROP STORAGE SERVER oss_server3;    -- fail
+ERROR:  storage server "oss_server3" cannot be dropped because some objects depend on it
+DETAIL:  storage server of storage user mapping for gpadmin on storage server oss_server3
+storage server of storage user mapping for test_dirtable1 on storage server oss_server3
+storage server of storage user mapping for test_dirtable2 on storage server oss_server3
+DROP STORAGE SERVER oss_server4;    -- fail
+DROP STORAGE SERVER oss_server8;    -- fail
+ERROR:  storage server "oss_server8" cannot be dropped because some objects depend on it
+DETAIL:  storage server of storage user mapping for test_dirtable3 on storage server oss_server8
+DROP STORAGE SERVER oss_server9;    -- fail
+ERROR:  storage server "oss_server9" not exists
+DROP STAROGE SERVER IF EXISTS oss_server9;  -- fail
+ERROR:  syntax error at or near "STAROGE"
+LINE 1: DROP STAROGE SERVER IF EXISTS oss_server9;
+             ^
+DROP STORAGE SERVER IF NOT EXISTS oss_server9;  --fail
+ERROR:  syntax error at or near "NOT"
+LINE 1: DROP STORAGE SERVER IF NOT EXISTS oss_server9;
+                               ^
+DROP STORAGE SERVER IF EXISTS oss_server10;
+SELECT srvname, srvacl, srvoptions from gp_storage_server ORDER BY 1;
+   srvname    | srvacl |                      srvoptions                      
+--------------+--------+------------------------------------------------------
+ oss_server1  |        | {protocol=aws}
+ oss_server11 |        | {protocol=s3av2}
+ oss_server12 |        | {protocol=s3av2,endpoint=127.0.0.1:9000,https=false}
+ oss_server2  |        | {protocal=localhost,https=true,virtual_host=true}
+ oss_server3  |        | {endpoint=127.0.0.1:9000}
+ oss_server5  |        | {virtual_host=false}
+ oss_server6  |        | {protocol=qingstor,"endpoint=pek3b,qingstor.com"}
+ oss_server7  |        | {https=false,virtual_host=true}
+ oss_server8  |        | {protocol=hdfs,namenode=127.0.0.1:8020}
+(9 rows)
+
+-- Test directory table
+-- Test CREATE DIRECTORY TABLE
+SELECT count(*) FROM pg_directory_table;
+ count 
+-------
+     0
+(1 row)
+
+SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
+ relname | relisshared | relpersistence | relkind 
+---------+-------------+----------------+---------
+(0 rows)
+
+CREATE DIRECTORY TABLE dir_table1;  -- fail
+ERROR:  Tablespace is disallowed to use NULL in create directory table.
+CREATE DIRECTORY TABLE dir_table2 TABLESPACE directory_tblspc;
+CREATE DIRECTORY TABLE dir_table3 TABLESPACE directory_tblspc DISTRIBUTED BY(relative_path);    -- fail
+CREATE DIRECTORY TABLE IF NOT EXISTS dir_table1 TABLESPACE directory_tblspc;
+CREATE DIRECTORY TABLE IF NOT EXISTS dir_table2 TABLESPACE directory_tblspc;    -- fail
+NOTICE:  relation "dir_table2" already exists, skipping
+CREATE DIRECTORY TABLE dir_table4 TABLESPACE directory_tblspc;
+CREATE DIRECTORY TABLE dir_table5 TABLESPACE directory_tblspc;
+\dY
+                List of relations
+ Schema |    Name    |      Type       |  Owner  
+--------+------------+-----------------+---------
+ public | dir_table1 | directory table | gpadmin
+ public | dir_table2 | directory table | gpadmin
+ public | dir_table3 | directory table | gpadmin
+ public | dir_table4 | directory table | gpadmin
+ public | dir_table5 | directory table | gpadmin
+(5 rows)
+
+SELECT count(*) FROM pg_directory_table;
+ count 
+-------
+     5
+(1 row)
+
+SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
+     relname     | relisshared | relpersistence | relkind 
+-----------------+-------------+----------------+---------
+ dir_table1      | f           | p              | d
+ dir_table1_pkey | f           | p              | i
+ dir_table2      | f           | p              | d
+ dir_table2_pkey | f           | p              | i
+ dir_table3      | f           | p              | d
+ dir_table3_pkey | f           | p              | i
+ dir_table4      | f           | p              | d
+ dir_table4_pkey | f           | p              | i
+ dir_table5      | f           | p              | d
+ dir_table5_pkey | f           | p              | i
+(10 rows)
+
+\d+ dir_table1;
+                                        Directory able "public.dir_table1"
+    Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ relative_path | text                     |           | not null |         | extended |              | 
+ size          | bigint                   |           |          |         | plain    |              | 
+ last_modified | timestamp with time zone |           |          |         | plain    |              | 
+ md5           | text                     |           |          |         | extended |              | 
+ tag           | text                     |           |          |         | extended |              | 
+Indexes:
+    "dir_table1_pkey" PRIMARY KEY, btree (relative_path)
+Distributed by: (relative_path)
+
+\d+ dir_table2;
+                                        Directory able "public.dir_table2"
+    Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ relative_path | text                     |           | not null |         | extended |              | 
+ size          | bigint                   |           |          |         | plain    |              | 
+ last_modified | timestamp with time zone |           |          |         | plain    |              | 
+ md5           | text                     |           |          |         | extended |              | 
+ tag           | text                     |           |          |         | extended |              | 
+Indexes:
+    "dir_table2_pkey" PRIMARY KEY, btree (relative_path)
+Distributed by: (relative_path)
+
+\d+ dir_table3;
+                                        Directory able "public.dir_table3"
+    Column     |           Type           | Collation | Nullable | Default | Storage  | Stats target | Description 
+---------------+--------------------------+-----------+----------+---------+----------+--------------+-------------
+ relative_path | text                     |           | not null |         | extended |              | 
+ size          | bigint                   |           |          |         | plain    |              | 
+ last_modified | timestamp with time zone |           |          |         | plain    |              | 
+ md5           | text                     |           |          |         | extended |              | 
+ tag           | text                     |           |          |         | extended |              | 
+Indexes:
+    "dir_table3_pkey" PRIMARY KEY, btree (relative_path)
+Distributed by: (relative_path)
+
+-- Test DROP DIRECTORY TABLE
+DROP DIRECTORY TABLE dir_table4;
+DROP DIRECTORY TABLE dir_table4;    -- fail
+ERROR:  directory table "dir_table4" does not exist
+DROP DIRECTORY TABLE IF EXISTS dir_table5;
+DROP DIRECTORY TABLE IF EXISTS dir_table5;  -- skip
+NOTICE:  directory table "dir_table5" does not exist, skipping
+\dY
+                List of relations
+ Schema |    Name    |      Type       |  Owner  
+--------+------------+-----------------+---------
+ public | dir_table1 | directory table | gpadmin
+ public | dir_table2 | directory table | gpadmin
+ public | dir_table3 | directory table | gpadmin
+(3 rows)
+
+SELECT count(*) FROM pg_directory_table;
+ count 
+-------
+     3
+(1 row)
+
+SELECT relname, relisshared, relpersistence, relkind FROM pg_class WHERE relname like '%dir_table%' ORDER BY 1;
+     relname     | relisshared | relpersistence | relkind 
+-----------------+-------------+----------------+---------
+ dir_table1      | f           | p              | d
+ dir_table1_pkey | f           | p              | i
+ dir_table2      | f           | p              | d
+ dir_table2_pkey | f           | p              | i
+ dir_table3      | f           | p              | d
+ dir_table3_pkey | f           | p              | i
+(6 rows)
+
+-- Test COPY DIRECTORY TABLE
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size | tag 
+---------------+------+-----
+(0 rows)
+
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size | tag 
+---------------+------+-----
+(0 rows)
+
+\COPY dir_table1 FROM '@abs_srcdir@/data/nation.csv';    -- fail
+ERROR:  Copy from directory table file name can't be null.
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv';    -- fail
+ERROR:  Copy from directory table file name can't be null.
+COPY dir_table1 FROM '@abs_srcdir@/data/nation.csv';     -- fail
+ERROR:  Copy from directory table file name can't be null.
+COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv';     -- fail
+ERROR:  Copy from directory table file name can't be null.
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation1'; -- fail
+ERROR:  duplicate key value violates unique constraint "dir_table1_pkey"
+DETAIL:  Key (relative_path)=(nation1) already exists.
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
+ERROR:  duplicate key value violates unique constraint "dir_table1_pkey"
+DETAIL:  Key (relative_path)=(nation3) already exists.
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
+ERROR:  duplicate key value violates unique constraint "dir_table1_pkey"
+DETAIL:  Key (relative_path)=(nation3) already exists.
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
+\COPY BINARY dir_table1 FROM '@abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
+ERROR:  syntax error at or near "WITH"
+LINE 1: ...dir_table1 FROM STDIN 'nation5' WITH TAG 'nation' WITH TAG '...
+                                                             ^
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation1';
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation1'; -- fail
+ERROR:  duplicate key value violates unique constraint "dir_table2_pkey"
+DETAIL:  Key (relative_path)=(nation1) already exists.
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation2';
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation';    -- fail
+ERROR:  duplicate key value violates unique constraint "dir_table2_pkey"
+DETAIL:  Key (relative_path)=(nation3) already exists.
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation3' WITH TAG 'nation2';    -- fail
+ERROR:  duplicate key value violates unique constraint "dir_table2_pkey"
+DETAIL:  Key (relative_path)=(nation3) already exists.
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation4' WITH TAG 'nation';
+\COPY BINARY dir_table2 FROM '@abs_srcdir@/data/nation.csv' 'nation5' WITH TAG 'nation' WITH TAG 'nation2';    -- fail
+ERROR:  syntax error at or near "WITH"
+LINE 1: ...dir_table2 FROM STDIN 'nation5' WITH TAG 'nation' WITH TAG '...
+                                                             ^
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+-- Does not support copy to
+\COPY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table1"
+\COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table1"
+COPY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table1"
+COPY BINARY dir_table1 TO '@abs_srcdir@/data/dir_table1';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table1"
+\COPY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table2"
+\COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table2"
+COPY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table2"
+COPY BINARY dir_table2 TO '@abs_srcdir@/data/dir_table2';  -- fail
+ERROR:  cannot copy from non-table relation "dir_table2"
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+-- Test DML directory schema table, only allow to update tag
+INSERT INTO dir_table1 VALUES('insert');    -- fail
+ERROR:  cannot change directory table "dir_table1"
+INSERT INTO dir_table2 VALUES('insert', 512, '2000-03-21 17:13:27+08', '70f09140d1b83eb3ecf9a0e28494d2a4', 'insert');   -- fail
+ERROR:  cannot change directory table "dir_table2"
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+DELETE FROM dir_table1; -- fail
+ERROR:  cannot change directory table "dir_table1"
+DELETE FROM dir_table2 WHERE relative_path = 'nation1'; -- fail
+ERROR:  cannot change directory table "dir_table2"
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation
+ nation4       | 2199 | nation
+(4 rows)
+
+UPDATE dir_table1 SET relative_path = 'nation_updated'; -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table2 SET relative_path = 'nation_updated' WHERE relative_path = 'nation2'; -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table1 SET size = 512;   -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table2 SET size = 1024 WHERE relative_path = 'nation1';  -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table1 SET last_modified = '2000-03-21 16:55:07+08'; -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table2 SET last_modified = '2000-03-21 16:55:07+08' WHERE relative_path = 'nation3'; -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table1 SET md5 = '70f09140d1b83eb3ecf9a0e28494d2a4'; -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table2 SET md5 = '70f09140d1b83eb3ecf9a0e28494d2a4' WHERE relative_path = 'nation4'; -- fail
+ERROR:  Only allow to update directory "tag" column.
+UPDATE dir_table1 SET tag = 'nation_new_tag';  -- ok
+UPDATE dir_table1 SET tag = 'nation2_new_tag' WHERE relative_path = 'nation2';  -- ok
+UPDATE dir_table2 SET tag = 'nation4_new_tag' WHERE relative_path = 'nation3';  -- ok
+UPDATE dir_table1 SET tag = 'failed_tag' WHERE relative_path = 'not_exist_path';
+UPDATE dir_table2 SET tag = 'no_tag' WHERE relative_path = 'not_exist_path';
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size |       tag       
+---------------+------+-----------------
+ nation1       | 2199 | nation_new_tag
+ nation2       | 2199 | nation2_new_tag
+ nation3       | 2199 | nation_new_tag
+ nation4       | 2199 | nation_new_tag
+(4 rows)
+
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size |       tag       
+---------------+------+-----------------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation3       | 2199 | nation4_new_tag
+ nation4       | 2199 | nation
+(4 rows)
+
+-- Test remove_table
+SELECT remove_file('dir_table1', 'nation5');    -- fail
+ remove_file 
+-------------
+ f
+(1 row)
+
+SELECT remove_file('dir_table1', 'nation1');
+ remove_file 
+-------------
+ t
+(1 row)
+
+SELECT remove_file('dir_table2', 'nation1', 'nation2'); -- fail
+ERROR:  function remove_file(unknown, unknown, unknown) does not exist
+LINE 1: SELECT remove_file('dir_table2', 'nation1', 'nation2');
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+SELECT remove_file('dir_table1', 'nation2');
+ remove_file 
+-------------
+ t
+(1 row)
+
+SELECT remove_file('dir_table3', 'nation1');    -- fail
+ remove_file 
+-------------
+ f
+(1 row)
+
+SELECT remove_file('dir_table2', 'nation3');
+ remove_file 
+-------------
+ t
+(1 row)
+
+SELECT remove_file('dir_table1', 'nation1');    -- fail
+ remove_file 
+-------------
+ f
+(1 row)
+
+SELECT relative_path, size, tag FROM dir_table1 ORDER BY 1;
+ relative_path | size |      tag       
+---------------+------+----------------
+ nation3       | 2199 | nation_new_tag
+ nation4       | 2199 | nation_new_tag
+(2 rows)
+
+SELECT relative_path, size, tag FROM dir_table2 ORDER BY 1;
+ relative_path | size |  tag   
+---------------+------+--------
+ nation1       | 2199 | 
+ nation2       | 2199 | 
+ nation4       | 2199 | nation
+(3 rows)
+
+-- clean up
+DROP DIRECTORY TABLE IF EXISTS dir_table1;
+DROP DIRECTORY TABLE IF EXISTS dir_table2;
+DROP DIRECTORY TABLE IF EXISTS dir_table3;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server1;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server2;
+NOTICE:  storage user mapping for "gpadmin" does not exist for storage server "oss_server2", skipping
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server3;
+DROP STORAGE USER MAPPING IF EXISTS FOR CURRENT_USER STORAGE SERVER oss_server4;
+NOTICE:  storage server "oss_server4" does not exist, skipping
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable1 STORAGE SERVER oss_server1;
+NOTICE:  storage user mapping for "test_dirtable1" does not exist for storage server "oss_server1", skipping
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable1 STORAGE SERVER oss_server2;
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable1 STORAGE SERVER oss_server3;
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable2 STORAGE SERVER oss_server3;
+DROP STORAGE USER MAPPING IF EXISTS FOR test_dirtable3 STORAGE SERVER oss_server8;
+DROP STORAGE SERVER IF EXISTS oss_server1;
+DROP STORAGE SERVER IF EXISTS oss_server2;
+DROP STORAGE SERVER IF EXISTS oss_server3;
+DROP STORAGE SERVER IF EXISTS oss_server4;
+NOTICE:  storage server "oss_server4" not exists, skipping
+DROP STORAGE SERVER IF EXISTS oss_server5;
+DROP STORAGE SERVER IF EXISTS oss_server6;
+DROP STORAGE SERVER IF EXISTS oss_server7;
+DROP STORAGE SERVER IF EXISTS oss_server8;
+DROP STORAGE SERVER IF EXISTS oss_server9;
+NOTICE:  storage server "oss_server9" not exists, skipping
+DROP STORAGE SERVER IF EXISTS oss_server10;
+NOTICE:  storage server "oss_server10" not exists, skipping
+DROP STORAGE SERVER IF EXISTS oss_server11;
+DROP STORAGE SERVER IF EXISTS oss_server12;
+DROP STORAGE SERVER IF EXISTS oss_server13;
+NOTICE:  storage server "oss_server13" not exists, skipping
+SELECT srvname, srvacl, srvoptions FROM gp_storage_server;
+ srvname | srvacl | srvoptions 
+---------+--------+------------
+(0 rows)
+
+DROP USER test_dirtable1;
+DROP USER test_dirtable2;
+DROP USER test_dirtable3;
+DROP USER test_dirtable4;
+DROP TABLESPACE directory_tblspc;

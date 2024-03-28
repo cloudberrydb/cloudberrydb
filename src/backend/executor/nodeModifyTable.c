@@ -2651,6 +2651,7 @@ ExecModifyTable(PlanState *pstate)
 
 			relkind = resultRelInfo->ri_RelationDesc->rd_rel->relkind;
 			if (relkind == RELKIND_RELATION ||
+				relkind == RELKIND_DIRECTORY_TABLE ||
 				relkind == RELKIND_MATVIEW ||
 				relkind == RELKIND_PARTITIONED_TABLE)
 			{
@@ -3070,6 +3071,14 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 		 */
 		CheckValidResultRel(resultRelInfo, operation);
 
+		/*
+		 * Verify directory table is a valid target for the current operation
+		 */
+		if (resultRelInfo->ri_RelationDesc->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
+		{
+			CheckValidResultRelDirectoryTable(resultRelInfo, operation, mtstate);
+		}
+
 		if (RelationIsAoRows(resultRelInfo->ri_RelationDesc))
 			appendonly_dml_init(resultRelInfo->ri_RelationDesc, operation);
 		else if (RelationIsAoCols(resultRelInfo->ri_RelationDesc))
@@ -3131,6 +3140,7 @@ ExecInitModifyTable(ModifyTable *node, EState *estate, int eflags)
 
 			relkind = resultRelInfo->ri_RelationDesc->rd_rel->relkind;
 			if (relkind == RELKIND_RELATION ||
+				relkind == RELKIND_DIRECTORY_TABLE ||
 				relkind == RELKIND_MATVIEW ||
 				relkind == RELKIND_PARTITIONED_TABLE)
 			{

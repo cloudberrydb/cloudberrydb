@@ -197,6 +197,41 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString)
 	DistributedBy *likeDistributedBy = NULL;
 	bool		bQuiet = false;		/* shut up transformDistributedBy messages */
 
+	if (stmt->relKind == RELKIND_DIRECTORY_TABLE)
+	{
+		Oid			opclassoid = InvalidOid;
+		HeapTuple	ht_opc;
+		Form_pg_opclass opcrec;
+		char	   *opcname;
+		char	   *nspname;
+
+		DistributedBy *distributedBy = makeNode(DistributedBy);
+		distributedBy->ptype = POLICYTYPE_PARTITIONED;
+		distributedBy->numsegments = -1;
+		DistributionKeyElem *elem = makeNode(DistributionKeyElem);
+		//char	   *attname = pstrdup(NameStr(TupleDescAttr(tupdesc, attno - 1)->attname));
+		elem->name = "relative_path";
+		if (gp_use_legacy_hashops)
+			opclassoid = get_legacy_cdbhash_opclass_for_base_type(25);
+
+		if (!OidIsValid(opclassoid))
+			opclassoid = cdb_default_distribution_opclass_for_type(25);
+
+		ht_opc = SearchSysCache1(CLAOID, ObjectIdGetDatum(opclassoid));
+		if (!HeapTupleIsValid(ht_opc))
+			elog(ERROR, "cache lookup failed for opclass %u", opclassoid);
+		opcrec = (Form_pg_opclass) GETSTRUCT(ht_opc);
+		nspname = get_namespace_name(opcrec->opcnamespace);
+		opcname = pstrdup(NameStr(opcrec->opcname));
+		elem->opclass = list_make2(makeString(nspname), makeString(opcname));
+
+		elem->location = -1;
+		distributedBy->keyCols = lappend(distributedBy->keyCols, elem);
+		stmt->distributedBy = distributedBy;
+
+		ReleaseSysCache(ht_opc);
+	}
+
  	/*
 	 * We don't normally care much about the memory consumption of parsing,
 	 * because any memory leaked is leaked into MessageContext which is
@@ -389,7 +424,7 @@ transformCreateStmt(CreateStmt *stmt, const char *queryString)
 	 * Transform DISTRIBUTED BY (or construct a default one, if not given
 	 * explicitly).
 	 */
-	if (stmt->relKind == RELKIND_RELATION)
+	if (stmt->relKind == RELKIND_RELATION || stmt->relKind == RELKIND_DIRECTORY_TABLE)
 	{
 		stmt->distributedBy = transformDistributedBy(pstate, &cxt,
 													 stmt->distributedBy,
@@ -1081,6 +1116,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 	relation = relation_openrv(table_like_clause->relation, AccessShareLock);
 
 	if (relation->rd_rel->relkind != RELKIND_RELATION &&
+		relation->rd_rel->relkind != RELKIND_DIRECTORY_TABLE &&
 		relation->rd_rel->relkind != RELKIND_VIEW &&
 		relation->rd_rel->relkind != RELKIND_MATVIEW &&
 		relation->rd_rel->relkind != RELKIND_COMPOSITE_TYPE &&
@@ -1088,7 +1124,7 @@ transformTableLikeClause(CreateStmtContext *cxt, TableLikeClause *table_like_cla
 		relation->rd_rel->relkind != RELKIND_PARTITIONED_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is not a table, view, materialized view, composite type, or foreign table",
+				 errmsg("\"%s\" is not a table, directory table, view, materialized view, composite type, or foreign table",
 						RelationGetRelationName(relation))));
 
 	cancel_parser_errposition_callback(&pcbstate);

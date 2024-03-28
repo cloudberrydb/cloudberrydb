@@ -1702,6 +1702,8 @@ CREATE VIEW pg_user_mappings AS
 
 REVOKE ALL ON pg_user_mapping FROM public;
 
+REVOKE ALL ON gp_storage_user_mapping FROM public;
+
 CREATE VIEW pg_replication_origin_status AS
     SELECT *
     FROM pg_show_replication_origin_status();

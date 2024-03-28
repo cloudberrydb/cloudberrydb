@@ -166,6 +166,16 @@ static relopt_bool boolRelOpts[] =
 		},
 		true
 	},
+	/* TODO: Whether this should also be moved to extension? */
+	{
+		{
+			"stage",
+			"Declare a tablespace as a dfs staged tablespace",
+			RELOPT_KIND_TABLESPACE,
+			AccessExclusiveLock
+		},
+		false
+	},
 	/* list terminator */
 	{{NULL}}
 };
@@ -546,6 +556,25 @@ static relopt_enum enumRelOpts[] =
 
 static relopt_string stringRelOpts[] =
 {
+	/* TODO: Whether this should also be moved to extension? */
+	{
+		{
+			"server",
+			"the server used by the dfs tablespace",
+			RELOPT_KIND_TABLESPACE,
+			AccessExclusiveLock
+		},
+		0, true, NULL, NULL, NULL
+	},
+	{
+		{
+			"path",
+			"the path of the dfs tablespace",
+			RELOPT_KIND_TABLESPACE,
+			AccessExclusiveLock
+		},
+		0, true, NULL, NULL, NULL
+	},
 	/* list terminator */
 	{{NULL}}
 };
@@ -1403,6 +1432,7 @@ extractRelOptions(HeapTuple tuple, TupleDesc tupdesc,
 		case RELKIND_RELATION:
 		case RELKIND_TOASTVALUE:
 		case RELKIND_MATVIEW:
+		case RELKIND_DIRECTORY_TABLE:
 			options = table_reloptions((tamoptions_function)amoptions, datum, classForm->relkind, false);
 			break;
 		case RELKIND_PARTITIONED_TABLE:
@@ -2028,6 +2058,7 @@ bytea *
 table_reloptions(tamoptions_function amoptions, Datum reloptions, char relkind, bool validate)
 {
 	Assert(relkind == RELKIND_RELATION ||
+			relkind == RELKIND_DIRECTORY_TABLE ||
 			relkind == RELKIND_TOASTVALUE ||
 			relkind == RELKIND_MATVIEW);
 	if (amoptions == NULL)
@@ -2098,7 +2129,10 @@ tablespace_reloptions(Datum reloptions, bool validate)
 		{"random_page_cost", RELOPT_TYPE_REAL, offsetof(TableSpaceOpts, random_page_cost)},
 		{"seq_page_cost", RELOPT_TYPE_REAL, offsetof(TableSpaceOpts, seq_page_cost)},
 		{"effective_io_concurrency", RELOPT_TYPE_INT, offsetof(TableSpaceOpts, effective_io_concurrency)},
-		{"maintenance_io_concurrency", RELOPT_TYPE_INT, offsetof(TableSpaceOpts, maintenance_io_concurrency)}
+		{"maintenance_io_concurrency", RELOPT_TYPE_INT, offsetof(TableSpaceOpts, maintenance_io_concurrency)},
+		{"stage", RELOPT_TYPE_BOOL, offsetof(TableSpaceOpts, stage)},
+		{"server", RELOPT_TYPE_STRING, offsetof(TableSpaceOpts, server)},
+		{"path", RELOPT_TYPE_STRING, offsetof(TableSpaceOpts, path)}
 	};
 
 	return (bytea *) build_reloptions(reloptions, validate,

@@ -1797,7 +1797,7 @@ setup_privileges(FILE *cmdfd)
 		" ) as a) "
 		"  WHERE relkind IN (" CppAsString2(RELKIND_RELATION) ", "
 		CppAsString2(RELKIND_VIEW) ", " CppAsString2(RELKIND_MATVIEW) ", "
-		CppAsString2(RELKIND_SEQUENCE) ")"
+		CppAsString2(RELKIND_SEQUENCE) ", " CppAsString2(RELKIND_DIRECTORY_TABLE) ")"
 		"  AND relacl IS NULL;\n\n",
 		"GRANT USAGE ON SCHEMA pg_catalog TO PUBLIC;\n\n",
 		"GRANT CREATE, USAGE ON SCHEMA public TO PUBLIC;\n\n",
@@ -1816,7 +1816,7 @@ setup_privileges(FILE *cmdfd)
 		"        relacl IS NOT NULL"
 		"        AND relkind IN (" CppAsString2(RELKIND_RELATION) ", "
 		CppAsString2(RELKIND_VIEW) ", " CppAsString2(RELKIND_MATVIEW) ", "
-		CppAsString2(RELKIND_SEQUENCE) ");\n\n",
+		CppAsString2(RELKIND_SEQUENCE) ", " CppAsString2(RELKIND_DIRECTORY_TABLE) ");\n\n",
 		"INSERT INTO pg_init_privs "
 		"  (objoid, classoid, objsubid, initprivs, privtype)"
 		"    SELECT"
@@ -1832,7 +1832,7 @@ setup_privileges(FILE *cmdfd)
 		"        pg_attribute.attacl IS NOT NULL"
 		"        AND pg_class.relkind IN (" CppAsString2(RELKIND_RELATION) ", "
 		CppAsString2(RELKIND_VIEW) ", " CppAsString2(RELKIND_MATVIEW) ", "
-		CppAsString2(RELKIND_SEQUENCE) ");\n\n",
+		CppAsString2(RELKIND_SEQUENCE) ", " CppAsString2(RELKIND_DIRECTORY_TABLE) ");\n\n",
 		"INSERT INTO pg_init_privs "
 		"  (objoid, classoid, objsubid, initprivs, privtype)"
 		"    SELECT"

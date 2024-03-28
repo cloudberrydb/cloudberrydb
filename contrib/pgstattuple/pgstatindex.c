@@ -766,7 +766,8 @@ check_relation_relkind(Relation rel)
 		rel->rd_rel->relkind != RELKIND_INDEX &&
 		rel->rd_rel->relkind != RELKIND_MATVIEW &&
 		rel->rd_rel->relkind != RELKIND_SEQUENCE &&
-		rel->rd_rel->relkind != RELKIND_TOASTVALUE)
+		rel->rd_rel->relkind != RELKIND_TOASTVALUE &&
+		rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("\"%s\" is not a table, index, materialized view, sequence, or TOAST table",

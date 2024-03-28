@@ -119,6 +119,7 @@ typedef struct CopyFormatOptions
 	bool		delim_off;	/* delimiter is set to OFF? */
 	EolType		eol_type;		/* EOL type of input */
 	char	   *eol_str;		/* optional NEWLINE from command. before eol_type is defined */
+	char	   *tags;			/* directory table */
 	SingleRowErrorDesc *sreh;
 	/* end Cloudberry Database specific variables */
 } CopyFormatOptions;
@@ -162,6 +163,7 @@ extern bool NextCopyFromRawFields(CopyFromState cstate,
 extern void CopyFromErrorCallback(void *arg);
 
 extern uint64 CopyFrom(CopyFromState cstate);
+//extern uint64 CopyFromDirectoryTable(CopyFromState cstate);
 
 extern DestReceiver *CreateCopyDestReceiver(void);
 

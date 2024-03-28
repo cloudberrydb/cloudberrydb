@@ -4896,7 +4896,7 @@ DROP TABLE test_part_integrity;
 -- Testing altering the distribution policy of external tables.
 CREATE WRITABLE EXTERNAL WEB TABLE ext_w_dist(a int, b int) EXECUTE 'cat > @abs_srcdir@/data/ext_w_dist.tbl' FORMAT 'TEXT' (DELIMITER AS '|' NULL AS 'null' ESCAPE AS ' ') DISTRIBUTED BY (a);
 ALTER TABLE ext_w_dist SET WITH (reorganize=true); -- should error out if forcing reorganize
-ERROR:  "ext_w_dist" is not a table
+ERROR:  "ext_w_dist" is not a table or directory table
 SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_dist'::regclass;
  policytype | distkey 
 ------------+---------
@@ -4904,7 +4904,7 @@ SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_d
 (1 row)
 
 ALTER TABLE ext_w_dist SET DISTRIBUTED BY (b);
-ERROR:  "ext_w_dist" is not a table
+ERROR:  "ext_w_dist" is not a table or directory table
 SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_dist'::regclass;
  policytype | distkey 
 ------------+---------
@@ -4912,7 +4912,7 @@ SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_d
 (1 row)
 
 ALTER TABLE ext_w_dist SET DISTRIBUTED RANDOMLY;
-ERROR:  "ext_w_dist" is not a table
+ERROR:  "ext_w_dist" is not a table or directory table
 SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'ext_w_dist'::regclass;
  policytype | distkey 
 ------------+---------
@@ -4923,7 +4923,7 @@ CREATE EXTERNAL WEB TABLE ext_r_dist(a int) EXECUTE 'printf ${GP_SEGMENT_ID}' FO
 ERROR:  readable external tables can't specify a DISTRIBUTED BY clause
 CREATE EXTERNAL WEB TABLE ext_r_dist(a int) EXECUTE 'printf ${GP_SEGMENT_ID}' FORMAT 'TEXT';
 ALTER TABLE ext_r_dist SET DISTRIBUTED BY (a); -- should error out altering readable external tables' distribution policy
-ERROR:  "ext_r_dist" is not a table
+ERROR:  "ext_r_dist" is not a table or directory table
 -- Testing external table as the partition child.
 CREATE TABLE part_root(a int) PARTITION BY RANGE(a);
 CREATE TABLE part_child (LIKE part_root);
@@ -4941,7 +4941,7 @@ SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'part_ex
 (1 row)
 
 ALTER TABLE part_root SET DISTRIBUTED BY (b);
-ERROR:  "part_ext_w" is not a table
+ERROR:  "part_ext_w" is not a table or directory table
 SELECT policytype, distkey FROM gp_distribution_policy WHERE localoid = 'part_ext_w'::regclass;
  policytype | distkey 
 ------------+---------

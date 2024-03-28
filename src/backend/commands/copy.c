@@ -393,7 +393,8 @@ DoCopy(ParseState *pstate, const CopyStmt *stmt,
 			PreventCommandIfReadOnly("COPY FROM");
 
 		cstate = BeginCopyFrom(pstate, rel, whereClause,
-							   stmt->filename, stmt->is_program,
+							   stmt->filename,
+							   stmt->is_program,
 							   NULL, NULL, stmt->attlist, options);
 
 		/*
@@ -792,6 +793,15 @@ ProcessCopyOptions(ParseState *pstate,
 						 errmsg("conflicting or redundant options")));
 			opts_out->skip_foreign_partitions = true;
 		}
+		else if (strcmp(defel->defname, "tag") == 0)
+		{
+			if (opts_out->tags)
+				ereport(ERROR,
+								(errcode(ERRCODE_SYNTAX_ERROR),
+								 errmsg("conflicting or redundant options"),
+								 parser_errposition(pstate, defel->location)));
+			opts_out->tags = defGetString(defel);
+		}
 		else if (!rel_is_external_table(rel_oid))
 			ereport(ERROR,
 					(errcode(ERRCODE_SYNTAX_ERROR),
@@ -964,6 +974,11 @@ ProcessCopyOptions(ParseState *pstate,
 		ereport(ERROR,
 				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 				 errmsg("CSV quote character must not appear in the NULL specification")));
+
+	if (opts_out->tags != NULL && !is_from)
+		ereport(ERROR,
+						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+						 errmsg("COPY with tag only available using COPY FROM")));
 
 	/*
 	 * DELIMITER

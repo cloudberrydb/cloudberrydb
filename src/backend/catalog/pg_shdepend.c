@@ -21,6 +21,8 @@
 #include "access/xact.h"
 #include "catalog/catalog.h"
 #include "catalog/dependency.h"
+#include "catalog/gp_storage_server.h"
+#include "catalog/gp_storage_user_mapping.h"
 #include "catalog/indexing.h"
 #include "catalog/pg_authid.h"
 #include "catalog/pg_collation.h"
@@ -1221,6 +1223,26 @@ shdepLockAndCheckObject(Oid classId, Oid objectId)
 				break;
 			}
 
+		case StorageServerRelationId:
+			{
+				if (!SearchSysCacheExists1(STORAGESERVEROID, ObjectIdGetDatum(objectId)))
+					ereport(ERROR,
+							(errcode(ERRCODE_UNDEFINED_OBJECT),
+							 errmsg("storage server %u was concurrently dropped",
+			   						objectId)));
+				break;
+			}
+
+		case StorageUserMappingRelationId:
+			{
+				if (!SearchSysCacheExists1(STORAGEUSERMAPPINGUSERSERVER, ObjectIdGetDatum(objectId)))
+					ereport(ERROR,
+							(errcode(ERRCODE_UNDEFINED_OBJECT),
+							 errmsg("storage user mapping %u was concurrently dropped",
+			   						objectId)));
+				break;
+			}
+
 
 		default:
 			elog(ERROR, "unrecognized shared classId: %u", classId);
@@ -1275,6 +1297,8 @@ storeObjectDescription(StringInfo descs,
 				appendStringInfo(descs, _("tablespace for %s"), objdesc);
 			else if (deptype == SHARED_DEPENDENCY_PROFILE)
 				appendStringInfo(descs, _("profile of %s"), objdesc);
+			else if (deptype == SHARED_DEPENDENCY_STORAGE_SERVER)
+				appendStringInfo(descs, _("storage server of %s"), objdesc);
 			else
 				elog(ERROR, "unrecognized dependency type: %d",
 					 (int) deptype);
@@ -1743,4 +1767,27 @@ changeProfileDependency(Oid roleId, Oid newprofileId)
 				SHARED_DEPENDENCY_PROFILE);
 
 	table_close(sdepRel, RowExclusiveLock);
+}
+
+/*
+ * recordStorageServerDependency
+ *
+ * A convenient wrapper of recordSharedDependencyOn -- register the specified
+ * storage user mapping of attached to storage server.
+ */
+void
+recordStorageServerDependency(Oid umId, Oid srvId)
+{
+	ObjectAddress myself,
+		referenced;
+
+	myself.classId = StorageUserMappingRelationId;
+	myself.objectId = umId;
+	myself.objectSubId = 0;
+
+	referenced.classId = StorageServerRelationId;
+	referenced.objectId = srvId;
+	referenced.objectSubId = 0;
+
+	recordSharedDependencyOn(&myself, &referenced, SHARED_DEPENDENCY_STORAGE_SERVER);
 }

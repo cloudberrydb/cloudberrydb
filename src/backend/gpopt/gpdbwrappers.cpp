@@ -66,7 +66,7 @@ using namespace gpos;
 
 void debug_gpos_assert(const char *filename, long line, const char *msg)
 {
-	elog(LOG, "[debug_gpos_assert]: '%s':%ld  %s", filename, line, msg);
+	elog(DEBUG1, "[debug_gpos_assert]: '%s':%ld  %s", filename, line, msg);
 }
 
 bool

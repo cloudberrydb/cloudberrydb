@@ -210,7 +210,8 @@ CreateTriggerFiringOn(CreateTrigStmt *stmt, const char *queryString,
 	 * Triggers must be on tables or views, and there are additional
 	 * relation-type-specific restrictions.
 	 */
-	if (rel->rd_rel->relkind == RELKIND_RELATION)
+	if (rel->rd_rel->relkind == RELKIND_RELATION ||
+			rel->rd_rel->relkind == RELKIND_DIRECTORY_TABLE)
 	{
 		/* Tables can't have INSTEAD OF triggers */
 		if (stmt->timing != TRIGGER_TYPE_BEFORE &&
@@ -1353,6 +1354,7 @@ RemoveTriggerById(Oid trigOid)
 	rel = table_open(relid, AccessExclusiveLock);
 
 	if (rel->rd_rel->relkind != RELKIND_RELATION &&
+		rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE &&
 		rel->rd_rel->relkind != RELKIND_VIEW &&
 		rel->rd_rel->relkind != RELKIND_FOREIGN_TABLE &&
 		rel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE)
@@ -1460,11 +1462,12 @@ RangeVarCallbackForRenameTrigger(const RangeVar *rv, Oid relid, Oid oldrelid,
 
 	/* only tables and views can have triggers */
 	if (form->relkind != RELKIND_RELATION && form->relkind != RELKIND_VIEW &&
+		form->relkind != RELKIND_DIRECTORY_TABLE &&
 		form->relkind != RELKIND_FOREIGN_TABLE &&
 		form->relkind != RELKIND_PARTITIONED_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is not a table, view, or foreign table",
+				 errmsg("\"%s\" is not a table, directory table, view, or foreign table",
 						rv->relname)));
 
 	/* you must own the table to rename one of its triggers */

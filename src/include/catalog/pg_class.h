@@ -185,6 +185,7 @@ DECLARE_INDEX(pg_class_tblspc_relfilenode_index, 3455, on pg_class using btree(r
 #define		  RELKIND_AOSEGMENTS	  'o'		/* AO segment files and eof's */
 #define		  RELKIND_AOBLOCKDIR	  'b'		/* AO block directory */
 #define		  RELKIND_AOVISIMAP		  'M'		/* AO visibility map */
+#define		  RELKIND_DIRECTORY_TABLE 'd'		/* directory table */
 
 #define		  RELPERSISTENCE_PERMANENT	'p' /* regular table */
 #define		  RELPERSISTENCE_UNLOGGED	'u' /* unlogged permanent table */
@@ -210,6 +211,7 @@ DECLARE_INDEX(pg_class_tblspc_relfilenode_index, 3455, on pg_class using btree(r
  */
 #define RELKIND_HAS_STORAGE(relkind) \
 	((relkind) == RELKIND_RELATION || \
+     (relkind) == RELKIND_DIRECTORY_TABLE || \
 	 (relkind) == RELKIND_INDEX || \
 	 (relkind) == RELKIND_SEQUENCE || \
 	 (relkind) == RELKIND_TOASTVALUE || \

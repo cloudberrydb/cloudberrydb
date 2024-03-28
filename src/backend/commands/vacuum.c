@@ -1130,6 +1130,7 @@ get_all_vacuum_rels(int options)
 		 * them.
 		 */
 		if (classForm->relkind != RELKIND_RELATION &&
+			classForm->relkind != RELKIND_DIRECTORY_TABLE &&
 			classForm->relkind != RELKIND_MATVIEW &&
 			classForm->relkind != RELKIND_PARTITIONED_TABLE)
 			continue;
@@ -1852,6 +1853,7 @@ vac_update_datfrozenxid(void)
 		 * should have InvalidTransactionId in relfrozenxid anyway).
 		 */
 		if (classForm->relkind != RELKIND_RELATION &&
+			classForm->relkind != RELKIND_DIRECTORY_TABLE &&
 			classForm->relkind != RELKIND_MATVIEW &&
 			classForm->relkind != RELKIND_TOASTVALUE &&
 			classForm->relkind != RELKIND_AOSEGMENTS &&
@@ -2298,6 +2300,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	 * Check that it's of a vacuumable relkind.
 	 */
 	if (rel->rd_rel->relkind != RELKIND_RELATION &&
+		rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE &&
 		rel->rd_rel->relkind != RELKIND_MATVIEW &&
 		rel->rd_rel->relkind != RELKIND_TOASTVALUE &&
 		rel->rd_rel->relkind != RELKIND_PARTITIONED_TABLE &&
@@ -2457,6 +2460,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 	 */
 	if ((rel->rd_rel->relkind != RELKIND_RELATION &&
 		 rel->rd_rel->relkind != RELKIND_MATVIEW &&
+		 rel->rd_rel->relkind != RELKIND_DIRECTORY_TABLE &&
 		 rel->rd_rel->relkind != RELKIND_TOASTVALUE &&
 		 rel->rd_rel->relkind != RELKIND_AOSEGMENTS &&
 		 rel->rd_rel->relkind != RELKIND_AOBLOCKDIR &&
@@ -2558,6 +2562,7 @@ vacuum_rel(Oid relid, RangeVar *relation, VacuumParams *params,
 		if (has_bitmap)
 			LockRelation(rel, ShareLock);
 	}
+	/* TODO: vacuum directory table's temp files */
 
 	if (!is_appendoptimized && (params->options & VACOPT_FULL))
 	{

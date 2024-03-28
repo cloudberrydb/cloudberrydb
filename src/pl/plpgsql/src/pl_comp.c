@@ -1772,7 +1772,8 @@ plpgsql_parse_cwordtype(List *idents)
 		classStruct->relkind != RELKIND_MATVIEW &&
 		classStruct->relkind != RELKIND_COMPOSITE_TYPE &&
 		classStruct->relkind != RELKIND_FOREIGN_TABLE &&
-		classStruct->relkind != RELKIND_PARTITIONED_TABLE)
+		classStruct->relkind != RELKIND_PARTITIONED_TABLE &&
+		classStruct->relkind != RELKIND_DIRECTORY_TABLE)
 		goto done;
 
 	/*

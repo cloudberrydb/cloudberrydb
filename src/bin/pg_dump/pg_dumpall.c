@@ -1754,7 +1754,41 @@ dumpTablespaces(PGconn *conn)
 		return;
 	}
 
-	if (server_version >= 90600)
+	if (server_version >= 140000)
+	{
+		res = executeQuery(conn, "SELECT oid, spcname, "
+						   "pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
+						   "pg_catalog.pg_tablespace_location(oid), "
+						   "(SELECT array_agg(acl ORDER BY row_n) FROM "
+						   "  (SELECT acl, row_n FROM "
+						   "     unnest(coalesce(spcacl,acldefault('t',spcowner))) "
+						   "     WITH ORDINALITY AS perm(acl,row_n) "
+						   "   WHERE NOT EXISTS ( "
+						   "     SELECT 1 "
+						   "     FROM unnest(acldefault('t',spcowner)) "
+						   "       AS init(init_acl) "
+						   "     WHERE acl = init_acl)) AS spcacls) "
+						   " AS spcacl, "
+						   "(SELECT array_agg(acl ORDER BY row_n) FROM "
+						   "  (SELECT acl, row_n FROM "
+						   "     unnest(acldefault('t',spcowner)) "
+	 					   "     WITH ORDINALITY AS initp(acl,row_n) "
+						   "   WHERE NOT EXISTS ( "
+						   "     SELECT 1 "
+						   "     FROM unnest(coalesce(spcacl,acldefault('t',spcowner))) "
+						   "       AS permp(orig_acl) "
+						   "     WHERE acl = orig_acl)) AS rspcacls) "
+						   " AS rspcacl, "
+						   "array_to_string(spcoptions, ', '),"
+						   "pg_catalog.shobj_description(oid, 'pg_tablespace'), "
+						   "(SELECT proname FROM pg_catalog.pg_proc"
+						   "   WHERE oid IN (SELECT spcfilehandler FROM pg_catalog.pg_tablespace)) "
+						   "AS spchandler "
+						   "FROM pg_catalog.pg_tablespace "
+						   "WHERE spcname !~ '^pg_' "
+						   "ORDER BY 1");
+	}
+	else if (server_version >= 90600)
 		res = executeQuery(conn, "SELECT oid, spcname, "
 						   "pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
 						   "pg_catalog.pg_tablespace_location(oid), "
@@ -1779,7 +1813,7 @@ dumpTablespaces(PGconn *conn)
 						   "     WHERE acl = orig_acl)) AS rspcacls) "
 						   " AS rspcacl, "
 						   "array_to_string(spcoptions, ', '),"
-						   "pg_catalog.shobj_description(oid, 'pg_tablespace') "
+						   "pg_catalog.shobj_description(oid, 'pg_tablespace'), null "
 						   "FROM pg_catalog.pg_tablespace "
 						   "WHERE spcname !~ '^pg_' "
 						   "ORDER BY 1");
@@ -1789,7 +1823,7 @@ dumpTablespaces(PGconn *conn)
 						   "pg_catalog.pg_tablespace_location(oid), "
 						   "spcacl, '' as rspcacl, "
 						   "array_to_string(spcoptions, ', '),"
-						   "pg_catalog.shobj_description(oid, 'pg_tablespace') "
+						   "pg_catalog.shobj_description(oid, 'pg_tablespace'), null "
 						   "FROM pg_catalog.pg_tablespace "
 						   "WHERE spcname !~ '^pg_' "
 						   "ORDER BY 1");
@@ -1798,7 +1832,7 @@ dumpTablespaces(PGconn *conn)
 						   "pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
 						   "spclocation, spcacl, '' as rspcacl, "
 						   "array_to_string(spcoptions, ', '),"
-						   "pg_catalog.shobj_description(oid, 'pg_tablespace') "
+						   "pg_catalog.shobj_description(oid, 'pg_tablespace'), null "
 						   "FROM pg_catalog.pg_tablespace "
 						   "WHERE spcname !~ '^pg_' "
 						   "ORDER BY 1");
@@ -1806,7 +1840,7 @@ dumpTablespaces(PGconn *conn)
 		res = executeQuery(conn, "SELECT oid, spcname, "
 						   "pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
 						   "spclocation, spcacl, '' as rspcacl, null, "
-						   "pg_catalog.shobj_description(oid, 'pg_tablespace') "
+						   "pg_catalog.shobj_description(oid, 'pg_tablespace'), null "
 						   "FROM pg_catalog.pg_tablespace "
 						   "WHERE spcname !~ '^pg_' "
 						   "ORDER BY 1");
@@ -1816,7 +1850,7 @@ dumpTablespaces(PGconn *conn)
 		res = executeQuery(conn, "SELECT oid, spcname, "
 						   "pg_catalog.pg_get_userbyid(spcowner) AS spcowner, "
 						   "spclocation, spcacl, '' as rspcacl, "
-						   "null, null "
+						   "null, null, null "
 						   "FROM pg_catalog.pg_tablespace "
 						   "WHERE spcname !~ '^pg_' "
 						   "ORDER BY 1");
@@ -1836,6 +1870,7 @@ dumpTablespaces(PGconn *conn)
 		char	   *rspcacl = PQgetvalue(res, i, 5);
 		char	   *spcoptions = PQgetvalue(res, i, 6);
 		char	   *spccomment = PQgetvalue(res, i, 7);
+		char	   *spchandler = PQgetvalue(res, i, 8);
 		char	   *fspcname;
 
 		/* needed for buildACLCommands() */
@@ -1846,6 +1881,11 @@ dumpTablespaces(PGconn *conn)
 
 		appendPQExpBufferStr(buf, " LOCATION ");
 		appendStringLiteralConn(buf, spclocation, conn);
+		if (spchandler && spchandler[0] != '\0')
+		{
+			appendPQExpBufferStr(buf, " HANDLER ");
+			appendStringLiteralConn(buf, spchandler, conn);
+		}
 		appendPQExpBufferStr(buf, ";\n");
 
 		if (spcoptions && spcoptions[0] != '\0')

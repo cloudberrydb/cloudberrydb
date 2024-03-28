@@ -88,6 +88,7 @@
 #include "catalog/pg_tablespace.h"
 #include "catalog/catalog.h"
 #include "catalog/oid_dispatch.h"
+#include "catalog/pg_directory_table.h"
 #include "catalog/pg_type.h"
 #include "commands/copy.h"
 #include "commands/createas.h"
@@ -2088,6 +2089,26 @@ CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation)
 						 errmsg("cannot change AO visibility map relation \"%s\"",
 								RelationGetRelationName(resultRel))));
 			break;
+		case RELKIND_DIRECTORY_TABLE:
+			if (!allowSystemTableMods)
+			{
+				switch(operation)
+				{
+					case CMD_INSERT:
+					case CMD_DELETE:
+						ereport(ERROR,
+									(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+									 errmsg("cannot change directory table \"%s\"",
+										   RelationGetRelationName(resultRel))));
+						break;
+					case CMD_UPDATE:
+						break;
+					default:
+						elog(ERROR, "unrecognized CmdType: %d", (int) operation);
+						break;
+				}
+			}
+			break;
 
 		default:
 			ereport(ERROR,
@@ -2096,6 +2117,46 @@ CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation)
 							RelationGetRelationName(resultRel))));
 			break;
 	}
+}
+
+/*
+ * Check that a proposed result directory table is a legal target for the operation
+ */
+void
+CheckValidResultRelDirectoryTable(ResultRelInfo *resultRelInfo, CmdType operation, ModifyTableState *mtstate)
+{
+	ModifyTable *node = (ModifyTable *) mtstate->ps.plan;
+	int			whichrel;
+	List 		*updateColnos;
+	ListCell	*lc;
+
+	/*
+	 * Usually, mt_lastResultIndex matches the target rel. If it happens not
+	 * to, we can get the index the hard way with an integer division.
+	 */
+	whichrel = mtstate->mt_lastResultIndex;
+	if (resultRelInfo != mtstate->resultRelInfo + whichrel)
+	{
+		whichrel = resultRelInfo - mtstate->resultRelInfo;
+		Assert(whichrel >= 0 && whichrel < mtstate->mt_nrels);
+	}
+
+	updateColnos = (List *) list_nth(node->updateColnosLists, whichrel);
+
+	if (operation == CMD_UPDATE)
+	{
+		foreach(lc, updateColnos)
+		{
+			AttrNumber targetattnum = lfirst_int(lc);
+
+			if (targetattnum != DIRECTORY_TABLE_TAG_COLUMN_ATTNUM && !allowSystemTableMods)
+				ereport(ERROR,
+							(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+							 errmsg("Only allow to update directory \"tag\" column.")));
+		}
+	}
+
+	return;
 }
 
 /*
@@ -2152,6 +2213,14 @@ CheckValidRowMarkRel(Relation rel, RowMarkType markType)
 						(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 						 errmsg("cannot lock rows in foreign table \"%s\"",
 								RelationGetRelationName(rel))));
+			break;
+		case RELKIND_DIRECTORY_TABLE:
+			/* Allow referencing a directory table, but not actual locking clauses */
+			if (markType != ROW_MARK_REFERENCE)
+				ereport(ERROR,
+						(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+						 errmsg("cannot lock rows in directory table \"%s\"",
+			  							RelationGetRelationName(rel))));
 			break;
 		default:
 			ereport(ERROR,

@@ -209,6 +209,7 @@ _outCopyStmt(StringInfo str, const CopyStmt *node)
 	WRITE_BOOL_FIELD(is_from);
 	WRITE_BOOL_FIELD(is_program);
 	WRITE_STRING_FIELD(filename);
+	WRITE_STRING_FIELD(dirfilename);
 	WRITE_NODE_FIELD(options);
 	WRITE_NODE_FIELD(sreh);
 }

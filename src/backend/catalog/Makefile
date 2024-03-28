@@ -52,7 +52,8 @@ OBJS += pg_extprotocol.o \
        pg_appendonly.o \
        oid_dispatch.o aocatalog.o storage_tablespace.o storage_database.o \
        storage_tablespace_twophase.o storage_tablespace_xact.o \
-       gp_partition_template.o pg_task.o pg_task_run_history.o
+       gp_partition_template.o pg_task.o pg_task_run_history.o \
+       pg_directory_table.o storage_directory_table.o
 
 CATALOG_JSON:= $(addprefix $(top_srcdir)/gpMgmt/bin/gppylib/data/, $(addsuffix .json,$(GP_MAJORVERSION)))
 
@@ -92,7 +93,8 @@ CATALOG_HEADERS := \
 	pg_collation.h pg_partitioned_table.h pg_range.h pg_transform.h \
 	pg_sequence.h pg_publication.h pg_publication_rel.h pg_subscription.h \
 	pg_subscription_rel.h gp_partition_template.h pg_task.h pg_task_run_history.h \
-	pg_profile.h pg_password_history.h
+	pg_profile.h pg_password_history.h pg_directory_table.h gp_storage_server.h \
+	gp_storage_user_mapping.h
 
 USE_INTERNAL_FTS_FOUND := $(if $(findstring USE_INTERNAL_FTS,$(CFLAGS)),true,false)
 

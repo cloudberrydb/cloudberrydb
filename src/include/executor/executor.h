@@ -218,6 +218,7 @@ extern void standard_ExecutorEnd(QueryDesc *queryDesc);
 extern void ExecutorRewind(QueryDesc *queryDesc);
 extern bool ExecCheckRTPerms(List *rangeTable, bool ereport_on_violation);
 extern void CheckValidResultRel(ResultRelInfo *resultRelInfo, CmdType operation);
+extern void CheckValidResultRelDirectoryTable(ResultRelInfo *resultRelInfo, CmdType operation, ModifyTableState *mtstate);
 extern void InitResultRelInfo(ResultRelInfo *resultRelInfo,
 							  Relation resultRelationDesc,
 							  Index resultRelationIndex,

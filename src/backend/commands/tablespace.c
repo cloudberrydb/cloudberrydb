@@ -83,6 +83,7 @@
 #include "commands/tablespace.h"
 #include "common/file_perm.h"
 #include "miscadmin.h"
+#include "parser/parse_func.h"
 #include "postmaster/bgwriter.h"
 #include "storage/bufmgr.h"
 #include "storage/fd.h"
@@ -120,6 +121,7 @@ static void ensure_tablespace_directory_is_empty(const Oid tablespaceoid, const 
 
 static void unlink_during_redo(Oid tablepace_oid_to_unlink);
 static void unlink_without_redo(Oid tablespace_oid_to_unlink);
+static Oid	lookup_tblspc_handler_func(DefElem *handler);
 
 /*
  * Each database using a table space is isolated into its own name space
@@ -267,6 +269,7 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	Oid			tablespaceoid;
 	char	   *location = NULL;
 	Oid			ownerId;
+	Oid			fileHandler = InvalidOid;
 	Datum		newOptions;
 	List       *nonContentOptions = NIL;
 
@@ -315,6 +318,10 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 				}
 				else if (contentId == GpIdentity.segindex)
 					location = pstrdup(strVal(defel->arg));
+			}
+			else if(strcmp(defel->defname, "handler") == 0)
+			{
+				fileHandler = lookup_tblspc_handler_func(defel);
 			}
 			else
 				nonContentOptions = lappend(nonContentOptions, defel);
@@ -419,6 +426,15 @@ CreateTableSpace(CreateTableSpaceStmt *stmt)
 	values[Anum_pg_tablespace_spcowner - 1] =
 		ObjectIdGetDatum(ownerId);
 	nulls[Anum_pg_tablespace_spcacl - 1] = true;
+
+	if (OidIsValid(fileHandler))
+	{
+		values[Anum_pg_tablespace_spcfilehandler - 1] = ObjectIdGetDatum(fileHandler);
+	}
+	else
+	{
+		nulls[Anum_pg_tablespace_spcfilehandler - 1] = true;
+	}
 
 	/* Generate new proposed spcoptions (text array) */
 	newOptions = transformRelOptions((Datum) 0,
@@ -985,6 +1001,30 @@ unlink_during_redo(Oid tablepace_oid_to_unlink)
 						tablepace_oid_to_unlink), 
 					errhint("You can remove the directories manually if necessary.")));
 	}
+}
+
+/*
+ * Convert a handler function name passed from the parser to an Oid.
+ */
+static Oid
+lookup_tblspc_handler_func(DefElem *handler)
+{
+	Oid 		handlerOid;
+
+	if (handler == NULL || handler->arg == NULL)
+		return InvalidOid;
+
+	/* handlers have no arguments */
+	handlerOid = LookupFuncName((List *) handler->arg, 0, NULL, false);
+
+	/* check that handler has correct return type */
+	if (get_func_rettype(handlerOid) != TBLSPC_HANDLEROID)
+		ereport(ERROR,
+				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
+				 errmsg("function %s must return type %s",
+						NameListToString((List *) handler->arg), "tblspc_handler")));
+
+	return handlerOid;
 }
 
 /*

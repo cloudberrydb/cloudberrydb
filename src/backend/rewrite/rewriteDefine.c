@@ -295,12 +295,13 @@ DefineQueryRewrite(const char *rulename,
 	 * blocks them for users.  Don't mention them in the error message.
 	 */
 	if (event_relation->rd_rel->relkind != RELKIND_RELATION &&
+		event_relation->rd_rel->relkind != RELKIND_DIRECTORY_TABLE &&
 		event_relation->rd_rel->relkind != RELKIND_MATVIEW &&
 		event_relation->rd_rel->relkind != RELKIND_VIEW &&
 		event_relation->rd_rel->relkind != RELKIND_PARTITIONED_TABLE)
 		ereport(ERROR,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
-				 errmsg("\"%s\" is not a table or view",
+				 errmsg("\"%s\" is not a table, directory table or view",
 						RelationGetRelationName(event_relation))));
 
 	if (!allowSystemTableMods && IsSystemRelation(event_relation))
@@ -468,7 +469,8 @@ DefineQueryRewrite(const char *rulename,
 								RelationGetRelationName(event_relation))));
 
 			/* only case left: */
-			Assert(event_relation->rd_rel->relkind == RELKIND_RELATION);
+			Assert(event_relation->rd_rel->relkind == RELKIND_RELATION ||
+						event_relation->rd_rel->relkind == RELKIND_DIRECTORY_TABLE);
 
 			if (event_relation->rd_rel->relispartition)
 				ereport(ERROR,

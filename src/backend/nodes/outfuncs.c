@@ -4022,6 +4022,15 @@ _outPartitionRangeDatum(StringInfo str, const PartitionRangeDatum *node)
 	WRITE_LOCATION_FIELD(location);
 }
 
+static void
+_outCreateDirectoryTableStmt(StringInfo str, const CreateDirectoryTableStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEDIRECTORYTABLESTMT");
+
+	_outCreateStmtInfo(str, (const CreateStmt *) node);
+	WRITE_STRING_FIELD(tablespacename);
+}
+
 #include "outfuncs_common.c"
 #ifndef COMPILING_BINARY_FUNCS
 /*
@@ -5156,6 +5165,9 @@ outNode(StringInfo str, const void *obj)
 				break;
 			case T_EphemeralNamedRelationInfo:
 				_outEphemeralNamedRelationInfo(str, obj);
+				break;
+			case T_CreateDirectoryTableStmt:
+				_outCreateDirectoryTableStmt(str, obj);
 				break;
 			default:
 

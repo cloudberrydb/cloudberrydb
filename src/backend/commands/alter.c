@@ -365,6 +365,7 @@ ExecRenameStmt_internal(RenameStmt *stmt)
 		case OBJECT_MATVIEW:
 		case OBJECT_INDEX:
 		case OBJECT_FOREIGN_TABLE:
+		case OBJECT_DIRECTORY_TABLE:
 			return RenameRelation(stmt);
 
 		case OBJECT_COLUMN:
@@ -555,6 +556,7 @@ ExecAlterObjectSchemaStmt_internal(AlterObjectSchemaStmt *stmt,
 		case OBJECT_TABLE:
 		case OBJECT_VIEW:
 		case OBJECT_MATVIEW:
+		case OBJECT_DIRECTORY_TABLE:
 			address = AlterTableNamespace(stmt,
 										  oldSchemaAddr ? &oldNspOid : NULL);
 			break;
@@ -733,6 +735,8 @@ AlterObjectNamespace_oid(Oid classId, Oid objid, Oid nspOid,
 		case OCLASS_TASK:
 		case OCLASS_PROFILE:
 		case OCLASS_PASSWORDHISTORY:
+		case OCLASS_STORAGE_SERVER:
+		case OCLASS_STORAGE_USER_MAPPING:
 			/* ignore object types that don't have schema-qualified names */
 			break;
 

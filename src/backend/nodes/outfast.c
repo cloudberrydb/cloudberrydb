@@ -652,6 +652,33 @@ _outAlterForeignServerStmt(StringInfo str, AlterForeignServerStmt *node)
 }
 
 static void
+_outCreateStorageServerStmt(StringInfo str, CreateStorageServerStmt *node)
+{
+	WRITE_NODE_TYPE("CREATESTORAGESERVERSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterStorageServerStmt(StringInfo str, AlterStorageServerStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERSTORAGESERVERSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outDropStorageServerStmt(StringInfo str, DropStorageServerStmt *node)
+{
+	WRITE_NODE_TYPE("DROPSTORAGESERVERSTMT");
+
+	WRITE_STRING_FIELD(servername);
+	WRITE_BOOL_FIELD(missing_ok);
+}
+
+static void
 _outCreateUserMappingStmt(StringInfo str, CreateUserMappingStmt *node)
 {
 	WRITE_NODE_TYPE("CREATEUSERMAPPINGSTMT");
@@ -669,6 +696,46 @@ _outAlterUserMappingStmt(StringInfo str, AlterUserMappingStmt *node)
 	WRITE_NODE_FIELD(user);
 	WRITE_STRING_FIELD(servername);
 	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outDropUserMappingStmt(StringInfo str, DropUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("DROPUSERMAPPINGSTMT");
+
+	WRITE_NODE_FIELD(user);
+	WRITE_STRING_FIELD(servername);
+	WRITE_BOOL_FIELD(missing_ok);
+}
+
+static void
+_outCreateStorageUserMappingStmt(StringInfo str, CreateStorageUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("CREATEUSERMAPPINGSTMT");
+
+	WRITE_NODE_FIELD(user);
+	WRITE_STRING_FIELD(servername);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outAlterStorageUserMappingStmt(StringInfo str, AlterStorageUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("ALTERSTORAGEUSERMAPPINGSTMT");
+
+	WRITE_NODE_FIELD(user);
+	WRITE_STRING_FIELD(servername);
+	WRITE_NODE_FIELD(options);
+}
+
+static void
+_outDropStorageUserMappingStmt(StringInfo str, DropStorageUserMappingStmt *node)
+{
+	WRITE_NODE_TYPE("DROPSTORAGEUSERMAPPINGSTMT");
+
+	WRITE_NODE_FIELD(user);
+	WRITE_STRING_FIELD(servername);
+	WRITE_BOOL_FIELD(missing_ok);
 }
 
 static void
@@ -696,16 +763,6 @@ _outCustomScan(StringInfo str, const CustomScan *node)
 	WRITE_NODE_FIELD(custom_scan_tlist);
 	WRITE_BITMAPSET_FIELD(custom_relids);
 	WRITE_STRING_FIELD(methods->CustomName);	
-}
-
-static void
-_outDropUserMappingStmt(StringInfo str, DropUserMappingStmt *node)
-{
-	WRITE_NODE_TYPE("DROPUSERMAPPINGSTMT");
-
-	WRITE_NODE_FIELD(user);
-	WRITE_STRING_FIELD(servername);
-	WRITE_BOOL_FIELD(missing_ok);
 }
 
 static void
@@ -1672,6 +1729,15 @@ _outNode(StringInfo str, void *obj)
 			case T_CreateUserMappingStmt:
 				_outCreateUserMappingStmt(str, obj);
 				break;
+			case T_CreateStorageUserMappingStmt:
+				_outCreateStorageUserMappingStmt(str, obj);
+				break;
+			case T_AlterStorageUserMappingStmt:
+				_outAlterStorageUserMappingStmt(str, obj);
+				break;
+			case T_DropStorageUserMappingStmt:
+				_outDropStorageUserMappingStmt(str, obj);
+				break;
 			case T_AlterForeignServerStmt:
 				_outAlterForeignServerStmt(str, obj);
 				break;
@@ -1680,6 +1746,15 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_AlterFdwStmt:
 				_outAlterFdwStmt(str, obj);
+				break;
+			case T_CreateStorageServerStmt:
+				_outCreateStorageServerStmt(str, obj);
+				break;
+			case T_AlterStorageServerStmt:
+				_outAlterStorageServerStmt(str, obj);
+				break;
+			case T_DropStorageServerStmt:
+				_outDropStorageServerStmt(str, obj);
 				break;
 			case T_CreateFdwStmt:
 				_outCreateFdwStmt(str, obj);
@@ -1784,6 +1859,9 @@ _outNode(StringInfo str, void *obj)
 				break;
 			case T_ReturnStmt:
 				_outReturnStmt(str, obj);
+				break;
+			case T_CreateDirectoryTableStmt:
+				_outCreateDirectoryTableStmt(str, obj);
 				break;
 			case T_EphemeralNamedRelationInfo:
 				_outEphemeralNamedRelationInfo(str, obj);

@@ -40,6 +40,7 @@
 #include "catalog/pg_default_acl.h"
 #include "catalog/pg_depend.h"
 #include "catalog/pg_description.h"
+#include "catalog/pg_directory_table.h"
 #include "catalog/pg_enum.h"
 #include "catalog/pg_event_trigger.h"
 #include "catalog/pg_foreign_data_wrapper.h"
@@ -78,6 +79,8 @@
 #include "catalog/pg_ts_template.h"
 #include "catalog/pg_type.h"
 #include "catalog/pg_user_mapping.h"
+#include "catalog/gp_storage_user_mapping.h"
+#include "catalog/gp_storage_server.h"
 #include "lib/qunique.h"
 #include "utils/catcache.h"
 #include "utils/rel.h"
@@ -496,6 +499,28 @@ static const struct cachedesc cacheinfo[] = {
 			0
 		},
 		2
+	},
+	{StorageServerRelationId,	/* STORAGESERVERNAME */
+		StorageServerNameIndexId,
+		1,
+	 	{
+			Anum_gp_storage_server_srvname,
+			0,
+			0,
+			0
+	 	},
+	 	2
+	},
+	{StorageServerRelationId,	/* STORAGESERVEROID */
+		StorageServerOidIndexId,
+		1,
+	 	{
+			Anum_gp_storage_server_oid,
+			0,
+			0,
+			0
+	 	},
+	 	2
 	},
 	{ForeignTableRelationId,	/* FOREIGNTABLEREL */
 		ForeignTableRelidIndexId,
@@ -1069,6 +1094,39 @@ static const struct cachedesc cacheinfo[] = {
 			0
 		},
 		64
+	},
+	{DirectoryTableRelationId,			/* DIRECTORYTABLEREL */
+		DirectoryTableRelidIndexId,
+		1,
+	 	{
+			Anum_pg_directory_table_dtrelid,
+			0,
+			0,
+			0
+		},
+		4
+	},
+	{StorageUserMappingRelationId,		/* STORAGEUSERMAPPINGOID */
+	 	StorageUserMappingOidIndexId,
+	 	1,
+	 	{
+		 	Anum_gp_storage_user_mapping_oid,
+		 	0,
+		 	0,
+		 	0
+	 	},
+	 	2
+	},
+	{StorageUserMappingRelationId,		/* STORAGEUSERMAPPINGUSERSERVER */
+	 	StorageUserMappingServerIndexId,
+	 	2,
+	 	{
+		 	Anum_gp_storage_user_mapping_umuser,
+		 	Anum_gp_storage_user_mapping_umserver,
+		 	0,
+		 	0
+	 	},
+	 	2
 	},
 	{UserMappingRelationId,		/* USERMAPPINGOID */
 		UserMappingOidIndexId,
