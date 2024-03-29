@@ -409,11 +409,25 @@ static void CPaxCopyPaxBlockEntry(Relation old_relation,
 
   pax_scan = systable_beginscan(old_aux_rel, InvalidOid, false, NULL, 0, NULL);
   while ((tuple = systable_getnext(pax_scan)) != NULL) {
-    CatalogTupleInsert(new_aux_rel, tuple);
+    // Do not direct insert tuple into new_aux_rel,
+    // ex. `CatalogTupleInsert(new_aux_rel, tuple);`
+    // Because it will change the old tuple xmin/xmax/tableoid
+    HeapTuple copy_one = heap_copytuple(tuple);
+    CatalogTupleInsert(new_aux_rel, copy_one);
+    heap_freetuple(copy_one);
   }
   systable_endscan(pax_scan);
   table_close(old_aux_rel, RowExclusiveLock);
   table_close(new_aux_rel, RowExclusiveLock);
+
+  // also need update the fast seq
+  {
+    int32 seqno1;
+
+    seqno1 = CPaxGetFastSequences(old_relation->rd_id, false);
+    CPaxInitializeFastSequenceEntry(new_relation->rd_id,
+                                    FASTSEQUENCE_INIT_TYPE_UPDATE, seqno1);
+  }
 }
 
 }  // namespace paxc
