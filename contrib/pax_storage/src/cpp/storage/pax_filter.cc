@@ -502,6 +502,26 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
   return DatumGetBool(matches);
 }
 
+static bool CheckNullKeys(const TupleDesc desc, ScanKey scan_key, const ColumnStatsProvider &provider) {
+  auto attno = scan_key->sk_attno;
+  if (attno > 0) {
+    Assert(!TupleDescAttr(desc, attno - 1)->attisdropped);
+    return CheckNullKey(scan_key, provider.AllNull(attno - 1), provider.HasNull(attno - 1));
+  }
+
+  // check all columns, see ExecEvalRowNullInt()
+  Assert(attno == 0);
+
+  // missing values in the columns, can't filter
+  if (desc->natts != provider.ColumnSize()) return true;
+
+  for (int i = 0; i < desc->natts; i++) {
+    if (TupleDescAttr(desc, i)->attisdropped) continue;
+    if (!CheckNullKey(scan_key, provider.AllNull(i), provider.HasNull(i))) return false;
+  }
+  return true;
+}
+
 // returns true: if the micro partition needs to scan
 // returns false: the micro partition could be ignored
 bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
@@ -513,6 +533,15 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
   Assert(column_stats_size <= natts);
   for (int i = 0; i < num_scan_keys_; i++) {
     auto scan_key = &scan_keys_[i];
+
+    // Only Null test support sk_attno = 0.
+    if (scan_key->sk_flags & SK_ISNULL) {
+      if (!CheckNullKeys(desc, scan_key, provider))
+        return false;
+
+      continue;
+    }
+
     auto column_index = scan_key->sk_attno - 1;
     Assert(column_index >= 0 && column_index < natts);
 
@@ -531,11 +560,7 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
     // Check whether alter column type will result rewriting whole table.
     AssertImply(info.typid(), attr->atttypid == info.typid());
 
-    if (scan_key->sk_flags & SK_ISNULL) {
-      if (!CheckNullKey(scan_key, provider.AllNull(column_index),
-                        provider.HasNull(column_index)))
-        return false;
-    } else if (provider.AllNull(column_index)) {
+    if (provider.AllNull(column_index)) {
       // ALL values are null, but the scan key is not null
       return false;
     } else if (scan_key->sk_collation != info.collation()) {
