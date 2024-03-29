@@ -8,6 +8,8 @@
 #include "src/provider/orc/write/orcWriter.h"
 #include "src/provider/archive/read/archiveRead.h"
 #include "src/provider/archive/write/archiveWrite.h"
+#include "src/provider/avro/read/avroRead.h"
+#include "src/provider/avro/write/avroWrite.h"
 #include "src/provider/iceberg/iceberg_read.h"
 #include "src/provider/hudi/hudi_read.h"
 #include "provider.h"
@@ -15,6 +17,7 @@
 
 using Datalake::Internal::orcRead;
 using Datalake::Internal::parquetRead;
+using Datalake::Internal::avroRead;
 using Datalake::Internal::archiveRead;
 using Datalake::Internal::archiveWrite;
 using Datalake::Internal::orcReadRecordBatch;
@@ -49,6 +52,10 @@ std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vecto
 		{
 			return std::make_shared<parquetRead>();
 		}
+		else if (strcmp(DATALAKE_OPTION_FORMAT_AVRO, type) == 0)
+		{
+			return std::make_shared<avroRead>();
+		}
 		else if (strcmp(DATALAKE_OPTION_FORMAT_ICEBERG, type) == 0)
 		{
 			return std::make_shared<icebergRead>();
@@ -62,7 +69,7 @@ std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vecto
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 					errmsg("unknow format \"%s\". "
-					"datalake_fdw support read format text|csv|orc|parquet.",
+					"datalake_fdw support read format text|csv|orc|parquet|avro.",
 					type)));
 		}
 	}
@@ -84,12 +91,16 @@ std::shared_ptr<Provider> getProvider(const char *type, bool readFdw, bool vecto
 		{
 			return std::make_shared<parquetWrite>();
 		}
+		else if (strcmp(DATALAKE_OPTION_FORMAT_AVRO, type) == 0)
+		{
+			return std::make_shared<avroWrite>();
+		}
 		else
 		{
 			ereport(ERROR,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 					errmsg("unknow format \"%s\". "
-					"datalake_fdw support write format text|csv|orc|parquet.",
+					"datalake_fdw support write format text|csv|orc|parquet|avro.",
 					type)));
 		}
 	}
@@ -134,7 +145,7 @@ CompressType Provider::getCompressType(char* type)
 		return compresstype;
 	}
 
-	if (strcmp(strConvertLow(type), "uncoompress") == 0 ||
+	if (strcmp(strConvertLow(type), "uncompress") == 0 ||
 		strcmp(strConvertLow(type), "none") == 0)
 	{
 		compresstype = UNCOMPRESS;

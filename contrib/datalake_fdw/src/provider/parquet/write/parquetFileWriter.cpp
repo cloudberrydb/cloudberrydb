@@ -204,8 +204,9 @@ std::shared_ptr<parquet::schema::GroupNode> parquetFileWriter::setupSchema()
                 int64_t scale = 0;
                 if (tupdesc->attrs[i].atttypmod < 0)
                 {
-                    precision = 38;
-                    scale = GP_NUMERIC_MAX_SIZE;
+                    ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("The precision of numeric in foreign tables with parquet format should be specified explicitly.")));
                 }
                 else
                 {

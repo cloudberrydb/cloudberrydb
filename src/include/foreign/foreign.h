@@ -15,6 +15,7 @@
 #define FOREIGN_H
 
 #include "nodes/parsenodes.h"
+#include "utils/rel.h"
 
 
 /* Helper for obtaining username for user mapping */
@@ -89,6 +90,10 @@ extern List *GetForeignColumnOptions(Oid relid, AttrNumber attnum);
 
 extern Oid	get_foreign_data_wrapper_oid(const char *fdwname, bool missing_ok);
 extern Oid	get_foreign_server_oid(const char *servername, bool missing_ok);
+
+// Check if the data type is supported.
+extern void CheckForeignTableOptions(Relation rel, List *opions);
+extern void CheckATForeignTableOptions(AlterTableCmd *cmd, List *options);
 
 /* ----------------
  *		compiler constants for ForeignTable's exec_location

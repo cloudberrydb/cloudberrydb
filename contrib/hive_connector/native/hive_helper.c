@@ -346,7 +346,7 @@ formCreateStmt(HmsHandle *hms,
 					HmsTableIsTransactionalTable(hms) ? "true" : "false",
 					format);
 
-	if (pg_strcasecmp(format, "orc") && pg_strcasecmp(format, "parquet"))
+	if (pg_strcasecmp(format, "orc") && pg_strcasecmp(format, "parquet") && pg_strcasecmp(format, "avro"))
 	{
 		char *formatOpts = HmsTableGetParameters(hms);
 		char *formatStr = formFormatOpts(formatOpts);
@@ -458,6 +458,12 @@ tableFormatConversion(HmsHandle *hms)
 		pfree(format);
 		return "parquet";
 	}
+
+	if (pg_strcasecmp(format, "org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat") == 0)
+	{
+		pfree(format);
+		return "avro";
+	}
 	pfree(format);
 
 	serialLib = HmsTableGetSerialLib(hms);
@@ -527,7 +533,7 @@ formCreateStmt2(HmsHandle *hms,
 					keyBuf,
 					format);
 
-	if (pg_strcasecmp(format, "orc") && pg_strcasecmp(format, "parquet"))
+	if (pg_strcasecmp(format, "orc") && pg_strcasecmp(format, "parquet") && pg_strcasecmp(format, "avro"))
 	{
 		char *formatOpts = HmsTableGetParameters(hms);
 		char *formatStr = formFormatOpts(formatOpts);

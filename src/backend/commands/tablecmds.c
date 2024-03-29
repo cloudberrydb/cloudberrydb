@@ -137,6 +137,8 @@
 #include "cdb/cdboidsync.h"
 #include "postmaster/autostats.h"
 
+#include "foreign/foreign.h"
+
 const char *synthetic_sql = "(internally generated SQL command)";
 
 /*
@@ -7886,6 +7888,12 @@ ATPrepAddColumn(List **wqueue, Relation rel, bool recurse, bool recursing,
 				(errcode(ERRCODE_WRONG_OBJECT_TYPE),
 				 errmsg("cannot add column to typed table")));
 
+	if (!is_view && rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+	{
+		ForeignTable *ft = GetForeignTable(rel->rd_id);
+		CheckATForeignTableOptions(cmd, ft->options);
+	}
+
 	if (rel->rd_rel->relkind == RELKIND_COMPOSITE_TYPE)
 		ATTypedTableRecursion(wqueue, rel, cmd, lockmode, context);
 
@@ -13437,6 +13445,12 @@ ATPrepAlterColumnType(List **wqueue,
 	CheckAttributeType(colName, targettype, targetcollid,
 					   list_make1_oid(rel->rd_rel->reltype),
 					   0);
+
+	if (rel->rd_rel->relkind == RELKIND_FOREIGN_TABLE)
+	{
+		ForeignTable *ft = GetForeignTable(rel->rd_id);
+		CheckATForeignTableOptions(cmd, ft->options);
+	}
 
 	/*
 	 * If the column is part of the distribution key, look up the new operator

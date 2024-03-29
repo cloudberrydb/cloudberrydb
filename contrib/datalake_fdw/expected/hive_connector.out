@@ -16,174 +16,6 @@ SELECT public.create_foreign_server('hive_server', 'gpadmin', 'datalake_fdw', 'p
  t
 (1 row)
 
-SELECT public.sync_hive_table('hive_cluster','mytestdb','test_table1','paa_cluster', 'synctab.test_table1', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT count(*) FROM synctab.test_table1;
- count 
--------
-   500
-(1 row)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','transactional_orc','paa_cluster', 'synctab.transactional_orc', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.transactional_orc order by a, b, c, d, e, f, g, h, i, j, k, l;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','normal_orc','paa_cluster', 'synctab.normal_orc', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.normal_orc order by a, b, c, d, e, f, g, h, i, j, k, l;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_orc_1','paa_cluster', 'synctab.partition_orc_1', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.partition_orc_1 order by a, b, c, d, e, f, g, h, i, j, k, l, m;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       | m 
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000 | 5
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_orc_2','paa_cluster', 'synctab.partition_orc_2', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.partition_orc_2 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       | m | n 
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------+---+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000 | 1 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000 | 2 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000 | 3 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000 | 4 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000 | 5 | 5
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_orc_3','paa_cluster', 'synctab.partition_orc_3', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.partition_orc_3 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n, o;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       | m | n |     o      
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------+---+---+------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000 | 1 | 1 | 2020-01-01
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000 | 2 | 2 | 2020-02-01
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000 | 3 | 3 | 2020-03-01
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000 | 4 | 4 | 2020-04-01
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000 | 5 | 5 | 2020-05-01
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_orc_4','paa_cluster', 'synctab.partition_orc_4', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT count(*) FROM synctab.partition_orc_4;
- count 
--------
-   500
-(1 row)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','normal_parquet','paa_cluster', 'synctab.normal_parquet', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.normal_parquet order by a, b, c, d, e, f, g, h, i, j, k, l;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_parquet_1','paa_cluster', 'synctab.partition_parquet_1', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.partition_parquet_1 order by a, b, c, d, e, f, g, h, i, j, k, l, m;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       | m 
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000 | 5
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_parquet_2','paa_cluster', 'synctab.partition_parquet_2', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.partition_parquet_2 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       | m | n 
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------+---+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000 | 1 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000 | 2 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000 | 3 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000 | 4 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000 | 5 | 5
-(5 rows)
-
-SELECT public.sync_hive_table('hive_cluster','mytestdb','partition_parquet_3','paa_cluster', 'synctab.partition_parquet_3', 'hive_server');
- sync_hive_table 
------------------
- t
-(1 row)
-
-SELECT * FROM synctab.partition_parquet_3 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n, o;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       | m | n |     o      
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------+---+---+------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000 | 1 | 1 | 2020-01-01
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000 | 2 | 2 | 2020-02-01
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000 | 3 | 3 | 2020-03-01
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000 | 4 | 4 | 2020-04-01
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000 | 5 | 5 | 2020-05-01
-(5 rows)
-
 SELECT public.sync_hive_table('hive_cluster','mytestdb','text_default','paa_cluster', 'synctab.text_default', 'hive_server');
  sync_hive_table 
 -----------------
@@ -303,115 +135,35 @@ SELECT * FROM synctab.empty_parquet_partition;
 ---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_avro','paa_cluster', 'synctab.empty_avro', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_avro;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT public.sync_hive_table('hive_cluster','mytestdb','empty_avro_partition','paa_cluster', 'synctab.empty_avro_partition', 'hive_server');
+ sync_hive_table 
+-----------------
+ t
+(1 row)
+
+SELECT * FROM synctab.empty_avro_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
 SELECT public.sync_hive_database('hive_cluster', 'mytestdb', 'paa_cluster', 'syncdb', 'hive_server');
  sync_hive_database 
 --------------------
  t
 (1 row)
 
-SELECT count(*) FROM synctab.test_table1;
- count 
--------
-   500
-(1 row)
-
-SELECT * FROM synctab.transactional_orc order by a, b, c, d, e, f, g, h, i, j, k, l;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000
-(5 rows)
-
-SELECT * FROM synctab.normal_orc order by a, b, c, d, e, f, g, h, i, j, k, l;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000
-(5 rows)
-
-SELECT * FROM synctab.partition_orc_1 order by a, b, c, d, e, f, g, h, i, j, k, l, m;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       | m 
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000 | 5
-(5 rows)
-
-SELECT * FROM synctab.partition_orc_2 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       | m | n 
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------+---+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000 | 1 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000 | 2 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000 | 3 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000 | 4 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000 | 5 | 5
-(5 rows)
-
-SELECT * FROM synctab.partition_orc_3 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n, o;
- a | b | c | d | e | f | g |          h          |     i      |          j           | k |       l       | m | n |     o      
----+---+---+---+---+---+---+---------------------+------------+----------------------+---+---------------+---+---+------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2020-01-01 01:01:01 | 2020-01-01 | 1                    | 1 | 10.0100000000 | 1 | 1 | 2020-01-01
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-02 02:02:02 | 2020-02-01 | 2                    | 2 | 11.0100000000 | 2 | 2 | 2020-02-01
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-03 03:03:03 | 2020-03-01 | 3                    | 3 | 12.0100000000 | 3 | 3 | 2020-03-01
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-04 04:04:04 | 2020-04-01 | 4                    | 4 | 13.0100000000 | 4 | 4 | 2020-04-01
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-05 05:05:05 | 2020-05-01 | 5                    | 5 | 14.0100000000 | 5 | 5 | 2020-05-01
-(5 rows)
-
-SELECT count(*) FROM synctab.partition_orc_4;
- count 
--------
-   500
-(1 row)
-
-SELECT * FROM synctab.normal_parquet order by a, b, c, d, e, f, g, h, i, j, k, l;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000
-(5 rows)
-
-SELECT * FROM synctab.partition_parquet_1 order by a, b, c, d, e, f, g, h, i, j, k, l, m;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       | m 
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000 | 5
-(5 rows)
-
-SELECT * FROM synctab.partition_parquet_2 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       | m | n 
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------+---+---
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000 | 1 | 1
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000 | 2 | 2
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000 | 3 | 3
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000 | 4 | 4
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000 | 5 | 5
-(5 rows)
-
-SELECT * FROM synctab.partition_parquet_3 order by a, b, c, d, e, f, g, h, i, j, k, l, m, n, o;
- a | b | c | d | e | f | g |          h          |     i      | j | k |       l       | m | n |     o      
----+---+---+---+---+---+---+---------------------+------------+---+---+---------------+---+---+------------
- 1 | 1 | 1 | 1 | 1 | 1 | 1 | 2019-12-31 17:01:01 | 2020-01-01 | 1 | 1 | 10.0100000000 | 1 | 1 | 2020-01-01
- 2 | 2 | 2 | 2 | 2 | 2 | 2 | 2020-02-01 18:02:02 | 2020-02-01 | 2 | 2 | 11.0100000000 | 2 | 2 | 2020-02-01
- 3 | 3 | 3 | 3 | 3 | 3 | 3 | 2020-03-02 19:03:03 | 2020-03-01 | 3 | 3 | 12.0100000000 | 3 | 3 | 2020-03-01
- 4 | 4 | 4 | 4 | 4 | 4 | 4 | 2020-04-03 20:04:04 | 2020-04-01 | 4 | 4 | 13.0100000000 | 4 | 4 | 2020-04-01
- 5 | 5 | 5 | 5 | 5 | 5 | 5 | 2020-05-04 21:05:05 | 2020-05-01 | 5 | 5 | 14.0100000000 | 5 | 5 | 2020-05-01
-(5 rows)
-
-SELECT * FROM synctab.text_default order by a, b, c, d;
+SELECT * FROM syncdb.text_default order by a, b, c, d;
  a | b | c | d 
 ---+---+---+---
  1 | 1 | 1 | 1
@@ -421,7 +173,7 @@ SELECT * FROM synctab.text_default order by a, b, c, d;
  5 | 5 | 5 | 5
 (5 rows)
 
-SELECT * FROM synctab.text_custom order by a, b, c, d;
+SELECT * FROM syncdb.text_custom order by a, b, c, d;
  a | b | c | d 
 ---+---+---+---
  1 | 1 | 1 | 
@@ -431,7 +183,7 @@ SELECT * FROM synctab.text_custom order by a, b, c, d;
  5 | 5 | 5 | 5
 (5 rows)
 
-SELECT * FROM synctab.csv_default order by a, b, c, d;
+SELECT * FROM syncdb.csv_default order by a, b, c, d;
  a | b | c | d 
 ---+---+---+---
  1 | 1 | 1 | 1
@@ -441,7 +193,7 @@ SELECT * FROM synctab.csv_default order by a, b, c, d;
  5 | 5 | 5 | 5
 (5 rows)
 
-SELECT * FROM synctab.csv_custom order by a, b, c, d;
+SELECT * FROM syncdb.csv_custom order by a, b, c, d;
  a | b | c | d 
 ---+---+---+---
  1 | 1 | 1 | 
@@ -451,28 +203,66 @@ SELECT * FROM synctab.csv_custom order by a, b, c, d;
  5 | 5 | 5 | 5
 (5 rows)
 
-SELECT * FROM synctab.empty_orc_transactional;
+SELECT * FROM syncdb.empty_orc_transactional;
  a | b | c | d | e | f | g | h | i | j | k | l 
 ---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
-SELECT * FROM synctab.empty_orc;
+SELECT * FROM syncdb.empty_orc;
  a | b | c | d | e | f | g | h | i | j | k | l 
 ---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
-SELECT * FROM synctab.empty_parquet;
+SELECT * FROM syncdb.empty_parquet;
  a | b | c | d | e | f | g | h | i | j | k | l 
 ---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
-SELECT * FROM synctab.empty_orc_partition;
+SELECT * FROM syncdb.empty_orc_partition;
  a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
 ---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
-SELECT * FROM synctab.empty_parquet_partition;
+SELECT * FROM syncdb.empty_parquet_partition;
  a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
 ---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
+SELECT * FROM syncdb.empty_avro;
+ a | b | c | d | e | f | g | h | i | j | k | l 
+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+SELECT * FROM syncdb.empty_avro_partition;
+ a | b | c | d | e | f | g | h | i | j | k | l | m | n | o 
+---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
+(0 rows)
+
+DROP SCHEMA IF EXISTS synctab CASCADE;
+NOTICE:  drop cascades to 11 other objects
+DETAIL:  drop cascades to foreign table synctab.text_default
+drop cascades to foreign table synctab.text_custom
+drop cascades to foreign table synctab.csv_default
+drop cascades to foreign table synctab.csv_custom
+drop cascades to foreign table synctab.empty_orc_transactional
+drop cascades to foreign table synctab.empty_orc
+drop cascades to foreign table synctab.empty_parquet
+drop cascades to foreign table synctab.empty_orc_partition
+drop cascades to foreign table synctab.empty_parquet_partition
+drop cascades to foreign table synctab.empty_avro
+drop cascades to foreign table synctab.empty_avro_partition
+DROP SCHEMA IF EXISTS syncdb CASCADE;
+NOTICE:  drop cascades to 11 other objects
+DETAIL:  drop cascades to foreign table syncdb.csv_custom
+drop cascades to foreign table syncdb.csv_default
+drop cascades to foreign table syncdb.empty_avro
+drop cascades to foreign table syncdb.empty_avro_partition
+drop cascades to foreign table syncdb.empty_orc
+drop cascades to foreign table syncdb.empty_orc_partition
+drop cascades to foreign table syncdb.empty_orc_transactional
+drop cascades to foreign table syncdb.empty_parquet
+drop cascades to foreign table syncdb.empty_parquet_partition
+drop cascades to foreign table syncdb.text_custom
+drop cascades to foreign table syncdb.text_default
+DROP SERVER hive_server CASCADE;
+NOTICE:  drop cascades to user mapping for gpadmin on server hive_server

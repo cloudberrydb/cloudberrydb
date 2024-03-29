@@ -1520,6 +1520,10 @@ CreateForeignTable(CreateForeignTableStmt *stmt, Oid relid, bool skip_permission
 										stmt->options,
 										fdw->fdwvalidator);
 
+	Relation rel = RelationIdGetRelation(relid);
+	CheckForeignTableOptions(rel, untransformRelOptions(ftoptions));
+	RelationClose(rel);
+
 	if (PointerIsValid(DatumGetPointer(ftoptions)))
 		values[Anum_pg_foreign_table_ftoptions - 1] = ftoptions;
 	else

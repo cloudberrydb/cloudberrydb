@@ -69,6 +69,11 @@ public:
         compression = UNSUPPORTCOMPRESS;
     }
 
+    writeOption(CompressType compress)
+    {
+        compression = compress;
+    }
+
     CompressType compression;
 };
 

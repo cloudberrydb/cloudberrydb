@@ -28,6 +28,7 @@
 #include "utils/memutils.h"
 #include "utils/rel.h"
 #include "utils/syscache.h"
+#include "parser/parse_type.h"
 
 
 extern Datum pg_options_to_table(PG_FUNCTION_ARGS);
@@ -963,4 +964,68 @@ GetExistingLocalJoinPath(RelOptInfo *joinrel)
 		return (Path *) joinpath;
 	}
 	return NULL;
+}
+
+void CheckForeignTableOptions(Relation rel, List *options)
+{
+	AttrNumber i;
+	char *format = NULL;
+	ListCell *cell;
+
+	foreach(cell, options)
+	{
+		DefElem *def = (DefElem *) lfirst(cell);
+		if (pg_strcasecmp(def->defname, "format") == 0)
+		{
+			format = defGetString(def);
+		}
+	}
+
+	if (format != NULL && (pg_strcasecmp(format, "orc") == 0 || pg_strcasecmp(format, "parquet") == 0 || pg_strcasecmp(format, "avro") == 0))
+	{
+		TupleDesc desc = rel->rd_att;
+		AttrNumber attnum = desc->natts;
+		for (i = 0; i < attnum; ++i)
+		{
+			// Due to the difference of storage for numeric between pg and foreign format (parquet, avro),
+			// the precision of numeric in foreign tables should be specified explicitly.
+			if (desc->attrs[i].atttypid == NUMERICOID && desc->attrs[i].atttypmod < (int32) (VARHDRSZ))
+			{
+				ereport(ERROR,
+					(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+					errmsg("The precision of numeric in foreign tables with %s format should be specified explicitly.", format)));
+			}
+		}
+	}
+}
+
+void CheckATForeignTableOptions(AlterTableCmd *cmd, List *options)
+{
+	char *format = NULL;
+	ListCell *cell;
+
+	foreach(cell, options)
+	{
+		DefElem *def = (DefElem *) lfirst(cell);
+		if (pg_strcasecmp(def->defname, "format") == 0)
+		{
+			format = defGetString(def);
+		}
+	}
+
+	if (format != NULL && (pg_strcasecmp(format, "orc") == 0 || pg_strcasecmp(format, "parquet") == 0 || pg_strcasecmp(format, "avro") == 0))
+	{
+		// Due to the difference of storage for numeric between pg and foreign format (parquet, avro),
+		// the precision of numeric in foreign tables should be specified explicitly.
+		ColumnDef *colType = (ColumnDef*) cmd->def;
+		Oid typeOid;
+		int32_t typmod;
+		typenameTypeIdAndMod(NULL, colType->typeName, &typeOid, &typmod);
+		if (typeOid == NUMERICOID && typmod < (int32) (VARHDRSZ))
+		{
+			ereport(ERROR,
+				(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
+				errmsg("The precision of numeric in foreign tables with %s format should be specified explicitly.", format)));
+		}
+	}
 }

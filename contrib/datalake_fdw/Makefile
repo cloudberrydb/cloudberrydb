@@ -67,12 +67,17 @@ OBJS = 	src/datalake_fdw.o \
 		src/provider/hudi/hudi_logfile_block_reader.o \
 		src/provider/hudi/hudi_merged_logfile_record_reader.o \
 		src/provider/hudi/hudi_read.o \
+		src/provider/avro/read/avroBlockReader.o \
+		src/provider/avro/read/avroRead.o \
+		src/provider/avro/write/avroWriter.o \
+		src/provider/avro/write/avroWrite.o \
 		src/provider/providerWrapper.o \
 		src/provider/provider.o \
 		src/hdw_gopher_cache/hdw_gopher_cache.o
 
 
-SHLIB_LINK += -lgopher -lparquet -lorc-hdw -larchive -ljansson -larrow  -lavro -lcurl
+SHLIB_LINK += -lgopher -lparquet -lorc-hdw -larchive -lavrocpp -ljansson -larrow  -lavro -lcurl
+PG_CPPFLAGS = -DENABLE_NLS -DSNAPPY_CODEC_AVAILABLE
 
 EXTENSION = datalake_fdw
 DATA = datalake_fdw--1.0.sql
@@ -80,7 +85,8 @@ DATA = datalake_fdw--1.0.sql
 ifdef ICEBERG_HUDI_TEST
 REGRESS = iceberg_read hudi_read
 else
-REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_parquet_read orc_read parquet_read hive_connector
+REGRESS = hive_connecter_orc_read hive_connecter_orc_vec_read hive_connecter_parquet_read \
+          hive_connecter_avro_read hive_connector orc_read parquet_read avro_read iresearch_orc_test iresearch_orc_vec_test
 endif
 
 PG_CPPFLAGS += -fPIC

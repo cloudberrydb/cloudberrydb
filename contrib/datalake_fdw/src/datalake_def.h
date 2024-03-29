@@ -64,6 +64,7 @@
 #define DATALAKE_OPTION_FORMAT_HUDI "hudi"
 #define DATALAKE_OPTION_FORMAT_ICEBERG "iceberg"
 #define DATALAKE_OPTION_FORMAT_PARQUET "parquet"
+#define DATALAKE_OPTION_FORMAT_AVRO "avro"
 #define DATALAKE_OPTION_FILE_SIZE_LIMIT "filesizelimit"
 #define DATALAKE_OPTION_ENABLE_CACHE "enablecache"
 #define DATALAKE_OPTION_HIVE_DATASOURCE "datasource"
@@ -109,6 +110,8 @@
 
 #define FORMAT_IS_PARQUET(format) (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_PARQUET) == 0)
 
+#define FORMAT_IS_AVRO(format) (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_AVRO) == 0)
+
 #define FORMAT_IS_HUDI(format) (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_HUDI) == 0)
 
 #define FORMAT_IS_ICEBERG(format) (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_ICEBERG) == 0)
@@ -117,7 +120,8 @@
 
 #define SUPPORT_PARTITION_TABLE(protocol, format, partitionkey, datasource) \
 	PROTOCOL_IS_HDFS(protocol) && (FORMAT_IS_ORC(format) || \
-	FORMAT_IS_PARQUET(format)) && (partitionkey != NULL) && (datasource != NULL) \
+	FORMAT_IS_PARQUET(format) || FORMAT_IS_AVRO(format)) && \
+	(partitionkey != NULL) && (datasource != NULL) \
 
 
 

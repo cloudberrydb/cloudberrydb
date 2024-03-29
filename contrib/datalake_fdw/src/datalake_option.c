@@ -61,6 +61,7 @@ static const struct datalakeFdwOption valid_foreign_options[] = {
 	{DATALAKE_OPTION_FORMAT_CSV, ForeignTableRelationId},
 	{DATALAKE_OPTION_FORMAT_ORC, ForeignTableRelationId},
 	{DATALAKE_OPTION_FORMAT_PARQUET, ForeignTableRelationId},
+	{DATALAKE_OPTION_FORMAT_AVRO, ForeignTableRelationId},
 	{DATALAKE_OPTION_FILE_SIZE_LIMIT, ForeignTableRelationId},
 	{DATALAKE_OPTION_ENABLE_CACHE, ForeignTableRelationId},
 	{DATALAKE_OPTION_HIVE_DATASOURCE, ForeignTableRelationId},
@@ -980,12 +981,13 @@ void check_foreign_option(List *options_list, Oid catalog)
 		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_ORC) == 0 ||
 		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_PARQUET) == 0 ||
 		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_ICEBERG) == 0 ||
-		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_HUDI) == 0))
+		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_HUDI) == 0 ||
+		pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_AVRO) == 0))
 	{
 		ereport(ERROR,
 					(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
 						errmsg("invalid foreign format option \"%s\". "
-							"datalake support csv, text, parquet, orc, iceberg, hudi.",
+							"datalake support csv, text, parquet, orc, avro, iceberg, hudi.",
 							format)));
 	}
 
@@ -1018,6 +1020,23 @@ void check_foreign_option(List *options_list, Oid catalog)
 			}
 		}
 	}
+
+	if (pg_strcasecmp(format, DATALAKE_OPTION_FORMAT_AVRO) == 0)
+	{
+		if (compression != NULL)
+		{
+			if (!(pg_strcasecmp(compression, DATALAKE_COMPRESS_SNAPPY) == 0 ||
+				pg_strcasecmp(compression, DATALAKE_COMPRESS_UNCOMPRESS) ==0))
+			{
+				ereport(ERROR,
+						(errcode(ERRCODE_FDW_INVALID_OPTION_NAME),
+							errmsg("invalid foreign compression options \"%s\". "
+								"datalake avro support snappy.",
+								compression)));
+			}
+		}
+	}
+
 }
 
 void check_user_mapping_option(List *options_list, Oid catalog)

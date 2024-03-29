@@ -252,7 +252,8 @@ validateTable(HmsHandle *hms,
 	format = HmsTableGetFormat(hms);
 	if ((pg_strcasecmp(format, "org.apache.hadoop.hive.ql.io.orc.OrcInputFormat") != 0) &&
 		(pg_strcasecmp(format, "org.apache.hadoop.mapred.TextInputFormat") != 0) &&
-		(pg_strcasecmp(format, "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat") != 0))
+		(pg_strcasecmp(format, "org.apache.hadoop.hive.ql.io.parquet.MapredParquetInputFormat") != 0) &&
+		(pg_strcasecmp(format, "org.apache.hadoop.hive.ql.io.avro.AvroContainerInputFormat") != 0))
 	{
 		elog(suppressError ? WARNING : ERROR, "failed to sync table \"%s.%s\": \"%s\" is not supported",
 				hiveTableName, hiveTableName, format);

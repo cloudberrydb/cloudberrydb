@@ -254,5 +254,103 @@ std::string ParquetLogicalType::getTypeMappingSupported()
 		" bytea,text          |  byteArray,  fixlenbyteArray\n";
 }
 
+bool AvroLogicalType::isType(const avro::NodePtr &node, avro::Type type, const avro::LogicalType &ltype)
+{
+    if (node->type() != type || node->logicalType().type() != ltype.type())
+    {
+        return false;
+    }
+    if (ltype.type() == avro::LogicalType::DECIMAL)
+    {
+        int precision = node->logicalType().precision();
+        int scale = node->logicalType().scale();
+		/*
+			The numeric in pg has two scenarios: 
+			1. scale = -1 when precision and scale are not explicitly specified,
+			2. scale >= 0 otherwise.
+			In 1 scenarios, it is necessary to ensure that the precision of Avro decimal is less than
+			the maximum precision we can parse (76 digits);
+			In 2 scenarios, it just need to ensure the left part of avro decimal (precision - scale) is 
+			less than or equal to it of pg numeric.
+		*/
+        if ((ltype.precision() == AVRO_NUMERIC_DEFAULT_SIZE && AVRO_NUMERIC_MAX_SIZE < precision) ||
+            (ltype.precision() <= AVRO_NUMERIC_MAX_SIZE && ltype.precision() - ltype.scale() < precision - scale))
+        {
+            elog(WARNING, "decimal(%d, %d) out of range", precision, scale);
+            return false;
+        }
+    }
+    return true;
+}
+
+bool AvroLogicalType::hasType(const avro::NodePtr &node, avro::Type type, const avro::LogicalType &ltype)
+{
+    for (uint8_t i=0; i < node->leaves(); ++i)
+    {
+        if (isType(node->leafAt(i), type, ltype))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool AvroLogicalType::checkDataTypeCompatible(const avro::NodePtr &node, avro::Type type, const avro::LogicalType &ltype)
+{
+    if (node->type() == avro::AVRO_UNION)
+    {
+        if (node->leaves() == 2 && hasType(node, type, ltype) && hasType(node, avro::AVRO_NULL, avro::LogicalType(avro::LogicalType::NONE)))
+        {
+            return true;
+        }
+        else if (node->leaves() == 1 && hasType(node, type, ltype))
+        {
+            return true;
+        }
+    } 
+    else if (isType(node, type, ltype))
+    {
+        return true;
+    }
+    return false;
+}
+
+int8_t AvroLogicalType::getNullBranchIdx(const avro::NodePtr &node)
+{
+    if (node->type() != avro::AVRO_UNION || node->leaves() > 2)
+    {
+        return -1;
+    }
+    int8_t count = node->leaves();
+    for (int8_t i = 0; i < count; ++i)
+    {
+        if (node->leafAt(i)->type() == avro::AVRO_NULL)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+std::string AvroLogicalType::getTypeMappingSupported()
+{
+    return "\n                      Type Mapping Supported\n"
+			"| External Data Type       | Avro Data Type | Avro Logical Type \n"
+			"| ------------------------ | -------------- | ------------------------- \n"
+			"| bool                     | boolean        | none\n"
+			"| int,int2,int 4           | int            | none\n"
+			"| int 8                    | long           | none\n"
+			"| float4                   | float          | none\n"
+			"| float8                   | double         | none\n"
+			"| bytea                    | bytes          | none\n"
+			"| char(n),varchar(n),text  | string         | none\n"
+			"| date                     | int            | date\n"
+			"| time                     | int/long       | time (milli/micro)\n"
+			"| timestamp                | long           | timestamp (milli/micro)\n"
+			"| numeric                  | bytes          | decimal\n"
+			"| UUID                     | string         | UUID\n";
+}
+
 }
 }

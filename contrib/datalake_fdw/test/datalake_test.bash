@@ -54,21 +54,10 @@ function start_tpcds_test() {
 	$BASE_DIR/tpcds/run.sh
 }
 
-function load_connector_data() {
-    date
-	echo "load hive connecter data waiting..."
-	$BASE_DIR/hive/hive.sh > $BASE_DIR/hive_connector_load.log 2>&1
-    date
-    echo "load_connector_data over"
-}
-
-function start_connector_test() {
-	echo "start connecter test"
-	$BASE_DIR/hive/run.sh
-}
-
 function load_data() {
-	echo "load orc and parquet data waiting..."
+	echo "hadoop leave saft mode"
+	hadoop dfsadmin -safemode leave
+	echo "load orc, parquet and avro data waiting..."
 	export HADOOP_HEAPSIZE=2048
     date
     echo "begin load orc waiting..."
@@ -76,17 +65,15 @@ function load_data() {
     date
     echo "begin load parquet waiting..."
 	hive -f $BASE_DIR/sql/hive_load_parquet_data.sql > $BASE_DIR/hive_load_parquet.log 2>&1
-    date
-    echo "load orc and parquet data over"
+	hive -f $BASE_DIR/sql/hive_load_avro_data.sql > $BASE_DIR/hive_load_avro.log 2>&1
+	hive -f $BASE_DIR/sql/hive_load_empty_text_data.sql > $BASE_DIR/hive_load_empty_text_data.log 2>&1
 }
 
 function start_test() {
 	build_env
-	load_connector_data
 	load_data
 	start_regress_test
 	start_tpcds_test
-	start_connector_test
 }
 
 start_test

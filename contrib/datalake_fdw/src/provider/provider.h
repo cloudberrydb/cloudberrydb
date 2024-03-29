@@ -9,6 +9,7 @@
 
 #define DATALAKE_EXPORT_NAME ("datalake")
 #define PARQUET_WRITE_SUFFIX ("parquet")
+#define AVRO_WRITE_SUFFIX ("avro")
 #define ORC_WRITE_SUFFIX ("orc")
 #define CSV_WRITE_SUFFIX ("csv")
 #define TEXT_WRITE_SUFFIX ("txt")
