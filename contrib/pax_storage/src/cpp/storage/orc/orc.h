@@ -107,6 +107,7 @@ class OrcWriter : public MicroPartitionWriter {
   Datum *toast_holder_;
   const std::vector<pax::orc::proto::Type_Kind> column_types_;
   File *file_;
+  int32 current_written_phy_size_;
   WriteSummary summary_;
 
   int32 row_index_;

@@ -140,6 +140,7 @@ OrcWriter::OrcWriter(
       is_closed_(false),
       column_types_(column_types),
       file_(file),
+      current_written_phy_size_(0),
       row_index_(0),
       total_rows_(0),
       current_offset_(0) {
@@ -215,13 +216,13 @@ MicroPartitionWriter *OrcWriter::SetStatsCollector(
 void OrcWriter::Flush() {
   BufferedOutputStream buffer_mem_stream(2048);
   if (WriteStripe(&buffer_mem_stream)) {
+    current_written_phy_size_ += pax_columns_->PhysicalSize();
     Assert(current_offset_ >= buffer_mem_stream.GetDataBuffer()->Used());
     summary_.file_size += buffer_mem_stream.GetDataBuffer()->Used();
     file_->PWriteN(buffer_mem_stream.GetDataBuffer()->GetBuffer(),
                    buffer_mem_stream.GetDataBuffer()->Used(),
                    current_offset_ - buffer_mem_stream.GetDataBuffer()->Used());
     PAX_DELETE(pax_columns_);
-
     pax_columns_ = BuildColumns(column_types_, writer_options_.encoding_opts,
                                 writer_options_.storage_format);
   }
@@ -577,7 +578,9 @@ void OrcWriter::Close() {
   is_closed_ = true;
 }
 
-size_t OrcWriter::PhysicalSize() const { return pax_columns_->PhysicalSize(); }
+size_t OrcWriter::PhysicalSize() const {
+  return current_written_phy_size_ + pax_columns_->PhysicalSize();
+}
 
 void OrcWriter::BuildFooterType() {
   auto proto_type = file_footer_.add_types();

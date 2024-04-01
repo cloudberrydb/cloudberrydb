@@ -2,6 +2,7 @@
 
 #include "storage/pax.h"
 
+#include <fstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -62,14 +63,30 @@ class MockWriter : public TableWriter {
 
 class MockSplitStrategy final : public FileSplitStrategy {
   size_t SplitTupleNumbers() const override {
-    // 1000 tuple
-    return 200 * 8;
+    // 1600 tuple
+    return 1600;
   }
 
   size_t SplitFileSize() const override { return 0; }
 
   bool ShouldSplit(size_t phy_size, size_t num_tuples) const override {
     return num_tuples >= SplitTupleNumbers();
+  }
+};
+
+class MockSplitStrategy2 final : public FileSplitStrategy {
+  size_t SplitTupleNumbers() const override {
+    // 10000 tuple
+    return 10000;
+  }
+
+  size_t SplitFileSize() const override {
+    // 32kb
+    return 32 * 1024;
+  }
+
+  bool ShouldSplit(size_t phy_size, size_t num_tuples) const override {
+    return num_tuples >= SplitTupleNumbers() || phy_size > SplitFileSize();
   }
 };
 
@@ -343,6 +360,68 @@ TEST_F(PaxWriterTest, WriteReadTupleSplitFile) {
 
   std::remove((pax_file_name + std::to_string(0)).c_str());
   std::remove((pax_file_name + std::to_string(1)).c_str());
+}
+
+TEST_F(PaxWriterTest, WriteReadTupleSplitFile2) {
+  TupleTableSlot *slot = CreateTestTupleTableSlot(true);
+  std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
+  auto relation = (Relation)cbdb::Palloc0(sizeof(RelationData));
+  int origin_pax_max_tuples_per_group = pax_max_tuples_per_group;
+  pax_max_tuples_per_group = 100;
+
+  relation->rd_att = slot->tts_tupleDescriptor;
+  bool callback_called = false;
+
+  TableWriter::WriteSummaryCallback callback =
+      [&callback_called](const WriteSummary & /*summary*/) {
+        callback_called = true;
+      };
+
+  auto writer = new MockWriter(relation, callback);
+
+  writer->SetFileSplitStrategy(new MockSplitStrategy2());
+  uint32 call_times = 0;
+  EXPECT_CALL(*writer, GenFilePath(_))
+      .Times(AtLeast(2))
+      .WillRepeatedly(testing::Invoke([&call_times]() -> std::string {
+        return std::string(pax_file_name) + std::to_string(call_times++);
+      }));
+  for (size_t i = 0; i < COLUMN_NUMS; i++) {
+    encoding_opts.emplace_back(
+        std::make_tuple(ColumnEncoding_Kind_NO_ENCODED, 0));
+  }
+  EXPECT_CALL(*writer, GetRelEncodingOptions())
+      .Times(AtLeast(1))
+      .WillRepeatedly(Return(encoding_opts));
+
+  writer->Open();
+
+  // The length of each tuple is 212 bytes
+  // The file size limit is 32kb
+  // Should write 2 files here
+  for (size_t i = 0; i < 200; i++) {
+    writer->WriteTuple(slot);
+  }
+
+  writer->Close();
+  ASSERT_TRUE(callback_called);
+
+  DeleteTestTupleTableSlot(slot);
+  delete writer;
+
+  auto file_size = [](std::string file_name) {
+    std::ifstream in(file_name, std::ifstream::ate | std::ifstream::binary);
+    return in.tellg();
+  };
+  auto file1_size = file_size(std::string(pax_file_name) + std::to_string(0));
+  EXPECT_GT(file1_size, 0);
+  EXPECT_TRUE(file1_size < (32 * 1024 * 1.15) &&
+              file1_size > (32 * 1024 * 0.85));
+
+  std::remove((std::string(pax_file_name) + std::to_string(0)).c_str());
+  std::remove((std::string(pax_file_name) + std::to_string(1)).c_str());
+  // set back to pax_max_tuples_per_group
+  pax_max_tuples_per_group = origin_pax_max_tuples_per_group;
 }
 
 #ifdef ENABLE_PLASMA
