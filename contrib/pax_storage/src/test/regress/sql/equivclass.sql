@@ -107,12 +107,16 @@ set enable_nestloop = on;
 set enable_hashjoin = off;
 set enable_mergejoin = off;
 
+set optimizer_enable_hashjoin = off;
+set optimizer_enable_mergejoin = off;
+
 --
 -- Note that for cases where there's a missing operator, we don't care so
 -- much whether the plan is ideal as that we don't fail or generate an
 -- outright incorrect plan.
 --
-
+-- FIXME: looks like ORCA bug, PAX and AO no index scan path 
+-- when filter is `ff = f1 and f1 = '42'::int8`.
 explain (costs off)
   select * from ec0 where ff = f1 and f1 = '42'::int8;
 explain (costs off)
@@ -177,6 +181,8 @@ explain (costs off)
 -- let's try that as a mergejoin
 set enable_mergejoin = on;
 set enable_nestloop = off;
+set optimizer_enable_mergejoin = on;
+set optimizer_enable_hashjoin = on;
 explain (costs off)
   select * from ec1,
     (select ff + 1 as x from
@@ -196,6 +202,7 @@ explain (costs off)
 -- check partially indexed scan
 set enable_nestloop = on;
 set enable_mergejoin = off;
+set optimizer_enable_mergejoin = off;
 
 drop index ec1_expr3;
 
@@ -212,6 +219,7 @@ explain (costs off)
 -- let's try that as a mergejoin
 set enable_mergejoin = on;
 set enable_nestloop = off;
+set optimizer_enable_mergejoin = on;
 
 explain (costs off)
   select * from ec1,
@@ -226,6 +234,7 @@ explain (costs off)
 -- check effects of row-level security
 set enable_nestloop = on;
 set enable_mergejoin = off;
+set optimizer_enable_mergejoin = off;
 
 alter table ec1 enable row level security;
 create policy p1 on ec1 using (f1 < '5'::int8alias1);
@@ -269,3 +278,6 @@ create temp view overview as
   select f1::information_schema.sql_identifier as sqli, f2 from undername;
 explain (costs off)  -- this should not require a sort
   select * from overview where sqli = 'foo' order by sqli;
+
+reset optimizer_enable_hashjoin;
+reset optimizer_enable_mergejoin;

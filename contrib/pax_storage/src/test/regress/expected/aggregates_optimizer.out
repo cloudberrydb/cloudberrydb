@@ -945,15 +945,17 @@ select max(unique1) from tenk1;
 
 explain (costs off)
   select max(unique1) from tenk1 where unique1 < 42;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Only Scan using tenk1_unique1 on tenk1
-                     Index Cond: (unique1 < 42)
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: (unique1 < 42)
+                     ->  Bitmap Index Scan on tenk1_unique1
+                           Index Cond: (unique1 < 42)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(8 rows)
 
 select max(unique1) from tenk1 where unique1 < 42;
  max 
@@ -963,13 +965,13 @@ select max(unique1) from tenk1 where unique1 < 42;
 
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                   QUERY PLAN                   
+------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Only Scan using tenk1_unique1 on tenk1
-                     Index Cond: (unique1 > 42)
+               ->  Seq Scan on tenk1
+                     Filter: (unique1 > 42)
  Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 
@@ -990,15 +992,17 @@ set local enable_seqscan=off;
 set local enable_bitmapscan=off;
 explain (costs off)
   select max(unique1) from tenk1 where unique1 > 42000;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Only Scan using tenk1_unique1 on tenk1
-                     Index Cond: (unique1 > 42000)
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: (unique1 > 42000)
+                     ->  Bitmap Index Scan on tenk1_unique1
+                           Index Cond: (unique1 > 42000)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(8 rows)
 
 select max(unique1) from tenk1 where unique1 > 42000;
  max 
@@ -1010,15 +1014,17 @@ rollback;
 -- multi-column index (uses tenk1_thous_tenthous)
 explain (costs off)
   select max(tenthous) from tenk1 where thousand = 33;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Only Scan using tenk1_thous_tenthous on tenk1
-                     Index Cond: (thousand = 33)
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: (thousand = 33)
+                     ->  Bitmap Index Scan on tenk1_thous_tenthous
+                           Index Cond: (thousand = 33)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(8 rows)
 
 select max(tenthous) from tenk1 where thousand = 33;
  max  
@@ -1028,15 +1034,17 @@ select max(tenthous) from tenk1 where thousand = 33;
 
 explain (costs off)
   select min(tenthous) from tenk1 where thousand = 33;
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Only Scan using tenk1_thous_tenthous on tenk1
-                     Index Cond: (thousand = 33)
+               ->  Bitmap Heap Scan on tenk1
+                     Recheck Cond: (thousand = 33)
+                     ->  Bitmap Index Scan on tenk1_thous_tenthous
+                           Index Cond: (thousand = 33)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(8 rows)
 
 select min(tenthous) from tenk1 where thousand = 33;
  min 
@@ -1346,14 +1354,14 @@ explain (costs off) select a,c from t1 group by a,c,d;
 explain (costs off) select *
 from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
 group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.y,t2.z;
-                      QUERY PLAN                       
--------------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Nested Loop
-         Join Filter: true
+   ->  Hash Join
+         Hash Cond: ((t1.a = t2.x) AND (t1.b = t2.y))
          ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: ((x = t1.a) AND (y = t1.b))
+         ->  Hash
+               ->  Seq Scan on t2
  Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
 
@@ -1361,14 +1369,14 @@ group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.y,t2.z;
 explain (costs off) select t1.*,t2.x,t2.z
 from t1 inner join t2 on t1.a = t2.x and t1.b = t2.y
 group by t1.a,t1.b,t1.c,t1.d,t2.x,t2.z;
-                      QUERY PLAN                       
--------------------------------------------------------
+                      QUERY PLAN                      
+------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Nested Loop
-         Join Filter: true
+   ->  Hash Join
+         Hash Cond: ((t1.a = t2.x) AND (t1.b = t2.y))
          ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: ((x = t1.a) AND (y = t1.b))
+         ->  Hash
+               ->  Seq Scan on t2
  Optimizer: Pivotal Optimizer (GPORCA)
 (7 rows)
 
@@ -3081,27 +3089,12 @@ CREATE AGGREGATE balk(int4)
     INITCOND = '0'
 );
 -- force use of parallelism
-ALTER TABLE tenk1 set (parallel_workers = 4);
-SET LOCAL parallel_setup_cost=0;
-SET LOCAL max_parallel_workers_per_gather=4;
-EXPLAIN (COSTS OFF) SELECT balk(hundred) FROM tenk1;
-                   QUERY PLAN                   
-------------------------------------------------
- Finalize Aggregate
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Partial Aggregate
-               ->  Seq Scan on tenk1
- Optimizer: Pivotal Optimizer (GPORCA)
-(5 rows)
-
-SELECT balk(hundred) FROM tenk1;
-INFO:  GPORCA failed to produce a plan, falling back to planner
-DETAIL:  GPDB Expression type: Query Parameter not supported in DXL
- balk 
-------
-     
-(1 row)
-
+-- Pax not support parallel scan
+-- ALTER TABLE tenk1 set (parallel_workers = 4);
+-- SET LOCAL parallel_setup_cost=0;
+-- SET LOCAL max_parallel_workers_per_gather=4;
+-- EXPLAIN (COSTS OFF) SELECT balk(hundred) FROM tenk1;
+-- SELECT balk(hundred) FROM tenk1;
 ROLLBACK;
 -- test coverage for aggregate combine/serial/deserial functions
 BEGIN;

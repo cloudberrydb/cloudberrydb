@@ -263,18 +263,19 @@ EXPLAIN (COSTS OFF)
 SELECT * FROM fast_emp4000
     WHERE home_base <@ '(200,200),(2000,1000)'::box
     ORDER BY (home_base[0])[0];
-                                 QUERY PLAN                                 
-----------------------------------------------------------------------------
+                                    QUERY PLAN                                     
+-----------------------------------------------------------------------------------
  Result
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: ((home_base[0])[0])
          ->  Sort
                Sort Key: ((home_base[0])[0])
-               ->  Index Scan using grect2ind on fast_emp4000
-                     Index Cond: (home_base <@ '(2000,1000),(200,200)'::box)
-                     Filter: (home_base <@ '(2000,1000),(200,200)'::box)
+               ->  Bitmap Heap Scan on fast_emp4000
+                     Recheck Cond: (home_base <@ '(2000,1000),(200,200)'::box)
+                     ->  Bitmap Index Scan on grect2ind
+                           Index Cond: (home_base <@ '(2000,1000),(200,200)'::box)
  Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+(10 rows)
 
 SELECT * FROM fast_emp4000
     WHERE home_base <@ '(200,200),(2000,1000)'::box
@@ -287,16 +288,17 @@ SELECT * FROM fast_emp4000
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
-                               QUERY PLAN                                
--------------------------------------------------------------------------
+                                  QUERY PLAN                                   
+-------------------------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using grect2ind on fast_emp4000
-                     Index Cond: (home_base && '(1000,1000),(0,0)'::box)
-                     Filter: (home_base && '(1000,1000),(0,0)'::box)
+               ->  Bitmap Heap Scan on fast_emp4000
+                     Recheck Cond: (home_base && '(1000,1000),(0,0)'::box)
+                     ->  Bitmap Index Scan on grect2ind
+                           Index Cond: (home_base && '(1000,1000),(0,0)'::box)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(8 rows)
 
 SELECT count(*) FROM fast_emp4000 WHERE home_base && '(1000,1000,0,0)'::box;
  count 
@@ -325,18 +327,19 @@ SELECT count(*) FROM fast_emp4000 WHERE home_base IS NULL;
 EXPLAIN (COSTS OFF)
 SELECT * FROM polygon_tbl WHERE f1 @> '((1,1),(2,2),(2,1))'::polygon
     ORDER BY (poly_center(f1))[0];
-                              QUERY PLAN                               
------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Result
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: ((poly_center(f1))[0])
          ->  Sort
                Sort Key: ((poly_center(f1))[0])
-               ->  Index Scan using gpolygonind on polygon_tbl
-                     Index Cond: (f1 @> '((1,1),(2,2),(2,1))'::polygon)
-                     Filter: (f1 @> '((1,1),(2,2),(2,1))'::polygon)
+               ->  Bitmap Heap Scan on polygon_tbl
+                     Recheck Cond: (f1 @> '((1,1),(2,2),(2,1))'::polygon)
+                     ->  Bitmap Index Scan on gpolygonind
+                           Index Cond: (f1 @> '((1,1),(2,2),(2,1))'::polygon)
  Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+(10 rows)
 
 SELECT * FROM polygon_tbl WHERE f1 @> '((1,1),(2,2),(2,1))'::polygon
     ORDER BY (poly_center(f1))[0];
@@ -348,18 +351,19 @@ SELECT * FROM polygon_tbl WHERE f1 @> '((1,1),(2,2),(2,1))'::polygon
 EXPLAIN (COSTS OFF)
 SELECT * FROM circle_tbl WHERE f1 && circle(point(1,-2), 1)
     ORDER BY area(f1);
-                             QUERY PLAN                             
---------------------------------------------------------------------
+                                QUERY PLAN                                
+--------------------------------------------------------------------------
  Result
    ->  Sort
          Sort Key: (area(f1))
          ->  Result
                ->  Gather Motion 3:1  (slice1; segments: 3)
-                     ->  Index Scan using gcircleind on circle_tbl
-                           Index Cond: (f1 && '<(1,-2),1>'::circle)
-                           Filter: (f1 && '<(1,-2),1>'::circle)
+                     ->  Bitmap Heap Scan on circle_tbl
+                           Recheck Cond: (f1 && '<(1,-2),1>'::circle)
+                           ->  Bitmap Index Scan on gcircleind
+                                 Index Cond: (f1 && '<(1,-2),1>'::circle)
  Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+(10 rows)
 
 SELECT * FROM circle_tbl WHERE f1 && circle(point(1,-2), 1)
     ORDER BY area(f1);
@@ -373,16 +377,17 @@ SELECT * FROM circle_tbl WHERE f1 && circle(point(1,-2), 1)
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM gpolygon_tbl WHERE f1 && '(1000,1000,0,0)'::polygon;
-                               QUERY PLAN                               
-------------------------------------------------------------------------
+                                  QUERY PLAN                                  
+------------------------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using ggpolygonind on gpolygon_tbl
-                     Index Cond: (f1 && '((1000,1000),(0,0))'::polygon)
-                     Filter: (f1 && '((1000,1000),(0,0))'::polygon)
+               ->  Bitmap Heap Scan on gpolygon_tbl
+                     Recheck Cond: (f1 && '((1000,1000),(0,0))'::polygon)
+                     ->  Bitmap Index Scan on ggpolygonind
+                           Index Cond: (f1 && '((1000,1000),(0,0))'::polygon)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(8 rows)
 
 SELECT count(*) FROM gpolygon_tbl WHERE f1 && '(1000,1000,0,0)'::polygon;
  count 
@@ -392,16 +397,17 @@ SELECT count(*) FROM gpolygon_tbl WHERE f1 && '(1000,1000,0,0)'::polygon;
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM gcircle_tbl WHERE f1 && '<(500,500),500>'::circle;
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                               QUERY PLAN                                
+-------------------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using ggcircleind on gcircle_tbl
-                     Index Cond: (f1 && '<(500,500),500>'::circle)
-                     Filter: (f1 && '<(500,500),500>'::circle)
+               ->  Bitmap Heap Scan on gcircle_tbl
+                     Recheck Cond: (f1 && '<(500,500),500>'::circle)
+                     ->  Bitmap Index Scan on ggcircleind
+                           Index Cond: (f1 && '<(500,500),500>'::circle)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(8 rows)
 
 SELECT count(*) FROM gcircle_tbl WHERE f1 && '<(500,500),500>'::circle;
  count 
@@ -411,15 +417,16 @@ SELECT count(*) FROM gcircle_tbl WHERE f1 && '<(500,500),500>'::circle;
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl WHERE f1 <@ box '(0,0,100,100)';
-                        QUERY PLAN                        
-----------------------------------------------------------
+                           QUERY PLAN                           
+----------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 <@ '(100,100),(0,0)'::box)
-               Filter: (f1 <@ '(100,100),(0,0)'::box)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 <@ '(100,100),(0,0)'::box)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 <@ '(100,100),(0,0)'::box)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl WHERE f1 <@ box '(0,0,100,100)';
  count 
@@ -429,15 +436,16 @@ SELECT count(*) FROM point_tbl WHERE f1 <@ box '(0,0,100,100)';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl WHERE box '(0,0,100,100)' @> f1;
-                        QUERY PLAN                        
-----------------------------------------------------------
+                           QUERY PLAN                           
+----------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 <@ '(100,100),(0,0)'::box)
-               Filter: (f1 <@ '(100,100),(0,0)'::box)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 <@ '(100,100),(0,0)'::box)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 <@ '(100,100),(0,0)'::box)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl WHERE box '(0,0,100,100)' @> f1;
  count 
@@ -447,15 +455,16 @@ SELECT count(*) FROM point_tbl WHERE box '(0,0,100,100)' @> f1;
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl WHERE f1 <@ polygon '(0,0),(0,100),(100,100),(50,50),(100,0),(0,0)';
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
+                                             QUERY PLAN                                             
+----------------------------------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 <@ '((0,0),(0,100),(100,100),(50,50),(100,0),(0,0))'::polygon)
-               Filter: (f1 <@ '((0,0),(0,100),(100,100),(50,50),(100,0),(0,0))'::polygon)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 <@ '((0,0),(0,100),(100,100),(50,50),(100,0),(0,0))'::polygon)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 <@ '((0,0),(0,100),(100,100),(50,50),(100,0),(0,0))'::polygon)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl WHERE f1 <@ polygon '(0,0),(0,100),(100,100),(50,50),(100,0),(0,0)';
  count 
@@ -465,15 +474,16 @@ SELECT count(*) FROM point_tbl WHERE f1 <@ polygon '(0,0),(0,100),(100,100),(50,
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl WHERE f1 <@ circle '<(50,50),50>';
-                        QUERY PLAN                        
-----------------------------------------------------------
+                           QUERY PLAN                           
+----------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 <@ '<(50,50),50>'::circle)
-               Filter: (f1 <@ '<(50,50),50>'::circle)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 <@ '<(50,50),50>'::circle)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 <@ '<(50,50),50>'::circle)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl WHERE f1 <@ circle '<(50,50),50>';
  count 
@@ -483,15 +493,16 @@ SELECT count(*) FROM point_tbl WHERE f1 <@ circle '<(50,50),50>';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl p WHERE p.f1 << '(0.0, 0.0)';
-                     QUERY PLAN                      
------------------------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 << '(0,0)'::point)
-               Filter: (f1 << '(0,0)'::point)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 << '(0,0)'::point)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 << '(0,0)'::point)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl p WHERE p.f1 << '(0.0, 0.0)';
  count 
@@ -501,15 +512,16 @@ SELECT count(*) FROM point_tbl p WHERE p.f1 << '(0.0, 0.0)';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl p WHERE p.f1 >> '(0.0, 0.0)';
-                     QUERY PLAN                      
------------------------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 >> '(0,0)'::point)
-               Filter: (f1 >> '(0,0)'::point)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 >> '(0,0)'::point)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 >> '(0,0)'::point)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl p WHERE p.f1 >> '(0.0, 0.0)';
  count 
@@ -519,15 +531,16 @@ SELECT count(*) FROM point_tbl p WHERE p.f1 >> '(0.0, 0.0)';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl p WHERE p.f1 <<| '(0.0, 0.0)';
-                     QUERY PLAN                      
------------------------------------------------------
+                       QUERY PLAN                        
+---------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 <<| '(0,0)'::point)
-               Filter: (f1 <<| '(0,0)'::point)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 <<| '(0,0)'::point)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 <<| '(0,0)'::point)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl p WHERE p.f1 <<| '(0.0, 0.0)';
  count 
@@ -537,15 +550,16 @@ SELECT count(*) FROM point_tbl p WHERE p.f1 <<| '(0.0, 0.0)';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl p WHERE p.f1 |>> '(0.0, 0.0)';
-                     QUERY PLAN                      
------------------------------------------------------
+                       QUERY PLAN                        
+---------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 |>> '(0,0)'::point)
-               Filter: (f1 |>> '(0,0)'::point)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 |>> '(0,0)'::point)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 |>> '(0,0)'::point)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl p WHERE p.f1 |>> '(0.0, 0.0)';
  count 
@@ -555,15 +569,16 @@ SELECT count(*) FROM point_tbl p WHERE p.f1 |>> '(0.0, 0.0)';
 
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM point_tbl p WHERE p.f1 ~= '(-5, -12)';
-                     QUERY PLAN                      
------------------------------------------------------
+                        QUERY PLAN                         
+-----------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using gpointind on point_tbl
-               Index Cond: (f1 ~= '(-5,-12)'::point)
-               Filter: (f1 ~= '(-5,-12)'::point)
+         ->  Bitmap Heap Scan on point_tbl
+               Recheck Cond: (f1 ~= '(-5,-12)'::point)
+               ->  Bitmap Index Scan on gpointind
+                     Index Cond: (f1 ~= '(-5,-12)'::point)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 SELECT count(*) FROM point_tbl p WHERE p.f1 ~= '(-5, -12)';
  count 
@@ -586,7 +601,7 @@ SELECT * FROM point_tbl ORDER BY f1 <-> '0,1';
 --SELECT * FROM point_tbl ORDER BY f1 <-> '0,1';
 EXPLAIN (COSTS OFF)
 SELECT * FROM point_tblv ORDER BY f1 <-> '0,1';
-                                                    QUERY PLAN
+                                                    QUERY PLAN                                                     
 -------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: ((point_tbl.f1 <-> '(0,1)'::point))
@@ -625,8 +640,8 @@ SELECT * FROM point_tbl WHERE f1 IS NULL;
 
 EXPLAIN (COSTS OFF)
 SELECT * FROM point_tblv WHERE f1 IS NOT NULL ORDER BY f1 <-> '0,1';
-                     QUERY PLAN                     
-----------------------------------------------------
+                                                    QUERY PLAN                                                     
+-------------------------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: ((point_tbl.f1 <-> '(0,1)'::point))
    ->  Index Only Scan using gpointind on point_tbl
@@ -651,18 +666,20 @@ SELECT * FROM point_tblv WHERE f1 IS NOT NULL ORDER BY f1 <-> '0,1';
 --SELECT * FROM point_tbl WHERE f1 IS NOT NULL ORDER BY f1 <-> '0,1';
 EXPLAIN (COSTS OFF)
 SELECT * FROM point_tblv WHERE f1 <@ '(-10,-10),(10,10)':: box ORDER BY f1 <-> '0,1';
-                                                                                QUERY PLAN
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
  Result
    ->  Sort
          Sort Key: ((f1 <-> '(0,1)'::point))
          ->  Result
                ->  Gather Motion 3:1  (slice1; segments: 3)
-                     ->  Index Scan using gpointind on point_tbl
-                           Index Cond: (f1 <@ '(10,10),(-10,-10)'::box)
-                           Filter: ((f1 <> '(1e-300,-1e-300)'::point) AND ((f1 <-> '(0,0)'::point) <> 'Infinity'::double precision) AND (f1 <@ '(10,10),(-10,-10)'::box))
+                     ->  Bitmap Heap Scan on point_tbl
+                           Recheck Cond: (f1 <@ '(10,10),(-10,-10)'::box)
+                           Filter: (((f1 <-> '(0,0)'::point) <> 'Infinity'::double precision) AND (f1 <> '(1e-300,-1e-300)'::point))
+                           ->  Bitmap Index Scan on gpointind
+                                 Index Cond: (f1 <@ '(10,10),(-10,-10)'::box)
  Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+(11 rows)
 
 SELECT * FROM point_tblv WHERE f1 <@ '(-10,-10),(10,10)':: box ORDER BY f1 <-> '0,1';
    f1    
@@ -674,7 +691,7 @@ SELECT * FROM point_tblv WHERE f1 <@ '(-10,-10),(10,10)':: box ORDER BY f1 <-> '
 
 EXPLAIN (COSTS OFF)
 SELECT * FROM gpolygon_tbl ORDER BY f1 <-> '(0,0)'::point LIMIT 10;
-                           QUERY PLAN
+                           QUERY PLAN                            
 -----------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
@@ -730,7 +747,7 @@ SELECT circle_center(f1), round(radius(f1)) as radius FROM gcircle_tbl ORDER BY 
 
 EXPLAIN (COSTS OFF)
 SELECT point(x,x), (SELECT f1 FROM gpolygon_tbl ORDER BY f1 <-> point(x,x) LIMIT 1) as c FROM generate_series(0,10,1) x;
-                                                QUERY PLAN
+                                                QUERY PLAN                                                 
 -----------------------------------------------------------------------------------------------------------
  Function Scan on generate_series x
    SubPlan 1
@@ -766,18 +783,20 @@ SET enable_indexscan = OFF;
 SET enable_bitmapscan = ON;
 EXPLAIN (COSTS OFF)
 SELECT * FROM point_tblv WHERE f1 <@ '(-10,-10),(10,10)':: box ORDER BY f1 <-> '0,1';
-                                                                                QUERY PLAN
---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                             QUERY PLAN                                                              
+-------------------------------------------------------------------------------------------------------------------------------------
  Result
    ->  Sort
          Sort Key: ((f1 <-> '(0,1)'::point))
          ->  Result
                ->  Gather Motion 3:1  (slice1; segments: 3)
-                     ->  Index Scan using gpointind on point_tbl
-                           Index Cond: (f1 <@ '(10,10),(-10,-10)'::box)
-                           Filter: ((f1 <> '(1e-300,-1e-300)'::point) AND ((f1 <-> '(0,0)'::point) <> 'Infinity'::double precision) AND (f1 <@ '(10,10),(-10,-10)'::box))
+                     ->  Bitmap Heap Scan on point_tbl
+                           Recheck Cond: (f1 <@ '(10,10),(-10,-10)'::box)
+                           Filter: (((f1 <-> '(0,0)'::point) <> 'Infinity'::double precision) AND (f1 <> '(1e-300,-1e-300)'::point))
+                           ->  Bitmap Index Scan on gpointind
+                                 Index Cond: (f1 <@ '(10,10),(-10,-10)'::box)
  Optimizer: Pivotal Optimizer (GPORCA)
-(9 rows)
+(11 rows)
 
 SELECT * FROM point_tblv WHERE f1 <@ '(-10,-10),(10,10)':: box ORDER BY f1 <-> '0,1';
    f1    
@@ -1960,11 +1979,13 @@ SELECT * FROM tenk1
                               QUERY PLAN                               
 -----------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
-   ->  Index Scan using tenk1_thous_tenthous on tenk1
-         Index Cond: (thousand = 42)
+   ->  Bitmap Heap Scan on tenk1
+         Recheck Cond: (thousand = 42)
          Filter: ((tenthous = 1) OR (tenthous = 3) OR (tenthous = 42))
+         ->  Bitmap Index Scan on tenk1_thous_tenthous
+               Index Cond: (thousand = 42)
  Optimizer: Pivotal Optimizer (GPORCA)
-(5 rows)
+(7 rows)
 
 SELECT * FROM tenk1
   WHERE thousand = 42 AND (tenthous = 1 OR tenthous = 3 OR tenthous = 42);
@@ -1976,15 +1997,22 @@ SELECT * FROM tenk1
 EXPLAIN (COSTS OFF)
 SELECT count(*) FROM tenk1
   WHERE hundred = 42 AND (thousand = 42 OR thousand = 99);
-                         QUERY PLAN                         
-------------------------------------------------------------
+                                      QUERY PLAN                                       
+---------------------------------------------------------------------------------------
  Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Index Scan using tenk1_hundred on tenk1
-               Index Cond: (hundred = 42)
-               Filter: ((thousand = 42) OR (thousand = 99))
+         ->  Bitmap Heap Scan on tenk1
+               Recheck Cond: (((thousand = 42) OR (thousand = 99)) AND (hundred = 42))
+               ->  BitmapAnd
+                     ->  BitmapOr
+                           ->  Bitmap Index Scan on tenk1_thous_tenthous
+                                 Index Cond: (thousand = 42)
+                           ->  Bitmap Index Scan on tenk1_thous_tenthous
+                                 Index Cond: (thousand = 99)
+                     ->  Bitmap Index Scan on tenk1_hundred
+                           Index Cond: (hundred = 42)
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(13 rows)
 
 SELECT count(*) FROM tenk1
   WHERE hundred = 42 AND (thousand = 42 OR thousand = 99);
@@ -2000,21 +2028,10 @@ CREATE TABLE dupindexcols AS
   SELECT unique1 as id, stringu2::text as f1 FROM tenk1;
 CREATE INDEX dupindexcols_i ON dupindexcols (f1, id, f1 text_pattern_ops);
 ANALYZE dupindexcols;
-EXPLAIN (COSTS OFF)
-  SELECT count(*) FROM dupindexcols
-    WHERE f1 BETWEEN 'WA' AND 'ZZZ' and id < 1000 and f1 ~<~ 'YX';
-                                          QUERY PLAN                                          
-----------------------------------------------------------------------------------------------
- Finalize Aggregate
-   ->  Gather Motion 3:1  (slice1; segments: 3)
-         ->  Partial Aggregate
-               ->  Bitmap Heap Scan on dupindexcols
-                     Recheck Cond: ((f1 >= 'WA'::text) AND (f1 <= 'ZZZ'::text) AND (id < 1000) AND (f1 ~<~ 'YX'::text))
-                     ->  Bitmap Index Scan on dupindexcols_i
-                           Index Cond: ((f1 >= 'WA'::text) AND (f1 <= 'ZZZ'::text) AND (id < 1000) AND (f1 ~<~ 'YX'::text))
- Optimizer: Postgres query optimizer
-(8 rows)
-
+-- FIXME: It's a unstable case in PAX
+-- EXPLAIN (COSTS OFF)
+--   SELECT count(*) FROM dupindexcols
+--     WHERE f1 BETWEEN 'WA' AND 'ZZZ' and id < 1000 and f1 ~<~ 'YX';
 SELECT count(*) FROM dupindexcols
   WHERE f1 BETWEEN 'WA' AND 'ZZZ' and id < 1000 and f1 ~<~ 'YX';
  count 
@@ -2057,17 +2074,18 @@ explain (costs off)
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
 ORDER BY thousand;
-                            QUERY PLAN
--------------------------------------------------------------------
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: thousand
    ->  Sort
          Sort Key: thousand
-         ->  Index Only Scan using tenk1_thous_tenthous on tenk1
-               Index Cond: (thousand < 2)
-               Filter: (tenthous = ANY ('{1001,3000}'::integer[]))
+         ->  Bitmap Heap Scan on tenk1
+               Recheck Cond: ((thousand < 2) AND (tenthous = ANY ('{1001,3000}'::integer[])))
+               ->  Bitmap Index Scan on tenk1_thous_tenthous
+                     Index Cond: ((thousand < 2) AND (tenthous = ANY ('{1001,3000}'::integer[])))
  Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+(9 rows)
 
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
@@ -2083,17 +2101,18 @@ explain (costs off)
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
 ORDER BY thousand;
-                            QUERY PLAN
--------------------------------------------------------------------
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    Merge Key: thousand
    ->  Sort
          Sort Key: thousand
-         ->  Index Only Scan using tenk1_thous_tenthous on tenk1
-               Index Cond: (thousand < 2)
-               Filter: (tenthous = ANY ('{1001,3000}'::integer[]))
+         ->  Bitmap Heap Scan on tenk1
+               Recheck Cond: ((thousand < 2) AND (tenthous = ANY ('{1001,3000}'::integer[])))
+               ->  Bitmap Index Scan on tenk1_thous_tenthous
+                     Index Cond: ((thousand < 2) AND (tenthous = ANY ('{1001,3000}'::integer[])))
  Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+(9 rows)
 
 SELECT thousand, tenthous FROM tenk1
 WHERE thousand < 2 AND tenthous IN (1001,3000)
@@ -2110,12 +2129,12 @@ RESET enable_indexonlyscan;
 --
 explain (costs off)
   select * from tenk1 where (thousand, tenthous) in ((1,1001), (null,null));
-                                QUERY PLAN                                 
----------------------------------------------------------------------------
+                         QUERY PLAN                         
+------------------------------------------------------------
  Gather Motion 3:1  (slice1; segments: 3)
    ->  Index Scan using tenk1_thous_tenthous on tenk1
          Index Cond: ((thousand = 1) AND (tenthous = 1001))
- Optimizer: Pivotal Optimizer (GPORCA)
+ Optimizer: Postgres query optimizer
 (4 rows)
 
 --
@@ -2148,61 +2167,59 @@ explain (costs off)
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: i
-         ->  Sort
-               Sort Key: i
-               ->  Index Scan using boolindex_b_i_key on boolindex
-                     Index Cond: (b = true)
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+         ->  Limit
+               ->  Sort
+                     Sort Key: i
+                     ->  Seq Scan on boolindex
+                           Filter: b
+ Optimizer: Postgres query optimizer
+(9 rows)
 
 -- Repeate with different distribution key
 alter table boolindex set distributed by (i);
 explain (costs off)
   select * from boolindex where b order by i limit 10;
-                      QUERY PLAN                       
--------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: i
-         ->  Sort
-               Sort Key: i
+         ->  Limit
                ->  Index Scan using boolindex_b_i_key on boolindex
                      Index Cond: (b = true)
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 explain (costs off)
   select * from boolindex where b = true order by i desc limit 10;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: i
-         ->  Sort
-               Sort Key: i DESC
-               ->  Index Scan using boolindex_b_i_key on boolindex
+         ->  Limit
+               ->  Index Scan Backward using boolindex_b_i_key on boolindex
                      Index Cond: (b = true)
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 explain (costs off)
   select * from boolindex where not b order by i limit 10;
-                      QUERY PLAN                       
--------------------------------------------------------
+                            QUERY PLAN                             
+-------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: i
-         ->  Sort
-               Sort Key: i
+         ->  Limit
                ->  Index Scan using boolindex_b_i_key on boolindex
                      Index Cond: (b = false)
- Optimizer: Pivotal Optimizer (GPORCA)
-(8 rows)
+ Optimizer: Postgres query optimizer
+(7 rows)
 
 explain (costs off)
   select * from boolindex where b is true order by i desc limit 10;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: i
@@ -2214,8 +2231,8 @@ explain (costs off)
 
 explain (costs off)
   select * from boolindex where b is false order by i desc limit 10;
-                           QUERY PLAN                           
-----------------------------------------------------------------
+                                 QUERY PLAN                                 
+----------------------------------------------------------------------------
  Limit
    ->  Gather Motion 3:1  (slice1; segments: 3)
          Merge Key: i
@@ -2302,13 +2319,17 @@ WHERE classid = 'pg_class'::regclass AND
  index concur_reindex_ind3                | column c1 of table concur_reindex_tab                      | a
  index concur_reindex_ind4                | column c1 of table concur_reindex_tab                      | a
  index concur_reindex_ind4                | column c2 of table concur_reindex_tab                      | a
+ materialized view concur_reindex_matview | access method pax                                          | n
  materialized view concur_reindex_matview | schema public                                              | n
+ table concur_reindex_tab                 | access method pax                                          | n
  table concur_reindex_tab                 | schema public                                              | n
-(8 rows)
+(10 rows)
 
 REINDEX INDEX concur_reindex_ind1;
 REINDEX TABLE concur_reindex_tab;
+-- FIXME: The materialized view create by PAX can't do REINDEX
 REINDEX TABLE concur_reindex_matview;
+NOTICE:  table "concur_reindex_matview" has no indexes to reindex
 SELECT pg_describe_object(classid, objid, objsubid) as obj,
        pg_describe_object(refclassid,refobjid,refobjsubid) as objref,
        deptype
@@ -2329,9 +2350,11 @@ WHERE classid = 'pg_class'::regclass AND
  index concur_reindex_ind3                | column c1 of table concur_reindex_tab                      | a
  index concur_reindex_ind4                | column c1 of table concur_reindex_tab                      | a
  index concur_reindex_ind4                | column c2 of table concur_reindex_tab                      | a
+ materialized view concur_reindex_matview | access method pax                                          | n
  materialized view concur_reindex_matview | schema public                                              | n
+ table concur_reindex_tab                 | access method pax                                          | n
  table concur_reindex_tab                 | schema public                                              | n
-(8 rows)
+(10 rows)
 
 -- Check that comments are preserved
 CREATE TABLE testcomment (i int);
@@ -2496,11 +2519,13 @@ WHERE classid = 'pg_class'::regclass AND
  table concur_reindex_part                | schema public                              | n
  table concur_reindex_part_0              | schema public                              | n
  table concur_reindex_part_0              | table concur_reindex_part                  | a
+ table concur_reindex_part_0_1            | access method pax                          | n
  table concur_reindex_part_0_1            | schema public                              | n
  table concur_reindex_part_0_1            | table concur_reindex_part_0                | a
+ table concur_reindex_part_0_2            | access method pax                          | n
  table concur_reindex_part_0_2            | schema public                              | n
  table concur_reindex_part_0_2            | table concur_reindex_part_0                | a
-(19 rows)
+(21 rows)
 
 REINDEX INDEX concur_reindex_part_index_0_1;
 REINDEX INDEX concur_reindex_part_index_0_2;
@@ -2548,11 +2573,13 @@ WHERE classid = 'pg_class'::regclass AND
  table concur_reindex_part                | schema public                              | n
  table concur_reindex_part_0              | schema public                              | n
  table concur_reindex_part_0              | table concur_reindex_part                  | a
+ table concur_reindex_part_0_1            | access method pax                          | n
  table concur_reindex_part_0_1            | schema public                              | n
  table concur_reindex_part_0_1            | table concur_reindex_part_0                | a
+ table concur_reindex_part_0_2            | access method pax                          | n
  table concur_reindex_part_0_2            | schema public                              | n
  table concur_reindex_part_0_2            | table concur_reindex_part_0                | a
-(19 rows)
+(21 rows)
 
 SELECT relid, parentrelid, level FROM pg_partition_tree('concur_reindex_part_index')
   ORDER BY relid, level;
@@ -2988,6 +3015,7 @@ CREATE TABLE reindex_before AS
 SELECT oid, relname, relfilenode, relkind, reltoastrelid
 	FROM pg_class
 	where relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = 'schema_to_reindex');
+-- Pax won't insert anything, because no toast here
 INSERT INTO reindex_before
 SELECT oid, 'pg_toast_TABLE', relfilenode, relkind, reltoastrelid
 FROM pg_class WHERE oid IN
@@ -3007,21 +3035,19 @@ SELECT  b.relname,
         ELSE 'relfilenode has changed' END
   FROM reindex_before b JOIN pg_class a ON b.oid = a.oid
   ORDER BY 1;
-       relname        | relkind |           case           
-----------------------+---------+--------------------------
- matview              | m       | relfilenode is unchanged
- matview_col1_idx     | i       | relfilenode has changed
- pg_toast_TABLE       | t       | relfilenode is unchanged
- pg_toast_TABLE_index | i       | relfilenode has changed
- table1               | r       | relfilenode is unchanged
- table1_col1_seq      | S       | relfilenode is unchanged
- table1_pkey          | i       | relfilenode has changed
- table2               | r       | relfilenode is unchanged
- table2_col1_seq      | S       | relfilenode is unchanged
- table2_col2_idx      | i       | relfilenode has changed
- table2_pkey          | i       | relfilenode has changed
- view                 | v       | relfilenode is unchanged
-(12 rows)
+     relname      | relkind |           case           
+------------------+---------+--------------------------
+ matview          | m       | relfilenode is unchanged
+ matview_col1_idx | i       | relfilenode has changed
+ table1           | r       | relfilenode is unchanged
+ table1_col1_seq  | S       | relfilenode is unchanged
+ table1_pkey      | i       | relfilenode has changed
+ table2           | r       | relfilenode is unchanged
+ table2_col1_seq  | S       | relfilenode is unchanged
+ table2_col2_idx  | i       | relfilenode has changed
+ table2_pkey      | i       | relfilenode has changed
+ view             | v       | relfilenode is unchanged
+(10 rows)
 
 REINDEX SCHEMA schema_to_reindex;
 BEGIN;

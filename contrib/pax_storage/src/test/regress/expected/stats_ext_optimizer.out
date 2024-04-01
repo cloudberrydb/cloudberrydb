@@ -4,6 +4,7 @@
 -- roughly the same estimates as in upstream.
 set gp_selectivity_damping_for_scans = off;
 set gp_selectivity_damping_for_joins = off;
+set pax_enable_filter to off;
 -- Set constraint_exclusion to partition as same as upstream to make test pass.
 set constraint_exclusion to 'partition';
 --
@@ -319,16 +320,16 @@ ERROR:  relation "ty" is not a table, foreign table, or materialized view
 CREATE STATISTICS tststats.s7 ON a, b FROM tststats.f;
 CREATE STATISTICS tststats.s8 ON a, b FROM tststats.pt;
 CREATE STATISTICS tststats.s9 ON a, b FROM tststats.pt1;
-DO $$
-DECLARE
-	relname text := reltoastrelid::regclass FROM pg_class WHERE oid = 'tststats.t'::regclass;
-BEGIN
-	EXECUTE 'CREATE STATISTICS tststats.s10 ON a, b FROM ' || relname;
-EXCEPTION WHEN wrong_object_type THEN
-	RAISE NOTICE 'stats on toast table not created';
-END;
-$$;
-NOTICE:  stats on toast table not created
+-- PAX doesn't have toast
+-- DO $$
+-- DECLARE
+-- 	relname text := reltoastrelid::regclass FROM pg_class WHERE oid = 'tststats.t'::regclass;
+-- BEGIN
+-- 	EXECUTE 'CREATE STATISTICS tststats.s10 ON a, b FROM ' || relname;
+-- EXCEPTION WHEN wrong_object_type THEN
+-- 	RAISE NOTICE 'stats on toast table not created';
+-- END;
+-- $$;
 DROP SCHEMA tststats CASCADE;
 NOTICE:  drop cascades to 7 other objects
 DETAIL:  drop cascades to table tststats.t
@@ -349,8 +350,7 @@ CREATE TABLE ndistinct (
     filler3 DATE,
     c INT,
     d INT
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'filler1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- over-estimates when using only per-column statistics
@@ -1021,8 +1021,7 @@ CREATE TABLE functional_dependencies (
     filler3 DATE,
     c INT,
     d TEXT
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'filler1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 CREATE INDEX fdeps_ab_idx ON functional_dependencies (a, b);
@@ -1771,8 +1770,7 @@ CREATE TABLE functional_dependencies_multi (
 	b INTEGER,
 	c INTEGER,
 	d INTEGER
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO functional_dependencies_multi (a, b, c, d)
@@ -1858,8 +1856,7 @@ CREATE TABLE mcv_lists (
     filler3 DATE,
     c INT,
     d TEXT
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'filler1' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 -- random data (no MCV list)
@@ -2604,8 +2601,7 @@ CREATE TABLE mcv_lists_uuid (
     a UUID,
     b UUID,
     c UUID
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mcv_lists_uuid (a, b, c)
@@ -2648,8 +2644,7 @@ CREATE TABLE mcv_lists_arrays (
     a TEXT[],
     b NUMERIC[],
     c INT[]
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mcv_lists_arrays (a, b, c)
@@ -2666,8 +2661,7 @@ CREATE TABLE mcv_lists_bool (
     a BOOL,
     b BOOL,
     c BOOL
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mcv_lists_bool (a, b, c)
@@ -2860,8 +2854,7 @@ CREATE TABLE mcv_lists_multi (
 	b INTEGER,
 	c INTEGER,
 	d INTEGER
-)
-WITH (autovacuum_enabled = off);
+);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
 INSERT INTO mcv_lists_multi (a, b, c, d)
@@ -3275,3 +3268,4 @@ NOTICE:  drop cascades to 2 other objects
 DETAIL:  drop cascades to table tststats.priv_test_tbl
 drop cascades to view tststats.priv_test_view
 DROP USER regress_stats_user1;
+reset pax_enable_filter;

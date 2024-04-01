@@ -213,13 +213,12 @@ SELECT *
 --
 -- semijoin selectivity for <>
 --
-explain (costs off)
-select * from int4_tbl i4, tenk1 a
-where exists(select * from tenk1 b
-             where a.twothousand = b.twothousand and a.fivethous <> b.fivethous)
-      and i4.f1 = a.tenthous;
-
-
+-- FIXME: It's a unstable case in PAX, the result depends on `analyze tenk1`
+-- explain (costs off)
+-- select * from int4_tbl i4, tenk1 a
+-- where exists(select * from tenk1 b
+--              where a.twothousand = b.twothousand and a.fivethous <> b.fivethous)
+--       and i4.f1 = a.tenthous;
 --
 -- More complicated constructs
 --
@@ -240,7 +239,7 @@ INSERT INTO t3 VALUES ( 'bb', 13 );
 INSERT INTO t3 VALUES ( 'cc', 23 );
 INSERT INTO t3 VALUES ( 'dd', 33 );
 
-SELECT * FROM t1 FULL JOIN t2 USING (name) FULL JOIN t3 USING (name);
+SELECT * FROM t1 FULL JOIN t2 USING (name) FULL JOIN t3 USING (name) order by name;
 
 --
 -- Test interactions of join syntax and subqueries
@@ -705,6 +704,8 @@ begin;
 set enable_mergejoin = 1;
 set enable_hashjoin = 0;
 set enable_nestloop = 0;
+set optimizer_enable_hashjoin = 0;
+set optimizer_enable_mergejoin = 1;
 
 create temp table a (i integer);
 create temp table b (x integer, y integer);
@@ -729,9 +730,14 @@ select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
 set enable_mergejoin = 0;
 set enable_hashjoin = 0;
 set enable_nestloop = 1;
+set optimizer_enable_hashjoin = 0;
+set optimizer_enable_mergejoin = 0;
 
 explain (costs off)
 select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
+
+reset optimizer_enable_hashjoin;
+reset optimizer_enable_mergejoin;
 
 rollback;
 

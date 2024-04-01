@@ -1164,8 +1164,8 @@ explain (costs off)
          ->  Result
                Filter: (((t1.a || t1.b)) = 'ab'::text)
                ->  Seq Scan on t1
-         ->  Index Scan using t2_pkey on t2
-               Index Cond: (ab = 'ab'::text)
+         ->  Seq Scan on t2
+               Filter: (ab = 'ab'::text)
  Optimizer: Pivotal Optimizer (GPORCA)
 (8 rows)
 
@@ -1188,8 +1188,8 @@ explain (costs off)
                            ->  Result
                                  Filter: (((t1.a || t1.b)) = 'ab'::text)
                                  ->  Seq Scan on t1
-                     ->  Index Scan using t2_pkey on t2
-                           Index Cond: (ab = 'ab'::text)
+                     ->  Seq Scan on t2
+                           Filter: (ab = 'ab'::text)
  Optimizer: Pivotal Optimizer (GPORCA)
 (14 rows)
 

@@ -549,7 +549,7 @@ update some_tab set a = a + 1 where false;
 -----------------------------------------------------------------------
  Update on public.some_tab
    ->  Result
-         Output: (some_tab.a + 1), NULL::oid, NULL::tid, NULL::integer
+         Output: (some_tab.a + 1), NULL::oid, NULL::tid, NULL::integer, NULL::record
          One-Time Filter: false
  Optimizer: Postgres query optimizer
 (5 rows)
@@ -564,7 +564,7 @@ update some_tab set a = a + 1 where false returning b, a;
    ->  Update on public.some_tab
          Output: some_tab.b, some_tab.a
          ->  Result
-               Output: (some_tab.a + 1), NULL::oid, NULL::tid, NULL::integer
+               Output: (some_tab.a + 1), NULL::oid, NULL::tid, NULL::integer, NULL::record
                One-Time Filter: false
  Optimizer: Postgres query optimizer
 (8 rows)

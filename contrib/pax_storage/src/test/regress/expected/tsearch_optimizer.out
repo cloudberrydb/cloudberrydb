@@ -206,16 +206,15 @@ SET enable_seqscan=OFF;
 SET enable_indexscan=ON;
 SET enable_bitmapscan=OFF;
 explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using wowidx on test_tsvector
-                     Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
+               ->  Seq Scan on test_tsvector
                      Filter: (a @@ '''wr'' | ''qh'''::tsquery)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -364,16 +363,15 @@ SELECT count(*) FROM test_tsvector WHERE a @@ '!wd:D';
 SET enable_indexscan=OFF;
 SET enable_bitmapscan=ON;
 explain (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using wowidx on test_tsvector
-                     Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
+               ->  Seq Scan on test_tsvector
                      Filter: (a @@ '''wr'' | ''qh'''::tsquery)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -546,16 +544,15 @@ Distributed by: (t)
 
 DROP INDEX wowidx;
 EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using wowidx2 on test_tsvector
-                     Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
+               ->  Seq Scan on test_tsvector
                      Filter: (a @@ '''wr'' | ''qh'''::tsquery)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -714,16 +711,15 @@ Indexes:
 Distributed by: (t)
 
 EXPLAIN (costs off) SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
-                            QUERY PLAN                             
--------------------------------------------------------------------
+                          QUERY PLAN                           
+---------------------------------------------------------------
  Finalize Aggregate
    ->  Gather Motion 3:1  (slice1; segments: 3)
          ->  Partial Aggregate
-               ->  Index Scan using wowidx on test_tsvector
-                     Index Cond: (a @@ '''wr'' | ''qh'''::tsquery)
+               ->  Seq Scan on test_tsvector
                      Filter: (a @@ '''wr'' | ''qh'''::tsquery)
  Optimizer: Pivotal Optimizer (GPORCA)
-(7 rows)
+(6 rows)
 
 SELECT count(*) FROM test_tsvector WHERE a @@ 'wr|qh';
  count 
@@ -2349,9 +2345,10 @@ SELECT to_tsquery('SKIES & My | booKs');
 -- distribution key column.
 alter table test_tsvector add column distkey int4;
 alter table test_tsvector set distributed by (distkey);
-CREATE TRIGGER tsvectorupdate
-BEFORE UPDATE OR INSERT ON test_tsvector
-FOR EACH ROW EXECUTE PROCEDURE tsvector_update_trigger(a, 'pg_catalog.english', t);
+-- Pax not support current TRIGGER
+-- CREATE TRIGGER tsvectorupdate
+-- BEFORE UPDATE OR INSERT ON test_tsvector
+-- FOR EACH ROW EXECUTE PROCEDURE tsvector_update_trigger(a, 'pg_catalog.english', t);
 SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
  count 
 -------
@@ -2362,7 +2359,7 @@ INSERT INTO test_tsvector (t) VALUES ('345 qwerty');
 SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
  count 
 -------
-     1
+     0
 (1 row)
 
 UPDATE test_tsvector SET t = null WHERE t = '345 qwerty';
@@ -2376,7 +2373,7 @@ INSERT INTO test_tsvector (t) VALUES ('345 qwerty');
 SELECT count(*) FROM test_tsvector WHERE a @@ to_tsquery('345&qwerty');
  count 
 -------
-     1
+     0
 (1 row)
 
 -- Test inlining of immutable constant functions

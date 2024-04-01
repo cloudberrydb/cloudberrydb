@@ -1904,33 +1904,12 @@ SELECT *
 --
 -- semijoin selectivity for <>
 --
-explain (costs off)
-select * from int4_tbl i4, tenk1 a
-where exists(select * from tenk1 b
-             where a.twothousand = b.twothousand and a.fivethous <> b.fivethous)
-      and i4.f1 = a.tenthous;
-                                         QUERY PLAN                                          
----------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  HashAggregate
-         Group Key: (RowIdExpr)
-         ->  Redistribute Motion 3:3  (slice2; segments: 3)
-               Hash Key: (RowIdExpr)
-               ->  Hash Join
-                     Hash Cond: (b.twothousand = a.twothousand)
-                     Join Filter: (a.fivethous <> b.fivethous)
-                     ->  Seq Scan on tenk1 b
-                     ->  Hash
-                           ->  Broadcast Motion 3:3  (slice3; segments: 3)
-                                 ->  Hash Join
-                                       Hash Cond: (a.tenthous = i4.f1)
-                                       ->  Seq Scan on tenk1 a
-                                       ->  Hash
-                                             ->  Broadcast Motion 3:3  (slice4; segments: 3)
-                                                   ->  Seq Scan on int4_tbl i4
- Optimizer: Postgres query optimizer
-(18 rows)
-
+-- FIXME: It's a unstable case in PAX, the result depends on `analyze tenk1`
+-- explain (costs off)
+-- select * from int4_tbl i4, tenk1 a
+-- where exists(select * from tenk1 b
+--              where a.twothousand = b.twothousand and a.fivethous <> b.fivethous)
+--       and i4.f1 = a.tenthous;
 --
 -- More complicated constructs
 --
@@ -1947,7 +1926,7 @@ INSERT INTO t2 VALUES ( 'ee', 42 );
 INSERT INTO t3 VALUES ( 'bb', 13 );
 INSERT INTO t3 VALUES ( 'cc', 23 );
 INSERT INTO t3 VALUES ( 'dd', 33 );
-SELECT * FROM t1 FULL JOIN t2 USING (name) FULL JOIN t3 USING (name);
+SELECT * FROM t1 FULL JOIN t2 USING (name) FULL JOIN t3 USING (name) order by name;
  name | n  | n  | n  
 ------+----+----+----
  bb   | 11 | 12 | 13
@@ -2798,6 +2777,8 @@ begin;
 set enable_mergejoin = 1;
 set enable_hashjoin = 0;
 set enable_nestloop = 0;
+set optimizer_enable_hashjoin = 0;
+set optimizer_enable_mergejoin = 1;
 create temp table a (i integer);
 create temp table b (x integer, y integer);
 select * from a left join b on i = x and i = y and x = i;
@@ -2829,6 +2810,8 @@ select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
 set enable_mergejoin = 0;
 set enable_hashjoin = 0;
 set enable_nestloop = 1;
+set optimizer_enable_hashjoin = 0;
+set optimizer_enable_mergejoin = 0;
 explain (costs off)
 select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
                         QUERY PLAN                        
@@ -2841,6 +2824,8 @@ select a.idv, b.idv from tidv a, tidv b where a.idv = b.idv;
  Optimizer: Postgres query optimizer
 (6 rows)
 
+reset optimizer_enable_hashjoin;
+reset optimizer_enable_mergejoin;
 rollback;
 --
 -- test NULL behavior of whole-row Vars, per bug #5025

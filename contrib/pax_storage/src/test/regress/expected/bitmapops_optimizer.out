@@ -54,15 +54,22 @@ CREATE INDEX i_bmtest2_b ON bmscantest2 USING BITMAP(b);
 CREATE INDEX i_bmtest2_c ON bmscantest2(c);
 CREATE INDEX i_bmtest2_d ON bmscantest2(d);
 EXPLAIN SELECT count(*) FROM bmscantest2 WHERE a = 1 AND b = 1 AND c = 1;
-                                        QUERY PLAN                                         
--------------------------------------------------------------------------------------------
- Aggregate  (cost=0.00..6.35 rows=1 width=8)
-   ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..6.35 rows=2 width=1)
-         ->  Index Scan using i_bmtest2_c on bmscantest2  (cost=0.00..6.35 rows=2 width=1)
-               Index Cond: (c = 1)
-               Filter: ((a = 1) AND (b = 1))
- Optimizer: Pivotal Optimizer (GPORCA) version 3.95.0
-(6 rows)
+                                            QUERY PLAN                                            
+--------------------------------------------------------------------------------------------------
+ Aggregate  (cost=0.00..431.06 rows=1 width=8)
+   ->  Gather Motion 1:1  (slice1; segments: 1)  (cost=0.00..431.06 rows=2 width=1)
+         ->  Bitmap Heap Scan on bmscantest2  (cost=0.00..431.06 rows=1 width=1)
+               Recheck Cond: ((b = 1) AND (a = 1) AND (c = 1))
+               ->  BitmapAnd  (cost=0.00..0.00 rows=0 width=0)
+                     ->  BitmapAnd  (cost=0.00..0.00 rows=0 width=0)
+                           ->  Bitmap Index Scan on i_bmtest2_b  (cost=0.00..0.00 rows=0 width=0)
+                                 Index Cond: (b = 1)
+                           ->  Bitmap Index Scan on i_bmtest2_a  (cost=0.00..0.00 rows=0 width=0)
+                                 Index Cond: (a = 1)
+                     ->  Bitmap Index Scan on i_bmtest2_c  (cost=0.00..0.00 rows=0 width=0)
+                           Index Cond: (c = 1)
+ Optimizer: Pivotal Optimizer (GPORCA)
+(13 rows)
 
 SELECT count(*) FROM bmscantest2 WHERE a = 1 AND b = 1 AND c = 1;
  count 

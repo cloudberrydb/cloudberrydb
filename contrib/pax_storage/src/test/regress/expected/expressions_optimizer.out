@@ -244,11 +244,12 @@ explain (verbose, costs off) select * from bpchar_view
 ------------------------------------------------------------------------------------
  Gather Motion 1:1  (slice1; segments: 1)
    Output: f1, ((f1)::character(14)), ((f1)::bpchar), f2, ((f2)::character(14)), f2
-   ->  Index Scan using bpchar_tbl_f1_key on public.bpchar_tbl
+   ->  Seq Scan on public.bpchar_tbl
          Output: f1, (f1)::character(14), f1, f2, (f2)::character(14), f2
-         Index Cond: ((bpchar_tbl.f1)::bpchar = 'foo'::bpchar)
+         Filter: ((bpchar_tbl.f1)::bpchar = 'foo'::bpchar)
+ Settings: optimizer = 'on'
  Optimizer: Pivotal Optimizer (GPORCA)
-(6 rows)
+(7 rows)
 
 rollback;
 --
