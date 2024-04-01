@@ -333,7 +333,13 @@ bool CCPaxAccessMethod::ScanGetNextSlot(TableScanDesc scan,
   CBDB_TRY();
   {
     auto desc = PaxScanDesc::ToDesc(scan);
-    return desc->GetNextSlot(slot);
+    bool result;
+
+    result = desc->GetNextSlot(slot);
+    if (result) {
+      pgstat_count_heap_getnext(desc->GetRelation());
+    }
+    return result;
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});
@@ -353,6 +359,8 @@ void CCPaxAccessMethod::TupleInsert(Relation relation, TupleTableSlot *slot,
     old_ctx = MemoryContextSwitchTo(cbdb::pax_memory_context);
     CPaxInserter::TupleInsert(relation, slot, cid, options, bistate);
     MemoryContextSwitchTo(old_ctx);
+
+    pgstat_count_heap_insert(relation, 1);
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({
@@ -367,7 +375,11 @@ TM_Result CCPaxAccessMethod::TupleDelete(Relation relation, ItemPointer tid,
                                          TM_FailureData *tmfd,
                                          bool /*changing_part*/) {
   CBDB_TRY();
-  { return CPaxDeleter::DeleteTuple(relation, tid, cid, snapshot, tmfd); }
+  {
+    auto result = CPaxDeleter::DeleteTuple(relation, tid, cid, snapshot, tmfd);
+    if (result == TM_Ok) pgstat_count_heap_delete(relation);
+    return result;
+  }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});
   CBDB_END_TRY();
@@ -391,6 +403,7 @@ TM_Result CCPaxAccessMethod::TupleUpdate(Relation relation, ItemPointer otid,
                                       crosscheck, wait, tmfd, lockmode,
                                       update_indexes);
     MemoryContextSwitchTo(old_ctx);
+    if (result == TM_Ok) pgstat_count_heap_update(relation, false);
     return result;
   }
   CBDB_CATCH_DEFAULT();
@@ -447,7 +460,12 @@ bool CCPaxAccessMethod::ScanBitmapNextTuple(TableScanDesc scan,
   CBDB_TRY();
   {
     auto desc = PaxScanDesc::ToDesc(scan);
-    return desc->BitmapNextTuple(tbmres, slot);
+    bool result;
+    result = desc->BitmapNextTuple(tbmres, slot);
+    if (result) {
+      pgstat_count_heap_fetch(desc->GetRelation());
+    }
+    return result;
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});
@@ -493,6 +511,8 @@ void CCPaxAccessMethod::MultiInsert(Relation relation, TupleTableSlot **slots,
     old_ctx = MemoryContextSwitchTo(cbdb::pax_memory_context);
     CPaxInserter::MultiInsert(relation, slots, ntuples, cid, options, bistate);
     MemoryContextSwitchTo(old_ctx);
+
+    pgstat_count_heap_insert(relation, ntuples);
   }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({

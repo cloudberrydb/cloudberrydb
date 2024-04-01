@@ -233,6 +233,7 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
   desc->reader_->Open();
 
   MemoryContextSwitchTo(old_ctx);
+  pgstat_count_heap_scan(relation);
   return &desc->rs_base_;
 }
 

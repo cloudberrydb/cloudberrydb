@@ -72,6 +72,8 @@ class PaxScanDesc {
     return desc;
   }
 
+  inline Relation GetRelation() { return rs_base_.rs_rd; }
+
  private:
   template <typename T, typename... Args>
   friend T *PAX_NEW(Args &&...args);
