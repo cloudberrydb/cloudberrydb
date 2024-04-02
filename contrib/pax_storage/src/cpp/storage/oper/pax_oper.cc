@@ -453,34 +453,35 @@ namespace textop {
 #define TEXTBUFLEN 1024
 
 static inline bool LocaleIsC(Oid collation) {
-  static int result = -1;
-  if (result != -1) {
-    return (bool)result;
+  if (collation == C_COLLATION_OID || collation == POSIX_COLLATION_OID) {
+    return 1;
   }
 
   /*
    * If we're asked about the default collation, we have to inquire of the C
    * library.  Cache the result so we only have to compute it once.
    */
-
   if (collation == DEFAULT_COLLATION_OID) {
+    static int result = -1;
     char *localeptr;
+    if (result != -1) {
+      return (bool)result;
+    }
+
     localeptr = setlocale(LC_COLLATE, NULL);
     CBDB_CHECK(localeptr, cbdb::CException::ExType::kExTypeCError);
 
-    if ((strcmp(localeptr, "C") == 0 || strcmp(localeptr, "POSIX") == 0)) {
+    if (strcmp(localeptr, "C") == 0 ||  // cut line
+        strcmp(localeptr, "POSIX") == 0) {
       result = 1;
     } else {
       result = 0;
     }
 
-  } else if (collation == C_COLLATION_OID || collation == POSIX_COLLATION_OID) {
-    result = 1;
+    return (bool)result;
   } else {
-    result = 0;
+    return false;
   }
-
-  return (bool)result;
 }
 
 static inline int VarstrCmp(const char *arg1, int len1, const char *arg2,
@@ -546,50 +547,48 @@ bool TextGT(const void *l, const void *r, Oid collation) {
   return TextCmp(*(const text **)l, *(const text **)r, collation) > 0;
 }
 
-static inline int
-BcTruelen(const BpChar *arg)
-{
-	return bpchartruelen(VARDATA_ANY(arg), VARSIZE_ANY_EXHDR(arg));
+static inline int BcTruelen(const BpChar *arg) {
+  return bpchartruelen(VARDATA_ANY(arg), VARSIZE_ANY_EXHDR(arg));
 }
 
 bool BpCharLT(const void *l, const void *r, Oid collation) {
   const BpChar *lbpchar = *(const BpChar **)l;
   const BpChar *rbpchar = *(const BpChar **)r;
 
-  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
-					 collation) < 0;
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar),
+                   VARDATA_ANY(rbpchar), BcTruelen(rbpchar), collation) < 0;
 }
 
 bool BpCharLE(const void *l, const void *r, Oid collation) {
   const BpChar *lbpchar = *(const BpChar **)l;
   const BpChar *rbpchar = *(const BpChar **)r;
 
-  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
-					 collation) <= 0;
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar),
+                   VARDATA_ANY(rbpchar), BcTruelen(rbpchar), collation) <= 0;
 }
 
 bool BpCharEQ(const void *l, const void *r, Oid collation) {
   const BpChar *lbpchar = *(const BpChar **)l;
   const BpChar *rbpchar = *(const BpChar **)r;
 
-  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
-					 collation) == 0;
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar),
+                   VARDATA_ANY(rbpchar), BcTruelen(rbpchar), collation) == 0;
 }
 
 bool BpCharGE(const void *l, const void *r, Oid collation) {
   const BpChar *lbpchar = *(const BpChar **)l;
   const BpChar *rbpchar = *(const BpChar **)r;
 
-  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
-					 collation) >= 0;
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar),
+                   VARDATA_ANY(rbpchar), BcTruelen(rbpchar), collation) >= 0;
 }
 
 bool BpCharGT(const void *l, const void *r, Oid collation) {
   const BpChar *lbpchar = *(const BpChar **)l;
   const BpChar *rbpchar = *(const BpChar **)r;
 
-  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar), VARDATA_ANY(rbpchar), BcTruelen(rbpchar),
-					 collation) > 0;
+  return VarstrCmp(VARDATA_ANY(lbpchar), BcTruelen(lbpchar),
+                   VARDATA_ANY(rbpchar), BcTruelen(rbpchar), collation) > 0;
 }
 
 }  // namespace textop
@@ -802,10 +801,12 @@ std::map<OperMinMaxKey, OperMinMaxFunc> min_max_opers = {
                       textop::TextGT),
 
     // oper(bpchar, bpchar)
-    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTLessStrategyNumber, textop::BpCharLT),
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTLessStrategyNumber,
+                      textop::BpCharLT),
     INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTLessEqualStrategyNumber,
                       textop::BpCharLE),
-    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTEqualStrategyNumber, textop::BpCharEQ),
+    INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTEqualStrategyNumber,
+                      textop::BpCharEQ),
     INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTGreaterEqualStrategyNumber,
                       textop::BpCharGE),
     INIT_MIN_MAX_OPER(BPCHAROID, BPCHAROID, BTGreaterStrategyNumber,

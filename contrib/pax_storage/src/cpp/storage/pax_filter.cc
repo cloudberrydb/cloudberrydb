@@ -549,7 +549,8 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
     // scan key should never contain dropped column
     Assert(!attr->attisdropped);
     // the collation in catalog and scan key should be consistent
-    Assert(scan_key->sk_collation == attr->attcollation);
+    if (scan_key->sk_collation != attr->attcollation)
+      return false;
 
     if (column_index >= column_stats_size)
       continue;  // missing attributes have no stats
