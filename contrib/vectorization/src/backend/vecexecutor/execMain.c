@@ -95,6 +95,7 @@ typedef struct PlanBuildContext
 	Expr *case_test_expr;
 	bool is_case_when;
 	GArrowExpression *whenexpr;
+	GArrowExpression *not_and_whenexpr;
 	Oid case_when_type;
 } PlanBuildContext;
 
@@ -259,6 +260,8 @@ get_function_name(Oid opno)
 	const char *name = get_func_name(opno);
 	if (!name)
 		return NULL;
+	else if (0 == strcmp(name, "text"))
+		return "text";
 	else if (0 == strcmp(name, "length"))
 		return "utf8_length";
 	else if (0 ==strcmp(name, "date_trunc"))
@@ -463,6 +466,8 @@ get_function_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 		return func_args_to_expression(opexpr->args, pcontext, "utf8_upper");
 	else if (0 == strcmp(name, "round"))
 		return build_round_expr(opexpr->args, pcontext);
+	else if (0 == strcmp(name, "text"))
+		return build_cast_expression(opexpr, pcontext);
 	else
 		elog(ERROR, "get_function_expression unrecognized typeid: %d funname: %s", opno, name);
 	return NULL;
@@ -512,6 +517,12 @@ build_cast_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 		{
 			cast_args = garrow_list_append_ptr(cast_args, expr);
 			to_type = GARROW_DATA_TYPE(garrow_int32_data_type_new());
+			break;
+		}
+		case F_TEXT_BPCHAR:
+		{
+			cast_args = garrow_list_append_ptr(cast_args, expr);
+			to_type = GARROW_DATA_TYPE(garrow_string_data_type_new());
 			break;
 		}
 		default:
@@ -650,24 +661,39 @@ caseexpr_to_expression(CaseExpr* node, PlanBuildContext *pcontext)
 	ListCell   *l;
 	GList *when_arguments = NULL;
 	GList *expr_arguments = NULL;
+	GList *and_arguments = NULL;
+	GList *not_arguments = NULL;
 	g_autoptr(GArrowExpression) struct_expr;
 	g_autoptr(GArrowExpression) default_expr;
 	g_autoptr(GArrowExpression) expr;
+	g_autoptr(GArrowExpression) and_condition_expr = NULL;
 	g_autoptr(GArrowMakeStructOptions) options;
 	int i = 0;
 	gchar **fields;
 	fields = palloc(list_length(node->args) * (sizeof(gchar *)));
 	pcontext->case_test_expr = node->arg;
 	pcontext->is_case_when = true;
+	pcontext->whenexpr = NULL;
+	pcontext->not_and_whenexpr = NULL;
 	pcontext->case_when_type = exprType((Node *) node);
 	foreach (l, node->args)
 	{
 		CaseWhen *when;
 		g_autoptr(GArrowExpression) whenexpr;
+		g_autoptr(GArrowExpression) whenexpr_copy;
 		g_autoptr(GArrowExpression) resexpr;
 		when = lfirst_node(CaseWhen, l);
 		whenexpr = expr_to_arrow_expression(when->expr, pcontext);
-		pcontext->whenexpr = garrow_copy_ptr(whenexpr);
+		pcontext->whenexpr = expr_to_arrow_expression(when->expr, pcontext);
+		whenexpr_copy = expr_to_arrow_expression(when->expr, pcontext);
+		if (list_length(node->args) >= 2)
+		{
+			and_arguments = garrow_list_append_ptr(and_arguments, whenexpr_copy);
+		}
+		else
+		{
+			and_condition_expr = garrow_move_ptr(whenexpr_copy);
+		}
 		resexpr = expr_to_arrow_expression(when->result, pcontext);
 		when_arguments = garrow_list_append_ptr(when_arguments, whenexpr);
 		expr_arguments = garrow_list_append_ptr(expr_arguments, resexpr);
@@ -675,6 +701,12 @@ caseexpr_to_expression(CaseExpr* node, PlanBuildContext *pcontext)
 		snprintf(fields[i], sizeof(int) + 6, "case_%d", i);
 		i++;
 	}
+
+	if (list_length(node->args) >= 2)
+		and_condition_expr = GARROW_EXPRESSION(garrow_call_expression_new("and_kleene", and_arguments, NULL));
+
+	not_arguments = garrow_list_append_ptr(not_arguments, and_condition_expr);
+	pcontext->not_and_whenexpr = GARROW_EXPRESSION(garrow_call_expression_new("invert", not_arguments, NULL));
 	options = garrow_make_struct_options_new((const gchar **) fields, i);
 	struct_expr = GARROW_EXPRESSION(garrow_call_expression_new(
 			"make_struct", when_arguments, GARROW_FUNCTION_OPTIONS(options)));
@@ -685,6 +717,14 @@ caseexpr_to_expression(CaseExpr* node, PlanBuildContext *pcontext)
 	pfree(fields);
 	garrow_list_free_ptr(&when_arguments);
 	garrow_list_free_ptr(&expr_arguments);
+	if (and_arguments) 
+		garrow_list_free_ptr(&and_arguments);
+	garrow_list_free_ptr(&not_arguments);
+	ARROW_FREE(GArrowExpression, &pcontext->not_and_whenexpr);
+	ARROW_FREE(GArrowExpression, &pcontext->whenexpr);
+	pcontext->is_case_when = false;
+	pcontext->not_and_whenexpr = NULL;
+	pcontext->whenexpr = NULL;
 	return garrow_move_ptr(expr);
 }
 
@@ -701,7 +741,14 @@ build_divide_casewhen(Expr *expr, PlanBuildContext *pcontext)
 	fields = palloc((sizeof(gchar *)));
 	g_autoptr(GArrowExpression) resexpr;
 	resexpr = expr_to_arrow_expression(expr, pcontext);
-	when_arguments = garrow_list_append_ptr(when_arguments, pcontext->whenexpr);
+	if (pcontext->not_and_whenexpr)
+	{
+		when_arguments = garrow_list_append_ptr(when_arguments, pcontext->not_and_whenexpr);
+	}
+	else
+	{
+		when_arguments = garrow_list_append_ptr(when_arguments, pcontext->whenexpr);
+	}
 	expr_arguments = garrow_list_append_ptr(expr_arguments, resexpr);
 	fields[0] = palloc(sizeof(int) + 6);
 	snprintf(fields[0], sizeof(int) + 6, "case_%d", 0);
@@ -1473,6 +1520,7 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 	pcontext.inputschema = NULL;
 	pcontext.is_case_when = false;
 	pcontext.whenexpr = NULL;
+	pcontext.not_and_whenexpr = NULL;
 	pcontext.case_when_type = InvalidOid;
 
 	/* set build recipe for different plan node */
