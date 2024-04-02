@@ -406,15 +406,15 @@ TEST_P(PaxColumnEncodingTest, GetRangeEncodingColumnTest) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, (100) * bits / 8);
+  ASSERT_EQ(origin_len, -1);
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
-      ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2;
-  decoding_option.is_sign = true;
+      ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED;
+  decoding_option.is_sign = false;
 
   auto int_column_for_read = CreateDecodeColumn(
-      bits, origin_len, origin_rows, std::move(decoding_option), encoded_buff,
+      bits, (100) * bits / 8, origin_rows, std::move(decoding_option), encoded_buff,
       encoded_len, storage_type, 100);
 
   ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
@@ -522,19 +522,19 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnDefault) {
   size_t encoded_len;
   std::tie(encoded_buff, encoded_len) = int_column->GetBuffer();
   ASSERT_NE(encoded_buff, nullptr);
-  ASSERT_LT(encoded_len, UINT16_MAX);
+  ASSERT_GT(encoded_len, UINT16_MAX);
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, (UINT16_MAX + 1) * bits / 8);
+  ASSERT_EQ(origin_len, -1);
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
-      ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2;
-  decoding_option.is_sign = true;
+      ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED;
+  decoding_option.is_sign = false;
 
   auto int_column_for_read = CreateDecodeColumn(
-      bits, origin_len, origin_rows, std::move(decoding_option), encoded_buff,
+      bits, (UINT16_MAX + 1) * bits / 8, origin_rows, std::move(decoding_option), encoded_buff,
       encoded_len, storage_type);
 
   ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);

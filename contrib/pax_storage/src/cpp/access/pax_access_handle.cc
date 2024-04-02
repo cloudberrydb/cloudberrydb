@@ -103,10 +103,6 @@ cbdb::CException global_exception(cbdb::CException::kExTypeInvalid);
   }                                                                         \
   while (0)
 
-#define PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE 8 * 1024 * 1024
-#define PAX_SCAN_REUSE_BUFFER_MIN_SIZE 1 * 1024 * 1024
-#define PAX_SCAN_REUSE_BUFFER_MAX_SIZE 32 * 1024 * 1024
-
 // access methods that are implemented in C++
 namespace pax {
 
@@ -1213,34 +1209,6 @@ out:
   relation_close(rel, NoLock);
 }
 
-static void DefineGUCs() {
-  DefineCustomBoolVariable("pax_enable_debug", "enable pax debug", NULL,
-                           &pax::pax_enable_debug, true, PGC_USERSET, 0, NULL,
-                           NULL, NULL);
-
-  DefineCustomBoolVariable("pax_enable_filter", "enable pax filter", NULL,
-                           &pax::pax_enable_filter, true, PGC_USERSET, 0, NULL,
-                           NULL, NULL);
-
-  DefineCustomIntVariable(
-      "pax_max_tuples_per_group",
-      "the default value for the limit on the number of tuples in a group",
-      NULL, &pax::pax_max_tuples_per_group, VEC_BATCH_LENGTH, 0,
-      VEC_BATCH_LENGTH * 100, PGC_USERSET, 0, NULL, NULL, NULL);
-
-#ifdef ENABLE_PLASMA
-  DefineCustomBoolVariable(
-      "pax_enable_plasma", "Enable plasma cache the set of columns", NULL,
-      &pax::pax_enable_plasma_in_mem, true, PGC_USERSET, 0, NULL, NULL, NULL);
-#endif
-
-  DefineCustomIntVariable(
-      "pax_scan_reuse_buffer_size", "set the reuse buffer size", NULL,
-      &pax::pax_scan_reuse_buffer_size, PAX_SCAN_REUSE_BUFFER_DEFAULT_SIZE,
-      PAX_SCAN_REUSE_BUFFER_MIN_SIZE, PAX_SCAN_REUSE_BUFFER_MAX_SIZE,
-      PGC_USERSET, 0, NULL, NULL, NULL);
-}
-
 struct PaxObjectProperty {
   const char *name;
   Oid class_oid;
@@ -1316,7 +1284,7 @@ void _PG_init(void) {  // NOLINT
   register_custom_object_class(&pax_fastsequence_coc);
   register_custom_object_class(&pax_tables_coc);
 
-  DefineGUCs();
+  paxc::DefineGUCs();
 
   RegisterResourceReleaseCallback(paxc::FdHandleAbortCallback, NULL);
 

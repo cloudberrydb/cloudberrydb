@@ -216,11 +216,7 @@ size_t PaxEncodingColumn<T>::GetAlignSize() const {
 
 template <typename T>
 ColumnEncoding_Kind PaxEncodingColumn<T>::GetDefaultColumnType() {
-  return ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2;
-  // TODO(jiaqizho): after support DELTA encoding
-  // return sizeof(T) >= 4 ? ColumnEncoding_Kind::ColumnEncoding_Kind_RLE_V2
-  //                       :
-  //                       ColumnEncoding_Kind::ColumnEncoding_Kind_DIRECT_DELTA;
+  return ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED;
 }
 
 template class PaxEncodingColumn<int8>;
