@@ -813,13 +813,13 @@ extract_expression(List *args, PlanBuildContext *pcontext, bool retnumeric)
 				switch (val)
 				{
 					case DTK_MICROSEC:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_microsecond");
+						extract_expr = func_arg_to_expression(arg, pcontext, "microsecond");
 						break;
 					case DTK_MILLISEC:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_millisecond");
+						extract_expr = func_arg_to_expression(arg, pcontext, "millisecond");
 						break;
 					case DTK_SECOND:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_second");
+						extract_expr = func_arg_to_expression(arg, pcontext, "second");
 						break;
 					case DTK_MINUTE:
 						extract_expr = func_arg_to_expression(arg, pcontext, "minute");
@@ -828,22 +828,22 @@ extract_expression(List *args, PlanBuildContext *pcontext, bool retnumeric)
 						extract_expr = func_arg_to_expression(arg, pcontext, "hour");
 						break;
 					case DTK_DAY:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_day");
+						extract_expr = func_arg_to_expression(arg, pcontext, "day");
 						break;
 					case DTK_MONTH:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_month");
+						extract_expr = func_arg_to_expression(arg, pcontext, "month");
 						break;
 					case DTK_YEAR:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_year");
+						extract_expr = func_arg_to_expression(arg, pcontext, "year");
 						break;
 					case DTK_DECADE:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_decade");
+						extract_expr = func_arg_to_expression(arg, pcontext, "decade");
 						break;
 					case DTK_CENTURY:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_century");
+						extract_expr = func_arg_to_expression(arg, pcontext, "century");
 						break;
 					case DTK_MILLENNIUM:
-						extract_expr = func_arg_to_expression(arg, pcontext, "pg_millennium");
+						extract_expr = func_arg_to_expression(arg, pcontext, "millennium");
 						break;
 					default:
 						ereport(ERROR,
