@@ -1,11 +1,10 @@
-SET default_table_access_method=ao_column;
 -- start_matchsubs
 -- m/\(actual time=\d+\.\d+..\d+\.\d+ rows=\d+ loops=\d+\)/
 -- s/\(actual time=\d+\.\d+..\d+\.\d+ rows=\d+ loops=\d+\)/(actual time=##.###..##.### rows=# loops=#)/
 -- m/\(slice\d+\)    Executor memory: (\d+)\w bytes\./
 -- s/Executor memory: (\d+)\w bytes\./Executor memory: (#####)K bytes./
--- m/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./
--- s/Executor memory: (\d+)\w bytes avg x \d+ workers, \d+\w bytes max \(seg\d+\)\./Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg#)./
+-- m/\(slice\d+\)    Executor memory: (\d+)\w bytes avg x \d+(x\(\d+\))* workers, \d+\w bytes max \(seg\d+\)\./
+-- s/Executor memory: (\d+)\w bytes avg x \d+(x\(\d+\))* workers, \d+\w bytes max \(seg\d+\)\./Executor memory: ####K bytes avg x #### workers, ####K bytes max (seg#)./
 -- m/Work_mem: \d+\w bytes max\./
 -- s/Work_mem: \d+\w bytes max\. */Work_mem: ###K bytes max./
 -- m/Execution Time: \d+\.\d+ ms/
@@ -26,6 +25,7 @@ SET default_table_access_method=ao_column;
 -- s/Batches: \d+/Batches: ###/
 -- end_matchsubs
 --
+SET default_table_access_method=ao_column;
 -- DEFAULT syntax
 CREATE TABLE apples(id int PRIMARY KEY, type text);
 INSERT INTO apples(id) SELECT generate_series(1, 100000);
