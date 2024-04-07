@@ -34,8 +34,8 @@ static HeapTuple CPaxOpenFastSequenceTable(Oid objid,
 }
 
 static inline void CPaxCloseFastSequenceTable(Relation pax_fastsequence_rel,
-                                       SysScanDesc pax_fastsequece_scan,
-                                       LOCKMODE lock_mode) {
+                                              SysScanDesc pax_fastsequece_scan,
+                                              LOCKMODE lock_mode) {
   systable_endscan(pax_fastsequece_scan);
   table_close(pax_fastsequence_rel, lock_mode);
 }
@@ -54,8 +54,7 @@ static void CPaxUpdateFastsequence(Relation pax_fastsequence_rel,
   Assert(HeapTupleIsValid(old_tuple));
 
   values[ANUM_PG_PAX_FAST_SEQUENCE_OBJID - 1] = ObjectIdGetDatum(objid);
-  values[ANUM_PG_PAX_FAST_SEQUENCE_LASTSEQUENCE - 1] =
-      Int32GetDatum(new_seqno);
+  values[ANUM_PG_PAX_FAST_SEQUENCE_LASTSEQUENCE - 1] = Int32GetDatum(new_seqno);
   nulls[ANUM_PG_PAX_FAST_SEQUENCE_OBJID - 1] = false;
   nulls[ANUM_PG_PAX_FAST_SEQUENCE_LASTSEQUENCE - 1] = false;
 
@@ -73,7 +72,8 @@ static void CPaxUpdateFastsequence(Relation pax_fastsequence_rel,
 // micropartition file number. objid indicates single pax micro-partition table
 // oid. lastsequence indicates the current allocated file number by using
 // fastsequence allocation.
-void CPaxInitializeFastSequenceEntry(Oid objid, char init_type, int32 fast_seq) {
+void CPaxInitializeFastSequenceEntry(Oid objid, char init_type,
+                                     int32 fast_seq) {
   Relation pax_fastsequence_rel;
   SysScanDesc scan;
   TupleDesc desc;
@@ -102,7 +102,8 @@ void CPaxInitializeFastSequenceEntry(Oid objid, char init_type, int32 fast_seq) 
     ObjectAddress aux;
 
     if (HeapTupleIsValid(tuple))
-      elog(ERROR, "existing tuple in pg_pax_fastsequence when creating pax table");
+      elog(ERROR,
+           "existing tuple in pg_pax_fastsequence when creating pax table");
 
     CatalogTupleInsert(pax_fastsequence_rel, new_tuple);
 
@@ -116,7 +117,8 @@ void CPaxInitializeFastSequenceEntry(Oid objid, char init_type, int32 fast_seq) 
   } else {
     // exists, set to 0 in-place, or update
     if (!HeapTupleIsValid(tuple))
-      elog(ERROR, "no tuple found in pg_pax_fastsequence for existing pax table");
+      elog(ERROR,
+           "no tuple found in pg_pax_fastsequence for existing pax table");
 
     new_tuple->t_data->t_ctid = tuple->t_data->t_ctid;
     new_tuple->t_self = tuple->t_self;
@@ -161,17 +163,38 @@ int32 CPaxGetFastSequences(Oid objid, bool increase) {
              "CPaxGetFastSequences got an invalid lastsequence number: NULL")));
   }
   seqno = DatumGetInt32(seqno_datum);
-  if (seqno < 0)
-    elog(ERROR, "sequence number out of range: %d", seqno);
+  if (seqno < 0) elog(ERROR, "sequence number out of range: %d", seqno);
 
   if (increase) {
     CPaxUpdateFastsequence(pax_fastsequence_rel, tuple, tuple_desc, objid,
-                         seqno + 1);
+                           seqno + 1);
   }
 
   CPaxCloseFastSequenceTable(pax_fastsequence_rel, scan, RowExclusiveLock);
 
   return seqno;
+}
+
+char *CPaxGetFastSequencesName(Oid oid, bool missing_ok) {
+  char *pax_fs_name;
+  Relation pax_fastsequence_rel = NULL;
+  SysScanDesc scan = NULL;
+  HeapTuple tuple;
+
+  tuple = CPaxOpenFastSequenceTable(oid, &pax_fastsequence_rel, &scan,
+                                    RowExclusiveLock);
+  if (!HeapTupleIsValid(tuple)) {
+    if (!missing_ok) elog(ERROR, "pax table %u could not be found", oid);
+
+    pax_fs_name = NULL;
+  } else {
+    // no need to get relid from tuple
+    pax_fs_name = (char *)palloc(50);
+    sprintf(pax_fs_name, "pax_fast_sequences_%d", oid);
+  }
+  CPaxCloseFastSequenceTable(pax_fastsequence_rel, scan, RowExclusiveLock);
+
+  return pax_fs_name;
 }
 
 }  // namespace paxc

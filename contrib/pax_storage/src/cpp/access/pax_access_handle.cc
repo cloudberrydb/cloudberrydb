@@ -1263,14 +1263,91 @@ static void PaxDeleteObject(struct CustomObjectClass * /*self*/,
   table_close(rel, RowExclusiveLock);
 }
 
+static void PaxTableTypeDesc(struct CustomObjectClass * /*self*/,
+                             const ObjectAddress * /*object*/,
+                             bool /*missing_ok*/,
+                             struct StringInfoData *buffer) {
+  appendStringInfoString(buffer, "pax table");
+}
+
+static char *pax_table_get_name(Oid oid, bool missing_ok) {
+  char *pax_rel_name;
+  Relation pax_rel;
+  ScanKeyData skey;
+  SysScanDesc scan;
+  HeapTuple tup;
+
+  pax_rel = table_open(PAX_TABLES_RELATION_ID, AccessShareLock);
+
+  // save ctid, auxrelid and partition-spec for the first pax relation
+  ScanKeyInit(&skey, ANUM_PG_PAX_TABLES_RELID, BTEqualStrategyNumber, F_OIDEQ,
+              ObjectIdGetDatum(oid));
+
+  scan = systable_beginscan(pax_rel, PAX_TABLES_RELID_INDEX_ID, true, nullptr,
+                            1, &skey);
+
+  tup = systable_getnext(scan);
+  if (!HeapTupleIsValid(tup)) {
+    if (!missing_ok) elog(ERROR, "pax table %u could not be found", oid);
+
+    pax_rel_name = NULL;
+  } else {
+    // no need to get relid from tuple
+    pax_rel_name = (char *)palloc(50);
+    sprintf(pax_rel_name, "pax_table_%d", oid);
+  }
+  systable_endscan(scan);
+  table_close(pax_rel, NoLock);
+  return pax_rel_name;
+}
+
+static void PaxTableIdentityObject(struct CustomObjectClass * /*self*/,
+                                   const ObjectAddress *object, List **objname,
+                                   List ** /*objargs*/, bool missing_ok,
+                                   struct StringInfoData *buffer) {
+  char *pax_table_name;
+  pax_table_name = pax_table_get_name(object->objectId, missing_ok);
+  if (pax_table_name) {
+    if (objname) *objname = list_make1(pax_table_name);
+    appendStringInfo(
+        buffer, "pax table identity %s: ", quote_identifier(pax_table_name));
+  }
+}
+
+static void PaxFastSeqTypeDesc(struct CustomObjectClass * /*self*/,
+                               const ObjectAddress * /*object*/,
+                               bool /*missing_ok*/,
+                               struct StringInfoData *buffer) {
+  appendStringInfoString(buffer, "pax fast sequence");
+}
+
+static void PaxFastSeqIdentityObject(struct CustomObjectClass * /*self*/,
+                                     const ObjectAddress *object,
+                                     List **objname, List ** /*objargs*/,
+                                     bool missing_ok,
+                                     struct StringInfoData *buffer) {
+  char *pax_fast_seq_name;
+  pax_fast_seq_name =
+      paxc::CPaxGetFastSequencesName(object->objectId, missing_ok);
+  if (pax_fast_seq_name) {
+    if (objname) *objname = list_make1(pax_fast_seq_name);
+    appendStringInfo(buffer, "pax fast sequences identity %s: ",
+                     quote_identifier(pax_fast_seq_name));
+  }
+}
+
 static struct CustomObjectClass pax_fastsequence_coc = {
     .class_id = PAX_FASTSEQUENCE_OID,
     .do_delete = PaxDeleteObject,
+    .object_type_desc = PaxFastSeqTypeDesc,
+    .object_identity_parts = PaxFastSeqIdentityObject,
 };
 
 static struct CustomObjectClass pax_tables_coc = {
     .class_id = PAX_TABLES_RELATION_ID,
     .do_delete = PaxDeleteObject,
+    .object_type_desc = PaxTableTypeDesc,
+    .object_identity_parts = PaxTableIdentityObject,
 };
 
 void _PG_init(void) {  // NOLINT
