@@ -809,7 +809,7 @@ ExecInitVecWindowAgg(WindowAgg *node, EState *estate, int eflags)
 	winstate->more_partitions = false;
 
 	/* Init Arrow execute plan */
-	BuildVecPlan((PlanState *)vec_winstate, &vec_winstate->estate);
+	PostBuildVecPlan((PlanState *)vec_winstate, &vec_winstate->estate);
 
 	return winstate;
 }

@@ -32,7 +32,7 @@ ExecInitVecAssertOp(AssertOp *node, EState *estate, int eflags)
 
 	ExecInitResultTupleSlotTL(&(assertOpState->ps), &TTSOpsVecTuple);
 
-	BuildVecPlan((PlanState *)vassertOpState, &vassertOpState->estate);
+	PostBuildVecPlan((PlanState *)vassertOpState, &vassertOpState->estate);
 
 	return assertOpState;
 }

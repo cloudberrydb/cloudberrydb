@@ -235,7 +235,7 @@ ExecInitVecHashJoin(HashJoin *node, EState *estate, int eflags)
 
 	/* Init Arrow execute plan */
 	SemiAntiPushDown(node, vhjstate);
-	BuildVecPlan((PlanState *)vhjstate, &vhjstate->estate);
+	PostBuildVecPlan((PlanState *)vhjstate, &vhjstate->estate);
 	return hjstate;
 }
 

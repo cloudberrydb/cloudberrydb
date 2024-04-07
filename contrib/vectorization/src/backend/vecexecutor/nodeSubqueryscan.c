@@ -123,7 +123,7 @@ ExecInitVecSubqueryScan(SubqueryScan *node, EState *estate, int eflags)
 	subquerystate->ss.ps.qual =
 		ExecInitQual(node->scan.plan.qual, (PlanState *) subquerystate);
 
-	BuildVecPlan((PlanState *) subquerystate, &vecsubquerystate->estate);
+	PostBuildVecPlan((PlanState *) subquerystate, &vecsubquerystate->estate);
 
 	return subquerystate;
 }

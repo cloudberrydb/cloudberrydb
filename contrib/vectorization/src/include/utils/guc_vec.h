@@ -25,5 +25,7 @@ extern int min_concatenate_rows;
 /* min redistribute motion handle rows */
 extern int min_redistribute_handle_rows;
 void assign_enable_vectorization(bool newval, void *extra);
+/* merge some small arrow plans into a big one if true */
+extern bool enable_arrow_plan_merge;
 
 #endif   /* GUC_VEC_H */

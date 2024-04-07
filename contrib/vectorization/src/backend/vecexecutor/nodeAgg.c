@@ -251,7 +251,7 @@ ExecInitVecAgg(Agg *node, EState *estate, int eflags)
 	ExecAssignProjectionInfo(&aggstate->ss.ps, NULL);
 
 	/* Init Arrow execute plan */
-	BuildVecPlan((PlanState *)vaggstate, &vaggstate->estate);
+	PostBuildVecPlan((PlanState *)vaggstate, &vaggstate->estate);
 
 	return aggstate;
 }

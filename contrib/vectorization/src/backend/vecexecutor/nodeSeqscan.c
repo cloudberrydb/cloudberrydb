@@ -214,7 +214,7 @@ ExecInitVecSeqScanForPartition(SeqScan *node, EState *estate,
 
 	vscanstate->vecdesc = TupleDescToVecDesc(scanstate->ps.scandesc);
 
-	BuildVecPlan((PlanState *)vscanstate, &vscanstate->vestate);
+	PostBuildVecPlan((PlanState *)vscanstate, &vscanstate->vestate);
 
 	return vscanstate;
 }

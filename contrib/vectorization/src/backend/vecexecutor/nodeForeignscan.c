@@ -292,7 +292,7 @@ ExecInitVecForeignScan(ForeignScan *node, EState *estate, int eflags)
 	else
 		fdwroutine->BeginForeignScan(scanstate, eflags);
 
-	BuildVecPlan((PlanState *)vscanstate, &vscanstate->vestate);
+	PostBuildVecPlan((PlanState *)vscanstate, &vscanstate->vestate);
 	return vscanstate;
 }
 

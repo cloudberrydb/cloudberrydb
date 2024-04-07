@@ -114,4 +114,6 @@ extern void ExecutorRunWrapper(QueryDesc *queryDesc,
 							   bool execute_once);
 extern void ExecutorEndWrapper(QueryDesc *queryDesc);
 extern bool find_extension_context(List *context);
+
+extern void PostBuildVecPlan(PlanState *planstate, VecExecuteState *estate);
 #endif							/* VEC_EXECUTOR_H */

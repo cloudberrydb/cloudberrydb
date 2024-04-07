@@ -322,7 +322,7 @@ ExecInitVecResult(Result *node, EState *estate, int eflags)
 		SPI_ReserveMemory(((Plan *)node)->operatorMemKB * 1024L);
 	}
 
-	BuildVecPlan((PlanState *)vresstate, &vresstate->estate);
+	PostBuildVecPlan((PlanState *)vresstate, &vresstate->estate);
 
 	return resstate;
 }

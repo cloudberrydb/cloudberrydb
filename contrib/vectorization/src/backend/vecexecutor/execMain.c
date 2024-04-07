@@ -1523,6 +1523,13 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 	pcontext.not_and_whenexpr = NULL;
 	pcontext.case_when_type = InvalidOid;
 
+	/* change sinktype and pipeline when merging some arrow plans into a big one. */
+	if (enable_arrow_plan_merge)
+	{
+		pcontext.sinktype = Plain;
+		pcontext.pipeline = false;
+	}
+
 	/* set build recipe for different plan node */
 	switch(nodeTag(planstate))
 	{
@@ -3324,4 +3331,142 @@ void
 dummy_schema_xact_cb(XactEvent event, void *arg)
 {
 	FreeDummySchema();
+}
+
+static void
+SetArrowPlan(PlanState *ps, GArrowExecutePlan *plan)
+{
+	Assert(plan);
+
+	if (ps == NULL)
+		return;
+
+	if (IsA(ps, ResultState))
+	{
+		VecResultState *vrs = (VecResultState *)ps;
+		vrs->estate.plan = plan;
+	}
+	else if (IsA(ps, SubqueryScanState))
+	{
+		VecSubqueryScanState *vsss = (VecSubqueryScanState *)ps;
+		vsss->estate.plan = plan;
+	}
+	else if (IsA(ps, SortState))
+	{
+		VecSortState *vss = (VecSortState *)ps;
+		vss->estate.plan = plan;
+	}
+	else if (IsA(ps, AggState))
+	{
+		VecAggState *vas = (VecAggState *)ps;
+		vas->estate.plan = plan;
+	}
+	else if (IsA(ps, NestLoopState))
+	{
+		VecNestLoopState *vnls = (VecNestLoopState *)ps;
+		vnls->estate.plan = plan;
+	}
+	else if (IsA(ps, WindowAggState))
+	{
+		VecWindowAggState *vwas = (VecWindowAggState *)ps;
+		vwas->estate.plan = plan;
+	}
+	else if (IsA(ps, HashJoinState))
+	{
+		VecHashJoinState *vhjs = (VecHashJoinState *)ps;
+		vhjs->estate.plan = plan;
+	}
+	else if (IsA(ps, AssertOpState))
+	{
+		VecAssertOpState *vaos = (VecAssertOpState *)ps;
+		vaos->estate.plan = plan;
+	}
+	else
+		return;
+}
+
+static GArrowExecutePlan *
+GetArrowPlan(PlanState *ps)
+{
+	if (ps == NULL)
+		return NULL;
+
+	if (IsA(ps, SeqScanState))
+	{
+		VecSeqScanState *vsss = (VecSeqScanState *)ps;
+		return vsss->vestate.plan;
+	}
+	else if (IsA(ps, ForeignScanState))
+	{
+		VecForeignScanState *vfss = (VecForeignScanState *)ps;
+		return vfss->vestate.plan;
+	}
+	else if (IsA(ps, ResultState))
+	{
+		VecResultState *vrs = (VecResultState *)ps;
+		return vrs->estate.plan;
+	}
+	else if (IsA(ps, SubqueryScanState))
+	{
+		VecSubqueryScanState *vsss = (VecSubqueryScanState *)ps;
+		return vsss->estate.plan;
+	}
+	else if (IsA(ps, HashJoinState))
+	{
+		VecHashJoinState *vhjs = (VecHashJoinState *)ps;
+		return vhjs->estate.plan;
+	}
+	else if (IsA(ps, AssertOpState))
+	{
+		VecAssertOpState *vaos = (VecAssertOpState *)ps;
+		return vaos->estate.plan;
+	}
+	else
+		return NULL;
+}
+
+void
+PostBuildVecPlan(PlanState *ps, VecExecuteState *estate)
+{
+	BuildVecPlan(ps, estate);
+
+	if (!enable_arrow_plan_merge)
+		return;
+
+	GArrowExecutePlan *target = GetArrowPlan(ps);
+	if (target == NULL)
+		return;
+
+	{
+		g_autofree gchar *plan_str = garrow_execute_plan_to_string(target);
+		elog(DEBUG2, "arrow plan in plan(%d): %s", ps->plan->plan_node_id, plan_str);
+	}
+
+	GArrowExecutePlan *left_source;
+	GArrowExecutePlan *right_source;
+
+	left_source = GetArrowPlan(ps->lefttree);
+	if (IsA(ps, HashJoinState))
+		right_source = GetArrowPlan(ps->righttree->lefttree);
+	else
+		right_source = GetArrowPlan(ps->righttree);
+
+	if (left_source == NULL && right_source == NULL)
+		return;
+
+	GError *error = NULL;
+	GArrowExecutePlan *result = garrow_execute_plan_merge(target, left_source,
+														  right_source, &error);
+	if (error)
+	{
+		elog(LOG, "Failed to merge plan, cause: %s", error->message);
+		return;
+	}
+
+	{
+		g_autofree gchar *plan_str = garrow_execute_plan_to_string(result);
+		elog(DEBUG2, "merged plan in plan(%d): %s", ps->plan->plan_node_id, plan_str);
+	}
+
+	SetArrowPlan(ps, result);
 }

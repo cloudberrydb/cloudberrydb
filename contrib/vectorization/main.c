@@ -78,6 +78,15 @@ _PG_init(void)
                             PGC_USERSET,
                             GUC_GPDB_NEED_SYNC,
                             NULL, NULL, NULL);
+    DefineCustomBoolVariable("vector.enable_arrow_plan_merge",
+                             "merge some small arrow plans into a big one if true.",
+                             NULL,
+                             &enable_arrow_plan_merge,
+                             false,
+                             PGC_USERSET,
+							 GUC_GPDB_NEED_SYNC,
+                             NULL, NULL, NULL);
+
     planner_prev = planner_hook; 
     planner_hook = planner_hook_wrapper;
 
