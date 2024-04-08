@@ -449,7 +449,8 @@ void PaxDumpReader::DumpGroupFooter() {
 
     for (int j = 0; j < column_start;) {
       n_stream = &stripe_footer.streams(streams_index++);
-      if (n_stream->kind() == ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
+      if (n_stream->kind() ==
+          ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
         j++;
       }
     }
@@ -461,7 +462,8 @@ void PaxDumpReader::DumpGroupFooter() {
       stream_desc_table.add_row({"Column", std::to_string(n_stream->column())});
       stream_desc_table.add_row({"Length", std::to_string(n_stream->length())});
 
-      if (n_stream->kind() == ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
+      if (n_stream->kind() ==
+          ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
         column_encoding = &stripe_footer.pax_col_encodings(j);
 
         tabulate::Table group_footer_desc_table;
@@ -564,9 +566,9 @@ void PaxDumpReader::DumpAllData() {
       format_reader_->ReadStripe(group_start, proj_map, number_of_columns);
 
   if (!is_vec)
-    group = new OrcGroup(columns, 0);
+    group = new OrcGroup(columns, 0, nullptr);
   else
-    group = new OrcVecGroup(columns, 0);
+    group = new OrcVecGroup(columns, 0, nullptr);
 
   tabulate::Table data_table;
   tabulate::Table data_datum_table;

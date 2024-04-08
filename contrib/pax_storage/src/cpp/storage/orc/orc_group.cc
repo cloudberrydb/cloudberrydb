@@ -4,8 +4,12 @@
 
 namespace pax {
 
-OrcGroup::OrcGroup(PaxColumns *pax_column, size_t row_offset)
-    : pax_columns_(pax_column), row_offset_(row_offset), current_row_index_(0) {
+OrcGroup::OrcGroup(PaxColumns *pax_column, size_t row_offset,
+                   const std::vector<int> *proj_col_index)
+    : pax_columns_(pax_column),
+      row_offset_(row_offset),
+      current_row_index_(0),
+      proj_col_index_(proj_col_index) {
   Assert(pax_columns_);
 
   current_nulls_ = PAX_NEW_ARRAY<uint32>(pax_columns_->GetColumns());
@@ -39,33 +43,60 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
   nattrs = static_cast<size_t>(slot->tts_tupleDescriptor->natts);
   column_nums = pax_columns_->GetColumns();
 
-  for (index = 0; index < nattrs; index++) {
-    // filter with projection
-    if (index < column_nums && !((*pax_columns_)[index])) {
-      continue;
+  // proj_col_index_ is not empty
+  if (proj_col_index_ && !proj_col_index_->empty() > 0) {
+    for (size_t i = 0; i < proj_col_index_->size(); i++) {
+      // filter with projection
+      index = (*proj_col_index_)[i];
+
+      Assert((*pax_columns_)[index]);
+
+      // handle PAX columns number inconsistent with pg catalog nattrs in case
+      // data not been inserted yet or read pax file conserved before last add
+      // column DDL is done, for these cases it is normal that pg catalog schema
+      // is not match with that in PAX file.
+      if (index >= column_nums) {
+        cbdb::SlotGetMissingAttrs(slot, index, nattrs);
+        break;
+      }
+
+      // In case column is droped, then set its value as null without reading
+      // data tuples.
+      if (unlikely(slot->tts_tupleDescriptor->attrs[index].attisdropped)) {
+        slot->tts_isnull[index] = true;
+        continue;
+      }
+
+      auto column = ((*pax_columns_)[index]);
+
+      std::tie(slot->tts_values[index], slot->tts_isnull[index]) =
+          GetColumnValue(column, current_row_index_, &(current_nulls_[index]));
     }
+  } else {
+    for (index = 0; index < nattrs; index++) {
+      // handle PAX columns number inconsistent with pg catalog nattrs in case
+      // data not been inserted yet or read pax file conserved before last add
+      // column DDL is done, for these cases it is normal that pg catalog schema
+      // is not match with that in PAX file.
+      if (index >= column_nums) {
+        cbdb::SlotGetMissingAttrs(slot, index, nattrs);
+        break;
+      }
 
-    // handle PAX columns number inconsistent with pg catalog nattrs in case
-    // data not been inserted yet or read pax file conserved before last add
-    // column DDL is done, for these cases it is normal that pg catalog schema
-    // is not match with that in PAX file.
-    if (index >= column_nums) {
-      cbdb::SlotGetMissingAttrs(slot, index, nattrs);
-      break;
+      // In case column is droped, then set its value as null without reading
+      // data tuples.
+      if (unlikely(slot->tts_tupleDescriptor->attrs[index].attisdropped)) {
+        slot->tts_isnull[index] = true;
+        continue;
+      }
+
+      auto column = ((*pax_columns_)[index]);
+      Assert(column != nullptr);
+      std::tie(slot->tts_values[index], slot->tts_isnull[index]) =
+          GetColumnValue(column, current_row_index_, &(current_nulls_[index]));
     }
-
-    // In case column is droped, then set its value as null without reading data
-    // tuples.
-    if (unlikely(slot->tts_tupleDescriptor->attrs[index].attisdropped)) {
-      slot->tts_isnull[index] = true;
-      continue;
-    }
-
-    auto column = ((*pax_columns_)[index]);
-
-    std::tie(slot->tts_values[index], slot->tts_isnull[index]) =
-        GetColumnValue(column, current_row_index_, &(current_nulls_[index]));
   }
+
   current_row_index_++;
   return {true, current_row_index_ - 1};
 }

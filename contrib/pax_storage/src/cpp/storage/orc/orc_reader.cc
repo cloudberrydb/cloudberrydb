@@ -57,6 +57,7 @@ OrcReader::OrcReader(File *file)
       current_group_index_(0),
       proj_map_(nullptr),
       proj_len_(0),
+      proj_column_index_(nullptr),
       format_reader_(file),
       is_closed_(true) {}
 
@@ -126,9 +127,9 @@ MicroPartitionReader::Group *OrcReader::ReadGroup(size_t group_index) {
 
   size_t group_offset = format_reader_.GetStripeOffset(group_index);
   if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns))
-    return PAX_NEW<OrcVecGroup>(pax_columns, group_offset);
+    return PAX_NEW<OrcVecGroup>(pax_columns, group_offset, proj_column_index_);
   else
-    return PAX_NEW<OrcGroup>(pax_columns, group_offset);
+    return PAX_NEW<OrcGroup>(pax_columns, group_offset, proj_column_index_);
 }
 
 size_t OrcReader::GetGroupNums() { return format_reader_.GetStripeNums(); }
@@ -145,12 +146,13 @@ void OrcReader::Open(const ReaderOptions &options) {
 
   if (options.filter) {
     std::tie(proj_map_, proj_len_) = options.filter->GetColumnProjection();
+    SetProjColumnIndex(options.filter->GetColumnProjectionIndex());
   }
 
 #ifdef ENABLE_PLASMA
   if (options.pax_cache)
-    pax_column_cache_ = PAX_NEW<PaxColumnCache>(options.pax_cache, options.block_id,
-                                           proj_map_, proj_len_);
+    pax_column_cache_ = PAX_NEW<PaxColumnCache>(
+        options.pax_cache, options.block_id, proj_map_, proj_len_);
 #endif
   format_reader_.Open();
 

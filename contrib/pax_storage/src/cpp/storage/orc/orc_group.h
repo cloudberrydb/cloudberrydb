@@ -6,11 +6,14 @@
 
 namespace pax {
 
-namespace tools { class PaxDumpReader; }
+namespace tools {
+class PaxDumpReader;
+}
 
 class OrcGroup : public MicroPartitionReader::Group {
  public:
-  OrcGroup(PaxColumns *pax_column, size_t row_offset);
+  OrcGroup(PaxColumns *pax_column, size_t row_offset,
+           const std::vector<int> *proj_col_index);
 
   ~OrcGroup() override;
 
@@ -54,11 +57,14 @@ class OrcGroup : public MicroPartitionReader::Group {
  private:
   friend class tools::PaxDumpReader;
   uint32 *current_nulls_ = nullptr;
+  // only a reference, owner by pax_filter
+  const std::vector<int> *proj_col_index_;
 };
 
 class OrcVecGroup final : public OrcGroup {
  public:
-  OrcVecGroup(PaxColumns *pax_column, size_t row_offset);
+  OrcVecGroup(PaxColumns *pax_column, size_t row_offset,
+              const std::vector<int> *proj_col_index);
 
   ~OrcVecGroup() override;
 

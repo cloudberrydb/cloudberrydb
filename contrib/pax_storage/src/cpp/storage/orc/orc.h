@@ -144,6 +144,10 @@ class OrcReader : public MicroPartitionReader {
   std::unique_ptr<ColumnStatsProvider> GetGroupStatsInfo(
       size_t group_index) override;
 
+  void SetProjColumnIndex(const std::vector<int> &proj_column_index) {
+    proj_column_index_ = &proj_column_index;
+  }
+
 #ifndef RUN_GTEST
  protected:  // NOLINT
 #endif
@@ -158,8 +162,13 @@ class OrcReader : public MicroPartitionReader {
   MicroPartitionReader::Group *cached_group_;
   size_t current_group_index_;
 
+  // nullptr means read all columns
   bool *proj_map_;
   size_t proj_len_;
+
+  // nullptr means read all columns
+  // only a reference, owner by pax_filter
+  const std::vector<int> *proj_column_index_;
 
   OrcFormatReader format_reader_;
   bool is_closed_;

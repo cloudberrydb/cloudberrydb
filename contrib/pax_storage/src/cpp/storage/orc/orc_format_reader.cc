@@ -154,21 +154,6 @@ size_t OrcFormatReader::GetStripeOffset(size_t stripe_index) {
   return stripe_row_offsets_[stripe_index];
 }
 
-// FIXME(jiaqizho): move method to higher level
-static bool ProjShouldReadAll(const bool *const proj_map, size_t proj_len) {
-  if (!proj_map) {
-    return true;
-  }
-
-  for (size_t i = 0; i < proj_len; i++) {
-    if (!proj_map[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
 pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeFooter(
     DataBuffer<char> *data_buffer, size_t sf_length, size_t sf_offset,
     size_t sf_data_len) {
@@ -230,11 +215,11 @@ pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
   stripe_footer_offset = stripe_info.offset();
   stripe_footer_length = stripe_info.footerlength();
 
-  /* Check all column projection is true.
-   * If no need do column projection, read all
+  /* Check all column projection is true, if proj_map
+   * is nullptr no need do column projection, read all
    * buffer(data + stripe footer) from stripe and decode stripe footer.
    */
-  if (ProjShouldReadAll(proj_map, proj_len)) {
+  if (!proj_map) {
     file_->PReadN(data_buffer->GetBuffer(), stripe_footer_length,
                   stripe_footer_offset);
     SeekableInputStream input_stream(

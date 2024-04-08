@@ -2,6 +2,7 @@
 #include "comm/cbdb_api.h"
 
 #include <map>
+#include <memory>
 #include <utility>
 #include <vector>
 
@@ -49,6 +50,10 @@ class PaxFilter final {
   bool HasMicroPartitionFilter() const { return num_scan_keys_ > 0; }
 
   std::pair<bool *, size_t> GetColumnProjection();
+
+  const std::vector<int> &GetColumnProjectionIndex() const {
+    return proj_column_index_;
+  }
 
   void SetColumnProjection(bool *proj, size_t proj_len);
 
@@ -113,6 +118,7 @@ class PaxFilter final {
   // column projection
   bool *proj_ = nullptr;
   size_t proj_len_ = 0;
+  std::vector<int> proj_column_index_;
 
   // row-level filter
   ExecutionFilterContext efctx_;

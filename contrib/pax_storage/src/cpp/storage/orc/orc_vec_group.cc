@@ -2,8 +2,9 @@
 
 namespace pax {
 
-OrcVecGroup::OrcVecGroup(PaxColumns *pax_column, size_t row_offset)
-    : OrcGroup(pax_column, row_offset) {
+OrcVecGroup::OrcVecGroup(PaxColumns *pax_column, size_t row_offset,
+                         const std::vector<int> *proj_col_index)
+    : OrcGroup(pax_column, row_offset, proj_col_index) {
   Assert(pax_column);
   Assert(COLUMN_STORAGE_FORMAT_IS_VEC(pax_column));
 }

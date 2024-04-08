@@ -342,9 +342,32 @@ std::pair<bool *, size_t> PaxFilter::GetColumnProjection() {
   return std::make_pair(proj_, proj_len_);
 }
 
+static bool ProjShouldReadAll(const bool *const proj_map, size_t proj_len) {
+  if (!proj_map) {
+    return true;
+  }
+
+  for (size_t i = 0; i < proj_len; i++) {
+    if (!proj_map[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
 void PaxFilter::SetColumnProjection(bool *proj, size_t proj_len) {
-  proj_ = proj;
-  proj_len_ = proj_len;
+  if (ProjShouldReadAll(proj, proj_len)) {
+    proj_ = nullptr;
+    proj_len_ = 0;
+    proj_column_index_.clear();
+  } else {
+    proj_ = proj;
+    proj_len_ = proj_len;
+    proj_column_index_.clear();
+    for (size_t i = 0; i < proj_len_; i++) {
+      if (proj_[i]) proj_column_index_.emplace_back(i);
+    }
+  }
 }
 
 void PaxFilter::SetScanKeys(ScanKey scan_keys, int num_scan_keys) {
@@ -502,11 +525,13 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
   return DatumGetBool(matches);
 }
 
-static bool CheckNullKeys(const TupleDesc desc, ScanKey scan_key, const ColumnStatsProvider &provider) {
+static bool CheckNullKeys(const TupleDesc desc, ScanKey scan_key,
+                          const ColumnStatsProvider &provider) {
   auto attno = scan_key->sk_attno;
   if (attno > 0) {
     Assert(!TupleDescAttr(desc, attno - 1)->attisdropped);
-    return CheckNullKey(scan_key, provider.AllNull(attno - 1), provider.HasNull(attno - 1));
+    return CheckNullKey(scan_key, provider.AllNull(attno - 1),
+                        provider.HasNull(attno - 1));
   }
 
   // check all columns, see ExecEvalRowNullInt()
@@ -517,7 +542,8 @@ static bool CheckNullKeys(const TupleDesc desc, ScanKey scan_key, const ColumnSt
 
   for (int i = 0; i < desc->natts; i++) {
     if (TupleDescAttr(desc, i)->attisdropped) continue;
-    if (!CheckNullKey(scan_key, provider.AllNull(i), provider.HasNull(i))) return false;
+    if (!CheckNullKey(scan_key, provider.AllNull(i), provider.HasNull(i)))
+      return false;
   }
   return true;
 }
@@ -536,8 +562,7 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
 
     // Only Null test support sk_attno = 0.
     if (scan_key->sk_flags & SK_ISNULL) {
-      if (!CheckNullKeys(desc, scan_key, provider))
-        return false;
+      if (!CheckNullKeys(desc, scan_key, provider)) return false;
 
       continue;
     }
@@ -549,8 +574,7 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
     // scan key should never contain dropped column
     Assert(!attr->attisdropped);
     // the collation in catalog and scan key should be consistent
-    if (scan_key->sk_collation != attr->attcollation)
-      return true;
+    if (scan_key->sk_collation != attr->attcollation) return true;
 
     if (column_index >= column_stats_size)
       continue;  // missing attributes have no stats
