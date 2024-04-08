@@ -109,6 +109,50 @@ SELECT ''::text AS five, unique1, unique2, stringu1
       |     904 |     793 | UIAAAA
 (5 rows)
 
+EXPLAIN (verbose on, costs off, analyze off)
+SELECT ''::text AS ten, unique1, unique2
+		FROM onek
+		ORDER BY unique1 OFFSET 990;
+                        QUERY PLAN                        
+----------------------------------------------------------
+ Vec Limit
+   Output: (''::text), unique1, unique2
+   ->  Vec Result
+         Output: ''::text, unique1, unique2
+         ->  Vec Gather Motion 3:1  (slice1; segments: 3)
+               Output: unique1, unique2
+               Merge Key: unique1
+               ->  Vec Sort
+                     Output: unique1, unique2
+                     Sort Key: onek.unique1
+                     ->  Vec Seq Scan on public.onek
+                           Output: unique1, unique2
+ Optimizer: Pivotal Optimizer (GPORCA)
+(13 rows)
+
+SELECT ''::text AS ten, unique1, unique2
+		FROM onek
+		ORDER BY unique1 OFFSET 990;
+ ten | unique1 | unique2 
+-----+---------+---------
+     |     990 |     369
+     |     991 |     426
+     |     992 |     363
+     |     993 |     661
+     |     994 |     695
+     |     995 |     144
+     |     996 |     258
+     |     997 |      21
+     |     998 |     549
+     |     999 |     152
+(10 rows)
+
+select count() from onek;
+ count 
+-------
+  1000
+(1 row)
+
 -- Test null limit and offset.  The planner would discard a simple null
 -- constant, so to ensure executor is exercised, do this:
 select * from int8_tbl limit (case when random() < 0.5 then null::bigint end);

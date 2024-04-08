@@ -447,4 +447,11 @@ typedef struct VecAssertOpState
 	AssertOpState base;
 	VecExecuteState estate;
 } VecAssertOpState;
+
+typedef struct VecLimitState
+{
+	LimitState base;
+	VecExecuteState estate;
+} VecLimitState;
+
 #endif							/* VEC_EXEC_NODES_H */

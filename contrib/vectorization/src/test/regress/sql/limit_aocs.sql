@@ -32,6 +32,15 @@ SELECT ''::text AS five, unique1, unique2, stringu1
 		FROM onek
 		ORDER BY unique1 LIMIT 5 OFFSET 900;
 
+EXPLAIN (verbose on, costs off, analyze off)
+SELECT ''::text AS ten, unique1, unique2
+		FROM onek
+		ORDER BY unique1 OFFSET 990;
+SELECT ''::text AS ten, unique1, unique2
+		FROM onek
+		ORDER BY unique1 OFFSET 990;
+select count() from onek;
+
 -- Test null limit and offset.  The planner would discard a simple null
 -- constant, so to ensure executor is exercised, do this:
 select * from int8_tbl limit (case when random() < 0.5 then null::bigint end);

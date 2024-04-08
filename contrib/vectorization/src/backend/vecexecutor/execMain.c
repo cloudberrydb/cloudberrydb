@@ -1647,6 +1647,14 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 			}
 		}
 		break;
+		case T_LimitState:
+		{
+			if (!outerPlanState(planstate))
+				elog(ERROR, "Limit node can't be leaf in vector plan");
+			pcontext.inputschema = GetSchemaFromSlot(
+					outerPlanState(planstate)->ps_ResultTupleSlot);
+		}
+		break;
 		default:
 			elog(ERROR, "Build arrow plan from (%d) type is not support yet.",
 					nodeTag(planstate->plan));
@@ -2322,6 +2330,22 @@ BuildProject(List *targetList, List *qualList, GArrowExecuteNode *input, PlanBui
 		garrow_store_ptr(current, aggregation);
 
 		free_agg_infos(agginfos);
+	}
+
+	/* Build Limit node if any */
+	if (IsA(pcontext->planstate->plan, Limit))
+	{
+		g_autoptr(GArrowExecuteNode) limit = NULL;
+		g_autoptr(GArrowLimitNodeOptions) options = NULL;
+
+		LimitState *ls = castNode(LimitState, pcontext->planstate);
+
+		options = garrow_limit_node_options_new(ls->offset, ls->count, ls->noCount);
+		limit = garrow_execute_plan_build_limit_node(pcontext->plan, current, options, &error);
+		if (error)
+			elog(ERROR, "Failed to create limit node, cause: %s", error->message);
+
+		garrow_store_ptr(current, limit);
 	}
 
 	/* having clause is always after agg and before upper agg project */
