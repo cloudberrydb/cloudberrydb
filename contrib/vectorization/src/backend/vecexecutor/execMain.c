@@ -90,6 +90,9 @@ typedef struct PlanBuildContext
 
 	/* nestloopjoin related */
 	bool is_nestloopjoin;
+	
+	/* is assertop node */
+	 bool is_assertop;
 
 	/* CaseTestExpr is case when placeholder */
 	Expr *case_test_expr;
@@ -137,6 +140,8 @@ static GArrowAggregateNodeOptions* build_aggregatation_options(GList *aggregatio
 
 static GArrowFilterNodeOptions *build_filter_options(List *filterInfo,
 													 PlanBuildContext *pcontext);
+static GArrowAssertOpNodeOptions *build_assertop_options(List *filterInfo,
+										 PlanBuildContext *pcontext);
 static GArrowExpression *
 replace_substring_regex_expression(List *args, PlanBuildContext *pcontext);
 static GArrowExpression *
@@ -1519,6 +1524,7 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 	pcontext.right_hashkeys = NULL;
 	pcontext.inputschema = NULL;
 	pcontext.is_case_when = false;
+	pcontext.is_assertop = false;
 	pcontext.whenexpr = NULL;
 	pcontext.not_and_whenexpr = NULL;
 	pcontext.case_when_type = InvalidOid;
@@ -1617,6 +1623,7 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 		case T_AssertOpState:
 		{
 			pcontext.inputschema = GetSchemaFromSlot(outerPlanState(planstate)->ps_ResultTupleSlot);
+			pcontext.is_assertop = true;
 		}
 		break;
 		case T_SortState:
@@ -2082,6 +2089,14 @@ static GArrowFilterNodeOptions *build_filter_options(List *filterInfo,
 	return garrow_move_ptr(filter_options);
 }
 
+static GArrowAssertOpNodeOptions *build_assertop_options(List *filterInfo, PlanBuildContext *pcontext)
+{
+        g_autoptr(GArrowAssertOpNodeOptions) assertop_filter_options = NULL;
+        g_autoptr(GArrowExpression) expr = build_filter_expression(filterInfo, pcontext);
+        assertop_filter_options = garrow_assertop_node_options_new(expr);
+        return garrow_move_ptr(assertop_filter_options);
+}
+
 static void *
 get_scan_next_batch(PlanState *node)
 {
@@ -2260,17 +2275,21 @@ BuildProject(List *targetList, List *qualList, GArrowExecuteNode *input, PlanBui
 {
 	g_autoptr(GArrowProjectNodeOptions) project_options = NULL;
 	g_autoptr(GArrowFilterNodeOptions) filter_options = NULL;
+	g_autoptr(GArrowAssertOpNodeOptions) assertop_options = NULL;
 	g_autoptr(GArrowExecuteNode) project = NULL;
 	g_autoptr(GArrowExecuteNode) filter_node = NULL;
+	g_autoptr(GArrowExecuteNode) assertop_node = NULL;
 	g_autoptr(GArrowExecuteNode) orderby_node = NULL;
 	g_autoptr(GArrowExecuteNode) current = garrow_copy_ptr(input);
 	g_autoptr(GError) error = NULL;
 
 	if (targetList)
 		project_options = build_project_options(targetList, pcontext);
-	if (qualList)
+	if (qualList && pcontext->is_assertop)
+		assertop_options = build_assertop_options(qualList, pcontext);
+	else if (qualList)
 		filter_options = build_filter_options(qualList, pcontext);
-
+	
 	/* Build Agg or WindowAgg if any */
 	if (IsA(pcontext->planstate->plan, Agg) ||
 	    IsA(pcontext->planstate->plan, WindowAgg))
@@ -2306,7 +2325,14 @@ BuildProject(List *targetList, List *qualList, GArrowExecuteNode *input, PlanBui
 	}
 
 	/* having clause is always after agg and before upper agg project */
-	if (qualList)
+	if (qualList && pcontext->is_assertop)
+	{
+		assertop_node = garrow_execute_plan_build_assertop_node(pcontext->plan, current, assertop_options, &error);
+		if (error)
+			elog(ERROR, "Failed to create assertop node, %s.", error->message);
+		garrow_store_ptr(current, assertop_node);
+	}
+	else if (qualList)
 	{
 		filter_node = garrow_execute_plan_build_filter_node(pcontext->plan, current, filter_options, &error);
 		if (error)
