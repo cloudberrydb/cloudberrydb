@@ -1,7 +1,11 @@
 #include "pax_gtest_helper.h"
 
 #include "storage/micro_partition.h"
-
+#ifdef VEC_BUILD
+extern "C" {
+#include "utils/tuptable_vec.h"  // for vec tuple
+}
+#endif
 namespace pax::tests {
 
 void GenTextBuffer(char *buffer, size_t length) {
@@ -85,6 +89,20 @@ TupleTableSlot *CreateTestTupleTableSlot(bool with_value) {
 
   return tuple_slot;
 }
+
+#ifdef VEC_BUILD
+TupleTableSlot *CreateVecEmptyTupleSlot(TupleDesc tuple_desc) {
+  auto tuple_slot = (TupleTableSlot *)cbdb::RePalloc(
+      MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual),
+      MAXALIGN(TTSOpsVirtual.base_slot_size) +
+          MAXALIGN(tuple_desc->natts * sizeof(Datum)) +
+          MAXALIGN(tuple_desc->natts * sizeof(bool)) +
+          MAXALIGN(sizeof(VecTupleTableSlot)));
+
+  tuple_slot->tts_tupleDescriptor = tuple_desc;
+  return tuple_slot;
+}
+#endif
 
 static bool VerifyTestNonFixed(Datum datum, bool is_null) {
   struct varlena *vl, *tunpacked;

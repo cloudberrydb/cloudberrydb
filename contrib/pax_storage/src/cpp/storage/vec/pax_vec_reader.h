@@ -13,8 +13,8 @@ class PaxVecReader : public MicroPartitionReader {
   // If enable read tuple from vec reader,
   // then OrcReader will be hold by PaxVecReader,
   // current MicroPartitionReader lifecycle will be bound to the PaxVecReader)
-  PaxVecReader(MicroPartitionReader *reader, VecAdapter *adapter,
-               PaxFilter *filter);
+  PaxVecReader(MicroPartitionReader *reader,
+               std::shared_ptr<VecAdapter> adapter, PaxFilter *filter);
 
   ~PaxVecReader() override;
 
@@ -35,13 +35,16 @@ class PaxVecReader : public MicroPartitionReader {
 
  private:
   MicroPartitionReader *reader_;
-  VecAdapter *adapter_;
+  std::shared_ptr<VecAdapter> adapter_;
 
   MicroPartitionReader::Group *working_group_;
   size_t current_group_index_;
   PaxFilter *filter_;
 
   size_t ctid_offset_;
+
+  // only referenced, owner by caller who constructed ReadOptions
+  Bitmap8 *visibility_bitmap_ = nullptr;
 };
 
 }  // namespace pax

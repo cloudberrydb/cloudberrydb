@@ -157,6 +157,9 @@ void OrcReader::Open(const ReaderOptions &options) {
   format_reader_.Open();
 
   is_closed_ = false;
+
+  // only referenced, owner by caller who constructed ReadOptions
+  visibility_bitmap_ = options.visibility_bitmap;
 }
 
 void OrcReader::ResetCurrentReading() {
@@ -194,6 +197,7 @@ retry_read_group:
     }
 
     working_group_ = ReadGroup(current_group_index_++);
+    working_group_->SetVisibilityMap(visibility_bitmap_);
     auto columns = working_group_->GetAllColumns();
 
     // The column number in Pax file meta could be smaller than the column

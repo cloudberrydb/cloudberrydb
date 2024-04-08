@@ -139,22 +139,94 @@ namespace pax {
 #define DECIMAL_BUFFER_SIZE 16
 #define DECIMAL_BUFFER_BITS 128
 
-static void CopyFixedRawBufferWithNull(PaxColumn *column, size_t range_begin,
-                                       size_t range_lens,
+static void CopyFixedRawBufferWithNull(PaxColumn *column,
+                                       const Bitmap8 *visibility_map_bitset,
+                                       size_t bitset_index_begin,
+                                       size_t range_begin, size_t range_lens,
                                        size_t data_index_begin,
                                        size_t data_range_lens,
                                        DataBuffer<char> *out_data_buffer);
-static inline void CopyFixedRawBuffer(char *buffer, size_t len,
-                                      DataBuffer<char> *data_buffer);
 
-static void CopyNonFixedRawBuffer(PaxColumn *column, size_t range_begin,
+static void CopyFixedBuffer(PaxColumn *column,
+                            const Bitmap8 *visibility_map_bitset,
+                            size_t bitset_index_begin, size_t range_begin,
+                            size_t range_lens, size_t data_index_begin,
+                            size_t data_range_lens,
+                            DataBuffer<char> *out_data_buffer);
+
+static void CopyNonFixedRawBuffer(PaxColumn *column,
+                                  const Bitmap8 *visibility_map_bitset,
+                                  size_t bitset_index_begin, size_t range_begin,
                                   size_t range_lens, size_t data_index_begin,
                                   size_t data_range_lens,
                                   DataBuffer<int32> *offset_buffer,
                                   DataBuffer<char> *out_data_buffer);
 
-static void CopyBitmap(Bitmap8 *bitmap, size_t range_begin, size_t range_lens,
-                       DataBuffer<char> *null_bits_buffer);
+static void CopyBitmap(const Bitmap8 *bitmap, size_t range_begin,
+                       size_t range_lens, DataBuffer<char> *null_bits_buffer);
+
+static void CopyBitmapToVecBuffer(
+    PaxColumn *column, const Bitmap8 *visibility_map_bitset,
+    size_t bitset_index_begin, size_t range_begin, size_t range_lens,
+    size_t data_range_lens, size_t out_range_lens,
+    VecAdapter::VecBatchBuffer *vec_cache_buffer_) {
+  //
+  if (column->HasNull()) {
+    auto null_bits_buffer = &vec_cache_buffer_->null_bits_buffer;
+    if (visibility_map_bitset == nullptr) {
+      // null length depends on `range_lens`
+      auto null_align_bytes =
+          TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(range_lens));
+      Bitmap8 *bitmap = nullptr;
+      Assert(!null_bits_buffer->GetBuffer());
+      null_bits_buffer->Set((char *)cbdb::Palloc(null_align_bytes),
+                            null_align_bytes);
+      bitmap = column->GetBitmap();
+      Assert(bitmap);
+      CopyBitmap(bitmap, range_begin, range_lens, null_bits_buffer);
+      vec_cache_buffer_->null_counts = range_lens - data_range_lens;
+    } else {
+      Bitmap8 *bitmap = nullptr;
+      bitmap = column->GetBitmap();
+      Assert(bitmap);
+
+      Bitmap8 *null_bitmap = PAX_NEW<Bitmap8>(out_range_lens);
+      size_t null_count = 0;
+      size_t null_index = 0;
+      for (size_t i = range_begin; i < range_begin + range_lens; i++) {
+        // only calculate the null bitmap corresponding to the unmarked
+        // deleted tuple.
+        if (!visibility_map_bitset->Test(i - range_begin +
+                                         bitset_index_begin)) {
+          // is null
+          if (!bitmap->Test(i)) {
+            null_count++;
+          } else {
+            // not null
+            null_bitmap->Set(null_index);
+          }
+          null_index++;
+        }
+      }
+
+      auto null_bytes =
+          TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(out_range_lens));
+      Assert(!null_bits_buffer->GetBuffer());
+      null_bits_buffer->Set((char *)cbdb::Palloc0(null_bytes), null_bytes);
+      CopyBitmap(null_bitmap, 0, out_range_lens, null_bits_buffer);
+      vec_cache_buffer_->null_counts = null_count;
+      CBDB_CHECK(out_range_lens == null_index,
+                 cbdb::CException::ExType::kExTypeOutOfRange);
+      PAX_DELETE(null_bitmap);
+    }
+  }
+}
+
+static inline void CopyFixedRawBuffer(char *buffer, size_t len,
+                                      DataBuffer<char> *data_buffer) {
+  data_buffer->Write(buffer, len);
+  data_buffer->Brush(len);
+}
 
 static void ConvSchemaAndDataToVec(
     Oid pg_type_oid, char *attname, size_t all_nums_of_row,
@@ -185,11 +257,12 @@ void VecAdapter::VecBatchBuffer::SetMemoryTakeOver(bool take) {
   offset_buffer.SetMemTakeOver(take);
 }
 
-static void CopyFixedRawBufferWithNull(PaxColumn *column, size_t range_begin,
-                                       size_t range_lens,
-                                       size_t data_index_begin,
-                                       size_t data_range_lens,
-                                       DataBuffer<char> *out_data_buffer) {
+void CopyFixedRawBufferWithNull(PaxColumn *column,
+                                const Bitmap8 *visibility_map_bitset,
+                                size_t bitset_index_begin, size_t range_begin,
+                                size_t range_lens, size_t data_index_begin,
+                                size_t data_range_lens,
+                                DataBuffer<char> *out_data_buffer) {
   char *buffer;
   size_t buffer_len;
 
@@ -199,30 +272,64 @@ static void CopyFixedRawBufferWithNull(PaxColumn *column, size_t range_begin,
   auto null_bitmap = column->GetBitmap();
   size_t non_null_offset = 0;
   size_t type_len = column->GetTypeLength();
-
   for (size_t i = range_begin; i < (range_begin + range_lens); i++) {
+    // filted by row_filter or bloom_filter
+    if (visibility_map_bitset &&
+        visibility_map_bitset->Test(i - range_begin + bitset_index_begin)) {
+      if (null_bitmap->Test(i)) {
+        non_null_offset += type_len;
+      }
+      continue;
+    }
     if (null_bitmap->Test(i)) {
       out_data_buffer->Write(buffer + non_null_offset, type_len);
       non_null_offset += type_len;
     }
-
     out_data_buffer->Brush(type_len);
   }
-
-  Assert((non_null_offset / type_len) == data_range_lens);
 }
 
-static inline void CopyFixedRawBuffer(char *buffer, size_t len,
-                                      DataBuffer<char> *data_buffer) {
-  data_buffer->Write(buffer, len);
-  data_buffer->Brush(len);
+void CopyFixedBuffer(PaxColumn *column, const Bitmap8 *visibility_map_bitset,
+                     size_t bitset_index_begin, size_t range_begin,
+                     size_t range_lens, size_t data_index_begin,
+                     size_t data_range_lens,
+                     DataBuffer<char> *out_data_buffer) {
+  if (column->HasNull()) {
+    CopyFixedRawBufferWithNull(
+        column, visibility_map_bitset, bitset_index_begin, range_begin,
+        range_lens, data_index_begin, data_range_lens, out_data_buffer);
+  } else {
+    char *buffer;
+    size_t buffer_len;
+    std::tie(buffer, buffer_len) =
+        column->GetRangeBuffer(data_index_begin, data_range_lens);
+
+    if (visibility_map_bitset == nullptr) {
+      CopyFixedRawBuffer(buffer, buffer_len, out_data_buffer);
+    } else {
+      size_t non_null_offset = 0;
+      size_t type_len = column->GetTypeLength();
+      for (size_t i = range_begin; i < (range_begin + range_lens); i++) {
+        if (visibility_map_bitset &&
+            visibility_map_bitset->Test(i - range_begin + bitset_index_begin)) {
+          non_null_offset += type_len;
+          continue;
+        }
+        out_data_buffer->Write(buffer + non_null_offset, type_len);
+        out_data_buffer->Brush(type_len);
+        non_null_offset += type_len;
+      }
+    }
+  }
 }
 
-static void CopyNonFixedRawBuffer(PaxColumn *column, size_t range_begin,
-                                  size_t range_lens, size_t data_index_begin,
-                                  size_t data_range_lens,
-                                  DataBuffer<int32> *offset_buffer,
-                                  DataBuffer<char> *out_data_buffer) {
+void CopyNonFixedRawBuffer(PaxColumn *column,
+                           const Bitmap8 *visibility_map_bitset,
+                           size_t bitset_index_begin, size_t range_begin,
+                           size_t range_lens, size_t data_index_begin,
+                           size_t data_range_lens,
+                           DataBuffer<int32> *offset_buffer,
+                           DataBuffer<char> *out_data_buffer) {
   size_t dst_offset = out_data_buffer->Used();
   char *buffer = nullptr;
   size_t buffer_len = 0;
@@ -231,6 +338,17 @@ static void CopyNonFixedRawBuffer(PaxColumn *column, size_t range_begin,
   size_t non_null_offset = 0;
 
   for (size_t i = range_begin; i < (range_begin + range_lens); i++) {
+    if (visibility_map_bitset &&
+        visibility_map_bitset->Test(i - range_begin + bitset_index_begin)) {
+      // tuples that are marked for deletion also need to calculate
+      // non-null-offset, which is used to calculate the address of valid
+      // data. null_bitmap: 0 represents null, 1 represents non-null
+      if (!null_bitmap || null_bitmap->Test(i)) {
+        non_null_offset++;
+      }
+      continue;
+    }
+
     if (null_bitmap && !null_bitmap->Test(i)) {
       offset_buffer->Write(dst_offset);
       offset_buffer->Brush(sizeof(int32));
@@ -263,12 +381,21 @@ static void CopyNonFixedRawBuffer(PaxColumn *column, size_t range_begin,
   offset_buffer->Write(dst_offset);
   offset_buffer->Brush(sizeof(int32));
 
-  CBDB_CHECK(non_null_offset == data_range_lens,
-             cbdb::CException::ExType::kExTypeOutOfRange);
+  AssertImply(visibility_map_bitset == nullptr,
+              non_null_offset == data_range_lens);
+  AssertImply(visibility_map_bitset, non_null_offset <= data_range_lens);
+
+  // if not the marking deletion，the non_null_offset is equal to the
+  // data_range_lens; when there is a Visibility Map, part of the data is
+  // invalid. Non_null_offset may be less than the data_range_lens.
+  if (visibility_map_bitset == nullptr) {
+    CBDB_CHECK(non_null_offset == data_range_lens,
+               cbdb::CException::ExType::kExTypeOutOfRange);
+  }
 }
 
-static void CopyBitmap(Bitmap8 *bitmap, size_t range_begin, size_t range_lens,
-                       DataBuffer<char> *null_bits_buffer) {
+static void CopyBitmap(const Bitmap8 *bitmap, size_t range_begin,
+                       size_t range_lens, DataBuffer<char> *null_bits_buffer) {
   // VEC_BATCH_LENGTH must align with 8
   // So the `range_begin % 8` must be 0
   static_assert(VEC_BATCH_LENGTH % 8 == 0, "Assumption is broken.");
@@ -530,8 +657,8 @@ void VecAdapter::SetDataSource(PaxColumns *columns) {
   current_cached_pax_columns_index_ = 0;
   cached_batch_lens_ = 0;
   // FIXME(jiaqizho): should expand vec_cache_buffer_
-  // if columns number not match vec_cache_buffer_ will not take care of schema
-  // it only handle buffer
+  // if columns number not match vec_cache_buffer_ will not take care of
+  // schema it only handle buffer
   AssertImply(vec_cache_buffer_,
               columns->GetColumns() == (size_t)vec_cache_buffer_lens_);
   if (!vec_cache_buffer_) {
@@ -544,7 +671,7 @@ const TupleDesc VecAdapter::GetRelationTupleDesc() const {
   return rel_tuple_desc_;
 }
 
-bool VecAdapter::AppendToVecBuffer() {
+int VecAdapter::AppendToVecBuffer() {
   PaxColumns *columns;
   PaxColumn *column;
   size_t range_begin = current_cached_pax_columns_index_;
@@ -559,7 +686,7 @@ bool VecAdapter::AppendToVecBuffer() {
   // 3. all of data in pax columns have been comsume
   if (!columns || cached_batch_lens_ != 0 ||
       range_begin == columns->GetRows()) {
-    return false;
+    return -1;
   }
 
   Assert(range_begin <= columns->GetRows());
@@ -575,15 +702,19 @@ bool VecAdapter::AppendToVecBuffer() {
     range_lens = columns->GetRows() - range_begin;
   }
 
-  // null length depends on `range_lens`
-  auto null_align_bytes =
-      TYPEALIGN(MEMORY_ALIGN_SIZE, BITS_TO_BYTES(range_lens));
+  size_t filter_count = GetInvisibleNumber(range_begin, range_lens);
+
+  size_t out_range_lens = range_lens - filter_count;
+
+  if (out_range_lens == 0) {
+    current_cached_pax_columns_index_ = range_begin + range_lens;
+    return 0;
+  }
 
   for (size_t index = 0; index < columns->GetColumns(); index++) {
     size_t data_index_begin = 0;
     size_t data_range_lens = 0;
     DataBuffer<char> *vec_buffer = nullptr;
-    DataBuffer<char> *null_bits_buffer = nullptr;
     DataBuffer<int32> *offset_buffer = nullptr;
 
     char *raw_buffer = nullptr;
@@ -601,11 +732,16 @@ bool VecAdapter::AppendToVecBuffer() {
 
     // data buffer holder
     vec_buffer = &(vec_cache_buffer_[index].vec_buffer);
-    null_bits_buffer = &(vec_cache_buffer_[index].null_bits_buffer);
     offset_buffer = &(vec_cache_buffer_[index].offset_buffer);
 
-    vec_cache_buffer_[index].null_counts = range_lens - data_range_lens;
+    // copy null bitmap
+    vec_cache_buffer_[index].null_counts = 0;
+    CopyBitmapToVecBuffer(column, micro_partition_visibility_bitmap_,
+                          range_begin + micro_partition_row_offset_,
+                          range_begin, range_lens, data_range_lens,
+                          out_range_lens, &vec_cache_buffer_[index]);
 
+    // copy data
     std::tie(raw_buffer, buffer_len) =
         column->GetRangeBuffer(data_index_begin, data_range_lens);
 
@@ -615,14 +751,17 @@ bool VecAdapter::AppendToVecBuffer() {
         auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, raw_data_size);
 
         auto offset_align_bytes =
-            TYPEALIGN(MEMORY_ALIGN_SIZE, (range_lens + 1) * sizeof(int32));
+            TYPEALIGN(MEMORY_ALIGN_SIZE, (out_range_lens + 1) * sizeof(int32));
 
         Assert(!vec_buffer->GetBuffer() && !offset_buffer->GetBuffer());
         vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
 
         offset_buffer->Set((char *)cbdb::Palloc0(offset_align_bytes),
                            offset_align_bytes);
-        CopyNonFixedRawBuffer(column, range_begin, range_lens, data_index_begin,
+
+        CopyNonFixedRawBuffer(column, micro_partition_visibility_bitmap_,
+                              range_begin + micro_partition_row_offset_,
+                              range_begin, range_lens, data_index_begin,
                               data_range_lens, offset_buffer, vec_buffer);
 
         break;
@@ -631,18 +770,14 @@ bool VecAdapter::AppendToVecBuffer() {
       case PaxColumnTypeInMem::kTypeFixed: {
         Assert(column->GetTypeLength() > 0);
         auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE,
-                                    (range_lens * column->GetTypeLength()));
+                                    (out_range_lens * column->GetTypeLength()));
         Assert(!vec_buffer->GetBuffer());
 
         vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
-
-        if (column->HasNull()) {
-          CopyFixedRawBufferWithNull(column, range_begin, range_lens,
-                                     data_index_begin, data_range_lens,
-                                     vec_buffer);
-        } else {
-          CopyFixedRawBuffer(raw_buffer, buffer_len, vec_buffer);
-        }
+        CopyFixedBuffer(column, micro_partition_visibility_bitmap_,
+                        range_begin + micro_partition_row_offset_, range_begin,
+                        range_lens, data_index_begin, data_range_lens,
+                        vec_buffer);
 
         break;
       }
@@ -651,21 +786,43 @@ bool VecAdapter::AppendToVecBuffer() {
       }
     }  // switch column type
 
-    if (column->HasNull()) {
-      Bitmap8 *bitmap = nullptr;
-      Assert(!null_bits_buffer->GetBuffer());
-      null_bits_buffer->Set((char *)cbdb::Palloc(null_align_bytes),
-                            null_align_bytes);
-      bitmap = column->GetBitmap();
-      Assert(bitmap);
-
-      CopyBitmap(bitmap, range_begin, range_lens, null_bits_buffer);
-    }
   }  // for each column
 
   current_cached_pax_columns_index_ = range_begin + range_lens;
-  cached_batch_lens_ += range_lens;
-  return true;
+  cached_batch_lens_ += out_range_lens;
+
+  if (build_ctid_) {
+    BuildCtidOffset(range_begin, range_lens);
+  }
+
+  return cached_batch_lens_;
+}
+
+void VecAdapter::BuildCtidOffset(size_t range_begin, size_t range_lens) {
+  auto buffer_len = sizeof(int32) * cached_batch_lens_;
+  ctid_offset_in_current_range_ = PAX_NEW<DataBuffer<int32>>(
+      (int32 *)cbdb::Palloc(buffer_len), buffer_len, false, false);
+
+  size_t range_row_index = 0;
+  for (size_t i = 0; i < cached_batch_lens_; i++) {
+    while (micro_partition_visibility_bitmap_ &&
+           micro_partition_visibility_bitmap_->Test(range_begin +
+                                                    range_row_index) &&
+           range_row_index < range_lens) {
+      range_row_index++;
+    }
+
+    // has loop all visibility map
+    if (range_row_index >= range_lens) {
+      break;
+    }
+
+    (*ctid_offset_in_current_range_)[i] = range_row_index++;
+    ctid_offset_in_current_range_->Brush(sizeof(int32));
+  }
+
+  //
+  Assert(ctid_offset_in_current_range_->GetSize() == cached_batch_lens_);
 }
 
 bool VecAdapter::ShouldBuildCtid() const { return build_ctid_; }
@@ -679,13 +836,15 @@ void VecAdapter::FullWithCTID(TupleTableSlot *slot,
   auto base_offset = GetTupleOffset(slot->tts_tid);
 
   for (size_t i = 0; i < cached_batch_lens_; i++) {
-    SetTupleOffset(&slot->tts_tid, base_offset + i);
+    SetTupleOffset(&slot->tts_tid,
+                   base_offset + (*ctid_offset_in_current_range_)[i]);
     ctid_data_buffer[i] = CTIDToUint64(slot->tts_tid);
   }
   batch_buffer->vec_buffer.Set(ctid_data_buffer.Start(),
                                ctid_data_buffer.Capacity());
   batch_buffer->vec_buffer.SetMemTakeOver(false);
   batch_buffer->vec_buffer.BrushAll();
+  PAX_DELETE(ctid_offset_in_current_range_);
 }
 
 template <typename T>
@@ -832,6 +991,12 @@ bool VecAdapter::AppendVecFormat() {
 }
 
 size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
+  // when visibility map is enabled, all rows of a vec batch may be filtered
+  // out. this time cached_batch_length is 0
+  if (cached_batch_lens_ == 0) {
+    return 0;
+  }
+
   std::vector<std::shared_ptr<arrow::Field>> schema_types;
   arrow::ArrayVector array_vector;
   std::vector<std::string> field_names;
@@ -860,9 +1025,9 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
 
   // Vec executor is different with cbdb executor
   // if select single column in multi column defined relation
-  // then `target_desc->natts` will be one, rather then actually column numbers
-  // So we need use `rel_tuple_desc_` which own full relation tuple desc
-  // to fill target arrow data
+  // then `target_desc->natts` will be one, rather then actually column
+  // numbers So we need use `rel_tuple_desc_` which own full relation tuple
+  // desc to fill target arrow data
   for (size_t index = 0; index < column_size; index++) {
     auto attr = &rel_tuple_desc_->attrs[index];
     char *column_name = NameStr(attr->attname);
@@ -887,11 +1052,11 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   // `add column` will make this happen
   // for example
   // 1. CREATE TABLE aa(a int4, b int4) using pax;
-  // 2. insert into aa values(...);    // it will generate pax file1 with column
-  // a,b
+  // 2. insert into aa values(...);    // it will generate pax file1 with
+  // column a,b
   // 3. alter table aa add c int4;
-  // 4. insert into aa values(...);    // it will generate pax file2 with column
-  // a,b,c
+  // 4. insert into aa values(...);    // it will generate pax file2 with
+  // column a,b,c
   // 5. select * from aa;
   //
   // In step5, file1 missing the column c, `schema_types.size()` is 2.
@@ -904,17 +1069,17 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   //
   // A example about `drop column` + `add column`:
   // 1. CREATE TABLE aa(a int4, b int4) using pax;
-  // 2. insert into aa values(...);    // it will generate pax file1 with column
-  // a,b
+  // 2. insert into aa values(...);    // it will generate pax file1 with
+  // column a,b
   // 3. alter table aa drop b;
   // 4. alter table aa add c int4;
-  // 5. insert into aa values(...);    // it will generate pax file2 with column
-  // a,c
+  // 5. insert into aa values(...);    // it will generate pax file2 with
+  // column a,c
   // 6. select * from aa; // need column a + column c
   //
-  // In step6, file 1 missing the column c, column b in file1 will be filter by
-  // `attisdropped` so `schema_types.size()` is 1, we need full null in it. But
-  // in file2, `schema_types.size()` is 3, so do nothing.
+  // In step6, file 1 missing the column c, column b in file1 will be filter
+  // by `attisdropped` so `schema_types.size()` is 1, we need full null in it.
+  // But in file2, `schema_types.size()` is 3, so do nothing.
   auto natts = build_ctid_ ? target_desc->natts - 1 : target_desc->natts;
   Assert((int)schema_types.size() <= natts);
   for (int index = schema_types.size(); index < natts; index++) {
@@ -933,8 +1098,8 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
 
   // The CTID will be full with int64(table no(16) + block number(16) +
   // offset(32)) The current value of CTID is accurate, But we cannot get the
-  // row data through this CTID. For vectorization, we need to assign CTID datas
-  // to the last column of target_list
+  // row data through this CTID. For vectorization, we need to assign CTID
+  // datas to the last column of target_list
   if (build_ctid_) {
     Assert((int)schema_types.size() == target_desc->natts - 1);
     VecBatchBuffer ctid_batch_buffer;
@@ -968,7 +1133,8 @@ size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {
   // Because it will cause memory leak when release call
   // The defualt `release` method won't free the `buffers`,
   // but can free the `private_data` (ExportedArrayPrivateData)
-  // After we replace the `release` function. the `private_data` won't be freed.
+  // After we replace the `release` function. the `private_data` won't be
+  // freed.
   auto array = *arrow::StructArray::Make(std::move(array_vector), field_names);
   arrow::ExportArrayRoot(array->data(), &arrow_rb->batch);
 

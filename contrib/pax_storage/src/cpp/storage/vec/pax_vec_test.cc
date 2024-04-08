@@ -28,7 +28,8 @@ static void GenFakeBuffer(char *buffer, size_t length) {
   }
 }
 
-class PaxVecTest : public ::testing::TestWithParam<bool> {
+class PaxVecTest
+    : public ::testing::TestWithParam<::testing::tuple<bool, bool>> {
  public:
   void SetUp() override {
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
@@ -71,15 +72,20 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
     return tuple_slot;
   }
 
-  static TupleTableSlot *CreateTupleSlot(bool is_fixed,
-                                         bool with_value = false) {
+  static TupleTableSlot *CreateTupleSlot(bool is_fixed, bool with_value = false,
+                                         bool with_ctid = false) {
     TupleDescData *tuple_desc;
     TupleTableSlot *tuple_slot;
 
-    tuple_desc = reinterpret_cast<TupleDescData *>(cbdb::Palloc0(
-        sizeof(TupleDescData) + sizeof(FormData_pg_attribute) * 1));
+    int attnums = 1;
+    if (with_ctid) {
+      attnums++;
+    }
 
-    tuple_desc->natts = 1;
+    tuple_desc = reinterpret_cast<TupleDescData *>(cbdb::Palloc0(
+        sizeof(TupleDescData) + sizeof(FormData_pg_attribute) * attnums));
+
+    tuple_desc->natts = attnums;
     if (is_fixed) {
       tuple_desc->attrs[0] = {.atttypid = INT4OID,
                               .attlen = 4,
@@ -92,6 +98,16 @@ class PaxVecTest : public ::testing::TestWithParam<bool> {
                               .attbyval = false,
                               .attalign = TYPALIGN_DOUBLE,
                               .attcollation = DEFAULT_COLLATION_OID};
+    }
+
+    if (with_ctid) {
+      tuple_desc->attrs[1] = {.atttypid = TEXTOID,
+                              .attlen = 8,
+                              .attbyval = true,
+                              .attalign = TYPALIGN_DOUBLE,
+                              .attcollation = DEFAULT_COLLATION_OID};
+      const char *blockname = "ctid";
+      namestrcpy(&tuple_desc->attrs[1].attname, blockname);
     }
 
     tuple_slot = (TupleTableSlot *)cbdb::RePalloc(
@@ -139,8 +155,13 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   PaxColumns *columns;
   PaxColumn *column;
 
-  auto is_fixed = GetParam();
+  auto is_fixed = ::testing::get<0>(GetParam());
+  auto with_visimap = ::testing::get<1>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
+  Bitmap8 *visimap = nullptr;
+  if (with_visimap) {
+    visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
+  }
 
   adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
   columns = new PaxColumns();
@@ -151,6 +172,12 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   }
 
   for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
+    if (with_visimap) {
+      if (i % 2 == 0) {
+        visimap->Set(i);
+      }
+    }
+
     if (is_fixed) {
       column->Append((char *)&i, sizeof(int32));
     } else {
@@ -165,15 +192,26 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
   columns->AddRows(column->GetRows());
   columns->Append(column);
   adapter->SetDataSource(columns);
+  if (with_visimap) {
+    adapter->SetVisibitilyMapInfo(0, visimap);
+  }
+
+  size_t visiable_tuple1_count = VEC_BATCH_LENGTH;
+  if (with_visimap) {
+    visiable_tuple1_count = VEC_BATCH_LENGTH / 2;
+  }
+
   auto append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+
+  ASSERT_EQ(append_rc, visiable_tuple1_count);
 
   // already full
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_FALSE(append_rc);
+  ASSERT_EQ(append_rc, -1);
 
   size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
-  ASSERT_EQ(VEC_BATCH_LENGTH, flush_counts);
+
+  ASSERT_EQ(visiable_tuple1_count, flush_counts);
 
   // verify tuple_slot 1
   {
@@ -182,7 +220,7 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
 
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ArrowArray *arrow_array = &rb->batch;
-    ASSERT_EQ(arrow_array->length, VEC_BATCH_LENGTH);
+    ASSERT_EQ(arrow_array->length, visiable_tuple1_count);
     ASSERT_EQ(arrow_array->null_count, 0);
     ASSERT_EQ(arrow_array->offset, 0);
     ASSERT_EQ(arrow_array->n_buffers, 1);
@@ -193,7 +231,7 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
     ASSERT_EQ(arrow_array->private_data, nullptr);
 
     ArrowArray *child_array = arrow_array->children[0];
-    ASSERT_EQ(child_array->length, VEC_BATCH_LENGTH);
+    ASSERT_EQ(child_array->length, visiable_tuple1_count);
     ASSERT_EQ(child_array->null_count, 0);
     ASSERT_EQ(child_array->offset, 0);
     ASSERT_EQ(child_array->n_buffers, is_fixed ? 2 : 3);
@@ -206,33 +244,58 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
       ASSERT_NE(child_array->buffers[1], nullptr);
 
       char *buffer = (char *)child_array->buffers[1];
-      for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), i);
+      for (size_t i = 0; i < visiable_tuple1_count; i++) {
+        if (with_visimap) {
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), i * 2 + 1);
+        } else {
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), i);
+        }
       }
+
     } else {
       ASSERT_NE(child_array->buffers[1], nullptr);
       ASSERT_NE(child_array->buffers[2], nullptr);
 
       char *offset_buffer = (char *)child_array->buffers[1];
       char *buffer = (char *)child_array->buffers[2];
-      for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
-        ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
-                  i * sizeof(int32));
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), i);
+      if (with_visimap) {
+        for (size_t i = 0; i < visiable_tuple1_count; i++) {
+          ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
+                    i * sizeof(int32));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), i * 2 + 1);
+        }
+      } else {
+        for (size_t i = 0; i < visiable_tuple1_count; i++) {
+          ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
+                    i * sizeof(int32));
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))), i);
+        }
       }
 
-      ASSERT_EQ(*((int32 *)(offset_buffer + VEC_BATCH_LENGTH * sizeof(int32))),
-                VEC_BATCH_LENGTH * sizeof(int32));
+      if (with_visimap) {
+        ASSERT_EQ(
+            *((int32 *)(offset_buffer + VEC_BATCH_LENGTH / 2 * sizeof(int32))),
+            VEC_BATCH_LENGTH / 2 * sizeof(int32));
+      } else {
+        ASSERT_EQ(
+            *((int32 *)(offset_buffer + VEC_BATCH_LENGTH * sizeof(int32))),
+            VEC_BATCH_LENGTH * sizeof(int32));
+      }
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);
   }
 
+  size_t visiable_tuple2_count = 1000;
+  if (with_visimap) {
+    visiable_tuple2_count = 500;
+  }
+
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, visiable_tuple2_count);
 
   flush_counts = adapter->FlushVecBuffer(tuple_slot);
-  ASSERT_EQ(1000, flush_counts);
+  ASSERT_EQ(visiable_tuple2_count, flush_counts);
 
   // verify tuple_slot 2
   {
@@ -242,7 +305,7 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
     auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
     ASSERT_NE(rb, nullptr);
     ArrowArray *arrow_array = &rb->batch;
-    ASSERT_EQ(arrow_array->length, 1000);
+    ASSERT_EQ(arrow_array->length, visiable_tuple2_count);
     ASSERT_EQ(arrow_array->null_count, 0);
     ASSERT_EQ(arrow_array->offset, 0);
     ASSERT_EQ(arrow_array->n_buffers, 1);
@@ -253,7 +316,7 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
     ASSERT_EQ(arrow_array->private_data, nullptr);
 
     ArrowArray *child_array = arrow_array->children[0];
-    ASSERT_EQ(child_array->length, 1000);
+    ASSERT_EQ(child_array->length, visiable_tuple2_count);
     ASSERT_EQ(child_array->null_count, 0);
     ASSERT_EQ(child_array->offset, 0);
     ASSERT_EQ(child_array->n_buffers, is_fixed ? 2 : 3);
@@ -266,9 +329,14 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
       ASSERT_NE(child_array->buffers[1], nullptr);
 
       char *buffer = (char *)child_array->buffers[1];
-      for (size_t i = 0; i < 1000; i++) {
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
-                  i + VEC_BATCH_LENGTH);
+      for (size_t i = 0; i < visiable_tuple2_count; i++) {
+        if (with_visimap) {
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    (i + visiable_tuple1_count) * 2 + 1);
+        } else {
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    i + visiable_tuple1_count);
+        }
       }
     } else {
       ASSERT_NE(child_array->buffers[1], nullptr);
@@ -276,15 +344,21 @@ TEST_P(PaxVecTest, PaxColumnToVec) {
 
       char *offset_buffer = (char *)child_array->buffers[1];
       char *buffer = (char *)child_array->buffers[2];
-      for (size_t i = 0; i < 1000; i++) {
+      for (size_t i = 0; i < visiable_tuple2_count; i++) {
+        if (with_visimap) {
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    (i + visiable_tuple1_count) * 2 + 1);
+        } else {
+          ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
+                    i + visiable_tuple1_count);
+        }
         ASSERT_EQ(*((int32 *)(offset_buffer + i * sizeof(int32))),
                   i * sizeof(int32));
-        ASSERT_EQ(*((int32 *)(buffer + i * sizeof(int32))),
-                  i + VEC_BATCH_LENGTH);
       }
 
-      ASSERT_EQ(*((int32 *)(offset_buffer + 1000 * sizeof(int32))),
-                1000 * sizeof(int32));
+      ASSERT_EQ(
+          *((int32 *)(offset_buffer + visiable_tuple2_count * sizeof(int32))),
+          visiable_tuple2_count * sizeof(int32));
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);
@@ -301,7 +375,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   PaxColumns *columns;
   PaxColumn *column;
   size_t null_counts = 0;
-  auto is_fixed = GetParam();
+  auto is_fixed = ::testing::get<0>(GetParam());
 
   TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed);
 
@@ -335,10 +409,10 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   adapter->SetDataSource(columns);
 
   auto append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, VEC_BATCH_LENGTH);
 
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_FALSE(append_rc);
+  ASSERT_EQ(append_rc, -1);
 
   size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(VEC_BATCH_LENGTH, flush_counts);
@@ -450,7 +524,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVec) {
   }
 
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, 1000 + null_counts);
 
   flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(null_counts + 1000, flush_counts);
@@ -561,7 +635,7 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   PaxColumns *columns;
   PaxColumn *column;
 
-  auto is_fixed = GetParam();
+  auto is_fixed = ::testing::get<0>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
 
   adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
@@ -588,11 +662,11 @@ TEST_P(PaxVecTest, PaxColumnToVecNoFull) {
   columns->Append(column);
   adapter->SetDataSource(columns);
   auto append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, 1000);
 
   // append finish
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_FALSE(append_rc);
+  ASSERT_EQ(append_rc, -1);
 
   size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000, flush_counts);
@@ -663,7 +737,7 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   PaxColumn *column;
   size_t null_counts = 0;
 
-  auto is_fixed = GetParam();
+  auto is_fixed = ::testing::get<0>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
 
   adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
@@ -697,11 +771,11 @@ TEST_P(PaxVecTest, PaxColumnWithNullToVecNoFull) {
   columns->Append(column);
   adapter->SetDataSource(columns);
   auto append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, 1000 + null_counts);
 
   // already full
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_FALSE(append_rc);
+  ASSERT_EQ(append_rc, -1);
 
   size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000 + null_counts, flush_counts);
@@ -813,7 +887,7 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   PaxColumns *columns;
   PaxColumn *column;
 
-  auto is_fixed = GetParam();
+  auto is_fixed = ::testing::get<0>(GetParam());
   auto tuple_slot = CreateTupleSlot(is_fixed);
 
   adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
@@ -832,11 +906,11 @@ TEST_P(PaxVecTest, PaxColumnAllNullToVec) {
   columns->Append(column);
   adapter->SetDataSource(columns);
   auto append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, 1000);
 
   // already full
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_FALSE(append_rc);
+  ASSERT_EQ(append_rc, -1);
 
   size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000, flush_counts);
@@ -929,11 +1003,11 @@ TEST_P(PaxVecTest, DecimalTest) {
   columns->Append(column);
   adapter->SetDataSource(columns);
   auto append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, VEC_BATCH_LENGTH);
 
   // already full
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_FALSE(append_rc);
+  ASSERT_EQ(append_rc, -1);
 
   size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(VEC_BATCH_LENGTH, flush_counts);
@@ -976,7 +1050,7 @@ TEST_P(PaxVecTest, DecimalTest) {
   }
 
   append_rc = adapter->AppendToVecBuffer();
-  ASSERT_TRUE(append_rc);
+  ASSERT_EQ(append_rc, 1000);
 
   flush_counts = adapter->FlushVecBuffer(tuple_slot);
   ASSERT_EQ(1000, flush_counts);
@@ -1025,6 +1099,274 @@ TEST_P(PaxVecTest, DecimalTest) {
   delete adapter;
 }
 
+TEST_P(PaxVecTest, PaxColumnWithNullAndVisimapToVec) {
+  VecAdapter *adapter;
+  PaxColumns *columns;
+  PaxColumn *column;
+  size_t null_counts = 0;
+  auto is_fixed = ::testing::get<0>(GetParam());
+  auto with_visimap = ::testing::get<1>(GetParam());
+  Bitmap8 *visimap = nullptr;
+  if (with_visimap) {
+    visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
+  }
+
+  TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed);
+
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
+  columns = new PaxColumns();
+  if (is_fixed) {
+    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+  } else {
+    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+  }
+
+  for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
+    if (i % 4 == 0) {
+      null_counts++;
+      column->AppendNull();
+    }
+
+    if (with_visimap) {
+      // visimap:[1,0,1,0,1,0]
+      if (i % 2 == 0) {
+        visimap->Set(i);
+      }
+    }
+
+    if (is_fixed) {
+      column->Append((char *)&i, sizeof(int32));
+    } else {
+      auto data = cbdb::DatumFromCString((char *)&i, sizeof(int32));
+      int len = -1;
+      auto vl = cbdb::PointerAndLenFromDatum(data, &len);
+
+      column->Append(reinterpret_cast<char *>(vl), len);
+    }
+  }
+
+  columns->AddRows(column->GetRows());
+  columns->Append(column);
+  adapter->SetDataSource(columns);
+  if (with_visimap) {
+    adapter->SetVisibitilyMapInfo(0, visimap);
+  }
+
+  size_t visiable_tuple1_count = VEC_BATCH_LENGTH;
+  if (with_visimap) {
+    visiable_tuple1_count = VEC_BATCH_LENGTH / 2;
+  }
+
+  auto append_rc = adapter->AppendToVecBuffer();
+  ASSERT_EQ(append_rc, visiable_tuple1_count);
+
+  append_rc = adapter->AppendToVecBuffer();
+  ASSERT_EQ(append_rc, -1);
+
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
+  ASSERT_EQ(visiable_tuple1_count, flush_counts);
+
+  {
+    VecTupleTableSlot *vslot = nullptr;
+    vslot = (VecTupleTableSlot *)tuple_slot;
+
+    auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
+    ASSERT_NE(rb, nullptr);
+    ArrowArray *arrow_array = &rb->batch;
+    ASSERT_EQ(arrow_array->length, visiable_tuple1_count);
+    ASSERT_EQ(arrow_array->null_count, 0);
+    ASSERT_EQ(arrow_array->offset, 0);
+    ASSERT_EQ(arrow_array->n_buffers, 1);
+    ASSERT_EQ(arrow_array->n_children, 1);
+    ASSERT_NE(arrow_array->children, nullptr);
+    ASSERT_EQ(arrow_array->buffers[0], nullptr);
+    ASSERT_EQ(arrow_array->dictionary, nullptr);
+    ASSERT_EQ(arrow_array->private_data, nullptr);
+
+    ArrowArray *child_array = arrow_array->children[0];
+    ASSERT_EQ(child_array->length, visiable_tuple1_count);
+    if (with_visimap) {
+      ASSERT_EQ(child_array->null_count,
+                VEC_BATCH_LENGTH / 5 - VEC_BATCH_LENGTH / 10);
+    } else {
+      ASSERT_EQ(child_array->null_count, visiable_tuple1_count / 5 + 1);
+    }
+    ASSERT_EQ(child_array->offset, 0);
+    ASSERT_EQ(child_array->n_buffers, is_fixed ? 2 : 3);
+    ASSERT_EQ(child_array->n_children, 0);
+    ASSERT_EQ(child_array->children, nullptr);
+    ASSERT_EQ(child_array->private_data, child_array);
+
+    if (is_fixed) {
+      ASSERT_NE(child_array->buffers[0], nullptr);
+      ASSERT_NE(child_array->buffers[1], nullptr);
+
+      auto null_bits_array = (uint8 *)child_array->buffers[0];
+
+      // verify null bitmap
+      for (size_t i = 0; i < visiable_tuple1_count; i++) {
+        // nullmap: 0 1 1 1 1 0 1 1 1 1 0 1 1 1  1  0...
+        // data   : n 0 1 2 3 n 4 5 6 7 n 8 9 10 11 n 12 13 14 15 n 16 ...
+        // visimap: 1 0 1 0 1 0 1 0 1 0 1 0 1 0  1  0  1  0  1  0 1  0 ...
+        // m_data : 0 2 n 5 7 8 10 n 13 15 16 18 n 21 23
+        if (with_visimap) {
+          if (i % 5 == 2) {
+            ASSERT_FALSE(arrow::bit_util::GetBit(null_bits_array, i));
+          } else {
+            ASSERT_TRUE(arrow::bit_util::GetBit(null_bits_array, i));
+          }
+        } else {
+          if (i % 5 == 0) {
+            ASSERT_FALSE(arrow::bit_util::GetBit(null_bits_array, i));
+          } else {
+            ASSERT_TRUE(arrow::bit_util::GetBit(null_bits_array, i));
+          }
+        }
+      }
+
+    } else {
+      ASSERT_NE(child_array->buffers[0], nullptr);
+      ASSERT_NE(child_array->buffers[1], nullptr);
+      ASSERT_NE(child_array->buffers[2], nullptr);
+
+      auto null_bits_array = (uint8 *)child_array->buffers[0];
+
+      // verify null bitmap
+      for (size_t i = 0; i < visiable_tuple1_count; i++) {
+        if (with_visimap) {
+          if (i % 5 == 2) {
+            ASSERT_FALSE(arrow::bit_util::GetBit(null_bits_array, i));
+          } else {
+            ASSERT_TRUE(arrow::bit_util::GetBit(null_bits_array, i));
+          }
+        } else {
+          if (i % 5 == 0) {
+            ASSERT_FALSE(arrow::bit_util::GetBit(null_bits_array, i));
+          } else {
+            ASSERT_TRUE(arrow::bit_util::GetBit(null_bits_array, i));
+          }
+        }
+      }
+    }
+
+    ASSERT_EQ(child_array->dictionary, nullptr);
+  }
+  DeleteTupleSlot(tuple_slot);
+
+  delete columns;
+  delete adapter;
+}
+
+TEST_P(PaxVecTest, PaxColumnBuildCtidToVec) {
+  VecAdapter *adapter;
+  PaxColumns *columns;
+  PaxColumn *column;
+
+  auto is_fixed = ::testing::get<0>(GetParam());
+  auto with_visimap = ::testing::get<1>(GetParam());
+  auto tuple_slot = CreateTupleSlot(is_fixed, false, true);
+  Bitmap8 *visimap = nullptr;
+  if (with_visimap) {
+    visimap = PAX_NEW<Bitmap8>(VEC_BATCH_LENGTH + 1000);
+  }
+
+  int64 base_ctid = 1;
+  pax::SetTupleOffset(&tuple_slot->tts_tid, base_ctid);
+
+  adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor, true);
+  columns = new PaxColumns();
+  if (is_fixed) {
+    column = new PaxCommColumn<int32>(VEC_BATCH_LENGTH + 1000);
+  } else {
+    column = new PaxNonFixedColumn(VEC_BATCH_LENGTH + 1000);
+  }
+
+  for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
+    if (with_visimap) {
+      if (i % 2 == 0) {
+        visimap->Set(i);
+      }
+    }
+
+    if (is_fixed) {
+      column->Append((char *)&i, sizeof(int32));
+    } else {
+      auto data = cbdb::DatumFromCString((char *)&i, sizeof(int32));
+      int len = -1;
+      auto vl = cbdb::PointerAndLenFromDatum(data, &len);
+
+      column->Append(reinterpret_cast<char *>(vl), len);
+    }
+  }
+
+  columns->AddRows(column->GetRows());
+  columns->Append(column);
+  adapter->SetDataSource(columns);
+  if (with_visimap) {
+    adapter->SetVisibitilyMapInfo(0, visimap);
+  }
+
+  size_t visiable_tuple1_count = VEC_BATCH_LENGTH;
+  if (with_visimap) {
+    visiable_tuple1_count = VEC_BATCH_LENGTH / 2;
+  }
+
+  auto append_rc = adapter->AppendToVecBuffer();
+
+  ASSERT_EQ(append_rc, visiable_tuple1_count);
+
+  // already full
+  append_rc = adapter->AppendToVecBuffer();
+  ASSERT_EQ(append_rc, -1);
+
+  size_t flush_counts = adapter->FlushVecBuffer(tuple_slot);
+
+  ASSERT_EQ(visiable_tuple1_count, flush_counts);
+
+  // verify tuple_slot 1
+  {
+    VecTupleTableSlot *vslot = nullptr;
+    vslot = (VecTupleTableSlot *)tuple_slot;
+
+    auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
+    ArrowArray *arrow_array = &rb->batch;
+    ASSERT_EQ(arrow_array->length, visiable_tuple1_count);
+    ASSERT_EQ(arrow_array->null_count, 0);
+    ASSERT_EQ(arrow_array->offset, 0);
+    ASSERT_EQ(arrow_array->n_buffers, 1);
+    ASSERT_EQ(arrow_array->n_children, 2);
+    ASSERT_NE(arrow_array->children, nullptr);
+    ASSERT_EQ(arrow_array->buffers[0], nullptr);
+    ASSERT_EQ(arrow_array->dictionary, nullptr);
+    ASSERT_EQ(arrow_array->private_data, nullptr);
+
+    ArrowArray *ctid_child_array = arrow_array->children[1];
+    ASSERT_EQ(ctid_child_array->length, visiable_tuple1_count);
+    ASSERT_EQ(ctid_child_array->null_count, 0);
+    ASSERT_EQ(ctid_child_array->offset, 0);
+    ASSERT_EQ(ctid_child_array->n_buffers, 3);
+    ASSERT_EQ(ctid_child_array->n_children, 0);
+    ASSERT_EQ(ctid_child_array->children, nullptr);
+    ASSERT_EQ(ctid_child_array->buffers[0], nullptr);  // null bitmap
+    ASSERT_EQ(ctid_child_array->buffers[1], nullptr);
+    ASSERT_EQ(ctid_child_array->private_data, ctid_child_array);
+
+    ASSERT_NE(ctid_child_array->buffers[2], nullptr);
+
+    char *buffer = (char *)ctid_child_array->buffers[2];
+    for (size_t i = 0; i < visiable_tuple1_count; i++) {
+      if (with_visimap) {
+        ASSERT_EQ(*(int64 *)(buffer + (i * sizeof(int64))),
+                  (i + 1) * 2 + base_ctid);
+      } else {
+        ASSERT_EQ(*(int64 *)(buffer + (i * sizeof(int64))), i + 1 + base_ctid);
+      }
+    }
+
+    ASSERT_EQ(ctid_child_array->dictionary, nullptr);
+  }
+}
+
 class MockTableWriter : public TableWriter {
  public:
   MockTableWriter(const Relation relation, WriteSummaryCallback callback)
@@ -1059,7 +1401,7 @@ class MockReaderInterator : public IteratorBase<MicroPartitionMetadata> {
 };
 
 TEST_P(PaxVecTest, PaxVecReaderTest) {
-  auto is_fixed = GetParam();
+  auto is_fixed = ::testing::get<0>(GetParam());
   TupleTableSlot *tuple_slot = CreateTupleSlot(is_fixed, true);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
@@ -1095,7 +1437,7 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
   delete writer;
 
   tuple_slot = CreateTupleSlot(is_fixed);
-  auto adapter = new VecAdapter(tuple_slot->tts_tupleDescriptor);
+  auto adapter = std::make_shared<VecAdapter>(tuple_slot->tts_tupleDescriptor);
 
   std::vector<MicroPartitionMetadata> meta_info_list;
   MicroPartitionMetadata meta_info;
@@ -1128,13 +1470,13 @@ TEST_P(PaxVecTest, PaxVecReaderTest) {
 
   reader->Close();
   DeleteTupleSlot(tuple_slot);
-  delete adapter;
   delete relation;
   delete reader;
 }
 
 INSTANTIATE_TEST_CASE_P(PaxVecTestCombine, PaxVecTest,
-                        testing::Values(true, false));
+                        testing::Combine(testing::Values(true, false),
+                                         testing::Values(true, false)));
 
 #endif  // VEC_BUILD
 

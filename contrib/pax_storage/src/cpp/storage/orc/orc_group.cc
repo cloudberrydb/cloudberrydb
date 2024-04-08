@@ -5,8 +5,10 @@
 namespace pax {
 
 OrcGroup::OrcGroup(PaxColumns *pax_column, size_t row_offset,
-                   const std::vector<int> *proj_col_index)
+                   const std::vector<int> *proj_col_index,
+                   Bitmap8 *micro_partition_visibility_bitmap)
     : pax_columns_(pax_column),
+      micro_partition_visibility_bitmap_(micro_partition_visibility_bitmap),
       row_offset_(row_offset),
       current_row_index_(0),
       proj_col_index_(proj_col_index) {
@@ -28,9 +30,9 @@ size_t OrcGroup::GetRowOffset() const { return row_offset_; }
 PaxColumns *OrcGroup::GetAllColumns() const { return pax_columns_; }
 
 std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
-  size_t index = 0;
-  size_t nattrs = 0;
-  size_t column_nums = 0;
+  int index = 0;
+  int nattrs = 0;
+  int column_nums = 0;
 
   Assert(pax_columns_);
   Assert(slot);
@@ -40,16 +42,41 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
     return {false, current_row_index_};
   }
 
-  nattrs = static_cast<size_t>(slot->tts_tupleDescriptor->natts);
+  nattrs = slot->tts_tupleDescriptor->natts;
   column_nums = pax_columns_->GetColumns();
+
+  if (micro_partition_visibility_bitmap_) {
+    // skip invisible rows in micro partition
+    while (micro_partition_visibility_bitmap_->Test(row_offset_ +
+                                                    current_row_index_)) {
+      for (index = 0; index < column_nums; index++) {
+        auto column = ((*pax_columns_)[index]);
+
+        if (!column) {
+          continue;
+        }
+
+        if (column->HasNull()) {
+          auto bm = column->GetBitmap();
+          Assert(bm);
+          if (!bm->Test(current_row_index_)) {
+            current_nulls_[index]++;
+          }
+        }
+      }
+      current_row_index_++;
+    }
+
+    if (current_row_index_ >= pax_columns_->GetRows()) {
+      return {false, current_row_index_};
+    }
+  }
 
   // proj_col_index_ is not empty
   if (proj_col_index_ && !proj_col_index_->empty() > 0) {
     for (size_t i = 0; i < proj_col_index_->size(); i++) {
       // filter with projection
       index = (*proj_col_index_)[i];
-
-      Assert((*pax_columns_)[index]);
 
       // handle PAX columns number inconsistent with pg catalog nattrs in case
       // data not been inserted yet or read pax file conserved before last add
@@ -66,7 +93,7 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
         slot->tts_isnull[index] = true;
         continue;
       }
-
+      Assert((*pax_columns_)[index]);
       auto column = ((*pax_columns_)[index]);
 
       std::tie(slot->tts_values[index], slot->tts_isnull[index]) =
@@ -113,26 +140,32 @@ bool OrcGroup::GetTuple(TupleTableSlot *slot, size_t row_index) {
     return false;
   }
 
+  // if tuple has been deleted, return false;
+  if (micro_partition_visibility_bitmap_ &&
+      micro_partition_visibility_bitmap_->Test(row_offset_ + row_index)) {
+    return false;
+  }
+
   nattrs = static_cast<size_t>(slot->tts_tupleDescriptor->natts);
   column_nums = pax_columns_->GetColumns();
 
   for (index = 0; index < nattrs; index++) {
     // Same logic with `ReadTuple`
-    if (index < column_nums && !((*pax_columns_)[index])) {
-      continue;
-    }
-
     if (index >= column_nums) {
       cbdb::SlotGetMissingAttrs(slot, index, nattrs);
       break;
+    }
+
+    auto column = ((*pax_columns_)[index]);
+
+    if (!column) {
+      continue;
     }
 
     if (unlikely(slot->tts_tupleDescriptor->attrs[index].attisdropped)) {
       slot->tts_isnull[index] = true;
       continue;
     }
-
-    auto column = ((*pax_columns_)[index]);
 
     // different with `ReadTuple`
     std::tie(slot->tts_values[index], slot->tts_isnull[index]) =

@@ -33,7 +33,13 @@ class VecAdapter final {
 
   bool IsEnd() const;
 
-  bool AppendToVecBuffer();
+  // return -1,0 or batch_cache_lens
+  // value -1 means: no remaining tuples in pax_columns
+  // value 0 means: all this batch of data have been skipped and FlushVecBuffer
+  // is not required, but pax_columns still has unprocessed data.
+  // value n > 0 means: this batch of data has N tuples that need to be
+  // converted into vec record batch
+  int AppendToVecBuffer();
 
   size_t FlushVecBuffer(TupleTableSlot *slot);
 
@@ -41,9 +47,28 @@ class VecAdapter final {
 
   bool ShouldBuildCtid() const;
 
+  inline void SetVisibitilyMapInfo(size_t row_offset_begin,
+                                   Bitmap8 *visibility_bitmap) {
+    micro_partition_row_offset_ = row_offset_begin;
+    micro_partition_visibility_bitmap_ = visibility_bitmap;
+  }
+
  private:
   void FullWithCTID(TupleTableSlot *slot, VecBatchBuffer *batch_buffer);
   bool AppendVecFormat();
+
+  inline size_t GetInvisibleNumber(size_t range_begin, size_t range_lens) {
+    if (micro_partition_visibility_bitmap_ == nullptr) {
+      return 0;
+    }
+
+    // The number of bits which set to 1 in visibility map is the number of
+    // invisible tuples
+    return micro_partition_visibility_bitmap_->CountBits(
+        range_begin, range_begin + range_lens - 1);
+  }
+
+  void BuildCtidOffset(size_t range_begin, size_t range_lengs);
 
  private:
   TupleDesc rel_tuple_desc_;
@@ -54,6 +79,13 @@ class VecAdapter final {
   PaxColumns *process_columns_;
   size_t current_cached_pax_columns_index_;
   bool build_ctid_;
+
+  size_t micro_partition_row_offset_;
+  // only referenced
+  const Bitmap8 *micro_partition_visibility_bitmap_ = nullptr;
+
+  // ctid offset in current batch range
+  DataBuffer<int32> *ctid_offset_in_current_range_;
 };
 
 }  // namespace pax

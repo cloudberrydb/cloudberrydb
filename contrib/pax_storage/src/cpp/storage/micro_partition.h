@@ -148,6 +148,8 @@ class MicroPartitionReader {
     // used as a general interface for internal using, because it's zero copy
     // from buffer. more details in `storage/columns`
     virtual PaxColumns *GetAllColumns() const = 0;
+
+    virtual void SetVisibilityMap(const Bitmap8 *visibility_bitmap) = 0;
   };
 
   struct ReaderOptions {
@@ -162,6 +164,11 @@ class MicroPartitionReader {
 #ifdef ENABLE_PLASMA
     PaxCache *pax_cache = nullptr;
 #endif  // ENABLE_PLASMA
+
+    TupleDesc desc = nullptr;
+
+    // only reference
+    Bitmap8 *visibility_bitmap = nullptr;
   };
   MicroPartitionReader() = default;
 

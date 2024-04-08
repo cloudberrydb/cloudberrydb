@@ -91,7 +91,9 @@ class TableReader final {
     PaxFilter *filter = nullptr;
 #ifdef VEC_BUILD
     bool is_vec = false;
-    VecAdapter *adapter = nullptr;
+    // delete by PaxVecReader; maybe std::shared_ptr is better
+    // VecAdapter *adapter = nullptr;
+    std::shared_ptr<VecAdapter> adapter = nullptr;
 #endif
 
 #ifdef ENABLE_PLASMA

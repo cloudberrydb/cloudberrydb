@@ -13,7 +13,8 @@ class PaxDumpReader;
 class OrcGroup : public MicroPartitionReader::Group {
  public:
   OrcGroup(PaxColumns *pax_column, size_t row_offset,
-           const std::vector<int> *proj_col_index);
+           const std::vector<int> *proj_col_index,
+           Bitmap8 *micro_partition_visibility_bitmap = nullptr);
 
   ~OrcGroup() override;
 
@@ -29,6 +30,9 @@ class OrcGroup : public MicroPartitionReader::Group {
 
   std::pair<Datum, bool> GetColumnValue(TupleDesc desc, size_t column_index,
                                         size_t row_index) override;
+  void SetVisibilityMap(const Bitmap8 *visibility_bitmap) {
+    micro_partition_visibility_bitmap_ = visibility_bitmap;
+  }
 
  protected:
   // Used to direct get datum from columns
@@ -51,6 +55,8 @@ class OrcGroup : public MicroPartitionReader::Group {
 
  protected:
   PaxColumns *pax_columns_;
+  // only referenced
+  const Bitmap8 *micro_partition_visibility_bitmap_;
   size_t row_offset_;
   size_t current_row_index_;
 

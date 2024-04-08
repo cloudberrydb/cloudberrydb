@@ -48,10 +48,39 @@ set(pax_storage_src
     storage/proto/protobuf_stream.cc
    )
 
-add_library(paxformat SHARED ${PROTO_SRCS} ${pax_storage_src} ${pax_exceptions_src} ${pax_comm_src} )
-target_compile_definitions(paxformat PRIVATE BUILD_PAX_FORMAT)
-target_include_directories(paxformat PUBLIC ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
-target_link_libraries(paxformat PUBLIC uuid protobuf zstd z)
+set(pax_vec_src
+storage/vec/pax_vec_adapter.cc
+storage/vec/pax_vec_reader.cc
+)
+
+set(pax_target_include ${ZTSD_HEADER} ${CMAKE_CURRENT_SOURCE_DIR} ${CBDB_INCLUDE_DIR})
+set(pax_target_link_libs uuid protobuf zstd z)
+set(pax_target_link_directories ${PROJECT_SOURCE_DIR}/../../src/backend/)
+
+
+# vec build
+if (VEC_BUILD)
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(GLIB REQUIRED glib-2.0)
+  set(pax_target_include
+      ${pax_target_include}
+      ${VEC_HOME}/src/include # for utils/tuptable_vec.h
+      ${VEC_HOME}/arrow/include  # for arrow-glib/arrow-glib.h and otehr arrow interface
+      ${GLIB_INCLUDE_DIRS} # for glib-object.h
+  )
+  set(pax_target_link_directories
+      ${pax_target_link_directories}
+      ${VEC_HOME}/arrow/lib)
+  set(pax_target_link_libs
+      ${pax_target_link_libs}
+      arrow)
+endif(VEC_BUILD)
+
+add_library(paxformat SHARED ${PROTO_SRCS} ${pax_storage_src} ${pax_exceptions_src} ${pax_comm_src} ${pax_vec_src})
+target_include_directories(paxformat PUBLIC ${pax_target_include})
+target_link_directories(paxformat PUBLIC ${pax_target_link_directories})
+target_link_libraries(paxformat PUBLIC ${pax_target_link_libs})  
+   
 set_target_properties(paxformat PROPERTIES
   OUTPUT_NAME paxformat)
 add_dependencies(paxformat generate_protobuf)

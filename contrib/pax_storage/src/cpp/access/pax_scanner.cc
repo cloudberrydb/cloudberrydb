@@ -178,10 +178,9 @@ TableScanDesc PaxScanDesc::BeginScan(Relation relation, Snapshot snapshot,
 
 #ifdef VEC_BUILD
   if (flags & SO_TYPE_VECTOR) {
-    desc->vec_adapter_ =
-        PAX_NEW<VecAdapter>(cbdb::RelationGetTupleDesc(relation), build_bitmap);
     reader_options.is_vec = true;
-    reader_options.adapter = desc->vec_adapter_;
+    reader_options.adapter = std::make_shared<VecAdapter>(
+        cbdb::RelationGetTupleDesc(relation), build_bitmap);
   }
 #endif  // VEC_BUILD
 
@@ -248,10 +247,6 @@ void PaxScanDesc::EndScan() {
   PAX_DELETE(reused_buffer_);
   PAX_DELETE(reader_);
   PAX_DELETE(filter_);
-
-#ifdef VEC_BUILD
-  PAX_DELETE(vec_adapter_);
-#endif
 
 #ifdef ENABLE_PLASMA
   if (pax_cache_) {

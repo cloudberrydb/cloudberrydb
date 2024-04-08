@@ -15,12 +15,14 @@ static inline bool TestExecQual(ExprState *estate, ExprContext *econtext) {
 }
 
 MicroPartitionRowFilterReader *MicroPartitionRowFilterReader::New(
-    MicroPartitionReader *reader, PaxFilter *filter) {
+    MicroPartitionReader *reader, PaxFilter *filter,
+    Bitmap8 *visibility_bitmap) {
   Assert(reader);
   Assert(filter && filter->HasRowScanFilter());
 
   auto r = PAX_NEW<MicroPartitionRowFilterReader>();
   r->SetReader(reader);
+  r->SetVisibilityBitmap(visibility_bitmap);
   r->filter_ = filter;
   return r;
 }
@@ -37,7 +39,7 @@ retry_next_group:
     goto retry_next_group;
   }
   group_ = reader_->ReadGroup(group_index_ - 1);
-  row_index_ = 0;
+  current_group_row_index_ = 0;
   return group_;
 }
 
@@ -58,30 +60,44 @@ retry_next_group:
   }
   nrows = g->GetRows();
 retry_next:
-  if (row_index_ >= nrows) {
+  if (current_group_row_index_ >= nrows) {
     PAX_DELETE(group_);
     group_ = nullptr;
     goto retry_next_group;
   }
+
+  if (micro_partition_visibility_bitmap_) {
+    while (micro_partition_visibility_bitmap_->Test(current_group_row_index_ +
+                                                    g->GetRowOffset())) {
+      current_group_row_index_++;
+      if (current_group_row_index_ >= nrows) {
+        PAX_DELETE(group_);
+        group_ = nullptr;
+        goto retry_next_group;
+      }
+    }
+  }
+
   for (int i = 0; i < ctx->size; i++) {
     auto attno = ctx->attnos[i];
     Assert(attno > 0);
     std::tie(slot->tts_values[attno - 1], slot->tts_isnull[attno - 1]) =
-        g->GetColumnValue(desc, attno - 1, row_index_);
+        g->GetColumnValue(desc, attno - 1, current_group_row_index_);
     if (!TestRowScanInternal(slot, ctx->estates[i], attno)) {
-      row_index_++;
+      current_group_row_index_++;
       goto retry_next;
     }
   }
   for (auto attno : remaining_columns) {
     std::tie(slot->tts_values[attno - 1], slot->tts_isnull[attno - 1]) =
-        g->GetColumnValue(desc, attno - 1, row_index_);
+        g->GetColumnValue(desc, attno - 1, current_group_row_index_);
   }
-  row_index_++;
+  current_group_row_index_++;
   if (ctx->estate_final && !TestRowScanInternal(slot, ctx->estate_final, 0))
     goto retry_next;
 
-  SetTupleOffset(&slot->tts_tid, g->GetRowOffset() + row_index_ - 1);
+  SetTupleOffset(&slot->tts_tid,
+                 g->GetRowOffset() + current_group_row_index_ - 1);
   return true;
 }
 
