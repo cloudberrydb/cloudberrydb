@@ -100,6 +100,9 @@ typedef struct PlanBuildContext
 	GArrowExpression *whenexpr;
 	GArrowExpression *not_and_whenexpr;
 	Oid case_when_type;
+
+	/* sequence related */
+	int subplan_index;
 } PlanBuildContext;
 
 typedef struct SortKey
@@ -162,6 +165,7 @@ static GArrowExpression *build_cast_expression(FuncExpr *opexpr, PlanBuildContex
 static void get_windowagg_sortorder(PlanBuildContext *pcontext, SortKey *sortKey);
 static GArrowExecuteNode *BuildNestLoopjoin(PlanBuildContext *pcontext, GArrowExecuteNode *left, GArrowExecuteNode *right, List *joinqual);
 static void BuildJoinPlan(PlanBuildContext *pcontext, VecExecuteState *estate);
+static void BuildSequencePlan(PlanBuildContext *pcontext, VecExecuteState *estate);
 static const char *GetHashJoinProjectName(PlanBuildContext *pcontext, const char *name);
 static GArrowExpression *build_text_join(List *args, PlanBuildContext *pcontext);
 static GArrowExpression *build_is_distinct_expression(DistinctExpr *dex, PlanBuildContext *pcontext);
@@ -1655,6 +1659,17 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 					outerPlanState(planstate)->ps_ResultTupleSlot);
 		}
 		break;
+		case T_SequenceState:
+		{
+			SequenceState *node = castNode(SequenceState, planstate);
+			if (!node->subplans)
+				elog(ERROR, "Sequence node can't be leaf in vector plan");
+			pcontext.inputschema = GetSchemaFromSlot(
+				node->subplans[node->numSubplans - 1]->ps_ResultTupleSlot);
+			pcontext.is_left_schema = true;
+			pcontext.subplan_index = 0;
+		}
+		break;
 		default:
 			elog(ERROR, "Build arrow plan from (%d) type is not support yet.",
 					nodeTag(planstate->plan));
@@ -1670,7 +1685,9 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 		BuildJoinPlan(&pcontext, estate);
 	else if (pcontext.is_hashjoin)
 		BuildJoinPlan(&pcontext, estate);
-	else 
+	else if (IsA(planstate, SequenceState))
+		BuildSequencePlan(&pcontext, estate);
+	else
 	{
 		g_autoptr(GArrowExecuteNode) curnode = NULL;
 		g_autoptr(GArrowExecuteNode) tmpnode = NULL;
@@ -1788,6 +1805,58 @@ BuildJoinPlan(PlanBuildContext *pcontext, VecExecuteState *estate)
 	ARROW_FREE(GArrowSchema, &pcontext->inputschema);
 	garrow_list_free_ptr(&left_fields);
 	garrow_list_free_ptr(&right_fields);
+}
+
+static void
+BuildSequencePlan(PlanBuildContext *pcontext, VecExecuteState *estate)
+{
+	bool pipeline;
+
+	GList *sources = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GArrowExecuteNode) last_source = NULL;
+	g_autoptr(GArrowSequenceNodeOptions) options = NULL;
+	g_autoptr(GArrowExecuteNode) sequence_node = NULL;
+
+	Assert(IsA(pcontext->planstate, SequenceState));
+	SequenceState *ss = castNode(SequenceState, pcontext->planstate);
+
+	/*
+	 * The last subplan must be created as pipeline source and put into
+	 * the source list firstly. It ensures that the last subplan will be
+	 * run as the last source in arrow plan.
+	 */
+	pcontext->subplan_index = ss->numSubplans - 1;
+	last_source = BuildSource(pcontext);
+	sources = garrow_list_append_ptr(sources, last_source);
+
+	/*
+	 * save the origin value of pcontext->pipeline, and reset later
+	 */
+	pipeline = pcontext->pipeline;
+	pcontext->pipeline = false;
+	for (int i = 0; i < ss->numSubplans -1; ++i)
+	{
+		g_autoptr(GArrowExecuteNode) source = NULL;
+
+		pcontext->subplan_index = i;
+		source = BuildSource(pcontext);
+		sources = garrow_list_append_ptr(sources, source);
+	}
+	/* reset pipeline */
+	pcontext->pipeline = pipeline;
+
+	options = garrow_sequence_node_options_new();
+	sequence_node = garrow_execute_plan_build_sequence_node(pcontext->plan,
+															sources,
+															options,
+															&error);
+	if (error)
+		elog(ERROR, "Failed to create the sequence node, cause: %s", error->message);
+
+	BuildSink(sequence_node, estate, pcontext);
+
+	garrow_list_free_ptr(&sources);
 }
 
 void
@@ -2192,6 +2261,11 @@ BuildSource(PlanBuildContext *pcontext)
 			pstate = pcontext->planstate;
 			break;
 		case T_SequenceState:
+			callback = (GetNextCallback) get_current_next_batch;
+			SequenceState *ss = castNode(SequenceState, pcontext->planstate);
+			pstate = ss->subplans[pcontext->subplan_index];
+			pcontext->inputschema = GetSchemaFromSlot(pstate->ps_ResultTupleSlot);
+			break;
 		case T_AppendState:
 		case T_MotionState:
 			callback = (GetNextCallback) get_current_next_batch;

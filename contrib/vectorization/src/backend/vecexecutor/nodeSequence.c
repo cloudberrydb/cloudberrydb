@@ -76,53 +76,15 @@ ExecInitVecSequence(Sequence *node, EState *estate, int eflags)
 	sequenceState->ps.resultops = ExecGetResultSlotOps(lastPlanState,
 													   &lastPlanState->resultopsfixed);
 
+	BuildVecPlan((PlanState *)vsequenceState, &vsequenceState->estate);
 	return sequenceState;
-}
-
-/*
- * completeSubplan
- *   Execute a given subplan to completion.
- *
- * The outputs from the given subplan will be discarded.
- */
-static void
-completeSubplan(PlanState *subplan)
-{
-	while (ExecProcNode(subplan) != NULL)
-	{
-	}
 }
 
 TupleTableSlot *
 ExecVecSequence(PlanState *pstate)
 {
-	SequenceState *node = castNode(SequenceState, pstate);
-	/*
-	 * If no subplan has been executed yet, execute them here, except for
-	 * the last subplan.
-	 */
-	if (node->initState)
-	{
-		for(int no = 0; no < node->numSubplans - 1; no++)
-		{
-			completeSubplan(node->subplans[no]);
-
-			CHECK_FOR_INTERRUPTS();
-		}
-
-		node->initState = false;
-	}
-
-	Assert(!node->initState);
-
-	PlanState *lastPlan = node->subplans[node->numSubplans - 1];
-	TupleTableSlot *result = ExecProcNode(lastPlan);
-
-	/*
-	 * Return the tuple as returned by the subplan as-is. We do
-	 * NOT make use of the result slot that was set up in
-	 * ExecInitSequence, because there's no reason to.
-	 */
+	VecSequenceState *vnode = (VecSequenceState *)pstate;
+	TupleTableSlot *result = ExecuteVecPlan(&vnode->estate);
 	return result;
 }
 

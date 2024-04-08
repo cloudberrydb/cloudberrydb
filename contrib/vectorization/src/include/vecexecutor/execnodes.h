@@ -65,6 +65,7 @@ typedef struct VecForeignScanState
 typedef struct VecSequenceState
 {
 	SequenceState base;	
+	VecExecuteState estate;
 } VecSequenceState;
 
 /* ----------------
