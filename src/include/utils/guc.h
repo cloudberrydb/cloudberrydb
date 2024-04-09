@@ -626,6 +626,7 @@ extern bool gp_enable_global_deadlock_detector;
 
 extern bool gp_enable_predicate_pushdown;
 extern int  gp_predicate_pushdown_sample_rows;
+extern int  gp_batch_size;
 
 typedef enum
 {

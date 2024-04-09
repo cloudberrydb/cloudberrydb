@@ -433,6 +433,9 @@ int  gp_predicate_pushdown_sample_rows;
 bool        enable_offload_entry_to_qe = false;
 bool enable_answer_query_using_materialized_views = false;
 
+/* vector and pax flags */
+int 		gp_batch_size = false;
+
 static const struct config_enum_entry gp_log_format_options[] = {
 	{"text", 0},
 	{"csv", 1},
@@ -4272,6 +4275,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		&max_running_tasks,
 		5, 1, MAX_BACKENDS,
 		check_max_running_tasks, NULL, NULL
+	},
+
+	{
+		{"gp_batch_size", PGC_USERSET, CUSTOM_OPTIONS,
+			gettext_noop("vectorization executor row count handle in one batch"),
+			NULL,
+			GUC_GPDB_NEED_SYNC
+		},
+		&gp_batch_size,
+		16384, 0, 65536, NULL, NULL
 	},
 	
 	/* End-of-list marker */
