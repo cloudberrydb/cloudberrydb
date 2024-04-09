@@ -53,7 +53,6 @@
 #include "utils/guc_vec.h"
 #include "utils/wrapper.h"
 #include "utils/fmgr_vec.h"
-#include "comm/pax_rel.h"
 
 planner_hook_type           planner_prev = NULL;
 
@@ -1263,9 +1262,9 @@ is_relation_vectorable(Scan* seqscan, List *rtable, bool isForeign)
 			}
 		}
 	}
-	else if (!(RelationIsAoCols(rel) || RelationIsPAX(rel)))
+	else if (!(table_scan_flags(rel) & SCAN_SUPPORT_VECTORIZATION))
 	{
-		elog(DEBUG2, "Fallback to non-vectorization; relation is not acos.");
+		elog(DEBUG2, "Fallback to non-vectorization; relation does not support vectorization.");
 		relation_close(rel, AccessShareLock);
 		return false;
 	}

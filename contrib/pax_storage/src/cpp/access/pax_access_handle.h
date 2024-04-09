@@ -10,6 +10,7 @@ class PaxAccessMethod final {
 
  public:
   static const TupleTableSlotOps *SlotCallbacks(Relation rel) noexcept;
+  static uint32 ScanFlags(Relation relation);
 
   static void ScanSetTidrange(TableScanDesc scan, ItemPointer mintid,
                               ItemPointer maxtid);

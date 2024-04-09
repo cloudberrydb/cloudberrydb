@@ -564,6 +564,14 @@ const TupleTableSlotOps *PaxAccessMethod::SlotCallbacks(
   return &TTSOpsVirtual;
 }
 
+uint32 PaxAccessMethod::ScanFlags(Relation relation) {
+#ifdef VEC_BUILD
+    return SCAN_SUPPORT_VECTORIZATION;
+#else
+    return 0;
+#endif
+}
+
 Size PaxAccessMethod::ParallelscanEstimate(Relation /*rel*/) {
   NOT_IMPLEMENTED_YET;
   return 0;
@@ -1054,6 +1062,7 @@ static const TableAmRoutine kPaxColumnMethods = {
     .scan_end = pax::CCPaxAccessMethod::ScanEnd,
     .scan_rescan = pax::CCPaxAccessMethod::ScanRescan,
     .scan_getnextslot = pax::CCPaxAccessMethod::ScanGetNextSlot,
+    .scan_flags = paxc::PaxAccessMethod::ScanFlags,
 
     .parallelscan_estimate = paxc::PaxAccessMethod::ParallelscanEstimate,
     .parallelscan_initialize = paxc::PaxAccessMethod::ParallelscanInitialize,

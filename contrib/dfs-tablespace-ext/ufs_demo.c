@@ -491,6 +491,12 @@ ufsdemo_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSlot 
 	return false;
 }
 
+static uint32
+ufsdemo_scan_flags(Relation rel)
+{
+	return 0;
+}
+
 static Size
 ufsdemo_parallelscan_estimate(Relation rel)
 {
@@ -876,6 +882,7 @@ static const TableAmRoutine ufsdemo_methods = {
 	.scan_end = ufsdemo_endscan,
 	.scan_rescan = ufsdemo_rescan,
 	.scan_getnextslot = ufsdemo_getnextslot,
+	.scan_flags = ufsdemo_scan_flags,
 
 	.parallelscan_estimate = ufsdemo_parallelscan_estimate,
 	.parallelscan_initialize = ufsdemo_parallelscan_initialize,
