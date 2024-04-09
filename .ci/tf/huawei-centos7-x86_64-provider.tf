@@ -17,7 +17,7 @@ variable "instance_name" {
 }
 
 variable "instance_image" {
-  default = "1217a345-d2e7-46f7-87e6-49af3f6905a4"
+  default = "762d2ef4-a71c-4048-8194-22d09b079c87"
 }
 
 variable "flavor_id" {
