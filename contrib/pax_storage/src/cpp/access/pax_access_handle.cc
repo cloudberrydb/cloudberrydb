@@ -774,6 +774,9 @@ double PaxAccessMethod::IndexBuildRangeScan(
   Assert(OidIsValid(index_relation->rd_rel->relam));
   Assert(!IsSystemRelation(heap_relation));
 
+  if (index_relation->rd_rel->relam != BTREE_AM_OID)
+    elog(ERROR, "pax only support btree index");
+
   checking_uniqueness =
       (index_info->ii_Unique || index_info->ii_ExclusionOps != NULL);
   // "Any visible" mode is not compatible with uniqueness checks; make sure
