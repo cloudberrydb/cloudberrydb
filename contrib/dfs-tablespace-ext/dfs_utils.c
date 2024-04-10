@@ -4,7 +4,7 @@
 #include "dfs_utils.h"
 
 const char *
-GetGopherSockertPath(void)
+GetGopherSocketPath(void)
 {
 	static char path[MAXPGPATH] = {0};
 

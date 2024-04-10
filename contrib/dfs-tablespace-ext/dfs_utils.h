@@ -3,7 +3,7 @@
 
 #define MAX_DFS_PATH_SIZE 256
 
-extern const char *GetGopherSockertPath(void);
+extern const char *GetGopherSocketPath(void);
 extern const char *GetGopherPlasmaSocketPath(void);
 extern const char *GetGopherMetaDataPath(void);
 extern char *StringTrim(char *value, char c);

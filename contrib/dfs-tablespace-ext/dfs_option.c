@@ -202,7 +202,7 @@ formKrbCCName(const char *krbPrincipal)
 	char ccName[MAXPGPATH];
 	char *krb5ccStr;
 
-	snprintf(ccName, MAXPGPATH, "%s/krb5cc_%s", GetGopherSockertPath(), krbPrincipal);
+	snprintf(ccName, MAXPGPATH, "%s/krb5cc_%s", GetGopherSocketPath(), krbPrincipal);
 
 	krb5ccStr = strstr(ccName, "krb5cc");
 	len = strlen(krb5ccStr);

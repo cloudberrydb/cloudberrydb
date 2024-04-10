@@ -2,14 +2,12 @@
 
 Dfs Tablespace is a tablespace that points to a distributed file system. User can create Dfs Tablespace, specify to use Dfs Tablespace when creating table. 
 
-Developer can also use the ufs-api(ufs.h) from DFS Tablespace to access local or remote file system.
-
 ## Installation
 
 Typical installation procedure may look like this:
 
 ```bash
- $ git clone https://code.hashdata.xyz/cloudberry/dfs-tablespace-ext
+ $ git clone https://code.hashdata.xyz/cloudberry/dfs_tablespace
  $ cd dfs-tablespace-ext
  $ make USE_PGXS=1
  $ make USE_PGXS=1 install

@@ -34,7 +34,6 @@ PG_MODULE_MAGIC;
  */
 void _PG_init(void);
 
-static bool needInitialization = true;
 static object_access_hook_type prevObjectAccessHook = NULL;
 static ProcessUtility_hook_type prevProcessUtilityHook = NULL;
 
@@ -419,7 +418,7 @@ dfsObjectAccessHook(ObjectAccessType access, Oid classId, Oid objectId, int subI
 		{
 			Assert(!isInternal);
 
-			if (IsDfsTablespace(getDatabaseTablespace(objectId)))
+			if (IsDfsTablespaceById(getDatabaseTablespace(objectId)))
 				ereport(ERROR,
 						(errcode(ERRCODE_INVALID_PARAMETER_VALUE),
 						 errmsg("could not create database in dfs tablespace")));
@@ -428,7 +427,7 @@ dfsObjectAccessHook(ObjectAccessType access, Oid classId, Oid objectId, int subI
 		if (classId == RelationRelationId && subId == 0 && !isInternal)
 		{
 			getRelationInfo(objectId, &tablespaceId, &relKind);
-			if (RELATION_IS_SUPPORTED(relKind) && IsDfsTablespace(tablespaceId))
+			if (RELATION_IS_SUPPORTED(relKind) && IsDfsTablespaceById(tablespaceId))
 				recordDependencyOnTablespace(RelationRelationId, objectId, tablespaceId);
 		}
 	}
@@ -512,10 +511,4 @@ _PG_init(void)
 
 	prevProcessUtilityHook = ProcessUtility_hook ? ProcessUtility_hook : standard_ProcessUtility;
 	ProcessUtility_hook = dfsProcessUtility;
-
-	if (needInitialization)
-	{
-		dfsInitializeReloptions();
-		needInitialization = false;
-	}
 }
