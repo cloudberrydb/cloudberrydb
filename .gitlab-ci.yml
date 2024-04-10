@@ -17,7 +17,7 @@ variables:
     value: "10"
     description: "克隆 cloudberry/hashdata-lightning repo 的深度"
   CBDB_BUILD_TYPE:
-    value: "debug"
+    value: "release"
     options:
       - "debug"
       - "release"
