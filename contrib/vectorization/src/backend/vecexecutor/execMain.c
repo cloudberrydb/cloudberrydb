@@ -3057,6 +3057,7 @@ BuildHashjoin(PlanBuildContext *pcontext, GArrowExecuteNode *left, GArrowExecute
 	g_autoptr(GArrowSchema) right_schema = NULL;
 	g_autoptr(GArrowHashJoinNodeOptions) hashjoin_options = NULL;
 	g_autoptr(GArrowExpression) filter_expr = NULL;
+	GList *keycmps = NULL;
 
 	node = (HashJoinState *) pcontext->planstate;
 	vnode = (VecHashJoinState *) node;
@@ -3069,53 +3070,19 @@ BuildHashjoin(PlanBuildContext *pcontext, GArrowExecuteNode *left, GArrowExecute
 	pcontext->right_proj_schema = right_schema;
 	if (joinqual)
 		filter_expr = build_filter_expression(joinqual, pcontext);
-	if (vnode->joinqual_pushdown)
+	if (node->hj_nonequijoin)
 	{
-		GArrowField *left_field = garrow_schema_get_field(pcontext->left_in_schema, vnode->left_attr_in_joinqual);
-		const gchar *left_field_name = garrow_field_get_name(left_field);
-
-		GArrowField *right_field = garrow_schema_get_field(pcontext->right_in_schema, vnode->right_attr_in_joinqual);
-		const gchar *right_field_name = garrow_field_get_name(right_field);
-
-		const int nkey = 3;
-		gchar **filter_names = palloc(nkey * sizeof(gchar *));
-		int prefix_maxlen = strlen(RIGHT_PREFIX);
-		char *left_name = palloc(prefix_maxlen + strlen(left_field_name) + 1);
-		char *right_name = palloc(prefix_maxlen + strlen(right_field_name) + 1);
-		char* not_equal = pstrdup("not_equal");
-		snprintf(left_name, NAMEDATALEN, "%s%s", LEFT_PREFIX, left_field_name);
-		snprintf(right_name, NAMEDATALEN, "%s%s", RIGHT_PREFIX, right_field_name);
-		filter_names[0] = left_name;
-		filter_names[1] = right_name;
-		filter_names[2] = not_equal;
-
-		hashjoin_options =
-			garrow_hash_join_node_options_new(type, pcontext->left_hashkeys, pcontext->right_hashkeys, NULL, filter_names, nkey, filter_expr,
-											  "", "", false, &error);
-		pfree(left_name);
-		pfree(right_name);
-		pfree(not_equal);
-		pfree(filter_names);
-		if (error)
-			elog(ERROR, "Failed to create the hashjoin node, cause: %s", error->message);
-	}
-	else
-	{
-		GList *keycmps = NULL;
-		if (node->hj_nonequijoin)
+		for (int i = 0; i < g_list_length(lkeys); ++i)
 		{
-			for (int i = 0; i < g_list_length(lkeys); ++i)
-			{
-				gpointer cmp = (gpointer) GARROW_JOIN_CMP_IS;
-				keycmps = garrow_list_append_ptr(keycmps, cmp);
-			}
+			gpointer cmp = (gpointer)GARROW_JOIN_CMP_IS;
+			keycmps = garrow_list_append_ptr(keycmps, cmp);
 		}
-		hashjoin_options =
-			garrow_hash_join_node_options_new(type, pcontext->left_hashkeys, pcontext->right_hashkeys, keycmps, NULL, 0, filter_expr,
-											  "", "", false, &error);
-		if (error)
-			elog(ERROR, "Failed to create the hashjoin node, cause: %s", error->message);
 	}
+	hashjoin_options =
+		garrow_hash_join_node_options_new(type, pcontext->left_hashkeys, pcontext->right_hashkeys, keycmps, filter_expr,
+										  "", "", false, &error);
+	if (error)
+		elog(ERROR, "Failed to create the hashjoin node, cause: %s", error->message);
 
 	hashjoin_node =
 		garrow_execute_plan_build_hash_join_node(pcontext->plan, left, right,

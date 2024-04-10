@@ -22,8 +22,6 @@
 #include "vecexecutor/execAmi.h"
 static List *to_exprlist(List *exprstatelist);
 static bool isNotDistinctJoin(List *qualList);
-static void SemiAntiPushDown(HashJoin *node, VecHashJoinState* vhjstate);
-
 extern bool Test_print_prefetch_joinqual;
 
 /* ----------------------------------------------------------------
@@ -234,7 +232,6 @@ ExecInitVecHashJoin(HashJoin *node, EState *estate, int eflags)
 	}
 
 	/* Init Arrow execute plan */
-	SemiAntiPushDown(node, vhjstate);
 	PostBuildVecPlan((PlanState *)vhjstate, &vhjstate->estate);
 	return hjstate;
 }
@@ -361,29 +358,6 @@ isNotDistinctJoin(List *qualList)
 		}
 	}
 	return false;
-}
-
-static void SemiAntiPushDown(HashJoin *node, VecHashJoinState *vhjstate)
-{
-	if ((node->join.jointype == JOIN_SEMI || node->join.jointype == JOIN_ANTI) &&
-		node->join.joinqual)
-	{
-		List *qual = node->join.joinqual;
-		OpExpr *expr = (OpExpr *)linitial(qual);
-		Var *var = (Var *)linitial(expr->args);
-		if (var->varno == INNER_VAR)
-			vhjstate->right_attr_in_joinqual = var->varattno - 1;
-		else if (var->varno == OUTER_VAR)
-			vhjstate->left_attr_in_joinqual  = var->varattno - 1;
-		var = (Var *)lsecond(expr->args);
-		if (var->varno == INNER_VAR)
-			vhjstate->right_attr_in_joinqual = var->varattno - 1;
-		else if (var->varno == OUTER_VAR)
-			vhjstate->left_attr_in_joinqual  = var->varattno - 1;
-		vhjstate->joinqual_pushdown = true;
-	}
-	else
-		vhjstate->joinqual_pushdown = false;
 }
 
 void

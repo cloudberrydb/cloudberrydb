@@ -65,7 +65,6 @@ static bool is_expr_vectorable(Expr* expr, void *context);
 static bool is_hash_expr_vectorable(Expr* expr, void *context);
 static bool is_relation_vectorable(SeqScan* seqscan, List *rtable, bool isForeign);
 static bool is_sort_collation_vectorable(Sort *sort);
-static bool fallback_full_semi_anti(Plan *plan);
 static bool fallback_distinct_junk(Plan *plan);
 static void replace_sort_operators(Motion *node);
 static bool fallback_nested_loop_jointype(Plan *plan);
@@ -866,11 +865,6 @@ is_plan_vectorable(Plan* plan, List *rtable)
 			}
 		case T_HashJoin:
 			{
-				if (fallback_full_semi_anti(plan))
-				{
-					elog(DEBUG2, "Fallback to non-vectorization; Unsupported join type.");
-					return false;
-				}
 				HashJoin* hash_expr = (HashJoin *)plan;
 				if (!is_expr_vectorable((Expr *)hash_expr->join.joinqual, NULL))
 				{
@@ -1364,39 +1358,6 @@ fallback_nested_loop_jointype(Plan *plan)
 	NestLoop *node = (NestLoop *) plan;
 	if (node->join.jointype == JOIN_LASJ_NOTIN)
 		return true;
-	return false;
-}
-
-/* Fixme: change to whitelist is_join_vectorable */
-static bool
-fallback_full_semi_anti(Plan *plan)
-{
-	HashJoin *node = (HashJoin *) plan;
-	if ((node->join.jointype == JOIN_SEMI || node->join.jointype == JOIN_ANTI) &&
-		node->join.joinqual)
-	{
-		if (!IsA(node->join.joinqual, List) || list_length(node->join.joinqual) != 1)
-			return true;
-
-		List *qual = node->join.joinqual;
-		if (!IsA(linitial(qual), OpExpr))
-			return true;
-
-		OpExpr *expr = (OpExpr *)linitial(qual);
-		if (expr->opfuncid != F_INT4NE)
-			return true;
-
-		if (!IsA(linitial(expr->args), Var) || !IsA(lsecond(expr->args), Var))
-			return true;
-
-		Var *var = (Var *)linitial(expr->args);
-		if (var->varno != INNER_VAR && var->varno != OUTER_VAR)
-			return true;
-
-		var = (Var *)lsecond(expr->args);
-		if (var->varno != INNER_VAR && var->varno != OUTER_VAR)
-			return true;
-    }
 	return false;
 }
 

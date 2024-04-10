@@ -2543,22 +2543,22 @@ where not exists (select 1 from prtx2
   and a<20 and c=91;
                                    QUERY PLAN                                   
 --------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
-   ->  Append
-         ->  Hash Anti Join
+ Vec Gather Motion 3:1  (slice1; segments: 3)
+   ->  Vec Append
+         ->  Vec Hash Anti Join
                Hash Cond: (prtx1_1.a = prtx2_1.a)
                Join Filter: ((prtx2_1.b = (prtx1_1.b + 1)) OR (prtx2_1.c = 99))
-               ->  Seq Scan on prtx1_1
+               ->  Vec Seq Scan on prtx1_1
                      Filter: ((a < 20) AND (c = 91))
-               ->  Hash
-                     ->  Seq Scan on prtx2_1
-         ->  Hash Anti Join
+               ->  Vec Hash
+                     ->  Vec Seq Scan on prtx2_1
+         ->  Vec Hash Anti Join
                Hash Cond: (prtx1_2.a = prtx2_2.a)
                Join Filter: ((prtx2_2.b = (prtx1_2.b + 1)) OR (prtx2_2.c = 99))
-               ->  Seq Scan on prtx1_2
+               ->  Vec Seq Scan on prtx1_2
                      Filter: ((a < 20) AND (c = 91))
-               ->  Hash
-                     ->  Seq Scan on prtx2_2
+               ->  Vec Hash
+                     ->  Vec Seq Scan on prtx2_2
  Optimizer: Postgres query optimizer
 (17 rows)
 
