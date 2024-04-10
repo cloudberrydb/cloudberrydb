@@ -152,3 +152,4 @@
 		"gp_resgroup_debug_wait_queue",
 		"gp_appendonly_insert_files",
 		"gp_appendonly_insert_files_tuples_range",
+		"gp_random_insert_segments",

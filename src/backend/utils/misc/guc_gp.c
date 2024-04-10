@@ -146,6 +146,7 @@ int			gp_appendonly_compaction_threshold = 0;
 bool		enable_parallel = false;
 int			gp_appendonly_insert_files = 0;
 int			gp_appendonly_insert_files_tuples_range = 0;
+int			gp_random_insert_segments = 0;
 bool		gp_heap_require_relhasoids_match = true;
 bool		gp_local_distributed_cache_stats = false;
 bool		debug_xlog_record_read = false;
@@ -3212,6 +3213,16 @@ struct config_int ConfigureNamesInt_gp[] =
 		},
 		&gp_appendonly_insert_files_tuples_range,
 		100000, 0, INT_MAX,
+		NULL, NULL, NULL
+	},
+
+	{
+		{"gp_random_insert_segments", PGC_USERSET, CUSTOM_OPTIONS,
+			gettext_noop("Use limited number of segments for random distributed table insertion."),
+			NULL
+		},
+		&gp_random_insert_segments,
+		0, 0, INT_MAX,
 		NULL, NULL, NULL
 	},
 

@@ -24,6 +24,7 @@ extern "C" {
 #include "nodes/parsenodes.h"
 #include "nodes/plannodes.h"
 #include "optimizer/walkers.h"
+#include "utils/guc.h"
 #include "utils/rel.h"
 }
 
@@ -734,6 +735,12 @@ CTranslatorQueryToDXL::TranslateInsertQueryToDXL()
 	{
 		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
 				   GPOS_WSZ_LIT("DML not enabled"));
+	}
+
+	if (gp_random_insert_segments > 0)
+	{
+		GPOS_RAISE(gpdxl::ExmaDXL, gpdxl::ExmiQuery2DXLUnsupportedFeature,
+				   GPOS_WSZ_LIT("limited insert segments not supported"));
 	}
 
 	CDXLNode *query_dxlnode = TranslateSelectQueryToDXL();
