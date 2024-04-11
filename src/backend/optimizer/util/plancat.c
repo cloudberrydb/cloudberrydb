@@ -491,6 +491,12 @@ get_relation_info(PlannerInfo *root, Oid relationObjectId, bool inhparent,
 		relation->rd_tableam->scan_getnextslot_tidrange != NULL)
 		rel->amflags |= AMFLAG_HAS_TID_RANGE;
 
+	/* Collect info about relation's store information, if it support column-oriented scan  */
+	if (relation->rd_tableam && relation->rd_tableam->scan_flags && 
+		(relation->rd_tableam->scan_flags(relation) & SCAN_SUPPORT_COLUMN_ORIENTED_SCAN)) {
+		rel->amflags |= AMFLAG_HAS_COLUMN_ORIENTED_SCAN;
+	}
+
 	/*
 	 * Collect info about relation's partitioning scheme, if any. Only
 	 * inheritance parents may be partitioned.
