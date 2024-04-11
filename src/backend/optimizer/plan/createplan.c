@@ -974,7 +974,7 @@ use_physical_tlist(PlannerInfo *root, Path *path, int flags)
 	 * Using physical target list with column store will result in scanning all
 	 * column files, which will cause a significant performance degradation.
 	 */
-	if (AMHandlerIsAoCols(rel->amhandler))
+	if (rel->amflags & AMFLAG_HAS_COLUMN_ORIENTED_SCAN)
 		return false;
 
 	/*

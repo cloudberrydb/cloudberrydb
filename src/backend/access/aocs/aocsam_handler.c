@@ -760,7 +760,7 @@ aoco_getnextslot(TableScanDesc scan, ScanDirection direction, TupleTableSlot *sl
 static uint32
 aoco_scan_flags(Relation rel)
 {
-	return 0;
+	return SCAN_SUPPORT_COLUMN_ORIENTED_SCAN;
 }
 
 static Size
