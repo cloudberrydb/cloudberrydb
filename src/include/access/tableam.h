@@ -41,6 +41,18 @@ struct TBMIterateResult;
 struct VacuumParams;
 struct ValidateIndexState;
 
+/**
+ * Flags represented the supported features of scan.
+ * 
+ * The first 8 bits are reserved for kernel expansion of some attributes,
+ * and the remaining 24 bits are reserved for custom tableam.
+ * 
+ * If you add a new flag, make sure the flag's bit is consecutive with
+ * the previous one.
+ * 
+*/
+#define SCAN_SUPPORT_COLUMN_ORIENTED_SCAN (1 << 0)  /* support column-oriented scanning*/
+
 /*
  * Flags represented the supported features of scan.
  * 

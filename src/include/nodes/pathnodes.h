@@ -823,6 +823,8 @@ static inline void planner_subplan_put_plan(struct PlannerInfo *root, SubPlan *s
 
 /* Bitmask of flags supported by table AMs */
 #define AMFLAG_HAS_TID_RANGE (1 << 0)
+/* Column-oriented scanning of flags supported by table AMs */
+#define AMFLAG_HAS_COLUMN_ORIENTED_SCAN (1 << 1)
 
 typedef enum RelOptKind
 {
