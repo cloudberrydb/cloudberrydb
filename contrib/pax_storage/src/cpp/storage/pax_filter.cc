@@ -530,6 +530,11 @@ static bool CheckNullKeys(const TupleDesc desc, ScanKey scan_key,
   auto attno = scan_key->sk_attno;
   if (attno > 0) {
     Assert(!TupleDescAttr(desc, attno - 1)->attisdropped);
+    // current column missing values
+    // caused by add new column
+    if ((attno - 1) >= provider.ColumnSize()) {
+      return true;
+    }
     return CheckNullKey(scan_key, provider.AllNull(attno - 1),
                         provider.HasNull(attno - 1));
   }
