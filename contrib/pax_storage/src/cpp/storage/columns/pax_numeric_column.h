@@ -1,3 +1,4 @@
+#pragma once
 #include "storage/columns/pax_encoding_column.h"
 
 namespace pax {

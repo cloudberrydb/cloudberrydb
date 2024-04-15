@@ -5,7 +5,6 @@
 #include "comm/log.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
-#include "storage/columns/pax_numeric_column.h"
 #include "storage/micro_partition_stats.h"
 #include "storage/orc/orc.h"
 #include "storage/orc/orc_defined.h"
@@ -41,6 +40,8 @@ std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(
       Assert(attr->attlen > 0 || attr->attlen == -1);
       if (attr->atttypid == NUMERICOID && enable_numeric_vec_storage) {
         type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_DECIMAL);
+      } else if (attr->atttypid == BPCHAROID) {
+        type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_BPCHAR);
       } else {
         type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
       }
@@ -53,7 +54,17 @@ std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(
 static PaxColumn *CreateDecimalColumn(bool is_vec,
                                       const PaxEncoder::EncodingOption &opts) {
   CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
-  return PAX_NEW<PaxShortNumericColumn>(DEFAULT_CAPACITY, opts);
+  return (PaxColumn *)
+      traits::ColumnOptCreateTraits2<PaxShortNumericColumn>::create_encoding(
+          DEFAULT_CAPACITY, opts);
+}
+
+static PaxColumn *CreateBpCharColumn(bool is_vec,
+                                     const PaxEncoder::EncodingOption &opts) {
+  CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
+  return (PaxColumn *)
+      traits::ColumnOptCreateTraits2<PaxBpCharColumn>::create_encoding(
+          DEFAULT_CAPACITY, opts);
 }
 
 template <typename N>
@@ -100,6 +111,10 @@ static PaxColumns *BuildColumns(
                                   PaxNonFixedEncodingColumn>::
                                   create_encoding(DEFAULT_CAPACITY,
                                                   std::move(encoding_option)));
+        break;
+      }
+      case (pax::orc::proto::Type_Kind::Type_Kind_BPCHAR): {
+        columns->Append(CreateBpCharColumn(is_vec, std::move(encoding_option)));
         break;
       }
       case (pax::orc::proto::Type_Kind::Type_Kind_DECIMAL): {

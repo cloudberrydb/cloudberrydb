@@ -5,7 +5,7 @@
 #include "storage/columns/pax_encoding.h"
 
 namespace pax {
-class PaxNonFixedEncodingColumn final : public PaxNonFixedColumn {
+class PaxNonFixedEncodingColumn : public PaxNonFixedColumn {
  public:
   PaxNonFixedEncodingColumn(uint32 capacity,
                             const PaxEncoder::EncodingOption &encoder_options);

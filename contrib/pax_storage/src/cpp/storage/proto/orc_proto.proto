@@ -72,6 +72,7 @@ message Type {
     VARCHAR = 9;
     CHAR = 10;
     STRUCT = 11;
+    BPCHAR = 12;
   }
   // the kind of type
   optional Kind kind = 1;

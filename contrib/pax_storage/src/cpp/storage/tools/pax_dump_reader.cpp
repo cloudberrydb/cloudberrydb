@@ -594,6 +594,7 @@ void PaxDumpReader::DumpAllData() {
         current_row.emplace_back("");
       } else {
         switch (column->GetPaxColumnTypeInMem()) {
+          case kTypeBpChar:
           case kTypeNonFixed:
             current_row.emplace_back(std::string(DatumGetPointer(d)));
             break;

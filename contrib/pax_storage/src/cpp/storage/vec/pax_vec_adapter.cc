@@ -160,7 +160,8 @@ static void CopyNonFixedRawBuffer(PaxColumn *column,
                                   size_t range_lens, size_t data_index_begin,
                                   size_t data_range_lens,
                                   DataBuffer<int32> *offset_buffer,
-                                  DataBuffer<char> *out_data_buffer);
+                                  DataBuffer<char> *out_data_buffer,
+                                  bool is_bpchar);
 
 static void CopyBitmap(const Bitmap8 *bitmap, size_t range_begin,
                        size_t range_lens, DataBuffer<char> *null_bits_buffer);
@@ -329,7 +330,7 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
                            size_t range_lens, size_t data_index_begin,
                            size_t data_range_lens,
                            DataBuffer<int32> *offset_buffer,
-                           DataBuffer<char> *out_data_buffer) {
+                           DataBuffer<char> *out_data_buffer, bool is_bpchar) {
   size_t dst_offset = out_data_buffer->Used();
   char *buffer = nullptr;
   size_t buffer_len = 0;
@@ -354,17 +355,25 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
       offset_buffer->Brush(sizeof(int32));
 
     } else {
+      struct varlena *vl, *tunpacked;
+      size_t read_len = 0;
+      char *read_data;
+
       std::tie(buffer, buffer_len) =
           column->GetBuffer(data_index_begin + non_null_offset);
 
-      auto vl = (struct varlena *)(buffer);
-      size_t read_len = 0;
+      vl = (struct varlena *)(buffer);
 
-      auto tunpacked = cbdb::PgDeToastDatum(vl);
+      tunpacked = cbdb::PgDeToastDatum(vl);
       Assert((Pointer)vl == (Pointer)tunpacked);
 
       read_len = VARSIZE_ANY_EXHDR(tunpacked);
-      auto read_data = VARDATA_ANY(tunpacked);
+      read_data = VARDATA_ANY(tunpacked);
+
+      // In vec, bpchar not allow store empty char after the actual characters
+      if (is_bpchar) {
+        read_len = bpchartruelen(read_data, read_len);
+      }
 
       out_data_buffer->Write(read_data, read_len);
       out_data_buffer->Brush(read_len);
@@ -373,7 +382,6 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
       offset_buffer->Brush(sizeof(int32));
 
       dst_offset += read_len;
-
       non_null_offset++;
     }
   }
@@ -547,8 +555,6 @@ static void ConvSchemaAndDataToVec(
       break;
     }
     case BPCHAROID:
-      Assert(false);
-      break;
     case VARCHAROID:
     case TEXTOID: {
       std::shared_ptr<arrow::Buffer> arrow_buffer;
@@ -719,6 +725,7 @@ int VecAdapter::AppendToVecBuffer() {
 
     char *raw_buffer = nullptr;
     size_t buffer_len = 0;
+    PaxColumnTypeInMem column_type;
 
     if ((*columns)[index] == nullptr) {
       continue;
@@ -744,8 +751,10 @@ int VecAdapter::AppendToVecBuffer() {
     // copy data
     std::tie(raw_buffer, buffer_len) =
         column->GetRangeBuffer(data_index_begin, data_range_lens);
+    column_type = column->GetPaxColumnTypeInMem();
 
-    switch (column->GetPaxColumnTypeInMem()) {
+    switch (column_type) {
+      case PaxColumnTypeInMem::kTypeBpChar:
       case PaxColumnTypeInMem::kTypeNonFixed: {
         auto raw_data_size = buffer_len - (data_range_lens * VARHDRSZ_SHORT);
         auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, raw_data_size);
@@ -762,7 +771,8 @@ int VecAdapter::AppendToVecBuffer() {
         CopyNonFixedRawBuffer(column, micro_partition_visibility_bitmap_,
                               range_begin + micro_partition_row_offset_,
                               range_begin, range_lens, data_index_begin,
-                              data_range_lens, offset_buffer, vec_buffer);
+                              data_range_lens, offset_buffer, vec_buffer,
+                              column_type == PaxColumnTypeInMem::kTypeBpChar);
 
         break;
       }
@@ -899,6 +909,9 @@ bool VecAdapter::AppendVecFormat() {
         total_rows - column->GetNonNullRows();
 
     switch (column->GetPaxColumnTypeInMem()) {
+      case PaxColumnTypeInMem::kTypeBpChar: {
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeUnImplements);
+      }
       case PaxColumnTypeInMem::kTypeNonFixed: {
         Assert(!vec_buffer->GetBuffer());
         Assert(!offset_buffer->GetBuffer());

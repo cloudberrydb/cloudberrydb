@@ -192,6 +192,7 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
 
   std::tie(buffer, buffer_len) = column->GetBuffer(non_null_offset);
   switch (column->GetPaxColumnTypeInMem()) {
+    case kTypeBpChar:
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;

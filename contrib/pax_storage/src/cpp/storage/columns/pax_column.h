@@ -27,7 +27,8 @@ enum PaxColumnTypeInMem {
   kTypeInvalid = 1,
   kTypeFixed = 2,
   kTypeNonFixed = 3,
-  kTypeDecimal = 4
+  kTypeDecimal = 4,
+  kTypeBpChar = 5,
 };
 
 class PaxColumn {
@@ -328,7 +329,7 @@ class PaxNonFixedColumn : public PaxColumn {
 
   // orc needs to serialize int32 array
   // the length of a single tuple field will not exceed 2GB,
-  // so a variable-length element of the lengths stream can use int32 
+  // so a variable-length element of the lengths stream can use int32
   // to represent the length
   DataBuffer<int32> *lengths_;
   std::vector<uint64> offsets_;

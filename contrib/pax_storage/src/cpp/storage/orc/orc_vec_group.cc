@@ -59,6 +59,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
 
   std::tie(buffer, buffer_len) = column->GetBuffer(row_index);
   switch (column->GetPaxColumnTypeInMem()) {
+    case kTypeBpChar:
     case kTypeNonFixed:
       CBDB_WRAP_START;
       {

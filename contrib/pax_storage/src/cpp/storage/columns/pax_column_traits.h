@@ -1,8 +1,10 @@
 #pragma once
 #include "comm/pax_memory.h"
+#include "storage/columns/pax_bpchar_column.h"
 #include "storage/columns/pax_column.h"
 #include "storage/columns/pax_encoding_column.h"
 #include "storage/columns/pax_encoding_non_fixed_column.h"
+#include "storage/columns/pax_numeric_column.h"
 #include "storage/columns/pax_vec_column.h"
 #include "storage/columns/pax_vec_encoding_column.h"
 
@@ -78,7 +80,6 @@ TRAITS_DECL(PaxVecCommColumn, double);
 TRAITS_DECL2(PaxNonFixedColumn);
 TRAITS_DECL2(PaxVecNonFixedColumn);
 
-
 template <template <typename> class T, typename N>
 struct ColumnOptCreateTraits {};
 
@@ -111,5 +112,7 @@ TRAITS_OPT_DECL(PaxVecEncodingColumn, int64);
 
 TRAITS_OPT_DECL2(PaxNonFixedEncodingColumn);
 TRAITS_OPT_DECL2(PaxVecNonFixedEncodingColumn);
+TRAITS_OPT_DECL2(PaxShortNumericColumn);
+TRAITS_OPT_DECL2(PaxBpCharColumn);
 
 }  // namespace pax::traits

@@ -383,7 +383,8 @@ static PaxColumn *BuildEncodingDecimalColumn(
     alloc_size = data_encoding.length();
   }
 
-  auto pax_column = PAX_NEW<PaxShortNumericColumn>(alloc_size, decoding_option);
+  auto pax_column = traits::ColumnOptCreateTraits2<PaxShortNumericColumn>::  //
+      create_decoding(alloc_size, decoding_option);
   pax_column->Set(column_data_buffer, (size_t)not_null_rows);
 
   return pax_column;
@@ -445,7 +446,7 @@ static PaxColumn *BuildEncodingVecNonFixedColumn(
 static PaxColumn *BuildEncodingNonFixedColumn(
     DataBuffer<char> *data_buffer, const pax::orc::proto::Stream &data_stream,
     const pax::orc::proto::Stream &len_stream,
-    const ColumnEncoding &data_encoding) {
+    const ColumnEncoding &data_encoding, bool is_bpchar) {
   uint32 column_lens_size = 0;
   uint64 column_lens_len = 0;
   uint64 column_data_len = 0;
@@ -484,19 +485,32 @@ static PaxColumn *BuildEncodingNonFixedColumn(
 
   Assert(static_cast<uint32>(data_stream.column()) == column_lens_size);
 
-  if (data_encoding.kind() ==
-      ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED) {
-    Assert(column_data_len == column_data_buffer->GetSize());
-    pax_column = traits::ColumnCreateTraits2<PaxNonFixedColumn>::create(0);
-  } else {
+  if (is_bpchar) {
     PaxDecoder::DecodingOption decoding_option;
     decoding_option.column_encode_type = data_encoding.kind();
     decoding_option.is_sign = true;
     decoding_option.compress_level = data_encoding.compress_lvl();
 
-    pax_column = traits::ColumnOptCreateTraits2<
-        PaxNonFixedEncodingColumn>::create_decoding(data_encoding.length(),
-                                                    std::move(decoding_option));
+    pax_column =
+        traits::ColumnOptCreateTraits2<PaxBpCharColumn>::create_decoding(
+            data_encoding.length(), std::move(decoding_option));
+
+  } else {
+    if (data_encoding.kind() ==
+        ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED) {
+      Assert(column_data_len == column_data_buffer->GetSize());
+      pax_column = traits::ColumnCreateTraits2<PaxNonFixedColumn>::create(0);
+    } else {
+      PaxDecoder::DecodingOption decoding_option;
+      decoding_option.column_encode_type = data_encoding.kind();
+      decoding_option.is_sign = true;
+      decoding_option.compress_level = data_encoding.compress_lvl();
+
+      pax_column = traits::ColumnOptCreateTraits2<
+          PaxNonFixedEncodingColumn>::create_decoding(data_encoding.length(),
+                                                      std::move(
+                                                          decoding_option));
+    }
   }
 
   // current memory will be freed in pax_columns->data_
@@ -595,6 +609,7 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
     }
 
     switch (column_types_[index]) {
+      case (pax::orc::proto::Type_Kind::Type_Kind_BPCHAR):
       case (pax::orc::proto::Type_Kind::Type_Kind_STRING): {
         const pax::orc::proto::Stream &len_stream =
             stripe_footer.streams(streams_index++);
@@ -609,8 +624,10 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
         pax_columns->Append(
             is_vec_ ? BuildEncodingVecNonFixedColumn(data_buffer, data_stream,
                                                      len_stream, data_encoding)
-                    : BuildEncodingNonFixedColumn(data_buffer, data_stream,
-                                                  len_stream, data_encoding));
+                    : BuildEncodingNonFixedColumn(
+                          data_buffer, data_stream, len_stream, data_encoding,
+                          column_types_[index] ==
+                              pax::orc::proto::Type_Kind::Type_Kind_BPCHAR));
         break;
       }
       case (pax::orc::proto::Type_Kind::Type_Kind_BOOLEAN):

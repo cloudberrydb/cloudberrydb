@@ -201,6 +201,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
     }
 
     switch (column->GetPaxColumnTypeInMem()) {
+      case kTypeBpChar:
       case kTypeNonFixed: {
         size_t offsets_size =
             TYPEALIGN(MEMORY_ALIGN_SIZE, (total_rows + 1) * sizeof(int32));
@@ -277,6 +278,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
     size_t column_size = column->GetNonNullRows();
 
     switch (column->GetPaxColumnTypeInMem()) {
+      case kTypeBpChar:
       case kTypeNonFixed: {
         size_t lengths_size = column_size * sizeof(int32);
 
@@ -362,6 +364,7 @@ void PaxColumns::CombineVecDataBuffer() {
     }
 
     switch (column->GetPaxColumnTypeInMem()) {
+      case kTypeBpChar:
       case kTypeNonFixed: {
         auto no_fixed_column = reinterpret_cast<PaxVecNonFixedColumn *>(column);
         auto offset_data_buffer = no_fixed_column->GetOffsetBuffer(true);
@@ -421,6 +424,7 @@ void PaxColumns::CombineOrcDataBuffer() {
     }
 
     switch (column->GetPaxColumnTypeInMem()) {
+      case kTypeBpChar:
       case kTypeNonFixed: {
         auto no_fixed_column = reinterpret_cast<PaxNonFixedColumn *>(column);
         auto length_data_buffer = no_fixed_column->GetLengthBuffer();
@@ -484,6 +488,7 @@ std::pair<Datum, bool> GetColumnValue(PaxColumns *columns, size_t column_index,
   column->GetBuffer();
   std::tie(buffer, buffer_len) = column->GetBuffer(nonnulls);
   switch (column->GetPaxColumnTypeInMem()) {
+    case kTypeBpChar:
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;

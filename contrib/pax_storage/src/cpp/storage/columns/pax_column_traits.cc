@@ -2,7 +2,6 @@
 
 namespace pax::traits {
 
-
 Impl::CreateFunc<PaxCommColumn<int8>>
     ColumnCreateTraits<PaxCommColumn, int8>::create =
         Impl::CreateImpl<PaxCommColumn<int8>>;
@@ -46,8 +45,6 @@ Impl::CreateFunc<PaxNonFixedColumn>
 Impl::CreateFunc<PaxVecNonFixedColumn>
     ColumnCreateTraits2<PaxVecNonFixedColumn>::create =
         Impl::CreateImpl<PaxVecNonFixedColumn>;
-
-
 
 Impl::CreateEncodingFunc<PaxEncodingColumn<int8>>
     ColumnOptCreateTraits<PaxEncodingColumn, int8>::create_encoding =
@@ -111,4 +108,19 @@ Impl::CreateEncodingFunc<PaxVecNonFixedEncodingColumn>
 Impl::CreateDecodingFunc<PaxVecNonFixedEncodingColumn>
     ColumnOptCreateTraits2<PaxVecNonFixedEncodingColumn>::create_decoding =
         Impl::CreateDecodingImpl<PaxVecNonFixedEncodingColumn>;
+
+Impl::CreateEncodingFunc<PaxBpCharColumn>
+    ColumnOptCreateTraits2<PaxBpCharColumn>::create_encoding =
+        Impl::CreateEncodingImpl<PaxBpCharColumn>;
+Impl::CreateDecodingFunc<PaxBpCharColumn>
+    ColumnOptCreateTraits2<PaxBpCharColumn>::create_decoding =
+        Impl::CreateDecodingImpl<PaxBpCharColumn>;
+
+Impl::CreateEncodingFunc<PaxShortNumericColumn>
+    ColumnOptCreateTraits2<PaxShortNumericColumn>::create_encoding =
+        Impl::CreateEncodingImpl<PaxShortNumericColumn>;
+Impl::CreateDecodingFunc<PaxShortNumericColumn>
+    ColumnOptCreateTraits2<PaxShortNumericColumn>::create_decoding =
+        Impl::CreateDecodingImpl<PaxShortNumericColumn>;
+
 }  // namespace pax::traits
