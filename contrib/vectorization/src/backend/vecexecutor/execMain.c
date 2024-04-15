@@ -103,6 +103,11 @@ typedef struct PlanBuildContext
 
 	/* sequence related */
 	int subplan_index;
+	
+	/* AppendNode fields */
+	bool is_append;
+	int sub_slice;
+	int append_filed_index;
 } PlanBuildContext;
 
 typedef struct SortKey
@@ -1219,6 +1224,10 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 						else 
 							attname = GetSchemaName(pcontext->right_proj_schema, var->varattno, pcontext->map);
 					}
+				}
+				else if (pcontext->is_append)
+				{
+					attname = GetSchemaName(pcontext->inputschema, pcontext->append_filed_index + 1, pcontext->map);
 				} 
 				else
 					attname = GetSchemaName(pcontext->inputschema, var->varattno, pcontext->map);
@@ -1486,6 +1495,68 @@ new_winagg_info(WindowFunc *wfunc, PlanBuildContext *pcontext)
 	return agginfo;
 }
 
+static GArrowExecuteNode *
+BuildAppendPlan(PlanBuildContext *pcontext, VecExecuteState *estate)
+{
+	g_autoptr(GArrowExecuteNode) append_node = NULL;
+	g_autoptr(GArrowProjectNodeOptions) project_options = NULL;
+	g_autoptr(GArrowExecuteNode) project_node = NULL;
+	g_autoptr(GError) error = NULL;
+	g_autoptr(GArrowAppendNodeOptions) append_option = NULL;
+	g_autoptr(GArrowExecuteNode) source = NULL;
+	GList* nodes = NULL;
+	Append *append = NULL;
+	AppendState *appendstate = NULL;
+	PlanState **appendplanstates = NULL;
+	List *targetList = NULL;
+	GArrowSchema *source_project_schema = NULL;
+	int i;
+	int nplans;
+
+	appendstate = (AppendState*)pcontext->planstate;
+	appendplanstates = appendstate->appendplans;
+	append = (Append*)(appendstate->ps.plan);
+	
+	nplans = list_length(append->appendplans);
+	
+	for (i = 0; i < nplans; ++i)
+	{
+		pcontext->inputschema = GetSchemaFromSlot(appendplanstates[i]->ps_ResultTupleSlot);
+		pcontext->sub_slice = i;
+		source = BuildSource(pcontext);
+
+		targetList = appendstate->ps.plan->targetlist;
+		/*
+		 * The purpose of projecting multiple input nodes with multiple appends
+		 * here is to modify the schema of their respective inputs to ensure
+		 * that the names of the schema can match the same.
+		 * Continue to do the project on the source node. 
+		 * The filter of the source has been processed. 
+		 * The project here is only for the purpose of projecting and modifying the schema, and does not need to be filtered.
+		 */
+		project_node = BuildProject(targetList, NULL, source, pcontext);
+
+		if (!source_project_schema)
+			source_project_schema = garrow_execute_node_get_output_schema(project_node);
+
+		nodes = garrow_list_append_ptr(nodes, project_node);
+	}
+	/*
+	 * The input schema of the append operator is changed to be consistent with the schema of the source after project.
+	 */
+	pcontext->inputschema = source_project_schema;
+	append_option = garrow_append_node_options_new();
+	append_node = garrow_execute_plan_build_append_node(pcontext->plan,
+								  	    nodes,
+									    garrow_move_ptr(append_option),
+									    &error);
+	if (error)
+		elog(ERROR, "Failed to create append node: %s.", error->message);
+	garrow_list_free_ptr(&nodes);
+
+	return garrow_move_ptr(append_node);
+}
+
 /* ------------------------------------------------------------------------
  *
  * Build Arrow plan execute state by cbdb planstate.
@@ -1532,6 +1603,8 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 	pcontext.whenexpr = NULL;
 	pcontext.not_and_whenexpr = NULL;
 	pcontext.case_when_type = InvalidOid;
+	pcontext.is_append = false;
+	pcontext.append_filed_index = 0;
 
 	/* change sinktype and pipeline when merging some arrow plans into a big one. */
 	if (enable_arrow_plan_merge)
@@ -1670,6 +1743,13 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 			pcontext.subplan_index = 0;
 		}
 		break;
+		case T_AppendState:
+		{
+			pcontext.pipeline = false;
+			pcontext.sinktype = Plain;
+			pcontext.is_append = true;	
+		}
+		break;
 		default:
 			elog(ERROR, "Build arrow plan from (%d) type is not support yet.",
 					nodeTag(planstate->plan));
@@ -1693,10 +1773,14 @@ BuildVecPlan(PlanState *planstate, VecExecuteState *estate)
 		g_autoptr(GArrowExecuteNode) tmpnode = NULL;
 		/* build plan */
 		pcontext.is_left_schema = true;
-		curnode = BuildSource(&pcontext);
+		
+		if (pcontext.is_append)
+			curnode = BuildAppendPlan(&pcontext, estate);
+		else
+			curnode = BuildSource(&pcontext);
 		tmpnode = BuildProject(targetList, qualList, curnode, &pcontext);
 		garrow_store_ptr(curnode, tmpnode);
-
+		
 		BuildSink(curnode, estate, &pcontext);
 	}
 
@@ -1929,7 +2013,6 @@ ExecuteVecPlan(VecExecuteState *estate)
 		if (!estate->started)
 		{
 			bool isok;
-
 			isok = garrow_execute_plan_start(estate->plan, &error);
 			if (!isok || error)
 				elog(ERROR, "Execute plan for vector sort error: %s.", error->message);
@@ -2194,7 +2277,6 @@ get_scan_next_batch(PlanState *node)
 	}
 
 	Assert(!TTS_IS_DIRTY(slot));
-
 	return (void *) GetBatch(slot);
 }
 
@@ -2247,6 +2329,8 @@ BuildSource(PlanBuildContext *pcontext)
 	g_autoptr(GArrowRecordBatchReader)	reader = NULL;
 	g_autoptr(GArrowSourceNodeOptions)	options = NULL;
 	g_autoptr(GArrowExecuteNode) source = NULL;
+	AppendState *appendstate = NULL;
+	PlanState **appendplanstates = NULL;
 
 	PlanState *pstate = pcontext->planstate;
 	GetNextCallback callback;
@@ -2267,6 +2351,11 @@ BuildSource(PlanBuildContext *pcontext)
 			pcontext->inputschema = GetSchemaFromSlot(pstate->ps_ResultTupleSlot);
 			break;
 		case T_AppendState:
+			appendstate = (AppendState*)pcontext->planstate;
+			appendplanstates = appendstate->appendplans;
+			pstate = appendplanstates[pcontext->sub_slice];
+			callback = (GetNextCallback) get_current_next_batch;
+			break;
 		case T_MotionState:
 			callback = (GetNextCallback) get_current_next_batch;
 			pstate = pcontext->planstate;
@@ -2367,11 +2456,12 @@ BuildProject(List *targetList, List *qualList, GArrowExecuteNode *input, PlanBui
 
 	if (targetList)
 		project_options = build_project_options(targetList, pcontext);
+
 	if (qualList && pcontext->is_assertop)
 		assertop_options = build_assertop_options(qualList, pcontext);
 	else if (qualList)
 		filter_options = build_filter_options(qualList, pcontext);
-	
+
 	/* Build Agg or WindowAgg if any */
 	if (IsA(pcontext->planstate->plan, Agg) ||
 	    IsA(pcontext->planstate->plan, WindowAgg))
@@ -2882,6 +2972,7 @@ build_project_options(List *targetList, PlanBuildContext *pcontext)
 
 	foreach(l, targetList)
 	{
+		pcontext->append_filed_index = i;
 		g_autoptr(GArrowExpression) arrow_expr = NULL;
 
 		TargetEntry *tle = (TargetEntry *)lfirst(l);
@@ -2889,7 +2980,14 @@ build_project_options(List *targetList, PlanBuildContext *pcontext)
 		Assert(IsA(tle, TargetEntry));
 		/* use targetEntry name */
 		arrow_expr = expr_to_arrow_expression(tle->expr, pcontext);
-		names[i] = (gchar *)GetUniqueAttrName(tle->resname, i + 1);
+		if (pcontext->is_append)
+		{
+			char *name = (char *) palloc(20);
+			snprintf(name, 20, "append_%d", i);
+			names[i] = name;
+		}
+		else
+			names[i] = (gchar *)GetUniqueAttrName(tle->resname, i + 1);
 		expressions = garrow_list_append_ptr(expressions, arrow_expr);
 		i++;
 	}
@@ -2897,6 +2995,7 @@ build_project_options(List *targetList, PlanBuildContext *pcontext)
 											  (gchar**)names,
 											  length);
 	pfree(names);
+	pcontext->append_filed_index = 0;
 
 	if (DEBUG1 >= log_min_messages)
 	{

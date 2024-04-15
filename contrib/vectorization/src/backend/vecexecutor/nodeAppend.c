@@ -172,7 +172,7 @@ ExecInitVecAppend(Append *node, EState *estate, int eflags)
 	appendstate->as_whichplan = 0;
 	exec_append_initialize_next(appendstate);
 	vecappendstate->schema = NULL;
-
+	BuildVecPlan((PlanState *)vecappendstate, &vecappendstate->estate);
 	return appendstate;
 }
 
@@ -185,59 +185,7 @@ ExecInitVecAppend(Append *node, EState *estate, int eflags)
 static TupleTableSlot *
 ExecVecAppend(PlanState *pstate)
 {
-	AppendState *node = (AppendState *) pstate;
-	VecAppendState *vnode = (VecAppendState *)node;
-	for (;;)
-	{
-		PlanState  *subnode;
-		TupleTableSlot *result;
-		g_autoptr(GError) error = NULL;
-
-		/*
-		 * figure out which subplan we are currently processing
-		 */
-		subnode = node->appendplans[node->as_whichplan];
-
-		/*
-		 * get a tuple from the subplan
-		 */
-		result = ExecProcNode(subnode);
-
-		if (!TupIsNull(result))
-		{
-			if (!vnode->schema)
-			{
-				vnode->schema = garrow_record_batch_get_schema(VECSLOT(result)->tts_recordbatch);
-			} 
-			else 
-			{
-				garrow_record_batch_rewrite_schema(VECSLOT(result)->tts_recordbatch, vnode->schema, &error);
-				if (error != NULL) 
-					elog(ERROR, "append rewrite schema failed.");
-			}
-			
-			/*
-			 * If the subplan gave us something then return it as-is. We do
-			 * NOT make use of the result slot that was set up in
-			 * ExecInitVecAppend; there's no need for it.
-			 */
-			return result;
-		}
-
-		/*
-		 * Go on to the "next" subplan in the appropriate direction. If no
-		 * more subplans, return the empty slot set up for us by
-		 * ExecInitVecAppend.
-		 */
-		if (ScanDirectionIsForward(node->ps.state->es_direction))
-			node->as_whichplan++;
-		else
-			node->as_whichplan--;
-		if (!exec_append_initialize_next(node))
-			return ExecClearTuple(node->ps.ps_ResultTupleSlot);
-
-		/* Else loop back and try to get a tuple from the new subplan */
-	}
+	return ExecuteVecPlan(&((VecAppendState*)pstate)->estate);
 }
 
 /* ----------------------------------------------------------------

@@ -131,6 +131,7 @@ typedef struct VecSortState
 typedef struct VecAppendState
 {
 	AppendState base;
+	VecExecuteState estate;
 	GArrowSchema *schema;
 } VecAppendState;
 
