@@ -1,84 +1,164 @@
-### Cloudberry Automation Build and Deployment
+# Auto-Build Cloudberry Database from Source Code
 
-#### Download the Cloudberry project source code into your working directory
-git clone git@github.com:cloudberrydb/cloudberrydb.git
+You can build Cloudberry Database from source code in two ways: manually or automatically.
 
-#### Enter the directory under workspace/cbdb, developer can deploy the automation build & test environment with vagrant virtual machine or docker container, vagrant and docker tool is required to be installed in your local environment before running the script.
+For the manual build, you need to manually set up many system configurations and download third-party dependencies, which is quite cumbersome and error-prone.
 
-##### 1.Deploy the automation build & test environment with vagrant virtual machine
+To make the job easier, you are recommended to use the automated deployment method blessed by virtualization technology. The automation method simplifies the deployment process, reduces time costs, and allows developers to focus more on business code development.
 
-##### Start vagrant virtual machine by following script
-cd ~/workspace/cbdb/deploy/vagrant
-vagrant up
+To go automated, you can choose either of the following ways based on your needs and project requirements:
 
-##### After virtual machine vbox being launched, compiled and deployed automatically by "vagrant up" script, then log into vagrant virtual machine via ssh
-vagrant ssh
-psql postgres
+- [Vagrant deployment](#deploy-with-vagrant): Vagrant allows you to easily create and manage vbox virtual machine environments, streamlining the deployment process.
+- [Docker deployment](#deploy-with-docker): Docker provides a containerized environment, offering higher levels of isolation and ease of management for building and testing.
 
-##### start regression test
-cd ~/workspace/cbdb_dev
-make installcheck-good
+This document introduces how to use Vagrant and Docker to auto-build Cloudberry Database from source code, respectively. In addition, it also introduces the file sharing mechanism that ensures that the Cloudberry Database is mapped to a specific path in the virtualized environment.
 
+## Ready for Work
 
-##### 2.Deploy the automation build & test environment with docker container
+Before you begin your automation build, make sure the following preparation works are done:
 
-##### docker image repository configuration
-Configure the docker image repository URL by adding the following JSON format configuration in "Preferences->Docker Engine" tab in Docker tool.
-"insecure-registries": [
-    "docker.artifactory.hashdata.xyz"
-]
+1. Download the Cloudberry Database source code into your local machine:
 
-##### Start the docker container by following script
-cd ~/workspace/cbdb/deploy/docker
-bash docker_start.sh
+    ```bash
+    git clone git@github.com:cloudberrydb/cloudberrydb.git
+    ```
 
-##### After the docker container being launched, compiled and deployed automatically by docker_start.sh script, then log into the docker container. The ContainerId could be retrived by using "docker ps -a" command
-docker exec -it [ContainerId] /bin/bash
-psql postgres
-
-##### start regression test
-cd ~/workspace/cbdb_dev
-make installcheck-good
-
-<br>
+2. Install the required [Vagrant](https://developer.hashicorp.com/vagrant/docs/installation) or [Docker](https://docs.docker.com/desktop/install/mac-install/) in your local environment, depending on your deployment preference.
 
 
-### Script Introduction
+## Deploy with Vagrant
 
-The build & test environment of cbdb project relies on many systemconfigurations and third-party dependencies, therefore the manual deployment process is quite cumbersome and error-prone. For this reason, the automation build & test environment of cbdb is introduced by profitting the virtualization techologies such as vagrant or docker, which can be used to simplify the user's deployment efforts and time-costs to deploy the cbdb build & test environment. As a result the cbdb developers could be more concentrated on their business-level code development work. The cbdb project supports two automation deployment methods: the first one is to deploy vbox virtual machine with vagrant, and another one is to deploy container image with docker. Developers can choose the way of automation deployment depends on their own requirements. The entire automation build & test process is running on the virtualization environment managed by vagrant or docker. The cbdb code repository of the host machine is mapped into specified path in the virtualization environment through the sharing file mechanism for cbdb automation build & test.
+1. Start your Vagrant virtual machine.
+2. Start the automatic compilation and deployment process.
 
-#### The whole script is subdivided into three main parts:
+    ```
+    $ cd /cloudberrydb/deploy/vagrant
+    $ vagrant up
+    ```
 
-##### 1.The automation deployment script running in the virtualization environment.
-##### Through the mechanism provided by vagrant vagrantfile provision or docker dockerfile ENTRYPOINTS
-  *  Provides subcommands that operates the build & test environment
-  *  Provides the necessary configuration variables to the internal script of the virtual machine and trigger specific operations
-##### Passing the following compilation options through /code/depoly/cbdb_ deploy.sh script
-  *  Compilation options
-  *  Deployment options
-  *  Test options
-##### Passing the environment variable parameters required for automation build & test through /code/depoly/cbdb_env.sh script.
+3. Log into your Vagrant virtual machine via `ssh`:
 
-#### 2.Vagrant startup script
-#####   Vagrantfile
-  *  Downloads the Vagrant virtual machine box and local virtual box creation.
-  *  The host code repository path is mounted on virtual machine with read-only permission, for example: source code path to /home/gpadmin/workspace/cbdb directory
-  *  Copy the source file directory to /home/gpadmin/workspace/cbdb_dev, which is the actual working directory for automation build & test.
-  *  Ensure that the login user is gpadmin
-#####   vagrant_release.sh
-  *  Script which provides the packaging of vagrant box images.
+    ```
+    $ vagrant ssh
+    ```
 
-#### 3.Docker startup script
-#####   Dockerfile
-  *  Docker image file packaging
-  *  Docker container service startup configuration, such as SSH service
-#####   docker_deploy.h
-  *  Generates SSH public keys and automatic SSH login configuration
-  *  Start docker automation deployment for build & test
-#####   docker_start.sh
-  *  Downloads docker image version remotely
-  *  The host code repository path is mounted on virtual machine with read-only permission, for example: source code path to /home/gpadmin/workspace/cbdb directory
-  *  Copy the source file directory to /home/gpadmin/workspace/cbdb_dev, which is the actual working directory for automation build & test.
-  *  Ensure that the login user is gpadmin
+4. Connect to Cloudberry Database, and check whether the psql client can be started and connect to the database.
 
-<br>
+    ```
+    $ su - gpadmin 
+    $ psql postgres
+    postgres=# select * from gp_segment_configuration;
+    ```
+
+5. Start the regression test. Note that this test is expected to be performed with the `gpadmin` user.
+
+    ```
+    $ cd ~/workspace/cbdb_dev
+    $ make installcheck-world
+    ```
+
+## Deploy with Docker
+
+1. Configure the Docker image repository.  
+
+   Configure the Docker image repository URL by adding the following JSON format configuration in the **Preferences** -\> **Docker Engine** tab in your Docker Desktop setting.
+
+    ```json
+    "insecure-registries": [
+        "docker.artifactory.hashdata.xyz"
+    ]
+    ```
+
+2. Start the Docker container.
+
+   The `docker_start.sh` scripts will automatically launch the Docker container, and compile and deploy Cloudberry Database within the container.
+
+    ```bash
+    $ cd ~/workspace/cbdb/deploy/docker
+    $ bash docker_start.sh
+    ```
+
+3. Log into the Docker container.
+
+    ```bash
+    $ docker exec -it (cotainer ID) /bin/bash
+    ```
+
+4. Connect to Cloudberry Database.
+
+    ```bash
+    $ su gpadmin
+    $ psql postgres
+    postgres=# select * from gp_segment_configuration;
+    ```    
+
+5. Start the regression test.
+
+    ```bash
+    $ cd ~/workspace/cbdb_dev
+    $ make installcheck-world
+    ```
+
+## About the automation script
+
+The whole script is subdivided into three main parts:
+
+```
+|-- cbdb_deploy.sh
+|-- cbdb_env.sh
+|-- docker
+|   |-- Dockerfile
+|   |-- docker_deploy.sh
+|   `-- docker_start.sh
+|-- script
+|   `-- install_etcd.sh
+`-- vagrant
+    |-- Vagrantfile
+    `-- vagrant_release.sh
+```
+
+1. The automation deployment script running in the virtualization environment.
+
+   Through the mechanism provided by Vagrant vagrantfile provision or Docker dockerfile ENTRYPOINTS:
+
+    * Provides subcommands that operates the build & test environment
+    * Provides the necessary configuration variables to the internal script of the virtual machine and trigger specific operations
+
+   Passing the following compilation options through `/code/depoly/cbdb_ deploy.sh` script:
+
+    * Compilation options
+    * Deployment options
+    * Test options
+
+   Passing the environment variable parameters required for automation build & test through `/code/depoly/cbdb_env.sh` script.
+
+2. Vagrant scripts
+
+   2.1 `Vagrantfile`
+
+    * Downloads the Vagrant virtual machine box and local virtual box creation.
+    * The host code repository path is mounted on virtual machine with read-only permission, for example: source code path to `/home/gpadmin/workspace/cbdb` directory
+    * Copy the source file directory to `/home/gpadmin/workspace/cbdb_dev`, which is the actual working directory for automation build & test.
+    * Ensure that the login user is `gpadmin`.
+
+
+
+3. Docker scripts
+
+   3.1 `Dockerfile`
+
+    * Docker image file packaging
+    * Docker container service startup configuration, such as SSH service
+
+   3.2 `docker_deploy.sh`
+
+    * Generates SSH public keys and automatic SSH login configuration
+    * Start Docker automation deployment for build & test
+
+   3.3 `docker_start.sh`
+
+    * Downloads Docker image version remotely
+    * The host code repository path is mounted on virtual machine with read-only permission, for example: source code path to `/home/gpadmin/workspace/cbdb` directory
+    * Copy the source file directory to `/home/gpadmin/workspace/cbdb_dev`, which is the actual working directory for automation build & test.
+    * Ensure that the login user is `gpadmin`
+
