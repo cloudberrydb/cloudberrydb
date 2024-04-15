@@ -22,6 +22,7 @@ using ::testing::_;
 using ::testing::AtLeast;
 using ::testing::Return;
 
+static TupleTableSlotOps TTSOpsVecTuple;
 static void GenFakeBuffer(char *buffer, size_t length) {
   for (size_t i = 0; i < length; i++) {
     buffer[i] = static_cast<char>(i);
@@ -32,6 +33,9 @@ class PaxVecTest
     : public ::testing::TestWithParam<::testing::tuple<bool, bool>> {
  public:
   void SetUp() override {
+    memcpy(&TTSOpsVecTuple, &TTSOpsVirtual, sizeof(TTSOpsVirtual));
+    TTSOpsVecTuple.base_slot_size = sizeof(VecTupleTableSlot);
+
     Singleton<LocalFileSystem>::GetInstance()->Delete(file_name_);
     CreateMemoryContext();
     CreateTestResourceOwner();
@@ -51,12 +55,7 @@ class PaxVecTest
                             .attalign = TYPALIGN_DOUBLE,
                             .attcollation = DEFAULT_COLLATION_OID};
 
-    tuple_slot = (TupleTableSlot *)cbdb::RePalloc(
-        MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual),
-        MAXALIGN(TTSOpsVirtual.base_slot_size) +
-            MAXALIGN(tuple_desc->natts * sizeof(Datum)) +
-            MAXALIGN(tuple_desc->natts * sizeof(bool)) +
-            MAXALIGN(sizeof(VecTupleTableSlot)));
+    tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVecTuple);
 
     if (with_value) {
       auto numeric = int64_to_numeric(1000);
@@ -110,12 +109,7 @@ class PaxVecTest
       namestrcpy(&tuple_desc->attrs[1].attname, blockname);
     }
 
-    tuple_slot = (TupleTableSlot *)cbdb::RePalloc(
-        MakeTupleTableSlot(tuple_desc, &TTSOpsVirtual),
-        MAXALIGN(TTSOpsVirtual.base_slot_size) +
-            MAXALIGN(tuple_desc->natts * sizeof(Datum)) +
-            MAXALIGN(tuple_desc->natts * sizeof(bool)) +
-            MAXALIGN(sizeof(VecTupleTableSlot)));
+    tuple_slot = MakeTupleTableSlot(tuple_desc, &TTSOpsVecTuple);
 
     if (with_value) {
       if (is_fixed) {
@@ -137,8 +131,7 @@ class PaxVecTest
   }
 
   static void DeleteTupleSlot(TupleTableSlot *tuple_slot) {
-    cbdb::Pfree(tuple_slot->tts_tupleDescriptor);
-    cbdb::Pfree(tuple_slot);
+    ExecDropSingleTupleTableSlot(tuple_slot);
   }
 
   void TearDown() override {

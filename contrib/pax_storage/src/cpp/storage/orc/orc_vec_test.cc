@@ -55,12 +55,7 @@ class OrcVecTest : public ::testing::Test {
   }
 
   static void DeleteTupleSlot(TupleTableSlot *tuple_table_slot) {
-    cbdb::Pfree(tuple_table_slot->tts_tupleDescriptor);
-    if (tuple_table_slot->tts_isnull) {
-      cbdb::Pfree(tuple_table_slot->tts_isnull);
-    }
-
-    cbdb::Pfree(tuple_table_slot);
+    ExecDropSingleTupleTableSlot(tuple_table_slot);
   }
 
  protected:

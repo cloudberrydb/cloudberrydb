@@ -62,7 +62,6 @@ static inline uint32 GetTupleOffset(ItemPointerData ctid) {
   return GetTupleOffsetInternal(ctid);
 }
 
-#ifndef BUILD_PAX_FORMAT
 static inline void SetTupleOffset(ItemPointer ctid, uint32 offset) {
   Assert(offset < (1UL << PAX_TUPLE_BIT_SIZE));
 
@@ -70,12 +69,6 @@ static inline void SetTupleOffset(ItemPointer ctid, uint32 offset) {
   ctid->ip_blkid.bi_lo = (ctid->ip_blkid.bi_lo & ~mask) | (offset >> 15);
   ctid->ip_posid = (offset & 0x7FFF) + 1;
 }
-#else
-// if paxformat.so is compiled separately, it is advisable not to set the tuple offset when reading tuples, 
-// other access methods (AMs) may use the pax storage format with a different partitioning scheme for ctid, 
-// which can lead to tuple offset overflow.
-static inline void SetTupleOffset(ItemPointer ctid, uint32 offset) {}
-#endif
 
 static inline uint64 CTIDToUint64(ItemPointerData ctid) {
   uint64 ctid_u64 = 0;

@@ -171,8 +171,7 @@ bool VerifyTestTupleTableSlot(TupleTableSlot *tuple_slot, int attrno) {
 }
 
 void DeleteTestTupleTableSlot(TupleTableSlot *tuple_slot) {
-  cbdb::Pfree(tuple_slot->tts_tupleDescriptor);
-  cbdb::Pfree(tuple_slot);
+  ExecDropSingleTupleTableSlot(tuple_slot);
 }
 
 std::vector<pax::orc::proto::Type_Kind> CreateTestSchemaTypes() {
