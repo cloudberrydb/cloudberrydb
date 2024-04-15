@@ -1,0 +1,7 @@
+test: setup
+
+test: alter_distributed 
+test: detoast ddl numeric types filter
+test: update
+
+test: teardown

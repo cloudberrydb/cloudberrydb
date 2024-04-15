@@ -303,6 +303,16 @@ centos7:x86_64:icw-parallel:
     ${CBDB_RELEASE_SRC}/actions/action-vec-test.bash
     export GIT_CLONE_PATH="/code/cbdb_src"
 
+.pax_test_script: &pax_test_script
+  script: |
+    mkdir -p ${ROOT_PATH}
+    git clone -b ${CBDB_RELEASE_BRANCH} https://buildbot:Passw0rd@code.hashdata.xyz/cloudberry/cbdb-release ${CBDB_RELEASE_SRC}
+    cp ${GIT_CLONE_PATH}/cbdb-artifacts.txt  ${CBDB_RELEASE_SRC}/cbdb-artifacts.txt
+
+    unset GIT_CLONE_PATH
+    ${CBDB_RELEASE_SRC}/actions/action-pax-test.bash
+    export GIT_CLONE_PATH="/code/cbdb_src"
+
 .vec_regress_artifacts: &vec_regress_artifacts
   artifacts:
     name: "regression"
@@ -317,6 +327,19 @@ centos7:x86_64:icw-parallel:
       - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/isolation2/results/
       - ${GIT_CLONE_PATH}/contrib/vectorization/src/test/isolation2/expected/
       - ${GIT_CLONE_PATH}/contrib/vectorization/coredumps/
+      - ci_status/${CI_JOB_NAME}.txt
+  timeout: 2 hours
+
+.pax_regress_artifacts: &pax_regress_artifacts
+  artifacts:
+    name: "regression"
+    when: always
+    paths:
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/regression.out
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/regression.diffs
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/results/
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/src/test/regress/expected/
+      - ${GIT_CLONE_PATH}/contrib/pax_storage/coredumps/
       - ci_status/${CI_JOB_NAME}.txt
   timeout: 2 hours
 
@@ -394,5 +417,31 @@ vectorization:icw-orca-aocs:
   <<: 
   - *vec_test_script
   - *vec_regress_artifacts
+  - *retry_rule
+  timeout: 8 hours
+
+pax:icw:
+  stage: icw_test
+  needs: [ "centos7:x86_64:build" ]
+  variables:
+    <<: *global_variables
+    TEST_TYPE: "icw_test"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c default_table_access_method=pax -c optimizer=off -c enable_parallel=off'"
+  <<: 
+  - *pax_test_script
+  - *pax_regress_artifacts
+  - *retry_rule
+  timeout: 8 hours
+
+pax:icw-orca:
+  stage: icw_test
+  needs: [ "centos7:x86_64:build" ]
+  variables:
+    <<: *global_variables
+    TEST_TYPE: "icw_test"
+    MAKE_TEST_COMMAND: "PGOPTIONS='-c default_table_access_method=pax -c optimizer=on -c enable_parallel=off'"
+  <<: 
+  - *pax_test_script
+  - *pax_regress_artifacts
   - *retry_rule
   timeout: 8 hours
