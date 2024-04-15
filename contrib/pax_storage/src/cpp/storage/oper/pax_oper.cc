@@ -296,7 +296,7 @@ bool Float4LE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float4 *)l);
   val2 = *((const float4 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 <= val2);
+  return isnan(val2) || (!isnan(val1) && val1 <= val2);
 }
 
 bool Float4EQ(const void *l, const void *r, Oid /*collation*/) {
@@ -312,7 +312,7 @@ bool Float4GE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float4 *)l);
   val2 = *((const float4 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 >= val2);
+  return isnan(val1) || (!isnan(val2) && val1 >= val2);
 }
 
 bool Float4GT(const void *l, const void *r, Oid /*collation*/) {
@@ -320,7 +320,7 @@ bool Float4GT(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float4 *)l);
   val2 = *((const float4 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 > val2);
+  return !isnan(val2) && (isnan(val1) || val1 > val2);
 }
 
 bool Float48LT(const void *l, const void *r, Oid /*collation*/) {
@@ -336,7 +336,7 @@ bool Float48LE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float4 *)l);
   val2 = *((const float8 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 <= val2);
+  return isnan(val2) || (!isnan(val1) && val1 <= val2);
 }
 
 bool Float48EQ(const void *l, const void *r, Oid /*collation*/) {
@@ -352,7 +352,7 @@ bool Float48GE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float4 *)l);
   val2 = *((const float8 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 >= val2);
+  return isnan(val1) || (!isnan(val2) && val1 >= val2);
 }
 
 bool Float48GT(const void *l, const void *r, Oid /*collation*/) {
@@ -360,7 +360,7 @@ bool Float48GT(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float4 *)l);
   val2 = *((const float8 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 > val2);
+  return !isnan(val2) && (isnan(val1) || val1 > val2);
 }
 
 }  // namespace float4op
@@ -380,7 +380,7 @@ bool Float8LE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float8 *)l);
   val2 = *((const float8 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 <= val2);
+  return isnan(val2) || (!isnan(val1) && val1 <= val2);
 }
 
 bool Float8EQ(const void *l, const void *r, Oid /*collation*/) {
@@ -396,7 +396,7 @@ bool Float8GE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float8 *)l);
   val2 = *((const float8 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 >= val2);
+  return isnan(val1) || (!isnan(val2) && val1 >= val2);
 }
 
 bool Float8GT(const void *l, const void *r, Oid /*collation*/) {
@@ -404,7 +404,7 @@ bool Float8GT(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float8 *)l);
   val2 = *((const float8 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 > val2);
+  return !isnan(val2) && (isnan(val1) || val1 > val2);
 }
 
 bool Float84LT(const void *l, const void *r, Oid /*collation*/) {
@@ -420,7 +420,7 @@ bool Float84LE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float8 *)l);
   val2 = *((const float4 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 <= val2);
+  return isnan(val2) || (!isnan(val1) && val1 <= val2);
 }
 
 bool Float84EQ(const void *l, const void *r, Oid /*collation*/) {
@@ -436,7 +436,7 @@ bool Float84GE(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float8 *)l);
   val2 = *((const float4 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 >= val2);
+  return isnan(val1) || (!isnan(val2) && val1 >= val2);
 }
 
 bool Float84GT(const void *l, const void *r, Oid /*collation*/) {
@@ -444,7 +444,7 @@ bool Float84GT(const void *l, const void *r, Oid /*collation*/) {
   val1 = *((const float8 *)l);
   val2 = *((const float4 *)r);
 
-  return !isnan(val1) && (isnan(val2) || val1 > val2);
+  return !isnan(val2) && (isnan(val1) || val1 > val2);
 }
 
 }  // namespace float8op
