@@ -73,7 +73,7 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
   }
 
   // proj_col_index_ is not empty
-  if (proj_col_index_ && !proj_col_index_->empty() > 0) {
+  if (proj_col_index_ && !proj_col_index_->empty()) {
     for (size_t i = 0; i < proj_col_index_->size(); i++) {
       // filter with projection
       index = (*proj_col_index_)[i];
@@ -101,6 +101,13 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
     }
   } else {
     for (index = 0; index < nattrs; index++) {
+      // Still need filter with old projection
+      // If current proj_col_index_ no build or empty
+      // It means current tuple only need return CTID
+      if (index < column_nums && !((*pax_columns_)[index])) {
+        continue;
+      }
+
       // handle PAX columns number inconsistent with pg catalog nattrs in case
       // data not been inserted yet or read pax file conserved before last add
       // column DDL is done, for these cases it is normal that pg catalog schema
@@ -118,7 +125,6 @@ std::pair<bool, size_t> OrcGroup::ReadTuple(TupleTableSlot *slot) {
       }
 
       auto column = ((*pax_columns_)[index]);
-      Assert(column != nullptr);
       std::tie(slot->tts_values[index], slot->tts_isnull[index]) =
           GetColumnValue(column, current_row_index_, &(current_nulls_[index]));
     }
