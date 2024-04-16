@@ -269,8 +269,10 @@ pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
      * So in `do...while`, only the `batch_size` which io needs to read
      * is calculated, until meet a column which needs to be skipped.
      */
+    bool all_null = true;
     do {
       bool has_null = stripe_info.colstats(index).hasnull();
+      all_null = all_null && stripe_info.colstats(index).allnull();
       if (has_null) {
         const pax::orc::proto::Stream &non_null_stream =
             stripe_footer.streams(streams_index++);
@@ -287,6 +289,15 @@ pax::orc::proto::StripeFooter OrcFormatReader::ReadStripeWithProjection(
         batch_len += len_or_data_stream->length();
       }
     } while ((++index) < column_types_.size() && proj_map[index]);
+
+    // There is only one situation where batch_len is equal to 0, that is, all
+    // values in this column are null. null_bitmap does not store data when it
+    // is all 0, and data_streams does not store null values.
+    // so if the batch_len of a column equals 0, we should check all_null flags
+    if (unlikely(batch_len == 0)) {
+      CBDB_CHECK(all_null, cbdb::CException::kExTypeInvalidORCFormat);
+      continue;
+    }
 
     file_->PReadN(data_buffer->GetAvailableBuffer(), batch_len, batch_offset);
     data_buffer->Brush(batch_len);
