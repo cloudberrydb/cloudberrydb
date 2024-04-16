@@ -432,3 +432,15 @@ void cbdb::TableClose(Relation rel, LOCKMODE lockmode) {
   { return table_close(rel, lockmode); }
   CBDB_WRAP_END;
 }
+
+void cbdb::RelOpenSmgr(Relation rel) {
+  RelationOpenSmgr(rel);
+}
+
+void cbdb::RelCloseSmgr(Relation rel) {
+  RelationCloseSmgr(rel);
+}
+
+void cbdb::RelDropStorage(Relation rel) {
+  RelationDropStorage(rel);
+}

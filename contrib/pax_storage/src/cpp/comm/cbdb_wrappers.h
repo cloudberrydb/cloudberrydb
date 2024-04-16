@@ -192,6 +192,12 @@ Relation TableOpen(Oid relid, LOCKMODE lockmode);
 
 void TableClose(Relation rel, LOCKMODE lockmode);
 
+void RelOpenSmgr(Relation rel);
+
+void RelCloseSmgr(Relation rel);
+
+void RelDropStorage(Relation rel);
+
 }  // namespace cbdb
 
 // clang-format off

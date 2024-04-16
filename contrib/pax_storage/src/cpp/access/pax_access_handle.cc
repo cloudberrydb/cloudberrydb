@@ -269,7 +269,12 @@ void CCPaxAccessMethod::RelationNontransactionalTruncate(Relation rel) {
 void CCPaxAccessMethod::RelationCopyData(Relation rel,
                                          const RelFileNode *newrnode) {
   CBDB_TRY();
-  { pax::CCPaxAuxTable::PaxAuxRelationCopyData(rel, newrnode); }
+  {
+    cbdb::RelOpenSmgr(rel);
+    pax::CCPaxAuxTable::PaxAuxRelationCopyData(rel, newrnode, true);
+    cbdb::RelCloseSmgr(rel);
+    cbdb::RelDropStorage(rel);
+  }
   CBDB_CATCH_DEFAULT();
   CBDB_FINALLY({});
   CBDB_END_TRY();
