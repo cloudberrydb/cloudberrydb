@@ -7,7 +7,7 @@
 #include "comm/cbdb_wrappers.h"
 #include "exceptions/CException.h"
 #include "storage/columns/pax_column_cache.h"
-#include "storage/orc/orc.h"
+#include "storage/orc/porc.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
 #include "storage/pax_filter.h"

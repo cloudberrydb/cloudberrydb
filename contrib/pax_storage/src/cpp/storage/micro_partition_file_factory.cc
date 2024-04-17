@@ -2,7 +2,7 @@
 
 #include "comm/pax_memory.h"
 #include "storage/micro_partition.h"
-#include "storage/orc/orc.h"
+#include "storage/orc/porc.h"
 #include "storage/vec/pax_vec_adapter.h"
 #include "storage/vec/pax_vec_reader.h"
 
@@ -30,7 +30,7 @@ MicroPartitionWriter *MicroPartitionFileFactory::CreateMicroPartitionWriter(
     const std::string &type, File *file,
     const MicroPartitionWriter::WriterOptions &options) {
   if (type == MICRO_PARTITION_TYPE_PAX) {
-    std::vector<pax::orc::proto::Type_Kind> type_kinds;
+    std::vector<pax::porc::proto::Type_Kind> type_kinds;
     MicroPartitionWriter *writer = nullptr;
     type_kinds =
         OrcWriter::BuildSchema(options.desc, options.numeric_vec_storage);

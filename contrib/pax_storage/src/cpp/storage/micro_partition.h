@@ -31,7 +31,7 @@ class MicroPartitionWriter {
     std::vector<std::tuple<ColumnEncoding_Kind, int>> encoding_opts;
 
     size_t group_limit = pax_max_tuples_per_group;
-    PaxStorageFormat storage_format = PaxStorageFormat::kTypeStorageOrcNonVec;
+    PaxStorageFormat storage_format = PaxStorageFormat::kTypeStoragePorcNonVec;
 
     WriterOptions() = default;
     WriterOptions(const WriterOptions &other) = default;

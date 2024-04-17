@@ -46,7 +46,7 @@ class OrcColumnStatsData : public MicroPartitionStatsData {
 class OrcWriter : public MicroPartitionWriter {
  public:
   OrcWriter(const MicroPartitionWriter::WriterOptions &orc_writer_options,
-            const std::vector<pax::orc::proto::Type_Kind> &column_types,
+            const std::vector<pax::porc::proto::Type_Kind> &column_types,
             File *file);
 
   ~OrcWriter() override;
@@ -64,7 +64,7 @@ class OrcWriter : public MicroPartitionWriter {
 
   size_t PhysicalSize() const override;
 
-  static std::vector<pax::orc::proto::Type_Kind> BuildSchema(
+  static std::vector<pax::porc::proto::Type_Kind> BuildSchema(
       TupleDesc desc, bool enable_numeric_vec_storage);
 
 #ifndef RUN_GTEST
@@ -74,7 +74,7 @@ class OrcWriter : public MicroPartitionWriter {
   // only for test
   static MicroPartitionWriter *CreateWriter(
       MicroPartitionWriter::WriterOptions options,
-      const std::vector<pax::orc::proto::Type_Kind> column_types, File *file) {
+      const std::vector<pax::porc::proto::Type_Kind> column_types, File *file) {
     std::vector<std::tuple<ColumnEncoding_Kind, int>> all_no_encoding_types;
     for (auto _ : column_types) {
       (void)_;
@@ -105,7 +105,7 @@ class OrcWriter : public MicroPartitionWriter {
   bool is_closed_;
   PaxColumns *pax_columns_;
   Datum *toast_holder_;
-  const std::vector<pax::orc::proto::Type_Kind> column_types_;
+  const std::vector<pax::porc::proto::Type_Kind> column_types_;
   File *file_;
   int32 current_written_phy_size_;
   WriteSummary summary_;
@@ -114,8 +114,8 @@ class OrcWriter : public MicroPartitionWriter {
   uint64 total_rows_;
   uint64 current_offset_;
 
-  ::pax::orc::proto::Footer file_footer_;
-  ::pax::orc::proto::PostScript post_script_;
+  ::pax::porc::proto::Footer file_footer_;
+  ::pax::porc::proto::PostScript post_script_;
   ::pax::MicroPartitionStats stats_collector_;
 };
 

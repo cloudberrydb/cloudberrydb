@@ -1,4 +1,4 @@
-#include "storage/orc/orc.h"  // NOLINT
+#include "storage/orc/porc.h"  // NOLINT
 #include <cstdio>
 #include <random>
 #include <string>
@@ -71,13 +71,13 @@ TEST_F(OrcVecTest, WriteReadGroup) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<pax::orc::proto::Type_Kind> types;
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
+  std::vector<pax::porc::proto::Type_Kind> types;
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
   OrcWriter::WriterOptions writer_options;
 
   writer_options.desc = tuple_slot->tts_tupleDescriptor;
-  writer_options.storage_format = PaxStorageFormat::kTypeStorageOrcVec;
+  writer_options.storage_format = PaxStorageFormat::kTypeStoragePorcVec;
 
   auto writer = OrcWriter::CreateWriter(writer_options, types, file_ptr);
 
@@ -215,9 +215,9 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   auto file_ptr = local_fs->Open(file_name_, fs::kWriteMode);
   EXPECT_NE(nullptr, file_ptr);
 
-  std::vector<pax::orc::proto::Type_Kind> types;
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
+  std::vector<pax::porc::proto::Type_Kind> types;
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
   std::vector<std::tuple<ColumnEncoding_Kind, int>> types_encoding;
   types_encoding.emplace_back(std::make_tuple(
       ColumnEncoding_Kind::ColumnEncoding_Kind_COMPRESS_ZSTD, 5));
@@ -227,7 +227,7 @@ TEST_F(OrcVecTest, WriteReadGroupWithEncoding) {
   MicroPartitionWriter::WriterOptions writer_options;
   writer_options.desc = tuple_slot->tts_tupleDescriptor;
   writer_options.encoding_opts = types_encoding;
-  writer_options.storage_format = PaxStorageFormat::kTypeStorageOrcVec;
+  writer_options.storage_format = PaxStorageFormat::kTypeStoragePorcVec;
 
   auto writer = new OrcWriter(writer_options, types, file_ptr);
 

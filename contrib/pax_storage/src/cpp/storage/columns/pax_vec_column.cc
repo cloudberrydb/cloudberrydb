@@ -61,7 +61,7 @@ PaxColumnTypeInMem PaxVecCommColumn<T>::GetPaxColumnTypeInMem() const {
 
 template <typename T>
 PaxStorageFormat PaxVecCommColumn<T>::GetStorageFormat() const {
-  return PaxStorageFormat::kTypeStorageOrcVec;
+  return PaxStorageFormat::kTypeStoragePorcVec;
 }
 
 template <typename T>
@@ -199,7 +199,7 @@ PaxColumnTypeInMem PaxVecNonFixedColumn::GetPaxColumnTypeInMem() const {
 }
 
 PaxStorageFormat PaxVecNonFixedColumn::GetStorageFormat() const {
-  return PaxStorageFormat::kTypeStorageOrcVec;
+  return PaxStorageFormat::kTypeStoragePorcVec;
 }
 
 std::pair<char *, size_t> PaxVecNonFixedColumn::GetBuffer() {

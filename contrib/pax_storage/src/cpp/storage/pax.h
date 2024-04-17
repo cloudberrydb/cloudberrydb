@@ -13,7 +13,7 @@
 #include "storage/local_file_system.h"
 #include "storage/micro_partition.h"
 #include "storage/micro_partition_metadata.h"
-#include "storage/orc/orc.h"
+#include "storage/orc/porc.h"
 #include "storage/pax_filter.h"
 #include "storage/pax_itemptr.h"
 #include "storage/strategy.h"
@@ -73,7 +73,7 @@ class TableWriter {
   size_t num_tuples_ = 0;
   BlockNumber current_blockno_ = 0;
   bool already_get_format_ = false;
-  PaxStorageFormat storage_format_ = PaxStorageFormat::kTypeStorageOrcNonVec;
+  PaxStorageFormat storage_format_ = PaxStorageFormat::kTypeStoragePorcNonVec;
   bool already_get_numeric_vec_storage_ = false;
   bool numeric_vec_storage_ = false;
 };

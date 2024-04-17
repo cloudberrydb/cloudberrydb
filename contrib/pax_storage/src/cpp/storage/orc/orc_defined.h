@@ -1,9 +1,9 @@
 #pragma once
 
-#define ORC_MAGIC_ID "ORC"
-#define ORC_WRITER_ID 1
+#define PORC_MAGIC_ID "PORC"
+#define PORC_WRITER_ID 1
 #define PAX_MAJOR_VERSION 1
 #define PAX_MINOR_VERSION 0
 
-#define ORC_POST_SCRIPT_SIZE 8
-#define ORC_TAIL_SIZE 32768
+#define PORC_POST_SCRIPT_SIZE 8
+#define PORC_TAIL_SIZE 32768

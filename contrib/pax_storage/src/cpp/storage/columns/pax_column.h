@@ -51,16 +51,16 @@ class PaxColumn {
   // Also they should NEVER call in write path with encoding option!!!
   // But without encoding option, still can direct call it.
   //
-  // If `storage_type_` is kTypeStorageOrcVec
+  // If `storage_type_` is kTypeStoragePorcVec
   // Then data part contains `null field` which means no need use
   // `row index - null counts` to get the data.
   //
-  // But If `storage_type_` is not kTypeStorageOrcVec
+  // But If `storage_type_` is not kTypeStoragePorcVec
   // Then position should be `row index - null counts`, because
   // data part will not contains `null field`.
   //
   // Also it is kind different in fixed-length column and non-fixed-length
-  // column when `storage_type_` is kTypeStorageOrcVec. For the fixed-length
+  // column when `storage_type_` is kTypeStoragePorcVec. For the fixed-length
   // column, If we got a `null field`, then it will return the buffer with zero
   // fill. But in non-fixed-length column, once we got  `null field`, the buffer
   // will be nullptr.

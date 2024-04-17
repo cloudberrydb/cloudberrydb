@@ -37,7 +37,7 @@ class CException {
     kExTypeLogicError,
     kExTypeInvalidMemoryOperation,
     kExTypeSchemaNotMatch,
-    kExTypeInvalidORCFormat,
+    kExTypeInvalidPORCFormat,
     kExTypeOutOfRange,
     kExTypeFileOperationError,
     kExTypeCompressError,

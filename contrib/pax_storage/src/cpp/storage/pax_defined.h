@@ -9,15 +9,15 @@ namespace pax {
 #define BITS_TO_BYTES(bits) (((bits) + 7) / 8)
 
 #define COLUMN_STORAGE_FORMAT_IS_VEC(column) \
-  (((column)->GetStorageFormat()) == PaxStorageFormat::kTypeStorageOrcVec)
+  (((column)->GetStorageFormat()) == PaxStorageFormat::kTypeStoragePorcVec)
 
 enum PaxStorageFormat {
   // default non-vec store
   // which split null field and null bitmap
-  kTypeStorageOrcNonVec = 1,
+  kTypeStoragePorcNonVec = 1,
   // vec storage format
   // spec the storage format
-  kTypeStorageOrcVec = 2,
+  kTypeStoragePorcVec = 2,
 };
 
 // filter kind

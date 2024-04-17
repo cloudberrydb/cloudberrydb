@@ -839,7 +839,7 @@ uint64 PaxOrcDecoder<T>::NextDelta(TreatedDataBuffer<int64> *data_buffer,
     } else {
       prev_val = data[1] = prev_val + delta_base;
       if (data_lens < 2) {
-        CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidORCFormat);
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidPORCFormat);
       }
 
       // write the unpacked values, add it to previous value and store final
@@ -879,7 +879,7 @@ uint64 PaxOrcDecoder<T>::NextDelta(TreatedDataBuffer<int64> *data_buffer,
   } else {
     prev_val = curr_literals[1] = prev_val + delta_base;
     if (data_lens < 2) {
-      CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidORCFormat);
+      CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidPORCFormat);
     }
 
     ReadLongs(data_buffer, curr_literals, 2, data_lens - 2, bits, &bits_left);
@@ -930,7 +930,7 @@ uint64 PaxOrcDecoder<T>::NextPatched(TreatedDataBuffer<int64> *data_buffer,
 
   // extract the length of the patch list
   size_t pl = fourth_byte & 0x1f;
-  CBDB_CHECK(pl != 0, cbdb::CException::ExType::kExTypeInvalidORCFormat);
+  CBDB_CHECK(pl != 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat);
 
   int64 base = ReadLongBE(data_buffer, byte_size);
   int64 mask = (static_cast<int64>(1) << ((byte_size * 8) - 1));
@@ -949,7 +949,7 @@ uint64 PaxOrcDecoder<T>::NextPatched(TreatedDataBuffer<int64> *data_buffer,
   bits_left = 0;
 
   if ((patch_bits + pgw) > 64) {
-    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidORCFormat);
+    CBDB_RAISE(cbdb::CException::ExType::kExTypeInvalidPORCFormat);
   }
 
   if (unpacked_data_ == nullptr) {

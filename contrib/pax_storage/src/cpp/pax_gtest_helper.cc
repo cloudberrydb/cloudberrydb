@@ -174,11 +174,11 @@ void DeleteTestTupleTableSlot(TupleTableSlot *tuple_slot) {
   ExecDropSingleTupleTableSlot(tuple_slot);
 }
 
-std::vector<pax::orc::proto::Type_Kind> CreateTestSchemaTypes() {
-  std::vector<pax::orc::proto::Type_Kind> types;
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
-  types.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
+std::vector<pax::porc::proto::Type_Kind> CreateTestSchemaTypes() {
+  std::vector<pax::porc::proto::Type_Kind> types;
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
+  types.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
   return types;
 }
 

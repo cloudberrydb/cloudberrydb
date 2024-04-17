@@ -6,31 +6,31 @@
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/micro_partition_stats.h"
-#include "storage/orc/orc.h"
+#include "storage/orc/porc.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
 #include "storage/pax_itemptr.h"
 
 namespace pax {
 
-std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(
+std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(
     TupleDesc desc, bool enable_numeric_vec_storage) {
-  std::vector<pax::orc::proto::Type_Kind> type_kinds;
+  std::vector<pax::porc::proto::Type_Kind> type_kinds;
   for (int i = 0; i < desc->natts; i++) {
     auto attr = &desc->attrs[i];
     if (attr->attbyval) {
       switch (attr->attlen) {
         case 1:
-          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_BYTE);
+          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BYTE);
           break;
         case 2:
-          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_SHORT);
+          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_SHORT);
           break;
         case 4:
-          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_INT);
+          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_INT);
           break;
         case 8:
-          type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_LONG);
+          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_LONG);
           break;
         default:
           Assert(!"should not be here! pg_type which attbyval=true only have typlen of "
@@ -39,11 +39,11 @@ std::vector<pax::orc::proto::Type_Kind> OrcWriter::BuildSchema(
     } else {
       Assert(attr->attlen > 0 || attr->attlen == -1);
       if (attr->atttypid == NUMERICOID && enable_numeric_vec_storage) {
-        type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_DECIMAL);
+        type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_DECIMAL);
       } else if (attr->atttypid == BPCHAROID) {
-        type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_BPCHAR);
+        type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BPCHAR);
       } else {
-        type_kinds.emplace_back(pax::orc::proto::Type_Kind::Type_Kind_STRING);
+        type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_STRING);
       }
     }
   }
@@ -80,7 +80,7 @@ static PaxColumn *CreateCommColumn(bool is_vec,
 }
 
 static PaxColumns *BuildColumns(
-    const std::vector<pax::orc::proto::Type_Kind> &types,
+    const std::vector<pax::porc::proto::Type_Kind> &types,
     const std::vector<std::tuple<ColumnEncoding_Kind, int>>
         &column_encoding_types,
     const PaxStorageFormat &storage_format) {
@@ -88,7 +88,7 @@ static PaxColumns *BuildColumns(
   bool is_vec;
 
   columns = PAX_NEW<PaxColumns>();
-  is_vec = (storage_format == PaxStorageFormat::kTypeStorageOrcVec);
+  is_vec = (storage_format == PaxStorageFormat::kTypeStoragePorcVec);
   columns->SetStorageFormat(storage_format);
 
   for (size_t i = 0; i < types.size(); i++) {
@@ -100,7 +100,7 @@ static PaxColumns *BuildColumns(
     encoding_option.compress_level = std::get<1>(column_encoding_types[i]);
 
     switch (type) {
-      case (pax::orc::proto::Type_Kind::Type_Kind_STRING): {
+      case (pax::porc::proto::Type_Kind::Type_Kind_STRING): {
         encoding_option.is_sign = false;
         columns->Append(is_vec
                             ? (PaxColumn *)traits::ColumnOptCreateTraits2<
@@ -113,29 +113,29 @@ static PaxColumns *BuildColumns(
                                                   std::move(encoding_option)));
         break;
       }
-      case (pax::orc::proto::Type_Kind::Type_Kind_BPCHAR): {
+      case (pax::porc::proto::Type_Kind::Type_Kind_BPCHAR): {
         columns->Append(CreateBpCharColumn(is_vec, std::move(encoding_option)));
         break;
       }
-      case (pax::orc::proto::Type_Kind::Type_Kind_DECIMAL): {
+      case (pax::porc::proto::Type_Kind::Type_Kind_DECIMAL): {
         columns->Append(
             CreateDecimalColumn(is_vec, std::move(encoding_option)));
         break;
       }
-      case (pax::orc::proto::Type_Kind::Type_Kind_BOOLEAN):
-      case (pax::orc::proto::Type_Kind::Type_Kind_BYTE):  // len 1 integer
+      case (pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN):
+      case (pax::porc::proto::Type_Kind::Type_Kind_BYTE):  // len 1 integer
         columns->Append(
             CreateCommColumn<int8>(is_vec, std::move(encoding_option)));
         break;
-      case (pax::orc::proto::Type_Kind::Type_Kind_SHORT):  // len 2 integer
+      case (pax::porc::proto::Type_Kind::Type_Kind_SHORT):  // len 2 integer
         columns->Append(
             CreateCommColumn<int16>(is_vec, std::move(encoding_option)));
         break;
-      case (pax::orc::proto::Type_Kind::Type_Kind_INT):  // len 4 integer
+      case (pax::porc::proto::Type_Kind::Type_Kind_INT):  // len 4 integer
         columns->Append(
             CreateCommColumn<int32>(is_vec, std::move(encoding_option)));
         break;
-      case (pax::orc::proto::Type_Kind::Type_Kind_LONG):  // len 8 integer
+      case (pax::porc::proto::Type_Kind::Type_Kind_LONG):  // len 8 integer
         columns->Append(
             CreateCommColumn<int64>(is_vec, std::move(encoding_option)));
         break;
@@ -150,7 +150,7 @@ static PaxColumns *BuildColumns(
 
 OrcWriter::OrcWriter(
     const MicroPartitionWriter::WriterOptions &writer_options,
-    const std::vector<pax::orc::proto::Type_Kind> &column_types, File *file)
+    const std::vector<pax::porc::proto::Type_Kind> &column_types, File *file)
     : MicroPartitionWriter(writer_options),
       is_closed_(false),
       column_types_(column_types),
@@ -201,8 +201,8 @@ OrcWriter::OrcWriter(
   post_script_.set_footerlength(0);
   post_script_.set_majorversion(PAX_MAJOR_VERSION);
   post_script_.set_minorversion(PAX_MINOR_VERSION);
-  post_script_.set_writer(ORC_WRITER_ID);
-  post_script_.set_magic(ORC_MAGIC_ID);
+  post_script_.set_writer(PORC_WRITER_ID);
+  post_script_.set_magic(PORC_MAGIC_ID);
 
   auto natts = static_cast<int>(column_types.size());
   auto stats_data = PAX_NEW<OrcColumnStatsData>();
@@ -468,10 +468,10 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
                             PaxColumns *pax_columns,
                             MicroPartitionStats *stripe_stats,
                             MicroPartitionStats *file_stats) {
-  std::vector<pax::orc::proto::Stream> streams;
+  std::vector<pax::porc::proto::Stream> streams;
   std::vector<ColumnEncoding> encoding_kinds;
-  pax::orc::proto::StripeFooter stripe_footer;
-  pax::orc::proto::StripeInformation *stripe_info;
+  pax::porc::proto::StripeFooter stripe_footer;
+  pax::porc::proto::StripeInformation *stripe_info;
 
   size_t data_len = 0;
   size_t number_of_row = pax_columns->GetRows();
@@ -482,9 +482,9 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
   }
 
   PaxColumns::ColumnStreamsFunc column_streams_func =
-      [&streams](const pax::orc::proto::Stream_Kind &kind, size_t column,
+      [&streams](const pax::porc::proto::Stream_Kind &kind, size_t column,
                  size_t length) {
-        pax::orc::proto::Stream stream;
+        pax::porc::proto::Stream stream;
         stream.set_kind(kind);
         stream.set_column(static_cast<uint32>(column));
         stream.set_length(length);
@@ -599,7 +599,7 @@ size_t OrcWriter::PhysicalSize() const {
 
 void OrcWriter::BuildFooterType() {
   auto proto_type = file_footer_.add_types();
-  proto_type->set_kind(::pax::orc::proto::Type_Kind_STRUCT);
+  proto_type->set_kind(::pax::porc::proto::Type_Kind_STRUCT);
 
   for (size_t i = 0; i < column_types_.size(); ++i) {
     auto orc_type = column_types_[i];
@@ -611,8 +611,8 @@ void OrcWriter::BuildFooterType() {
 }
 
 void OrcWriter::WriteFileFooter(BufferedOutputStream *buffer_mem_stream) {
-  Assert(writer_options_.storage_format == kTypeStorageOrcNonVec ||
-         writer_options_.storage_format == kTypeStorageOrcVec);
+  Assert(writer_options_.storage_format == kTypeStoragePorcNonVec ||
+         writer_options_.storage_format == kTypeStoragePorcVec);
   file_footer_.set_contentlength(current_offset_);
   file_footer_.set_numberofrows(total_rows_);
   file_footer_.set_storageformat(writer_options_.storage_format);
@@ -639,9 +639,9 @@ void OrcWriter::WritePostscript(BufferedOutputStream *buffer_mem_stream) {
 
   auto ps_len = (uint64)buffer_mem_stream->EndBufferOutRecord();
   Assert(ps_len > 0);
-  static_assert(sizeof(ps_len) == ORC_POST_SCRIPT_SIZE,
+  static_assert(sizeof(ps_len) == PORC_POST_SCRIPT_SIZE,
                 "post script type len not match.");
-  buffer_mem_stream->DirectWrite((char *)&ps_len, ORC_POST_SCRIPT_SIZE);
+  buffer_mem_stream->DirectWrite((char *)&ps_len, PORC_POST_SCRIPT_SIZE);
 }
 
 OrcColumnStatsData *OrcColumnStatsData::Initialize(int natts) {

@@ -9,7 +9,7 @@
 #include "storage/micro_partition.h"
 #include "storage/micro_partition_iterator.h"
 #include "storage/micro_partition_stats.h"
-#include "storage/orc/orc.h"
+#include "storage/orc/porc.h"
 #include "storage/pax.h"
 #include "storage/pax_buffer.h"
 #include "storage/pax_defined.h"

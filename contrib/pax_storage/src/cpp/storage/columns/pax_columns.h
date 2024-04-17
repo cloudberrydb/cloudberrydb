@@ -58,7 +58,7 @@ class PaxColumns : public PaxColumn {
   size_t GetNonNullRows() const override;
 
   using ColumnStreamsFunc =
-      std::function<void(const pax::orc::proto::Stream_Kind &, size_t, size_t)>;
+      std::function<void(const pax::porc::proto::Stream_Kind &, size_t, size_t)>;
 
   using ColumnEncodingFunc = std::function<void(
       const ColumnEncoding_Kind &, const uint64 compress_lvl, size_t)>;

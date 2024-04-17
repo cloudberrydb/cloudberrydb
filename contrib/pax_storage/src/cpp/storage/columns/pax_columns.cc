@@ -24,7 +24,7 @@ static PaxColumn *CreateCommColumn(bool is_vec,
 }
 
 PaxColumns::PaxColumns()
-    : row_nums_(0), storage_format_(PaxStorageFormat::kTypeStorageOrcNonVec) {
+    : row_nums_(0), storage_format_(PaxStorageFormat::kTypeStoragePorcNonVec) {
   data_ = PAX_NEW<DataBuffer<char>>(0);
 }
 
@@ -196,7 +196,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
 
       bm_length = TYPEALIGN(MEMORY_ALIGN_SIZE, bm_length);
       buffer_len += bm_length;
-      column_streams_func(pax::orc::proto::Stream_Kind_PRESENT, total_rows,
+      column_streams_func(pax::porc::proto::Stream_Kind_PRESENT, total_rows,
                           bm_length);
     }
 
@@ -206,7 +206,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
         size_t offsets_size =
             TYPEALIGN(MEMORY_ALIGN_SIZE, (total_rows + 1) * sizeof(int32));
         buffer_len += offsets_size;
-        column_streams_func(pax::orc::proto::Stream_Kind_LENGTH, total_rows,
+        column_streams_func(pax::porc::proto::Stream_Kind_LENGTH, total_rows,
                             offsets_size);
 
         auto data_length = column->GetBuffer().second;
@@ -216,7 +216,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
         }
 
         buffer_len += data_length;
-        column_streams_func(pax::orc::proto::Stream_Kind_DATA, non_null_rows,
+        column_streams_func(pax::porc::proto::Stream_Kind_DATA, non_null_rows,
                             data_length);
 
         break;
@@ -230,7 +230,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
         }
 
         buffer_len += data_length;
-        column_streams_func(pax::orc::proto::Stream_Kind_DATA, non_null_rows,
+        column_streams_func(pax::porc::proto::Stream_Kind_DATA, non_null_rows,
                             data_length);
         break;
       }
@@ -271,7 +271,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       Assert(bm);
       size_t bm_length = bm->MinimalStoredBytes(column->GetRows());
       buffer_len += bm_length;
-      column_streams_func(pax::orc::proto::Stream_Kind_PRESENT,
+      column_streams_func(pax::porc::proto::Stream_Kind_PRESENT,
                           column->GetRows(), bm_length);
     }
 
@@ -290,13 +290,13 @@ size_t PaxColumns::MeasureOrcDataBuffer(
         }
 
         buffer_len += lengths_size;
-        column_streams_func(pax::orc::proto::Stream_Kind_LENGTH, column_size,
+        column_streams_func(pax::porc::proto::Stream_Kind_LENGTH, column_size,
                             lengths_size);
 
         auto length_data = column->GetBuffer().second;
         buffer_len += length_data;
 
-        column_streams_func(pax::orc::proto::Stream_Kind_DATA, column_size,
+        column_streams_func(pax::porc::proto::Stream_Kind_DATA, column_size,
                             length_data);
 
         break;
@@ -305,7 +305,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
       case kTypeFixed: {
         auto length_data = column->GetBuffer().second;
         buffer_len += length_data;
-        column_streams_func(pax::orc::proto::Stream_Kind_DATA, column_size,
+        column_streams_func(pax::porc::proto::Stream_Kind_DATA, column_size,
                             length_data);
 
         break;

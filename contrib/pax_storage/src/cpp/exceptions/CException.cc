@@ -226,7 +226,7 @@ const char *CException::exception_names[] = {
     "Logic ERROR",
     "Invalid memory operation",
     "Schema not match",
-    "Invalid orc format",
+    "Invalid porc format",
     "Out of range",
     "File operation got error",
     "Compress got errors",

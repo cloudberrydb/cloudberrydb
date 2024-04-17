@@ -859,7 +859,7 @@ void VecAdapter::FullWithCTID(TupleTableSlot *slot,
 
 template <typename T>
 static std::pair<bool, size_t> ColumnTransMemory(PaxColumn *column) {
-  Assert(column->GetStorageFormat() == PaxStorageFormat::kTypeStorageOrcVec);
+  Assert(column->GetStorageFormat() == PaxStorageFormat::kTypeStoragePorcVec);
 
   auto vec_column = dynamic_cast<T *>(column);
   auto data_buffer = vec_column->GetDataBuffer();

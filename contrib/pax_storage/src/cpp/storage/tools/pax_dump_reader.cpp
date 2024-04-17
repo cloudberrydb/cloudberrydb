@@ -24,9 +24,9 @@ static inline std::string GetWriterDesc(uint32 writer_id) {
 
 static inline std::string GetStorageFormat(uint32 storage_format) {
   switch (storage_format) {
-    case PaxStorageFormat::kTypeStorageOrcNonVec:
+    case PaxStorageFormat::kTypeStoragePorcNonVec:
       return "Origin format";
-    case PaxStorageFormat::kTypeStorageOrcVec:
+    case PaxStorageFormat::kTypeStoragePorcVec:
       return "VEC format";
     default:
       return "Unknown";
@@ -183,14 +183,14 @@ void PaxDumpReader::DumpSchema() {
 
   // verify schema exist
   auto max_id = footer->types_size();
-  CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidORCFormat);
+  CBDB_CHECK(max_id > 0, cbdb::CException::ExType::kExTypeInvalidPORCFormat);
 
   // verify schema defined
   auto struct_types = &(footer->types(0));
-  CBDB_CHECK(struct_types->kind() == pax::orc::proto::Type_Kind_STRUCT,
-             cbdb::CException::ExType::kExTypeInvalidORCFormat);
+  CBDB_CHECK(struct_types->kind() == pax::porc::proto::Type_Kind_STRUCT,
+             cbdb::CException::ExType::kExTypeInvalidPORCFormat);
   CBDB_CHECK(struct_types->subtypes_size() == col_infos->size(),
-             cbdb::CException::ExType::kExTypeInvalidORCFormat);
+             cbdb::CException::ExType::kExTypeInvalidPORCFormat);
 
   // create desc header, types and basic info
   tabulate::Table::Row_t desc_table_header{""};
@@ -311,7 +311,7 @@ void PaxDumpReader::DumpGroupInfo() {
     auto stripe = (*stripes)[i];
 
     CBDB_CHECK(stripe.colstats_size() == number_of_column,
-               cbdb::CException::ExType::kExTypeInvalidORCFormat);
+               cbdb::CException::ExType::kExTypeInvalidPORCFormat);
 
     // full group desc
     group_desc_table.add_row({"Group no", std::to_string(i)});
@@ -436,7 +436,7 @@ void PaxDumpReader::DumpGroupFooter() {
   size_t streams_index;
   for (int i = group_start; i < group_end; i++) {
     auto stripe_footer = format_reader_->ReadStripeFooter(data_buffer, i);
-    const pax::orc::proto::Stream *n_stream = nullptr;
+    const pax::porc::proto::Stream *n_stream = nullptr;
     const pax::ColumnEncoding *column_encoding = nullptr;
 
     tabulate::Table group_footer_table;
@@ -450,7 +450,7 @@ void PaxDumpReader::DumpGroupFooter() {
     for (int j = 0; j < column_start;) {
       n_stream = &stripe_footer.streams(streams_index++);
       if (n_stream->kind() ==
-          ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
+          ::pax::porc::proto::Stream_Kind::Stream_Kind_DATA) {
         j++;
       }
     }
@@ -463,7 +463,7 @@ void PaxDumpReader::DumpGroupFooter() {
       stream_desc_table.add_row({"Length", std::to_string(n_stream->length())});
 
       if (n_stream->kind() ==
-          ::pax::orc::proto::Stream_Kind::Stream_Kind_DATA) {
+          ::pax::porc::proto::Stream_Kind::Stream_Kind_DATA) {
         column_encoding = &stripe_footer.pax_col_encodings(j);
 
         tabulate::Table group_footer_desc_table;
@@ -511,7 +511,7 @@ void PaxDumpReader::DumpAllData() {
   int64 group_start, group_end;
   int64 column_start, column_end;
   int64 row_start, row_end;
-  bool is_vec = footer->storageformat() == kTypeStorageOrcVec;
+  bool is_vec = footer->storageformat() == kTypeStoragePorcVec;
 
   std::tie(group_start, group_end, succ) = ParseRange(
       config_->group_id_start, config_->group_id_len, stripes->size());
@@ -537,7 +537,7 @@ void PaxDumpReader::DumpAllData() {
   DataBuffer<char> *data_buffer = nullptr;
   auto stripe_info = (*stripes)[group_start];
   size_t number_of_rows = 0;
-  pax::orc::proto::StripeFooter stripe_footer;
+  pax::porc::proto::StripeFooter stripe_footer;
   bool proj_map[number_of_columns];
   PaxColumns *columns = nullptr;
   OrcGroup *group = nullptr;

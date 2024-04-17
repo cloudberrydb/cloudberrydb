@@ -55,12 +55,12 @@ static void VerifyInt4All(char *verify_buff, size_t verify_len, size_t bits) {
 
 static PaxColumn *CreateEncodeColumn(
     uint8 bits, const PaxEncoder::EncodingOption &encoding_option,
-    PaxStorageFormat storage_type = PaxStorageFormat::kTypeStorageOrcNonVec) {
+    PaxStorageFormat storage_type = PaxStorageFormat::kTypeStoragePorcNonVec) {
   PaxColumn *int_column;
 
   switch (bits) {
     case 16:
-      if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+      if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
         int_column =
             ColumnOptCreateTraits<PaxEncodingColumn, int16>::create_encoding(
                 1024, std::move(encoding_option));
@@ -71,7 +71,7 @@ static PaxColumn *CreateEncodeColumn(
       }
       break;
     case 32:
-      if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+      if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
         int_column =
             ColumnOptCreateTraits<PaxEncodingColumn, int32>::create_encoding(
                 1024, std::move(encoding_option));
@@ -82,7 +82,7 @@ static PaxColumn *CreateEncodeColumn(
       }
       break;
     case 64:
-      if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+      if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
         int_column =
             ColumnOptCreateTraits<PaxEncodingColumn, int64>::create_encoding(
                 1024, std::move(encoding_option));
@@ -104,7 +104,7 @@ static PaxColumn *CreateDecodeColumn(
     uint8 bits, size_t origin_len, size_t origin_rows,
     const PaxDecoder::DecodingOption &decoding_option, char *encoded_buff,
     size_t encoded_len,
-    PaxStorageFormat storage_type = PaxStorageFormat::kTypeStorageOrcNonVec,
+    PaxStorageFormat storage_type = PaxStorageFormat::kTypeStoragePorcNonVec,
     size_t column_not_nulls = 0) {
   PaxColumn *column_rc = nullptr;
   switch (bits) {
@@ -113,7 +113,7 @@ static PaxColumn *CreateDecodeColumn(
           reinterpret_cast<int16 *>(encoded_buff), encoded_len, false, false);
       buffer_for_read->Brush(encoded_len);
 
-      if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+      if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
         auto int_column =
             ColumnOptCreateTraits<PaxEncodingColumn, int16>::create_decoding(
                 origin_len / sizeof(int16), std::move(decoding_option));
@@ -133,7 +133,7 @@ static PaxColumn *CreateDecodeColumn(
           reinterpret_cast<int32 *>(encoded_buff), encoded_len, false, false);
       buffer_for_read->Brush(encoded_len);
 
-      if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+      if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
         auto int_column =
             ColumnOptCreateTraits<PaxEncodingColumn, int32>::create_decoding(
                 origin_len / sizeof(int32), std::move(decoding_option));
@@ -153,7 +153,7 @@ static PaxColumn *CreateDecodeColumn(
           reinterpret_cast<int64 *>(encoded_buff), encoded_len, false, false);
       buffer_for_read->Brush(encoded_len);
 
-      if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+      if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
         auto int_column =
             ColumnOptCreateTraits<PaxEncodingColumn, int64>::create_decoding(
                 origin_len / sizeof(int64), std::move(decoding_option));
@@ -210,7 +210,7 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
   char *buffer = nullptr;
   size_t buffer_len = 0;
 
-  if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+  if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
     column = ColumnCreateTraits<PaxCommColumn, int32>::create(200);
   } else {
     column = ColumnCreateTraits<PaxVecCommColumn, int32>::create(200);
@@ -231,7 +231,7 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
   ASSERT_EQ(column->GetRangeNonNullRows(0, column->GetRows()), 16);
 
   delete column;
-  if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+  if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
     column = ColumnCreateTraits<PaxCommColumn, int32>::create(200);
   } else {
     column = ColumnCreateTraits<PaxVecCommColumn, int32>::create(200);
@@ -245,7 +245,7 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
   }
 
   switch (storage_type) {
-    case kTypeStorageOrcNonVec: {
+    case kTypeStoragePorcNonVec: {
       std::tie(buffer, buffer_len) = column->GetRangeBuffer(5, 10);
       ASSERT_EQ(buffer_len, 10 * sizeof(int32));
 
@@ -256,7 +256,7 @@ TEST_P(PaxColumnTest, FixColumnGetRangeBufferTest) {
       }
       break;
     }
-    case kTypeStorageOrcVec: {
+    case kTypeStoragePorcVec: {
       std::tie(buffer, buffer_len) = column->GetRangeBuffer(0, 10);
       ASSERT_EQ(buffer_len, 10 * sizeof(int32));
 
@@ -289,7 +289,7 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
   char *buffer = nullptr;
   size_t buffer_len = 0;
 
-  if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+  if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
     column = ColumnCreateTraits2<PaxNonFixedColumn>::create(200);
   } else {
     column = ColumnCreateTraits2<PaxVecNonFixedColumn>::create(200);
@@ -311,7 +311,7 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
 
   delete column;
 
-  if (storage_type == PaxStorageFormat::kTypeStorageOrcNonVec) {
+  if (storage_type == PaxStorageFormat::kTypeStoragePorcNonVec) {
     column = ColumnCreateTraits2<PaxNonFixedColumn>::create(200);
   } else {
     column = ColumnCreateTraits2<PaxVecNonFixedColumn>::create(200);
@@ -325,7 +325,7 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
   }
 
   switch (storage_type) {
-    case kTypeStorageOrcNonVec: {
+    case kTypeStoragePorcNonVec: {
       std::tie(buffer, buffer_len) = column->GetRangeBuffer(5, 10);
       ASSERT_EQ(buffer_len, 10 * sizeof(int64));
 
@@ -336,7 +336,7 @@ TEST_P(PaxColumnTest, NonFixColumnGetRangeBufferTest) {
       }
       break;
     }
-    case kTypeStorageOrcVec: {
+    case kTypeStoragePorcVec: {
       size_t nulls_count = 0;
       for (size_t i = 0; i < 10; i++) {
         std::tie(buffer, buffer_len) = column->GetBuffer(i);
@@ -762,14 +762,14 @@ TEST_P(PaxNonFixedColumnCompressTest,
 }
 
 INSTANTIATE_TEST_CASE_P(PaxColumnTestCombine, PaxColumnTest,
-                        testing::Values(PaxStorageFormat::kTypeStorageOrcNonVec,
-                                        PaxStorageFormat::kTypeStorageOrcVec));
+                        testing::Values(PaxStorageFormat::kTypeStoragePorcNonVec,
+                                        PaxStorageFormat::kTypeStoragePorcVec));
 
 INSTANTIATE_TEST_CASE_P(
     PaxColumnEncodingTestCombine, PaxColumnEncodingTest,
     testing::Combine(testing::Values(16, 32, 64),
-                     testing::Values(PaxStorageFormat::kTypeStorageOrcNonVec,
-                                     PaxStorageFormat::kTypeStorageOrcVec)));
+                     testing::Values(PaxStorageFormat::kTypeStoragePorcNonVec,
+                                     PaxStorageFormat::kTypeStoragePorcVec)));
 
 INSTANTIATE_TEST_CASE_P(
     PaxColumnEncodingTestCombine, PaxColumnCompressTest,

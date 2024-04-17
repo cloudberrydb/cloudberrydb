@@ -95,7 +95,7 @@ class PaxVecNonFixedColumn : public PaxColumn {
   DataBuffer<char> *data_;
   DataBuffer<int32> *offsets_;
 
-  // used in `kTypeStorageOrcVec`
+  // used in `kTypeStoragePorcVec`
   int32 next_offsets_;
 };
 

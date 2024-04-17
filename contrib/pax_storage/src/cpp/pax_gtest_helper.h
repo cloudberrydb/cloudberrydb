@@ -25,5 +25,5 @@ extern bool VerifyTestTupleTableSlot(TupleTableSlot *tuple_slot, int attrno);
 extern void DeleteTestTupleTableSlot(TupleTableSlot *tuple_slot);
 
 extern void GenTextBuffer(char *buffer, size_t length);
-extern std::vector<pax::orc::proto::Type_Kind> CreateTestSchemaTypes();
+extern std::vector<pax::porc::proto::Type_Kind> CreateTestSchemaTypes();
 }  // namespace pax::tests

@@ -13,7 +13,7 @@
 #include "pax_gtest_helper.h"
 #include "storage/local_file_system.h"
 #include "storage/micro_partition.h"
-#include "storage/orc/orc.h"
+#include "storage/orc/porc.h"
 #include "storage/pax_table_partition_writer.h"
 #include "stub.h"
 

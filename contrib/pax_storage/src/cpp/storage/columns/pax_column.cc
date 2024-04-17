@@ -119,7 +119,7 @@ void PaxCommColumn<T>::Append(char *buffer, size_t size) {
 
 template <typename T>
 PaxStorageFormat PaxCommColumn<T>::GetStorageFormat() const {
-  return PaxStorageFormat::kTypeStorageOrcNonVec;
+  return PaxStorageFormat::kTypeStoragePorcNonVec;
 }
 
 template <typename T>
@@ -248,7 +248,7 @@ PaxColumnTypeInMem PaxNonFixedColumn::GetPaxColumnTypeInMem() const {
 }
 
 PaxStorageFormat PaxNonFixedColumn::GetStorageFormat() const {
-  return PaxStorageFormat::kTypeStorageOrcNonVec;
+  return PaxStorageFormat::kTypeStoragePorcNonVec;
 }
 
 std::pair<char *, size_t> PaxNonFixedColumn::GetBuffer() {

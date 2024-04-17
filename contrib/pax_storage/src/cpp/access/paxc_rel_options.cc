@@ -26,8 +26,8 @@ typedef struct {
 } relopt_format_type_mapping;
 
 static const relopt_format_type_mapping kSelfRelFormatMap[] = {
-    {STORAGE_FORMAT_TYPE_ORC, pax::PaxStorageFormat::kTypeStorageOrcNonVec},
-    {STORAGE_FORMAT_TYPE_ORC_VEC, pax::PaxStorageFormat::kTypeStorageOrcVec},
+    {STORAGE_FORMAT_TYPE_PORC, pax::PaxStorageFormat::kTypeStoragePorcNonVec},
+    {STORAGE_FORMAT_TYPE_PORC_VEC, pax::PaxStorageFormat::kTypeStoragePorcVec},
 };
 
 // reloptions structure and variables.
@@ -225,7 +225,7 @@ List *paxc_transform_column_encoding_clauses(List *encoding_opts, bool validate,
 void paxc_reg_rel_options() {
   self_relopt_kind = add_reloption_kind();
   add_string_reloption(
-      self_relopt_kind, PAX_SOPT_STORAGE_FORMAT, "pax storage format", "orc",
+      self_relopt_kind, PAX_SOPT_STORAGE_FORMAT, "pax storage format", "porc",
       paxc_validate_rel_options_storage_format, AccessExclusiveLock);
   add_string_reloption(self_relopt_kind, PAX_SOPT_COMPTYPE, "pax compress type",
                        PAX_DEFAULT_COMPRESSTYPE,
