@@ -300,6 +300,7 @@ extern bool gp_appendonly_compaction;
 extern bool enable_parallel;
 extern int  gp_appendonly_insert_files;
 extern int  gp_appendonly_insert_files_tuples_range;
+extern int  gp_random_insert_segments;
 extern bool enable_answer_query_using_materialized_views;
 extern bool enable_offload_entry_to_qe;
 /*

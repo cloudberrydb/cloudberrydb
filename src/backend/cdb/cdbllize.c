@@ -1332,6 +1332,20 @@ build_slice_table_walker(Node *node, build_slice_table_context *context)
 			sendSlice->directDispatch.contentIds = list_make1_int(0);
 		}
 
+		if (root->parse->commandType == CMD_INSERT &&
+		    motion->motionType == MOTIONTYPE_HASH &&
+			motion->plan.locustype == CdbLocusType_Strewn &&
+			motion->numHashSegments == gp_random_insert_segments)
+		{
+			PlanSlice *recvSlice;
+			/* 
+			 * Using limited segments for random distributed data insertion, we
+			 * just enable limited segments to do actual works.
+			 */
+			recvSlice = (PlanSlice *) list_nth(context->slices, sendSlice->parentIndex);
+			recvSlice->numsegments = motion->numHashSegments;
+		}
+
 		result = plan_tree_walker((Node *) motion,
 								  build_slice_table_walker,
 								  context,

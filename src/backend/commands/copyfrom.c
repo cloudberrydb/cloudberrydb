@@ -3324,6 +3324,12 @@ GetTargetSeg(GpDistributionData *distData, TupleTableSlot *slot)
 
 		target_seg = cdbhashreduce(cdbHash); /* hash result segment */
 	}
+	else if (gp_random_insert_segments > 0 &&
+			 gp_random_insert_segments < policy->numsegments)
+	{
+		/* Select limited random segments for data insertion. */
+		target_seg = cdbhashrandomseg(gp_random_insert_segments);
+	}
 	else
 	{
 		/*

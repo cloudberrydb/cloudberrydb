@@ -2611,6 +2611,15 @@ create_motion_path_for_insert(PlannerInfo *root, GpPolicy *policy,
 	}
 	else
 		elog(ERROR, "unrecognized policy type %u", policyType);
+
+	if (CdbPathLocus_IsStrewn(subpath->locus) && subpath->locus.distkey == NIL &&
+		gp_random_insert_segments > 0 &&
+		gp_random_insert_segments < CdbPathLocus_NumSegments(subpath->locus))
+	{
+		/* Select limited random segments for data insertion. */
+		subpath->locus.numsegments = gp_random_insert_segments;
+	}
+
 	return subpath;
 }
 
