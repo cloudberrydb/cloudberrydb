@@ -60,7 +60,7 @@ LIMIT 100;
                                                                ->  Vec Seq Scan on orders
                                                                ->  Vec Hash
                                                                      ->  Vec Result
-                                                                           Filter: ((sum(lineitem_1.l_quantity)) > '280'::double precision)
+                                                                           Filter: ((sum(lineitem_1.l_quantity)) > '280'::numeric)
                                                                            ->  Vec HashAggregate
                                                                                  Group Key: lineitem_1.l_orderkey
                                                                                  ->  Vec Seq Scan on lineitem lineitem_1
@@ -102,9 +102,9 @@ order by
 	o_totalprice desc,
 	o_orderdate
 LIMIT 100;
-       c_name       | c_custkey | o_orderkey | o_orderdate | o_totalprice | sum 
---------------------+-----------+------------+-------------+--------------+-----
- Customer#000000667 |       667 |      29158 | 10-21-1995  |    439687.23 | 305
- Customer#000000178 |       178 |       6882 | 04-09-1997  |    422359.65 | 303
+       c_name       | c_custkey | o_orderkey | o_orderdate | o_totalprice |  sum   
+--------------------+-----------+------------+-------------+--------------+--------
+ Customer#000000667 |       667 |      29158 | 10-21-1995  |    439687.23 | 305.00
+ Customer#000000178 |       178 |       6882 | 04-09-1997  |    422359.65 | 303.00
 (2 rows)
 

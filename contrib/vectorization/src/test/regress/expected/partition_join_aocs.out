@@ -414,9 +414,9 @@ SELECT sum(t1.a), avg(t1.a), sum(t1.b), avg(t1.b) FROM prt1 t1 WHERE NOT EXISTS 
 (26 rows)
 
 SELECT sum(t1.a), avg(t1.a), sum(t1.b), avg(t1.b) FROM prt1 t1 WHERE NOT EXISTS (SELECT 1 FROM prt2 t2 WHERE t1.a = t2.b);
-  sum  | avg | sum  | avg 
--------+-----+------+-----
- 60000 | 300 | 2400 |  12
+  sum  |         avg          | sum  |         avg         
+-------+----------------------+------+---------------------
+ 60000 | 300.0000000000000000 | 2400 | 12.0000000000000000
 (1 row)
 
 -- lateral reference

@@ -29,9 +29,9 @@ order by
                                                                                           QUERY PLAN                                                                                           
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
  Vec Gather Motion 3:1  (slice1; segments: 3)
-   Merge Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount))))
+   Merge Key: (sum((lineitem.l_extendedprice * ('1'::numeric(15,2) - lineitem.l_discount))))
    ->  Vec Sort
-         Sort Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))) DESC
+         Sort Key: (sum((lineitem.l_extendedprice * ('1'::numeric(15,2) - lineitem.l_discount)))) DESC
          ->  Vec Finalize Vec HashAggregate
                Group Key: nation.n_name
                ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
@@ -101,6 +101,6 @@ order by
  INDONESIA | 907645.4944
  VIETNAM   | 862926.1382
  INDIA     | 629319.0326
- JAPAN     |  615315.029
+ JAPAN     | 615315.0290
 (5 rows)
 

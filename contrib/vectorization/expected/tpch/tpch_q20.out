@@ -59,7 +59,7 @@ order by
                            Hash Key: partsupp.ps_suppkey
                            ->  Vec Hash Join
                                  Hash Cond: ((lineitem.l_partkey = partsupp.ps_partkey) AND (lineitem.l_suppkey = partsupp.ps_suppkey))
-                                 Join Filter: ((partsupp.ps_availqty)::double precision > (('0.5'::double precision * sum(lineitem.l_quantity))))
+                                 Join Filter: ((partsupp.ps_availqty)::numeric > ((0.5 * sum(lineitem.l_quantity))))
                                  ->  Vec HashAggregate
                                        Group Key: lineitem.l_partkey, lineitem.l_suppkey
                                        ->  Vec Redistribute Motion 3:3  (slice4; segments: 3)

@@ -14,7 +14,7 @@ ARCH="$(uname -i)"
 OS="$(. /etc/os-release && echo "${ID}")"
 BUILD_TYPE="release"
 ARROW_BUILD_TYPE="release"
-ARROW_BRANCH="hdw"
+ARROW_BRANCH="numeric_new_type"
 LAST_COMMIT=`git ls-remote https://buildbot:Passw0rd@code.hashdata.xyz/hashdata/arrow.git ${ARROW_BRANCH} | awk '{ print $1}'`
 
 if [ $# -eq 2 ] && [ "${2,,}" = "debug" ]; then

@@ -41,7 +41,7 @@ order by
    ->  Vec GroupAggregate
          Group Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate))
          ->  Vec Sort
-               Sort Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate)) USING >
+               Sort Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate)) DESC
                ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: nation.n_name, (EXTRACT(year FROM orders.o_orderdate))
                      ->  Vec Hash Join
@@ -122,7 +122,7 @@ order by
  ARGENTINA      |   1998 | 201981.4471
  ARGENTINA      |   1997 |  97823.5764
  ARGENTINA      |   1996 | 187632.5884
- ARGENTINA      |   1995 |   89568.819
+ ARGENTINA      |   1995 |  89568.8190
  ARGENTINA      |   1994 |  90138.4455
  ARGENTINA      |   1993 | 214670.3779
  ARGENTINA      |   1992 |  79374.4425
@@ -131,7 +131,7 @@ order by
  BRAZIL         |   1996 |  30863.2184
  BRAZIL         |   1995 | 254490.0786
  BRAZIL         |   1994 |  98772.5608
- BRAZIL         |   1993 |  106411.736
+ BRAZIL         |   1993 | 106411.7360
  BRAZIL         |   1992 | 106508.7028
  CANADA         |   1998 |  98313.0763
  CANADA         |   1997 | 378306.7187
@@ -141,12 +141,12 @@ order by
  CANADA         |   1993 |  77878.3288
  CANADA         |   1992 | 218890.3923
  CHINA          |   1998 | 184902.4368
- CHINA          |   1997 |  512207.817
+ CHINA          |   1997 | 512207.8170
  CHINA          |   1996 | 426976.1898
- CHINA          |   1995 |  805806.671
+ CHINA          |   1995 | 805806.6710
  CHINA          |   1994 | 367326.6611
  CHINA          |   1993 | 514247.7633
- CHINA          |   1992 |  482143.643
+ CHINA          |   1992 | 482143.6430
  EGYPT          |   1998 | 271119.6372
  EGYPT          |   1997 | 517416.7567
  EGYPT          |   1996 | 364228.5296
@@ -157,7 +157,7 @@ order by
  ETHIOPIA       |   1998 |  69611.6247
  ETHIOPIA       |   1997 | 244760.6619
  ETHIOPIA       |   1996 | 136907.1031
- ETHIOPIA       |   1995 |  231237.104
+ ETHIOPIA       |   1995 | 231237.1040
  ETHIOPIA       |   1994 |  90187.5609
  ETHIOPIA       |   1993 | 208009.5321
  ETHIOPIA       |   1992 | 310218.5164
@@ -165,22 +165,22 @@ order by
  FRANCE         |   1996 | 127851.9768
  FRANCE         |   1995 |  33405.5428
  FRANCE         |   1994 | 313689.7546
- FRANCE         |   1993 |   44032.212
+ FRANCE         |   1993 |  44032.2120
  FRANCE         |   1992 | 299110.6518
  GERMANY        |   1998 | 223055.3671
  GERMANY        |   1997 | 411766.6871
  GERMANY        |   1996 | 411410.4916
  GERMANY        |   1995 | 257178.5104
  GERMANY        |   1994 | 411764.0341
- GERMANY        |   1993 |  299030.486
+ GERMANY        |   1993 | 299030.4860
  GERMANY        |   1992 | 224973.4985
  INDIA          |   1998 | 276746.5395
- INDIA          |   1997 |  394314.657
+ INDIA          |   1997 | 394314.6570
  INDIA          |   1996 | 413567.6717
  INDIA          |   1995 | 575082.0837
  INDIA          |   1994 | 333971.7559
  INDIA          |   1993 | 379174.9787
- INDIA          |   1992 |  499508.661
+ INDIA          |   1992 | 499508.6610
  INDONESIA      |   1998 | 125635.7049
  INDONESIA      |   1997 | 376751.9979
  INDONESIA      |   1996 | 207423.4752
@@ -194,32 +194,32 @@ order by
  IRAN           |   1995 | 103218.2752
  IRAN           |   1994 |  13128.8162
  IRAN           |   1993 | 128381.6724
- IRAN           |   1992 |  114690.486
+ IRAN           |   1992 | 114690.4860
  IRAQ           |   1998 |  32625.8877
  IRAQ           |   1997 | 152871.1998
  IRAQ           |   1996 |  58329.6025
- IRAQ           |   1995 |  107295.575
+ IRAQ           |   1995 | 107295.5750
  IRAQ           |   1994 |  94626.9044
  IRAQ           |   1993 |  89824.2657
  IRAQ           |   1992 |  28010.8798
  JAPAN          |   1998 | 173033.8409
- JAPAN          |   1997 |  517846.066
+ JAPAN          |   1997 | 517846.0660
  JAPAN          |   1996 | 566390.5424
  JAPAN          |   1995 | 568306.9273
  JAPAN          |   1994 | 591225.0166
  JAPAN          |   1993 | 458046.1125
  JAPAN          |   1992 | 467766.3502
- JORDAN         |   1998 |    74281.56
+ JORDAN         |   1998 |  74281.5600
  JORDAN         |   1997 |  77015.6023
  JORDAN         |   1996 |  92537.0419
  JORDAN         |   1995 |  73435.5285
- JORDAN         |   1994 |    36792.63
+ JORDAN         |   1994 |  36792.6300
  JORDAN         |   1993 |  44574.9998
  JORDAN         |   1992 | 110278.7546
  KENYA          |   1998 | 147128.1707
  KENYA          |   1997 | 492282.4294
- KENYA          |   1996 |  747513.956
- KENYA          |   1995 |  617955.572
+ KENYA          |   1996 | 747513.9560
+ KENYA          |   1995 | 617955.5720
  KENYA          |   1994 | 653152.8758
  KENYA          |   1993 | 652045.2438
  KENYA          |   1992 | 631432.1276
@@ -230,13 +230,13 @@ order by
  MOROCCO        |   1994 | 227271.1419
  MOROCCO        |   1993 | 334040.9203
  MOROCCO        |   1992 | 348157.4386
- MOZAMBIQUE     |   1998 |   242439.94
+ MOZAMBIQUE     |   1998 | 242439.9400
  MOZAMBIQUE     |   1997 | 812575.4191
  MOZAMBIQUE     |   1996 | 546485.0176
  MOZAMBIQUE     |   1995 | 646876.7595
  MOZAMBIQUE     |   1994 | 470850.6003
  MOZAMBIQUE     |   1993 | 668421.5793
- MOZAMBIQUE     |   1992 |  680094.837
+ MOZAMBIQUE     |   1992 | 680094.8370
  PERU           |   1998 | 202493.0587
  PERU           |   1997 | 308408.6007
  PERU           |   1996 | 378036.9875
@@ -262,7 +262,7 @@ order by
  SAUDI ARABIA   |   1996 |  67457.6375
  SAUDI ARABIA   |   1995 |  39572.1508
  SAUDI ARABIA   |   1994 | 119776.7219
- SAUDI ARABIA   |   1993 |   42354.702
+ SAUDI ARABIA   |   1993 |  42354.7020
  SAUDI ARABIA   |   1992 | 114288.9926
  UNITED KINGDOM |   1998 | 329461.2006
  UNITED KINGDOM |   1997 | 386722.6288
@@ -276,10 +276,10 @@ order by
  UNITED STATES  |   1996 | 745163.3309
  UNITED STATES  |   1995 | 684367.9576
  UNITED STATES  |   1994 | 589979.3126
- UNITED STATES  |   1993 |  888535.843
+ UNITED STATES  |   1993 | 888535.8430
  UNITED STATES  |   1992 | 688080.8071
- VIETNAM        |   1998 |  312728.788
- VIETNAM        |   1997 |  422950.894
+ VIETNAM        |   1998 | 312728.7880
+ VIETNAM        |   1997 | 422950.8940
  VIETNAM        |   1996 | 183729.3664
  VIETNAM        |   1995 | 479546.2766
  VIETNAM        |   1994 | 648421.6319

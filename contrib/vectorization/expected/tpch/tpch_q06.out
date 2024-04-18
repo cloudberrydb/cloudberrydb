@@ -17,7 +17,7 @@ where
    ->  Vec Gather Motion 3:1  (slice1; segments: 3)
          ->  Vec Partial Vec Aggregate
                ->  Vec Seq Scan on lineitem
-                     Filter: ((l_shipdate >= '01-01-1993'::date) AND (l_shipdate < 'Sat Jan 01 00:00:00 1994'::timestamp without time zone) AND (l_discount >= '0.01'::double precision) AND (l_discount <= '0.03'::double precision) AND (l_quantity < '25'::double precision))
+                     Filter: ((l_shipdate >= '01-01-1993'::date) AND (l_shipdate < 'Sat Jan 01 00:00:00 1994'::timestamp without time zone) AND (l_discount >= 0.01::numeric(15,2)) AND (l_discount <= 0.03::numeric(15,2)) AND (l_quantity < '25'::numeric(15,2)))
  Optimizer: Pivotal Optimizer (GPORCA)
 (6 rows)
 

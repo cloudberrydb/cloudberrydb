@@ -357,40 +357,40 @@ explain (costs off) select * from rlp where a = 1::bigint;		/* same as above */
 (4 rows)
 
 explain (costs off) select * from rlp where a = 1::numeric;		/* no pruning */
-                     QUERY PLAN                      
------------------------------------------------------
+                       QUERY PLAN                       
+--------------------------------------------------------
  Vec Gather Motion 3:1  (slice1; segments: 3)
    ->  Vec Append
          ->  Vec Seq Scan on rlp1 rlp_1
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp2 rlp_2
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp3abcd rlp_3
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp3efgh rlp_4
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp3nullxy rlp_5
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp3_default rlp_6
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp4_1 rlp_7
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp4_2 rlp_8
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp4_default rlp_9
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp5_1 rlp_10
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp5_default rlp_11
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp_default_10 rlp_12
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp_default_30 rlp_13
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp_default_null rlp_14
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
          ->  Vec Seq Scan on rlp_default_default rlp_15
-               Filter: ((a)::double precision = '1'::double precision)
+               Filter: ((a)::numeric = '1'::numeric)
  Optimizer: Postgres query optimizer
 (33 rows)
 
@@ -1566,7 +1566,7 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from coercepart where a = any (null::text[]);
 NOTICE:  One or more columns in the following table(s) do not have statistics: coercepart
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:250)
+ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:240)
 explain (costs off) select * from coercepart where a = all ('{ab}');
 NOTICE:  One or more columns in the following table(s) do not have statistics: coercepart
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
@@ -1608,7 +1608,7 @@ HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For 
 explain (costs off) select * from coercepart where a = all (null::text[]);
 NOTICE:  One or more columns in the following table(s) do not have statistics: coercepart
 HINT:  For non-partitioned tables, run analyze <table_name>(<column_list>). For partitioned tables, run analyze rootpartition <table_name>(<column_list>). See log for columns missing statistics.
-ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:250)
+ERROR:  cannot convert PG type 1009 to arrow data type (transfuncs.c:240)
 drop table coercepart;
 CREATE TABLE part (a INT, b INT) PARTITION BY LIST (a);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'a' as the Cloudberry Database data distribution key for this table.

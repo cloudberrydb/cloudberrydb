@@ -42,7 +42,7 @@ order by
                ->  Vec Seq Scan on supplier
                ->  Vec Hash
                      ->  Vec Hash Join
-                           Hash Cond: ((sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))) = (max((sum((lineitem_1.l_extendedprice * ('1'::double precision - lineitem_1.l_discount)))))))
+                           Hash Cond: ((sum((lineitem.l_extendedprice * ('1'::numeric(15,2) - lineitem.l_discount)))) = (max((sum((lineitem_1.l_extendedprice * ('1'::numeric(15,2) - lineitem_1.l_discount)))))))
                            ->  Vec Finalize Vec HashAggregate
                                  Group Key: lineitem.l_suppkey
                                  ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)

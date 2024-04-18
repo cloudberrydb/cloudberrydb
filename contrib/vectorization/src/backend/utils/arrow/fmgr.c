@@ -52,23 +52,23 @@ const ArrowFmgr arrow_fmgr_builtins[] = {
         { "max", F_MAX_NUMERIC, "max", "max", "max"},
         { "sum", F_SUM_INT2, "sum", "sum", "sum"},
         { "sum", F_SUM_INT4, "sum", "sum", "sum"},
-		/* Fixme: F_SUM_INT8 is deleted temporary. */
+        { "sum", F_SUM_INT8, "sum_64", "sum", "sum_64"},
         { "sum", F_SUM_NUMERIC, "sum", "sum", "sum"},
         { "count", F_COUNT_ANY, "count", "sum", "count"},
         { "count", F_COUNT_, "count", "sum", "count"},
-		/* FIXME: mean_64 and output float64->decimal will support in the future. */
-        { "avg", F_AVG_INT8, "avg_trans", "avg_final", "mean"},
-        { "avg", F_AVG_INT4, "avg_trans", "avg_final", "mean"},
-        { "avg", F_AVG_INT2, "avg_trans", "avg_final", "mean"},
+        { "avg", F_AVG_INT8, "avg_trans", "avg_final", "mean_numeric"},
+        { "avg", F_AVG_INT4, "avg_trans", "avg_final", "mean_numeric"},
+        { "avg", F_AVG_INT2, "avg_trans", "avg_final", "mean_numeric"},
         /* float8 */
         { "avg", F_AVG_FLOAT8, "avg_trans", "avg_final", "mean"},
-        { "stddev", F_STDDEV_SAMP_INT4, "stddev_avg_trans", "stddev_avg_final", "stddev"},
+        { "stddev", F_STDDEV_SAMP_INT4, "stddev_avg_trans", "stddev_avg_final", "stddev_numeric"},
         { "min", F_MIN_FLOAT8, "min", "min", "min"},
         { "max", F_MAX_FLOAT8, "max", "max", "max"},
         { "sum", F_SUM_FLOAT8, "sum", "sum", "sum"},
         /* windowagg func */
         { "rank", F_RANK_, NULL, NULL, "windowagg_rank"},
         { "row_number", F_ROW_NUMBER, NULL, NULL, "windowagg_row_number"},
+        { "avg", F_AVG_NUMERIC, "avg_trans", "avg_final", "mean_numeric"},
 };
 
 const FuncTable arrow_func_tables[] = {
@@ -86,7 +86,8 @@ const FuncTable arrow_func_tables[] = {
 	{ "stddev_avg_trans", "hash_avg_trans_stddev", "stddev_avg_trans", "stddev_avg_trans", build_empty},
 	{ "stddev_avg_final", "hash_avg_final_stddev", "stddev_avg_final", "stddev_avg_final", build_empty},
 	{ "mean", "hash_mean", "hash_mean", "hash_mean", build_empty},
-	{ "stddev", "hash_stddev", "hash_stddev", "hash_stddev", build_sample_stddev_options},
+        { "mean_numeric", "hash_mean_numeric", "hash_mean_numeric", "hash_mean_numeric", build_empty},
+	{ "stddev_numeric", "hash_stddev_numeric", "hash_stddev_numeric", "hash_stddev_numeric", build_sample_stddev_options},
 };
 
 const ArrowFmgr *

@@ -25,14 +25,14 @@ order by
 	revenue desc,
 	o_orderdate
 LIMIT 10;
-                                                                QUERY PLAN                                                                
-------------------------------------------------------------------------------------------------------------------------------------------
+                                                              QUERY PLAN                                                               
+---------------------------------------------------------------------------------------------------------------------------------------
  Vec Limit
    ->  Vec Gather Motion 3:1  (slice1; segments: 3)
-         Merge Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))), orders.o_orderdate
+         Merge Key: (sum((lineitem.l_extendedprice * ('1'::numeric(15,2) - lineitem.l_discount)))), orders.o_orderdate
          ->  Vec Limit
                ->  Vec Sort
-                     Sort Key: (sum((lineitem.l_extendedprice * ('1'::double precision - lineitem.l_discount)))) DESC, orders.o_orderdate
+                     Sort Key: (sum((lineitem.l_extendedprice * ('1'::numeric(15,2) - lineitem.l_discount)))) DESC, orders.o_orderdate
                      ->  Vec HashAggregate
                            Group Key: orders.o_orderdate, lineitem.l_orderkey, orders.o_shippriority
                            ->  Vec Hash Join
@@ -81,10 +81,10 @@ LIMIT 10;
       29095 | 276518.9348 | 03-09-1995  |              0
       46115 | 268918.6409 | 03-03-1995  |              0
       24960 | 267797.1378 | 01-28-1995  |              0
-      51713 |  239655.366 | 03-20-1995  |              0
+      51713 | 239655.3660 | 03-20-1995  |              0
       45059 | 218461.8626 | 02-04-1995  |              0
       55808 | 213870.0336 | 02-15-1995  |              0
-      28003 |  209621.676 | 03-20-1995  |              0
+      28003 | 209621.6760 | 03-20-1995  |              0
       53539 | 196601.0217 | 03-15-1995  |              0
 (10 rows)
 

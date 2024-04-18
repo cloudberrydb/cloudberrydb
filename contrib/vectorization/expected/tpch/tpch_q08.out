@@ -46,7 +46,7 @@ order by
    ->  Vec GroupAggregate
          Group Key: (EXTRACT(year FROM orders.o_orderdate))
          ->  Vec Sort
-               Sort Key: (EXTRACT(year FROM orders.o_orderdate)) USING <
+               Sort Key: (EXTRACT(year FROM orders.o_orderdate))
                ->  Vec Redistribute Motion 3:3  (slice2; segments: 3)
                      Hash Key: (EXTRACT(year FROM orders.o_orderdate))
                      ->  Vec Hash Join
@@ -133,9 +133,9 @@ group by
 	o_year
 order by
 	o_year;
- o_year |    mkt_share     
---------+------------------
-   1995 | 0.13500506424159
-   1996 | 0.24485701085455
+ o_year |       mkt_share        
+--------+------------------------
+   1995 | 0.13500506424159452339
+   1996 | 0.24485701085454549666
 (2 rows)
 

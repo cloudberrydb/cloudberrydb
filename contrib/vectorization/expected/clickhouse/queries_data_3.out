@@ -111,16 +111,16 @@ SELECT sum(ResolutionWidth), sum(ResolutionWidth + 1), sum(ResolutionWidth + 2),
 
 -- test gp optimizer
 SELECT replace(Referer, 'www.', '') AS key, avg(length(Referer)) AS l, count(), min(Referer) FROM hits WHERE Referer != '' GROUP BY key HAVING count() > 40 ORDER BY l DESC LIMIT 25;
-       key        | l  | count |       min        
-------------------+----+-------+------------------
- http://megogorod | 16 |    46 | http://megogorod
+       key        |          l          | count |       min        
+------------------+---------------------+-------+------------------
+ http://megogorod | 16.0000000000000000 |    46 | http://megogorod
 (1 row)
 
 SET optimizer = off;
 SELECT replace(Referer, 'www.', '') AS key, avg(length(Referer)) AS l, count(), min(Referer) FROM hits WHERE Referer != '' GROUP BY key HAVING count() > 40 ORDER BY l DESC LIMIT 25;
-       key        | l  | count |       min        
-------------------+----+-------+------------------
- http://megogorod | 16 |    46 | http://megogorod
+       key        |          l          | count |       min        
+------------------+---------------------+-------+------------------
+ http://megogorod | 16.0000000000000000 |    46 | http://megogorod
 (1 row)
 
 RESET optimizer;

@@ -18,7 +18,7 @@
 #include "utils/arrow.h"
 
 extern void *ArrowArrayNew(Oid type, int64 length, uint8 *data, uint8 *null_bitmap);
-extern GArrowScalar *ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type);
+extern GArrowScalar *ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type, int32 typmod);
 extern Datum ArrowArrayGetValueDatum(void *array, int i, Form_pg_attribute att);
 extern Datum ArrowScalarGetDatum(void *scalar);
 extern GArrowArray *ArrowScalarToArray(void *arrow_scalar_datum, int length);

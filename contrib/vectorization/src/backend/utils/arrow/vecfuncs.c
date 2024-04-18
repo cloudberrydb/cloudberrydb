@@ -163,8 +163,44 @@ ArrowArrayNew(Oid type, int64 length, uint8 *data, uint8 *null_bitmap)
 	return NULL;
 }
 
+static GArrowScalar*
+pg_numeric_to_numeric128_scalar(Datum datum, int32 typmod)
+{
+	g_autoptr(GArrowScalar) ret = NULL;
+	g_autoptr(GArrowNumeric128) val = NULL;
+	g_autoptr(GArrowNumeric128DataType) dt = NULL;
+	int32 scale = -1;
+	char *str = NULL;
+
+	dt  = garrow_numeric128_data_type_new();
+	str = DatumGetCString(DirectFunctionCall1(numeric_out, datum));
+	val = garrow_numeric128_new_string(str);
+	if (typmod >= VARHDRSZ)
+	{
+		g_autoptr(GArrowNumeric128) rescaled_val = NULL;
+		g_autoptr(GError) error = NULL;
+
+		scale = (typmod - VARHDRSZ) & 0xffff;
+		rescaled_val = garrow_numeric128_rescale_safe(val, scale, &error);
+		if (error)
+		{
+			elog(WARNING, "Rescale Arrow numeric %s to scale %d failed.",
+					garrow_numeric128_to_string(val), scale);
+			ret = GARROW_SCALAR(garrow_numeric128_scalar_new(dt, val));
+		}
+		else
+			ret = GARROW_SCALAR(garrow_numeric128_scalar_new(dt, rescaled_val));
+	}
+	else
+		ret = GARROW_SCALAR(garrow_numeric128_scalar_new(dt, val));
+
+	pfree(str);
+	return garrow_move_ptr(ret);
+	return ret;
+}
+
 GArrowScalar *
-ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type)
+ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type, int32 typmod)
 {
 	g_autoptr(GArrowScalar) ret = NULL;
 
@@ -206,7 +242,11 @@ ArrowScalarNew(GArrowType type, Datum datum, Oid pg_type)
 			ret = (GArrowScalar*)garrow_timestamp_scalar_new(timestamp_data_type,DatumGetInt64(datum));
 			break;
 		}
-
+		case GARROW_TYPE_NUMERIC128:
+		{
+			ret = pg_numeric_to_numeric128_scalar(datum, typmod);
+			break;
+		}
 		case GARROW_TYPE_STRING:
 		{
 			struct varlena *s = (struct varlena *) datum;
@@ -475,9 +515,10 @@ ArrowArrayGetValueDatum(void *array, int i, Form_pg_attribute att)
 			return Decimal256ArrayGetDatum(GARROW_DECIMAL256_ARRAY(arrowarray), i);
 			break;
 		}
-		case GARROW_TYPE_INT128:
+		case GARROW_TYPE_NUMERIC128:
 		{
-			return Int128ArrayGetDatum(GARROW_INT128_ARRAY(arrowarray), i);
+			return Numeric128ArrayGetDatum(GARROW_NUMERIC128_ARRAY(arrowarray), i);
+			break;
 		}
 		case GARROW_TYPE_TIMESTAMP:
 		{

@@ -418,19 +418,7 @@ make_cdbhash32_fnode(GGandivaNode *node_first, GGandivaNode *node_second);
 extern GGandivaNode*
 make_result_cols_hash_fnode(GArrowSchema *schema, List *hash_keys);
 
-/*
- * ArrowInt128 varlen data
- */
-typedef struct Int128
-{
-	int32		 vl_len_;		/* varlena header (do not touch directly!) */
-	GArrowInt128 *data;
-} Int128;
 
-
-extern Datum int128_in(PG_FUNCTION_ARGS);
-extern Datum int128_out(PG_FUNCTION_ARGS);
-extern Oid INT128OID;
 extern Oid STDDEVOID;
 extern Oid AvgIntByteAOid;
 extern void init_vector_types(void);

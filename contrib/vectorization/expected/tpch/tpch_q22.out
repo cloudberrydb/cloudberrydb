@@ -60,7 +60,7 @@ order by
                                                    ->  Vec Gather Motion 3:1  (slice4; segments: 3)
                                                          ->  Vec Partial Vec Aggregate
                                                                ->  Vec Seq Scan on customer customer_1
-                                                                     Filter: ((c_acctbal > '0'::double precision) AND (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[])))
+                                                                     Filter: ((c_acctbal > 0.00::numeric(15,2)) AND (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[])))
                                        ->  Vec Seq Scan on customer
                                              Filter: (SUBSTRING(c_phone FROM 1 FOR 2) = ANY ('{13,31,23,29,30,18,17}'::text[]))
                                  ->  Vec Hash

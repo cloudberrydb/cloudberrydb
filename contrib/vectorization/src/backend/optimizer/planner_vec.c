@@ -34,7 +34,6 @@
 #include "utils/builtins.h"
 #include "utils/lsyscache.h"
 #include "utils/rel.h"
-#include "utils/numeric.h"
 #include "access/heapam.h"
 #include "nodes/nodes.h"
 #include "cdb/cdbllize.h"
@@ -54,6 +53,21 @@
 #include "utils/wrapper.h"
 #include "utils/fmgr_vec.h"
 
+#include <sys/stat.h>
+#include <sys/file.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#define NUMERIC_EQ 1718
+#define NUMERIC_NE 1719
+#define NUMERIC_GT 1720
+#define NUMERIC_GE 1721
+#define NUMERIC_LT 1722
+#define NUMERIC_LE 1723
+#define NUMERIC_ADD 1724
+#define NUMERIC_SUB 1725
+
 planner_hook_type           planner_prev = NULL;
 
 static void arrow_aggref_adapter(List *targetlist);
@@ -66,7 +80,6 @@ static bool is_hash_expr_vectorable(Expr* expr, void *context);
 static bool is_relation_vectorable(SeqScan* seqscan, List *rtable, bool isForeign);
 static bool is_sort_collation_vectorable(Sort *sort);
 static bool fallback_distinct_junk(Plan *plan);
-static void replace_sort_operators(Motion *node);
 static bool fallback_nested_loop_jointype(Plan *plan);
 static bool joinclauses_type_different(Expr *node, void *context);
 static bool
@@ -284,17 +297,13 @@ bool
 try_vectorize_plan(PlannedStmt *result)
 {
 	bool vectorable;
-	bool is_mutator_success = true;
 	Plan *plan_copy;
 	VectorExtensionContext *ext_ctx = NULL;
 
 	plan_copy = copyObject(result->planTree);
 	
-	plan_copy = (Plan *) vectorize_plan_mutator((Node *) plan_copy, &is_mutator_success);
-	if (!is_mutator_success) {
-		elog(DEBUG2, "Fallback to non-vectorization; Numeric to Float8 failed, out of range");
-		return false;
-	}
+	plan_copy = (Plan *) vectorize_plan_mutator((Node *) plan_copy, NULL);
+
 	vectorable = is_plan_vectorable(plan_copy, result->rtable);
 	if (!vectorable)
 		return false;
@@ -311,161 +320,11 @@ try_vectorize_plan(PlannedStmt *result)
 	return true;
 }
 
-static bool
-beyond_float8_max(Datum num)
-{
-	Datum float_max;
-	Datum float_min;
-	Datum float_range_min;
-	Datum abc_num;
-
-	// handle num = 0
-	if (DatumGetBool(DirectFunctionCall2(numeric_eq, num, DirectFunctionCall3(numeric_in, CStringGetDatum("0"), 0, -1))))
-		return false;
-
-	float_max =  DirectFunctionCall1(float8_numeric, Float8GetDatum(DBL_MAX));
-	float_min = DirectFunctionCall1(float8_numeric, Float8GetDatum(-DBL_MAX));
-	float_range_min = DirectFunctionCall1(float8_numeric, Float8GetDatum(DBL_MIN));
-	abc_num = DirectFunctionCall1(numeric_abs, num);
-
-	return DatumGetBool(DirectFunctionCall2(numeric_lt, abc_num, float_range_min)) || \
-				DatumGetBool(DirectFunctionCall2(numeric_gt, num, float_max)) || \
-				DatumGetBool(DirectFunctionCall2(numeric_lt, num, float_min));
-}
-
-static bool
-replace_const_numeric(Const *c)
-{
-	c->consttype = FLOAT8OID;
-	c->constlen = sizeof(float8);
-	c->constbyval = true;
-	if (!c->constisnull) {
-		if (beyond_float8_max(c->constvalue))
-			return false;
-		c->constvalue = DirectFunctionCall1(numeric_float8, (c->constvalue));
-	}
-	return true;
-
-}
-
-static void
-replace_funcid(Plan *mutated) 
-{
-	Assert(IsA(mutated, FuncExpr) || IsA(mutated, OpExpr));
-	Oid oldfuncid = InvalidOid;
-	Oid newfuncid = InvalidOid;
-	Oid opno = InvalidOid;
-	ListCell *lc;
-	List *args = NIL;
-	bool need_replace = true;
-	if (IsA(mutated, FuncExpr))
-	{
-		FuncExpr* expr = (FuncExpr *) mutated;
-		oldfuncid = expr->funcid;
-		args = expr->args;
-	}
-	if (IsA(mutated, OpExpr))
-	{
-		OpExpr* expr = (OpExpr *) mutated;
-		oldfuncid = expr->opfuncid;
-		args = expr->args;
-	}
-	switch (oldfuncid)
-	{
-		case F_NUMERIC_INT2:
-		{
-			newfuncid = F_FLOAT8_INT2;
-			break;
-		}
-		case F_NUMERIC_INT4:
-		{
-			newfuncid = F_FLOAT8_INT4;
-			break;
-		}
-		case F_NUMERIC_INT8:
-		{
-			newfuncid = F_FLOAT8_INT8;
-			break;
-		}
-		case F_NUMERIC_FLOAT4:
-		case F_NUMERIC_FLOAT8:
-		{
-			newfuncid = F_FLOAT8_FLOAT4;
-			break;
-		}
-		case F_NUMERIC_NUMERIC_INT4:
-		{
-			newfuncid = F_FLOAT8_INT4;
-			foreach (lc, args)
-			{
-				Expr *cur = (Expr *)lfirst(lc);
-				if (IsA(cur, Const))
-					args = list_delete_cell(args, lc);
-			}
-			break;
-		}
-		case F_NUMERIC_EQ:
-		{
-			newfuncid = F_FLOAT8EQ;
-			opno = Float8EqualOperator;
-			break;
-		}
-		case F_NUMERIC_NE:
-		{
-			newfuncid = F_FLOAT8NE;
-			opno = Float8EqualOperator + 1;
-			break;
-		}
-		case F_NUMERIC_GT:
-		{
-			newfuncid = F_FLOAT8GT;
-			opno = Float8LessOperator + 2;
-			break;
-		}
-		case F_NUMERIC_GE:
-		{
-			newfuncid = F_FLOAT8GE;
-			opno = Float8LessOperator + 3;
-			break;
-		}
-		case F_NUMERIC_LT:
-		{
-			newfuncid = F_FLOAT8LT;
-			opno = Float8LessOperator;
-			break;
-		}
-		case F_NUMERIC_LE:
-		{
-			newfuncid = F_FLOAT8LE;
-			opno = Float8LessOperator + 1;
-			break;
-		}
-		default:
-		{
-			need_replace = false;
-			break;
-		}
-	}
-	if (!need_replace)
-		return;
-	if (IsA(mutated, FuncExpr))
-	{
-		FuncExpr* expr = (FuncExpr *) mutated;
-		expr->funcid = newfuncid;
-	}
-	if (IsA(mutated, OpExpr))
-	{
-		OpExpr* expr = (OpExpr *) mutated;
-		expr->opfuncid = newfuncid;
-		expr->opno = opno;
-	}
-}
 
 Node *
 vectorize_plan_mutator(Node *node, void *context)
 {
 	Plan *mutated;
-	bool *is_mutator_success = (bool *)context;
 
 	if (node == NULL)
 		return NULL;
@@ -476,72 +335,45 @@ vectorize_plan_mutator(Node *node, void *context)
 	if (IsA(mutated, Agg))
 		arrow_aggref_adapter(mutated->targetlist);
 
-	/* Numeric to float8 mutator.
-	 * Fixme: remove this mutator when numeric is used.
-	 */
-	if (IsA(mutated, Var))
-	{
-		Var *var = (Var *)mutated;
-
-		if (var->vartype == NUMERICOID)
-			var->vartype = FLOAT8OID;
-	}
-	if (IsA(mutated, Const))
-	{
-		Const *c = (Const *)mutated;
-
-		if (c->consttype == NUMERICOID && !replace_const_numeric(c)) {
-			*is_mutator_success = false;
-		}
-	}
-	if (IsA(mutated, FuncExpr))
-	{
-		FuncExpr *expr = (FuncExpr *) mutated;
-		if (expr->funcresulttype == NUMERICOID)
-			expr->funcresulttype = FLOAT8OID;	
-
-		replace_funcid(mutated);
-	}
-	if (IsA(mutated, CaseExpr))
-	{
-		CaseExpr *expr = (CaseExpr*) mutated;
-		if (expr->casetype == NUMERICOID)
-			expr->casetype = FLOAT8OID;
-	}
-	if (IsA(mutated, CaseTestExpr))
-	{
-		CaseTestExpr *expr = (CaseTestExpr*) mutated;
-		if (expr->typeId == NUMERICOID)
-			expr->typeId = FLOAT8OID;
-	}
+	/* Match scale of Numeric Const with var type*/
 	if (IsA(mutated, OpExpr))
 	{
-		OpExpr *expr = (OpExpr *) mutated;
+		OpExpr *op = (OpExpr *)mutated;
 
-		if (expr->opresulttype == NUMERICOID)
-			expr->opresulttype = FLOAT8OID;
+		if ((op->opfuncid == NUMERIC_EQ) ||
+				(op->opfuncid == NUMERIC_NE) ||
+				(op->opfuncid == NUMERIC_GT) ||
+				(op->opfuncid == NUMERIC_GE) ||
+				(op->opfuncid == NUMERIC_LT) ||
+				(op->opfuncid == NUMERIC_LE) ||
+				(op->opfuncid == NUMERIC_ADD) ||
+				(op->opfuncid == NUMERIC_SUB))
+		{
+			Expr *arg1 = (Expr *)linitial(op->args);
+			Expr *arg2 = (Expr *)lsecond(op->args);
+			Const *con = NULL;
+			int32 typmod = 0;
 
-		replace_funcid(mutated);
+			if (IsA(arg1, Const))
+			{
+				con = (Const *)arg1;
+				typmod = exprTypmod((Node *)arg2);
+				con->consttypmod = typmod;
+			}
+			else if (IsA(arg2, Const))
+			{
+				con = (Const *)arg2;
+				typmod = exprTypmod((Node *)arg1);
+				con->consttypmod = typmod;
+			}
+		}
 	}
-	if (IsA(mutated, Motion))
-		replace_sort_operators((Motion *)mutated);
 
 	if (IsA(mutated, NestLoop))
 	{
 		/* remove material node in inner. */
 		if (mutated->righttree && IsA(mutated->righttree, Material))
 			mutated->righttree = mutated->righttree->lefttree;
-	}
-	// FIXME: This is temporary code that will need to be removed when the system supports numeric.
-	if (IsA(mutated, TargetEntry))
-	{
-		TargetEntry *tle = (TargetEntry *) mutated;
-		if (nodeTag(tle->expr) == T_FuncExpr && ((FuncExpr *)tle->expr)->funcid == F_FLOAT8_NUMERIC) {
-			FuncExpr *child_func = (FuncExpr *)tle->expr;
-			List *arg = child_func->args;
-			tle->expr =  linitial(arg);
-			pfree(child_func);
-		}
 	}
 
 	/* Modify table may contains vars didn't match children's targetlist*/
@@ -626,12 +458,22 @@ is_expr_vectorable(Expr* expr, void *context)
 					Aggref *aggref = (Aggref *) expr;
 					typid  = aggref->aggtype;
 					funcid = aggref->aggfnoid;
+					if(aggref->aggfilter != NULL)
+					{
+						elog(DEBUG2, "Fallback to non-vectorization; agg filter not support");
+						return false;
+					}			
 				}
 				else /* WindowFunc */
 				{
 					WindowFunc *wfunc = (WindowFunc *) expr;
 					typid  = wfunc->wintype;
 					funcid = wfunc->winfnoid;
+					if(wfunc->aggfilter != NULL)
+					{
+						elog(DEBUG2, "Fallback to non-vectorization; agg filter not support");
+						return false;
+					}	
 				}
 
 				if (!is_type_vectorable(typid))
@@ -1027,27 +869,23 @@ agg_trans_mutator(Node *node, void *context)
 				return node;
 			switch (aggref->aggfnoid)
 			{
+				/* change result bytea type to numeric/decimal */
+				case F_SUM_NUMERIC:
 				case F_SUM_INT8:
 				{
-					/* change result bytea type to int128 */
-					aggref->aggtype = INT128OID;
+					aggref->aggtype = NUMERICOID;
 					break;
 				}
 				case F_AVG_INT8:
+				case F_AVG_NUMERIC:
 				{
 					/* change result bytea type to avgintbytea */
 					aggref->aggtype = AvgIntByteAOid;
 					break;
 				}
-				case F_STDDEV_SAMP_INT4:
+			    case F_STDDEV_SAMP_INT4:
 				{
 					aggref->aggtype = STDDEVOID;
-					break;
-				}
-				case F_AVG_NUMERIC:
-				{
-					aggref->aggfnoid = F_AVG_FLOAT8;
-					aggref->aggtype = FLOAT8ARRAYOID;
 					break;
 				}
 			}
@@ -1059,122 +897,32 @@ agg_trans_mutator(Node *node, void *context)
 	return expression_tree_mutator(node, agg_trans_mutator, context);
 }
 
-static Node *
-agg_final_mutator(Node *node, void *context)
-{
-	if (node == NULL)
-		return NULL;
-
-	switch (nodeTag(node))
-	{
-		case T_Aggref:
-		{
-			Aggref *aggref = (Aggref *) node;
-			if (aggref->aggsplit != AGGSPLIT_SIMPLE && aggref->aggsplit != AGGSPLIT_FINAL_DESERIAL)
-				return node;
-
-			switch (aggref->aggfnoid)
-			{
-				case F_SUM_INT8:
-				{
-					/* change result numeric type to int128 */
-					aggref->aggtype = INT128OID;
-					break;
-				}
-				case F_AVG_INT2:
-				case F_AVG_INT4:
-				case F_AVG_INT8:
-				{
-					/* change result numeric type to float8 */
-					aggref->aggtype = FLOAT8OID;
-					break;
-				}
-				case F_STDDEV_SAMP_INT4:
-				{
-					aggref->aggtype = FLOAT8OID;
-					break;
-				}
-				case F_AVG_NUMERIC:
-				{
-					aggref->aggfnoid = F_AVG_FLOAT8;
-					aggref->aggtype = FLOAT8OID;
-					break;
-				}
-			}
-			return node;
-		}
-		case T_FuncExpr:
-		{
-			FuncExpr * expr = (FuncExpr *) node;
-			switch (expr->funcid)
-			{
-				case F_NUMERIC_INT2:
-					expr->funcid = F_FLOAT8_INT2;
-					break;
-				case F_NUMERIC_INT4:
-					expr->funcid = F_FLOAT8_INT4;
-					break;
-				case F_NUMERIC_INT8:
-					expr->funcid = F_FLOAT8_INT8;
-					break;
-				default:
-					break;
-			}
-			if (expr->funcresulttype == NUMERICOID)
-				expr->funcresulttype = FLOAT8OID;
-			break;
-		}
-		case T_OpExpr:
-		{
-			OpExpr *op = (OpExpr *) node;
-			switch (op->opfuncid)
-			{
-				case F_NUMERIC_ADD:
-				case F_NUMERIC_SUB:
-				case F_NUMERIC_MUL:
-				case F_NUMERIC_DIV:
-				case F_NUMERIC_MOD:
-					op->opresulttype = FLOAT8OID;
-					break;
-				default:
-					break;
-			}
-			break;
-		}
-		default:
-			break;
-	}
-	return expression_tree_mutator(node, agg_final_mutator, context);
-}
 
 /*
- * sum(int4):
- *    trans: input var type is 23(INT4OID), result type(aggtype) is 20(INT8OID).
+ * sum(int2):
+ *    trans: input var type is 21(INT2OID), result type(aggtype) is 20(INT8OID).
  *    final: input var type is 20(INT8OID), result type(aggtype) is 20(INT8OID).
- * 
- * sum(int8):
- *    trans: input var type is 20(INT8OID), result type(aggtype) is 17(BYTEAOID).
- *    final: input var type is 17(BYTEAOID), result type(aggtype) is 1700(NUMERICOID).
  * 
  * avg(int2):
  *    trans: input var type is 21(INT2OID), result type(aggtype) is 1016(INT8ARRAYOID).
  *    final: input var type is 1016(INT8ARRAYOID), result type(aggtype) is 1700(NUMERICOID).
+ *
+ * sum(int4):
+ *    trans: input var type is 23(INT4OID), result type(aggtype) is 20(INT8OID).
+ *    final: input var type is 20(INT8OID), result type(aggtype) is 20(INT8OID).
  * 
  * avg(int4):
  *    trans: input var type is 23(INT4OID), result type(aggtype) is 1016(INT8ARRAYOID).
  *    final: input var type is 1016(INT8ARRAYOID), result type(aggtype) is 1700(NUMERICOID).
  * 
+ * sum(int8):
+ *    trans: input var type is 20(INT8OID), result type(aggtype) is 17(BYTEAOID).
+ *    final: input var type is 17(BYTEAOID), result type(aggtype) is 1700(NUMERICOID).
+ * 
  * avg(int8):
  *    trans: input var type is 20(INT8OID), result type(aggtype) is 17(BYTEAOID).
  *    final: input var type is 17(BYTEAOID), result type(aggtype) is 1700(NUMERICOID).
  * 
- * 
- * for sum(int8), change trans result type and final (input, result) type.
- * 		BYTEAOID -> INT128OID
- * 		NUMERICOID -> INT128OID.
- * 
- * for avg(int4), change result type.
- * 		numeric -> float8
  */
 static void
 arrow_aggref_adapter(List *targetlist)
@@ -1185,25 +933,6 @@ arrow_aggref_adapter(List *targetlist)
 		TargetEntry *tle = lfirst(lc);
 		Node *node = (Node *) tle->expr;
 		agg_trans_mutator(node, NULL);
-		agg_final_mutator(node, NULL);
-	}
-}
-
-static void
-replace_sort_operators(Motion *node)
-{
-	Assert(IsA(node, Motion));
-	for (int i = 0; i < node->numSortCols; i++)
-	{
-		/* descending-order sort is false */
-		if (node->sortOperators[i] == NumericEqualOperator + 2)
-		{
-			node->sortOperators[i] = Float8LessOperator;
-		}
-		else if (node->sortOperators[i] == NumericEqualOperator + 4) /* descending-order sort is true */
-		{
-			node->sortOperators[i] = Float8LessOperator + 2;
-		}
 	}
 }
 

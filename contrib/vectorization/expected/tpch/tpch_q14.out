@@ -44,8 +44,8 @@ where
 	l_partkey = p_partkey
 	and l_shipdate >= date '1997-08-01'
 	and l_shipdate < date '1997-08-01' + interval '1 month';
-  promo_revenue  
------------------
- 14.864300838938
+    promo_revenue    
+---------------------
+ 14.8643008389375999
 (1 row)
 

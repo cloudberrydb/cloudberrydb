@@ -19,6 +19,7 @@
 #include "access/detoast.h"
 
 #include "utils/datumstream_vec.h"
+#include "utils/decimal.h"
 
 #define WORDNUM(x)	((x) / BITS_PER_BITMAPWORD)
 #define BITNUM(x)	((x) % BITS_PER_BITMAPWORD)
@@ -45,6 +46,17 @@ CopyCtid(VecDesc vecdesc, int offset)
 
 	*(((Datum *)ctiddesc->values) + ctiddesc->currows) = offset + vecdesc->cur_ctid;
 	ctiddesc->currows++;
+}
+
+static inline void
+CopyNumeric(uint8 *datump, ColDesc *coldesc, int alllen)
+{
+	uint32 offset = DECIMAL128_SIZE * coldesc->currows;
+	int64* data = (int64*) ((uint8*)coldesc->values + offset);
+
+	Numeric numeric = DatumGetNumeric(PointerGetDatum(datump));	
+	numeric_short_to_decimal(numeric, data, alllen);
+	coldesc->currows++;
 }
 
 /*
@@ -114,6 +126,12 @@ CopyVarlena(uint8 *datump, ColDesc *coldesc)
 	struct varlena *s = (struct varlena *) datump;
 	text	   *tunpacked = NULL;
 
+	if (coldesc->type == GARROW_TYPE_NUMERIC128)
+	{
+		int		len = VARSIZE_ANY_EXHDR(s);
+		CopyNumeric(datump, coldesc, len);
+		return len;
+	}
 	/* must cast away the const, unfortunately */
 	if (VARATT_IS_COMPRESSED(s)
 		|| VARATT_IS_EXTERNAL_ONDISK(s)

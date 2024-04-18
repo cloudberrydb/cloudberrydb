@@ -26,7 +26,7 @@ where
          ->  Vec Partial Vec Aggregate
                ->  Vec Hash Join
                      Hash Cond: (lineitem.l_partkey = part.p_partkey)
-                     Join Filter: (lineitem.l_quantity < (('0.2'::double precision * avg(lineitem_1.l_quantity))))
+                     Join Filter: (lineitem.l_quantity < ((0.2 * avg(lineitem_1.l_quantity))))
                      ->  Vec Seq Scan on lineitem
                      ->  Vec Hash
                            ->  Vec Broadcast Motion 3:3  (slice2; segments: 3)
@@ -62,8 +62,8 @@ where
 		where
 			l_partkey = p_partkey
 	);
-   avg_yearly    
------------------
- 1935.0385714286
+      avg_yearly       
+-----------------------
+ 1935.0385714285714286
 (1 row)
 

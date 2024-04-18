@@ -38,7 +38,7 @@ CREATE TABLE part (
     P_TYPE        VARCHAR(25) NOT NULL,
     P_SIZE        INTEGER NOT NULL,
     P_CONTAINER   TEXT NOT NULL,
-    P_RETAILPRICE FLOAT8 NOT NULL,
+    P_RETAILPRICE DECIMAL(15,2) NOT NULL,
     P_COMMENT     VARCHAR(23) NOT NULL);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'p_partkey' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -49,7 +49,7 @@ CREATE TABLE supplier (
     S_ADDRESS     VARCHAR(40) NOT NULL,
     S_NATIONKEY   INTEGER NOT NULL,
     S_PHONE       TEXT NOT NULL,
-    S_ACCTBAL     FLOAT8 NOT NULL,
+    S_ACCTBAL     DECIMAL(15,2) NOT NULL,
     S_COMMENT     VARCHAR(101) NOT NULL);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 's_suppkey' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -58,7 +58,7 @@ CREATE TABLE partsupp (
     PS_PARTKEY     INTEGER NOT NULL,
     PS_SUPPKEY     INTEGER NOT NULL,
     PS_AVAILQTY    INTEGER NOT NULL,
-    PS_SUPPLYCOST  FLOAT8  NOT NULL,
+    PS_SUPPLYCOST  DECIMAL(15,2)  NOT NULL,
     PS_COMMENT     VARCHAR(199) NOT NULL );
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'ps_partkey' as the Cloudberry Database data distribution key for this table.
 HINT:  The 'DISTRIBUTED BY' clause determines the distribution of data. Make sure column(s) chosen are the optimal data distribution key to minimize skew.
@@ -69,7 +69,7 @@ CREATE TABLE customer (
     C_ADDRESS     VARCHAR(40) NOT NULL,
     C_NATIONKEY   INTEGER NOT NULL,
     C_PHONE       TEXT NOT NULL,
-    C_ACCTBAL     FLOAT8   NOT NULL,
+    C_ACCTBAL     DECIMAL(15,2)   NOT NULL,
     C_MKTSEGMENT  TEXT NOT NULL,
     C_COMMENT     VARCHAR(117) NOT NULL);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'c_custkey' as the Cloudberry Database data distribution key for this table.
@@ -79,7 +79,7 @@ CREATE TABLE orders (
     O_ORDERKEY       INT8 NOT NULL,
     O_CUSTKEY        INTEGER NOT NULL,
     O_ORDERSTATUS    TEXT NOT NULL,
-    O_TOTALPRICE     FLOAT8 NOT NULL,
+    O_TOTALPRICE     DECIMAL(15,2) NOT NULL,
     O_ORDERDATE      DATE NOT NULL,
     O_ORDERPRIORITY  TEXT NOT NULL,
     O_CLERK          TEXT NOT NULL,
@@ -93,10 +93,10 @@ CREATE TABLE lineitem (
     L_PARTKEY     INTEGER NOT NULL,
     L_SUPPKEY     INTEGER NOT NULL,
     L_LINENUMBER  INTEGER NOT NULL,
-    L_QUANTITY    FLOAT8 NOT NULL,
-    L_EXTENDEDPRICE  FLOAT8 NOT NULL,
-    L_DISCOUNT    FLOAT8 NOT NULL,
-    L_TAX         FLOAT8 NOT NULL,
+    L_QUANTITY    DECIMAL(15,2) NOT NULL,
+    L_EXTENDEDPRICE  DECIMAL(15,2) NOT NULL,
+    L_DISCOUNT    DECIMAL(15,2) NOT NULL,
+    L_TAX         DECIMAL(15,2) NOT NULL,
     L_RETURNFLAG  TEXT NOT NULL,
     L_LINESTATUS  TEXT NOT NULL,
     L_SHIPDATE    DATE NOT NULL,

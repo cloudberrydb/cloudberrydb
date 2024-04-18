@@ -199,9 +199,9 @@ View definition:
 explain (verbose, costs off) select * from numeric_view;
                                                                          QUERY PLAN                                                                          
 -------------------------------------------------------------------------------------------------------------------------------------------------------------
- Gather Motion 3:1  (slice1; segments: 3)
+ Vec Gather Motion 3:1  (slice1; segments: 3)
    Output: numeric_tbl.f1, ((numeric_tbl.f1)::numeric(16,4)), ((numeric_tbl.f1)::numeric), numeric_tbl.f2, ((numeric_tbl.f2)::numeric(16,4)), numeric_tbl.f2
-   ->  Seq Scan on public.numeric_tbl
+   ->  Vec Seq Scan on public.numeric_tbl
          Output: numeric_tbl.f1, (numeric_tbl.f1)::numeric(16,4), (numeric_tbl.f1)::numeric, numeric_tbl.f2, (numeric_tbl.f2)::numeric(16,4), numeric_tbl.f2
  Optimizer: Postgres query optimizer
 (6 rows)

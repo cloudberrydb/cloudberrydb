@@ -10,6 +10,7 @@
  *
  *-------------------------------------------------------------------------
  */
+#include "arrow-glib/record-batch.h"
 #include "postgres.h"
 
 #include "catalog/pg_operator_d.h"
@@ -25,7 +26,7 @@
 #include "utils/vecsort.h"
 #include "vecexecutor/execslot.h"
 #include "vecexecutor/executor.h"
-
+#include "utils/numeric.h"
 typedef struct VecAggInfo
 {
 	Aggref *aggref;
@@ -158,8 +159,6 @@ static GArrowExpression* replace_expression(List *args,
 				 PlanBuildContext *pcontext);
 static GArrowExpression *
 extract_expression(List *args, PlanBuildContext *pcontext, bool retnumeric);
-static  GArrowExpression *
-int4_to_numeric_expression(List *args, PlanBuildContext *pcontext);
 static GArrowExpression *
 utf8_slice_codeunits_expression(List *args, PlanBuildContext *pcontext);
 static GArrowExecuteNode *BuildHashjoin(PlanBuildContext *pcontext, GArrowExecuteNode *left, GArrowExecuteNode *right, List *joinqual);
@@ -178,7 +177,7 @@ static GArrowExpression *build_null_if_expression(NullIfExpr *dex, PlanBuildCont
 static GArrowExecuteNode*
 build_orderby_node(PlanState *planstate, GArrowExecutePlan *plan,  GArrowExecuteNode *input, PlanBuildContext *pcontext);
 static GArrowExpression *
-build_literal_expression(GArrowType type, Datum datum, bool isnull, Oid pg_type);
+build_literal_expression(GArrowType type, Datum datum, bool isnull, Oid pg_type, int32 typmod);
 
 static PlanState *
 get_sequence_exact_result_ps(PlanState *plan)
@@ -286,8 +285,6 @@ get_function_name(Oid opno)
 		return "replace_substring";
 	else if (0 == strcmp(name, "extract"))
 		return "dummy";
-	else if (0 == strcmp(name, "numeric") && opno == F_NUMERIC_INT4)
-		return "dummy";
 	else if (0 == strcmp(name, "substring") || 0 == strcmp(name, "substr"))
 		return "dummy";
 	else if (0 == strcmp(name, "abs"))
@@ -296,7 +293,7 @@ get_function_name(Oid opno)
 		return "upper";
 	else if (0 == strcmp(name, "boolne"))
 		return "dummy";
-	else if (0 == strcmp(name, "float8") || 0 == strcmp(name, "int4"))
+	else if (0 == strcmp(name, "float8") || 0 == strcmp(name, "int4") || 0 == strcmp(name, "numeric") || 0 == strcmp(name, "int8"))
 		return "dummy";
 	else if (0 == strcmp(name, "round"))
 		return "dummy";
@@ -359,21 +356,27 @@ build_round_expr(List *args, PlanBuildContext *pcontext)
 	GList *arguments = NULL;
 	g_autoptr(GArrowExpression) round_expr = NULL;
 	g_autoptr(GArrowRoundOptions) options = NULL;
-	int pos = 0;
+	int scale = 0;
 	foreach (l, args)
 	{
 		g_autoptr(GArrowExpression) cur_expr = NULL;
 		Expr  *expr = (Expr *) lfirst(l);
-		if (IsA(expr, Const)){
+		if (IsA(expr, Const))
+		{
 			Const* const_expr = (Const*) expr;
-			pos = const_expr->constvalue;
+			scale = const_expr->constvalue;
+			if (const_expr->consttypmod > (int32) (VARHDRSZ))
+			{
+				int32_t typmod = const_expr->consttypmod - VARHDRSZ;
+				scale = typmod & 0xffff;
+			}
 			continue;
 		}
 		cur_expr = expr_to_arrow_expression(expr, pcontext);
 		arguments = garrow_list_append_ptr(arguments, cur_expr);
 	}
 	options = garrow_round_options_new();
-	garrow_round_options_set(options, GARROW_ROUND_HALF_TO_EVEN, pos);
+	garrow_round_options_set(options,GARROW_ROUND_HALF_UP, scale);
 	round_expr = GARROW_EXPRESSION(garrow_call_expression_new("round", arguments, GARROW_FUNCTION_OPTIONS(options)));
 	garrow_list_free_ptr(&arguments);
 	return garrow_move_ptr(round_expr);
@@ -453,9 +456,17 @@ get_function_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 	}
 	else if (0 == strcmp(name, "length"))
 		return func_args_to_expression(opexpr->args, pcontext, "utf8_length");
-	else if (0 == strcmp(name, "float8") || 0 == strcmp(name, "int4"))
+	else if (0 == strcmp(name, "float8") || 0 == strcmp(name, "int4") || 0 == strcmp(name, "int8"))
 	{
 		return build_cast_expression(opexpr, pcontext);
+	}
+	else if(0 == strcmp(name, "numeric") && list_length(opexpr->args) == 1)
+	{
+		return build_cast_expression(opexpr, pcontext);
+	}
+	else if(0 == strcmp(name, "numeric") && list_length(opexpr->args) == 2)
+	{
+		return build_round_expr(opexpr->args, pcontext);
 	}
 	else if (0 ==strcmp(name, "date_trunc"))
 		return func_args_to_expression(opexpr->args, pcontext, "strptime");
@@ -465,13 +476,9 @@ get_function_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 		return replace_expression(opexpr->args, pcontext);
     /* Fixme: Should have been NUMERICOID .*/
 	else if (0 == strcmp(name ,"extract"))
-		return extract_expression(opexpr->args, pcontext, opexpr->funcresulttype == FLOAT8OID);
-	else if (0 == strcmp(name, "numeric") && opexpr->funcid == F_NUMERIC_INT4)
-		return int4_to_numeric_expression(opexpr->args, pcontext);
+		return extract_expression(opexpr->args, pcontext, opexpr->funcresulttype == NUMERICOID);
 	else if (0 == strcmp(name, "substring") || 0 == strcmp(name, "substr")) 
 		return utf8_slice_codeunits_expression(opexpr->args, pcontext);
-	else if (0 == strcmp(name, "int8"))
-		return build_cast_expression(opexpr, pcontext);
 	else if (0 == strcmp(name, "boolne"))
 		return func_args_to_expression(opexpr->args, pcontext, "not_equal");
 	else if (0 == strcmp(name, "abs"))
@@ -503,15 +510,22 @@ build_cast_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 
 	switch (opno)
 	{
-		case F_INT2_NUMERIC:
-		case F_INT4_NUMERIC:
 		case F_INT8_NUMERIC:
-		case F_FLOAT4_NUMERIC:
-		case F_FLOAT8_NUMERIC:
 		case F_INT8_INT2:
 		case F_INT8_INT4:
+		{
+			cast_args = garrow_list_append_ptr(cast_args, expr);
+			to_type = GARROW_DATA_TYPE(garrow_int64_data_type_new());
+			break;
+		}
+		case F_FLOAT4_NUMERIC:
+		{
+			cast_args = garrow_list_append_ptr(cast_args, expr);
+			to_type = GARROW_DATA_TYPE(garrow_float_data_type_new());
+			break;
+		}
+		case F_FLOAT8_NUMERIC:
 		case F_FLOAT8_FLOAT4:
-			return garrow_move_ptr(expr);
 		case F_FLOAT8_INT2:
 		case F_FLOAT8_INT4:
 		case F_FLOAT8_INT8:
@@ -528,9 +542,17 @@ build_cast_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 			break;
 		}
 		case F_INT4_INT8:
+		case F_INT4_NUMERIC:
 		{
 			cast_args = garrow_list_append_ptr(cast_args, expr);
 			to_type = GARROW_DATA_TYPE(garrow_int32_data_type_new());
+			break;
+		}
+		case F_NUMERIC_INT4:
+		case F_NUMERIC_INT8:
+		{
+			cast_args = garrow_list_append_ptr(cast_args, expr);
+			to_type = GARROW_DATA_TYPE(garrow_numeric128_data_type_new());
 			break;
 		}
 		case F_TEXT_BPCHAR:
@@ -543,7 +565,7 @@ build_cast_expression(FuncExpr *opexpr, PlanBuildContext *pcontext)
 			break;
 	}
 	if (!to_type) 
-		elog(ERROR, "build explict cast type is error.");
+		elog(ERROR, "build explict cast type is error. %d", opno);
 	cast_options = GARROW_CAST_OPTIONS(g_object_new(GARROW_TYPE_CAST_OPTIONS, "to-data-type", garrow_move_ptr(to_type), NULL));
 	if (allow_truncate)
 		garrow_set_cast_options(cast_options, GARROW_PROP_ALLOW_FLOAT_TRUNCATE, true);
@@ -583,7 +605,7 @@ scalararray_to_expression(ScalarArrayOpExpr *arrayexpr, PlanBuildContext *pconte
 	if (const_expr->constisnull)
 	{
 		val_scalar = ArrowScalarNew(GARROW_TYPE_NA,
-									const_expr->constvalue, const_expr->consttype);
+									const_expr->constvalue, const_expr->consttype, const_expr->consttypmod);
 	}
 	elemtype = get_element_type(const_expr->consttype);
 	if (elemtype == InvalidOid)
@@ -592,7 +614,7 @@ scalararray_to_expression(ScalarArrayOpExpr *arrayexpr, PlanBuildContext *pconte
 	}
 	if (!const_expr->constisnull)
 		val_scalar = ArrowScalarNew(PGTypeToArrowID(const_expr->consttype),
-									const_expr->constvalue, const_expr->consttype);
+									const_expr->constvalue, const_expr->consttype, const_expr->consttypmod);
 	array = garrow_base_list_scalar_get_value(GARROW_BASE_LIST_SCALAR(val_scalar));
 	array_datum = garrow_array_datum_new(array);
 	/* is_in need skip null follow pg(in null is false) */
@@ -770,7 +792,7 @@ build_divide_casewhen(Expr *expr, PlanBuildContext *pcontext)
 	struct_expr = GARROW_EXPRESSION(garrow_call_expression_new(
 			"make_struct", when_arguments, GARROW_FUNCTION_OPTIONS(options)));
 	expr_arguments = garrow_list_prepend_ptr(expr_arguments, struct_expr);
-	default_expr = build_literal_expression(GARROW_TYPE_NA, 0, true, pcontext->case_when_type);
+	default_expr = build_literal_expression(GARROW_TYPE_NA, 0, true, pcontext->case_when_type, -1);
 	expr_arguments = garrow_list_append_ptr(expr_arguments, default_expr);
 	casewhen_expr = GARROW_EXPRESSION(garrow_call_expression_new("case_when", expr_arguments, NULL));
 	pfree(fields);
@@ -864,29 +886,19 @@ extract_expression(List *args, PlanBuildContext *pcontext, bool retnumeric)
 								(errcode(ERRCODE_FEATURE_NOT_SUPPORTED),
 									errmsg("timestamp units  not supported")));
 				}
-				// FIXME: will be use in the future.
-				// if(retnumeric){
-				// 	// add cast expr(integer to decimal) to align pg extract expr output type
-				// 	g_autoptr(GArrowCastOptions)  cast_options = NULL;
-				// 	g_autoptr(GArrowDataType) to_type = NULL;
-				// 	g_autoptr(GList) cast_args = NULL;
-				// 	g_autoptr(GArrowExpression) cast_decimal_expr = NULL;
-				// 	to_type = GARROW_DATA_TYPE(garrow_decimal128_data_type_new(garrow_decimal128_data_type_max_precision(), 0));
-				// 	cast_args = garrow_list_append_ptr(cast_args, extract_expr);
-				// 	cast_options = GARROW_CAST_OPTIONS(g_object_new(GARROW_TYPE_CAST_OPTIONS, "to-data-type", garrow_move_ptr(to_type) , NULL));
-				// 	cast_decimal_expr = GARROW_EXPRESSION(garrow_call_expression_new("cast", garrow_move_ptr(cast_args), GARROW_FUNCTION_OPTIONS(garrow_move_ptr(cast_options))));
-				// 	return garrow_move_ptr(cast_decimal_expr);
-				// }
-				// add cast expr(integer to decimal) to align pg extract expr output type
-				g_autoptr(GArrowCastOptions)  cast_options = NULL;
-				g_autoptr(GArrowDataType) to_type = NULL;
-				g_autoptr(GList) cast_args = NULL;
-				g_autoptr(GArrowExpression) cast_double_expr = NULL;
-				to_type = GARROW_DATA_TYPE(garrow_double_data_type_new());
-				cast_args = garrow_list_append_ptr(cast_args, extract_expr);
-				cast_options = GARROW_CAST_OPTIONS(g_object_new(GARROW_TYPE_CAST_OPTIONS, "to-data-type", garrow_move_ptr(to_type) , NULL));
-				cast_double_expr = GARROW_EXPRESSION(garrow_call_expression_new("cast", garrow_move_ptr(cast_args), GARROW_FUNCTION_OPTIONS(garrow_move_ptr(cast_options))));
-				return garrow_move_ptr(cast_double_expr);
+				if (retnumeric)
+				{
+					// add cast expr(integer to decimal) to align pg extract expr output type
+					g_autoptr(GArrowCastOptions)  cast_options = NULL;
+					g_autoptr(GArrowDataType) to_type = NULL;
+					g_autoptr(GList) cast_args = NULL;
+					g_autoptr(GArrowExpression) cast_decimal_expr = NULL;
+					to_type = GARROW_DATA_TYPE(garrow_numeric128_data_type_new());
+					cast_args = garrow_list_append_ptr(cast_args, extract_expr);
+					cast_options = GARROW_CAST_OPTIONS(g_object_new(GARROW_TYPE_CAST_OPTIONS, "to-data-type", garrow_move_ptr(to_type) , NULL));
+					cast_decimal_expr = GARROW_EXPRESSION(garrow_call_expression_new("cast", garrow_move_ptr(cast_args), GARROW_FUNCTION_OPTIONS(garrow_move_ptr(cast_options))));
+					return garrow_move_ptr(cast_decimal_expr);
+				}
 			}
 			else
 			{
@@ -898,22 +910,6 @@ extract_expression(List *args, PlanBuildContext *pcontext, bool retnumeric)
 	}
 	elog(ERROR, "Failed to call extract_expression");
 	return NULL;
-}
-
-static GArrowExpression *
-int4_to_numeric_expression(List *args, PlanBuildContext *pcontext)
-{
-	g_autoptr(GArrowExpression) expr = NULL;
-	Expr *var_expr = NULL;
-
-	var_expr = (Expr *) linitial(args);
-	if (nodeTag(var_expr) != T_Var)
-	{
-		elog(ERROR, "unrecognized node type: %d", (int) nodeTag(var_expr));
-	}
-
-	expr = expr_to_arrow_expression(var_expr, pcontext);
-	return garrow_move_ptr(expr);
 }
 
 static GArrowExpression *
@@ -1144,14 +1140,14 @@ replace_expression(List *args, PlanBuildContext *pcontext)
 }
 
 static GArrowExpression *
-build_literal_expression(GArrowType type, Datum datum, bool isnull, Oid pg_type)
+build_literal_expression(GArrowType type, Datum datum, bool isnull, Oid pg_type, int32 typmod)
 {
 	g_autoptr(GArrowScalar) val_scalar = NULL;
 	g_autoptr(GArrowDatum) val_datum = NULL;
 	if (isnull)
-		val_scalar = ArrowScalarNew(GARROW_TYPE_NA, datum, pg_type);
+		val_scalar = ArrowScalarNew(GARROW_TYPE_NA, datum, pg_type, typmod);
 	else 
-		val_scalar = ArrowScalarNew(type, datum, pg_type);
+		val_scalar = ArrowScalarNew(type, datum, pg_type, typmod);
 	val_datum = GARROW_DATUM(garrow_scalar_datum_new(val_scalar));
 	return GARROW_EXPRESSION(garrow_literal_expression_new(val_datum));
 }
@@ -1209,7 +1205,7 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 				}
 				else if (var->varattno == GpSegmentIdAttributeNumber)
 				{
-					expr = build_literal_expression(PGTypeToArrowID(var->vartype), GpIdentity.segindex, false, var->vartype);
+					expr = build_literal_expression(PGTypeToArrowID(var->vartype), GpIdentity.segindex, false, var->vartype, -1);
 					break;
 				}
 				else if (pcontext->is_nestloopjoin || (pcontext->is_hashjoin && pcontext->is_hashjoin_after_node))
@@ -1240,7 +1236,11 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 		case T_Const:
 			{
 				Const * const_expr = (Const *) node;
-				expr = build_literal_expression(PGTypeToArrowID(const_expr->consttype), const_expr->constvalue, const_expr->constisnull, const_expr->consttype);
+				expr = build_literal_expression(PGTypeToArrowID(const_expr->consttype),
+												const_expr->constvalue,
+												const_expr->constisnull,
+												const_expr->consttype,
+												const_expr->consttypmod);
 				break;
 			}
 		case T_OpExpr:
@@ -1415,8 +1415,13 @@ expr_to_arrow_expression(Expr *node, PlanBuildContext *pcontext)
 				Param* param = (Param *) node;
 				ExprContext* exprcontext = pcontext->planstate->ps_ExprContext;
 				ParamExecData *prm = &(exprcontext->ecxt_param_exec_vals[param->paramid]);
-				expr = build_literal_expression(
-					PGTypeToArrowID(param->paramtype), prm->value, prm->isnull, param->paramtype);
+				if (param->paramtype == NUMERICOID && prm->value == (Datum) 0)
+					prm->value = NumericGetDatum(int64_to_numeric(0));
+				expr = build_literal_expression(PGTypeToArrowID(param->paramtype),
+												prm->value,
+												prm->isnull,
+												param->paramtype,
+												param->paramtypmod);
 				break;
 			}
 		case T_NullIfExpr:
@@ -2212,7 +2217,7 @@ build_null_if_expression(NullIfExpr *dex, PlanBuildContext *pcontext)
 			"make_struct", when_arguments, GARROW_FUNCTION_OPTIONS(options)));
 	expr_arguments = garrow_list_prepend_ptr(expr_arguments, struct_expr);
 	
-	null_expr = build_literal_expression(GARROW_TYPE_NA, 0, true, exprType((Node *) linitial(dex->args)));
+	null_expr = build_literal_expression(GARROW_TYPE_NA, 0, true, exprType((Node *) linitial(dex->args)), -1);
 	expr_arguments = garrow_list_append_ptr(expr_arguments, null_expr);
 	
 	// Use the first arg as the return value
@@ -2378,7 +2383,6 @@ BuildSource(PlanBuildContext *pcontext)
 			pstate = outerPlanState(pcontext->planstate);
 			break;
 	}
-
 	reader = garrow_record_batch_reader_new_callback(
 		pcontext->inputschema,
 		callback,
@@ -3478,7 +3482,7 @@ BuildNestLoopjoin(PlanBuildContext *pcontext, GArrowExecuteNode *left, GArrowExe
 	if (joinqual)
 		filter_expr = build_filter_expression(joinqual, pcontext);
 	else 
-		filter_expr = build_literal_expression(GARROW_TYPE_BOOLEAN, true, false, InvalidOid);
+		filter_expr = build_literal_expression(GARROW_TYPE_BOOLEAN, true, false, InvalidOid, -1);
 	nest_loop_options =
 		garrow_nested_loop_join_node_options_new(type, filter_expr, "", "", &error);
 	if (error)

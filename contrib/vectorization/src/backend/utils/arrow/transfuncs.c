@@ -29,7 +29,6 @@
 #include "vecexecutor/execnodes.h"
 #include "utils/fmgr_vec.h"
 
-Oid INT128OID = InvalidOid;
 Oid AvgIntByteAOid = InvalidOid;
 Oid STDDEVOID = InvalidOid;
 
@@ -44,15 +43,6 @@ init_vector_types(void)
 
 	namespace = PG_EXTAUX_NAMESPACE;
 
-	if (INT128OID == InvalidOid)
-	{
-		oid = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
-								PointerGetDatum("int128"),
-								ObjectIdGetDatum(namespace));
-		if (!OidIsValid(oid))
-			elog(ERROR, "Lookup int128 type failed!");
-		INT128OID = oid;
-	}
 	if (AvgIntByteAOid == InvalidOid)
 	{
 		oid = GetSysCacheOid2(TYPENAMENSP, Anum_pg_type_oid,
@@ -157,13 +147,11 @@ BuildAvgStructStddevType(GArrowDataType *sum_dt)
 GArrowDataType *
 PGTypeToArrow(Oid pg_type)
 {
-	if (pg_type == INT128OID)
-		return (GArrowDataType *)garrow_int128_data_type_new();
- 	else if (pg_type == AvgIntByteAOid)
+ 	if (pg_type == AvgIntByteAOid)
  	{
- 		g_autoptr(GArrowDataType) int128_dt;
- 		int128_dt = GARROW_DATA_TYPE(garrow_int128_data_type_new());
- 		return BuildAvgStructType(int128_dt);
+ 		g_autoptr(GArrowDataType) numeric128_dt;
+ 		numeric128_dt = GARROW_DATA_TYPE(garrow_numeric128_data_type_new());
+ 		return BuildAvgStructType(numeric128_dt);
  	}
 	else if (pg_type == STDDEVOID)
 	{
@@ -196,13 +184,13 @@ PGTypeToArrow(Oid pg_type)
 
 			g_autolist(GObject) dts;
 			g_autoptr(GArrowDataType) int64_dt;
-			g_autoptr(GArrowDataType) int128_dt;
+			g_autoptr(GArrowDataType) decimal_dt;
 
 			int64_dt = GARROW_DATA_TYPE(garrow_int64_data_type_new());
-			int128_dt = GARROW_DATA_TYPE(garrow_int128_data_type_new());
+			decimal_dt = GARROW_DATA_TYPE(garrow_numeric128_data_type_new());
 
 			count = garrow_field_new("count", int64_dt);
-			sum   = garrow_field_new("sum",   int128_dt);
+			sum   = garrow_field_new("sum",   decimal_dt);
 
 			/* make new data type */
 			dts = NULL;
@@ -213,6 +201,8 @@ PGTypeToArrow(Oid pg_type)
 
 			return struct_dt;
 		}
+		case NUMERICOID:
+			return (GArrowDataType *)garrow_numeric128_data_type_new();
 		case CHAROID:
 			return (GArrowDataType *)garrow_int8_data_type_new();
 		case NAMEOID:
@@ -255,9 +245,7 @@ PGTypeToArrow(Oid pg_type)
 GArrowType
 PGTypeToArrowID(Oid pg_type)
 {
-	if (pg_type == INT128OID)
-		return GARROW_TYPE_INT128;
- 	else if (pg_type == AvgIntByteAOid)
+ 	if (pg_type == AvgIntByteAOid)
  		return GARROW_TYPE_STRUCT;
 	else if (pg_type == STDDEVOID)
 		return GARROW_TYPE_STRUCT;
@@ -265,9 +253,9 @@ PGTypeToArrowID(Oid pg_type)
 	{
 		case BOOLOID:
 			return GARROW_TYPE_BOOLEAN;
-		/* Fixme: Numeric is not support now. */
-		//case NUMERICOID:
-		//	return  GARROW_TYPE_DECIMAL128;
+		case BYTEAOID:
+		case NUMERICOID:
+			return GARROW_TYPE_NUMERIC128;
 		case CHAROID:
 			return  GARROW_TYPE_INT8;
 		case TIMEOID:
@@ -517,6 +505,15 @@ FinishColDesc(ColDesc *coldesc)
 				coldesc->value_buffer, coldesc->bitmap_buffer, n_nulls);
 		break;
 	}
+	case GARROW_TYPE_NUMERIC128:
+	{
+		g_autoptr(GArrowNumeric128DataType) dt = NULL;
+		dt = garrow_numeric128_data_type_new();
+		rs = garrow_fixed_size_binary_array_new(
+			GARROW_FIXED_SIZE_BINARY_DATA_TYPE(dt), coldesc->currows,
+			coldesc->value_buffer, coldesc->bitmap_buffer, n_nulls);
+		break;
+    }
 	case GARROW_TYPE_STRING:
 	{
 		rs = garrow_string_array_new(coldesc->currows,
@@ -686,7 +683,9 @@ InitColDesc(ColDesc *coldesc, GArrowType arrow_type)
 		case GARROW_TYPE_TIMESTAMP:
 			coldesc->datalen = 8;
 			break;
-
+		case GARROW_TYPE_NUMERIC128:
+			coldesc->datalen = 16;
+			break;
 		/* Use builder for variable-size data.*/
 		case GARROW_TYPE_STRING:
 			coldesc->datalen = -1;
@@ -873,7 +872,9 @@ TupleDescToVecDescLM(TupleDesc tupdesc,
 		case GARROW_TYPE_TIMESTAMP:
 			coldesc->datalen = 8;
 			break;
-
+		case GARROW_TYPE_NUMERIC128:
+			coldesc->datalen = 16;
+			break;
 		/* Use builder for variable-size data.*/
 		case GARROW_TYPE_STRING:
 			coldesc->datalen = -1;
@@ -1901,30 +1902,4 @@ make_bitwise_or_fnode(GGandivaNode *node1,  GGandivaNode *node2)
 
 	garrow_list_free_ptr(&args);
 	return funcnode;
-}
-
-
-PG_FUNCTION_INFO_V1(int128_in);
-Datum
-int128_in(PG_FUNCTION_ARGS)
-{
-	Int128* retval;
-	int len;
-	const char* str;
-
-	len = sizeof(Int128);
-	retval = (Int128 *) palloc0(len);
-	SET_VARSIZE(retval, len);
-	str = PG_GETARG_CSTRING(0);
-	garrow_store_func(retval->data, garrow_int128_new_string(str));
-	PG_RETURN_POINTER(retval);
-}
-
-PG_FUNCTION_INFO_V1(int128_out);
-Datum 
-int128_out(PG_FUNCTION_ARGS)
-{
-	Int128 *val = ((Int128 *) PG_DETOAST_DATUM(PG_GETARG_DATUM(0)));
-	char *result = garrow_int128_to_string(val->data);
-	PG_RETURN_CSTRING(result);
 }

@@ -169,8 +169,19 @@ setData(vecheap *vp, int route, int offset, int heapid)
 				}
 				else if ((vp->vh_atttypeid[i] == NUMERICOID))
 				{
-                    vp->vh_nodes[heapid * nkey + i].data =
-                        Decimal256ArrayGetDatum(GARROW_DECIMAL256_ARRAY(keys), index);
+					GArrowNumeric128Array *array = GARROW_NUMERIC128_ARRAY(keys);
+					int is_null = garrow_array_is_null(GARROW_ARRAY(array), index);
+
+					if (is_null)
+					{
+						vp->vh_nodes[heapid * nkey + i].isnull = true;
+						vp->vh_nodes[heapid * nkey + i].data = (Datum)0;
+					}
+					else
+					{
+						vp->vh_nodes[heapid * nkey + i].data = Numeric128ArrayGetDatum(array, index);
+						vp->vh_nodes[heapid * nkey + i].isnull = false;
+					}
                 }
 			}
 			break;

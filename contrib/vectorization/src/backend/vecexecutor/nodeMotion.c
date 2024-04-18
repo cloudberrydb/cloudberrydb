@@ -145,6 +145,39 @@ init_hash_projector(MotionState *node, GArrowSchema *schema)
 	}
 }
 
+static GArrowSchema*
+motion_rewrite_numeric_type_schema(MotionState *node, TupleTableSlot *outerTupleSlot)
+{
+	g_autoptr(GArrowSchema) schema = NULL;
+	ListCell   *lc = NULL;
+	schema = garrow_record_batch_get_schema(GARROW_RECORD_BATCH(VECSLOT(outerTupleSlot)->tts_recordbatch));
+	foreach (lc, node->hashExprs)
+	{
+		ExprState  *hash_expr_state = (ExprState *) lfirst(lc);
+		Expr *expr = hash_expr_state->expr;
+		switch (nodeTag(expr))
+		{
+			case T_Var:
+			{
+				g_autoptr(GArrowField) field = NULL;
+				Var *variable = (Var *) expr;
+				field = garrow_schema_get_field(schema, variable->varattno - 1);
+				if(variable->vartype == NUMERICOID) 
+				{
+					
+					g_autoptr(GError) error = NULL;
+					g_autoptr(GArrowDataType) new_type = GARROW_DATA_TYPE(garrow_decimal128_data_type_new(35, 0));
+					garrow_store_func(field, garrow_field_new(garrow_field_get_name(field), new_type));
+					garrow_store_func(schema, garrow_schema_replace_field(schema, variable->varattno - 1, field, &error));
+				}
+				break;
+			}
+			default:
+				break;
+		}
+	}
+	return garrow_move_ptr(schema);
+}
 
 static void
 hashAndSendVec_vechash(Motion *motion, MotionState *node, TupleTableSlot *outerTupleSlot)
@@ -166,17 +199,16 @@ hashAndSendVec_vechash(Motion *motion, MotionState *node, TupleTableSlot *outerT
 	if (outerTupleSlot->tts_tupleDescriptor->natts <= 0
 		|| (rows <= 0))
 		return;
-
 	econtext->ecxt_outertuple = outerTupleSlot;
+	g_autoptr(GArrowSchema) rewrite_schema = motion_rewrite_numeric_type_schema(node, outerTupleSlot);
+	g_autoptr(GArrowRecordBatch) rewrite_batch = garrow_record_batch_copy_with_schema(VECSLOT(outerTupleSlot)->tts_recordbatch, rewrite_schema);
 	if (!vnode->hash_projector) 
 	{
-		g_autoptr(GArrowSchema) schema = NULL;
-		schema = garrow_record_batch_get_schema(GARROW_RECORD_BATCH(VECSLOT(outerTupleSlot)->tts_recordbatch));
-		vnode->hashExprsGandivaNodes = ConvertHasExprsToGandivaNodes(node->hashExprs, schema);
-		init_hash_projector(node, schema);
+		vnode->hashExprsGandivaNodes = ConvertHasExprsToGandivaNodes(node->hashExprs, rewrite_schema);
+		init_hash_projector(node, rewrite_schema);
 	}
 	if (vnode->hash_projector != NULL)
-		hval = evalHashKeyVec(vnode->hash_projector, VECSLOT(outerTupleSlot)->tts_recordbatch, cdbhash, rows);
+		hval = evalHashKeyVec(vnode->hash_projector, rewrite_batch, cdbhash, rows);
 	else
 		hval = cdbhashrandomseg_vec(cdbhash->base.numsegs, rows, node);
 	int* groupStart = (int*)palloc(cdbhash->base.numsegs * sizeof(int));
