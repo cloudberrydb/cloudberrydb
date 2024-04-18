@@ -102,13 +102,28 @@ bool
 kmgr_unwrap_data_key(PgCipherCtx *ctx, unsigned char *in, int inlen, CryptoKey *out)
 {
 	int			outlen;
+	int 		out_buffer_len;
+	unsigned char *out_buffer;
+
+	/*
+	 * When call EVP_DecryptUpdate,
+	 * We need to alloc enough buffer
+	 * More detail info see
+	 * https://www.openssl.org/docs/man3.1/man3/EVP_DecryptUpdate.html
+	 */
+	out_buffer_len = pg_cipher_blocksize(ctx) + inlen;
+	out_buffer = (unsigned char *)palloc0(out_buffer_len);
 
 	Assert(ctx && in && out);
 
-	if (!pg_cipher_keyunwrap(ctx, in, inlen, (unsigned char *) out, &outlen))
+	if (!pg_cipher_keyunwrap(ctx, in, inlen, (unsigned char *) out_buffer, &outlen))
 		return false;
 
 	Assert(outlen == sizeof(CryptoKey));
+
+	memcpy(out, out_buffer, sizeof(CryptoKey));
+
+	pfree(out_buffer);
 
 	return true;
 }

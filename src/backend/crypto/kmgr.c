@@ -45,7 +45,7 @@ typedef struct KmgrShmemData
 {
 	CryptoKey	intlKeys[KMGR_NUM_DATA_KEYS];
 } KmgrShmemData;
-static KmgrShmemData *KmgrShmem;
+static KmgrShmemData *KmgrShmem = NULL;
 
 /* GUC variables */
 char	   *cluster_key_command = NULL;
@@ -218,7 +218,7 @@ BootStrapKmgr(void)
 Size
 KmgrShmemSize(void)
 {
-	if (!FileEncryptionEnabled)
+	if (!tde_force_switch)
 		return 0;
 
 	return MAXALIGN(sizeof(KmgrShmemData));
@@ -230,7 +230,7 @@ KmgrShmemInit(void)
 {
 	bool		found;
 
-	if (!FileEncryptionEnabled)
+	if (!tde_force_switch)
 		return;
 
 	KmgrShmem = (KmgrShmemData *) ShmemInitStruct("File encryption key manager",
