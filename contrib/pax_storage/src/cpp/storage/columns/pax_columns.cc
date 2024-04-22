@@ -221,6 +221,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
 
         break;
       }
+      case kTypeBitPacked:
       case kTypeDecimal:
       case kTypeFixed: {
         auto data_length = column->GetBuffer().second;
@@ -301,6 +302,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
 
         break;
       }
+      case kTypeBitPacked:
       case kTypeDecimal:
       case kTypeFixed: {
         auto length_data = column->GetBuffer().second;
@@ -387,6 +389,7 @@ void PaxColumns::CombineVecDataBuffer() {
 
         break;
       }
+      case kTypeBitPacked:
       case kTypeDecimal:
       case kTypeFixed: {
         std::tie(buffer, buffer_len) = column->GetBuffer();
@@ -455,6 +458,7 @@ void PaxColumns::CombineOrcDataBuffer() {
 
         break;
       }
+      case kTypeBitPacked:
       case kTypeDecimal:
       case kTypeFixed: {
         std::tie(buffer, buffer_len) = column->GetBuffer();
@@ -492,6 +496,7 @@ std::pair<Datum, bool> GetColumnValue(PaxColumns *columns, size_t column_index,
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;
+    case kTypeBitPacked:
     case kTypeFixed: {
       Assert(buffer_len > 0);
       switch (buffer_len) {

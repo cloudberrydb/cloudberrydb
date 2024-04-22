@@ -21,7 +21,12 @@ std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(
     if (attr->attbyval) {
       switch (attr->attlen) {
         case 1:
-          type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BYTE);
+          if (attr->atttypid == BOOLOID) {
+            type_kinds.emplace_back(
+                pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN);
+          } else {
+            type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BYTE);
+          }
           break;
         case 2:
           type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_SHORT);
@@ -65,6 +70,16 @@ static PaxColumn *CreateBpCharColumn(bool is_vec,
   return (PaxColumn *)
       traits::ColumnOptCreateTraits2<PaxBpCharColumn>::create_encoding(
           DEFAULT_CAPACITY, opts);
+}
+
+static PaxColumn *CreateBitPackedColumn(
+    bool is_vec, const PaxEncoder::EncodingOption &opts) {
+  return is_vec
+             ? (PaxColumn *)traits::ColumnOptCreateTraits2<
+                   PaxVecBitPackedColumn>::create_encoding(DEFAULT_CAPACITY,
+                                                           opts)
+             : (PaxColumn *)traits::ColumnOptCreateTraits2<
+                   PaxBitPackedColumn>::create_encoding(DEFAULT_CAPACITY, opts);
 }
 
 template <typename N>
@@ -123,6 +138,9 @@ static PaxColumns *BuildColumns(
         break;
       }
       case (pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN):
+        columns->Append(
+            CreateBitPackedColumn(is_vec, std::move(encoding_option)));
+        break;
       case (pax::porc::proto::Type_Kind::Type_Kind_BYTE):  // len 1 integer
         columns->Append(
             CreateCommColumn<int8>(is_vec, std::move(encoding_option)));

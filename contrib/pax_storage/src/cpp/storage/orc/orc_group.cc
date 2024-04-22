@@ -196,6 +196,7 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;
+    case kTypeBitPacked:
     case kTypeFixed: {
       Assert(buffer_len > 0);
       switch (buffer_len) {

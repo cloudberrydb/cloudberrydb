@@ -71,6 +71,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       }
       CBDB_WRAP_END;
       break;
+    case kTypeBitPacked:
     case kTypeFixed: {
       Assert(buffer_len > 0);
       switch (buffer_len) {

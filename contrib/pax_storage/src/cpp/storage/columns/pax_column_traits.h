@@ -1,10 +1,12 @@
 #pragma once
 #include "comm/pax_memory.h"
+#include "storage/columns/pax_bitpacked_column.h"
 #include "storage/columns/pax_bpchar_column.h"
 #include "storage/columns/pax_column.h"
 #include "storage/columns/pax_encoding_column.h"
 #include "storage/columns/pax_encoding_non_fixed_column.h"
 #include "storage/columns/pax_numeric_column.h"
+#include "storage/columns/pax_vec_bitpacked_column.h"
 #include "storage/columns/pax_vec_column.h"
 #include "storage/columns/pax_vec_encoding_column.h"
 
@@ -114,5 +116,7 @@ TRAITS_OPT_DECL2(PaxNonFixedEncodingColumn);
 TRAITS_OPT_DECL2(PaxVecNonFixedEncodingColumn);
 TRAITS_OPT_DECL2(PaxShortNumericColumn);
 TRAITS_OPT_DECL2(PaxBpCharColumn);
+TRAITS_OPT_DECL2(PaxBitPackedColumn);
+TRAITS_OPT_DECL2(PaxVecBitPackedColumn);
 
 }  // namespace pax::traits

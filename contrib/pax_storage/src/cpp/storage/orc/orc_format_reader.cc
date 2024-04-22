@@ -362,6 +362,60 @@ static PaxColumn *BuildEncodingColumn(
   Assert(false);
 }
 
+static PaxColumn *BuildEncodingBitPackedColumn(
+    DataBuffer<char> *data_buffer, const porc::proto::Stream &data_stream,
+    const ColumnEncoding &data_encoding, bool is_vec) {
+  uint32 not_null_rows = 0;
+  uint64 column_data_len = 0;
+  DataBuffer<int8> *column_data_buffer = nullptr;
+
+  Assert(data_stream.kind() == pax::porc::proto::Stream_Kind_DATA);
+
+  not_null_rows = static_cast<uint32>(data_stream.column());
+  column_data_len = static_cast<uint64>(data_stream.length());
+
+  column_data_buffer = PAX_NEW<DataBuffer<int8>>(
+      reinterpret_cast<int8 *>(data_buffer->GetAvailableBuffer()),
+      column_data_len, false, false);
+
+  column_data_buffer->BrushAll();
+  data_buffer->Brush(column_data_len);
+
+  PaxDecoder::DecodingOption decoding_option;
+  decoding_option.column_encode_type = data_encoding.kind();
+  decoding_option.is_sign = true;
+  decoding_option.compress_level = data_encoding.compress_lvl();
+
+  size_t alloc_size = 0;
+
+  if (data_encoding.kind() !=
+      ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED) {
+    alloc_size = data_encoding.length();
+  }
+
+  if (is_vec) {
+    auto pax_column =
+        traits::ColumnOptCreateTraits2<PaxVecBitPackedColumn>::create_decoding(
+            alloc_size, decoding_option);
+    pax_column->Set(column_data_buffer, (size_t)not_null_rows);
+    return pax_column;
+  } else {
+    AssertImply(data_encoding.kind() ==
+                    ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED,
+                not_null_rows == column_data_buffer->GetSize());
+    AssertImply(data_encoding.kind() !=
+                    ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED,
+                data_encoding.length() / sizeof(int8) == not_null_rows);
+    auto pax_column =
+        traits::ColumnOptCreateTraits2<PaxBitPackedColumn>::create_decoding(
+            alloc_size, decoding_option);
+    pax_column->Set(column_data_buffer);
+    return pax_column;
+  }
+
+  Assert(false);
+}
+
 static PaxColumn *BuildEncodingDecimalColumn(
     DataBuffer<char> *data_buffer, const pax::porc::proto::Stream &data_stream,
     const ColumnEncoding &data_encoding, bool is_vec) {
@@ -641,7 +695,12 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
                               pax::porc::proto::Type_Kind::Type_Kind_BPCHAR));
         break;
       }
-      case (pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN):
+      case (pax::porc::proto::Type_Kind::Type_Kind_BOOLEAN): {
+        pax_columns->Append(BuildEncodingBitPackedColumn(
+            data_buffer, stripe_footer.streams(streams_index++),
+            stripe_footer.pax_col_encodings(index), is_vec_));
+        break;
+      }
       case (pax::porc::proto::Type_Kind::Type_Kind_BYTE):
         pax_columns->Append(BuildEncodingColumn<int8>(
             data_buffer, stripe_footer.streams(streams_index++),

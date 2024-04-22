@@ -598,6 +598,7 @@ void PaxDumpReader::DumpAllData() {
           case kTypeNonFixed:
             current_row.emplace_back(std::string(DatumGetPointer(d)));
             break;
+          case kTypeBitPacked:
           case kTypeFixed: {
             switch (column->GetTypeLength()) {
               case 1:

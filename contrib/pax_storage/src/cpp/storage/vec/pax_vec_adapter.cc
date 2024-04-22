@@ -290,6 +290,44 @@ void CopyFixedRawBufferWithNull(PaxColumn *column,
   }
 }
 
+void CopyBooleanBufferToArrowLayout(
+    PaxColumn *column, const Bitmap8 *visibility_map_bitset,
+    size_t bitset_index_begin, size_t range_begin, size_t range_lens,
+    size_t data_index_begin, size_t data_range_lens, Bitmap8 *out_data_buffer) {
+  char *buffer;
+  size_t buffer_len;
+  std::tie(buffer, buffer_len) =
+      column->GetRangeBuffer(data_index_begin, data_range_lens);
+
+  auto null_bitmap = column->GetBitmap();
+  size_t bit_index = 0;
+  size_t non_null_offset = 0;
+  size_t type_len = column->GetTypeLength();
+
+  for (size_t i = range_begin; i < (range_begin + range_lens); i++) {
+    bool is_visible =
+        !visibility_map_bitset ||
+        !visibility_map_bitset->Test(i - range_begin + bitset_index_begin);
+    bool has_null = column->HasNull();
+    AssertImply(has_null, null_bitmap != nullptr);
+    bool is_null = has_null && !null_bitmap->Test(i);
+
+    if (is_visible) {
+      if (!is_null) {
+        bool value = *(bool *)(buffer + non_null_offset);
+        if (value) {
+          out_data_buffer->Set(bit_index);
+        }
+        bit_index++;
+      }
+    }
+
+    if (!is_null) {
+      non_null_offset += type_len;
+    }
+  }
+}
+
 void CopyFixedBuffer(PaxColumn *column, const Bitmap8 *visibility_map_bitset,
                      size_t bitset_index_begin, size_t range_begin,
                      size_t range_lens, size_t data_index_begin,
@@ -791,6 +829,22 @@ int VecAdapter::AppendToVecBuffer() {
 
         break;
       }
+      case PaxColumnTypeInMem::kTypeBitPacked: {
+        auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE, (out_range_lens / 8));
+        Assert(!vec_buffer->GetBuffer());
+        auto boolean_buffer = (char *)cbdb::Palloc0(align_size);
+        vec_buffer->Set(boolean_buffer, align_size);
+
+        Bitmap8 vec_bool_bitmap(
+            BitmapRaw<uint8>((uint8 *)(boolean_buffer), align_size),
+            BitmapTpl<uint8>::ReadOnlyRefBitmap);
+
+        CopyBooleanBufferToArrowLayout(
+            column, micro_partition_visibility_bitmap_,
+            range_begin + micro_partition_row_offset_, range_begin, range_lens,
+            data_index_begin, data_range_lens, &vec_bool_bitmap);
+        break;
+      }
       default: {
         CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
       }
@@ -942,6 +996,29 @@ bool VecAdapter::AppendVecFormat() {
             TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
         offset_buffer->Write((int *)buffer, buffer_len);
         offset_buffer->BrushAll();
+        break;
+      }
+      case PaxColumnTypeInMem::kTypeBitPacked: {
+        Assert(!vec_buffer->GetBuffer());
+        std::tie(buffer, buffer_len) = column->GetBuffer();
+
+        auto bitpacked_buffer_len =
+            TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len / 8 + 1);
+
+        auto bitpacked_buffer = (char *)cbdb::Palloc0(bitpacked_buffer_len);
+
+        Bitmap8 vec_bool_bitmap(
+            BitmapRaw<uint8>((uint8 *)(bitpacked_buffer), bitpacked_buffer_len),
+            BitmapTpl<uint8>::ReadOnlyRefBitmap);
+
+        for (uint32 i = 0; i < buffer_len; i += 1) {
+          if (*(bool *)(buffer + i)) {
+            vec_bool_bitmap.Set(i);
+          }
+        }
+        vec_buffer->SetMemTakeOver(false);
+        vec_buffer->Set(bitpacked_buffer, bitpacked_buffer_len);
+        vec_buffer->BrushAll();
         break;
       }
       case PaxColumnTypeInMem::kTypeFixed: {
