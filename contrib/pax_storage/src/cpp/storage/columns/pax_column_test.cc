@@ -406,7 +406,7 @@ TEST_P(PaxColumnEncodingTest, GetRangeEncodingColumnTest) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, -1);
+  ASSERT_EQ(origin_len, origin_rows * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
@@ -414,8 +414,8 @@ TEST_P(PaxColumnEncodingTest, GetRangeEncodingColumnTest) {
   decoding_option.is_sign = false;
 
   auto int_column_for_read = CreateDecodeColumn(
-      bits, (100) * bits / 8, origin_rows, std::move(decoding_option), encoded_buff,
-      encoded_len, storage_type, 100);
+      bits, 100 * (bits / 8), origin_rows, std::move(decoding_option),
+      encoded_buff, encoded_len, storage_type, 100);
 
   ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
   char *verify_buff;
@@ -465,9 +465,7 @@ TEST_P(PaxColumnCompressTest, FixedCompressColumnGetRangeTest) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, kind != ColumnEncoding_Kind_NO_ENCODED
-                            ? (100) * bits / 8
-                            : NO_ENCODE_ORIGIN_LEN);
+  ASSERT_EQ(origin_len, 100 * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
@@ -475,7 +473,7 @@ TEST_P(PaxColumnCompressTest, FixedCompressColumnGetRangeTest) {
   decoding_option.compress_level = 5;
 
   auto int_column_for_read =
-      CreateDecodeColumn(bits, (100) * bits / 8, origin_rows,
+      CreateDecodeColumn(bits, 100 * (bits / 8), origin_rows,
                          std::move(decoding_option), encoded_buff, encoded_len);
 
   ASSERT_EQ(int_column_for_read->GetCompressLevel(), 5);
@@ -526,7 +524,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnDefault) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, -1);
+  ASSERT_EQ(origin_len, origin_rows * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
@@ -534,8 +532,8 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnDefault) {
   decoding_option.is_sign = false;
 
   auto int_column_for_read = CreateDecodeColumn(
-      bits, (UINT16_MAX + 1) * bits / 8, origin_rows, std::move(decoding_option), encoded_buff,
-      encoded_len, storage_type);
+      bits, (UINT16_MAX + 1) * (bits / 8), origin_rows,
+      std::move(decoding_option), encoded_buff, encoded_len, storage_type);
 
   ASSERT_EQ(int_column_for_read->GetCompressLevel(), 0);
   char *verify_buff;
@@ -615,7 +613,7 @@ TEST_P(PaxColumnEncodingTest, PaxEncodingColumnNoEncoding) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, NO_ENCODE_ORIGIN_LEN);
+  ASSERT_EQ(origin_len, origin_rows * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type =
@@ -657,9 +655,7 @@ TEST_P(PaxColumnCompressTest, PaxEncodingColumnCompressDecompress) {
 
   auto origin_len = int_column->GetOriginLength();
   auto origin_rows = int_column->GetRows();
-  ASSERT_EQ(origin_len, kind != ColumnEncoding_Kind_NO_ENCODED
-                            ? (UINT16_MAX + 1) * bits / 8
-                            : NO_ENCODE_ORIGIN_LEN);
+  ASSERT_EQ(origin_len, (UINT16_MAX + 1) * (bits / 8));
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
@@ -718,9 +714,7 @@ TEST_P(PaxNonFixedColumnCompressTest,
   ASSERT_NE(encoded_buff, nullptr);
 
   auto origin_len = non_fixed_column->GetOriginLength();
-  ASSERT_EQ(origin_len, kind != ColumnEncoding_Kind_NO_ENCODED
-                            ? buffer_len * number
-                            : NO_ENCODE_ORIGIN_LEN);
+  ASSERT_EQ(origin_len, buffer_len * number);
 
   PaxDecoder::DecodingOption decoding_option;
   decoding_option.column_encode_type = kind;
@@ -761,9 +755,10 @@ TEST_P(PaxNonFixedColumnCompressTest,
   delete non_fixed_column_for_read;
 }
 
-INSTANTIATE_TEST_CASE_P(PaxColumnTestCombine, PaxColumnTest,
-                        testing::Values(PaxStorageFormat::kTypeStoragePorcNonVec,
-                                        PaxStorageFormat::kTypeStoragePorcVec));
+INSTANTIATE_TEST_CASE_P(
+    PaxColumnTestCombine, PaxColumnTest,
+    testing::Values(PaxStorageFormat::kTypeStoragePorcNonVec,
+                    PaxStorageFormat::kTypeStoragePorcVec));
 
 INSTANTIATE_TEST_CASE_P(
     PaxColumnEncodingTestCombine, PaxColumnEncodingTest,

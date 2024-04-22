@@ -6,7 +6,8 @@ namespace pax {
 
 template <typename T>
 PaxVecCommColumn<T>::PaxVecCommColumn(uint32 capacity) {
-  data_ = PAX_NEW<DataBuffer<T>>(TYPEALIGN(MEMORY_ALIGN_SIZE, capacity * sizeof(T)));
+  data_ = PAX_NEW<DataBuffer<T>>(
+      TYPEALIGN(MEMORY_ALIGN_SIZE, capacity * sizeof(T)));
 }
 
 template <typename T>
@@ -71,7 +72,7 @@ size_t PaxVecCommColumn<T>::PhysicalSize() const {
 
 template <typename T>
 int64 PaxVecCommColumn<T>::GetOriginLength() const {
-  return NO_ENCODE_ORIGIN_LEN;
+  return data_->Used();
 }
 
 template <typename T>
@@ -208,9 +209,7 @@ std::pair<char *, size_t> PaxVecNonFixedColumn::GetBuffer() {
 
 size_t PaxVecNonFixedColumn::PhysicalSize() const { return estimated_size_; }
 
-int64 PaxVecNonFixedColumn::GetOriginLength() const {
-  return NO_ENCODE_ORIGIN_LEN;
-}
+int64 PaxVecNonFixedColumn::GetOriginLength() const { return data_->Used(); }
 
 int32 PaxVecNonFixedColumn::GetTypeLength() const { return -1; }
 

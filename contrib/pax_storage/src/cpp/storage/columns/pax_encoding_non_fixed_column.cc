@@ -112,7 +112,7 @@ std::pair<char *, size_t> PaxNonFixedEncodingColumn::GetBuffer() {
 }
 
 int64 PaxNonFixedEncodingColumn::GetOriginLength() const {
-  return compressor_ ? PaxNonFixedColumn::data_->Used() : NO_ENCODE_ORIGIN_LEN;
+  return PaxNonFixedColumn::data_->Used();
 }
 
 size_t PaxNonFixedEncodingColumn::GetAlignSize() const {

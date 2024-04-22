@@ -189,10 +189,7 @@ std::pair<char *, size_t> PaxEncodingColumn<T>::GetBuffer() {
 
 template <typename T>
 int64 PaxEncodingColumn<T>::GetOriginLength() const {
-  return encoder_options_.column_encode_type ==
-                 ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED
-             ? NO_ENCODE_ORIGIN_LEN
-             : PaxCommColumn<T>::data_->Used();
+  return PaxCommColumn<T>::data_->Used();
 }
 
 template <typename T>

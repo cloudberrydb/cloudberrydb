@@ -139,7 +139,7 @@ size_t PaxCommColumn<T>::PhysicalSize() const {
 
 template <typename T>
 int64 PaxCommColumn<T>::GetOriginLength() const {
-  return NO_ENCODE_ORIGIN_LEN;
+  return data_->Used();
 }
 
 template <typename T>
@@ -260,7 +260,7 @@ size_t PaxNonFixedColumn::GetNonNullRows() const { return lengths_->GetSize(); }
 size_t PaxNonFixedColumn::PhysicalSize() const { return estimated_size_; }
 
 int64 PaxNonFixedColumn::GetOriginLength() const {
-  return NO_ENCODE_ORIGIN_LEN;
+  return data_->Used();
 }
 
 int32 PaxNonFixedColumn::GetTypeLength() const { return -1; }

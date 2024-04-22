@@ -170,10 +170,7 @@ std::pair<char *, size_t> PaxVecEncodingColumn<T>::GetBuffer() {
 
 template <typename T>
 int64 PaxVecEncodingColumn<T>::GetOriginLength() const {
-  return encoder_options_.column_encode_type ==
-                 ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED
-             ? NO_ENCODE_ORIGIN_LEN
-             : PaxVecCommColumn<T>::data_->Used();
+  return PaxVecCommColumn<T>::data_->Used();
 }
 
 template <typename T>
@@ -313,8 +310,7 @@ std::pair<char *, size_t> PaxVecNonFixedEncodingColumn::GetBuffer() {
 }
 
 int64 PaxVecNonFixedEncodingColumn::GetOriginLength() const {
-  return compressor_ ? PaxVecNonFixedColumn::data_->Used()
-                     : NO_ENCODE_ORIGIN_LEN;
+  return PaxVecNonFixedColumn::data_->Used();
 }
 
 size_t PaxVecNonFixedEncodingColumn::GetAlignSize() const {

@@ -20,7 +20,6 @@
 namespace pax {
 
 #define DEFAULT_CAPACITY 2048
-#define NO_ENCODE_ORIGIN_LEN (-1)
 
 // Used to mapping pg_type
 enum PaxColumnTypeInMem {

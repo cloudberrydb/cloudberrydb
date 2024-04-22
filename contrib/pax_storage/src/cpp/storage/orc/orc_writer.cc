@@ -515,10 +515,6 @@ bool OrcWriter::WriteStripe(BufferedOutputStream *buffer_mem_stream,
         ColumnEncoding column_encoding;
         Assert(encoding_kind !=
                ColumnEncoding_Kind::ColumnEncoding_Kind_DEF_ENCODED);
-        if (encoding_kind != ColumnEncoding_Kind_NO_ENCODED &&
-            origin_len == NO_ENCODE_ORIGIN_LEN) {
-          CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
-        }
         column_encoding.set_kind(encoding_kind);
         column_encoding.set_compress_lvl(compress_lvl);
         column_encoding.set_length(origin_len);
