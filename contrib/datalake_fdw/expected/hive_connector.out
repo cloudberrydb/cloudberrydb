@@ -238,31 +238,29 @@ SELECT * FROM syncdb.empty_avro_partition;
 ---+---+---+---+---+---+---+---+---+---+---+---+---+---+---
 (0 rows)
 
-DROP SCHEMA IF EXISTS synctab CASCADE;
-NOTICE:  drop cascades to 11 other objects
-DETAIL:  drop cascades to foreign table synctab.text_default
-drop cascades to foreign table synctab.text_custom
-drop cascades to foreign table synctab.csv_default
-drop cascades to foreign table synctab.csv_custom
-drop cascades to foreign table synctab.empty_orc_transactional
-drop cascades to foreign table synctab.empty_orc
-drop cascades to foreign table synctab.empty_parquet
-drop cascades to foreign table synctab.empty_orc_partition
-drop cascades to foreign table synctab.empty_parquet_partition
-drop cascades to foreign table synctab.empty_avro
-drop cascades to foreign table synctab.empty_avro_partition
-DROP SCHEMA IF EXISTS syncdb CASCADE;
-NOTICE:  drop cascades to 11 other objects
-DETAIL:  drop cascades to foreign table syncdb.csv_custom
-drop cascades to foreign table syncdb.csv_default
-drop cascades to foreign table syncdb.empty_avro
-drop cascades to foreign table syncdb.empty_avro_partition
-drop cascades to foreign table syncdb.empty_orc
-drop cascades to foreign table syncdb.empty_orc_partition
-drop cascades to foreign table syncdb.empty_orc_transactional
-drop cascades to foreign table syncdb.empty_parquet
-drop cascades to foreign table syncdb.empty_parquet_partition
-drop cascades to foreign table syncdb.text_custom
-drop cascades to foreign table syncdb.text_default
+DROP FOREIGN TABLE IF EXISTS synctab.text_default;
+DROP FOREIGN TABLE IF EXISTS synctab.text_custom;
+DROP FOREIGN TABLE IF EXISTS synctab.csv_default;
+DROP FOREIGN TABLE IF EXISTS synctab.csv_custom;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc_transactional;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_parquet;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_orc_partition;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_parquet_partition;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_avro;
+DROP FOREIGN TABLE IF EXISTS synctab.empty_avro_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.text_default;
+DROP FOREIGN TABLE IF EXISTS syncdb.text_custom;
+DROP FOREIGN TABLE IF EXISTS syncdb.csv_default;
+DROP FOREIGN TABLE IF EXISTS syncdb.csv_custom;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc_transactional;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_parquet;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_orc_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_parquet_partition;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_avro;
+DROP FOREIGN TABLE IF EXISTS syncdb.empty_avro_partition;
+DROP SCHEMA IF EXISTS synctab;
+DROP SCHEMA IF EXISTS syncd;
 DROP SERVER hive_server CASCADE;
 NOTICE:  drop cascades to user mapping for gpadmin on server hive_server

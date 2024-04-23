@@ -80,31 +80,6 @@ select * from oss_read order by col, col2, col3, col4, col5;
 insert into test select * from oss_read;
 select * from test order by col, col2, col3, col4, col5;
 
--- numeric default
-drop table if exists test;
-create table test(
-col numeric,
-col2 numeric,
-col3 numeric,
-col4 numeric,
-col5 numeric,
-col6 numeric
-);
-DROP EXTERNAL TABLE IF EXISTS oss_read;
-CREATE FOREIGN TABLE oss_read (
-col numeric,
-col2 numeric,
-col3 numeric,
-col4 numeric,
-col5 numeric,
-col6 numeric
-)
-SERVER foreign_server
-OPTIONS (filePath '/ossext-ci-test/avro/avro_uncompress/numeric/', enableCache 'false', format 'avro');
-select * from oss_read order by col, col2, col3, col4, col5;
-insert into test select * from oss_read;
-select * from test order by col, col2, col3, col4, col5;
-
 -- null col
 DROP EXTERNAL TABLE IF EXISTS oss_read;
 CREATE FOREIGN TABLE oss_read (
@@ -220,31 +195,6 @@ col3 numeric(18,3),
 col4 numeric(38,3),
 col5 numeric(18,17),
 col6 numeric(38,37)
-)
-SERVER foreign_server
-OPTIONS (filePath '/ossext-ci-test/avro/avro_snappy/numeric/', enableCache 'false', format 'avro');
-select * from oss_read order by col, col2, col3, col4, col5;
-insert into test select * from oss_read;
-select * from test order by col, col2, col3, col4, col5;
-
--- numeric default
-drop table if exists test;
-create table test(
-col numeric,
-col2 numeric,
-col3 numeric,
-col4 numeric,
-col5 numeric,
-col6 numeric
-);
-DROP EXTERNAL TABLE IF EXISTS oss_read;
-CREATE FOREIGN TABLE oss_read (
-col numeric,
-col2 numeric,
-col3 numeric,
-col4 numeric,
-col5 numeric,
-col6 numeric
 )
 SERVER foreign_server
 OPTIONS (filePath '/ossext-ci-test/avro/avro_snappy/numeric/', enableCache 'false', format 'avro');

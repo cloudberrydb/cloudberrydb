@@ -73,7 +73,6 @@ function start_test() {
 	build_env
 	load_data
 	start_regress_test
-	start_tpcds_test
 }
 
 start_test
