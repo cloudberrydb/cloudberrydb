@@ -47,10 +47,12 @@ extern "C" {
 #include "pgstat.h"
 #include "utils/partcache.h"
 #include "utils/ruleutils.h"
+#include "utils/varlena.h"
 #include "access/nbtree.h"
 #include "access/hash.h"
 #include "parser/parse_utilcmd.h"
 #include "nodes/makefuncs.h"
+#include "nodes/bitmapset.h"
 #include "parser/parse_oper.h"
 #include "parser/parse_expr.h"
 #ifndef BUILD_PAX_FORMAT

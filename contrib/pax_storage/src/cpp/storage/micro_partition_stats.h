@@ -51,6 +51,7 @@ class MicroPartitionStats final {
  public:
   explicit MicroPartitionStats(bool allow_fallback_to_pg = false);
   ~MicroPartitionStats();
+  MicroPartitionStats *SetMinMaxColumnIndex(std::vector<int> &&minmax_columns);
   MicroPartitionStats *SetStatsMessage(MicroPartitionStatsData *stats,
                                        int natts);
   MicroPartitionStats *LightReset();
@@ -58,6 +59,7 @@ class MicroPartitionStats final {
   void AddRow(TupleTableSlot *slot);
   MicroPartitionStatsData *GetStatsData() { return stats_; }
   const MicroPartitionStatsData *GetStatsData() const { return stats_; }
+  const std::vector<int> GetMinMaxColumnIndex() const { return minmax_columns_; }
 
   void MergeTo(MicroPartitionStats *stats, TupleDesc desc);
 
@@ -90,6 +92,7 @@ class MicroPartitionStats final {
   // 'n': oids are initialized, but min-max value is missing
   // 'y': min-max is set, needs update.
   std::vector<char> status_;
+  std::vector<int> minmax_columns_;
   bool initial_check_ = false;
 };
 

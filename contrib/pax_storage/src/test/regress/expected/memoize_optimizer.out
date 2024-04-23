@@ -54,8 +54,9 @@ WHERE t2.unique1 < 1000;', false);
                                  Hash Key: tenk1_1.twenty
                                  ->  Seq Scan on tenk1 tenk1_1 (actual rows=340 loops=N)
                                        Filter: (unique1 < 1000)
+                                       Rows Removed by Filter: 2906
  Optimizer: Pivotal Optimizer (GPORCA)
-(14 rows)
+(15 rows)
 
 -- And check we get the expected results.
 SELECT COUNT(*),AVG(t1.unique1) FROM tenk1 t1
@@ -87,8 +88,9 @@ WHERE t1.unique1 < 1000;', false);
                                  Hash Key: t1.twenty
                                  ->  Seq Scan on tenk1 t1 (actual rows=340 loops=N)
                                        Filter: (unique1 < 1000)
+                                       Rows Removed by Filter: 2906
  Optimizer: Postgres query optimizer
-(15 rows)
+(16 rows)
 
 -- And check we get the expected results.
 SELECT COUNT(*),AVG(t2.unique1) FROM tenk1 t1,
@@ -125,8 +127,9 @@ WHERE t2.unique1 < 1200;', true);
                                  Hash Key: tenk1_1.thousand
                                  ->  Seq Scan on tenk1 tenk1_1 (actual rows=407 loops=N)
                                        Filter: (unique1 < 1200)
+                                       Rows Removed by Filter: 2961
  Optimizer: Pivotal Optimizer (GPORCA)
-(14 rows)
+(15 rows)
 
 CREATE TABLE flt (f float);
 NOTICE:  Table doesn't have 'DISTRIBUTED BY' clause -- Using column named 'f' as the Cloudberry Database data distribution key for this table.

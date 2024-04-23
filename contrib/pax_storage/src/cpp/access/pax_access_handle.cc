@@ -1140,47 +1140,30 @@ Datum pax_tableam_handler(PG_FUNCTION_ARGS) {  // NOLINT
 
 static object_access_hook_type prev_object_access_hook = NULL;
 
-static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
-                                Oid object_id, int sub_id, void *arg) {
-  Relation rel;
-  PartitionKey pkey;
-  List *part;
-  List *pby;
-  paxc::PaxOptions *options;
-  int relnatts;
-  TupleDesc tupdesc;
-  int64_t precision;
+static void PaxCheckMinMaxColumns(Relation rel, const char *minmax_columns) {
+  if (!minmax_columns) return;
 
-  if (prev_object_access_hook)
-    prev_object_access_hook(access, class_id, object_id, sub_id, arg);
+  auto bms = paxc::paxc_get_minmax_columns_index(rel, true);
+  bms_free(bms);
+}
 
-  if (access != OAT_POST_CREATE || class_id != RelationRelationId) return;
-
-  CommandCounterIncrement();
-  rel = relation_open(object_id, RowExclusiveLock);
-  auto ok = ((rel->rd_rel->relkind == RELKIND_RELATION ||
-              rel->rd_rel->relkind == RELKIND_MATVIEW) &&
-             rel->rd_options && RelationIsPAX(rel));
-  if (!ok) goto out;
-
-  options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
-  if (!options->partition_by()) {
-    if (options->partition_ranges()) {
-      elog(ERROR, "set '%s', but partition_by not specified",
-           options->partition_ranges());
+static void PaxCheckParitionOptions(Relation rel, const char *partition_by, const char *partition_ranges) {
+  if (!partition_by) {
+    if (partition_ranges) {
+      elog(ERROR, "set '%s', but partition_by not specified", partition_ranges);
     }
-    goto check_numeric_options;
+    return;
   }
 
-  pby = paxc_raw_parse(options->partition_by());
-  pkey = paxc::PaxRelationBuildPartitionKey(rel, pby);
+  auto pby = paxc_raw_parse(partition_by);
+  auto pkey = paxc::PaxRelationBuildPartitionKey(rel, pby);
   if (pkey->partnatts > 1) elog(ERROR, "pax only support 1 partition key now");
 
-  part = lappend(NIL, pby);
-  if (options->partition_ranges()) {
+  auto part = lappend(NIL, pby);
+  if (partition_ranges) {
     List *ranges;
 
-    ranges = paxc_parse_partition_ranges(options->partition_ranges());
+    ranges = paxc_parse_partition_ranges(partition_ranges);
     ranges = paxc::PaxValidatePartitionRanges(rel, pkey, ranges);
     part = lappend(part, ranges);
   }
@@ -1188,26 +1171,22 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
   // We hope this option be removed and automatically partition data set.
   else
     elog(ERROR, "partition_ranges must be set for partition_by='%s'",
-         options->partition_by());
+         partition_by);
 
   ::paxc::PaxInitializePartitionSpec(rel, reinterpret_cast<Node *>(part));
+}
 
-check_numeric_options:
-  if (!options->numeric_vec_storage) {
-    goto out;
-  }
-
+static void PaxCheckNumericOption(Relation rel) {
 #ifndef HAVE_INT128
   elog(ERROR, "option 'numeric_vec_storage' must be enable INT128 build");
 #endif
 
-  relnatts = RelationGetNumberOfAttributes(rel);
-  tupdesc = RelationGetDescr(rel);
+  auto relnatts = RelationGetNumberOfAttributes(rel);
+  auto tupdesc = RelationGetDescr(rel);
   for (int attno = 0; attno < relnatts; attno++) {
     Form_pg_attribute attr = TupleDescAttr(tupdesc, attno);
-    if (attr->atttypid != NUMERICOID) {
-      continue;
-    }
+
+    if (attr->atttypid != NUMERICOID) continue;
 
     if (attr->atttypmod < 0) {
       elog(ERROR,
@@ -1215,7 +1194,7 @@ check_numeric_options:
            NameStr(attr->attname));
     }
 
-    precision = ((attr->atttypmod - VARHDRSZ) >> 16) & 0xffff;
+    int64 precision = ((attr->atttypmod - VARHDRSZ) >> 16) & 0xffff;
 
     // no need check scale
     if (precision > VEC_SHORT_NUMERIC_MAX_PRECISION) {
@@ -1225,6 +1204,32 @@ check_numeric_options:
            NameStr(attr->attname), precision, VEC_SHORT_NUMERIC_MAX_PRECISION);
     }
   }
+}
+
+static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
+                                Oid object_id, int sub_id, void *arg) {
+  Relation rel;
+  paxc::PaxOptions *options;
+  bool ok;
+
+  if (prev_object_access_hook)
+    prev_object_access_hook(access, class_id, object_id, sub_id, arg);
+
+  if (access != OAT_POST_CREATE || class_id != RelationRelationId) return;
+
+  CommandCounterIncrement();
+  rel = relation_open(object_id, RowExclusiveLock);
+  ok = ((rel->rd_rel->relkind == RELKIND_RELATION ||
+         rel->rd_rel->relkind == RELKIND_MATVIEW) &&
+        rel->rd_options && RelationIsPAX(rel));
+  if (!ok) goto out;
+
+  options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
+  PaxCheckParitionOptions(rel, options->partition_by(), options->partition_ranges());
+  PaxCheckMinMaxColumns(rel, options->minmax_columns());
+
+  if (options->numeric_vec_storage)
+    PaxCheckNumericOption(rel);
 
 out:
   relation_close(rel, RowExclusiveLock);

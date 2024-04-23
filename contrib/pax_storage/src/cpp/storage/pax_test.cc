@@ -201,9 +201,15 @@ TEST_F(PaxWriterTest, TestOper) {
   // 8 groups in a file
   pax_max_tuples_per_group = split_size / 8;
 
+  std::vector<int> minmax_columns;
+  for (int i = 0; i < relation->rd_att->natts; i++)
+    minmax_columns.push_back(i);
+
+  auto stats = new MicroPartitionStats();
+  stats->SetMinMaxColumnIndex(std::move(minmax_columns));
   auto writer = new MockWriter(relation, callback);
   writer->SetFileSplitStrategy(strategy);
-  writer->SetStatsCollector(new MicroPartitionStats());
+  writer->SetStatsCollector(stats);
   uint32 call_times = 0;
   EXPECT_CALL(*writer, GenFilePath(_))
       .Times(AtLeast(2))
@@ -540,6 +546,7 @@ class MockParitionWriter : public TableParitionWriter {
       : TableParitionWriter(relation, bucket) {
     SetWriteSummaryCallback(callback);
     SetFileSplitStrategy(new PaxDefaultSplitStrategy());
+    SetStatsCollector(new MicroPartitionStats());
   }
 
   MOCK_METHOD(std::string, GenFilePath, (const std::string &), (override));

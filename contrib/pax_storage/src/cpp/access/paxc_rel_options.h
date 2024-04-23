@@ -29,6 +29,7 @@ namespace paxc {
 #define PAX_SOPT_PARTITION_BY "partition_by"
 #define PAX_SOPT_PARTITION_RANGES "partition_ranges"
 #define PAX_SOPT_NUMERIC_VEC_STORAGE "numeric_vec_storage"
+#define PAX_SOPT_MINMAX_COLUMNS  "minmax_columns"
 
 // plain structure used by reloptions, can be accessed from C++ code.
 struct PaxOptions {
@@ -41,6 +42,7 @@ struct PaxOptions {
   int compress_level;
   int partition_by_offset = 0;
   int partition_ranges_offset = 0;
+  int minmax_columns_offset = 0;
   bool numeric_vec_storage = false;
 
   char *partition_by() {
@@ -52,6 +54,11 @@ struct PaxOptions {
     return partition_ranges_offset == 0
                ? NULL
                : reinterpret_cast<char *>(this) + partition_ranges_offset;
+  }
+  char *minmax_columns() {
+    return minmax_columns_offset == 0
+               ? NULL
+               : reinterpret_cast<char *>(this) + minmax_columns_offset;
   }
 };
 
@@ -97,6 +104,8 @@ void paxc_validate_column_encoding_clauses(List *encoding_opts);
  */
 List *paxc_transform_column_encoding_clauses(List *encoding_opts, bool validate,
                                              bool fromType);
+
+Bitmapset *paxc_get_minmax_columns_index(Relation rel, bool validate);
 
 }  // namespace paxc
 

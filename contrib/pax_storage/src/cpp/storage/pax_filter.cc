@@ -414,6 +414,10 @@ static bool CheckNonnullValue(const ::pax::stats::ColumnBasicInfo &minmax,
   FmgrInfo finfo;
   Datum datum;
   Datum matches = true;
+
+  Assert(data_stats.has_minimal() == data_stats.has_maximum());
+  if (!data_stats.has_minimal()) return true;
+
   auto value = scan_key->sk_argument;
   auto typid = attr->atttypid;
   auto collation = minmax.collation();
@@ -586,6 +590,8 @@ bool PaxFilter::TestScanInternal(const ColumnStatsProvider &provider,
 
     const auto &info = provider.ColumnInfo(column_index);
     const auto &data_stats = provider.DataStats(column_index);
+
+    Assert(data_stats.has_minimal() == data_stats.has_maximum());
 
     // Check whether alter column type will result rewriting whole table.
     AssertImply(info.typid(), attr->atttypid == info.typid());

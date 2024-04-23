@@ -256,14 +256,16 @@ HINT:  likely caused by a function that reads or modifies data in a distributed 
 CONTEXT:  SQL function "rngfunct" statement 1
 -- function in subselect
 select * from rngfunc2 where f2 in (select f2 from rngfunct(rngfunc2.rngfuncid) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2;
-ERROR:  micro_partition_row_filter_reader.cc:14 C ERROR (PG message: function cannot execute on a QE slice because it accesses relation "public.rngfunc2") (pax_access_handle.cc:339)
+ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"
+CONTEXT:  SQL function "rngfunct" during startup
 -- function in subselect
 select * from rngfunc2 where f2 in (select f2 from rngfunct(1) z where z.rngfuncid = rngfunc2.rngfuncid) ORDER BY 1,2;
-ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"  (entry db 127.0.1.1:7000 pid=18889)
+ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"
 CONTEXT:  SQL function "rngfunct" during startup
 -- function in subselect
 select * from rngfunc2 where f2 in (select f2 from rngfunct(rngfunc2.rngfuncid) z where z.rngfuncid = 1) ORDER BY 1,2;
-ERROR:  micro_partition_row_filter_reader.cc:14 C ERROR (PG message: function cannot execute on a QE slice because it accesses relation "public.rngfunc2") (pax_access_handle.cc:339)
+ERROR:  function cannot execute on a QE slice because it accesses relation "public.rngfunc2"
+CONTEXT:  SQL function "rngfunct" during startup
 -- nested functions
 select rngfunct.rngfuncid, rngfunct.f2 from rngfunct(sin(pi()/2)::int) ORDER BY 1,2;
  rngfuncid | f2  

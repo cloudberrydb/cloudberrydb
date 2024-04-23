@@ -14,7 +14,7 @@ TableParitionWriter::TableParitionWriter(Relation relation,
     : TableWriter(relation),
       part_obj_(part_obj),
       writers_(nullptr),
-      mp_stats_(nullptr),
+      mp_stats_array_(nullptr),
       num_tuples_(nullptr),
       current_blocknos_(nullptr),
       writer_counts_(0) {}
@@ -22,10 +22,10 @@ TableParitionWriter::TableParitionWriter(Relation relation,
 TableParitionWriter::~TableParitionWriter() {
   for (int i = 0; i < writer_counts_; i++) {
     PAX_DELETE(writers_[i]);
-    PAX_DELETE(mp_stats_[i]);
+    PAX_DELETE(mp_stats_array_[i]);
   }
   PAX_DELETE_ARRAY(writers_);
-  PAX_DELETE_ARRAY(mp_stats_);
+  PAX_DELETE_ARRAY(mp_stats_array_);
   PAX_DELETE_ARRAY(num_tuples_);
   PAX_DELETE_ARRAY(current_blocknos_);
 }
@@ -40,9 +40,11 @@ void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
   }
 
   if (!writers_[part_index]) {
-    Assert(!mp_stats_[part_index]);
-    mp_stats_[part_index] = PAX_NEW<MicroPartitionStats>();
-    writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
+    Assert(!mp_stats_array_[part_index]);
+    auto stats = PAX_NEW<MicroPartitionStats>();
+    stats->SetMinMaxColumnIndex(std::vector<int>(mp_stats_->GetMinMaxColumnIndex()));
+    mp_stats_array_[part_index] = stats;
+    writers_[part_index] = CreateMicroPartitionWriter(mp_stats_array_[part_index]);
 
     // insert tuple into the aux table before inserting any tuples.
     current_blocknos_[part_index] = current_blockno_;
@@ -52,7 +54,7 @@ void TableParitionWriter::WriteTuple(TupleTableSlot *slot) {
                                     num_tuples_[part_index])) {
     writers_[part_index]->Close();
     PAX_DELETE(writers_[part_index]);
-    writers_[part_index] = CreateMicroPartitionWriter(mp_stats_[part_index]);
+    writers_[part_index] = CreateMicroPartitionWriter(mp_stats_array_[part_index]);
     num_tuples_[part_index] = 0;
 
     // insert tuple into the aux table before inserting any tuples.
@@ -79,8 +81,8 @@ void TableParitionWriter::Open() {
   memset(writers_, 0,
          sizeof(MicroPartitionWriter *) * writer_counts_);  // NOLINT
 
-  mp_stats_ = PAX_NEW_ARRAY<MicroPartitionStats *>(writer_counts_);
-  memset(mp_stats_, 0,
+  mp_stats_array_ = PAX_NEW_ARRAY<MicroPartitionStats *>(writer_counts_);
+  memset(mp_stats_array_, 0,
          sizeof(MicroPartitionStats *) * writer_counts_);  // NOLINT
 
   num_tuples_ = PAX_NEW_ARRAY<size_t>(writer_counts_);

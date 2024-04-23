@@ -27,9 +27,10 @@ CPaxInserter::CPaxInserter(Relation rel)
     part_obj_ = nullptr;
   }
 
+  auto stats = PAX_NEW<MicroPartitionStats>()->SetMinMaxColumnIndex(cbdb::GetMinMaxColumnsIndex(rel));
   writer_->SetWriteSummaryCallback(&cbdb::InsertOrUpdateMicroPartitionEntry)
       ->SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>())
-      ->SetStatsCollector(PAX_NEW<MicroPartitionStats>())
+      ->SetStatsCollector(stats)
       ->Open();
 }
 

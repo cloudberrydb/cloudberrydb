@@ -43,6 +43,11 @@ MicroPartitionStats *MicroPartitionStats::SetStatsMessage(
   return this;
 }
 
+MicroPartitionStats *MicroPartitionStats::SetMinMaxColumnIndex(std::vector<int> &&minmax_columns) {
+  minmax_columns_ = std::move(minmax_columns);
+  return this;
+}
+
 MicroPartitionStats *MicroPartitionStats::LightReset() {
   for (char &status : status_) {
     Assert(status == 'n' || status == 'y' || status == 'x');
@@ -242,22 +247,36 @@ void MicroPartitionStats::UpdateMinMaxValue(int column_index, Datum datum,
 
 void MicroPartitionStats::DoInitialCheck(TupleDesc desc) {
   auto natts = desc->natts;
+  auto num_minmax_columns = static_cast<int>(minmax_columns_.size());
 
   Assert(natts == static_cast<int>(status_.size()));
   Assert(status_.size() == opfamilies_.size());
   Assert(status_.size() == finfos_.size());
+  Assert(num_minmax_columns <= natts);
 
   if (initial_check_) {
     return;
   }
 
-  for (int i = 0; i < natts; i++) {
+#ifdef USE_ASSERT_CHECKING
+// minmax_columns_ should be sorted
+  for (int i = 1; i < num_minmax_columns; i++)
+    Assert(minmax_columns_[i - 1] < minmax_columns_[i]);
+#endif
+
+  for (int i = 0, j = 0; i < natts; i++) {
     auto att = TupleDescAttr(desc, i);
 
     if (att->attisdropped) {
       status_[i] = 'x';
       continue;
     }
+    while (j < num_minmax_columns && minmax_columns_[j] < i) j++;
+    if (j >= num_minmax_columns || minmax_columns_[j] != i) {
+      status_[i] = 'x';
+      continue;
+    }
+    j++;
 
     if (GetStrategyProcinfo(att->atttypid, att->atttypid, local_funcs_[i])) {
       status_[i] = 'n';
@@ -497,6 +516,12 @@ Datum MicroPartitionStatsOutput(PG_FUNCTION_ARGS) {
     }
 
     const auto &data_stats = column.datastats();
+    Assert(data_stats.has_minimal() == data_stats.has_maximum());
+    if (!data_stats.has_minimal()) {
+      appendStringInfoString(&str, ",None]");
+      continue;
+    }
+
     const auto &info = column.info();
     appendStringInfo(&str, ",(%s,%s)]",
                      TypeValueToCString(info.typid(), info.collation(),

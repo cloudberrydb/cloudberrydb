@@ -60,6 +60,8 @@ static const relopt_parse_elt kSelfReloptTab[] = {
      offsetof(PaxOptions, partition_by_offset)},
     {PAX_SOPT_PARTITION_RANGES, RELOPT_TYPE_STRING,
      offsetof(PaxOptions, partition_ranges_offset)},
+    {PAX_SOPT_MINMAX_COLUMNS, RELOPT_TYPE_STRING,
+     offsetof(PaxOptions, minmax_columns_offset)},
     {PAX_SOPT_NUMERIC_VEC_STORAGE, RELOPT_TYPE_BOOL,
      offsetof(PaxOptions, numeric_vec_storage)},
 };
@@ -222,6 +224,56 @@ List *paxc_transform_column_encoding_clauses(List *encoding_opts, bool validate,
   return ret_list;
 }
 
+Bitmapset *paxc_get_minmax_columns_index(Relation rel, bool validate) {
+  Assert(rel->rd_rel->relam == PAX_AM_OID);
+
+  List *list = NIL;
+  ListCell *lc;
+  auto tupdesc = RelationGetDescr(rel);
+  auto natts = RelationGetNumberOfAttributes(rel);
+  Bitmapset *bms = nullptr;
+
+  auto options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
+  if (!options || !options->minmax_columns()) return nullptr;
+
+  auto value = pstrdup(options->minmax_columns());
+  if (!SplitDirectoriesString(value, ',', &list))
+    elog(ERROR, "invalid minmax_columns: '%s' '%s'", value, options->minmax_columns());
+
+  pfree(value);
+  foreach(lc, list) {
+    auto s = (char *)lfirst(lc);
+    int i;
+    bool dropped_column = false;
+    bool valid_column;
+
+    for (i = 0; i < natts; i++) {
+      auto attr = TupleDescAttr(tupdesc, i);
+      if (strcmp(s, NameStr(attr->attname)) == 0) {
+        if (!attr->attisdropped) break;
+
+        if (validate)
+          elog(ERROR, "pax: can't use dropped column");
+        dropped_column = true;
+        break;
+      }
+    }
+    valid_column = !dropped_column && i < natts;
+    if (validate) {
+      if (i == natts)
+        elog(ERROR, "invalid column name '%s'", s);
+
+      if (bms_is_member(i, bms))
+        elog(ERROR, "duplicated column name '%s'", s);
+    }
+
+    if (valid_column)
+      bms = bms_add_member(bms, i);
+  }
+  list_free_deep(list);
+  return bms;
+}
+
 void paxc_reg_rel_options() {
   self_relopt_kind = add_reloption_kind();
   add_string_reloption(
@@ -238,6 +290,8 @@ void paxc_reg_rel_options() {
                        NULL, NULL, AccessExclusiveLock);
   add_string_reloption(self_relopt_kind, PAX_SOPT_PARTITION_RANGES,
                        "partition ranges", NULL, NULL, AccessExclusiveLock);
+  add_string_reloption(self_relopt_kind, PAX_SOPT_MINMAX_COLUMNS,
+                       "minmax columns", NULL, NULL, AccessExclusiveLock);
   add_bool_reloption(self_relopt_kind, PAX_SOPT_NUMERIC_VEC_STORAGE,
                      "use vec format store numeric type", false,
                      AccessExclusiveLock);

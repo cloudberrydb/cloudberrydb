@@ -431,9 +431,10 @@ void TableDeleter::Delete() {
 
 void TableDeleter::OpenWriter() {
   writer_ = PAX_NEW<TableWriter>(rel_);
+  auto stats = PAX_NEW<MicroPartitionStats>()->SetMinMaxColumnIndex(cbdb::GetMinMaxColumnsIndex(rel_));
   writer_->SetWriteSummaryCallback(&cbdb::InsertOrUpdateMicroPartitionEntry)
       ->SetFileSplitStrategy(PAX_NEW<PaxDefaultSplitStrategy>())
-      ->SetStatsCollector(PAX_NEW<MicroPartitionStats>())
+      ->SetStatsCollector(stats)
       ->Open();
 }
 

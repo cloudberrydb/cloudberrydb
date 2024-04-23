@@ -241,6 +241,8 @@ MicroPartitionWriter *OrcWriter::SetStatsCollector(
     auto stats_data = PAX_NEW<MicroPartittionFileStatsData>(
         &summary_.mp_stats, static_cast<int>(column_types_.size()));
     mpstats->SetStatsMessage(stats_data, column_types_.size());
+    stats_collector_.SetMinMaxColumnIndex(std::vector<int>(mpstats->GetMinMaxColumnIndex()));
+
     return MicroPartitionWriter::SetStatsCollector(mpstats);
   }
   return MicroPartitionWriter::SetStatsCollector(mpstats);

@@ -4,6 +4,7 @@
 
 #include <cstddef>
 #include <string>
+#include <vector>
 
 #include "exceptions/CException.h"
 
@@ -166,6 +167,8 @@ bool ExtractcolumnsFromNode(Node *expr, bool *cols, int natts);
 
 bool MinMaxGetStrategyProcinfo(Oid atttypid, Oid subtype, Oid *opfamily,
                                FmgrInfo *finfo, StrategyNumber strategynum);
+
+std::vector<int> GetMinMaxColumnsIndex(Relation rel);
 
 Datum FunctionCall1Coll(FmgrInfo *flinfo, Oid collation, Datum arg1);
 

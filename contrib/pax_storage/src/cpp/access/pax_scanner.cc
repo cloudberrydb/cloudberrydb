@@ -310,12 +310,18 @@ TableScanDesc PaxScanDesc::BeginScanExtractColumns(
     auto ok = pax::BuildScanKeys(rel, qual, false, &scan_keys, &n_scan_keys);
     if (ok) filter->SetScanKeys(scan_keys, n_scan_keys);
 
+// FIXME: enable predicate pushdown can filter rows immediately without assigning
+// all columns. But it may mess the filter orders for multiple conditions.
+// For example: ... where a = 2 and f_leak(b)
+// the second condition may be executed before the first one.
+#if 0
     if (gp_enable_predicate_pushdown
 #ifdef VEC_BUILD
         && !(flags & SO_TYPE_VECTOR)
 #endif
     )
       filter->BuildExecutionFilterForColumns(rel, ps);
+#endif
   }
   paxscan = BeginScan(rel, snapshot, 0, nullptr, parallel_scan, flags, filter,
                       build_bitmap);
