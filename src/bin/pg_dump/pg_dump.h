@@ -383,6 +383,7 @@ typedef struct _tableInfo
 	char	   *partbound;		/* partition bound definition */
 	bool		needs_override; /* has GENERATED ALWAYS AS IDENTITY */
 	char	   *amname;			/* relation access method */
+	Oid			amoid;			/* relation access method oid */
 
 	/*
 	 * Stuff computed only for dumpable tables.
