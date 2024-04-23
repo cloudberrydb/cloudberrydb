@@ -546,6 +546,51 @@ numeric_is_integral(Numeric num)
 	return (arg.ndigits == 0 || arg.ndigits <= arg.weight + 1);
 }
 
+
+/*
+ * numeric_is_nan() -
+ *
+ *	Is Numeric value a NaN?
+ */
+bool
+numeric_is_nan(Numeric num)
+{
+	return NUMERIC_IS_NAN(num);
+}
+
+/*
+ * numeric_digits() -
+ *
+ *	Output function for numeric's digits
+ */
+NumericDigit *
+numeric_digits(Numeric num)
+{
+	return NUMERIC_DIGITS(num);
+}
+
+/*
+ * numeric_len() -
+ *
+ *	Output size of digits in bytes
+ */
+int
+numeric_len(Numeric num)
+{
+	return NUMERIC_NDIGITS(num) * sizeof(NumericDigit);
+}
+
+/*
+ * numeric_is_inf() -
+ *
+ *	Is Numeric value an infinity?
+ */
+bool
+numeric_is_inf(Numeric num)
+{
+	return NUMERIC_IS_INF(num);
+}
+
 /*
  * numeric_maximum_size() -
  *

@@ -343,6 +343,16 @@ extern float8 numeric_li_fraction(Numeric x, Numeric x0, Numeric x1,
 extern Numeric numeric_li_value(float8 f, Numeric y0, Numeric y1);
 
 /*
+ * Some of utility functions. which have same definition as the macro,
+ * but some of extension will these function rather than use the marco
+ * like `pgrx`.
+ */
+extern int16 *numeric_digits(Numeric num);
+extern int numeric_len(Numeric num);
+extern bool numeric_is_nan(Numeric num);
+extern bool numeric_is_inf(Numeric num);
+
+/*
  * Utility functions in numeric.c
  */
 int32		numeric_maximum_size(int32 typmod);
