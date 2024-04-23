@@ -59,9 +59,9 @@ top_builddir = ../..
 all: unionstore.tar.gz
 
 unionstore.tar.gz:
-	git clone https://code.hashdata.xyz/cloudberry/unionstore.git $(HOME)/unionstore && \
+	git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@code.hashdata.xyz/cloudberry/unionstore.git $(HOME)/unionstore && \
 	rm -rf $(HOME)/unionstore/vendor/unionstore_walredo && \
-	git clone https://code.hashdata.xyz/cloudberry/unionstore_walredo.git $(HOME)/unionstore/vendor/unionstore_walredo && \
+	git clone https://${GIT_USERNAME}:${GIT_PASSWORD}@code.hashdata.xyz/cloudberry/unionstore_walredo.git $(HOME)/unionstore/vendor/unionstore_walredo && \
 	cp -r $(top_builddir)/* $(HOME)/unionstore/vendor/postgres-v14/ && \
 	cp -r $(top_builddir)/* $(HOME)/unionstore/vendor/postgres-v15/ && \
 	cd $(HOME)/unionstore && \
