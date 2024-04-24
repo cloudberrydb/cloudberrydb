@@ -64,8 +64,8 @@ class OrcWriter : public MicroPartitionWriter {
 
   size_t PhysicalSize() const override;
 
-  static std::vector<pax::porc::proto::Type_Kind> BuildSchema(
-      TupleDesc desc, bool enable_numeric_vec_storage);
+  static std::vector<pax::porc::proto::Type_Kind> BuildSchema(TupleDesc desc,
+                                                              bool is_vec);
 
 #ifndef RUN_GTEST
  protected:  // NOLINT

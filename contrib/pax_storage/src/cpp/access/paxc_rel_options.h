@@ -28,22 +28,20 @@ namespace paxc {
 #define PAX_SOPT_COMPLEVEL SOPT_COMPLEVEL
 #define PAX_SOPT_PARTITION_BY "partition_by"
 #define PAX_SOPT_PARTITION_RANGES "partition_ranges"
-#define PAX_SOPT_NUMERIC_VEC_STORAGE "numeric_vec_storage"
-#define PAX_SOPT_MINMAX_COLUMNS  "minmax_columns"
+#define PAX_SOPT_MINMAX_COLUMNS "minmax_columns"
 
 // plain structure used by reloptions, can be accessed from C++ code.
 struct PaxOptions {
-  // Pax needs to define the StdRdOptions instead of just vl_len. 
-  // This is because many places in the CBDB assume that option in 
+  // Pax needs to define the StdRdOptions instead of just vl_len.
+  // This is because many places in the CBDB assume that option in
   // relation can be cast into StdRdOptions.
-  StdRdOptions rd_options; 
+  StdRdOptions rd_options;
   char storage_format[16];
   char compress_type[16];
   int compress_level;
   int partition_by_offset = 0;
   int partition_ranges_offset = 0;
   int minmax_columns_offset = 0;
-  bool numeric_vec_storage = false;
 
   char *partition_by() {
     return partition_by_offset == 0

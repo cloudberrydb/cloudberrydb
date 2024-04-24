@@ -1147,7 +1147,8 @@ static void PaxCheckMinMaxColumns(Relation rel, const char *minmax_columns) {
   bms_free(bms);
 }
 
-static void PaxCheckParitionOptions(Relation rel, const char *partition_by, const char *partition_ranges) {
+static void PaxCheckParitionOptions(Relation rel, const char *partition_by,
+                                    const char *partition_ranges) {
   if (!partition_by) {
     if (partition_ranges) {
       elog(ERROR, "set '%s', but partition_by not specified", partition_ranges);
@@ -1176,13 +1177,18 @@ static void PaxCheckParitionOptions(Relation rel, const char *partition_by, cons
   ::paxc::PaxInitializePartitionSpec(rel, reinterpret_cast<Node *>(part));
 }
 
-static void PaxCheckNumericOption(Relation rel) {
-#ifndef HAVE_INT128
-  elog(ERROR, "option 'numeric_vec_storage' must be enable INT128 build");
-#endif
-
+static void PaxCheckNumericOption(Relation rel, char *storage_format) {
   auto relnatts = RelationGetNumberOfAttributes(rel);
   auto tupdesc = RelationGetDescr(rel);
+
+  if (strcmp(storage_format, STORAGE_FORMAT_TYPE_PORC_VEC) != 0) {
+    return;
+  }
+
+#ifndef HAVE_INT128
+  elog(ERROR, "option 'storage_format=porc_vec' must be enable INT128 build");
+#endif
+
   for (int attno = 0; attno < relnatts; attno++) {
     Form_pg_attribute attr = TupleDescAttr(tupdesc, attno);
 
@@ -1225,11 +1231,10 @@ static void PaxObjectAccessHook(ObjectAccessType access, Oid class_id,
   if (!ok) goto out;
 
   options = reinterpret_cast<paxc::PaxOptions *>(rel->rd_options);
-  PaxCheckParitionOptions(rel, options->partition_by(), options->partition_ranges());
+  PaxCheckParitionOptions(rel, options->partition_by(),
+                          options->partition_ranges());
   PaxCheckMinMaxColumns(rel, options->minmax_columns());
-
-  if (options->numeric_vec_storage)
-    PaxCheckNumericOption(rel);
+  PaxCheckNumericOption(rel, options->storage_format);
 
 out:
   relation_close(rel, RowExclusiveLock);

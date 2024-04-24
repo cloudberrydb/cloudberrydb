@@ -11,6 +11,7 @@ extern "C" {
 
 #pragma GCC diagnostic pop
 
+#include "comm/vec_numeric.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/pax_itemptr.h"
 #include "storage/vec/arrow_wrapper.h"
@@ -362,6 +363,21 @@ void CopyFixedBuffer(PaxColumn *column, const Bitmap8 *visibility_map_bitset,
   }
 }
 
+static inline void VarlenaToRawBuffer(char *buffer, size_t buffer_len,
+                                      char **out_data, size_t *out_len) {
+  struct varlena *vl, *tunpacked;
+
+  vl = (struct varlena *)(buffer);
+
+#ifdef ENABLE_DEBUG
+  tunpacked = cbdb::PgDeToastDatum(vl);
+  Assert((Pointer)vl == (Pointer)tunpacked);
+#endif
+
+  *out_len = VARSIZE_ANY_EXHDR(vl);
+  *out_data = VARDATA_ANY(vl);
+}
+
 void CopyNonFixedRawBuffer(PaxColumn *column,
                            const Bitmap8 *visibility_map_bitset,
                            size_t bitset_index_begin, size_t range_begin,
@@ -393,20 +409,13 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
       offset_buffer->Brush(sizeof(int32));
 
     } else {
-      struct varlena *vl, *tunpacked;
       size_t read_len = 0;
       char *read_data;
 
       std::tie(buffer, buffer_len) =
           column->GetBuffer(data_index_begin + non_null_offset);
 
-      vl = (struct varlena *)(buffer);
-
-      tunpacked = cbdb::PgDeToastDatum(vl);
-      Assert((Pointer)vl == (Pointer)tunpacked);
-
-      read_len = VARSIZE_ANY_EXHDR(tunpacked);
-      read_data = VARDATA_ANY(tunpacked);
+      VarlenaToRawBuffer(buffer, buffer_len, &read_data, &read_len);
 
       // In vec, bpchar not allow store empty char after the actual characters
       if (is_bpchar) {
@@ -434,6 +443,61 @@ void CopyNonFixedRawBuffer(PaxColumn *column,
   // if not the marking deletion，the non_null_offset is equal to the
   // data_range_lens; when there is a Visibility Map, part of the data is
   // invalid. Non_null_offset may be less than the data_range_lens.
+  if (visibility_map_bitset == nullptr) {
+    CBDB_CHECK(non_null_offset == data_range_lens,
+               cbdb::CException::ExType::kExTypeOutOfRange);
+  }
+}
+
+static void CopyDecimalRawBuffer(PaxColumn *column,
+                                 const Bitmap8 *visibility_map_bitset,
+                                 size_t bitset_index_begin, size_t range_begin,
+                                 size_t range_lens, size_t data_index_begin,
+                                 size_t data_range_lens,
+                                 DataBuffer<char> *out_data_buffer) {
+  size_t non_null_offset = 0;
+  char *buffer = nullptr;
+  size_t buffer_len = 0;
+  int32 type_len;
+
+  auto null_bitmap = column->GetBitmap();
+  type_len = VEC_SHORT_NUMERIC_STORE_BYTES;
+
+  for (size_t i = range_begin; i < (range_begin + range_lens); i++) {
+    if (visibility_map_bitset &&
+        visibility_map_bitset->Test(i - range_begin + bitset_index_begin)) {
+      if (!null_bitmap || null_bitmap->Test(i)) {
+        non_null_offset++;
+      }
+      continue;
+    }
+
+    if (null_bitmap && !null_bitmap->Test(i)) {
+      out_data_buffer->Brush(type_len);
+    } else {
+      Numeric numeric;
+      size_t num_len = 0;
+      std::tie(buffer, buffer_len) =
+          column->GetBuffer(data_index_begin + non_null_offset);
+
+      auto vl = (struct varlena *)DatumGetPointer(buffer);
+      num_len = VARSIZE_ANY_EXHDR(vl);
+      numeric = cbdb::DatumToNumeric(PointerGetDatum(buffer));
+
+      char *dest_buff = out_data_buffer->GetAvailableBuffer();
+      Assert(out_data_buffer->Available() >= (size_t)type_len);
+      pg_short_numeric_to_vec_short_numeric(
+          numeric, num_len, (int64 *)dest_buff,
+          (int64 *)(dest_buff + sizeof(int64)));
+      out_data_buffer->Brush(type_len);
+      non_null_offset++;
+    }
+  }
+
+  AssertImply(visibility_map_bitset == nullptr,
+              non_null_offset == data_range_lens);
+  AssertImply(visibility_map_bitset, non_null_offset <= data_range_lens);
+
   if (visibility_map_bitset == nullptr) {
     CBDB_CHECK(non_null_offset == data_range_lens,
                cbdb::CException::ExType::kExTypeOutOfRange);
@@ -632,7 +696,7 @@ static void ConvSchemaAndDataToVec(
       std::shared_ptr<arrow::Buffer> arrow_null_buffer;
       std::shared_ptr<arrow::DataType> data_type;
 
-      data_type = arrow::decimal128(-1, -1);
+      data_type = arrow::numeric128();
 
       auto arrow_buffers = ConvToVecBuffer(vec_batch_buffer);
       arrow_buffer = std::get<0>(arrow_buffers);
@@ -647,7 +711,7 @@ static void ConvSchemaAndDataToVec(
               data_type, all_nums_of_row,
               {arrow_null_buffer, arrow_buffer},  // 16bytes array
               vec_batch_buffer->null_counts);
-      auto array = std::make_shared<arrow::Decimal128Array>(decimal_array_data);
+      auto array = std::make_shared<arrow::Numeric128Array>(decimal_array_data);
 
       array_vector.emplace_back(array);
       field_names.emplace_back(field_name);
@@ -792,6 +856,21 @@ int VecAdapter::AppendToVecBuffer() {
     column_type = column->GetPaxColumnTypeInMem();
 
     switch (column_type) {
+      case PaxColumnTypeInMem::kTypeDecimal: {
+        // notice that: current arrow require the 16 width numeric return
+        auto align_size =
+            TYPEALIGN(MEMORY_ALIGN_SIZE,
+                      (out_range_lens * VEC_SHORT_NUMERIC_STORE_BYTES));
+        Assert(!vec_buffer->GetBuffer());
+
+        vec_buffer->Set((char *)cbdb::Palloc(align_size), align_size);
+
+        CopyDecimalRawBuffer(column, micro_partition_visibility_bitmap_,
+                             range_begin + micro_partition_row_offset_,
+                             range_begin, range_lens, data_index_begin,
+                             data_range_lens, vec_buffer);
+        break;
+      }
       case PaxColumnTypeInMem::kTypeBpChar:
       case PaxColumnTypeInMem::kTypeNonFixed: {
         auto raw_data_size = buffer_len - (data_range_lens * VARHDRSZ_SHORT);
@@ -811,10 +890,8 @@ int VecAdapter::AppendToVecBuffer() {
                               range_begin, range_lens, data_index_begin,
                               data_range_lens, offset_buffer, vec_buffer,
                               column_type == PaxColumnTypeInMem::kTypeBpChar);
-
         break;
       }
-      case PaxColumnTypeInMem::kTypeDecimal:
       case PaxColumnTypeInMem::kTypeFixed: {
         Assert(column->GetTypeLength() > 0);
         auto align_size = TYPEALIGN(MEMORY_ALIGN_SIZE,
@@ -927,7 +1004,7 @@ static std::pair<bool, size_t> ColumnTransMemory(PaxColumn *column) {
   }
 }
 
-bool VecAdapter::AppendVecFormat() {
+int VecAdapter::AppendVecFormat() {
   PaxColumns *columns;
   PaxColumn *column;
 
@@ -1021,6 +1098,23 @@ bool VecAdapter::AppendVecFormat() {
         vec_buffer->BrushAll();
         break;
       }
+      case PaxColumnTypeInMem::kTypeVecDecimal: {
+        std::tie(buffer, buffer_len) = column->GetBuffer();
+        std::tie(trans_succ, cap_len) =
+            ColumnTransMemory<PaxShortNumericColumn>(column);
+
+        if (trans_succ) {
+          vec_buffer->Set(buffer, cap_len);
+          vec_buffer->BrushAll();
+        } else {
+          vec_buffer->Set(
+              (char *)cbdb::Palloc0(TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len)),
+              TYPEALIGN(MEMORY_ALIGN_SIZE, buffer_len));
+          vec_buffer->Write(buffer, buffer_len);
+          vec_buffer->BrushAll();
+        }
+        break;
+      }
       case PaxColumnTypeInMem::kTypeFixed: {
         Assert(!vec_buffer->GetBuffer());
         std::tie(buffer, buffer_len) = column->GetBuffer();
@@ -1077,7 +1171,7 @@ bool VecAdapter::AppendVecFormat() {
 
   current_cached_pax_columns_index_ = total_rows;
   cached_batch_lens_ += total_rows;
-  return true;
+  return total_rows;
 }
 
 size_t VecAdapter::FlushVecBuffer(TupleTableSlot *slot) {

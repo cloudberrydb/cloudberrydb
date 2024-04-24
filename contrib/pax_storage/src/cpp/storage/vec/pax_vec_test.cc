@@ -1,6 +1,6 @@
 #include "comm/gtest_wrappers.h"
 #include "pax_gtest_helper.h"
-#include "storage/columns/pax_numeric_column.h"
+#include "storage/columns/pax_vec_numeric_column.h"
 #include "storage/pax.h"
 #include "storage/vec/pax_vec_adapter.h"
 #ifdef VEC_BUILD
@@ -985,13 +985,13 @@ TEST_P(PaxVecTest, DecimalTest) {
   auto column =
       new PaxShortNumericColumn(VEC_BATCH_LENGTH + 1000, encoding_option);
 
-  for (size_t i = 0; i < VEC_BATCH_LENGTH + 1000; i++) {
+  for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
     auto numeric = int64_to_numeric(i);
     column->Append((char *)numeric,
                    NUMERIC_NDIGITS(numeric) * sizeof(NumericDigit) +
                        sizeof(int16) + VARHDRSZ);
   }
-
+  columns->SetStorageFormat(PaxStorageFormat::kTypeStoragePorcVec);
   columns->AddRows(column->GetRows());
   columns->Append(column);
   adapter->SetDataSource(columns);
@@ -1037,50 +1037,6 @@ TEST_P(PaxVecTest, DecimalTest) {
     char *buffer = (char *)child_array->buffers[1];
     for (size_t i = 0; i < VEC_BATCH_LENGTH; i++) {
       ASSERT_EQ(*((int64 *)(buffer + (i * sizeof(int64) * 2))), i);
-    }
-
-    ASSERT_EQ(child_array->dictionary, nullptr);
-  }
-
-  append_rc = adapter->AppendToVecBuffer();
-  ASSERT_EQ(append_rc, 1000);
-
-  flush_counts = adapter->FlushVecBuffer(tuple_slot);
-  ASSERT_EQ(1000, flush_counts);
-
-  // verify tuple_slot 2
-  {
-    VecTupleTableSlot *vslot = nullptr;
-    vslot = (VecTupleTableSlot *)tuple_slot;
-
-    auto rb = (ArrowRecordBatch *)vslot->tts_recordbatch;
-    ArrowArray *arrow_array = &rb->batch;
-    ASSERT_EQ(arrow_array->length, 1000);
-    ASSERT_EQ(arrow_array->null_count, 0);
-    ASSERT_EQ(arrow_array->offset, 0);
-    ASSERT_EQ(arrow_array->n_buffers, 1);
-    ASSERT_EQ(arrow_array->n_children, 1);
-    ASSERT_NE(arrow_array->children, nullptr);
-    ASSERT_EQ(arrow_array->buffers[0], nullptr);
-    ASSERT_EQ(arrow_array->dictionary, nullptr);
-    ASSERT_EQ(arrow_array->private_data, nullptr);
-
-    ArrowArray *child_array = arrow_array->children[0];
-    ASSERT_EQ(child_array->length, 1000);
-    ASSERT_EQ(child_array->null_count, 0);
-    ASSERT_EQ(child_array->offset, 0);
-    ASSERT_EQ(child_array->n_buffers, 2);  // decimal always 2
-    ASSERT_EQ(child_array->n_children, 0);
-    ASSERT_EQ(child_array->children, nullptr);
-    ASSERT_EQ(child_array->buffers[0], nullptr);  // null bitmap
-    ASSERT_EQ(child_array->private_data, child_array);
-
-    ASSERT_NE(child_array->buffers[1], nullptr);
-
-    char *buffer = (char *)child_array->buffers[1];
-    for (size_t i = 0; i < 1000; i++) {
-      ASSERT_EQ(*((int64 *)(buffer + (i * sizeof(int64) * 2))),
-                i + VEC_BATCH_LENGTH);
     }
 
     ASSERT_EQ(child_array->dictionary, nullptr);

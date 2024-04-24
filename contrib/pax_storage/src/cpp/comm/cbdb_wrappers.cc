@@ -371,7 +371,6 @@ std::vector<int> cbdb::GetMinMaxColumnsIndex(Relation rel) {
   std::vector<int> indexes;
   Bitmapset *bms;
   int idx;
-  ListCell *lc;
 
   {
   CBDB_WRAP_START;

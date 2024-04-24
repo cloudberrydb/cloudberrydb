@@ -193,6 +193,8 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
   std::tie(buffer, buffer_len) = column->GetBuffer(non_null_offset);
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeBpChar:
+    case kTypeDecimal:
+    case kTypeVecDecimal:
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;
@@ -215,10 +217,6 @@ static Datum GetDatumWithNonNull(PaxColumn *column, size_t non_null_offset) {
         default:
           Assert(!"should't be here, fixed type len should be 1, 2, 4, 8");
       }
-      break;
-    }
-    case kTypeDecimal: {
-      datum = PointerGetDatum(buffer);
       break;
     }
     default:

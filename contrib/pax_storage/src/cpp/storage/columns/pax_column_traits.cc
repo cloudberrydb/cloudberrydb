@@ -116,6 +116,13 @@ Impl::CreateDecodingFunc<PaxBpCharColumn>
     ColumnOptCreateTraits2<PaxBpCharColumn>::create_decoding =
         Impl::CreateDecodingImpl<PaxBpCharColumn>;
 
+Impl::CreateEncodingFunc<PaxPgNumericColumn>
+    ColumnOptCreateTraits2<PaxPgNumericColumn>::create_encoding =
+        Impl::CreateEncodingImpl<PaxPgNumericColumn>;
+Impl::CreateDecodingFunc<PaxPgNumericColumn>
+    ColumnOptCreateTraits2<PaxPgNumericColumn>::create_decoding =
+        Impl::CreateDecodingImpl<PaxPgNumericColumn>;
+
 Impl::CreateEncodingFunc<PaxShortNumericColumn>
     ColumnOptCreateTraits2<PaxShortNumericColumn>::create_encoding =
         Impl::CreateEncodingImpl<PaxShortNumericColumn>;

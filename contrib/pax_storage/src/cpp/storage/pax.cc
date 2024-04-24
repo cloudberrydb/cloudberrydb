@@ -117,17 +117,6 @@ PaxStorageFormat TableWriter::GetStorageFormat() {
   return storage_format_;
 }
 
-bool TableWriter::GetNumericVecStorage() {
-  if (!already_get_numeric_vec_storage_) {
-    Assert(relation_);
-    numeric_vec_storage_ =
-        RelationGetOptions(relation_, numeric_vec_storage, false);
-    already_get_numeric_vec_storage_ = true;
-  }
-
-  return numeric_vec_storage_;
-}
-
 TableWriter *TableWriter::SetWriteSummaryCallback(
     WriteSummaryCallback callback) {
   Assert(!summary_callback_);
@@ -217,7 +206,6 @@ MicroPartitionWriter *TableWriter::CreateMicroPartitionWriter(
   options.file_name = std::move(file_path);
   options.encoding_opts = std::move(GetRelEncodingOptions());
   options.storage_format = GetStorageFormat();
-  options.numeric_vec_storage = GetNumericVecStorage();
 
   File *file = Singleton<LocalFileSystem>::GetInstance()->Open(
       options.file_name, fs::kReadWriteMode);

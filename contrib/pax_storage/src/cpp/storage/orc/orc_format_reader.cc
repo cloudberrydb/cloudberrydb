@@ -3,7 +3,6 @@
 #include "comm/cbdb_wrappers.h"
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
-#include "storage/columns/pax_numeric_column.h"
 #include "storage/orc/orc_defined.h"
 
 namespace pax {
@@ -73,7 +72,8 @@ void OrcFormatReader::Open() {
 
     static_assert(sizeof(post_script_len) == PORC_POST_SCRIPT_SIZE,
                   "post script type len not match.");
-    memcpy(&post_script_len, &tail_buffer[PORC_TAIL_SIZE - PORC_POST_SCRIPT_SIZE],
+    memcpy(&post_script_len,
+           &tail_buffer[PORC_TAIL_SIZE - PORC_POST_SCRIPT_SIZE],
            PORC_POST_SCRIPT_SIZE);
     if (post_script_len + PORC_POST_SCRIPT_SIZE > PORC_TAIL_SIZE) {
       read_in_disk(file_length, post_script_len, false);
@@ -418,12 +418,67 @@ static PaxColumn *BuildEncodingBitPackedColumn(
 
 static PaxColumn *BuildEncodingDecimalColumn(
     DataBuffer<char> *data_buffer, const pax::porc::proto::Stream &data_stream,
+    const pax::porc::proto::Stream &len_stream,
+    const ColumnEncoding &data_encoding) {
+  uint32 column_lens_size = 0;
+  uint64 column_lens_len = 0;
+  uint64 column_data_len = 0;
+  DataBuffer<int32> *column_len_buffer = nullptr;
+  DataBuffer<char> *column_data_buffer = nullptr;
+  PaxNonFixedColumn *pax_column = nullptr;
+
+  column_lens_size = static_cast<uint32>(len_stream.column());
+  column_lens_len = static_cast<uint64>(len_stream.length());
+
+  column_len_buffer = PAX_NEW<DataBuffer<int32>>(
+      reinterpret_cast<int32 *>(data_buffer->GetAvailableBuffer()),
+      column_lens_len, false, false);
+
+  Assert(column_lens_len >= column_lens_size * sizeof(int32));
+  column_len_buffer->Brush(column_lens_size * sizeof(int32));
+  data_buffer->Brush(column_lens_len);
+
+  column_data_len = data_stream.length();
+
+#ifdef ENABLE_DEBUG
+  if (data_encoding.kind() ==
+      ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED) {
+    size_t segs_size = 0;
+    for (size_t i = 0; i < column_len_buffer->GetSize(); i++) {
+      segs_size += (*column_len_buffer)[i];
+    }
+    Assert(column_data_len == segs_size);
+  }
+#endif
+
+  column_data_buffer = PAX_NEW<DataBuffer<char>>(
+      data_buffer->GetAvailableBuffer(), column_data_len, false, false);
+  column_data_buffer->BrushAll();
+  data_buffer->Brush(column_data_len);
+
+  Assert(static_cast<uint32>(data_stream.column()) == column_lens_size);
+
+  PaxDecoder::DecodingOption decoding_option;
+  decoding_option.column_encode_type = data_encoding.kind();
+  decoding_option.is_sign = true;
+  decoding_option.compress_level = data_encoding.compress_lvl();
+
+  pax_column =
+      traits::ColumnOptCreateTraits2<PaxPgNumericColumn>::create_decoding(
+          data_encoding.length(), std::move(decoding_option));
+  // current memory will be freed in pax_columns->data_
+  pax_column->Set(column_data_buffer, column_len_buffer, column_data_len);
+  return pax_column;
+}
+
+static PaxColumn *BuildVecEncodingDecimalColumn(
+    DataBuffer<char> *data_buffer, const pax::porc::proto::Stream &data_stream,
     const ColumnEncoding &data_encoding, bool is_vec) {
   uint32 not_null_rows = 0;
   uint64 column_data_len = 0;
   DataBuffer<int8> *column_data_buffer = nullptr;
 
-  CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
+  CBDB_CHECK(is_vec, cbdb::CException::ExType::kExTypeLogicError);
 
   Assert(data_stream.kind() == pax::porc::proto::Stream_Kind_DATA);
 
@@ -724,7 +779,22 @@ PaxColumns *OrcFormatReader::ReadStripe(size_t group_index, bool *proj_map,
         break;
       }
       case (pax::porc::proto::Type_Kind::Type_Kind_DECIMAL): {
+        const pax::porc::proto::Stream &len_stream =
+            stripe_footer.streams(streams_index++);
+        const pax::porc::proto::Stream &data_stream =
+            stripe_footer.streams(streams_index++);
+        const ColumnEncoding &data_encoding =
+            stripe_footer.pax_col_encodings(index);
+
+        Assert(len_stream.kind() == pax::porc::proto::Stream_Kind_LENGTH);
+        Assert(data_stream.kind() == pax::porc::proto::Stream_Kind_DATA);
+
         pax_columns->Append(BuildEncodingDecimalColumn(
+            data_buffer, data_stream, len_stream, data_encoding));
+        break;
+      }
+      case (pax::porc::proto::Type_Kind::Type_Kind_VECDECIMAL): {
+        pax_columns->Append(BuildVecEncodingDecimalColumn(
             data_buffer, stripe_footer.streams(streams_index++),
             stripe_footer.pax_col_encodings(index), is_vec_));
         break;

@@ -222,7 +222,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
         break;
       }
       case kTypeBitPacked:
-      case kTypeDecimal:
+      case kTypeVecDecimal:
       case kTypeFixed: {
         auto data_length = column->GetBuffer().second;
         if (column->GetEncodingType() ==
@@ -235,6 +235,7 @@ size_t PaxColumns::MeasureVecDataBuffer(
                             data_length);
         break;
       }
+      case kTypeDecimal:
       case kTypeInvalid:
       default: {
         CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
@@ -280,6 +281,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
 
     switch (column->GetPaxColumnTypeInMem()) {
       case kTypeBpChar:
+      case kTypeDecimal:
       case kTypeNonFixed: {
         size_t lengths_size = column_size * sizeof(int32);
 
@@ -303,7 +305,6 @@ size_t PaxColumns::MeasureOrcDataBuffer(
         break;
       }
       case kTypeBitPacked:
-      case kTypeDecimal:
       case kTypeFixed: {
         auto length_data = column->GetBuffer().second;
         buffer_len += length_data;
@@ -312,6 +313,7 @@ size_t PaxColumns::MeasureOrcDataBuffer(
 
         break;
       }
+      case kTypeVecDecimal:
       case kTypeInvalid:
       default: {
         CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
@@ -390,7 +392,7 @@ void PaxColumns::CombineVecDataBuffer() {
         break;
       }
       case kTypeBitPacked:
-      case kTypeDecimal:
+      case kTypeVecDecimal:
       case kTypeFixed: {
         std::tie(buffer, buffer_len) = column->GetBuffer();
 
@@ -401,9 +403,12 @@ void PaxColumns::CombineVecDataBuffer() {
         fill_padding_buffer(column, data_, buffer_len, MEMORY_ALIGN_SIZE);
         break;
       }
+      case kTypeDecimal:
       case kTypeInvalid:
-      default:
+      default: {
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
         break;
+      }
     }
   }
 }
@@ -428,6 +433,7 @@ void PaxColumns::CombineOrcDataBuffer() {
 
     switch (column->GetPaxColumnTypeInMem()) {
       case kTypeBpChar:
+      case kTypeDecimal:
       case kTypeNonFixed: {
         auto no_fixed_column = reinterpret_cast<PaxNonFixedColumn *>(column);
         auto length_data_buffer = no_fixed_column->GetLengthBuffer();
@@ -459,16 +465,18 @@ void PaxColumns::CombineOrcDataBuffer() {
         break;
       }
       case kTypeBitPacked:
-      case kTypeDecimal:
       case kTypeFixed: {
         std::tie(buffer, buffer_len) = column->GetBuffer();
         data_->Write(buffer, buffer_len);
         data_->Brush(buffer_len);
         break;
       }
+      case kTypeVecDecimal:
       case kTypeInvalid:
-      default:
+      default: {
+        CBDB_RAISE(cbdb::CException::ExType::kExTypeLogicError);
         break;
+      }
     }
   }
 }
@@ -493,6 +501,7 @@ std::pair<Datum, bool> GetColumnValue(PaxColumns *columns, size_t column_index,
   std::tie(buffer, buffer_len) = column->GetBuffer(nonnulls);
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeBpChar:
+    case kTypeDecimal:
     case kTypeNonFixed:
       datum = PointerGetDatum(buffer);
       break;
@@ -517,7 +526,7 @@ std::pair<Datum, bool> GetColumnValue(PaxColumns *columns, size_t column_index,
       }
       break;
     }
-    case kTypeDecimal: {
+    case kTypeVecDecimal: {
       datum = PointerGetDatum(*reinterpret_cast<int64 *>(buffer));
       break;
     }

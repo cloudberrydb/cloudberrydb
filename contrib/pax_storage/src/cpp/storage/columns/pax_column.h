@@ -27,8 +27,9 @@ enum PaxColumnTypeInMem {
   kTypeFixed = 2,
   kTypeNonFixed = 3,
   kTypeDecimal = 4,
-  kTypeBpChar = 5,
-  kTypeBitPacked = 6,
+  kTypeVecDecimal = 5,
+  kTypeBpChar = 6,
+  kTypeBitPacked = 7,
 };
 
 class PaxColumn {

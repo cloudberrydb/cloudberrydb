@@ -60,6 +60,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
   std::tie(buffer, buffer_len) = column->GetBuffer(row_index);
   switch (column->GetPaxColumnTypeInMem()) {
     case kTypeBpChar:
+    case kTypeDecimal:
     case kTypeNonFixed:
       CBDB_WRAP_START;
       {
@@ -92,7 +93,7 @@ static std::pair<Datum, struct varlena *> GetDatumWithNonNull(
       }
       break;
     }
-    case kTypeDecimal: {
+    case kTypeVecDecimal: {
       datum = PointerGetDatum(buffer);
       break;
     }

@@ -73,6 +73,7 @@ message Type {
     CHAR = 10;
     STRUCT = 11;
     BPCHAR = 12;
+    VECDECIMAL = 13;
   }
   // the kind of type
   optional Kind kind = 1;

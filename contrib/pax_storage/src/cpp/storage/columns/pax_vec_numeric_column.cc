@@ -1,4 +1,4 @@
-#include "storage/columns/pax_numeric_column.h"
+#include "storage/columns/pax_vec_numeric_column.h"
 
 #include "comm/vec_numeric.h"
 
@@ -8,7 +8,7 @@ namespace pax {
 
 PaxShortNumericColumn::PaxShortNumericColumn(
     uint32 capacity, const PaxEncoder::EncodingOption &encoding_option)
-    : PaxEncodingColumn(capacity, encoding_option),
+    : PaxVecEncodingColumn(capacity, encoding_option),
       already_combined_(false),
       width_(VEC_SHORT_NUMERIC_STORE_BYTES) {
   Assert(capacity >= VEC_SHORT_NUMERIC_STORE_BYTES);
@@ -16,23 +16,35 @@ PaxShortNumericColumn::PaxShortNumericColumn(
 
 PaxShortNumericColumn::PaxShortNumericColumn(
     uint32 capacity, const PaxDecoder::DecodingOption &decoding_option)
-    : PaxEncodingColumn(capacity, decoding_option),
+    : PaxVecEncodingColumn(capacity, decoding_option),
       already_combined_(false),
       width_(VEC_SHORT_NUMERIC_STORE_BYTES) {}
 
 PaxColumnTypeInMem PaxShortNumericColumn::GetPaxColumnTypeInMem() const {
-  return PaxColumnTypeInMem::kTypeDecimal;
-}
-
-void PaxShortNumericColumn::Set(DataBuffer<int8> *data, size_t non_null_rows) {
-  PaxColumn::non_null_rows_ = non_null_rows;
-  PaxEncodingColumn::Set(data);
+  return PaxColumnTypeInMem::kTypeVecDecimal;
 }
 
 PaxShortNumericColumn::~PaxShortNumericColumn() {
   for (auto numeric : numeric_holder_) {
     cbdb::Pfree(numeric);
   }
+}
+
+void PaxShortNumericColumn::AppendNull() {
+  static char null_buffer[sizeof(int64) * 2] = {0};
+
+  PaxColumn::AppendNull();
+
+  // Check that null_buffer is large enough
+  Assert(width_ * sizeof(int8) <= 2 * sizeof(int64));
+  Assert(data_->Capacity() >= width_);
+
+  if (data_->Available() < width_) {
+    data_->ReSize(data_->Used() + width_, 2);
+  }
+
+  data_->Write((int8 *)null_buffer, width_);
+  data_->Brush(width_);
 }
 
 void PaxShortNumericColumn::Append(char *buffer, size_t size) {
@@ -70,8 +82,7 @@ std::pair<char *, size_t> PaxShortNumericColumn::GetBuffer(size_t position) {
   Datum datum;
   struct varlena *vl;
 
-  CBDB_CHECK(position < GetNonNullRows(),
-             cbdb::CException::ExType::kExTypeOutOfRange);
+  CBDB_CHECK(position < GetRows(), cbdb::CException::ExType::kExTypeOutOfRange);
 
   Assert(data_->Used() > position * width_);
 
@@ -86,10 +97,6 @@ std::pair<char *, size_t> PaxShortNumericColumn::GetBuffer(size_t position) {
 }
 
 DataBuffer<int8> *PaxShortNumericColumn::GetDataBuffer() { return data_; }
-
-ColumnEncoding_Kind PaxShortNumericColumn::GetDefaultColumnType() {
-  return ColumnEncoding_Kind::ColumnEncoding_Kind_NO_ENCODED;
-}
 
 int32 PaxShortNumericColumn::GetTypeLength() const {
   return VEC_SHORT_NUMERIC_STORE_BYTES;

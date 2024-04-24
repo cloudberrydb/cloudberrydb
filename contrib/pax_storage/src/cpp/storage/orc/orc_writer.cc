@@ -6,15 +6,15 @@
 #include "comm/pax_memory.h"
 #include "storage/columns/pax_column_traits.h"
 #include "storage/micro_partition_stats.h"
-#include "storage/orc/porc.h"
 #include "storage/orc/orc_defined.h"
 #include "storage/orc/orc_group.h"
+#include "storage/orc/porc.h"
 #include "storage/pax_itemptr.h"
 
 namespace pax {
 
-std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(
-    TupleDesc desc, bool enable_numeric_vec_storage) {
+std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(TupleDesc desc,
+                                                                bool is_vec) {
   std::vector<pax::porc::proto::Type_Kind> type_kinds;
   for (int i = 0; i < desc->natts; i++) {
     auto attr = &desc->attrs[i];
@@ -43,8 +43,10 @@ std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(
       }
     } else {
       Assert(attr->attlen > 0 || attr->attlen == -1);
-      if (attr->atttypid == NUMERICOID && enable_numeric_vec_storage) {
-        type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_DECIMAL);
+      if (attr->atttypid == NUMERICOID) {
+        type_kinds.emplace_back(
+            is_vec ? pax::porc::proto::Type_Kind::Type_Kind_VECDECIMAL
+                   : pax::porc::proto::Type_Kind::Type_Kind_DECIMAL);
       } else if (attr->atttypid == BPCHAROID) {
         type_kinds.emplace_back(pax::porc::proto::Type_Kind::Type_Kind_BPCHAR);
       } else {
@@ -58,10 +60,15 @@ std::vector<pax::porc::proto::Type_Kind> OrcWriter::BuildSchema(
 
 static PaxColumn *CreateDecimalColumn(bool is_vec,
                                       const PaxEncoder::EncodingOption &opts) {
-  CBDB_CHECK(!is_vec, cbdb::CException::ExType::kExTypeUnImplements);
-  return (PaxColumn *)
-      traits::ColumnOptCreateTraits2<PaxShortNumericColumn>::create_encoding(
-          DEFAULT_CAPACITY, opts);
+  if (is_vec) {
+    return (PaxColumn *)
+        traits::ColumnOptCreateTraits2<PaxShortNumericColumn>::create_encoding(
+            DEFAULT_CAPACITY, opts);
+  } else {
+    return (PaxColumn *)
+        traits::ColumnOptCreateTraits2<PaxPgNumericColumn>::create_encoding(
+            DEFAULT_CAPACITY, opts);
+  }
 }
 
 static PaxColumn *CreateBpCharColumn(bool is_vec,
@@ -132,7 +139,12 @@ static PaxColumns *BuildColumns(
         columns->Append(CreateBpCharColumn(is_vec, std::move(encoding_option)));
         break;
       }
+      case (pax::porc::proto::Type_Kind::Type_Kind_VECDECIMAL):
       case (pax::porc::proto::Type_Kind::Type_Kind_DECIMAL): {
+        AssertImply(is_vec,
+                    type == pax::porc::proto::Type_Kind::Type_Kind_VECDECIMAL);
+        AssertImply(!is_vec,
+                    type == pax::porc::proto::Type_Kind::Type_Kind_DECIMAL);
         columns->Append(
             CreateDecimalColumn(is_vec, std::move(encoding_option)));
         break;
@@ -340,8 +352,17 @@ void OrcWriter::WriteTuple(TupleTableSlot *table_slot) {
           }
 
           if (COLUMN_STORAGE_FORMAT_IS_VEC(pax_columns_)) {
-            (*pax_columns_)[i]->Append(VARDATA_ANY(detoast_vl),
-                                       VARSIZE_ANY_EXHDR(detoast_vl));
+            // NUMERIC requires a complete Datum
+            if (table_desc->attrs[i].atttypid == NUMERICOID) {
+              Assert((*pax_columns_)[i]->GetPaxColumnTypeInMem() ==
+                     PaxColumnTypeInMem::kTypeVecDecimal);
+              (*pax_columns_)[i]->Append(reinterpret_cast<char *>(detoast_vl),
+                                         VARSIZE_ANY(detoast_vl));
+
+            } else {
+              (*pax_columns_)[i]->Append(VARDATA_ANY(detoast_vl),
+                                         VARSIZE_ANY_EXHDR(detoast_vl));
+            }
           } else {
             (*pax_columns_)[i]->Append(reinterpret_cast<char *>(detoast_vl),
                                        VARSIZE_ANY(detoast_vl));

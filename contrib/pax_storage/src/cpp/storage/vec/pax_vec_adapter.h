@@ -55,7 +55,7 @@ class VecAdapter final {
 
  private:
   void FullWithCTID(TupleTableSlot *slot, VecBatchBuffer *batch_buffer);
-  bool AppendVecFormat();
+  int AppendVecFormat();
 
   inline size_t GetInvisibleNumber(size_t range_begin, size_t range_lens) {
     if (micro_partition_visibility_bitmap_ == nullptr) {

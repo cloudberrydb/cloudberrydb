@@ -595,6 +595,7 @@ void PaxDumpReader::DumpAllData() {
       } else {
         switch (column->GetPaxColumnTypeInMem()) {
           case kTypeBpChar:
+          case kTypeDecimal:
           case kTypeNonFixed:
             current_row.emplace_back(std::string(DatumGetPointer(d)));
             break;
@@ -619,7 +620,7 @@ void PaxDumpReader::DumpAllData() {
             }
             break;
           }
-          case kTypeDecimal: {
+          case kTypeVecDecimal: {
             CBDB_WRAP_START;
             {
               auto numeric_str = numeric_normalize(DatumGetNumeric(d));
