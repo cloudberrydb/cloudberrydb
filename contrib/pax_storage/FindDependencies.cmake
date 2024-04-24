@@ -21,17 +21,4 @@ endif()
 if (VEC_BUILD)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(GLIB REQUIRED glib-2.0)
-
-    # resolve vectorization dependency, or the header files will miss
-    message(STATUS "Resolve vectorization dependency ...")
-    execute_process(
-        COMMAND make download_arrow
-        WORKING_DIRECTORY ${VEC_HOME}
-        RESULT_VARIABLE CMD_RESULT
-    )
-    if(CMD_RESULT EQUAL 0)
-        message(STATUS "Resolve vectorization dependency succeeded.")
-    else()
-        message(FATAL_ERROR "Resolve vectorization dependency failed with result: ${CMD_RESULT}")
-    endif()
 endif(VEC_BUILD)

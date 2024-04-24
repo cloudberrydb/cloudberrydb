@@ -113,12 +113,12 @@ if (VEC_BUILD)
   set(pax_target_include
       ${pax_target_include}
       ${VEC_HOME}/src/include # for utils/tuptable_vec.h
-      ${VEC_HOME}/arrow/include  # for arrow-glib/arrow-glib.h and otehr arrow interface
+      ${INSTALL_HOME}/include  # for arrow-glib/arrow-glib.h and otehr arrow interface
       ${GLIB_INCLUDE_DIRS} # for glib-object.h
   )
   set(pax_target_link_directories
       ${pax_target_link_directories}
-      ${VEC_HOME}/arrow/lib)
+      ${INSTALL_HOME}/lib)
   set(pax_target_link_libs
       ${pax_target_link_libs}
       arrow)
